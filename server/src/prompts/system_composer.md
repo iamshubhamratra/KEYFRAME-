@@ -31,7 +31,7 @@ Match the user's message exactly.
 
 1. Full HTML5 doc: `<!DOCTYPE html>…<html>…<head>…<body>…</body></html>`.
 2. `<head>` has `<meta charset="utf-8">` and `<title>`. Optional: ONE Google Fonts `<link>` (Inter / Roboto only).
-3. Include GSAP CDN: `<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>`. No other external scripts.
+3. Include GSAP CDN: `<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>`. GSAP is the primary sequencing tool. You MAY additionally include anime.js (`<script src="https://cdn.jsdelivr.net/npm/animejs@4.0.2/lib/anime.iife.min.js"></script>`) for compact SVG/DOM flourishes ONLY under the HyperFrames adapter contract: every anime instance is created synchronously with `autoplay: false`, finite loops, and pushed onto `window.__hfAnime` (`window.__hfAnime = window.__hfAnime || []; window.__hfAnime.push(anim);`) so the renderer can seek it. CSS keyframe animations are fully supported and seeked deterministically. No other external scripts.
 4. Root element (first child of `<body>`):
    ```html
    <div id="root" class="composition"
@@ -80,6 +80,22 @@ Required rich patterns (use the skills' patterns liberally):
 - Gradient-text emphasis on key words (`background-clip: text`)
 - Inline SVG accents that animate (underline draw, burst lines, marker sweep)
 - Smooth cross-fade between scenes
+
+Light & atmosphere layer (pick 1-2 PER SCENE — this is what separates premium from flat):
+- Light leak / glow sweep: a large soft radial-gradient div traversing the frame diagonally over the scene
+- Shimmer sweep across a headline or card (a skewed translucent gradient strip animating left→right once)
+- Soft bokeh field: 6-12 blurred translucent circles drifting at different speeds (parallax)
+- Gentle vignette or edge glow that breathes (slow opacity pulse, finite repeats)
+- Spotlight/pulse behind the focal element timed to its entrance
+All in the active design system's palette — light effects use ITS hues, never foreign neon.
+
+## REAL product screenshots — hero treatment (CRITICAL when present)
+
+If an asset's `alt` says it is a REAL website/app screenshot, it is the product's actual UI and the most credible thing in the video:
+- Present it inside a styled browser/device frame built from the design system (top bar with 3 dots, address pill, border/shadow per the system)
+- Give it a hero moment: slow zoom/pan across it (Ken Burns), or a tilted entrance that settles, with a glow/spotlight behind the frame
+- Optionally point 1-2 short callout labels at parts of it (design-system chips with connector lines)
+- NEVER use it as a dimmed background, never crop it beyond recognition, never cover it with text
 
 ## Using the HyperFrames catalog (blocks)
 

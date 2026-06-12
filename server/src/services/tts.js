@@ -19,7 +19,7 @@ const ENDPOINT = `${config.llm.baseUrl.replace(/\/$/, "")}/chat/completions`;
 // Voices supported by the gpt-audio family. v1's planner may still emit
 // tts-1-era voices (nova/onyx/fable) — map anything unknown to a default.
 const AUDIO_VOICES = new Set(["alloy", "ash", "ballad", "coral", "echo", "sage", "shimmer", "verse", "marin", "cedar"]);
-const FALLBACK_VOICE = "coral";
+const FALLBACK_VOICE = "marin"; // the most natural gpt-audio voice
 
 function mapVoice(voice) {
   const v = String(voice || "").toLowerCase();

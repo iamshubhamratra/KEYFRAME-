@@ -127,13 +127,33 @@ async function understandWebsite({ url, workDir, timeoutMs = 60_000 }) {
       };
     });
 
+    // Multiple REAL screenshots — the hero plus two deeper sections. These
+    // become first-class video assets (showcased in device frames), which is
+    // far more credible than any stock image.
     const screenshotPath = path.join(workDir, "website.png");
     await page.screenshot({ path: screenshotPath, fullPage: false });
 
+    const screenshotPaths = [screenshotPath];
+    try {
+      const pageH = await page.evaluate(() => Math.max(document.body?.scrollHeight || 0, document.documentElement.scrollHeight || 0));
+      const viewH = 900;
+      for (const [i, frac] of [[2, 0.35], [3, 0.7]]) {
+        const y = Math.floor((pageH - viewH) * frac);
+        if (y < viewH * 0.5) continue; // page too short for distinct sections
+        await page.evaluate((top) => window.scrollTo({ top, behavior: "instant" }), y);
+        await new Promise((r) => setTimeout(r, 900)); // lazy content settles
+        const p = path.join(workDir, `website_section${i}.png`);
+        await page.screenshot({ path: p, fullPage: false });
+        screenshotPaths.push(p);
+      }
+    } catch (e) {
+      console.warn(`[ingest] section screenshots failed: ${e.message}`);
+    }
+
     const brandColors = await dominantColors(screenshotPath).catch(() => []);
 
-    console.log(`[ingest] website understood: "${data.title}" — ${data.headings.length} headings, ${data.bodyText.length}ch body, colors=${brandColors.join(",")}`);
-    return { url, ...data, brandColors, screenshotPath };
+    console.log(`[ingest] website understood: "${data.title}" — ${data.headings.length} headings, ${data.bodyText.length}ch body, ${screenshotPaths.length} screenshot(s), colors=${brandColors.join(",")}`);
+    return { url, ...data, brandColors, screenshotPath, screenshotPaths };
   } finally {
     await browser.close().catch(() => {});
   }

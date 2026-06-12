@@ -24,7 +24,7 @@ const { generateStoryboard } = require("./storyboard");
 const { buildFallback } = require("./fallback");
 const { synthesizeFitted } = require("./vo_fit");
 const { buildCues, writeSrt } = require("./captions");
-const { fetchMusic } = require("./audio_sources");
+const { fetchMusic, fetchSfx } = require("./audio_sources");
 const { VALID_VOICES } = require("./audio_planner");
 const { render } = require("./renderer");
 const { withBudget, attemptLlmComposition, mixAudioIntoVideo, fallbackQueriesFor } = require("./pipeline");
@@ -78,8 +78,11 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
           url: website.url, title: website.title, description: website.description,
           headings: website.headings, bodyText: website.bodyText,
           brandColors: website.brandColors, ogImage: website.ogImage,
+          hasRealScreenshots: (website.screenshotPaths || []).length,
         };
         job.website_screenshot = website.screenshotPath;
+        job.website_screenshots = website.screenshotPaths || (website.screenshotPath ? [website.screenshotPath] : []);
+        job.website_title = website.title;
       }
       if (video) intent.video = video;
       intent.__ingested = true;
@@ -163,17 +166,52 @@ function pickVoice(job, script) {
   for (const v of VALID_VOICES) {
     if (want.includes(v)) return v;
   }
-  return "nova";
+  return "marin";
+}
+
+// REAL website screenshots captured at ingest become first-class assets,
+// pinned to the scenes that showcase the product (feature/proof/how) so the
+// composer gives them the device-frame hero treatment.
+function screenshotAssets({ job, script, jobDir }) {
+  const shots = (job.website_screenshots || []).filter((p) => { try { return fs.existsSync(p); } catch { return false; } });
+  if (!shots.length) return [];
+
+  fs.mkdirSync(path.join(jobDir, "assets", "images"), { recursive: true });
+  const showcaseScenes = script.scenes.filter((s) => ["feature", "proof", "how", "context"].includes(s.purpose));
+  const fallbackScenes = script.scenes.slice(1, -1);
+  const targets = (showcaseScenes.length ? showcaseScenes : fallbackScenes).slice(0, 3);
+  const title = job.website_title || "the product";
+
+  return shots.slice(0, targets.length).map((src, i) => {
+    const relPath = `assets/images/site_${i}.png`;
+    fs.copyFileSync(src, path.join(jobDir, relPath));
+    const scene = targets[i];
+    return {
+      path: relPath,
+      type: "image",
+      sceneId: scene.id, startSec: scene.start, durationSec: scene.duration,
+      style: "inset",
+      alt: `REAL website screenshot of ${title} (${i === 0 ? "homepage hero" : `page section ${i + 1}`}) — present in a styled browser frame with hero treatment`,
+      license: "owner content", sourceUrl: job.intent?.websiteUrl || null, source: "website",
+      fromCache: false,
+    };
+  });
 }
 
 // Acquire the approved script's assetNeeds (our DB first, then providers).
-// Caps: 4 assets total, at most 1 video — keeps render time and composer
-// prompt size sane. Returns the availableAssets manifest the composer sees.
-async function acquireScriptAssets({ script, jobDir, orientation, tracker }) {
+// Caps: 6 searched assets + up to 3 real screenshots, at most 1 video.
+// Returns the availableAssets manifest the composer sees.
+async function acquireScriptAssets({ job, script, jobDir, orientation, tracker }) {
+  const pinned = screenshotAssets({ job, script, jobDir });
+
   const wanted = [];
   const videoOk = hasProviderFor("video");
+  const screenshotScenes = new Set(pinned.map((a) => a.sceneId));
   for (const scene of script.scenes) {
     for (const need of scene.assetNeeds || []) {
+      // A scene that already has a real screenshot doesn't need a stock
+      // background competing with it.
+      if (screenshotScenes.has(scene.id) && need.role === "background") continue;
       // No video provider configured (keys missing)? A still works almost as
       // well as a loop for backgrounds — downgrade rather than come up empty.
       if (need.type === "video" && !videoOk) {
@@ -183,10 +221,10 @@ async function acquireScriptAssets({ script, jobDir, orientation, tracker }) {
       }
     }
   }
-  if (!wanted.length) return [];
+  if (!wanted.length && !pinned.length) return [];
 
   const videos = wanted.filter((w) => w.need.type === "video").slice(0, 1);
-  const images = wanted.filter((w) => w.need.type !== "video").slice(0, 4 - videos.length);
+  const images = wanted.filter((w) => w.need.type !== "video").slice(0, 6 - videos.length);
   const picks = [...videos, ...images];
 
   fs.mkdirSync(path.join(jobDir, "assets", "images"), { recursive: true });
@@ -218,8 +256,8 @@ async function acquireScriptAssets({ script, jobDir, orientation, tracker }) {
   });
 
   const got = (await Promise.all(tasks)).filter(Boolean);
-  console.log(`[project] assets acquired: ${got.length}/${picks.length} (${got.filter((a) => a.fromCache).length} from cache)`);
-  return got;
+  console.log(`[project] assets: ${pinned.length} real screenshot(s) + ${got.length}/${picks.length} acquired (${got.filter((a) => a.fromCache).length} from cache)`);
+  return [...pinned, ...got];
 }
 
 async function runProduction({ jobId }) {
@@ -271,13 +309,27 @@ async function runProduction({ jobId }) {
         : Promise.resolve(null)
     )).then((arr) => arr.filter(Boolean));
 
+    // Sound effects from the script's per-scene sfx[] — fetched in parallel,
+    // landed at each scene's start, mixed under the VO.
+    const sfxWanted = [];
+    for (const s of script.scenes) {
+      for (const name of (s.sfx || [])) {
+        if (sfxWanted.length < 6) sfxWanted.push({ query: name, startSec: s.start });
+      }
+    }
+    const sfxTask = Promise.all(sfxWanted.map((s, i) =>
+      fetchSfx({ query: s.query, outputPath: path.join(audioDir, `sfx-${i}.mp3`), tracker })
+        .then((p) => p ? { path: p, startSec: s.startSec, volume: 0.4 } : null)
+        .catch(() => null)
+    )).then((arr) => arr.filter(Boolean));
+
     const musicTask = script.music?.query
       ? fetchMusic({ query: script.music.query, outputPath: path.join(audioDir, "music.mp3"), tracker })
           .catch((e) => { console.warn(`[project] music failed: ${e.message}`); return null; })
       : Promise.resolve(null);
 
     // ---- Assets (DB-first) start now, in parallel with the storyboard call.
-    const assetsTask = acquireScriptAssets({ script, jobDir, orientation: job.orientation, tracker })
+    const assetsTask = acquireScriptAssets({ job, script, jobDir, orientation: job.orientation, tracker })
       .catch((e) => { console.warn(`[project] asset stage failed: ${e.message}`); return []; });
 
     // ---- Storyboard from the approved script ----
@@ -367,7 +419,8 @@ async function runProduction({ jobId }) {
     {
       const t0 = ms();
       db.setProgress(jobId, "audio");
-      const [voClips, musicPath] = await Promise.all([voTask, musicTask]);
+      const [voClips, musicPath, sfxClips] = await Promise.all([voTask, musicTask, sfxTask]);
+      if (sfxClips.length) console.log(`[project] ${sfxClips.length} sfx mixed in`);
 
       // Captions: cue objects + .srt exported next to the MP4.
       const cues = buildCues(voClips);
@@ -387,8 +440,11 @@ async function runProduction({ jobId }) {
         audio: {
           ttsPath: null,
           musicPath,
-          // Each scene's VO rides the mixer's offset mechanism (adelay).
-          sfx: voClips.map((c) => ({ path: c.path, startSec: c.startSec, volume: 1.0 })),
+          // VO clips and sound effects both ride the mixer's offset mechanism.
+          sfx: [
+            ...voClips.map((c) => ({ path: c.path, startSec: c.startSec, volume: 1.0 })),
+            ...sfxClips,
+          ],
           musicVolume: config.audio?.defaultMusicVolume ?? 0.15,
         },
       }).catch((e) => console.warn(`[project] mix failed: ${e.message}`));

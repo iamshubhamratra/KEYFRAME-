@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createProject, listFrames } from "../api.js";
+import Landing from "./Landing.jsx";
 
 const TABS = [
   { key: "prompt", label: "Prompt" },
@@ -58,7 +59,8 @@ export default function CreateScreen({ onCreated }) {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-6 pt-16 pb-24">
+    <div className="pt-16 pb-24">
+      <div className="max-w-3xl mx-auto px-6">
       <motion.h1
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -203,6 +205,15 @@ export default function CreateScreen({ onCreated }) {
       >
         {busy ? "Starting…" : autopilot ? "Generate video" : "Write my script"}
       </motion.button>
+
+      <p className="mt-16 text-center text-[11px] uppercase tracking-[0.3em] text-dim/70"
+        style={{ animation: "softPulse 3.5s ease-in-out infinite" }}>
+        ↓ scroll through a day at the studio ↓
+      </p>
+      </div>
+
+      {/* The long landing — the sky follows the scroll from here to midnight. */}
+      <Landing onStart={() => window.scrollTo({ top: 0, behavior: "smooth" })} />
     </div>
   );
 }

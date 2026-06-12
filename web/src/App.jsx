@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import SolsticeSky from "./SolsticeSky.jsx";
 import CreateScreen from "./screens/CreateScreen.jsx";
@@ -33,6 +33,10 @@ export default function App() {
     setView(nextView);
   }, []);
 
+  // Each view starts at the top — especially after scrolling the long
+  // landing page to midnight.
+  useEffect(() => { window.scrollTo({ top: 0 }); }, [view]);
+
   const screens = {
     create: <CreateScreen onCreated={(id, autopilot) => go(autopilot ? "theater" : "understanding", id)} />,
     understanding: <UnderstandingScreen projectId={projectId} onScriptReady={() => go("script")} onFailed={() => go("create")} />,
@@ -44,7 +48,10 @@ export default function App() {
 
   return (
     <div className="grain min-h-full flex flex-col">
-      <SolsticeSky phase={PHASES[view] ?? 0.4} />
+      {/* On the landing/create view the sky is SCROLL-driven (one-pager
+          mode): dawn at the top, midnight at the foot of the page. Every
+          other view pins the sky to its workflow phase. */}
+      <SolsticeSky phase={view === "create" ? null : (PHASES[view] ?? 0.4)} />
 
       <header className="sticky top-0 z-50 flex items-center justify-between px-8 py-4 border-b border-line bg-panel backdrop-blur-md">
         <button

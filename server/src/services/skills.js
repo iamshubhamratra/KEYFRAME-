@@ -120,10 +120,10 @@ async function getSkillBundle(keys) {
  * reserved for explicit opt-in via getFullComposerSkills().
  */
 async function getComposerSkills() {
-  // Just SKILL.md (the core guide). Keeping skill context small
-  // (~5k tokens) so composer LLM calls return in 30-40 s not 70 s.
-  // Our own system_composer.md covers house-style + GSAP patterns.
-  return await getSkillBundle(["main"]);
+  // Core guide + the motion/css/transition references. Now that skills load
+  // from disk this costs no latency, only ~5k extra input tokens — worth it
+  // for the visibly richer motion vocabulary.
+  return await getSkillBundle(["main", "motion", "cssPatterns", "transitions"]);
 }
 
 /**
