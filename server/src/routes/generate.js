@@ -75,6 +75,18 @@ function validateBody(body) {
     }
   }
 
+  // Frame pack (design system). Omitted or "auto" -> default pack.
+  const frameRegistry = require("../services/frame_registry");
+  if (body.framePack != null && body.framePack !== "auto") {
+    if (typeof body.framePack !== "string" || frameRegistry.resolvePack(body.framePack) == null) {
+      errs.push(`framePack must be "auto" or one of: ${frameRegistry.listPacks().join(", ")}`);
+    } else {
+      out.framePack = body.framePack;
+    }
+  } else {
+    out.framePack = frameRegistry.resolvePack("auto"); // null when no packs installed
+  }
+
   return { errs, out };
 }
 
@@ -113,6 +125,7 @@ function buildRouter({ enqueue }) {
       width: dims.width,
       height: dims.height,
       fps: out.fps,
+      framePack: out.framePack,
       created_at: Date.now(),
       client_ip: clientIp(req),
     });
@@ -132,6 +145,7 @@ function buildRouter({ enqueue }) {
       voice: out.voice,
       images: out.images,
       video: out.video,
+      framePack: out.framePack,
     });
 
     // Queue state *after* this insert; subtract 1 so the count represents jobs AHEAD of mine.

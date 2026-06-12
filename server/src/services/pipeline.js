@@ -109,7 +109,7 @@ async function planAndFetchAssets({ jobDir, storyboard, flags, orientation, trac
 
 // ========== Composition + lint repair ==========
 
-async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets, tracker, abortSignal }) {
+async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets, tracker, abortSignal, framePack }) {
   console.log(`[pipeline] composeWithLintRepair: calling composer (first pass)`);
   const first = await compose(storyboard, {
     width: dims.width, height: dims.height, fps: dims.fps,
@@ -117,6 +117,7 @@ async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets
     maxRetries: config.llm.composerMaxRetries,
     availableAssets,
     abortSignal,
+    framePack,
   });
   tracker.addLlm({ inputTokens: first.tokensIn, outputTokens: first.tokensOut });
 
@@ -136,7 +137,7 @@ async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets
   const lint1 = await validate(jobDir, { indexHtml: first.indexHtml, metaJson: first.metaJson });
   if (lint1.ok) { console.log(`[pipeline] lint passed on first attempt`); return { files: first }; }
 
-  console.warn(`[pipeline] lint failed; attempting repair. stderr tail: ${lint1.stderr.slice(-500)}`);
+  console.warn(`[pipeline] lint failed; attempting repair. tail: ${(lint1.stderr || lint1.stdout).slice(-600)}`);
   const repairStoryboard = { ...storyboard,
     __lintFeedback: `Previous HTML failed hyperframes lint with:\n${lint1.stderr || lint1.stdout}\nFix these issues specifically.`,
   };
@@ -144,6 +145,7 @@ async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets
     width: dims.width, height: dims.height, fps: dims.fps,
     duration: storyboard.durationSec, maxRetries: 1, availableAssets,
     abortSignal,
+    framePack,
   });
   tracker.addLlm({ inputTokens: second.tokensIn, outputTokens: second.tokensOut });
 
@@ -156,17 +158,17 @@ async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets
   const lint2 = await validate(jobDir, { indexHtml: second.indexHtml, metaJson: second.metaJson });
   if (lint2.ok) return { files: second };
 
-  const err = new Error(`lint still failed after repair: ${lint2.stderr.slice(-500)}`);
+  const err = new Error(`lint still failed after repair: ${(lint2.stderr || lint2.stdout).slice(-600)}`);
   throw err;
 }
 
 // ========== One attempt at full LLM comp + render with a given asset set ==========
 
-async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker, jobId, durationSec, label, abortSignal }) {
+async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker, jobId, durationSec, label, abortSignal, framePack }) {
   const t0 = ms();
-  console.log(`[pipeline] ${label}: compose start (assets=${assets.length})`);
+  console.log(`[pipeline] ${label}: compose start (assets=${assets.length}, framePack=${framePack || "none"})`);
   await composeWithLintRepair({
-    storyboard, dims, jobDir, availableAssets: assets, tracker, abortSignal,
+    storyboard, dims, jobDir, availableAssets: assets, tracker, abortSignal, framePack,
   });
   console.log(`[pipeline] ${label}: compose done in ${ms() - t0}ms, render start`);
   tracker.addExternal("hyperframes_render");
@@ -244,7 +246,7 @@ async function mixAudioIntoVideo({ visualPath, durationSec, audio }) {
 async function runJob({
   jobId, prompt, duration, orientation, width, height, fps,
   tts = false, music = false, soundEffect = false, voice,
-  images = false, video = false,
+  images = false, video = false, framePack = null,
 }) {
   const jobDir = jobDirFor(jobId);
   fs.mkdirSync(jobDir, { recursive: true });
@@ -314,7 +316,7 @@ async function runJob({
           (signal) => attemptLlmComposition({
             storyboard: sbRes.storyboard, dims, jobDir,
             assets: allAssets, tracker, jobId, durationSec: duration,
-            label: "main", abortSignal: signal,
+            label: "main", abortSignal: signal, framePack,
           }),
           budget, "main composition"
         );
@@ -336,7 +338,7 @@ async function runJob({
           (signal) => attemptLlmComposition({
             storyboard: sbRes.storyboard, dims, jobDir,
             assets: imagesOnly, tracker, jobId, durationSec: duration,
-            label: "no-videos", abortSignal: signal,
+            label: "no-videos", abortSignal: signal, framePack,
           }),
           budget, "no-videos retry"
         );
@@ -357,7 +359,7 @@ async function runJob({
           (signal) => attemptLlmComposition({
             storyboard: sbRes.storyboard, dims, jobDir,
             assets: [], tracker, jobId, durationSec: duration,
-            label: "no-assets", abortSignal: signal,
+            label: "no-assets", abortSignal: signal, framePack,
           }),
           budget, "no-assets retry"
         );

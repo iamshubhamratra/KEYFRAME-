@@ -45,6 +45,9 @@ Match the user's message exactly.
 8. No `fetch(…)`, `XMLHttpRequest`, dynamic `import(…)`, or network calls beyond GSAP + Google Fonts.
 9. **CRITICAL — MUST NOT BE OMITTED:** Exactly one GSAP timeline, `paused: true`, registered as `window.__timelines["vid"] = tl`. The timeline registration line `window.__timelines = window.__timelines || {}; window.__timelines["vid"] = tl;` MUST appear in the final script. If this is missing the composition will not animate and the build will fail lint.
 10. When using GSAP centering transforms, use `xPercent: -50, yPercent: -50` (not `translate(-50%,-50%)`).
+11. **NEVER use `repeat: -1` (infinite repeat) in any tween** — it breaks the deterministic frame-capture engine and FAILS lint. For looping motion (drift, float, pulse, spin), compute a finite count: `repeat: Math.floor(remainingSeconds / cycleSeconds) - 1` (use Math.floor, never Math.ceil).
+12. **Clips sharing a `data-track-index` must NEVER overlap in time** — `[start, start+duration)` ranges on one track must be disjoint, or lint FAILS. A full-duration background clip needs its own track with nothing else on it.
+13. After each scene's exit animation, add a hard kill at the moment the next scene starts: `tl.set("#sceneId", { opacity: 0 }, nextSceneStart)`. Non-linear seeking can otherwise land after a fade and show stale state.
 
 ## Visual-richness checklist (every scene)
 
@@ -176,6 +179,9 @@ Mentally walk every scene:
 - Does the root have `data-duration`? ✓
 - Do all asset `src` values match `availableAssets`? ✓
 - Is the timeline `paused: true` and registered on `window.__timelines["vid"]`? ✓
+- Zero `repeat: -1` anywhere (every repeat is a computed finite count)? ✓
+- No two clips on the same `data-track-index` overlap in time? ✓
+- Every scene exit followed by a hard `tl.set(..., { opacity: 0 }, t)` kill? ✓
 
 If yes to all, emit the JSON. If no to any, fix it and then emit.
 

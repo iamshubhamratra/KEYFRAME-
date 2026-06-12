@@ -1,7 +1,7 @@
 {
-  "name": "video-gen",
-  "version": "1.0.0",
-  "description": "Prompt-to-video generator using OpenRouter MiniMax M3 + HeyGen Hyperframes, deployed on AWS Elastic Beanstalk.",
+  "name": "keyframe-server",
+  "version": "0.1.0",
+  "description": "KEYFRAME — multi-modal AI video studio backend. Prompt/video/URL -> editable script -> frame-pack-styled HyperFrames composition -> MP4.",
   "private": true,
   "engines": {
     "node": ">=22"

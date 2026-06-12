@@ -13,6 +13,7 @@ const skills = require("./src/services/skills");
 const catalog = require("./src/services/catalog");
 const healthRouter = require("./src/routes/health");
 const jobsRouter = require("./src/routes/jobs");
+const framesRouter = require("./src/routes/frames");
 const { buildRouter: buildGenerateRouter } = require("./src/routes/generate");
 
 async function loadQueue() {
@@ -45,6 +46,7 @@ async function main() {
 
   app.use(healthRouter);
   app.use("/api", jobsRouter);
+  app.use("/api", framesRouter);
   app.use("/api", buildGenerateRouter({ enqueue }));
 
   // Static: frontend + rendered videos.

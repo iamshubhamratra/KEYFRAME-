@@ -8,13 +8,14 @@ const path = require("node:path");
 const openrouter = require("./openrouter");
 const { getComposerSkills } = require("./skills");
 const { getCatalogSummary } = require("./catalog");
+const frameRegistry = require("./frame_registry");
 
 const SYSTEM_BASE = fs.readFileSync(
   path.join(__dirname, "..", "prompts", "system_composer.md"),
   "utf8"
 );
 
-async function getSystemPromptWithSkills() {
+async function getSystemPromptWithSkills(framePack) {
   const [skills, catalog] = await Promise.all([
     getComposerSkills().catch(() => ""),
     getCatalogSummary().catch(() => ""),
@@ -44,6 +45,29 @@ async function getSystemPromptWithSkills() {
     parts.push("");
     parts.push(skills);
   }
+
+  // Inject the selected frame pack's FRAME.md as the authoritative design
+  // system. Placed LAST so it wins any stylistic conflict with the generic
+  // guidance above; the lint-enforced technical constraints are untouched.
+  const frameMd = framePack ? frameRegistry.getFrameMd(framePack) : null;
+  if (frameMd) {
+    parts.push("", "---", "", `# DESIGN SYSTEM — "${framePack}" (AUTHORITATIVE)`);
+    parts.push("");
+    parts.push("You MUST express every scene in the design system specified below. Its ATOMS —");
+    parts.push("colors, typography (families, weights, case, tracking), borders, shadows, spacing,");
+    parts.push("and components — are SACRED: reproduce them exactly as specified. Its COMPOSITION");
+    parts.push("is FREE: arrange, scale, and animate those atoms however best serves each scene.");
+    parts.push("");
+    parts.push("Precedence rules:");
+    parts.push("- This design system OVERRIDES the storyboard's `palette` and `fontFamily` fields — ignore them.");
+    parts.push("- It OVERRIDES the generic typography / gradient-text / color guidance earlier in this prompt wherever they conflict.");
+    parts.push("- The single Google Fonts <link> must load the font families THIS design system names (multiple families combined in one <link> is allowed). Do not load any other families.");
+    parts.push("- Hard technical constraints still apply unchanged: clip structure, exactly one paused GSAP timeline registered on window.__timelines[\"vid\"], asset src whitelist, no extra <script> tags, no fetch/XHR.");
+    parts.push("- The design spec below covers composition only; motion is yours. Keep the visual-richness checklist from earlier, but express it ENTIRELY with this system's atoms — animate ITS decorations, ITS rules/blooms/shadows, ITS type. Do not import foreign visual elements (e.g. no neon gradients on a parchment system, no soft blurred shadows on a hard-shadow system).");
+    parts.push("");
+    parts.push(frameMd);
+  }
+
   return parts.join("\n");
 }
 
@@ -141,10 +165,10 @@ function quickCheck(indexHtml, metaJsonStr, { width, height, duration, assets })
   return errs;
 }
 
-async function compose(storyboard, { width, height, fps, duration, maxRetries, availableAssets, abortSignal }) {
+async function compose(storyboard, { width, height, fps, duration, maxRetries, availableAssets, abortSignal, framePack }) {
   const t0 = Date.now();
-  console.log(`[composer] start (duration=${duration}s, assets=${(availableAssets||[]).length}, maxRetries=${maxRetries})`);
-  const system = await getSystemPromptWithSkills();
+  console.log(`[composer] start (duration=${duration}s, assets=${(availableAssets||[]).length}, maxRetries=${maxRetries}, framePack=${framePack || "none"})`);
+  const system = await getSystemPromptWithSkills(framePack);
   const user = buildUser(storyboard, { width, height, fps, availableAssets });
   const tries = (maxRetries ?? 2) + 1;
   let totalIn = 0, totalOut = 0;
