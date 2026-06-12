@@ -231,7 +231,7 @@ async function checkBudget() {
 }
 
 const BUDGET_EXHAUSTED_MSG =
-  "Daily LLM budget exhausted — the OpenRouter key's daily limit is used up. " +
-  "It resets automatically every day; to continue today, raise the key's daily limit at openrouter.ai/settings/keys.";
+  "LLM budget exhausted — the OpenRouter key's spend limit is used up. " +
+  "Daily-limit keys reset automatically each day; otherwise add credits or raise the key's limit at openrouter.ai/settings/keys.";
 
 module.exports = { chat, modelForStage, checkBudget, BUDGET_EXHAUSTED_MSG };
