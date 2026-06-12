@@ -46,13 +46,16 @@ function encodePcmToMp3(pcm, outputPath) {
   });
 }
 
-async function synthesize({ script, voice, instructions, outputPath, model, tracker }) {
+async function synthesize({ script, voice, instructions, outputPath, model, tracker, meta }) {
   if (!script || !script.trim()) throw new Error("tts: empty script");
 
+  // The gpt-audio models tend to ad-lib around loosely framed input, so the
+  // text is delivered as an explicit READ-EXACTLY directive. Callers can pass
+  // `meta` to receive {transcript, spokenSec} and verify what was spoken.
   const system = [
-    "You are a professional voiceover artist.",
-    "Speak the user's text aloud verbatim — every word exactly as written, nothing added, nothing removed, no greetings, no commentary.",
-    instructions ? `Delivery: ${instructions}` : "",
+    "You are a text-to-speech engine.",
+    "Read the text between <script> tags aloud EXACTLY as written: every word, nothing added, nothing removed, no greeting, no sign-off, no commentary, no elaboration.",
+    instructions ? `Delivery style: ${instructions}` : "",
   ].filter(Boolean).join(" ");
 
   const body = {
@@ -62,7 +65,7 @@ async function synthesize({ script, voice, instructions, outputPath, model, trac
     stream: true,
     messages: [
       { role: "system", content: system },
-      { role: "user", content: script },
+      { role: "user", content: `<script>\n${script}\n</script>` },
     ],
   };
 
@@ -120,10 +123,11 @@ async function synthesize({ script, voice, instructions, outputPath, model, trac
     }
 
     await encodePcmToMp3(pcm, outputPath);
-    console.log(`[tts] ${mapVoice(voice)} spoke ${words} words (${Math.round(pcm.length / 48000 * 10) / 10}s, transcript ${transcript.length}ch)`);
+    const spokenSec = pcm.length / 48000;
+    console.log(`[tts] ${mapVoice(voice)} spoke ${words} words (${Math.round(spokenSec * 10) / 10}s, transcript ${transcript.length}ch)`);
 
-    if (tracker) tracker.addTts({ inputChars: script.length, spokenSec: pcm.length / 48000 });
-    synthesize.lastTranscript = transcript; // exposed for verification/captions
+    if (tracker) tracker.addTts({ inputChars: script.length, spokenSec });
+    if (meta) { meta.transcript = transcript; meta.spokenSec = spokenSec; }
     return outputPath;
   } finally {
     clearTimeout(timer);

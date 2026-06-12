@@ -264,7 +264,7 @@ async function runProduction({ jobId }) {
             outputPath: path.join(audioDir, `vo-${s.id}.mp3`),
             tracker,
           })
-            .then((r) => r ? { sceneId: s.id, startSec: s.start, durationSec: r.durationSec, text: r.text, path: r.path } : null)
+            .then((r) => r ? { sceneId: s.id, startSec: s.start, durationSec: r.durationSec, sceneDurationSec: s.duration, text: r.text, path: r.path } : null)
             .catch((e) => { console.warn(`[project] vo for ${s.id} failed: ${e.message}`); return null; })
         : Promise.resolve(null)
     )).then((arr) => arr.filter(Boolean));

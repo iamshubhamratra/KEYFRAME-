@@ -64,6 +64,11 @@ Forbidden boring patterns:
 - Same animation across all scenes
 - Background that never moves
 
+Continuity rules (every frame of the video must look composed):
+- NO EMPTY FRAMES: at every timestamp some visible content is on screen. Scene enter animations begin AT the scene's data-start (≤0.15s delay); the previous scene's exit overlaps the next scene's entrance — never leave a gap where only the background ground is visible.
+- Text over a photograph or video MUST sit on a contrast device (panel, card, scrim, or band — use the design system's own device when one is active). Never place raw text over a busy image.
+- A wipe/slide transition must complete within 0.6s — a frame that is 80% transition panel reads as broken.
+
 Required rich patterns (use the skills' patterns liberally):
 - Animated gradient background (slow drift)
 - Drifting SVG particle field

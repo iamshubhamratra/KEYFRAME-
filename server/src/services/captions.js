@@ -30,20 +30,30 @@ function splitLine(text, maxChars = 64) {
   return [t.slice(0, cut).trim(), t.slice(cut).trim()];
 }
 
-// voClips: [{ sceneId, startSec, durationSec (measured), text }]
+// voClips: [{ sceneId, startSec, durationSec (measured), sceneDurationSec?, text }]
+// Cues are clamped to their scene window (plus a small grace) and never
+// overlap the next clip's start.
 function buildCues(voClips) {
+  const clips = [...voClips].sort((a, b) => a.startSec - b.startSec);
   const cues = [];
-  for (const clip of voClips) {
-    if (!clip.text || !clip.text.trim()) continue;
+  clips.forEach((clip, idx) => {
+    if (!clip.text || !clip.text.trim()) return;
+
+    let limit = clip.startSec + Math.max(0.8, clip.durationSec);
+    if (clip.sceneDurationSec) limit = Math.min(limit, clip.startSec + clip.sceneDurationSec + 1.0);
+    const next = clips[idx + 1];
+    if (next) limit = Math.min(limit, next.startSec - 0.05);
+    const total = Math.max(0.8, limit - clip.startSec);
+
     const chunks = splitLine(clip.text);
-    const total = Math.max(0.8, clip.durationSec);
+    const totalChars = chunks.reduce((s, c) => s + c.length, 0);
     let t = clip.startSec;
     for (const chunk of chunks) {
-      const share = total * (chunk.length / chunks.reduce((s, c) => s + c.length, 0));
+      const share = total * (chunk.length / totalChars);
       cues.push({ start: t, end: t + share, text: chunk });
       t += share;
     }
-  }
+  });
   return cues;
 }
 
