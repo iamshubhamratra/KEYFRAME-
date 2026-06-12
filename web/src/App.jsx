@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import SolsticeSky from "./SolsticeSky.jsx";
 import CreateScreen from "./screens/CreateScreen.jsx";
 import UnderstandingScreen from "./screens/UnderstandingScreen.jsx";
 import ScriptRoom from "./screens/ScriptRoom.jsx";
@@ -10,6 +11,19 @@ import Gallery from "./screens/Gallery.jsx";
 // View state machine:
 //   create -> understanding -> script -> theater -> premiere
 //   gallery reachable from the header at any time.
+//
+// SOLSTICE: each view is a time of day. The sun rises while you
+// create, crosses the sky through script & production, and becomes
+// the moon at the premiere — the premiere is always at midnight.
+const PHASES = {
+  create: 0.04,
+  understanding: 0.28,
+  script: 0.46,
+  theater: 0.68,
+  gallery: 0.4,
+  premiere: 1.0,
+};
+
 export default function App() {
   const [view, setView] = useState("create");
   const [projectId, setProjectId] = useState(null);
@@ -30,10 +44,12 @@ export default function App() {
 
   return (
     <div className="grain min-h-full flex flex-col">
-      <header className="flex items-center justify-between px-8 py-5 border-b border-line">
+      <SolsticeSky phase={PHASES[view] ?? 0.4} />
+
+      <header className="sticky top-0 z-50 flex items-center justify-between px-8 py-4 border-b border-line bg-panel backdrop-blur-md">
         <button
           onClick={() => go("create", null)}
-          className="font-display font-bold tracking-[0.25em] text-ink text-sm uppercase"
+          className="font-display font-bold tracking-[0.2em] text-ink text-sm uppercase"
         >
           KEY<span className="text-accent">FRAME</span>
         </button>
@@ -51,10 +67,10 @@ export default function App() {
         <AnimatePresence mode="wait">
           <motion.div
             key={view}
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
             className="h-full"
           >
             {screens[view]}

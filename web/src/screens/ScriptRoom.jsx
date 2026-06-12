@@ -5,6 +5,17 @@ import { getProject, approveProject, regenerateProject, pollProject } from "../a
 const WORDS_PER_SEC = 2.6;
 const wc = (s) => (String(s || "").match(/\S+/g) || []).length;
 
+// Solstice department colors cycled by scene purpose.
+const PURPOSE_CHIP = {
+  hook: "var(--color-sun)",
+  context: "var(--color-sky)",
+  feature: "var(--color-violet)",
+  proof: "var(--color-mint)",
+  how: "var(--color-sky)",
+  quote: "var(--color-pink)",
+  cta: "var(--color-accent)",
+};
+
 // The product's signature moment: the script as an editable vertical timeline
 // of scene cards. VO inline-editable, scenes reorderable/deletable, per-scene
 // pace meter, then Approve & Produce.
@@ -105,21 +116,23 @@ export default function ScriptRoom({ projectId, onApproved }) {
       {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
 
       {/* Sticky footer: total duration + CTA */}
-      <div className="fixed bottom-0 left-0 right-0 border-t border-line bg-ground/90 backdrop-blur px-6 py-4">
+      <div className="fixed bottom-0 left-0 right-0 border-t border-line bg-panel backdrop-blur-md px-6 py-4">
         <div className="max-w-3xl mx-auto flex items-center gap-6">
           <div className="flex-1">
             <div className="flex justify-between text-[10px] uppercase tracking-widest text-dim mb-1">
               <span>Total</span>
-              <span className={Math.abs(totalSec - targetSec) > 1 ? "text-amber-400" : ""}>
+              <span className={Math.abs(totalSec - targetSec) > 1 ? "text-amber-600" : ""}>
                 {totalSec.toFixed(1)}s / {targetSec}s
               </span>
             </div>
             <div className="h-1.5 rounded bg-line overflow-hidden">
-              <motion.div className="h-full bg-accent" animate={{ width: `${Math.min(100, (totalSec / targetSec) * 100)}%` }} />
+              <motion.div className="h-full bg-accent rounded"
+                animate={{ width: `${Math.min(100, (totalSec / targetSec) * 100)}%` }}
+                transition={{ type: "spring", stiffness: 160, damping: 24 }} />
             </div>
           </div>
           <motion.button whileTap={{ scale: 0.97 }} onClick={approve} disabled={busy}
-            className="px-8 py-3 rounded-xl bg-accent text-ground font-display font-bold uppercase tracking-widest text-sm hover:bg-accent-dim transition-colors">
+            className="btn-solstice uppercase text-sm">
             {busy ? "Sending…" : "Approve & produce"}
           </motion.button>
         </div>
@@ -135,17 +148,22 @@ function SceneCard({ scene, originalScene, onPatch, onRemove }) {
 
   return (
     <Reorder.Item value={originalScene} className="list-none">
-      <motion.div layout className="rounded-xl border border-line bg-panel p-5 cursor-grab active:cursor-grabbing">
+      <motion.div
+        layout
+        whileHover={{ y: -2 }}
+        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+        className="glass-card p-5 cursor-grab active:cursor-grabbing"
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-[10px] font-display uppercase tracking-widest px-2 py-0.5 rounded bg-line text-dim">{scene.purpose}</span>
-            <span className="text-[10px] text-dim">{scene.start.toFixed(1)}s</span>
+            <span className="chip uppercase" style={{ "--chip": PURPOSE_CHIP[scene.purpose] || "var(--color-sky)" }}>{scene.purpose}</span>
+            <span className="text-[10px] text-dim font-mono">{scene.start.toFixed(1)}s</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className={`text-[10px] ${over ? "text-red-400" : "text-dim"}`}>
+            <span className={`text-[10px] ${over ? "text-red-500" : "text-dim"}`}>
               {words} words · fits ~{capacity}
             </span>
-            <button onClick={onRemove} className="text-dim hover:text-red-400 text-sm" title="delete scene">✕</button>
+            <button onClick={onRemove} className="text-dim hover:text-red-500 text-sm transition-colors" title="delete scene">✕</button>
           </div>
         </div>
 
@@ -153,7 +171,7 @@ function SceneCard({ scene, originalScene, onPatch, onRemove }) {
           value={scene.voiceover}
           onChange={(e) => onPatch({ voiceover: e.target.value })}
           placeholder="(no narration this scene)"
-          className={`mt-3 w-full bg-transparent outline-none resize-none text-lg leading-snug ${over ? "text-red-300" : ""}`}
+          className={`mt-3 w-full bg-transparent outline-none resize-none text-lg leading-snug ${over ? "text-red-500" : ""}`}
           rows={Math.max(1, Math.ceil(scene.voiceover.length / 70))}
         />
 
@@ -162,11 +180,11 @@ function SceneCard({ scene, originalScene, onPatch, onRemove }) {
         {scene.assetNeeds?.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
             {scene.assetNeeds.map((a, i) => (
-              <span key={i} className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wide border border-line rounded-full px-2.5 py-1 text-dim">
+              <span key={i} className="chip" style={{ "--chip": "var(--color-sky)" }}>
                 {a.type}: {a.query}
                 <button
                   onClick={() => onPatch({ assetNeeds: scene.assetNeeds.filter((_, j) => j !== i) })}
-                  className="hover:text-red-400"
+                  className="ml-1.5 hover:text-red-500 transition-colors"
                 >✕</button>
               </span>
             ))}
@@ -177,7 +195,7 @@ function SceneCard({ scene, originalScene, onPatch, onRemove }) {
           <span className="text-[10px] uppercase tracking-widest text-dim w-16">{scene.duration.toFixed(1)}s</span>
           <input type="range" min="2.5" max="8" step="0.5" value={scene.duration}
             onChange={(e) => onPatch({ duration: Number(e.target.value) })}
-            className="flex-1 accent-[#ccff00]" />
+            className="flex-1 accent-[#ff6b57]" />
         </div>
       </motion.div>
     </Reorder.Item>

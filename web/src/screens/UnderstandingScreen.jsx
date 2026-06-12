@@ -77,9 +77,10 @@ export default function UnderstandingScreen({ projectId, onScriptReady, onFailed
           {brief?.brandColors?.length > 0 && (
             <Card title="Brand colors detected">
               <div className="flex gap-2">
-                {brief.brandColors.map((c) => (
-                  <motion.div key={c} initial={{ scale: 0 }} animate={{ scale: 1 }}
-                    className="w-10 h-10 rounded-lg border border-line" style={{ background: c }} title={c} />
+                {brief.brandColors.map((c, i) => (
+                  <motion.div key={c} initial={{ scale: 0, rotate: -8 }} animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: "spring", stiffness: 320, damping: 18, delay: i * 0.08 }}
+                    className="w-10 h-10 rounded-xl border border-line shadow-sm" style={{ background: c }} title={c} />
                 ))}
               </div>
             </Card>
@@ -99,10 +100,11 @@ function Card({ title, children }) {
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: 22, scale: 0.985 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0 }}
-      className="rounded-xl border border-line bg-panel p-5"
+      transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+      className="glass-card p-5"
     >
       <div className="text-[10px] uppercase tracking-widest text-dim mb-2">{title}</div>
       {children}

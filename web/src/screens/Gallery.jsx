@@ -27,21 +27,23 @@ export default function Gallery({ onOpen }) {
         {projects.map((p, i) => (
           <motion.button
             key={p.jobId}
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
+            transition={{ delay: i * 0.06, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+            whileHover={{ y: -4 }}
             onClick={() => onOpen(p.jobId)}
-            className="text-left rounded-xl overflow-hidden border border-line bg-panel hover:border-accent/50 transition-colors group"
+            className="text-left overflow-hidden glass-card hover:border-accent/50 transition-colors group"
           >
-            <div className="aspect-video bg-black relative overflow-hidden">
+            <div className="aspect-video bg-black relative overflow-hidden rounded-t-[21px]">
               {/* Hover-scrub: muted autoplay on hover */}
               <video
                 src={p.videoUrl}
+                poster={p.videoUrl.replace(/\.mp4$/, ".jpg")}
                 muted
                 loop
                 playsInline
                 preload="metadata"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
                 onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
                 onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
               />

@@ -27,15 +27,15 @@ export default function Premiere({ projectId, onRemix, onNew }) {
         </div>
       </div>
 
-      <div className="relative mt-6 rounded-2xl overflow-hidden border border-line bg-black">
+      <div className="relative mt-6 rounded-2xl overflow-hidden border border-line bg-black shadow-[0_24px_60px_rgba(8,10,24,0.45)]">
         {project.videoUrl ? (
           <>
             <video src={project.videoUrl} controls className="w-full aspect-video" />
-            {/* Curtain reveal on mount */}
+            {/* Curtain reveal on mount — midnight curtain for the premiere */}
             <motion.div initial={{ scaleY: 1 }} animate={{ scaleY: 0 }}
-              transition={{ duration: 0.9, ease: [0.83, 0, 0.17, 1], delay: 0.2 }}
-              style={{ originY: 0 }}
-              className="absolute inset-0 bg-ground pointer-events-none" />
+              transition={{ duration: 1.1, ease: [0.83, 0, 0.17, 1], delay: 0.35 }}
+              style={{ originY: 0, background: "var(--color-night)" }}
+              className="absolute inset-0 pointer-events-none" />
           </>
         ) : (
           <div className="aspect-video flex items-center justify-center text-dim text-sm">
@@ -46,8 +46,7 @@ export default function Premiere({ projectId, onRemix, onNew }) {
 
       <div className="mt-6 flex flex-wrap gap-3">
         {project.videoUrl && (
-          <a href={project.videoUrl} download
-            className="px-6 py-3 rounded-xl bg-accent text-ground font-display font-bold uppercase tracking-widest text-xs">
+          <a href={project.videoUrl} download className="btn-solstice uppercase text-xs">
             Download MP4
           </a>
         )}
@@ -76,7 +75,8 @@ export default function Premiere({ projectId, onRemix, onNew }) {
 
       {detailsOpen && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
-          className="mt-4 rounded-xl border border-line bg-panel p-5 text-sm space-y-4">
+          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+          className="mt-4 glass-card p-5 text-sm space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <Stat label="LLM cost" value={cost != null ? `$${Number(cost).toFixed(3)}` : "—"} />
             <Stat label="Production time" value={secs ? `${secs}s` : "—"} />

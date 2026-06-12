@@ -1,30 +1,131 @@
+/* ============================================================
+   KEYFRAME — SOLSTICE theme (light, colorful, sun→moon)
+   Drop-in replacement for web/src/index.css
+   Pairs with <SolsticeSky /> mounted once in App.jsx.
+   ============================================================ */
+
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap");
 @import "tailwindcss";
 
-/* KEYFRAME dark-studio design language.
-   One bold identity: near-black ground, a single electric accent,
-   Inter/Space Grotesk, generous space, film-grain at 2%. */
+/* Solstice design language:
+   sun-lit glass over a sky that travels from dawn to midnight.
+   Soft frosted-white panels, six pastel department accents,
+   coral primary, Bricolage Grotesque display. */
 
 @theme {
-  --color-ground: #0a0a0c;
-  --color-panel: #121216;
-  --color-line: #232329;
-  --color-ink: #f4f4f6;
-  --color-dim: #8b8b94;
-  --color-accent: #ccff00; /* electric chartreuse — the one accent */
-  --color-accent-dim: #9dc400;
-  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
-  --font-body: "Inter", system-ui, sans-serif;
+  --color-ground: #fff6e8;            /* fallback behind the sky layer */
+  --color-panel: rgba(255, 255, 255, 0.6);
+  --color-line: rgba(120, 110, 150, 0.16);
+  --color-ink: #272733;
+  --color-dim: #5c5c6e;
+  --color-accent: #ff6b57;            /* coral — primary action */
+  --color-accent-dim: #d2552f;
+
+  /* the Solstice department palette — use freely for chips/labels */
+  --color-sun: #f5a623;
+  --color-mint: #2fb07b;
+  --color-sky: #3d8bd9;
+  --color-violet: #7b61c4;
+  --color-pink: #e86fa4;
+  --color-night: #1b2240;
+
+  --font-display: "Bricolage Grotesque", "Hanken Grotesk", system-ui, sans-serif;
+  --font-body: "Hanken Grotesk", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 }
 
 html, body, #root {
   height: 100%;
-  background: var(--color-ground);
+  background: transparent; /* the fixed <SolsticeSky /> paints the ground */
   color: var(--color-ink);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
 }
+html { background: var(--color-ground); } /* pre-mount fallback */
 
-/* Film grain — 2% opacity, fixed, never interactive. */
+::selection { background: var(--color-accent); color: #fff6ec; }
+
+/* Night mode — SolsticeSky toggles .solstice-night on <html>
+   when the sun has set (premiere). Semantic tokens flip, so
+   every text-ink / text-dim / bg-panel / border-line follows. */
+.solstice-night {
+  --color-ink: #eef0fa;
+  --color-dim: #aeb6d6;
+  --color-panel: rgba(30, 34, 64, 0.55);
+  --color-line: rgba(190, 205, 255, 0.18);
+  --color-accent-dim: #ff8a77;
+}
+
+/* ---------- Solstice recipes (optional helpers) ---------- */
+
+/* Frosted glass card — the Solstice panel. */
+.glass-card {
+  background: var(--color-panel);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 22px;
+  box-shadow: 0 12px 30px rgba(90, 80, 60, 0.1);
+}
+.solstice-night .glass-card {
+  border-color: rgba(190, 205, 255, 0.16);
+  box-shadow: 0 12px 30px rgba(8, 10, 24, 0.35);
+}
+
+/* Primary action — coral→amber pill. */
+.btn-solstice {
+  display: inline-flex; align-items: center; gap: 0.6rem;
+  border: none; border-radius: 999px; cursor: pointer;
+  padding: 0.85rem 1.7rem;
+  font-family: var(--font-display); font-weight: 700; letter-spacing: 0.08em;
+  color: #fff6ec;
+  background: linear-gradient(135deg, #ff6b57, #f5a623);
+  box-shadow: 0 10px 24px rgba(255, 107, 87, 0.35);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s;
+}
+.btn-solstice:hover { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(255, 107, 87, 0.45); }
+.btn-solstice:active { transform: translateY(0); }
+.btn-solstice:disabled { opacity: 0.5; pointer-events: none; }
+
+/* Tinted department chip: <span class="chip" style="--chip: var(--color-mint)"> */
+.chip {
+  display: inline-flex; align-items: center;
+  padding: 0.4rem 0.85rem; border-radius: 999px;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em;
+  color: var(--chip, var(--color-accent));
+  background: color-mix(in srgb, var(--chip, var(--color-accent)) 14%, transparent);
+}
+
+/* Soft inset field (the 40% of neumorphism we kept). */
+.inset-field {
+  background: rgba(255, 255, 255, 0.75);
+  border: none; border-radius: 16px; outline: none;
+  box-shadow: inset 2px 2px 6px rgba(120, 110, 150, 0.14),
+              inset -2px -2px 6px rgba(255, 255, 255, 0.85);
+  transition: box-shadow 0.25s;
+}
+.inset-field:focus {
+  box-shadow: inset 2px 2px 6px rgba(120, 110, 150, 0.14),
+              inset -2px -2px 6px rgba(255, 255, 255, 0.85),
+              0 0 0 3px rgba(245, 166, 35, 0.3);
+}
+.solstice-night .inset-field {
+  background: rgba(20, 24, 48, 0.6);
+  box-shadow: inset 2px 2px 6px rgba(0, 0, 6, 0.4);
+}
+
+/* ---------- Motion vocabulary ---------- */
+@keyframes rise { from { transform: translateY(112%); } to { transform: translateY(0); } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes tickerMove { to { transform: translateX(-50%); } }
+@keyframes raysSpin { to { transform: rotate(360deg); } }
+@keyframes twinkle { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+@keyframes cloudDrift { from { transform: translateX(-4vw); } to { transform: translateX(6vw); } }
+@keyframes softPulse { 50% { opacity: 0.35; } }
+@keyframes floaty { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+@keyframes shimmer { from { transform: translateX(-130%) skewX(-18deg); } to { transform: translateX(260%) skewX(-18deg); } }
+
+/* Film grain — kept from the original identity, now at 2% over glass. */
 .grain::after {
   content: "";
   position: fixed;

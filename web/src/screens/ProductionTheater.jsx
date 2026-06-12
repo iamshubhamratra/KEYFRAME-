@@ -59,9 +59,9 @@ export default function ProductionTheater({ projectId, onDone, onFailed }) {
           return (
             <div key={s.key} className="flex-1">
               <motion.div
-                className={`h-16 rounded border ${lit ? "bg-accent/15 border-accent/50" : current ? "border-accent" : "border-line bg-panel"}`}
-                animate={current ? { opacity: [1, 0.5, 1] } : {}}
-                transition={current ? { repeat: Infinity, duration: 1.4 } : {}}
+                className={`h-16 rounded-xl border backdrop-blur-md ${lit ? "bg-accent/15 border-accent/50" : current ? "border-accent bg-panel" : "border-line bg-panel"}`}
+                animate={current ? { opacity: [1, 0.45, 1], scale: [1, 1.03, 1] } : {}}
+                transition={current ? { repeat: Infinity, duration: 1.6, ease: "easeInOut" } : {}}
               />
               <div className={`mt-2 text-[9px] uppercase tracking-wider text-center ${lit || current ? "text-accent" : "text-dim"}`}>
                 {s.label}
@@ -81,7 +81,8 @@ export default function ProductionTheater({ projectId, onDone, onFailed }) {
             {assets.map((a, i) => (
               <motion.div key={i} initial={{ scale: 0, rotate: -6 }} animate={{ scale: 1, rotate: 0 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20, delay: i * 0.08 }}
-                className="px-3 py-2 rounded-lg border border-line bg-panel text-[10px] text-dim">
+                className="chip"
+                style={{ "--chip": a.fromCache ? "var(--color-mint)" : "var(--color-sky)" }}>
                 {a.type} · {a.source}
               </motion.div>
             ))}
