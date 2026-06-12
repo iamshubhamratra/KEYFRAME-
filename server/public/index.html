@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Video Gen</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<main class="app">
+  <header>
+    <h1>Prompt → Video</h1>
+    <p class="sub">Gemini 3.5 Flash + HyperFrames on Elastic Beanstalk</p>
+  </header>
+
+  <form id="genForm" class="card">
+    <label>
+      <span>Prompt</span>
+      <textarea id="prompt" name="prompt" rows="4" minlength="10" maxlength="2000" required
+        placeholder="e.g. A 30-second explainer on why compound interest matters, punchy and energetic."></textarea>
+    </label>
+
+    <div class="row">
+      <label>
+        <span>Duration (sec)</span>
+        <input id="duration" type="number" min="5" max="150" step="1" value="20" required>
+      </label>
+
+      <label>
+        <span>Orientation</span>
+        <select id="orientation">
+          <option value="horizontal" selected>Horizontal (16:9)</option>
+          <option value="vertical">Vertical (9:16)</option>
+          <option value="square">Square (1:1)</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Quality</span>
+        <select id="quality">
+          <option value="480p">480p (fastest)</option>
+          <option value="720p" selected>720p (default)</option>
+          <option value="1080p">1080p (slowest)</option>
+        </select>
+      </label>
+
+      <label>
+        <span>FPS</span>
+        <select id="fps">
+          <option value="24">24</option>
+          <option value="30" selected>30</option>
+          <option value="60">60</option>
+        </select>
+      </label>
+    </div>
+
+    <fieldset class="toggles">
+      <legend>Enhance</legend>
+      <label class="chk"><input type="checkbox" id="ttsChk"> <span>Voiceover (TTS)</span></label>
+      <label class="chk"><input type="checkbox" id="musicChk"> <span>Background music</span></label>
+      <label class="chk"><input type="checkbox" id="sfxChk"> <span>Sound effects</span></label>
+      <label class="chk"><input type="checkbox" id="imagesChk"> <span>Stock images</span></label>
+      <label class="chk"><input type="checkbox" id="videoChk"> <span>Stock video clips</span></label>
+    </fieldset>
+
+    <button id="submitBtn" type="submit">Generate video</button>
+  </form>
+
+  <section id="status" class="card hidden">
+    <h2>Status</h2>
+    <div class="status-grid">
+      <div><span class="label">Job ID</span><span id="jobId">—</span></div>
+      <div><span class="label">State</span><span id="state">—</span></div>
+      <div><span class="label">Stage</span><span id="stage">—</span></div>
+      <div><span class="label">Queue</span><span id="queuePos">—</span></div>
+      <div><span class="label">Elapsed</span><span id="elapsed">0s</span></div>
+      <div><span class="label">Fallback</span><span id="fallback">—</span></div>
+    </div>
+    <progress id="progressBar" max="100" value="0"></progress>
+    <pre id="errorBox" class="error hidden"></pre>
+  </section>
+
+  <section id="videoWrap" class="card hidden">
+    <h2>Result</h2>
+    <video id="videoEl" controls playsinline></video>
+    <div class="row">
+      <a id="downloadLink" class="btn" download>Download MP4</a>
+      <button id="resetBtn" class="btn secondary" type="button">New video</button>
+    </div>
+  </section>
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>

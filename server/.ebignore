@@ -1,0 +1,12 @@
+node_modules/
+jobs/
+public/videos/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.env
+.git/
+.gitignore
+.DS_Store
+npm-debug.log*
