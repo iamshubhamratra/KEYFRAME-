@@ -118,7 +118,7 @@ function buildUser(storyboard, { width, height, fps, availableAssets, framePack,
     JSON.stringify(availableAssets || [], null, 2),
     "",
     (availableAssets && availableAssets.length)
-      ? "Use these local asset paths (and ONLY these) in any <img> or <video> src attributes."
+      ? "Use these local asset paths (and ONLY these) in any <img> or <video> src attributes. Use EVERY asset listed — each was fetched for the scene named in its sceneId (background = full-bleed mood under a scrim, inset = framed evidence). An unused asset is a wasted scene."
       : "No assets pre-fetched. Do NOT include any <img> or <video> tags.",
   ];
 

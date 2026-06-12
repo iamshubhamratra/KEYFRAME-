@@ -26,7 +26,8 @@ const { withBudget, attemptLlmComposition, mixAudioIntoVideo, fallbackQueriesFor
 const { acquire, hasProviderFor } = require("../services/asset_sources");
 const { synthesizeFitted } = require("../services/vo_fit");
 const { buildCues, writeSrt } = require("../services/captions");
-const { fetchMusic, fetchSfx } = require("../services/audio_sources");
+const { fetchMusic } = require("../services/audio_sources");
+const { getSfx } = require("../services/sfx_library");
 const { VALID_VOICES } = require("../services/audio_planner");
 const { buildFallback } = require("../services/fallback");
 const { render } = require("../services/renderer");
@@ -109,17 +110,32 @@ async function assetPlannerAgent(s) {
   const screenshotPlan = shots.slice(0, targets.length).map((src, i) => ({ kind: "screenshot", src, scene: targets[i], index: i }));
   const pinnedSceneIds = new Set(screenshotPlan.map((p) => p.scene.id));
 
+  // Derive a concrete image query from a scene's visualDirection when the
+  // script asked for nothing — substance scenes should never go imageless.
+  const STOP = new Set(["the", "a", "an", "with", "and", "of", "in", "on", "over", "into", "across", "as", "to", "that", "then", "while", "for", "is", "are", "we", "see", "scene", "text", "headline", "screen"]);
+  const deriveQuery = (scene) => {
+    const words = String(scene.visualDirection || "").toLowerCase().match(/[a-z]{3,}/g) || [];
+    const picked = words.filter((w) => !STOP.has(w)).slice(0, 4);
+    return picked.length >= 2 ? picked.join(" ") : null;
+  };
+
   const wants = [];
   for (const scene of script.scenes) {
-    for (const need of scene.assetNeeds || []) {
+    const needs = [...(scene.assetNeeds || [])];
+    // Gap-fill: substance scenes with no asset request get a derived one.
+    if (!needs.length && !pinnedSceneIds.has(scene.id) && !["hook", "cta"].includes(scene.purpose)) {
+      const q = deriveQuery(scene);
+      if (q) needs.push({ type: "image", query: q, role: "background", derived: true });
+    }
+    for (const need of needs) {
       if (pinnedSceneIds.has(scene.id) && need.role === "background") continue;
       const type = need.type === "video" && !videoOk ? "image" : need.type;
       wants.push({ kind: "search", scene, need: { ...need, type } });
     }
   }
   const videos = wants.filter((w) => w.need.type === "video").slice(0, 1);
-  const images = wants.filter((w) => w.need.type !== "video").slice(0, 6 - videos.length);
-  console.log(`[agents] asset_planner: ${screenshotPlan.length} screenshot(s) + ${videos.length + images.length} search want(s)`);
+  const images = wants.filter((w) => w.need.type !== "video").slice(0, 9 - videos.length);
+  console.log(`[agents] asset_planner: ${screenshotPlan.length} screenshot(s) + ${videos.length + images.length} search want(s) (${wants.filter((w) => w.need.derived).length} derived)`);
   return { assetPlan: { screenshots: screenshotPlan, searches: [...videos, ...images] } };
 }
 
@@ -180,9 +196,9 @@ async function voiceAgent(s) {
   )).then((a) => a.filter(Boolean));
 
   const sfxWanted = [];
-  for (const sc of script.scenes) for (const name of (sc.sfx || [])) if (sfxWanted.length < 6) sfxWanted.push({ query: name, startSec: sc.start });
+  for (const sc of script.scenes) for (const name of (sc.sfx || [])) if (sfxWanted.length < 6) sfxWanted.push({ name, startSec: sc.start });
   const sfxTask = Promise.all(sfxWanted.map((x, i) =>
-    fetchSfx({ query: x.query, outputPath: path.join(audioDir, `sfx-${i}.mp3`), tracker })
+    getSfx({ name: x.name, outputPath: path.join(audioDir, `sfx-${i}.mp3`), tracker })
       .then((p) => p ? { path: p, startSec: x.startSec, volume: 0.4 } : null).catch(() => null)
   )).then((a) => a.filter(Boolean));
 
