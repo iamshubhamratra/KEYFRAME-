@@ -11,6 +11,19 @@ const SYSTEM = fs.readFileSync(
   "utf8"
 );
 
+// Official HyperFrames pacing + beat-direction guides (local skills install)
+// appended once; cached for the process lifetime.
+const { getStoryboardSkills } = require("./skills");
+let systemWithSkills = null;
+async function getSystem() {
+  if (systemWithSkills) return systemWithSkills;
+  const skills = await getStoryboardSkills().catch(() => "");
+  systemWithSkills = skills
+    ? `${SYSTEM}\n\n---\n\n# Reference: HyperFrames pacing & beat direction\n\nOfficial guides — apply them when pacing scenes and writing beats[].\n\n${skills}`
+    : SYSTEM;
+  return systemWithSkills;
+}
+
 const ASPECT_BY_ORIENTATION = {
   horizontal: "16:9",
   vertical: "9:16",
@@ -83,9 +96,10 @@ async function generateStoryboard({ prompt, duration, orientation }) {
   let lastParseError = null;
   let augmentedUser = user;
 
+  const system = await getSystem();
   for (let i = 1; i <= maxTries; i++) {
     const { text, tokensIn, tokensOut } = await openrouter.chat({
-      system: SYSTEM,
+      system,
       user: augmentedUser,
       jsonMode: true,
       stage: "storyboard",

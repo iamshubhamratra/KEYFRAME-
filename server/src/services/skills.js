@@ -1,16 +1,21 @@
 // Loader for HyperFrames "skills" — markdown documentation the framework
-// team maintains at github.com/heygen-com/hyperframes/skills. These are
-// intended for agent integration (Claude Code via `npx skills add`) but
-// work equally well as LLM context for any model.
+// team maintains at github.com/heygen-com/hyperframes/skills.
 //
-// We fetch from GitHub raw URLs on first use, cache in memory, and surface
-// a selected subset for each pipeline stage. If fetching fails the caller
-// gets an empty string — the pipeline still runs with just our own prompts.
+// LOCAL-FIRST: `npx skills add heygen-com/hyperframes` installs the full
+// skill tree into <repo>/.agents/skills (richer than the remote subset —
+// palettes, beat direction, captions/narration guides, transition catalog).
+// We read from there when present; GitHub raw is the fallback so a deploy
+// without the local install still works. Cached in memory either way; a
+// missing doc yields "" and the pipeline runs on our own prompts.
+
+const fs = require("node:fs");
+const path = require("node:path");
+const config = require("../config");
 
 const REPO = "heygen-com/hyperframes";
 const RAW_BASE = `https://raw.githubusercontent.com/${REPO}/main`;
 
-// Skill file paths (verified against the repo).
+// Skill file paths (repo-relative; local files strip the leading "skills/").
 const SKILL_FILES = {
   // Core composition guide — always included for composer.
   main:         "skills/hyperframes/SKILL.md",
@@ -24,9 +29,27 @@ const SKILL_FILES = {
   cssPatterns:  "skills/hyperframes/references/css-patterns.md",
   transitions:  "skills/hyperframes/references/transitions.md",
 
+  // Only available from the local install (not fetched remotely before).
+  beatDirection: "skills/hyperframes/references/beat-direction.md",
+  captionsRef:   "skills/hyperframes/references/captions.md",
+  narration:     "skills/hyperframes/references/narration.md",
+  videoComposition: "skills/hyperframes/references/video-composition.md",
+  transitionCatalog: "skills/hyperframes/references/transitions/catalog.md",
+
   // GSAP primer.
   gsap:         "skills/gsap/SKILL.md",
 };
+
+function localSkillsRoot() {
+  for (const c of [
+    path.resolve(config.paths.root, "..", ".agents", "skills"),
+    path.resolve(config.paths.root, ".agents", "skills"),
+  ]) {
+    try { if (fs.statSync(c).isDirectory()) return c; } catch { /* keep looking */ }
+  }
+  return null;
+}
+const LOCAL_ROOT = localSkillsRoot();
 
 const cache = new Map(); // path -> string content (or "" on failure)
 let warmupPromise = null;
@@ -35,6 +58,18 @@ function log(...args) { console.log("[skills]", ...args); }
 
 async function fetchOne(relPath) {
   if (cache.has(relPath)) return cache.get(relPath);
+
+  // 1 — local install (npx skills add heygen-com/hyperframes).
+  if (LOCAL_ROOT) {
+    const localPath = path.join(LOCAL_ROOT, relPath.replace(/^skills\//, ""));
+    try {
+      const text = fs.readFileSync(localPath, "utf8");
+      cache.set(relPath, text);
+      return text;
+    } catch { /* fall through to GitHub */ }
+  }
+
+  // 2 — GitHub raw fallback.
   const url = `${RAW_BASE}/${relPath}`;
   try {
     const controller = new AbortController();
@@ -104,11 +139,12 @@ async function getFullComposerSkills() {
 }
 
 /**
- * Smaller bundle for the storyboard stage — only the motion + patterns
- * guides that help with scene pacing decisions. ~8 KB.
+ * Smaller bundle for the storyboard stage — pacing + the official beat
+ * direction guide (drives our scenes' beats[] contract). ~10 KB, free to
+ * load now that skills are read from disk.
  */
 async function getStoryboardSkills() {
-  return await getSkillBundle(["patterns", "motion", "houseStyle"]);
+  return await getSkillBundle(["patterns", "motion", "beatDirection"]);
 }
 
 /**
@@ -118,6 +154,7 @@ async function getStoryboardSkills() {
  */
 function warmUp() {
   if (warmupPromise) return warmupPromise;
+  log(LOCAL_ROOT ? `using local skills install: ${LOCAL_ROOT}` : "no local skills install; fetching from GitHub");
   log("warming skill cache in background");
   warmupPromise = getComposerSkills().then((txt) => {
     log(`skill cache warm (${txt.length} bytes)`);
