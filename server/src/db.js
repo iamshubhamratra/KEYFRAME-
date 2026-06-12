@@ -93,6 +93,7 @@ function shape(j) {
     assets: j.assets || null,
     captions: j.captions || null,
     srtUrl: j.srt_url || null,
+    qa: j.qa || null,
   };
 }
 
@@ -162,6 +163,13 @@ module.exports = {
   setAssets(id, assets) {
     const j = jobs.get(id); if (!j) return;
     j.assets = assets || [];
+    scheduleWrite();
+  },
+
+  // QA agent verdict.
+  setQa(id, qa) {
+    const j = jobs.get(id); if (!j) return;
+    j.qa = qa || null;
     scheduleWrite();
   },
 

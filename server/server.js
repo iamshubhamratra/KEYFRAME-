@@ -43,7 +43,10 @@ async function main() {
   }
 
   function enqueueProduction(jobId) {
-    queue.add(() => projectPipeline.runProduction({ jobId })).catch((e) => {
+    const run = config.orchestrator === "langgraph"
+      ? () => require("./src/agents/graph").runProductionGraph({ jobId })
+      : () => projectPipeline.runProduction({ jobId });
+    queue.add(run).catch((e) => {
       console.error(`[queue] unhandled production error: ${e.message}`);
     });
   }
