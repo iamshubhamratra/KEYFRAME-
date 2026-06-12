@@ -182,6 +182,11 @@ function buildRouter({ enqueueIntake, enqueueProduction }) {
     });
   });
 
+  router.get("/projects", (req, res) => {
+    const status = typeof req.query.status === "string" ? req.query.status : undefined;
+    res.json({ projects: db.listRecent({ limit: 30, status }) });
+  });
+
   router.get("/projects/:id", (req, res) => {
     if (!/^[0-9a-z]{6,20}$/.test(req.params.id)) return res.status(400).json({ error: "bad id" });
     const job = db.get(req.params.id);

@@ -69,8 +69,14 @@ async function main() {
   app.use("/api", buildGenerateRouter({ enqueue }));
   app.use("/api", buildProjectsRouter({ enqueueIntake, enqueueProduction }));
 
-  // Static: frontend + rendered videos.
+  // Static: the built KEYFRAME web app (public/dist) takes precedence;
+  // public/ still serves rendered videos and the legacy v1 UI.
   const publicDir = path.join(config.paths.root, "public");
+  const distDir = path.join(publicDir, "dist");
+  if (fs.existsSync(path.join(distDir, "index.html"))) {
+    app.use(express.static(distDir, { index: "index.html" }));
+    console.log(`[server] serving web app from ${distDir}`);
+  }
   app.use(express.static(publicDir, {
     index: "index.html",
     setHeaders(res, filePath) {

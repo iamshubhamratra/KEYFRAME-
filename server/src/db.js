@@ -187,6 +187,25 @@ module.exports = {
   get(id) { return shape(jobs.get(id)); },
   getRaw(id) { return jobs.get(id) || null; },
 
+  // Recent jobs, newest first (gallery). Lightweight shape — no script/brief.
+  listRecent({ limit = 30, status } = {}) {
+    const all = [...jobs.values()]
+      .filter((j) => !status || j.status === status)
+      .sort((a, b) => b.created_at - a.created_at)
+      .slice(0, limit);
+    return all.map((j) => ({
+      jobId: j.id,
+      kind: j.kind || "generate",
+      status: j.status,
+      title: (j.script && j.script.title) || (j.prompt || "").slice(0, 80) || null,
+      videoUrl: j.video_url,
+      framePack: j.frame_pack || null,
+      duration: j.duration,
+      orientation: j.orientation,
+      createdAt: j.created_at,
+    }));
+  },
+
   markStarted(id) {
     const j = jobs.get(id); if (!j) return;
     j.status = "running";
