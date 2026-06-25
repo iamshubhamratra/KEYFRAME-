@@ -41,6 +41,65 @@ function tokenize(s) {
     .match(/[a-z]{3,}/g) || [];
 }
 
+// Light stemmer — collapse common plural/suffix forms so "marketplaces" matches
+// "marketplace" and "investing" matches "invest". Conservative on purpose.
+function stem(w) {
+  if (w.length > 5 && w.endsWith("ing")) return w.slice(0, -3);
+  if (w.length > 4 && w.endsWith("ies")) return w.slice(0, -3) + "y";
+  if (w.length > 4 && w.endsWith("es")) return w.slice(0, -2);
+  if (w.length > 3 && w.endsWith("s")) return w.slice(0, -1);
+  return w;
+}
+
+// Conservative synonym expansion: map common generic prompt vocabulary onto the
+// topics this library ACTUALLY holds (business / finance / growth / tech / AI /
+// career), each value a single token that appears in entry `words`. This raises
+// recall for IN-DOMAIN prompts without loosening the strong-overlap relevance
+// gate below — a beauty/food/fitness prompt (no mapping, no matching assets)
+// still returns nothing rather than off-topic junk, exactly as intended.
+const SYNONYMS = {
+  shop: ["commerce", "business", "shopping", "retail", "store"],
+  store: ["commerce", "business", "shopping", "retail"],
+  shopping: ["commerce", "business", "retail"],
+  retail: ["commerce", "business", "shopping"],
+  ecommerce: ["commerce", "business", "shopping", "online"],
+  marketplace: ["commerce", "business", "market", "sales"],
+  wholesale: ["commerce", "business", "sales", "supply"],
+  seller: ["sales", "business", "commerce"], vendor: ["sales", "business", "commerce"],
+  buyer: ["commerce", "business"], buy: ["commerce", "shopping"], sell: ["sales", "commerce"],
+  sales: ["business", "revenue", "commerce"],
+  money: ["finance", "cash", "income", "wealth"], cash: ["finance", "money", "income"],
+  payment: ["finance", "money", "transaction"], pay: ["payment", "finance"],
+  fund: ["finance", "funding", "investment"], funding: ["finance", "investment", "capital"],
+  invest: ["investment", "portfolio", "finance"], investment: ["portfolio", "finance", "stock"],
+  growth: ["scale", "success", "business"], grow: ["growth", "scale"], scale: ["growth", "business"],
+  startup: ["business", "company", "entrepreneur"], saas: ["business", "technology", "software"],
+  business: ["company", "enterprise", "corporate"], company: ["business", "corporate"],
+  ai: ["artificial", "intelligence", "automation", "technology"],
+  artificial: ["intelligence", "automation", "technology"],
+  automation: ["technology", "robotics", "artificial"], bot: ["automation", "artificial"],
+  agent: ["automation", "artificial", "intelligence"], chatbot: ["artificial", "automation"],
+  data: ["analytics", "insights", "technology"], analytics: ["data", "insights", "predictive"],
+  dashboard: ["analytics", "data", "metrics"], metrics: ["analytics", "data"],
+  team: ["collaboration", "networking", "people"], hire: ["recruitment", "career"],
+  hiring: ["recruitment", "career"], recruit: ["recruitment", "career"],
+  tech: ["technology", "software", "digital"], software: ["technology", "digital"],
+  app: ["technology", "software", "digital"], platform: ["technology", "business"],
+  crypto: ["cryptocurrency", "trading", "finance"], stock: ["trading", "market", "investment"],
+  trading: ["stock", "market", "finance"],
+};
+
+// Expand a query token to itself + stem + synonyms (all single tokens). Matching
+// against this set raises recall WITHOUT inflating want.length (so the
+// overlap-ratio relevance gate stays exactly as strict).
+function variants(w) {
+  const out = new Set([w, stem(w)]);
+  for (const list of [SYNONYMS[w], SYNONYMS[stem(w)]]) {
+    if (list) for (const t of list) out.add(t);
+  }
+  return [...out];
+}
+
 function classify(file, pack) {
   const ext = path.extname(file).toLowerCase();
   if (VECTOR_EXT.has(ext)) return "vector";
@@ -137,7 +196,7 @@ const GENERIC_TOPIC = new Set([
 // hit a topic segment, or (for multi-word queries) it matched at least half
 // the query terms. Weak/incidental matches are rejected so acquire() can fall
 // through to the web providers rather than forcing a poor local pick.
-function search({ query, type = "image", limit = 8, kindPref, excludeIds } = {}) {
+function search({ query, type = "image", limit = 8, kindPref, excludeIds, relaxed = false } = {}) {
   if (type === "video") return [];
   const idx = load();
   if (!idx.length) return [];
@@ -154,9 +213,18 @@ function search({ query, type = "image", limit = 8, kindPref, excludeIds } = {})
   // any kind.) Without this, a strong photo match always outscores a weak vector
   // and explicit vector requests silently return photos — so curated SVGs never
   // materialize. If no vector matches, return [] and let the caller fall through.
-  const restrictKind = kindPref === "vector" ? "vector" : null;
+  //
+  // RELAXED mode (backfill last-resort): callers that would otherwise deliver
+  // NOTHING for a scene drop both the kind restriction and the strong-overlap
+  // gate, so any topical overlap at all yields an on-brand fill rather than an
+  // empty frame. A loosely-related curated asset beats a text-only scene.
+  const restrictKind = (!relaxed && kindPref === "vector") ? "vector" : null;
 
   const multi = want.length > 1;
+  // Pre-expand each want token to its variants (self + stem + synonyms). An entry
+  // matches a want token if ANY of that token's variants hit — recall up, gate
+  // unchanged (want.length is still the original token count).
+  const wantV = want.map(variants);
   const scored = [];
   for (const e of idx) {
     if (skip && skip.has(e.id)) continue;

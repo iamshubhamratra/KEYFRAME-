@@ -61,6 +61,10 @@ function validateBody(body) {
   out.music = body.music === true;
   out.soundEffect = body.sound_effect === true || body.soundEffect === true;
 
+  // Subtitles/captions are OPT-IN (default off) — users overwhelmingly dislike
+  // burnt-in subtitles on short promo videos.
+  out.captions = body.captions === true;
+
   // Visual-asset flags (all optional, default false).
   out.images = body.images === true;
   out.video = body.video === true;
@@ -126,6 +130,7 @@ function buildRouter({ enqueue }) {
       height: dims.height,
       fps: out.fps,
       framePack: out.framePack,
+      captions: out.captions,
       created_at: Date.now(),
       client_ip: clientIp(req),
     });

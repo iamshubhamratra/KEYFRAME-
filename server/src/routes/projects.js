@@ -100,7 +100,10 @@ function validateCreate(body, { hasUpload = false } = {}) {
 
   out.voiceStyle = typeof body.voiceStyle === "string" ? body.voiceStyle.slice(0, 200) : null;
   out.autopilot = body.autopilot === true || body.autopilot === "true";
-  out.captions = !(body.captions === false || body.captions === "false"); // default on
+  // Subtitles/captions are OPT-IN (default OFF) — baked captions overlap scene
+  // content and users overwhelmingly dislike burnt-in subtitles. Matches the
+  // /api/generate route. Turn on only with an explicit captions:true (or "true").
+  out.captions = body.captions === true || body.captions === "true";
 
   if (body.framePack != null && body.framePack !== "auto") {
     if (typeof body.framePack !== "string" || frameRegistry.resolvePack(body.framePack) == null) {

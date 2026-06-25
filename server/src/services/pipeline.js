@@ -21,6 +21,8 @@ const { compose } = require("./composer");
 const { validate, runInspect } = require("./validator");
 const { runtimeCheck } = require("./runtime_check");
 const { normalizeComposition, stripMissingAssets } = require("./normalize");
+const { enrichComposition } = require("./enrich");
+const frameRegistry = require("./frame_registry");
 const { render } = require("./renderer");
 const { buildFallback } = require("./fallback");
 const { planAudio } = require("./audio_planner");
@@ -131,7 +133,23 @@ async function planAndFetchAssets({ jobDir, storyboard, flags, orientation, trac
 
 // Normalize + install catalog blocks + lint + runtime-smoke one composer output.
 // Returns { ok, feedback } — feedback is the next-lap repair brief when !ok.
-async function gateComposition({ files, jobDir, tracker, label }) {
+async function gateComposition({ files, jobDir, tracker, label, enrich }) {
+  // ENRICH FIRST — inject the deterministic anti-void background + always-on
+  // animated vector/effects layer BEFORE normalize+lint, so the enriched HTML is
+  // what gets validated and rendered, and reflowTrackOverlaps fixes any track
+  // collision the injected clips introduce. Idempotent (skips if already done).
+  if (enrich) {
+    try {
+      const en = enrichComposition(files.indexHtml, enrich);
+      if (en.changed) {
+        files.indexHtml = en.html;
+        console.log(`[pipeline] enriched ${label}: +design-system background +animated vector layer`);
+      }
+    } catch (e) {
+      console.warn(`[pipeline] enrichment skipped (${e.message.slice(0, 120)})`);
+    }
+  }
+
   const norm = normalizeComposition(files.indexHtml);
   if (norm.changed.length) {
     files.indexHtml = norm.html;
@@ -205,6 +223,12 @@ async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets
   // so on exhaustion we must re-persist the best snapshot (a later regressing lap
   // may have overwritten index.html); render() reads jobDir/index.html.
   let bestInspectFiles = null;
+  // Deterministic enrichment context (anti-void background + animated vector
+  // layer), applied inside gateComposition before normalize+lint.
+  const enrich = {
+    width: dims.width, height: dims.height, duration: storyboard.durationSec,
+    packTokens: framePack ? frameRegistry.getPackTokens(framePack) : null,
+  };
   for (let lap = 0; lap <= maxRepairs; lap++) {
     const label = lap === 0 ? "first pass" : `repair ${lap}/${maxRepairs}`;
     console.log(`[pipeline] composeWithLintRepair: composer (${label})`);
@@ -231,7 +255,7 @@ async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets
     }
     tracker.addLlm({ inputTokens: files.tokensIn, outputTokens: files.tokensOut, stage: "composer" });
 
-    const res = await gateComposition({ files, jobDir, tracker, label });
+    const res = await gateComposition({ files, jobDir, tracker, label, enrich });
     if (res.ok) return { files };
     // inspectOnly => lint + runtime PASSED, only spatial overlap remains. Snapshot
     // the NORMALIZED html (gateComposition mutated files.indexHtml in place).

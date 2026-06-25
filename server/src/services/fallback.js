@@ -187,6 +187,14 @@ function buildAssetFallback({ prompt, duration, orientation, width, height, fps,
   const fontStack = fontStackFor(theme);
 
   const isLogo = (a) => /\b(logo|wordmark|brand)\b/i.test(a.alt || "");
+  // A REAL product/website screenshot is the most credible asset — never stretch
+  // it full-bleed (distorts the UI, crops text). Present it in a browser-chrome
+  // frame, centered on a design-system ground, with a Ken Burns push. This is the
+  // fallback's answer to the "CLEAR SCREENSHOTS" requirement.
+  const isScreenshot = (a) => a && (a.source === "website" || /screenshot/i.test(a.alt || ""));
+  const slideGround =
+    `radial-gradient(62% 55% at 22% 26%, ${theme.aurora1}, transparent 60%), ` +
+    `radial-gradient(55% 50% at 80% 80%, ${theme.aurora2}, transparent 62%), ${theme.bg1}`;
   // Vector/icon SVGs are decorative (often transparent, non-rectangular) — a
   // full-bleed object-fit:cover Ken-Burns slide would stretch an icon across the
   // whole frame. Keep them OUT of the photo slideshow; the always-on
@@ -235,6 +243,24 @@ function buildAssetFallback({ prompt, duration, orientation, width, height, fps,
     </div>`
       );
       tl.push(`  tl.fromTo("#${id} img", { scale: 0.82 }, { scale: 1, duration: 0.9, ease: "expo.out" }, ${r2(start + 0.1)});`);
+    } else if (isScreenshot(a)) {
+      const barH = isVertical ? 46 : 40;
+      const dotR = isVertical ? 13 : 11;
+      clipEls.push(
+        `    <div id="${id}" class="clip"
+         data-start="${start}" data-duration="${dur}" data-track-index="${track}"
+         style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:${isVertical ? "7%" : "5%"}; box-sizing:border-box; background:${slideGround}; opacity:0;">
+      <div style="width:100%; max-width:${isVertical ? "94%" : "80%"}; max-height:84%; border:3px solid ${theme.ink}; border-radius:16px; box-shadow:0 32px 70px rgba(0,0,0,0.45); overflow:hidden; background:#fff;">
+        <div style="height:${barH}px; background:#eef0f4; display:flex; align-items:center; gap:8px; padding:0 16px; border-bottom:2px solid rgba(0,0,0,0.10);">
+          <span style="width:${dotR}px; height:${dotR}px; border-radius:50%; background:#ff5f57;"></span>
+          <span style="width:${dotR}px; height:${dotR}px; border-radius:50%; background:#febc2e;"></span>
+          <span style="width:${dotR}px; height:${dotR}px; border-radius:50%; background:#28c840;"></span>
+        </div>
+        <img src="${a.path}" alt="${escapeHtml(a.alt || "")}" style="width:100%; display:block;">
+      </div>
+    </div>`
+      );
+      tl.push(`  tl.fromTo("#${id} img", { scale: 1.0 }, { scale: 1.08, duration: ${dur}, ease: "sine.inOut" }, ${start});`);
     } else {
       clipEls.push(
         `    <img id="${id}" class="clip" src="${a.path}" alt="${escapeHtml(a.alt || "")}"

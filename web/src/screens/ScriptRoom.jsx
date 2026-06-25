@@ -195,7 +195,7 @@ function SceneCard({ scene, originalScene, onPatch, onRemove }) {
           <span className="text-[10px] uppercase tracking-widest text-dim w-16">{scene.duration.toFixed(1)}s</span>
           <input type="range" min="2.5" max="8" step="0.5" value={scene.duration}
             onChange={(e) => onPatch({ duration: Number(e.target.value) })}
-            className="flex-1 accent-[#ff6b57]" />
+            className="flex-1" style={{ accentColor: "var(--color-green)" }} />
         </div>
       </motion.div>
     </Reorder.Item>

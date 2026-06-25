@@ -122,7 +122,8 @@ module.exports = {
       finished_at: null,
       client_ip: job.client_ip,
       voice_style: job.voiceStyle || null,
-      captions_enabled: job.captionsEnabled === false ? 0 : 1,
+      // Subtitles are OPT-IN: off unless the request explicitly asks for them.
+      captions_enabled: (job.captions === true || job.captionsEnabled === true) ? 1 : 0,
       upload_path: job.uploadPath || null,
       intent: job.intent || null,
       autopilot: job.autopilot ? 1 : 0,

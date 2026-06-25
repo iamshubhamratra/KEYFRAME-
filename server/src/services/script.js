@@ -75,18 +75,25 @@ function normalizeScript(script, { targetDuration } = {}) {
     if (Array.isArray(scene.sfx)) scene.sfx = scene.sfx.slice(0, 2);
   });
 
-  // Snap total to the target duration by stretching/shrinking the last scene
-  // within sane bounds (covers rounding drift and small edits).
-  if (targetDuration) {
-    const total = t;
-    const drift = targetDuration - total;
-    if (Math.abs(drift) > 0.01) {
-      const last = s.scenes[s.scenes.length - 1];
-      const newDur = Math.round((last.duration + drift) * 10) / 10;
-      if (newDur >= 1 && newDur <= 15) {
-        last.duration = newDur;
+  // Snap total to the target duration. Absorb drift into the last scene first,
+  // then spill into earlier scenes if it can't take it all within [1,15], so the
+  // total always lands on target instead of failing validation. Starts are then
+  // recomputed since redistribution can change non-last durations.
+  if (targetDuration && s.scenes.length) {
+    const r1 = (n) => Math.round(n * 10) / 10;
+    let drift = r1(targetDuration - t);
+    for (let guard = 0; Math.abs(drift) >= 0.05 && guard < s.scenes.length * 2; guard++) {
+      let moved = false;
+      for (let i = s.scenes.length - 1; i >= 0 && Math.abs(drift) >= 0.05; i--) {
+        const sc = s.scenes[i];
+        const newDur = Math.min(15, Math.max(1, r1(sc.duration + drift)));
+        const applied = r1(newDur - sc.duration);
+        if (applied !== 0) { sc.duration = newDur; drift = r1(drift - applied); moved = true; }
       }
+      if (!moved) break;
     }
+    let c = 0;
+    for (const sc of s.scenes) { sc.start = r1(c); c = r1(c + sc.duration); }
   }
   return s;
 }

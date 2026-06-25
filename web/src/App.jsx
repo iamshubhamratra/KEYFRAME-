@@ -1,44 +1,98 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import SolsticeSky from "./SolsticeSky.jsx";
 import CreateScreen from "./screens/CreateScreen.jsx";
 import UnderstandingScreen from "./screens/UnderstandingScreen.jsx";
 import ScriptRoom from "./screens/ScriptRoom.jsx";
 import ProductionTheater from "./screens/ProductionTheater.jsx";
 import Premiere from "./screens/Premiere.jsx";
 import Gallery from "./screens/Gallery.jsx";
+import { createProject } from "./api.js";
 
-// View state machine:
-//   create -> understanding -> script -> theater -> premiere
-//   gallery reachable from the header at any time.
-//
-// SOLSTICE: each view is a time of day. The sun rises while you
-// create, crosses the sky through script & production, and becomes
-// the moon at the premiere — the premiere is always at midnight.
-const PHASES = {
-  create: 0.04,
-  understanding: 0.28,
-  script: 0.46,
-  theater: 0.68,
-  gallery: 0.4,
-  premiere: 1.0,
-};
-
+// View machine. The LANDING is the exact design export (served as /design.html
+// in an iframe) so the scroll-build camera is pixel + motion identical to the
+// zip. Its CTAs postMessage up here to drive the real, functional studio:
+//   landing -> create -> understanding -> script -> theater -> premiere
+//   gallery reachable from the header.
 export default function App() {
-  const [view, setView] = useState("create");
+  const [view, setView] = useState("landing");
   const [projectId, setProjectId] = useState(null);
+  const [prefill, setPrefill] = useState(null);
+  const [starting, setStarting] = useState(false);
+  const startedRef = useRef(false);
 
   const go = useCallback((nextView, id) => {
     if (id !== undefined) setProjectId(id);
     setView(nextView);
   }, []);
 
-  // Each view starts at the top — especially after scrolling the long
-  // landing page to midnight.
   useEffect(() => { window.scrollTo({ top: 0 }); }, [view]);
 
+  // Kick off a real generation from a landing CTA (prompt or URL captured in the
+  // bundle's own "Feed it anything" card). Falls back to the studio form if empty.
+  const startGeneration = useCallback(async ({ prompt, url }) => {
+    if (startedRef.current) return;
+    const hasPrompt = prompt && prompt.trim().length >= 10;
+    const hasUrl = url && /^https?:\/\/.+\..+/.test(url.trim());
+    if (!hasPrompt && !hasUrl) {
+      setPrefill({ prompt: prompt || "", url: url || "" });
+      go("create");
+      return;
+    }
+    startedRef.current = true;
+    setStarting(true);
+    try {
+      const fields = {
+        duration: 30, orientation: "horizontal", quality: "720p",
+        framePack: "auto", captions: false,
+        ...(hasPrompt ? { prompt: prompt.trim() } : {}),
+        ...(hasUrl ? { websiteUrl: url.trim() } : {}),
+      };
+      const r = await createProject(fields);
+      go("understanding", r.projectId);
+    } catch (e) {
+      setPrefill({ prompt: prompt || "", url: url || "", error: e.message });
+      go("create");
+    } finally {
+      setStarting(false);
+      startedRef.current = false;
+    }
+  }, [go]);
+
+  // Listen for the landing iframe's bridge messages.
+  useEffect(() => {
+    const onMsg = (e) => {
+      const d = e.data || {};
+      if (d.type === "kf-create") startGeneration({ prompt: d.prompt, url: d.url });
+      else if (d.type === "kf-gallery") go("gallery");
+    };
+    window.addEventListener("message", onMsg);
+    return () => window.removeEventListener("message", onMsg);
+  }, [startGeneration, go]);
+
+  // ---- Landing: the exact design export, full-screen ----
+  if (view === "landing") {
+    return (
+      <div className="fixed inset-0">
+        <iframe
+          src="/design.html"
+          title="KEYFRAME"
+          className="w-full h-full"
+          style={{ border: 0, display: "block" }}
+        />
+        {starting && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(233,230,221,0.85)", backdropFilter: "blur(6px)" }}>
+            <div className="text-center">
+              <div className="eyebrow">Opening the aperture…</div>
+              <div className="wordmark text-3xl mt-2"><span style={{ color: "var(--color-ink)" }}>KEY</span><span style={{ color: "var(--color-green)" }}>FRAME</span></div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   const screens = {
-    create: <CreateScreen onCreated={(id) => go("understanding", id)} />,
+    create: <CreateScreen onCreated={(id) => go("understanding", id)} prefill={prefill} />,
     understanding: <UnderstandingScreen projectId={projectId} onScriptReady={() => go("script")} onFailed={() => go("create")} />,
     script: <ScriptRoom projectId={projectId} onApproved={() => go("theater")} />,
     theater: <ProductionTheater projectId={projectId} onDone={() => go("premiere")} onFailed={() => go("create")} />,
@@ -48,37 +102,34 @@ export default function App() {
 
   return (
     <div className="grain min-h-full flex flex-col">
-      {/* On the landing/create view the sky is SCROLL-driven (one-pager
-          mode): dawn at the top, midnight at the foot of the page. Every
-          other view pins the sky to its workflow phase. */}
-      <SolsticeSky phase={view === "create" ? null : (PHASES[view] ?? 0.4)} />
+      <div className="studio-ground" aria-hidden="true" />
 
-      <header className="sticky top-0 z-50 flex items-center justify-between px-8 py-4 border-b border-line bg-panel backdrop-blur-md">
-        <button
-          onClick={() => go("create", null)}
-          className="flex items-center gap-2.5 font-display font-bold tracking-[0.18em] text-ink text-base sm:text-lg uppercase"
-        >
-          {/* Brand anchor: a sun-disc / keyframe-diamond mark in the sun token */}
-          <svg
-            width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"
-            className="shrink-0" style={{ color: "var(--color-sun)" }}
-          >
-            <circle cx="12" cy="12" r="5" fill="currentColor" />
-            <path
-              d="M12 0.5 L13.4 4 L12 5.4 L10.6 4 Z M12 23.5 L10.6 20 L12 18.6 L13.4 20 Z M0.5 12 L4 10.6 L5.4 12 L4 13.4 Z M23.5 12 L20 13.4 L18.6 12 L20 10.6 Z"
-              fill="currentColor"
-            />
-          </svg>
-          <span>KEY<span className="text-accent-text">FRAME</span></span>
+      <header
+        className="sticky top-0 z-50 flex items-center justify-between px-6 sm:px-10 py-4 border-b"
+        style={{ borderColor: "var(--color-line)", background: "rgba(233,230,221,0.72)", backdropFilter: "blur(12px)" }}
+      >
+        <button onClick={() => go("landing", null)} className="flex items-center gap-2.5" aria-label="KEYFRAME home">
+          <span className="relative inline-flex" style={{ width: 22, height: 22 }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="10.5" fill="none" stroke="var(--color-ink)" strokeWidth="1.6" />
+              <circle cx="12" cy="12" r="4" fill="var(--color-green)" />
+              {[0, 60, 120, 180, 240, 300].map((a) => (
+                <line key={a} x1="12" y1="12" x2="12" y2="3" stroke="var(--color-ink)" strokeWidth="1" opacity="0.55" transform={`rotate(${a} 12 12)`} />
+              ))}
+            </svg>
+          </span>
+          <span className="wordmark text-lg" style={{ letterSpacing: "0.04em" }}>
+            <span style={{ color: "var(--color-ink)" }}>KEY</span><span style={{ color: "var(--color-green)" }}>FRAME</span>
+          </span>
         </button>
-        <nav className="flex gap-6 text-xs uppercase tracking-widest text-dim">
-          <button onClick={() => go("create", null)} className={view === "create" ? "text-accent-text" : "hover:text-ink"}>
-            Create
-          </button>
-          <button onClick={() => go("gallery")} className={view === "gallery" ? "text-accent-text" : "hover:text-ink"}>
-            Gallery
-          </button>
+
+        <nav className="hidden sm:flex items-center gap-7">
+          <button className="label-mono" style={{ color: "var(--color-dim)" }} onClick={() => go("landing")}>Home</button>
+          <button className="label-mono" style={{ color: view === "create" ? "var(--color-accent-text)" : "var(--color-dim)" }} onClick={() => go("create")}>Studio</button>
+          <button className="label-mono" style={{ color: view === "gallery" ? "var(--color-accent-text)" : "var(--color-dim)" }} onClick={() => go("gallery")}>Gallery</button>
         </nav>
+
+        <button className="btn-lime" style={{ padding: "11px 22px", fontSize: 13 }} onClick={() => go("create")}>Create film</button>
       </header>
 
       <main className="flex-1 relative">

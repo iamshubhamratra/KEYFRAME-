@@ -144,6 +144,27 @@ async function getSystemPromptWithSkills(framePack) {
     if (law) {
       parts.push("", law);
     }
+
+    // Inject the pack's frame-showcase.html as a CONCRETE premium worked example
+    // (only some packs ship one). FRAME.md is the spec; the showcase is the proof
+    // — it shows the actual HTML/CSS atoms, layered decorations, and per-scene
+    // density to reproduce. Its `.frame.*` blocks are ready-made 16:9 scene
+    // layouts in container-query units. Truncated to bound the context budget.
+    try {
+      const showcasePath = frameRegistry.getShowcasePath(framePack);
+      const showcaseHtml = showcasePath ? fs.readFileSync(showcasePath, "utf8") : "";
+      if (showcaseHtml) {
+        parts.push("", "---", "", `# WORKED EXAMPLE — "${framePack}" frame-showcase.html (PREMIUM REFERENCE — MATCH OR EXCEED)`);
+        parts.push("");
+        parts.push(
+          "Below is the canonical premium reference render for this design system. Its `.frame.*` blocks are ready-made 16:9 SCENE LAYOUTS (cover, feature-cards, stat-grid, closing-plate) built in container-query (cqw) units — exactly how your clips size. REPRODUCE their structure: the precise border/shadow/decoration atoms, the layered decorations (stars, tilted rects, dot grids, label pills, stat cards), the typographic scale and weights, and the per-scene element DENSITY. Your scenes must match or EXCEED this richness — then add a GSAP timeline on top (the showcase is STATIC; you animate every atom: entrances, drifts, draws, exits). Copy its STRUCTURE and ATOMS, not its literal placeholder copy."
+        );
+        parts.push("");
+        parts.push("```html");
+        parts.push(showcaseHtml.slice(0, 16000));
+        parts.push("```");
+      }
+    } catch { /* no showcase for this pack — the FRAME.md spec stands alone */ }
   }
 
   return parts.join("\n");
@@ -165,6 +186,23 @@ function buildUser(storyboard, { width, height, fps, availableAssets, framePack,
     delete sb.fontFamily;
   }
 
+  // Tailor the asset instruction to what ACTUALLY arrived. The hero-screenshot
+  // treatment only makes sense when a real product/website screenshot is present
+  // (tagged source:"website" / alt:"REAL website screenshot ..." upstream).
+  // Emitting it on a stock-only run wastes prompt budget and biases the model
+  // toward a photo-centric layout it can't fill.
+  const assetList = availableAssets || [];
+  const hasAssets = assetList.length > 0;
+  const hasScreenshot = assetList.some((a) => a && (a.source === "website" || /screenshot/i.test(a.alt || "")));
+  let assetInstruction;
+  if (hasAssets && hasScreenshot) {
+    assetInstruction = "Use these local asset paths (and ONLY these) in any <img>/<video> src attributes. Use EVERY asset listed — each was fetched for the scene in its sceneId. Give real product/app screenshots HERO treatment: ≥60% of the canvas, inside a browser/device frame in the design system's styling, with a Ken Burns push (scale 1.0→1.12) panning across the UI, plus 1–2 callout chips with connector lines pointing at real UI elements. Background photos go full-bleed under a scrim. An unused asset is a wasted scene. These fetched assets are the FLOOR, not the ceiling: on top of EVERY scene layer your OWN animated vector graphics — an SVG particle/bokeh field (6–12 <circle>s drifting at varied speeds & opacities), drawing underlines/connectors (<path> with strokeDashoffset), rotating rings, burst marks, animated glows — so that, combining the photos AND your vectors, a fresh visual element ENTERS or EXITS the frame at least once every 1–2 seconds for the ENTIRE duration. Walk your timeline second-by-second: any ~1.5s window with nothing entering/leaving is a DEAD STRETCH — fill it. Never let the frame hold static for more than ~1s.";
+  } else if (hasAssets) {
+    assetInstruction = "Use these local asset paths (and ONLY these) in any <img>/<video> src attributes. Use EVERY asset listed — each was fetched for the scene in its sceneId. Place each as the scene's visual anchor: full-bleed background photos under a readable scrim, or framed insets (rounded card, design-system border/shadow) at ~40–60% of the canvas with a slow Ken Burns push (scale 1.0→1.12). An unused asset is a wasted scene. Some scenes may have NO fetched asset — carry those ENTIRELY with your own dense animated vectors (do NOT reuse another scene's image). On top of EVERY scene layer your OWN animated vector graphics — an SVG particle/bokeh field (6–12 <circle>s drifting at varied speeds & opacities), drawing underlines/connectors (<path> with strokeDashoffset), rotating rings, burst marks, animated glows — so that, combining the images AND your vectors, a fresh visual element ENTERS or EXITS the frame at least once every 1–2 seconds for the ENTIRE duration. Walk your timeline second-by-second: any ~1.5s window with nothing entering/leaving is a DEAD STRETCH — fill it. Never let the frame hold static for more than ~1s.";
+  } else {
+    assetInstruction = "No image/video assets were pre-fetched, so do NOT include any <img> or <video> tags. Your OWN generated vector graphics are then the PRIMARY material, not a fallback: dense animated SVG in EVERY scene — particle/bokeh fields (8–14 <circle>s drifting at varied speeds), drawing lines/underlines (<path> strokeDashoffset), rotating icons, burst marks, animated gradient meshes — layered continuously so a fresh visual element ENTERS or EXITS the frame at least once every 1–2 seconds. Walk your timeline second-by-second; any ~1.5s dead stretch is a FAILURE. A text-only frame is a FAILURE.";
+  }
+
   const lines = [
     "Storyboard:",
     JSON.stringify(sb, null, 2),
@@ -175,9 +213,7 @@ function buildUser(storyboard, { width, height, fps, availableAssets, framePack,
     "availableAssets:",
     JSON.stringify(availableAssets || [], null, 2),
     "",
-    (availableAssets && availableAssets.length)
-      ? "Use these local asset paths (and ONLY these) in any <img>/<video> src attributes. Use EVERY asset listed — each was fetched for the scene in its sceneId (background = full-bleed under a scrim with Ken Burns motion; inset = framed evidence). An unused asset is a wasted scene. These fetched assets are the FLOOR, not the ceiling: layer your OWN animated vector graphics on top of them — SVG particle fields, drifting shapes, drawing lines, rotating icons, burst marks, animated underlines — so that, combining the photos AND your vectors, a fresh visual element enters or leaves the frame every 1–2 seconds for the ENTIRE duration. Never let the frame hold static for more than ~1.5s."
-      : "No image/video assets were pre-fetched, so do NOT include any <img> or <video> tags — but you MUST still hit the asset/vector cadence using your OWN generated vector graphics: dense animated SVG (particle fields, drifting shapes, drawing lines, rotating icons, burst marks) layered continuously so a fresh visual element enters or leaves the frame every 1–2 seconds. A text-only frame is a failure.",
+    assetInstruction,
     "",
     `HARD RICHNESS REQUIREMENT (auto-checked, REJECTED if unmet): (1) at least one inline <svg> with >=${MIN_VECTOR_PRIMITIVES} animated vector primitives total — TARGET 12–20 VISIBLE per scene (shared bokeh field + per-scene drawing lines / rotating ring / burst sparks); (2) at least ${MIN_STICKERS} pop-in stickers/badges/chips total — TARGET 3–6 PER SCENE — each an absolute child of its scene with class "sticker badge|chip|stat|callout", popping via back.out and animated by the GSAP timeline. Place stickers in the MARGINS over the image (never over the headline); put data-layout-allow-occlusion on each text-bearing sticker and on any content container a sticker covers. A vector-thin or sticker-less composition is REJECTED.`,
   ];
@@ -217,6 +253,19 @@ function buildUser(storyboard, { width, height, fps, availableAssets, framePack,
       for (const q of qaIssues) lines.push(`- ${q}`);
     }
   }
+
+  // LAYOUT & LEGIBILITY LAW — placed LAST (strongest-attention position in a
+  // long prompt). These target the concrete failure modes seen in renders:
+  // dark off-topic stock photos stretched full-bleed (muddy, unreadable), and
+  // tiny low-contrast text parked in a corner. Stated as hard, checkable rules.
+  lines.push("");
+  lines.push("## LAYOUT & LEGIBILITY LAW — obey on EVERY scene (QA fails the video on any violation)");
+  lines.push("1. BACKGROUNDS ARE THE DESIGN SYSTEM, NOT PHOTOS. Every scene's background MUST be one of this design system's ground colors (a solid or its defined gradient). NEVER stretch a fetched photo full-bleed behind a scene, and NEVER use a darkened/scrimmed photo as a backdrop — fetched photos are often off-topic or dark and turn the frame into an unreadable mud. A fetched photo may appear ONLY inside a framed inset CARD (this system's border/radius/shadow) covering ~30–55% of the canvas with clear margin around it — never behind text, never edge-to-edge.");
+  lines.push("2. TEXT IS THE HERO. Each scene's primary message/headline is the LARGEST thing in the frame: headline font-size ≥ 7% of canvas height (≥ ~75px at 1080p — scale to THIS canvas). The CTA line (e.g. \"Try … free\") is just as large and CENTERED. Subtitle/body is smaller than the headline but still crisp at thumbnail size.");
+  lines.push("2b. CONTRAST IS NON-NEGOTIABLE. Every text element uses the design system's DARKEST token on a light ground and its LIGHTEST token on a dark ground — NEVER a mid-tone, NEVER a tint/shade of its own background. Washed-out light-grey-on-cream or dark-on-dark text is an automatic FAIL. If a headline must sit over imagery or a busy area, place it on a SOLID opaque panel/card filled with the opposite-luminance ground color — never rely on opacity or a blur. Aim for WCAG AA (~4.5:1) minimum; if it looks even borderline at thumbnail size, it fails.");
+  lines.push("3. NO CORNER-PARKED OR MICRO TEXT. All meaningful text lives in the central safe area (middle ~80% of the frame) — never floated in a corner, never below ~3% of canvas height. If text sits over any imagery, put a solid contrast panel/card behind it.");
+  lines.push("4. DECORATION SERVES, NEVER DOMINATES. No single decorative shape (arrow, disc, band) may be the largest or loudest element. Keep decorations behind the message at low opacity. Hierarchy is always message > content > decoration.");
+  lines.push("5. FILL THE FRAME edge-to-edge — no large empty quadrants, no headline floating alone in a void.");
 
   lines.push("", "Produce the JSON with indexHtml and metaJson strings now.");
   return lines.join("\n");
@@ -313,6 +362,29 @@ function quickCheck(indexHtml, metaJsonStr, { width, height, duration, assets, e
     }
   }
 
+  // REAL SCREENSHOT MUST APPEAR — a provided product/website screenshot is the
+  // single most credible asset; the weak composer routinely drops it (the
+  // black-void / generic-slide failure) and the QA vision proxy doesn't reliably
+  // catch it. Deterministically require every screenshot asset's src to appear in
+  // an <img> so the cheap same-model retry forces it back in with hero treatment.
+  // Skipped on a pure lint/runtime repair (enforceVectors=false) — a narrow
+  // technical fix shouldn't be bounced for an unrelated reason.
+  if (enforceVectors) {
+    const usedImg = new Set(imgSrcs);
+    const screenshots = (assets || []).filter(
+      (a) => a && a.path && (a.source === "website" || /screenshot/i.test(a.alt || ""))
+    );
+    const missing = screenshots.filter((a) => !usedImg.has(a.path));
+    if (missing.length) {
+      errs.push(
+        `REQUIRED product screenshot(s) missing from the composition: ${missing.map((a) => a.path).join(", ")}. ` +
+        `Place EACH real screenshot in an <img src="..."> with HERO treatment — ≥55% of the canvas, inside a ` +
+        `browser/device frame in the design system's styling, with a slow Ken Burns push (scale 1.0→1.12) across the UI ` +
+        `and 1–2 callout chips pointing at real UI elements. A product video that hides its real screenshot FAILS.`
+      );
+    }
+  }
+
   if (/\bfetch\s*\(/i.test(indexHtml)) errs.push("forbidden: fetch() call");
   if (/\bXMLHttpRequest\b/i.test(indexHtml)) errs.push("forbidden: XMLHttpRequest");
 
@@ -361,6 +433,36 @@ function quickCheck(indexHtml, metaJsonStr, { width, height, duration, assets, e
   return errs;
 }
 
+// Deterministically repair the two lint violations the composer most often
+// REINTRODUCES between laps (it fixes one rule and breaks another, exhausting
+// the retry budget and falling back to the ugly template). Both are mechanical:
+//   1. `repeat: -1` (infinite) — the engine forbids it, but a large FINITE count
+//      loops identically across the fixed capture window [0, duration].
+//   2. external/forbidden media src — repoint to the nearest allowed asset of the
+//      same media type so the element (and its GSAP target) survives.
+// Applied before quickCheck so an otherwise-correct attempt isn't bounced for a
+// trivially-fixable reason. See keyframe-quality-rootcauses.
+function sanitizeComposition(html, assets) {
+  let out = html.replace(/repeat\s*:\s*-1\b/g, "repeat: 120");
+  // HyperFrames blocks (media_missing_data_start) any timed media that has a
+  // src but no data-start — it can't own playback deterministically otherwise.
+  // The composer routinely emits a bare background <video src>; default it to
+  // data-start="0" so the gate passes instead of burning every repair lap.
+  out = out.replace(/<(video|audio)\b([^>]*)>/gi, (m, tag, attrs) =>
+    /\bdata-start\s*=/.test(attrs) ? m : `<${tag} data-start="0"${attrs}>`);
+  const allowed = allowedSrcs(assets);
+  if (allowed.size) {
+    const list = [...allowed];
+    const firstImg = list.find((s) => /\.(png|jpe?g|webp|gif|svg)$/i.test(s)) || list[0];
+    const firstVid = list.find((s) => /\.(mp4|webm|mov)$/i.test(s)) || firstImg;
+    out = out.replace(/(<img\b[^>]*\bsrc\s*=\s*["'])([^"']+)(["'])/gi,
+      (m, p, src, q) => (allowed.has(src) ? m : `${p}${firstImg}${q}`));
+    out = out.replace(/(<(?:video|source)\b[^>]*\bsrc\s*=\s*["'])([^"']+)(["'])/gi,
+      (m, p, src, q) => (allowed.has(src) ? m : `${p}${firstVid}${q}`));
+  }
+  return out;
+}
+
 async function compose(storyboard, { width, height, fps, duration, maxRetries, availableAssets, abortSignal, framePack, captionCues }) {
   const t0 = Date.now();
   console.log(`[composer] start (duration=${duration}s, assets=${(availableAssets||[]).length}, maxRetries=${maxRetries}, framePack=${framePack || "none"}, captions=${(captionCues||[]).length})`);
@@ -377,14 +479,18 @@ async function compose(storyboard, { width, height, fps, duration, maxRetries, a
   const tries = (maxRetries ?? 2) + 1;
   let totalIn = 0, totalOut = 0;
   let lastErrors = [];
-  let augmentedUser = user;
+  // The storyboard+asset `user` prefix is constant across laps; only this
+  // feedback suffix changes. Passing them separately lets the LLM client cache
+  // the heavy prefix so repair laps don't re-bill it at full price.
+  let feedback = "";
 
   for (let i = 1; i <= tries; i++) {
     if (abortSignal?.aborted) throw abortSignal.reason || new Error("composer aborted");
     console.log(`[composer] attempt ${i}/${tries} — sending to LLM`);
     const { text, tokensIn, tokensOut } = await openrouter.chat({
       system,
-      user: augmentedUser,
+      user,
+      userSuffix: feedback,
       jsonMode: false, // sentinel envelope — forcing json_object would fight the format
       stage: "composer",
       signal: abortSignal,
@@ -395,11 +501,12 @@ async function compose(storyboard, { width, height, fps, duration, maxRetries, a
     let env;
     try {
       env = parseEnvelope(text);
+      env.indexHtml = sanitizeComposition(env.indexHtml, availableAssets);
       console.log(`[composer] attempt ${i} parsed (html=${env.indexHtml.length}ch, meta=${env.metaJson.length}ch)`);
     } catch (e) {
       lastErrors = [`envelope parse error: ${e.message}`];
       console.warn(`[composer] attempt ${i} parse failed: ${e.message.slice(0, 200)}`);
-      augmentedUser = `${user}\n\nPrevious reply could not be parsed: ${e.message}\nReturn ONLY the sentinel-delimited response: ===HTML=== <the html> ===META=== <the meta json> ===END===`;
+      feedback = `\n\nPrevious reply could not be parsed: ${e.message}\nReturn ONLY the sentinel-delimited response: ===HTML=== <the html> ===META=== <the meta json> ===END===`;
       continue;
     }
 
@@ -435,7 +542,7 @@ async function compose(storyboard, { width, height, fps, duration, maxRetries, a
     }
 
     console.warn(`[composer] attempt ${i} validation failed (${errs.length} errs): ${errs.slice(0, 3).join(" | ").slice(0, 300)}`);
-    augmentedUser = `${user}\n\nPrevious attempt had these problems — fix them and resend:\n${errs.map(e => `- ${e}`).join("\n")}`;
+    feedback = `\n\nPrevious attempt had these problems — fix them and resend:\n${errs.map(e => `- ${e}`).join("\n")}`;
   }
 
   const err = new Error(
@@ -446,4 +553,4 @@ async function compose(storyboard, { width, height, fps, duration, maxRetries, a
   throw err;
 }
 
-module.exports = { compose };
+module.exports = { compose, getSystemPromptWithSkills };

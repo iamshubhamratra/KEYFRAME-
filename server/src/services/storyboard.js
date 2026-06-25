@@ -30,18 +30,72 @@ const ASPECT_BY_ORIENTATION = {
   square: "1:1",
 };
 
-function buildUser({ prompt, duration, orientation }) {
+function buildUser({ prompt, duration, orientation, framePack }) {
   return [
     `User prompt: ${prompt}`,
     `Target duration: ${duration} seconds`,
     `Orientation: ${orientation}`,
     `Aspect ratio: ${ASPECT_BY_ORIENTATION[orientation]}`,
+    framePack && framePack !== "auto"
+      ? `Visual design system: "${framePack}". Design every scene's layout, visualMotif, and emphasis to suit THIS system's aesthetic — pick scene archetypes and motifs that show off its signature look. Keep adjacent scenes visually distinct (vary layout + animation + motif).`
+      : "",
     "",
     "Produce the storyboard JSON now.",
-  ].join("\n");
+  ].filter(Boolean).join("\n");
 }
 
 const { extractFirstJsonObject: parseJsonLenient } = require("./json_lenient");
+
+const round2 = (n) => Math.round(n * 100) / 100;
+const clampDur = (n) => Math.min(15, Math.max(2, n));
+
+// Deterministically repair scene timing so the LLM is never retried for
+// arithmetic it routinely gets slightly wrong: starts that don't equal the
+// cumulative sum of prior durations, and durations that don't total the target.
+// We clamp each duration to [2,15], rescale them to hit `duration` exactly,
+// absorb residual rounding drift into a scene that can take it, then recompute
+// gapless starts. A storyboard that was already correct passes through
+// unchanged. Only timing is touched — content/kind/animation are left for
+// validate() to flag and (if wrong) drive a real retry.
+function normalizeTimeline(sb, duration) {
+  if (!sb || !Array.isArray(sb.scenes) || !sb.scenes.length) return;
+  const scenes = sb.scenes.filter(
+    (s) => s && typeof s.duration === "number" && Number.isFinite(s.duration)
+  );
+  if (!scenes.length) return;
+
+  for (const s of scenes) s.duration = clampDur(s.duration);
+
+  let sum = scenes.reduce((a, s) => a + s.duration, 0);
+  if (sum > 0 && Math.abs(sum - duration) > 0.01) {
+    const scale = duration / sum;
+    for (const s of scenes) s.duration = clampDur(s.duration * scale);
+  }
+
+  for (const s of scenes) s.duration = round2(s.duration);
+  // Distribute any leftover drift (from clamping/rounding) across scenes that
+  // have slack, so the total lands on `duration` without violating [2,15].
+  let drift = round2(duration - scenes.reduce((a, s) => a + s.duration, 0));
+  for (let guard = 0; Math.abs(drift) >= 0.01 && guard < scenes.length * 2; guard++) {
+    const s = scenes.find((sc) =>
+      drift > 0 ? sc.duration + drift <= 15 || sc.duration < 15
+                : sc.duration + drift >= 2  || sc.duration > 2
+    );
+    if (!s) break;
+    const next = clampDur(round2(s.duration + drift));
+    drift = round2(drift - (next - s.duration));
+    s.duration = next;
+  }
+
+  let cursor = 0;
+  for (const s of scenes) {
+    s.start = round2(cursor);
+    cursor = round2(cursor + s.duration);
+  }
+  // durationSec is authoritative-from-request; align it so it never mis-trips
+  // validate() once the scenes sum correctly.
+  sb.durationSec = duration;
+}
 
 function validate(storyboard, { duration, orientation }) {
   const errs = [];
@@ -90,8 +144,8 @@ function validate(storyboard, { duration, orientation }) {
   return errs;
 }
 
-async function generateStoryboard({ prompt, duration, orientation }) {
-  const user = buildUser({ prompt, duration, orientation });
+async function generateStoryboard({ prompt, duration, orientation, framePack }) {
+  const user = buildUser({ prompt, duration, orientation, framePack });
   const maxTries = (config.llm.storyboardMaxRetries || 2) + 1;
 
   let totalIn = 0, totalOut = 0;
@@ -119,6 +173,9 @@ async function generateStoryboard({ prompt, duration, orientation }) {
       continue;
     }
 
+    // Repair mechanical timing drift before validating, so the model is only
+    // ever retried for genuine content problems — not arithmetic.
+    normalizeTimeline(storyboard, duration);
     const errs = validate(storyboard, { duration, orientation });
     if (errs.length === 0) {
       return { storyboard, tokensIn: totalIn, tokensOut: totalOut };
@@ -135,4 +192,4 @@ async function generateStoryboard({ prompt, duration, orientation }) {
   throw err;
 }
 
-module.exports = { generateStoryboard };
+module.exports = { generateStoryboard, normalizeTimeline, validate };
