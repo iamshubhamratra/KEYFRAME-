@@ -65,6 +65,17 @@ async function main() {
   app.disable("x-powered-by");
   app.set("trust proxy", true);
 
+  // Baseline security headers. SAMEORIGIN still permits the studio's own
+  // same-origin design.html landing iframe while blocking cross-origin framing
+  // (clickjacking). nosniff + Referrer-Policy are safe defaults for a keyless,
+  // cookieless API + static SPA.
+  app.use((_req, res, next) => {
+    res.setHeader("X-Frame-Options", "SAMEORIGIN");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    next();
+  });
+
   // CORS — for split deploys the frontend (e.g. Vercel) is a different origin
   // than this API (e.g. Render). WEB_ORIGIN is a comma-separated allowlist of
   // permitted origins; if unset, any origin is allowed (the API is keyless,
