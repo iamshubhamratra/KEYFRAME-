@@ -176,7 +176,7 @@ function vfxLayer(theme, isDark, { width, height, duration }) {
   const r2 = (n) => Math.round(n * 100) / 100;
   const acc = theme.accents.length ? theme.accents : ["#7CC4FF"];
   const pick = (i) => acc[i % acc.length];
-  const N = 16;
+  const N = 30;
   const particleEls = [];
   const tweens = [];
   for (let i = 0; i < N; i++) {
@@ -184,30 +184,64 @@ function vfxLayer(theme, isDark, { width, height, duration }) {
     const cy = Math.round(Math.random() * 1000) / 10;
     const rad = 2 + Math.round(Math.random() * 6);
     const o = (0.18 + Math.random() * 0.3).toFixed(2);
-    particleEls.push(`<circle class="kfp kfp${i}" cx="${cx}%" cy="${cy}%" r="${rad}" fill="${pick(i)}" opacity="${o}" />`);
+    particleEls.push(`<circle class="kfx kfx${i}" cx="${cx}%" cy="${cy}%" r="${rad}" fill="${pick(i)}" opacity="${o}" />`);
     const dy = -(20 + Math.round(Math.random() * 46));
     const dx = r2((Math.random() - 0.5) * 16);
     const dur = (5.5 + Math.random() * 7).toFixed(1);
     const rep = Math.max(0, Math.floor(duration / Number(dur)) - 1);
-    tweens.push(`  ${TLV}.to(".kfp${i}", { attr:{ cy:"+=${dy}%" }, x:"+=${dx}", duration:${dur}, ease:"sine.inOut", yoyo:true, repeat:${rep} }, 0);`);
+    tweens.push(`  ${TLV}.to(".kfx${i}", { attr:{ cy:"+=${dy}%" }, x:"+=${dx}", duration:${dur}, ease:"sine.inOut", yoyo:true, repeat:${rep} }, 0);`);
+    // Twinkle: a soft opacity pulse so the particle field stays alive.
+    const twk = (2 + Math.random() * 3).toFixed(1);
+    tweens.push(`  ${TLV}.to(".kfx${i}", { opacity:${(Number(o) * 0.35).toFixed(2)}, duration:${twk}, ease:"sine.inOut", yoyo:true, repeat:${Math.max(1, Math.floor(duration / Number(twk)))} }, ${r2(Math.random() * 2)});`);
+  }
+  // Scattered decorative vector glyphs (rotating plus / diamond / triangle
+  // outlines) — more "vectors everywhere" without clutter: small, low-opacity,
+  // each slowly rotating and breathing.
+  const markEls = [];
+  const M = 7;
+  for (let i = 0; i < M; i++) {
+    const mx = Math.round(Math.random() * width);
+    const my = Math.round(Math.random() * height);
+    const sz = 10 + Math.round(Math.random() * 18);
+    const mo = (0.13 + Math.random() * 0.15).toFixed(2);
+    const col = pick(i + 1);
+    const kind = i % 3;
+    const shape = kind === 0
+      ? `<path d="M ${mx} ${my - sz} L ${mx} ${my + sz} M ${mx - sz} ${my} L ${mx + sz} ${my}" stroke="${col}" stroke-width="2" opacity="${mo}" />`
+      : kind === 1
+        ? `<path d="M ${mx} ${my - sz} L ${mx + sz} ${my} L ${mx} ${my + sz} L ${mx - sz} ${my} Z" fill="none" stroke="${col}" stroke-width="2" opacity="${mo}" />`
+        : `<path d="M ${mx} ${my - sz} L ${mx + sz} ${my + sz} L ${mx - sz} ${my + sz} Z" fill="none" stroke="${col}" stroke-width="2" opacity="${mo}" />`;
+    markEls.push(`<g class="kfm kfm${i}">${shape}</g>`);
+    const mrot = (i % 2 ? 1 : -1) * 360;
+    const mdur = (12 + Math.random() * 10).toFixed(1);
+    tweens.push(`  ${TLV}.to(".kfm${i}", { rotation:${mrot}, svgOrigin:"${mx} ${my}", duration:${mdur}, ease:"none", repeat:${Math.max(0, Math.floor(duration / Number(mdur)) - 1)} }, 0);`);
+    const mfd = (2.5 + Math.random() * 2.5).toFixed(1);
+    tweens.push(`  ${TLV}.to(".kfm${i}", { opacity:${(Number(mo) * 0.3).toFixed(2)}, duration:${mfd}, ease:"sine.inOut", yoyo:true, repeat:${Math.max(1, Math.floor(duration / Number(mfd)))} }, ${r2(Math.random() * 1.5)});`);
   }
   const ringR = Math.round(Math.min(width, height) * 0.26);
   const cxPx = Math.round(width * 0.5), cyPx = Math.round(height * 0.42);
   const lineLen = Math.round(width * 0.92);
   const y1 = Math.round(height * 0.26), y2 = Math.round(height * 0.74);
+  const diagLen = Math.round(Math.hypot(width * 0.5, height * 0.5));
   const ringOp = isDark ? 0.16 : 0.2, lineOp = isDark ? 0.2 : 0.22;
   const accentEls =
     `<circle id="kf-ring" cx="${cxPx}" cy="${cyPx}" r="${ringR}" fill="none" stroke="${pick(0)}" stroke-width="2.5" opacity="${ringOp}" stroke-dasharray="7 16" />` +
     `<circle id="kf-ring2" cx="${cxPx}" cy="${cyPx}" r="${Math.round(ringR * 0.62)}" fill="none" stroke="${pick(1)}" stroke-width="2" opacity="${ringOp * 0.8}" stroke-dasharray="3 12" />` +
+    `<circle id="kf-ring3" cx="${cxPx}" cy="${cyPx}" r="${Math.round(ringR * 1.42)}" fill="none" stroke="${pick(2)}" stroke-width="1.5" opacity="${r2(ringOp * 0.6)}" stroke-dasharray="2 20" />` +
     `<line id="kf-l1" x1="0" y1="${y1}" x2="${lineLen}" y2="${y1}" stroke="${pick(2)}" stroke-width="2.5" opacity="${lineOp}" stroke-dasharray="${lineLen}" stroke-dashoffset="${lineLen}" />` +
-    `<line id="kf-l2" x1="${width}" y1="${y2}" x2="${width - lineLen}" y2="${y2}" stroke="${pick(0)}" stroke-width="2.5" opacity="${lineOp}" stroke-dasharray="${lineLen}" stroke-dashoffset="${lineLen}" />`;
+    `<line id="kf-l2" x1="${width}" y1="${y2}" x2="${width - lineLen}" y2="${y2}" stroke="${pick(0)}" stroke-width="2.5" opacity="${lineOp}" stroke-dasharray="${lineLen}" stroke-dashoffset="${lineLen}" />` +
+    `<line id="kf-d1" x1="0" y1="0" x2="${cxPx}" y2="${cyPx}" stroke="${pick(1)}" stroke-width="1.5" opacity="${r2(lineOp * 0.65)}" stroke-dasharray="${diagLen}" stroke-dashoffset="${diagLen}" />` +
+    `<line id="kf-d2" x1="${width}" y1="${height}" x2="${cxPx}" y2="${cyPx}" stroke="${pick(3)}" stroke-width="1.5" opacity="${r2(lineOp * 0.65)}" stroke-dasharray="${diagLen}" stroke-dashoffset="${diagLen}" />`;
   const spins = Math.max(1, Math.round(duration / 16));
   tweens.push(`  ${TLV}.to("#kf-ring", { rotation:360, svgOrigin:"${cxPx} ${cyPx}", duration:${r2(duration / spins)}, ease:"none", repeat:${Math.max(0, spins - 1)} }, 0);`);
   tweens.push(`  ${TLV}.to("#kf-ring2", { rotation:-360, svgOrigin:"${cxPx} ${cyPx}", duration:${r2(duration / spins)}, ease:"none", repeat:${Math.max(0, spins - 1)} }, 0);`);
+  tweens.push(`  ${TLV}.to("#kf-ring3", { rotation:360, svgOrigin:"${cxPx} ${cyPx}", duration:${r2(duration / spins)}, ease:"none", repeat:${Math.max(0, spins - 1)} }, 0);`);
   const lineDur = Math.min(2.2, Math.max(1.0, duration * 0.1));
   const lineRep = Math.max(0, Math.floor(duration / (lineDur * 2)) - 1);
   tweens.push(`  ${TLV}.fromTo("#kf-l1", { strokeDashoffset:${lineLen} }, { strokeDashoffset:0, duration:${r2(lineDur)}, ease:"power2.inOut", yoyo:true, repeat:${lineRep} }, 0.3);`);
   tweens.push(`  ${TLV}.fromTo("#kf-l2", { strokeDashoffset:${lineLen} }, { strokeDashoffset:0, duration:${r2(lineDur)}, ease:"power2.inOut", yoyo:true, repeat:${lineRep} }, ${r2(0.3 + lineDur * 0.5)});`);
+  tweens.push(`  ${TLV}.fromTo("#kf-d1", { strokeDashoffset:${diagLen} }, { strokeDashoffset:0, duration:${r2(lineDur * 1.3)}, ease:"power2.inOut", yoyo:true, repeat:${lineRep} }, 0.5);`);
+  tweens.push(`  ${TLV}.fromTo("#kf-d2", { strokeDashoffset:${diagLen} }, { strokeDashoffset:0, duration:${r2(lineDur * 1.3)}, ease:"power2.inOut", yoyo:true, repeat:${lineRep} }, ${r2(0.5 + lineDur * 0.6)});`);
   tweens.push(`  ${TLV}.fromTo("#__kf_bg", { scale:1, xPercent:0, yPercent:0 }, { scale:1.08, xPercent:1.5, yPercent:-1.5, duration:${duration}, ease:"sine.inOut" }, 0);`);
   // Slow bokeh drift (behind content — purely atmospheric depth/motion).
   const bokehDrift = [{ dx: 6, dy: -5 }, { dx: -7, dy: 4 }, { dx: 4, dy: 6 }];
@@ -219,7 +253,7 @@ function vfxLayer(theme, isDark, { width, height, duration }) {
 `  <div id="__kf_fx" class="clip" data-start="0" data-duration="${duration}" data-track-index="941"
        style="position:absolute; inset:0; z-index:2147483000; pointer-events:none;">
     <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid slice" style="position:absolute; inset:0; width:100%; height:100%;">
-      ${particleEls.join("")}${accentEls}
+      ${particleEls.join("")}${markEls.join("")}${accentEls}
     </svg>
   </div>`;
   return { html, tweens };

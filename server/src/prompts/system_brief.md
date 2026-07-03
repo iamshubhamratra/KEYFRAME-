@@ -17,6 +17,7 @@ Return ONLY a JSON object, no prose, no markdown fences:
 ```
 {
   "improvedPrompt": "<one rich paragraph — what this video is, for whom, and why it exists>",
+  "subject": "<the CONCRETE, SHOOTABLE subject in 2-6 words — what a stock-footage search should show>",
   "audience": "<who this is for, specific>",
   "tone": "<2-5 adjectives, e.g. 'confident, playful, fast'>",
   "goal": "<the single action/feeling the viewer should leave with>",
@@ -40,6 +41,7 @@ Return ONLY a JSON object, no prose, no markdown fences:
 ## Rules
 
 1. **Ground every claim.** Every entry in `mustIncludeFacts` must trace to the prompt, transcript, or website text. If the inputs contain no hard facts, return an empty array — do NOT invent statistics, dates, customer names, or product claims. Inventing a fact is the single worst failure here.
+1b. **subject is LITERAL and SHOOTABLE.** It steers every stock-footage search, so name the physical thing a camera would film: "golden retriever dog", "skincare products on marble counter", "software dashboard UI", "espresso being poured". NEVER abstractions ("innovation", "growth", "their journey"), never adjectives alone ("cinematic", "premium"), never just the brand name. If the film is about a product, name the product category; if about a person/animal, name them.
 2. **Conflict precedence:** the user's `prompt` wins over the `website`, which wins over the video `transcript`. The transcript tells you what was *said*; the prompt tells you what the user *wants*.
 3. **brandColors:** prefer `website.brandColors` when present; otherwise pick 2-3 hex colors matching the tone. Always valid 6-digit hex (`#RRGGBB`).
 4. **suggestedFramePack:** pick ONLY from `availableFramePacks` names. If `preferences.framePack` is not "auto", echo it verbatim. Otherwise match tone → vibe using this table:
@@ -50,6 +52,8 @@ Return ONLY a JSON object, no prose, no markdown fences:
    | editorial, cultural, elegant, literary, calm | serif editorial / print / gallery |
    | tech, premium, nocturnal, futuristic | dark glass / chrome / vapor / spotlight |
    | corporate, trustworthy, clean | mono / corporate / minimal |
+
+   **Rotation:** if `recentFramePacks` is present, those packs styled this user's last few videos. Each tone row offers several fitting packs — when more than one fits, pick one that is NOT in `recentFramePacks`, so back-to-back videos don't wear the same look. Repeat a recent pack only when it is clearly the single best fit (e.g. the user's brand or subject demands it).
 
 5. **suggestedDuration:** echo `preferences.duration` if set; otherwise choose 20-45s based on how much the key messages need (≈4-5s per message + hook + CTA). Integer.
 6. **improvedPrompt** is a paragraph a director could shoot from: subject, audience, the arc (hook → substance → close), and energy. No camera jargon, no markdown. Concrete nouns over abstractions ("a freelance designer drowning in invoices" beats "busy professionals").
@@ -79,6 +83,7 @@ Return ONLY a JSON object, no prose, no markdown fences:
 ```json
 {
   "improvedPrompt": "A 30-second vertical promo for Tully, an app that auto-categorizes expenses for freelancers. The story opens on the daily pain — a pile of crumpled receipts — then reveals Tully snapping one photo and instantly filing it tax-ready. Built for solo workers who hate admin. It closes on the payoff: six hours a month handed back. Energetic and reassuring, fast cuts, a confident modern fintech feel.",
+  "subject": "expense receipts and finance app UI",
   "audience": "Solo freelancers and contractors who do their own bookkeeping",
   "tone": "confident, modern, reassuring, brisk",
   "goal": "Make the viewer feel expense admin is finally solved — and tap to try Tully",

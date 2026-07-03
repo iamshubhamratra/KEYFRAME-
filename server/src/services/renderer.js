@@ -39,31 +39,33 @@ async function generateThumbnail(videoPath, thumbPath, durationSec) {
 }
 
 // Render failures that are NOT the composition's fault and clear on a fresh
-// launch a few seconds later — safe to retry once:
+// launch a few seconds later — safe to retry:
 //   • Windows NTSTATUS exceptions (exit code in the 0xC0000000+ range), e.g.
-//     0xC0000142 (STATUS_DLL_INIT_FAILED) when headless Chromium can't init
-//     under transient memory / desktop-heap pressure.
+//     0xC0000142 (STATUS_DLL_INIT_FAILED) when node/Chromium can't init under
+//     memory (commit) or desktop-heap pressure. Signature: an EMPTY tail —
+//     the process died before printing a byte. Retries drop to 1 render
+//     worker, halving the Chromium commit footprint.
 //   • A plain non-zero exit (1) AFTER the browser had already launched — a
 //     transient Chromium render hiccup (asset decode timing, GPU/ANGLE blip,
 //     memory pressure on the 8GB box). Lint + runtime smoke already passed, and
 //     the identical composition often renders cleanly on a second pass.
 // Watchdog/abort kills (signal set, code null) are NOT retried — we killed it.
 const NT_CRASH_FLOOR = 0xC0000000; // 3221225472
+const isNtCrash = (code) => typeof code === "number" && code >= NT_CRASH_FLOOR;
 function isTransientLaunchCrash(code, signal) {
   if (signal) return false;                 // we killed it (watchdog/abort)
   if (typeof code !== "number") return false;
-  if (code >= NT_CRASH_FLOOR) return true;  // Windows fatal-exception range
-  return code !== 0;                         // any other non-zero exit — retry once
+  if (isNtCrash(code)) return true;         // Windows fatal-exception range
+  return code !== 0;                         // any other non-zero exit — retry
 }
 
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // One render attempt. Resolves { ok, code, signal, stdout, stderr } — never
 // rejects on a non-zero exit, so the retry loop can decide what to do.
-function renderAttempt({ jobId, jobDir, outRelative, durationSec, quality, abortSignal }) {
+function renderAttempt({ jobId, jobDir, outRelative, durationSec, quality, abortSignal, workers }) {
   return new Promise((resolve) => {
     const cmd = WINDOWS ? "npx.cmd" : "npx";
-    const workers = Math.max(1, Number(config.server.renderWorkers) || 1);
     // Pin the hyperframes version so renders are deterministic and immune to
     // npm publish-propagation races (an unpinned `latest` can resolve to a
     // version whose tarball hasn't propagated yet → ETARGET). Bump the pin in
@@ -78,10 +80,13 @@ function renderAttempt({ jobId, jobDir, outRelative, durationSec, quality, abort
     ];
 
     // Node ≥18.20 throws EINVAL spawning .cmd files without a shell (CVE-2024-27980).
+    // windowsHide keeps the cmd/conhost chain off the desktop heap — the same
+    // heap whose exhaustion produces 0xC0000142 launch crashes.
     const child = spawn(cmd, args, {
       cwd: jobDir,
       env: { ...process.env, PUPPETEER_DISABLE_HEADLESS_WARNING: "true" },
       shell: WINDOWS,
+      windowsHide: true,
     });
 
     let stdout = "", stderr = "";
@@ -106,10 +111,14 @@ function renderAttempt({ jobId, jobDir, outRelative, durationSec, quality, abort
     // Watchdog accommodates first-render overhead (Hyperframes downloads ~107 MB
     // Chromium on the first use of a fresh deploy). Formula:
     //   max(minSec, duration × multiplier) + bufferSec
+    // A degraded retry (fewer workers than configured) captures frames slower,
+    // so the window stretches proportionally.
     const minSec    = Math.max(0, Number(config.server.watchdogMinSec)    || 0);
     const bufferSec = Math.max(0, Number(config.server.watchdogBufferSec) || 60);
     const mult      = Math.max(1, Number(config.server.watchdogMultiplier) || 8);
-    const coreSec   = Math.max(minSec, Math.floor(durationSec * mult));
+    const configuredWorkers = Math.max(1, Number(config.server.renderWorkers) || 1);
+    const slowFactor = Math.max(1, configuredWorkers / workers);
+    const coreSec   = Math.ceil(Math.max(minSec, Math.floor(durationSec * mult)) * slowFactor);
     const watchdogMs = coreSec * 1000 + bufferSec * 1000;
 
     let settled = false;
@@ -147,19 +156,31 @@ async function render({ jobId, jobDir, durationSec, quality = config.server.rend
   const outRelative = path.join("renders", "out.mp4");
   fs.mkdirSync(path.join(jobDir, "renders"), { recursive: true });
 
-  // Up to 2 attempts: a transient render failure (Chromium launch crash like
-  // 0xC0000142, or a plain exit-1 hiccup after launch) under memory pressure
-  // clears on a fresh launch a few seconds later — the composition itself
-  // already passed lint + runtime smoke.
-  const MAX_ATTEMPTS = 2;
+  // Up to 3 attempts with growing backoff. A transient failure (Chromium/node
+  // launch crash like 0xC0000142 under commit/desktop-heap pressure, or a plain
+  // exit-1 hiccup after launch) often clears once memory settles — the
+  // composition itself already passed lint + runtime smoke. After an NTSTATUS
+  // crash the retry drops to 1 render worker: half the Chromium footprint is
+  // the difference between "can't start a process" and a slower-but-finished
+  // film on a loaded machine.
+  const MAX_ATTEMPTS = 3;
+  const RETRY_DELAY_MS = [0, 5000, 20000];
+  const configuredWorkers = Math.max(1, Number(config.server.renderWorkers) || 1);
+  let workers = configuredWorkers;
   let res;
   for (let i = 1; i <= MAX_ATTEMPTS; i++) {
     if (abortSignal?.aborted) throw abortSignal.reason || new Error("render aborted");
-    res = await renderAttempt({ jobId, jobDir, outRelative, durationSec, quality, abortSignal });
+    res = await renderAttempt({ jobId, jobDir, outRelative, durationSec, quality, abortSignal, workers });
     if (res.ok) break;
     if (i < MAX_ATTEMPTS && isTransientLaunchCrash(res.code, res.signal) && !abortSignal?.aborted) {
-      console.warn(`[renderer] job ${jobId} attempt ${i} render failed (code ${res.code} = 0x${(res.code >>> 0).toString(16)}); likely transient under memory pressure (browser launched, lint+runtime already passed) — retrying in 5s`);
-      await delay(5000);
+      const hex = `0x${(res.code >>> 0).toString(16)}`;
+      if (isNtCrash(res.code) && workers > 1) workers = 1; // halve Chromium memory for the retry
+      console.warn(
+        `[renderer] job ${jobId} attempt ${i} failed (code ${res.code} = ${hex})` +
+        `${isNtCrash(res.code) ? " — process died at init (out of memory/desktop heap)" : ""}; ` +
+        `retrying in ${RETRY_DELAY_MS[i] / 1000}s with --workers ${workers}`
+      );
+      await delay(RETRY_DELAY_MS[i]);
       continue;
     }
     break;
@@ -167,8 +188,18 @@ async function render({ jobId, jobDir, durationSec, quality = config.server.rend
 
   if (!res.ok) {
     const tail = [res.stdout.slice(-1500), res.stderr.slice(-1500)].filter(Boolean).join("\n---\n");
+    // An NTSTATUS exit with an empty tail = the render process never got far
+    // enough to print anything: Windows refused to start it (commit charge or
+    // desktop heap exhausted). Say so — "code 3221225794" alone helps nobody.
+    let hint = "";
+    if (isNtCrash(res.code) && !tail) {
+      const freeGb = (require("node:os").freemem() / 1024 ** 3).toFixed(1);
+      hint = `\nThe render process crashed at startup (0x${(res.code >>> 0).toString(16)} — Windows could not ` +
+        `initialize it; the machine is out of memory or desktop heap; ${freeGb} GB RAM free right now). ` +
+        `Close some applications (browsers are the usual culprit) or grow the pagefile, then retry the render.`;
+    }
     throw new Error(
-      `render exited with code ${res.code}${res.signal ? ` (signal ${res.signal})` : ""}. Tail:\n${tail}`
+      `render exited with code ${res.code}${res.signal ? ` (signal ${res.signal})` : ""} after ${MAX_ATTEMPTS} attempts.${hint}${tail ? ` Tail:\n${tail}` : ""}`
     );
   }
 

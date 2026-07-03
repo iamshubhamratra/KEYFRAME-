@@ -17,6 +17,7 @@ export default defineConfig({
     proxy: {
       '/api': 'http://localhost:8080',
       '/videos': 'http://localhost:8080',
+      '/frames': 'http://localhost:8080',
     },
   },
 })

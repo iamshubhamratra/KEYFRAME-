@@ -9,7 +9,19 @@ export const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "")
 export const mediaUrl = (u) =>
   typeof u === "string" && u.startsWith("/") ? API_BASE + u : u;
 
-const apiFetch = (path, opts) => fetch(API_BASE + path, opts);
+// credentials:"include" so the httpOnly auth cookie flows on every call
+// (required cross-origin for the Vercel↔Render split deploy).
+const apiFetch = (path, opts = {}) => fetch(API_BASE + path, { credentials: "include", ...opts });
+const jpost = (path, body) => apiFetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+
+// ---------------- auth ----------------
+export async function signup({ name, email, password }) { return json(await jpost("/api/auth/signup", { name, email, password })); }
+export async function login({ email, password }) { return json(await jpost("/api/auth/login", { email, password })); }
+export async function logout() { return json(await apiFetch("/api/auth/logout", { method: "POST" })); }
+export async function fetchMe() { return json(await apiFetch("/api/auth/me")); }
+export async function sendResetOtp(email) { return json(await jpost("/api/auth/forgot/send-otp", { email })); }
+export async function verifyResetOtp(email, otp) { return json(await jpost("/api/auth/forgot/verify-otp", { email, otp })); }
+export async function setNewPassword(email, newPassword) { return json(await jpost("/api/auth/forgot/set-new-password", { email, newPassword })); }
 
 async function json(resp) {
   const body = await resp.json().catch(() => ({}));

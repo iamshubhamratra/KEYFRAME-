@@ -92,4 +92,39 @@ function reencodeForHyperframes(srcPath) {
   });
 }
 
-module.exports = { download, validateMedia, reencodeForHyperframes, UA };
+// ---- Relevance + quality ranking for provider search candidates ----
+// The retrieval layer used to use the first search hit, so a loosely-related or
+// low-resolution image could win purely by position — the root of "random /
+// low-quality assets". rankCandidates scores every candidate by (a) how many of
+// the query's keywords appear in its tags/title/alt and (b) its resolution, then
+// returns them best-first with junk-resolution dropped.
+const MIN_LONG_EDGE = 900; // px — below this a still looks soft full-bleed at 1080p
+
+function tokenize(s) {
+  return [...new Set(String(s || "").toLowerCase().match(/[a-z0-9]{3,}/g) || [])];
+}
+
+function scoreCandidate(query, c) {
+  const q = tokenize(query);
+  const text = tokenize([c.tags, c.title, c.alt].filter(Boolean).join(" "));
+  let relevance;
+  if (!q.length) relevance = 0.5;
+  else if (!text.length) relevance = 0.35;              // provider gave no keywords
+  else relevance = q.filter((w) => text.includes(w)).length / q.length;
+  const longEdge = Math.max(Number(c.width) || 0, Number(c.height) || 0);
+  const quality = longEdge > 0 ? Math.min(1, longEdge / 1920) : 0.4;
+  return { score: relevance * 0.65 + quality * 0.35, relevance, longEdge };
+}
+
+// Best-first ordering. Drops candidates too small to look good full-bleed, but
+// keeps them if that would leave nothing (a filled scene beats an empty one).
+function rankCandidates(query, candidates) {
+  const scored = (candidates || [])
+    .filter((c) => c && c.url)
+    .map((c) => ({ c, ...scoreCandidate(query, c) }))
+    .sort((a, b) => b.score - a.score);
+  const sharp = scored.filter((s) => s.longEdge === 0 || s.longEdge >= MIN_LONG_EDGE);
+  return (sharp.length ? sharp : scored).map((s) => s.c);
+}
+
+module.exports = { download, validateMedia, reencodeForHyperframes, UA, rankCandidates, scoreCandidate, MIN_LONG_EDGE };

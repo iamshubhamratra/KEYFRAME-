@@ -15,18 +15,25 @@ const fs = require("node:fs");
 const path = require("node:path");
 const config = require("../config");
 const db = require("../db");
+const logger = require("./logger");
 const { UsageTracker } = require("./usage");
 const { generateStoryboard } = require("./storyboard");
+const { generateBrief } = require("./brief");
+const { generateDressing } = require("./set_dressing");
 const { compose } = require("./composer");
 const { validate, runInspect } = require("./validator");
 const { runtimeCheck } = require("./runtime_check");
 const { normalizeComposition, stripMissingAssets } = require("./normalize");
 const { enrichComposition } = require("./enrich");
+const { cinematicCheck } = require("./cinematic_lint");
+const sceneKit = require("./scene_kit");
+const threeComposer = require("./three_composer");
 const frameRegistry = require("./frame_registry");
 const { render } = require("./renderer");
 const { buildFallback } = require("./fallback");
 const { planAudio } = require("./audio_planner");
 const { synthesize: ttsSynthesize } = require("./tts");
+const { synthesizeFitted } = require("./vo_fit");
 const { fetchMusic, fetchSfx } = require("./audio_sources");
 const { mix: audioMix } = require("./audio_mix");
 const { planAssets } = require("./asset_planner");
@@ -44,6 +51,23 @@ function fallbackQueriesFor(query) {
   if (words.length >= 3) out.push(words.slice(0, -1).join(" "));
   if (words.length >= 2) out.push(words.slice(0, 2).join(" "));
   return [...new Set(out)].filter((q) => q !== query);
+}
+
+// Fold a creative brief into a rich, directive storyboard prompt — the brief
+// agent turns a terse prompt ("gym app") into audience/tone/goal/key-messages,
+// which makes the storyboard write a real script instead of a flat one.
+function enrichedStoryboardPrompt(brief, rawPrompt) {
+  const lines = [String(brief.improvedPrompt || rawPrompt).trim(), ""];
+  if (brief.audience) lines.push(`Audience: ${brief.audience}`);
+  if (brief.tone) lines.push(`Tone: ${brief.tone}`);
+  if (brief.goal) lines.push(`Goal: ${brief.goal}`);
+  if (Array.isArray(brief.keyMessages) && brief.keyMessages.length) {
+    lines.push("Key messages (weave these across the scenes):", ...brief.keyMessages.map((m) => `- ${m}`));
+  }
+  if (Array.isArray(brief.mustIncludeFacts) && brief.mustIncludeFacts.length) {
+    lines.push("Must include:", ...brief.mustIncludeFacts.map((m) => `- ${m}`));
+  }
+  return lines.join("\n");
 }
 
 // Wrap a promise factory with a hard wall-clock timeout AND signal-based
@@ -133,7 +157,7 @@ async function planAndFetchAssets({ jobDir, storyboard, flags, orientation, trac
 
 // Normalize + install catalog blocks + lint + runtime-smoke one composer output.
 // Returns { ok, feedback } — feedback is the next-lap repair brief when !ok.
-async function gateComposition({ files, jobDir, tracker, label, enrich }) {
+async function gateComposition({ files, jobDir, tracker, label, enrich, cinematic }) {
   // ENRICH FIRST — inject the deterministic anti-void background + always-on
   // animated vector/effects layer BEFORE normalize+lint, so the enriched HTML is
   // what gets validated and rendered, and reflowTrackOverlaps fixes any track
@@ -195,6 +219,19 @@ async function gateComposition({ files, jobDir, tracker, label, enrich }) {
   tracker.addExternal("hyperframes_inspect");
   const insp = await runInspect(jobDir).catch(() => ({ ok: true, skipped: true }));
   if (insp.ok) {
+    // CINEMATIC DENSITY — DIAGNOSTIC ONLY (does NOT bounce the comp). It logs how
+    // many showcase-density signals are absent (per-scene camera, layer density, a
+    // reactive beat, ambient, gradients) so the gap is observable, but it must NOT
+    // gate shipping: its gradient/glow/camera doctrine is a DARK-CINEMATIC aesthetic
+    // that conflicts with FLAT/editorial packs (blockframe etc. forbid gradients),
+    // and on the budget model the density push trades cleanliness for occlusion.
+    // Kept as a tool (cinematic_lint.js) + a log; not a hard/soft gate.
+    try {
+      const cine = cinematicCheck(files.indexHtml, cinematic || {});
+      if (cine.errors.length || cine.warnings.length) {
+        console.log(`[pipeline] cinematic density (diagnostic, ${label}): ${cine.errors.length} thin-signal(s), ${cine.warnings.length} note(s) — not blocking`);
+      }
+    } catch (e) { console.warn(`[pipeline] cinematic check threw: ${e.message.slice(0, 120)}`); }
     console.log(`[pipeline] lint + runtime + spatial inspect passed (${label})${rt.skipped ? ` (smoke skipped)` : ""}${insp.skipped ? ` (inspect skipped)` : ""}`);
     return { ok: true };
   }
@@ -229,6 +266,12 @@ async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets
     width: dims.width, height: dims.height, duration: storyboard.durationSec,
     packTokens: framePack ? frameRegistry.getPackTokens(framePack) : null,
   };
+  // Context for the cinematic density gate (per-scene checks + the C7 screenshot rule).
+  const cinematic = {
+    duration: storyboard.durationSec,
+    scenes: storyboard.scenes,
+    assets: availableAssets,
+  };
   for (let lap = 0; lap <= maxRepairs; lap++) {
     const label = lap === 0 ? "first pass" : `repair ${lap}/${maxRepairs}`;
     console.log(`[pipeline] composeWithLintRepair: composer (${label})`);
@@ -255,7 +298,7 @@ async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets
     }
     tracker.addLlm({ inputTokens: files.tokensIn, outputTokens: files.tokensOut, stage: "composer" });
 
-    const res = await gateComposition({ files, jobDir, tracker, label, enrich });
+    const res = await gateComposition({ files, jobDir, tracker, label, enrich, cinematic });
     if (res.ok) return { files };
     // inspectOnly => lint + runtime PASSED, only spatial overlap remains. Snapshot
     // the NORMALIZED html (gateComposition mutated files.indexHtml in place).
@@ -283,9 +326,18 @@ async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets
 
 // ========== One attempt at full LLM comp + render with a given asset set ==========
 
-async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker, jobId, durationSec, label, abortSignal, framePack, captionCues }) {
+async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker, jobId, durationSec, label, abortSignal, framePack, captionCues, remix = false, dress = false, subject = null }) {
+  // DEFAULT = the deterministic scene-kit (guaranteed showcase-grade, lint-clean,
+  // per-pack styled). Every pipeline path (runJob, graph, project_pipeline) routes
+  // through here, so this single dispatch makes the kit the primary composer
+  // everywhere. The LLM path below runs only on an explicit `remix: true` opt-in.
+  // `dress` (premium hybrid): a small bounded LLM pass art-directs the kit's
+  // variants/emphasis/decor without any power to break the layout.
+  if (!remix) {
+    return composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "scene-kit", abortSignal, tracker, dress, subject });
+  }
   const t0 = ms();
-  console.log(`[pipeline] ${label}: compose start (assets=${assets.length}, framePack=${framePack || "none"})`);
+  console.log(`[pipeline] ${label}: LLM remix compose start (assets=${assets.length}, framePack=${framePack || "none"})`);
   await composeWithLintRepair({
     storyboard, dims, jobDir, availableAssets: assets, tracker, abortSignal, framePack, captionCues,
   });
@@ -296,9 +348,126 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
   return visual;
 }
 
+// PRIMARY composition path — the deterministic SCENE-KIT. Builds a complete,
+// showcase-grade, per-pack-styled composition from the storyboard in CODE (no LLM
+// freehand → lint-clean by construction, no occlusion/truncation/junk). The agents
+// still "think" (they wrote the storyboard + picked the assets); the kit guarantees
+// the execution. This is the reliable default; the LLM composer is the opt-in remix.
+async function composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label, abortSignal, tracker, dress = false, subject = null }) {
+  const t0 = ms();
+  console.log(`[pipeline] ${label || "scene-kit"}: building deterministic composition (assets=${assets ? assets.length : 0}, framePack=${framePack || "none"}${dress ? ", +set-dressing" : ""})`);
+  // Premium hybrid: one bounded LLM pass picks per-scene layout variants, the
+  // accent word, and a sanitized decorative SVG cluster. Fail-open — a null
+  // dressing renders the plain kit.
+  let dressing = null;
+  if (dress) {
+    dressing = await generateDressing({ storyboard, framePack, subject, tracker, signal: abortSignal }).catch(() => null);
+    if (dressing) console.log(`[pipeline] ${label || "scene-kit"}: set-dressing applied to ${Object.keys(dressing).length} scene(s)`);
+  }
+  // seedKey=jobId: layout/background variety is salted per JOB, so re-running the
+  // same prompt (same title) still produces a visibly different composition.
+  const built = sceneKit.buildComposition({ storyboard, dims, framePack, assets: assets || [], captionCues, seedKey: jobId, dressing });
+  // Apply the deterministic vector/motion floor (the same enrichment the LLM path
+  // uses) so scene-kit videos also carry the richer particle + glyph + ring layer.
+  // scene-kit emits the `vid` markers enrich needs; its own particles use class
+  // "kfx"-free names so there's no selector collision.
+  let indexHtml = built.indexHtml;
+  try {
+    const en = enrichComposition(indexHtml, {
+      width: dims.width, height: dims.height, duration: durationSec,
+      packTokens: framePack ? frameRegistry.getPackTokens(framePack) : null,
+    });
+    if (en.changed) { indexHtml = en.html; console.log(`[pipeline] ${label || "scene-kit"}: +vector/motion floor`); }
+  } catch (e) { console.warn(`[pipeline] scene-kit enrich skipped (${String(e.message).slice(0, 120)})`); }
+  fs.writeFileSync(path.join(jobDir, "index.html"), indexHtml, "utf8");
+  fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
+  // The kit is lint-clean by construction; run the real lint anyway as a safety net
+  // (a pathological storyboard could still trip something) — log, never block.
+  tracker.addExternal("hyperframes_lint");
+  const lint = await validate(jobDir, { indexHtml, metaJson: built.metaJson }).catch((e) => ({ ok: true, skipped: e.message }));
+  if (!lint.ok) console.warn(`[pipeline] scene-kit lint (non-blocking): ${String(lint.stderr || lint.stdout || "").slice(-300)}`);
+  console.log(`[pipeline] ${label || "scene-kit"}: built in ${ms() - t0}ms, render start`);
+  tracker.addExternal("hyperframes_render");
+  const visual = await render({ jobId, jobDir, durationSec, abortSignal });
+  console.log(`[pipeline] ${label || "scene-kit"}: render done in ${ms() - t0}ms total`);
+  return visual;
+}
+
+// THREE.JS composition path (opt-in via render3d) — a cinematic WebGL scene with
+// DOM text overlays, driven by the same seeked timeline. Self-contained: no enrich
+// (it has its own 3D particle field) and no stock-asset weaving (visuals are
+// generated, not fetched).
+async function composeWithThree({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker }) {
+  const t0 = ms();
+  console.log(`[pipeline] ${label || "three"}: building Three.js/WebGL composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
+  const built = threeComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets });
+  fs.writeFileSync(path.join(jobDir, "index.html"), built.indexHtml, "utf8");
+  fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
+  tracker.addExternal("hyperframes_render");
+  const visual = await render({ jobId, jobDir, durationSec, abortSignal });
+  console.log(`[pipeline] ${label || "three"}: render done in ${ms() - t0}ms total`);
+  return visual;
+}
+
+// ========== Per-scene VO + sync re-timing ==========
+
+const r2 = (n) => Math.round(n * 100) / 100;
+const clampSceneDur = (n) => Math.max(2, Math.min(15, n));
+const VO_TAIL = 0.55; // breathing room after a spoken line finishes
+
+// The narration for one scene: its authored `voiceover`, else a spoken version
+// of its on-screen text (so a scene without an authored line still gets synced
+// narration rather than silence).
+function sceneVOText(scene) {
+  const explicit = String(scene.voiceover || "").trim();
+  if (explicit) return explicit;
+  return [scene.headline, scene.subtext].map((s) => String(s || "").trim()).filter(Boolean).join(". ");
+}
+
+// THE SYNC FIX. Synthesize each scene's narration, then stretch each scene's
+// on-screen duration to comfortably contain its line and pin the clip to the
+// scene's start. Audio and video are locked together, replacing the old single
+// VO blob that drifted against the cut. Mutates storyboard scene start/duration
+// + durationSec in place; returns { voClips (kind:"vo" at offsets), effectiveDuration }.
+async function synthesizeScenedVOAndRetime({ audioDir, storyboard, voice, instructions, requestedDuration, tracker }) {
+  const scenes = Array.isArray(storyboard.scenes) ? storyboard.scenes : [];
+  fs.mkdirSync(audioDir, { recursive: true });
+
+  // Synthesize every narrated scene in parallel; synthesizeFitted keeps a runaway
+  // line from overrunning wildly (tighten-once + hard trim), and reports the
+  // measured spoken duration we re-time against.
+  const clips = await Promise.all(scenes.map((scene, i) => {
+    const text = sceneVOText(scene);
+    if (!text) return Promise.resolve(null);
+    const targetSec = Math.max(2, Number(scene.duration) || 3);
+    return synthesizeFitted({
+      text, targetSec, voice, instructions,
+      outputPath: path.join(audioDir, `vo-s${i + 1}.mp3`), tracker,
+    })
+      .then((res) => (res ? { index: i, path: res.path, durationSec: res.durationSec } : null))
+      .catch((e) => { console.warn(`[pipeline] scene ${i + 1} VO failed: ${e.message.slice(0, 120)}`); return null; });
+  }));
+
+  const byIndex = new Map(clips.filter(Boolean).map((c) => [c.index, c]));
+  let cursor = 0;
+  const voClips = [];
+  for (let i = 0; i < scenes.length; i++) {
+    const s = scenes[i];
+    const clip = byIndex.get(i);
+    const need = clip ? clip.durationSec + VO_TAIL : 0;
+    s.duration = r2(clampSceneDur(Math.max(2, Number(s.duration) || 3, need)));
+    s.start = r2(cursor);
+    if (clip) voClips.push({ path: clip.path, startSec: s.start, durationSec: clip.durationSec, kind: "vo", volume: 1.0 });
+    cursor = r2(cursor + s.duration);
+  }
+  const effectiveDuration = r2(cursor) || Number(requestedDuration) || 12;
+  storyboard.durationSec = effectiveDuration;
+  return { voClips, effectiveDuration };
+}
+
 // ========== Audio assets stage ==========
 
-async function buildAudio({ jobDir, storyboard, flags, tracker }) {
+async function buildAudio({ jobDir, storyboard, flags, tracker, perScene = false }) {
   const audioDir = path.join(jobDir, "audio");
   fs.mkdirSync(audioDir, { recursive: true });
 
@@ -310,8 +479,10 @@ async function buildAudio({ jobDir, storyboard, flags, tracker }) {
     return { ttsPath: null, musicPath: null, sfx: [], musicVolume: 0.15 };
   }
 
-  // Run TTS + music + all SFX fetches in parallel.
-  const ttsTask = (flags.tts && plan.tts)
+  // Run TTS + music + all SFX fetches in parallel. In perScene mode the VO is
+  // synthesized per scene by synthesizeScenedVOAndRetime (for A/V sync), so we
+  // SKIP the single-blob TTS here and just surface the resolved voice/instructions.
+  const ttsTask = (!perScene && flags.tts && plan.tts)
     ? ttsSynthesize({
         script: plan.tts.script, voice: plan.tts.voice,
         instructions: plan.tts.instructions,
@@ -345,7 +516,10 @@ async function buildAudio({ jobDir, storyboard, flags, tracker }) {
   const sfx = sfxResults.filter(Boolean);
   if (sfx.length) console.log(`[pipeline] sfx: ${sfx.length}/${sfxPlan.length} fetched`);
 
-  return { ttsPath, musicPath, sfx, musicVolume };
+  return {
+    ttsPath, musicPath, sfx, musicVolume,
+    ttsVoice: plan.tts?.voice, ttsInstructions: plan.tts?.instructions,
+  };
 }
 
 // Move the freshly-mixed temp file over the original render. On Windows the
@@ -390,7 +564,7 @@ async function mixAudioIntoVideo({ visualPath, durationSec, audio }) {
 async function runJob({
   jobId, prompt, duration, orientation, width, height, fps,
   tts = false, music = false, soundEffect = false, voice,
-  images = false, video = false, framePack = null,
+  images = false, video = false, framePack = null, remix = false, render3d = false,
 }) {
   const jobDir = jobDirFor(jobId);
   fs.mkdirSync(jobDir, { recursive: true });
@@ -400,6 +574,7 @@ async function runJob({
   const markStage = (name, startAt) => { timings[name + "Ms"] = ms() - startAt; };
 
   db.markStarted(jobId);
+  const log = logger.child({ tag: "pipeline", jobId });
   let usedFallback = false;
   let finalAttempt = "main";
   let visualResult = null;
@@ -407,16 +582,39 @@ async function runJob({
 
   const dims = { width, height, fps };
   const wantsAudio = tts || music || soundEffect;
+  log.info("job accepted", { dims: `${width}x${height}@${fps}`, duration, orientation, tts, music, images, video, framePack, remix });
 
   try {
+    // ---- Stage: prompt understanding / enhancement (best output) ----
+    // Enrich the raw prompt into a creative brief (audience, tone, goal, key
+    // messages) with the SAME agent the project pipeline uses — so /api/generate
+    // gets that directive richness instead of a terse prompt → flat script.
+    // Best-effort: any failure falls back to the raw prompt, never blocks the job.
+    let effectivePrompt = prompt;
+    {
+      const t0 = ms();
+      db.setProgress(jobId, "brief");
+      try {
+        const intent = { prompt, preferences: { duration, orientation, voiceStyle: voice || "auto", framePack: framePack || "auto" } };
+        const briefRes = await generateBrief({ intent });
+        tracker.addLlm({ inputTokens: briefRes.tokensIn, outputTokens: briefRes.tokensOut, stage: "brief" });
+        effectivePrompt = enrichedStoryboardPrompt(briefRes.brief, prompt);
+        markStage("brief", t0);
+        log.info("prompt enhanced", { tone: briefRes.brief.tone, goal: briefRes.brief.goal, keyMessages: (briefRes.brief.keyMessages || []).length });
+      } catch (e) {
+        markStage("brief", t0);
+        log.warn("prompt enhancement failed — using raw prompt", { error: String(e.message).slice(0, 160) });
+      }
+    }
+
     // ---- Stage: storyboard ----
     {
       const t0 = ms();
       db.setProgress(jobId, "storyboard");
-      sbRes = await generateStoryboard({ prompt, duration, orientation });
+      sbRes = await generateStoryboard({ prompt: effectivePrompt, duration, orientation, framePack });
       tracker.addLlm({ inputTokens: sbRes.tokensIn, outputTokens: sbRes.tokensOut, stage: "storyboard" });
       markStage("storyboard", t0);
-      console.log(`[pipeline] storyboard completed in ${timings.storyboardMs}ms`);
+      log.info("storyboard ready", { scenes: (sbRes.storyboard.scenes || []).length, title: sbRes.storyboard.title, ms: timings.storyboardMs });
     }
 
     // ---- Stages: assets + audio prep run IN PARALLEL (both need only storyboard).
@@ -427,7 +625,7 @@ async function runJob({
     const audioPromise = wantsAudio
       ? buildAudio({
           jobDir, storyboard: sbRes.storyboard,
-          flags: { tts, music, soundEffect, voice }, tracker,
+          flags: { tts, music, soundEffect, voice }, tracker, perScene: tts,
         }).catch((e) => {
           console.warn(`[pipeline] background audio stage failed: ${e.message}`);
           return { ttsPath: null, musicPath: null, sfx: [], musicVolume: 0.15 };
@@ -449,26 +647,76 @@ async function runJob({
       console.log(`[pipeline] assets completed in ${timings.assetsMs}ms (${allAssets.length} fetched; audio running in parallel)`);
     }
 
+    // ---- Per-scene VO + SYNC re-timing (TTS only) ----
+    // Synthesize each scene's narration, stretch each scene to fit its line, and
+    // pin every clip to its scene's start — audio and video are locked together
+    // (replaces the old single VO blob at t=0 that drifted against the cut). Runs
+    // BEFORE compose because the composition is built from the re-timed scenes.
+    let effectiveDuration = duration;
+    let voClips = [];
+    if (tts) {
+      const t0 = ms();
+      // Use the requested voice (or a default) so VO synthesis does NOT block on
+      // the audio-plan LLM call — that call can be slow/flaky (KIE 524s) and only
+      // feeds music/sfx, which keep cooking in parallel and are awaited at mix time.
+      const re = await synthesizeScenedVOAndRetime({
+        audioDir: path.join(jobDir, "audio"),
+        storyboard: sbRes.storyboard,
+        voice: voice || "james",
+        instructions: undefined,
+        requestedDuration: duration, tracker,
+      }).catch((e) => { console.warn(`[pipeline] per-scene VO failed: ${e.message}`); return { voClips: [], effectiveDuration: duration }; });
+      voClips = re.voClips;
+      effectiveDuration = re.effectiveDuration;
+      markStage("vo", t0);
+      console.log(`[pipeline] per-scene VO: ${voClips.length} clip(s); re-timed ${duration}s -> ${effectiveDuration}s`);
+    }
+
     const budget = (Number(config.server.stageBudgetSec) || 240) * 1000;
 
-    // ---- Attempt 1: full LLM composition with all assets ----
+    // Honor USE_LLM_COMPOSER on the direct prompt→video path too — graph.js
+    // (langgraph/project pipeline) already maps the flag to `remix`, but runJob
+    // previously ignored it, so /api/generate always used the scene-kit. When the
+    // flag is on, run the LLM composer here with the scene-kit as the automatic
+    // fallback below. An explicit remix arg still wins.
+    remix = remix || config.llm.useComposer === true;
+
+    // ---- Attempt 1: PRIMARY composition ----
+    // attemptLlmComposition dispatches to the deterministic scene-kit unless
+    // `remix: true` (then it runs the LLM composer). Default → guaranteed
+    // showcase-grade, per-pack styled, lint-clean.
     {
       const t0 = ms();
       db.setProgress(jobId, "composing");
       try {
-        visualResult = await withBudget(
-          (signal) => attemptLlmComposition({
-            storyboard: sbRes.storyboard, dims, jobDir,
-            assets: allAssets, tracker, jobId, durationSec: duration,
-            label: "main", abortSignal: signal, framePack,
-          }),
-          budget, "main composition"
-        );
+        if (render3d) {
+          // Three.js/WebGL cinematic composition. On failure it falls through to
+          // the scene-kit fallback below, so a 3D hiccup never kills the job.
+          visualResult = await withBudget(
+            (signal) => composeWithThree({
+              storyboard: sbRes.storyboard, dims, jobDir, framePack, captionCues: null,
+              assets: allAssets, jobId, durationSec: effectiveDuration, label: "three", abortSignal: signal, tracker,
+            }),
+            budget, "Three.js composition"
+          );
+          finalAttempt = "three";
+          console.log(`[pipeline] Three.js composition+render succeeded in ${ms() - t0}ms`);
+        } else {
+          visualResult = await withBudget(
+            (signal) => attemptLlmComposition({
+              storyboard: sbRes.storyboard, dims, jobDir,
+              assets: allAssets, tracker, jobId, durationSec: effectiveDuration,
+              label: remix ? "remix" : "scene-kit", abortSignal: signal, framePack, remix,
+            }),
+            budget, remix ? "LLM remix composition" : "scene-kit composition"
+          );
+          finalAttempt = remix ? "remix" : "scenekit";
+          console.log(`[pipeline] ${remix ? "LLM remix" : "scene-kit"} composition+render succeeded in ${timings.compose_renderMs}ms`);
+        }
         markStage("compose_render", t0);
-        console.log(`[pipeline] main composition+render succeeded in ${timings.compose_renderMs}ms`);
       } catch (e1) {
         markStage("compose_render", t0);
-        console.warn(`[pipeline] main attempt failed (${e1.message.slice(0, 200)}). Retrying without videos.`);
+        console.warn(`[pipeline] primary compose failed (${e1.message.slice(0, 200)}). Falling back.`);
       }
     }
 
@@ -481,7 +729,7 @@ async function runJob({
         visualResult = await withBudget(
           (signal) => attemptLlmComposition({
             storyboard: sbRes.storyboard, dims, jobDir,
-            assets: imagesOnly, tracker, jobId, durationSec: duration,
+            assets: imagesOnly, tracker, jobId, durationSec: effectiveDuration,
             label: "no-videos", abortSignal: signal, framePack,
           }),
           budget, "no-videos retry"
@@ -501,23 +749,39 @@ async function runJob({
     // composeWithLintRepair), and lint/runtime exhaustion falls to buildFallback below,
     // which KEEPS the photos (assets: allAssets). Images are never stripped to clear overlap.
 
-    // ---- Attempt 4: polished deterministic fallback ----
+    // ---- Attempt 4: reliable SCENE-KIT fallback (bland template only if it throws) ----
+    // Replaces the old bland deterministic template as the fallback: the scene-kit
+    // is showcase-grade and lint-clean by construction, so a failed LLM remix now
+    // falls to a GOOD video, not a barren slideshow. The bland buildFallback survives
+    // only as a last resort if the scene-kit itself throws (a pathological storyboard).
     if (!visualResult) {
       const t0 = ms();
-      finalAttempt = "fallback";
-      usedFallback = true;
-      const fb = buildFallback({
-        prompt, duration, orientation, width, height, fps,
-        storyboard: sbRes.storyboard,
-        packTokens: framePack ? require("./frame_registry").getPackTokens(framePack) : null,
-        assets: allAssets,
-      });
-      fs.writeFileSync(path.join(jobDir, "index.html"), fb.indexHtml, "utf8");
-      fs.writeFileSync(path.join(jobDir, "meta.json"), fb.metaJson, "utf8");
-      tracker.addExternal("hyperframes_render");
-      visualResult = await render({ jobId, jobDir, durationSec: duration });
-      markStage("fallback_render", t0);
-      console.log(`[pipeline] polished fallback rendered in ${timings.fallback_renderMs}ms`);
+      try {
+        finalAttempt = finalAttempt === "scenekit" ? "scenekit" : "scenekit-fallback";
+        visualResult = await composeWithSceneKit({
+          storyboard: sbRes.storyboard, dims, jobDir,
+          assets: allAssets, framePack, jobId, durationSec: effectiveDuration,
+          label: "scene-kit fallback", tracker,
+        });
+        markStage("fallback_render", t0);
+        console.log(`[pipeline] scene-kit fallback rendered in ${timings.fallback_renderMs}ms`);
+      } catch (eSk) {
+        console.warn(`[pipeline] scene-kit fallback threw (${String(eSk.message).slice(0, 160)}) — bland template last resort.`);
+        finalAttempt = "fallback";
+        usedFallback = true;
+        const fb = buildFallback({
+          prompt, duration: effectiveDuration, orientation, width, height, fps,
+          storyboard: sbRes.storyboard,
+          packTokens: framePack ? require("./frame_registry").getPackTokens(framePack) : null,
+          assets: allAssets,
+        });
+        fs.writeFileSync(path.join(jobDir, "index.html"), fb.indexHtml, "utf8");
+        fs.writeFileSync(path.join(jobDir, "meta.json"), fb.metaJson, "utf8");
+        tracker.addExternal("hyperframes_render");
+        visualResult = await render({ jobId, jobDir, durationSec: effectiveDuration });
+        markStage("fallback_render", t0);
+        console.log(`[pipeline] polished fallback rendered in ${timings.fallback_renderMs}ms`);
+      }
     }
 
     // ---- Stage: audio mix (audio was prepared in parallel with compose+render)
@@ -525,11 +789,20 @@ async function runJob({
       const t0 = ms();
       db.setProgress(jobId, "audio");
       try {
-        const audio = await audioPromise;
-        const mixed = await mixAudioIntoVideo({
+        const prepped = await audioPromise;
+        // Fold the per-scene VO clips (each tagged kind:"vo" with its scene-start
+        // offset) into the sfx list so the mixer lands them at the right time and
+        // ducks the music under speech. In perScene mode prepped.ttsPath is null.
+        const audio = prepped ? {
+          ttsPath: prepped.ttsPath,
+          musicPath: prepped.musicPath,
+          musicVolume: prepped.musicVolume,
+          sfx: [...(prepped.sfx || []), ...voClips],
+        } : null;
+        const mixed = audio ? await mixAudioIntoVideo({
           visualPath: visualResult.videoPath,
-          durationSec: duration, audio,
-        }).catch((e) => { console.warn(`[pipeline] mix failed: ${e.message}`); return false; });
+          durationSec: effectiveDuration, audio,
+        }).catch((e) => { console.warn(`[pipeline] mix failed: ${e.message}`); return false; }) : false;
         markStage("audio", t0);
         console.log(`[pipeline] audio ${mixed ? "mixed in" : "(nothing to mix)"} in ${timings.audioMs}ms (was prepared in parallel)`);
       } catch (e) {
@@ -551,10 +824,10 @@ async function runJob({
       finalAttempt,
     });
 
-    console.log(`[pipeline] job ${jobId} done — attempt=${finalAttempt}, fallback=${usedFallback}, visuals=${allAssets.length}, audio=${wantsAudio}, cost=$${costs.totalCostUsd}, timings=${JSON.stringify(timings)}`);
+    log.info("job done", { attempt: finalAttempt, fallback: usedFallback, visuals: allAssets.length, audio: wantsAudio, effectiveDuration, costUsd: costs.totalCostUsd, timings });
   } catch (err) {
     // Something even the polished fallback couldn't handle. Mark failed.
-    console.error(`[pipeline] job ${jobId} failed fatally: ${err.message}`);
+    log.error("job failed fatally", { error: err.message });
     const costs = tracker.computeCosts();
     db.markFailed(
       jobId,
@@ -567,4 +840,4 @@ async function runJob({
   }
 }
 
-module.exports = { runJob, withBudget, attemptLlmComposition, mixAudioIntoVideo, fallbackQueriesFor };
+module.exports = { runJob, withBudget, attemptLlmComposition, composeWithThree, mixAudioIntoVideo, fallbackQueriesFor };

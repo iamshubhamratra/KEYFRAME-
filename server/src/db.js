@@ -85,6 +85,8 @@ function shape(j) {
     durationMs: j.finished_at && j.started_at ? j.finished_at - j.started_at : null,
     usedFallback: j.used_fallback === 1,
     finalAttempt: j.final_attempt || null,
+    composeMode: j.compose_mode || null,
+    audioNotes: j.audio_notes || null,
     usage: j.usage || null,
     stageTimings: j.stage_timings || null,
     brief: j.brief || null,
@@ -127,6 +129,10 @@ module.exports = {
       upload_path: job.uploadPath || null,
       intent: job.intent || null,
       autopilot: job.autopilot ? 1 : 0,
+      render3d: job.render3d ? 1 : 0, // Three.js/WebGL composer (project pipeline reads job.render3d)
+      // Per-video finish: "premium" = LLM composer (scene-kit fallback),
+      // "standard" = deterministic scene-kit, null = server default.
+      compose_mode: job.composeMode === "premium" || job.composeMode === "standard" ? job.composeMode : null,
       brief: null,
       script: null,
       script_warnings: null,
@@ -157,6 +163,13 @@ module.exports = {
     j.script = script;
     j.status = "queued";
     j.progress = "approved";
+    scheduleWrite();
+  },
+
+  // Audio degradation notes (silent-shipping must never be silent to the user).
+  setAudioNotes(id, notes) {
+    const j = jobs.get(id); if (!j) return;
+    j.audio_notes = Array.isArray(notes) && notes.length ? notes : null;
     scheduleWrite();
   },
 

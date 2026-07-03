@@ -4,21 +4,11 @@ import { getProject, approveProject, regenerateProject, pollProject } from "../a
 
 const WORDS_PER_SEC = 2.6;
 const wc = (s) => (String(s || "").match(/\S+/g) || []).length;
+const SPINES = ["#e832a8", "#23c8e0", "#ffb03a", "#b9f24a", "#2b5bff", "#ff6a3c"];
 
-// Solstice department colors cycled by scene purpose.
-const PURPOSE_CHIP = {
-  hook: "var(--color-sun)",
-  context: "var(--color-sky)",
-  feature: "var(--color-violet)",
-  proof: "var(--color-mint)",
-  how: "var(--color-sky)",
-  quote: "var(--color-pink)",
-  cta: "var(--color-accent)",
-};
-
-// The product's signature moment: the script as an editable vertical timeline
-// of scene cards. VO inline-editable, scenes reorderable/deletable, per-scene
-// pace meter, then Approve & Produce.
+// v2 "SC 03 · THE ONE PAUSE" — the script as takes on white cards with color
+// spines; the approve bar is the editor scrubber. Change a line and that
+// exact line is spoken.
 export default function ScriptRoom({ projectId, onApproved }) {
   const [project, setProject] = useState(null);
   const [scenes, setScenes] = useState(null);
@@ -83,29 +73,32 @@ export default function ScriptRoom({ projectId, onApproved }) {
   }
 
   if (!scenes) {
-    return <div className="max-w-3xl mx-auto px-6 pt-20 text-dim">{error || "Loading script…"}</div>;
+    return <div style={{ maxWidth: 780, margin: "0 auto", padding: "60px 24px", fontFamily: "var(--font-mono)", fontSize: 12, letterSpacing: "0.1em", color: "var(--color-dim)" }}>{error || "LOADING SCRIPT…"}</div>;
   }
 
+  const tc = (sec) => {
+    const s = Math.floor(sec);
+    return `00:00:${String(s).padStart(2, "0")}:${String(Math.round((sec % 1) * 24)).padStart(2, "0")}`;
+  };
+
   return (
-    <div className="max-w-3xl mx-auto px-6 pt-12 pb-40">
-      <div className="flex items-end justify-between">
+    <div style={{ maxWidth: 820, margin: "0 auto", padding: "clamp(16px,3vw,40px) 24px 170px" }}>
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
         <div>
-          <div className="text-[10px] uppercase tracking-widest text-dim">Script room</div>
-          <h2 className="font-display text-3xl font-bold mt-1">{project?.script?.title}</h2>
+          <span className="scene-pill" style={{ "--tagc": "#ffb03a" }}>SC 03 · THE ONE PAUSE</span>
+          <h2 className="headline" style={{ fontSize: "clamp(28px,4.4vw,48px)" }}>{project?.script?.title}</h2>
         </div>
-        <button onClick={regenerate} disabled={busy}
-          className="text-xs uppercase tracking-widest text-dim hover:text-accent transition-colors">
-          ↻ rewrite whole script
-        </button>
+        <button onClick={regenerate} disabled={busy} className="link-mono">↻ REWRITE WHOLE SCRIPT</button>
       </div>
-      <p className="mt-2 text-sm text-dim">
-        Every word below will be spoken and shown exactly as written. Edit freely — drag to reorder, pull the
-        duration handle, delete what you don't want.
+      <p style={{ marginTop: 14, fontSize: 15, color: "var(--color-dim)", lineHeight: 1.6, maxWidth: 560 }}>
+        Every word below will be spoken and shown exactly as written. Change a line and
+        that exact line is spoken — drag to reorder, pull the duration handle, cut what
+        you don't want.
       </p>
 
-      <Reorder.Group axis="y" values={scenes} onReorder={setScenes} className="mt-8 space-y-4">
-        {timedScenes.map((scene) => (
-          <SceneCard key={scene.id} scene={scene}
+      <Reorder.Group axis="y" values={scenes} onReorder={setScenes} style={{ marginTop: 32, display: "flex", flexDirection: "column", gap: 14, padding: 0 }}>
+        {timedScenes.map((scene, i) => (
+          <SceneCard key={scene.id} scene={scene} index={i}
             onPatch={(patch) => patchScene(scene.id, patch)}
             onRemove={() => removeScene(scene.id)}
             originalScene={scenes.find((s) => s.id === scene.id)}
@@ -113,38 +106,35 @@ export default function ScriptRoom({ projectId, onApproved }) {
         ))}
       </Reorder.Group>
 
-      {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
+      {error && <p style={{ marginTop: 16, fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-rec)" }}>{error}</p>}
 
-      {/* Sticky footer: total duration + CTA */}
-      <div className="fixed bottom-0 left-0 right-0 border-t border-line bg-panel backdrop-blur-md px-6 py-4">
-        <div className="max-w-3xl mx-auto flex items-center gap-6">
-          <div className="flex-1">
-            <div className="flex justify-between text-[10px] uppercase tracking-widest text-dim mb-1">
-              <span>Total</span>
-              <span className={Math.abs(totalSec - targetSec) > 1 ? "text-amber-600" : ""}>
-                {totalSec.toFixed(1)}s / {targetSec}s
-              </span>
-            </div>
-            <div className="h-1.5 rounded bg-line overflow-hidden">
-              <motion.div className="h-full bg-accent rounded"
-                animate={{ width: `${Math.min(100, (totalSec / targetSec) * 100)}%` }}
-                transition={{ type: "spring", stiffness: 160, damping: 24 }} />
-            </div>
-          </div>
-          <motion.button whileTap={{ scale: 0.97 }} onClick={approve} disabled={busy}
-            className="btn-solstice uppercase text-sm">
-            {busy ? "Sending…" : "Approve & produce"}
-          </motion.button>
+      {/* the approve bar — v2's editor scrubber */}
+      <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 40, background: "rgba(13,11,7,.92)", backdropFilter: "blur(12px)", borderTop: "1px solid rgba(242,237,226,.14)", display: "flex", alignItems: "center", gap: 14, padding: "9px clamp(12px,2.5vw,28px)", minHeight: 58 }}>
+        <span className="timecode" style={{ minWidth: 92 }}><b>{tc(totalSec)}</b></span>
+        <div className="clip-track" style={{ flex: 1 }}>
+          {timedScenes.map((s, i) => (
+            <span key={s.id} className="clip-block" title={s.purpose}
+              style={{ flex: Math.max(0.4, s.duration), background: `linear-gradient(180deg, ${SPINES[i % SPINES.length]}cc, ${SPINES[i % SPINES.length]}77)`, transform: "scaleX(1)", display: "grid", placeItems: "center", overflow: "hidden" }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.12em", color: "rgba(255,255,255,.85)", textTransform: "uppercase", pointerEvents: "none" }}>{s.purpose}</span>
+            </span>
+          ))}
         </div>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.14em", color: Math.abs(totalSec - targetSec) > 1 ? "var(--color-am)" : "#7d766a", whiteSpace: "nowrap" }}>
+          {totalSec.toFixed(1)}S / {targetSec}S
+        </span>
+        <motion.button whileTap={{ scale: 0.97 }} onClick={approve} disabled={busy} className="btn-mag" style={{ padding: "11px 24px", fontSize: 14 }}>
+          {busy ? "Sending…" : "Approve & roll →"}
+        </motion.button>
       </div>
     </div>
   );
 }
 
-function SceneCard({ scene, originalScene, onPatch, onRemove }) {
+function SceneCard({ scene, originalScene, index, onPatch, onRemove }) {
   const words = wc(scene.voiceover);
   const capacity = Math.floor(scene.duration * WORDS_PER_SEC);
   const over = words > capacity * 1.35;
+  const spine = SPINES[index % SPINES.length];
 
   return (
     <Reorder.Item value={originalScene} className="list-none">
@@ -152,50 +142,59 @@ function SceneCard({ scene, originalScene, onPatch, onRemove }) {
         layout
         whileHover={{ y: -2 }}
         transition={{ type: "spring", stiffness: 380, damping: 30 }}
-        className="glass-card p-5 cursor-grab active:cursor-grabbing"
+        className="card"
+        style={{ padding: "20px 22px 20px 27px", cursor: "grab" }}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="chip uppercase" style={{ "--chip": PURPOSE_CHIP[scene.purpose] || "var(--color-sky)" }}>{scene.purpose}</span>
-            <span className="text-[10px] text-dim font-mono">{scene.start.toFixed(1)}s</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className={`text-[10px] ${over ? "text-red-500" : "text-dim"}`}>
-              {words} words · fits ~{capacity}
+        <span className="spine" style={{ "--spine": spine }} />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.2em", color: spine, textTransform: "uppercase" }}>
+              TAKE {String(index + 1).padStart(2, "0")} · {scene.purpose}
             </span>
-            <button onClick={onRemove} className="text-dim hover:text-red-500 text-sm transition-colors" title="delete scene">✕</button>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--color-dim)" }}>{scene.start.toFixed(1)}s</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: over ? "var(--color-rec)" : "var(--color-dim)", textTransform: "uppercase" }}>
+              {words} WORDS · FITS ~{capacity}
+            </span>
+            <button onClick={onRemove} title="delete scene"
+              style={{ color: "var(--color-dim)", fontSize: 14, cursor: "pointer", transition: "color .2s" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--color-rec)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--color-dim)")}>✕</button>
           </div>
         </div>
 
         <textarea
           value={scene.voiceover}
           onChange={(e) => onPatch({ voiceover: e.target.value })}
-          placeholder="(no narration this scene)"
-          className={`mt-3 w-full bg-transparent outline-none resize-none text-lg leading-snug ${over ? "text-red-500" : ""}`}
+          placeholder="(no narration this take)"
+          style={{ marginTop: 12, width: "100%", background: "transparent", outline: "none", resize: "none", fontSize: 18, lineHeight: 1.4, color: over ? "var(--color-rec)" : "var(--color-ink)", fontFamily: "var(--font-body)", border: "none", caretColor: "var(--color-mag)" }}
           rows={Math.max(1, Math.ceil(scene.voiceover.length / 70))}
         />
 
-        <div className="mt-2 text-xs text-dim italic">{scene.visualDirection}</div>
+        <div style={{ marginTop: 8, fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.08em", color: "var(--color-dim)", textTransform: "uppercase" }}>
+          {scene.visualDirection}
+        </div>
 
         {scene.assetNeeds?.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div style={{ marginTop: 14, display: "flex", flexWrap: "wrap", gap: 8 }}>
             {scene.assetNeeds.map((a, i) => (
-              <span key={i} className="chip" style={{ "--chip": "var(--color-sky)" }}>
+              <span key={i} className="chip">
                 {a.type}: {a.query}
                 <button
                   onClick={() => onPatch({ assetNeeds: scene.assetNeeds.filter((_, j) => j !== i) })}
-                  className="ml-1.5 hover:text-red-500 transition-colors"
+                  style={{ marginLeft: 6, cursor: "pointer" }}
                 >✕</button>
               </span>
             ))}
           </div>
         )}
 
-        <div className="mt-4 flex items-center gap-3">
-          <span className="text-[10px] uppercase tracking-widest text-dim w-16">{scene.duration.toFixed(1)}s</span>
+        <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.14em", color: "var(--color-dim)", width: 52 }}>{scene.duration.toFixed(1)}S</span>
           <input type="range" min="2.5" max="8" step="0.5" value={scene.duration}
             onChange={(e) => onPatch({ duration: Number(e.target.value) })}
-            className="flex-1" style={{ accentColor: "var(--color-green)" }} />
+            style={{ flex: 1, accentColor: spine }} />
         </div>
       </motion.div>
     </Reorder.Item>

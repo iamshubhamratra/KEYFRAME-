@@ -191,6 +191,15 @@ function build() {
     cfg.server.renderQuality = process.env.RENDER_QUALITY;
   }
 
+  // Composer mode. USE_LLM_COMPOSER toggles the LLM composition agent on the
+  // agents graph: ON (default) runs the LLM composer + lint-repair laps (the
+  // "composer" token stage appears); the deterministic asset-rich scene-kit
+  // becomes the fallback when the composer fails its gates. Set to 0/false to
+  // make the scene-kit the PRIMARY composer (no composer LLM call) instead.
+  cfg.llm.useComposer = process.env.USE_LLM_COMPOSER != null
+    ? /^(1|true|yes|on)$/i.test(String(process.env.USE_LLM_COMPOSER))
+    : (cfg.llm.useComposer !== false);
+
   validate(cfg);
 
   // Resolve paths relative to project root.

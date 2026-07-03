@@ -1,147 +1,118 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { API_BASE, mediaUrl } from "../api.js";
+import { GALLERY_FILTERS, WALL_SEEDS, loreFor, fmtDur } from "../packlore.js";
 
-// A muted/looped preview that only plays while it's on screen (saves battery
-// and bandwidth) and falls back to its poster when paused or unsupported.
-function PreviewVideo({ src, poster, className }) {
-  const ref = useRef(null);
+const CHIP_COLORS = ["#f2ede2", "#e832a8", "#23c8e0", "#ffb03a", "#b9f24a", "#2b5bff", "#ff7aa8", "#ff6a3c"];
 
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) el.play().catch(() => {});
-        else { el.pause(); }
-      },
-      { threshold: 0.4 }
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [src]);
-
-  return (
-    <video
-      ref={ref}
-      src={src}
-      poster={poster || undefined}
-      muted
-      loop
-      playsInline
-      preload="metadata"
-      className={className}
-    />
-  );
-}
-
-export default function Gallery({ onOpen }) {
+// The v2 video wall, as the app's gallery: dark stage, scene pill,
+// "Fresh off the render farm." — real films render as wall cards
+// (hover-scrub video, click → premiere); v2's seed wall fills in
+// while none exist.
+export default function Gallery({ onOpen, onUseStyle }) {
   const [projects, setProjects] = useState(null);
-  const [packs, setPacks] = useState(null);
+  const [filter, setFilter] = useState("all");
 
   useEffect(() => {
     fetch(`${API_BASE}/api/projects`)
       .then((r) => r.json())
       .then((d) => setProjects((d.projects || []).filter((p) => p.videoUrl)))
       .catch(() => setProjects([]));
-
-    // Seed: the page is NEVER empty — featured looks always render.
-    fetch(`${API_BASE}/api/frames`)
-      .then((r) => r.json())
-      .then((d) => setPacks((d.packs || []).filter((p) => p.previewUrl)))
-      .catch(() => setPacks([]));
   }, []);
 
+  const films = useMemo(() => {
+    const real = (projects || []).map((p) => {
+      const lore = loreFor(p.framePack);
+      return {
+        key: p.jobId, real: true, title: p.title || "Untitled film",
+        pack: p.framePack || "auto", cat: (lore.tag || "FILM"),
+        dur: fmtDur(p.duration), views: null, drift: "8s",
+        grad: lore.filmGrad, videoUrl: p.videoUrl,
+        onClick: () => onOpen?.(p.jobId),
+      };
+    });
+    const seeds = WALL_SEEDS.map((f, i) => ({
+      key: `seed-${i}`, real: false, ...f,
+      onClick: () => onUseStyle?.(f.pack),
+    }));
+    const all = real.length ? real : seeds;
+    return filter === "all" ? all : all.filter((f) => f.pack === filter);
+  }, [projects, filter, onOpen, onUseStyle]);
+
   return (
-    <div className="max-w-5xl mx-auto px-6 pt-12 pb-24">
-      {/* ——— Featured looks (always present) ——— */}
-      <section>
-        <h2 className="font-display text-3xl font-bold">Featured looks</h2>
-        <p className="mt-2 text-dim max-w-xl leading-relaxed">
-          Ten art-directed design systems, each a finished film aesthetic. Hover or
-          scroll to preview — then make one your own.
-        </p>
-
-        {packs === null ? (
-          <div className="mt-8 text-dim">Loading featured looks…</div>
-        ) : (
-          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {packs.map((p, i) => (
-              <motion.div
-                key={p.name}
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-                whileHover={{ y: -4 }}
-                className="overflow-hidden glass-card"
-              >
-                <div className="aspect-video bg-black relative overflow-hidden rounded-t-[21px]">
-                  <PreviewVideo
-                    src={mediaUrl(p.previewUrl)}
-                    poster={mediaUrl(p.posterUrl)}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="p-4">
-                  <div className="text-sm font-medium truncate">{p.label || p.name}</div>
-                  {p.vibe && (
-                    <p className="mt-1.5 text-[13px] text-dim leading-relaxed line-clamp-3">{p.vibe}</p>
-                  )}
-                </div>
-              </motion.div>
-            ))}
+    <div style={{ background: "var(--color-dark-2)", marginTop: -90, paddingTop: 90 }}>
+      <section style={{ maxWidth: 1400, margin: "0 auto", padding: "clamp(30px,5vw,70px) clamp(12px,2vw,28px) clamp(60px,9vw,110px)" }}>
+        <div style={{ padding: "0 clamp(4px,2vw,32px)", display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 14 }}>
+          <div>
+            <span className="scene-pill" style={{ "--tagc": "#23c8e0" }}>THE GALLERY · TONIGHT'S PREMIERES</span>
+            <h1 className="headline on-dark" style={{ fontSize: "clamp(34px,5.4vw,72px)" }}>
+              Fresh off the <span style={{ color: "var(--color-mag)" }}>render farm.</span>
+            </h1>
           </div>
-        )}
-      </section>
+        </div>
 
-      {/* ——— Your films ——— */}
-      <section className="mt-20">
-        <h2 className="font-display text-3xl font-bold">Your films</h2>
+        {/* filters — v2 colored mono chips */}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 26, padding: "0 clamp(4px,2vw,32px)" }}>
+          {GALLERY_FILTERS.map(([key, label], i) => (
+            <button key={key} onClick={() => setFilter(key)}
+              className={`chip-c ${filter === key ? "is-active" : ""}`}
+              style={{ "--chipc": CHIP_COLORS[i % CHIP_COLORS.length] }}>
+              {label}
+            </button>
+          ))}
+        </div>
 
-        {projects === null ? (
-          <div className="mt-8 text-dim">Loading…</div>
-        ) : projects.length === 0 ? (
-          <div className="mt-4 glass-card p-6 text-dim leading-relaxed">
-            Nothing here yet — the films you finish will land in this gallery. Pick a
-            look above and make your first one.
-          </div>
+        {films.length === 0 ? (
+          <p style={{ marginTop: 40, padding: "0 clamp(4px,2vw,32px)", fontFamily: "var(--font-mono)", fontSize: 12, letterSpacing: "0.1em", color: "var(--color-dark-dim)" }}>
+            NOTHING IN THIS STYLE YET — PICK IT ON THE TEMPLATES PAGE AND ROLL ONE.
+          </p>
         ) : (
-          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {projects.map((p, i) => (
-              <motion.button
-                key={p.jobId}
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.06, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-                whileHover={{ y: -4 }}
-                onClick={() => onOpen(p.jobId)}
-                className="text-left overflow-hidden glass-card hover:border-accent/50 transition-colors group"
-              >
-                <div className="aspect-video bg-black relative overflow-hidden rounded-t-[21px]">
-                  {/* Hover-scrub: muted autoplay on hover */}
-                  <video
-                    src={mediaUrl(p.videoUrl)}
-                    poster={mediaUrl(p.videoUrl.replace(/\.mp4$/, ".jpg"))}
-                    muted
-                    loop
-                    playsInline
-                    preload="metadata"
-                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
-                    onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
-                    onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
-                  />
-                </div>
-                <div className="p-4">
-                  <div className="text-sm font-medium truncate">{p.title || "Untitled"}</div>
-                  <div className="mt-1 text-[10px] uppercase tracking-widest text-dim">
-                    {p.framePack || "—"} · {p.duration}s
-                  </div>
-                </div>
-              </motion.button>
-            ))}
+          <div style={{ marginTop: 36, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(330px,100%), 1fr))", gap: 14 }}>
+            {films.map((f, i) => <WallCard key={f.key} film={f} delay={(i % 3) * 0.06} />)}
           </div>
         )}
       </section>
     </div>
+  );
+}
+
+// One wall card — the exact v2 SCENE 05 anatomy.
+function WallCard({ film, delay = 0 }) {
+  const vidRef = useRef(null);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 36 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay }}
+      whileHover={{ scale: 1.025, zIndex: 2, boxShadow: "0 26px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(242,237,226,.2)" }}
+      onClick={film.onClick}
+      onMouseEnter={() => { const v = vidRef.current; if (v) v.play().catch(() => {}); }}
+      onMouseLeave={() => { const v = vidRef.current; if (v) { v.pause(); v.currentTime = 0; } }}
+      style={{ position: "relative", borderRadius: 16, overflow: "hidden", aspectRatio: "16/9.4", cursor: "pointer", background: "#17130e" }}
+    >
+      {film.real && film.videoUrl ? (
+        <video ref={vidRef} src={mediaUrl(film.videoUrl)}
+          poster={mediaUrl(String(film.videoUrl).replace(/\.mp4$/, ".jpg"))}
+          muted loop playsInline preload="metadata"
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+      ) : (
+        <div style={{ position: "absolute", inset: 0, background: film.grad, backgroundSize: "190% 190%", animation: `kf2-drift ${film.drift || "8s"} linear infinite` }} />
+      )}
+      <div className="film-scan" />
+      <div className="wall-shade" />
+      <div className="cat-chip" style={{ position: "absolute", top: 12, left: 14 }}>{film.cat}</div>
+      <div style={{ position: "absolute", top: 12, right: 14, fontFamily: "var(--font-mono)", fontSize: 10, color: "rgba(255,255,255,.85)" }}>{film.dur}</div>
+      <div className="play-glass" style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)" }} />
+      <div style={{ position: "absolute", left: 14, right: 14, bottom: 12, display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10 }}>
+        <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "clamp(16px,1.6vw,20px)", color: "#fff", margin: 0, lineHeight: 1.15, letterSpacing: "-.01em" }}>
+          {film.title}
+        </h3>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "rgba(255,255,255,.8)", whiteSpace: "nowrap" }}>
+          {film.views ? `▶ ${film.views}` : `▶ ${loreFor(film.pack).name || film.pack}`}
+        </span>
+      </div>
+    </motion.div>
   );
 }

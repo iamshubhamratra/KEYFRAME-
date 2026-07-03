@@ -17,8 +17,13 @@ const config = require("../config");
 // Per-model OpenRouter prices (USD per 1M tokens). Unknown ids fall back to
 // DEFAULT_MODEL_PRICE. Keep in sync with config.json's models when they change.
 const MODEL_PRICING = {
+  "z-ai/glm-5.2":                 { in: 0.95, out: 3.00 },
+  "z-ai/glm-5.1":                 { in: 0.98, out: 3.08 },
+  "z-ai/glm-4.6v":                { in: 0.30, out: 0.90 },
+  "z-ai/glm-4.6":                 { in: 0.43, out: 1.74 },
   "google/gemini-2.5-flash-lite": { in: 0.10, out: 0.40 },
   "google/gemini-2.5-flash":      { in: 0.30, out: 2.50 },
+  "google/gemini-3.5-flash":      { in: 0.30, out: 2.50 },
   "deepseek/deepseek-v4-pro":     { in: 0.44, out: 0.87 },
   "deepseek/deepseek-v4-flash":   { in: 0.09, out: 0.18 },
   "moonshotai/kimi-k2.6":         { in: 0.66, out: 3.50 },

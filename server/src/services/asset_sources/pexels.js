@@ -27,6 +27,7 @@ async function search({ query, type, orientation, limit = 5 }) {
     return (data.photos || []).map((p) => ({
       url: p.src?.large2x || p.src?.large || p.src?.original,
       width: p.width, height: p.height,
+      title: p.alt, // Pexels' human description — drives relevance ranking
       license: "Pexels License",
       sourceUrl: p.url,
     })).filter((c) => c.url);

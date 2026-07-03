@@ -435,6 +435,10 @@
 
     window.__timelines = window.__timelines || {};
     window.__timelines["vid"] = tl;
+  // --- DEV PREVIEW ONLY: auto-play when opened directly in a normal browser
+  // (the HyperFrames render browser sets navigator.webdriver===true, so this
+  // stays paused there and MP4 output is unaffected).
+  try { var __vt = window.__timelines["vid"]; if (__vt && (typeof navigator === "undefined" || !navigator.webdriver)) { __vt.play(0); __vt.eventCallback("onComplete", function () { __vt.restart(); }); } } catch (e) {}
   </script>
 </body>
 </html>

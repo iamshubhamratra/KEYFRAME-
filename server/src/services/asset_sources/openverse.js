@@ -29,6 +29,7 @@ async function search({ query, type, orientation, limit = 5 }) {
       license: `${(r.license || "unknown").toUpperCase()} ${r.license_version || ""}`.trim(),
       sourceUrl: r.foreign_landing_url || r.url,
       title: r.title || null,
+      tags: Array.isArray(r.tags) ? r.tags.map((t) => t && t.name).filter(Boolean).join(" ") : null,
     }));
 }
 

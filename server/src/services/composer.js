@@ -28,6 +28,14 @@ const MIN_VECTOR_PRIMITIVES = 10;
 // Counts distinct sticker classes that ALSO appear in a GSAP tween (so a static
 // 0×0 decoy can't satisfy a class-token count). Lenient; the template carries quality.
 const MIN_STICKERS = 3;
+// Display-type floor: what gets CHECKED gets DONE — the sticker/vector gates
+// produced chip-covered but typographically dead videos (tiny captions, no
+// headlines). Require real display type: font sizes ≥6.5% of canvas height
+// (or ≥5cqw), at least one per ~60% of scenes.
+const DISPLAY_TYPE_RATIO = 0.065;
+// Per-scene tween floor: STEP 8's cadence emits ~7 tweens/scene; a comp far
+// under that is a static slideshow no matter how many stickers it carries.
+const MIN_TWEENS_PER_SCENE = 5;
 
 // Relative luminance (WCAG) from a #RRGGBB hex, 0 (black) … 1 (white).
 function luminance(hex) {
@@ -196,9 +204,9 @@ function buildUser(storyboard, { width, height, fps, availableAssets, framePack,
   const hasScreenshot = assetList.some((a) => a && (a.source === "website" || /screenshot/i.test(a.alt || "")));
   let assetInstruction;
   if (hasAssets && hasScreenshot) {
-    assetInstruction = "Use these local asset paths (and ONLY these) in any <img>/<video> src attributes. Use EVERY asset listed — each was fetched for the scene in its sceneId. Give real product/app screenshots HERO treatment: ≥60% of the canvas, inside a browser/device frame in the design system's styling, with a Ken Burns push (scale 1.0→1.12) panning across the UI, plus 1–2 callout chips with connector lines pointing at real UI elements. Background photos go full-bleed under a scrim. An unused asset is a wasted scene. These fetched assets are the FLOOR, not the ceiling: on top of EVERY scene layer your OWN animated vector graphics — an SVG particle/bokeh field (6–12 <circle>s drifting at varied speeds & opacities), drawing underlines/connectors (<path> with strokeDashoffset), rotating rings, burst marks, animated glows — so that, combining the photos AND your vectors, a fresh visual element ENTERS or EXITS the frame at least once every 1–2 seconds for the ENTIRE duration. Walk your timeline second-by-second: any ~1.5s window with nothing entering/leaving is a DEAD STRETCH — fill it. Never let the frame hold static for more than ~1s.";
+    assetInstruction = "Use these local asset paths (and ONLY these) in any <img>/<video> src attributes. Use every asset that SERVES the story (each was fetched for the scene in its sceneId) — but an asset that is visibly OFF-TOPIC for this video's subject (a random landmark/map/object unrelated to the story) is worse than no asset: OMIT it and carry that scene with your own vectors and display type instead. Never force an irrelevant photo in just to use it. Give real product/app screenshots HERO treatment: ≥60% of the canvas, inside a browser/device frame in the design system's styling, with a Ken Burns push (scale 1.0→1.12) panning across the UI, plus 1–2 callout chips with connector lines pointing at real UI elements. Background photos go full-bleed under a scrim. An unused asset is a wasted scene. These fetched assets are the FLOOR, not the ceiling: on top of EVERY scene layer your OWN animated vector graphics — an SVG particle/bokeh field (6–12 <circle>s drifting at varied speeds & opacities), drawing underlines/connectors (<path> with strokeDashoffset), rotating rings, burst marks, animated glows — so that, combining the photos AND your vectors, a fresh visual element ENTERS or EXITS the frame at least once every 1–2 seconds for the ENTIRE duration. Walk your timeline second-by-second: any ~1.5s window with nothing entering/leaving is a DEAD STRETCH — fill it. Never let the frame hold static for more than ~1s.";
   } else if (hasAssets) {
-    assetInstruction = "Use these local asset paths (and ONLY these) in any <img>/<video> src attributes. Use EVERY asset listed — each was fetched for the scene in its sceneId. Place each as the scene's visual anchor: full-bleed background photos under a readable scrim, or framed insets (rounded card, design-system border/shadow) at ~40–60% of the canvas with a slow Ken Burns push (scale 1.0→1.12). An unused asset is a wasted scene. Some scenes may have NO fetched asset — carry those ENTIRELY with your own dense animated vectors (do NOT reuse another scene's image). On top of EVERY scene layer your OWN animated vector graphics — an SVG particle/bokeh field (6–12 <circle>s drifting at varied speeds & opacities), drawing underlines/connectors (<path> with strokeDashoffset), rotating rings, burst marks, animated glows — so that, combining the images AND your vectors, a fresh visual element ENTERS or EXITS the frame at least once every 1–2 seconds for the ENTIRE duration. Walk your timeline second-by-second: any ~1.5s window with nothing entering/leaving is a DEAD STRETCH — fill it. Never let the frame hold static for more than ~1s.";
+    assetInstruction = "Use these local asset paths (and ONLY these) in any <img>/<video> src attributes. Use every asset that SERVES the story (each was fetched for the scene in its sceneId) — but an asset that is visibly OFF-TOPIC for this video's subject (a random landmark/map/object unrelated to the story) is worse than no asset: OMIT it and carry that scene with your own vectors and display type instead. Never force an irrelevant photo in just to use it. Place each as the scene's visual anchor: full-bleed background photos under a readable scrim, or framed insets (rounded card, design-system border/shadow) at ~40–60% of the canvas with a slow Ken Burns push (scale 1.0→1.12). An unused asset is a wasted scene. Some scenes may have NO fetched asset — carry those ENTIRELY with your own dense animated vectors (do NOT reuse another scene's image). On top of EVERY scene layer your OWN animated vector graphics — an SVG particle/bokeh field (6–12 <circle>s drifting at varied speeds & opacities), drawing underlines/connectors (<path> with strokeDashoffset), rotating rings, burst marks, animated glows — so that, combining the images AND your vectors, a fresh visual element ENTERS or EXITS the frame at least once every 1–2 seconds for the ENTIRE duration. Walk your timeline second-by-second: any ~1.5s window with nothing entering/leaving is a DEAD STRETCH — fill it. Never let the frame hold static for more than ~1s.";
   } else {
     assetInstruction = "No image/video assets were pre-fetched, so do NOT include any <img> or <video> tags. Your OWN generated vector graphics are then the PRIMARY material, not a fallback: dense animated SVG in EVERY scene — particle/bokeh fields (8–14 <circle>s drifting at varied speeds), drawing lines/underlines (<path> strokeDashoffset), rotating icons, burst marks, animated gradient meshes — layered continuously so a fresh visual element ENTERS or EXITS the frame at least once every 1–2 seconds. Walk your timeline second-by-second; any ~1.5s dead stretch is a FAILURE. A text-only frame is a FAILURE.";
   }
@@ -215,7 +223,7 @@ function buildUser(storyboard, { width, height, fps, availableAssets, framePack,
     "",
     assetInstruction,
     "",
-    `HARD RICHNESS REQUIREMENT (auto-checked, REJECTED if unmet): (1) at least one inline <svg> with >=${MIN_VECTOR_PRIMITIVES} animated vector primitives total — TARGET 12–20 VISIBLE per scene (shared bokeh field + per-scene drawing lines / rotating ring / burst sparks); (2) at least ${MIN_STICKERS} pop-in stickers/badges/chips total — TARGET 3–6 PER SCENE — each an absolute child of its scene with class "sticker badge|chip|stat|callout", popping via back.out and animated by the GSAP timeline. Place stickers in the MARGINS over the image (never over the headline); put data-layout-allow-occlusion on each text-bearing sticker and on any content container a sticker covers. A vector-thin or sticker-less composition is REJECTED.`,
+    `HARD RICHNESS REQUIREMENT (auto-checked, REJECTED if unmet): (1) at least one inline <svg> with >=${MIN_VECTOR_PRIMITIVES} animated vector primitives total — TARGET 12–20 VISIBLE per scene (shared bokeh field + per-scene drawing lines / rotating ring / burst sparks); (2) at least ${MIN_STICKERS} pop-in stickers/badges/chips total — TARGET 3–6 PER SCENE — each an absolute child of its scene with class "sticker badge|chip|stat|callout", popping via back.out and animated by the GSAP timeline (in the MARGINS, never over the headline; data-layout-allow-occlusion on text-bearing stickers and any container they cover); (3) the CANVAS FX LAYER — one full-duration <canvas> on track 0 painted purely from hf-seek time per the system-prompt skeleton; (4) DISPLAY TYPE — a display-scale headline (>=6.5% of canvas height) in essentially every scene; (5) a STEP-4 camera move (scale/pan tween on the #sN container) in essentially every scene, and >=5 GSAP tweens per scene overall. A composition missing ANY of these is auto-REJECTED and retried.`,
   ];
 
   if (captionCues && captionCues.length) {
@@ -266,6 +274,9 @@ function buildUser(storyboard, { width, height, fps, availableAssets, framePack,
   lines.push("3. NO CORNER-PARKED OR MICRO TEXT. All meaningful text lives in the central safe area (middle ~80% of the frame) — never floated in a corner, never below ~3% of canvas height. If text sits over any imagery, put a solid contrast panel/card behind it.");
   lines.push("4. DECORATION SERVES, NEVER DOMINATES. No single decorative shape (arrow, disc, band) may be the largest or loudest element. Keep decorations behind the message at low opacity. Hierarchy is always message > content > decoration.");
   lines.push("5. FILL THE FRAME edge-to-edge — no large empty quadrants, no headline floating alone in a void.");
+  lines.push("6. EVERY SCENE RE-DRESSES THE SET (QA compares frames ACROSS scenes and fails sameness). One static backdrop reused for the whole film with only a swapped photo/caption is the WORST failure mode. Per scene, visibly change the set using the SAME pack tokens: shift the ground gradient's angle/stops or swap which ground token dominates, relocate/rescale the decorative cluster, alternate the layout archetype (full-bleed type scene → split asset scene → stat scene), and vary where the focal mass sits. Two frames sampled from different scenes must be instantly distinguishable at thumbnail size.");
+  lines.push("7. PHOTOS JOIN THE PALETTE OR THEY DON'T SHIP. Never place a raw stock photo in its native colors — it visually tears the design system. Every <img>/<video>: (a) sits inside this system's frame treatment (border/radius/shadow per the pack), (b) carries a color harmonizer — a CSS filter tint (e.g. filter: saturate(.85) contrast(1.06)) AND a gradient scrim child fading a GROUND token over ~40% of it, or a low-opacity ACCENT tint overlay — so its colors join the palette, and (c) enters/exits with choreography (3D rotateY entrance or mask-wipe) plus a continuous Ken-Burns push. ALSO: an off-topic asset (a photo that obviously does not serve THIS story's subject) is worse than no asset — OMIT it and carry the scene with your own vectors and type instead.");
+  lines.push("8. CINEMATIC DEPTH, SEEK-SAFE (auto-checked). The high-fidelity backdrop is the MANDATORY CANVAS FX LAYER (see the system prompt's skeleton): ONE full-duration HTML5 <canvas> on track 0 whose draw(t) is a pure function of hf-seek time — flowing gradient wash + drifting glow particles + one pack-appropriate effect (ribbons/waves, light rays, grid pulse, confetti), colored ONLY with pack tokens, alpha ≤.35. On top of it, build DOM depth: a perspective wrapper (perspective: 1200px) with layers at different translateZ so camera moves create real parallax, 3D entrances (rotateY/rotateX 18–24°→0), and SVG glow filters on focal accents. Everything driven by the ONE paused GSAP timeline or hf-seek — NEVER a self-running rAF loop, Date.now, or Math.random at draw time (breaks deterministic capture).");
 
   lines.push("", "Produce the JSON with indexHtml and metaJson strings now.");
   return lines.join("\n");
@@ -302,7 +313,7 @@ function extractSrcs(html, tag) {
   return found;
 }
 
-function quickCheck(indexHtml, metaJsonStr, { width, height, duration, assets, enforceVectors = true }) {
+function quickCheck(indexHtml, metaJsonStr, { width, height, duration, assets, enforceVectors = true, sceneCount: sceneCountOpt } = {}) {
   const errs = [];
 
   let meta;
@@ -428,6 +439,85 @@ function quickCheck(indexHtml, metaJsonStr, { width, height, duration, assets, e
         `Add decorative pop-in overlays per the POP-IN STICKERS section (burst badge / glass chip / stat sticker / connector callout) — each an absolute child of its scene with class "sticker badge|chip|stat|callout", popping via back.out, in the MARGINS over the image (NOT over the headline). Put data-layout-allow-occlusion on each text-bearing sticker and on any content container a sticker covers.`
       );
     }
+
+    // ---- DISPLAY-TYPE FLOOR ------------------------------------------------
+    // The sticker/vector gates alone bred chip-boards with tiny caption text.
+    // Require real display typography: count font sizes >= 6.5% of canvas
+    // height (px) or >= 5cqw — the Typography ladder's headline scale.
+    const sceneCount = Math.max(1, Number(sceneCountOpt) || 3);
+    const pxFloor = Math.round(height * DISPLAY_TYPE_RATIO);
+    let displayCount = 0;
+    for (const m of indexHtml.matchAll(/font-size\s*:\s*(\d+(?:\.\d+)?)(px|cqw)/gi)) {
+      const v = parseFloat(m[1]);
+      if ((m[2].toLowerCase() === "px" && v >= pxFloor) || (m[2].toLowerCase() === "cqw" && v >= 5)) displayCount++;
+    }
+    for (const m of indexHtml.matchAll(/font\s*:\s*[^;"'{}]*?(\d+(?:\.\d+)?)px\s*[/\s]/gi)) {
+      if (parseFloat(m[1]) >= pxFloor) displayCount++;
+    }
+    const needDisplay = Math.max(2, Math.ceil(sceneCount * 0.6));
+    if (displayCount < needDisplay) {
+      errs.push(
+        `typographically DEAD composition: only ${displayCount} display-size text element(s) (font-size >= ${pxFloor}px, i.e. ~6.5% of the ${height}px canvas), need >= ${needDisplay}. ` +
+        `Per the Typography ladder and LAYOUT LAW #2, EVERY scene's primary message is a DISPLAY headline — the largest thing in the frame (headlines >= 80px at 1080p scale, CTA just as large), animated in with a word/char stagger. Small caption text floating in a corner is NOT a scene.`
+      );
+    }
+
+    // ---- CAMERA-MOVE FLOOR -------------------------------------------------
+    // STEP 4 gives every scene a camera move on its #sN container; without it
+    // the film is a static slide deck. Count distinct #sN ids that appear in a
+    // tl.to/fromTo call tweening scale/xPercent/yPercent.
+    const movedScenes = new Set();
+    for (const m of indexHtml.matchAll(/tl\.(?:to|fromTo)\(\s*["']#(s\d+)[^"']*["']/gi)) {
+      const tail = indexHtml.slice(m.index, m.index + 260);
+      if (/scale|xPercent|yPercent/i.test(tail)) movedScenes.add(m[1].toLowerCase());
+    }
+    const needMoves = Math.max(2, Math.ceil(sceneCount * 0.7));
+    if (movedScenes.size < needMoves) {
+      errs.push(
+        `too few scene camera moves: only ${movedScenes.size} scene container(s) (#sN) get a scale/pan tween, need >= ${needMoves}. ` +
+        `Apply STEP 4 to EVERY scene: tween the #sN container (or its inner .stage) — push-in scale 1.0→1.07, pull-out 1.12→1.0, or Ken-Burns pan scale 1.04→1.16 with xPercent 0→-6 — running the scene's FULL duration. A film without camera moves is a slideshow.`
+      );
+    }
+
+    // ---- TWEEN-DENSITY FLOOR -----------------------------------------------
+    const tweenCount = (indexHtml.match(/tl\.(?:to|from|fromTo)\(/g) || []).length;
+    const needTweens = sceneCount * MIN_TWEENS_PER_SCENE;
+    if (tweenCount < needTweens) {
+      errs.push(
+        `under-animated composition: only ${tweenCount} GSAP tween(s) for ${sceneCount} scene(s), need >= ${needTweens} (~${MIN_TWEENS_PER_SCENE}+/scene). ` +
+        `Follow STEP 8's cadence in EVERY scene: container fade-in + camera move, headline word-stagger, glow fade, underline draw/callout pop at +1.3s, counter/icon pop at +2.4s, gradient sweep/particle burst at +3.5s, container exit. Elements must keep ENTERING and EXITING; a placed-once frame is a slideshow, not a film.`
+      );
+    }
+
+    // ---- CANVAS FX LAYER FLOOR -----------------------------------------------
+    // The premium high-fidelity backdrop: one full-duration HTML5 canvas painted
+    // as a pure function of hf-seek time (deterministic). CSS gradients alone
+    // read flat; the canvas layer is what makes premium look premium.
+    const hasCanvas = /<canvas\b/i.test(indexHtml);
+    const seekDriven = /hf-seek/.test(indexHtml);
+    if (!hasCanvas || !seekDriven) {
+      errs.push(
+        `missing the mandatory CANVAS FX LAYER: ${!hasCanvas ? "no <canvas> element" : "<canvas> present but not driven by the hf-seek event"}. ` +
+        `Add ONE full-duration <canvas id="fx"> clip on track 0 painted by a draw(t) that is a PURE function of hf-seek time (copy the CANVAS FX LAYER skeleton from the system prompt: seeded PRNG, pack-token colors, flowing gradient wash + drifting glow particles, window.addEventListener("hf-seek", e => draw(e.detail.time))). Never rAF, never Date.now, never Math.random at draw time.`
+      );
+    }
+
+    // ---- PHOTO-TREATMENT FLOOR ---------------------------------------------
+    // Raw untreated stock photos clash with the design system's palette (the
+    // "random photo card on a neon set" look). Floor: if the comp uses photos,
+    // SOMETHING must harmonize them — a CSS filter tint, a blend mode, or a
+    // scrim/tint overlay class.
+    if (imgSrcs.length > 0) {
+      const treated = /filter\s*:\s*[^;"']*(saturate|sepia|grayscale|contrast|hue-rotate|brightness)/i.test(indexHtml)
+        || /mix-blend-mode/i.test(indexHtml)
+        || /class\s*=\s*["'][^"']*\b(scrim|tint|duotone|overlay)\b/i.test(indexHtml);
+      if (!treated) {
+        errs.push(
+          `RAW UNTREATED PHOTOS: the composition places <img> photos with no color treatment anywhere (no filter:, no mix-blend-mode, no scrim/tint overlay). ` +
+          `Stock photos in their native colors clash with the design system. EVERY photo must be harmonized: give the <img> a filter (e.g. "saturate(.85) contrast(1.06)"), add a gradient scrim child above it fading a GROUND token over 40-60% of the image, or a low-opacity ACCENT-token tint overlay (class "tint") — so the photo's colors join the pack's palette instead of fighting it.`
+        );
+      }
+    }
   }
 
   return errs;
@@ -512,6 +602,7 @@ async function compose(storyboard, { width, height, fps, duration, maxRetries, a
 
     const errs = quickCheck(env.indexHtml, env.metaJson, {
       width, height, duration, assets: availableAssets, enforceVectors,
+      sceneCount: Array.isArray(storyboard?.scenes) ? storyboard.scenes.length : 3,
     });
     if (errs.length === 0) {
       console.log(`[composer] success in ${Date.now() - t0}ms (tokens in=${totalIn} out=${totalOut})`);

@@ -60,10 +60,10 @@ function sanitize(plan, storyboard, flags) {
 
   if (flags.images && Array.isArray(plan.images)) {
     const images = [];
-    // Cap raised 5 -> 10: every scene should carry imagery (user feedback "needs
-    // more images"). Images are cheap to render (unlike video), so a higher cap
-    // fills sparse scenes without blowing the render budget.
-    for (const a of plan.images.slice(0, 10)) {
+    // Cap raised 5 -> 10 -> 14: every scene should carry imagery (user feedback
+    // "lack of assets"). Images are cheap to render (unlike video), so a higher
+    // cap fills sparse scenes without blowing the render budget.
+    for (const a of plan.images.slice(0, 14)) {
       const s = sanitizeAsset(a, duration, sceneIds);
       if (s) images.push(s);
     }

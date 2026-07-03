@@ -122,6 +122,9 @@ function validate(storyboard, { duration, orientation }) {
       if (s.duration < 2 || s.duration > 15) errs.push(`scene[${i}] duration ${s.duration} out of [2,15]`);
       if (!s.kind) errs.push(`scene[${i}] missing kind`);
       if (!s.animation) errs.push(`scene[${i}] missing animation`);
+      // Voiceover is optional (falls back to headline+subtext downstream) — never
+      // block on it, just normalize to a trimmed string so the audio stage is safe.
+      s.voiceover = typeof s.voiceover === "string" ? s.voiceover.trim().slice(0, 400) : "";
       // Beats are optional but, when present, sanitized rather than rejected:
       // keep only well-formed beats inside the scene's own time window.
       if (Array.isArray(s.beats)) {

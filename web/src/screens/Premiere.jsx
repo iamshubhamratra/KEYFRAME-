@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { getProject, mediaUrl } from "../api.js";
+import { loreFor, fmtDur } from "../packlore.js";
 
-// The reveal: player with a curtain animation on first load, downloads,
-// remix, and the cost/timing/attribution breakdown.
+// v2 "SC 08 · FINAL LOOKS" — the premiere on a dark stage with the magenta
+// glow, downloads, remix and the production-details monitor.
 export default function Premiere({ projectId, onRemix, onNew }) {
   const [project, setProject] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -13,10 +14,17 @@ export default function Premiere({ projectId, onRemix, onNew }) {
     getProject(projectId).then(setProject).catch(() => {});
   }, [projectId]);
 
-  if (!project) return <div className="max-w-4xl mx-auto px-6 pt-20 text-dim">Loading…</div>;
+  if (!project) {
+    return (
+      <div style={{ background: "var(--color-dark)", marginTop: -90, paddingTop: 90, minHeight: "100vh" }}>
+        <div style={{ maxWidth: 940, margin: "0 auto", padding: "70px 24px", fontFamily: "var(--font-mono)", fontSize: 12, letterSpacing: "0.1em", color: "var(--color-dark-dim)" }}>LOADING…</div>
+      </div>
+    );
+  }
 
   const cost = project.usage?.totalCostUsd;
   const secs = project.durationMs ? Math.round(project.durationMs / 1000) : null;
+  const lore = loreFor(project.framePack);
 
   // Per-video token consumption: LLM (script + planners + composer + QA + repairs)
   // plus the estimated TTS audio tokens. Output tokens dominate the cost.
@@ -28,114 +36,136 @@ export default function Premiere({ projectId, onRemix, onNew }) {
   const fmt = (n) => Number(n).toLocaleString();
 
   return (
-    <div className="max-w-4xl mx-auto px-6 pt-12 pb-24">
-      <div className="flex items-end justify-between">
-        <h2 className="font-display text-3xl font-bold">{project.script?.title || "Your film"}</h2>
-        <div className="text-[10px] uppercase tracking-widest text-dim">
-          {project.framePack} · {project.duration}s · {project.width}×{project.height}
+    <div style={{ background: "var(--color-dark)", marginTop: -90, paddingTop: 90, position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: "radial-gradient(ellipse 70% 55% at 50% 110%, rgba(232,50,168,.30), transparent 65%)" }} />
+
+      <div style={{ position: "relative", maxWidth: 960, margin: "0 auto", padding: "clamp(20px,4vw,50px) 24px 90px" }}>
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+          <div>
+            <span className="scene-pill" style={{ "--tagc": "#e832a8" }}>SC 08 · FINAL LOOKS</span>
+            <h2 className="headline on-dark" style={{ fontSize: "clamp(28px,4.6vw,52px)" }}>
+              {project.script?.title || "Your film"}
+            </h2>
+          </div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-dark-dim)" }}>
+            {lore.name || project.framePack} · {fmtDur(project.duration)} · {project.width}×{project.height}
+          </div>
+        </div>
+
+        {/* the screen */}
+        <div style={{ position: "relative", marginTop: 26, borderRadius: 20, overflow: "hidden", border: "1px solid rgba(242,237,226,.14)", background: "var(--color-dark-2)", boxShadow: "0 40px 90px rgba(0,0,0,.5)" }}>
+          {project.videoUrl ? (
+            <>
+              <video src={mediaUrl(project.videoUrl)} controls style={{ aspectRatio: "16/9", display: "block", width: "100%" }} />
+              {/* curtain reveal on mount */}
+              <motion.div initial={{ scaleY: 1 }} animate={{ scaleY: 0 }}
+                transition={{ duration: 1.1, ease: [0.83, 0, 0.17, 1], delay: 0.35 }}
+                style={{ originY: 0, background: "#0d0b07", position: "absolute", inset: 0, pointerEvents: "none" }} />
+            </>
+          ) : (
+            <div style={{ aspectRatio: "16/9", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-dark-dim)" }}>
+              {project.status === "failed" ? `FAILED: ${project.error}` : "NO VIDEO YET."}
+            </div>
+          )}
+        </div>
+
+        {Array.isArray(project.audioNotes) && project.audioNotes.length > 0 && (
+          <div style={{ marginTop: 18, padding: "12px 16px", borderRadius: 12, border: "1px solid rgba(255,176,58,.4)", background: "rgba(255,176,58,.08)" }}>
+            {project.audioNotes.map((n, i) => (
+              <div key={i} style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.04em", color: "var(--color-am)", lineHeight: 1.6 }}>⚠ {n}</div>
+            ))}
+          </div>
+        )}
+
+        <div style={{ marginTop: 26, display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
+          {project.videoUrl && (
+            <a href={mediaUrl(project.videoUrl)} download className="btn-mag" style={{ textDecoration: "none" }}>
+              Download MP4 ↓
+            </a>
+          )}
+          {project.srtUrl && (
+            <a href={mediaUrl(project.srtUrl)} download className="btn-outline-dark btn-sm" style={{ textDecoration: "none" }}>
+              Captions .srt
+            </a>
+          )}
+          {project.script && (
+            <button onClick={onRemix} className="btn-outline-dark btn-sm">✂ Remix script</button>
+          )}
+          <button onClick={onNew} className="link-mono on-dark" style={{ marginLeft: 4 }}>+ NEW FILM</button>
+        </div>
+
+        <button onClick={() => setDetailsOpen((v) => !v)}
+          style={{ marginTop: 34, cursor: "pointer", background: "none", border: "none", padding: 0, fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--color-dark-dim)" }}>
+          {detailsOpen ? "▾ HIDE" : "▸ SHOW"} PRODUCTION DETAILS
+        </button>
+
+        {detailsOpen && (
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            className="editor-card" style={{ marginTop: 16 }}>
+            <div className="editor-head">
+              <span className="tl-dot" style={{ background: "#ff5f57" }} />
+              <span className="tl-dot" style={{ background: "#febc2e" }} />
+              <span className="tl-dot" style={{ background: "#28c840" }} />
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.2em", color: "#7d766a", marginLeft: 10 }}>PRODUCTION REPORT</span>
+            </div>
+            <div style={{ padding: 24 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px,1fr))", gap: 20 }}>
+                <Stat label="TOTAL COST" value={cost != null ? `$${Number(cost).toFixed(3)}` : "—"} c="#e832a8" />
+                <Stat label="PRODUCTION TIME" value={secs ? `${secs}s` : "—"} c="#23c8e0" />
+                <Stat label="COMPOSITION" value={project.finalAttempt || "—"} c="#ffb03a" />
+                <Stat
+                  label="TOKENS USED"
+                  value={totalTokens != null ? fmt(totalTokens) : "—"} c="#b9f24a"
+                  sub={llm ? `${fmt(llm.inputTokens)} in · ${fmt(llm.outputTokens)} out · ${llm.callCount} calls` : null}
+                />
+              </div>
+              {project.usage?.byStage?.length > 0 && (
+                <div style={{ marginTop: 24 }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.22em", color: "#7d766a", marginBottom: 10 }}>TOKENS BY STAGE</div>
+                  <ul style={{ display: "flex", flexDirection: "column", gap: 6, margin: 0, padding: 0, listStyle: "none" }}>
+                    {project.usage.byStage.map((s) => (
+                      <li key={s.stage} style={{ display: "flex", alignItems: "baseline", gap: 12, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--color-dark-dim)" }}>
+                        <span style={{ color: "var(--color-dark-ink)", textTransform: "capitalize" }}>{s.stage}</span>
+                        <span style={{ flex: 1, borderBottom: "1px solid rgba(242,237,226,.12)", transform: "translateY(-3px)" }} />
+                        <span>{fmt(s.totalTokens)} tok · {s.callCount} {s.callCount === 1 ? "call" : "calls"} · ${Number(s.costUsd).toFixed(3)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {project.assets?.length > 0 && (
+                <div style={{ marginTop: 24 }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.22em", color: "#7d766a", marginBottom: 10 }}>ASSET ATTRIBUTION</div>
+                  <ul style={{ display: "flex", flexDirection: "column", gap: 5, margin: 0, padding: 0, listStyle: "none" }}>
+                    {project.assets.map((a, i) => (
+                      <li key={i} style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--color-dark-dim)" }}>
+                        {a.type} · {a.license} · {a.sourceUrl
+                          ? <a href={a.sourceUrl} target="_blank" rel="noreferrer" style={{ textDecoration: "underline", color: "inherit" }}>{a.source}</a>
+                          : a.source}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+
+        <div style={{ marginTop: 60, textAlign: "center", fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 26, color: "var(--color-dark-ink)", letterSpacing: "0.3em" }}>
+          FIN<span style={{ color: "var(--color-mag)" }}>.</span>
         </div>
       </div>
-
-      <div className="relative mt-6 rounded-2xl overflow-hidden border border-line bg-black shadow-[0_24px_60px_rgba(8,10,24,0.45)]">
-        {project.videoUrl ? (
-          <>
-            <video src={mediaUrl(project.videoUrl)} controls className="w-full aspect-video" />
-            {/* Curtain reveal on mount — midnight curtain for the premiere */}
-            <motion.div initial={{ scaleY: 1 }} animate={{ scaleY: 0 }}
-              transition={{ duration: 1.1, ease: [0.83, 0, 0.17, 1], delay: 0.35 }}
-              style={{ originY: 0, background: "var(--color-night)" }}
-              className="absolute inset-0 pointer-events-none" />
-          </>
-        ) : (
-          <div className="aspect-video flex items-center justify-center text-dim text-sm">
-            {project.status === "failed" ? `Failed: ${project.error}` : "No video yet."}
-          </div>
-        )}
-      </div>
-
-      <div className="mt-6 flex flex-wrap gap-3">
-        {project.videoUrl && (
-          <a href={mediaUrl(project.videoUrl)} download className="btn-solstice uppercase text-xs">
-            Download MP4
-          </a>
-        )}
-        {project.srtUrl && (
-          <a href={mediaUrl(project.srtUrl)} download
-            className="px-6 py-3 rounded-xl border border-line text-xs uppercase tracking-widest hover:border-accent transition-colors">
-            Captions .srt
-          </a>
-        )}
-        {project.script && (
-          <button onClick={onRemix}
-            className="px-6 py-3 rounded-xl border border-line text-xs uppercase tracking-widest hover:border-accent transition-colors">
-            ✂ Remix script
-          </button>
-        )}
-        <button onClick={onNew}
-          className="px-6 py-3 rounded-xl border border-line text-xs uppercase tracking-widest text-dim hover:text-ink transition-colors">
-          + New video
-        </button>
-      </div>
-
-      <button onClick={() => setDetailsOpen((v) => !v)}
-        className="mt-8 text-[10px] uppercase tracking-widest text-dim hover:text-ink">
-        {detailsOpen ? "▾ hide" : "▸ show"} production details
-      </button>
-
-      {detailsOpen && (
-        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
-          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-          className="mt-4 glass-card p-5 text-sm space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <Stat label="Total cost" value={cost != null ? `$${Number(cost).toFixed(3)}` : "—"} />
-            <Stat label="Production time" value={secs ? `${secs}s` : "—"} />
-            <Stat label="Composition" value={project.finalAttempt || "—"} />
-            <Stat
-              label="Tokens used"
-              value={totalTokens != null ? fmt(totalTokens) : "—"}
-              sub={llm ? `${fmt(llm.inputTokens)} in · ${fmt(llm.outputTokens)} out · ${llm.callCount} calls` : null}
-            />
-          </div>
-          {project.usage?.byStage?.length > 0 && (
-            <div>
-              <div className="text-[10px] uppercase tracking-widest text-dim mb-2">Tokens by stage</div>
-              <ul className="space-y-1">
-                {project.usage.byStage.map((s) => (
-                  <li key={s.stage} className="flex items-baseline justify-between gap-3 text-xs text-dim">
-                    <span className="capitalize text-ink">{s.stage}</span>
-                    <span className="flex-1 border-b border-line/40 translate-y-[-2px]" />
-                    <span>{fmt(s.totalTokens)} tok · {s.callCount} {s.callCount === 1 ? "call" : "calls"} · ${Number(s.costUsd).toFixed(3)}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {project.assets?.length > 0 && (
-            <div>
-              <div className="text-[10px] uppercase tracking-widest text-dim mb-2">Asset attribution</div>
-              <ul className="space-y-1">
-                {project.assets.map((a, i) => (
-                  <li key={i} className="text-xs text-dim">
-                    {a.type} · {a.license} · {a.sourceUrl
-                      ? <a href={a.sourceUrl} target="_blank" rel="noreferrer" className="underline hover:text-accent">{a.source}</a>
-                      : a.source}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </motion.div>
-      )}
     </div>
   );
 }
 
-function Stat({ label, value, sub }) {
+function Stat({ label, value, sub, c }) {
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-widest text-dim">{label}</div>
-      <div className="font-display font-bold mt-0.5">{value}</div>
-      {sub && <div className="text-[10px] text-dim mt-0.5">{sub}</div>}
+      <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.22em", color: c || "#7d766a" }}>{label}</div>
+      <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 24, color: "var(--color-dark-ink)", marginTop: 4 }}>{value}</div>
+      {sub && <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--color-dark-mono)", marginTop: 4 }}>{sub}</div>}
     </div>
   );
 }

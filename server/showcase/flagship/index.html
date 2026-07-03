@@ -3,7 +3,21 @@
 <head>
 <meta charset="utf-8">
 <title>vid</title>
+<script src="gsap.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script>
+  /* If GSAP didn't load (offline / ad-blocker / Brave Shield), show a visible
+     note instead of a silently blank page. Local gsap.min.js (same-origin) is
+     tried first; the CDN line above is a fallback if the local file is missing. */
+  if (!window.gsap) {
+    addEventListener("DOMContentLoaded", function () {
+      var b = document.createElement("div");
+      b.style.cssText = "position:fixed;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;font:600 18px system-ui;color:#fff;background:#111;padding:32px;z-index:99999";
+      b.textContent = "GSAP failed to load — hard-refresh (Ctrl+Shift+R). If still blank, an ad-blocker / Brave Shield is blocking scripts; disable it for 127.0.0.1.";
+      document.body.appendChild(b);
+    });
+  }
+</script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
@@ -238,6 +252,53 @@
 
   window.__timelines = window.__timelines || {};
   window.__timelines["vid"] = tl;
+
+  // --- DEV PREVIEW ONLY ---------------------------------------------------
+  // Driven frame-by-frame by the HyperFrames renderer (timeline stays paused).
+  // Opened directly in a normal browser nothing plays it, so it looks blank.
+  // The render browser is automated (navigator.webdriver === true); auto-play
+  // ONLY when that flag is absent, so rendering/MP4 output is unaffected.
+  if (typeof navigator === "undefined" || !navigator.webdriver) {
+    (function previewBoot() {
+      var root = document.querySelector('[data-composition-id]');
+      if (root) {
+        // 1) SIZE: comps carry size only on data-width/height (the renderer applies
+        //    it); a plain browser ignores those, so #root collapses to 0. Give it
+        //    real pixels, center it, and scale to fit the window.
+        var w = +root.getAttribute('data-width') || 1280;
+        var h = +root.getAttribute('data-height') || 720;
+        document.documentElement.style.height = "100%";
+        document.body.style.minHeight = "100vh";
+        root.style.width = w + 'px'; root.style.height = h + 'px';
+        root.style.position = 'absolute'; root.style.top = '50%'; root.style.left = '50%';
+        root.style.transformOrigin = 'center center';
+        var fit = function () {
+          var f = Math.min(window.innerWidth / w, window.innerHeight / h);
+          root.style.transform = 'translate(-50%,-50%) scale(' + f + ')';
+        };
+        fit(); window.addEventListener('resize', fit);
+
+        // 2) CLIP WINDOWING (what the HyperFrames runtime does): a clip with
+        //    data-start/data-duration is only visible inside its own time window.
+        //    Without this, later scenes' opaque backgrounds/photos (opacity:1 by
+        //    default) stack over earlier scenes and the page looks empty.
+        var clips = [].slice.call(root.querySelectorAll('[data-start][data-duration]'));
+        var windowClips = function (t) {
+          for (var i = 0; i < clips.length; i++) {
+            var c = clips[i];
+            var s = +c.getAttribute('data-start') || 0;
+            var d = +c.getAttribute('data-duration');
+            if (!isFinite(d)) d = 1e9;
+            c.style.visibility = (t >= s - 0.02 && t < s + d + 0.02) ? '' : 'hidden';
+          }
+        };
+        windowClips(0);
+        tl.eventCallback('onUpdate', function () { windowClips(tl.time()); });
+      }
+      tl.play(0);
+      tl.eventCallback("onComplete", function () { tl.restart(); }); // loop the preview
+    })();
+  }
 </script>
 </body>
 </html>

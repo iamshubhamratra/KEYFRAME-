@@ -69,6 +69,9 @@ function validateBody(body) {
   out.images = body.images === true;
   out.video = body.video === true;
 
+  // Three.js/WebGL cinematic composer (opt-in). Default off → scene-kit.
+  out.render3d = body.render3d === true || body.threeD === true;
+
   // Optional voice override for TTS.
   const { VALID_VOICES } = require("../services/audio_planner");
   if (body.voice != null) {
@@ -150,6 +153,7 @@ function buildRouter({ enqueue }) {
       voice: out.voice,
       images: out.images,
       video: out.video,
+      render3d: out.render3d,
       framePack: out.framePack,
     });
 

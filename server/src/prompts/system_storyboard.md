@@ -36,6 +36,7 @@ Return ONLY a JSON object — no prose, no markdown fences:
       "kind": "<title|hook|bullet|quote|caption|shape-motion|chart|countdown|cta>",
       "headline": "<short on-screen headline, ≤60 chars, or empty>",
       "subtext":  "<supporting line, ≤120 chars, or empty>",
+      "voiceover": "<the spoken narration for THIS scene — one natural sentence the narrator says WHILE this scene is on screen. It should track what's shown (complement the headline, not just read it aloud), flow from the previous scene, and be sized to the scene's duration at ~2.5 spoken words per second (a 4s scene ≈ 10 words). Leave \"\" only for a scene meant to play silent.>",
       "bullets":  ["<optional short bullets, each ≤50 chars>"],
       "emphasis": "<1-3 words in the headline to visually accent, or empty>",
       "animation": "<word-stagger|mask-reveal|blur-sharp|scale-pop|slide-up|slide-left|ken-burns-text|typewriter>",
@@ -54,7 +55,7 @@ Return ONLY a JSON object — no prose, no markdown fences:
 
 1. `scenes[].start` begins at 0; each subsequent scene's `start` equals the previous scene's `start + duration` (no gaps, no overlaps).
 2. Σ(`scenes[].duration`) MUST equal `durationSec` exactly.
-3. Scene durations: 2–7 seconds each. Prefer shorter scenes (3–5 s) — more scenes = more motion.
+3. Scene durations: 2–7 seconds each. Prefer shorter scenes (3–5 s) — more scenes = more motion. **Size each scene's duration to comfortably SPEAK its `voiceover` at ~2.5 words/sec** (a 12-word line needs ≥5 s) — the audio is synced per scene downstream, so a duration too short for its narration will feel rushed. When in doubt, give the scene a touch more room.
 4. Number of scenes: `ceil(durationSec / 4)` ± 1. Minimum 2, maximum 20.
 5. First scene is a `kind: "title"` or `kind: "hook"`. Last scene is `kind: "cta"` or `kind: "title"` (closer).
 6. No scene references external media beyond what the composer can create from text + SVG + CSS + GSAP (images/videos are planned separately).
@@ -87,6 +88,7 @@ The terminal scene's `animation` (`typewriter`) and `layout` must still differ f
 ## Writing principles
 
 - **One idea per scene.** If a scene has two ideas, split it.
+- **Write the `voiceover` as a spoken script, scene by scene.** Read all the voiceovers in order — they must form ONE flowing narration (hook → substance → close), each line handing off to the next, no repetition, no "welcome"/"in conclusion" filler. Each line is what a real narrator says over that scene, sized to its duration. This is the spine of the video — the visuals illustrate the voiceover, and the two are locked together in time.
 - **Beats are the scene's inner choreography.** 2–4 per scene: the FIRST beat is always at 0–0.15 (something visible enters immediately — no empty-ground moments); middle beats land content (subtext, counters, accents); the LAST beat starts the exit no later than 0.6s before the scene ends. `at` is relative to the scene's own start and must be < the scene's duration.
 - **`layout` picks the zone map**: `fullbleed` (one dominant element), `split-60-40` (content + visual), `grid-2x2` (cards/stats), `centered-card` (single framed statement).
 - **Every scene has motion.** `animation` is required and varied — do NOT use the same animation in consecutive scenes.
@@ -120,6 +122,7 @@ Run this over your draft; fix any "no" before returning:
 - Every scene has a non-empty `visualMotif` AND an `animation`, and no two adjacent scenes repeat either? ✓
 - Every scene has 2-4 `beats`, first at ≤0.15, last starting ≥0.6s before scene end, all `at` < duration? ✓
 - `emphasis` names 1-3 real words from that scene's `headline`? ✓
+- Every scene has a `voiceover` line sized to its duration (~2.5 words/sec), and read in order they form ONE coherent narration with no repetition? ✓
 - Palette has high text/background contrast and avoids pure #000/#fff? ✓
 - Output is pure JSON, no prose, no code fences? ✓
 - If the topic is tech/IT, is there exactly one `typewriter` scene in the substance arc (not the first/last scene) whose `headline` carries a real command or code line, not a description of one? ✓

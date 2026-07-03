@@ -16,6 +16,11 @@ const HEX = /^#[0-9a-fA-F]{6}$/;
 
 const BriefSchema = z.object({
   improvedPrompt: z.string().min(20).max(1400),
+  // The concrete, SHOOTABLE subject (what stock searches should show) — e.g.
+  // "golden retriever dog", "skincare products on marble". Optional so older
+  // cached briefs and forgetful models still validate; graph falls back to a
+  // frequency heuristic when absent.
+  subject: z.string().min(2).max(120).optional(),
   audience: z.string().min(2).max(400),
   tone: z.string().min(2).max(300),
   goal: z.string().min(2).max(400),
@@ -38,6 +43,21 @@ const PACK_VIBES = {
 
 const { extractFirstJsonObject: parseLenient } = require("./json_lenient");
 
+// Packs used by the user's most recent jobs (deduped, newest first). Given to
+// the brief LLM on "auto" so back-to-back videos rotate looks instead of every
+// tech prompt landing on the same pack. Best-effort — an empty list is fine.
+function recentlyUsedPacks(limit = 3) {
+  try {
+    const db = require("../db");
+    const used = db.listRecent({ limit: 10 })
+      .map((j) => j.framePack)
+      .filter(Boolean);
+    return [...new Set(used)].slice(0, limit);
+  } catch {
+    return [];
+  }
+}
+
 async function generateBrief({ intent, signal }) {
   const packs = frameRegistry.listPacks();
   const availableFramePacks = packs.map((name) => ({
@@ -47,7 +67,14 @@ async function generateBrief({ intent, signal }) {
     vibe: PACK_VIBES[name] || frameRegistry.getPackVibe(name) || "a curated design system",
   }));
 
-  const user = JSON.stringify({ ...intent, availableFramePacks }, null, 2);
+  // Only relevant on "auto" — an explicit user choice is echoed verbatim anyway.
+  const userChose = intent?.preferences?.framePack && intent.preferences.framePack !== "auto";
+  const recentFramePacks = userChose ? [] : recentlyUsedPacks();
+
+  const user = JSON.stringify(
+    { ...intent, availableFramePacks, ...(recentFramePacks.length ? { recentFramePacks } : {}) },
+    null, 2
+  );
 
   let totalIn = 0, totalOut = 0;
   let lastErr = "";
@@ -74,7 +101,8 @@ async function generateBrief({ intent, signal }) {
       const wanted = (userChoice && userChoice !== "auto") ? userChoice : brief.suggestedFramePack;
       brief.suggestedFramePack = frameRegistry.resolvePack(wanted) || frameRegistry.resolvePack("auto");
 
-      console.log(`[brief] ok on attempt ${attempt} (pack=${brief.suggestedFramePack}, duration=${brief.suggestedDuration}s)`);
+      const repeated = recentFramePacks[0] && recentFramePacks[0] === brief.suggestedFramePack;
+      console.log(`[brief] ok on attempt ${attempt} (pack=${brief.suggestedFramePack}${repeated ? " — repeats the previous video's pack" : ""}, duration=${brief.suggestedDuration}s)`);
       return { brief, tokensIn: totalIn, tokensOut: totalOut };
     } catch (e) {
       lastErr = e instanceof z.ZodError ? JSON.stringify(e.issues).slice(0, 800) : e.message;

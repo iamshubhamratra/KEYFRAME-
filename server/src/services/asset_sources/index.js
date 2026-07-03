@@ -85,13 +85,18 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
       let candidates = [];
       try {
         if (tracker) tracker.addExternal(`${provider.name}_search`);
-        candidates = await provider.search({ query: q, type, orientation, limit: 5 });
+        // Pull a deeper page for images so ranking has real choice — the top
+        // "popular" hit is often only loosely on-topic.
+        candidates = await provider.search({ query: q, type, orientation, limit: type === "image" ? 20 : 8 });
       } catch (e) {
         console.warn(`[assets] ${provider.name} search failed for "${q}": ${e.message}`);
         continue;
       }
 
-      for (const c of candidates.slice(0, 3)) {
+      // Rank by keyword relevance + resolution so a loosely-matched or low-res
+      // hit never wins just because it came back first; try the best few.
+      const ranked = util.rankCandidates(q, candidates);
+      for (const c of ranked.slice(0, 5)) {
         try {
           await util.download(c.url, outputPath);
           const ok = await util.validateMedia(outputPath, type);
@@ -105,7 +110,7 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
             source: provider.name, license: c.license, sourceUrl: c.sourceUrl,
             width: c.width, height: c.height,
           });
-          console.log(`[assets] "${q}" (${type}) <- ${provider.name}`);
+          console.log(`[assets] "${q}" (${type}) <- ${provider.name} (${c.width || "?"}x${c.height || "?"})`);
           return {
             path: outputPath, query: q, fromCache: false,
             source: provider.name, license: c.license, sourceUrl: c.sourceUrl,

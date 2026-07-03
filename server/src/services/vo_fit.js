@@ -5,21 +5,7 @@
 const { spawn } = require("node:child_process");
 const openrouter = require("./openrouter");
 const { synthesize } = require("./tts");
-
-function probeDurationSec(filePath) {
-  return new Promise((resolve) => {
-    const p = spawn("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", filePath]);
-    let out = "";
-    p.stdout.on("data", (d) => { out += d.toString(); });
-    const timer = setTimeout(() => { try { p.kill("SIGKILL"); } catch { /* noop */ } }, 15_000);
-    p.on("error", () => { clearTimeout(timer); resolve(null); });
-    p.on("exit", (code) => {
-      clearTimeout(timer);
-      const v = parseFloat(out.trim());
-      resolve(code === 0 && Number.isFinite(v) ? v : null);
-    });
-  });
-}
+const { probeDurationSec } = require("./media"); // shared ffprobe helper (was duplicated here)
 
 async function tightenLine({ line, targetSec, signal }) {
   const targetWords = Math.max(3, Math.floor(targetSec * 2.6));
@@ -83,9 +69,9 @@ function trimWithFade(filePath, maxSec) {
 async function synthesizeFitted({ text, targetSec, voice, instructions, outputPath, tracker, signal }) {
   if (!text || !text.trim()) return null;
 
-  await synthOnce({ text, voice, instructions, outputPath, tracker });
+  let synthMeta = await synthOnce({ text, voice, instructions, outputPath, tracker });
   let dur = await probeDurationSec(outputPath);
-  if (dur == null) return { path: outputPath, durationSec: targetSec, text, tightened: false };
+  if (dur == null) return { path: outputPath, durationSec: targetSec, text, tightened: false, fallbackVoice: synthMeta?.fallbackVoice || null };
 
   let spokenText = text;
   let tightened = false;
@@ -95,7 +81,7 @@ async function synthesizeFitted({ text, targetSec, voice, instructions, outputPa
     try {
       const t = await tightenLine({ line: text, targetSec, signal });
       if (tracker) tracker.addLlm({ inputTokens: t.tokensIn, outputTokens: t.tokensOut, stage: "vo_fit" });
-      await synthOnce({ text: t.line, voice, instructions, outputPath, tracker });
+      synthMeta = await synthOnce({ text: t.line, voice, instructions, outputPath, tracker }) || synthMeta;
       dur = (await probeDurationSec(outputPath)) ?? targetSec;
       spokenText = t.line;
       tightened = true;
@@ -111,7 +97,7 @@ async function synthesizeFitted({ text, targetSec, voice, instructions, outputPa
     if (await trimWithFade(outputPath, hardCap)) dur = hardCap;
   }
 
-  return { path: outputPath, durationSec: dur, text: spokenText, tightened };
+  return { path: outputPath, durationSec: dur, text: spokenText, tightened, fallbackVoice: synthMeta?.fallbackVoice || null };
 }
 
 module.exports = { synthesizeFitted, probeDurationSec };

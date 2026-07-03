@@ -17,6 +17,8 @@ const jobsRouter = require("./src/routes/jobs");
 const framesRouter = require("./src/routes/frames");
 const { buildRouter: buildGenerateRouter } = require("./src/routes/generate");
 const { buildRouter: buildProjectsRouter } = require("./src/routes/projects");
+const { buildRouter: buildAuthRouter } = require("./src/routes/auth");
+const cookieParser = require("cookie-parser");
 
 async function loadQueue() {
   // p-queue v6 is CommonJS; v7+ is ESM. Support both.
@@ -89,6 +91,9 @@ async function main() {
       res.setHeader("Vary", "Origin");
       res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
       res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+      // Auth uses an httpOnly JWT cookie; cross-origin requests must be allowed
+      // to send/receive it (frontend uses fetch credentials:"include").
+      res.setHeader("Access-Control-Allow-Credentials", "true");
       res.setHeader("Access-Control-Max-Age", "86400");
     }
     if (req.method === "OPTIONS") return res.sendStatus(204);
@@ -96,8 +101,10 @@ async function main() {
   });
 
   app.use(express.json({ limit: "64kb" }));
+  app.use(cookieParser());
 
   app.use(healthRouter);
+  app.use("/api/auth", buildAuthRouter());
   app.use("/api", jobsRouter);
   app.use("/api", framesRouter);
   app.use("/api", buildGenerateRouter({ enqueue }));

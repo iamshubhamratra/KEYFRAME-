@@ -11,6 +11,10 @@ const SYSTEM = fs.readFileSync(
 );
 
 const VALID_VOICES = new Set([
+  // Named ElevenLabs voices (KIE = primary TTS). See EL_VOICES in tts.js.
+  "james", "brian", "benjamin", "tom", "liam", // male
+  "bella", "emma", "laura", "allison",         // female
+  // OpenAI gpt-audio voices (kept for the OpenRouter TTS fallback).
   "alloy", "ash", "ballad", "coral", "echo",
   "fable", "nova", "onyx", "sage", "shimmer", "verse",
 ]);

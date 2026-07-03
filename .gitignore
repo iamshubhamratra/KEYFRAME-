@@ -50,3 +50,7 @@ server/framecheck/occ_test/
 image copy*.png
 **/image copy*.png
 server/showcase/
+
+# auth runtime store (file-based users/otps)
+auth-store.json
+**/auth-store.json
