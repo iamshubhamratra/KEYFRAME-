@@ -2,6 +2,10 @@
 
 > **One-line pitch:** Users feed in a prompt, a reference video, or a website URL. The system understands the intent, writes a detailed editable script, plans every asset and motion beat, composes a cinematic HTML page styled by a curated frame-pack design system, and renders it to MP4 via HyperFrames.
 
+
+hello w=everyone 
+
+
 ## 0. What already exists (REUSE, don't rewrite)
 
 | Folder | What it is | What to reuse |
