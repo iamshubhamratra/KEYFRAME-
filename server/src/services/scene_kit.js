@@ -712,6 +712,21 @@ function buildSkinOrnaments(kind, ctx, framePack) {
       sc.push(`tl.fromTo("#${id} .${pid}c",{x:0,y:0,scale:0,opacity:1},{x:function(i){return ${pid}dx[i];},y:function(i){return ${pid}dy[i];},rotation:function(i){return (i%2?-1:1)*(120+i*20);},scale:1,opacity:.9,duration:1.1,ease:"power3.out",stagger:.03},${s0(Math.max(0.6, L - 2.2))});`);
       sc.push(`tl.to("#${id} .${pid}c",{opacity:0,duration:.5},${r(T + Math.max(1.6, L - 0.6))});`);
     }
+  } else {
+    // GENERIC ornament fallback (Phase 3) — a pack with a manifest but no bespoke
+    // branch above (e.g. a future manifest-only pack) still gets baseline skin
+    // depth: theme-colored corner brackets on every scene, plus a drawing accent
+    // underline on hook/cta. Tasteful and universal, so "add a pack = 1 folder,
+    // 0 code" no longer means a bare, ornament-less pack.
+    const bl = Math.round(W * 0.032);
+    sv.push(`<path class="${pid}k" d="M${bl * 2} ${bl}H${bl}V${bl * 2}" fill="none" stroke="${A}" stroke-width="3" opacity=".45" stroke-dasharray="220" stroke-dashoffset="220"/>`);
+    sv.push(`<path class="${pid}k" d="M${W - bl * 2} ${H - bl}H${W - bl}V${H - bl * 2}" fill="none" stroke="${B}" stroke-width="3" opacity=".45" stroke-dasharray="220" stroke-dashoffset="220"/>`);
+    sc.push(`tl.to("#${id} .${pid}k",{strokeDashoffset:0,duration:.7,stagger:.15,ease:"power2.out"},${s0(0.4)});`);
+    if (kind === "hook" || kind === "cta") {
+      const ux = Math.round(W * 0.07), uy = Math.round(H * 0.66), uw = Math.round(W * 0.14);
+      sv.push(`<line class="${pid}u" x1="${ux}" y1="${uy}" x2="${ux + uw}" y2="${uy}" stroke="${A}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${uw}" stroke-dashoffset="${uw}"/>`);
+      sc.push(`tl.to("#${id} .${pid}u",{strokeDashoffset:0,duration:.6,ease:"power2.out"},${s0(0.7)});`);
+    }
   }
 
   if (!sv.length && !dv.length) return null;
