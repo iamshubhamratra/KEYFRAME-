@@ -44,5 +44,8 @@
   },
   "typography": {
     "display": "Bricolage Grotesque"
+  },
+  "camera3d": {
+    "ground": "#2B2540"
   }
 }

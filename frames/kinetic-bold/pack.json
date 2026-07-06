@@ -42,5 +42,8 @@
   },
   "typography": {
     "display": "Anton"
+  },
+  "camera3d": {
+    "ground": "#0B0B0B"
   }
 }

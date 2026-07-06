@@ -49,5 +49,8 @@
   },
   "typography": {
     "display": "Space Grotesk"
+  },
+  "camera3d": {
+    "ground": "#06070A"
   }
 }

@@ -50,5 +50,8 @@
   },
   "typography": {
     "display": "Georgia"
+  },
+  "camera3d": {
+    "ground": "#33261A"
   }
 }

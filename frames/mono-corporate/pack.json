@@ -43,5 +43,8 @@
   },
   "typography": {
     "display": "Inter"
+  },
+  "camera3d": {
+    "ground": "#0E1116"
   }
 }

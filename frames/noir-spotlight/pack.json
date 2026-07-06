@@ -44,5 +44,8 @@
   },
   "typography": {
     "display": "Fraunces"
+  },
+  "camera3d": {
+    "ground": "#08080B"
   }
 }

@@ -44,5 +44,8 @@
   },
   "typography": {
     "display": "Instrument Serif"
+  },
+  "camera3d": {
+    "ground": "#1B2566"
   }
 }

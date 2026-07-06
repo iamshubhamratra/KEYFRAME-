@@ -48,11 +48,21 @@ function headlineSpans(headline, emphasis) {
 function theme3d(framePack, sb) {
   const base = deriveTheme(framePack, sb);
   const accents = (base.accents && base.accents.length ? base.accents : ["#7CC4FF", "#FF7DB4", "#FFC878"]).slice(0, 3);
-  const ground = base.isDark && /^#/.test(base.ground) ? base.ground : "#05060E";
+  // Pack-aware 3D ground (Phase 3): the pack's authored camera3d.ground — its OWN
+  // branded dark — instead of one generic #05060E for every light pack. 3D still
+  // reads dark; each pack keeps its identity (navy for summit, indigo for
+  // biennale, plum for bloom…). Falls back to the pack's dark ground, then #05060E.
+  const cam = (base.manifest && base.manifest.camera3d) || null;
+  const ground = (cam && cam.ground) || (base.isDark && /^#/.test(base.ground) ? base.ground : "#05060E");
   return {
     ground, ink: "#FFFFFF", dim: "rgba(255,255,255,0.66)",
     accents, accent: accents[0], accent2: accents[1] || accents[0], accent3: accents[2] || accents[0],
-    fontStack: SAFE_FONTS, panel: "rgba(255,255,255,0.06)", line: "rgba(255,255,255,0.14)",
+    // Body stays neutral; headline words (.kfw) render in the pack DISPLAY face —
+    // deriveTheme already resolved displayStack + the @font-face to inject.
+    fontStack: SAFE_FONTS,
+    displayStack: base.displayStack || SAFE_FONTS,
+    fontFace: base.fontFace || "",
+    panel: "rgba(255,255,255,0.06)", line: "rgba(255,255,255,0.14)",
   };
 }
 
@@ -357,12 +367,14 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
     `<script src="${GSAP_CDN}"></script>`,
     `<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@${THREE_VER}/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@${THREE_VER}/examples/jsm/"}}</script>`,
     `<style>`,
+    theme.fontFace || "",
     `* { margin:0; padding:0; box-sizing:border-box; }`,
     `body { font-family:${theme.fontStack}; }`,
     `#root { position:relative; overflow:hidden; background:${theme.ground}; }`,
     `#kfcanvas { position:absolute; inset:0; z-index:0; }`,
     `.kf-txt { position:absolute; inset:0; z-index:10; }`,
-    `.kfw { display:inline-block; }`,
+    // Headline words render in the pack DISPLAY face (Phase 3 typography fix).
+    `.kfw { display:inline-block; font-family:${theme.displayStack}; }`,
     `</style>`, `</head>`, `<body>`,
     `<div id="root" data-composition-id="vid" data-start="0" data-width="${W}" data-height="${H}" data-duration="${D}">`,
     bodyHtml.join("\n"),

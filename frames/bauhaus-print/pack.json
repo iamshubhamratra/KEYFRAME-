@@ -43,5 +43,8 @@
   },
   "typography": {
     "display": "Archivo Black"
+  },
+  "camera3d": {
+    "ground": "#1A1A1A"
   }
 }
