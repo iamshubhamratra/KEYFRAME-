@@ -1164,6 +1164,29 @@ function takeMontage(pools, max) {
 function cssFont(theme) { return theme.fontStack; }
 function r(n) { return Math.round(n * 100) / 100; }
 
+// INTENT AFFINITY (Phase 4) — how strongly a scene "wants" a given asset role,
+// scored from its storyboard signals (kind + purpose + visualDirection + copy).
+// Drives WHICH scene the screenshot / split-art lands on, so the product view
+// goes to the demo/proof scene rather than merely the first content scene.
+function assetAffinity(scene, role) {
+  const txt = `${scene.headline || ""} ${scene.subtext || ""} ${scene.visualDirection || ""} ${scene.purpose || ""} ${scene.emphasis || ""}`.toLowerCase();
+  const k = String(scene.kind || "").toLowerCase();
+  const has = (re) => re.test(txt);
+  let s = 0;
+  if (role === "screenshot") {
+    if (has(/\b(demo|preview|dashboard|screen|interface|ui|ux|app|product|in action|live|see it|walkthrough|workflow|console|editor|tool|platform|software)\b/)) s += 3;
+    if (has(/\b(solution|how it works|works|feature|capabilit)/)) s += 1;
+    if (has(/\b(proof|result|before|after|faster|save)\b/)) s += 1;
+    if (k === "caption" || k === "bullet") s += 0.5; // content scene with room for a full visual
+  } else if (role === "vector") {
+    if (has(/\b(concept|benefit|why|value|idea|principle|process|step|flow|secure|scale|simple|smart|connect|integrat)/)) s += 2;
+    if (k === "bullet") s += 0.5;
+  } else if (role === "photo") {
+    if (has(/\b(story|team|people|customer|journey|world|life|human|real|community|founder)\b/)) s += 2;
+  }
+  return s;
+}
+
 function pickNumber(scene) {
   const hay = `${scene.headline || ""} ${scene.emphasis || ""} ${scene.subtext || ""}`;
   // Neutralize number patterns that are NOT metrics, so they never render as a
@@ -1265,13 +1288,26 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
   // scenes dropped the ENTIRE fetched pool (0 images/screenshots on screen). Now
   // any content scene takes an asset: screenshots get hero treatment, a deep pool
   // spends one scene on a montage, the rest become split-art.
-  for (const p of plan) {
-    if (!p.isContent) continue;
+  const contentPlan = plan.filter((p) => p.isContent);
+
+  // The screenshot is the highest-credibility asset — place it on the content
+  // scene whose INTENT most calls for a product view (best assetAffinity), not
+  // just the first one. Ties (and the no-signal case) fall to the earliest scene,
+  // so a storyboard with no explicit demo cue behaves exactly as before.
+  if (pools.screenshots.length && contentPlan.length) {
+    const target = contentPlan
+      .map((p) => ({ p, s: assetAffinity(p.scene, "screenshot") }))
+      .sort((a, b) => b.s - a.s || a.p.i - b.p.i)[0].p;
+    target.ctx.asset = pools.screenshots.shift(); target.build = archScreenshotHero; usedShot = true;
+    target.ctx.kicker = target.scene.emphasis || "Live preview";
+  }
+
+  // Remaining content scenes, in order: one montage for a deep pool, then
+  // split-art (vectors preferred over photos), then any leftover screenshot.
+  for (const p of contentPlan) {
+    if (p.ctx.asset || p.ctx.assets) continue;
     if (!leftover()) break;
-    if (!usedShot && pools.screenshots.length) {
-      p.ctx.asset = pools.screenshots.shift(); p.build = archScreenshotHero; usedShot = true;
-      p.ctx.kicker = p.scene.emphasis || "Live preview";
-    } else if (!montageDone && leftover() >= 3) {
+    if (!montageDone && leftover() >= 3) {
       p.ctx.assets = takeMontage(pools, 6); p.build = archAssetMontage; montageDone = true;
     } else if (pools.vectors.length) {
       p.ctx.asset = pools.vectors.shift(); p.build = archSplitVector;
