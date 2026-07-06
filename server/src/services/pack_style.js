@@ -25,7 +25,18 @@ const PACK_STYLE = {
 
 const NEUTRAL = { photoMod: "", iconStyle: "line", keywords: [] };
 
+// The pack manifest (frames/<pack>/pack.json) is the source of truth for a pack's
+// asset-styling bias (Phase 3). Read it first; fall back to the hardcoded
+// PACK_STYLE table (from which the manifest was extracted) for any pack that ships
+// no manifest, then to a neutral profile. Required lazily to avoid a require cycle
+// and so a missing frames dir degrades gracefully.
 function styleFor(framePack) {
+  if (framePack && framePack !== "auto") {
+    try {
+      const a = require("./frame_manifest").getManifest(framePack)?.assets;
+      if (a) return { photoMod: a.photoMod, iconStyle: a.iconStyle, keywords: a.keywords };
+    } catch { /* fall through to legacy table */ }
+  }
   return PACK_STYLE[framePack] || NEUTRAL;
 }
 
