@@ -285,7 +285,28 @@ behavior change yet). What landed:
   (light ground, cobalt→gold emphasis gradient, corner ornaments, live three.js
   data-constellation WebGL layer) rendered to a correct 4s MP4 via
   `hyperframes render` (120 frames, exit 0).
-- **Not yet done (next increments):** wire `pack_style` reads to the manifest, the
+- **✅ ALL PHASE 3 ITEMS SHIPPED 2026-07-06** (branch `asset-template-overhaul`):
+  - pack_style → manifest (`7ca8b4e`)
+  - typography-eraser fix (`7eac143`): committed base64 @font-face module
+    (`server/src/fonts/pack_fonts.js`, 6 webfonts), manifest `typography.display`,
+    scene_kit injects @font-face + `.kfw`/`.kfnum` display rule. Verified: real
+    renders show Anton/Archivo Black/Fraunces/Instrument Serif/Space Grotesk.
+  - authored role-aware grounds (`dfa0292`): manifest `surface.ground`; fixed
+    bloom+mono (rendered dark, are light) and noir (rendered light, is dark).
+  - generic ornament fallback (`cf82691`): manifest-only packs get baseline
+    ornaments (14 bespoke packs unchanged).
+  - pack-aware 3D (`48a656e`): manifest `camera3d.ground` (branded darks) +
+    display fonts in three_composer.
+  - manifest-driven QA identity checks (`01be7e7`): qa_agent prompt now asserts
+    ground lightness + display font + accents (guards the fixes from regressing).
+  - /api/frames unified onto the manifest (`d308aea`), enriched with
+    displayFont+ground; web PACK_LORE intentionally kept (bespoke UI presentation).
+  - Non-goal (documented): fallback.js `themeFromTokens` is a different-contract
+    function (not a duplicate); the hand-tuned per-pack ornaments were NOT
+    flattened into a generic data library (would reduce quality).
+
+  _(historical follow-through notes below.)_
+- ~~Not yet done:~~ wire `pack_style` reads to the manifest, the
   typography-eraser fix,
   ornaments-as-data, single `themeFromTokens`, pack-aware 3D, QA identity checks.
   Note: `colors` are duplicated in FRAME.md and pack.json during the transition.
