@@ -843,16 +843,16 @@ function archHook(scene, ctx) {
   <div style="position:absolute;left:7%;right:7%;top:50%;transform:translateY(-50%);">
     <span id="${id}k" style="opacity:0;display:inline-flex;align-items:center;gap:10px;padding:8px 16px;border-radius:9999px;background:${theme.panel};border:1px solid ${theme.line};color:${theme.accent};font:700 15px/1 ${cssFont(theme)};letter-spacing:.2em;text-transform:uppercase;"><span style="width:8px;height:8px;border-radius:50%;background:${theme.accent};"></span>${esc(ctx.kicker || "KEYFRAME")}</span>
     <h1 style="margin-top:18px;font:800 ${fitBig(scene.headline, big, 14)}px/0.99 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:14ch;"><style>#${id} .kfacc{${accentText}}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h1>
+    <div id="${id}u" style="height:5px;width:${Math.round(dims.width * 0.27)}px;max-width:80%;margin-top:22px;border-radius:3px;background:${theme.accent};transform:scaleX(0);transform-origin:left;"></div>
     ${scene.subtext ? `<p id="${id}s" style="opacity:0;margin-top:16px;font:500 ${Math.round(big * 0.3)}px/1.45 ${cssFont(theme)};color:${theme.dim};max-width:42ch;">${esc(scene.subtext)}</p>` : ""}
   </div>
-  <svg viewBox="0 0 ${dims.width} ${dims.height}" style="position:absolute;inset:0;pointer-events:none;" data-layout-allow-occlusion><line id="${id}u" x1="${Math.round(dims.width * 0.07)}" y1="${Math.round(dims.height * 0.66)}" x2="${Math.round(dims.width * 0.34)}" y2="${Math.round(dims.height * 0.66)}" stroke="${theme.accent}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${Math.round(dims.width * 0.27)}" stroke-dashoffset="${Math.round(dims.width * 0.27)}"/></svg>
 </div>`;
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
     `tl.fromTo("#${id}k",{opacity:0,y:14},{opacity:1,y:0,duration:0.5},${r(T + 0.25)});`,
     `wordsIn("#${id} .kfw",${r(T + 0.45)},0.09);`,
     scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:20},{opacity:1,y:0,duration:0.55},${r(T + 1.05)});` : "",
-    `tl.to("#${id}u",{strokeDashoffset:0,duration:0.7,ease:"power2.inOut"},${r(T + 1.1)});`,
+    `tl.fromTo("#${id}u",{scaleX:0,transformOrigin:"left"},{scaleX:1,duration:0.7,ease:"power2.inOut"},${r(T + 1.1)});`,
     ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
   ].filter(Boolean).join("\n");
   return { html, script: s };
