@@ -52,12 +52,16 @@ function defaultPack() {
   return (preferred && packs.includes(preferred)) ? preferred : packs[0];
 }
 
-// Resolve a user-requested pack name. null/"" /"auto" -> default pack.
-// Unknown name -> null (caller decides whether that's a 400 or a fallback).
+// Resolve a user-requested pack name. Only the explicit "auto" string maps to
+// the default pack; null/"" means "no choice was made" and returns null so
+// callers fall through to the brief's tone-matched suggestion instead of
+// silently landing every auto video on the default pack. Unknown name -> null
+// (caller decides whether that's a 400 or a fallback).
 function resolvePack(requested) {
   const packs = listPacks();
   if (!packs.length) return null;
-  if (!requested || requested === "auto") return defaultPack();
+  if (!requested) return null;
+  if (requested === "auto") return defaultPack();
   return packs.includes(requested) ? requested : null;
 }
 

@@ -1,4 +1,4 @@
-// Pack "lore" — the exact presentation of the 10 frame packs from the
+// Pack "lore" — the exact presentation of the frame packs from the
 // "New animated website UI design" export (Templates + Gallery pages),
 // keyed by the REAL server pack names so /api/frames data merges cleanly.
 // Every color, gradient, demo line and vibe string is lifted verbatim.
@@ -84,9 +84,42 @@ export const PACK_LORE = {
     vibe: "Hand-warm illustration, blush palette, organic shapes. Friendly and human.",
     filmGrad: "linear-gradient(135deg,#ff7aa8,#ffd166,#8ad9b0)",
   },
+  "longshot-cinema": {
+    name: "Longshot Cinema", tag: "ONE-TAKE · FILM", bg: "#101318", ink: "#F2F5F9", accent: "#FFB454",
+    chips: ["#FFB454", "#4D9FFF", "#F2F5F9"],
+    grad: "radial-gradient(120% 90% at 30% 0%, #1a2029, #0A0C10 65%)",
+    font: "'Bricolage Grotesque'", tracking: "-.03em", demo: "One Take.",
+    vibe: "A single camera travels through every scene — letterbox, live timecode, pop-up figures, light sweeps. The anti-slideshow.",
+    filmGrad: "linear-gradient(135deg,#FFB454,#4D9FFF 55%,#0A0C10)",
+  },
+  "summit-keynote": {
+    name: "Summit Keynote", tag: "PITCH · 3D", bg: "#F7F8FC", ink: "#10214B", accent: "#2B5BFF",
+    chips: ["#2B5BFF", "#10214B", "#D4A94E"],
+    grad: "radial-gradient(circle at 78% 22%, rgba(43,91,255,.14), transparent 55%), radial-gradient(circle at 18% 80%, rgba(212,169,78,.12), transparent 50%)",
+    font: "'Bricolage Grotesque'", tracking: "-.02em", demo: "The Round Closes",
+    vibe: "Porcelain keynote stage, navy ink, one cobalt beam + champagne gold, a 3D data constellation drifting behind the numbers. Built for pitches.",
+    filmGrad: "linear-gradient(135deg,#F7F8FC,#2B5BFF 60%,#10214B)",
+  },
+  "prism-launch": {
+    name: "Prism Launch", tag: "LAUNCH · 3D", bg: "#FAFAFC", ink: "#0E0F14", accent: "#FF5A3C",
+    chips: ["#8B7CF6", "#5AD7E6", "#FFA3C0"],
+    grad: "linear-gradient(120deg, rgba(139,124,246,.16), rgba(90,215,230,.14) 50%, rgba(255,163,192,.16))",
+    font: "'Bricolage Grotesque'", tracking: "-.03em", demo: "Reveal Day",
+    vibe: "Gallery-white studio, carbon type, iridescent prism shards rotating in 3D, one ember-hot CTA. Built for product launches.",
+    filmGrad: "linear-gradient(135deg,#8B7CF6,#5AD7E6,#FFA3C0)",
+  },
+  "fable-storybook": {
+    name: "Fable Storybook", tag: "STORY · 3D", bg: "#FAF5EA", ink: "#33261A", accent: "#D8734B",
+    chips: ["#D8734B", "#7FA37C", "#7A93B8"],
+    grad: "radial-gradient(circle at 22% 30%, rgba(216,115,75,.16), transparent 45%), radial-gradient(circle at 80% 70%, rgba(127,163,124,.14), transparent 48%)",
+    font: "'Bricolage Grotesque'", tracking: "-.01em", demo: "Once Upon…",
+    vibe: "Parchment pages, watercolor washes, paper planes and firefly orbs gliding in gentle 3D. Built for storytelling.",
+    filmGrad: "linear-gradient(135deg,#D8734B,#E8B84B,#7A93B8)",
+  },
 };
 
 export const PACK_ORDER = [
+  "longshot-cinema", "summit-keynote", "prism-launch", "fable-storybook",
   "blockframe", "biennale-yellow", "midnight-glass", "noir-spotlight", "vapor-chrome",
   "aurora-spectrum", "bauhaus-print", "kinetic-bold", "mono-corporate", "bloom-illustrated",
 ];
@@ -111,7 +144,8 @@ export function loreFor(packName) {
 
 // Gallery filter pills — the design's list, remapped to server pack names.
 export const GALLERY_FILTERS = [
-  ["all", "ALL FILMS"], ["blockframe", "BLOCKFRAME"], ["biennale-yellow", "BIENNALE"],
+  ["all", "ALL FILMS"], ["longshot-cinema", "LONGSHOT"], ["summit-keynote", "SUMMIT"], ["prism-launch", "PRISM"],
+  ["fable-storybook", "FABLE"], ["blockframe", "BLOCKFRAME"], ["biennale-yellow", "BIENNALE"],
   ["midnight-glass", "MIDNIGHT"], ["vapor-chrome", "VAPOR"], ["aurora-spectrum", "AURORA"],
   ["bloom-illustrated", "BLOOM"], ["noir-spotlight", "NOIR"],
 ];

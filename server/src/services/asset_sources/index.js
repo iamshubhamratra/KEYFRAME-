@@ -12,6 +12,7 @@ const fs = require("node:fs");
 const config = require("../../config");
 const localDb = require("./local_db");
 const curated = require("./curated_library");
+const iconify = require("./iconify");
 const util = require("./util");
 
 const PROVIDERS = {
@@ -43,7 +44,9 @@ function hasProviderFor(type) {
 // `kindPref` ("photo" | "illustration" | "vector") biases the curated library
 // toward the right asset shape for the need's role. `excludeIds` (Set) skips
 // curated entries already used in this video so a film never reuses a file.
-async function acquire({ query, fallbackQueries = [], type, orientation, outputPath, tracker, kindPref, excludeIds }) {
+// `curatedOnly` (CURATED_ONLY_IMAGES override) forbids web stock AND the
+// web-stock cache: the need is served by the curated library or not at all.
+async function acquire({ query, fallbackQueries = [], type, orientation, outputPath, tracker, kindPref, excludeIds, curatedOnly = false, iconColor, iconStyle, styleKeywords }) {
   const queries = [query, ...fallbackQueries].filter(Boolean);
 
   // 0 — the curated local library (user's pre-loaded packs), stills only.
@@ -67,6 +70,38 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
         return { path: meta.path, query: q, fromCache: true, libraryId: pick.id, ...meta };
       }
     }
+  }
+
+  // 0.5 — Iconify: keyless, open-licensed SVG icons for vector/icon roles, after
+  // the curated library and before web stock. Clean line/solid art recolored to
+  // the pack accent — the reliable icon supply the pixabay-vector path never was.
+  // SVG-native: writes an .svg directly (no ffprobe gate); the composer already
+  // places .svg assets.
+  if (type === "image" && kindPref === "vector") {
+    for (const q of queries) {
+      let icon = null;
+      try { icon = await iconify.fetchIcon({ query: q, color: iconColor, iconStyle, outputPath }); }
+      catch (e) { console.warn(`[assets] iconify error for "${q}": ${e.message}`); }
+      if (icon) {
+        if (tracker) tracker.addExternal("iconify_fetch");
+        console.log(`[assets] "${q}" (icon) <- iconify ${icon.iconId}`);
+        return {
+          path: icon.path, query: q, fromCache: false, source: "iconify",
+          license: "Open source (Iconify — per-set license)",
+          sourceUrl: "https://icon-sets.iconify.design/", width: 128, height: 128,
+        };
+      }
+    }
+  }
+
+  // Operator override (CURATED_ONLY_IMAGES): with web stock forced off, a photo
+  // need is satisfied ONLY by the curated library above (or the real website
+  // screenshots the caller pins separately). If curated found nothing, return
+  // null so the scene stays asset-free rather than pulling random/off-brand
+  // stock — including the web-stock fetch cache, which is prior web downloads.
+  if (curatedOnly) {
+    console.log(`[assets] "${query}" (${type}) — curated-only, no curated hit; skipping web stock + cache`);
+    return null;
   }
 
   // 1 — our fetch cache.
@@ -93,9 +128,10 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
         continue;
       }
 
-      // Rank by keyword relevance + resolution so a loosely-matched or low-res
-      // hit never wins just because it came back first; try the best few.
-      const ranked = util.rankCandidates(q, candidates);
+      // Rank by keyword relevance + resolution + pack-style match so a loosely-
+      // matched, low-res, or off-style hit never wins just because it came back
+      // first; try the best few.
+      const ranked = util.rankCandidates(q, candidates, styleKeywords);
       for (const c of ranked.slice(0, 5)) {
         try {
           await util.download(c.url, outputPath);
@@ -104,17 +140,35 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
             try { fs.unlinkSync(outputPath); } catch { /* noop */ }
             continue;
           }
+          // Image quality gate: reject solid-colour/near-flat placeholders and
+          // opaque rasters standing in for a transparent icon/vector role, and
+          // capture the REAL dimensions/ratio/alpha + a perceptual dHash for
+          // downstream fitting and near-duplicate detection.
+          let imageMeta = null;
+          if (type === "image") {
+            const v = await util.validateImage(outputPath, { kindPref });
+            if (!v.ok) {
+              console.warn(`[assets] rejected "${q}" from ${provider.name}: ${v.reason}`);
+              try { fs.unlinkSync(outputPath); } catch { /* noop */ }
+              continue;
+            }
+            imageMeta = v.meta;
+          }
           if (type === "video") await util.reencodeForHyperframes(outputPath);
           localDb.register({
             filePath: outputPath, query: q, type, orientation,
             source: provider.name, license: c.license, sourceUrl: c.sourceUrl,
-            width: c.width, height: c.height,
+            width: (imageMeta && imageMeta.width) || c.width, height: (imageMeta && imageMeta.height) || c.height,
           });
-          console.log(`[assets] "${q}" (${type}) <- ${provider.name} (${c.width || "?"}x${c.height || "?"})`);
+          console.log(`[assets] "${q}" (${type}) <- ${provider.name} (${(imageMeta && imageMeta.width) || c.width || "?"}x${(imageMeta && imageMeta.height) || c.height || "?"})`);
           return {
             path: outputPath, query: q, fromCache: false,
             source: provider.name, license: c.license, sourceUrl: c.sourceUrl,
-            width: c.width, height: c.height,
+            width: (imageMeta && imageMeta.width) || c.width,
+            height: (imageMeta && imageMeta.height) || c.height,
+            ratio: imageMeta ? imageMeta.ratio : null,
+            hasAlpha: imageMeta ? imageMeta.hasAlpha : undefined,
+            dhash: imageMeta ? imageMeta.dhash : undefined,
           };
         } catch (e) {
           console.warn(`[assets] ${provider.name} candidate failed for "${q}": ${e.message}`);
@@ -127,4 +181,8 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
   return null;
 }
 
-module.exports = { acquire, hasProviderFor, localDb };
+module.exports = {
+  acquire, hasProviderFor, localDb,
+  makeImageDeduper: util.makeImageDeduper,
+  validateImage: util.validateImage,
+};

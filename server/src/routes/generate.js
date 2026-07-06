@@ -82,7 +82,10 @@ function validateBody(body) {
     }
   }
 
-  // Frame pack (design system). Omitted or "auto" -> default pack.
+  // Frame pack (design system). An explicit pack is STRICT (honored verbatim
+  // through the whole pipeline). Omitted or "auto" stays null so the brief's
+  // tone-matched suggestion picks the pack (pre-resolving to the default here
+  // used to send every "auto" video to the same pack).
   const frameRegistry = require("../services/frame_registry");
   if (body.framePack != null && body.framePack !== "auto") {
     if (typeof body.framePack !== "string" || frameRegistry.resolvePack(body.framePack) == null) {
@@ -91,7 +94,7 @@ function validateBody(body) {
       out.framePack = body.framePack;
     }
   } else {
-    out.framePack = frameRegistry.resolvePack("auto"); // null when no packs installed
+    out.framePack = null; // auto — resolved from the brief after intake
   }
 
   return { errs, out };

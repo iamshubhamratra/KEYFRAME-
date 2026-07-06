@@ -48,10 +48,14 @@ Return ONLY a JSON object, no prose, no markdown fences:
 
    | If the tone is… | Lean toward a pack whose vibe is… |
    |---|---|
-   | playful, bold, product-launch, high-energy | brutalist / candy / kinetic / poster |
+   | playful, bold, high-energy | brutalist / candy / kinetic / poster |
    | editorial, cultural, elegant, literary, calm | serif editorial / print / gallery |
    | tech, premium, nocturnal, futuristic | dark glass / chrome / vapor / spotlight |
    | corporate, trustworthy, clean | mono / corporate / minimal |
+   | pitch, investor, keynote, executive, B2B deck | keynote light / summit / porcelain-and-cobalt |
+   | product launch, reveal, release ad, announcement | white-studio reveal / prism / launch |
+   | story, narrative, journey, emotional, heartfelt | storybook / parchment watercolor / fable |
+   | trailer, hype, cinematic, epic announce, film-like | one-take cinema / longshot / letterboxed |
 
    **Rotation:** if `recentFramePacks` is present, those packs styled this user's last few videos. Each tone row offers several fitting packs — when more than one fits, pick one that is NOT in `recentFramePacks`, so back-to-back videos don't wear the same look. Repeat a recent pack only when it is clearly the single best fit (e.g. the user's brand or subject demands it).
 

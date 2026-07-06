@@ -80,4 +80,70 @@ async function checkAssetRelevance({ absPath, type, subject, query, tracker, sig
   }
 }
 
-module.exports = { checkAssetRelevance };
+// Batched relevance gate — classify MANY fetched web-stock assets in as few
+// vision calls as possible (chunks of 6) instead of one call per asset. Returns
+// an array of { keep, sees } aligned 1:1 with the input `assets` order. Same
+// FAIL-OPEN contract as checkAssetRelevance: any failure — a dead LLM budget, an
+// un-thumbnailable file, or a missing per-asset verdict — keeps that asset.
+//
+// `assets`: [{ absPath, type:"image"|"video", query? }]
+async function checkAssetsRelevance({ assets, subject, tracker, signal }) {
+  if (!Array.isArray(assets) || !assets.length) return [];
+  const out = assets.map(() => ({ keep: true, sees: null }));
+  if (!subject) return out;
+
+  const CHUNK = 6;
+  for (let start = 0; start < assets.length; start += CHUNK) {
+    const chunk = assets.slice(start, start + CHUNK);
+    try {
+      // Thumbnail each; an asset we can't render stays keep=true (skipped below).
+      const thumbs = [];
+      for (const a of chunk) thumbs.push(await thumbBase64(a.absPath, a.type === "video"));
+      const usable = thumbs.map((b, i) => ({ b, i })).filter((x) => x.b);
+      if (!usable.length) continue;
+
+      const content = [{
+        type: "text",
+        text:
+          `A stock library returned ${usable.length} asset(s) for a film whose subject is: "${subject}". ` +
+          `For EACH numbered asset, decide whether a film director would accept it — does it show the subject ` +
+          `itself, or a directly related setting, object, or mood? Unrelated buildings/landmarks, maps, ` +
+          `diagrams of something else, or random objects are NOT acceptable. Also reject any asset with a ` +
+          `visible watermark, stock-site logo, or "sample/preview" text stamped across it.\n` +
+          `The ${usable.length} images follow, each preceded by its number (1..${usable.length}).\n` +
+          `Reply STRICT JSON: {"verdicts":[{"n":1,"usable":true|false,"sees":"<3-6 words: what it shows>"}]} — exactly one entry per asset.`,
+      }];
+      usable.forEach((x, n) => {
+        const q = chunk[x.i] && chunk[x.i].query;
+        content.push({ type: "text", text: `Asset ${n + 1}${q ? ` (search query: "${q}")` : ""}:` });
+        content.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${x.b}` } });
+      });
+
+      const { text, tokensIn, tokensOut } = await openrouter.chat({
+        system: "You are a strict stock-footage librarian. Reply with strict JSON only.",
+        user: content,
+        jsonMode: true,
+        stage: "vision",
+        temperature: 0,
+        signal,
+      });
+      if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "vision" });
+
+      const parsed = extractFirstJsonObject(text);
+      const verdicts = Array.isArray(parsed && parsed.verdicts) ? parsed.verdicts : [];
+      const byN = new Map();
+      for (const v of verdicts) { const n = Number(v && v.n); if (Number.isFinite(n)) byN.set(n, v); }
+      usable.forEach((x, n) => {
+        const v = byN.get(n + 1);
+        if (v) out[start + x.i] = { keep: v.usable !== false, sees: typeof v.sees === "string" ? v.sees : null };
+      });
+    } catch (e) {
+      // Fail-open for the whole chunk — never starve a film of assets.
+      const skipped = String((e && e.message) || e).slice(0, 120);
+      for (let i = 0; i < chunk.length; i++) out[start + i] = { keep: true, sees: null, skipped };
+    }
+  }
+  return out;
+}
+
+module.exports = { checkAssetRelevance, checkAssetsRelevance };

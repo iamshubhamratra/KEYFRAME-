@@ -112,6 +112,14 @@ function build() {
     cfg.audio = cfg.audio || {};
     cfg.audio.pixabayKey = process.env.PIXABAY_API_KEY;
   }
+  // Pexels stock key — env parity with PIXABAY_API_KEY (previously config.json
+  // only, so split deploys couldn't enable Pexels via env). Accepts PEXELS_API_KEY
+  // or the shorter PEXELS alias.
+  if (process.env.PEXELS_API_KEY || process.env.PEXELS) {
+    cfg.assetProviders = cfg.assetProviders || {};
+    cfg.assetProviders.pexels = cfg.assetProviders.pexels || {};
+    cfg.assetProviders.pexels.apiKey = process.env.PEXELS_API_KEY || process.env.PEXELS;
+  }
   if (process.env.FREESOUND_TOKEN) {
     cfg.audio = cfg.audio || {};
     cfg.audio.freesoundToken = process.env.FREESOUND_TOKEN;

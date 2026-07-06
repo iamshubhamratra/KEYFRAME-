@@ -23,7 +23,8 @@ const { generateScript, normalizeScript } = require("../services/script");
 const { generateStoryboard } = require("../services/storyboard");
 const frameRegistry = require("../services/frame_registry");
 const { withBudget, attemptLlmComposition, composeWithThree, mixAudioIntoVideo, fallbackQueriesFor } = require("../services/pipeline");
-const { acquire, hasProviderFor } = require("../services/asset_sources");
+const { acquire, hasProviderFor, makeImageDeduper } = require("../services/asset_sources");
+const { styleFor, iconColorFor } = require("../services/pack_style");
 const { synthesizeFitted } = require("../services/vo_fit");
 const { buildCues, writeSrt } = require("../services/captions");
 const { fetchMusic } = require("../services/audio_sources");
@@ -33,7 +34,7 @@ const { buildFallback } = require("../services/fallback");
 const { normalizeComposition } = require("../services/normalize");
 const { render } = require("../services/renderer");
 const { reviewRender } = require("./qa_agent");
-const { checkAssetRelevance } = require("../services/asset_vision");
+const { checkAssetsRelevance } = require("../services/asset_vision");
 
 function ms() { return Date.now(); }
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
@@ -91,13 +92,21 @@ function pickVoice(job, script) {
 // artifacts each agent adds.
 
 async function frameSelectorAgent(s) {
-  // Resolve each candidate INDEPENDENTLY: a stale/removed job.frame_pack id
-  // resolves to null, and the old single combined resolvePack() then collapsed
-  // to a null (unstyled, generic) pack instead of trying the brief's valid pick.
-  const framePack = frameRegistry.resolvePack(s.job.frame_pack)
+  // Only an EXPLICIT, still-installed user pick is honored verbatim. "auto",
+  // unset (null), and stale/removed ids are NOT explicit — they must defer to
+  // the brief's tone-matched suggestion BEFORE the global default. The old code
+  // ran resolvePack(job.frame_pack) first, but resolvePack(null|"auto") returns
+  // the DEFAULT pack (non-null), so every auto video short-circuited to
+  // blockframe and the brief's pick + anti-repeat rotation were dead code.
+  const requested = s.job.frame_pack;
+  const explicit = (requested && requested !== "auto")
+    ? frameRegistry.resolvePack(requested)   // valid id → that pack; stale id → null
+    : null;
+  const framePack = explicit
     || frameRegistry.resolvePack(s.brief?.suggestedFramePack)
     || frameRegistry.resolvePack("auto");
-  console.log(`[agents] frame_selector → ${framePack}`);
+  const via = explicit ? "user" : (frameRegistry.resolvePack(s.brief?.suggestedFramePack) ? "brief" : "default");
+  console.log(`[agents] frame_selector → ${framePack} (${via})`);
   return { framePack };
 }
 
@@ -235,6 +244,12 @@ async function assetSearchAgent(s) {
   const { job, jobDir, tracker, assetPlan } = s;
   const anchor = topicAnchor(job, s.brief);
   if (anchor) console.log(`[agents] asset_search topic anchor: "${anchor}"`);
+  // Pack-aware styling: photo queries get the pack's look, icons get its accent
+  // color + matching Iconify collection family. Bridges to the Phase 3 manifest.
+  const packStyle = styleFor(s.framePack);
+  const packTokens = s.framePack ? frameRegistry.getPackTokens(s.framePack) : null;
+  const iconColor = iconColorFor(packTokens);
+  if (packStyle.photoMod) console.log(`[agents] asset_search pack style: "${packStyle.photoMod}" · icons=${packStyle.iconStyle}${iconColor ? ` (${iconColor})` : ""}`);
   db.setProgress(job.id, "assets");
   fs.mkdirSync(path.join(jobDir, "assets", "images"), { recursive: true });
   fs.mkdirSync(path.join(jobDir, "assets", "videos"), { recursive: true });
@@ -264,20 +279,22 @@ async function assetSearchAgent(s) {
   // Sequential so each curated pick can exclude the library files already
   // chosen for earlier scenes — no single film reuses the same file twice.
   const usedLibraryIds = new Set();
-  // De-dup acquired images by CONTENT hash: several similar queries resolve to
-  // the SAME stock image, which was being saved as 0.jpg/1.jpg/2.jpg… and shown
-  // 4× in the montage. Seed with the pinned screenshots so stock can't duplicate
-  // one of them either.
-  const crypto = require("node:crypto");
-  const hashOf = (p) => { try { return crypto.createHash("md5").update(fs.readFileSync(p)).digest("hex"); } catch { return null; } };
-  const seenHashes = new Set();
-  for (const a of pinned) { const h = a && a.path && hashOf(path.join(jobDir, a.path)); if (h) seenHashes.add(h); }
+  // De-dup acquired images by EXACT (MD5) + PERCEPTUAL (dHash) match: several
+  // similar queries resolve to the same — or a visually-identical re-encode of
+  // the same — stock image, which was being saved as 0.jpg/1.jpg/2.jpg… and
+  // shown 4× in the montage. Seed with the pinned screenshots so stock can't
+  // duplicate one of them either.
+  const deduper = makeImageDeduper();
+  for (const a of pinned) { if (a && a.path) { try { await deduper.add(path.join(jobDir, a.path)); } catch { /* noop */ } } }
   // Operator override: with web stock forced off, PHOTO needs come only from the
   // curated library (or the real screenshots) — no random/off-brand stock. Web
   // vectors/icons (usually clean flat art) still reach the web.
   const forceCurated = process.env.CURATED_ONLY_IMAGES === "1";
   let iImg = 0, iVid = 0;
   const results = [];
+  // Web-stock assets to run through the vision relevance gate AFTER the fetch
+  // loop, in one batched call rather than one LLM call per asset.
+  const pendingGate = [];
   for (const { scene, need } of assetPlan.searches) {
     const isVideo = need.type === "video";
     const relPath = isVideo ? `assets/videos/${iVid++}.mp4` : `assets/images/${iImg++}.jpg`;
@@ -289,49 +306,71 @@ async function assetSearchAgent(s) {
     // Anchor PHOTO/background queries to the video's subject so a derived
     // direction like "scalable growth" becomes "beauty cosmetics scalable
     // growth" — on-topic stock instead of trading charts. Icons/vectors keep
-    // their concrete query (anchoring an abstract shape rarely helps). The plain
-    // query is kept as a fallback so an over-narrow anchor still finds SOMETHING.
-    const query = (!isIcon && anchor) ? `${anchor} ${need.query}` : need.query;
+    // their concrete query (anchoring an abstract shape rarely helps).
+    const baseQuery = (!isIcon && anchor) ? `${anchor} ${need.query}` : need.query;
+    // Photos also carry the pack's visual style ("neon synthwave" for vapor-
+    // chrome) so stock matches the look; the un-styled query stays as a fallback
+    // so an over-narrow phrase still finds SOMETHING.
+    const query = (!isIcon && packStyle.photoMod) ? `${baseQuery} ${packStyle.photoMod}` : baseQuery;
     const r = await acquire({
-      query, fallbackQueries: [need.query, ...fallbackQueriesFor(query)], type: isVideo ? "video" : "image",
+      query,
+      fallbackQueries: [...new Set([baseQuery, need.query, ...fallbackQueriesFor(query)])],
+      type: isVideo ? "video" : "image",
       orientation: job.orientation, outputPath: path.join(jobDir, relPath), tracker,
       kindPref: isVideo ? undefined : (isIcon ? "vector" : kindPrefFor(need.role)),
       excludeIds: usedLibraryIds,
       curatedOnly: forceCurated && !isVideo && !isIcon,
+      iconColor: isIcon ? iconColor : undefined,
+      iconStyle: isIcon ? packStyle.iconStyle : undefined,
+      styleKeywords: !isIcon ? packStyle.keywords : undefined,
     }).catch(() => null);
     if (!r) continue;
-    // Skip a download whose bytes we've already used (kills the duplicate-photo montage).
+    // Skip an asset we've already used — byte-identical OR visually a duplicate
+    // (a different re-encode/crop of the same picture), which MD5 alone missed.
     if (!isVideo) {
-      const h = hashOf(r.path);
-      if (h) {
-        if (seenHashes.has(h)) { try { fs.unlinkSync(r.path); } catch { /* noop */ } continue; }
-        seenHashes.add(h);
-      }
-    }
-    if (r.libraryId) usedLibraryIds.add(r.libraryId);
-    // VISION RELEVANCE GATE — web stock only (curated library picks, real
-    // website screenshots, and vectors/icons are trusted). One cheap vision
-    // call: "would a director accept this for a film about <subject>?".
-    // Fail-open: if the check can't run (LLM budget dead), the asset stays.
-    const isWebStock = !r.libraryId && r.source !== "website" && r.source !== "assetcollection" && !isIcon;
-    const gateSubject = (s.brief?.subject || anchor || "").trim();
-    if (isWebStock && gateSubject) {
-      const verdict = await checkAssetRelevance({
-        absPath: r.path, type: isVideo ? "video" : "image",
-        subject: gateSubject, query: need.query, tracker,
-      });
-      if (!verdict.keep) {
-        console.warn(`[agents] asset REJECTED by vision gate (shows "${verdict.sees || "?"}", film is about "${gateSubject}") — query "${need.query}"`);
+      const dup = await deduper.check(r.path, r.dhash);
+      if (dup) {
+        console.log(`[agents] dropped ${dup}-duplicate asset — query "${need.query}"`);
         try { fs.unlinkSync(r.path); } catch { /* noop */ }
         continue;
       }
-      if (verdict.sees) console.log(`[agents] asset ok (vision: "${verdict.sees}") — ${need.query}`);
     }
-    results.push({
+    if (r.libraryId) usedLibraryIds.add(r.libraryId);
+    const resultObj = {
       path: path.relative(jobDir, r.path).split(path.sep).join("/"), type: isVideo ? "video" : "image",
       sceneId: scene.id, startSec: scene.start, durationSec: scene.duration,
       style: need.role === "inset" ? "inset" : "background", alt: need.query,
+      width: r.width, height: r.height, ratio: r.ratio, hasAlpha: r.hasAlpha,
       license: r.license, sourceUrl: r.sourceUrl, source: r.source, fromCache: r.fromCache === true,
+    };
+    results.push(resultObj);
+    // Defer the vision gate: only WEB STOCK is gated (curated library picks, real
+    // website screenshots, and vectors/icons are trusted). Collect the absolute
+    // path now (before it's relativized) and classify all of them at once below.
+    const isWebStock = !r.libraryId && r.source !== "website" && r.source !== "assetcollection" && !isIcon;
+    if (isWebStock) pendingGate.push({ resultObj, absPath: r.path, type: isVideo ? "video" : "image", query: need.query });
+  }
+
+  // VISION RELEVANCE GATE (batched) — "would a director accept this for a film
+  // about <subject>?" over ALL fetched web stock in as few calls as possible
+  // (chunks of 6) instead of one LLM call per asset. Fail-open: a dead budget or
+  // any error keeps every asset, so the gate can never starve a film of visuals.
+  const gateSubject = (s.brief?.subject || anchor || "").trim();
+  if (pendingGate.length && gateSubject) {
+    const verdicts = await checkAssetsRelevance({
+      assets: pendingGate.map((p) => ({ absPath: p.absPath, type: p.type, query: p.query })),
+      subject: gateSubject, tracker,
+    });
+    verdicts.forEach((v, i) => {
+      const p = pendingGate[i];
+      if (!v.keep) {
+        console.warn(`[agents] asset REJECTED by vision gate (shows "${v.sees || "?"}", film is about "${gateSubject}") — query "${p.query}"`);
+        try { fs.unlinkSync(p.absPath); } catch { /* noop */ }
+        const idx = results.indexOf(p.resultObj);
+        if (idx >= 0) results.splice(idx, 1);
+      } else if (v.sees) {
+        console.log(`[agents] asset ok (vision: "${v.sees}") — ${p.query}`);
+      }
     });
   }
   const got = results;

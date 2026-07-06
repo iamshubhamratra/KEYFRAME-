@@ -157,6 +157,14 @@ module.exports = {
     scheduleWrite();
   },
 
+  // Record the pack the pipeline resolved for an "auto" job (so the UI /
+  // gallery filters show the real pack, not null).
+  setFramePack(id, framePack) {
+    const j = jobs.get(id); if (!j || !framePack) return;
+    j.frame_pack = framePack;
+    scheduleWrite();
+  },
+
   // User approved (possibly edited) script: store it and requeue.
   markApproved(id, { script }) {
     const j = jobs.get(id); if (!j) return;

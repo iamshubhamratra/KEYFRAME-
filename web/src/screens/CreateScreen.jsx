@@ -300,7 +300,7 @@ export default function CreateScreen({ onCreated, prefill }) {
           Pick the look.<br />We <span style={{ color: "var(--color-am)" }}>art-direct</span> the film.
         </h2>
         <p style={{ maxWidth: 560, color: "var(--color-dim)", fontSize: 16, lineHeight: 1.6, margin: "16px 0 0" }}>
-          Ten frame packs, each a complete design system — or leave it on auto and
+          {packList.length} frame packs, each a complete design system — or leave it on auto and
           the pipeline casts the look that fits your brief.
         </p>
 

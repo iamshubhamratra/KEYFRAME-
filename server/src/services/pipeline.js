@@ -37,7 +37,9 @@ const { synthesizeFitted } = require("./vo_fit");
 const { fetchMusic, fetchSfx } = require("./audio_sources");
 const { mix: audioMix } = require("./audio_mix");
 const { planAssets } = require("./asset_planner");
-const { acquire } = require("./asset_sources");
+const { acquire, makeImageDeduper } = require("./asset_sources");
+const { checkAssetsRelevance } = require("./asset_vision");
+const { styleFor } = require("./pack_style");
 const catalog = require("./catalog");
 
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
@@ -90,9 +92,10 @@ function withBudget(factory, budgetMs, label) {
 
 // ========== Visual assets stage (parallel fetches) ==========
 
-async function planAndFetchAssets({ jobDir, storyboard, flags, orientation, tracker }) {
+async function planAndFetchAssets({ jobDir, storyboard, flags, orientation, tracker, subject, framePack }) {
   if (!flags.images && !flags.video) return { assets: [] };
 
+  const packStyle = styleFor(framePack);
   const { plan, tokensIn, tokensOut, error } = await planAssets(storyboard, {
     images: flags.images, video: flags.video,
   });
@@ -112,15 +115,22 @@ async function planAndFetchAssets({ jobDir, storyboard, flags, orientation, trac
     plan.images.forEach((a, i) => {
       const relPath = `assets/images/${i}.jpg`;
       const absPath = path.join(jobDir, relPath);
+      // Anchor to the film's subject (on-topic stock), then add the pack's visual
+      // style (matches the look). Un-styled + plain queries kept as fallbacks.
+      const base = subject ? `${subject} ${a.query}` : a.query;
+      const q = packStyle.photoMod ? `${base} ${packStyle.photoMod}` : base;
       tasks.push(
         acquire({
-          query: a.query, fallbackQueries: fallbackQueriesFor(a.query),
+          query: q,
+          fallbackQueries: [...new Set([base, a.query, ...fallbackQueriesFor(q)])],
           type: "image", orientation, outputPath: absPath, tracker,
+          styleKeywords: packStyle.keywords,
         })
           .then((got) => got ? {
             path: path.relative(jobDir, got.path).split(path.sep).join("/"), type: "image",
             sceneId: a.sceneId, startSec: a.startSec,
             durationSec: a.durationSec, style: a.style, alt: a.alt,
+            width: got.width, height: got.height, ratio: got.ratio, hasAlpha: got.hasAlpha, dhash: got.dhash,
             license: got.license, sourceUrl: got.sourceUrl, source: got.source,
           } : null)
           .catch(() => null)
@@ -149,8 +159,46 @@ async function planAndFetchAssets({ jobDir, storyboard, flags, orientation, trac
   }
 
   const results = (await Promise.all(tasks)).filter(Boolean);
-  console.log(`[pipeline] fetched ${results.length} visual asset(s) in parallel`);
-  return { assets: results };
+
+  // De-dupe by EXACT (MD5) + PERCEPTUAL (dHash) match — several planner queries
+  // resolve to the same, or a visually-identical re-encode of the same, stock
+  // file, which otherwise repeats across the montage. (Parity with the agent
+  // graph.) Videos skip the perceptual pass.
+  const deduper = makeImageDeduper();
+  const deduped = [];
+  for (const item of results) {
+    const abs = path.join(jobDir, item.path);
+    if (item.type === "video") { deduped.push(item); continue; }
+    const dup = await deduper.check(abs, item.dhash);
+    if (dup) { try { fs.unlinkSync(abs); } catch { /* noop */ } continue; }
+    deduped.push(item);
+  }
+
+  // VISION RELEVANCE GATE (batched) — gate ONLY real web stock; curated picks
+  // carry no provider source and stay trusted. One batched call (chunks of 6),
+  // fail-open. Brings /api/generate to the agent graph's asset-quality bar.
+  const PROVIDER_SOURCES = new Set(["pixabay", "openverse", "pexels", "pixabay_scrape"]);
+  let survivors = deduped;
+  const webStock = deduped.filter((it) => PROVIDER_SOURCES.has(it.source));
+  if (subject && webStock.length) {
+    const verdicts = await checkAssetsRelevance({
+      assets: webStock.map((it) => ({ absPath: path.join(jobDir, it.path), type: it.type, query: it.alt })),
+      subject, tracker,
+    }).catch(() => webStock.map(() => ({ keep: true })));
+    const rejected = new Set();
+    verdicts.forEach((v, i) => {
+      if (v && v.keep === false) {
+        const it = webStock[i];
+        rejected.add(it);
+        try { fs.unlinkSync(path.join(jobDir, it.path)); } catch { /* noop */ }
+        console.warn(`[pipeline] asset REJECTED by vision gate (shows "${v.sees || "?"}", film about "${subject}") — "${it.alt || ""}"`);
+      }
+    });
+    if (rejected.size) survivors = deduped.filter((it) => !rejected.has(it));
+  }
+
+  console.log(`[pipeline] fetched ${results.length} → ${survivors.length} visual asset(s) (dedup + vision gate)`);
+  return { assets: survivors };
 }
 
 // ========== Composition + lint repair ==========
@@ -591,6 +639,7 @@ async function runJob({
     // gets that directive richness instead of a terse prompt → flat script.
     // Best-effort: any failure falls back to the raw prompt, never blocks the job.
     let effectivePrompt = prompt;
+    let briefSubject = null;
     {
       const t0 = ms();
       db.setProgress(jobId, "brief");
@@ -599,6 +648,16 @@ async function runJob({
         const briefRes = await generateBrief({ intent });
         tracker.addLlm({ inputTokens: briefRes.tokensIn, outputTokens: briefRes.tokensOut, stage: "brief" });
         effectivePrompt = enrichedStoryboardPrompt(briefRes.brief, prompt);
+        // Subject anchor for the asset stage's stock queries + vision gate.
+        briefSubject = (briefRes.brief && briefRes.brief.subject) ? String(briefRes.brief.subject).trim() : null;
+        // "Auto" pack: adopt the brief's tone-matched suggestion (an explicit
+        // user pack arrived non-null and is honored verbatim). Persist it so
+        // the UI/gallery shows the real pack.
+        if (!framePack) {
+          framePack = frameRegistry.resolvePack(briefRes.brief.suggestedFramePack) || frameRegistry.resolvePack("auto");
+          if (framePack) db.setFramePack(jobId, framePack);
+          log.info("frame pack (auto) resolved from brief", { framePack });
+        }
         markStage("brief", t0);
         log.info("prompt enhanced", { tone: briefRes.brief.tone, goal: briefRes.brief.goal, keyMessages: (briefRes.brief.keyMessages || []).length });
       } catch (e) {
@@ -606,6 +665,8 @@ async function runJob({
         log.warn("prompt enhancement failed — using raw prompt", { error: String(e.message).slice(0, 160) });
       }
     }
+    // Last resort when the brief failed and no pack was chosen: the default.
+    if (!framePack) framePack = frameRegistry.resolvePack("auto");
 
     // ---- Stage: storyboard ----
     {
@@ -637,7 +698,7 @@ async function runJob({
       const t0 = ms();
       const va = await planAndFetchAssets({
         jobDir, storyboard: sbRes.storyboard,
-        flags: { images, video }, orientation, tracker,
+        flags: { images, video }, orientation, tracker, subject: briefSubject, framePack,
       }).catch((e) => {
         console.warn(`[pipeline] asset stage threw: ${e.message}`);
         return { assets: [] };
