@@ -6,6 +6,7 @@ const path = require("node:path");
 const { z } = require("zod");
 const openrouter = require("./openrouter");
 const frameRegistry = require("./frame_registry");
+const frameManifest = require("./frame_manifest");
 
 const SYSTEM = fs.readFileSync(
   path.join(__dirname, "..", "prompts", "system_brief.md"),
@@ -66,9 +67,14 @@ async function generateBrief({ intent, signal }) {
   const packs = frameRegistry.listPacks();
   const availableFramePacks = packs.map((name) => ({
     name,
-    // Hard-coded blurb first, else derive a one-liner from the pack's FRAME.md
-    // so the brief LLM can match tone -> pack for ALL packs (not just 3 of 10).
-    vibe: PACK_VIBES[name] || frameRegistry.getPackVibe(name) || "a curated design system",
+    // The pack manifest is the source of truth (Phase 3). It already folds in the
+    // hand-authored PACK_VIBES blurb (for the 7 packs that have one) and the real
+    // FRAME.md description for the rest, so a single read covers every pack. Fall
+    // back to the legacy tables for any pack that ships no manifest (fail-soft).
+    vibe: frameManifest.getManifest(name)?.vibe
+      || PACK_VIBES[name]
+      || frameRegistry.getPackVibe(name)
+      || "a curated design system",
   }));
 
   // Only relevant on "auto" — an explicit user choice is echoed verbatim anyway.
