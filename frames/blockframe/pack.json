@@ -1,0 +1,44 @@
+{
+  "name": "blockframe",
+  "vibe": "maximalist neo-brutalist: candy pastels, 4px black borders, hard shadows, loud uppercase — playful, bold, product-launch energy",
+  "colors": {
+    "black": "#000000",
+    "white": "#FFFFFF",
+    "offwhite": "#FFFDF5",
+    "pink": "#FE90E8",
+    "blue": "#C0F7FE",
+    "green": "#99E885",
+    "yellow": "#F7CB46",
+    "cream": "#FFDC8B"
+  },
+  "fonts": [
+    "Inter",
+    "Space Grotesk"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false
+  },
+  "motion": {
+    "cut": "wipe",
+    "drift": 1.02
+  },
+  "fx": {
+    "canvas": "confetti",
+    "three": null
+  },
+  "skin": {
+    "accents": [],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "bold graphic pop art",
+    "iconStyle": "solid",
+    "keywords": [
+      "bold",
+      "graphic",
+      "colorful"
+    ]
+  }
+}

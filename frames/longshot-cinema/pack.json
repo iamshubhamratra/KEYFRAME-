@@ -1,0 +1,49 @@
+{
+  "name": "longshot-cinema",
+  "vibe": "one-take cinema: graphite stage, tungsten amber + beam blue, letterboxed continuous camera travel with live timecode, pop-up stat figures, animated product mocks, light sweeps — for trailers, hype reels, cinematic announcements",
+  "colors": {
+    "graphite": "#101318",
+    "void": "#06070A",
+    "stage": "#141922",
+    "inklight": "#F2F5F9",
+    "tungsten": "#FFB454",
+    "beam": "#4D9FFF",
+    "slate": "#8B94A7"
+  },
+  "fonts": [
+    "Inter",
+    "Space Grotesk"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false
+  },
+  "motion": {
+    "cut": "whip",
+    "drift": 1.055
+  },
+  "fx": {
+    "canvas": "rays",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FFB454",
+      "#4D9FFF"
+    ],
+    "extras": [
+      "#F2F5F9",
+      "#8B94A7"
+    ],
+    "emphasisCss": "background:linear-gradient(100deg,#FFB454,#4D9FFF);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#FFB454;"
+  },
+  "assets": {
+    "photoMod": "cinematic film still moody",
+    "iconStyle": "line",
+    "keywords": [
+      "cinematic",
+      "film",
+      "moody"
+    ]
+  }
+}

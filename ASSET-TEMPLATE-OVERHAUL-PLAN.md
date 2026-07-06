@@ -247,6 +247,36 @@ New modules: `asset_sources/iconify.js`, `pack_style.js`, `embeddings.js`.
 
 **Goal: a pack is ONE machine-readable spec consumed by every render path.**
 
+**◑ FOUNDATION SHIPPED 2026-07-06** (additive / read-through — NO render-path
+behavior change yet). What landed:
+
+- **Schema + loader** — `server/src/services/frame_manifest.js`: a zod
+  `PackManifestSchema` (every field defaulted, `.passthrough()` for forward
+  fields) + `getManifest(name)` (mtime-cached, validated, **fail-soft → null** so
+  callers keep legacy behavior) + `listManifests()`.
+- **14 faithful manifests** — `frames/<pack>/pack.json`, a verbatim extraction of
+  today's scattered tables: `colors`/`fonts` (FRAME.md via frame_registry),
+  `vibe` (brief PACK_VIBES), `surface.flat`/`lightCinematic` (FLAT_PACKS /
+  LIGHT_GRADIENT_PACKS as raw set-membership — consumer recomputes
+  `gradients=!flat`, `lightGround=flat||lightCinematic` identically),
+  `motion` (PACK_MOTION), `fx.canvas` (fxModeFor) + `fx.three` (PACK_SKINS.three),
+  `skin` (PACK_SKINS accents/extras/emphasisCss), `assets` (pack_style).
+- **Verified** — 211 assertions (`scratchpad/verify-manifests.js`) round-trip every
+  field against the live `pack_style` + `frame_registry` modules and the scene_kit
+  sets; all green. Bootstrap generator (`scratchpad/bootstrap-pack-manifests.js`)
+  validates each manifest against the schema before writing.
+- **Bug found (not yet fixed):** `frame_registry.getPackVibe()` returns just `">"`
+  for the **7 packs** whose FRAME.md uses a YAML folded scalar (`description: >`) —
+  so brief.js tone-matching currently sees garbage for half the library. The
+  bootstrap works around it (reads the folded block); fixing `getPackVibe` itself
+  + wiring brief.js to read `manifest.vibe` is the next increment.
+- **Not yet done (next increments):** wire consumers to read the manifest
+  (scene_kit tables, brief.js vibe, pack_style), the typography-eraser fix,
+  ornaments-as-data, single `themeFromTokens`, pack-aware 3D, QA identity checks.
+  Note: `colors` are duplicated in FRAME.md and pack.json during the transition.
+
+Remaining Phase 3 scope (unchanged):
+
 Extend FRAME.md frontmatter (or add `frames/<name>/pack.json`) to a full schema:
 
 ```yaml

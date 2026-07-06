@@ -1,0 +1,44 @@
+{
+  "name": "noir-spotlight",
+  "vibe": "Cinematic dark luxury — a product film lit by one theatrical spotlight. Near-black void grounds, a single drifting volumetric beam that reveals the hero, deep falloff shadows, gold hairline accents, and a film-grain vignette over everything",
+  "colors": {
+    "void": "#08080B",
+    "charcoal": "#14141A",
+    "smoke": "#2A2A33",
+    "bone": "#F4F1EA",
+    "ash": "#9A9AA6",
+    "gold": "#E8B23A",
+    "crimson": "#D8443C"
+  },
+  "fonts": [
+    "Inter",
+    "JetBrains Mono",
+    "Fraunces"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false
+  },
+  "motion": {
+    "cut": "iris",
+    "drift": 1.045
+  },
+  "fx": {
+    "canvas": "rays",
+    "three": null
+  },
+  "skin": {
+    "accents": [],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "cinematic high contrast dramatic",
+    "iconStyle": "solid",
+    "keywords": [
+      "cinematic",
+      "dramatic",
+      "dark"
+    ]
+  }
+}

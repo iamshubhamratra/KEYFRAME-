@@ -1,0 +1,44 @@
+{
+  "name": "aurora-spectrum",
+  "vibe": "A Stripe/Linear/Vercel-tier living-gradient system: deep-space indigo grounds lit by large, soft, slowly-drifting multi-stop aurora blobs. Gradient-CLIP headlines, frosted 5%-white micro-cards, soft light everywhere, zero hard shadow. Inter",
+  "colors": {
+    "ground": "#0B0B14",
+    "ground-2": "#11101D",
+    "text": "#F5F7FF",
+    "muted": "#A6ACC8",
+    "indigo": "#6E8BFF",
+    "violet": "#B16CFF",
+    "magenta": "#FF6FD8",
+    "cyan": "#4ED7FF",
+    "mint": "#57F2C2"
+  },
+  "fonts": [
+    "Inter"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false
+  },
+  "motion": {
+    "cut": "glow",
+    "drift": 1.055
+  },
+  "fx": {
+    "canvas": "flow",
+    "three": null
+  },
+  "skin": {
+    "accents": [],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "gradient aurora abstract",
+    "iconStyle": "duotone",
+    "keywords": [
+      "gradient",
+      "abstract",
+      "calm"
+    ]
+  }
+}

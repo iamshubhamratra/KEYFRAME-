@@ -1,0 +1,49 @@
+{
+  "name": "prism-launch",
+  "vibe": "white-studio product reveal: gallery white, carbon display type, iridescent prism gradients, one ember-hot CTA, rotating 3D shards — for product launches, release ads, feature announcements",
+  "colors": {
+    "studio": "#FAFAFC",
+    "fog": "#F0F1F6",
+    "carbon": "#0E0F14",
+    "iris": "#8B7CF6",
+    "aqua": "#5AD7E6",
+    "blush": "#FFA3C0",
+    "ember": "#FF5A3C"
+  },
+  "fonts": [
+    "Inter",
+    "Space Grotesk"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true
+  },
+  "motion": {
+    "cut": "flash",
+    "drift": 1.05
+  },
+  "fx": {
+    "canvas": "prism",
+    "three": "shards"
+  },
+  "skin": {
+    "accents": [
+      "#FF5A3C",
+      "#8B7CF6"
+    ],
+    "extras": [
+      "#5AD7E6",
+      "#FFA3C0"
+    ],
+    "emphasisCss": "background:linear-gradient(100deg,#8B7CF6,#5AD7E6 50%,#FFA3C0);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#8B7CF6;"
+  },
+  "assets": {
+    "photoMod": "modern product studio iridescent",
+    "iconStyle": "duotone",
+    "keywords": [
+      "modern",
+      "studio",
+      "vibrant"
+    ]
+  }
+}

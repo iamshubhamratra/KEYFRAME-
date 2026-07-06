@@ -1,0 +1,44 @@
+{
+  "name": "biennale-yellow",
+  "vibe": "literary editorial: warm parchment, indigo ink, solar yellow blooms, serif display — elegant, cultural, slow-confidence",
+  "colors": {
+    "paper": "#E9E5DB",
+    "paper-deep": "#DCD6C4",
+    "sun": "#F1EE2E",
+    "sun-soft": "#F8F39B",
+    "haze": "#F0DA7C",
+    "ink": "#1B2566",
+    "ember": "#E26B4A"
+  },
+  "fonts": [
+    "Archivo",
+    "JetBrains Mono",
+    "Instrument Serif"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false
+  },
+  "motion": {
+    "cut": "wipe",
+    "drift": 1.025
+  },
+  "fx": {
+    "canvas": "confetti",
+    "three": null
+  },
+  "skin": {
+    "accents": [],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "editorial fine art",
+    "iconStyle": "line",
+    "keywords": [
+      "editorial",
+      "art",
+      "minimal"
+    ]
+  }
+}
