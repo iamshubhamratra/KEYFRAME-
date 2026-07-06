@@ -40,5 +40,8 @@
       "abstract",
       "calm"
     ]
+  },
+  "typography": {
+    "display": "Inter"
   }
 }

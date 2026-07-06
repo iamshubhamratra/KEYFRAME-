@@ -45,5 +45,8 @@
       "studio",
       "vibrant"
     ]
+  },
+  "typography": {
+    "display": "Space Grotesk"
   }
 }

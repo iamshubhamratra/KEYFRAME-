@@ -40,5 +40,8 @@
       "dramatic",
       "dark"
     ]
+  },
+  "typography": {
+    "display": "Fraunces"
   }
 }

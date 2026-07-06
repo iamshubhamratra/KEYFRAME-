@@ -40,5 +40,8 @@
       "art",
       "minimal"
     ]
+  },
+  "typography": {
+    "display": "Instrument Serif"
   }
 }

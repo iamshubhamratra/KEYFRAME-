@@ -45,5 +45,8 @@
       "film",
       "moody"
     ]
+  },
+  "typography": {
+    "display": "Space Grotesk"
   }
 }

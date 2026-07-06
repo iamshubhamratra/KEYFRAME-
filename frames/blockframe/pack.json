@@ -40,5 +40,8 @@
       "graphic",
       "colorful"
     ]
+  },
+  "typography": {
+    "display": "Inter"
   }
 }

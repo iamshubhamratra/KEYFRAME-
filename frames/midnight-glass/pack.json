@@ -41,5 +41,8 @@
       "tech",
       "glow"
     ]
+  },
+  "typography": {
+    "display": "Space Grotesk"
   }
 }

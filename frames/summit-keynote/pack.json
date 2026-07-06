@@ -45,5 +45,8 @@
       "corporate",
       "professional"
     ]
+  },
+  "typography": {
+    "display": "Space Grotesk"
   }
 }

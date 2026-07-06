@@ -40,5 +40,8 @@
       "pastel",
       "warm"
     ]
+  },
+  "typography": {
+    "display": "Bricolage Grotesque"
   }
 }

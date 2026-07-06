@@ -40,5 +40,8 @@
       "vaporwave",
       "glow"
     ]
+  },
+  "typography": {
+    "display": "Space Grotesk"
   }
 }

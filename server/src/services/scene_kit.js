@@ -18,6 +18,7 @@
 
 const frameRegistry = require("./frame_registry");
 const frameManifest = require("./frame_manifest");
+const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
 const { themeFromTokens } = require("./enrich");
 
 // SINGLE-quoted family names — these are embedded in double-quoted style="..."
@@ -141,12 +142,24 @@ function deriveTheme(framePack, storyboard) {
   // Force maximum text contrast against the ground (the storyboard's text hex is
   // often a mid-tone that reads as muddy).
   ink = isDark ? "#FFFFFF" : "#14130E";
-  // Only fonts the offline renderer can auto-resolve may appear in CSS — a pack's
-  // display font (e.g. "Space Grotesk") would fall back anyway and trips lint, so
-  // (matching the composer's normalize) we render on the safe stack and express
-  // the pack's type identity through weight / case / tracking instead.
+  // BODY stack: fonts the renderer auto-resolves (Inter/system) — the neutral base
+  // every scene inherits.
   const RESOLVABLE = new Set(["inter", "roboto", "arial", "helvetica", "georgia", "system-ui"]);
   const lead = fonts.filter((f) => RESOLVABLE.has(String(f).toLowerCase().trim()));
+  const fontStack = lead.length ? `${lead.map((f) => `'${f}'`).join(", ")}, ${SAFE_FONTS}` : SAFE_FONTS;
+
+  // DISPLAY face (Phase 3 typography-eraser fix): the pack's real headline font,
+  // from the manifest. It's usable if it's a bundled webfont (we inline its
+  // @font-face as a base64 data-URI — deterministic, offline, satisfies the lint)
+  // OR a safe/system family the renderer already resolves (Inter, Georgia). The
+  // pack's display type identity now RENDERS instead of collapsing to the body
+  // stack. `fontFaceCss` is injected into the comp <style>; `displayStack` is
+  // applied to headline words + stat numbers.
+  const displayFamily = (manifest && manifest.typography && manifest.typography.display) || null;
+  const displayUsable = displayFamily
+    && (isBundled(displayFamily) || RESOLVABLE.has(String(displayFamily).toLowerCase().trim()));
+  const displayStack = displayUsable ? `'${displayFamily}', ${fontStack}` : fontStack;
+  const fontFace = displayUsable ? fontFaceCss(displayFamily) : "";
   return {
     ground, ink, accents,
     accent: accents[0],
@@ -155,7 +168,9 @@ function deriveTheme(framePack, storyboard) {
     emphasisCss: skin?.emphasisCss || null,
     packName: framePack || null,
     manifest,   // pack manifest (or null) — read by motionFor/buildCanvasFx/buildThreeFx
-    fontStack: lead.length ? `${lead.map((f) => `'${f}'`).join(", ")}, ${SAFE_FONTS}` : SAFE_FONTS,
+    fontStack,
+    displayStack,   // headline/stat font stack (display face + body fallback)
+    fontFace,       // @font-face CSS to inject (empty for safe/system display faces)
     isDark,
     gradients: !flat,          // flat packs: solid fills + hard borders only
     dim: isDark ? "rgba(255,255,255,0.62)" : "rgba(20,18,12,0.62)",
@@ -811,7 +826,7 @@ function archStat(scene, ctx) {
   const cardBg = theme.gradients ? `linear-gradient(180deg,${mix(theme.ground, "#ffffff", theme.isDark ? 0.07 : 0.02)},${theme.ground})` : mix(theme.ground, theme.isDark ? "#ffffff" : "#000000", 0.03);
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;display:flex;align-items:center;justify-content:center;">
   <div class="kfstage" style="display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;padding:0 8%;width:100%;">
-    <div id="${id}n" style="font:800 ${big}px/1 ${cssFont(theme)};letter-spacing:-0.04em;color:${theme.accent};">0${esc(num.suffix || "")}</div>
+    <div id="${id}n" class="kfnum" style="font:800 ${big}px/1 ${cssFont(theme)};letter-spacing:-0.04em;color:${theme.accent};">0${esc(num.suffix || "")}</div>
     <div style="font:700 ${Math.round(big * 0.26)}px/1.15 ${cssFont(theme)};color:${theme.ink};max-width:18ch;"><style>#${id} .kfacc{color:${theme.accent2};}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</div>
     ${scene.subtext ? `<div id="${id}s" style="opacity:0;font:500 ${Math.round(big * 0.18)}px/1.4 ${cssFont(theme)};color:${theme.dim};max-width:40ch;">${esc(scene.subtext)}</div>` : ""}
   </div>
@@ -1284,8 +1299,12 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
     `<!DOCTYPE html>`, `<html>`, `<head>`, `<meta charset="utf-8">`, `<title>vid</title>`,
     `<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>`,
     `<style>`,
+    theme.fontFace || "",
     `* { margin:0; padding:0; box-sizing:border-box; }`,
     `body { font-family:${theme.fontStack}; }`,
+    // Headline words + stat numbers render in the pack's DISPLAY face; body/sub
+    // text stays on the neutral stack. One rule skins every archetype's headline.
+    `#root .kfw, #root .kfnum { font-family:${theme.displayStack}; }`,
     `#root { position:relative; overflow:hidden; background:${theme.ground}; }`,
     `.clip { position:absolute; inset:0; }`,
     `</style>`, `</head>`, `<body>`,
