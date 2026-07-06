@@ -363,6 +363,32 @@ Refactors this enables (each removes a dilution point from §2.4):
 
 ### Phase 4 — Intent-driven placement engine (weeks 3–5)
 
+**✅ SHIPPED 2026-07-06** (branch `asset-template-overhaul`), each item verified
+by real hyperframes renders + node harnesses:
+- **Purpose-per-asset (`2d54651`, `68a488f`):** `assetAffinity(scene, role)` scores
+  each scene from kind + purpose + visualDirection + copy; the screenshot lands on
+  the highest-affinity scene (demo/dashboard/UI), ties → earliest (no-signal case
+  unchanged). Weaving is restricted to `archText` slots so it never overwrites a
+  hook/CTA/quote/stat archetype.
+- **Richer archetypes (`64e60a0`):** `archQuoteCard` — a real testimonial layout
+  for the existing `quote` kind (panel + accent border + display-face quote mark +
+  attribution chip). Comparison/timeline/logo-wall/device-duo deferred (need
+  storyboard-schema + LLM-prompt changes to emit structured data).
+- **Safe-area / overlap (`2545523`):** decoration now respects content geometry —
+  `archHook`'s underline is a flow element below the headline (was pinned at y=66%
+  and struck through tall wrapped headlines). Remaining `allow-occlusion` markers
+  are on legitimate background layers (correct, not suppression).
+- **Decoration coordinator (`4421ac9`):** `enrich` is density-aware — scene-kit
+  output (rich `#kffx`/`.kforn`/`#kf3d` FX) passes through UNTOUCHED (no
+  double-decoration; also stopped `recolorGrounds` from overriding authored
+  grounds); the freehand/LLM path still gets the full floor.
+- **Text auto-fit + pickNumber (`f1b4652`, `e79557f`):** `fitBig()` scales long
+  headlines to stay on-frame (short headlines unchanged); `pickNumber` no longer
+  turns "24/7"/ranges/versions/years/bare counts into a giant counter — only real
+  metrics ($/%/x/M/K/B/day) trigger `archStat`.
+
+_Original item list (for reference):_
+
 1. **Purpose-per-asset assignment**: replace the pool-order Pass 1 with a
    scored bipartite match: each scene declares needs from its storyboard `kind`
    + `visualDirection` (product-shot / proof / concept / decoration), each asset
