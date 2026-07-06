@@ -279,6 +279,26 @@ function enrichComposition(html, { width, height, duration, packTokens } = {}) {
   const theme = themeFromTokens(packTokens);
   const isDark = detectGroundIsDark(src);
 
+  // DECORATION COORDINATOR (Phase 4) — density awareness. The global vector/motion
+  // floor (#__kf_fx: particle field + counter-rotating rings + accent lines) plus
+  // the bokeh backdrop exist as a SAFETY NET for freehand/LLM comps that might
+  // otherwise be bare. Scene-kit output already carries a full, coordinated FX
+  // stack — the #kffx canvas painter, .kforn ornaments, an optional #kf3d WebGL
+  // layer, plus per-pack skin + cut layers — so stacking the floor on top just
+  // double-decorates and can collide with content (e.g. a ring crossing a
+  // headline). For a rich comp, apply ONLY the ground-recolor safety and skip the
+  // floor; the freehand path (no #kffx) still gets the full net.
+  const richFx = /id="kffx"/.test(src) || /class="[^"]*\bkforn\b/.test(src) || /id="kf3d"/.test(src);
+
+  if (richFx) {
+    // Scene-kit output is FULLY authored: real pack grounds, the #kffx canvas
+    // painter, .kforn ornaments, optional #kf3d, per-pack skin + cuts. Both enrich
+    // safety nets would only work against that — recolorGrounds repaints its
+    // authored ground (it mistakes a light parchment/studio ground for a dead
+    // one), and the floor double-decorates. Pass it through untouched.
+    return { html: src, changed: false };
+  }
+
   // 1) Recolor flat dead grounds in place (same-luminance, contrast-preserving).
   src = recolorGrounds(src, theme);
 
