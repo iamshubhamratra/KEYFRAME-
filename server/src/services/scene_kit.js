@@ -812,6 +812,27 @@ function headlineSpans(headline, emphasis, theme) {
   }).join(" ");
 }
 
+// TEXT AUTO-FIT (Phase 4) — the renderer has no build-time DOM, so headline size
+// is chosen by a deterministic character metric instead of measurement: a
+// display line holds ~`maxCh` characters, so a headline of `len` chars needs
+// ~len/maxCh lines. Scale the font from `baseBig` so the text stays within
+// ~`maxLines` lines AND the single longest word fits one line (prevents a long
+// unbroken word from overflowing horizontally). Short headlines are untouched
+// (scale caps at 1), so only genuinely-long copy shrinks — killing the class of
+// bugs where a long headline overflowed a fixed 14ch/92px box off-frame.
+function fitBig(text, baseBig, maxCh, maxLines = 3, minRatio = 0.52) {
+  const s = String(text || "").trim();
+  if (!s) return baseBig;
+  const len = s.length;
+  const longest = s.split(/\s+/).reduce((m, w) => Math.max(m, w.length), 1);
+  // Text area scales with font²; to fit `len` chars in maxCh×maxLines, font ~
+  // sqrt(capacity/len). Also bound so the longest word fits maxCh on one line.
+  const capScale = Math.sqrt((maxCh * maxLines) / len);
+  const wordScale = maxCh / longest;
+  const scale = Math.min(1, capScale, wordScale);
+  return Math.max(Math.round(baseBig * minRatio), Math.round(baseBig * scale));
+}
+
 function archHook(scene, ctx) {
   const { theme, id, T, L, track, dims } = ctx;
   const accentText = theme.emphasisCss || (theme.gradients
@@ -821,7 +842,7 @@ function archHook(scene, ctx) {
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   <div style="position:absolute;left:7%;right:7%;top:50%;transform:translateY(-50%);">
     <span id="${id}k" style="opacity:0;display:inline-flex;align-items:center;gap:10px;padding:8px 16px;border-radius:9999px;background:${theme.panel};border:1px solid ${theme.line};color:${theme.accent};font:700 15px/1 ${cssFont(theme)};letter-spacing:.2em;text-transform:uppercase;"><span style="width:8px;height:8px;border-radius:50%;background:${theme.accent};"></span>${esc(ctx.kicker || "KEYFRAME")}</span>
-    <h1 style="margin-top:18px;font:800 ${big}px/0.99 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:14ch;"><style>#${id} .kfacc{${accentText}}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h1>
+    <h1 style="margin-top:18px;font:800 ${fitBig(scene.headline, big, 14)}px/0.99 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:14ch;"><style>#${id} .kfacc{${accentText}}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h1>
     ${scene.subtext ? `<p id="${id}s" style="opacity:0;margin-top:16px;font:500 ${Math.round(big * 0.3)}px/1.45 ${cssFont(theme)};color:${theme.dim};max-width:42ch;">${esc(scene.subtext)}</p>` : ""}
   </div>
   <svg viewBox="0 0 ${dims.width} ${dims.height}" style="position:absolute;inset:0;pointer-events:none;" data-layout-allow-occlusion><line id="${id}u" x1="${Math.round(dims.width * 0.07)}" y1="${Math.round(dims.height * 0.66)}" x2="${Math.round(dims.width * 0.34)}" y2="${Math.round(dims.height * 0.66)}" stroke="${theme.accent}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${Math.round(dims.width * 0.27)}" stroke-dashoffset="${Math.round(dims.width * 0.27)}"/></svg>
@@ -871,7 +892,7 @@ function archCta(scene, ctx) {
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   ${theme.gradients ? `<div id="${id}g" class="clip" data-layout-allow-occlusion style="position:absolute;left:50%;top:46%;width:46%;height:60%;transform:translate(-50%,-50%);border-radius:50%;filter:blur(54px);background:radial-gradient(circle,${rgba(theme.accent, 0.30)},transparent 66%);"></div>` : ""}
   <div style="position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:24px;text-align:center;padding:0 8%;">
-    <h2 style="font:800 ${big}px/1.02 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:16ch;"><style>#${id} .kfacc{${accentText}}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
+    <h2 style="font:800 ${fitBig(scene.headline, big, 16)}px/1.02 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:16ch;"><style>#${id} .kfacc{${accentText}}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
     ${scene.subtext ? `<div id="${id}b" style="opacity:0;display:inline-flex;align-items:center;gap:11px;padding:16px 36px;border-radius:9999px;background:${btnBg};color:${btnInk};font:800 ${Math.round(big * 0.34)}px/1 ${cssFont(theme)};">${esc(scene.subtext)} <span style="width:11px;height:11px;border-right:3px solid ${btnInk};border-top:3px solid ${btnInk};transform:rotate(45deg);display:inline-block;"></span></div>` : ""}
   </div>
 </div>`;
@@ -924,7 +945,7 @@ function archText(scene, ctx) {
   ${sideBar}
   <div style="${wrap}">
     ${topRule}
-    <h2 style="font:800 ${big}px/1.05 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:${centered ? "22ch" : "20ch"};${right ? "margin-left:auto;" : ""}"><style>#${id} .kfacc{${accentText}}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
+    <h2 style="font:800 ${fitBig(scene.headline, big, centered ? 22 : 20)}px/1.05 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:${centered ? "22ch" : "20ch"};${right ? "margin-left:auto;" : ""}"><style>#${id} .kfacc{${accentText}}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
     ${underline}
     ${scene.subtext ? `<p id="${id}s" style="opacity:0;margin-top:14px;font:500 ${Math.round(big * 0.36)}px/1.45 ${cssFont(theme)};color:${theme.dim};max-width:44ch;${subCenter}">${esc(scene.subtext)}</p>` : ""}
     ${bullets.length ? `<div id="${id}bl" style="margin-top:20px;display:flex;flex-direction:column;gap:10px;${centered ? "align-items:center;" : right ? "align-items:flex-end;" : ""}">${bullets.map((b) => `<div class="kfbl" style="opacity:0;display:flex;align-items:center;gap:12px;font:600 ${Math.round(big * 0.3)}px/1.2 ${cssFont(theme)};color:${theme.ink};"><span style="width:9px;height:9px;border-radius:2px;background:${theme.accent};"></span>${esc(b)}</div>`).join("")}</div>` : ""}
@@ -999,7 +1020,7 @@ function archScreenshotHero(scene, ctx) {
   </div>
   <div style="${copyWrap}">
     <span id="${id}k" style="opacity:0;display:inline-flex;align-items:center;gap:9px;padding:7px 15px;border-radius:9999px;background:${theme.panel};border:1px solid ${theme.line};color:${theme.accent};font:700 13px/1 ${cssFont(theme)};letter-spacing:.2em;text-transform:uppercase;"><span style="width:7px;height:7px;border-radius:50%;background:${theme.accent};"></span>${esc(ctx.kicker || "Live")}</span>
-    <h2 style="margin-top:14px;font:800 ${big}px/1.05 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};"><style>#${id} .kfacc{${accentText}}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
+    <h2 style="margin-top:14px;font:800 ${fitBig(scene.headline, big, 20)}px/1.05 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};"><style>#${id} .kfacc{${accentText}}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
     ${scene.subtext ? `<p id="${id}s" style="opacity:0;margin-top:13px;font:500 ${Math.round(big * 0.42)}px/1.45 ${cssFont(theme)};color:${theme.dim};">${esc(scene.subtext)}</p>` : ""}
   </div>
 </div>`;
@@ -1028,7 +1049,7 @@ function archSplitVector(scene, ctx) {
   <div class="kfstage" style="display:flex;flex-direction:${dir};align-items:center;gap:${land ? 56 : 28}px;width:100%;padding:0 7%;">
     <div style="flex:1;">
       <div style="width:54px;height:5px;border-radius:3px;background:${theme.accent};margin-bottom:20px;"></div>
-      <h2 style="font:800 ${big}px/1.05 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};"><style>#${id} .kfacc{${accentText}}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
+      <h2 style="font:800 ${fitBig(scene.headline, big, 16)}px/1.05 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};"><style>#${id} .kfacc{${accentText}}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
       ${scene.subtext ? `<p id="${id}s" style="opacity:0;margin-top:14px;font:500 ${Math.round(big * 0.4)}px/1.45 ${cssFont(theme)};color:${theme.dim};">${esc(scene.subtext)}</p>` : ""}
     </div>
     <div style="flex:1;display:flex;align-items:center;justify-content:center;"><img id="${id}art" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;max-width:${land ? "44%" : "60%"};height:auto;max-height:${Math.round(dims.height * (land ? 0.6 : 0.34))}px;object-fit:contain;${artGlow}"></div>
@@ -1075,7 +1096,7 @@ function archAssetMontage(scene, ctx) {
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   <div style="position:absolute;left:6%;right:6%;top:50%;transform:translateY(-50%);">
     <div style="width:54px;height:5px;border-radius:3px;background:${theme.accent};margin-bottom:18px;"></div>
-    <h2 style="font:800 ${big}px/1.05 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:22ch;"><style>#${id} .kfacc{${accentText}}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
+    <h2 style="font:800 ${fitBig(scene.headline, big, 22)}px/1.05 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:22ch;"><style>#${id} .kfacc{${accentText}}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
     <div id="${id}g" style="margin-top:22px;display:grid;grid-template-columns:repeat(${cols},1fr);gap:${land ? 18 : 12}px;">${tiles}</div>
   </div>
 </div>`;
