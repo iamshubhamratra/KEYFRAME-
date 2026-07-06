@@ -17,6 +17,7 @@
 // full per-pack skinning table are filled in from the scenekit-design pass.
 
 const frameRegistry = require("./frame_registry");
+const frameManifest = require("./frame_manifest");
 const { themeFromTokens } = require("./enrich");
 
 // SINGLE-quoted family names — these are embedded in double-quoted style="..."
@@ -87,6 +88,11 @@ function lum(hex) {
 // Derive the scene THEME from the chosen pack (authoritative) or, when no pack is
 // bound, the storyboard's own palette. Returns the knobs every archetype re-skins.
 function deriveTheme(framePack, storyboard) {
+  // Pack identity knobs come from the manifest (single source of truth,
+  // frames/<pack>/pack.json). The legacy FLAT_PACKS/LIGHT_GRADIENT_PACKS/
+  // PACK_SKINS/PACK_MOTION/fxModeFor tables remain ONLY as the fail-soft
+  // fallback for a pack that ships no (or an invalid) manifest.
+  const manifest = framePack && framePack !== "auto" ? frameManifest.getManifest(framePack) : null;
   const tokens = framePack && framePack !== "auto" ? frameRegistry.getPackTokens(framePack) : null;
   const pal = (storyboard && storyboard.palette) || {};
   let ground, ink, accents, fonts;
@@ -94,11 +100,12 @@ function deriveTheme(framePack, storyboard) {
   if (tokens) {
     const t = themeFromTokens(tokens);
     const colorVals = Object.values(tokens.colors || {});
-    const flat = FLAT_PACKS.has(framePack);
+    const flat = manifest ? manifest.surface.flat : FLAT_PACKS.has(framePack);
     // Flat packs sit on their lightest/offwhite (or black) ground; cinematic packs
     // on their darkest — except LIGHT-CINEMATIC packs (keynote/studio/storybook),
     // which are light-grounded but keep gradients. Pick ground by pack character.
-    const lightGround = flat || LIGHT_GRADIENT_PACKS.has(framePack);
+    const lightGround = manifest ? (manifest.surface.flat || manifest.surface.lightCinematic)
+      : (flat || LIGHT_GRADIENT_PACKS.has(framePack));
     ground = lightGround ? (t.lightBase || "#FFFDF5") : (t.darkBase || "#0B1020");
     ink = lum(ground) > 140 ? "#15140F" : "#F6F4EE";
     accents = (t.accents && t.accents.length ? t.accents : colorVals).slice(0, 4);
@@ -111,7 +118,7 @@ function deriveTheme(framePack, storyboard) {
     fonts = [(storyboard && storyboard.fontFamily) || "Inter"];
   }
   const isDark = lum(ground) < 140;
-  const flat = framePack && FLAT_PACKS.has(framePack);
+  const flat = manifest ? manifest.surface.flat : (framePack && FLAT_PACKS.has(framePack));
   // Drop any "accent" whose luminance sits too close to the ground (packs often
   // include a near-black/near-white base among their tokens) — otherwise an accent
   // word or gradient fades into the background. Backfill with safe brights so we
@@ -122,7 +129,14 @@ function deriveTheme(framePack, storyboard) {
   accents = accents.slice(0, 4);
   // Skinned packs pin their accent ORDER (token order isn't guaranteed) so the
   // beam is always cobalt, the CTA always ember, the underline always honey.
-  const skin = framePack ? PACK_SKINS[framePack] : null;
+  // From the manifest (skin.* + fx.three), or the legacy PACK_SKINS fallback.
+  // Empty manifest accents -> null so the `skin?.accents` check below stays falsy.
+  const skin = manifest
+    ? { accents: manifest.skin.accents.length ? manifest.skin.accents : null,
+        extras: manifest.skin.extras,
+        emphasisCss: manifest.skin.emphasisCss,
+        three: manifest.fx.three }
+    : (framePack ? PACK_SKINS[framePack] : null);
   if (skin?.accents) accents = [...skin.accents, ...accents.filter((a) => !skin.accents.includes(a))].slice(0, 4);
   // Force maximum text contrast against the ground (the storyboard's text hex is
   // often a mid-tone that reads as muddy).
@@ -140,6 +154,7 @@ function deriveTheme(framePack, storyboard) {
     extras: skin?.extras || [],
     emphasisCss: skin?.emphasisCss || null,
     packName: framePack || null,
+    manifest,   // pack manifest (or null) — read by motionFor/buildCanvasFx/buildThreeFx
     fontStack: lead.length ? `${lead.map((f) => `'${f}'`).join(", ")}, ${SAFE_FONTS}` : SAFE_FONTS,
     isDark,
     gradients: !flat,          // flat packs: solid fills + hard borders only
@@ -189,6 +204,7 @@ const PACK_MOTION = {
   "mono-corporate":   { cut: "panel", drift: 1.03 },
 };
 function motionFor(framePack, theme) {
+  if (theme && theme.manifest && theme.manifest.motion && theme.manifest.motion.cut) return theme.manifest.motion;
   return PACK_MOTION[framePack] || (theme.gradients ? { cut: "glow", drift: 1.05 } : { cut: "wipe", drift: 1.02 });
 }
 
@@ -317,7 +333,7 @@ function fxModeFor(framePack, theme) {
 
 function buildCanvasFx(theme, dims, D, seed, framePack) {
   const W = dims.width, H = dims.height;
-  const mode = fxModeFor(framePack, theme);
+  const mode = (theme.manifest && theme.manifest.fx && theme.manifest.fx.canvas) || fxModeFor(framePack, theme);
   const A = rgba(theme.accent, 1).replace(",1)", ",%A%)");
   const B = rgba(theme.accent2 || theme.accent, 1).replace(",1)", ",%A%)");
   const I = rgba(theme.ink, 1).replace(",1)", ",%A%)");
@@ -391,14 +407,15 @@ function buildCanvasFx(theme, dims, D, seed, framePack) {
 // It sits above the 2D canvas painter inside the ground clip; if the CDN
 // import fails, the try/catch leaves the 2D layer as the backdrop.
 function buildThreeFx(theme, dims, D, seed, framePack) {
-  const skin = PACK_SKINS[framePack];
-  if (!skin?.three) return null;
+  const three = (theme.manifest && theme.manifest.fx && theme.manifest.fx.three)
+    || (PACK_SKINS[framePack] && PACK_SKINS[framePack].three);
+  if (!three) return null;
   const W = dims.width, H = dims.height;
   const A = theme.accent, B = theme.accent2;
   const X0 = (theme.extras && theme.extras[0]) || B, X1 = (theme.extras && theme.extras[1]) || A;
 
   let build = "";
-  if (skin.three === "constellation") {
+  if (three === "constellation") {
     build =
       `var pts=[],gold=[];for(var i=0;i<54;i++){var v=new T.Vector3((rnd()-.5)*9,(rnd()-.5)*5,(rnd()-.5)*4);(i%9===0?gold:pts).push(v);}` +
       `var pg=new T.BufferGeometry().setFromPoints(pts);grp.add(new T.Points(pg,new T.PointsMaterial({color:${JSON.stringify(A)},size:.055,transparent:true,opacity:.55,depthWrite:false})));` +
@@ -406,7 +423,7 @@ function buildThreeFx(theme, dims, D, seed, framePack) {
       `var lv=[];var all=pts.concat(gold);for(var i=0;i<all.length;i++)for(var j=i+1;j<all.length;j++){if(all[i].distanceTo(all[j])<1.5){lv.push(all[i].clone(),all[j].clone());}}` +
       `var lg=new T.BufferGeometry().setFromPoints(lv);grp.add(new T.LineSegments(lg,new T.LineBasicMaterial({color:${JSON.stringify(A)},transparent:true,opacity:.13})));` +
       `function anim(t){grp.rotation.y=t*.05;grp.rotation.x=Math.sin(t*.11)*.06;grp.position.y=Math.sin(t*.23)*.14;}`;
-  } else if (skin.three === "shards") {
+  } else if (three === "shards") {
     build =
       `var cols=[${JSON.stringify(B)},${JSON.stringify(X0)},${JSON.stringify(X1)}],sh=[];` +
       `for(var i=0;i<10;i++){var s=.28+rnd()*.5;var m=new T.Mesh(new T.OctahedronGeometry(s),new T.MeshBasicMaterial({color:cols[i%3],transparent:true,opacity:.15,depthWrite:false}));` +
