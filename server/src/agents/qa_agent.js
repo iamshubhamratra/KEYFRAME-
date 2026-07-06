@@ -12,6 +12,28 @@ const path = require("node:path");
 const { spawn } = require("node:child_process");
 const openrouter = require("./../services/openrouter");
 const { extractFirstJsonObject } = require("../services/json_lenient");
+const frameManifest = require("../services/frame_manifest");
+
+// Concrete, manifest-driven identity expectations for the QA director, so it can
+// catch the specific identity regressions lint can't see: the typography eraser
+// (headlines rendering in a plain sans instead of the pack's display face) and
+// mis-grounding (a light pack rendered on a dark ground, or vice-versa). Falls
+// back to a generic line when a pack ships no manifest.
+function packIdentityExpectations(framePack) {
+  const m = frameManifest.getManifest(framePack);
+  if (!m) return `The video must follow the "${framePack}" design system: frames should visibly use its palette and components.`;
+  const display = (m.typography && m.typography.display) || "the system display font";
+  const ground = (m.surface && m.surface.ground) || "the system ground";
+  const accents = (m.skin && m.skin.accents && m.skin.accents.length ? m.skin.accents : Object.values(m.colors || {})).slice(0, 3);
+  const lightWord = m.surface && m.surface.ground ? (parseInt(m.surface.ground.slice(1), 16) > 0x888888 ? "LIGHT" : "DARK") : "";
+  return [
+    `The video must honor the "${framePack}" design system. Concrete, checkable expectations:`,
+    `- GROUND: a ${lightWord} ground near ${ground}. FAIL as a blocker if the ground is the wrong lightness (e.g. a light pack shown on a dark ground or vice-versa).`,
+    `- TYPOGRAPHY: headlines must render in the "${display}" display face (its distinctive letterforms), NOT a generic system sans. FAIL as a blocker if headlines are in a plain default font instead of the pack's display type.`,
+    `- PALETTE: the design uses ${accents.join(", ")} as accents; colors on screen should belong to this system.`,
+    `- COMPONENTS: the pack's ornaments/furniture (corner brackets, rules, shapes, etc.) should be present, not a bare frame.`,
+  ].join("\n");
+}
 
 function extractFrame(videoPath, atSec, outPath) {
   return new Promise((resolve) => {
@@ -87,7 +109,7 @@ async function reviewRender({ videoPath, scenes, duration, framePack, frameMd, w
       text: [
         VERDICT_INSTRUCTIONS,
         "",
-        framePack ? `The video must follow the "${framePack}" design system. Its rules (summary): the frames should visibly use this system's palette and components.` : "",
+        framePack ? packIdentityExpectations(framePack) : "",
         `Frames below are sampled at: ${frames.map((f) => `${f.t}s`).join(", ")} of a ${duration}s video. Scene plan: ${JSON.stringify((scenes || []).map((s) => ({ id: s.id, start: s.start, duration: s.duration, purpose: s.purpose })))}`,
       ].filter(Boolean).join("\n"),
     },
