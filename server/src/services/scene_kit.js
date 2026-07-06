@@ -107,7 +107,11 @@ function deriveTheme(framePack, storyboard) {
     // which are light-grounded but keep gradients. Pick ground by pack character.
     const lightGround = manifest ? (manifest.surface.flat || manifest.surface.lightCinematic)
       : (flat || LIGHT_GRADIENT_PACKS.has(framePack));
-    ground = lightGround ? (t.lightBase || "#FFFDF5") : (t.darkBase || "#0B1020");
+    // Authored ground (Phase 3) wins — it respects the pack's real color role
+    // instead of the luminance heuristic, which mis-grounded light packs (bloom,
+    // mono) onto their dark ink token and dark packs (noir) onto their lightest.
+    const authoredGround = manifest && manifest.surface.ground;
+    ground = authoredGround || (lightGround ? (t.lightBase || "#FFFDF5") : (t.darkBase || "#0B1020"));
     ink = lum(ground) > 140 ? "#15140F" : "#F6F4EE";
     accents = (t.accents && t.accents.length ? t.accents : colorVals).slice(0, 4);
     fonts = (tokens.fonts && tokens.fonts.length) ? tokens.fonts : ["Inter"];

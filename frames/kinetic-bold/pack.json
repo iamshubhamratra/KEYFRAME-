@@ -15,7 +15,8 @@
   ],
   "surface": {
     "flat": true,
-    "lightCinematic": false
+    "lightCinematic": false,
+    "ground": "#FAFAFA"
   },
   "motion": {
     "cut": "push",

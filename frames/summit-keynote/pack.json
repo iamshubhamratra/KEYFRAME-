@@ -16,7 +16,8 @@
   ],
   "surface": {
     "flat": false,
-    "lightCinematic": true
+    "lightCinematic": true,
+    "ground": "#F7F8FC"
   },
   "motion": {
     "cut": "panel",

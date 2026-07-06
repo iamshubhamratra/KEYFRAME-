@@ -16,7 +16,8 @@
   ],
   "surface": {
     "flat": false,
-    "lightCinematic": true
+    "lightCinematic": true,
+    "ground": "#FAF5EA"
   },
   "motion": {
     "cut": "wash",

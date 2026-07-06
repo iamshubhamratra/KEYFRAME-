@@ -45,6 +45,11 @@ const PackManifestSchema = z
       .object({
         flat: z.boolean().default(false), // FLAT_PACKS — solid fills, no gradients/glows
         lightCinematic: z.boolean().default(false), // LIGHT_GRADIENT_PACKS — light base, keeps gradients
+        // Authored ground color (Phase 3). When set, scene_kit uses it directly
+        // instead of deriving light/dark from flat/lightCinematic + luminance —
+        // which mis-grounded light packs (bloom, mono) onto their dark ink token
+        // and dark packs (noir) onto their lightest token.
+        ground: HEX.optional(),
       })
       .default({}),
 
