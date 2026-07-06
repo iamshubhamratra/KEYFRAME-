@@ -1318,23 +1318,29 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
   // scenes dropped the ENTIRE fetched pool (0 images/screenshots on screen). Now
   // any content scene takes an asset: screenshots get hero treatment, a deep pool
   // spends one scene on a montage, the rest become split-art.
-  const contentPlan = plan.filter((p) => p.isContent);
+  // Only GENERIC text scenes are "weavable". Hook/CTA/quote/stat carry content
+  // that an asset layout must not replace — turning a testimonial (archQuoteCard)
+  // or a metric (archStat) into an asset montage would DELETE that content. So we
+  // weave assets into archText scenes only (the design's flexible slots), and
+  // leave content-critical archetypes intact; their assets fall to Pass 2's
+  // scrimmed background B-roll instead.
+  const weavable = plan.filter((p) => p.isContent && p.build === archText);
 
-  // The screenshot is the highest-credibility asset — place it on the content
+  // The screenshot is the highest-credibility asset — place it on the weavable
   // scene whose INTENT most calls for a product view (best assetAffinity), not
   // just the first one. Ties (and the no-signal case) fall to the earliest scene,
   // so a storyboard with no explicit demo cue behaves exactly as before.
-  if (pools.screenshots.length && contentPlan.length) {
-    const target = contentPlan
+  if (pools.screenshots.length && weavable.length) {
+    const target = weavable
       .map((p) => ({ p, s: assetAffinity(p.scene, "screenshot") }))
       .sort((a, b) => b.s - a.s || a.p.i - b.p.i)[0].p;
     target.ctx.asset = pools.screenshots.shift(); target.build = archScreenshotHero; usedShot = true;
     target.ctx.kicker = target.scene.emphasis || "Live preview";
   }
 
-  // Remaining content scenes, in order: one montage for a deep pool, then
+  // Remaining weavable scenes, in order: one montage for a deep pool, then
   // split-art (vectors preferred over photos), then any leftover screenshot.
-  for (const p of contentPlan) {
+  for (const p of weavable) {
     if (p.ctx.asset || p.ctx.assets) continue;
     if (!leftover()) break;
     if (!montageDone && leftover() >= 3) {
