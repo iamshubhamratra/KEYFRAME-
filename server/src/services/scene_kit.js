@@ -1145,11 +1145,26 @@ function r(n) { return Math.round(n * 100) / 100; }
 
 function pickNumber(scene) {
   const hay = `${scene.headline || ""} ${scene.emphasis || ""} ${scene.subtext || ""}`;
-  const m = /([₹$€£]?)\s?(\d[\d,]*)\s?([%x+]|M|K|B|hrs?|hours?|days?)?/i.exec(hay);
+  // Neutralize number patterns that are NOT metrics, so they never render as a
+  // giant full-screen counter: ratios/times ("24/7", "3:00"), ranges ("9-5"),
+  // versions ("v2.0"), ordinals ("2nd"). This is what turned "24/7 support" into
+  // a huge "24".
+  const cleaned = hay
+    .replace(/\bv\d+(?:\.\d+)*\b/gi, " ")     // versions: v2, v2.0
+    .replace(/\d+\s*[/:]\s*\d+/g, " ")        // ratios / times: 24/7, 3:00, 1/2
+    .replace(/\d+\s*-\s*\d+/g, " ")           // ranges: 9-5
+    .replace(/\b\d+(?:st|nd|rd|th)\b/gi, " "); // ordinals: 1st, 2nd
+  const m = /([₹$€£]?)\s?(\d[\d,]*)\s?([%x+]|M|K|B|hrs?|hours?|days?)?/i.exec(cleaned);
   if (!m) return null;
   const value = clamp(parseInt(m[2].replace(/,/g, ""), 10) || 0, 0, 9_999_999);
   if (!value) return null;
-  return { value, prefix: m[1] || "", suffix: (m[3] || "").replace(/hours?|hrs?/i, "") };
+  const prefix = m[1] || "", suffix = (m[3] || "").replace(/hours?|hrs?/i, "");
+  // A BARE number (no currency prefix, no unit) is a weak "metric" — a count,
+  // year, step, or list index — and reads oddly as a full-screen counter. Only a
+  // number with a $/₹/€/£ prefix or a %/x/M/K/B/day unit earns archStat; bare
+  // numbers fall through to archText, where they live in the headline naturally.
+  if (!prefix && !suffix) return null;
+  return { value, prefix, suffix };
 }
 
 // Map a storyboard scene.kind to an archetype builder.
