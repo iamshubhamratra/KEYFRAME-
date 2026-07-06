@@ -273,8 +273,19 @@ behavior change yet). What landed:
   `manifest.vibe` first (source of truth; folds in the curated PACK_VIBES blurb
   for the 7 that have one, FRAME.md description for the rest), legacy tables only
   as fail-soft fallback.
-- **Not yet done (next increments):** wire the render hot path to the manifest
-  (scene_kit FLAT/LIGHT/PACK_SKINS/PACK_MOTION/fxModeFor, pack_style), the
+- **✅ scene_kit render hot path wired to the manifest (commit 2b8be23):**
+  `deriveTheme` reads `surface.flat`/`lightCinematic` + `skin` from the manifest;
+  `theme.manifest` is threaded into `motionFor` (→ `motion`), `buildCanvasFx`
+  (→ `fx.canvas`), and `buildThreeFx` (→ `fx.three`). The legacy FLAT/LIGHT/
+  PACK_SKINS/PACK_MOTION/fxModeFor tables remain as fail-soft fallback for a pack
+  with no/invalid manifest. **Verified behavior-preserving two ways:** (1) a
+  deterministic golden diff — `buildComposition` output is **byte-identical**
+  across all 14 packs vs the pre-wiring baseline (`scratchpad/render-golden.js`,
+  sha256 of indexHtml+meta); (2) a **real end-to-end render** — summit-keynote
+  (light ground, cobalt→gold emphasis gradient, corner ornaments, live three.js
+  data-constellation WebGL layer) rendered to a correct 4s MP4 via
+  `hyperframes render` (120 frames, exit 0).
+- **Not yet done (next increments):** wire `pack_style` reads to the manifest, the
   typography-eraser fix,
   ornaments-as-data, single `themeFromTokens`, pack-aware 3D, QA identity checks.
   Note: `colors` are duplicated in FRAME.md and pack.json during the transition.
