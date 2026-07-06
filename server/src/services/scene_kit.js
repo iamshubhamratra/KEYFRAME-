@@ -962,6 +962,35 @@ function archText(scene, ctx) {
   return { html, script: s };
 }
 
+// TESTIMONIAL / QUOTE CARD (Phase 4) — a dedicated layout for `kind:"quote"`
+// scenes, which used to collapse to the generic text archetype. A pull-quote on
+// a panel with a big accent quotation mark, the quote animated word-by-word (in
+// the pack display face via .kfw), and an attribution row with an accent chip.
+function archQuoteCard(scene, ctx) {
+  const { theme, id, T, L, track, dims } = ctx;
+  const land = dims.width >= dims.height;
+  const big = land ? 58 : 46;
+  const quoteFit = fitBig(scene.headline, big, 26, 4);
+  const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
+  <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:${land ? "72%" : "86%"};max-width:1180px;padding:${land ? "54px 64px" : "40px 38px"};border-radius:22px;background:${theme.panel};border:1px solid ${theme.line};border-left:6px solid ${theme.accent};">
+    <div id="${id}q" style="font:900 ${Math.round(big * 2.0)}px/0.6 ${theme.displayStack};color:${theme.accent};opacity:0;height:${Math.round(big * 0.72)}px;overflow:hidden;">&ldquo;</div>
+    <blockquote style="margin:0;font:600 ${quoteFit}px/1.34 ${cssFont(theme)};letter-spacing:-0.01em;color:${theme.ink};max-width:26ch;"><style>#${id} .kfacc{color:${theme.accent};}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</blockquote>
+    ${scene.subtext ? `<div id="${id}a" style="opacity:0;margin-top:24px;display:flex;align-items:center;gap:13px;">
+      <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,${theme.accent},${theme.accent2});flex:none;"></div>
+      <div style="font:700 ${Math.round(big * 0.4)}px/1.25 ${cssFont(theme)};color:${theme.ink};">${esc(scene.subtext)}</div>
+    </div>` : ""}
+  </div>
+</div>`;
+  const s = [
+    `tl.set("#${id}",{opacity:1},${T});`,
+    `tl.fromTo("#${id}q",{opacity:0,scale:0.5,transformOrigin:"left top"},{opacity:0.9,scale:1,duration:0.5,ease:"back.out(2)"},${r(T + 0.25)});`,
+    `wordsIn("#${id} .kfw",${r(T + 0.5)},0.05);`,
+    scene.subtext ? `tl.fromTo("#${id}a",{opacity:0,y:16},{opacity:1,y:0,duration:0.5,ease:"power2.out"},${r(T + Math.min(L - 0.5, 1.1))});` : "",
+    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
+  ].filter(Boolean).join("\n");
+  return { html, script: s };
+}
+
 // Partition the fetched assets into the kinds the kit places differently:
 // website screenshots (device-framed hero), vectors/illustrations (drawn-in side
 // art or grids), and photos (scrimmed full-bleed). Paths are relative to jobDir.
@@ -1216,9 +1245,10 @@ function archetypeFor(scene, idx, total) {
   const k = (scene.kind || "").toLowerCase();
   if (idx === 0 || k === "hook" || k === "title") return archHook;
   if (idx === total - 1 || k === "cta") return archCta;
+  if (k === "quote") return archQuoteCard;        // testimonial card (before the number check)
   if (k === "chart" || k === "countdown") return archStat;
   if (pickNumber(scene)) return archStat;        // any scene with a strong number
-  return archText;                                // bullet / quote / caption / shape-motion
+  return archText;                                // bullet / caption / shape-motion
 }
 
 // Seek-safe caption track (one node, recomputed each frame — never one clip/line).
@@ -1342,7 +1372,7 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
     // Pack-skin ornaments: the design system's animated furniture (bar charts,
     // refraction streaks, watercolor blooms…) as the scene's first child.
     const kindC = p.build === archHook ? "hook" : p.build === archCta ? "cta"
-      : p.build === archStat ? "stat" : p.build === archText ? "text" : "asset";
+      : p.build === archStat ? "stat" : (p.build === archText || p.build === archQuoteCard) ? "text" : "asset";
     const orn = buildSkinOrnaments(kindC, p.ctx, framePack);
     if (orn) {
       const withOrn = out.html.replace(new RegExp(`(<div id="${p.ctx.id}"[^>]*>)`), `$1${orn.html}`);
