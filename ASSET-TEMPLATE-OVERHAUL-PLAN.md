@@ -265,13 +265,17 @@ behavior change yet). What landed:
   field against the live `pack_style` + `frame_registry` modules and the scene_kit
   sets; all green. Bootstrap generator (`scratchpad/bootstrap-pack-manifests.js`)
   validates each manifest against the schema before writing.
-- **Bug found (not yet fixed):** `frame_registry.getPackVibe()` returns just `">"`
-  for the **7 packs** whose FRAME.md uses a YAML folded scalar (`description: >`) —
-  so brief.js tone-matching currently sees garbage for half the library. The
-  bootstrap works around it (reads the folded block); fixing `getPackVibe` itself
-  + wiring brief.js to read `manifest.vibe` is the next increment.
-- **Not yet done (next increments):** wire consumers to read the manifest
-  (scene_kit tables, brief.js vibe, pack_style), the typography-eraser fix,
+- **✅ getPackVibe bug fixed + first consumer wired (commit 7901d59):**
+  `frame_registry.getPackVibe()` used to return just `">"` for the **7 packs**
+  whose FRAME.md uses a YAML folded scalar (`description: >`) — brief.js
+  tone-matching and set_dressing saw garbage for half the library. Now parses the
+  folded block → real prose for all 14. `brief.js availableFramePacks` now reads
+  `manifest.vibe` first (source of truth; folds in the curated PACK_VIBES blurb
+  for the 7 that have one, FRAME.md description for the rest), legacy tables only
+  as fail-soft fallback.
+- **Not yet done (next increments):** wire the render hot path to the manifest
+  (scene_kit FLAT/LIGHT/PACK_SKINS/PACK_MOTION/fxModeFor, pack_style), the
+  typography-eraser fix,
   ornaments-as-data, single `themeFromTokens`, pack-aware 3D, QA identity checks.
   Note: `colors` are duplicated in FRAME.md and pack.json during the transition.
 
