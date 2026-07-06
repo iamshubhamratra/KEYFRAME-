@@ -55,8 +55,10 @@ async function checkAssetRelevance({ absPath, type, subject, query, tracker, sig
         text:
           `A stock library returned this ${type === "video" ? "video (one frame shown)" : "image"} for a film whose subject is: "${subject}". ` +
           `The search query was: "${query}".\n` +
-          `Question: would a film director accept this asset in that film — does it show the subject itself, or a directly related setting, object, or mood? ` +
-          `Unrelated buildings/landmarks, maps, diagrams of something else, or random objects are NOT acceptable.\n` +
+          `Question: would a film director accept this asset in that film — does it show the subject itself, the people who use it, or a setting/mood that genuinely fits the subject's real-world domain? ` +
+          `Unrelated buildings/landmarks, maps, diagrams of something else, or random objects are NOT acceptable. ` +
+          `In particular, REJECT a photo of a specific physical machine, appliance, or hardware product (e.g. a printer, fax machine, kitchen appliance) when the subject is really software, a digital service, a brand, or an abstract idea and the object is linked only by a keyword or pun — that is a literal-match misfire, not a real asset. ` +
+          `(A recognizable concept metaphor like a lightbulb for "ideas" or a rocket for "growth" is fine.)\n` +
           `Reply STRICT JSON: {"usable": true|false, "sees": "<3-6 words: what the image actually shows>"}`,
       },
       { type: "image_url", image_url: { url: `data:image/jpeg;base64,${b64}` } },
@@ -107,8 +109,13 @@ async function checkAssetsRelevance({ assets, subject, tracker, signal }) {
         text:
           `A stock library returned ${usable.length} asset(s) for a film whose subject is: "${subject}". ` +
           `For EACH numbered asset, decide whether a film director would accept it — does it show the subject ` +
-          `itself, or a directly related setting, object, or mood? Unrelated buildings/landmarks, maps, ` +
-          `diagrams of something else, or random objects are NOT acceptable. Also reject any asset with a ` +
+          `itself, the people who use it, or a setting/mood that genuinely fits the subject's real-world domain? ` +
+          `Unrelated buildings/landmarks, maps, diagrams of something else, or random objects are NOT acceptable. ` +
+          `In particular, REJECT a photo of a specific physical machine, appliance, or hardware product (e.g. a ` +
+          `printer, fax machine, kitchen appliance) when the subject is really software, a digital service, a ` +
+          `brand, or an abstract idea and the object is linked only by a keyword or pun — a literal-match misfire. ` +
+          `(A recognizable concept metaphor — a lightbulb for "ideas", a rocket for "growth" — is fine.) ` +
+          `Also reject any asset with a ` +
           `visible watermark, stock-site logo, or "sample/preview" text stamped across it.\n` +
           `The ${usable.length} images follow, each preceded by its number (1..${usable.length}).\n` +
           `Reply STRICT JSON: {"verdicts":[{"n":1,"usable":true|false,"sees":"<3-6 words: what it shows>"}]} — exactly one entry per asset.`,
