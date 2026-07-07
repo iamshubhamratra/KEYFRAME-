@@ -46,7 +46,8 @@
       "mono",
       "crt",
       "dark"
-    ]
+    ],
+    "prefer": []
   },
   "typography": {
     "display": "JetBrains Mono"

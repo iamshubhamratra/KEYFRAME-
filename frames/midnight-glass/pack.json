@@ -41,6 +41,10 @@
       "premium",
       "tech",
       "glow"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
     ]
   },
   "typography": {

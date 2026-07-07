@@ -86,6 +86,10 @@ const PackManifestSchema = z
         photoMod: z.string().default(""),
         iconStyle: z.string().default("line"),
         keywords: z.array(z.string()).default([]),
+        // Media-type preference for split-art (Phase 6): first-listed leads.
+        // e.g. ["photo","vector"] = a photo-forward pack; default (empty) keeps
+        // the vector-first behavior. Values: photo | illustration | vector.
+        prefer: z.array(z.string()).default([]),
       })
       .default({}),
 

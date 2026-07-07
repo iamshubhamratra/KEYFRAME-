@@ -46,6 +46,10 @@
       "gradient",
       "clean",
       "friendly"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
     ]
   },
   "typography": {

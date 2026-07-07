@@ -1364,17 +1364,25 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
     target.ctx.kicker = target.scene.emphasis || "Live preview";
   }
 
+  // Split-art media order is pack-driven (Phase 6 assets.prefer): a photo-forward
+  // pack leads with photos, an illustration/vector-forward pack (the default)
+  // leads with vectors. First-listed preference wins.
+  const prefer = (theme.manifest && theme.manifest.assets && theme.manifest.assets.prefer) || [];
+  const iPhoto = prefer.indexOf("photo");
+  const iVec = Math.min(...["illustration", "vector"].map((t) => { const i = prefer.indexOf(t); return i < 0 ? 99 : i; }));
+  const photoFirst = iPhoto > -1 && iPhoto < iVec;
+  const splitPools = photoFirst ? ["photos", "vectors"] : ["vectors", "photos"];
+
   // Remaining weavable scenes, in order: one montage for a deep pool, then
-  // split-art (vectors preferred over photos), then any leftover screenshot.
+  // split-art (per the pack's media preference), then any leftover screenshot.
   for (const p of weavable) {
     if (p.ctx.asset || p.ctx.assets) continue;
     if (!leftover()) break;
     if (!montageDone && leftover() >= 3) {
       p.ctx.assets = takeMontage(pools, 6); p.build = archAssetMontage; montageDone = true;
-    } else if (pools.vectors.length) {
-      p.ctx.asset = pools.vectors.shift(); p.build = archSplitVector;
-    } else if (pools.photos.length) {
-      p.ctx.asset = pools.photos.shift(); p.build = archSplitVector;
+    } else if (pools[splitPools[0]].length || pools[splitPools[1]].length) {
+      const pool = pools[splitPools[0]].length ? splitPools[0] : splitPools[1];
+      p.ctx.asset = pools[pool].shift(); p.build = archSplitVector;
     } else if (pools.screenshots.length) {
       p.ctx.asset = pools.screenshots.shift(); p.build = archScreenshotHero;
       p.ctx.kicker = p.scene.emphasis || "Live preview";

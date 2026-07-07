@@ -45,6 +45,10 @@
       "cinematic",
       "film",
       "moody"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
     ]
   },
   "typography": {

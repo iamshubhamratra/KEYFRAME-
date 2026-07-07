@@ -39,6 +39,10 @@
       "professional",
       "corporate",
       "minimal"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
     ]
   },
   "typography": {

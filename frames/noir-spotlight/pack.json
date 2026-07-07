@@ -40,6 +40,10 @@
       "cinematic",
       "dramatic",
       "dark"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
     ]
   },
   "typography": {

@@ -47,6 +47,10 @@
       "analytics",
       "mono",
       "grid"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
     ]
   },
   "typography": {

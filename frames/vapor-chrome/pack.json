@@ -40,6 +40,10 @@
       "retro",
       "vaporwave",
       "glow"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
     ]
   },
   "typography": {

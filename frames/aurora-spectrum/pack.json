@@ -40,6 +40,10 @@
       "gradient",
       "abstract",
       "calm"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
     ]
   },
   "typography": {

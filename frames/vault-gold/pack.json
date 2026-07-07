@@ -47,6 +47,10 @@
       "finance",
       "trust",
       "gold"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
     ]
   },
   "typography": {

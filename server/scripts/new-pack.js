@@ -65,7 +65,7 @@ const FAMILIES = {
     surface: { flat: false, lightCinematic: false },      // dark analyst ground
     motion: { cut: "panel", drift: 1.02 },
     fx: { canvas: "constellation", three: null },
-    assets: { photoMod: "data analytics dashboard chart monochrome", iconStyle: "line", keywords: ["data", "chart", "analytics", "mono", "grid"] },
+    assets: { photoMod: "data analytics dashboard chart monochrome", iconStyle: "line", keywords: ["data", "chart", "analytics", "mono", "grid"], prefer: ["photo", "vector"] },
     tone: "a chart-first analyst system: near-monochrome ground, a faint data grid, mono labels and ONE signal accent reserved for the data — for dashboards, analytics, data and ML products",
     treatments: [
       ["Title", "cover", "A mono caps label over a tight heading on the faint grid; one accent tick marks the key term. Reads like the cover of a data report."],
@@ -79,7 +79,7 @@ const FAMILIES = {
     surface: { flat: false, lightCinematic: false },
     motion: { cut: "panel", drift: 1.035 },
     fx: { canvas: "constellation", three: null },
-    assets: { photoMod: "premium dark fintech finance abstract", iconStyle: "duotone", keywords: ["premium", "dark", "finance", "trust", "gold"] },
+    assets: { photoMod: "premium dark fintech finance abstract", iconStyle: "duotone", keywords: ["premium", "dark", "finance", "trust", "gold"], prefer: ["photo", "vector"] },
     tone: "a premium dark-fintech system: deep near-black ground, precise numerics, one metallic accent + one signal green — for finance, fintech, trading, crypto and investor stories",
     treatments: [
       ["Cover", "cover", "Deep ground; a caps label over a confident heading, a thin metallic rule under the key word, sparse numeric chrome in a corner."],
@@ -93,7 +93,7 @@ const FAMILIES = {
     surface: { flat: false, lightCinematic: true },       // bright light ground, keeps gradients
     motion: { cut: "glow", drift: 1.04 },
     fx: { canvas: "flow", three: null },
-    assets: { photoMod: "modern bright saas product gradient clean", iconStyle: "duotone", keywords: ["modern", "bright", "gradient", "clean", "friendly"] },
+    assets: { photoMod: "modern bright saas product gradient clean", iconStyle: "duotone", keywords: ["modern", "bright", "gradient", "clean", "friendly"], prefer: ["photo", "vector"] },
     tone: "a bright modern SaaS system: near-white ground, soft brand gradients, friendly rounded type and one vivid gradient accent — for SaaS explainers, product tours and launches",
     treatments: [
       ["Hero", "cover", "A near-white ground with a soft corner gradient; a pill label over a bold friendly heading, the key phrase in a gradient clip, one underline."],

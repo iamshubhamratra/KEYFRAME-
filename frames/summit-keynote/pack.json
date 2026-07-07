@@ -45,6 +45,10 @@
       "clean",
       "corporate",
       "professional"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
     ]
   },
   "typography": {
