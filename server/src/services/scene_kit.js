@@ -245,7 +245,12 @@ function buildCutLayer(plan, theme, dims, D, motion, seed, track) {
       const fromLeft = (k + seed) % 2 === 0;
       els.push(`<div id="${id}" style="position:absolute;inset:0;background:${A};transform:scaleX(0);"></div>`);
       sc.push(`tl.fromTo("#${id}",{scaleX:0,transformOrigin:"${fromLeft ? "0%" : "100%"} 50%"},{scaleX:1,duration:0.26,ease:"power4.in"},${r(Tb - 0.26)});`);
-      sc.push(`tl.fromTo("#${id}",{scaleX:1,transformOrigin:"${fromLeft ? "100%" : "0%"} 50%"},{scaleX:0,duration:0.3,ease:"power4.out"},${r(Tb + 0.04)});`);
+      // immediateRender:false — this exit fromTo starts from the VISIBLE state
+      // (scaleX:1). With GSAP's default immediateRender:true it forces scaleX:1 at
+      // build time, so this full-frame colored wipe stays stretched over the whole
+      // frame from t=0 until its tween fires — blanking every scene before the last
+      // boundary (the "solid colour for N seconds" bug on wipe/push packs).
+      sc.push(`tl.fromTo("#${id}",{scaleX:1,transformOrigin:"${fromLeft ? "100%" : "0%"} 50%"},{scaleX:0,duration:0.3,ease:"power4.out",immediateRender:false},${r(Tb + 0.04)});`);
     } else if (motion.cut === "whip") {
       // motion-blur streak racing across the frame — the one-take whip-pan
       els.push(`<div id="${id}" style="position:absolute;top:-4%;bottom:-4%;left:-45%;width:38%;transform:skewX(-16deg);opacity:0;background:linear-gradient(90deg,transparent,${rgba(theme.ink, 0.10)} 30%,${rgba(A, 0.28)} 50%,${rgba(theme.ink, 0.10)} 70%,transparent);filter:blur(6px);"></div>`);
@@ -257,7 +262,7 @@ function buildCutLayer(plan, theme, dims, D, motion, seed, track) {
       els.push(`<div id="${id}c" style="position:absolute;top:46%;height:8%;left:-40%;right:auto;width:40%;opacity:0;transform:skewX(-24deg);background:linear-gradient(90deg,transparent,${rgba(theme.accent2, 0.7)},${rgba(A, 0.7)},transparent);filter:blur(10px);"></div>`);
       sc.push(`tl.fromTo("#${id}",{opacity:0},{opacity:0.92,duration:0.14,ease:"power2.in"},${r(Tb - 0.16)});`);
       sc.push(`tl.to("#${id}",{opacity:0,duration:0.36,ease:"power2.out"},${r(Tb)});`);
-      sc.push(`tl.fromTo("#${id}c",{xPercent:0,opacity:1},{xPercent:340,opacity:0,duration:0.5,ease:"power3.out"},${r(Tb - 0.08)});`);
+      sc.push(`tl.fromTo("#${id}c",{xPercent:0,opacity:1},{xPercent:340,opacity:0,duration:0.5,ease:"power3.out",immediateRender:false},${r(Tb - 0.08)});`);
     } else if (motion.cut === "wash") {
       // soft blurred wash sweeping diagonally — watercolor page-turn
       els.push(`<div id="${id}" style="position:absolute;top:-30%;bottom:-30%;left:-70%;width:70%;opacity:0;transform:rotate(-9deg);border-radius:50%;background:${rgba(A, 0.5)};filter:blur(${Math.round(H * 0.06)}px);"></div>`);
@@ -277,7 +282,10 @@ function buildCutLayer(plan, theme, dims, D, motion, seed, track) {
       const dia = Math.ceil(Math.sqrt(W * W + H * H) * 1.05);
       els.push(`<div id="${id}" style="position:absolute;left:50%;top:50%;width:${dia}px;height:${dia}px;margin:-${Math.round(dia / 2)}px 0 0 -${Math.round(dia / 2)}px;border-radius:50%;background:${theme.ground};transform:scale(0);"></div>`);
       sc.push(`tl.fromTo("#${id}",{scale:0},{scale:1,duration:0.3,ease:"power3.in"},${r(Tb - 0.3)});`);
-      sc.push(`tl.fromTo("#${id}",{scale:1},{scale:0,duration:0.36,ease:"power3.out"},${r(Tb + 0.04)});`);
+      // immediateRender:false — same fix as the wipe: this full-frame ground-colored
+      // iris starts its exit from scale:1 (visible); default immediateRender would
+      // stretch it over the whole frame from t=0 (blanks noir-spotlight).
+      sc.push(`tl.fromTo("#${id}",{scale:1},{scale:0,duration:0.36,ease:"power3.out",immediateRender:false},${r(Tb + 0.04)});`);
     } else { // glow — luminous pulse riding a motion crossfade
       els.push(`<div id="${id}" style="position:absolute;inset:-10%;opacity:0;background:radial-gradient(52% 52% at 50% 50%,${rgba(A, 0.34)},transparent 72%);filter:blur(10px);"></div>`);
       sc.push(`tl.fromTo("#${id}",{opacity:0,scale:0.8},{opacity:1,scale:1.06,duration:0.3,ease:"sine.in"},${r(Tb - 0.3)});`);
