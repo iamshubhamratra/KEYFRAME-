@@ -1020,6 +1020,52 @@ function orderByPaletteAffinity(pool, theme) {
   return pool.map((a, i) => ({ a, i, d: aff(a) })).sort((x, y) => x.d - y.d || x.i - y.i).map((o) => o.a);
 }
 
+// PROP FILL (fuller scenes) — a deterministic, on-brand, animated "product card"
+// vector placed in the EMPTY half of a hook/text scene that has no fetched
+// visual, so no scene reads as half-empty. A stylized app/dashboard card (header,
+// content lines, a mini bar chart that grows, task rows) in the pack's own
+// colors — reads as the product, adds a vector + motion, and never depends on
+// stock. `side` = which half is empty ("right" for left-aligned text, "left" for
+// right-aligned). Semi-transparent so it supports, not competes with, the copy.
+function buildPropFill(ctx, side) {
+  const { theme, id, dims, T, L } = ctx;
+  const W = dims.width, H = dims.height, land = W >= H;
+  const pw = Math.round(W * (land ? 0.30 : 0.5)), ph = Math.round(H * (land ? 0.44 : 0.3));
+  const px = side === "left" ? Math.round(W * 0.07) : Math.round(W - pw - W * 0.07);
+  const py = Math.round((H - ph) / 2);
+  const A = theme.accent, B = theme.accent2 || theme.accent, ink = theme.ink, line = theme.line;
+  const card = theme.isDark ? "rgba(255,255,255,0.045)" : "rgba(20,18,12,0.035)";
+  const pid = `${id}pf`;
+  const hh = Math.round(ph * 0.15);      // header height
+  const pad = Math.round(pw * 0.07);
+  const chartY = Math.round(ph * 0.60), chartH = Math.round(ph * 0.28), bw = Math.round((pw - pad * 2) / 9);
+  const hts = [0.42, 0.66, 0.5, 0.82, 1.0, 0.72];
+  const bars = hts.map((f, i) =>
+    `<rect class="kfbar" x="${pad + i * (bw + Math.round(bw * 0.5))}" y="${chartY + chartH - Math.round(chartH * f)}" width="${bw}" height="${Math.round(chartH * f)}" rx="3" fill="${i === 3 ? A : rgba(B, 0.55)}"/>`).join("");
+  const rows = [0, 1].map((i) => {
+    const ry = Math.round(ph * 0.28) + i * Math.round(ph * 0.12);
+    return `<rect x="${pad}" y="${ry}" width="${Math.round(ph * 0.055)}" height="${Math.round(ph * 0.055)}" rx="3" fill="none" stroke="${A}" stroke-width="2"/>` +
+      `<rect x="${pad + Math.round(ph * 0.09)}" y="${ry + Math.round(ph * 0.012)}" width="${Math.round(pw * (i ? 0.42 : 0.55))}" height="${Math.round(ph * 0.03)}" rx="3" fill="${rgba(ink, 0.32)}"/>`;
+  }).join("");
+  const svg =
+    `<svg viewBox="0 0 ${pw} ${ph}" width="100%" height="100%" style="overflow:visible;">` +
+    `<rect x="0" y="0" width="${pw}" height="${ph}" rx="${Math.round(pw * 0.05)}" fill="${card}" stroke="${line}" stroke-width="1.5"/>` +
+    `<rect x="0" y="0" width="${pw}" height="${hh}" rx="${Math.round(pw * 0.05)}" fill="${rgba(A, 0.10)}"/>` +
+    `<rect x="0" y="${Math.round(hh * 0.5)}" width="${pw}" height="${Math.round(hh * 0.5)}" fill="${rgba(A, 0.10)}"/>` +
+    `<circle cx="${pad + Math.round(ph * 0.03)}" cy="${Math.round(hh / 2)}" r="${Math.round(ph * 0.022)}" fill="${A}"/>` +
+    `<rect x="${pad + Math.round(ph * 0.07)}" y="${Math.round(hh / 2 - ph * 0.014)}" width="${Math.round(pw * 0.4)}" height="${Math.round(ph * 0.028)}" rx="3" fill="${rgba(ink, 0.4)}"/>` +
+    rows + bars +
+    `</svg>`;
+  const html = `<div id="${pid}" style="position:absolute;left:${px}px;top:${py}px;width:${pw}px;height:${ph}px;opacity:0;pointer-events:none;" data-layout-allow-occlusion>${svg}</div>`;
+  const s = [
+    `tl.fromTo("#${pid}",{opacity:0,y:30,rotationZ:${side === "left" ? 3 : -3}},{opacity:1,y:0,rotationZ:0,duration:0.75,ease:"power3.out"},${r(T + 0.5)});`,
+    `tl.fromTo("#${pid} .kfbar",{scaleY:0,transformOrigin:"50% 100%"},{scaleY:1,duration:0.55,stagger:0.07,ease:"power2.out"},${r(T + 0.95)});`,
+    `tl.to("#${pid}",{y:"-=12",duration:${r(Math.max(2, L - 1))},ease:"sine.inOut",yoyo:true,repeat:1},${r(T + 0.9)});`,
+    ctx.isLast ? "" : `tl.to("#${pid}",{opacity:0,duration:0.3,ease:"power2.in"},${r(T + L - 0.35)});`,
+  ].filter(Boolean).join("\n");
+  return { html, script: s };
+}
+
 // Partition the fetched assets into the kinds the kit places differently:
 // website screenshots (device-framed hero), vectors/illustrations (drawn-in side
 // art or grids), and photos (scrimmed full-bleed). Paths are relative to jobDir.
@@ -1425,6 +1471,18 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
     if (orn) {
       const withOrn = out.html.replace(new RegExp(`(<div id="${p.ctx.id}"[^>]*>)`), `$1${orn.html}`);
       if (withOrn !== out.html) { out.html = withOrn; out.script += `\n${orn.script}`; }
+    }
+    // Prop fill (fuller scenes): a hook or LEFT/RIGHT-aligned text scene with no
+    // fetched visual gets an on-brand product-card vector in its empty half, so no
+    // scene reads as half-empty. Centered text (variant 1) has no empty side; stat/
+    // cta/quote/asset scenes are already full, so they're skipped.
+    const noVisual = !p.ctx.asset && !p.ctx.assets && !p.ctx.bgAsset && !p.ctx.bgVideo;
+    const propEligible = noVisual && (p.build === archHook || (p.build === archText && p.ctx.variant !== 1));
+    if (propEligible) {
+      const side = (p.build === archText && p.ctx.variant === 3) ? "left" : "right";
+      const prop = buildPropFill(p.ctx, side);
+      const withProp = out.html.replace(new RegExp(`(<div id="${p.ctx.id}"[^>]*>)`), `$1${prop.html}`);
+      if (withProp !== out.html) { out.html = withProp; out.script += `\n${prop.script}`; }
     }
     // Set-dressing decor: a sanitized SVG cluster injected as the scene clip's
     // FIRST child (absolute, pointer-less, behind content), revealed gently.
