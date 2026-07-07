@@ -183,12 +183,12 @@ async function validateImage(absPath, { kindPref } = {}) {
   if (path.extname(absPath).toLowerCase() === ".svg") {
     return { ok: true, reason: null, meta: { vector: true, hasAlpha: true, dhash: null } };
   }
-  const [probe, sig] = await Promise.all([ffprobeImage(absPath), imageDHashStats(absPath)]);
+  const [probe, sig, dominantColor] = await Promise.all([ffprobeImage(absPath), imageDHashStats(absPath), imageDominantColor(absPath)]);
   const width = probe ? probe.width : 0;
   const height = probe ? probe.height : 0;
   const hasAlpha = probe ? pixFmtHasAlpha(probe.pixFmt) : false;
   const ratio = width && height ? Math.round((width / height) * 1000) / 1000 : null;
-  const meta = { width, height, ratio, hasAlpha, dhash: sig.dhash, stdev: sig.stdev };
+  const meta = { width, height, ratio, hasAlpha, dhash: sig.dhash, stdev: sig.stdev, dominantColor };
 
   // 1. Near-flat / solid colour: an error page saved as an image, a blank
   //    placeholder, or a plain-colour banner — no visual value in a film.
@@ -277,8 +277,43 @@ function rankCandidates(query, candidates, styleKeywords) {
   return (sharp.length ? sharp : scored).map((s) => s.c);
 }
 
+// Dominant color of an image (Phase 6) — the average RGB via a single-pixel
+// ffmpeg downscale. Cheap (one pass, same shape as imageDHashStats); used for
+// palette-affinity so on-brand assets earn the prominent placements.
+function imageDominantColor(absPath) {
+  return new Promise((resolve) => {
+    const p = spawn("ffmpeg", [
+      "-v", "error", "-i", absPath,
+      "-vf", "scale=1:1:flags=area,format=rgb24", "-frames:v", "1", "-f", "rawvideo", "-",
+    ], { windowsHide: true });
+    const chunks = [];
+    p.stdout.on("data", (d) => chunks.push(d));
+    const timer = setTimeout(() => { try { p.kill("SIGKILL"); } catch { /* noop */ } }, 15_000);
+    p.on("error", () => { clearTimeout(timer); resolve(null); });
+    p.on("exit", (code) => {
+      clearTimeout(timer);
+      const buf = Buffer.concat(chunks);
+      if (code !== 0 || buf.length < 3) return resolve(null);
+      resolve("#" + [buf[0], buf[1], buf[2]].map((x) => x.toString(16).padStart(2, "0")).join("").toUpperCase());
+    });
+  });
+}
+
+// Euclidean distance between two #RRGGBB colors (0 = identical, ~441 = max).
+function colorDistance(a, b) {
+  const pa = /^#?([0-9a-f]{6})$/i.exec(String(a || "").trim());
+  const pb = /^#?([0-9a-f]{6})$/i.exec(String(b || "").trim());
+  if (!pa || !pb) return Infinity;
+  const na = parseInt(pa[1], 16), nb = parseInt(pb[1], 16);
+  const dr = ((na >> 16) & 255) - ((nb >> 16) & 255);
+  const dg = ((na >> 8) & 255) - ((nb >> 8) & 255);
+  const db = (na & 255) - (nb & 255);
+  return Math.sqrt(dr * dr + dg * dg + db * db);
+}
+
 module.exports = {
   download, validateMedia, validateImage, reencodeForHyperframes, UA,
   rankCandidates, scoreCandidate, MIN_LONG_EDGE,
   makeImageDeduper, imageDHashStats, hammingHex, pixFmtHasAlpha,
+  imageDominantColor, colorDistance,
 };

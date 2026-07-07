@@ -991,6 +991,27 @@ function archQuoteCard(scene, ctx) {
   return { html, script: s };
 }
 
+// PALETTE AFFINITY (Phase 6) — order an asset pool so the most ON-BRAND images
+// (dominant color closest to a pack accent/extra) come first; they then earn the
+// prominent foreground placements in Pass 1, while off-palette stock drops to
+// scrimmed B-roll or is left over. Assets without a known color (SVG vectors,
+// recolored anyway) sort as neutral, preserving their order. dominantColor is
+// attached by validateImage (asset_sources/util.imageDominantColor).
+function colorDist(a, b) {
+  const pa = /^#?([0-9a-f]{6})$/i.exec(String(a || "").trim());
+  const pb = /^#?([0-9a-f]{6})$/i.exec(String(b || "").trim());
+  if (!pa || !pb) return Infinity;
+  const na = parseInt(pa[1], 16), nb = parseInt(pb[1], 16);
+  const dr = ((na >> 16) & 255) - ((nb >> 16) & 255), dg = ((na >> 8) & 255) - ((nb >> 8) & 255), db = (na & 255) - (nb & 255);
+  return Math.sqrt(dr * dr + dg * dg + db * db);
+}
+function orderByPaletteAffinity(pool, theme) {
+  const brand = [theme.accent, theme.accent2, ...(theme.extras || [])].filter(Boolean);
+  if (!brand.length) return pool;
+  const aff = (a) => (a && a.dominantColor) ? Math.min(...brand.map((c) => colorDist(a.dominantColor, c))) : 200;
+  return pool.map((a, i) => ({ a, i, d: aff(a) })).sort((x, y) => x.d - y.d || x.i - y.i).map((o) => o.a);
+}
+
 // Partition the fetched assets into the kinds the kit places differently:
 // website screenshots (device-framed hero), vectors/illustrations (drawn-in side
 // art or grids), and photos (scrimmed full-bleed). Paths are relative to jobDir.
@@ -1289,6 +1310,11 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
   // guaranteed clean. Each scene owns a 3-track block [bg, content, spare] so a
   // background never collides with (or covers) another scene's content.
   const pools = partitionAssets(assets);
+  // On-brand images first: prominent foreground slots get the most palette-fit
+  // stock, off-palette stock falls to scrimmed B-roll. (Screenshots keep source
+  // order — a real product shot is placed by intent, not recolored for palette.)
+  pools.photos = orderByPaletteAffinity(pools.photos, theme);
+  pools.vectors = orderByPaletteAffinity(pools.vectors, theme);
   const plan = scenes.map((scene, i) => {
     const T = r(scene.start != null ? scene.start : scriptStart(scenes, i));
     const L = r(scene.duration || 4);

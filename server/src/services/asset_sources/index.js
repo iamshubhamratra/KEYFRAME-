@@ -169,6 +169,7 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
             ratio: imageMeta ? imageMeta.ratio : null,
             hasAlpha: imageMeta ? imageMeta.hasAlpha : undefined,
             dhash: imageMeta ? imageMeta.dhash : undefined,
+            dominantColor: imageMeta ? imageMeta.dominantColor : undefined,
           };
         } catch (e) {
           console.warn(`[assets] ${provider.name} candidate failed for "${q}": ${e.message}`);
