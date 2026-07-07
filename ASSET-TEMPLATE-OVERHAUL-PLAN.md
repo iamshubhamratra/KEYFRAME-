@@ -415,6 +415,29 @@ _Original item list (for reference):_
 
 ### Phase 5 — Template library scale-out to 50–100 (weeks 4–8)
 
+**✅ INFRASTRUCTURE + FIRST BATCH SHIPPED 2026-07-06** (`6fc6d87`, `15628d8`):
+- **Authoring tool + families:** `server/scripts/new-pack.js` (`buildPack(spec)` →
+  schema-validated `pack.json` + concise real `FRAME.md`; 5 families:
+  retro-terminal, healthcare-soft, data-viz-mono, fintech-dark, saas-gradient)
+  + `server/scripts/pack-catalog.js` (the variants). Guards the display font is
+  bundled/safe. "Parameterized families, not one-offs."
+- **10 new packs (14 → 24)** filling the gap categories: dev/CLI
+  (terminal-green/amber), healthcare (care-mint/lavender), data/analytics
+  (signal-mono, flux-analytics), fintech (vault-gold, ledger-noir), SaaS
+  (nimbus-saas, mint-launch) — each with `preview.mp4` + `poster.jpg`. Real
+  renders verified distinct, correct identity. Added JetBrains Mono + IBM Plex
+  Mono to the base64 font bundle for the mono/terminal families.
+- **Boot validation:** `frame_manifest.validateAll()` wired into `server.js` —
+  reports N/N valid, errors any present-but-invalid `pack.json` loudly (24/24).
+- **Golden-frame regression:** `server/scripts/check-pack-identity.js` — a fast
+  CI guard asserting every pack renders its manifest identity (ground + display
+  font + enrich passthrough); the exact regressions Phase 3/4 fixed would fail
+  it. All 24 pass.
+- **Deliberate:** batched for QUALITY + category coverage over raw count; the
+  tool makes 50–100 cheap when more are wanted (a pack = 1 folder, 0 code).
+
+_Original scale strategy (for reference):_
+
 With Phase 3, a template = one manifest + optional showcase. Scale strategy:
 
 1. **Parameterized families, not one-offs.** Define ~12 base families
