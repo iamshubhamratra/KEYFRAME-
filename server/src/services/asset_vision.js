@@ -108,15 +108,23 @@ async function checkAssetsRelevance({ assets, subject, tracker, signal }) {
         type: "text",
         text:
           `A stock library returned ${usable.length} asset(s) for a film whose subject is: "${subject}". ` +
-          `For EACH numbered asset, decide whether a film director would accept it — does it show the subject ` +
-          `itself, the people who use it, or a setting/mood that genuinely fits the subject's real-world domain? ` +
-          `Unrelated buildings/landmarks, maps, diagrams of something else, or random objects are NOT acceptable. ` +
-          `In particular, REJECT a photo of a specific physical machine, appliance, or hardware product (e.g. a ` +
-          `printer, fax machine, kitchen appliance) when the subject is really software, a digital service, a ` +
-          `brand, or an abstract idea and the object is linked only by a keyword or pun — a literal-match misfire. ` +
-          `(A recognizable concept metaphor — a lightbulb for "ideas", a rocket for "growth" — is fine.) ` +
-          `Also reject any asset with a ` +
-          `visible watermark, stock-site logo, or "sample/preview" text stamped across it.\n` +
+          `For EACH numbered asset, decide whether a PROFESSIONAL film director would actually put it on screen ` +
+          `in a premium promo. ACCEPT only if it clearly shows the subject itself, the people who genuinely use ` +
+          `it, or a real setting/mood that fits the subject's true domain — AND looks modern and professional. ` +
+          `REJECT (usable:false) if ANY of these is true:\n` +
+          `• LITERAL PUN on a word in the query instead of the real subject — e.g. a construction site / builders ` +
+          `/ cranes for "build", cargo ships or boats for "ship", rockets or outer space for "launch", plumbing ` +
+          `pipes for "pipeline", a physical target for "goals" — when the subject is software, a digital service, ` +
+          `a brand, or an idea. The visual must match the SUBJECT, not a keyword.\n` +
+          `• A screenshot, UI, app window, logo, or branding of a DIFFERENT named product or company than the ` +
+          `subject (e.g. a ChatGPT / Google / other-app screenshot for an unrelated product).\n` +
+          `• A specific physical machine / appliance / hardware (printer, fax, kitchen gadget) linked only by a keyword.\n` +
+          `• Generic, dated, or amateur CLIP-ART / cheesy cartoon illustration (little cartoon office people, ` +
+          `corporate-handshake clip-art, flat vector mascots) that would cheapen a premium promo.\n` +
+          `• Unrelated buildings / landmarks / maps / random objects, or a visible watermark, stock-site logo, or ` +
+          `"sample/preview" text.\n` +
+          `A clean, simple ICON-style metaphor (one lightbulb glyph for "ideas") is fine; a full literal SCENE of ` +
+          `the pun, or clip-art, is NOT. When unsure, REJECT — fewer on-topic assets beat off-topic filler.\n` +
           `The ${usable.length} images follow, each preceded by its number (1..${usable.length}).\n` +
           `Reply STRICT JSON: {"verdicts":[{"n":1,"usable":true|false,"sees":"<3-6 words: what it shows>"}]} — exactly one entry per asset.`,
       }];

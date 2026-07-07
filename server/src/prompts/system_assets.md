@@ -49,6 +49,8 @@ Rules for queries:
 - 3-5 descriptive words. Include the **subject**, plus a **setting** (rooftop, desk, street) and/or a **mood/lighting** word (warm, dim, golden hour) and/or a **perspective** (closeup, wide, aerial) when they sharpen the result.
 - Never submit a single abstract noun ("business", "office", "computer", "concept").
 - Picture the exact frame for the scene, then describe that frame.
+- **Never pun on an action/metaphor word.** For a software / digital / service subject, do NOT translate "build", "ship", "launch", "pipeline", "sync", "target/goals" into their physical scenes (construction sites & cranes, cargo ships & boats, rockets & outer space, plumbing pipes, dartboards). Those return an ad for the wrong industry. Anchor every query to the subject's REAL world — its users, their screens, their actual workspace and mood — not the wordplay. e.g. "ship your product faster" for a SaaS app → "focused developer team laptops modern office", NEVER "cargo ship" or "construction crew".
+- **Real, modern photography — never clip-art.** Favor queries that return authentic photos of real people, workspaces, and screens. Avoid words that pull generic cartoon vector clip-art ("cartoon", "illustration people", "flat vector mascot") — they cheapen a premium promo.
 
 ## Hard rules
 
