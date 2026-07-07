@@ -1,6 +1,6 @@
 ---
 version: alpha
-name: IBM Plex Mono — Frame (video / frame layer)
+name: Flux Analytics — Frame (video / frame layer)
 description: >
   a chart-first analyst system: near-monochrome ground, a faint data grid, mono labels and ONE signal accent reserved for the data — for dashboards, analytics, data and ML products
   Grounds are dark (#0C0A14); display type is Space Grotesk, body is Inter.
@@ -26,11 +26,11 @@ typography:
   stat-number:{ fontFamily: "Space Grotesk", cqw: 4.2, weight: 700, lineHeight: 1.0, color: "accent" }
 ---
 
-# IBM Plex Mono — Frame (video / frame layer)
+# Flux Analytics — Frame (video / frame layer)
 
 ## Overview
 
-IBM Plex Mono is a chart-first analyst system: near-monochrome ground, a faint data grid, mono labels and ONE signal accent reserved for the data — for dashboards, analytics, data and ML products. A violet-signal data system — monochrome ground, mono legends, one saturated series. The ground is dark (#0C0A14); text is
+Flux Analytics is a chart-first analyst system: near-monochrome ground, a faint data grid, mono labels and ONE signal accent reserved for the data — for dashboards, analytics, data and ML products. A violet-signal data system — monochrome ground, mono legends, one saturated series. The ground is dark (#0C0A14); text is
 ink #ECE8F5 on it. Exactly **one accent
 device** (#B76CFF) per frame marks the single focal point; #3DF0C0 is a supporting hue. Restraint carries
 the identity — a clear type hierarchy, generous space, and one saturated moment beat a busy frame.

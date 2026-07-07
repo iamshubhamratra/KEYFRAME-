@@ -1,6 +1,6 @@
 ---
 version: alpha
-name: IBM Plex Mono — Frame (video / frame layer)
+name: Vault Gold — Frame (video / frame layer)
 description: >
   a premium dark-fintech system: deep near-black ground, precise numerics, one metallic accent + one signal green — for finance, fintech, trading, crypto and investor stories
   Grounds are dark (#08090C); display type is Space Grotesk, body is Inter.
@@ -26,11 +26,11 @@ typography:
   stat-number:{ fontFamily: "Space Grotesk", cqw: 4.2, weight: 700, lineHeight: 1.0, color: "accent" }
 ---
 
-# IBM Plex Mono — Frame (video / frame layer)
+# Vault Gold — Frame (video / frame layer)
 
 ## Overview
 
-IBM Plex Mono is a premium dark-fintech system: deep near-black ground, precise numerics, one metallic accent + one signal green — for finance, fintech, trading, crypto and investor stories. Deep-black premium finance — precise numerics, a metallic-gold rule and a single signal green. The ground is dark (#08090C); text is
+Vault Gold is a premium dark-fintech system: deep near-black ground, precise numerics, one metallic accent + one signal green — for finance, fintech, trading, crypto and investor stories. Deep-black premium finance — precise numerics, a metallic-gold rule and a single signal green. The ground is dark (#08090C); text is
 ink #EAEDF2 on it. Exactly **one accent
 device** (#D9B24C) per frame marks the single focal point; #4BD07E is a supporting hue. Restraint carries
 the identity — a clear type hierarchy, generous space, and one saturated moment beat a busy frame.

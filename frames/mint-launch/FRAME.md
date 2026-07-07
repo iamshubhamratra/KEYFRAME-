@@ -1,6 +1,6 @@
 ---
 version: alpha
-name: Inter — Frame (video / frame layer)
+name: Mint Launch — Frame (video / frame layer)
 description: >
   a bright modern SaaS system: near-white ground, soft brand gradients, friendly rounded type and one vivid gradient accent — for SaaS explainers, product tours and launches
   Grounds are light (#F7FCFA); display type is Bricolage Grotesque, body is Inter.
@@ -26,11 +26,11 @@ typography:
   stat-number:{ fontFamily: "Bricolage Grotesque", cqw: 4.2, weight: 700, lineHeight: 1.0, color: "accent" }
 ---
 
-# Inter — Frame (video / frame layer)
+# Mint Launch — Frame (video / frame layer)
 
 ## Overview
 
-Inter is a bright modern SaaS system: near-white ground, soft brand gradients, friendly rounded type and one vivid gradient accent — for SaaS explainers, product tours and launches. A fresh product-launch system — white studio ground, an emerald→sky gradient, rounded type. The ground is light (#F7FCFA); text is
+Mint Launch is a bright modern SaaS system: near-white ground, soft brand gradients, friendly rounded type and one vivid gradient accent — for SaaS explainers, product tours and launches. A fresh product-launch system — white studio ground, an emerald→sky gradient, rounded type. The ground is light (#F7FCFA); text is
 ink #0F2A24 on it. Exactly **one accent
 device** (#10B981) per frame marks the single focal point; #38BDF8 is a supporting hue. Restraint carries
 the identity — a clear type hierarchy, generous space, and one saturated moment beat a busy frame.

@@ -1,6 +1,6 @@
 ---
 version: alpha
-name: JetBrains Mono — Frame (video / frame layer)
+name: Terminal Green — Frame (video / frame layer)
 description: >
   a retro-computer terminal: monospace type glowing on a dark CRT ground, scanline grid, one phosphor accent — for dev tools, CLIs, AI agents, hacker-grade launches
   Grounds are dark (#06110A); display type is JetBrains Mono, body is Inter.
@@ -26,11 +26,11 @@ typography:
   stat-number:{ fontFamily: "JetBrains Mono", cqw: 4.2, weight: 700, lineHeight: 1.0, color: "accent" }
 ---
 
-# JetBrains Mono — Frame (video / frame layer)
+# Terminal Green — Frame (video / frame layer)
 
 ## Overview
 
-JetBrains Mono is a retro-computer terminal: monospace type glowing on a dark CRT ground, scanline grid, one phosphor accent — for dev tools, CLIs, AI agents, hacker-grade launches. A phosphor-green CRT for the command line — the look of a shell you trust. The ground is dark (#06110A); text is
+Terminal Green is a retro-computer terminal: monospace type glowing on a dark CRT ground, scanline grid, one phosphor accent — for dev tools, CLIs, AI agents, hacker-grade launches. A phosphor-green CRT for the command line — the look of a shell you trust. The ground is dark (#06110A); text is
 ink #C8F7D4 on it. Exactly **one accent
 device** (#3DF07E) per frame marks the single focal point; #F0B23D is a supporting hue. Restraint carries
 the identity — a clear type hierarchy, generous space, and one saturated moment beat a busy frame.

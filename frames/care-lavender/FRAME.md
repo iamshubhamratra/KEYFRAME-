@@ -1,6 +1,6 @@
 ---
 version: alpha
-name: Inter — Frame (video / frame layer)
+name: Care Lavender — Frame (video / frame layer)
 description: >
   a calm, humane care system: soft off-white grounds, rounded cards, gentle teal/mint washes and one warm accent — for healthcare, wellness, patient and clinical products
   Grounds are light (#F6F5FC); display type is Bricolage Grotesque, body is Inter.
@@ -26,11 +26,11 @@ typography:
   stat-number:{ fontFamily: "Bricolage Grotesque", cqw: 4.2, weight: 700, lineHeight: 1.0, color: "accent" }
 ---
 
-# Inter — Frame (video / frame layer)
+# Care Lavender — Frame (video / frame layer)
 
 ## Overview
 
-Inter is a calm, humane care system: soft off-white grounds, rounded cards, gentle teal/mint washes and one warm accent — for healthcare, wellness, patient and clinical products. A gentle clinical-calm system in soft lavender and aqua — patient-first and unhurried. The ground is light (#F6F5FC); text is
+Care Lavender is a calm, humane care system: soft off-white grounds, rounded cards, gentle teal/mint washes and one warm accent — for healthcare, wellness, patient and clinical products. A gentle clinical-calm system in soft lavender and aqua — patient-first and unhurried. The ground is light (#F6F5FC); text is
 ink #2B2A44 on it. Exactly **one accent
 device** (#7C6CF0) per frame marks the single focal point; #4FC0C7 is a supporting hue. Restraint carries
 the identity — a clear type hierarchy, generous space, and one saturated moment beat a busy frame.

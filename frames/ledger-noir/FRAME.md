@@ -1,6 +1,6 @@
 ---
 version: alpha
-name: IBM Plex Mono — Frame (video / frame layer)
+name: Ledger Noir — Frame (video / frame layer)
 description: >
   a premium dark-fintech system: deep near-black ground, precise numerics, one metallic accent + one signal green — for finance, fintech, trading, crypto and investor stories
   Grounds are dark (#0A0C10); display type is IBM Plex Mono, body is Inter.
@@ -26,11 +26,11 @@ typography:
   stat-number:{ fontFamily: "IBM Plex Mono", cqw: 4.2, weight: 700, lineHeight: 1.0, color: "accent" }
 ---
 
-# IBM Plex Mono — Frame (video / frame layer)
+# Ledger Noir — Frame (video / frame layer)
 
 ## Overview
 
-IBM Plex Mono is a premium dark-fintech system: deep near-black ground, precise numerics, one metallic accent + one signal green — for finance, fintech, trading, crypto and investor stories. Near-black institutional fintech — platinum and a cool blue over a precise mono ledger. The ground is dark (#0A0C10); text is
+Ledger Noir is a premium dark-fintech system: deep near-black ground, precise numerics, one metallic accent + one signal green — for finance, fintech, trading, crypto and investor stories. Near-black institutional fintech — platinum and a cool blue over a precise mono ledger. The ground is dark (#0A0C10); text is
 ink #E9EEF5 on it. Exactly **one accent
 device** (#8FB4FF) per frame marks the single focal point; #C9CFDA is a supporting hue. Restraint carries
 the identity — a clear type hierarchy, generous space, and one saturated moment beat a busy frame.

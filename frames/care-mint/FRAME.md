@@ -1,6 +1,6 @@
 ---
 version: alpha
-name: Inter — Frame (video / frame layer)
+name: Care Mint — Frame (video / frame layer)
 description: >
   a calm, humane care system: soft off-white grounds, rounded cards, gentle teal/mint washes and one warm accent — for healthcare, wellness, patient and clinical products
   Grounds are light (#F3FAF7); display type is Bricolage Grotesque, body is Inter.
@@ -26,11 +26,11 @@ typography:
   stat-number:{ fontFamily: "Bricolage Grotesque", cqw: 4.2, weight: 700, lineHeight: 1.0, color: "accent" }
 ---
 
-# Inter — Frame (video / frame layer)
+# Care Mint — Frame (video / frame layer)
 
 ## Overview
 
-Inter is a calm, humane care system: soft off-white grounds, rounded cards, gentle teal/mint washes and one warm accent — for healthcare, wellness, patient and clinical products. Calm, humane care — soft mint grounds, rounded cards, a reassuring warm accent. The ground is light (#F3FAF7); text is
+Care Mint is a calm, humane care system: soft off-white grounds, rounded cards, gentle teal/mint washes and one warm accent — for healthcare, wellness, patient and clinical products. Calm, humane care — soft mint grounds, rounded cards, a reassuring warm accent. The ground is light (#F3FAF7); text is
 ink #163B33 on it. Exactly **one accent
 device** (#2FB39A) per frame marks the single focal point; #FF9E7A is a supporting hue. Restraint carries
 the identity — a clear type hierarchy, generous space, and one saturated moment beat a busy frame.

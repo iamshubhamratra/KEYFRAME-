@@ -118,7 +118,7 @@ function buildManifest(v) {
   const fam = FAMILIES[v.family];
   if (!fam) throw new Error(`unknown family "${v.family}"`);
   assertRenderableDisplay(v.display);
-  const fonts = [...new Set([v.body || "Inter", v.display, v.label].filter(Boolean))];
+  const fonts = [...new Set([v.body || "Inter", v.display, v.labelFont].filter(Boolean))];
   const manifest = {
     name: v.name,
     vibe: v.vibe || `${fam.tone}`,
@@ -143,7 +143,7 @@ function buildManifest(v) {
 // read + prose the LLM composer uses). Not 200 lines — enough to art-direct.
 function buildFrameMd(v, manifest) {
   const fam = FAMILIES[v.family];
-  const display = v.display, body = v.body || "Inter", labelFont = v.label || body;
+  const display = v.display, body = v.body || "Inter", labelFont = v.labelFont || body;
   const [a1, a2] = v.accents;
   const treat = fam.treatments.map(([title, , desc], i) =>
     `### ${i + 1} · ${title}\n${desc}`).join("\n\n");

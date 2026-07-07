@@ -1,6 +1,6 @@
 ---
 version: alpha
-name: JetBrains Mono — Frame (video / frame layer)
+name: Terminal Amber — Frame (video / frame layer)
 description: >
   a retro-computer terminal: monospace type glowing on a dark CRT ground, scanline grid, one phosphor accent — for dev tools, CLIs, AI agents, hacker-grade launches
   Grounds are dark (#0C0A06); display type is JetBrains Mono, body is Inter.
@@ -26,11 +26,11 @@ typography:
   stat-number:{ fontFamily: "JetBrains Mono", cqw: 4.2, weight: 700, lineHeight: 1.0, color: "accent" }
 ---
 
-# JetBrains Mono — Frame (video / frame layer)
+# Terminal Amber — Frame (video / frame layer)
 
 ## Overview
 
-JetBrains Mono is a retro-computer terminal: monospace type glowing on a dark CRT ground, scanline grid, one phosphor accent — for dev tools, CLIs, AI agents, hacker-grade launches. An amber monochrome monitor — warm phosphor glow on deep graphite. The ground is dark (#0C0A06); text is
+Terminal Amber is a retro-computer terminal: monospace type glowing on a dark CRT ground, scanline grid, one phosphor accent — for dev tools, CLIs, AI agents, hacker-grade launches. An amber monochrome monitor — warm phosphor glow on deep graphite. The ground is dark (#0C0A06); text is
 ink #F2E4C4 on it. Exactly **one accent
 device** (#FFB000) per frame marks the single focal point; #6BD4FF is a supporting hue. Restraint carries
 the identity — a clear type hierarchy, generous space, and one saturated moment beat a busy frame.

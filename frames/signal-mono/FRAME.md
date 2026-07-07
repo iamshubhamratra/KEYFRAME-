@@ -1,6 +1,6 @@
 ---
 version: alpha
-name: IBM Plex Mono — Frame (video / frame layer)
+name: Signal Mono — Frame (video / frame layer)
 description: >
   a chart-first analyst system: near-monochrome ground, a faint data grid, mono labels and ONE signal accent reserved for the data — for dashboards, analytics, data and ML products
   Grounds are dark (#0B0E14); display type is IBM Plex Mono, body is Inter.
@@ -26,11 +26,11 @@ typography:
   stat-number:{ fontFamily: "IBM Plex Mono", cqw: 4.2, weight: 700, lineHeight: 1.0, color: "accent" }
 ---
 
-# IBM Plex Mono — Frame (video / frame layer)
+# Signal Mono — Frame (video / frame layer)
 
 ## Overview
 
-IBM Plex Mono is a chart-first analyst system: near-monochrome ground, a faint data grid, mono labels and ONE signal accent reserved for the data — for dashboards, analytics, data and ML products. An analyst's dark canvas — a faint data grid and ONE cyan signal reserved for the numbers. The ground is dark (#0B0E14); text is
+Signal Mono is a chart-first analyst system: near-monochrome ground, a faint data grid, mono labels and ONE signal accent reserved for the data — for dashboards, analytics, data and ML products. An analyst's dark canvas — a faint data grid and ONE cyan signal reserved for the numbers. The ground is dark (#0B0E14); text is
 ink #E6ECF5 on it. Exactly **one accent
 device** (#39D0FF) per frame marks the single focal point; #FFC24D is a supporting hue. Restraint carries
 the identity — a clear type hierarchy, generous space, and one saturated moment beat a busy frame.

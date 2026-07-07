@@ -1,6 +1,6 @@
 ---
 version: alpha
-name: Inter — Frame (video / frame layer)
+name: Nimbus SaaS — Frame (video / frame layer)
 description: >
   a bright modern SaaS system: near-white ground, soft brand gradients, friendly rounded type and one vivid gradient accent — for SaaS explainers, product tours and launches
   Grounds are light (#FAFAFD); display type is Space Grotesk, body is Inter.
@@ -26,11 +26,11 @@ typography:
   stat-number:{ fontFamily: "Space Grotesk", cqw: 4.2, weight: 700, lineHeight: 1.0, color: "accent" }
 ---
 
-# Inter — Frame (video / frame layer)
+# Nimbus SaaS — Frame (video / frame layer)
 
 ## Overview
 
-Inter is a bright modern SaaS system: near-white ground, soft brand gradients, friendly rounded type and one vivid gradient accent — for SaaS explainers, product tours and launches. Bright modern SaaS — near-white ground, a soft indigo→pink brand gradient, friendly type. The ground is light (#FAFAFD); text is
+Nimbus SaaS is a bright modern SaaS system: near-white ground, soft brand gradients, friendly rounded type and one vivid gradient accent — for SaaS explainers, product tours and launches. Bright modern SaaS — near-white ground, a soft indigo→pink brand gradient, friendly type. The ground is light (#FAFAFD); text is
 ink #171525 on it. Exactly **one accent
 device** (#6366F1) per frame marks the single focal point; #EC4899 is a supporting hue. Restraint carries
 the identity — a clear type hierarchy, generous space, and one saturated moment beat a busy frame.
