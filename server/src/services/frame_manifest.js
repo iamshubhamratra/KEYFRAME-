@@ -135,4 +135,31 @@ function listManifests() {
   return frameRegistry.listPacks().filter((n) => getManifest(n) != null);
 }
 
-module.exports = { PackManifestSchema, getManifest, listManifests, manifestPath };
+// Boot health-check (Phase 5): validate every installed pack's manifest and log a
+// summary, so a pack.json that's present-but-invalid fails LOUDLY at startup
+// instead of silently degrading to legacy tables mid-render. Never throws — the
+// server still boots (fail-soft), but the operator sees the bad pack immediately.
+function validateAll() {
+  const packs = frameRegistry.listPacks();
+  const valid = [], missing = [], invalid = [];
+  for (const name of packs) {
+    const p = manifestPath(name);
+    let exists = false;
+    try { exists = !!(p && fs.statSync(p)); } catch { exists = false; }
+    if (!exists) { missing.push(name); continue; }
+    // Force a fresh validate (bypass cache) so a bad file is always reported.
+    try {
+      PackManifestSchema.parse(JSON.parse(fs.readFileSync(p, "utf8")));
+      valid.push(name);
+    } catch (err) {
+      invalid.push({ name, error: err && err.message ? String(err.message).split("\n")[0] : String(err) });
+    }
+  }
+  console.log(`[manifest] ${valid.length}/${packs.length} packs have a valid pack.json` +
+    (missing.length ? ` · ${missing.length} legacy-only (no manifest)` : "") +
+    (invalid.length ? ` · ${invalid.length} INVALID` : ""));
+  for (const { name, error } of invalid) console.error(`[manifest] INVALID ${name}/pack.json — ${error}`);
+  return { valid, missing, invalid };
+}
+
+module.exports = { PackManifestSchema, getManifest, listManifests, manifestPath, validateAll };

@@ -131,6 +131,8 @@ async function main() {
   // SPA-ish 404 JSON for /api/*.
   app.use("/api", (_req, res) => res.status(404).json({ error: "not found" }));
 
+  try { require("./src/services/frame_manifest").validateAll(); } catch (e) { console.warn(`[manifest] boot validation skipped: ${e.message}`); }
+
   const server = app.listen(config.server.port, () => {
     console.log(`[server] listening on :${config.server.port}`);
     console.log(`[server] videosDir=${config.paths.videosDir}`);

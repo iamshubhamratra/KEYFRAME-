@@ -1,0 +1,58 @@
+{
+  "name": "vault-gold",
+  "vibe": "a premium dark-fintech system: deep near-black ground, precise numerics, one metallic accent + one signal green — for finance, fintech, trading, crypto and investor stories",
+  "colors": {
+    "void": "#08090C",
+    "panel": "#101319",
+    "ink": "#EAEDF2",
+    "gold": "#D9B24C",
+    "green": "#4BD07E",
+    "slate": "#5A6B8C"
+  },
+  "fonts": [
+    "Inter",
+    "Space Grotesk",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#08090C"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.035
+  },
+  "fx": {
+    "canvas": "constellation",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#D9B24C",
+      "#4BD07E"
+    ],
+    "extras": [
+      "#5A6B8C",
+      "#F0D68A"
+    ],
+    "emphasisCss": "background:linear-gradient(100deg,#D9B24C,#F0D68A);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#D9B24C;"
+  },
+  "assets": {
+    "photoMod": "premium dark fintech finance abstract",
+    "iconStyle": "duotone",
+    "keywords": [
+      "premium",
+      "dark",
+      "finance",
+      "trust",
+      "gold"
+    ]
+  },
+  "typography": {
+    "display": "Space Grotesk"
+  },
+  "camera3d": {
+    "ground": "#08090C"
+  }
+}

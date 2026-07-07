@@ -1,0 +1,57 @@
+{
+  "name": "ledger-noir",
+  "vibe": "a premium dark-fintech system: deep near-black ground, precise numerics, one metallic accent + one signal green — for finance, fintech, trading, crypto and investor stories",
+  "colors": {
+    "void": "#0A0C10",
+    "panel": "#131722",
+    "ink": "#E9EEF5",
+    "blue": "#8FB4FF",
+    "platinum": "#C9CFDA",
+    "teal": "#4FD1C5"
+  },
+  "fonts": [
+    "Inter",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#0A0C10"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.035
+  },
+  "fx": {
+    "canvas": "constellation",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#8FB4FF",
+      "#C9CFDA"
+    ],
+    "extras": [
+      "#4FD1C5",
+      "#B7CCF5"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "premium dark fintech finance abstract",
+    "iconStyle": "duotone",
+    "keywords": [
+      "premium",
+      "dark",
+      "finance",
+      "trust",
+      "gold"
+    ]
+  },
+  "typography": {
+    "display": "IBM Plex Mono"
+  },
+  "camera3d": {
+    "ground": "#0A0C10"
+  }
+}
