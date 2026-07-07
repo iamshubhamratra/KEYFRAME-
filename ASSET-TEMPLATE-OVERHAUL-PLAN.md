@@ -465,6 +465,29 @@ With Phase 3, a template = one manifest + optional showcase. Scale strategy:
 
 ### Phase 6 — Asset-to-template matching (with Phases 2+3 in place, ~1 week)
 
+**✅ SHIPPED 2026-07-06** (`8cd5430`, `1415642`):
+- **Query time** (already shipped in Phase 2): `assets.styleModifiers`/keywords
+  appended to searches, per-pack Iconify `iconSet`, style-keyword scoring — all
+  manifest-driven since Phase 3.
+- **Scoring time — palette affinity (`8cd5430`):** `validateImage` attaches a
+  `dominantColor` (a one-pixel ffmpeg average) that flows onto the asset via
+  `acquire()`; scene-kit orders the photo/vector pools by color distance to the
+  pack accents so the most on-brand stock earns Pass-1 foreground slots and
+  off-palette stock drops to scrimmed B-roll. Screenshots keep source order.
+  New `util` exports `imageDominantColor()` + `colorDistance()`. Backward-safe:
+  no-color assets sort neutral.
+- **Media-type preference (`1415642`):** `assets.prefer` in the manifest —
+  photo-forward packs lead split-art with photos, illustration/vector-forward
+  packs (default) lead with vectors. Set per family + patched the 8 photo-forward
+  existing packs.
+- **Deferred (lower value, overlaps P4):** placement-time `layout.preferredArchetypes`
+  / density bias — the intent-driven weaving (P4) + palette/prefer ordering already
+  cover the high-value asset↔template fit.
+- Verified: on-brand asset placed before off-brand (dist 1 vs 337); photo-forward
+  vs vector-forward split confirmed; identity regression 24/24; boot 24/24.
+
+_Original notes (for reference):_
+
 This falls out of the manifest + scoring work:
 
 - **Query time**: append `assets.styleModifiers` to search queries; select
