@@ -64,13 +64,36 @@ async function downloadSvg(iconId, color, outPath) {
   return outPath;
 }
 
-// Scene directions are phrases ("scalable growth"); reduce to iconic terms so the
-// search hits real icons — the whole (short) phrase first, then salient words.
+// Generic adjectives / fillers + camera-motion verbs that leak in from a scene's
+// visualDirection ("camera pulls back", "messy collapses clean"). Searching these
+// grabs the wrong icon — "clean X" → a hand-washing icon, "camera Y" → a camera —
+// so they must never be the FIRST search term; a concrete noun wins.
+const ICON_STOP = new Set([
+  "the", "and", "for", "with", "your", "our", "its", "into", "onto", "from", "that", "this", "new", "all", "one", "two",
+  "clean", "messy", "rapid", "quick", "fast", "slow", "smart", "easy", "simple", "best", "great", "good", "modern",
+  "bold", "calm", "soft", "bright", "dark", "light", "big", "small", "huge", "tiny", "real", "live", "more", "less",
+  "seamless", "effortless", "instant", "clear", "shareable", "messy",
+  "zoom", "zooms", "zooming", "pan", "pans", "panning", "pull", "pulls", "push", "pushes", "reveal", "reveals",
+  "revealing", "show", "shows", "showing", "slide", "slides", "fade", "fades", "drift", "drifts", "float", "floats",
+  "spin", "spins", "collapse", "collapses", "collapsing", "turn", "turns", "lands", "settles",
+  "instantly", "smoothly", "gently", "quickly", "across", "back", "then", "over", "around", "dizzying", "sweeping",
+  "camera", "shot", "scene", "angle", "motion", "moving", "frame", "closeup", "wide",
+]);
+
+// Scene directions are phrases ("scalable growth", "clean browser frame zooms");
+// reduce them to iconic terms so the search hits a REAL, on-topic icon. Concrete
+// nouns first (skip the generic/verb stoplist), then a short whole phrase, then
+// anything left — so an abstract camera direction never wins over the subject noun.
 function iconQueryTerms(query) {
   const words = String(query || "").toLowerCase().match(/[a-z]{3,}/g) || [];
+  const nouns = words.filter((w) => !ICON_STOP.has(w));
   const terms = [];
-  if (words.length && words.length <= 3) terms.push(words.join(" "));
-  for (const w of words) if (!terms.includes(w)) terms.push(w);
+  for (const w of nouns) if (!terms.includes(w)) terms.push(w);           // concrete nouns lead
+  if (words.length && words.length <= 3) {                                 // a short whole phrase can resolve ("bar chart")
+    const phrase = words.join(" ");
+    if (!terms.includes(phrase)) terms.push(phrase);
+  }
+  for (const w of words) if (!terms.includes(w)) terms.push(w);            // last resort: any word
   return terms.slice(0, 4);
 }
 
