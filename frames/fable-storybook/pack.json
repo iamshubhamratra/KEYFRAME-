@@ -53,5 +53,10 @@
   },
   "camera3d": {
     "ground": "#33261A"
+  },
+  "textfx": {
+    "enter": "drift",
+    "emphasis": "underline-grow",
+    "align": "left"
   }
 }

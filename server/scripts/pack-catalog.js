@@ -25,6 +25,9 @@ module.exports = [
     colors: { void: "#0C0A06", panel: "#1A150C", grid: "#33270F", ink: "#F2E4C4", amber: "#FFB000", cyan: "#6BD4FF" },
     ground: "#0C0A06", ink: "#F2E4C4", accents: ["#FFB000", "#6BD4FF"], extras: ["#33270F", "#FFD37A"],
     display: "JetBrains Mono", body: "Inter", labelFont: "JetBrains Mono",
+    // sibling twist vs terminal-green: RGB-split glitch entrance + [bracketed] key term, whip cut
+    textfx: { enter: "glitch", emphasis: "bracket" },
+    motion: { cut: "whip", drift: 1.03 },
   },
   // ---- healthcare-soft ----
   {
@@ -39,7 +42,10 @@ module.exports = [
     overview: "A gentle clinical-calm system in soft lavender and aqua — patient-first and unhurried.",
     colors: { cloud: "#F6F5FC", linen: "#ECEAF7", ink: "#2B2A44", lavender: "#7C6CF0", aqua: "#4FC0C7", blush: "#F3A6C4" },
     ground: "#F6F5FC", ink: "#2B2A44", accents: ["#7C6CF0", "#4FC0C7"], extras: ["#F3A6C4", "#CFC9F3"],
-    display: "Bricolage Grotesque", body: "Inter", labelFont: "Inter",
+    // sibling twist vs care-mint: a SERIF display (Fraunces), mask-reveal rise, grow-underline, centered
+    display: "Fraunces", body: "Inter", labelFont: "Inter",
+    textfx: { enter: "mask-reveal", emphasis: "underline-grow", align: "center", sizeScale: 1.05 },
+    motion: { cut: "glow", drift: 1.03 },
   },
   // ---- data-viz-mono (dashboards / analytics / ML) ----
   {
@@ -55,6 +61,9 @@ module.exports = [
     colors: { base: "#0C0A14", panel: "#151122", grid: "#221A33", ink: "#ECE8F5", violet: "#B76CFF", mint: "#3DF0C0" },
     ground: "#0C0A14", ink: "#ECE8F5", accents: ["#B76CFF", "#3DF0C0"], extras: ["#221A33", "#D3AEFF"],
     display: "Space Grotesk", body: "Inter", labelFont: "IBM Plex Mono",
+    // sibling twist vs signal-mono: words slide in from the left, boxed signal term, strobe cut
+    textfx: { enter: "slide", emphasis: "boxed", case: "none", tracking: 0 },
+    motion: { cut: "flash", drift: 1.03 },
   },
   // ---- fintech-dark (finance / trading / crypto / investor) ----
   {
@@ -62,8 +71,10 @@ module.exports = [
     overview: "Deep-black premium finance — precise numerics, a metallic-gold rule and a single signal green.",
     colors: { void: "#08090C", panel: "#101319", ink: "#EAEDF2", gold: "#D9B24C", green: "#4BD07E", slate: "#5A6B8C" },
     ground: "#08090C", ink: "#EAEDF2", accents: ["#D9B24C", "#4BD07E"], extras: ["#5A6B8C", "#F0D68A"],
-    display: "Space Grotesk", body: "Inter", labelFont: "IBM Plex Mono",
+    // a heavy premium display (Archivo Black) + gold gradient key term; line-wipe (family) + iris cut
+    display: "Archivo Black", body: "Inter", labelFont: "IBM Plex Mono",
     emphasisCss: GRAD("#D9B24C", "#F0D68A"),
+    motion: { cut: "iris", drift: 1.035 },
   },
   {
     name: "ledger-noir", family: "fintech-dark", label: "Ledger Noir",
@@ -71,6 +82,9 @@ module.exports = [
     colors: { void: "#0A0C10", panel: "#131722", ink: "#E9EEF5", blue: "#8FB4FF", platinum: "#C9CFDA", teal: "#4FD1C5" },
     ground: "#0A0C10", ink: "#E9EEF5", accents: ["#8FB4FF", "#C9CFDA"], extras: ["#4FD1C5", "#B7CCF5"],
     display: "IBM Plex Mono", body: "Inter", labelFont: "IBM Plex Mono",
+    // sibling twist vs vault-gold: restrained institutional — clean blur-up rise, caps + grow-underline
+    textfx: { enter: "blur-up", emphasis: "underline-grow", case: "upper", tracking: 0.03 },
+    motion: { cut: "panel", drift: 1.035 },
   },
   // ---- saas-gradient (SaaS explainers / product tours / launches) ----
   {
@@ -88,5 +102,8 @@ module.exports = [
     ground: "#F7FCFA", ink: "#0F2A24", accents: ["#10B981", "#38BDF8"], extras: ["#A3E635", "#A7F3D0"],
     display: "Bricolage Grotesque", body: "Inter", labelFont: "Inter",
     emphasisCss: GRAD("#10B981", "#38BDF8"),
+    // sibling twist vs nimbus-saas: characters pop in one by one, marker-highlit key phrase, whip cut
+    textfx: { enter: "char-pop", emphasis: "marker", align: "center" },
+    motion: { cut: "whip", drift: 1.04 },
   },
 ];

@@ -52,6 +52,15 @@
       "vector"
     ]
   },
+  "textfx": {
+    "enter": "blur-up",
+    "emphasis": "underline-grow",
+    "case": "upper",
+    "tracking": 0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
   "typography": {
     "display": "IBM Plex Mono"
   },

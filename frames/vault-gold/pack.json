@@ -11,7 +11,7 @@
   },
   "fonts": [
     "Inter",
-    "Space Grotesk",
+    "Archivo Black",
     "IBM Plex Mono"
   ],
   "surface": {
@@ -20,7 +20,7 @@
     "ground": "#08090C"
   },
   "motion": {
-    "cut": "panel",
+    "cut": "iris",
     "drift": 1.035
   },
   "fx": {
@@ -53,8 +53,17 @@
       "vector"
     ]
   },
+  "textfx": {
+    "enter": "line-wipe",
+    "emphasis": "gradient",
+    "case": "none",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
   "typography": {
-    "display": "Space Grotesk"
+    "display": "Archivo Black"
   },
   "camera3d": {
     "ground": "#08090C"

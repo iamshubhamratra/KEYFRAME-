@@ -47,5 +47,11 @@
   },
   "camera3d": {
     "ground": "#0A0A0A"
+  },
+  "textfx": {
+    "enter": "spring",
+    "emphasis": "boxed",
+    "case": "upper",
+    "align": "left"
   }
 }

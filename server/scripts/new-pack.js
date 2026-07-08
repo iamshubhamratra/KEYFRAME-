@@ -37,6 +37,8 @@ const FAMILIES = {
     surface: { flat: false, lightCinematic: false },      // dark CRT ground
     motion: { cut: "push", drift: 1.03 },
     fx: { canvas: "grid", three: null },                  // synthwave horizon grid
+    // headline types on, char by char, like a command; the key token in a filled box
+    textfx: { enter: "typewriter", emphasis: "boxed", case: "none", tracking: 0, align: "left" },
     assets: { photoMod: "retro terminal crt scanline dark tech", iconStyle: "line", keywords: ["retro", "terminal", "mono", "crt", "dark"] },
     tone: "a retro-computer terminal: monospace type glowing on a dark CRT ground, scanline grid, one phosphor accent — for dev tools, CLIs, AI agents, hacker-grade launches",
     treatments: [
@@ -51,6 +53,8 @@ const FAMILIES = {
     surface: { flat: false, lightCinematic: true },       // soft light ground, gentle gradients
     motion: { cut: "wash", drift: 1.03 },
     fx: { canvas: "bokeh", three: null },
+    // words drift up softly through a light blur; the key phrase gets a warm marker swipe
+    textfx: { enter: "drift", emphasis: "marker", case: "none", tracking: 0, align: "left" },
     assets: { photoMod: "soft clean calm medical wellness natural light", iconStyle: "soft", keywords: ["soft", "calm", "clean", "wellness", "rounded"] },
     tone: "a calm, humane care system: soft off-white grounds, rounded cards, gentle teal/mint washes and one warm accent — for healthcare, wellness, patient and clinical products",
     treatments: [
@@ -65,6 +69,8 @@ const FAMILIES = {
     surface: { flat: false, lightCinematic: false },      // dark analyst ground
     motion: { cut: "panel", drift: 1.02 },
     fx: { canvas: "constellation", three: null },
+    // characters snap in like values populating a readout; the signal term glows; mono caps
+    textfx: { enter: "char-pop", emphasis: "glow", case: "upper", tracking: 0.04, align: "left" },
     assets: { photoMod: "data analytics dashboard chart monochrome", iconStyle: "line", keywords: ["data", "chart", "analytics", "mono", "grid"], prefer: ["photo", "vector"] },
     tone: "a chart-first analyst system: near-monochrome ground, a faint data grid, mono labels and ONE signal accent reserved for the data — for dashboards, analytics, data and ML products",
     treatments: [
@@ -79,6 +85,8 @@ const FAMILIES = {
     surface: { flat: false, lightCinematic: false },
     motion: { cut: "panel", drift: 1.035 },
     fx: { canvas: "constellation", three: null },
+    // headline reveals with a precise horizontal wipe, like a printing ledger line
+    textfx: { enter: "line-wipe", emphasis: "gradient", case: "none", tracking: 0, align: "left" },
     assets: { photoMod: "premium dark fintech finance abstract", iconStyle: "duotone", keywords: ["premium", "dark", "finance", "trust", "gold"], prefer: ["photo", "vector"] },
     tone: "a premium dark-fintech system: deep near-black ground, precise numerics, one metallic accent + one signal green — for finance, fintech, trading, crypto and investor stories",
     treatments: [
@@ -93,6 +101,8 @@ const FAMILIES = {
     surface: { flat: false, lightCinematic: true },       // bright light ground, keeps gradients
     motion: { cut: "glow", drift: 1.04 },
     fx: { canvas: "flow", three: null },
+    // friendly, bouncy: words spring in with an overshoot; the brand phrase in a gradient clip; centered
+    textfx: { enter: "spring", emphasis: "gradient", case: "none", tracking: 0, align: "center", sizeScale: 1.05 },
     assets: { photoMod: "modern bright saas product gradient clean", iconStyle: "duotone", keywords: ["modern", "bright", "gradient", "clean", "friendly"], prefer: ["photo", "vector"] },
     tone: "a bright modern SaaS system: near-white ground, soft brand gradients, friendly rounded type and one vivid gradient accent — for SaaS explainers, product tours and launches",
     treatments: [
@@ -133,6 +143,9 @@ function buildManifest(v) {
       emphasisCss: v.emphasisCss || null,
     },
     assets: { ...fam.assets, ...(v.assets || {}) },
+    // Per-pack text animation + typographic treatment (the anti-sameness layer):
+    // family DNA sets the baseline, the variant overrides for real per-pack variety.
+    textfx: { ...(fam.textfx || {}), ...(v.textfx || {}) },
     typography: { display: v.display },
     camera3d: { ground: v.camera3dGround || (lum(v.ground) < 90 ? v.ground : v.ink) },
   };

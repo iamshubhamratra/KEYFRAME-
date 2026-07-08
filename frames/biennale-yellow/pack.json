@@ -47,5 +47,10 @@
   },
   "camera3d": {
     "ground": "#1B2566"
+  },
+  "textfx": {
+    "enter": "line-wipe",
+    "emphasis": "marker",
+    "align": "left"
   }
 }

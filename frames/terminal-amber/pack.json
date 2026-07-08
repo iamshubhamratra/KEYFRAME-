@@ -19,7 +19,7 @@
     "ground": "#0C0A06"
   },
   "motion": {
-    "cut": "push",
+    "cut": "whip",
     "drift": 1.03
   },
   "fx": {
@@ -48,6 +48,15 @@
       "dark"
     ],
     "prefer": []
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "bracket",
+    "case": "none",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
   },
   "typography": {
     "display": "JetBrains Mono"

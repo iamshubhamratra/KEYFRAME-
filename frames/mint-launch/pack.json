@@ -19,7 +19,7 @@
     "ground": "#F7FCFA"
   },
   "motion": {
-    "cut": "glow",
+    "cut": "whip",
     "drift": 1.04
   },
   "fx": {
@@ -51,6 +51,15 @@
       "photo",
       "vector"
     ]
+  },
+  "textfx": {
+    "enter": "char-pop",
+    "emphasis": "marker",
+    "case": "none",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1.05,
+    "align": "center"
   },
   "typography": {
     "display": "Bricolage Grotesque"

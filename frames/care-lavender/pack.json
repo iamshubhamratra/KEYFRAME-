@@ -11,7 +11,7 @@
   },
   "fonts": [
     "Inter",
-    "Bricolage Grotesque"
+    "Fraunces"
   ],
   "surface": {
     "flat": false,
@@ -19,7 +19,7 @@
     "ground": "#F6F5FC"
   },
   "motion": {
-    "cut": "wash",
+    "cut": "glow",
     "drift": 1.03
   },
   "fx": {
@@ -49,8 +49,17 @@
     ],
     "prefer": []
   },
+  "textfx": {
+    "enter": "mask-reveal",
+    "emphasis": "underline-grow",
+    "case": "none",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1.05,
+    "align": "center"
+  },
   "typography": {
-    "display": "Bricolage Grotesque"
+    "display": "Fraunces"
   },
   "camera3d": {
     "ground": "#2B2A44"

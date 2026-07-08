@@ -20,8 +20,8 @@
     "ground": "#0C0A14"
   },
   "motion": {
-    "cut": "panel",
-    "drift": 1.02
+    "cut": "flash",
+    "drift": 1.03
   },
   "fx": {
     "canvas": "constellation",
@@ -52,6 +52,15 @@
       "photo",
       "vector"
     ]
+  },
+  "textfx": {
+    "enter": "slide",
+    "emphasis": "boxed",
+    "case": "none",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
   },
   "typography": {
     "display": "Space Grotesk"

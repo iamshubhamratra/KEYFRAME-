@@ -49,6 +49,15 @@
     ],
     "prefer": []
   },
+  "textfx": {
+    "enter": "typewriter",
+    "emphasis": "boxed",
+    "case": "none",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
   "typography": {
     "display": "JetBrains Mono"
   },

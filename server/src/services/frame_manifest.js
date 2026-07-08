@@ -93,6 +93,29 @@ const PackManifestSchema = z
       })
       .default({}),
 
+    // Per-pack TEXT ANIMATION + typographic treatment (the anti-sameness layer).
+    // Before this, every pack shared ONE headline animation (wordsIn: blur-up) and
+    // the text layout rotated by seed, not by pack — so packs differed only in
+    // color + font. `textfx` lets each pack pick a distinct headline entrance, a
+    // distinct emphasis effect, and its own display case/tracking/weight/size/align.
+    // Every field defaults to the legacy look, so a pack with no textfx block
+    // renders exactly as before (blur-up / gradient emphasis / seed-rotated layout).
+    textfx: z
+      .object({
+        // Headline word/char entrance. word-level: blur-up | slide | spring |
+        // mask-reveal | line-wipe | drift ; char-level: typewriter | char-pop | glitch
+        enter: z.string().default("blur-up"),
+        // Emphasized-word treatment: gradient | glow | boxed | marker |
+        // underline-grow | bracket
+        emphasis: z.string().default("gradient"),
+        case: z.string().default("none"),        // none | upper — display case
+        tracking: z.number().default(0),          // display letter-spacing (em)
+        weight: z.number().nullable().default(null), // display weight override
+        sizeScale: z.number().default(1),         // headline size multiplier (~0.85–1.15)
+        align: z.string().default("rotate"),      // left | center | right | rotate (seed)
+      })
+      .default({}),
+
     // --- Reserved for later Phase 3/4 population (kept optional, unpopulated). ---
     typography: z.record(z.any()).optional(),
     layout: z.record(z.any()).optional(),

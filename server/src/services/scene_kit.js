@@ -164,8 +164,23 @@ function deriveTheme(framePack, storyboard) {
     && (isBundled(displayFamily) || RESOLVABLE.has(String(displayFamily).toLowerCase().trim()));
   const displayStack = displayUsable ? `'${displayFamily}', ${fontStack}` : fontStack;
   const fontFace = displayUsable ? fontFaceCss(displayFamily) : "";
+  // TEXT-FX (per-pack headline animation + typographic treatment). From the
+  // manifest's textfx block; every field falls back to the legacy look so packs
+  // with no textfx render byte-identically to before (blur-up / gradient / seed
+  // layout). This is the layer that stops every pack sharing one word animation.
+  const tf = (manifest && manifest.textfx) || {};
+  const textfx = {
+    enter: tf.enter || "blur-up",
+    emphasis: tf.emphasis || "gradient",
+    case: tf.case || "none",
+    tracking: typeof tf.tracking === "number" ? tf.tracking : 0,
+    weight: tf.weight || null,
+    sizeScale: typeof tf.sizeScale === "number" && tf.sizeScale > 0 ? tf.sizeScale : 1,
+    align: tf.align || "rotate",
+  };
   return {
     ground, ink, accents,
+    textfx,
     accent: accents[0],
     accent2: accents[1] || accents[0],
     extras: skin?.extras || [],
@@ -193,6 +208,23 @@ function emitHelpers(D) {
     `function reps(c){ return Math.max(0, Math.floor(D/c)-1); }`,
     `function sreps(span,c){ return Math.max(0, Math.floor(span/c)-1); }`,
     `function wordsIn(sel,at,stg){ tl.fromTo(sel,{yPercent:80,opacity:0,filter:"blur(8px)"},{yPercent:0,opacity:1,filter:"blur(0px)",duration:0.62,stagger:stg||0.08,ease:"power3.out"},at); }`,
+    // textIn — the pack-selected headline entrance. word-level modes animate the
+    // .kfw spans; char-level modes (typewriter/char-pop/glitch) animate .kfc spans
+    // (headlineSpans splits into chars only for those). Each mode is a SINGLE
+    // fromTo/stagger so it never overlaps sceneMotion's container tweens (which own
+    // the clip's scale/xPercent, not .kfw/.kfc) — the overlapping-tween lint stays
+    // clean. Char staggers are budget-clamped so long headlines still finish on time.
+    `function _cstg(sel,cap,budget){ var n=Math.max(1,gsap.utils.toArray(sel).length); return Math.min(cap, budget/n); }`,
+    `function textIn(mode,ws,cs,at,stg){ var s=stg||0.08;`
+      + ` if(mode==="typewriter"){ tl.fromTo(cs,{opacity:0},{opacity:1,duration:0.01,ease:"none",stagger:_cstg(cs,0.05,1.0)},at); return; }`
+      + ` if(mode==="char-pop"){ tl.fromTo(cs,{opacity:0,scale:0.3,y:12},{opacity:1,scale:1,y:0,duration:0.5,ease:"back.out(2.2)",stagger:_cstg(cs,0.035,0.9)},at); return; }`
+      + ` if(mode==="glitch"){ tl.fromTo(cs,{opacity:0,x:-9,skewX:14},{opacity:1,x:0,skewX:0,duration:0.34,ease:"power2.out",stagger:_cstg(cs,0.03,0.8)},at); return; }`
+      + ` if(mode==="slide"){ tl.fromTo(ws,{opacity:0,x:-36},{opacity:1,x:0,duration:0.55,ease:"power3.out",stagger:s},at); return; }`
+      + ` if(mode==="spring"){ tl.fromTo(ws,{opacity:0,scale:0.62,y:18},{opacity:1,scale:1,y:0,duration:0.7,ease:"back.out(1.9)",stagger:s},at); return; }`
+      + ` if(mode==="mask-reveal"){ tl.fromTo(ws,{opacity:0,yPercent:55,clipPath:"inset(0 0 100% 0)"},{opacity:1,yPercent:0,clipPath:"inset(0 0 0% 0)",duration:0.66,ease:"power3.out",stagger:s},at); return; }`
+      + ` if(mode==="line-wipe"){ tl.fromTo(ws,{opacity:0,clipPath:"inset(0 100% 0 0)"},{opacity:1,clipPath:"inset(0 0% 0 0)",duration:0.6,ease:"power2.out",stagger:s},at); return; }`
+      + ` if(mode==="drift"){ tl.fromTo(ws,{opacity:0,y:26,filter:"blur(5px)"},{opacity:1,y:0,filter:"blur(0px)",duration:0.8,ease:"power2.out",stagger:s*1.4},at); return; }`
+      + ` tl.fromTo(ws,{yPercent:80,opacity:0,filter:"blur(8px)"},{yPercent:0,opacity:1,filter:"blur(0px)",duration:0.62,ease:"power3.out",stagger:s},at); }`,
     `function pushIn(sel,at,dur,from,to){ tl.fromTo(sel,{scale:from},{scale:to,duration:dur,ease:"none"},at); }`,
     `function countUp(id,to,at,dur,fmt){ var o={v:0}; tl.to(o,{v:to,duration:dur,ease:"power2.out",snap:{v:1},onUpdate:function(){var el=document.getElementById(id);if(el)el.textContent=fmt(Math.round(o.v));}},at); }`,
     `function exitScene(sel,at,end){ tl.to(sel,{opacity:0,duration:0.3,ease:"power2.in"},at); tl.set(sel,{opacity:0},end); }`,
@@ -810,14 +842,63 @@ function mix(hex, with_, t) { const a = hexToRgb(hex), b = hexToRgb(with_); cons
 
 // split a headline into <span class="kfw"> words, marking the emphasis word(s) as
 // the single gradient/accent word.
+const CHAR_ENTERS = new Set(["typewriter", "char-pop", "glitch"]);
+
 function headlineSpans(headline, emphasis, theme) {
   const words = String(headline || "").trim().split(/\s+/).filter(Boolean);
   const emph = String(emphasis || "").trim().toLowerCase();
+  // Char-level entrances (typewriter/char-pop/glitch) animate per-character .kfc
+  // spans; word-level entrances animate the .kfw word span directly. The .kfw
+  // wrapper always carries emphasis (.kfacc) and the display font, so emphasis
+  // and font identity work identically in both modes.
+  const charMode = !!(theme && theme.textfx && CHAR_ENTERS.has(theme.textfx.enter));
   return words.map((w) => {
     const isEmph = emph && emph.split(/\s+/).includes(w.toLowerCase().replace(/[.,!?]/g, ""));
     const cls = isEmph ? "kfw kfacc" : "kfw";
-    return `<span class="${cls}">${esc(w)}</span>`;
+    const inner = charMode
+      ? [...w].map((ch) => `<span class="kfc">${esc(ch)}</span>`).join("")
+      : esc(w);
+    return `<span class="${cls}">${inner}</span>`;
   }).join(" ");
+}
+
+// Text-scene layout variant (0=left+top-rule, 1=centered, 2=left+side-bar,
+// 3=right-mirror). Biased by the pack's textfx.align so alignment is a pack TRAIT
+// (a terminal pack reads left, a keynote pack centered) instead of a per-scene
+// coin-flip. "rotate" (default) keeps the legacy seed rotation — full variety.
+function textVariant(theme, seed, i) {
+  const align = (theme.textfx && theme.textfx.align) || "rotate";
+  if (align === "center") return 1;
+  if (align === "right") return 3;
+  if (align === "left") return (seed + i) % 2 === 0 ? 0 : 2;
+  return (seed + i * 7) % 4;
+}
+
+// Emphasis (.kfacc) treatment for one scene, selected by the pack's
+// textfx.emphasis. Returns the INNER of a scoped <style> block (#id .kfacc {...}
+// + optional ::before/::after for brackets). Defaults to the legacy gradient/
+// emphasisCss clip so packs with no textfx look exactly as before.
+function emphasisBlock(theme, id) {
+  const a = theme.accent, a2 = theme.accent2;
+  const sel = `#${id} .kfacc`;
+  const mode = (theme.textfx && theme.textfx.emphasis) || "gradient";
+  switch (mode) {
+    case "glow":
+      return `${sel}{color:${a};text-shadow:0 0 .55em ${rgba(a, 0.55)},0 0 1.4em ${rgba(a, 0.3)};}`;
+    case "boxed": {
+      const ink = lum(a) > 150 ? "#15140F" : "#FFFFFF";
+      return `${sel}{color:${ink};background:${a};padding:0 .16em;border-radius:.1em;-webkit-box-decoration-break:clone;box-decoration-break:clone;}`;
+    }
+    case "marker":
+      return `${sel}{color:${theme.ink};background:linear-gradient(transparent 58%,${rgba(a, 0.45)} 58%);}`;
+    case "underline-grow":
+      return `${sel}{color:${theme.ink};border-bottom:.09em solid ${a};padding-bottom:.02em;}`;
+    case "bracket":
+      return `${sel}{color:${a};}${sel}::before{content:"[ ";color:${a2};}${sel}::after{content:" ]";color:${a2};}`;
+    case "gradient":
+    default:
+      return `${sel}{${theme.emphasisCss || `background:linear-gradient(100deg,${a},${a2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${a};`}}`;
+  }
 }
 
 // TEXT AUTO-FIT (Phase 4) — the renderer has no build-time DOM, so headline size
@@ -846,11 +927,11 @@ function archHook(scene, ctx) {
   const accentText = theme.emphasisCss || (theme.gradients
     ? `background:linear-gradient(100deg,${theme.accent},${theme.accent2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.accent};`
     : `color:${theme.accent};`);
-  const big = dims.width >= dims.height ? 92 : 66;
+  const big = Math.round((dims.width >= dims.height ? 92 : 66) * (theme.textfx.sizeScale || 1));
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   <div style="position:absolute;left:7%;right:7%;top:50%;transform:translateY(-50%);">
     <span id="${id}k" style="opacity:0;display:inline-flex;align-items:center;gap:10px;padding:8px 16px;border-radius:9999px;background:${theme.panel};border:1px solid ${theme.line};color:${theme.accent};font:700 15px/1 ${cssFont(theme)};letter-spacing:.2em;text-transform:uppercase;"><span style="width:8px;height:8px;border-radius:50%;background:${theme.accent};"></span>${esc(ctx.kicker || "KEYFRAME")}</span>
-    <h1 style="margin-top:18px;font:800 ${fitBig(scene.headline, big, 14)}px/0.99 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:14ch;"><style>#${id} .kfacc{${accentText}}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h1>
+    <h1 style="margin-top:18px;font:800 ${fitBig(scene.headline, big, 14)}px/0.99 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:14ch;"><style>${emphasisBlock(theme, id)}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h1>
     <div id="${id}u" style="height:5px;width:${Math.round(dims.width * 0.27)}px;max-width:80%;margin-top:22px;border-radius:3px;background:${theme.accent};transform:scaleX(0);transform-origin:left;"></div>
     ${scene.subtext ? `<p id="${id}s" style="opacity:0;margin-top:16px;font:500 ${Math.round(big * 0.3)}px/1.45 ${cssFont(theme)};color:${theme.dim};max-width:42ch;">${esc(scene.subtext)}</p>` : ""}
   </div>
@@ -858,7 +939,7 @@ function archHook(scene, ctx) {
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
     `tl.fromTo("#${id}k",{opacity:0,y:14},{opacity:1,y:0,duration:0.5},${r(T + 0.25)});`,
-    `wordsIn("#${id} .kfw",${r(T + 0.45)},0.09);`,
+    `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.45)},0.09);`,
     scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:20},{opacity:1,y:0,duration:0.55},${r(T + 1.05)});` : "",
     `tl.fromTo("#${id}u",{scaleX:0,transformOrigin:"left"},{scaleX:1,duration:0.7,ease:"power2.inOut"},${r(T + 1.1)});`,
     ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
@@ -884,7 +965,7 @@ function archStat(scene, ctx) {
     `tl.set("#${id}",{opacity:1},${T});`,
     `pushIn("#${id} .kfstage",${T},${r(L - 0.4)},1.0,1.04);`,
     `countUp("${id}n",${num.value},${r(T + 0.3)},${r(Math.min(1.6, L - 1))},${fmt});`,
-    `wordsIn("#${id} .kfw",${r(T + 0.45)},0.07);`,
+    `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.45)},0.07);`,
     scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:16},{opacity:1,y:0,duration:0.5},${r(T + 0.9)});` : "",
     ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
   ].filter(Boolean).join("\n");
@@ -893,21 +974,21 @@ function archStat(scene, ctx) {
 
 function archCta(scene, ctx) {
   const { theme, id, T, L, track, dims } = ctx;
-  const big = dims.width >= dims.height ? 78 : 60;
+  const big = Math.round((dims.width >= dims.height ? 78 : 60) * (theme.textfx.sizeScale || 1));
   const btnBg = theme.gradients ? `linear-gradient(180deg,${theme.accent2 || theme.accent},${theme.accent})` : theme.accent;
   const btnInk = lum(theme.accent) > 150 ? "#15140F" : "#FFFFFF";
   const accentText = theme.emphasisCss || (theme.gradients ? `background:linear-gradient(100deg,${theme.accent},${theme.accent2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.accent};` : `color:${theme.accent};`);
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   ${theme.gradients ? `<div id="${id}g" class="clip" data-layout-allow-occlusion style="position:absolute;left:50%;top:46%;width:46%;height:60%;transform:translate(-50%,-50%);border-radius:50%;filter:blur(54px);background:radial-gradient(circle,${rgba(theme.accent, 0.30)},transparent 66%);"></div>` : ""}
   <div style="position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:24px;text-align:center;padding:0 8%;">
-    <h2 style="font:800 ${fitBig(scene.headline, big, 16)}px/1.02 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:16ch;"><style>#${id} .kfacc{${accentText}}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
+    <h2 style="font:800 ${fitBig(scene.headline, big, 16)}px/1.02 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:16ch;"><style>${emphasisBlock(theme, id)}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
     ${scene.subtext ? `<div id="${id}b" style="opacity:0;display:inline-flex;align-items:center;gap:11px;padding:16px 36px;border-radius:9999px;background:${btnBg};color:${btnInk};font:800 ${Math.round(big * 0.34)}px/1 ${cssFont(theme)};">${esc(scene.subtext)} <span style="width:11px;height:11px;border-right:3px solid ${btnInk};border-top:3px solid ${btnInk};transform:rotate(45deg);display:inline-block;"></span></div>` : ""}
   </div>
 </div>`;
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
     theme.gradients ? `tl.fromTo("#${id}g",{opacity:0,scale:0.85},{opacity:1,scale:1,duration:0.8},${r(T + 0.05)});` : "",
-    `wordsIn("#${id} .kfw",${r(T + 0.25)},0.08);`,
+    `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.25)},0.08);`,
     scene.subtext ? `tl.fromTo("#${id}b",{opacity:0,scale:0.85,y:16},{opacity:1,scale:1,y:0,duration:0.6,ease:"back.out(1.7)"},${r(T + 0.9)});` : "",
     scene.subtext ? `tl.to("#${id}b",{scale:1.04,duration:0.8,ease:"sine.inOut",yoyo:true,repeat:sreps(${r(L - 1)},1.6)},${r(T + 1.5)});` : "",
     // last scene: NO exit (holds to D)
@@ -921,7 +1002,7 @@ function archCta(scene, ctx) {
 // (asset-grid, split-diagram, terminal) are added from the design pass.
 function archText(scene, ctx) {
   const { theme, id, T, L, track, dims, variant } = ctx;
-  const big = dims.width >= dims.height ? 68 : 52;
+  const big = Math.round((dims.width >= dims.height ? 68 : 52) * (theme.textfx.sizeScale || 1));
   const accentText = theme.emphasisCss || (theme.gradients ? `background:linear-gradient(100deg,${theme.accent},${theme.accent2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.accent};` : `color:${theme.accent};`);
   const bullets = Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean).slice(0, 3) : [];
   // Four layout variants so text scenes don't all look identical:
@@ -953,7 +1034,7 @@ function archText(scene, ctx) {
   ${sideBar}
   <div style="${wrap}">
     ${topRule}
-    <h2 style="font:800 ${fitBig(scene.headline, big, centered ? 22 : 20)}px/1.05 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:${centered ? "22ch" : "20ch"};${right ? "margin-left:auto;" : ""}"><style>#${id} .kfacc{${accentText}}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
+    <h2 style="font:800 ${fitBig(scene.headline, big, centered ? 22 : 20)}px/1.05 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:${centered ? "22ch" : "20ch"};${right ? "margin-left:auto;" : ""}"><style>${emphasisBlock(theme, id)}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
     ${underline}
     ${scene.subtext ? `<p id="${id}s" style="opacity:0;margin-top:14px;font:500 ${Math.round(big * 0.36)}px/1.45 ${cssFont(theme)};color:${theme.dim};max-width:44ch;${subCenter}">${esc(scene.subtext)}</p>` : ""}
     ${bullets.length ? `<div id="${id}bl" style="margin-top:20px;display:flex;flex-direction:column;gap:10px;${centered ? "align-items:center;" : right ? "align-items:flex-end;" : ""}">${bullets.map((b) => `<div class="kfbl" style="opacity:0;display:flex;align-items:center;gap:12px;font:600 ${Math.round(big * 0.3)}px/1.2 ${cssFont(theme)};color:${theme.ink};"><span style="width:9px;height:9px;border-radius:2px;background:${theme.accent};"></span>${esc(b)}</div>`).join("")}</div>` : ""}
@@ -961,7 +1042,7 @@ function archText(scene, ctx) {
 </div>`;
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
-    `wordsIn("#${id} .kfw",${r(T + 0.3)},0.07);`,
+    `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.3)},0.07);`,
     underline ? `tl.fromTo("#${id}u",{scaleX:0,transformOrigin:"center"},{scaleX:1,duration:0.6,ease:"power2.inOut"},${r(T + 0.78)});` : "",
     scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:18},{opacity:1,y:0,duration:0.5},${r(T + 0.85)});` : "",
     bullets.length ? `tl.fromTo("#${id} .kfbl",{opacity:0,x:${right ? 18 : -18}},{opacity:1,x:0,duration:0.45,stagger:0.12,ease:"power2.out"},${r(T + 1.0)});` : "",
@@ -977,7 +1058,7 @@ function archText(scene, ctx) {
 function archQuoteCard(scene, ctx) {
   const { theme, id, T, L, track, dims } = ctx;
   const land = dims.width >= dims.height;
-  const big = land ? 58 : 46;
+  const big = Math.round((land ? 58 : 46) * (theme.textfx.sizeScale || 1));
   const quoteFit = fitBig(scene.headline, big, 26, 4);
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:${land ? "72%" : "86%"};max-width:1180px;padding:${land ? "54px 64px" : "40px 38px"};border-radius:22px;background:${theme.panel};border:1px solid ${theme.line};border-left:6px solid ${theme.accent};">
@@ -992,7 +1073,7 @@ function archQuoteCard(scene, ctx) {
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
     `tl.fromTo("#${id}q",{opacity:0,scale:0.5,transformOrigin:"left top"},{opacity:0.9,scale:1,duration:0.5,ease:"back.out(2)"},${r(T + 0.25)});`,
-    `wordsIn("#${id} .kfw",${r(T + 0.5)},0.05);`,
+    `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.5)},0.05);`,
     scene.subtext ? `tl.fromTo("#${id}a",{opacity:0,y:16},{opacity:1,y:0,duration:0.5,ease:"power2.out"},${r(T + Math.min(L - 0.5, 1.1))});` : "",
     ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
   ].filter(Boolean).join("\n");
@@ -1124,7 +1205,7 @@ function archScreenshotHero(scene, ctx) {
   </div>
   <div style="${copyWrap}">
     <span id="${id}k" style="opacity:0;display:inline-flex;align-items:center;gap:9px;padding:7px 15px;border-radius:9999px;background:${theme.panel};border:1px solid ${theme.line};color:${theme.accent};font:700 13px/1 ${cssFont(theme)};letter-spacing:.2em;text-transform:uppercase;"><span style="width:7px;height:7px;border-radius:50%;background:${theme.accent};"></span>${esc(ctx.kicker || "Live")}</span>
-    <h2 style="margin-top:14px;font:800 ${fitBig(scene.headline, big, 20)}px/1.05 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};"><style>#${id} .kfacc{${accentText}}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
+    <h2 style="margin-top:14px;font:800 ${fitBig(scene.headline, big, 20)}px/1.05 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};"><style>${emphasisBlock(theme, id)}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
     ${scene.subtext ? `<p id="${id}s" style="opacity:0;margin-top:13px;font:500 ${Math.round(big * 0.42)}px/1.45 ${cssFont(theme)};color:${theme.dim};">${esc(scene.subtext)}</p>` : ""}
   </div>
 </div>`;
@@ -1133,7 +1214,7 @@ function archScreenshotHero(scene, ctx) {
     `tl.fromTo("#${id}fr",{opacity:0,yPercent:6,rotationX:12,transformPerspective:1200,transformOrigin:"50% 100%"},{opacity:1,yPercent:0,rotationX:0,duration:0.85,ease:"expo.out"},${r(T + 0.1)});`,
     `tl.fromTo("#${id}img",{y:0},{y:function(i,el){var h=el.scrollHeight-el.clientHeight;return -(h>0?Math.min(h,el.clientHeight*0.5):0);},duration:${r(L - 0.6)},ease:"sine.inOut"},${r(T + 0.4)});`,
     `tl.fromTo("#${id}k",{opacity:0,y:12},{opacity:1,y:0,duration:0.5},${r(T + 0.5)});`,
-    `wordsIn("#${id} .kfw",${r(T + 0.65)},0.08);`,
+    `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.65)},0.08);`,
     scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:14},{opacity:1,y:0,duration:0.5},${r(T + 1.1)});` : "",
     ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
   ].filter(Boolean).join("\n");
@@ -1153,7 +1234,7 @@ function archSplitVector(scene, ctx) {
   <div class="kfstage" style="display:flex;flex-direction:${dir};align-items:center;gap:${land ? 56 : 28}px;width:100%;padding:0 7%;">
     <div style="flex:1;">
       <div style="width:54px;height:5px;border-radius:3px;background:${theme.accent};margin-bottom:20px;"></div>
-      <h2 style="font:800 ${fitBig(scene.headline, big, 16)}px/1.05 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};"><style>#${id} .kfacc{${accentText}}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
+      <h2 style="font:800 ${fitBig(scene.headline, big, 16)}px/1.05 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};"><style>${emphasisBlock(theme, id)}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
       ${scene.subtext ? `<p id="${id}s" style="opacity:0;margin-top:14px;font:500 ${Math.round(big * 0.4)}px/1.45 ${cssFont(theme)};color:${theme.dim};">${esc(scene.subtext)}</p>` : ""}
     </div>
     <div style="flex:1;display:flex;align-items:center;justify-content:center;"><img id="${id}art" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;max-width:${land ? "44%" : "60%"};height:auto;max-height:${Math.round(dims.height * (land ? 0.6 : 0.34))}px;object-fit:contain;${artGlow}"></div>
@@ -1162,7 +1243,7 @@ function archSplitVector(scene, ctx) {
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
     `tl.from("#${id} .h1, #${id} h2",{x:-36,opacity:0,duration:0.6,ease:"expo.out"},${r(T + 0.15)});`,
-    `wordsIn("#${id} .kfw",${r(T + 0.25)},0.07);`,
+    `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.25)},0.07);`,
     scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:16},{opacity:1,y:0,duration:0.5},${r(T + 0.8)});` : "",
     `tl.fromTo("#${id}art",{opacity:0,scale:0.82,y:24},{opacity:1,scale:1,y:0,duration:0.7,ease:"back.out(1.5)"},${r(T + 0.4)});`,
     `tl.to("#${id}art",{y:"-=14",duration:1.6,ease:"sine.inOut",yoyo:true,repeat:sreps(${r(L - 0.8)},1.6)},${r(T + 1.1)});`,
@@ -1200,13 +1281,13 @@ function archAssetMontage(scene, ctx) {
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   <div style="position:absolute;left:6%;right:6%;top:50%;transform:translateY(-50%);">
     <div style="width:54px;height:5px;border-radius:3px;background:${theme.accent};margin-bottom:18px;"></div>
-    <h2 style="font:800 ${fitBig(scene.headline, big, 22)}px/1.05 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:22ch;"><style>#${id} .kfacc{${accentText}}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
+    <h2 style="font:800 ${fitBig(scene.headline, big, 22)}px/1.05 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:22ch;"><style>${emphasisBlock(theme, id)}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
     <div id="${id}g" style="margin-top:22px;display:grid;grid-template-columns:repeat(${cols},1fr);gap:${land ? 18 : 12}px;">${tiles}</div>
   </div>
 </div>`;
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
-    `wordsIn("#${id} .kfw",${r(T + 0.25)},0.06);`,
+    `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.25)},0.06);`,
     `tl.fromTo("#${id} .kftile",{opacity:0,scale:0.82,y:26},{opacity:1,scale:1,y:0,duration:0.55,stagger:0.1,ease:"back.out(1.5)"},${r(T + 0.55)});`,
     `tl.to("#${id} .kftile",{y:"-=8",duration:1.8,ease:"sine.inOut",yoyo:true,stagger:0.12,repeat:sreps(${r(L - 1.2)},1.8)},${r(T + 1.5)});`,
     ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
@@ -1384,7 +1465,7 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
       kicker: i === 0 ? (sb.title || "KEYFRAME") : "",
       asset: null, assets: null, bgAsset: null,
       seed, sceneIndex: i, sceneCount: scenes.length,
-      variant: dress?.variant != null ? dress.variant : (seed + i * 7) % 4, // 0-3 layout variant
+      variant: dress?.variant != null ? dress.variant : textVariant(theme, seed, i), // 0-3 layout variant
       decorSvg: dress?.decorSvg || null,
     };
     return { scene, i, ctx, isContent: i > 0 && i < scenes.length - 1, build: archetypeFor(scene, i, scenes.length) };
@@ -1532,6 +1613,14 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
     // Headline words + stat numbers render in the pack's DISPLAY face; body/sub
     // text stays on the neutral stack. One rule skins every archetype's headline.
     `#root .kfw, #root .kfnum { font-family:${theme.displayStack}; }`,
+    // Word/char spans must be inline-block for per-word transforms + clip-path
+    // (mask-reveal / line-wipe / char-pop) to take effect.
+    `#root .kfw, #root .kfc { display:inline-block; }`,
+    // Per-pack typographic treatment (textfx): display case / tracking / weight.
+    // Scoped to headline spans so body/labels are unaffected; empty when default.
+    (theme.textfx.case === "upper" ? `#root .kfw { text-transform:uppercase; }` : ""),
+    (theme.textfx.tracking ? `#root .kfw { letter-spacing:${theme.textfx.tracking}em; }` : ""),
+    (theme.textfx.weight ? `#root .kfw { font-weight:${theme.textfx.weight}; }` : ""),
     `#root { position:relative; overflow:hidden; background:${theme.ground}; }`,
     `.clip { position:absolute; inset:0; }`,
     `</style>`, `</head>`, `<body>`,

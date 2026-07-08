@@ -51,5 +51,10 @@
   },
   "camera3d": {
     "ground": "#0B0B14"
+  },
+  "textfx": {
+    "enter": "mask-reveal",
+    "emphasis": "gradient",
+    "align": "left"
   }
 }
