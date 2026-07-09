@@ -372,6 +372,12 @@ async function assetSearchAgent(s) {
         const idx = results.indexOf(p.resultObj);
         if (idx >= 0) results.splice(idx, 1);
       } else if (v.sees) {
+        // Mark the asset as VERIFIED on-topic (the model actually looked at it
+        // and approved). scene_kit only admits verified/owned/curated assets to
+        // PROMINENT slots (montage tiles, split art) — a fail-open pass (gate
+        // error, no `sees`) stays unverified and is kept for scrim B-roll only.
+        p.resultObj.visionOk = true;
+        p.resultObj.sees = v.sees;
         console.log(`[agents] asset ok (vision: "${v.sees}") — ${p.query}`);
       }
     });

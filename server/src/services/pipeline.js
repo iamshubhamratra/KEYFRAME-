@@ -41,6 +41,7 @@ const { acquire, makeImageDeduper } = require("./asset_sources");
 const { checkAssetsRelevance } = require("./asset_vision");
 const { styleFor } = require("./pack_style");
 const catalog = require("./catalog");
+const { contrastCheck } = require("./contrast_check");
 
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
 function ms() { return Date.now(); }
@@ -192,6 +193,12 @@ async function planAndFetchAssets({ jobDir, storyboard, flags, orientation, trac
         rejected.add(it);
         try { fs.unlinkSync(path.join(jobDir, it.path)); } catch { /* noop */ }
         console.warn(`[pipeline] asset REJECTED by vision gate (shows "${v.sees || "?"}", film about "${subject}") — "${it.alt || ""}"`);
+      } else if (v && v.sees) {
+        // VERIFIED on-topic (model saw + approved) — eligible for prominent
+        // slots in scene_kit (montage/split). Fail-open passes (no `sees`)
+        // stay unverified: kept, but background-scrim only.
+        webStock[i].visionOk = true;
+        webStock[i].sees = v.sees;
       }
     });
     if (rejected.size) survivors = deduped.filter((it) => !rejected.has(it));
@@ -202,6 +209,49 @@ async function planAndFetchAssets({ jobDir, storyboard, flags, orientation, trac
 }
 
 // ========== Composition + lint repair ==========
+
+// OPT-IN legibility gate for the LLM-composer path. Default OFF: the deterministic
+// scene-kit is contrast-clean by construction, and a second headless pass per lap
+// isn't worth the memory there. On the LLM (remix) path colors are model-chosen, so
+// this catches the readability dimension lint (time) and inspect (space) can't.
+//   CONTRAST_GATE=warn    → run + log low-contrast text, never block
+//   CONTRAST_GATE=repair  → (also 1/on/true/yes) feed it back as a soft repair
+//                            signal; on exhaustion the comp still ships (see below)
+function contrastMode() {
+  const v = String(process.env.CONTRAST_GATE || "").toLowerCase();
+  if (v === "warn") return "warn";
+  if (/^(1|true|yes|on|repair)$/.test(v)) return "repair";
+  return "off";
+}
+
+// Runs the WCAG contrast audit (contrast_check.js) on the just-gated composition.
+// Returns { ok:true } to ship, or { ok:false, contrastOnly:true, feedback } to
+// request a repair lap. NEVER throws/blocks on checker trouble (mirrors runtime +
+// inspect): a missing Chromium or a hung pass returns ok:true.
+async function contrastGate(jobDir, label) {
+  const mode = contrastMode();
+  if (mode === "off") return { ok: true };
+  let res;
+  try {
+    res = await contrastCheck(jobDir, { samples: 8, timeoutMs: 75000 });
+  } catch (e) {
+    console.warn(`[pipeline] contrast gate errored (${String(e.message).slice(0, 120)}) — not blocking`);
+    return { ok: true };
+  }
+  if (res.skipped) { console.log(`[pipeline] contrast gate skipped (${res.skipped})`); return { ok: true }; }
+  const fails = res.persistentFailures || [];
+  if (!fails.length) { console.log(`[pipeline] contrast gate: all text clears WCAG AA (${label})`); return { ok: true }; }
+  const lines = fails.slice(0, 10)
+    .map((f) => `at ${f.bestTime}s ${f.selector} "${String(f.text).slice(0, 40)}" — ${f.bestRatio}:1 (need ${f.needed}:1)`)
+    .join("\n");
+  console.warn(`[pipeline] contrast gate: ${fails.length} low-contrast text element(s) (${label}):\n${lines}`);
+  if (mode === "warn") return { ok: true };
+  return {
+    ok: false,
+    contrastOnly: true,
+    feedback: `Previous HTML passed lint + runtime + spatial inspect but FAILED the WCAG contrast check — this text is too low-contrast to read against what is rendered behind it:\n${lines}\nFIX: raise each listed element to at least its needed ratio — brighten the text color on a dark ground (or darken it on a light ground), or move it onto a more contrasting panel/scrim. Stay within the pack's palette family; do NOT invent new colors and do NOT introduce any lint/track/overlap regressions. Keep everything that already passed.`,
+  };
+}
 
 // Normalize + install catalog blocks + lint + runtime-smoke one composer output.
 // Returns { ok, feedback } — feedback is the next-lap repair brief when !ok.
@@ -280,6 +330,16 @@ async function gateComposition({ files, jobDir, tracker, label, enrich, cinemati
         console.log(`[pipeline] cinematic density (diagnostic, ${label}): ${cine.errors.length} thin-signal(s), ${cine.warnings.length} note(s) — not blocking`);
       }
     } catch (e) { console.warn(`[pipeline] cinematic check threw: ${e.message.slice(0, 120)}`); }
+    // Legibility gate (opt-in, LLM path only) — the readability dimension lint
+    // (time) and inspect (space) miss. Off unless CONTRAST_GATE is set.
+    if (contrastMode() !== "off") {
+      tracker.addExternal("contrast_gate");
+      const cg = await contrastGate(jobDir, label);
+      if (!cg.ok) {
+        console.warn(`[pipeline] contrast gate FAILED (${label}) — requesting repair`);
+        return cg;
+      }
+    }
     console.log(`[pipeline] lint + runtime + spatial inspect passed (${label})${rt.skipped ? ` (smoke skipped)` : ""}${insp.skipped ? ` (inspect skipped)` : ""}`);
     return { ok: true };
   }
@@ -348,9 +408,11 @@ async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets
 
     const res = await gateComposition({ files, jobDir, tracker, label, enrich, cinematic });
     if (res.ok) return { files };
-    // inspectOnly => lint + runtime PASSED, only spatial overlap remains. Snapshot
-    // the NORMALIZED html (gateComposition mutated files.indexHtml in place).
-    if (res.inspectOnly && !bestInspectFiles) {
+    // inspectOnly / contrastOnly => lint + runtime PASSED (and spatial inspect too,
+    // for contrastOnly); only a residual spatial overlap or a low-contrast label
+    // remains. Snapshot the NORMALIZED html (gateComposition mutated it in place) so
+    // that on exhaustion we ship this rich comp rather than the bland fallback.
+    if ((res.inspectOnly || res.contrastOnly) && !bestInspectFiles) {
       bestInspectFiles = { indexHtml: files.indexHtml, metaJson: files.metaJson };
     }
     feedback = res.feedback;

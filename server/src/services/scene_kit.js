@@ -1229,7 +1229,15 @@ function archSplitVector(scene, ctx) {
   const big = land ? 64 : 50;
   const accentText = theme.emphasisCss || (theme.gradients ? `background:linear-gradient(100deg,${theme.accent},${theme.accent2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.accent};` : `color:${theme.accent};`);
   const dir = land ? "row" : "column";
-  const artGlow = theme.gradients ? `filter:drop-shadow(0 18px 40px ${rgba(theme.accent, 0.35)});` : "";
+  // Photos get the same gentle palette pull as montage tiles (a raw stock photo
+  // beside pack-colored copy reads off-brand); vectors stay untouched. One
+  // combined filter declaration — two `filter:`s would override each other.
+  const artMeta = `${asset.source || ""} ${asset.style || ""} ${asset.alt || ""}`.toLowerCase();
+  const artIsVec = /\.svg($|\?)/i.test(asset.path) || /vector|illustration|icon|line.?art|graphic/.test(artMeta);
+  const artTone = artIsVec ? "" : "saturate(0.82) contrast(1.03) ";
+  const artGlow = (artTone || theme.gradients)
+    ? `filter:${artTone}${theme.gradients ? `drop-shadow(0 18px 40px ${rgba(theme.accent, 0.35)})` : ""};`
+    : "";
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;display:flex;align-items:center;justify-content:center;">
   <div class="kfstage" style="display:flex;flex-direction:${dir};align-items:center;gap:${land ? 56 : 28}px;width:100%;padding:0 7%;">
     <div style="flex:1;">
@@ -1276,7 +1284,15 @@ function archAssetMontage(scene, ctx) {
     const isVec = /\.svg($|\?)/i.test(a.path) || /vector|illustration|icon|line.?art|graphic/.test(meta);
     const fit = isVec ? "contain" : "cover";
     const pad = isVec ? `background:${rgba(theme.ink, theme.isDark ? 0.06 : 0.04)};padding:14px;` : "";
-    return `<div class="kftile" style="opacity:0;overflow:hidden;border-radius:${flat ? 8 : 14}px;${tileChrome}${pad}height:${tileH}px;display:flex;align-items:center;justify-content:center;"><img src="${esc(a.path)}" alt="${esc(a.alt || "")}" style="width:100%;height:100%;object-fit:${fit};display:block;"></div>`;
+    // COLOR HARMONY — raw stock photos arrive in arbitrary palettes (a saturated
+    // red product shot shatters a navy/cyan frame). Photos get pulled toward the
+    // pack: gentle desaturation on the img + a ground-tinted wash over the tile,
+    // so every tile reads as one graded set. Vectors/screenshots skip it (vectors
+    // are already pack-recolored; a product screenshot must stay true).
+    const isShot = a.source === "website" || /screenshot|webpage|web page|landing|\bsite\b/.test(meta);
+    const tone = (isVec || isShot) ? "" : "filter:saturate(0.76) contrast(1.04);";
+    const wash = (isVec || isShot) ? "" : `<span style="position:absolute;inset:0;background:linear-gradient(180deg,${rgba(theme.ground, 0.12)},${rgba(theme.ground, 0.32)});pointer-events:none;"></span>`;
+    return `<div class="kftile" style="opacity:0;position:relative;overflow:hidden;border-radius:${flat ? 8 : 14}px;${tileChrome}${pad}height:${tileH}px;display:flex;align-items:center;justify-content:center;"><img src="${esc(a.path)}" alt="${esc(a.alt || "")}" style="width:100%;height:100%;object-fit:${fit};display:block;${tone}">${wash}</div>`;
   }).join("");
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   <div style="position:absolute;left:6%;right:6%;top:50%;transform:translateY(-50%);">
@@ -1445,6 +1461,23 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
   // guaranteed clean. Each scene owns a 3-track block [bg, content, spare] so a
   // background never collides with (or covers) another scene's content.
   const pools = partitionAssets(assets);
+  // PROMINENT-SLOT RELEVANCE GATE — montage tiles, split art and screenshot
+  // heroes are the frames a viewer actually reads, so they only take assets
+  // whose relevance is ESTABLISHED: the user's own website shots, curated
+  // library picks (hand-tagged, pack-recolored), or web stock the vision gate
+  // explicitly approved (visionOk, annotated by pipeline/graph). Unverified
+  // stock (gate skipped or failed-open) and keyword-matched icon fills can no
+  // longer surface a tooth/camera/diamond tile in a montage about a dev tool.
+  // Unverified PHOTOS stay usable as heavily-scrimmed B-roll texture, so a
+  // gate outage still can't starve the film of backgrounds.
+  const prominentOk = (a) => !!a && (a.source === "website"
+    || String(a.source || "").startsWith("library:")
+    || a.visionOk === true);
+  const bgOnlyPhotos = pools.photos.filter((a) => !prominentOk(a));
+  pools.photos = pools.photos.filter(prominentOk);
+  pools.vectors = pools.vectors.filter(prominentOk);
+  pools.screenshots = pools.screenshots.filter(prominentOk);
+  if (bgOnlyPhotos.length) console.log(`[scene-kit] ${bgOnlyPhotos.length} unverified asset(s) demoted to scrim-background only`);
   // On-brand images first: prominent foreground slots get the most palette-fit
   // stock, off-palette stock falls to scrimmed B-roll. (Screenshots keep source
   // order — a real product shot is placed by intent, not recolored for palette.)
@@ -1533,7 +1566,9 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
     if (pools.videos.length) {
       p.ctx.bgVideo = pools.videos.shift();
     } else {
-      const a = pools.photos.shift() || pools.screenshots.shift() || pools.vectors.shift();
+      // Verified pool first; unverified photos LAST and only here — behind the
+      // scrim they read as darkened texture, never as a statement about the film.
+      const a = pools.photos.shift() || pools.screenshots.shift() || pools.vectors.shift() || bgOnlyPhotos.shift();
       if (a) p.ctx.bgAsset = a;
     }
   }

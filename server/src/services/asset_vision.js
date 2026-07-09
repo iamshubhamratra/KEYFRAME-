@@ -118,7 +118,12 @@ async function checkAssetsRelevance({ assets, subject, tracker, signal }) {
           `a brand, or an idea. The visual must match the SUBJECT, not a keyword.\n` +
           `• A screenshot, UI, app window, logo, or branding of a DIFFERENT named product or company than the ` +
           `subject (e.g. a ChatGPT / Google / other-app screenshot for an unrelated product).\n` +
-          `• A specific physical machine / appliance / hardware (printer, fax, kitchen gadget) linked only by a keyword.\n` +
+          `• A specific physical machine / appliance / consumer product (printer, fax, kitchen gadget, a CAMERA, ` +
+          `toothpaste / cosmetics / packaged goods, dental or medical props) linked only by a stray keyword and ` +
+          `not by the subject's actual domain.\n` +
+          `• A LUXURY OBJECT — a cut diamond or gemstone, jewelry, gold bars, a sports car — used as a ` +
+          `"premium / value / quality" metaphor when the subject is software, a digital service, or a brand. ` +
+          `Glamour stock never reads as the product.\n` +
           `• Generic, dated, or amateur CLIP-ART / cheesy cartoon illustration (little cartoon office people, ` +
           `corporate-handshake clip-art, flat vector mascots) that would cheapen a premium promo.\n` +
           `• Unrelated buildings / landmarks / maps / random objects, or a visible watermark, stock-site logo, or ` +

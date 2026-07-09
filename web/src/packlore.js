@@ -116,12 +116,99 @@ export const PACK_LORE = {
     vibe: "Parchment pages, watercolor washes, paper planes and firefly orbs gliding in gentle 3D. Built for storytelling.",
     filmGrad: "linear-gradient(135deg,#D8734B,#E8B84B,#7A93B8)",
   },
+
+  // ---- Phase-5 gap-category packs (dev/CLI, healthcare, data, fintech, SaaS).
+  // Colors/fonts mirror server/scripts/pack-catalog.js; card `font` uses a
+  // web-loaded family (Bricolage / Hanken / IBM Plex Mono) so demo type renders.
+  "terminal-green": {
+    name: "Terminal Green", tag: "CRT · CLI", bg: "#06110A", ink: "#C8F7D4", accent: "#3DF07E",
+    chips: ["#3DF07E", "#F0B23D", "#12331F"],
+    grad: "repeating-linear-gradient(0deg, rgba(61,240,126,.09) 0 2px, transparent 2px 4px), radial-gradient(circle at 50% 125%, rgba(61,240,126,.28), transparent 60%)",
+    font: "'IBM Plex Mono'", tracking: "0", demo: "> run build",
+    vibe: "Phosphor-green CRT for the command line — monospace glowing on deep green-black, scanlines, one amber alert. For dev tools, CLIs and AI agents.",
+    filmGrad: "linear-gradient(135deg,#3DF07E,#F0B23D,#06110A)",
+  },
+  "terminal-amber": {
+    name: "Terminal Amber", tag: "AMBER CRT", bg: "#0C0A06", ink: "#F2E4C4", accent: "#FFB000",
+    chips: ["#FFB000", "#6BD4FF", "#33270F"],
+    grad: "repeating-linear-gradient(0deg, rgba(255,176,0,.08) 0 2px, transparent 2px 4px), radial-gradient(circle at 50% 130%, rgba(255,176,0,.30), transparent 60%)",
+    font: "'IBM Plex Mono'", tracking: "0", demo: "$ deploy --prod",
+    vibe: "Warm amber phosphor on deep graphite — a monochrome monitor with a cyan cursor. Retro-future for hacker-grade launches.",
+    filmGrad: "linear-gradient(135deg,#FFB000,#6BD4FF,#0C0A06)",
+  },
+  "signal-mono": {
+    name: "Signal Mono", tag: "DASHBOARD", bg: "#0B0E14", ink: "#E6ECF5", accent: "#39D0FF",
+    chips: ["#39D0FF", "#FFC24D", "#1B2130"],
+    grad: "linear-gradient(rgba(57,208,255,.11) 1px, transparent 1px) 0 0/34px 34px, linear-gradient(90deg, rgba(57,208,255,.11) 1px, transparent 1px) 0 0/34px 34px",
+    font: "'IBM Plex Mono'", tracking: ".03em", demo: "+128% MoM",
+    vibe: "An analyst's dark canvas — a faint data grid and ONE cyan signal reserved for the numbers. For dashboards, analytics and ML.",
+    filmGrad: "linear-gradient(135deg,#39D0FF,#FFC24D,#0B0E14)",
+  },
+  "flux-analytics": {
+    name: "Flux Analytics", tag: "ANALYTICS", bg: "#0C0A14", ink: "#ECE8F5", accent: "#B76CFF",
+    chips: ["#B76CFF", "#3DF0C0", "#221A33"],
+    grad: "linear-gradient(rgba(183,108,255,.11) 1px, transparent 1px) 0 0/34px 34px, linear-gradient(90deg, rgba(183,108,255,.11) 1px, transparent 1px) 0 0/34px 34px",
+    font: "'Bricolage Grotesque'", tracking: "-.01em", demo: "Signal, not noise",
+    vibe: "A violet-signal data system — monochrome ground, mono legends and one saturated series. For analytics and data products.",
+    filmGrad: "linear-gradient(135deg,#B76CFF,#3DF0C0,#0C0A14)",
+  },
+  "vault-gold": {
+    name: "Vault Gold", tag: "PREMIUM · FINANCE", bg: "#08090C", ink: "#EAEDF2", accent: "#D9B24C",
+    chips: ["#D9B24C", "#4BD07E", "#5A6B8C"],
+    grad: "radial-gradient(circle at 50% 18%, rgba(217,178,76,.22), transparent 55%), linear-gradient(180deg, transparent 60%, rgba(75,208,126,.07))",
+    font: "'Bricolage Grotesque'", tracking: "-.02em", demo: "Precision Compounds",
+    vibe: "Deep-black premium finance — precise numerics, a metallic-gold rule and a single signal green. For finance, trading and investor stories.",
+    filmGrad: "linear-gradient(135deg,#D9B24C,#4BD07E,#08090C)",
+  },
+  "ledger-noir": {
+    name: "Ledger Noir", tag: "INSTITUTIONAL", bg: "#0A0C10", ink: "#E9EEF5", accent: "#8FB4FF",
+    chips: ["#8FB4FF", "#C9CFDA", "#4FD1C5"],
+    grad: "radial-gradient(circle at 72% 28%, rgba(143,180,255,.17), transparent 55%), linear-gradient(180deg, transparent 62%, rgba(201,207,218,.05))",
+    font: "'IBM Plex Mono'", tracking: ".03em", demo: "Q3 · SETTLED",
+    vibe: "Near-black institutional fintech — platinum and a cool blue over a precise mono ledger. For banking, treasury and B2B finance.",
+    filmGrad: "linear-gradient(135deg,#8FB4FF,#C9CFDA,#0A0C10)",
+  },
+  "care-mint": {
+    name: "Care Mint", tag: "CARE · CALM", bg: "#F3FAF7", ink: "#163B33", accent: "#2FB39A",
+    chips: ["#2FB39A", "#FF9E7A", "#6FC5D8"],
+    grad: "radial-gradient(circle at 25% 75%, rgba(47,179,154,.20), transparent 55%), radial-gradient(circle at 80% 25%, rgba(255,158,122,.16), transparent 50%)",
+    font: "'Bricolage Grotesque'", tracking: "-.01em", demo: "In good hands",
+    vibe: "Soft mint grounds, rounded cards, a reassuring warm coral accent. Calm and humane — for healthcare, wellness and patient products.",
+    filmGrad: "linear-gradient(135deg,#2FB39A,#FF9E7A,#6FC5D8)",
+  },
+  "care-lavender": {
+    name: "Care Lavender", tag: "CLINICAL CALM", bg: "#F6F5FC", ink: "#2B2A44", accent: "#7C6CF0",
+    chips: ["#7C6CF0", "#4FC0C7", "#F3A6C4"],
+    grad: "radial-gradient(circle at 30% 30%, rgba(124,108,240,.18), transparent 55%), radial-gradient(circle at 78% 78%, rgba(79,192,199,.16), transparent 52%)",
+    font: "'Bricolage Grotesque'", tracking: "-.01em", demo: "Care, unhurried",
+    vibe: "Gentle lavender and aqua on soft cloud — a patient-first, unhurried system with an elegant serif voice. For clinical and wellness stories.",
+    filmGrad: "linear-gradient(135deg,#7C6CF0,#4FC0C7,#F3A6C4)",
+  },
+  "nimbus-saas": {
+    name: "Nimbus SaaS", tag: "SAAS · BRIGHT", bg: "#FAFAFD", ink: "#171525", accent: "#6366F1",
+    chips: ["#6366F1", "#EC4899", "#38BDF8"],
+    grad: "linear-gradient(120deg, rgba(99,102,241,.16), rgba(56,189,248,.14) 50%, rgba(236,72,153,.16))",
+    font: "'Bricolage Grotesque'", tracking: "-.02em", demo: "Ship it Friday",
+    vibe: "Bright modern SaaS — near-white ground, a soft indigo→pink brand gradient and friendly type. For product tours and launches.",
+    filmGrad: "linear-gradient(135deg,#6366F1,#38BDF8,#EC4899)",
+  },
+  "mint-launch": {
+    name: "Mint Launch", tag: "LAUNCH · FRESH", bg: "#F7FCFA", ink: "#0F2A24", accent: "#10B981",
+    chips: ["#10B981", "#38BDF8", "#A3E635"],
+    grad: "linear-gradient(120deg, rgba(16,185,129,.16), rgba(56,189,248,.14) 55%, rgba(163,230,53,.16))",
+    font: "'Bricolage Grotesque'", tracking: "-.02em", demo: "Now Live",
+    vibe: "A fresh product-launch system — white studio ground, an emerald→sky gradient and rounded type. For launches and announcements.",
+    filmGrad: "linear-gradient(135deg,#10B981,#38BDF8,#A3E635)",
+  },
 };
 
 export const PACK_ORDER = [
   "longshot-cinema", "summit-keynote", "prism-launch", "fable-storybook",
   "blockframe", "biennale-yellow", "midnight-glass", "noir-spotlight", "vapor-chrome",
   "aurora-spectrum", "bauhaus-print", "kinetic-bold", "mono-corporate", "bloom-illustrated",
+  // Phase-5 gap categories, grouped: dev/CLI · data · fintech · healthcare · SaaS.
+  "terminal-green", "terminal-amber", "signal-mono", "flux-analytics",
+  "vault-gold", "ledger-noir", "care-mint", "care-lavender", "nimbus-saas", "mint-launch",
 ];
 
 const FALLBACK_LORE = {

@@ -78,7 +78,23 @@ const res = await contrastCheck(jobDir, { samples: 8 });
 - Canvas-based background FX (`<canvas>` painters) animate on their own rAF clock, not the seek,
   so their exact state at time `t` is approximate — fine for legibility, which is dominated by
   the settled foreground.
-- It is a **dev/CI tool**, not wired into the render hot path by default: the deterministic
-  scene-kit packs are contrast-clean by construction, and a second headless pass per render is
-  not worth the memory on small boxes. Wiring it as an opt-in gate on the LLM-composer path
-  (where colors are model-chosen) is a natural follow-up.
+- The deterministic scene-kit packs are contrast-clean by construction, so it stays a
+  **dev/CI tool by default** — a second headless pass per render isn't worth the memory on
+  small boxes.
+
+## Opt-in gate on the LLM-composer path
+
+On the LLM (remix) path colors are model-chosen, so the gate can run inline there. It is
+**off by default** and enabled with an env flag (read in `pipeline.js` → `gateComposition`,
+after `lint` + runtime + `inspect` pass):
+
+```bash
+CONTRAST_GATE=warn     # run the audit, log any low-contrast text, never block
+CONTRAST_GATE=repair   # (also 1/on/true) feed failures back as a soft repair brief
+```
+
+In `repair` mode a low-contrast composition is sent back to the composer with a fix brief
+(brighten/darken within the palette). If repair laps are exhausted it still **ships that
+lap** — a rich comp with a residual low-contrast label beats the bland fallback — mirroring
+how the spatial `inspect` gate degrades. It uses 8 samples with a 75s cap and, like every
+other gate, never blocks on checker trouble. The scene-kit path is untouched.

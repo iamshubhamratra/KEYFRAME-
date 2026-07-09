@@ -371,7 +371,9 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
   // website screenshot; fall back to the first image asset; else a stylized screen.
   const pool = (assets || []).filter((a) => a && a.path && !/\.(mp4|webm|mov)$/i.test(a.path));
   const websiteShot = pool.find((a) => a.source === "website" || /screenshot|webpage|landing/i.test(a.alt || ""));
-  const shot = websiteShot || pool[0] || null;
+  // Prefer vision-VERIFIED stock over a blind pool[0] — the plate is the most
+  // prominent asset slot in the 3D film, same eligibility bar as scene-kit.
+  const shot = websiteShot || pool.find((a) => a.visionOk === true) || pool[0] || null;
   const plateTex = shot ? shot.path : null;
 
   // Per-scene time windows + treatment type (literal, for the module).
