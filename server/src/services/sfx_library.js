@@ -44,17 +44,27 @@ function resolveCue(name) {
   return null;
 }
 
-// Get a playable file for an sfx request. Curated first; live search last.
+// Get a playable file for an sfx request. Pixabay bridge first, then Freesound
+// (both via fetchSfx); the local curated library is only a LAST-RESORT fallback
+// so a film is never left without its SFX. (User preference: source SFX from
+// Pixabay, avoid local assets.) The resolved cue is a clean single-word query
+// ("whoosh", "impact") which searches better than a raw phrase.
 async function getSfx({ name, outputPath, tracker }) {
+  const query = resolveCue(name) || String(name || "").trim() || "transition";
+  const got = await fetchSfx({ query, outputPath, tracker }).catch(() => null);
+  if (got) return got;
+  // Last resort: the local curated cue, only if Pixabay + Freesound were both dry.
   const cue = resolveCue(name);
   if (cue) {
-    const src = path.join(SFX_DIR, `${cue}.mp3`);
-    fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-    fs.copyFileSync(src, outputPath);
-    return outputPath;
+    try {
+      const src = path.join(SFX_DIR, `${cue}.mp3`);
+      fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+      fs.copyFileSync(src, outputPath);
+      console.warn(`[sfx] "${name}" — Pixabay/Freesound dry; used local cue "${cue}" as fallback`);
+      return outputPath;
+    } catch { /* noop */ }
   }
-  console.warn(`[sfx] "${name}" not in curated library — falling back to live search`);
-  return fetchSfx({ query: name, outputPath, tracker });
+  return null;
 }
 
 function vocabulary() { return available(); }

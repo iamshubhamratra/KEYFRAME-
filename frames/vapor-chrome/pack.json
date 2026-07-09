@@ -1,0 +1,60 @@
+{
+  "name": "vapor-chrome",
+  "vibe": "Tasteful Y2K / retro-future for Nova, a creator monetization platform. A deep indigo synthwave night with a scrolling perspective-grid horizon, a single glowing sun-orb, chrome/gradient-clipped Space Grotesk headlines with a light sweep, an",
+  "colors": {
+    "void": "#0D0A2B",
+    "ground": "#15103F",
+    "magenta": "#FF2EA6",
+    "teal": "#2EF2E0",
+    "violet": "#8A5CFF",
+    "warm": "#FF7A45",
+    "chrome": "#EAF0FF"
+  },
+  "fonts": [
+    "Inter",
+    "Space Grotesk"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#0D0A2B"
+  },
+  "motion": {
+    "cut": "whip",
+    "drift": 1.05
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "neon synthwave retro future",
+    "iconStyle": "duotone",
+    "keywords": [
+      "neon",
+      "retro",
+      "vaporwave",
+      "glow"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
+  },
+  "typography": {
+    "display": "Space Grotesk"
+  },
+  "camera3d": {
+    "ground": "#0D0A2B"
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "glow",
+    "align": "left"
+  }
+}

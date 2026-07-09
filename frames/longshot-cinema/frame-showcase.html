@@ -1,0 +1,261 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>vid</title>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<style>
+  html,body{margin:0;padding:0;background:#0A0C10;}
+  .clip{position:absolute;inset:0;overflow:hidden;}
+  #vid{position:relative;font-family:Inter,'Segoe UI',system-ui,Roboto,Helvetica,Arial,sans-serif;}
+  .set{position:absolute;top:0;width:1280px;height:720px;}
+  .chip{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:999px;border:1px solid rgba(242,245,249,.22);background:rgba(242,245,249,.06);color:#FFB454;font:600 12px/1 Inter,'Segoe UI',sans-serif;letter-spacing:.22em;}
+  .card{position:absolute;border-radius:16px;background:rgba(242,245,249,.05);border:1px solid rgba(242,245,249,.12);box-shadow:0 24px 60px rgba(0,0,0,.5);}
+  .kfw{display:inline-block;}
+</style>
+</head>
+<body>
+<div id="vid" data-composition-id="vid" data-width="1280" data-height="720" data-duration="14" data-start="0">
+
+  <!-- ===== TRACK 0 — the stage: deep gradient ground + beams + dust ===== -->
+  <div id="stage" class="clip" data-start="0" data-duration="14" data-track-index="0" style="background:radial-gradient(120% 90% at 30% 0%, #141922, #0A0C10 60%, #06070A);">
+    <div id="beamA" style="position:absolute;left:-10%;top:-30%;width:45%;height:160%;transform:rotate(16deg);background:linear-gradient(90deg,transparent,rgba(255,180,84,.10),transparent);"></div>
+    <div id="beamB" style="position:absolute;right:-14%;top:-30%;width:40%;height:160%;transform:rotate(-14deg);background:linear-gradient(90deg,transparent,rgba(77,159,255,.10),transparent);"></div>
+    <svg viewBox="0 0 1280 720" style="position:absolute;inset:0;width:100%;height:100%;" preserveAspectRatio="xMidYMid slice">
+      <circle class="dust" cx="140" cy="120" r="2.5" fill="#FFB454" opacity=".4"/>
+      <circle class="dust" cx="420" cy="540" r="1.8" fill="#F2F5F9" opacity=".3"/>
+      <circle class="dust" cx="760" cy="200" r="2.2" fill="#4D9FFF" opacity=".35"/>
+      <circle class="dust" cx="1020" cy="430" r="1.6" fill="#F2F5F9" opacity=".28"/>
+      <circle class="dust" cx="240" cy="330" r="1.4" fill="#FFB454" opacity=".3"/>
+      <circle class="dust" cx="1150" cy="150" r="2.0" fill="#F2F5F9" opacity=".3"/>
+      <circle class="dust" cx="600" cy="650" r="1.7" fill="#4D9FFF" opacity=".3"/>
+      <circle class="dust" cx="900" cy="600" r="2.4" fill="#FFB454" opacity=".32"/>
+    </svg>
+  </div>
+
+  <!-- ===== TRACK 1 — THE WORLD: four sets in one continuous space ===== -->
+  <div id="world" class="clip" data-start="0" data-duration="14" data-track-index="1" style="perspective:1200px;">
+    <div id="cam" style="position:absolute;inset:0;width:5120px;transform-style:preserve-3d;">
+
+      <!-- ---- SET 1 · TITLE (x 0) ---- -->
+      <div class="set" id="set1" style="left:0;">
+        <div class="far" style="position:absolute;right:8%;top:14%;width:220px;height:220px;border:1px dashed rgba(255,180,84,.35);border-radius:50%;" id="s1ring"></div>
+        <div class="far" style="position:absolute;right:14%;top:22%;width:120px;height:120px;border:1px solid rgba(77,159,255,.3);border-radius:50%;"></div>
+        <div style="position:absolute;left:90px;top:200px;">
+          <span class="chip" id="s1chip" style="opacity:0;"><span style="width:8px;height:8px;border-radius:50%;background:#FF4646;"></span>ONE TAKE · NO CUTS</span>
+          <h1 style="margin:26px 0 0;font:800 96px/0.95 Inter,'Segoe UI',sans-serif;letter-spacing:-.03em;color:#F2F5F9;">
+            <span class="kfw">Shot</span> <span class="kfw">like</span> <span class="kfw">a</span><br>
+            <span class="kfw" style="color:#FFB454;">real</span> <span class="kfw" style="background:linear-gradient(100deg,#FFB454,#4D9FFF);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#FFB454;">film.</span>
+          </h1>
+          <svg width="420" height="14" style="margin-top:22px;overflow:visible;"><line id="s1u" x1="4" y1="7" x2="380" y2="7" stroke="#FFB454" stroke-width="5" stroke-linecap="round" stroke-dasharray="376" stroke-dashoffset="376"/></svg>
+          <p id="s1sub" style="margin:18px 0 0;font:400 20px/1.5 Inter,'Segoe UI',sans-serif;color:rgba(242,245,249,.62);max-width:460px;opacity:0;">One camera. Four sets. The whole story in a single continuous move.</p>
+        </div>
+      </div>
+
+      <!-- ---- SET 2 · THE FIGURES (x 1280) ---- -->
+      <div class="set" id="set2" style="left:1280px;">
+        <div style="position:absolute;left:90px;top:120px;">
+          <span class="chip" id="s2chip" style="opacity:0;color:#4D9FFF;">02 · THE NUMBERS</span>
+          <h2 style="margin:20px 0 0;font:800 54px/1 Inter,'Segoe UI',sans-serif;letter-spacing:-.02em;color:#F2F5F9;"><span class="kfw2">Figures</span> <span class="kfw2">that</span> <span class="kfw2" style="color:#4D9FFF;">pop.</span></h2>
+        </div>
+        <!-- stat cards -->
+        <div class="card" id="s2c1" style="left:90px;top:300px;width:300px;height:210px;padding:26px;opacity:0;">
+          <div style="font:600 12px/1 Inter,'Segoe UI',sans-serif;letter-spacing:.2em;color:rgba(242,245,249,.5);">VIEWS</div>
+          <div style="margin-top:14px;font:800 64px/1 Inter,'Segoe UI',sans-serif;letter-spacing:-.02em;color:#FFB454;"><span id="s2n1">0</span>M</div>
+          <svg width="240" height="52" style="margin-top:14px;overflow:visible;">
+            <rect class="s2bar" x="0"   y="22" width="30" height="30" rx="4" fill="rgba(255,180,84,.35)"/>
+            <rect class="s2bar" x="42"  y="12" width="30" height="40" rx="4" fill="rgba(255,180,84,.5)"/>
+            <rect class="s2bar" x="84"  y="18" width="30" height="34" rx="4" fill="rgba(255,180,84,.4)"/>
+            <rect class="s2bar" x="126" y="4"  width="30" height="48" rx="4" fill="rgba(255,180,84,.7)"/>
+            <rect class="s2bar" x="168" y="0"  width="30" height="52" rx="4" fill="#FFB454"/>
+          </svg>
+        </div>
+        <div class="card" id="s2c2" style="left:430px;top:300px;width:300px;height:210px;padding:26px;opacity:0;">
+          <div style="font:600 12px/1 Inter,'Segoe UI',sans-serif;letter-spacing:.2em;color:rgba(242,245,249,.5);">COMPLETION</div>
+          <div style="position:relative;width:120px;height:120px;margin-top:16px;">
+            <svg width="120" height="120" viewBox="0 0 120 120" style="transform:rotate(-90deg);">
+              <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(242,245,249,.1)" stroke-width="10"/>
+              <circle id="s2g" cx="60" cy="60" r="50" fill="none" stroke="#4D9FFF" stroke-width="10" stroke-linecap="round" stroke-dasharray="314" stroke-dashoffset="314"/>
+            </svg>
+            <div style="position:absolute;inset:0;display:grid;place-items:center;font:800 30px/1 Inter,'Segoe UI',sans-serif;color:#F2F5F9;"><span id="s2n2">0</span>%</div>
+          </div>
+        </div>
+        <div class="card" id="s2c3" style="left:770px;top:300px;width:300px;height:210px;padding:26px;opacity:0;">
+          <div style="font:600 12px/1 Inter,'Segoe UI',sans-serif;letter-spacing:.2em;color:rgba(242,245,249,.5);">RATING</div>
+          <div style="margin-top:14px;font:800 64px/1 Inter,'Segoe UI',sans-serif;letter-spacing:-.02em;color:#F2F5F9;"><span id="s2n3">0.0</span></div>
+          <div id="s2stars" style="margin-top:12px;font:400 26px/1 Inter,sans-serif;color:#FFB454;letter-spacing:6px;">★★★★★</div>
+        </div>
+        <!-- pop-up badges -->
+        <span class="chip" id="s2b1" style="position:absolute;left:360px;top:262px;opacity:0;background:#FFB454;color:#0A0C10;border:none;">+312% YoY</span>
+        <span class="chip" id="s2b2" style="position:absolute;left:1010px;top:540px;opacity:0;background:#4D9FFF;color:#0A0C10;border:none;">LIVE</span>
+      </div>
+
+      <!-- ---- SET 3 · THE PRODUCT (x 2560) ---- -->
+      <div class="set" id="set3" style="left:2560px;">
+        <div style="position:absolute;left:90px;top:110px;">
+          <span class="chip" id="s3chip" style="opacity:0;">03 · THE PRODUCT</span>
+          <h2 style="margin:20px 0 0;font:800 54px/1 Inter,'Segoe UI',sans-serif;letter-spacing:-.02em;color:#F2F5F9;"><span class="kfw3">Your</span> <span class="kfw3">app,</span> <span class="kfw3" style="color:#FFB454;">performing.</span></h2>
+        </div>
+        <!-- browser mock, built & animated -->
+        <div class="card" id="s3win" style="left:90px;top:250px;width:760px;height:400px;opacity:0;border-radius:18px;">
+          <div style="display:flex;align-items:center;gap:8px;padding:14px 18px;border-bottom:1px solid rgba(242,245,249,.1);">
+            <span style="width:11px;height:11px;border-radius:50%;background:#FFB454;"></span>
+            <span style="width:11px;height:11px;border-radius:50%;background:#4D9FFF;"></span>
+            <span style="width:11px;height:11px;border-radius:50%;background:rgba(242,245,249,.3);"></span>
+            <span style="margin-left:12px;padding:5px 46px;border-radius:8px;background:rgba(242,245,249,.07);font:500 12px/1 Inter,sans-serif;color:rgba(242,245,249,.5);">app.longshot.studio</span>
+          </div>
+          <div style="display:flex;gap:18px;padding:20px;">
+            <div style="flex:1.4;">
+              <div style="height:14px;width:60%;border-radius:6px;background:rgba(242,245,249,.16);"></div>
+              <div style="margin-top:10px;height:10px;width:85%;border-radius:5px;background:rgba(242,245,249,.08);"></div>
+              <div style="margin-top:8px;height:10px;width:70%;border-radius:5px;background:rgba(242,245,249,.08);"></div>
+              <div style="margin-top:20px;height:8px;border-radius:99px;background:rgba(242,245,249,.08);overflow:hidden;"><div id="s3bar" style="height:100%;width:0%;border-radius:99px;background:linear-gradient(90deg,#FFB454,#4D9FFF);"></div></div>
+              <div class="s3row" style="margin-top:20px;display:flex;gap:10px;align-items:center;opacity:0;transform:translateX(-24px);"><span style="width:30px;height:30px;border-radius:8px;background:rgba(255,180,84,.3);"></span><span style="height:9px;flex:1;border-radius:5px;background:rgba(242,245,249,.12);"></span></div>
+              <div class="s3row" style="margin-top:12px;display:flex;gap:10px;align-items:center;opacity:0;transform:translateX(-24px);"><span style="width:30px;height:30px;border-radius:8px;background:rgba(77,159,255,.3);"></span><span style="height:9px;flex:1;border-radius:5px;background:rgba(242,245,249,.12);"></span></div>
+              <div class="s3row" style="margin-top:12px;display:flex;gap:10px;align-items:center;opacity:0;transform:translateX(-24px);"><span style="width:30px;height:30px;border-radius:8px;background:rgba(242,245,249,.18);"></span><span style="height:9px;flex:1;border-radius:5px;background:rgba(242,245,249,.12);"></span></div>
+            </div>
+            <div style="flex:1;">
+              <svg width="100%" height="230" viewBox="0 0 280 230" style="overflow:visible;">
+                <polyline id="s3line" points="10,190 60,150 110,168 160,110 210,84 262,30" fill="none" stroke="#4D9FFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="420" stroke-dashoffset="420"/>
+                <circle id="s3dot" cx="262" cy="30" r="7" fill="#FFB454" opacity="0"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+        <span class="chip" id="s3call" style="position:absolute;left:880px;top:330px;opacity:0;background:#4D9FFF;color:#0A0C10;border:none;">2.4s faster ↑</span>
+        <svg style="position:absolute;left:840px;top:342px;overflow:visible;" width="60" height="20"><line id="s3conn" x1="40" y1="10" x2="0" y2="10" stroke="#4D9FFF" stroke-width="2" stroke-dasharray="40" stroke-dashoffset="40"/></svg>
+      </div>
+
+      <!-- ---- SET 4 · CTA (x 3840) ---- -->
+      <div class="set" id="set4" style="left:3840px;">
+        <svg viewBox="0 0 1280 720" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;" preserveAspectRatio="xMidYMid slice">
+          <circle id="s4orb" cx="640" cy="330" r="190" fill="none" stroke="rgba(255,180,84,.35)" stroke-width="1.5" stroke-dasharray="6 12"/>
+          <g id="s4conf" opacity="1">
+            <rect class="cf" x="634" y="324" width="13" height="13" rx="3" fill="#FFB454"/>
+            <rect class="cf" x="634" y="324" width="10" height="10" rx="2" fill="#4D9FFF"/>
+            <circle class="cf" cx="640" cy="330" r="6" fill="#F2F5F9"/>
+            <rect class="cf" x="634" y="324" width="12" height="12" rx="3" fill="#4D9FFF"/>
+            <circle class="cf" cx="640" cy="330" r="5" fill="#FFB454"/>
+            <rect class="cf" x="634" y="324" width="9" height="9" rx="2" fill="#F2F5F9"/>
+            <circle class="cf" cx="640" cy="330" r="7" fill="#4D9FFF"/>
+            <rect class="cf" x="634" y="324" width="11" height="11" rx="2" fill="#FFB454"/>
+          </g>
+        </svg>
+        <div style="position:absolute;left:0;right:0;top:230px;text-align:center;">
+          <h2 style="margin:0;font:800 88px/0.95 Inter,'Segoe UI',sans-serif;letter-spacing:-.03em;color:#F2F5F9;"><span class="kfw4">Roll</span> <span class="kfw4" style="color:#FFB454;">yours.</span></h2>
+          <div id="s4btn" style="display:inline-flex;align-items:center;gap:10px;margin-top:36px;padding:18px 44px;border-radius:999px;background:#FFB454;color:#0A0C10;font:800 20px/1 Inter,'Segoe UI',sans-serif;opacity:0;">Start filming <span>→</span></div>
+          <div id="s4fin" style="margin-top:46px;font:600 13px/1 Inter,sans-serif;letter-spacing:.5em;color:rgba(242,245,249,.4);opacity:0;">— FIN —</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== TRACK 2 — cinematic chrome: letterbox + vignette + grain + sweep ===== -->
+  <div id="chrome" class="clip" data-start="0" data-duration="14" data-track-index="2" data-layout-allow-occlusion style="pointer-events:none;">
+    <div id="lbT" style="position:absolute;left:0;right:0;top:0;height:64px;background:#06070A;"></div>
+    <div id="lbB" style="position:absolute;left:0;right:0;bottom:0;height:64px;background:#06070A;"></div>
+    <div style="position:absolute;inset:0;background:radial-gradient(90% 80% at 50% 45%, transparent 55%, rgba(4,5,8,.55) 100%);"></div>
+    <div id="sweep" style="position:absolute;top:0;bottom:0;left:-30%;width:26%;transform:skewX(-14deg);background:linear-gradient(90deg,transparent,rgba(242,245,249,.07),transparent);"></div>
+    <div style="position:absolute;inset:0;opacity:.05;background-image:radial-gradient(circle, rgba(242,245,249,.7) 1px, transparent 1.4px);background-size:5px 5px;"></div>
+  </div>
+
+  <!-- ===== TRACK 3 — HUD: REC + live timecode ===== -->
+  <div id="hud" class="clip" data-start="0" data-duration="14" data-track-index="3" data-layout-allow-occlusion style="pointer-events:none;">
+    <div style="position:absolute;left:26px;top:20px;display:flex;align-items:center;gap:8px;font:600 12px/1 Inter,sans-serif;letter-spacing:.24em;color:#F2F5F9;">
+      <span id="recdot" style="width:9px;height:9px;border-radius:50%;background:#FF4646;"></span>REC
+    </div>
+    <div style="position:absolute;right:26px;top:20px;font:600 12px/1 Inter,sans-serif;letter-spacing:.14em;color:rgba(242,245,249,.75);">TC <span id="tc" style="color:#FFB454;">00:00:00:00</span></div>
+  </div>
+
+</div>
+
+<script>
+  var D = 14;
+  function reps(p){ return Math.max(0, Math.floor(D/p) - 1); }
+  var tl = gsap.timeline({ paused: true });
+
+  /* ---------- stage ambience (full duration) ---------- */
+  tl.to("#beamA", { xPercent: 26, duration: 7, ease: "sine.inOut", yoyo: true, repeat: reps(7) }, 0);
+  tl.to("#beamB", { xPercent: -22, duration: 8, ease: "sine.inOut", yoyo: true, repeat: reps(8) }, 0);
+  tl.to(".dust", { y: -34, duration: 6, ease: "sine.inOut", yoyo: true, repeat: reps(6), stagger: 0.4 }, 0);
+  tl.to("#recdot", { opacity: 0.15, duration: 0.55, ease: "steps(1)", yoyo: true, repeat: reps(0.55) }, 0);
+  tl.fromTo("#sweep", { xPercent: 0 }, { xPercent: 560, duration: 3.2, ease: "sine.inOut", repeat: reps(3.6), repeatDelay: 0.4 }, 0.2);
+  /* letterbox breathes open like a projector starting */
+  tl.fromTo("#lbT", { height: 360 }, { height: 64, duration: 1.1, ease: "power3.inOut" }, 0);
+  tl.fromTo("#lbB", { height: 360 }, { height: 64, duration: 1.1, ease: "power3.inOut" }, 0);
+  /* live timecode — pure function of t */
+  var tcp = { t: 0 };
+  tl.to(tcp, { t: D, duration: D, ease: "none", onUpdate: function () {
+    var el = document.getElementById("tc"); if (!el) return;
+    var s = Math.floor(tcp.t), f = Math.floor((tcp.t - s) * 24);
+    el.textContent = "00:00:" + String(s).padStart(2, "0") + ":" + String(f).padStart(2, "0");
+  } }, 0);
+
+  /* ---------- THE ONE-TAKE CAMERA ---------- */
+  /* travel between sets + micro drift inside each set — never static */
+  tl.fromTo("#cam", { x: 0, scale: 1.06 }, { scale: 1.0, duration: 1.4, ease: "power2.out" }, 0);
+  tl.to("#cam", { x: -1280, duration: 1.0, ease: "power3.inOut" }, 3.0);
+  tl.to("#cam", { x: -2560, duration: 1.0, ease: "power3.inOut" }, 6.6);
+  tl.to("#cam", { x: -3840, duration: 1.0, ease: "power3.inOut" }, 10.2);
+  /* parallax: far layers lag behind the camera on each travel */
+  tl.fromTo(".far", { x: 0 }, { x: 160, duration: 1.0, ease: "power3.inOut" }, 3.0);
+  /* micro dolly breaths inside sets — yoyo pairs, never overlapping */
+  tl.to("#cam", { scale: 1.03, duration: 0.72, ease: "sine.inOut", yoyo: true, repeat: 1 }, 1.5);
+  tl.to("#cam", { scale: 1.028, duration: 1.1, ease: "sine.inOut", yoyo: true, repeat: 1 }, 4.2);
+  tl.to("#cam", { scale: 1.03, duration: 1.1, ease: "sine.inOut", yoyo: true, repeat: 1 }, 7.8);
+  tl.to("#cam", { scale: 1.04, duration: 1.25, ease: "sine.inOut", yoyo: true, repeat: 1 }, 11.4);
+
+  /* ---------- SET 1 · TITLE (0 – 4.0) ---------- */
+  tl.fromTo("#s1chip", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 0.5);
+  tl.fromTo("#set1 .kfw", { opacity: 0, y: 60, rotation: 4 }, { opacity: 1, y: 0, rotation: 0, duration: 0.7, stagger: 0.09, ease: "power3.out" }, 0.7);
+  tl.to("#s1u", { strokeDashoffset: 0, duration: 0.7, ease: "power2.inOut" }, 1.5);
+  tl.fromTo("#s1sub", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.55 }, 1.8);
+  tl.to("#s1ring", { rotation: 180, duration: 3.4, ease: "sine.inOut" }, 0.4);
+
+  /* ---------- SET 2 · FIGURES (4.0 – 7.6) ---------- */
+  tl.fromTo("#s2chip", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.4 }, 4.05);
+  tl.fromTo("#set2 .kfw2", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.55, stagger: 0.08, ease: "power3.out" }, 4.15);
+  tl.fromTo("#s2c1", { opacity: 0, y: 60, scale: 0.9 }, { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: "back.out(1.6)" }, 4.4);
+  tl.fromTo("#s2c2", { opacity: 0, y: 60, scale: 0.9 }, { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: "back.out(1.6)" }, 4.55);
+  tl.fromTo("#s2c3", { opacity: 0, y: 60, scale: 0.9 }, { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: "back.out(1.6)" }, 4.7);
+  var n1 = { v: 0 }, n2 = { v: 0 }, n3 = { v: 0 };
+  tl.to(n1, { v: 2.4, duration: 1.2, ease: "power2.out", onUpdate: function () { var e = document.getElementById("s2n1"); if (e) e.textContent = n1.v.toFixed(1); } }, 4.8);
+  tl.to(n2, { v: 98, duration: 1.3, ease: "power2.out", onUpdate: function () { var e = document.getElementById("s2n2"); if (e) e.textContent = Math.round(n2.v); } }, 4.95);
+  tl.to(n3, { v: 4.9, duration: 1.2, ease: "power2.out", onUpdate: function () { var e = document.getElementById("s2n3"); if (e) e.textContent = n3.v.toFixed(1); } }, 5.1);
+  tl.fromTo(".s2bar", { scaleY: 0, transformOrigin: "50% 100%" }, { scaleY: 1, duration: 0.55, stagger: 0.09, ease: "power3.out" }, 5.0);
+  tl.to("#s2g", { strokeDashoffset: 314 * 0.02, duration: 1.25, ease: "power2.inOut" }, 4.95);
+  tl.fromTo("#s2stars", { opacity: 0 }, { opacity: 1, duration: 0.6 }, 5.4);
+  tl.fromTo("#s2b1", { opacity: 0, scale: 0, rotation: -12 }, { opacity: 1, scale: 1, rotation: -6, duration: 0.5, ease: "back.out(2.2)" }, 5.7);
+  tl.fromTo("#s2b2", { opacity: 0, scale: 0, rotation: 10 }, { opacity: 1, scale: 1, rotation: 5, duration: 0.5, ease: "back.out(2.2)" }, 5.95);
+
+  /* ---------- SET 3 · PRODUCT (7.6 – 11.2) ---------- */
+  tl.fromTo("#s3chip", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.4 }, 7.65);
+  tl.fromTo("#set3 .kfw3", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.55, stagger: 0.08, ease: "power3.out" }, 7.75);
+  tl.fromTo("#s3win", { opacity: 0, rotationY: 20, transformPerspective: 1200, y: 40 }, { opacity: 1, rotationY: 0, y: 0, duration: 0.85, ease: "power3.out" }, 8.0);
+  tl.to("#s3bar", { width: "86%", duration: 1.2, ease: "power2.inOut" }, 8.7);
+  tl.fromTo(".s3row", { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 0.45, stagger: 0.15, ease: "power2.out" }, 8.9);
+  tl.to("#s3line", { strokeDashoffset: 0, duration: 1.1, ease: "power2.inOut" }, 9.0);
+  tl.fromTo("#s3dot", { opacity: 0, scale: 0 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2)" }, 10.0);
+  tl.fromTo("#s3call", { opacity: 0, scale: 0 }, { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(2)" }, 10.15);
+  tl.to("#s3conn", { strokeDashoffset: 0, duration: 0.4 }, 10.1);
+
+  /* ---------- SET 4 · CTA (11.2 – 14) ---------- */
+  tl.fromTo("#set4 .kfw4", { opacity: 0, y: 60, scale: 0.9 }, { opacity: 1, y: 0, scale: 1, duration: 0.7, stagger: 0.12, ease: "power3.out" }, 11.3);
+  tl.to("#s4orb", { rotation: 140, transformOrigin: "50% 50%", duration: 2.6, ease: "sine.inOut" }, 11.3);
+  /* confetti burst from the center */
+  tl.fromTo(".cf", { x: 0, y: 0, scale: 0, opacity: 1 },
+    { x: function (i) { return [210, -240, 150, -170, 260, -120, 90, -280][i]; },
+      y: function (i) { return [-160, -120, 180, 150, 40, -200, -240, 60][i]; },
+      rotation: function (i) { return [160, -200, 120, -140, 220, -90, 180, -160][i]; },
+      scale: 1, opacity: 0.9, duration: 1.1, ease: "power3.out", stagger: 0.03 }, 12.0);
+  tl.to(".cf", { opacity: 0, duration: 0.6 }, 13.3);
+  tl.fromTo("#s4btn", { opacity: 0, scale: 0.8, y: 20 }, { opacity: 1, scale: 1, y: 0, duration: 0.6, ease: "back.out(1.8)" }, 12.1);
+  tl.to("#s4btn", { scale: 1.05, duration: 0.7, ease: "sine.inOut", yoyo: true, repeat: 1 }, 12.8);
+  tl.fromTo("#s4fin", { opacity: 0 }, { opacity: 1, duration: 0.6 }, 13.1);
+
+  window.__timelines = window.__timelines || {};
+  window.__timelines["vid"] = tl;
+</script>
+</body>
+</html>

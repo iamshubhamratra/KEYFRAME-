@@ -199,6 +199,19 @@ async function callOnce({ body, timeoutMs, stage, model, signal: external }) {
       console.warn(`[openrouter] ${model} stage=${stage || "?"} FAILED after ${dt}ms: ${tag}`);
       lastErr = err;
       hardTimer();
+      // 402 affordability: OpenRouter pre-charges against max_tokens, and its
+      // error names the exact ceiling it CAN afford ("...can only afford N").
+      // A finished composition needs ~10-15k output tokens — far below the 50k
+      // default ceiling — so shrink and retry instead of failing three times
+      // with the identical unaffordable request.
+      if (attempt < MAX_ATTEMPTS && err?.status === 402 && !external?.aborted) {
+        const afford = Number((String(err?.message || "").match(/can only afford (\d+)/i) || [])[1]);
+        if (Number.isFinite(afford) && afford >= 6000 && afford < body.max_tokens) {
+          body.max_tokens = Math.floor(afford * 0.9);
+          console.warn(`[openrouter] ${model} 402 affordability — shrinking max_tokens to ${body.max_tokens} and retrying`);
+          continue;
+        }
+      }
       if (attempt < MAX_ATTEMPTS && isRetryable(err) && !external?.aborted) {
         const backoff = 1500 * attempt;
         console.warn(`[openrouter] ${model} transient ${tag} — retry ${attempt}/${MAX_ATTEMPTS - 1} in ${backoff}ms`);
@@ -252,14 +265,29 @@ async function chat({ system, user, jsonMode = false, temperature, model, stage,
 
   console.log(`[llm] primary=${kieEnabled ? `kie:${config.llm.primary.model}` : "none"} fallback=${orPrimary}->${orFallback || "none"} stage=${stage || "?"} dispatching (sys=${system.length}ch user=${user.length}ch json=${jsonMode} timeout=${timeoutMs}ms)`);
 
-  // 1. PRIMARY: KIE Gemini. Any failure falls through to OpenRouter — UNLESS the
-  // external signal fired (the whole stage is being cancelled; don't start more work).
+  // 1. PRIMARY: KIE Gemini. KIE's Cloudflare edge throws transient 524/5xx
+  // timeouts on the bigger prompts (storyboard/composer), so RETRY it a couple of
+  // times before falling back — the OpenRouter fallback is often daily-limited, so
+  // a premature fall-through just fails the whole stage. Any non-retryable error
+  // (or exhausted retries) still falls through. Skip if the stage was cancelled.
   if (kieEnabled) {
-    try {
-      return await callKie({ messages, jsonMode, temperature: effTemp, timeoutMs, stage, signal });
-    } catch (err) {
-      if (signal?.aborted) throw err;
-      console.warn(`[llm] KIE primary failed (${err?.status || err?.message || err}); falling back to OpenRouter ${orPrimary}`);
+    const KIE_ATTEMPTS = 3;
+    for (let a = 1; a <= KIE_ATTEMPTS; a++) {
+      if (signal?.aborted) throw signal.reason || new Error("llm: aborted");
+      try {
+        return await callKie({ messages, jsonMode, temperature: effTemp, timeoutMs, stage, signal });
+      } catch (err) {
+        if (signal?.aborted) throw err;
+        const canRetry = a < KIE_ATTEMPTS && isRetryable(err);
+        if (canRetry) {
+          const backoff = 1000 * a;
+          console.warn(`[llm] KIE ${err?.status || err?.code || err?.message || err} on stage=${stage} — retry ${a}/${KIE_ATTEMPTS - 1} in ${backoff}ms`);
+          await new Promise((r) => setTimeout(r, backoff));
+          continue;
+        }
+        console.warn(`[llm] KIE primary failed (${err?.status || err?.message || err}); falling back to OpenRouter ${orPrimary}`);
+        break;
+      }
     }
   }
 

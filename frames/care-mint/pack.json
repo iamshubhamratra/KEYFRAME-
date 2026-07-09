@@ -1,0 +1,67 @@
+{
+  "name": "care-mint",
+  "vibe": "a calm, humane care system: soft off-white grounds, rounded cards, gentle teal/mint washes and one warm accent — for healthcare, wellness, patient and clinical products",
+  "colors": {
+    "cloud": "#F3FAF7",
+    "linen": "#E6F3EE",
+    "ink": "#163B33",
+    "teal": "#2FB39A",
+    "coral": "#FF9E7A",
+    "sky": "#6FC5D8"
+  },
+  "fonts": [
+    "Inter",
+    "Bricolage Grotesque"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#F3FAF7"
+  },
+  "motion": {
+    "cut": "wash",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "bokeh",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#2FB39A",
+      "#FF9E7A"
+    ],
+    "extras": [
+      "#6FC5D8",
+      "#BFE7DA"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "soft clean calm medical wellness natural light",
+    "iconStyle": "soft",
+    "keywords": [
+      "soft",
+      "calm",
+      "clean",
+      "wellness",
+      "rounded"
+    ],
+    "prefer": []
+  },
+  "textfx": {
+    "enter": "drift",
+    "emphasis": "marker",
+    "case": "none",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "typography": {
+    "display": "Bricolage Grotesque"
+  },
+  "camera3d": {
+    "ground": "#163B33"
+  }
+}

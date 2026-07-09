@@ -114,20 +114,29 @@ async function extractItemsFromDom(page, category) {
     const pathRe = new RegExp(`/${esc}/[^/?#]+-(\\d+)/?$`);
     const out = [];
     const seen = new Set();
-    for (const a of document.querySelectorAll('a[href*="pixabay.com"]')) {
-      const href = a.href || '';
+    // Pixabay asset links are RELATIVE (href="/vectors/slug-153227/"), so the old
+    // `a[href*="pixabay.com"]` attribute selector matched nothing. Iterate ALL
+    // anchors and use the resolved absolute `a.href`.
+    for (const a of document.querySelectorAll('a')) {
+      const href = (a.href || '').split('?')[0].split('#')[0];
       if (!href.includes(`/${seg}/`)) continue;
-      const m = href.split('?')[0].match(pathRe);
+      const m = href.match(pathRe);
       if (!m) continue;
       const id = m[1];
       if (seen.has(id)) continue;
       seen.add(id);
-      const title = (a.getAttribute('title') || a.textContent || '').trim().replace(/\s+/g, ' ');
+      const title = (a.getAttribute('title') || a.getAttribute('aria-label') || a.textContent || '').trim().replace(/\s+/g, ' ');
+      const img = a.querySelector('img');
+      const previewURL = img
+        ? (img.getAttribute('src') || img.getAttribute('data-lazy-src') || img.getAttribute('data-src') || (img.getAttribute('srcset') || '').split(' ')[0] || undefined)
+        : undefined;
       out.push({
         id,
-        pageURL: href.split('?')[0],
+        pageURL: href,
         title: title.slice(0, 300),
+        previewURL,
       });
+      if (out.length >= 60) break;
     }
     return out;
   }, segment);
@@ -178,7 +187,7 @@ async function searchWithNetwork(page, category, opts) {
     const byId = new Map(merged.map((i) => [i.id, i]));
     const domItems = await extractItemsFromDom(page, category);
     for (const d of domItems) {
-      if (!byId.has(d.id)) byId.set(d.id, { id: d.id, pageURL: d.pageURL, title: d.title });
+      if (!byId.has(d.id)) byId.set(d.id, { id: d.id, pageURL: d.pageURL, title: d.title, previewURL: d.previewURL });
     }
     return {
       url,
@@ -268,10 +277,62 @@ async function resolveDownloadUrl(page, category, id) {
   }
 }
 
+/**
+ * Resolve a direct mp3 URL for the FIRST playable track matching a query.
+ * Pixabay lazy-loads audio URLs (not in page HTML) — they only appear as a
+ * network request when a track is PLAYED. So: open the search page, dismiss the
+ * cookie banner, click the Nth track's play control, and capture the audio/mpeg
+ * response URL (a public cdn.pixabay.com/audio/... mp3). category must be
+ * 'music' or 'sound-effects'.
+ * @param {import('puppeteer-core').Page} page
+ * @param {AssetCategory} category
+ * @param {{ q: string, index?: number }} opts
+ */
+async function resolveFirstAudio(page, category, opts) {
+  const url = buildSearchUrl(category, opts.q, 1);
+  const index = Math.max(0, Math.floor(opts.index || 0));
+  const captured = [];
+  const onResponse = (res) => {
+    try {
+      const u = res.url();
+      const ct = (res.headers()['content-type'] || '').toLowerCase();
+      if (/\.mp3(\?|$)/i.test(u) || ct.includes('audio/')) captured.push(u);
+    } catch { /* ignore */ }
+  };
+  page.on('response', onResponse);
+  try {
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
+    await waitPastChallenge(page);
+    await new Promise((r) => setTimeout(r, 1500));
+    // dismiss OneTrust / cookie consent (it overlays and intercepts clicks)
+    await page.evaluate(() => {
+      const rx = /^(accept all|accept|allow all|agree|got it|ok)$/i;
+      const b = [...document.querySelectorAll('button,#onetrust-accept-btn-handler,[id*="accept" i]')]
+        .find((el) => /accept/i.test(el.id) || rx.test((el.innerText || el.textContent || '').trim()));
+      if (b) { try { b.click(); } catch { /* noop */ } }
+    }).catch(() => {});
+    await new Promise((r) => setTimeout(r, 500));
+    const clicked = await page.evaluate((idx) => {
+      const cands = [...document.querySelectorAll('button[aria-label*="Play" i],button[title*="Play" i],[class*="playOverlay" i],[class*="play" i][role="button"],[data-testid*="play" i]')];
+      const el = cands[idx] || cands[0];
+      if (!el) return false;
+      try { el.click(); return true; } catch { return false; }
+    }, index);
+    // wait for the mp3 fetch to fire
+    for (let i = 0; i < 12 && !captured.length; i++) await new Promise((r) => setTimeout(r, 500));
+    const mp3Url = captured.find((u) => /\.mp3/i.test(u)) || captured[0] || null;
+    const pageTitle = await page.title().catch(() => '');
+    return { url, pageTitle, clicked, mp3Url, captured: captured.slice(0, 6) };
+  } finally {
+    page.off('response', onResponse);
+  }
+}
+
 module.exports = {
   CATEGORY_PATH,
   buildSearchUrl,
   buildDetailUrl,
   searchWithNetwork,
   resolveDownloadUrl,
+  resolveFirstAudio,
 };

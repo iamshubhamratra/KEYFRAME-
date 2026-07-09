@@ -35,7 +35,9 @@ async function search({ query, type, orientation, limit = 5 }) {
 
   if (type === "image") {
     const data = await apiJson("https://pixabay.com/api/", {
-      q: query, image_type: "photo",
+      // "all" = photos + illustrations + vectors, so a query adaptively returns
+      // the right kind (a "developer desk" → photo, a "rocket icon" → vector).
+      q: query, image_type: "all",
       orientation: orientationParam(orientation),
       per_page: limit, safesearch: "true",
     });
@@ -44,6 +46,7 @@ async function search({ query, type, orientation, limit = 5 }) {
       // (1280px). Prefer the larger so full-bleed stills stay sharp at 1080p.
       url: h.fullHDURL || h.largeImageURL || h.webformatURL,
       width: h.imageWidth, height: h.imageHeight,
+      tags: h.tags, // comma-separated keywords — drives relevance ranking
       license: "Pixabay Content License",
       sourceUrl: h.pageURL,
     })).filter((c) => c.url);
@@ -61,6 +64,7 @@ async function search({ query, type, orientation, limit = 5 }) {
       return pick && pick.url ? {
         url: pick.url,
         width: pick.width, height: pick.height,
+        tags: h.tags,
         license: "Pixabay Content License",
         sourceUrl: h.pageURL,
       } : null;

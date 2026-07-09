@@ -1,0 +1,71 @@
+{
+  "name": "flux-analytics",
+  "vibe": "a chart-first analyst system: near-monochrome ground, a faint data grid, mono labels and ONE signal accent reserved for the data — for dashboards, analytics, data and ML products",
+  "colors": {
+    "base": "#0C0A14",
+    "panel": "#151122",
+    "grid": "#221A33",
+    "ink": "#ECE8F5",
+    "violet": "#B76CFF",
+    "mint": "#3DF0C0"
+  },
+  "fonts": [
+    "Inter",
+    "Space Grotesk",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#0C0A14"
+  },
+  "motion": {
+    "cut": "flash",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "constellation",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#B76CFF",
+      "#3DF0C0"
+    ],
+    "extras": [
+      "#221A33",
+      "#D3AEFF"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "data analytics dashboard chart monochrome",
+    "iconStyle": "line",
+    "keywords": [
+      "data",
+      "chart",
+      "analytics",
+      "mono",
+      "grid"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
+  },
+  "textfx": {
+    "enter": "slide",
+    "emphasis": "boxed",
+    "case": "none",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "typography": {
+    "display": "Space Grotesk"
+  },
+  "camera3d": {
+    "ground": "#0C0A14"
+  }
+}

@@ -9,18 +9,40 @@ const path = require("node:path");
 const express = require("express");
 const config = require("../config");
 const frameRegistry = require("../services/frame_registry");
+const frameManifest = require("../services/frame_manifest");
 
 const router = express.Router();
 
 const PUBLIC_FRAMES = path.join(config.paths.root, "public", "frames");
 
-// Pull a clean display label + one-line vibe out of FRAME.md frontmatter.
+// Display label + one-line vibe + palette for the gallery. The pack MANIFEST
+// (frames/<pack>/pack.json) is the source of truth for vibe/colors/fonts +
+// display font + ground — replacing this route's own duplicate FRAME.md parser
+// (which had its own folded-`description:` handling). Only the human display
+// LABEL still comes from FRAME.md `name:` (the manifest holds the slug, not the
+// title). Falls back to FRAME.md parsing when a pack ships no manifest.
 function packMeta(name) {
   const md = frameRegistry.getFrameMd(name) || "";
   const fm = (md.match(/^---\r?\n([\s\S]*?)\r?\n---/) || [])[1] || md;
   let label = (fm.match(/^name:\s*"?(.+?)"?\s*$/m) || [])[1] || name;
   label = label.replace(/\s*[—-]\s*Frame.*$/i, "").trim(); // drop "— Frame (video…)"
-  // description: > may be a folded block over several indented lines.
+
+  const m = frameManifest.getManifest(name);
+  if (m) {
+    let vibe = m.vibe || "";
+    if (vibe.length > 180) vibe = vibe.slice(0, 177).trimEnd() + "…";
+    return {
+      label,
+      vibe,
+      colors: Object.values(m.colors || {}).slice(0, 6),
+      fonts: m.fonts || [],
+      displayFont: (m.typography && m.typography.display) || null,
+      ground: (m.surface && m.surface.ground) || null,
+      accents: (m.skin && m.skin.accents && m.skin.accents.length ? m.skin.accents : Object.values(m.colors || {})).slice(0, 3),
+    };
+  }
+
+  // Fail-soft: no manifest -> parse FRAME.md (incl. folded `description:` block).
   let vibe = "";
   const d = fm.match(/^description:\s*>?\s*\r?\n((?:[ \t]+.+\r?\n?)+)/m);
   if (d) vibe = d[1].split(/\r?\n/).map((l) => l.trim()).filter(Boolean).join(" ");
@@ -28,7 +50,7 @@ function packMeta(name) {
   vibe = vibe.replace(/\s+/g, " ").trim();
   if (vibe.length > 180) vibe = vibe.slice(0, 177).trimEnd() + "…";
   const tokens = frameRegistry.getPackTokens(name) || { colors: {}, fonts: [] };
-  return { label, vibe, colors: Object.values(tokens.colors || {}).slice(0, 6), fonts: tokens.fonts || [] };
+  return { label, vibe, colors: Object.values(tokens.colors || {}).slice(0, 6), fonts: tokens.fonts || [], displayFont: null, ground: null, accents: [] };
 }
 
 function mediaUrls(name) {

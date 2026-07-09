@@ -52,12 +52,16 @@ function defaultPack() {
   return (preferred && packs.includes(preferred)) ? preferred : packs[0];
 }
 
-// Resolve a user-requested pack name. null/"" /"auto" -> default pack.
-// Unknown name -> null (caller decides whether that's a 400 or a fallback).
+// Resolve a user-requested pack name. Only the explicit "auto" string maps to
+// the default pack; null/"" means "no choice was made" and returns null so
+// callers fall through to the brief's tone-matched suggestion instead of
+// silently landing every auto video on the default pack. Unknown name -> null
+// (caller decides whether that's a 400 or a fallback).
 function resolvePack(requested) {
   const packs = listPacks();
   if (!packs.length) return null;
-  if (!requested || requested === "auto") return defaultPack();
+  if (!requested) return null;
+  if (requested === "auto") return defaultPack();
   return packs.includes(requested) ? requested : null;
 }
 
@@ -84,8 +88,26 @@ function getPackVibe(name) {
   if (!md) return null;
   const fmMatch = md.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   const fm = fmMatch ? fmMatch[1] : md;
-  const m = fm.match(/^(?:description|vibe|tagline|summary):\s*["']?(.+?)["']?\s*$/im);
-  return m ? m[1].trim().slice(0, 240) : null;
+  const lines = fm.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^(?:description|vibe|tagline|summary):\s*(.*)$/i);
+    if (!m) continue;
+    const inline = m[1].trim().replace(/^["']|["']$/g, "");
+    // A plain inline scalar wins. A YAML folded/literal block scalar (`>` or
+    // `|`, with optional `+`/`-` chomp) has an empty/indicator-only value — the
+    // real text is the following indented lines. The old regex captured the bare
+    // `>` for those, garbling the vibe for every pack that used a folded block.
+    if (inline && !/^[>|][+-]?$/.test(inline)) return inline.slice(0, 240);
+    const body = [];
+    for (let j = i + 1; j < lines.length; j++) {
+      if (/^\s+\S/.test(lines[j])) body.push(lines[j].trim());
+      else if (/^\s*$/.test(lines[j])) body.push(""); // blank line = paragraph break
+      else break; // dedent -> block ended
+    }
+    const folded = body.join(" ").replace(/\s+/g, " ").trim();
+    return folded ? folded.slice(0, 240) : null;
+  }
+  return null;
 }
 
 function getShowcasePath(name) {

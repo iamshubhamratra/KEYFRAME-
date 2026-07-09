@@ -1,0 +1,61 @@
+{
+  "name": "midnight-glass",
+  "vibe": "dark glassmorphism: deep navy, frosted cards, one neon accent — premium, technical, nocturnal",
+  "colors": {
+    "midnight": "#0A0F2A",
+    "abyss": "#060918",
+    "glasslight": "#FFFFFF",
+    "frost": "#C7D6F0",
+    "inklight": "#EAF2FF",
+    "neon": "#00F0FF",
+    "violet": "#7A5CFF"
+  },
+  "fonts": [
+    "Inter",
+    "JetBrains Mono",
+    "Space Grotesk"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#060918"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.05
+  },
+  "fx": {
+    "canvas": "flow",
+    "three": null
+  },
+  "skin": {
+    "accents": [],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "dark moody premium technology",
+    "iconStyle": "duotone",
+    "keywords": [
+      "dark",
+      "premium",
+      "tech",
+      "glow"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
+  },
+  "typography": {
+    "display": "Space Grotesk"
+  },
+  "camera3d": {
+    "ground": "#060918"
+  },
+  "textfx": {
+    "enter": "mask-reveal",
+    "emphasis": "glow",
+    "align": "left"
+  }
+}

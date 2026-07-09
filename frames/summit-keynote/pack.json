@@ -1,0 +1,65 @@
+{
+  "name": "summit-keynote",
+  "vibe": "executive pitch light: porcelain grounds, deep navy ink, one cobalt beam + champagne gold, floating glass panels, 3D data constellation — for investor pitches, keynotes, founder stories, B2B decks",
+  "colors": {
+    "porcelain": "#F7F8FC",
+    "cloud": "#EDF0F7",
+    "navy": "#10214B",
+    "slate": "#5A6B8C",
+    "cobalt": "#2B5BFF",
+    "gold": "#D4A94E",
+    "white": "#FFFFFF"
+  },
+  "fonts": [
+    "Inter",
+    "Space Grotesk"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#F7F8FC"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.04
+  },
+  "fx": {
+    "canvas": "constellation",
+    "three": "constellation"
+  },
+  "skin": {
+    "accents": [
+      "#2B5BFF",
+      "#D4A94E"
+    ],
+    "extras": [
+      "#10214B",
+      "#5A6B8C"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "clean corporate keynote professional",
+    "iconStyle": "line",
+    "keywords": [
+      "clean",
+      "corporate",
+      "professional"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
+  },
+  "typography": {
+    "display": "Space Grotesk"
+  },
+  "camera3d": {
+    "ground": "#10214B"
+  },
+  "textfx": {
+    "enter": "slide",
+    "emphasis": "underline-grow",
+    "align": "center"
+  }
+}

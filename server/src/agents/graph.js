@@ -22,8 +22,9 @@ const { generateBrief } = require("../services/brief");
 const { generateScript, normalizeScript } = require("../services/script");
 const { generateStoryboard } = require("../services/storyboard");
 const frameRegistry = require("../services/frame_registry");
-const { withBudget, attemptLlmComposition, mixAudioIntoVideo, fallbackQueriesFor } = require("../services/pipeline");
-const { acquire, hasProviderFor } = require("../services/asset_sources");
+const { withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor } = require("../services/pipeline");
+const { acquire, hasProviderFor, makeImageDeduper } = require("../services/asset_sources");
+const { styleFor, iconColorFor } = require("../services/pack_style");
 const { synthesizeFitted } = require("../services/vo_fit");
 const { buildCues, writeSrt } = require("../services/captions");
 const { fetchMusic } = require("../services/audio_sources");
@@ -33,6 +34,7 @@ const { buildFallback } = require("../services/fallback");
 const { normalizeComposition } = require("../services/normalize");
 const { render } = require("../services/renderer");
 const { reviewRender } = require("./qa_agent");
+const { checkAssetsRelevance } = require("../services/asset_vision");
 
 function ms() { return Date.now(); }
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
@@ -90,13 +92,21 @@ function pickVoice(job, script) {
 // artifacts each agent adds.
 
 async function frameSelectorAgent(s) {
-  // Resolve each candidate INDEPENDENTLY: a stale/removed job.frame_pack id
-  // resolves to null, and the old single combined resolvePack() then collapsed
-  // to a null (unstyled, generic) pack instead of trying the brief's valid pick.
-  const framePack = frameRegistry.resolvePack(s.job.frame_pack)
+  // Only an EXPLICIT, still-installed user pick is honored verbatim. "auto",
+  // unset (null), and stale/removed ids are NOT explicit — they must defer to
+  // the brief's tone-matched suggestion BEFORE the global default. The old code
+  // ran resolvePack(job.frame_pack) first, but resolvePack(null|"auto") returns
+  // the DEFAULT pack (non-null), so every auto video short-circuited to
+  // blockframe and the brief's pick + anti-repeat rotation were dead code.
+  const requested = s.job.frame_pack;
+  const explicit = (requested && requested !== "auto")
+    ? frameRegistry.resolvePack(requested)   // valid id → that pack; stale id → null
+    : null;
+  const framePack = explicit
     || frameRegistry.resolvePack(s.brief?.suggestedFramePack)
     || frameRegistry.resolvePack("auto");
-  console.log(`[agents] frame_selector → ${framePack}`);
+  const via = explicit ? "user" : (frameRegistry.resolvePack(s.brief?.suggestedFramePack) ? "brief" : "default");
+  console.log(`[agents] frame_selector → ${framePack} (${via})`);
   return { framePack };
 }
 
@@ -202,6 +212,13 @@ const ANCHOR_STOP = new Set([
   "marketplace", "website", "company", "brand", "brands", "business", "solution",
   "solutions", "service", "services", "app", "get", "now", "more", "all", "new",
   "buy", "shop", "store", "official", "home", "page", "welcome", "trusted",
+  // film-language + filler adjectives that hijacked the anchor ("their cinematic"):
+  "their", "they", "them", "every", "everyone", "each", "cinematic", "dramatic",
+  "epic", "story", "storytelling", "film", "films", "video", "videos", "launch",
+  "promo", "journey", "world", "experience", "discover", "transform", "moment",
+  "moments", "ordinary", "extraordinary", "premium", "beautiful", "stunning",
+  "slow", "motion", "fast", "modern", "future", "power", "powerful", "make",
+  "makes", "making", "turn", "turns", "star", "hero", "feel", "feels", "life",
 ]);
 
 // 1-2 SUBJECT words distilled from the brief/site, used to keep derived stock
@@ -209,6 +226,12 @@ const ANCHOR_STOP = new Set([
 // fetched wildly off-topic stock (trading charts, a car logo) because the query
 // never carried what the video is actually about.
 function topicAnchor(job, brief) {
+  // The brief's grounded `subject` field is authoritative when present — it is
+  // written to be literal and shootable ("golden retriever dog"). The frequency
+  // heuristic below is only the fallback for older briefs, and it once produced
+  // anchors like "their cinematic" before the stopword list grew.
+  const subject = String(brief?.subject || "").toLowerCase().replace(/[^a-z0-9\s-]/g, "").trim();
+  if (subject) return subject.split(/\s+/).slice(0, 5).join(" ");
   const src = `${(brief?.keyMessages || []).join(" ")} ${brief?.audience || ""} ${brief?.goal || ""}`.toLowerCase();
   const freq = {};
   for (const w of src.match(/[a-z]{4,}/g) || []) {
@@ -221,6 +244,12 @@ async function assetSearchAgent(s) {
   const { job, jobDir, tracker, assetPlan } = s;
   const anchor = topicAnchor(job, s.brief);
   if (anchor) console.log(`[agents] asset_search topic anchor: "${anchor}"`);
+  // Pack-aware styling: photo queries get the pack's look, icons get its accent
+  // color + matching Iconify collection family. Bridges to the Phase 3 manifest.
+  const packStyle = styleFor(s.framePack);
+  const packTokens = s.framePack ? frameRegistry.getPackTokens(s.framePack) : null;
+  const iconColor = iconColorFor(packTokens);
+  if (packStyle.photoMod) console.log(`[agents] asset_search pack style: "${packStyle.photoMod}" · icons=${packStyle.iconStyle}${iconColor ? ` (${iconColor})` : ""}`);
   db.setProgress(job.id, "assets");
   fs.mkdirSync(path.join(jobDir, "assets", "images"), { recursive: true });
   fs.mkdirSync(path.join(jobDir, "assets", "videos"), { recursive: true });
@@ -250,8 +279,22 @@ async function assetSearchAgent(s) {
   // Sequential so each curated pick can exclude the library files already
   // chosen for earlier scenes — no single film reuses the same file twice.
   const usedLibraryIds = new Set();
+  // De-dup acquired images by EXACT (MD5) + PERCEPTUAL (dHash) match: several
+  // similar queries resolve to the same — or a visually-identical re-encode of
+  // the same — stock image, which was being saved as 0.jpg/1.jpg/2.jpg… and
+  // shown 4× in the montage. Seed with the pinned screenshots so stock can't
+  // duplicate one of them either.
+  const deduper = makeImageDeduper();
+  for (const a of pinned) { if (a && a.path) { try { await deduper.add(path.join(jobDir, a.path)); } catch { /* noop */ } } }
+  // Operator override: with web stock forced off, PHOTO needs come only from the
+  // curated library (or the real screenshots) — no random/off-brand stock. Web
+  // vectors/icons (usually clean flat art) still reach the web.
+  const forceCurated = process.env.CURATED_ONLY_IMAGES === "1";
   let iImg = 0, iVid = 0;
   const results = [];
+  // Web-stock assets to run through the vision relevance gate AFTER the fetch
+  // loop, in one batched call rather than one LLM call per asset.
+  const pendingGate = [];
   for (const { scene, need } of assetPlan.searches) {
     const isVideo = need.type === "video";
     const relPath = isVideo ? `assets/videos/${iVid++}.mp4` : `assets/images/${iImg++}.jpg`;
@@ -263,22 +306,80 @@ async function assetSearchAgent(s) {
     // Anchor PHOTO/background queries to the video's subject so a derived
     // direction like "scalable growth" becomes "beauty cosmetics scalable
     // growth" — on-topic stock instead of trading charts. Icons/vectors keep
-    // their concrete query (anchoring an abstract shape rarely helps). The plain
-    // query is kept as a fallback so an over-narrow anchor still finds SOMETHING.
-    const query = (!isIcon && anchor) ? `${anchor} ${need.query}` : need.query;
+    // their concrete query (anchoring an abstract shape rarely helps).
+    const baseQuery = (!isIcon && anchor) ? `${anchor} ${need.query}` : need.query;
+    // Photos also carry the pack's visual style ("neon synthwave" for vapor-
+    // chrome) so stock matches the look; the un-styled query stays as a fallback
+    // so an over-narrow phrase still finds SOMETHING.
+    const query = (!isIcon && packStyle.photoMod) ? `${baseQuery} ${packStyle.photoMod}` : baseQuery;
     const r = await acquire({
-      query, fallbackQueries: [need.query, ...fallbackQueriesFor(query)], type: isVideo ? "video" : "image",
+      query,
+      fallbackQueries: [...new Set([baseQuery, need.query, ...fallbackQueriesFor(query)])],
+      type: isVideo ? "video" : "image",
       orientation: job.orientation, outputPath: path.join(jobDir, relPath), tracker,
       kindPref: isVideo ? undefined : (isIcon ? "vector" : kindPrefFor(need.role)),
       excludeIds: usedLibraryIds,
+      curatedOnly: forceCurated && !isVideo && !isIcon,
+      iconColor: isIcon ? iconColor : undefined,
+      iconStyle: isIcon ? packStyle.iconStyle : undefined,
+      styleKeywords: !isIcon ? packStyle.keywords : undefined,
     }).catch(() => null);
     if (!r) continue;
+    // Skip an asset we've already used — byte-identical OR visually a duplicate
+    // (a different re-encode/crop of the same picture), which MD5 alone missed.
+    if (!isVideo) {
+      const dup = await deduper.check(r.path, r.dhash);
+      if (dup) {
+        console.log(`[agents] dropped ${dup}-duplicate asset — query "${need.query}"`);
+        try { fs.unlinkSync(r.path); } catch { /* noop */ }
+        continue;
+      }
+    }
     if (r.libraryId) usedLibraryIds.add(r.libraryId);
-    results.push({
+    const resultObj = {
       path: path.relative(jobDir, r.path).split(path.sep).join("/"), type: isVideo ? "video" : "image",
       sceneId: scene.id, startSec: scene.start, durationSec: scene.duration,
       style: need.role === "inset" ? "inset" : "background", alt: need.query,
+      width: r.width, height: r.height, ratio: r.ratio, hasAlpha: r.hasAlpha,
       license: r.license, sourceUrl: r.sourceUrl, source: r.source, fromCache: r.fromCache === true,
+    };
+    results.push(resultObj);
+    // Defer the vision gate, classified by ACTUAL SOURCE (not role): every real
+    // stock provider is gated — including Pixabay bridge VECTORS (source
+    // "pixabay"), which are arbitrary illustrations (a cartoon tooth/syringe slips
+    // through otherwise). Curated picks, real website screenshots, and clean
+    // recolored Iconify SVGs (source "iconify") stay trusted and skip the gate.
+    const STOCK_SOURCES = new Set(["pixabay", "openverse", "pexels", "pixabay_scrape"]);
+    const isWebStock = STOCK_SOURCES.has(String(r.source || ""));
+    if (isWebStock) pendingGate.push({ resultObj, absPath: r.path, type: isVideo ? "video" : "image", query: need.query });
+  }
+
+  // VISION RELEVANCE GATE (batched) — "would a director accept this for a film
+  // about <subject>?" over ALL fetched web stock in as few calls as possible
+  // (chunks of 6) instead of one LLM call per asset. Fail-open: a dead budget or
+  // any error keeps every asset, so the gate can never starve a film of visuals.
+  const gateSubject = (s.brief?.subject || anchor || "").trim();
+  if (pendingGate.length && gateSubject) {
+    const verdicts = await checkAssetsRelevance({
+      assets: pendingGate.map((p) => ({ absPath: p.absPath, type: p.type, query: p.query })),
+      subject: gateSubject, tracker,
+    });
+    verdicts.forEach((v, i) => {
+      const p = pendingGate[i];
+      if (!v.keep) {
+        console.warn(`[agents] asset REJECTED by vision gate (shows "${v.sees || "?"}", film is about "${gateSubject}") — query "${p.query}"`);
+        try { fs.unlinkSync(p.absPath); } catch { /* noop */ }
+        const idx = results.indexOf(p.resultObj);
+        if (idx >= 0) results.splice(idx, 1);
+      } else if (v.sees) {
+        // Mark the asset as VERIFIED on-topic (the model actually looked at it
+        // and approved). scene_kit only admits verified/owned/curated assets to
+        // PROMINENT slots (montage tiles, split art) — a fail-open pass (gate
+        // error, no `sees`) stays unverified and is kept for scrim B-roll only.
+        p.resultObj.visionOk = true;
+        p.resultObj.sees = v.sees;
+        console.log(`[agents] asset ok (vision: "${v.sees}") — ${p.query}`);
+      }
     });
   }
   const got = results;
@@ -310,7 +411,7 @@ async function voiceAgent(s) {
   const voTask = Promise.all(script.scenes.map((sc) =>
     (sc.voiceover && sc.voiceover.trim())
       ? synthesizeFitted({ text: sc.voiceover, targetSec: sc.duration, voice, instructions, outputPath: path.join(audioDir, `vo-${sc.id}.mp3`), tracker })
-          .then((r) => r ? { sceneId: sc.id, startSec: sc.start, durationSec: r.durationSec, sceneDurationSec: sc.duration, text: r.text, path: r.path } : null)
+          .then((r) => r ? { sceneId: sc.id, startSec: sc.start, durationSec: r.durationSec, sceneDurationSec: sc.duration, text: r.text, path: r.path, fallbackVoice: r.fallbackVoice || null } : null)
           .catch((e) => { console.warn(`[agents] vo ${sc.id} failed: ${e.message}`); return null; })
       : Promise.resolve(null)
   )).then((a) => a.filter(Boolean));
@@ -334,6 +435,21 @@ async function voiceAgent(s) {
 
   const [voClips, sfxClips, musicPath] = await Promise.all([voTask, sfxTask, musicTask]);
   console.log(`[agents] voice: ${voClips.length} vo clip(s), ${sfxClips.length} sfx, music=${!!musicPath}`);
+
+  // Surface audio degradation on the job — a silent film must never ship
+  // silently. (The Premiere screen shows these notes with the details.)
+  const wantedVo = script.scenes.some((sc) => sc.voiceover && sc.voiceover.trim());
+  const notes = [];
+  if (wantedVo && voClips.length === 0) {
+    notes.push("Voiceover unavailable — every TTS provider failed (budget/limits). The film shipped without narration; regenerate once a provider resets to add the voice back.");
+  } else if (voClips.some((c) => c && c.fallbackVoice === "edge")) {
+    notes.push("Voiceover used the free fallback voice (paid TTS providers were unavailable) — the narration may sound different from your usual voice.");
+  }
+  if (!musicPath && (script.music?.query || script.music?.mood)) {
+    notes.push("Music unavailable — no source matched and the generated bed also failed; the film shipped without a music track.");
+  }
+  if (notes.length) db.setAudioNotes(job.id, notes);
+
   return { voClips, sfxClips, musicPath };
 }
 
@@ -358,33 +474,92 @@ async function compositionAgent(s) {
     : s.storyboard;
 
   const budget = (Number(config.server.stageBudgetSec) || 480) * 1000;
+  // Composer dispatch. The user's per-video finish choice wins:
+  //   compose_mode "premium"  → the LLM composition agent (remix)
+  //   compose_mode "standard" → the deterministic scene-kit
+  //   unset                   → the global USE_LLM_COMPOSER default
+  // Either way the kit stays available as the fallback below.
+  const useComposer = job.compose_mode === "premium"
+    ? true
+    : job.compose_mode === "standard"
+      ? false
+      : config.llm.useComposer !== false;
+  if (job.compose_mode) console.log(`[agents] job ${job.id} finish=${job.compose_mode} → ${useComposer ? "LLM composer" : "scene-kit"}`);
   try {
+    // Asset-rich videos override an opt-in render3d: the 3D composer only textures
+    // ONE screenshot, so a video with several real screenshots/photos is showcased
+    // far better by the 2D composer (which weaves 8-10). Text-forward 3D stays 3D.
+    const use3d = job.render3d && !isAssetRich(s.assets || []);
+    if (job.render3d && !use3d) {
+      console.log(`[agents] render3d requested, but the video is asset-rich (${(s.assets || []).length} assets) → using the 2D composer so the screenshots/photos are actually shown (3D would drop all but one).`);
+    }
+    if (use3d) {
+      // Website→3D: the real website screenshots in s.assets texture the reveal
+      // plate. Deterministic + self-contained; on failure it falls to the
+      // scene-kit fallback in the catch below.
+      const visual = await withBudget(
+        (signal) => composeWithThree({
+          storyboard, dims, jobDir, framePack: s.framePack, captionCues,
+          assets: s.assets || [], jobId: job.id, durationSec: job.duration,
+          label: "graph-three", abortSignal: signal, tracker,
+        }),
+        budget, "Three.js composition"
+      );
+      return { visual, usedFallback: false, finalAttempt: "three" };
+    }
     const visual = await withBudget(
       (signal) => attemptLlmComposition({
         storyboard, dims, jobDir, assets: s.assets || [], tracker,
         jobId: job.id, durationSec: job.duration,
         label: s.qa ? "graph-repair" : "graph-main", abortSignal: signal,
-        framePack: s.framePack, captionCues,
+        framePack: s.framePack, captionCues, remix: useComposer,
       }),
       budget, "composition agent"
     );
     return { visual, usedFallback: false, finalAttempt: s.qa ? "qa-repair" : "main" };
   } catch (e) {
     console.warn(`[agents] composition failed (${e.message.slice(0, 180)})`);
+    // Budget-class failure (provider out of credits / daily-capped): a QA
+    // repair lap would hit the exact same wall, so flag it and stop looping.
+    const composerBudgetDead = /\b402\b|can only afford|credits|budget exhausted|daily limit/i.test(String(e.message));
+    if (composerBudgetDead) console.warn(`[agents] composer budget exhausted — QA repair laps disabled for this job`);
     // On a QA-triggered repair lap, a failed re-compose must NOT discard the
     // prior render that already passed lint and was QA-reviewed by shipping the
     // bland deterministic template. A real (if imperfect) composition beats a
     // fallback slide — keep the previous good render.
     if (s.qa && s.visual && !s.usedFallback) {
       console.warn(`[agents] repair re-compose failed — keeping prior lint-passing render (not falling back to template)`);
-      return { visual: s.visual, usedFallback: false, finalAttempt: s.finalAttempt || "main", rendered: true };
+      return { visual: s.visual, usedFallback: false, finalAttempt: s.finalAttempt || "main", rendered: true, composerBudgetDead };
     }
-    console.warn(`[agents] deterministic fallback`);
     try {
       if (fs.existsSync(path.join(jobDir, "index.html"))) {
         fs.copyFileSync(path.join(jobDir, "index.html"), path.join(jobDir, "index.llm-attempt.html"));
       }
     } catch { /* best effort */ }
+    // The LLM composer failed its gates. Before the bland template, try the
+    // deterministic ASSET-RICH scene-kit — a real, lint-clean, multi-asset comp
+    // (screenshot hero + montage + scrim B-roll) beats a fallback slide. Only
+    // worth a separate attempt when the composer (remix) was the primary path.
+    if (useComposer) {
+      try {
+        console.warn(`[agents] scene-kit fallback (deterministic, asset-rich)`);
+        // Premium jobs get the HYBRID: bounded LLM set-dressing over the kit
+        // (variants + emphasis + sanitized decor) — composer-flavoured art
+        // direction without composer failure modes. Skipped when the failure
+        // was budget-class (the dressing call would die on the same wall).
+        const visual = await attemptLlmComposition({
+          storyboard, dims, jobDir, assets: s.assets || [], tracker,
+          jobId: job.id, durationSec: job.duration, label: "scene-kit-fallback",
+          framePack: s.framePack, captionCues, remix: false,
+          dress: job.compose_mode === "premium" && !composerBudgetDead,
+          subject: s.brief?.subject || null,
+        });
+        return { visual, usedFallback: false, finalAttempt: "scene-kit", rendered: true, composerBudgetDead };
+      } catch (e2) {
+        console.warn(`[agents] scene-kit fallback failed (${String(e2.message).slice(0, 120)}) — bland template`);
+      }
+    }
+    console.warn(`[agents] deterministic fallback`);
     const fb = buildFallback({
       prompt: s.brief?.improvedPrompt || job.prompt, duration: job.duration,
       orientation: job.orientation, width: dims.width, height: dims.height, fps: dims.fps,
@@ -400,7 +575,7 @@ async function compositionAgent(s) {
     fs.writeFileSync(path.join(jobDir, "meta.json"), fb.metaJson, "utf8");
     tracker.addExternal("hyperframes_render");
     const visual = await render({ jobId: job.id, jobDir, durationSec: job.duration });
-    return { visual, usedFallback: true, finalAttempt: "fallback", rendered: true };
+    return { visual, usedFallback: true, finalAttempt: "fallback", rendered: true, composerBudgetDead };
   }
 }
 
@@ -470,7 +645,9 @@ async function repairAgent(s) {
 
 // QA Agent node — verdict + loop control.
 async function qaAgentNode(s) {
-  if (config.qa?.enabled === false || s.usedFallback) {
+  // Skip QA for the deterministic 3D composer — it's not iteratively repairable,
+  // so a QA-repair loop would just re-render an identical (slow) 3D video.
+  if (config.qa?.enabled === false || s.usedFallback || s.job?.render3d) {
     return { qa: { pass: true, issues: [], skipped: true } };
   }
   db.setProgress(s.job.id, "qa");
@@ -503,6 +680,7 @@ async function buildGraph() {
     voClips: Annotation(), sfxClips: Annotation(), musicPath: Annotation(),
     visual: Annotation(), usedFallback: Annotation(), finalAttempt: Annotation(), rendered: Annotation(),
     animationReport: Annotation(), qa: Annotation(), qaAttempts: Annotation(),
+    composerBudgetDead: Annotation(),
   });
 
   // Node names must not collide with state channel names (LangGraph rule),
@@ -535,9 +713,14 @@ async function buildGraph() {
   g.addEdge("timeline", "qa_agent");
   g.addConditionalEdges("qa_agent", (s) => {
     const repairsLeft = (s.qaAttempts || 0) <= (Number(config.qa?.maxRepairs) || 1);
-    if (!s.qa?.pass && repairsLeft && !s.usedFallback) {
+    // No repair lap when the composer already failed on budget (402/daily cap)
+    // — the recompose would hit the identical wall and just burn time.
+    if (!s.qa?.pass && repairsLeft && !s.usedFallback && !s.composerBudgetDead) {
       console.log(`[agents] QA failed — repair lap ${s.qaAttempts}`);
       return "repair";
+    }
+    if (!s.qa?.pass && s.composerBudgetDead) {
+      console.log(`[agents] QA failed but composer budget is exhausted — delivering best attempt (no repair lap)`);
     }
     return END;
   }, ["repair", END]);

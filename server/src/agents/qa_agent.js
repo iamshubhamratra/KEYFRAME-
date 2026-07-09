@@ -12,6 +12,28 @@ const path = require("node:path");
 const { spawn } = require("node:child_process");
 const openrouter = require("./../services/openrouter");
 const { extractFirstJsonObject } = require("../services/json_lenient");
+const frameManifest = require("../services/frame_manifest");
+
+// Concrete, manifest-driven identity expectations for the QA director, so it can
+// catch the specific identity regressions lint can't see: the typography eraser
+// (headlines rendering in a plain sans instead of the pack's display face) and
+// mis-grounding (a light pack rendered on a dark ground, or vice-versa). Falls
+// back to a generic line when a pack ships no manifest.
+function packIdentityExpectations(framePack) {
+  const m = frameManifest.getManifest(framePack);
+  if (!m) return `The video must follow the "${framePack}" design system: frames should visibly use its palette and components.`;
+  const display = (m.typography && m.typography.display) || "the system display font";
+  const ground = (m.surface && m.surface.ground) || "the system ground";
+  const accents = (m.skin && m.skin.accents && m.skin.accents.length ? m.skin.accents : Object.values(m.colors || {})).slice(0, 3);
+  const lightWord = m.surface && m.surface.ground ? (parseInt(m.surface.ground.slice(1), 16) > 0x888888 ? "LIGHT" : "DARK") : "";
+  return [
+    `The video must honor the "${framePack}" design system. Concrete, checkable expectations:`,
+    `- GROUND: a ${lightWord} ground near ${ground}. FAIL as a blocker if the ground is the wrong lightness (e.g. a light pack shown on a dark ground or vice-versa).`,
+    `- TYPOGRAPHY: headlines must render in the "${display}" display face (its distinctive letterforms), NOT a generic system sans. FAIL as a blocker if headlines are in a plain default font instead of the pack's display type.`,
+    `- PALETTE: the design uses ${accents.join(", ")} as accents; colors on screen should belong to this system.`,
+    `- COMPONENTS: the pack's ornaments/furniture (corner brackets, rules, shapes, etc.) should be present, not a bare frame.`,
+  ].join("\n");
+}
 
 function extractFrame(videoPath, atSec, outPath) {
   return new Promise((resolve) => {
@@ -62,6 +84,8 @@ BLOCKER issues (any ONE fails the video — be strict, this is a premium motion-
 8. MASSIVE EMPTY SPACE: visible content (text + imagery + active decoration) covers well under ~70% of the frame — e.g. a headline or small image floating in the center of a near-empty canvas, or a whole quadrant/half left blank. Premium motion design fills the frame edge-to-edge. In the "fix", tell the composer to enlarge the headline/imagery, push content toward the edges (full-bleed or large insets), and add edge-anchored decorative/particle layers so the frame breathes edge-to-edge.
 9. DECORATION DOMINATES THE CONTENT: a large flat/saturated decorative shape (a big circle, block, or band) is the most prominent thing in the frame — larger or louder than the actual product/screenshot/message — inverting the hierarchy (it should be product > message > decoration). A flat colored disc/block bigger than the product is the failure. In the "fix", tell the composer to shrink that shape to <25% of the canvas, push it behind the content as a low-opacity/blurred/gradient backdrop, and ensure no decoration out-weighs the product.
 10. PRODUCT SCREENSHOT TOO SMALL: a REAL product/website/app screenshot (the actual UI) is rendered as a small card, tiny inset, or dimmed background instead of the hero. In a product video the screenshot must occupy ≥50% of the frame (60–80% on its peak) inside a browser/device frame, camera-explored. If it reads as a sticker on a slide, FAIL it. In the "fix", tell the composer to enlarge the screenshot to ≥50% of the canvas, add a device frame + a camera push-in/pan across the UI, and (optionally) 1–2 callout chips.
+11. GROUNDHOG SET — COMPARE THE FRAMES TO EACH OTHER: if frames sampled FAR APART in the timeline (clearly different scenes — different headline/content) share essentially the SAME backdrop and layout (same background art, same decorative cluster in the same place, same composition) with only a swapped photo/caption, the film is one static slide with rotating content — the #1 "cheap template" tell. Each scene must re-dress the set: different ground gradient/dominant tone, relocated decoration, a different layout archetype. IMPORTANT EXCLUSIONS — do NOT flag: two samples that fall within the SAME scene (e.g. 13.6s and 14.6s of a 15s film are both the held final CTA — identical is CORRECT there), or a deliberately held end-card/outro. Only flag sameness across frames whose TEXT CONTENT differs (proving they are different scenes). In the "fix", name the near-identical frames (their atSec values) and tell the composer to give each of those scenes a distinct background variant and layout (e.g. "make scene at 10s a full-bleed type scene on the alternate ground token; move the decor cluster; change the focal position").
+12. PALETTE-CLASHING PHOTO: a photo/video appears in its raw native colors, visually clashing with the design system (e.g. a washed-out white/daylight photo dropped onto a neon or parchment set), or is obviously OFF-TOPIC for the video's subject. Photos must be harmonized (design-system frame + color tint/scrim so their hues join the palette) and must serve the story. In the "fix", either specify the harmonizer (add a filter tint + ground-token gradient scrim over the image at Xs) or, if the image is off-topic, tell the composer to REMOVE it and carry the scene with vectors and display type.
 
 MINOR issues (report, do NOT fail): cramped spacing, weak hierarchy, a transition caught mid-motion, a single thin scene in an otherwise rich video. (A caption that very slightly touches a content edge is minor; two CONTENT blocks overlapping is a BLOCKER per #7, not minor.)
 
@@ -85,7 +109,7 @@ async function reviewRender({ videoPath, scenes, duration, framePack, frameMd, w
       text: [
         VERDICT_INSTRUCTIONS,
         "",
-        framePack ? `The video must follow the "${framePack}" design system. Its rules (summary): the frames should visibly use this system's palette and components.` : "",
+        framePack ? packIdentityExpectations(framePack) : "",
         `Frames below are sampled at: ${frames.map((f) => `${f.t}s`).join(", ")} of a ${duration}s video. Scene plan: ${JSON.stringify((scenes || []).map((s) => ({ id: s.id, start: s.start, duration: s.duration, purpose: s.purpose })))}`,
       ].filter(Boolean).join("\n"),
     },

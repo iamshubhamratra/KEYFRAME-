@@ -1,56 +1,79 @@
-const { lightpanda } = require('@lightpanda/browser');
+// Browser layer for the Pixabay scraper.
+//
+// NOTE: upstream this used @lightpanda/browser (lightpanda.serve() + CDP connect),
+// but Lightpanda ships NO Windows binary, so on this host we launch headless
+// CHROME via puppeteer-core instead. Same CDP surface, same puppeteer Page API —
+// the scraping logic (cookie injection, UA, page ops in pixabaySite.js) is
+// unchanged. A real Chrome fingerprint also clears Cloudflare more reliably than
+// Lightpanda. Set CHROME_PATH / PUPPETEER_EXECUTABLE_PATH to override detection.
+
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 const puppeteer = require('puppeteer-core');
 const config = require('../config');
 
-let cdpProcess = null;
-let connectPromise = null;
-let browserInstance = null;
-
-/** Serialize CDP page work — Lightpanda errors if multiple Target.createTarget overlap. */
+/** Serialize page work — keep one page at a time for stability/politeness. */
 let cdpTail = Promise.resolve();
+let browserInstance = null;
+let launchPromise = null;
 
-async function ensureCdpServer() {
-  if (cdpProcess && !cdpProcess.killed) return cdpProcess;
-  const { host, port, timeout, obeyRobots, disableHostVerification } = config.lightpanda;
-  cdpProcess = await lightpanda.serve({
-    host,
-    port,
-    ...(timeout ? { timeout } : {}),
-    obeyRobots,
-    disableHostVerification,
-  });
-  cdpProcess.on('exit', () => {
-    cdpProcess = null;
-    browserInstance = null;
-    connectPromise = null;
-  });
-  return cdpProcess;
+function findChrome() {
+  const env = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH;
+  if (env && fs.existsSync(env)) return env;
+  const cacheDir = path.join(os.homedir(), '.cache', 'puppeteer', 'chrome');
+  try {
+    const versions = fs.readdirSync(cacheDir)
+      .filter((d) => /^(win64|linux|mac)/.test(d))
+      .sort()
+      .reverse();
+    for (const v of versions) {
+      for (const sub of ['chrome-win64/chrome.exe', 'chrome-linux64/chrome', 'chrome-mac-x64/chrome']) {
+        const p = path.join(cacheDir, v, sub);
+        if (fs.existsSync(p)) return p;
+      }
+    }
+  } catch { /* no cache */ }
+  for (const p of [
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+    '/usr/bin/google-chrome',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/chromium',
+  ]) {
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
 }
 
 async function getBrowser() {
-  await ensureCdpServer();
   if (browserInstance && browserInstance.isConnected()) return browserInstance;
-  if (!connectPromise) {
-    const { host, port } = config.lightpanda;
-    const browserURL = `http://${host}:${port}`;
-    connectPromise = puppeteer.connect({ browserURL }).then((b) => {
-      browserInstance = b;
-      return b;
-    });
+  if (!launchPromise) {
+    const exe = findChrome();
+    if (!exe) throw new Error('no Chrome executable found (set CHROME_PATH or PUPPETEER_EXECUTABLE_PATH)');
+    launchPromise = puppeteer
+      .launch({
+        executablePath: exe,
+        headless: true,
+        args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--window-size=1366,900'],
+      })
+      .then((b) => {
+        browserInstance = b;
+        b.on('disconnected', () => { browserInstance = null; launchPromise = null; });
+        return b;
+      })
+      .catch((e) => { launchPromise = null; throw e; });
   }
-  return connectPromise;
+  return launchPromise;
 }
 
 async function resetBrowserConnection() {
   if (browserInstance) {
-    try {
-      await browserInstance.disconnect();
-    } catch {
-      /* ignore */
-    }
+    try { await browserInstance.close(); } catch { /* ignore */ }
     browserInstance = null;
   }
-  connectPromise = null;
+  launchPromise = null;
 }
 
 function isTransientCdpError(err) {
@@ -137,13 +160,9 @@ async function withPage(fn) {
 
 async function shutdown() {
   if (browserInstance) {
-    await browserInstance.disconnect().catch(() => {});
+    try { await browserInstance.close(); } catch { /* ignore */ }
     browserInstance = null;
-    connectPromise = null;
-  }
-  if (cdpProcess && !cdpProcess.killed) {
-    cdpProcess.kill('SIGTERM');
-    cdpProcess = null;
+    launchPromise = null;
   }
 }
 

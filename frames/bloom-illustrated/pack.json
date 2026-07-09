@@ -1,0 +1,56 @@
+{
+  "name": "bloom-illustrated",
+  "vibe": "A warm, friendly, illustration-forward SaaS system: cream paper grounds, big soft pastel blobs drifting behind everything, and generously rounded cards (28px+). Simple hand-drawn-feel inline-SVG characters and objects — circles and organic ",
+  "colors": {
+    "cream": "#FFF7EE",
+    "peach": "#FFD9C0",
+    "coral": "#FF7E6B",
+    "sky": "#76C7E8",
+    "leaf": "#7CC576",
+    "plum": "#6B5BD2",
+    "ink": "#2B2540"
+  },
+  "fonts": [
+    "Inter",
+    "Bricolage Grotesque"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#FFF7EE"
+  },
+  "motion": {
+    "cut": "wash",
+    "drift": 1.04
+  },
+  "fx": {
+    "canvas": "bokeh",
+    "three": null
+  },
+  "skin": {
+    "accents": [],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "soft illustrated pastel friendly",
+    "iconStyle": "soft",
+    "keywords": [
+      "illustrated",
+      "soft",
+      "pastel",
+      "warm"
+    ]
+  },
+  "typography": {
+    "display": "Bricolage Grotesque"
+  },
+  "camera3d": {
+    "ground": "#2B2540"
+  },
+  "textfx": {
+    "enter": "spring",
+    "emphasis": "gradient",
+    "align": "left"
+  }
+}

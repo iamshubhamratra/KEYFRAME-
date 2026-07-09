@@ -16,6 +16,12 @@
     "renderWorkers": 1
   },
   "llm": {
+    "primary": {
+      "provider": "kie",
+      "baseUrl": "https://api.kie.ai/gemini-3-5-flash-openai/v1",
+      "model": "gemini-3-5-flash",
+      "apiKey": ""
+    },
     "provider": "openrouter",
     "model":         "google/gemini-2.5-flash-lite",
     "modelFast":     "google/gemini-2.5-flash-lite",
@@ -58,6 +64,9 @@
   "audio": {
     "pixabayKey": "",
     "freesoundToken": "",
+    "ttsProvider": "auto",
+    "ttsKieModel": "elevenlabs/text-to-speech-multilingual-v2",
+    "ttsVoiceId": "EkK5I93UQWFDigLMpZcX",
     "ttsModel": "openai/gpt-audio-mini",
     "defaultMusicVolume": 0.22
   },

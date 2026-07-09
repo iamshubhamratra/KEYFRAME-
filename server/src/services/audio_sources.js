@@ -13,7 +13,10 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const { spawn } = require("node:child_process");
 const config = require("../config");
+
+const pixabayBridge = require("./pixabay_bridge");
 
 const FREESOUND_BASE = "https://freesound.org/apiv2";
 
@@ -163,33 +166,95 @@ async function internetArchiveFirstMp3(query) {
 
 // ---------- Public API ----------
 
-async function fetchMusic({ query, outputPath, tracker }) {
-  // 1) Freesound — bias to MUSIC, not foley/field-recordings. Freesound is an
-  // SFX-leaning site, so without tag:music a 2-word query returns drones/noise.
-  if (tracker) tracker.addExternal("freesound_search");
-  let fsResults = await freesoundSearch({
-    query,
-    filter: "duration:[20 TO 180] tag:music",
-    sort: "rating_desc",
-  });
-  // If the music-tag filter is too strict for this query, retry untagged so we
-  // still get *something* before falling through to Internet Archive.
-  if (!fsResults.length) {
-    fsResults = await freesoundSearch({
-      query,
-      filter: "duration:[20 TO 180]",
-      sort: "rating_desc",
-    });
+// ---------- Generated ambient bed (the guaranteed music floor) ----------
+// When every source comes up dry, synthesize a soft ambient pad with ffmpeg
+// instead of shipping a silent film. Layered detuned sines + slow tremolo +
+// echo + lowpass ≈ an unobtrusive synth bed; the mixer ducks it under VO like
+// any other music track. License-free by construction. Mood keyed off the query.
+function padSpec(query) {
+  const q = String(query).toLowerCase();
+  if (/(epic|orchestral|cinemat|dramatic|trailer|hybrid|heroic)/.test(q)) {
+    return { freqs: [110, 164.81, 220, 329.63], trem: 0.12, lp: 950, vol: 0.5 };    // low, wide, slow swell
   }
-  const fsHit = await downloadFirstFreesoundPreview(fsResults, outputPath);
-  if (fsHit) {
-    if (tracker) tracker.addExternal("freesound_download");
-    return fsHit;
+  if (/(upbeat|energetic|electro|synth|fast|pop|punchy|dance|driving)/.test(q)) {
+    return { freqs: [220, 277.18, 329.63, 440], trem: 2.2, lp: 2400, vol: 0.45 };   // brighter, pulsing
+  }
+  return { freqs: [174.61, 220, 261.63, 349.23], trem: 0.18, lp: 1500, vol: 0.45 }; // warm/calm default
+}
+
+function generatePad(query, outputPath, durationSec = 75) {
+  const s = padSpec(query);
+  const D = Math.max(20, Math.min(180, Math.round(Number(durationSec) || 75)));
+  const args = ["-y", "-v", "error"];
+  for (const f of s.freqs) args.push("-f", "lavfi", "-i", `sine=frequency=${f}:duration=${D}`);
+  const gains = s.freqs.map((_, i) => `[${i}:a]volume=${(0.5 - i * 0.09).toFixed(2)}[s${i}]`).join(";");
+  const labels = s.freqs.map((_, i) => `[s${i}]`).join("");
+  const fadeOutAt = Math.max(0, D - 4);
+  args.push(
+    "-filter_complex",
+    `${gains};${labels}amix=inputs=${s.freqs.length}:normalize=0,` +
+    `tremolo=f=${s.trem}:d=0.55,aecho=0.7:0.55:380|640:0.3|0.22,lowpass=f=${s.lp},` +
+    `afade=t=in:d=2.5,afade=t=out:st=${fadeOutAt}:d=4,volume=${s.vol}`,
+    "-c:a", "libmp3lame", "-q:a", "4", outputPath
+  );
+  return new Promise((resolve) => {
+    const p = spawn("ffmpeg", args, { windowsHide: true });
+    p.on("error", () => resolve(null));
+    p.on("exit", (code) => resolve(code === 0 && fs.existsSync(outputPath) ? outputPath : null));
+  });
+}
+
+async function fetchMusic({ query, outputPath, tracker, durationSec }) {
+  // Normalize: callers join plan.query + plan.mood, which often repeat
+  // ("epic orchestral synthwave epic orchestral synthwave hybrid") — dedupe
+  // the words, and derive a broader 2-word core as a retry, since an
+  // over-specific query zeroes out Freesound entirely.
+  const words = String(query || "").toLowerCase().match(/[a-z][a-z'-]*/g) || [];
+  const norm = [...new Set(words)].join(" ").trim() || String(query || "ambient music");
+  const core = norm.split(" ").slice(0, 2).join(" ");
+  const candidates = [...new Set([norm, core, `${core.split(" ")[0]} music`])];
+
+  // 0) Pixabay bridge — PRIMARY music source (user preference). Real Pixabay
+  // tracks (the official API serves no audio); best-effort, falls through to
+  // Freesound if the bridge is down/slow/dry.
+  for (const q of [norm, core]) {
+    const url = await pixabayBridge.firstAudioUrl(q, "music");
+    if (url) {
+      const got = await pixabayBridge.downloadToFile(url, outputPath, { minBytes: 20_000 });
+      if (got) {
+        if (tracker) tracker.addExternal("pixabay_music_download");
+        log(`music: Pixabay bridge "${q}" -> ${url.slice(0, 72)}`);
+        return got;
+      }
+    }
   }
 
-  // 2) Internet Archive fallback
+  // 1) Freesound — bias to MUSIC, not foley/field-recordings; widen the query
+  // stepwise before giving up on the source.
+  for (const q of candidates) {
+    if (tracker) tracker.addExternal("freesound_search");
+    let fsResults = await freesoundSearch({
+      query: q,
+      filter: "duration:[20 TO 180] tag:music",
+      sort: "rating_desc",
+    });
+    if (!fsResults.length) {
+      fsResults = await freesoundSearch({
+        query: q,
+        filter: "duration:[20 TO 180]",
+        sort: "rating_desc",
+      });
+    }
+    const fsHit = await downloadFirstFreesoundPreview(fsResults, outputPath);
+    if (fsHit) {
+      if (tracker) tracker.addExternal("freesound_download");
+      return fsHit;
+    }
+  }
+
+  // 2) Internet Archive fallback (broad core query)
   if (tracker) tracker.addExternal("internet_archive_search");
-  const iaUrl = await internetArchiveFirstMp3(query);
+  const iaUrl = await internetArchiveFirstMp3(core);
   if (iaUrl) {
     const got = await downloadSafe(iaUrl, outputPath);
     if (got) {
@@ -198,11 +263,30 @@ async function fetchMusic({ query, outputPath, tracker }) {
     }
   }
 
-  log(`music: no source available for "${query}"; skipping`);
+  // 3) GUARANTEED FLOOR — a synthesized ambient pad beats a silent film.
+  const pad = await generatePad(norm, outputPath, durationSec);
+  if (pad) {
+    log(`music: all sources dry for "${norm}" — synthesized an ambient pad bed instead`);
+    return pad;
+  }
+
+  log(`music: no source available for "${norm}"; skipping`);
   return null;
 }
 
 async function fetchSfx({ query, outputPath, tracker }) {
+  // 0) Pixabay bridge — PRIMARY sfx source (user preference). Falls through to
+  // Freesound on any miss.
+  const bridgeUrl = await pixabayBridge.firstAudioUrl(query, "sound-effects");
+  if (bridgeUrl) {
+    const got = await pixabayBridge.downloadToFile(bridgeUrl, outputPath, { minBytes: 2_000 });
+    if (got) {
+      if (tracker) tracker.addExternal("pixabay_sfx_download");
+      log(`sfx: Pixabay bridge "${query}" -> ${bridgeUrl.slice(0, 72)}`);
+      return got;
+    }
+  }
+
   if (tracker) tracker.addExternal("freesound_search");
   const results = await freesoundSearch({
     query,

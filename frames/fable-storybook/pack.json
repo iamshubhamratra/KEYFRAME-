@@ -1,0 +1,62 @@
+{
+  "name": "fable-storybook",
+  "vibe": "warm storybook: parchment, ink-brown serif spirit, watercolor terracotta/sage/dusk washes, paper planes + firefly orbs in gentle 3D — for narratives, brand stories, emotional arcs, journeys",
+  "colors": {
+    "parchment": "#FAF5EA",
+    "linen": "#F2EADA",
+    "inkbrown": "#33261A",
+    "terracotta": "#D8734B",
+    "sage": "#7FA37C",
+    "dusk": "#7A93B8",
+    "honey": "#E8B84B"
+  },
+  "fonts": [
+    "Georgia",
+    "Inter"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#FAF5EA"
+  },
+  "motion": {
+    "cut": "wash",
+    "drift": 1.035
+  },
+  "fx": {
+    "canvas": "ribbon",
+    "three": "paper"
+  },
+  "skin": {
+    "accents": [
+      "#D8734B",
+      "#E8B84B"
+    ],
+    "extras": [
+      "#7FA37C",
+      "#7A93B8"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "warm storybook watercolor illustrated",
+    "iconStyle": "soft",
+    "keywords": [
+      "watercolor",
+      "illustrated",
+      "warm",
+      "soft"
+    ]
+  },
+  "typography": {
+    "display": "Georgia"
+  },
+  "camera3d": {
+    "ground": "#33261A"
+  },
+  "textfx": {
+    "enter": "drift",
+    "emphasis": "underline-grow",
+    "align": "left"
+  }
+}

@@ -112,6 +112,14 @@ function build() {
     cfg.audio = cfg.audio || {};
     cfg.audio.pixabayKey = process.env.PIXABAY_API_KEY;
   }
+  // Pexels stock key — env parity with PIXABAY_API_KEY (previously config.json
+  // only, so split deploys couldn't enable Pexels via env). Accepts PEXELS_API_KEY
+  // or the shorter PEXELS alias.
+  if (process.env.PEXELS_API_KEY || process.env.PEXELS) {
+    cfg.assetProviders = cfg.assetProviders || {};
+    cfg.assetProviders.pexels = cfg.assetProviders.pexels || {};
+    cfg.assetProviders.pexels.apiKey = process.env.PEXELS_API_KEY || process.env.PEXELS;
+  }
   if (process.env.FREESOUND_TOKEN) {
     cfg.audio = cfg.audio || {};
     cfg.audio.freesoundToken = process.env.FREESOUND_TOKEN;
@@ -190,6 +198,15 @@ function build() {
   if (process.env.RENDER_QUALITY) {
     cfg.server.renderQuality = process.env.RENDER_QUALITY;
   }
+
+  // Composer mode. USE_LLM_COMPOSER toggles the LLM composition agent on the
+  // agents graph: ON (default) runs the LLM composer + lint-repair laps (the
+  // "composer" token stage appears); the deterministic asset-rich scene-kit
+  // becomes the fallback when the composer fails its gates. Set to 0/false to
+  // make the scene-kit the PRIMARY composer (no composer LLM call) instead.
+  cfg.llm.useComposer = process.env.USE_LLM_COMPOSER != null
+    ? /^(1|true|yes|on)$/i.test(String(process.env.USE_LLM_COMPOSER))
+    : (cfg.llm.useComposer !== false);
 
   validate(cfg);
 

@@ -449,6 +449,49 @@ A full-duration background `<canvas>` clip on track 0 running Three.js under the
 ```
 Hard rules for the WebGL layer: render ONLY from `hf-seek` time (never rAF/Date.now/clock deltas), procedural geometry only (no external models/textures/HDRIs), pinned size and pixelRatio 1, subtle and slow — it is a backdrop, not the show. Text and cards stay in DOM layers above it.
 
+## CANVAS FX LAYER (2D) — MANDATORY (auto-checked; the premium high-fidelity backdrop)
+
+Every composition carries ONE full-duration HTML5 `<canvas>` 2D FX layer on track 0 — the living, cinematic backdrop that CSS gradients can't match. Same determinism contract as the WebGL layer: paint is a PURE FUNCTION of the `hf-seek` time. Copy this skeleton:
+
+```html
+<canvas id="fx" class="clip" data-start="0" data-duration="<DURATION>" data-track-index="0" width="<W>" height="<H>" style="position:absolute;inset:0;" data-layout-allow-occlusion></canvas>
+<script>
+  (function(){
+    var cv = document.getElementById("fx"), cx = cv.getContext("2d");
+    var W = <W>, H = <H>;
+    // Seeded PRNG — NEVER Math.random() (breaks deterministic frame capture).
+    function rng(seed){ return function(){ seed=(seed*1664525+1013904223)>>>0; return seed/4294967296; }; }
+    var r0 = rng(7), P = [];                       // build the particle set ONCE, deterministically
+    for (var i=0;i<70;i++) P.push({x:r0()*W, y:r0()*H, r:2+r0()*7, s:.2+r0()*.9, p:r0()*6.283, hue:i%3});
+    var COLORS = ["<GROUND2>", "<ACCENT>", "<ACCENT2>"]; // pack tokens ONLY
+    function draw(t){
+      cx.clearRect(0,0,W,H);
+      // flowing gradient wash — angle/stops drift with t
+      var g = cx.createLinearGradient(0, H*(.2+.1*Math.sin(t*.25)), W, H*(.8+.1*Math.cos(t*.2)));
+      g.addColorStop(0,"<GROUND>"); g.addColorStop(1,"<GROUND2>");
+      cx.fillStyle=g; cx.fillRect(0,0,W,H);
+      for (var i=0;i<P.length;i++){ var p=P[i];      // drifting glow particles
+        var y=(p.y - t*14*p.s % H + H) % H, x=p.x + Math.sin(t*p.s+p.p)*26;
+        cx.globalAlpha=.14+.12*Math.sin(t*1.3+p.p);
+        cx.fillStyle=COLORS[p.hue]; cx.beginPath(); cx.arc(x,y,p.r,0,6.283); cx.fill(); }
+      cx.globalAlpha=1;
+    }
+    window.addEventListener("hf-seek", function(e){ draw(e.detail.time); });
+    draw(0);
+  })();
+</script>
+```
+
+Then ART-DIRECT it per design system — this is where high fidelity lives. Pick 2-3 effects that fit the pack's vibe and compose them inside `draw(t)`:
+- **flowing gradient mesh** — 2-3 radial gradients whose centers orbit slowly with `t` (premium glow packs);
+- **particle/bokeh drift** — the skeleton above; vary radius/alpha/speed per particle;
+- **ribbons/waves** — 2-3 polylines of `Math.sin(x*k + t*w)` traced with a stroked path in an accent token (kinetic/tech packs);
+- **light rays / sweep** — a rotating translucent wedge from a corner (spotlight/noir packs);
+- **grid pulse** — a perspective grid whose line alpha pulses with `t` (retro/vapor packs);
+- **confetti squares** — for loud/brutalist packs: small rotating rects, hard colors, no blur.
+
+Hard rules: colors ONLY from the pack palette; alpha kept low (≤.35) so DOM content owns the frame; ALL motion derived from `t` (no rAF, no Date.now, no Math.random at draw time); one canvas total (plus optionally the Three.js layer above — never two 2D FX canvases). The canvas is the BACKDROP — headlines, cards, photos and SVG accents stay in DOM layers above it.
+
 ## Beats contract & captions
 
 - When a storyboard scene includes `beats[]`, the GSAP timeline MUST trigger each beat's action at absolute time `scene.start + beat.at` with the beat's easing. Beats are a TIMING CONTRACT, not a suggestion — a reviewer will scrub to those timestamps and expect the action to be happening.

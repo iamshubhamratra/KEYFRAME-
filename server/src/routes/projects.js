@@ -105,6 +105,22 @@ function validateCreate(body, { hasUpload = false } = {}) {
   // /api/generate route. Turn on only with an explicit captions:true (or "true").
   out.captions = body.captions === true || body.captions === "true";
 
+  // Three.js/WebGL cinematic composer (opt-in). Website screenshots texture the
+  // reveal plate. Default off → scene-kit / LLM composer.
+  out.render3d = body.render3d === true || body.render3d === "true" || body.threeD === true;
+
+  // Per-video finish: "premium" = the LLM composition agent (slower, costlier,
+  // bespoke layouts; scene-kit remains the automatic fallback if it fails its
+  // gates) · "standard" = the deterministic scene-kit · absent = server default
+  // (USE_LLM_COMPOSER).
+  if (body.composeMode != null && body.composeMode !== "") {
+    if (body.composeMode !== "standard" && body.composeMode !== "premium") {
+      errs.push(`composeMode must be "standard" or "premium"`);
+    } else {
+      out.composeMode = body.composeMode;
+    }
+  }
+
   if (body.framePack != null && body.framePack !== "auto") {
     if (typeof body.framePack !== "string" || frameRegistry.resolvePack(body.framePack) == null) {
       errs.push(`framePack must be "auto" or one of: ${frameRegistry.listPacks().join(", ")}`);
@@ -157,6 +173,8 @@ function buildRouter({ enqueueIntake, enqueueProduction }) {
       voiceStyle: out.voiceStyle,
       autopilot: out.autopilot,
       captionsEnabled: out.captions,
+      render3d: out.render3d,
+      composeMode: out.composeMode,
       uploadPath,
       intent: {
         prompt: out.prompt,

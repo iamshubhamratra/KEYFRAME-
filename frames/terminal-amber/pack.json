@@ -1,0 +1,67 @@
+{
+  "name": "terminal-amber",
+  "vibe": "a retro-computer terminal: monospace type glowing on a dark CRT ground, scanline grid, one phosphor accent — for dev tools, CLIs, AI agents, hacker-grade launches",
+  "colors": {
+    "void": "#0C0A06",
+    "panel": "#1A150C",
+    "grid": "#33270F",
+    "ink": "#F2E4C4",
+    "amber": "#FFB000",
+    "cyan": "#6BD4FF"
+  },
+  "fonts": [
+    "Inter",
+    "JetBrains Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#0C0A06"
+  },
+  "motion": {
+    "cut": "whip",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FFB000",
+      "#6BD4FF"
+    ],
+    "extras": [
+      "#33270F",
+      "#FFD37A"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "retro terminal crt scanline dark tech",
+    "iconStyle": "line",
+    "keywords": [
+      "retro",
+      "terminal",
+      "mono",
+      "crt",
+      "dark"
+    ],
+    "prefer": []
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "bracket",
+    "case": "none",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "typography": {
+    "display": "JetBrains Mono"
+  },
+  "camera3d": {
+    "ground": "#0C0A06"
+  }
+}

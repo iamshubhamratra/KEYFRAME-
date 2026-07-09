@@ -1,0 +1,56 @@
+{
+  "name": "bauhaus-print",
+  "vibe": "A retro risograph Bauhaus poster system: cream paper, two-color overprint, and primary geometric shapes — big circles, triangles, squares — as composition anchors. Halftone dot textures, slight overprint offset (a shape's duplicate in a sec",
+  "colors": {
+    "cream": "#F3ECD8",
+    "ink": "#1A1A1A",
+    "red": "#E2483D",
+    "blue": "#2B4FB0",
+    "yellow": "#F2C12E",
+    "paper-deep": "#E7DEC4"
+  },
+  "fonts": [
+    "Inter",
+    "Archivo",
+    "Archivo Black"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F3ECD8"
+  },
+  "motion": {
+    "cut": "wipe",
+    "drift": 1.02
+  },
+  "fx": {
+    "canvas": "confetti",
+    "three": null
+  },
+  "skin": {
+    "accents": [],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "bauhaus geometric primary color",
+    "iconStyle": "solid",
+    "keywords": [
+      "geometric",
+      "poster",
+      "primary"
+    ]
+  },
+  "typography": {
+    "display": "Archivo Black"
+  },
+  "camera3d": {
+    "ground": "#1A1A1A"
+  },
+  "textfx": {
+    "enter": "char-pop",
+    "emphasis": "boxed",
+    "case": "upper",
+    "align": "left"
+  }
+}
