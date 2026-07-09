@@ -14,6 +14,13 @@ const localDb = require("./local_db");
 const curated = require("./curated_library");
 const iconify = require("./iconify");
 const util = require("./util");
+const pixabayBridge = require("../pixabay_bridge");
+const { subjectQuery } = require("./query_terms");
+
+// Local curated library is OFF by default now (user preference: source assets
+// from Pixabay, not the local packs — the curated set was serving off-topic
+// clip-art). Set USE_CURATED_LIBRARY=1 to re-enable it.
+const USE_CURATED = process.env.USE_CURATED_LIBRARY === "1";
 
 const PROVIDERS = {
   pixabay: require("./pixabay_api"),
@@ -52,7 +59,8 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
   // 0 — the curated local library (user's pre-loaded packs), stills only.
   // Highest priority: hand-picked, license-clean, offline. The file keeps its
   // real extension (svg/png/jpg), so we return the actual written path.
-  if (type === "image") {
+  // Gated OFF by default (USE_CURATED_LIBRARY=1 to restore) — see USE_CURATED.
+  if (USE_CURATED && type === "image") {
     for (const q of queries) {
       const hits = curated.search({ query: q, type, limit: 8, kindPref, excludeIds });
       if (hits.length) {
@@ -68,6 +76,41 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
         const meta = curated.materialize(pick, outputPath);
         if (tracker) tracker.addExternal("asset_library_hit");
         return { path: meta.path, query: q, fromCache: true, libraryId: pick.id, ...meta };
+      }
+    }
+  }
+
+  // 0.4 — Pixabay bridge VECTORS (user preference: real Pixabay vector art before
+  // iconify). The bridge returns direct public CDN previews (~1280px PNG), so this
+  // is a normal raster download + validation. Fail-soft: on empty/error/slow it
+  // falls through to iconify below. Validated leniently (no alpha requirement) so
+  // a clean opaque vector illustration still qualifies for a vector slot.
+  if (type === "image" && kindPref === "vector" && pixabayBridge.enabled()) {
+    for (const q of queries) {
+      // Clean the query to concrete subject nouns first — a raw scene query full
+      // of camera/motion words ("camera pans rapidly crisp") returns off-topic
+      // vectors (tooth/syringe). No noun survives -> skip the fetch entirely.
+      const sq = subjectQuery(q);
+      if (!sq) { console.log(`[assets] vector query "${q}" -> no concrete subject noun, skipping pixabay-bridge`); continue; }
+      let cands = [];
+      try { cands = await pixabayBridge.searchVectors(sq, { limit: 12 }); }
+      catch (e) { console.warn(`[assets] pixabay-bridge vector search error for "${sq}": ${e.message}`); }
+      const ranked = util.rankCandidates(sq, cands, styleKeywords);
+      for (const c of ranked.slice(0, 4)) {
+        try {
+          await util.download(c.url, outputPath);
+          if (!(await util.validateMedia(outputPath, type))) { try { fs.unlinkSync(outputPath); } catch { /* noop */ } continue; }
+          const v = await util.validateImage(outputPath, {}); // lenient: valid + not-flat
+          if (!v.ok) { try { fs.unlinkSync(outputPath); } catch { /* noop */ } continue; }
+          if (tracker) tracker.addExternal("pixabay_bridge_vector");
+          console.log(`[assets] "${q}" (vector) <- pixabay-bridge ${c.id} (${v.meta.width}x${v.meta.height})`);
+          return {
+            path: outputPath, query: q, fromCache: false, source: "pixabay",
+            license: c.license, sourceUrl: c.sourceUrl,
+            width: v.meta.width, height: v.meta.height, ratio: v.meta.ratio,
+            hasAlpha: v.meta.hasAlpha, dhash: v.meta.dhash, dominantColor: v.meta.dominantColor,
+          };
+        } catch (e) { console.warn(`[assets] pixabay-bridge vector candidate failed for "${q}": ${e.message}`); }
       }
     }
   }

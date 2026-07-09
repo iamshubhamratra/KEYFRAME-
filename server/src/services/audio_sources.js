@@ -16,6 +16,8 @@ const path = require("node:path");
 const { spawn } = require("node:child_process");
 const config = require("../config");
 
+const pixabayBridge = require("./pixabay_bridge");
+
 const FREESOUND_BASE = "https://freesound.org/apiv2";
 
 function log(...args) { console.log("[audio_sources]", ...args); }
@@ -212,6 +214,21 @@ async function fetchMusic({ query, outputPath, tracker, durationSec }) {
   const core = norm.split(" ").slice(0, 2).join(" ");
   const candidates = [...new Set([norm, core, `${core.split(" ")[0]} music`])];
 
+  // 0) Pixabay bridge — PRIMARY music source (user preference). Real Pixabay
+  // tracks (the official API serves no audio); best-effort, falls through to
+  // Freesound if the bridge is down/slow/dry.
+  for (const q of [norm, core]) {
+    const url = await pixabayBridge.firstAudioUrl(q, "music");
+    if (url) {
+      const got = await pixabayBridge.downloadToFile(url, outputPath, { minBytes: 20_000 });
+      if (got) {
+        if (tracker) tracker.addExternal("pixabay_music_download");
+        log(`music: Pixabay bridge "${q}" -> ${url.slice(0, 72)}`);
+        return got;
+      }
+    }
+  }
+
   // 1) Freesound — bias to MUSIC, not foley/field-recordings; widen the query
   // stepwise before giving up on the source.
   for (const q of candidates) {
@@ -258,6 +275,18 @@ async function fetchMusic({ query, outputPath, tracker, durationSec }) {
 }
 
 async function fetchSfx({ query, outputPath, tracker }) {
+  // 0) Pixabay bridge — PRIMARY sfx source (user preference). Falls through to
+  // Freesound on any miss.
+  const bridgeUrl = await pixabayBridge.firstAudioUrl(query, "sound-effects");
+  if (bridgeUrl) {
+    const got = await pixabayBridge.downloadToFile(bridgeUrl, outputPath, { minBytes: 2_000 });
+    if (got) {
+      if (tracker) tracker.addExternal("pixabay_sfx_download");
+      log(`sfx: Pixabay bridge "${query}" -> ${bridgeUrl.slice(0, 72)}`);
+      return got;
+    }
+  }
+
   if (tracker) tracker.addExternal("freesound_search");
   const results = await freesoundSearch({
     query,
