@@ -76,6 +76,35 @@ router.get('/videos/search', searchHandler('videos'));
 router.get('/music/search', searchHandler('music'));
 router.get('/sound-effects/search', searchHandler('sound-effects'));
 
+// Resolve a direct, downloadable mp3 URL for the first (or Nth) track matching a
+// query — Pixabay audio URLs are lazy (play-triggered), so this drives a play
+// click and captures the audio response. Returns { mp3Url } for the caller to
+// fetch directly (the CDN url is public). music | sound-effects only.
+router.get('/:category/first-audio', async (req, res) => {
+  const category = parseCategory(req.params.category);
+  if (category !== 'music' && category !== 'sound-effects') {
+    return res.status(400).json({
+      error: 'invalid_category',
+      message: 'first-audio supports music | sound-effects only.',
+      allowed: ['music', 'sound-effects'],
+      received: req.params.category,
+    });
+  }
+  const q = typeof req.query.q === 'string' ? req.query.q : '';
+  const index = Number(req.query.index) || 0;
+  try {
+    const data = await withPage((pg) => pixabay.resolveFirstAudio(pg, category, { q, index }));
+    res.json({ category, query: q, index, ...data });
+  } catch (err) {
+    const hint = automationHint(err);
+    res.status(502).json({
+      error: 'pixabay_browser_failed',
+      message: err instanceof Error ? err.message : String(err),
+      ...(hint ? { hint } : {}),
+    });
+  }
+});
+
 router.get('/:category/assets/:id/download-info', async (req, res) => {
   const category = parseCategory(req.params.category);
   if (!category) return sendInvalidCategory(res, req.params.category);
