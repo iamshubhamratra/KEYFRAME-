@@ -276,13 +276,17 @@ function buildCutLayer(plan, theme, dims, D, motion, seed, track) {
       // to the other, hiding the clip swap on the boundary.
       const fromLeft = (k + seed) % 2 === 0;
       els.push(`<div id="${id}" style="position:absolute;inset:0;background:${A};transform:scaleX(0);"></div>`);
-      sc.push(`tl.fromTo("#${id}",{scaleX:0,transformOrigin:"${fromLeft ? "0%" : "100%"} 50%"},{scaleX:1,duration:0.26,ease:"power4.in"},${r(Tb - 0.26)});`);
+      sc.push(`tl.fromTo("#${id}",{scaleX:0,transformOrigin:"${fromLeft ? "0%" : "100%"} 50%"},{scaleX:1,duration:0.24,ease:"power4.in"},${r(Tb - 0.24)});`);
       // immediateRender:false — this exit fromTo starts from the VISIBLE state
       // (scaleX:1). With GSAP's default immediateRender:true it forces scaleX:1 at
       // build time, so this full-frame colored wipe stays stretched over the whole
       // frame from t=0 until its tween fires — blanking every scene before the last
       // boundary (the "solid colour for N seconds" bug on wipe/push packs).
-      sc.push(`tl.fromTo("#${id}",{scaleX:1,transformOrigin:"${fromLeft ? "100%" : "0%"} 50%"},{scaleX:0,duration:0.3,ease:"power4.out",immediateRender:false},${r(Tb + 0.04)});`);
+      // The exit now starts the same instant the enter completes (Tb, not Tb+0.04)
+      // and exits from the OPPOSITE edge, so the block wipes straight through as a
+      // hard swipe with no full-frame solid dwell — the brutalist cut without the
+      // jarring full-screen colour FLASH the audit flagged.
+      sc.push(`tl.fromTo("#${id}",{scaleX:1,transformOrigin:"${fromLeft ? "100%" : "0%"} 50%"},{scaleX:0,duration:0.28,ease:"power4.out",immediateRender:false},${r(Tb)});`);
     } else if (motion.cut === "whip") {
       // motion-blur streak racing across the frame — the one-take whip-pan
       els.push(`<div id="${id}" style="position:absolute;top:-4%;bottom:-4%;left:-45%;width:38%;transform:skewX(-16deg);opacity:0;background:linear-gradient(90deg,transparent,${rgba(theme.ink, 0.10)} 30%,${rgba(A, 0.28)} 50%,${rgba(theme.ink, 0.10)} 70%,transparent);filter:blur(6px);"></div>`);
@@ -752,6 +756,37 @@ function buildSkinOrnaments(kind, ctx, framePack) {
       sc.push(`tl.fromTo("#${id} .${pid}c",{x:0,y:0,scale:0,opacity:1},{x:function(i){return ${pid}dx[i];},y:function(i){return ${pid}dy[i];},rotation:function(i){return (i%2?-1:1)*(120+i*20);},scale:1,opacity:.9,duration:1.1,ease:"power3.out",stagger:.03},${s0(Math.max(0.6, L - 2.2))});`);
       sc.push(`tl.to("#${id} .${pid}c",{opacity:0,duration:.5},${r(T + Math.max(1.6, L - 0.6))});`);
     }
+  } else if (framePack === "liquid-glass") {
+    // LIQUID GLASS — frosted translucent panels with a hairline specular edge and
+    // a light sweep crossing the glass; small glass orbs drift in the margins.
+    // backdrop-filter blurs the bokeh backlight THROUGH the panel (the actual
+    // glass read); the sweep is a child span so overflow stays inside the panel.
+    const panels = kind === "hook" || kind === "cta"
+      ? [[70, 8, 21, 24, -6], [7, 66, 15, 19, 5]]        // corners — text owns center
+      : [[62, 12, 22, 25, -5], [10, 70, 16, 18, 6]];
+    panels.forEach(([left, top, w, h, rot]) => {
+      dv.push(`<div class="${pid}p" data-rot="${rot}" style="position:absolute;left:${left}%;top:${top}%;width:${w}%;height:${h}%;border-radius:${Math.round(H * 0.024)}px;background:linear-gradient(135deg,${rgba("#FFFFFF", 0.38)},${rgba("#FFFFFF", 0.08)});border:1px solid ${rgba("#FFFFFF", 0.6)};box-shadow:0 ${Math.round(H * 0.02)}px ${Math.round(H * 0.05)}px ${rgba(A, 0.12)},inset 0 1px 0 ${rgba("#FFFFFF", 0.7)};backdrop-filter:blur(13px);-webkit-backdrop-filter:blur(13px);overflow:hidden;opacity:0;"><span class="${pid}sw" style="position:absolute;top:-45%;bottom:-45%;left:-34%;width:26%;transform:rotate(16deg);background:linear-gradient(90deg,transparent,${rgba("#FFFFFF", 0.55)},transparent);"></span></div>`);
+    });
+    sc.push(`tl.fromTo("#${id} .${pid}p",{opacity:0,y:26,rotation:function(i,el){return +el.getAttribute("data-rot");},scale:0.94},{opacity:1,y:0,rotation:function(i,el){return +el.getAttribute("data-rot");},scale:1,duration:.8,stagger:.18,ease:"power3.out"},${s0(0.35)});`);
+    sc.push(`tl.to("#${id} .${pid}p",{y:"-=10",duration:2.2,ease:"sine.inOut",yoyo:true,repeat:${Math.max(0, Math.floor((L - 1.4) / 2.2) - 1)},stagger:.3},${s0(1.2)});`);
+    // the specular sweep — light crossing the glass, repeating gently
+    sc.push(`tl.fromTo("#${id} .${pid}sw",{xPercent:0},{xPercent:560,duration:1.5,ease:"power2.inOut",stagger:.4,repeat:${Math.max(0, Math.floor((L - 2) / 2.6))},repeatDelay:1.1},${s0(0.9)});`);
+    // glass orbs — tiny highlighted spheres drifting in the margins
+    const orbs = [[0.13, 0.2, 11], [0.88, 0.72, 8], [0.2, 0.82, 6]];
+    orbs.forEach(([fx2, fy, rr], i) => {
+      const col = [A, B, X0][i % 3];
+      sv.push(`<circle class="${pid}o" cx="${Math.round(W * fx2)}" cy="${Math.round(H * fy)}" r="${rr}" fill="${rgba(col, 0.3)}" stroke="${rgba("#FFFFFF", 0.85)}" stroke-width="1.5"/>`);
+      sv.push(`<circle class="${pid}o" cx="${Math.round(W * fx2 - rr * 0.3)}" cy="${Math.round(H * fy - rr * 0.35)}" r="${Math.max(1.5, rr * 0.22)}" fill="${rgba("#FFFFFF", 0.9)}"/>`);
+    });
+    sc.push(`tl.fromTo("#${id} .${pid}o",{opacity:0,scale:0},{opacity:1,scale:1,duration:.5,stagger:.08,ease:"back.out(2)"},${s0(0.6)});`);
+    sc.push(`tl.to("#${id} .${pid}o",{y:-14,duration:2.6,ease:"sine.inOut",yoyo:true,repeat:${Math.max(0, Math.floor((L - 1.2) / 2.6) - 1)}},${s0(1.1)});`);
+    if (kind === "stat") {
+      // a glass ring around the figure: white hairline + a rotating iridescent dash
+      const cxp = Math.round(W * 0.5), cyp = Math.round(H * 0.46), rr = Math.round(H * 0.27);
+      sv.push(`<circle cx="${cxp}" cy="${cyp}" r="${rr}" fill="none" stroke="${rgba("#FFFFFF", 0.55)}" stroke-width="1"/>`);
+      sv.push(`<circle class="${pid}r" cx="${cxp}" cy="${cyp}" r="${rr}" fill="none" stroke="${rgba(B, 0.6)}" stroke-width="2" stroke-dasharray="12 30" stroke-linecap="round"/>`);
+      sc.push(`tl.to("#${id} .${pid}r",{rotation:160,transformOrigin:"${cxp}px ${cyp}px",duration:${L},ease:"none"},${T});`);
+    }
   } else {
     // GENERIC ornament fallback (Phase 3) — a pack with a manifest but no bespoke
     // branch above (e.g. a future manifest-only pack) still gets baseline skin
@@ -800,12 +835,12 @@ function buildBackground(theme, dims, D, seed = 0, framePack = null) {
   if (gradients) {
     const gx1 = 14 + (seed % 26), gy1 = 20 + ((seed >> 3) % 24);
     const gx2 = 60 + ((seed >> 6) % 28), gy2 = 56 + ((seed >> 9) % 28);
-    parts.push(`<div id="kfbgGlow" class="clip" data-start="0" data-duration="${D}" data-track-index="1" data-layout-allow-occlusion style="background:radial-gradient(38% 46% at ${gx1}% ${gy1}%, ${rgba(accent, 0.20)}, transparent 70%), radial-gradient(34% 42% at ${gx2}% ${gy2}%, ${rgba(accent2, 0.14)}, transparent 72%); filter:blur(8px);"></div>`);
+    parts.push(`<div id="kfbgGlow" class="clip" data-start="0" data-duration="${D}" data-track-index="1" data-layout-allow-occlusion style="background:radial-gradient(38% 46% at ${gx1}% ${gy1}%, ${rgba(accent, 0.24)}, transparent 70%), radial-gradient(34% 42% at ${gx2}% ${gy2}%, ${rgba(accent2, 0.17)}, transparent 72%); filter:blur(8px);"></div>`);
   }
 
   // ambient particle field (authored — drifts on a finite-repeat tween). The
   // seed offsets the distribution so no two videos share the same star pattern.
-  const N = 12;
+  const N = 18;
   const sx = seed % 100, sy = (seed >> 4) % 100;
   const circ = [];
   for (let i = 0; i < N; i++) {
@@ -819,7 +854,7 @@ function buildBackground(theme, dims, D, seed = 0, framePack = null) {
   parts.push(`<div class="clip" data-start="0" data-duration="${D}" data-track-index="2" data-layout-allow-occlusion><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0;width:100%;height:100%;">${circ.join("")}</svg></div>`);
 
   // grid / rule motif (masked for gradient packs; faint solid for flat packs)
-  const gridCol = rgba(theme.ink, gradients ? 0.04 : 0.06);
+  const gridCol = rgba(theme.ink, gradients ? 0.055 : 0.075);
   const mask = gradients ? "-webkit-mask-image:radial-gradient(80% 80% at 50% 45%,#000 35%,transparent 90%);mask-image:radial-gradient(80% 80% at 50% 45%,#000 35%,transparent 90%);" : "";
   parts.push(`<div class="clip" data-start="0" data-duration="${D}" data-track-index="3" data-layout-allow-occlusion style="background-image:linear-gradient(${gridCol} 1px,transparent 1px),linear-gradient(90deg,${gridCol} 1px,transparent 1px);background-size:46px 46px;${mask}"></div>`);
 
@@ -930,7 +965,7 @@ function archHook(scene, ctx) {
   const big = Math.round((dims.width >= dims.height ? 92 : 66) * (theme.textfx.sizeScale || 1));
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   <div style="position:absolute;left:7%;right:7%;top:50%;transform:translateY(-50%);">
-    <span id="${id}k" style="opacity:0;display:inline-flex;align-items:center;gap:10px;padding:8px 16px;border-radius:9999px;background:${theme.panel};border:1px solid ${theme.line};color:${theme.accent};font:700 15px/1 ${cssFont(theme)};letter-spacing:.2em;text-transform:uppercase;"><span style="width:8px;height:8px;border-radius:50%;background:${theme.accent};"></span>${esc(ctx.kicker || "KEYFRAME")}</span>
+    <span id="${id}k" style="opacity:0;display:inline-flex;align-items:center;gap:10px;padding:8px 16px;border-radius:9999px;background:${rgba(theme.ground, 0.86)};border:1px solid ${rgba(theme.accent, 0.35)};color:${theme.accent};font:700 15px/1 ${cssFont(theme)};letter-spacing:.2em;text-transform:uppercase;"><span style="width:8px;height:8px;border-radius:50%;background:${theme.accent};"></span>${esc(ctx.kicker || "KEYFRAME")}</span>
     <h1 style="margin-top:18px;font:800 ${fitBig(scene.headline, big, 14)}px/0.99 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:14ch;"><style>${emphasisBlock(theme, id)}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h1>
     <div id="${id}u" style="height:5px;width:${Math.round(dims.width * 0.27)}px;max-width:80%;margin-top:22px;border-radius:3px;background:${theme.accent};transform:scaleX(0);transform-origin:left;"></div>
     ${scene.subtext ? `<p id="${id}s" style="opacity:0;margin-top:16px;font:500 ${Math.round(big * 0.3)}px/1.45 ${cssFont(theme)};color:${theme.dim};max-width:42ch;">${esc(scene.subtext)}</p>` : ""}
@@ -1051,6 +1086,83 @@ function archText(scene, ctx) {
   return { html, script: s };
 }
 
+// ── PREMIUM COMPONENT SYSTEM ────────────────────────────────────────────────
+// Per-pack CARD CHROME — the single most important premium primitive. Gives the
+// feature grid / stat cluster a designed surface instead of a boxy div, keyed to
+// the pack's character:
+//   • flat packs      → hard border + offset SOLID shadow (neo-brutal card)
+//   • dark gradient    → dark translucent GLASS (blur + hairline + deep shadow)
+//   • light gradient   → bright FROSTED GLASS (specular edge, Apple-grade)
+function cardChrome(theme) {
+  if (!theme.gradients) {
+    const bg = theme.isDark ? mix(theme.ground, "#ffffff", 0.07) : "#FFFFFF";
+    return { css: `background:${bg};border:3px solid ${theme.ink};box-shadow:7px 7px 0 ${theme.accent};border-radius:9px;`, glass: false };
+  }
+  if (theme.isDark) {
+    return { css: `background:${rgba("#ffffff", 0.055)};border:1px solid ${rgba("#ffffff", 0.14)};box-shadow:0 24px 54px ${rgba("#000000", 0.42)},inset 0 1px 0 ${rgba("#ffffff", 0.13)};backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:16px;`, glass: true };
+  }
+  return { css: `background:linear-gradient(150deg,${rgba("#ffffff", 0.6)},${rgba("#ffffff", 0.16)});border:1px solid ${rgba("#ffffff", 0.72)};box-shadow:0 22px 52px ${rgba(theme.accent, 0.16)},inset 0 1px 0 ${rgba("#ffffff", 0.85)};backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px);border-radius:18px;`, glass: true };
+}
+
+// Duotone line glyphs for feature cards (stroke = accent). Cycled per card.
+const FEAT_GLYPHS = [
+  `<path d="M13 2 4 14h6l-1 8 9-12h-6z"/>`,                                              // bolt
+  `<path d="M12 3 3 8l9 5 9-5z"/><path d="M3 13l9 5 9-5" opacity=".5"/>`,                // layers
+  `<path d="M20 6 9 17l-5-5"/>`,                                                          // check
+  `<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3" opacity=".55"/>`,      // orbit
+  `<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 12h6M12 9v6" opacity=".6"/>`, // add
+  `<path d="M3 12h4l3 8 4-16 3 8h4"/>`,                                                   // pulse
+];
+// Split "Title — description" / "Title: description" into [title, desc].
+function splitCardText(s) {
+  const m = String(s || "").trim().match(/^(.{2,42}?)\s*[—–:]\s+(.+)$/);
+  return m ? [m[1].trim(), m[2].trim()] : [String(s || "").trim(), ""];
+}
+
+// FEATURE GRID — 2–3 component cards (icon chip + index + title + optional desc)
+// in a flex row with per-pack chrome. The rich "Feature-Spotlight" scene the LLM
+// composer builds, now deterministic and on-brand for EVERY pack — a bullet scene
+// becomes a designed card grid (aurora's step cards, blockframe's feature cards)
+// instead of a flat list. Siblings live in a flex container with gap (occlusion-
+// safe). Cards pop in on a stagger, then breathe.
+function archFeatureGrid(scene, ctx) {
+  const { theme, id, T, L, track, dims } = ctx;
+  const land = dims.width >= dims.height;
+  const big = Math.round((land ? 50 : 42) * (theme.textfx.sizeScale || 1));
+  const items = (Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean) : []).slice(0, 3);
+  const ch = cardChrome(theme);
+  const gap = land ? 26 : 15;
+  const pad = land ? 30 : 22;
+  const iconSz = land ? 54 : 46;
+  const accs = [theme.accent, theme.accent2, theme.extras[0] || theme.accent];
+  const cards = items.map((b, i) => {
+    const [title, desc] = splitCardText(b);
+    const accer = accs[i % accs.length];
+    const glyph = FEAT_GLYPHS[(i + (scene.headline || "").length) % FEAT_GLYPHS.length];
+    return `<div class="kffc" style="opacity:0;flex:1;min-width:0;${ch.css}padding:${pad}px;display:flex;flex-direction:column;gap:${land ? 13 : 8}px;position:relative;overflow:hidden;">`
+      + `<span style="position:absolute;top:${pad}px;right:${pad}px;font:700 ${Math.round(big * 0.26)}px/1 ${theme.displayStack};letter-spacing:.08em;color:${rgba(accer, 0.42)};">0${i + 1}</span>`
+      + `<div style="width:${iconSz}px;height:${iconSz}px;border-radius:${Math.round(iconSz * 0.28)}px;background:${rgba(accer, 0.16)};border:1px solid ${rgba(accer, 0.42)};display:grid;place-items:center;flex:none;"><svg viewBox="0 0 24 24" width="${Math.round(iconSz * 0.5)}" height="${Math.round(iconSz * 0.5)}" fill="none" stroke="${accer}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${glyph}</svg></div>`
+      + `<div style="font:700 ${Math.round(big * 0.46)}px/1.15 ${theme.displayStack};letter-spacing:-0.01em;color:${theme.ink};margin-top:${land ? 6 : 3}px;">${esc(title)}</div>`
+      + (desc ? `<div style="font:500 ${Math.round(big * 0.3)}px/1.45 ${cssFont(theme)};color:${theme.dim};">${esc(desc)}</div>` : "")
+      + `</div>`;
+  }).join("");
+  const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
+  <div style="position:absolute;left:6%;right:6%;top:50%;transform:translateY(-50%);">
+    <div style="width:54px;height:5px;border-radius:3px;background:${theme.accent};margin-bottom:16px;"></div>
+    <h2 style="font:800 ${fitBig(scene.headline, big, 24)}px/1.05 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:24ch;margin-bottom:${land ? 26 : 16}px;"><style>${emphasisBlock(theme, id)}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
+    <div id="${id}g" style="display:flex;flex-direction:${land ? "row" : "column"};gap:${gap}px;align-items:stretch;">${cards}</div>
+  </div>
+</div>`;
+  const s = [
+    `tl.set("#${id}",{opacity:1},${T});`,
+    `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.25)},0.06);`,
+    `tl.fromTo("#${id} .kffc",{opacity:0,y:36,scale:0.93},{opacity:1,y:0,scale:1,duration:0.62,stagger:0.14,ease:"back.out(1.5)"},${r(T + 0.6)});`,
+    `tl.to("#${id} .kffc",{y:"-=8",duration:2.0,ease:"sine.inOut",yoyo:true,stagger:0.16,repeat:sreps(${r(L - 1.4)},2.0)},${r(T + 1.6)});`,
+    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
+  ].filter(Boolean).join("\n");
+  return { html, script: s };
+}
+
 // TESTIMONIAL / QUOTE CARD (Phase 4) — a dedicated layout for `kind:"quote"`
 // scenes, which used to collapse to the generic text archetype. A pull-quote on
 // a panel with a big accent quotation mark, the quote animated word-by-word (in
@@ -1111,36 +1223,70 @@ function orderByPaletteAffinity(pool, theme) {
 function buildPropFill(ctx, side) {
   const { theme, id, dims, T, L } = ctx;
   const W = dims.width, H = dims.height, land = W >= H;
-  const pw = Math.round(W * (land ? 0.30 : 0.5)), ph = Math.round(H * (land ? 0.44 : 0.3));
+  // Larger footprint so the "empty half" actually reads as filled.
+  const pw = Math.round(W * (land ? 0.34 : 0.52)), ph = Math.round(H * (land ? 0.50 : 0.32));
   const px = side === "left" ? Math.round(W * 0.07) : Math.round(W - pw - W * 0.07);
   const py = Math.round((H - ph) / 2);
   const A = theme.accent, B = theme.accent2 || theme.accent, ink = theme.ink, line = theme.line;
-  const card = theme.isDark ? "rgba(255,255,255,0.045)" : "rgba(20,18,12,0.035)";
+  // A real, visible surface (was 0.045 — a ghost). Depth comes from the shadow below.
+  const card = theme.isDark ? "rgba(255,255,255,0.075)" : "rgba(20,18,12,0.05)";
   const pid = `${id}pf`;
-  const hh = Math.round(ph * 0.15);      // header height
   const pad = Math.round(pw * 0.07);
-  const chartY = Math.round(ph * 0.60), chartH = Math.round(ph * 0.28), bw = Math.round((pw - pad * 2) / 9);
-  const hts = [0.42, 0.66, 0.5, 0.82, 1.0, 0.72];
-  const bars = hts.map((f, i) =>
-    `<rect class="kfbar" x="${pad + i * (bw + Math.round(bw * 0.5))}" y="${chartY + chartH - Math.round(chartH * f)}" width="${bw}" height="${Math.round(chartH * f)}" rx="3" fill="${i === 3 ? A : rgba(B, 0.55)}"/>`).join("");
-  const rows = [0, 1].map((i) => {
-    const ry = Math.round(ph * 0.28) + i * Math.round(ph * 0.12);
-    return `<rect x="${pad}" y="${ry}" width="${Math.round(ph * 0.055)}" height="${Math.round(ph * 0.055)}" rx="3" fill="none" stroke="${A}" stroke-width="2"/>` +
-      `<rect x="${pad + Math.round(ph * 0.09)}" y="${ry + Math.round(ph * 0.012)}" width="${Math.round(pw * (i ? 0.42 : 0.55))}" height="${Math.round(ph * 0.03)}" rx="3" fill="${rgba(ink, 0.32)}"/>`;
-  }).join("");
+
+  // TWO prop variants, rotated by seed+scene, so repeated text scenes don't all
+  // show the identical card — v0 = task board + bar chart, v1 = KPI tiles + area
+  // sparkline. Both read as "the product", in the pack's own colors.
+  const variant = (((ctx.seed || 0) >> 2) + (ctx.sceneIndex || 0)) % 2;
+  let inner, animLine;
+  if (variant === 1) {
+    const tileW = Math.round((pw - pad * 2 - pad) / 3), tileH = Math.round(ph * 0.28), tileY = Math.round(ph * 0.15);
+    const tiles = [0, 1, 2].map((i) => {
+      const tx = pad + i * (tileW + Math.round(pad * 0.5)), c = i === 1 ? A : rgba(B, 0.7);
+      return `<rect x="${tx}" y="${tileY}" width="${tileW}" height="${tileH}" rx="${Math.round(tileW * 0.12)}" fill="${rgba(ink, 0.045)}" stroke="${line}" stroke-width="1"/>` +
+        `<rect x="${tx + Math.round(tileW * 0.14)}" y="${tileY + Math.round(tileH * 0.22)}" width="${Math.round(tileW * 0.52)}" height="${Math.round(tileH * 0.24)}" rx="3" fill="${c}"/>` +
+        `<rect x="${tx + Math.round(tileW * 0.14)}" y="${tileY + Math.round(tileH * 0.60)}" width="${Math.round(tileW * 0.7)}" height="${Math.round(tileH * 0.12)}" rx="2" fill="${rgba(ink, 0.28)}"/>`;
+    }).join("");
+    const spY = Math.round(ph * 0.56), spH = Math.round(ph * 0.34), spW = pw - pad * 2;
+    const pts = [0.18, 0.42, 0.32, 0.6, 0.48, 0.78, 0.66, 1.0];
+    const co = pts.map((f, i) => [pad + Math.round(spW * (i / (pts.length - 1))), spY + spH - Math.round(spH * f)]);
+    const poly = co.map((c, i) => `${i ? "L" : "M"}${c[0]} ${c[1]}`).join(" ");
+    const area = `M${pad} ${spY + spH} ` + co.map((c) => `L${c[0]} ${c[1]}`).join(" ") + ` L${pad + spW} ${spY + spH} Z`;
+    inner = `<path d="${area}" fill="${rgba(A, 0.14)}"/><path class="kfspark" d="${poly}" fill="none" stroke="${A}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>` +
+      tiles + co.map((c) => `<circle cx="${c[0]}" cy="${c[1]}" r="3" fill="${A}"/>`).join("");
+    animLine = `tl.fromTo("#${pid} .kfspark",{strokeDasharray:${pw * 2},strokeDashoffset:${pw * 2}},{strokeDashoffset:0,duration:1.0,ease:"power2.out"},${r(T + 0.95)});`;
+  } else {
+    const hh = Math.round(ph * 0.15);
+    const chartY = Math.round(ph * 0.60), chartH = Math.round(ph * 0.30), bw = Math.round((pw - pad * 2) / 9);
+    const hts = [0.42, 0.66, 0.5, 0.82, 1.0, 0.72];
+    const bars = hts.map((f, i) =>
+      `<rect class="kfbar" x="${pad + i * (bw + Math.round(bw * 0.5))}" y="${chartY + chartH - Math.round(chartH * f)}" width="${bw}" height="${Math.round(chartH * f)}" rx="3" fill="${i === 3 ? A : rgba(B, 0.55)}"/>`).join("");
+    const rows = [0, 1].map((i) => {
+      const ry = Math.round(ph * 0.28) + i * Math.round(ph * 0.13);
+      return `<rect x="${pad}" y="${ry}" width="${Math.round(ph * 0.06)}" height="${Math.round(ph * 0.06)}" rx="3" fill="none" stroke="${A}" stroke-width="2"/>` +
+        `<rect x="${pad + Math.round(ph * 0.10)}" y="${ry + Math.round(ph * 0.014)}" width="${Math.round(pw * (i ? 0.42 : 0.55))}" height="${Math.round(ph * 0.032)}" rx="3" fill="${rgba(ink, 0.34)}"/>`;
+    }).join("");
+    inner = `<rect x="0" y="0" width="${pw}" height="${hh}" rx="${Math.round(pw * 0.05)}" fill="${rgba(A, 0.18)}"/>` +
+      `<rect x="0" y="${Math.round(hh * 0.5)}" width="${pw}" height="${Math.round(hh * 0.5)}" fill="${rgba(A, 0.18)}"/>` +
+      `<circle cx="${pad + Math.round(ph * 0.03)}" cy="${Math.round(hh / 2)}" r="${Math.round(ph * 0.024)}" fill="${A}"/>` +
+      `<rect x="${pad + Math.round(ph * 0.08)}" y="${Math.round(hh / 2 - ph * 0.014)}" width="${Math.round(pw * 0.4)}" height="${Math.round(ph * 0.03)}" rx="3" fill="${rgba(ink, 0.44)}"/>` +
+      rows + bars;
+    animLine = `tl.fromTo("#${pid} .kfbar",{scaleY:0,transformOrigin:"50% 100%"},{scaleY:1,duration:0.55,stagger:0.07,ease:"power2.out"},${r(T + 0.95)});`;
+  }
+
   const svg =
     `<svg viewBox="0 0 ${pw} ${ph}" width="100%" height="100%" style="overflow:visible;">` +
     `<rect x="0" y="0" width="${pw}" height="${ph}" rx="${Math.round(pw * 0.05)}" fill="${card}" stroke="${line}" stroke-width="1.5"/>` +
-    `<rect x="0" y="0" width="${pw}" height="${hh}" rx="${Math.round(pw * 0.05)}" fill="${rgba(A, 0.10)}"/>` +
-    `<rect x="0" y="${Math.round(hh * 0.5)}" width="${pw}" height="${Math.round(hh * 0.5)}" fill="${rgba(A, 0.10)}"/>` +
-    `<circle cx="${pad + Math.round(ph * 0.03)}" cy="${Math.round(hh / 2)}" r="${Math.round(ph * 0.022)}" fill="${A}"/>` +
-    `<rect x="${pad + Math.round(ph * 0.07)}" y="${Math.round(hh / 2 - ph * 0.014)}" width="${Math.round(pw * 0.4)}" height="${Math.round(ph * 0.028)}" rx="3" fill="${rgba(ink, 0.4)}"/>` +
-    rows + bars +
+    inner +
     `</svg>`;
-  const html = `<div id="${pid}" style="position:absolute;left:${px}px;top:${py}px;width:${pw}px;height:${ph}px;opacity:0;pointer-events:none;" data-layout-allow-occlusion>${svg}</div>`;
+  // Drop shadow + accent glow give the panel depth so it reads as a real product
+  // surface, not a faint ghost — the core fix for "the empty half looks empty".
+  const shadow = theme.isDark
+    ? `filter:drop-shadow(0 24px 60px rgba(0,0,0,0.55)) drop-shadow(0 0 42px ${rgba(A, 0.18)});`
+    : `filter:drop-shadow(0 24px 50px rgba(0,0,0,0.14));`;
+  const html = `<div id="${pid}" style="position:absolute;left:${px}px;top:${py}px;width:${pw}px;height:${ph}px;opacity:0;pointer-events:none;${shadow}" data-layout-allow-occlusion>${svg}</div>`;
   const s = [
     `tl.fromTo("#${pid}",{opacity:0,y:30,rotationZ:${side === "left" ? 3 : -3}},{opacity:1,y:0,rotationZ:0,duration:0.75,ease:"power3.out"},${r(T + 0.5)});`,
-    `tl.fromTo("#${pid} .kfbar",{scaleY:0,transformOrigin:"50% 100%"},{scaleY:1,duration:0.55,stagger:0.07,ease:"power2.out"},${r(T + 0.95)});`,
+    animLine,
     `tl.to("#${pid}",{y:"-=12",duration:${r(Math.max(2, L - 1))},ease:"sine.inOut",yoyo:true,repeat:1},${r(T + 0.9)});`,
     ctx.isLast ? "" : `tl.to("#${pid}",{opacity:0,duration:0.3,ease:"power2.in"},${r(T + L - 0.35)});`,
   ].filter(Boolean).join("\n");
@@ -1204,7 +1350,7 @@ function archScreenshotHero(scene, ctx) {
   </div>
   </div>
   <div style="${copyWrap}">
-    <span id="${id}k" style="opacity:0;display:inline-flex;align-items:center;gap:9px;padding:7px 15px;border-radius:9999px;background:${theme.panel};border:1px solid ${theme.line};color:${theme.accent};font:700 13px/1 ${cssFont(theme)};letter-spacing:.2em;text-transform:uppercase;"><span style="width:7px;height:7px;border-radius:50%;background:${theme.accent};"></span>${esc(ctx.kicker || "Live")}</span>
+    <span id="${id}k" style="opacity:0;display:inline-flex;align-items:center;gap:9px;padding:7px 15px;border-radius:9999px;background:${rgba(theme.ground, 0.86)};border:1px solid ${rgba(theme.accent, 0.35)};color:${theme.accent};font:700 13px/1 ${cssFont(theme)};letter-spacing:.2em;text-transform:uppercase;"><span style="width:7px;height:7px;border-radius:50%;background:${theme.accent};"></span>${esc(ctx.kicker || "Live")}</span>
     <h2 style="margin-top:14px;font:800 ${fitBig(scene.headline, big, 20)}px/1.05 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};"><style>${emphasisBlock(theme, id)}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
     ${scene.subtext ? `<p id="${id}s" style="opacity:0;margin-top:13px;font:500 ${Math.round(big * 0.42)}px/1.45 ${cssFont(theme)};color:${theme.dim};">${esc(scene.subtext)}</p>` : ""}
   </div>
@@ -1420,7 +1566,11 @@ function archetypeFor(scene, idx, total) {
   if (k === "quote") return archQuoteCard;        // testimonial card (before the number check)
   if (k === "chart" || k === "countdown") return archStat;
   if (pickNumber(scene)) return archStat;        // any scene with a strong number
-  return archText;                                // bullet / caption / shape-motion
+  // A feature/bullet scene carrying ≥2 points renders as a premium CARD GRID
+  // (icon + title + desc per pack chrome) instead of a flat bulleted list.
+  const bl = Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean) : [];
+  if (bl.length >= 2) return archFeatureGrid;
+  return archText;                                // single-point / caption / shape-motion
 }
 
 // Seek-safe caption track (one node, recomputed each frame — never one clip/line).
@@ -1470,7 +1620,12 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
   // longer surface a tooth/camera/diamond tile in a montage about a dev tool.
   // Unverified PHOTOS stay usable as heavily-scrimmed B-roll texture, so a
   // gate outage still can't starve the film of backgrounds.
+  // iconify glyphs are recolored to the pack AND concrete-noun matched upstream
+  // (not visualDirection leakage), so they're trusted for prominent slots like a
+  // curated pick. The audited off-topic tiles (tooth/toothpaste/camera/diamond)
+  // were all raw WEB STOCK (pixabay/openverse) — those still require `visionOk`.
   const prominentOk = (a) => !!a && (a.source === "website"
+    || a.source === "iconify"
     || String(a.source || "").startsWith("library:")
     || a.visionOk === true);
   const bgOnlyPhotos = pools.photos.filter((a) => !prominentOk(a));

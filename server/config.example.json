@@ -64,7 +64,7 @@
   "audio": {
     "pixabayKey": "",
     "freesoundToken": "",
-    "ttsProvider": "auto",
+    "ttsProvider": "openrouter",
     "ttsKieModel": "elevenlabs/text-to-speech-multilingual-v2",
     "ttsVoiceId": "EkK5I93UQWFDigLMpZcX",
     "ttsModel": "openai/gpt-audio-mini",

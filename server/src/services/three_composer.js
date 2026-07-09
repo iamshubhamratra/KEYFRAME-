@@ -134,7 +134,7 @@ function sceneOverlay(scene, i, total, ctx) {
   const scrimShape = (isHook || isCta) ? "58% 46%" : "68% 34%";
   parts.push(`  <div style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse ${scrimShape} at ${scrimAt},rgba(0,0,0,0.64),rgba(0,0,0,0.32) 48%,transparent 72%);"></div>`);
   parts.push(`  <div style="${wrap}">`);
-  if (kicker) parts.push(`    <span id="${id}k" style="opacity:0;display:inline-flex;align-items:center;gap:9px;margin-bottom:18px;padding:8px 17px;border-radius:9999px;background:${theme.panel};border:1px solid ${theme.line};color:${theme.accent};font:700 14px/1 ${theme.fontStack};letter-spacing:.24em;text-transform:uppercase;"><span style="width:8px;height:8px;border-radius:50%;background:${theme.accent};"></span>${esc(kicker)}</span>`);
+  if (kicker) parts.push(`    <span id="${id}k" style="opacity:0;display:inline-flex;align-items:center;gap:9px;margin-bottom:18px;padding:8px 17px;border-radius:9999px;background:${rgba(theme.ground, 0.86)};border:1px solid ${rgba(theme.accent, 0.35)};color:${theme.accent};font:700 14px/1 ${theme.fontStack};letter-spacing:.24em;text-transform:uppercase;"><span style="width:8px;height:8px;border-radius:50%;background:${theme.accent};"></span>${esc(kicker)}</span>`);
   parts.push(`    <h1 style="margin:0;font:800 ${big}px/1.02 ${theme.fontStack};letter-spacing:-0.02em;color:${theme.ink};max-width:${land ? "17ch" : "13ch"};text-shadow:0 2px 10px rgba(0,0,0,0.9),0 6px 44px rgba(0,0,0,0.6);"><style>#${id} .kfacc{${accentText}}</style>${headlineSpans(scene.headline, scene.emphasis)}</h1>`);
   if (scene.subtext) parts.push(`    <p id="${id}s" style="opacity:0;margin-top:16px;font:500 ${Math.round(big * 0.32)}px/1.45 ${theme.fontStack};color:${theme.dim};max-width:44ch;text-shadow:0 2px 20px rgba(0,0,0,0.55);">${esc(scene.subtext)}</p>`);
   parts.push(`  </div>`);
@@ -236,7 +236,12 @@ const composer=new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene,cam));
 // bloom is retuned per frame: gentle on showcase scenes (crt/reveal — a large
 // bright screenshot would detonate it), punchy on the abstract neon scenes.
-const bloomPass=new UnrealBloomPass(new THREE.Vector2(W,H),1.1,0.72,0.3);
+// PERF: the bloom's mip chain is the single most expensive per-frame pass under
+// software WebGL (the ~6-min 1080p render). Seed it at HALF resolution — bloom
+// is a wide gaussian blur, so a half-res base is visually indistinguishable but
+// its mip pyramid is ~4x cheaper. Floors at 640px so tiny outputs keep detail.
+const BLOOM_W=Math.max(640,Math.round(W/2)), BLOOM_H=Math.round(BLOOM_W*H/W);
+const bloomPass=new UnrealBloomPass(new THREE.Vector2(BLOOM_W,BLOOM_H),1.1,0.72,0.3);
 composer.addPass(bloomPass);
 const filmPass=new ShaderPass({
   uniforms:{tDiffuse:{value:null},uTime:{value:0},uPix:{value:0}},

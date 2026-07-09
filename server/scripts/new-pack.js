@@ -112,6 +112,25 @@ const FAMILIES = {
       ["CTA", "cta", "A centered sign-off with one gradient-filled pill button on the bright ground."],
     ],
   },
+  // Apple-grade liquid glass: pearl studio light, frosted translucent panels with
+  // specular sweeps, iridescent refraction. The premium flagship-reveal look.
+  "liquid-glass": {
+    label: "Liquid Glass",
+    surface: { flat: false, lightCinematic: true },       // pearl light ground, keeps gradients
+    motion: { cut: "glow", drift: 1.04 },
+    fx: { canvas: "bokeh", three: "shards" },             // soft backlight + refracting glass shards
+    // words rise out of a clean glass edge (mask-reveal); the key phrase wears the
+    // iridescent blue→violet→pink clip; centered like a keynote slide.
+    textfx: { enter: "mask-reveal", emphasis: "gradient", case: "none", tracking: 0, align: "center", sizeScale: 1.06 },
+    assets: { photoMod: "abstract glass 3d render iridescent gradient premium studio", iconStyle: "duotone", keywords: ["glass", "iridescent", "gradient", "abstract", "premium"], prefer: ["vector", "photo"] },
+    tone: "an Apple-grade liquid-glass system: pearl studio light, frosted translucent panels with hairline specular edges, one iridescent blue-violet refraction — for flagship reveals, keynotes and premium product launches",
+    treatments: [
+      ["Reveal", "cover", "Pearl light with a soft iridescent bloom; the headline rises out of a glass edge, key phrase in the iridescent clip; a frosted pill label floats above."],
+      ["Facet", "feature", "A frosted glass panel with a hairline specular edge holds the copy; a light sweep crosses the glass as the points draw in."],
+      ["Metric", "stat", "A huge figure in the iridescent clip counts up behind glass; a specular streak passes as it lands."],
+      ["Invite", "cta", "A centered sign-off on pearl light: one frosted-glass button with an iridescent rim and a slow breathing glow."],
+    ],
+  },
 };
 
 // ---- helpers ---------------------------------------------------------------

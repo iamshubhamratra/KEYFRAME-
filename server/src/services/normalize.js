@@ -176,7 +176,7 @@ function tagCoveredText(html) {
 // data:/http(s) srcs are left untouched.
 function stripMissingAssets(html, jobDir) {
   let removed = 0;
-  const out = String(html).replace(
+  let out = String(html).replace(
     /<img\b[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*\/?>|<video\b[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*>(?:[\s\S]*?<\/video>)?/gi,
     (full, imgSrc, videoSrc) => {
       const src = imgSrc || videoSrc;
@@ -187,6 +187,17 @@ function stripMissingAssets(html, jobDir) {
       return "";
     }
   );
+  // Collapse a montage tile (scene_kit's .kftile) whose <img> was just stripped —
+  // otherwise it renders as an empty bordered/shadowed box (the "broken image
+  // glyph where a photo should be"). A tile holds only an <img> + an optional
+  // wash <span> and never nests a <div>, so "a .kftile div with no <img> left
+  // before its close" is exactly an emptied tile. Leaves populated tiles intact.
+  if (removed) {
+    out = out.replace(
+      /<div\b[^>]*class="[^"]*\bkftile\b[^"]*"[^>]*>(?:(?!<img\b|<\/div>)[\s\S])*?<\/div>/gi,
+      ""
+    );
+  }
   return { html: out, removed };
 }
 

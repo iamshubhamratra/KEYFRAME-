@@ -1,0 +1,70 @@
+{
+  "name": "liquid-glass",
+  "vibe": "an Apple-grade liquid-glass system: pearl studio light, frosted translucent panels with hairline specular edges, one iridescent blue-violet refraction — for flagship reveals, keynotes and premium product launches",
+  "colors": {
+    "pearl": "#F2F5FA",
+    "mist": "#E6EBF4",
+    "ink": "#0D1220",
+    "azure": "#4D7CFE",
+    "violet": "#9F6CF8",
+    "pink": "#FF8AC2"
+  },
+  "fonts": [
+    "Inter",
+    "Space Grotesk"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#F2F5FA"
+  },
+  "motion": {
+    "cut": "glow",
+    "drift": 1.04
+  },
+  "fx": {
+    "canvas": "bokeh",
+    "three": "shards"
+  },
+  "skin": {
+    "accents": [
+      "#4D7CFE",
+      "#9F6CF8"
+    ],
+    "extras": [
+      "#FF8AC2",
+      "#BCD0F5"
+    ],
+    "emphasisCss": "background:linear-gradient(100deg,#4D7CFE,#9F6CF8 50%,#FF8AC2);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#4D7CFE;"
+  },
+  "assets": {
+    "photoMod": "abstract glass 3d render iridescent gradient premium studio",
+    "iconStyle": "duotone",
+    "keywords": [
+      "glass",
+      "iridescent",
+      "gradient",
+      "abstract",
+      "premium"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "textfx": {
+    "enter": "mask-reveal",
+    "emphasis": "gradient",
+    "case": "none",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1.06,
+    "align": "center"
+  },
+  "typography": {
+    "display": "Space Grotesk"
+  },
+  "camera3d": {
+    "ground": "#0A0E1C"
+  }
+}

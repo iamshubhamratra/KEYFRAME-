@@ -136,13 +136,19 @@ function collectTextBoxes(frameW, frameH) {
     // probeFrames measures those glyphs from pixels instead of the declared color.
     const fill = parse(cs.webkitTextFillColor);
     const color = parse(cs.color);
-    const declared = fill[3] > 0.1 ? fill : color;
+    // Whether the GLYPH is painted by its background (gradient-clip / invisible
+    // fill) is decided by the FILL alpha — NOT a `color` fallback. Emphasis CSS
+    // routinely sets `-webkit-text-fill-color:transparent` alongside a solid
+    // `color:` fallback; keying off `color` would wrongly treat gradient text as
+    // solid, skip the background-strip, and sample the gradient as its own backdrop.
+    const transparentFill = fill[3] <= 0.1;
+    const declared = transparentFill ? color : fill;
     el.setAttribute("data-cc", String(i));
     // Gradient-clipped text paints its glyphs FROM its background, so hiding it
     // means removing that background. Solid text keeps its own background (a pill
     // button's gradient fill IS the backdrop we must measure against), so only
     // gradient-fill elements get the extra background-stripping rule.
-    if (declared[3] <= 0.1) el.setAttribute("data-cc-grad", "1");
+    if (transparentFill) el.setAttribute("data-cc-grad", "1");
     const size = parseFloat(cs.fontSize), weight = Number(cs.fontWeight) || 400;
     boxes.push({
       i,
@@ -156,7 +162,7 @@ function collectTextBoxes(frameW, frameH) {
       large: isLarge(size, weight),
       fg: [declared[0], declared[1], declared[2]],
       fgAlpha: declared[3],
-      transparentFill: declared[3] <= 0.1, // gradient-clipped / invisible fill
+      transparentFill, // glyph painted by its background (gradient-clip / invisible fill)
     });
     i++;
   }
@@ -167,24 +173,38 @@ function collectTextBoxes(frameW, frameH) {
 // text) while KEEPING element box backgrounds — so the backdrop screenshot shows
 // what actually sits behind each glyph. Returns nothing.
 function hideTaggedGlyphs() {
-  const st = document.createElement("style");
-  st.id = "__cc_hide__";
-  st.textContent =
-    // Hide the glyphs of ALL tagged text (transparent fill + no shadow) while
-    // KEEPING element backgrounds, so the backdrop screenshot shows what sits
-    // behind each glyph — including an element's own button/pill fill.
-    "[data-cc]{color:transparent!important;-webkit-text-fill-color:transparent!important;" +
-    "text-shadow:none!important;caret-color:transparent!important}" +
-    // Gradient-clipped text is painted BY its background — strip it only for those.
-    "[data-cc-grad]{background:none!important;background-image:none!important}";
-  document.head.appendChild(st);
+  // Apply the hide as INLINE !important styles (the strongest level of the
+  // cascade) rather than a <style> rule — packs style emphasis via `#id .kfacc`
+  // (higher specificity) and keep `-webkit-background-clip:text`, which a plain
+  // stylesheet rule doesn't reliably neutralize. Save each element's original
+  // inline style so unhide restores it exactly (buttons/badges keep their fill).
+  for (const el of document.querySelectorAll("[data-cc]")) {
+    el.setAttribute("data-cc-style", el.getAttribute("style") || "");
+    el.style.setProperty("color", "transparent", "important");
+    el.style.setProperty("-webkit-text-fill-color", "transparent", "important");
+    el.style.setProperty("text-shadow", "none", "important");
+    el.style.setProperty("caret-color", "transparent", "important");
+    // Gradient-clipped text is painted BY its own background — remove it AND
+    // un-clip, so the glyph truly disappears in the backdrop frame.
+    if (el.hasAttribute("data-cc-grad")) {
+      el.style.setProperty("background-image", "none", "important");
+      el.style.setProperty("background", "none", "important");
+      el.style.setProperty("-webkit-background-clip", "border-box", "important");
+      el.style.setProperty("background-clip", "border-box", "important");
+    }
+  }
 }
 
 function unhideTaggedGlyphs() {
-  const st = document.getElementById("__cc_hide__");
-  if (st) st.remove();
-  for (const el of document.querySelectorAll("[data-cc]")) el.removeAttribute("data-cc");
-  for (const el of document.querySelectorAll("[data-cc-grad]")) el.removeAttribute("data-cc-grad");
+  for (const el of document.querySelectorAll("[data-cc]")) {
+    const s = el.getAttribute("data-cc-style");
+    if (s !== null) {
+      if (s) el.setAttribute("style", s); else el.removeAttribute("style");
+      el.removeAttribute("data-cc-style");
+    }
+    el.removeAttribute("data-cc");
+    el.removeAttribute("data-cc-grad");
+  }
 }
 
 // Decode the text frame (A, glyphs shown) and the backdrop frame (B, glyphs

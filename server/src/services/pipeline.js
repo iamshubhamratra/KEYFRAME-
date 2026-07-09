@@ -32,6 +32,7 @@ const frameRegistry = require("./frame_registry");
 const { render } = require("./renderer");
 const { buildFallback } = require("./fallback");
 const { planAudio } = require("./audio_planner");
+const { reviewAudio, summarizeReview } = require("./audio_review");
 const { synthesize: ttsSynthesize } = require("./tts");
 const { synthesizeFitted } = require("./vo_fit");
 const { fetchMusic, fetchSfx } = require("./audio_sources");
@@ -639,7 +640,7 @@ async function buildAudio({ jobDir, storyboard, flags, tracker, perScene = false
   if (sfx.length) console.log(`[pipeline] sfx: ${sfx.length}/${sfxPlan.length} fetched`);
 
   return {
-    ttsPath, musicPath, sfx, musicVolume,
+    ttsPath, musicPath, sfx, musicVolume, plan,
     ttsVoice: plan.tts?.voice, ttsInstructions: plan.tts?.instructions,
   };
 }
@@ -686,7 +687,7 @@ async function mixAudioIntoVideo({ visualPath, durationSec, audio }) {
 async function runJob({
   jobId, prompt, duration, orientation, width, height, fps,
   tts = false, music = false, soundEffect = false, voice,
-  images = false, video = false, framePack = null, remix = false, render3d = false,
+  images = false, video = false, framePack = null, remix = false, render3d = false, dress = false,
 }) {
   const jobDir = jobDirFor(jobId);
   fs.mkdirSync(jobDir, { recursive: true });
@@ -714,6 +715,7 @@ async function runJob({
     // Best-effort: any failure falls back to the raw prompt, never blocks the job.
     let effectivePrompt = prompt;
     let briefSubject = null;
+    let briefObj = null; // retained for the audio-review agent (purpose/emotion)
     {
       const t0 = ms();
       db.setProgress(jobId, "brief");
@@ -724,6 +726,7 @@ async function runJob({
         effectivePrompt = enrichedStoryboardPrompt(briefRes.brief, prompt);
         // Subject anchor for the asset stage's stock queries + vision gate.
         briefSubject = (briefRes.brief && briefRes.brief.subject) ? String(briefRes.brief.subject).trim() : null;
+        briefObj = briefRes.brief || null;
         // "Auto" pack: adopt the brief's tone-matched suggestion (an explicit
         // user pack arrived non-null and is honored verbatim). Persist it so
         // the UI/gallery shows the real pack.
@@ -840,16 +843,21 @@ async function runJob({
           finalAttempt = "three";
           console.log(`[pipeline] Three.js composition+render succeeded in ${ms() - t0}ms`);
         } else {
+          // `dress` (premium hybrid): a bounded LLM pass art-directs the scene-kit
+          // (per-scene variants, accent word, decorative SVG cluster) without the
+          // freehand LLM composer's fragility. remix wins if both are set.
+          const useDress = dress && !remix;
           visualResult = await withBudget(
             (signal) => attemptLlmComposition({
               storyboard: sbRes.storyboard, dims, jobDir,
               assets: allAssets, tracker, jobId, durationSec: effectiveDuration,
-              label: remix ? "remix" : "scene-kit", abortSignal: signal, framePack, remix,
+              label: remix ? "remix" : (useDress ? "premium-dress" : "scene-kit"), abortSignal: signal, framePack, remix,
+              dress: useDress, subject: briefSubject,
             }),
-            budget, remix ? "LLM remix composition" : "scene-kit composition"
+            budget, remix ? "LLM remix composition" : (useDress ? "scene-kit + set-dressing" : "scene-kit composition")
           );
-          finalAttempt = remix ? "remix" : "scenekit";
-          console.log(`[pipeline] ${remix ? "LLM remix" : "scene-kit"} composition+render succeeded in ${timings.compose_renderMs}ms`);
+          finalAttempt = remix ? "remix" : (useDress ? "scenekit-dressed" : "scenekit");
+          console.log(`[pipeline] ${remix ? "LLM remix" : (useDress ? "scene-kit + set-dressing" : "scene-kit")} composition+render succeeded in ${timings.compose_renderMs}ms`);
         }
         markStage("compose_render", t0);
       } catch (e1) {
@@ -943,6 +951,22 @@ async function runJob({
         }).catch((e) => { console.warn(`[pipeline] mix failed: ${e.message}`); return false; }) : false;
         markStage("audio", t0);
         console.log(`[pipeline] audio ${mixed ? "mixed in" : "(nothing to mix)"} in ${timings.audioMs}ms (was prepared in parallel)`);
+
+        // Audio-review agent — judges the SELECTED voiceover / music / SFX against
+        // the video's inferred purpose + emotion. Non-blocking QA: logs a one-line
+        // verdict and stores the full review on the job (db.setAudioNotes). Never
+        // fails the job (an LLM hiccup just means no review this run).
+        try {
+          const review = await reviewAudio({
+            storyboard: sbRes.storyboard, plan: prepped && prepped.plan,
+            brief: briefObj, videoOk: !!visualResult,
+          });
+          if (review) {
+            console.log(`[audio-review] ${summarizeReview(review)}`);
+            // setAudioNotes persists a non-empty array — wrap the review object.
+            try { db.setAudioNotes(jobId, [review]); } catch { /* db note best-effort */ }
+          }
+        } catch (e) { console.warn(`[audio-review] stage threw: ${String(e.message).slice(0, 120)}`); }
       } catch (e) {
         markStage("audio", t0);
         console.warn(`[pipeline] audio stage failed: ${e.message}`);

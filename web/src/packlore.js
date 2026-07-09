@@ -116,6 +116,14 @@ export const PACK_LORE = {
     vibe: "Parchment pages, watercolor washes, paper planes and firefly orbs gliding in gentle 3D. Built for storytelling.",
     filmGrad: "linear-gradient(135deg,#D8734B,#E8B84B,#7A93B8)",
   },
+  "liquid-glass": {
+    name: "Liquid Glass", tag: "PREMIUM · GLASS", bg: "#F2F5FA", ink: "#0D1220", accent: "#4D7CFE",
+    chips: ["#4D7CFE", "#9F6CF8", "#FF8AC2"],
+    grad: "radial-gradient(circle at 26% 28%, rgba(77,124,254,.16), transparent 50%), radial-gradient(circle at 76% 72%, rgba(159,108,248,.15), transparent 52%), linear-gradient(180deg, rgba(255,255,255,.5), rgba(255,255,255,0) 60%)",
+    font: "'Bricolage Grotesque'", tracking: "-.02em", demo: "Pour light in",
+    vibe: "Apple-grade liquid glass — frosted panels with hairline specular edges, iridescent refraction over pearl studio light. For flagship reveals and keynotes.",
+    filmGrad: "linear-gradient(135deg,#4D7CFE,#9F6CF8,#FF8AC2)",
+  },
 
   // ---- Phase-5 gap-category packs (dev/CLI, healthcare, data, fintech, SaaS).
   // Colors/fonts mirror server/scripts/pack-catalog.js; card `font` uses a
@@ -203,7 +211,7 @@ export const PACK_LORE = {
 };
 
 export const PACK_ORDER = [
-  "longshot-cinema", "summit-keynote", "prism-launch", "fable-storybook",
+  "liquid-glass", "longshot-cinema", "summit-keynote", "prism-launch", "fable-storybook",
   "blockframe", "biennale-yellow", "midnight-glass", "noir-spotlight", "vapor-chrome",
   "aurora-spectrum", "bauhaus-print", "kinetic-bold", "mono-corporate", "bloom-illustrated",
   // Phase-5 gap categories, grouped: dev/CLI · data · fintech · healthcare · SaaS.

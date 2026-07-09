@@ -106,4 +106,14 @@ module.exports = [
     textfx: { enter: "char-pop", emphasis: "marker", align: "center" },
     motion: { cut: "whip", drift: 1.04 },
   },
+  // ---- liquid-glass (flagship reveals / keynotes / premium launches) ----
+  {
+    name: "liquid-glass", family: "liquid-glass", label: "Liquid Glass",
+    overview: "Frosted panels over pearl studio light — hairline specular edges, iridescent refraction, keynote calm.",
+    colors: { pearl: "#F2F5FA", mist: "#E6EBF4", ink: "#0D1220", azure: "#4D7CFE", violet: "#9F6CF8", pink: "#FF8AC2" },
+    ground: "#F2F5FA", ink: "#0D1220", accents: ["#4D7CFE", "#9F6CF8"], extras: ["#FF8AC2", "#BCD0F5"],
+    display: "Space Grotesk", body: "Inter", labelFont: "Inter",
+    emphasisCss: GRAD("#4D7CFE", "#9F6CF8", "#FF8AC2"),
+    camera3dGround: "#0A0E1C",  // 3D scenes drop into deep night-glass
+  },
 ];
