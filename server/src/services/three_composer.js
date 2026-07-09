@@ -35,6 +35,31 @@ function r2(n) { return Math.round(n * 1000) / 1000; }
 function hexInt(c) { const m = /^#?([0-9a-fA-F]{6})$/.exec(String(c || "").trim()); return m ? parseInt(m[1], 16) : 0x7CC4FF; }
 function hashSeed(s) { let h = 2166136261; const str = String(s || ""); for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
 
+// --- color helpers: make pack accents legible on the DARK 3D ground -----------
+// deriveTheme() picks accents to contrast the pack's OWN ground (often light —
+// e.g. Bauhaus parchment), but the 3D composer ALWAYS renders on a dark ground,
+// so a dark accent (a navy or a deep red) collapses into black and the emphasis
+// word vanishes. neonize() lifts an accent's lightness — hue and vividness kept
+// — until it clears a strong luminance floor over the ground; already-bright
+// accents (cyan, mint) clear it immediately and pass through unchanged.
+function hexToRgb(h) { const n = parseInt(String(h).replace("#", ""), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+function rgbToHex(r, g, b) { const f = (v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0"); return `#${f(r)}${f(g)}${f(b)}`; }
+function lum(h) { const [r, g, b] = hexToRgb(h); return 0.2126 * r + 0.7152 * g + 0.0722 * b; }
+function rgba(h, a) { const [r, g, b] = hexToRgb(h); return `rgba(${r},${g},${b},${a})`; }
+function rgbToHsl(r, g, b) { r /= 255; g /= 255; b /= 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn; let h = 0, s = 0; if (d) { s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn); if (mx === r) h = (g - b) / d + (g < b ? 6 : 0); else if (mx === g) h = (b - r) / d + 2; else h = (r - g) / d + 4; h /= 6; } return [h, s, l]; }
+function hslToRgb(h, s, l) { if (!s) return [l * 255, l * 255, l * 255]; const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q; const hue = (t) => { if (t < 0) t += 1; if (t > 1) t -= 1; if (t < 1 / 6) return p + (q - p) * 6 * t; if (t < 1 / 2) return q; if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6; return p; }; return [hue(h + 1 / 3) * 255, hue(h) * 255, hue(h - 1 / 3) * 255]; }
+function neonize(hex, ground) {
+  if (!/^#?[0-9a-fA-F]{6}$/.test(String(hex || "").trim())) return hex;
+  const gl = lum(ground);
+  let [h, s, l] = rgbToHsl(...hexToRgb(hex));
+  s = Math.max(s, 0.78);                        // punchy neon, not a pastel wash
+  let out = rgbToHex(...hslToRgb(h, s, l)), guard = 0;
+  // raise lightness until the accent is clearly brighter than the dark ground,
+  // capped so a luminance-poor hue (deep blue/red) brightens without going white.
+  while (guard++ < 26 && lum(out) - gl < 114 && l < 0.68) { l += 0.03; out = rgbToHex(...hslToRgb(h, s, l)); }
+  return out;
+}
+
 function headlineSpans(headline, emphasis) {
   const words = String(headline || "").trim().split(/\s+/).filter(Boolean);
   const emph = String(emphasis || "").trim().toLowerCase().split(/\s+/);
@@ -47,16 +72,21 @@ function headlineSpans(headline, emphasis) {
 // Deep cinematic theme (3D reads best dark); accent colors from the pack/storyboard.
 function theme3d(framePack, sb) {
   const base = deriveTheme(framePack, sb);
-  const accents = (base.accents && base.accents.length ? base.accents : ["#7CC4FF", "#FF7DB4", "#FFC878"]).slice(0, 3);
+  const rawAccents = (base.accents && base.accents.length ? base.accents : ["#7CC4FF", "#FF7DB4", "#FFC878"]).slice(0, 3);
   // Pack-aware 3D ground (Phase 3): the pack's authored camera3d.ground — its OWN
   // branded dark — instead of one generic #05060E for every light pack. 3D still
   // reads dark; each pack keeps its identity (navy for summit, indigo for
   // biennale, plum for bloom…). Falls back to the pack's dark ground, then #05060E.
   const cam = (base.manifest && base.manifest.camera3d) || null;
   const ground = (cam && cam.ground) || (base.isDark && /^#/.test(base.ground) ? base.ground : "#05060E");
+  // Brighten the accents FOR THIS DARK GROUND so the emphasis word + kicker read
+  // (and the emissive 3D shapes glow harder). Hue is preserved — a Bauhaus navy
+  // becomes a bright cobalt, a deep red a warm coral, cyan stays cyan.
+  const accents = rawAccents.map((a) => neonize(a, ground));
   return {
     ground, ink: "#FFFFFF", dim: "rgba(255,255,255,0.66)",
     accents, accent: accents[0], accent2: accents[1] || accents[0], accent3: accents[2] || accents[0],
+    accentGlow: rgba(accents[0], 0.5),
     // Body stays neutral; headline words (.kfw) render in the pack DISPLAY face —
     // deriveTheme already resolved displayStack + the @font-face to inject.
     fontStack: SAFE_FONTS,
@@ -84,16 +114,28 @@ function sceneOverlay(scene, i, total, ctx) {
   const isHook = i === 0, isCta = i === total - 1;
   const land = dims.width >= dims.height;
   const big = isHook ? (land ? 96 : 70) : isCta ? (land ? 82 : 62) : (land ? 64 : 50);
-  const accentText = `background:linear-gradient(100deg,${theme.accent},${theme.accent2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.accent};`;
+  // Emphasis word: a SOLID neon fill + layered glow. A background-clip:text
+  // gradient is fragile over a busy 3D backdrop — under a filter the transparent
+  // fill drops out and the dark 3D shapes show THROUGH the glyphs (the emphasis
+  // word vanishes). A solid bright color is opaque, always legible, and the
+  // neon halo (accent glow) + a dark drop keep it reading as a cinematic accent.
+  const accentText = `color:${theme.accent};text-shadow:0 0 0.11em ${theme.accentGlow},0 0 0.4em ${theme.accentGlow},0 0.03em 0.11em rgba(0,0,0,0.92);`;
   const wrap = (isHook || isCta)
     ? `position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 9%;`
     : `position:absolute;left:0;right:0;bottom:8.5%;display:flex;flex-direction:column;align-items:center;text-align:center;padding:0 9%;`;
   const kicker = isHook ? (ctx.title || "") : (scene.emphasis || "");
   const parts = [];
   parts.push(`<div id="${id}" class="kf-txt clip" data-start="${T}" data-duration="${L}" data-track-index="${10 + i}" data-layout-allow-occlusion style="opacity:0;">`);
+  // Legibility scrim: a soft dark radial behind the headline so a bright, glowing
+  // 3D shape sitting directly behind centered text can't wash it out. Positioned
+  // where the text lands (centered for hook/CTA, lower-third for interior scenes);
+  // ink is always white in this composer, so darkening the region always helps.
+  const scrimAt = (isHook || isCta) ? "50% 50%" : "50% 84%";
+  const scrimShape = (isHook || isCta) ? "58% 46%" : "68% 34%";
+  parts.push(`  <div style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse ${scrimShape} at ${scrimAt},rgba(0,0,0,0.64),rgba(0,0,0,0.32) 48%,transparent 72%);"></div>`);
   parts.push(`  <div style="${wrap}">`);
   if (kicker) parts.push(`    <span id="${id}k" style="opacity:0;display:inline-flex;align-items:center;gap:9px;margin-bottom:18px;padding:8px 17px;border-radius:9999px;background:${theme.panel};border:1px solid ${theme.line};color:${theme.accent};font:700 14px/1 ${theme.fontStack};letter-spacing:.24em;text-transform:uppercase;"><span style="width:8px;height:8px;border-radius:50%;background:${theme.accent};"></span>${esc(kicker)}</span>`);
-  parts.push(`    <h1 style="margin:0;font:800 ${big}px/1.02 ${theme.fontStack};letter-spacing:-0.02em;color:${theme.ink};max-width:${land ? "17ch" : "13ch"};text-shadow:0 6px 44px rgba(0,0,0,0.6);"><style>#${id} .kfacc{${accentText}}</style>${headlineSpans(scene.headline, scene.emphasis)}</h1>`);
+  parts.push(`    <h1 style="margin:0;font:800 ${big}px/1.02 ${theme.fontStack};letter-spacing:-0.02em;color:${theme.ink};max-width:${land ? "17ch" : "13ch"};text-shadow:0 2px 10px rgba(0,0,0,0.9),0 6px 44px rgba(0,0,0,0.6);"><style>#${id} .kfacc{${accentText}}</style>${headlineSpans(scene.headline, scene.emphasis)}</h1>`);
   if (scene.subtext) parts.push(`    <p id="${id}s" style="opacity:0;margin-top:16px;font:500 ${Math.round(big * 0.32)}px/1.45 ${theme.fontStack};color:${theme.dim};max-width:44ch;text-shadow:0 2px 20px rgba(0,0,0,0.55);">${esc(scene.subtext)}</p>`);
   parts.push(`  </div>`);
   parts.push(`</div>`);
@@ -296,10 +338,14 @@ function render3d(t){
   filmPass.uniforms.uPix.value=pix;
   let active=SCENES[0];
   for(const sc of SCENES){const o=winOpacity(t,sc.start,sc.end);setOpacity(sc.group,o);if(t>=sc.start&&t<sc.end)active=sc;}
-  // gentle bloom while a screenshot is on screen; punchy neon otherwise
+  // gentle bloom while a screenshot is on screen; restrained on the abstract
+  // neon scenes too — a strength-1.1/threshold-0.3 bloom lit the whole frame and
+  // the emissive shapes bled THROUGH the headline overlay, washing the text out
+  // (reported: "so much glowing colour the text isn't visible"). Lower strength +
+  // a higher threshold so only the very brightest neon blooms, not every shape.
   const showcase=active.type==="crt"||active.type==="reveal";
-  bloomPass.strength=showcase?0.32:1.1;
-  bloomPass.threshold=showcase?0.6:0.3;
+  bloomPass.strength=showcase?0.32:0.6;
+  bloomPass.threshold=showcase?0.6:0.48;
   (UPDATE[active.type]||upHero)(t,t-active.start,active.group);
   composer.render();
 }
