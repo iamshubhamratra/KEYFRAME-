@@ -441,6 +441,18 @@ async function composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack
   return visual;
 }
 
+// "Asset-rich" = the video carries enough real screenshots/photos that the 2D
+// composer (which weaves 8-10 assets across montage/split/B-roll) showcases them
+// far better than the 3D composer, which only textures ONE screenshot and drops
+// the rest. Icons/vectors (.svg) don't count — they're decorative, not the
+// screenshots/photos a user actually wants to see on screen. Used to override an
+// opt-in render3d request when the video is really an asset showcase.
+function isAssetRich(assets) {
+  const showcase = (assets || []).filter((a) =>
+    a && a.path && (a.source === "website" || /\.(jpe?g|png|webp)$/i.test(String(a.path))));
+  return showcase.length >= 3;
+}
+
 // THREE.JS composition path (opt-in via render3d) — a cinematic WebGL scene with
 // DOM text overlays, driven by the same seeked timeline. Self-contained: no enrich
 // (it has its own 3D particle field) and no stock-asset weaving (visuals are
@@ -750,7 +762,10 @@ async function runJob({
       const t0 = ms();
       db.setProgress(jobId, "composing");
       try {
-        if (render3d) {
+        if (render3d && isAssetRich(allAssets)) {
+          console.log(`[pipeline] render3d requested, but the video is asset-rich (${allAssets.length} assets) → using the 2D composer so the screenshots/photos are actually shown (3D would drop all but one).`);
+        }
+        if (render3d && !isAssetRich(allAssets)) {
           // Three.js/WebGL cinematic composition. On failure it falls through to
           // the scene-kit fallback below, so a 3D hiccup never kills the job.
           visualResult = await withBudget(
@@ -901,4 +916,4 @@ async function runJob({
   }
 }
 
-module.exports = { runJob, withBudget, attemptLlmComposition, composeWithThree, mixAudioIntoVideo, fallbackQueriesFor };
+module.exports = { runJob, withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor };

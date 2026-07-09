@@ -22,7 +22,7 @@ const { generateBrief } = require("../services/brief");
 const { generateScript, normalizeScript } = require("../services/script");
 const { generateStoryboard } = require("../services/storyboard");
 const frameRegistry = require("../services/frame_registry");
-const { withBudget, attemptLlmComposition, composeWithThree, mixAudioIntoVideo, fallbackQueriesFor } = require("../services/pipeline");
+const { withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor } = require("../services/pipeline");
 const { acquire, hasProviderFor, makeImageDeduper } = require("../services/asset_sources");
 const { styleFor, iconColorFor } = require("../services/pack_style");
 const { synthesizeFitted } = require("../services/vo_fit");
@@ -344,10 +344,13 @@ async function assetSearchAgent(s) {
       license: r.license, sourceUrl: r.sourceUrl, source: r.source, fromCache: r.fromCache === true,
     };
     results.push(resultObj);
-    // Defer the vision gate: only WEB STOCK is gated (curated library picks, real
-    // website screenshots, and vectors/icons are trusted). Collect the absolute
-    // path now (before it's relativized) and classify all of them at once below.
-    const isWebStock = !r.libraryId && r.source !== "website" && r.source !== "assetcollection" && !isIcon;
+    // Defer the vision gate, classified by ACTUAL SOURCE (not role): every real
+    // stock provider is gated — including Pixabay bridge VECTORS (source
+    // "pixabay"), which are arbitrary illustrations (a cartoon tooth/syringe slips
+    // through otherwise). Curated picks, real website screenshots, and clean
+    // recolored Iconify SVGs (source "iconify") stay trusted and skip the gate.
+    const STOCK_SOURCES = new Set(["pixabay", "openverse", "pexels", "pixabay_scrape"]);
+    const isWebStock = STOCK_SOURCES.has(String(r.source || ""));
     if (isWebStock) pendingGate.push({ resultObj, absPath: r.path, type: isVideo ? "video" : "image", query: need.query });
   }
 
@@ -477,7 +480,14 @@ async function compositionAgent(s) {
       : config.llm.useComposer !== false;
   if (job.compose_mode) console.log(`[agents] job ${job.id} finish=${job.compose_mode} → ${useComposer ? "LLM composer" : "scene-kit"}`);
   try {
-    if (job.render3d) {
+    // Asset-rich videos override an opt-in render3d: the 3D composer only textures
+    // ONE screenshot, so a video with several real screenshots/photos is showcased
+    // far better by the 2D composer (which weaves 8-10). Text-forward 3D stays 3D.
+    const use3d = job.render3d && !isAssetRich(s.assets || []);
+    if (job.render3d && !use3d) {
+      console.log(`[agents] render3d requested, but the video is asset-rich (${(s.assets || []).length} assets) → using the 2D composer so the screenshots/photos are actually shown (3D would drop all but one).`);
+    }
+    if (use3d) {
       // Website→3D: the real website screenshots in s.assets texture the reveal
       // plate. Deterministic + self-contained; on failure it falls to the
       // scene-kit fallback in the catch below.
