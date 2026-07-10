@@ -1,0 +1,91 @@
+{
+  "name": "brut-pop",
+  "vibe": "loud neubrutalist sticker-pop: bright paper, pure-black ink and thick black outlines, bold flat electric-blue/hot-pink/acid-yellow fills with HARD offset shadows (no blur), and chunky rotated stickers — star badges, NEW! tags, speech bubbles, lightning bolts, fat arrows and checkmark stamps that snap in and wobble — for playful apps, gen-z brands, meme-y drops, sales and bold announcements",
+  "colors": {
+    "paper": "#FFFDF5",
+    "cloud": "#FFF3D6",
+    "ink": "#111111",
+    "blue": "#2B4FF5",
+    "pink": "#FF4FA3",
+    "yellow": "#FFE14D",
+    "mint": "#12C29B"
+  },
+  "fonts": [
+    "Inter",
+    "Archivo Black"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#FFFDF5"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1.02
+  },
+  "fx": {
+    "canvas": "confetti",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#2B4FF5",
+      "#FF4FA3"
+    ],
+    "extras": [
+      "#FFE14D",
+      "#12C29B"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "bold neubrutalist flat sticker thick outline high contrast",
+    "iconStyle": "solid",
+    "keywords": [
+      "bold",
+      "sticker",
+      "playful",
+      "flat",
+      "high-contrast",
+      "graphic"
+    ],
+    "prefer": [
+      "vector",
+      "illustration"
+    ]
+  },
+  "typography": {
+    "display": "Archivo Black"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": false,
+    "underline": false,
+    "stat": "headline"
+  },
+  "textfx": {
+    "enter": "char-pop",
+    "emphasis": "boxed",
+    "align": "center",
+    "case": "upper",
+    "sizeScale": 1.05
+  },
+  "audio": {
+    "music": {
+      "query": "punchy hip hop beat",
+      "mood": "energetic",
+      "volume": 0.17
+    },
+    "sfx": {
+      "style": "big cartoon pops, rubber-stamp thwacks, record scratches and air-horn stabs — loud and snappy, punching every sticker snap-in",
+      "palette": [
+        "cartoon pop",
+        "rubber stamp thwack",
+        "record scratch",
+        "air horn stab",
+        "bass drop hit",
+        "boing spring"
+      ]
+    }
+  }
+}

@@ -6,6 +6,9 @@
    ============================================================ */
 
 @import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+/* Pack-card display faces — loaded so each Templates card renders in its pack's
+   real font (brut-pop, sketchnote + the poster/editorial batch). */
+@import url("https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow:wght@700;900&family=Bebas+Neue&family=Bodoni+Moda:wght@600;700&family=Instrument+Serif&family=Newsreader:wght@500;700&family=Playfair+Display:wght@600;700&family=Shrikhand&display=swap");
 @import "tailwindcss";
 
 /* ---- EXACT v2 tokens ----

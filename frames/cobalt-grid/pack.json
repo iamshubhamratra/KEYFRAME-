@@ -1,0 +1,86 @@
+{
+  "name": "cobalt-grid",
+  "vibe": "A strictly two-color risograph trend-report: warm cream paper, electric cobalt as the only ink, and a permanent graph-paper grid behind every frame, punctuated by pixel-glitch columns and QR patches.",
+  "colors": {
+    "paper": "#F0EBDE",
+    "paper-2": "#E6E0CE",
+    "ink": "#1F2BE0",
+    "ink-soft": "#5560E5"
+  },
+  "fonts": [
+    "Newsreader",
+    "Hanken Grotesk",
+    "DM Mono"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F0EBDE"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1.02
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#1F2BE0"
+    ],
+    "extras": [
+      "#5560E5"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "duotone cobalt-on-cream risograph, hard two-color halftone, no second hue",
+    "iconStyle": "line",
+    "keywords": [
+      "risograph",
+      "graph-paper grid",
+      "editorial trend-report",
+      "monochrome cobalt",
+      "blueprint",
+      "pixel-glitch"
+    ],
+    "prefer": [
+      "vector",
+      "illustration"
+    ]
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "underline-grow",
+    "case": "none",
+    "tracking": -0.01,
+    "weight": null,
+    "sizeScale": 1.05,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "minimal editorial electronic",
+      "mood": "ambient",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "crisp digital ticks and scanline glitches over dry paper texture",
+      "palette": [
+        "digital glitch",
+        "scanline tick",
+        "paper texture",
+        "mono keystroke",
+        "data blip",
+        "hairline snap"
+      ]
+    }
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "headline"
+  }
+}

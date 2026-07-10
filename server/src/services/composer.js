@@ -204,9 +204,9 @@ function buildUser(storyboard, { width, height, fps, availableAssets, framePack,
   const hasScreenshot = assetList.some((a) => a && (a.source === "website" || /screenshot/i.test(a.alt || "")));
   let assetInstruction;
   if (hasAssets && hasScreenshot) {
-    assetInstruction = "Use these local asset paths (and ONLY these) in any <img>/<video> src attributes. Use every asset that SERVES the story (each was fetched for the scene in its sceneId) — but an asset that is visibly OFF-TOPIC for this video's subject (a random landmark/map/object unrelated to the story) is worse than no asset: OMIT it and carry that scene with your own vectors and display type instead. Never force an irrelevant photo in just to use it. Give real product/app screenshots HERO treatment: ≥60% of the canvas, inside a browser/device frame in the design system's styling, with a Ken Burns push (scale 1.0→1.12) panning across the UI, plus 1–2 callout chips with connector lines pointing at real UI elements. Background photos go full-bleed under a scrim. An unused asset is a wasted scene. These fetched assets are the FLOOR, not the ceiling: on top of EVERY scene layer your OWN animated vector graphics — an SVG particle/bokeh field (6–12 <circle>s drifting at varied speeds & opacities), drawing underlines/connectors (<path> with strokeDashoffset), rotating rings, burst marks, animated glows — so that, combining the photos AND your vectors, a fresh visual element ENTERS or EXITS the frame at least once every 1–2 seconds for the ENTIRE duration. Walk your timeline second-by-second: any ~1.5s window with nothing entering/leaving is a DEAD STRETCH — fill it. Never let the frame hold static for more than ~1s.";
+    assetInstruction = "Use these local asset paths (and ONLY these) in any <img>/<video> src attributes. Use every asset that SERVES the story (each was fetched for the scene in its sceneId) — but an asset that is visibly OFF-TOPIC for this video's subject (a random landmark/map/object unrelated to the story) is worse than no asset: OMIT it and carry that scene with your own vectors and display type instead. Never force an irrelevant photo in just to use it. Give real product/app screenshots HERO treatment: ≥60% of the canvas, inside a browser/device frame in the design system's styling, with a Ken Burns push (scale 1.0→1.12) panning across the UI, plus 1–2 callout chips with connector lines pointing at real UI elements. Background photos go full-bleed under a scrim. HARD FLOOR (auto-checked, REJECTED if unmet): at least min(2, provided) DISTINCT provided image assets must appear in the composition. An unused asset is a wasted scene. NEVER draw an empty bordered panel/card as a placeholder - every panel you draw must contain an <img>, real vector art, or text; an empty panel where a provided photo could live is an auto-REJECT. These fetched assets are the FLOOR, not the ceiling: on top of EVERY scene layer your OWN animated vector graphics — an SVG particle/bokeh field (6–12 <circle>s drifting at varied speeds & opacities), drawing underlines/connectors (<path> with strokeDashoffset), rotating rings, burst marks, animated glows — so that, combining the photos AND your vectors, a fresh visual element ENTERS or EXITS the frame at least once every 1–2 seconds for the ENTIRE duration. Walk your timeline second-by-second: any ~1.5s window with nothing entering/leaving is a DEAD STRETCH — fill it. Never let the frame hold static for more than ~1s.";
   } else if (hasAssets) {
-    assetInstruction = "Use these local asset paths (and ONLY these) in any <img>/<video> src attributes. Use every asset that SERVES the story (each was fetched for the scene in its sceneId) — but an asset that is visibly OFF-TOPIC for this video's subject (a random landmark/map/object unrelated to the story) is worse than no asset: OMIT it and carry that scene with your own vectors and display type instead. Never force an irrelevant photo in just to use it. Place each as the scene's visual anchor: full-bleed background photos under a readable scrim, or framed insets (rounded card, design-system border/shadow) at ~40–60% of the canvas with a slow Ken Burns push (scale 1.0→1.12). An unused asset is a wasted scene. Some scenes may have NO fetched asset — carry those ENTIRELY with your own dense animated vectors (do NOT reuse another scene's image). On top of EVERY scene layer your OWN animated vector graphics — an SVG particle/bokeh field (6–12 <circle>s drifting at varied speeds & opacities), drawing underlines/connectors (<path> with strokeDashoffset), rotating rings, burst marks, animated glows — so that, combining the images AND your vectors, a fresh visual element ENTERS or EXITS the frame at least once every 1–2 seconds for the ENTIRE duration. Walk your timeline second-by-second: any ~1.5s window with nothing entering/leaving is a DEAD STRETCH — fill it. Never let the frame hold static for more than ~1s.";
+    assetInstruction = "Use these local asset paths (and ONLY these) in any <img>/<video> src attributes. Use every asset that SERVES the story (each was fetched for the scene in its sceneId) — but an asset that is visibly OFF-TOPIC for this video's subject (a random landmark/map/object unrelated to the story) is worse than no asset: OMIT it and carry that scene with your own vectors and display type instead. Never force an irrelevant photo in just to use it. Place each as the scene's visual anchor: full-bleed background photos under a readable scrim, or framed insets (rounded card, design-system border/shadow) at ~40–60% of the canvas with a slow Ken Burns push (scale 1.0→1.12). HARD FLOOR (auto-checked, REJECTED if unmet): at least min(2, provided) DISTINCT provided image assets must appear in the composition. An unused asset is a wasted scene. NEVER draw an empty bordered panel/card as a placeholder - every panel you draw must contain an <img>, real vector art, or text; an empty panel where a provided photo could live is an auto-REJECT. Some scenes may have NO fetched asset — carry those ENTIRELY with your own dense animated vectors (do NOT reuse another scene's image). On top of EVERY scene layer your OWN animated vector graphics — an SVG particle/bokeh field (6–12 <circle>s drifting at varied speeds & opacities), drawing underlines/connectors (<path> with strokeDashoffset), rotating rings, burst marks, animated glows — so that, combining the images AND your vectors, a fresh visual element ENTERS or EXITS the frame at least once every 1–2 seconds for the ENTIRE duration. Walk your timeline second-by-second: any ~1.5s window with nothing entering/leaving is a DEAD STRETCH — fill it. Never let the frame hold static for more than ~1s.";
   } else {
     assetInstruction = "No image/video assets were pre-fetched, so do NOT include any <img> or <video> tags. Your OWN generated vector graphics are then the PRIMARY material, not a fallback: dense animated SVG in EVERY scene — particle/bokeh fields (8–14 <circle>s drifting at varied speeds), drawing lines/underlines (<path> strokeDashoffset), rotating icons, burst marks, animated gradient meshes — layered continuously so a fresh visual element ENTERS or EXITS the frame at least once every 1–2 seconds. Walk your timeline second-by-second; any ~1.5s dead stretch is a FAILURE. A text-only frame is a FAILURE.";
   }
@@ -223,7 +223,7 @@ function buildUser(storyboard, { width, height, fps, availableAssets, framePack,
     "",
     assetInstruction,
     "",
-    `HARD RICHNESS REQUIREMENT (auto-checked, REJECTED if unmet): (1) at least one inline <svg> with >=${MIN_VECTOR_PRIMITIVES} animated vector primitives total — TARGET 12–20 VISIBLE per scene (shared bokeh field + per-scene drawing lines / rotating ring / burst sparks); (2) at least ${MIN_STICKERS} pop-in stickers/badges/chips total — TARGET 3–6 PER SCENE — each an absolute child of its scene with class "sticker badge|chip|stat|callout", popping via back.out and animated by the GSAP timeline (in the MARGINS, never over the headline; data-layout-allow-occlusion on text-bearing stickers and any container they cover); (3) the CANVAS FX LAYER — one full-duration <canvas> on track 0 painted purely from hf-seek time per the system-prompt skeleton; (4) DISPLAY TYPE — a display-scale headline (>=6.5% of canvas height) in essentially every scene; (5) a STEP-4 camera move (scale/pan tween on the #sN container) in essentially every scene, and >=5 GSAP tweens per scene overall. A composition missing ANY of these is auto-REJECTED and retried.`,
+    `HARD RICHNESS REQUIREMENT (auto-checked, REJECTED if unmet): (1) at least one inline <svg> with >=${MIN_VECTOR_PRIMITIVES} animated vector primitives total — TARGET 12–20 VISIBLE per scene (shared bokeh field + per-scene drawing lines / rotating ring / burst sparks); (2) at least ${MIN_STICKERS} pop-in stickers/badges/chips total — TARGET 3–6 PER SCENE — each an absolute child of its scene with class "sticker badge|chip|stat|callout", popping via back.out and animated by the GSAP timeline (in the MARGINS, never over the headline; data-layout-allow-occlusion on text-bearing stickers and any container they cover); (3) the CANVAS FX LAYER — one full-duration <canvas> on track 0 painted purely from hf-seek time per the system-prompt skeleton; (4) DISPLAY TYPE — a display-scale headline (>=6.5% of canvas height) in essentially every scene; (5) a STEP-4 camera move (scale/pan tween on the #sN container) in essentially every scene, and >=5 GSAP tweens per scene overall. (6) with image assets provided, at least min(2, provided) DISTINCT ones appear (as <img>/<video> src or CSS url()) and NO empty placeholder panels exist. A composition missing ANY of these is auto-REJECTED and retried.`,
   ];
 
   if (captionCues && captionCues.length) {
@@ -393,6 +393,33 @@ function quickCheck(indexHtml, metaJsonStr, { width, height, duration, assets, e
         `browser/device frame in the design system's styling, with a slow Ken Burns push (scale 1.0→1.12) across the UI ` +
         `and 1–2 callout chips pointing at real UI elements. A product video that hides its real screenshot FAILS.`
       );
+    }
+    // RASTER-ASSET USAGE FLOOR (grok premium finding, 2026-07-10): with
+    // on-topic image assets provided (they already passed the vision relevance
+    // gate upstream), an all-vector composition that drops every photo ships
+    // empty gradient-border "placeholder" panels where imagery should live.
+    // Require at least min(2, provided) DISTINCT provided images to actually
+    // appear — as an <img>/<video> src or a CSS url(...) background — and give
+    // the retry the exact placement menu.
+    const imageAssets = (assets || []).filter(
+      (a) => a && a.path && a.type !== "video" && !/\.(mp4|webm|mov)($|\?)/i.test(a.path)
+    );
+    if (imageAssets.length) {
+      const cssUrls = new Set(
+        [...indexHtml.matchAll(/url\(\s*["']?([^"')]+)["']?\s*\)/gi)].map((m) => m[1])
+      );
+      const used = imageAssets.filter((a) => usedImg.has(a.path) || cssUrls.has(a.path));
+      const neededCount = Math.min(2, imageAssets.length);
+      if (used.length < neededCount) {
+        const unused = imageAssets.filter((a) => !usedImg.has(a.path) && !cssUrls.has(a.path));
+        errs.push(
+          `only ${used.length} of ${imageAssets.length} provided image asset(s) appear in the composition — use at least ${neededCount} DISTINCT ones. ` +
+          `Unused: ${unused.slice(0, 5).map((a) => a.path).join(", ")}. Place each either (a) inside a device/card frame with a Ken Burns push, ` +
+          `(b) as a tile in a 2–3 image grid/montage row, or (c) full-bleed behind a scene under a design-system scrim. ` +
+          `NEVER draw an empty bordered panel/card as a placeholder — any panel you draw must contain an <img>, real vector art, or text. ` +
+          `An empty panel where a provided photo could live is a FAILURE.`
+        );
+      }
     }
   }
 
@@ -640,7 +667,15 @@ async function compose(storyboard, { width, height, fps, duration, maxRetries, a
     }
 
     console.warn(`[composer] attempt ${i} validation failed (${errs.length} errs): ${errs.slice(0, 3).join(" | ").slice(0, 300)}`);
-    feedback = `\n\nPrevious attempt had these problems — fix them and resend:\n${errs.map(e => `- ${e}`).join("\n")}`;
+    // ADDITIVE / ANTI-SHRINK repair (grok premium finding, 2026-07-10): weaker
+    // models "fix" a failing lap by REWRITING the whole document shorter, which
+    // trades a satisfied requirement for a newly-broken one (vectors↔stickers↔
+    // image-usage whack-a-mole) and burns all attempts without ever converging.
+    // Anchor the repair to the previous doc: keep every passing element verbatim,
+    // ONLY ADD what each error asks for, and never come back shorter than the
+    // ~Nch you just sent.
+    const prevLen = env.indexHtml.length;
+    feedback = `\n\nYour previous reply was ${prevLen} characters and ALREADY SATISFIED most requirements. Do NOT rewrite it from scratch or shorten it — that is why earlier laps kept breaking a different rule each time. Start from your previous document, keep EVERY scene, asset <img>/<video> tag, sticker, vector, and tween that already worked, and ONLY ADD the specific things below. Your corrected document MUST be at least ${prevLen} characters (adding requirements can only make it longer). Fix these and resend the full document:\n${errs.map(e => `- ${e}`).join("\n")}`;
   }
 
   const err = new Error(

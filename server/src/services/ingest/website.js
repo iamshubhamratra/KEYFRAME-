@@ -14,6 +14,7 @@ const path = require("node:path");
 const os = require("node:os");
 const { spawn } = require("node:child_process");
 const config = require("../../config");
+const peekshot = require("../peekshot");
 
 function findChrome() {
   if (process.env.PUPPETEER_EXECUTABLE_PATH && fs.existsSync(process.env.PUPPETEER_EXECUTABLE_PATH)) {
@@ -46,6 +47,30 @@ function findChrome() {
     if (fs.existsSync(p)) return p;
   }
   return null;
+}
+
+// PNG header probe (IHDR width/height) — no image deps needed.
+function pngSize(p) {
+  try {
+    const b = Buffer.alloc(24);
+    const fd = fs.openSync(p, "r");
+    fs.readSync(fd, b, 0, 24, 0);
+    fs.closeSync(fd);
+    if (b.readUInt32BE(12) !== 0x49484452) return null; // "IHDR"
+    return { width: b.readUInt32BE(16), height: b.readUInt32BE(20) };
+  } catch { return null; }
+}
+
+// Crop a window out of a (full-page) PNG with ffmpeg.
+function cropPng(srcPath, outPath, x, y, w, h) {
+  return new Promise((resolve, reject) => {
+    const ff = spawn("ffmpeg", [
+      "-hide_banner", "-loglevel", "error", "-y",
+      "-i", srcPath, "-vf", `crop=${w}:${h}:${x}:${y}`, outPath,
+    ]);
+    ff.on("error", reject);
+    ff.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`ffmpeg crop exited ${code}`))));
+  });
 }
 
 // Downscale the screenshot with ffmpeg to a tiny raw RGB buffer, then pick
@@ -199,6 +224,50 @@ async function understandWebsite({ url, workDir, timeoutMs = 60_000 }) {
       } catch (e) {
         console.warn(`[ingest] section screenshots failed: ${e.message}`);
       }
+    }
+
+    // HIGH-QUALITY UPGRADE (PeekShot) — replace the local hero and, when the
+    // page is tall enough, the deep-section shots with managed-infrastructure
+    // retina captures (2732x1800 for the same 1366x900@2x window; ads blocked,
+    // our consent killer injected). Strictly fail-soft: any error/timeout keeps
+    // the local puppeteer shots. Sections come from ONE full-page capture,
+    // cropped locally — no lazy-load pop-in mid-scroll like the local path.
+    if (!isAuthWall && peekshot.enabled()) {
+      const t0 = Date.now();
+      const fullPath = path.join(workDir, "website_full.png");
+      const [heroRes, fullRes] = await Promise.allSettled([
+        peekshot.capture({ url, outPath: heroPath, width: 1366, height: 900, retina: true, delay: 3, timeoutMs: 75_000 }),
+        peekshot.capture({ url, outPath: fullPath, width: 1366, height: 900, retina: true, fullPage: true, delay: 3, timeoutMs: 90_000 }),
+      ]);
+      if (heroRes.status === "fulfilled") {
+        console.log(`[ingest] peekshot hero replaced local shot (${Math.round(heroRes.value.bytes / 1024)}KB retina)`);
+      } else {
+        console.warn(`[ingest] peekshot hero skipped: ${String(heroRes.reason?.message || heroRes.reason).slice(0, 160)}`);
+      }
+      if (fullRes.status === "fulfilled") {
+        try {
+          const dim = pngSize(fullPath);
+          const winH = dim ? Math.round(dim.width * (900 / 1366)) : 0;
+          let made = 0;
+          if (dim && winH && dim.height >= winH * 2.2) {
+            for (const [i, frac] of [[2, 0.35], [3, 0.7]]) {
+              const y = Math.floor((dim.height - winH) * frac);
+              if (y < winH * 0.5) continue; // too short for distinct sections
+              const p = path.join(workDir, `website_section${i}.png`);
+              await cropPng(fullPath, p, 0, y, dim.width, winH);
+              if (!screenshotPaths.includes(p)) screenshotPaths.push(p);
+              made++;
+            }
+          }
+          if (made) console.log(`[ingest] peekshot full-page (${dim.width}x${dim.height}) -> ${made} section crop(s)`);
+        } catch (e) {
+          console.warn(`[ingest] peekshot section crops failed: ${e.message}`);
+        }
+        fs.rmSync(fullPath, { force: true }); // crops only; don't bloat the job dir
+      } else {
+        console.warn(`[ingest] peekshot full-page skipped: ${String(fullRes.reason?.message || fullRes.reason).slice(0, 160)}`);
+      }
+      console.log(`[ingest] peekshot pass finished in ${Math.round((Date.now() - t0) / 1000)}s`);
     }
 
     const brandColors = await dominantColors(heroPath).catch(() => []);

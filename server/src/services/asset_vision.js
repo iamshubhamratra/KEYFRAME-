@@ -166,4 +166,4 @@ async function checkAssetsRelevance({ assets, subject, tracker, signal }) {
   return out;
 }
 
-module.exports = { checkAssetRelevance, checkAssetsRelevance };
+module.exports = { checkAssetRelevance, checkAssetsRelevance, thumbBase64 };

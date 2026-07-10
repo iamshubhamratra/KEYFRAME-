@@ -18,8 +18,9 @@
   "llm": {
     "primary": {
       "provider": "kie",
-      "baseUrl": "https://api.kie.ai/gemini-3-5-flash-openai/v1",
-      "model": "gemini-3-5-flash",
+      "baseUrl": "https://api.kie.ai/grok/v1",
+      "api": "responses",
+      "model": "grok-4-5",
       "apiKey": ""
     },
     "provider": "openrouter",
@@ -100,7 +101,8 @@
   },
   "ingest": {
     "maxUploadMb": 200,
-    "websiteTimeoutMs": 60000
+    "websiteTimeoutMs": 60000,
+    "peekshot": { "apiKey": "", "projectId": null }
   },
   "paths": {
     "jobsDir": "jobs",

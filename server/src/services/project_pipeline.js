@@ -465,12 +465,15 @@ async function runProduction({ jobId }) {
       await mixAudioIntoVideo({
         visualPath: visualResult.videoPath,
         durationSec: duration,
+        scenes: sbRes.storyboard?.scenes || null, jobDir,
         audio: {
           ttsPath: null,
           musicPath,
           // VO clips and sound effects both ride the mixer's offset mechanism.
+          // kind:"vo" routes narration through the voice bus (cleanup + full level)
+          // and keys the ducking — without it the mixer treats speech as an SFX.
           sfx: [
-            ...voClips.map((c) => ({ path: c.path, startSec: c.startSec, volume: 1.0 })),
+            ...voClips.map((c) => ({ path: c.path, startSec: c.startSec, volume: 1.0, kind: "vo" })),
             ...sfxClips,
           ],
           musicVolume: config.audio?.defaultMusicVolume ?? 0.15,

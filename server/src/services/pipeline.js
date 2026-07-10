@@ -29,10 +29,11 @@ const { cinematicCheck } = require("./cinematic_lint");
 const sceneKit = require("./scene_kit");
 const threeComposer = require("./three_composer");
 const frameRegistry = require("./frame_registry");
+const frameManifest = require("./frame_manifest");
 const { render } = require("./renderer");
 const { buildFallback } = require("./fallback");
 const { planAudio } = require("./audio_planner");
-const { reviewAudio, summarizeReview } = require("./audio_review");
+const { directAudio, summarizeDecision: summarizeAudioDecision } = require("./audio_director");
 const { synthesize: ttsSynthesize } = require("./tts");
 const { synthesizeFitted } = require("./vo_fit");
 const { fetchMusic, fetchSfx } = require("./audio_sources");
@@ -211,18 +212,27 @@ async function planAndFetchAssets({ jobDir, storyboard, flags, orientation, trac
 
 // ========== Composition + lint repair ==========
 
-// OPT-IN legibility gate for the LLM-composer path. Default OFF: the deterministic
-// scene-kit is contrast-clean by construction, and a second headless pass per lap
-// isn't worth the memory there. On the LLM (remix) path colors are model-chosen, so
-// this catches the readability dimension lint (time) and inspect (space) can't.
-//   CONTRAST_GATE=warn    → run + log low-contrast text, never block
-//   CONTRAST_GATE=repair  → (also 1/on/true/yes) feed it back as a soft repair
-//                            signal; on exhaustion the comp still ships (see below)
+// Legibility gate for the LLM-composer path — DEFAULT ON in "warn" mode
+// (2026-07-10): the grok premium test shipped an iridescent gradient emphasis
+// that washed out against prism-launch's light ground, exactly the failure
+// class this gate exists for, so it now runs by default and LOGS every
+// low-contrast element. It defaults to WARN, not REPAIR, because a contrast
+// repair lap re-invokes the composer, and on the grok primary that 156KB prompt
+// frequently 524-storms on KIE's edge — a verified run took 48min and blew the
+// 45min composition budget doing two contrast-repair laps. Warn catches the
+// problem with zero added latency; opt into auto-repair with CONTRAST_GATE=repair
+// when the latency budget allows (or once the composer prompt/provider is faster).
+// Only the LLM (remix) path calls this; scene-kit stays gate-free (contrast-clean
+// by construction).
+//   CONTRAST_GATE=off/0/false/no → disable entirely
+//   CONTRAST_GATE=warn           → (the default) run + log low-contrast text, never block
+//   CONTRAST_GATE=repair         → (also 1/on/true/yes) feed it back as a soft repair
+//                                   signal; on exhaustion the comp still ships (contrastOnly)
 function contrastMode() {
   const v = String(process.env.CONTRAST_GATE || "").toLowerCase();
-  if (v === "warn") return "warn";
+  if (/^(off|0|false|no)$/.test(v)) return "off";
   if (/^(1|true|yes|on|repair)$/.test(v)) return "repair";
-  return "off";
+  return "warn";
 }
 
 // Runs the WCAG contrast audit (contrast_check.js) on the just-gated composition.
@@ -590,17 +600,43 @@ async function synthesizeScenedVOAndRetime({ audioDir, storyboard, voice, instru
 
 // ========== Audio assets stage ==========
 
-async function buildAudio({ jobDir, storyboard, flags, tracker, perScene = false }) {
+async function buildAudio({ jobDir, storyboard, flags, tracker, perScene = false, framePack = null, brief = null }) {
   const audioDir = path.join(jobDir, "audio");
   fs.mkdirSync(audioDir, { recursive: true });
 
-  const { plan, tokensIn, tokensOut, error: planErr } = await planAudio(storyboard, flags);
+  // The frame pack (template) can carry its own BGM lane + SFX palette; pass it to
+  // the planner so the audio matches the template's sound (and a template with
+  // built-in music still plays it if the planner returns none).
+  const packAudio = framePack ? (frameManifest.getManifest(framePack)?.audio || null) : null;
+  const { plan, tokensIn, tokensOut, error: planErr } = await planAudio(storyboard, flags, packAudio);
   tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "audio" });
 
   if (planErr) {
     console.warn(`[pipeline] audio planner failed: ${planErr}. Skipping audio.`);
     return { ttsPath: null, musicPath: null, sfx: [], musicVolume: 0.15 };
   }
+
+  // AUDIO DIRECTOR — decide whether music/SFX are actually needed, curate the best
+  // bed + the handful of SFX that land on real moments, and set voice-aware levels.
+  // Runs before any fetch, so we only download what the director keeps. Fail-open:
+  // returns the planner draft unchanged on any error.
+  let directed = plan;
+  try {
+    const res = await directAudio({
+      storyboard, plan, brief, hasVoice: flags.tts === true,
+      duration: storyboard.durationSec, tracker,
+    });
+    directed = res.plan || plan;
+    console.log(`[audio-director] ${summarizeAudioDecision(directed, res.decision)}`);
+  } catch (e) {
+    console.warn(`[audio-director] stage threw, keeping draft: ${String(e.message).slice(0, 120)}`);
+  }
+  // Overlay the directed choices onto `plan` so the rest of buildAudio (which reads
+  // `plan.music` / `plan.soundEffects` / `plan.tts`) uses the curated audio.
+  plan.music = directed.music;
+  plan.soundEffects = directed.soundEffects;
+  plan.musicEnvelope = directed.musicEnvelope; // scene-INDEXED; mapped to seconds at mix time
+  plan.ambient = directed.ambient;
 
   // Run TTS + music + all SFX fetches in parallel. In perScene mode the VO is
   // synthesized per scene by synthesizeScenedVOAndRetime (for A/V sync), so we
@@ -628,6 +664,13 @@ async function buildAudio({ jobDir, storyboard, flags, tracker, perScene = false
         .catch((e) => { console.warn(`[pipeline] music failed: ${e.message}`); return null; })
     : Promise.resolve(null);
 
+  // Ambient texture bed (rare, director-curated) rides the music flag.
+  const ambientTask = (flags.music && plan.ambient?.query)
+    ? fetchMusic({ query: plan.ambient.query, outputPath: path.join(audioDir, "ambient.mp3"), tracker })
+        .then((p) => { if (p) console.log(`[pipeline] ambient fetched ("${plan.ambient.query}")`); return p; })
+        .catch((e) => { console.warn(`[pipeline] ambient failed: ${e.message}`); return null; })
+    : Promise.resolve(null);
+
   const sfxPlan = (flags.soundEffect && Array.isArray(plan.soundEffects)) ? plan.soundEffects : [];
   const sfxTasks = sfxPlan.map((s, i) =>
     fetchSfx({ query: s.query, outputPath: path.join(audioDir, `sfx-${i}.mp3`), tracker })
@@ -635,12 +678,14 @@ async function buildAudio({ jobDir, storyboard, flags, tracker, perScene = false
       .catch(() => null)
   );
 
-  const [ttsPath, musicPath, ...sfxResults] = await Promise.all([ttsTask, musicTask, ...sfxTasks]);
+  const [ttsPath, musicPath, ambientPath, ...sfxResults] = await Promise.all([ttsTask, musicTask, ambientTask, ...sfxTasks]);
   const sfx = sfxResults.filter(Boolean);
   if (sfx.length) console.log(`[pipeline] sfx: ${sfx.length}/${sfxPlan.length} fetched`);
 
   return {
     ttsPath, musicPath, sfx, musicVolume, plan,
+    musicEnvelope: plan.musicEnvelope || null,
+    ambientPath, ambientVolume: plan.ambient?.volume,
     ttsVoice: plan.tts?.voice, ttsInstructions: plan.tts?.instructions,
   };
 }
@@ -670,15 +715,45 @@ async function replaceFile(srcPath, destPath, { attempts = 6, delayMs = 200 } = 
   }
 }
 
-async function mixAudioIntoVideo({ visualPath, durationSec, audio }) {
-  if (!audio.ttsPath && !audio.musicPath && audio.sfx.length === 0) return false;
+// The director's musicEnvelope is scene-INDEXED (buildAudio runs in parallel with
+// VO retiming, so scene starts aren't final until mix time). Convert to seconds
+// here, against the storyboard's final timing.
+function envelopeToSeconds(scenes, envelope) {
+  if (!Array.isArray(envelope) || envelope.length < 2 || !Array.isArray(scenes) || !scenes.length) return null;
+  let cursor = 0;
+  const starts = scenes.map((s) => {
+    const st = Number.isFinite(Number(s.start)) ? Number(s.start) : cursor;
+    cursor = st + (Number(s.duration) || 3);
+    return st;
+  });
+  const pts = envelope
+    .filter((p) => Number.isInteger(p.scene) && p.scene >= 0 && p.scene < starts.length)
+    .map((p) => ({ atSec: starts[p.scene], volume: p.volume }));
+  return pts.length >= 2 ? pts : null;
+}
+
+async function mixAudioIntoVideo({ visualPath, durationSec, audio, scenes = null, jobDir = null }) {
+  if (!audio.ttsPath && !audio.musicPath && !audio.ambientPath && audio.sfx.length === 0) return false;
   const mixedPath = path.join(config.paths.videosDir, path.basename(visualPath) + ".tmp.mp4");
-  await audioMix({
+  const { report } = await audioMix({
     videoPath: visualPath, outputPath: mixedPath, durationSec,
     ttsPath: audio.ttsPath, musicPath: audio.musicPath,
-    musicVolume: audio.musicVolume, sfx: audio.sfx,
+    musicVolume: audio.musicVolume,
+    musicEnvelope: envelopeToSeconds(scenes, audio.musicEnvelope),
+    ambientPath: audio.ambientPath, ambientVolume: audio.ambientVolume,
+    sfx: audio.sfx,
+    targetLufs: Number(config.audio?.targetLufs) || -14,
+    normalize: config.audio?.normalize !== false,
   });
   await replaceFile(mixedPath, visualPath);
+  // Honest, MEASURED post-mix report (loudness, true peak, layer inventory) —
+  // written next to the job's audio assets for inspection/debugging.
+  if (report && jobDir) {
+    try {
+      fs.writeFileSync(path.join(jobDir, "audio", "audio-report.json"), JSON.stringify(report, null, 2));
+      console.log(`[pipeline] audio report: ${report.integratedLufs ?? "?"} LUFS (target ${report.targetLufs}), peak ${report.truePeakDb ?? "?"} dBTP, gain ${report.gainAppliedDb} dB, layers ${JSON.stringify(report.layers)}`);
+    } catch { /* report is best-effort */ }
+  }
   return true;
 }
 
@@ -763,7 +838,7 @@ async function runJob({
     const audioPromise = wantsAudio
       ? buildAudio({
           jobDir, storyboard: sbRes.storyboard,
-          flags: { tts, music, soundEffect, voice }, tracker, perScene: tts,
+          flags: { tts, music, soundEffect, voice }, tracker, perScene: tts, framePack, brief: briefObj,
         }).catch((e) => {
           console.warn(`[pipeline] background audio stage failed: ${e.message}`);
           return { ttsPath: null, musicPath: null, sfx: [], musicVolume: 0.15 };
@@ -943,30 +1018,21 @@ async function runJob({
           ttsPath: prepped.ttsPath,
           musicPath: prepped.musicPath,
           musicVolume: prepped.musicVolume,
+          musicEnvelope: prepped.musicEnvelope,
+          ambientPath: prepped.ambientPath,
+          ambientVolume: prepped.ambientVolume,
           sfx: [...(prepped.sfx || []), ...voClips],
         } : null;
         const mixed = audio ? await mixAudioIntoVideo({
           visualPath: visualResult.videoPath,
           durationSec: effectiveDuration, audio,
+          scenes: sbRes.storyboard.scenes, jobDir,
         }).catch((e) => { console.warn(`[pipeline] mix failed: ${e.message}`); return false; }) : false;
         markStage("audio", t0);
         console.log(`[pipeline] audio ${mixed ? "mixed in" : "(nothing to mix)"} in ${timings.audioMs}ms (was prepared in parallel)`);
-
-        // Audio-review agent — judges the SELECTED voiceover / music / SFX against
-        // the video's inferred purpose + emotion. Non-blocking QA: logs a one-line
-        // verdict and stores the full review on the job (db.setAudioNotes). Never
-        // fails the job (an LLM hiccup just means no review this run).
-        try {
-          const review = await reviewAudio({
-            storyboard: sbRes.storyboard, plan: prepped && prepped.plan,
-            brief: briefObj, videoOk: !!visualResult,
-          });
-          if (review) {
-            console.log(`[audio-review] ${summarizeReview(review)}`);
-            // setAudioNotes persists a non-empty array — wrap the review object.
-            try { db.setAudioNotes(jobId, [review]); } catch { /* db note best-effort */ }
-          }
-        } catch (e) { console.warn(`[audio-review] stage threw: ${String(e.message).slice(0, 120)}`); }
+        // Audio direction (need/curate/levels) now happens BEFORE fetch+mix in
+        // buildAudio via the audio-director agent, so there's no separate post-mix
+        // review pass — the director's decision was applied, not just logged.
       } catch (e) {
         markStage("audio", t0);
         console.warn(`[pipeline] audio stage failed: ${e.message}`);

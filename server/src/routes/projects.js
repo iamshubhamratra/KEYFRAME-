@@ -205,7 +205,12 @@ function buildRouter({ enqueueIntake, enqueueProduction }) {
 
   router.get("/projects", (req, res) => {
     const status = typeof req.query.status === "string" ? req.query.status : undefined;
-    res.json({ projects: db.listRecent({ limit: 30, status }) });
+    // Optional ?limit= (clamped 1-200) — the gallery asks for more than the
+    // 30 default so a real finished film isn't crowded out by newer test/
+    // failed generations that never produced a video.
+    const reqLimit = Number(req.query.limit);
+    const limit = Number.isFinite(reqLimit) ? Math.max(1, Math.min(200, Math.round(reqLimit))) : 30;
+    res.json({ projects: db.listRecent({ limit, status }) });
   });
 
   router.get("/projects/:id", (req, res) => {

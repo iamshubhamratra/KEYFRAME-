@@ -1,0 +1,91 @@
+{
+  "name": "capsule",
+  "vibe": "A playful editorial system where every container is an inflated candy pill wrapped in a 2px ink outline, floating on sun-bleached cream warmed by radial glows and grain.",
+  "colors": {
+    "cream": "#F5F5F0",
+    "ink": "#1A1A1A",
+    "outline": "#1E1E1E",
+    "coral": "#E85D4E",
+    "lime": "#C4D94E",
+    "lavender": "#C5B5E0",
+    "sky": "#8BB4F7",
+    "yellow": "#F2D160"
+  },
+  "fonts": [
+    "Bodoni Moda",
+    "Space Grotesk"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F5F5F0"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1.04
+  },
+  "fx": {
+    "canvas": "bokeh",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#E85D4E",
+      "#C4D94E"
+    ],
+    "extras": [
+      "#F2D160",
+      "#8BB4F7"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "",
+    "iconStyle": "solid",
+    "keywords": [
+      "playful",
+      "editorial",
+      "pill",
+      "candy",
+      "memphis",
+      "pastel"
+    ],
+    "prefer": [
+      "vector",
+      "illustration"
+    ]
+  },
+  "textfx": {
+    "enter": "spring",
+    "emphasis": "boxed",
+    "case": "none",
+    "tracking": -0.02,
+    "weight": null,
+    "sizeScale": 1.05,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "playful indie pop",
+      "mood": "playful",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "soft bouncy pops and rounded pill clicks",
+      "palette": [
+        "soft pop",
+        "bubble pop",
+        "pill click",
+        "gentle whoosh",
+        "candy chime",
+        "page turn"
+      ]
+    }
+  },
+  "layout": {
+    "propFill": true,
+    "kicker": true,
+    "underline": true,
+    "stat": "headline"
+  }
+}

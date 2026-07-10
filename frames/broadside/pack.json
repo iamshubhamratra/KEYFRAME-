@@ -1,0 +1,88 @@
+{
+  "name": "broadside",
+  "vibe": "A protest-poster system where type grows so large it stops reading as text and becomes graphic primitive: massive lowercase Barlow 900 on a flat plane, two registers, fire-orange the only color.",
+  "colors": {
+    "ink-black": "#111111",
+    "ink-black-alt": "#1A1A18",
+    "fire-orange": "#E85D26",
+    "cream": "#F0ECE5",
+    "cream-muted": "#888880",
+    "cream-hint": "#505048",
+    "border-dark": "#282826"
+  },
+  "fonts": [
+    "Barlow",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#111111"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#E85D26"
+    ],
+    "extras": [
+      "#F0ECE5"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "",
+    "iconStyle": "line",
+    "keywords": [
+      "brutalist",
+      "protest poster",
+      "editorial",
+      "monochrome",
+      "typographic",
+      "bold"
+    ],
+    "prefer": [
+      "vector",
+      "illustration"
+    ]
+  },
+  "textfx": {
+    "enter": "mask-reveal",
+    "emphasis": "marker",
+    "case": "none",
+    "tracking": -0.03,
+    "weight": null,
+    "sizeScale": 1.15,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "brooding industrial beat",
+      "mood": "dramatic",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "sharp mechanical stamps and hard declarative cuts",
+      "palette": [
+        "paper slam",
+        "ink stamp",
+        "hard cut whoosh",
+        "mechanical thunk",
+        "typewriter strike",
+        "low bass hit"
+      ]
+    }
+  },
+  "layout": {
+    "propFill": true,
+    "kicker": true,
+    "underline": false,
+    "stat": "headline"
+  }
+}

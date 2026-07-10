@@ -1,0 +1,91 @@
+{
+  "name": "creative-mode",
+  "vibe": "A neo-brutalist editorial poster in motion's clothing: warm cream paper, near-black ink, four accents colliding at full saturation, depth from hard offset shadow, never light.",
+  "colors": {
+    "cream": "#EFE9D9",
+    "cream-2": "#E4DCC4",
+    "ink": "#0F0F0F",
+    "green": "#1F8A4C",
+    "pink": "#F06CA8",
+    "orange": "#E85A1F",
+    "yellow": "#F5C518"
+  },
+  "fonts": [
+    "Archivo Black",
+    "JetBrains Mono",
+    "Space Grotesk"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#EFE9D9"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1.02
+  },
+  "fx": {
+    "canvas": "paper",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F06CA8",
+      "#E85A1F"
+    ],
+    "extras": [
+      "#1F8A4C",
+      "#F5C518"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "",
+    "iconStyle": "solid",
+    "keywords": [
+      "neo-brutalist",
+      "editorial poster",
+      "risograph",
+      "punk zine",
+      "flat color-block",
+      "bold"
+    ],
+    "prefer": [
+      "vector",
+      "illustration"
+    ]
+  },
+  "textfx": {
+    "enter": "mask-reveal",
+    "emphasis": "boxed",
+    "case": "upper",
+    "tracking": -0.01,
+    "weight": null,
+    "sizeScale": 1.1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "indie garage rock",
+      "mood": "energetic",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "hard mechanical thuds and paper slaps, zero reverb, punchy and dry",
+      "palette": [
+        "stamp thud",
+        "marker snap",
+        "paper slap",
+        "ink stamp press",
+        "hard click",
+        "block whoosh"
+      ]
+    }
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "headline"
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "name": "coral",
+  "vibe": "A bold magazine poster built from three solid surfaces — coral fire, ink black, warm cream — meeting at hard color edges where the region boundary itself is the layout.",
+  "colors": {
+    "coral": "#E85D5D",
+    "coral-dark": "#D44A4A",
+    "cream": "#F5F0E8",
+    "cream-dark": "#E8E0D4",
+    "black": "#1A1A1A",
+    "gray": "#6B6B6B",
+    "light-gray": "#B0B0B0",
+    "white": "#FFFFFF"
+  },
+  "fonts": [
+    "Bebas Neue",
+    "Inter"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F5F0E8"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#E85D5D"
+    ],
+    "extras": [
+      "#1A1A1A",
+      "#D44A4A"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "",
+    "iconStyle": "solid",
+    "keywords": [
+      "bold poster",
+      "sports magazine",
+      "condensed caps",
+      "hard color blocks",
+      "editorial",
+      "saul bass"
+    ],
+    "prefer": [
+      "vector",
+      "illustration"
+    ]
+  },
+  "textfx": {
+    "enter": "mask-reveal",
+    "emphasis": "underline-grow",
+    "case": "upper",
+    "tracking": 0.04,
+    "weight": null,
+    "sizeScale": 1.12,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "bold brass anthem",
+      "mood": "dramatic",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "hard cuts and heavy impacts, poster-punch stingers",
+      "palette": [
+        "whoosh transition",
+        "impact hit",
+        "hard cut thud",
+        "paper snap",
+        "deep boom",
+        "riser sweep"
+      ]
+    }
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "headline"
+  }
+}

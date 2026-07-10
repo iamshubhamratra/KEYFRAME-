@@ -1,0 +1,91 @@
+{
+  "name": "riso-press",
+  "vibe": "a bold risograph print poster: warm newsprint paper, fluorescent pink + electric blue spot inks overprinting, a live halftone-dot texture, giant condensed poster type set hard-left, and cut-paper shapes — registration marks, overprint circles, block arrows, starbursts — for punchy product launches, events, drops and announcements that should feel like a screen-printed gig poster",
+  "colors": {
+    "paper": "#F3ECDD",
+    "smoke": "#E4DAC6",
+    "ink": "#1A1714",
+    "risopink": "#FF3E6C",
+    "risoblue": "#3A5BFF",
+    "risoyellow": "#FFC21A",
+    "risoteal": "#12A594"
+  },
+  "fonts": [
+    "Inter",
+    "Anton"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F3ECDD"
+  },
+  "motion": {
+    "cut": "wipe",
+    "drift": 1.02
+  },
+  "fx": {
+    "canvas": "halftone",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FF3E6C",
+      "#3A5BFF"
+    ],
+    "extras": [
+      "#FFC21A",
+      "#12A594"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "bold risograph screenprint poster duotone grain",
+    "iconStyle": "solid",
+    "keywords": [
+      "bold",
+      "poster",
+      "print",
+      "graphic",
+      "retro",
+      "duotone"
+    ],
+    "prefer": [
+      "vector",
+      "illustration"
+    ]
+  },
+  "typography": {
+    "display": "Anton"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": false,
+    "underline": false,
+    "stat": "headline"
+  },
+  "textfx": {
+    "enter": "slide",
+    "emphasis": "bracket",
+    "align": "left",
+    "case": "upper",
+    "sizeScale": 1.12
+  },
+  "audio": {
+    "music": {
+      "query": "upbeat indie stomp clap",
+      "mood": "upbeat",
+      "volume": 0.17
+    },
+    "sfx": {
+      "style": "tape stops, ink-roller rolls, paper snaps and stamp thuds — analog and punchy, hitting on the hard block cuts",
+      "palette": [
+        "paper snap whoosh",
+        "stamp thud",
+        "tape stop",
+        "ink roller roll",
+        "camera shutter",
+        "riser hit"
+      ]
+    }
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "name": "atelier",
+  "vibe": "an elegant editorial fashion-house system: warm ivory paper, espresso ink, a single muted gold accent with soft terracotta, refined Fraunces serif display, and delicate continuous LINE-ART that draws itself — a single flowing contour, thin drawn frames, a fine rotating ring, hairline dividers and serif ornaments — minimal, lots of quiet negative space, for luxury brands, editorials, portfolios, founder stories and premium reveals",
+  "colors": {
+    "ivory": "#F7F3EC",
+    "linen": "#EDE6DA",
+    "espresso": "#241E1A",
+    "gold": "#A98643",
+    "terracotta": "#C4674E",
+    "sage": "#8A9A7B",
+    "stone": "#B9AEA0"
+  },
+  "fonts": [
+    "Inter",
+    "Fraunces"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#F7F3EC"
+  },
+  "motion": {
+    "cut": "wash",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "ribbon",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#A98643",
+      "#C4674E"
+    ],
+    "extras": [
+      "#8A9A7B",
+      "#B9AEA0"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "elegant editorial minimal luxury fashion muted film",
+    "iconStyle": "line",
+    "keywords": [
+      "elegant",
+      "editorial",
+      "minimal",
+      "luxury",
+      "refined",
+      "muted"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
+  },
+  "typography": {
+    "display": "Fraunces"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": false,
+    "underline": false,
+    "stat": "headline"
+  },
+  "textfx": {
+    "enter": "drift",
+    "emphasis": "underline-grow",
+    "align": "center",
+    "case": "none",
+    "sizeScale": 1.0
+  },
+  "audio": {
+    "music": {
+      "query": "elegant emotional piano",
+      "mood": "inspirational",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "soft felt-piano notes, gentle paper turns and a single warm chime — sparse and refined, one accent per beat, silence carries the mood",
+      "palette": [
+        "soft page turn",
+        "gentle piano note",
+        "warm chime",
+        "light airy whoosh",
+        "subtle string swell"
+      ]
+    }
+  }
+}

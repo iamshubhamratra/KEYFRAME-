@@ -26,7 +26,29 @@ function randomVoice() {
 
 const { extractFirstJsonObject: parseJsonLenient } = require("./json_lenient");
 
-function buildUser(storyboard, flags) {
+// The frame pack (template) can carry its own sonic identity — a BGM lane + a
+// curated SFX palette. When present, we tell the planner to MATCH it, so the
+// template sounds consistent instead of the planner improvising a bed from
+// scratch. Absent/empty -> no lines added (planner behaves exactly as before).
+function packSonicLines(packAudio) {
+  if (!packAudio) return [];
+  const m = packAudio.music || {};
+  const s = packAudio.sfx || {};
+  const hasMusic = String(m.query || "").trim() || String(m.mood || "").trim();
+  const hasSfx = Array.isArray(s.palette) && s.palette.length > 0;
+  if (!hasMusic && !hasSfx) return [];
+  const lines = ["", "PACK SONIC IDENTITY — this video uses a template with its own sound. MATCH it:"];
+  if (hasMusic) {
+    lines.push(`  BGM lane: mood "${String(m.mood || "").trim() || "match the brief"}"${m.query ? `, reference search "${String(m.query).trim()}"` : ""}. Keep the music in this lane.`);
+  }
+  if (hasSfx) {
+    lines.push(`  SFX palette (draw your sound effects from these, placed at REAL moments — scene cuts, a number landing, the CTA): ${s.palette.join("; ")}.`);
+    if (String(s.style || "").trim()) lines.push(`  SFX character: ${String(s.style).trim()}`);
+  }
+  return lines;
+}
+
+function buildUser(storyboard, flags, packAudio) {
   const lines = [
     "Storyboard:",
     JSON.stringify({
@@ -41,6 +63,7 @@ function buildUser(storyboard, flags) {
     `  music: ${!!flags.music}`,
     `  soundEffect: ${!!flags.soundEffect}`,
     flags.voice ? `  voice preference: ${flags.voice}` : `  voice preference: (none — pick one matching the mood)`,
+    ...packSonicLines(packAudio),
     "",
     `Video duration: ${storyboard.durationSec} seconds.`,
     "",
@@ -49,7 +72,7 @@ function buildUser(storyboard, flags) {
   return lines.join("\n");
 }
 
-function sanitize(plan, { tts, music, soundEffect, voice, duration }) {
+function sanitize(plan, { tts, music, soundEffect, voice, duration }, packAudio = null) {
   const out = {};
 
   if (tts && plan.tts) {
@@ -79,6 +102,17 @@ function sanitize(plan, { tts, music, soundEffect, voice, duration }) {
     }
   }
 
+  // Deterministic BGM fallback: the pack's template defines a signature music
+  // lane, so if the planner returned no usable music the template's own bed still
+  // plays — a template that ships with BGM always has BGM.
+  if (music && !out.music && packAudio && packAudio.music && String(packAudio.music.query || "").trim()) {
+    out.music = {
+      query: String(packAudio.music.query).trim().slice(0, 80),
+      mood: String(packAudio.music.mood || "").trim(),
+      volume: clampNum(packAudio.music.volume, 0.05, 0.5, 0.15),
+    };
+  }
+
   if (soundEffect && Array.isArray(plan.soundEffects)) {
     const sfx = [];
     for (const s of plan.soundEffects.slice(0, 5)) {
@@ -104,7 +138,7 @@ function clampNum(v, lo, hi, fallback) {
   return Math.min(hi, Math.max(lo, n));
 }
 
-async function planAudio(storyboard, flags) {
+async function planAudio(storyboard, flags, packAudio = null) {
   const duration = storyboard.durationSec;
   const tries = 2;
   let lastErr, tokensIn = 0, tokensOut = 0;
@@ -113,20 +147,28 @@ async function planAudio(storyboard, flags) {
     try {
       const { text, tokensIn: tIn, tokensOut: tOut } = await openrouter.chat({
         system: SYSTEM,
-        user: buildUser(storyboard, flags),
+        user: buildUser(storyboard, flags, packAudio),
         jsonMode: true,
         temperature: 0.6,
         stage: "audioPlanner",
       });
       tokensIn += tIn; tokensOut += tOut;
       const raw = parseJsonLenient(text);
-      const plan = sanitize(raw, { ...flags, duration });
+      const plan = sanitize(raw, { ...flags, duration }, packAudio);
       return { plan, tokensIn, tokensOut };
     } catch (e) {
       lastErr = e;
     }
   }
-  // Total LLM failure — return empty plan (pipeline will skip audio entirely).
+  // Total LLM failure — normally the pipeline skips audio entirely. But if the
+  // pack ships a BGM lane and music is enabled, return that bed as a clean plan
+  // (no error) so a template with built-in music is never silent just because the
+  // planner is down. Only the music layer survives — TTS/SFX need the model.
+  const fallback = sanitize({}, { ...flags, duration }, packAudio);
+  if (fallback.music) {
+    console.warn(`[audio_planner] planner failed (${lastErr?.message || "unknown"}); using pack BGM fallback`);
+    return { plan: { music: fallback.music }, tokensIn, tokensOut };
+  }
   return {
     plan: {},
     tokensIn, tokensOut,

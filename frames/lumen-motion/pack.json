@@ -1,0 +1,88 @@
+{
+  "name": "lumen-motion",
+  "vibe": "a bright animated-explainer system: warm paper ground, playful coral + indigo + teal + amber, friendly rounded display type, and dense HAND-DRAWN animated vectors that EXPLAIN the story — a launching rocket, a real line graph whose points pop in and connect, turning gears, popping checkmarks, a clicking cursor and confetti — for product launches, explainers, onboarding, feature tours and demos",
+  "colors": {
+    "paper": "#FFF7EF",
+    "cloud": "#FFEDE0",
+    "ink": "#241A33",
+    "coral": "#FF5A6E",
+    "indigo": "#6C5CE7",
+    "teal": "#12B7A6",
+    "amber": "#FFB020"
+  },
+  "fonts": [
+    "Inter",
+    "Bricolage Grotesque"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#FFF7EF"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1.04
+  },
+  "fx": {
+    "canvas": "sprinkle",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FF5A6E",
+      "#6C5CE7"
+    ],
+    "extras": [
+      "#12B7A6",
+      "#FFB020"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "bright playful flat vector illustration colorful friendly",
+    "iconStyle": "duotone",
+    "keywords": [
+      "bright",
+      "playful",
+      "colorful",
+      "illustration",
+      "friendly",
+      "flat"
+    ],
+    "prefer": [
+      "vector",
+      "illustration",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Bricolage Grotesque"
+  },
+  "camera3d": {
+    "ground": "#FFF7EF"
+  },
+  "textfx": {
+    "enter": "spring",
+    "emphasis": "boxed",
+    "align": "center",
+    "sizeScale": 1.0
+  },
+  "audio": {
+    "music": {
+      "query": "upbeat playful pop",
+      "mood": "upbeat",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "bright bouncy pops, soft cartoon swooshes, cheerful ding chimes and a confetti success chime — light and playful, synced to the pop-ins and the graph drawing",
+      "palette": [
+        "bubble pop",
+        "cartoon swoosh",
+        "ui click pop",
+        "sparkle chime ding",
+        "confetti success chime",
+        "boing bounce"
+      ]
+    }
+  }
+}

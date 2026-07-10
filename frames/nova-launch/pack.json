@@ -1,0 +1,87 @@
+{
+  "name": "nova-launch",
+  "vibe": "dark-stage product reveal: deep-space ground, electric-blue + solar-orange beams, a live data HUD (climbing bar charts, drawing trend lines, sweeping radial gauges, telemetry rings) and a floating 3D data constellation, strobe-cut reveals and glowing kinetic type — for product launches, feature drops, release ads and hype reels",
+  "colors": {
+    "void": "#070A12",
+    "panel": "#0E1526",
+    "ink": "#EAF0FF",
+    "electric": "#3D7BFF",
+    "plasma": "#A65CFF",
+    "laser": "#1FE0B8",
+    "solar": "#FF7A3C"
+  },
+  "fonts": [
+    "Inter",
+    "Space Grotesk"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#070A12"
+  },
+  "motion": {
+    "cut": "flash",
+    "drift": 1.05
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": "constellation"
+  },
+  "skin": {
+    "accents": [
+      "#3D7BFF",
+      "#FF7A3C"
+    ],
+    "extras": [
+      "#A65CFF",
+      "#1FE0B8"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "sleek dark tech product neon gradient futuristic",
+    "iconStyle": "duotone",
+    "keywords": [
+      "tech",
+      "neon",
+      "dark",
+      "product",
+      "dynamic",
+      "futuristic"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
+  },
+  "typography": {
+    "display": "Space Grotesk"
+  },
+  "camera3d": {
+    "ground": "#070A12"
+  },
+  "textfx": {
+    "enter": "mask-reveal",
+    "emphasis": "glow",
+    "align": "center",
+    "sizeScale": 1.05
+  },
+  "audio": {
+    "music": {
+      "query": "driving electronic pulse",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "punchy transient risers, deep sub whooshes, crisp UI clicks, impact hits and sparkle dings — tight and cinematic, silence between hits",
+      "palette": [
+        "deep whoosh transition",
+        "digital ui click",
+        "impact boom hit",
+        "sparkle riser ding",
+        "reverse cymbal riser",
+        "soft data blip"
+      ]
+    }
+  }
+}

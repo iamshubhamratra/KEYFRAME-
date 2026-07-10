@@ -1,0 +1,87 @@
+{
+  "name": "bold-poster",
+  "vibe": "A populist editorial poster: vintage Italian sports-magazine display, classical serif body, one saturated tomato red, ink-ruled grids — every frame feels printed on a white sheet.",
+  "colors": {
+    "bg": "#FFFFFF",
+    "dark": "#1C1410",
+    "red": "#D8000F",
+    "light": "#F5F2EF"
+  },
+  "fonts": [
+    "Shrikhand",
+    "Libre Baskerville",
+    "Space Grotesk"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#FFFFFF"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1.02
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#D8000F"
+    ],
+    "extras": [
+      "#1C1410",
+      "#F5F2EF"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "",
+    "iconStyle": "solid",
+    "keywords": [
+      "editorial poster",
+      "vintage magazine",
+      "tomato red",
+      "serif print",
+      "mid-century",
+      "bold typography"
+    ],
+    "prefer": [
+      "vector",
+      "illustration"
+    ]
+  },
+  "textfx": {
+    "enter": "mask-reveal",
+    "emphasis": "boxed",
+    "case": "none",
+    "tracking": -0.02,
+    "weight": null,
+    "sizeScale": 1.12,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "vintage retro swing",
+      "mood": "energetic",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "punchy printed-press stamps and paper snaps, no soft whooshes",
+      "palette": [
+        "paper snap",
+        "ink stamp",
+        "poster slap",
+        "typewriter ding",
+        "page flip",
+        "hard thud"
+      ]
+    }
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "headline"
+  }
+}

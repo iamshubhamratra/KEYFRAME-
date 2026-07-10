@@ -4,8 +4,13 @@
 // budget model can never produce an overlapping/truncated mess); the PACK owns
 // STYLE (colors/fonts/atoms, re-skinned per pack — flat packs get NO gradients);
 // the AGENTS own CONTENT (copy, archetype choice, asset/screenshot selection,
-// carried on the storyboard). This is the codification of the two hand-authored
-// reference films (flagship, amazon-premium) into reusable, parameterized scenes.
+// carried on the storyboard). This is the codification of the three hand-authored
+// reference films (showcase/flagship, showcase/index "KEYFRAME master",
+// showcase/amazon-premium) into reusable, parameterized scenes — the full
+// extracted grammar lives in docs/SHOWCASE-DNA.md. Showcase-uplift wave adds:
+// per-scene light sources, alternating push/pull camera, emphasis shine sweeps,
+// stat progress rings, the multi-stat PROOF ROW, screenshot callout annotations,
+// and the strike-list DIFFERENTIATOR scene.
 //
 // Entry: buildComposition({ storyboard, dims, framePack, assets, captionCues, seedKey })
 //        -> { indexHtml, metaJson }   (the same envelope the LLM composer returns)
@@ -84,6 +89,22 @@ function lum(hex) {
   if (!m) return 128;
   const n = parseInt(m[1], 16);
   return 0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255);
+}
+
+// SAFE TINT for the veil/glow cuts (wash / glow / whip). A pack's accent list
+// intentionally carries a near-black ink (e.g. fable's #33261A, bloom's #2B2540)
+// so it contrasts a light ground for TEXT emphasis. But the tint cuts cycle
+// through that same list at rgba(accent, α); on a light ground a near-black
+// accent turns the 70%-wide blurred wash into a full-frame BLACKOUT on every
+// boundary that lands on it — the "dark blob" that briefly wipes the scene mid-
+// cut. Keep tint cuts a soft veil of the accent's HUE, never a blackout: on a
+// light ground, pull only the near-black accents toward the ground (a faint,
+// on-brand page-turn shadow). Colored/mid accents and all dark-ground glows are
+// left untouched, so this changes nothing except the blackout case.
+function cutTint(hex, theme) {
+  if (!theme || theme.isDark) return hex;   // bright wash on a dark ground = intended glow
+  if (lum(hex) >= 90) return hex;           // light/mid accent → soft colored wash, keep it
+  return mix(hex, theme.ground, 0.66);      // near-black ink → pastel it into the ground family
 }
 
 // Derive the scene THEME from the chosen pack (authoritative) or, when no pack is
@@ -178,9 +199,22 @@ function deriveTheme(framePack, storyboard) {
     sizeScale: typeof tf.sizeScale === "number" && tf.sizeScale > 0 ? tf.sizeScale : 1,
     align: tf.align || "rotate",
   };
+  // Per-pack LAYOUT switches — let a pack opt OUT of the shared scene furniture so
+  // templates aren't all the same skeleton. All default to the legacy look:
+  //   kicker   (bool)  hook/text corner chip                 default on
+  //   underline(bool)  hook headline rule                    default on
+  //   propFill (bool)  the generic product-card mock          default on
+  //   stat     "hero"|"headline"  giant number+ring vs plain default "hero"
+  const lm = (manifest && manifest.layout) || {};
+  const layout = {
+    kicker: lm.kicker !== false,
+    underline: lm.underline !== false,
+    propFill: lm.propFill !== false,
+    stat: lm.stat === "headline" ? "headline" : "hero",
+  };
   return {
     ground, ink, accents,
-    textfx,
+    textfx, layout,
     accent: accents[0],
     accent2: accents[1] || accents[0],
     extras: skin?.extras || [],
@@ -289,7 +323,7 @@ function buildCutLayer(plan, theme, dims, D, motion, seed, track) {
       sc.push(`tl.fromTo("#${id}",{scaleX:1,transformOrigin:"${fromLeft ? "100%" : "0%"} 50%"},{scaleX:0,duration:0.28,ease:"power4.out",immediateRender:false},${r(Tb)});`);
     } else if (motion.cut === "whip") {
       // motion-blur streak racing across the frame — the one-take whip-pan
-      els.push(`<div id="${id}" style="position:absolute;top:-4%;bottom:-4%;left:-45%;width:38%;transform:skewX(-16deg);opacity:0;background:linear-gradient(90deg,transparent,${rgba(theme.ink, 0.10)} 30%,${rgba(A, 0.28)} 50%,${rgba(theme.ink, 0.10)} 70%,transparent);filter:blur(6px);"></div>`);
+      els.push(`<div id="${id}" style="position:absolute;top:-4%;bottom:-4%;left:-45%;width:38%;transform:skewX(-16deg);opacity:0;background:linear-gradient(90deg,transparent,${rgba(theme.ink, 0.10)} 30%,${rgba(cutTint(A, theme), 0.28)} 50%,${rgba(theme.ink, 0.10)} 70%,transparent);filter:blur(6px);"></div>`);
       sc.push(`tl.fromTo("#${id}",{xPercent:0,opacity:0},{xPercent:60,opacity:1,duration:0.16,ease:"power2.in"},${r(Tb - 0.3)});`);
       sc.push(`tl.to("#${id}",{xPercent:400,opacity:0,duration:0.34,ease:"power3.out"},${r(Tb - 0.14)});`);
     } else if (motion.cut === "flash") {
@@ -300,8 +334,9 @@ function buildCutLayer(plan, theme, dims, D, motion, seed, track) {
       sc.push(`tl.to("#${id}",{opacity:0,duration:0.36,ease:"power2.out"},${r(Tb)});`);
       sc.push(`tl.fromTo("#${id}c",{xPercent:0,opacity:1},{xPercent:340,opacity:0,duration:0.5,ease:"power3.out",immediateRender:false},${r(Tb - 0.08)});`);
     } else if (motion.cut === "wash") {
-      // soft blurred wash sweeping diagonally — watercolor page-turn
-      els.push(`<div id="${id}" style="position:absolute;top:-30%;bottom:-30%;left:-70%;width:70%;opacity:0;transform:rotate(-9deg);border-radius:50%;background:${rgba(A, 0.5)};filter:blur(${Math.round(H * 0.06)}px);"></div>`);
+      // soft blurred wash sweeping diagonally — watercolor page-turn. cutTint keeps
+      // a near-black pack accent from turning this full-frame veil into a blackout.
+      els.push(`<div id="${id}" style="position:absolute;top:-30%;bottom:-30%;left:-70%;width:70%;opacity:0;transform:rotate(-9deg);border-radius:50%;background:${rgba(cutTint(A, theme), 0.44)};filter:blur(${Math.round(H * 0.06)}px);"></div>`);
       sc.push(`tl.fromTo("#${id}",{xPercent:0,opacity:0},{xPercent:130,opacity:1,duration:0.34,ease:"sine.in"},${r(Tb - 0.34)});`);
       sc.push(`tl.to("#${id}",{xPercent:300,opacity:0,duration:0.44,ease:"sine.out"},${r(Tb)});`);
     } else if (motion.cut === "panel") {
@@ -323,7 +358,7 @@ function buildCutLayer(plan, theme, dims, D, motion, seed, track) {
       // stretch it over the whole frame from t=0 (blanks noir-spotlight).
       sc.push(`tl.fromTo("#${id}",{scale:1},{scale:0,duration:0.36,ease:"power3.out",immediateRender:false},${r(Tb + 0.04)});`);
     } else { // glow — luminous pulse riding a motion crossfade
-      els.push(`<div id="${id}" style="position:absolute;inset:-10%;opacity:0;background:radial-gradient(52% 52% at 50% 50%,${rgba(A, 0.34)},transparent 72%);filter:blur(10px);"></div>`);
+      els.push(`<div id="${id}" style="position:absolute;inset:-10%;opacity:0;background:radial-gradient(52% 52% at 50% 50%,${rgba(cutTint(A, theme), 0.34)},transparent 72%);filter:blur(10px);"></div>`);
       sc.push(`tl.fromTo("#${id}",{opacity:0,scale:0.8},{opacity:1,scale:1.06,duration:0.3,ease:"sine.in"},${r(Tb - 0.3)});`);
       sc.push(`tl.to("#${id}",{opacity:0,scale:1.2,duration:0.4,ease:"sine.out"},${r(Tb + 0.02)});`);
     }
@@ -340,15 +375,25 @@ function sceneMotion(p, motion, seed, total) {
   const i = p.i;
   const out = [];
   const cut = motion.cut;
+  // ALTERNATING CAMERA (showcase grammar): even scenes push IN (1 → drift); odd
+  // scenes ARRIVE at drift scale and settle back to 1 — the reference master's
+  // S3/S7 pull-out arrivals, so consecutive shots never move the same way.
+  // Every entrance tween carries the scene's start scale in BOTH keyframes, so
+  // scale is written by exactly one tween at a time (lint-clean hand-off into
+  // the drift, which then owns scale alone in the settled middle).
+  const K = motion.drift;
+  const zoomOut = ((i + seed) % 2) === 1;
+  const s1 = zoomOut ? K : 1;                 // scale at entrance end == drift start
+  const sk = (v) => r(v * s1);
   // -- entrance (scene 0 opens cold; the hook's own choreography carries it)
   if (i > 0) {
-    if (cut === "whip") out.push(`tl.fromTo("#${id}",{xPercent:16,filter:"blur(10px)"},{xPercent:0,filter:"blur(0px)",duration:0.5,ease:"power3.out"},${r(T)});`);
-    else if (cut === "wipe" || cut === "push") out.push(`tl.fromTo("#${id}",{xPercent:${(i + seed) % 2 === 0 ? 20 : -20}},{xPercent:0,duration:0.45,ease:"power4.out"},${r(T + 0.04)});`);
-    else if (cut === "flash") out.push(`tl.fromTo("#${id}",{scale:1.08},{scale:1,duration:0.6,ease:"power3.out"},${r(T)});`);
-    else if (cut === "wash") out.push(`tl.fromTo("#${id}",{y:30,filter:"blur(6px)"},{y:0,filter:"blur(0px)",duration:0.55,ease:"power2.out"},${r(T)});`);
-    else if (cut === "panel") out.push(`tl.fromTo("#${id}",{yPercent:7},{yPercent:0,duration:0.55,ease:"power3.out"},${r(T + 0.04)});`);
-    else if (cut === "iris") out.push(`tl.fromTo("#${id}",{scale:0.94},{scale:1,duration:0.5,ease:"power2.out"},${r(T + 0.04)});`);
-    else out.push(`tl.fromTo("#${id}",{scale:0.965,y:12},{scale:1,y:0,duration:0.55,ease:"power3.out"},${r(T)});`);
+    if (cut === "whip") out.push(`tl.fromTo("#${id}",{xPercent:16,filter:"blur(10px)",scale:${s1}},{xPercent:0,filter:"blur(0px)",scale:${s1},duration:0.5,ease:"power3.out"},${r(T)});`);
+    else if (cut === "wipe" || cut === "push") out.push(`tl.fromTo("#${id}",{xPercent:${(i + seed) % 2 === 0 ? 20 : -20},scale:${s1}},{xPercent:0,scale:${s1},duration:0.45,ease:"power4.out"},${r(T + 0.04)});`);
+    else if (cut === "flash") out.push(`tl.fromTo("#${id}",{scale:${sk(1.08)}},{scale:${s1},duration:0.6,ease:"power3.out"},${r(T)});`);
+    else if (cut === "wash") out.push(`tl.fromTo("#${id}",{y:30,filter:"blur(6px)",scale:${s1}},{y:0,filter:"blur(0px)",scale:${s1},duration:0.55,ease:"power2.out"},${r(T)});`);
+    else if (cut === "panel") out.push(`tl.fromTo("#${id}",{yPercent:7,scale:${s1}},{yPercent:0,scale:${s1},duration:0.55,ease:"power3.out"},${r(T + 0.04)});`);
+    else if (cut === "iris") out.push(`tl.fromTo("#${id}",{scale:${sk(0.94)}},{scale:${s1},duration:0.5,ease:"power2.out"},${r(T + 0.04)});`);
+    else out.push(`tl.fromTo("#${id}",{scale:${sk(0.965)},y:12},{scale:${s1},y:0,duration:0.55,ease:"power3.out"},${r(T)});`);
   }
   // -- exit (last scene holds)
   if (!p.ctx.isLast) {
@@ -370,8 +415,34 @@ function sceneMotion(p, motion, seed, total) {
   let de = r(T + L - (p.ctx.isLast ? 0 : 0.4)); // before the exit begins
   if (de - ds < 0.6) { ds = r(T); de = r(T + L); } // pathologically short scene: full span
   const panX = ((i + seed) % 3 - 1) * 0.6;  // -0.6 / 0 / +0.6 %
-  const drift = `tl.fromTo("#${id}",{scale:1,xPercent:0},{scale:${motion.drift},xPercent:${panX},duration:${r(de - ds)},ease:"none"},${ds});`;
+  // push-in scenes drift 1 → K; pull-out scenes settle K → 1 (arrival zoomed).
+  const drift = zoomOut
+    ? `tl.fromTo("#${id}",{scale:${K},xPercent:0},{scale:1,xPercent:${panX},duration:${r(de - ds)},ease:"none"},${ds});`
+    : `tl.fromTo("#${id}",{scale:1,xPercent:0},{scale:${K},xPercent:${panX},duration:${r(de - ds)},ease:"none"},${ds});`;
   return [drift, ...out].join("\n");
+}
+
+// PER-SCENE LIGHT SOURCE (showcase grammar: every scene owns its own light).
+// The reference master gives each scene a `.cam` glow and amazon-premium a
+// `.hero-glow` — a seeded blurred radial that fades in WITH the scene and
+// drifts slowly opposite the camera pan (parallax depth). Gradient packs only;
+// injected as the scene clip's very first child so all content paints above.
+function buildSceneLight(ctx) {
+  const { theme, id, T, L, dims, seed, sceneIndex } = ctx;
+  const W = dims.width, H = dims.height;
+  const i = sceneIndex || 0;
+  const spots = [[26, 26], [70, 30], [30, 66], [66, 60]];   // seeded anchor slots
+  const [lx, ly] = spots[(seed + i) % spots.length];
+  const col = (i % 2 === 0) ? theme.accent : (theme.accent2 || theme.accent);
+  const gw = Math.round(W * 0.46), gh = Math.round(H * 0.52);
+  const dx = ((i + seed) % 3 - 1) * -8;                     // opposite the scene panX
+  const pid = `${id}lite`;
+  const html = `<div id="${pid}" class="kflight" data-layout-allow-occlusion style="position:absolute;left:${lx}%;top:${ly}%;width:${gw}px;height:${gh}px;margin-left:-${Math.round(gw / 2)}px;margin-top:-${Math.round(gh / 2)}px;border-radius:50%;filter:blur(${Math.round(H * 0.05)}px);background:radial-gradient(circle,${rgba(col, 0.30)},transparent 70%);opacity:0;pointer-events:none;"></div>`;
+  const script = [
+    `tl.fromTo("#${pid}",{opacity:0,scale:0.82},{opacity:1,scale:1,duration:0.8,ease:"sine.out"},${r(T + 0.05)});`,
+    `tl.to("#${pid}",{xPercent:${dx},yPercent:${dx === 0 ? -7 : Math.round(dx * -0.75)},duration:${r(Math.max(1.2, L - 1.0))},ease:"sine.inOut"},${r(T + 0.9)});`,
+  ].join("\n");
+  return { html, script };
 }
 
 // Background depth stack — persistent, tracks 0–3, full duration, never exits.
@@ -400,6 +471,8 @@ function buildCanvasFx(theme, dims, D, seed, framePack) {
   const A = rgba(theme.accent, 1).replace(",1)", ",%A%)");
   const B = rgba(theme.accent2 || theme.accent, 1).replace(",1)", ",%A%)");
   const I = rgba(theme.ink, 1).replace(",1)", ",%A%)");
+  const X0 = rgba((theme.extras && theme.extras[0]) || theme.accent2 || theme.accent, 1).replace(",1)", ",%A%)");
+  const X1 = rgba((theme.extras && theme.extras[1]) || theme.accent, 1).replace(",1)", ",%A%)");
   const col = (tpl, a) => tpl.replace("%A%", a);
   const html = `<canvas id="kffx" width="${W}" height="${H}" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;"></canvas>`;
 
@@ -449,6 +522,43 @@ function buildCanvasFx(theme, dims, D, seed, framePack) {
     paint =
       `for(var i=0;i<RB.length;i++){var rb=RB[i];cx.strokeStyle=rb[0];cx.lineWidth=rb[3];cx.lineCap="round";cx.beginPath();` +
       `for(var x=-20;x<=W+20;x+=16){var y=rb[1]+Math.sin(x*.006+t*rb[2]+i*2.1)*${(H * 0.06).toFixed(0)}+Math.sin(x*.0017+t*.3)*${(H * 0.035).toFixed(0)};if(x<0)cx.moveTo(x,y);else cx.lineTo(x,y);}cx.stroke();}`;
+  } else if (mode === "sprinkle") {
+    // Bright explainer backdrop — a field of bold accent shapes (dots, rings,
+    // triangles, diamonds, squares) drifting up and rotating on the light ground.
+    init = `var SP=[],SC=[${JSON.stringify(col(A, ".8"))},${JSON.stringify(col(B, ".75"))},${JSON.stringify(col(X0, ".75"))},${JSON.stringify(col(X1, ".8"))}];for(var i=0;i<30;i++)SP.push({x:rnd()*W,y:rnd()*H,s:8+rnd()*18,w:(rnd()-.5)*.8,sp:8+rnd()*15,p:rnd()*6.28,t:i%5,c:i%4});`;
+    paint =
+      `for(var i=0;i<SP.length;i++){var f=SP[i],y=((f.y-t*f.sp)%(H+60)+H+60)%(H+60)-30,x=f.x+Math.sin(t*.4+f.p)*20;` +
+      `cx.save();cx.translate(x,y);cx.rotate(t*f.w+f.p);cx.fillStyle=SC[f.c];cx.strokeStyle=SC[f.c];cx.lineWidth=Math.max(2.5,f.s*.16);var s=f.s;` +
+      `if(f.t===0){cx.beginPath();cx.arc(0,0,s*.5,0,6.283);cx.fill();}` +
+      `else if(f.t===1){cx.beginPath();cx.arc(0,0,s*.5,0,6.283);cx.stroke();}` +
+      `else if(f.t===2){cx.beginPath();cx.moveTo(0,-s*.55);cx.lineTo(s*.5,s*.42);cx.lineTo(-s*.5,s*.42);cx.closePath();cx.fill();}` +
+      `else if(f.t===3){cx.beginPath();cx.moveTo(0,-s*.55);cx.lineTo(s*.5,0);cx.lineTo(0,s*.55);cx.lineTo(-s*.5,0);cx.closePath();cx.fill();}` +
+      `else{cx.fillRect(-s*.4,-s*.4,s*.8,s*.8);}` +
+      `cx.restore();}`;
+  } else if (mode === "halftone") {
+    // Print halftone — a grid of two-ink dots whose radius pulses on a slow
+    // diagonal wave. The risograph/poster texture, on the paper ground.
+    init = `var HG=${Math.round(Math.max(W, H) / 30)},HC=[${JSON.stringify(col(A, ".32"))},${JSON.stringify(col(B, ".28"))}];`;
+    paint = `for(var gy=HG*0.5;gy<H;gy+=HG){for(var gx=HG*0.5;gx<W;gx+=HG){var wv=Math.sin((gx*0.9+gy)*0.0038-t*0.5);var rr=(HG*0.14)*(0.45+0.55*wv);if(rr<0.5)continue;cx.fillStyle=((((gx/HG)|0)+((gy/HG)|0))%2)?HC[0]:HC[1];cx.beginPath();cx.arc(gx,gy,rr,0,6.283);cx.fill();}}`;
+  } else if (mode === "paper") {
+    // Notebook page — static ruled lines + a red double margin line, plus small
+    // hand-drawn pen marks (x / o / + / squiggle) drifting up and wobbling like
+    // idle doodles. The sketchnote ground.
+    init =
+      `var RG=${Math.round(H / 16)},MX=${Math.round(W * 0.062)},RC=${JSON.stringify(col(X0, ".13"))},MC=${JSON.stringify(col(A, ".25"))},` +
+      `PM=[],PC=[${JSON.stringify(col(A, ".38"))},${JSON.stringify(col(X0, ".38"))},${JSON.stringify(col(X1, ".4"))},${JSON.stringify(col(I, ".28"))}];` +
+      `for(var i=0;i<16;i++)PM.push({x:rnd()*W,y:rnd()*H,s:6+rnd()*8,sp:5+rnd()*9,w:(rnd()-.5)*.7,p:rnd()*6.28,t:i%4,c:i%4});`;
+    paint =
+      `cx.strokeStyle=RC;cx.lineWidth=1.5;for(var ry=RG;ry<H;ry+=RG){cx.beginPath();cx.moveTo(0,ry);cx.lineTo(W,ry);cx.stroke();}` +
+      `cx.strokeStyle=MC;cx.lineWidth=2;cx.beginPath();cx.moveTo(MX,0);cx.lineTo(MX,H);cx.stroke();cx.beginPath();cx.moveTo(MX+7,0);cx.lineTo(MX+7,H);cx.stroke();` +
+      `cx.lineWidth=2.5;cx.lineCap="round";` +
+      `for(var i=0;i<PM.length;i++){var m=PM[i],my=((m.y-t*m.sp)%(H+40)+H+40)%(H+40)-20,mx=m.x+Math.sin(t*.4+m.p)*10;` +
+      `cx.save();cx.translate(mx,my);cx.rotate(Math.sin(t*m.w*3+m.p)*.25);cx.strokeStyle=PC[m.c];var s=m.s;cx.beginPath();` +
+      `if(m.t===0){cx.moveTo(-s,-s);cx.lineTo(s,s);cx.moveTo(s,-s);cx.lineTo(-s,s);}` +
+      `else if(m.t===1){cx.arc(0,0,s,0,6.283);}` +
+      `else if(m.t===2){cx.moveTo(-s,0);cx.lineTo(s,0);cx.moveTo(0,-s);cx.lineTo(0,s);}` +
+      `else{cx.moveTo(-s,0);cx.quadraticCurveTo(-s*.5,-s,0,0);cx.quadraticCurveTo(s*.5,s,s,0);}` +
+      `cx.stroke();cx.restore();}`;
   } else { // bokeh
     init = `var BK=[],KC=[${JSON.stringify(col(A, ".3"))},${JSON.stringify(col(B, ".24"))}];for(var i=0;i<24;i++)BK.push({x:rnd()*W,y:rnd()*H,r:5+rnd()*22,s:.2+rnd()*.7,p:rnd()*6.28,c:i%2});`;
     paint = `for(var i=0;i<BK.length;i++){var b=BK[i],y=(b.y-t*7*b.s%H+H)%H,x=b.x+Math.sin(t*b.s*.7+b.p)*22;var g=cx.createRadialGradient(x,y,0,x,y,b.r);g.addColorStop(0,KC[b.c]);g.addColorStop(1,"rgba(0,0,0,0)");cx.globalAlpha=.5+.5*Math.sin(t*.9+b.p)*.4;cx.fillStyle=g;cx.beginPath();cx.arc(x,y,b.r,0,6.283);cx.fill();}cx.globalAlpha=1;`;
@@ -787,6 +897,331 @@ function buildSkinOrnaments(kind, ctx, framePack) {
       sv.push(`<circle class="${pid}r" cx="${cxp}" cy="${cyp}" r="${rr}" fill="none" stroke="${rgba(B, 0.6)}" stroke-width="2" stroke-dasharray="12 30" stroke-linecap="round"/>`);
       sc.push(`tl.to("#${id} .${pid}r",{rotation:160,transformOrigin:"${cxp}px ${cyp}px",duration:${L},ease:"none"},${T});`);
     }
+  } else if (framePack === "nova-launch") {
+    // NOVA LAUNCH — a live product-reveal HUD on every scene: drawing corner
+    // brackets, a glowing laser scan sweep, a rotating telemetry ring with an
+    // orbiting node, and a small DOM data-constellation (dots + connectors). On
+    // proof beats it adds real animated data-viz — a climbing bar chart, a drawing
+    // trend line, a sweeping radial gauge — and the CTA closes a 100% ring with a
+    // particle burst. Dense motion-graphics furniture, all margin-placed so it
+    // orbits the headline instead of fighting it.
+    const bl = Math.round(W * 0.026);
+    const corners = [
+      `M${bl * 2} ${bl}H${bl}V${bl * 2}`,
+      `M${W - bl * 2} ${bl}H${W - bl}V${bl * 2}`,
+      `M${bl * 2} ${H - bl}H${bl}V${H - bl * 2}`,
+      `M${W - bl * 2} ${H - bl}H${W - bl}V${H - bl * 2}`,
+    ];
+    corners.forEach((d, i) => sv.push(`<path class="${pid}k" d="${d}" fill="none" stroke="${i % 2 ? B : A}" stroke-width="2.5" opacity=".55" stroke-dasharray="170" stroke-dashoffset="170"/>`));
+    sc.push(`tl.to("#${id} .${pid}k",{strokeDashoffset:0,duration:.6,stagger:.08,ease:"power2.out"},${s0(0.3)});`);
+    // glowing laser scan sweep — a thin vertical line crossing the frame once
+    dv.push(`<div class="${pid}sw" style="position:absolute;top:0;bottom:0;left:0;width:2px;background:linear-gradient(180deg,transparent,${rgba(A, 0.9)},transparent);box-shadow:0 0 16px ${rgba(A, 0.85)};transform:translateX(-30px);"></div>`);
+    sc.push(`tl.fromTo("#${id} .${pid}sw",{x:-30},{x:${W + 30},duration:${Math.min(2.8, Math.max(1.4, L - 0.5))},ease:"sine.inOut"},${s0(0.5)});`);
+    // rotating dashed telemetry ring + orbiting node, top-margin corner
+    const rcx = Math.round(W * (seed % 2 ? 0.12 : 0.88)), rcy = Math.round(H * 0.2), rr0 = Math.round(H * 0.09);
+    sv.push(`<circle class="${pid}o" cx="${rcx}" cy="${rcy}" r="${rr0}" fill="none" stroke="${rgba(X0, 0.5)}" stroke-width="1.5" stroke-dasharray="3 8"/>`);
+    sv.push(`<circle class="${pid}od" cx="${rcx + rr0}" cy="${rcy}" r="4" fill="${X1}"/>`);
+    sc.push(`tl.to("#${id} .${pid}o",{rotation:360,transformOrigin:"${rcx}px ${rcy}px",duration:16,ease:"none",repeat:reps(16)},0);`);
+    sc.push(`tl.fromTo("#${id} .${pid}od",{scale:0,transformOrigin:"50% 50%"},{scale:1,duration:.5,ease:"back.out(2)"},${s0(0.7)});`);
+    // DOM data-constellation echo — dots joined by thin connectors, bottom corner
+    const dcx = Math.round(W * (seed % 2 ? 0.9 : 0.1) - W * 0.05), dcy = Math.round(H * 0.78);
+    sv.push(`<path class="${pid}n" d="M${dcx} ${dcy} L${dcx + 44} ${dcy - 28} L${dcx + 76} ${dcy + 16} M${dcx + 44} ${dcy - 28} L${dcx + 26} ${dcy + 46}" fill="none" stroke="${rgba(X0, 0.45)}" stroke-width="1.5" stroke-dasharray="240" stroke-dashoffset="240"/>`);
+    const nodes = [[0, 0], [44, -28], [76, 16], [26, 46]];
+    nodes.forEach(([nx, ny], i) => sv.push(`<circle class="${pid}nd" cx="${dcx + nx}" cy="${dcy + ny}" r="${i === 0 ? 4 : 2.5}" fill="${[A, B, X1, X0][i]}"/>`));
+    sc.push(`tl.to("#${id} .${pid}n",{strokeDashoffset:0,duration:.8,ease:"power2.out"},${s0(0.5)});`);
+    sc.push(`tl.fromTo("#${id} .${pid}nd",{scale:0,transformOrigin:"50% 50%"},{scale:1,duration:.4,stagger:.06,ease:"back.out(2)"},${s0(0.6)});`);
+
+    if (kind === "stat" || kind === "text") {
+      // climbing bar chart + drawing trend line (the launch's proof, abstracted)
+      const nb = 6, bw = Math.round(W * 0.026), gap = Math.round(W * 0.016);
+      const chartX = Math.round(W * 0.63), base = Math.round(H * 0.8);
+      const frac = [0.30, 0.46, 0.38, 0.64, 0.80, 1.0];
+      const tops = [];
+      frac.forEach((f, i) => {
+        const h = Math.round(H * 0.26 * f), x = chartX + i * (bw + gap), y = base - h;
+        sv.push(`<rect class="${pid}b" x="${x}" y="${y}" width="${bw}" height="${h}" rx="3" fill="${rgba(i === nb - 1 ? A : B, i === nb - 1 ? 0.9 : 0.5)}"/>`);
+        tops.push(`${x + Math.round(bw / 2)},${y - 10}`);
+      });
+      sv.push(`<line x1="${chartX - 8}" y1="${base}" x2="${chartX + nb * (bw + gap)}" y2="${base}" stroke="${rgba(theme.ink, 0.25)}" stroke-width="1.5"/>`);
+      sv.push(`<polyline class="${pid}t" points="${tops.join(" ")}" fill="none" stroke="${X1}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="760" stroke-dashoffset="760"/>`);
+      sc.push(`tl.fromTo("#${id} .${pid}b",{scaleY:0,transformOrigin:"50% 100%"},{scaleY:1,duration:.6,stagger:.08,ease:"power3.out"},${s0(0.6)});`);
+      sc.push(`tl.to("#${id} .${pid}t",{strokeDashoffset:0,duration:1.0,ease:"power2.inOut"},${s0(1.0)});`);
+    }
+    if (kind === "hook") {
+      // radial gauge sweeping to ~75% — a "loading the launch" HUD read
+      const gx = Math.round(W * 0.85), gy = Math.round(H * 0.74), gr = Math.round(H * 0.1);
+      const circ = Math.round(2 * Math.PI * gr);
+      sv.push(`<circle cx="${gx}" cy="${gy}" r="${gr}" fill="none" stroke="${rgba(theme.ink, 0.16)}" stroke-width="6"/>`);
+      sv.push(`<circle class="${pid}g" cx="${gx}" cy="${gy}" r="${gr}" fill="none" stroke="${A}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${circ}" transform="rotate(-90 ${gx} ${gy})"/>`);
+      sc.push(`tl.to("#${id} .${pid}g",{strokeDashoffset:${Math.round(circ * 0.25)},duration:1.2,ease:"power2.out"},${s0(0.6)});`);
+    }
+    if (kind === "cta") {
+      // completion ring closing to 100% + a compact particle burst
+      const gx = Math.round(W * 0.5), gy = Math.round(H * 0.44), gr = Math.round(H * 0.16);
+      const circ = Math.round(2 * Math.PI * gr);
+      sv.push(`<circle class="${pid}g" cx="${gx}" cy="${gy}" r="${gr}" fill="none" stroke="${A}" stroke-width="4" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${circ}" transform="rotate(-90 ${gx} ${gy})" opacity=".7"/>`);
+      sc.push(`tl.to("#${id} .${pid}g",{strokeDashoffset:0,duration:1.1,ease:"power2.inOut"},${s0(0.5)});`);
+      const CC = [A, B, X0, X1];
+      for (let i = 0; i < 10; i++) sv.push(`<circle class="${pid}p" cx="${gx}" cy="${gy}" r="${4 + (i % 3)}" fill="${CC[i % 4]}"/>`);
+      const dx = [190, -210, 140, -160, 230, -110, 80, -250, 170, -190], dy = [-150, -110, 170, 140, 30, -190, -230, 50, 120, -70];
+      sc.push(`var ${pid}dx=${JSON.stringify(dx)},${pid}dy=${JSON.stringify(dy)};`);
+      sc.push(`tl.fromTo("#${id} .${pid}p",{x:0,y:0,scale:0,opacity:1},{x:function(i){return ${pid}dx[i];},y:function(i){return ${pid}dy[i];},scale:1,opacity:.9,duration:1.0,ease:"power3.out",stagger:.03},${s0(Math.max(0.6, L - 1.8))});`);
+      sc.push(`tl.to("#${id} .${pid}p",{opacity:0,duration:.5},${r(T + Math.max(1.4, L - 0.5))});`);
+    }
+  } else if (framePack === "lumen-motion") {
+    // LUMEN MOTION — a bright animated explainer. Every scene fills the frame with
+    // hand-drawn animated vectors that narrate the story: a floating shape field on
+    // all scenes, then a launching ROCKET (hook), a line GRAPH whose points pop in
+    // and connect (stat), turning GEARS + drawing CHECKMARKS (feature), and a
+    // clicking CURSOR + CONFETTI burst (cta). Bold filled accent shapes on paper;
+    // all margin/lower-band placed so the centered headline stays the hero.
+    const INK = theme.ink;
+    const COLZ = [A, B, X0, X1];
+    const pt = (x, y) => `${Math.round(x)},${Math.round(y)}`;
+
+    // -- shape-confetti field (all scenes): bold shapes popped in then floating ----
+    const field = [
+      [7, 12, 34, 0, 0], [16, 27, 22, 3, 1], [6, 45, 26, 2, 2], [11, 64, 30, 1, 3],
+      [5, 83, 24, 4, 0], [20, 90, 20, 0, 2], [90, 11, 30, 2, 1], [94, 29, 22, 3, 3],
+      [88, 49, 26, 1, 0], [93, 70, 32, 0, 2], [85, 87, 22, 4, 1], [79, 17, 18, 3, 2],
+      [50, 7, 20, 0, 3], [50, 93, 24, 1, 1],
+    ];
+    field.forEach(([fx, fy, s, ty, ci]) => {
+      const x = Math.round(W * fx / 100), y = Math.round(H * fy / 100), c = COLZ[ci];
+      if (ty === 0) sv.push(`<circle class="${pid}f" cx="${x}" cy="${y}" r="${Math.round(s / 2)}" fill="${c}"/>`);
+      else if (ty === 1) sv.push(`<circle class="${pid}f" cx="${x}" cy="${y}" r="${Math.round(s / 2)}" fill="none" stroke="${c}" stroke-width="${Math.max(3, Math.round(s * 0.16))}"/>`);
+      else if (ty === 2) sv.push(`<polygon class="${pid}f" points="${pt(x, y - s * 0.55)} ${pt(x + s * 0.5, y + s * 0.42)} ${pt(x - s * 0.5, y + s * 0.42)}" fill="${c}"/>`);
+      else if (ty === 3) sv.push(`<polygon class="${pid}f" points="${pt(x, y - s * 0.5)} ${pt(x + s * 0.5, y)} ${pt(x, y + s * 0.5)} ${pt(x - s * 0.5, y)}" fill="${c}"/>`);
+      else sv.push(`<rect class="${pid}f" x="${Math.round(x - s * 0.4)}" y="${Math.round(y - s * 0.4)}" width="${Math.round(s * 0.8)}" height="${Math.round(s * 0.8)}" rx="${Math.round(s * 0.14)}" fill="${c}"/>`);
+    });
+    sc.push(`tl.fromTo("#${id} .${pid}f",{scale:0,transformOrigin:"50% 50%"},{scale:1,duration:.5,stagger:.04,ease:"back.out(2.4)"},${s0(0.15)});`);
+    sc.push(`tl.to("#${id} .${pid}f",{y:"-=14",rotation:"+=16",duration:2.4,ease:"sine.inOut",yoyo:true,repeat:${Math.max(1, Math.floor((L - 0.6) / 2.4))},stagger:.08},${s0(0.8)});`);
+
+    if (kind === "hook") {
+      // ROCKET lifting off in the lower-centre — clear of the left-anchored hook
+      // headline and any right-side product-card prop-fill.
+      const rx = Math.round(W * 0.42), ry = Math.round(H * 0.72);
+      const bw = Math.round(W * 0.05), bh = Math.round(H * 0.2);
+      const g = [];
+      g.push(`<rect x="${Math.round(rx - bw / 2)}" y="${Math.round(ry - bh / 2)}" width="${bw}" height="${bh}" rx="${Math.round(bw / 2)}" fill="${A}"/>`);
+      g.push(`<path d="M${Math.round(rx - bw / 2)} ${Math.round(ry - bh / 2 + 4)} Q ${rx} ${Math.round(ry - bh / 2 - bh * 0.34)} ${Math.round(rx + bw / 2)} ${Math.round(ry - bh / 2 + 4)} Z" fill="${B}"/>`);
+      g.push(`<circle cx="${rx}" cy="${Math.round(ry - bh * 0.18)}" r="${Math.round(bw * 0.26)}" fill="${theme.ground}" stroke="${B}" stroke-width="5"/>`);
+      g.push(`<path d="M${Math.round(rx - bw / 2)} ${Math.round(ry + bh * 0.2)} L${Math.round(rx - bw)} ${Math.round(ry + bh / 2 + bh * 0.06)} L${Math.round(rx - bw / 2)} ${Math.round(ry + bh / 2)} Z" fill="${X1}"/>`);
+      g.push(`<path d="M${Math.round(rx + bw / 2)} ${Math.round(ry + bh * 0.2)} L${Math.round(rx + bw)} ${Math.round(ry + bh / 2 + bh * 0.06)} L${Math.round(rx + bw / 2)} ${Math.round(ry + bh / 2)} Z" fill="${X1}"/>`);
+      sv.push(`<g class="${pid}rk">${g.join("")}</g>`);
+      sv.push(`<path class="${pid}fl" d="M${Math.round(rx - bw * 0.28)} ${Math.round(ry + bh / 2)} Q ${rx} ${Math.round(ry + bh / 2 + bh * 0.5)} ${Math.round(rx + bw * 0.28)} ${Math.round(ry + bh / 2)} Z" fill="${X0}"/>`);
+      for (let i = 0; i < 8; i++) sv.push(`<circle class="${pid}bs" cx="${rx}" cy="${Math.round(ry + bh * 0.2)}" r="${6 + (i % 3) * 2}" fill="${COLZ[i % 4]}"/>`);
+      for (let i = 0; i < 3; i++) sv.push(`<line class="${pid}sl" x1="${Math.round(rx - bw * 0.6 + i * bw * 0.6)}" y1="${Math.round(ry + bh)}" x2="${Math.round(rx - bw * 0.6 + i * bw * 0.6)}" y2="${Math.round(ry + bh + 46)}" stroke="${rgba(INK, 0.28)}" stroke-width="4" stroke-linecap="round"/>`);
+      sc.push(`tl.fromTo("#${id} .${pid}rk",{y:220,opacity:0},{y:0,opacity:1,duration:1.1,ease:"back.out(1.4)"},${s0(0.3)});`);
+      sc.push(`tl.to("#${id} .${pid}rk",{y:-16,rotation:2.5,transformOrigin:"50% 100%",duration:1.6,ease:"sine.inOut",yoyo:true,repeat:${Math.max(1, Math.floor((L - 1.4) / 1.6))}},${s0(1.4)});`);
+      sc.push(`tl.fromTo("#${id} .${pid}fl",{scaleY:0,opacity:0,transformOrigin:"50% 0%"},{scaleY:1,opacity:1,duration:.4,ease:"power2.out"},${s0(1.1)});`);
+      sc.push(`tl.to("#${id} .${pid}fl",{scaleY:1.4,transformOrigin:"50% 0%",duration:.16,ease:"sine.inOut",yoyo:true,repeat:${Math.min(30, Math.max(4, Math.floor(L / 0.16)))}},${s0(1.4)});`);
+      sc.push(`tl.fromTo("#${id} .${pid}bs",{scale:0,opacity:1,transformOrigin:"50% 50%"},{scale:1,x:function(i){return Math.cos(i/8*6.283)*64;},y:function(i){return Math.sin(i/8*6.283)*64+44;},opacity:0,duration:.9,stagger:.02,ease:"power2.out"},${s0(1.0)});`);
+      sc.push(`tl.fromTo("#${id} .${pid}sl",{scaleY:0,opacity:.6,transformOrigin:"50% 0%"},{scaleY:1,opacity:0,duration:.5,stagger:.06,ease:"power1.out",repeat:${Math.min(20, Math.max(3, Math.floor(L / 0.5)))}},${s0(1.4)});`);
+    }
+    if (kind === "stat") {
+      // LINE GRAPH THAT JOINS POINTS — nodes pop in, then the line draws to connect
+      const gx0 = Math.round(W * 0.12), gx1 = Math.round(W * 0.88), gyB = Math.round(H * 0.9), gTop = Math.round(H * 0.62);
+      const n = 6, fr = [0.15, 0.4, 0.3, 0.62, 0.78, 1.0];
+      const P2 = fr.map((f, i) => ({ x: Math.round(gx0 + (gx1 - gx0) * i / (n - 1)), y: Math.round(gyB - (gyB - gTop) * f) }));
+      sv.push(`<line x1="${gx0 - 20}" y1="${gyB}" x2="${gx1 + 20}" y2="${gyB}" stroke="${rgba(INK, 0.25)}" stroke-width="3" stroke-linecap="round"/>`);
+      sv.push(`<line x1="${gx0 - 20}" y1="${gyB}" x2="${gx0 - 20}" y2="${gTop - 20}" stroke="${rgba(INK, 0.18)}" stroke-width="3" stroke-linecap="round"/>`);
+      P2.forEach((p, i) => sv.push(`<rect class="${pid}bar" x="${p.x - 10}" y="${p.y}" width="20" height="${gyB - p.y}" rx="5" fill="${rgba(COLZ[i % 4], 0.18)}"/>`));
+      const areaPts = `${pt(P2[0].x, gyB)} ` + P2.map((p) => pt(p.x, p.y)).join(" ") + ` ${pt(P2[n - 1].x, gyB)}`;
+      sv.push(`<polygon class="${pid}area" points="${areaPts}" fill="${rgba(B, 0.16)}" opacity="0"/>`);
+      sv.push(`<polyline class="${pid}line" points="${P2.map((p) => pt(p.x, p.y)).join(" ")}" fill="none" stroke="${B}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2800" stroke-dashoffset="2800"/>`);
+      P2.forEach((p) => sv.push(`<circle class="${pid}nd" cx="${p.x}" cy="${p.y}" r="10" fill="${theme.ground}" stroke="${A}" stroke-width="5"/>`));
+      sc.push(`tl.fromTo("#${id} .${pid}bar",{scaleY:0,transformOrigin:"50% 100%"},{scaleY:1,duration:.5,stagger:.07,ease:"power3.out"},${s0(0.5)});`);
+      sc.push(`tl.fromTo("#${id} .${pid}nd",{scale:0,transformOrigin:"50% 50%"},{scale:1,duration:.4,stagger:.12,ease:"back.out(2.6)"},${s0(0.7)});`);
+      sc.push(`tl.to("#${id} .${pid}line",{strokeDashoffset:0,duration:1.3,ease:"power1.inOut"},${s0(1.1)});`);
+      sc.push(`tl.to("#${id} .${pid}area",{opacity:1,duration:.8,ease:"power2.out"},${s0(1.9)});`);
+      sc.push(`tl.to("#${id} .${pid}nd",{scale:1.25,transformOrigin:"50% 50%",duration:.9,ease:"sine.inOut",yoyo:true,repeat:${Math.max(1, Math.floor((L - 2.2) / 0.9))},stagger:.1},${s0(2.3)});`);
+    }
+    if (kind === "text") {
+      // GEARS (left) turning + CHECKLIST (right) drawing + a flow line between them
+      const gearPoly = (gx, gy, rO, teeth) => {
+        const rI = rO * 0.82, out = [], steps = teeth * 2;
+        for (let i = 0; i < steps; i++) { const ang = (i / steps) * Math.PI * 2, rr = i % 2 === 0 ? rO : rI; out.push(pt(gx + Math.cos(ang) * rr, gy + Math.sin(ang) * rr)); }
+        return out.join(" ");
+      };
+      // lower-left cluster, clear of the centred headline; interlocking
+      const g1x = Math.round(W * 0.15), g1y = Math.round(H * 0.66), gr = Math.round(H * 0.1);
+      const g2x = Math.round(g1x + gr * 1.7), g2y = Math.round(g1y - gr * 0.85), gr2 = Math.round(gr * 0.72);
+      sv.push(`<g class="${pid}g1"><polygon points="${gearPoly(g1x, g1y, gr, 12)}" fill="${A}"/><circle cx="${g1x}" cy="${g1y}" r="${Math.round(gr * 0.34)}" fill="${theme.ground}"/></g>`);
+      sv.push(`<g class="${pid}g2"><polygon points="${gearPoly(g2x, g2y, gr2, 9)}" fill="${B}"/><circle cx="${g2x}" cy="${g2y}" r="${Math.round(gr2 * 0.34)}" fill="${theme.ground}"/></g>`);
+      // svgOrigin (user-space) so each gear rotates IN PLACE — px transformOrigin is
+      // bbox-relative for a <g> and would swing the gear out of position.
+      sc.push(`tl.fromTo("#${id} .${pid}g1",{scale:0},{scale:1,svgOrigin:"${g1x} ${g1y}",duration:.6,ease:"back.out(2)"},${s0(0.4)});`);
+      sc.push(`tl.fromTo("#${id} .${pid}g2",{scale:0},{scale:1,svgOrigin:"${g2x} ${g2y}",duration:.6,ease:"back.out(2)"},${s0(0.55)});`);
+      sc.push(`tl.to("#${id} .${pid}g1",{rotation:360,svgOrigin:"${g1x} ${g1y}",duration:9,ease:"none",repeat:reps(9)},${s0(1.0)});`);
+      sc.push(`tl.to("#${id} .${pid}g2",{rotation:-360,svgOrigin:"${g2x} ${g2y}",duration:7,ease:"none",repeat:reps(7)},${s0(1.0)});`);
+      const cxr = Math.round(W * 0.64), cw = Math.round(W * 0.26), rh = Math.round(H * 0.1), cy0 = Math.round(H * 0.32);
+      for (let i = 0; i < 3; i++) {
+        const ry2 = cy0 + i * (rh + Math.round(H * 0.03));
+        sv.push(`<rect class="${pid}row" x="${cxr}" y="${ry2}" width="${cw}" height="${rh}" rx="${Math.round(rh * 0.28)}" fill="${rgba(INK, 0.05)}" stroke="${rgba(INK, 0.1)}" stroke-width="2"/>`);
+        const chx = Math.round(cxr + rh * 0.55), chy = Math.round(ry2 + rh * 0.5), cr = Math.round(rh * 0.3);
+        sv.push(`<circle class="${pid}row" cx="${chx}" cy="${chy}" r="${cr}" fill="${COLZ[i % 4]}"/>`);
+        sv.push(`<path class="${pid}chk" d="M${Math.round(chx - cr * 0.5)} ${chy} l${Math.round(cr * 0.35)} ${Math.round(cr * 0.4)} l${Math.round(cr * 0.7)} -${Math.round(cr * 0.85)}" fill="none" stroke="${theme.ground}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="60" stroke-dashoffset="60"/>`);
+        sv.push(`<rect class="${pid}row" x="${Math.round(chx + cr + rh * 0.3)}" y="${chy - 6}" width="${Math.round(cw * 0.58)}" height="12" rx="6" fill="${rgba(INK, 0.22)}"/>`);
+      }
+      sc.push(`tl.fromTo("#${id} .${pid}row",{x:40,opacity:0},{x:0,opacity:1,duration:.5,stagger:.1,ease:"power3.out"},${s0(0.6)});`);
+      sc.push(`tl.to("#${id} .${pid}chk",{strokeDashoffset:0,duration:.4,stagger:.18,ease:"power2.out"},${s0(1.2)});`);
+      // flow line from the gear cluster up to the checklist, with a travelling dot
+      const fSX = g2x + gr2, fSY = g2y, fEX = cxr - 20, fEY = Math.round(H * 0.5);
+      sv.push(`<line x1="${fSX}" y1="${fSY}" x2="${fEX}" y2="${fEY}" stroke="${rgba(INK, 0.25)}" stroke-width="3" stroke-dasharray="6 10"/>`);
+      sv.push(`<circle class="${pid}dot" cx="${fSX}" cy="${fSY}" r="8" fill="${X0}"/>`);
+      sc.push(`tl.fromTo("#${id} .${pid}dot",{x:0,y:0},{x:${fEX - fSX},y:${fEY - fSY},duration:1.4,ease:"power1.inOut",repeat:${Math.max(1, Math.floor((L - 1) / 1.4))}},${s0(1.0)});`);
+    }
+    if (kind === "cta") {
+      // CONFETTI burst + a CURSOR that clicks + an arrow pointing to the CTA
+      const cx = Math.round(W * 0.5), cy = Math.round(H * 0.5), CN = 14;
+      for (let i = 0; i < CN; i++) {
+        const c = COLZ[i % 4], ty = i % 3;
+        if (ty === 0) sv.push(`<circle class="${pid}cf" cx="${cx}" cy="${cy}" r="7" fill="${c}"/>`);
+        else if (ty === 1) sv.push(`<rect class="${pid}cf" x="${cx - 6}" y="${cy - 6}" width="12" height="12" rx="3" fill="${c}"/>`);
+        else sv.push(`<polygon class="${pid}cf" points="${pt(cx, cy - 8)} ${pt(cx + 7, cy + 5)} ${pt(cx - 7, cy + 5)}" fill="${c}"/>`);
+      }
+      const dxs = [], dys = [];
+      for (let i = 0; i < CN; i++) { const a = (i / CN) * Math.PI * 2; dxs.push(Math.round(Math.cos(a) * (210 + (i % 4) * 40))); dys.push(Math.round(Math.sin(a) * (150 + (i % 3) * 40))); }
+      sc.push(`var ${pid}dx=${JSON.stringify(dxs)},${pid}dy=${JSON.stringify(dys)};`);
+      sc.push(`tl.fromTo("#${id} .${pid}cf",{x:0,y:0,scale:0,opacity:1,transformOrigin:"50% 50%"},{x:function(i){return ${pid}dx[i];},y:function(i){return ${pid}dy[i];},scale:1,rotation:function(i){return (i%2?1:-1)*180;},opacity:.95,duration:1.0,ease:"power3.out",stagger:.02},${s0(Math.max(0.6, L - 2.0))});`);
+      sc.push(`tl.to("#${id} .${pid}cf",{y:"+=70",opacity:0,duration:.8,ease:"power1.in"},${s0(Math.max(1.4, L - 1.0))});`);
+      const curx = Math.round(W * 0.6), cury = Math.round(H * 0.64);
+      sv.push(`<g class="${pid}cur"><path d="M2 2 L2 50 L15 39 L23 55 L31 51 L23 36 L39 34 Z" fill="${INK}" stroke="${theme.ground}" stroke-width="2"/></g>`);
+      sc.push(`tl.set("#${id} .${pid}cur",{x:${curx + 140},y:${cury + 140},opacity:0});`);
+      sc.push(`tl.to("#${id} .${pid}cur",{x:${curx},y:${cury},opacity:1,duration:.8,ease:"power2.out"},${s0(0.4)});`);
+      sc.push(`tl.to("#${id} .${pid}cur",{scale:0.82,transformOrigin:"0% 0%",duration:.12,ease:"power2.in",yoyo:true,repeat:1},${s0(1.3)});`);
+      const ax0 = Math.round(W * 0.33), ay0 = Math.round(H * 0.72), ax1 = Math.round(W * 0.44), ay1 = Math.round(H * 0.57);
+      sv.push(`<path class="${pid}arr" d="M${ax0} ${ay0} Q ${ax0 - 30} ${ay1} ${ax1} ${ay1}" fill="none" stroke="${A}" stroke-width="5" stroke-linecap="round" stroke-dasharray="320" stroke-dashoffset="320"/>`);
+      sv.push(`<path class="${pid}arr" d="M${ax1} ${ay1} l-16 -3 M${ax1} ${ay1} l-9 13" fill="none" stroke="${A}" stroke-width="5" stroke-linecap="round" stroke-dasharray="44" stroke-dashoffset="44"/>`);
+      sc.push(`tl.to("#${id} .${pid}arr",{strokeDashoffset:0,duration:.8,ease:"power2.out"},${s0(0.7)});`);
+    }
+  } else if (framePack === "riso-press") {
+    // RISO PRESS — flat screen-print poster furniture: registration marks, big
+    // OVERPRINTING spot-ink circles (multiply blend), hard starbursts, block arrows
+    // and a solid block bar chart on proof beats. No gradients, no soft shadows.
+    const INK = theme.ink;
+    const pt = (x, y) => `${Math.round(x)},${Math.round(y)}`;
+    const star = (cx, cy, rO, rI, n) => { const o = []; for (let i = 0; i < n * 2; i++) { const a = (i / (n * 2)) * Math.PI * 2 - Math.PI / 2, rr = i % 2 ? rI : rO; o.push(pt(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr)); } return o.join(" "); };
+    const fatArrow = (cx, cy, len, th, hh) => `${pt(cx - len / 2, cy - th / 2)} ${pt(cx + len / 2 - hh, cy - th / 2)} ${pt(cx + len / 2 - hh, cy - th)} ${pt(cx + len / 2, cy)} ${pt(cx + len / 2 - hh, cy + th)} ${pt(cx + len / 2 - hh, cy + th / 2)} ${pt(cx - len / 2, cy + th / 2)}`;
+    [[6, 9], [94, 9], [6, 91], [94, 91]].forEach(([px, py]) => {
+      const x = Math.round(W * px / 100), y = Math.round(H * py / 100);
+      sv.push(`<g class="${pid}rg"><circle cx="${x}" cy="${y}" r="13" fill="none" stroke="${rgba(INK, 0.5)}" stroke-width="1.5"/><line x1="${x - 22}" y1="${y}" x2="${x + 22}" y2="${y}" stroke="${rgba(INK, 0.5)}" stroke-width="1.5"/><line x1="${x}" y1="${y - 22}" x2="${x}" y2="${y + 22}" stroke="${rgba(INK, 0.5)}" stroke-width="1.5"/></g>`);
+    });
+    sc.push(`tl.fromTo("#${id} .${pid}rg",{opacity:0},{opacity:1,duration:.4,stagger:.05},${s0(0.2)});`);
+    const stx = Math.round(W * (kind === "cta" ? 0.5 : 0.9)), sty = Math.round(H * (kind === "cta" ? 0.44 : 0.15)), stR = Math.round(H * 0.09);
+    sv.push(`<polygon class="${pid}st" points="${star(stx, sty, stR, stR * 0.5, 12)}" fill="${X0}" stroke="${INK}" stroke-width="3"/>`);
+    sc.push(`tl.fromTo("#${id} .${pid}st",{scale:0,transformOrigin:"50% 50%"},{scale:1,duration:.6,ease:"back.out(2)"},${s0(0.6)});`);
+    sc.push(`tl.to("#${id} .${pid}st",{rotation:360,svgOrigin:"${stx} ${sty}",duration:22,ease:"none",repeat:reps(22)},${s0(1.2)});`);
+    if (kind === "stat" || kind === "text") {
+      // solid block bar chart (thick outlined bars, alternating spot inks)
+      const bx0 = Math.round(W * 0.58), by = Math.round(H * 0.86), bw = Math.round(W * 0.045), bg = Math.round(W * 0.022);
+      const hts = [0.4, 0.72, 0.55, 1.0, 0.82], cols = [A, B, X0, A, B];
+      hts.forEach((f, i) => { const x = bx0 + i * (bw + bg), h = Math.round(H * 0.34 * f); sv.push(`<rect class="${pid}bar" x="${x}" y="${by - h}" width="${bw}" height="${h}" fill="${cols[i]}" stroke="${INK}" stroke-width="3"/>`); });
+      sv.push(`<line x1="${bx0 - 10}" y1="${by}" x2="${bx0 + 5 * (bw + bg)}" y2="${by}" stroke="${INK}" stroke-width="3"/>`);
+      sc.push(`tl.fromTo("#${id} .${pid}bar",{scaleY:0,transformOrigin:"50% 100%"},{scaleY:1,duration:.5,stagger:.09,ease:"power3.out"},${s0(0.8)});`);
+    } else {
+      // big overprinting spot-ink circles (multiply) on the right — text sits left
+      const ocx = Math.round(W * 0.76), ocy = Math.round(H * 0.5), oR = Math.round(H * 0.27);
+      sv.push(`<circle class="${pid}oc" cx="${Math.round(ocx - oR * 0.34)}" cy="${Math.round(ocy - oR * 0.18)}" r="${oR}" fill="${A}" opacity="0.9" style="mix-blend-mode:multiply"/>`);
+      sv.push(`<circle class="${pid}oc" cx="${Math.round(ocx + oR * 0.34)}" cy="${Math.round(ocy + oR * 0.18)}" r="${oR}" fill="${B}" opacity="0.9" style="mix-blend-mode:multiply"/>`);
+      sc.push(`tl.fromTo("#${id} .${pid}oc",{scale:0,transformOrigin:"50% 50%"},{scale:1,duration:.7,stagger:.12,ease:"back.out(1.4)"},${s0(0.3)});`);
+    }
+    // block arrow, lower-left, pointing right
+    sv.push(`<polygon class="${pid}ar" points="${fatArrow(Math.round(W * 0.17), Math.round(H * 0.8), Math.round(W * 0.14), Math.round(H * 0.028), Math.round(H * 0.05))}" fill="${B}" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/>`);
+    sc.push(`tl.fromTo("#${id} .${pid}ar",{x:-40,opacity:0},{x:0,opacity:1,duration:.5,ease:"power3.out"},${s0(0.8)});`);
+  } else if (framePack === "atelier") {
+    // ATELIER — elegant line-art: ONE continuous gold contour that draws itself, a
+    // thin drawn frame, a fine turning ring, a serif quotation ornament, and (proof)
+    // a single thin line chart. Minimal, hairline, lots of negative space.
+    const INK = theme.ink;
+    const cy0 = Math.round(H * 0.74);
+    const cpath = `M${Math.round(W * 0.06)} ${cy0} C ${Math.round(W * 0.28)} ${Math.round(cy0 - H * 0.14)}, ${Math.round(W * 0.42)} ${Math.round(cy0 + H * 0.12)}, ${Math.round(W * 0.6)} ${Math.round(cy0 - H * 0.02)} S ${Math.round(W * 0.86)} ${Math.round(cy0 - H * 0.16)}, ${Math.round(W * 0.94)} ${Math.round(cy0 - H * 0.05)}`;
+    sv.push(`<path class="${pid}ct" d="${cpath}" fill="none" stroke="${A}" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="3200" stroke-dashoffset="3200"/>`);
+    sc.push(`tl.to("#${id} .${pid}ct",{strokeDashoffset:0,duration:2.4,ease:"power1.inOut"},${s0(0.3)});`);
+    const fm = Math.round(W * 0.05), fT = Math.round(H * 0.09), peri = 2 * ((W - 2 * fm) + (H - 2 * fT));
+    sv.push(`<rect class="${pid}fr" x="${fm}" y="${fT}" width="${W - 2 * fm}" height="${H - 2 * fT}" fill="none" stroke="${rgba(INK, 0.26)}" stroke-width="1.5" stroke-dasharray="${peri}" stroke-dashoffset="${peri}"/>`);
+    sc.push(`tl.to("#${id} .${pid}fr",{strokeDashoffset:0,duration:2.0,ease:"power2.inOut"},${s0(0.4)});`);
+    const rcx = Math.round(W * 0.88), rcy = Math.round(H * 0.19), rr = Math.round(H * 0.08);
+    sv.push(`<circle class="${pid}ri" cx="${rcx}" cy="${rcy}" r="${rr}" fill="none" stroke="${rgba(A, 0.7)}" stroke-width="1.2" stroke-dasharray="4 10"/>`);
+    sc.push(`tl.fromTo("#${id} .${pid}ri",{scale:0,transformOrigin:"50% 50%"},{scale:1,duration:.8,ease:"power2.out"},${s0(0.6)});`);
+    sc.push(`tl.to("#${id} .${pid}ri",{rotation:360,svgOrigin:"${rcx} ${rcy}",duration:24,ease:"none",repeat:reps(24)},${s0(0.9)});`);
+    sv.push(`<text class="${pid}or" x="${Math.round(W * 0.09)}" y="${Math.round(H * 0.27)}" font-family="Georgia, serif" font-size="${Math.round(H * 0.17)}" fill="${rgba(B, 0.5)}">&#8220;</text>`);
+    sc.push(`tl.fromTo("#${id} .${pid}or",{opacity:0,y:12},{opacity:1,y:0,duration:.8,ease:"power2.out"},${s0(0.7)});`);
+    if (kind === "stat" || kind === "text") {
+      const gx0 = Math.round(W * 0.22), gx1 = Math.round(W * 0.78), gy = Math.round(H * 0.82), amp = Math.round(H * 0.22);
+      const fr2 = [0.15, 0.5, 0.32, 0.72, 0.95], n2 = 5;
+      const P3 = fr2.map((f, i) => ({ x: Math.round(gx0 + (gx1 - gx0) * i / (n2 - 1)), y: Math.round(gy - amp * f) }));
+      sv.push(`<polyline class="${pid}ln" points="${P3.map((p) => `${p.x},${p.y}`).join(" ")}" fill="none" stroke="${B}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1800" stroke-dashoffset="1800"/>`);
+      P3.forEach((p) => sv.push(`<circle class="${pid}nd" cx="${p.x}" cy="${p.y}" r="4" fill="${theme.ground}" stroke="${A}" stroke-width="2"/>`));
+      sc.push(`tl.to("#${id} .${pid}ln",{strokeDashoffset:0,duration:1.6,ease:"power1.inOut"},${s0(0.9)});`);
+      sc.push(`tl.fromTo("#${id} .${pid}nd",{scale:0,transformOrigin:"50% 50%"},{scale:1,duration:.4,stagger:.14,ease:"power2.out"},${s0(1.1)});`);
+    }
+  } else if (framePack === "brut-pop") {
+    // BRUT POP — neubrutalist stickers: every shape has a thick BLACK outline and a
+    // HARD offset shadow (a black copy offset behind it), rotated a few degrees,
+    // snapping in with overshoot then wobbling. Bordered bar chart on proof beats.
+    const INK = theme.ink;
+    const pt = (x, y) => `${Math.round(x)},${Math.round(y)}`;
+    const star = (cx, cy, rO, rI, n) => { const o = []; for (let i = 0; i < n * 2; i++) { const a = (i / (n * 2)) * Math.PI * 2 - Math.PI / 2, rr = i % 2 ? rI : rO; o.push(pt(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr)); } return o.join(" "); };
+    const OFF = Math.round(H * 0.012);
+    // shape generators: return the inner path/shape string at (x,y) with a fill
+    const shapes = {
+      star: (x, y, f) => `<polygon points="${star(x, y, H * 0.06, H * 0.03, 10)}" fill="%F" stroke="%S" stroke-width="4"/>`.replace("%F", f).replace("%S", INK),
+      bolt: (x, y, f) => `<polygon points="${pt(x - 10, y - 34)} ${pt(x + 14, y - 34)} ${pt(x - 2, y - 4)} ${pt(x + 12, y - 4)} ${pt(x - 14, y + 36)} ${pt(x - 4, y - 2)} ${pt(x - 18, y - 2)}" fill="${f}" stroke="${INK}" stroke-width="4" stroke-linejoin="round"/>`,
+      circ: (x, y, f) => `<circle cx="${x}" cy="${y}" r="${Math.round(H * 0.05)}" fill="${f}" stroke="${INK}" stroke-width="4"/>`,
+      bubble: (x, y, f) => `<path d="M${x - 44} ${y - 30} h88 a10 10 0 0 1 10 10 v30 a10 10 0 0 1 -10 10 h-58 l-18 20 v-20 h-12 a10 10 0 0 1 -10 -10 v-30 a10 10 0 0 1 10 -10 z" fill="${f}" stroke="${INK}" stroke-width="4" stroke-linejoin="round"/>`,
+      tag: (x, y, f) => `<rect x="${x - 40}" y="${y - 20}" width="80" height="40" rx="8" fill="${f}" stroke="${INK}" stroke-width="4"/>`,
+    };
+    const COLS = [A, B, X0, X1];
+    // placements per kind (margins, avoiding centred headline band 30-70% x, 38-62% y)
+    const layoutMap = {
+      // hook headline is left-anchored, so keep the left flank to the far corners
+      // only and fill the empty right half with stickers.
+      hook: [["star", 10, 16, 0, -8], ["circ", 9, 84, 1, 6], ["bolt", 68, 22, 2, 10], ["star", 90, 42, 3, 9], ["bubble", 82, 66, 0, -4], ["tag", 64, 82, 1, -7]],
+      stat: [["star", 9, 22, 0, -8], ["bolt", 91, 20, 1, 8], ["circ", 90, 76, 2, -6], ["star", 8, 78, 3, 7]],
+      text: [["bolt", 10, 24, 1, -9], ["star", 90, 22, 0, 8], ["tag", 88, 74, 2, -6], ["bubble", 12, 72, 3, 5]],
+      cta: [["star", 12, 22, 0, -10], ["bolt", 88, 22, 1, 10], ["circ", 14, 74, 2, 8], ["star", 86, 74, 3, -8], ["bubble", 50, 16, 0, 4], ["tag", 50, 86, 1, -4]],
+      asset: [["star", 9, 20, 0, -8], ["bolt", 91, 22, 1, 9]],
+    };
+    const items = layoutMap[kind] || layoutMap.asset;
+    items.forEach(([shp, px, py, ci, rot]) => {
+      const x = Math.round(W * px / 100), y = Math.round(H * py / 100), f = COLS[ci % 4];
+      const inner = shapes[shp](x, y, f);
+      // shadow = a black copy of the same shape, translated by OFF
+      const shadow = shapes[shp](x, y, INK).replace(/stroke-width="4"/, 'stroke-width="0"');
+      sv.push(`<g class="${pid}sk" data-rot="${rot}"><g transform="translate(${OFF},${OFF})">${shadow}</g>${inner}</g>`);
+    });
+    sc.push(`tl.fromTo("#${id} .${pid}sk",{scale:0,rotation:function(i,el){return +el.getAttribute("data-rot");},transformOrigin:"50% 50%"},{scale:1,rotation:function(i,el){return +el.getAttribute("data-rot");},duration:.5,stagger:.08,ease:"back.out(2.4)"},${s0(0.3)});`);
+    sc.push(`tl.to("#${id} .${pid}sk",{rotation:"+=5",duration:1.3,ease:"sine.inOut",yoyo:true,repeat:${Math.max(1, Math.floor((L - 0.8) / 1.3))},stagger:.09},${s0(1.1)});`);
+    if (kind === "stat" || kind === "text") {
+      // bordered bar chart with hard offset shadows
+      const bx0 = Math.round(W * 0.6), by = Math.round(H * 0.82), bw = Math.round(W * 0.05), bg = Math.round(W * 0.02);
+      const hts = [0.45, 0.72, 0.58, 1.0], cols = [A, B, X0, X1];
+      hts.forEach((f, i) => {
+        const x = bx0 + i * (bw + bg), h = Math.round(H * 0.3 * f);
+        sv.push(`<rect x="${x + OFF}" y="${by - h + OFF}" width="${bw}" height="${h}" fill="${INK}"/>`);
+        sv.push(`<rect class="${pid}bar" x="${x}" y="${by - h}" width="${bw}" height="${h}" fill="${cols[i]}" stroke="${INK}" stroke-width="4"/>`);
+      });
+      sc.push(`tl.fromTo("#${id} .${pid}bar",{scaleY:0,transformOrigin:"50% 100%"},{scaleY:1,duration:.5,stagger:.1,ease:"back.out(1.6)"},${s0(0.8)});`);
+    }
+  } else if (framePack === "sketchnote") {
+    // SKETCHNOTE — hand-drawn doodle journal, in its own module (same pattern as
+    // the terminal packs): washi tape, sparkle stars, spiral, ink splats, margin
+    // ticks on every scene; lightbulb + paper plane (hook), wobbly hand graph +
+    // bullseye (stat), checklist + coffee steam (text), bunting + pen-circle +
+    // curly arrows (cta). All hand-authored, all animated.
+    const { buildSketchnoteOrnaments } = require("./scene_kit_sketchnote_ornaments");
+    const t = buildSketchnoteOrnaments({ kind, id, pid, T, L, seed, theme, dims, s0, rgba });
+    sv.push(...t.sv); dv.push(...t.dv); sc.push(...t.sc);
+  } else if (framePack === "terminal-amber" || framePack === "terminal-green") {
+    // RETRO TERMINAL — built in its own module (scene_kit_terminal_ornaments.js)
+    // to avoid growing this already-large file further; see that file for the
+    // full design notes (typed CLI session, activity ring, joining-the-dots
+    // chart, CRT boot flicker).
+    const { buildRetroTerminalOrnaments } = require("./scene_kit_terminal_ornaments");
+    const t = buildRetroTerminalOrnaments({ kind, id, pid, T, L, seed, theme, dims, s0, rgba, esc });
+    sv.push(...t.sv); dv.push(...t.dv); sc.push(...t.sc);
   } else {
     // GENERIC ornament fallback (Phase 3) — a pack with a manifest but no bespoke
     // branch above (e.g. a future manifest-only pack) still gets baseline skin
@@ -930,9 +1365,27 @@ function emphasisBlock(theme, id) {
       return `${sel}{color:${theme.ink};border-bottom:.09em solid ${a};padding-bottom:.02em;}`;
     case "bracket":
       return `${sel}{color:${a};}${sel}::before{content:"[ ";color:${a2};}${sel}::after{content:" ]";color:${a2};}`;
+    case "scribble": {
+      // sketchnote: a yellow highlighter swipe THROUGH the word + a red-pen wavy
+      // underline beneath it. NOT text-decoration — the typewriter entrance splits
+      // words into inline-block char spans, and text-decoration doesn't propagate
+      // into atomic inlines (the underline silently vanishes). A repeating SVG
+      // squiggle on ::after renders regardless of the span structure.
+      const wave = `<svg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'><path d='M0 4.5 Q 3 1 6 4.5 T 12 4.5' fill='none' stroke='${a}' stroke-width='2.4' stroke-linecap='round'/></svg>`;
+      return `${sel}{color:${theme.ink};background:linear-gradient(transparent 52%,${rgba(a2, 0.55)} 52%,${rgba(a2, 0.55)} 92%,transparent 92%);}` +
+        `${sel}::after{content:"";display:block;height:.15em;margin-top:.06em;background-image:url("data:image/svg+xml,${encodeURIComponent(wave)}");background-repeat:repeat-x;background-size:auto 100%;}`;
+    }
     case "gradient":
-    default:
-      return `${sel}{${theme.emphasisCss || `background:linear-gradient(100deg,${a},${a2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${a};`}}`;
+    default: {
+      const base = theme.emphasisCss || `background:linear-gradient(100deg,${a},${a2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${a};`;
+      // SHINE HEADROOM (master S2's move): oversize the clipped gradient so the
+      // one-shot shine sweep (backgroundPosition 120%→0%, added in Pass 3) has
+      // room to travel across the emphasis word.
+      const withRoom = /gradient\(/.test(base)
+        ? `${base}${base.trim().endsWith(";") ? "" : ";"}background-size:220% 100%;`
+        : base;
+      return `${sel}{${withRoom}}`;
+    }
   }
 }
 
@@ -963,20 +1416,21 @@ function archHook(scene, ctx) {
     ? `background:linear-gradient(100deg,${theme.accent},${theme.accent2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.accent};`
     : `color:${theme.accent};`);
   const big = Math.round((dims.width >= dims.height ? 92 : 66) * (theme.textfx.sizeScale || 1));
+  const showKicker = theme.layout.kicker, showUnderline = theme.layout.underline;
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   <div style="position:absolute;left:7%;right:7%;top:50%;transform:translateY(-50%);">
-    <span id="${id}k" style="opacity:0;display:inline-flex;align-items:center;gap:10px;padding:8px 16px;border-radius:9999px;background:${rgba(theme.ground, 0.86)};border:1px solid ${rgba(theme.accent, 0.35)};color:${theme.accent};font:700 15px/1 ${cssFont(theme)};letter-spacing:.2em;text-transform:uppercase;"><span style="width:8px;height:8px;border-radius:50%;background:${theme.accent};"></span>${esc(ctx.kicker || "KEYFRAME")}</span>
+    ${showKicker ? `<span id="${id}k" class="kicker" style="opacity:0;display:inline-flex;align-items:center;gap:10px;padding:8px 16px;border-radius:9999px;background:${rgba(theme.ground, 0.86)};border:1px solid ${rgba(theme.accent, 0.35)};color:${theme.accent};font:700 15px/1 ${cssFont(theme)};letter-spacing:.2em;text-transform:uppercase;"><span style="width:8px;height:8px;border-radius:50%;background:${theme.accent};"></span>${esc(ctx.kicker || "KEYFRAME")}</span>` : ""}
     <h1 style="margin-top:18px;font:800 ${fitBig(scene.headline, big, 14)}px/0.99 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:14ch;"><style>${emphasisBlock(theme, id)}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h1>
-    <div id="${id}u" style="height:5px;width:${Math.round(dims.width * 0.27)}px;max-width:80%;margin-top:22px;border-radius:3px;background:${theme.accent};transform:scaleX(0);transform-origin:left;"></div>
+    ${showUnderline ? `<div id="${id}u" style="height:5px;width:${Math.round(dims.width * 0.27)}px;max-width:80%;margin-top:22px;border-radius:3px;background:${theme.accent};transform:scaleX(0);transform-origin:left;"></div>` : ""}
     ${scene.subtext ? `<p id="${id}s" style="opacity:0;margin-top:16px;font:500 ${Math.round(big * 0.3)}px/1.45 ${cssFont(theme)};color:${theme.dim};max-width:42ch;">${esc(scene.subtext)}</p>` : ""}
   </div>
 </div>`;
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
-    `tl.fromTo("#${id}k",{opacity:0,y:14},{opacity:1,y:0,duration:0.5},${r(T + 0.25)});`,
+    showKicker ? `tl.fromTo("#${id}k",{opacity:0,y:14},{opacity:1,y:0,duration:0.5},${r(T + 0.25)});` : "",
     `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.45)},0.09);`,
     scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:20},{opacity:1,y:0,duration:0.55},${r(T + 1.05)});` : "",
-    `tl.fromTo("#${id}u",{scaleX:0,transformOrigin:"left"},{scaleX:1,duration:0.7,ease:"power2.inOut"},${r(T + 1.1)});`,
+    showUnderline ? `tl.fromTo("#${id}u",{scaleX:0,transformOrigin:"left"},{scaleX:1,duration:0.7,ease:"power2.inOut"},${r(T + 1.1)});` : "",
     ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
   ].filter(Boolean).join("\n");
   return { html, script: s };
@@ -984,14 +1438,47 @@ function archHook(scene, ctx) {
 
 function archStat(scene, ctx) {
   const { theme, id, T, L, track, dims } = ctx;
+  // Packs can opt out of the giant-number + progress-ring treatment (it read as
+  // "the same number thing" across every template). Then a proof scene renders as
+  // a clean centered display headline and the pack's own ornaments carry any viz.
+  if (theme.layout.stat === "headline") {
+    const bigH = Math.round((dims.width >= dims.height ? 84 : 62) * (theme.textfx.sizeScale || 1));
+    const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
+  <div style="position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:20px;text-align:center;padding:0 9%;">
+    <h2 style="font:800 ${fitBig(scene.headline, bigH, 15)}px/1.0 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:15ch;margin:0;"><style>${emphasisBlock(theme, id)}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
+    ${scene.subtext ? `<div id="${id}s" style="opacity:0;font:500 ${Math.round(bigH * 0.32)}px/1.4 ${cssFont(theme)};color:${theme.dim};max-width:40ch;">${esc(scene.subtext)}</div>` : ""}
+  </div>
+</div>`;
+    const s = [
+      `tl.set("#${id}",{opacity:1},${T});`,
+      `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.35)},0.07);`,
+      scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:16},{opacity:1,y:0,duration:0.5},${r(T + 0.95)});` : "",
+      ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
+    ].filter(Boolean).join("\n");
+    return { html, script: s };
+  }
   // derive a number from the headline/emphasis, else a default
   const num = pickNumber(scene) || { value: 95, suffix: "%" };
   const big = dims.width >= dims.height ? 128 : 92;
   const cardBg = theme.gradients ? `linear-gradient(180deg,${mix(theme.ground, "#ffffff", theme.isDark ? 0.07 : 0.02)},${theme.ground})` : mix(theme.ground, theme.isDark ? "#ffffff" : "#000000", 0.03);
+  // PROGRESS RING (amazon-premium's arc, full-frame): a track circle + an accent
+  // arc that draws to a REAL fill while the counter runs — the number resolves
+  // on two channels at once. % metrics fill to their own value; others to ~72%.
+  const rr = Math.round(Math.min(dims.width, dims.height) * 0.285);
+  const rcx = Math.round(dims.width / 2), rcy = Math.round(dims.height * 0.44);
+  const circ = Math.round(2 * Math.PI * rr);
+  const frac = num.suffix === "%" ? clamp(num.value, 8, 100) / 100 : 0.72;
+  const ringStroke = theme.gradients ? `url(#${id}rg)` : theme.accent;
+  const ring = `<svg viewBox="0 0 ${dims.width} ${dims.height}" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;" data-layout-allow-occlusion>`
+    + (theme.gradients ? `<defs><linearGradient id="${id}rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${theme.accent}"/><stop offset="1" stop-color="${theme.accent2 || theme.accent}"/></linearGradient></defs>` : "")
+    + `<circle cx="${rcx}" cy="${rcy}" r="${rr}" fill="none" stroke="${rgba(theme.ink, 0.13)}" stroke-width="${theme.gradients ? 4 : 6}"/>`
+    + `<circle id="${id}ring" cx="${rcx}" cy="${rcy}" r="${rr}" fill="none" stroke="${ringStroke}" stroke-width="${theme.gradients ? 5 : 6}" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${circ}" transform="rotate(-90 ${rcx} ${rcy})"/>`
+    + `</svg>`;
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;display:flex;align-items:center;justify-content:center;">
+  ${ring}
   <div class="kfstage" style="display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;padding:0 8%;width:100%;">
     <div id="${id}n" class="kfnum" style="font:800 ${big}px/1 ${cssFont(theme)};letter-spacing:-0.04em;color:${theme.accent};">0${esc(num.suffix || "")}</div>
-    <div style="font:700 ${Math.round(big * 0.26)}px/1.15 ${cssFont(theme)};color:${theme.ink};max-width:18ch;"><style>#${id} .kfacc{color:${theme.accent2};}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</div>
+    <h2 style="font:700 ${Math.round(big * 0.26)}px/1.15 ${cssFont(theme)};color:${theme.ink};max-width:18ch;margin:0;"><style>#${id} .kfacc{color:${theme.accent2};}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
     ${scene.subtext ? `<div id="${id}s" style="opacity:0;font:500 ${Math.round(big * 0.18)}px/1.4 ${cssFont(theme)};color:${theme.dim};max-width:40ch;">${esc(scene.subtext)}</div>` : ""}
   </div>
 </div>`;
@@ -1000,6 +1487,7 @@ function archStat(scene, ctx) {
     `tl.set("#${id}",{opacity:1},${T});`,
     `pushIn("#${id} .kfstage",${T},${r(L - 0.4)},1.0,1.04);`,
     `countUp("${id}n",${num.value},${r(T + 0.3)},${r(Math.min(1.6, L - 1))},${fmt});`,
+    `tl.to("#${id}ring",{strokeDashoffset:${Math.round(circ * (1 - frac))},duration:${r(Math.min(1.6, L - 1))},ease:"power2.out"},${r(T + 0.3)});`,
     `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.45)},0.07);`,
     scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:16},{opacity:1,y:0,duration:0.5},${r(T + 0.9)});` : "",
     ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
@@ -1017,7 +1505,7 @@ function archCta(scene, ctx) {
   ${theme.gradients ? `<div id="${id}g" class="clip" data-layout-allow-occlusion style="position:absolute;left:50%;top:46%;width:46%;height:60%;transform:translate(-50%,-50%);border-radius:50%;filter:blur(54px);background:radial-gradient(circle,${rgba(theme.accent, 0.30)},transparent 66%);"></div>` : ""}
   <div style="position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:24px;text-align:center;padding:0 8%;">
     <h2 style="font:800 ${fitBig(scene.headline, big, 16)}px/1.02 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:16ch;"><style>${emphasisBlock(theme, id)}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
-    ${scene.subtext ? `<div id="${id}b" style="opacity:0;display:inline-flex;align-items:center;gap:11px;padding:16px 36px;border-radius:9999px;background:${btnBg};color:${btnInk};font:800 ${Math.round(big * 0.34)}px/1 ${cssFont(theme)};">${esc(scene.subtext)} <span style="width:11px;height:11px;border-right:3px solid ${btnInk};border-top:3px solid ${btnInk};transform:rotate(45deg);display:inline-block;"></span></div>` : ""}
+    ${scene.subtext ? `<div id="${id}b" class="pill" style="opacity:0;display:inline-flex;align-items:center;gap:11px;padding:16px 36px;border-radius:9999px;background:${btnBg};color:${btnInk};font:800 ${Math.round(big * 0.34)}px/1 ${cssFont(theme)};">${esc(scene.subtext)} <span style="width:11px;height:11px;border-right:3px solid ${btnInk};border-top:3px solid ${btnInk};transform:rotate(45deg);display:inline-block;"></span></div>` : ""}
   </div>
 </div>`;
   const s = [
@@ -1192,6 +1680,112 @@ function archQuoteCard(scene, ctx) {
   return { html, script: s };
 }
 
+// PROOF ROW (showcase master S7 / amazon-premium S3) — 2–3 chromed stat cards,
+// each with its own count-up and a corner progress arc, entering on a 3D
+// rotationY stagger and breathing while they hold. Triggered when ≥2 bullets
+// carry strong metrics — the multi-metric proof beat the single-stat archetype
+// can't stage. Cards live in a flex row with gap (occlusion-safe by layout).
+function archProofStats(scene, ctx) {
+  const { theme, id, T, L, track, dims } = ctx;
+  const land = dims.width >= dims.height;
+  const big = Math.round((land ? 50 : 42) * (theme.textfx.sizeScale || 1));
+  const ch = cardChrome(theme);
+  const accs = [theme.accent, theme.accent2, theme.extras[0] || theme.accent];
+  const items = (Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean) : [])
+    .map((b) => ({ b: String(b), num: pickNumber({ headline: String(b) }) }))
+    .filter((x) => x.num).slice(0, 3)
+    .map((x, k) => ({
+      ...x,
+      // label = the bullet with its metric token removed (falls back to the bullet)
+      label: x.b.replace(/[₹$€£]?\s?\d[\d,]*\s?(?:%|x|\+|M|K|B|hrs?|hours?|days?)?/i, "").replace(/^[\s,—–:.-]+|[\s,—–:.-]+$/g, "") || x.b,
+      frac: x.num.suffix === "%" ? clamp(x.num.value, 8, 100) / 100 : 0.58 + k * 0.14,
+    }));
+  const numSize = Math.round((land ? 74 : 54) * (theme.textfx.sizeScale || 1));
+  const arcR = land ? 44 : 36;
+  const arcC = Math.round(2 * Math.PI * arcR);
+  const cards = items.map((x, k) => {
+    const A = accs[k % accs.length];
+    return `<div class="kfpc stat" style="opacity:0;flex:1;min-width:0;position:relative;overflow:hidden;${ch.css}padding:${land ? 30 : 20}px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${land ? 12 : 8}px;text-align:center;">`
+      + `<svg width="${arcR * 2 + 12}" height="${arcR * 2 + 12}" viewBox="0 0 ${arcR * 2 + 12} ${arcR * 2 + 12}" style="position:absolute;top:-${Math.round(arcR * 0.6)}px;right:-${Math.round(arcR * 0.6)}px;opacity:.5;">`
+      + `<circle cx="${arcR + 6}" cy="${arcR + 6}" r="${arcR}" fill="none" stroke="${rgba(theme.ink, 0.12)}" stroke-width="6"/>`
+      + `<circle id="${id}a${k}" cx="${arcR + 6}" cy="${arcR + 6}" r="${arcR}" fill="none" stroke="${A}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${arcC}" stroke-dashoffset="${arcC}" transform="rotate(-90 ${arcR + 6} ${arcR + 6})"/></svg>`
+      + `<div id="${id}n${k}" class="kfnum" style="font:800 ${numSize}px/1 ${theme.displayStack};letter-spacing:-0.03em;color:${A};">0${esc(x.num.suffix || "")}</div>`
+      + `<div style="font:600 ${Math.round(big * 0.34)}px/1.3 ${cssFont(theme)};color:${theme.dim};max-width:92%;">${esc(x.label)}</div>`
+      + `</div>`;
+  }).join("");
+  const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
+  <div style="position:absolute;left:6%;right:6%;top:50%;transform:translateY(-50%);">
+    <div style="width:54px;height:5px;border-radius:3px;background:${theme.accent};margin-bottom:16px;"></div>
+    <h2 style="font:800 ${fitBig(scene.headline, big, 24)}px/1.05 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:24ch;"><style>${emphasisBlock(theme, id)}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
+    <div id="${id}g" style="display:flex;flex-direction:${land ? "row" : "column"};gap:${land ? 26 : 14}px;align-items:stretch;margin-top:${land ? 28 : 16}px;">${cards}</div>
+  </div>
+</div>`;
+  const fmtFor = (n) => n.suffix === "%" ? `function(v){return v+"%";}` : (n.prefix ? `function(v){return ${JSON.stringify(n.prefix)}+v.toLocaleString();}` : `function(v){return v.toLocaleString()+${JSON.stringify(n.suffix || "")};}`);
+  const cdur = r(Math.min(1.3, Math.max(0.5, L - 1.4)));
+  const s = [
+    `tl.set("#${id}",{opacity:1},${T});`,
+    `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.25)},0.06);`,
+    `tl.fromTo("#${id} .kfpc",{opacity:0,y:56,rotationY:26,transformPerspective:1400},{opacity:1,y:0,rotationY:0,duration:0.7,stagger:0.16,ease:"expo.out"},${r(T + 0.55)});`,
+    ...items.map((x, k) => `countUp("${id}n${k}",${x.num.value},${r(T + 0.85 + k * 0.16)},${cdur},${fmtFor(x.num)});`),
+    ...items.map((x, k) => `tl.to("#${id}a${k}",{strokeDashoffset:${Math.round(arcC * (1 - x.frac))},duration:${cdur},ease:"power2.out"},${r(T + 0.9 + k * 0.16)});`),
+    L >= 3.4 ? `tl.to("#${id} .kfpc",{y:-10,duration:1.4,ease:"sine.inOut",yoyo:true,stagger:0.12,repeat:sreps(${r(Math.max(1.4, L - 2.2))},1.4)},${r(T + 2.1)});` : "",
+    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
+  ].filter(Boolean).join("\n");
+  return { html, script: s };
+}
+
+// DIFFERENTIATOR STRIKE-LIST (showcase master S8) — the "No editor. No
+// timeline. Just words." beat: each negation bullet slides in as display type,
+// gets struck through by a drawing accent bar, the struck stack dims, and the
+// headline ANSWER pops with a hand-drawn underline. Triggered only when every
+// bullet opens with a negation word, so it can never eat a feature list.
+function archStrikeList(scene, ctx) {
+  const { theme, id, T, L, track, dims } = ctx;
+  const land = dims.width >= dims.height;
+  const rows = (Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean) : []).slice(0, 3).map(String);
+  const longest = rows.reduce((m, b) => Math.max(m, b.length), 8);
+  const big = Math.round((land ? 64 : 48) * (theme.textfx.sizeScale || 1));
+  const rowFs = fitBig("x".repeat(longest), big, 18, 1);
+  const ansFs = fitBig(scene.headline, Math.round(big * 1.08), 16, 2);
+  const kk = Math.min(1, (L - 0.9) / 3.4);          // beat compression for short scenes
+  const bt = (f) => r(T + f * kk);
+  const uw = Math.round(dims.width * (land ? 0.3 : 0.5));
+  const strikeH = Math.max(4, Math.round(rowFs * 0.09));
+  const rowHtml = rows.map((b, i2) =>
+    // width:fit-content — the strike bar spans ITS row's text (the master's
+    // shrink-wrapped .strike), not the whole content column.
+    `<div style="position:relative;width:fit-content;max-width:100%;margin-top:${i2 ? Math.round(rowFs * 0.18) : 0}px;">`
+    + `<div class="${id}r" style="opacity:0;font:800 ${rowFs}px/1.06 ${theme.displayStack};letter-spacing:-0.02em;color:${theme.ink};">${esc(b)}</div>`
+    + `<div class="${id}st" data-layout-allow-occlusion style="position:absolute;left:0;top:50%;margin-top:-${Math.round(strikeH / 2)}px;height:${strikeH}px;width:100%;border-radius:999px;background:${theme.accent2 || theme.accent};transform:scaleX(0);${theme.gradients ? `box-shadow:0 0 ${Math.round(rowFs * 0.2)}px ${rgba(theme.accent2 || theme.accent, 0.6)};` : ""}"></div>`
+    + `</div>`).join("");
+  const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
+  <div style="position:absolute;left:8%;right:8%;top:50%;transform:translateY(-50%);">
+    ${rowHtml}
+    <div id="${id}ans" style="opacity:0;position:relative;margin-top:${Math.round(rowFs * 0.42)}px;">
+      <h2 style="font:800 ${ansFs}px/1.04 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:18ch;"><style>${emphasisBlock(theme, id)}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
+      <svg width="${uw}" height="20" viewBox="0 0 460 20" preserveAspectRatio="none" style="display:block;margin-top:8px;overflow:visible;">
+        ${theme.gradients ? `<defs><linearGradient id="${id}ug" x1="0" x2="1"><stop offset="0" stop-color="${theme.accent}"/><stop offset="1" stop-color="${theme.accent2 || theme.accent}"/></linearGradient></defs>` : ""}
+        <path id="${id}u" d="M6 12 C 130 4, 330 4, 454 12" fill="none" stroke="${theme.gradients ? `url(#${id}ug)` : theme.accent}" stroke-width="6" stroke-linecap="round" stroke-dasharray="600" stroke-dashoffset="600"/>
+      </svg>
+      ${scene.subtext ? `<p id="${id}s" style="opacity:0;margin-top:12px;font:500 ${Math.round(ansFs * 0.36)}px/1.45 ${cssFont(theme)};color:${theme.dim};max-width:44ch;">${esc(scene.subtext)}</p>` : ""}
+    </div>
+  </div>
+</div>`;
+  const afterRows = 0.55 + 0.5 * rows.length;
+  const s = [
+    `tl.set("#${id}",{opacity:1},${T});`,
+    `tl.fromTo("#${id} .${id}r",{opacity:0,x:-40},{opacity:1,x:0,duration:0.45,ease:"power3.out",stagger:${r(0.5 * kk)}},${bt(0.2)});`,
+    `tl.fromTo("#${id} .${id}st",{scaleX:0,transformOrigin:"left center"},{scaleX:1,duration:0.35,ease:"power3.inOut",stagger:${r(0.5 * kk)}},${bt(0.55)});`,
+    `tl.to(["#${id} .${id}r","#${id} .${id}st"],{opacity:0.26,duration:0.4,ease:"power2.out"},${bt(afterRows)});`,
+    `tl.fromTo("#${id}ans",{opacity:0,y:24,scale:0.9},{opacity:1,y:0,scale:1,duration:0.55,ease:"back.out(1.5)"},${bt(afterRows + 0.15)});`,
+    `textIn("${theme.textfx.enter}","#${id}ans .kfw","#${id}ans .kfc",${bt(afterRows + 0.25)},0.07);`,
+    `tl.to("#${id}u",{strokeDashoffset:0,duration:0.55,ease:"power2.out"},${bt(afterRows + 0.7)});`,
+    scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:14},{opacity:1,y:0,duration:0.5},${bt(afterRows + 0.9)});` : "",
+    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
+  ].filter(Boolean).join("\n");
+  return { html, script: s };
+}
+
 // PALETTE AFFINITY (Phase 6) — order an asset pool so the most ON-BRAND images
 // (dominant color closest to a pack accent/extra) come first; they then earn the
 // prominent foreground placements in Pass 1, while off-palette stock drops to
@@ -1288,9 +1882,51 @@ function buildPropFill(ctx, side) {
     `tl.fromTo("#${pid}",{opacity:0,y:30,rotationZ:${side === "left" ? 3 : -3}},{opacity:1,y:0,rotationZ:0,duration:0.75,ease:"power3.out"},${r(T + 0.5)});`,
     animLine,
     `tl.to("#${pid}",{y:"-=12",duration:${r(Math.max(2, L - 1))},ease:"sine.inOut",yoyo:true,repeat:1},${r(T + 0.9)});`,
-    ctx.isLast ? "" : `tl.to("#${pid}",{opacity:0,duration:0.3,ease:"power2.in"},${r(T + L - 0.35)});`,
+    // exitScene (not a bare tl.to) so the fade is followed by a hard-kill
+    // tl.set(opacity:0) at the clip boundary — a non-linear seek landing after the
+    // fade must not leave this prop card stuck visible (hyperframes stale-visibility
+    // lint error the bare fade tripped).
+    ctx.isLast ? "" : `exitScene("#${pid}",${r(T + L - 0.35)},${r(T + L)});`,
   ].filter(Boolean).join("\n");
   return { html, script: s };
+}
+
+// Classify ONE asset into how the kit must FIT it: "vector" (line-art/icon/logo —
+// contain, never crop), "shot" (a website screenshot — fill from the top so a tall
+// full-page grab shows its hero), or "photo" (fill/cover + palette grade). Used by
+// both partitionAssets (which pool it lands in) and archAssetMontage (how the tile
+// crops), so the two never disagree. The asset-director agent may set a.kind to
+// force a class; otherwise it's inferred from source + svg extension + alt/style.
+function classifyAsset(a) {
+  if (!a) return "photo";
+  if (a.kind === "vector" || a.kind === "shot" || a.kind === "photo") return a.kind;
+  const src = String(a.source || "");
+  const s = `${src} ${a.style || ""} ${a.alt || ""}`.toLowerCase();
+  if (src === "website" || /screenshot|webpage|web page|landing|\bsite\b|dashboard|app ui|\bui\b/.test(s)) return "shot";
+  if (/\.svg($|\?)/i.test(a.path) || src === "iconify" || src.startsWith("library:")
+      || /vector|illustration|icon|line.?art|graphic|logo|diagram|chart|glyph|drawing|doodle/.test(s)) return "vector";
+  return "photo";
+}
+
+// Per-asset ENTRANCE tween — the asset-director agent tags each asset with an
+// `effect` (pop / rise / blur-in / zoom / draw / float); this maps that tag to a
+// GSAP fromTo entrance for one element `sel` at time `at`. Falls back to `def`
+// (each archetype's natural entrance) when the agent set nothing. Every branch
+// writes opacity+transform in ONE fromTo so it hands off cleanly to any following
+// float/drift (no overlapping-tween lint).
+const EFFECTS_OK = new Set(["pop", "rise", "blur-in", "zoom", "draw", "float"]);
+function assetEntrance(effect, sel, at, dur, def) {
+  const e = EFFECTS_OK.has(effect) ? effect : (def || "pop");
+  const d = r(dur || 0.6), t = r(at);
+  switch (e) {
+    case "rise":    return `tl.fromTo("${sel}",{opacity:0,y:46},{opacity:1,y:0,duration:${d},ease:"power3.out"},${t});`;
+    case "blur-in": return `tl.fromTo("${sel}",{opacity:0,filter:"blur(14px)",scale:1.05},{opacity:1,filter:"blur(0px)",scale:1,duration:${d},ease:"power2.out"},${t});`;
+    case "zoom":    return `tl.fromTo("${sel}",{opacity:0,scale:1.18},{opacity:1,scale:1,duration:${d},ease:"power3.out"},${t});`;
+    case "draw":    return `tl.fromTo("${sel}",{opacity:0,scale:0.55,rotation:-5,transformOrigin:"50% 50%"},{opacity:1,scale:1,rotation:0,duration:${d},ease:"back.out(2)"},${t});`;
+    case "float":   return `tl.fromTo("${sel}",{opacity:0,y:-34},{opacity:1,y:0,duration:${d},ease:"power2.out"},${t});`;
+    case "pop":
+    default:        return `tl.fromTo("${sel}",{opacity:0,scale:0.82,y:22},{opacity:1,scale:1,y:0,duration:${d},ease:"back.out(1.6)"},${t});`;
+  }
 }
 
 // Partition the fetched assets into the kinds the kit places differently:
@@ -1303,9 +1939,9 @@ function partitionAssets(assets) {
     // Videos go in their own pool — the img-based archetypes would render an mp4
     // as a broken <img>. They're placed as full-bleed <video> backgrounds instead.
     if (a.type === "video" || /\.(mp4|webm|mov)($|\?)/i.test(a.path)) { videos.push(a); continue; }
-    const s = `${a.source || ""} ${a.style || ""} ${a.alt || ""}`.toLowerCase();
-    if (a.source === "website" || /screenshot|webpage|web page|landing|\bsite\b/.test(s)) screenshots.push(a);
-    else if (/\.svg($|\?)/i.test(a.path) || /vector|illustration|icon|line.?art|graphic/.test(s)) vectors.push(a);
+    const cls = classifyAsset(a);
+    if (cls === "shot") screenshots.push(a);
+    else if (cls === "vector") vectors.push(a);
     else photos.push(a);
   }
   return { screenshots, vectors, photos, videos };
@@ -1342,15 +1978,52 @@ function archScreenshotHero(scene, ctx) {
   const copyWrap = land
     ? `position:absolute;right:5%;top:0;bottom:0;width:34%;display:flex;flex-direction:column;justify-content:center;`
     : `position:absolute;left:8%;right:8%;top:0;bottom:0;width:84%;display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:8%;text-align:center;`;
+  // CALLOUT ANNOTATIONS (amazon-premium's money shot): when the scene carries
+  // bullets, up to two become chips pinned OVER the shot, each introduced by a
+  // drawing connector into a target ring that pops on the feature. All layers
+  // live inside the frame (they inherit its entrance) and are decorative
+  // overlays (allow-occlusion), so layout stays inspect-clean.
+  const bodyH = land ? Math.round(dims.height * 0.52) : Math.round(dims.height * 0.40);
+  const fw = Math.round(dims.width * (land ? 0.52 : 0.84));
+  const fh = 42 + bodyH;
+  const notes = (Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean) : [])
+    .slice(0, L >= 4 ? 2 : 1).map((b) => String(b).slice(0, 34));
+  const slots = [
+    { chip: [6, 13], anchor: [0.24, 0.26], tgt: [0.42, 0.44] },
+    { chip: [38, 76], anchor: [0.56, 0.78], tgt: [0.64, 0.6] },
+  ];
+  const chipCss = theme.gradients
+    ? `background:${mix(theme.ground, "#ffffff", 0.10)};border:1px solid ${theme.line};box-shadow:0 12px 28px rgba(0,0,0,0.4);border-radius:11px;`
+    : `background:${theme.ground};border:2px solid ${theme.ink};box-shadow:4px 4px 0 ${theme.accent};border-radius:8px;`;
+  const chipFs = Math.max(13, Math.round(dims.height * 0.024));
+  const annEls = [], annLines = [], annScript = [];
+  notes.forEach((txt, k) => {
+    const sl = slots[k % slots.length];
+    const A = k % 2 === 0 ? theme.accent : (theme.accent2 || theme.accent);
+    const x1 = Math.round(fw * sl.anchor[0]), y1 = Math.round(fh * sl.anchor[1]);
+    const x2 = Math.round(fw * sl.tgt[0]), y2 = Math.round(fh * sl.tgt[1]);
+    const len = Math.max(20, Math.round(Math.hypot(x2 - x1, y2 - y1)));
+    annEls.push(`<div class="kfchip" id="${id}ch${k}" data-layout-allow-occlusion style="position:absolute;left:${sl.chip[0]}%;top:${sl.chip[1]}%;opacity:0;display:inline-flex;align-items:center;gap:8px;padding:8px 14px;${chipCss}font:700 ${chipFs}px/1.2 ${cssFont(theme)};color:${theme.ink};white-space:nowrap;max-width:58%;overflow:hidden;text-overflow:ellipsis;"><span style="width:${Math.round(chipFs * 0.85)}px;height:${Math.round(chipFs * 0.85)}px;border-radius:5px;background:${rgba(A, 0.22)};border:1px solid ${rgba(A, 0.5)};flex:none;"></span>${esc(txt)}</div>`);
+    annLines.push(`<line id="${id}cl${k}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${A}" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="${len}" stroke-dashoffset="${len}" opacity="0.85"/>`);
+    annLines.push(`<circle id="${id}ct${k}" cx="${x2}" cy="${y2}" r="9" fill="none" stroke="${A}" stroke-width="2.5" opacity="0"/>`);
+    const at = 1.2 + k * 0.95;
+    annScript.push(`tl.fromTo("#${id}cl${k}",{strokeDashoffset:${len}},{strokeDashoffset:0,duration:0.4,ease:"power2.out"},${r(T + at)});`);
+    annScript.push(`tl.fromTo("#${id}ct${k}",{opacity:0,scale:0.4,transformOrigin:"50% 50%"},{opacity:0.9,scale:1,duration:0.4,ease:"back.out(2)"},${r(T + at + 0.12)});`);
+    annScript.push(`tl.fromTo("#${id}ch${k}",{opacity:0,scale:0.8},{opacity:1,scale:1,duration:0.45,ease:"back.out(1.7)"},${r(T + at + 0.22)});`);
+  });
+  const annSvg = notes.length
+    ? `<svg viewBox="0 0 ${fw} ${fh}" preserveAspectRatio="none" data-layout-allow-occlusion style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;">${annLines.join("")}</svg>`
+    : "";
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   <div style="${frameOuter}">
-  <div id="${id}fr" class="kfstage" style="${chrome}overflow:hidden;width:100%;">
-    <div style="height:42px;display:flex;align-items:center;gap:9px;padding:0 16px;background:${barBg};border-bottom:1px solid ${theme.line};">${dots}<span style="margin-left:12px;flex:1;max-width:340px;height:22px;border-radius:9999px;background:${rgba(theme.ink, 0.08)};"></span></div>
-    <div style="position:relative;width:100%;height:${land ? Math.round(dims.height * 0.52) : Math.round(dims.height * 0.40)}px;overflow:hidden;"><img id="${id}img" src="${esc(asset.path)}" alt="${esc(asset.alt || "screenshot")}" style="position:absolute;top:0;left:0;width:100%;height:auto;min-height:100%;object-fit:cover;object-position:top center;"></div>
+  <div id="${id}fr" class="kfstage browser" style="${chrome}overflow:hidden;width:100%;position:relative;">
+    <div class="browser-bar" style="height:42px;display:flex;align-items:center;gap:9px;padding:0 16px;background:${barBg};border-bottom:1px solid ${theme.line};">${dots}<span style="margin-left:12px;flex:1;max-width:340px;height:22px;border-radius:9999px;background:${rgba(theme.ink, 0.08)};"></span></div>
+    <div style="position:relative;width:100%;height:${bodyH}px;overflow:hidden;"><img id="${id}img" src="${esc(asset.path)}" alt="${esc(asset.alt || "screenshot")}" style="position:absolute;top:0;left:0;width:100%;height:auto;min-height:100%;object-fit:cover;object-position:top center;"></div>
+    ${annSvg}${annEls.join("")}
   </div>
   </div>
   <div style="${copyWrap}">
-    <span id="${id}k" style="opacity:0;display:inline-flex;align-items:center;gap:9px;padding:7px 15px;border-radius:9999px;background:${rgba(theme.ground, 0.86)};border:1px solid ${rgba(theme.accent, 0.35)};color:${theme.accent};font:700 13px/1 ${cssFont(theme)};letter-spacing:.2em;text-transform:uppercase;"><span style="width:7px;height:7px;border-radius:50%;background:${theme.accent};"></span>${esc(ctx.kicker || "Live")}</span>
+    <span id="${id}k" class="kicker" style="opacity:0;display:inline-flex;align-items:center;gap:9px;padding:7px 15px;border-radius:9999px;background:${rgba(theme.ground, 0.86)};border:1px solid ${rgba(theme.accent, 0.35)};color:${theme.accent};font:700 13px/1 ${cssFont(theme)};letter-spacing:.2em;text-transform:uppercase;"><span style="width:7px;height:7px;border-radius:50%;background:${theme.accent};"></span>${esc(ctx.kicker || "Live")}</span>
     <h2 style="margin-top:14px;font:800 ${fitBig(scene.headline, big, 20)}px/1.05 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};"><style>${emphasisBlock(theme, id)}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
     ${scene.subtext ? `<p id="${id}s" style="opacity:0;margin-top:13px;font:500 ${Math.round(big * 0.42)}px/1.45 ${cssFont(theme)};color:${theme.dim};">${esc(scene.subtext)}</p>` : ""}
   </div>
@@ -1362,6 +2035,7 @@ function archScreenshotHero(scene, ctx) {
     `tl.fromTo("#${id}k",{opacity:0,y:12},{opacity:1,y:0,duration:0.5},${r(T + 0.5)});`,
     `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.65)},0.08);`,
     scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:14},{opacity:1,y:0,duration:0.5},${r(T + 1.1)});` : "",
+    ...annScript,
     ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
   ].filter(Boolean).join("\n");
   return { html, script: s };
@@ -1378,8 +2052,7 @@ function archSplitVector(scene, ctx) {
   // Photos get the same gentle palette pull as montage tiles (a raw stock photo
   // beside pack-colored copy reads off-brand); vectors stay untouched. One
   // combined filter declaration — two `filter:`s would override each other.
-  const artMeta = `${asset.source || ""} ${asset.style || ""} ${asset.alt || ""}`.toLowerCase();
-  const artIsVec = /\.svg($|\?)/i.test(asset.path) || /vector|illustration|icon|line.?art|graphic/.test(artMeta);
+  const artIsVec = classifyAsset(asset) === "vector";
   const artTone = artIsVec ? "" : "saturate(0.82) contrast(1.03) ";
   const artGlow = (artTone || theme.gradients)
     ? `filter:${artTone}${theme.gradients ? `drop-shadow(0 18px 40px ${rgba(theme.accent, 0.35)})` : ""};`
@@ -1399,7 +2072,8 @@ function archSplitVector(scene, ctx) {
     `tl.from("#${id} .h1, #${id} h2",{x:-36,opacity:0,duration:0.6,ease:"expo.out"},${r(T + 0.15)});`,
     `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.25)},0.07);`,
     scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:16},{opacity:1,y:0,duration:0.5},${r(T + 0.8)});` : "",
-    `tl.fromTo("#${id}art",{opacity:0,scale:0.82,y:24},{opacity:1,scale:1,y:0,duration:0.7,ease:"back.out(1.5)"},${r(T + 0.4)});`,
+    // agent-chosen entrance (default: a vector draws in, else pop) then a gentle float
+    assetEntrance(asset.effect, `#${id}art`, r(T + 0.4), 0.7, artIsVec ? "draw" : "pop"),
     `tl.to("#${id}art",{y:"-=14",duration:1.6,ease:"sine.inOut",yoyo:true,repeat:sreps(${r(L - 0.8)},1.6)},${r(T + 1.1)});`,
     ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
   ].filter(Boolean).join("\n");
@@ -1425,20 +2099,33 @@ function archAssetMontage(scene, ctx) {
     ? `border:3px solid ${theme.ink};box-shadow:6px 6px 0 ${theme.accent};`
     : `border:1px solid ${theme.line};box-shadow:0 22px 50px rgba(0,0,0,0.45);`;
   const tileH = Math.round(dims.height * (land ? 0.2 : 0.15));
-  const tiles = items.map((a) => {
-    const meta = `${a.source || ""} ${a.style || ""} ${a.alt || ""}`.toLowerCase();
-    const isVec = /\.svg($|\?)/i.test(a.path) || /vector|illustration|icon|line.?art|graphic/.test(meta);
-    const fit = isVec ? "contain" : "cover";
+  const tileFx = [];                              // per-tile entrance effect (agent or by-kind)
+  const tiles = items.map((a, k) => {
+    const cls = classifyAsset(a);                 // "vector" | "shot" | "photo"
+    const isVec = cls === "vector", isShot = cls === "shot";
+    // per-tile entrance: the agent's choice, else one that suits the kind (an icon
+    // pops, a screenshot rises, a photo resolves from blur) so a grid of mixed
+    // assets animates with intent instead of one uniform pop.
+    tileFx.push(a.effect || (isVec ? "pop" : isShot ? "rise" : "blur-in"));
+    // FIT — vectors/line-art must never crop (contain + padded tinted plate);
+    // website screenshots fill but are pinned to the TOP so a tall full-page grab
+    // shows its branded hero, never its blank scrolled-out middle (the "screenshot
+    // doesn't fit the box" bug); photos fill (cover). The asset-director agent may
+    // override fit/focus per asset (a.fit / a.focus) — its call wins over this
+    // heuristic. Also: a landscape screenshot that already matches the tile ratio
+    // is let to `cover` normally; the top-pin only matters for tall grabs.
+    const fit = (a.fit === "contain" || a.fit === "cover") ? a.fit : (isVec ? "contain" : "cover");
+    const focus = a.focus || (isShot ? "top" : "center");
+    const objPos = `object-position:${focus === "top" ? "top" : focus === "bottom" ? "bottom" : "center"} center;`;
     const pad = isVec ? `background:${rgba(theme.ink, theme.isDark ? 0.06 : 0.04)};padding:14px;` : "";
     // COLOR HARMONY — raw stock photos arrive in arbitrary palettes (a saturated
     // red product shot shatters a navy/cyan frame). Photos get pulled toward the
     // pack: gentle desaturation on the img + a ground-tinted wash over the tile,
     // so every tile reads as one graded set. Vectors/screenshots skip it (vectors
     // are already pack-recolored; a product screenshot must stay true).
-    const isShot = a.source === "website" || /screenshot|webpage|web page|landing|\bsite\b/.test(meta);
     const tone = (isVec || isShot) ? "" : "filter:saturate(0.76) contrast(1.04);";
     const wash = (isVec || isShot) ? "" : `<span style="position:absolute;inset:0;background:linear-gradient(180deg,${rgba(theme.ground, 0.12)},${rgba(theme.ground, 0.32)});pointer-events:none;"></span>`;
-    return `<div class="kftile" style="opacity:0;position:relative;overflow:hidden;border-radius:${flat ? 8 : 14}px;${tileChrome}${pad}height:${tileH}px;display:flex;align-items:center;justify-content:center;"><img src="${esc(a.path)}" alt="${esc(a.alt || "")}" style="width:100%;height:100%;object-fit:${fit};display:block;${tone}">${wash}</div>`;
+    return `<div id="${id}t${k}" class="kftile" style="opacity:0;position:relative;overflow:hidden;border-radius:${flat ? 8 : 14}px;${tileChrome}${pad}height:${tileH}px;display:flex;align-items:center;justify-content:center;"><img src="${esc(a.path)}" alt="${esc(a.alt || "")}" style="width:100%;height:100%;object-fit:${fit};${objPos}display:block;${tone}">${wash}</div>`;
   }).join("");
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   <div style="position:absolute;left:6%;right:6%;top:50%;transform:translateY(-50%);">
@@ -1447,11 +2134,17 @@ function archAssetMontage(scene, ctx) {
     <div id="${id}g" style="margin-top:22px;display:grid;grid-template-columns:repeat(${cols},1fr);gap:${land ? 18 : 12}px;">${tiles}</div>
   </div>
 </div>`;
+  // The shared float must begin strictly AFTER the last tile's entrance ends, or it
+  // double-writes `y` on that tile (overlapping_gsap_tweens lint). lastEnd = last
+  // stagger start + its duration.
+  const floatAt = r(T + 0.55 + (n - 1) * 0.1 + 0.55 + 0.05);
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
     `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.25)},0.06);`,
-    `tl.fromTo("#${id} .kftile",{opacity:0,scale:0.82,y:26},{opacity:1,scale:1,y:0,duration:0.55,stagger:0.1,ease:"back.out(1.5)"},${r(T + 0.55)});`,
-    `tl.to("#${id} .kftile",{y:"-=8",duration:1.8,ease:"sine.inOut",yoyo:true,stagger:0.12,repeat:sreps(${r(L - 1.2)},1.8)},${r(T + 1.5)});`,
+    // per-tile entrance (agent/by-kind), staggered 0.1s apart
+    ...tileFx.map((fx, k) => assetEntrance(fx, `#${id}t${k}`, r(T + 0.55 + k * 0.1), 0.55, "pop")),
+    // shared gentle float once EVERY tile is in (starts after the last entrance)
+    floatAt < T + L - 0.5 ? `tl.to("#${id} .kftile",{y:"-=8",duration:1.8,ease:"sine.inOut",yoyo:true,stagger:0.12,repeat:sreps(${r(T + L - floatAt - 0.3)},1.8)},${floatAt});` : "",
     ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
   ].filter(Boolean).join("\n");
   return { html, script: s };
@@ -1495,9 +2188,13 @@ function videoBg(asset, ctx) {
 }
 
 // Pull up to `max` assets for a montage, round-robin across kinds for variety.
+// VECTORS lead the round-robin: screenshots read best as a full HERO (they already
+// get first pick of the hero slot upstream), while clean icons/line-art are exactly
+// what a tiled grid is for — so a montage surfaces MORE vector content and the film
+// leans on its design-system art instead of a couple of shrunk screenshots.
 function takeMontage(pools, max) {
   const out = [];
-  const order = [pools.screenshots, pools.vectors, pools.photos];
+  const order = [pools.vectors, pools.screenshots, pools.photos];
   let progressed = true;
   while (out.length < max && progressed) {
     progressed = false;
@@ -1545,11 +2242,20 @@ function pickNumber(scene) {
     .replace(/\d+\s*[/:]\s*\d+/g, " ")        // ratios / times: 24/7, 3:00, 1/2
     .replace(/\d+\s*-\s*\d+/g, " ")           // ranges: 9-5
     .replace(/\b\d+(?:st|nd|rd|th)\b/gi, " "); // ordinals: 1st, 2nd
-  const m = /([₹$€£]?)\s?(\d[\d,]*)\s?([%x+]|M|K|B|hrs?|hours?|days?)?/i.exec(cleaned);
+  // Longer unit words BEFORE the M|K|B magnitudes — alternation is ordered, so
+  // a leading M|K|B would steal the "m" of "min"/"minutes" (misread as millions).
+  const m = /([₹$€£]?)\s?(\d[\d,]*)\s?([%x+]|hours?|hrs?|days?|min(?:ute)?s?|sec(?:ond)?s?|M|K|B)?/i.exec(cleaned);
   if (!m) return null;
   const value = clamp(parseInt(m[2].replace(/,/g, ""), 10) || 0, 0, 9_999_999);
   if (!value) return null;
-  const prefix = m[1] || "", suffix = (m[3] || "").replace(/hours?|hrs?/i, "");
+  // Time units render compact ("Brewed in 90 seconds" -> big "90s") so the
+  // counter stays TRUTHFUL to the copy — before this, a seconds/minutes metric
+  // wasn't recognized and archStat showed its fabricated 95% default (caught in
+  // the grok test video).
+  const prefix = m[1] || "", suffix = (m[3] || "")
+    .replace(/hours?|hrs?/i, "h")
+    .replace(/min(?:ute)?s?/i, "min")
+    .replace(/sec(?:ond)?s?/i, "s");
   // A BARE number (no currency prefix, no unit) is a weak "metric" — a count,
   // year, step, or list index — and reads oddly as a full-screen counter. Only a
   // number with a $/₹/€/£ prefix or a %/x/M/K/B/day unit earns archStat; bare
@@ -1564,11 +2270,20 @@ function archetypeFor(scene, idx, total) {
   if (idx === 0 || k === "hook" || k === "title") return archHook;
   if (idx === total - 1 || k === "cta") return archCta;
   if (k === "quote") return archQuoteCard;        // testimonial card (before the number check)
-  if (k === "chart" || k === "countdown") return archStat;
+  const bl = Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean) : [];
+  // DIFFERENTIATOR (master S8): every bullet opens with a negation → the
+  // strike-list scene (bullets struck + dimmed, headline answer underlined).
+  if (bl.length >= 2 && bl.length <= 3 && scene.headline
+      && bl.every((b) => /^(no|without|stop|forget|skip|zero|never)\b/i.test(String(b).trim()))) return archStrikeList;
+  // PROOF ROW (master S7 / amazon S3): ≥2 bullets carrying strong metrics →
+  // multi-stat cards with per-card count-ups + arcs.
+  if (bl.length >= 2 && bl.filter((b) => pickNumber({ headline: String(b) })).length >= 2) return archProofStats;
+  // chart/countdown WITHOUT a parseable metric falls to archText — archStat's
+  // 95% default is a FABRICATED stat and must never ship (grok test finding).
+  if (k === "chart" || k === "countdown") return pickNumber(scene) ? archStat : archText;
   if (pickNumber(scene)) return archStat;        // any scene with a strong number
   // A feature/bullet scene carrying ≥2 points renders as a premium CARD GRID
   // (icon + title + desc per pack chrome) instead of a flat bulleted list.
-  const bl = Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean) : [];
   if (bl.length >= 2) return archFeatureGrid;
   return archText;                                // single-point / caption / shape-motion
 }
@@ -1624,7 +2339,11 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
   // (not visualDirection leakage), so they're trusted for prominent slots like a
   // curated pick. The audited off-topic tiles (tooth/toothpaste/camera/diamond)
   // were all raw WEB STOCK (pixabay/openverse) — those still require `visionOk`.
-  const prominentOk = (a) => !!a && (a.source === "website"
+  // …and the asset-director's QUALITY call: an asset it flagged `low` (blurry,
+  // pixelated, watermarked, amateur, blank) is never allowed into a prominent slot —
+  // a weak hero/tile cheapens the whole film. Low photos fall to scrim B-roll; low
+  // vectors/screenshots simply drop (there is no gentle background use for them).
+  const prominentOk = (a) => !!a && !a.lowQuality && (a.source === "website"
     || a.source === "iconify"
     || String(a.source || "").startsWith("library:")
     || a.visionOk === true);
@@ -1679,9 +2398,15 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
   // scene whose INTENT most calls for a product view (best assetAffinity), not
   // just the first one. Ties (and the no-signal case) fall to the earliest scene,
   // so a storyboard with no explicit demo cue behaves exactly as before.
-  if (pools.screenshots.length && weavable.length) {
-    const target = weavable
-      .map((p) => ({ p, s: assetAffinity(p.scene, "screenshot") }))
+  // FEATURE-BULLET scenes are ALSO screenshot-eligible (amazon S2's grammar):
+  // the hero renders their bullets as callout chips + connectors over the shot,
+  // so converting a feature grid loses no content — it gains the annotation
+  // beat. Proof/strike/quote/stat scenes stay excluded (their staging is the
+  // content).
+  const shotWeavable = plan.filter((p) => p.isContent && (p.build === archText || p.build === archFeatureGrid));
+  if (pools.screenshots.length && shotWeavable.length) {
+    const target = shotWeavable
+      .map((p) => ({ p, s: assetAffinity(p.scene, "screenshot") + (p.build === archFeatureGrid ? 0.25 : 0) }))
       .sort((a, b) => b.s - a.s || a.p.i - b.p.i)[0].p;
     target.ctx.asset = pools.screenshots.shift(); target.build = archScreenshotHero; usedShot = true;
     target.ctx.kicker = target.scene.emphasis || "Live preview";
@@ -1737,7 +2462,8 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
     // Pack-skin ornaments: the design system's animated furniture (bar charts,
     // refraction streaks, watercolor blooms…) as the scene's first child.
     const kindC = p.build === archHook ? "hook" : p.build === archCta ? "cta"
-      : p.build === archStat ? "stat" : (p.build === archText || p.build === archQuoteCard) ? "text" : "asset";
+      : (p.build === archStat || p.build === archProofStats) ? "stat"
+      : (p.build === archText || p.build === archQuoteCard || p.build === archStrikeList) ? "text" : "asset";
     const orn = buildSkinOrnaments(kindC, p.ctx, framePack);
     if (orn) {
       const withOrn = out.html.replace(new RegExp(`(<div id="${p.ctx.id}"[^>]*>)`), `$1${orn.html}`);
@@ -1748,7 +2474,16 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
     // scene reads as half-empty. Centered text (variant 1) has no empty side; stat/
     // cta/quote/asset scenes are already full, so they're skipped.
     const noVisual = !p.ctx.asset && !p.ctx.assets && !p.ctx.bgAsset && !p.ctx.bgVideo;
-    const propEligible = noVisual && (p.build === archHook || (p.build === archText && p.ctx.variant !== 1));
+    // retro-terminal packs already fill their empty side with bespoke ornaments
+    // (activity ring / joining-the-dots chart + the terminal window) — the
+    // generic prop card would land in the SAME right-margin footprint and
+    // visually collide with them.
+    const isRetroTerminal = framePack === "terminal-amber" || framePack === "terminal-green";
+    // Packs can opt out of the generic product-card entirely (theme.layout.propFill:
+    // false) — it's the single most-repeated element across templates, so bespoke
+    // packs suppress it and fill the frame with their own ornaments instead.
+    const propEligible = noVisual && !isRetroTerminal && theme.layout.propFill
+      && (p.build === archHook || (p.build === archText && p.ctx.variant !== 1));
     if (propEligible) {
       const side = (p.build === archText && p.ctx.variant === 3) ? "left" : "right";
       const prop = buildPropFill(p.ctx, side);
@@ -1764,6 +2499,23 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
         out.html = opened;
         out.script += `\ntl.fromTo("#${p.ctx.id} .kfdress",{opacity:0,scale:1.04},{opacity:0.85,scale:1,duration:0.9,ease:"power2.out"},${r(p.ctx.T + 0.35)});`;
       }
+    }
+    // PER-SCENE LIGHT (showcase grammar): every gradient-pack scene owns a light
+    // source. Skipped when a photo/video backdrop already carries the depth, and
+    // on the CTA (its archetype ships its own centered aura). Injected LAST so
+    // it lands as the clip's FIRST child — everything else paints above it.
+    if (theme.gradients && p.build !== archCta && !p.ctx.bgAsset && !p.ctx.bgVideo) {
+      const light = buildSceneLight(p.ctx);
+      const lit = out.html.replace(new RegExp(`(<div id="${p.ctx.id}"[^>]*>)`), `$1${light.html}`);
+      if (lit !== out.html) { out.html = lit; out.script += `\n${light.script}`; }
+    }
+    // EMPHASIS SHINE (master S2): one gradient sweep across the accent word
+    // after the headline lands — only when this scene actually renders a
+    // gradient-clipped emphasis (the oversized background from emphasisBlock).
+    if (theme.gradients && (theme.textfx.emphasis || "gradient") === "gradient"
+        && new RegExp(`#${p.ctx.id} \\.kfacc\\{[^}]*gradient\\(`).test(out.html)) {
+      const at = r(p.ctx.T + Math.min(1.9, Math.max(1.1, p.ctx.L - 0.9)));
+      out.script += `\ntl.fromTo("#${p.ctx.id} .kfacc",{backgroundPosition:"120% 0%"},{backgroundPosition:"0% 0%",duration:0.8,ease:"power2.out"},${at});`;
     }
     const tag = p.ctx.assets ? " +montage" : p.ctx.asset ? " +asset" : p.ctx.bgVideo ? " +video" : p.ctx.bgAsset ? " +bg" : "";
     bodyHtml.push(`<!-- s${p.i + 1} ${p.scene.kind || ""}${tag} [${p.ctx.T}–${r(p.ctx.T + p.ctx.L)}] -->`);

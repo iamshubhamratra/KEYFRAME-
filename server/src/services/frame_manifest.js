@@ -116,6 +116,29 @@ const PackManifestSchema = z
       })
       .default({}),
 
+    // Per-pack SONIC identity — the template's BGM lane + a curated SFX palette.
+    // Steers the audio planner (system_audio) so a pack carries its own sound
+    // instead of the planner improvising from scratch, and gives a deterministic
+    // BGM fallback if the planner returns no music. Every field defaults empty, so
+    // a pack with no audio block behaves exactly as before (planner-only).
+    audio: z
+      .object({
+        music: z
+          .object({
+            query: z.string().default(""),   // royalty-free search phrase for the bed
+            mood: z.string().default(""),     // upbeat|energetic|cinematic|… (system_audio moods)
+            volume: z.number().default(0.16), // bed level under VO
+          })
+          .default({}),
+        sfx: z
+          .object({
+            style: z.string().default(""),          // one-line character of the SFX set
+            palette: z.array(z.string()).default([]), // preferred SFX search phrases
+          })
+          .default({}),
+      })
+      .default({}),
+
     // --- Reserved for later Phase 3/4 population (kept optional, unpopulated). ---
     typography: z.record(z.any()).optional(),
     layout: z.record(z.any()).optional(),

@@ -124,6 +124,13 @@ function build() {
     cfg.audio = cfg.audio || {};
     cfg.audio.freesoundToken = process.env.FREESOUND_TOKEN;
   }
+  // PeekShot website-screenshot API (high-quality retina hero shots for ingest).
+  if (process.env.PEEKSHOT_API_KEY || process.env.PEEKSHOT_PROJECT_ID) {
+    cfg.ingest = cfg.ingest || {};
+    cfg.ingest.peekshot = { ...(cfg.ingest.peekshot || {}) };
+    if (process.env.PEEKSHOT_API_KEY) cfg.ingest.peekshot.apiKey = process.env.PEEKSHOT_API_KEY;
+    if (process.env.PEEKSHOT_PROJECT_ID) cfg.ingest.peekshot.projectId = process.env.PEEKSHOT_PROJECT_ID;
+  }
   // MEDIA_PROVIDER: promote the named stock provider to the front of the search
   // order. Accepts the provider id or its "-api"/"_api"-suffixed alias.
   if (process.env.MEDIA_PROVIDER && cfg.assetProviders && Array.isArray(cfg.assetProviders.order)) {

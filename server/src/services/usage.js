@@ -24,6 +24,8 @@ const MODEL_PRICING = {
   "google/gemini-2.5-flash-lite": { in: 0.10, out: 0.40 },
   "google/gemini-2.5-flash":      { in: 0.30, out: 2.50 },
   "google/gemini-3.5-flash":      { in: 0.30, out: 2.50 },
+  "grok-4-5":                     { in: 0.80, out: 2.40 }, // KIE (kie.ai/grok-4-5); output incl. reasoning tokens
+  "gemini-3-5-flash":             { in: 0.30, out: 2.50 }, // KIE gemini (legacy primary)
   "deepseek/deepseek-v4-pro":     { in: 0.44, out: 0.87 },
   "deepseek/deepseek-v4-flash":   { in: 0.09, out: 0.18 },
   "moonshotai/kimi-k2.6":         { in: 0.66, out: 3.50 },
@@ -34,8 +36,12 @@ const DEFAULT_MODEL_PRICE = { in: 0.30, out: 2.50 };
 
 // Resolve the model a stage runs on (mirrors openrouter.modelForStage but kept
 // local to avoid a require cycle). qa/brief/script/etc. map to the default.
+// With a KIE primary configured, EVERY stage actually runs there first
+// (OpenRouter is outage-fallback only), so the primary model is the accurate
+// price basis — the stage table only describes the fallback route.
 function modelForStage(stage) {
   const llm = config.llm || {};
+  if (llm.primary && llm.primary.apiKey && llm.primary.model) return llm.primary.model;
   const kind = (llm.stageModels || {})[stage] || "default";
   if (kind === "fast") return llm.modelFast || llm.model;
   if (kind === "default") return llm.model;

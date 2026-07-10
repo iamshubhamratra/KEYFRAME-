@@ -14,7 +14,11 @@ export default function Gallery({ onOpen, onUseStyle }) {
   const [filter, setFilter] = useState("all");
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/projects`)
+    // limit=100 (server default is 30): with lots of test/failed generations in
+    // between, a real finished film can rank outside the top 30 by recency even
+    // though it's one of the few that actually has a video — cast a wider net so
+    // every playable film surfaces here, not just the most recent handful.
+    fetch(`${API_BASE}/api/projects?limit=100`)
       .then((r) => r.json())
       .then((d) => setProjects((d.projects || []).filter((p) => p.videoUrl)))
       .catch(() => setProjects([]));

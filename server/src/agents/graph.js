@@ -35,6 +35,7 @@ const { normalizeComposition } = require("../services/normalize");
 const { render } = require("../services/renderer");
 const { reviewRender } = require("./qa_agent");
 const { checkAssetsRelevance } = require("../services/asset_vision");
+const { reviewAssets, summarizeReview } = require("../services/asset_director");
 
 function ms() { return Date.now(); }
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
@@ -382,6 +383,40 @@ async function assetSearchAgent(s) {
       }
     });
   }
+  // ASSET DIRECTOR (batched) — enrich every kept, still-image asset with QUALITY +
+  // best FIT / crop FOCUS + entrance EFFECT + corrected KIND, so the kit never
+  // crops a logo, never shows a screenshot's blank middle, and animates each asset
+  // to suit it. Runs over ALL kept stills (screenshots + curated vectors included,
+  // which the relevance gate skips — those are exactly the assets whose fit matters
+  // most). Fail-open: on any error the assets are left as-is and the kit falls back
+  // to its own fit heuristics.
+  const directable = results.filter((a) => a && a.type !== "video");
+  if (directable.length && gateSubject) {
+    try {
+      const kindHint = (a) => {
+        const src = String(a.source || "");
+        if (src === "website") return "website screenshot";
+        if (src === "iconify" || src.startsWith("library:")) return "flat vector/icon";
+        if (/\.svg($|\?)/i.test(a.path || "")) return "svg vector";
+        return null;
+      };
+      const dirs = await reviewAssets({
+        assets: directable.map((a) => ({ absPath: path.join(jobDir, a.path), type: a.type, query: a.alt, kindHint: kindHint(a) })),
+        subject: gateSubject, tracker,
+      });
+      dirs.forEach((d, i) => {
+        const a = directable[i];
+        if (d.kind) a.kind = d.kind;
+        if (d.fit) a.fit = d.fit;
+        if (d.focus) a.focus = d.focus;
+        if (d.effect) a.effect = d.effect;
+        if (d.quality) { a.quality = d.quality; if (d.quality === "low") a.lowQuality = true; }
+      });
+      console.log(`[agents] asset_director: ${summarizeReview(dirs)}`);
+    } catch (e) {
+      console.warn(`[agents] asset_director skipped: ${String(e?.message || e).slice(0, 120)}`);
+    }
+  }
   const got = results;
 
   const assets = [...pinned, ...got];
@@ -618,6 +653,7 @@ async function timelineAgent(s) {
   await mixAudioIntoVideo({
     visualPath: visual.videoPath,
     durationSec: job.duration,
+    scenes: s.storyboard?.scenes || null, jobDir,
     audio: {
       ttsPath: null,
       musicPath: s.musicPath || null,

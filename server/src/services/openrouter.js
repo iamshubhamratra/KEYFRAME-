@@ -2,7 +2,10 @@
 // Exposes chat() returning { text, tokensIn, tokensOut, model }.
 //
 // Provider cascade (per call):
-//   1. PRIMARY  — KIE AI (Gemini 3.5 Flash), OpenAI-compatible /chat/completions
+//   1. PRIMARY  — KIE AI (config.llm.primary.model, e.g. grok-4-5). Two wire
+//      formats, selected by primary.api: "responses" (xAI/OpenAI Responses API —
+//      the ONLY surface KIE exposes for Grok) or the default OpenAI-compatible
+//      /chat/completions (the older Gemini-on-KIE route).
 //   2. FALLBACK — OpenRouter primary model (config.llm.model, e.g. minimax-m3)
 //   3. FALLBACK — OpenRouter secondary model (config.llm.modelFallback)
 //
@@ -87,17 +90,36 @@ function withTimeoutSignal(external, timeoutMs, timeoutMsg) {
   return { signal, clear: () => clearTimeout(timer) };
 }
 
-// ---------- PRIMARY: KIE AI (Gemini 3.5 Flash) via raw fetch ----------
+// ---------- PRIMARY: KIE AI via raw fetch ----------
+// primary.api === "responses": xAI/OpenAI Responses API (KIE's only Grok
+// surface — verified live: /chat/completions 422s "model not supported" for
+// grok-4-5, /responses works). Request: { model, input:[messages], stream,
+// temperature, text.format for JSON mode }. Reply: output[] carrying a
+// "reasoning" item (grok-4-5 is a reasoning model) + a "message" item whose
+// content[] holds { type:"output_text", text }; usage is input_tokens/
+// output_tokens (output INCLUDES reasoning tokens — billed accordingly).
+// Any other primary.api value = legacy OpenAI-compatible /chat/completions.
 async function callKie({ messages, jsonMode, temperature, timeoutMs, stage, signal: external }) {
   const p = config.llm.primary;
-  const url = `${p.baseUrl.replace(/\/$/, "")}/chat/completions`;
-  const body = {
-    model: p.model,
-    messages,
-    stream: false, // KIE defaults stream:true — must force false for a single JSON response
-    temperature: temperature ?? config.llm.temperature,
-  };
-  if (jsonMode) body.response_format = { type: "json_object" };
+  const responsesApi = p.api === "responses";
+  const url = `${p.baseUrl.replace(/\/$/, "")}/${responsesApi ? "responses" : "chat/completions"}`;
+  const body = responsesApi
+    ? {
+        model: p.model,
+        input: messages,
+        stream: false,
+        temperature: temperature ?? config.llm.temperature,
+      }
+    : {
+        model: p.model,
+        messages,
+        stream: false, // KIE defaults stream:true — must force false for a single JSON response
+        temperature: temperature ?? config.llm.temperature,
+      };
+  if (jsonMode) {
+    if (responsesApi) body.text = { format: { type: "json_object" } };
+    else body.response_format = { type: "json_object" };
+  }
 
   const { signal, clear: hardTimer } = withTimeoutSignal(external, timeoutMs, "kie call timed out");
   const t0 = Date.now();
@@ -135,12 +157,19 @@ async function callKie({ messages, jsonMode, temperature, timeoutMs, stage, sign
       throw err;
     }
 
-    const text = data.choices?.[0]?.message?.content ?? "";
+    let text;
+    if (responsesApi) {
+      const msg = (Array.isArray(data.output) ? data.output : []).find((o) => o && o.type === "message");
+      const part = (Array.isArray(msg?.content) ? msg.content : []).find((c) => c && c.type === "output_text");
+      text = part?.text ?? "";
+    } else {
+      text = data.choices?.[0]?.message?.content ?? "";
+    }
     if (!text) {
       throw new Error(`kie: empty content in response: ${rawText.slice(0, 200)}`);
     }
-    const tokensIn = data.usage?.prompt_tokens ?? 0;
-    const tokensOut = data.usage?.completion_tokens ?? 0;
+    const tokensIn = (responsesApi ? data.usage?.input_tokens : data.usage?.prompt_tokens) ?? 0;
+    const tokensOut = (responsesApi ? data.usage?.output_tokens : data.usage?.completion_tokens) ?? 0;
     console.log(`[kie] ${p.model} stage=${stage || "?"} ok (${dt}ms, in=${tokensIn} out=${tokensOut}, ${text.length}ch)`);
     return { text, tokensIn, tokensOut, model: p.model };
   } catch (err) {

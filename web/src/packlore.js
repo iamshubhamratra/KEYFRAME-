@@ -208,10 +208,88 @@ export const PACK_LORE = {
     vibe: "A fresh product-launch system — white studio ground, an emerald→sky gradient and rounded type. For launches and announcements.",
     filmGrad: "linear-gradient(135deg,#10B981,#38BDF8,#A3E635)",
   },
+  "brut-pop": {
+    name: "Brut Pop", tag: "STICKER-POP", bg: "#FFFDF5", ink: "#111111", accent: "#2B4FF5",
+    chips: ["#2B4FF5", "#FF4FA3", "#FFE14D"],
+    grad: "repeating-linear-gradient(0deg, rgba(17,17,17,.05) 0 1px, transparent 1px 34px), repeating-linear-gradient(90deg, rgba(17,17,17,.05) 0 1px, transparent 1px 34px)",
+    font: "'Archivo Black'", tracking: "-.01em", demo: "STICKER DROP",
+    vibe: "Bright paper, thick black outlines, loud flat blue/pink/yellow. Every word gets a sticker, a wobble and a hard offset shadow.",
+    filmGrad: "linear-gradient(135deg,#2B4FF5,#FF4FA3,#FFE14D)",
+  },
+  sketchnote: {
+    name: "Sketchnote", tag: "HAND-DRAWN", bg: "#FBF6E8", ink: "#26241F", accent: "#E0452F",
+    chips: ["#E0452F", "#FFD84D", "#2F5FE0"],
+    grad: "linear-gradient(90deg, transparent 46px, rgba(224,69,47,.5) 46px 48px, transparent 48px), repeating-linear-gradient(0deg, transparent 0 33px, rgba(47,95,224,.14) 33px 34px)",
+    font: "'Instrument Serif'", tracking: "0", demo: "Meet Nova",
+    vibe: "Cream ruled notebook paper with a red margin, ink doodles that draw themselves — a yellow highlighter swipe and red wavy pen underline. Personal and hand-made.",
+    filmGrad: "linear-gradient(135deg,#E0452F,#FFD84D,#2F5FE0)",
+  },
+
+  // ---- Poster / editorial batch (broadside · creative-mode · coral · cartesian ·
+  // bold-poster · cobalt-grid · capsule), imported from the HyperFrames FRAME.md packs.
+  broadside: {
+    name: "Broadside", tag: "PROTEST POSTER", bg: "#111111", ink: "#F0ECE5", accent: "#E85D26",
+    chips: ["#E85D26", "#F0ECE5", "#282826"],
+    grad: "repeating-linear-gradient(0deg, transparent 0 47px, rgba(40,40,38,.8) 47px 48px)",
+    font: "'Barlow'", tracking: "-.03em", demo: "say it loud",
+    vibe: "Massive lowercase Barlow on a flat ink-black plane, with fire-orange as the only color and 1px hairlines carrying all the structure.",
+    filmGrad: "linear-gradient(135deg,#E85D26,#111111,#F0ECE5)",
+  },
+  "creative-mode": {
+    name: "Creative Mode", tag: "NEO-BRUTAL", bg: "#EFE9D9", ink: "#0F0F0F", accent: "#F06CA8",
+    chips: ["#F06CA8", "#E85A1F", "#1F8A4C"],
+    grad: "repeating-linear-gradient(45deg,#EFE9D9 0 26px,#E4DCC4 26px 52px)",
+    font: "'Archivo Black'", tracking: "-.01em", demo: "MADE LOUD",
+    vibe: "Warm cream paper and near-black ink with four full-saturation accents color-blocked flat, one hard offset shadow, zero glow.",
+    filmGrad: "linear-gradient(135deg,#F06CA8,#E85A1F,#1F8A4C)",
+  },
+  coral: {
+    name: "Coral", tag: "POSTER", bg: "#F5F0E8", ink: "#1A1A1A", accent: "#E85D5D",
+    chips: ["#E85D5D", "#1A1A1A", "#F5F0E8"],
+    grad: "linear-gradient(180deg,#E85D5D 0 38%,#F5F0E8 38% 100%), repeating-linear-gradient(45deg, transparent 0 20px, rgba(0,0,0,.06) 20px 40px)",
+    font: "'Bebas Neue'", tracking: ".04em", demo: "FIRE & INK",
+    vibe: "Three solid surfaces — coral fire, ink black, warm cream — slammed together at hard edges with condensed caps and a 45° hatch.",
+    filmGrad: "linear-gradient(135deg,#E85D5D,#F5F0E8,#1A1A1A)",
+  },
+  cartesian: {
+    name: "Cartesian", tag: "EDITORIAL", bg: "#EDE8E0", ink: "#1A1A1A", accent: "#8A8178",
+    chips: ["#8A8178", "#B8B0A4", "#1A1A1A"],
+    grad: "repeating-linear-gradient(0deg, transparent 0 46px, rgba(184,176,164,.18) 46px 47px), repeating-linear-gradient(90deg, transparent 0 46px, rgba(184,176,164,.18) 46px 47px)",
+    font: "'Playfair Display'", tracking: "-.01em", demo: "Well framed.",
+    vibe: "Warm-stone museum-catalog editorial: 1px taupe hairlines, ink Playfair, and compass-drafted rings breathing behind negative space.",
+    filmGrad: "linear-gradient(135deg,#EDE8E0,#8A8178,#1A1A1A)",
+  },
+  "bold-poster": {
+    name: "Bold Poster", tag: "POSTER", bg: "#FFFFFF", ink: "#1C1410", accent: "#D8000F",
+    chips: ["#D8000F", "#1C1410", "#F5F2EF"],
+    grad: "none",
+    font: "'Shrikhand'", tracking: "-.02em", demo: "LOUD & PRINTED",
+    vibe: "Heavy tilted Shrikhand display in one tomato red, classical serif body, ink-ruled double-border grids on a white sheet.",
+    filmGrad: "linear-gradient(135deg,#D8000F,#1C1410,#F5F2EF)",
+  },
+  "cobalt-grid": {
+    name: "Cobalt Grid", tag: "RISOGRAPH", bg: "#F0EBDE", ink: "#1F2BE0", accent: "#1F2BE0",
+    chips: ["#1F2BE0", "#5560E5", "#E6E0CE"],
+    grad: "repeating-linear-gradient(0deg, transparent 0 22px, rgba(31,43,224,.1) 22px 23px), repeating-linear-gradient(90deg, transparent 0 22px, rgba(31,43,224,.1) 22px 23px)",
+    font: "'Newsreader'", tracking: "-.01em", demo: "SIGNAL 01",
+    vibe: "Warm cream paper and electric cobalt ink on a permanent graph-paper grid, with pixel-glitch columns and QR patches.",
+    filmGrad: "linear-gradient(135deg,#1F2BE0,#5560E5,#F0EBDE)",
+  },
+  capsule: {
+    name: "Capsule", tag: "PLAYFUL", bg: "#F5F5F0", ink: "#1A1A1A", accent: "#E85D4E",
+    chips: ["#E85D4E", "#F2D160", "#8BB4F7"],
+    grad: "radial-gradient(circle at 20% 30%, rgba(232,93,78,.12), transparent 42%), radial-gradient(circle at 80% 70%, rgba(139,180,247,.12), transparent 42%), radial-gradient(circle at 55% 50%, rgba(196,217,78,.10), transparent 45%)",
+    font: "'Bodoni Moda'", tracking: "-.02em", demo: "Sweet & clear",
+    vibe: "Inflated candy pills and cards outlined in ink, floating on sun-bleached cream with soft glows and grain.",
+    filmGrad: "linear-gradient(135deg,#E85D4E,#C4D94E,#C5B5E0)",
+  },
 };
 
 export const PACK_ORDER = [
-  "liquid-glass", "longshot-cinema", "summit-keynote", "prism-launch", "fable-storybook",
+  "liquid-glass", "brut-pop", "sketchnote",
+  // Poster / editorial batch
+  "bold-poster", "creative-mode", "coral", "broadside", "capsule", "cartesian", "cobalt-grid",
+  "longshot-cinema", "summit-keynote", "prism-launch", "fable-storybook",
   "blockframe", "biennale-yellow", "midnight-glass", "noir-spotlight", "vapor-chrome",
   "aurora-spectrum", "bauhaus-print", "kinetic-bold", "mono-corporate", "bloom-illustrated",
   // Phase-5 gap categories, grouped: dev/CLI · data · fintech · healthcare · SaaS.
