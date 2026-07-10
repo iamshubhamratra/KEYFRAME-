@@ -72,6 +72,18 @@ function validateBody(body) {
   // Three.js/WebGL cinematic composer (opt-in). Default off → scene-kit.
   out.render3d = body.render3d === true || body.threeD === true;
 
+  // Compose mode: "premium" = the bespoke LLM composition agent (remix); absent
+  // or "standard" = the deterministic scene-kit. Parity with the projects route,
+  // so the single-shot endpoint can also request a premium finish.
+  if (body.composeMode != null && body.composeMode !== "") {
+    if (body.composeMode !== "standard" && body.composeMode !== "premium") {
+      errs.push(`composeMode must be "standard" or "premium"`);
+    } else {
+      out.remix = body.composeMode === "premium";
+    }
+  }
+  if (body.remix === true) out.remix = true;
+
   // Optional voice override for TTS.
   const { VALID_VOICES } = require("../services/audio_planner");
   if (body.voice != null) {
@@ -157,6 +169,7 @@ function buildRouter({ enqueue }) {
       images: out.images,
       video: out.video,
       render3d: out.render3d,
+      remix: out.remix === true,
       framePack: out.framePack,
     });
 
