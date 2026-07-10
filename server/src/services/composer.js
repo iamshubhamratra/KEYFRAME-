@@ -423,19 +423,26 @@ function quickCheck(indexHtml, metaJsonStr, { width, height, duration, assets, e
     }
 
     // Sticker floor — directly targets the "no pop-in stickers" complaint. Count
-    // distinct sticker classes that ALSO appear in a gsap tween call (so a static
-    // 0×0/opacity:0 decoy can't satisfy a class-token count). A static check can't
-    // see render-time visibility; this is a floor against the EMPTY case.
-    const stickerClassRe = /class\s*=\s*["'][^"']*\b(sticker|badge|chip|stat|callout|pill)\b/gi;
-    const stickerClasses = new Set();
-    let sm;
-    while ((sm = stickerClassRe.exec(indexHtml)) != null) stickerClasses.add(sm[1].toLowerCase());
-    const tweened = [...stickerClasses].filter(
+    // sticker ELEMENTS (any class attr carrying a sticker-family token) and
+    // separately confirm at least one sticker-family token is targeted by a GSAP
+    // tween. The prompt's own pattern is class="sticker badge" + ONE stagger tween
+    // on ".sticker", so per-element token↔tween pairing must NOT be required (that
+    // produced 0/0/0 false rejections across three valid comps on 2026-07-09).
+    // A static check can't see render-time visibility; this is a floor against the
+    // EMPTY case.
+    const STICKER_TOKENS = ["sticker", "badge", "chip", "stat", "callout", "pill"];
+    let stickerEls = 0;
+    const stickerTokens = new Set();
+    for (const m of indexHtml.matchAll(/class\s*=\s*["']([^"']*)["']/gi)) {
+      const toks = m[1].toLowerCase().split(/\s+/).filter((t) => STICKER_TOKENS.includes(t));
+      if (toks.length) { stickerEls++; toks.forEach((t) => stickerTokens.add(t)); }
+    }
+    const tweened = [...stickerTokens].filter(
       (c) => new RegExp(`tl\\.(?:to|from|fromTo|set)\\([^)]*\\.${c}\\b`).test(indexHtml)
     );
-    if (tweened.length < MIN_STICKERS) {
+    if (stickerEls < MIN_STICKERS || tweened.length === 0) {
       errs.push(
-        `too few animated pop-in stickers/badges/chips (found ${tweened.length} distinct sticker class(es) tweened by GSAP, need >=${MIN_STICKERS}). ` +
+        `too few animated pop-in stickers/badges/chips (found ${stickerEls} sticker element(s), ${tweened.length} sticker class(es) tweened by GSAP; need >=${MIN_STICKERS} elements with at least one class tweened). ` +
         `Add decorative pop-in overlays per the POP-IN STICKERS section (burst badge / glass chip / stat sticker / connector callout) — each an absolute child of its scene with class "sticker badge|chip|stat|callout", popping via back.out, in the MARGINS over the image (NOT over the headline). Put data-layout-allow-occlusion on each text-bearing sticker and on any content container a sticker covers.`
       );
     }
