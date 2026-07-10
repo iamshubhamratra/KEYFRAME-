@@ -18,6 +18,12 @@ const config = require("../config");
 
 const pixabayBridge = require("./pixabay_bridge");
 
+// Pixabay-only mode (PIXABAY_ONLY=1): drop the Freesound + Internet-Archive
+// fallbacks so every real track/effect comes from Pixabay (via the bridge).
+// Music still falls to the synthesized ambient pad so a dry result never ships
+// a silent film; SFX is optional, so a dry result just means no effect.
+const PIXABAY_ONLY = process.env.PIXABAY_ONLY === "1";
+
 const FREESOUND_BASE = "https://freesound.org/apiv2";
 
 function log(...args) { console.log("[audio_sources]", ...args); }
@@ -229,6 +235,19 @@ async function fetchMusic({ query, outputPath, tracker, durationSec }) {
     }
   }
 
+  // PIXABAY_ONLY: skip the Freesound + Internet-Archive fallbacks entirely and
+  // drop straight to the synthesized ambient pad, so any real track came from
+  // Pixabay above.
+  if (PIXABAY_ONLY) {
+    const pad = await generatePad(norm, outputPath, durationSec);
+    if (pad) {
+      log(`music: PIXABAY_ONLY, Pixabay dry for "${norm}" — synthesized ambient pad bed instead`);
+      return pad;
+    }
+    log(`music: PIXABAY_ONLY and no Pixabay track for "${norm}"; skipping`);
+    return null;
+  }
+
   // 1) Freesound — bias to MUSIC, not foley/field-recordings; widen the query
   // stepwise before giving up on the source.
   for (const q of candidates) {
@@ -285,6 +304,13 @@ async function fetchSfx({ query, outputPath, tracker }) {
       log(`sfx: Pixabay bridge "${query}" -> ${bridgeUrl.slice(0, 72)}`);
       return got;
     }
+  }
+
+  // PIXABAY_ONLY: no Freesound fallback — SFX is optional, so a dry Pixabay
+  // result just means no effect for this cue.
+  if (PIXABAY_ONLY) {
+    log(`sfx: PIXABAY_ONLY, Pixabay dry for "${query}"; skipping`);
+    return null;
   }
 
   if (tracker) tracker.addExternal("freesound_search");

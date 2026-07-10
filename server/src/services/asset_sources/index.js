@@ -22,6 +22,16 @@ const { subjectQuery } = require("./query_terms");
 // clip-art). Set USE_CURATED_LIBRARY=1 to re-enable it.
 const USE_CURATED = process.env.USE_CURATED_LIBRARY === "1";
 
+// Pixabay-only mode (PIXABAY_ONLY=1): every asset must provably come from
+// Pixabay. Drops the non-Pixabay image providers (openverse, pexels), the
+// iconify SVG fallback, and any cached asset whose source isn't Pixabay. The
+// Pixabay official API + site-scraper + vector bridge remain. Pairs with the
+// audio_sources.js switch that drops the Freesound/Internet-Archive fallbacks.
+const PIXABAY_ONLY = process.env.PIXABAY_ONLY === "1";
+// A cached asset counts as Pixabay when its source is "pixabay" or
+// "pixabay_scrape" (local_db stores the raw provider name).
+const PIXABAY_SOURCE_RE = /^pixabay/;
+
 const PROVIDERS = {
   pixabay: require("./pixabay_api"),
   openverse: require("./openverse"),
@@ -34,6 +44,7 @@ const DEFAULT_ORDER = ["pixabay", "openverse", "pexels", "pixabay_scrape"];
 function providersFor(type) {
   const order = config.assetProviders?.order || DEFAULT_ORDER;
   return order
+    .filter((n) => !PIXABAY_ONLY || n === "pixabay" || n === "pixabay_scrape")
     .map((n) => PROVIDERS[n])
     .filter((p) => p && p.types.includes(type) && (p.available ? p.available() : true));
 }
@@ -119,8 +130,10 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
   // the curated library and before web stock. Clean line/solid art recolored to
   // the pack accent — the reliable icon supply the pixabay-vector path never was.
   // SVG-native: writes an .svg directly (no ffprobe gate); the composer already
-  // places .svg assets.
-  if (type === "image" && kindPref === "vector") {
+  // places .svg assets. Skipped under PIXABAY_ONLY (iconify is not Pixabay) —
+  // vector roles then rely on the Pixabay bridge above + the Pixabay providers
+  // below (pixabay_scrape and the official API both serve vector art).
+  if (type === "image" && kindPref === "vector" && !PIXABAY_ONLY) {
     for (const q of queries) {
       let icon = null;
       try { icon = await iconify.fetchIcon({ query: q, color: iconColor, iconStyle, outputPath }); }
@@ -147,9 +160,11 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
     return null;
   }
 
-  // 1 — our fetch cache.
+  // 1 — our fetch cache. Under PIXABAY_ONLY, restrict cache hits to entries that
+  // were originally sourced from Pixabay, so a pre-existing openverse/pexels/
+  // iconify asset can't leak back in through the cache.
   for (const q of queries) {
-    const hits = localDb.search({ query: q, type, orientation });
+    const hits = localDb.search({ query: q, type, orientation, sourceRe: PIXABAY_ONLY ? PIXABAY_SOURCE_RE : null });
     if (hits.length) {
       const meta = localDb.materialize(hits[0], outputPath);
       if (tracker) tracker.addExternal("asset_cache_hit");
