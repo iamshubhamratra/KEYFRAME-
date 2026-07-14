@@ -290,9 +290,18 @@ async function chat({ system, user, jsonMode = false, temperature, model, stage,
   const orPrimary = model || (stage ? modelForStage(stage) : config.llm.model);
   const orFallback = config.llm.modelFallback;
 
-  const kieEnabled = config.llm.primary && config.llm.primary.apiKey && !model;
+  // The KIE primary (grok-4-5) is a REASONING model — output tokens include
+  // reasoning and are billed, so a trivial stage (vo_fit, a QA verdict) can burn
+  // 3k+ output tokens where the flat fallback model spends 300. Reserve the
+  // primary for the PREMIUM creative stages (where deep reasoning shows up on
+  // screen) and send everything else straight to the cheap OpenRouter model.
+  // Override with config.llm.premiumStages. usage.js mirrors this split when
+  // pricing stages — keep the two in sync.
+  const premiumStages = new Set(config.llm.premiumStages || ["brief", "storyboard", "script", "composer"]);
+  const stagePremium = !stage || premiumStages.has(stage);
+  const kieEnabled = config.llm.primary && config.llm.primary.apiKey && !model && stagePremium;
 
-  console.log(`[llm] primary=${kieEnabled ? `kie:${config.llm.primary.model}` : "none"} fallback=${orPrimary}->${orFallback || "none"} stage=${stage || "?"} dispatching (sys=${system.length}ch user=${user.length}ch json=${jsonMode} timeout=${timeoutMs}ms)`);
+  console.log(`[llm] primary=${kieEnabled ? `kie:${config.llm.primary.model}` : (stagePremium ? "none" : "none (fast stage)")} fallback=${orPrimary}->${orFallback || "none"} stage=${stage || "?"} dispatching (sys=${system.length}ch user=${user.length}ch json=${jsonMode} timeout=${timeoutMs}ms)`);
 
   // 1. PRIMARY: KIE Gemini. KIE's Cloudflare edge throws transient 524/5xx
   // timeouts on the bigger prompts (storyboard/composer), so RETRY it a couple of

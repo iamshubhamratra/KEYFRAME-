@@ -589,6 +589,39 @@ const r2 = (n) => Math.round(n * 100) / 100;
 const clampSceneDur = (n) => Math.max(2, Math.min(15, n));
 const VO_TAIL = 0.55; // breathing room after a spoken line finishes
 
+// Shared with graph.js and project_pipeline.js: stretch each storyboard scene
+// to contain its MEASURED narration (+VO_TAIL), re-pin every VO clip to its
+// scene's new start, and mirror the new timing onto the script's scenes.
+// Returns { effectiveDuration, startMap } (old script start -> new start, for
+// re-pinning already-scheduled SFX offsets). Idempotent: re-running after a
+// repair lap re-derives the same timing.
+function retimeScenesToVo(storyboard, script, voClips) {
+  const r2b = (n) => Math.round(Number(n) * 100) / 100;
+  const sbScenes = (storyboard && Array.isArray(storyboard.scenes)) ? storyboard.scenes : [];
+  const clipByScene = new Map((voClips || []).map((c) => [String(c.sceneId), c]));
+  let cursor = 0;
+  for (let i = 0; i < sbScenes.length; i++) {
+    const sc = sbScenes[i];
+    const clip = clipByScene.get(String(sc.id != null ? sc.id : `s${i + 1}`));
+    const need = clip ? clip.durationSec + VO_TAIL : 0;
+    sc.duration = r2b(Math.max(2, Number(sc.duration) || 3, need));
+    sc.start = r2b(cursor);
+    if (clip) { clip.startSec = sc.start; clip.sceneDurationSec = sc.duration; }
+    cursor = r2b(cursor + sc.duration);
+  }
+  if (sbScenes.length) storyboard.durationSec = r2b(cursor);
+  const sbById = new Map(sbScenes.map((sc, i) => [String(sc.id != null ? sc.id : `s${i + 1}`), sc]));
+  const startMap = new Map();
+  for (const sc of (script && Array.isArray(script.scenes) ? script.scenes : [])) {
+    const sb = sbById.get(String(sc.id));
+    if (!sb) continue;
+    startMap.set(r2b(sc.start), sb.start);
+    sc.start = sb.start;
+    sc.duration = sb.duration;
+  }
+  return { effectiveDuration: sbScenes.length ? storyboard.durationSec : 0, startMap };
+}
+
 // The narration for one scene: its authored `voiceover`, else a spoken version
 // of its on-screen text (so a scene without an authored line still gets synced
 // narration rather than silence).
@@ -1113,4 +1146,5 @@ async function runJob({
   }
 }
 
-module.exports = { runJob, withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor };
+module.exports = {
+  retimeScenesToVo, runJob, withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor };

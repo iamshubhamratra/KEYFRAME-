@@ -22,7 +22,7 @@ const { generateBrief } = require("../services/brief");
 const { generateScript, normalizeScript } = require("../services/script");
 const { generateStoryboard } = require("../services/storyboard");
 const frameRegistry = require("../services/frame_registry");
-const { withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor } = require("../services/pipeline");
+const { withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor, retimeScenesToVo } = require("../services/pipeline");
 const { acquire, hasProviderFor, makeImageDeduper } = require("../services/asset_sources");
 const { styleFor, iconColorFor } = require("../services/pack_style");
 const { synthesizeFitted } = require("../services/vo_fit");
@@ -510,13 +510,28 @@ async function compositionAgent(s) {
   db.setProgress(job.id, "composing");
   const dims = { width: job.width, height: job.height, fps: job.fps };
 
-  const wc = (t) => (String(t || "").match(/\S+/g) || []).length;
+  // VO-DRIVEN RE-TIMING (the sync fix): voice_agent now joins BEFORE this node,
+  // so the measured narration is available here. Stretch each scene to contain
+  // its line — without this a 3.4s line in a 3s scene overlapped the next
+  // scene's narration AND the last line ran past the video end and was CUT
+  // mid-sentence at mux time. Idempotent across QA repair laps.
+  const retime = retimeScenesToVo(s.storyboard, s.script, s.voClips || []);
+  const effDur = retime.effectiveDuration || job.duration;
+  if (effDur > job.duration + 0.05) {
+    console.log(`[agents] scenes re-timed to measured VO: ${job.duration}s -> ${effDur}s (last line no longer cut)`);
+  }
+  const r2c = (n) => Math.round(Number(n) * 100) / 100;
+  const sfxRepinned = (s.sfxClips || []).map((c) => ({ ...c, startSec: retime.startMap.get(r2c(c.startSec)) ?? c.startSec }));
+
   const captionCues = job.captions_enabled === 0 ? [] : buildCues(
-    s.script.scenes.filter((x) => x.voiceover && x.voiceover.trim()).map((x) => ({
-      sceneId: x.id, startSec: x.start,
-      durationSec: Math.min(x.duration, wc(x.voiceover) / 2.6 + 0.4),
-      sceneDurationSec: x.duration, text: x.voiceover,
-    }))
+    s.script.scenes.filter((x) => x.voiceover && x.voiceover.trim()).map((x) => {
+      const measured = (s.voClips || []).find((c) => String(c.sceneId) === String(x.id));
+      return {
+        sceneId: x.id, startSec: x.start,
+        durationSec: Math.min(x.duration, measured ? measured.durationSec : x.duration),
+        sceneDurationSec: x.duration, text: x.voiceover,
+      };
+    })
   ).map((c) => ({ start: Math.round(c.start * 10) / 10, end: Math.round(c.end * 10) / 10, text: c.text }));
 
   // Carry QA repair feedback into the composer when looping.
@@ -551,23 +566,23 @@ async function compositionAgent(s) {
       const visual = await withBudget(
         (signal) => composeWithThree({
           storyboard, dims, jobDir, framePack: s.framePack, captionCues,
-          assets: s.assets || [], jobId: job.id, durationSec: job.duration,
+          assets: s.assets || [], jobId: job.id, durationSec: effDur,
           label: "graph-three", abortSignal: signal, tracker,
         }),
         budget, "Three.js composition"
       );
-      return { visual, usedFallback: false, finalAttempt: "three" };
+      return { visual, usedFallback: false, finalAttempt: "three", effectiveDuration: effDur, sfxClips: sfxRepinned };
     }
     const visual = await withBudget(
       (signal) => attemptLlmComposition({
         storyboard, dims, jobDir, assets: s.assets || [], tracker,
-        jobId: job.id, durationSec: job.duration,
+        jobId: job.id, durationSec: effDur,
         label: s.qa ? "graph-repair" : "graph-main", abortSignal: signal,
         framePack: s.framePack, captionCues, remix: useComposer,
       }),
       budget, "composition agent"
     );
-    return { visual, usedFallback: false, finalAttempt: s.qa ? "qa-repair" : "main" };
+    return { visual, usedFallback: false, finalAttempt: s.qa ? "qa-repair" : "main", effectiveDuration: effDur, sfxClips: sfxRepinned };
   } catch (e) {
     console.warn(`[agents] composition failed (${e.message.slice(0, 180)})`);
     // Budget-class failure (provider out of credits / daily-capped): a QA
@@ -580,7 +595,7 @@ async function compositionAgent(s) {
     // fallback slide — keep the previous good render.
     if (s.qa && s.visual && !s.usedFallback) {
       console.warn(`[agents] repair re-compose failed — keeping prior lint-passing render (not falling back to template)`);
-      return { visual: s.visual, usedFallback: false, finalAttempt: s.finalAttempt || "main", rendered: true, composerBudgetDead };
+      return { visual: s.visual, usedFallback: false, finalAttempt: s.finalAttempt || "main", rendered: true, composerBudgetDead, effectiveDuration: effDur, sfxClips: sfxRepinned };
     }
     try {
       if (fs.existsSync(path.join(jobDir, "index.html"))) {
@@ -600,19 +615,19 @@ async function compositionAgent(s) {
         // was budget-class (the dressing call would die on the same wall).
         const visual = await attemptLlmComposition({
           storyboard, dims, jobDir, assets: s.assets || [], tracker,
-          jobId: job.id, durationSec: job.duration, label: "scene-kit-fallback",
+          jobId: job.id, durationSec: effDur, label: "scene-kit-fallback",
           framePack: s.framePack, captionCues, remix: false,
           dress: job.compose_mode === "premium" && !composerBudgetDead,
           subject: s.brief?.subject || null,
         });
-        return { visual, usedFallback: false, finalAttempt: "scene-kit", rendered: true, composerBudgetDead };
+        return { visual, usedFallback: false, finalAttempt: "scene-kit", rendered: true, composerBudgetDead, effectiveDuration: effDur, sfxClips: sfxRepinned };
       } catch (e2) {
         console.warn(`[agents] scene-kit fallback failed (${String(e2.message).slice(0, 120)}) — bland template`);
       }
     }
     console.warn(`[agents] deterministic fallback`);
     const fb = buildFallback({
-      prompt: s.brief?.improvedPrompt || job.prompt, duration: job.duration,
+      prompt: s.brief?.improvedPrompt || job.prompt, duration: effDur,
       orientation: job.orientation, width: dims.width, height: dims.height, fps: dims.fps,
       storyboard: s.storyboard,
       packTokens: s.framePack ? frameRegistry.getPackTokens(s.framePack) : null,
@@ -625,8 +640,8 @@ async function compositionAgent(s) {
     fs.writeFileSync(path.join(jobDir, "index.html"), fbNorm.html, "utf8");
     fs.writeFileSync(path.join(jobDir, "meta.json"), fb.metaJson, "utf8");
     tracker.addExternal("hyperframes_render");
-    const visual = await render({ jobId: job.id, jobDir, durationSec: job.duration });
-    return { visual, usedFallback: true, finalAttempt: "fallback", rendered: true, composerBudgetDead };
+    const visual = await render({ jobId: job.id, jobDir, durationSec: effDur });
+    return { visual, usedFallback: true, finalAttempt: "fallback", rendered: true, composerBudgetDead, effectiveDuration: effDur, sfxClips: sfxRepinned };
   }
 }
 
@@ -668,7 +683,9 @@ async function timelineAgent(s) {
 
   await mixAudioIntoVideo({
     visualPath: visual.videoPath,
-    durationSec: job.duration,
+    // The video was rendered at the VO re-timed duration — mix to the same
+    // length or the last narrated line gets cut at the old boundary again.
+    durationSec: s.effectiveDuration || job.duration,
     scenes: s.storyboard?.scenes || null, jobDir,
     audio: {
       ttsPath: null,
@@ -729,7 +746,7 @@ async function buildGraph() {
     brief: Annotation(), script: Annotation(),
     framePack: Annotation(), storyboard: Annotation(),
     assetPlan: Annotation(), assets: Annotation(),
-    voClips: Annotation(), sfxClips: Annotation(), musicPath: Annotation(),
+    voClips: Annotation(), sfxClips: Annotation(), musicPath: Annotation(), effectiveDuration: Annotation(),
     visual: Annotation(), usedFallback: Annotation(), finalAttempt: Annotation(), rendered: Annotation(),
     animationReport: Annotation(), qa: Annotation(), qaAttempts: Annotation(),
     composerBudgetDead: Annotation(),
@@ -758,10 +775,10 @@ async function buildGraph() {
   g.addEdge("storyboard_agent", "scene_planner");
   g.addEdge("asset_planner", "asset_search");
   // Join: composition needs the plan AND the assets.
-  g.addEdge(["scene_planner", "asset_search"], "composition");
+  g.addEdge(["scene_planner", "asset_search", "voice_agent"], "composition");
   g.addEdge("composition", "animation");
   // Join: the timeline mix needs the render AND the voice branch.
-  g.addEdge(["animation", "voice_agent"], "timeline");
+  g.addEdge("animation", "timeline");
   g.addEdge("timeline", "qa_agent");
   g.addConditionalEdges("qa_agent", (s) => {
     const repairsLeft = (s.qaAttempts || 0) <= (Number(config.qa?.maxRepairs) || 1);

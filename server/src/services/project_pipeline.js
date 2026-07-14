@@ -28,7 +28,7 @@ const { buildCues, writeSrt } = require("./captions");
 const { fetchMusic, fetchSfx } = require("./audio_sources");
 const { VALID_VOICES } = require("./audio_planner");
 const { render } = require("./renderer");
-const { withBudget, attemptLlmComposition, mixAudioIntoVideo, fallbackQueriesFor } = require("./pipeline");
+const { withBudget, attemptLlmComposition, mixAudioIntoVideo, fallbackQueriesFor, retimeScenesToVo } = require("./pipeline");
 const { acquire, hasProviderFor } = require("./asset_sources");
 
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
@@ -305,6 +305,9 @@ async function runProduction({ jobId }) {
   let usedFallback = false;
   let finalAttempt = "main";
   let visualResult = null;
+  let voClips = [];               // measured narration clips, pinned to re-timed scene starts
+  let startMap = new Map();       // old script scene start -> re-timed start (sfx re-pinning)
+  let effectiveDuration = duration; // grows when scenes stretch to fit their narration
 
   try {
     // ---- Audio starts immediately, in parallel with the visual chain.
@@ -366,20 +369,34 @@ async function runProduction({ jobId }) {
       const assets = await assetsTask;
       db.setAssets(jobId, assets);
 
-      // Caption cues for ON-SCREEN baking. Estimated from word count (the
-      // composer can't wait for measured VO without serializing the
-      // pipeline); the exported .srt later uses real measured durations.
-      const wc = (s) => (String(s || "").match(/\S+/g) || []).length;
+      // ---- VO-DRIVEN RE-TIMING (the sync fix, ported from /generate) ----
+      // Await the measured narration BEFORE composing and stretch each scene to
+      // contain its line. Without this, a 3.4s line in a 3s scene overlapped the
+      // next scene's narration AND the last line ran past the video end and was
+      // CUT MID-SENTENCE at mux time. VO synthesis started in parallel with the
+      // storyboard + assets above, so most of its latency is already absorbed.
+      voClips = await voTask;
+      const retime = retimeScenesToVo(sbRes.storyboard, script, voClips);
+      startMap = retime.startMap;
+      if (retime.effectiveDuration > 0) effectiveDuration = retime.effectiveDuration;
+      if (effectiveDuration > duration + 0.05) {
+        console.log(`[project] scenes re-timed to measured VO: ${duration}s -> ${effectiveDuration}s (last line no longer cut)`);
+      }
+
+      // Caption cues for ON-SCREEN baking, built from the RE-TIMED scene starts.
       const captionCues = job.captions_enabled === 0 ? [] : buildCues(
         script.scenes
           .filter((s) => s.voiceover && s.voiceover.trim())
-          .map((s) => ({
-            sceneId: s.id,
-            startSec: s.start,
-            durationSec: Math.min(s.duration, wc(s.voiceover) / 2.6 + 0.4),
-            sceneDurationSec: s.duration,
-            text: s.voiceover,
-          }))
+          .map((s) => {
+            const measured = voClips.find((c) => String(c.sceneId) === String(s.id));
+            return {
+              sceneId: s.id,
+              startSec: s.start,
+              durationSec: Math.min(s.duration, measured ? measured.durationSec : s.duration),
+              sceneDurationSec: s.duration,
+              text: s.voiceover,
+            };
+          })
       ).map((c) => ({ start: Math.round(c.start * 10) / 10, end: Math.round(c.end * 10) / 10, text: c.text }));
 
       // ---- Compose + render (frame-pack styled), with the v1 budget wrapper.
@@ -391,7 +408,7 @@ async function runProduction({ jobId }) {
         visualResult = await withBudget(
           (signal) => attemptLlmComposition({
             storyboard: sbRes.storyboard, dims, jobDir,
-            assets, tracker, jobId, durationSec: duration,
+            assets, tracker, jobId, durationSec: effectiveDuration,
             label: "project-main", abortSignal: signal, framePack, captionCues,
           }),
           budget, "project composition"
@@ -407,7 +424,7 @@ async function runProduction({ jobId }) {
             visualResult = await withBudget(
               (signal) => attemptLlmComposition({
                 storyboard: sbRes.storyboard, dims, jobDir,
-                assets: [], tracker, jobId, durationSec: duration,
+                assets: [], tracker, jobId, durationSec: effectiveDuration,
                 label: "project-no-assets", abortSignal: signal, framePack, captionCues,
               }),
               budget, "project no-assets retry"
@@ -430,7 +447,7 @@ async function runProduction({ jobId }) {
             }
           } catch { /* best effort */ }
           const fb = buildFallback({
-            prompt: brief?.improvedPrompt || job.prompt, duration,
+            prompt: brief?.improvedPrompt || job.prompt, duration: effectiveDuration,
             orientation: job.orientation, width: dims.width, height: dims.height, fps: dims.fps,
             storyboard: sbRes.storyboard,
             packTokens: framePack ? require("./frame_registry").getPackTokens(framePack) : null,
@@ -438,7 +455,7 @@ async function runProduction({ jobId }) {
           fs.writeFileSync(path.join(jobDir, "index.html"), fb.indexHtml, "utf8");
           fs.writeFileSync(path.join(jobDir, "meta.json"), fb.metaJson, "utf8");
           tracker.addExternal("hyperframes_render");
-          visualResult = await render({ jobId, jobDir, durationSec: duration });
+          visualResult = await render({ jobId, jobDir, durationSec: effectiveDuration });
         }
       }
     }
@@ -447,8 +464,10 @@ async function runProduction({ jobId }) {
     {
       const t0 = ms();
       db.setProgress(jobId, "audio");
-      const [voClips, musicPath, sfxClips] = await Promise.all([voTask, musicTask, sfxTask]);
-      if (sfxClips.length) console.log(`[project] ${sfxClips.length} sfx mixed in`);
+      const [musicPath, sfxClips] = await Promise.all([musicTask, sfxTask]);
+      const r2c = (n) => Math.round(Number(n) * 100) / 100;
+      const sfxRepinned = sfxClips.map((c) => ({ ...c, startSec: startMap.get(r2c(c.startSec)) ?? c.startSec }));
+      if (sfxRepinned.length) console.log(`[project] ${sfxRepinned.length} sfx mixed in`);
 
       // Captions: cue objects + .srt exported next to the MP4.
       const cues = buildCues(voClips);
@@ -464,7 +483,7 @@ async function runProduction({ jobId }) {
 
       await mixAudioIntoVideo({
         visualPath: visualResult.videoPath,
-        durationSec: duration,
+        durationSec: effectiveDuration,
         scenes: sbRes.storyboard?.scenes || null, jobDir,
         audio: {
           ttsPath: null,
@@ -474,7 +493,7 @@ async function runProduction({ jobId }) {
           // and keys the ducking — without it the mixer treats speech as an SFX.
           sfx: [
             ...voClips.map((c) => ({ path: c.path, startSec: c.startSec, volume: 1.0, kind: "vo" })),
-            ...sfxClips,
+            ...sfxRepinned,
           ],
           musicVolume: config.audio?.defaultMusicVolume ?? 0.15,
         },
