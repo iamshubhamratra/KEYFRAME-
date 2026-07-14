@@ -48,26 +48,41 @@ function persist() {
 // ---- bootstrap ----
 load();
 
-// Crash recovery: orphaned jobs at boot. A /generate job whose full task was
-// persisted is RE-QUEUED (once) instead of failed — under the `node --watch`
-// dev loop any source-file save restarts the server, and failing every
-// in-flight take made that loop brutal ("TAKE FAILED — start over"). server.js
-// drains takeOrphanedTasks() into the queue once the pipeline is wired.
-// Project-kind jobs and second-time orphans still fail (their pipelines have
-// approval state we can't safely replay, and one requeue guards against a
-// job that crashes the server in a loop).
+// Crash recovery: orphaned jobs at boot are RE-QUEUED (once) instead of
+// failed — under the `node --watch` dev loop any source-file save restarts
+// the server, and failing every in-flight take made that loop brutal
+// ("TAKE FAILED — start over"). server.js drains takeOrphanedTasks() into the
+// queue once the pipelines are wired:
+//   - generate-kind: replays the persisted `task` (flags included).
+//   - project-kind: runIntake/runProduction are replayable from the job
+//     record itself (intent/upload for intake, approved script for
+//     production) — the recovery entry carries which phase was in flight.
+//     Jobs sitting at approval are not queued/running, so untouched.
+// One requeue per job (requeue_count) guards against a job that crashes the
+// server in a loop; second-time orphans fail as before.
 const orphanedTasks = [];
 let recovered = 0;
 let requeued = 0;
+const INTAKE_STAGES = new Set(["ingest", "brief", "script"]);
 for (const j of jobs.values()) {
   if (j.status !== "queued" && j.status !== "running") continue;
-  const canRequeue = (j.kind || "generate") === "generate" && j.task && !(j.requeue_count >= 1);
-  if (canRequeue) {
+  const kind = j.kind || "generate";
+  let entry = null;
+  if (!(j.requeue_count >= 1)) {
+    if (kind === "generate" && j.task) {
+      entry = { kind: "generate", task: j.task };
+    } else if (kind === "project") {
+      // Production is only replayable once a script was approved & persisted.
+      const phase = (!j.progress || INTAKE_STAGES.has(j.progress)) ? "intake" : (j.script ? "production" : "intake");
+      entry = { kind: "project", jobId: j.id, phase };
+    }
+  }
+  if (entry) {
     j.status = "queued";
     j.progress = null;
     j.started_at = null;
     j.requeue_count = (j.requeue_count || 0) + 1;
-    orphanedTasks.push(j.task);
+    orphanedTasks.push(entry);
     requeued++;
   } else {
     j.status = "failed";

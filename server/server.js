@@ -63,11 +63,17 @@ async function main() {
     });
   }
 
-  // Resume generate jobs orphaned by a restart (node --watch restarts on every
-  // source save; without this, each restart failed all in-flight takes).
-  for (const task of db.takeOrphanedTasks()) {
-    console.log(`[server] requeuing orphaned job ${task.jobId} after restart`);
-    enqueue(task);
+  // Resume jobs orphaned by a restart (node --watch restarts on every source
+  // save; without this, each restart failed all in-flight takes).
+  for (const entry of db.takeOrphanedTasks()) {
+    if (entry.kind === "project") {
+      console.log(`[server] requeuing orphaned project ${entry.jobId} (${entry.phase}) after restart`);
+      if (entry.phase === "production") enqueueProduction(entry.jobId);
+      else enqueueIntake(entry.jobId);
+    } else {
+      console.log(`[server] requeuing orphaned job ${entry.task.jobId} after restart`);
+      enqueue(entry.task);
+    }
   }
 
   const app = express();
