@@ -39,7 +39,7 @@ export default function App() {
     if (!hasPrompt && !hasUrl) { setPrefill({ prompt: prompt || "", url: url || "" }); go("create"); return; }
     startedRef.current = true; setStarting(true);
     try {
-      const fields = { duration: 30, orientation: "horizontal", quality: "720p", framePack: "auto", captions: false,
+      const fields = { duration: 30, orientation: "horizontal", quality: "1080p", framePack: "auto", captions: false, composeMode: "premium",
         ...(hasPrompt ? { prompt: prompt.trim() } : {}), ...(hasUrl ? { websiteUrl: url.trim() } : {}) };
       const r = await createProject(fields);
       go("understanding", r.projectId);
@@ -102,7 +102,7 @@ export default function App() {
     create: <CreateScreen onCreated={(id) => go("understanding", id)} prefill={prefill} />,
     understanding: <UnderstandingScreen projectId={projectId} onScriptReady={() => go("script")} onFailed={() => go("create")} />,
     script: <ScriptRoom projectId={projectId} onApproved={() => go("theater")} />,
-    theater: <ProductionTheater projectId={projectId} onDone={() => go("premiere")} onFailed={() => go("create")} />,
+    theater: <ProductionTheater projectId={projectId} onDone={() => go("premiere")} onFailed={() => go("create")} onScriptReview={() => go("script")} />,
     premiere: <Premiere projectId={projectId} onRemix={() => go("script")} onNew={() => enterStudio("create")} />,
     gallery: <Gallery onOpen={(id) => go("premiere", id)} onUseStyle={useStyle} />,
     templates: <Templates onUseStyle={useStyle} />,
