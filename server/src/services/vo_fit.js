@@ -8,7 +8,10 @@ const { synthesize } = require("./tts");
 const { probeDurationSec } = require("./media"); // shared ffprobe helper (was duplicated here)
 
 async function tightenLine({ line, targetSec, signal }) {
-  const targetWords = Math.max(3, Math.floor(targetSec * 2.6));
+  // ~2.1 words/sec is the REAL delivered rate of the gpt-audio voices (2.6 was
+  // optimistic and left every "fitted" line still overrunning its scene). Leave a
+  // little headroom so the rewritten line actually fits when spoken.
+  const targetWords = Math.max(3, Math.floor(targetSec * 2.1));
   const { text, tokensIn, tokensOut } = await openrouter.chat({
     system: "You tighten voiceover lines. Reply with ONLY the rewritten line — no quotes, no commentary. Preserve the meaning and any names/numbers exactly.",
     user: `Rewrite this voiceover line to at most ${targetWords} words so it can be spoken comfortably in ${targetSec} seconds:\n${line}`,
@@ -38,6 +41,31 @@ async function synthOnce({ text, voice, instructions, outputPath, tracker }) {
     return meta2;
   }
   return meta;
+}
+
+// Fit a clip to its scene by GENTLY speeding it up (atempo) — keeps every word and
+// stays in sync with the scene, unlike a hard trim. Capped so it never sounds
+// chipmunky. Returns the new duration (or the old one if nothing was done).
+function atempoFit(filePath, targetSec, currentDur, maxTempo) {
+  return new Promise((resolve) => {
+    const factor = Math.min(maxTempo, Math.max(1.0, currentDur / targetSec));
+    if (factor <= 1.02) { resolve(currentDur); return; }
+    const tmp = filePath + ".sp.mp3";
+    const p = spawn("ffmpeg", [
+      "-y", "-hide_banner", "-loglevel", "error", "-i", filePath,
+      "-filter:a", `atempo=${factor.toFixed(4)}`, tmp,
+    ]);
+    const timer = setTimeout(() => { try { p.kill("SIGKILL"); } catch { /* noop */ } }, 30_000);
+    p.on("error", () => { clearTimeout(timer); resolve(currentDur); });
+    p.on("exit", (code) => {
+      clearTimeout(timer);
+      if (code === 0) {
+        try { require("node:fs").renameSync(tmp, filePath); resolve(currentDur / factor); return; } catch { /* noop */ }
+      }
+      try { require("node:fs").unlinkSync(tmp); } catch { /* noop */ }
+      resolve(currentDur);
+    });
+  });
 }
 
 // Hard backstop: trim the clip to the scene budget + grace with a fade-out,
@@ -90,10 +118,23 @@ async function synthesizeFitted({ text, targetSec, voice, instructions, outputPa
     }
   }
 
-  // Last resort: never let a clip exceed scene + 25% — fade it out.
-  const hardCap = targetSec * 1.25;
+  // Fit the clip INSIDE its scene window so consecutive lines can never overlap:
+  // gently speed it up (keeps every word, stays synced) rather than trimming. The
+  // small maxTempo cap keeps it natural; any residual overrun is absorbed by the
+  // mixer's VO sequencing.
+  if (dur > targetSec * 1.03) {
+    const newDur = await atempoFit(outputPath, targetSec, dur, 1.35);
+    if (newDur && newDur < dur - 0.02) {
+      console.log(`[vo_fit] fitted VO ${dur.toFixed(2)}s -> ${newDur.toFixed(2)}s into ${targetSec}s scene (atempo)`);
+      dur = newDur;
+    }
+  }
+  // Absolute backstop: if it STILL overruns (atempo capped — usually a bad TTS
+  // ad-lib), trim close to the scene with a fade so lines never push cumulatively
+  // off the end of the film.
+  const hardCap = targetSec * 1.05;
   if (dur > hardCap) {
-    console.warn(`[vo_fit] VO still ${dur.toFixed(1)}s after tighten — trimming to ${hardCap.toFixed(1)}s with fade`);
+    console.warn(`[vo_fit] VO still ${dur.toFixed(1)}s — trimming to ${hardCap.toFixed(1)}s with fade`);
     if (await trimWithFade(outputPath, hardCap)) dur = hardCap;
   }
 
