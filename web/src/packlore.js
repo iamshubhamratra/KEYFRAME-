@@ -92,6 +92,30 @@ export const PACK_LORE = {
     vibe: "A single camera travels through every scene — letterbox, live timecode, pop-up figures, light sweeps. The anti-slideshow.",
     filmGrad: "linear-gradient(135deg,#FFB454,#4D9FFF 55%,#0A0C10)",
   },
+  "paper-tales": {
+    name: "Paper Tales", tag: "STORYBOOK", bg: "#FBF1E1", ink: "#6B5B73", accent: "#E8938C",
+    chips: ["#E8938C", "#F7C873", "#9CCFE8"],
+    grad: "radial-gradient(circle at 22% 26%, rgba(232,147,140,.28), transparent 45%), radial-gradient(circle at 78% 70%, rgba(156,207,232,.3), transparent 48%), radial-gradient(circle at 60% 20%, rgba(247,200,115,.26), transparent 40%)",
+    font: "'Bricolage Grotesque'", tracking: "-.01em", demo: "Once upon a time…",
+    vibe: "A pop-up storybook come alive — pages turn, paper friends fold up from the crease, and a pen handwrites your story in bedtime pastels.",
+    filmGrad: "linear-gradient(135deg,#E8938C,#F7C873 50%,#9CCFE8)",
+  },
+  "terminal-departures": {
+    name: "Terminal Departures", tag: "SPLIT-FLAP", bg: "#121317", ink: "#F2EEE3", accent: "#FFC61A",
+    chips: ["#FFC61A", "#35D07F", "#FF4B3E"],
+    grad: "repeating-linear-gradient(90deg, rgba(242,238,227,.05) 0 34px, transparent 34px 40px), linear-gradient(180deg, rgba(255,198,26,.12), transparent 55%)",
+    font: "'Bricolage Grotesque'", tracking: ".04em", demo: "NOW BOARDING",
+    vibe: "An airport departures hall — split-flap boards clack every headline into place, gate signs swing from the ceiling, and your film is the FINAL CALL.",
+    filmGrad: "linear-gradient(135deg,#FFC61A,#35D07F 55%,#0B0C0F)",
+  },
+  "neon-premiere": {
+    name: "Neon Premiere", tag: "PREMIERE · NEON", bg: "#05060E", ink: "#F2F5FF", accent: "#FF4FD8",
+    chips: ["#6EE7FF", "#FF4FD8", "#8B7CF6"],
+    grad: "radial-gradient(circle at 26% 80%, rgba(110,231,255,.42), transparent 55%), radial-gradient(circle at 80% 22%, rgba(255,79,216,.40), transparent 55%), linear-gradient(180deg, transparent 58%, rgba(139,124,246,.24))",
+    font: "'Bricolage Grotesque'", tracking: "-.03em", demo: "Premiere Tonight",
+    vibe: "Indigo cinema night, a neon grid horizon and a film-set HUD — cyan→magenta gradient headlines that glow. A red-carpet premiere for your product.",
+    filmGrad: "linear-gradient(135deg,#6EE7FF,#8B7CF6 55%,#FF4FD8)",
+  },
   "summit-keynote": {
     name: "Summit Keynote", tag: "PITCH · 3D", bg: "#F7F8FC", ink: "#10214B", accent: "#2B5BFF",
     chips: ["#2B5BFF", "#10214B", "#D4A94E"],
@@ -283,13 +307,46 @@ export const PACK_LORE = {
     vibe: "Inflated candy pills and cards outlined in ink, floating on sun-bleached cream with soft glows and grain.",
     filmGrad: "linear-gradient(135deg,#E85D4E,#C4D94E,#C5B5E0)",
   },
+  atelier: {
+    name: "Atelier", tag: "LUXE LINE-ART", bg: "#F7F3EC", ink: "#241E1A", accent: "#A98643",
+    chips: ["#A98643", "#C4674E", "#8A9A7B"],
+    grad: "radial-gradient(circle at 70% 25%, rgba(169,134,67,.16), transparent 45%), radial-gradient(circle at 25% 75%, rgba(196,103,78,.10), transparent 42%)",
+    font: "'Fraunces'", tracking: "0", demo: "Maison, refined",
+    vibe: "Warm ivory paper, espresso serif and one muted gold line that draws itself — a fashion-house editorial with acres of quiet negative space.",
+    filmGrad: "linear-gradient(135deg,#A98643,#C4674E 55%,#F7F3EC)",
+  },
+  "riso-press": {
+    name: "Riso Press", tag: "RISOGRAPH", bg: "#F3ECDD", ink: "#1A1714", accent: "#FF3E6C",
+    chips: ["#FF3E6C", "#3A5BFF", "#FFC21A"],
+    grad: "radial-gradient(circle at 30% 30%, rgba(255,62,108,.22), transparent 45%), radial-gradient(circle at 72% 68%, rgba(58,91,255,.20), transparent 48%)",
+    font: "'Anton'", tracking: "0", demo: "HOT OFF THE PRESS",
+    vibe: "Fluorescent pink and electric blue inks overprinting on warm newsprint — halftone dots, registration marks, giant condensed poster type set hard-left.",
+    filmGrad: "linear-gradient(135deg,#FF3E6C,#FFC21A 50%,#3A5BFF)",
+  },
+  "lumen-motion": {
+    name: "Lumen Motion", tag: "EXPLAINER", bg: "#FFF7EF", ink: "#241A33", accent: "#FF5A6E",
+    chips: ["#FF5A6E", "#6C5CE7", "#12B7A6"],
+    grad: "radial-gradient(circle at 24% 28%, rgba(255,90,110,.18), transparent 42%), radial-gradient(circle at 76% 66%, rgba(108,92,231,.16), transparent 45%), radial-gradient(circle at 58% 18%, rgba(255,176,32,.14), transparent 38%)",
+    font: "'Bricolage Grotesque'", tracking: "-.01em", demo: "Watch it click",
+    vibe: "A bright animated explainer — hand-drawn rockets, graphs that plot themselves, turning gears and confetti pops on warm paper. Onboarding that grins.",
+    filmGrad: "linear-gradient(135deg,#FF5A6E,#FFB020 45%,#12B7A6)",
+  },
+  "nova-launch": {
+    name: "Nova Launch", tag: "LAUNCH · HUD", bg: "#070A12", ink: "#EAF0FF", accent: "#3D7BFF",
+    chips: ["#3D7BFF", "#FF7A3C", "#1FE0B8"],
+    grad: "radial-gradient(circle at 28% 75%, rgba(61,123,255,.38), transparent 55%), radial-gradient(circle at 78% 22%, rgba(255,122,60,.30), transparent 50%), radial-gradient(circle at 55% 45%, rgba(166,92,255,.18), transparent 55%)",
+    font: "'Space Grotesk'", tracking: "-.02em", demo: "T-minus zero",
+    vibe: "A dark-stage reveal — electric-blue and solar-orange beams, a live telemetry HUD, a floating data constellation and strobe-cut glowing type.",
+    filmGrad: "linear-gradient(135deg,#3D7BFF,#A65CFF 50%,#FF7A3C)",
+  },
 };
 
 export const PACK_ORDER = [
-  "liquid-glass", "brut-pop", "sketchnote",
+  "paper-tales", "terminal-departures", "neon-premiere",
+  "liquid-glass", "brut-pop", "sketchnote", "riso-press", "atelier",
   // Poster / editorial batch
   "bold-poster", "creative-mode", "coral", "broadside", "capsule", "cartesian", "cobalt-grid",
-  "longshot-cinema", "summit-keynote", "prism-launch", "fable-storybook",
+  "longshot-cinema", "summit-keynote", "prism-launch", "nova-launch", "lumen-motion", "fable-storybook",
   "blockframe", "biennale-yellow", "midnight-glass", "noir-spotlight", "vapor-chrome",
   "aurora-spectrum", "bauhaus-print", "kinetic-bold", "mono-corporate", "bloom-illustrated",
   // Phase-5 gap categories, grouped: dev/CLI · data · fintech · healthcare · SaaS.
@@ -317,7 +374,7 @@ export function loreFor(packName) {
 
 // Gallery filter pills — the design's list, remapped to server pack names.
 export const GALLERY_FILTERS = [
-  ["all", "ALL FILMS"], ["longshot-cinema", "LONGSHOT"], ["summit-keynote", "SUMMIT"], ["prism-launch", "PRISM"],
+  ["all", "ALL FILMS"], ["neon-premiere", "PREMIERE"], ["longshot-cinema", "LONGSHOT"], ["summit-keynote", "SUMMIT"], ["prism-launch", "PRISM"],
   ["fable-storybook", "FABLE"], ["blockframe", "BLOCKFRAME"], ["biennale-yellow", "BIENNALE"],
   ["midnight-glass", "MIDNIGHT"], ["vapor-chrome", "VAPOR"], ["aurora-spectrum", "AURORA"],
   ["bloom-illustrated", "BLOOM"], ["noir-spotlight", "NOIR"],
