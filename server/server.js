@@ -63,6 +63,13 @@ async function main() {
     });
   }
 
+  // Resume generate jobs orphaned by a restart (node --watch restarts on every
+  // source save; without this, each restart failed all in-flight takes).
+  for (const task of db.takeOrphanedTasks()) {
+    console.log(`[server] requeuing orphaned job ${task.jobId} after restart`);
+    enqueue(task);
+  }
+
   const app = express();
   app.disable("x-powered-by");
   app.set("trust proxy", true);

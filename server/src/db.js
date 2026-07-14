@@ -48,18 +48,36 @@ function persist() {
 // ---- bootstrap ----
 load();
 
-// Crash recovery: orphaned jobs at boot cannot finish.
+// Crash recovery: orphaned jobs at boot. A /generate job whose full task was
+// persisted is RE-QUEUED (once) instead of failed — under the `node --watch`
+// dev loop any source-file save restarts the server, and failing every
+// in-flight take made that loop brutal ("TAKE FAILED — start over"). server.js
+// drains takeOrphanedTasks() into the queue once the pipeline is wired.
+// Project-kind jobs and second-time orphans still fail (their pipelines have
+// approval state we can't safely replay, and one requeue guards against a
+// job that crashes the server in a loop).
+const orphanedTasks = [];
 let recovered = 0;
+let requeued = 0;
 for (const j of jobs.values()) {
-  if (j.status === "queued" || j.status === "running") {
+  if (j.status !== "queued" && j.status !== "running") continue;
+  const canRequeue = (j.kind || "generate") === "generate" && j.task && !(j.requeue_count >= 1);
+  if (canRequeue) {
+    j.status = "queued";
+    j.progress = null;
+    j.started_at = null;
+    j.requeue_count = (j.requeue_count || 0) + 1;
+    orphanedTasks.push(j.task);
+    requeued++;
+  } else {
     j.status = "failed";
     j.error = j.error || "server restarted while job was in-flight";
     j.finished_at = Date.now();
     recovered++;
   }
 }
-if (recovered > 0) {
-  console.log(`[db] recovered ${recovered} orphaned job(s) at boot`);
+if (recovered > 0 || requeued > 0) {
+  console.log(`[db] boot recovery: ${requeued} orphaned job(s) requeued, ${recovered} failed`);
   persist();
 }
 
@@ -101,6 +119,11 @@ function shape(j) {
 }
 
 module.exports = {
+  // One-shot drain of the boot-requeued generate tasks (see recovery above).
+  takeOrphanedTasks() {
+    return orphanedTasks.splice(0, orphanedTasks.length);
+  },
+
   insert(job) {
     const rec = {
       id: job.id,
@@ -128,6 +151,10 @@ module.exports = {
       // Subtitles are OPT-IN: off unless the request explicitly asks for them.
       captions_enabled: (job.captions === true || job.captionsEnabled === true) ? 1 : 0,
       upload_path: job.uploadPath || null,
+      // Full pipeline task (flags included) so a boot-orphaned generate job
+      // can be requeued faithfully instead of failed. null for other kinds.
+      task: job.task || null,
+      requeue_count: 0,
       intent: job.intent || null,
       autopilot: job.autopilot ? 1 : 0,
       render3d: job.render3d ? 1 : 0, // Three.js/WebGL composer (project pipeline reads job.render3d)
