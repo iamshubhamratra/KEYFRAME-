@@ -88,7 +88,7 @@ function lum(hex) {
 
 // Derive the scene THEME from the chosen pack (authoritative) or, when no pack is
 // bound, the storyboard's own palette. Returns the knobs every archetype re-skins.
-function deriveTheme(framePack, storyboard) {
+function deriveTheme(framePack, storyboard, brandSkin) {
   // Pack identity knobs come from the manifest (single source of truth,
   // frames/<pack>/pack.json). The legacy FLAT_PACKS/LIGHT_GRADIENT_PACKS/
   // PACK_SKINS/PACK_MOTION/fxModeFor tables remain ONLY as the fail-soft
@@ -143,6 +143,17 @@ function deriveTheme(framePack, storyboard) {
         three: manifest.fx.three }
     : (framePack ? PACK_SKINS[framePack] : null);
   if (skin?.accents) accents = [...skin.accents, ...accents.filter((a) => !skin.accents.includes(a))].slice(0, 4);
+  // BRAND SKIN (Art Director, ACCENT-ONLY): the product's real extracted brand
+  // colors LEAD the accent list, so highlighted words / rules / counters / the
+  // emphasis gradient read on-brand — while the pack keeps its own ground, fonts,
+  // and character. Brand accents pass the SAME near-ground contrast filter as the
+  // pack accents, so a brand color too close to the ground is dropped (never an
+  // invisible highlight). Empty/failed skin → the pack's accents stand unchanged.
+  if (brandSkin && Array.isArray(brandSkin.accents) && brandSkin.accents.length) {
+    const brand = brandSkin.accents
+      .filter((a) => typeof a === "string" && /^#[0-9a-f]{6}$/i.test(a) && Math.abs(lum(a) - lum(ground)) > 45);
+    if (brand.length) accents = [...brand, ...accents.filter((a) => !brand.includes(a))].slice(0, 4);
+  }
   // Force maximum text contrast against the ground (the storyboard's text hex is
   // often a mid-tone that reads as muddy).
   ink = isDark ? "#FFFFFF" : "#14130E";
@@ -1173,6 +1184,14 @@ function archScreenshotHero(scene, ctx) {
   const { theme, id, T, L, track, dims, asset } = ctx;
   const land = dims.width >= dims.height;
   const flat = !theme.gradients;
+  // PHONE MOCKUP — a portrait (mobile) screenshot renders in a device body (rounded
+  // bezel + notch, no browser chrome) instead of a browser frame. Chosen by the
+  // Visual Layout Director (asset.container==="phone") or, on non-VLD paths, a
+  // portrait aspect. Same ids/entrance/Ken-Burns, so the scene script + weaving are
+  // unchanged.
+  if (asset && (asset.container === "phone" || (Number(asset.ratio) > 0 && Number(asset.ratio) < 0.85))) {
+    return archPhoneHero(scene, ctx);
+  }
   const chrome = flat
     ? `background:${theme.ground};border:3px solid ${theme.ink};border-radius:14px;box-shadow:10px 10px 0 ${theme.accent};`
     : `background:${mix(theme.ground, "#ffffff", 0.06)};border:1px solid ${theme.line};border-radius:16px;box-shadow:0 40px 90px rgba(0,0,0,0.5);`;
@@ -1180,7 +1199,9 @@ function archScreenshotHero(scene, ctx) {
   const big = land ? 56 : 46;
   const accentText = theme.emphasisCss || (theme.gradients ? `background:linear-gradient(100deg,${theme.accent},${theme.accent2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.accent};` : `color:${theme.accent};`);
   const dots = ["#FF5F57", "#FEBC2E", "#28C840"].map((c) => `<span style="width:11px;height:11px;border-radius:50%;background:${flat ? theme.ink : c};display:inline-block;"></span>`).join("");
-  const frameW = land ? "52%" : "84%";
+  // Visual Layout Director may enlarge the hero (readability): honor ctx.heroScale
+  // as the landscape width fraction; portrait stays full-width. Null → kit default.
+  const frameW = (ctx.heroScale && land) ? `${Math.round(ctx.heroScale * 100)}%` : (land ? "52%" : "84%");
   // The OUTER wrapper owns positioning/centering; the INNER #fr owns the GSAP
   // entrance (opacity/yPercent/rotationX). They MUST be separate elements: GSAP
   // rewrites the whole `transform` of whatever it animates, so animating yPercent
@@ -1200,7 +1221,7 @@ function archScreenshotHero(scene, ctx) {
   <div style="${frameOuter}">
   <div id="${id}fr" class="kfstage" style="${chrome}overflow:hidden;width:100%;">
     <div style="height:42px;display:flex;align-items:center;gap:9px;padding:0 16px;background:${barBg};border-bottom:1px solid ${theme.line};">${dots}<span style="margin-left:12px;flex:1;max-width:340px;height:22px;border-radius:9999px;background:${rgba(theme.ink, 0.08)};"></span></div>
-    <div style="position:relative;width:100%;height:${land ? Math.round(dims.height * 0.52) : Math.round(dims.height * 0.40)}px;overflow:hidden;"><img id="${id}img" src="${esc(asset.path)}" alt="${esc(asset.alt || "screenshot")}" style="position:absolute;top:0;left:0;width:100%;height:auto;min-height:100%;object-fit:cover;object-position:top center;"></div>
+    <div style="position:relative;width:100%;height:${land ? Math.round(dims.height * 0.52) : Math.round(dims.height * 0.40)}px;overflow:hidden;"><img id="${id}img" src="${esc(asset.path)}" alt="${esc(asset.alt || "screenshot")}" style="position:absolute;top:0;left:0;width:100%;height:auto;min-height:100%;object-fit:cover;object-position:${asset.cropFocus || "top center"};"></div>
   </div>
   </div>
   <div style="${copyWrap}">
@@ -1221,8 +1242,68 @@ function archScreenshotHero(scene, ctx) {
   return { html, script: s };
 }
 
+// PHONE-MOCKUP hero — a portrait mobile screenshot in a device body (rounded bezel +
+// notch, no browser chrome). Reuses archScreenshotHero's ids (#fr entrance, #img
+// Ken-Burns, #k/#s copy) so the scene script + weaving need no changes. Landscape
+// canvas: phone left, copy right (the phone is narrow → copy gets the room). Portrait
+// canvas: phone up top, copy below. The notch is centered with margin (no baked
+// transform on a static node — stays lint-clean).
+function archPhoneHero(scene, ctx) {
+  const { theme, id, T, L, track, dims, asset } = ctx;
+  const land = dims.width >= dims.height;
+  const flat = !theme.gradients;
+  const big = land ? 54 : 44;
+  const phoneH = Math.round(dims.height * (land ? 0.82 : 0.62));
+  const phoneW = Math.round(phoneH * 0.475);
+  const rad = Math.round(phoneW * 0.15);
+  const bezel = flat ? theme.ink : "#0a0b12";
+  const bezelBorder = flat ? `3px solid ${theme.ink}` : `2px solid ${rgba("#ffffff", 0.10)}`;
+  const bodyShadow = flat ? `10px 10px 0 ${theme.accent}` : `0 36px 80px rgba(0,0,0,0.55)`;
+  const pad = Math.round(phoneW * 0.035);
+  const notchW = Math.round(phoneW * 0.34), notchH = Math.round(phoneW * 0.075);
+  const frameOuter = land
+    ? `position:absolute;left:8%;top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;`
+    : `position:absolute;left:0;right:0;top:5%;bottom:auto;display:flex;flex-direction:column;align-items:center;`;
+  const copyWrap = land
+    ? `position:absolute;right:6%;top:0;bottom:0;width:46%;display:flex;flex-direction:column;justify-content:center;`
+    : `position:absolute;left:8%;right:8%;bottom:5%;display:flex;flex-direction:column;text-align:center;`;
+  const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
+  <div style="${frameOuter}">
+  <div id="${id}fr" class="kfstage" style="position:relative;width:${phoneW}px;height:${phoneH}px;border-radius:${rad}px;background:${bezel};border:${bezelBorder};box-shadow:${bodyShadow};padding:${pad}px;">
+    <div style="position:relative;width:100%;height:100%;border-radius:${Math.round(rad * 0.72)}px;overflow:hidden;background:${theme.ground};"><img id="${id}img" src="${esc(asset.path)}" alt="${esc(asset.alt || "screenshot")}" style="position:absolute;top:0;left:0;width:100%;height:auto;min-height:100%;object-fit:cover;object-position:${asset.cropFocus || "top center"};"></div>
+    <div style="position:absolute;top:${Math.round(phoneW * 0.05)}px;left:50%;margin-left:-${Math.round(notchW / 2)}px;width:${notchW}px;height:${notchH}px;border-radius:9999px;background:#04050a;"></div>
+  </div>
+  </div>
+  <div style="${copyWrap}">
+    <span id="${id}k" style="opacity:0;display:inline-flex;align-items:center;gap:9px;padding:7px 15px;border-radius:9999px;background:${theme.panel};border:1px solid ${theme.line};color:${theme.accent};font:700 13px/1 ${cssFont(theme)};letter-spacing:.2em;text-transform:uppercase;"><span style="width:7px;height:7px;border-radius:50%;background:${theme.accent};"></span>${esc(ctx.kicker || "Live")}</span>
+    <h2 style="margin-top:14px;font:800 ${fitBig(scene.headline, big, 20)}px/1.05 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};"><style>${emphasisBlock(theme, id)}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
+    ${scene.subtext ? `<p id="${id}s" style="opacity:0;margin-top:13px;font:500 ${Math.round(big * 0.42)}px/1.45 ${cssFont(theme)};color:${theme.dim};">${esc(scene.subtext)}</p>` : ""}
+  </div>
+</div>`;
+  const s = [
+    `tl.set("#${id}",{opacity:1},${T});`,
+    `tl.fromTo("#${id}fr",{opacity:0,yPercent:8,rotationX:10,transformPerspective:1200,transformOrigin:"50% 100%"},{opacity:1,yPercent:0,rotationX:0,duration:0.85,ease:"expo.out"},${r(T + 0.1)});`,
+    `tl.fromTo("#${id}img",{y:0},{y:function(i,el){var h=el.scrollHeight-el.clientHeight;return -(h>0?Math.min(h,el.clientHeight*0.5):0);},duration:${r(L - 0.6)},ease:"sine.inOut"},${r(T + 0.4)});`,
+    `tl.fromTo("#${id}k",{opacity:0,y:12},{opacity:1,y:0,duration:0.5},${r(T + 0.5)});`,
+    `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.65)},0.08);`,
+    scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:14},{opacity:1,y:0,duration:0.5},${r(T + 1.1)});` : "",
+    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
+  ].filter(Boolean).join("\n");
+  return { html, script: s };
+}
+
 // SPLIT-VECTOR — headline on one side, a vector/illustration on the other that
 // floats/draws in. The reactive beat is the art's entrance + a gentle float.
+// Pack-aware photo grade (filter FUNCTIONS, no `filter:` wrapper). Flat/editorial
+// packs want crisp, punchy stock; cinematic (gradient) packs want a slightly
+// richer, moodier grade. Applied to EVERY raw stock photo so a set of unrelated
+// images reads as ONE graded set in the template's key. Vectors/screenshots skip.
+function photoToneFns(theme) {
+  return theme.gradients
+    ? "saturate(0.92) contrast(1.06) brightness(0.98) "
+    : "saturate(0.86) contrast(1.1) ";
+}
+
 function archSplitVector(scene, ctx) {
   const { theme, id, T, L, track, dims, asset } = ctx;
   const land = dims.width >= dims.height;
@@ -1234,7 +1315,7 @@ function archSplitVector(scene, ctx) {
   // combined filter declaration — two `filter:`s would override each other.
   const artMeta = `${asset.source || ""} ${asset.style || ""} ${asset.alt || ""}`.toLowerCase();
   const artIsVec = /\.svg($|\?)/i.test(asset.path) || /vector|illustration|icon|line.?art|graphic/.test(artMeta);
-  const artTone = artIsVec ? "" : "saturate(0.82) contrast(1.03) ";
+  const artTone = artIsVec ? "" : photoToneFns(theme);
   const artGlow = (artTone || theme.gradients)
     ? `filter:${artTone}${theme.gradients ? `drop-shadow(0 18px 40px ${rgba(theme.accent, 0.35)})` : ""};`
     : "";
@@ -1290,9 +1371,9 @@ function archAssetMontage(scene, ctx) {
     // so every tile reads as one graded set. Vectors/screenshots skip it (vectors
     // are already pack-recolored; a product screenshot must stay true).
     const isShot = a.source === "website" || /screenshot|webpage|web page|landing|\bsite\b/.test(meta);
-    const tone = (isVec || isShot) ? "" : "filter:saturate(0.76) contrast(1.04);";
+    const tone = (isVec || isShot) ? "" : `filter:${photoToneFns(theme)};`;
     const wash = (isVec || isShot) ? "" : `<span style="position:absolute;inset:0;background:linear-gradient(180deg,${rgba(theme.ground, 0.12)},${rgba(theme.ground, 0.32)});pointer-events:none;"></span>`;
-    return `<div class="kftile" style="opacity:0;position:relative;overflow:hidden;border-radius:${flat ? 8 : 14}px;${tileChrome}${pad}height:${tileH}px;display:flex;align-items:center;justify-content:center;"><img src="${esc(a.path)}" alt="${esc(a.alt || "")}" style="width:100%;height:100%;object-fit:${fit};display:block;${tone}">${wash}</div>`;
+    return `<div class="kftile" style="opacity:0;position:relative;overflow:hidden;border-radius:${flat ? 8 : 14}px;${tileChrome}${pad}height:${tileH}px;display:flex;align-items:center;justify-content:center;"><img src="${esc(a.path)}" alt="${esc(a.alt || "")}" style="width:100%;height:100%;object-fit:${fit};object-position:${a.cropFocus || "center"};display:block;${tone}">${wash}</div>`;
   }).join("");
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   <div style="position:absolute;left:6%;right:6%;top:50%;transform:translateY(-50%);">
@@ -1413,7 +1494,15 @@ function pickNumber(scene) {
 }
 
 // Map a storyboard scene.kind to an archetype builder.
-function archetypeFor(scene, idx, total) {
+// `hint` (optional) is the Layout Planner's per-scene archetype name — a
+// content-aware typing (e.g. a testimonial written as a plain bullet → quote, a
+// metric with no chart kind → stat). It only ever names an ASSET-FREE archetype
+// (hook/stat/quote/text/cta); the asset archetypes stay owned by the weaving. The
+// hint is honored when present and valid, otherwise the legacy kind-based logic
+// runs unchanged — so a missing/failed plan is a pure no-op.
+const HINT_ARCH = { hook: () => archHook, cta: () => archCta, quote: () => archQuoteCard, stat: () => archStat, text: () => archText };
+function archetypeFor(scene, idx, total, hint) {
+  if (hint && HINT_ARCH[hint]) return HINT_ARCH[hint]();
   const k = (scene.kind || "").toLowerCase();
   if (idx === 0 || k === "hook" || k === "title") return archHook;
   if (idx === total - 1 || k === "cta") return archCta;
@@ -1434,11 +1523,18 @@ function buildCaptions(captionCues, dims, D, theme, track) {
 }
 
 // MAIN ENTRY — assemble the full composition.
-function buildComposition({ storyboard, dims, framePack, assets, captionCues, seedKey, dressing } = {}) {
+function buildComposition({ storyboard, dims, framePack, assets, captionCues, seedKey, dressing, brandSkin, layoutPlan } = {}) {
   const sb = storyboard || {};
   const scenes = Array.isArray(sb.scenes) && sb.scenes.length ? sb.scenes : [{ id: "s1", start: 0, duration: dims.fps ? 4 : 4, kind: "hook", headline: sb.title || "KEYFRAME" }];
   const D = r(sb.durationSec || scenes.reduce((a, s) => a + (s.duration || 0), 0) || 12);
-  const theme = deriveTheme(framePack, sb);
+  const theme = deriveTheme(framePack, sb, brandSkin);
+  // Visual Layout Director globals (reserved `__` keys on layoutPlan): the target
+  // hero size (width fraction) + montage tile budget. Absent/out-of-range → the
+  // kit's own defaults, so a null plan is a pure no-op.
+  const heroScale = layoutPlan && Number(layoutPlan.__heroScale) > 0
+    ? Math.max(0.4, Math.min(0.7, Number(layoutPlan.__heroScale))) : null;
+  const montageMax = layoutPlan && Number(layoutPlan.__montageMax) > 0
+    ? Math.max(2, Math.min(6, Math.round(Number(layoutPlan.__montageMax)))) : 6;
   const W = dims.width, H = dims.height;
   // seedKey (jobId) first: two jobs with the same title must not be twins.
   const seed = hashSeed(`${seedKey || ""}|${sb.title || ""}|${scenes.length}`);
@@ -1470,14 +1566,23 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
   // longer surface a tooth/camera/diamond tile in a montage about a dev tool.
   // Unverified PHOTOS stay usable as heavily-scrimmed B-roll texture, so a
   // gate outage still can't starve the film of backgrounds.
-  const prominentOk = (a) => !!a && (a.source === "website"
+  // `__layoutDemoted` (Visual Layout Director): the presentation budget kept only the
+  // best-scored few prominent per type and demoted the overflow — INCLUDING trusted
+  // website/curated shots, which the source/visionOk checks would otherwise keep
+  // prominent. Honoring the flag here is what makes "show the best 3 big, not 12
+  // tiny" real. Demoted trusted assets are not discarded — they fall to scrim B-roll.
+  const prominentOk = (a) => !!a && !a.__layoutDemoted && (a.source === "website"
     || String(a.source || "").startsWith("library:")
     || a.visionOk === true);
   const bgOnlyPhotos = pools.photos.filter((a) => !prominentOk(a));
+  // Demoted screenshots/vectors (dropped from prominent by the budget) also survive
+  // as B-roll texture rather than vanishing.
+  const demotedBroll = [...pools.screenshots, ...pools.vectors].filter((a) => a && a.__layoutDemoted);
   pools.photos = pools.photos.filter(prominentOk);
   pools.vectors = pools.vectors.filter(prominentOk);
   pools.screenshots = pools.screenshots.filter(prominentOk);
-  if (bgOnlyPhotos.length) console.log(`[scene-kit] ${bgOnlyPhotos.length} unverified asset(s) demoted to scrim-background only`);
+  for (const a of demotedBroll) if (!bgOnlyPhotos.includes(a)) bgOnlyPhotos.push(a);
+  if (bgOnlyPhotos.length) console.log(`[scene-kit] ${bgOnlyPhotos.length} unverified/demoted asset(s) demoted to scrim-background only`);
   // On-brand images first: prominent foreground slots get the most palette-fit
   // stock, off-palette stock falls to scrimmed B-roll. (Screenshots keep source
   // order — a real product shot is placed by intent, not recolored for palette.)
@@ -1500,8 +1605,10 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
       seed, sceneIndex: i, sceneCount: scenes.length,
       variant: dress?.variant != null ? dress.variant : textVariant(theme, seed, i), // 0-3 layout variant
       decorSvg: dress?.decorSvg || null,
+      heroScale, // Visual Layout Director: target hero width fraction (null → default)
     };
-    return { scene, i, ctx, isContent: i > 0 && i < scenes.length - 1, build: archetypeFor(scene, i, scenes.length) };
+    const hint = layoutPlan && layoutPlan[scene.id] ? layoutPlan[scene.id].archetype : null;
+    return { scene, i, ctx, isContent: i > 0 && i < scenes.length - 1, build: archetypeFor(scene, i, scenes.length, hint) };
   });
 
   const leftover = () => pools.screenshots.length + pools.vectors.length + pools.photos.length;
@@ -1547,7 +1654,7 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
     if (p.ctx.asset || p.ctx.assets) continue;
     if (!leftover()) break;
     if (!montageDone && leftover() >= 3) {
-      p.ctx.assets = takeMontage(pools, 6); p.build = archAssetMontage; montageDone = true;
+      p.ctx.assets = takeMontage(pools, montageMax); p.build = archAssetMontage; montageDone = true;
     } else if (pools[splitPools[0]].length || pools[splitPools[1]].length) {
       const pool = pools[splitPools[0]].length ? splitPools[0] : splitPools[1];
       p.ctx.asset = pools[pool].shift(); p.build = archSplitVector;

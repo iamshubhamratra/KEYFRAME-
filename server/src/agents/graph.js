@@ -23,7 +23,7 @@ const { generateScript, normalizeScript } = require("../services/script");
 const { generateStoryboard } = require("../services/storyboard");
 const frameRegistry = require("../services/frame_registry");
 const { withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor } = require("../services/pipeline");
-const { acquire, hasProviderFor, makeImageDeduper } = require("../services/asset_sources");
+const { acquire, hasProviderFor, makeImageDeduper, ffprobeImage } = require("../services/asset_sources");
 const { styleFor, iconColorFor } = require("../services/pack_style");
 const { synthesizeFitted } = require("../services/vo_fit");
 const { buildCues, writeSrt } = require("../services/captions");
@@ -35,6 +35,10 @@ const { normalizeComposition } = require("../services/normalize");
 const { render } = require("../services/renderer");
 const { reviewRender } = require("./qa_agent");
 const { checkAssetsRelevance } = require("../services/asset_vision");
+const { reviewAndCurate } = require("../services/creative_director");
+const { directAudio } = require("../services/audio_director");
+const { directBrand } = require("../services/art_director");
+const { directLayout } = require("../services/visual_layout_director");
 
 function ms() { return Date.now(); }
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
@@ -254,16 +258,26 @@ async function assetSearchAgent(s) {
   fs.mkdirSync(path.join(jobDir, "assets", "images"), { recursive: true });
   fs.mkdirSync(path.join(jobDir, "assets", "videos"), { recursive: true });
 
-  const pinned = assetPlan.screenshots.map(({ src, scene, index }) => {
+  const pinned = await Promise.all(assetPlan.screenshots.map(async ({ src, scene, index }) => {
     const relPath = `assets/images/site_${index}.png`;
-    fs.copyFileSync(src, path.join(jobDir, relPath));
+    const absPath = path.join(jobDir, relPath);
+    fs.copyFileSync(src, absPath);
+    // Probe the REAL pixel dimensions (ffprobe — no native dep; ffmpeg is already a
+    // hard dep) so the Visual Layout Director can aspect-route the shot: a portrait
+    // (mobile) capture gets a phone mockup, a wide desktop capture a browser frame.
+    // Pinned screenshots used to ship without width/height/ratio, so deviceKind()
+    // defaulted every one to "browser". Fail-safe: no probe → no ratio → browser.
+    const dim = await ffprobeImage(absPath).catch(() => null);
+    const ratio = dim && dim.width && dim.height ? Math.round((dim.width / dim.height) * 1000) / 1000 : undefined;
+    const framed = ratio && ratio < 0.9 ? "phone" : "browser";
     return {
       path: relPath, type: "image", sceneId: scene.id, startSec: scene.start, durationSec: scene.duration,
       style: "inset",
-      alt: `REAL website screenshot of ${job.website_title || "the product"} (${index === 0 ? "homepage hero" : `page section ${index + 1}`}) — present in a styled browser frame with hero treatment`,
+      width: dim ? dim.width : undefined, height: dim ? dim.height : undefined, ratio,
+      alt: `REAL website screenshot of ${job.website_title || "the product"} (${index === 0 ? "homepage hero" : `page section ${index + 1}`}) — present in a styled ${framed} frame with hero treatment`,
       license: "owner content", sourceUrl: job.intent?.websiteUrl || null, source: "website", fromCache: false,
     };
-  });
+  }));
 
   // Map a scene's asset role to the kind of curated asset that fits it:
   // full-bleed backgrounds want real photos; insets/icons/textures want
@@ -307,14 +321,14 @@ async function assetSearchAgent(s) {
     // direction like "scalable growth" becomes "beauty cosmetics scalable
     // growth" — on-topic stock instead of trading charts. Icons/vectors keep
     // their concrete query (anchoring an abstract shape rarely helps).
-    const baseQuery = (!isIcon && anchor) ? `${anchor} ${need.query}` : need.query;
-    // Photos also carry the pack's visual style ("neon synthwave" for vapor-
-    // chrome) so stock matches the look; the un-styled query stays as a fallback
-    // so an over-narrow phrase still finds SOMETHING.
-    const query = (!isIcon && packStyle.photoMod) ? `${baseQuery} ${packStyle.photoMod}` : baseQuery;
+    // The search query is the SUBJECT (anchor + concrete need). The pack's visual
+    // style is applied at RANK time via styleKeywords and at render time as a
+    // treatment — NOT concatenated into the search text (that overflowed provider
+    // length limits and diluted the subject). See asset_sources query hygiene.
+    const query = (!isIcon && anchor) ? `${anchor} ${need.query}` : need.query;
     const r = await acquire({
       query,
-      fallbackQueries: [...new Set([baseQuery, need.query, ...fallbackQueriesFor(query)])],
+      fallbackQueries: [...new Set([need.query, ...fallbackQueriesFor(query)])],
       type: isVideo ? "video" : "image",
       orientation: job.orientation, outputPath: path.join(jobDir, relPath), tracker,
       kindPref: isVideo ? undefined : (isIcon ? "vector" : kindPrefFor(need.role)),
@@ -358,8 +372,12 @@ async function assetSearchAgent(s) {
   // about <subject>?" over ALL fetched web stock in as few calls as possible
   // (chunks of 6) instead of one LLM call per asset. Fail-open: a dead budget or
   // any error keeps every asset, so the gate can never starve a film of visuals.
+  // SUPERSEDED by the creative_director node when enabled — it runs a richer
+  // review (scores + scene assignment + prominence) on all assets next. Skip this
+  // simpler keep/reject gate then, to avoid double vision cost. Kept as the
+  // fallback when CREATIVE_DIRECTOR=0.
   const gateSubject = (s.brief?.subject || anchor || "").trim();
-  if (pendingGate.length && gateSubject) {
+  if (!config.creativeDirector.enabled && pendingGate.length && gateSubject) {
     const verdicts = await checkAssetsRelevance({
       assets: pendingGate.map((p) => ({ absPath: p.absPath, type: p.type, query: p.query })),
       subject: gateSubject, tracker,
@@ -390,6 +408,74 @@ async function assetSearchAgent(s) {
   return { assets };
 }
 
+// Creative Director — the final creative authority before composition. Reviews,
+// scores, re-ranks, and scene-assigns every collected asset; can do one bounded
+// top-up fetch. Supersedes the simple relevance gate in asset_search. Fail-open:
+// returns the assets unchanged on any error, so it never blocks production.
+async function creativeDirectorAgent(s) {
+  if (!config.creativeDirector.enabled) return {};
+  const { job, jobDir, tracker } = s;
+  db.setProgress(job.id, "creative_review");
+  const curated = await reviewAndCurate({
+    jobId: job.id,
+    storyboard: s.storyboard,
+    script: s.script,
+    subject: s.brief?.subject || null,
+    brief: s.brief,
+    framePack: s.framePack,
+    assets: s.assets || [],
+    tracker,
+    jobDir,
+    orientation: job.orientation,
+  });
+  db.setAssets(job.id, curated);
+  return { assets: curated };
+}
+
+// Art Director — turns the site's extracted brand colors (brief.brandColors, else
+// unused) into an ACCENT-ONLY brand skin so the composition reads on-brand instead
+// of the frame pack's stock palette. Runs in parallel with the storyboard/asset/
+// voice chain (it only needs the brief + the chosen pack); the skin joins at
+// composition. Fail-open: any failure returns a null skin → the pack keeps its
+// own accents, so it never blocks a render or makes a video worse.
+async function artDirectorAgent(s) {
+  const brandColors = s.brief?.brandColors || [];
+  if (!config.artDirector?.enabled || !brandColors.length) return { brandSkin: null };
+  db.setProgress(s.job.id, "art_direction");
+  const brandSkin = await directBrand({
+    jobId: s.job.id,
+    brandColors,
+    subject: s.brief?.subject || null,
+    brief: s.brief,
+    framePack: s.framePack,
+    packVibe: s.framePack ? frameRegistry.getPackVibe(s.framePack) : null,
+    tracker: s.tracker,
+  }).catch((e) => { console.warn(`[agents] art_director failed: ${e.message}`); return null; });
+  return { brandSkin };
+}
+
+// Visual Layout Director — the composition authority (promoted from the pure-JS
+// layout planner). It does NOT pick assets (the Creative Director did that); it
+// decides their PRESENTATION by reusing the CD's per-asset scores: how many appear
+// prominently (quality over quantity — demote the weak overflow to B-roll), the
+// hero size (enlarge for readability), the montage tile budget (fewer, larger), and
+// per-asset content-aware crop focus — plus the base archetype typing. Deterministic
+// (no LLM). Runs after the CD (needs the scored assets); its re-leveled assets +
+// layout plan feed composition. Fail-open: on any error the kit's own logic runs.
+async function visualLayoutDirectorAgent(s) {
+  db.setProgress(s.job.id, "layout_direction");
+  const { assets, layoutPlan, review } = directLayout({
+    storyboard: s.storyboard,
+    script: s.script,
+    assets: s.assets || [],
+    framePack: s.framePack,
+    dims: { width: s.job.width, height: s.job.height, fps: s.job.fps },
+  });
+  if (review) { try { db.setLayoutReview(s.job.id, review); } catch { /* best effort */ } }
+  try { db.setAssets(s.job.id, assets); } catch { /* best effort */ }
+  return { assets, layoutPlan };
+}
+
 // Voice Agent — per-scene fitted VO + script SFX + music, in parallel.
 async function voiceAgent(s) {
   const { job, jobDir, tracker, script } = s;
@@ -416,13 +502,16 @@ async function voiceAgent(s) {
       : Promise.resolve(null)
   )).then((a) => a.filter(Boolean));
 
-  // Cap SFX low — 6 whooshes/dings layered over per-scene VO + music read as
-  // cluttered, overlapping audio. A few accents beat a wall of sound.
+  // Cap SFX low and QUIET — layered over per-scene VO + music they read as
+  // cluttered. A couple of subtle accents beat a wall of sound. Each cue is nudged
+  // ~120ms BEFORE its scene cut so it punctuates the TRANSITION instead of landing
+  // right on the next line's first word (which muddied the voiceover onsets).
   const sfxWanted = [];
-  for (const sc of script.scenes) for (const name of (sc.sfx || [])) if (sfxWanted.length < 3) sfxWanted.push({ name, startSec: sc.start });
+  for (const sc of script.scenes) for (const name of (sc.sfx || [])) if (sfxWanted.length < 2) sfxWanted.push({ name, startSec: Math.max(0, (Number(sc.start) || 0) - 0.12) });
   const sfxTask = Promise.all(sfxWanted.map((x, i) =>
     getSfx({ name: x.name, outputPath: path.join(audioDir, `sfx-${i}.mp3`), tracker })
-      .then((p) => p ? { path: p, startSec: x.startSec, volume: 0.4 } : null).catch(() => null)
+      // Carry the cue name so the Audio Director can curate SFX by intent.
+      .then((p) => p ? { path: p, startSec: x.startSec, volume: 0.22, name: x.name } : null).catch(() => null)
   )).then((a) => a.filter(Boolean));
 
   // Richer music query: fold the mood field into the query so the provider gets
@@ -434,6 +523,20 @@ async function voiceAgent(s) {
     : Promise.resolve(null);
 
   const [voClips, sfxClips, musicPath] = await Promise.all([voTask, sfxTask, musicTask]);
+
+  // ANTI-OVERLAP: guarantee no two voiceover lines ever play at once. vo_fit already
+  // speed-fits each clip inside its scene, but as a hard safety net each line starts
+  // no earlier than the previous line's END (+ a short breath). A line that still
+  // overran thus nudges the next one slightly later instead of talking over it —
+  // intelligible speech beats frame-perfect sync. Captions (built from these clips)
+  // and the mixer both read the corrected startSec, so they stay consistent.
+  voClips.sort((a, b) => (Number(a.startSec) || 0) - (Number(b.startSec) || 0));
+  let voCursor = 0;
+  for (const c of voClips) {
+    const st = Math.max(Number(c.startSec) || 0, voCursor);
+    c.startSec = Math.round(st * 100) / 100;
+    voCursor = st + (Number(c.durationSec) || 0) + 0.1;
+  }
   console.log(`[agents] voice: ${voClips.length} vo clip(s), ${sfxClips.length} sfx, music=${!!musicPath}`);
 
   // Surface audio degradation on the job — a silent film must never ship
@@ -441,9 +544,7 @@ async function voiceAgent(s) {
   const wantedVo = script.scenes.some((sc) => sc.voiceover && sc.voiceover.trim());
   const notes = [];
   if (wantedVo && voClips.length === 0) {
-    notes.push("Voiceover unavailable — every TTS provider failed (budget/limits). The film shipped without narration; regenerate once a provider resets to add the voice back.");
-  } else if (voClips.some((c) => c && c.fallbackVoice === "edge")) {
-    notes.push("Voiceover used the free fallback voice (paid TTS providers were unavailable) — the narration may sound different from your usual voice.");
+    notes.push("Voiceover unavailable — the TTS provider failed (budget/limits). The film shipped without narration; regenerate once the provider resets to add the voice back.");
   }
   if (!musicPath && (script.music?.query || script.music?.mood)) {
     notes.push("Music unavailable — no source matched and the generated bed also failed; the film shipped without a music track.");
@@ -451,6 +552,29 @@ async function voiceAgent(s) {
   if (notes.length) db.setAudioNotes(job.id, notes);
 
   return { voClips, sfxClips, musicPath };
+}
+
+// Audio Director — decides the per-scene audio MIX (broadcast loudness targets,
+// music energy curve, scene-aware ducking, curated SFX) that the timeline mixer
+// executes. Runs after animation + voice so it sees the real scene plan and the
+// measured VO clips. Fail-open: directAudio always returns a usable plan (LLM or
+// a deterministic default), so this never blocks a render.
+async function audioDirectorAgent(s) {
+  const { job, tracker } = s;
+  db.setProgress(job.id, "audio_director");
+  const audioPlan = await directAudio({
+    jobId: job.id,
+    storyboard: s.storyboard,
+    script: s.script,
+    voClips: s.voClips || [],
+    sfxClips: s.sfxClips || [],
+    musicPath: s.musicPath || null,
+    brief: s.brief,
+    subject: s.brief?.subject || null,
+    durationSec: job.duration,
+    tracker,
+  }).catch((e) => { console.warn(`[agents] audio_director failed: ${e.message}`); return null; });
+  return { audioPlan };
 }
 
 // Composition Agent (+ the Animation agent's work product: the timeline).
@@ -513,6 +637,7 @@ async function compositionAgent(s) {
         jobId: job.id, durationSec: job.duration,
         label: s.qa ? "graph-repair" : "graph-main", abortSignal: signal,
         framePack: s.framePack, captionCues, remix: useComposer,
+        brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null,
       }),
       budget, "composition agent"
     );
@@ -553,6 +678,7 @@ async function compositionAgent(s) {
           framePack: s.framePack, captionCues, remix: false,
           dress: job.compose_mode === "premium" && !composerBudgetDead,
           subject: s.brief?.subject || null,
+          brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null,
         });
         return { visual, usedFallback: false, finalAttempt: "scene-kit", rendered: true, composerBudgetDead };
       } catch (e2) {
@@ -627,6 +753,9 @@ async function timelineAgent(s) {
         ...(s.sfxClips || []),
       ],
       musicVolume: config.audio?.defaultMusicVolume ?? 0.15,
+      // Audio Director's per-scene mastering plan (loudness, ducking, SFX
+      // curation). Persists across repair laps; null -> basic mix.
+      audioPlan: s.audioPlan || null,
     },
   }).catch((e) => console.warn(`[agents] mix failed: ${e.message}`));
 
@@ -645,9 +774,14 @@ async function repairAgent(s) {
 
 // QA Agent node — verdict + loop control.
 async function qaAgentNode(s) {
-  // Skip QA for the deterministic 3D composer — it's not iteratively repairable,
-  // so a QA-repair loop would just re-render an identical (slow) 3D video.
-  if (config.qa?.enabled === false || s.usedFallback || s.job?.render3d) {
+  // Skip QA for the deterministic 3D + flagship composers — they are not
+  // iteratively repairable (a re-compose produces an identical video), so a
+  // QA-repair loop would just re-render an identical (slow) scene for no gain.
+  const isFlagship = (() => {
+    try { const m = require("../services/frame_manifest").getManifest(s.framePack); return !!(m && /^(three-(flagship|brightlife)|blueprint|bloom-fable|bauhaus-riot)$/.test(m.renderer || "")); }
+    catch { return false; }
+  })();
+  if (config.qa?.enabled === false || s.usedFallback || s.job?.render3d || isFlagship) {
     return { qa: { pass: true, issues: [], skipped: true } };
   }
   db.setProgress(s.job.id, "qa");
@@ -676,8 +810,9 @@ async function buildGraph() {
     job: Annotation(), jobDir: Annotation(), tracker: Annotation(),
     brief: Annotation(), script: Annotation(),
     framePack: Annotation(), storyboard: Annotation(),
+    brandSkin: Annotation(), layoutPlan: Annotation(),
     assetPlan: Annotation(), assets: Annotation(),
-    voClips: Annotation(), sfxClips: Annotation(), musicPath: Annotation(),
+    voClips: Annotation(), sfxClips: Annotation(), musicPath: Annotation(), audioPlan: Annotation(),
     visual: Annotation(), usedFallback: Annotation(), finalAttempt: Annotation(), rendered: Annotation(),
     animationReport: Annotation(), qa: Annotation(), qaAttempts: Annotation(),
     composerBudgetDead: Annotation(),
@@ -687,11 +822,15 @@ async function buildGraph() {
   // hence the _agent suffixes on storyboard/qa.
   const g = new StateGraph(S)
     .addNode("frame_selector", frameSelectorAgent)
+    .addNode("art_director", artDirectorAgent)
     .addNode("storyboard_agent", storyboardAgent)
     .addNode("scene_planner", scenePlannerAgent)
     .addNode("asset_planner", assetPlannerAgent)
     .addNode("asset_search", assetSearchAgent)
+    .addNode("creative_director", creativeDirectorAgent)
+    .addNode("visual_layout_director", visualLayoutDirectorAgent)
     .addNode("voice_agent", voiceAgent)
+    .addNode("audio_director", audioDirectorAgent)
     .addNode("composition", compositionAgent)
     .addNode("animation", animationAgent)
     .addNode("timeline", timelineAgent)
@@ -699,17 +838,29 @@ async function buildGraph() {
     .addNode("repair", repairAgent);
 
   g.addEdge(START, "frame_selector");
-  // Fan-out: three branches run in parallel.
+  // Fan-out: four branches run in parallel. The Art Director only needs the brief
+  // + the chosen pack, so it runs alongside the storyboard/asset/voice chain and
+  // its brand skin joins at composition (near-zero added latency).
   g.addEdge("frame_selector", "storyboard_agent");
   g.addEdge("frame_selector", "asset_planner");
   g.addEdge("frame_selector", "voice_agent");
+  g.addEdge("frame_selector", "art_director");
   g.addEdge("storyboard_agent", "scene_planner");
   g.addEdge("asset_planner", "asset_search");
-  // Join: composition needs the plan AND the assets.
-  g.addEdge(["scene_planner", "asset_search"], "composition");
+  // Join: the Creative Director needs the scene plan AND the fetched assets. It
+  // curates/scores/assigns them; the Visual Layout Director then reuses those scores
+  // to decide presentation (count/size/crop) + type each scene's base archetype.
+  g.addEdge(["scene_planner", "asset_search"], "creative_director");
+  g.addEdge("creative_director", "visual_layout_director");
+  // Join: composition waits for BOTH the layout direction (archetypes + sizing/crop +
+  // re-leveled assets) and the brand skin (accent-only palette), then builds the comp.
+  g.addEdge(["visual_layout_director", "art_director"], "composition");
   g.addEdge("composition", "animation");
-  // Join: the timeline mix needs the render AND the voice branch.
-  g.addEdge(["animation", "voice_agent"], "timeline");
+  // Join: the Audio Director needs the render (scene/animation plan) AND the
+  // voice branch (measured VO + fetched SFX/music). It decides the mix; the
+  // timeline then renders captions + executes that mastering plan.
+  g.addEdge(["animation", "voice_agent"], "audio_director");
+  g.addEdge("audio_director", "timeline");
   g.addEdge("timeline", "qa_agent");
   g.addConditionalEdges("qa_agent", (s) => {
     const repairsLeft = (s.qaAttempts || 0) <= (Number(config.qa?.maxRepairs) || 1);

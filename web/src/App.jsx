@@ -14,10 +14,25 @@ import { useAuth } from "./AuthContext.jsx";
 // Landing is the v2 design doc ("the film set") running on its own runtime in
 // an iframe. The STUDIO (create → understanding → script → theater → premiere)
 // requires login; Templates + Gallery stay public, themed to the same v2 system.
+// Deep-link support: ?view=<screen>&project=<id> resumes a studio screen (e.g. a
+// running production or a finished premiere) so a link can be shared or reopened.
+// Only public/state-driven screens are allowed here; project data loads from the
+// (public) project API, so no auth is needed just to watch/replay one.
+const DEEP_LINK_VIEWS = new Set(["theater", "premiere", "gallery", "templates"]);
+function initialFromUrl() {
+  try {
+    const p = new URLSearchParams(window.location.search);
+    const v = p.get("view");
+    if (v && DEEP_LINK_VIEWS.has(v)) return { view: v, projectId: p.get("project") || null };
+  } catch { /* SSR / no window */ }
+  return { view: "landing", projectId: null };
+}
+
 export default function App() {
   const { user, loading, logout } = useAuth();
-  const [view, setView] = useState("landing");
-  const [projectId, setProjectId] = useState(null);
+  const _init = initialFromUrl();
+  const [view, setView] = useState(_init.view);
+  const [projectId, setProjectId] = useState(_init.projectId);
   const [prefill, setPrefill] = useState(null);
   const [authMode, setAuthMode] = useState("login");
   const [starting, setStarting] = useState(false);

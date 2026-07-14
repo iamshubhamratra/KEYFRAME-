@@ -249,7 +249,7 @@ function tokenize(s) {
 // "retro"] for vapor-chrome). When supplied, a candidate whose tags carry those
 // words is rewarded — on-brand imagery ranks above generic matches — without
 // rejecting anything. Scoring is unchanged when no style context is passed.
-function scoreCandidate(query, c, styleKeywords) {
+function scoreCandidate(query, c, styleKeywords, targetRatio) {
   const q = tokenize(query);
   const text = tokenize([c.tags, c.title, c.alt].filter(Boolean).join(" "));
   let relevance;
@@ -260,18 +260,28 @@ function scoreCandidate(query, c, styleKeywords) {
   const quality = longEdge > 0 ? Math.min(1, longEdge / 1920) : 0.4;
   const sk = Array.isArray(styleKeywords) ? styleKeywords.map((w) => String(w).toLowerCase()) : [];
   const styleMatch = (sk.length && text.length) ? sk.filter((w) => text.includes(w)).length / sk.length : 0;
-  const score = sk.length
+  // Aspect fit: a MILD reward for candidates whose shape matches the target frame
+  // so a tall portrait photo doesn't win a full-bleed 16:9 slot and get its
+  // subject cropped away. Never a hard drop (a filled scene beats an empty one).
+  let aspectFit = 1;
+  const cw = Number(c.width) || 0, ch = Number(c.height) || 0;
+  if (targetRatio && cw > 0 && ch > 0) {
+    const rel = Math.abs(Math.log((cw / ch) / targetRatio)); // 0 = perfect match
+    aspectFit = Math.max(0.62, 1 - Math.min(0.38, rel * 0.5));
+  }
+  const base = sk.length
     ? relevance * 0.5 + quality * 0.25 + styleMatch * 0.25
     : relevance * 0.65 + quality * 0.35; // exact legacy behaviour with no style context
-  return { score, relevance, longEdge, styleMatch };
+  return { score: base * aspectFit, relevance, longEdge, styleMatch, aspectFit };
 }
 
 // Best-first ordering. Drops candidates too small to look good full-bleed, but
 // keeps them if that would leave nothing (a filled scene beats an empty one).
-function rankCandidates(query, candidates, styleKeywords) {
+// `targetRatio` (w/h of the frame) applies a mild aspect-fit reward when known.
+function rankCandidates(query, candidates, styleKeywords, targetRatio) {
   const scored = (candidates || [])
     .filter((c) => c && c.url)
-    .map((c) => ({ c, ...scoreCandidate(query, c, styleKeywords) }))
+    .map((c) => ({ c, ...scoreCandidate(query, c, styleKeywords, targetRatio) }))
     .sort((a, b) => b.score - a.score);
   const sharp = scored.filter((s) => s.longEdge === 0 || s.longEdge >= MIN_LONG_EDGE);
   return (sharp.length ? sharp : scored).map((s) => s.c);
@@ -315,5 +325,5 @@ module.exports = {
   download, validateMedia, validateImage, reencodeForHyperframes, UA,
   rankCandidates, scoreCandidate, MIN_LONG_EDGE,
   makeImageDeduper, imageDHashStats, hammingHex, pixFmtHasAlpha,
-  imageDominantColor, colorDistance,
+  imageDominantColor, colorDistance, ffprobeImage,
 };

@@ -200,13 +200,79 @@ function build() {
   }
 
   // Composer mode. USE_LLM_COMPOSER toggles the LLM composition agent on the
-  // agents graph: ON (default) runs the LLM composer + lint-repair laps (the
-  // "composer" token stage appears); the deterministic asset-rich scene-kit
-  // becomes the fallback when the composer fails its gates. Set to 0/false to
-  // make the scene-kit the PRIMARY composer (no composer LLM call) instead.
+  // agents graph. Default is now OFF: the deterministic per-pack SCENE-KIT is the
+  // PRIMARY composer — it is lint-clean and overlap-free by construction and
+  // carries the template's identity (fonts/motion/skin) far more reliably than
+  // the freehand LLM, which drifts from the pack and needs repair laps. Set
+  // USE_LLM_COMPOSER=1 to opt back into the LLM composer (scene-kit stays the
+  // automatic fallback). Per-video compose_mode:"premium" still forces the LLM.
   cfg.llm.useComposer = process.env.USE_LLM_COMPOSER != null
     ? /^(1|true|yes|on)$/i.test(String(process.env.USE_LLM_COMPOSER))
-    : (cfg.llm.useComposer !== false);
+    : (cfg.llm.useComposer === true);
+
+  // Creative Director agent — reviews/curates every collected asset before
+  // composition (see services/creative_director.js). Default ON; disable with
+  // CREATIVE_DIRECTOR=0. Fail-open, so it never blocks a render.
+  //
+  // `model` is the vision model that actually ANALYZES the assets. It is passed
+  // explicitly to openrouter.chat(), which bypasses the KIE primary and runs this
+  // exact model (falling back to llm.modelFallback only if it errors). Override
+  // with CREATIVE_DIRECTOR_MODEL. Must be a vision-capable model (it is shown the
+  // asset thumbnails).
+  const cdCfg = cfg.creativeDirector || {};
+  cfg.creativeDirector = {
+    enabled: process.env.CREATIVE_DIRECTOR != null
+      ? /^(1|true|yes|on)$/i.test(String(process.env.CREATIVE_DIRECTOR))
+      : (cdCfg.enabled !== false),
+    model: process.env.CREATIVE_DIRECTOR_MODEL || cdCfg.model || "google/gemini-3.1-flash-lite",
+    maxPerScene: Number(cdCfg.maxPerScene) || 2,
+    maxTopUp: Number(cdCfg.maxTopUp) || 3,
+    chunkSize: Number(cdCfg.chunkSize) || 6,
+  };
+  // Register the stage->model mapping so the usage tracker prices the
+  // creative_director tokens at this model's rate (the dispatch itself uses the
+  // explicit model arg; this is purely for accurate cost attribution).
+  cfg.llm.stageModels = { ...(cfg.llm.stageModels || {}), creative_director: cfg.creativeDirector.model };
+
+  // Audio Director agent — decides the per-scene audio MIX (loudness targets,
+  // music energy curve, ducking, SFX curation) that audio_mix.js executes.
+  // Text-only (no vision), so any capable JSON model works. Default ON; disable
+  // with AUDIO_DIRECTOR=0, override the model with AUDIO_DIRECTOR_MODEL. Fail-open.
+  const adCfg = cfg.audioDirector || {};
+  cfg.audioDirector = {
+    enabled: process.env.AUDIO_DIRECTOR != null
+      ? /^(1|true|yes|on)$/i.test(String(process.env.AUDIO_DIRECTOR))
+      : (adCfg.enabled !== false),
+    model: process.env.AUDIO_DIRECTOR_MODEL || adCfg.model || "google/gemini-3.1-flash-lite",
+  };
+  cfg.llm.stageModels = { ...(cfg.llm.stageModels || {}), audio_director: cfg.audioDirector.model };
+
+  // Art Director agent — turns the website's extracted brand colors (brief.brandColors,
+  // previously unused) into an ACCENT-ONLY brand skin so the video reads on-brand
+  // instead of rendering the frame pack's stock palette (see services/art_director.js).
+  // Text-only (it reasons over hex colors), so any capable JSON model works. Default
+  // ON; disable with ART_DIRECTOR=0, override the model with ART_DIRECTOR_MODEL.
+  // Fail-open: on any error the pack keeps its own accents, so it never blocks a render.
+  const ardCfg = cfg.artDirector || {};
+  cfg.artDirector = {
+    enabled: process.env.ART_DIRECTOR != null
+      ? /^(1|true|yes|on)$/i.test(String(process.env.ART_DIRECTOR))
+      : (ardCfg.enabled !== false),
+    model: process.env.ART_DIRECTOR_MODEL || ardCfg.model || "google/gemini-3.1-flash-lite",
+  };
+  cfg.llm.stageModels = { ...(cfg.llm.stageModels || {}), art_director: cfg.artDirector.model };
+
+  // Visual Layout Director — DETERMINISTIC (no LLM). Reuses the Creative Director's
+  // per-asset scores to decide presentation: how many assets appear prominently
+  // (quality over quantity), how big the hero is, how tightly a montage packs, and
+  // where each image is cropped (see services/visual_layout_director.js). Default
+  // ON; disable with VISUAL_LAYOUT_DIRECTOR=0. Fail-open — never blocks a render.
+  const vldCfg = cfg.visualLayoutDirector || {};
+  cfg.visualLayoutDirector = {
+    enabled: process.env.VISUAL_LAYOUT_DIRECTOR != null
+      ? /^(1|true|yes|on)$/i.test(String(process.env.VISUAL_LAYOUT_DIRECTOR))
+      : (vldCfg.enabled !== false),
+  };
 
   validate(cfg);
 

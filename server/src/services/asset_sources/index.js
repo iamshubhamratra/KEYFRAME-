@@ -53,8 +53,13 @@ function hasProviderFor(type) {
 // curated entries already used in this video so a film never reuses a file.
 // `curatedOnly` (CURATED_ONLY_IMAGES override) forbids web stock AND the
 // web-stock cache: the need is served by the curated library or not at all.
-async function acquire({ query, fallbackQueries = [], type, orientation, outputPath, tracker, kindPref, excludeIds, curatedOnly = false, iconColor, iconStyle, styleKeywords }) {
-  const queries = [query, ...fallbackQueries].filter(Boolean);
+async function acquire({ query, fallbackQueries = [], type, orientation, outputPath, tracker, kindPref, excludeIds, curatedOnly = false, iconColor, iconStyle, styleKeywords, targetRatio }) {
+  // Query hygiene: collapse whitespace and hard-cap length. Stock APIs (Pixabay)
+  // reject queries over ~100 chars with HTTP 400 — an over-long concatenated
+  // query (anchor + direction + pack style) silently returned ZERO assets and
+  // left whole scenes empty. Normalizing here fixes it for every provider path.
+  const normQuery = (q) => String(q || "").replace(/\s+/g, " ").trim().slice(0, 90);
+  const queries = [...new Set([query, ...fallbackQueries].map(normQuery).filter(Boolean))];
 
   // 0 — the curated local library (user's pre-loaded packs), stills only.
   // Highest priority: hand-picked, license-clean, offline. The file keeps its
@@ -171,10 +176,13 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
         continue;
       }
 
-      // Rank by keyword relevance + resolution + pack-style match so a loosely-
-      // matched, low-res, or off-style hit never wins just because it came back
-      // first; try the best few.
-      const ranked = util.rankCandidates(q, candidates, styleKeywords);
+      // Rank by keyword relevance + resolution + pack-style match + aspect fit so
+      // a loosely-matched, low-res, off-style, or wrong-shape hit never wins just
+      // because it came back first; try the best few.
+      const tRatio = type === "image"
+        ? (targetRatio || (orientation === "vertical" ? 9 / 16 : orientation === "square" ? 1 : 16 / 9))
+        : undefined;
+      const ranked = util.rankCandidates(q, candidates, styleKeywords, tRatio);
       for (const c of ranked.slice(0, 5)) {
         try {
           await util.download(c.url, outputPath);
@@ -229,4 +237,5 @@ module.exports = {
   acquire, hasProviderFor, localDb,
   makeImageDeduper: util.makeImageDeduper,
   validateImage: util.validateImage,
+  ffprobeImage: util.ffprobeImage,
 };

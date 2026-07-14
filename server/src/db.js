@@ -96,6 +96,10 @@ function shape(j) {
     captions: j.captions || null,
     srtUrl: j.srt_url || null,
     qa: j.qa || null,
+    creativeReview: j.creative_review || null,
+    audioReview: j.audio_review || null,
+    brandReview: j.brand_review || null,
+    layoutReview: j.layout_review || null,
   };
 }
 
@@ -192,6 +196,38 @@ module.exports = {
   setQa(id, qa) {
     const j = jobs.get(id); if (!j) return;
     j.qa = qa || null;
+    scheduleWrite();
+  },
+
+  // Creative Director review (approved/rejected assets, scores, scene
+  // assignments, notes). Surfaced to the UI via the job view (creativeReview).
+  setCreativeReview(id, review) {
+    const j = jobs.get(id); if (!j) return;
+    j.creative_review = review || null;
+    scheduleWrite();
+  },
+
+  // Audio Director plan (master loudness targets, per-scene music curve, ducking,
+  // curated SFX, quality score). Surfaced to the UI via the job view (audioReview).
+  setAudioReview(id, review) {
+    const j = jobs.get(id); if (!j) return;
+    j.audio_review = review || null;
+    scheduleWrite();
+  },
+
+  // Art Director brand skin (accent-only palette derived from the site's brand
+  // colors). Surfaced to the UI via the job view (brandReview).
+  setBrandReview(id, review) {
+    const j = jobs.get(id); if (!j) return;
+    j.brand_review = review || null;
+    scheduleWrite();
+  },
+
+  // Visual Layout Director report (kept/demoted asset counts, hero scale, montage
+  // budget, per-scene composition score). Surfaced to the UI via the job view.
+  setLayoutReview(id, review) {
+    const j = jobs.get(id); if (!j) return;
+    j.layout_review = review || null;
     scheduleWrite();
   },
 
