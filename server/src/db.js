@@ -223,7 +223,11 @@ module.exports = {
     j.script = script;
     j.status = "queued";
     j.progress = "approved";
-    scheduleWrite();
+    // Flush SYNCHRONOUSLY: this transition gates whether boot recovery can
+    // resume production. A --watch restart inside the 100ms debounce window
+    // reloaded the job as script_review and silently dropped the approval
+    // (observed live) — the queued production died with the process.
+    persist();
   },
 
   // Audio degradation notes (silent-shipping must never be silent to the user).
@@ -320,7 +324,7 @@ module.exports = {
     if (usage)        j.usage         = usage;
     if (stageTimings) j.stage_timings = stageTimings;
     if (finalAttempt) j.final_attempt = finalAttempt;
-    scheduleWrite();
+    persist(); // terminal transition — flush so a restart can't resurrect the job
   },
 
   markFailed(id, errorMsg, tokensIn = 0, tokensOut = 0, usage, stageTimings) {
@@ -332,7 +336,7 @@ module.exports = {
     j.llm_tokens_out = tokensOut;
     if (usage)        j.usage         = usage;
     if (stageTimings) j.stage_timings = stageTimings;
-    scheduleWrite();
+    persist(); // terminal transition — flush so a restart can't resurrect the job
   },
 
   countJobsSince(sinceMs) {
