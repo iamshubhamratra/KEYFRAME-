@@ -33,7 +33,7 @@ export default function CreateScreen({ onCreated, prefill }) {
   const [orientation, setOrientation] = useState("horizontal");
   const [framePack, setFramePack] = useState(prefill?.framePack || "auto");
   const [captions, setCaptions] = useState(false);
-  const [finish, setFinish] = useState("standard"); // standard = scene-kit · premium = LLM composer · cinema = Three.js 3D set
+  const [finish, setFinish] = useState("premium"); // premium (default) = LLM-composed scenes · standard = scene-kit · cinema = Three.js 3D set
   const [packs, setPacks] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(prefill?.error || null);
@@ -62,7 +62,7 @@ export default function CreateScreen({ onCreated, prefill }) {
     setError(null);
     try {
       const fields = {
-        duration, orientation, quality: "720p", framePack, captions,
+        duration, orientation, quality: "1080p", framePack, captions,
         composeMode: finish === "cinema" ? "standard" : finish,
         ...(finish === "cinema" ? { render3d: true } : {}),
         ...(prompt.trim().length >= 10 ? { prompt: prompt.trim() } : {}),

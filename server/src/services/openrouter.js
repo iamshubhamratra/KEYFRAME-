@@ -99,15 +99,50 @@ function withTimeoutSignal(external, timeoutMs, timeoutMsg) {
 // content[] holds { type:"output_text", text }; usage is input_tokens/
 // output_tokens (output INCLUDES reasoning tokens — billed accordingly).
 // Any other primary.api value = legacy OpenAI-compatible /chat/completions.
+// KIE's Cloudflare edge kills non-streamed responses that take longer than
+// ~100-125s with a 524 — which is every big composer/storyboard call on a
+// reasoning model. STREAM those instead: SSE keeps bytes flowing so the edge
+// never times out. Verified live: KIE emits standard OpenAI Responses-API SSE
+// (response.output_text.delta carrying {delta}, response.completed carrying
+// usage). Short stages keep the simple non-streamed path.
+const KIE_STREAM_ABOVE_MS = 150_000;
+
+async function readKieSse(resp) {
+  const decoder = new TextDecoder();
+  let buf = "", text = "", usage = null, completed = false;
+  for await (const chunk of resp.body) {
+    buf += decoder.decode(chunk, { stream: true });
+    let idx;
+    while ((idx = buf.indexOf("\n\n")) >= 0) {
+      const block = buf.slice(0, idx); buf = buf.slice(idx + 2);
+      for (const line of block.split("\n")) {
+        if (!line.startsWith("data:")) continue;
+        const payload = line.slice(5).trim();
+        if (!payload || payload === "[DONE]") continue;
+        let ev;
+        try { ev = JSON.parse(payload); } catch { continue; }
+        if (ev.type === "response.output_text.delta" && typeof ev.delta === "string") text += ev.delta;
+        else if (ev.type === "response.completed") { usage = ev.response?.usage || null; completed = true; }
+        else if (ev.type === "response.failed" || ev.type === "error") {
+          throw new Error(`kie stream: ${JSON.stringify(ev).slice(0, 200)}`);
+        }
+      }
+    }
+  }
+  if (!text) throw new Error(`kie stream: no output_text received (completed=${completed})`);
+  return { text, usage };
+}
+
 async function callKie({ messages, jsonMode, temperature, timeoutMs, stage, signal: external }) {
   const p = config.llm.primary;
   const responsesApi = p.api === "responses";
+  const streaming = responsesApi && Number(timeoutMs) > KIE_STREAM_ABOVE_MS;
   const url = `${p.baseUrl.replace(/\/$/, "")}/${responsesApi ? "responses" : "chat/completions"}`;
   const body = responsesApi
     ? {
         model: p.model,
         input: messages,
-        stream: false,
+        stream: streaming,
         temperature: temperature ?? config.llm.temperature,
       }
     : {
@@ -133,6 +168,18 @@ async function callKie({ messages, jsonMode, temperature, timeoutMs, stage, sign
       body: JSON.stringify(body),
       signal,
     });
+
+    // Streaming path (long stages): accumulate SSE deltas. Errors still arrive
+    // as JSON (in-body {code,msg} or HTTP status) — detect by content-type.
+    if (streaming && resp.ok && String(resp.headers.get("content-type") || "").includes("text/event-stream")) {
+      const { text, usage } = await readKieSse(resp);
+      const dtS = Date.now() - t0;
+      const tokensInS = usage?.input_tokens ?? 0;
+      const tokensOutS = usage?.output_tokens ?? 0;
+      console.log(`[kie] ${p.model} stage=${stage || "?"} ok (${dtS}ms streamed, in=${tokensInS} out=${tokensOutS}, ${text.length}ch)`);
+      return { text, tokensIn: tokensInS, tokensOut: tokensOutS, model: p.model };
+    }
+
     const dt = Date.now() - t0;
     const rawText = await resp.text();
 
@@ -255,12 +302,18 @@ async function callOnce({ body, timeoutMs, stage, model, signal: external }) {
   throw lastErr;
 }
 
-async function chat({ system, user, jsonMode = false, temperature, model, stage, signal }) {
+async function chat({ system, user, userSuffix, jsonMode = false, temperature, model, stage, signal }) {
   if (signal?.aborted) throw signal.reason || new Error("llm: aborted before dispatch");
 
+  // userSuffix: a small variable tail (e.g. the composer's lint-repair
+  // feedback) appended after a large constant prefix, so providers can
+  // prompt-cache the prefix across repair laps. Previously this param was
+  // silently DROPPED — composer repair attempts re-sent the identical prompt
+  // with no feedback, so the model could never fix what lint flagged.
+  const userContent = userSuffix && typeof user === "string" ? `${user}\n\n${userSuffix}` : user;
   const messages = [
     { role: "system", content: system },
-    { role: "user", content: user },
+    { role: "user", content: userContent },
   ];
   // Per-stage timeout: the composer authors a ~25KB document from a ~140KB
   // prompt and is legitimately slow (deepseek ~170s) — a flat 180s times it out

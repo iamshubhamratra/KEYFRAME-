@@ -579,6 +579,12 @@ async function compositionAgent(s) {
         jobId: job.id, durationSec: effDur,
         label: s.qa ? "graph-repair" : "graph-main", abortSignal: signal,
         framePack: s.framePack, captionCues, remix: useComposer,
+        // Standard finish gets the bounded LLM set-dressing pass (per-scene
+        // layout variants, emphasis words, sanitized decor SVG clusters) — a
+        // cheap fast-stage call that art-directs the deterministic kit, so
+        // "standard" no longer means "no personalized art direction at all".
+        dress: !useComposer,
+        subject: s.brief?.subject || null,
       }),
       budget, "composition agent"
     );
