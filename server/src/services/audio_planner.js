@@ -10,13 +10,12 @@ const SYSTEM = fs.readFileSync(
   "utf8"
 );
 
+// The OpenRouter gpt-audio voices — the ONLY voices that actually render now that
+// gpt-audio-mini is the sole TTS (tts.js AUDIO_VOICES). Names outside this set
+// were silently downgraded to the default; keeping the list in sync preserves
+// real voice variety and the planner's gender/tone intent.
 const VALID_VOICES = new Set([
-  // Named ElevenLabs voices (KIE = primary TTS). See EL_VOICES in tts.js.
-  "james", "brian", "benjamin", "tom", "liam", // male
-  "bella", "emma", "laura", "allison",         // female
-  // OpenAI gpt-audio voices (kept for the OpenRouter TTS fallback).
-  "alloy", "ash", "ballad", "coral", "echo",
-  "fable", "nova", "onyx", "sage", "shimmer", "verse",
+  "alloy", "ash", "ballad", "coral", "echo", "sage", "shimmer", "verse", "marin", "cedar",
 ]);
 
 function randomVoice() {

@@ -11,37 +11,10 @@
 // timeout, parse error) keeps the asset — the gate must never make a video
 // WORSE by starving it of assets when providers are down.
 
-const fs = require("node:fs");
-const os = require("node:os");
-const path = require("node:path");
-const { spawn } = require("node:child_process");
 const openrouter = require("./openrouter");
 const { extractFirstJsonObject } = require("./json_lenient");
-
-function ff(args) {
-  return new Promise((resolve) => {
-    const p = spawn("ffmpeg", args, { windowsHide: true });
-    p.on("error", () => resolve(false));
-    p.on("exit", (code) => resolve(code === 0));
-  });
-}
-
-// Small JPEG thumbnail (≤384px wide) of an image, or of a frame ~1s into a
-// video — keeps the vision call cheap regardless of source size.
-async function thumbBase64(absPath, isVideo) {
-  const tmp = path.join(os.tmpdir(), `kf-gate-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`);
-  const args = isVideo
-    ? ["-y", "-v", "error", "-ss", "1", "-i", absPath, "-frames:v", "1", "-vf", "scale=384:-2", "-q:v", "6", tmp]
-    : ["-y", "-v", "error", "-i", absPath, "-frames:v", "1", "-vf", "scale=384:-2", "-q:v", "6", tmp];
-  const ok = await ff(args);
-  if (!ok || !fs.existsSync(tmp)) return null;
-  try {
-    const b64 = fs.readFileSync(tmp).toString("base64");
-    return b64.length > 200 ? b64 : null;
-  } finally {
-    try { fs.unlinkSync(tmp); } catch { /* noop */ }
-  }
-}
+// Thumbnailer lives in media.js (shared with creative_director.js).
+const { thumbBase64 } = require("./media");
 
 // -> { keep: boolean, sees: string|null }. keep=true on ANY failure.
 async function checkAssetRelevance({ absPath, type, subject, query, tracker, signal }) {

@@ -264,7 +264,7 @@ function detectTimelineVar(html) {
   return m ? { varName: m[1], anchor: m[0] } : null;
 }
 
-function enrichComposition(html, { width, height, duration, packTokens } = {}) {
+function enrichComposition(html, { width, height, duration, packTokens, flat = false } = {}) {
   let src = String(html || "");
   if (!src || src.includes("__kf_fx")) return { html: src, changed: false };
 
@@ -298,6 +298,14 @@ function enrichComposition(html, { width, height, duration, packTokens } = {}) {
     // one), and the floor double-decorates. Pass it through untouched.
     return { html: src, changed: false };
   }
+
+  // FLAT / EDITORIAL packs (blockframe's hard borders + candy flats, biennale's
+  // parchment) are defined by SOLID grounds and NO gradients/glows. The generic
+  // gradient background + drifting-bokeh + particle/ring floor would overwrite
+  // that identity with a generic "dark cinematic" look — the #1 reason the chosen
+  // template stops being recognizable. Preserve their identity: apply no generic
+  // enrichment. (The composition already carries the pack's own ornaments.)
+  if (flat) return { html: src, changed: false };
 
   // 1) Recolor flat dead grounds in place (same-luminance, contrast-preserving).
   src = recolorGrounds(src, theme);

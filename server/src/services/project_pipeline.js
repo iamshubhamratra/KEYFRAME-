@@ -30,6 +30,8 @@ const { VALID_VOICES } = require("./audio_planner");
 const { render } = require("./renderer");
 const { withBudget, attemptLlmComposition, mixAudioIntoVideo, fallbackQueriesFor } = require("./pipeline");
 const { acquire, hasProviderFor } = require("./asset_sources");
+const { reviewAndCurate } = require("./creative_director");
+const { directAudio } = require("./audio_director");
 
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
 function ms() { return Date.now(); }
@@ -363,8 +365,20 @@ async function runProduction({ jobId }) {
       markStage("storyboard", t0);
 
       db.setProgress(jobId, "assets");
-      const assets = await assetsTask;
+      let assets = await assetsTask;
       db.setAssets(jobId, assets);
+
+      // ---- Creative Director review (curate/score/assign before composition) ----
+      // Fail-open (returns assets unchanged on any error); annotates visionOk/
+      // sceneId so the composer honors its decisions; persists the review.
+      if (config.creativeDirector.enabled && assets.length) {
+        db.setProgress(jobId, "creative_review");
+        assets = await reviewAndCurate({
+          jobId, storyboard: sbRes.storyboard, script, subject: brief?.subject || null,
+          brief, framePack, assets, tracker, jobDir, orientation: job.orientation,
+        });
+        db.setAssets(jobId, assets);
+      }
 
       // Caption cues for ON-SCREEN baking. Estimated from word count (the
       // composer can't wait for measured VO without serializing the
@@ -462,6 +476,12 @@ async function runProduction({ jobId }) {
         }
       }
 
+      // Audio Director decides the per-scene mastering plan; fail-open to null.
+      const audioPlan = await directAudio({
+        jobId, storyboard: sbRes.storyboard, script, voClips,
+        sfxClips, musicPath, brief, subject: brief?.subject || null,
+        durationSec: duration, tracker,
+      }).catch(() => null);
       await mixAudioIntoVideo({
         visualPath: visualResult.videoPath,
         durationSec: duration,
@@ -469,11 +489,13 @@ async function runProduction({ jobId }) {
           ttsPath: null,
           musicPath,
           // VO clips and sound effects both ride the mixer's offset mechanism.
+          // kind:"vo" lets the mixer duck the music under speech.
           sfx: [
-            ...voClips.map((c) => ({ path: c.path, startSec: c.startSec, volume: 1.0 })),
+            ...voClips.map((c) => ({ path: c.path, startSec: c.startSec, volume: 1.0, kind: "vo" })),
             ...sfxClips,
           ],
           musicVolume: config.audio?.defaultMusicVolume ?? 0.15,
+          audioPlan,
         },
       }).catch((e) => console.warn(`[project] mix failed: ${e.message}`));
       markStage("audio", t0);

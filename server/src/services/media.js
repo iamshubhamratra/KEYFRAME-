@@ -1,7 +1,11 @@
-// Shared media probing helpers (ffprobe). Single source of truth used by the TTS
-// and VO-fit stages — previously each had its own near-identical copy of
-// probeDurationSec (requirement #3, remove duplicate code).
+// Shared media helpers (ffprobe/ffmpeg). Single source of truth used by the TTS
+// and VO-fit stages (probeDurationSec) and by the vision-based stages — the
+// asset relevance gate and the Creative Director agent — which both need a small
+// JPEG thumbnail of an image or a video frame (thumbBase64).
 
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
 const { spawn } = require("node:child_process");
 
 // Duration (seconds) of an audio/video file via ffprobe. Resolves NULL on any
@@ -27,4 +31,34 @@ function probeDurationSec(filePath) {
   });
 }
 
-module.exports = { probeDurationSec };
+// Run ffmpeg, resolving true/false on exit code (never throws). Shared by the
+// thumbnailer below.
+function ff(args) {
+  return new Promise((resolve) => {
+    const p = spawn("ffmpeg", args, { windowsHide: true });
+    p.on("error", () => resolve(false));
+    p.on("exit", (code) => resolve(code === 0));
+  });
+}
+
+// Small base64 JPEG (≤maxWidth px wide) of an image, or of a frame ~1s into a
+// video — keeps a downstream vision LLM call cheap regardless of source size.
+// Resolves NULL on any failure (missing ffmpeg, unreadable file, empty output)
+// so every caller can fail-open. Used by asset_vision.js and creative_director.js.
+async function thumbBase64(absPath, isVideo, { maxWidth = 384 } = {}) {
+  const tmp = path.join(os.tmpdir(), `kf-thumb-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`);
+  const vf = `scale=${maxWidth}:-2`;
+  const args = isVideo
+    ? ["-y", "-v", "error", "-ss", "1", "-i", absPath, "-frames:v", "1", "-vf", vf, "-q:v", "6", tmp]
+    : ["-y", "-v", "error", "-i", absPath, "-frames:v", "1", "-vf", vf, "-q:v", "6", tmp];
+  const ok = await ff(args);
+  if (!ok || !fs.existsSync(tmp)) return null;
+  try {
+    const b64 = fs.readFileSync(tmp).toString("base64");
+    return b64.length > 200 ? b64 : null;
+  } finally {
+    try { fs.unlinkSync(tmp); } catch { /* noop */ }
+  }
+}
+
+module.exports = { probeDurationSec, ff, thumbBase64 };
