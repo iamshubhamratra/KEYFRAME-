@@ -897,6 +897,10 @@ async function runJob({
         return { assets: [] };
       });
       allAssets = va.assets;
+      // Persist the curated list like the agent-graph path does — without this,
+      // /generate jobs show 0 assets in jobs.json and the only audit trail is a
+      // job dir the janitor deletes after an hour.
+      try { db.setAssets(jobId, allAssets); } catch { /* best effort */ }
       markStage("assets", t0);
       console.log(`[pipeline] assets completed in ${timings.assetsMs}ms (${allAssets.length} fetched; audio running in parallel)`);
     }

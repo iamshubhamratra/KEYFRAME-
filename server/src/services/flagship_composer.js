@@ -485,9 +485,9 @@ function wipeAt(t){let o=0;for(const b of BOUNDS){const d=Math.abs(t-b);if(d<0.2
 function render3d(t){
   aurMat.uniforms.uTime.value=t; mixPass.material.uniforms.uTime.value=t;
   bokeh.rotation.y=t*0.03; bokeh.position.x=Math.sin(t*0.12)*0.8;
-  streaks.children.forEach((m)=>{m.position.x=((m.position.x+ (0)) ); m.userData.x0=m.userData.x0!==undefined?m.userData.x0:m.position.x; m.position.x=m.userData.x0+Math.sin(t*0.1*m.userData.sp+m.userData.ph)*3.0; m.material.opacity=0.10+Math.abs(Math.sin(t*0.4+m.userData.ph))*0.10;});
+  streaks.children.forEach((m)=>{m.userData.x0=m.userData.x0!==undefined?m.userData.x0:m.position.x; m.position.x=m.userData.x0+Math.sin(t*0.1*m.userData.sp+m.userData.ph)*3.0; m.material.opacity=0.10+Math.abs(Math.sin(t*0.4+m.userData.ph))*0.10;});
   grid.position.z=-6+((t*0.5)%2);
-  let active=SCENES[0];
+  let active=t>=SCENES[SCENES.length-1].start?SCENES[SCENES.length-1]:SCENES[0];
   for(const sc of SCENES){const o=winOpacity(t,sc.start,sc.end);setOpacity(sc.group,o);if(t>=sc.start&&t<sc.end)active=sc;
     sc.group.children.forEach((pl)=>{const j=pl.userData.jit;if(!j)return;const lt=t-sc.start;pl.position.y=(pl.userData.baseY!==undefined?pl.userData.baseY:(pl.userData.baseY=pl.position.y))+Math.sin(lt*0.7+j.ph)*0.13;pl.rotation.x=Math.sin(lt*0.5+j.ph)*0.02;});
   }

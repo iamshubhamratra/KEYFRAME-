@@ -4,7 +4,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { spawnCompat } = require("./spawn_compat");
+const { spawnCompat, killTree } = require("./spawn_compat");
 
 const config = require("../config");
 
@@ -38,7 +38,7 @@ function runLint(jobDir) {
     p.stderr.on("data", (d) => { err += d.toString(); });
 
     const timer = setTimeout(() => {
-      try { p.kill("SIGKILL"); } catch { /* noop */ }
+      killTree(p);
     }, 60_000);
 
     p.on("exit", (code) => {
@@ -84,7 +84,7 @@ function runInspect(jobDir) {
     p.stdout.on("data", (d) => { out += d.toString(); });
     p.stderr.on("data", (d) => { err += d.toString(); });
 
-    const timer = setTimeout(() => { try { p.kill("SIGKILL"); } catch { /* noop */ } }, 90_000);
+    const timer = setTimeout(() => { killTree(p); }, 90_000);
 
     p.on("exit", () => {
       clearTimeout(timer);

@@ -5,7 +5,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawn } = require("node:child_process");
-const { spawnCompat } = require("./spawn_compat");
+const { spawnCompat, killTree } = require("./spawn_compat");
 const config = require("../config");
 
 const WINDOWS = process.platform === "win32";
@@ -132,7 +132,7 @@ function renderAttempt({ jobId, jobDir, outRelative, durationSec, quality, abort
 
     const timer = setTimeout(() => {
       console.warn(`[renderer] job ${jobId} exceeded ${watchdogMs}ms; killing`);
-      try { child.kill("SIGKILL"); } catch { /* noop */ }
+      killTree(child);
     }, watchdogMs);
 
     // If an AbortController signal is passed (from pipeline budget timeout),
@@ -140,7 +140,7 @@ function renderAttempt({ jobId, jobDir, outRelative, durationSec, quality, abort
     // eating CPU after the pipeline has moved on to the next tier.
     const onAbort = () => {
       console.warn(`[renderer] job ${jobId} aborted by pipeline; killing`);
-      try { child.kill("SIGKILL"); } catch { /* noop */ }
+      killTree(child);
     };
     if (abortSignal) {
       if (abortSignal.aborted) onAbort();

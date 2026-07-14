@@ -10,7 +10,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { spawnCompat } = require("../spawn_compat");
+const { spawnCompat, killTree } = require("../spawn_compat");
 const config = require("../../config");
 const openrouter = require("../openrouter");
 
@@ -22,7 +22,7 @@ function run(cmd, args, { timeoutMs = 120_000, collectStdout = true } = {}) {
     let out = "", err = "";
     if (collectStdout) p.stdout.on("data", (d) => { out += d.toString(); });
     p.stderr.on("data", (d) => { err += d.toString(); });
-    const timer = setTimeout(() => { try { p.kill("SIGKILL"); } catch { /* noop */ } }, timeoutMs);
+    const timer = setTimeout(() => killTree(p), timeoutMs);
     p.on("error", (e) => { clearTimeout(timer); reject(e); });
     p.on("exit", (code) => {
       clearTimeout(timer);

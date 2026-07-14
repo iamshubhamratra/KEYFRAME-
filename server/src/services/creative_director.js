@@ -5,13 +5,17 @@
 // top-up fetch to fill a scene left empty. It supersedes the simpler keep/reject
 // vision gate (asset_vision.js) with a richer verdict.
 //
-// Its decisions take effect deterministically in the scene-kit composer, which
-// already honors `asset.visionOk` (prominence) and `asset.sceneId` (placement) —
-// so no composer changes are needed. Rejected web-stock files are deleted.
+// Its prominence decisions take effect deterministically in the scene-kit
+// composer via `asset.visionOk`. NOTE: `asset.sceneId` (scene placement) is
+// honored only by the opt-in LLM remix composer (composer.js) — scene_kit does
+// NOT read it yet, so per-scene assignment/top-up placement is advisory on the
+// default path (the assets still join the general weaving pool). Rejected
+// web-stock files are deleted.
 //
 // FAIL-OPEN by design (mirrors asset_vision.js): any failure — dead LLM budget,
-// missing ffmpeg, parse error — returns the assets UNCHANGED. The Creative
-// Director must never make a video worse by starving it of assets.
+// missing ffmpeg, parse error — makes reviewAndCurate return null so callers
+// fall back to the legacy vision gate. The Creative Director must never make a
+// video worse by starving it of assets.
 
 const fs = require("node:fs");
 const path = require("node:path");
@@ -323,8 +327,11 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
     }
   }
 
-  // Delete rejected web-stock files.
-  for (const i of toDelete) { try { fs.unlinkSync(visual[i].__absPath); } catch { /* noop */ } }
+  // Rejected web-stock files are DELETED at the very end of this function —
+  // if any later step (top-up, audio, report) throws, the fail-open path in
+  // reviewAndCurate hands the ORIGINAL asset list back to the legacy gate,
+  // and those assets must still exist on disk.
+  const deferredDeletes = [...toDelete].map((i) => visual[i].__absPath).filter(Boolean);
   let curated = list.filter((a) => !a.__rejected);
 
   // ---- 4) One bounded top-up for scenes left with no asset ----
@@ -420,8 +427,11 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
     recos.push(`Music: consider "${audio.musicAnalysis.suggestedQuery}" — ${audio.musicAnalysis.note || "better fit for the mood"}.`);
   }
 
-  // Strip the transient absolute-path field before returning assets to callers.
-  for (const a of curated) delete a.__absPath;
+  // All fallible work is done — now it's safe to delete rejected web stock.
+  for (const p of deferredDeletes) { try { fs.unlinkSync(p); } catch { /* noop */ } }
+
+  // Strip the transient fields before returning assets to callers.
+  for (const a of curated) { delete a.__absPath; delete a.__rejected; }
 
   const report = {
     approvedAssets: approvedAssets.slice(0, 40),
@@ -461,6 +471,9 @@ async function reviewAndCurate({ jobId, ...rest }) {
     return assets;
   } catch (e) {
     console.warn(`[creative_director] failed (${String(e && e.message || e).slice(0, 140)}) — ${original.length} asset(s) fall back to the legacy vision gate`);
+    // directAssets mutates the shared asset objects as it works; scrub the
+    // transient fields so they don't leak into db.setAssets / the composer.
+    for (const a of original) { if (a) { delete a.__absPath; delete a.__rejected; } }
     return null;
   }
 }

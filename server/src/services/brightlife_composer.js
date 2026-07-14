@@ -529,7 +529,7 @@ function render3d(t){
   dots.rotation.y=t*0.015; dots.position.x=Math.sin(t*0.08)*0.6;
   blobMat.uniforms.uTime.value=t;
   shapes.children.forEach((g)=>{const u=g.userData;if(u.isRing){g.rotation.z=t*u.sp;return;}if(!u.spin)return;g.rotation.x=t*u.spin[0];g.rotation.y=t*u.spin[1];g.rotation.z=t*u.spin[2];g.position.y=(u.by!==undefined?u.by:(u.by=g.position.y))+Math.sin(t*0.4+u.ph)*u.fa;});
-  let active=SCENES[0];
+  let active=t>=SCENES[SCENES.length-1].start?SCENES[SCENES.length-1]:SCENES[0];
   for(const sc of SCENES){const o=winOpacity(t,sc.start,sc.end);setOpacity(sc.group,o);if(t>=sc.start&&t<sc.end)active=sc;
     sc.group.children.forEach((pl)=>{const j=pl.userData.jit;if(!j)return;const lt=t-sc.start;pl.position.y=(pl.userData.baseY!==undefined?pl.userData.baseY:(pl.userData.baseY=pl.position.y))+Math.sin(lt*0.7+j.ph)*0.13;pl.rotation.x=Math.sin(lt*0.5+j.ph)*0.02;});
   }

@@ -32,4 +32,21 @@ function spawnCompat(cmd, args = [], opts = {}) {
   return spawn(cmd, args, { ...opts, shell: false });
 }
 
-module.exports = { spawnCompat };
+// Kill a spawned child AND its whole process tree. On Windows the shell:true
+// path above means `child` is a cmd.exe shim — child.kill() kills only the
+// shim while the real node/hyperframes/Chromium grandchildren live on as
+// zombies eating the exact commit memory the watchdog was protecting against
+// (0xC0000142). taskkill /T walks the tree. POSIX keeps plain SIGKILL.
+function killTree(child) {
+  if (!child || child.killed || child.exitCode != null) return;
+  if (WINDOWS && child.pid) {
+    try {
+      spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], { stdio: "ignore", shell: false })
+        .on("error", () => { try { child.kill("SIGKILL"); } catch { /* noop */ } });
+      return;
+    } catch { /* fall through */ }
+  }
+  try { child.kill("SIGKILL"); } catch { /* noop */ }
+}
+
+module.exports = { spawnCompat, killTree };
