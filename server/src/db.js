@@ -203,7 +203,11 @@ module.exports = {
     j.brief = brief;
     j.script = script;
     j.script_warnings = warnings || [];
-    if (framePack) j.frame_pack = framePack;
+    // The brief's suggestedFramePack fills the AUTO case only. An EXPLICIT
+    // user selection (frame_pack set at insert) must never be overwritten —
+    // when the LLM's suggestion deviated, the user's chosen template was
+    // silently replaced before production ever read it.
+    if (framePack && !j.frame_pack) j.frame_pack = framePack;
     if (usage) j.usage = usage;
     if (stageTimings) j.stage_timings = { ...(j.stage_timings || {}), ...stageTimings };
     scheduleWrite();
