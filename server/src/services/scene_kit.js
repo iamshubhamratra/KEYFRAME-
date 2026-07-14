@@ -253,7 +253,16 @@ function emitHelpers(D) {
       + ` if(mode==="typewriter"){ tl.fromTo(cs,{opacity:0},{opacity:1,duration:0.01,ease:"none",stagger:_cstg(cs,0.05,1.0)},at); return; }`
       + ` if(mode==="char-pop"){ tl.fromTo(cs,{opacity:0,scale:0.3,y:12},{opacity:1,scale:1,y:0,duration:0.5,ease:"back.out(2.2)",stagger:_cstg(cs,0.035,0.9)},at); return; }`
       + ` if(mode==="glitch"){ tl.fromTo(cs,{opacity:0,x:-9,skewX:14},{opacity:1,x:0,skewX:0,duration:0.34,ease:"power2.out",stagger:_cstg(cs,0.03,0.8)},at); return; }`
+      /* flap — split-flap departure board: each char cycles through SEEDED wrong
+         characters (deterministic, no Math.random) with a scaleY "clack" squash per
+         swap, then lands on its real character. cyc*2-1 yoyo segments = even total,
+         so every cell ends back at scaleY 1. textContent sets are timeline-anchored
+         (same pattern as countUp), so seeks replay identically. */
+      + ` if(mode==="flap"){ var AL="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"; gsap.utils.toArray(cs).forEach(function(el,k){ var t0=el.textContent; var st=at+k*0.045; if(!t0||!t0.trim()){ tl.set(el,{opacity:1},st); return; } var cyc=3+((k*7)%3); for(var j=0;j<cyc;j++){ tl.set(el,{textContent:AL[(k*31+j*17)%AL.length],opacity:1},st+j*0.07); } tl.set(el,{textContent:t0},st+cyc*0.07); tl.fromTo(el,{scaleY:1,opacity:1},{scaleY:0.14,duration:0.035,yoyo:true,repeat:cyc*2-1,ease:"none"},st); }); return; }`
       + ` if(mode==="slide"){ tl.fromTo(ws,{opacity:0,x:-36},{opacity:1,x:0,duration:0.55,ease:"power3.out",stagger:s},at); return; }`
+      /* stamp — the print-press slam (bauhaus-riot's grammar): each word arrives
+         BIG and tilted, then snaps flat like a rubber stamp hitting paper. */
+      + ` if(mode==="stamp"){ tl.fromTo(ws,{opacity:0,scale:1.9,rotation:function(i){return i%2? 4:-5;}},{opacity:1,scale:1,rotation:0,duration:0.4,ease:"power4.in",stagger:Math.max(s,0.14)},at); return; }`
       + ` if(mode==="spring"){ tl.fromTo(ws,{opacity:0,scale:0.62,y:18},{opacity:1,scale:1,y:0,duration:0.7,ease:"back.out(1.9)",stagger:s},at); return; }`
       + ` if(mode==="mask-reveal"){ tl.fromTo(ws,{opacity:0,yPercent:55,clipPath:"inset(0 0 100% 0)"},{opacity:1,yPercent:0,clipPath:"inset(0 0 0% 0)",duration:0.66,ease:"power3.out",stagger:s},at); return; }`
       + ` if(mode==="line-wipe"){ tl.fromTo(ws,{opacity:0,clipPath:"inset(0 100% 0 0)"},{opacity:1,clipPath:"inset(0 0% 0 0)",duration:0.6,ease:"power2.out",stagger:s},at); return; }`

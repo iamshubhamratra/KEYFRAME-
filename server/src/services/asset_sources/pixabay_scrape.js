@@ -10,10 +10,25 @@
 //
 // Images + vector previews only; video scraping is intentionally out of scope.
 
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const crypto = require("node:crypto");
 const config = require("../../config");
 const { findChrome } = require("../ingest/website");
 
 const SEGMENTS = { image: "photos", vector: "vectors" };
+
+// Parallel scene fetches used to launch Chrome concurrently and collide on the
+// profile directory (puppeteer temp-profile race on Windows). Two guards:
+// each launch gets its own throwaway userDataDir, and searches are serialized
+// through a queue — this is the last-resort provider, one Chrome at a time.
+let queue = Promise.resolve();
+function serialize(fn) {
+  const run = queue.then(fn, fn);
+  queue = run.then(() => {}, () => {});
+  return run;
+}
 
 function buildSearchUrl(category, query, page = 1) {
   const segment = SEGMENTS[category] || "photos";
@@ -32,15 +47,21 @@ async function waitPastChallenge(page, maxMs = 20_000) {
   return false;
 }
 
-async function search({ query, type, limit = 5 }) {
+async function search(args) {
+  return serialize(() => doSearch(args));
+}
+
+async function doSearch({ query, type, limit = 5 }) {
   if (type !== "image" && type !== "vector") return [];
   const chrome = findChrome();
   if (!chrome) return [];
 
   const puppeteer = require("puppeteer-core");
+  const profileDir = path.join(os.tmpdir(), `keyframe-pixabay-${crypto.randomUUID()}`);
   const browser = await puppeteer.launch({
     executablePath: chrome,
     headless: true,
+    userDataDir: profileDir,
     args: ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
   });
 
@@ -103,6 +124,7 @@ async function search({ query, type, limit = 5 }) {
     return candidates.slice(0, limit * 2);
   } finally {
     await browser.close().catch(() => { /* noop */ });
+    fs.rm(profileDir, { recursive: true, force: true }, () => { /* best-effort */ });
   }
 }
 

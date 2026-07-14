@@ -10,16 +10,15 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { spawn } = require("node:child_process");
+const { spawnCompat } = require("../spawn_compat");
 const config = require("../../config");
 const openrouter = require("../openrouter");
 
-const WINDOWS = process.platform === "win32";
-
 function run(cmd, args, { timeoutMs = 120_000, collectStdout = true } = {}) {
   return new Promise((resolve, reject) => {
-    // Node ≥18.20 throws EINVAL spawning .cmd files without a shell (CVE-2024-27980).
-    const p = spawn(cmd, args, { shell: WINDOWS && cmd.endsWith(".cmd") });
+    // spawnCompat runs .cmd shims under a shell (CVE-2024-27980) with
+    // pre-quoted args (avoids DEP0190); everything else spawns directly.
+    const p = spawnCompat(cmd, args);
     let out = "", err = "";
     if (collectStdout) p.stdout.on("data", (d) => { out += d.toString(); });
     p.stderr.on("data", (d) => { err += d.toString(); });

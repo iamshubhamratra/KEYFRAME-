@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>KEYFRAME — Neon Premiere</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script>
+  /* If GSAP didn't load (offline / ad-blocker / Brave Shield), show a visible
+     note instead of a silently blank page. Local gsap.min.js (same-origin) is
+     tried first; the CDN line above is a fallback if the local file is missing. */
+  if (!window.gsap) {
+    addEventListener("DOMContentLoaded", function () {
+      var b = document.createElement("div");
+      b.style.cssText = "position:fixed;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;font:600 18px system-ui;color:#fff;background:#111;padding:32px;z-index:99999";
+      b.textContent = "GSAP failed to load — hard-refresh (Ctrl+Shift+R). If still blank, an ad-blocker / Brave Shield is blocking scripts; disable it for 127.0.0.1.";
+      document.body.appendChild(b);
+    });
+  }
+</script>
+<style>
+  /* ===========================================================
+     NEON PREMIERE — cinema-set HUD × chrome-neon horizon × editorial
+     scene numbering. Fuses longshot-cinema (REC/timecode film HUD,
+     stat tiles), vapor-chrome (perspective grid floor, neon gradient
+     chrome), biennale-yellow (SCENE 01 editorial rules).
+     Engineering contract (same as flagship / amazon-premium):
+     - Every hidden state is opacity:0 only; ALL motion lives in the
+       one paused GSAP timeline (deterministic, seek-safe).
+     - Every .clip is a DIRECT child of #root; scenes are SEQUENTIAL
+       (disjoint windows) so nothing occludes across scenes.
+     - ONE caption node + ONE timecode readout, recomputed per frame
+       from a proxy tween -> safe under random seeks.
+     - Finite repeats only (reps helpers), no infinite tweens.
+     =========================================================== */
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { width:100%; height:100%; overflow:hidden; background:#000; font-family:'Inter',system-ui,sans-serif; }
+  #root { position:relative; width:1920px; height:1080px; overflow:hidden; isolation:isolate;
+          background:radial-gradient(130% 115% at 50% -8%, #131A33 0%, #0A0D1F 46%, #05060E 100%);
+          container-type:size; color:var(--text);
+    --ink0:#05060E; --ink1:#0A0D1F; --ink2:#121734;
+    --cyan:#6EE7FF; --violet:#8B7CF6; --magenta:#FF4FD8; --amber:#FFC24B;
+    --text:#F2F5FF; --muted:#8B93B8; --line:rgba(255,255,255,0.10);
+    --sig:linear-gradient(100deg,#6EE7FF 0%,#8B7CF6 45%,#FF4FD8 100%);
+    --sig2:linear-gradient(100deg,#FFC24B 0%,#FF4FD8 55%,#8B7CF6 110%);
+  }
+  .clip { position:absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; }
+  .safe { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+          padding:8% 6% 10%; text-align:center; }
+  .cam  { position:absolute; inset:0; }   /* per-scene camera layer: pushes move THIS, not the content */
+
+  /* ---------- typography ---------- */
+  .display { font-family:'Space Grotesk','Inter',sans-serif; font-weight:700; font-size:8.2cqw; line-height:0.96; letter-spacing:-0.03em; color:var(--text); }
+  .h1 { font-family:'Space Grotesk','Inter',sans-serif; font-weight:700; font-size:5.4cqw; line-height:1.02; letter-spacing:-0.02em; color:var(--text); }
+  .h2 { font-weight:800; font-size:3.2cqw; line-height:1.06; letter-spacing:-0.015em; color:var(--text); }
+  .body { font-weight:500; font-size:1.9cqw; line-height:1.45; color:var(--muted); }
+  .word, .char { display:inline-block; will-change:transform,opacity; }
+  .grad { background:var(--sig); background-size:220% 100%; -webkit-background-clip:text; background-clip:text;
+          -webkit-text-fill-color:transparent; color:transparent; }
+  .grad2 { background:var(--sig2); background-size:220% 100%; -webkit-background-clip:text; background-clip:text;
+           -webkit-text-fill-color:transparent; color:transparent; }
+  /* Per-char gradient for the S3 wordmark: background-clip:text on a PARENT does
+     not paint into transformed children in Chrome, so each animated char carries
+     its own slice of the signature gradient (staggered background-position). */
+  #s3-word .char { background:var(--sig); background-size:800% 100%; -webkit-background-clip:text; background-clip:text;
+                   -webkit-text-fill-color:transparent; color:transparent; }
+  #s3-word .char:nth-child(1){background-position:0% 0;}    #s3-word .char:nth-child(2){background-position:14% 0;}
+  #s3-word .char:nth-child(3){background-position:28% 0;}   #s3-word .char:nth-child(4){background-position:43% 0;}
+  #s3-word .char:nth-child(5){background-position:57% 0;}   #s3-word .char:nth-child(6){background-position:71% 0;}
+  #s3-word .char:nth-child(7){background-position:86% 0;}   #s3-word .char:nth-child(8){background-position:100% 0;}
+
+  .pill { display:inline-flex; align-items:center; gap:0.8cqw; padding:0.65cqw 1.6cqw; border-radius:999px;
+          border:1px solid var(--line); background:rgba(255,255,255,0.05);
+          font-weight:700; font-size:1.15cqw; letter-spacing:0.3em; text-transform:uppercase; color:var(--cyan); }
+  .pill .dot { width:0.65cqw; height:0.65cqw; border-radius:50%; background:var(--magenta); box-shadow:0 0 1.4cqw var(--magenta); }
+  .glass { background:linear-gradient(165deg, rgba(110,231,255,0.10), rgba(10,13,31,0.62));
+           border:1px solid var(--line); border-radius:1.5cqw;
+           box-shadow:0 1.8cqw 4.5cqw rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
+           backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
+  .cta { display:inline-flex; align-items:center; gap:1cqw; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:2.3cqw;
+         color:#0B0716; padding:1.4cqw 3.6cqw; border-radius:999px; background:var(--sig2); position:relative; overflow:hidden;
+         box-shadow:0 1.6cqw 4.2cqw rgba(255,79,216,0.38), 0 0 0 1px rgba(255,255,255,0.25) inset; }
+  .cta .sheen { position:absolute; top:0; left:-40%; width:26%; height:100%; transform:skewX(-18deg);
+                background:linear-gradient(90deg, transparent, rgba(255,255,255,0.65), transparent); }
+
+  /* ---------- ambient stack ---------- */
+  .blob { position:absolute; border-radius:50%; filter:blur(38px); mix-blend-mode:screen; pointer-events:none; }
+  #blob-cyan    { width:74cqw; height:74cqw; left:-20cqw; top:-30cqw; background:radial-gradient(circle, rgba(110,231,255,0.34), transparent 70%); }
+  #blob-magenta { width:80cqw; height:80cqw; right:-24cqw; bottom:-34cqw; background:radial-gradient(circle, rgba(255,79,216,0.30), transparent 70%); }
+  .bokeh { position:absolute; border-radius:50%; filter:blur(12px); mix-blend-mode:screen; opacity:0.24; }
+  #vignette { position:absolute; inset:0; pointer-events:none; background:radial-gradient(118% 118% at 50% 44%, transparent 50%, rgba(2,2,8,0.66) 100%); }
+  #scanlines { position:absolute; inset:0; pointer-events:none; opacity:0.05; mix-blend-mode:overlay;
+               background:repeating-linear-gradient(0deg, rgba(255,255,255,0.5) 0 1px, transparent 1px 4px); }
+  /* vapor-chrome perspective grid floor — conveyor animated via background-position */
+  #floor-wrap { position:absolute; left:-20%; right:-20%; bottom:-4%; height:46%; perspective:56cqw; perspective-origin:50% 0%; pointer-events:none; }
+  #floor { position:absolute; inset:0; transform:rotateX(76deg); transform-origin:50% 0%; opacity:0.5;
+           background:
+             linear-gradient(rgba(110,231,255,0.30) 2px, transparent 2px),
+             linear-gradient(90deg, rgba(139,124,246,0.30) 2px, transparent 2px);
+           background-size:4.6cqw 4.6cqw;
+           -webkit-mask-image:linear-gradient(180deg, transparent 0%, #000 22%, #000 100%);
+                   mask-image:linear-gradient(180deg, transparent 0%, #000 22%, #000 100%); }
+  #horizon { position:absolute; left:0; right:0; bottom:40%; height:0.5cqw; opacity:0.55; filter:blur(3px); pointer-events:none;
+             background:linear-gradient(90deg, transparent, var(--cyan) 30%, var(--magenta) 70%, transparent); }
+  .glow { position:absolute; border-radius:50%; filter:blur(42px); mix-blend-mode:screen; opacity:0; pointer-events:none; }
+  .flare { position:absolute; top:0; height:100%; width:16%; opacity:0;
+           background:linear-gradient(100deg, transparent, rgba(255,255,255,0.16), transparent); }
+
+  /* ---------- film-set HUD (longshot-cinema) ---------- */
+  #hud { pointer-events:none; }
+  .hud-corner { position:absolute; width:2.6cqw; height:2.6cqw; border:2px solid rgba(255,255,255,0.28); }
+  #hc-tl { left:1.8cqw; top:3.2cqw; border-right:none; border-bottom:none; }
+  #hc-tr { right:1.8cqw; top:3.2cqw; border-left:none; border-bottom:none; }
+  #hc-bl { left:1.8cqw; bottom:3.2cqw; border-right:none; border-top:none; }
+  #hc-br { right:1.8cqw; bottom:3.2cqw; border-left:none; border-top:none; }
+  #hud-rec { position:absolute; left:3.4cqw; top:4.4cqw; display:flex; align-items:center; gap:0.7cqw;
+             font-family:'Space Grotesk',monospace; font-weight:600; font-size:1.1cqw; letter-spacing:0.34em; color:#D7DCF5; }
+  #rec-dot { width:0.85cqw; height:0.85cqw; border-radius:50%; background:#FF3D5A; box-shadow:0 0 1.4cqw #FF3D5A; }
+  #hud-tc { position:absolute; right:3.4cqw; top:4.4cqw; font-family:'Space Grotesk',monospace; font-weight:600;
+            font-size:1.1cqw; letter-spacing:0.22em; color:#D7DCF5; }
+  #hud-reel { position:absolute; right:3.4cqw; bottom:4.5cqw; font-family:'Space Grotesk',monospace; font-weight:600;
+              font-size:1cqw; letter-spacing:0.3em; color:var(--muted); }
+  #hud-progress { position:absolute; left:3.4cqw; bottom:4.7cqw; width:16cqw; height:0.28cqw; border-radius:999px; background:rgba(255,255,255,0.12); overflow:hidden; }
+  #hud-progress i { position:absolute; inset:0; border-radius:999px; background:var(--sig); transform:scaleX(0); transform-origin:left center; display:block; }
+
+  /* ---------- editorial rules (biennale) ---------- */
+  .rule-v { position:absolute; top:0; bottom:0; width:1px; background:rgba(255,255,255,0.09); transform:scaleY(0); transform-origin:top center; }
+  .rule-h { position:absolute; left:0; right:0; height:1px; background:rgba(255,255,255,0.09); transform:scaleX(0); transform-origin:left center; }
+  .scene-no { font-family:'Space Grotesk',monospace; font-weight:600; font-size:1.15cqw; letter-spacing:0.4em; text-transform:uppercase; color:var(--muted); }
+  .scene-no b { color:var(--amber); font-weight:700; }
+
+  .strike { position:absolute; left:-2%; top:52%; height:0.5cqw; width:104%; border-radius:999px; background:var(--magenta);
+            transform:scaleX(0); transform-origin:left center; box-shadow:0 0 1.4cqw rgba(255,79,216,0.8); }
+
+  /* ---------- pipeline rail (S4) ---------- */
+  .rail-card { width:23cqw; padding:1.9cqw 2.1cqw; text-align:left; position:relative; }
+  .rail-card .rc-step { font-family:'Space Grotesk',monospace; font-size:1cqw; font-weight:600; letter-spacing:0.32em; color:var(--cyan); }
+  .rail-card .rc-title { font-family:'Space Grotesk',sans-serif; font-size:2.1cqw; font-weight:700; color:var(--text); margin-top:0.5cqw; }
+  .rail-card .rc-body { font-size:1.25cqw; font-weight:500; color:var(--muted); line-height:1.45; margin-top:0.7cqw; min-height:5.6cqw; }
+  .mono { font-family:'Space Grotesk',monospace; font-weight:600; font-size:1.15cqw; color:#CFE9FF; }
+  .caret { display:inline-block; width:0.16cqw; height:1.4cqw; vertical-align:-0.25cqw; background:var(--cyan); margin-left:0.25cqw; box-shadow:0 0 0.9cqw var(--cyan); }
+  .fcell { flex:1; height:2.6cqw; border-radius:0.4cqw; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.08); opacity:0; }
+
+  /* ---------- stat tiles (S5, longshot) ---------- */
+  .stat-card { width:23cqw; height:23cqw; padding:2.2cqw; display:flex; flex-direction:column; justify-content:center; align-items:center; position:relative; overflow:hidden; }
+  .stat-num { font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:5.6cqw; line-height:1; letter-spacing:-0.03em; }
+  .stat-cap { font-size:1.45cqw; font-weight:600; color:var(--muted); margin-top:1cqw; text-align:center; }
+  .stat-arc { position:absolute; right:-3cqw; top:-3cqw; width:11cqw; height:11cqw; opacity:0.55; }
+
+  /* ---------- style marquee (S7) ---------- */
+  .tick-row { position:absolute; left:0; display:flex; gap:1.4cqw; white-space:nowrap; will-change:transform; }
+  .tick { display:inline-flex; align-items:center; gap:0.8cqw; padding:1cqw 2cqw; border-radius:999px;
+          border:1px solid var(--line); background:rgba(255,255,255,0.05);
+          font-family:'Space Grotesk',monospace; font-weight:600; font-size:1.5cqw; letter-spacing:0.08em; color:#DDE3FA; }
+  .tick i { width:1cqw; height:1cqw; border-radius:0.3cqw; display:inline-block; }
+
+  .diamond { position:absolute; }
+
+  /* ---------- captions (single seek-safe node, top-most) ---------- */
+  #caps { position:absolute; inset:0; display:flex; justify-content:center; align-items:flex-end; padding-bottom:7.4%; z-index:50; pointer-events:none; }
+  #cap-pill { max-width:74%; height:fit-content; flex:0 0 auto; text-align:center; padding:0.9cqw 2.2cqw; border-radius:999px; opacity:0;
+              background:rgba(6,7,18,0.6); border:1px solid var(--line); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
+  #cap-text { font-weight:600; font-size:1.5cqw; line-height:1.3; color:#ECF0FF; }
+</style>
+</head>
+<body>
+<div id="root" class="composition" data-composition-id="vid" data-width="1920" data-height="1080" data-start="0" data-duration="36">
+
+  <!-- TRACK 0 — procedural WebGL depth layer -->
+  <canvas id="gl" class="clip" data-start="0" data-duration="36" data-track-index="0" width="1920" height="1080" data-layout-allow-occlusion></canvas>
+
+  <!-- TRACK 1 — living ambient backdrop: neon horizon + grid floor + blobs -->
+  <div id="ambient" class="clip" data-start="0" data-duration="36" data-track-index="1" data-layout-allow-occlusion>
+    <div id="blob-cyan" class="blob"></div>
+    <div id="blob-magenta" class="blob"></div>
+    <div class="bokeh" style="width:8cqw;height:8cqw;left:16%;top:22%;background:var(--cyan);"></div>
+    <div class="bokeh" style="width:5cqw;height:5cqw;left:80%;top:28%;background:var(--magenta);"></div>
+    <div class="bokeh" style="width:10cqw;height:10cqw;left:66%;top:70%;background:var(--violet);"></div>
+    <div class="bokeh" style="width:4.5cqw;height:4.5cqw;left:28%;top:76%;background:var(--amber);"></div>
+    <div id="floor-wrap"><div id="floor"></div></div>
+    <div id="horizon"></div>
+    <div id="scanlines"></div>
+    <div id="vignette"></div>
+  </div>
+
+  <!-- S1 COLD OPEN (0–4.6) -->
+  <div class="clip" id="s1" data-start="0" data-duration="5.2" data-track-index="2" style="opacity:0;perspective:1500px;">
+    <div class="cam" id="s1-cam"><div class="glow" id="s1-glow" style="left:50%;top:36%;width:58cqw;height:40cqw;margin-left:-29cqw;margin-top:-20cqw;background:radial-gradient(circle, rgba(110,231,255,0.36), rgba(255,79,216,0.18) 48%, transparent 72%);"></div></div>
+    <div class="flare" id="s1-flare"></div>
+    <div class="safe">
+      <div class="pill" id="s1-pill" style="opacity:0;margin-bottom:2.6cqw;"><span class="dot"></span>A film made by software</div>
+      <h1 class="display" style="display:flex;gap:2.2cqw;flex-wrap:wrap;justify-content:center;">
+        <span id="s1-w1" style="display:inline-flex;"><span class="char">L</span><span class="char">i</span><span class="char">g</span><span class="char">h</span><span class="char">t</span><span class="char">s</span><span class="char">.</span></span>
+        <span id="s1-w2" style="display:inline-flex;"><span class="char">C</span><span class="char">a</span><span class="char">m</span><span class="char">e</span><span class="char">r</span><span class="char">a</span><span class="char">.</span></span>
+        <span id="s1-w3" class="grad" style="display:inline-flex;opacity:0;">Prompt.</span>
+      </h1>
+      <svg id="s1-ring" width="220" height="220" viewBox="0 0 220 220" style="position:absolute;left:50%;top:44%;margin-left:-110px;margin-top:-110px;overflow:visible;opacity:0;" data-layout-allow-occlusion>
+        <circle cx="110" cy="110" r="100" fill="none" stroke="url(#gr1)" stroke-width="3"/>
+        <defs><linearGradient id="gr1" x1="0" x2="1"><stop offset="0" stop-color="#6EE7FF"/><stop offset="1" stop-color="#FF4FD8"/></linearGradient></defs>
+      </svg>
+      <div class="body" id="s1-sub" style="opacity:0;margin-top:2.6cqw;font-size:2.1cqw;color:#C9D2F2;">The studio that fits in a sentence.</div>
+    </div>
+  </div>
+
+  <!-- S2 THE OLD WAY (4.6–9.0) -->
+  <div class="clip" id="s2" data-start="4.6" data-duration="5.0" data-track-index="3" style="opacity:0;">
+    <div class="cam" id="s2-cam"><div class="glow" id="s2-glow" style="left:-8%;top:26%;width:56cqw;height:40cqw;background:radial-gradient(circle, rgba(139,124,246,0.42), transparent 70%);"></div></div>
+    <div class="rule-v s2-rule" style="left:12%;"></div>
+    <div class="rule-v s2-rule" style="left:88%;"></div>
+    <div class="rule-h s2-ruleh" style="top:20%;"></div>
+    <div class="safe" style="align-items:flex-start;text-align:left;padding-left:14%;">
+      <div class="scene-no" id="s2-no" style="opacity:0;">Scene <b>01</b> — The old way</div>
+      <div style="position:relative;margin-top:2.2cqw;"><h1 class="h1 s2-line" id="s2-l1" style="opacity:0;">Storyboards.</h1><div class="strike" id="s2-k1"></div></div>
+      <div style="position:relative;margin-top:0.4cqw;"><h1 class="h1 s2-line" id="s2-l2" style="opacity:0;">Studio crews.</h1><div class="strike" id="s2-k2"></div></div>
+      <div style="position:relative;margin-top:0.4cqw;"><h1 class="h1 s2-line" id="s2-l3" style="opacity:0;">Weeks of edits.</h1><div class="strike" id="s2-k3"></div></div>
+      <div style="overflow:hidden;padding:0.5cqw 0;margin-top:1.6cqw;">
+        <h1 class="display grad" id="s2-em" style="font-size:6.6cqw;">One sentence.</h1>
+      </div>
+    </div>
+  </div>
+
+  <!-- S3 BRAND REVEAL (9.0–13.6) -->
+  <div class="clip" id="s3" data-start="9.0" data-duration="5.1" data-track-index="4" style="opacity:0;perspective:1500px;">
+    <div class="cam" id="s3-cam"><div class="glow" id="s3-burst" style="left:50%;top:42%;width:66cqw;height:66cqw;margin-left:-33cqw;margin-top:-33cqw;background:radial-gradient(circle, rgba(110,231,255,0.42), rgba(255,79,216,0.26) 42%, transparent 68%);"></div></div>
+    <div class="safe">
+      <div class="pill" id="s3-pill" style="opacity:0;margin-bottom:2.4cqw;"><span class="dot"></span>Introducing</div>
+      <div id="s3-mark" style="display:flex;align-items:center;gap:1.6cqw;will-change:transform;">
+        <svg id="s3-aperture" width="128" height="128" viewBox="0 0 128 128" style="overflow:visible;">
+          <g id="s3-ap-blades" stroke="url(#gap)" stroke-width="6" stroke-linecap="round" fill="none">
+            <line class="ap-blade" x1="64" y1="14" x2="64" y2="42"/>
+            <line class="ap-blade" x1="107" y1="39" x2="83" y2="53"/>
+            <line class="ap-blade" x1="107" y1="89" x2="83" y2="75"/>
+            <line class="ap-blade" x1="64" y1="114" x2="64" y2="86"/>
+            <line class="ap-blade" x1="21" y1="89" x2="45" y2="75"/>
+            <line class="ap-blade" x1="21" y1="39" x2="45" y2="53"/>
+          </g>
+          <circle id="s3-ap-ring" cx="64" cy="64" r="56" fill="none" stroke="url(#gap)" stroke-width="5" stroke-linecap="round" stroke-dasharray="352" stroke-dashoffset="352"/>
+          <circle id="s3-ap-core" cx="64" cy="64" r="12" fill="url(#gap)"/>
+          <defs><linearGradient id="gap" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6EE7FF"/><stop offset="0.55" stop-color="#8B7CF6"/><stop offset="1" stop-color="#FF4FD8"/></linearGradient></defs>
+        </svg>
+        <div class="display" id="s3-word" style="display:flex;font-size:8.8cqw;">
+          <span class="char">K</span><span class="char">E</span><span class="char">Y</span><span class="char">F</span><span class="char">R</span><span class="char">A</span><span class="char">M</span><span class="char">E</span>
+        </div>
+      </div>
+      <svg id="s3-wave" width="900" height="120" viewBox="0 0 900 120" style="overflow:visible;margin-top:0.6cqw;max-width:52cqw;">
+        <path id="s3-wave-path" d="M10 60 C 150 20, 300 100, 450 60 S 750 20, 890 60" fill="none" stroke="url(#gw3)" stroke-width="5" stroke-linecap="round" stroke-dasharray="1000" stroke-dashoffset="1000"/>
+        <defs><linearGradient id="gw3" x1="0" x2="1"><stop offset="0" stop-color="#FFC24B"/><stop offset="1" stop-color="#FF4FD8"/></linearGradient></defs>
+      </svg>
+      <div class="body" id="s3-tag" style="opacity:0;margin-top:1.4cqw;font-size:2.3cqw;color:#D6DDF8;">Script to screen. Zero crew.</div>
+    </div>
+  </div>
+
+  <!-- S4 PIPELINE RAIL (13.6–18.4) -->
+  <div class="clip" id="s4" data-start="13.6" data-duration="5.3" data-track-index="5" style="opacity:0;perspective:1600px;">
+    <div class="cam" id="s4-cam"><div class="glow" id="s4-glow" style="left:50%;top:46%;width:62cqw;height:42cqw;margin-left:-31cqw;margin-top:-21cqw;background:radial-gradient(circle, rgba(139,124,246,0.34), transparent 70%);"></div></div>
+    <div class="safe">
+      <div class="scene-no" id="s4-no" style="opacity:0;">Scene <b>02</b> — The pipeline</div>
+      <h2 class="h2" id="s4-head" style="margin-top:1cqw;opacity:0;">Three acts. <span class="grad">Zero hands.</span></h2>
+      <div style="position:relative;margin-top:2.6cqw;width:76cqw;">
+        <svg id="s4-rail" width="1460" height="16" viewBox="0 0 1460 16" style="position:absolute;left:0;top:-1.4cqw;width:100%;overflow:visible;" data-layout-allow-occlusion>
+          <line x1="8" y1="8" x2="1452" y2="8" stroke="rgba(255,255,255,0.14)" stroke-width="2"/>
+          <line id="s4-rail-fill" x1="8" y1="8" x2="1452" y2="8" stroke="url(#gr4)" stroke-width="3" stroke-linecap="round" stroke-dasharray="1444" stroke-dashoffset="1444"/>
+          <circle id="s4-orb" cx="8" cy="8" r="9" fill="#6EE7FF" style="filter:drop-shadow(0 0 10px #6EE7FF);"/>
+          <defs><linearGradient id="gr4" x1="0" x2="1"><stop offset="0" stop-color="#6EE7FF"/><stop offset="0.5" stop-color="#8B7CF6"/><stop offset="1" stop-color="#FF4FD8"/></linearGradient></defs>
+        </svg>
+        <div style="display:flex;gap:3.5cqw;justify-content:center;padding-top:1.6cqw;">
+          <div class="glass rail-card" id="s4-c1" style="opacity:0;will-change:transform;">
+            <div class="rc-step">ACT 01</div><div class="rc-title">Write</div>
+            <div class="rc-body mono"><span id="s4-type"></span><span class="caret" id="s4-caret"></span></div>
+          </div>
+          <div class="glass rail-card" id="s4-c2" style="opacity:0;will-change:transform;">
+            <div class="rc-step" style="color:var(--violet);">ACT 02</div><div class="rc-title">Direct</div>
+            <div class="rc-body">
+              <svg width="300" height="96" viewBox="0 0 100 32" style="overflow:visible;max-width:100%;">
+                <g stroke="url(#gn4)" stroke-width="0.8" fill="none" stroke-linecap="round">
+                  <line class="s4-edge" x1="8" y1="16" x2="38" y2="7"/><line class="s4-edge" x1="8" y1="16" x2="38" y2="25"/>
+                  <line class="s4-edge" x1="38" y1="7" x2="68" y2="16"/><line class="s4-edge" x1="38" y1="25" x2="68" y2="16"/>
+                  <line class="s4-edge" x1="68" y1="16" x2="92" y2="16"/>
+                </g>
+                <g fill="#0A0D1F" stroke="url(#gn4)" stroke-width="1">
+                  <circle class="s4-node" cx="8" cy="16" r="3"/><circle class="s4-node" cx="38" cy="7" r="2.6"/>
+                  <circle class="s4-node" cx="38" cy="25" r="2.6"/><circle class="s4-node" cx="68" cy="16" r="2.6"/>
+                  <circle class="s4-node" cx="92" cy="16" r="3.2" fill="url(#gn4)"/>
+                </g>
+                <defs><linearGradient id="gn4" x1="0" x2="1"><stop offset="0" stop-color="#8B7CF6"/><stop offset="1" stop-color="#FF4FD8"/></linearGradient></defs>
+              </svg>
+            </div>
+          </div>
+          <div class="glass rail-card" id="s4-c3" style="opacity:0;will-change:transform;">
+            <div class="rc-step" style="color:var(--magenta);">ACT 03</div><div class="rc-title">Render</div>
+            <div class="rc-body" style="position:relative;">
+              <div style="display:flex;gap:0.5cqw;margin-top:0.6cqw;">
+                <div class="fcell"></div><div class="fcell"></div><div class="fcell"></div><div class="fcell"></div><div class="fcell"></div>
+              </div>
+              <div id="s4-ph" style="position:absolute;top:0.1cqw;left:0;width:0.22cqw;height:3.6cqw;background:var(--magenta);box-shadow:0 0 1.2cqw var(--magenta);border-radius:999px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S5 THE NUMBERS (18.4–22.6) -->
+  <div class="clip" id="s5" data-start="18.4" data-duration="4.7" data-track-index="6" style="opacity:0;perspective:1600px;">
+    <div class="cam" id="s5-cam"><div class="glow" id="s5-glow" style="left:50%;top:50%;width:72cqw;height:36cqw;margin-left:-36cqw;margin-top:-18cqw;background:radial-gradient(circle, rgba(110,231,255,0.24), rgba(255,79,216,0.2) 46%, transparent 72%);"></div></div>
+    <div class="safe">
+      <div class="scene-no" id="s5-no" style="opacity:0;margin-bottom:1.6cqw;">Scene <b>03</b> — The numbers</div>
+      <div style="display:flex;gap:2.4cqw;">
+        <div class="glass stat-card s5-card" style="opacity:0;will-change:transform;">
+          <div class="stat-num grad" id="s5-n1">0</div><div class="stat-cap">agents direct every scene</div>
+          <svg class="stat-arc" viewBox="0 0 120 120"><circle cx="60" cy="60" r="50" fill="none" stroke="#6EE7FF" stroke-width="7" stroke-linecap="round" stroke-dasharray="314" stroke-dashoffset="314" class="s5-arc" transform="rotate(-90 60 60)"/></svg>
+        </div>
+        <div class="glass stat-card s5-card" style="opacity:0;will-change:transform;">
+          <div style="display:flex;align-items:baseline;"><div class="stat-num grad" id="s5-n2">0</div><div class="stat-num grad" style="font-size:2.8cqw;">p</div></div>
+          <div class="stat-cap">crisp frames at 30 fps</div>
+          <svg class="stat-arc" viewBox="0 0 120 120"><circle cx="60" cy="60" r="50" fill="none" stroke="#8B7CF6" stroke-width="7" stroke-linecap="round" stroke-dasharray="314" stroke-dashoffset="314" class="s5-arc" transform="rotate(-90 60 60)"/></svg>
+        </div>
+        <div class="glass stat-card s5-card" style="opacity:0;will-change:transform;">
+          <div style="display:flex;align-items:baseline;"><div class="stat-num grad" id="s5-n3">0</div><div class="stat-num grad" style="font-size:2.8cqw;">%</div></div>
+          <div class="stat-cap">deterministic — zero drift</div>
+          <svg class="stat-arc" viewBox="0 0 120 120"><circle cx="60" cy="60" r="50" fill="none" stroke="#FF4FD8" stroke-width="7" stroke-linecap="round" stroke-dasharray="314" stroke-dashoffset="314" class="s5-arc" transform="rotate(-90 60 60)"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S6 DIFFERENTIATOR (22.6–26.6) -->
+  <div class="clip" id="s6" data-start="22.6" data-duration="4.5" data-track-index="7" style="opacity:0;">
+    <div class="cam" id="s6-cam"><div class="glow" id="s6-glow" style="left:16%;top:28%;width:50cqw;height:36cqw;background:radial-gradient(circle, rgba(255,79,216,0.36), rgba(139,124,246,0.2) 46%, transparent 72%);"></div></div>
+    <div class="safe" style="align-items:flex-start;text-align:left;padding-left:14%;">
+      <div style="position:relative;"><h1 class="display" id="s6-l1" style="font-size:5.8cqw;opacity:0;">No crew.</h1><div class="strike" id="s6-k1"></div></div>
+      <div style="position:relative;margin-top:0.3cqw;"><h1 class="display" id="s6-l2" style="font-size:5.8cqw;opacity:0;">No timeline.</h1><div class="strike" id="s6-k2"></div></div>
+      <div style="position:relative;margin-top:0.3cqw;"><h1 class="display" id="s6-l3" style="font-size:5.8cqw;opacity:0;">No render farm.</h1><div class="strike" id="s6-k3"></div></div>
+      <div style="position:relative;margin-top:1.2cqw;">
+        <h1 class="display grad2" id="s6-em" style="font-size:7cqw;opacity:0;">Just words.</h1>
+        <svg id="s6-under" width="560" height="22" viewBox="0 0 560 22" style="position:absolute;left:0;bottom:-1.1cqw;overflow:visible;max-width:36cqw;">
+          <path d="M6 13 C 160 4, 400 4, 554 13" fill="none" stroke="url(#gu6)" stroke-width="6" stroke-linecap="round" stroke-dasharray="700" stroke-dashoffset="700"/>
+          <defs><linearGradient id="gu6" x1="0" x2="1"><stop offset="0" stop-color="#FFC24B"/><stop offset="1" stop-color="#FF4FD8"/></linearGradient></defs>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- S7 STYLE MARQUEE (26.6–30.8) -->
+  <div class="clip" id="s7" data-start="26.6" data-duration="4.7" data-track-index="8" style="opacity:0;">
+    <div class="cam" id="s7-cam"><div class="glow" id="s7-glow" style="left:50%;top:40%;width:64cqw;height:40cqw;margin-left:-32cqw;margin-top:-20cqw;background:radial-gradient(circle, rgba(139,124,246,0.34), transparent 70%);"></div></div>
+    <div class="safe" style="justify-content:flex-start;padding-top:12%;">
+      <div class="scene-no" id="s7-no" style="opacity:0;">Scene <b>04</b> — The wardrobe</div>
+      <div style="display:flex;align-items:baseline;gap:1.2cqw;margin-top:1.2cqw;">
+        <div class="display grad" id="s7-count" style="font-size:6.4cqw;">0</div>
+        <h2 class="h2" id="s7-head" style="font-size:3cqw;opacity:0;">cinematic styles. One prompt.</h2>
+      </div>
+    </div>
+    <div style="position:absolute;left:0;right:0;top:52%;height:5.4cqw;overflow:hidden;" data-layout-allow-occlusion>
+      <div class="tick-row" id="s7-row1" style="opacity:0;">
+        <span class="tick"><i style="background:#E4572E;"></i>bauhaus-print</span>
+        <span class="tick"><i style="background:#F2E635;"></i>biennale-yellow</span>
+        <span class="tick"><i style="background:#FFC24B;"></i>blockframe</span>
+        <span class="tick"><i style="background:#F4A9B8;"></i>bloom-illustrated</span>
+        <span class="tick"><i style="background:#54B9E6;"></i>longshot-cinema</span>
+        <span class="tick"><i style="background:#FF4FD8;"></i>vapor-chrome</span>
+        <span class="tick"><i style="background:#E4572E;"></i>bauhaus-print</span>
+        <span class="tick"><i style="background:#F2E635;"></i>biennale-yellow</span>
+        <span class="tick"><i style="background:#FFC24B;"></i>blockframe</span>
+        <span class="tick"><i style="background:#F4A9B8;"></i>bloom-illustrated</span>
+        <span class="tick"><i style="background:#54B9E6;"></i>longshot-cinema</span>
+        <span class="tick"><i style="background:#FF4FD8;"></i>vapor-chrome</span>
+      </div>
+    </div>
+    <div style="position:absolute;left:0;right:0;top:66%;height:5.4cqw;overflow:hidden;" data-layout-allow-occlusion>
+      <div class="tick-row" id="s7-row2" style="opacity:0;">
+        <span class="tick"><i style="background:#8B7CF6;"></i>summit-keynote</span>
+        <span class="tick"><i style="background:#6EE7FF;"></i>prism-launch</span>
+        <span class="tick"><i style="background:#FFB24C;"></i>fable-storybook</span>
+        <span class="tick"><i style="background:#FF3D5A;"></i>kinetic-bold</span>
+        <span class="tick"><i style="background:#FFC24B;"></i>terminal-amber</span>
+        <span class="tick"><i style="background:#54E68C;"></i>nova-launch</span>
+        <span class="tick"><i style="background:#8B7CF6;"></i>summit-keynote</span>
+        <span class="tick"><i style="background:#6EE7FF;"></i>prism-launch</span>
+        <span class="tick"><i style="background:#FFB24C;"></i>fable-storybook</span>
+        <span class="tick"><i style="background:#FF3D5A;"></i>kinetic-bold</span>
+        <span class="tick"><i style="background:#FFC24B;"></i>terminal-amber</span>
+        <span class="tick"><i style="background:#54E68C;"></i>nova-launch</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- S8 PREMIERE CTA (30.8–36.0) -->
+  <div class="clip" id="s8" data-start="30.8" data-duration="5.2" data-track-index="9" style="opacity:0;">
+    <div class="cam" id="s8-cam"><div class="glow" id="s8-aura" style="left:50%;top:40%;width:66cqw;height:50cqw;margin-left:-33cqw;margin-top:-25cqw;background:radial-gradient(circle, rgba(110,231,255,0.4), rgba(255,79,216,0.3) 42%, transparent 70%);"></div></div>
+    <svg class="diamond" id="s8-d1" width="60" height="60" viewBox="0 0 60 60" style="left:24%;top:26%;opacity:0;"><rect x="16" y="16" width="28" height="28" rx="5" transform="rotate(45 30 30)" fill="none" stroke="#6EE7FF" stroke-width="4"/></svg>
+    <svg class="diamond" id="s8-d2" width="44" height="44" viewBox="0 0 44 44" style="left:73%;top:62%;opacity:0;"><rect x="12" y="12" width="20" height="20" rx="4" transform="rotate(45 22 22)" fill="none" stroke="#FF4FD8" stroke-width="4"/></svg>
+    <svg class="diamond" id="s8-d3" width="34" height="34" viewBox="0 0 34 34" style="left:66%;top:22%;opacity:0;"><rect x="9" y="9" width="16" height="16" rx="3" transform="rotate(45 17 17)" fill="none" stroke="#FFC24B" stroke-width="3"/></svg>
+    <div class="safe">
+      <div class="pill" id="s8-pill" style="opacity:0;margin-bottom:2cqw;"><span class="dot"></span>Tonight, and every night</div>
+      <div class="display grad" id="s8-mark" style="font-size:9.6cqw;opacity:0;">KEYFRAME</div>
+      <div class="body" id="s8-tag" style="opacity:0;margin-top:1.2cqw;font-size:2.3cqw;color:#D6DDF8;">Type a sentence. Premiere tonight.</div>
+      <div class="cta" id="s8-cta" style="opacity:0;margin-top:2.8cqw;will-change:transform;">Roll camera — free <span style="font-weight:900;">&#8594;</span><span class="sheen" id="s8-sheen"></span></div>
+    </div>
+  </div>
+
+  <!-- TRACK 19 — film-set HUD (REC, timecode, reel, progress) -->
+  <div id="hud" class="clip" data-start="0" data-duration="36" data-track-index="19" data-layout-allow-occlusion style="opacity:0;">
+    <div class="hud-corner" id="hc-tl"></div><div class="hud-corner" id="hc-tr"></div>
+    <div class="hud-corner" id="hc-bl"></div><div class="hud-corner" id="hc-br"></div>
+    <div id="hud-rec"><span id="rec-dot"></span>REC</div>
+    <div id="hud-tc">TC 00:00:00:00</div>
+    <div id="hud-reel">KEYFRAME · REEL 01</div>
+    <div id="hud-progress"><i id="hud-bar"></i></div>
+  </div>
+
+  <!-- TRACK 20 — captions (single seek-safe node) -->
+  <div id="caps" class="clip" data-start="0" data-duration="36" data-track-index="20"><div id="cap-pill"><div id="cap-text"></div></div></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+<script>
+(function () {
+  if (typeof THREE === "undefined") { return; }
+  const W = 1920, H = 1080, canvas = document.getElementById("gl");
+  let renderer, scene, camera, group, pCyan, pMagenta, ico, knot;
+  try {
+    renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(1); renderer.setSize(W, H, false);
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(36, W / H, 0.1, 100); camera.position.set(0, 0, 6.4);
+    group = new THREE.Group(); scene.add(group);
+    function cloud(count, color, spread, size, seed) {
+      const g = new THREE.BufferGeometry(), pos = new Float32Array(count * 3);
+      let s = seed; const rnd = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+      for (let i = 0; i < count; i++) { pos[i*3] = (rnd()-0.5)*spread; pos[i*3+1] = (rnd()-0.5)*spread*0.6; pos[i*3+2] = (rnd()-0.5)*spread; }
+      g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      return new THREE.Points(g, new THREE.PointsMaterial({ color, size, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false }));
+    }
+    pCyan = cloud(180, 0x6EE7FF, 11, 0.045, 7919); pMagenta = cloud(200, 0xFF4FD8, 12, 0.05, 104729);
+    group.add(pCyan); group.add(pMagenta);
+    ico = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(2.5, 1)), new THREE.LineBasicMaterial({ color: 0x8B7CF6, transparent: true, opacity: 0.2 }));
+    group.add(ico);
+    knot = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.TorusGeometry(3.6, 0.02, 6, 64)), new THREE.LineBasicMaterial({ color: 0x6EE7FF, transparent: true, opacity: 0.1 }));
+    knot.rotation.x = Math.PI / 2.4;
+    group.add(knot);
+  } catch (e) { renderer = null; }
+  function renderAt(t) {
+    if (!renderer) return;
+    const k = Math.min(1, Math.max(0, t / 36));
+    group.rotation.y = t * 0.07; group.rotation.x = Math.sin(t * 0.16) * 0.12;
+    ico.rotation.z = t * 0.045; knot.rotation.z = -t * 0.03;
+    pCyan.material.opacity = 0.5 + 0.28 * Math.sin(t * 0.85); pMagenta.material.opacity = 0.5 + 0.28 * Math.sin(t * 0.85 + 1.7);
+    camera.position.z = 6.4 - k * 1.0; camera.position.x = Math.sin(t * 0.11) * 0.28; camera.lookAt(0, 0, 0);
+    renderer.render(scene, camera);
+  }
+  window.__renderGL = renderAt;                              // preview boot drives this from tl.onUpdate
+  window.addEventListener("hf-seek", (e) => renderAt(e.detail.time)); // render browser drives it per frame
+  renderAt(window.__hfThreeTime || 0);
+})();
+</script>
+
+<script>
+(function () {
+  const D = 36;
+  const tl = gsap.timeline({ paused: true });
+  const $ = (s) => document.querySelector(s);
+  const reps = (total, cyc) => Math.max(0, Math.floor(total / cyc) - 1);
+  function kill(id, t) { tl.set(id, { opacity: 0 }, t); }
+  function count(sel, to, at, dur) { const o = { v: 0 }; tl.to(o, { v: to, duration: dur, ease: "power2.out", snap: { v: 1 }, onUpdate() { const e = $(sel); if (e) e.textContent = Math.round(o.v); } }, at); }
+  function type(sel, str, at, dur) { const o = { n: 0 }; tl.to(o, { n: str.length, duration: dur, ease: "none", snap: { n: 1 }, onUpdate() { const e = $(sel); if (e) e.textContent = str.slice(0, Math.round(o.n)); } }, at); }
+
+  gsap.set(".s4-edge", { strokeDasharray: 60, strokeDashoffset: 60 });
+  gsap.set("#s1-ring circle", { strokeDasharray: 640, strokeDashoffset: 640 });
+  gsap.set(".ap-blade", { strokeDasharray: 40, strokeDashoffset: 40 });
+
+  /* ===== AMBIENT (always-on, finite repeats) ===== */
+  tl.fromTo("#ambient", { opacity: 0 }, { opacity: 1, duration: 1.0 }, 0);
+  tl.to("#blob-cyan",    { xPercent: 12, yPercent: 9, scale: 1.12, duration: 11, ease: "sine.inOut", yoyo: true, repeat: reps(D, 11) }, 0);
+  tl.to("#blob-magenta", { xPercent: -10, yPercent: -8, scale: 1.14, duration: 9, ease: "sine.inOut", yoyo: true, repeat: reps(D, 9) }, 0);
+  tl.to(".bokeh", { yPercent: -24, duration: 8, ease: "sine.inOut", yoyo: true, repeat: reps(D, 8), stagger: { each: 0.7, from: "random" } }, 0);
+  tl.fromTo("#floor", { backgroundPosition: "0px 0px, 0px 0px" }, { backgroundPosition: "0px 176px, 0px 0px", duration: 6, ease: "none", repeat: reps(D, 6) }, 0); /* conveyor toward camera */
+  tl.to("#horizon", { opacity: 0.85, duration: 3.5, ease: "sine.inOut", yoyo: true, repeat: reps(D, 3.5) }, 0);
+  tl.to("#scanlines", { opacity: 0.085, duration: 2.2, ease: "sine.inOut", yoyo: true, repeat: reps(D, 2.2) }, 0);
+
+  /* ===== HUD (film set) ===== */
+  tl.fromTo("#hud", { opacity: 0 }, { opacity: 1, duration: 0.7 }, 0.2);
+  tl.fromTo(".hud-corner", { scale: 1.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.6, ease: "power3.out", stagger: 0.06 }, 0.25);
+  tl.to("#rec-dot", { opacity: 0.25, duration: 0.55, ease: "none", yoyo: true, repeat: reps(D - 1, 1.1) }, 0.9);
+  tl.fromTo("#hud-bar", { scaleX: 0 }, { scaleX: 1, duration: D, ease: "none" }, 0);
+
+  /* ===== S1 COLD OPEN (0–4.6) ===== */
+  tl.fromTo("#s1", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 0);
+  tl.fromTo("#s1-cam", { scale: 1.0 }, { scale: 1.09, duration: 4.6, ease: "sine.inOut" }, 0);
+  tl.fromTo("#s1-glow", { opacity: 0, scale: 0.8 }, { opacity: 0.75, scale: 1, duration: 0.9 }, 0.15);
+  tl.fromTo("#s1-pill", { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 0.25);
+  tl.fromTo("#s1-w1 .char", { yPercent: 120, opacity: 0, filter: "blur(8px)" }, { yPercent: 0, opacity: 1, filter: "blur(0px)", duration: 0.55, ease: "power3.out", stagger: 0.04 }, 0.5);
+  tl.fromTo("#s1-w2 .char", { yPercent: 120, opacity: 0, rotationX: -80 }, { yPercent: 0, opacity: 1, rotationX: 0, duration: 0.6, ease: "back.out(1.6)", stagger: 0.045 }, 0.95);
+  tl.fromTo("#s1-w3", { opacity: 0, scale: 0.55, filter: "blur(10px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.65, ease: "back.out(1.7)" }, 1.5);
+  tl.fromTo("#s1-w3", { backgroundPosition: "120% 0" }, { backgroundPosition: "0% 0", duration: 0.9, ease: "power2.out" }, 1.7);
+  tl.fromTo("#s1-ring", { opacity: 0.9, scale: 0.35 }, { opacity: 0, scale: 1.5, duration: 0.9, ease: "power2.out", transformOrigin: "center center" }, 1.5); /* shockwave */
+  tl.to("#s1-ring circle", { strokeDashoffset: 0, duration: 0.7, ease: "power2.out" }, 1.5);
+  tl.fromTo("#s1-sub", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 2.15);
+  tl.fromTo("#s1-flare", { opacity: 0, left: "-20%" }, { opacity: 1, left: "95%", duration: 1.1, ease: "power1.inOut" }, 2.5);
+  tl.to("#s1-flare", { opacity: 0, duration: 0.3 }, 3.6);
+  tl.to("#s1", { opacity: 0, duration: 0.45, ease: "power2.in" }, 4.15);
+  kill("#s1", 5.1);
+
+  /* ===== S2 THE OLD WAY (4.6–9.0) ===== */
+  tl.fromTo("#s2", { opacity: 0 }, { opacity: 1, duration: 0.35 }, 4.6);
+  tl.fromTo("#s2-cam", { scale: 1.0, xPercent: 0 }, { scale: 1.08, xPercent: 2.5, duration: 5.0, ease: "sine.inOut" }, 4.6);
+  tl.fromTo("#s2-glow", { opacity: 0 }, { opacity: 0.55, duration: 0.8 }, 4.7);
+  tl.fromTo(".s2-rule", { scaleY: 0 }, { scaleY: 1, duration: 0.8, ease: "power3.inOut", stagger: 0.1 }, 4.75);
+  tl.fromTo(".s2-ruleh", { scaleX: 0 }, { scaleX: 1, duration: 0.8, ease: "power3.inOut" }, 4.9);
+  tl.fromTo("#s2-no", { opacity: 0, x: -26 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }, 4.95);
+  tl.fromTo("#s2-l1", { opacity: 0, x: -46 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" }, 5.15);
+  tl.fromTo("#s2-l2", { opacity: 0, x: -46 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" }, 5.45);
+  tl.fromTo("#s2-l3", { opacity: 0, x: -46 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" }, 5.75);
+  tl.to("#s2-k1", { scaleX: 1, duration: 0.35, ease: "power3.inOut" }, 6.15);
+  tl.to("#s2-k2", { scaleX: 1, duration: 0.35, ease: "power3.inOut" }, 6.4);
+  tl.to("#s2-k3", { scaleX: 1, duration: 0.35, ease: "power3.inOut" }, 6.65);
+  tl.to(".s2-line", { opacity: 0.26, x: -8, skewX: -4, duration: 0.5, ease: "power2.out" }, 7.05);
+  tl.fromTo("#s2-em", { yPercent: 115 }, { yPercent: 0, duration: 0.75, ease: "power4.out" }, 7.25);
+  tl.fromTo("#s2-em", { backgroundPosition: "120% 0" }, { backgroundPosition: "0% 0", duration: 0.9, ease: "power2.out" }, 7.7);
+  tl.to("#s2", { opacity: 0, duration: 0.45, ease: "power2.in" }, 8.55);
+  kill("#s2", 9.5);
+
+  /* ===== S3 BRAND REVEAL (9.0–13.6) ===== */
+  tl.fromTo("#s3", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 9.0);
+  tl.fromTo("#s3-cam", { scale: 1.14 }, { scale: 1.0, duration: 5.1, ease: "sine.inOut" }, 9.0);
+  tl.fromTo("#s3-burst", { opacity: 0, scale: 0.4 }, { opacity: 0.9, scale: 1, duration: 0.7, ease: "power2.out" }, 9.1);
+  tl.to("#s3-burst", { opacity: 0.32, duration: 1.6, ease: "sine.inOut" }, 9.9);
+  tl.fromTo("#s3-pill", { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 9.2);
+  tl.fromTo("#s3-mark", { rotationY: 40, z: -180, opacity: 0 }, { rotationY: 0, z: 0, opacity: 1, duration: 0.9, ease: "expo.out" }, 9.25);
+  tl.to("#s3-ap-ring", { strokeDashoffset: 0, duration: 0.8, ease: "power2.inOut" }, 9.35);
+  tl.to(".ap-blade", { strokeDashoffset: 0, duration: 0.5, ease: "power2.out", stagger: 0.07 }, 9.6);
+  tl.fromTo("#s3-ap-core", { scale: 0, transformOrigin: "center center" }, { scale: 1, duration: 0.5, ease: "back.out(2.2)" }, 9.9);
+  tl.to("#s3-aperture", { rotation: 200, duration: 3.6, ease: "none", transformOrigin: "center center" }, 10.0);
+  tl.fromTo("#s3-word .char", { yPercent: 120, opacity: 0, rotationX: -85 }, { yPercent: 0, opacity: 1, rotationX: 0, duration: 0.7, ease: "back.out(1.6)", stagger: 0.055 }, 9.5);
+  tl.fromTo("#s3-word", { filter: "brightness(1)" }, { filter: "brightness(1.45)", duration: 0.6, ease: "sine.inOut", yoyo: true, repeat: 1 }, 10.5); /* chrome glint (filter groups the subtree, so it composites safely) */
+  tl.to("#s3-wave path", { strokeDashoffset: 0, duration: 0.9, ease: "power2.out" }, 10.6);
+  tl.fromTo("#s3-tag", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 11.1);
+  tl.to("#s3", { opacity: 0, duration: 0.5, ease: "power2.in" }, 13.15);
+  kill("#s3", 14.05);
+
+  /* ===== S4 PIPELINE RAIL (13.6–18.4) ===== */
+  tl.fromTo("#s4", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 13.6);
+  tl.fromTo("#s4-cam", { scale: 1.0 }, { scale: 1.08, duration: 5.3, ease: "sine.inOut" }, 13.6);
+  tl.fromTo("#s4-glow", { opacity: 0 }, { opacity: 0.6, duration: 0.8 }, 13.7);
+  tl.fromTo("#s4-no", { opacity: 0, y: -16 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 13.75);
+  tl.fromTo("#s4-head", { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" }, 13.9);
+  tl.fromTo("#s4-rail-fill", { strokeDashoffset: 1444 }, { strokeDashoffset: 0, duration: 2.2, ease: "power1.inOut" }, 14.2);
+  tl.fromTo("#s4-orb", { attr: { cx: 8 } }, { attr: { cx: 1452 }, duration: 2.2, ease: "power1.inOut" }, 14.2);
+  tl.fromTo("#s4-c1", { opacity: 0, y: 56, rotationX: 18 }, { opacity: 1, y: 0, rotationX: 0, duration: 0.65, ease: "expo.out" }, 14.15);
+  type("#s4-type", "\"A neon premiere for KEYFRAME.\"", 14.5, 1.4);
+  tl.to("#s4-caret", { opacity: 0, duration: 0.18, ease: "none", yoyo: true, repeat: reps(2.4, 0.42) }, 14.6);
+  tl.fromTo("#s4-c2", { opacity: 0, y: 56, rotationX: 18 }, { opacity: 1, y: 0, rotationX: 0, duration: 0.65, ease: "expo.out" }, 14.85);
+  tl.to(".s4-edge", { strokeDashoffset: 0, duration: 0.5, ease: "power2.out", stagger: 0.06 }, 15.15);
+  tl.fromTo(".s4-node", { scale: 0, opacity: 0, transformOrigin: "center center" }, { scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.8)", stagger: 0.06 }, 15.3);
+  tl.fromTo("#s4-c3", { opacity: 0, y: 56, rotationX: 18 }, { opacity: 1, y: 0, rotationX: 0, duration: 0.65, ease: "expo.out" }, 15.55);
+  tl.fromTo(".fcell", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "power1.out", stagger: 0.12 }, 15.9);
+  tl.fromTo("#s4-ph", { left: "0%" }, { left: "97%", duration: 1.2, ease: "power1.inOut" }, 15.95);
+  tl.to(["#s4-c1", "#s4-c2", "#s4-c3"], { y: -10, duration: 1.0, ease: "sine.inOut", yoyo: true, repeat: 1, stagger: 0.12 }, 16.6);
+  tl.to("#s4", { opacity: 0, duration: 0.5, ease: "power2.in" }, 17.95);
+  kill("#s4", 18.85);
+
+  /* ===== S5 THE NUMBERS (18.4–22.6) ===== */
+  tl.fromTo("#s5", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 18.4);
+  tl.fromTo("#s5-cam", { scale: 1.1 }, { scale: 1.0, duration: 4.7, ease: "sine.inOut" }, 18.4);
+  tl.fromTo("#s5-glow", { opacity: 0, scale: 0.8 }, { opacity: 0.7, scale: 1, duration: 0.7 }, 18.5);
+  tl.fromTo("#s5-no", { opacity: 0, y: -16 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 18.55);
+  tl.fromTo(".s5-card", { opacity: 0, y: 60, rotationY: 24 }, { opacity: 1, y: 0, rotationY: 0, duration: 0.7, ease: "expo.out", stagger: 0.16 }, 18.7);
+  count("#s5-n1", 12, 19.0, 1.0);
+  count("#s5-n2", 1080, 19.16, 1.2);
+  count("#s5-n3", 100, 19.32, 1.2);
+  tl.fromTo(".s5-arc", { strokeDashoffset: 314 }, { strokeDashoffset: 50, duration: 1.3, ease: "power2.out", stagger: 0.16 }, 19.0);
+  tl.to(".s5-card", { y: -13, duration: 1.2, ease: "sine.inOut", yoyo: true, repeat: 1, stagger: 0.1 }, 20.3);
+  tl.to("#s5", { opacity: 0, duration: 0.5, ease: "power2.in" }, 22.15);
+  kill("#s5", 23.05);
+
+  /* ===== S6 DIFFERENTIATOR (22.6–26.6) ===== */
+  tl.fromTo("#s6", { opacity: 0 }, { opacity: 1, duration: 0.35 }, 22.6);
+  tl.fromTo("#s6-cam", { scale: 1.0, xPercent: 0 }, { scale: 1.09, xPercent: -2.5, duration: 4.5, ease: "sine.inOut" }, 22.6);
+  tl.fromTo("#s6-glow", { opacity: 0, scale: 0.8 }, { opacity: 0.9, scale: 1, duration: 0.7 }, 22.75);
+  tl.fromTo("#s6-l1", { opacity: 0, x: -42 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" }, 22.75);
+  tl.to("#s6-k1", { scaleX: 1, duration: 0.35, ease: "power3.inOut" }, 23.15);
+  tl.fromTo("#s6-l2", { opacity: 0, x: -42 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" }, 23.3);
+  tl.to("#s6-k2", { scaleX: 1, duration: 0.35, ease: "power3.inOut" }, 23.7);
+  tl.fromTo("#s6-l3", { opacity: 0, x: -42 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" }, 23.85);
+  tl.to("#s6-k3", { scaleX: 1, duration: 0.35, ease: "power3.inOut" }, 24.25);
+  tl.to(["#s6-l1", "#s6-k1", "#s6-l2", "#s6-k2", "#s6-l3", "#s6-k3"], { opacity: 0.24, x: -10, skewX: -3, duration: 0.45, ease: "power2.out" }, 24.7);
+  tl.fromTo("#s6-em", { opacity: 0, scale: 0.8, y: 22 }, { opacity: 1, scale: 1, y: 0, duration: 0.6, ease: "back.out(1.5)" }, 24.85);
+  tl.fromTo("#s6-em", { backgroundPosition: "140% 0" }, { backgroundPosition: "0% 0", duration: 0.9, ease: "power2.out" }, 25.1);
+  tl.to("#s6-under path", { strokeDashoffset: 0, duration: 0.6, ease: "power2.out" }, 25.35);
+  tl.to("#s6", { opacity: 0, duration: 0.5, ease: "power2.in" }, 26.15);
+  kill("#s6", 27.05);
+
+  /* ===== S7 STYLE MARQUEE (26.6–30.8) ===== */
+  tl.fromTo("#s7", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 26.6);
+  tl.fromTo("#s7-cam", { scale: 1.0 }, { scale: 1.07, duration: 4.7, ease: "sine.inOut" }, 26.6);
+  tl.fromTo("#s7-glow", { opacity: 0 }, { opacity: 0.6, duration: 0.8 }, 26.7);
+  tl.fromTo("#s7-no", { opacity: 0, y: -16 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 26.75);
+  tl.fromTo("#s7-head", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" }, 26.9);
+  count("#s7-count", 40, 27.0, 1.3);
+  tl.fromTo("#s7-row1", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 27.0);
+  tl.fromTo("#s7-row2", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 27.15);
+  tl.fromTo("#s7-row1", { xPercent: 0 },   { xPercent: -50, duration: 4.2, ease: "none" }, 27.0);  /* opposing conveyor rows */
+  tl.fromTo("#s7-row2", { xPercent: -50 }, { xPercent: 0,   duration: 4.2, ease: "none" }, 27.0);
+  tl.fromTo("#s7-row1 .tick", { scale: 0.85 }, { scale: 1, duration: 0.4, ease: "back.out(1.6)", stagger: 0.04 }, 27.0);
+  tl.fromTo("#s7-row2 .tick", { scale: 0.85 }, { scale: 1, duration: 0.4, ease: "back.out(1.6)", stagger: 0.04 }, 27.15);
+  tl.to("#s7", { opacity: 0, duration: 0.5, ease: "power2.in" }, 30.35);
+  kill("#s7", 31.25);
+
+  /* ===== S8 PREMIERE CTA (30.8–36.0) ===== */
+  tl.fromTo("#s8", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 30.8);
+  tl.fromTo("#s8-cam", { scale: 1.0 }, { scale: 1.07, duration: 5.2, ease: "sine.inOut" }, 30.8);
+  tl.fromTo("#s8-aura", { opacity: 0, scale: 0.7 }, { opacity: 0.9, scale: 1, duration: 0.7, ease: "power2.out" }, 30.9);
+  tl.to("#s8-aura", { scale: 1.08, opacity: 0.6, duration: 1.4, ease: "sine.inOut", yoyo: true, repeat: 1, overwrite: "auto" }, 31.8);
+  tl.to("#floor", { opacity: 0.85, duration: 1.2, ease: "sine.inOut" }, 31.0); /* the grid floor lights up for the finale */
+  tl.fromTo("#s8-pill", { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 31.0);
+  tl.fromTo("#s8-mark", { opacity: 0, scale: 0.72, filter: "blur(12px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.75, ease: "expo.out" }, 31.15);
+  tl.fromTo("#s8-mark", { backgroundPosition: "160% 0" }, { backgroundPosition: "0% 0", duration: 1.2, ease: "power2.inOut" }, 31.4);
+  tl.fromTo("#s8-tag", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.55, ease: "power2.out" }, 31.85);
+  tl.fromTo("#s8-cta", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.55, ease: "back.out(1.6)" }, 32.2);
+  tl.fromTo("#s8-sheen", { left: "-40%" }, { left: "120%", duration: 0.8, ease: "power1.inOut" }, 32.85);
+  tl.to("#s8-cta", { scale: 1.07, duration: 0.55, ease: "sine.inOut", yoyo: true, repeat: 3 }, 33.1);
+  tl.fromTo("#s8-d1", { opacity: 0, scale: 0, rotation: -60 }, { opacity: 0.9, scale: 1, rotation: 0, duration: 0.6, ease: "back.out(1.7)" }, 32.0);
+  tl.fromTo("#s8-d2", { opacity: 0, scale: 0, rotation: 60 }, { opacity: 0.9, scale: 1, rotation: 0, duration: 0.6, ease: "back.out(1.7)" }, 32.3);
+  tl.fromTo("#s8-d3", { opacity: 0, scale: 0, rotation: -45 }, { opacity: 0.85, scale: 1, rotation: 0, duration: 0.6, ease: "back.out(1.7)" }, 32.55);
+  tl.to(["#s8-d1", "#s8-d2", "#s8-d3"], { y: -18, duration: 1.4, ease: "sine.inOut", yoyo: true, repeat: 1, stagger: 0.1 }, 33.2);
+
+  /* ===== CAPTIONS + TIMECODE — ONE proxy, recomputed per frame (seek-safe) ===== */
+  const cues = [
+    [0.2,  4.4,  "Lights. Camera. Prompt."],
+    [4.8,  8.8,  "The old way took a crew and a month."],
+    [9.2,  13.4, "Meet KEYFRAME — the studio that fits in a sentence."],
+    [13.8, 18.2, "You write. Twelve agents direct. Every frame renders."],
+    [18.6, 22.4, "Full HD, deterministic, zero drift."],
+    [22.8, 26.4, "No crew. No timeline. Just your words."],
+    [26.8, 30.6, "Forty cinematic styles, one prompt away."],
+    [31.0, 35.8, "KEYFRAME. Premiere tonight."]
+  ];
+  const pad = (n, w) => String(n).padStart(w, "0");
+  const proxy = { t: 0 };
+  tl.to(proxy, { t: D, duration: D, ease: "none",
+    onUpdate() {
+      const now = proxy.t;
+      /* caption */
+      const cap = $("#cap-pill"), txt = $("#cap-text");
+      if (cap && txt) {
+        let active = null;
+        for (let k = 0; k < cues.length; k++) { if (now >= cues[k][0] && now < cues[k][1]) { active = cues[k]; break; } }
+        if (active) { if (txt.textContent !== active[2]) txt.textContent = active[2]; cap.style.opacity = "1"; }
+        else { cap.style.opacity = "0"; }
+      }
+      /* live timecode */
+      const tc = $("#hud-tc");
+      if (tc) {
+        const mm = Math.floor(now / 60), ss = Math.floor(now % 60), ff = Math.floor((now % 1) * 30);
+        tc.textContent = "TC 00:" + pad(mm, 2) + ":" + pad(ss, 2) + ":" + pad(ff, 2);
+      }
+    } }, 0);
+
+  window.__timelines = window.__timelines || {};
+  window.__timelines["vid"] = tl;
+
+  // --- DEV PREVIEW ONLY ---------------------------------------------------
+  // Driven frame-by-frame by the HyperFrames renderer (timeline stays paused
+  // there for deterministic capture). Opened directly in a normal browser
+  // nothing plays it, so it would look blank. The render browser is automated
+  // (navigator.webdriver === true); auto-play ONLY when that flag is absent,
+  // so rendering/MP4 output is unaffected.
+  if (typeof navigator === "undefined" || !navigator.webdriver) {
+    (function previewBoot() {
+      var root = document.querySelector('[data-composition-id]');
+      if (root) {
+        // 1) SIZE + center + scale-to-fit (comps size themselves via data-width/height).
+        var w = +root.getAttribute('data-width') || 1920;
+        var h = +root.getAttribute('data-height') || 1080;
+        document.documentElement.style.height = "100%";
+        document.body.style.minHeight = "100vh";
+        root.style.width = w + 'px'; root.style.height = h + 'px';
+        root.style.position = 'absolute'; root.style.top = '50%'; root.style.left = '50%';
+        root.style.transformOrigin = 'center center';
+        var fit = function () {
+          var f = Math.min(window.innerWidth / w, window.innerHeight / h);
+          root.style.transform = 'translate(-50%,-50%) scale(' + f + ')';
+        };
+        fit(); window.addEventListener('resize', fit);
+
+        // 2) CLIP WINDOWING (what the HyperFrames runtime does): only show a clip
+        //    inside its data-start/data-duration window, so later scenes' opaque
+        //    layers never stack over earlier ones.
+        var clips = [].slice.call(root.querySelectorAll('[data-start][data-duration]'));
+        var windowClips = function (t) {
+          for (var i = 0; i < clips.length; i++) {
+            var c = clips[i];
+            var s = +c.getAttribute('data-start') || 0;
+            var d = +c.getAttribute('data-duration');
+            if (!isFinite(d)) d = 1e9;
+            c.style.visibility = (t >= s - 0.02 && t < s + d + 0.02) ? '' : 'hidden';
+          }
+        };
+        windowClips(0);
+        // 3) drive windowing AND the WebGL depth layer from the one timeline
+        tl.eventCallback('onUpdate', function () {
+          var t = tl.time();
+          windowClips(t);
+          if (window.__renderGL) window.__renderGL(t);
+        });
+      }
+      tl.play(0);
+      tl.eventCallback("onComplete", function () { tl.restart(); }); // loop the preview
+    })();
+  }
+})();
+</script>
+</body>
+</html>

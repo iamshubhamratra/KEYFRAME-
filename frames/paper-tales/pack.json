@@ -1,0 +1,89 @@
+{
+  "name": "paper-tales",
+  "vibe": "A pop-up storybook. Every film reads like a picture-book spread on warm paper: soft rose, butter and sky pastels, rounded Quicksand headings with handwritten Caveat asides, chapter tabs, paper-cutout characters and watercolor blooms. Motion is a children's book come alive — pages turn, pop-ups fold up from the crease, a pen writes the captions, confetti drifts down like torn paper. Sweet, gentle and sincere. For stories, founders' letters, gifts, education and anything told from the heart.",
+  "colors": {
+    "paper": "#FFF9F0",
+    "cream": "#FBF1E1",
+    "ink": "#6B5B73",
+    "rose": "#E8938C",
+    "butter": "#F7C873",
+    "sky": "#9CCFE8",
+    "mint": "#9CCEA4",
+    "lilac": "#C5AEDD"
+  },
+  "fonts": [
+    "Quicksand",
+    "Caveat"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#FBF1E1"
+  },
+  "motion": {
+    "cut": "wash",
+    "drift": 1.035
+  },
+  "fx": {
+    "canvas": "paper"
+  },
+  "skin": {
+    "accents": [
+      "#E8938C",
+      "#F7C873",
+      "#9CCFE8",
+      "#9CCEA4"
+    ],
+    "extras": [
+      "#C5AEDD",
+      "#A08D97"
+    ],
+    "emphasisCss": "color:#E8938C;"
+  },
+  "assets": {
+    "photoMod": "soft pastel storybook illustration warm",
+    "iconStyle": "line",
+    "keywords": [
+      "storybook",
+      "paper",
+      "pastel",
+      "cutout",
+      "gentle"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Quicksand"
+  },
+  "camera3d": {
+    "ground": "#FBF1E1"
+  },
+  "textfx": {
+    "enter": "spring",
+    "emphasis": "gradient",
+    "case": "none",
+    "tracking": -0.01,
+    "weight": 700,
+    "sizeScale": 1.0,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "gentle music box lullaby warm soft",
+      "mood": "warm",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "soft page turns, paper rustles, tiny chimes and gentle pops",
+      "palette": [
+        "page turn",
+        "paper rustle",
+        "soft chime",
+        "gentle pop"
+      ]
+    }
+  }
+}

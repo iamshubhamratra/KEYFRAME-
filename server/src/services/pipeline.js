@@ -28,6 +28,8 @@ const { enrichComposition } = require("./enrich");
 const { cinematicCheck } = require("./cinematic_lint");
 const sceneKit = require("./scene_kit");
 const threeComposer = require("./three_composer");
+const flagshipComposer = require("./flagship_composer");
+const brightlifeComposer = require("./brightlife_composer");
 const frameRegistry = require("./frame_registry");
 const frameManifest = require("./frame_manifest");
 const { render } = require("./renderer");
@@ -41,6 +43,7 @@ const { mix: audioMix } = require("./audio_mix");
 const { planAssets } = require("./asset_planner");
 const { acquire, makeImageDeduper } = require("./asset_sources");
 const { checkAssetsRelevance } = require("./asset_vision");
+const { reviewAndCurate } = require("./creative_director");
 const { styleFor } = require("./pack_style");
 const catalog = require("./catalog");
 const { contrastCheck } = require("./contrast_check");
@@ -95,7 +98,7 @@ function withBudget(factory, budgetMs, label) {
 
 // ========== Visual assets stage (parallel fetches) ==========
 
-async function planAndFetchAssets({ jobDir, storyboard, flags, orientation, tracker, subject, framePack }) {
+async function planAndFetchAssets({ jobId, jobDir, storyboard, flags, orientation, tracker, subject, framePack }) {
   if (!flags.images && !flags.video) return { assets: [] };
 
   const packStyle = styleFor(framePack);
@@ -175,6 +178,21 @@ async function planAndFetchAssets({ jobDir, storyboard, flags, orientation, trac
     const dup = await deduper.check(abs, item.dhash);
     if (dup) { try { fs.unlinkSync(abs); } catch { /* noop */ } continue; }
     deduped.push(item);
+  }
+
+  // CREATIVE DIRECTOR (default ON) — richer replacement for the plain vision
+  // gate below: scores every asset on six dimensions, assigns each to a scene,
+  // ranks screenshots, caps prominent assets per scene, and can top-up a scene
+  // left empty. Fail-open (returns the assets unchanged on any error). The old
+  // keep/reject gate remains the fallback when disabled (CREATIVE_DIRECTOR=0).
+  const cdEnabled = config.creativeDirector ? config.creativeDirector.enabled !== false : true;
+  if (cdEnabled && deduped.length) {
+    const curated = await reviewAndCurate({
+      jobId, storyboard, subject, framePack,
+      assets: deduped, tracker, jobDir, orientation,
+    });
+    console.log(`[pipeline] fetched ${results.length} → ${curated.length} visual asset(s) (dedup + creative director)`);
+    return { assets: curated };
   }
 
   // VISION RELEVANCE GATE (batched) — gate ONLY real web stock; curated picks
@@ -526,14 +544,33 @@ function isAssetRich(assets) {
   return showcase.length >= 3;
 }
 
+// 3D style dispatch. Three cinematic registers share the buildComposition
+// envelope: "flagship" (dark Apple/Linear launch film), "brightlife" (its
+// white/daylight sibling), and "classic" (the original CRT retro-computer
+// three_composer). Default is AUTO: the pack's derived theme decides — dark
+// ground → flagship, light ground → brightlife. Override per-deploy with
+// RENDER3D_STYLE=classic|flagship|brightlife|auto.
+function pick3dComposer(framePack, storyboard) {
+  const want = String(process.env.RENDER3D_STYLE || "auto").toLowerCase();
+  if (want === "classic") return { styleName: "classic", composer: threeComposer };
+  if (want === "flagship") return { styleName: "flagship", composer: flagshipComposer };
+  if (want === "brightlife") return { styleName: "brightlife", composer: brightlifeComposer };
+  let isDark = true;
+  try { isDark = require("./scene_kit").deriveTheme(framePack, storyboard).isDark !== false; } catch { /* default dark */ }
+  return isDark
+    ? { styleName: "flagship", composer: flagshipComposer }
+    : { styleName: "brightlife", composer: brightlifeComposer };
+}
+
 // THREE.JS composition path (opt-in via render3d) — a cinematic WebGL scene with
 // DOM text overlays, driven by the same seeked timeline. Self-contained: no enrich
 // (it has its own 3D particle field) and no stock-asset weaving (visuals are
 // generated, not fetched).
 async function composeWithThree({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker }) {
   const t0 = ms();
-  console.log(`[pipeline] ${label || "three"}: building Three.js/WebGL composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
-  const built = threeComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets });
+  const { styleName, composer } = pick3dComposer(framePack, storyboard);
+  console.log(`[pipeline] ${label || "three"}: building Three.js/WebGL composition (style=${styleName}, ${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
+  const built = composer.buildComposition({ storyboard, dims, framePack, captionCues, assets });
   fs.writeFileSync(path.join(jobDir, "index.html"), built.indexHtml, "utf8");
   fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
   tracker.addExternal("hyperframes_render");
@@ -849,7 +886,7 @@ async function runJob({
     if (images || video) {
       const t0 = ms();
       const va = await planAndFetchAssets({
-        jobDir, storyboard: sbRes.storyboard,
+        jobId, jobDir, storyboard: sbRes.storyboard,
         flags: { images, video }, orientation, tracker, subject: briefSubject, framePack,
       }).catch((e) => {
         console.warn(`[pipeline] asset stage threw: ${e.message}`);
@@ -932,7 +969,7 @@ async function runJob({
             budget, remix ? "LLM remix composition" : (useDress ? "scene-kit + set-dressing" : "scene-kit composition")
           );
           finalAttempt = remix ? "remix" : (useDress ? "scenekit-dressed" : "scenekit");
-          console.log(`[pipeline] ${remix ? "LLM remix" : (useDress ? "scene-kit + set-dressing" : "scene-kit")} composition+render succeeded in ${timings.compose_renderMs}ms`);
+          console.log(`[pipeline] ${remix ? "LLM remix" : (useDress ? "scene-kit + set-dressing" : "scene-kit")} composition+render succeeded in ${ms() - t0}ms`);
         }
         markStage("compose_render", t0);
       } catch (e1) {

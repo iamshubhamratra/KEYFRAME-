@@ -35,6 +35,7 @@ const { normalizeComposition } = require("../services/normalize");
 const { render } = require("../services/renderer");
 const { reviewRender } = require("./qa_agent");
 const { checkAssetsRelevance } = require("../services/asset_vision");
+const { reviewAndCurate } = require("../services/creative_director");
 const { reviewAssets, summarizeReview } = require("../services/asset_director");
 
 function ms() { return Date.now(); }
@@ -355,12 +356,28 @@ async function assetSearchAgent(s) {
     if (isWebStock) pendingGate.push({ resultObj, absPath: r.path, type: isVideo ? "video" : "image", query: need.query });
   }
 
+  const gateSubject = (s.brief?.subject || anchor || "").trim();
+
+  // CREATIVE DIRECTOR (default ON) — reviews EVERY asset (screenshots included:
+  // it also ranks them by section), scores on six dimensions, assigns scenes,
+  // caps prominent assets per scene, and tops-up empty scenes. Fail-open. The
+  // plain keep/reject vision gate below stays as the CREATIVE_DIRECTOR=0 fallback.
+  const cdEnabled = config.creativeDirector ? config.creativeDirector.enabled !== false : true;
+  let kept = null;
+  if (cdEnabled && (pinned.length + results.length)) {
+    kept = await reviewAndCurate({
+      jobId: job.id, storyboard: s.storyboard || null, script: s.script || null,
+      brief: s.brief, subject: gateSubject, framePack: s.framePack,
+      assets: [...pinned, ...results], tracker, jobDir, orientation: job.orientation,
+    });
+  }
+
   // VISION RELEVANCE GATE (batched) — "would a director accept this for a film
   // about <subject>?" over ALL fetched web stock in as few calls as possible
   // (chunks of 6) instead of one LLM call per asset. Fail-open: a dead budget or
   // any error keeps every asset, so the gate can never starve a film of visuals.
-  const gateSubject = (s.brief?.subject || anchor || "").trim();
-  if (pendingGate.length && gateSubject) {
+  // Skipped when the Creative Director already reviewed everything above.
+  if (!kept && pendingGate.length && gateSubject) {
     const verdicts = await checkAssetsRelevance({
       assets: pendingGate.map((p) => ({ absPath: p.absPath, type: p.type, query: p.query })),
       subject: gateSubject, tracker,
@@ -390,7 +407,8 @@ async function assetSearchAgent(s) {
   // which the relevance gate skips — those are exactly the assets whose fit matters
   // most). Fail-open: on any error the assets are left as-is and the kit falls back
   // to its own fit heuristics.
-  const directable = results.filter((a) => a && a.type !== "video");
+  const gated = kept || [...pinned, ...results];
+  const directable = gated.filter((a) => a && a.type !== "video");
   if (directable.length && gateSubject) {
     try {
       const kindHint = (a) => {
@@ -417,11 +435,9 @@ async function assetSearchAgent(s) {
       console.warn(`[agents] asset_director skipped: ${String(e?.message || e).slice(0, 120)}`);
     }
   }
-  const got = results;
-
-  const assets = [...pinned, ...got];
+  const assets = gated;
   db.setAssets(job.id, assets);
-  console.log(`[agents] asset_search: ${assets.length} asset(s) (${got.filter((a) => a.fromCache).length} from cache)`);
+  console.log(`[agents] asset_search: ${assets.length} asset(s) (${assets.filter((a) => a.fromCache).length} from cache)`);
   return { assets };
 }
 

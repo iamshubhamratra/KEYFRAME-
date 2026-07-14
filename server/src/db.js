@@ -96,6 +96,7 @@ function shape(j) {
     captions: j.captions || null,
     srtUrl: j.srt_url || null,
     qa: j.qa || null,
+    creativeReview: j.creative_review || null,
   };
 }
 
@@ -192,6 +193,13 @@ module.exports = {
   setQa(id, qa) {
     const j = jobs.get(id); if (!j) return;
     j.qa = qa || null;
+    scheduleWrite();
+  },
+
+  // Creative Director report (asset verdicts, screenshot rankings, audio notes).
+  setCreativeReview(id, report) {
+    const j = jobs.get(id); if (!j) return;
+    j.creative_review = report || null;
     scheduleWrite();
   },
 

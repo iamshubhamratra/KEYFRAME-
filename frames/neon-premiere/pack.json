@@ -1,0 +1,89 @@
+{
+  "name": "neon-premiere",
+  "vibe": "A film premiere for software. An indigo-black cinema night with a scrolling neon perspective-grid floor, a REC/timecode film-set HUD and editorial SCENE numbering, and cyan-to-violet-to-magenta gradient-clipped Space Grotesk headlines that glow. Glass stat tiles, an aperture wordmark and a single magenta premiere CTA. Cinematic and premium; neon is light, never soup. For launches, trailers, brand reveals and hype reels.",
+  "colors": {
+    "void": "#05060E",
+    "ground": "#0A0D1F",
+    "cyan": "#6EE7FF",
+    "violet": "#8B7CF6",
+    "magenta": "#FF4FD8",
+    "amber": "#FFC24B",
+    "text": "#F2F5FF"
+  },
+  "fonts": [
+    "Inter",
+    "Space Grotesk"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#0A0D1F"
+  },
+  "motion": {
+    "cut": "glow",
+    "drift": 1.06
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": "constellation"
+  },
+  "skin": {
+    "accents": [
+      "#6EE7FF",
+      "#FF4FD8",
+      "#8B7CF6",
+      "#FFC24B"
+    ],
+    "extras": [
+      "#F2F5FF",
+      "#8B93B8"
+    ],
+    "emphasisCss": "background:linear-gradient(100deg,#6EE7FF 0%,#8B7CF6 45%,#FF4FD8 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;"
+  },
+  "assets": {
+    "photoMod": "neon cinematic premiere night glow",
+    "iconStyle": "line",
+    "keywords": [
+      "neon",
+      "cinematic",
+      "premiere",
+      "glow",
+      "night"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
+  },
+  "typography": {
+    "display": "Space Grotesk"
+  },
+  "camera3d": {
+    "ground": "#0A0D1F"
+  },
+  "textfx": {
+    "enter": "char-pop",
+    "emphasis": "gradient",
+    "case": "none",
+    "tracking": -0.03,
+    "weight": 700,
+    "sizeScale": 1.05,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic synthwave neon trailer",
+      "mood": "cinematic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "neon shimmer, cinematic whooshes and soft premiere impacts",
+      "palette": [
+        "whoosh transition",
+        "cinematic impact",
+        "shimmer riser",
+        "camera shutter"
+      ]
+    }
+  }
+}

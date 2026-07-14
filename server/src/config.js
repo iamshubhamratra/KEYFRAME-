@@ -140,6 +140,15 @@ function build() {
     }
   }
 
+  // Creative Director (vision review of every asset + screenshot ranking).
+  // Default ON; disable with CREATIVE_DIRECTOR=0/off/false. Tuning lives in
+  // config.json's optional creativeDirector block
+  // ({ enabled, model, maxPerScene, maxTopUp, chunkSize }).
+  if (process.env.CREATIVE_DIRECTOR) {
+    cfg.creativeDirector = { ...(cfg.creativeDirector || {}) };
+    cfg.creativeDirector.enabled = !/^(0|false|no|off)$/i.test(process.env.CREATIVE_DIRECTOR);
+  }
+
   // Port override (EB sets PORT env).
   if (process.env.PORT) {
     const p = Number(process.env.PORT);

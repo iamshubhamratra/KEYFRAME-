@@ -16,6 +16,18 @@ function orientationParam(o) {
   return "all";
 }
 
+// Pixabay rejects q longer than 100 characters with HTTP 400. Composed queries
+// (subject + planner query + pack photoMod) can exceed that, so trim on a word
+// boundary — dropping trailing style terms beats erroring out of the provider.
+const MAX_QUERY_LEN = 100;
+function clampQuery(q) {
+  const s = String(q || "").trim();
+  if (s.length <= MAX_QUERY_LEN) return s;
+  const cut = s.slice(0, MAX_QUERY_LEN);
+  const sp = cut.lastIndexOf(" ");
+  return (sp > 0 ? cut.slice(0, sp) : cut).trim();
+}
+
 async function apiJson(endpoint, params) {
   const url = new URL(endpoint);
   url.searchParams.set("key", apiKey());
@@ -37,7 +49,7 @@ async function search({ query, type, orientation, limit = 5 }) {
     const data = await apiJson("https://pixabay.com/api/", {
       // "all" = photos + illustrations + vectors, so a query adaptively returns
       // the right kind (a "developer desk" → photo, a "rocket icon" → vector).
-      q: query, image_type: "all",
+      q: clampQuery(query), image_type: "all",
       orientation: orientationParam(orientation),
       per_page: limit, safesearch: "true",
     });
@@ -54,7 +66,7 @@ async function search({ query, type, orientation, limit = 5 }) {
 
   if (type === "video") {
     const data = await apiJson("https://pixabay.com/api/videos/", {
-      q: query,
+      q: clampQuery(query),
       orientation: orientationParam(orientation),
       per_page: limit, safesearch: "true",
     });

@@ -92,6 +92,54 @@ export const PACK_LORE = {
     vibe: "A single camera travels through every scene — letterbox, live timecode, pop-up figures, light sweeps. The anti-slideshow.",
     filmGrad: "linear-gradient(135deg,#FFB454,#4D9FFF 55%,#0A0C10)",
   },
+  "bauhaus-riot": {
+    name: "Bauhaus Riot", tag: "PRINT · STAMP", bg: "#F4EEE1", ink: "#17161B", accent: "#E4432C",
+    chips: ["#E4432C", "#2B4BD7", "#F2C21F"],
+    grad: "radial-gradient(circle at 12% 10%, #F2C21F 0 64px, transparent 65px), radial-gradient(circle at 92% 88%, #2B4BD7 0 74px, transparent 75px), radial-gradient(rgba(23,22,27,.12) 1.4px, transparent 1.4px)",
+    font: "'Bricolage Grotesque'", tracking: "-.02em", demo: "MAKE MOTION.",
+    vibe: "A print poster come alive — primary geometry, hard offset shadows, and headlines that STAMP onto cream paper like a printing press.",
+    filmGrad: "linear-gradient(135deg,#E4432C,#F2C21F 50%,#2B4BD7)",
+  },
+  "bloom-fable": {
+    name: "Bloom Fable", tag: "MEADOW · GROW", bg: "#FBF4E8", ink: "#46345A", accent: "#E8705F",
+    chips: ["#E8705F", "#7FA876", "#F2B95C"],
+    grad: "radial-gradient(circle at 16% 18%, rgba(242,185,92,.5) 0 52px, transparent 53px), radial-gradient(120% 60% at 50% 108%, rgba(127,168,118,.45), transparent 60%), radial-gradient(circle at 82% 30%, rgba(169,215,232,.4), transparent 45%)",
+    font: "'Bricolage Grotesque'", tracking: "-.01em", demo: "Every idea is a seed.",
+    vibe: "A pastel storybook meadow — flowers literally grow, petals bloom with an elastic pop, and a butterfly carries the story across sage hills.",
+    filmGrad: "linear-gradient(135deg,#E8705F,#F2B95C 50%,#7FA876)",
+  },
+  "blueprint-atelier": {
+    name: "Blueprint Atelier", tag: "DRAFTED · SPEC", bg: "#123659", ink: "#EAF3FF", accent: "#FFB84D",
+    chips: ["#FFB84D", "#8FD8FF", "#FF5F5F"],
+    grad: "repeating-linear-gradient(0deg, rgba(190,215,255,.14) 0 1px, transparent 1px 26px), repeating-linear-gradient(90deg, rgba(190,215,255,.14) 0 1px, transparent 1px 26px)",
+    font: "'Bricolage Grotesque'", tracking: ".01em", demo: "DRAW UP A FILM.",
+    vibe: "An engineering drawing of a film — cyanotype grids, schematics that draw themselves, counting dimensions and a rubber stamp of approval.",
+    filmGrad: "linear-gradient(135deg,#FFB84D,#8FD8FF 55%,#123659)",
+  },
+  "paper-tales": {
+    name: "Paper Tales", tag: "STORYBOOK", bg: "#FBF1E1", ink: "#6B5B73", accent: "#E8938C",
+    chips: ["#E8938C", "#F7C873", "#9CCFE8"],
+    grad: "radial-gradient(circle at 22% 26%, rgba(232,147,140,.28), transparent 45%), radial-gradient(circle at 78% 70%, rgba(156,207,232,.3), transparent 48%), radial-gradient(circle at 60% 20%, rgba(247,200,115,.26), transparent 40%)",
+    font: "'Bricolage Grotesque'", tracking: "-.01em", demo: "Once upon a time…",
+    vibe: "A pop-up storybook come alive — pages turn, paper friends fold up from the crease, and a pen handwrites your story in bedtime pastels.",
+    filmGrad: "linear-gradient(135deg,#E8938C,#F7C873 50%,#9CCFE8)",
+  },
+  "terminal-departures": {
+    name: "Terminal Departures", tag: "SPLIT-FLAP", bg: "#121317", ink: "#F2EEE3", accent: "#FFC61A",
+    chips: ["#FFC61A", "#35D07F", "#FF4B3E"],
+    grad: "repeating-linear-gradient(90deg, rgba(242,238,227,.05) 0 34px, transparent 34px 40px), linear-gradient(180deg, rgba(255,198,26,.12), transparent 55%)",
+    font: "'Bricolage Grotesque'", tracking: ".04em", demo: "NOW BOARDING",
+    vibe: "An airport departures hall — split-flap boards clack every headline into place, gate signs swing from the ceiling, and your film is the FINAL CALL.",
+    filmGrad: "linear-gradient(135deg,#FFC61A,#35D07F 55%,#0B0C0F)",
+  },
+  "neon-premiere": {
+    name: "Neon Premiere", tag: "PREMIERE · NEON", bg: "#05060E", ink: "#F2F5FF", accent: "#FF4FD8",
+    chips: ["#6EE7FF", "#FF4FD8", "#8B7CF6"],
+    grad: "radial-gradient(circle at 26% 80%, rgba(110,231,255,.42), transparent 55%), radial-gradient(circle at 80% 22%, rgba(255,79,216,.40), transparent 55%), linear-gradient(180deg, transparent 58%, rgba(139,124,246,.24))",
+    font: "'Bricolage Grotesque'", tracking: "-.03em", demo: "Premiere Tonight",
+    vibe: "Indigo cinema night, a neon grid horizon and a film-set HUD — cyan→magenta gradient headlines that glow. A red-carpet premiere for your product.",
+    filmGrad: "linear-gradient(135deg,#6EE7FF,#8B7CF6 55%,#FF4FD8)",
+  },
   "summit-keynote": {
     name: "Summit Keynote", tag: "PITCH · 3D", bg: "#F7F8FC", ink: "#10214B", accent: "#2B5BFF",
     chips: ["#2B5BFF", "#10214B", "#D4A94E"],
@@ -286,6 +334,7 @@ export const PACK_LORE = {
 };
 
 export const PACK_ORDER = [
+  "paper-tales", "terminal-departures", "neon-premiere", "bauhaus-riot", "bloom-fable", "blueprint-atelier",
   "liquid-glass", "brut-pop", "sketchnote",
   // Poster / editorial batch
   "bold-poster", "creative-mode", "coral", "broadside", "capsule", "cartesian", "cobalt-grid",
@@ -317,7 +366,7 @@ export function loreFor(packName) {
 
 // Gallery filter pills — the design's list, remapped to server pack names.
 export const GALLERY_FILTERS = [
-  ["all", "ALL FILMS"], ["longshot-cinema", "LONGSHOT"], ["summit-keynote", "SUMMIT"], ["prism-launch", "PRISM"],
+  ["all", "ALL FILMS"], ["neon-premiere", "PREMIERE"], ["longshot-cinema", "LONGSHOT"], ["summit-keynote", "SUMMIT"], ["prism-launch", "PRISM"],
   ["fable-storybook", "FABLE"], ["blockframe", "BLOCKFRAME"], ["biennale-yellow", "BIENNALE"],
   ["midnight-glass", "MIDNIGHT"], ["vapor-chrome", "VAPOR"], ["aurora-spectrum", "AURORA"],
   ["bloom-illustrated", "BLOOM"], ["noir-spotlight", "NOIR"],

@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>KEYFRAME — Terminal Departures</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script>
+  /* If GSAP didn't load (offline / ad-blocker), show a note instead of a blank page. */
+  if (!window.gsap) {
+    addEventListener("DOMContentLoaded", function () {
+      var b = document.createElement("div");
+      b.style.cssText = "position:fixed;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;font:600 18px system-ui;color:#fff;background:#111;padding:32px;z-index:99999";
+      b.textContent = "GSAP failed to load — hard-refresh (Ctrl+Shift+R) or disable the ad-blocker for 127.0.0.1.";
+      document.body.appendChild(b);
+    });
+  }
+</script>
+<style>
+  /* ===========================================================
+     TERMINAL DEPARTURES — an airport departures hall for films.
+     The ORIGINAL animation grammar here is the SPLIT-FLAP BOARD:
+     every headline arrives by mechanically cycling characters in
+     Solari-style flap cells (deterministic char swaps + a scaleY
+     "clack" squash per swap, built at load by initFlap/flapTo).
+     Around it: an analog clock whose second hand laps the whole
+     film, hanging gate signs that swing in on ceiling pivots, a
+     boarding pass that PRINTS out of a slot, a baggage belt with
+     moving slats carrying away CREW/TIMELINE/RENDER-FARM cases,
+     and a security scanner that x-ray-pings each style tag as
+     the beam crosses it.
+     Engineering contract as all showcases: ONE paused timeline
+     on window.__timelines["vid"], direct-child clips, disjoint
+     scenes + hard kills, ONE proxy caption node, finite repeats,
+     hidden = opacity:0 only, preview boot gated on !webdriver.
+     =========================================================== */
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { width:100%; height:100%; overflow:hidden; background:#0A0B0E; }
+  #root { position:relative; width:1920px; height:1080px; overflow:hidden; isolation:isolate;
+          background:
+            linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 18%),
+            repeating-linear-gradient(90deg, rgba(255,255,255,0.016) 0 2px, transparent 2px 240px),
+            linear-gradient(180deg, #17181D 0%, #121317 55%, #0C0D11 100%);
+          container-type:size; color:var(--ivory); font-family:'Space Grotesk',system-ui,sans-serif;
+    --board:#0B0C0F; --cell:#101116; --ivory:#F2EEE3; --dim:#8B8D96;
+    --yellow:#FFC61A; --green:#35D07F; --red:#FF4B3E; --cyan:#5FD4E6;
+    --line:rgba(242,238,227,0.14); }
+  .clip { position:absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; }
+  .safe { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+          padding:10% 7% 12%; text-align:center; }
+
+  /* ---------- split-flap cells (the signature) ---------- */
+  .flap { display:flex; gap:0.28em; justify-content:center; }
+  .fc { display:inline-flex; align-items:center; justify-content:center; width:0.92em; height:1.34em;
+        background:linear-gradient(180deg, #15161C 0%, #101116 48%, #0A0B0E 52%, #0E0F13 100%);
+        border-radius:0.09em; color:var(--ivory); font-weight:700;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,0.07), inset 0 -2px 5px rgba(0,0,0,0.55), 0 0.06em 0 #000;
+        position:relative; will-change:transform; }
+  .fc::after { content:""; position:absolute; left:0; right:0; top:calc(50% - 1px); height:2px;
+               background:rgba(0,0,0,0.75); }
+  .fc.sp { background:rgba(16,17,22,0.4); box-shadow:none; }
+  .fc.sp::after { display:none; }
+  .flap.gold .fc { color:var(--yellow); }
+  .flap.grn .fc { color:var(--green); }
+
+  .h-flap  { font-family:'Space Grotesk',sans-serif; font-size:5.4cqw; letter-spacing:0.02em; }
+  .h-flap2 { font-family:'Space Grotesk',sans-serif; font-size:3.4cqw; }
+  .h-flap3 { font-family:'IBM Plex Mono',monospace; font-size:1.7cqw; }
+
+  .chip { display:inline-flex; align-items:center; gap:0.8cqw; padding:0.6cqw 1.7cqw; border-radius:0.4cqw;
+          background:var(--board); border:1px solid var(--line); font-family:'IBM Plex Mono',monospace;
+          font-weight:600; font-size:1.15cqw; letter-spacing:0.3em; text-transform:uppercase; color:var(--yellow); }
+  .chip .dot { width:0.7cqw; height:0.7cqw; border-radius:50%; background:var(--yellow); }
+  .sub { font-family:'IBM Plex Mono',monospace; font-weight:500; font-size:1.6cqw; color:var(--dim); letter-spacing:0.06em; }
+
+  /* ---------- hall chrome ---------- */
+  #hall-sweep { position:absolute; top:-10%; bottom:-10%; width:26%; opacity:0; pointer-events:none;
+                transform:skewX(-14deg); background:linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent); }
+  #vig { position:absolute; inset:0; pointer-events:none;
+         background:radial-gradient(120% 115% at 50% 40%, transparent 52%, rgba(0,0,0,0.55) 100%); }
+  #masthead { position:absolute; left:3.2cqw; top:3cqw; display:flex; align-items:center; gap:1.2cqw;
+              font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:1.2cqw; letter-spacing:0.34em;
+              text-transform:uppercase; color:var(--ivory); }
+  #masthead i { width:0.85cqw; height:0.85cqw; border-radius:50%; background:var(--yellow); display:inline-block; }
+  #clockbox { position:absolute; right:3.2cqw; top:2.2cqw; display:flex; align-items:center; gap:1.4cqw; }
+  #dclock { display:flex; gap:0.22em; font-family:'IBM Plex Mono',monospace; font-size:1.5cqw; font-weight:700; }
+  #ticker-band { position:absolute; left:0; right:0; bottom:0; height:3.4cqw; background:var(--board);
+                 border-top:2px solid var(--yellow); overflow:hidden; display:flex; align-items:center; }
+  .tick-row { position:absolute; left:0; display:flex; gap:4cqw; white-space:nowrap; will-change:transform;
+              font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:1.1cqw; letter-spacing:0.28em;
+              text-transform:uppercase; color:var(--dim); }
+  .tick-row b { color:var(--yellow); font-weight:600; }
+
+  /* ---------- boarding pass (S2) ---------- */
+  #slotbar { width:46cqw; height:1.7cqw; border-radius:0.85cqw; background:linear-gradient(180deg,#1E2027,#0C0D11);
+             border:1px solid var(--line); box-shadow:0 0.5cqw 1.6cqw rgba(0,0,0,0.6); position:relative; z-index:2; }
+  #slotbar::after { content:""; position:absolute; left:6%; right:6%; top:calc(50% - 0.14cqw); height:0.28cqw;
+                    border-radius:999px; background:#000; }
+  #ticket-win { width:42cqw; height:16.5cqw; overflow:hidden; margin-top:-0.2cqw; display:flex; justify-content:center; }
+  #ticket { width:40cqw; background:var(--ivory); color:#191A1F; border-radius:0.7cqw; padding:1.6cqw 2cqw;
+            font-family:'IBM Plex Mono',monospace; text-align:left; position:relative; will-change:transform;
+            background-image:radial-gradient(circle at 0 52%, #17181D 0.55cqw, transparent 0.56cqw),
+                             radial-gradient(circle at 100% 52%, #17181D 0.55cqw, transparent 0.56cqw); }
+  #ticket .t-head { display:flex; justify-content:space-between; font-weight:700; font-size:1.05cqw; letter-spacing:0.2em; color:#6B6455; }
+  #ticket .t-row { display:flex; gap:3cqw; margin-top:1.1cqw; }
+  #ticket .t-k { font-size:0.85cqw; letter-spacing:0.18em; color:#9A9282; }
+  #ticket .t-v { font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:1.7cqw; color:#15161A; }
+  #ticket .barcode { position:absolute; right:2cqw; top:4.2cqw; width:7.5cqw; height:8cqw;
+    background:repeating-linear-gradient(90deg, #15161A 0 0.18cqw, transparent 0.18cqw 0.42cqw, #15161A 0.42cqw 0.52cqw, transparent 0.52cqw 0.9cqw); }
+  #stamp2 { position:absolute; right:9cqw; top:1.2cqw; font-family:'Space Grotesk',sans-serif; font-weight:700;
+            font-size:1.9cqw; letter-spacing:0.1em; color:var(--green); border:0.3cqw solid var(--green);
+            border-radius:0.5cqw; padding:0.4cqw 1.2cqw; transform:rotate(-9deg); opacity:0; }
+
+  /* ---------- departures board (S3) ---------- */
+  .brd { width:74cqw; border:1px solid var(--line); background:rgba(11,12,15,0.75); border-radius:0.6cqw; overflow:hidden; }
+  .brd-head { display:flex; padding:0.9cqw 2cqw; font-family:'IBM Plex Mono',monospace; font-size:1cqw; font-weight:600;
+              letter-spacing:0.3em; color:var(--dim); border-bottom:1px solid var(--line); text-transform:uppercase; }
+  .brd-row { display:flex; align-items:center; padding:0.85cqw 2cqw; border-top:1px solid rgba(242,238,227,0.06); }
+  .col-f { width:16%; text-align:left; font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:1.5cqw; color:var(--dim); }
+  .col-d { flex:1; text-align:left; }
+  .col-s { width:24%; text-align:right; display:flex; justify-content:flex-end; }
+  .b-flap { font-family:'Space Grotesk',sans-serif; font-size:1.75cqw; }
+  .s-flap { font-family:'IBM Plex Mono',monospace; font-size:1.35cqw; }
+
+  /* ---------- hanging gate signs (S4) ---------- */
+  .sign-wrap { position:relative; width:20cqw; }
+  .sign-rod { position:absolute; left:50%; top:-9cqw; width:0.22cqw; height:9cqw; background:#3A3C44; margin-left:-0.11cqw; }
+  .sign-rod.r2 { left:20%; } .sign-rod.r3 { left:80%; }
+  .sign { background:var(--board); border:1px solid var(--line); border-radius:1cqw; padding:2cqw 1.6cqw 1.6cqw;
+          box-shadow:0 1.6cqw 3.6cqw rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06);
+          transform-origin:50% -9cqw; will-change:transform; }
+  .sign .g-flap { font-family:'Space Grotesk',sans-serif; font-size:4cqw; }
+  .sign .g-cap { margin-top:1cqw; font-family:'IBM Plex Mono',monospace; font-size:1.05cqw; letter-spacing:0.26em;
+                 text-transform:uppercase; color:var(--dim); }
+
+  /* ---------- baggage belt (S5) ---------- */
+  #belt { position:absolute; left:0; right:0; top:56%; height:12cqw;
+          background:linear-gradient(180deg,#1B1D23 0%, #14151A 20%, #101116 80%, #0B0C0F 100%); border-top:2px solid #2A2C34; border-bottom:2px solid #000; }
+  #belt-slats { position:absolute; inset:0;
+    background:repeating-linear-gradient(90deg, rgba(255,255,255,0.05) 0 0.35cqw, transparent 0.35cqw 4cqw); }
+  .case { position:absolute; top:1.6cqw; width:12cqw; height:8cqw; border-radius:0.9cqw; will-change:transform;
+          border:0.22cqw solid rgba(0,0,0,0.5); box-shadow:0 1cqw 2cqw rgba(0,0,0,0.5), inset 0 2px 0 rgba(255,255,255,0.12); }
+  .case::before { content:""; position:absolute; left:32%; right:32%; top:-1.5cqw; height:1.7cqw;
+                  border:0.35cqw solid rgba(0,0,0,0.55); border-bottom:none; border-radius:0.7cqw 0.7cqw 0 0; }
+  .case .tag { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%) rotate(-3deg);
+               background:var(--ivory); color:#15161A; font-family:'IBM Plex Mono',monospace; font-weight:700;
+               font-size:1cqw; letter-spacing:0.14em; padding:0.35cqw 0.9cqw; border-radius:0.25cqw; white-space:nowrap; }
+
+  /* ---------- security scan (S6) ---------- */
+  .scan-tag { display:inline-flex; align-items:center; gap:0.7cqw; padding:0.85cqw 1.7cqw; border-radius:0.45cqw;
+              background:var(--board); border:1px solid var(--line); font-family:'IBM Plex Mono',monospace;
+              font-weight:600; font-size:1.35cqw; letter-spacing:0.1em; color:var(--ivory); position:relative; will-change:transform; }
+  .scan-tag i { width:0.85cqw; height:0.85cqw; border-radius:0.2cqw; background:var(--yellow); display:inline-block; }
+  .scan-tag .ok { position:absolute; right:-0.7cqw; top:-0.7cqw; width:1.7cqw; height:1.7cqw; border-radius:50%;
+                  background:var(--green); color:#062; font-weight:700; font-size:1cqw; display:flex;
+                  align-items:center; justify-content:center; opacity:0; }
+  #beam { position:absolute; top:26%; bottom:18%; width:4cqw; opacity:0; pointer-events:none;
+          background:linear-gradient(90deg, transparent, rgba(95,212,230,0.45) 45%, rgba(95,212,230,0.7) 50%, rgba(95,212,230,0.45) 55%, transparent);
+          box-shadow:0 0 3cqw rgba(95,212,230,0.4); }
+
+  .cta { display:inline-flex; align-items:center; gap:1.1cqw; font-family:'Space Grotesk',sans-serif; font-weight:700;
+         font-size:2.4cqw; letter-spacing:0.04em; text-transform:uppercase; color:#141308; background:var(--yellow);
+         padding:1.4cqw 3.6cqw; border-radius:0.55cqw; box-shadow:0 0 0 0.35cqw rgba(255,198,26,0.2), 0 1.4cqw 3cqw rgba(0,0,0,0.5); will-change:transform; }
+
+  /* ---------- captions ---------- */
+  #caps { position:absolute; inset:0; display:flex; justify-content:center; align-items:flex-end; padding-bottom:5.6%; z-index:50; pointer-events:none; }
+  #cap-pill { max-width:74%; height:fit-content; flex:0 0 auto; text-align:center; padding:0.85cqw 2.3cqw; border-radius:0.45cqw; opacity:0;
+              background:rgba(11,12,15,0.9); border:1px solid rgba(255,198,26,0.5); }
+  #cap-text { font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:1.4cqw; line-height:1.35; color:var(--ivory); }
+</style>
+</head>
+<body>
+<div id="root" class="composition" data-composition-id="vid" data-width="1920" data-height="1080" data-start="0" data-duration="32">
+
+  <!-- TRACK 0 — the hall: light sweep, vignette -->
+  <div class="clip" data-start="0" data-duration="32" data-track-index="0" data-layout-allow-occlusion>
+    <div id="hall-sweep"></div>
+    <div id="vig"></div>
+  </div>
+
+  <!-- S1 HOOK (0–4.5) -->
+  <div class="clip" id="s1" data-start="0" data-duration="5.0" data-track-index="2" style="opacity:0;">
+    <div class="safe">
+      <span class="chip" id="s1-chip" style="opacity:0;"><span class="dot"></span>Gate K·F — now boarding</span>
+      <div class="flap h-flap" id="s1-l1" data-text="IDEAS DEPART" style="margin-top:2.6cqw;"></div>
+      <div class="flap h-flap gold" id="s1-l2" data-text="DAILY." style="margin-top:0.8cqw;"></div>
+      <div class="sub" id="s1-sub" style="opacity:0;margin-top:2.2cqw;">welcome to KEYFRAME — the film terminal</div>
+    </div>
+    <svg id="s1-fly" viewBox="0 0 1920 1080" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;" data-layout-allow-occlusion>
+      <path id="s1-route" d="M180 860 C 560 800, 1100 820, 1740 700" pathLength="100" fill="none" stroke="rgba(242,238,227,0.35)"
+            stroke-width="3" stroke-dasharray="0.9 2.4" stroke-dashoffset="100"/>
+      <g id="s1-plane" opacity="0">
+        <path d="M0 0 L34 8 L0 16 L8 8 Z M-8 4 L2 8 L-8 12 Z" fill="#F2EEE3" transform="translate(-17,-8)"/>
+      </g>
+    </svg>
+  </div>
+
+  <!-- S2 CHECK-IN (4.5–9) -->
+  <div class="clip" id="s2" data-start="4.5" data-duration="5.0" data-track-index="3" style="opacity:0;">
+    <div class="safe" style="justify-content:flex-start;padding-top:8.5%;">
+      <span class="chip" id="s2-chip" style="opacity:0;"><span class="dot"></span>Check-in</span>
+      <div class="flap h-flap2" id="s2-l1" data-text="CHECK IN A SENTENCE" style="margin-top:1.8cqw;"></div>
+      <div id="slotbar" style="margin-top:2.4cqw;opacity:0;"></div>
+      <div id="ticket-win">
+        <div id="ticket">
+          <div class="t-head"><span>KEYFRAME AIR · BOARDING PASS</span><span>KF-2026</span></div>
+          <div class="t-row">
+            <div><div class="t-k">PASSENGER</div><div class="t-v">YOUR IDEA</div></div>
+            <div><div class="t-k">SEAT</div><div class="t-v">1A</div></div>
+            <div><div class="t-k">GATE</div><div class="t-v">K·F</div></div>
+          </div>
+          <div class="t-row">
+            <div><div class="t-k">FROM</div><div class="t-v">ONE SENTENCE</div></div>
+            <div><div class="t-k">TO</div><div class="t-v">PREMIERE</div></div>
+          </div>
+          <div class="barcode"></div>
+          <div id="stamp2">ACCEPTED</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S3 DEPARTURES BOARD (9–13.5) -->
+  <div class="clip" id="s3" data-start="9" data-duration="5.0" data-track-index="4" style="opacity:0;">
+    <div class="safe">
+      <div class="brd" id="s3-brd" style="opacity:0;">
+        <div class="brd-head"><span class="col-f">FLIGHT</span><span class="col-d" style="padding-left:0.4cqw;">DESTINATION</span><span class="col-s" style="justify-content:flex-end;">STATUS</span></div>
+        <div class="brd-row s3-row"><span class="col-f">KF-01</span><span class="col-d"><span class="flap b-flap" data-text="BAUHAUS-PRINT"></span></span><span class="col-s"><span class="flap s-flap grn" data-text="ON TIME"></span></span></div>
+        <div class="brd-row s3-row"><span class="col-f">KF-02</span><span class="col-d"><span class="flap b-flap" data-text="LONGSHOT-CINEMA"></span></span><span class="col-s"><span class="flap s-flap grn" data-text="ON TIME"></span></span></div>
+        <div class="brd-row s3-row"><span class="col-f">KF-03</span><span class="col-d"><span class="flap b-flap" data-text="VAPOR-CHROME"></span></span><span class="col-s"><span class="flap s-flap grn" data-text="ON TIME"></span></span></div>
+        <div class="brd-row s3-row"><span class="col-f">KF-04</span><span class="col-d"><span class="flap b-flap" data-text="BLOOM-FABLE"></span></span><span class="col-s"><span class="flap s-flap grn" data-text="ON TIME"></span></span></div>
+        <div class="brd-row s3-row" style="background:rgba(255,198,26,0.06);"><span class="col-f" style="color:var(--yellow);">KF-05</span><span class="col-d"><span class="flap b-flap gold" data-text="YOUR FILM"></span></span><span class="col-s"><span class="flap s-flap gold" id="s3-board" data-text="BOARDING"></span></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S4 GATE SIGNS / NUMBERS (13.5–18) -->
+  <div class="clip" id="s4" data-start="13.5" data-duration="5.0" data-track-index="5" style="opacity:0;">
+    <div class="safe" style="justify-content:flex-end;padding-bottom:16%;">
+      <span class="chip" id="s4-chip" style="opacity:0;position:absolute;top:12%;"><span class="dot"></span>By the numbers</span>
+      <div style="display:flex;gap:5cqw;align-items:flex-start;">
+        <div class="sign-wrap"><div class="sign-rod r2"></div><div class="sign-rod r3"></div>
+          <div class="sign s4-sign" style="opacity:0;">
+            <div class="flap g-flap gold" data-text="12"></div>
+            <div class="g-cap">agents on crew</div>
+          </div>
+        </div>
+        <div class="sign-wrap"><div class="sign-rod r2"></div><div class="sign-rod r3"></div>
+          <div class="sign s4-sign" style="opacity:0;">
+            <div class="flap g-flap gold" data-text="1080P"></div>
+            <div class="g-cap">cruising resolution</div>
+          </div>
+        </div>
+        <div class="sign-wrap"><div class="sign-rod r2"></div><div class="sign-rod r3"></div>
+          <div class="sign s4-sign" style="opacity:0;">
+            <div class="flap g-flap gold" data-text="40"></div>
+            <div class="g-cap">destinations (styles)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S5 BAGGAGE (18–22.5) -->
+  <div class="clip" id="s5" data-start="18" data-duration="5.0" data-track-index="6" style="opacity:0;">
+    <div class="safe" style="justify-content:flex-start;padding-top:11%;">
+      <div class="flap h-flap2" id="s5-l1" data-text="NO BAGGAGE REQUIRED."></div>
+      <div class="sub" id="s5-sub" style="opacity:0;margin-top:1.6cqw;">just your words — we pack the rest</div>
+    </div>
+    <div id="belt"><div id="belt-slats"></div></div>
+    <div class="case" id="case1" style="left:-14cqw;top:auto;background:#8A4B3B;"><div class="tag">CREW ×40</div></div>
+    <div class="case" id="case2" style="left:-14cqw;top:auto;background:#3B5D8A;"><div class="tag">6-WEEK TIMELINE</div></div>
+    <div class="case" id="case3" style="left:-14cqw;top:auto;background:#5D5A46;"><div class="tag">RENDER FARM</div></div>
+  </div>
+
+  <!-- S6 SECURITY SCAN (22.5–27) -->
+  <div class="clip" id="s6" data-start="22.5" data-duration="5.0" data-track-index="7" style="opacity:0;">
+    <div class="safe" style="justify-content:flex-start;padding-top:10%;">
+      <span class="chip" id="s6-chip" style="opacity:0;"><span class="dot" style="background:var(--cyan);"></span>Security — style scan</span>
+      <div class="flap h-flap2" id="s6-l1" data-text="ALL STYLES CLEARED." style="margin-top:1.7cqw;"></div>
+      <div style="display:flex;gap:1.6cqw;flex-wrap:wrap;justify-content:center;max-width:76cqw;margin-top:3.4cqw;">
+        <span class="scan-tag"><i></i>bauhaus-riot<span class="ok">&#10003;</span></span>
+        <span class="scan-tag"><i style="background:var(--cyan);"></i>neon-premiere<span class="ok">&#10003;</span></span>
+        <span class="scan-tag"><i style="background:var(--green);"></i>bloom-fable<span class="ok">&#10003;</span></span>
+        <span class="scan-tag"><i style="background:var(--red);"></i>longshot-cinema<span class="ok">&#10003;</span></span>
+        <span class="scan-tag"><i></i>blueprint-atelier<span class="ok">&#10003;</span></span>
+        <span class="scan-tag"><i style="background:var(--cyan);"></i>vapor-chrome<span class="ok">&#10003;</span></span>
+        <span class="scan-tag"><i style="background:var(--green);"></i>biennale-yellow<span class="ok">&#10003;</span></span>
+        <span class="scan-tag"><i style="background:var(--red);"></i>blockframe<span class="ok">&#10003;</span></span>
+      </div>
+    </div>
+    <div id="beam"></div>
+  </div>
+
+  <!-- S7 FINAL CALL (27–32) -->
+  <div class="clip" id="s7" data-start="27" data-duration="5.0" data-track-index="8" style="opacity:0;">
+    <div class="safe">
+      <span class="chip" id="s7-chip" style="opacity:0;border-color:rgba(255,75,62,0.6);color:var(--red);"><span class="dot" style="background:var(--red);"></span>Final call</span>
+      <div class="flap h-flap gold" id="s7-l1" data-text="KEYFRAME" style="margin-top:2.2cqw;font-size:6.4cqw;"></div>
+      <div class="sub" id="s7-sub" style="opacity:0;margin-top:1.6cqw;">your film boards in one sentence</div>
+      <div class="cta" id="s7-cta" style="opacity:0;margin-top:2.6cqw;">Board now — free <span>&#8594;</span></div>
+    </div>
+    <svg id="s7-fly" viewBox="0 0 1920 1080" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;" data-layout-allow-occlusion>
+      <path id="s7-route" d="M240 300 C 700 260, 1200 220, 1760 110" pathLength="100" fill="none" stroke="rgba(255,198,26,0.4)"
+            stroke-width="3" stroke-dasharray="1 2.4" stroke-dashoffset="100"/>
+      <g id="s7-plane" opacity="0">
+        <path d="M0 0 L40 9 L0 18 L9 9 Z M-9 4 L2 9 L-9 14 Z" fill="#FFC61A" transform="translate(-20,-9) scale(1.1)"/>
+      </g>
+    </svg>
+  </div>
+
+  <!-- TRACK 19 — hall chrome: masthead, clock, ticker -->
+  <div id="chrome" class="clip" data-start="0" data-duration="32" data-track-index="19" data-layout-allow-occlusion style="opacity:0;">
+    <div id="masthead"><i></i>KEYFRAME INTL · TERMINAL 9 · DEPARTURES</div>
+    <div id="clockbox">
+      <svg id="aclock" width="120" height="120" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="54" fill="#0B0C0F" stroke="rgba(242,238,227,0.25)" stroke-width="3"/>
+        <g stroke="rgba(242,238,227,0.4)" stroke-width="3">
+          <line x1="60" y1="10" x2="60" y2="20"/><line x1="60" y1="100" x2="60" y2="110"/>
+          <line x1="10" y1="60" x2="20" y2="60"/><line x1="100" y1="60" x2="110" y2="60"/>
+        </g>
+        <line id="ah-min" x1="60" y1="60" x2="60" y2="22" stroke="#F2EEE3" stroke-width="5" stroke-linecap="round"/>
+        <line id="ah-hr" x1="60" y1="60" x2="82" y2="42" stroke="#F2EEE3" stroke-width="6" stroke-linecap="round"/>
+        <line id="ah-sec" x1="60" y1="66" x2="60" y2="16" stroke="#FFC61A" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="60" cy="60" r="4.5" fill="#FFC61A"/>
+      </svg>
+      <div id="dclock" class="flap" data-text="18:04"></div>
+    </div>
+    <div id="ticker-band">
+      <div class="tick-row" id="tick1">
+        <span>ALL FILMS DEPART ON TIME <b>·</b> NO CREW <b>·</b> NO TIMELINE <b>·</b> NO RENDER FARM <b>·</b> TYPE A SENTENCE, CATCH A PREMIERE <b>·</b></span>
+        <span>ALL FILMS DEPART ON TIME <b>·</b> NO CREW <b>·</b> NO TIMELINE <b>·</b> NO RENDER FARM <b>·</b> TYPE A SENTENCE, CATCH A PREMIERE <b>·</b></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRACK 20 — captions -->
+  <div id="caps" class="clip" data-start="0" data-duration="32" data-track-index="20"><div id="cap-pill"><div id="cap-text"></div></div></div>
+</div>
+
+<script>
+(function () {
+  const D = 32;
+  const tl = gsap.timeline({ paused: true });
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => Array.prototype.slice.call(document.querySelectorAll(s));
+  const r = (v) => Math.round(v * 100) / 100;
+  const reps = (total, cyc) => Math.max(0, Math.floor(total / cyc) - 1);
+  function kill(id, t) { tl.set(id, { opacity: 0 }, t); }
+
+  /* ================= SPLIT-FLAP ENGINE =================
+     initFlap builds one .fc cell per character at load (before the timeline is
+     assembled, so every tween targets a real element). flapTo drives a cell
+     through `cycles` deterministic intermediate characters (seeded by cell
+     index — NO Math.random, renders identically every run) with a scaleY
+     "clack" squash per swap, landing on the target character. Cells start
+     BLANK; the board spells the line letter by letter like a real Solari. */
+  const ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789·-.:%";
+  function initFlap(el) {
+    const text = el.getAttribute("data-text") || "";
+    el.textContent = "";
+    const cells = [];
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      const c = document.createElement("span");
+      c.className = "fc" + (ch === " " ? " sp" : "");
+      c.textContent = "";
+      el.appendChild(c);
+      cells.push({ el: c, target: ch });
+    }
+    el.__cells = cells;
+    return cells;
+  }
+  function flapTo(el, at, opts) {
+    const o = opts || {};
+    const cells = el.__cells || initFlap(el);
+    const per = o.per != null ? o.per : 0.045;   // stagger between cells
+    const step = o.step != null ? o.step : 0.07; // seconds per character swap
+    cells.forEach((c, k) => {
+      if (c.target === " ") return;
+      const cycles = (o.cycles != null ? o.cycles : 3) + ((k * 7 + (o.seed || 0)) % 3);
+      const start = r(at + k * per);
+      for (let j = 0; j < cycles; j++) {
+        const ch = ALPHA[(k * 31 + j * 17 + (o.seed || 0) * 13) % ALPHA.length];
+        tl.set(c.el, { textContent: ch }, r(start + j * step));
+      }
+      tl.set(c.el, { textContent: c.target }, r(start + cycles * step));
+      // the mechanical "clack": squash through the midline once per swap.
+      // 2 segments per swap and an even segment count => ends back at scaleY 1.
+      tl.fromTo(c.el, { scaleY: 1 }, { scaleY: 0.12, duration: step / 2, yoyo: true, repeat: cycles * 2 - 1, ease: "none" }, start);
+    });
+    // time when the LAST cell lands (for chaining)
+    const kMax = cells.length - 1;
+    return r(at + kMax * per + ((o.cycles != null ? o.cycles : 3) + 2) * step);
+  }
+  // Build all flap displays now, before any tween references them.
+  $$("[data-text]").forEach(initFlap);
+
+  /* ================= HALL AMBIENT + CHROME ================= */
+  tl.fromTo("#chrome", { opacity: 0 }, { opacity: 1, duration: 0.7 }, 0.2);
+  tl.fromTo("#hall-sweep", { xPercent: -160, opacity: 0.9 }, { xPercent: 850, opacity: 0.9, duration: 8, ease: "sine.inOut", repeat: reps(D, 8) }, 0.5);
+  // the analog clock LAPS THE FILM: 3 second-hand laps over 32s, minute creeps
+  tl.fromTo("#ah-sec", { rotation: 0, svgOrigin: "60 60" }, { rotation: 1080, svgOrigin: "60 60", duration: D, ease: "none" }, 0);
+  tl.fromTo("#ah-min", { rotation: 0, svgOrigin: "60 60" }, { rotation: 54, svgOrigin: "60 60", duration: D, ease: "none" }, 0);
+  // ticker marquee: two copies, seamless half-width loop, finite
+  tl.fromTo("#tick1", { xPercent: 0 }, { xPercent: -50, duration: 16, ease: "none", repeat: reps(D, 16) }, 0);
+  // digital clock flaps its minute at every scene boundary (18:04 → 18:10)
+  flapTo($("#dclock"), 0.5, { cycles: 2, per: 0.03, step: 0.06, seed: 9 });
+  ["18:05", "18:06", "18:07", "18:08", "18:09", "18:10"].forEach((t2, i) => {
+    const el = $("#dclock");
+    const bnd = [4.5, 9, 13.5, 18, 22.5, 27][i];
+    el.__cells.forEach((c, k) => {
+      if (c.target === " " || t2[k] === c.target) return;
+      tl.set(c.el, { textContent: t2[k] }, r(bnd + 0.1 + k * 0.05));
+      tl.fromTo(c.el, { scaleY: 1 }, { scaleY: 0.12, duration: 0.05, yoyo: true, repeat: 1, ease: "none" }, r(bnd + 0.07 + k * 0.05));
+      c.target = t2[k];
+    });
+  });
+
+  /* ================= S1 HOOK (0–4.5) ================= */
+  tl.fromTo("#s1", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 0);
+  tl.fromTo("#s1-chip", { opacity: 0, y: -18 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 0.35);
+  flapTo($("#s1-l1"), 0.6, { seed: 1 });
+  flapTo($("#s1-l2"), 1.5, { seed: 2, cycles: 4 });
+  tl.fromTo("#s1-sub", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.55, ease: "power2.out" }, 2.4);
+  tl.to("#s1-route", { strokeDashoffset: 0, duration: 1.1, ease: "power1.inOut" }, 2.3);
+  tl.fromTo("#s1-plane", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 2.35);
+  tl.fromTo("#s1-plane", { x: 180, y: 860, rotation: -4 }, { x: 760, y: 810, rotation: -2, duration: 0.55, ease: "none" }, 2.35);
+  tl.to("#s1-plane", { x: 1280, y: 790, rotation: -6, duration: 0.4, ease: "none" }, 2.9);
+  tl.to("#s1-plane", { x: 1740, y: 700, rotation: -12, duration: 0.35, ease: "none" }, 3.3);
+  tl.to("#s1-plane", { opacity: 0, duration: 0.25 }, 3.62);
+  tl.to("#s1 .safe", { opacity: 0, y: -22, duration: 0.4, ease: "power2.in" }, 4.05);
+  tl.to("#s1-fly", { opacity: 0, duration: 0.3 }, 4.1);
+  kill("#s1", 4.95);
+
+  /* ================= S2 CHECK-IN (4.5–9) ================= */
+  tl.fromTo("#s2", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 4.5);
+  tl.fromTo("#s2-chip", { opacity: 0, y: -18 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 4.65);
+  flapTo($("#s2-l1"), 4.85, { seed: 3, per: 0.035 });
+  tl.fromTo("#slotbar", { opacity: 0, scaleX: 0.4 }, { opacity: 1, scaleX: 1, duration: 0.5, ease: "power3.out" }, 5.5);
+  /* the boarding pass PRINTS: emerges downward out of the slot, in little
+     tractor-feed jerks (4 stepped tugs), then a settle wobble */
+  tl.set("#ticket", { yPercent: -104 }, 4.5);
+  tl.to("#ticket", { yPercent: -78, duration: 0.22, ease: "power2.inOut" }, 6.0);
+  tl.to("#ticket", { yPercent: -52, duration: 0.22, ease: "power2.inOut" }, 6.32);
+  tl.to("#ticket", { yPercent: -26, duration: 0.22, ease: "power2.inOut" }, 6.64);
+  tl.to("#ticket", { yPercent: 0, duration: 0.3, ease: "power2.out" }, 6.96);
+  tl.to("#ticket", { rotation: -1.3, duration: 0.4, ease: "sine.inOut", yoyo: true, repeat: 1 }, 7.3);
+  tl.fromTo("#stamp2", { opacity: 0, scale: 2.2, rotation: -9 }, { opacity: 0.95, scale: 1, rotation: -9, duration: 0.3, ease: "power4.in" }, 7.7);
+  tl.to("#s2", { opacity: 0, duration: 0.4, ease: "power2.in" }, 8.55);
+  kill("#s2", 9.45);
+
+  /* ================= S3 DEPARTURES BOARD (9–13.5) ================= */
+  tl.fromTo("#s3", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 9);
+  tl.fromTo("#s3-brd", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 9.15);
+  $$(".s3-row").forEach((row, i) => {
+    tl.fromTo(row, { opacity: 0 }, { opacity: 1, duration: 0.25 }, r(9.4 + i * 0.5));
+    row.querySelectorAll(".flap").forEach((f, c) => {
+      flapTo(f, r(9.5 + i * 0.5 + c * 0.15), { seed: 10 + i * 3 + c, per: 0.03, step: 0.06, cycles: 2 });
+    });
+  });
+  // the YOUR FILM status keeps flapping between BOARDING states (alive board)
+  tl.to("#s3-board", { opacity: 0.35, duration: 0.4, ease: "none", yoyo: true, repeat: 3 }, 12.0);
+  tl.to("#s3", { opacity: 0, duration: 0.4, ease: "power2.in" }, 13.05);
+  kill("#s3", 13.95);
+
+  /* ================= S4 HANGING GATE SIGNS (13.5–18) ================= */
+  tl.fromTo("#s4", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 13.5);
+  tl.fromTo("#s4-chip", { opacity: 0, y: -18 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 13.65);
+  /* signs swing DOWN from ceiling pivots and settle like real hung signage */
+  $$(".s4-sign").forEach((sg, i) => {
+    const at = r(13.9 + i * 0.35);
+    tl.fromTo(sg, { opacity: 0, rotation: i % 2 ? 10 : -10, y: -60 }, { opacity: 1, rotation: 0, y: 0, duration: 1.4, ease: "elastic.out(1, 0.35)" }, at);
+    tl.to(sg, { rotation: i % 2 ? -1.6 : 1.6, duration: 1.6, ease: "sine.inOut", yoyo: true, repeat: 1 }, at + 1.5);
+  });
+  $$("#s4 .g-flap").forEach((f, i) => flapTo(f, r(14.6 + i * 0.35), { seed: 20 + i, cycles: 4, step: 0.08 }));
+  tl.fromTo("#s4 .g-cap", { opacity: 0 }, { opacity: 1, duration: 0.5, stagger: 0.2 }, 15.2);
+  tl.to("#s4", { opacity: 0, duration: 0.4, ease: "power2.in" }, 17.55);
+  kill("#s4", 18.45);
+
+  /* ================= S5 BAGGAGE BELT (18–22.5) ================= */
+  tl.fromTo("#s5", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 18);
+  flapTo($("#s5-l1"), 18.25, { seed: 30, per: 0.032 });
+  tl.fromTo("#s5-sub", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 19.4);
+  /* belt slats + cases move at the SAME px/s so the cases visibly ride the belt */
+  tl.fromTo("#belt-slats", { backgroundPosition: "0cqw 0" }, { backgroundPosition: "48cqw 0", duration: 4.4, ease: "none" }, 18.05);
+  const CASES = [["#case1", 18.7], ["#case2", 19.6], ["#case3", 20.5]];
+  CASES.forEach(([sel, at]) => {
+    tl.set(sel, { top: "57.5%" }, 18);
+    tl.fromTo(sel, { x: 0 }, { x: 2300, duration: 2.6, ease: "none" }, at);
+    tl.fromTo(sel, { rotation: -1 }, { rotation: 1, duration: 0.3, ease: "sine.inOut", yoyo: true, repeat: 7 }, at);
+  });
+  tl.to("#s5", { opacity: 0, duration: 0.4, ease: "power2.in" }, 22.05);
+  kill("#s5", 22.95);
+
+  /* ================= S6 SECURITY SCAN (22.5–27) ================= */
+  tl.fromTo("#s6", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 22.5);
+  tl.fromTo("#s6-chip", { opacity: 0, y: -18 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 22.65);
+  flapTo($("#s6-l1"), 22.85, { seed: 40, per: 0.032 });
+  tl.fromTo(".scan-tag", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out", stagger: 0.08 }, 23.3);
+  /* the beam sweeps the hall; each tag X-RAY PINGS (inverts to cyan) exactly as
+     the beam crosses its position, then earns its green check */
+  tl.fromTo("#beam", { x: -100, opacity: 0 }, { x: 2020, opacity: 1, duration: 2.0, ease: "none" }, 24.2);
+  tl.to("#beam", { opacity: 0, duration: 0.25 }, 26.15);
+  $$(".scan-tag").forEach((tag, i) => {
+    // NO DOM measurement (offsetLeft differs between preview and the renderer
+    // before the root is sized) — tags ping in index order, which IS the beam's
+    // left-to-right visual order in this wrapped flex row.
+    const hit = r(24.45 + i * 0.22);
+    tl.to(tag, { backgroundColor: "rgba(95,212,230,0.9)", color: "#08222A", duration: 0.14, yoyo: true, repeat: 1, ease: "none" }, hit);
+    tl.fromTo(tag.querySelector(".ok"), { opacity: 0, scale: 0.3 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(2.2)" }, r(hit + 0.2));
+  });
+  tl.to("#s6", { opacity: 0, duration: 0.4, ease: "power2.in" }, 26.55);
+  kill("#s6", 27.45);
+
+  /* ================= S7 FINAL CALL (27–32) ================= */
+  tl.fromTo("#s7", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 27);
+  tl.fromTo("#s7-chip", { opacity: 0, y: -18 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 27.15);
+  tl.to("#s7-chip", { opacity: 0.35, duration: 0.35, ease: "none", yoyo: true, repeat: 5 }, 27.7);
+  flapTo($("#s7-l1"), 27.5, { seed: 50, cycles: 4, step: 0.08 });
+  tl.fromTo("#s7-sub", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 28.8);
+  tl.fromTo("#s7-cta", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.55, ease: "back.out(1.7)" }, 29.2);
+  tl.to("#s7-cta", { scale: 1.06, duration: 0.5, ease: "sine.inOut", yoyo: true, repeat: 3 }, 29.9);
+  tl.to("#s7-route", { strokeDashoffset: 0, duration: 1.2, ease: "power1.inOut" }, 29.3);
+  tl.fromTo("#s7-plane", { opacity: 0 }, { opacity: 1, duration: 0.2 }, 29.35);
+  tl.fromTo("#s7-plane", { x: 240, y: 300, rotation: -6 }, { x: 900, y: 250, rotation: -8, duration: 0.6, ease: "none" }, 29.35);
+  tl.to("#s7-plane", { x: 1400, y: 190, rotation: -12, duration: 0.45, ease: "none" }, 29.95);
+  tl.to("#s7-plane", { x: 1760, y: 110, rotation: -16, duration: 0.4, ease: "none" }, 30.4);
+
+  /* ================= CAPTIONS — one proxy, seek-safe ================= */
+  const cues = [
+    [0.7,  4.2,  "Terminal 9. Ideas depart daily."],
+    [4.8,  8.8,  "Check in with a sentence — that's the whole ticket."],
+    [9.3,  13.3, "Every style is a destination. All departures on time."],
+    [13.8, 17.8, "Twelve agents. Full HD. Forty destinations."],
+    [18.3, 22.3, "No crew. No timeline. No render farm. No baggage."],
+    [22.8, 26.8, "Security cleared all forty styles."],
+    [27.3, 31.8, "Final call: KEYFRAME. Board now — free."]
+  ];
+  const proxy = { t: 0 };
+  tl.to(proxy, { t: D, duration: D, ease: "none",
+    onUpdate() {
+      const now = proxy.t;
+      const cap = $("#cap-pill"), txt = $("#cap-text");
+      if (!cap || !txt) return;
+      let active = null;
+      for (let k = 0; k < cues.length; k++) { if (now >= cues[k][0] && now < cues[k][1]) { active = cues[k]; break; } }
+      if (active) { if (txt.textContent !== active[2]) txt.textContent = active[2]; cap.style.opacity = "1"; }
+      else { cap.style.opacity = "0"; }
+    } }, 0);
+
+  window.__timelines = window.__timelines || {};
+  window.__timelines["vid"] = tl;
+
+  // --- DEV PREVIEW ONLY (render browser sets navigator.webdriver -> stays paused there)
+  if (typeof navigator === "undefined" || !navigator.webdriver) {
+    (function previewBoot() {
+      var root = document.querySelector('[data-composition-id]');
+      if (root) {
+        var w = +root.getAttribute('data-width') || 1920;
+        var h = +root.getAttribute('data-height') || 1080;
+        document.documentElement.style.height = "100%";
+        document.body.style.minHeight = "100vh";
+        root.style.width = w + 'px'; root.style.height = h + 'px';
+        root.style.position = 'absolute'; root.style.top = '50%'; root.style.left = '50%';
+        root.style.transformOrigin = 'center center';
+        var fit = function () {
+          var f = Math.min(window.innerWidth / w, window.innerHeight / h);
+          root.style.transform = 'translate(-50%,-50%) scale(' + f + ')';
+        };
+        fit(); window.addEventListener('resize', fit);
+        var clips = [].slice.call(root.querySelectorAll('[data-start][data-duration]'));
+        var windowClips = function (t) {
+          for (var i = 0; i < clips.length; i++) {
+            var c = clips[i];
+            var s = +c.getAttribute('data-start') || 0;
+            var d = +c.getAttribute('data-duration');
+            if (!isFinite(d)) d = 1e9;
+            c.style.visibility = (t >= s - 0.02 && t < s + d + 0.02) ? '' : 'hidden';
+          }
+        };
+        windowClips(0);
+        tl.eventCallback('onUpdate', function () { windowClips(tl.time()); });
+      }
+      tl.play(0);
+      tl.eventCallback("onComplete", function () { tl.restart(); });
+    })();
+  }
+})();
+</script>
+</body>
+</html>
