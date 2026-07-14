@@ -644,7 +644,7 @@ function buildThreeFx(theme, dims, D, seed, framePack) {
 // always paints above. Each cluster is authored per pack × archetype kind.
 function buildSkinOrnaments(kind, ctx, framePack) {
   if (!framePack) return null;
-  const { theme, id, T, L, dims, seed } = ctx;
+  const { theme, id, T, L, dims, seed, scene, sceneIndex, sceneCount, sbTitle } = ctx;
   const W = dims.width, H = dims.height;
   const A = theme.accent, B = theme.accent2;
   const X0 = (theme.extras && theme.extras[0]) || B, X1 = (theme.extras && theme.extras[1]) || A;
@@ -1231,6 +1231,64 @@ function buildSkinOrnaments(kind, ctx, framePack) {
     const { buildRetroTerminalOrnaments } = require("./scene_kit_terminal_ornaments");
     const t = buildRetroTerminalOrnaments({ kind, id, pid, T, L, seed, theme, dims, s0, rgba, esc });
     sv.push(...t.sv); dv.push(...t.dv); sc.push(...t.sc);
+  } else if (framePack === "terminal-departures") {
+    // TERMINAL DEPARTURES — own module; the pack's FRAME.md atoms (ticker,
+    // analog clock, hanging gate signs, status chips, FINAL CALL + printing
+    // boarding pass), each populated with the SCENE'S OWN COPY so the hall
+    // reads as this film's departures board, not a generic demo.
+    const { buildDeparturesOrnaments } = require("./scene_kit_departures_ornaments");
+    const t = buildDeparturesOrnaments({ kind, id, pid, T, L, seed, theme, dims, s0, rgba, esc, scene, sceneIndex, sceneCount, sbTitle });
+    sv.push(...t.sv); dv.push(...t.dv); sc.push(...t.sc);
+  } else if (framePack === "neon-premiere") {
+    // NEON PREMIERE — film-set HUD: a live mono timecode chip (counts REAL
+    // scene time, deterministic), a cyan→magenta neon rule that draws under
+    // the headline zone, and a drifting lens-flare dot. Topic hook: the chip
+    // carries the scene's emphasis/kicker word next to the timecode.
+    const mono = "'JetBrains Mono','IBM Plex Mono',monospace";
+    const tcTag = esc(String((scene && (scene.emphasis || scene.purpose)) || "PREMIERE").toUpperCase().slice(0, 14));
+    const chH = Math.round(H * 0.036);
+    const t0m = Math.floor(T / 60), t0s = Math.floor(T % 60), t0f = Math.round((T % 1) * 24);
+    const pad2 = (n) => String(n).padStart(2, "0");
+    dv.push(
+      `<div class="${pid}tc" style="position:absolute;right:${Math.round(W * 0.045)}px;top:${Math.round(H * 0.07)}px;height:${chH}px;display:inline-flex;align-items:center;gap:9px;padding:0 ${Math.round(chH * 0.5)}px;background:rgba(5,6,14,.75);border:1px solid ${rgba(B, 0.5)};border-radius:${Math.round(chH * 0.3)}px;opacity:0;">` +
+      `<span style="width:7px;height:7px;border-radius:50%;background:${A};box-shadow:0 0 9px ${rgba(A, 0.9)};"></span>` +
+      `<span style="font:600 ${Math.round(chH * 0.38)}px/1 ${mono};letter-spacing:.18em;color:${rgba("#F2F5FF", 0.9)};">TC ${pad2(t0m)}:${pad2(t0s)}:${pad2(t0f)} · ${tcTag}</span></div>`
+    );
+    sc.push(`tl.fromTo("#${id} .${pid}tc",{opacity:0,y:-10},{opacity:1,y:0,duration:.45,ease:"power2.out"},${s0(0.35)});`);
+    if (kind === "hook" || kind === "cta") {
+      const ry = Math.round(H * 0.68), rw = Math.round(W * 0.3);
+      dv.push(`<div class="${pid}nr" style="position:absolute;left:${Math.round(W / 2 - rw / 2)}px;top:${ry}px;width:${rw}px;height:3px;border-radius:2px;background:linear-gradient(90deg,${A},${B});box-shadow:0 0 14px ${rgba(A, 0.7)},0 0 26px ${rgba(B, 0.45)};transform:scaleX(0);"></div>`);
+      sc.push(`tl.to("#${id} .${pid}nr",{scaleX:1,duration:.7,ease:"power3.out"},${s0(0.9)});`);
+    }
+    const fx0 = Math.round(W * (seed % 2 ? 0.12 : 0.84)), fy0 = Math.round(H * 0.24);
+    sv.push(`<circle class="${pid}lf" cx="${fx0}" cy="${fy0}" r="4" fill="${rgba("#FFFFFF", 0.95)}" opacity="0"/>`);
+    sv.push(`<circle class="${pid}lf" cx="${fx0}" cy="${fy0}" r="11" fill="none" stroke="${rgba(B, 0.5)}" stroke-width="1.5" opacity="0"/>`);
+    sc.push(`tl.to("#${id} .${pid}lf",{opacity:1,duration:.5,stagger:.1},${s0(0.7)});`);
+    sc.push(`tl.to("#${id} .${pid}lf",{x:${seed % 2 ? 40 : -40},y:18,duration:${Math.max(2, L - 1)},ease:"sine.inOut"},${s0(0.7)});`);
+  } else if (framePack === "paper-tales") {
+    // PAPER TALES — storybook paper craft: a washi-tape strip labeled with the
+    // scene's emphasis word, a folded page-corner curl (cta), and a paper
+    // plane that glides across the hook on a gentle arc.
+    const serif = theme.displayStack || "serif";
+    const label = esc(String((scene && (scene.emphasis || "")) || "").toUpperCase().slice(0, 12));
+    const wW = Math.round(W * 0.11), wH = Math.round(H * 0.034);
+    dv.push(
+      `<div class="${pid}wt" style="position:absolute;left:${Math.round(W * 0.05)}px;top:${Math.round(H * 0.08)}px;width:${wW}px;height:${wH}px;background:${rgba(A, 0.32)};border-left:1px dashed ${rgba("#6B5B73", 0.4)};border-right:1px dashed ${rgba("#6B5B73", 0.4)};transform:rotate(-4deg);display:flex;align-items:center;justify-content:center;font:600 ${Math.round(wH * 0.42)}px/1 ${serif};letter-spacing:.2em;color:#6B5B73;opacity:0;">${label}</div>`
+    );
+    sc.push(`tl.fromTo("#${id} .${pid}wt",{opacity:0,scale:1.3,rotation:-9},{opacity:${label ? 0.95 : 0.55},scale:1,rotation:-4,duration:.5,ease:"power3.in"},${s0(0.55)});`);
+    if (kind === "hook") {
+      const px0 = Math.round(W * 0.08), py0 = Math.round(H * 0.3);
+      sv.push(`<g class="${pid}pp" opacity="0"><path d="M0 0 L34 10 L8 14 Z" fill="${rgba("#FFFFFF", 0.95)}" stroke="${rgba("#6B5B73", 0.5)}" stroke-width="1"/><path d="M8 14 L14 22 L16 12 Z" fill="${rgba("#E8938C", 0.8)}"/></g>`);
+      sc.push(`tl.set("#${id} .${pid}pp",{x:${px0},y:${py0}},0);`);
+      sc.push(`tl.to("#${id} .${pid}pp",{opacity:1,duration:.4},${s0(0.5)});`);
+      sc.push(`tl.to("#${id} .${pid}pp",{x:${Math.round(W * 0.78)},y:${Math.round(H * 0.18)},rotation:8,duration:${Math.max(2.4, L - 0.8)},ease:"sine.inOut"},${s0(0.5)});`);
+    }
+    if (kind === "cta") {
+      const cs = Math.round(H * 0.09);
+      sv.push(`<path class="${pid}cc" d="M${W} ${H - cs} L${W} ${H} L${W - cs} ${H} Z" fill="${rgba("#6B5B73", 0.18)}"/>`);
+      sv.push(`<path class="${pid}cc" d="M${W} ${H - cs} L${W - cs} ${H} L${W - cs * 0.45} ${H - cs * 0.45} Z" fill="${rgba("#FFFFFF", 0.85)}"/>`);
+      sc.push(`tl.fromTo("#${id} .${pid}cc",{opacity:0},{opacity:1,duration:.5},${s0(0.8)});`);
+    }
   } else {
     // GENERIC ornament fallback (Phase 3) — a pack with a manifest but no bespoke
     // branch above (e.g. a future manifest-only pack) still gets baseline skin
@@ -2385,12 +2443,60 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
       seed, sceneIndex: i, sceneCount: scenes.length,
       variant: dress?.variant != null ? dress.variant : textVariant(theme, seed, i), // 0-3 layout variant
       decorSvg: dress?.decorSvg || null,
+      // Scene copy + film title, so pack ornaments can be TOPIC-DRIVEN (ticker
+      // marquees, gate signs, timecode chips…) instead of abstract filler.
+      scene, sbTitle: sb.title || "",
     };
     return { scene, i, ctx, isContent: i > 0 && i < scenes.length - 1, build: archetypeFor(scene, i, scenes.length) };
   });
 
   const leftover = () => pools.screenshots.length + pools.vectors.length + pools.photos.length;
   let usedShot = false, montageDone = false;
+
+  // Pass 0 — DIRECTOR PLACEMENT. The creative director / asset planner annotates
+  // assets with the scene they belong to (`asset.sceneId`, matching the
+  // storyboard's own scene ids — numbers on /generate, "s1"-style strings on the
+  // project path). Honor those assignments FIRST; everything left (or whose
+  // target slot is taken) falls through to the affinity passes below, so a
+  // storyboard with no director annotations behaves exactly as before.
+  {
+    const sceneByKey = new Map();
+    for (const p of plan) {
+      if (p.scene.id != null) sceneByKey.set(String(p.scene.id), p);
+      sceneByKey.set(p.ctx.id, p);            // "s1".."sN"
+      sceneByKey.set(String(p.i + 1), p);     // bare index
+    }
+    const targetFor = (a) => (a && a.sceneId != null) ? sceneByKey.get(String(a.sceneId)) : null;
+    const promRank = (a) => (a.cdProminence === "hero" ? 0 : a.cdProminence === "support" ? 1 : 2);
+    let placed = 0;
+    const placeForeground = (p, a, buildFn) => { p.ctx.asset = a; p.build = buildFn; placed++; };
+    // Heroes claim slots before supports so the director's top pick wins contention.
+    for (const poolName of ["screenshots", "vectors", "photos", "videos"]) {
+      const pool = pools[poolName];
+      const assigned = pool.filter((a) => targetFor(a)).sort((x, y) => promRank(x) - promRank(y));
+      for (const a of assigned) {
+        const p = targetFor(a);
+        const fgOpen = p.isContent && !p.ctx.asset && !p.ctx.assets;
+        if (poolName === "screenshots" && fgOpen && (p.build === archText || p.build === archFeatureGrid)) {
+          placeForeground(p, a, archScreenshotHero);
+          p.ctx.kicker = p.scene.emphasis || "Live preview";
+          usedShot = true;
+        } else if ((poolName === "vectors" || poolName === "photos") && fgOpen && p.build === archText) {
+          placeForeground(p, a, archSplitVector);
+        } else if (poolName === "videos" && p.i !== 0 && !p.ctx.bgVideo) {
+          p.ctx.bgVideo = a; placed++;
+        } else if (poolName !== "videos" && p.i !== 0 && !p.ctx.bgAsset && !p.ctx.asset && !p.ctx.assets) {
+          // Target scene's foreground is content-critical (stat/quote/…) or taken —
+          // still honor the assignment as that scene's scrimmed background.
+          p.ctx.bgAsset = a; placed++;
+        } else {
+          continue; // leave in pool for the affinity passes
+        }
+        pool.splice(pool.indexOf(a), 1);
+      }
+    }
+    if (placed) console.log(`[scene-kit] director placement: ${placed} asset(s) placed by sceneId`);
+  }
 
   // Pass 1 — FOREGROUND features on every CONTENT scene. The old guard only wove
   // assets into `archText` scenes, so a video whose middle scenes were stat/number

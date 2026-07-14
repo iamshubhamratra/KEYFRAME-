@@ -254,7 +254,18 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
   }
 
   // ---- 2) Apply verdicts (annotate; collect rejects) ----
-  const validSceneIds = new Set(scenes.map((s) => Number(s.id)).filter(Number.isFinite));
+  // Scene ids are numbers on the /generate path but STRINGS ("s2") on the
+  // project path, and JSON-mode models freely echo "3" for 3 — so accept a
+  // verdict's assignScene in raw form OR via Number-normalization. A canonical
+  // map keys both spellings back to the storyboard's own id value.
+  const canonicalSceneId = new Map();
+  for (const s of scenes) {
+    if (s.id == null) continue;
+    canonicalSceneId.set(s.id, s.id);
+    canonicalSceneId.set(String(s.id), s.id);
+    const n = Number(s.id);
+    if (Number.isFinite(n)) canonicalSceneId.set(n, s.id);
+  }
   const assetScores = {};
   const rejectedAssets = [];
   const toDelete = new Set(); // indices into `visual`
@@ -268,12 +279,11 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
     a.sees = typeof v.sees === "string" ? v.sees : a.sees;
     const prom = String(v.prominence || "").toLowerCase();
     a.cdProminence = ["hero", "support", "background", "reject"].includes(prom) ? prom : "background";
-    // Number-normalize: JSON-mode models often return scene ids as strings
-    // ("3" vs 3), and validSceneIds.has() is strict-typed — without this,
-    // every scene assignment silently drops.
-    const sid = Number(v.assignScene);
-    if (v.assignScene != null && Number.isFinite(sid) && validSceneIds.has(sid)) {
-      a.sceneId = sid;
+    if (v.assignScene != null) {
+      const sid = canonicalSceneId.get(v.assignScene)
+        ?? canonicalSceneId.get(String(v.assignScene))
+        ?? canonicalSceneId.get(Number(v.assignScene));
+      if (sid != null) a.sceneId = sid;
     }
     if (v.sectionType) a.sectionType = String(v.sectionType).slice(0, 20);
 
