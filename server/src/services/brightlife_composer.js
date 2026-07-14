@@ -7,11 +7,15 @@
 //
 // WHY IT DOESN'T COPY THE FLAGSHIP'S BLOOM: on a white ground, additive bloom does
 // almost nothing (you cannot add light to white). So Bright Life gets its glow and
-// depth from (a) soft radial-gradient ORB SPRITES (Gaussian-blur look, normal blend
-// so they tint the white), (b) translucent GLASS geometry (spheres / torus / rings /
-// rounded cubes / capsules) lit by ambient+directional light, (c) colored PARTICLE
-// points, and (d) soft indigo SHADOW planes under the product cards. No EffectComposer
-// — one direct renderer.render() per frame keeps it robust and deterministic.
+// depth from a GRAPHICAL MOTION SYSTEM (Stripe / Linear / Framer / OpenAI register) —
+// NOT glassmorphism: (a) GRADIENT DATA WAVES (flowing matte mesh-gradient ribbons =
+// AI/intelligence), (b) a MATTE GRADIENT BLOB FAMILY (morphing sculpture, no glass),
+// (c) a MOTION GEOMETRY constellation (orbiting nodes + gradient arcs + connections
+// that ASSEMBLE on features, CONVERGE on the CTA), (d) a DYNAMIC GRAPH LINE that draws
+// up on the benefits scene (growth), plus soft ORB sprites, PARTICLE points and card
+// SHADOWS. Materials are matte (MeshStandard + custom gradient ShaderMaterials) — NO
+// MeshPhysicalMaterial, NO transmission, NO env reflections. No EffectComposer — one
+// direct renderer.render() per frame keeps it robust and deterministic.
 //
 // THE IDENTITY: product screenshots (or a GENERATED light dashboard when none exist)
 // float on WHITE glassmorphic cards with a 1px indigo hairline, a soft floating
@@ -228,6 +232,8 @@ function threeModule({ theme, dims, D, seed, sceneWindows, plates }) {
   const pastel = theme.accents.slice(0, 3).map((h) => hexToRgb(lighten(h, 0.55)).map((v) => (v / 255).toFixed(4)));
   // Softened (white-lifted) accent rgb for the hero blob's gradient — pastel, not candy.
   const gcol = theme.accents.slice(0, 3).map((h) => hexToRgb(lighten(h, 0.46)).map((v) => (v / 255).toFixed(4)));
+  // Wave-band gradient: all 4 accents white-lifted → a pastel 4-stop (indigo/violet/cyan/pink) ramp.
+  const wcol = theme.accents.map((h) => hexToRgb(lighten(h, 0.42)).map((v) => (v / 255).toFixed(4)));
   // Softened accent ints for the glass shapes — a gentle tint, never a saturated block.
   const softAcc = theme.accents.map((h) => hexInt(lighten(h, 0.44)));
   // Pastel-shifted palette for the background orbs so no orb reads as a hot ball.
@@ -235,7 +241,6 @@ function threeModule({ theme, dims, D, seed, sceneWindows, plates }) {
   const uiPalette = { ink: theme.ink, dim: theme.dim, ground: theme.ground, ground2: theme.ground2, border: theme.border, accents: theme.accents, palette: theme.palette };
   return `
 import * as THREE from 'three';
-import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
 const W=${W},H=${H},D=${D};
 const A=[${A.map((c) => "0x" + c.toString(16)).join(",")}];
@@ -290,6 +295,66 @@ const AUR_VERT="varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatri
 const aurMat=new THREE.ShaderMaterial({vertexShader:AUR_VERT,fragmentShader:AUR_FRAG,uniforms:{uTime:{value:0}},depthWrite:false,fog:false});
 const aurora=new THREE.Mesh(new THREE.PlaneGeometry(200,120),aurMat); aurora.position.z=-40; scene.add(aurora);
 
+// ---- GRADIENT DATA WAVES (flowing matte mesh-gradient ribbons; AI/data intelligence) ----
+// 3 stacked wave surfaces (hero + 2 softer echoes) in the far upper-left. A travelling
+// sum-of-sines vertex ripple (pure fn of uTime) + a matte 4-stop gradient fragment with a
+// flowing "data stream" highlight. Draws on L→R on the hook; leads (amp+flow up) on solution.
+const WAVE_VS=\`
+uniform float uTime,uAmp,uFlow,uRise,uPhase,uFreq,uReveal;
+varying vec2 vUv; varying float vH; varying float vRev;
+void main(){
+  vUv=uv; vec3 p=position; float x=p.x, y=p.y;
+  float tf=uTime*uFlow+uPhase; float h=0.0;
+  h+=sin(x*0.55*uFreq + tf*0.9)*0.60;
+  h+=sin(x*0.90*uFreq - tf*1.3 + y*0.7)*0.34;
+  h+=sin(x*1.70*uFreq + tf*1.8 + y*1.1)*0.16;
+  h+=sin((x*0.40+y*0.90) - tf*0.6)*0.22;
+  float rev=clamp((uReveal - vUv.x)*4.5 + 1.0, 0.0, 1.0);
+  h*=uAmp*rev; p.z += h; p.y += uRise * vUv.x;
+  vH=h; vRev=rev;
+  gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);
+}\`;
+const WAVE_FS=\`
+precision highp float;
+uniform float uTime,uFlow,uOpa;
+varying vec2 vUv; varying float vH; varying float vRev;
+const vec3 WA=vec3(${wcol[0].join(",")});
+const vec3 WB=vec3(${wcol[1].join(",")});
+const vec3 WC=vec3(${wcol[2].join(",")});
+const vec3 WD=vec3(${wcol[3].join(",")});
+float hsh(vec2 q){return fract(sin(dot(q,vec2(41.3,289.1)))*43758.5453);}
+void main(){
+  float u=vUv.x;
+  vec3 col=mix(WA,WB,smoothstep(0.0,0.40,u));
+  col=mix(col,WC,smoothstep(0.34,0.72,u));
+  col=mix(col,WD,smoothstep(0.68,1.0,u));
+  float crest=clamp(vH*0.55+0.5,0.0,1.0);
+  col=mix(col,vec3(1.0),crest*0.30);
+  float stream=sin(vUv.x*40.0 - uTime*uFlow*2.4 + vH*2.5);
+  col=mix(col,vec3(1.0),smoothstep(0.90,1.0,stream)*0.18);
+  col+=(hsh(floor(vUv*vec2(240.0,90.0)))-0.5)*0.012;
+  float ea=smoothstep(0.0,0.14,vUv.y)*smoothstep(1.0,0.86,vUv.y);
+  float ex=smoothstep(0.0,0.08,vUv.x)*smoothstep(1.0,0.92,vUv.x);
+  gl_FragColor=vec4(col, ea*ex*vRev*uOpa*0.54);
+}\`;
+const waves=[]; const waveGroup=new THREE.Group();
+waveGroup.position.set(land()?-2.0:-1.0, 3.6, -15.5);
+waveGroup.rotation.set(-0.42, 0.22, 0.14); scene.add(waveGroup);
+const WLAYERS=[
+  {seg:[160,44],size:[46,13],z:0.0, y:0.0,op:1.00,amp:1.00,freq:1.00},
+  {seg:[110,26],size:[50,15],z:-2.4,y:0.4,op:0.55,amp:0.80,freq:0.78},
+  {seg:[90,20], size:[54,17],z:-4.6,y:0.8,op:0.34,amp:0.66,freq:1.35},
+];
+for(let i=0;i<WLAYERS.length;i++){ const L=WLAYERS[i];
+  const mat=new THREE.ShaderMaterial({vertexShader:WAVE_VS,fragmentShader:WAVE_FS,
+    transparent:true,depthWrite:false,depthTest:true,side:THREE.DoubleSide,fog:false,
+    uniforms:{uTime:{value:0},uAmp:{value:L.amp},uFlow:{value:1.0},uRise:{value:0.0},
+      uPhase:{value:rand()*6.2832},uFreq:{value:L.freq},uReveal:{value:1.0},uOpa:{value:L.op}}});
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(L.size[0],L.size[1],L.seg[0],L.seg[1]),mat);
+  m.position.set(0,L.y,L.z); m.renderOrder=-5+i; waveGroup.add(m);
+  waves.push({mat, base:{amp:L.amp, op:L.op}});
+}
+
 // ---- soft radial ORB texture (the Gaussian-blur gradient orb look) ----
 function orbTex(hex){
   const s=256, c=document.createElement("canvas"); c.width=c.height=s; const x=c.getContext("2d");
@@ -312,45 +377,97 @@ for(let i=0;i<10;i++){
   orbs.push(sp); scene.add(sp);
 }
 
-// ---- ENVIRONMENT MAP (soft gradient studio) so the glass has real reflections/refraction ----
-function envEquirect(){
-  const w=512,h=256,c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d");
-  const g=x.createLinearGradient(0,0,0,h);
-  g.addColorStop(0,"#ffffff");g.addColorStop(0.42,"#eaeeff");g.addColorStop(0.72,"#e2e8ff");g.addColorStop(1,"#f3ecff");
-  x.fillStyle=g;x.fillRect(0,0,w,h);
-  const blob=(cx,cy,r,col)=>{const rg=x.createRadialGradient(cx,cy,0,cx,cy,r);rg.addColorStop(0,col);rg.addColorStop(1,col.replace(/[0-9.]+\\)$/,"0)"));x.fillStyle=rg;x.fillRect(0,0,w,h);};
-  blob(120,90,160,"rgba(99,102,241,0.55)");blob(400,72,150,"rgba(6,182,212,0.5)");blob(300,205,170,"rgba(236,72,153,0.42)");blob(210,150,150,"rgba(139,92,246,0.4)");
-  const t=new THREE.CanvasTexture(c);t.mapping=THREE.EquirectangularReflectionMapping;if("SRGBColorSpace" in THREE)t.colorSpace=THREE.SRGBColorSpace;return t;
-}
-const pmrem=new THREE.PMREMGenerator(renderer);pmrem.compileEquirectangularShader();
-const envMap=pmrem.fromEquirectangular(envEquirect()).texture;scene.environment=envMap;pmrem.dispose();
+// ---- MATTE GRADIENT BLOB FAMILY (hero + 2 satellites; morphing, matte — NOT glass) ----
+// Evolved from the old hero-blob shader: sum-of-sines vertex warp (pure fn of uTime),
+// a matte mesh-gradient fragment (uniform colors) with soft diffuse shading + tiny grain
+// + a whisper of fresnel — NO transmission, NO env reflections. The always-on sculpture.
+const GC=[[${gcol[0].join(",")}],[${gcol[1].join(",")}],[${gcol[2].join(",")}]];
+const BLOB_COLS=[[GC[0],GC[1],GC[2]],[GC[1],GC[2],GC[0]],[GC[2],GC[0],GC[1]]];
+const BLOB_VERT=\`
+uniform float uTime; uniform float uWarp;
+varying vec3 vPos; varying vec3 vN; varying vec3 vView;
+void main(){ vPos=position; vec3 p=position; float d=0.0;
+  d+=sin(p.x*1.9+uTime*0.55)*0.13; d+=sin(p.y*2.2+uTime*0.48)*0.11;
+  d+=sin(p.z*2.05+uTime*0.66)*0.12; d+=sin((p.x+p.z)*1.5+uTime*0.37)*0.08;
+  d+=sin((p.y-p.x)*1.7+uTime*0.43)*0.07; d*=uWarp;
+  vec3 np=position+normal*d; vec4 mv=modelViewMatrix*vec4(np,1.0);
+  vView=-mv.xyz; vN=normalize(normalMatrix*normal); gl_Position=projectionMatrix*mv; }\`;
+const BLOB_FRAG=\`
+precision highp float;
+uniform vec3 uCA; uniform vec3 uCB; uniform vec3 uCC;
+uniform float uTime; uniform float uFlow; uniform float uAlpha;
+varying vec3 vPos; varying vec3 vN; varying vec3 vView;
+float hash(vec3 p){ return fract(sin(dot(p,vec3(12.9898,78.233,45.164)))*43758.5453); }
+void main(){
+  float ang=uTime*0.06*uFlow; vec2 dir=vec2(cos(ang),sin(ang));
+  float t=clamp(dot(vec2(vPos.x,vPos.y),dir)*0.42+0.5,0.0,1.0);
+  vec3 col=mix(uCA,uCB,smoothstep(0.0,0.60,t)); col=mix(col,uCC,smoothstep(0.55,1.0,t));
+  col=mix(col,vec3(1.0),0.14);
+  vec3 nn=normalize(vN); float shade=0.5+0.5*dot(nn,normalize(vec3(0.35,0.8,0.55)));
+  col*=mix(0.80,1.06,shade);
+  float fres=pow(1.0-max(dot(nn,normalize(vView)),0.0),2.6); col=mix(col,vec3(1.0),fres*0.40);
+  col+=(hash(floor(vPos*90.0))-0.5)*0.028;
+  gl_FragColor=vec4(col,uAlpha);
+}\`;
+const blobsGroup=new THREE.Group(); scene.add(blobsGroup); const BLOBS=[];
+function makeBlob(o){ const c=o.cols;
+  const mat=new THREE.ShaderMaterial({vertexShader:BLOB_VERT,fragmentShader:BLOB_FRAG,
+    uniforms:{uTime:{value:0},uWarp:{value:o.warp},uFlow:{value:o.flow},uAlpha:{value:o.alpha},
+      uCA:{value:new THREE.Color(c[0][0],c[0][1],c[0][2])},
+      uCB:{value:new THREE.Color(c[1][0],c[1][1],c[1][2])},
+      uCC:{value:new THREE.Color(c[2][0],c[2][1],c[2][2])}},
+    transparent:true, depthWrite:o.alpha>0.92});
+  const m=new THREE.Mesh(new THREE.IcosahedronGeometry(o.r,o.detail),mat);
+  m.position.set(o.pos[0],o.pos[1],o.pos[2]);
+  m.userData={hero:!!o.hero,bx:o.pos[0],by:o.pos[1],bz:o.pos[2],
+    cx:o.conv[0],cy:o.conv[1],cz:o.conv[2],spin:o.spin,ph:rand()*6.28,dr:o.dr,fa:o.fa,warp:o.warp,mat};
+  blobsGroup.add(m); BLOBS.push(m); return m; }
+const HX=land()?-6.6:-3.4, HY=2.7, HZ=-3.2;
+makeBlob({hero:true,cols:BLOB_COLS[0],pos:[HX,HY,HZ],conv:[land()?-4.2:-2.2,2.3,HZ],
+  r:1.55,detail:5,warp:1.0,flow:1.0,alpha:0.96,spin:[0.015,0.05,0.0],dr:0.34,fa:0.10});
+makeBlob({cols:BLOB_COLS[1],pos:[land()?7.6:3.6,3.0,-10.5],conv:[land()?-2.0:-1.0,2.6,-3.8],
+  r:0.85,detail:4,warp:0.85,flow:-0.8,alpha:0.70,spin:[0.05,0.07,0.02],dr:0.26,fa:0.13});
+makeBlob({cols:BLOB_COLS[2],pos:[land()?1.8:0.9,-3.4,-9.2],conv:[land()?-3.0:-1.6,0.9,-3.6],
+  r:1.05,detail:4,warp:1.15,flow:0.9,alpha:0.74,spin:[0.04,0.06,0.03],dr:0.30,fa:0.12});
+const shapes=new THREE.Group(); scene.add(shapes);   // kept (legacy spin group; now empty → no-op)
 
-// ---- soft frosted GLASS material (gentle tint, restrained iridescence, clearcoat) ----
-// Roughness up + iridescence & envMapIntensity down = frosted pastel glass, not a
-// saturated rainbow gem; the long attenuationDistance keeps the tint a whisper.
-function glassMat(hex){return new THREE.MeshPhysicalMaterial({color:hex,metalness:0,roughness:0.16,transmission:0.9,thickness:0.85,ior:1.4,iridescence:0.32,iridescenceIOR:1.25,clearcoat:1,clearcoatRoughness:0.26,attenuationColor:new THREE.Color(hex),attenuationDistance:4.2,envMapIntensity:0.8});}
-
-// ---- SIGNATURE HERO: a slowly MORPHING gradient blob (liquid indigo→violet→cyan) ----
-// Vertex noise (sum-of-sines, pure fn of uTime) wobbles the surface; the fragment
-// paints a vertical gradient with a bright fresnel sheen — a vivid, always-visible focal.
-const BLOB_VERT="uniform float uTime; varying vec3 vPos; varying vec3 vN; varying vec3 vView; void main(){ vPos=position; vec3 p=position; float d=0.0; d+=sin(p.x*1.9+uTime*0.55)*0.13; d+=sin(p.y*2.2+uTime*0.48)*0.11; d+=sin(p.z*2.05+uTime*0.66)*0.12; d+=sin((p.x+p.z)*1.5+uTime*0.37)*0.08; d+=sin((p.y-p.x)*1.7+uTime*0.43)*0.07; vec3 np=position+normal*d; vec4 mv=modelViewMatrix*vec4(np,1.0); vView=-mv.xyz; vN=normalize(normalMatrix*normal); gl_Position=projectionMatrix*mv; }";
-const BLOB_FRAG="precision highp float; varying vec3 vPos; varying vec3 vN; varying vec3 vView; const vec3 GA=vec3(${gcol[0]}); const vec3 GB=vec3(${gcol[1]}); const vec3 GC=vec3(${gcol[2]}); void main(){ float t=clamp(vPos.y*0.42+0.5,0.0,1.0); vec3 col=mix(GA,GB,smoothstep(0.0,0.62,t)); col=mix(col,GC,smoothstep(0.55,1.0,t)); col=mix(col,vec3(1.0),0.18); float fres=pow(1.0-max(dot(normalize(vN),normalize(vView)),0.0),2.4); col=mix(col,vec3(1.0),fres*0.5); gl_FragColor=vec4(col,0.9); }";
-const blobMat=new THREE.ShaderMaterial({vertexShader:BLOB_VERT,fragmentShader:BLOB_FRAG,uniforms:{uTime:{value:0}},transparent:true});
-const shapes=new THREE.Group(); scene.add(shapes);
-const blob=new THREE.Mesh(new THREE.IcosahedronGeometry(1.55,5),blobMat);
-blob.position.set(land()?-6.6:-3.4, 2.7, -3.2);
-blob.userData={spin:[0.02,0.05,0.0],ph:rand()*6.28,fa:0.34};
-shapes.add(blob);
-
-// ---- premium glass ACCENTS (smooth high-poly & sculptural — no wireframe) ----
-function addGlass(geo,hex,pos,spin,fa){const m=new THREE.Mesh(geo,glassMat(hex));m.position.set(pos[0],pos[1],pos[2]);m.userData={spin,ph:rand()*6.28,fa:fa||0.4};shapes.add(m);}
-addGlass(new THREE.TorusKnotGeometry(0.95,0.30,160,26),SOFT[2],[land()?7.6:3.6,-2.8,-9],[0.06,0.09,0.02],0.5);      // sculptural knot
-addGlass(new RoundedBoxGeometry(2.0,2.0,2.0,6,0.42),SOFT[1],[land()?-7.6:-3.6,-3.6,-8],[0.05,0.07,0.03],0.45);       // soft cube
-addGlass(new THREE.SphereGeometry(1.15,64,64),SOFT[3],[land()?7.9:3.7,3.6,-8],[0.03,0.05,0.0],0.5);                   // smooth orb
-addGlass(new THREE.IcosahedronGeometry(0.9,1),SOFT[0],[land()?4.0:2.2,-4.0,-6],[0.07,0.06,0.05],0.4);                 // cut crystal gem
-
-// ---- two faint depth RINGS ----
-for(let i=0;i<2;i++){const R=3.0+i*1.4;const ring=new THREE.Mesh(new THREE.RingGeometry(R,R+0.04,96),new THREE.MeshBasicMaterial({color:A[i%A.length],transparent:true,opacity:0.12,side:THREE.DoubleSide,depthWrite:false}));ring.position.set(0,0.4,-14-i*2);ring.userData={sp:0.03+i*0.02,isRing:true};shapes.add(ring);}
+// ---- MOTION GEOMETRY SYSTEM (orbiting nodes + gradient arcs + connecting links) ----
+// A far-field constellation up-right that ASSEMBLES on features and CONVERGES on the CTA.
+// Arcs = gradient TorusGeometry (draw-on via uDraw); nodes = matte MeshStandard on orbits;
+// links = per-frame-rebuilt gradient lines. Replaces the two old rings as the structure layer.
+const geo=new THREE.Group();
+geo.position.set(land()?3.4:0.4, 2.0, -11.5); geo.rotation.x=-0.42; geo.rotation.z=0.12; scene.add(geo);
+const ARC_VERT="varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }";
+const ARC_FRAG="precision highp float; varying vec2 vUv; uniform float uDraw; uniform float uOpacity; uniform float uShift; const vec3 CA=vec3(${gcol[0].join(",")}); const vec3 CB=vec3(${gcol[1].join(",")}); const vec3 CC=vec3(${gcol[2].join(",")}); void main(){ float g=fract(vUv.x+uShift); vec3 col=mix(CA,CB,smoothstep(0.0,0.5,g)); col=mix(col,CC,smoothstep(0.5,1.0,g)); col=mix(col,vec3(1.0),0.14); float edge=smoothstep(uDraw,uDraw-0.05,vUv.x); float a=uOpacity*edge; if(a<0.01) discard; gl_FragColor=vec4(col,a); }";
+const geoArcs=[]; const ARCR=[2.55,3.5,4.45];
+for(let i=0;i<3;i++){ const span=(0.72+rand()*0.5)*Math.PI;
+  const g2=new THREE.TorusGeometry(ARCR[i],0.05+0.009*(2-i),8,150,span);
+  const m2=new THREE.ShaderMaterial({vertexShader:ARC_VERT,fragmentShader:ARC_FRAG,uniforms:{uDraw:{value:1},uOpacity:{value:0.5},uShift:{value:0}},transparent:true,depthWrite:false,fog:false});
+  const arc=new THREE.Mesh(g2,m2); arc.userData={base:rand()*6.28,sp:(0.05+0.03*i)*(i%2?-1:1),op:0.52+0.12*(2-i)};
+  arc.rotation.z=arc.userData.base; geoArcs.push(arc); geo.add(arc); }
+const nodeGeo=new THREE.IcosahedronGeometry(1,2); const geoNodes=[]; const RINGN=[4,5,4];
+for(let ri=0;ri<3;ri++){ const dir=ri%2?-1:1, sp=(0.06+0.028*ri)*dir;
+  for(let j=0;j<RINGN[ri];j++){ const col=SOFT[(ri+j)%SOFT.length];
+    const mat=new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:0.22,roughness:0.6,metalness:0.05,transparent:true,opacity:0.92});
+    const nd=new THREE.Mesh(nodeGeo,mat); const size=(0.12+rand()*0.07)*(ri===0?1.15:1.0);
+    nd.userData={R:ARCR[ri],ang0:(j/RINGN[ri])*6.283+rand()*0.5,sp,dir,size,ph:rand()*6.28,op:0.9};
+    nd.scale.setScalar(size); geoNodes.push(nd); geo.add(nd); } }
+const core=new THREE.Mesh(nodeGeo,new THREE.MeshStandardMaterial({color:SOFT[0],emissive:A[1],emissiveIntensity:0.18,roughness:0.5,metalness:0.05,transparent:true,opacity:0}));
+core.scale.setScalar(0.001); geo.add(core);
+const LNK_VERT="attribute float aLocal; attribute float aSeg; varying float vL; varying float vS; void main(){ vL=aLocal; vS=aSeg; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }";
+const LNK_FRAG="precision highp float; varying float vL; varying float vS; uniform float uDraw; uniform float uOpacity; const vec3 CA=vec3(${gcol[0].join(",")}); const vec3 CC=vec3(${gcol[2].join(",")}); void main(){ vec3 col=mix(CA,CC,vL); col=mix(col,vec3(1.0),0.10); float edge=smoothstep(uDraw,uDraw-0.06,vS); float a=uOpacity*edge; if(a<0.01) discard; gl_FragColor=vec4(col,a); }";
+const linkMat=new THREE.ShaderMaterial({vertexShader:LNK_VERT,fragmentShader:LNK_FRAG,uniforms:{uDraw:{value:1},uOpacity:{value:0.4}},transparent:true,depthWrite:false,fog:false});
+const geoLinks=[];
+function addLink(a,b,off){ const seg=26, pos=new Float32Array((seg+1)*3), loc=new Float32Array(seg+1), sgv=new Float32Array(seg+1);
+  const spanp=1-off; for(let s=0;s<=seg;s++){const tt=s/seg; loc[s]=tt; sgv[s]=off+tt*spanp;}
+  const bg=new THREE.BufferGeometry();
+  bg.setAttribute("position",new THREE.BufferAttribute(pos,3));
+  bg.setAttribute("aLocal",new THREE.BufferAttribute(loc,1));
+  bg.setAttribute("aSeg",new THREE.BufferAttribute(sgv,1));
+  const ln=new THREE.Line(bg,linkMat); ln.userData={a,b,seg,bow:(rand()-0.5)*0.7,off}; geoLinks.push(ln); geo.add(ln); }
+const ringStart=[0,RINGN[0],RINGN[0]+RINGN[1]];
+for(let ri=0;ri<3;ri++){const n=RINGN[ri],s0=ringStart[ri];for(let j=0;j<n;j++){addLink(geoNodes[s0+j],geoNodes[s0+((j+1)%n)],rand()*0.35);}}
+for(let k=0;k<4;k++){const a=geoNodes[Math.floor(rand()*geoNodes.length)],b=geoNodes[Math.floor(rand()*geoNodes.length)];if(a!==b)addLink(a,b,0.15+rand()*0.5);}
 
 // ---- colored PARTICLE field (soft dots) ----
 const dotTexC=(()=>{const s=64,c=document.createElement("canvas");c.width=c.height=s;const x=c.getContext("2d");const g=x.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);g.addColorStop(0,"#ffffffff");g.addColorStop(0.5,"#ffffff88");g.addColorStop(1,"#ffffff00");x.fillStyle=g;x.beginPath();x.arc(s/2,s/2,s/2,0,6.2832);x.fill();const t=new THREE.CanvasTexture(c);return t;})();
@@ -358,6 +475,49 @@ const N=140, PP=new Float32Array(N*3), PC=new Float32Array(N*3);
 for(let i=0;i<N;i++){PP[i*3]=(rand()-0.5)*36;PP[i*3+1]=(rand()-0.5)*22;PP[i*3+2]=-2+rand()*10;const c=new THREE.Color(PAL[i%PAL.length]);PC[i*3]=c.r;PC[i*3+1]=c.g;PC[i*3+2]=c.b;}
 const pg=new THREE.BufferGeometry(); pg.setAttribute("position",new THREE.BufferAttribute(PP,3)); pg.setAttribute("color",new THREE.BufferAttribute(PC,3));
 const dots=new THREE.Points(pg,new THREE.PointsMaterial({size:0.16,map:dotTexC,vertexColors:true,transparent:true,opacity:0.55,depthWrite:false})); scene.add(dots);
+
+// ---- DYNAMIC GRAPH LINE (draw-on rising curve + area + data dots; growth/benefits) ----
+// The ONE crisp saturated accent line (indigo→violet→cyan, pink terminal). A TubeGeometry
+// drawn on via setDrawRange from scene-local progress, a low-alpha pastel area fill, and
+// pulsing data points. Hidden except the BENEFITS scene, where numbers go up.
+const graph=new THREE.Group();
+const GBX=land()?1.2:-0.2, GBY=land()?-1.7:-3.2; graph.position.set(GBX,GBY,-5.5); scene.add(graph);
+const GN=8, GSPAN=land()?9.2:6.4, GRISE=land()?4.4:3.6; const gPts=[]; let gClimb=0;
+for(let i=0;i<GN;i++){ const tx=i/(GN-1); const base=Math.pow(tx,0.85);
+  const wob=(i>0&&i<GN-1)?(rand()-0.5)*0.14:0; gClimb=Math.max(gClimb,base+wob);
+  gPts.push(new THREE.Vector3((tx-0.5)*GSPAN,(gClimb-0.5)*GRISE,Math.sin(tx*3.0)*0.25)); }
+const gCurve=new THREE.CatmullRomCurve3(gPts,false,"catmullrom",0.4);
+const G_SEG=240, G_RADSEG=10, G_RING=G_RADSEG*6;
+const G_A=new THREE.Color(A[0]), G_B=new THREE.Color(A[1]), G_C=new THREE.Color(A[2]);
+const gTubeGeo=new THREE.TubeGeometry(gCurve,G_SEG,land()?0.055:0.05,G_RADSEG,false); gTubeGeo.setDrawRange(0,0);
+const gTubeMat=new THREE.ShaderMaterial({uniforms:{uProg:{value:0},cA:{value:G_A},cB:{value:G_B},cC:{value:G_C}},
+  vertexShader:\`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }\`,
+  fragmentShader:\`precision highp float; uniform float uProg; uniform vec3 cA; uniform vec3 cB; uniform vec3 cC; varying vec2 vUv;
+  void main(){ float x=vUv.x; vec3 col=mix(cA,cB,smoothstep(0.0,0.6,x)); col=mix(col,cC,smoothstep(0.55,1.0,x));
+  float sheen=smoothstep(0.5,1.0,vUv.y); col=mix(col,vec3(1.0),sheen*0.28);
+  float head=smoothstep(uProg-0.05,uProg,x)*step(x,uProg); col=mix(col,vec3(1.0),head*0.6);
+  gl_FragColor=vec4(col,1.0); }\`});
+const gTube=new THREE.Mesh(gTubeGeo,gTubeMat); gTube.renderOrder=3; graph.add(gTube);
+const gBaseY=-(GRISE*0.5)-0.15; const aPos=[],aUv=[],aIdx=[],G_AREA=Math.floor(G_SEG*0.5);
+for(let i=0;i<=G_AREA;i++){ const u=i/G_AREA, p=gCurve.getPoint(u); aPos.push(p.x,p.y,p.z); aUv.push(u,1); aPos.push(p.x,gBaseY,p.z); aUv.push(u,0); }
+for(let i=0;i<G_AREA;i++){ const a=i*2; aIdx.push(a,a+1,a+2, a+1,a+3,a+2); }
+const gAreaGeo=new THREE.BufferGeometry();
+gAreaGeo.setAttribute("position",new THREE.Float32BufferAttribute(aPos,3));
+gAreaGeo.setAttribute("uv",new THREE.Float32BufferAttribute(aUv,2)); gAreaGeo.setIndex(aIdx);
+const gAreaMat=new THREE.ShaderMaterial({uniforms:{uProg:{value:0},cA:{value:G_A},cC:{value:G_C}},transparent:true,depthWrite:false,side:THREE.DoubleSide,
+  vertexShader:\`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }\`,
+  fragmentShader:\`precision highp float; uniform float uProg; uniform vec3 cA; uniform vec3 cC; varying vec2 vUv;
+  void main(){ if(vUv.x>uProg) discard; vec3 tint=mix(cA,cC,vUv.x); float a=pow(vUv.y,1.6)*0.20; a*=smoothstep(uProg,uProg-0.05,vUv.x); gl_FragColor=vec4(tint,a); }\`});
+const gArea=new THREE.Mesh(gAreaGeo,gAreaMat); gArea.renderOrder=1; graph.add(gArea);
+const gDots=[]; const dotGeo=new THREE.SphereGeometry(land()?0.11:0.10,20,20);
+const haloGeo=new THREE.RingGeometry(land()?0.13:0.115,land()?0.18:0.155,26);
+for(let i=0;i<GN;i++){ const tx=i/(GN-1);
+  const d=new THREE.Mesh(dotGeo,new THREE.MeshBasicMaterial({color:i===GN-1?A[3]:A[0]}));
+  d.position.copy(gPts[i]); d.scale.setScalar(0.0001); d.renderOrder=4;
+  const halo=new THREE.Mesh(haloGeo,new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.85,side:THREE.DoubleSide,depthWrite:false}));
+  halo.position.copy(gPts[i]); halo.position.z-=0.02; halo.scale.setScalar(0.0001); halo.renderOrder=2;
+  d.userData={tx,halo}; graph.add(halo); graph.add(d); gDots.push(d); }
+graph.visible=false;
 
 // ================= GENERATED LIGHT PRODUCT UI (CanvasTexture) =====================
 // Draws a convincing BRIGHT dashboard / analytics / board in the palette so a card
@@ -527,14 +687,72 @@ function render3d(t){
   // orbs drift + gentle bob (pure fn of time)
   orbs.forEach((sp)=>{const u=sp.userData;sp.position.x=u.bx+Math.sin(t*u.sp+u.ph)*u.ax;sp.position.y=u.by+Math.cos(t*u.sp*0.9+u.ph)*u.ay;});
   dots.rotation.y=t*0.015; dots.position.x=Math.sin(t*0.08)*0.6;
-  blobMat.uniforms.uTime.value=t;
   shapes.children.forEach((g)=>{const u=g.userData;if(u.isRing){g.rotation.z=t*u.sp;return;}if(!u.spin)return;g.rotation.x=t*u.spin[0];g.rotation.y=t*u.spin[1];g.rotation.z=t*u.spin[2];g.position.y=(u.by!==undefined?u.by:(u.by=g.position.y))+Math.sin(t*0.4+u.ph)*u.fa;});
   let active=SCENES[0];
   for(const sc of SCENES){const o=winOpacity(t,sc.start,sc.end);setOpacity(sc.group,o);if(t>=sc.start&&t<sc.end)active=sc;
     sc.group.children.forEach((pl)=>{const j=pl.userData.jit;if(!j)return;const lt=t-sc.start;pl.position.y=(pl.userData.baseY!==undefined?pl.userData.baseY:(pl.userData.baseY=pl.position.y))+Math.sin(lt*0.7+j.ph)*0.13;pl.rotation.x=Math.sin(lt*0.5+j.ph)*0.02;});
   }
+  // ---- shared scene-local time (active resolved by the SCENES loop above; all fn of t) ----
+  const AT=active.type, LT=t-active.start, DUR=Math.max(0.1,active.end-active.start), P=Math.min(1,Math.max(0,LT/DUR)), E=expoInOut(P);
   const c=cameraFor(active.type,t-active.start,active.end-active.start);
   cam.position.set(c.px,c.py,c.pz); cam.up.set(Math.sin(c.roll||0),Math.cos(c.roll||0),0); cam.lookAt(c.tx,c.ty,c.tz);
+
+  // GRADIENT DATA WAVES — hero on SOLUTION (flow+amp), draws on over HOOK, faint elsewhere.
+  { let tAmp=0.5,tFlow=1.0,tRise=0.0,tRev=1.0,tOpaK=0.5;
+    if(AT==="hook"){ tAmp=lerp(0.35,0.7,E); tFlow=1.4; tRev=E; tOpaK=0.6; }
+    else if(AT==="solution"){ tAmp=lerp(0.7,1.05,smooth(0,0.7,P)); tFlow=1.5; tRise=0.14; tOpaK=1.0; }
+    else if(AT==="problem"){ tAmp=0.4; tFlow=0.6; tRise=-0.1; tOpaK=0.55; }
+    else if(AT==="features"){ tAmp=0.5; tFlow=1.2; tOpaK=0.45; }
+    else if(AT==="benefits"){ tAmp=0.45; tFlow=0.8; tOpaK=0.4; }
+    else if(AT==="cta"){ tAmp=lerp(0.7,0.4,E); tFlow=lerp(1.2,0.6,E); tOpaK=0.45; }
+    for(let wi=0;wi<waves.length;wi++){ const u=waves[wi].mat.uniforms;
+      u.uTime.value=t; u.uAmp.value=tAmp*waves[wi].base.amp; u.uFlow.value=tFlow;
+      u.uRise.value=tRise; u.uReveal.value=tRev; u.uOpa.value=waves[wi].base.op*tOpaK; }
+    waveGroup.position.x=(land()?-2.0:-1.0)+Math.sin(t*0.05)*0.5;
+    waveGroup.rotation.z=0.14+Math.sin(t*0.06)*0.03;
+  }
+
+  // MATTE BLOB FAMILY — HOOK hero scales in; CTA all gather; else calm idle morph/breathe.
+  { const gather=(AT==="cta")?E:0.0;
+    const heroIn=(AT==="hook")?lerp(0.7,1.0,smooth(0.0,0.9,P)):1.0;
+    for(let i=0;i<BLOBS.length;i++){ const b=BLOBS[i], u=b.userData;
+      u.mat.uniforms.uTime.value=t;
+      let x=lerp(u.bx,u.cx,gather), y=lerp(u.by,u.cy,gather), z=lerp(u.bz,u.cz,gather);
+      x+=Math.sin(t*u.dr+u.ph)*u.fa; y+=Math.cos(t*u.dr*0.9+u.ph)*u.fa*0.8;
+      b.position.set(x,y,z);
+      const breathe=1.0+Math.sin(t*0.5+u.ph)*0.03;
+      b.scale.setScalar((u.hero?heroIn:1.0)*breathe*(1.0+gather*0.04));
+      u.mat.uniforms.uWarp.value=u.warp*(1.0+gather*0.25);
+      b.rotation.set(t*u.spin[0]+u.ph*0.3, t*u.spin[1], t*u.spin[2]); }
+  }
+
+  // MOTION GEOMETRY — FEATURES assembles (draw-on), CTA converges into a bloom core.
+  { const assemble=(AT==="features")?smooth(0.0,0.62,P):1.0;
+    const converge=(AT==="cta")?expoInOut(Math.min(1,P/0.82)):0.0;
+    const flow=(AT==="solution")?1.4:(AT==="hook"?0.8:(AT==="benefits"?0.5:0.35));
+    const ambient=(AT==="features"||AT==="cta")?1.0:0.62;
+    geo.scale.setScalar(lerp(1.0,0.72,converge));
+    geo.rotation.z=0.12+t*0.012+converge*0.6;
+    geoArcs.forEach((arc,i)=>{const u=arc.userData,m=arc.material.uniforms;arc.rotation.z=u.base+t*u.sp*(1.0+flow*0.4);m.uShift.value=t*(0.02+0.015*i)*(1.0+flow*1.6);m.uDraw.value=assemble;m.uOpacity.value=u.op*ambient*(0.85+0.15*Math.sin(t*0.5+i))*(1.0-converge*0.35);});
+    geoNodes.forEach((nd)=>{const u=nd.userData;let R=lerp(u.R,0.55,converge);const ang=u.ang0+t*u.sp*(1.0+flow*1.0)+converge*5.5*u.dir;nd.position.set(Math.cos(ang)*R,Math.sin(ang)*R,0);const s=u.size*(0.92+0.08*Math.sin(t*1.3+u.ph))*(0.55+0.45*assemble)*(1.0+converge*0.6);nd.scale.setScalar(s);nd.material.opacity=u.op*ambient*(0.12+0.88*assemble);});
+    core.material.opacity=converge*0.85; core.scale.setScalar(0.05+converge*0.5);
+    geoLinks.forEach((lk)=>{const u=lk.userData,a=u.a.position,b=u.b.position,pos=lk.geometry.attributes.position;for(let s=0;s<=u.seg;s++){const tt=s/u.seg,bow=Math.sin(tt*Math.PI)*u.bow;pos.setXYZ(s,lerp(a.x,b.x,tt),lerp(a.y,b.y,tt),bow);}pos.needsUpdate=true;});
+    linkMat.uniforms.uDraw.value=assemble; linkMat.uniforms.uOpacity.value=0.4*ambient*(0.4+0.6*assemble)*(1.0-converge*0.25);
+  }
+
+  // DYNAMIC GRAPH — BENEFITS only: draw-on rising line + area + pulsing data points.
+  { const grow=(AT==="benefits"); graph.visible=grow;
+    if(grow){ const gp=smooth(0.12,0.82,P);
+      gTubeGeo.setDrawRange(0, Math.round(gp*G_SEG)*G_RING);
+      gTubeMat.uniforms.uProg.value=gp; gAreaMat.uniforms.uProg.value=gp;
+      graph.position.y=GBY+gp*(land()?0.8:0.55); graph.scale.y=1.0+gp*0.12; graph.rotation.z=Math.sin(t*0.3)*0.008;
+      for(const d of gDots){ const u=d.userData, rev=smooth(u.tx-0.02,u.tx+0.05,gp);
+        const pulse=1+Math.sin(t*3.4+u.tx*6.0)*0.12*rev;
+        d.scale.setScalar(Math.max(0.0001,rev*(land()?1:0.92)*pulse)); d.visible=rev>0.02;
+        const h=u.halo, hs=rev*(1+Math.sin(t*3.4+u.tx*6.0)*0.18*rev);
+        h.scale.setScalar(Math.max(0.0001,hs)); h.visible=rev>0.02; } }
+  }
+
   tintA.position.x=Math.sin(t*0.28)*8; tintB.position.x=Math.cos(t*0.24)*8;
   wipeMat.opacity=wipeAt(t);
   renderer.render(scene,cam);

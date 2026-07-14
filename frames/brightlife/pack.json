@@ -1,0 +1,55 @@
+{
+  "name": "brightlife",
+  "vibe": "Bright Life — a luminous, bright-cinematic launch-film system in the register above Apple / Stripe / Linear / Framer / OpenAI marketing videos, but never dark. An airy white canvas washed with soft pastel mesh gradients; floating gradient orbs with Gaussian blur, translucent glass shapes, torus and rings drifting in real depth; white glassmorphic product cards presenting live dashboards; a cinematic parallax camera; and big, confident Space Grotesk display type with an indigo-to-violet gradient highlight. Optimistic, premium, future-ready.",
+  "renderer": "three-brightlife",
+  "colors": {
+    "ground": "#FFFFFF",
+    "ground-2": "#F5F6FF",
+    "text": "#111827",
+    "muted": "#6B7280",
+    "indigo": "#6366F1",
+    "violet": "#8B5CF6",
+    "blue": "#3B82F6",
+    "cyan": "#06B6D4",
+    "pink": "#EC4899",
+    "green": "#10B981",
+    "amber": "#F59E0B",
+    "purple": "#A855F7"
+  },
+  "fonts": ["Space Grotesk", "Inter"],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#FFFFFF"
+  },
+  "motion": {
+    "cut": "glow",
+    "drift": 1.0
+  },
+  "fx": {
+    "canvas": "flow",
+    "three": "brightlife"
+  },
+  "skin": {
+    "accents": ["#6366F1", "#8B5CF6", "#06B6D4", "#EC4899"],
+    "extras": ["#3B82F6", "#10B981", "#F59E0B", "#A855F7"],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "bright clean modern product ui on white",
+    "iconStyle": "gradient",
+    "keywords": ["bright", "clean", "modern", "premium", "gradient", "minimal", "pastel", "glass"],
+    "prefer": ["photo", "vector"]
+  },
+  "typography": {
+    "display": "Space Grotesk"
+  },
+  "camera3d": {
+    "ground": "#FFFFFF"
+  },
+  "textfx": {
+    "enter": "mask-reveal",
+    "emphasis": "gradient",
+    "align": "left"
+  }
+}
