@@ -1,0 +1,49 @@
+{
+  "name": "blueprint-atelier",
+  "vibe": "The film is drafted like an engineering drawing on a living drafting table: a blue graph-paper sheet with edge rulers, a slow compass rose, a wandering crosshair with a live X/Y readout, dimension lines that draw themselves with a trailing pencil, dashed-box flowcharts, a scanning output plot, red revision strike-throughs, rubber stamps, and a sheet-wipe between every scene. Deep engineering blue with amber, cyan and red ink; Space Grotesk display over IBM Plex Mono chrome. Rendered as a native GSAP + SVG/CSS composition.",
+  "renderer": "blueprint",
+  "colors": {
+    "ground": "#0C2440",
+    "ground-2": "#123659",
+    "text": "#EAF3FF",
+    "muted": "#9DB8D9",
+    "amber": "#FFB84D",
+    "cyan": "#8FD8FF",
+    "red": "#FF5F5F"
+  },
+  "fonts": ["Space Grotesk", "IBM Plex Mono"],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#0C2440"
+  },
+  "motion": {
+    "cut": "wipe",
+    "drift": 1.0
+  },
+  "fx": {
+    "canvas": "none",
+    "three": "none"
+  },
+  "skin": {
+    "accents": ["#FFB84D", "#8FD8FF", "#FF5F5F"],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "technical schematic blueprint line drawing",
+    "iconStyle": "line",
+    "keywords": ["blueprint", "technical", "schematic", "engineering", "drafting", "monochrome"],
+    "prefer": ["vector", "photo"]
+  },
+  "typography": {
+    "display": "Space Grotesk",
+    "mono": "IBM Plex Mono"
+  },
+  "textfx": {
+    "enter": "blur-up",
+    "emphasis": "gradient",
+    "case": "upper",
+    "tracking": 0.01
+  }
+}

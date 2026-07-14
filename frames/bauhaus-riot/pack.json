@@ -1,0 +1,50 @@
+{
+  "name": "bauhaus-riot",
+  "vibe": "A print poster that came alive. Warm cream paper, bold primary-color geometry (circles, triangles, squares), a dotted halftone texture, hard offset shadows, sticker stamps and a numbered sheet masthead. Heavy Archivo Black display over Space Grotesk mono chrome. NO gradients, NO glows, NO blur — the motion is stamps that snap flat, shapes that drop and bounce, curtain wipes and marching dashes. Rendered as a native GSAP + SVG/CSS composition. Best for bold, confident, editorial, design-forward brands.",
+  "renderer": "bauhaus-riot",
+  "colors": {
+    "ground": "#F4EEE1",
+    "ground-2": "#FFFDF6",
+    "text": "#17161B",
+    "muted": "#3F3D45",
+    "red": "#E4432C",
+    "blue": "#2B4BD7",
+    "yellow": "#F2C21F"
+  },
+  "fonts": ["Archivo Black", "Space Grotesk", "Inter"],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F4EEE1"
+  },
+  "motion": {
+    "cut": "stamp",
+    "drift": 1.0
+  },
+  "fx": {
+    "canvas": "none",
+    "three": "none"
+  },
+  "skin": {
+    "accents": ["#E4432C", "#2B4BD7", "#F2C21F"],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "bold graphic high-contrast poster print",
+    "iconStyle": "line",
+    "keywords": ["bold", "primary", "poster", "graphic", "print", "geometric"],
+    "prefer": ["photo", "vector"]
+  },
+  "typography": {
+    "display": "Archivo Black",
+    "mono": "Space Grotesk",
+    "body": "Inter"
+  },
+  "textfx": {
+    "enter": "stamp",
+    "emphasis": "boxed",
+    "case": "upper",
+    "tracking": -0.01
+  }
+}

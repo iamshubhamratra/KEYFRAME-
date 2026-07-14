@@ -1,0 +1,50 @@
+{
+  "name": "bloom-fable",
+  "vibe": "A pastel storybook where the product grows like a plant. A soft sky-to-cream meadow with a smiling sun, drifting clouds, rolling hills and swaying grass; hand-drawn botanical vectors — a flower that literally blooms scene by scene, a fluttering butterfly, a rainbow, ribbons and falling petals. Warm Fraunces serif storybook type over Inter. Organic motion: draw-on vines, elastic blooms, gentle sways — nothing mechanical. Rendered as a native GSAP + SVG/CSS composition. Best for warm, human, approachable brands.",
+  "renderer": "bloom-fable",
+  "colors": {
+    "ground": "#F8EFDE",
+    "ground-2": "#FBF4E8",
+    "text": "#46345A",
+    "muted": "#6C5B80",
+    "coral": "#E8705F",
+    "sun": "#F2B95C",
+    "sage": "#7FA876",
+    "sky": "#A9D7E8"
+  },
+  "fonts": ["Fraunces", "Inter"],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#F8EFDE"
+  },
+  "motion": {
+    "cut": "grow",
+    "drift": 1.1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": "none"
+  },
+  "skin": {
+    "accents": ["#E8705F", "#F2B95C", "#7FA876"],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "soft warm pastel hand-drawn illustration",
+    "iconStyle": "line",
+    "keywords": ["pastel", "warm", "organic", "botanical", "storybook", "soft"],
+    "prefer": ["illustration", "photo"]
+  },
+  "typography": {
+    "display": "Fraunces",
+    "body": "Inter"
+  },
+  "textfx": {
+    "enter": "spring",
+    "emphasis": "gradient",
+    "case": "none",
+    "tracking": -0.01
+  }
+}

@@ -28,7 +28,34 @@ const { enrichComposition } = require("./enrich");
 const { cinematicCheck } = require("./cinematic_lint");
 const sceneKit = require("./scene_kit");
 const threeComposer = require("./three_composer");
+const flagshipComposer = require("./flagship_composer");
+const brightlifeComposer = require("./brightlife_composer");
+const blueprintComposer = require("./blueprint_composer");
+const bloomComposer = require("./bloom_composer");
+const bauhausComposer = require("./bauhaus_composer");
 const frameRegistry = require("./frame_registry");
+const frameManifest = require("./frame_manifest");
+
+// A pack can declare a dedicated renderer in its manifest (pack.json "renderer").
+// The flagship pack ("three-flagship") routes to the flagship Three.js composer.
+function rendererFor(framePack) {
+  if (!framePack) return null;
+  try { const m = frameManifest.getManifest(framePack); return (m && m.renderer) || null; }
+  catch { return null; }
+}
+
+// A pack is "flat" (solid grounds, no gradients/glows — blockframe, biennale,
+// editorial packs) when its manifest says so, or it's in scene-kit's FLAT_PACKS
+// set. Flat packs skip the generic gradient/particle enrichment that would erase
+// their identity (see enrich.js).
+function isFlatPack(framePack) {
+  if (!framePack) return false;
+  try {
+    const m = frameManifest.getManifest(framePack);
+    if (m && m.surface && typeof m.surface.flat === "boolean") return m.surface.flat;
+  } catch { /* fall through */ }
+  return !!(sceneKit.FLAT_PACKS && sceneKit.FLAT_PACKS.has && sceneKit.FLAT_PACKS.has(framePack));
+}
 const { render } = require("./renderer");
 const { buildFallback } = require("./fallback");
 const { planAudio } = require("./audio_planner");
@@ -39,6 +66,8 @@ const { mix: audioMix } = require("./audio_mix");
 const { planAssets } = require("./asset_planner");
 const { acquire, makeImageDeduper } = require("./asset_sources");
 const { checkAssetsRelevance } = require("./asset_vision");
+const { reviewAndCurate } = require("./creative_director");
+const { directAudio } = require("./audio_director");
 const { styleFor } = require("./pack_style");
 const catalog = require("./catalog");
 const { contrastCheck } = require("./contrast_check");
@@ -116,14 +145,14 @@ async function planAndFetchAssets({ jobDir, storyboard, flags, orientation, trac
     plan.images.forEach((a, i) => {
       const relPath = `assets/images/${i}.jpg`;
       const absPath = path.join(jobDir, relPath);
-      // Anchor to the film's subject (on-topic stock), then add the pack's visual
-      // style (matches the look). Un-styled + plain queries kept as fallbacks.
-      const base = subject ? `${subject} ${a.query}` : a.query;
-      const q = packStyle.photoMod ? `${base} ${packStyle.photoMod}` : base;
+      // Anchor to the film's subject (on-topic stock). Pack style is applied at
+      // RANK time (styleKeywords) and render time (treatment) — not concatenated
+      // into the search text, which overflowed provider length limits.
+      const q = subject ? `${subject} ${a.query}` : a.query;
       tasks.push(
         acquire({
           query: q,
-          fallbackQueries: [...new Set([base, a.query, ...fallbackQueriesFor(q)])],
+          fallbackQueries: [...new Set([a.query, ...fallbackQueriesFor(q)])],
           type: "image", orientation, outputPath: absPath, tracker,
           styleKeywords: packStyle.keywords,
         })
@@ -178,10 +207,15 @@ async function planAndFetchAssets({ jobDir, storyboard, flags, orientation, trac
   // VISION RELEVANCE GATE (batched) — gate ONLY real web stock; curated picks
   // carry no provider source and stay trusted. One batched call (chunks of 6),
   // fail-open. Brings /api/generate to the agent graph's asset-quality bar.
+  //
+  // SUPERSEDED by the Creative Director agent when enabled: the CD runs a richer
+  // review (scores + scene assignment + prominence) on ALL assets after this
+  // stage, so we skip this simpler keep/reject gate to avoid double vision cost.
+  // Kept as the fallback when CREATIVE_DIRECTOR=0.
   const PROVIDER_SOURCES = new Set(["pixabay", "openverse", "pexels", "pixabay_scrape"]);
   let survivors = deduped;
   const webStock = deduped.filter((it) => PROVIDER_SOURCES.has(it.source));
-  if (subject && webStock.length) {
+  if (!config.creativeDirector.enabled && subject && webStock.length) {
     const verdicts = await checkAssetsRelevance({
       assets: webStock.map((it) => ({ absPath: path.join(jobDir, it.path), type: it.type, query: it.alt })),
       subject, tracker,
@@ -204,7 +238,8 @@ async function planAndFetchAssets({ jobDir, storyboard, flags, orientation, trac
     if (rejected.size) survivors = deduped.filter((it) => !rejected.has(it));
   }
 
-  console.log(`[pipeline] fetched ${results.length} → ${survivors.length} visual asset(s) (dedup + vision gate)`);
+  const gateLabel = config.creativeDirector.enabled ? "dedup; creative-director review next" : "dedup + vision gate";
+  console.log(`[pipeline] fetched ${results.length} → ${survivors.length} visual asset(s) (${gateLabel})`);
   return { assets: survivors };
 }
 
@@ -373,6 +408,7 @@ async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets
   const enrich = {
     width: dims.width, height: dims.height, duration: storyboard.durationSec,
     packTokens: framePack ? frameRegistry.getPackTokens(framePack) : null,
+    flat: isFlatPack(framePack),
   };
   // Context for the cinematic density gate (per-scene checks + the C7 screenshot rule).
   const cinematic = {
@@ -436,7 +472,36 @@ async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets
 
 // ========== One attempt at full LLM comp + render with a given asset set ==========
 
-async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker, jobId, durationSec, label, abortSignal, framePack, captionCues, remix = false, dress = false, subject = null }) {
+async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker, jobId, durationSec, label, abortSignal, framePack, captionCues, remix = false, dress = false, subject = null, brandSkin = null, layoutPlan = null }) {
+  // FLAGSHIP TEMPLATE — a pack whose manifest declares renderer:"three-flagship"
+  // routes to the dedicated cinematic Three.js composer, REGARDLESS of remix or
+  // asset-richness (it is built to showcase the assets in 3D). Every pipeline path
+  // funnels through here, so selecting the flagship pack is all it takes.
+  if (rendererFor(framePack) === "three-flagship") {
+    return composeWithFlagship({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "flagship", abortSignal, tracker });
+  }
+  // BRIGHT LIFE TEMPLATE — a pack whose manifest declares renderer:"three-brightlife"
+  // routes to the bright-cinematic Three.js composer (white ground, pastel gradients,
+  // floating glass cards). Same funnel + envelope as the flagship above.
+  if (rendererFor(framePack) === "three-brightlife") {
+    return composeWithBrightlife({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "brightlife", abortSignal, tracker });
+  }
+  // BLUEPRINT ATELIER TEMPLATE — a pack whose manifest declares renderer:"blueprint"
+  // routes to the native GSAP + SVG/CSS engineering-drawing composer. Self-contained
+  // (its own chrome + scene-types); same funnel + envelope as the composers above.
+  if (rendererFor(framePack) === "blueprint") {
+    return composeWithBlueprint({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "blueprint", abortSignal, tracker });
+  }
+  // BLOOM FABLE TEMPLATE — a pack whose manifest declares renderer:"bloom-fable" routes
+  // to the native GSAP + SVG/CSS pastel-storybook composer. Same funnel + envelope.
+  if (rendererFor(framePack) === "bloom-fable") {
+    return composeWithBloom({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "bloom-fable", abortSignal, tracker });
+  }
+  // BAUHAUS RIOT TEMPLATE — a pack whose manifest declares renderer:"bauhaus-riot"
+  // routes to the native GSAP + SVG/CSS print-poster composer. Same funnel + envelope.
+  if (rendererFor(framePack) === "bauhaus-riot") {
+    return composeWithBauhaus({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "bauhaus-riot", abortSignal, tracker });
+  }
   // DEFAULT = the deterministic scene-kit (guaranteed showcase-grade, lint-clean,
   // per-pack styled). Every pipeline path (runJob, graph, project_pipeline) routes
   // through here, so this single dispatch makes the kit the primary composer
@@ -444,7 +509,7 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
   // `dress` (premium hybrid): a small bounded LLM pass art-directs the kit's
   // variants/emphasis/decor without any power to break the layout.
   if (!remix) {
-    return composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "scene-kit", abortSignal, tracker, dress, subject });
+    return composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "scene-kit", abortSignal, tracker, dress, subject, brandSkin, layoutPlan });
   }
   const t0 = ms();
   console.log(`[pipeline] ${label}: LLM remix compose start (assets=${assets.length}, framePack=${framePack || "none"})`);
@@ -463,7 +528,7 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
 // freehand → lint-clean by construction, no occlusion/truncation/junk). The agents
 // still "think" (they wrote the storyboard + picked the assets); the kit guarantees
 // the execution. This is the reliable default; the LLM composer is the opt-in remix.
-async function composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label, abortSignal, tracker, dress = false, subject = null }) {
+async function composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label, abortSignal, tracker, dress = false, subject = null, brandSkin = null, layoutPlan = null }) {
   const t0 = ms();
   console.log(`[pipeline] ${label || "scene-kit"}: building deterministic composition (assets=${assets ? assets.length : 0}, framePack=${framePack || "none"}${dress ? ", +set-dressing" : ""})`);
   // Premium hybrid: one bounded LLM pass picks per-scene layout variants, the
@@ -476,7 +541,7 @@ async function composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack
   }
   // seedKey=jobId: layout/background variety is salted per JOB, so re-running the
   // same prompt (same title) still produces a visibly different composition.
-  const built = sceneKit.buildComposition({ storyboard, dims, framePack, assets: assets || [], captionCues, seedKey: jobId, dressing });
+  const built = sceneKit.buildComposition({ storyboard, dims, framePack, assets: assets || [], captionCues, seedKey: jobId, dressing, brandSkin, layoutPlan });
   // Apply the deterministic vector/motion floor (the same enrichment the LLM path
   // uses) so scene-kit videos also carry the richer particle + glyph + ring layer.
   // scene-kit emits the `vid` markers enrich needs; its own particles use class
@@ -486,6 +551,7 @@ async function composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack
     const en = enrichComposition(indexHtml, {
       width: dims.width, height: dims.height, duration: durationSec,
       packTokens: framePack ? frameRegistry.getPackTokens(framePack) : null,
+      flat: isFlatPack(framePack),
     });
     if (en.changed) { indexHtml = en.html; console.log(`[pipeline] ${label || "scene-kit"}: +vector/motion floor`); }
   } catch (e) { console.warn(`[pipeline] scene-kit enrich skipped (${String(e.message).slice(0, 120)})`); }
@@ -528,6 +594,95 @@ async function composeWithThree({ storyboard, dims, jobDir, framePack, captionCu
   tracker.addExternal("hyperframes_render");
   const visual = await render({ jobId, jobDir, durationSec, abortSignal });
   console.log(`[pipeline] ${label || "three"}: render done in ${ms() - t0}ms total`);
+  return visual;
+}
+
+// FLAGSHIP composition path — a pack whose manifest declares renderer:"three-flagship"
+// routes here (see attemptLlmComposition). A native Three.js cinematic launch film
+// (flagship_composer.js): aurora depth, glass product plates presenting real
+// screenshots OR generated product UI, a cinematic camera rig, selective bloom, and
+// crisp kinetic DOM typography. Self-contained (its own 3D + generated visuals), so
+// no enrich and no stock-asset weaving. Same envelope + seek contract as the others.
+async function composeWithFlagship({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker }) {
+  const t0 = ms();
+  console.log(`[pipeline] ${label || "flagship"}: building flagship Three.js composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
+  const built = flagshipComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets });
+  fs.writeFileSync(path.join(jobDir, "index.html"), built.indexHtml, "utf8");
+  fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
+  tracker.addExternal("hyperframes_render");
+  const visual = await render({ jobId, jobDir, durationSec, abortSignal });
+  console.log(`[pipeline] ${label || "flagship"}: render done in ${ms() - t0}ms total`);
+  return visual;
+}
+
+// BRIGHT LIFE composition path — a pack whose manifest declares renderer:"three-brightlife"
+// routes here (see attemptLlmComposition). A native Three.js BRIGHT-cinematic launch film
+// (brightlife_composer.js): an airy white canvas with soft pastel mesh gradients, floating
+// gradient orbs + glass shapes, white glassmorphic product cards presenting real screenshots
+// OR generated light dashboards, an easeInOutExpo camera rig, and indigo→violet kinetic
+// typography. Self-contained (its own 3D + generated visuals), so no enrich and no stock-asset
+// weaving. Same envelope + seek contract as the others.
+async function composeWithBrightlife({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker }) {
+  const t0 = ms();
+  console.log(`[pipeline] ${label || "brightlife"}: building Bright Life Three.js composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
+  const built = brightlifeComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets });
+  fs.writeFileSync(path.join(jobDir, "index.html"), built.indexHtml, "utf8");
+  fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
+  tracker.addExternal("hyperframes_render");
+  const visual = await render({ jobId, jobDir, durationSec, abortSignal });
+  console.log(`[pipeline] ${label || "brightlife"}: render done in ${ms() - t0}ms total`);
+  return visual;
+}
+
+// BLUEPRINT ATELIER composition path — a pack whose manifest declares renderer:"blueprint"
+// routes here (see attemptLlmComposition). A native GSAP + SVG/CSS engineering-drawing
+// film (blueprint_composer.js): a living drafting sheet (grid, rulers, compass, crosshair,
+// title block), and the storyboard's scenes injected into blueprint scene-types (title /
+// figure / flowchart / plot / revisions / cta). Self-contained (its own chrome + vector
+// art), so no enrich and no stock-asset weaving. Same envelope + seek contract as the others.
+async function composeWithBlueprint({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker }) {
+  const t0 = ms();
+  console.log(`[pipeline] ${label || "blueprint"}: building Blueprint Atelier composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
+  const built = blueprintComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets });
+  fs.writeFileSync(path.join(jobDir, "index.html"), built.indexHtml, "utf8");
+  fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
+  tracker.addExternal("hyperframes_render");
+  const visual = await render({ jobId, jobDir, durationSec, abortSignal });
+  console.log(`[pipeline] ${label || "blueprint"}: render done in ${ms() - t0}ms total`);
+  return visual;
+}
+
+// BLOOM FABLE composition path — a pack whose manifest declares renderer:"bloom-fable"
+// routes here (see attemptLlmComposition). A native GSAP + SVG/CSS pastel-storybook film
+// (bloom_composer.js): a persistent meadow (sun, clouds, hills, grass), and the storyboard's
+// scenes injected into bloom scene-types (title / plant / cards / stat-rings / ribbons / cta),
+// with real screenshots shown as framed cream cards. Self-contained; no enrich/weaving.
+async function composeWithBloom({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker }) {
+  const t0 = ms();
+  console.log(`[pipeline] ${label || "bloom-fable"}: building Bloom Fable composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
+  const built = bloomComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets });
+  fs.writeFileSync(path.join(jobDir, "index.html"), built.indexHtml, "utf8");
+  fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
+  tracker.addExternal("hyperframes_render");
+  const visual = await render({ jobId, jobDir, durationSec, abortSignal });
+  console.log(`[pipeline] ${label || "bloom-fable"}: render done in ${ms() - t0}ms total`);
+  return visual;
+}
+
+// BAUHAUS RIOT composition path — a pack whose manifest declares renderer:"bauhaus-riot"
+// routes here (see attemptLlmComposition). A native GSAP + SVG/CSS print-poster film
+// (bauhaus_composer.js): cream paper + primary geometry + a sheet masthead, and the
+// storyboard's scenes injected into bauhaus scene-types (title / recipe / stats /
+// manifesto / eye / cta), with real screenshots shown as poster-framed panels.
+async function composeWithBauhaus({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker }) {
+  const t0 = ms();
+  console.log(`[pipeline] ${label || "bauhaus-riot"}: building Bauhaus Riot composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
+  const built = bauhausComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets });
+  fs.writeFileSync(path.join(jobDir, "index.html"), built.indexHtml, "utf8");
+  fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
+  tracker.addExternal("hyperframes_render");
+  const visual = await render({ jobId, jobDir, durationSec, abortSignal });
+  console.log(`[pipeline] ${label || "bauhaus-riot"}: render done in ${ms() - t0}ms total`);
   return visual;
 }
 
@@ -676,6 +831,7 @@ async function mixAudioIntoVideo({ visualPath, durationSec, audio }) {
     videoPath: visualPath, outputPath: mixedPath, durationSec,
     ttsPath: audio.ttsPath, musicPath: audio.musicPath,
     musicVolume: audio.musicVolume, sfx: audio.sfx,
+    audioPlan: audio.audioPlan || null,
   });
   await replaceFile(mixedPath, visualPath);
   return true;
@@ -780,6 +936,21 @@ async function runJob({
       allAssets = va.assets;
       markStage("assets", t0);
       console.log(`[pipeline] assets completed in ${timings.assetsMs}ms (${allAssets.length} fetched; audio running in parallel)`);
+
+      // ---- Creative Director review (curate/score/assign before composition) ----
+      // Supersedes the simple vision gate above; fail-open (returns assets
+      // unchanged on any error). Annotates visionOk/sceneId so the composer honors
+      // its decisions. Persists the review to the job for the UI.
+      if (config.creativeDirector.enabled && allAssets.length) {
+        const tcd = ms();
+        db.setProgress(jobId, "creative_review");
+        allAssets = await reviewAndCurate({
+          jobId, storyboard: sbRes.storyboard, subject: briefSubject,
+          framePack, assets: allAssets, tracker, jobDir, orientation,
+        });
+        markStage("creativeReview", tcd);
+        console.log(`[pipeline] creative director review done in ${timings.creativeReviewMs}ms (${allAssets.length} asset(s) kept)`);
+      }
     }
 
     // ---- Per-scene VO + SYNC re-timing (TTS only) ----
@@ -797,7 +968,7 @@ async function runJob({
       const re = await synthesizeScenedVOAndRetime({
         audioDir: path.join(jobDir, "audio"),
         storyboard: sbRes.storyboard,
-        voice: voice || "james",
+        voice: voice || "marin",
         instructions: undefined,
         requestedDuration: duration, tracker,
       }).catch((e) => { console.warn(`[pipeline] per-scene VO failed: ${e.message}`); return { voClips: [], effectiveDuration: duration }; });
@@ -928,6 +1099,13 @@ async function runJob({
       db.setProgress(jobId, "audio");
       try {
         const prepped = await audioPromise;
+        // Audio Director decides the per-scene mastering plan (loudness, music
+        // curve, ducking, SFX curation). Fail-open — null falls back to basic mix.
+        const audioPlan = prepped ? await directAudio({
+          jobId, storyboard: sbRes.storyboard, voClips,
+          sfxClips: prepped.sfx || [], musicPath: prepped.musicPath,
+          subject: prompt, durationSec: effectiveDuration, tracker,
+        }).catch(() => null) : null;
         // Fold the per-scene VO clips (each tagged kind:"vo" with its scene-start
         // offset) into the sfx list so the mixer lands them at the right time and
         // ducks the music under speech. In perScene mode prepped.ttsPath is null.
@@ -936,6 +1114,7 @@ async function runJob({
           musicPath: prepped.musicPath,
           musicVolume: prepped.musicVolume,
           sfx: [...(prepped.sfx || []), ...voClips],
+          audioPlan,
         } : null;
         const mixed = audio ? await mixAudioIntoVideo({
           visualPath: visualResult.videoPath,
