@@ -58,8 +58,14 @@ load();
 //     record itself (intent/upload for intake, approved script for
 //     production) — the recovery entry carries which phase was in flight.
 //     Jobs sitting at approval are not queued/running, so untouched.
-// One requeue per job (requeue_count) guards against a job that crashes the
-// server in a loop; second-time orphans fail as before.
+// Requeue guard: the point is to stop a job that CRASHES the server in a
+// loop, not to punish an active dev session. A crash-loop re-orphans the same
+// job within seconds; `node --watch` restarts from file saves arrive minutes
+// apart while a take runs for ~10. So: allow up to MAX_REQUEUES as long as
+// the previous requeue was over REQUEUE_COOLDOWN_MS ago — rapid re-orphaning
+// (the crash signature) still fails after the first retry.
+const MAX_REQUEUES = 5;
+const REQUEUE_COOLDOWN_MS = 60_000;
 const orphanedTasks = [];
 let recovered = 0;
 let requeued = 0;
@@ -68,7 +74,9 @@ for (const j of jobs.values()) {
   if (j.status !== "queued" && j.status !== "running") continue;
   const kind = j.kind || "generate";
   let entry = null;
-  if (!(j.requeue_count >= 1)) {
+  const count = j.requeue_count || 0;
+  const calmEnough = count === 0 || (Date.now() - (j.last_requeue_at || 0)) > REQUEUE_COOLDOWN_MS;
+  if (count < MAX_REQUEUES && calmEnough) {
     if (kind === "generate" && j.task) {
       entry = { kind: "generate", task: j.task };
     } else if (kind === "project") {
@@ -82,6 +90,7 @@ for (const j of jobs.values()) {
     j.progress = null;
     j.started_at = null;
     j.requeue_count = (j.requeue_count || 0) + 1;
+    j.last_requeue_at = Date.now();
     orphanedTasks.push(entry);
     requeued++;
   } else {
