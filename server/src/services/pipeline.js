@@ -191,8 +191,12 @@ async function planAndFetchAssets({ jobId, jobDir, storyboard, flags, orientatio
       jobId, storyboard, subject, framePack,
       assets: deduped, tracker, jobDir, orientation,
     });
-    console.log(`[pipeline] fetched ${results.length} → ${curated.length} visual asset(s) (dedup + creative director)`);
-    return { assets: curated };
+    // null = CD disabled or failed — fall through to the legacy vision gate
+    // below so web stock still gets a chance at verified (visionOk) placement.
+    if (curated) {
+      console.log(`[pipeline] fetched ${results.length} → ${curated.length} visual asset(s) (dedup + creative director)`);
+      return { assets: curated };
+    }
   }
 
   // VISION RELEVANCE GATE (batched) — gate ONLY real web stock; curated picks

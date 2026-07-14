@@ -258,7 +258,7 @@ function emitHelpers(D) {
          swap, then lands on its real character. cyc*2-1 yoyo segments = even total,
          so every cell ends back at scaleY 1. textContent sets are timeline-anchored
          (same pattern as countUp), so seeks replay identically. */
-      + ` if(mode==="flap"){ var AL="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"; gsap.utils.toArray(cs).forEach(function(el,k){ var t0=el.textContent; var st=at+k*0.045; if(!t0||!t0.trim()){ tl.set(el,{opacity:1},st); return; } var cyc=3+((k*7)%3); for(var j=0;j<cyc;j++){ tl.set(el,{textContent:AL[(k*31+j*17)%AL.length],opacity:1},st+j*0.07); } tl.set(el,{textContent:t0},st+cyc*0.07); tl.fromTo(el,{scaleY:1,opacity:1},{scaleY:0.14,duration:0.035,yoyo:true,repeat:cyc*2-1,ease:"none"},st); }); return; }`
+      + ` if(mode==="flap"){ var AL="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"; tl.set(cs,{opacity:0},0); gsap.utils.toArray(cs).forEach(function(el,k){ var t0=el.textContent; var st=at+k*0.045; if(!t0||!t0.trim()){ tl.set(el,{opacity:1},st); return; } var cyc=3+((k*7)%3); for(var j=0;j<cyc;j++){ tl.set(el,{textContent:AL[(k*31+j*17)%AL.length],opacity:1},st+j*0.07); } tl.set(el,{textContent:t0},st+cyc*0.07); tl.fromTo(el,{scaleY:1,opacity:1},{scaleY:0.14,duration:0.035,yoyo:true,repeat:cyc*2-1,ease:"none"},st); }); return; }`
       + ` if(mode==="slide"){ tl.fromTo(ws,{opacity:0,x:-36},{opacity:1,x:0,duration:0.55,ease:"power3.out",stagger:s},at); return; }`
       /* stamp — the print-press slam (bauhaus-riot's grammar): each word arrives
          BIG and tilted, then snaps flat like a rubber stamp hitting paper. */
@@ -1321,7 +1321,9 @@ function mix(hex, with_, t) { const a = hexToRgb(hex), b = hexToRgb(with_); cons
 
 // split a headline into <span class="kfw"> words, marking the emphasis word(s) as
 // the single gradient/accent word.
-const CHAR_ENTERS = new Set(["typewriter", "char-pop", "glitch"]);
+// "flap" must be listed here or headlineSpans never emits .kfc char spans and
+// the runtime flap branch matches nothing — the entrance silently no-ops.
+const CHAR_ENTERS = new Set(["typewriter", "char-pop", "glitch", "flap"]);
 
 function headlineSpans(headline, emphasis, theme) {
   const words = String(headline || "").trim().split(/\s+/).filter(Boolean);

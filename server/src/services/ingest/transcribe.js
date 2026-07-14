@@ -115,10 +115,18 @@ async function describeVisualStyle(framePaths, { signal } = {}) {
 async function transcribeVideo({ videoPath, workDir, signal, tracker }) {
   fs.mkdirSync(workDir, { recursive: true });
 
-  const wav = await extractAudio(videoPath, workDir);
+  // A reference video with NO audio stream (muted screen recording — common)
+  // makes ffmpeg -vn exit non-zero. That must not sink the whole ingest: the
+  // visual-style half below is independent of audio, so skip STT and carry on.
+  const wav = await extractAudio(videoPath, workDir).catch((e) => {
+    console.warn(`[ingest] audio extract failed (likely no audio stream): ${String(e && e.message || e).slice(0, 120)} — skipping STT`);
+    return null;
+  });
   const provider = config.stt?.provider || "local";
 
-  const sttTask = (provider === "local" ? sttLocal(wav) : sttHosted(wav))
+  const sttTask = (wav == null
+    ? Promise.resolve({ transcript: "", segments: [], language: "unknown" })
+    : (provider === "local" ? sttLocal(wav) : sttHosted(wav)))
     .catch((e) => {
       console.warn(`[ingest] stt failed (${provider}): ${e.message}`);
       return { transcript: "", segments: [], language: "unknown" };

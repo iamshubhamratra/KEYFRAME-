@@ -48,7 +48,11 @@ const isWebStock = (a) => {
 };
 
 function cd() {
-  return config.creativeDirector || { enabled: true, maxPerScene: 2, maxTopUp: 3, chunkSize: 6 };
+  // Merge defaults key-by-key: a PARTIAL config block (e.g. CREATIVE_DIRECTOR=1
+  // creates { enabled: true } with no tuning keys) must not leave maxPerScene/
+  // maxTopUp/chunkSize undefined — undefined tuning turns slice()/loop math
+  // into NaN and silently demotes every asset to background.
+  return { enabled: true, maxPerScene: 2, maxTopUp: 3, chunkSize: 6, ...(config.creativeDirector || {}) };
 }
 
 // Mechanical query broadening for a top-up fetch (local copy so this module has
@@ -246,7 +250,7 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
   }
 
   // ---- 2) Apply verdicts (annotate; collect rejects) ----
-  const validSceneIds = new Set(scenes.map((s) => s.id));
+  const validSceneIds = new Set(scenes.map((s) => Number(s.id)).filter(Number.isFinite));
   const assetScores = {};
   const rejectedAssets = [];
   const toDelete = new Set(); // indices into `visual`
@@ -260,12 +264,16 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
     a.sees = typeof v.sees === "string" ? v.sees : a.sees;
     const prom = String(v.prominence || "").toLowerCase();
     a.cdProminence = ["hero", "support", "background", "reject"].includes(prom) ? prom : "background";
-    if (typeof v.assignScene !== "undefined" && v.assignScene !== null && validSceneIds.has(v.assignScene)) {
-      a.sceneId = v.assignScene;
+    // Number-normalize: JSON-mode models often return scene ids as strings
+    // ("3" vs 3), and validSceneIds.has() is strict-typed — without this,
+    // every scene assignment silently drops.
+    const sid = Number(v.assignScene);
+    if (v.assignScene != null && Number.isFinite(sid) && validSceneIds.has(sid)) {
+      a.sceneId = sid;
     }
     if (v.sectionType) a.sectionType = String(v.sectionType).slice(0, 20);
 
-    const rejected = String(v.decision || "").toLowerCase() === "reject" || a.cdProminence === "reject";
+    const rejected = String(v.decision || "").trim().toLowerCase() === "reject" || a.cdProminence === "reject";
     if (rejected && isWebStock(a)) {
       // Only real web stock is deleted. Trusted content (screenshots, curated,
       // iconify) is never deleted — at worst demoted to background below.
@@ -361,7 +369,10 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
       const m = await reviewChunk({ chunk: topUpAssets, baseIndex: 0, subject: subj, categoryText, packText, scenes, orientation, tracker, signal });
       topUpAssets.forEach((a, i) => {
         const v = m.get(i);
-        if (v && String(v.decision || "").toLowerCase() !== "reject") {
+        if (v && String(v.decision || "").trim().toLowerCase() === "reject") {
+          // Only an EXPLICIT reject deletes the file.
+          try { fs.unlinkSync(a.__absPath); } catch { /* noop */ }
+        } else if (v) {
           const scores = normScores(v.scores);
           assetScores[a.path] = scores;
           a.cdScore = scores.overall; a.sees = v.sees || null;
@@ -369,7 +380,10 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
           a.cdProminence = prom; a.visionOk = prom === "hero" || prom === "support";
           curated.push(a);
         } else {
-          try { fs.unlinkSync(a.__absPath); } catch { /* noop */ }
+          // No verdict (thumbnail failed, model omitted/misnumbered the entry) —
+          // keep as background, same as the catch below. Deleting here destroyed
+          // a freshly fetched asset for the exact scene that had none.
+          a.cdProminence = "background"; a.visionOk = false; curated.push(a);
         }
       });
     } catch {
@@ -433,9 +447,12 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
 }
 
 // Thin wrapper used by all three pipeline paths: flag-gate, run, persist the
-// report to the job, and ALWAYS fail-open to the original assets on any error.
+// report to the job. Returns NULL when disabled or on any error so callers
+// fall through to the legacy vision gate — returning the assets unchanged
+// here would skip that gate too, and unreviewed web stock would ship with no
+// visionOk at all (every prominent slot silently demoted to background).
 async function reviewAndCurate({ jobId, ...rest }) {
-  if (!cd().enabled) return rest.assets || [];
+  if (!cd().enabled) return null;
   const original = rest.assets || [];
   try {
     const { assets, report } = await directAssets(rest);
@@ -443,8 +460,8 @@ async function reviewAndCurate({ jobId, ...rest }) {
     console.log(`[creative_director] job ${jobId || "?"}: ${report.approvedAssets.length} approved / ${report.rejectedAssets.length} rejected, quality=${report.qualityScore}, ${report.creativeDirectorNotes.length} note(s)`);
     return assets;
   } catch (e) {
-    console.warn(`[creative_director] failed (${String(e && e.message || e).slice(0, 140)}) — passing ${original.length} asset(s) through unchanged`);
-    return original;
+    console.warn(`[creative_director] failed (${String(e && e.message || e).slice(0, 140)}) — ${original.length} asset(s) fall back to the legacy vision gate`);
+    return null;
   }
 }
 

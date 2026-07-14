@@ -590,7 +590,9 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
     `  }},0); }`,
   ].join("\n"));
 
-  const moduleSrc = threeModule({ theme, dims, D, seed, sceneWindows, plates }).replace("__OVERLAY_TWEENS__", overlayTweens.join("\n"));
+  // Function replacement: overlay tweens carry user/LLM copy, and a literal
+  // "$&" / "$`" in a string replacement splices module source into the output.
+  const moduleSrc = threeModule({ theme, dims, D, seed, sceneWindows, plates }).replace("__OVERLAY_TWEENS__", () => overlayTweens.join("\n"));
 
   const indexHtml = [
     `<!DOCTYPE html>`, `<html>`, `<head>`, `<meta charset="utf-8">`, `<title>vid</title>`,

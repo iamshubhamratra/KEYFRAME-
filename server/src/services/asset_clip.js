@@ -26,6 +26,11 @@ function warnOnce(msg) {
   if (!warned) { warned = true; console.warn(`[clip] ${msg} — CLIP relevance disabled (falling back to lexical + vision-LLM only)`); }
 }
 
+// First use may DOWNLOAD the weights (~150 MB) inside a user job — bound it so
+// a stalled network can't hang planAndFetchAssets indefinitely. Cached loads
+// finish in ~2s, so the budget only ever bites the download path.
+const LOAD_TIMEOUT_MS = Number(process.env.CLIP_LOAD_TIMEOUT_MS || 90_000);
+
 async function load() {
   if (DISABLED) return null;
   if (loadPromise) return loadPromise;
@@ -42,16 +47,24 @@ async function load() {
       // Keep the model cache inside the repo so it survives across runs and is easy to find.
       try { env.cacheDir = path.join(__dirname, "..", "..", ".cache", "transformers"); } catch { /* optional */ }
       const t0 = Date.now();
-      const [tokenizer, textModel, processor, visionModel] = await Promise.all([
+      const loading = Promise.all([
         AutoTokenizer.from_pretrained(MODEL_ID),
         CLIPTextModelWithProjection.from_pretrained(MODEL_ID, { dtype: "q8" }),
         AutoProcessor.from_pretrained(MODEL_ID),
         CLIPVisionModelWithProjection.from_pretrained(MODEL_ID, { dtype: "q8" }),
       ]);
+      loading.catch(() => {}); // if we time out below, don't let the abandoned load reject unhandled
+      const [tokenizer, textModel, processor, visionModel] = await Promise.race([
+        loading,
+        new Promise((_, rej) => setTimeout(() => rej(new Error(`load timed out after ${LOAD_TIMEOUT_MS}ms`)), LOAD_TIMEOUT_MS).unref?.()),
+      ]);
       console.log(`[clip] model "${MODEL_ID}" ready (${Date.now() - t0}ms)`);
       return { tokenizer, textModel, processor, visionModel, RawImage };
     } catch (e) {
       warnOnce(`could not load model "${MODEL_ID}" (${String(e.message).slice(0, 100)})`);
+      // Don't cache the failure: a transient network error at first use would
+      // otherwise disable CLIP for the entire process lifetime. Next job retries.
+      loadPromise = null;
       return null;
     }
   })();

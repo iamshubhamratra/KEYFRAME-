@@ -631,7 +631,9 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
     `  }},0); }`,
   ].join("\n"));
 
-  const moduleSrc = threeModule({ theme, dims, D, seed, sceneWindows, plates }).replace("__OVERLAY_TWEENS__", overlayTweens.join("\n"));
+  // Function replacement: overlay tweens carry user/LLM copy, and a literal
+  // "$&" / "$`" in a string replacement splices module source into the output.
+  const moduleSrc = threeModule({ theme, dims, D, seed, sceneWindows, plates }).replace("__OVERLAY_TWEENS__", () => overlayTweens.join("\n"));
 
   const emphGrad = `linear-gradient(120deg, ${theme.emphA} 0%, ${theme.emphB} 55%, ${theme.emphC} 100%)`;
   const accentGrad = `linear-gradient(120deg, ${theme.accent}, ${theme.accent2})`;
