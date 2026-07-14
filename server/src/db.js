@@ -64,8 +64,8 @@ load();
 // apart while a take runs for ~10. So: allow up to MAX_REQUEUES as long as
 // the previous requeue was over REQUEUE_COOLDOWN_MS ago — rapid re-orphaning
 // (the crash signature) still fails after the first retry.
-const MAX_REQUEUES = 5;
-const REQUEUE_COOLDOWN_MS = 60_000;
+const MAX_REQUEUES = 8;
+const REQUEUE_COOLDOWN_MS = 25_000; // crash-loops re-orphan in ~5-10s; dev saves arrive slower
 const orphanedTasks = [];
 let recovered = 0;
 let requeued = 0;
