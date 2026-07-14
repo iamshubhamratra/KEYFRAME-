@@ -27,6 +27,7 @@ web/dist/
 # uploads / asset cache (large binaries)
 server/uploads/
 server/asset_cache/
+server/.cache/
 
 # OS noise
 Thumbs.db
