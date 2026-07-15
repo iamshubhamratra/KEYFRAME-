@@ -1,23 +1,23 @@
 {
   "name": "flagship",
-  "vibe": "The benchmark — a BRIGHT, luminous product-showcase launch film in the Apple keynote / Linear / Stripe / Vercel / Framer / Raycast register. A white, airy stage with a soft pastel mesh-gradient environment, big floating dashboard panels holding real product screenshots (screenshots are the hero, ~40-60% of frame), lifted off the page by soft real shadows, plus purposeful data-graphics (traveling gradient data-waves + a rising growth graph-line that reinforce the product story) and high-contrast slate typography. Rendered as a native Three.js scene with a cinematic camera that dollies, focus-pulls, orbits and pulls back to guide the eye. No dark backgrounds, no bloom.",
+  "vibe": "The benchmark — a DARK cinematic product-showcase launch film in the Apple keynote / Linear / Vercel / Raycast dark register. A deep near-black indigo stage with a glowing accent nebula, big BRIGHT dashboard panels holding real product screenshots that pop against the dark (screenshots are the hero, ~40-60% of frame) with an accent-glow halo lift, plus purposeful glowing data-graphics (traveling gradient data-waves + a rising growth graph-line) and high-contrast white typography with a bright gradient emphasis. Rendered as a native Three.js scene with a cinematic camera that dollies, focus-pulls, orbits and pulls back. The deliberate DARK counterpoint to the bright brightlife pack.",
   "renderer": "three-flagship",
   "colors": {
-    "ground": "#FFFFFF",
-    "ground-2": "#FAFBFF",
-    "surface": "#F5F7FF",
-    "text": "#0F172A",
-    "muted": "#475569",
-    "indigo": "#6366F1",
-    "cyan": "#06B6D4",
-    "violet": "#8B5CF6",
-    "emerald": "#10B981"
+    "ground": "#0A0B16",
+    "ground-2": "#05060C",
+    "surface": "#04050A",
+    "text": "#F6F8FF",
+    "muted": "#AEB6D4",
+    "indigo": "#7C8CFF",
+    "cyan": "#4ED7FF",
+    "violet": "#B16CFF",
+    "mint": "#57F2C2"
   },
   "fonts": ["Space Grotesk", "Inter"],
   "surface": {
     "flat": false,
-    "lightCinematic": true,
-    "ground": "#FFFFFF"
+    "lightCinematic": false,
+    "ground": "#0A0B16"
   },
   "motion": {
     "cut": "glow",
@@ -28,21 +28,21 @@
     "three": "flagship"
   },
   "skin": {
-    "accents": ["#6366F1", "#06B6D4", "#8B5CF6", "#10B981"],
+    "accents": ["#7C8CFF", "#4ED7FF", "#B16CFF", "#57F2C2"],
     "extras": [],
     "emphasisCss": null
   },
   "assets": {
     "photoMod": "clean modern product ui on a bright dashboard panel",
     "iconStyle": "duotone",
-    "keywords": ["clean", "modern", "premium", "bright", "minimal", "product"],
+    "keywords": ["clean", "modern", "premium", "cinematic", "dark", "product"],
     "prefer": ["photo", "vector"]
   },
   "typography": {
     "display": "Space Grotesk"
   },
   "camera3d": {
-    "ground": "#FFFFFF"
+    "ground": "#0A0B16"
   },
   "textfx": {
     "enter": "mask-reveal",

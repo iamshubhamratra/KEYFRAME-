@@ -50,26 +50,29 @@ const darken = (h, amt) => { const [r, g, b] = hexToRgb(h); const mix = (c) => c
 // Darken a color until it clears a legibility ceiling on the WHITE ground (so accent
 // TEXT reads). Graphics keep the raw accent; only type is darkened.
 const ensureReadableOnLight = (h, max = 0.42) => { let c = h; for (let i = 0; i < 10 && relLum(c) > max; i++) c = darken(c, 0.16); return c; };
+// Lighten a color toward white until it clears a legibility floor on the DARK stage.
+const ensureBright = (h, min = 0.5) => { let c = h; for (let i = 0; i < 9 && relLum(c) < min; i++) c = lighten(c, 0.22); return c; };
 function hashSeed(s) { let h = 2166136261; const str = String(s || ""); for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
 
-// BRIGHT theme. deriveTheme resolves the pack (accents + Space Grotesk display face);
-// the flagship stage is authored WHITE with slate ink for max readability.
+// DARK cinematic theme. A deep near-black indigo STAGE with bright product panels that
+// pop against it — the counterpoint to `brightlife`'s airy white. deriveTheme resolves
+// the pack accents + Space Grotesk display face; the stage is authored dark.
 function flagshipTheme(framePack, sb) {
   const base = deriveTheme(framePack, sb);
-  const accents = (base.accents && base.accents.length ? base.accents : ["#6366F1", "#06B6D4", "#8B5CF6", "#10B981"]).slice(0, 4);
+  const accents = (base.accents && base.accents.length ? base.accents : ["#7C8CFF", "#4ED7FF", "#B16CFF", "#57F2C2"]).slice(0, 4);
   const MONO = "JetBrains Mono";
   const monoFace = isBundled(MONO) ? fontFaceCss(MONO) : "";
   const monoStack = monoFace ? `'${MONO}', ui-monospace, monospace` : "ui-monospace, 'JetBrains Mono', monospace";
-  // Emphasis gradient: two SATURATED, dark-enough accents so a gradient-fill headline
-  // word reads on white (opposite of the dark composer, which lightened toward white).
-  const emphA = ensureReadableOnLight(accents[0], 0.34);
-  const emphB = ensureReadableOnLight(accents[2] || accents[1] || accents[0], 0.36);
-  const kickCol = ensureReadableOnLight(accents[1] || accents[0], 0.42);
+  // Emphasis gradient: a BRIGHT cyan-forward gloss (near-white → bright brand accent)
+  // so a gradient-fill headline word GLOWS on the deep stage and never goes muddy.
+  const emphMain = ensureBright(accents[1] || accents[0], 0.62);
+  const emphHi = lighten(emphMain, 0.6);
+  const kickCol = ensureBright(accents[1] || accents[0], 0.6);
   return {
-    ground: "#FFFFFF", ground2: "#FAFBFF", surface: "#F5F7FF",
-    ink: "#0F172A", body: "#475569", dim: "#64748B", hair: "#E2E8F0",
+    ground: "#0A0B16", ground2: "#05060C", surface: "#04050A",
+    ink: "#F6F8FF", body: "#AEB6D4", dim: "#7A82A0", hair: "rgba(255,255,255,0.12)",
     accents, accent: accents[0], accent2: accents[1] || accents[0], accent3: accents[2] || accents[0], accent4: accents[3] || accents[1] || accents[0],
-    kickCol, emphA, emphB,
+    kickCol, emphA: emphHi, emphB: emphMain,
     displayStack: base.displayStack || SAFE_FONTS,
     fontStack: SAFE_FONTS,
     monoStack,
@@ -163,9 +166,9 @@ function sceneOverlay(scene, i, total, ctx) {
 
   const parts = [];
   parts.push(`<div id="${id}" class="ktxt clip" data-start="${T}" data-duration="${L}" data-track-index="${20 + i}" data-layout-allow-occlusion style="opacity:0;align-items:${align};justify-content:${justify};padding:${pad};text-align:${textAlign};">`);
-  // LIGHT scrim — keeps type crisp where it overlaps a panel/gradient (bright, not dark).
+  // DARK scrim — anchors the type against the stage/panels so it never competes.
   const scrimAt = centered ? "50% 52%" : "26% 74%";
-  parts.push(`  <div class="kscrim" style="background:radial-gradient(60% 52% at ${scrimAt}, rgba(255,255,255,0.86), rgba(255,255,255,0.5) 52%, transparent 78%);"></div>`);
+  parts.push(`  <div class="kscrim" style="background:radial-gradient(62% 54% at ${scrimAt}, rgba(6,7,16,0.82), rgba(6,7,16,0.42) 52%, transparent 80%);"></div>`);
   if (!centered) parts.push(`  <span id="${id}w" class="kwall" style="${align === "flex-start" ? "left:3.5%;" : "left:50%;transform:translateX(-50%);"}">${String(i + 1).padStart(2, "0")}</span>`);
   parts.push(`  <div class="kstack">`);
   if (kicker) parts.push(`    <span id="${id}k" class="kkick">${esc(kicker)}</span>`);
@@ -211,12 +214,16 @@ function threeModule({ theme, dims, D, seed, sceneWindows, plates }) {
   const W = dims.width, H = dims.height;
   const A = theme.accents.map(hexInt);
   const ground = hexInt(theme.ground);
-  // Pastel (white-lifted) accents for the mesh-gradient environment + data-waves.
-  const wcol = theme.accents.map((h) => hexToRgb(lighten(h, 0.5)).map((v) => (v / 255).toFixed(4)));
-  // Saturated accent for the ONE crisp growth graph-line (reads on white).
-  const lineHex = hexInt(ensureReadableOnLight(theme.accent, 0.4));
-  const surfRgb = hexToRgb(theme.surface).map((v) => (v / 255).toFixed(4));
-  const uiPalette = { ground: theme.ground, ground2: theme.ground2, surface: theme.surface, ink: theme.ink, body: theme.body, dim: theme.dim, hair: theme.hair, accents: theme.accents };
+  const gRgb = hexToRgb(theme.ground).map((v) => (v / 255).toFixed(4));
+  const aRgb = theme.accents.slice(0, 3).map((h) => hexToRgb(h).map((v) => (v / 255).toFixed(4)));
+  // Bright accents for the glowing data-waves; edge = darker ground (deep vignette).
+  const wcol = theme.accents.map((h) => hexToRgb(h).map((v) => (v / 255).toFixed(4)));
+  const edgeRgb = hexToRgb(darken(theme.ground, 0.55)).map((v) => (v / 255).toFixed(4));
+  // The ONE crisp growth graph-line — a BRIGHT accent that glows on the dark stage.
+  const lineHex = hexInt(ensureBright(theme.accent, 0.6));
+  // The PRODUCT PANELS stay BRIGHT (white UI pops on the dark stage) — a fixed light
+  // palette, decoupled from the dark theme, for frameTex + uiContent.
+  const uiPalette = { ground: "#FFFFFF", ground2: "#F8FAFC", surface: "#F1F5F9", ink: "#0F172A", body: "#475569", dim: "#64748B", hair: "#E2E8F0", accents: theme.accents };
   return `
 import * as THREE from 'three';
 
@@ -249,33 +256,33 @@ const fill=new THREE.DirectionalLight(0xdfe6ff,0.5); fill.position.set(-6,2,4); 
 // ================= BACKGROUND: bright pastel MESH-GRADIENT environment =========
 const AUR_FRAG=\`
 uniform float uTime; varying vec2 vUv;
-const vec3 WH=vec3(1.0);
-const vec3 CA=vec3(${wcol[0].join(",")});
-const vec3 CB=vec3(${(wcol[1] || wcol[0]).join(",")});
-const vec3 CC=vec3(${(wcol[2] || wcol[0]).join(",")});
-const vec3 EDGE=vec3(${surfRgb.join(",")});
+const vec3 G=vec3(${gRgb.join(",")});
+const vec3 CA=vec3(${aRgb[0].join(",")});
+const vec3 CB=vec3(${(aRgb[1] || aRgb[0]).join(",")});
+const vec3 CC=vec3(${(aRgb[2] || aRgb[0]).join(",")});
+const vec3 EDGE=vec3(${edgeRgb.join(",")});
 float blob(vec2 uv,vec2 c,float r){return smoothstep(r,0.0,distance(uv,c));}
 void main(){
   vec2 uv=vUv;
   vec2 pA=vec2(0.24+sin(uTime*0.13)*0.12,0.70+cos(uTime*0.11)*0.10);
   vec2 pB=vec2(0.78+cos(uTime*0.10)*0.12,0.30+sin(uTime*0.15)*0.11);
   vec2 pC=vec2(0.54+sin(uTime*0.08+2.0)*0.16,0.52+cos(uTime*0.12+1.0)*0.12);
-  vec3 col=WH;
-  col=mix(col,CA,blob(uv,pA,0.55)*0.42);
-  col=mix(col,CC,blob(uv,pC,0.62)*0.30);
-  col=mix(col,CB,blob(uv,pB,0.50)*0.40);
-  // soft surface shade toward the edges for a luminous vignette (never dark).
+  vec3 col=G;
+  col=mix(col,CA,blob(uv,pA,0.55)*0.5);
+  col=mix(col,CC,blob(uv,pC,0.62)*0.34);
+  col=mix(col,CB,blob(uv,pB,0.50)*0.46);
+  // deepen toward the edges for a cinematic vignette.
   float d=distance(uv,vec2(0.5,0.44));
-  col=mix(col,EDGE,smoothstep(0.34,1.05,d)*0.7);
+  col=mix(col,EDGE,smoothstep(0.28,1.05,d)*0.9);
   gl_FragColor=vec4(col,1.0);
 }\`;
 const AUR_VERT="varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}";
 const aurMat=new THREE.ShaderMaterial({vertexShader:AUR_VERT,fragmentShader:AUR_FRAG,uniforms:{uTime:{value:0}},depthWrite:false,fog:false});
 const aurora=new THREE.Mesh(new THREE.PlaneGeometry(230,140),aurMat); aurora.position.z=-40; scene.add(aurora);
 
-// faint LIGHT grid floor (tech depth without a dark cast)
-const grid=new THREE.GridHelper(120,60,0xC7D2FE,0xE2E8F0);
-grid.material.transparent=true; grid.material.opacity=0.5; grid.material.depthWrite=false;
+// perspective grid floor — faint accent lines for tech depth on the dark stage
+const grid=new THREE.GridHelper(120,60,A[0],0x141a33);
+grid.material.transparent=true; grid.material.opacity=0.28; grid.material.depthWrite=false;
 grid.position.set(0,-6.6,-8); scene.add(grid);
 
 // ================= DATA-WAVES (supporting motion) ============================
@@ -294,7 +301,7 @@ const waves=new THREE.Group();
 for(let i=0;i<3;i++){
   const ca=new THREE.Color().setRGB(${wcol[0][0]},${wcol[0][1]},${wcol[0][2]});
   const cb=new THREE.Color().setRGB(${(wcol[2] || wcol[0])[0]},${(wcol[2] || wcol[0])[1]},${(wcol[2] || wcol[0])[2]});
-  const wm=new THREE.ShaderMaterial({vertexShader:WAVE_VS,fragmentShader:WAVE_FS,uniforms:{uTime:{value:0},cA:{value:ca},cB:{value:cb}},transparent:true,depthWrite:false,side:THREE.DoubleSide,fog:false});
+  const wm=new THREE.ShaderMaterial({vertexShader:WAVE_VS,fragmentShader:WAVE_FS,uniforms:{uTime:{value:0},cA:{value:ca},cB:{value:cb}},transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,fog:false});
   const rib=new THREE.Mesh(new THREE.PlaneGeometry(60,3.2,120,1),wm);
   rib.position.set(-6+i*1.5, 6.4-i*1.4, -20-i*2.2); rib.rotation.set(-0.32,0.16,-0.05-i*0.02);
   rib.userData.m=wm; waves.add(rib);
@@ -321,7 +328,7 @@ const areaGeo=new THREE.BufferGeometry();
 { const verts=[]; for(let i=0;i<GN-1;i++){const a=gpts[i],b=gpts[i+1];const yb=-4.2;
     verts.push(a.x,a.y,0, a.x,yb,0, b.x,b.y,0,  a.x,yb,0, b.x,yb,0, b.x,b.y,0);}
   areaGeo.setAttribute("position",new THREE.Float32BufferAttribute(verts,3)); }
-const area=new THREE.Mesh(areaGeo,new THREE.MeshBasicMaterial({color:LINE,transparent:true,opacity:0.08,depthWrite:false,fog:false}));
+const area=new THREE.Mesh(areaGeo,new THREE.MeshBasicMaterial({color:LINE,transparent:true,opacity:0.14,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}));
 graph.add(area);
 // data dots along the line
 const dots=[];
@@ -337,7 +344,7 @@ function orbTex(){const c=document.createElement("canvas");c.width=c.height=128;
 const OTEX=orbTex();
 const orbs=new THREE.Group();
 for(let i=0;i<7;i++){const col=new THREE.Color(A[i%A.length]);
-  const m=new THREE.SpriteMaterial({map:OTEX,color:col,transparent:true,opacity:0.5,depthWrite:false,blending:THREE.NormalBlending});
+  const m=new THREE.SpriteMaterial({map:OTEX,color:col,transparent:true,opacity:0.34,depthWrite:false,blending:THREE.AdditiveBlending});
   const sp=new THREE.Sprite(m);const sz=1.2+rand()*2.6;sp.scale.set(sz,sz,1);
   sp.position.set((rand()-0.5)*26,(rand()-0.5)*15,-6-rand()*10);
   sp.userData={ph:rand()*6.28,sp:0.2+rand()*0.4,x0:sp.position.x,y0:sp.position.y};orbs.add(sp);}
@@ -446,9 +453,9 @@ function makePlate(spec){
   const g=new THREE.Group();
   const aspect=spec.aspect&&spec.aspect>0.3&&spec.aspect<4?spec.aspect:1.6;
   const w=spec.w, h=w/aspect;
-  // soft shadow under/behind
-  const sh=new THREE.Mesh(new THREE.PlaneGeometry(w*1.34,h*1.5),new THREE.MeshBasicMaterial({map:SHTEX,transparent:true,opacity:0.9,depthWrite:false,fog:false}));
-  sh.position.set(0,-h*0.16,-0.14); g.add(sh);
+  // accent GLOW halo behind (sells the lift on the dark stage — a drop-shadow vanishes)
+  const gl=new THREE.Mesh(new THREE.PlaneGeometry(w*1.6,h*1.75),new THREE.MeshBasicMaterial({map:OTEX,color:A[spec.ci%A.length],transparent:true,opacity:0.55,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}));
+  gl.position.set(0,0,-0.16); g.add(gl);
   // white device frame
   const fr=frameTex(aspect,spec.ci);
   const frame=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:fr.tex,transparent:true}));
@@ -466,7 +473,7 @@ function makePlate(spec){
     const mw=w*0.34, mh=mw/1.5;
     const mfr=frameTex(1.5,(spec.ci+1));
     const mini=new THREE.Group();
-    const msh=new THREE.Mesh(new THREE.PlaneGeometry(mw*1.4,mh*1.6),new THREE.MeshBasicMaterial({map:SHTEX,transparent:true,opacity:0.85,depthWrite:false,fog:false}));msh.position.set(0,-mh*0.18,-0.1);mini.add(msh);
+    const msh=new THREE.Mesh(new THREE.PlaneGeometry(mw*1.6,mh*1.7),new THREE.MeshBasicMaterial({map:OTEX,color:A[(spec.ci+1)%A.length],transparent:true,opacity:0.5,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}));msh.position.set(0,0,-0.12);mini.add(msh);
     const mf=new THREE.Mesh(new THREE.PlaneGeometry(mw,mh),new THREE.MeshBasicMaterial({map:mfr.tex,transparent:true}));mini.add(mf);
     const mc=new THREE.Mesh(new THREE.PlaneGeometry(mw*0.94,mh*0.8),new THREE.MeshBasicMaterial({map:uiContent("donut",spec.ci+1)}));mc.position.set(0,-mh*mfr.barFrac/2,0.01);mini.add(mc);
     mini.position.set(-w*0.52, -h*0.42, 0.9); mini.rotation.y=0.14;
@@ -656,20 +663,20 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
     `.ktxt { position:absolute; inset:0; z-index:10; display:flex; flex-direction:column; }`,
     `.kscrim { position:absolute; inset:0; pointer-events:none; z-index:-1; }`,
     `.kstack { position:relative; display:flex; flex-direction:column; align-items:inherit; }`,
-    `.kkick { display:inline-flex; align-items:center; gap:12px; margin-bottom:${px(24)}px; color:${theme.kickCol}; font-family:${theme.monoStack}; font-size:${px(14)}px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; }`,
-    `.kkick::before { content:""; width:${px(40)}px; height:2px; background:${theme.kickCol}; }`,
+    `.kkick { display:inline-flex; align-items:center; gap:12px; margin-bottom:${px(24)}px; color:${theme.kickCol}; font-family:${theme.monoStack}; font-size:${px(14)}px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; text-shadow:0 0 16px ${rgba(theme.kickCol, 0.5)}; }`,
+    `.kkick::before { content:""; width:${px(40)}px; height:2px; background:${theme.kickCol}; box-shadow:0 0 12px ${rgba(theme.kickCol, 0.85)}; }`,
     `.kwall { position:absolute; top:-0.42em; z-index:-1; font-family:${theme.displayStack}; font-weight:800; font-size:${px(W >= H ? 380 : 250)}px; line-height:1; color:${theme.ink}; opacity:0.06; pointer-events:none; letter-spacing:-0.04em; }`,
-    `.khead { margin:0; font-family:${theme.displayStack}; font-weight:700; line-height:0.98; letter-spacing:-0.03em; color:${theme.ink}; text-shadow:0 1px 1px rgba(255,255,255,0.9); overflow-wrap:anywhere; }`,
+    `.khead { margin:0; font-family:${theme.displayStack}; font-weight:700; line-height:0.98; letter-spacing:-0.03em; color:${theme.ink}; text-shadow:0 2px 24px rgba(0,0,0,0.55),0 1px 2px rgba(0,0,0,0.5); overflow-wrap:anywhere; }`,
     `.kw { display:inline-block; overflow:hidden; vertical-align:top; max-width:100%; }`,
     `.kwi { display:inline-block; overflow-wrap:anywhere; word-break:break-word; }`,
-    `.kacc .kwi { background:linear-gradient(120deg, ${theme.emphA} 0%, ${theme.emphB} 100%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; text-shadow:none; }`,
-    `.ksub { margin-top:${px(20)}px; font:500 1em/1.5 ${theme.fontStack}; color:${theme.body}; max-width:44ch; }`,
+    `.kacc .kwi { background:linear-gradient(120deg, ${theme.emphA} 0%, ${theme.emphB} 100%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; text-shadow:none; filter:drop-shadow(0 0 22px ${rgba(theme.emphB, 0.5)}); }`,
+    `.ksub { margin-top:${px(20)}px; font:500 1em/1.5 ${theme.fontStack}; color:${theme.body}; max-width:44ch; text-shadow:0 2px 16px rgba(0,0,0,0.5); }`,
     `.kchips { display:flex; gap:${px(12)}px; margin-top:${px(28)}px; flex-wrap:wrap; }`,
-    `.kchip { display:inline-flex; align-items:center; gap:${px(9)}px; padding:${px(9)}px ${px(16)}px; border-radius:999px; background:rgba(255,255,255,0.85); border:1px solid ${theme.hair}; color:${theme.ink}; font:600 ${px(15)}px/1 ${theme.fontStack}; letter-spacing:-0.01em; box-shadow:0 8px 22px rgba(15,23,42,0.08); }`,
-    `.kchip i { width:${px(8)}px; height:${px(8)}px; border-radius:50%; background:${theme.accent2}; }`,
+    `.kchip { display:inline-flex; align-items:center; gap:${px(9)}px; padding:${px(9)}px ${px(16)}px; border-radius:999px; background:rgba(255,255,255,0.06); border:1px solid ${theme.hair}; color:${theme.ink}; font:600 ${px(15)}px/1 ${theme.fontStack}; letter-spacing:-0.01em; box-shadow:0 8px 24px rgba(0,0,0,0.35); backdrop-filter:blur(8px); }`,
+    `.kchip i { width:${px(8)}px; height:${px(8)}px; border-radius:50%; background:${theme.accent2}; box-shadow:0 0 10px ${theme.accent2}; }`,
     `.kchip:nth-child(2) i { background:${theme.accent3}; }`,
     `.kchip:nth-child(3) i { background:${theme.accent}; }`,
-    `.kmetric { font-family:${theme.displayStack}; font-weight:700; line-height:1; letter-spacing:-0.03em; color:${theme.emphA}; font-size:${px(W >= H ? 190 : 130)}px; display:flex; align-items:baseline; }`,
+    `.kmetric { font-family:${theme.displayStack}; font-weight:700; line-height:1; letter-spacing:-0.03em; color:${theme.emphB}; font-size:${px(W >= H ? 190 : 130)}px; display:flex; align-items:baseline; text-shadow:0 0 44px ${rgba(theme.emphB, 0.5)},0 2px 20px rgba(0,0,0,0.5); }`,
     `.kmpre { font-size:0.5em; color:${theme.ink}; margin-right:0.12em; }`,
     `.kmsuf { font-size:0.6em; color:${theme.accent}; margin-left:0.04em; }`,
     `.kmlabel { margin-top:${px(10)}px; font-family:${theme.displayStack}; font-weight:600; font-size:${px(W >= H ? 52 : 36)}px; color:${theme.ink}; letter-spacing:-0.02em; }`,
@@ -677,7 +684,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
     `.kcat { position:absolute; left:${W >= H ? 58 : 40}px; bottom:42px; font-size:${px(12)}px; letter-spacing:.2em; text-transform:uppercase; color:${theme.dim}; }`,
     `.kcount { position:absolute; right:${W >= H ? 58 : 40}px; bottom:42px; font-size:${px(12)}px; letter-spacing:.2em; color:${theme.kickCol}; }`,
     `.kbar { position:absolute; left:0; right:0; bottom:0; height:3px; background:${theme.hair}; }`,
-    `.kbarfill { display:block; height:100%; width:100%; transform-origin:left; transform:scaleX(0); background:linear-gradient(90deg, ${theme.accent}, ${theme.accent3}); }`,
+    `.kbarfill { display:block; height:100%; width:100%; transform-origin:left; transform:scaleX(0); background:linear-gradient(90deg, ${theme.accent}, ${theme.accent3}); box-shadow:0 0 14px ${rgba(theme.accent, 0.7)}; }`,
     `</style>`, `</head>`, `<body>`,
     `<div id="root" data-composition-id="vid" data-start="0" data-width="${W}" data-height="${H}" data-duration="${D}">`,
     bodyHtml.join("\n"),

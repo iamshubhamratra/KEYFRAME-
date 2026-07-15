@@ -1,11 +1,18 @@
-# Flagship 2.0 — Bright Product-Showcase Redesign
+# Flagship 2.0 — Product-Showcase Redesign (DARK, final)
 
-> Complete audit + redesign of the Flagship video template, from a dark-cinematic
-> Three.js film into a **bright, luminous, product-showcase** launch film in the Apple
-> keynote / Linear / Stripe / Vercel / Framer / Raycast register. Implemented in
-> `server/src/services/flagship_composer.js` (v3) + `frames/flagship/pack.json`.
-> Positioning chosen with the user: **product/screenshot-showcase cinematic**, distinct
-> from `brightlife` (which owns the abstract graphical-motion niche).
+> Complete audit + redesign of the Flagship video template into a **cinematic,
+> product-showcase** launch film. Positioning (chosen with the user): **product/
+> screenshot-showcase cinematic**, distinct from `brightlife` (abstract graphical-motion).
+>
+> **Direction note:** this was first shipped BRIGHT (v3), but flagship then read too
+> similar to the already-bright `brightlife`, so the user asked to push flagship to the
+> **DARKER side** and make the two unique. Final = **v4 DARK** — a deep near-black indigo
+> cinematic stage (Linear / Vercel / Raycast dark register) with **bright dashboard
+> panels that GLOW against the dark** (higher contrast = a better screenshot showcase).
+> The two packs now differ on two axes: **flagship = dark + product-showcase;
+> brightlife = bright + abstract-motion.** Everything below is the shared design system;
+> where it says a token/blend, the current DARK values are in §2. Implemented in
+> `server/src/services/flagship_composer.js` + `frames/flagship/pack.json`.
 
 ---
 
@@ -27,19 +34,20 @@
 
 ## 2. New design system (Flagship 2.0)
 
-### Color
+### Color (v4 DARK — current)
 | Token | Value | Use |
 |---|---|---|
-| ground | `#FFFFFF` | stage |
-| ground-2 | `#FAFBFF` | panels/secondary |
-| surface | `#F5F7FF` | luminous edge-vignette |
-| ink | `#0F172A` | headlines |
-| body | `#475569` | subtext |
-| dim | `#64748B` | supporting/chrome |
-| hair | `#E2E8F0` | borders/dividers |
-| accents | `#6366F1` indigo · `#06B6D4` cyan · `#8B5CF6` violet · `#10B981` emerald | graphics/data-viz |
+| ground | `#0A0B16` | dark cinematic stage |
+| ground-2 | `#05060C` | deeper |
+| surface / edge | `#04050A` (edge = ground×0.45) | cinematic vignette |
+| ink | `#F6F8FF` | headlines (white) |
+| body | `#AEB6D4` | subtext |
+| dim | `#7A82A0` | supporting/chrome |
+| hair | `rgba(255,255,255,0.12)` | dark-glass borders |
+| accents | `#7C8CFF` indigo · `#4ED7FF` cyan · `#B16CFF` violet · `#57F2C2` mint | glowing graphics/data-viz |
+| **panel palette (fixed light)** | white `#FFFFFF` card · `#0F172A` ink · `#E2E8F0` hair | the BRIGHT dashboard panels that pop on the dark stage |
 
-**Contrast law:** accent **text** is auto-darkened until it clears a luminance ceiling on white (`ensureReadableOnLight`), so emphasis never blends into the stage. Emphasis headline words use a saturated `indigo→violet` gradient fill (both stops dark enough to read on white). Graphics keep the raw saturated accents.
+**Contrast law:** accent **text** is auto-lightened toward white until it clears a legibility FLOOR on the dark stage (`ensureBright`); emphasis headline words use a BRIGHT cyan-forward gradient (near-white → bright brand) with a glow `drop-shadow`. The **product panels stay bright** (a fixed light palette, decoupled from the dark theme) so screenshots read at full contrast against the dark.
 
 ### Typography
 **Reality check:** the brief's Clash Display / Cabinet Grotesk / General Sans / Satoshi / Plus Jakarta Sans are **not bundled**, can't load in the offline headless renderer, and *naming* them in CSS fails the `font_family_without_font_face` lint gate. So type becomes a "visual element" through **weight/scale/tracking/gradient** on the bundled faces: **Space Grotesk** display (700/800), **Inter** body, **JetBrains Mono** chrome. Hero headlines up to ~150px @720p, `-0.03em` tracking, an editorial wallpaper numeral behind interior scenes.
@@ -50,15 +58,15 @@
 3. **Ambient** — soft orb sprites drifting; feature-panel counter-parallax.
 4. **Background** — the mesh-gradient environment drifting + data-waves flowing + camera always in motion (handheld micro-motion guarantees nothing is ever perfectly still).
 
-### Three.js architecture (purposeful, not decorative)
-- **Mesh-gradient environment** — a shader plane starting from white, mixing pastel (white-lifted) accent blobs at low strength + a soft `surface` edge-vignette. Airy, luminous, always drifting.
-- **Data-waves** — 3 stacked pastel gradient ribbons (traveling sum-of-sines vertex + flow highlight), upper-back — read as flowing product data.
-- **Growth graph-line** — ONE crisp saturated line (`TubeGeometry` + `setDrawRange`) that **rises and draws on during solution/benefits**, with a soft area fill + pulsing data dots. The product's "up-and-to-the-right" — the signature purposeful graphic.
-- **Soft orb sprites** — bright radial-gradient glow via `NormalBlending` (you can't add light to white, so glow = sprites + shadows, not bloom).
-- **NO bloom / EffectComposer** — a single `renderer.render(scene,cam)` per frame (≈2× faster than v2).
+### Three.js architecture (purposeful, not decorative) — v4 DARK
+- **Nebula environment** — a shader plane starting from the dark ground, mixing BRIGHT accent blobs (a glowing nebula) + a deep edge-vignette. Always drifting.
+- **Data-waves** — 3 stacked bright gradient ribbons (traveling sum-of-sines + flow highlight), `AdditiveBlending` so they **glow** on the dark, upper-back — flowing product data.
+- **Growth graph-line** — ONE crisp bright accent line (`TubeGeometry` + `setDrawRange`) that **rises and draws on during solution/benefits**, with an additive glowing area + pulsing data dots. The product's "up-and-to-the-right" — the signature purposeful graphic.
+- **Orb sprites** — accent radial-gradient glow via `AdditiveBlending` (glow on dark = additive sprites + the panel glow-halos, still **no bloom** — a single `renderer.render` per frame).
+- **Grid floor** — faint accent lines for tech depth.
 
 ### Screenshot showcase system
-The hero. `makePlate` builds a **bright floating dashboard panel**: a soft real drop-shadow sprite (sells the lift on white) → a white **device frame** CanvasTexture (rounded card + light border + header bar with traffic lights + url pill) → the **content** (real screenshot via `TextureLoader`, or a generated **bright** UI: dashboard / donut / kanban / activity / table / bars). Panels are **big** (`w` 6.4 hero / 3.2 feature / 3.8 side) so screenshots occupy ~40–60% of frame, tilt in perspective, and the hero adds a **small floating accent card** in front for layered-screen depth.
+The hero. `makePlate` builds a **bright floating dashboard panel that pops on the dark stage**: an **accent GLOW halo** behind it (additive sprite — sells the lift on dark, where a drop-shadow would vanish) → a white **device frame** CanvasTexture (rounded card + light border + header bar with traffic lights + url pill) → the **content** (real screenshot via `TextureLoader`, or a generated **bright** UI: dashboard / donut / kanban / activity / table / bars). Panels are **big** (`w` 6.4 hero / 3.2 feature / 3.8 side) so screenshots occupy ~40–60% of frame, tilt in perspective, and the hero adds a **small floating accent card** in front for layered-screen depth. The panels use a fixed LIGHT palette regardless of the dark stage.
 
 ---
 
