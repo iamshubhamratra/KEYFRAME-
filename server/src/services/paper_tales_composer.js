@@ -60,10 +60,12 @@ function emphWord(scene) { return String(scene.emphasis || "").trim().toLowerCas
 function headHtml(scene, emphCol) {
   const E = emphWord(scene);
   const w = words(scene);
-  if (!w.length) return "Once upon a time";
+  // Each word is its own span so the headline can reveal word-by-word (storybook charm).
+  if (!w.length) return `<span class="hw">Once</span> <span class="hw">upon</span> <span class="hw">a</span> <span class="hw">time</span>`;
   return w.map((word) => {
     const bare = word.replace(/[.,!?;:]$/, "").toLowerCase();
-    return (E && bare === E) ? `<span style="color:${emphCol};">${esc(word)}</span>` : esc(word);
+    const style = (E && bare === E) ? ` style="color:${emphCol};"` : "";
+    return `<span class="hw"${style}>${esc(word)}</span>`;
   }).join(" ");
 }
 
@@ -72,7 +74,7 @@ function penLine(scene) {
   let t = String(scene.subtext || "").trim();
   if (!t && scene.voiceover) t = String(scene.voiceover).split(/[.!?]/)[0].trim();
   if (!t && Array.isArray(scene.onScreenText) && scene.onScreenText[0]) t = String(scene.onScreenText[0]).trim();
-  return (t || "…and the little idea grew").replace(/\s+/g, " ").slice(0, 60);
+  return (t || "…and the little idea grew").replace(/\s+/g, " ").slice(0, 82);
 }
 
 // Estimate the pen-nib travel in px so the nib roughly tracks the writing edge (GSAP can't
@@ -83,6 +85,40 @@ function bullets(scene, n) {
   let list = Array.isArray(scene.onScreenText) ? scene.onScreenText.filter(Boolean) : [];
   if (!list.length && scene.subtext) list = String(scene.subtext).split(/[,.;]|\s—\s/).map((s) => s.trim()).filter((s) => s.length > 1);
   return list.slice(0, n).map(String);
+}
+
+// Supporting story lines (onScreenText items / voiceover sentences) BEYOND the single
+// pen line — this is the "more text per page" fix. Excludes the headline + the pen line.
+function notesFor(scene, penTxt) {
+  let src = Array.isArray(scene.onScreenText) ? scene.onScreenText.filter(Boolean).map(String) : [];
+  if (src.length < 2 && scene.voiceover) src = src.concat(String(scene.voiceover).split(/[.!?;\n]|\s—\s/));
+  const pen = String(penTxt || "").toLowerCase().trim();
+  const head = String(scene.headline || "").toLowerCase().replace(/\s+/g, " ").trim();
+  const seen = new Set(), out = [];
+  for (const raw of src) {
+    const t = String(raw).replace(/\s+/g, " ").trim();
+    const k = t.toLowerCase();
+    if (t.length >= 4 && t.length <= 48 && k !== pen && k !== head && !seen.has(k)) { seen.add(k); out.push(t); }
+  }
+  return out.slice(0, 3);
+}
+
+// Per-page EXTRAS dropped into the text pad: a "story notes" list (copy density) + a few
+// drifting paper marks (ambient motion). Returns {html} + {s} tweens.
+function storyExtras(id, scene, ctx, penTxt, notesAt, floatAt) {
+  const { theme, tab, i } = ctx;
+  const notes = notesFor(scene, penTxt);
+  const notesHtml = notes.length
+    ? `<div class="story-notes" id="${id}-notes">${notes.map((t) => `<div class="story-note ${id}-note" style="opacity:0;"><span class="story-dot" style="background:${tab.tab};"></span>${esc(t)}</div>`).join("")}</div>`
+    : "";
+  const marks = ["♥", "★", "✦", "♪", "❀"];
+  const cols = [theme.rose, theme.butter, theme.sky, theme.mint, theme.lilac];
+  const spots = [["6%", "6%"], ["18%", "17%"], ["3%", "31%"]];
+  const floatHtml = spots.map((p, k) => `<span class="story-float ${id}-fl" style="top:${p[0]};right:${p[1]};color:${cols[(k + i) % 5]};opacity:0;">${marks[(k + i) % marks.length]}</span>`).join("");
+  const s = [];
+  if (notes.length) s.push(`tl.fromTo("#${id} .${id}-note",{opacity:0,x:-18},{opacity:1,x:0,duration:0.5,ease:"power2.out",stagger:0.2},${r(notesAt)});`);
+  s.push(`$$("#${id} .${id}-fl").forEach(function(el,k){ tl.fromTo(el,{opacity:0,y:12,scale:0.4,rotation:-12},{opacity:0.9,y:0,scale:1,rotation:0,duration:0.9,ease:"back.out(1.7)"},r(${r(floatAt)}+k*0.35)); tl.to(el,{y:-14,rotation:10,duration:2.2,ease:"sine.inOut",yoyo:true,repeat:1},r(${r(floatAt + 1.0)}+k*0.35)); });`);
+  return { html: notesHtml + floatHtml, s };
 }
 
 function pickNumber(scene) {
@@ -149,6 +185,7 @@ function chapterSpread(scene, ctx, opts) {
   const { id, T, theme, tab } = ctx;
   const pen = penLine(scene);
   const penW = penWidthPx(pen, ctx.W);
+  const extras = storyExtras(id, scene, ctx, pen, r(T + 2.2), r(T + 1.0));
   const illoOnLeft = ctx.i % 2 === 1;
   const illo = opts.illo || `<div class="popcard">${(ILLOS[ctx.i % ILLOS.length])(theme)}</div>`;
   const textPage = `<div class="pg ${illoOnLeft ? "pgR" : "pgL"}">
@@ -159,6 +196,7 @@ function chapterSpread(scene, ctx, opts) {
         <span class="hand pen-clip" id="${id}-write" style="font-size:2.05cqw;color:${theme.soft};white-space:normal;">${esc(pen)}</span>
         ${penSvg(id, tab.tab)}
       </div>
+      ${extras.html}
     </div></div>`;
   const illoPage = `<div class="pg ${illoOnLeft ? "pgL" : "pgR"}">
     <div class="pad" style="display:flex;align-items:center;justify-content:center;">
@@ -173,6 +211,7 @@ function chapterSpread(scene, ctx, opts) {
     `popUp("#${id}-pop","#${id}-popsh",${r(T + 0.7)},0.95);`,
     `tl.to("#${id}-pop",{rotation:2,duration:1.2,ease:"sine.inOut",yoyo:true,repeat:1,transformOrigin:"50% 100%"},${r(T + 2.1)});`,
     `penWrite("#${id}-write","#${id}-pen",${r(T + 1.3)},1.7,${penW});`,
+    ...extras.s,
     ...spreadOut(id, ctx),
   ];
   return { html, s };
@@ -187,6 +226,7 @@ function friendsSpread(scene, ctx) {
   const totalN = (pickNumber(scene) && Number(pickNumber(scene).val)) || 12;
   const moreN = Math.max(0, totalN - n);   // reconcile "Twelve friends" with the 5 shown
   const pen = penLine(scene); const penW = penWidthPx(pen, ctx.W);
+  const extras = storyExtras(id, scene, ctx, pen, r(T + 2.2), r(T + 1.0));
   const friends = Array.from({ length: n }, (_, k) => `<div class="popwrap ${id}-fw" style="position:relative;width:5.2cqw;height:7.4cqw;">
       <div class="popshadow ${id}-fsh" style="opacity:0;"></div>
       <div class="pop ${id}-fpop"><div class="friend"><div class="head"><span class="eye ${id}-eye" style="left:0.85cqw;"></span><span class="eye ${id}-eye" style="right:0.85cqw;"></span><span class="cheek" style="left:0.45cqw;"></span><span class="cheek" style="right:0.45cqw;"></span><span class="smile"></span></div><div class="body" style="background:${cols[k % 5]};"></div></div></div>
@@ -203,6 +243,7 @@ function friendsSpread(scene, ctx) {
         <div class="penwrap" style="margin-top:1.8cqw;">
           <span class="hand pen-clip" id="${id}-write" style="font-size:2.05cqw;color:${theme.soft};">${esc(pen)}</span>${penSvg(id, tab.tab)}
         </div>
+        ${extras.html}
       </div></div></div>`;
   const s = [
     ...spreadIn(id, T),
@@ -211,6 +252,7 @@ function friendsSpread(scene, ctx) {
     `blink(".${id}-eye",${r(T + 2.4)}); blink(".${id}-eye",${r(T + 3.9)});`,
     moreN > 0 ? `tl.fromTo("#${id}-plus",{opacity:0,rotation:-6},{opacity:1,rotation:0,duration:0.5,ease:"back.out(1.7)"},${r(T + 2.2)});` : "",
     `penWrite("#${id}-write","#${id}-pen",${r(T + 1.3)},1.8,${penW});`,
+    ...extras.s,
     ...spreadOut(id, ctx),
   ].filter(Boolean);
   return { html, s };
@@ -220,6 +262,7 @@ function friendsSpread(scene, ctx) {
 function paintSpread(scene, ctx) {
   const { id, T, theme, tab } = ctx;
   const pen = penLine(scene); const penW = penWidthPx(pen, ctx.W);
+  const extras = storyExtras(id, scene, ctx, pen, r(T + 2.2), r(T + 1.0));
   const html = `${pageOpen(id, ctx)}
     <div class="pg pgL">
       <div class="chapter-tab" id="${id}-tab" style="background:${tab.tab};">${esc(ctx.tabLabel)}</div>
@@ -228,6 +271,7 @@ function paintSpread(scene, ctx) {
         <div class="penwrap" style="margin-top:1.8cqw;">
           <span class="hand pen-clip" id="${id}-write" style="font-size:2.05cqw;color:${theme.soft};">${esc(pen)}</span>${penSvg(id, tab.tab)}
         </div>
+        ${extras.html}
       </div></div>
     <div class="pg pgR"><div class="pad">
       <div class="wc ${id}-wc" style="left:6%;bottom:12%;width:16cqw;height:9cqw;background:radial-gradient(50% 50% at 50% 50%, #BCE0C2, transparent 70%);"></div>
@@ -249,6 +293,7 @@ function paintSpread(scene, ctx) {
     `tl.to("#${id}-rays",{rotation:60,duration:2.6,ease:"sine.inOut",svgOrigin:"60 60"},${r(T + 2.1)});`,
     `popUp("#${id}-pop","#${id}-popsh",${r(T + 1.9)},0.9);`,
     `penWrite("#${id}-write","#${id}-pen",${r(T + 1.3)},1.8,${penW});`,
+    ...extras.s,
     ...spreadOut(id, ctx),
   ];
   return { html, s };
@@ -259,6 +304,7 @@ function statSpread(scene, ctx) {
   const { id, T, theme, tab } = ctx;
   const num = pickNumber(scene) || { pre: "", val: "12", suf: "" };
   const pen = penLine(scene); const penW = penWidthPx(pen, ctx.W);
+  const extras = storyExtras(id, scene, ctx, pen, r(T + 2.2), r(T + 1.0));
   const html = `${pageOpen(id, ctx)}
     <div class="pg pgL"><div class="pad" style="display:flex;align-items:center;justify-content:center;">
       <div class="popwrap" id="${id}-popw" style="width:20cqw;height:15cqw;bottom:6cqw;left:50%;margin-left:-10cqw;">
@@ -273,7 +319,7 @@ function statSpread(scene, ctx) {
       <div class="chapter-tab" id="${id}-tab" style="background:${tab.tab};">${esc(ctx.tabLabel)}</div>
       <div class="pad" style="display:flex;flex-direction:column;justify-content:center;">
         <div class="h-story" id="${id}-h" style="font-size:2.7cqw;opacity:0;">${headHtml(scene, tab.emph)}</div>
-        <div class="penwrap" style="margin-top:1.8cqw;"><span class="hand pen-clip" id="${id}-write" style="font-size:2.05cqw;color:${theme.soft};">${esc(pen)}</span>${penSvg(id, tab.tab)}</div>
+        <div class="penwrap" style="margin-top:1.8cqw;"><span class="hand pen-clip" id="${id}-write" style="font-size:2.05cqw;color:${theme.soft};">${esc(pen)}</span>${penSvg(id, tab.tab)}</div>${extras.html}
       </div></div></div>`;
   const isNum = /^\d+$/.test(String(num.val));
   const s = [
@@ -283,6 +329,7 @@ function statSpread(scene, ctx) {
       ? `{var o={v:0};tl.to(o,{v:${Number(num.val)},duration:1.3,ease:"power2.out",snap:{v:1},onUpdate:function(){var e=$("#${id}-num");if(e)e.textContent=Math.round(o.v);}},${r(T + 1.6)});}`
       : `tl.set("#${id}-num",{textContent:${JSON.stringify(String(num.val))}},${r(T + 1.6)});`,
     `penWrite("#${id}-write","#${id}-pen",${r(T + 1.3)},1.7,${penW});`,
+    ...extras.s,
     ...spreadOut(id, ctx),
   ];
   return { html, s };
@@ -293,6 +340,7 @@ function statSpread(scene, ctx) {
 function screenSpread(scene, ctx, asset) {
   const { id, T, theme, tab } = ctx;
   const pen = penLine(scene); const penW = penWidthPx(pen, ctx.W);
+  const extras = storyExtras(id, scene, ctx, pen, r(T + 2.2), r(T + 1.0));
   const inner = asset
     ? `<div class="cine-screen"><img src="${esc(asset.path)}" alt="${esc(asset.alt || "screenshot")}" style="object-fit:cover;object-position:${esc(asset.cropFocus || "top center")};"></div>`
     : `<div class="cine-screen"><div id="${id}-strip" style="position:absolute;top:14%;left:0;display:flex;gap:0.8cqw;">${["#F3B8B1", "#FFE1A6", "#BFE0F2", "#C9E8CE", "#DCC9EE", "#F3B8B1"].map((c) => `<div style="width:6.4cqw;height:8cqw;border-radius:0.5cqw;background:linear-gradient(160deg,${c},${c});"></div>`).join("")}</div></div>`;
@@ -311,7 +359,7 @@ function screenSpread(scene, ctx, asset) {
       <div class="chapter-tab" id="${id}-tab" style="background:${tab.tab};${tab.tab === theme.butter ? "color:#7A5B23;" : ""}">${esc(ctx.tabLabel)}</div>
       <div class="pad" style="display:flex;flex-direction:column;justify-content:center;">
         <div class="h-story" id="${id}-h" style="font-size:2.7cqw;opacity:0;">${headHtml(scene, tab.emph)}</div>
-        <div class="penwrap" style="margin-top:1.8cqw;"><span class="hand pen-clip" id="${id}-write" style="font-size:2.05cqw;color:${theme.soft};">${esc(pen)}</span>${penSvg(id, tab.tab)}</div>
+        <div class="penwrap" style="margin-top:1.8cqw;"><span class="hand pen-clip" id="${id}-write" style="font-size:2.05cqw;color:${theme.soft};">${esc(pen)}</span>${penSvg(id, tab.tab)}</div>${extras.html}
       </div></div></div>`;
   const s = [
     ...spreadIn(id, T),
@@ -319,6 +367,7 @@ function screenSpread(scene, ctx, asset) {
     asset ? "" : `tl.fromTo("#${id}-strip",{x:0},{x:-460,duration:3.2,ease:"none"},${r(T + 1.9)});`,
     `tl.fromTo("#${id}-shine",{xPercent:0},{xPercent:620,duration:1.1,ease:"power1.inOut"},${r(T + 2.2)});`,
     `penWrite("#${id}-write","#${id}-pen",${r(T + 1.3)},1.8,${penW});`,
+    ...extras.s,
     ...spreadOut(id, ctx),
   ].filter(Boolean);
   return { html, s };
@@ -405,7 +454,8 @@ function spreadIn(id, T) {
   return [
     `tl.fromTo("#${id}",{opacity:0},{opacity:1,duration:0.3},${r(T + 0.12)});`,
     `tl.fromTo("#${id}-tab",{yPercent:-110},{yPercent:0,duration:0.5,ease:"back.out(1.6)"},${r(T + 0.45)});`,
-    `tl.fromTo("#${id}-h",{opacity:0,y:20},{opacity:1,y:0,duration:0.55,ease:"power2.out"},${r(T + 0.5)});`,
+    `tl.set("#${id}-h",{opacity:1},${r(T + 0.5)});`,
+    `tl.fromTo("#${id}-h .hw",{opacity:0,y:24,rotationZ:-4},{opacity:1,y:0,rotationZ:0,duration:0.5,stagger:0.08,ease:"back.out(1.4)"},${r(T + 0.5)});`,
   ];
 }
 // shared spread outro (fade + boundary hard-kill). Not for the last scene (handled by kill()).
@@ -433,6 +483,11 @@ function styleBlock(theme) {
   .pad { position:absolute; inset:2.6cqw 2.8cqw; }
   .h-story { font-family:${theme.storyStack}; font-weight:700; color:${theme.ink}; line-height:1.12; }
   .hand { font-family:${theme.storyStack}; font-style:italic; font-weight:600; color:${theme.ink}; }
+  .hw { display:inline-block; will-change:transform; }
+  .story-notes { margin-top:1.5cqw; display:flex; flex-direction:column; gap:0.7cqw; max-width:32cqw; }
+  .story-note { display:flex; align-items:flex-start; gap:0.9cqw; font-family:${theme.storyStack}; font-style:italic; font-weight:600; font-size:1.5cqw; line-height:1.28; color:${theme.ink}; }
+  .story-dot { width:0.7cqw; height:0.7cqw; border-radius:50%; flex:0 0 auto; margin-top:0.42cqw; }
+  .story-float { position:absolute; font-size:1.9cqw; pointer-events:none; will-change:transform; }
   .chapter-tab { position:absolute; top:-0.2cqw; left:2.8cqw; padding:0.9cqw 1.5cqw 0.6cqw; border-radius:0 0 0.7cqw 0.7cqw; font-weight:700; font-size:0.95cqw; letter-spacing:0.24em; color:#fff; text-transform:uppercase; }
   .popwrap { position:absolute; perspective:1300px; }
   .pop { width:100%; height:100%; transform-origin:50% 100%; will-change:transform; }

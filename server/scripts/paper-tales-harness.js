@@ -18,11 +18,11 @@ const storyboard = {
   durationSec: 36,
   scenes: [
     { id: "s1", start: 0,  duration: 5.4, purpose: "hook",    kind: "hook",  headline: "The Little Idea", emphasis: "Idea", kicker: "a keyframe bedtime story" },
-    { id: "s2", start: 5,  duration: 5.4, purpose: "context", kind: "text",  headline: "Once upon a time, there was a little idea", emphasis: "idea", subtext: "It was small, but it wanted to be a film…" },
-    { id: "s3", start: 10, duration: 5.4, purpose: "feature", kind: "text",  headline: "So it whispered one sentence", emphasis: "sentence", subtext: "Please make me into something lovely." },
-    { id: "s4", start: 15, duration: 5.4, purpose: "team",    kind: "text",  headline: "Twelve paper friends set to work", emphasis: "friends", onScreenText: ["one wrote", "one painted", "one hummed", "one drew", "one dreamed"], subtext: "One wrote, one painted, one hummed a tune…" },
-    { id: "s5", start: 20, duration: 5.4, purpose: "create",  kind: "text",  headline: "They painted whole worlds for it", emphasis: "worlds", subtext: "hills, a sun, and a song that floated up" },
-    { id: "s6", start: 25, duration: 5.9, purpose: "solution",kind: "text",  headline: "And the little idea became a film", emphasis: "film", subtext: "A real one — with music, colour, and an ending." },
+    { id: "s2", start: 5,  duration: 5.4, purpose: "context", kind: "text",  headline: "Once upon a time, there was a little idea", emphasis: "idea", subtext: "It was small, but it wanted to be a film…", onScreenText: ["Barely a whisper", "Nowhere to begin", "But full of hope"] },
+    { id: "s3", start: 10, duration: 5.4, purpose: "feature", kind: "text",  headline: "So it whispered one sentence", emphasis: "sentence", subtext: "Please make me into something lovely.", onScreenText: ["No brief", "No crew", "Just one line"] },
+    { id: "s4", start: 15, duration: 5.4, purpose: "team",    kind: "text",  headline: "Twelve paper friends set to work", emphasis: "friends", onScreenText: ["One wrote the script", "One painted the scenes", "One hummed a tune"], subtext: "Each one had a job to do…" },
+    { id: "s5", start: 20, duration: 5.4, purpose: "create",  kind: "text",  headline: "They painted whole worlds for it", emphasis: "worlds", subtext: "hills, a sun, and a song that floated up", onScreenText: ["Rolling green hills", "A warm paper sun", "A little melody"] },
+    { id: "s6", start: 25, duration: 5.9, purpose: "solution",kind: "text",  headline: "And the little idea became a film", emphasis: "film", subtext: "A real one — with music, colour, and an ending.", onScreenText: ["Music and colour", "A beginning", "And a happy ending"] },
     { id: "s7", start: 30.5, duration: 5.5, purpose: "cta",   kind: "cta",   headline: "KEYFRAME", emphasis: "Write yours — free", subtext: "every idea deserves a story" },
   ],
 };
