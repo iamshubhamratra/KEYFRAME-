@@ -1,22 +1,23 @@
 {
   "name": "flagship",
-  "vibe": "The benchmark — a dark cinematic launch-film system in the Apple / Linear / Stripe / Vercel register: deep indigo grounds, soft drifting aurora glows, floating glass device plates holding real product screenshots, filmic bloom, and Space Grotesk display type. Rendered as a native Three.js scene with a cinematic camera that dollies, parallaxes and pulls back to guide the eye.",
+  "vibe": "The benchmark — a BRIGHT, luminous product-showcase launch film in the Apple keynote / Linear / Stripe / Vercel / Framer / Raycast register. A white, airy stage with a soft pastel mesh-gradient environment, big floating dashboard panels holding real product screenshots (screenshots are the hero, ~40-60% of frame), lifted off the page by soft real shadows, plus purposeful data-graphics (traveling gradient data-waves + a rising growth graph-line that reinforce the product story) and high-contrast slate typography. Rendered as a native Three.js scene with a cinematic camera that dollies, focus-pulls, orbits and pulls back to guide the eye. No dark backgrounds, no bloom.",
   "renderer": "three-flagship",
   "colors": {
-    "ground": "#07080F",
-    "ground-2": "#0C0E1A",
-    "text": "#F6F8FF",
-    "muted": "#A6ACC8",
-    "indigo": "#6E8BFF",
-    "violet": "#B16CFF",
-    "cyan": "#4ED7FF",
-    "mint": "#57F2C2"
+    "ground": "#FFFFFF",
+    "ground-2": "#FAFBFF",
+    "surface": "#F5F7FF",
+    "text": "#0F172A",
+    "muted": "#475569",
+    "indigo": "#6366F1",
+    "cyan": "#06B6D4",
+    "violet": "#8B5CF6",
+    "emerald": "#10B981"
   },
   "fonts": ["Space Grotesk", "Inter"],
   "surface": {
     "flat": false,
-    "lightCinematic": false,
-    "ground": "#07080F"
+    "lightCinematic": true,
+    "ground": "#FFFFFF"
   },
   "motion": {
     "cut": "glow",
@@ -27,21 +28,21 @@
     "three": "flagship"
   },
   "skin": {
-    "accents": ["#6E8BFF", "#4ED7FF", "#B16CFF", "#57F2C2"],
+    "accents": ["#6366F1", "#06B6D4", "#8B5CF6", "#10B981"],
     "extras": [],
     "emphasisCss": null
   },
   "assets": {
-    "photoMod": "clean modern product ui",
+    "photoMod": "clean modern product ui on a bright dashboard panel",
     "iconStyle": "duotone",
-    "keywords": ["clean", "modern", "premium", "gradient", "minimal"],
+    "keywords": ["clean", "modern", "premium", "bright", "minimal", "product"],
     "prefer": ["photo", "vector"]
   },
   "typography": {
     "display": "Space Grotesk"
   },
   "camera3d": {
-    "ground": "#07080F"
+    "ground": "#FFFFFF"
   },
   "textfx": {
     "enter": "mask-reveal",
