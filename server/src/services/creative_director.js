@@ -64,7 +64,10 @@ function sceneDigest(storyboard, script) {
   const scenes = (storyboard && Array.isArray(storyboard.scenes) && storyboard.scenes.length)
     ? storyboard.scenes
     : (script && Array.isArray(script.scenes) ? script.scenes : []);
-  return scenes.slice(0, 12).map((s, i) => ({
+  // Digest ALL scenes (schema cap is 24). The old slice(0,12) hid scenes 13-24
+  // from the director, so validSceneIds excluded them and any asset the director
+  // would assign to a later scene was silently discarded to "_unassigned".
+  return scenes.slice(0, 24).map((s, i) => ({
     id: s.id != null ? s.id : i + 1,
     purpose: String(s.purpose || "").slice(0, 40),
     direction: String(s.visualDirection || s.headline || s.subtext || "").slice(0, 140),
@@ -151,8 +154,16 @@ async function reviewChunk({ chunk, baseIndex, subject, categoryText, packText, 
 
   const parsed = extractFirstJsonObject(text);
   const verdicts = Array.isArray(parsed && parsed.verdicts) ? parsed.verdicts : [];
+  // Key verdicts by the model-returned `n` when present, but fall back to array
+  // position (1-based) when the model omits/mis-numbers it — otherwise a single
+  // missing `n` dropped EVERY verdict in the chunk and its assets passed through
+  // unreviewed (fail-open). Assets are sent in order, so position is a safe key.
   const byN = new Map();
-  for (const v of verdicts) { const n = Number(v && v.n); if (Number.isFinite(n)) byN.set(n, v); }
+  verdicts.forEach((v, i) => {
+    const n = Number(v && v.n);
+    const key = Number.isFinite(n) ? n : i + 1;
+    if (!byN.has(key)) byN.set(key, v);
+  });
 
   const out = new Map();
   usable.forEach((x, n) => {
