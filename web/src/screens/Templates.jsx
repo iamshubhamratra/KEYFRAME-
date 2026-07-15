@@ -54,6 +54,7 @@ export function PackCard({ pack, delay = 0, onUse, compact = false }) {
   const vidRef = useRef(null);
   const [hover, setHover] = useState(false);
   const preview = pack.previewUrl ? mediaUrl(pack.previewUrl) : null;
+  const poster = pack.posterUrl ? mediaUrl(pack.posterUrl) : null;
 
   const enter = () => {
     setHover(true);
@@ -80,7 +81,9 @@ export function PackCard({ pack, delay = 0, onUse, compact = false }) {
     >
       <span className="spine" style={{ "--spine": lore.accent, zIndex: 5 }} />
 
-      {/* preview — pack bg + gradient + chip dots + demo type + scanlines */}
+      {/* thumbnail — the pack's REAL rendered look (its poster frame). The synthetic
+          bg / gradient / chips / demo-type below is only a FALLBACK for a pack that
+          has no poster; when a poster exists it fully covers them (zIndex 4). */}
       <div style={{ aspectRatio: "16/10", position: "relative", overflow: "hidden", background: lore.bg, display: "grid", placeItems: "center" }}>
         <div style={{ position: "absolute", inset: 0, background: lore.grad, opacity: 0.9 }} />
         <div className="film-scan" style={{ opacity: 0.5 }} />
@@ -94,10 +97,16 @@ export function PackCard({ pack, delay = 0, onUse, compact = false }) {
             {lore.demo}
           </div>
         </div>
+        {/* real template look — static poster frame is the DEFAULT thumbnail */}
+        {poster && (
+          <img src={poster} alt={`${lore.name || pack.label || pack.name} preview`} loading="lazy" draggable={false}
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 4 }} />
+        )}
+        {/* hover — the pack's motion preview fades in over the poster */}
         {preview && (
-          <video ref={vidRef} src={preview} poster={pack.posterUrl ? mediaUrl(pack.posterUrl) : undefined}
+          <video ref={vidRef} src={preview} poster={poster || undefined}
             muted loop playsInline preload="none"
-            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 4, opacity: hover ? 1 : 0, transition: "opacity .35s ease" }} />
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 5, opacity: hover ? 1 : 0, transition: "opacity .35s ease" }} />
         )}
       </div>
 
