@@ -138,6 +138,9 @@ async function main() {
     console.log(`[server] videosDir=${config.paths.videosDir}`);
     console.log(`[server] jobsDir=${config.paths.jobsDir}`);
     console.log(`[server] model=${config.llm.model}`);
+    // Verify the director / stage model ids resolve at the provider. Non-blocking:
+    // a bad id otherwise silently fails-open at runtime (see model_health.js).
+    require("./src/services/model_health").checkModels().catch(() => {});
   });
 
   const stopJanitor = janitor.start();
