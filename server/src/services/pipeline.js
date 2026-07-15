@@ -34,6 +34,7 @@ const blueprintComposer = require("./blueprint_composer");
 const bloomComposer = require("./bloom_composer");
 const bauhausComposer = require("./bauhaus_composer");
 const terminalComposer = require("./terminal_departures_composer");
+const paperTalesComposer = require("./paper_tales_composer");
 const frameRegistry = require("./frame_registry");
 const frameManifest = require("./frame_manifest");
 
@@ -508,6 +509,11 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
   if (rendererFor(framePack) === "terminal-departures") {
     return composeWithTerminal({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "terminal-departures", abortSignal, tracker });
   }
+
+  // PAPER TALES TEMPLATE — a pack whose manifest declares renderer:"paper-tales"
+  if (rendererFor(framePack) === "paper-tales") {
+    return composeWithPaperTales({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "paper-tales", abortSignal, tracker });
+  }
   // DEFAULT = the deterministic scene-kit (guaranteed showcase-grade, lint-clean,
   // per-pack styled). Every pipeline path (runJob, graph, project_pipeline) routes
   // through here, so this single dispatch makes the kit the primary composer
@@ -706,6 +712,22 @@ async function composeWithTerminal({ storyboard, dims, jobDir, framePack, captio
   tracker.addExternal("hyperframes_render");
   const visual = await render({ jobId, jobDir, durationSec, abortSignal });
   console.log(`[pipeline] ${label || "terminal-departures"}: render done in ${ms() - t0}ms total`);
+  return visual;
+}
+
+// PAPER TALES composition path — a pack whose manifest declares renderer:"paper-tales"
+// routes here (see attemptLlmComposition). A native GSAP + SVG/CSS pop-up storybook film
+// (paper_tales_composer.js): a physical book with 3D page turns, pop-up fold-ups, a pen
+// that handwrites, and a pop-up paper cinema that shows a real screenshot.
+async function composeWithPaperTales({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker }) {
+  const t0 = ms();
+  console.log(`[pipeline] ${label || "paper-tales"}: building Paper Tales composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
+  const built = paperTalesComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets });
+  fs.writeFileSync(path.join(jobDir, "index.html"), built.indexHtml, "utf8");
+  fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
+  tracker.addExternal("hyperframes_render");
+  const visual = await render({ jobId, jobDir, durationSec, abortSignal });
+  console.log(`[pipeline] ${label || "paper-tales"}: render done in ${ms() - t0}ms total`);
   return visual;
 }
 

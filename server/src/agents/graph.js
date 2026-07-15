@@ -846,7 +846,7 @@ async function qaAgentNode(s) {
   // gain. Only the LLM composer (remix/dress) reads QA feedback and can actually
   // change — compositionAgent flags that path with repairable:true.
   const isFlagship = (() => {
-    try { const m = require("../services/frame_manifest").getManifest(s.framePack); return !!(m && /^(three-(flagship|brightlife)|blueprint|bloom-fable|bauhaus-riot|terminal-departures)$/.test(m.renderer || "")); }
+    try { const m = require("../services/frame_manifest").getManifest(s.framePack); return !!(m && /^(three-(flagship|brightlife)|blueprint|bloom-fable|bauhaus-riot|terminal-departures|paper-tales)$/.test(m.renderer || "")); }
     catch { return false; }
   })();
   if (config.qa?.enabled === false || s.usedFallback || s.job?.render3d || isFlagship || s.repairable === false) {

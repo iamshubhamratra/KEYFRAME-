@@ -1,0 +1,51 @@
+{
+  "name": "paper-tales",
+  "vibe": "A pop-up storybook. The whole film happens inside ONE physical book lying on a soft desk: the cover opens, real 3D PAGES TURN between chapters, and every scene is a warm paper spread whose contents FOLD UP from the page crease like a children's pop-up book. A pen HANDWRITES each line, paper friends blink, watercolour blooms soak into the page, a paper sun spins its rays, and a pop-up paper cinema shows the product. Cream paper, soft dusty-rose / sky / mint / lilac / butter pastels, a muted plum ink, Fraunces serif (with an italic 'handwritten' voice). Rendered as a native GSAP + SVG/CSS composition. Best for gentle, warm, human, founder-story / onboarding / 'every idea deserves a story' films.",
+  "renderer": "paper-tales",
+  "colors": {
+    "ground": "#FFF9F0",
+    "ground-2": "#FBF1E1",
+    "text": "#6B5B73",
+    "muted": "#A08D97",
+    "rose": "#E8938C",
+    "sky": "#9CCFE8",
+    "mint": "#9CCEA4",
+    "lilac": "#C5AEDD",
+    "butter": "#F7C873"
+  },
+  "fonts": ["Fraunces"],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#FFF9F0"
+  },
+  "motion": {
+    "cut": "page-turn",
+    "drift": 0.9
+  },
+  "fx": {
+    "canvas": "none",
+    "three": "none"
+  },
+  "skin": {
+    "accents": ["#E8938C", "#9CCFE8", "#9CCEA4", "#C5AEDD", "#F7C873"],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "soft warm product screenshot in a paper cinema",
+    "iconStyle": "flat",
+    "keywords": ["storybook", "paper", "pastel", "hand-drawn", "warm", "gentle"],
+    "prefer": ["photo", "vector"]
+  },
+  "typography": {
+    "display": "Fraunces",
+    "body": "Fraunces"
+  },
+  "textfx": {
+    "enter": "handwrite",
+    "emphasis": "tint",
+    "case": "none",
+    "tracking": 0
+  }
+}
