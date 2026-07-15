@@ -76,7 +76,7 @@ function normalizeScript(script, { targetDuration } = {}) {
   });
 
   // Snap total to the target duration. Absorb drift into the last scene first,
-  // then spill into earlier scenes if it can't take it all within [1,15], so the
+  // then spill into earlier scenes if it can't take it all within [1,12], so the
   // total always lands on target instead of failing validation. Starts are then
   // recomputed since redistribution can change non-last durations.
   if (targetDuration && s.scenes.length) {
@@ -86,7 +86,10 @@ function normalizeScript(script, { targetDuration } = {}) {
       let moved = false;
       for (let i = s.scenes.length - 1; i >= 0 && Math.abs(drift) >= 0.05; i--) {
         const sc = s.scenes[i];
-        const newDur = Math.min(15, Math.max(1, r1(sc.duration + drift)));
+        // Clamp to the SceneSchema duration cap [1,12]; drift a scene can't absorb
+        // spills into earlier scenes (loop above) instead of producing a >12s scene
+        // that would fail the schema on the very next validateScript().
+        const newDur = Math.min(12, Math.max(1, r1(sc.duration + drift)));
         const applied = r1(newDur - sc.duration);
         if (applied !== 0) { sc.duration = newDur; drift = r1(drift - applied); moved = true; }
       }
