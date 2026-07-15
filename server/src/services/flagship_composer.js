@@ -33,6 +33,7 @@
 
 const { deriveTheme } = require("./scene_kit");
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
+const { aspectMode, typeScale, safeArea, headlineCh } = require("./responsive");
 
 const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 const THREE_VER = "0.160.0";
@@ -138,9 +139,13 @@ function chipsFor(scene, treatment) {
 function sceneOverlay(scene, i, total, ctx) {
   const { theme, dims, T, L, title, treatment } = ctx;
   const id = `s${i + 1}`;
-  const land = dims.width >= dims.height;
-  const centered = treatment === "hook" || treatment === "cta";
+  const W = dims.width, H = dims.height;
+  const mode = aspectMode(W, H);
+  const land = mode === "landscape";
+  const port = !land;                         // portrait OR square → native vertical stack
+  const centered = port || treatment === "hook" || treatment === "cta";
   const isHero = treatment === "hook";
+  const isCta = treatment === "cta";
   const headStr = String(scene.headline || "").trim();
   const headWords = headStr.split(/\s+/).filter(Boolean);
   const wc = headWords.length || 3;
@@ -149,20 +154,25 @@ function sceneOverlay(scene, i, total, ctx) {
   if (headStr.length > 24) measure = Math.min(measure, 0.82);
   if (headStr.length > 40) measure = Math.min(measure, 0.62);
   if (longestWord > 14) measure = Math.min(measure, Math.max(0.34, 15 / longestWord));
-  const sc = Math.max(0.6, dims.height / 720);
-  const baseBig = (isHero ? (land ? 150 : 96) : treatment === "cta" ? (land ? 124 : 80) : (land ? 88 : 58)) * sc;
-  const big = Math.round(baseBig * measure);
+  // Type scales off the SHORT side (never the tall portrait height) so portrait no longer
+  // renders ~2.7x-oversized headlines; the final px is also clamped to the canvas width.
+  const sc = typeScale(W, H);
+  const heroBase = land ? 150 : 100, ctaBase = land ? 124 : 90, intBase = land ? 88 : 68;
+  const baseBig = (isHero ? heroBase : isCta ? ctaBase : intBase) * sc;
+  const big = Math.min(Math.round(baseBig * measure), Math.round(W * (port ? 0.13 : 0.42)));
   const kicker = (treatment === "hook" ? (title || scene.emphasis) : scene.emphasis || (title || "")) || "";
   const metric = treatment === "benefits" ? parseMetric(scene.emphasis || scene.headline || scene.subtext) : null;
   const chips = chipsFor(scene, treatment);
 
+  const safe = safeArea(W, H);
   const align = centered ? "center" : "flex-start";
-  const justify = centered ? "center" : "flex-end";
-  const pad = centered ? "0 9%" : land ? "0 7% 9%" : "0 7% 12%";
+  // Portrait/square: interior scenes are a TOP-anchored centered stack (headline block up
+  // top; the 3D hero plate fills the mid-band below); hook/cta stay vertically centered.
+  const justify = port ? ((isHero || isCta) ? "center" : "flex-start") : (centered ? "center" : "flex-end");
+  const padTop = Math.round(safe.top * 100), padBot = Math.round(safe.bottom * 100), padSide = Math.round(safe.side * 100);
+  const pad = port ? `${padTop}% ${padSide}% ${padBot}%` : centered ? "0 9%" : "0 7% 9%";
   const textAlign = align === "flex-start" ? "left" : "center";
-  const maxw = centered ? (land ? "20ch" : "13ch")
-    : longestWord > 14 ? (land ? "17ch" : "13ch")
-    : (land ? "11ch" : "10ch");
+  const maxw = headlineCh(W, H, centered);
 
   const parts = [];
   parts.push(`<div id="${id}" class="ktxt clip" data-start="${T}" data-duration="${L}" data-track-index="${20 + i}" data-layout-allow-occlusion style="opacity:0;align-items:${align};justify-content:${justify};padding:${pad};text-align:${textAlign};">`);
@@ -236,7 +246,11 @@ let __s=${seed}>>>0; function rand(){__s|=0;__s=(__s+0x6D2B79F5)|0;let t=Math.im
 const smooth=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);};
 const expoOut=(x)=>x>=1?1:1-Math.pow(2,-10*x);
 const lerp=(a,b,t)=>a+(b-a)*t;
-function land(){return W>=H;}
+function land(){return W>H;}            // STRICT — square (W===H) is NOT landscape
+const SQUARE=Math.abs(W-H)<W*0.1;
+const PORT=!land();                       // portrait OR square → narrow frame
+const WSCALE=land()?1:(SQUARE?0.74:0.56); // shrink world plate width for the narrow hFOV
+const FOV=land()?42:(SQUARE?50:60);       // widen vertical FOV so content fits the narrow frame
 
 const cv=document.getElementById("kfcanvas");
 const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true});
@@ -246,7 +260,7 @@ if("outputColorSpace" in renderer && THREE.SRGBColorSpace) renderer.outputColorS
 const scene=new THREE.Scene();
 // A whisper of white fog for aerial depth (never darkens — fades distant geo toward the stage).
 scene.fog=new THREE.Fog(${ground},34,88);
-const cam=new THREE.PerspectiveCamera(42,W/H,0.1,180);
+const cam=new THREE.PerspectiveCamera(FOV,W/H,0.1,180);
 
 // ---- lighting (bright, soft) ----
 scene.add(new THREE.AmbientLight(0xffffff,0.92));
@@ -452,7 +466,7 @@ const loader=new THREE.TextureLoader();
 function makePlate(spec){
   const g=new THREE.Group();
   const aspect=spec.aspect&&spec.aspect>0.3&&spec.aspect<4?spec.aspect:1.6;
-  const w=spec.w, h=w/aspect;
+  const w=spec.w*WSCALE, h=w/aspect;
   // accent GLOW halo behind (sells the lift on the dark stage — a drop-shadow vanishes)
   const gl=new THREE.Mesh(new THREE.PlaneGeometry(w*1.6,h*1.75),new THREE.MeshBasicMaterial({map:OTEX,color:A[spec.ci%A.length],transparent:true,opacity:0.55,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}));
   gl.position.set(0,0,-0.16); g.add(gl);
@@ -492,10 +506,17 @@ for(const sc of SCENES){
     const pl=makePlate(spec);
     // Text lives LOWER-LEFT (see sceneOverlay); panels sit CENTER-RIGHT big, so the
     // screenshot fills 40-60% without covering the headline.
-    if(spec.role==="hero"){pl.position.set(land()?2.4:0, land()?0.9:1.6, 0); pl.rotation.y=land()?-0.16:0;}
-    else if(spec.role==="feature"){const n=mine.length;const spread=n>1?(idx-(n-1)/2):0;pl.position.set((land()?2.2:0)+spread*3.4, (land()?1.2:1.8)+(idx%2?-0.5:0.5), -idx*1.6);pl.rotation.y=-0.18-spread*0.14;}
-    else if(spec.role==="side"){pl.position.set(land()?3.4:0, land()?1.1:1.7, -0.4);pl.rotation.y=-0.22;}
-    else if(spec.role==="frag"){pl.position.set((land()?2.6:0)+(idx?2.0:-2.0), (land()?1.5:1.9)+(idx?-0.8:0.6), -1.2-idx*0.8);pl.rotation.set(0.02,-0.2+(idx?0.1:-0.1),(idx?-0.06:0.06));}
+    // Portrait/square: a NATIVE vertical stack — hero centred in the mid-band, features
+    // STACKED down the column (never fanned sideways), everything at x=0. Landscape keeps
+    // the lower-left text / center-right panel split.
+    if(spec.role==="hero"){pl.position.set(PORT?0:2.4, PORT?-0.7:0.9, 0); pl.rotation.y=PORT?-0.05:-0.16;}
+    else if(spec.role==="feature"){const n=mine.length;const spread=n>1?(idx-(n-1)/2):0;
+      if(PORT){pl.position.set(0, -spread*2.9, -Math.abs(spread)*0.5); pl.rotation.y=-0.05;}
+      else{pl.position.set(2.2+spread*3.4, 1.2+(idx%2?-0.5:0.5), -idx*1.6); pl.rotation.y=-0.18-spread*0.14;}}
+    else if(spec.role==="side"){pl.position.set(PORT?0:3.4, PORT?-0.7:1.1, -0.3); pl.rotation.y=PORT?-0.05:-0.22;}
+    else if(spec.role==="frag"){
+      if(PORT){pl.position.set(0, idx?-2.3:2.3, -0.8-idx*0.4); pl.rotation.set(0.02,-0.05,(idx?-0.05:0.05));}
+      else{pl.position.set(2.6+(idx?2.0:-2.0), 1.5+(idx?-0.8:0.6), -1.2-idx*0.8); pl.rotation.set(0.02,-0.2+(idx?0.1:-0.1),(idx?-0.06:0.06));}}
     pl.userData.jit={ph:rand()*6.28, ax:0.05+rand()*0.05, ay:0.06+rand()*0.06};
     g.add(pl);
   });
@@ -552,6 +573,9 @@ function render3d(t){
   graph.rotation.y=-0.12+Math.sin(t*0.1)*0.03;
 
   const c=cameraFor(active.type,t-active.start,active.end-active.start);
+  // Portrait/square: centre the rig (kill the wide lateral sweeps) and look slightly down
+  // so the top headline + mid-band hero plate both sit in the tall frame.
+  if(PORT){ c.px*=0.12; c.tx*=0.12; c.roll*=0.4; c.py=0.15+c.py*0.3; c.ty=-0.45; }
   cam.position.set(c.px,c.py,c.pz); cam.up.set(Math.sin(c.roll||0),Math.cos(c.roll||0),0); cam.lookAt(c.tx,c.ty,c.tz);
   key.position.x=4+Math.sin(t*0.2)*3; fill.position.x=-6+Math.cos(t*0.18)*3;
   renderer.render(scene,cam);
@@ -607,7 +631,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
   const W = dims.width, H = dims.height;
   const theme = flagshipTheme(framePack, sb);
   const seed = hashSeed(`${sb.title || ""}|${scenes.length}|flagship`);
-  const sc = Math.max(0.6, H / 720);
+  const sc = typeScale(W, H);
   const px = (n) => Math.round(n * sc);
 
   let cursor = 0;
