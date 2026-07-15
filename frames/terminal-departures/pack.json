@@ -1,0 +1,51 @@
+{
+  "name": "terminal-departures",
+  "vibe": "An airport departures hall for films. A dark FIDS terminal — dim slate ground, a light sweep across the concourse, a soft vignette, a masthead and an analog clock whose second hand laps the whole film, a scrolling yellow ticker band. The SIGNATURE is the SPLIT-FLAP BOARD: every headline arrives by mechanically cycling characters in Solari-style flap cells with a scaleY 'clack' per swap. Around it: a live departures board, hanging gate signs that swing in on ceiling pivots, a baggage belt carrying labelled cases, a security beam that x-ray-pings each style tag it crosses, and a mounted gate MONITOR that shows a real product screenshot. Warm amber/ivory over near-black, IBM Plex Mono chrome under Space Grotesk display. Rendered as a native GSAP + SVG/CSS composition. Best for launches, waitlists, travel/logistics, and bold 'your idea departs today' hooks.",
+  "renderer": "terminal-departures",
+  "colors": {
+    "ground": "#0C0D11",
+    "ground-2": "#101116",
+    "text": "#F2EEE3",
+    "muted": "#8B8D96",
+    "yellow": "#FFC61A",
+    "green": "#35D07F",
+    "red": "#FF4B3E",
+    "cyan": "#5FD4E6"
+  },
+  "fonts": ["Space Grotesk", "IBM Plex Mono"],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#0C0D11"
+  },
+  "motion": {
+    "cut": "flap",
+    "drift": 1.0
+  },
+  "fx": {
+    "canvas": "none",
+    "three": "none"
+  },
+  "skin": {
+    "accents": ["#FFC61A", "#5FD4E6", "#35D07F"],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "clean product screenshot on a dark FIDS gate monitor",
+    "iconStyle": "line",
+    "keywords": ["airport", "departures", "terminal", "signage", "travel", "board"],
+    "prefer": ["photo", "vector"]
+  },
+  "typography": {
+    "display": "Space Grotesk",
+    "mono": "IBM Plex Mono",
+    "body": "IBM Plex Mono"
+  },
+  "textfx": {
+    "enter": "flap",
+    "emphasis": "gold",
+    "case": "upper",
+    "tracking": 0.02
+  }
+}

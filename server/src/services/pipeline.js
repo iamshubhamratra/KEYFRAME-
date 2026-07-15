@@ -33,6 +33,7 @@ const brightlifeComposer = require("./brightlife_composer");
 const blueprintComposer = require("./blueprint_composer");
 const bloomComposer = require("./bloom_composer");
 const bauhausComposer = require("./bauhaus_composer");
+const terminalComposer = require("./terminal_departures_composer");
 const frameRegistry = require("./frame_registry");
 const frameManifest = require("./frame_manifest");
 
@@ -502,6 +503,11 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
   if (rendererFor(framePack) === "bauhaus-riot") {
     return composeWithBauhaus({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "bauhaus-riot", abortSignal, tracker });
   }
+
+  // TERMINAL DEPARTURES TEMPLATE — a pack whose manifest declares renderer:"terminal-departures"
+  if (rendererFor(framePack) === "terminal-departures") {
+    return composeWithTerminal({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "terminal-departures", abortSignal, tracker });
+  }
   // DEFAULT = the deterministic scene-kit (guaranteed showcase-grade, lint-clean,
   // per-pack styled). Every pipeline path (runJob, graph, project_pipeline) routes
   // through here, so this single dispatch makes the kit the primary composer
@@ -683,6 +689,23 @@ async function composeWithBauhaus({ storyboard, dims, jobDir, framePack, caption
   tracker.addExternal("hyperframes_render");
   const visual = await render({ jobId, jobDir, durationSec, abortSignal });
   console.log(`[pipeline] ${label || "bauhaus-riot"}: render done in ${ms() - t0}ms total`);
+  return visual;
+}
+
+// TERMINAL DEPARTURES composition path — a pack whose manifest declares
+// renderer:"terminal-departures" routes here (see attemptLlmComposition). A native
+// GSAP + SVG/CSS airport departures-hall film (terminal_departures_composer.js): a dark
+// FIDS terminal with a signature split-flap board, hanging gate signs, a baggage belt, a
+// security beam and — for real screenshots — a mounted gate MONITOR.
+async function composeWithTerminal({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker }) {
+  const t0 = ms();
+  console.log(`[pipeline] ${label || "terminal-departures"}: building Terminal Departures composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
+  const built = terminalComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets });
+  fs.writeFileSync(path.join(jobDir, "index.html"), built.indexHtml, "utf8");
+  fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
+  tracker.addExternal("hyperframes_render");
+  const visual = await render({ jobId, jobDir, durationSec, abortSignal });
+  console.log(`[pipeline] ${label || "terminal-departures"}: render done in ${ms() - t0}ms total`);
   return visual;
 }
 
