@@ -61,6 +61,55 @@ function storyboardPromptFromScript(script, brief) {
   return lines.join("\n");
 }
 
+// Deterministic storyboard built directly from the APPROVED script — the fail-open
+// fallback for storyboardAgent. The script already carries validated scenes (ids,
+// gapless timing, copy, purpose), so this preserves the user's approved structure
+// exactly; scene_planner then fills in beats. Lets a flaky storyboard LLM response
+// degrade gracefully instead of aborting the whole production graph.
+function storyboardFromScript(script, job, brief) {
+  const scenes = Array.isArray(script?.scenes) ? script.scenes : [];
+  const total = scenes.length;
+  const kindFor = (purpose, i) => {
+    const p = String(purpose || "").toLowerCase();
+    if (i === 0 || /hook|title|intro|open/.test(p)) return "hook";
+    if (i === total - 1 || /cta|call|close|outro|sign\s*up|subscribe/.test(p)) return "cta";
+    if (/quote|testimonial|review/.test(p)) return "quote";
+    if (/stat|number|metric|proof|result|chart|data/.test(p)) return "stat";
+    return "bullet";
+  };
+  const animFor = (k) => k === "hook" ? "spring" : k === "cta" ? "char-pop" : k === "quote" ? "mask-reveal" : "drift";
+  const hex = (c) => { const h = String(c || "").trim(); return /^#?[0-9a-fA-F]{6}$/.test(h) ? (h.startsWith("#") ? h : `#${h}`) : null; };
+  const brand = (Array.isArray(brief?.brandColors) ? brief.brandColors : []).map(hex).filter(Boolean);
+  const words = (t) => String(t || "").trim().split(/\s+/).filter(Boolean);
+  const sbScenes = scenes.map((sc, i) => {
+    const kind = kindFor(sc.purpose, i);
+    const ost = Array.isArray(sc.onScreenText) ? sc.onScreenText.slice(0, 4) : [];
+    const headline = ost[0] || words(sc.voiceover).slice(0, 6).join(" ") || sc.purpose || "";
+    return {
+      id: sc.id != null ? sc.id : `s${i + 1}`,
+      start: sc.start, duration: sc.duration,
+      kind, animation: animFor(kind),
+      headline: String(headline).slice(0, 80),
+      subtext: ost[1] ? String(ost[1]).slice(0, 80) : "",
+      onScreenText: ost,
+      voiceover: typeof sc.voiceover === "string" ? sc.voiceover.trim().slice(0, 400) : "",
+      purpose: sc.purpose || "",
+      visualDirection: sc.visualDirection || "",
+      emphasis: "",
+      beats: [], // scene_planner derives these deterministically
+    };
+  });
+  const durationSec = scenes.reduce((a, s) => Math.max(a, (s.start || 0) + (s.duration || 0)), 0) || job?.duration || 12;
+  return {
+    title: String(script?.title || job?.prompt || "KEYFRAME").slice(0, 120),
+    durationSec: Math.round(durationSec * 100) / 100,
+    orientation: job?.orientation || "horizontal",
+    palette: { background: "#0B0B12", text: "#FFFFFF", primary: brand[0] || "#6366F1", accent: brand[1] || brand[0] || "#8B5CF6" },
+    scenes: sbScenes,
+    source: "script-fallback",
+  };
+}
+
 // The voices the gpt-audio TTS family actually renders (tts.js AUDIO_VOICES).
 // pickVoice MUST resolve to one of these — emitting a tts-1-era voice
 // (fable/nova/onyx) would be silently downgraded to marin by tts.mapVoice().
@@ -117,9 +166,21 @@ async function frameSelectorAgent(s) {
 async function storyboardAgent(s) {
   db.setProgress(s.job.id, "storyboard");
   const sbPrompt = storyboardPromptFromScript(s.script, s.brief);
-  const r = await generateStoryboard({ prompt: sbPrompt, duration: s.job.duration, orientation: s.job.orientation });
-  s.tracker.addLlm({ inputTokens: r.tokensIn, outputTokens: r.tokensOut, stage: "storyboard" });
-  return { storyboard: r.storyboard };
+  try {
+    const r = await generateStoryboard({ prompt: sbPrompt, duration: s.job.duration, orientation: s.job.orientation });
+    s.tracker.addLlm({ inputTokens: r.tokensIn, outputTokens: r.tokensOut, stage: "storyboard" });
+    return { storyboard: r.storyboard };
+  } catch (e) {
+    // FAIL-OPEN — this was the ONLY creative node that could abort the whole graph.
+    // The approved script already has validated scenes/timing, so derive a
+    // deterministic storyboard from it rather than failing the job. Still bill the
+    // tokens the failed attempts spent (generateStoryboard attaches them to err).
+    if (Number.isFinite(e?.tokensIn) || Number.isFinite(e?.tokensOut)) {
+      s.tracker.addLlm({ inputTokens: e.tokensIn || 0, outputTokens: e.tokensOut || 0, stage: "storyboard" });
+    }
+    console.warn(`[agents] storyboard LLM failed (${String(e?.message || e).slice(0, 140)}) — using deterministic script-derived storyboard`);
+    return { storyboard: storyboardFromScript(s.script, s.job, s.brief) };
+  }
 }
 
 // Scene Planner — guarantees every storyboard scene has executable beats.
@@ -629,7 +690,7 @@ async function compositionAgent(s) {
         }),
         budget, "Three.js composition"
       );
-      return { visual, usedFallback: false, finalAttempt: "three" };
+      return { visual, usedFallback: false, finalAttempt: "three", repairable: false };
     }
     const visual = await withBudget(
       (signal) => attemptLlmComposition({
@@ -641,7 +702,11 @@ async function compositionAgent(s) {
       }),
       budget, "composition agent"
     );
-    return { visual, usedFallback: false, finalAttempt: s.qa ? "qa-repair" : "main" };
+    // repairable only when the LLM composer (remix) actually ran — it is the only
+    // path that reads __qaIssuesToFix and can produce a DIFFERENT render on a repair
+    // lap. The deterministic scene-kit (useComposer=false) renders identically, so
+    // QA/repair is skipped for it downstream (qaAgentNode).
+    return { visual, usedFallback: false, finalAttempt: s.qa ? "qa-repair" : "main", repairable: useComposer };
   } catch (e) {
     console.warn(`[agents] composition failed (${e.message.slice(0, 180)})`);
     // Budget-class failure (provider out of credits / daily-capped): a QA
@@ -654,7 +719,7 @@ async function compositionAgent(s) {
     // fallback slide — keep the previous good render.
     if (s.qa && s.visual && !s.usedFallback) {
       console.warn(`[agents] repair re-compose failed — keeping prior lint-passing render (not falling back to template)`);
-      return { visual: s.visual, usedFallback: false, finalAttempt: s.finalAttempt || "main", rendered: true, composerBudgetDead };
+      return { visual: s.visual, usedFallback: false, finalAttempt: s.finalAttempt || "main", rendered: true, composerBudgetDead, repairable: useComposer };
     }
     try {
       if (fs.existsSync(path.join(jobDir, "index.html"))) {
@@ -680,7 +745,7 @@ async function compositionAgent(s) {
           subject: s.brief?.subject || null,
           brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null,
         });
-        return { visual, usedFallback: false, finalAttempt: "scene-kit", rendered: true, composerBudgetDead };
+        return { visual, usedFallback: false, finalAttempt: "scene-kit", rendered: true, composerBudgetDead, repairable: false };
       } catch (e2) {
         console.warn(`[agents] scene-kit fallback failed (${String(e2.message).slice(0, 120)}) — bland template`);
       }
@@ -701,7 +766,7 @@ async function compositionAgent(s) {
     fs.writeFileSync(path.join(jobDir, "meta.json"), fb.metaJson, "utf8");
     tracker.addExternal("hyperframes_render");
     const visual = await render({ jobId: job.id, jobDir, durationSec: job.duration });
-    return { visual, usedFallback: true, finalAttempt: "fallback", rendered: true, composerBudgetDead };
+    return { visual, usedFallback: true, finalAttempt: "fallback", rendered: true, composerBudgetDead, repairable: false };
   }
 }
 
@@ -774,14 +839,17 @@ async function repairAgent(s) {
 
 // QA Agent node — verdict + loop control.
 async function qaAgentNode(s) {
-  // Skip QA for the deterministic 3D + flagship composers — they are not
-  // iteratively repairable (a re-compose produces an identical video), so a
-  // QA-repair loop would just re-render an identical (slow) scene for no gain.
+  // Skip QA for any DETERMINISTIC render: the native 3D/flagship/blueprint/bloom/
+  // bauhaus composers AND the default scene-kit. A re-compose produces a byte-
+  // identical video (scene-kit ignores __qaIssuesToFix), so a QA-repair loop would
+  // just re-render an identical (slow) scene and re-pay the vision review for no
+  // gain. Only the LLM composer (remix/dress) reads QA feedback and can actually
+  // change — compositionAgent flags that path with repairable:true.
   const isFlagship = (() => {
     try { const m = require("../services/frame_manifest").getManifest(s.framePack); return !!(m && /^(three-(flagship|brightlife)|blueprint|bloom-fable|bauhaus-riot)$/.test(m.renderer || "")); }
     catch { return false; }
   })();
-  if (config.qa?.enabled === false || s.usedFallback || s.job?.render3d || isFlagship) {
+  if (config.qa?.enabled === false || s.usedFallback || s.job?.render3d || isFlagship || s.repairable === false) {
     return { qa: { pass: true, issues: [], skipped: true } };
   }
   db.setProgress(s.job.id, "qa");
@@ -815,7 +883,7 @@ async function buildGraph() {
     voClips: Annotation(), sfxClips: Annotation(), musicPath: Annotation(), audioPlan: Annotation(),
     visual: Annotation(), usedFallback: Annotation(), finalAttempt: Annotation(), rendered: Annotation(),
     animationReport: Annotation(), qa: Annotation(), qaAttempts: Annotation(),
-    composerBudgetDead: Annotation(),
+    composerBudgetDead: Annotation(), repairable: Annotation(),
   });
 
   // Node names must not collide with state channel names (LangGraph rule),
