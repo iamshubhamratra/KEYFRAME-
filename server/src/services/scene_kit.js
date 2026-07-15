@@ -20,6 +20,7 @@ const frameRegistry = require("./frame_registry");
 const frameManifest = require("./frame_manifest");
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
 const { themeFromTokens } = require("./enrich");
+const { safeArea } = require("./responsive");
 
 // SINGLE-quoted family names — these are embedded in double-quoted style="..."
 // attributes, so a double quote here would terminate the attribute early and kill
@@ -938,7 +939,7 @@ function archHook(scene, ctx) {
   const accentText = theme.emphasisCss || (theme.gradients
     ? `background:linear-gradient(100deg,${theme.accent},${theme.accent2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.accent};`
     : `color:${theme.accent};`);
-  const big = Math.round((dims.width >= dims.height ? 92 : 66) * (theme.textfx.sizeScale || 1));
+  const big = Math.round((dims.width > dims.height ? 92 : 66) * (theme.textfx.sizeScale || 1));
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   <div style="position:absolute;left:7%;right:7%;top:50%;transform:translateY(-50%);">
     <span id="${id}k" style="opacity:0;display:inline-flex;align-items:center;gap:10px;padding:8px 16px;border-radius:9999px;background:${theme.panel};border:1px solid ${theme.line};color:${theme.accent};font:700 15px/1 ${cssFont(theme)};letter-spacing:.2em;text-transform:uppercase;"><span style="width:8px;height:8px;border-radius:50%;background:${theme.accent};"></span>${esc(ctx.kicker || "KEYFRAME")}</span>
@@ -962,7 +963,7 @@ function archStat(scene, ctx) {
   const { theme, id, T, L, track, dims } = ctx;
   // derive a number from the headline/emphasis, else a default
   const num = pickNumber(scene) || { value: 95, suffix: "%" };
-  const big = dims.width >= dims.height ? 128 : 92;
+  const big = dims.width > dims.height ? 128 : 92;
   const cardBg = theme.gradients ? `linear-gradient(180deg,${mix(theme.ground, "#ffffff", theme.isDark ? 0.07 : 0.02)},${theme.ground})` : mix(theme.ground, theme.isDark ? "#ffffff" : "#000000", 0.03);
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;display:flex;align-items:center;justify-content:center;">
   <div class="kfstage" style="display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;padding:0 8%;width:100%;">
@@ -985,7 +986,7 @@ function archStat(scene, ctx) {
 
 function archCta(scene, ctx) {
   const { theme, id, T, L, track, dims } = ctx;
-  const big = Math.round((dims.width >= dims.height ? 78 : 60) * (theme.textfx.sizeScale || 1));
+  const big = Math.round((dims.width > dims.height ? 78 : 60) * (theme.textfx.sizeScale || 1));
   const btnBg = theme.gradients ? `linear-gradient(180deg,${theme.accent2 || theme.accent},${theme.accent})` : theme.accent;
   const btnInk = lum(theme.accent) > 150 ? "#15140F" : "#FFFFFF";
   const accentText = theme.emphasisCss || (theme.gradients ? `background:linear-gradient(100deg,${theme.accent},${theme.accent2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.accent};` : `color:${theme.accent};`);
@@ -1013,7 +1014,7 @@ function archCta(scene, ctx) {
 // (asset-grid, split-diagram, terminal) are added from the design pass.
 function archText(scene, ctx) {
   const { theme, id, T, L, track, dims, variant } = ctx;
-  const big = Math.round((dims.width >= dims.height ? 68 : 52) * (theme.textfx.sizeScale || 1));
+  const big = Math.round((dims.width > dims.height ? 68 : 52) * (theme.textfx.sizeScale || 1));
   const accentText = theme.emphasisCss || (theme.gradients ? `background:linear-gradient(100deg,${theme.accent},${theme.accent2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.accent};` : `color:${theme.accent};`);
   const bullets = Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean).slice(0, 3) : [];
   // Four layout variants so text scenes don't all look identical:
@@ -1068,7 +1069,7 @@ function archText(scene, ctx) {
 // the pack display face via .kfw), and an attribution row with an accent chip.
 function archQuoteCard(scene, ctx) {
   const { theme, id, T, L, track, dims } = ctx;
-  const land = dims.width >= dims.height;
+  const land = dims.width > dims.height;
   const big = Math.round((land ? 58 : 46) * (theme.textfx.sizeScale || 1));
   const quoteFit = fitBig(scene.headline, big, 26, 4);
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
@@ -1121,7 +1122,7 @@ function orderByPaletteAffinity(pool, theme) {
 // right-aligned). Semi-transparent so it supports, not competes with, the copy.
 function buildPropFill(ctx, side) {
   const { theme, id, dims, T, L } = ctx;
-  const W = dims.width, H = dims.height, land = W >= H;
+  const W = dims.width, H = dims.height, land = W > H;
   const pw = Math.round(W * (land ? 0.30 : 0.5)), ph = Math.round(H * (land ? 0.44 : 0.3));
   const px = side === "left" ? Math.round(W * 0.07) : Math.round(W - pw - W * 0.07);
   const py = Math.round((H - ph) / 2);
@@ -1182,7 +1183,7 @@ function partitionAssets(assets) {
 // the frame (the reactive beat). Landscape = side-by-side; portrait = stacked.
 function archScreenshotHero(scene, ctx) {
   const { theme, id, T, L, track, dims, asset } = ctx;
-  const land = dims.width >= dims.height;
+  const land = dims.width > dims.height;
   const flat = !theme.gradients;
   // PHONE MOCKUP — a portrait (mobile) screenshot renders in a device body (rounded
   // bezel + notch, no browser chrome) instead of a browser frame. Chosen by the
@@ -1211,17 +1212,21 @@ function archScreenshotHero(scene, ctx) {
   // instead of translateY(-50%): flex centering is layout-based, so the GSAP
   // entrance transform on the inner #fr can't clobber it and drop the frame low
   // (the old bug where the screenshot's bottom clipped off the canvas).
+  // Screenshot band height: landscape fills the mid-band; portrait is a fixed
+  // top band so the copy stacks directly beneath it (a true vertical stack, no
+  // dead space up top and no overlap — mirrors archPhoneHero's portrait flow).
+  const bandH = land ? Math.round(dims.height * 0.52) : Math.round(dims.height * 0.38);
   const frameOuter = land
     ? `position:absolute;left:5%;top:0;bottom:0;width:${frameW};display:flex;flex-direction:column;justify-content:center;`
-    : `position:absolute;left:8%;right:8%;top:0;bottom:0;width:84%;display:flex;flex-direction:column;justify-content:center;`;
+    : `position:absolute;left:6%;right:6%;top:9%;display:flex;flex-direction:column;align-items:center;`;
   const copyWrap = land
     ? `position:absolute;right:5%;top:0;bottom:0;width:34%;display:flex;flex-direction:column;justify-content:center;`
-    : `position:absolute;left:8%;right:8%;top:0;bottom:0;width:84%;display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:8%;text-align:center;`;
+    : `position:absolute;left:6%;right:6%;top:calc(9% + ${bandH + 42 + 22}px);bottom:8%;display:flex;flex-direction:column;justify-content:flex-start;text-align:center;`;
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   <div style="${frameOuter}">
   <div id="${id}fr" class="kfstage" style="${chrome}overflow:hidden;width:100%;">
     <div style="height:42px;display:flex;align-items:center;gap:9px;padding:0 16px;background:${barBg};border-bottom:1px solid ${theme.line};">${dots}<span style="margin-left:12px;flex:1;max-width:340px;height:22px;border-radius:9999px;background:${rgba(theme.ink, 0.08)};"></span></div>
-    <div style="position:relative;width:100%;height:${land ? Math.round(dims.height * 0.52) : Math.round(dims.height * 0.40)}px;overflow:hidden;"><img id="${id}img" src="${esc(asset.path)}" alt="${esc(asset.alt || "screenshot")}" style="position:absolute;top:0;left:0;width:100%;height:auto;min-height:100%;object-fit:cover;object-position:${asset.cropFocus || "top center"};"></div>
+    <div style="position:relative;width:100%;height:${bandH}px;overflow:hidden;"><img id="${id}img" src="${esc(asset.path)}" alt="${esc(asset.alt || "screenshot")}" style="position:absolute;top:0;left:0;width:100%;height:auto;min-height:100%;object-fit:cover;object-position:${asset.cropFocus || "top center"};"></div>
   </div>
   </div>
   <div style="${copyWrap}">
@@ -1250,7 +1255,7 @@ function archScreenshotHero(scene, ctx) {
 // transform on a static node — stays lint-clean).
 function archPhoneHero(scene, ctx) {
   const { theme, id, T, L, track, dims, asset } = ctx;
-  const land = dims.width >= dims.height;
+  const land = dims.width > dims.height;
   const flat = !theme.gradients;
   const big = land ? 54 : 44;
   const phoneH = Math.round(dims.height * (land ? 0.82 : 0.62));
@@ -1263,10 +1268,10 @@ function archPhoneHero(scene, ctx) {
   const notchW = Math.round(phoneW * 0.34), notchH = Math.round(phoneW * 0.075);
   const frameOuter = land
     ? `position:absolute;left:8%;top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;`
-    : `position:absolute;left:0;right:0;top:5%;bottom:auto;display:flex;flex-direction:column;align-items:center;`;
+    : `position:absolute;left:0;right:0;top:8%;bottom:auto;display:flex;flex-direction:column;align-items:center;`;
   const copyWrap = land
     ? `position:absolute;right:6%;top:0;bottom:0;width:46%;display:flex;flex-direction:column;justify-content:center;`
-    : `position:absolute;left:8%;right:8%;bottom:5%;display:flex;flex-direction:column;text-align:center;`;
+    : `position:absolute;left:8%;right:8%;bottom:9%;display:flex;flex-direction:column;text-align:center;`;
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   <div style="${frameOuter}">
   <div id="${id}fr" class="kfstage" style="position:relative;width:${phoneW}px;height:${phoneH}px;border-radius:${rad}px;background:${bezel};border:${bezelBorder};box-shadow:${bodyShadow};padding:${pad}px;">
@@ -1306,7 +1311,7 @@ function photoToneFns(theme) {
 
 function archSplitVector(scene, ctx) {
   const { theme, id, T, L, track, dims, asset } = ctx;
-  const land = dims.width >= dims.height;
+  const land = dims.width > dims.height;
   const big = land ? 64 : 50;
   const accentText = theme.emphasisCss || (theme.gradients ? `background:linear-gradient(100deg,${theme.accent},${theme.accent2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.accent};` : `color:${theme.accent};`);
   const dir = land ? "row" : "column";
@@ -1349,8 +1354,10 @@ function archAssetMontage(scene, ctx) {
   const { theme, id, T, L, track, dims } = ctx;
   const items = (ctx.assets || []).slice(0, 6);
   const n = items.length || 1;
-  const land = dims.width >= dims.height;
-  const cols = n <= 1 ? 1 : n <= 4 ? 2 : 3;
+  const land = dims.width > dims.height;
+  // Column count is aspect-aware: a 3-wide grid crams tiles in a narrow portrait
+  // frame, so cap at 2 columns (1 for ≤2 tiles) off the landscape path.
+  const cols = land ? (n <= 1 ? 1 : n <= 4 ? 2 : 3) : (n <= 2 ? 1 : 2);
   const big = land ? 54 : 44;
   const flat = !theme.gradients;
   const accentText = theme.emphasisCss || (theme.gradients
@@ -1406,6 +1413,9 @@ function scrimBg(asset, ctx) {
     `tl.fromTo("#${id}bg",{opacity:0},{opacity:1,duration:0.6},${r(T)});`,
     `tl.fromTo("#${id}bgi",{scale:1.09},{scale:1.0,duration:${r(L)},ease:"none"},${r(T)});`,
     ctx.isLast ? "" : `tl.to("#${id}bg",{opacity:0,duration:0.3},${r(T + L - 0.3)});`,
+    // Boundary hard-kill: non-linear seeking can land after the fade, so pin the
+    // bg hidden at the next scene's start (matches exitScene's fade+set pattern).
+    ctx.isLast ? "" : `tl.set("#${id}bg",{opacity:0},${r(T + L)});`,
   ].join("\n");
   return { html, script: s };
 }
@@ -1425,6 +1435,8 @@ function videoBg(asset, ctx) {
     // Drive the clip's playhead off the (paused, frame-seeked) timeline so it plays.
     `tl.to({},{duration:${r(L)},ease:"none",onUpdate:function(){var v=document.getElementById("${id}vid");if(v&&isFinite(v.duration)&&v.duration>0){var lt=tl.time()-${r(T)};v.currentTime=Math.max(0,Math.min(v.duration,lt));}}},${r(T)});`,
     ctx.isLast ? "" : `tl.to("#${id}bg",{opacity:0,duration:0.3},${r(T + L - 0.3)});`,
+    // Boundary hard-kill (see scrimBg): pin the bg hidden at the next scene start.
+    ctx.isLast ? "" : `tl.set("#${id}bg",{opacity:0},${r(T + L)});`,
   ].join("\n");
   return { html, script: s };
 }
@@ -1517,7 +1529,10 @@ function buildCaptions(captionCues, dims, D, theme, track) {
   const cues = Array.isArray(captionCues) ? captionCues.filter((c) => c && c.text) : [];
   if (!cues.length) return null;
   const data = JSON.stringify(cues.map((c) => [r(c.start || 0), r(c.end || (c.start || 0) + 2), String(c.text)]));
-  const html = `<div class="clip" data-start="0" data-duration="${D}" data-track-index="${track}"><div id="kfcap" style="position:absolute;left:50%;bottom:5%;transform:translateX(-50%);max-width:76%;text-align:center;padding:11px 22px;border-radius:12px;background:${rgba(theme.isDark ? "#080c12" : "#0c0c0c", 0.72)};border:1px solid ${rgba("#ffffff", 0.10)};color:#F4F7FA;font:600 ${Math.round(dims.height * 0.034)}px/1.3 ${cssFont(theme)};opacity:0;"></div></div>`;
+  // Safe-area bottom inset — portrait/square captions must clear the Reels/TikTok
+  // UI band (progress bar, actions), so they ride higher than in landscape.
+  const capBottom = `${Math.round(safeArea(dims.width, dims.height).bottom * 100)}%`;
+  const html = `<div class="clip" data-start="0" data-duration="${D}" data-track-index="${track}"><div id="kfcap" style="position:absolute;left:50%;bottom:${capBottom};transform:translateX(-50%);max-width:76%;text-align:center;padding:11px 22px;border-radius:12px;background:${rgba(theme.isDark ? "#080c12" : "#0c0c0c", 0.72)};border:1px solid ${rgba("#ffffff", 0.10)};color:#F4F7FA;font:600 ${Math.round(dims.height * 0.034)}px/1.3 ${cssFont(theme)};opacity:0;"></div></div>`;
   const script = `var kfcd=${data};var kfcp={t:0};tl.to(kfcp,{t:${D},duration:${D},ease:"none",onUpdate:function(){var el=document.getElementById("kfcap");if(!el)return;var n=kfcp.t,a=null;for(var k=0;k<kfcd.length;k++){if(n>=kfcd[k][0]&&n<kfcd[k][1]){a=kfcd[k];break;}}if(a){if(el.textContent!==a[2])el.textContent=a[2];el.style.opacity="1";}else el.style.opacity="0";}},0);`;
   return { html, script };
 }
@@ -1700,7 +1715,10 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
     // scene reads as half-empty. Centered text (variant 1) has no empty side; stat/
     // cta/quote/asset scenes are already full, so they're skipped.
     const noVisual = !p.ctx.asset && !p.ctx.assets && !p.ctx.bgAsset && !p.ctx.bgVideo;
-    const propEligible = noVisual && (p.build === archHook || (p.build === archText && p.ctx.variant !== 1));
+    // Prop-fill lives in the EMPTY half of a side-aligned scene. Portrait/square
+    // copy is full-width and centered, so a floating half-width card would sit
+    // behind the text — skip it off the landscape path (the copy fills the frame).
+    const propEligible = noVisual && W > H && (p.build === archHook || (p.build === archText && p.ctx.variant !== 1));
     if (propEligible) {
       const side = (p.build === archText && p.ctx.variant === 3) ? "left" : "right";
       const prop = buildPropFill(p.ctx, side);
