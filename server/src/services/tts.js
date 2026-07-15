@@ -31,14 +31,75 @@ function mapVoice(voice) {
   return AUDIO_VOICES.has(v) ? v : FALLBACK_VOICE;
 }
 
+// ---------- VO leveling (fix #1) -------------------------------------------
+// gpt-audio-mini streams very low-level PCM (~-37 dBFS RMS, ~-20 dBFS peak). We
+// stage each clip to a consistent speech level with a SINGLE, DETERMINISTIC,
+// LINEAR gain computed from the raw s16le PCM and applied as one ffmpeg `volume`
+// filter in the existing encode pass. A constant multiply => no pumping/breathing
+// (unlike single-pass loudnorm/dynaudnorm) and preserves the clip's crest factor
+// and short-term dynamics (LRA) exactly; only the absolute level shifts. The gain
+// is clamped so the post-gain SAMPLE peak stays under a ceiling => no clipping.
+// Downstream audio_mix loudnorm (I=-16) then applies only a small, uniform makeup
+// instead of ~+21 dB of dynamic makeup, so it stops pumping / lifting the floor.
+const VO_TARGET_RMS_DBFS = -20;  // consistent speech staging level
+const VO_PEAK_CEIL_DBFS  = -1.5; // sample-peak ceiling; headroom for mp3/intersample -> true peak ~ -1
+const VO_GATE_DBFS       = -50;  // ignore near-silent samples (pauses) when measuring SPEECH rms -> inter-clip consistency
+const VO_SILENCE_DBFS    = -60;  // whole clip below this = silence/failed take -> leave untouched
+const VO_MAX_BOOST_DB    = 30;   // absolute safety clamp so a near-dead clip's floor can't explode
+
+const dbToLin = (db) => Math.pow(10, db / 20);
+
+// Measure raw s16le mono PCM -> LINEAR `volume` factor that lands the gated
+// (speech-only) RMS near target while keeping the peak under the ceiling. Pure
+// math over the samples, no randomness => identical PCM yields an identical gain.
+// Returns 1.0 for silent / all-zero / degenerate input (a plain, unfiltered copy).
+function computeVoVolume(pcm) {
+  if (!pcm || pcm.length < 2) return 1;
+  const gateLin = dbToLin(VO_GATE_DBFS);
+  const silenceLin = dbToLin(VO_SILENCE_DBFS);
+  const n = pcm.length >> 1; // whole int16 samples (ignore a dangling odd byte)
+  let peak = 0, sumSq = 0, gatedN = 0;
+  for (let i = 0; i < n; i++) {
+    const a = Math.abs(pcm.readInt16LE(i << 1)) / 32768; // 0..1 linear magnitude
+    if (a > peak) peak = a;
+    if (a >= gateLin) { sumSq += a * a; gatedN++; } // gate out pauses from the loudness measure
+  }
+  // All-zero / near-silent / failed take: never amplify a (near-)silent floor.
+  if (peak < silenceLin) return 1;
+
+  const gainPeak = dbToLin(VO_PEAK_CEIL_DBFS) / peak;         // never exceed the peak ceiling
+  const rms = gatedN > 0 ? Math.sqrt(sumSq / gatedN) : 0;     // speech-gated RMS
+  const gainRms = rms > 0 ? dbToLin(VO_TARGET_RMS_DBFS) / rms // hit target RMS...
+                          : Infinity;                          // ...or (no gated samples) let peak rule
+  // Take the SAFER (smaller) of "reach target RMS" and "stay under peak ceiling",
+  // then cap the boost. For an already-hot clip gainRms < 1 => a gentle cut toward
+  // target (still a static multiply, still consistent); for a high-crest clip
+  // gainPeak wins => it lands a touch below target RMS but never clips.
+  let gain = Math.min(gainRms, gainPeak, dbToLin(VO_MAX_BOOST_DB));
+  if (!(gain > 0) || !Number.isFinite(gain)) return 1;        // NaN/degenerate guard
+  return Math.round(gain * 10000) / 10000;                    // stable, deterministic ffmpeg arg
+}
+
 function encodePcmToMp3(pcm, outputPath) {
   return new Promise((resolve, reject) => {
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-    const ff = spawn("ffmpeg", [
+
+    // Level the clip AT GENERATION with one constant gain so every VO stem reaches
+    // the mixer at a consistent ~-20 dBFS gated RMS. A ~no-op gain (silence guard /
+    // already on target) omits the filter so those clips encode exactly as before.
+    const gain = computeVoVolume(pcm);
+    const gainDb = 20 * Math.log10(gain);
+    const args = [
       "-y", "-hide_banner", "-loglevel", "error",
       "-f", "s16le", "-ar", "24000", "-ac", "1", "-i", "pipe:0",
-      "-b:a", "128k", outputPath,
-    ]);
+    ];
+    if (Math.abs(gainDb) >= 0.3) {
+      args.push("-filter:a", `volume=${gain}`);
+      console.log(`[tts] vo leveled ${gainDb > 0 ? "+" : ""}${gainDb.toFixed(1)} dB (x${gain}) -> ~${VO_TARGET_RMS_DBFS} dBFS RMS, peak <= ${VO_PEAK_CEIL_DBFS} dBFS`);
+    }
+    args.push("-b:a", "128k", outputPath);
+
+    const ff = spawn("ffmpeg", args);
     let err = "";
     ff.stderr.on("data", (d) => { err += d.toString(); });
     ff.on("error", reject);
