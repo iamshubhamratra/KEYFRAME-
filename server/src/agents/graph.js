@@ -210,7 +210,11 @@ async function assetPlannerAgent(s) {
   const videoOk = hasProviderFor("video");
   const shots = (job.website_screenshots || []).filter((p) => { try { return fs.existsSync(p); } catch { return false; } });
   const showcase = script.scenes.filter((x) => ["feature", "proof", "how", "context"].includes(x.purpose));
-  const targets = (showcase.length ? showcase : script.scenes.slice(1, -1)).slice(0, 3);
+  // Fall back to the mid scenes, then (for very short 2-scene scripts, where
+  // slice(1,-1) is EMPTY) to ALL scenes — otherwise real website screenshots are
+  // silently dropped before they ever become assets (short flagship films showed none).
+  const mid = script.scenes.slice(1, -1);
+  const targets = (showcase.length ? showcase : (mid.length ? mid : script.scenes)).slice(0, 3);
   const screenshotPlan = shots.slice(0, targets.length).map((src, i) => ({ kind: "screenshot", src, scene: targets[i], index: i }));
   const pinnedSceneIds = new Set(screenshotPlan.map((p) => p.scene.id));
 
@@ -674,9 +678,17 @@ async function compositionAgent(s) {
     // Asset-rich videos override an opt-in render3d: the 3D composer only textures
     // ONE screenshot, so a video with several real screenshots/photos is showcased
     // far better by the 2D composer (which weaves 8-10). Text-forward 3D stays 3D.
-    const use3d = job.render3d && !isAssetRich(s.assets || []);
+    // A dedicated 3D pack (flagship/brightlife) is ALREADY a Three.js composer that
+    // places the real website screenshots on its glass plates — never divert it to the
+    // generic website→3D composer (which textures only ONE shot and would drop the rest).
+    // Only a NON-dedicated pack honors the render3d website→3D path; asset-rich prefers 2D.
+    const dedicatedThree = (() => {
+      try { const m = require("../services/frame_manifest").getManifest(s.framePack); return /^three-(flagship|brightlife)$/.test((m && m.renderer) || ""); }
+      catch { return false; }
+    })();
+    const use3d = job.render3d && !dedicatedThree && !isAssetRich(s.assets || []);
     if (job.render3d && !use3d) {
-      console.log(`[agents] render3d requested, but the video is asset-rich (${(s.assets || []).length} assets) → using the 2D composer so the screenshots/photos are actually shown (3D would drop all but one).`);
+      console.log(`[agents] render3d requested → ${dedicatedThree ? "routing to the pack's own 3D composer" : "using the 2D composer (asset-rich; 3D would drop all but one)"} so the screenshots are shown.`);
     }
     if (use3d) {
       // Website→3D: the real website screenshots in s.assets texture the reveal
