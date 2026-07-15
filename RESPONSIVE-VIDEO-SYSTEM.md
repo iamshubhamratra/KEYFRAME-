@@ -10,8 +10,8 @@
 ## 0. TL;DR
 
 - **Root causes found:** (1) type sized by **height** (`sc = dims.height/720`) → portrait headlines **2.7× oversized** and off-canvas; (2) **square (1:1) misclassified as landscape** everywhere (`land = W>=H` is true at equality) → square gets the wide side-by-side layout; (3) the **camera FOV** is fixed (42° vertical) so portrait's narrow horizontal FOV (~24°) makes every panel/screenshot **~2.8× too wide** → overflow; (4) feature panels **fan horizontally** even in portrait → off-canvas; (5) portrait is a **shrunk desktop layout**, not a native vertical stack; (6) the **native-GSAP composers** are all locked side-by-side rows (cqw tuned for a wide canvas); (7) **no safe-area** system and **no responsive QA** gate (overflow is explicitly ignored).
-- **Fixed now:** a shared `responsive.js`, and **flagship_composer.js** made fully portrait/square-native (verified with a real 9:16 render).
-- **Roadmap:** brightlife (identical fixes), the 5 native-GSAP composers (portrait layout modes), scene-kit (square + object-fit + safe areas), the Visual Layout Director (portrait plan), and a responsive-QA gate — each with exact file:line fixes below.
+- **Fixed now:** a shared `responsive.js`; **flagship**, **brightlife** (3D composers) and **scene-kit** (the default, ~24 packs) all made portrait/square-native — each verified with a real 9:16 render (0 lint errors).
+- **Roadmap remaining:** the Visual Layout Director (portrait plan), the 5 native-GSAP composers (portrait layout modes), and a responsive-QA gate — each with exact file:line fixes below.
 
 ---
 
@@ -94,12 +94,15 @@ headlineCh(W,H,c) // headline max line-length per mode (caps ~3 lines)
 
 Each is scoped with the audit's file:line + fix. Priority order:
 
-1. **brightlife** (identical to flagship) — apply the same 6 edits: `responsive` import, `typeScale`, `land = W>H` + `PORT`/`SQUARE`, FOV, `WSCALE` on plate width, feature vertical-stack, centered camera. (`brightlife:150,139/257,647,786,656-668`)
-2. **Visual Layout Director** — have `directLayout` compute `aspectMode(dims)` and emit `layoutPlan.__portrait = { stack, hero: heroBox, safe: safeArea, typeScale }`; make `__heroScale` mode-aware; scene-kit honors it in **all** modes (not just landscape). (`visual_layout_director:102,139`; `scene_kit:1204`)
-3. **scene-kit** — `land = W>H` + `square` flag; `archScreenshotHero` → single top-down flex column (mirror `archPhoneHero`); screenshots `object-fit:contain` within `heroBox` (letterbox, no crop) — cover only for background B-roll; montage `cols = n<=2?1:2` in portrait; prop-fill → below copy or skipped; edge anchors → `safeArea`.
-4. **Native-GSAP composers** (blueprint/bloom/bauhaus/terminal/paper-tales) — each needs a portrait/vertical **layout mode** gated on canvas `W<H` (not asset ratio): rows → columns (visual on top ~70–80cqw, copy below full-width); paper-tales → single tall page + vertical page-flip; type via a portrait cqw multiplier (~1.6×) with a min clamp (headline ≥36px, body ≥16px). These are per-composer redesigns (like the desktop builds), the largest remaining chunk.
-5. **Responsive QA gate** — export + wire `safeAreaCheck` into `pipeline.js`, run `inspect` at the **actual** job dims, and treat `container_overflow` as an **error** when the overflowing element is a headline/screenshot/CTA (keep decorative particle overflow as a warning). Assert hero within `heroBox` and text within `safeArea`. Emit a responsive score `{landscape, square, portrait, safeArea, readability, overall}` per render.
+1. ✅ **brightlife** (identical to flagship) — DONE, commit `fdefe03`. `responsive` import, `typeScale`, `land = W>H` + `PORT`/`SQUARE`, aspect FOV, `WSCALE` on card width, feature vertical-stack, centered portrait rig. Verified 720×1280 (0 errors).
+3. ✅ **scene-kit** — DONE, commit `1e59762`. `land = W>H` strict (square → stacked path); `archScreenshotHero` rebuilt as a real top-down flex stack (screenshot fixed top band, copy beneath via `top:calc(9% + …px)` — killed the ~30% dead space + overlap); montage `cols = land?…:(n<=2?1:2)`; captions at `safeArea().bottom` (portrait 13%); prop-fill gated `&& W>H`; phone-hero anchors top8%/bottom9%. Kept screenshot `object-fit:cover` (img is `height:auto`+`min-height:100%` and the Ken-Burns Y-scroll reveals the full page — `contain` would break it). **Also fixed a pre-existing render-blocker:** `scrimBg`/`videoBg` faded bg out at the scene boundary without the matching `tl.set` hard-kill (`gsap_exit_missing_hard_kill`) → added it. Verified 720×1280 (0 errors) + 900×900 square build (stacked path, 0 errors). Dev harness: `scripts/scenekit-harness.js`.
+
+**Remaining:**
+
+2. ⬜ **Visual Layout Director** — have `directLayout` compute `aspectMode(dims)` and emit `layoutPlan.__portrait = { stack, hero: heroBox, safe: safeArea, typeScale }`; make `__heroScale` mode-aware; scene-kit honors it in **all** modes (not just landscape). (`visual_layout_director:102,139`; `scene_kit:~1206`)
+4. ⬜ **Native-GSAP composers** (blueprint/bloom/bauhaus/terminal/paper-tales) — each needs a portrait/vertical **layout mode** gated on canvas `W<H` (not asset ratio): rows → columns (visual on top ~70–80cqw, copy below full-width); paper-tales → single tall page + vertical page-flip; type via a portrait cqw multiplier (~1.6×) with a min clamp (headline ≥36px, body ≥16px). These are per-composer redesigns (like the desktop builds), the largest remaining chunk.
+5. ⬜ **Responsive QA gate** — export + wire `safeAreaCheck` into `pipeline.js`, run `inspect` at the **actual** job dims, and treat `container_overflow` as an **error** when the overflowing element is a headline/screenshot/CTA (keep decorative particle overflow as a warning). Assert hero within `heroBox` and text within `safeArea`. Emit a responsive score `{landscape, square, portrait, safeArea, readability, overall}` per render.
 
 ---
 
-*Generated 2026-07-15 on branch `Rohit`. Implemented: `services/responsive.js` (new) + `flagship_composer.js` (portrait-native). The rest is scoped above with exact fixes.*
+*Generated 2026-07-15 on branch `Rohit`. Implemented: `services/responsive.js` (new) + `flagship_composer.js`, `brightlife_composer.js`, `scene_kit.js` (all portrait/square-native). Remaining scoped above with exact fixes.*
