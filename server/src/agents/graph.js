@@ -37,8 +37,10 @@ const { reviewRender } = require("./qa_agent");
 const { checkAssetsRelevance } = require("../services/asset_vision");
 const { reviewAndCurate } = require("../services/creative_director");
 const { directAudio } = require("../services/audio_director");
-const { directBrand } = require("../services/art_director");
+const { directBrand, defaultBrandSkin, persistBrandReview } = require("../services/art_director");
 const { directLayout } = require("../services/visual_layout_director");
+const { pinUserAssets } = require("../services/user_assets");
+const { coverageFromHtml } = require("../services/asset_coverage");
 
 function ms() { return Date.now(); }
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
@@ -203,20 +205,34 @@ async function scenePlannerAgent(s) {
   return { storyboard: sb };
 }
 
-// Asset Planner — turns the approved script's needs into a concrete
-// want-list (screenshots pinned first, stock wants after, caps applied).
+// Asset Planner — turns the approved script's needs into a concrete want-list
+// (user uploads pinned FIRST, website screenshots second, stock wants after,
+// caps applied). The tier law starts here: the user's own images take the
+// showcase scenes before anything the pipeline captured or will fetch.
 async function assetPlannerAgent(s) {
   const { job, script } = s;
   const videoOk = hasProviderFor("video");
+
+  // USER UPLOADS — tier 100. Pinned by reference (files already live in
+  // jobs/<id>/uploads/), screenshot-like ones leading, round-robin over the
+  // showcase scenes. Fail-open: a swept/missing manifest pins nothing.
+  const userPins = await pinUserAssets({ job, script, jobDir: s.jobDir, maxPins: 6 });
+
   const shots = (job.website_screenshots || []).filter((p) => { try { return fs.existsSync(p); } catch { return false; } });
   const showcase = script.scenes.filter((x) => ["feature", "proof", "how", "context"].includes(x.purpose));
   // Fall back to the mid scenes, then (for very short 2-scene scripts, where
   // slice(1,-1) is EMPTY) to ALL scenes — otherwise real website screenshots are
   // silently dropped before they ever become assets (short flagship films showed none).
   const mid = script.scenes.slice(1, -1);
-  const targets = (showcase.length ? showcase : (mid.length ? mid : script.scenes)).slice(0, 3);
+  // Website screenshots fill the showcase scenes the uploads did NOT take — and
+  // fewer of them when uploads exist (2 vs 3): the user's own material is the
+  // show, the site capture is corroboration.
+  const websiteCap = userPins.pinned.length ? 2 : 3;
+  const targets = (showcase.length ? showcase : (mid.length ? mid : script.scenes))
+    .filter((x) => !userPins.usedSceneIds.has(x.id))
+    .slice(0, websiteCap);
   const screenshotPlan = shots.slice(0, targets.length).map((src, i) => ({ kind: "screenshot", src, scene: targets[i], index: i }));
-  const pinnedSceneIds = new Set(screenshotPlan.map((p) => p.scene.id));
+  const pinnedSceneIds = new Set([...userPins.usedSceneIds, ...screenshotPlan.map((p) => p.scene.id)]);
 
   // Derive a concrete image query from a scene's visualDirection when the
   // script asked for nothing — substance scenes should never go imageless.
@@ -268,8 +284,8 @@ async function assetPlannerAgent(s) {
   // is what finally feeds the curated SVG library into films.
   const vectors = wants.filter((w) => w.need.type !== "video" && isVectorNeed(w.need)).slice(0, 8);
   const photos  = wants.filter((w) => w.need.type !== "video" && !isVectorNeed(w.need)).slice(0, 12 - videos.length);
-  console.log(`[agents] asset_planner: ${screenshotPlan.length} screenshot(s) + ${videos.length} video(s) + ${photos.length} photo(s) + ${vectors.length} vector(s) (${wants.filter((w) => w.need.derived).length} derived)`);
-  return { assetPlan: { screenshots: screenshotPlan, searches: [...videos, ...photos, ...vectors] } };
+  console.log(`[agents] asset_planner: ${userPins.pinned.length} upload(s)${userPins.logoAsset ? " + logo" : ""} + ${screenshotPlan.length} screenshot(s) + ${videos.length} video(s) + ${photos.length} photo(s) + ${vectors.length} vector(s) (${wants.filter((w) => w.need.derived).length} derived)`);
+  return { assetPlan: { userAssets: userPins.pinned, logo: userPins.logoAsset, screenshots: screenshotPlan, searches: [...videos, ...photos, ...vectors] } };
 }
 
 // Asset Search — executes the plan: our database first, then providers.
@@ -355,15 +371,25 @@ async function assetSearchAgent(s) {
     return undefined;
   };
 
+  // The user's uploads (pinned by the planner, files already in jobs/<id>/uploads/)
+  // plus their logo — tier 100, ahead of everything below.
+  const userPinned = [
+    ...(assetPlan.userAssets || []),
+    ...(assetPlan.logo ? [assetPlan.logo] : []),
+  ];
+
   // Sequential so each curated pick can exclude the library files already
   // chosen for earlier scenes — no single film reuses the same file twice.
   const usedLibraryIds = new Set();
   // De-dup acquired images by EXACT (MD5) + PERCEPTUAL (dHash) match: several
   // similar queries resolve to the same — or a visually-identical re-encode of
   // the same — stock image, which was being saved as 0.jpg/1.jpg/2.jpg… and
-  // shown 4× in the montage. Seed with the pinned screenshots so stock can't
-  // duplicate one of them either.
+  // shown 4× in the montage. Seed with the pinned assets so stock can't
+  // duplicate one of them either — UPLOADS FIRST: seeding order decides who
+  // survives a collision, and a site capture that duplicates the user's own
+  // upload must be the copy that drops.
   const deduper = makeImageDeduper();
+  for (const a of userPinned) { if (a && a.path) { try { await deduper.add(path.join(jobDir, a.path)); } catch { /* noop */ } } }
   for (const a of pinned) { if (a && a.path) { try { await deduper.add(path.join(jobDir, a.path)); } catch { /* noop */ } } }
   // Operator override: with web stock forced off, PHOTO needs come only from the
   // curated library (or the real screenshots) — no random/off-brand stock. Web
@@ -467,9 +493,10 @@ async function assetSearchAgent(s) {
   }
   const got = results;
 
-  const assets = [...pinned, ...got];
+  // Tier order on the wire too: uploads, then website captures, then fetched.
+  const assets = [...userPinned, ...pinned, ...got];
   db.setAssets(job.id, assets);
-  console.log(`[agents] asset_search: ${assets.length} asset(s) (${got.filter((a) => a.fromCache).length} from cache)`);
+  console.log(`[agents] asset_search: ${assets.length} asset(s) (${userPinned.length} user upload(s), ${got.filter((a) => a.fromCache).length} from cache)`);
   return { assets };
 }
 
@@ -497,19 +524,65 @@ async function creativeDirectorAgent(s) {
   return { assets: curated };
 }
 
-// Art Director — turns the site's extracted brand colors (brief.brandColors, else
-// unused) into an ACCENT-ONLY brand skin so the composition reads on-brand instead
-// of the frame pack's stock palette. Runs in parallel with the storyboard/asset/
-// voice chain (it only needs the brief + the chosen pack); the skin joins at
-// composition. Fail-open: any failure returns a null skin → the pack keeps its
-// own accents, so it never blocks a render or makes a video worse.
+// Art Director — decides WHICH palette the film is allowed to wear, then turns it into
+// an ACCENT-ONLY brand skin so the composition reads on-brand instead of the frame
+// pack's stock palette. Runs in parallel with the storyboard/asset/voice chain (it only
+// needs the job + brief + the chosen pack); the skin joins at composition. Fail-open:
+// any failure returns a null skin → the pack keeps its own accents, so it never blocks
+// a render or makes a video worse.
+//
+// SOURCE PRECEDENCE (user > logo > extracted > inferred). The candidate palettes are not
+// equally true, and this node is the only place that can tell them apart:
+//   explicit  — job.brand_palette, the user's own primary/secondary/accent. A decision.
+//   logo      — intent.logo.brandColors, quantized off the user's UPLOADED logo. Real
+//               pixels of the AUTHORED mark — cleaner than photography, so it outranks
+//               the website hero when both exist.
+//   extracted — intent.website.brandColors, quantized off the real hero screenshot.
+//               RAW and pre-LLM: the product's actual colors, but unlabeled buckets.
+//   inferred  — brief.brandColors, an LLM OUTPUT. system_brief.md licenses the model to
+//               INVENT hexes when no website exists and brief.js validates hex SHAPE
+//               only, so a prompt-only job's "brand colors" are a plausible fiction.
+// Reading only the brief (as this did) meant a prompt-only job was confidently skinned
+// in hallucinated color while art_director's own prompt forbids inventing colors.
 async function artDirectorAgent(s) {
-  const brandColors = s.brief?.brandColors || [];
-  if (!config.artDirector?.enabled || !brandColors.length) return { brandSkin: null };
+  // ART_DIRECTOR=0 is the operator's kill switch for brand skinning as a whole — an
+  // explicit palette included, since the flag exists to take brand color off the table
+  // when a composer regresses, not merely to silence one model call.
+  if (!config.artDirector?.enabled) return { brandSkin: null };
+
+  const bp = s.job?.brand_palette || null;
+  const explicit  = bp ? [bp.primary, bp.secondary, bp.accent].filter(Boolean) : [];
+  const logo      = s.job?.intent?.logo?.brandColors || [];
+  const extracted = s.job?.intent?.website?.brandColors || [];
+  const inferred  = s.brief?.brandColors || [];
+  const [brandColors, provenance] = explicit.length ? [explicit, "explicit"]
+    : logo.length ? [logo, "logo"]
+      : extracted.length ? [extracted, "extracted"]
+        : [inferred, "inferred"];
+
+  // An unbranded video should LOOK unbranded. Inferred hexes are the brief model's
+  // taste, not the product's identity: skinning a pack in invented color buys nothing
+  // the pack's own designed accents don't already do better, and paying a second model
+  // to art-direct the first model's guess buys even less. The pack keeps its accents.
+  if (provenance === "inferred" || !brandColors.length) return { brandSkin: null };
+
   db.setProgress(s.job.id, "art_direction");
+
+  // A manual primary+secondary pick has ALREADY answered the only question the LLM is
+  // asked ("which of these should lead?"), so an explicit palette is honored verbatim
+  // and deterministically: no latency, no cost, and no chance of the model's skip-veto
+  // discarding the colors the user chose by hand.
+  if (provenance === "explicit") {
+    const brandSkin = defaultBrandSkin(brandColors, { provenance });
+    persistBrandReview(s.job.id, brandSkin, s.framePack);
+    console.log(`[agents] art_director → ${brandSkin ? brandSkin.accents.join(", ") : "none"} (explicit palette — no LLM)`);
+    return { brandSkin };
+  }
+
   const brandSkin = await directBrand({
     jobId: s.job.id,
     brandColors,
+    provenance,
     subject: s.brief?.subject || null,
     brief: s.brief,
     framePack: s.framePack,
@@ -643,7 +716,72 @@ async function audioDirectorAgent(s) {
 }
 
 // Composition Agent (+ the Animation agent's work product: the timeline).
+//
+// Two jobs, deliberately split: composeVisual builds + renders the film (a dozen
+// fallback paths, each returning a `visual`), and this wrapper then persists the brand
+// skin the finished film ACTUALLY WORE. The split means the authoritative brand write
+// fires in exactly ONE place no matter which compose path won — and, because repair laps
+// re-enter through here, the LAST composition's skin is always the one on record.
 async function compositionAgent(s) {
+  const result = await composeVisual(s);
+  persistWornBrand(s, result.visual);
+  persistAssetCoverage(s, result.visual);
+  return result;
+}
+
+// User-asset coverage disclosure — best-effort, fail-open (THE LAW: never touches
+// the render). The scene-kit hands back an exact `assetCoverage` (with the repair
+// lap result); every other composer just wrote an index.html, so we scan it for
+// each upload's path. Only persists when the user actually uploaded material.
+function persistAssetCoverage(s, visual) {
+  try {
+    const assets = s.assets || [];
+    if (!assets.some((a) => a && a.source === "upload")) return;
+    let coverage = visual && visual.assetCoverage;
+    if (!coverage) {
+      let html = "";
+      try { html = fs.readFileSync(path.join(s.jobDir, "index.html"), "utf8"); } catch { /* no file */ }
+      coverage = coverageFromHtml({ assets, indexHtml: html });
+    }
+    if (coverage) db.setAssetCoverage(s.job.id, coverage);
+  } catch { /* fail-open: the coverage disclosure is never worth a lost render */ }
+}
+
+// The palette RECONCILED against the pack's own ground — the color the film paints, not
+// the color the Art Director proposed. The Art Director wrote its pre-resolution pick
+// earlier (art_director.persistBrandReview); this write runs strictly AFTER it (the
+// composition node takes an in-edge from art_director, and repair never re-runs it), so
+// in the single-threaded store the reconciled skin deterministically overwrites the pick
+// — no lock, no race. A #146eb4 the user picked and a #bbd5ea the near-black stage lifted
+// it to are different claims, and only the composer that fit it knows which one shipped.
+//
+// A composer that does not (yet) consume the skin exposes no resolvedBrand, so we leave
+// the record UNTOUCHED — art_director's own renderer-gate (SKIN_AWARE_RENDERERS) is what
+// keeps those packs' panels empty, and clobbering with null here would only duplicate it.
+// Best-effort + fail-open (THE LAW): a failed disclosure write never touches the render.
+function persistWornBrand(s, visual) {
+  const resolved = visual && visual.resolvedBrand;
+  if (!resolved) return;
+  const input = s.brandSkin || {};
+  try {
+    db.setBrandReview(s.job.id, {
+      accents: resolved.accents,
+      emphasis: resolved.emphasis,
+      adjusted: resolved.adjusted,
+      dropped: resolved.dropped,
+      tier: resolved.tier,
+      applied: resolved.applied,
+      // reason/source/provenance are v1 fields the Brand panel reads; they live on the
+      // INPUT skin, never on the resolved PackSkin — carry them across so the disclosure
+      // keeps its "SOURCE · LLM / PALETTE · LIFTED FROM YOUR SITE / …" lines.
+      reason: input.reason,
+      source: input.source,
+      provenance: input.provenance,
+    });
+  } catch { /* fail-open: the brand disclosure is never worth a lost render */ }
+}
+
+async function composeVisual(s) {
   const { job, jobDir, tracker } = s;
   db.setProgress(job.id, "composing");
   const dims = { width: job.width, height: job.height, fps: job.fps };
@@ -699,6 +837,7 @@ async function compositionAgent(s) {
           storyboard, dims, jobDir, framePack: s.framePack, captionCues,
           assets: s.assets || [], jobId: job.id, durationSec: job.duration,
           label: "graph-three", abortSignal: signal, tracker,
+          brandSkin: s.brandSkin || null,
         }),
         budget, "Three.js composition"
       );

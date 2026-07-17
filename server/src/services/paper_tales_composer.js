@@ -20,6 +20,8 @@
 // set with gsap.set (never an inline translate) so they don't SUM with the tween channel.
 
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
+const { isTrustedProminent, isLogo } = require("./asset_priority");
+const { resolveBrand, ratio } = require("./brand_kit");
 
 const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 // Quicksand + Caveat (the source template's fonts) are NOT bundled and naming them in CSS
@@ -33,14 +35,136 @@ function esc(s) {
 }
 const r = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
-function tealTheme() {
+// ---- brand colour-kit — LIFTED from flagship_composer.js so a hand-tuned pastel can be
+// rotated onto the BRAND's hue while its authored LUMINANCE and SATURATION are pinned.
+// IDENTITY = LUMINANCE + MOTION + TYPOGRAPHY + LAYOUT; only HUE is the brand's to steer —
+// which is exactly why the cream PAPER ground and the plum INK never pass through here.
+const hexToRgb = (h) => { const n = parseInt(String(h).replace("#", ""), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+const toHex2 = (v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0");
+const relLum = (h) => { const [r0, g0, b0] = hexToRgb(h).map((v) => v / 255); const f = (c) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)); return 0.2126 * f(r0) + 0.7152 * f(g0) + 0.0722 * f(b0); };
+const rgbToHsl = ([r0, g0, b0]) => {
+  r0 /= 255; g0 /= 255; b0 /= 255;
+  const mx = Math.max(r0, g0, b0), mn = Math.min(r0, g0, b0), l = (mx + mn) / 2, d = mx - mn;
+  if (!d) return [0, 0, l];
+  const s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+  const h = mx === r0 ? (g0 - b0) / d + (g0 < b0 ? 6 : 0) : mx === g0 ? (b0 - r0) / d + 2 : (r0 - g0) / d + 4;
+  return [h * 60, s, l];
+};
+const hslHex = (h, s, l) => {
+  if (!s) return `#${toHex2(l * 255).repeat(3)}`;
+  const t = (((h % 360) + 360) % 360) / 360;
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+  const ch = (x) => { if (x < 0) x += 1; if (x > 1) x -= 1; if (x < 1 / 6) return p + (q - p) * 6 * x; if (x < 0.5) return q; if (x < 2 / 3) return p + (q - p) * (2 / 3 - x) * 6; return p; };
+  return `#${toHex2(ch(t + 1 / 3) * 255)}${toHex2(ch(t) * 255)}${toHex2(ch(t - 1 / 3) * 255)}`;
+};
+const hueOf = (hex) => rgbToHsl(hexToRgb(hex))[0];
+// reHue: rotate onto `hue`, bisecting HSL lightness back to the source's relative
+// luminance (monotone in L at fixed hue/sat), so every contrast the pack authored INSIDE
+// the page — a light tab vs its ink, a pastel vs the cream — comes out at the ratio it
+// went in at. SATURATION stays the pastel's own; achromatic in → untouched; a lum-pin
+// miss fails OPEN to the source hex (a stock pastel beats a wrong one).
+// The imperceptible-luminance-drift budget. flagship uses 0.004 ("one 8-bit step") tuned
+// for its lower-saturation panel accents; paper-tales' pastels run more saturated, where
+// rounding THREE channels compounds a hair past that (~0.005), which would fail-open a good
+// recolour to its old hue. 0.006 is still a sub-1% drift — far below any perceptible or
+// contrast-affecting change — and is the true 8-bit quantization ceiling for these hues.
+const LUM_PIN = 0.006;
+function reHue(hex, hue) {
+  const [, s] = rgbToHsl(hexToRgb(hex));
+  if (s < 0.02) return hex;
+  const target = relLum(hex);
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 24; i++) { const mid = (lo + hi) / 2; if (relLum(hslHex(hue, s, mid)) < target) lo = mid; else hi = mid; }
+  // The bisection finds the ideal REAL lightness, but hslHex quantizes to 8-bit and the
+  // rounding can leave the midpoint a hair (>LUM_PIN) off the authored luminance for some
+  // hues — which would fail-open a perfectly good recolour back to its OLD hue (a lilac
+  // that should read teal staying purple in a green film). So test the quantization
+  // neighbours and keep the closest; only a candidate that STILL misses the pin is dropped.
+  const l = (lo + hi) / 2;
+  let out = hex, err = Infinity;
+  for (const dl of [0, -1 / 255, 1 / 255]) {
+    const cand = hslHex(hue, s, l + dl);
+    const e = Math.abs(relLum(cand) - target);
+    if (e < err) { err = e; out = cand; }
+  }
+  return err <= LUM_PIN ? out : hex;
+}
+function hueDist(a, b) { const d = Math.abs(((a - b) % 360 + 360) % 360); return d > 180 ? 360 - d : d; }
+// brandLedOf (flagship_composer.js:105): resolveBrand lays accents brand-first then pack,
+// so the brand-led run ends at the first entry the pack already owned. [] means no brand.
+function brandLedOf(brand, packAccents) {
+  const pack = new Set(packAccents.map((a) => String(a).toLowerCase()));
+  const out = [];
+  for (const a of brand.accents) { if (pack.has(String(a).toLowerCase())) break; out.push(a); }
+  return out;
+}
+
+// The five BRAND-SLOTTABLE pastels + their hue angles. Any pastel LITERAL in the film (a
+// lighter cover tint, a darker illo stroke, a watercolor bloom) is bucketed to its NEAREST
+// family so it rehues in LOCKSTEP with that family — a rose highlight and the rose base
+// land on ONE brand hue, never two greens. The cream ground and plum ink are deliberately
+// NOT families: they are the storybook's identity, not the brand's to touch.
+const FAM_BASE = { rose: "#E8938C", sky: "#9CCFE8", mint: "#9CCEA4", lilac: "#C5AEDD", butter: "#F7C873" };
+const FAM_HUE = Object.fromEntries(Object.entries(FAM_BASE).map(([k, v]) => [k, hueOf(v)]));
+// Fan the families around the brand LEAD hue, all INSIDE brand_kit's 40° drift budget so
+// each pastel still reads as the brand and none reads as a SECOND brand — the storybook
+// stays multi-tonal and playful, just green-dominant. rose leads at 0° because it carries
+// the most brand-visible surfaces (book cover, spine, end card, CTA), so the film's
+// dominant colour becomes the brand's own lead hue.
+const FAM_FAN = { rose: 0, sky: 20, mint: -20, lilac: 40, butter: -40 };
+
+function tealTheme(brandSkin) {
   const fontFace = isBundled(STORY) ? fontFaceCss(STORY) : "";
+  // LOCKED identity — the cream paper GROUND and the plum INK are the storybook's own
+  // luminance and its "paper on a desk" reading; a brand palette gets no vote on them, so
+  // they are plain literals that never touch tint().
+  const paper = "#FFF9F0", paper2 = "#FBF1E1", ink = "#6B5B73", soft = "#A08D97";
+  const packAccents = [FAM_BASE.rose, FAM_BASE.sky, FAM_BASE.mint, FAM_BASE.lilac, FAM_BASE.butter];
+
+  // FAIL-OPEN (art_director.js:14): a resolver/reHue hiccup renders the stock pastels,
+  // never a crash and never a half-branded film.
+  let wheel = null, brand = null, brandLed = [];
+  try {
+    brand = resolveBrand(brandSkin, { ground: paper, isDark: false, packAccents });
+    brandLed = brandLedOf(brand, packAccents);
+    if (brand.applied && brandLed.length) {
+      const leadHue = hueOf(brandLed[0]);
+      wheel = {};
+      for (const f in FAM_FAN) wheel[f] = leadHue + FAM_FAN[f];
+    }
+  } catch { wheel = null; }
+  const applied = !!wheel;
+
+  // NO-OP LAW: with no brand skin `wheel` is null and tint is the IDENTITY — every pastel
+  // below is returned byte-for-byte, so a null render matches the pack exactly.
+  const tint = (hex) => {
+    if (!wheel) return hex;
+    const h = hueOf(hex);
+    let fam = "rose", bd = 999;
+    for (const f in FAM_HUE) { const d = hueDist(h, FAM_HUE[f]); if (d < bd) { bd = d; fam = f; } }
+    return reHue(hex, wheel[fam]);
+  };
+
+  const rose = tint(FAM_BASE.rose), butter = tint(FAM_BASE.butter), sky = tint(FAM_BASE.sky),
+    mint = tint(FAM_BASE.mint), lilac = tint(FAM_BASE.lilac);
   return {
-    paper: "#FFF9F0", paper2: "#FBF1E1", ink: "#6B5B73", soft: "#A08D97",
-    rose: "#E8938C", butter: "#F7C873", sky: "#9CCFE8", mint: "#9CCEA4", lilac: "#C5AEDD",
-    accents: ["#E8938C", "#9CCFE8", "#9CCEA4", "#C5AEDD", "#F7C873"],
+    paper, paper2, ink, soft,
+    rose, butter, sky, mint, lilac,
+    accents: [rose, sky, mint, lilac, butter],
+    applied, tint,
+    // Chapter tabs rehue with their family; both the tab colour and its emphasis word
+    // rotate to the SAME brand hue so the darker word keeps its contrast on the tab.
+    tabs: TABS.map((t) => ({ tab: tint(t.tab), emph: tint(t.emph) })),
     storyStack: `'${STORY}', serif`,
     fontFace,
+    // What the film actually WORE — null when no brand applied, matching scene_kit/flagship
+    // so the persistence path can show the worn skin (or an honest empty panel).
+    resolvedBrand: applied ? {
+      ...(brandSkin && typeof brandSkin === "object" ? brandSkin : {}),
+      accents: brandLed, emphasis: brand.emphasis,
+      adjusted: brand.adjusted, dropped: brand.dropped,
+      tier: brand.tier, applied: true,
+    } : null,
   };
 }
 
@@ -130,10 +254,10 @@ function pickNumber(scene) {
 
 function screenOk(a) {
   if (!a || !a.path) return false;
+  if (isLogo(a)) return false; // the logo is key-moment material, never the paper cinema's reel
   if (a.type === "video" || /\.(mp4|webm|mov)($|\?)/i.test(a.path)) return false;
   if (/\.svg($|\?)/i.test(a.path)) return false;
-  const src = String(a.source || "").toLowerCase();
-  return a.source === "website" || src.startsWith("library") || a.visionOk === true || a.cdProminence === "hero" || a.cdProminence === "support";
+  return isTrustedProminent(a) || a.cdProminence === "hero" || a.cdProminence === "support";
 }
 
 function archetype(scene, i, total) {
@@ -153,28 +277,41 @@ function archetype(scene, i, total) {
 function illoBulb(theme) {
   return `<svg viewBox="0 0 140 170" style="width:100%;height:100%;overflow:visible;">
     <rect x="58" y="120" width="24" height="34" rx="8" fill="#C9A96A"/><rect x="54" y="146" width="32" height="10" rx="5" fill="#B8935A"/>
-    <circle cx="70" cy="72" r="46" fill="#FFE9A8" stroke="#F5C86E" stroke-width="5"/>
-    <path d="M52 66 Q70 46 88 66" fill="none" stroke="#F0B75A" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="70" cy="72" r="46" fill="${theme.tint("#FFE9A8")}" stroke="${theme.tint("#F5C86E")}" stroke-width="5"/>
+    <path d="M52 66 Q70 46 88 66" fill="none" stroke="${theme.tint("#F0B75A")}" stroke-width="4" stroke-linecap="round"/>
     <circle cx="58" cy="76" r="4" fill="#8A6D3B"/><circle cx="82" cy="76" r="4" fill="#8A6D3B"/>
     <path d="M60 88 Q70 96 80 88" fill="none" stroke="#8A6D3B" stroke-width="3.4" stroke-linecap="round"/></svg>`;
 }
 function illoHouse(theme) {
   return `<svg viewBox="0 0 90 90" style="width:100%;height:100%;overflow:visible;">
     <rect x="18" y="42" width="54" height="40" rx="6" fill="#FFF3DF" stroke="#E8C9A0" stroke-width="3"/>
-    <polygon points="12 46 45 16 78 46" fill="${theme.rose}" stroke="#D97F82" stroke-width="3" stroke-linejoin="round"/>
+    <polygon points="12 46 45 16 78 46" fill="${theme.rose}" stroke="${theme.tint("#D97F82")}" stroke-width="3" stroke-linejoin="round"/>
     <rect x="38" y="58" width="14" height="24" rx="4" fill="${theme.sky}"/><circle cx="62" cy="58" r="5" fill="${theme.butter}"/></svg>`;
 }
 function illoStar(theme) {
   return `<svg viewBox="0 0 120 120" style="width:100%;height:100%;overflow:visible;">
-    <path d="M60 8 l14 34 37 3 -28 24 9 36 -32 -20 -32 20 9 -36 -28 -24 37 -3 Z" fill="${theme.butter}" stroke="#E0AF5B" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M60 8 l14 34 37 3 -28 24 9 36 -32 -20 -32 20 9 -36 -28 -24 37 -3 Z" fill="${theme.butter}" stroke="${theme.tint("#E0AF5B")}" stroke-width="4" stroke-linejoin="round"/>
     <circle cx="50" cy="58" r="3.6" fill="#8A6D3B"/><circle cx="70" cy="58" r="3.6" fill="#8A6D3B"/>
     <path d="M52 68 Q60 75 68 68" fill="none" stroke="#8A6D3B" stroke-width="3" stroke-linecap="round"/></svg>`;
 }
 function illoHeart(theme) {
   return `<svg viewBox="0 0 120 110" style="width:100%;height:100%;overflow:visible;">
-    <path d="M60 100 C 10 62, 16 20, 44 22 C 56 23, 60 34, 60 38 C 60 34, 64 23, 76 22 C 104 20, 110 62, 60 100 Z" fill="${theme.rose}" stroke="#D97F82" stroke-width="4" stroke-linejoin="round"/></svg>`;
+    <path d="M60 100 C 10 62, 16 20, 44 22 C 56 23, 60 34, 60 38 C 60 34, 64 23, 76 22 C 104 20, 110 62, 60 100 Z" fill="${theme.rose}" stroke="${theme.tint("#D97F82")}" stroke-width="4" stroke-linejoin="round"/></svg>`;
 }
 const ILLOS = [illoBulb, illoStar, illoHouse, illoHeart];
+
+// Chapter-tab TEXT colour. With NO brand skin we reproduce the pack byte-for-byte: the CSS
+// default is white (styleBlock .chapter-tab) and only the two spreads that inlined a dark
+// override (chapter, screen) ever carried one — on the too-light BUTTER tab, gated on a
+// hex `===`. Once tabs rehue, that identity test is the wrong tool: whether white or dark
+// ink reads on a tab is a LUMINANCE fact, not a hex fact (a rehued butter tab is a NEW
+// string, so the `===` would silently drop the override and leave white-on-light invisible
+// text). So when a brand skin applies we pick the ink with the higher CONTRAST — which also
+// repairs the white-on-light butter tab the friends/paint/stat spreads always shipped.
+function tabInk(tabCol, theme, hadOverride) {
+  if (!theme.applied) return hadOverride && tabCol === theme.butter ? "color:#7A5B23;" : "";
+  return ratio(theme.ink, tabCol) >= ratio("#ffffff", tabCol) ? `color:${theme.ink};` : "color:#ffffff;";
+}
 
 // ---- scene-type builders ((scene, ctx, asset) -> { html, s }) -------------------
 function pageOpen(id, ctx) { return `<div class="clip" id="${id}" data-start="${ctx.T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">`; }
@@ -189,12 +326,12 @@ function chapterSpread(scene, ctx, opts) {
   const illoOnLeft = ctx.i % 2 === 1;
   const illo = opts.illo || `<div class="popcard">${(ILLOS[ctx.i % ILLOS.length])(theme)}</div>`;
   const textPage = `<div class="pg ${illoOnLeft ? "pgR" : "pgL"}">
-    <div class="chapter-tab" id="${id}-tab" style="background:${tab.tab};${tab.tab === theme.butter ? "color:#7A5B23;" : ""}">${esc(ctx.tabLabel)}</div>
+    <div class="chapter-tab" id="${id}-tab" style="background:${tab.tab};${tabInk(tab.tab, theme, true)}">${esc(ctx.tabLabel)}</div>
     <div class="pad" style="display:flex;flex-direction:column;justify-content:center;">
       <div class="h-story" id="${id}-h" style="font-size:2.7cqw;opacity:0;">${headHtml(scene, tab.emph)}</div>
       <div class="penwrap" style="margin-top:1.8cqw;">
         <span class="hand pen-clip" id="${id}-write" style="font-size:2.05cqw;color:${theme.soft};white-space:normal;">${esc(pen)}</span>
-        ${penSvg(id, tab.tab)}
+        ${penSvg(id, tab.tab, theme.tint)}
       </div>
       ${extras.html}
     </div></div>`;
@@ -237,11 +374,11 @@ function friendsSpread(scene, ctx) {
       ${moreN > 0 ? `<div class="hand" id="${id}-plus" style="position:absolute;right:2.2cqw;bottom:3.2cqw;font-size:2cqw;color:${theme.soft};opacity:0;">…and ${moreN} more! ✂</div>` : ""}
     </div></div>
     <div class="pg pgR">
-      <div class="chapter-tab" id="${id}-tab" style="background:${tab.tab};">${esc(ctx.tabLabel)}</div>
+      <div class="chapter-tab" id="${id}-tab" style="background:${tab.tab};${tabInk(tab.tab, theme, false)}">${esc(ctx.tabLabel)}</div>
       <div class="pad" style="display:flex;flex-direction:column;justify-content:center;">
         <div class="h-story" id="${id}-h" style="font-size:2.7cqw;opacity:0;">${headHtml(scene, tab.emph)}</div>
         <div class="penwrap" style="margin-top:1.8cqw;">
-          <span class="hand pen-clip" id="${id}-write" style="font-size:2.05cqw;color:${theme.soft};">${esc(pen)}</span>${penSvg(id, tab.tab)}
+          <span class="hand pen-clip" id="${id}-write" style="font-size:2.05cqw;color:${theme.soft};">${esc(pen)}</span>${penSvg(id, tab.tab, theme.tint)}
         </div>
         ${extras.html}
       </div></div></div>`;
@@ -265,22 +402,22 @@ function paintSpread(scene, ctx) {
   const extras = storyExtras(id, scene, ctx, pen, r(T + 2.2), r(T + 1.0));
   const html = `${pageOpen(id, ctx)}
     <div class="pg pgL">
-      <div class="chapter-tab" id="${id}-tab" style="background:${tab.tab};">${esc(ctx.tabLabel)}</div>
+      <div class="chapter-tab" id="${id}-tab" style="background:${tab.tab};${tabInk(tab.tab, theme, false)}">${esc(ctx.tabLabel)}</div>
       <div class="pad" style="display:flex;flex-direction:column;justify-content:center;">
         <div class="h-story" id="${id}-h" style="font-size:2.7cqw;opacity:0;">${headHtml(scene, tab.emph)}</div>
         <div class="penwrap" style="margin-top:1.8cqw;">
-          <span class="hand pen-clip" id="${id}-write" style="font-size:2.05cqw;color:${theme.soft};">${esc(pen)}</span>${penSvg(id, tab.tab)}
+          <span class="hand pen-clip" id="${id}-write" style="font-size:2.05cqw;color:${theme.soft};">${esc(pen)}</span>${penSvg(id, tab.tab, theme.tint)}
         </div>
         ${extras.html}
       </div></div>
     <div class="pg pgR"><div class="pad">
-      <div class="wc ${id}-wc" style="left:6%;bottom:12%;width:16cqw;height:9cqw;background:radial-gradient(50% 50% at 50% 50%, #BCE0C2, transparent 70%);"></div>
-      <div class="wc ${id}-wc" style="left:36%;bottom:8%;width:20cqw;height:10cqw;background:radial-gradient(50% 50% at 50% 50%, #A8D3AE, transparent 70%);"></div>
-      <div class="wc ${id}-wc" style="left:16%;top:18%;width:12cqw;height:6cqw;background:radial-gradient(50% 50% at 50% 50%, #BFE0F2, transparent 70%);"></div>
-      <div class="wc ${id}-wc" style="right:2%;top:10%;width:9cqw;height:9cqw;background:radial-gradient(50% 50% at 50% 50%, #FFDD9C, transparent 68%);"></div>
+      <div class="wc ${id}-wc" style="left:6%;bottom:12%;width:16cqw;height:9cqw;background:radial-gradient(50% 50% at 50% 50%, ${theme.tint("#BCE0C2")}, transparent 70%);"></div>
+      <div class="wc ${id}-wc" style="left:36%;bottom:8%;width:20cqw;height:10cqw;background:radial-gradient(50% 50% at 50% 50%, ${theme.tint("#A8D3AE")}, transparent 70%);"></div>
+      <div class="wc ${id}-wc" style="left:16%;top:18%;width:12cqw;height:6cqw;background:radial-gradient(50% 50% at 50% 50%, ${theme.tint("#BFE0F2")}, transparent 70%);"></div>
+      <div class="wc ${id}-wc" style="right:2%;top:10%;width:9cqw;height:9cqw;background:radial-gradient(50% 50% at 50% 50%, ${theme.tint("#FFDD9C")}, transparent 68%);"></div>
       <svg id="${id}-sun" width="130" height="130" viewBox="0 0 120 120" style="position:absolute;right:8%;top:8%;overflow:visible;opacity:0;">
         <g id="${id}-rays" fill="${theme.butter}"><polygon points="60 0 66 20 54 20"/><polygon points="60 120 66 100 54 100"/><polygon points="0 60 20 54 20 66"/><polygon points="120 60 100 54 100 66"/><polygon points="18 18 34 26 26 34"/><polygon points="102 18 94 34 86 26"/><polygon points="18 102 26 86 34 94"/><polygon points="102 102 86 94 94 86"/></g>
-        <circle cx="60" cy="60" r="28" fill="#FFD98E" stroke="#F5B95A" stroke-width="4"/></svg>
+        <circle cx="60" cy="60" r="28" fill="${theme.tint("#FFD98E")}" stroke="${theme.tint("#F5B95A")}" stroke-width="4"/></svg>
       <div class="popwrap" id="${id}-popw" style="width:9cqw;height:9cqw;left:34%;bottom:14%;">
         <div class="popshadow" id="${id}-popsh" style="opacity:0;"></div>
         <div class="pop" id="${id}-pop">${illoHouse(theme)}</div>
@@ -316,10 +453,10 @@ function statSpread(scene, ctx) {
           </div></div></div>
     </div></div>
     <div class="pg pgR">
-      <div class="chapter-tab" id="${id}-tab" style="background:${tab.tab};">${esc(ctx.tabLabel)}</div>
+      <div class="chapter-tab" id="${id}-tab" style="background:${tab.tab};${tabInk(tab.tab, theme, false)}">${esc(ctx.tabLabel)}</div>
       <div class="pad" style="display:flex;flex-direction:column;justify-content:center;">
         <div class="h-story" id="${id}-h" style="font-size:2.7cqw;opacity:0;">${headHtml(scene, tab.emph)}</div>
-        <div class="penwrap" style="margin-top:1.8cqw;"><span class="hand pen-clip" id="${id}-write" style="font-size:2.05cqw;color:${theme.soft};">${esc(pen)}</span>${penSvg(id, tab.tab)}</div>${extras.html}
+        <div class="penwrap" style="margin-top:1.8cqw;"><span class="hand pen-clip" id="${id}-write" style="font-size:2.05cqw;color:${theme.soft};">${esc(pen)}</span>${penSvg(id, tab.tab, theme.tint)}</div>${extras.html}
       </div></div></div>`;
   const isNum = /^\d+$/.test(String(num.val));
   const s = [
@@ -343,7 +480,7 @@ function screenSpread(scene, ctx, asset) {
   const extras = storyExtras(id, scene, ctx, pen, r(T + 2.2), r(T + 1.0));
   const inner = asset
     ? `<div class="cine-screen"><img src="${esc(asset.path)}" alt="${esc(asset.alt || "screenshot")}" style="object-fit:cover;object-position:${esc(asset.cropFocus || "top center")};"></div>`
-    : `<div class="cine-screen"><div id="${id}-strip" style="position:absolute;top:14%;left:0;display:flex;gap:0.8cqw;">${["#F3B8B1", "#FFE1A6", "#BFE0F2", "#C9E8CE", "#DCC9EE", "#F3B8B1"].map((c) => `<div style="width:6.4cqw;height:8cqw;border-radius:0.5cqw;background:linear-gradient(160deg,${c},${c});"></div>`).join("")}</div></div>`;
+    : `<div class="cine-screen"><div id="${id}-strip" style="position:absolute;top:14%;left:0;display:flex;gap:0.8cqw;">${["#F3B8B1", "#FFE1A6", "#BFE0F2", "#C9E8CE", "#DCC9EE", "#F3B8B1"].map((c) => `<div style="width:6.4cqw;height:8cqw;border-radius:0.5cqw;background:linear-gradient(160deg,${theme.tint(c)},${theme.tint(c)});"></div>`).join("")}</div></div>`;
   const html = `${pageOpen(id, ctx)}
     <div class="pg pgL"><div class="pad" style="display:flex;align-items:center;justify-content:center;">
       <div class="popwrap" id="${id}-popw" style="width:26cqw;height:18cqw;bottom:5cqw;left:50%;margin-left:-13cqw;">
@@ -356,10 +493,10 @@ function screenSpread(scene, ctx, asset) {
         </div></div>
     </div></div>
     <div class="pg pgR">
-      <div class="chapter-tab" id="${id}-tab" style="background:${tab.tab};${tab.tab === theme.butter ? "color:#7A5B23;" : ""}">${esc(ctx.tabLabel)}</div>
+      <div class="chapter-tab" id="${id}-tab" style="background:${tab.tab};${tabInk(tab.tab, theme, true)}">${esc(ctx.tabLabel)}</div>
       <div class="pad" style="display:flex;flex-direction:column;justify-content:center;">
         <div class="h-story" id="${id}-h" style="font-size:2.7cqw;opacity:0;">${headHtml(scene, tab.emph)}</div>
-        <div class="penwrap" style="margin-top:1.8cqw;"><span class="hand pen-clip" id="${id}-write" style="font-size:2.05cqw;color:${theme.soft};">${esc(pen)}</span>${penSvg(id, tab.tab)}</div>${extras.html}
+        <div class="penwrap" style="margin-top:1.8cqw;"><span class="hand pen-clip" id="${id}-write" style="font-size:2.05cqw;color:${theme.soft};">${esc(pen)}</span>${penSvg(id, tab.tab, theme.tint)}</div>${extras.html}
       </div></div></div>`;
   const s = [
     ...spreadIn(id, T),
@@ -379,14 +516,14 @@ function coverSpread(scene, ctx) {
   const title = esc(String(scene.headline || scene.title || "The Little Idea"));
   const kicker = esc(String(scene.kicker || scene.emphasis || "a keyframe bedtime story").slice(0, 40));
   const html = `${pageOpen(id, ctx)}
-    <div class="pg pgL" style="background:linear-gradient(120deg,#F3B8B1,#E8938C);box-shadow:none;border-radius:1.2cqw 0.3cqw 0.3cqw 1.2cqw;">
+    <div class="pg pgL" style="background:linear-gradient(120deg,${theme.tint("#F3B8B1")},${theme.tint("#E8938C")});box-shadow:none;border-radius:1.2cqw 0.3cqw 0.3cqw 1.2cqw;">
       <div style="position:absolute;inset:2cqw;border:0.18cqw dashed rgba(255,255,255,0.55);border-radius:0.9cqw;"></div></div>
-    <div class="pg pgR" style="background:linear-gradient(120deg,#F3B8B1 0%,#E8938C 100%);box-shadow:inset 1.2cqw 0 2cqw rgba(0,0,0,0.06);">
+    <div class="pg pgR" style="background:linear-gradient(120deg,${theme.tint("#F3B8B1")} 0%,${theme.tint("#E8938C")} 100%);box-shadow:inset 1.2cqw 0 2cqw rgba(0,0,0,0.06);">
       <div style="position:absolute;inset:1.8cqw;border:0.18cqw dashed rgba(255,255,255,0.55);border-radius:0.9cqw;"></div>
       <div class="pad" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
         <svg id="${id}-sun" width="150" height="150" viewBox="0 0 120 120" style="overflow:visible;opacity:0;">
           <g id="${id}-rays" fill="${theme.butter}"><polygon points="60 0 66 20 54 20"/><polygon points="60 120 66 100 54 100"/><polygon points="0 60 20 54 20 66"/><polygon points="120 60 100 54 100 66"/><polygon points="18 18 34 26 26 34"/><polygon points="102 18 94 34 86 26"/><polygon points="18 102 26 86 34 94"/><polygon points="102 102 86 94 94 86"/></g>
-          <circle cx="60" cy="60" r="30" fill="#FFD98E" stroke="#F5B95A" stroke-width="4"/>
+          <circle cx="60" cy="60" r="30" fill="${theme.tint("#FFD98E")}" stroke="${theme.tint("#F5B95A")}" stroke-width="4"/>
           <circle cx="51" cy="56" r="3.4" fill="#8A6D3B"/><circle cx="69" cy="56" r="3.4" fill="#8A6D3B"/><path d="M52 66 Q60 73 68 66" fill="none" stroke="#8A6D3B" stroke-width="3" stroke-linecap="round"/></svg>
         <div class="hand" id="${id}-once" style="font-size:2.2cqw;color:#fff;opacity:0;margin-top:1.2cqw;">${kicker}</div>
         <div class="h-story" id="${id}-title" style="font-size:4cqw;line-height:1.05;color:#FFF9F0;opacity:0;text-shadow:0 0.2cqw 0 rgba(0,0,0,0.08);">${title}</div>
@@ -412,20 +549,20 @@ function endSpread(scene, ctx) {
   const tag = esc(String(scene.subtext || "every idea deserves a story").slice(0, 40));
   const cta = esc(String(scene.emphasis || "Write yours — free ✎").slice(0, 26));
   const html = `${pageOpen(id, ctx)}
-    <div class="pg pgL" style="background:linear-gradient(120deg,#F3B8B1,#E8938C);box-shadow:none;">
+    <div class="pg pgL" style="background:linear-gradient(120deg,${theme.tint("#F3B8B1")},${theme.tint("#E8938C")});box-shadow:none;">
       <div style="position:absolute;inset:2cqw;border:0.18cqw dashed rgba(255,255,255,0.55);border-radius:0.9cqw;"></div>
       <div class="pad" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
         <div class="hand" id="${id}-end" style="font-size:5cqw;color:#FFF9F0;opacity:0;">The End</div>
         <div class="hand" id="${id}-endsub" style="font-size:1.9cqw;color:rgba(255,255,255,0.92);opacity:0;margin-top:0.6cqw;">(or rather — the beginning)</div>
       </div></div>
-    <div class="pg pgR" style="background:linear-gradient(120deg,#F3B8B1,#E8938C);box-shadow:none;">
+    <div class="pg pgR" style="background:linear-gradient(120deg,${theme.tint("#F3B8B1")},${theme.tint("#E8938C")});box-shadow:none;">
       <div style="position:absolute;inset:2cqw;border:0.18cqw dashed rgba(255,255,255,0.55);border-radius:0.9cqw;"></div>
       <div class="pad" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
         <div class="h-story" id="${id}-mark" style="font-size:3.2cqw;color:#FFF9F0;opacity:0;">${mark}</div>
         <div class="hand" id="${id}-tag" style="font-size:2cqw;color:rgba(255,255,255,0.94);opacity:0;margin-top:0.5cqw;">${tag}</div>
         <div class="cta-sticker" id="${id}-cta" style="opacity:0;margin-top:2.2cqw;background:#FFF9F0;color:${theme.rose};">${cta}</div>
         <div id="${id}-ribbon" style="position:absolute;right:4cqw;top:-0.4cqw;width:2.4cqw;height:12cqw;opacity:0;transform-origin:50% 0%;">
-          <div style="position:absolute;inset:0;background:linear-gradient(180deg,#F7C873,#F0B75A);border-radius:0 0 0.3cqw 0.3cqw;clip-path:polygon(0 0,100% 0,100% 100%,50% 88%,0 100%);box-shadow:0 0.4cqw 1cqw rgba(107,91,115,0.25);"></div>
+          <div style="position:absolute;inset:0;background:linear-gradient(180deg,${theme.tint("#F7C873")},${theme.tint("#F0B75A")});border-radius:0 0 0.3cqw 0.3cqw;clip-path:polygon(0 0,100% 0,100% 100%,50% 88%,0 100%);box-shadow:0 0.4cqw 1cqw rgba(107,91,115,0.25);"></div>
         </div>
       </div></div></div>`;
   const s = [
@@ -444,8 +581,9 @@ function endSpread(scene, ctx) {
 }
 
 // shared: a chapter's paper pen SVG (nib colour matches the chapter tab).
-function penSvg(id, col) {
-  return `<svg class="pen" id="${id}-pen" viewBox="0 0 48 48"><g transform="rotate(38 24 24)"><rect x="19" y="2" width="10" height="26" rx="3" fill="${col}"/><path d="M19 28 H29 L24 42 Z" fill="#F7C873"/><path d="M22.6 37 L24 42 L25.4 37 Z" fill="#6B5B73"/></g></svg>`;
+function penSvg(id, col, tint) {
+  const T = typeof tint === "function" ? tint : (x) => x;
+  return `<svg class="pen" id="${id}-pen" viewBox="0 0 48 48"><g transform="rotate(38 24 24)"><rect x="19" y="2" width="10" height="26" rx="3" fill="${col}"/><path d="M19 28 H29 L24 42 Z" fill="${T("#F7C873")}"/><path d="M22.6 37 L24 42 L25.4 37 Z" fill="#6B5B73"/></g></svg>`;
 }
 // shared spread intro (tab drops in, headline rises).
 function spreadIn(id, T) {
@@ -518,7 +656,7 @@ function styleBlock(theme) {
 // persistent desk + book + turning leaves + captions.
 function chromeHtml(theme, nLeaves) {
   const leaves = Array.from({ length: nLeaves }, (_, i) => `<div class="leaf" id="leaf${i}" style="opacity:0;">${i === 0
-    ? `<div class="face f-front" style="background:linear-gradient(120deg,#F3B8B1,#E8938C);"><div style="position:absolute;inset:1.8cqw;border:0.18cqw dashed rgba(255,255,255,0.5);border-radius:0.9cqw;"></div></div><div class="face f-back"></div>`
+    ? `<div class="face f-front" style="background:linear-gradient(120deg,${theme.tint("#F3B8B1")},${theme.tint("#E8938C")});"><div style="position:absolute;inset:1.8cqw;border:0.18cqw dashed rgba(255,255,255,0.5);border-radius:0.9cqw;"></div></div><div class="face f-back"></div>`
     : `<div class="face f-front"></div><div class="face f-back"></div>`}</div>`).join("");
   return `
   <div class="clip" data-start="0" data-duration="__D__" data-track-index="0" data-layout-allow-occlusion>
@@ -528,7 +666,7 @@ function chromeHtml(theme, nLeaves) {
     <div class="mote" style="position:absolute;left:88%;top:62%;width:0.55cqw;height:0.55cqw;border-radius:50%;background:rgba(255,255,255,0.75);"></div>
     <div class="mote" style="position:absolute;left:8%;top:66%;width:0.38cqw;height:0.38cqw;border-radius:50%;background:rgba(255,255,255,0.7);"></div>
     <div style="position:absolute;left:11cqw;top:9.4cqw;width:78cqw;height:41cqw;border-radius:2cqw;background:rgba(120,85,70,0.28);filter:blur(26px);"></div>
-    <div style="position:absolute;left:11.2cqw;top:7cqw;width:77.6cqw;height:42.2cqw;border-radius:1.6cqw;background:linear-gradient(120deg,#E8938C, #D97F82);box-shadow:inset 0 0 0 0.22cqw rgba(255,255,255,0.25);"></div>
+    <div style="position:absolute;left:11.2cqw;top:7cqw;width:77.6cqw;height:42.2cqw;border-radius:1.6cqw;background:linear-gradient(120deg,${theme.tint("#E8938C")}, ${theme.tint("#D97F82")});box-shadow:inset 0 0 0 0.22cqw rgba(255,255,255,0.25);"></div>
     <div style="position:absolute;left:11.9cqw;top:7.35cqw;width:76.2cqw;height:41.5cqw;border-radius:1.3cqw;background:repeating-linear-gradient(180deg,#FDF4E7 0 0.24cqw,#EFE2CF 0.24cqw 0.42cqw);"></div>
     <div style="position:absolute;left:49.7cqw;top:7.6cqw;width:0.6cqw;height:41cqw;background:linear-gradient(90deg,transparent,var(--crease),transparent);z-index:3;"></div>
   </div>
@@ -539,8 +677,8 @@ function chromeHtml(theme, nLeaves) {
 }
 
 // ---- MAIN --------------------------------------------------------------------
-function buildComposition({ storyboard, dims, framePack, captionCues, assets } = {}) {
-  const theme = tealTheme();
+function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin = null } = {}) {
+  const theme = tealTheme(brandSkin);
   const sb = storyboard || {};
   const W = (dims && dims.width) || 1920, H = (dims && dims.height) || 1080;
   const scenes = Array.isArray(sb.scenes) && sb.scenes.length ? sb.scenes.slice(0, 10) : [{ id: "s1", start: 0, duration: 5, kind: "hook", headline: sb.title || "KEYFRAME" }];
@@ -567,7 +705,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
     if (!ends && byScene.has(sid)) { arch = "screen"; asset = byScene.get(sid); }
     else if (!ends && arch === "screen" && pooli < pool.length) { asset = pool[pooli++]; }
     else if (!ends && arch === "chapter" && pooli < pool.length && i >= 2) { arch = "screen"; asset = pool[pooli++]; }
-    const tab = TABS[(i - 1 + TABS.length) % TABS.length];
+    const tab = theme.tabs[(i - 1 + theme.tabs.length) % theme.tabs.length];
     const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), i, isLast: i === N - 1, track: 2 + i, W, H, theme, tab, tabLabel: `Chapter ${["one", "two", "three", "four", "five", "six", "seven", "eight"][Math.max(0, i - 1)] || i}` };
     // screenSpread takes (scene, ctx, asset); the others take (scene, ctx, opts).
     const built = arch === "screen"
@@ -643,7 +781,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
   ].join("\n");
 
   const metaJson = JSON.stringify({ compositionId: "vid", width: W, height: H, fps: (dims && dims.fps) || 30, duration: D });
-  return { indexHtml, metaJson };
+  return { indexHtml, metaJson, resolvedBrand: theme.resolvedBrand };
 }
 
 module.exports = { buildComposition };

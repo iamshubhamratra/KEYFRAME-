@@ -16,6 +16,8 @@
 // draw-ons; cqw units + container-type:size; hidden = opacity:0 only. Deterministic.
 
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
+const { isTrustedProminent, isLogo } = require("./asset_priority");
+const { resolveBrand } = require("./brand_kit");
 
 const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 const DISPLAY = "Fraunces";
@@ -28,16 +30,128 @@ function esc(s) {
 }
 const r = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
-function bloomTheme() {
+// ---- brand colour-kit — LIFTED from flagship_composer.js so a hand-tuned pastel can be
+// rotated onto the BRAND's hue while its authored LUMINANCE and SATURATION are pinned.
+// IDENTITY = LUMINANCE + MOTION + TYPOGRAPHY + LAYOUT + SEMANTICS; only HUE is the brand's
+// to steer — which is exactly why the cream GROUND, the plum INK and the green MEADOW
+// substrate (grass, rolling hills, flower stem) never pass through here.
+const hexToRgb = (h) => { const n = parseInt(String(h).replace("#", ""), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+const toHex2 = (v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0");
+const relLum = (h) => { const [r0, g0, b0] = hexToRgb(h).map((v) => v / 255); const f = (c) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)); return 0.2126 * f(r0) + 0.7152 * f(g0) + 0.0722 * f(b0); };
+const rgbToHsl = ([r0, g0, b0]) => {
+  r0 /= 255; g0 /= 255; b0 /= 255;
+  const mx = Math.max(r0, g0, b0), mn = Math.min(r0, g0, b0), l = (mx + mn) / 2, d = mx - mn;
+  if (!d) return [0, 0, l];
+  const s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+  const h = mx === r0 ? (g0 - b0) / d + (g0 < b0 ? 6 : 0) : mx === g0 ? (b0 - r0) / d + 2 : (r0 - g0) / d + 4;
+  return [h * 60, s, l];
+};
+const hslHex = (h, s, l) => {
+  if (!s) return `#${toHex2(l * 255).repeat(3)}`;
+  const t = (((h % 360) + 360) % 360) / 360;
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+  const ch = (x) => { if (x < 0) x += 1; if (x > 1) x -= 1; if (x < 1 / 6) return p + (q - p) * 6 * x; if (x < 0.5) return q; if (x < 2 / 3) return p + (q - p) * (2 / 3 - x) * 6; return p; };
+  return `#${toHex2(ch(t + 1 / 3) * 255)}${toHex2(ch(t) * 255)}${toHex2(ch(t - 1 / 3) * 255)}`;
+};
+const hueOf = (hex) => rgbToHsl(hexToRgb(hex))[0];
+// reHue: rotate onto `hue`, bisecting HSL lightness back to the source's relative luminance
+// (monotone in L at fixed hue/sat), so every contrast the pack authored INSIDE the page — a
+// cream label on a coral ribbon, an emphasis word on the cream ground — comes out at the
+// ratio it went in at. SATURATION stays the pastel's own; achromatic in → untouched; a
+// lum-pin miss fails OPEN to the source hex (a stock pastel beats a wrong one). 0.006 is the
+// 8-bit quantization ceiling for these saturated hues (paper_tales_composer.js:70).
+const LUM_PIN = 0.006;
+function reHue(hex, hue) {
+  const [, s] = rgbToHsl(hexToRgb(hex));
+  if (s < 0.02) return hex;
+  const target = relLum(hex);
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 24; i++) { const mid = (lo + hi) / 2; if (relLum(hslHex(hue, s, mid)) < target) lo = mid; else hi = mid; }
+  const l = (lo + hi) / 2;
+  let out = hex, err = Infinity;
+  for (const dl of [0, -1 / 255, 1 / 255]) {
+    const cand = hslHex(hue, s, l + dl);
+    const e = Math.abs(relLum(cand) - target);
+    if (e < err) { err = e; out = cand; }
+  }
+  return err <= LUM_PIN ? out : hex;
+}
+function hueDist(a, b) { const d = Math.abs(((a - b) % 360 + 360) % 360); return d > 180 ? 360 - d : d; }
+// brandLedOf (flagship_composer.js:105): resolveBrand lays accents brand-first then pack,
+// so the brand-led run ends at the first entry the pack already owned. [] means no brand.
+function brandLedOf(brand, packAccents) {
+  const pack = new Set(packAccents.map((a) => String(a).toLowerCase()));
+  const out = [];
+  for (const a of brand.accents) { if (pack.has(String(a).toLowerCase())) break; out.push(a); }
+  return out;
+}
+
+// The four BRAND-SLOTTABLE bloom pastels + their hue angles. Every accent LITERAL in the
+// film (a coral petal, a coral2 highlight, a blush petal, the sun and its edge, a sage leaf,
+// a sky spark) buckets to its NEAREST family so it rehues in LOCKSTEP with that family —
+// coral and coral2 land on ONE brand hue, never two. The cream GROUND, the plum INK and the
+// MEADOW's own green (grass/hills/stem) are deliberately NOT families: a meadow is green
+// because it is a meadow, not because of a brand, so they are locked literals, never tinted.
+const FAM_BASE = { coral: "#E8705F", sun: "#F2B95C", sage: "#7FA876", sky: "#A9D7E8" };
+const FAM_HUE = Object.fromEntries(Object.entries(FAM_BASE).map(([k, v]) => [k, hueOf(v)]));
+// Fan the families around the brand LEAD hue, all INSIDE brand_kit's 40° drift budget so
+// each pastel still reads as the brand and none reads as a SECOND brand — the blooms stay
+// multi-tonal and playful, just brand-dominant. coral leads at 0° because it carries the
+// most brand-visible surfaces (petals, ribbons, CTA, emphasis words, sparks, the butterfly),
+// so the film's dominant colour becomes the brand's own lead hue.
+const FAM_FAN = { coral: 0, sun: -22, sage: 20, sky: 40 };
+
+function bloomTheme(brandSkin) {
   const fontFace = isBundled(DISPLAY) ? fontFaceCss(DISPLAY) : "";
+  const packAccents = [FAM_BASE.coral, FAM_BASE.sun, FAM_BASE.sage, FAM_BASE.sky];
+
+  // FAIL-OPEN (art_director.js:14): a resolver/reHue hiccup renders the stock pastels,
+  // never a crash and never a half-branded film. The brand fits to the cream GROUND (the
+  // ground the film actually paints on) so an accent that can't clear it is dropped, not
+  // dragged to grey.
+  let wheel = null, brand = null, brandLed = [];
+  try {
+    brand = resolveBrand(brandSkin, { ground: "#F8EFDE", isDark: false, packAccents });
+    brandLed = brandLedOf(brand, packAccents);
+    if (brand.applied && brandLed.length) {
+      const leadHue = hueOf(brandLed[0]);
+      wheel = {};
+      for (const f in FAM_FAN) wheel[f] = leadHue + FAM_FAN[f];
+    }
+  } catch { wheel = null; }
+  const applied = !!wheel;
+
+  // NO-OP LAW: with no brand skin `wheel` is null and tint is the IDENTITY — every pastel
+  // below is returned byte-for-byte, so a null render matches the pack exactly.
+  const tint = (hex) => {
+    if (!wheel) return hex;
+    const h = hueOf(hex);
+    let fam = "coral", bd = 999;
+    for (const f in FAM_HUE) { const d = hueDist(h, FAM_HUE[f]); if (d < bd) { bd = d; fam = f; } }
+    return reHue(hex, wheel[fam]);
+  };
+
   return {
+    // LOCKED identity: the sky-to-cream GROUND, the plum INK, the muted-plum body and the
+    // near-white paper CARD are the storybook's own luminance and reading; no brand vote.
     groundCss: "linear-gradient(180deg, #E4F1F2 0%, #F8EFDE 46%, #FBF4E8 100%)",
     cream: "#FBF4E8", plum: "#46345A", body: "#6C5B80",
-    coral: "#E8705F", coral2: "#F3937F", sun: "#F2B95C", sunEdge: "#E8A94B",
-    sage: "#7FA876", sage2: "#9CC08F", blush: "#F3C5BB", sky: "#A9D7E8", card: "#FFFDF7",
+    // SLOTTABLE blooms: rehue toward the brand (coral leads, the rest fan for variety). A
+    // null skin leaves each at its authored pastel; the MEADOW greens are literals elsewhere,
+    // so a magenta brand yields magenta blooms on a still-green meadow.
+    coral: tint("#E8705F"), coral2: tint("#F3937F"), sun: tint("#F2B95C"), sunEdge: tint("#E8A94B"),
+    sage: tint("#7FA876"), sage2: tint("#9CC08F"), blush: tint("#F3C5BB"), sky: tint("#A9D7E8"), card: "#FFFDF7",
     displayStack: `'${DISPLAY}', Georgia, 'Times New Roman', serif`,
     bodyStack: `'${BODY}', system-ui, sans-serif`,
     fontFace,
+    // What the film actually WORE — null when no brand applied, matching paper_tales/flagship
+    // so persistWornBrand can show the worn skin (or an honest empty panel).
+    resolvedBrand: applied ? {
+      ...(brandSkin && typeof brandSkin === "object" ? brandSkin : {}),
+      accents: brandLed, emphasis: brand.emphasis,
+      adjusted: brand.adjusted, dropped: brand.dropped,
+      tier: brand.tier, applied: true,
+    } : null,
   };
 }
 
@@ -125,10 +239,10 @@ function pickStats(scene, max) {
 
 function plateOk(a) {
   if (!a || !a.path) return false;
+  if (isLogo(a)) return false; // the logo is key-moment material, never a storybook plate
   if (a.type === "video" || /\.(mp4|webm|mov)($|\?)/i.test(a.path)) return false;
   if (/\.svg($|\?)/i.test(a.path)) return false;
-  const src = String(a.source || "").toLowerCase();
-  return a.source === "website" || src.startsWith("library") || a.visionOk === true || a.cdProminence === "hero" || a.cdProminence === "support";
+  return isTrustedProminent(a) || a.cdProminence === "hero" || a.cdProminence === "support";
 }
 
 function bloomArchetype(scene, i, total) {
@@ -389,6 +503,10 @@ function blCta(scene, ctx) {
 const BUILDERS = { title: blTitle, plant: blPlant, plate: blPlate, cards: blCards, stats: blStats, ribbons: blRibbons, cta: blCta };
 
 // ---- meadow chrome + captions (content-independent) --------------------------
+// The grass blades and the three rolling hills are LOCKED substrate greens (plain literals,
+// NOT theme.sage2) — a meadow is green because it is a meadow, not because of a brand, so a
+// magenta brand must still land magenta blooms on a green meadow. The sun/sparks/butterfly
+// DO ride the accent theme keys: they are bloom-warm accents, not the green substrate.
 function chromeHtml(theme) {
   return `
   <div id="meadow" class="clip" data-start="0" data-duration="__D__" data-track-index="0" data-layout-allow-occlusion>
@@ -404,7 +522,7 @@ function chromeHtml(theme) {
     <svg id="hills" viewBox="0 0 1920 420" preserveAspectRatio="none" style="position:absolute;left:0;right:0;bottom:0;width:100%;height:24cqw;">
       <path d="M0 220 Q 480 80 960 190 T 1920 150 V420 H0 Z" fill="#D9E7C8"/>
       <path d="M0 300 Q 520 170 1040 260 T 1920 250 V420 H0 Z" fill="#BBD4A8"/>
-      <path d="M0 362 Q 460 258 980 330 T 1920 318 V420 H0 Z" fill="${theme.sage2}"/></svg>
+      <path d="M0 362 Q 460 258 980 330 T 1920 318 V420 H0 Z" fill="#9CC08F"/></svg>
     <svg id="grass" viewBox="0 0 1920 130" preserveAspectRatio="none" style="position:absolute;left:0;right:0;bottom:-0.2cqw;width:100%;height:6.4cqw;overflow:visible;">
       <g stroke="#6E9670" stroke-width="7" stroke-linecap="round" fill="none">
         <path class="blade" d="M120 130 Q 112 84 124 48"/><path class="blade" d="M420 130 Q 412 88 424 56"/>
@@ -456,8 +574,8 @@ function styleBlock(theme) {
 }
 
 // ---- MAIN --------------------------------------------------------------------
-function buildComposition({ storyboard, dims, framePack, captionCues, assets } = {}) {
-  const theme = bloomTheme();
+function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin = null } = {}) {
+  const theme = bloomTheme(brandSkin);
   const sb = storyboard || {};
   const W = (dims && dims.width) || 1920, H = (dims && dims.height) || 1080;
   const scenes = Array.isArray(sb.scenes) && sb.scenes.length ? sb.scenes.slice(0, 12) : [{ id: "s1", start: 0, duration: 4, kind: "hook", headline: sb.title || "KEYFRAME" }];
@@ -556,7 +674,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
   ].join("\n");
 
   const metaJson = JSON.stringify({ compositionId: "vid", width: W, height: H, fps: (dims && dims.fps) || 30, duration: D });
-  return { indexHtml, metaJson };
+  return { indexHtml, metaJson, resolvedBrand: theme.resolvedBrand };
 }
 
 module.exports = { buildComposition };

@@ -32,6 +32,7 @@
 // the canvas. Passes `hyperframes lint` with 0 errors.
 
 const { deriveTheme } = require("./scene_kit");
+const { resolveBrand } = require("./brand_kit");
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
 const { aspectMode, typeScale, safeArea, headlineCh } = require("./responsive");
 
@@ -55,24 +56,117 @@ const ensureReadableOnLight = (h, max = 0.42) => { let c = h; for (let i = 0; i 
 const ensureBright = (h, min = 0.5) => { let c = h; for (let i = 0; i < 9 && relLum(c) < min; i++) c = lighten(c, 0.22); return c; };
 function hashSeed(s) { let h = 2166136261; const str = String(s || ""); for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
 
+// HSL, local for the same reason relLum above is: brand_kit keeps its pair private and
+// exports only the decisions it wants made in one place. Hue in DEGREES.
+const rgbToHsl = ([r, g, b]) => {
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+  if (!d) return [0, 0, l];
+  const s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+  const h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [h * 60, s, l];
+};
+const hslHex = (h, s, l) => {
+  if (!s) return `#${toHex2(l * 255).repeat(3)}`;
+  const t = (((h % 360) + 360) % 360) / 360;
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+  const ch = (x) => { if (x < 0) x += 1; if (x > 1) x -= 1; if (x < 1 / 6) return p + (q - p) * 6 * x; if (x < 0.5) return q; if (x < 2 / 3) return p + (q - p) * (2 / 3 - x) * 6; return p; };
+  return `#${toHex2(ch(t + 1 / 3) * 255)}${toHex2(ch(t) * 255)}${toHex2(ch(t - 1 / 3) * 255)}`;
+};
+const hueOf = (hex) => rgbToHsl(hexToRgb(hex))[0];
+
+// Rotate a color onto a new HUE while PINNING its relative luminance to the authored
+// value. relLum climbs monotonically with HSL's L at a fixed hue/saturation, so a
+// bisection lands back on the source's luminance to within 8-bit quantization. That is
+// the whole safety argument for hue-swapping the product panels: every contrast the
+// pack authored INSIDE the card — a bar against the white plate, the white "Live" label
+// on its chip, a KPI delta beside its tile — comes out at the ratio it went in at, so
+// nothing that made the plate readable can move.
+//
+// Saturation stays the SLOT'S, not the brand's: only hue is being borrowed, and the
+// pack tuned these tones for a white card the brand has never seen. An ACHROMATIC accent
+// is returned untouched — it has no hue to give away, and pushing chroma into it would
+// be a chroma decision wearing a hue decision's clothes.
+const LUM_PIN = 0.004;   // ~one 8-bit step through the midtones: the quantization floor, not a slack budget
+function reHue(hex, hue) {
+  const [, s, l] = rgbToHsl(hexToRgb(hex));
+  if (s < 0.02) return hex;
+  const target = relLum(hex);
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 24; i++) { const mid = (lo + hi) / 2; if (relLum(hslHex(hue, s, mid)) < target) lo = mid; else hi = mid; }
+  const out = hslHex(hue, s, (lo + hi) / 2);
+  return Math.abs(relLum(out) - target) <= LUM_PIN ? out : hex;   // fail-open: a stock bar beats a wrong one
+}
+
+// The brand's OWN colors, resolved. resolveBrand (brand_kit:277) lays its accents out
+// brand-first then pack, so the brand-led run ends at the first entry the pack already
+// owned. Everything downstream that says "the brand" means THIS list and not
+// `brand.accents`, which is the film's whole accent family and mostly the pack's.
+function brandLedOf(brand, packAccents) {
+  const pack = new Set(packAccents.map((a) => String(a).toLowerCase()));
+  const out = [];
+  for (const a of brand.accents) { if (pack.has(String(a).toLowerCase())) break; out.push(a); }
+  return out;
+}
+
+// The hues the product panels may wear. The brand's own colors lead, in the order the
+// brand gave them; a chart with more series than the brand has colors FANS the rest off
+// the lead hue instead of reaching back for a stock accent — a violet bar beside an
+// orange one is exactly the off-brand reading this exists to kill. The fan stays inside
+// the 40° that brand_kit:131 calls "still reads as its own hue", so an extra series is a
+// sibling of the brand and never a second brand.
+//
+// Series stay tellable apart on LUMINANCE, which is why this can afford so narrow a fan:
+// the pack authored four distinct brightnesses and reHue keeps every one of them, so two
+// bars 20° apart still differ by the contrast step the pack designed between them.
+const HUE_FAN = [20, -20, 40, -40];
+function panelAccents(packAccents, led) {
+  if (!led.length) return packAccents;   // no brand → the pack's own strings, untouched
+  const wheel = led.map(hueOf);
+  for (const d of HUE_FAN) { if (wheel.length >= packAccents.length) break; wheel.push(wheel[0] + d); }
+  return packAccents.map((c, i) => reHue(c, wheel[i % wheel.length]));
+}
+
 // DARK cinematic theme. A deep near-black indigo STAGE with bright product panels that
 // pop against it — the counterpoint to `brightlife`'s airy white. deriveTheme resolves
 // the pack accents + Space Grotesk display face; the stage is authored dark.
-function flagshipTheme(framePack, sb) {
+//
+// The BRAND SKIN (Art Director) reaches the film here and ONLY through the accent
+// family — the deep stage, the ink, the display face, the camera rig and the panel
+// layout are what makes this pack the flagship, and no palette gets a vote on them.
+function flagshipTheme(framePack, sb, brandSkin) {
   const base = deriveTheme(framePack, sb);
-  const accents = (base.accents && base.accents.length ? base.accents : ["#7C8CFF", "#4ED7FF", "#B16CFF", "#57F2C2"]).slice(0, 4);
+  // The skin is deliberately NOT handed to deriveTheme, which would resolve it against
+  // the PACK's ground. Every accent in this film lands on the stage authored two lines
+  // below, not on that ground, so the stage is what a brand color has to be legible
+  // against — and resolveBrand is the only thing here that knows it.
+  const STAGE = "#0A0B16";
+  const packAccents = (base.accents && base.accents.length ? base.accents : ["#7C8CFF", "#4ED7FF", "#B16CFF", "#57F2C2"]).slice(0, 4);
+  const brand = resolveBrand(brandSkin, { ground: STAGE, isDark: true, packAccents });
+  const brandLed = brandLedOf(brand, packAccents);
+  const accents = brand.accents.slice(0, 4);
   const MONO = "JetBrains Mono";
   const monoFace = isBundled(MONO) ? fontFaceCss(MONO) : "";
   const monoStack = monoFace ? `'${MONO}', ui-monospace, monospace` : "ui-monospace, 'JetBrains Mono', monospace";
   // Emphasis gradient: a BRIGHT cyan-forward gloss (near-white → bright brand accent)
   // so a gradient-fill headline word GLOWS on the deep stage and never goes muddy.
-  const emphMain = ensureBright(accents[1] || accents[0], 0.62);
+  //
+  // The emphasis word / hero number / kicker lead with emphasis[0] — the resolver's
+  // ARRIVAL-ranked winner, the brand color that reads STRONGEST on this stage. It has
+  // already cleared the stage's contrast floor inside fit(), so it needs no rescue-
+  // brightening; forcing it up to a luminance floor here only washes a color that already
+  // reads (Amazon's #ff9900 → a pale peach for no reason). With no skin, brand.applied is
+  // false and the historical path stands verbatim: emphasis[1] is the pack's own second
+  // accent, lifted to the stage floor exactly as before — so the null render is byte-identical.
+  const emphMain = brand.applied ? brand.emphasis[0] : ensureBright(brand.emphasis[1], 0.62);
   const emphHi = lighten(emphMain, 0.6);
-  const kickCol = ensureBright(accents[1] || accents[0], 0.6);
+  const kickCol = brand.applied ? brand.emphasis[0] : ensureBright(brand.emphasis[1], 0.6);
   return {
-    ground: "#0A0B16", ground2: "#05060C", surface: "#04050A",
+    ground: STAGE, ground2: "#05060C", surface: "#04050A",
     ink: "#F6F8FF", body: "#AEB6D4", dim: "#7A82A0", hair: "rgba(255,255,255,0.12)",
-    accents, accent: accents[0], accent2: accents[1] || accents[0], accent3: accents[2] || accents[0], accent4: accents[3] || accents[1] || accents[0],
+    accents, uiAccents: panelAccents(packAccents, brandLed),
+    brand, brandLed,
+    accent: accents[0], accent2: accents[1] || accents[0], accent3: accents[2] || accents[0], accent4: accents[3] || accents[1] || accents[0],
     kickCol, emphA: emphHi, emphB: emphMain,
     displayStack: base.displayStack || SAFE_FONTS,
     fontStack: SAFE_FONTS,
@@ -233,7 +327,20 @@ function threeModule({ theme, dims, D, seed, sceneWindows, plates }) {
   const lineHex = hexInt(ensureBright(theme.accent, 0.6));
   // The PRODUCT PANELS stay BRIGHT (white UI pops on the dark stage) — a fixed light
   // palette, decoupled from the dark theme, for frameTex + uiContent.
-  const uiPalette = { ground: "#FFFFFF", ground2: "#F8FAFC", surface: "#F1F5F9", ink: "#0F172A", body: "#475569", dim: "#64748B", hair: "#E2E8F0", accents: theme.accents };
+  //
+  // BRIGHTNESS is locked; HUE is not. Every luminance here is authored against a white
+  // card and never resolved against the stage, because the film's other accents are
+  // lifted to clear #0A0B16 and a color tuned to clear near-black is precisely the color
+  // that vanishes on a white dashboard — so a screenshot plate would stop reading at full
+  // contrast, which is the whole job of these plates. None of that argument is about hue.
+  // uiAccents therefore wears the BRAND's hues at exactly these authored luminances
+  // (reHue pins them), so the contrast case is untouched and the DATA — chart bars, the
+  // live chip, KPI deltas, donut segments — is the brand's, which is what it is for.
+  //
+  // The CHROME stays fixed: card white, sidebar, hairlines and the muted label inks below
+  // are furniture, and so are frameTex's traffic lights — a macOS window affordance whose
+  // red/amber/green mean what they mean off-screen, exactly like terminal's green=ON-TIME.
+  const uiPalette = { ground: "#FFFFFF", ground2: "#F8FAFC", surface: "#F1F5F9", ink: "#0F172A", body: "#475569", dim: "#64748B", hair: "#E2E8F0", accents: theme.uiAccents };
   return `
 import * as THREE from 'three';
 
@@ -594,9 +701,11 @@ window.__timelines=window.__timelines||{}; window.__timelines["vid"]=tl;
 // empty the panel renders a GENERATED bright product UI (never a void). Panels are
 // BIG (screenshots occupy ~40-60% of the frame).
 function assignPlates(scenes, sceneWindows, assets) {
-  const imgs = (assets || []).filter((a) => a && a.path && !/\.(mp4|webm|mov)$/i.test(a.path) && !/\.svg($|\?)/i.test(a.path));
+  // The user's logo never rides a product plate (it gets key-moment treatment);
+  // their uploads outrank everything, including the site's own captures.
+  const imgs = (assets || []).filter((a) => a && a.path && String(a.role || "") !== "logo" && !/\.(mp4|webm|mov)$/i.test(a.path) && !/\.svg($|\?)/i.test(a.path));
   const ratio = (a) => (a.width && a.height ? a.width / a.height : (a.ratio || 1.6));
-  const rank = (a) => (a.source === "website" || /screenshot|webpage|landing|dashboard/i.test(a.alt || "") ? 3 : a.visionOk === true ? 2 : 1);
+  const rank = (a) => (a.source === "upload" ? 4 : a.source === "website" || /screenshot|webpage|landing|dashboard/i.test(a.alt || "") ? 3 : a.visionOk === true ? 2 : 1);
   const pool = imgs.slice().sort((a, b) => rank(b) - rank(a));
   const used = new Set();
   const take = () => { const a = pool.find((x) => !used.has(x)); if (a) used.add(a); return a || null; };
@@ -624,12 +733,36 @@ function assignPlates(scenes, sceneWindows, assets) {
   return plates;
 }
 
-function buildComposition({ storyboard, dims, framePack, captionCues, assets } = {}) {
+// ---- the skin the film actually WORE ----------------------------------------
+// The Brand panel's ACCENTS row is a claim about the USER's palette, not an inventory of
+// the film's, so it may only carry what the brand contributed — and carry it RESOLVED.
+// #146eb4 arrives on this stage as a pale #bbd5ea; showing its owner the color they typed
+// while the film paints another one is the exact dishonesty art_director.js:191 built its
+// persist gate to prevent, and the gate cannot catch it because the shift happens here,
+// after the gate has run.
+//
+// Merged OVER the input skin, so reason/source/provenance survive: those say where the
+// palette CAME from, which is a question resolution has no opinion about. Everything
+// resolution does have an opinion about wins.
+//
+// Null when nothing survived: the panel must then say "no brand", not show a palette
+// nobody painted.
+function resolvedSkin(brandSkin, brand, brandLed) {
+  if (!brand.applied || !brandLed.length) return null;
+  return {
+    ...(brandSkin && typeof brandSkin === "object" ? brandSkin : {}),
+    accents: brandLed, emphasis: brand.emphasis,
+    adjusted: brand.adjusted, dropped: brand.dropped,
+    tier: brand.tier, applied: true,
+  };
+}
+
+function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin } = {}) {
   const sb = storyboard || {};
   const scenes = Array.isArray(sb.scenes) && sb.scenes.length ? sb.scenes : [{ id: "s1", start: 0, duration: 6, purpose: "hook", headline: sb.title || "KEYFRAME" }];
   const D = r2(sb.durationSec || scenes.reduce((a, s) => a + (s.duration || 0), 0) || 12);
   const W = dims.width, H = dims.height;
-  const theme = flagshipTheme(framePack, sb);
+  const theme = flagshipTheme(framePack, sb, brandSkin);
   const seed = hashSeed(`${sb.title || ""}|${scenes.length}|flagship`);
   const sc = typeScale(W, H);
   const px = (n) => Math.round(n * sc);
@@ -719,7 +852,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
   ].join("\n");
 
   const metaJson = JSON.stringify({ compositionId: "vid", width: W, height: H, fps: dims.fps || 30, duration: D });
-  return { indexHtml, metaJson };
+  return { indexHtml, metaJson, resolvedBrand: resolvedSkin(brandSkin, theme.brand, theme.brandLed) };
 }
 
 module.exports = { buildComposition };

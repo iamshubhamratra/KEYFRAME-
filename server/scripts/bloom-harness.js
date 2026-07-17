@@ -1,6 +1,9 @@
 // DEV HARNESS — build a Bloom Fable composition into a job dir for standalone render.
-// Usage: node scripts/bloom-harness.js <outDir> [W] [H] [shot]
-//   pass "shot" as arg 4 to also drop a synthetic screenshot asset (tests the plate)
+// Usage: node scripts/bloom-harness.js <outDir> [W] [H] [#hex,#hex,...] [shot]
+//   #hex list → an Art Director BRAND SKIN, to eyeball what the brand may steer. Omit it
+//     and the film must render byte-identically to the pack default — a null skin is a
+//     no-op by contract (brand_kit.js:25), so a diff here is a bug.
+//   shot → also drops a synthetic screenshot asset (tests the plate)
 // Then: cd <outDir> && npx --yes hyperframes@0.6.120 render --output renders/out.mp4 --quality draft --workers 2
 
 const fs = require("node:fs");
@@ -10,7 +13,13 @@ const bloom = require("../src/services/bloom_composer");
 const outDir = path.resolve(process.argv[2] || "jobs/_bltest2");
 const W = Number(process.argv[3]) || 1280;
 const H = Number(process.argv[4]) || 720;
-const withShot = process.argv[5] === "shot";
+// Shaped like the Art Director's real output (art_director.js:132): accents lead, emphasis
+// is an explicit 2-stop pair.
+const brandHexes = String(process.argv[5] || "").split(",").map((s) => s.trim()).filter(Boolean);
+const brandSkin = brandHexes.length
+  ? { accents: brandHexes.slice(0, 3), emphasis: [brandHexes[0], brandHexes[1] || brandHexes[0]], source: "harness", provenance: "explicit" }
+  : null;
+const withShot = process.argv[6] === "shot";
 
 fs.mkdirSync(path.join(outDir, "renders"), { recursive: true });
 
@@ -35,7 +44,8 @@ if (withShot) {
   assets = [{ path: "assets/images/shot.png", type: "image", source: "website", visionOk: true, cdScore: 95, sceneId: "s2", ratio: 1.6, alt: "product screenshot" }];
 }
 
-const built = bloom.buildComposition({ storyboard, dims: { width: W, height: H, fps: 30 }, framePack: "bloom-fable", captionCues, assets });
+const built = bloom.buildComposition({ storyboard, dims: { width: W, height: H, fps: 30 }, framePack: "bloom-fable", captionCues, assets, brandSkin });
 fs.writeFileSync(path.join(outDir, "index.html"), built.indexHtml, "utf8");
 fs.writeFileSync(path.join(outDir, "meta.json"), built.metaJson, "utf8");
-console.log(`[bloom-harness] wrote ${outDir} (${W}x${H}, ${storyboard.scenes.length} scenes${withShot ? ", +shot plate" : ""})`);
+console.log(`[bloom-harness] wrote ${outDir} (${W}x${H}, ${storyboard.scenes.length} scenes${withShot ? ", +shot plate" : ""}, brand=${brandSkin ? brandSkin.accents.join("/") : "none (pack pastels)"})`);
+if (built.resolvedBrand) console.log(`[bloom-harness] resolvedBrand: ${built.resolvedBrand.accents.join("/")} (tier ${built.resolvedBrand.tier})`);

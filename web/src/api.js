@@ -32,18 +32,31 @@ async function json(resp) {
   return body;
 }
 
-// fields: { prompt?, websiteUrl?, referenceVideo? (File), duration, orientation,
-//           quality, framePack, voiceStyle?, autopilot?, captions? }
+// fields: { prompt?, websiteUrl?, referenceVideo? (File), logo? (File),
+//           assets? (File[]), duration, orientation, quality, framePack,
+//           voiceStyle?, autopilot?, captions?, brandPalette? }
 export async function createProject(fields) {
-  const { referenceVideo, ...rest } = fields;
-  if (referenceVideo) {
+  const isFile = (v) => typeof File !== "undefined" && v instanceof File;
+  // Multipart whenever ANY field carries a File — referenceVideo, logo, or the
+  // assets array. (JSON.stringify on a File silently serializes to {}, so a File
+  // must never reach the JSON branch.)
+  const hasFiles = Object.values(fields).some((v) => isFile(v) || (Array.isArray(v) && v.some(isFile)));
+  if (hasFiles) {
     const form = new FormData();
-    form.append("referenceVideo", referenceVideo);
-    for (const [k, v] of Object.entries(rest)) {
-      if (v != null && v !== "") form.append(k, String(v));
+    for (const [k, v] of Object.entries(fields)) {
+      if (v == null || v === "") continue;
+      if (isFile(v)) { form.append(k, v); continue; }
+      // A File[] appends repeatedly under ONE key — multer's upload.fields
+      // collects them as req.files[k].
+      if (Array.isArray(v) && v.some(isFile)) { for (const f of v) if (isFile(f)) form.append(k, f); continue; }
+      // A multipart field is text, so a structured one (brandPalette) has to travel
+      // as JSON — String(object) would post the literal "[object Object]". The API
+      // parses these back; the JSON path below needs no such dance.
+      form.append(k, typeof v === "object" ? JSON.stringify(v) : String(v));
     }
     return json(await apiFetch("/api/projects", { method: "POST", body: form }));
   }
+  const { referenceVideo, logo, assets, ...rest } = fields;
   return json(await apiFetch("/api/projects", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

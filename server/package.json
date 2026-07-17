@@ -10,7 +10,10 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "audit:contrast": "node scripts/audit-contrast.js"
+    "audit:contrast": "node scripts/audit-contrast.js",
+    "test:brand-kit": "node scripts/test-brand-kit.js",
+    "test:asset-priority": "node scripts/test-asset-priority.js",
+    "test:screenshot-intake": "node scripts/test-screenshot-intake.js"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",

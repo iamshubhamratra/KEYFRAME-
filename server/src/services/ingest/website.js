@@ -87,28 +87,81 @@ function dominantColors(screenshotPath) {
   });
 }
 
-// Dismiss cookie / consent banners so they don't get baked into the hero
-// screenshot (the reported "sign-in page with a cookie popup" shot). Click the
-// most common accept/reject control, then hide any leftover fixed overlay.
-// Best-effort: any failure just leaves the page as-is.
-async function dismissConsent(page) {
+// Clear OVERLAYS so they don't get baked into a screenshot: cookie/consent
+// banners AND the wider family of pop-ups Puppeteer would otherwise capture —
+// newsletter/email-signup modals, live-chat widgets, promo/announcement/app-install
+// bars, and generic role=dialog modals with their dimming backdrop.
+//
+// STRATEGY, in order of safety:
+//   1) For consent banners, click a bare accept/reject control (only these have
+//      simple, safe, well-known labels).
+//   2) For everything else, prefer display:none HIDING over clicking — a wrong
+//      click on a real product CTA is worse than a hidden overlay. We hide BOTH
+//      the dimming backdrop (usually the position:fixed element) AND the dialog
+//      (often an absolute/static child of the backdrop); hiding only one leaves
+//      the other covering content, which is worse than not dismissing at all.
+//   3) Press ESC as a last-resort dismissal for well-behaved modals.
+//
+// On an AUTH WALL we do NOT click anything (a "click" could submit/interact with
+// a real login form) — we only hide overlays. Everything is best-effort inside a
+// swallow-all try/catch: this must never throw and never fail a capture.
+async function dismissOverlays(page, { isAuthWall = false } = {}) {
   try {
-    await page.evaluate(() => {
-      const rxAccept = /^(accept all|accept|allow all|allow|agree|i agree|got it|ok|okay)$/i;
-      const rxReject = /^(reject all|reject|decline|only necessary|necessary only|dismiss|close)$/i;
-      const clickable = [...document.querySelectorAll('button,[role="button"],a,input[type="button"],input[type="submit"]')];
-      const byText = (rx) => clickable.find((el) => rx.test(((el.innerText || el.value || el.getAttribute("aria-label") || "")).trim()));
-      const btn = byText(rxAccept) || byText(rxReject);
-      if (btn) { try { btn.click(); } catch { /* noop */ } }
-      // Hide leftover fixed/sticky consent overlays (OneTrust, generic cookie bars).
-      const sel = '[id*="cookie" i],[class*="cookie" i],[id*="consent" i],[class*="consent" i],[id*="gdpr" i],[class*="gdpr" i],[aria-label*="cookie" i],#onetrust-banner-sdk,.ot-sdk-container,.cookie-banner,.cookie-consent';
+    await page.evaluate((authWall) => {
+      // 1) Consent accept/reject click (safe, anchored labels only). Skipped on
+      //    auth walls where a stray click is dangerous.
+      if (!authWall) {
+        const rxAccept = /^(accept all|accept|allow all|allow|agree|i agree|got it|ok|okay|continue)$/i;
+        const rxReject = /^(reject all|reject|decline|only necessary|necessary only|dismiss|close|no thanks|not now|maybe later)$/i;
+        const clickable = [...document.querySelectorAll('button,[role="button"],a,input[type="button"],input[type="submit"]')];
+        const byText = (rx) => clickable.find((el) => rx.test(((el.innerText || el.value || el.getAttribute("aria-label") || "")).trim()));
+        const btn = byText(rxAccept) || byText(rxReject);
+        if (btn) { try { btn.click(); } catch { /* noop */ } }
+      }
+      // 2) Hide leftover overlays by container. Cookie/consent/gdpr + newsletter/
+      //    subscribe + chat widgets (Intercom/Drift/Zendesk/Crisp/tawk/HubSpot) +
+      //    promo/announcement/app-install bars. Only hide fixed/sticky/absolute
+      //    positioned overlays (a static in-flow section is real content).
+      const sel = [
+        '[id*="cookie" i]', '[class*="cookie" i]', '[id*="consent" i]', '[class*="consent" i]',
+        '[id*="gdpr" i]', '[class*="gdpr" i]', '[aria-label*="cookie" i]',
+        '#onetrust-banner-sdk', '.ot-sdk-container', '.cookie-banner', '.cookie-consent',
+        '[id*="newsletter" i]', '[class*="newsletter" i]', '[class*="subscribe" i]', '[id*="subscribe" i]',
+        '[class*="signup-modal" i]', '[class*="email-capture" i]', '[class*="popup" i]', '[id*="popup" i]',
+        '[class*="modal" i][class*="promo" i]', '[class*="announcement" i]', '[class*="promo-bar" i]', '[class*="smart-banner" i]', '[class*="app-banner" i]',
+        '.intercom-lightweight-app', '.intercom-app', '#intercom-container', '[class*="intercom" i]',
+        '#drift-widget', '.drift-widget', '[id*="drift" i]',
+        '#hubspot-messages-iframe-container', '[id*="hubspot" i][class*="chat" i]',
+        '[id*="zendesk" i]', '#launcher', '.zEWidget-launcher', '[data-testid="chat-widget"]',
+        '.crisp-client', '#crisp-chatbox', '[class*="crisp" i]',
+        '#tawkchat-container', '.tawk-min-container', '[id*="tawk" i]',
+      ].join(',');
       document.querySelectorAll(sel).forEach((el) => {
-        const st = getComputedStyle(el);
-        if (st.position === "fixed" || st.position === "sticky") el.style.display = "none";
+        try {
+          const st = getComputedStyle(el);
+          if (st.position === "fixed" || st.position === "sticky" || st.position === "absolute") el.style.setProperty("display", "none", "important");
+        } catch { /* noop */ }
       });
-    });
-    await new Promise((r) => setTimeout(r, 450)); // let it animate out
-  } catch { /* consent dismissal is best-effort */ }
+      // 3) Generic modal dialogs + their dimming backdrop. Hide BOTH: the backdrop
+      //    is usually the fixed full-viewport element, the dialog its child. A
+      //    high-z fixed element that covers most of the viewport and dims the page
+      //    is an overlay by construction.
+      const vw = window.innerWidth, vh = window.innerHeight;
+      document.querySelectorAll('[role="dialog"],[aria-modal="true"],[class*="overlay" i],[class*="backdrop" i],[class*="modal" i]').forEach((el) => {
+        try {
+          const st = getComputedStyle(el);
+          if (st.position !== "fixed" && st.position !== "absolute") return;
+          const r = el.getBoundingClientRect();
+          const covers = r.width >= vw * 0.6 && r.height >= vh * 0.5;
+          const z = parseInt(st.zIndex, 10) || 0;
+          if (covers || z >= 1000) { el.style.setProperty("display", "none", "important"); }
+        } catch { /* noop */ }
+      });
+    }, isAuthWall);
+    // ESC as a fallback for well-behaved modals (harmless if nothing is open).
+    try { await page.keyboard.press("Escape"); } catch { /* noop */ }
+    await new Promise((r) => setTimeout(r, 450)); // let overlays animate out
+  } catch { /* overlay dismissal is best-effort — never blocks a capture */ }
 }
 
 async function understandWebsite({ url, workDir, timeoutMs = 60_000 }) {
@@ -132,8 +185,10 @@ async function understandWebsite({ url, workDir, timeoutMs = 60_000 }) {
     await page.goto(url, { waitUntil: "networkidle2", timeout: timeoutMs });
     // Let lazy content/fonts settle briefly.
     await new Promise((r) => setTimeout(r, 1200));
-    // Clear cookie/consent overlays before we read or screenshot anything.
-    await dismissConsent(page);
+    // Clear cookie/consent + newsletter/chat/promo overlays before we read or
+    // screenshot anything. (isAuthWall not known yet; the accept/reject click is
+    // anchored to bare labels that never match a login control, so it is safe.)
+    await dismissOverlays(page);
 
     const data = await page.evaluate(() => {
       const meta = (name) =>
@@ -192,6 +247,11 @@ async function understandWebsite({ url, workDir, timeoutMs = 60_000 }) {
           if (y < viewH * 0.5) continue; // page too short for distinct sections
           await page.evaluate((top) => window.scrollTo({ top, behavior: "instant" }), y);
           await new Promise((r) => setTimeout(r, 900)); // lazy content settles
+          // Re-dismiss: scroll-triggered exit-intent / sticky newsletter / promo
+          // overlays fire only AFTER scrolling, so the hero-only dismiss misses
+          // them and they used to bake into the section shots. (Not an auth wall
+          // here — sections are skipped entirely when isAuthWall.)
+          await dismissOverlays(page, { isAuthWall });
           const p = path.join(workDir, `website_section${i}.png`);
           await page.screenshot({ path: p, fullPage: false });
           screenshotPaths.push(p);
@@ -211,4 +271,7 @@ async function understandWebsite({ url, workDir, timeoutMs = 60_000 }) {
   }
 }
 
-module.exports = { understandWebsite, findChrome };
+// dominantColors is ffmpeg-only and takes ANY image path — exported so the intake
+// can quantize an uploaded LOGO's brand colors with the same quantizer used on the
+// website hero (no native image dep, no second implementation).
+module.exports = { understandWebsite, findChrome, dominantColors };

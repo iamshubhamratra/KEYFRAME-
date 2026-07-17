@@ -21,6 +21,8 @@ const frameManifest = require("./frame_manifest");
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
 const { themeFromTokens } = require("./enrich");
 const { safeArea } = require("./responsive");
+const { resolveBrand } = require("./brand_kit");
+const { isTrustedProminent, isLogo } = require("./asset_priority");
 
 // SINGLE-quoted family names — these are embedded in double-quoted style="..."
 // attributes, so a double quote here would terminate the attribute early and kill
@@ -80,6 +82,29 @@ function hashSeed(s) {
   for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
   return h >>> 0;
 }
+// NOT WCAG relative luminance: WCAG's coefficients over RAW 0-255 with no gamma
+// linearization, so it is ~2x off through the midtones and its output is a 0-255
+// scale, not 0-1. Do not read it as a contrast metric and do not swap in
+// brand_kit's relLum "because it is the correct one" — the two are not
+// interchangeable HERE, for a reason worth knowing:
+//
+// this function's live callers are a GROUND/BASE test, not a legibility test.
+// isDark asks "is the ground dark", and the near-ground accent filter in
+// deriveTheme asks "is this token the pack's own near-black/near-white BASE
+// colour that leaked into the accent list" — a coarse "is it far from the
+// ground" question a raw delta answers fine.
+// Re-scoring that filter as a real 3:1 WCAG gate was measured across all 31 packs: it
+// rejects the pack's OWN signature accents on 14 light-ground packs (brightlife's
+// #06B6D4 reads 2.43:1 on white, mint-launch's #10B981 2.45:1, prism's ember
+// #FF5A3C 2.97:1) and backfills them with the generic SAFE_BRIGHT list, so every
+// light pack converges on the same #3B5BFF/#E2563C. That is a deliberate
+// re-palette of half the catalogue, NOT a bug fix, and IDENTITY = LUMINANCE — so
+// it needs its own decision and its own render review, not a silent ride-along
+// with the brand plumbing.
+//
+// BRAND colour is different and does use brand_kit's gamma-correct relLum/ratio:
+// a brand hex is an outsider with no claim on the pack's identity, so it must
+// EARN its legibility on the real WCAG scale (see the brand merge below).
 function lum(hex) {
   const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || "").trim());
   if (!m) return 128;
@@ -147,14 +172,32 @@ function deriveTheme(framePack, storyboard, brandSkin) {
   // BRAND SKIN (Art Director, ACCENT-ONLY): the product's real extracted brand
   // colors LEAD the accent list, so highlighted words / rules / counters / the
   // emphasis gradient read on-brand — while the pack keeps its own ground, fonts,
-  // and character. Brand accents pass the SAME near-ground contrast filter as the
-  // pack accents, so a brand color too close to the ground is dropped (never an
-  // invisible highlight). Empty/failed skin → the pack's accents stand unchanged.
-  if (brandSkin && Array.isArray(brandSkin.accents) && brandSkin.accents.length) {
-    const brand = brandSkin.accents
-      .filter((a) => typeof a === "string" && /^#[0-9a-f]{6}$/i.test(a) && Math.abs(lum(a) - lum(ground)) > 45);
-    if (brand.length) accents = [...brand, ...accents.filter((a) => !brand.includes(a))].slice(0, 4);
-  }
+  // and character. Empty/failed skin → the pack's accents stand unchanged.
+  //
+  // Brand accents are held to a WCAG contrast floor (contract.contrastFloor, 3:1
+  // by default) measured with brand_kit's gamma-correct ratio — a DIFFERENT and
+  // stricter bar than the raw-delta base-token test the pack's own accents get
+  // above. That asymmetry is deliberate and worth stating, because the
+  // comment this replaced claimed the two were "the SAME filter" while actually
+  // holding brand colour to a LOOSER bar (>45 raw vs the pack's >55): a pack's
+  // accents are its identity and it has already chosen to live with them, while a
+  // brand hex arrives from a scraped site with no such claim.
+  //
+  // resolveBrand NUDGES rather than drops: a muted brand navy on a dark ground is
+  // walked up in HSL lightness with its HUE HELD until it clears the floor, so it
+  // ships lifted instead of discarded. Only a colour unsalvageable within the
+  // hue-drift budget is dropped, and both outcomes are disclosed on brand.adjusted
+  // / brand.dropped rather than applied silently.
+  //
+  // Ground authority stays HERE: isDark is passed explicitly so brand_kit scores
+  // against the ground deriveTheme actually picked, and resolveBrand returns no
+  // ground/ink/font key to read even if a caller wanted one.
+  const brand = resolveBrand(brandSkin, {
+    ground, isDark, packAccents: accents, contract: manifest && manifest.brand,
+  });
+  // Only a brand that actually applied may touch the list — a null/failed skin
+  // leaves the pack's own accents byte-identical (fail-open, art_director.js:14).
+  if (brand.applied) accents = brand.accents.slice(0, 4);
   // Force maximum text contrast against the ground (the storyboard's text hex is
   // often a mid-tone that reads as muddy).
   ink = isDark ? "#FFFFFF" : "#14130E";
@@ -197,6 +240,10 @@ function deriveTheme(framePack, storyboard, brandSkin) {
     accent2: accents[1] || accents[0],
     extras: skin?.extras || [],
     emphasisCss: skin?.emphasisCss || null,
+    // The resolved PackSkin (never null — an unapplied one is the pack's own
+    // resolution). Carries brand.applied for the emphasis treatment, plus the
+    // adjusted/dropped disclosure for whoever wants to log what the brand cost.
+    brand,
     packName: framePack || null,
     manifest,   // pack manifest (or null) — read by motionFor/buildCanvasFx/buildThreeFx
     fontStack,
@@ -908,8 +955,22 @@ function emphasisBlock(theme, id) {
     case "bracket":
       return `${sel}{color:${a};}${sel}::before{content:"[ ";color:${a2};}${sel}::after{content:" ]";color:${a2};}`;
     case "gradient":
-    default:
-      return `${sel}{${theme.emphasisCss || `background:linear-gradient(100deg,${a},${a2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${a};`}}`;
+    default: {
+      // The pack's pinned emphasisCss is a hand-authored SIGNATURE (prism's
+      // three-stop iridescence, longshot's tungsten→beam) and it wins by default.
+      // But it is a frozen literal, so on the five packs that ship one it also
+      // outranked a real brand colour on the single most brand-visible element in
+      // the film — the highlighted headline word stayed pack-coloured while the
+      // kicker, rule and counter beside it went brand. An applied brand takes the
+      // word; those packs keep their signature whenever no brand is in play.
+      //
+      // brand.emphasisCss is a gradient VALUE, not a declaration block like the
+      // pack's — it is substituted into `background:`, never emitted bare.
+      const brandEmph = theme.brand && theme.brand.applied
+        ? `background:${theme.brand.emphasisCss};-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.brand.emphasis[0]};`
+        : null;
+      return `${sel}{${brandEmph || theme.emphasisCss || `background:linear-gradient(100deg,${a},${a2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${a};`}}`;
+    }
   }
 }
 
@@ -934,15 +995,46 @@ function fitBig(text, baseBig, maxCh, maxLines = 3, minRatio = 0.52) {
   return Math.max(Math.round(baseBig * minRatio), Math.round(baseBig * scale));
 }
 
+// LOGO KEY-MOMENT treatment — the user's own brand mark, and ONLY at the two
+// moments a brand mark belongs: a small chip in the opening, a lockup at the CTA.
+// Never a persistent watermark (that fights the pack's chrome). Contrast-safe by
+// construction: an ALPHA logo sits on a theme.panel pill (its transparent edges
+// need a backing that reads on the ground); an OPAQUE logo gets a white card so a
+// dark-on-transparent mark doesn't vanish on a dark stage. Pack-styled via theme
+// tokens — flat packs inherit the hard border like the screenshot frames do.
+function logoMark(logo, ctx, placement) {
+  if (!logo || !logo.path) return { html: "", script: "" };
+  const { theme, id, dims, T } = ctx;
+  const flat = !theme.gradients;
+  const alpha = logo.hasAlpha === true;
+  // Opening chip is small; the CTA lockup is the hero reveal.
+  const maxH = placement === "cta" ? Math.round(dims.height * 0.12) : Math.round(dims.height * 0.055);
+  const pad = placement === "cta" ? 14 : 8;
+  // Opaque marks always get a light card (readable on any ground); alpha marks
+  // ride the pack's own panel token, with a hard border on flat packs.
+  const bg = alpha ? theme.panel : "#ffffff";
+  const border = flat ? `2px solid ${theme.ink}` : `1px solid ${theme.line}`;
+  const shadow = flat ? `box-shadow:5px 5px 0 ${theme.accent};` : `box-shadow:0 18px 44px rgba(0,0,0,0.28);`;
+  const eid = `${id}logo${placement}`;
+  const html = `<span id="${eid}" style="opacity:0;display:inline-flex;align-items:center;justify-content:center;padding:${pad}px ${pad + 4}px;border-radius:${flat ? 6 : 14}px;background:${bg};border:${border};${placement === "cta" ? shadow : ""}"><img src="${logo.path}" alt="brand logo" style="max-height:${maxH}px;max-width:${placement === "cta" ? Math.round(dims.width * 0.42) : Math.round(dims.width * 0.3)}px;display:block;object-fit:contain;"/></span>`;
+  const script = placement === "cta"
+    ? `tl.fromTo("#${eid}",{opacity:0,y:24,scale:0.9},{opacity:1,y:0,scale:1,duration:0.7,ease:"expo.out"},${r(T + 0.15)});`
+    : `tl.fromTo("#${eid}",{opacity:0,scale:0.8},{opacity:1,scale:1,duration:0.5,ease:"back.out(1.7)"},${r(T + 0.15)});`;
+  return { html, script };
+}
+
 function archHook(scene, ctx) {
   const { theme, id, T, L, track, dims } = ctx;
-  const accentText = theme.emphasisCss || (theme.gradients
-    ? `background:linear-gradient(100deg,${theme.accent},${theme.accent2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.accent};`
-    : `color:${theme.accent};`);
   const big = Math.round((dims.width > dims.height ? 92 : 66) * (theme.textfx.sizeScale || 1));
+  // The user's logo replaces the text kicker chip when present — a real brand
+  // mark beats a text kicker as the opening brand cue.
+  const logo = ctx.logo ? logoMark(ctx.logo, ctx, "hook") : null;
+  const kickerHtml = logo && logo.html
+    ? `<span style="display:inline-block;">${logo.html}</span>`
+    : `<span id="${id}k" style="opacity:0;display:inline-flex;align-items:center;gap:10px;padding:8px 16px;border-radius:9999px;background:${theme.panel};border:1px solid ${theme.line};color:${theme.accent};font:700 15px/1 ${cssFont(theme)};letter-spacing:.2em;text-transform:uppercase;"><span style="width:8px;height:8px;border-radius:50%;background:${theme.accent};"></span>${esc(ctx.kicker || "KEYFRAME")}</span>`;
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   <div style="position:absolute;left:7%;right:7%;top:50%;transform:translateY(-50%);">
-    <span id="${id}k" style="opacity:0;display:inline-flex;align-items:center;gap:10px;padding:8px 16px;border-radius:9999px;background:${theme.panel};border:1px solid ${theme.line};color:${theme.accent};font:700 15px/1 ${cssFont(theme)};letter-spacing:.2em;text-transform:uppercase;"><span style="width:8px;height:8px;border-radius:50%;background:${theme.accent};"></span>${esc(ctx.kicker || "KEYFRAME")}</span>
+    ${kickerHtml}
     <h1 style="margin-top:18px;font:800 ${fitBig(scene.headline, big, 14)}px/0.99 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:14ch;"><style>${emphasisBlock(theme, id)}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h1>
     <div id="${id}u" style="height:5px;width:${Math.round(dims.width * 0.27)}px;max-width:80%;margin-top:22px;border-radius:3px;background:${theme.accent};transform:scaleX(0);transform-origin:left;"></div>
     ${scene.subtext ? `<p id="${id}s" style="opacity:0;margin-top:16px;font:500 ${Math.round(big * 0.3)}px/1.45 ${cssFont(theme)};color:${theme.dim};max-width:42ch;">${esc(scene.subtext)}</p>` : ""}
@@ -950,7 +1042,8 @@ function archHook(scene, ctx) {
 </div>`;
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
-    `tl.fromTo("#${id}k",{opacity:0,y:14},{opacity:1,y:0,duration:0.5},${r(T + 0.25)});`,
+    // The logo mark animates itself; the text kicker keeps its own tween.
+    logo && logo.html ? logo.script : `tl.fromTo("#${id}k",{opacity:0,y:14},{opacity:1,y:0,duration:0.5},${r(T + 0.25)});`,
     `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.45)},0.09);`,
     scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:20},{opacity:1,y:0,duration:0.55},${r(T + 1.05)});` : "",
     `tl.fromTo("#${id}u",{scaleX:0,transformOrigin:"left"},{scaleX:1,duration:0.7,ease:"power2.inOut"},${r(T + 1.1)});`,
@@ -989,17 +1082,19 @@ function archCta(scene, ctx) {
   const big = Math.round((dims.width > dims.height ? 78 : 60) * (theme.textfx.sizeScale || 1));
   const btnBg = theme.gradients ? `linear-gradient(180deg,${theme.accent2 || theme.accent},${theme.accent})` : theme.accent;
   const btnInk = lum(theme.accent) > 150 ? "#15140F" : "#FFFFFF";
-  const accentText = theme.emphasisCss || (theme.gradients ? `background:linear-gradient(100deg,${theme.accent},${theme.accent2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.accent};` : `color:${theme.accent};`);
+  // The logo's hero reveal — a lockup above the headline (the sign-off moment).
+  const logo = ctx.logo ? logoMark(ctx.logo, ctx, "cta") : null;
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   ${theme.gradients ? `<div id="${id}g" class="clip" data-layout-allow-occlusion style="position:absolute;left:50%;top:46%;width:46%;height:60%;transform:translate(-50%,-50%);border-radius:50%;filter:blur(54px);background:radial-gradient(circle,${rgba(theme.accent, 0.30)},transparent 66%);"></div>` : ""}
   <div style="position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:24px;text-align:center;padding:0 8%;">
-    <h2 style="font:800 ${fitBig(scene.headline, big, 16)}px/1.02 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:16ch;"><style>${emphasisBlock(theme, id)}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
+    ${logo && logo.html ? logo.html + "\n    " : ""}<h2 style="font:800 ${fitBig(scene.headline, big, 16)}px/1.02 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:16ch;"><style>${emphasisBlock(theme, id)}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
     ${scene.subtext ? `<div id="${id}b" style="opacity:0;display:inline-flex;align-items:center;gap:11px;padding:16px 36px;border-radius:9999px;background:${btnBg};color:${btnInk};font:800 ${Math.round(big * 0.34)}px/1 ${cssFont(theme)};">${esc(scene.subtext)} <span style="width:11px;height:11px;border-right:3px solid ${btnInk};border-top:3px solid ${btnInk};transform:rotate(45deg);display:inline-block;"></span></div>` : ""}
   </div>
 </div>`;
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
     theme.gradients ? `tl.fromTo("#${id}g",{opacity:0,scale:0.85},{opacity:1,scale:1,duration:0.8},${r(T + 0.05)});` : "",
+    logo && logo.script ? logo.script : "",
     `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.25)},0.08);`,
     scene.subtext ? `tl.fromTo("#${id}b",{opacity:0,scale:0.85,y:16},{opacity:1,scale:1,y:0,duration:0.6,ease:"back.out(1.7)"},${r(T + 0.9)});` : "",
     scene.subtext ? `tl.to("#${id}b",{scale:1.04,duration:0.8,ease:"sine.inOut",yoyo:true,repeat:sreps(${r(L - 1)},1.6)},${r(T + 1.5)});` : "",
@@ -1015,7 +1110,6 @@ function archCta(scene, ctx) {
 function archText(scene, ctx) {
   const { theme, id, T, L, track, dims, variant } = ctx;
   const big = Math.round((dims.width > dims.height ? 68 : 52) * (theme.textfx.sizeScale || 1));
-  const accentText = theme.emphasisCss || (theme.gradients ? `background:linear-gradient(100deg,${theme.accent},${theme.accent2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.accent};` : `color:${theme.accent};`);
   const bullets = Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean).slice(0, 3) : [];
   // Four layout variants so text scenes don't all look identical:
   //   v0 = left-aligned with a short top rule (the original)
@@ -1166,9 +1260,16 @@ function partitionAssets(assets) {
   const screenshots = [], vectors = [], photos = [], videos = [];
   for (const a of (assets || [])) {
     if (!a || !a.path) continue;
+    // The user's logo is a ROLE, not product imagery: it never enters the generic
+    // pools (no logo as a montage tile or scrim background). It gets its own
+    // key-moment treatment — opening brand chip + CTA lockup.
+    if (isLogo(a)) continue;
     // Videos go in their own pool — the img-based archetypes would render an mp4
     // as a broken <img>. They're placed as full-bleed <video> backgrounds instead.
     if (a.type === "video" || /\.(mp4|webm|mov)($|\?)/i.test(a.path)) { videos.push(a); continue; }
+    // User uploads route by their EXPLICIT kindHint (the alt-sniffing below is for
+    // fetched assets whose alt is a search query; an upload's alt is our sentence).
+    if (a.source === "upload") { (a.kindHint === "photo" ? photos : screenshots).push(a); continue; }
     const s = `${a.source || ""} ${a.style || ""} ${a.alt || ""}`.toLowerCase();
     if (a.source === "website" || /screenshot|webpage|web page|landing|\bsite\b/.test(s)) screenshots.push(a);
     else if (/\.svg($|\?)/i.test(a.path) || /vector|illustration|icon|line.?art|graphic/.test(s)) vectors.push(a);
@@ -1198,7 +1299,6 @@ function archScreenshotHero(scene, ctx) {
     : `background:${mix(theme.ground, "#ffffff", 0.06)};border:1px solid ${theme.line};border-radius:16px;box-shadow:0 40px 90px rgba(0,0,0,0.5);`;
   const barBg = flat ? mix(theme.ground, theme.ink, 0.06) : rgba("#ffffff", 0.05);
   const big = land ? 56 : 46;
-  const accentText = theme.emphasisCss || (theme.gradients ? `background:linear-gradient(100deg,${theme.accent},${theme.accent2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.accent};` : `color:${theme.accent};`);
   const dots = ["#FF5F57", "#FEBC2E", "#28C840"].map((c) => `<span style="width:11px;height:11px;border-radius:50%;background:${flat ? theme.ink : c};display:inline-block;"></span>`).join("");
   // Visual Layout Director may enlarge the hero (readability): honor ctx.heroScale
   // as the landscape width fraction; portrait stays full-width. Null → kit default.
@@ -1313,7 +1413,6 @@ function archSplitVector(scene, ctx) {
   const { theme, id, T, L, track, dims, asset } = ctx;
   const land = dims.width > dims.height;
   const big = land ? 64 : 50;
-  const accentText = theme.emphasisCss || (theme.gradients ? `background:linear-gradient(100deg,${theme.accent},${theme.accent2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.accent};` : `color:${theme.accent};`);
   const dir = land ? "row" : "column";
   // Photos get the same gentle palette pull as montage tiles (a raw stock photo
   // beside pack-colored copy reads off-brand); vectors stay untouched. One
@@ -1360,9 +1459,6 @@ function archAssetMontage(scene, ctx) {
   const cols = land ? (n <= 1 ? 1 : n <= 4 ? 2 : 3) : (n <= 2 ? 1 : 2);
   const big = land ? 54 : 44;
   const flat = !theme.gradients;
-  const accentText = theme.emphasisCss || (theme.gradients
-    ? `background:linear-gradient(100deg,${theme.accent},${theme.accent2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.accent};`
-    : `color:${theme.accent};`);
   const tileChrome = flat
     ? `border:3px solid ${theme.ink};box-shadow:6px 6px 0 ${theme.accent};`
     : `border:1px solid ${theme.line};box-shadow:0 22px 50px rgba(0,0,0,0.45);`;
@@ -1571,6 +1667,9 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
   // The agents still "think" (they picked these assets); the kit places them,
   // guaranteed clean. Each scene owns a 3-track block [bg, content, spare] so a
   // background never collides with (or covers) another scene's content.
+  // The user's LOGO is pulled out BEFORE partitioning (it never enters a pool) —
+  // it rides ctx.logo on the opening + closing scenes for its key-moment treatment.
+  const logoAsset = (assets || []).find((a) => isLogo(a)) || null;
   const pools = partitionAssets(assets);
   // PROMINENT-SLOT RELEVANCE GATE — montage tiles, split art and screenshot
   // heroes are the frames a viewer actually reads, so they only take assets
@@ -1586,9 +1685,9 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
   // website/curated shots, which the source/visionOk checks would otherwise keep
   // prominent. Honoring the flag here is what makes "show the best 3 big, not 12
   // tiny" real. Demoted trusted assets are not discarded — they fall to scrim B-roll.
-  const prominentOk = (a) => !!a && !a.__layoutDemoted && (a.source === "website"
-    || String(a.source || "").startsWith("library:")
-    || a.visionOk === true);
+  // Trust itself lives in asset_priority.isTrustedProminent (uploads + website +
+  // curated + vision-approved) — demotion stays a LAYOUT decision layered on top.
+  const prominentOk = (a) => !!a && !a.__layoutDemoted && isTrustedProminent(a);
   const bgOnlyPhotos = pools.photos.filter((a) => !prominentOk(a));
   // Demoted screenshots/vectors (dropped from prominent by the budget) also survive
   // as B-roll texture rather than vanishing.
@@ -1621,6 +1720,8 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
       variant: dress?.variant != null ? dress.variant : textVariant(theme, seed, i), // 0-3 layout variant
       decorSvg: dress?.decorSvg || null,
       heroScale, // Visual Layout Director: target hero width fraction (null → default)
+      // The logo appears at the OPEN (scene 0) and the CTA (last scene) only.
+      logo: logoAsset && (i === 0 || i === scenes.length - 1) ? logoAsset : null,
     };
     const hint = layoutPlan && layoutPlan[scene.id] ? layoutPlan[scene.id].archetype : null;
     return { scene, i, ctx, isContent: i > 0 && i < scenes.length - 1, build: archetypeFor(scene, i, scenes.length, hint) };
@@ -1793,7 +1894,35 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
   ].join("\n");
 
   const metaJson = JSON.stringify({ compositionId: "vid", width: W, height: H, fps: dims.fps || 30, duration: D });
-  return { indexHtml, metaJson };
+  // The skin the film actually WORE, for the caller to persist. resolveBrand nudges
+  // and drops against THIS pack's ground, so the color a user picked and the color
+  // the frames show are routinely different ones; a brand panel fed the pre-resolution
+  // skin promises the first and the film paints the second.
+  //
+  // Null unless a brand applied: an unapplied theme.brand is the PACK's own accents
+  // wearing a PackSkin's shape, and persisting that would report a brand review for a
+  // film with no brand in it. The v1 disclosure fields (reason/source/provenance) are
+  // the INPUT skin's and stay the persist site's to merge — a composer can testify to
+  // what it painted, never to why those colors were chosen.
+  // What the film actually WOVE — the asset-coverage engine reads this instead of
+  // re-scanning the HTML (the kit knows exactly which asset landed in which slot).
+  // via: hero (screenshot/split feature), montage (grid tile), broll (scrimmed
+  // background), logo (key-moment mark).
+  const usedAssets = [];
+  const noteUse = (a, via) => { if (a && a.path) usedAssets.push({ path: a.path, via, uploadId: a.uploadId || null, source: a.source || null }); };
+  for (const p of plan) {
+    if (p.ctx.asset) noteUse(p.ctx.asset, p.build === archScreenshotHero ? "hero" : "hero");
+    if (Array.isArray(p.ctx.assets)) for (const a of p.ctx.assets) noteUse(a, "montage");
+    if (p.ctx.bgAsset) noteUse(p.ctx.bgAsset, "broll");
+  }
+  if (logoAsset) usedAssets.push({ path: logoAsset.path, via: "logo", uploadId: logoAsset.uploadId || null, source: logoAsset.source || null });
+
+  return {
+    indexHtml, metaJson,
+    resolvedBrand: theme.brand && theme.brand.applied ? theme.brand : null,
+    usedAssets,
+    logoPlacements: logoAsset ? ["opening", "cta"] : [],
+  };
 }
 
 function scriptStart(scenes, i) { let s = 0; for (let k = 0; k < i; k++) s += scenes[k].duration || 0; return s; }

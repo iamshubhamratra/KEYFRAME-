@@ -1,5 +1,8 @@
 // DEV HARNESS — build a Blueprint Atelier composition into a job dir for standalone
-// render. Usage: node scripts/blueprint-harness.js <outDir> [W] [H]
+// render. Usage: node scripts/blueprint-harness.js <outDir> [W] [H] [#hex,#hex,...]
+//   #hex list → an Art Director BRAND SKIN, to eyeball what the brand may steer (here: the
+//     amber accent ONLY). Omit it and the film must render byte-identically to the pack
+//     default — a null skin is a no-op by contract (brand_kit.js:25), so a diff here is a bug.
 // Then render:  cd <outDir> && npx --yes hyperframes@0.6.120 render --output renders/out.mp4 --quality draft --workers 2
 // Contact sheet: ffmpeg -i renders/out.mp4 -vf "fps=1,scale=460:-1,tile=6x4" c.jpg
 
@@ -10,6 +13,12 @@ const blueprint = require("../src/services/blueprint_composer");
 const outDir = path.resolve(process.argv[2] || "jobs/_bptest");
 const W = Number(process.argv[3]) || 1280;
 const H = Number(process.argv[4]) || 720;
+// Shaped like the Art Director's real output (art_director.js:132): accents lead, emphasis
+// is an explicit 2-stop pair.
+const brandHexes = String(process.argv[5] || "").split(",").map((s) => s.trim()).filter(Boolean);
+const brandSkin = brandHexes.length
+  ? { accents: brandHexes.slice(0, 3), emphasis: [brandHexes[0], brandHexes[1] || brandHexes[0]], source: "harness", provenance: "explicit" }
+  : null;
 
 fs.mkdirSync(path.join(outDir, "renders"), { recursive: true });
 
@@ -28,7 +37,8 @@ const storyboard = {
 };
 const captionCues = storyboard.scenes.map((s) => ({ start: s.start + 0.4, end: s.start + s.duration - 0.3, text: s.subtext || s.headline }));
 
-const built = blueprint.buildComposition({ storyboard, dims: { width: W, height: H, fps: 30 }, framePack: "blueprint-atelier", captionCues, assets: [] });
+const built = blueprint.buildComposition({ storyboard, dims: { width: W, height: H, fps: 30 }, framePack: "blueprint-atelier", captionCues, assets: [], brandSkin });
 fs.writeFileSync(path.join(outDir, "index.html"), built.indexHtml, "utf8");
 fs.writeFileSync(path.join(outDir, "meta.json"), built.metaJson, "utf8");
-console.log(`[blueprint-harness] wrote ${outDir} (${W}x${H}, ${storyboard.scenes.length} scenes)`);
+console.log(`[blueprint-harness] wrote ${outDir} (${W}x${H}, ${storyboard.scenes.length} scenes, brand=${brandSkin ? brandSkin.accents.join("/") : "none (pack amber)"})`);
+if (built.resolvedBrand) console.log(`[blueprint-harness] resolvedBrand: ${built.resolvedBrand.accents.join("/")} (tier ${built.resolvedBrand.tier})`);

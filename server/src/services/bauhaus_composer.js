@@ -18,6 +18,7 @@
 // draw-ons; cqw units + container-type:size; hidden = opacity:0 only. Deterministic.
 
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
+const { isTrustedProminent, isLogo } = require("./asset_priority");
 
 const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 const DISPLAY = "Archivo Black";
@@ -108,10 +109,10 @@ function featList(id, scene, theme) {
 
 function plateOk(a) {
   if (!a || !a.path) return false;
+  if (isLogo(a)) return false; // the logo is key-moment material, never a poster panel
   if (a.type === "video" || /\.(mp4|webm|mov)($|\?)/i.test(a.path)) return false;
   if (/\.svg($|\?)/i.test(a.path)) return false;
-  const src = String(a.source || "").toLowerCase();
-  return a.source === "website" || src.startsWith("library") || a.visionOk === true || a.cdProminence === "hero" || a.cdProminence === "support";
+  return isTrustedProminent(a) || a.cdProminence === "hero" || a.cdProminence === "support";
 }
 
 function riotArchetype(scene, i, total) {
@@ -420,7 +421,21 @@ function styleBlock(theme) {
 }
 
 // ---- MAIN --------------------------------------------------------------------
-function buildComposition({ storyboard, dims, framePack, captionCues, assets } = {}) {
+// FORMAL BRAND OPT-OUT — bauhaus-riot does NOT take brand colour, by design, and this
+// is the whole reason the signature accepts `brandSkin` yet nothing below ever reads
+// it. It is the ONE pack whose accents cannot be rented: the red / blue / yellow
+// primaries ARE the Bauhaus movement (the manifest vibe, "bold primary-colour
+// geometry"), so a recoloured poster is simply not Bauhaus — the primaries are the
+// IDENTITY, not an accent slot that steers it. IDENTITY = LUMINANCE + MOTION +
+// TYPOGRAPHY + LAYOUT + SEMANTICS, and here HUE joins that list: these three primaries
+// MEAN "Bauhaus" the way terminal's green MEANS on-time, so no hue is the brand's to
+// steer and the pack declares no brand-slottable role. There is nothing to resolve,
+// so there is no resolveBrand / reHue / tint call to fail-open — the opt-out is total,
+// and a green skin, a magenta skin and a null skin all render the exact same poster,
+// byte-for-byte. resolvedBrand is null on the return so the honesty gate
+// (graph.persistWornBrand) shows the Brand panel nothing, never a colour the film
+// will not wear.
+function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin = null } = {}) {
   const theme = riotTheme();
   const sb = storyboard || {};
   const W = (dims && dims.width) || 1920, H = (dims && dims.height) || 1080;
@@ -502,7 +517,9 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
   ].join("\n");
 
   const metaJson = JSON.stringify({ compositionId: "vid", width: W, height: H, fps: (dims && dims.fps) || 30, duration: D });
-  return { indexHtml, metaJson };
+  // null BY DESIGN (see the opt-out note above): this pack wears no brand, so the
+  // persistence path leaves the disclosure empty rather than promising one.
+  return { indexHtml, metaJson, resolvedBrand: null };
 }
 
 module.exports = { buildComposition };

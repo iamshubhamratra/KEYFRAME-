@@ -18,6 +18,8 @@
 // every per-frame value is a pure function of tl.time().
 
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
+const { isTrustedProminent, isLogo } = require("./asset_priority");
+const { resolveBrand } = require("./brand_kit");
 
 const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 const DISPLAY = "Space Grotesk";
@@ -30,18 +32,111 @@ function esc(s) {
 }
 const r = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
-// Fixed blueprint palette (the template's identity). Kept brand-fixed like the
-// brightlife composer; the pack manifest declares the same roles for the UI.
-function blueprintTheme() {
+// ---- brand colour-kit — LIFTED from flagship_composer.js so the amber accent can be
+// rotated onto the BRAND's hue while its authored LUMINANCE and SATURATION are pinned.
+// IDENTITY = LUMINANCE + MOTION + TYPOGRAPHY + LAYOUT + SEMANTICS; only HUE is the brand's
+// to steer — which is why the navy sheet, the ink, and the SEMANTIC cyan (dimension /
+// construction lines) and red (revision marks) never pass through here.
+const hexToRgb = (h) => { const n = parseInt(String(h).replace("#", ""), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+const toHex2 = (v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0");
+const relLum = (h) => { const [r0, g0, b0] = hexToRgb(h).map((v) => v / 255); const f = (c) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)); return 0.2126 * f(r0) + 0.7152 * f(g0) + 0.0722 * f(b0); };
+const rgbToHsl = ([r0, g0, b0]) => {
+  r0 /= 255; g0 /= 255; b0 /= 255;
+  const mx = Math.max(r0, g0, b0), mn = Math.min(r0, g0, b0), l = (mx + mn) / 2, d = mx - mn;
+  if (!d) return [0, 0, l];
+  const s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+  const h = mx === r0 ? (g0 - b0) / d + (g0 < b0 ? 6 : 0) : mx === g0 ? (b0 - r0) / d + 2 : (r0 - g0) / d + 4;
+  return [h * 60, s, l];
+};
+const hslHex = (h, s, l) => {
+  if (!s) return `#${toHex2(l * 255).repeat(3)}`;
+  const t = (((h % 360) + 360) % 360) / 360;
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+  const ch = (x) => { if (x < 0) x += 1; if (x > 1) x -= 1; if (x < 1 / 6) return p + (q - p) * 6 * x; if (x < 0.5) return q; if (x < 2 / 3) return p + (q - p) * (2 / 3 - x) * 6; return p; };
+  return `#${toHex2(ch(t + 1 / 3) * 255)}${toHex2(ch(t) * 255)}${toHex2(ch(t - 1 / 3) * 255)}`;
+};
+const hueOf = (hex) => rgbToHsl(hexToRgb(hex))[0];
+// reHue: rotate onto `hue`, bisecting HSL lightness back to the source's relative luminance
+// (monotone in L at fixed hue/sat), so the amber's contrast against the navy comes out at the
+// ratio it went in at. SATURATION stays the amber's own; achromatic in → untouched; a lum-pin
+// miss fails OPEN to the source hex (a stock amber beats a wrong hue). The amber runs fully
+// saturated (s≈1.0), where rounding THREE channels compounds a hair past flagship's 0.004
+// budget; 0.006 is still a sub-1% drift — below any perceptible or contrast-affecting change —
+// and is the true 8-bit quantization ceiling for this hue.
+const LUM_PIN = 0.006;
+function reHue(hex, hue) {
+  const [, s] = rgbToHsl(hexToRgb(hex));
+  if (s < 0.02) return hex;
+  const target = relLum(hex);
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 24; i++) { const mid = (lo + hi) / 2; if (relLum(hslHex(hue, s, mid)) < target) lo = mid; else hi = mid; }
+  // The bisection finds the ideal REAL lightness, but hslHex quantizes to 8-bit and the rounding
+  // can leave the midpoint a hair off the authored luminance — which would fail-open a good
+  // recolour back to its OLD hue. So test the quantization neighbours and keep the closest; only
+  // a candidate that STILL misses the pin is dropped.
+  const l = (lo + hi) / 2;
+  let out = hex, err = Infinity;
+  for (const dl of [0, -1 / 255, 1 / 255]) {
+    const cand = hslHex(hue, s, l + dl);
+    const e = Math.abs(relLum(cand) - target);
+    if (e < err) { err = e; out = cand; }
+  }
+  return err <= LUM_PIN ? out : hex;
+}
+// brandLedOf (flagship_composer.js:105): resolveBrand lays accents brand-first then pack, so the
+// brand-led run ends at the first entry the pack already owned. [] means no brand applied.
+function brandLedOf(brand, packAccents) {
+  const pack = new Set(packAccents.map((a) => String(a).toLowerCase()));
+  const out = [];
+  for (const a of brand.accents) { if (pack.has(String(a).toLowerCase())) break; out.push(a); }
+  return out;
+}
+
+// The blueprint palette. GROUND, ink and the two SEMANTIC line colours are the template's
+// identity and stay literal; the AMBER accent is the pack's ONE brand-slottable role (tier
+// accent) — a brand skin rotates it onto the brand hue, contrast-lifted against the navy by
+// the resolver (a green that cannot clear #0C2440 is surfaced in dropped[], never forced).
+function blueprintTheme(brandSkin) {
   const fontFace = (isBundled(DISPLAY) ? fontFaceCss(DISPLAY) : "") + (isBundled(MONO) ? fontFaceCss(MONO) : "");
+  // LOCKED — recolour #0C2440 and it is no longer a drafting sheet; cyan MEANS a dimension /
+  // construction line and red MEANS a revision mark, so both are meaning, not decoration.
+  const ground = "#0C2440";
+  const AMBER = "#FFB84D";
+
+  // FAIL-OPEN (art_director.js:14): any resolver/reHue hiccup renders the stock amber, never a
+  // crash and never a half-branded sheet. TIER accent — the brand rents exactly this one slot.
+  let amber = AMBER, resolvedBrand = null;
+  try {
+    const brand = resolveBrand(brandSkin, { ground, isDark: true, packAccents: [AMBER], contract: { mode: "accent", maxAccents: 1, slots: [] } });
+    const led = brandLedOf(brand, [AMBER]);
+    if (brand.applied && led.length) {
+      // The resolver already lifted the brand colour to clear the navy; take its HUE and rotate
+      // the amber onto it, keeping the amber's own luminance so the highlight stays as bright a
+      // warm-slot as it was — only its colour changes.
+      amber = reHue(AMBER, hueOf(led[0]));
+      resolvedBrand = {
+        ...(brandSkin && typeof brandSkin === "object" ? brandSkin : {}),
+        accents: led, emphasis: brand.emphasis,
+        adjusted: brand.adjusted, dropped: brand.dropped,
+        tier: brand.tier, applied: true,
+      };
+    }
+  } catch { amber = AMBER; resolvedBrand = null; }
+
+  // The amber's low-alpha WASHES (plot fill, progress track, CTA glow, caption border) belong to
+  // the amber role and rehue in lockstep with it. With no brand skin `amber` is #FFB84D, so every
+  // wash resolves to its exact current literal — the NO-OP LAW holds byte-for-byte.
+  const [aR, aG, aB] = hexToRgb(amber);
+  const amberWash = (a) => `rgba(${aR},${aG},${aB},${a})`;
+
   return {
     groundCss: "radial-gradient(140% 120% at 30% 20%, #17416F 0%, #123659 46%, #0C2440 100%)",
     sheet: "#123659", ink: "#EAF3FF", faint: "#9DB8D9",
-    amber: "#FFB84D", red: "#FF5F5F", cyan: "#8FD8FF",
+    amber, red: "#FF5F5F", cyan: "#8FD8FF", amberWash,
     line: "rgba(190,215,255,0.16)",
     displayStack: `'${DISPLAY}', system-ui, sans-serif`,
     monoStack: `'${MONO}', ui-monospace, monospace`,
-    fontFace,
+    fontFace, resolvedBrand,
   };
 }
 
@@ -84,11 +179,10 @@ function bullets(scene, n) {
 // or web stock the Creative Director explicitly approved (visionOk / hero|support).
 function plateOk(a) {
   if (!a || !a.path) return false;
+  if (isLogo(a)) return false; // the logo is key-moment material, never a technical plate
   if (a.type === "video" || /\.(mp4|webm|mov)($|\?)/i.test(a.path)) return false;
   if (/\.svg($|\?)/i.test(a.path)) return false;
-  const src = String(a.source || "").toLowerCase();
-  return a.source === "website" || src.startsWith("library")
-    || a.visionOk === true || a.cdProminence === "hero" || a.cdProminence === "support";
+  return isTrustedProminent(a) || a.cdProminence === "hero" || a.cdProminence === "support";
 }
 
 // Which blueprint scene-type a storyboard scene renders as.
@@ -252,7 +346,7 @@ function bpPlot(scene, ctx) {
       <line class="${id}-ax draw" pathLength="100" x1="70" y1="30" x2="70" y2="410" stroke="${theme.ink}" stroke-width="3"/>
       <line class="${id}-ax draw" pathLength="100" x1="70" y1="410" x2="710" y2="410" stroke="${theme.ink}" stroke-width="3"/>
       <clipPath id="${id}clip"><rect id="${id}-clipr" x="70" y="20" width="0" height="400"/></clipPath>
-      <path d="M70 380 C 190 370, 250 300, 350 240 S 560 90, 700 62 L700 410 L70 410 Z" fill="rgba(255,184,77,0.10)" clip-path="url(#${id}clip)"/>
+      <path d="M70 380 C 190 370, 250 300, 350 240 S 560 90, 700 62 L700 410 L70 410 Z" fill="${theme.amberWash("0.10")}" clip-path="url(#${id}clip)"/>
       <path id="${id}-curve" class="draw" pathLength="100" d="M70 380 C 190 370, 250 300, 350 240 S 560 90, 700 62" fill="none" stroke="${theme.amber}" stroke-width="5" stroke-linecap="round"/>
       <line id="${id}-scan" x1="70" y1="30" x2="70" y2="410" stroke="${theme.cyan}" stroke-width="2" opacity="0"/>
       <circle id="${id}-end" cx="700" cy="62" r="10" fill="${theme.amber}" opacity="0"/>
@@ -508,13 +602,13 @@ function styleBlock(theme) {
   .fbox { width:19cqw; padding:1.6cqw 1.9cqw 1.4cqw; border:2px dashed rgba(190,215,255,0.55); border-radius:0.7cqw; background:rgba(11,30,54,0.5); text-align:left; position:relative; }
   .fbox .fb-t { font-family:${theme.displayStack}; font-weight:700; font-size:1.9cqw; letter-spacing:0.06em; color:var(--ink); text-transform:uppercase; }
   .fbox .fb-s { font-size:1.15cqw; color:var(--faint); margin-top:0.6cqw; line-height:1.5; min-height:3.6cqw; }
-  .fbox .pbar { margin-top:0.9cqw; height:0.4cqw; background:rgba(255,184,77,0.18); border-radius:999px; overflow:hidden; }
+  .fbox .pbar { margin-top:0.9cqw; height:0.4cqw; background:${theme.amberWash("0.18")}; border-radius:999px; overflow:hidden; }
   .fbox .pbar i { display:block; height:100%; background:var(--amber); transform:scaleX(0); transform-origin:left center; border-radius:999px; }
   .fcheck { position:absolute; right:1.2cqw; top:1.2cqw; width:2.2cqw; height:2.2cqw; }
   .btick { position:absolute; width:1.1cqw; height:1.1cqw; border-color:var(--cyan) !important; }
   .btick.tl { left:-0.45cqw; top:-0.45cqw; border-left:2.5px solid; border-top:2.5px solid; }
   .btick.br { right:-0.45cqw; bottom:-0.45cqw; border-right:2.5px solid; border-bottom:2.5px solid; }
-  .cta { display:inline-flex; align-items:center; gap:1.1cqw; font-family:${theme.displayStack}; font-weight:700; font-size:2.3cqw; letter-spacing:0.04em; text-transform:uppercase; color:#132441; background:var(--amber); padding:1.35cqw 3.4cqw; border-radius:0.6cqw; box-shadow:0 0 0 0.35cqw rgba(255,184,77,0.22); will-change:transform; }
+  .cta { display:inline-flex; align-items:center; gap:1.1cqw; font-family:${theme.displayStack}; font-weight:700; font-size:2.3cqw; letter-spacing:0.04em; text-transform:uppercase; color:#132441; background:var(--amber); padding:1.35cqw 3.4cqw; border-radius:0.6cqw; box-shadow:0 0 0 0.35cqw ${theme.amberWash("0.22")}; will-change:transform; }
   .bp-plate-head { font-family:${theme.monoStack}; font-size:1cqw; letter-spacing:0.18em; text-transform:uppercase; color:var(--faint); margin-bottom:0.7cqw; display:flex; justify-content:space-between; align-items:baseline; }
   .bp-plate-head span { color:var(--amber); }
   .bp-plate-win { position:relative; width:100%; overflow:hidden; border:2px solid rgba(143,216,255,0.5); border-radius:0.5cqw; background:var(--sheet); box-shadow:0 1.2cqw 3cqw rgba(4,14,28,0.5); }
@@ -524,13 +618,13 @@ function styleBlock(theme) {
   .bp-plate-cover { position:absolute; inset:0; background:var(--sheet); }
   .bp-plate-scan { position:absolute; top:0; bottom:0; left:0; width:0.3cqw; background:${theme.cyan}; box-shadow:0 0 2cqw ${theme.cyan}; }
   #caps { position:absolute; inset:0; display:flex; justify-content:center; align-items:flex-end; padding-bottom:5%; z-index:50; pointer-events:none; }
-  #cap-pill { max-width:74%; height:fit-content; flex:0 0 auto; text-align:center; padding:0.9cqw 2.4cqw; border-radius:0.5cqw; opacity:0; background:rgba(7,20,38,0.85); border:1px solid rgba(255,184,77,0.45); }
+  #cap-pill { max-width:74%; height:fit-content; flex:0 0 auto; text-align:center; padding:0.9cqw 2.4cqw; border-radius:0.5cqw; opacity:0; background:rgba(7,20,38,0.85); border:1px solid ${theme.amberWash("0.45")}; }
   #cap-text { font-family:${theme.monoStack}; font-weight:500; font-size:1.4cqw; line-height:1.35; color:var(--ink); }`;
 }
 
 // ---- MAIN --------------------------------------------------------------------
-function buildComposition({ storyboard, dims, framePack, captionCues, assets } = {}) {
-  const theme = blueprintTheme();
+function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin = null } = {}) {
+  const theme = blueprintTheme(brandSkin);
   const sb = storyboard || {};
   const W = (dims && dims.width) || 1920, H = (dims && dims.height) || 1080;
   let scenes = Array.isArray(sb.scenes) && sb.scenes.length
@@ -653,7 +747,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
   ].join("\n");
 
   const metaJson = JSON.stringify({ compositionId: "vid", width: W, height: H, fps: (dims && dims.fps) || 30, duration: D });
-  return { indexHtml, metaJson };
+  return { indexHtml, metaJson, resolvedBrand: theme.resolvedBrand };
 }
 
 module.exports = { buildComposition };

@@ -1,7 +1,10 @@
 // DEV HARNESS — build a flagship composition into a job dir for standalone render.
-// Usage: node scripts/flagship-harness.js <outDir> [ui|shot|none]
+// Usage: node scripts/flagship-harness.js <outDir> [ui|shot|none] [W] [H] [#hex,#hex,...]
 //   ui   → no real screenshots (exercises the generated-UI fallback)
 //   shot → include the nebula stock assets (exercises real-asset plates)
+//   hex list → an Art Director BRAND SKIN, to eyeball what a brand may and may not
+//     steer. Omit it and the film must render byte-identically to the pack default —
+//     a null skin is a no-op by contract (brand_kit.js:25), so a diff here is a bug.
 // Then render:  cd <outDir> && npx --yes hyperframes@0.6.120 render --output renders/out.mp4 --quality medium --workers 2
 
 const fs = require("node:fs");
@@ -12,6 +15,12 @@ const outDir = path.resolve(process.argv[2] || "jobs/_ftest");
 const mode = process.argv[3] || "shot";
 const W = Number(process.argv[4]) || 1280;
 const H = Number(process.argv[5]) || 720;
+// Shaped like the Art Director's real output (art_director.js:132): accents lead, and
+// emphasis is an explicit 2-stop pair — the flagship reads that pair, never accents[1].
+const brandHexes = String(process.argv[6] || "").split(",").map((s) => s.trim()).filter(Boolean);
+const brandSkin = brandHexes.length
+  ? { accents: brandHexes.slice(0, 3), emphasis: [brandHexes[0], brandHexes[1] || brandHexes[0]], source: "harness", provenance: "explicit" }
+  : null;
 
 fs.mkdirSync(path.join(outDir, "assets", "images"), { recursive: true });
 fs.mkdirSync(path.join(outDir, "renders"), { recursive: true });
@@ -47,8 +56,8 @@ if (mode === "shot") {
 }
 
 const { indexHtml, metaJson } = flagship.buildComposition({
-  storyboard, dims: { width: W, height: H, fps: 30 }, framePack: "flagship", assets,
+  storyboard, dims: { width: W, height: H, fps: 30 }, framePack: "flagship", assets, brandSkin,
 });
 fs.writeFileSync(path.join(outDir, "index.html"), indexHtml, "utf8");
 fs.writeFileSync(path.join(outDir, "meta.json"), metaJson, "utf8");
-console.log(`[harness] wrote ${outDir} (mode=${mode}, ${W}x${H}, ${assets.length} assets)`);
+console.log(`[harness] wrote ${outDir} (mode=${mode}, ${W}x${H}, ${assets.length} assets, brand=${brandSkin ? brandSkin.accents.join("/") : "none (pack accents)"})`);

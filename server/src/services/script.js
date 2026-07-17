@@ -144,11 +144,19 @@ function validateScript(script, { targetDuration } = {}) {
 
 const { extractFirstJsonObject: parseLenient } = require("./json_lenient");
 
-async function generateScript({ brief, signal }) {
+async function generateScript({ brief, userAssets, signal }) {
   const targetDuration = brief.suggestedDuration;
+  // The user's own uploaded material, classified at intake. The static prompt
+  // carries the RULE (7b); the dynamic INVENTORY rides the user message — same
+  // split the creative director uses. The script plans showcase scenes around
+  // these; it must not re-request them as assetNeeds.
+  const inventoryBlock = userAssets && userAssets.inventory
+    ? ["", `USER ASSET INVENTORY (rule 7b — build the film around these; they arrive automatically): ${userAssets.inventory}.`]
+    : [];
   const user = [
     "Creative Brief:",
     JSON.stringify(brief, null, 2),
+    ...inventoryBlock,
     "",
     `Target total duration: ${targetDuration} seconds exactly.`,
     "Write the production script JSON now.",

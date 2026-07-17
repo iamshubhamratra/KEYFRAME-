@@ -23,6 +23,8 @@
 // units + container-type:size; hidden = opacity:0 only. Fully deterministic.
 
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
+const { isTrustedProminent, isLogo } = require("./asset_priority");
+const { resolveBrand } = require("./brand_kit");
 
 const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 const DISPLAY = "Space Grotesk";
@@ -35,16 +37,145 @@ function esc(s) {
 }
 const r = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
-function terminalTheme() {
+// ---- brand colour-kit — LIFTED from flagship_composer.js so the signage GOLD can be
+// rotated onto the BRAND's hue while its authored LUMINANCE is pinned. IDENTITY =
+// LUMINANCE + MOTION + TYPOGRAPHY + LAYOUT + SEMANTICS; only HUE is the brand's to steer —
+// which is why the near-black board darks, the ivory ink and the STATUS colours never pass
+// through reHue.
+const hexToRgb = (h) => { const n = parseInt(String(h).replace("#", ""), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+const toHex2 = (v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0");
+const relLum = (h) => { const [r0, g0, b0] = hexToRgb(h).map((v) => v / 255); const f = (c) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)); return 0.2126 * f(r0) + 0.7152 * f(g0) + 0.0722 * f(b0); };
+const rgbToHsl = ([r0, g0, b0]) => {
+  r0 /= 255; g0 /= 255; b0 /= 255;
+  const mx = Math.max(r0, g0, b0), mn = Math.min(r0, g0, b0), l = (mx + mn) / 2, d = mx - mn;
+  if (!d) return [0, 0, l];
+  const s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+  const h = mx === r0 ? (g0 - b0) / d + (g0 < b0 ? 6 : 0) : mx === g0 ? (b0 - r0) / d + 2 : (r0 - g0) / d + 4;
+  return [h * 60, s, l];
+};
+const hslHex = (h, s, l) => {
+  if (!s) return `#${toHex2(l * 255).repeat(3)}`;
+  const t = (((h % 360) + 360) % 360) / 360;
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+  const ch = (x) => { if (x < 0) x += 1; if (x > 1) x -= 1; if (x < 1 / 6) return p + (q - p) * 6 * x; if (x < 0.5) return q; if (x < 2 / 3) return p + (q - p) * (2 / 3 - x) * 6; return p; };
+  return `#${toHex2(ch(t + 1 / 3) * 255)}${toHex2(ch(t) * 255)}${toHex2(ch(t - 1 / 3) * 255)}`;
+};
+const hueOf = (hex) => rgbToHsl(hexToRgb(hex))[0];
+function hueDist(a, b) { const d = Math.abs(((a - b) % 360 + 360) % 360); return d > 180 ? 360 - d : d; }
+// reHue: rotate onto `hue`, bisecting HSL lightness back to the source's relative luminance
+// (monotone in L at fixed hue/sat) so the signage keeps the exact brightness — and therefore
+// the exact contrast on the near-black board — that #FFC61A was authored at. That pin is why
+// "contrast-lifted against the near-black" needs no extra step: the gold is already bright,
+// and the rehued color inherits that brightness. SATURATION stays the gold's; achromatic in
+// → untouched; a lum-pin miss fails OPEN to the source hex (a stock gold beats a wrong hue).
+// The budget is 0.006, NOT flagship's 0.004: the signage gold is FULLY saturated (s=1.0,
+// vs flagship's lower-saturation panel accents), where rounding THREE channels compounds a
+// hair past 0.004 (~0.0058 at the worst hue) — a sub-1% luminance drift, far below any
+// perceptible or contrast-affecting change, but enough that 0.004 would fail-open a perfectly
+// good green recolour back to gold. So bisect, then test the 8-bit quantization neighbours and
+// keep the closest; only a candidate that STILL misses the pin is dropped (paper_tales:70).
+const LUM_PIN = 0.006;
+function reHue(hex, hue) {
+  const [, s] = rgbToHsl(hexToRgb(hex));
+  if (s < 0.02) return hex;
+  const target = relLum(hex);
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 24; i++) { const mid = (lo + hi) / 2; if (relLum(hslHex(hue, s, mid)) < target) lo = mid; else hi = mid; }
+  const l = (lo + hi) / 2;
+  let out = hex, err = Infinity;
+  for (const dl of [0, -1 / 255, 1 / 255]) {
+    const cand = hslHex(hue, s, l + dl);
+    const e = Math.abs(relLum(cand) - target);
+    if (e < err) { err = e; out = cand; }
+  }
+  return err <= LUM_PIN ? out : hex;
+}
+// resolveBrand lays accents brand-first then pack, so the brand-led run ends at the first
+// entry the pack already owned (flagship_composer.js:105). [] means no brand applied.
+function brandLedOf(brand, packAccents) {
+  const pack = new Set(packAccents.map((a) => String(a).toLowerCase()));
+  const out = [];
+  for (const a of brand.accents) { if (pack.has(String(a).toLowerCase())) break; out.push(a); }
+  return out;
+}
+
+// STATUS SEMANTICS are LOCKED: on a departures board green MEANS on-time and red MEANS
+// delayed, so no brand palette recolours them. That is precisely what makes this pack hard:
+// when the brand hue is itself GREEN (the live case), the signage gold rehued onto it lands
+// right on the ON-TIME green, and a board whose flight text reads the SAME green as its
+// STATUS column reads as "everything on time" — a semantic lie. So after the rehue we measure
+// the split-flap accent against the locked ON-TIME green and, if their hues collide, KEEP the
+// brand hue but climb the accent's LIGHTNESS until it clears a brightness step over the status
+// chip: bright illuminated signage vs a mid-tone indicator, distinct at a glance. Lightness is
+// the only axis moved and the brand HUE is held throughout; the departures convention that the
+// board glows brighter than a status pip is upheld, not fought. If no reachable brightness
+// separates them, the accent stays on the brand hue and the collision is DISCLOSED — never
+// silently ambiguous. Either way the outcome is recorded in resolvedBrand.adjusted.
+const ONTIME = "#35D07F";
+const COLLIDE_DEG = 30, DISTINCT_RATIO = 1.5;
+function deconflictStatus(goldHex) {
+  const sLum = relLum(ONTIME);
+  const stepR = (hex) => Math.round(((relLum(hex) + 0.05) / (sLum + 0.05)) * 100) / 100;
+  if (hueDist(hueOf(goldHex), hueOf(ONTIME)) >= COLLIDE_DEG) return { hex: goldHex, collided: false, distinct: true, ratio: stepR(goldHex) };
+  const [h, s, l0] = rgbToHsl(hexToRgb(goldHex));
+  let best = goldHex;
+  for (let L = l0; L <= 0.94; L = Math.round((L + 0.01) * 100) / 100) {
+    const cand = hslHex(h, s, L);
+    best = cand;
+    if (stepR(cand) >= DISTINCT_RATIO) return { hex: cand, collided: true, distinct: true, ratio: stepR(cand) };
+  }
+  return { hex: best, collided: true, distinct: false, ratio: stepR(best) };
+}
+
+function terminalTheme(brandSkin) {
   const fontFace = (isBundled(DISPLAY) ? fontFaceCss(DISPLAY) : "") + (isBundled(MONO) ? fontFaceCss(MONO) : "");
+  // LOCKED identity: the near-black GROUND and the STATUS colours (green = ON-TIME,
+  // red = DELAYED) are the Solari board's own reading — plain literals a brand palette gets
+  // no vote on. Only the signage GOLD is brand-slottable (the split-flap hero text, the gold
+  // hero line-2, the clock hand, the CTA plane, the gate-monitor header).
+  const GROUND = "#0C0D11";
+  const GOLD = "#FFC61A";
+  const packAccents = [GOLD];
+
+  // FAIL-OPEN (art_director.js:14): any resolver/reHue hiccup renders the stock gold, never
+  // a crash and never a half-branded board.
+  let gold = GOLD, resolvedBrand = null;
+  try {
+    const brand = resolveBrand(brandSkin, { ground: GROUND, isDark: true, packAccents, contract: { mode: "accent", maxAccents: 1 } });
+    const brandLed = brandLedOf(brand, packAccents);
+    if (brand.applied && brandLed.length) {
+      const rehued = reHue(GOLD, hueOf(brandLed[0]));
+      const dc = deconflictStatus(rehued);
+      gold = dc.hex;
+      const adjusted = brand.adjusted.slice();
+      if (dc.collided) {
+        adjusted.push(dc.distinct
+          ? { from: rehued, to: dc.hex, reason: `brand hue collides with the locked ON-TIME status green ${ONTIME}; split-flap signage held on the brand hue but brightened to ${dc.ratio}:1 over the status chip so the board never reads as all on-time` }
+          : { from: rehued, to: dc.hex, reason: `brand hue collides with the locked ON-TIME status green ${ONTIME} and no reachable brightness separated them; signage kept on the brand hue — collision DISCLOSED, not silently shipped` });
+      }
+      resolvedBrand = {
+        ...(brandSkin && typeof brandSkin === "object" ? brandSkin : {}),
+        accents: brandLed, emphasis: brand.emphasis,
+        adjusted, dropped: brand.dropped,
+        tier: brand.tier, applied: true,
+      };
+    }
+  } catch { gold = GOLD; resolvedBrand = null; }
+
+  // NO-OP LAW: with no brand skin `gold` is the literal "#FFC61A" and goldRgb is [255,198,26],
+  // so every branded expression below (the --yellow var, the goldA() rgba washes, the SVG gold
+  // fills) reduces byte-for-byte to today's literal.
+  const goldRgb = hexToRgb(gold);
   return {
-    ground: "#0C0D11", board: "#0B0C0F", cell: "#101116",
+    ground: GROUND, board: "#0B0C0F", cell: "#101116",
     ivory: "#F2EEE3", dim: "#8B8D96",
-    yellow: "#FFC61A", green: "#35D07F", red: "#FF4B3E", cyan: "#5FD4E6",
+    yellow: gold, gold, goldA: (a) => `rgba(${goldRgb[0]},${goldRgb[1]},${goldRgb[2]},${a})`,
+    green: "#35D07F", red: "#FF4B3E", cyan: "#5FD4E6",
     line: "rgba(242,238,227,0.14)",
     displayStack: `'${DISPLAY}', system-ui, sans-serif`,
     monoStack: `'${MONO}', ui-monospace, monospace`,
     fontFace,
+    resolvedBrand,
   };
 }
 
@@ -113,10 +244,10 @@ function featureLines(scene, n) {
 // vision-approved). Stills only (a moving belt is busy enough).
 function screenOk(a) {
   if (!a || !a.path) return false;
+  if (isLogo(a)) return false; // the logo is key-moment material, never a gate monitor feed
   if (a.type === "video" || /\.(mp4|webm|mov)($|\?)/i.test(a.path)) return false;
   if (/\.svg($|\?)/i.test(a.path)) return false;
-  const src = String(a.source || "").toLowerCase();
-  return a.source === "website" || src.startsWith("library") || a.visionOk === true || a.cdProminence === "hero" || a.cdProminence === "support";
+  return isTrustedProminent(a) || a.cdProminence === "hero" || a.cdProminence === "support";
 }
 
 function archetype(scene, i, total) {
@@ -182,7 +313,7 @@ function tBoard(scene, ctx) {
   const rowHtml = rows.map((t, i) => {
     const last = i === rows.length - 1;
     const st = last ? "BOARDING" : "ON TIME";
-    return `<div class="brd-row"${last ? ` style="background:rgba(255,198,26,0.06);"` : ""}>
+    return `<div class="brd-row"${last ? ` style="background:${theme.goldA(0.06)};"` : ""}>
       <span class="col-f"${last ? ` style="color:var(--yellow);"` : ""}>KF-0${i + 1}</span>
       <span class="col-d"><span class="flap b-flap${last ? " gold" : ""}" id="${id}-d${i}" data-text="${esc(t)}"></span></span>
       <span class="col-s"><span class="flap s-flap ${last ? "gold" : "grn"}" id="${id}-s${i}" data-text="${st}"></span></span>
@@ -359,8 +490,8 @@ function tCta(scene, ctx) {
     <div class="cta" id="${id}-cta" style="opacity:0;margin-top:2.6cqw;">${cta} <span>&#8594;</span></div>
   </div>
   <svg id="${id}-fly" ${FLYSVG}>
-    <path id="${id}-route" d="M240 300 C 700 260, 1200 220, 1760 110" pathLength="100" fill="none" stroke="rgba(255,198,26,0.4)" stroke-width="3" stroke-dasharray="1 2.4" stroke-dashoffset="100"/>
-    <g id="${id}-plane" opacity="0"><path d="M0 0 L40 9 L0 18 L9 9 Z M-9 4 L2 9 L-9 14 Z" fill="#FFC61A" transform="translate(-20,-9) scale(1.1)"/></g>
+    <path id="${id}-route" d="M240 300 C 700 260, 1200 220, 1760 110" pathLength="100" fill="none" stroke="${theme.goldA(0.4)}" stroke-width="3" stroke-dasharray="1 2.4" stroke-dashoffset="100"/>
+    <g id="${id}-plane" opacity="0"><path d="M0 0 L40 9 L0 18 L9 9 Z M-9 4 L2 9 L-9 14 Z" fill="${theme.gold}" transform="translate(-20,-9) scale(1.1)"/></g>
   </svg></div>`;
   const s = [
     `tl.fromTo("#${id}",{opacity:0},{opacity:1,duration:0.4},${T});`,
@@ -394,8 +525,8 @@ function chromeHtml(theme, title) {
         <circle cx="60" cy="60" r="54" fill="#0B0C0F" stroke="rgba(242,238,227,0.25)" stroke-width="3"/>
         <g stroke="rgba(242,238,227,0.4)" stroke-width="3"><line x1="60" y1="10" x2="60" y2="20"/><line x1="60" y1="100" x2="60" y2="110"/><line x1="10" y1="60" x2="20" y2="60"/><line x1="100" y1="60" x2="110" y2="60"/></g>
         <line id="ah-min" x1="60" y1="60" x2="60" y2="22" stroke="#F2EEE3" stroke-width="5" stroke-linecap="round"/>
-        <line id="ah-sec" x1="60" y1="66" x2="60" y2="16" stroke="#FFC61A" stroke-width="2.5" stroke-linecap="round"/>
-        <circle cx="60" cy="60" r="4.5" fill="#FFC61A"/>
+        <line id="ah-sec" x1="60" y1="66" x2="60" y2="16" stroke="${theme.gold}" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="60" cy="60" r="4.5" fill="${theme.gold}"/>
       </svg>
     </div>
     <div id="ticker-band"><div class="tick-row" id="tick1">
@@ -497,16 +628,16 @@ function styleBlock(theme) {
   /* cta */
   .cta { display:inline-flex; align-items:center; gap:1.1cqw; font-family:${theme.displayStack}; font-weight:700; font-size:2.4cqw; letter-spacing:0.04em;
          text-transform:uppercase; color:#141308; background:var(--yellow); padding:1.4cqw 3.6cqw; border-radius:0.55cqw;
-         box-shadow:0 0 0 0.35cqw rgba(255,198,26,0.2), 0 1.4cqw 3cqw rgba(0,0,0,0.5); will-change:transform; }
+         box-shadow:0 0 0 0.35cqw ${theme.goldA(0.2)}, 0 1.4cqw 3cqw rgba(0,0,0,0.5); will-change:transform; }
   /* captions */
   #caps { position:absolute; inset:0; display:flex; justify-content:center; align-items:flex-end; padding-bottom:5.6%; z-index:50; pointer-events:none; }
-  #cap-pill { max-width:74%; height:fit-content; flex:0 0 auto; text-align:center; padding:0.85cqw 2.3cqw; border-radius:0.45cqw; opacity:0; background:rgba(11,12,15,0.9); border:1px solid rgba(255,198,26,0.5); }
+  #cap-pill { max-width:74%; height:fit-content; flex:0 0 auto; text-align:center; padding:0.85cqw 2.3cqw; border-radius:0.45cqw; opacity:0; background:rgba(11,12,15,0.9); border:1px solid ${theme.goldA(0.5)}; }
   #cap-text { font-family:${theme.monoStack}; font-weight:600; font-size:1.4cqw; line-height:1.35; color:var(--ivory); }`;
 }
 
 // ---- MAIN --------------------------------------------------------------------
-function buildComposition({ storyboard, dims, framePack, captionCues, assets } = {}) {
-  const theme = terminalTheme();
+function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin = null } = {}) {
+  const theme = terminalTheme(brandSkin);
   const sb = storyboard || {};
   const W = (dims && dims.width) || 1920, H = (dims && dims.height) || 1080;
   const scenes = Array.isArray(sb.scenes) && sb.scenes.length ? sb.scenes.slice(0, 12) : [{ id: "s1", start: 0, duration: 4, kind: "hook", headline: sb.title || "KEYFRAME" }];
@@ -602,7 +733,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
   ].join("\n");
 
   const metaJson = JSON.stringify({ compositionId: "vid", width: W, height: H, fps: (dims && dims.fps) || 30, duration: D });
-  return { indexHtml, metaJson };
+  return { indexHtml, metaJson, resolvedBrand: theme.resolvedBrand };
 }
 
 module.exports = { buildComposition };

@@ -29,6 +29,7 @@
 // ABOVE the canvas (ink #111827 on white, indigo→violet gradient on the highlight).
 
 const { deriveTheme } = require("./scene_kit");
+const { resolveBrand } = require("./brand_kit");
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
 const { aspectMode, typeScale, safeArea, headlineCh } = require("./responsive");
 
@@ -51,27 +52,113 @@ const mix = (h1, h2, t) => { const a = hexToRgb(h1), b = hexToRgb(h2); return `#
 const lighten = (h, amt) => mix(h, "#FFFFFF", amt);
 function hashSeed(s) { let h = 2166136261; const str = String(s || ""); for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
 
-// The Bright Life palette — an optimistic, brand-fixed set. deriveTheme resolves the
-// pack (Space Grotesk display face, @font-face). We override colors to the bright
-// system regardless of what the pack tokens luminance-heuristic would pick.
-function brightTheme(framePack, sb) {
+// ---- brand colour-kit — LIFTED from flagship_composer.js so the bright palette can be
+// rotated onto the BRAND's hue while its authored LUMINANCE is pinned. IDENTITY here is
+// AIRY LUMINANCE + MOTION + TYPOGRAPHY + LAYOUT; only HUE is the brand's to steer — so a
+// "red brightlife" stays just as bright and airy, its particles/orbs/waves the same
+// brightnesses, only recoloured. The WHITE ground, the ink, and the positive-semantic
+// GREENS never pass through reHue.
+const relLum = (h) => { const [r0, g0, b0] = hexToRgb(h).map((v) => v / 255); const f = (c) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)); return 0.2126 * f(r0) + 0.7152 * f(g0) + 0.0722 * f(b0); };
+const rgbToHsl = ([r0, g0, b0]) => {
+  r0 /= 255; g0 /= 255; b0 /= 255;
+  const mx = Math.max(r0, g0, b0), mn = Math.min(r0, g0, b0), l = (mx + mn) / 2, d = mx - mn;
+  if (!d) return [0, 0, l];
+  const s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+  const h = mx === r0 ? (g0 - b0) / d + (g0 < b0 ? 6 : 0) : mx === g0 ? (b0 - r0) / d + 2 : (r0 - g0) / d + 4;
+  return [h * 60, s, l];
+};
+const hslHex = (h, s, l) => {
+  if (!s) return `#${toHex2(l * 255).repeat(3)}`;
+  const t = (((h % 360) + 360) % 360) / 360;
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+  const ch = (x) => { if (x < 0) x += 1; if (x > 1) x -= 1; if (x < 1 / 6) return p + (q - p) * 6 * x; if (x < 0.5) return q; if (x < 2 / 3) return p + (q - p) * (2 / 3 - x) * 6; return p; };
+  return `#${toHex2(ch(t + 1 / 3) * 255)}${toHex2(ch(t) * 255)}${toHex2(ch(t - 1 / 3) * 255)}`;
+};
+const hueOf = (hex) => rgbToHsl(hexToRgb(hex))[0];
+// reHue: rotate onto `hue`, bisecting HSL lightness back to the source's relative luminance
+// (monotone in L at fixed hue/sat) so every bright pastel keeps the EXACT brightness it was
+// authored at — the whole "stays airy" guarantee. Saturation stays the pastel's own;
+// achromatic in → untouched; a lum-pin miss fails OPEN to the source hex. 0.006 (not
+// flagship's 0.004) because these palette hues are fairly saturated (rounding 3 channels
+// compounds), matching bloom/paper-tales.
+const LUM_PIN = 0.006;
+function reHue(hex, hue) {
+  const [, s] = rgbToHsl(hexToRgb(hex));
+  if (s < 0.02) return hex;
+  const target = relLum(hex);
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 24; i++) { const mid = (lo + hi) / 2; if (relLum(hslHex(hue, s, mid)) < target) lo = mid; else hi = mid; }
+  const l = (lo + hi) / 2;
+  let out = hex, err = Infinity;
+  for (const dl of [0, -1 / 255, 1 / 255]) { const cand = hslHex(hue, s, l + dl); const e = Math.abs(relLum(cand) - target); if (e < err) { err = e; out = cand; } }
+  return err <= LUM_PIN ? out : hex;
+}
+// resolveBrand lays accents brand-first then pack, so the brand-led run ends at the first
+// entry the pack already owned (flagship_composer.js:105). [] means no brand applied.
+function brandLedOf(brand, packAccents) {
+  const pack = new Set(packAccents.map((a) => String(a).toLowerCase()));
+  const out = [];
+  for (const a of brand.accents) { if (pack.has(String(a).toLowerCase())) break; out.push(a); }
+  return out;
+}
+
+// The Bright Life palette — an optimistic, bright-on-white set. deriveTheme resolves the
+// pack (Space Grotesk display face, @font-face). With a BRAND SKIN, the palette hue-rotates
+// to the brand (clamped to its authored bright luminances — see reHue); with none, the
+// frozen palette below stands byte-for-byte (the no-op law).
+const PALETTE0 = ["#6366F1", "#8B5CF6", "#3B82F6", "#06B6D4", "#EC4899", "#F43F5E", "#10B981", "#22C55E", "#F59E0B", "#A855F7"];
+const ACCENTS0 = ["#6366F1", "#8B5CF6", "#06B6D4", "#EC4899"];
+const EMPH0 = ["#6366F1", "#8B5CF6", "#A855F7"];
+// #10B981 / #22C55E are POSITIVE-GROWTH semantics (KPI deltas, kanban "done") — like a
+// departures board's ON-TIME green, they read as "success" and never recolour to the brand.
+const GREEN_LOCK = new Set([6, 7]);
+// Fan the palette around the brand lead hue so it stays multi-tonal (brand-dominant, not
+// 10 flat shades), all inside brand_kit's 40° "still reads as its own hue" budget.
+const BRIGHT_FAN = [0, 22, -22, 40, -40, 14, -14, 33];
+
+function brightTheme(framePack, sb, brandSkin) {
   const base = deriveTheme(framePack, sb);
-  const PALETTE = ["#6366F1", "#8B5CF6", "#3B82F6", "#06B6D4", "#EC4899", "#F43F5E", "#10B981", "#22C55E", "#F59E0B", "#A855F7"];
-  const accents = ["#6366F1", "#8B5CF6", "#06B6D4", "#EC4899"]; // 4 lead accents for structure
   const MONO = "JetBrains Mono";
   const monoFace = isBundled(MONO) ? fontFaceCss(MONO) : "";
   const monoStack = monoFace ? `'${MONO}', ui-monospace, monospace` : "ui-monospace, 'JetBrains Mono', monospace";
   const displayBundled = base.displayStack && /Space Grotesk/.test(base.displayStack);
   const displayStack = `${displayBundled ? "'Space Grotesk', " : ""}${SAFE_FONTS}`;
+
+  // Resolve the brand against the WHITE ground (the inverse of flagship's near-black case:
+  // a bright brand hue that would wash out on white is exactly what resolveBrand corrects).
+  // FAIL-OPEN: any hiccup renders the frozen palette.
+  let applied = false, PALETTE = PALETTE0, accents = ACCENTS0, emph = EMPH0, brand = null, brandLed = [];
+  try {
+    brand = resolveBrand(brandSkin, { ground: "#FFFFFF", isDark: false, packAccents: ACCENTS0 });
+    brandLed = brandLedOf(brand, ACCENTS0);
+    applied = !!(brand && brand.applied && brandLed.length);
+  } catch { applied = false; }
+  if (applied) {
+    const wheel = brandLed.map(hueOf);
+    for (const d of BRIGHT_FAN) { if (wheel.length >= PALETTE0.length) break; wheel.push(wheel[0] + d); }
+    PALETTE = PALETTE0.map((h, i) => GREEN_LOCK.has(i) ? h : reHue(h, wheel[i % wheel.length]));
+    accents = ACCENTS0.map((h, i) => reHue(h, wheel[i % wheel.length]));
+    // The emphasis word is a same-family 3-stop gradient on WHITE — reHue keeps each stop's
+    // authored (readable) luminance, so it lands as a brand-hued gradient that still reads.
+    const eh = hueOf(brandLed[0]);
+    emph = [reHue(EMPH0[0], eh), reHue(EMPH0[1], eh + 9), reHue(EMPH0[2], eh + 20)];
+  }
+  // The generated-UI chrome tint (hairlines / card borders / soft shadow / progress bar).
+  // "99,102,241" is the frozen indigo, so a null skin reproduces every literal byte-for-byte.
+  const uiRgb = applied ? hexToRgb(accents[0]).join(",") : "99,102,241";
+
   return {
     ground: "#FFFFFF", ground2: "#F5F6FF",
     ink: "#111827", dim: "#6B7280", faint: "#9AA3B2",
-    border: "rgba(99,102,241,0.12)",
-    cardShadow: "0 20px 60px rgba(99,102,241,0.14), 0 6px 18px rgba(17,24,39,0.05)",
+    border: `rgba(${uiRgb},0.12)`,
+    cardShadow: `0 20px 60px rgba(${uiRgb},0.14), 0 6px 18px rgba(17,24,39,0.05)`,
+    uiRgb,
     palette: PALETTE,
     accents, accent: accents[0], accent2: accents[1], accent3: accents[2], accent4: accents[3],
-    // Indigo -> violet -> purple gradient for the highlighted word (bright on white).
-    emphA: "#6366F1", emphB: "#8B5CF6", emphC: "#A855F7",
+    // Indigo -> violet -> purple (or the brand's own family) for the highlighted word.
+    emphA: emph[0], emphB: emph[1], emphC: emph[2],
+    // Carried out for the disclosure (resolvedSkin below). null unless a brand applied.
+    brand, brandLed, applied,
     displayStack,
     fontStack: SAFE_FONTS,
     monoStack,
@@ -545,10 +632,10 @@ function uiTexture(kind, ci){
   const bg=x.createLinearGradient(0,0,cw,ch); bg.addColorStop(0,"#FFFFFF"); bg.addColorStop(1,"#F5F6FF");
   x.fillStyle=bg; x.fillRect(0,0,cw,ch);
   // sidebar
-  x.fillStyle="#F5F6FF"; x.fillRect(0,0,150,ch); x.strokeStyle="rgba(99,102,241,0.10)"; x.lineWidth=1; x.beginPath(); x.moveTo(150,0); x.lineTo(150,ch); x.stroke();
+  x.fillStyle="#F5F6FF"; x.fillRect(0,0,150,ch); x.strokeStyle="rgba(${theme.uiRgb},0.10)"; x.lineWidth=1; x.beginPath(); x.moveTo(150,0); x.lineTo(150,ch); x.stroke();
   const lg=x.createLinearGradient(26,28,52,54); lg.addColorStop(0,acc); lg.addColorStop(1,acc2);
   x.fillStyle=lg; rr(26,28,26,26,8); x.fill();
-  for(let i=0;i<6;i++){x.fillStyle=i===1?"rgba(99,102,241,0.14)":"rgba(17,24,39,0.05)";rr(26,86+i*46,98,20,7);x.fill();}
+  for(let i=0;i<6;i++){x.fillStyle=i===1?"rgba(${theme.uiRgb},0.14)":"rgba(17,24,39,0.05)";rr(26,86+i*46,98,20,7);x.fill();}
   const PADX=186, TOP=34;
   x.fillStyle=INK; x.font="700 26px 'Space Grotesk',sans-serif"; x.fillText("Overview", PADX, TOP+22);
   const pill=x.createLinearGradient(cw-150,TOP,cw-30,TOP+34); pill.addColorStop(0,acc); pill.addColorStop(1,acc2);
@@ -557,13 +644,13 @@ function uiTexture(kind, ci){
   // KPI tiles
   const tw=(cw-PADX-40-32)/3;
   for(let i=0;i<3;i++){const tx=PADX+i*(tw+16), ty=92;
-    x.fillStyle="#FFFFFF"; rr(tx,ty,tw,96,14); x.fill(); x.strokeStyle="rgba(99,102,241,0.12)"; x.lineWidth=1; rr(tx,ty,tw,96,14); x.stroke();
+    x.fillStyle="#FFFFFF"; rr(tx,ty,tw,96,14); x.fill(); x.strokeStyle="rgba(${theme.uiRgb},0.12)"; x.lineWidth=1; rr(tx,ty,tw,96,14); x.stroke();
     x.fillStyle=DIM; x.font="500 13px Inter,sans-serif"; x.fillText(["Revenue","Active","Uptime"][i], tx+16, ty+26);
     x.fillStyle=INK; x.font="700 32px 'Space Grotesk',sans-serif"; x.fillText(["$48.2k","12,847","99.9%"][i], tx+16, ty+64);
     x.fillStyle=["#10B981","#10B981",acc][i]; x.font="600 13px Inter,sans-serif"; x.fillText(["+18%","+7%","SLA"][i], tx+16, ty+86);
   }
   const cx=PADX, cy=214, cwid=cw-PADX-40, chei=ch-cy-34;
-  x.fillStyle="#FFFFFF"; rr(cx,cy,cwid,chei,16); x.fill(); x.strokeStyle="rgba(99,102,241,0.12)"; x.lineWidth=1; rr(cx,cy,cwid,chei,16); x.stroke();
+  x.fillStyle="#FFFFFF"; rr(cx,cy,cwid,chei,16); x.fill(); x.strokeStyle="rgba(${theme.uiRgb},0.12)"; x.lineWidth=1; rr(cx,cy,cwid,chei,16); x.stroke();
   if(kind==="table"){
     for(let r=0;r<6;r++){x.fillStyle=r%2?"#FFFFFF":"#F7F8FF";rr(cx+14,cy+16+r*((chei-24)/6),cwid-28,((chei-24)/6)-6,8);x.fill();
       x.fillStyle=INK;x.font="600 15px Inter,sans-serif";x.fillText(["Acme","Globex","Initech","Umbra","Hooli","Stark"][r], cx+30, cy+16+r*((chei-24)/6)+((chei-24)/12)+5);
@@ -585,7 +672,7 @@ function uiTexture(kind, ci){
       x.fillStyle=INK;x.font="600 15px Inter,sans-serif";x.fillText(heads[c],colx+2,cy+24);
       x.fillStyle=c===2?"#10B981":acc;x.beginPath();x.arc(colx+colw-12,cy+19,5,0,6.2832);x.fill();
       const ch2=(chei-52)/3; for(let k=0;k<nc[c];k++){const cardy=cy+38+k*ch2;
-        x.fillStyle="#F7F8FF";rr(colx,cardy,colw,ch2-12,10);x.fill();x.strokeStyle="rgba(99,102,241,0.10)";x.lineWidth=1;rr(colx,cardy,colw,ch2-12,10);x.stroke();
+        x.fillStyle="#F7F8FF";rr(colx,cardy,colw,ch2-12,10);x.fill();x.strokeStyle="rgba(${theme.uiRgb},0.10)";x.lineWidth=1;rr(colx,cardy,colw,ch2-12,10);x.stroke();
         x.fillStyle=(c===1&&k===0)?acc:"rgba(17,24,39,0.18)";rr(colx+12,cardy+12,colw*0.52,8,4);x.fill();
         x.fillStyle="rgba(17,24,39,0.08)";rr(colx+12,cardy+28,colw*0.74,7,4);x.fill();
         x.fillStyle=[acc,acc2,acc3][(c+k)%3];x.beginPath();x.arc(colx+colw-20,cardy+ch2-24,7,0,6.2832);x.fill();}
@@ -614,7 +701,7 @@ function uiTexture(kind, ci){
 function lighten2(hex){const n=parseInt(hex.replace("#",""),16);const r=(n>>16)&255,g=(n>>8)&255,b=n&255;const m=(c)=>Math.round(c+(255-c)*0.35);return "#"+("000000"+((m(r)<<16)|(m(g)<<8)|m(b)).toString(16)).slice(-6);}
 
 // ---- soft SHADOW sprite (floats a card above the white ground) ----
-const shadowTex=(()=>{const s=256,c=document.createElement("canvas");c.width=c.height=s;const x=c.getContext("2d");const g=x.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);g.addColorStop(0,"rgba(99,102,241,0.28)");g.addColorStop(0.55,"rgba(99,102,241,0.10)");g.addColorStop(1,"rgba(99,102,241,0)");x.fillStyle=g;x.fillRect(0,0,s,s);return new THREE.CanvasTexture(c);})();
+const shadowTex=(()=>{const s=256,c=document.createElement("canvas");c.width=c.height=s;const x=c.getContext("2d");const g=x.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);g.addColorStop(0,"rgba(${theme.uiRgb},0.28)");g.addColorStop(0.55,"rgba(${theme.uiRgb},0.10)");g.addColorStop(1,"rgba(${theme.uiRgb},0)");x.fillStyle=g;x.fillRect(0,0,s,s);return new THREE.CanvasTexture(c);})();
 
 // ---- glass CARD factory (screenshot OR generated light UI) ----
 const loader=new THREE.TextureLoader();
@@ -790,9 +877,11 @@ window.__timelines=window.__timelines||{}; window.__timelines["vid"]=tl;
 // Every content scene gets a card. Real screenshots take priority; when the pool is
 // empty the card renders a GENERATED light product UI (never a black box).
 function assignPlates(scenes, sceneWindows, assets) {
-  const imgs = (assets || []).filter((a) => a && a.path && !/\.(mp4|webm|mov)$/i.test(a.path) && !/\.svg($|\?)/i.test(a.path));
+  // The user's logo never rides a glass card (it gets key-moment treatment);
+  // their uploads outrank everything, including the site's own captures.
+  const imgs = (assets || []).filter((a) => a && a.path && String(a.role || "") !== "logo" && !/\.(mp4|webm|mov)$/i.test(a.path) && !/\.svg($|\?)/i.test(a.path));
   const ratio = (a) => (a.width && a.height ? a.width / a.height : (a.ratio || 1.6));
-  const rank = (a) => (a.source === "website" || /screenshot|webpage|landing|dashboard/i.test(a.alt || "") ? 3 : a.visionOk === true ? 2 : 1);
+  const rank = (a) => (a.source === "upload" ? 4 : a.source === "website" || /screenshot|webpage|landing|dashboard/i.test(a.alt || "") ? 3 : a.visionOk === true ? 2 : 1);
   const pool = imgs.slice().sort((a, b) => rank(b) - rank(a));
   const used = new Set();
   const take = () => { const a = pool.find((x) => !used.has(x)); if (a) used.add(a); return a || null; };
@@ -821,12 +910,25 @@ function assignPlates(scenes, sceneWindows, assets) {
   return plates;
 }
 
-function buildComposition({ storyboard, dims, framePack, captionCues, assets } = {}) {
+// The skin the film actually WORE, merged over the input skin so reason/source/
+// provenance survive (those say where the palette CAME from; resolution has no opinion
+// on that). Null when nothing applied — the panel then shows "no brand". Mirrors flagship.
+function resolvedSkin(brandSkin, theme) {
+  if (!theme.applied || !theme.brandLed || !theme.brandLed.length || !theme.brand) return null;
+  return {
+    ...(brandSkin && typeof brandSkin === "object" ? brandSkin : {}),
+    accents: theme.brandLed, emphasis: [theme.emphA, theme.emphB],
+    adjusted: theme.brand.adjusted || [], dropped: theme.brand.dropped || [],
+    tier: theme.brand.tier, applied: true,
+  };
+}
+
+function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin = null } = {}) {
   const sb = storyboard || {};
   const scenes = Array.isArray(sb.scenes) && sb.scenes.length ? sb.scenes : [{ id: "s1", start: 0, duration: 6, purpose: "hook", headline: sb.title || "KEYFRAME" }];
   const D = r2(sb.durationSec || scenes.reduce((a, s) => a + (s.duration || 0), 0) || 12);
   const W = dims.width, H = dims.height;
-  const theme = brightTheme(framePack, sb);
+  const theme = brightTheme(framePack, sb, brandSkin);
   const seed = hashSeed(`${sb.title || ""}|${scenes.length}|brightlife`);
   const sc = typeScale(W, H);
   const px = (n) => Math.round(n * sc);
@@ -914,7 +1016,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
     `.kchrome { position:absolute; inset:0; z-index:9; pointer-events:none; font-family:${theme.monoStack}; }`,
     `.kcat { position:absolute; left:${W >= H ? 58 : 40}px; bottom:42px; font-size:${px(12)}px; letter-spacing:.2em; text-transform:uppercase; color:${theme.faint}; }`,
     `.kcount { position:absolute; right:${W >= H ? 58 : 40}px; bottom:42px; font-size:${px(12)}px; letter-spacing:.2em; color:${theme.accent}; }`,
-    `.kbar { position:absolute; left:0; right:0; bottom:0; height:3px; background:rgba(99,102,241,0.10); }`,
+    `.kbar { position:absolute; left:0; right:0; bottom:0; height:3px; background:rgba(${theme.uiRgb},0.10); }`,
     `.kbarfill { display:block; height:100%; width:100%; transform-origin:left; transform:scaleX(0); background:${emphGrad}; }`,
     `</style>`, `</head>`, `<body>`,
     `<div id="root" data-composition-id="vid" data-start="0" data-width="${W}" data-height="${H}" data-duration="${D}">`,
@@ -926,7 +1028,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
   ].join("\n");
 
   const metaJson = JSON.stringify({ compositionId: "vid", width: W, height: H, fps: dims.fps || 30, duration: D });
-  return { indexHtml, metaJson };
+  return { indexHtml, metaJson, resolvedBrand: resolvedSkin(brandSkin, theme) };
 }
 
 module.exports = { buildComposition };

@@ -24,6 +24,7 @@
 const db = require("../db");
 const config = require("../config");
 const { planLayout } = require("./layout_planner");
+const { isTrustedProminent, isLogo, rankKey } = require("./asset_priority");
 
 const num = (v, d = 0) => { const n = Number(v); return Number.isFinite(n) ? n : d; };
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -44,23 +45,29 @@ const MONTAGE_MAX = 4;
 // budgets line up with the pools the weaving actually draws from.
 function classify(a) {
   if (!a || !a.path) return null;
+  // The logo never competes for a layout budget — scene_kit routes it to its own
+  // key-moment treatment, so the Director has no presentation decision to make.
+  if (isLogo(a)) return null;
   if (a.type === "video" || /\.(mp4|webm|mov)($|\?)/i.test(a.path)) return "video";
+  // Uploads route by their explicit kindHint (mirrors scene_kit.partitionAssets —
+  // their alt is our own sentence, not a sniffable search query).
+  if (a.source === "upload") return a.kindHint === "photo" ? "photo" : "screenshot";
   const s = `${a.source || ""} ${a.style || ""} ${a.alt || ""}`.toLowerCase();
   if (a.source === "website" || /screenshot|webpage|web page|landing|\bsite\b/.test(s)) return "screenshot";
   if (/\.svg($|\?)/i.test(a.path) || /vector|illustration|icon|line.?art|graphic/.test(s)) return "vector";
   return "photo";
 }
 
-// The CD's blended importance for ranking (score + CLIP pixel-relevance) — the same
-// rankScore the CD uses internally, so the Director agrees with itself on "best".
-const importance = (a) => num(a && a.cdScore, 0) + (typeof (a && a.clipRelevance) === "number" ? a.clipRelevance * 30 : 0);
+// TIER-FIRST importance: the tier (upload > website > curated > stock) is the
+// ×1000 major key via asset_priority.rankKey, the CD's blended quality score the
+// minor — so a presentation budget can trim the user's WEAKEST uploads against
+// each other, but a stock photo can never demote a user upload out of a slot.
+const importance = (a) => rankKey(a, num(a && a.cdScore, 0) + (typeof (a && a.clipRelevance) === "number" ? a.clipRelevance * 30 : 0));
 
 // Is this asset currently eligible for a PROMINENT slot? (Owned screenshots, curated
 // picks, and CD-approved stock — the same trust the kit's prominentOk gate applies.)
 function isProminent(a) {
-  return !!a && (a.source === "website"
-    || String(a.source || "").startsWith("library:")
-    || a.visionOk === true
+  return !!a && (isTrustedProminent(a)
     || a.cdProminence === "hero" || a.cdProminence === "support");
 }
 
@@ -120,10 +127,23 @@ function directLayout({ storyboard, script, assets, framePack, dims } = {}) {
       // (mobile) screenshots instead of a browser frame.
       if (k === "screenshot") a.container = deviceKind(a);
     }
+    // DYNAMIC budgets: when the user uploaded their own material, the budgets
+    // grow to fit it — "show the best 3 big" was tuned for scraped screenshots;
+    // a user who uploaded 6 dashboards uploaded 6 because they want 6 shown.
+    // Stock never benefits: the overflow the wider budget admits is tier-ranked,
+    // so extra slots fill with uploads first (importance is tier-first).
+    const uploadedShots = byKind.screenshot.filter((a) => a.source === "upload").length;
+    const uploadedPhotos = byKind.photo.filter((a) => a.source === "upload").length;
+    const uploadCount = uploadedShots + uploadedPhotos;
+    const budget = {
+      screenshot: clamp(Math.max(BUDGET.screenshot, uploadedShots), BUDGET.screenshot, 6),
+      photo: clamp(BUDGET.photo + uploadedPhotos, BUDGET.photo, 9),
+      vector: BUDGET.vector,
+    };
     let demoted = 0;
     for (const kind of Object.keys(byKind)) {
       const pool = byKind[kind].sort((x, y) => importance(y) - importance(x));
-      pool.slice(BUDGET[kind]).forEach((a) => {
+      pool.slice(budget[kind]).forEach((a) => {
         // Never delete — demote so it can still be atmospheric B-roll.
         a.visionOk = false;
         a.cdProminence = "background";
@@ -135,25 +155,27 @@ function directLayout({ storyboard, script, assets, framePack, dims } = {}) {
     // 2) SIZING — enlarge the hero. With few prominent screenshots surviving, the
     //    single hero should occupy meaningful space (readable), so scale up from the
     //    kit's default 0.52. One survivor → biggest; a couple → slightly smaller.
-    const shots = Math.min(byKind.screenshot.length, BUDGET.screenshot);
+    const shots = Math.min(byKind.screenshot.length, budget.screenshot);
     layoutPlan.__heroScale = shots <= 1 ? 0.60 : shots === 2 ? 0.56 : 0.54;
-    layoutPlan.__montageMax = MONTAGE_MAX;
+    // A 5+ upload set earns a fuller montage (6 tiles); otherwise the calmer 4.
+    layoutPlan.__montageMax = uploadCount >= 5 ? 6 : MONTAGE_MAX;
 
     // 3) PER-SCENE composition report (telemetry, not consumed by the render). A
     //    rough deterministic quality read: penalize scenes that would still be dense.
     const scenes = (storyboard && Array.isArray(storyboard.scenes) && storyboard.scenes.length
       ? storyboard.scenes
       : (script && Array.isArray(script.scenes) ? script.scenes : []));
-    const prominentTotal = byKind.screenshot.slice(0, BUDGET.screenshot).length
-      + byKind.photo.slice(0, BUDGET.photo).length;
+    const prominentTotal = byKind.screenshot.slice(0, budget.screenshot).length
+      + byKind.photo.slice(0, budget.photo).length;
     const sceneReports = scenes.map((sc, i) => {
       const id = sc && sc.id != null ? sc.id : `s${i + 1}`;
       const arch = (layoutPlan[id] && layoutPlan[id].archetype) || "text";
       return { sceneId: id, archetype: arch, heroScale: layoutPlan.__heroScale };
     });
     const review = {
-      keptScreenshots: Math.min(byKind.screenshot.length, BUDGET.screenshot),
-      keptPhotos: Math.min(byKind.photo.length, BUDGET.photo),
+      keptScreenshots: Math.min(byKind.screenshot.length, budget.screenshot),
+      keptPhotos: Math.min(byKind.photo.length, budget.photo),
+      uploadedKept: Math.min(uploadedShots, budget.screenshot) + Math.min(uploadedPhotos, budget.photo),
       demoted,
       heroScale: layoutPlan.__heroScale,
       montageMax: layoutPlan.__montageMax,

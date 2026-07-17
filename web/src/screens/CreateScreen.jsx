@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createProject, listFrames } from "../api.js";
 import { PACK_LORE, PACK_ORDER, loreFor } from "../packlore.js";
@@ -24,6 +24,19 @@ const SURPRISE_PROMPT =
 
 const ASPECT = { horizontal: "16:9", vertical: "9:16", square: "1:1" };
 
+// Ready-made accent pairs, so "use your brand color" isn't a blank color well for
+// the (many) people who never look up their own hexes. A preset is still only an
+// ACCENT pair — it steers the same two stops a hand-picked palette does, and no
+// pack's ground, type or motion moves for it.
+const BRAND_PRESETS = [
+  { id: "ocean", label: "Ocean", primary: "#3b82f6", secondary: "#06b6d4" },
+  { id: "sunset", label: "Sunset", primary: "#f97316", secondary: "#ef4444" },
+  { id: "forest", label: "Forest", primary: "#10b981", secondary: "#22c55e" },
+  { id: "royal", label: "Royal", primary: "#6366f1", secondary: "#8b5cf6" },
+  { id: "neon", label: "Neon", primary: "#ec4899", secondary: "#a855f7" },
+  { id: "gold", label: "Luxury Gold", primary: "#f59e0b", secondary: "#fbbf24" },
+];
+
 export default function CreateScreen({ onCreated, prefill }) {
   const [tab, setTab] = useState(prefill?.url ? "url" : "prompt");
   const [prompt, setPrompt] = useState(prefill?.prompt || "");
@@ -34,10 +47,23 @@ export default function CreateScreen({ onCreated, prefill }) {
   const [framePack, setFramePack] = useState(prefill?.framePack || "auto");
   const [captions, setCaptions] = useState(false);
   const [finish, setFinish] = useState("standard"); // standard = scene-kit · premium = LLM composer · cinema = Three.js 3D set
+  const [brandChoice, setBrandChoice] = useState("template"); // "template" (no override) · a preset id · "custom"
+  // Null until the user actually moves a color well, so the manual stops keep
+  // FOLLOWING the selected pack's accents instead of freezing whichever pack
+  // happened to be selected the first time the well rendered.
+  const [customPrimary, setCustomPrimary] = useState(null);
+  const [customSecondary, setCustomSecondary] = useState(null);
+  // The user's own material — a logo (png/jpg/webp/svg) and up to 12 product
+  // images (png/jpg/webp). These become the film's PRIMARY visuals: tier 100,
+  // ahead of website captures, curated art, and stock.
+  const [logoFile, setLogoFile] = useState(null);
+  const [assetFiles, setAssetFiles] = useState([]);
   const [packs, setPacks] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(prefill?.error || null);
   const fileInput = useRef(null);
+  const logoInput = useRef(null);
+  const assetsInput = useRef(null);
 
   useEffect(() => {
     listFrames()
@@ -49,6 +75,52 @@ export default function CreateScreen({ onCreated, prefill }) {
 
   const packList = packs || orderPacks([]);
   const activeLore = framePack !== "auto" ? loreFor(framePack) : null;
+
+  // /api/frames is the ONE source for what a pack's accents are: packlore.js is a
+  // hand-copied presentation layer (it says itself it mirrors another file), so
+  // seeding from it would let these swatches drift away from the colors the
+  // renderer actually paints.
+  const activePack = framePack !== "auto" ? packList.find((p) => p.name === framePack) : null;
+  const packAccents = ((activePack && activePack.accents) || []).slice(0, 2);
+  const brandPreset = BRAND_PRESETS.find((p) => p.id === brandChoice) || null;
+  // The wells open on the STUDIO's accents, never on the selected pack's. A pre-filled
+  // well is an answer the user can accept by simply not touching it, so it may only
+  // ever hold something we can honestly attribute to them — and a pack's accents are
+  // the pack's. (They are also not reliably accents: /api/frames falls back to the
+  // manifest's raw colors for a pack that declares no skin, which hands back its
+  // ground.) These two are plainly KEYFRAME's own, so no ground can arrive wearing
+  // the user's name.
+  const cp = customPrimary || "#e832a8";
+  const cs = customSecondary || "#23c8e0";
+  const brandPalette = brandPreset
+    ? { primary: brandPreset.primary, secondary: brandPreset.secondary, source: "preset", presetId: brandPreset.id }
+    : brandChoice === "custom"
+      ? { primary: cp, secondary: cs, source: "manual", presetId: null }
+      : null; // "template" — the pack keeps its own accents
+  const brandLabel = brandPreset ? brandPreset.label.toUpperCase() : brandChoice === "custom" ? "CUSTOM" : "TEMPLATE";
+
+  // Object URLs for the upload thumbnails — created once per file list, revoked on
+  // change/unmount so a long editing session doesn't leak blobs.
+  const assetThumbs = useMemo(() => assetFiles.map((f) => URL.createObjectURL(f)), [assetFiles]);
+  const logoThumb = useMemo(() => (logoFile ? URL.createObjectURL(logoFile) : null), [logoFile]);
+  useEffect(() => () => { assetThumbs.forEach((u) => URL.revokeObjectURL(u)); }, [assetThumbs]);
+  useEffect(() => () => { if (logoThumb) URL.revokeObjectURL(logoThumb); }, [logoThumb]);
+
+  const IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
+  const MAX_ASSETS = 12, IMG_MAX_MB = 15;
+  // Shared intake for the picker AND drag-drop: mime + size filtered client-side
+  // (the server re-validates), capped at 12, silently deduped by name+size.
+  function addAssetFiles(list) {
+    const incoming = Array.from(list || []).filter((f) => IMAGE_TYPES.includes(f.type) && f.size <= IMG_MAX_MB * 1024 * 1024);
+    if (!incoming.length) return;
+    setAssetFiles((prev) => {
+      const seen = new Set(prev.map((f) => `${f.name}|${f.size}`));
+      return [...prev, ...incoming.filter((f) => !seen.has(`${f.name}|${f.size}`))].slice(0, MAX_ASSETS);
+    });
+  }
+  function acceptLogo(f) {
+    if (f && [...IMAGE_TYPES, "image/svg+xml"].includes(f.type) && f.size <= IMG_MAX_MB * 1024 * 1024) setLogoFile(f);
+  }
 
   const sourceLen = tab === "prompt" ? prompt.trim().length : tab === "url" ? url.trim().length : (file ? 40 : 0);
   const canSubmit = !busy && (
@@ -63,11 +135,19 @@ export default function CreateScreen({ onCreated, prefill }) {
     try {
       const fields = {
         duration, orientation, quality: "720p", framePack, captions,
+        // null is the answer, not a missing one: it says the user looked at the
+        // palette tile and kept the pack's accents. The API treats it the same as
+        // absent, so the default stays a true no-op.
+        brandPalette,
         composeMode: finish === "cinema" ? "standard" : finish,
         ...(finish === "cinema" ? { render3d: true } : {}),
         ...(prompt.trim().length >= 10 ? { prompt: prompt.trim() } : {}),
         ...(tab === "url" && url.trim() ? { websiteUrl: url.trim() } : {}),
         ...(tab === "video" && file ? { referenceVideo: file } : {}),
+        // The user's own material rides its own multipart fields (logo ×1,
+        // assets ×N) — api.js switches to FormData whenever a File is present.
+        ...(logoFile ? { logo: logoFile } : {}),
+        ...(assetFiles.length ? { assets: assetFiles } : {}),
       };
       const r = await createProject(fields);
       onCreated(r.projectId);
@@ -194,6 +274,20 @@ export default function CreateScreen({ onCreated, prefill }) {
                   <span>▦ {ASPECT[orientation]}</span>
                   <span>{captions ? "CC ON" : "♪ SCORED"}</span>
                   <span style={{ color: activeLore ? activeLore.accent : "#9a9284" }}>{activeLore ? activeLore.name.toUpperCase() : "AUTO LOOK"}</span>
+                  {/* The brand rides a dot, not the label's own color: a dark pick
+                      would make a colored label unreadable on this dark head, and a
+                      swatch is what the color actually is anyway. */}
+                  {brandPalette && (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                      <span style={{ width: 7, height: 7, borderRadius: "50%", background: brandPalette.primary }} />
+                      BRAND {brandLabel}
+                    </span>
+                  )}
+                  {(assetFiles.length > 0 || logoFile) && (
+                    <span style={{ color: "var(--color-cy)" }}>
+                      ▣ {assetFiles.length ? `IMG ×${assetFiles.length}` : ""}{assetFiles.length && logoFile ? " + " : ""}{logoFile ? "LOGO" : ""}
+                    </span>
+                  )}
                   {finish === "premium" && <span style={{ color: "var(--color-mag)" }}>◆ PREMIUM CUT</span>}
                   {finish === "cinema" && <span style={{ color: "var(--color-cy)" }}>▲ CINEMA 3D</span>}
                 </div>
@@ -206,11 +300,25 @@ export default function CreateScreen({ onCreated, prefill }) {
             {/* right — live preview pane */}
             <div style={{ position: "relative", minHeight: 300, background: "var(--color-dark-2)" }}>
               <div className="film-drift" style={{ position: "absolute", inset: 0, background: activeLore ? activeLore.filmGrad : "linear-gradient(135deg, #e832a8, #6b1050 55%, #2a0a20)", opacity: 0.95 }} />
+              {/* A WASH over the pack's look, never a replacement for it — the same
+                  shape the renderer's brand background gradient uses, and for the
+                  same reason: the brand may tint the air, not repaint the ground.
+                  The 8-digit hex carries the alpha so the stop fades to its OWN
+                  color at zero rather than through a gray. */}
+              {brandPalette && (
+                <div aria-hidden="true" style={{ position: "absolute", inset: 0, background: `radial-gradient(120% 90% at 50% 0%, ${brandPalette.primary}8c, ${brandPalette.primary}00 70%)` }} />
+              )}
               <div className="film-scan" />
               <div style={{ position: "absolute", top: 12, left: 14, fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.2em", color: "rgba(255,255,255,.85)", display: "flex", alignItems: "center", gap: 6 }}>
                 <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#ff4d3c", animation: "kf2-blink 1s steps(1) infinite" }} />PREVIEW
               </div>
               <div style={{ position: "absolute", left: 14, right: 14, bottom: 14, textAlign: "center" }}>
+                {/* The emphasis rule — the one element a brand palette really drives
+                    in the cut, at the angle the composers paint it. The type above it
+                    keeps the pack's own voice. */}
+                {brandPalette && (
+                  <span aria-hidden="true" style={{ display: "block", width: 64, height: 3, borderRadius: 999, margin: "0 auto 8px", background: `linear-gradient(100deg, ${brandPalette.primary}, ${brandPalette.secondary})` }} />
+                )}
                 <span style={{ display: "inline-block", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "#fff", background: "rgba(0,0,0,.55)", padding: "6px 12px", borderRadius: 8, backdropFilter: "blur(4px)" }}>
                   {activeLore ? activeLore.demo : (prompt.trim() ? prompt.trim().slice(0, 42) + (prompt.trim().length > 42 ? "…" : "") : "Your film starts here.")}
                 </span>
@@ -290,6 +398,111 @@ export default function CreateScreen({ onCreated, prefill }) {
                 : "CODE-BUILT SCENES · ~2 MIN · RELIABLE"}
             </div>
           </div>
+          {/* Brand colors — ACCENTS ONLY. The pack owns identity (luminance, motion,
+              type, layout, semantics); a brand palette only owns hue, and only where
+              the eye is already meant to land. A site's own colors are still lifted
+              automatically during ingest — this tile is for saying so up front, or
+              for overriding what we find. */}
+          <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
+            {/* The spine wears the pick, so the tile demonstrates the one thing it
+                does. It stays fixed on the default: a pack's accents are not ours to
+                claim here, and the route's fallback can make them a white ground. */}
+            <span className="spine" style={{ "--spine": brandPalette ? brandPalette.primary : "#c56bff" }} />
+            <div className="label-mono" style={{ marginBottom: 10 }}>BRAND COLORS — {brandLabel}</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <BrandSwatch
+                label="Use my template's palette"
+                hint={packAccents.length ? packAccents.join(" · ") : "the pack's own accents"}
+                colors={packAccents}
+                loading={framePack !== "auto" && !packs}
+                glyph="✦"
+                active={brandChoice === "template"}
+                onSelect={() => setBrandChoice("template")}
+              />
+              {BRAND_PRESETS.map((p) => (
+                <BrandSwatch key={p.id} label={p.label} hint={`${p.primary} · ${p.secondary}`}
+                  colors={[p.primary, p.secondary]}
+                  active={brandChoice === p.id}
+                  onSelect={() => setBrandChoice(p.id)} />
+              ))}
+              <BrandSwatch label="Pick my own" hint={`${cp} · ${cs}`}
+                colors={brandChoice === "custom" ? [cp, cs] : []}
+                glyph="+"
+                active={brandChoice === "custom"}
+                onSelect={() => setBrandChoice("custom")} />
+            </div>
+            {brandChoice === "custom" && (
+              <div style={{ marginTop: 12, display: "flex", gap: 14, flexWrap: "wrap" }}>
+                <HexStop label="PRIMARY" value={cp} onChange={setCustomPrimary} />
+                <HexStop label="SECONDARY" value={cs} onChange={setCustomSecondary} />
+              </div>
+            )}
+            <div style={{ marginTop: 10, fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)" }}>
+              {brandPalette ? "ACCENTS ONLY — GROUND, TYPE & MOTION STAY THE PACK'S"
+                : framePack === "auto" ? "THE PACK WE CAST KEEPS ITS OWN ACCENTS"
+                  : "THIS PACK KEEPS ITS OWN ACCENTS"}
+            </div>
+          </div>
+          {/* Brand assets — the user's own logo + product images. These become the
+              film's PRIMARY visuals (uploads > your site > curated > stock): product
+              screenshots earn device-frame hero scenes, the logo appears at the open
+              and the CTA. Stock only fills the gaps. */}
+          <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
+            <span className="spine" style={{ "--spine": "#4ac9f2" }} />
+            <div className="label-mono" style={{ marginBottom: 10 }}>
+              BRAND ASSETS — {logoFile || assetFiles.length
+                ? `${logoFile ? "LOGO" : ""}${logoFile && assetFiles.length ? " + " : ""}${assetFiles.length ? `${assetFiles.length} IMAGE${assetFiles.length > 1 ? "S" : ""}` : ""}`
+                : "NONE"}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "flex-start" }}>
+              {/* The logo slot — square, its own field so it is never misclassified. */}
+              <button type="button" onClick={() => (logoFile ? setLogoFile(null) : logoInput.current?.click())}
+                title={logoFile ? `${logoFile.name} — click to remove` : "Upload your logo (png/jpg/webp/svg)"}
+                aria-label={logoFile ? `Remove logo ${logoFile.name}` : "Upload your logo"}
+                style={{
+                  width: 54, height: 54, borderRadius: 10, cursor: "pointer", display: "grid", placeItems: "center",
+                  background: logoFile ? "#fff" : "transparent", overflow: "hidden", position: "relative",
+                  border: logoFile ? "1px solid rgba(23,19,14,.2)" : "1px dashed rgba(23,19,14,.3)",
+                  fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.1em", color: "var(--color-dim)",
+                }}>
+                {logoThumb ? <img src={logoThumb} alt="" style={{ maxWidth: "84%", maxHeight: "84%", objectFit: "contain" }} /> : <span>◇ LOGO</span>}
+              </button>
+              {/* Uploaded image thumbnails, newest last; click to remove. */}
+              {assetFiles.map((f, i) => (
+                <button key={`${f.name}|${f.size}`} type="button"
+                  onClick={() => setAssetFiles((prev) => prev.filter((_, k) => k !== i))}
+                  title={`${f.name} — click to remove`} aria-label={`Remove image ${f.name}`}
+                  style={{
+                    width: 54, height: 54, borderRadius: 10, cursor: "pointer", overflow: "hidden", padding: 0,
+                    border: "1px solid rgba(23,19,14,.2)", background: "var(--color-ground-2)",
+                  }}>
+                  <img src={assetThumbs[i]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                </button>
+              ))}
+              {/* Add tile — click to pick, or drop files anywhere on it. */}
+              {assetFiles.length < MAX_ASSETS && (
+                <button type="button" onClick={() => assetsInput.current?.click()}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => { e.preventDefault(); addAssetFiles(e.dataTransfer.files); }}
+                  title="Add product screenshots / photos (png/jpg/webp, up to 12)"
+                  aria-label="Add product images"
+                  style={{
+                    width: 54, height: 54, borderRadius: 10, cursor: "pointer", display: "grid", placeItems: "center",
+                    background: "transparent", border: "1px dashed rgba(23,19,14,.3)",
+                    fontFamily: "var(--font-mono)", fontSize: 16, color: "var(--color-dim)",
+                  }}>+</button>
+              )}
+            </div>
+            <input ref={logoInput} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden
+              onChange={(e) => { acceptLogo(e.target.files?.[0]); e.target.value = ""; }} />
+            <input ref={assetsInput} type="file" accept="image/png,image/jpeg,image/webp" multiple hidden
+              onChange={(e) => { addAssetFiles(e.target.files); e.target.value = ""; }} />
+            <div style={{ marginTop: 10, fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)" }}>
+              {logoFile || assetFiles.length
+                ? "YOUR MATERIAL LEADS — SCREENSHOTS GET HERO SCENES · LOGO AT OPEN + CTA · STOCK ONLY FILLS GAPS"
+                : "OPTIONAL — UPLOAD YOUR LOGO & PRODUCT SHOTS AND THE FILM IS BUILT AROUND THEM"}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -340,6 +553,47 @@ function orderPacks(serverPacks) {
   const known = PACK_ORDER.map((name) => ({ name, ...(byName[name] || {}) }));
   const extras = serverPacks.filter((p) => !PACK_LORE[p.name]);
   return [...known, ...extras];
+}
+
+// One palette option: the LIFTED PALETTE swatch language from the Understanding
+// screen (36px, rounded, hex in the tooltip), carrying two stops — because two is
+// what an emphasis pair is, here and in the cut. No colors is a DASHED slot, not
+// an invented hue: an uncast pack has no accents to show yet, and neither do we.
+//
+// The ring is ink, not the magenta the pack cards use: a 36px swatch can BE
+// magenta, and a selection ring that disappears on one of the options isn't one.
+function BrandSwatch({ label, hint, colors = [], active, loading = false, glyph = null, onSelect }) {
+  const [a, b = a] = colors;
+  return (
+    <button type="button" onClick={onSelect}
+      title={`${label} — ${hint}`} aria-label={`${label} — ${hint}`} aria-pressed={active}
+      style={{
+        width: 36, height: 36, borderRadius: 10, cursor: "pointer", display: "grid", placeItems: "center",
+        background: loading ? "var(--color-ground-2)" : a ? `linear-gradient(120deg, ${a}, ${b})` : "transparent",
+        border: a || loading ? "1px solid rgba(23,19,14,.12)" : "1px dashed rgba(23,19,14,.25)",
+        outline: active ? "2px solid var(--color-ink)" : "none", outlineOffset: 2,
+        animation: loading ? "softPulse 1.6s ease-in-out infinite" : "none",
+        fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--color-dim)",
+      }}>
+      {!a && !loading ? glyph : null}
+    </button>
+  );
+}
+
+// A hex stop: the native color well, with its value in mono beside it so the pick
+// stays a color you can read back and match against a brand book — not just a
+// well you clicked once.
+function HexStop({ label, value, onChange }) {
+  return (
+    <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+      <input type="color" value={value} onChange={(e) => onChange(e.target.value)} aria-label={`${label} brand color`}
+        style={{ width: 28, height: 28, padding: 0, borderRadius: 8, border: "1px solid rgba(23,19,14,.2)", background: "none", cursor: "pointer" }} />
+      <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.14em", color: "var(--color-dim)" }}>{label}</span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--color-ink)" }}>{value.toUpperCase()}</span>
+      </span>
+    </label>
+  );
 }
 
 // Selection ring + magenta check over a pack card.

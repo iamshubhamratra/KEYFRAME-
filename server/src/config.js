@@ -274,6 +274,24 @@ function build() {
       : (vldCfg.enabled !== false),
   };
 
+  // Screenshot Intelligence — captures cleaner shots (broadened overlay dismissal
+  // at ingest), prunes blank/duplicate website screenshots deterministically before
+  // they become assets (services/screenshot_intake.js), and lets the Creative
+  // Director's EXISTING vision verdict demote popup/loading/broken shots. Adds NO
+  // new vision call. Default ON; disable with SCREENSHOT_INTELLIGENCE=0. Fail-open —
+  // never blocks a render; a bad screenshot is de-pinned/demoted, never rejected.
+  const siCfg = cfg.screenshotIntelligence || {};
+  cfg.screenshotIntelligence = {
+    enabled: process.env.SCREENSHOT_INTELLIGENCE != null
+      ? /^(1|true|yes|on)$/i.test(String(process.env.SCREENSHOT_INTELLIGENCE))
+      : (siCfg.enabled !== false),
+    // A surviving overlay covering more than this % of the frame (LLM estimate,
+    // a soft bucket not a precise gate) demotes the shot to background B-roll.
+    popupDemotePct: Number.isFinite(siCfg.popupDemotePct) ? siCfg.popupDemotePct : 15,
+    // A shot the CD reads as loading/broken/empty is demoted regardless of coverage.
+    demoteOnIncomplete: siCfg.demoteOnIncomplete !== false,
+  };
+
   validate(cfg);
 
   // Resolve paths relative to project root.

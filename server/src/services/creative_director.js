@@ -25,6 +25,7 @@ const frameManifest = require("./frame_manifest");
 const { acquire } = require("./asset_sources");
 const taxonomy = require("./asset_taxonomy");
 const clip = require("./asset_clip");
+const { rankKey, isLogo } = require("./asset_priority");
 
 const SYSTEM = fs.readFileSync(
   path.join(__dirname, "..", "prompts", "system_creative_director.md"),
@@ -140,7 +141,9 @@ async function reviewChunk({ chunk, baseIndex, subject, categoryText, packText, 
       `type: ${a.type}`,
       a.width && a.height ? `dims: ${a.width}x${a.height}` : "",
       clipHint,
-      isWebStock(a) ? "web-stock (rejectable)" : "trusted (owned/curated — do not reject for relevance)",
+      a.source === "upload"
+        ? "THE USER'S OWN UPLOAD (sovereign — never reject; assess honestly and prefer hero/support prominence)"
+        : isWebStock(a) ? "web-stock (rejectable)" : "trusted (owned/curated — do not reject for relevance)",
     ].filter(Boolean).join(" · ");
     content.push({ type: "text", text: `Asset ${n + 1} (${meta}):` });
     content.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${x.b}` } });
@@ -226,7 +229,11 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
   // Attach absolute paths for thumbnailing (assets carry jobDir-relative paths).
   for (const a of list) a.__absPath = a && a.path ? path.join(jobDir, a.path) : null;
 
-  const visual = list.filter((a) => a && (a.type === "image" || a.type === "video") && a.__absPath && fs.existsSync(a.__absPath));
+  // The user's LOGO never enters the review at all — the rubric rightly rejects
+  // "logos/watermarks" as stock-imagery defects, and the one logo that ISN'T a
+  // defect is the user's own, about which vision has nothing to decide. It rides
+  // the asset list untouched (key-moment treatment happens in the composers).
+  const visual = list.filter((a) => a && !isLogo(a) && (a.type === "image" || a.type === "video") && a.__absPath && fs.existsSync(a.__absPath));
 
   // ---- 0) CLIP pre-scoring: local image<->text semantic relevance ----
   // A cheap, deterministic "do the PIXELS match the subject?" probability (0..1)
@@ -259,6 +266,10 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
   const assetScores = {};
   const rejectedAssets = [];
   const toDelete = new Set(); // indices into `visual`
+  // Screenshot Intelligence QA demotions (website screenshots the CD's vision
+  // verdict flagged as popup-covered / loading / broken) — for disclosure.
+  const si = config.screenshotIntelligence || {};
+  const screenshotDemotions = [];
   visual.forEach((a, i) => {
     const v = verdicts.get(i);
     if (!v) return; // unreviewed -> untouched (fail-open)
@@ -285,6 +296,32 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
       // visionOk gates PROMINENT slots in scene_kit (montage/split/hero).
       a.visionOk = a.cdProminence === "hero" || a.cdProminence === "support";
     }
+
+    // SCREENSHOT INTELLIGENCE (QA axis, source website only): the CD's SAME vision
+    // verdict now also reports popup residue / completeness / obstruction (see
+    // system_creative_director.md). This is a QA signal, NOT a relevance reject —
+    // screenshots keep their relevance sovereignty (never deleted). A popup-covered
+    // or loading/broken/empty shot is force-DEMOTED to background B-roll via
+    // __layoutDemoted (the ONE lever scene_kit.prominentOk honors on EVERY pipeline,
+    // since directLayout runs only in the graph path) and disclosed. Fail-open:
+    // absent fields → no demotion → today's behavior.
+    if (si.enabled && a.source === "website" && !a.__rejected) {
+      const cov = Number(v.popupCoverage);
+      const comp = String(v.completeness || "").toLowerCase();
+      const incomplete = si.demoteOnIncomplete !== false && ["loading", "broken", "empty"].includes(comp);
+      const popupBad = Number.isFinite(cov) && cov > (Number.isFinite(si.popupDemotePct) ? si.popupDemotePct : 15);
+      if (popupBad || incomplete) {
+        a.__layoutDemoted = true;
+        a.visionOk = false;
+        a.cdProminence = "background";
+        screenshotDemotions.push({
+          path: path.basename(a.path),
+          reason: incomplete ? comp : "popup",
+          coveragePct: Number.isFinite(cov) ? Math.round(cov) : null,
+          obstruction: v.obstruction ? String(v.obstruction).slice(0, 16) : null,
+        });
+      }
+    }
   });
 
   // ---- 3) Guardrails: quality-over-quantity cap + never-zero ----
@@ -299,10 +336,12 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
     if (!byScene.has(k)) byScene.set(k, []);
     byScene.get(k).push(a);
   }
-  // Rank prominent slots by the CD's score blended with CLIP pixel-relevance, so a
-  // genuinely on-subject image wins the hero slot over a higher-talked-up but
-  // weaker-matching one (CLIP 0..1 contributes up to ~30 pts against cdScore 0..100).
-  const rankScore = (a) => (a.cdScore || 0) + (typeof a.clipRelevance === "number" ? a.clipRelevance * 30 : 0);
+  // Rank prominent slots TIER-FIRST (the user's uploads > their site's captures >
+  // curated > stock — asset_priority.rankKey makes tier the ×1000 major key), then
+  // by the CD's score blended with CLIP pixel-relevance within a tier. This is the
+  // line that used to be tier-BLIND: a lucky stock photo could out-score the user's
+  // own dashboard and demote it out of the prominent slots it was uploaded for.
+  const rankScore = (a) => rankKey(a, (a.cdScore || 0) + (typeof a.clipRelevance === "number" ? a.clipRelevance * 30 : 0));
   for (const arr of byScene.values()) {
     arr.sort((x, y) => rankScore(y) - rankScore(x));
     arr.slice(Math.max(1, maxPerScene)).forEach((a) => { a.visionOk = false; a.cdProminence = "background"; });
@@ -438,7 +477,7 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
     creativeDirectorNotes: notes.slice(0, 20),
   };
 
-  return { assets: curated, report };
+  return { assets: curated, report, screenshotDemotions };
 }
 
 // Thin wrapper used by all three pipeline paths: flag-gate, run, persist the
@@ -447,8 +486,12 @@ async function reviewAndCurate({ jobId, ...rest }) {
   if (!cd().enabled) return rest.assets || [];
   const original = rest.assets || [];
   try {
-    const { assets, report } = await directAssets(rest);
+    const { assets, report, screenshotDemotions } = await directAssets(rest);
     if (jobId) { try { db.setCreativeReview(jobId, report); } catch { /* best effort */ } }
+    // Merge the QA demotions into the intake-written screenshot review (disclosure).
+    if (jobId && screenshotDemotions && screenshotDemotions.length) {
+      try { db.setScreenshotReview(jobId, { demoted: screenshotDemotions }); } catch { /* best effort */ }
+    }
     console.log(`[creative_director] job ${jobId || "?"}: ${report.approvedAssets.length} approved / ${report.rejectedAssets.length} rejected, quality=${report.qualityScore}, ${report.creativeDirectorNotes.length} note(s)`);
     return assets;
   } catch (e) {

@@ -69,9 +69,14 @@ function headlineSpans(headline, emphasis) {
   }).join(" ");
 }
 
-// Deep cinematic theme (3D reads best dark); accent colors from the pack/storyboard.
-function theme3d(framePack, sb) {
-  const base = deriveTheme(framePack, sb);
+// Deep cinematic theme (3D reads best dark); accent colors from the pack/storyboard —
+// or, when a BRAND SKIN is present, from the brand. deriveTheme's 3rd arg runs
+// resolveBrand and merges the brand's accents AHEAD of the pack's, so passing it here
+// is all it takes for the whole neon 3D stage (emissive shapes, glow, particles, the
+// colored lights below) to hue-rotate to the brand — the existing neonize() lift then
+// brightens each for the dark ground exactly as it did for the pack's own accents.
+function theme3d(framePack, sb, brandSkin) {
+  const base = deriveTheme(framePack, sb, brandSkin);
   const rawAccents = (base.accents && base.accents.length ? base.accents : ["#7CC4FF", "#FF7DB4", "#FFC878"]).slice(0, 3);
   // Pack-aware 3D ground (Phase 3): the pack's authored camera3d.ground — its OWN
   // branded dark — instead of one generic #05060E for every light pack. 3D still
@@ -93,6 +98,9 @@ function theme3d(framePack, sb) {
     displayStack: base.displayStack || SAFE_FONTS,
     fontFace: base.fontFace || "",
     panel: "rgba(255,255,255,0.06)", line: "rgba(255,255,255,0.14)",
+    // The resolved PackSkin (or the pack's own resolution when no brand applied) —
+    // carried out so buildComposition can disclose what the film actually wore.
+    brand: base.brand || null,
   };
 }
 
@@ -358,22 +366,26 @@ window.__timelines=window.__timelines||{}; window.__timelines["vid"]=tl;
 `;
 }
 
-function buildComposition({ storyboard, dims, framePack, captionCues, assets } = {}) {
+function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin = null } = {}) {
   const sb = storyboard || {};
   const scenes = Array.isArray(sb.scenes) && sb.scenes.length ? sb.scenes : [{ id: "s1", start: 0, duration: 6, kind: "hook", headline: sb.title || "KEYFRAME" }];
   const D = r2(sb.durationSec || scenes.reduce((a, s) => a + (s.duration || 0), 0) || 12);
   const W = dims.width, H = dims.height;
-  const theme = theme3d(framePack, sb);
+  const theme = theme3d(framePack, sb, brandSkin);
   const seed = hashSeed(`${sb.title || ""}|${scenes.length}|3d`);
 
   // The real website screenshot (if any) becomes the texture on the reveal plate,
   // so the product reveal shows the actual product — not a stylized card. Prefer a
   // website screenshot; fall back to the first image asset; else a stylized screen.
-  const pool = (assets || []).filter((a) => a && a.path && !/\.(mp4|webm|mov)$/i.test(a.path));
+  // The user's logo never fills the single plate (it isn't a picture of the
+  // product); uploads outrank website shots, which outrank vision-approved stock.
+  const pool = (assets || []).filter((a) => a && a.path && String(a.role || "") !== "logo" && !/\.(mp4|webm|mov)$/i.test(a.path));
+  const uploadShot = pool.find((a) => a.source === "upload");
   const websiteShot = pool.find((a) => a.source === "website" || /screenshot|webpage|landing/i.test(a.alt || ""));
-  // Prefer vision-VERIFIED stock over a blind pool[0] — the plate is the most
-  // prominent asset slot in the 3D film, same eligibility bar as scene-kit.
-  const shot = websiteShot || pool.find((a) => a.visionOk === true) || pool[0] || null;
+  // Prefer the user's own upload, then a real website screenshot, then vision-
+  // VERIFIED stock over a blind pool[0] — the plate is the most prominent asset
+  // slot in the 3D film, same eligibility bar (and now the same tier order) as scene-kit.
+  const shot = uploadShot || websiteShot || pool.find((a) => a.visionOk === true) || pool[0] || null;
   const plateTex = shot ? shot.path : null;
 
   // Per-scene time windows + treatment type (literal, for the module).
@@ -390,7 +402,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
   // entirely (e.g. two middle scenes both land on "grid"). If we have a real
   // website screenshot yet no scene shows it, promote the longest interior scene
   // to "crt" — the html-in-canvas retro computer with the product on its screen.
-  if (websiteShot && sceneWindows.length >= 3 && !sceneWindows.some((w) => w.type === "crt" || w.type === "reveal")) {
+  if ((uploadShot || websiteShot) && sceneWindows.length >= 3 && !sceneWindows.some((w) => w.type === "crt" || w.type === "reveal")) {
     let best = 1, bestLen = -1;
     for (let i = 1; i < sceneWindows.length - 1; i++) {
       const len = sceneWindows[i].end - sceneWindows[i].start;
@@ -433,7 +445,9 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
   ].join("\n");
 
   const metaJson = JSON.stringify({ compositionId: "vid", width: W, height: H, fps: dims.fps || 30, duration: D });
-  return { indexHtml, metaJson };
+  // The skin the film actually wore (null unless a brand applied) — for the caller
+  // to persist so the Brand panel discloses it. Same contract as the other composers.
+  return { indexHtml, metaJson, resolvedBrand: theme.brand && theme.brand.applied ? theme.brand : null };
 }
 
 module.exports = { buildComposition };

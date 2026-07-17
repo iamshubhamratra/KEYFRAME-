@@ -47,6 +47,10 @@ export default function App() {
   useEffect(() => { window.scrollTo({ top: 0 }); }, [view]);
 
   // Actually start a generation (assumes authenticated).
+  // NOTE: this landing quick-start path deliberately carries NO files (no
+  // referenceVideo/logo/assets) and must stay a plain-JSON create — a File that
+  // sneaks into these fields would JSON.stringify to {} and post garbage. The
+  // full uploader lives in CreateScreen's BRAND ASSETS card.
   const runGenerate = useCallback(async ({ prompt, url }) => {
     if (startedRef.current) return;
     const hasPrompt = prompt && prompt.trim().length >= 10;

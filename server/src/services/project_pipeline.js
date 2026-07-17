@@ -32,6 +32,8 @@ const { withBudget, attemptLlmComposition, mixAudioIntoVideo, fallbackQueriesFor
 const { acquire, hasProviderFor } = require("./asset_sources");
 const { reviewAndCurate } = require("./creative_director");
 const { directAudio } = require("./audio_director");
+const { pinUserAssets, prepareUserAssets, inventoryForScript } = require("./user_assets");
+const { coverageFromHtml } = require("./asset_coverage");
 
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
 function ms() { return Date.now(); }
@@ -66,6 +68,18 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
       },
     };
 
+    // ---- USER ASSET PRIORITY (intake half): probe + classify the user's own
+    // uploads ONCE, before the brief/script, so the script model can plan
+    // showcase scenes around the actual inventory. Started here so it runs in
+    // parallel with the website/video ingest below; awaited before the brief.
+    // OUTSIDE the __ingested gate on purpose: a transient classification failure
+    // (classified:false survives) retries on regenerate even when the website
+    // ingest already cached itself as done.
+    const userAssetTask = (job.user_assets || []).some((u) => u && u.classified !== true)
+      ? prepareUserAssets({ job, jobDir: jobDirFor(jobId), subject: intent.prompt || intent.websiteUrl || null, tracker })
+          .catch((e) => { console.warn(`[project] user-asset classification failed: ${e.message}`); return null; })
+      : Promise.resolve(null);
+
     // ---- Multi-modal ingest: website + reference video, in parallel.
     // Each worker degrades to null on failure — a dead URL must not kill the
     // project when a prompt is also present.
@@ -95,6 +109,25 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
         job.website_screenshot = website.screenshotPath;
         job.website_screenshots = website.screenshotPaths || (website.screenshotPath ? [website.screenshotPath] : []);
         job.website_title = website.title;
+
+        // SCREENSHOT INTELLIGENCE (deterministic intake prune): drop blank/low-info
+        // and near-duplicate shots BEFORE they become assets. This is the single
+        // upstream wiring point — both the legacy screenshotAssets and the graph
+        // assetSearchAgent read job.website_screenshots, so cleaning it once feeds
+        // both pipelines. Fail-open: any error keeps the original list untouched.
+        if (config.screenshotIntelligence?.enabled && job.website_screenshots.length) {
+          try {
+            const { filterScreenshots } = require("./screenshot_intake");
+            const { keptShots, review } = await filterScreenshots({ shots: job.website_screenshots });
+            job.website_screenshots = keptShots.map((s) => s.path);
+            if (website.isAuthWall) review.suppressed.push("auth-wall");
+            db.setScreenshotReview(jobId, review);
+            if (review.dropped.length) console.log(`[project] screenshot intelligence: kept ${review.kept}/${review.captured} (dropped ${review.dropped.map((d) => d.reason).join(", ")})`);
+          } catch (e) { console.warn(`[project] screenshot intake skipped: ${e.message}`); }
+        } else if (config.screenshotIntelligence?.enabled && website.isAuthWall) {
+          // No usable shots but a real auth wall — disclose why the film uses stock.
+          db.setScreenshotReview(jobId, { captured: 0, kept: 0, dropped: [], suppressed: ["auth-wall"], notes: ["The site is behind a sign-in wall, so its screens can't be shown — the film uses stock/brand visuals instead."] });
+        }
       }
       if (video) intent.video = video;
       // Mark ingest "done" ONLY when a worker actually produced signal. Caching a
@@ -108,6 +141,37 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
       if (!intent.prompt && !website && !video) {
         throw new Error("ingest produced no usable signal (prompt empty, website and video ingest both failed)");
       }
+    }
+
+    // Land the classified manifest before the brief so intent carries the
+    // inventory (the brief prompt serializes the whole intent object).
+    const userManifest = await userAssetTask;
+    if (userManifest) {
+      db.setUserAssets(jobId, userManifest);
+      job.user_assets = userManifest;
+      intent.userAssets = {
+        count: userManifest.filter((u) => u && u.role !== "logo").length,
+        hasLogo: userManifest.some((u) => u && u.role === "logo"),
+        inventory: inventoryForScript(userManifest),
+        types: userManifest.filter((u) => u && u.role !== "logo").map((u) => u.assetType || "other"),
+      };
+      // LOGO -> THEME: quantize the uploaded logo's own brand colors (same ffmpeg
+      // quantizer the website hero uses — dominantColors takes any path). These seed
+      // the Art Director ABOVE website-extracted colors (the logo is the authored
+      // mark, not photography). Fail-open: a monochrome/failed logo yields [] and the
+      // precedence simply falls through.
+      const logoEntry = userManifest.find((u) => u && u.role === "logo" && u.path);
+      if (logoEntry) {
+        try {
+          const { dominantColors } = require("./ingest/website");
+          const cols = await dominantColors(path.join(jobDirFor(jobId), logoEntry.path)).catch(() => []);
+          if (Array.isArray(cols) && cols.length) {
+            intent.logo = { brandColors: cols };
+            console.log(`[project] logo colors extracted: ${cols.join(",")}`);
+          }
+        } catch (e) { console.warn(`[project] logo color extraction skipped: ${e.message}`); }
+      }
+      job.intent = intent;
     }
 
     const intakeBudgetMs = (Number(config.server.stageBudgetSec) || 480) * 1000;
@@ -129,7 +193,7 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
 
     const tScript = ms();
     db.setProgress(jobId, "script");
-    const scriptRes = await withBudget((signal) => generateScript({ brief, signal }), intakeBudgetMs, "script stage");
+    const scriptRes = await withBudget((signal) => generateScript({ brief, userAssets: intent.userAssets || null, signal }), intakeBudgetMs, "script stage");
     tracker.addLlm({ inputTokens: scriptRes.tokensIn, outputTokens: scriptRes.tokensOut, stage: "script" });
     timings.scriptMs = ms() - tScript;
 
@@ -188,14 +252,16 @@ function pickVoice(job, script) {
 // REAL website screenshots captured at ingest become first-class assets,
 // pinned to the scenes that showcase the product (feature/proof/how) so the
 // composer gives them the device-frame hero treatment.
-function screenshotAssets({ job, script, jobDir }) {
+function screenshotAssets({ job, script, jobDir, excludeSceneIds = new Set(), max = 3 }) {
   const shots = (job.website_screenshots || []).filter((p) => { try { return fs.existsSync(p); } catch { return false; } });
   if (!shots.length) return [];
 
   fs.mkdirSync(path.join(jobDir, "assets", "images"), { recursive: true });
   const showcaseScenes = script.scenes.filter((s) => ["feature", "proof", "how", "context"].includes(s.purpose));
   const fallbackScenes = script.scenes.slice(1, -1);
-  const targets = (showcaseScenes.length ? showcaseScenes : fallbackScenes).slice(0, 3);
+  const targets = (showcaseScenes.length ? showcaseScenes : fallbackScenes)
+    .filter((s) => !excludeSceneIds.has(s.id))
+    .slice(0, max);
   const title = job.website_title || "the product";
 
   return shots.slice(0, targets.length).map((src, i) => {
@@ -218,7 +284,15 @@ function screenshotAssets({ job, script, jobDir }) {
 // Caps: 6 searched assets + up to 3 real screenshots, at most 1 video.
 // Returns the availableAssets manifest the composer sees.
 async function acquireScriptAssets({ job, script, jobDir, orientation, tracker }) {
-  const pinned = screenshotAssets({ job, script, jobDir });
+  // USER UPLOADS lead (tier 100) — pinned by reference from jobs/<id>/uploads/.
+  // Website screenshots then fill the showcase scenes the uploads did not take,
+  // and fewer of them when uploads exist (the user's material is the show).
+  const userPins = await pinUserAssets({ job, script, jobDir, maxPins: 6 });
+  const pinned = [
+    ...userPins.pinned,
+    ...(userPins.logoAsset ? [userPins.logoAsset] : []),
+    ...screenshotAssets({ job, script, jobDir, excludeSceneIds: userPins.usedSceneIds, max: userPins.pinned.length ? 2 : 3 }),
+  ];
 
   const wanted = [];
   const videoOk = hasProviderFor("video");
@@ -500,6 +574,20 @@ async function runProduction({ jobId }) {
       }).catch((e) => console.warn(`[project] mix failed: ${e.message}`));
       markStage("audio", t0);
     }
+
+    // User-asset coverage disclosure (fail-open, never touches the render). The
+    // scene-kit attaches an exact assetCoverage; other paths get an HTML scan.
+    try {
+      if ((assets || []).some((a) => a && a.source === "upload")) {
+        let coverage = visualResult && visualResult.assetCoverage;
+        if (!coverage) {
+          let html = "";
+          try { html = fs.readFileSync(path.join(jobDir, "index.html"), "utf8"); } catch { /* no file */ }
+          coverage = coverageFromHtml({ assets, indexHtml: html });
+        }
+        if (coverage) db.setAssetCoverage(jobId, coverage);
+      }
+    } catch { /* fail-open */ }
 
     db.setProgress(jobId, "finalizing");
     const costs = tracker.computeCosts();

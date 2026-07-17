@@ -10,6 +10,7 @@ const { getComposerSkills } = require("./skills");
 const { getCatalogSummary } = require("./catalog");
 const frameRegistry = require("./frame_registry");
 const { extractFirstJsonObject } = require("./json_lenient");
+const { rankKey } = require("./asset_priority");
 
 const SYSTEM_BASE = fs.readFileSync(
   path.join(__dirname, "..", "prompts", "system_composer.md"),
@@ -382,10 +383,19 @@ function quickCheck(indexHtml, metaJsonStr, { width, height, duration, assets, e
   // technical fix shouldn't be bounced for an unrelated reason.
   if (enforceVectors) {
     const usedImg = new Set(imgSrcs);
+    // The user's logo is exempt — it's key-moment material (chip/lockup), and
+    // demanding hero treatment for a logo produces a full-frame logo slide.
     const screenshots = (assets || []).filter(
-      (a) => a && a.path && (a.source === "website" || /screenshot/i.test(a.alt || ""))
+      (a) => a && a.path && String(a.role || "") !== "logo"
+        && (a.source === "upload" ? a.kindHint !== "photo" : (a.source === "website" || /screenshot/i.test(a.alt || "")))
     );
-    const missing = screenshots.filter((a) => !usedImg.has(a.path));
+    // The MANDATE (retry-forcing) covers at most the top 3 — a 6-12 upload set
+    // would make the gate unsatisfiable (≥55% canvas each) and every premium job
+    // would burn its retries and fall to the scene-kit. Tier-first order: the
+    // user's uploads are the ones the gate exists to protect.
+    const rk = (a) => rankKey(a, a.cdScore || 0);
+    const mandated = screenshots.slice().sort((x, y) => rk(y) - rk(x)).slice(0, 3);
+    const missing = mandated.filter((a) => !usedImg.has(a.path));
     if (missing.length) {
       errs.push(
         `REQUIRED product screenshot(s) missing from the composition: ${missing.map((a) => a.path).join(", ")}. ` +

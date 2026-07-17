@@ -79,6 +79,17 @@ function shape(j) {
     fps: j.fps,
     duration: j.duration,
     framePack: j.frame_pack || null,
+    brandPalette: j.brand_palette || null,
+    // Light manifest so the UI can confirm what the server holds and label the
+    // coverage panel — ids/roles/types, never absolute server paths or pixels.
+    userAssets: Array.isArray(j.user_assets)
+      ? j.user_assets.map((u) => ({
+          id: u.id, role: u.role, path: u.path, originalName: u.originalName,
+          assetType: u.assetType || null, classified: u.classified === true,
+          sees: u.sees || null, quality: u.quality ?? null,
+        }))
+      : null,
+    assetCoverage: j.asset_coverage || null,
     createdAt: j.created_at,
     startedAt: j.started_at,
     finishedAt: j.finished_at,
@@ -100,6 +111,7 @@ function shape(j) {
     audioReview: j.audio_review || null,
     brandReview: j.brand_review || null,
     layoutReview: j.layout_review || null,
+    screenshotReview: j.screenshot_review || null,
   };
 }
 
@@ -116,6 +128,17 @@ module.exports = {
       height: job.height,
       fps: job.fps,
       frame_pack: job.framePack || null,
+      // The user's own colors, stored verbatim and read straight from the job by
+      // the Art Director. It never travels through `intent` below: that object is
+      // brief-model input, and a hand-picked hex that survives a model round-trip
+      // is no longer the hex the user picked.
+      brand_palette: job.brandPalette || null,
+      // The user's own uploaded images (logo + product material) — the manifest
+      // routes/projects.js staged into jobs/<id>/uploads/. Same law as the palette:
+      // stored verbatim, read straight off the job (user_assets.pinUserAssets),
+      // never laundered through a model. Enriched in place by the intake
+      // classifier (setUserAssets) with dims + assetType.
+      user_assets: job.userAssets || null,
       status: "queued",
       progress: null,
       video_url: null,
@@ -216,10 +239,74 @@ module.exports = {
   },
 
   // Art Director brand skin (accent-only palette derived from the site's brand
-  // colors). Surfaced to the UI via the job view (brandReview).
+  // colors, or from the user's explicit pick). Surfaced to the UI via the job
+  // view (brandReview).
+  //
+  // TWO callers, and the LAST wins by construction. The Art Director writes its
+  // PRE-resolution pick the moment it has chosen (art_director.persistBrandReview);
+  // graph.persistWornBrand then overwrites it AFTER composition with the RESOLVED skin —
+  // what the composer actually wore once the palette was fit to the pack's own ground.
+  // The composition node takes an in-edge from art_direction and this store is
+  // single-threaded, so the resolved write lands last and is authoritative with no lock.
+  // The normalization below gives both shapes one fixed audit trail: a color shifted for
+  // contrast (adjusted) or refused outright (dropped) is precisely what the user must be
+  // told, and the panel must never blank because a caller omitted the field. A v1 skin
+  // (accents/emphasis/reason/source/provenance) rides through untouched.
   setBrandReview(id, review) {
     const j = jobs.get(id); if (!j) return;
-    j.brand_review = review || null;
+    j.brand_review = review ? {
+      ...review,
+      adjusted: Array.isArray(review.adjusted) ? review.adjusted : [],
+      dropped: Array.isArray(review.dropped) ? review.dropped : [],
+      tier: review.tier || null,
+      provenance: review.provenance || null,
+    } : null;
+    scheduleWrite();
+  },
+
+  // Intake classifier's enrichment of the user-upload manifest (dims, assetType,
+  // quality, sees). Replaces the whole array — the classifier reads-modifies-writes
+  // the manifest it was handed, and this store is single-threaded.
+  setUserAssets(id, manifest) {
+    const j = jobs.get(id); if (!j) return;
+    j.user_assets = Array.isArray(manifest) ? manifest : null;
+    scheduleWrite();
+  },
+
+  // Asset coverage — how much of the finished film's visual content came from the
+  // user's own material, and where each upload landed. A DISCLOSURE, not a gate
+  // (same law as brand_review): normalized so the panel never blanks on a caller
+  // that omitted a field.
+  setAssetCoverage(id, coverage) {
+    const j = jobs.get(id); if (!j) return;
+    j.asset_coverage = coverage ? {
+      ...coverage,
+      perAsset: Array.isArray(coverage.perAsset) ? coverage.perAsset : [],
+      notes: Array.isArray(coverage.notes) ? coverage.notes : [],
+      logoPlacements: Array.isArray(coverage.logoPlacements) ? coverage.logoPlacements : [],
+      repairLap: coverage.repairLap || null,
+    } : null;
+    scheduleWrite();
+  },
+
+  // Screenshot review — the Screenshot Intelligence disclosure: what was captured,
+  // kept, dropped (blank/duplicate) at intake, and later demoted (popup/loading/
+  // broken) by the Creative Director's vision verdict. Written in TWO passes into
+  // ONE field, so this SHALLOW-MERGES: intake writes captured/kept/dropped/
+  // suppressed; the CD later writes just { demoted } and must not clobber the base.
+  // Arrays coerced so the panel never blanks (same law as setAssetCoverage).
+  setScreenshotReview(id, review) {
+    const j = jobs.get(id); if (!j) return;
+    if (!review) { j.screenshot_review = null; scheduleWrite(); return; }
+    const prev = j.screenshot_review || {};
+    const merged = { ...prev, ...review };
+    j.screenshot_review = {
+      ...merged,
+      dropped: Array.isArray(merged.dropped) ? merged.dropped : [],
+      suppressed: Array.isArray(merged.suppressed) ? merged.suppressed : [],
+      demoted: Array.isArray(merged.demoted) ? merged.demoted : [],
+      notes: Array.isArray(merged.notes) ? merged.notes : [],
+    };
     scheduleWrite();
   },
 

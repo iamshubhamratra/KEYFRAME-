@@ -149,18 +149,31 @@ export default function ProductionTheater({ projectId, onDone, onFailed }) {
       {/* Audio Director — the soundtrack mix, live */}
       <AudioDirectorPanel review={project?.audioReview} active={project?.progress === "audio_director"} />
 
+      {/* Asset Coverage — how much of the film is the user's OWN material */}
+      <AssetCoveragePanel coverage={project?.assetCoverage} />
+
+      {/* Screenshot Intelligence — which captured screenshots were kept / dropped / demoted */}
+      <ScreenshotReviewPanel review={project?.screenshotReview} />
+
       {/* assets land as chips */}
       {assets.length > 0 && (
         <div style={{ marginTop: 40 }}>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.2em", color: "var(--color-dim)", textTransform: "uppercase", marginBottom: 14 }}>
-            ASSETS GATHERED — {assets.length} ({assets.filter((a) => a.fromCache).length} FROM YOUR LIBRARY)
+            ASSETS GATHERED — {assets.length}
+            {assets.some((a) => a.source === "upload") && ` (${assets.filter((a) => a.source === "upload").length} YOURS)`}
+            {assets.some((a) => a.fromCache) && ` (${assets.filter((a) => a.fromCache).length} FROM YOUR LIBRARY)`}
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {assets.map((a, i) => (
               <motion.span key={i} initial={{ scale: 0, rotate: -6 }} animate={{ scale: 1, rotate: 0 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20, delay: Math.min(i * 0.06, 1.4) }}
-                className="chip" style={a.fromCache ? { borderColor: "rgba(232,50,168,.45)", color: "var(--color-mag)" } : undefined}>
-                {a.type} · {a.source}
+                className="chip" style={
+                  // The user's own uploads read as THEIRS at a glance (cyan);
+                  // cache hits keep their magenta tint.
+                  a.source === "upload" ? { borderColor: "rgba(74,201,242,.55)", color: "var(--color-cy)" }
+                    : a.fromCache ? { borderColor: "rgba(232,50,168,.45)", color: "var(--color-mag)" } : undefined
+                }>
+                {a.source === "upload" ? `${String(a.role || "") === "logo" ? "logo" : a.type} · yours` : `${a.type} · ${a.source}`}
               </motion.span>
             ))}
           </div>
@@ -262,6 +275,159 @@ function Tally({ n, label, c }) {
   );
 }
 
+// Screenshot Intelligence — the disclosure panel for website screenshots: what
+// Puppeteer captured, what the deterministic intake dropped (blank / near-duplicate),
+// what an auth wall suppressed, and what the Creative Director's vision verdict
+// demoted (popup residue / loading / broken). Only appears when a website was
+// ingested (screenshotReview populated), so prompt-only / upload-only jobs never
+// see it. Same disclosure voice as the Brand and Asset-Coverage panels.
+function ScreenshotReviewPanel({ review }) {
+  if (!review) return null;
+  const captured = review.captured || 0;
+  const kept = review.kept || 0;
+  const dropped = review.dropped || [];
+  const suppressed = review.suppressed || [];
+  const demoted = review.demoted || [];
+  // Nothing worth showing (a clean single-shot capture with no events) → stay quiet.
+  if (!captured && !suppressed.length) return null;
+  const blanks = dropped.filter((d) => d.reason === "blank").length;
+  const dups = dropped.filter((d) => d.reason === "duplicate").length;
+  const AC = "#4ac9f2";
+  return (
+    <div style={{ marginTop: 40 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.2em", color: AC, textTransform: "uppercase" }}>
+          ● SCREENSHOT INTELLIGENCE
+        </span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.14em", color: "var(--color-dim)" }}>
+          ONLY CLEAN PRODUCT SCREENS REACH THE FILM
+        </span>
+      </div>
+      <div className="editor-card" style={{ padding: 20 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 26, alignItems: "center" }}>
+          <Tally n={captured} label="captured" c="#f2ede2" />
+          <Tally n={kept} label="kept clean" c="#39c98d" />
+          {(blanks + dups) > 0 && <Tally n={blanks + dups} label="dropped" c="#f0a35f" />}
+          {demoted.length > 0 && <Tally n={demoted.length} label="demoted" c="#f0705f" />}
+          {suppressed.includes("auth-wall") && (
+            <div style={{ marginLeft: "auto", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em", color: "#f0a35f" }}>
+              ⚠ AUTH WALL — SCREENS SUPPRESSED
+            </div>
+          )}
+        </div>
+
+        {dropped.length > 0 && (
+          <div style={{ marginTop: 16, borderTop: "1px solid rgba(242,237,226,.08)", paddingTop: 14 }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.16em", color: "#f0a35f", textTransform: "uppercase", marginBottom: 8 }}>
+              DROPPED AT CAPTURE — {dropped.length}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              {dropped.slice(0, 6).map((d, i) => (
+                <div key={i} style={{ fontSize: 12.5, color: "var(--color-dim)", lineHeight: 1.4 }}>
+                  <span style={{ color: "#f0a35f", marginRight: 6 }}>✕</span>
+                  {d.reason === "blank" ? "blank / low-detail capture" : "near-duplicate of a stronger shot"}
+                  <span style={{ opacity: 0.6 }}> · {d.path}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {demoted.length > 0 && (
+          <div style={{ marginTop: 14, borderTop: "1px solid rgba(242,237,226,.08)", paddingTop: 14 }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.16em", color: "#f0705f", textTransform: "uppercase", marginBottom: 8 }}>
+              DEMOTED — POPUP / LOADING / BROKEN — {demoted.length}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              {demoted.slice(0, 6).map((d, i) => (
+                <div key={i} style={{ fontSize: 12.5, color: "var(--color-dim)", lineHeight: 1.4 }}>
+                  <span style={{ color: "#f0705f", marginRight: 6 }}>▽</span>
+                  {d.reason === "popup"
+                    ? `overlay covering ~${d.coveragePct != null ? `${d.coveragePct}%` : "part"} of the frame${d.obstruction ? ` (${d.obstruction})` : ""}`
+                    : `${d.reason} screen`}
+                  <span style={{ opacity: 0.6 }}> · {d.path}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {(review.notes || []).length > 0 && (
+          <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 4 }}>
+            {(review.notes || []).slice(0, 2).map((n, i) => (
+              <div key={i} style={{ fontSize: 12.5, color: "var(--color-dim)", lineHeight: 1.5 }}>{n}</div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Asset Coverage — the honesty panel for user uploads. Shows how much of the
+// finished film is the user's OWN material and, crucially, what did NOT fit (the
+// adjusted[]/dropped[] disclosure voice from the Brand panel). Only appears when
+// the user actually uploaded assets, so a stock-only job never sees it.
+function AssetCoveragePanel({ coverage }) {
+  if (!coverage || !coverage.uploadedAssets) return null;
+  const pct = coverage.usagePercentage;
+  const AC = pct >= 70 ? "#39c98d" : pct >= 40 ? "#f0a35f" : "#f0705f";
+  const notes = coverage.notes || [];
+  return (
+    <div style={{ marginTop: 40 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.2em", color: "#4ac9f2", textTransform: "uppercase" }}>
+          ● ASSET COVERAGE
+        </span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.14em", color: "var(--color-dim)" }}>
+          THE FILM, BUILT FROM YOUR OWN MATERIAL
+        </span>
+      </div>
+      <div className="editor-card" style={{ padding: 20 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 26, alignItems: "center" }}>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 30, fontWeight: 700, lineHeight: 1, color: AC }}>{pct}<span style={{ fontSize: 13, color: "var(--color-dim)" }}>%</span></span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.14em", color: "var(--color-dim)", textTransform: "uppercase", marginTop: 4 }}>YOURS ON SCREEN</span>
+          </div>
+          <Tally n={`${coverage.assetsUsed}/${coverage.uploadedAssets}`} label="uploads shown" c="#4ac9f2" />
+          <div style={{ marginLeft: "auto", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em", color: coverage.logoUsed ? "#39c98d" : "var(--color-dim)" }}>
+            LOGO · <span style={{ color: coverage.logoUsed ? "#39c98d" : "#f0705f" }}>
+              {coverage.logoUsed ? (coverage.logoPlacements || []).join(" + ").toUpperCase() || "SHOWN" : "NOT PLACED"}
+            </span>
+          </div>
+        </div>
+
+        {coverage.repairLap && coverage.repairLap.ran && (
+          <div style={{ marginTop: 14, fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em", color: "var(--color-dim)" }}>
+            RE-WOVE TO FIT MORE · <span style={{ color: "#f2ede2" }}>{coverage.repairLap.before}% → {coverage.repairLap.after}%</span>
+          </div>
+        )}
+
+        {notes.length > 0 && (
+          <div style={{ marginTop: 16, borderTop: "1px solid rgba(242,237,226,.08)", paddingTop: 14, display: "flex", flexDirection: "column", gap: 6 }}>
+            {notes.slice(0, 3).map((n, i) => (
+              <div key={i} style={{ fontSize: 12.5, color: "var(--color-dim)", lineHeight: 1.5 }}>{n}</div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Where the palette came from — a different question from `source` (which model or
+// rule chose the accents). A palette the user picked, one lifted off their site and
+// one a model invented are three different claims, and the panel is the only place
+// that ever tells them apart. An INFERRED palette is the brief model's own guess, so
+// it says so in plain words: passing a guess off as someone's brand is the one thing
+// this panel must never do.
+const PROVENANCE = {
+  explicit: { label: "YOURS — YOU PICKED IT" },
+  logo: { label: "LIFTED FROM YOUR LOGO" },
+  extracted: { label: "LIFTED FROM YOUR SITE" },
+  inferred: { label: "WE GUESSED — PICK YOUR OWN", warn: true },
+};
+
 // The Art Director's verdict — the accent-only brand skin distilled from the site's
 // real colors. Shown live while the "BRAND" stage runs. Sibling to the other review
 // panels; the panel tints itself in the brand's own primary accent.
@@ -273,6 +439,12 @@ function BrandDirectorPanel({ review, active }) {
   const AC = accents[0] || "#ff9f43";
   const source = review && review.source;
   const reason = review && review.reason;
+  const prov = (review && PROVENANCE[review.provenance]) || null;
+  // What the pack's ground did to the palette on the way in. A shifted or refused
+  // brand color is exactly what its owner must be told — a correction they can't
+  // see reads as us getting their color wrong.
+  const adjusted = (review && review.adjusted) || [];
+  const dropped = (review && review.dropped) || [];
 
   return (
     <div style={{ marginTop: 40 }}>
@@ -281,7 +453,7 @@ function BrandDirectorPanel({ review, active }) {
           ● ART DIRECTOR
         </span>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.14em", color: "var(--color-dim)" }}>
-          {has ? "MATCHED THE BRAND PALETTE" : "READING THE BRAND PALETTE…"}
+          {!has ? "READING THE BRAND PALETTE…" : prov && prov.warn ? "GUESSED A BRAND PALETTE" : "MATCHED THE BRAND PALETTE"}
         </span>
         {active && !has && (
           <span style={{ width: 7, height: 7, borderRadius: "50%", background: AC, animation: "kf2-blink 1s steps(1) infinite" }} />
@@ -308,16 +480,62 @@ function BrandDirectorPanel({ review, active }) {
                 <span style={{ width: 104, height: 36, borderRadius: 10, background: `linear-gradient(120deg, ${emphasis[0]}, ${emphasis[1] || emphasis[0]})`, border: "1px solid rgba(255,255,255,.18)" }} />
               </div>
             )}
-            <div style={{ marginLeft: "auto", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em", color: "var(--color-dim)" }}>
+            <div style={{ marginLeft: "auto", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em", color: "var(--color-dim)", textAlign: "right", lineHeight: 1.6 }}>
               SOURCE · <span style={{ color: "#f2ede2" }}>{String(source || "default").toUpperCase()}</span>
+              {prov && <><br />PALETTE · <span style={{ color: prov.warn ? "#f0a35f" : "#f2ede2" }}>{prov.label}</span></>}
             </div>
           </div>
+
+          {adjusted.length > 0 && (
+            <div style={{ marginTop: 16, borderTop: "1px solid rgba(242,237,226,.08)", paddingTop: 14 }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.16em", color: "#f0a35f", textTransform: "uppercase", marginBottom: 10 }}>
+                SHIFTED TO STAY LEGIBLE — {adjusted.length}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {adjusted.slice(0, 6).map((a, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, fontSize: 12.5, color: "var(--color-dim)", lineHeight: 1.4 }}>
+                    <Stop c={a.from} /><span style={{ color: "#f0a35f" }}>→</span><Stop c={a.to} />
+                    <span>{a.reason || "lifted to clear this pack's ground"}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {dropped.length > 0 && (
+            <div style={{ marginTop: 14, borderTop: "1px solid rgba(242,237,226,.08)", paddingTop: 14 }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.16em", color: "#f0705f", textTransform: "uppercase", marginBottom: 10 }}>
+                LEFT OUT — {dropped.length}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {dropped.slice(0, 4).map((d, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, fontSize: 12.5, color: "var(--color-dim)", lineHeight: 1.4 }}>
+                    <span style={{ color: "#f0705f" }}>✕</span><Stop c={d.hex} />
+                    <span>{d.reason || "could not read on this pack's ground"}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {reason && (
             <div style={{ marginTop: 16, fontSize: 12.5, color: "var(--color-dim)", lineHeight: 1.5, fontStyle: "italic" }}>“{reason}”</div>
           )}
         </div>
       )}
     </div>
+  );
+}
+
+// The panel's swatch language at correction scale. A shifted color is SHOWN next to
+// its hex, never only named: "we darkened it" is a claim, and the whole point of the
+// disclosure is that the user can check it against the color they handed us.
+function Stop({ c }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+      <span style={{ width: 18, height: 18, borderRadius: 6, background: c, border: "1px solid rgba(255,255,255,.18)" }} />
+      <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#f2ede2" }}>{String(c).toUpperCase()}</span>
+    </span>
   );
 }
 
