@@ -11,6 +11,7 @@ const janitor = require("./src/services/janitor");
 const pipeline = require("./src/services/pipeline");
 const projectPipeline = require("./src/services/project_pipeline");
 const skills = require("./src/services/skills");
+const pixabayBridgeDaemon = require("./src/services/pixabay_bridge_daemon");
 const catalog = require("./src/services/catalog");
 const healthRouter = require("./src/routes/health");
 const jobsRouter = require("./src/routes/jobs");
@@ -25,6 +26,21 @@ async function loadQueue() {
   const mod = require("p-queue");
   return mod.default || mod;
 }
+
+// Pre-import lazily-loaded ESM packages at boot. Under `node --watch`, a
+// runtime dynamic import() adds new files to the watch set and the watcher
+// RESTARTS the process — which killed the server at production start
+// (langgraph via agents/graph.js, transformers via asset_clip.js) and
+// crash-looped every in-flight project job. Boot-time imports are safe
+// (verified: watcher treats them as baseline). Fire-and-forget: neither
+// package is needed before a job runs, and absence is non-fatal.
+Promise.allSettled([
+  import("@langchain/langgraph"),
+  import("@huggingface/transformers"),
+]).then((r) => {
+  const failed = r.filter((x) => x.status === "rejected").length;
+  console.log(`[server] lazy ESM preload done${failed ? ` (${failed} unavailable)` : ""}`);
+});
 
 async function main() {
   // Ensure working dirs exist.
@@ -61,6 +77,19 @@ async function main() {
     })).catch((e) => {
       console.error(`[queue] unhandled intake error: ${e.message}`);
     });
+  }
+
+  // Resume jobs orphaned by a restart (node --watch restarts on every source
+  // save; without this, each restart failed all in-flight takes).
+  for (const entry of db.takeOrphanedTasks()) {
+    if (entry.kind === "project") {
+      console.log(`[server] requeuing orphaned project ${entry.jobId} (${entry.phase}) after restart`);
+      if (entry.phase === "production") enqueueProduction(entry.jobId);
+      else enqueueIntake(entry.jobId);
+    } else {
+      console.log(`[server] requeuing orphaned job ${entry.task.jobId} after restart`);
+      enqueue(entry.task);
+    }
   }
 
   const app = express();
@@ -146,6 +175,9 @@ async function main() {
   // the first composer call doesn't block on GitHub. Non-fatal if either fails.
   skills.warmUp();
   catalog.warmUp();
+  // Keep the Pixabay bridge (audio + vectors source) alive. Audio is
+  // Pixabay-only by default, so a dead bridge = synth-pad music; auto-start it.
+  pixabayBridgeDaemon.warmUp();
 
   // Graceful shutdown: let in-flight renders finish up to 30s.
   function shutdown(signal) {

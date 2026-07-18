@@ -184,6 +184,26 @@ async function understandWebsite({ url, workDir, timeoutMs = 60_000 }) {
         const sparse = document.querySelectorAll("h1,h2,h3").length <= 2 && bodyText.length < 1200;
         return ((titleHit || urlHit) && (hasPw || oauth)) || (hasPw && oauth && sparse);
       })();
+      // Internal page map (nav/footer/body anchors) — fuels the Screenshot
+      // Director, which later captures the pages that match each scene's topic
+      // (pricing scene -> /pricing shot). Same-origin only, deduped by pathname.
+      const pageLinks = (() => {
+        const seen = new Set();
+        const out = [];
+        for (const a of document.querySelectorAll("a[href]")) {
+          let u2; try { u2 = new URL(a.getAttribute("href"), location.href); } catch { continue; }
+          if (!/^https?:$/.test(u2.protocol) || u2.hostname !== location.hostname) continue;
+          const p = u2.pathname.replace(/\/+$/, "") || "/";
+          if (p === (location.pathname.replace(/\/+$/, "") || "/")) continue; // self
+          const key = p.toLowerCase();
+          if (seen.has(key)) continue;
+          seen.add(key);
+          const text = (a.innerText || a.getAttribute("aria-label") || "").replace(/\s+/g, " ").trim().slice(0, 60);
+          out.push({ url: u2.origin + p, text });
+          if (out.length >= 60) break;
+        }
+        return out;
+      })();
       return {
         title: document.title || null,
         description: meta("description") || meta("og:description"),
@@ -191,6 +211,7 @@ async function understandWebsite({ url, workDir, timeoutMs = 60_000 }) {
         headings,
         bodyText,
         authWall,
+        pageLinks,
       };
     });
     const isAuthWall = !!data.authWall;
@@ -273,7 +294,7 @@ async function understandWebsite({ url, workDir, timeoutMs = 60_000 }) {
     const brandColors = await dominantColors(heroPath).catch(() => []);
     const screenshotPath = isAuthWall ? null : heroPath;
 
-    console.log(`[ingest] website understood: "${data.title}" — ${data.headings.length} headings, ${data.bodyText.length}ch body, ${screenshotPaths.length} usable screenshot(s)${isAuthWall ? " (auth wall — screenshots suppressed)" : ""}, colors=${brandColors.join(",")}`);
+    console.log(`[ingest] website understood: "${data.title}" — ${data.headings.length} headings, ${data.bodyText.length}ch body, ${screenshotPaths.length} usable screenshot(s)${isAuthWall ? " (auth wall — screenshots suppressed)" : ""}, ${(data.pageLinks || []).length} internal page link(s), colors=${brandColors.join(",")}`);
     return { url, ...data, isAuthWall, brandColors, screenshotPath, screenshotPaths };
   } finally {
     await browser.close().catch(() => {});

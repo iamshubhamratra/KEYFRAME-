@@ -64,7 +64,7 @@ function hasProviderFor(type) {
 // curated entries already used in this video so a film never reuses a file.
 // `curatedOnly` (CURATED_ONLY_IMAGES override) forbids web stock AND the
 // web-stock cache: the need is served by the curated library or not at all.
-async function acquire({ query, fallbackQueries = [], type, orientation, outputPath, tracker, kindPref, excludeIds, curatedOnly = false, iconColor, iconStyle, styleKeywords }) {
+async function acquire({ query, fallbackQueries = [], type, orientation, outputPath, tracker, kindPref, excludeIds, curatedOnly = false, iconColor, iconStyle, styleKeywords, vectorPrefer }) {
   const queries = [query, ...fallbackQueries].filter(Boolean);
 
   // 0 — the curated local library (user's pre-loaded packs), stills only.
@@ -91,16 +91,21 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
     }
   }
 
-  // 0.4 — Pixabay bridge VECTORS (user preference: real Pixabay vector art before
-  // iconify). The bridge returns direct public CDN previews (~1280px PNG), so this
-  // is a normal raster download + validation. Fail-soft: on empty/error/slow it
-  // falls through to iconify below. Validated leniently (no alpha requirement) so
-  // a clean opaque vector illustration still qualifies for a vector slot.
-  if (type === "image" && kindPref === "vector" && pixabayBridge.enabled()) {
+  // VECTORS / ICONS — use BOTH Iconify AND Pixabay. Each vector slot tries one
+  // source, then falls back to the other, so a single miss never leaves a slot
+  // empty. The caller alternates `vectorPrefer` per slot ("iconify"/"pixabay")
+  // so a video ends up with a real MIX of Pixabay vector art AND Iconify icons
+  // instead of every slot coming from whichever source happens to answer first.
+
+  // Pixabay bridge vectors: direct public CDN previews (~1280px PNG) — a normal
+  // raster download + lenient validation (no alpha requirement, opaque vector
+  // illustrations still qualify). Fail-soft on empty/error/slow.
+  async function tryPixabayVectors() {
+    if (!pixabayBridge.enabled()) return null;
     for (const q of queries) {
-      // Clean the query to concrete subject nouns first — a raw scene query full
-      // of camera/motion words ("camera pans rapidly crisp") returns off-topic
-      // vectors (tooth/syringe). No noun survives -> skip the fetch entirely.
+      // Clean to concrete subject nouns first — a raw scene query full of
+      // camera/motion words ("camera pans rapidly crisp") returns off-topic
+      // vectors. No noun survives -> skip the fetch for this query.
       const sq = subjectQuery(q);
       if (!sq) { console.log(`[assets] vector query "${q}" -> no concrete subject noun, skipping pixabay-bridge`); continue; }
       let cands = [];
@@ -124,16 +129,15 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
         } catch (e) { console.warn(`[assets] pixabay-bridge vector candidate failed for "${q}": ${e.message}`); }
       }
     }
+    return null;
   }
 
-  // 0.5 — Iconify: keyless, open-licensed SVG icons for vector/icon roles, after
-  // the curated library and before web stock. Clean line/solid art recolored to
-  // the pack accent — the reliable icon supply the pixabay-vector path never was.
-  // SVG-native: writes an .svg directly (no ffprobe gate); the composer already
-  // places .svg assets. Skipped under PIXABAY_ONLY (iconify is not Pixabay) —
-  // vector roles then rely on the Pixabay bridge above + the Pixabay providers
-  // below (pixabay_scrape and the official API both serve vector art).
-  if (type === "image" && kindPref === "vector" && !PIXABAY_ONLY) {
+  // Iconify: keyless, open-licensed SVG icons recolored to the pack accent.
+  // SVG-native (writes an .svg directly, no ffprobe gate). Skipped under the
+  // image-wide PIXABAY_ONLY (iconify is not Pixabay) — vector roles then rely on
+  // Pixabay only. NOT gated by the audio-only AUDIO_PIXABAY_ONLY.
+  async function tryIconify() {
+    if (PIXABAY_ONLY) return null;
     for (const q of queries) {
       let icon = null;
       try { icon = await iconify.fetchIcon({ query: q, color: iconColor, iconStyle, outputPath }); }
@@ -147,6 +151,17 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
           sourceUrl: "https://icon-sets.iconify.design/", width: 128, height: 128,
         };
       }
+    }
+    return null;
+  }
+
+  if (type === "image" && kindPref === "vector") {
+    // Alternate which source leads per slot (caller passes vectorPrefer); each
+    // still falls back to the other so a miss never empties the slot.
+    const order = vectorPrefer === "iconify" ? [tryIconify, tryPixabayVectors] : [tryPixabayVectors, tryIconify];
+    for (const attempt of order) {
+      const hit = await attempt();
+      if (hit) return hit;
     }
   }
 

@@ -20,6 +20,7 @@ const { checkBudget, BUDGET_EXHAUSTED_MSG } = require("./openrouter");
 const { generateBrief } = require("./brief");
 const { generateScript, validateScript, normalizeScript } = require("./script");
 const { understandWebsite } = require("./ingest/website");
+const { understandBlog } = require("./ingest/blog");
 const { transcribeVideo } = require("./ingest/transcribe");
 const { generateStoryboard } = require("./storyboard");
 const { buildFallback } = require("./fallback");
@@ -28,8 +29,11 @@ const { buildCues, writeSrt } = require("./captions");
 const { fetchMusic, fetchSfx } = require("./audio_sources");
 const { VALID_VOICES } = require("./audio_planner");
 const { render } = require("./renderer");
-const { withBudget, attemptLlmComposition, mixAudioIntoVideo, fallbackQueriesFor } = require("./pipeline");
+const { withBudget, attemptLlmComposition, mixAudioIntoVideo, fallbackQueriesFor, retimeScenesToVo } = require("./pipeline");
 const { acquire, hasProviderFor } = require("./asset_sources");
+const { captureTopicShots, mergeShots } = require("./screenshot_director");
+const { blogImageAssets } = require("./blog_assets");
+const { qaGateScreenshots } = require("./screenshot_qa");
 
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
 function ms() { return Date.now(); }
@@ -67,14 +71,23 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
     // ---- Multi-modal ingest: website + reference video, in parallel.
     // Each worker degrades to null on failure — a dead URL must not kill the
     // project when a prompt is also present.
-    if ((intent.websiteUrl || job.upload_path) && !intent.__ingested) {
+    if ((intent.websiteUrl || intent.blogUrl || job.upload_path) && !intent.__ingested) {
       const t0 = ms();
       db.setProgress(jobId, "ingest");
       const workDir = path.join(jobDirFor(jobId), "ingest");
 
-      const websiteTask = intent.websiteUrl
-        ? understandWebsite({ url: intent.websiteUrl, workDir, timeoutMs: config.ingest?.websiteTimeoutMs || 60_000 })
+      // Blog mode reuses the website worker ON THE POST URL for the hero
+      // screenshot + brand colors, while the blog worker reads the article
+      // itself (text, sections, its own images) in parallel.
+      const shotUrl = intent.websiteUrl || intent.blogUrl;
+      const websiteTask = shotUrl
+        ? understandWebsite({ url: shotUrl, workDir, timeoutMs: config.ingest?.websiteTimeoutMs || 60_000 })
             .catch((e) => { console.warn(`[project] website ingest failed: ${e.message}`); return null; })
+        : Promise.resolve(null);
+
+      const blogTask = intent.blogUrl
+        ? understandBlog({ url: intent.blogUrl, workDir: path.join(workDir, "blog"), timeoutMs: config.ingest?.websiteTimeoutMs || 60_000 })
+            .catch((e) => { console.warn(`[project] blog ingest failed: ${e.message}`); return null; })
         : Promise.resolve(null);
 
       const videoTask = job.upload_path
@@ -82,7 +95,7 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
             .catch((e) => { console.warn(`[project] video ingest failed: ${e.message}`); return null; })
         : Promise.resolve(null);
 
-      const [website, video] = await Promise.all([websiteTask, videoTask]);
+      const [website, blog, video] = await Promise.all([websiteTask, blogTask, videoTask]);
       if (website) {
         intent.website = {
           url: website.url, title: website.title, description: website.description,
@@ -93,18 +106,39 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
         job.website_screenshot = website.screenshotPath;
         job.website_screenshots = website.screenshotPaths || (website.screenshotPath ? [website.screenshotPath] : []);
         job.website_title = website.title;
+        // Internal link map for the Screenshot Director (topic-matched page
+        // captures at production time). Persisted with the job like the shots.
+        job.website_pages = website.pageLinks || [];
+        // Auth-wall flag: tells the director to rescue via the product's PUBLIC
+        // marketing site (claude.ai login wall -> claude.com) instead of giving up.
+        job.website_auth_wall = !!website.isAuthWall;
+      }
+      if (blog) {
+        // The article itself, for the brief/script: the film is a companion
+        // piece that SUMMARIZES this post (excerpt bounded so prompts stay sane).
+        intent.blog = {
+          url: blog.url, title: blog.title, author: blog.author || null,
+          published: blog.published || null, headings: blog.headings,
+          excerpt: String(blog.text || "").slice(0, 6000),
+          imageCount: blog.images.length,
+        };
+        job.blog_url = blog.url;
+        job.blog_title = blog.title;
+        // The post's own images (downloaded at ingest) become pinned
+        // owner-content assets at production time (blog_assets.js).
+        job.blog_images = blog.images;
       }
       if (video) intent.video = video;
       // Mark ingest "done" ONLY when a worker actually produced signal. Caching a
       // transient website/transcribe failure as done would permanently strip the
       // real screenshots / brand colors / transcript on every later regenerate;
       // leaving it unset lets the next run retry and recover the on-brand assets.
-      if (website || video) intent.__ingested = true;
+      if (website || blog || video) intent.__ingested = true;
       job.intent = intent; // persist enriched intent for regenerate runs
       timings.ingestMs = ms() - t0;
 
-      if (!intent.prompt && !website && !video) {
-        throw new Error("ingest produced no usable signal (prompt empty, website and video ingest both failed)");
+      if (!intent.prompt && !website && !blog && !video) {
+        throw new Error("ingest produced no usable signal (prompt empty, website/blog/video ingest all failed)");
       }
     }
 
@@ -216,6 +250,13 @@ function screenshotAssets({ job, script, jobDir }) {
 // Caps: 6 searched assets + up to 3 real screenshots, at most 1 video.
 // Returns the availableAssets manifest the composer sees.
 async function acquireScriptAssets({ job, script, jobDir, orientation, tracker }) {
+  // Screenshot Director: topic-matched INTERNAL page captures (pricing scene ->
+  // /pricing shot) run in parallel with everything below; merged at the end.
+  const topicTask = captureTopicShots({
+    job, script, jobDir,
+    topic: (job.brief && job.brief.subject) || job.website_title || "",
+    tracker,
+  }).catch(() => []);
   const pinned = screenshotAssets({ job, script, jobDir });
 
   const wanted = [];
@@ -235,7 +276,12 @@ async function acquireScriptAssets({ job, script, jobDir, orientation, tracker }
       }
     }
   }
-  if (!wanted.length && !pinned.length) return [];
+  if (!wanted.length && !pinned.length) {
+    return qaGateScreenshots({
+      assets: mergeShots(await topicTask, []), jobDir,
+      subject: (job.brief && job.brief.subject) || job.website_title || "", tracker,
+    });
+  }
 
   const videos = wanted.filter((w) => w.need.type === "video").slice(0, 1);
   const images = wanted.filter((w) => w.need.type !== "video").slice(0, 6 - videos.length);
@@ -270,8 +316,18 @@ async function acquireScriptAssets({ job, script, jobDir, orientation, tracker }
   });
 
   const got = (await Promise.all(tasks)).filter(Boolean);
-  console.log(`[project] assets: ${pinned.length} real screenshot(s) + ${got.length}/${picks.length} acquired (${got.filter((a) => a.fromCache).length} from cache)`);
-  return [...pinned, ...got];
+  // Topic page shots claim their scenes; the landing pins fill the rest.
+  // SCREENSHOT QA — vision-inspect every capture and drop broken ones (error
+  // pages, consent modals, bot-walls, blanks) before the composer sees them.
+  const shots = await qaGateScreenshots({
+    assets: mergeShots(await topicTask, pinned), jobDir,
+    subject: (job.brief && job.brief.subject) || job.website_title || "", tracker,
+  });
+  // Blog mode: the post's own images join as pinned owner-content assets on
+  // scenes the screenshots didn't claim.
+  const blogPins = blogImageAssets({ job, script, jobDir, skipSceneIds: new Set(shots.map((a) => String(a.sceneId))) });
+  console.log(`[project] assets: ${shots.length} real screenshot(s) (${shots.filter((a) => /page_/.test(a.path)).length} topic-matched) + ${blogPins.length} blog image(s) + ${got.length}/${picks.length} acquired (${got.filter((a) => a.fromCache).length} from cache)`);
+  return [...shots, ...blogPins, ...got];
 }
 
 async function runProduction({ jobId }) {
@@ -305,6 +361,9 @@ async function runProduction({ jobId }) {
   let usedFallback = false;
   let finalAttempt = "main";
   let visualResult = null;
+  let voClips = [];               // measured narration clips, pinned to re-timed scene starts
+  let startMap = new Map();       // old script scene start -> re-timed start (sfx re-pinning)
+  let effectiveDuration = duration; // grows when scenes stretch to fit their narration
 
   try {
     // ---- Audio starts immediately, in parallel with the visual chain.
@@ -317,13 +376,15 @@ async function runProduction({ jobId }) {
     const voice = pickVoice(job, script);
     const voInstructions = `${script.voice.style}. Pace: ${script.voice.pace}.`;
 
+    // One shared ttsSession = one narrator across all clips of this job.
+    const ttsSession = {};
     const voTask = Promise.all(script.scenes.map((s) =>
       (s.voiceover && s.voiceover.trim())
         ? synthesizeFitted({
             text: s.voiceover, targetSec: s.duration, voice,
             instructions: voInstructions,
             outputPath: path.join(audioDir, `vo-${s.id}.mp3`),
-            tracker,
+            tracker, session: ttsSession,
           })
             .then((r) => r ? { sceneId: s.id, startSec: s.start, durationSec: r.durationSec, sceneDurationSec: s.duration, text: r.text, path: r.path } : null)
             .catch((e) => { console.warn(`[project] vo for ${s.id} failed: ${e.message}`); return null; })
@@ -366,33 +427,52 @@ async function runProduction({ jobId }) {
       const assets = await assetsTask;
       db.setAssets(jobId, assets);
 
-      // Caption cues for ON-SCREEN baking. Estimated from word count (the
-      // composer can't wait for measured VO without serializing the
-      // pipeline); the exported .srt later uses real measured durations.
-      const wc = (s) => (String(s || "").match(/\S+/g) || []).length;
+      // ---- VO-DRIVEN RE-TIMING (the sync fix, ported from /generate) ----
+      // Await the measured narration BEFORE composing and stretch each scene to
+      // contain its line. Without this, a 3.4s line in a 3s scene overlapped the
+      // next scene's narration AND the last line ran past the video end and was
+      // CUT MID-SENTENCE at mux time. VO synthesis started in parallel with the
+      // storyboard + assets above, so most of its latency is already absorbed.
+      voClips = await voTask;
+      const retime = retimeScenesToVo(sbRes.storyboard, script, voClips);
+      startMap = retime.startMap;
+      if (retime.effectiveDuration > 0) effectiveDuration = retime.effectiveDuration;
+      if (effectiveDuration > duration + 0.05) {
+        console.log(`[project] scenes re-timed to measured VO: ${duration}s -> ${effectiveDuration}s (last line no longer cut)`);
+      }
+
+      // Caption cues for ON-SCREEN baking, built from the RE-TIMED scene starts.
       const captionCues = job.captions_enabled === 0 ? [] : buildCues(
         script.scenes
           .filter((s) => s.voiceover && s.voiceover.trim())
-          .map((s) => ({
-            sceneId: s.id,
-            startSec: s.start,
-            durationSec: Math.min(s.duration, wc(s.voiceover) / 2.6 + 0.4),
-            sceneDurationSec: s.duration,
-            text: s.voiceover,
-          }))
+          .map((s) => {
+            const measured = voClips.find((c) => String(c.sceneId) === String(s.id));
+            return {
+              sceneId: s.id,
+              startSec: s.start,
+              durationSec: Math.min(s.duration, measured ? measured.durationSec : s.duration),
+              sceneDurationSec: s.duration,
+              text: s.voiceover,
+            };
+          })
       ).map((c) => ({ start: Math.round(c.start * 10) / 10, end: Math.round(c.end * 10) / 10, text: c.text }));
 
       // ---- Compose + render (frame-pack styled), with the v1 budget wrapper.
       // Tier 1: with assets. Tier 2: asset-less. Tier 3: deterministic fallback.
       const budget = (Number(config.server.stageBudgetSec) || 240) * 1000;
+      // Explicit premium finish → the LLM composer (bespoke page), with the
+      // STRICT identity gate when the user also pinned the template.
+      const remix = job.compose_mode === "premium";
+      const strictIdentity = remix && (job.frame_pack_user === 1 || job.frame_pack_user === true);
       const t1 = ms();
       db.setProgress(jobId, "composing");
       try {
         visualResult = await withBudget(
           (signal) => attemptLlmComposition({
             storyboard: sbRes.storyboard, dims, jobDir,
-            assets, tracker, jobId, durationSec: duration,
+            assets, tracker, jobId, durationSec: effectiveDuration,
             label: "project-main", abortSignal: signal, framePack, captionCues,
+            remix, strictIdentity,
           }),
           budget, "project composition"
         );
@@ -407,8 +487,9 @@ async function runProduction({ jobId }) {
             visualResult = await withBudget(
               (signal) => attemptLlmComposition({
                 storyboard: sbRes.storyboard, dims, jobDir,
-                assets: [], tracker, jobId, durationSec: duration,
+                assets: [], tracker, jobId, durationSec: effectiveDuration,
                 label: "project-no-assets", abortSignal: signal, framePack, captionCues,
+                remix, strictIdentity,
               }),
               budget, "project no-assets retry"
             );
@@ -430,7 +511,7 @@ async function runProduction({ jobId }) {
             }
           } catch { /* best effort */ }
           const fb = buildFallback({
-            prompt: brief?.improvedPrompt || job.prompt, duration,
+            prompt: brief?.improvedPrompt || job.prompt, duration: effectiveDuration,
             orientation: job.orientation, width: dims.width, height: dims.height, fps: dims.fps,
             storyboard: sbRes.storyboard,
             packTokens: framePack ? require("./frame_registry").getPackTokens(framePack) : null,
@@ -438,7 +519,7 @@ async function runProduction({ jobId }) {
           fs.writeFileSync(path.join(jobDir, "index.html"), fb.indexHtml, "utf8");
           fs.writeFileSync(path.join(jobDir, "meta.json"), fb.metaJson, "utf8");
           tracker.addExternal("hyperframes_render");
-          visualResult = await render({ jobId, jobDir, durationSec: duration });
+          visualResult = await render({ jobId, jobDir, durationSec: effectiveDuration });
         }
       }
     }
@@ -447,8 +528,10 @@ async function runProduction({ jobId }) {
     {
       const t0 = ms();
       db.setProgress(jobId, "audio");
-      const [voClips, musicPath, sfxClips] = await Promise.all([voTask, musicTask, sfxTask]);
-      if (sfxClips.length) console.log(`[project] ${sfxClips.length} sfx mixed in`);
+      const [musicPath, sfxClips] = await Promise.all([musicTask, sfxTask]);
+      const r2c = (n) => Math.round(Number(n) * 100) / 100;
+      const sfxRepinned = sfxClips.map((c) => ({ ...c, startSec: startMap.get(r2c(c.startSec)) ?? c.startSec }));
+      if (sfxRepinned.length) console.log(`[project] ${sfxRepinned.length} sfx mixed in`);
 
       // Captions: cue objects + .srt exported next to the MP4.
       const cues = buildCues(voClips);
@@ -464,7 +547,7 @@ async function runProduction({ jobId }) {
 
       await mixAudioIntoVideo({
         visualPath: visualResult.videoPath,
-        durationSec: duration,
+        durationSec: effectiveDuration,
         scenes: sbRes.storyboard?.scenes || null, jobDir,
         audio: {
           ttsPath: null,
@@ -474,7 +557,7 @@ async function runProduction({ jobId }) {
           // and keys the ducking — without it the mixer treats speech as an SFX.
           sfx: [
             ...voClips.map((c) => ({ path: c.path, startSec: c.startSec, volume: 1.0, kind: "vo" })),
-            ...sfxClips,
+            ...sfxRepinned,
           ],
           musicVolume: config.audio?.defaultMusicVolume ?? 0.15,
         },

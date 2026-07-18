@@ -109,11 +109,13 @@ function cutTint(hex, theme) {
 
 // Derive the scene THEME from the chosen pack (authoritative) or, when no pack is
 // bound, the storyboard's own palette. Returns the knobs every archetype re-skins.
-function deriveTheme(framePack, storyboard) {
+function deriveTheme(framePack, storyboard, brandSkin) {
   // Pack identity knobs come from the manifest (single source of truth,
   // frames/<pack>/pack.json). The legacy FLAT_PACKS/LIGHT_GRADIENT_PACKS/
   // PACK_SKINS/PACK_MOTION/fxModeFor tables remain ONLY as the fail-soft
   // fallback for a pack that ships no (or an invalid) manifest.
+  // `brandSkin` (optional, from the Art Director agent) is an ACCENT-ONLY
+  // override derived from the ingested website's real brand colors.
   const manifest = framePack && framePack !== "auto" ? frameManifest.getManifest(framePack) : null;
   const tokens = framePack && framePack !== "auto" ? frameRegistry.getPackTokens(framePack) : null;
   const pal = (storyboard && storyboard.palette) || {};
@@ -164,9 +166,27 @@ function deriveTheme(framePack, storyboard) {
         three: manifest.fx.three }
     : (framePack ? PACK_SKINS[framePack] : null);
   if (skin?.accents) accents = [...skin.accents, ...accents.filter((a) => !skin.accents.includes(a))].slice(0, 4);
-  // Force maximum text contrast against the ground (the storyboard's text hex is
-  // often a mid-tone that reads as muddy).
-  ink = isDark ? "#FFFFFF" : "#14130E";
+  // ART DIRECTOR brand skin (accent-only): the website's real brand colors LEAD
+  // the accent list — hero underline, stat numbers, CTA and emphasis read
+  // on-brand — while the pack keeps its own ground, fonts, and character. Brand
+  // accents pass the SAME near-ground contrast filter as pack accents, so a brand
+  // color too close to the ground is dropped (never an invisible highlight).
+  // Empty/failed skin → the pack's accents stand unchanged (fail-open).
+  if (brandSkin && Array.isArray(brandSkin.accents) && brandSkin.accents.length) {
+    const brand = brandSkin.accents
+      .filter((a) => typeof a === "string" && /^#[0-9a-f]{6}$/i.test(a) && Math.abs(lum(a) - lum(ground)) > 45);
+    if (brand.length) accents = [...brand, ...accents.filter((a) => !brand.includes(a))].slice(0, 4);
+  }
+  // Text ink: the pack may AUTHOR its ink (manifest surface.ink — e.g. blueprint's
+  // #EAF3FF on cyanotype blue, plum on cream) as long as it clears a hard
+  // legibility bar against the ground; otherwise force maximum contrast (the
+  // storyboard's text hex is often a mid-tone that reads as muddy). Before this,
+  // every dark pack got pure white and every light pack near-black — one more
+  // dimension where 40 packs collapsed to 2 looks.
+  const authoredInk = manifest && manifest.surface && manifest.surface.ink;
+  ink = (authoredInk && Math.abs(lum(authoredInk) - lum(ground)) >= 105)
+    ? authoredInk
+    : (isDark ? "#FFFFFF" : "#14130E");
   // BODY stack: fonts the renderer auto-resolves (Inter/system) — the neutral base
   // every scene inherits.
   const RESOLVABLE = new Set(["inter", "roboto", "arial", "helvetica", "georgia", "system-ui"]);
@@ -184,7 +204,14 @@ function deriveTheme(framePack, storyboard) {
   const displayUsable = displayFamily
     && (isBundled(displayFamily) || RESOLVABLE.has(String(displayFamily).toLowerCase().trim()));
   const displayStack = displayUsable ? `'${displayFamily}', ${fontStack}` : fontStack;
-  const fontFace = displayUsable ? fontFaceCss(displayFamily) : "";
+  // Inline @font-face for the display face PLUS any other bundled family the
+  // manifest declares (FRAME.md `fonts`) — e.g. paper-tales' Caveat hand, used
+  // by its ornament module for pen-written asides. Same base64 data-URI path,
+  // so secondary faces stay deterministic/offline too.
+  const secondaryFaces = (manifest && Array.isArray(manifest.fonts) ? manifest.fonts : [])
+    .filter((f) => f && String(f).toLowerCase() !== String(displayFamily || "").toLowerCase() && isBundled(f))
+    .map((f) => fontFaceCss(f));
+  const fontFace = (displayUsable ? fontFaceCss(displayFamily) : "") + secondaryFaces.join("\n");
   // TEXT-FX (per-pack headline animation + typographic treatment). From the
   // manifest's textfx block; every field falls back to the legacy look so packs
   // with no textfx render byte-identically to before (blur-up / gradient / seed
@@ -211,6 +238,11 @@ function deriveTheme(framePack, storyboard) {
     underline: lm.underline !== false,
     propFill: lm.propFill !== false,
     stat: lm.stat === "headline" ? "headline" : "hero",
+    // assetStyle "paper": photos/screenshots/clips are mounted as white-matted,
+    // washi-taped snapshots on the pack ground instead of full-bleed scrims and
+    // glass browser chrome — storybook/scrapbook packs keep their soul in
+    // asset-bearing scenes (the "video ignores my template" complaint).
+    assetStyle: lm.assetStyle === "paper" ? "paper" : "default",
   };
   return {
     ground, ink, accents,
@@ -253,11 +285,42 @@ function emitHelpers(D) {
       + ` if(mode==="typewriter"){ tl.fromTo(cs,{opacity:0},{opacity:1,duration:0.01,ease:"none",stagger:_cstg(cs,0.05,1.0)},at); return; }`
       + ` if(mode==="char-pop"){ tl.fromTo(cs,{opacity:0,scale:0.3,y:12},{opacity:1,scale:1,y:0,duration:0.5,ease:"back.out(2.2)",stagger:_cstg(cs,0.035,0.9)},at); return; }`
       + ` if(mode==="glitch"){ tl.fromTo(cs,{opacity:0,x:-9,skewX:14},{opacity:1,x:0,skewX:0,duration:0.34,ease:"power2.out",stagger:_cstg(cs,0.03,0.8)},at); return; }`
+      /* flap — split-flap departure board: each char cycles through SEEDED wrong
+         characters (deterministic, no Math.random) with a scaleY "clack" squash per
+         swap, then lands on its real character. cyc*2-1 yoyo segments = even total,
+         so every cell ends back at scaleY 1. textContent sets are timeline-anchored
+         (same pattern as countUp), so seeks replay identically. */
+      + ` if(mode==="flap"){ var AL="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"; tl.set(cs,{opacity:0},0); gsap.utils.toArray(cs).forEach(function(el,k){ var t0=el.textContent; var st=at+k*0.045; if(!t0||!t0.trim()){ tl.set(el,{opacity:1},st); return; } var cyc=3+((k*7)%3); for(var j=0;j<cyc;j++){ tl.set(el,{textContent:AL[(k*31+j*17)%AL.length],opacity:1},st+j*0.07); } tl.set(el,{textContent:t0},st+cyc*0.07); tl.fromTo(el,{scaleY:1,opacity:1},{scaleY:0.14,duration:0.035,yoyo:true,repeat:cyc*2-1,ease:"none"},st); }); return; }`
       + ` if(mode==="slide"){ tl.fromTo(ws,{opacity:0,x:-36},{opacity:1,x:0,duration:0.55,ease:"power3.out",stagger:s},at); return; }`
+      /* stamp — the print-press slam (bauhaus-riot's grammar): each word arrives
+         BIG and tilted, then snaps flat like a rubber stamp hitting paper. */
+      + ` if(mode==="stamp"){ tl.fromTo(ws,{opacity:0,scale:1.9,rotation:function(i){return i%2? 4:-5;}},{opacity:1,scale:1,rotation:0,duration:0.4,ease:"power4.in",stagger:Math.max(s,0.14)},at); return; }`
       + ` if(mode==="spring"){ tl.fromTo(ws,{opacity:0,scale:0.62,y:18},{opacity:1,scale:1,y:0,duration:0.7,ease:"back.out(1.9)",stagger:s},at); return; }`
       + ` if(mode==="mask-reveal"){ tl.fromTo(ws,{opacity:0,yPercent:55,clipPath:"inset(0 0 100% 0)"},{opacity:1,yPercent:0,clipPath:"inset(0 0 0% 0)",duration:0.66,ease:"power3.out",stagger:s},at); return; }`
       + ` if(mode==="line-wipe"){ tl.fromTo(ws,{opacity:0,clipPath:"inset(0 100% 0 0)"},{opacity:1,clipPath:"inset(0 0% 0 0)",duration:0.6,ease:"power2.out",stagger:s},at); return; }`
       + ` if(mode==="drift"){ tl.fromTo(ws,{opacity:0,y:26,filter:"blur(5px)"},{opacity:1,y:0,filter:"blur(0px)",duration:0.8,ease:"power2.out",stagger:s*1.4},at); return; }`
+      /* brush — sumi-kaze's loaded brush stroke: each word is dragged on
+         left→right (clip reveal) with the bristle skew relaxing as the stroke
+         lands. Slower stagger than line-wipe + the skew/x settle make it read
+         as calligraphy, not a UI wipe. */
+      + ` if(mode==="brush"){ tl.fromTo(ws,{opacity:0,clipPath:"inset(0 100% 0 0)",skewX:-10,x:-14},{opacity:1,clipPath:"inset(0 0% 0 0)",skewX:0,x:0,duration:0.72,ease:"power2.inOut",stagger:Math.max(s,0.12)},at); return; }`
+      /* pendulum — orrery-brass: words swing down from a pivot high above the
+         line and settle elastically, like an escapement arm coming to rest. */
+      + ` if(mode==="pendulum"){ tl.fromTo(ws,{opacity:0,rotation:-24,y:-30,transformOrigin:"50% -140%"},{opacity:1,rotation:0,y:0,duration:0.95,ease:"elastic.out(1,0.45)",stagger:Math.max(s,0.1)},at); return; }`
+      /* squash — claymotion's stop-motion drop: stretched tall while falling,
+         squashing wide on impact with a back-style overshoot — QUANTIZED to 8
+         visible frames (the custom ease rounds progress to eighths), so the
+         landing reads as hand-animated clay, not a smooth tween. */
+      + ` if(mode==="squash"){ tl.fromTo(ws,{opacity:0,y:-64,scaleY:1.45,scaleX:0.65,transformOrigin:"50% 100%"},{opacity:1,y:0,scaleY:1,scaleX:1,duration:0.6,ease:function(p){var q=Math.ceil(p*8)/8;var u=q-1;return 1+2.7*u*u*u+1.7*u*u;},stagger:Math.max(s,0.11)},at); return; }`
+      /* stitch — folk-stitch's needle punches: each CHARACTER flips up from
+         flat against the felt (rotationX from -92, origin at its baseline)
+         with a small bounce, in a sewing-machine cadence. Char-level: listed
+         in CHAR_ENTERS so headlineSpans emits .kfc spans. */
+      + ` if(mode==="stitch"){ tl.fromTo(cs,{opacity:0,rotationX:-92,y:8,transformOrigin:"50% 100%"},{opacity:1,rotationX:0,y:0,duration:0.42,ease:"back.out(1.6)",stagger:_cstg(cs,0.045,1.0)},at); return; }`
+      /* ripple — abyssal-glow's refraction: words arrive vertically stretched,
+         skewed and blurred as if seen through moving water, then wobble
+         elastically into focus (skew/scale wobble ≠ pendulum's rotation swing). */
+      + ` if(mode==="ripple"){ tl.fromTo(ws,{opacity:0,scaleY:1.35,skewX:12,filter:"blur(7px)"},{opacity:1,scaleY:1,skewX:0,filter:"blur(0px)",duration:0.85,ease:"elastic.out(1,0.55)",stagger:s*1.2},at); return; }`
       + ` tl.fromTo(ws,{yPercent:80,opacity:0,filter:"blur(8px)"},{yPercent:0,opacity:1,filter:"blur(0px)",duration:0.62,ease:"power3.out",stagger:s},at); }`,
     `function pushIn(sel,at,dur,from,to){ tl.fromTo(sel,{scale:from},{scale:to,duration:dur,ease:"none"},at); }`,
     `function countUp(id,to,at,dur,fmt){ var o={v:0}; tl.to(o,{v:to,duration:dur,ease:"power2.out",snap:{v:1},onUpdate:function(){var el=document.getElementById(id);if(el)el.textContent=fmt(Math.round(o.v));}},at); }`,
@@ -298,12 +361,25 @@ function motionFor(framePack, theme) {
 function buildCutLayer(plan, theme, dims, D, motion, seed, track) {
   const bounds = plan.slice(1).map((p) => p.ctx.T);
   if (!bounds.length) return null;
+  // "fade" — the pure dissolve. NO overlay at all: the boundary is carried
+  // entirely by the scenes' own opacity cross (sceneMotion). The quietest cut
+  // in the system — plotted/editorial packs (cartesian) own it.
+  if (motion.cut === "fade") return null;
   const W = dims.width, H = dims.height;
   const els = [], sc = [];
   bounds.forEach((Tb, k) => {
     const A = theme.accents[k % Math.max(1, theme.accents.length)] || theme.accent;
     const id = `kfcut${k}`;
-    if (motion.cut === "wipe" || motion.cut === "push") {
+    if (motion.cut === "cut") {
+      // "cut" — the editorial HARD CUT (print pages turn, they don't dissolve).
+      // A full-frame INK shutter blinks closed and open in ~0.2s: square, opaque,
+      // no blur, no gradient — unmistakably print, nothing like the white "flash"
+      // strobe. immediateRender:false on the exit for the same full-frame-overlay
+      // hazard as wipe/iris (default immediateRender would blank every scene).
+      els.push(`<div id="${id}" style="position:absolute;inset:0;background:${theme.ink};opacity:0;"></div>`);
+      sc.push(`tl.fromTo("#${id}",{opacity:0},{opacity:1,duration:0.09,ease:"power4.in"},${r(Tb - 0.09)});`);
+      sc.push(`tl.fromTo("#${id}",{opacity:1},{opacity:0,duration:0.11,ease:"power4.out",immediateRender:false},${r(Tb + 0.02)});`);
+    } else if (motion.cut === "wipe" || motion.cut === "push") {
       // hard graphic block, alternating direction — the brutalist/print cut.
       // Both halves are fromTo (exempt from the css-transform-conflict rule) so
       // GSAP owns the full transform; the block wipes IN from one edge, then OUT
@@ -357,6 +433,62 @@ function buildCutLayer(plan, theme, dims, D, motion, seed, track) {
       // iris starts its exit from scale:1 (visible); default immediateRender would
       // stretch it over the whole frame from t=0 (blanks noir-spotlight).
       sc.push(`tl.fromTo("#${id}",{scale:1},{scale:0,duration:0.36,ease:"power3.out",immediateRender:false},${r(Tb + 0.04)});`);
+    } else if (motion.cut === "inkblot") {
+      // sumi-kaze's ink drop: an irregular sumi blob blooms from a seeded
+      // off-center point to swallow the frame, then washes out by spreading and
+      // fading (opacity exit — NOT the iris's scale-close, and ink-colored, not
+      // ground-colored). immediateRender:false on the exit for the same
+      // full-frame-overlay hazard as wipe/iris.
+      const dia = Math.ceil(Math.sqrt(W * W + H * H) * 1.18);
+      const px = 32 + ((k * 37 + seed * 13) % 36), py = 30 + ((k * 53 + seed * 7) % 40);
+      els.push(`<div id="${id}" style="position:absolute;left:${px}%;top:${py}%;width:${dia}px;height:${dia}px;margin:-${Math.round(dia / 2)}px 0 0 -${Math.round(dia / 2)}px;border-radius:53% 47% 56% 44% / 48% 55% 45% 52%;background:${theme.ink};transform:scale(0);"></div>`);
+      sc.push(`tl.fromTo("#${id}",{scale:0,rotation:${(k % 2 ? -1 : 1) * 22},opacity:1},{scale:1.05,rotation:0,opacity:1,duration:0.34,ease:"power3.in"},${r(Tb - 0.34)});`);
+      sc.push(`tl.fromTo("#${id}",{scale:1.05,opacity:1},{scale:1.4,opacity:0,duration:0.5,ease:"sine.out",immediateRender:false},${r(Tb + 0.02)});`);
+    } else if (motion.cut === "clockwipe") {
+      // orrery-brass's escapement sweep: an opaque ground disc covers the frame
+      // CONICALLY in discrete ticks (timeline-anchored tl.set conic-gradients —
+      // seek-safe, deterministic) while a brass hand rotates with a stepped
+      // ease; then the frame ticks back open on the far side of the boundary.
+      const ticks = 8, tickDur = 0.3 / ticks;
+      const hl = Math.ceil(Math.sqrt(W * W + H * H) / 2);
+      els.push(`<div id="${id}" style="position:absolute;inset:0;opacity:0;"></div>`);
+      els.push(`<div id="${id}h" style="position:absolute;left:50%;top:50%;width:4px;height:${hl}px;margin-left:-2px;background:${A};transform-origin:50% 0%;opacity:0;"></div>`);
+      for (let j = 1; j <= ticks; j++) {
+        const deg = Math.round((360 * j) / ticks);
+        sc.push(`tl.set("#${id}",{opacity:1,background:"conic-gradient(from 0deg,${theme.ground} 0deg ${deg}deg,rgba(0,0,0,0) ${deg}deg 360deg)"},${r(Tb - 0.3 + (j - 1) * tickDur)});`);
+      }
+      for (let j = 1; j <= ticks; j++) {
+        const deg = Math.round((360 * j) / ticks);
+        sc.push(`tl.set("#${id}",{background:"conic-gradient(from 0deg,rgba(0,0,0,0) 0deg ${deg}deg,${theme.ground} ${deg}deg 360deg)"},${r(Tb + 0.02 + (j - 1) * tickDur)});`);
+      }
+      sc.push(`tl.set("#${id}",{opacity:0},${r(Tb + 0.02 + ticks * tickDur)});`);
+      sc.push(`tl.fromTo("#${id}h",{rotation:0,opacity:1},{rotation:360,opacity:1,duration:0.64,ease:"steps(16)",immediateRender:false},${r(Tb - 0.3)});`);
+      sc.push(`tl.set("#${id}h",{opacity:0},${r(Tb + 0.36)});`);
+    } else if (motion.cut === "smear") {
+      // claymotion's smear frame: a clay blob streaks across the boundary with
+      // heavy squash-stretch at ~8fps (steps ease) — the animator's in-between
+      // frame caught on camera. Doesn't need to cover the frame (like whip).
+      const fromLeft = (k + seed) % 2 === 0;
+      els.push(`<div id="${id}" style="position:absolute;top:31%;height:38%;left:-58%;width:58%;border-radius:48% 52% 55% 45% / 60% 45% 55% 40%;background:${A};opacity:0;"></div>`);
+      sc.push(`tl.fromTo("#${id}",{xPercent:${fromLeft ? 0 : 330},scaleX:0.7,scaleY:0.95,rotation:${fromLeft ? -4 : 4},opacity:1},{xPercent:${fromLeft ? 330 : 0},scaleX:2.9,scaleY:0.45,rotation:${fromLeft ? 4 : -4},opacity:1,duration:0.44,ease:"steps(9)",immediateRender:false},${r(Tb - 0.26)});`);
+      sc.push(`tl.set("#${id}",{opacity:0},${r(Tb + 0.2)});`);
+    } else if (motion.cut === "weave") {
+      // folk-stitch's loom pass: a wide band of bold thread stripes shuttles
+      // across the frame — opaque fabric, no blur (≠ whip's translucent streak).
+      const fromLeft = (k + seed) % 2 === 0;
+      const B2 = theme.accent2 || A, X = (theme.extras && theme.extras[0]) || B2;
+      const sw = Math.max(14, Math.round(H * 0.022));
+      els.push(`<div id="${id}" style="position:absolute;top:-12%;bottom:-12%;left:-90%;width:82%;transform:skewX(-12deg);opacity:0;background:repeating-linear-gradient(90deg,${A} 0 ${sw}px,${B2} ${sw}px ${sw * 2}px,${X} ${sw * 2}px ${sw * 3}px);"></div>`);
+      sc.push(`tl.fromTo("#${id}",{xPercent:${fromLeft ? 0 : 330},opacity:1},{xPercent:${fromLeft ? 330 : 0},opacity:1,duration:0.5,ease:"power2.inOut",immediateRender:false},${r(Tb - 0.28)});`);
+      sc.push(`tl.set("#${id}",{opacity:0},${r(Tb + 0.24)});`);
+    } else if (motion.cut === "submerge") {
+      // abyssal-glow's tide: a translucent wave with a curved crest rises from
+      // below the frame and rolls up over it — the scene sinks beneath the
+      // surface. Vertical like panel, but crested, tinted and wobbling.
+      els.push(`<div id="${id}" style="position:absolute;left:-14%;right:-14%;top:103%;height:135%;border-radius:48% 52% 0 0 / 9% 12% 0 0;background:linear-gradient(180deg,${rgba(cutTint(A, theme), 0.85)},${rgba(theme.ground, 0.97)} 42%);filter:blur(2px);opacity:0;"></div>`);
+      sc.push(`tl.set("#${id}",{opacity:1},${r(Tb - 0.4)});`);
+      sc.push(`tl.fromTo("#${id}",{yPercent:0,rotation:-2},{yPercent:-186,rotation:2,duration:0.82,ease:"power2.inOut",immediateRender:false},${r(Tb - 0.4)});`);
+      sc.push(`tl.set("#${id}",{opacity:0},${r(Tb + 0.44)});`);
     } else { // glow — luminous pulse riding a motion crossfade
       els.push(`<div id="${id}" style="position:absolute;inset:-10%;opacity:0;background:radial-gradient(52% 52% at 50% 50%,${rgba(cutTint(A, theme), 0.34)},transparent 72%);filter:blur(10px);"></div>`);
       sc.push(`tl.fromTo("#${id}",{opacity:0,scale:0.8},{opacity:1,scale:1.06,duration:0.3,ease:"sine.in"},${r(Tb - 0.3)});`);
@@ -393,6 +525,12 @@ function sceneMotion(p, motion, seed, total) {
     else if (cut === "wash") out.push(`tl.fromTo("#${id}",{y:30,filter:"blur(6px)",scale:${s1}},{y:0,filter:"blur(0px)",scale:${s1},duration:0.55,ease:"power2.out"},${r(T)});`);
     else if (cut === "panel") out.push(`tl.fromTo("#${id}",{yPercent:7,scale:${s1}},{yPercent:0,scale:${s1},duration:0.55,ease:"power3.out"},${r(T + 0.04)});`);
     else if (cut === "iris") out.push(`tl.fromTo("#${id}",{scale:${sk(0.94)}},{scale:${s1},duration:0.5,ease:"power2.out"},${r(T + 0.04)});`);
+    // "cut": HARD arrival — an 8px drop that settles in 0.22s, half the length of
+    // every other entrance. The shot is simply THERE (print grammar), while the
+    // scale keyframes still hand off cleanly into the drift.
+    else if (cut === "cut") out.push(`tl.fromTo("#${id}",{y:8,scale:${s1}},{y:0,scale:${s1},duration:0.22,ease:"power4.out"},${r(T)});`);
+    // "fade": opacity-led dissolve — the only cut whose scenes CROSS on opacity.
+    else if (cut === "fade") out.push(`tl.fromTo("#${id}",{opacity:0,scale:${s1}},{opacity:1,scale:${s1},duration:0.5,ease:"sine.out"},${r(T)});`);
     else out.push(`tl.fromTo("#${id}",{scale:${sk(0.965)},y:12},{scale:${s1},y:0,duration:0.55,ease:"power3.out"},${r(T)});`);
   }
   // -- exit (last scene holds)
@@ -403,6 +541,9 @@ function sceneMotion(p, motion, seed, total) {
     else if (cut === "wash") out.push(`tl.to("#${id}",{y:-22,filter:"blur(5px)",duration:0.36,ease:"sine.in"},${r(T + L - 0.36)});`);
     else if (cut === "panel") out.push(`tl.to("#${id}",{yPercent:-6,duration:0.36,ease:"power2.in"},${r(T + L - 0.36)});`);
     else if (cut === "iris") out.push(`tl.to("#${id}",{scale:0.96,duration:0.3,ease:"power2.in"},${r(T + L - 0.3)});`);
+    // "cut": HOLD — the ink shutter covers the swap; content never flinches.
+    else if (cut === "cut") { /* hard cut: no exit motion */ }
+    else if (cut === "fade") out.push(`tl.to("#${id}",{opacity:0,duration:0.45,ease:"sine.in"},${r(T + L - 0.45)});`);
     else out.push(`tl.to("#${id}",{scale:0.97,y:-10,duration:0.36,ease:"power2.in"},${r(T + L - 0.36)});`);
   }
   // -- drift: the camera never sits still. A slow, continuous push over the
@@ -468,6 +609,10 @@ function fxModeFor(framePack, theme) {
 function buildCanvasFx(theme, dims, D, seed, framePack) {
   const W = dims.width, H = dims.height;
   const mode = (theme.manifest && theme.manifest.fx && theme.manifest.fx.canvas) || fxModeFor(framePack, theme);
+  // "none" — the pack DECLINES ambient fx (pure print surfaces: bold-poster,
+  // broadside). Honoring it is identity too; falling through to bokeh painted
+  // soft orbs onto packs whose whole point is a hard, still page.
+  if (mode === "none") return null;
   const A = rgba(theme.accent, 1).replace(",1)", ",%A%)");
   const B = rgba(theme.accent2 || theme.accent, 1).replace(",1)", ",%A%)");
   const I = rgba(theme.ink, 1).replace(",1)", ",%A%)");
@@ -559,6 +704,73 @@ function buildCanvasFx(theme, dims, D, seed, framePack) {
       `else if(m.t===2){cx.moveTo(-s,0);cx.lineTo(s,0);cx.moveTo(0,-s);cx.lineTo(0,s);}` +
       `else{cx.moveTo(-s,0);cx.quadraticCurveTo(-s*.5,-s,0,0);cx.quadraticCurveTo(s*.5,s,s,0);}` +
       `cx.stroke();cx.restore();}`;
+  } else if (mode === "sumi") {
+    // Ink-wash scroll — three translucent sumi mountain ridges drifting at
+    // parallax speeds, a horizontal mist band, and falling vermillion petals.
+    init =
+      `var MT=[[${(H * 0.52).toFixed(0)},${(H * 0.16).toFixed(0)},.0016,4,${JSON.stringify(col(I, ".10"))}],[${(H * 0.62).toFixed(0)},${(H * 0.12).toFixed(0)},.0024,7,${JSON.stringify(col(I, ".07"))}],[${(H * 0.74).toFixed(0)},${(H * 0.09).toFixed(0)},.0036,11,${JSON.stringify(col(I, ".05"))}]],` +
+      `PT=[];for(var i=0;i<9;i++)PT.push({x:rnd()*W,y:rnd()*H,s:3.5+rnd()*4,sp:14+rnd()*14,w:.5+rnd()*.8,p:rnd()*6.28});var PC=${JSON.stringify(col(A, ".5"))},MB=${JSON.stringify(col(X1, ".16"))};`;
+    paint =
+      `for(var i=0;i<MT.length;i++){var m=MT[i];cx.fillStyle=m[4];cx.beginPath();cx.moveTo(-20,H+20);` +
+      `for(var x=-20;x<=W+20;x+=18){var y=m[0]+Math.sin(x*m[2]+t*.05*(i+1)+i*2.3)*m[1]+Math.sin(x*m[2]*2.7+i*5)*m[1]*.4;cx.lineTo(x,y);}` +
+      `cx.lineTo(W+20,H+20);cx.closePath();cx.fill();}` +
+      `var mg=cx.createLinearGradient(0,H*.55,0,H*.75);mg.addColorStop(0,"rgba(0,0,0,0)");mg.addColorStop(.5,MB);mg.addColorStop(1,"rgba(0,0,0,0)");cx.fillStyle=mg;cx.fillRect(0,H*.5,W,H*.3);` +
+      `for(var i=0;i<PT.length;i++){var f=PT[i],y=(f.y+t*f.sp)%(H+30)-15,x=f.x+Math.sin(t*f.w+f.p)*26;cx.save();cx.translate(x,y);cx.rotate(t*f.w+f.p);cx.fillStyle=PC;cx.beginPath();cx.ellipse(0,0,f.s,f.s*.55,0,0,6.283);cx.fill();cx.restore();}`;
+  } else if (mode === "orrery") {
+    // Clockwork celestial atlas — concentric engraved orbit ellipses with tick
+    // graduations, planets traveling at different periods, a warm sun pivot.
+    init =
+      `var CXx=W*.5,CYy=H*.54,OR=[],RC=${JSON.stringify(col(A, ".22"))},TC=${JSON.stringify(col(A, ".3"))},SU=${JSON.stringify(col(A, ".85"))},PLC=[${JSON.stringify(col(A, ".8"))},${JSON.stringify(col(B, ".75"))},${JSON.stringify(col(X0, ".7"))},${JSON.stringify(col(X1, ".75"))}];` +
+      `for(var i=0;i<4;i++)OR.push({rx:${(Math.min(W, H) * 0.22).toFixed(0)}*(1+i*.55),ry:${(Math.min(W, H) * 0.22).toFixed(0)}*(1+i*.55)*.38,sp:(.24-i*.045)*(i%2?-1:1),p:rnd()*6.28,pr:3+i*1.2});`;
+    paint =
+      `cx.strokeStyle=RC;cx.lineWidth=1.2;` +
+      `for(var i=0;i<OR.length;i++){var o=OR[i];cx.beginPath();cx.ellipse(CXx,CYy,o.rx,o.ry,0,0,6.283);cx.stroke();}` +
+      `var oo=OR[OR.length-1];cx.strokeStyle=TC;for(var d=0;d<48;d++){var a=d/48*6.283;var c1=Math.cos(a),s1=Math.sin(a);cx.beginPath();cx.moveTo(CXx+c1*oo.rx*.99,CYy+s1*oo.ry*.99);cx.lineTo(CXx+c1*oo.rx*1.03,CYy+s1*oo.ry*1.03);cx.stroke();}` +
+      `var sg=cx.createRadialGradient(CXx,CYy,0,CXx,CYy,14);sg.addColorStop(0,SU);sg.addColorStop(1,"rgba(0,0,0,0)");cx.fillStyle=sg;cx.beginPath();cx.arc(CXx,CYy,14,0,6.283);cx.fill();` +
+      `for(var i=0;i<OR.length;i++){var o=OR[i],a=t*o.sp+o.p,px=CXx+Math.cos(a)*o.rx,py=CYy+Math.sin(a)*o.ry;` +
+      `cx.strokeStyle=PLC[i];cx.lineWidth=2;cx.beginPath();cx.ellipse(CXx,CYy,o.rx,o.ry,0,a-.5,a);cx.stroke();` +
+      `cx.fillStyle=PLC[i];cx.beginPath();cx.arc(px,py,o.pr,0,6.283);cx.fill();}`;
+  } else if (mode === "clay") {
+    // Stop-motion tabletop — matte clay spheres with lamp highlights and
+    // contact shadows, plus donuts and stars rotating in ticks. The WHOLE
+    // painter quantizes t to 8fps first — the stop-motion signature.
+    init =
+      `var CB=[],CC=[${JSON.stringify(col(A, ".8"))},${JSON.stringify(col(B, ".75"))},${JSON.stringify(col(X0, ".75"))},${JSON.stringify(col(X1, ".7"))}],SH=${JSON.stringify(col(I, ".12"))};` +
+      `for(var i=0;i<9;i++)CB.push({x:rnd()*W,y:H*.55+rnd()*H*.4,r:10+rnd()*22,sp:.4+rnd()*.8,p:rnd()*6.28,c:i%4,k:i%3});`;
+    paint =
+      `t=Math.floor(t*8)/8;` +
+      `for(var i=0;i<CB.length;i++){var b=CB[i],y=b.y+Math.sin(t*b.sp+b.p)*9,x=b.x+Math.sin(t*b.sp*.5+b.p)*6;` +
+      `cx.fillStyle=SH;cx.beginPath();cx.ellipse(x,b.y+b.r*1.15,b.r*.95,b.r*.28,0,0,6.283);cx.fill();` +
+      `cx.save();cx.translate(x,y);cx.rotate(b.k===2?(Math.floor((t*b.sp+b.p)*4)/4):0);` +
+      `if(b.k===0){cx.fillStyle=CC[b.c];cx.beginPath();cx.arc(0,0,b.r,0,6.283);cx.fill();cx.fillStyle="rgba(255,255,255,.35)";cx.beginPath();cx.arc(-b.r*.32,-b.r*.36,b.r*.22,0,6.283);cx.fill();}` +
+      `else if(b.k===1){cx.strokeStyle=CC[b.c];cx.lineWidth=b.r*.62;cx.beginPath();cx.arc(0,0,b.r*.72,0,6.283);cx.stroke();}` +
+      `else{cx.fillStyle=CC[b.c];for(var q=0;q<5;q++){cx.rotate(1.2566);cx.beginPath();cx.ellipse(0,-b.r*.62,b.r*.3,b.r*.55,0,0,6.283);cx.fill();}}` +
+      `cx.restore();}`;
+  } else if (mode === "stitch") {
+    // Live embroidery — running-stitch dashed sine threads whose dashes crawl
+    // (thread pulled through felt), plus border rows of cross-stitch X's that
+    // pulse as if freshly sewn.
+    init =
+      `var TH=[[${JSON.stringify(col(A, ".55"))},${(H * 0.24).toFixed(0)},.9],[${JSON.stringify(col(B, ".5"))},${(H * 0.5).toFixed(0)},.7],[${JSON.stringify(col(X0, ".5"))},${(H * 0.78).toFixed(0)},1.1]],` +
+      `XS=[];var xn=${Math.round(W / 46)};for(var i=0;i<xn;i++){XS.push({x:23+i*46,y:${(H * 0.055).toFixed(0)},p:i*.7});XS.push({x:23+i*46,y:${(H * 0.945).toFixed(0)},p:i*.7+1.3});}var XC=${JSON.stringify(col(X1, ".5"))};`;
+    paint =
+      `cx.lineCap="round";cx.lineWidth=3;` +
+      `for(var i=0;i<TH.length;i++){var th=TH[i];cx.strokeStyle=th[0];cx.setLineDash([13,9]);cx.lineDashOffset=-t*34*(i%2?-1:1);cx.beginPath();` +
+      `for(var x=-10;x<=W+10;x+=16){var y=th[1]+Math.sin(x*.005+t*th[2]*.35+i*2.1)*${(H * 0.045).toFixed(0)};if(x<-9)cx.moveTo(x,y);else cx.lineTo(x,y);}cx.stroke();}` +
+      `cx.setLineDash([]);cx.lineWidth=2.6;cx.strokeStyle=XC;` +
+      `for(var i=0;i<XS.length;i++){var m=XS[i],al=.35+.3*Math.sin(t*1.3+m.p),s=7;cx.globalAlpha=al;cx.beginPath();cx.moveTo(m.x-s,m.y-s);cx.lineTo(m.x+s,m.y+s);cx.moveTo(m.x+s,m.y-s);cx.lineTo(m.x-s,m.y+s);cx.stroke();}cx.globalAlpha=1;`;
+  } else if (mode === "caustics") {
+    // Deep-sea light — undulating caustic filaments in the upper water column,
+    // rising wobbling bubbles, and drifting plankton motes that pulse.
+    init =
+      `var CA=${JSON.stringify(col(A, ".10"))},CA2=${JSON.stringify(col(A, ".06"))},BU=[],PK=[],PKC=[${JSON.stringify(col(A, ".7"))},${JSON.stringify(col(B, ".6"))}];` +
+      `for(var i=0;i<12;i++)BU.push({x:rnd()*W,y:rnd()*H,r:2+rnd()*5,sp:16+rnd()*22,w:.6+rnd()*.9,p:rnd()*6.28});` +
+      `for(var i=0;i<20;i++)PK.push({x:rnd()*W,y:rnd()*H,r:1+rnd()*2.2,sp:4+rnd()*7,p:rnd()*6.28,c:i%2});var FO=${JSON.stringify(col(X1, ".28"))};`;
+    paint =
+      `cx.lineWidth=1.6;for(var k2=0;k2<6;k2++){cx.strokeStyle=k2%2?CA:CA2;cx.beginPath();` +
+      `for(var x=-10;x<=W+10;x+=14){var y=k2*H/7+H*.04+Math.sin(x*.009+t*.7+k2*1.9)*20+Math.sin(x*.021-t*.5+k2)*12;if(x<-9)cx.moveTo(x,y);else cx.lineTo(x,y);}cx.stroke();}` +
+      `cx.strokeStyle=FO;cx.lineWidth=1.4;for(var i=0;i<BU.length;i++){var b=BU[i],y=((b.y-t*b.sp)%(H+40)+H+40)%(H+40)-20,x=b.x+Math.sin(t*b.w+b.p)*16;cx.beginPath();cx.arc(x,y,b.r,0,6.283);cx.stroke();}` +
+      `for(var i=0;i<PK.length;i++){var q=PK[i],y=((q.y-t*q.sp)%(H+20)+H+20)%(H+20)-10,x=q.x+Math.sin(t*.5+q.p)*22;cx.globalAlpha=.3+.5*Math.abs(Math.sin(t*1.2+q.p));cx.fillStyle=PKC[q.c];cx.beginPath();cx.arc(x,y,q.r,0,6.283);cx.fill();}cx.globalAlpha=1;`;
   } else { // bokeh
     init = `var BK=[],KC=[${JSON.stringify(col(A, ".3"))},${JSON.stringify(col(B, ".24"))}];for(var i=0;i<24;i++)BK.push({x:rnd()*W,y:rnd()*H,r:5+rnd()*22,s:.2+rnd()*.7,p:rnd()*6.28,c:i%2});`;
     paint = `for(var i=0;i<BK.length;i++){var b=BK[i],y=(b.y-t*7*b.s%H+H)%H,x=b.x+Math.sin(t*b.s*.7+b.p)*22;var g=cx.createRadialGradient(x,y,0,x,y,b.r);g.addColorStop(0,KC[b.c]);g.addColorStop(1,"rgba(0,0,0,0)");cx.globalAlpha=.5+.5*Math.sin(t*.9+b.p)*.4;cx.fillStyle=g;cx.beginPath();cx.arc(x,y,b.r,0,6.283);cx.fill();}cx.globalAlpha=1;`;
@@ -635,7 +847,7 @@ function buildThreeFx(theme, dims, D, seed, framePack) {
 // always paints above. Each cluster is authored per pack × archetype kind.
 function buildSkinOrnaments(kind, ctx, framePack) {
   if (!framePack) return null;
-  const { theme, id, T, L, dims, seed } = ctx;
+  const { theme, id, T, L, dims, seed, scene, sceneIndex, sceneCount, sbTitle } = ctx;
   const W = dims.width, H = dims.height;
   const A = theme.accent, B = theme.accent2;
   const X0 = (theme.extras && theme.extras[0]) || B, X1 = (theme.extras && theme.extras[1]) || A;
@@ -1222,6 +1434,58 @@ function buildSkinOrnaments(kind, ctx, framePack) {
     const { buildRetroTerminalOrnaments } = require("./scene_kit_terminal_ornaments");
     const t = buildRetroTerminalOrnaments({ kind, id, pid, T, L, seed, theme, dims, s0, rgba, esc });
     sv.push(...t.sv); dv.push(...t.dv); sc.push(...t.sc);
+  } else if (framePack === "terminal-departures") {
+    // TERMINAL DEPARTURES — own module; the pack's FRAME.md atoms (ticker,
+    // analog clock, hanging gate signs, status chips, FINAL CALL + printing
+    // boarding pass), each populated with the SCENE'S OWN COPY so the hall
+    // reads as this film's departures board, not a generic demo.
+    const { buildDeparturesOrnaments } = require("./scene_kit_departures_ornaments");
+    const t = buildDeparturesOrnaments({ kind, id, pid, T, L, seed, theme, dims, s0, rgba, esc, scene, sceneIndex, sceneCount, sbTitle });
+    sv.push(...t.sv); dv.push(...t.dv); sc.push(...t.sc);
+  } else if (framePack === "neon-premiere") {
+    // NEON PREMIERE — film-set HUD: a live mono timecode chip (counts REAL
+    // scene time, deterministic), a cyan→magenta neon rule that draws under
+    // the headline zone, and a drifting lens-flare dot. Topic hook: the chip
+    // carries the scene's emphasis/kicker word next to the timecode.
+    const mono = "'JetBrains Mono','IBM Plex Mono',monospace";
+    const tcTag = esc(String((scene && (scene.emphasis || scene.purpose)) || "PREMIERE").toUpperCase().slice(0, 14));
+    const chH = Math.round(H * 0.036);
+    const t0m = Math.floor(T / 60), t0s = Math.floor(T % 60), t0f = Math.round((T % 1) * 24);
+    const pad2 = (n) => String(n).padStart(2, "0");
+    dv.push(
+      `<div class="${pid}tc" style="position:absolute;right:${Math.round(W * 0.045)}px;top:${Math.round(H * 0.07)}px;height:${chH}px;display:inline-flex;align-items:center;gap:9px;padding:0 ${Math.round(chH * 0.5)}px;background:rgba(5,6,14,.75);border:1px solid ${rgba(B, 0.5)};border-radius:${Math.round(chH * 0.3)}px;opacity:0;">` +
+      `<span style="width:7px;height:7px;border-radius:50%;background:${A};box-shadow:0 0 9px ${rgba(A, 0.9)};"></span>` +
+      `<span style="font:600 ${Math.round(chH * 0.38)}px/1 ${mono};letter-spacing:.18em;color:${rgba("#F2F5FF", 0.9)};">TC ${pad2(t0m)}:${pad2(t0s)}:${pad2(t0f)} · ${tcTag}</span></div>`
+    );
+    sc.push(`tl.fromTo("#${id} .${pid}tc",{opacity:0,y:-10},{opacity:1,y:0,duration:.45,ease:"power2.out"},${s0(0.35)});`);
+    if (kind === "hook" || kind === "cta") {
+      const ry = Math.round(H * 0.68), rw = Math.round(W * 0.3);
+      dv.push(`<div class="${pid}nr" style="position:absolute;left:${Math.round(W / 2 - rw / 2)}px;top:${ry}px;width:${rw}px;height:3px;border-radius:2px;background:linear-gradient(90deg,${A},${B});box-shadow:0 0 14px ${rgba(A, 0.7)},0 0 26px ${rgba(B, 0.45)};transform:scaleX(0);"></div>`);
+      sc.push(`tl.to("#${id} .${pid}nr",{scaleX:1,duration:.7,ease:"power3.out"},${s0(0.9)});`);
+    }
+    const fx0 = Math.round(W * (seed % 2 ? 0.12 : 0.84)), fy0 = Math.round(H * 0.24);
+    sv.push(`<circle class="${pid}lf" cx="${fx0}" cy="${fy0}" r="4" fill="${rgba("#FFFFFF", 0.95)}" opacity="0"/>`);
+    sv.push(`<circle class="${pid}lf" cx="${fx0}" cy="${fy0}" r="11" fill="none" stroke="${rgba(B, 0.5)}" stroke-width="1.5" opacity="0"/>`);
+    sc.push(`tl.to("#${id} .${pid}lf",{opacity:1,duration:.5,stagger:.1},${s0(0.7)});`);
+    sc.push(`tl.to("#${id} .${pid}lf",{x:${seed % 2 ? 40 : -40},y:18,duration:${Math.max(2, L - 1)},ease:"sine.inOut"},${s0(0.7)});`);
+  } else if (framePack === "paper-tales") {
+    // PAPER TALES — own module; the pack's FRAME.md storybook atoms (chapter
+    // tabs, pen-handwritten Caveat asides, pop-up paper friends with blinking
+    // eyes, watercolor blooms, paper sun/plane/clouds, ribbon bookmark +
+    // torn-paper confetti on the last page), each filled with the SCENE'S OWN
+    // COPY so every film reads as its own picture book.
+    const { buildPapertalesOrnaments } = require("./scene_kit_papertales_ornaments");
+    const t = buildPapertalesOrnaments({ kind, id, pid, T, L, seed, theme, dims, s0, rgba, esc, scene, sceneIndex, sceneCount, sbTitle });
+    sv.push(...t.sv); dv.push(...t.dv); sc.push(...t.sc);
+  } else if (require("./scene_kit_editorial_ornaments").EDITORIAL_PACKS.has(framePack)) {
+    // EDITORIAL ORNAMENT LIBRARY — bespoke furniture for the 15 packs that used
+    // to share the generic corner brackets below (the identity audit's look-alike
+    // tail: ledger-noir ~ signal-mono 93%, cobalt-grid ~ coral 87%, …). Each pack
+    // gets its OWN motif family (folio numerals, masthead rules, vault dial,
+    // equalizer bars, plotted axes, washi tape, …) in its own module.
+    const { buildEditorialOrnaments } = require("./scene_kit_editorial_ornaments");
+    const t = buildEditorialOrnaments({ framePack, kind, id, pid, T, L, seed, theme, dims, s0, rgba, esc, scene, sceneIndex, sceneCount, sbTitle });
+    if (t) { sv.push(...t.sv); dv.push(...t.dv); sc.push(...t.sc); }
   } else {
     // GENERIC ornament fallback (Phase 3) — a pack with a manifest but no bespoke
     // branch above (e.g. a future manifest-only pack) still gets baseline skin
@@ -1262,7 +1526,7 @@ function buildBackground(theme, dims, D, seed = 0, framePack = null) {
   // ALSO get their Three.js signature canvas layered above the 2D painter.
   const fx = buildCanvasFx(theme, dims, D, seed, framePack);
   const three = buildThreeFx(theme, dims, D, seed, framePack);
-  parts.push(`<div class="clip" data-start="0" data-duration="${D}" data-track-index="0" style="${groundCss}">${fx.html}${three ? three.html : ""}</div>`);
+  parts.push(`<div class="clip" data-start="0" data-duration="${D}" data-track-index="0" style="${groundCss}">${fx ? fx.html : ""}${three ? three.html : ""}</div>`);
   if (three) parts.push(three.script);
 
   // glow layer — ONLY for gradient packs (flat packs stay flat). Blob positions
@@ -1296,8 +1560,8 @@ function buildBackground(theme, dims, D, seed = 0, framePack = null) {
   const script = [];
   if (gradients) script.push(`tl.fromTo("#kfbgGlow",{xPercent:-4,yPercent:-3,scale:1},{xPercent:4,yPercent:3,scale:1.07,duration:10,ease:"sine.inOut",yoyo:true,repeat:reps(10)},0);`);
   script.push(`for(var i=0;i<${N};i++){var pd=7+(i%5);tl.to(".kfp"+i,{attr:{cy:"-="+(40+(i%4)*18)},x:(i%2?12:-12),duration:pd,ease:"sine.inOut",yoyo:true,repeat:reps(pd)},0);}`);
-  script.push(fx.script);
-  return { html: parts.join("\n  "), script: script.join("\n"), fxMode: fx.mode };
+  if (fx) script.push(fx.script);
+  return { html: parts.join("\n  "), script: script.join("\n"), fxMode: fx ? fx.mode : "none" };
 }
 
 // ---- color utils -------------------------------------------------------------
@@ -1312,7 +1576,9 @@ function mix(hex, with_, t) { const a = hexToRgb(hex), b = hexToRgb(with_); cons
 
 // split a headline into <span class="kfw"> words, marking the emphasis word(s) as
 // the single gradient/accent word.
-const CHAR_ENTERS = new Set(["typewriter", "char-pop", "glitch"]);
+// "flap" must be listed here or headlineSpans never emits .kfc char spans and
+// the runtime flap branch matches nothing — the entrance silently no-ops.
+const CHAR_ENTERS = new Set(["typewriter", "char-pop", "glitch", "flap", "stitch"]);
 
 function headlineSpans(headline, emphasis, theme) {
   const words = String(headline || "").trim().split(/\s+/).filter(Boolean);
@@ -1375,6 +1641,34 @@ function emphasisBlock(theme, id) {
       return `${sel}{color:${theme.ink};background:linear-gradient(transparent 52%,${rgba(a2, 0.55)} 52%,${rgba(a2, 0.55)} 92%,transparent 92%);}` +
         `${sel}::after{content:"";display:block;height:.15em;margin-top:.06em;background-image:url("data:image/svg+xml,${encodeURIComponent(wave)}");background-repeat:repeat-x;background-size:auto 100%;}`;
     }
+    case "hanko": {
+      // sumi-kaze: the printmaker's vermillion seal — accent block with an
+      // inner paper-line ring (double box-shadow), paper-colored glyphs.
+      const glyph = lum(a) > 150 ? "#201D18" : (theme.ground || "#F5EFE3");
+      return `${sel}{color:${glyph};background:${a};padding:.03em .14em;border-radius:.1em;box-shadow:inset 0 0 0 .035em ${a},inset 0 0 0 .07em ${rgba(glyph, 0.85)};}`;
+    }
+    case "ring":
+      // orrery-brass: a hand-engraved orbit ellipse circling the word. The
+      // ::after pseudo keeps clear of GSAP (which owns the .kfw transform).
+      return `${sel}{position:relative;color:${a};}${sel}::after{content:"";position:absolute;inset:-.16em -.3em;border:.05em solid ${a2};border-radius:50%;transform:rotate(-5deg);opacity:.85;pointer-events:none;}`;
+    case "clay": {
+      // claymotion: the word pressed into a plasticine pad — irregular blob
+      // radius + inset lamp highlight/shadow so it reads as sculpted clay.
+      const ink2 = lum(a) > 150 ? "#37281F" : "#FFF8F0";
+      return `${sel}{color:${ink2};background:${a};padding:.05em .2em;border-radius:.62em .48em .58em .42em;box-shadow:inset -.06em -.09em 0 rgba(0,0,0,.16),inset .05em .08em 0 rgba(255,255,255,.3);}`;
+    }
+    case "embroider": {
+      // folk-stitch: thread-colored word, dashed outline, and a row of
+      // cross-stitch X's sewn beneath (SVG on ::after — text-decoration
+      // doesn't reach inline-block char spans, same lesson as scribble).
+      const xrow = `<svg xmlns='http://www.w3.org/2000/svg' width='11' height='9' viewBox='0 0 11 9'><path d='M1.5 1.5 L7.5 7.5 M7.5 1.5 L1.5 7.5' fill='none' stroke='${a2}' stroke-width='2.2' stroke-linecap='round'/></svg>`;
+      return `${sel}{color:${a};outline:.045em dashed ${rgba(a, 0.55)};outline-offset:.08em;}` +
+        `${sel}::after{content:"";display:block;height:.18em;margin-top:.12em;background-image:url("data:image/svg+xml,${encodeURIComponent(xrow)}");background-repeat:repeat-x;background-size:auto 100%;}`;
+    }
+    case "echo":
+      // abyssal-glow: the sonar double-image — magenta ghost one way, cyan
+      // ghost the other, plus the bioluminescent halo.
+      return `${sel}{color:${a};text-shadow:.05em .05em 0 ${rgba(a2, 0.55)},-.05em -.05em 0 ${rgba(a, 0.35)},0 0 .8em ${rgba(a, 0.45)};}`;
     case "gradient":
     default: {
       const base = theme.emphasisCss || `background:linear-gradient(100deg,${a},${a2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${a};`;
@@ -1415,11 +1709,16 @@ function archHook(scene, ctx) {
   const accentText = theme.emphasisCss || (theme.gradients
     ? `background:linear-gradient(100deg,${theme.accent},${theme.accent2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.accent};`
     : `color:${theme.accent};`);
-  const big = Math.round((dims.width >= dims.height ? 92 : 66) * (theme.textfx.sizeScale || 1));
+  // PORTRAIT TYPE SCALE (here and in every archetype below): 9:16 reels read at
+  // arm's length on a canvas 78% TALLER than it is wide, so portrait type must be
+  // slightly LARGER in px than landscape — the old smaller constants made every
+  // vertical video look like a landscape layout shrunk into the middle third.
+  // fitBig() still shrinks long headlines, so the bigger base can't overflow.
+  const big = Math.round((dims.width >= dims.height ? 92 : 96) * (theme.textfx.sizeScale || 1));
   const showKicker = theme.layout.kicker, showUnderline = theme.layout.underline;
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
-  <div style="position:absolute;left:7%;right:7%;top:50%;transform:translateY(-50%);">
-    ${showKicker ? `<span id="${id}k" class="kicker" style="opacity:0;display:inline-flex;align-items:center;gap:10px;padding:8px 16px;border-radius:9999px;background:${rgba(theme.ground, 0.86)};border:1px solid ${rgba(theme.accent, 0.35)};color:${theme.accent};font:700 15px/1 ${cssFont(theme)};letter-spacing:.2em;text-transform:uppercase;"><span style="width:8px;height:8px;border-radius:50%;background:${theme.accent};"></span>${esc(ctx.kicker || "KEYFRAME")}</span>` : ""}
+  <div style="position:absolute;left:7%;right:7%;top:${dims.width >= dims.height ? 50 : 44}%;transform:translateY(-50%);">
+    ${showKicker ? `<span id="${id}k" class="kicker" style="opacity:0;display:inline-flex;align-items:center;gap:10px;padding:8px 16px;border-radius:9999px;background:${rgba(theme.ground, 0.86)};border:1px solid ${rgba(theme.accent, 0.35)};color:${theme.accent};font:700 ${dims.width >= dims.height ? 15 : 19}px/1 ${cssFont(theme)};letter-spacing:.2em;text-transform:uppercase;"><span style="width:8px;height:8px;border-radius:50%;background:${theme.accent};"></span>${esc(ctx.kicker || "KEYFRAME")}</span>` : ""}
     <h1 style="margin-top:18px;font:800 ${fitBig(scene.headline, big, 14)}px/0.99 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:14ch;"><style>${emphasisBlock(theme, id)}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h1>
     ${showUnderline ? `<div id="${id}u" style="height:5px;width:${Math.round(dims.width * 0.27)}px;max-width:80%;margin-top:22px;border-radius:3px;background:${theme.accent};transform:scaleX(0);transform-origin:left;"></div>` : ""}
     ${scene.subtext ? `<p id="${id}s" style="opacity:0;margin-top:16px;font:500 ${Math.round(big * 0.3)}px/1.45 ${cssFont(theme)};color:${theme.dim};max-width:42ch;">${esc(scene.subtext)}</p>` : ""}
@@ -1442,7 +1741,7 @@ function archStat(scene, ctx) {
   // "the same number thing" across every template). Then a proof scene renders as
   // a clean centered display headline and the pack's own ornaments carry any viz.
   if (theme.layout.stat === "headline") {
-    const bigH = Math.round((dims.width >= dims.height ? 84 : 62) * (theme.textfx.sizeScale || 1));
+    const bigH = Math.round((dims.width >= dims.height ? 84 : 88) * (theme.textfx.sizeScale || 1));
     const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   <div style="position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:20px;text-align:center;padding:0 9%;">
     <h2 style="font:800 ${fitBig(scene.headline, bigH, 15)}px/1.0 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};max-width:15ch;margin:0;"><style>${emphasisBlock(theme, id)}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
@@ -1459,7 +1758,7 @@ function archStat(scene, ctx) {
   }
   // derive a number from the headline/emphasis, else a default
   const num = pickNumber(scene) || { value: 95, suffix: "%" };
-  const big = dims.width >= dims.height ? 128 : 92;
+  const big = dims.width >= dims.height ? 128 : 132;
   const cardBg = theme.gradients ? `linear-gradient(180deg,${mix(theme.ground, "#ffffff", theme.isDark ? 0.07 : 0.02)},${theme.ground})` : mix(theme.ground, theme.isDark ? "#ffffff" : "#000000", 0.03);
   // PROGRESS RING (amazon-premium's arc, full-frame): a track circle + an accent
   // arc that draws to a REAL fill while the counter runs — the number resolves
@@ -1497,7 +1796,7 @@ function archStat(scene, ctx) {
 
 function archCta(scene, ctx) {
   const { theme, id, T, L, track, dims } = ctx;
-  const big = Math.round((dims.width >= dims.height ? 78 : 60) * (theme.textfx.sizeScale || 1));
+  const big = Math.round((dims.width >= dims.height ? 78 : 82) * (theme.textfx.sizeScale || 1));
   const btnBg = theme.gradients ? `linear-gradient(180deg,${theme.accent2 || theme.accent},${theme.accent})` : theme.accent;
   const btnInk = lum(theme.accent) > 150 ? "#15140F" : "#FFFFFF";
   const accentText = theme.emphasisCss || (theme.gradients ? `background:linear-gradient(100deg,${theme.accent},${theme.accent2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.accent};` : `color:${theme.accent};`);
@@ -1525,7 +1824,7 @@ function archCta(scene, ctx) {
 // (asset-grid, split-diagram, terminal) are added from the design pass.
 function archText(scene, ctx) {
   const { theme, id, T, L, track, dims, variant } = ctx;
-  const big = Math.round((dims.width >= dims.height ? 68 : 52) * (theme.textfx.sizeScale || 1));
+  const big = Math.round((dims.width >= dims.height ? 68 : 72) * (theme.textfx.sizeScale || 1));
   const accentText = theme.emphasisCss || (theme.gradients ? `background:linear-gradient(100deg,${theme.accent},${theme.accent2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.accent};` : `color:${theme.accent};`);
   const bullets = Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean).slice(0, 3) : [];
   // Four layout variants so text scenes don't all look identical:
@@ -1536,11 +1835,15 @@ function archText(scene, ctx) {
   const v = variant || 0;
   const centered = v === 1;
   const right = v === 3;
+  // Portrait lifts the side-aligned variants to the upper zone — the generic
+  // product-card prop fills the lower third there (bottom-center), so keeping
+  // the copy at dead-center would run the two together.
+  const tPos = dims.width >= dims.height ? 50 : 44;
   const wrap = centered
     ? `position:absolute;left:8%;right:8%;top:50%;transform:translateY(-50%);text-align:center;`
     : right
-      ? `position:absolute;left:7%;right:9%;top:50%;transform:translateY(-50%);text-align:right;`
-      : `position:absolute;left:${v === 2 ? "9%" : "7%"};right:7%;top:50%;transform:translateY(-50%);`;
+      ? `position:absolute;left:7%;right:9%;top:${tPos}%;transform:translateY(-50%);text-align:right;`
+      : `position:absolute;left:${v === 2 ? "9%" : "7%"};right:7%;top:${tPos}%;transform:translateY(-50%);`;
   const topRule = v === 0
     ? `<div style="width:54px;height:5px;border-radius:3px;background:${theme.accent};margin-bottom:22px;"></div>`
     : right
@@ -1616,12 +1919,12 @@ function splitCardText(s) {
 function archFeatureGrid(scene, ctx) {
   const { theme, id, T, L, track, dims } = ctx;
   const land = dims.width >= dims.height;
-  const big = Math.round((land ? 50 : 42) * (theme.textfx.sizeScale || 1));
+  const big = Math.round((land ? 50 : 56) * (theme.textfx.sizeScale || 1));
   const items = (Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean) : []).slice(0, 3);
   const ch = cardChrome(theme);
-  const gap = land ? 26 : 15;
-  const pad = land ? 30 : 22;
-  const iconSz = land ? 54 : 46;
+  const gap = land ? 26 : 20;
+  const pad = land ? 30 : 28;
+  const iconSz = land ? 54 : 58;
   const accs = [theme.accent, theme.accent2, theme.extras[0] || theme.accent];
   const cards = items.map((b, i) => {
     const [title, desc] = splitCardText(b);
@@ -1658,7 +1961,7 @@ function archFeatureGrid(scene, ctx) {
 function archQuoteCard(scene, ctx) {
   const { theme, id, T, L, track, dims } = ctx;
   const land = dims.width >= dims.height;
-  const big = Math.round((land ? 58 : 46) * (theme.textfx.sizeScale || 1));
+  const big = Math.round((land ? 58 : 62) * (theme.textfx.sizeScale || 1));
   const quoteFit = fitBig(scene.headline, big, 26, 4);
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:${land ? "72%" : "86%"};max-width:1180px;padding:${land ? "54px 64px" : "40px 38px"};border-radius:22px;background:${theme.panel};border:1px solid ${theme.line};border-left:6px solid ${theme.accent};">
@@ -1688,7 +1991,7 @@ function archQuoteCard(scene, ctx) {
 function archProofStats(scene, ctx) {
   const { theme, id, T, L, track, dims } = ctx;
   const land = dims.width >= dims.height;
-  const big = Math.round((land ? 50 : 42) * (theme.textfx.sizeScale || 1));
+  const big = Math.round((land ? 50 : 56) * (theme.textfx.sizeScale || 1));
   const ch = cardChrome(theme);
   const accs = [theme.accent, theme.accent2, theme.extras[0] || theme.accent];
   const items = (Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean) : [])
@@ -1700,8 +2003,8 @@ function archProofStats(scene, ctx) {
       label: x.b.replace(/[₹$€£]?\s?\d[\d,]*\s?(?:%|x|\+|M|K|B|hrs?|hours?|days?)?/i, "").replace(/^[\s,—–:.-]+|[\s,—–:.-]+$/g, "") || x.b,
       frac: x.num.suffix === "%" ? clamp(x.num.value, 8, 100) / 100 : 0.58 + k * 0.14,
     }));
-  const numSize = Math.round((land ? 74 : 54) * (theme.textfx.sizeScale || 1));
-  const arcR = land ? 44 : 36;
+  const numSize = Math.round((land ? 74 : 78) * (theme.textfx.sizeScale || 1));
+  const arcR = land ? 44 : 48;
   const arcC = Math.round(2 * Math.PI * arcR);
   const cards = items.map((x, k) => {
     const A = accs[k % accs.length];
@@ -1744,7 +2047,7 @@ function archStrikeList(scene, ctx) {
   const land = dims.width >= dims.height;
   const rows = (Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean) : []).slice(0, 3).map(String);
   const longest = rows.reduce((m, b) => Math.max(m, b.length), 8);
-  const big = Math.round((land ? 64 : 48) * (theme.textfx.sizeScale || 1));
+  const big = Math.round((land ? 64 : 68) * (theme.textfx.sizeScale || 1));
   const rowFs = fitBig("x".repeat(longest), big, 18, 1);
   const ansFs = fitBig(scene.headline, Math.round(big * 1.08), 16, 2);
   const kk = Math.min(1, (L - 0.9) / 3.4);          // beat compression for short scenes
@@ -1817,10 +2120,14 @@ function orderByPaletteAffinity(pool, theme) {
 function buildPropFill(ctx, side) {
   const { theme, id, dims, T, L } = ctx;
   const W = dims.width, H = dims.height, land = W >= H;
-  // Larger footprint so the "empty half" actually reads as filled.
-  const pw = Math.round(W * (land ? 0.34 : 0.52)), ph = Math.round(H * (land ? 0.50 : 0.32));
-  const px = side === "left" ? Math.round(W * 0.07) : Math.round(W - pw - W * 0.07);
-  const py = Math.round((H - ph) / 2);
+  // Larger footprint so the "empty half" actually reads as filled. PORTRAIT has
+  // no empty half — the empty zone is BELOW the text block, so the card goes
+  // bottom-center at near-full width (side-anchoring it overlapped the copy).
+  const pw = Math.round(W * (land ? 0.34 : 0.72)), ph = Math.round(H * (land ? 0.50 : 0.26));
+  const px = land
+    ? (side === "left" ? Math.round(W * 0.07) : Math.round(W - pw - W * 0.07))
+    : Math.round((W - pw) / 2);
+  const py = land ? Math.round((H - ph) / 2) : Math.round(H * 0.62);
   const A = theme.accent, B = theme.accent2 || theme.accent, ink = theme.ink, line = theme.line;
   // A real, visible surface (was 0.045 — a ghost). Depth comes from the shadow below.
   const card = theme.isDark ? "rgba(255,255,255,0.075)" : "rgba(20,18,12,0.05)";
@@ -1955,14 +2262,20 @@ function archScreenshotHero(scene, ctx) {
   const { theme, id, T, L, track, dims, asset } = ctx;
   const land = dims.width >= dims.height;
   const flat = !theme.gradients;
-  const chrome = flat
-    ? `background:${theme.ground};border:3px solid ${theme.ink};border-radius:14px;box-shadow:10px 10px 0 ${theme.accent};`
-    : `background:${mix(theme.ground, "#ffffff", 0.06)};border:1px solid ${theme.line};border-radius:16px;box-shadow:0 40px 90px rgba(0,0,0,0.5);`;
+  const paper = theme.layout.assetStyle === "paper";
+  const chrome = paper
+    ? `${PAPER_MAT}${paperShadow(1.3)}padding:12px;`
+    : flat
+      ? `background:${theme.ground};border:3px solid ${theme.ink};border-radius:14px;box-shadow:10px 10px 0 ${theme.accent};`
+      : `background:${mix(theme.ground, "#ffffff", 0.06)};border:1px solid ${theme.line};border-radius:16px;box-shadow:0 40px 90px rgba(0,0,0,0.5);`;
   const barBg = flat ? mix(theme.ground, theme.ink, 0.06) : rgba("#ffffff", 0.05);
-  const big = land ? 56 : 46;
+  const big = land ? 56 : 60;
   const accentText = theme.emphasisCss || (theme.gradients ? `background:linear-gradient(100deg,${theme.accent},${theme.accent2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.accent};` : `color:${theme.accent};`);
   const dots = ["#FF5F57", "#FEBC2E", "#28C840"].map((c) => `<span style="width:11px;height:11px;border-radius:50%;background:${flat ? theme.ink : c};display:inline-block;"></span>`).join("");
-  const frameW = land ? "52%" : "84%";
+  // Visual Layout Director may enlarge the hero for readability (ctx.heroScale =
+  // target width fraction, clamped upstream). Landscape only — portrait already
+  // uses near-full width.
+  const frameW = (ctx.heroScale && land) ? `${Math.round(ctx.heroScale * 100)}%` : (land ? "52%" : "84%");
   // The OUTER wrapper owns positioning/centering; the INNER #fr owns the GSAP
   // entrance (opacity/yPercent/rotationX). They MUST be separate elements: GSAP
   // rewrites the whole `transform` of whatever it animates, so animating yPercent
@@ -1972,9 +2285,12 @@ function archScreenshotHero(scene, ctx) {
   // instead of translateY(-50%): flex centering is layout-based, so the GSAP
   // entrance transform on the inner #fr can't clobber it and drop the frame low
   // (the old bug where the screenshot's bottom clipped off the canvas).
-  const frameOuter = land
+  // Paper packs tilt the whole mount a touch (rotation sits on this static
+  // wrapper — #fr is GSAP-animated and would clobber it).
+  const frameOuter = (land
     ? `position:absolute;left:5%;top:0;bottom:0;width:${frameW};display:flex;flex-direction:column;justify-content:center;`
-    : `position:absolute;left:8%;right:8%;top:0;bottom:0;width:84%;display:flex;flex-direction:column;justify-content:center;`;
+    : `position:absolute;left:8%;right:8%;top:0;bottom:0;width:84%;display:flex;flex-direction:column;justify-content:center;`)
+    + (paper ? "transform:rotate(-1.8deg);" : "");
   const copyWrap = land
     ? `position:absolute;right:5%;top:0;bottom:0;width:34%;display:flex;flex-direction:column;justify-content:center;`
     : `position:absolute;left:8%;right:8%;top:0;bottom:0;width:84%;display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:8%;text-align:center;`;
@@ -2016,22 +2332,32 @@ function archScreenshotHero(scene, ctx) {
     : "";
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   <div style="${frameOuter}">
-  <div id="${id}fr" class="kfstage browser" style="${chrome}overflow:hidden;width:100%;position:relative;">
-    <div class="browser-bar" style="height:42px;display:flex;align-items:center;gap:9px;padding:0 16px;background:${barBg};border-bottom:1px solid ${theme.line};">${dots}<span style="margin-left:12px;flex:1;max-width:340px;height:22px;border-radius:9999px;background:${rgba(theme.ink, 0.08)};"></span></div>
-    <div style="position:relative;width:100%;height:${bodyH}px;overflow:hidden;"><img id="${id}img" src="${esc(asset.path)}" alt="${esc(asset.alt || "screenshot")}" style="position:absolute;top:0;left:0;width:100%;height:auto;min-height:100%;object-fit:cover;object-position:top center;"></div>
+  <div id="${id}fr" class="kfstage browser" style="${chrome}${paper ? "" : "overflow:hidden;"}width:100%;position:relative;">
+    ${paper ? "" : `<div class="browser-bar" style="height:42px;display:flex;align-items:center;gap:9px;padding:0 16px;background:${barBg};border-bottom:1px solid ${theme.line};">${dots}<span style="margin-left:12px;flex:1;max-width:340px;height:22px;border-radius:9999px;background:${rgba(theme.ink, 0.08)};"></span></div>`}
+    <div style="position:relative;width:100%;height:${paper ? bodyH + 42 : bodyH}px;overflow:hidden;${paper ? "border-radius:3px;" : ""}"><img id="${id}img" src="${esc(asset.path)}" alt="${esc(asset.alt || "screenshot")}" style="position:absolute;top:0;left:0;width:100%;height:auto;min-height:100%;object-fit:cover;object-position:${asset.cropFocus || "top center"};">${paper ? "" : `<div id="${id}sh" data-layout-allow-occlusion style="position:absolute;top:-25%;bottom:-25%;left:-45%;width:38%;transform:rotate(10deg);background:linear-gradient(105deg,transparent,${rgba("#ffffff", flat ? 0.16 : 0.26)} 50%,transparent);pointer-events:none;opacity:0;"></div>`}</div>
+    ${paper ? paperTape("left:22px;top:-10px;", -14) + paperTape("right:22px;top:-10px;", 10) : ""}
     ${annSvg}${annEls.join("")}
   </div>
   </div>
   <div style="${copyWrap}">
-    <span id="${id}k" class="kicker" style="opacity:0;display:inline-flex;align-items:center;gap:9px;padding:7px 15px;border-radius:9999px;background:${rgba(theme.ground, 0.86)};border:1px solid ${rgba(theme.accent, 0.35)};color:${theme.accent};font:700 13px/1 ${cssFont(theme)};letter-spacing:.2em;text-transform:uppercase;"><span style="width:7px;height:7px;border-radius:50%;background:${theme.accent};"></span>${esc(ctx.kicker || "Live")}</span>
+    <span id="${id}k" class="kicker" style="opacity:0;display:inline-flex;align-items:center;gap:9px;padding:7px 15px;border-radius:9999px;background:${rgba(theme.ground, 0.86)};border:1px solid ${rgba(theme.accent, 0.35)};color:${theme.accent};font:700 ${land ? 13 : 17}px/1 ${cssFont(theme)};letter-spacing:.2em;text-transform:uppercase;"><span style="width:7px;height:7px;border-radius:50%;background:${theme.accent};"></span>${esc(ctx.kicker || "Live")}</span>
     <h2 style="margin-top:14px;font:800 ${fitBig(scene.headline, big, 20)}px/1.05 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};"><style>${emphasisBlock(theme, id)}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
     ${scene.subtext ? `<p id="${id}s" style="opacity:0;margin-top:13px;font:500 ${Math.round(big * 0.42)}px/1.45 ${cssFont(theme)};color:${theme.dim};">${esc(scene.subtext)}</p>` : ""}
   </div>
 </div>`;
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
-    `tl.fromTo("#${id}fr",{opacity:0,yPercent:6,rotationX:12,transformPerspective:1200,transformOrigin:"50% 100%"},{opacity:1,yPercent:0,rotationX:0,duration:0.85,ease:"expo.out"},${r(T + 0.1)});`,
+    // Deeper device-presentation entrance: the frame rises with perspective and
+    // a slight scale settle, so the screenshot ARRIVES rather than fades in.
+    `tl.fromTo("#${id}fr",{opacity:0,yPercent:10,rotationX:16,scale:0.96,transformPerspective:1200,transformOrigin:"50% 100%"},{opacity:1,yPercent:0,rotationX:0,scale:1,duration:0.9,ease:"expo.out"},${r(T + 0.1)});`,
+    // Browser-chrome dots pop in one after another (a tiny "the app is booting"
+    // beat that reads as intentional polish).
+    paper ? "" : `tl.from("#${id}fr .browser-bar span",{scale:0,opacity:0,duration:0.35,ease:"back.out(2.5)",stagger:0.06},${r(T + 0.45)});`,
     `tl.fromTo("#${id}img",{y:0},{y:function(i,el){var h=el.scrollHeight-el.clientHeight;return -(h>0?Math.min(h,el.clientHeight*0.5):0);},duration:${r(L - 0.6)},ease:"sine.inOut"},${r(T + 0.4)});`,
+    // Glossy shine sweeps across the shot once the frame has landed.
+    paper ? "" : `tl.set("#${id}sh",{opacity:1},${r(T + 0.85)});`,
+    paper ? "" : `tl.fromTo("#${id}sh",{xPercent:0},{xPercent:420,duration:1.05,ease:"power2.inOut"},${r(T + 0.85)});`,
+    paper ? "" : `tl.to("#${id}sh",{opacity:0,duration:0.2},${r(T + 1.75)});`,
     `tl.fromTo("#${id}k",{opacity:0,y:12},{opacity:1,y:0,duration:0.5},${r(T + 0.5)});`,
     `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.65)},0.08);`,
     scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:14},{opacity:1,y:0,duration:0.5},${r(T + 1.1)});` : "",
@@ -2046,7 +2372,7 @@ function archScreenshotHero(scene, ctx) {
 function archSplitVector(scene, ctx) {
   const { theme, id, T, L, track, dims, asset } = ctx;
   const land = dims.width >= dims.height;
-  const big = land ? 64 : 50;
+  const big = land ? 64 : 68;
   const accentText = theme.emphasisCss || (theme.gradients ? `background:linear-gradient(100deg,${theme.accent},${theme.accent2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.accent};` : `color:${theme.accent};`);
   const dir = land ? "row" : "column";
   // Photos get the same gentle palette pull as montage tiles (a raw stock photo
@@ -2064,7 +2390,9 @@ function archSplitVector(scene, ctx) {
       <h2 style="font:800 ${fitBig(scene.headline, big, 16)}px/1.05 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};"><style>${emphasisBlock(theme, id)}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
       ${scene.subtext ? `<p id="${id}s" style="opacity:0;margin-top:14px;font:500 ${Math.round(big * 0.4)}px/1.45 ${cssFont(theme)};color:${theme.dim};">${esc(scene.subtext)}</p>` : ""}
     </div>
-    <div style="flex:1;display:flex;align-items:center;justify-content:center;"><img id="${id}art" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;max-width:${land ? "44%" : "60%"};height:auto;max-height:${Math.round(dims.height * (land ? 0.6 : 0.34))}px;object-fit:contain;${artGlow}"></div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;">${(theme.layout.assetStyle === "paper" && !artIsVec)
+      ? `<div style="transform:rotate(2.4deg);max-width:${land ? "62%" : "74%"};"><div id="${id}art" style="position:relative;${PAPER_MAT}${paperShadow(1)}padding:11px 11px 30px;"><div style="overflow:hidden;border-radius:3px;"><img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:auto;max-height:${Math.round(dims.height * (land ? 0.52 : 0.3))}px;object-fit:cover;filter:saturate(0.82) contrast(1.02);display:block;"></div>${paperTape("left:-13px;top:-9px;", -16)}</div></div>`
+      : `<img id="${id}art" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;max-width:${land ? "44%" : "60%"};height:auto;max-height:${Math.round(dims.height * (land ? 0.6 : 0.34))}px;object-fit:contain;${artGlow}">`}</div>
   </div>
 </div>`;
   const s = [
@@ -2086,18 +2414,21 @@ function archSplitVector(scene, ctx) {
 // archetypes (hero / split) leave unused.
 function archAssetMontage(scene, ctx) {
   const { theme, id, T, L, track, dims } = ctx;
-  const items = (ctx.assets || []).slice(0, 6);
+  const items = (ctx.assets || []).slice(0, 8);
   const n = items.length || 1;
   const land = dims.width >= dims.height;
-  const cols = n <= 1 ? 1 : n <= 4 ? 2 : 3;
-  const big = land ? 54 : 44;
+  const cols = n <= 1 ? 1 : n <= 4 ? 2 : n <= 6 ? 3 : 4;
+  const big = land ? 54 : 58;
   const flat = !theme.gradients;
   const accentText = theme.emphasisCss || (theme.gradients
     ? `background:linear-gradient(100deg,${theme.accent},${theme.accent2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.accent};`
     : `color:${theme.accent};`);
-  const tileChrome = flat
-    ? `border:3px solid ${theme.ink};box-shadow:6px 6px 0 ${theme.accent};`
-    : `border:1px solid ${theme.line};box-shadow:0 22px 50px rgba(0,0,0,0.45);`;
+  const paper = theme.layout.assetStyle === "paper";
+  const tileChrome = paper
+    ? `${PAPER_MAT}${paperShadow(0.8)}`
+    : flat
+      ? `border:3px solid ${theme.ink};box-shadow:6px 6px 0 ${theme.accent};`
+      : `border:1px solid ${theme.line};box-shadow:0 22px 50px rgba(0,0,0,0.45);`;
   const tileH = Math.round(dims.height * (land ? 0.2 : 0.15));
   const tileFx = [];                              // per-tile entrance effect (agent or by-kind)
   const tiles = items.map((a, k) => {
@@ -2115,9 +2446,16 @@ function archAssetMontage(scene, ctx) {
     // heuristic. Also: a landscape screenshot that already matches the tile ratio
     // is let to `cover` normally; the top-pin only matters for tall grabs.
     const fit = (a.fit === "contain" || a.fit === "cover") ? a.fit : (isVec ? "contain" : "cover");
+    // Crop precedence: asset-director's `focus` (it SAW the image) > the Visual
+    // Layout Director's content-type `cropFocus` (a full object-position string)
+    // > the by-kind heuristic. The two directors never fight: VLD only fills the
+    // gap when the vision agent was silent.
     const focus = a.focus || (isShot ? "top" : "center");
-    const objPos = `object-position:${focus === "top" ? "top" : focus === "bottom" ? "bottom" : "center"} center;`;
-    const pad = isVec ? `background:${rgba(theme.ink, theme.isDark ? 0.06 : 0.04)};padding:14px;` : "";
+    const objPos = a.focus
+      ? `object-position:${focus === "top" ? "top" : focus === "bottom" ? "bottom" : "center"} center;`
+      : (a.cropFocus ? `object-position:${a.cropFocus};`
+        : `object-position:${focus === "top" ? "top" : focus === "bottom" ? "bottom" : "center"} center;`);
+    const pad = (isVec && !paper) ? `background:${rgba(theme.ink, theme.isDark ? 0.06 : 0.04)};padding:14px;` : "";
     // COLOR HARMONY — raw stock photos arrive in arbitrary palettes (a saturated
     // red product shot shatters a navy/cyan frame). Photos get pulled toward the
     // pack: gentle desaturation on the img + a ground-tinted wash over the tile,
@@ -2125,7 +2463,20 @@ function archAssetMontage(scene, ctx) {
     // are already pack-recolored; a product screenshot must stay true).
     const tone = (isVec || isShot) ? "" : "filter:saturate(0.76) contrast(1.04);";
     const wash = (isVec || isShot) ? "" : `<span style="position:absolute;inset:0;background:linear-gradient(180deg,${rgba(theme.ground, 0.12)},${rgba(theme.ground, 0.32)});pointer-events:none;"></span>`;
-    return `<div id="${id}t${k}" class="kftile" style="opacity:0;position:relative;overflow:hidden;border-radius:${flat ? 8 : 14}px;${tileChrome}${pad}height:${tileH}px;display:flex;align-items:center;justify-content:center;"><img src="${esc(a.path)}" alt="${esc(a.alt || "")}" style="width:100%;height:100%;object-fit:${fit};${objPos}display:block;${tone}">${wash}</div>`;
+    const img = `<img src="${esc(a.path)}" alt="${esc(a.alt || "")}" style="width:100%;height:100%;object-fit:${fit};${objPos}display:block;${tone}">`;
+    if (!paper) {
+      return `<div id="${id}t${k}" class="kftile" style="opacity:0;position:relative;overflow:hidden;border-radius:${flat ? 8 : 14}px;${tileChrome}${pad}height:${tileH}px;display:flex;align-items:center;justify-content:center;">${img}${wash}</div>`;
+    }
+    // Polaroid: white mat, heavier bottom lip, deterministic scatter tilt, washi
+    // tape overhanging the top edge (tile overflow stays visible; the inner box
+    // does the cropping). Tilt lives on a static wrapper — the tile itself is
+    // GSAP-animated (entrance + shared float) and would clobber a transform.
+    const tilt = r((((k * 7) % 5) - 2) * 1.6);
+    const innerBg = isVec ? `background:${rgba(theme.ink, 0.04)};padding:10px;` : "";
+    return `<div style="transform:rotate(${tilt}deg);"><div id="${id}t${k}" class="kftile" style="opacity:0;position:relative;border-radius:5px;${tileChrome}padding:9px 9px 26px;height:${tileH}px;display:flex;">
+      <div style="flex:1;overflow:hidden;border-radius:3px;position:relative;${innerBg}">${img}${wash}</div>
+      ${paperTape(`left:${18 + ((k * 13) % 30)}%;top:-9px;`, ((k % 2) ? 12 : -15))}
+    </div></div>`;
   }).join("");
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   <div style="position:absolute;left:6%;right:6%;top:50%;transform:translateY(-50%);">
@@ -2150,6 +2501,49 @@ function archAssetMontage(scene, ctx) {
   return { html, script: s };
 }
 
+// PAPER ASSET TREATMENT — packs with theme.layout.assetStyle:"paper" never show
+// raw media full-bleed: photos/clips become white-matted snapshots with washi
+// tape, slightly rotated, sitting ON the pack's paper ground. Static rotation
+// lives on a WRAPPER element: GSAP entrances (assetEntrance) rewrite the
+// target's transform (y/scale/rotation), so a rotate on the animated element
+// itself would be clobbered on the first frame.
+const PAPER_MAT = "background:#fffdf7;border-radius:5px;";
+function paperShadow(k) { return `box-shadow:0 ${Math.round(10 * k)}px ${Math.round(26 * k)}px rgba(96,64,38,${r(0.16 * k)}),0 2px 6px rgba(96,64,38,0.10);`; }
+function paperTape(pos, tilt) {
+  return `<span data-layout-allow-occlusion style="position:absolute;${pos}width:66px;height:20px;background:rgba(233,215,177,0.85);transform:rotate(${tilt}deg);border-radius:2px;box-shadow:0 2px 5px rgba(0,0,0,0.10);"></span>`;
+}
+// Leftover photo/clip as a pinned bottom-right snapshot (paper packs' answer to
+// the full-bleed scrim): the pack ground stays visible, the media lives in a
+// taped polaroid that settles in and floats. Text scenes render over the ground
+// as usual — no scrim needed since the ground itself guarantees contrast.
+function paperSnapshotBg(asset, ctx, isVideo) {
+  const { theme, id, T, L, dims } = ctx;
+  const land = dims.width >= dims.height;
+  const w = Math.round(dims.width * (land ? 0.24 : 0.4));
+  const h = Math.round(w * 0.68);
+  const media = isVideo
+    ? `<video id="${id}vid" src="${esc(asset.path)}" muted playsinline preload="auto" style="width:100%;height:100%;object-fit:cover;filter:saturate(0.85) contrast(1.02);"></video>`
+    : `<img src="${esc(asset.path)}" alt="" style="width:100%;height:100%;object-fit:cover;filter:saturate(0.82) contrast(1.02);">`;
+  const html = `<div id="${id}bg" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${ctx.bgTrack}" data-layout-allow-occlusion style="opacity:0;">
+  <div style="position:absolute;right:4.5%;bottom:13%;transform:rotate(-3.4deg);">
+    <div id="${id}bgi" style="position:relative;${PAPER_MAT}${paperShadow(1)}padding:10px 10px 30px;">
+      <div style="width:${w}px;height:${h}px;overflow:hidden;border-radius:3px;">${media}</div>
+      ${paperTape("left:-14px;top:-9px;", -18)}${paperTape("right:-14px;top:-9px;", 14)}
+    </div>
+  </div>
+</div>`;
+  const s = [
+    `tl.set("#${id}bg",{opacity:1},${T});`,
+    `tl.fromTo("#${id}bgi",{opacity:0,y:34,rotation:3,transformOrigin:"50% 0%"},{opacity:1,y:0,rotation:0,duration:0.7,ease:"back.out(1.4)"},${r(T + 0.3)});`,
+    `tl.to("#${id}bgi",{y:"-=7",duration:2.0,ease:"sine.inOut",yoyo:true,repeat:sreps(${r(L - 1.35)},2.0)},${r(T + 1.05)});`,
+    isVideo ? `tl.to({},{duration:${r(L)},ease:"none",onUpdate:function(){var v=document.getElementById("${id}vid");if(v&&isFinite(v.duration)&&v.duration>0){var lt=tl.time()-${r(T)};v.currentTime=Math.max(0,Math.min(v.duration,lt));}}},${r(T)});` : "",
+    // fade + HARD KILL at the boundary — non-linear seeks must never land on a
+    // stale-visible snapshot (gsap_exit_missing_hard_kill).
+    ctx.isLast ? "" : `tl.to("#${id}bg",{opacity:0,duration:0.28},${r(T + L - 0.3)});\ntl.set("#${id}bg",{opacity:0},${r(T + L)});`,
+  ].filter(Boolean).join("\n");
+  return { html, script: s };
+}
+
 // SCRIM B-ROLL — a leftover photo as a full-bleed, darkened, slowly-scaling
 // background behind a scene that carries no foreground asset. The scrim gradient
 // guarantees text contrast; data-layout-allow-occlusion keeps occlusion lint
@@ -2157,6 +2551,7 @@ function archAssetMontage(scene, ctx) {
 function scrimBg(asset, ctx) {
   const { theme, id, T, L } = ctx;
   if (!asset) return null;
+  if (theme.layout.assetStyle === "paper") return paperSnapshotBg(asset, ctx, false);
   const g = theme.ground;
   const scrim = `linear-gradient(180deg, ${rgba(g, 0.55)} 0%, ${rgba(g, 0.74)} 55%, ${rgba(g, 0.9)} 100%)`;
   const html = `<div id="${id}bg" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${ctx.bgTrack}" data-layout-allow-occlusion style="opacity:0;overflow:hidden;"><img id="${id}bgi" src="${esc(asset.path)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"><div style="position:absolute;inset:0;background:${scrim};"></div></div>`;
@@ -2175,6 +2570,7 @@ function scrimBg(asset, ctx) {
 function videoBg(asset, ctx) {
   const { theme, id, T, L } = ctx;
   if (!asset) return null;
+  if (theme.layout.assetStyle === "paper") return paperSnapshotBg(asset, ctx, true);
   const g = theme.ground;
   const scrim = `linear-gradient(180deg, ${rgba(g, 0.5)} 0%, ${rgba(g, 0.72)} 55%, ${rgba(g, 0.9)} 100%)`;
   const html = `<div id="${id}bg" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${ctx.bgTrack}" data-layout-allow-occlusion style="opacity:0;overflow:hidden;"><video id="${id}vid" src="${esc(asset.path)}" muted playsinline preload="auto" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></video><div style="position:absolute;inset:0;background:${scrim};"></div></div>`;
@@ -2244,7 +2640,10 @@ function pickNumber(scene) {
     .replace(/\b\d+(?:st|nd|rd|th)\b/gi, " "); // ordinals: 1st, 2nd
   // Longer unit words BEFORE the M|K|B magnitudes — alternation is ordered, so
   // a leading M|K|B would steal the "m" of "min"/"minutes" (misread as millions).
-  const m = /([₹$€£]?)\s?(\d[\d,]*)\s?([%x+]|hours?|hrs?|days?|min(?:ute)?s?|sec(?:ond)?s?|M|K|B)?/i.exec(cleaned);
+  // Trailing (?![A-Za-z0-9]) stops a magnitude letter from being scraped off the
+  // FRONT of a longer word — "12,000 kitchens" must render "12,000", not
+  // "12,000k" (twelve million). The suffix only counts when the copy ends there.
+  const m = /([₹$€£]?)\s?(\d[\d,]*)\s?([%x+]|hours?|hrs?|days?|min(?:ute)?s?|sec(?:ond)?s?|M|K|B)?(?![A-Za-z0-9])/i.exec(cleaned);
   if (!m) return null;
   const value = clamp(parseInt(m[2].replace(/,/g, ""), 10) || 0, 0, 9_999_999);
   if (!value) return null;
@@ -2265,7 +2664,27 @@ function pickNumber(scene) {
 }
 
 // Map a storyboard scene.kind to an archetype builder.
-function archetypeFor(scene, idx, total) {
+// Layout-planner hints (Visual Layout Director): a scene typed by PURPOSE + text
+// wins over the kind-based guess below — a testimonial written as a plain bullet
+// becomes a quote card, an untagged metric a stat card, a closing line a CTA.
+// Only asset-FREE archetypes may be hinted; hero/montage/split stay owned by the
+// asset weaving (which feeds them their assets).
+const HINT_ARCH = { hook: () => archHook, cta: () => archCta, quote: () => archQuoteCard, stat: () => archStat, text: () => archText };
+function archetypeFor(scene, idx, total, hint) {
+  // A "text" hint must NOT flatten a scene that carries bullets: the text
+  // director now fills bullets widely, and archText renders none of them (and
+  // "weavable" text scenes can even be converted to montages, deleting the
+  // copy). Bullet scenes fall through to the richer local typing below
+  // (strike-list / proof-row / feature-grid), which renders every bullet.
+  const bulletCount = Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean).length : 0;
+  const hintUsable = hint && HINT_ARCH[hint]
+    // "text"/"stat" hints on a ≥2-bullet scene would render zero (text) or one
+    // (stat) of the bullets — fall through to strike-list/proof-row/feature-grid.
+    && !((hint === "text" || hint === "stat") && bulletCount >= 2)
+    // a "stat" hint with no parseable number would ship archStat's fabricated
+    // default — the local logic guards this; the hint must not bypass it.
+    && !(hint === "stat" && !pickNumber(scene));
+  if (hintUsable) return HINT_ARCH[hint]();
   const k = (scene.kind || "").toLowerCase();
   if (idx === 0 || k === "hook" || k === "title") return archHook;
   if (idx === total - 1 || k === "cta") return archCta;
@@ -2289,21 +2708,37 @@ function archetypeFor(scene, idx, total) {
 }
 
 // Seek-safe caption track (one node, recomputed each frame — never one clip/line).
+// The card carries the PACK's identity: flat/print packs get a paper chip (solid
+// ground, ink border, hard accent offset-shadow); gradient packs get a glass pill
+// tinted with their own ground + an accent hairline. Before this, every pack
+// shared one near-black pill with white text — a global caption uniform.
 function buildCaptions(captionCues, dims, D, theme, track) {
   const cues = Array.isArray(captionCues) ? captionCues.filter((c) => c && c.text) : [];
   if (!cues.length) return null;
   const data = JSON.stringify(cues.map((c) => [r(c.start || 0), r(c.end || (c.start || 0) + 2), String(c.text)]));
-  const html = `<div class="clip" data-start="0" data-duration="${D}" data-track-index="${track}"><div id="kfcap" style="position:absolute;left:50%;bottom:5%;transform:translateX(-50%);max-width:76%;text-align:center;padding:11px 22px;border-radius:12px;background:${rgba(theme.isDark ? "#080c12" : "#0c0c0c", 0.72)};border:1px solid ${rgba("#ffffff", 0.10)};color:#F4F7FA;font:600 ${Math.round(dims.height * 0.034)}px/1.3 ${cssFont(theme)};opacity:0;"></div></div>`;
+  const chrome = !theme.gradients
+    ? `border-radius:6px;background:${theme.ground};border:2px solid ${theme.ink};box-shadow:4px 4px 0 ${theme.accent};color:${theme.ink};`
+    : theme.isDark
+      ? `border-radius:12px;background:${rgba(theme.ground, 0.78)};border:1px solid ${rgba(theme.accent, 0.32)};color:${theme.ink};backdrop-filter:blur(6px);`
+      : `border-radius:12px;background:${rgba("#FFFFFF", 0.85)};border:1px solid ${rgba(theme.ink, 0.18)};color:${theme.ink};backdrop-filter:blur(6px);`;
+  const html = `<div class="clip" data-start="0" data-duration="${D}" data-track-index="${track}"><div id="kfcap" style="position:absolute;left:50%;bottom:5%;transform:translateX(-50%);max-width:76%;text-align:center;padding:11px 22px;${chrome}font:600 ${Math.round(dims.height * 0.034)}px/1.3 ${cssFont(theme)};opacity:0;"></div></div>`;
   const script = `var kfcd=${data};var kfcp={t:0};tl.to(kfcp,{t:${D},duration:${D},ease:"none",onUpdate:function(){var el=document.getElementById("kfcap");if(!el)return;var n=kfcp.t,a=null;for(var k=0;k<kfcd.length;k++){if(n>=kfcd[k][0]&&n<kfcd[k][1]){a=kfcd[k];break;}}if(a){if(el.textContent!==a[2])el.textContent=a[2];el.style.opacity="1";}else el.style.opacity="0";}},0);`;
   return { html, script };
 }
 
 // MAIN ENTRY — assemble the full composition.
-function buildComposition({ storyboard, dims, framePack, assets, captionCues, seedKey, dressing } = {}) {
+function buildComposition({ storyboard, dims, framePack, assets, captionCues, seedKey, dressing, brandSkin, layoutPlan } = {}) {
   const sb = storyboard || {};
   const scenes = Array.isArray(sb.scenes) && sb.scenes.length ? sb.scenes : [{ id: "s1", start: 0, duration: dims.fps ? 4 : 4, kind: "hook", headline: sb.title || "KEYFRAME" }];
   const D = r(sb.durationSec || scenes.reduce((a, s) => a + (s.duration || 0), 0) || 12);
-  const theme = deriveTheme(framePack, sb);
+  const theme = deriveTheme(framePack, sb, brandSkin);
+  // Visual Layout Director globals (reserved `__` keys on layoutPlan): the target
+  // hero width fraction and the montage tile budget ("fewer, larger tiles").
+  // Absent/invalid → the kit's own defaults, so the VLD stays strictly optional.
+  const heroScale = layoutPlan && Number(layoutPlan.__heroScale) > 0
+    ? Math.max(0.4, Math.min(0.7, Number(layoutPlan.__heroScale))) : null;
+  const montageMax = layoutPlan && Number(layoutPlan.__montageMax) > 0
+    ? Math.max(2, Math.min(8, Math.round(Number(layoutPlan.__montageMax)))) : 6;
   const W = dims.width, H = dims.height;
   // seedKey (jobId) first: two jobs with the same title must not be twins.
   const seed = hashSeed(`${seedKey || ""}|${sb.title || ""}|${scenes.length}`);
@@ -2344,6 +2779,7 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
   // a weak hero/tile cheapens the whole film. Low photos fall to scrim B-roll; low
   // vectors/screenshots simply drop (there is no gentle background use for them).
   const prominentOk = (a) => !!a && !a.lowQuality && (a.source === "website"
+    || a.source === "blog" // the post's own images — owner content, always showable
     || a.source === "iconify"
     || String(a.source || "").startsWith("library:")
     || a.visionOk === true);
@@ -2369,17 +2805,67 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
       theme, dims, id: `s${i + 1}`, T, L,
       track: base + 1, bgTrack: base,
       isLast: i === scenes.length - 1,
-      kicker: i === 0 ? (sb.title || "KEYFRAME") : "",
+      kicker: scene.kicker || (i === 0 ? (sb.title || "KEYFRAME") : ""),
       asset: null, assets: null, bgAsset: null,
       seed, sceneIndex: i, sceneCount: scenes.length,
       variant: dress?.variant != null ? dress.variant : textVariant(theme, seed, i), // 0-3 layout variant
       decorSvg: dress?.decorSvg || null,
+      // Scene copy + film title, so pack ornaments can be TOPIC-DRIVEN (ticker
+      // marquees, gate signs, timecode chips…) instead of abstract filler.
+      scene, sbTitle: sb.title || "",
+      heroScale, // Visual Layout Director: target hero width fraction (null → default)
     };
-    return { scene, i, ctx, isContent: i > 0 && i < scenes.length - 1, build: archetypeFor(scene, i, scenes.length) };
+    const hint = layoutPlan && layoutPlan[scene.id] ? layoutPlan[scene.id].archetype : null;
+    return { scene, i, ctx, isContent: i > 0 && i < scenes.length - 1, build: archetypeFor(scene, i, scenes.length, hint) };
   });
 
   const leftover = () => pools.screenshots.length + pools.vectors.length + pools.photos.length;
-  let usedShot = false, montageDone = false;
+  let usedShot = false, montagesUsed = 0;
+
+  // Pass 0 — DIRECTOR PLACEMENT. The creative director / asset planner annotates
+  // assets with the scene they belong to (`asset.sceneId`, matching the
+  // storyboard's own scene ids — numbers on /generate, "s1"-style strings on the
+  // project path). Honor those assignments FIRST; everything left (or whose
+  // target slot is taken) falls through to the affinity passes below, so a
+  // storyboard with no director annotations behaves exactly as before.
+  {
+    const sceneByKey = new Map();
+    for (const p of plan) {
+      if (p.scene.id != null) sceneByKey.set(String(p.scene.id), p);
+      sceneByKey.set(p.ctx.id, p);            // "s1".."sN"
+      sceneByKey.set(String(p.i + 1), p);     // bare index
+    }
+    const targetFor = (a) => (a && a.sceneId != null) ? sceneByKey.get(String(a.sceneId)) : null;
+    const promRank = (a) => (a.cdProminence === "hero" ? 0 : a.cdProminence === "support" ? 1 : 2);
+    let placed = 0;
+    const placeForeground = (p, a, buildFn) => { p.ctx.asset = a; p.build = buildFn; placed++; };
+    // Heroes claim slots before supports so the director's top pick wins contention.
+    for (const poolName of ["screenshots", "vectors", "photos", "videos"]) {
+      const pool = pools[poolName];
+      const assigned = pool.filter((a) => targetFor(a)).sort((x, y) => promRank(x) - promRank(y));
+      for (const a of assigned) {
+        const p = targetFor(a);
+        const fgOpen = p.isContent && !p.ctx.asset && !p.ctx.assets;
+        if (poolName === "screenshots" && fgOpen && (p.build === archText || p.build === archFeatureGrid)) {
+          placeForeground(p, a, archScreenshotHero);
+          p.ctx.kicker = p.scene.kicker || p.scene.emphasis || "Live preview";
+          usedShot = true;
+        } else if ((poolName === "vectors" || poolName === "photos") && fgOpen && p.build === archText) {
+          placeForeground(p, a, archSplitVector);
+        } else if (poolName === "videos" && p.i !== 0 && !p.ctx.bgVideo) {
+          p.ctx.bgVideo = a; placed++;
+        } else if (poolName !== "videos" && p.i !== 0 && !p.ctx.bgAsset && !p.ctx.asset && !p.ctx.assets) {
+          // Target scene's foreground is content-critical (stat/quote/…) or taken —
+          // still honor the assignment as that scene's scrimmed background.
+          p.ctx.bgAsset = a; placed++;
+        } else {
+          continue; // leave in pool for the affinity passes
+        }
+        pool.splice(pool.indexOf(a), 1);
+      }
+    }
+    if (placed) console.log(`[scene-kit] director placement: ${placed} asset(s) placed by sceneId`);
+  }
 
   // Pass 1 — FOREGROUND features on every CONTENT scene. The old guard only wove
   // assets into `archText` scenes, so a video whose middle scenes were stat/number
@@ -2409,7 +2895,7 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
       .map((p) => ({ p, s: assetAffinity(p.scene, "screenshot") + (p.build === archFeatureGrid ? 0.25 : 0) }))
       .sort((a, b) => b.s - a.s || a.p.i - b.p.i)[0].p;
     target.ctx.asset = pools.screenshots.shift(); target.build = archScreenshotHero; usedShot = true;
-    target.ctx.kicker = target.scene.emphasis || "Live preview";
+    target.ctx.kicker = target.scene.kicker || target.scene.emphasis || "Live preview";
   }
 
   // Split-art media order is pack-driven (Phase 6 assets.prefer): a photo-forward
@@ -2426,14 +2912,18 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
   for (const p of weavable) {
     if (p.ctx.asset || p.ctx.assets) continue;
     if (!leftover()) break;
-    if (!montageDone && leftover() >= 3) {
-      p.ctx.assets = takeMontage(pools, 6); p.build = archAssetMontage; montageDone = true;
+    // Up to TWO montage scenes: the first fires on any pool of 3+; a second
+    // fires only when the pool is still deep (6+) after the first — a rich
+    // fetch (10-16 assets) now surfaces across two grids instead of dropping
+    // half the pool to faint B-roll.
+    if (montagesUsed < 2 && leftover() >= (montagesUsed === 0 ? 3 : 6)) {
+      p.ctx.assets = takeMontage(pools, montageMax); p.build = archAssetMontage; montagesUsed++;
     } else if (pools[splitPools[0]].length || pools[splitPools[1]].length) {
       const pool = pools[splitPools[0]].length ? splitPools[0] : splitPools[1];
       p.ctx.asset = pools[pool].shift(); p.build = archSplitVector;
     } else if (pools.screenshots.length) {
       p.ctx.asset = pools.screenshots.shift(); p.build = archScreenshotHero;
-      p.ctx.kicker = p.scene.emphasis || "Live preview";
+      p.ctx.kicker = p.scene.kicker || p.scene.emphasis || "Live preview";
     }
   }
 
@@ -2580,4 +3070,15 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
 
 function scriptStart(scenes, i) { let s = 0; for (let k = 0; k < i; k++) s += scenes[k].duration || 0; return s; }
 
-module.exports = { buildComposition, deriveTheme, FLAT_PACKS };
+// THE IDENTITY CONTRACT — every value a pack.json may declare per dimension.
+// scene_kit dispatches on these by exact string; an unknown value silently falls
+// to the default look (the "declared but never rendered" identity-drop class —
+// six packs shipped cuts that didn't exist). scripts/audit-identity.js validates
+// every manifest against these sets in CI; extend the set in the SAME change
+// that implements the new style.
+const CUT_STYLES = new Set(["glow", "wipe", "push", "whip", "flash", "wash", "panel", "iris", "cut", "fade", "inkblot", "clockwipe", "smear", "weave", "submerge"]);
+const TEXT_ENTERS = new Set(["blur-up", "slide", "spring", "mask-reveal", "line-wipe", "drift", "typewriter", "char-pop", "glitch", "flap", "stamp", "brush", "pendulum", "squash", "stitch", "ripple"]);
+const EMPHASIS_STYLES = new Set(["gradient", "glow", "boxed", "marker", "underline-grow", "bracket", "scribble", "hanko", "ring", "clay", "embroider", "echo"]);
+const CANVAS_MODES = new Set(["bokeh", "flow", "grid", "rays", "confetti", "constellation", "prism", "ribbon", "sprinkle", "halftone", "paper", "none", "sumi", "orrery", "clay", "stitch", "caustics"]);
+
+module.exports = { buildComposition, deriveTheme, FLAT_PACKS, CUT_STYLES, TEXT_ENTERS, EMPHASIS_STYLES, CANVAS_MODES };

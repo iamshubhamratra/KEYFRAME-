@@ -140,6 +140,15 @@ function build() {
     }
   }
 
+  // Creative Director (vision review of every asset + screenshot ranking).
+  // Default ON; disable with CREATIVE_DIRECTOR=0/off/false. Tuning lives in
+  // config.json's optional creativeDirector block
+  // ({ enabled, model, maxPerScene, maxTopUp, chunkSize }).
+  if (process.env.CREATIVE_DIRECTOR) {
+    cfg.creativeDirector = { ...(cfg.creativeDirector || {}) };
+    cfg.creativeDirector.enabled = !/^(0|false|no|off)$/i.test(process.env.CREATIVE_DIRECTOR);
+  }
+
   // Port override (EB sets PORT env).
   if (process.env.PORT) {
     const p = Number(process.env.PORT);
@@ -214,6 +223,48 @@ function build() {
   cfg.llm.useComposer = process.env.USE_LLM_COMPOSER != null
     ? /^(1|true|yes|on)$/i.test(String(process.env.USE_LLM_COMPOSER))
     : (cfg.llm.useComposer !== false);
+
+  // Art Director agent — turns the website's extracted brand colors (brief.brandColors,
+  // previously unused) into an ACCENT-ONLY brand skin so the video reads on-brand
+  // instead of rendering the frame pack's stock palette (see services/art_director.js).
+  // Text-only (it reasons over hex colors), so any capable JSON model works. Default
+  // ON; disable with ART_DIRECTOR=0, override the model with ART_DIRECTOR_MODEL.
+  // Fail-open: on any error the pack keeps its own accents, so it never blocks a render.
+  const ardCfg = cfg.artDirector || {};
+  cfg.artDirector = {
+    enabled: process.env.ART_DIRECTOR != null
+      ? /^(1|true|yes|on)$/i.test(String(process.env.ART_DIRECTOR))
+      : (ardCfg.enabled !== false),
+    model: process.env.ART_DIRECTOR_MODEL || ardCfg.model || "google/gemini-3.1-flash-lite",
+  };
+  cfg.llm.stageModels = { ...(cfg.llm.stageModels || {}), art_director: cfg.artDirector.model };
+
+  // Visual Layout Director — DETERMINISTIC (no LLM). Reuses the per-asset scores
+  // to decide presentation: how many assets appear prominently (quality over
+  // quantity), how big the hero is, how tightly a montage packs, and where each
+  // image is cropped (see services/visual_layout_director.js). Default ON;
+  // disable with VISUAL_LAYOUT_DIRECTOR=0. Fail-open — never blocks a render.
+  const vldCfg = cfg.visualLayoutDirector || {};
+  cfg.visualLayoutDirector = {
+    enabled: process.env.VISUAL_LAYOUT_DIRECTOR != null
+      ? /^(1|true|yes|on)$/i.test(String(process.env.VISUAL_LAYOUT_DIRECTOR))
+      : (vldCfg.enabled !== false),
+  };
+
+  // Text Director — mines the brief/script/site copy for the words that sell
+  // (stats, feature names, proof points) and fills each storyboard scene's EMPTY
+  // text slots (subtext/bullets/emphasis/kicker) so films carry real information
+  // density (see services/text_director.js). Add-only + fail-open (deterministic
+  // miner backs up the LLM). Default ON; disable with TEXT_DIRECTOR=0, override
+  // the model with TEXT_DIRECTOR_MODEL.
+  const tdrCfg = cfg.textDirector || {};
+  cfg.textDirector = {
+    enabled: process.env.TEXT_DIRECTOR != null
+      ? /^(1|true|yes|on)$/i.test(String(process.env.TEXT_DIRECTOR))
+      : (tdrCfg.enabled !== false),
+    model: process.env.TEXT_DIRECTOR_MODEL || tdrCfg.model || "google/gemini-3.1-flash-lite",
+  };
+  cfg.llm.stageModels = { ...(cfg.llm.stageModels || {}), text_director: cfg.textDirector.model };
 
   validate(cfg);
 

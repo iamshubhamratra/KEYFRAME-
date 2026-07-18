@@ -10,20 +10,19 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { spawn } = require("node:child_process");
+const { spawnCompat, killTree } = require("../spawn_compat");
 const config = require("../../config");
 const openrouter = require("../openrouter");
 
-const WINDOWS = process.platform === "win32";
-
 function run(cmd, args, { timeoutMs = 120_000, collectStdout = true } = {}) {
   return new Promise((resolve, reject) => {
-    // Node ≥18.20 throws EINVAL spawning .cmd files without a shell (CVE-2024-27980).
-    const p = spawn(cmd, args, { shell: WINDOWS && cmd.endsWith(".cmd") });
+    // spawnCompat runs .cmd shims under a shell (CVE-2024-27980) with
+    // pre-quoted args (avoids DEP0190); everything else spawns directly.
+    const p = spawnCompat(cmd, args);
     let out = "", err = "";
     if (collectStdout) p.stdout.on("data", (d) => { out += d.toString(); });
     p.stderr.on("data", (d) => { err += d.toString(); });
-    const timer = setTimeout(() => { try { p.kill("SIGKILL"); } catch { /* noop */ } }, timeoutMs);
+    const timer = setTimeout(() => killTree(p), timeoutMs);
     p.on("error", (e) => { clearTimeout(timer); reject(e); });
     p.on("exit", (code) => {
       clearTimeout(timer);
@@ -116,10 +115,18 @@ async function describeVisualStyle(framePaths, { signal } = {}) {
 async function transcribeVideo({ videoPath, workDir, signal, tracker }) {
   fs.mkdirSync(workDir, { recursive: true });
 
-  const wav = await extractAudio(videoPath, workDir);
+  // A reference video with NO audio stream (muted screen recording — common)
+  // makes ffmpeg -vn exit non-zero. That must not sink the whole ingest: the
+  // visual-style half below is independent of audio, so skip STT and carry on.
+  const wav = await extractAudio(videoPath, workDir).catch((e) => {
+    console.warn(`[ingest] audio extract failed (likely no audio stream): ${String(e && e.message || e).slice(0, 120)} — skipping STT`);
+    return null;
+  });
   const provider = config.stt?.provider || "local";
 
-  const sttTask = (provider === "local" ? sttLocal(wav) : sttHosted(wav))
+  const sttTask = (wav == null
+    ? Promise.resolve({ transcript: "", segments: [], language: "unknown" })
+    : (provider === "local" ? sttLocal(wav) : sttHosted(wav)))
     .catch((e) => {
       console.warn(`[ingest] stt failed (${provider}): ${e.message}`);
       return { transcript: "", segments: [], language: "unknown" };

@@ -34,14 +34,18 @@ const MODEL_PRICING = {
 };
 const DEFAULT_MODEL_PRICE = { in: 0.30, out: 2.50 };
 
-// Resolve the model a stage runs on (mirrors openrouter.modelForStage but kept
-// local to avoid a require cycle). qa/brief/script/etc. map to the default.
-// With a KIE primary configured, EVERY stage actually runs there first
-// (OpenRouter is outage-fallback only), so the primary model is the accurate
-// price basis — the stage table only describes the fallback route.
+// Resolve the model a stage runs on (mirrors openrouter's dispatch but kept
+// local to avoid a require cycle). The KIE primary serves ONLY the premium
+// creative stages (config.llm.premiumStages, default brief/storyboard/script/
+// composer — keep in sync with openrouter.js); every other stage goes straight
+// to the OpenRouter stage-table model, so price it there. Outage fallbacks
+// (premium stage served by OpenRouter because KIE was down) still price as the
+// primary — a rare overestimate we accept to avoid threading the actual model
+// through every tracker call site.
 function modelForStage(stage) {
   const llm = config.llm || {};
-  if (llm.primary && llm.primary.apiKey && llm.primary.model) return llm.primary.model;
+  const premium = new Set(llm.premiumStages || ["brief", "storyboard", "script", "composer"]);
+  if (llm.primary && llm.primary.apiKey && llm.primary.model && premium.has(stage)) return llm.primary.model;
   const kind = (llm.stageModels || {})[stage] || "default";
   if (kind === "fast") return llm.modelFast || llm.model;
   if (kind === "default") return llm.model;

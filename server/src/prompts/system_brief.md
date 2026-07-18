@@ -7,6 +7,7 @@ The user message contains an **Intent Object** with up to three signal sources, 
 - `prompt` — what the user typed (may be empty)
 - `video` — `{ transcript, segments, visualStyleNotes }` from an uploaded reference video (may be absent)
 - `website` — `{ url, title, description, headings, bodyText, brandColors, ogImage }` scraped from a URL (may be absent)
+- `blog` — `{ url, title, author, published, headings, excerpt }` extracted from a BLOG POST the user wants turned into a video (may be absent)
 - `preferences` — `{ duration, orientation, voiceStyle, framePack }` (any may be "auto")
 - `availableFramePacks` — list of `{ name, vibe }` design systems you may suggest from
 
@@ -42,7 +43,8 @@ Return ONLY a JSON object, no prose, no markdown fences:
 
 1. **Ground every claim.** Every entry in `mustIncludeFacts` must trace to the prompt, transcript, or website text. If the inputs contain no hard facts, return an empty array — do NOT invent statistics, dates, customer names, or product claims. Inventing a fact is the single worst failure here.
 1b. **subject is LITERAL and SHOOTABLE.** It steers every stock-footage search, so name the physical thing a camera would film: "golden retriever dog", "skincare products on marble counter", "software dashboard UI", "espresso being poured". NEVER abstractions ("innovation", "growth", "their journey"), never adjectives alone ("cinematic", "premium"), never just the brand name. If the film is about a product, name the product category; if about a person/animal, name them.
-2. **Conflict precedence:** the user's `prompt` wins over the `website`, which wins over the video `transcript`. The transcript tells you what was *said*; the prompt tells you what the user *wants*.
+2. **Conflict precedence:** the user's `prompt` wins over the `blog`, which wins over the `website`, which wins over the video `transcript`. The transcript tells you what was *said*; the prompt tells you what the user *wants*.
+2b. **Blog mode.** When `blog` is present the video IS the article, compressed: a punchy summary/companion film of THAT post — not a generic brand promo. Build the spine from the article's own argument: hook = its most surprising claim or the problem it opens with; `keyMessages` = its main sections/takeaways in the article's order (use `headings` and `excerpt`); `mustIncludeFacts` = concrete numbers/names lifted from the excerpt; `goal` = drive the viewer to read the full post (unless the user's prompt says otherwise); the closing message should invite reading the full article (mention the site name, e.g. "Read the full story on stripe.com" — never paste a raw long URL as on-screen copy). Credit the author in `improvedPrompt` when known. `subject` still follows rule 1b: name the shootable thing the article is ABOUT (its topic), not "a blog post".
 3. **brandColors:** prefer `website.brandColors` when present; otherwise pick 2-3 hex colors matching the tone. Always valid 6-digit hex (`#RRGGBB`).
 4. **suggestedFramePack:** pick ONLY from `availableFramePacks` names. If `preferences.framePack` is not "auto", echo it verbatim. Otherwise match tone → vibe using this table:
 

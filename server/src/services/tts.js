@@ -238,6 +238,13 @@ async function synthesizeOpenRouter({ script, voice, instructions, outputPath, m
     if (pcm.length < 4800) { // < 0.1s of audio
       throw new Error(`tts: stream yielded ${pcm.length} bytes of audio`);
     }
+    // Truncated-stream guard: a dropped SSE connection can deliver a partial
+    // read that sounds like the narration "breaking off" mid-scene. Even a very
+    // fast read can't beat ~6 words/sec — anything shorter is a broken take.
+    const gotSec = pcm.length / 48000;
+    if (words >= 6 && gotSec < Math.min(words / 6, 2.5)) {
+      throw new Error(`tts: stream truncated (${gotSec.toFixed(1)}s of audio for ${words} words)`);
+    }
 
     await encodePcmToMp3(pcm, outputPath);
     const spokenSec = pcm.length / 48000;
@@ -293,25 +300,153 @@ async function synthesizeEdge({ script, voice, outputPath, tracker, meta }) {
   return outputPath;
 }
 
+// ---------- Per-clip loudness normalization ----------
+// Different providers (and even different takes of the same gpt-audio voice)
+// come back at wildly different levels — one scene whispers, the next shouts,
+// and the hot clips slam the mix limiter (heard as pumping/"breaking"). Align
+// every clip to the same integrated loudness with a MEASURED linear gain (no
+// dynamic processing → no artifacts) and micro-fade the edges so clip joins
+// never click.
+const VO_TARGET_LUFS = -16;
+
+function runFfmpeg(ffArgs, timeoutMs = 45_000) {
+  return new Promise((resolve, reject) => {
+    const p = spawn("ffmpeg", ["-y", "-hide_banner", ...ffArgs]);
+    let err = "";
+    p.stderr.on("data", (d) => { err += d.toString(); });
+    const timer = setTimeout(() => { try { p.kill("SIGKILL"); } catch { /* noop */ } }, timeoutMs);
+    p.on("error", (e) => { clearTimeout(timer); reject(e); });
+    p.on("exit", (code) => {
+      clearTimeout(timer);
+      if (code === 0) resolve(err);
+      else reject(new Error(`ffmpeg exit ${code}: ${err.slice(-240)}`));
+    });
+  });
+}
+
+async function normalizeVoClip(filePath) {
+  const dur = await probeDurationSec(filePath);
+  if (!dur || dur <= 0.2) return;
+
+  // Pass 1 — measure integrated loudness (loudnorm's JSON report on stderr).
+  const stderr = await runFfmpeg([
+    "-i", filePath, "-af", `loudnorm=I=${VO_TARGET_LUFS}:TP=-2:LRA=11:print_format=json`, "-f", "null", "-",
+  ]);
+  const jsonMatch = stderr.match(/\{[\s\S]*\}/);
+  const measured = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+  const inputI = Number(measured?.input_i);
+  if (!Number.isFinite(inputI) || inputI < -70) return; // silence/unmeasurable — leave as-is
+
+  // Pass 2 — apply the measured static gain, guard peaks, fade the edges.
+  const gain = Math.max(-12, Math.min(12, VO_TARGET_LUFS - inputI));
+  const fadeOut = Math.min(0.04, dur / 4);
+  const fadeStart = Math.max(0, dur - fadeOut);
+  const tmp = filePath + ".norm.mp3";
+  await runFfmpeg([
+    "-loglevel", "error", "-i", filePath,
+    "-af",
+    `volume=${gain.toFixed(2)}dB,alimiter=limit=0.94:attack=3:release=40,` +
+    `afade=t=in:st=0:d=0.012,afade=t=out:st=${fadeStart.toFixed(3)}:d=${fadeOut.toFixed(3)}`,
+    "-ar", "44100", "-b:a", "160k", tmp,
+  ]);
+  fs.renameSync(tmp, filePath);
+  if (Math.abs(gain) >= 3) {
+    console.log(`[tts] clip loudness aligned ${inputI.toFixed(1)} LUFS ${gain > 0 ? "+" : ""}${gain.toFixed(1)}dB → ${VO_TARGET_LUFS} LUFS`);
+  }
+}
+
 // ---------- Dispatcher ----------
+// One VOICE per film. Callers that synthesize several clips for the same job
+// pass a shared `session` object ({} per job): the provider that speaks the
+// first clip is pinned for every later clip, and a provider only falls back
+// after TWO attempts — so a single transient error no longer swaps the
+// narrator mid-video (the "different voice on some scenes" bug).
+const PROVIDER_IMPL = {
+  kie: synthesizeKie,
+  openrouter: synthesizeOpenRouter,
+  edge: synthesizeEdge,
+};
+
+function providerChain() {
+  const chain = [];
+  if (kieTtsEnabled()) chain.push("kie");
+  chain.push("openrouter", "edge");
+  return chain;
+}
+
+async function attemptProvider(name, args, tries = 2) {
+  let lastErr;
+  for (let i = 0; i < tries; i++) {
+    try {
+      return await PROVIDER_IMPL[name](args);
+    } catch (e) {
+      lastErr = e;
+      console.warn(`[tts] ${name} attempt ${i + 1}/${tries} failed: ${String(e.message).slice(0, 140)}`);
+      if (i < tries - 1) await new Promise((r) => setTimeout(r, 800 * (i + 1)));
+    }
+  }
+  throw lastErr;
+}
+
+async function synthesizeWithChain(args) {
+  const session = args.session;
+  const chain = providerChain();
+  const pinnedIdx = session?.provider ? chain.indexOf(session.provider) : -1;
+  let lastErr;
+  for (let i = Math.max(0, pinnedIdx); i < chain.length; i++) {
+    const name = chain[i];
+    try {
+      const out = await attemptProvider(name, args);
+      if (session) {
+        if (!session.provider) {
+          session.provider = name;
+        } else if (session.provider !== name) {
+          // The pinned provider died mid-job — follow the working one for the
+          // REST of the clips so at most one voice boundary exists, and flag it.
+          session.mixed = true;
+          console.warn(`[tts] VOICE CONSISTENCY: job was pinned to "${session.provider}" but this clip needed "${name}" — pinning the remaining clips to "${name}"`);
+          session.provider = name;
+        }
+      }
+      if (args.meta) args.meta.provider = name;
+      return out;
+    } catch (e) {
+      lastErr = e;
+      // Forced KIE → surface the error rather than silently changing voices.
+      if (name === "kie" && config.audio?.ttsProvider === "kie") throw e;
+      if (i < chain.length - 1) {
+        console.warn(`[tts] ${name} failed after retries; falling back to ${chain[i + 1]}`);
+      }
+    }
+  }
+  throw lastErr;
+}
+
 async function synthesize(args) {
   if (!args.script || !args.script.trim()) throw new Error("tts: empty script");
 
-  if (kieTtsEnabled()) {
+  const session = args.session;
+  let result;
+  if (session && !session._first) {
+    // Serialize the job's FIRST clip: parallel first-clips racing different
+    // fallback chains is exactly how one film ended up with two narrators.
+    // Later clips launch as soon as the first has pinned a provider.
+    let release;
+    session._first = new Promise((r) => { release = r; });
     try {
-      return await synthesizeKie(args);
-    } catch (e) {
-      // Forced KIE → surface the error; auto → fall through to OpenRouter.
-      if (config.audio?.ttsProvider === "kie") throw e;
-      console.warn(`[tts] KIE ElevenLabs failed (${String(e.message).slice(0, 160)}); falling back to OpenRouter gpt-audio`);
+      result = await synthesizeWithChain(args);
+    } finally {
+      release();
     }
+  } else {
+    if (session) await session._first;
+    result = await synthesizeWithChain(args);
   }
-  try {
-    return await synthesizeOpenRouter(args);
-  } catch (e) {
-    console.warn(`[tts] OpenRouter gpt-audio failed (${String(e.message).slice(0, 160)}); falling back to free Edge neural TTS`);
-    return synthesizeEdge(args);
-  }
+
+  await normalizeVoClip(args.outputPath).catch((e) => {
+    console.warn(`[tts] clip normalize skipped: ${String(e.message).slice(0, 140)}`);
+  });
+  return result;
 }
 
 module.exports = { synthesize };

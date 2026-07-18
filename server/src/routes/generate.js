@@ -138,22 +138,7 @@ function buildRouter({ enqueue }) {
     const dims = config.dimensionsFor(out.orientation, out.quality);
     const jobId = nanoid();
 
-    db.insert({
-      id: jobId,
-      prompt: out.prompt,
-      duration: out.duration,
-      orientation: out.orientation,
-      quality: out.quality,
-      width: dims.width,
-      height: dims.height,
-      fps: out.fps,
-      framePack: out.framePack,
-      captions: out.captions,
-      created_at: Date.now(),
-      client_ip: clientIp(req),
-    });
-
-    enqueue({
+    const task = {
       jobId,
       prompt: out.prompt,
       duration: out.duration,
@@ -171,7 +156,27 @@ function buildRouter({ enqueue }) {
       render3d: out.render3d,
       remix: out.remix === true,
       framePack: out.framePack,
+    };
+
+    db.insert({
+      id: jobId,
+      prompt: out.prompt,
+      duration: out.duration,
+      orientation: out.orientation,
+      quality: out.quality,
+      width: dims.width,
+      height: dims.height,
+      fps: out.fps,
+      framePack: out.framePack,
+      captions: out.captions,
+      created_at: Date.now(),
+      client_ip: clientIp(req),
+      // Persisted so a server restart mid-job requeues the take at boot
+      // instead of failing it (db.js crash recovery).
+      task,
     });
+
+    enqueue(task);
 
     // Queue state *after* this insert; subtract 1 so the count represents jobs AHEAD of mine.
     const jobsAhead = Math.max(0, db.queueDepth() - 1);

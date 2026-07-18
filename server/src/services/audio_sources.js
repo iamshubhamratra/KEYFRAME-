@@ -22,7 +22,13 @@ const pixabayBridge = require("./pixabay_bridge");
 // fallbacks so every real track/effect comes from Pixabay (via the bridge).
 // Music still falls to the synthesized ambient pad so a dry result never ships
 // a silent film; SFX is optional, so a dry result just means no effect.
-const PIXABAY_ONLY = process.env.PIXABAY_ONLY === "1";
+//
+// AUDIO is Pixabay-only BY DEFAULT (user: "Freesound is terrible"). This flag
+// is audio-scoped — it does NOT touch the image/vector providers (that's the
+// separate PIXABAY_ONLY, which also strips Openverse/Iconify). Set
+// AUDIO_PIXABAY_ONLY=0 to bring the Freesound + Internet-Archive fallbacks back.
+const AUDIO_PIXABAY_ONLY = process.env.AUDIO_PIXABAY_ONLY !== "0";
+const PIXABAY_ONLY = process.env.PIXABAY_ONLY === "1" || AUDIO_PIXABAY_ONLY;
 
 const FREESOUND_BASE = "https://freesound.org/apiv2";
 

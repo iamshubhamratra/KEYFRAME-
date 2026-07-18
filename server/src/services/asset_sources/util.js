@@ -199,6 +199,15 @@ async function validateImage(absPath, { kindPref } = {}) {
   if (kindPref === "vector" && probe && !hasAlpha) {
     return { ok: false, reason: "opaque raster for a vector/icon role (no alpha)", meta };
   }
+  // 3. Soft/low-res opaque photo: full-bleed placement at 1080p needs
+  //    MIN_LONG_EDGE on the long side. Enforced only with REAL probed dims and
+  //    only for opaque rasters (transparent vector/sticker art is placed small,
+  //    never full-bleed). Closes the scraper hole: candidates with width:null
+  //    bypass the rank-time MIN_LONG_EDGE check, so a 640px CDN preview could
+  //    ship as a full-bleed hero.
+  if (probe && !hasAlpha && width > 0 && height > 0 && Math.max(width, height) < MIN_LONG_EDGE) {
+    return { ok: false, reason: `low-resolution (${width}x${height}; need ${MIN_LONG_EDGE}px long edge)`, meta };
+  }
   return { ok: true, reason: null, meta };
 }
 

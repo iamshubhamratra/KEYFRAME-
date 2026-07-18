@@ -28,6 +28,11 @@ const { enrichComposition } = require("./enrich");
 const { cinematicCheck } = require("./cinematic_lint");
 const sceneKit = require("./scene_kit");
 const threeComposer = require("./three_composer");
+const flagshipComposer = require("./flagship_composer");
+const brightlifeComposer = require("./brightlife_composer");
+const blueprintComposer = require("./blueprint_composer");
+const bloomComposer = require("./bloom_composer");
+const bauhausComposer = require("./bauhaus_composer");
 const frameRegistry = require("./frame_registry");
 const frameManifest = require("./frame_manifest");
 const { render } = require("./renderer");
@@ -41,6 +46,7 @@ const { mix: audioMix } = require("./audio_mix");
 const { planAssets } = require("./asset_planner");
 const { acquire, makeImageDeduper } = require("./asset_sources");
 const { checkAssetsRelevance } = require("./asset_vision");
+const { reviewAndCurate } = require("./creative_director");
 const { styleFor } = require("./pack_style");
 const catalog = require("./catalog");
 const { contrastCheck } = require("./contrast_check");
@@ -95,7 +101,7 @@ function withBudget(factory, budgetMs, label) {
 
 // ========== Visual assets stage (parallel fetches) ==========
 
-async function planAndFetchAssets({ jobDir, storyboard, flags, orientation, tracker, subject, framePack }) {
+async function planAndFetchAssets({ jobId, jobDir, storyboard, flags, orientation, tracker, subject, framePack }) {
   if (!flags.images && !flags.video) return { assets: [] };
 
   const packStyle = styleFor(framePack);
@@ -175,6 +181,25 @@ async function planAndFetchAssets({ jobDir, storyboard, flags, orientation, trac
     const dup = await deduper.check(abs, item.dhash);
     if (dup) { try { fs.unlinkSync(abs); } catch { /* noop */ } continue; }
     deduped.push(item);
+  }
+
+  // CREATIVE DIRECTOR (default ON) — richer replacement for the plain vision
+  // gate below: scores every asset on six dimensions, assigns each to a scene,
+  // ranks screenshots, caps prominent assets per scene, and can top-up a scene
+  // left empty. Fail-open (returns the assets unchanged on any error). The old
+  // keep/reject gate remains the fallback when disabled (CREATIVE_DIRECTOR=0).
+  const cdEnabled = config.creativeDirector ? config.creativeDirector.enabled !== false : true;
+  if (cdEnabled && deduped.length) {
+    const curated = await reviewAndCurate({
+      jobId, storyboard, subject, framePack,
+      assets: deduped, tracker, jobDir, orientation,
+    });
+    // null = CD disabled or failed — fall through to the legacy vision gate
+    // below so web stock still gets a chance at verified (visionOk) placement.
+    if (curated) {
+      console.log(`[pipeline] fetched ${results.length} → ${curated.length} visual asset(s) (dedup + creative director)`);
+      return { assets: curated };
+    }
   }
 
   // VISION RELEVANCE GATE (batched) — gate ONLY real web stock; curated picks
@@ -261,6 +286,76 @@ async function contrastGate(jobDir, label) {
     ok: false,
     contrastOnly: true,
     feedback: `Previous HTML passed lint + runtime + spatial inspect but FAILED the WCAG contrast check — this text is too low-contrast to read against what is rendered behind it:\n${lines}\nFIX: raise each listed element to at least its needed ratio — brighten the text color on a dark ground (or darken it on a light ground), or move it onto a more contrasting panel/scrim. Stay within the pack's palette family; do NOT invent new colors and do NOT introduce any lint/track/overlap regressions. Keep everything that already passed.`,
+  };
+}
+
+// TEMPLATE IDENTITY gate (identity system) — the LLM remix path receives the
+// pack's full design system in the prompt (FRAME.md + palette law) but nothing
+// used to VERIFY the output followed it: lint checks structure, inspect checks
+// space, contrast checks legibility — none checks that the colors belong to the
+// pack or that its display face is present. This gate is deterministic string
+// analysis (no browser): every saturated hex in the comp must sit within 40° of
+// hue of SOME pack token (lighten/darken keeps hue, so legitimate derivations
+// pass; a foreign teal on a coral pack does not), and at least one declared
+// pack font family must appear. Same default posture as the contrast gate:
+//   IDENTITY_GATE=off   → disabled
+//   IDENTITY_GATE=warn  → (default) log violations, never block
+//   IDENTITY_GATE=repair→ feed violations back as a repair lap
+function identityMode() {
+  const v = String(process.env.IDENTITY_GATE || "").toLowerCase();
+  if (/^(off|0|false|no)$/.test(v)) return "off";
+  if (/^(1|true|yes|on|repair)$/.test(v)) return "repair";
+  return "warn";
+}
+function identityGate(indexHtml, packTokens, label, strict = false) {
+  if (identityMode() === "off") return { ok: true };
+  const tokens = packTokens && packTokens.colors ? Object.values(packTokens.colors) : [];
+  if (!tokens.length) return { ok: true };
+  const toRgb = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  const toHueSat = ([r, g, b]) => {
+    const mx = Math.max(r, g, b) / 255, mn = Math.min(r, g, b) / 255, d = mx - mn;
+    let h = 0;
+    if (d) {
+      const [R, G, B] = [r / 255, g / 255, b / 255];
+      h = mx === R ? ((G - B) / d) % 6 : mx === G ? (B - R) / d + 2 : (R - G) / d + 4;
+      h = (h * 60 + 360) % 360;
+    }
+    const sat = mx ? d / mx : 0;
+    return { h, sat };
+  };
+  const hueDist = (a, b) => { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; };
+  const packHues = tokens.map((t) => toHueSat(toRgb(t))).filter((x) => x.sat > 0.18).map((x) => x.h);
+  if (!packHues.length) return { ok: true }; // monochrome pack: any hue policing would misfire
+  const counts = new Map();
+  for (const m of indexHtml.matchAll(/#([0-9a-fA-F]{6})\b/g)) {
+    const hex = "#" + m[1].toUpperCase();
+    counts.set(hex, (counts.get(hex) || 0) + 1);
+  }
+  const offenders = [];
+  for (const [hex, n] of counts) {
+    const { h, sat } = toHueSat(toRgb(hex));
+    if (sat < 0.28) continue; // neutrals / washed tints: scrims, ink, shadows
+    if (packHues.every((ph) => hueDist(h, ph) > 40)) offenders.push({ hex, n });
+  }
+  offenders.sort((a, b) => b.n - a.n);
+  const totalOff = offenders.reduce((s, o) => s + o.n, 0);
+  const fonts = (packTokens.fonts || []).filter(Boolean);
+  const fontMissing = fonts.length > 0 && !fonts.some((f) => indexHtml.includes(f));
+  if ((offenders.length === 0 || totalOff < 3) && !fontMissing) {
+    console.log(`[pipeline] identity gate: comp stays in the pack's palette family (${label})`);
+    return { ok: true };
+  }
+  const offLines = offenders.slice(0, 8).map((o) => `${o.hex} (×${o.n})`).join(", ");
+  const msg = `${offenders.length ? `off-palette colors: ${offLines}` : ""}${offenders.length && fontMissing ? "; " : ""}${fontMissing ? `none of the pack's font families [${fonts.join(", ")}] appear` : ""}`;
+  console.warn(`[pipeline] identity gate: ${msg} (${label})${strict ? " [strict: user-pinned template]" : ""}`);
+  // strict = the user explicitly picked this template AND asked for the premium
+  // composer: identity violations always trigger a repair lap regardless of the
+  // env default, so "premium on my template" can't drift off-template.
+  if (!strict && identityMode() === "warn") return { ok: true };
+  return {
+    ok: false,
+    identityOnly: true,
+    feedback: `Previous HTML passed all structural gates but FAILED the template-identity check — it drifts off the selected pack's design system:\n${msg}\nFIX: replace every off-palette color with the closest color FROM the pack palette (${tokens.join(", ")}), and set headline/display text in the pack's declared font family. Do not invent new hues; derive tints/shades only from the pack's own colors. Keep everything that already passed.`,
   };
 }
 
@@ -351,6 +446,16 @@ async function gateComposition({ files, jobDir, tracker, label, enrich, cinemati
         return cg;
       }
     }
+    // Template-identity gate (LLM path only; scene-kit is identity-faithful by
+    // construction) — palette-family + pack-font conformance. Warn-only by
+    // default; IDENTITY_GATE=repair feeds violations into a repair lap.
+    if (identityMode() !== "off" && enrich && enrich.packTokens) {
+      const ig = identityGate(files.indexHtml, enrich.packTokens, label, enrich.strictIdentity === true);
+      if (!ig.ok) {
+        console.warn(`[pipeline] identity gate FAILED (${label}) — requesting repair`);
+        return ig;
+      }
+    }
     console.log(`[pipeline] lint + runtime + spatial inspect passed (${label})${rt.skipped ? ` (smoke skipped)` : ""}${insp.skipped ? ` (inspect skipped)` : ""}`);
     return { ok: true };
   }
@@ -365,7 +470,7 @@ async function gateComposition({ files, jobDir, tracker, label, enrich, cinemati
   };
 }
 
-async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets, tracker, abortSignal, framePack, captionCues }) {
+async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets, tracker, abortSignal, framePack, captionCues, strictIdentity = false }) {
   // First pass + up to N repair laps. Weaker/reasoning composer models often fix
   // the flagged errors on a repair but introduce a NEW class (e.g. nemotron clears
   // track overlaps, then trips gsap_set_initial_state) — a single lap can't
@@ -384,6 +489,7 @@ async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets
   const enrich = {
     width: dims.width, height: dims.height, duration: storyboard.durationSec,
     packTokens: framePack ? frameRegistry.getPackTokens(framePack) : null,
+    strictIdentity,
   };
   // Context for the cinematic density gate (per-scene checks + the C7 screenshot rule).
   const cinematic = {
@@ -423,7 +529,7 @@ async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets
     // for contrastOnly); only a residual spatial overlap or a low-contrast label
     // remains. Snapshot the NORMALIZED html (gateComposition mutated it in place) so
     // that on exhaustion we ship this rich comp rather than the bland fallback.
-    if ((res.inspectOnly || res.contrastOnly) && !bestInspectFiles) {
+    if ((res.inspectOnly || res.contrastOnly || res.identityOnly) && !bestInspectFiles) {
       bestInspectFiles = { indexHtml: files.indexHtml, metaJson: files.metaJson };
     }
     feedback = res.feedback;
@@ -447,7 +553,66 @@ async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets
 
 // ========== One attempt at full LLM comp + render with a given asset set ==========
 
-async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker, jobId, durationSec, label, abortSignal, framePack, captionCues, remix = false, dress = false, subject = null }) {
+// DEDICATED PACK RENDERERS — a pack can declare a renderer in its manifest
+// (pack.json "renderer"): the flagship / Bright Life cinematic Three.js films and
+// the blueprint / bloom-fable / bauhaus-riot native GSAP+SVG films. Selecting the
+// pack is all it takes: every pipeline path (runJob, graph, project_pipeline)
+// funnels through attemptLlmComposition, which routes here REGARDLESS of remix or
+// asset-richness — each composer is built to showcase the assets itself. Packs
+// without a "renderer" key keep the scene-kit / LLM-remix behavior unchanged.
+// `portraitOk`: the composer has real 9:16 layouts (stacked rows, portrait type
+// scale). Renderers WITHOUT it are landscape-designed — on a vertical job their
+// fixed rows overflow the narrow sheet — so attemptLlmComposition routes those
+// jobs to the portrait-tuned scene-kit instead (the pack's manifest styling
+// still applies there). Flip a flag to true only after render-verifying that
+// composer at 1080x1920.
+const PACK_RENDERERS = {
+  // All five verified at 1080x1920 via `npm run audit:portrait` (2026-07-17):
+  // flagship/brightlife shipped with portrait layouts (Rohit port); blueprint/
+  // bloom/bauhaus got portrait type scale + stacked rows the same day.
+  "three-flagship": { label: "flagship", composer: flagshipComposer, desc: "flagship Three.js", portraitOk: true },
+  "three-brightlife": { label: "brightlife", composer: brightlifeComposer, desc: "Bright Life Three.js", portraitOk: true },
+  "blueprint": { label: "blueprint", composer: blueprintComposer, desc: "Blueprint Atelier", portraitOk: true },
+  "bloom-fable": { label: "bloom-fable", composer: bloomComposer, desc: "Bloom Fable", portraitOk: true },
+  "bauhaus-riot": { label: "bauhaus-riot", composer: bauhausComposer, desc: "Bauhaus Riot", portraitOk: true },
+};
+
+function rendererFor(framePack) {
+  if (!framePack) return null;
+  try { const m = frameManifest.getManifest(framePack); return (m && m.renderer) || null; }
+  catch { return null; }
+}
+
+// Shared envelope for every dedicated pack renderer: build → persist → render.
+// Self-contained composers (own chrome/3D/vector art), so no enrich and no
+// stock-asset weaving. Same seek contract as the scene-kit path.
+async function composeWithPackRenderer({ renderer, storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker }) {
+  const t0 = ms();
+  const R = PACK_RENDERERS[renderer];
+  console.log(`[pipeline] ${label}: building ${R.desc} composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
+  const built = R.composer.buildComposition({ storyboard, dims, framePack, captionCues, assets });
+  fs.writeFileSync(path.join(jobDir, "index.html"), built.indexHtml, "utf8");
+  fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
+  tracker.addExternal("hyperframes_render");
+  const visual = await render({ jobId, jobDir, durationSec, abortSignal });
+  console.log(`[pipeline] ${label}: render done in ${ms() - t0}ms total`);
+  return visual;
+}
+
+async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker, jobId, durationSec, label, abortSignal, framePack, captionCues, remix = false, dress = false, subject = null, brandSkin = null, layoutPlan = null, strictIdentity = false }) {
+  // An explicit PREMIUM finish (remix) means "write me a bespoke composition":
+  // it outranks the pack's dedicated renderer — otherwise premium on a
+  // dedicated-renderer pack (brightlife/flagship/…) silently rendered the same
+  // fixed program as standard and the composer never ran.
+  const packRenderer = rendererFor(framePack);
+  if (!remix && PACK_RENDERERS[packRenderer]) {
+    const R = PACK_RENDERERS[packRenderer];
+    const isPortrait = dims && dims.height > dims.width;
+    if (!isPortrait || R.portraitOk) {
+      return composeWithPackRenderer({ renderer: packRenderer, storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || R.label, abortSignal, tracker });
+    }
+    console.log(`[pipeline] ${R.desc} has no portrait layout yet — 9:16 job renders on scene-kit with the "${framePack}" pack styling`);
+  }
   // DEFAULT = the deterministic scene-kit (guaranteed showcase-grade, lint-clean,
   // per-pack styled). Every pipeline path (runJob, graph, project_pipeline) routes
   // through here, so this single dispatch makes the kit the primary composer
@@ -455,12 +620,12 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
   // `dress` (premium hybrid): a small bounded LLM pass art-directs the kit's
   // variants/emphasis/decor without any power to break the layout.
   if (!remix) {
-    return composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "scene-kit", abortSignal, tracker, dress, subject });
+    return composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "scene-kit", abortSignal, tracker, dress, subject, brandSkin, layoutPlan });
   }
   const t0 = ms();
   console.log(`[pipeline] ${label}: LLM remix compose start (assets=${assets.length}, framePack=${framePack || "none"})`);
   await composeWithLintRepair({
-    storyboard, dims, jobDir, availableAssets: assets, tracker, abortSignal, framePack, captionCues,
+    storyboard, dims, jobDir, availableAssets: assets, tracker, abortSignal, framePack, captionCues, strictIdentity,
   });
   console.log(`[pipeline] ${label}: compose done in ${ms() - t0}ms, render start`);
   tracker.addExternal("hyperframes_render");
@@ -474,7 +639,7 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
 // freehand → lint-clean by construction, no occlusion/truncation/junk). The agents
 // still "think" (they wrote the storyboard + picked the assets); the kit guarantees
 // the execution. This is the reliable default; the LLM composer is the opt-in remix.
-async function composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label, abortSignal, tracker, dress = false, subject = null }) {
+async function composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label, abortSignal, tracker, dress = false, subject = null, brandSkin = null, layoutPlan = null }) {
   const t0 = ms();
   console.log(`[pipeline] ${label || "scene-kit"}: building deterministic composition (assets=${assets ? assets.length : 0}, framePack=${framePack || "none"}${dress ? ", +set-dressing" : ""})`);
   // Premium hybrid: one bounded LLM pass picks per-scene layout variants, the
@@ -487,7 +652,7 @@ async function composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack
   }
   // seedKey=jobId: layout/background variety is salted per JOB, so re-running the
   // same prompt (same title) still produces a visibly different composition.
-  const built = sceneKit.buildComposition({ storyboard, dims, framePack, assets: assets || [], captionCues, seedKey: jobId, dressing });
+  const built = sceneKit.buildComposition({ storyboard, dims, framePack, assets: assets || [], captionCues, seedKey: jobId, dressing, brandSkin, layoutPlan });
   // Apply the deterministic vector/motion floor (the same enrichment the LLM path
   // uses) so scene-kit videos also carry the richer particle + glyph + ring layer.
   // scene-kit emits the `vid` markers enrich needs; its own particles use class
@@ -526,14 +691,33 @@ function isAssetRich(assets) {
   return showcase.length >= 3;
 }
 
+// 3D style dispatch. Three cinematic registers share the buildComposition
+// envelope: "flagship" (dark Apple/Linear launch film), "brightlife" (its
+// white/daylight sibling), and "classic" (the original CRT retro-computer
+// three_composer). Default is AUTO: the pack's derived theme decides — dark
+// ground → flagship, light ground → brightlife. Override per-deploy with
+// RENDER3D_STYLE=classic|flagship|brightlife|auto.
+function pick3dComposer(framePack, storyboard) {
+  const want = String(process.env.RENDER3D_STYLE || "auto").toLowerCase();
+  if (want === "classic") return { styleName: "classic", composer: threeComposer };
+  if (want === "flagship") return { styleName: "flagship", composer: flagshipComposer };
+  if (want === "brightlife") return { styleName: "brightlife", composer: brightlifeComposer };
+  let isDark = true;
+  try { isDark = require("./scene_kit").deriveTheme(framePack, storyboard).isDark !== false; } catch { /* default dark */ }
+  return isDark
+    ? { styleName: "flagship", composer: flagshipComposer }
+    : { styleName: "brightlife", composer: brightlifeComposer };
+}
+
 // THREE.JS composition path (opt-in via render3d) — a cinematic WebGL scene with
 // DOM text overlays, driven by the same seeked timeline. Self-contained: no enrich
 // (it has its own 3D particle field) and no stock-asset weaving (visuals are
 // generated, not fetched).
 async function composeWithThree({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker }) {
   const t0 = ms();
-  console.log(`[pipeline] ${label || "three"}: building Three.js/WebGL composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
-  const built = threeComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets });
+  const { styleName, composer } = pick3dComposer(framePack, storyboard);
+  console.log(`[pipeline] ${label || "three"}: building Three.js/WebGL composition (style=${styleName}, ${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
+  const built = composer.buildComposition({ storyboard, dims, framePack, captionCues, assets });
   fs.writeFileSync(path.join(jobDir, "index.html"), built.indexHtml, "utf8");
   fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
   tracker.addExternal("hyperframes_render");
@@ -547,6 +731,39 @@ async function composeWithThree({ storyboard, dims, jobDir, framePack, captionCu
 const r2 = (n) => Math.round(n * 100) / 100;
 const clampSceneDur = (n) => Math.max(2, Math.min(15, n));
 const VO_TAIL = 0.55; // breathing room after a spoken line finishes
+
+// Shared with graph.js and project_pipeline.js: stretch each storyboard scene
+// to contain its MEASURED narration (+VO_TAIL), re-pin every VO clip to its
+// scene's new start, and mirror the new timing onto the script's scenes.
+// Returns { effectiveDuration, startMap } (old script start -> new start, for
+// re-pinning already-scheduled SFX offsets). Idempotent: re-running after a
+// repair lap re-derives the same timing.
+function retimeScenesToVo(storyboard, script, voClips) {
+  const r2b = (n) => Math.round(Number(n) * 100) / 100;
+  const sbScenes = (storyboard && Array.isArray(storyboard.scenes)) ? storyboard.scenes : [];
+  const clipByScene = new Map((voClips || []).map((c) => [String(c.sceneId), c]));
+  let cursor = 0;
+  for (let i = 0; i < sbScenes.length; i++) {
+    const sc = sbScenes[i];
+    const clip = clipByScene.get(String(sc.id != null ? sc.id : `s${i + 1}`));
+    const need = clip ? clip.durationSec + VO_TAIL : 0;
+    sc.duration = r2b(Math.max(2, Number(sc.duration) || 3, need));
+    sc.start = r2b(cursor);
+    if (clip) { clip.startSec = sc.start; clip.sceneDurationSec = sc.duration; }
+    cursor = r2b(cursor + sc.duration);
+  }
+  if (sbScenes.length) storyboard.durationSec = r2b(cursor);
+  const sbById = new Map(sbScenes.map((sc, i) => [String(sc.id != null ? sc.id : `s${i + 1}`), sc]));
+  const startMap = new Map();
+  for (const sc of (script && Array.isArray(script.scenes) ? script.scenes : [])) {
+    const sb = sbById.get(String(sc.id));
+    if (!sb) continue;
+    startMap.set(r2b(sc.start), sb.start);
+    sc.start = sb.start;
+    sc.duration = sb.duration;
+  }
+  return { effectiveDuration: sbScenes.length ? storyboard.durationSec : 0, startMap };
+}
 
 // The narration for one scene: its authored `voiceover`, else a spoken version
 // of its on-screen text (so a scene without an authored line still gets synced
@@ -568,14 +785,16 @@ async function synthesizeScenedVOAndRetime({ audioDir, storyboard, voice, instru
 
   // Synthesize every narrated scene in parallel; synthesizeFitted keeps a runaway
   // line from overrunning wildly (tighten-once + hard trim), and reports the
-  // measured spoken duration we re-time against.
+  // measured spoken duration we re-time against. One shared ttsSession pins a
+  // single provider (= a single narrator voice) across every clip of the job.
+  const ttsSession = {};
   const clips = await Promise.all(scenes.map((scene, i) => {
     const text = sceneVOText(scene);
     if (!text) return Promise.resolve(null);
     const targetSec = Math.max(2, Number(scene.duration) || 3);
     return synthesizeFitted({
       text, targetSec, voice, instructions,
-      outputPath: path.join(audioDir, `vo-s${i + 1}.mp3`), tracker,
+      outputPath: path.join(audioDir, `vo-s${i + 1}.mp3`), tracker, session: ttsSession,
     })
       .then((res) => (res ? { index: i, path: res.path, durationSec: res.durationSec } : null))
       .catch((e) => { console.warn(`[pipeline] scene ${i + 1} VO failed: ${e.message.slice(0, 120)}`); return null; });
@@ -849,13 +1068,17 @@ async function runJob({
     if (images || video) {
       const t0 = ms();
       const va = await planAndFetchAssets({
-        jobDir, storyboard: sbRes.storyboard,
+        jobId, jobDir, storyboard: sbRes.storyboard,
         flags: { images, video }, orientation, tracker, subject: briefSubject, framePack,
       }).catch((e) => {
         console.warn(`[pipeline] asset stage threw: ${e.message}`);
         return { assets: [] };
       });
       allAssets = va.assets;
+      // Persist the curated list like the agent-graph path does — without this,
+      // /generate jobs show 0 assets in jobs.json and the only audit trail is a
+      // job dir the janitor deletes after an hour.
+      try { db.setAssets(jobId, allAssets); } catch { /* best effort */ }
       markStage("assets", t0);
       console.log(`[pipeline] assets completed in ${timings.assetsMs}ms (${allAssets.length} fetched; audio running in parallel)`);
     }
@@ -892,7 +1115,27 @@ async function runJob({
     // previously ignored it, so /api/generate always used the scene-kit. When the
     // flag is on, run the LLM composer here with the scene-kit as the automatic
     // fallback below. An explicit remix arg still wins.
+    // An EXPLICIT premium ask (remix arg from composeMode:"premium") is the
+    // user's word — it always runs the composer. The config default only
+    // upgrades jobs that didn't state a preference.
+    const explicitPremium = remix === true;
     remix = remix || config.llm.useComposer === true;
+
+    // TEMPLATE PIN (identity system) — an EXPLICIT gallery pick must render the
+    // picked template faithfully, so a pinned pack demotes the CONFIG-DEFAULT
+    // composer to scene-kit / dedicated renderer. An explicit premium finish is
+    // no longer demoted: the composer writes a bespoke page from the pack's
+    // FRAME.md and the identity gate runs in STRICT mode (violations force a
+    // repair lap), so "premium on my template" stays on-template.
+    const jobRec = db.getRaw(jobId);
+    const packPinned = !!(jobRec && (jobRec.frame_pack_user === 1 || jobRec.frame_pack_user === true));
+    if (packPinned && remix && !explicitPremium) {
+      console.log(`[pipeline] frame pack "${framePack}" was explicitly picked — pinning to the deterministic composer (config-default LLM remix skipped)`);
+      remix = false;
+    } else if (packPinned && explicitPremium) {
+      console.log(`[pipeline] premium finish on user-pinned pack "${framePack}" — LLM composer runs with STRICT identity gate`);
+    }
+    const strictIdentity = packPinned && remix;
 
     // ---- Attempt 1: PRIMARY composition ----
     // attemptLlmComposition dispatches to the deterministic scene-kit unless
@@ -927,12 +1170,12 @@ async function runJob({
               storyboard: sbRes.storyboard, dims, jobDir,
               assets: allAssets, tracker, jobId, durationSec: effectiveDuration,
               label: remix ? "remix" : (useDress ? "premium-dress" : "scene-kit"), abortSignal: signal, framePack, remix,
-              dress: useDress, subject: briefSubject,
+              dress: useDress, subject: briefSubject, strictIdentity,
             }),
             budget, remix ? "LLM remix composition" : (useDress ? "scene-kit + set-dressing" : "scene-kit composition")
           );
           finalAttempt = remix ? "remix" : (useDress ? "scenekit-dressed" : "scenekit");
-          console.log(`[pipeline] ${remix ? "LLM remix" : (useDress ? "scene-kit + set-dressing" : "scene-kit")} composition+render succeeded in ${timings.compose_renderMs}ms`);
+          console.log(`[pipeline] ${remix ? "LLM remix" : (useDress ? "scene-kit + set-dressing" : "scene-kit")} composition+render succeeded in ${ms() - t0}ms`);
         }
         markStage("compose_render", t0);
       } catch (e1) {
@@ -1068,4 +1311,6 @@ async function runJob({
   }
 }
 
-module.exports = { runJob, withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor };
+module.exports = {
+  retimeScenesToVo, runJob, withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor,
+  identityGate };

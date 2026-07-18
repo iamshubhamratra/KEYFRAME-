@@ -109,7 +109,22 @@ async function generateBrief({ intent, signal }) {
       // Snap the suggested pack to something installed; honor explicit user choice.
       const userChoice = intent?.preferences?.framePack;
       const wanted = (userChoice && userChoice !== "auto") ? userChoice : brief.suggestedFramePack;
-      brief.suggestedFramePack = frameRegistry.resolvePack(wanted) || frameRegistry.resolvePack("auto");
+      let snapped = frameRegistry.resolvePack(wanted);
+      if (!snapped) {
+        // Rotation-aware fallback (identity system): an unresolvable suggestion
+        // used to land EVERY auto video on the one global default pack — a
+        // template monoculture on auto traffic. Pick deterministically from the
+        // installed set instead, skipping the recently-used packs so consecutive
+        // auto videos don't share a look.
+        const recent = new Set(recentFramePacks || []);
+        const pool = packs.filter((p) => !recent.has(p));
+        const pickFrom = pool.length ? pool : packs;
+        let h = 0; const seedStr = String(intent?.prompt || wanted || "kf");
+        for (let i = 0; i < seedStr.length; i++) h = (h * 31 + seedStr.charCodeAt(i)) >>> 0;
+        snapped = pickFrom[h % pickFrom.length] || frameRegistry.resolvePack("auto");
+        console.log(`[brief] suggestion "${wanted}" not installed → rotation fallback picked ${snapped}`);
+      }
+      brief.suggestedFramePack = snapped;
 
       const repeated = recentFramePacks[0] && recentFramePacks[0] === brief.suggestedFramePack;
       console.log(`[brief] ok on attempt ${attempt} (pack=${brief.suggestedFramePack}${repeated ? " — repeats the previous video's pack" : ""}, duration=${brief.suggestedDuration}s)`);

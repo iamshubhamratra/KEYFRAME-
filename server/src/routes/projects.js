@@ -75,8 +75,16 @@ function validateCreate(body, { hasUpload = false } = {}) {
     else out.websiteUrl = u;
   }
 
-  if (!out.prompt && !out.websiteUrl && !hasUpload) {
-    errs.push("provide at least one of: prompt, websiteUrl, referenceVideo");
+  // Blog/article mode: the film is built FROM the post (its argument, sections,
+  // numbers, and its own images) — a summary/companion video, not a site promo.
+  if (typeof body.blogUrl === "string" && body.blogUrl.trim()) {
+    const u = body.blogUrl.trim().slice(0, 2000);
+    if (!/^https?:\/\/.+\..+/i.test(u)) errs.push("blogUrl must be a valid http(s) URL");
+    else out.blogUrl = u;
+  }
+
+  if (!out.prompt && !out.websiteUrl && !out.blogUrl && !hasUpload) {
+    errs.push("provide at least one of: prompt, websiteUrl, blogUrl, referenceVideo");
   }
 
   const d = body.duration == null ? 30 : Number(body.duration);
@@ -179,6 +187,7 @@ function buildRouter({ enqueueIntake, enqueueProduction }) {
       intent: {
         prompt: out.prompt,
         websiteUrl: out.websiteUrl || null,
+        blogUrl: out.blogUrl || null,
         hasReferenceVideo: !!uploadPath,
         preferences: {
           duration: out.duration,

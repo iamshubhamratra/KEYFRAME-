@@ -48,18 +48,60 @@ function persist() {
 // ---- bootstrap ----
 load();
 
-// Crash recovery: orphaned jobs at boot cannot finish.
+// Crash recovery: orphaned jobs at boot are RE-QUEUED (once) instead of
+// failed — under the `node --watch` dev loop any source-file save restarts
+// the server, and failing every in-flight take made that loop brutal
+// ("TAKE FAILED — start over"). server.js drains takeOrphanedTasks() into the
+// queue once the pipelines are wired:
+//   - generate-kind: replays the persisted `task` (flags included).
+//   - project-kind: runIntake/runProduction are replayable from the job
+//     record itself (intent/upload for intake, approved script for
+//     production) — the recovery entry carries which phase was in flight.
+//     Jobs sitting at approval are not queued/running, so untouched.
+// Requeue guard: the point is to stop a job that CRASHES the server in a
+// loop, not to punish an active dev session. A crash-loop re-orphans the same
+// job within seconds; `node --watch` restarts from file saves arrive minutes
+// apart while a take runs for ~10. So: allow up to MAX_REQUEUES as long as
+// the previous requeue was over REQUEUE_COOLDOWN_MS ago — rapid re-orphaning
+// (the crash signature) still fails after the first retry.
+const MAX_REQUEUES = 8;
+const REQUEUE_COOLDOWN_MS = 25_000; // crash-loops re-orphan in ~5-10s; dev saves arrive slower
+const orphanedTasks = [];
 let recovered = 0;
+let requeued = 0;
+const INTAKE_STAGES = new Set(["ingest", "brief", "script"]);
 for (const j of jobs.values()) {
-  if (j.status === "queued" || j.status === "running") {
+  if (j.status !== "queued" && j.status !== "running") continue;
+  const kind = j.kind || "generate";
+  let entry = null;
+  const count = j.requeue_count || 0;
+  const calmEnough = count === 0 || (Date.now() - (j.last_requeue_at || 0)) > REQUEUE_COOLDOWN_MS;
+  if (count < MAX_REQUEUES && calmEnough) {
+    if (kind === "generate" && j.task) {
+      entry = { kind: "generate", task: j.task };
+    } else if (kind === "project") {
+      // Production is only replayable once a script was approved & persisted.
+      const phase = (!j.progress || INTAKE_STAGES.has(j.progress)) ? "intake" : (j.script ? "production" : "intake");
+      entry = { kind: "project", jobId: j.id, phase };
+    }
+  }
+  if (entry) {
+    j.status = "queued";
+    j.progress = null;
+    j.started_at = null;
+    j.requeue_count = (j.requeue_count || 0) + 1;
+    j.last_requeue_at = Date.now();
+    orphanedTasks.push(entry);
+    requeued++;
+  } else {
     j.status = "failed";
     j.error = j.error || "server restarted while job was in-flight";
     j.finished_at = Date.now();
     recovered++;
   }
 }
-if (recovered > 0) {
-  console.log(`[db] recovered ${recovered} orphaned job(s) at boot`);
+if (recovered > 0 || requeued > 0) {
+  console.log(`[db] boot recovery: ${requeued} orphaned job(s) requeued, ${recovered} failed`);
   persist();
 }
 
@@ -96,10 +138,16 @@ function shape(j) {
     captions: j.captions || null,
     srtUrl: j.srt_url || null,
     qa: j.qa || null,
+    creativeReview: j.creative_review || null,
   };
 }
 
 module.exports = {
+  // One-shot drain of the boot-requeued generate tasks (see recovery above).
+  takeOrphanedTasks() {
+    return orphanedTasks.splice(0, orphanedTasks.length);
+  },
+
   insert(job) {
     const rec = {
       id: job.id,
@@ -112,6 +160,10 @@ module.exports = {
       height: job.height,
       fps: job.fps,
       frame_pack: job.framePack || null,
+      // 1 = the user explicitly picked this pack in the gallery ("auto" arrives
+      // as null). The composition agent pins user-picked packs to the
+      // deterministic scene-kit so the film actually looks like the template.
+      frame_pack_user: job.framePack ? 1 : 0,
       status: "queued",
       progress: null,
       video_url: null,
@@ -127,6 +179,10 @@ module.exports = {
       // Subtitles are OPT-IN: off unless the request explicitly asks for them.
       captions_enabled: (job.captions === true || job.captionsEnabled === true) ? 1 : 0,
       upload_path: job.uploadPath || null,
+      // Full pipeline task (flags included) so a boot-orphaned generate job
+      // can be requeued faithfully instead of failed. null for other kinds.
+      task: job.task || null,
+      requeue_count: 0,
       intent: job.intent || null,
       autopilot: job.autopilot ? 1 : 0,
       render3d: job.render3d ? 1 : 0, // Three.js/WebGL composer (project pipeline reads job.render3d)
@@ -151,7 +207,11 @@ module.exports = {
     j.brief = brief;
     j.script = script;
     j.script_warnings = warnings || [];
-    if (framePack) j.frame_pack = framePack;
+    // The brief's suggestedFramePack fills the AUTO case only. An EXPLICIT
+    // user selection (frame_pack set at insert) must never be overwritten —
+    // when the LLM's suggestion deviated, the user's chosen template was
+    // silently replaced before production ever read it.
+    if (framePack && !j.frame_pack) j.frame_pack = framePack;
     if (usage) j.usage = usage;
     if (stageTimings) j.stage_timings = { ...(j.stage_timings || {}), ...stageTimings };
     scheduleWrite();
@@ -171,6 +231,32 @@ module.exports = {
     j.script = script;
     j.status = "queued";
     j.progress = "approved";
+    // Flush SYNCHRONOUSLY: this transition gates whether boot recovery can
+    // resume production. A --watch restart inside the 100ms debounce window
+    // reloaded the job as script_review and silently dropped the approval
+    // (observed live) — the queued production died with the process.
+    persist();
+  },
+
+  // Art Director report (the accent-only brand skin applied to the composition).
+  setBrandReview(id, review) {
+    const j = jobs.get(id); if (!j) return;
+    j.brand_review = review || null;
+    scheduleWrite();
+  },
+
+  // Visual Layout Director report (kept/demoted asset counts, hero scale, montage
+  // budget, per-scene composition score). Surfaced to the UI via the job view.
+  setLayoutReview(id, review) {
+    const j = jobs.get(id); if (!j) return;
+    j.layout_review = review || null;
+    scheduleWrite();
+  },
+
+  // Text Director report (how many text slots were mined/injected per film).
+  setTextReview(id, review) {
+    const j = jobs.get(id); if (!j) return;
+    j.text_review = review || null;
     scheduleWrite();
   },
 
@@ -192,6 +278,13 @@ module.exports = {
   setQa(id, qa) {
     const j = jobs.get(id); if (!j) return;
     j.qa = qa || null;
+    scheduleWrite();
+  },
+
+  // Creative Director report (asset verdicts, screenshot rankings, audio notes).
+  setCreativeReview(id, report) {
+    const j = jobs.get(id); if (!j) return;
+    j.creative_review = report || null;
     scheduleWrite();
   },
 
@@ -261,7 +354,7 @@ module.exports = {
     if (usage)        j.usage         = usage;
     if (stageTimings) j.stage_timings = stageTimings;
     if (finalAttempt) j.final_attempt = finalAttempt;
-    scheduleWrite();
+    persist(); // terminal transition — flush so a restart can't resurrect the job
   },
 
   markFailed(id, errorMsg, tokensIn = 0, tokensOut = 0, usage, stageTimings) {
@@ -273,7 +366,7 @@ module.exports = {
     j.llm_tokens_out = tokensOut;
     if (usage)        j.usage         = usage;
     if (stageTimings) j.stage_timings = stageTimings;
-    scheduleWrite();
+    persist(); // terminal transition — flush so a restart can't resurrect the job
   },
 
   countJobsSince(sinceMs) {

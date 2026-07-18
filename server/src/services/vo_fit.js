@@ -2,6 +2,7 @@
 // Measure the synthesized clip with ffprobe; if it overruns the scene by
 // more than 10%, ask the fast model ONCE for a tighter line and re-synth.
 
+const fs = require("node:fs");
 const { spawn } = require("node:child_process");
 const openrouter = require("./openrouter");
 const { synthesize } = require("./tts");
@@ -27,15 +28,33 @@ function transcriptBloated(text, transcript) {
 }
 
 // Synthesize once; if the model embellished (transcript >> input), retry once
-// with the same line — the read-exactly framing usually lands on take two.
-async function synthOnce({ text, voice, instructions, outputPath, tracker }) {
+// with the same line — the read-exactly framing usually lands on take two. The
+// retake carries an explicit word count (observed: gpt-audio turning an 8-word
+// line into 40s of invented copy that then gets hard-trimmed mid-sentence),
+// and when BOTH takes ramble we keep the one closer to the written line
+// instead of blindly shipping take two.
+async function synthOnce({ text, voice, instructions, outputPath, tracker, session }) {
   const meta = {};
-  await synthesize({ script: text, voice, instructions, outputPath, tracker, meta });
+  await synthesize({ script: text, voice, instructions, outputPath, tracker, meta, session });
   if (transcriptBloated(text, meta.transcript)) {
     console.warn(`[vo_fit] model ad-libbed (${meta.transcript.length}ch spoken for ${text.length}ch line) — one retake`);
+    const words = (text.match(/\S+/g) || []).length;
+    const strict = `${instructions ? `${instructions} ` : ""}CRITICAL: the script is exactly ${words} word${words === 1 ? "" : "s"} long — speak ONLY those words and stop.`;
+    const retakePath = outputPath + ".retake.mp3";
     const meta2 = {};
-    await synthesize({ script: text, voice, instructions, outputPath, tracker, meta: meta2 });
-    return meta2;
+    try {
+      await synthesize({ script: text, voice, instructions: strict, outputPath: retakePath, tracker, meta: meta2, session });
+      const better = !meta2.transcript || !meta.transcript
+        || Math.abs(meta2.transcript.length - text.length) <= Math.abs(meta.transcript.length - text.length);
+      if (better) {
+        fs.renameSync(retakePath, outputPath);
+        return meta2;
+      }
+      console.warn(`[vo_fit] retake rambled worse (${meta2.transcript.length}ch vs ${meta.transcript.length}ch) — keeping take one`);
+      try { fs.unlinkSync(retakePath); } catch { /* noop */ }
+    } catch {
+      try { fs.unlinkSync(retakePath); } catch { /* noop */ }
+    }
   }
   return meta;
 }
@@ -66,10 +85,10 @@ function trimWithFade(filePath, maxSec) {
 
 // Synthesize one scene's VO, tightening once if it overruns, hard-trimming
 // as the last resort. Returns { path, durationSec, text, tightened } or null.
-async function synthesizeFitted({ text, targetSec, voice, instructions, outputPath, tracker, signal }) {
+async function synthesizeFitted({ text, targetSec, voice, instructions, outputPath, tracker, signal, session }) {
   if (!text || !text.trim()) return null;
 
-  let synthMeta = await synthOnce({ text, voice, instructions, outputPath, tracker });
+  let synthMeta = await synthOnce({ text, voice, instructions, outputPath, tracker, session });
   let dur = await probeDurationSec(outputPath);
   if (dur == null) return { path: outputPath, durationSec: targetSec, text, tightened: false, fallbackVoice: synthMeta?.fallbackVoice || null };
 
@@ -81,7 +100,7 @@ async function synthesizeFitted({ text, targetSec, voice, instructions, outputPa
     try {
       const t = await tightenLine({ line: text, targetSec, signal });
       if (tracker) tracker.addLlm({ inputTokens: t.tokensIn, outputTokens: t.tokensOut, stage: "vo_fit" });
-      synthMeta = await synthOnce({ text: t.line, voice, instructions, outputPath, tracker }) || synthMeta;
+      synthMeta = await synthOnce({ text: t.line, voice, instructions, outputPath, tracker, session }) || synthMeta;
       dur = (await probeDurationSec(outputPath)) ?? targetSec;
       spokenText = t.line;
       tightened = true;

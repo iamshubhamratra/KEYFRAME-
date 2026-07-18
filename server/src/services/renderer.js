@@ -5,6 +5,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawn } = require("node:child_process");
+const { spawnCompat, killTree } = require("./spawn_compat");
 const config = require("../config");
 
 const WINDOWS = process.platform === "win32";
@@ -79,13 +80,12 @@ function renderAttempt({ jobId, jobDir, outRelative, durationSec, quality, abort
       "--workers", String(workers),
     ];
 
-    // Node ≥18.20 throws EINVAL spawning .cmd files without a shell (CVE-2024-27980).
-    // windowsHide keeps the cmd/conhost chain off the desktop heap — the same
-    // heap whose exhaustion produces 0xC0000142 launch crashes.
-    const child = spawn(cmd, args, {
+    // spawnCompat runs .cmd shims under a shell (CVE-2024-27980) with pre-quoted
+    // args (avoids DEP0190). windowsHide keeps the cmd/conhost chain off the
+    // desktop heap — the same heap whose exhaustion produces 0xC0000142 crashes.
+    const child = spawnCompat(cmd, args, {
       cwd: jobDir,
       env: { ...process.env, PUPPETEER_DISABLE_HEADLESS_WARNING: "true" },
-      shell: WINDOWS,
       windowsHide: true,
     });
 
@@ -132,7 +132,7 @@ function renderAttempt({ jobId, jobDir, outRelative, durationSec, quality, abort
 
     const timer = setTimeout(() => {
       console.warn(`[renderer] job ${jobId} exceeded ${watchdogMs}ms; killing`);
-      try { child.kill("SIGKILL"); } catch { /* noop */ }
+      killTree(child);
     }, watchdogMs);
 
     // If an AbortController signal is passed (from pipeline budget timeout),
@@ -140,7 +140,7 @@ function renderAttempt({ jobId, jobDir, outRelative, durationSec, quality, abort
     // eating CPU after the pipeline has moved on to the next tier.
     const onAbort = () => {
       console.warn(`[renderer] job ${jobId} aborted by pipeline; killing`);
-      try { child.kill("SIGKILL"); } catch { /* noop */ }
+      killTree(child);
     };
     if (abortSignal) {
       if (abortSignal.aborted) onAbort();

@@ -50,6 +50,11 @@ const PackManifestSchema = z
         // which mis-grounded light packs (bloom, mono) onto their dark ink token
         // and dark packs (noir) onto their lightest token.
         ground: HEX.optional(),
+        // Authored text ink (identity system). Honored by scene_kit when it
+        // clears a hard legibility bar vs the ground (|lum Δ| ≥ 105); otherwise
+        // the max-contrast fallback applies. Lets a pack keep its own text color
+        // instead of collapsing to pure white/near-black.
+        ink: HEX.optional(),
       })
       .default({}),
 

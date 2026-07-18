@@ -9,10 +9,14 @@
   "type": "commonjs",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js",
-    "audit:contrast": "node scripts/audit-contrast.js"
+    "dev": "node scripts/dev-watch.js",
+    "audit:contrast": "node scripts/audit-contrast.js",
+    "audit:identity": "node scripts/audit-identity.js",
+    "audit:portrait": "node scripts/portrait-audit.js",
+    "check:packs": "node scripts/check-pack-identity.js"
   },
   "dependencies": {
+    "@huggingface/transformers": "^4.2.0",
     "@langchain/core": "^1.1.48",
     "@langchain/langgraph": "^1.4.1",
     "bcryptjs": "^3.0.3",

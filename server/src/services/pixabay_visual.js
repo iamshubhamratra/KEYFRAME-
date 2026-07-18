@@ -22,6 +22,16 @@ function orientationParam(o) {
   return "all";
 }
 
+// Pixabay rejects q > 100 chars with HTTP 400 — trim on a word boundary.
+// (Same rule as asset_sources/pixabay_api.js; kept local to stay dependency-free.)
+function clampQuery(q) {
+  const s = String(q || "").trim();
+  if (s.length <= 100) return s;
+  const cut = s.slice(0, 100);
+  const sp = cut.lastIndexOf(" ");
+  return (sp > 40 ? cut.slice(0, sp) : cut).trim();
+}
+
 function apiJson(endpoint, params) {
   const url = new URL(endpoint);
   url.searchParams.set("key", config.audio?.pixabayKey || "");
@@ -78,7 +88,7 @@ async function fetchImage({ query, orientation, outputPath, tracker }) {
   try {
     if (tracker) tracker.addExternal("pixabay_image_api");
     const data = await apiJson(IMAGE_ENDPOINT, {
-      q: query,
+      q: clampQuery(query),
       image_type: "photo",
       orientation: orientationParam(orientation),
       per_page: 5,
@@ -154,7 +164,7 @@ async function fetchVideo({ query, orientation, outputPath, tracker }) {
   try {
     if (tracker) tracker.addExternal("pixabay_video_api");
     const data = await apiJson(VIDEO_ENDPOINT, {
-      q: query,
+      q: clampQuery(query),
       orientation: orientationParam(orientation),
       per_page: 5,
       safesearch: "true",

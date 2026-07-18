@@ -4,7 +4,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { spawn } = require("node:child_process");
+const { spawnCompat, killTree } = require("./spawn_compat");
 
 const config = require("../config");
 
@@ -27,18 +27,18 @@ function writeFiles(jobDir, { indexHtml, metaJson }) {
 function runLint(jobDir) {
   return new Promise((resolve) => {
     const cmd = WINDOWS ? "npx.cmd" : "npx";
-    // Node ≥18.20 throws EINVAL spawning .cmd files without a shell (CVE-2024-27980).
-    const p = spawn(cmd, ["--yes", HF_SPEC, "lint"], {
+    // spawnCompat runs .cmd shims under a shell (CVE-2024-27980) with
+    // pre-quoted args (avoids DEP0190).
+    const p = spawnCompat(cmd, ["--yes", HF_SPEC, "lint"], {
       cwd: jobDir,
       env: process.env,
-      shell: WINDOWS,
     });
     let out = "", err = "";
     p.stdout.on("data", (d) => { out += d.toString(); });
     p.stderr.on("data", (d) => { err += d.toString(); });
 
     const timer = setTimeout(() => {
-      try { p.kill("SIGKILL"); } catch { /* noop */ }
+      killTree(p);
     }, 60_000);
 
     p.on("exit", (code) => {
@@ -76,16 +76,15 @@ function runLint(jobDir) {
 function runInspect(jobDir) {
   return new Promise((resolve) => {
     const cmd = WINDOWS ? "npx.cmd" : "npx";
-    const p = spawn(cmd, ["--yes", HF_SPEC, "inspect", "--json", "--at-transitions", "--tolerance", "4", "."], {
+    const p = spawnCompat(cmd, ["--yes", HF_SPEC, "inspect", "--json", "--at-transitions", "--tolerance", "4", "."], {
       cwd: jobDir,
       env: process.env,
-      shell: WINDOWS,
     });
     let out = "", err = "";
     p.stdout.on("data", (d) => { out += d.toString(); });
     p.stderr.on("data", (d) => { err += d.toString(); });
 
-    const timer = setTimeout(() => { try { p.kill("SIGKILL"); } catch { /* noop */ } }, 90_000);
+    const timer = setTimeout(() => { killTree(p); }, 90_000);
 
     p.on("exit", () => {
       clearTimeout(timer);

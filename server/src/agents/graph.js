@@ -22,7 +22,7 @@ const { generateBrief } = require("../services/brief");
 const { generateScript, normalizeScript } = require("../services/script");
 const { generateStoryboard } = require("../services/storyboard");
 const frameRegistry = require("../services/frame_registry");
-const { withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor } = require("../services/pipeline");
+const { withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor, retimeScenesToVo } = require("../services/pipeline");
 const { acquire, hasProviderFor, makeImageDeduper } = require("../services/asset_sources");
 const { styleFor, iconColorFor } = require("../services/pack_style");
 const { synthesizeFitted } = require("../services/vo_fit");
@@ -35,7 +35,14 @@ const { normalizeComposition } = require("../services/normalize");
 const { render } = require("../services/renderer");
 const { reviewRender } = require("./qa_agent");
 const { checkAssetsRelevance } = require("../services/asset_vision");
+const { reviewAndCurate } = require("../services/creative_director");
 const { reviewAssets, summarizeReview } = require("../services/asset_director");
+const { captureTopicShots, mergeShots } = require("../services/screenshot_director");
+const { qaGateScreenshots } = require("../services/screenshot_qa");
+const { blogImageAssets } = require("../services/blog_assets");
+const { directBrand } = require("../services/art_director");
+const { directLayout } = require("../services/visual_layout_director");
+const { directText } = require("../services/text_director");
 
 function ms() { return Date.now(); }
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
@@ -114,7 +121,11 @@ async function frameSelectorAgent(s) {
 async function storyboardAgent(s) {
   db.setProgress(s.job.id, "storyboard");
   const sbPrompt = storyboardPromptFromScript(s.script, s.brief);
-  const r = await generateStoryboard({ prompt: sbPrompt, duration: s.job.duration, orientation: s.job.orientation });
+  // framePack biases the storyboard's per-scene archetypes/motifs toward the
+  // selected template (storyboard.js buildUser). frame_selector runs before this
+  // node, so the pick is always resolved here — omitting it made the project
+  // path's storyboards pack-blind while /api/generate's were pack-aware.
+  const r = await generateStoryboard({ prompt: sbPrompt, duration: s.job.duration, orientation: s.job.orientation, framePack: s.framePack });
   s.tracker.addLlm({ inputTokens: r.tokensIn, outputTokens: r.tokensOut, stage: "storyboard" });
   return { storyboard: r.storyboard };
 }
@@ -146,7 +157,10 @@ async function assetPlannerAgent(s) {
   const videoOk = hasProviderFor("video");
   const shots = (job.website_screenshots || []).filter((p) => { try { return fs.existsSync(p); } catch { return false; } });
   const showcase = script.scenes.filter((x) => ["feature", "proof", "how", "context"].includes(x.purpose));
-  const targets = (showcase.length ? showcase : script.scenes.slice(1, -1)).slice(0, 3);
+  // Up to 5 scenes carry a pinned real screenshot (was 3 — user: "amount of
+  // screenshots is very less"); ingest + screenshot_director routinely capture
+  // 4-6 shots, and the extra pins surface them instead of dropping them.
+  const targets = (showcase.length ? showcase : script.scenes.slice(1, -1)).slice(0, 5);
   const screenshotPlan = shots.slice(0, targets.length).map((src, i) => ({ kind: "screenshot", src, scene: targets[i], index: i }));
   const pinnedSceneIds = new Set(screenshotPlan.map((p) => p.scene.id));
 
@@ -171,10 +185,9 @@ async function assetPlannerAgent(s) {
       const q = deriveQuery(scene);
       if (q) {
         needs.push({ type: "image", query: q, role: "background", derived: true });
-        // Alternate scenes also pull a photo inset for variety.
-        if (script.scenes.indexOf(scene) % 2 === 1) {
-          needs.push({ type: "image", query: q, role: "inset", derived: true });
-        }
+        // EVERY gap-filled scene also pulls a photo inset (was alternate scenes
+        // only) — density first; the planner caps below still bound the total.
+        needs.push({ type: "image", query: q, role: "inset", derived: true });
       }
     }
     // VECTOR GAP-FILL — the curated 2k+ SVG library was effectively never tapped
@@ -198,8 +211,10 @@ async function assetPlannerAgent(s) {
   const videos = wants.filter((w) => w.need.type === "video").slice(0, 2);
   // Vectors get their OWN budget so a long photo list can't starve them — this
   // is what finally feeds the curated SVG library into films.
-  const vectors = wants.filter((w) => w.need.type !== "video" && isVectorNeed(w.need)).slice(0, 8);
-  const photos  = wants.filter((w) => w.need.type !== "video" && !isVectorNeed(w.need)).slice(0, 12 - videos.length);
+  // Caps raised 8→10 vectors / 12→16 photos (user: "amount of assets is very
+  // less") — images are cheap to render; only videos stay tightly capped.
+  const vectors = wants.filter((w) => w.need.type !== "video" && isVectorNeed(w.need)).slice(0, 10);
+  const photos  = wants.filter((w) => w.need.type !== "video" && !isVectorNeed(w.need)).slice(0, 16 - videos.length);
   console.log(`[agents] asset_planner: ${screenshotPlan.length} screenshot(s) + ${videos.length} video(s) + ${photos.length} photo(s) + ${vectors.length} vector(s) (${wants.filter((w) => w.need.derived).length} derived)`);
   return { assetPlan: { screenshots: screenshotPlan, searches: [...videos, ...photos, ...vectors] } };
 }
@@ -266,6 +281,13 @@ async function assetSearchAgent(s) {
     };
   });
 
+  // Screenshot Director — topic-matched INTERNAL page captures (pricing scene ->
+  // /pricing shot) via PeekShot, in parallel with the whole stock loop below.
+  // Merged before the Creative Director review so topic shots get scored too.
+  const topicTask = captureTopicShots({
+    job, script: s.script, jobDir, topic: (s.brief?.subject || anchor || "").trim(), tracker,
+  }).catch(() => []);
+
   // Map a scene's asset role to the kind of curated asset that fits it:
   // full-bleed backgrounds want real photos; insets/icons/textures want
   // vectors or illustrations. Threaded into acquire() -> curated.search.
@@ -296,6 +318,10 @@ async function assetSearchAgent(s) {
   // Web-stock assets to run through the vision relevance gate AFTER the fetch
   // loop, in one batched call rather than one LLM call per asset.
   const pendingGate = [];
+  // Alternate the preferred vector source per icon/vector slot so a video draws
+  // from BOTH Iconify AND Pixabay (each still falls back to the other on a miss)
+  // instead of every vector coming from whichever source answers first.
+  let vectorSlot = 0;
   for (const { scene, need } of assetPlan.searches) {
     const isVideo = need.type === "video";
     const relPath = isVideo ? `assets/videos/${iVid++}.mp4` : `assets/images/${iImg++}.jpg`;
@@ -324,6 +350,8 @@ async function assetSearchAgent(s) {
       iconColor: isIcon ? iconColor : undefined,
       iconStyle: isIcon ? packStyle.iconStyle : undefined,
       styleKeywords: !isIcon ? packStyle.keywords : undefined,
+      // Interleave Iconify- and Pixabay-first across vector slots (see vectorSlot).
+      vectorPrefer: isIcon ? (vectorSlot++ % 2 === 0 ? "pixabay" : "iconify") : undefined,
     }).catch(() => null);
     if (!r) continue;
     // Skip an asset we've already used — byte-identical OR visually a duplicate
@@ -355,12 +383,44 @@ async function assetSearchAgent(s) {
     if (isWebStock) pendingGate.push({ resultObj, absPath: r.path, type: isVideo ? "video" : "image", query: need.query });
   }
 
+  const gateSubject = (s.brief?.subject || anchor || "").trim();
+
+  // Topic page shots land here: a scene claimed by a topic shot drops its
+  // landing-page pin (the specific page beats the homepage).
+  // SCREENSHOT QA — vision-inspect every capture and drop the broken ones
+  // (error pages, consent modals, bot-walls, blanks, half-renders) BEFORE the
+  // creative director ranks them and the composer frames one as the hero.
+  const gatedShots = await qaGateScreenshots({
+    assets: mergeShots(await topicTask, pinned), jobDir,
+    subject: gateSubject, tracker,
+  });
+  // Blog mode: the post's own images join as pinned owner-content assets on
+  // scenes the screenshots didn't claim (Creative Director still reviews them).
+  const allPinned = [
+    ...gatedShots,
+    ...blogImageAssets({ job, script: s.script, jobDir, skipSceneIds: new Set(gatedShots.map((a) => String(a.sceneId))) }),
+  ];
+
+  // CREATIVE DIRECTOR (default ON) — reviews EVERY asset (screenshots included:
+  // it also ranks them by section), scores on six dimensions, assigns scenes,
+  // caps prominent assets per scene, and tops-up empty scenes. Fail-open. The
+  // plain keep/reject vision gate below stays as the CREATIVE_DIRECTOR=0 fallback.
+  const cdEnabled = config.creativeDirector ? config.creativeDirector.enabled !== false : true;
+  let kept = null;
+  if (cdEnabled && (allPinned.length + results.length)) {
+    kept = await reviewAndCurate({
+      jobId: job.id, storyboard: s.storyboard || null, script: s.script || null,
+      brief: s.brief, subject: gateSubject, framePack: s.framePack,
+      assets: [...allPinned, ...results], tracker, jobDir, orientation: job.orientation,
+    });
+  }
+
   // VISION RELEVANCE GATE (batched) — "would a director accept this for a film
   // about <subject>?" over ALL fetched web stock in as few calls as possible
   // (chunks of 6) instead of one LLM call per asset. Fail-open: a dead budget or
   // any error keeps every asset, so the gate can never starve a film of visuals.
-  const gateSubject = (s.brief?.subject || anchor || "").trim();
-  if (pendingGate.length && gateSubject) {
+  // Skipped when the Creative Director already reviewed everything above.
+  if (!kept && pendingGate.length && gateSubject) {
     const verdicts = await checkAssetsRelevance({
       assets: pendingGate.map((p) => ({ absPath: p.absPath, type: p.type, query: p.query })),
       subject: gateSubject, tracker,
@@ -390,12 +450,14 @@ async function assetSearchAgent(s) {
   // which the relevance gate skips — those are exactly the assets whose fit matters
   // most). Fail-open: on any error the assets are left as-is and the kit falls back
   // to its own fit heuristics.
-  const directable = results.filter((a) => a && a.type !== "video");
+  const gated = kept || [...allPinned, ...results];
+  const directable = gated.filter((a) => a && a.type !== "video");
   if (directable.length && gateSubject) {
     try {
       const kindHint = (a) => {
         const src = String(a.source || "");
         if (src === "website") return "website screenshot";
+        if (src === "blog") return "image from the source blog post";
         if (src === "iconify" || src.startsWith("library:")) return "flat vector/icon";
         if (/\.svg($|\?)/i.test(a.path || "")) return "svg vector";
         return null;
@@ -417,12 +479,77 @@ async function assetSearchAgent(s) {
       console.warn(`[agents] asset_director skipped: ${String(e?.message || e).slice(0, 120)}`);
     }
   }
-  const got = results;
-
-  const assets = [...pinned, ...got];
+  const assets = gated;
   db.setAssets(job.id, assets);
-  console.log(`[agents] asset_search: ${assets.length} asset(s) (${got.filter((a) => a.fromCache).length} from cache)`);
+  console.log(`[agents] asset_search: ${assets.length} asset(s) (${assets.filter((a) => a.fromCache).length} from cache)`);
   return { assets };
+}
+
+// Art Director — turns the site's extracted brand colors (brief.brandColors, else
+// unused) into an ACCENT-ONLY brand skin so the composition reads on-brand instead
+// of the frame pack's stock palette. Runs in parallel with the storyboard/asset/
+// voice chain (it only needs the brief + the chosen pack); the skin joins at
+// composition. Fail-open: any failure returns a null skin → the pack keeps its
+// own accents, so it never blocks a render or makes a video worse.
+async function artDirectorAgent(s) {
+  const brandColors = s.brief?.brandColors || [];
+  if (!config.artDirector?.enabled || !brandColors.length) return { brandSkin: null };
+  db.setProgress(s.job.id, "art_direction");
+  const brandSkin = await directBrand({
+    jobId: s.job.id,
+    brandColors,
+    subject: s.brief?.subject || null,
+    brief: s.brief,
+    framePack: s.framePack,
+    packVibe: s.framePack ? frameRegistry.getPackVibe(s.framePack) : null,
+    tracker: s.tracker,
+  }).catch((e) => { console.warn(`[agents] art_director failed: ${e.message}`); return null; });
+  return { brandSkin };
+}
+
+// Visual Layout Director — the composition authority. It does NOT pick assets (the
+// Creative Director / vision gates did that); it decides their PRESENTATION by
+// reusing the per-asset scores: how many appear prominently (quality over quantity
+// — demote the weak overflow to B-roll), the hero size (enlarge for readability),
+// the montage tile budget (fewer, larger), and content-aware crop focus — plus the
+// base archetype typing (a testimonial becomes a quote card, an untagged metric a
+// stat card). Deterministic, no LLM. It only FILLS GAPS the asset-director's
+// vision pass left (a.focus/a.fit win over its cropFocus in scene_kit). Fail-open:
+// on any error the kit's own logic runs.
+async function visualLayoutDirectorAgent(s) {
+  db.setProgress(s.job.id, "layout_direction");
+  const { assets, layoutPlan, review } = directLayout({
+    storyboard: s.storyboard,
+    script: s.script,
+    assets: s.assets || [],
+    framePack: s.framePack,
+    dims: { width: s.job.width, height: s.job.height, fps: s.job.fps },
+  });
+  if (review) { try { db.setLayoutReview(s.job.id, review); } catch { /* best effort */ } }
+  try { db.setAssets(s.job.id, assets); } catch { /* best effort */ }
+  return { assets, layoutPlan };
+}
+
+// Text Director — mines the brief/script/site copy for the words that sell and
+// fills each storyboard scene's EMPTY text slots (subtext/bullets/emphasis/
+// kicker) so the film carries real information density. Add-only (existing
+// storyboard text always wins) + fail-open (deterministic miner backs the LLM,
+// and any error returns the storyboard untouched).
+async function textDirectorAgent(s) {
+  db.setProgress(s.job.id, "text_direction");
+  try {
+    const { storyboard } = await directText({
+      jobId: s.job.id,
+      brief: s.brief,
+      script: s.script,
+      storyboard: s.storyboard,
+      tracker: s.tracker,
+    });
+    return { storyboard };
+  } catch (e) {
+    console.warn(`[agents] text_director skipped: ${String((e && e.message) || e).slice(0, 120)}`);
+    return {};
+  }
 }
 
 // Voice Agent — per-scene fitted VO + script SFX + music, in parallel.
@@ -443,9 +570,12 @@ async function voiceAgent(s) {
     : "a relaxed, natural conversational rhythm";
   const instructions = `Speak ${tone}. Delivery: ${paceEnergy}. Vary intonation naturally, land emphasis on key words, and warm the final line.`;
 
+  // One shared ttsSession = one narrator: the provider that speaks the first
+  // clip is pinned for the whole take (no more mid-film voice swaps).
+  const ttsSession = {};
   const voTask = Promise.all(script.scenes.map((sc) =>
     (sc.voiceover && sc.voiceover.trim())
-      ? synthesizeFitted({ text: sc.voiceover, targetSec: sc.duration, voice, instructions, outputPath: path.join(audioDir, `vo-${sc.id}.mp3`), tracker })
+      ? synthesizeFitted({ text: sc.voiceover, targetSec: sc.duration, voice, instructions, outputPath: path.join(audioDir, `vo-${sc.id}.mp3`), tracker, session: ttsSession })
           .then((r) => r ? { sceneId: sc.id, startSec: sc.start, durationSec: r.durationSec, sceneDurationSec: sc.duration, text: r.text, path: r.path, fallbackVoice: r.fallbackVoice || null } : null)
           .catch((e) => { console.warn(`[agents] vo ${sc.id} failed: ${e.message}`); return null; })
       : Promise.resolve(null)
@@ -494,13 +624,28 @@ async function compositionAgent(s) {
   db.setProgress(job.id, "composing");
   const dims = { width: job.width, height: job.height, fps: job.fps };
 
-  const wc = (t) => (String(t || "").match(/\S+/g) || []).length;
+  // VO-DRIVEN RE-TIMING (the sync fix): voice_agent now joins BEFORE this node,
+  // so the measured narration is available here. Stretch each scene to contain
+  // its line — without this a 3.4s line in a 3s scene overlapped the next
+  // scene's narration AND the last line ran past the video end and was CUT
+  // mid-sentence at mux time. Idempotent across QA repair laps.
+  const retime = retimeScenesToVo(s.storyboard, s.script, s.voClips || []);
+  const effDur = retime.effectiveDuration || job.duration;
+  if (effDur > job.duration + 0.05) {
+    console.log(`[agents] scenes re-timed to measured VO: ${job.duration}s -> ${effDur}s (last line no longer cut)`);
+  }
+  const r2c = (n) => Math.round(Number(n) * 100) / 100;
+  const sfxRepinned = (s.sfxClips || []).map((c) => ({ ...c, startSec: retime.startMap.get(r2c(c.startSec)) ?? c.startSec }));
+
   const captionCues = job.captions_enabled === 0 ? [] : buildCues(
-    s.script.scenes.filter((x) => x.voiceover && x.voiceover.trim()).map((x) => ({
-      sceneId: x.id, startSec: x.start,
-      durationSec: Math.min(x.duration, wc(x.voiceover) / 2.6 + 0.4),
-      sceneDurationSec: x.duration, text: x.voiceover,
-    }))
+    s.script.scenes.filter((x) => x.voiceover && x.voiceover.trim()).map((x) => {
+      const measured = (s.voClips || []).find((c) => String(c.sceneId) === String(x.id));
+      return {
+        sceneId: x.id, startSec: x.start,
+        durationSec: Math.min(x.duration, measured ? measured.durationSec : x.duration),
+        sceneDurationSec: x.duration, text: x.voiceover,
+      };
+    })
   ).map((c) => ({ start: Math.round(c.start * 10) / 10, end: Math.round(c.end * 10) / 10, text: c.text }));
 
   // Carry QA repair feedback into the composer when looping.
@@ -509,17 +654,33 @@ async function compositionAgent(s) {
     : s.storyboard;
 
   const budget = (Number(config.server.stageBudgetSec) || 480) * 1000;
-  // Composer dispatch. The user's per-video finish choice wins:
+  // Composer dispatch.
+  // TEMPLATE PIN comes first: when the user explicitly picked a frame pack in
+  // the gallery (frame_pack_user), the film MUST look like that template — the
+  // deterministic scene-kit renders the pack faithfully (manifest theme,
+  // textfx, ornaments, assetStyle). The LLM composer freestyles from FRAME.md
+  // and drifts off-template ("video ignores my selected template"), so a
+  // premium finish only applies when the pack was auto-chosen.
+  // Otherwise the user's per-video finish choice wins:
   //   compose_mode "premium"  → the LLM composition agent (remix)
   //   compose_mode "standard" → the deterministic scene-kit
   //   unset                   → the global USE_LLM_COMPOSER default
   // Either way the kit stays available as the fallback below.
+  const packPinned = job.frame_pack_user === 1 || job.frame_pack_user === true;
+  // An explicit PREMIUM finish always runs the LLM composer — including on a
+  // user-pinned template. The composer writes a bespoke page from the pack's
+  // FRAME.md, and the identity gate runs STRICT for pinned packs (violations
+  // force a repair lap), so the output stays on-template. A pinned pack only
+  // forces scene-kit when the finish was left on default.
   const useComposer = job.compose_mode === "premium"
     ? true
     : job.compose_mode === "standard"
       ? false
-      : config.llm.useComposer !== false;
-  if (job.compose_mode) console.log(`[agents] job ${job.id} finish=${job.compose_mode} → ${useComposer ? "LLM composer" : "scene-kit"}`);
+      : packPinned
+        ? false
+        : config.llm.useComposer !== false;
+  const strictIdentity = packPinned && useComposer;
+  if (job.compose_mode || packPinned) console.log(`[agents] job ${job.id} finish=${job.compose_mode || "default"}${packPinned ? ` (template "${job.frame_pack}" pinned by user${strictIdentity ? ", STRICT identity gate" : ""})` : ""} → ${useComposer ? "LLM composer" : "scene-kit"}`);
   try {
     // Asset-rich videos override an opt-in render3d: the 3D composer only textures
     // ONE screenshot, so a video with several real screenshots/photos is showcased
@@ -535,23 +696,30 @@ async function compositionAgent(s) {
       const visual = await withBudget(
         (signal) => composeWithThree({
           storyboard, dims, jobDir, framePack: s.framePack, captionCues,
-          assets: s.assets || [], jobId: job.id, durationSec: job.duration,
+          assets: s.assets || [], jobId: job.id, durationSec: effDur,
           label: "graph-three", abortSignal: signal, tracker,
         }),
         budget, "Three.js composition"
       );
-      return { visual, usedFallback: false, finalAttempt: "three" };
+      return { visual, usedFallback: false, finalAttempt: "three", usedComposer: false, effectiveDuration: effDur, sfxClips: sfxRepinned };
     }
     const visual = await withBudget(
       (signal) => attemptLlmComposition({
         storyboard, dims, jobDir, assets: s.assets || [], tracker,
-        jobId: job.id, durationSec: job.duration,
+        jobId: job.id, durationSec: effDur,
         label: s.qa ? "graph-repair" : "graph-main", abortSignal: signal,
-        framePack: s.framePack, captionCues, remix: useComposer,
+        framePack: s.framePack, captionCues, remix: useComposer, strictIdentity,
+        // Standard finish gets the bounded LLM set-dressing pass (per-scene
+        // layout variants, emphasis words, sanitized decor SVG clusters) — a
+        // cheap fast-stage call that art-directs the deterministic kit, so
+        // "standard" no longer means "no personalized art direction at all".
+        dress: !useComposer,
+        subject: s.brief?.subject || null,
+        brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null,
       }),
       budget, "composition agent"
     );
-    return { visual, usedFallback: false, finalAttempt: s.qa ? "qa-repair" : "main" };
+    return { visual, usedFallback: false, finalAttempt: s.qa ? "qa-repair" : "main", usedComposer: useComposer, effectiveDuration: effDur, sfxClips: sfxRepinned };
   } catch (e) {
     console.warn(`[agents] composition failed (${e.message.slice(0, 180)})`);
     // Budget-class failure (provider out of credits / daily-capped): a QA
@@ -564,7 +732,7 @@ async function compositionAgent(s) {
     // fallback slide — keep the previous good render.
     if (s.qa && s.visual && !s.usedFallback) {
       console.warn(`[agents] repair re-compose failed — keeping prior lint-passing render (not falling back to template)`);
-      return { visual: s.visual, usedFallback: false, finalAttempt: s.finalAttempt || "main", rendered: true, composerBudgetDead };
+      return { visual: s.visual, usedFallback: false, finalAttempt: s.finalAttempt || "main", usedComposer: s.usedComposer === true, rendered: true, composerBudgetDead, effectiveDuration: effDur, sfxClips: sfxRepinned };
     }
     try {
       if (fs.existsSync(path.join(jobDir, "index.html"))) {
@@ -584,19 +752,20 @@ async function compositionAgent(s) {
         // was budget-class (the dressing call would die on the same wall).
         const visual = await attemptLlmComposition({
           storyboard, dims, jobDir, assets: s.assets || [], tracker,
-          jobId: job.id, durationSec: job.duration, label: "scene-kit-fallback",
+          jobId: job.id, durationSec: effDur, label: "scene-kit-fallback",
           framePack: s.framePack, captionCues, remix: false,
           dress: job.compose_mode === "premium" && !composerBudgetDead,
           subject: s.brief?.subject || null,
+          brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null,
         });
-        return { visual, usedFallback: false, finalAttempt: "scene-kit", rendered: true, composerBudgetDead };
+        return { visual, usedFallback: false, finalAttempt: "scene-kit", usedComposer: false, rendered: true, composerBudgetDead, effectiveDuration: effDur, sfxClips: sfxRepinned };
       } catch (e2) {
         console.warn(`[agents] scene-kit fallback failed (${String(e2.message).slice(0, 120)}) — bland template`);
       }
     }
     console.warn(`[agents] deterministic fallback`);
     const fb = buildFallback({
-      prompt: s.brief?.improvedPrompt || job.prompt, duration: job.duration,
+      prompt: s.brief?.improvedPrompt || job.prompt, duration: effDur,
       orientation: job.orientation, width: dims.width, height: dims.height, fps: dims.fps,
       storyboard: s.storyboard,
       packTokens: s.framePack ? frameRegistry.getPackTokens(s.framePack) : null,
@@ -609,8 +778,8 @@ async function compositionAgent(s) {
     fs.writeFileSync(path.join(jobDir, "index.html"), fbNorm.html, "utf8");
     fs.writeFileSync(path.join(jobDir, "meta.json"), fb.metaJson, "utf8");
     tracker.addExternal("hyperframes_render");
-    const visual = await render({ jobId: job.id, jobDir, durationSec: job.duration });
-    return { visual, usedFallback: true, finalAttempt: "fallback", rendered: true, composerBudgetDead };
+    const visual = await render({ jobId: job.id, jobDir, durationSec: effDur });
+    return { visual, usedFallback: true, finalAttempt: "fallback", rendered: true, composerBudgetDead, effectiveDuration: effDur, sfxClips: sfxRepinned };
   }
 }
 
@@ -652,7 +821,9 @@ async function timelineAgent(s) {
 
   await mixAudioIntoVideo({
     visualPath: visual.videoPath,
-    durationSec: job.duration,
+    // The video was rendered at the VO re-timed duration — mix to the same
+    // length or the last narrated line gets cut at the old boundary again.
+    durationSec: s.effectiveDuration || job.duration,
     scenes: s.storyboard?.scenes || null, jobDir,
     audio: {
       ttsPath: null,
@@ -694,11 +865,36 @@ async function qaAgentNode(s) {
     framePack: s.framePack,
     workDir: path.join(s.jobDir, "qa"),
     tracker: s.tracker,
+    // 9:16 films get the portrait blocker set (landscape-shrunk layout,
+    // side-by-side squeeze, illegible type, horizontal edge crop).
+    dims: { width: s.job.width, height: s.job.height },
+    // Deterministic scene-kit/dedicated films judge only HARD defects as
+    // blockers — the template's own design language (typographic scenes,
+    // whitespace, a shared ground) is intentional, and a repair lap can't
+    // redesign a deterministic template anyway.
+    deterministic: s.usedComposer !== true,
   }).catch((e) => {
     console.warn(`[agents] qa failed (${e.message.slice(0, 120)}); passing by default`);
     return { pass: true, issues: [], error: e.message };
   });
-  return { qa: verdict, qaAttempts: (s.qaAttempts || 0) + 1 };
+  // BEST-LAP LEDGER — repair laps are a re-roll (deterministic comp + fresh
+  // dressing), so a later lap can score WORSE than an earlier one. Snapshot
+  // the highest-scoring failing lap's mixed video; the runner ships it if the
+  // loop exhausts on a lower score ("best attempt" used to mean "last lap").
+  let bestQa = s.bestQa || null;
+  if (!verdict.pass) {
+    const score = Number(verdict.score) || 0;
+    if (!bestQa || score > bestQa.score) {
+      try {
+        const snap = path.join(s.jobDir, "best-lap.mp4");
+        fs.copyFileSync(s.visual.videoPath, snap);
+        bestQa = { score, snap, lap: (s.qaAttempts || 0) };
+      } catch (e) {
+        console.warn(`[agents] best-lap snapshot failed: ${e.message.slice(0, 100)}`);
+      }
+    }
+  }
+  return { qa: verdict, qaAttempts: (s.qaAttempts || 0) + 1, bestQa };
 }
 
 // ---------------------------------------------------------------- graph
@@ -713,20 +909,25 @@ async function buildGraph() {
     brief: Annotation(), script: Annotation(),
     framePack: Annotation(), storyboard: Annotation(),
     assetPlan: Annotation(), assets: Annotation(),
-    voClips: Annotation(), sfxClips: Annotation(), musicPath: Annotation(),
+    voClips: Annotation(), sfxClips: Annotation(), musicPath: Annotation(), effectiveDuration: Annotation(),
     visual: Annotation(), usedFallback: Annotation(), finalAttempt: Annotation(), rendered: Annotation(),
     animationReport: Annotation(), qa: Annotation(), qaAttempts: Annotation(),
+    bestQa: Annotation(), usedComposer: Annotation(),
     composerBudgetDead: Annotation(),
+    brandSkin: Annotation(), layoutPlan: Annotation(),
   });
 
   // Node names must not collide with state channel names (LangGraph rule),
   // hence the _agent suffixes on storyboard/qa.
   const g = new StateGraph(S)
     .addNode("frame_selector", frameSelectorAgent)
+    .addNode("art_director", artDirectorAgent)
     .addNode("storyboard_agent", storyboardAgent)
     .addNode("scene_planner", scenePlannerAgent)
     .addNode("asset_planner", assetPlannerAgent)
     .addNode("asset_search", assetSearchAgent)
+    .addNode("text_director", textDirectorAgent)
+    .addNode("visual_layout_director", visualLayoutDirectorAgent)
     .addNode("voice_agent", voiceAgent)
     .addNode("composition", compositionAgent)
     .addNode("animation", animationAgent)
@@ -735,20 +936,37 @@ async function buildGraph() {
     .addNode("repair", repairAgent);
 
   g.addEdge(START, "frame_selector");
-  // Fan-out: three branches run in parallel.
+  // Fan-out: four branches run in parallel. The Art Director only needs the brief
+  // + the chosen pack, so it runs alongside the storyboard/asset/voice chain and
+  // its brand skin joins at composition (near-zero added latency).
   g.addEdge("frame_selector", "storyboard_agent");
   g.addEdge("frame_selector", "asset_planner");
   g.addEdge("frame_selector", "voice_agent");
+  g.addEdge("frame_selector", "art_director");
   g.addEdge("storyboard_agent", "scene_planner");
   g.addEdge("asset_planner", "asset_search");
-  // Join: composition needs the plan AND the assets.
-  g.addEdge(["scene_planner", "asset_search"], "composition");
+  // The Text Director enriches the planned scenes with mined copy (subtext/
+  // bullets/emphasis) BEFORE layout, so archetype typing sees the final text
+  // (a scene that just gained proof bullets can become a feature grid).
+  g.addEdge("scene_planner", "text_director");
+  // Join: the Visual Layout Director needs the enriched scene plan AND the
+  // curated assets (it reuses their scores to re-level prominence + type each
+  // scene's archetype).
+  g.addEdge(["text_director", "asset_search"], "visual_layout_director");
+  // Join: composition waits for the layout direction (archetypes + sizing/crop +
+  // re-leveled assets), the brand skin (accent-only palette) AND the voice branch.
+  g.addEdge(["visual_layout_director", "art_director", "voice_agent"], "composition");
   g.addEdge("composition", "animation");
   // Join: the timeline mix needs the render AND the voice branch.
-  g.addEdge(["animation", "voice_agent"], "timeline");
+  g.addEdge("animation", "timeline");
   g.addEdge("timeline", "qa_agent");
   g.addConditionalEdges("qa_agent", (s) => {
-    const repairsLeft = (s.qaAttempts || 0) <= (Number(config.qa?.maxRepairs) || 1);
+    // The composer genuinely repairs from QA feedback, so it earns the full
+    // configured lap budget. Scene-kit/dedicated comps are DETERMINISTIC — a
+    // lap only re-rolls the dressing, which the evidence shows regresses as
+    // often as it helps — so they get at most ONE lap.
+    const capLaps = s.usedComposer ? (Number(config.qa?.maxRepairs) || 1) : 1;
+    const repairsLeft = (s.qaAttempts || 0) <= capLaps;
     // No repair lap when the composer already failed on budget (402/daily cap)
     // — the recompose would hit the identical wall and just burn time.
     if (!s.qa?.pass && repairsLeft && !s.usedFallback && !s.composerBudgetDead) {
@@ -788,6 +1006,17 @@ async function runProductionGraph({ jobId }) {
       { recursionLimit: 40 }
     );
 
+    // Ship the BEST QA-scored lap, not the last one: when the loop exhausted
+    // on a lap that scored below an earlier snapshot, restore the snapshot.
+    if (final.qa && final.qa.pass === false && final.bestQa && final.bestQa.snap
+        && (Number(final.qa.score) || 0) < final.bestQa.score) {
+      try {
+        fs.copyFileSync(final.bestQa.snap, final.visual.videoPath);
+        console.log(`[agents] shipping best QA lap (lap ${final.bestQa.lap}, score ${final.bestQa.score}) over last lap (score ${Number(final.qa.score) || 0})`);
+      } catch (e) {
+        console.warn(`[agents] best-lap restore failed: ${e.message.slice(0, 100)}`);
+      }
+    }
     const costs = tracker.computeCosts();
     db.markDone(jobId, {
       videoUrl: final.visual.videoUrl,
