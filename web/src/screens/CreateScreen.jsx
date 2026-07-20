@@ -24,6 +24,19 @@ const SURPRISE_PROMPT =
 
 const ASPECT = { horizontal: "16:9", vertical: "9:16", square: "1:1" };
 
+// Caption languages — mirrors the server whitelist (services/caption_lang.js).
+// "en" is the source language (script + default voiceover); the rest translate.
+const CAPTION_LANGS = [
+  { code: "en", label: "English (US)" },
+  { code: "hi", label: "Hindi" },
+  { code: "es", label: "Spanish" },
+  { code: "fr", label: "French" },
+  { code: "de", label: "German" },
+  { code: "pt", label: "Portuguese" },
+  { code: "ar", label: "Arabic" },
+  { code: "ja", label: "Japanese" },
+];
+
 // Ready-made accent pairs, so "use your brand color" isn't a blank color well for
 // the (many) people who never look up their own hexes. A preset is still only an
 // ACCENT pair — it steers the same two stops a hand-picked palette does, and no
@@ -46,6 +59,13 @@ export default function CreateScreen({ onCreated, prefill }) {
   const [orientation, setOrientation] = useState("horizontal");
   const [framePack, setFramePack] = useState(prefill?.framePack || "auto");
   const [captions, setCaptions] = useState(false);
+  // Multi-language captions. `captionLang` is the SUBTITLE language and
+  // `voiceLang` is the VOICEOVER (spoken) language — chosen independently, so any
+  // combination works (English audio + Hindi subs, Hindi audio + English subs,
+  // both localized, etc.). "en" is the source. Codes mirror the server whitelist
+  // in services/caption_lang.js.
+  const [captionLang, setCaptionLang] = useState("en");
+  const [voiceLang, setVoiceLang] = useState("en");
   const [finish, setFinish] = useState("standard"); // standard = scene-kit · premium = LLM composer · cinema = Three.js 3D set
   const [brandChoice, setBrandChoice] = useState("template"); // "template" (no override) · a preset id · "custom"
   // Null until the user actually moves a color well, so the manual stops keep
@@ -134,7 +154,17 @@ export default function CreateScreen({ onCreated, prefill }) {
     setError(null);
     try {
       const fields = {
-        duration, orientation, quality: "720p", framePack, captions,
+        duration, orientation, quality: "720p", framePack,
+        // Captions: send the multi-language config object when enabled (subtitle
+        // language, INDEPENDENT voiceover language, SRT+VTT export), or `false`
+        // when off. The API accepts both the object and the legacy boolean.
+        captions: captions ? {
+          enabled: true,
+          language: captionLang,
+          voiceoverLanguage: voiceLang,
+          exportSRT: true,
+          exportVTT: true,
+        } : false,
         // null is the answer, not a missing one: it says the user looked at the
         // palette tile and kept the pack's accents. The API treats it the same as
         // absent, so the default stays a true no-op.
@@ -272,7 +302,11 @@ export default function CreateScreen({ onCreated, prefill }) {
                 <div style={{ display: "flex", gap: 14, fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.14em", color: "#9a9284", flexWrap: "wrap" }}>
                   <span>⏱ {duration}S</span>
                   <span>▦ {ASPECT[orientation]}</span>
-                  <span>{captions ? "CC ON" : "♪ SCORED"}</span>
+                  <span>{captions
+                    ? (captionLang === "en" && voiceLang === "en" ? "CC ON"
+                      : voiceLang === captionLang ? `CC ${captionLang.toUpperCase()}`
+                      : `🔊${voiceLang.toUpperCase()} CC ${captionLang.toUpperCase()}`)
+                    : "♪ SCORED"}</span>
                   <span style={{ color: activeLore ? activeLore.accent : "#9a9284" }}>{activeLore ? activeLore.name.toUpperCase() : "AUTO LOOK"}</span>
                   {/* The brand rides a dot, not the label's own color: a dark pick
                       would make a colored label unreadable on this dark head, and a
@@ -355,19 +389,64 @@ export default function CreateScreen({ onCreated, prefill }) {
               ))}
             </div>
           </div>
-          <div className="card" style={{ padding: "20px 22px 20px 27px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
             <span className="spine" style={{ "--spine": "#ffb03a" }} />
-            <div>
-              <div className="label-mono" style={{ marginBottom: 4 }}>CAPTIONS</div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)" }}>{captions ? "BURNED IN — SMALL, BOTTOM" : "OFF — .SRT EXPORTED"}</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <div>
+                <div className="label-mono" style={{ marginBottom: 4 }}>CAPTIONS &amp; LANGUAGE</div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)" }}>
+                  {!captions ? "OFF — SUBTITLE FILES STILL EXPORTED" : (() => {
+                    const lbl = (c) => ((CAPTION_LANGS.find((l) => l.code === c) || {}).label || c).toUpperCase();
+                    if (captionLang === "en" && voiceLang === "en") return "BURNED IN — ENGLISH";
+                    if (captionLang === voiceLang) return `${lbl(captionLang)} — VOICE + SUBS LOCALIZED`;
+                    return `${lbl(voiceLang)} VOICE · ${lbl(captionLang)} SUBS`;
+                  })()}
+                </div>
+              </div>
+              <button
+                type="button" role="switch" aria-checked={captions} aria-label="Toggle burned-in captions"
+                onClick={() => setCaptions((v) => !v)}
+                style={{ position: "relative", flexShrink: 0, width: 44, height: 24, borderRadius: 999, cursor: "pointer", transition: "background .3s, border-color .3s", background: captions ? "var(--color-am)" : "var(--color-paper-2)", border: `1px solid ${captions ? "var(--color-am)" : "rgba(23,19,14,.25)"}` }}
+              >
+                <span style={{ position: "absolute", top: 2, left: 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(23,19,14,.3)", transition: "transform .3s", transform: captions ? "translateX(20px)" : "translateX(0)" }} />
+              </button>
             </div>
-            <button
-              type="button" role="switch" aria-checked={captions} aria-label="Toggle burned-in captions"
-              onClick={() => setCaptions((v) => !v)}
-              style={{ position: "relative", flexShrink: 0, width: 44, height: 24, borderRadius: 999, cursor: "pointer", transition: "background .3s, border-color .3s", background: captions ? "var(--color-am)" : "var(--color-paper-2)", border: `1px solid ${captions ? "var(--color-am)" : "rgba(23,19,14,.25)"}` }}
-            >
-              <span style={{ position: "absolute", top: 2, left: 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(23,19,14,.3)", transition: "transform .3s", transform: captions ? "translateX(20px)" : "translateX(0)" }} />
-            </button>
+            {captions && (
+              <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 14 }}>
+                <label style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+                  <span className="label-mono">🔊 VOICEOVER LANGUAGE</span>
+                  <select
+                    value={voiceLang}
+                    onChange={(e) => setVoiceLang(e.target.value)}
+                    aria-label="Voiceover language"
+                    style={{ width: "100%", boxSizing: "border-box", fontFamily: "var(--font-mono)", fontSize: 12, letterSpacing: "0.03em", padding: "9px 11px", borderRadius: 8, background: "var(--color-paper-2)", border: "1px solid rgba(23,19,14,.25)", color: "var(--color-ink)", cursor: "pointer" }}
+                  >
+                    {CAPTION_LANGS.map((l) => (
+                      <option key={l.code} value={l.code}>{l.label}{l.code === "en" ? " — source" : ""}</option>
+                    ))}
+                  </select>
+                </label>
+                <label style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+                  <span className="label-mono">CC CAPTION LANGUAGE</span>
+                  <select
+                    value={captionLang}
+                    onChange={(e) => setCaptionLang(e.target.value)}
+                    aria-label="Caption language"
+                    style={{ width: "100%", boxSizing: "border-box", fontFamily: "var(--font-mono)", fontSize: 12, letterSpacing: "0.03em", padding: "9px 11px", borderRadius: 8, background: "var(--color-paper-2)", border: "1px solid rgba(23,19,14,.25)", color: "var(--color-ink)", cursor: "pointer" }}
+                  >
+                    {CAPTION_LANGS.map((l) => (
+                      <option key={l.code} value={l.code}>{l.label}{l.code === "en" ? " — source" : ""}</option>
+                    ))}
+                  </select>
+                </label>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 8.5, lineHeight: 1.5, letterSpacing: "0.06em", color: "var(--color-dim)" }}>
+                  {voiceLang === captionLang && voiceLang !== "en" ? "FULL LOCALIZATION — VOICE & SUBTITLES BOTH LOCALIZED."
+                    : voiceLang !== "en" && captionLang !== voiceLang ? "DUBBED — VOICE & SUBTITLES IN DIFFERENT LANGUAGES."
+                    : captionLang !== "en" ? "TRANSLATED SUBTITLES — VOICE STAYS ENGLISH."
+                    : "ENGLISH VOICE & SUBTITLES."}
+                </div>
+              </div>
+            )}
           </div>
           <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
             <span className="spine" style={{ "--spine": "#b9f24a" }} />
@@ -583,14 +662,44 @@ function BrandSwatch({ label, hint, colors = [], active, loading = false, glyph 
 // A hex stop: the native color well, with its value in mono beside it so the pick
 // stays a color you can read back and match against a brand book — not just a
 // well you clicked once.
+// A brand accent stop: the native color well AND a typed hex box, kept in sync.
+// The well always holds a committed #rrggbb; the text box lets people paste/type a
+// hex directly (with or without "#", 3- or 6-digit) — it only commits once the
+// input normalizes to a valid 6-digit hex, so a half-typed value never breaks the
+// palette. An outside change (well, preset) refreshes the box via the effect; blur
+// snaps a junk/partial entry back to the last good value.
 function HexStop({ label, value, onChange }) {
+  const [text, setText] = useState(value);
+  useEffect(() => { setText(value); }, [value]);
+
+  // Whether the current text box holds a hex we could commit (3- or 6-digit, "#"
+  // optional). An empty box is not "invalid" — it's just nothing typed yet — so the
+  // red outline only fires on a non-empty entry that isn't a valid hex.
+  const norm = text.trim().replace(/^#/, "").toLowerCase();
+  const hexOk = /^[0-9a-f]{6}$/.test(norm) || /^[0-9a-f]{3}$/.test(norm);
+  const invalid = text.trim() !== "" && !hexOk;
+
+  const commit = (raw) => {
+    setText(raw);
+    const h = raw.trim().replace(/^#/, "").toLowerCase();
+    if (/^[0-9a-f]{6}$/.test(h)) onChange(`#${h}`);
+    else if (/^[0-9a-f]{3}$/.test(h)) onChange(`#${h.split("").map((c) => c + c).join("")}`);
+  };
+
   return (
-    <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-      <input type="color" value={value} onChange={(e) => onChange(e.target.value)} aria-label={`${label} brand color`}
+    <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <input type="color" value={value} onChange={(e) => onChange(e.target.value)} aria-label={`${label} brand color picker`}
         style={{ width: 28, height: 28, padding: 0, borderRadius: 8, border: "1px solid rgba(23,19,14,.2)", background: "none", cursor: "pointer" }} />
-      <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <span style={{ display: "flex", flexDirection: "column", gap: 3 }}>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.14em", color: "var(--color-dim)" }}>{label}</span>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--color-ink)" }}>{value.toUpperCase()}</span>
+        <input type="text" value={text} onChange={(e) => commit(e.target.value)} onBlur={() => setText(value)}
+          spellCheck={false} autoCapitalize="off" autoCorrect="off" maxLength={7}
+          aria-label={`${label} brand color hex`} aria-invalid={invalid} placeholder="#RRGGBB"
+          style={{ width: 74, boxSizing: "border-box", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.03em",
+            padding: "3px 6px", borderRadius: 6,
+            border: `1px solid ${invalid ? "var(--color-rec)" : "rgba(23,19,14,.2)"}`,
+            outline: invalid ? "1px solid var(--color-rec)" : "none",
+            background: "var(--color-paper-2)", color: "var(--color-ink)", textTransform: "uppercase" }} />
       </span>
     </label>
   );
