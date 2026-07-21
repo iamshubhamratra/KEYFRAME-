@@ -372,7 +372,7 @@ function finalizeQuality(plan, { voScenes = [], measuredCues = [], voClips = [] 
 // Fail-open: any failure leaves English text. Returns null when target === source.
 //   report: { videoTextLanguage, videoTextLanguageName, translatedElements, elementCount,
 //             localizationCoverage, fontCompatibility, degraded, notes[] }
-async function localizeStoryboardText({ storyboard, videoTextLanguage, videoTextLanguageName, textStyle, brief, job, script, tracker, signal } = {}) {
+async function localizeStoryboardText({ storyboard, videoTextLanguage, videoTextLanguageName, textStyle, extraStrings = null, brief, job, script, tracker, signal } = {}) {
   const vtl = videoTextLanguage;
   const sb = storyboard;
   if (!vtl || vtl === SOURCE || !sb || !Array.isArray(sb.scenes)) return null;
@@ -387,6 +387,11 @@ async function localizeStoryboardText({ storyboard, videoTextLanguage, videoText
     (Array.isArray(sc.bullets) ? sc.bullets : []).forEach((b, j) => push(`s${i}.bl.${j}`, b));
     (Array.isArray(sc.onScreenText) ? sc.onScreenText : []).forEach((t, j) => push(`s${i}.ost.${j}`, t));
   });
+  // Fold the chosen composer's FIXED strings (KICK kickers, fallback CTAs) into the SAME
+  // batch under `str.<key>` ids — no extra LLM call. Verified translations become a
+  // localizedStrings map the composer overlays on its English defaults.
+  const extraKeys = extraStrings && typeof extraStrings === "object" ? Object.keys(extraStrings) : [];
+  for (const k of extraKeys) push(`str.${k}`, extraStrings[k]);
 
   const meta = captionLang.langMeta(vtl);
   const needsFont = !!(meta && meta.font);
@@ -399,6 +404,7 @@ async function localizeStoryboardText({ storyboard, videoTextLanguage, videoText
 
   const sk = needsFont ? meta.font : null;
   let verified = 0;
+  const localizedStrings = {}; // verified composer-string translations (English fallback otherwise)
   if (res && res.byId) {
     const byId = res.byId;
     const apply = (key, orig) => {
@@ -417,6 +423,12 @@ async function localizeStoryboardText({ storyboard, videoTextLanguage, videoText
       if (Array.isArray(sc.bullets)) sc.bullets = sc.bullets.map((b, j) => apply(`s${i}.bl.${j}`, b));
       if (Array.isArray(sc.onScreenText)) sc.onScreenText = sc.onScreenText.map((t, j) => apply(`s${i}.ost.${j}`, t));
     });
+    // Composer fixed strings — keep only VERIFIED translations so unverified keys fall
+    // back to the composer's English defaults.
+    for (const k of extraKeys) {
+      const t = byId[`str.${k}`];
+      if (t != null && didTranslate(extraStrings[k], t, sk)) { localizedStrings[k] = t; verified++; }
+    }
   }
 
   const total = lines.length;
@@ -424,7 +436,7 @@ async function localizeStoryboardText({ storyboard, videoTextLanguage, videoText
   const notes = [];
   if (!res || !res.ok) notes.push(`On-screen text fell back to English — translation to ${base.videoTextLanguageName} failed.`);
   else if (coverage < 60) notes.push(`On-screen localization is partial (${coverage}%); some titles may remain English.`);
-  return { ...base, translatedElements: verified, elementCount: total, localizationCoverage: coverage, degraded: notes.length > 0, notes };
+  return { ...base, translatedElements: verified, elementCount: total, localizationCoverage: coverage, degraded: notes.length > 0, notes, localizedStrings };
 }
 
 module.exports = {

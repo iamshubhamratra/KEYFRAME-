@@ -71,14 +71,14 @@ function bullets(scene, n) {
   return list.slice(0, n).map((s) => String(s));
 }
 
-function pickStats(scene, max) {
+function pickStats(scene, max, S) {
   const out = [];
   for (const l of (Array.isArray(scene.onScreenText) ? scene.onScreenText : [])) {
     const m = /([$₹€£]?)\s?(\d[\d,]*(?:\.\d+)?)\s?(%|x|\+|k|m)?/i.exec(String(l));
-    if (m) out.push({ pre: m[1] || "", target: Math.round(parseFloat(m[2].replace(/,/g, ""))), suf: (m[3] || ""), label: String(l).replace(m[0], "").trim().slice(0, 24) || "metric" });
+    if (m) out.push({ pre: m[1] || "", target: Math.round(parseFloat(m[2].replace(/,/g, ""))), suf: (m[3] || ""), label: String(l).replace(m[0], "").trim().slice(0, 24) || S.metric });
     if (out.length >= max) break;
   }
-  if (!out.length) { const n = pickNumber(scene); if (n) out.push({ ...n, label: String(scene.subtext || scene.headline || "metric").slice(0, 24) }); }
+  if (!out.length) { const n = pickNumber(scene); if (n) out.push({ ...n, label: String(scene.subtext || scene.headline || S.metric).slice(0, 24) }); }
   return out.slice(0, max);
 }
 
@@ -126,15 +126,30 @@ function riotArchetype(scene, i, total) {
   return "figure";
 }
 
-const KICK = { title: "AI motion press", recipe: "the recipe — three moves", stats: "the catalogue", manifesto: "the manifesto", figure: "quality control", plate: "the proof — page one", cta: "print your first film" };
+const STRINGS = {
+  // scene kickers (formerly KICK — key names preserved so `KICK.xxx` -> `S.xxx`)
+  title: "AI motion press", recipe: "the recipe — three moves", stats: "the catalogue", manifesto: "the manifesto", figure: "quality control", plate: "the proof — page one", cta: "print your first film",
+  // inline copy fallbacks folded in from the per-scene builders
+  titleSub: "Type a sentence — get a poster-grade film.",
+  statsBody: "Every one art-directed. Every one yours.",
+  manifestoEmph: "Just words.",
+  plateTag: "the proof",
+  ctaButton: "Start free",
+  ctaUrl: "PRINT YOUR FIRST FILM",
+  metric: "metric",
+  statLabel: "styles",
+  plateAlt: "screenshot",
+  recipeSteps: ["Write", "Direct", "Render"],
+  manifestoLines: ["No crew.", "No timeline.", "No render farm."],
+};
 
 // ---- scene-type builders  ((scene, ctx, asset) -> { html, s }) ----------------
 function open(id, ctx) { return `<div class="clip riot-scene" id="${id}" data-start="${ctx.T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">`; }
 
 function riotTitle(scene, ctx) {
   const { id, T, theme } = ctx;
-  const kick = esc(scene.kicker || KICK.title).toUpperCase();
-  const sub = esc(scene.subtext || "Type a sentence — get a poster-grade film.");
+  const kick = esc(scene.kicker || ctx.S.title).toUpperCase();
+  const sub = esc(scene.subtext || ctx.S.titleSub);
   const curtain = ctx.i === 0
     ? `<div class="bar" id="${id}-cur1" style="left:0;background:${theme.red};"></div><div class="bar" id="${id}-cur2" style="left:33%;background:${theme.blue};"></div><div class="bar" id="${id}-cur3" style="left:66%;width:34.2%;background:${theme.yellow};"></div>`
     : "";
@@ -167,7 +182,7 @@ function riotTitle(scene, ctx) {
 function riotRecipe(scene, ctx) {
   const { id, T, theme } = ctx;
   let items = bullets(scene, 3);
-  if (items.length < 2) items = ["Write", "Direct", "Render"];
+  if (items.length < 2) items = ctx.S.recipeSteps;
   const shapeFor = (i) => i % 3 === 0
     ? `<div style="width:11cqw;height:11cqw;border-radius:50%;background:${theme.yellow};border:0.24cqw solid ${theme.ink};box-shadow:0.5cqw 0.5cqw 0 ${theme.ink};"></div>`
     : i % 3 === 1
@@ -183,7 +198,7 @@ function riotRecipe(scene, ctx) {
   });
   const row = cells.slice(1).reduce((acc, c) => acc + arrow() + c, cells[0]);
   const html = `${open(id, ctx)}<div class="safe">
-    <span class="kicker" id="${id}-kick" style="opacity:0;"><span class="sq" style="background:${theme.blue};"></span>${esc(scene.kicker || KICK.recipe).toUpperCase()}</span>
+    <span class="kicker" id="${id}-kick" style="opacity:0;"><span class="sq" style="background:${theme.blue};"></span>${esc(scene.kicker || ctx.S.recipe).toUpperCase()}</span>
     <h1 class="h1" id="${id}-head" style="margin-top:1.6cqw;">${words(scene)}</h1>
     <div style="display:flex;gap:5cqw;margin-top:3cqw;align-items:flex-start;justify-content:center;">${row}</div>
   </div></div>`;
@@ -203,20 +218,20 @@ function riotRecipe(scene, ctx) {
 
 function riotStats(scene, ctx) {
   const { id, T, theme } = ctx;
-  const stats = pickStats(scene, 4);
-  if (!stats.length) stats.push({ pre: "", target: 40, suf: "", label: "styles" });
+  const stats = pickStats(scene, 4, ctx.S);
+  if (!stats.length) stats.push({ pre: "", target: 40, suf: "", label: ctx.S.statLabel });
   const lead = stats[0];
   const stampCols = [theme.yellow, theme.cream, theme.red, theme.blue, theme.cream, theme.yellow];
   const stampInk = [theme.ink, theme.ink, theme.cream, theme.cream, theme.ink, theme.ink];
   const chips = stats.slice(0, 6).map((st, i) => `<span class="stamp ${id}-stamp" style="background:${stampCols[i % 6]};color:${stampInk[i % 6]};opacity:0;margin-left:${[0, 6, 1.6, 8, 3.4, 9.6][i % 6]}cqw;">${esc(st.label || (st.pre + st.target + st.suf))}</span>`).join("");
   const html = `${open(id, ctx)}
     <div id="${id}-panel" style="position:absolute;left:0;top:0;bottom:0;width:44%;background:${theme.ink};display:flex;flex-direction:column;justify-content:center;padding:0 5cqw;">
-      <div style="font-family:${theme.monoStack};font-weight:700;font-size:1.3cqw;letter-spacing:0.4em;color:${theme.yellow};text-transform:uppercase;">${esc(scene.kicker || KICK.stats).toUpperCase()}</div>
+      <div style="font-family:${theme.monoStack};font-weight:700;font-size:1.3cqw;letter-spacing:0.4em;color:${theme.yellow};text-transform:uppercase;">${esc(scene.kicker || ctx.S.stats).toUpperCase()}</div>
       <div style="display:flex;align-items:baseline;gap:1cqw;margin-top:1cqw;">
         <div id="${id}-count" style="font-family:${theme.displayStack};font-size:11cqw;line-height:1;color:${theme.yellow};">${esc(lead.pre)}0</div>
         <div style="font-family:${theme.displayStack};font-size:3cqw;color:${theme.cream};">${esc(lead.suf || (lead.label || "").split(" ")[0] || "")}</div>
       </div>
-      <div class="body" style="color:#B9B4A6;margin-top:1.4cqw;font-size:1.7cqw;">${esc(scene.subtext || scene.headline || "Every one art-directed. Every one yours.")}</div>
+      <div class="body" style="color:#B9B4A6;margin-top:1.4cqw;font-size:1.7cqw;">${esc(scene.subtext || scene.headline || ctx.S.statsBody)}</div>
     </div>
     <div style="position:absolute;left:48%;right:5%;top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;gap:1.7cqw;align-items:flex-start;">${chips}</div>
   </div>`;
@@ -233,8 +248,8 @@ function riotStats(scene, ctx) {
 function riotManifesto(scene, ctx) {
   const { id, T, theme } = ctx;
   let lines = bullets(scene, 3);
-  if (lines.length < 2) lines = ["No crew.", "No timeline.", "No render farm."];
-  const emph = String(scene.emphasis || scene.headline || "Just words.").slice(0, 22);
+  if (lines.length < 2) lines = ctx.S.manifestoLines;
+  const emph = String(scene.emphasis || scene.headline || ctx.S.manifestoEmph).slice(0, 22);
   const xmk = () => `<svg class="xmark ${id}-x" viewBox="0 0 100 100"><path class="draw" pathLength="100" d="M12 12 L88 88" stroke="${theme.red}" stroke-width="16" stroke-linecap="round"/><path class="draw" pathLength="100" d="M88 12 L12 88" stroke="${theme.red}" stroke-width="16" stroke-linecap="round"/></svg>`;
   const rows = lines.map((t, i) => `<div style="position:relative;${i ? "margin-top:0.7cqw;" : ""}"><h1 class="display ${id}-line" style="font-size:5.4cqw;opacity:0;">${esc(String(t).toUpperCase())}</h1>${xmk()}</div>`).join("");
   const html = `${open(id, ctx)}<div class="safe" style="align-items:flex-start;text-align:left;padding-left:14%;">
@@ -267,7 +282,7 @@ function riotFigure(scene, ctx) {
       <path id="${id}-lid" class="draw" pathLength="100" d="M10 90 Q140 -30 270 90 Q140 210 10 90 Z" fill="none" stroke="${theme.ink}" stroke-width="9" stroke-linejoin="round"/>
       <g id="${id}-iris" opacity="0"><circle cx="140" cy="90" r="46" fill="${theme.yellow}" stroke="${theme.ink}" stroke-width="8"/><circle id="${id}-pupil" cx="140" cy="90" r="18" fill="${theme.ink}"/></g></svg>
     <div style="max-width:44cqw;">
-      <span class="kicker" id="${id}-kick" style="opacity:0;"><span class="sq" style="background:${theme.yellow};"></span>${esc(scene.kicker || KICK.figure).toUpperCase()}</span>
+      <span class="kicker" id="${id}-kick" style="opacity:0;"><span class="sq" style="background:${theme.yellow};"></span>${esc(scene.kicker || ctx.S.figure).toUpperCase()}</span>
       <h1 class="h1" id="${id}-head" style="margin-top:1.4cqw;font-size:4.2cqw;">${words(scene)}</h1>
       ${scene.subtext ? `<div class="body" id="${id}-sub" style="opacity:0;margin-top:1.3cqw;">${esc(scene.subtext)}</div>` : ""}
       ${feat.html}
@@ -295,19 +310,19 @@ function riotPlate(scene, ctx, asset) {
   const portrait = ratio && ratio < 0.9;
   const cardW = portrait ? "26cqw" : "44cqw";
   const winH = portrait ? "34cqw" : "24cqw";
-  const tag = esc(String(scene.emphasis || "the proof").toLowerCase()).slice(0, 18);
+  const tag = esc(String(scene.emphasis || ctx.S.plateTag).toLowerCase()).slice(0, 18);
   const feat = featList(id, scene, theme);
   const bobP = Math.max(1, Math.floor((ctx.L - 1.6) / 1.6));
   const html = `${open(id, ctx)}<div class="safe" style="flex-direction:row;gap:5cqw;text-align:left;align-items:center;">
     <div class="riot-plate" id="${id}-pw" style="opacity:0;position:relative;width:${cardW};flex:0 0 auto;">
       <div style="position:absolute;left:1.4cqw;top:1.4cqw;width:100%;height:100%;background:${theme.yellow};border:0.22cqw solid ${theme.ink};"></div>
       <div class="riot-frame" style="position:relative;">
-        <div class="riot-win" style="height:${winH};"><img src="${esc(asset.path)}" alt="${esc(asset.alt || "screenshot")}"></div>
+        <div class="riot-win" style="height:${winH};"><img src="${esc(asset.path)}" alt="${esc(asset.alt || ctx.S.plateAlt)}"></div>
       </div>
       <span class="stamp" id="${id}-tag" style="position:absolute;right:-1.4cqw;bottom:-1.6cqw;background:${theme.red};color:${theme.cream};opacity:0;">${tag}</span>
     </div>
     <div style="max-width:40cqw;">
-      <span class="kicker" id="${id}-kick" style="opacity:0;"><span class="sq"></span>${esc(scene.kicker || KICK.plate).toUpperCase()}</span>
+      <span class="kicker" id="${id}-kick" style="opacity:0;"><span class="sq"></span>${esc(scene.kicker || ctx.S.plate).toUpperCase()}</span>
       <h1 class="h1" id="${id}-head" style="margin-top:1.2cqw;font-size:4cqw;">${words(scene)}</h1>
       ${scene.subtext ? `<div class="body" id="${id}-sub" style="opacity:0;margin-top:1.1cqw;">${esc(scene.subtext)}</div>` : ""}
       ${feat.html}
@@ -329,8 +344,8 @@ function riotPlate(scene, ctx, asset) {
 function riotCta(scene, ctx) {
   const { id, T, theme } = ctx;
   const mark = esc(String(scene.headline || scene.title || "KEYFRAME"));
-  const cta = esc(String(scene.emphasis || "Start free").slice(0, 22));
-  const url = esc(String(scene.subtext || "PRINT YOUR FIRST FILM").toUpperCase()).slice(0, 44);
+  const cta = esc(String(scene.emphasis || ctx.S.ctaButton).slice(0, 22));
+  const url = esc(String(scene.subtext || ctx.S.ctaUrl).toUpperCase()).slice(0, 44);
   const html = `${open(id, ctx)}<div class="safe">
     <h1 class="display" id="${id}-mark" style="font-size:6cqw;opacity:0;">${mark}</h1>
     <div style="position:relative;margin-top:2.4cqw;display:inline-block;">
@@ -435,8 +450,9 @@ function styleBlock(theme) {
 // byte-for-byte. resolvedBrand is null on the return so the honesty gate
 // (graph.persistWornBrand) shows the Brand panel nothing, never a colour the film
 // will not wear.
-function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin = null } = {}) {
+function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin = null, localized = null } = {}) {
   const theme = riotTheme();
+  const S = localized ? { ...STRINGS, ...localized } : STRINGS;
   const sb = storyboard || {};
   const W = (dims && dims.width) || 1920, H = (dims && dims.height) || 1080;
   const scenes = Array.isArray(sb.scenes) && sb.scenes.length ? sb.scenes.slice(0, 12) : [{ id: "s1", start: 0, duration: 4, kind: "hook", headline: sb.title || "KEYFRAME" }];
@@ -459,7 +475,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     const ends = arch === "title" || arch === "cta";
     if (!ends && byScene.has(sid)) { arch = "plate"; asset = byScene.get(sid); }
     else if (arch === "figure" && pooli < pool.length) { arch = "plate"; asset = pool[pooli++]; }
-    const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), i, isLast: i === scenes.length - 1, track: 2 + i, dims: { width: W, height: H }, theme };
+    const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), i, isLast: i === scenes.length - 1, track: 2 + i, dims: { width: W, height: H }, theme, S };
     const built = (BUILDERS[arch] || riotFigure)(scene, ctx, asset);
     bodyParts.push(built.html);
     sceneStarts.push(T);
@@ -522,4 +538,4 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   return { indexHtml, metaJson, resolvedBrand: null };
 }
 
-module.exports = { buildComposition };
+module.exports = { buildComposition, STRINGS };

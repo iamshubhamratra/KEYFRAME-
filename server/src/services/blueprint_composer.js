@@ -197,14 +197,34 @@ function bpArchetype(scene, i, total) {
   return "figure";
 }
 
+// ---- localizable strings -----------------------------------------------------
+// Every fixed, user-visible English fallback the composer emits when a storyboard
+// scene omits its own copy. Consolidated here so a caller can pass `localized`
+// overrides to buildComposition; with no overrides the exact literals below are
+// used, keeping output byte-identical. "KEYFRAME" (the product mark) is NOT here —
+// it is a brand name, left literal at every site.
+const STRINGS = {
+  titleHeadline: "Draw up a film.",
+  titleSub: "Everything below this line is drafted, checked and rendered by machines.",
+  titleSpec: "SPEC 001",
+  figureCallout: "SPEC",
+  plotHeadline: "measured output",
+  flowchartSteps: ["Script", "Direct", "Render"],
+  revisionsStamp: "Just words.",
+  revisionsLines: ["Hire a crew", "Book a studio", "Edit for weeks"],
+  ctaTag: "Draft a film from a single sentence.",
+  ctaButton: "Open a new sheet",
+  plateCallout: "PLATE",
+};
+
 // ---- scene-type builders  ((scene, ctx) -> { html, s })  ---------------------
-// ctx = { id, T, L, E, isLast, dims, theme, fig, sheetNo }
+// ctx = { id, T, L, E, isLast, dims, theme, fig, sheetNo, S }
 
 function bpTitle(scene, ctx) {
   const { id, T, theme, fig } = ctx;
-  const head = String(scene.headline || scene.title || "Draw up a film.").toUpperCase();
-  const sub = esc(scene.subtext || "Everything below this line is drafted, checked and rendered by machines.");
-  const dimText = esc((scene.emphasis || "SPEC 001").toUpperCase());
+  const head = String(scene.headline || scene.title || ctx.S.titleHeadline).toUpperCase();
+  const sub = esc(scene.subtext || ctx.S.titleSub);
+  const dimText = esc((scene.emphasis || ctx.S.titleSpec).toUpperCase());
   const html = `<div class="clip bp-scene" id="${id}" data-start="${T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">
   <div class="safe" style="align-items:flex-start;text-align:left;padding-left:12%;">
     <div class="label" id="${id}-lab" style="opacity:0;">${esc(fig)}</div>
@@ -244,7 +264,7 @@ function bpTitle(scene, ctx) {
 
 function bpFigure(scene, ctx) {
   const { id, T, theme, fig } = ctx;
-  const callout = esc((scene.emphasis || "SPEC").toUpperCase());
+  const callout = esc((scene.emphasis || ctx.S.figureCallout).toUpperCase());
   const html = `<div class="clip bp-scene" id="${id}" data-start="${T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">
   <div class="safe" style="flex-direction:row;gap:6cqw;text-align:left;">
     <svg id="${id}-fig" width="620" height="520" viewBox="0 0 620 520" style="width:34cqw;flex:0 0 auto;overflow:visible;">
@@ -300,7 +320,7 @@ function bpFigure(scene, ctx) {
 function bpFlowchart(scene, ctx) {
   const { id, T, theme, fig } = ctx;
   let items = bullets(scene, 3);
-  if (items.length < 2) items = ["Script", "Direct", "Render"];
+  if (items.length < 2) items = ctx.S.flowchartSteps;
   const boxes = items.map((t, i) => {
     const parts = String(t).split(/[:—-]\s?/);
     const bt = (parts[0] || t).trim().slice(0, 22);
@@ -339,7 +359,7 @@ function bpPlot(scene, ctx) {
   const { id, T, theme, fig } = ctx;
   const n = pickNumber(scene) || { pre: "", target: 97, suf: "" };
   const bigTxt = `${n.pre}0${n.suf}`;
-  const head = String(scene.headline || "measured output").toUpperCase();
+  const head = String(scene.headline || ctx.S.plotHeadline).toUpperCase();
   const html = `<div class="clip bp-scene" id="${id}" data-start="${T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">
   <div class="safe" style="flex-direction:row;gap:6cqw;text-align:left;">
     <svg id="${id}-plot" width="740" height="480" viewBox="0 0 740 480" style="width:36cqw;flex:0 0 auto;overflow:visible;">
@@ -383,8 +403,8 @@ function bpPlot(scene, ctx) {
 function bpRevisions(scene, ctx) {
   const { id, T, theme, fig } = ctx;
   let lines = bullets(scene, 3);
-  if (lines.length < 2) lines = ["Hire a crew", "Book a studio", "Edit for weeks"];
-  const stamp = String(scene.emphasis || "Just words.").slice(0, 20);
+  if (lines.length < 2) lines = ctx.S.revisionsLines;
+  const stamp = String(scene.emphasis || ctx.S.revisionsStamp).slice(0, 20);
   const rowHtml = lines.map((t, i) => `<div style="position:relative;margin-top:${i ? "0.9cqw" : "1.8cqw"};">
       <div class="display ${id}-line" style="font-size:3.6cqw;opacity:0;color:${theme.faint};">${esc(String(t).toUpperCase())}</div>
       <svg viewBox="0 0 400 24" preserveAspectRatio="none" style="position:absolute;left:-1%;top:50%;width:102%;height:1.6cqw;margin-top:-0.8cqw;overflow:visible;">
@@ -417,8 +437,8 @@ function bpRevisions(scene, ctx) {
 function bpCta(scene, ctx) {
   const { id, T, theme } = ctx;
   const mark = String(scene.headline || scene.title || "KEYFRAME").toUpperCase();
-  const tag = esc(scene.subtext || "Draft a film from a single sentence.");
-  const cta = esc(String(scene.emphasis || "Open a new sheet").slice(0, 26));
+  const tag = esc(scene.subtext || ctx.S.ctaTag);
+  const cta = esc(String(scene.emphasis || ctx.S.ctaButton).slice(0, 26));
   const html = `<div class="clip bp-scene" id="${id}" data-start="${T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">
   <div class="safe">
     <div style="position:relative;">
@@ -468,7 +488,7 @@ function bpPlate(scene, ctx, asset) {
   const portrait = ratio && ratio < 0.9;
   const plateW = portrait ? "24cqw" : "42cqw";
   const winH = portrait ? "34cqw" : "24cqw";
-  const callout = esc(String(scene.emphasis || "PLATE").toUpperCase()).slice(0, 18);
+  const callout = esc(String(scene.emphasis || ctx.S.plateCallout).toUpperCase()).slice(0, 18);
   const objPos = "top center";
   const rev = Math.max(1.0, ctx.L - 2.0);
   // Scan-bar travel in px (transform x, not `left` — lint wants sub-pixel transforms):
@@ -623,8 +643,12 @@ function styleBlock(theme) {
 }
 
 // ---- MAIN --------------------------------------------------------------------
-function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin = null } = {}) {
+function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin = null, localized = null } = {}) {
   const theme = blueprintTheme(brandSkin);
+  // Localizable copy: caller may override any STRINGS key; with no override the
+  // module defaults are used verbatim, so output is byte-identical. No module-level
+  // mutable state — S is a per-call value threaded through ctx (concurrency-safe).
+  const S = localized ? { ...STRINGS, ...localized } : STRINGS;
   const sb = storyboard || {};
   const W = (dims && dims.width) || 1920, H = (dims && dims.height) || 1080;
   let scenes = Array.isArray(sb.scenes) && sb.scenes.length
@@ -669,7 +693,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     else if (arch === "figure" && pooli < pool.length) { arch = "plate"; asset = pool[pooli++]; }
     const figBase = FIG_LABEL[arch] || "";
     const fig = (arch === "figure" || arch === "plate") ? `Fig. ${i} — ${String(scene.purpose || (arch === "plate" ? "captured" : "the figure"))}` : figBase;
-    const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), isLast: i === scenes.length - 1, track: 2 + i, dims: { width: W, height: H }, theme, fig, sheetNo: i + 1 };
+    const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), isLast: i === scenes.length - 1, track: 2 + i, dims: { width: W, height: H }, theme, fig, sheetNo: i + 1, S };
     const built = (BUILDERS[arch] || bpFigure)(scene, ctx, asset);
     bodyParts.push(built.html);
     sceneStarts.push(T);
@@ -750,4 +774,4 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   return { indexHtml, metaJson, resolvedBrand: theme.resolvedBrand };
 }
 
-module.exports = { buildComposition };
+module.exports = { buildComposition, STRINGS };

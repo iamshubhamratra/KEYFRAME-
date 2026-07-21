@@ -226,14 +226,14 @@ function underline(id, theme, atExpr) {
 }
 
 // Up to `max` {target,suf,label} stat pairs for the ring scene.
-function pickStats(scene, max) {
+function pickStats(scene, max, S = STRINGS) {
   const out = [];
   for (const l of (Array.isArray(scene.onScreenText) ? scene.onScreenText : [])) {
     const m = /([$₹€£]?)\s?(\d[\d,]*(?:\.\d+)?)\s?(%|x|\+|k|m|p)?/i.exec(String(l));
-    if (m) out.push({ pre: m[1] || "", target: Math.round(parseFloat(m[2].replace(/,/g, ""))), suf: (m[3] || ""), label: String(l).replace(m[0], "").trim().slice(0, 26) || "metric" });
+    if (m) out.push({ pre: m[1] || "", target: Math.round(parseFloat(m[2].replace(/,/g, ""))), suf: (m[3] || ""), label: String(l).replace(m[0], "").trim().slice(0, 26) || S.statLabel });
     if (out.length >= max) break;
   }
-  if (!out.length) { const n = pickNumber(scene); if (n) out.push({ ...n, label: String(scene.subtext || scene.headline || "metric").slice(0, 26) }); }
+  if (!out.length) { const n = pickNumber(scene); if (n) out.push({ ...n, label: String(scene.subtext || scene.headline || S.statLabel).slice(0, 26) }); }
   return out.slice(0, max);
 }
 
@@ -256,15 +256,31 @@ function bloomArchetype(scene, i, total) {
   return "plant";
 }
 
-const KICK = { title: "~ a little film ~", plant: "chapter one", plate: "a page from the story", cards: "and then, all by itself…", stats: "tended with care", ribbons: "no fuss", cta: "the beginning" };
+// Every user-visible English literal the composer can fall back to, in ONE place so a
+// localized run can override them. `localized` is merged over these per call (see
+// buildComposition); the 7 scene-type kickers keep their original KICK key names.
+const STRINGS = {
+  // per-scene kickers (formerly KICK)
+  title: "~ a little film ~", plant: "chapter one", plate: "a page from the story", cards: "and then, all by itself…", stats: "tended with care", ribbons: "no fuss", cta: "the beginning",
+  // inline copy fallbacks folded in from the builders
+  titleSub: "Whisper it one sentence — and watch it take root.",
+  ctaHead: "Type a sentence. Watch it grow into a film.",
+  ctaBtn: "Plant your first film",
+  plateSub: "a page",
+  plateAlt: "screenshot",
+  statLabel: "metric",
+  statsFallbackLabel: "in full bloom",
+  cardsFallback: ["Write", "Grow", "Bloom"],
+  ribbonsFallback: ["No studio.", "No stress."],
+};
 
 // ---- scene-type builders  ((scene, ctx, asset) -> { html, s }) ----------------
 function open(id, ctx) { return `<div class="clip bl-scene" id="${id}" data-start="${ctx.T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">`; }
 
 function blTitle(scene, ctx) {
   const { id, T, theme } = ctx;
-  const kick = esc(scene.kicker || KICK.title);
-  const sub = esc(scene.subtext || "Whisper it one sentence — and watch it take root.");
+  const kick = esc(scene.kicker || ctx.S.title);
+  const sub = esc(scene.subtext || ctx.S.titleSub);
   const html = `${open(id, ctx)}<div class="safe">
     <div class="script" id="${id}-kick" style="opacity:0;">${kick}</div>
     <h1 class="display" style="margin-top:1.6cqw;">${words(scene, theme.coral)}</h1>
@@ -284,7 +300,7 @@ function blTitle(scene, ctx) {
 
 function blPlant(scene, ctx) {
   const { id, T, theme } = ctx;
-  const kick = esc(scene.kicker || KICK.plant);
+  const kick = esc(scene.kicker || ctx.S.plant);
   const ul = underline(id, theme, "__AT__");
   const feat = featList(id, scene, theme, "__AT__");
   const html = `${open(id, ctx)}<div class="safe" style="flex-direction:row;gap:7cqw;text-align:left;align-items:center;">
@@ -330,8 +346,8 @@ function blPlate(scene, ctx, asset) {
   const portrait = ratio && ratio < 0.9;
   const cardW = portrait ? "25cqw" : "42cqw";
   const winH = portrait ? "34cqw" : "24cqw";
-  const kick = esc(scene.kicker || KICK.plate);
-  const tag = esc(String(scene.emphasis || "a page").toLowerCase()).slice(0, 20);
+  const kick = esc(scene.kicker || ctx.S.plate);
+  const tag = esc(String(scene.emphasis || ctx.S.plateSub).toLowerCase()).slice(0, 20);
   const ul = underline(id, theme, "__AT__");
   const feat = featList(id, scene, theme, "__AT__");
   const bobP = Math.max(1, Math.floor((ctx.L - 1.4) / 1.6));
@@ -339,7 +355,7 @@ function blPlate(scene, ctx, asset) {
     <div class="bl-plate-wrap" id="${id}-pw" style="opacity:0;position:relative;width:${cardW};flex:0 0 auto;">
       <div class="card" style="padding:1.1cqw;">
         <div class="bl-plate-win" style="height:${winH};">
-          <img src="${esc(asset.path)}" alt="${esc(asset.alt || "screenshot")}">
+          <img src="${esc(asset.path)}" alt="${esc(asset.alt || ctx.S.plateAlt)}">
         </div>
       </div>
       <span class="leaf-tag" id="${id}-tag" style="position:absolute;left:-1.2cqw;bottom:-1.4cqw;opacity:0;"><i style="background:${theme.coral};"></i>${tag}</span>
@@ -374,7 +390,7 @@ function blPlate(scene, ctx, asset) {
 function blCards(scene, ctx) {
   const { id, T, theme } = ctx;
   let items = bullets(scene, 3);
-  if (items.length < 2) items = ["Write", "Grow", "Bloom"];
+  if (items.length < 2) items = ctx.S.cardsFallback;
   const cols = [theme.coral, theme.sage, theme.sun];
   const cardHtml = items.map((t, i) => {
     const parts = String(t).split(/[:—-]\s?/);
@@ -391,7 +407,7 @@ function blCards(scene, ctx) {
     <svg id="${id}-vine" viewBox="0 0 1920 240" style="position:absolute;left:0;top:44%;width:100%;height:12.5cqw;overflow:visible;" data-layout-allow-occlusion>
       <path class="draw" id="${id}-vp" pathLength="100" d="M-20 150 C 300 40 560 210 880 120 C 1200 30 1460 200 1940 90" fill="none" stroke="${theme.sage}" stroke-width="9" stroke-linecap="round"/></svg>
     <div class="safe">
-      <div class="script" id="${id}-kick" style="opacity:0;margin-bottom:2cqw;">${esc(scene.kicker || KICK.cards)}</div>
+      <div class="script" id="${id}-kick" style="opacity:0;margin-bottom:2cqw;">${esc(scene.kicker || ctx.S.cards)}</div>
       <div style="display:flex;gap:5cqw;align-items:stretch;">${cardHtml}</div>
     </div>
     <div id="${id}-bf" style="position:absolute;left:-7cqw;top:30cqw;width:5.2cqw;opacity:0;" data-layout-allow-occlusion>
@@ -417,8 +433,8 @@ function blCards(scene, ctx) {
 
 function blStats(scene, ctx) {
   const { id, T, theme } = ctx;
-  const stats = pickStats(scene, 3);
-  if (!stats.length) stats.push({ pre: "", target: 100, suf: "%", label: "in full bloom" });
+  const stats = pickStats(scene, 3, ctx.S);
+  if (!stats.length) stats.push({ pre: "", target: 100, suf: "%", label: ctx.S.statsFallbackLabel });
   const cols = [theme.coral, theme.sage, theme.sun];
   const ringHtml = stats.map((st, i) => `<div class="card ${id}-card" style="width:17.5cqw;padding:2.2cqw;display:flex;flex-direction:column;align-items:center;opacity:0;">
       <div style="position:relative;width:7.6cqw;height:7.6cqw;">
@@ -429,7 +445,7 @@ function blStats(scene, ctx) {
       </div>
       <div class="body" style="font-size:1.3cqw;margin-top:1.1cqw;text-align:center;">${esc(st.label)}</div></div>`).join("");
   const html = `${open(id, ctx)}<div class="safe">
-    <div class="script" id="${id}-kick" style="opacity:0;">${esc(scene.kicker || KICK.stats)}</div>
+    <div class="script" id="${id}-kick" style="opacity:0;">${esc(scene.kicker || ctx.S.stats)}</div>
     <h1 class="display" id="${id}-head" style="font-size:4.2cqw;margin-top:0.6cqw;opacity:0;">${hl(scene, theme.coral)}</h1>
     <div style="display:flex;gap:4cqw;margin-top:2.6cqw;justify-content:center;">${ringHtml}</div>
   </div></div>`;
@@ -448,7 +464,7 @@ function blStats(scene, ctx) {
 function blRibbons(scene, ctx) {
   const { id, T, theme } = ctx;
   let rb = bullets(scene, 2);
-  if (rb.length < 2) rb = ["No studio.", "No stress."];
+  if (rb.length < 2) rb = ctx.S.ribbonsFallback;
   const html = `${open(id, ctx)}
     <svg id="${id}-petals" viewBox="0 0 1920 1080" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;" data-layout-allow-occlusion>
       ${[[300, -40, theme.coral2], [640, -60, theme.coral], [980, -40, theme.blush], [1320, -70, theme.coral2], [1580, -50, theme.coral], [480, -90, theme.blush]].map(([x, y, c]) => `<ellipse class="${id}-pt" cx="${x}" cy="${y}" rx="14" ry="24" fill="${c}"/>`).join("")}
@@ -474,10 +490,10 @@ function blRibbons(scene, ctx) {
 function blCta(scene, ctx) {
   const { id, T, theme } = ctx;
   const mark = String(scene.headline || scene.title || "KEYFRAME").toUpperCase().length > 14 ? esc(scene.headline || "KEYFRAME") : esc(String(scene.headline || scene.title || "KEYFRAME"));
-  const tag = esc(scene.subtext || "Type a sentence. Watch it grow into a film.");
-  const cta = esc(String(scene.emphasis || "Plant your first film").slice(0, 26));
+  const tag = esc(scene.subtext || ctx.S.ctaHead);
+  const cta = esc(String(scene.emphasis || ctx.S.ctaBtn).slice(0, 26));
   const html = `${open(id, ctx)}<div class="safe">
-    <div class="script" id="${id}-kick" style="opacity:0;">${esc(scene.kicker || KICK.cta)}</div>
+    <div class="script" id="${id}-kick" style="opacity:0;">${esc(scene.kicker || ctx.S.cta)}</div>
     <div style="display:flex;align-items:center;gap:1.6cqw;margin-top:1cqw;">
       <h1 class="display" id="${id}-mark" style="font-size:6.4cqw;opacity:0;">${mark}</h1>
       <svg id="${id}-bloom" width="120" height="120" viewBox="0 0 120 120" style="overflow:visible;opacity:0;"><g>
@@ -574,8 +590,11 @@ function styleBlock(theme) {
 }
 
 // ---- MAIN --------------------------------------------------------------------
-function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin = null } = {}) {
+function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin = null, localized } = {}) {
   const theme = bloomTheme(brandSkin);
+  // Per-call string table: authored English by default, overridden by `localized` when
+  // present. Kept local (never module-level) so concurrent renders never share it.
+  const S = localized ? { ...STRINGS, ...localized } : STRINGS;
   const sb = storyboard || {};
   const W = (dims && dims.width) || 1920, H = (dims && dims.height) || 1080;
   const scenes = Array.isArray(sb.scenes) && sb.scenes.length ? sb.scenes.slice(0, 12) : [{ id: "s1", start: 0, duration: 4, kind: "hook", headline: sb.title || "KEYFRAME" }];
@@ -605,7 +624,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     const ends = arch === "title" || arch === "cta";
     if (!ends && byScene.has(sid)) { arch = "plate"; asset = byScene.get(sid); }
     else if (arch === "plant" && pooli < pool.length) { arch = "plate"; asset = pool[pooli++]; }
-    const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), isLast: i === scenes.length - 1, track: 2 + i, dims: { width: W, height: H }, theme };
+    const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), isLast: i === scenes.length - 1, track: 2 + i, dims: { width: W, height: H }, theme, S };
     const built = (BUILDERS[arch] || blPlant)(scene, ctx, asset);
     bodyParts.push(built.html);
     sceneStarts.push(T);
@@ -677,4 +696,4 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   return { indexHtml, metaJson, resolvedBrand: theme.resolvedBrand };
 }
 
-module.exports = { buildComposition };
+module.exports = { buildComposition, STRINGS };

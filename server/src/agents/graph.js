@@ -22,7 +22,7 @@ const { generateBrief } = require("../services/brief");
 const { generateScript, normalizeScript } = require("../services/script");
 const { generateStoryboard } = require("../services/storyboard");
 const frameRegistry = require("../services/frame_registry");
-const { withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor } = require("../services/pipeline");
+const { withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor, composerStringsFor } = require("../services/pipeline");
 const { acquire, hasProviderFor, makeImageDeduper, ffprobeImage } = require("../services/asset_sources");
 const { styleFor, iconColorFor } = require("../services/pack_style");
 const { synthesizeFitted } = require("../services/vo_fit");
@@ -683,6 +683,9 @@ async function localizationDirectorAgent(s) {
     videoTextLanguage: vtl,
     videoTextLanguageName: plan.videoTextLanguageName,
     textStyle: plan.captionStyle && plan.captionStyle.text,
+    // The CHOSEN pack's fixed strings (KICK kickers, fallback CTAs) — translated in the
+    // same batch and returned as localizedStrings for the composer to overlay.
+    extraStrings: composerStringsFor(s.framePack),
     brief: s.brief, job: s.job, script: s.script, tracker: s.tracker,
   }).catch((e) => { console.warn(`[agents] localization_director failed: ${e.message}`); return null; });
   if (report) {
@@ -694,7 +697,7 @@ async function localizationDirectorAgent(s) {
     persistLocalization(s, report);
     console.log(`[agents] localization_director → ${vtl} (${report.translatedElements}/${report.elementCount} verified, coverage ${report.localizationCoverage}%)`);
   }
-  return { storyboard: s.storyboard };
+  return { storyboard: s.storyboard, localizedStrings: (report && report.localizedStrings) || null };
 }
 
 function persistLocalization(s, report) {
@@ -985,7 +988,7 @@ async function composeVisual(s) {
         jobId: job.id, durationSec: job.duration,
         label: s.qa ? "graph-repair" : "graph-main", abortSignal: signal,
         framePack: s.framePack, captionCues, remix: useComposer,
-        brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null, captionStyle,
+        brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null, captionStyle, localized: s.localizedStrings || null,
       }),
       budget, "composition agent"
     );
@@ -1030,7 +1033,7 @@ async function composeVisual(s) {
           framePack: s.framePack, captionCues, remix: false,
           dress: job.compose_mode === "premium" && !composerBudgetDead,
           subject: s.brief?.subject || null,
-          brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null, captionStyle,
+          brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null, captionStyle, localized: s.localizedStrings || null,
         });
         return { visual, usedFallback: false, finalAttempt: "scene-kit", rendered: true, composerBudgetDead, repairable: false };
       } catch (e2) {
@@ -1189,7 +1192,7 @@ async function buildGraph() {
     brief: Annotation(), script: Annotation(),
     framePack: Annotation(), storyboard: Annotation(),
     brandSkin: Annotation(), layoutPlan: Annotation(),
-    captionPlan: Annotation(), localizationPackWarning: Annotation(),
+    captionPlan: Annotation(), localizationPackWarning: Annotation(), localizedStrings: Annotation(),
     assetPlan: Annotation(), assets: Annotation(),
     voClips: Annotation(), sfxClips: Annotation(), musicPath: Annotation(), audioPlan: Annotation(),
     visual: Annotation(), usedFallback: Annotation(), finalAttempt: Annotation(), rendered: Annotation(),

@@ -35,6 +35,29 @@ function esc(s) {
 }
 const r = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
+// Fixed English literals rendered into the film (storybook copy + cover/end chrome).
+// Isolated here so a translation pass can override them per-render via
+// buildComposition({ localized }). NEVER mutate this object — renders run concurrently;
+// merge into a per-call copy (S). The brand name "KEYFRAME" is intentionally NOT here
+// (never translated). Numbers, chapter counting and the number-word `|| i` fallback stay
+// in code — only the words are translatable.
+const STRINGS = {
+  headDefault: "Once upon a time",
+  penDefault: "…and the little idea grew",
+  andMorePre: "…and ",
+  andMoreSuf: " more! ✂",
+  andCounting: "and counting",
+  coverTitle: "The Little Idea",
+  coverKicker: "a keyframe bedtime story",
+  openMe: "· OPEN ME ·",
+  theEnd: "The End",
+  endBeginning: "(or rather — the beginning)",
+  endTag: "every idea deserves a story",
+  endCta: "Write yours — free ✎",
+  chapter: "Chapter",
+  ordinals: ["one", "two", "three", "four", "five", "six", "seven", "eight"],
+};
+
 // ---- brand colour-kit — LIFTED from flagship_composer.js so a hand-tuned pastel can be
 // rotated onto the BRAND's hue while its authored LUMINANCE and SATURATION are pinned.
 // IDENTITY = LUMINANCE + MOTION + TYPOGRAPHY + LAYOUT; only HUE is the brand's to steer —
@@ -181,11 +204,11 @@ function words(scene) { return String(scene.headline || scene.title || "").trim(
 function emphWord(scene) { return String(scene.emphasis || "").trim().toLowerCase(); }
 
 // Headline with the emphasis word tinted the chapter colour (a warm storybook headline).
-function headHtml(scene, emphCol) {
+function headHtml(scene, emphCol, S = STRINGS) {
   const E = emphWord(scene);
   const w = words(scene);
   // Each word is its own span so the headline can reveal word-by-word (storybook charm).
-  if (!w.length) return `<span class="hw">Once</span> <span class="hw">upon</span> <span class="hw">a</span> <span class="hw">time</span>`;
+  if (!w.length) return String(S.headDefault).trim().split(/\s+/).filter(Boolean).map((word) => `<span class="hw">${esc(word)}</span>`).join(" ");
   return w.map((word) => {
     const bare = word.replace(/[.,!?;:]$/, "").toLowerCase();
     const style = (E && bare === E) ? ` style="color:${emphCol};"` : "";
@@ -194,11 +217,11 @@ function headHtml(scene, emphCol) {
 }
 
 // The hand-written line under a chapter: subtext, else a voiceover sentence, else a default.
-function penLine(scene) {
+function penLine(scene, S = STRINGS) {
   let t = String(scene.subtext || "").trim();
   if (!t && scene.voiceover) t = String(scene.voiceover).split(/[.!?]/)[0].trim();
   if (!t && Array.isArray(scene.onScreenText) && scene.onScreenText[0]) t = String(scene.onScreenText[0]).trim();
-  return (t || "…and the little idea grew").replace(/\s+/g, " ").slice(0, 82);
+  return (t || S.penDefault).replace(/\s+/g, " ").slice(0, 82);
 }
 
 // Estimate the pen-nib travel in px so the nib roughly tracks the writing edge (GSAP can't
@@ -320,7 +343,7 @@ function pageOpen(id, ctx) { return `<div class="clip" id="${id}" data-start="${
 // pop-up on the other. `illoOnLeft` alternates the layout per scene.
 function chapterSpread(scene, ctx, opts) {
   const { id, T, theme, tab } = ctx;
-  const pen = penLine(scene);
+  const pen = penLine(scene, ctx.S);
   const penW = penWidthPx(pen, ctx.W);
   const extras = storyExtras(id, scene, ctx, pen, r(T + 2.2), r(T + 1.0));
   const illoOnLeft = ctx.i % 2 === 1;
@@ -328,7 +351,7 @@ function chapterSpread(scene, ctx, opts) {
   const textPage = `<div class="pg ${illoOnLeft ? "pgR" : "pgL"}">
     <div class="chapter-tab" id="${id}-tab" style="background:${tab.tab};${tabInk(tab.tab, theme, true)}">${esc(ctx.tabLabel)}</div>
     <div class="pad" style="display:flex;flex-direction:column;justify-content:center;">
-      <div class="h-story" id="${id}-h" style="font-size:2.7cqw;opacity:0;">${headHtml(scene, tab.emph)}</div>
+      <div class="h-story" id="${id}-h" style="font-size:2.7cqw;opacity:0;">${headHtml(scene, tab.emph, ctx.S)}</div>
       <div class="penwrap" style="margin-top:1.8cqw;">
         <span class="hand pen-clip" id="${id}-write" style="font-size:2.05cqw;color:${theme.soft};white-space:normal;">${esc(pen)}</span>
         ${penSvg(id, tab.tab, theme.tint)}
@@ -362,7 +385,7 @@ function friendsSpread(scene, ctx) {
   const n = Math.max(3, Math.min(5, list.length || 5));
   const totalN = (pickNumber(scene) && Number(pickNumber(scene).val)) || 12;
   const moreN = Math.max(0, totalN - n);   // reconcile "Twelve friends" with the 5 shown
-  const pen = penLine(scene); const penW = penWidthPx(pen, ctx.W);
+  const pen = penLine(scene, ctx.S); const penW = penWidthPx(pen, ctx.W);
   const extras = storyExtras(id, scene, ctx, pen, r(T + 2.2), r(T + 1.0));
   const friends = Array.from({ length: n }, (_, k) => `<div class="popwrap ${id}-fw" style="position:relative;width:5.2cqw;height:7.4cqw;">
       <div class="popshadow ${id}-fsh" style="opacity:0;"></div>
@@ -371,12 +394,12 @@ function friendsSpread(scene, ctx) {
   const html = `${pageOpen(id, ctx)}
     <div class="pg pgL"><div class="pad" style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:4.5cqw;">
       <div style="display:flex;gap:1.4cqw;align-items:flex-end;">${friends}</div>
-      ${moreN > 0 ? `<div class="hand" id="${id}-plus" style="position:absolute;right:2.2cqw;bottom:3.2cqw;font-size:2cqw;color:${theme.soft};opacity:0;">…and ${moreN} more! ✂</div>` : ""}
+      ${moreN > 0 ? `<div class="hand" id="${id}-plus" style="position:absolute;right:2.2cqw;bottom:3.2cqw;font-size:2cqw;color:${theme.soft};opacity:0;">${ctx.S.andMorePre}${moreN}${ctx.S.andMoreSuf}</div>` : ""}
     </div></div>
     <div class="pg pgR">
       <div class="chapter-tab" id="${id}-tab" style="background:${tab.tab};${tabInk(tab.tab, theme, false)}">${esc(ctx.tabLabel)}</div>
       <div class="pad" style="display:flex;flex-direction:column;justify-content:center;">
-        <div class="h-story" id="${id}-h" style="font-size:2.7cqw;opacity:0;">${headHtml(scene, tab.emph)}</div>
+        <div class="h-story" id="${id}-h" style="font-size:2.7cqw;opacity:0;">${headHtml(scene, tab.emph, ctx.S)}</div>
         <div class="penwrap" style="margin-top:1.8cqw;">
           <span class="hand pen-clip" id="${id}-write" style="font-size:2.05cqw;color:${theme.soft};">${esc(pen)}</span>${penSvg(id, tab.tab, theme.tint)}
         </div>
@@ -398,13 +421,13 @@ function friendsSpread(scene, ctx) {
 // PAINT — watercolor blooms + a paper sun + a little house pop-up.
 function paintSpread(scene, ctx) {
   const { id, T, theme, tab } = ctx;
-  const pen = penLine(scene); const penW = penWidthPx(pen, ctx.W);
+  const pen = penLine(scene, ctx.S); const penW = penWidthPx(pen, ctx.W);
   const extras = storyExtras(id, scene, ctx, pen, r(T + 2.2), r(T + 1.0));
   const html = `${pageOpen(id, ctx)}
     <div class="pg pgL">
       <div class="chapter-tab" id="${id}-tab" style="background:${tab.tab};${tabInk(tab.tab, theme, false)}">${esc(ctx.tabLabel)}</div>
       <div class="pad" style="display:flex;flex-direction:column;justify-content:center;">
-        <div class="h-story" id="${id}-h" style="font-size:2.7cqw;opacity:0;">${headHtml(scene, tab.emph)}</div>
+        <div class="h-story" id="${id}-h" style="font-size:2.7cqw;opacity:0;">${headHtml(scene, tab.emph, ctx.S)}</div>
         <div class="penwrap" style="margin-top:1.8cqw;">
           <span class="hand pen-clip" id="${id}-write" style="font-size:2.05cqw;color:${theme.soft};">${esc(pen)}</span>${penSvg(id, tab.tab, theme.tint)}
         </div>
@@ -440,7 +463,7 @@ function paintSpread(scene, ctx) {
 function statSpread(scene, ctx) {
   const { id, T, theme, tab } = ctx;
   const num = pickNumber(scene) || { pre: "", val: "12", suf: "" };
-  const pen = penLine(scene); const penW = penWidthPx(pen, ctx.W);
+  const pen = penLine(scene, ctx.S); const penW = penWidthPx(pen, ctx.W);
   const extras = storyExtras(id, scene, ctx, pen, r(T + 2.2), r(T + 1.0));
   const html = `${pageOpen(id, ctx)}
     <div class="pg pgL"><div class="pad" style="display:flex;align-items:center;justify-content:center;">
@@ -449,13 +472,13 @@ function statSpread(scene, ctx) {
         <div class="pop" id="${id}-pop">
           <div class="popcard" style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
             <div class="h-story" style="font-size:6cqw;color:${tab.emph};line-height:1;">${esc(num.pre)}<span id="${id}-num">0</span>${esc(num.suf)}</div>
-            <div class="hand" style="font-size:1.5cqw;color:${theme.soft};margin-top:0.4cqw;">${esc(String(scene.subtext || scene.headline || "").slice(0, 22) || "and counting")}</div>
+            <div class="hand" style="font-size:1.5cqw;color:${theme.soft};margin-top:0.4cqw;">${esc(String(scene.subtext || scene.headline || "").slice(0, 22) || ctx.S.andCounting)}</div>
           </div></div></div>
     </div></div>
     <div class="pg pgR">
       <div class="chapter-tab" id="${id}-tab" style="background:${tab.tab};${tabInk(tab.tab, theme, false)}">${esc(ctx.tabLabel)}</div>
       <div class="pad" style="display:flex;flex-direction:column;justify-content:center;">
-        <div class="h-story" id="${id}-h" style="font-size:2.7cqw;opacity:0;">${headHtml(scene, tab.emph)}</div>
+        <div class="h-story" id="${id}-h" style="font-size:2.7cqw;opacity:0;">${headHtml(scene, tab.emph, ctx.S)}</div>
         <div class="penwrap" style="margin-top:1.8cqw;"><span class="hand pen-clip" id="${id}-write" style="font-size:2.05cqw;color:${theme.soft};">${esc(pen)}</span>${penSvg(id, tab.tab, theme.tint)}</div>${extras.html}
       </div></div></div>`;
   const isNum = /^\d+$/.test(String(num.val));
@@ -476,7 +499,7 @@ function statSpread(scene, ctx) {
 // when there is none). The screenshot IS the "little film" the story is about.
 function screenSpread(scene, ctx, asset) {
   const { id, T, theme, tab } = ctx;
-  const pen = penLine(scene); const penW = penWidthPx(pen, ctx.W);
+  const pen = penLine(scene, ctx.S); const penW = penWidthPx(pen, ctx.W);
   const extras = storyExtras(id, scene, ctx, pen, r(T + 2.2), r(T + 1.0));
   const inner = asset
     ? `<div class="cine-screen"><img src="${esc(asset.path)}" alt="${esc(asset.alt || "screenshot")}" style="object-fit:cover;object-position:${esc(asset.cropFocus || "top center")};"></div>`
@@ -495,7 +518,7 @@ function screenSpread(scene, ctx, asset) {
     <div class="pg pgR">
       <div class="chapter-tab" id="${id}-tab" style="background:${tab.tab};${tabInk(tab.tab, theme, true)}">${esc(ctx.tabLabel)}</div>
       <div class="pad" style="display:flex;flex-direction:column;justify-content:center;">
-        <div class="h-story" id="${id}-h" style="font-size:2.7cqw;opacity:0;">${headHtml(scene, tab.emph)}</div>
+        <div class="h-story" id="${id}-h" style="font-size:2.7cqw;opacity:0;">${headHtml(scene, tab.emph, ctx.S)}</div>
         <div class="penwrap" style="margin-top:1.8cqw;"><span class="hand pen-clip" id="${id}-write" style="font-size:2.05cqw;color:${theme.soft};">${esc(pen)}</span>${penSvg(id, tab.tab, theme.tint)}</div>${extras.html}
       </div></div></div>`;
   const s = [
@@ -513,8 +536,8 @@ function screenSpread(scene, ctx, asset) {
 // COVER — the closed book cover with the title, a paper sun and "open me".
 function coverSpread(scene, ctx) {
   const { id, T, theme } = ctx;
-  const title = esc(String(scene.headline || scene.title || "The Little Idea"));
-  const kicker = esc(String(scene.kicker || scene.emphasis || "a keyframe bedtime story").slice(0, 40));
+  const title = esc(String(scene.headline || scene.title || ctx.S.coverTitle));
+  const kicker = esc(String(scene.kicker || scene.emphasis || ctx.S.coverKicker).slice(0, 40));
   const html = `${pageOpen(id, ctx)}
     <div class="pg pgL" style="background:linear-gradient(120deg,${theme.tint("#F3B8B1")},${theme.tint("#E8938C")});box-shadow:none;border-radius:1.2cqw 0.3cqw 0.3cqw 1.2cqw;">
       <div style="position:absolute;inset:2cqw;border:0.18cqw dashed rgba(255,255,255,0.55);border-radius:0.9cqw;"></div></div>
@@ -527,7 +550,7 @@ function coverSpread(scene, ctx) {
           <circle cx="51" cy="56" r="3.4" fill="#8A6D3B"/><circle cx="69" cy="56" r="3.4" fill="#8A6D3B"/><path d="M52 66 Q60 73 68 66" fill="none" stroke="#8A6D3B" stroke-width="3" stroke-linecap="round"/></svg>
         <div class="hand" id="${id}-once" style="font-size:2.2cqw;color:#fff;opacity:0;margin-top:1.2cqw;">${kicker}</div>
         <div class="h-story" id="${id}-title" style="font-size:4cqw;line-height:1.05;color:#FFF9F0;opacity:0;text-shadow:0 0.2cqw 0 rgba(0,0,0,0.08);">${title}</div>
-        <div class="h-story" id="${id}-open" style="font-size:1.1cqw;letter-spacing:0.3em;color:rgba(255,255,255,0.9);opacity:0;margin-top:2cqw;">· OPEN ME ·</div>
+        <div class="h-story" id="${id}-open" style="font-size:1.1cqw;letter-spacing:0.3em;color:rgba(255,255,255,0.9);opacity:0;margin-top:2cqw;">${ctx.S.openMe}</div>
       </div></div></div>`;
   const s = [
     `tl.fromTo("#${id}",{opacity:1},{opacity:1,duration:0.01},${T});`,
@@ -546,14 +569,14 @@ function coverSpread(scene, ctx) {
 function endSpread(scene, ctx) {
   const { id, T, theme } = ctx;
   const mark = esc(String(scene.headline || "KEYFRAME").slice(0, 20));
-  const tag = esc(String(scene.subtext || "every idea deserves a story").slice(0, 40));
-  const cta = esc(String(scene.emphasis || "Write yours — free ✎").slice(0, 26));
+  const tag = esc(String(scene.subtext || ctx.S.endTag).slice(0, 40));
+  const cta = esc(String(scene.emphasis || ctx.S.endCta).slice(0, 26));
   const html = `${pageOpen(id, ctx)}
     <div class="pg pgL" style="background:linear-gradient(120deg,${theme.tint("#F3B8B1")},${theme.tint("#E8938C")});box-shadow:none;">
       <div style="position:absolute;inset:2cqw;border:0.18cqw dashed rgba(255,255,255,0.55);border-radius:0.9cqw;"></div>
       <div class="pad" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
-        <div class="hand" id="${id}-end" style="font-size:5cqw;color:#FFF9F0;opacity:0;">The End</div>
-        <div class="hand" id="${id}-endsub" style="font-size:1.9cqw;color:rgba(255,255,255,0.92);opacity:0;margin-top:0.6cqw;">(or rather — the beginning)</div>
+        <div class="hand" id="${id}-end" style="font-size:5cqw;color:#FFF9F0;opacity:0;">${ctx.S.theEnd}</div>
+        <div class="hand" id="${id}-endsub" style="font-size:1.9cqw;color:rgba(255,255,255,0.92);opacity:0;margin-top:0.6cqw;">${ctx.S.endBeginning}</div>
       </div></div>
     <div class="pg pgR" style="background:linear-gradient(120deg,${theme.tint("#F3B8B1")},${theme.tint("#E8938C")});box-shadow:none;">
       <div style="position:absolute;inset:2cqw;border:0.18cqw dashed rgba(255,255,255,0.55);border-radius:0.9cqw;"></div>
@@ -677,8 +700,12 @@ function chromeHtml(theme, nLeaves) {
 }
 
 // ---- MAIN --------------------------------------------------------------------
-function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin = null } = {}) {
+function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin = null, localized } = {}) {
   const theme = tealTheme(brandSkin);
+  // Per-call localized strings: merge any overrides onto the English defaults so a missing
+  // key falls back to English. When `localized` is undefined, S is the STRINGS object itself
+  // → behavior is byte-identical to the untranslated path.
+  const S = localized ? { ...STRINGS, ...localized } : STRINGS;
   const sb = storyboard || {};
   const W = (dims && dims.width) || 1920, H = (dims && dims.height) || 1080;
   const scenes = Array.isArray(sb.scenes) && sb.scenes.length ? sb.scenes.slice(0, 10) : [{ id: "s1", start: 0, duration: 5, kind: "hook", headline: sb.title || "KEYFRAME" }];
@@ -706,7 +733,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     else if (!ends && arch === "screen" && pooli < pool.length) { asset = pool[pooli++]; }
     else if (!ends && arch === "chapter" && pooli < pool.length && i >= 2) { arch = "screen"; asset = pool[pooli++]; }
     const tab = theme.tabs[(i - 1 + theme.tabs.length) % theme.tabs.length];
-    const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), i, isLast: i === N - 1, track: 2 + i, W, H, theme, tab, tabLabel: `Chapter ${["one", "two", "three", "four", "five", "six", "seven", "eight"][Math.max(0, i - 1)] || i}` };
+    const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), i, isLast: i === N - 1, track: 2 + i, W, H, theme, tab, S, tabLabel: `${S.chapter} ${S.ordinals[Math.max(0, i - 1)] || i}` };
     // screenSpread takes (scene, ctx, asset); the others take (scene, ctx, opts).
     const built = arch === "screen"
       ? screenSpread(scene, ctx, asset)
@@ -784,4 +811,4 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   return { indexHtml, metaJson, resolvedBrand: theme.resolvedBrand };
 }
 
-module.exports = { buildComposition };
+module.exports = { buildComposition, STRINGS };

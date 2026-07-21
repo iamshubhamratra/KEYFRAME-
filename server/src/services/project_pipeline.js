@@ -30,7 +30,7 @@ const { injectCaptionStyle } = require("./caption_render");
 const { fetchMusic, fetchSfx } = require("./audio_sources");
 const { VALID_VOICES } = require("./audio_planner");
 const { render } = require("./renderer");
-const { withBudget, attemptLlmComposition, mixAudioIntoVideo, fallbackQueriesFor } = require("./pipeline");
+const { withBudget, attemptLlmComposition, mixAudioIntoVideo, fallbackQueriesFor, composerStringsFor } = require("./pipeline");
 const { acquire, hasProviderFor } = require("./asset_sources");
 const { reviewAndCurate } = require("./creative_director");
 const { directAudio } = require("./audio_director");
@@ -485,6 +485,7 @@ async function runProduction({ jobId }) {
       // video-text language, MUTATING sbRes.storyboard in place so the composer renders
       // localized text. Fail-open; no-op when the target is the source (English). (This
       // legacy pipeline does not reroute canvas/charset packs — the agent graph does.)
+      let localizedStrings = null;
       if (captionPlan && captionPlan.videoTextLanguage && captionPlan.videoTextLanguage !== captionPlan.sourceLang) {
         db.setProgress(jobId, "localization");
         const locReport = await localizeStoryboardText({
@@ -492,9 +493,11 @@ async function runProduction({ jobId }) {
           videoTextLanguage: captionPlan.videoTextLanguage,
           videoTextLanguageName: captionPlan.videoTextLanguageName,
           textStyle: captionPlan.captionStyle && captionPlan.captionStyle.text,
+          extraStrings: composerStringsFor(framePack),
           brief, job, script, tracker,
         }).catch((e) => { console.warn(`[project] localization failed: ${e.message}`); return null; });
         if (locReport) {
+          localizedStrings = locReport.localizedStrings || null;
           try { db.setLocalization(jobId, locReport); } catch { /* fail-open */ }
           console.log(`[project] localization → ${captionPlan.videoTextLanguage} (${locReport.translatedElements}/${locReport.elementCount} verified, ${locReport.localizationCoverage}%)`);
         }
@@ -529,7 +532,7 @@ async function runProduction({ jobId }) {
           (signal) => attemptLlmComposition({
             storyboard: sbRes.storyboard, dims, jobDir,
             assets, tracker, jobId, durationSec: duration,
-            label: "project-main", abortSignal: signal, framePack, captionCues, captionStyle,
+            label: "project-main", abortSignal: signal, framePack, captionCues, captionStyle, localized: localizedStrings,
           }),
           budget, "project composition"
         );
@@ -545,7 +548,7 @@ async function runProduction({ jobId }) {
               (signal) => attemptLlmComposition({
                 storyboard: sbRes.storyboard, dims, jobDir,
                 assets: [], tracker, jobId, durationSec: duration,
-                label: "project-no-assets", abortSignal: signal, framePack, captionCues, captionStyle,
+                label: "project-no-assets", abortSignal: signal, framePack, captionCues, captionStyle, localized: localizedStrings,
               }),
               budget, "project no-assets retry"
             );

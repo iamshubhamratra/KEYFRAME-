@@ -29,6 +29,12 @@ const { isTrustedProminent, isLogo } = require("./asset_priority");
 // every font-size/color after it (CSS accepts single quotes for family names).
 const SAFE_FONTS = "Inter, 'Segoe UI', system-ui, Roboto, Helvetica, Arial, sans-serif";
 
+// Fixed English literals rendered into the film. Isolated here so a translation
+// pass can override them per-render via buildComposition({ localized }). NEVER
+// mutate this object — renders run concurrently; merge into a per-call copy (S).
+// The brand name "KEYFRAME" is intentionally NOT here (never translated).
+const STRINGS = { live: "Live", livePreview: "Live preview" };
+
 // Packs that are FLAT by design (no gradients / glows — solid color + hard edges).
 // The scenekit-design pass produces the authoritative per-pack table; this is a
 // safe default so the kit never paints gradients onto a neo-brutalist/print pack.
@@ -1330,7 +1336,7 @@ function archScreenshotHero(scene, ctx) {
   </div>
   </div>
   <div style="${copyWrap}">
-    <span id="${id}k" style="opacity:0;display:inline-flex;align-items:center;gap:9px;padding:7px 15px;border-radius:9999px;background:${theme.panel};border:1px solid ${theme.line};color:${theme.accent};font:700 13px/1 ${cssFont(theme)};letter-spacing:.2em;text-transform:uppercase;"><span style="width:7px;height:7px;border-radius:50%;background:${theme.accent};"></span>${esc(ctx.kicker || "Live")}</span>
+    <span id="${id}k" style="opacity:0;display:inline-flex;align-items:center;gap:9px;padding:7px 15px;border-radius:9999px;background:${theme.panel};border:1px solid ${theme.line};color:${theme.accent};font:700 13px/1 ${cssFont(theme)};letter-spacing:.2em;text-transform:uppercase;"><span style="width:7px;height:7px;border-radius:50%;background:${theme.accent};"></span>${esc(ctx.kicker || ctx.S.live)}</span>
     <h2 style="margin-top:14px;font:800 ${fitBig(scene.headline, big, 20)}px/1.05 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};"><style>${emphasisBlock(theme, id)}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
     ${scene.subtext ? `<p id="${id}s" style="opacity:0;margin-top:13px;font:500 ${Math.round(big * 0.42)}px/1.45 ${cssFont(theme)};color:${theme.dim};">${esc(scene.subtext)}</p>` : ""}
   </div>
@@ -1380,7 +1386,7 @@ function archPhoneHero(scene, ctx) {
   </div>
   </div>
   <div style="${copyWrap}">
-    <span id="${id}k" style="opacity:0;display:inline-flex;align-items:center;gap:9px;padding:7px 15px;border-radius:9999px;background:${theme.panel};border:1px solid ${theme.line};color:${theme.accent};font:700 13px/1 ${cssFont(theme)};letter-spacing:.2em;text-transform:uppercase;"><span style="width:7px;height:7px;border-radius:50%;background:${theme.accent};"></span>${esc(ctx.kicker || "Live")}</span>
+    <span id="${id}k" style="opacity:0;display:inline-flex;align-items:center;gap:9px;padding:7px 15px;border-radius:9999px;background:${theme.panel};border:1px solid ${theme.line};color:${theme.accent};font:700 13px/1 ${cssFont(theme)};letter-spacing:.2em;text-transform:uppercase;"><span style="width:7px;height:7px;border-radius:50%;background:${theme.accent};"></span>${esc(ctx.kicker || ctx.S.live)}</span>
     <h2 style="margin-top:14px;font:800 ${fitBig(scene.headline, big, 20)}px/1.05 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};"><style>${emphasisBlock(theme, id)}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
     ${scene.subtext ? `<p id="${id}s" style="opacity:0;margin-top:13px;font:500 ${Math.round(big * 0.42)}px/1.45 ${cssFont(theme)};color:${theme.dim};">${esc(scene.subtext)}</p>` : ""}
   </div>
@@ -1634,7 +1640,11 @@ function buildCaptions(captionCues, dims, D, theme, track) {
 }
 
 // MAIN ENTRY — assemble the full composition.
-function buildComposition({ storyboard, dims, framePack, assets, captionCues, seedKey, dressing, brandSkin, layoutPlan } = {}) {
+function buildComposition({ storyboard, dims, framePack, assets, captionCues, seedKey, dressing, brandSkin, layoutPlan, localized } = {}) {
+  // Per-call localized strings: merge any overrides onto the English defaults so
+  // a missing key falls back to English. When `localized` is undefined, S is the
+  // STRINGS object itself → behavior is byte-identical to the untranslated path.
+  const S = localized ? { ...STRINGS, ...localized } : STRINGS;
   const sb = storyboard || {};
   const scenes = Array.isArray(sb.scenes) && sb.scenes.length ? sb.scenes : [{ id: "s1", start: 0, duration: dims.fps ? 4 : 4, kind: "hook", headline: sb.title || "KEYFRAME" }];
   const D = r(sb.durationSec || scenes.reduce((a, s) => a + (s.duration || 0), 0) || 12);
@@ -1714,6 +1724,7 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
       theme, dims, id: `s${i + 1}`, T, L,
       track: base + 1, bgTrack: base,
       isLast: i === scenes.length - 1,
+      S, // per-call localized strings (see STRINGS); read at literal sites as ctx.S.*
       kicker: i === 0 ? (sb.title || "KEYFRAME") : "",
       asset: null, assets: null, bgAsset: null,
       seed, sceneIndex: i, sceneCount: scenes.length,
@@ -1752,7 +1763,7 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
       .map((p) => ({ p, s: assetAffinity(p.scene, "screenshot") }))
       .sort((a, b) => b.s - a.s || a.p.i - b.p.i)[0].p;
     target.ctx.asset = pools.screenshots.shift(); target.build = archScreenshotHero; usedShot = true;
-    target.ctx.kicker = target.scene.emphasis || "Live preview";
+    target.ctx.kicker = target.scene.emphasis || S.livePreview;
   }
 
   // Split-art media order is pack-driven (Phase 6 assets.prefer): a photo-forward
@@ -1776,7 +1787,7 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
       p.ctx.asset = pools[pool].shift(); p.build = archSplitVector;
     } else if (pools.screenshots.length) {
       p.ctx.asset = pools.screenshots.shift(); p.build = archScreenshotHero;
-      p.ctx.kicker = p.scene.emphasis || "Live preview";
+      p.ctx.kicker = p.scene.emphasis || S.livePreview;
     }
   }
 
@@ -1927,4 +1938,4 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
 
 function scriptStart(scenes, i) { let s = 0; for (let k = 0; k < i; k++) s += scenes[k].duration || 0; return s; }
 
-module.exports = { buildComposition, deriveTheme, FLAT_PACKS };
+module.exports = { buildComposition, deriveTheme, FLAT_PACKS, STRINGS };
