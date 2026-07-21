@@ -27,15 +27,17 @@ const ASPECT = { horizontal: "16:9", vertical: "9:16", square: "1:1" };
 // Caption languages — mirrors the server whitelist (services/caption_lang.js).
 // "en" is the source language (script + default voiceover); the rest translate.
 const CAPTION_LANGS = [
-  { code: "en", label: "English (US)" },
-  { code: "hi", label: "Hindi" },
-  { code: "es", label: "Spanish" },
-  { code: "fr", label: "French" },
-  { code: "de", label: "German" },
-  { code: "pt", label: "Portuguese" },
-  { code: "ar", label: "Arabic" },
-  { code: "ja", label: "Japanese" },
+  { code: "en", label: "English (US)", native: "English" },
+  { code: "hi", label: "Hindi", native: "हिन्दी" },
+  { code: "es", label: "Spanish", native: "Español" },
+  { code: "fr", label: "French", native: "Français" },
+  { code: "de", label: "German", native: "Deutsch" },
+  { code: "pt", label: "Portuguese", native: "Português" },
+  { code: "ar", label: "Arabic", native: "العربية" },
+  { code: "ja", label: "Japanese", native: "日本語" },
 ];
+// Language <option> label: "Hindi · हिन्दी" (source language reads "English — source").
+const langOption = (l) => l.code === "en" ? `${l.label} — source` : `${l.label} · ${l.native}`;
 
 // Ready-made accent pairs, so "use your brand color" isn't a blank color well for
 // the (many) people who never look up their own hexes. A preset is still only an
@@ -400,11 +402,12 @@ export default function CreateScreen({ onCreated, prefill }) {
               <div>
                 <div className="label-mono" style={{ marginBottom: 4 }}>CAPTIONS &amp; LANGUAGE</div>
                 <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)" }}>
-                  {!captions ? "OFF — SUBTITLE FILES STILL EXPORTED" : (() => {
+                  {!captions ? "OFF — NO BURNED-IN CAPTIONS" : (() => {
                     const lbl = (c) => ((CAPTION_LANGS.find((l) => l.code === c) || {}).label || c).toUpperCase();
-                    if (captionLang === "en" && voiceLang === "en") return "BURNED IN — ENGLISH";
-                    if (captionLang === voiceLang) return `${lbl(captionLang)} — VOICE + SUBS LOCALIZED`;
-                    return `${lbl(voiceLang)} VOICE · ${lbl(captionLang)} SUBS`;
+                    const rvt = videoTextLang === "auto" ? voiceLang : videoTextLang;
+                    if (voiceLang === "en" && captionLang === "en" && rvt === "en") return "ENGLISH — VOICE, SUBS & TEXT";
+                    if (voiceLang === captionLang && captionLang === rvt) return `FULLY LOCALIZED · ${lbl(voiceLang)}`;
+                    return `🔊 ${voiceLang.toUpperCase()} · CC ${captionLang.toUpperCase()} · 🎬 ${rvt.toUpperCase()}`;
                   })()}
                 </div>
               </div>
@@ -417,53 +420,61 @@ export default function CreateScreen({ onCreated, prefill }) {
               </button>
             </div>
             {captions && (
-              <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 14 }}>
-                <label style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
-                  <span className="label-mono">🔊 VOICEOVER LANGUAGE</span>
-                  <select
-                    value={voiceLang}
-                    onChange={(e) => setVoiceLang(e.target.value)}
-                    aria-label="Voiceover language"
-                    style={{ width: "100%", boxSizing: "border-box", fontFamily: "var(--font-mono)", fontSize: 12, letterSpacing: "0.03em", padding: "9px 11px", borderRadius: 8, background: "var(--color-paper-2)", border: "1px solid rgba(23,19,14,.25)", color: "var(--color-ink)", cursor: "pointer" }}
-                  >
-                    {CAPTION_LANGS.map((l) => (
-                      <option key={l.code} value={l.code}>{l.label}{l.code === "en" ? " — source" : ""}</option>
-                    ))}
+              <div style={{ marginTop: 16 }}>
+                {/* Three independent language axes, aligned: 🔊 voice · CC subs · 🎬 on-screen text. */}
+                <div style={{ display: "grid", gridTemplateColumns: "max-content 1fr", alignItems: "center", gap: "12px 12px" }}>
+                  <span className="label-mono" style={{ whiteSpace: "nowrap" }}>🔊 VOICEOVER</span>
+                  <select className="select-field" value={voiceLang} onChange={(e) => setVoiceLang(e.target.value)} aria-label="Voiceover language">
+                    {CAPTION_LANGS.map((l) => <option key={l.code} value={l.code}>{langOption(l)}</option>)}
                   </select>
-                </label>
-                <label style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
-                  <span className="label-mono">CC CAPTION LANGUAGE</span>
-                  <select
-                    value={captionLang}
-                    onChange={(e) => setCaptionLang(e.target.value)}
-                    aria-label="Caption language"
-                    style={{ width: "100%", boxSizing: "border-box", fontFamily: "var(--font-mono)", fontSize: 12, letterSpacing: "0.03em", padding: "9px 11px", borderRadius: 8, background: "var(--color-paper-2)", border: "1px solid rgba(23,19,14,.25)", color: "var(--color-ink)", cursor: "pointer" }}
-                  >
-                    {CAPTION_LANGS.map((l) => (
-                      <option key={l.code} value={l.code}>{l.label}{l.code === "en" ? " — source" : ""}</option>
-                    ))}
+
+                  <span className="label-mono" style={{ whiteSpace: "nowrap" }}>CC CAPTIONS</span>
+                  <select className="select-field" value={captionLang} onChange={(e) => setCaptionLang(e.target.value)} aria-label="Caption language">
+                    {CAPTION_LANGS.map((l) => <option key={l.code} value={l.code}>{langOption(l)}</option>)}
                   </select>
-                </label>
-                <label style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
-                  <span className="label-mono">🎬 VIDEO TEXT LANGUAGE</span>
-                  <select
-                    value={videoTextLang}
-                    onChange={(e) => setVideoTextLang(e.target.value)}
-                    aria-label="On-screen video text language"
-                    style={{ width: "100%", boxSizing: "border-box", fontFamily: "var(--font-mono)", fontSize: 12, letterSpacing: "0.03em", padding: "9px 11px", borderRadius: 8, background: "var(--color-paper-2)", border: "1px solid rgba(23,19,14,.25)", color: "var(--color-ink)", cursor: "pointer" }}
-                  >
-                    <option value="auto">Auto Match Voiceover</option>
-                    {CAPTION_LANGS.map((l) => (
-                      <option key={l.code} value={l.code}>{l.label}{l.code === "en" ? " — source" : ""}</option>
-                    ))}
+
+                  <span className="label-mono" style={{ whiteSpace: "nowrap" }}>🎬 VIDEO TEXT</span>
+                  <select className="select-field" value={videoTextLang} onChange={(e) => setVideoTextLang(e.target.value)} aria-label="On-screen video text language">
+                    <option value="auto">Auto — match voiceover</option>
+                    {CAPTION_LANGS.map((l) => <option key={l.code} value={l.code}>{langOption(l)}</option>)}
                   </select>
-                </label>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 8.5, lineHeight: 1.5, letterSpacing: "0.06em", color: "var(--color-dim)" }}>
-                  {voiceLang === captionLang && voiceLang !== "en" ? "FULL LOCALIZATION — VOICE & SUBTITLES BOTH LOCALIZED."
-                    : voiceLang !== "en" && captionLang !== voiceLang ? "DUBBED — VOICE & SUBTITLES IN DIFFERENT LANGUAGES."
-                    : captionLang !== "en" ? "TRANSLATED SUBTITLES — VOICE STAYS ENGLISH."
-                    : "ENGLISH VOICE & SUBTITLES."}
                 </div>
+
+                {/* Contextual tags: RTL for Arabic, and the auto-match hint. */}
+                {(() => {
+                  const rvt = videoTextLang === "auto" ? voiceLang : videoTextLang;
+                  const tags = [];
+                  if ([voiceLang, captionLang, rvt].includes("ar")) tags.push("↔ Arabic renders right-to-left");
+                  if (videoTextLang === "auto") {
+                    const vl = (CAPTION_LANGS.find((l) => l.code === voiceLang) || {}).label || voiceLang;
+                    tags.push(`🎬 on-screen text follows the voiceover (${vl})`);
+                  }
+                  return tags.length ? (
+                    <div style={{ marginTop: 11, display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {tags.map((t, i) => (
+                        <span key={i} style={{ fontFamily: "var(--font-mono)", fontSize: 8.5, letterSpacing: "0.06em", color: "var(--color-dim)", padding: "4px 9px", borderRadius: 999, border: "1px solid rgba(23,19,14,.14)", background: "var(--color-paper-2)" }}>{t}</span>
+                      ))}
+                    </div>
+                  ) : null;
+                })()}
+
+                {/* Full 3-axis summary + mode word — every chosen language shows up here. */}
+                {(() => {
+                  const lbl = (c) => (CAPTION_LANGS.find((l) => l.code === c) || {}).label || c;
+                  const rvt = videoTextLang === "auto" ? voiceLang : videoTextLang;
+                  const allEn = voiceLang === "en" && captionLang === "en" && rvt === "en";
+                  const allSame = voiceLang === captionLang && captionLang === rvt;
+                  const mode = allEn ? "ENGLISH FILM" : allSame ? `FULLY LOCALIZED · ${lbl(voiceLang).toUpperCase()}` : "MIXED LANGUAGES";
+                  return (
+                    <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: "5px 10px", flexWrap: "wrap", fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.08em", color: "var(--color-dim)" }}>
+                      <span style={{ color: "var(--color-ink)", letterSpacing: "0.12em" }}>{mode}</span>
+                      <span style={{ opacity: 0.5 }}>·</span>
+                      <span>🔊 {lbl(voiceLang)}</span><span style={{ opacity: 0.5 }}>·</span>
+                      <span>CC {lbl(captionLang)}</span><span style={{ opacity: 0.5 }}>·</span>
+                      <span>🎬 {lbl(rvt)}{videoTextLang === "auto" ? " (auto)" : ""}</span>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
@@ -508,8 +519,8 @@ export default function CreateScreen({ onCreated, prefill }) {
             <span className="spine" style={{ "--spine": brandPalette ? brandPalette.primary : "#c56bff" }} />
             <div className="label-mono" style={{ marginBottom: 10 }}>BRAND COLORS — {brandLabel}</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              <BrandSwatch
-                label="Use my template's palette"
+              <BrandOption
+                label="My template's palette"
                 hint={packAccents.length ? packAccents.join(" · ") : "the pack's own accents"}
                 colors={packAccents}
                 loading={framePack !== "auto" && !packs}
@@ -518,12 +529,12 @@ export default function CreateScreen({ onCreated, prefill }) {
                 onSelect={() => setBrandChoice("template")}
               />
               {BRAND_PRESETS.map((p) => (
-                <BrandSwatch key={p.id} label={p.label} hint={`${p.primary} · ${p.secondary}`}
+                <BrandOption key={p.id} label={p.label} hint={`${p.primary} · ${p.secondary}`}
                   colors={[p.primary, p.secondary]}
                   active={brandChoice === p.id}
                   onSelect={() => setBrandChoice(p.id)} />
               ))}
-              <BrandSwatch label="Pick my own" hint={`${cp} · ${cs}`}
+              <BrandOption label="Pick my own" hint={`${cp} · ${cs}`}
                 colors={brandChoice === "custom" ? [cp, cs] : []}
                 glyph="+"
                 active={brandChoice === "custom"}
@@ -535,6 +546,25 @@ export default function CreateScreen({ onCreated, prefill }) {
                 <HexStop label="SECONDARY" value={cs} onChange={setCustomSecondary} />
               </div>
             )}
+            {/* Live accent preview — the pick owns hue, and only where the eye already lands. */}
+            {(() => {
+              const [pa, ps = pa] = brandPalette
+                ? [brandPalette.primary, brandPalette.secondary]
+                : (packAccents.length ? packAccents : []);
+              const acc = pa || "var(--color-mag)";
+              const und = ps || acc;
+              return (
+                <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: "10px 16px", flexWrap: "wrap", padding: "12px 15px", borderRadius: 12, background: "var(--color-paper-2)", border: "1px solid rgba(23,19,14,.08)" }}>
+                  <span className="label-mono">PREVIEW</span>
+                  <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 17, letterSpacing: "-0.02em", color: "var(--color-ink)" }}>
+                    Transform your <span style={{ color: acc, borderBottom: `3px solid ${und}`, paddingBottom: 1 }}>workflow</span>
+                  </span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "6px 13px", borderRadius: 999, background: acc, color: "#fff", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em" }}>
+                    GET STARTED <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#fff", opacity: 0.9 }} />
+                  </span>
+                </div>
+              );
+            })()}
             <div style={{ marginTop: 10, fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)" }}>
               {brandPalette ? "ACCENTS ONLY — GROUND, TYPE & MOTION STAY THE PACK'S"
                 : framePack === "auto" ? "THE PACK WE CAST KEEPS ITS OWN ACCENTS"
@@ -653,27 +683,24 @@ function orderPacks(serverPacks) {
   return [...known, ...extras];
 }
 
-// One palette option: the LIFTED PALETTE swatch language from the Understanding
-// screen (36px, rounded, hex in the tooltip), carrying two stops — because two is
-// what an emphasis pair is, here and in the cut. No colors is a DASHED slot, not
-// an invented hue: an uncast pack has no accents to show yet, and neither do we.
-//
-// The ring is ink, not the magenta the pack cards use: a 36px swatch can BE
-// magenta, and a selection ring that disappears on one of the options isn't one.
-function BrandSwatch({ label, hint, colors = [], active, loading = false, glyph = null, onSelect }) {
+// One palette option — a labeled chip: a gradient swatch carrying two stops (an
+// emphasis pair) plus the option's NAME, so presets are legible at a glance instead
+// of a row of anonymous dots. No colors is a DASHED slot with a glyph, not an
+// invented hue: an uncast pack has no accents to show yet, and neither do we.
+function BrandOption({ label, hint = "", colors = [], active, loading = false, glyph = null, onSelect }) {
   const [a, b = a] = colors;
   return (
-    <button type="button" onClick={onSelect}
-      title={`${label} — ${hint}`} aria-label={`${label} — ${hint}`} aria-pressed={active}
-      style={{
-        width: 36, height: 36, borderRadius: 10, cursor: "pointer", display: "grid", placeItems: "center",
-        background: loading ? "var(--color-ground-2)" : a ? `linear-gradient(120deg, ${a}, ${b})` : "transparent",
-        border: a || loading ? "1px solid rgba(23,19,14,.12)" : "1px dashed rgba(23,19,14,.25)",
-        outline: active ? "2px solid var(--color-ink)" : "none", outlineOffset: 2,
-        animation: loading ? "softPulse 1.6s ease-in-out infinite" : "none",
-        fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--color-dim)",
-      }}>
-      {!a && !loading ? glyph : null}
+    <button type="button" onClick={onSelect} aria-pressed={active}
+      title={hint ? `${label} — ${hint}` : label} aria-label={hint ? `${label} — ${hint}` : label}
+      className={`brand-opt ${active ? "is-active" : ""}`}>
+      <span className={`sw ${!a && !loading ? "dashed" : ""}`}
+        style={{
+          background: loading ? "var(--color-ground-2)" : a ? `linear-gradient(120deg, ${a}, ${b})` : undefined,
+          animation: loading ? "softPulse 1.6s ease-in-out infinite" : "none",
+        }}>
+        {!a && !loading ? glyph : null}
+      </span>
+      <span>{label}</span>
     </button>
   );
 }
