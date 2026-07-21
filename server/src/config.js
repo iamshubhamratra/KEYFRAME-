@@ -292,6 +292,18 @@ function build() {
     demoteOnIncomplete: siCfg.demoteOnIncomplete !== false,
   };
 
+  // Caption Director — localizes the film's per-scene lines into the caption
+  // language (see services/translate.js + caption_director.js). One batched,
+  // text-only JSON call, so any capable model works. Registered here so the usage
+  // tracker prices caption_director tokens at this model's rate; the dispatch uses
+  // stage:"caption_director". Fail-open in the service (never blocks a render).
+  const capCfg = cfg.captions || {};
+  cfg.captions = {
+    defaultLanguage: capCfg.defaultLanguage || "en",
+    model: process.env.CAPTION_DIRECTOR_MODEL || capCfg.model || "google/gemini-3.1-flash-lite",
+  };
+  cfg.llm.stageModels = { ...(cfg.llm.stageModels || {}), caption_director: cfg.captions.model };
+
   validate(cfg);
 
   // Resolve paths relative to project root.

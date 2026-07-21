@@ -26,7 +26,9 @@ const { withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAud
 const { acquire, hasProviderFor, makeImageDeduper, ffprobeImage } = require("../services/asset_sources");
 const { styleFor, iconColorFor } = require("../services/pack_style");
 const { synthesizeFitted } = require("../services/vo_fit");
-const { buildCues, writeSrt } = require("../services/captions");
+const { buildCues, writeSrt, writeVtt } = require("../services/captions");
+const { resolveCaptionPlan, finalizeQuality } = require("../services/caption_director");
+const { injectCaptionStyle } = require("../services/caption_render");
 const { fetchMusic } = require("../services/audio_sources");
 const { getSfx } = require("../services/sfx_library");
 const { VALID_VOICES } = require("../services/audio_planner");
@@ -614,6 +616,26 @@ async function visualLayoutDirectorAgent(s) {
   return { assets, layoutPlan };
 }
 
+// Caption Director — resolves the caption / localization plan (translation,
+// language font, text direction, per-scene resolved caption + VO text) from the
+// approved script + the user's caption settings. Runs in the fan-out BEFORE the
+// voice and composition nodes so all three consume one plan: the voice node
+// speaks the localized line (mode 3), the composer burns the translated caption
+// in the right font/direction, and the timeline exports translated SRT/VTT.
+// Fail-open: a null plan degrades to the pre-feature English path.
+async function captionDirectorAgent(s) {
+  const { job, script, brief, tracker } = s;
+  db.setProgress(job.id, "caption_director");
+  const captionConfig = job.captions_config != null ? job.captions_config : (job.captions_enabled === 1);
+  const captionPlan = await resolveCaptionPlan({ captionConfig, script, brief, job, tracker })
+    .catch((e) => { console.warn(`[agents] caption_director failed: ${e.message}`); return null; });
+  if (captionPlan) {
+    console.log(`[agents] caption_director → ${captionPlan.enabled ? "on" : "off"} subs=${captionPlan.language} voice=${captionPlan.voiceLanguage} mode=${captionPlan.mode}` +
+      (captionPlan.mode !== "original" ? ` (subs ${captionPlan.translate.translatedCount}/${captionPlan.translate.totalCount}${captionPlan.translate.ok ? "" : " FELL BACK"})` : ""));
+  }
+  return { captionPlan };
+}
+
 // Voice Agent — per-scene fitted VO + script SFX + music, in parallel.
 async function voiceAgent(s) {
   const { job, jobDir, tracker, script } = s;
@@ -630,11 +652,28 @@ async function voiceAgent(s) {
   const paceEnergy = /slow|calm|measured|gentle/.test(pace) ? "unhurried and measured"
     : /fast|brisk|quick|punchy|energetic/.test(pace) ? "brisk and energetic"
     : "a relaxed, natural conversational rhythm";
-  const instructions = `Speak ${tone}. Delivery: ${paceEnergy}. Vary intonation naturally, land emphasis on key words, and warm the final line.`;
+  // When the voiceover language is non-English, tell the TTS to speak entirely in
+  // it with a native accent — the lines are already translated, and the directive
+  // makes gpt-audio commit to the target language's pronunciation.
+  // Only emit the target-language directive when the VO text was ACTUALLY
+  // translated. On a VO-translation failure voTextById reverts to the English
+  // source (caption_director.js), so telling gpt-audio to "speak entirely in
+  // Hindi" over English text makes it read English under a foreign directive —
+  // an undetectable desync. Gating on voiceTranslate.ok drops the directive so
+  // the model just reads the (English) fallback plainly; the note below discloses it.
+  const voRequested   = !!(s.captionPlan && s.captionPlan.voiceLanguage && s.captionPlan.voiceLanguage !== "en");
+  const voTranslateOk = !s.captionPlan || s.captionPlan.voiceTranslate?.ok !== false;
+  const voLangName = (voRequested && voTranslateOk) ? s.captionPlan.voiceLanguageName : null;
+  const langDirective = voLangName ? `Speak entirely in ${voLangName}, as a native speaker. ` : "";
+  const instructions = `${langDirective}Speak ${tone}. Delivery: ${paceEnergy}. Vary intonation naturally, land emphasis on key words, and warm the final line.`;
 
+  // The voiceover speaks the line in the chosen VOICEOVER language (which may
+  // differ from the caption language). Guarded by the same source-voiceover check
+  // so only scenes that HAD narration get synthesized.
+  const voTextFor = (sc) => (s.captionPlan && s.captionPlan.voTextById[String(sc.id)]) || sc.voiceover;
   const voTask = Promise.all(script.scenes.map((sc) =>
     (sc.voiceover && sc.voiceover.trim())
-      ? synthesizeFitted({ text: sc.voiceover, targetSec: sc.duration, voice, instructions, outputPath: path.join(audioDir, `vo-${sc.id}.mp3`), tracker })
+      ? synthesizeFitted({ text: voTextFor(sc), targetSec: sc.duration, voice, instructions, outputPath: path.join(audioDir, `vo-${sc.id}.mp3`), tracker })
           .then((r) => r ? { sceneId: sc.id, startSec: sc.start, durationSec: r.durationSec, sceneDurationSec: sc.duration, text: r.text, path: r.path, fallbackVoice: r.fallbackVoice || null } : null)
           .catch((e) => { console.warn(`[agents] vo ${sc.id} failed: ${e.message}`); return null; })
       : Promise.resolve(null)
@@ -686,6 +725,12 @@ async function voiceAgent(s) {
   }
   if (!musicPath && (script.music?.query || script.music?.mood)) {
     notes.push("Music unavailable — no source matched and the generated bed also failed; the film shipped without a music track.");
+  }
+  // A requested non-English voiceover whose translation failed spoke ENGLISH
+  // (voTextById fell back to source). Disclose it — the user asked for localized
+  // narration and must not silently receive English.
+  if (voRequested && !voTranslateOk) {
+    notes.push(`Voiceover translation to ${s.captionPlan.voiceLanguageName} failed — narration shipped in English. Regenerate to retry the translation.`);
   }
   if (notes.length) db.setAudioNotes(job.id, notes);
 
@@ -786,14 +831,20 @@ async function composeVisual(s) {
   db.setProgress(job.id, "composing");
   const dims = { width: job.width, height: job.height, fps: job.fps };
 
+  // On-screen caption cues + language font/direction come from the Caption
+  // Director (translated text, estimated timing, language-aware duration). Fall
+  // back to the pre-feature English estimate when no plan is present.
   const wc = (t) => (String(t || "").match(/\S+/g) || []).length;
-  const captionCues = job.captions_enabled === 0 ? [] : buildCues(
-    s.script.scenes.filter((x) => x.voiceover && x.voiceover.trim()).map((x) => ({
-      sceneId: x.id, startSec: x.start,
-      durationSec: Math.min(x.duration, wc(x.voiceover) / 2.6 + 0.4),
-      sceneDurationSec: x.duration, text: x.voiceover,
-    }))
-  ).map((c) => ({ start: Math.round(c.start * 10) / 10, end: Math.round(c.end * 10) / 10, text: c.text }));
+  const captionCues = s.captionPlan
+    ? s.captionPlan.bakedCues
+    : (job.captions_enabled === 0 ? [] : buildCues(
+        s.script.scenes.filter((x) => x.voiceover && x.voiceover.trim()).map((x) => ({
+          sceneId: x.id, startSec: x.start,
+          durationSec: Math.min(x.duration, wc(x.voiceover) / 2.6 + 0.4),
+          sceneDurationSec: x.duration, text: x.voiceover,
+        }))
+      ).map((c) => ({ start: Math.round(c.start * 10) / 10, end: Math.round(c.end * 10) / 10, text: c.text })));
+  const captionStyle = s.captionPlan ? s.captionPlan.captionStyle : null;
 
   // Carry QA repair feedback into the composer when looping.
   const storyboard = s.qa && s.qa.issues?.length
@@ -837,7 +888,7 @@ async function composeVisual(s) {
           storyboard, dims, jobDir, framePack: s.framePack, captionCues,
           assets: s.assets || [], jobId: job.id, durationSec: job.duration,
           label: "graph-three", abortSignal: signal, tracker,
-          brandSkin: s.brandSkin || null,
+          brandSkin: s.brandSkin || null, captionStyle,
         }),
         budget, "Three.js composition"
       );
@@ -849,7 +900,7 @@ async function composeVisual(s) {
         jobId: job.id, durationSec: job.duration,
         label: s.qa ? "graph-repair" : "graph-main", abortSignal: signal,
         framePack: s.framePack, captionCues, remix: useComposer,
-        brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null,
+        brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null, captionStyle,
       }),
       budget, "composition agent"
     );
@@ -894,7 +945,7 @@ async function composeVisual(s) {
           framePack: s.framePack, captionCues, remix: false,
           dress: job.compose_mode === "premium" && !composerBudgetDead,
           subject: s.brief?.subject || null,
-          brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null,
+          brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null, captionStyle,
         });
         return { visual, usedFallback: false, finalAttempt: "scene-kit", rendered: true, composerBudgetDead, repairable: false };
       } catch (e2) {
@@ -913,7 +964,7 @@ async function composeVisual(s) {
     // Run the fallback through the same safe normalizer the LLM path uses, so a
     // pack font token / track overlap never ships an un-checked fallback.
     const fbNorm = normalizeComposition(fb.indexHtml);
-    fs.writeFileSync(path.join(jobDir, "index.html"), fbNorm.html, "utf8");
+    fs.writeFileSync(path.join(jobDir, "index.html"), injectCaptionStyle(fbNorm.html, captionStyle), "utf8");
     fs.writeFileSync(path.join(jobDir, "meta.json"), fb.metaJson, "utf8");
     tracker.addExternal("hyperframes_render");
     const visual = await render({ jobId: job.id, jobDir, durationSec: job.duration });
@@ -948,13 +999,36 @@ async function timelineAgent(s) {
   }
   db.setProgress(job.id, "audio");
 
-  const cues = buildCues(s.voClips || []);
+  // Subtitle export — MEASURED timing from the VO clips, but the caption TEXT is
+  // the resolved (possibly translated) per-scene line (in "translated" mode the
+  // VO is English but the subtitle is the target language). SRT + VTT, gated by
+  // the user's export toggles; then finalize + persist the quality report.
+  const plan = s.captionPlan || null;
+  const captionClips = (s.voClips || []).map((c) => ({
+    ...c, text: (plan && plan.captionTextById[String(c.sceneId)]) || c.text,
+  }));
+  const cues = buildCues(captionClips);
   if (cues.length) {
     try {
-      const srtPath = path.join(config.paths.videosDir, `${job.id}.srt`);
-      writeSrt(cues, srtPath);
-      db.setCaptions(job.id, { cues, srtUrl: `/videos/${job.id}.srt` });
-    } catch (e) { console.warn(`[agents] srt failed: ${e.message}`); }
+      const wantSrt = !plan || plan.exportSRT;
+      const wantVtt = !plan || plan.exportVTT;
+      let srtUrl, vttUrl;
+      if (wantSrt) { writeSrt(cues, path.join(config.paths.videosDir, `${job.id}.srt`)); srtUrl = `/videos/${job.id}.srt`; }
+      if (wantVtt) { writeVtt(cues, path.join(config.paths.videosDir, `${job.id}.vtt`)); vttUrl = `/videos/${job.id}.vtt`; }
+      const quality = plan
+        ? finalizeQuality(plan, {
+            voScenes: (s.script?.scenes || []).filter((x) => x.voiceover && x.voiceover.trim()),
+            measuredCues: cues, voClips: s.voClips || [],
+          })
+        : undefined;
+      db.setCaptions(job.id, {
+        cues, srtUrl, vttUrl,
+        language: plan ? plan.language : undefined,
+        mode: plan ? plan.mode : undefined,
+        quality,
+      });
+      if (quality) console.log(`[agents] caption quality — lang=${quality.languageCode} sync=${quality.syncAccuracy} read=${quality.readabilityScore} cov=${quality.subtitleCoverage} font=${quality.fontCompatibility} xlate=${quality.translationQuality}`);
+    } catch (e) { console.warn(`[agents] subtitle export failed: ${e.message}`); }
   }
 
   await mixAudioIntoVideo({
@@ -1030,6 +1104,7 @@ async function buildGraph() {
     brief: Annotation(), script: Annotation(),
     framePack: Annotation(), storyboard: Annotation(),
     brandSkin: Annotation(), layoutPlan: Annotation(),
+    captionPlan: Annotation(),
     assetPlan: Annotation(), assets: Annotation(),
     voClips: Annotation(), sfxClips: Annotation(), musicPath: Annotation(), audioPlan: Annotation(),
     visual: Annotation(), usedFallback: Annotation(), finalAttempt: Annotation(), rendered: Annotation(),
@@ -1048,6 +1123,7 @@ async function buildGraph() {
     .addNode("asset_search", assetSearchAgent)
     .addNode("creative_director", creativeDirectorAgent)
     .addNode("visual_layout_director", visualLayoutDirectorAgent)
+    .addNode("caption_director", captionDirectorAgent)
     .addNode("voice_agent", voiceAgent)
     .addNode("audio_director", audioDirectorAgent)
     .addNode("composition", compositionAgent)
@@ -1062,8 +1138,13 @@ async function buildGraph() {
   // its brand skin joins at composition (near-zero added latency).
   g.addEdge("frame_selector", "storyboard_agent");
   g.addEdge("frame_selector", "asset_planner");
-  g.addEdge("frame_selector", "voice_agent");
+  g.addEdge("frame_selector", "caption_director");
   g.addEdge("frame_selector", "art_director");
+  // The Caption Director resolves the localization plan (translation/font); the
+  // voice node then speaks the resolved line (target language in "localized"
+  // mode), so voice waits on it. Cheap (one batched translate call), and it also
+  // feeds the composer + timeline, which is why composition joins on it below.
+  g.addEdge("caption_director", "voice_agent");
   g.addEdge("storyboard_agent", "scene_planner");
   g.addEdge("asset_planner", "asset_search");
   // Join: the Creative Director needs the scene plan AND the fetched assets. It
@@ -1071,9 +1152,10 @@ async function buildGraph() {
   // to decide presentation (count/size/crop) + type each scene's base archetype.
   g.addEdge(["scene_planner", "asset_search"], "creative_director");
   g.addEdge("creative_director", "visual_layout_director");
-  // Join: composition waits for BOTH the layout direction (archetypes + sizing/crop +
-  // re-leveled assets) and the brand skin (accent-only palette), then builds the comp.
-  g.addEdge(["visual_layout_director", "art_director"], "composition");
+  // Join: composition waits for the layout direction (archetypes + sizing/crop +
+  // re-leveled assets), the brand skin (accent-only palette), AND the caption plan
+  // (translated on-screen cues + language font/direction), then builds the comp.
+  g.addEdge(["visual_layout_director", "art_director", "caption_director"], "composition");
   g.addEdge("composition", "animation");
   // Join: the Audio Director needs the render (scene/animation plan) AND the
   // voice branch (measured VO + fetched SFX/music). It decides the mix; the

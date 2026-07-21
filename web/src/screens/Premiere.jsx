@@ -85,7 +85,12 @@ export default function Premiere({ projectId, onRemix, onNew }) {
           )}
           {project.srtUrl && (
             <a href={mediaUrl(project.srtUrl)} download className="btn-outline-dark btn-sm" style={{ textDecoration: "none" }}>
-              Captions .srt
+              Subtitles .srt
+            </a>
+          )}
+          {project.vttUrl && (
+            <a href={mediaUrl(project.vttUrl)} download className="btn-outline-dark btn-sm" style={{ textDecoration: "none" }}>
+              Subtitles .vtt
             </a>
           )}
           {project.script && (
@@ -93,6 +98,34 @@ export default function Premiere({ projectId, onRemix, onNew }) {
           )}
           <button onClick={onNew} className="link-mono on-dark" style={{ marginLeft: 4 }}>+ NEW FILM</button>
         </div>
+
+        {project.captionQuality && (
+          <div style={{ marginTop: 20, padding: "14px 16px", borderRadius: 10, border: "1px solid rgba(255,255,255,.12)", background: "rgba(255,255,255,.03)" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--color-dark-dim)", marginBottom: 10 }}>
+              {project.captionQuality.voiceLanguage
+                ? `🔊 ${project.captionQuality.voiceLanguage} · CC ${project.captionQuality.captionLanguage || project.captionLanguage}`
+                : `CAPTIONS · ${project.captionQuality.captionLanguage || project.captionLanguage}`}
+              {project.captionMode ? ` · ${project.captionMode.toUpperCase()}` : ""}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 22px" }}>
+              {[
+                ["Translation", project.captionQuality.translationQuality],
+                ["Sync", project.captionQuality.syncAccuracy],
+                ["Readability", project.captionQuality.readabilityScore],
+                ["Fonts", project.captionQuality.fontCompatibility],
+                ["Coverage", project.captionQuality.subtitleCoverage],
+              ].filter(([, v]) => v != null).map(([label, v]) => (
+                <div key={label} style={{ minWidth: 68 }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 18, fontWeight: 600, color: v >= 90 ? "#7ee081" : v >= 70 ? "#ffcf5c" : "#ff8a8a" }}>{v}%</div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 8.5, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-dark-dim)" }}>{label}</div>
+                </div>
+              ))}
+            </div>
+            {project.captionQuality.degraded && Array.isArray(project.captionQuality.notes) && project.captionQuality.notes.map((n, i) => (
+              <div key={i} style={{ marginTop: 8, fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.04em", color: "var(--color-am)", lineHeight: 1.6 }}>⚠ {n}</div>
+            ))}
+          </div>
+        )}
 
         <button onClick={() => setDetailsOpen((v) => !v)}
           style={{ marginTop: 34, cursor: "pointer", background: "none", border: "none", padding: 0, fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--color-dark-dim)" }}>

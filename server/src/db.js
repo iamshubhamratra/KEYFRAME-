@@ -106,6 +106,11 @@ function shape(j) {
     assets: j.assets || null,
     captions: j.captions || null,
     srtUrl: j.srt_url || null,
+    vttUrl: j.vtt_url || null,
+    captionConfig: j.captions_config || null,
+    captionLanguage: j.caption_language || null,
+    captionMode: j.caption_mode || null,
+    captionQuality: j.caption_quality || null,
     qa: j.qa || null,
     creativeReview: j.creative_review || null,
     audioReview: j.audio_review || null,
@@ -152,7 +157,16 @@ module.exports = {
       client_ip: job.client_ip,
       voice_style: job.voiceStyle || null,
       // Subtitles are OPT-IN: off unless the request explicitly asks for them.
-      captions_enabled: (job.captions === true || job.captionsEnabled === true) ? 1 : 0,
+      // captions_enabled stays the fast on/off flag every composer path already
+      // reads; captions_config carries the full multi-language settings object
+      // (language, mode, SRT/VTT export) the Caption Director resolves against.
+      captions_enabled: (job.captions === true || job.captionsEnabled === true
+        || (job.captionsConfig && job.captionsConfig.enabled === true)) ? 1 : 0,
+      captions_config: job.captionsConfig || null,
+      caption_language: job.captionsConfig ? job.captionsConfig.language : null,
+      caption_mode: null,
+      caption_quality: null,
+      vtt_url: null,
       upload_path: job.uploadPath || null,
       intent: job.intent || null,
       autopilot: job.autopilot ? 1 : 0,
@@ -318,11 +332,17 @@ module.exports = {
     scheduleWrite();
   },
 
-  // Caption cues + exported .srt URL.
-  setCaptions(id, { cues, srtUrl }) {
+  // Caption cues + exported subtitle files + the resolved caption language/mode
+  // and the quality report. Only the provided fields are updated so callers can
+  // set cues early and the quality report later without clobbering.
+  setCaptions(id, { cues, srtUrl, vttUrl, language, mode, quality } = {}) {
     const j = jobs.get(id); if (!j) return;
-    j.captions = cues || [];
-    j.srt_url = srtUrl || null;
+    if (cues !== undefined) j.captions = cues || [];
+    if (srtUrl !== undefined) j.srt_url = srtUrl || null;
+    if (vttUrl !== undefined) j.vtt_url = vttUrl || null;
+    if (language !== undefined) j.caption_language = language || null;
+    if (mode !== undefined) j.caption_mode = mode || null;
+    if (quality !== undefined) j.caption_quality = quality || null;
     scheduleWrite();
   },
 

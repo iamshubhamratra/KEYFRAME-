@@ -35,6 +35,7 @@ const { deriveTheme } = require("./scene_kit");
 const { resolveBrand } = require("./brand_kit");
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
 const { aspectMode, typeScale, safeArea, headlineCh } = require("./responsive");
+const { buildCaptionOverlay } = require("./caption_overlay");
 
 const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 const THREE_VER = "0.160.0";
@@ -805,6 +806,13 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     `  }},0); }`,
   ].join("\n"));
 
+  // Burned-in captions (the 3D packs previously exported an .srt but showed no
+  // subtitles). The pill rides the bottom safe area; its #cap-text picks up the
+  // caption-language font/RTL from pipeline.injectCaptionStyle. Empty when off.
+  const safe = safeArea(W, H);
+  const cap = buildCaptionOverlay({ captionCues, dims, D, safe });
+  if (cap.html) { bodyHtml.push(cap.html); overlayTweens.push("// captions", cap.script); }
+
   const moduleSrc = threeModule({ theme, dims, D, seed, sceneWindows, plates }).replace("__OVERLAY_TWEENS__", overlayTweens.join("\n"));
 
   const indexHtml = [
@@ -842,6 +850,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     `.kcount { position:absolute; right:${W >= H ? 58 : 40}px; bottom:42px; font-size:${px(12)}px; letter-spacing:.2em; color:${theme.kickCol}; }`,
     `.kbar { position:absolute; left:0; right:0; bottom:0; height:3px; background:${theme.hair}; }`,
     `.kbarfill { display:block; height:100%; width:100%; transform-origin:left; transform:scaleX(0); background:linear-gradient(90deg, ${theme.accent}, ${theme.accent3}); box-shadow:0 0 14px ${rgba(theme.accent, 0.7)}; }`,
+    cap.css || "",
     `</style>`, `</head>`, `<body>`,
     `<div id="root" data-composition-id="vid" data-start="0" data-width="${W}" data-height="${H}" data-duration="${D}">`,
     bodyHtml.join("\n"),

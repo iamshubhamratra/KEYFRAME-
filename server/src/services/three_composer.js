@@ -25,6 +25,7 @@
 // Post-processing needs the Three.js addons, so this uses an importmap + ES module.
 
 const { deriveTheme } = require("./scene_kit");
+const { buildCaptionOverlay } = require("./caption_overlay");
 
 const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 const THREE_VER = "0.160.0";
@@ -420,6 +421,12 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     overlayTweens.push(`// ${scene.id || "s" + (i + 1)}`, ov.script);
   });
 
+  // Burned-in captions (website→3D films exported an .srt but showed no subtitles).
+  // Portrait rides higher to clear the Reels UI. #cap-text gets the caption-language
+  // font/RTL from pipeline.injectCaptionStyle. Empty when captions off.
+  const cap = buildCaptionOverlay({ captionCues, dims, D, safe: { bottom: H > W ? 0.14 : 0.08 } });
+  if (cap.html) { bodyHtml.push(cap.html); overlayTweens.push("// captions", cap.script); }
+
   const moduleSrc = threeModule(theme, dims, D, seed, sceneWindows, plateTex, sb.title).replace("__OVERLAY_TWEENS__", overlayTweens.join("\n"));
 
   const indexHtml = [
@@ -435,6 +442,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     `.kf-txt { position:absolute; inset:0; z-index:10; }`,
     // Headline words render in the pack DISPLAY face (Phase 3 typography fix).
     `.kfw { display:inline-block; font-family:${theme.displayStack}; }`,
+    cap.css || "",
     `</style>`, `</head>`, `<body>`,
     `<div id="root" data-composition-id="vid" data-start="0" data-width="${W}" data-height="${H}" data-duration="${D}">`,
     bodyHtml.join("\n"),

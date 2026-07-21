@@ -37,6 +37,16 @@ const terminalComposer = require("./terminal_departures_composer");
 const paperTalesComposer = require("./paper_tales_composer");
 const frameRegistry = require("./frame_registry");
 const frameManifest = require("./frame_manifest");
+const { injectCaptionStyle, hasCaptionTarget } = require("./caption_render");
+
+// Write the composed index.html, first injecting the caption language font +
+// text-direction override (multi-language captions). A null/Latin captionStyle
+// is a no-op, so English output is byte-identical to before. This is the single
+// choke point that makes burned-in captions render correctly in ANY language
+// without editing the individual composers.
+function writeIndexHtml(jobDir, html, captionStyle) {
+  fs.writeFileSync(path.join(jobDir, "index.html"), injectCaptionStyle(html, captionStyle), "utf8");
+}
 
 // A pack can declare a dedicated renderer in its manifest (pack.json "renderer").
 // The flagship pack ("three-flagship") routes to the flagship Three.js composer.
@@ -475,7 +485,7 @@ async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets
 
 // ========== One attempt at full LLM comp + render with a given asset set ==========
 
-async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker, jobId, durationSec, label, abortSignal, framePack, captionCues, remix = false, dress = false, subject = null, brandSkin = null, layoutPlan = null }) {
+async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker, jobId, durationSec, label, abortSignal, framePack, captionCues, remix = false, dress = false, subject = null, brandSkin = null, layoutPlan = null, captionStyle = null }) {
   // `brandSkin` (Art Director) rides along to EVERY composer below, not just the
   // scene-kit. It is hue-only — accents/emphasis/glow — and carries no authority over
   // a pack's ground, ink, type, motion, layout, or semantic colors (terminal's
@@ -502,39 +512,39 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
   // asset-richness (it is built to showcase the assets in 3D). Every pipeline path
   // funnels through here, so selecting the flagship pack is all it takes.
   if (rendererFor(framePack) === "three-flagship") {
-    return composeWithFlagship({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "flagship", abortSignal, tracker, brandSkin });
+    return composeWithFlagship({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "flagship", abortSignal, tracker, brandSkin, captionStyle });
   }
   // BRIGHT LIFE TEMPLATE — a pack whose manifest declares renderer:"three-brightlife"
   // routes to the bright-cinematic Three.js composer (white ground, pastel gradients,
   // floating glass cards). Same funnel + envelope as the flagship above.
   if (rendererFor(framePack) === "three-brightlife") {
-    return composeWithBrightlife({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "brightlife", abortSignal, tracker, brandSkin });
+    return composeWithBrightlife({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "brightlife", abortSignal, tracker, brandSkin, captionStyle });
   }
   // BLUEPRINT ATELIER TEMPLATE — a pack whose manifest declares renderer:"blueprint"
   // routes to the native GSAP + SVG/CSS engineering-drawing composer. Self-contained
   // (its own chrome + scene-types); same funnel + envelope as the composers above.
   if (rendererFor(framePack) === "blueprint") {
-    return composeWithBlueprint({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "blueprint", abortSignal, tracker, brandSkin });
+    return composeWithBlueprint({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "blueprint", abortSignal, tracker, brandSkin, captionStyle });
   }
   // BLOOM FABLE TEMPLATE — a pack whose manifest declares renderer:"bloom-fable" routes
   // to the native GSAP + SVG/CSS pastel-storybook composer. Same funnel + envelope.
   if (rendererFor(framePack) === "bloom-fable") {
-    return composeWithBloom({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "bloom-fable", abortSignal, tracker, brandSkin });
+    return composeWithBloom({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "bloom-fable", abortSignal, tracker, brandSkin, captionStyle });
   }
   // BAUHAUS RIOT TEMPLATE — a pack whose manifest declares renderer:"bauhaus-riot"
   // routes to the native GSAP + SVG/CSS print-poster composer. Same funnel + envelope.
   if (rendererFor(framePack) === "bauhaus-riot") {
-    return composeWithBauhaus({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "bauhaus-riot", abortSignal, tracker, brandSkin });
+    return composeWithBauhaus({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "bauhaus-riot", abortSignal, tracker, brandSkin, captionStyle });
   }
 
   // TERMINAL DEPARTURES TEMPLATE — a pack whose manifest declares renderer:"terminal-departures"
   if (rendererFor(framePack) === "terminal-departures") {
-    return composeWithTerminal({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "terminal-departures", abortSignal, tracker, brandSkin });
+    return composeWithTerminal({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "terminal-departures", abortSignal, tracker, brandSkin, captionStyle });
   }
 
   // PAPER TALES TEMPLATE — a pack whose manifest declares renderer:"paper-tales"
   if (rendererFor(framePack) === "paper-tales") {
-    return composeWithPaperTales({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "paper-tales", abortSignal, tracker, brandSkin });
+    return composeWithPaperTales({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "paper-tales", abortSignal, tracker, brandSkin, captionStyle });
   }
   // DEFAULT = the deterministic scene-kit (guaranteed showcase-grade, lint-clean,
   // per-pack styled). Every pipeline path (runJob, graph, project_pipeline) routes
@@ -543,13 +553,32 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
   // `dress` (premium hybrid): a small bounded LLM pass art-directs the kit's
   // variants/emphasis/decor without any power to break the layout.
   if (!remix) {
-    return composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "scene-kit", abortSignal, tracker, dress, subject, brandSkin, layoutPlan });
+    return composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "scene-kit", abortSignal, tracker, dress, subject, brandSkin, layoutPlan, captionStyle });
   }
   const t0 = ms();
   console.log(`[pipeline] ${label}: LLM remix compose start (assets=${assets.length}, framePack=${framePack || "none"})`);
   await composeWithLintRepair({
     storyboard, dims, jobDir, availableAssets: assets, tracker, abortSignal, framePack, captionCues,
   });
+  // The LLM path writes index.html inside gateComposition (multiple laps), so
+  // inject the caption language font/direction onto the final on-disk document
+  // here — one post-process that catches whichever lap won. No-op for Latin.
+  if (captionStyle) {
+    try {
+      const p = path.join(jobDir, "index.html");
+      const finalHtml = fs.readFileSync(p, "utf8");
+      writeIndexHtml(jobDir, finalHtml, captionStyle);
+      // The freehand LLM composer names its caption element freely; injectCaptionStyle
+      // only reaches #kfcap/#cap-text/.cap. If the style needs a language font or RTL
+      // and no such target exists, the burn-in would render as tofu (or Arabic LTR) —
+      // warn instead of shipping that silently. system_composer.md mandates id="cap-text".
+      if ((captionStyle.fontFaceCss || captionStyle.direction === "rtl") && !hasCaptionTarget(finalHtml)) {
+        console.warn(`[pipeline] ${label}: remix caption element missing #cap-text/#kfcap/.cap — ` +
+          `${captionStyle.lang} captions may render without ${captionStyle.fontKey || "the language font"}` +
+          `${captionStyle.direction === "rtl" ? "/RTL" : ""} (the SRT/VTT sidecar is unaffected).`);
+      }
+    } catch (e) { console.warn(`[pipeline] caption font inject (llm) skipped: ${e.message}`); }
+  }
   console.log(`[pipeline] ${label}: compose done in ${ms() - t0}ms, render start`);
   tracker.addExternal("hyperframes_render");
   const visual = await render({ jobId, jobDir, durationSec, abortSignal });
@@ -564,7 +593,7 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
 // freehand → lint-clean by construction, no occlusion/truncation/junk). The agents
 // still "think" (they wrote the storyboard + picked the assets); the kit guarantees
 // the execution. This is the reliable default; the LLM composer is the opt-in remix.
-async function composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label, abortSignal, tracker, dress = false, subject = null, brandSkin = null, layoutPlan = null }) {
+async function composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label, abortSignal, tracker, dress = false, subject = null, brandSkin = null, layoutPlan = null, captionStyle = null }) {
   const t0 = ms();
   console.log(`[pipeline] ${label || "scene-kit"}: building deterministic composition (assets=${assets ? assets.length : 0}, framePack=${framePack || "none"}${dress ? ", +set-dressing" : ""})`);
   // Premium hybrid: one bounded LLM pass picks per-scene layout variants, the
@@ -619,6 +648,10 @@ async function composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack
     });
     if (en.changed) { indexHtml = en.html; console.log(`[pipeline] ${label || "scene-kit"}: +vector/motion floor`); }
   } catch (e) { console.warn(`[pipeline] scene-kit enrich skipped (${String(e.message).slice(0, 120)})`); }
+  // Inject the caption language font/direction INTO the variable (not just at the
+  // write) — validate() below re-writes index.html from this same `indexHtml`, so
+  // injecting only at write time would be clobbered by the validator's rewrite.
+  indexHtml = injectCaptionStyle(indexHtml, captionStyle);
   fs.writeFileSync(path.join(jobDir, "index.html"), indexHtml, "utf8");
   fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
   // The kit is lint-clean by construction; run the real lint anyway as a safety net
@@ -652,11 +685,11 @@ function isAssetRich(assets) {
 // DOM text overlays, driven by the same seeked timeline. Self-contained: no enrich
 // (it has its own 3D particle field) and no stock-asset weaving (visuals are
 // generated, not fetched).
-async function composeWithThree({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null }) {
+async function composeWithThree({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null, captionStyle = null }) {
   const t0 = ms();
   console.log(`[pipeline] ${label || "three"}: building Three.js/WebGL composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
   const built = threeComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin });
-  fs.writeFileSync(path.join(jobDir, "index.html"), built.indexHtml, "utf8");
+  writeIndexHtml(jobDir, built.indexHtml, captionStyle);
   fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
   tracker.addExternal("hyperframes_render");
   const visual = await render({ jobId, jobDir, durationSec, abortSignal });
@@ -672,11 +705,11 @@ async function composeWithThree({ storyboard, dims, jobDir, framePack, captionCu
 // screenshots OR generated product UI, a cinematic camera rig, selective bloom, and
 // crisp kinetic DOM typography. Self-contained (its own 3D + generated visuals), so
 // no enrich and no stock-asset weaving. Same envelope + seek contract as the others.
-async function composeWithFlagship({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null }) {
+async function composeWithFlagship({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null, captionStyle = null }) {
   const t0 = ms();
   console.log(`[pipeline] ${label || "flagship"}: building flagship Three.js composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
   const built = flagshipComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin });
-  fs.writeFileSync(path.join(jobDir, "index.html"), built.indexHtml, "utf8");
+  writeIndexHtml(jobDir, built.indexHtml, captionStyle);
   fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
   tracker.addExternal("hyperframes_render");
   const visual = await render({ jobId, jobDir, durationSec, abortSignal });
@@ -693,11 +726,11 @@ async function composeWithFlagship({ storyboard, dims, jobDir, framePack, captio
 // OR generated light dashboards, an easeInOutExpo camera rig, and indigo→violet kinetic
 // typography. Self-contained (its own 3D + generated visuals), so no enrich and no stock-asset
 // weaving. Same envelope + seek contract as the others.
-async function composeWithBrightlife({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null }) {
+async function composeWithBrightlife({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null, captionStyle = null }) {
   const t0 = ms();
   console.log(`[pipeline] ${label || "brightlife"}: building Bright Life Three.js composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
   const built = brightlifeComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin });
-  fs.writeFileSync(path.join(jobDir, "index.html"), built.indexHtml, "utf8");
+  writeIndexHtml(jobDir, built.indexHtml, captionStyle);
   fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
   tracker.addExternal("hyperframes_render");
   const visual = await render({ jobId, jobDir, durationSec, abortSignal });
@@ -713,11 +746,11 @@ async function composeWithBrightlife({ storyboard, dims, jobDir, framePack, capt
 // title block), and the storyboard's scenes injected into blueprint scene-types (title /
 // figure / flowchart / plot / revisions / cta). Self-contained (its own chrome + vector
 // art), so no enrich and no stock-asset weaving. Same envelope + seek contract as the others.
-async function composeWithBlueprint({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null }) {
+async function composeWithBlueprint({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null, captionStyle = null }) {
   const t0 = ms();
   console.log(`[pipeline] ${label || "blueprint"}: building Blueprint Atelier composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
   const built = blueprintComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin });
-  fs.writeFileSync(path.join(jobDir, "index.html"), built.indexHtml, "utf8");
+  writeIndexHtml(jobDir, built.indexHtml, captionStyle);
   fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
   tracker.addExternal("hyperframes_render");
   const visual = await render({ jobId, jobDir, durationSec, abortSignal });
@@ -732,11 +765,11 @@ async function composeWithBlueprint({ storyboard, dims, jobDir, framePack, capti
 // (bloom_composer.js): a persistent meadow (sun, clouds, hills, grass), and the storyboard's
 // scenes injected into bloom scene-types (title / plant / cards / stat-rings / ribbons / cta),
 // with real screenshots shown as framed cream cards. Self-contained; no enrich/weaving.
-async function composeWithBloom({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null }) {
+async function composeWithBloom({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null, captionStyle = null }) {
   const t0 = ms();
   console.log(`[pipeline] ${label || "bloom-fable"}: building Bloom Fable composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
   const built = bloomComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin });
-  fs.writeFileSync(path.join(jobDir, "index.html"), built.indexHtml, "utf8");
+  writeIndexHtml(jobDir, built.indexHtml, captionStyle);
   fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
   tracker.addExternal("hyperframes_render");
   const visual = await render({ jobId, jobDir, durationSec, abortSignal });
@@ -751,11 +784,11 @@ async function composeWithBloom({ storyboard, dims, jobDir, framePack, captionCu
 // (bauhaus_composer.js): cream paper + primary geometry + a sheet masthead, and the
 // storyboard's scenes injected into bauhaus scene-types (title / recipe / stats /
 // manifesto / eye / cta), with real screenshots shown as poster-framed panels.
-async function composeWithBauhaus({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null }) {
+async function composeWithBauhaus({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null, captionStyle = null }) {
   const t0 = ms();
   console.log(`[pipeline] ${label || "bauhaus-riot"}: building Bauhaus Riot composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
   const built = bauhausComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin });
-  fs.writeFileSync(path.join(jobDir, "index.html"), built.indexHtml, "utf8");
+  writeIndexHtml(jobDir, built.indexHtml, captionStyle);
   fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
   tracker.addExternal("hyperframes_render");
   const visual = await render({ jobId, jobDir, durationSec, abortSignal });
@@ -770,11 +803,11 @@ async function composeWithBauhaus({ storyboard, dims, jobDir, framePack, caption
 // GSAP + SVG/CSS airport departures-hall film (terminal_departures_composer.js): a dark
 // FIDS terminal with a signature split-flap board, hanging gate signs, a baggage belt, a
 // security beam and — for real screenshots — a mounted gate MONITOR.
-async function composeWithTerminal({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null }) {
+async function composeWithTerminal({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null, captionStyle = null }) {
   const t0 = ms();
   console.log(`[pipeline] ${label || "terminal-departures"}: building Terminal Departures composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
   const built = terminalComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin });
-  fs.writeFileSync(path.join(jobDir, "index.html"), built.indexHtml, "utf8");
+  writeIndexHtml(jobDir, built.indexHtml, captionStyle);
   fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
   tracker.addExternal("hyperframes_render");
   const visual = await render({ jobId, jobDir, durationSec, abortSignal });
@@ -788,11 +821,11 @@ async function composeWithTerminal({ storyboard, dims, jobDir, framePack, captio
 // routes here (see attemptLlmComposition). A native GSAP + SVG/CSS pop-up storybook film
 // (paper_tales_composer.js): a physical book with 3D page turns, pop-up fold-ups, a pen
 // that handwrites, and a pop-up paper cinema that shows a real screenshot.
-async function composeWithPaperTales({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null }) {
+async function composeWithPaperTales({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null, captionStyle = null }) {
   const t0 = ms();
   console.log(`[pipeline] ${label || "paper-tales"}: building Paper Tales composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
   const built = paperTalesComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin });
-  fs.writeFileSync(path.join(jobDir, "index.html"), built.indexHtml, "utf8");
+  writeIndexHtml(jobDir, built.indexHtml, captionStyle);
   fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
   tracker.addExternal("hyperframes_render");
   const visual = await render({ jobId, jobDir, durationSec, abortSignal });

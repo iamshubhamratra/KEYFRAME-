@@ -24,7 +24,9 @@ const { transcribeVideo } = require("./ingest/transcribe");
 const { generateStoryboard } = require("./storyboard");
 const { buildFallback } = require("./fallback");
 const { synthesizeFitted } = require("./vo_fit");
-const { buildCues, writeSrt } = require("./captions");
+const { buildCues, writeSrt, writeVtt } = require("./captions");
+const { resolveCaptionPlan, finalizeQuality } = require("./caption_director");
+const { injectCaptionStyle } = require("./caption_render");
 const { fetchMusic, fetchSfx } = require("./audio_sources");
 const { VALID_VOICES } = require("./audio_planner");
 const { render } = require("./renderer");
@@ -391,12 +393,36 @@ async function runProduction({ jobId }) {
     const audioDir = path.join(jobDir, "audio");
     fs.mkdirSync(audioDir, { recursive: true });
     const voice = pickVoice(job, script);
-    const voInstructions = `${script.voice.style}. Pace: ${script.voice.pace}.`;
+
+    // ---- CAPTION DIRECTOR: resolve the caption/localization plan up front (on
+    // deterministic script text, before VO is synthesized) so it can feed all
+    // three consumers — VO (speaks the chosen voiceover language), the composer
+    // (burns translated captions in the right font/direction), and the SRT/VTT
+    // export. Fail-open: a null plan degrades to the pre-feature English path.
+    const captionConfig = job.captions_config != null ? job.captions_config : (job.captions_enabled === 1);
+    const captionPlan = await resolveCaptionPlan({ captionConfig, script, brief, job, tracker })
+      .catch((e) => { console.warn(`[project] caption director failed: ${e.message}`); return null; });
+    if (captionPlan) {
+      console.log(`[project] captions: ${captionPlan.enabled ? "on" : "off"} subs=${captionPlan.language} voice=${captionPlan.voiceLanguage} mode=${captionPlan.mode}` +
+        (captionPlan.mode !== "original" ? ` (subs ${captionPlan.translate.translatedCount}/${captionPlan.translate.totalCount}${captionPlan.translate.ok ? "" : " FELL BACK"})` : ""));
+    }
+    // The exact text each scene SPEAKS: the line in the chosen voiceover language,
+    // else the original script line.
+    const voTextFor = (s) => (captionPlan && captionPlan.voTextById[String(s.id)]) || s.voiceover;
+    const captionStyle = captionPlan ? captionPlan.captionStyle : null;
+    // Tell the TTS to speak in a non-English voiceover language natively — but
+    // ONLY when the VO text was actually translated. On a translation failure
+    // voTextById reverts to English source, so emitting the directive would make
+    // gpt-audio read English under a "speak in <lang>" instruction (a silent desync).
+    const voLangName = captionPlan && captionPlan.voiceLanguage && captionPlan.voiceLanguage !== "en"
+      && captionPlan.voiceTranslate?.ok !== false
+      ? captionPlan.voiceLanguageName : null;
+    const voInstructions = `${voLangName ? `Speak entirely in ${voLangName}, as a native speaker. ` : ""}${script.voice.style}. Pace: ${script.voice.pace}.`;
 
     const voTask = Promise.all(script.scenes.map((s) =>
       (s.voiceover && s.voiceover.trim())
         ? synthesizeFitted({
-            text: s.voiceover, targetSec: s.duration, voice,
+            text: voTextFor(s), targetSec: s.duration, voice,
             instructions: voInstructions,
             outputPath: path.join(audioDir, `vo-${s.id}.mp3`),
             tracker,
@@ -454,21 +480,24 @@ async function runProduction({ jobId }) {
         db.setAssets(jobId, assets);
       }
 
-      // Caption cues for ON-SCREEN baking. Estimated from word count (the
-      // composer can't wait for measured VO without serializing the
-      // pipeline); the exported .srt later uses real measured durations.
+      // Caption cues for ON-SCREEN baking. The Caption Director already built
+      // these (estimated timing, resolved+translated text, language-aware
+      // duration); the exported .srt/.vtt later uses real measured durations.
+      // Fall back to the pre-feature English estimate if the plan is missing.
       const wc = (s) => (String(s || "").match(/\S+/g) || []).length;
-      const captionCues = job.captions_enabled === 0 ? [] : buildCues(
-        script.scenes
-          .filter((s) => s.voiceover && s.voiceover.trim())
-          .map((s) => ({
-            sceneId: s.id,
-            startSec: s.start,
-            durationSec: Math.min(s.duration, wc(s.voiceover) / 2.6 + 0.4),
-            sceneDurationSec: s.duration,
-            text: s.voiceover,
-          }))
-      ).map((c) => ({ start: Math.round(c.start * 10) / 10, end: Math.round(c.end * 10) / 10, text: c.text }));
+      const captionCues = captionPlan
+        ? captionPlan.bakedCues
+        : (job.captions_enabled === 0 ? [] : buildCues(
+            script.scenes
+              .filter((s) => s.voiceover && s.voiceover.trim())
+              .map((s) => ({
+                sceneId: s.id,
+                startSec: s.start,
+                durationSec: Math.min(s.duration, wc(s.voiceover) / 2.6 + 0.4),
+                sceneDurationSec: s.duration,
+                text: s.voiceover,
+              }))
+          ).map((c) => ({ start: Math.round(c.start * 10) / 10, end: Math.round(c.end * 10) / 10, text: c.text })));
 
       // ---- Compose + render (frame-pack styled), with the v1 budget wrapper.
       // Tier 1: with assets. Tier 2: asset-less. Tier 3: deterministic fallback.
@@ -480,7 +509,7 @@ async function runProduction({ jobId }) {
           (signal) => attemptLlmComposition({
             storyboard: sbRes.storyboard, dims, jobDir,
             assets, tracker, jobId, durationSec: duration,
-            label: "project-main", abortSignal: signal, framePack, captionCues,
+            label: "project-main", abortSignal: signal, framePack, captionCues, captionStyle,
           }),
           budget, "project composition"
         );
@@ -496,7 +525,7 @@ async function runProduction({ jobId }) {
               (signal) => attemptLlmComposition({
                 storyboard: sbRes.storyboard, dims, jobDir,
                 assets: [], tracker, jobId, durationSec: duration,
-                label: "project-no-assets", abortSignal: signal, framePack, captionCues,
+                label: "project-no-assets", abortSignal: signal, framePack, captionCues, captionStyle,
               }),
               budget, "project no-assets retry"
             );
@@ -522,8 +551,12 @@ async function runProduction({ jobId }) {
             orientation: job.orientation, width: dims.width, height: dims.height, fps: dims.fps,
             storyboard: sbRes.storyboard,
             packTokens: framePack ? require("./frame_registry").getPackTokens(framePack) : null,
+            // Bake the (translated) captions into the emergency template too, so a
+            // non-Latin film that falls all the way through still ships subtitles —
+            // injectCaptionStyle below now covers the fallback's `.cap` elements.
+            assets, captionCues,
           });
-          fs.writeFileSync(path.join(jobDir, "index.html"), fb.indexHtml, "utf8");
+          fs.writeFileSync(path.join(jobDir, "index.html"), injectCaptionStyle(fb.indexHtml, captionStyle), "utf8");
           fs.writeFileSync(path.join(jobDir, "meta.json"), fb.metaJson, "utf8");
           tracker.addExternal("hyperframes_render");
           visualResult = await render({ jobId, jobDir, durationSec: duration });
@@ -538,15 +571,40 @@ async function runProduction({ jobId }) {
       const [voClips, musicPath, sfxClips] = await Promise.all([voTask, musicTask, sfxTask]);
       if (sfxClips.length) console.log(`[project] ${sfxClips.length} sfx mixed in`);
 
-      // Captions: cue objects + .srt exported next to the MP4.
-      const cues = buildCues(voClips);
+      // Captions: cue objects + subtitle files exported next to the MP4. Timing
+      // comes from the MEASURED VO clips; the caption TEXT is the resolved
+      // (possibly translated) line per scene — for "translated" mode the VO is
+      // English but the subtitle is the target language, so we remap each clip's
+      // text to the Caption Director's caption text before building cues.
+      const captionClips = voClips.map((c) => ({
+        ...c,
+        text: (captionPlan && captionPlan.captionTextById[String(c.sceneId)]) || c.text,
+      }));
+      const cues = buildCues(captionClips);
       if (cues.length) {
         try {
-          const srtPath = path.join(config.paths.videosDir, `${jobId}.srt`);
-          writeSrt(cues, srtPath);
-          db.setCaptions(jobId, { cues, srtUrl: `/videos/${jobId}.srt` });
+          const wantSrt = !captionPlan || captionPlan.exportSRT;
+          const wantVtt = !captionPlan || captionPlan.exportVTT;
+          let srtUrl, vttUrl;
+          if (wantSrt) { writeSrt(cues, path.join(config.paths.videosDir, `${jobId}.srt`)); srtUrl = `/videos/${jobId}.srt`; }
+          if (wantVtt) { writeVtt(cues, path.join(config.paths.videosDir, `${jobId}.vtt`)); vttUrl = `/videos/${jobId}.vtt`; }
+          // Finalize + persist the caption quality report (sync/readability/coverage
+          // now known from the measured clips).
+          const quality = captionPlan
+            ? finalizeQuality(captionPlan, {
+                voScenes: script.scenes.filter((s) => s.voiceover && s.voiceover.trim()),
+                measuredCues: cues, voClips,
+              })
+            : undefined;
+          db.setCaptions(jobId, {
+            cues, srtUrl, vttUrl,
+            language: captionPlan ? captionPlan.language : undefined,
+            mode: captionPlan ? captionPlan.mode : undefined,
+            quality,
+          });
+          if (quality) console.log(`[project] caption quality — lang=${quality.languageCode} sync=${quality.syncAccuracy} read=${quality.readabilityScore} cov=${quality.subtitleCoverage} font=${quality.fontCompatibility} xlate=${quality.translationQuality}`);
         } catch (e) {
-          console.warn(`[project] srt write failed: ${e.message}`);
+          console.warn(`[project] subtitle export failed: ${e.message}`);
         }
       }
 

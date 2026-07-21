@@ -80,7 +80,7 @@ function sweepVideos(now) {
   let removedTtl = 0;
 
   for (const ent of entries) {
-    if (!ent.isFile() || !(ent.name.endsWith(".mp4") || ent.name.endsWith(".srt") || ent.name.endsWith(".jpg"))) continue;
+    if (!ent.isFile() || !(ent.name.endsWith(".mp4") || ent.name.endsWith(".srt") || ent.name.endsWith(".vtt") || ent.name.endsWith(".jpg"))) continue;
     const full = path.join(config.paths.videosDir, ent.name);
     const st = statOr(full);
     if (!st) continue;

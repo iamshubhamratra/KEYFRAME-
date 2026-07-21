@@ -68,4 +68,24 @@ function writeSrt(cues, outputPath) {
   return outputPath;
 }
 
-module.exports = { buildCues, toSrt, writeSrt };
+// WebVTT timestamp — like SRT but with a DOT before the milliseconds (the spec
+// requires "HH:MM:SS.mmm", not the comma SRT uses).
+function fmtTimeVtt(sec) {
+  return fmtTime(sec).replace(",", ".");
+}
+
+// WebVTT is the native <track> format for HTML5 <video>, YouTube, and most
+// social players. Same cues as the SRT; only the header + timestamp punctuation
+// differ. A cue index line is optional in VTT but harmless and aids debugging.
+function toVtt(cues) {
+  return "WEBVTT\n\n" + cues
+    .map((c, i) => `${i + 1}\n${fmtTimeVtt(c.start)} --> ${fmtTimeVtt(c.end)}\n${c.text}\n`)
+    .join("\n") + "\n";
+}
+
+function writeVtt(cues, outputPath) {
+  fs.writeFileSync(outputPath, toVtt(cues), "utf8");
+  return outputPath;
+}
+
+module.exports = { buildCues, toSrt, writeSrt, toVtt, writeVtt };

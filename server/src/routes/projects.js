@@ -18,6 +18,8 @@ const { customAlphabet } = require("nanoid");
 const config = require("../config");
 const db = require("../db");
 const frameRegistry = require("../services/frame_registry");
+const captionLang = require("../services/caption_lang");
+const captionDirector = require("../services/caption_director");
 const { validateScript, normalizeScript } = require("../services/script");
 
 const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 10);
@@ -160,10 +162,32 @@ function validateCreate(body, { hasUpload = false } = {}) {
 
   out.voiceStyle = typeof body.voiceStyle === "string" ? body.voiceStyle.slice(0, 200) : null;
   out.autopilot = body.autopilot === true || body.autopilot === "true";
-  // Subtitles/captions are OPT-IN (default OFF) — baked captions overlap scene
-  // content and users overwhelmingly dislike burnt-in subtitles. Matches the
-  // /api/generate route. Turn on only with an explicit captions:true (or "true").
-  out.captions = body.captions === true || body.captions === "true";
+  // Captions — OPT-IN. Accepts either the legacy boolean (`captions: true`) or the
+  // multi-language config object `{ enabled, language, translateVoiceover |
+  // voiceoverLanguage, exportSRT, exportVTT }`. Over multipart (file uploads) the
+  // object arrives JSON-stringified, so parse a "{...}" string first.
+  {
+    let capIn = body.captions;
+    if (typeof capIn === "string") {
+      const s = capIn.trim();
+      if (s === "true" || s === "false") capIn = s === "true";
+      else if (s.startsWith("{")) { try { capIn = JSON.parse(s); } catch { capIn = undefined; } }
+    }
+    if (capIn && typeof capIn === "object" && capIn.enabled !== false) {
+      const supported = captionLang.listLanguages().map((l) => l.code).join(", ");
+      // Validate BOTH the caption language and the (independent) voiceover language.
+      for (const [field, val] of [["caption", capIn.language], ["voiceover", capIn.voiceoverLanguage]]) {
+        if (val == null) continue;
+        if (!captionLang.normalizeLang(val)) {
+          if (captionLang.isFuture(val)) errs.push(`${field} language "${val}" is coming soon; supported now: ${supported}`);
+          else errs.push(`unsupported ${field} language "${val}"; supported: ${supported}`);
+        }
+      }
+    }
+    const cfg = captionDirector.normalizeConfig(capIn);
+    out.captions = cfg.enabled;   // preserve the legacy boolean the rest of the code reads
+    out.captionsConfig = cfg;     // full multi-language settings for the Caption Director
+  }
 
   // Three.js/WebGL cinematic composer (opt-in). Website screenshots texture the
   // reveal plate. Default off → scene-kit / LLM composer.
@@ -317,6 +341,7 @@ function buildRouter({ enqueueIntake, enqueueProduction }) {
       voiceStyle: out.voiceStyle,
       autopilot: out.autopilot,
       captionsEnabled: out.captions,
+      captionsConfig: out.captionsConfig || null,
       render3d: out.render3d,
       composeMode: out.composeMode,
       uploadPath,
