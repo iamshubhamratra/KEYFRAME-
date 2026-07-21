@@ -28,6 +28,8 @@ const { styleFor, iconColorFor } = require("../services/pack_style");
 const { synthesizeFitted } = require("../services/vo_fit");
 const { buildCues, writeSrt, writeVtt } = require("../services/captions");
 const { resolveCaptionPlan, finalizeQuality } = require("../services/caption_director");
+const captionDirector = require("../services/caption_director");
+const captionLang = require("../services/caption_lang");
 const { injectCaptionStyle } = require("../services/caption_render");
 const { fetchMusic } = require("../services/audio_sources");
 const { getSfx } = require("../services/sfx_library");
@@ -46,6 +48,29 @@ const { coverageFromHtml } = require("../services/asset_coverage");
 
 function ms() { return Date.now(); }
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
+
+// Packs whose on-screen text is NOT DOM-localizable: flagship/brightlife bake text into
+// WebGL canvas textures (CSS/DOM can't reach it); terminal-departures runs text through
+// an [A-Z0-9] split-flap filter that DELETES non-Latin characters. For a non-Latin
+// video-text language, these produce broken/English output — the frame selector prefers
+// a clean pack (or discloses when the user explicitly chose one).
+const CANVAS_OR_CHARSET_RENDERERS = new Set(["three-flagship", "three-brightlife", "three", "terminal-departures"]);
+function rendererOf(pack) {
+  try { const m = require("../services/frame_manifest").getManifest(pack); return (m && m.renderer) || ""; }
+  catch { return ""; }
+}
+function isCanvasOrCharsetPack(pack) { return CANVAS_OR_CHARSET_RENDERERS.has(rendererOf(pack)); }
+// Prefer the brief's suggestion when it's clean, else the first clean pack in the
+// registry, else the global default.
+function pickCleanPack(prefer) {
+  const p = frameRegistry.resolvePack(prefer);
+  if (p && !isCanvasOrCharsetPack(p)) return p;
+  for (const id of frameRegistry.listPacks()) {
+    const rp = frameRegistry.resolvePack(id);
+    if (rp && !isCanvasOrCharsetPack(rp)) return rp;
+  }
+  return frameRegistry.resolvePack("auto");
+}
 
 // ---------------------------------------------------------------- helpers
 function storyboardPromptFromScript(script, brief) {
@@ -159,12 +184,37 @@ async function frameSelectorAgent(s) {
   const explicit = (requested && requested !== "auto")
     ? frameRegistry.resolvePack(requested)   // valid id → that pack; stale id → null
     : null;
-  const framePack = explicit
+  let framePack = explicit
     || frameRegistry.resolvePack(s.brief?.suggestedFramePack)
     || frameRegistry.resolvePack("auto");
-  const via = explicit ? "user" : (frameRegistry.resolvePack(s.brief?.suggestedFramePack) ? "brief" : "default");
+  let via = explicit ? "user" : (frameRegistry.resolvePack(s.brief?.suggestedFramePack) ? "brief" : "default");
+
+  // ON-SCREEN LOCALIZATION ROUTING — a non-Latin video-text language cannot render on the
+  // canvas/charset packs. If the pack was auto/brief-picked, swap to a clean pack; if the
+  // USER explicitly chose one, honor it but flag the localization gap for disclosure.
+  let localizationPackWarning = null;
+  try {
+    const cfg = captionDirector.normalizeConfig(
+      s.job.captions_config != null ? s.job.captions_config : (s.job.captions_enabled === 1)
+    );
+    const vtl = cfg.videoTextLanguage;
+    const needsFont = vtl && vtl !== captionDirector.SOURCE_LANG && !!(captionLang.langMeta(vtl)?.font);
+    if (needsFont && isCanvasOrCharsetPack(framePack)) {
+      if (via === "user") {
+        localizationPackWarning = `The "${framePack}" template bakes some text into graphics that can't be localized — headings are translated, but its built-in labels stay English.`;
+        console.warn(`[agents] frame_selector: ${framePack} can't fully localize on-screen text to ${vtl}; honoring explicit pick with a disclosure`);
+      } else {
+        const clean = pickCleanPack(s.brief?.suggestedFramePack);
+        if (clean && clean !== framePack) {
+          console.log(`[agents] frame_selector: swapped ${framePack} → ${clean} for non-Latin on-screen text (${vtl})`);
+          framePack = clean; via = `${via}+localized`;
+        }
+      }
+    }
+  } catch (e) { console.warn(`[agents] frame_selector localization routing skipped: ${e.message}`); }
+
   console.log(`[agents] frame_selector → ${framePack} (${via})`);
-  return { framePack };
+  return { framePack, localizationPackWarning };
 }
 
 async function storyboardAgent(s) {
@@ -614,6 +664,41 @@ async function visualLayoutDirectorAgent(s) {
   if (review) { try { db.setLayoutReview(s.job.id, review); } catch { /* best effort */ } }
   try { db.setAssets(s.job.id, assets); } catch { /* best effort */ }
   return { assets, layoutPlan };
+}
+
+// Localization Director — translates the storyboard's ON-SCREEN text (headline, subtext,
+// bullets, onScreenText, emphasis, and the film title) into the VIDEO-TEXT language so
+// the film reads as designed-in-language rather than translated-after. Runs AFTER the
+// storyboard is fully built (it needs the on-screen strings) and after the Caption
+// Director (which resolved videoTextLanguage). It MUTATES the storyboard scenes in place
+// — they flow by reference into composition. Fully fail-open: any failure leaves English
+// text and discloses it. No-op when the video-text language is the source (English).
+async function localizationDirectorAgent(s) {
+  const plan = s.captionPlan;
+  const vtl = plan && plan.videoTextLanguage;
+  if (!vtl || vtl === captionDirector.SOURCE_LANG || !s.storyboard) return {};
+  db.setProgress(s.job.id, "localization");
+  const report = await captionDirector.localizeStoryboardText({
+    storyboard: s.storyboard,
+    videoTextLanguage: vtl,
+    videoTextLanguageName: plan.videoTextLanguageName,
+    textStyle: plan.captionStyle && plan.captionStyle.text,
+    brief: s.brief, job: s.job, script: s.script, tracker: s.tracker,
+  }).catch((e) => { console.warn(`[agents] localization_director failed: ${e.message}`); return null; });
+  if (report) {
+    // Fold in the explicit-canvas-pack disclosure from the frame selector, if any.
+    if (s.localizationPackWarning) {
+      report.notes = [...(report.notes || []), s.localizationPackWarning];
+      report.degraded = true;
+    }
+    persistLocalization(s, report);
+    console.log(`[agents] localization_director → ${vtl} (${report.translatedElements}/${report.elementCount} verified, coverage ${report.localizationCoverage}%)`);
+  }
+  return { storyboard: s.storyboard };
+}
+
+function persistLocalization(s, report) {
+  try { db.setLocalization(s.job.id, report); } catch { /* fail-open: disclosure never blocks a render */ }
 }
 
 // Caption Director — resolves the caption / localization plan (translation,
@@ -1104,7 +1189,7 @@ async function buildGraph() {
     brief: Annotation(), script: Annotation(),
     framePack: Annotation(), storyboard: Annotation(),
     brandSkin: Annotation(), layoutPlan: Annotation(),
-    captionPlan: Annotation(),
+    captionPlan: Annotation(), localizationPackWarning: Annotation(),
     assetPlan: Annotation(), assets: Annotation(),
     voClips: Annotation(), sfxClips: Annotation(), musicPath: Annotation(), audioPlan: Annotation(),
     visual: Annotation(), usedFallback: Annotation(), finalAttempt: Annotation(), rendered: Annotation(),
@@ -1124,6 +1209,7 @@ async function buildGraph() {
     .addNode("creative_director", creativeDirectorAgent)
     .addNode("visual_layout_director", visualLayoutDirectorAgent)
     .addNode("caption_director", captionDirectorAgent)
+    .addNode("localization_director", localizationDirectorAgent)
     .addNode("voice_agent", voiceAgent)
     .addNode("audio_director", audioDirectorAgent)
     .addNode("composition", compositionAgent)
@@ -1152,10 +1238,15 @@ async function buildGraph() {
   // to decide presentation (count/size/crop) + type each scene's base archetype.
   g.addEdge(["scene_planner", "asset_search"], "creative_director");
   g.addEdge("creative_director", "visual_layout_director");
-  // Join: composition waits for the layout direction (archetypes + sizing/crop +
-  // re-leveled assets), the brand skin (accent-only palette), AND the caption plan
-  // (translated on-screen cues + language font/direction), then builds the comp.
-  g.addEdge(["visual_layout_director", "art_director", "caption_director"], "composition");
+  // The Localization Director translates the storyboard's ON-SCREEN text into the
+  // video-text language. It needs the fully-built storyboard (via visual_layout_director,
+  // which is downstream of scene_planner) AND the resolved videoTextLanguage (from
+  // caption_director), so it joins on both; composition then waits on it + the brand skin.
+  g.addEdge(["visual_layout_director", "caption_director"], "localization_director");
+  // Join: composition waits for the localized storyboard (archetypes + sizing/crop +
+  // re-leveled assets + translated on-screen text) AND the brand skin (accent-only
+  // palette). The caption plan's font/direction rides through localization_director.
+  g.addEdge(["localization_director", "art_director"], "composition");
   g.addEdge("composition", "animation");
   // Join: the Audio Director needs the render (scene/animation plan) AND the
   // voice branch (measured VO + fetched SFX/music). It decides the mix; the

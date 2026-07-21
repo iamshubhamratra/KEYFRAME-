@@ -25,7 +25,7 @@ const { generateStoryboard } = require("./storyboard");
 const { buildFallback } = require("./fallback");
 const { synthesizeFitted } = require("./vo_fit");
 const { buildCues, writeSrt, writeVtt } = require("./captions");
-const { resolveCaptionPlan, finalizeQuality } = require("./caption_director");
+const { resolveCaptionPlan, finalizeQuality, localizeStoryboardText } = require("./caption_director");
 const { injectCaptionStyle } = require("./caption_render");
 const { fetchMusic, fetchSfx } = require("./audio_sources");
 const { VALID_VOICES } = require("./audio_planner");
@@ -478,6 +478,26 @@ async function runProduction({ jobId }) {
           brief, framePack, assets, tracker, jobDir, orientation: job.orientation,
         });
         db.setAssets(jobId, assets);
+      }
+
+      // ---- On-screen text localization (Video Text Language) ----
+      // Translate the storyboard's headlines/subtext/bullets/onScreenText into the
+      // video-text language, MUTATING sbRes.storyboard in place so the composer renders
+      // localized text. Fail-open; no-op when the target is the source (English). (This
+      // legacy pipeline does not reroute canvas/charset packs — the agent graph does.)
+      if (captionPlan && captionPlan.videoTextLanguage && captionPlan.videoTextLanguage !== captionPlan.sourceLang) {
+        db.setProgress(jobId, "localization");
+        const locReport = await localizeStoryboardText({
+          storyboard: sbRes.storyboard,
+          videoTextLanguage: captionPlan.videoTextLanguage,
+          videoTextLanguageName: captionPlan.videoTextLanguageName,
+          textStyle: captionPlan.captionStyle && captionPlan.captionStyle.text,
+          brief, job, script, tracker,
+        }).catch((e) => { console.warn(`[project] localization failed: ${e.message}`); return null; });
+        if (locReport) {
+          try { db.setLocalization(jobId, locReport); } catch { /* fail-open */ }
+          console.log(`[project] localization → ${captionPlan.videoTextLanguage} (${locReport.translatedElements}/${locReport.elementCount} verified, ${locReport.localizationCoverage}%)`);
+        }
       }
 
       // Caption cues for ON-SCREEN baking. The Caption Director already built

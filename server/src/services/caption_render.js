@@ -42,6 +42,18 @@ function buildCaptionStyle(lang) {
   };
 }
 
+// Resolve the combined LANGUAGE STYLE for a film: the CAPTION-language style (applied
+// to the caption elements) and the VIDEO-TEXT-language style (applied to ALL on-screen
+// text). Either may be null (Latin/English needs no font). Returns null when neither
+// language needs a font/direction, so English output stays byte-identical.
+//   { caption: <style|null>, text: <style|null> }
+function buildLanguageStyles(capLang, textLang, { captionsEnabled = true } = {}) {
+  const caption = captionsEnabled ? buildCaptionStyle(capLang) : null;
+  const text = buildCaptionStyle(textLang);
+  if (!caption && !text) return null;
+  return { caption, text };
+}
+
 // The caption element selectors every burn-in path uses. Kept here so there is
 // one place to update when a path introduces a different id/class:
 //   scene-kit                         -> #kfcap
@@ -50,31 +62,57 @@ function buildCaptionStyle(lang) {
 //     or a non-Latin film that falls through to the emergency template renders
 //     its captions as tofu / loses RTL)
 const CAPTION_SELECTORS = "#kfcap, #cap-text, .cap";
+// Every text element in the document — used to swap the WHOLE film's font/direction
+// into the VIDEO-TEXT language. Targets descendants directly (not just `body`) so the
+// stylesheet `!important` beats each element's OWN inline/class font-family — inheriting
+// from `body` alone would not override an element that sets its own font (the same bet
+// the caption override relies on, now applied to all on-screen text).
+const TEXT_SELECTORS = "body, body *";
 
-// Inject the language font + direction override into a finished HTML document.
-// Returns the HTML unchanged when there is nothing to do (null style, or a style
-// with neither a font nor an RTL requirement).
-function injectCaptionStyle(html, captionStyle) {
-  if (!html || typeof html !== "string" || !captionStyle) return html;
-  const hasFont = !!captionStyle.fontFaceCss;
-  const isRtl = captionStyle.direction === "rtl";
-  if (!hasFont && !isRtl) return html;
+function styleDecls(style, { withOverflow = false } = {}) {
+  const decls = [];
+  if (style.fontFamily) decls.push(`font-family:${style.fontFamily} !important`);
+  if (style.direction === "rtl") { decls.push("direction:rtl"); decls.push("unicode-bidi:isolate"); }
+  if (withOverflow) decls.push("overflow-wrap:anywhere");
+  return decls;
+}
 
+// Inject the language font(s) + direction into a finished HTML document. Accepts the
+// combined language style `{ caption, text }` (from buildLanguageStyles) — `text` fonts
+// ALL on-screen text (video-text language), `caption` fonts the caption elements
+// (caption language) and wins on them via id-specificity. Also accepts a legacy single
+// caption style for back-compat. Returns the HTML unchanged when there's nothing to do
+// (null style, or Latin/English with no font or RTL), so English output is byte-identical.
+function injectCaptionStyle(html, style) {
+  if (!html || typeof html !== "string" || !style) return html;
+  // Normalize: combined { caption, text } vs a legacy single caption style.
+  const combined = ("caption" in style || "text" in style) ? style : { caption: style, text: null };
+  const caption = combined.caption || null;
+  const text = combined.text || null;
+
+  const needsCaption = !!(caption && (caption.fontFaceCss || caption.direction === "rtl"));
+  const needsText = !!(text && (text.fontFaceCss || text.direction === "rtl"));
+  if (!needsCaption && !needsText) return html;
+
+  const faces = new Map(); // dedupe @font-face when caption + text share a language
   const rules = [];
-  if (captionStyle.fontFamily) rules.push(`font-family:${captionStyle.fontFamily} !important`);
-  if (isRtl) { rules.push("direction:rtl"); rules.push("unicode-bidi:isolate"); }
-  // Long unbroken runs (CJK, URLs, hashtags) must never overflow the caption
-  // pill — allow a break anywhere as a safety net. Latin word wrapping is
-  // unaffected because normal wrapping still prefers spaces.
-  rules.push("overflow-wrap:anywhere");
+  // Video-text language: font + direction on ALL text.
+  if (needsText) {
+    if (text.fontFaceCss) faces.set(text.fontKey || text.lang, text.fontFaceCss);
+    rules.push(`${TEXT_SELECTORS}{${styleDecls(text).join(";")};}`);
+  }
+  // Caption language: font + direction on the caption elements (id specificity beats
+  // the all-text rule, so a DIFFERENT caption language still wins on captions).
+  if (needsCaption) {
+    if (caption.fontFaceCss) faces.set(caption.fontKey || caption.lang, caption.fontFaceCss);
+    rules.push(`${CAPTION_SELECTORS}{${styleDecls(caption, { withOverflow: true }).join(";")};}`);
+  } else if (needsText) {
+    // Captions are text too — keep them wrappable even when there's no separate caption language.
+    rules.push(`${CAPTION_SELECTORS}{overflow-wrap:anywhere;}`);
+  }
 
-  const blocks = [];
-  if (hasFont) blocks.push(captionStyle.fontFaceCss);
-  // `!important` in a stylesheet rule beats the composers' inline caption
-  // font (`#kfcap` uses an inline `font:` shorthand; the override still wins).
-  blocks.push(`${CAPTION_SELECTORS}{${rules.join(";")};}`);
-
-  const styleTag = `\n<style data-kf-caption-i18n="${captionStyle.lang || ""}">${blocks.join("\n")}</style>\n`;
+  const langAttr = (text && text.lang) || (caption && caption.lang) || "";
+  const styleTag = `\n<style data-kf-caption-i18n="${langAttr}">${[...faces.values(), ...rules].join("\n")}</style>\n`;
 
   if (/<\/head>/i.test(html)) return html.replace(/<\/head>/i, styleTag + "</head>");
   if (/<\/body>/i.test(html)) return html.replace(/<\/body>/i, styleTag + "</body>");
@@ -90,4 +128,4 @@ function hasCaptionTarget(html) {
   return /id=["']kfcap["']|id=["']cap-text["']|class=["'][^"']*\bcap\b/.test(String(html || ""));
 }
 
-module.exports = { buildCaptionStyle, injectCaptionStyle, hasCaptionTarget, CAPTION_SELECTORS };
+module.exports = { buildCaptionStyle, buildLanguageStyles, injectCaptionStyle, hasCaptionTarget, CAPTION_SELECTORS };

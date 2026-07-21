@@ -66,6 +66,10 @@ export default function CreateScreen({ onCreated, prefill }) {
   // in services/caption_lang.js.
   const [captionLang, setCaptionLang] = useState("en");
   const [voiceLang, setVoiceLang] = useState("en");
+  // On-screen (video-text) language — the text baked INSIDE the video (headlines, CTAs,
+  // stat labels). "auto" follows the voiceover language so the whole film reads in one
+  // language by default; a code overrides it independently.
+  const [videoTextLang, setVideoTextLang] = useState("auto");
   const [finish, setFinish] = useState("standard"); // standard = scene-kit · premium = LLM composer · cinema = Three.js 3D set
   const [brandChoice, setBrandChoice] = useState("template"); // "template" (no override) · a preset id · "custom"
   // Null until the user actually moves a color well, so the manual stops keep
@@ -162,6 +166,7 @@ export default function CreateScreen({ onCreated, prefill }) {
           enabled: true,
           language: captionLang,
           voiceoverLanguage: voiceLang,
+          videoTextLanguage: videoTextLang, // "auto" = match voiceover; else a language code
           exportSRT: true,
           exportVTT: true,
         } : false,
@@ -434,6 +439,20 @@ export default function CreateScreen({ onCreated, prefill }) {
                     aria-label="Caption language"
                     style={{ width: "100%", boxSizing: "border-box", fontFamily: "var(--font-mono)", fontSize: 12, letterSpacing: "0.03em", padding: "9px 11px", borderRadius: 8, background: "var(--color-paper-2)", border: "1px solid rgba(23,19,14,.25)", color: "var(--color-ink)", cursor: "pointer" }}
                   >
+                    {CAPTION_LANGS.map((l) => (
+                      <option key={l.code} value={l.code}>{l.label}{l.code === "en" ? " — source" : ""}</option>
+                    ))}
+                  </select>
+                </label>
+                <label style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+                  <span className="label-mono">🎬 VIDEO TEXT LANGUAGE</span>
+                  <select
+                    value={videoTextLang}
+                    onChange={(e) => setVideoTextLang(e.target.value)}
+                    aria-label="On-screen video text language"
+                    style={{ width: "100%", boxSizing: "border-box", fontFamily: "var(--font-mono)", fontSize: 12, letterSpacing: "0.03em", padding: "9px 11px", borderRadius: 8, background: "var(--color-paper-2)", border: "1px solid rgba(23,19,14,.25)", color: "var(--color-ink)", cursor: "pointer" }}
+                  >
+                    <option value="auto">Auto Match Voiceover</option>
                     {CAPTION_LANGS.map((l) => (
                       <option key={l.code} value={l.code}>{l.label}{l.code === "en" ? " — source" : ""}</option>
                     ))}

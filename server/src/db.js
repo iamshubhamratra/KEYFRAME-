@@ -111,6 +111,7 @@ function shape(j) {
     captionLanguage: j.caption_language || null,
     captionMode: j.caption_mode || null,
     captionQuality: j.caption_quality || null,
+    localization: j.localization || null,
     qa: j.qa || null,
     creativeReview: j.creative_review || null,
     audioReview: j.audio_review || null,
@@ -343,6 +344,14 @@ module.exports = {
     if (language !== undefined) j.caption_language = language || null;
     if (mode !== undefined) j.caption_mode = mode || null;
     if (quality !== undefined) j.caption_quality = quality || null;
+    scheduleWrite();
+  },
+
+  // On-screen text localization report (video-text language + coverage). Surfaced in
+  // Premiere; best-effort disclosure, never gates a render.
+  setLocalization(id, report) {
+    const j = jobs.get(id); if (!j) return;
+    j.localization = report || null;
     scheduleWrite();
   },
 

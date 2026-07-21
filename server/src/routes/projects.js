@@ -175,9 +175,11 @@ function validateCreate(body, { hasUpload = false } = {}) {
     }
     if (capIn && typeof capIn === "object" && capIn.enabled !== false) {
       const supported = captionLang.listLanguages().map((l) => l.code).join(", ");
-      // Validate BOTH the caption language and the (independent) voiceover language.
-      for (const [field, val] of [["caption", capIn.language], ["voiceover", capIn.voiceoverLanguage]]) {
-        if (val == null) continue;
+      // Validate the caption language, the (independent) voiceover language, and the
+      // on-screen video-text language. "auto" is the video-text default (match voiceover)
+      // and is not a language code, so it skips validation.
+      for (const [field, val] of [["caption", capIn.language], ["voiceover", capIn.voiceoverLanguage], ["video text", capIn.videoTextLanguage]]) {
+        if (val == null || String(val).toLowerCase() === "auto") continue;
         if (!captionLang.normalizeLang(val)) {
           if (captionLang.isFuture(val)) errs.push(`${field} language "${val}" is coming soon; supported now: ${supported}`);
           else errs.push(`unsupported ${field} language "${val}"; supported: ${supported}`);

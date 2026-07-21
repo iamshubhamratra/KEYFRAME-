@@ -21,8 +21,8 @@
 // source-language captions; it never blocks a render.
 
 const captionLang = require("./caption_lang");
-const { buildCaptionStyle } = require("./caption_render");
-const { translateLines } = require("./translate");
+const { buildLanguageStyles } = require("./caption_render");
+const { translateLines, didTranslate } = require("./translate");
 const { buildCues } = require("./captions");
 
 const SOURCE = captionLang.SOURCE_LANG;
@@ -59,12 +59,26 @@ function normalizeConfig(input) {
   } else {
     voiceoverLanguage = SOURCE;
   }
+  // Video-text (ON-SCREEN text) language — the THIRD independent axis. Precedence:
+  //   1) explicit `videoTextLanguage` (or alias `onScreenLanguage`), unless "auto";
+  //   2) "Auto Match Voiceover" (the default) → follow the voiceover language, which
+  //      itself defaults to the source, so an unset video-text language stays English.
+  let videoTextLanguage;
+  const rawVtl = o.videoTextLanguage != null ? o.videoTextLanguage : o.onScreenLanguage;
+  if (rawVtl != null && String(rawVtl).toLowerCase() !== "auto") {
+    videoTextLanguage = captionLang.normalizeLang(rawVtl) || voiceoverLanguage;
+  } else {
+    videoTextLanguage = voiceoverLanguage;
+  }
   return {
     enabled,
     language,
     voiceoverLanguage,
+    videoTextLanguage,
     // Derived, kept for any back-compat reader: is the VO in a non-source language?
     translateVoiceover: voiceoverLanguage !== SOURCE,
+    // Derived: is on-screen text in a non-source language (needs the Localization Director)?
+    translateVideoText: videoTextLanguage !== SOURCE,
     exportSRT: o.exportSRT !== false,
     exportVTT: o.exportVTT !== false,
     // Reserved for phase 2 — accepted and stored, not yet acted on.
@@ -85,6 +99,25 @@ function modeFor(cfg) {
   if (!voT) return "translated";
   if (cfg.voiceoverLanguage === cfg.language) return "localized";
   return "dubbed";
+}
+
+// Shared translation context — brand/product terms kept verbatim, subject, tone. Reused
+// by the caption/voiceover translation here AND by the on-screen-text Localization
+// Director, so all three axes protect the same terms. Brand terms to keep verbatim in
+// Latin: the site title, plus the brief's subject WHEN it reads like a brand name (ASCII,
+// no exotic chars) — a subject like "golden retriever dog" is a common noun and should
+// still be translated, so the regex gate keeps only brand-ish subjects.
+function buildTranslateContext(brief, job, script) {
+  const doNotTranslate = [
+    job?.website_title,
+    brief?.subject && /^[A-Za-z0-9 .\-&]+$/.test(brief.subject) ? brief.subject : null,
+  ].filter(Boolean);
+  return {
+    subject: brief?.subject || "",
+    tone: brief?.tone || script?.voice?.style || "",
+    brand: job?.website_title || "",
+    doNotTranslate,
+  };
 }
 
 // Language-aware spoken-time estimate for a line (compose-time caption timing,
@@ -152,20 +185,7 @@ async function resolveCaptionPlan({ captionConfig, script, brief, job, tracker, 
   const voScenes = scenes.filter((s) => s.voiceover && String(s.voiceover).trim());
   const sourceById = Object.fromEntries(voScenes.map((s) => [String(s.id), String(s.voiceover)]));
 
-  // Brand/product terms to keep verbatim in Latin: the site title, plus the
-  // brief's subject WHEN it reads like a brand name (ASCII, no exotic chars) —
-  // a subject like "golden retriever dog" is a common noun and should still be
-  // translated, so the regex gate keeps only brand-ish subjects.
-  const doNotTranslate = [
-    job?.website_title,
-    brief?.subject && /^[A-Za-z0-9 .\-&]+$/.test(brief.subject) ? brief.subject : null,
-  ].filter(Boolean);
-  const context = {
-    subject: brief?.subject || "",
-    tone: brief?.tone || script?.voice?.style || "",
-    brand: job?.website_title || "",
-    doNotTranslate,
-  };
+  const context = buildTranslateContext(brief, job, script);
   const lines = voScenes.map((s) => ({ id: String(s.id), text: String(s.voiceover) }));
   const skipped = () => ({ ok: true, byId: sourceById, translatedCount: 0, totalCount: voScenes.length, scriptOkCount: voScenes.length, untranslatedIds: [], skipped: true });
 
@@ -187,9 +207,10 @@ async function resolveCaptionPlan({ captionConfig, script, brief, job, tracker, 
   // artifact — for logging and the disclosure panel.
   const translate = capTranslate;
 
-  // Style override for the composer (font + direction) — for the CAPTION language.
-  // null for English/Latin or when burn-in is disabled.
-  const captionStyle = cfg.enabled ? buildCaptionStyle(capLang) : null;
+  // Combined language style for the composer: the CAPTION-language font/direction (on
+  // caption elements, only when burn-in is enabled) AND the VIDEO-TEXT-language font/
+  // direction (on ALL on-screen text). null for all-Latin/English — English is unchanged.
+  const captionStyle = buildLanguageStyles(capLang, cfg.videoTextLanguage, { captionsEnabled: cfg.enabled });
 
   // On-screen burn-in cues (estimated timing). Empty when burn-in is disabled.
   const bakedCues = cfg.enabled
@@ -224,6 +245,9 @@ async function resolveCaptionPlan({ captionConfig, script, brief, job, tracker, 
     language: capLang,
     voiceLanguage: voLang,
     voiceLanguageName: captionLang.langMeta(voLang)?.name || voLang,
+    // On-screen (video-text) language — resolved by the Localization Director node.
+    videoTextLanguage: cfg.videoTextLanguage,
+    videoTextLanguageName: captionLang.langMeta(cfg.videoTextLanguage)?.name || cfg.videoTextLanguage,
     mode, sourceLang: SOURCE, direction,
     captionStyle,
     captionTextById, voTextById,
@@ -341,7 +365,70 @@ function finalizeQuality(plan, { voScenes = [], measuredCues = [], voClips = [] 
   return q;
 }
 
+// Translate a storyboard's ON-SCREEN text (title, and per-scene headline/subtext/
+// emphasis/bullets/onScreenText) into `videoTextLanguage`, MUTATING the storyboard in
+// place (it flows by reference into the composers), and return a coverage report. Reuses
+// the batched translator + the shared brand-term context + P1's echo/script verification.
+// Fail-open: any failure leaves English text. Returns null when target === source.
+//   report: { videoTextLanguage, videoTextLanguageName, translatedElements, elementCount,
+//             localizationCoverage, fontCompatibility, degraded, notes[] }
+async function localizeStoryboardText({ storyboard, videoTextLanguage, videoTextLanguageName, textStyle, brief, job, script, tracker, signal } = {}) {
+  const vtl = videoTextLanguage;
+  const sb = storyboard;
+  if (!vtl || vtl === SOURCE || !sb || !Array.isArray(sb.scenes)) return null;
+
+  const lines = [];
+  const push = (key, text) => { if (text != null && String(text).trim()) lines.push({ id: key, text: String(text) }); };
+  push("title", sb.title);
+  sb.scenes.forEach((sc, i) => {
+    push(`s${i}.headline`, sc.headline);
+    push(`s${i}.subtext`, sc.subtext);
+    push(`s${i}.emphasis`, sc.emphasis);
+    (Array.isArray(sc.bullets) ? sc.bullets : []).forEach((b, j) => push(`s${i}.bl.${j}`, b));
+    (Array.isArray(sc.onScreenText) ? sc.onScreenText : []).forEach((t, j) => push(`s${i}.ost.${j}`, t));
+  });
+
+  const meta = captionLang.langMeta(vtl);
+  const needsFont = !!(meta && meta.font);
+  const fontCompatibility = !needsFont ? 100 : (textStyle && textStyle.fontFaceCss ? 100 : 40);
+  const base = { videoTextLanguage: vtl, videoTextLanguageName: videoTextLanguageName || meta?.name || vtl, fontCompatibility };
+  if (!lines.length) return { ...base, translatedElements: 0, elementCount: 0, localizationCoverage: 0, degraded: false, notes: [] };
+
+  const context = buildTranslateContext(brief, job, script);
+  const res = await translateLines({ lines, targetLang: vtl, sourceLang: SOURCE, context, tracker, signal }).catch(() => null);
+
+  const sk = needsFont ? meta.font : null;
+  let verified = 0;
+  if (res && res.byId) {
+    const byId = res.byId;
+    const apply = (key, orig) => {
+      const t = byId[key];
+      if (t == null) return orig;                // model dropped it → keep source
+      if (didTranslate(orig, t, sk)) verified++;  // real translation (not an English echo)
+      return t;
+    };
+    if (byId.title != null) sb.title = apply("title", sb.title);
+    sb.scenes.forEach((sc, i) => {
+      if (byId[`s${i}.headline`] != null) sc.headline = apply(`s${i}.headline`, sc.headline);
+      if (byId[`s${i}.subtext`] != null) sc.subtext = apply(`s${i}.subtext`, sc.subtext);
+      // emphasis is a substring of headline (the accent word); translate it too — if it no
+      // longer matches the translated headline, headlineSpans just skips the highlight.
+      if (byId[`s${i}.emphasis`] != null) sc.emphasis = apply(`s${i}.emphasis`, sc.emphasis);
+      if (Array.isArray(sc.bullets)) sc.bullets = sc.bullets.map((b, j) => apply(`s${i}.bl.${j}`, b));
+      if (Array.isArray(sc.onScreenText)) sc.onScreenText = sc.onScreenText.map((t, j) => apply(`s${i}.ost.${j}`, t));
+    });
+  }
+
+  const total = lines.length;
+  const coverage = total ? Math.round((verified / total) * 100) : 0;
+  const notes = [];
+  if (!res || !res.ok) notes.push(`On-screen text fell back to English — translation to ${base.videoTextLanguageName} failed.`);
+  else if (coverage < 60) notes.push(`On-screen localization is partial (${coverage}%); some titles may remain English.`);
+  return { ...base, translatedElements: verified, elementCount: total, localizationCoverage: coverage, degraded: notes.length > 0, notes };
+}
+
 module.exports = {
   normalizeConfig, resolveCaptionPlan, finalizeQuality, modeFor,
-  buildEstimatedCues, estimateSpokenSec, SOURCE_LANG: SOURCE,
+  buildEstimatedCues, estimateSpokenSec, buildTranslateContext, localizeStoryboardText,
+  SOURCE_LANG: SOURCE,
 };

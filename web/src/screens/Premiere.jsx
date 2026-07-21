@@ -127,6 +127,17 @@ export default function Premiere({ projectId, onRemix, onNew }) {
           </div>
         )}
 
+        {project.localization && project.localization.videoTextLanguage && project.localization.videoTextLanguage !== "en" && (
+          <div style={{ marginTop: 14, padding: "12px 16px", borderRadius: 10, border: "1px solid rgba(255,255,255,.12)", background: "rgba(255,255,255,.03)" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--color-dark-dim)", marginBottom: 8 }}>
+              🎬 VIDEO TEXT · {project.localization.videoTextLanguageName || project.localization.videoTextLanguage} · {project.localization.localizationCoverage}% LOCALIZED
+            </div>
+            {Array.isArray(project.localization.notes) && project.localization.notes.map((n, i) => (
+              <div key={i} style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.04em", color: "var(--color-am)", lineHeight: 1.6 }}>⚠ {n}</div>
+            ))}
+          </div>
+        )}
+
         <button onClick={() => setDetailsOpen((v) => !v)}
           style={{ marginTop: 34, cursor: "pointer", background: "none", border: "none", padding: 0, fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--color-dark-dim)" }}>
           {detailsOpen ? "▾ HIDE" : "▸ SHOW"} PRODUCTION DETAILS

@@ -568,14 +568,16 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
       const p = path.join(jobDir, "index.html");
       const finalHtml = fs.readFileSync(p, "utf8");
       writeIndexHtml(jobDir, finalHtml, captionStyle);
-      // The freehand LLM composer names its caption element freely; injectCaptionStyle
-      // only reaches #kfcap/#cap-text/.cap. If the style needs a language font or RTL
-      // and no such target exists, the burn-in would render as tofu (or Arabic LTR) —
-      // warn instead of shipping that silently. system_composer.md mandates id="cap-text".
-      if ((captionStyle.fontFaceCss || captionStyle.direction === "rtl") && !hasCaptionTarget(finalHtml)) {
+      // The freehand LLM composer names its caption element freely; the caption-language
+      // override only reaches #kfcap/#cap-text/.cap. If the CAPTION language needs a font
+      // or RTL and no such target exists, the burn-in would render as tofu (or Arabic LTR)
+      // — warn instead of shipping that silently. (The video-text font rides `body, body *`
+      // so it still reaches all text; only a distinct caption language needs the target.)
+      const capSub = captionStyle.caption !== undefined ? captionStyle.caption : captionStyle;
+      if (capSub && (capSub.fontFaceCss || capSub.direction === "rtl") && !hasCaptionTarget(finalHtml)) {
         console.warn(`[pipeline] ${label}: remix caption element missing #cap-text/#kfcap/.cap — ` +
-          `${captionStyle.lang} captions may render without ${captionStyle.fontKey || "the language font"}` +
-          `${captionStyle.direction === "rtl" ? "/RTL" : ""} (the SRT/VTT sidecar is unaffected).`);
+          `${capSub.lang} captions may render without ${capSub.fontKey || "the language font"}` +
+          `${capSub.direction === "rtl" ? "/RTL" : ""} (the SRT/VTT sidecar is unaffected).`);
       }
     } catch (e) { console.warn(`[pipeline] caption font inject (llm) skipped: ${e.message}`); }
   }
