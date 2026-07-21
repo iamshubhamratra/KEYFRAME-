@@ -371,7 +371,7 @@ export default function CreateScreen({ onCreated, prefill }) {
         {error && <p style={{ marginTop: 16, fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-rec)" }}>{error}</p>}
 
         {/* ---------- options: white spine cards ---------- */}
-        <div style={{ marginTop: 20, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px,1fr))", gap: 14 }}>
+        <div style={{ marginTop: 20, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px,1fr))", gap: 14, alignItems: "start" }}>
           <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
             <span className="spine" style={{ "--spine": "#e832a8" }} />
             <div className="label-mono" style={{ marginBottom: 10 }}>DURATION — {duration}S</div>
@@ -421,23 +421,29 @@ export default function CreateScreen({ onCreated, prefill }) {
             </div>
             {captions && (
               <div style={{ marginTop: 16 }}>
-                {/* Three independent language axes, aligned: 🔊 voice · CC subs · 🎬 on-screen text. */}
-                <div style={{ display: "grid", gridTemplateColumns: "max-content 1fr", alignItems: "center", gap: "12px 12px" }}>
-                  <span className="label-mono" style={{ whiteSpace: "nowrap" }}>🔊 VOICEOVER</span>
-                  <select className="select-field" value={voiceLang} onChange={(e) => setVoiceLang(e.target.value)} aria-label="Voiceover language">
-                    {CAPTION_LANGS.map((l) => <option key={l.code} value={l.code}>{langOption(l)}</option>)}
-                  </select>
-
-                  <span className="label-mono" style={{ whiteSpace: "nowrap" }}>CC CAPTIONS</span>
-                  <select className="select-field" value={captionLang} onChange={(e) => setCaptionLang(e.target.value)} aria-label="Caption language">
-                    {CAPTION_LANGS.map((l) => <option key={l.code} value={l.code}>{langOption(l)}</option>)}
-                  </select>
-
-                  <span className="label-mono" style={{ whiteSpace: "nowrap" }}>🎬 VIDEO TEXT</span>
-                  <select className="select-field" value={videoTextLang} onChange={(e) => setVideoTextLang(e.target.value)} aria-label="On-screen video text language">
-                    <option value="auto">Auto — match voiceover</option>
-                    {CAPTION_LANGS.map((l) => <option key={l.code} value={l.code}>{langOption(l)}</option>)}
-                  </select>
+                {/* Three independent language axes: 🔊 voice · CC subs · 🎬 on-screen text.
+                    Stacked (label over a full-width select) so the language name never
+                    truncates inside a narrow card. */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <label style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
+                    <span className="label-mono">🔊 VOICEOVER</span>
+                    <select className="select-field" value={voiceLang} onChange={(e) => setVoiceLang(e.target.value)} aria-label="Voiceover language">
+                      {CAPTION_LANGS.map((l) => <option key={l.code} value={l.code}>{langOption(l)}</option>)}
+                    </select>
+                  </label>
+                  <label style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
+                    <span className="label-mono">CC CAPTIONS</span>
+                    <select className="select-field" value={captionLang} onChange={(e) => setCaptionLang(e.target.value)} aria-label="Caption language">
+                      {CAPTION_LANGS.map((l) => <option key={l.code} value={l.code}>{langOption(l)}</option>)}
+                    </select>
+                  </label>
+                  <label style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
+                    <span className="label-mono">🎬 VIDEO TEXT</span>
+                    <select className="select-field" value={videoTextLang} onChange={(e) => setVideoTextLang(e.target.value)} aria-label="On-screen video text language">
+                      <option value="auto">Auto — match voiceover</option>
+                      {CAPTION_LANGS.map((l) => <option key={l.code} value={l.code}>{langOption(l)}</option>)}
+                    </select>
+                  </label>
                 </div>
 
                 {/* Contextual tags: RTL for Arabic, and the auto-match hint. */}
@@ -518,9 +524,9 @@ export default function CreateScreen({ onCreated, prefill }) {
                 claim here, and the route's fallback can make them a white ground. */}
             <span className="spine" style={{ "--spine": brandPalette ? brandPalette.primary : "#c56bff" }} />
             <div className="label-mono" style={{ marginBottom: 10 }}>BRAND COLORS — {brandLabel}</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(132px, 1fr))", gap: 8 }}>
               <BrandOption
-                label="My template's palette"
+                label="Template"
                 hint={packAccents.length ? packAccents.join(" · ") : "the pack's own accents"}
                 colors={packAccents}
                 loading={framePack !== "auto" && !packs}
@@ -534,7 +540,7 @@ export default function CreateScreen({ onCreated, prefill }) {
                   active={brandChoice === p.id}
                   onSelect={() => setBrandChoice(p.id)} />
               ))}
-              <BrandOption label="Pick my own" hint={`${cp} · ${cs}`}
+              <BrandOption label="Custom" hint={`${cp} · ${cs}`}
                 colors={brandChoice === "custom" ? [cp, cs] : []}
                 glyph="+"
                 active={brandChoice === "custom"}

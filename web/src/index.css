@@ -392,8 +392,8 @@ body {
 
 /* Brand palette option — gradient swatch + readable name, a selectable chip. */
 .brand-opt {
-  display: inline-flex; align-items: center; gap: 9px;
-  padding: 6px 13px 6px 7px; border-radius: 12px; cursor: pointer;
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  padding: 8px 13px 8px 7px; border-radius: 12px; cursor: pointer;
   background: var(--color-paper-2);
   border: 1px solid rgba(23,19,14,.12);
   font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
@@ -402,6 +402,7 @@ body {
 }
 .brand-opt:hover { border-color: rgba(23,19,14,.3); color: var(--color-ink); transform: translateY(-1px); }
 .brand-opt.is-active { border-color: var(--color-ink); color: var(--color-ink); box-shadow: 0 6px 16px rgba(23,19,14,.1); }
+.brand-opt > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .brand-opt .sw { width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0; border: 1px solid rgba(23,19,14,.12); display: grid; place-items: center; }
 .brand-opt .sw.dashed { border: 1px dashed rgba(23,19,14,.3); background: transparent !important; color: var(--color-dim); font-size: 13px; }
 
