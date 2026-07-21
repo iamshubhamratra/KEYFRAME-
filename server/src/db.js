@@ -116,6 +116,7 @@ function shape(j) {
     creativeReview: j.creative_review || null,
     audioReview: j.audio_review || null,
     brandReview: j.brand_review || null,
+    brandCoverage: j.brand_coverage || null,
     layoutReview: j.layout_review || null,
     screenshotReview: j.screenshot_review || null,
   };
@@ -352,6 +353,14 @@ module.exports = {
   setLocalization(id, report) {
     const j = jobs.get(id); if (!j) return;
     j.localization = report || null;
+    scheduleWrite();
+  },
+
+  // Brand-color coverage report (how much of the film's color ecosystem is brand-derived).
+  // Best-effort disclosure, never gates a render.
+  setBrandCoverage(id, report) {
+    const j = jobs.get(id); if (!j) return;
+    j.brand_coverage = report || null;
     scheduleWrite();
   },
 

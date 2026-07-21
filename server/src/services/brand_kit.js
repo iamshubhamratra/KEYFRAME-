@@ -369,6 +369,9 @@ function resolveBrand(brandSkin, opts = {}) {
   return {
     tier, applied,
     accents, accent, accent2, accent3,
+    // The brand's LEAD hue in degrees — the axis a composer rotates its own palette
+    // onto (reHue) when it wants pack decor to read on-brand. null when no brand applies.
+    leadHue: applied ? Math.round(rgbToHsl(hexToRgb(accent))[0]) : null,
     emphasis, emphasisCss,
     gradients, ui, three, chart, slots,
     // A hue and a weight — never a color to paint the ground with. The pack's ground

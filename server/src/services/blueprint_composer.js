@@ -129,6 +129,16 @@ function blueprintTheme(brandSkin) {
   const [aR, aG, aB] = hexToRgb(amber);
   const amberWash = (a) => `rgba(${aR},${aG},${aB},${a})`;
 
+  // CTA INK — resolveBrand's onAccent pick (brand_kit.js:323: whichever of white / near-black
+  // reads on the accent), applied to the accent this pack ACTUALLY paints the button with: the
+  // rehued amber. The resolver's ui.onAccent judges the FITTED brand color, but reHue pins the
+  // amber to #FFB84D's luminance, so the amber — not that fitted color — is the surface the ink
+  // sits on; judging it directly is the only pick that cannot put white on a bright amber. Only
+  // consulted when a brand applied (styleBlock gates on resolvedBrand); with no brand skin the
+  // CTA keeps its exact #132441 literal, so the NO-OP LAW holds byte-for-byte.
+  const ratioOn = (fg) => { const a = relLum(fg), b = relLum(amber); return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); };
+  const onAccent = ratioOn("#ffffff") >= ratioOn("#14130e") ? "#ffffff" : "#14130e";
+
   return {
     groundCss: "radial-gradient(140% 120% at 30% 20%, #17416F 0%, #123659 46%, #0C2440 100%)",
     sheet: "#123659", ink: "#EAF3FF", faint: "#9DB8D9",
@@ -136,7 +146,7 @@ function blueprintTheme(brandSkin) {
     line: "rgba(190,215,255,0.16)",
     displayStack: `'${DISPLAY}', system-ui, sans-serif`,
     monoStack: `'${MONO}', ui-monospace, monospace`,
-    fontFace, resolvedBrand,
+    fontFace, resolvedBrand, onAccent,
   };
 }
 
@@ -628,7 +638,7 @@ function styleBlock(theme) {
   .btick { position:absolute; width:1.1cqw; height:1.1cqw; border-color:var(--cyan) !important; }
   .btick.tl { left:-0.45cqw; top:-0.45cqw; border-left:2.5px solid; border-top:2.5px solid; }
   .btick.br { right:-0.45cqw; bottom:-0.45cqw; border-right:2.5px solid; border-bottom:2.5px solid; }
-  .cta { display:inline-flex; align-items:center; gap:1.1cqw; font-family:${theme.displayStack}; font-weight:700; font-size:2.3cqw; letter-spacing:0.04em; text-transform:uppercase; color:#132441; background:var(--amber); padding:1.35cqw 3.4cqw; border-radius:0.6cqw; box-shadow:0 0 0 0.35cqw ${theme.amberWash("0.22")}; will-change:transform; }
+  .cta { display:inline-flex; align-items:center; gap:1.1cqw; font-family:${theme.displayStack}; font-weight:700; font-size:2.3cqw; letter-spacing:0.04em; text-transform:uppercase; color:${theme.resolvedBrand ? theme.onAccent : "#132441"}; background:var(--amber); padding:1.35cqw 3.4cqw; border-radius:0.6cqw; box-shadow:0 0 0 0.35cqw ${theme.amberWash("0.22")}; will-change:transform; }
   .bp-plate-head { font-family:${theme.monoStack}; font-size:1cqw; letter-spacing:0.18em; text-transform:uppercase; color:var(--faint); margin-bottom:0.7cqw; display:flex; justify-content:space-between; align-items:baseline; }
   .bp-plate-head span { color:var(--amber); }
   .bp-plate-win { position:relative; width:100%; overflow:hidden; border:2px solid rgba(143,216,255,0.5); border-radius:0.5cqw; background:var(--sheet); box-shadow:0 1.2cqw 3cqw rgba(4,14,28,0.5); }

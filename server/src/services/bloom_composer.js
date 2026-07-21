@@ -576,7 +576,7 @@ function styleBlock(theme) {
   .ribbon { display:inline-block; background:${theme.coral}; color:#FFF6EC; font-family:${theme.displayStack}; font-weight:600; font-size:2.5cqw; padding:1.1cqw 3.6cqw; transform-origin:left center; clip-path:polygon(0 0, 100% 0, 96% 50%, 100% 100%, 0 100%, 4% 50%); }
   .leaf-tag { display:inline-flex; align-items:center; gap:0.7cqw; background:${theme.card}; color:${theme.plum}; font-family:${theme.bodyStack}; font-weight:700; font-size:1.45cqw; padding:0.95cqw 2cqw; border-radius:999px 999px 999px 0.3cqw; box-shadow:0 0.7cqw 1.8cqw rgba(70,52,90,0.14); will-change:transform; }
   .leaf-tag i { width:0.95cqw; height:0.95cqw; border-radius:999px 999px 999px 0; display:inline-block; }
-  .cta { display:inline-flex; align-items:center; gap:1cqw; font-family:${theme.displayStack}; font-weight:600; font-size:2.4cqw; color:#FFF6EC; background:${theme.coral}; padding:1.4cqw 3.6cqw; border-radius:999px; box-shadow:0 1.4cqw 3.2cqw rgba(232,112,95,0.42); will-change:transform; }
+  .cta { display:inline-flex; align-items:center; gap:1cqw; font-family:${theme.displayStack}; font-weight:600; font-size:2.4cqw; color:#FFF6EC; background:${theme.coral}; padding:1.4cqw 3.6cqw; border-radius:999px; box-shadow:0 1.4cqw 3.2cqw ${theme.resolvedBrand ? `color-mix(in srgb, ${theme.coral} 42%, transparent)` : "rgba(232,112,95,0.42)"}; will-change:transform; }
   .draw { stroke-dasharray:100; stroke-dashoffset:100; }
   .bl-plate-win { position:relative; width:100%; overflow:hidden; border-radius:1.1cqw; background:#FFFFFF; box-shadow:inset 0 0 0 1px rgba(70,52,90,0.06); }
   .bl-plate-win img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; display:block; }

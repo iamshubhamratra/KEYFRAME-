@@ -535,8 +535,19 @@ function buildThreeFx(theme, dims, D, seed, framePack) {
     || (PACK_SKINS[framePack] && PACK_SKINS[framePack].three);
   if (!three) return null;
   const W = dims.width, H = dims.height;
-  const A = theme.accent, B = theme.accent2;
-  const X0 = (theme.extras && theme.extras[0]) || B, X1 = (theme.extras && theme.extras[1]) || A;
+  // BUG #1 (WebGL accent collapse): on a 3D stage an un-contrast-corrected accent
+  // can collapse into the ground, so a live brand paints resolveBrand's GROUND-CORRECTED
+  // 0x ints (theme.brand.three.A/.B — Three.js accepts numeric colors, and the builders'
+  // JSON.stringify emits an int as a bare number, a hex as a quoted string; both valid).
+  // Off-brand keeps the EXACT pack accent strings so the unbranded WebGL layer is
+  // byte-identical to today. three.particle === three.B, so gating B covers the
+  // paper/points particle too.
+  const brandOn = !!(theme.brand && theme.brand.applied);
+  const A = brandOn ? theme.brand.three.A : theme.accent;
+  const B = brandOn ? theme.brand.three.B : theme.accent2;
+  // X0/X1 stay the pack's own extras decor (out of scope): fall back to the raw accent
+  // STRINGS, never the brand-corrected ints, so the brand only touches A/B/particle.
+  const X0 = (theme.extras && theme.extras[0]) || theme.accent2, X1 = (theme.extras && theme.extras[1]) || theme.accent;
 
   let build = "";
   if (three === "constellation") {

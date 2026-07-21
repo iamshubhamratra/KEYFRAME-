@@ -45,6 +45,7 @@ const { directBrand, defaultBrandSkin, persistBrandReview } = require("../servic
 const { directLayout } = require("../services/visual_layout_director");
 const { pinUserAssets } = require("../services/user_assets");
 const { coverageFromHtml } = require("../services/asset_coverage");
+const { scoreBrandCoverage } = require("../services/brand_coverage");
 
 function ms() { return Date.now(); }
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
@@ -859,7 +860,23 @@ async function compositionAgent(s) {
   const result = await composeVisual(s);
   persistWornBrand(s, result.visual);
   persistAssetCoverage(s, result.visual);
+  persistBrandCoverage(s, result.visual);
   return result;
+}
+
+// Brand-color coverage disclosure — best-effort, fail-open (THE LAW: never touches the
+// render). Scores the composed index.html against the brand the film actually wore
+// (visual.resolvedBrand). Only meaningful when a brand skin was applied; a null resolved
+// brand (unbranded film / composer that ignores the skin) records nothing.
+function persistBrandCoverage(s, visual) {
+  try {
+    const resolvedBrand = visual && visual.resolvedBrand;
+    if (!resolvedBrand) return;
+    let html = "";
+    try { html = fs.readFileSync(path.join(s.jobDir, "index.html"), "utf8"); } catch { return; }
+    const report = scoreBrandCoverage({ indexHtml: html, resolvedBrand });
+    if (report) db.setBrandCoverage(s.job.id, report);
+  } catch { /* fail-open: the brand-coverage disclosure is never worth a lost render */ }
 }
 
 // User-asset coverage disclosure — best-effort, fail-open (THE LAW: never touches

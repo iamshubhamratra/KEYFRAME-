@@ -36,6 +36,7 @@ const { reviewAndCurate } = require("./creative_director");
 const { directAudio } = require("./audio_director");
 const { pinUserAssets, prepareUserAssets, inventoryForScript } = require("./user_assets");
 const { coverageFromHtml } = require("./asset_coverage");
+const { scoreBrandCoverage } = require("./brand_coverage");
 
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
 function ms() { return Date.now(); }
@@ -667,6 +668,17 @@ async function runProduction({ jobId }) {
           coverage = coverageFromHtml({ assets, indexHtml: html });
         }
         if (coverage) db.setAssetCoverage(jobId, coverage);
+      }
+    } catch { /* fail-open */ }
+
+    // Brand-color coverage disclosure (fail-open, never touches the render).
+    try {
+      const resolvedBrand = visualResult && visualResult.resolvedBrand;
+      if (resolvedBrand) {
+        let html = "";
+        try { html = fs.readFileSync(path.join(jobDir, "index.html"), "utf8"); } catch { /* no file */ }
+        const report = scoreBrandCoverage({ indexHtml: html, resolvedBrand });
+        if (report) db.setBrandCoverage(jobId, report);
       }
     } catch { /* fail-open */ }
 
