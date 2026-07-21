@@ -10,6 +10,14 @@
 // Fail-open by contract: on ANY error (budget, bad JSON, model down) it returns
 // the SOURCE lines flagged `ok:false`, so a translation failure degrades to
 // source-language captions instead of failing the whole film.
+//
+// MODEL ROUTING (operator note): this calls openrouter.chat with stage
+// "caption_director" and NO explicit model. When a KIE key is configured
+// (config.llm.primary), the ACTUAL translator is KIE `config.llm.primary.model`
+// (e.g. gemini-3-5-flash) — the KIE primary serves the request. `CAPTION_DIRECTOR_MODEL`
+// / `config.captions.model` (registered as stageModels.caption_director) only selects
+// the OpenRouter *fallback* leg used if KIE fails (see openrouter.js chat cascade), so
+// tuning it does NOT change the model that serves a successful translation.
 
 const fs = require("node:fs");
 const path = require("node:path");
@@ -35,6 +43,49 @@ function hasTargetScript(text, scriptKey) {
   return re.test(String(text || ""));
 }
 
+// Normalize for echo comparison: lowercase, drop punctuation, collapse whitespace.
+function normForEcho(s) {
+  return String(s || "").toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, "").replace(/\s+/g, " ").trim();
+}
+
+// Jaccard token overlap of two strings (0..1) — a near-echo detector.
+function tokenOverlap(a, b) {
+  const ta = new Set(normForEcho(a).split(" ").filter(Boolean));
+  const tb = new Set(normForEcho(b).split(" ").filter(Boolean));
+  if (!ta.size || !tb.size) return 0;
+  let inter = 0;
+  for (const t of ta) if (tb.has(t)) inter++;
+  return inter / (ta.size + tb.size - inter);
+}
+
+// Did the model ACTUALLY translate this line, vs echo the English source (or return
+// mostly-source text)? Deterministic, no extra model call. This is the check that makes
+// translationQuality honest: hasTargetScript() alone returns true for ANY Latin text, so
+// an English echo passed as "perfect" for es/fr/de/pt; and one target char passed a
+// mostly-English hi/ar/ja line. Here an exact/near echo of the source fails for EVERY
+// language, and non-Latin targets must carry a real proportion of target-script letters.
+// Caveat: a caption line that is legitimately a verbatim brand term (kept in Latin) reads
+// as an echo — rare, and it only lowers the score, never blocks the render.
+function didTranslate(source, output, scriptKey) {
+  const out = String(output || "").trim();
+  if (!out) return false;
+  const na = normForEcho(out), nb = normForEcho(source);
+  if (na && na === nb) return false;                          // exact echo of the source
+  // Partial/near echo: a genuine translation shares ~0 tokens with the English source
+  // (even cognate-heavy Latin translations stay well under ~0.4), so a high overlap means
+  // the model returned mostly-English. 0.6 catches truncated/trivially-edited echoes with
+  // a comfortable margin above real translations.
+  if (nb && tokenOverlap(out, source) >= 0.6) return false;
+  const re = SCRIPT_RANGES[String(scriptKey || "").toLowerCase()];
+  if (re) {                                                   // non-Latin: need a real target-script share
+    const letters = (out.match(/\p{L}/gu) || []).length;
+    if (!letters) return false;
+    const target = (out.match(new RegExp(re.source, "gu")) || []).length;
+    return target / letters >= 0.4;
+  }
+  return true;                                                // Latin target, not an echo → accept
+}
+
 // translateLines({ lines, targetLang, sourceLang, context, tracker, signal })
 //   lines      : [{ id, text }]  (empty text is passed through untouched)
 //   targetLang : language code ("hi") or name ("Hindi")
@@ -42,6 +93,8 @@ function hasTargetScript(text, scriptKey) {
 // Returns:
 //   { ok, language, byId: { [id]: text }, translatedCount, totalCount,
 //     scriptOkCount, notes, untranslatedIds: [] }
+//   scriptOkCount = lines VERIFIED as actually translated (not an English echo, and
+//   in the target script for non-Latin) — feeds scoreTranslation / translationQuality.
 async function translateLines({ lines, targetLang, sourceLang = captionLang.SOURCE_LANG, context = {}, tracker, signal } = {}) {
   const code = captionLang.normalizeLang(targetLang);
   const meta = captionLang.langMeta(code);
@@ -83,7 +136,12 @@ async function translateLines({ lines, targetLang, sourceLang = captionLang.SOUR
   // scripts — a single re-ask almost always recovers a clean object).
   async function attempt() {
     const { text, tokensIn, tokensOut } = await openrouter.chat({
-      system: SYSTEM, user, jsonMode: true, stage: "caption_director", signal,
+      system: SYSTEM, user, jsonMode: true, stage: "caption_director",
+      // Deterministic transcreation: stable wording/term choices across renders. The
+      // explicit arg wins over the 0.7 stage default (openrouter.js) and applies to the
+      // KIE primary and the OpenRouter fallback alike.
+      temperature: 0.2,
+      signal,
     });
     if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "caption_director" });
 
@@ -101,7 +159,9 @@ async function translateLines({ lines, targetLang, sourceLang = captionLang.SOUR
       if (!t) { untranslatedIds.push(id); continue; }
       byId[id] = t;
       translatedCount++;
-      if (hasTargetScript(t, scriptKey)) scriptOkCount++;
+      // Verified translation (not an English echo; correct script for non-Latin) —
+      // this, not mere target-script presence, is what makes translationQuality honest.
+      if (didTranslate(sourceById[id], t, scriptKey)) scriptOkCount++;
     }
     // Any non-empty source line the model dropped falls back to source text.
     for (const l of nonEmpty) if (!seen.has(l.id)) untranslatedIds.push(l.id);
@@ -136,4 +196,4 @@ async function translateLines({ lines, targetLang, sourceLang = captionLang.SOUR
   };
 }
 
-module.exports = { translateLines, hasTargetScript };
+module.exports = { translateLines, hasTargetScript, didTranslate };

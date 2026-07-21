@@ -247,8 +247,11 @@ async function resolveCaptionPlan({ captionConfig, script, brief, job, tracker, 
   };
 }
 
-// Translation quality heuristic (0..100): fraction of lines translated AND in the
-// correct target script, lightly penalizing any dropped lines.
+// Translation quality heuristic (0..100): blends line COVERAGE (how many came back)
+// with the VERIFIED-translation ratio (scriptOkCount / translated — lines that are not
+// an English echo and, for non-Latin, in the target script; see translate.didTranslate),
+// lightly penalizing dropped lines. An English echo now scores low here, so the caption
+// disclosure floor can catch it even for the Latin languages.
 function scoreTranslation(t) {
   const total = t.totalCount || 0;
   if (!total) return 100;
