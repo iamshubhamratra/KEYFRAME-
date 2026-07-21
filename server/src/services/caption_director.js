@@ -224,7 +224,11 @@ async function resolveCaptionPlan({ captionConfig, script, brief, job, tracker, 
     if (!meta.font) return 100; // Latin — always renders
     return captionStyle && captionStyle.fontFaceCss ? 100 : 40;
   })();
-  const translationQuality = mode === "original" ? 100 : scoreTranslation(translate);
+  // A source-language caption track (e.g. English captions on a Hindi-dubbed film) has
+  // NOTHING to translate, so it scores 100 — not the 0% scoreTranslation would return for a
+  // "skipped" translation (translatedCount 0 / totalCount N). translationQuality reflects the
+  // CAPTION translation; when captions are the source language there is nothing to grade.
+  const translationQuality = (mode === "original" || translate.skipped) ? 100 : scoreTranslation(translate);
 
   const quality = {
     captionLanguage: captionLang.langMeta(capLang)?.name || capLang,
