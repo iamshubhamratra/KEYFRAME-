@@ -1,0 +1,51 @@
+{
+  "name": "flagship",
+  "vibe": "The benchmark — a dark cinematic launch-film system in the Apple / Linear / Stripe / Vercel register: deep indigo grounds, soft drifting aurora glows, floating glass device plates holding real product screenshots, filmic bloom, and Space Grotesk display type. Rendered as a native Three.js scene with a cinematic camera that dollies, parallaxes and pulls back to guide the eye.",
+  "renderer": "three-flagship",
+  "colors": {
+    "ground": "#07080F",
+    "ground-2": "#0C0E1A",
+    "text": "#F6F8FF",
+    "muted": "#A6ACC8",
+    "indigo": "#6E8BFF",
+    "violet": "#B16CFF",
+    "cyan": "#4ED7FF",
+    "mint": "#57F2C2"
+  },
+  "fonts": ["Space Grotesk", "Inter"],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#07080F"
+  },
+  "motion": {
+    "cut": "glow",
+    "drift": 1.05
+  },
+  "fx": {
+    "canvas": "flow",
+    "three": "flagship"
+  },
+  "skin": {
+    "accents": ["#6E8BFF", "#4ED7FF", "#B16CFF", "#57F2C2"],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "clean modern product ui",
+    "iconStyle": "duotone",
+    "keywords": ["clean", "modern", "premium", "gradient", "minimal"],
+    "prefer": ["photo", "vector"]
+  },
+  "typography": {
+    "display": "Space Grotesk"
+  },
+  "camera3d": {
+    "ground": "#07080F"
+  },
+  "textfx": {
+    "enter": "mask-reveal",
+    "emphasis": "gradient",
+    "align": "center"
+  }
+}

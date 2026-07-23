@@ -1,0 +1,89 @@
+{
+  "name": "bauhaus-riot",
+  "renderer": "bauhaus-riot",
+  "vibe": "A print poster that came alive. Cream paper with a faint dot grid, primary-color geometry — red, cobalt and signal yellow with hard black borders and offset shadows — and uppercase Archivo Black headlines that STAMP onto the page like a printing press. Motion is mechanical and joyful: curtain wipes, bouncing shapes, sticker slaps, red X strikes, letter tiles. No gradients, no glow, no blur — ink on paper, moving. For launches, manifestos, sales and anything that should shout beautifully.",
+  "colors": {
+    "paper": "#F4EEE1",
+    "cream": "#FFFDF6",
+    "ink": "#17161B",
+    "red": "#E4432C",
+    "blue": "#2B4BD7",
+    "yellow": "#F2C21F"
+  },
+  "fonts": [
+    "Archivo Black",
+    "Inter",
+    "Space Grotesk"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F4EEE1"
+  },
+  "motion": {
+    "cut": "wipe",
+    "drift": 1.02
+  },
+  "fx": {
+    "canvas": "halftone"
+  },
+  "skin": {
+    "accents": [
+      "#E4432C",
+      "#2B4BD7",
+      "#F2C21F",
+      "#17161B"
+    ],
+    "extras": [
+      "#FFFDF6",
+      "#6B6860"
+    ],
+    "emphasisCss": "color:#E4432C;"
+  },
+  "assets": {
+    "photoMod": "bold flat graphic primary colors editorial",
+    "iconStyle": "solid",
+    "keywords": [
+      "bauhaus",
+      "geometric",
+      "poster",
+      "print",
+      "primary"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Archivo Black"
+  },
+  "camera3d": {
+    "ground": "#F4EEE1"
+  },
+  "textfx": {
+    "enter": "stamp",
+    "emphasis": "gradient",
+    "case": "upper",
+    "tracking": -0.015,
+    "weight": 400,
+    "sizeScale": 1.05,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "upbeat retro funk brass punchy",
+      "mood": "upbeat",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "rubber-stamp thuds, paper snaps and playful pops",
+      "palette": [
+        "stamp thud",
+        "pop",
+        "paper snap",
+        "whoosh transition"
+      ]
+    }
+  }
+}

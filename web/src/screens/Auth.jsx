@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "../AuthContext.jsx";
+import { useAuth } from "../useAuth.js";
 import * as api from "../api.js";
 
 // Unified auth screen: login · signup · forgot-password (3-step OTP), all in the
@@ -10,9 +10,6 @@ import * as api from "../api.js";
 export default function Auth({ initialMode = "login", onAuthed, onBack }) {
   const { login, signup } = useAuth();
   const [mode, setMode] = useState(initialMode); // login | signup | forgot
-  // Sync when the parent changes the requested mode (e.g. nav Log in / Sign up
-  // while the Auth screen is already mounted).
-  useEffect(() => { setMode(initialMode); setError(null); setNotice(null); setFStep(1); }, [initialMode]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
@@ -25,6 +22,15 @@ export default function Auth({ initialMode = "login", onAuthed, onBack }) {
   const [fStep, setFStep] = useState(1); // 1=email 2=otp 3=newpass
   const [otp, setOtp] = useState("");
   const [newPass, setNewPass] = useState("");
+
+  // Sync when the parent changes the requested mode (e.g. nav Log in / Sign up
+  // while the Auth screen is already mounted). Adjust-during-render so the
+  // reset lands in the same pass instead of an effect-triggered second render.
+  const [prevInitialMode, setPrevInitialMode] = useState(initialMode);
+  if (prevInitialMode !== initialMode) {
+    setPrevInitialMode(initialMode);
+    setMode(initialMode); setError(null); setNotice(null); setFStep(1);
+  }
 
   const go = (m) => { setMode(m); setError(null); setNotice(null); setFStep(1); setOtp(""); setNewPass(""); };
 

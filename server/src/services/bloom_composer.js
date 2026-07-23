@@ -306,15 +306,21 @@ function blStats(scene, ctx) {
   const stats = pickStats(scene, 3);
   if (!stats.length) stats.push({ pre: "", target: 100, suf: "%", label: "in full bloom" });
   const cols = [theme.coral, theme.sage, theme.sun];
-  // Portrait keeps the ring row (3 × 26cqw fits) but everything scales up.
-  const ringHtml = stats.map((st, i) => `<div class="card ${id}-card" style="width:${land ? 17.5 : 26}cqw;padding:${land ? 2.2 : 2.6}cqw;display:flex;flex-direction:column;align-items:center;opacity:0;">
-      <div style="position:relative;width:${land ? 7.6 : 11.4}cqw;height:${land ? 7.6 : 11.4}cqw;">
+  // A SINGLE stat should be a big hero ring (a lone small ring floated in the
+  // tall frame); a trio stays the ring row. Portrait scales both up.
+  const solo = stats.length === 1;
+  const cardW = solo ? (land ? 34 : 58) : (land ? 17.5 : 26);
+  const ringDim = solo ? (land ? 17 : 34) : (land ? 7.6 : 11.4);
+  const numFs = solo ? (land ? 5 : 8) : (land ? 2.3 : 3.4);
+  const labFs = solo ? (land ? 2 : 3) : (land ? 1.3 : 2);
+  const ringHtml = stats.map((st, i) => `<div class="card ${id}-card" style="width:${cardW}cqw;padding:${land ? 2.2 : 2.6}cqw;display:flex;flex-direction:column;align-items:center;opacity:0;">
+      <div style="position:relative;width:${ringDim}cqw;height:${ringDim}cqw;">
         <svg viewBox="0 0 120 120" style="width:100%;height:100%;overflow:visible;">
           <circle cx="60" cy="60" r="48" fill="none" stroke="#F0E4D2" stroke-width="10"/>
           <circle class="${id}-ring" pathLength="100" cx="60" cy="60" r="48" fill="none" stroke="${cols[i % 3]}" stroke-width="10" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 60 60)"/></svg>
-        <div class="display ${id}-num" id="${id}-n${i}" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:${land ? 2.3 : 3.4}cqw;color:${theme.plum};">${esc(st.pre)}0${esc(st.suf)}</div>
+        <div class="display ${id}-num" id="${id}-n${i}" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:${numFs}cqw;color:${theme.plum};">${esc(st.pre)}0${esc(st.suf)}</div>
       </div>
-      <div class="body" style="font-size:${land ? 1.3 : 2}cqw;margin-top:1.1cqw;text-align:center;">${esc(st.label)}</div></div>`).join("");
+      <div class="body" style="font-size:${labFs}cqw;margin-top:1.1cqw;text-align:center;">${esc(st.label)}</div></div>`).join("");
   const html = `${open(id, ctx)}<div class="safe">
     <div class="script" id="${id}-kick" style="opacity:0;">${esc(scene.kicker || KICK.stats)}</div>
     <h1 class="display" id="${id}-head" style="font-size:${land ? 4.2 : 6}cqw;margin-top:0.6cqw;opacity:0;">${hl(scene, theme.coral)}</h1>

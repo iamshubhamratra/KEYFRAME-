@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>KEYFRAME — Bloom Fable</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script>
+  /* If GSAP didn't load (offline / ad-blocker), show a note instead of a blank page. */
+  if (!window.gsap) {
+    addEventListener("DOMContentLoaded", function () {
+      var b = document.createElement("div");
+      b.style.cssText = "position:fixed;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;font:600 18px system-ui;color:#fff;background:#111;padding:32px;z-index:99999";
+      b.textContent = "GSAP failed to load — hard-refresh (Ctrl+Shift+R) or disable the ad-blocker for 127.0.0.1.";
+      document.body.appendChild(b);
+    });
+  }
+</script>
+<style>
+  /* ===========================================================
+     BLOOM FABLE — a pastel storybook where the product grows.
+     Hand-drawn botanical vectors (bloom-illustrated): rolling
+     hills, a sun with rays, clouds, a flower that literally
+     grows scene by scene, a butterfly that flutters across,
+     ribbons, a rainbow, falling petals. Serif storybook type.
+     Motion grammar: organic draw-ons (pathLength=100), elastic
+     blooms, sine sways, drifting clouds — nothing mechanical.
+     Engineering contract identical to the other showcases:
+     paused timeline on window.__timelines["vid"], clips as
+     direct children, disjoint scenes, ONE seek-safe caption
+     node, finite repeats, hidden = opacity:0 only.
+     =========================================================== */
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { width:100%; height:100%; overflow:hidden; background:#111; }
+  #root { position:relative; width:1920px; height:1080px; overflow:hidden; isolation:isolate;
+          background:linear-gradient(180deg, #E4F1F2 0%, #F8EFDE 46%, #FBF4E8 100%);
+          container-type:size; color:var(--plum); font-family:'Inter',system-ui,sans-serif;
+    --cream:#FBF4E8; --plum:#46345A; --coral:#E8705F; --sun:#F2B95C;
+    --sage:#7FA876; --sage2:#9CC08F; --blush:#F3C5BB; --sky:#A9D7E8; }
+  .clip { position:absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; }
+  .safe { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+          padding:9% 7% 13%; text-align:center; }
+
+  /* ---------- typography ---------- */
+  .display { font-family:'Fraunces',serif; font-weight:600; font-size:6.4cqw; line-height:1.04; letter-spacing:-0.01em; color:var(--plum); }
+  .script { font-family:'Fraunces',serif; font-style:italic; font-weight:500; font-size:1.9cqw; color:var(--coral); }
+  .body { font-weight:600; font-size:1.85cqw; line-height:1.5; color:#6C5B80; }
+  .word { display:inline-block; will-change:transform,opacity; }
+  .card { background:#FFFDF7; border-radius:1.6cqw; box-shadow:0 1.2cqw 3cqw rgba(70,52,90,0.14); }
+
+  .ribbon { display:inline-block; background:var(--coral); color:#FFF6EC; font-family:'Fraunces',serif; font-weight:600;
+            font-size:2.5cqw; padding:1.1cqw 3.6cqw; transform-origin:left center;
+            clip-path:polygon(0 0, 100% 0, 96% 50%, 100% 100%, 0 100%, 4% 50%); }
+
+  .leaf-tag { display:inline-flex; align-items:center; gap:0.7cqw; background:#FFFDF7; color:var(--plum);
+              font-weight:700; font-size:1.45cqw; padding:0.95cqw 2cqw;
+              border-radius:999px 999px 999px 0.3cqw; box-shadow:0 0.7cqw 1.8cqw rgba(70,52,90,0.14);
+              transform-origin:bottom left; will-change:transform; }
+  .leaf-tag i { width:0.95cqw; height:0.95cqw; border-radius:999px 999px 999px 0; display:inline-block; }
+
+  .cta { display:inline-flex; align-items:center; gap:1cqw; font-family:'Fraunces',serif; font-weight:600; font-size:2.4cqw;
+         color:#FFF6EC; background:var(--coral); padding:1.4cqw 3.6cqw; border-radius:999px;
+         box-shadow:0 1.4cqw 3.2cqw rgba(232,112,95,0.42); will-change:transform; }
+
+  /* ---------- captions ---------- */
+  #caps { position:absolute; inset:0; display:flex; justify-content:center; align-items:flex-end; padding-bottom:4.6%; z-index:50; pointer-events:none; }
+  #cap-pill { max-width:74%; height:fit-content; flex:0 0 auto; text-align:center; padding:0.95cqw 2.6cqw; border-radius:999px; opacity:0;
+              background:var(--plum); box-shadow:0 0.9cqw 2.4cqw rgba(70,52,90,0.3); }
+  #cap-text { font-weight:600; font-size:1.5cqw; line-height:1.3; color:#FBF1E4; }
+</style>
+</head>
+<body>
+<div id="root" class="composition" data-composition-id="vid" data-width="1920" data-height="1080" data-start="0" data-duration="30">
+
+  <!-- TRACK 0 — the meadow: hills, sun, clouds, grass, ambient sparkles -->
+  <div id="meadow" class="clip" data-start="0" data-duration="30" data-track-index="0" data-layout-allow-occlusion>
+    <svg id="sunwrap" width="340" height="340" viewBox="0 0 200 200" style="position:absolute;left:8cqw;top:6cqw;overflow:visible;opacity:0;">
+      <g id="sun-rays" stroke="#F2B95C" stroke-width="7" stroke-linecap="round">
+        <line x1="100" y1="6"   x2="100" y2="34"/><line x1="100" y1="194" x2="100" y2="166"/>
+        <line x1="6"   y1="100" x2="34"  y2="100"/><line x1="194" y1="100" x2="166" y2="100"/>
+        <line x1="34"  y1="34"  x2="53"  y2="53"/><line x1="166" y1="34"  x2="147" y2="53"/>
+        <line x1="34"  y1="166" x2="53"  y2="147"/><line x1="166" y1="166" x2="147" y2="147"/>
+      </g>
+      <circle cx="100" cy="100" r="52" fill="#F2B95C"/>
+      <circle cx="100" cy="100" r="52" fill="none" stroke="#E8A94B" stroke-width="4"/>
+    </svg>
+    <svg id="cloud1" width="300" height="110" viewBox="0 0 300 110" style="position:absolute;left:56%;top:9%;opacity:0;">
+      <g fill="#FFFFFF" opacity="0.92">
+        <ellipse cx="90" cy="70" rx="66" ry="34"/><ellipse cx="160" cy="52" rx="58" ry="38"/><ellipse cx="228" cy="72" rx="60" ry="30"/>
+      </g>
+    </svg>
+    <svg id="cloud2" width="230" height="90" viewBox="0 0 300 110" style="position:absolute;left:26%;top:16%;opacity:0;">
+      <g fill="#FFFFFF" opacity="0.85">
+        <ellipse cx="90" cy="70" rx="66" ry="34"/><ellipse cx="160" cy="52" rx="58" ry="38"/><ellipse cx="228" cy="72" rx="60" ry="30"/>
+      </g>
+    </svg>
+    <svg id="hills" viewBox="0 0 1920 420" preserveAspectRatio="none" style="position:absolute;left:0;right:0;bottom:0;width:100%;height:24cqw;">
+      <path d="M0 220 Q 480 80 960 190 T 1920 150 V420 H0 Z" fill="#D9E7C8"/>
+      <path d="M0 300 Q 520 170 1040 260 T 1920 250 V420 H0 Z" fill="#BBD4A8"/>
+      <path d="M0 362 Q 460 258 980 330 T 1920 318 V420 H0 Z" fill="#9CC08F"/>
+    </svg>
+    <svg id="grass" viewBox="0 0 1920 130" preserveAspectRatio="none" style="position:absolute;left:0;right:0;bottom:-0.2cqw;width:100%;height:6.4cqw;overflow:visible;">
+      <g stroke="#6E9670" stroke-width="7" stroke-linecap="round" fill="none">
+        <path class="blade" d="M120 130 Q 112 84 124 48"/><path class="blade" d="M180 130 Q 190 92 178 62"/>
+        <path class="blade" d="M420 130 Q 412 88 424 56"/><path class="blade" d="M980 130 Q 988 90 976 58"/>
+        <path class="blade" d="M1460 130 Q 1452 86 1466 52"/><path class="blade" d="M1740 130 Q 1750 92 1738 60"/>
+        <path class="blade" d="M1800 130 Q 1792 96 1804 68"/><path class="blade" d="M640 130 Q 648 94 636 64"/>
+      </g>
+    </svg>
+    <svg class="spark" width="46" height="46" viewBox="0 0 40 40" style="position:absolute;left:20%;top:30%;"><path d="M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z" fill="#F2B95C"/></svg>
+    <svg class="spark" width="34" height="34" viewBox="0 0 40 40" style="position:absolute;left:78%;top:24%;"><path d="M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z" fill="#E8705F"/></svg>
+    <svg class="spark" width="40" height="40" viewBox="0 0 40 40" style="position:absolute;left:87%;top:52%;"><path d="M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z" fill="#A9D7E8"/></svg>
+  </div>
+
+  <!-- S1 THE SEED (0–4.4) -->
+  <div class="clip" id="s1" data-start="0" data-duration="4.9" data-track-index="2" style="opacity:0;">
+    <div class="safe">
+      <div class="script" id="s1-kick" style="opacity:0;">~ a little film about big ideas ~</div>
+      <h1 class="display" style="margin-top:1.6cqw;">
+        <span class="word">Every</span> <span class="word">idea</span> <span class="word">is</span> <span class="word">a</span> <span class="word" style="color:var(--coral);">seed.</span>
+      </h1>
+      <svg id="s1-flourish" width="420" height="30" viewBox="0 0 420 30" style="margin-top:1.6cqw;overflow:visible;max-width:24cqw;">
+        <path d="M8 18 C 110 6, 310 6, 412 18" pathLength="100" fill="none" stroke="#E8705F" stroke-width="5" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100"/>
+      </svg>
+      <div class="body" id="s1-sub" style="opacity:0;margin-top:1.8cqw;">Whisper it one sentence — and watch it take root.</div>
+    </div>
+  </div>
+
+  <!-- S2 IT SPROUTS (4.4–9.0) -->
+  <div class="clip" id="s2" data-start="4.4" data-duration="5.1" data-track-index="3" style="opacity:0;">
+    <div class="safe" style="flex-direction:row;gap:7cqw;text-align:left;align-items:flex-end;">
+      <svg id="s2-flower" width="440" height="560" viewBox="0 0 320 420" style="width:19cqw;flex:0 0 auto;overflow:visible;">
+        <path id="s2-stem" d="M160 410 C 150 340 176 300 160 240 C 148 196 164 170 160 140" pathLength="100" fill="none" stroke="#6E9670" stroke-width="10" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100"/>
+        <path id="s2-leaf1" d="M160 320 C 120 316 92 290 96 254 C 132 258 158 284 160 320 Z" fill="#9CC08F" opacity="0"/>
+        <path id="s2-leaf2" d="M160 262 C 200 258 228 232 224 196 C 188 200 162 226 160 262 Z" fill="#7FA876" opacity="0"/>
+        <!-- all six petals share one shape; GSAP rotates each into place about the
+             flower heart (svgOrigin) — an SVG rotate() attr here would be clobbered
+             by GSAP's transform matrix, collapsing the bloom -->
+        <g id="s2-petals" opacity="1">
+          <ellipse class="s2-petal" cx="160" cy="92" rx="26" ry="44" fill="#E8705F" opacity="0"/>
+          <ellipse class="s2-petal" cx="160" cy="92" rx="26" ry="44" fill="#F3937F" opacity="0"/>
+          <ellipse class="s2-petal" cx="160" cy="92" rx="26" ry="44" fill="#E8705F" opacity="0"/>
+          <ellipse class="s2-petal" cx="160" cy="92" rx="26" ry="44" fill="#F3937F" opacity="0"/>
+          <ellipse class="s2-petal" cx="160" cy="92" rx="26" ry="44" fill="#E8705F" opacity="0"/>
+          <ellipse class="s2-petal" cx="160" cy="92" rx="26" ry="44" fill="#F3937F" opacity="0"/>
+        </g>
+        <circle id="s2-heart" cx="160" cy="140" r="26" fill="#F2B95C" stroke="#E8A94B" stroke-width="4" opacity="0"/>
+      </svg>
+      <div style="max-width:46cqw;padding-bottom:6cqw;">
+        <div class="script" id="s2-kick" style="opacity:0;">chapter one</div>
+        <h1 class="display" id="s2-head" style="font-size:5cqw;margin-top:0.8cqw;opacity:0;">You write one line.</h1>
+        <div class="body" id="s2-sub" style="opacity:0;margin-top:1.4cqw;">KEYFRAME grows the rest — script, scenes,<br>voice and music, all from your sentence.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S3 IT GROWS (9.0–13.4) -->
+  <div class="clip" id="s3" data-start="9.0" data-duration="4.9" data-track-index="4" style="opacity:0;">
+    <svg id="s3-vine" viewBox="0 0 1920 240" style="position:absolute;left:0;top:44%;width:100%;height:12.5cqw;overflow:visible;" data-layout-allow-occlusion>
+      <path id="s3-vinepath" d="M-20 150 C 300 40 560 210 880 120 C 1200 30 1460 200 1940 90" pathLength="100" fill="none" stroke="#7FA876" stroke-width="9" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100"/>
+    </svg>
+    <div class="safe">
+      <div class="script" id="s3-kick" style="opacity:0;margin-bottom:2cqw;">and then, all by itself…</div>
+      <div style="display:flex;gap:5cqw;align-items:stretch;">
+        <div class="card s3-card" style="width:19cqw;padding:2cqw;opacity:0;">
+          <svg width="72" height="72" viewBox="0 0 72 72" style="overflow:visible;"><g fill="none" stroke="#E8705F" stroke-width="5" stroke-linecap="round"><path class="s3-ic" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" d="M14 58 L46 26 L54 34 L22 66 L12 68 Z"/><path class="s3-ic" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" d="M42 22 L50 14 L62 26 L54 34"/></g></svg>
+          <div class="display" style="font-size:2.3cqw;margin-top:1cqw;">Write</div>
+          <div class="body" style="font-size:1.35cqw;margin-top:0.5cqw;">One honest sentence is the whole brief.</div>
+        </div>
+        <div class="card s3-card" style="width:19cqw;padding:2cqw;opacity:0;">
+          <svg width="72" height="72" viewBox="0 0 72 72" style="overflow:visible;"><g fill="none" stroke="#7FA876" stroke-width="5" stroke-linecap="round"><path class="s3-ic" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" d="M36 66 C 32 46 40 36 36 20"/><path class="s3-ic" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" d="M36 44 C 24 42 16 34 17 22 C 29 24 36 32 36 44 Z"/><path class="s3-ic" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" d="M36 34 C 48 32 56 24 55 12 C 43 14 36 22 36 34 Z"/></g></svg>
+          <div class="display" style="font-size:2.3cqw;margin-top:1cqw;">Grow</div>
+          <div class="body" style="font-size:1.35cqw;margin-top:0.5cqw;">Twelve agents storyboard, design and score it.</div>
+        </div>
+        <div class="card s3-card" style="width:19cqw;padding:2cqw;opacity:0;">
+          <svg width="72" height="72" viewBox="0 0 72 72" style="overflow:visible;"><g fill="none" stroke="#F2B95C" stroke-width="5" stroke-linecap="round"><circle class="s3-ic" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" cx="36" cy="36" r="10"/><path class="s3-ic" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" d="M36 8 V20 M36 52 V64 M8 36 H20 M52 36 H64 M16 16 L25 25 M56 16 L47 25 M16 56 L25 47 M56 56 L47 47"/></g></svg>
+          <div class="display" style="font-size:2.3cqw;margin-top:1cqw;">Bloom</div>
+          <div class="body" style="font-size:1.35cqw;margin-top:0.5cqw;">A finished film, rendered frame by frame.</div>
+        </div>
+      </div>
+    </div>
+    <div id="s3-butterfly" style="position:absolute;left:-7cqw;top:30cqw;width:5.2cqw;opacity:0;" data-layout-allow-occlusion>
+      <svg viewBox="0 0 100 80" style="width:100%;overflow:visible;">
+        <path class="bf-wl" d="M46 40 C 18 8 -8 18 4 42 C 12 60 34 58 46 46 Z" fill="#E8705F" opacity="0.92" style="transform-origin:46px 42px;"/>
+        <path class="bf-wr" d="M54 40 C 82 8 108 18 96 42 C 88 60 66 58 54 46 Z" fill="#F2B95C" opacity="0.92" style="transform-origin:54px 42px;"/>
+        <line x1="50" y1="26" x2="50" y2="58" stroke="#46345A" stroke-width="5" stroke-linecap="round"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- S4 TENDED (13.4–17.8) -->
+  <div class="clip" id="s4" data-start="13.4" data-duration="4.9" data-track-index="5" style="opacity:0;">
+    <div class="safe">
+      <div class="script" id="s4-kick" style="opacity:0;">tended with care</div>
+      <h1 class="display" id="s4-head" style="font-size:4.2cqw;margin-top:0.6cqw;opacity:0;">Twelve gentle gardeners.</h1>
+      <div style="display:flex;gap:4cqw;margin-top:2.6cqw;">
+        <div class="card s4-card" style="width:17.5cqw;padding:2.2cqw;display:flex;flex-direction:column;align-items:center;opacity:0;">
+          <div style="position:relative;width:7.6cqw;height:7.6cqw;">
+            <svg viewBox="0 0 120 120" style="width:100%;height:100%;overflow:visible;">
+              <circle cx="60" cy="60" r="48" fill="none" stroke="#F0E4D2" stroke-width="10"/>
+              <circle class="s4-ring" pathLength="100" cx="60" cy="60" r="48" fill="none" stroke="#E8705F" stroke-width="10" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 60 60)"/>
+            </svg>
+            <div class="display" id="s4-n1" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:2.6cqw;">0</div>
+          </div>
+          <div class="body" style="font-size:1.3cqw;margin-top:1.1cqw;">agents on every film</div>
+        </div>
+        <div class="card s4-card" style="width:17.5cqw;padding:2.2cqw;display:flex;flex-direction:column;align-items:center;opacity:0;">
+          <div style="position:relative;width:7.6cqw;height:7.6cqw;">
+            <svg viewBox="0 0 120 120" style="width:100%;height:100%;overflow:visible;">
+              <circle cx="60" cy="60" r="48" fill="none" stroke="#F0E4D2" stroke-width="10"/>
+              <circle class="s4-ring" pathLength="100" cx="60" cy="60" r="48" fill="none" stroke="#7FA876" stroke-width="10" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 60 60)"/>
+            </svg>
+            <div class="display" id="s4-n2" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.85cqw;">0p</div>
+          </div>
+          <div class="body" style="font-size:1.3cqw;margin-top:1.1cqw;">full-bloom resolution</div>
+        </div>
+        <div class="card s4-card" style="width:17.5cqw;padding:2.2cqw;display:flex;flex-direction:column;align-items:center;opacity:0;">
+          <div style="position:relative;width:7.6cqw;height:7.6cqw;">
+            <svg viewBox="0 0 120 120" style="width:100%;height:100%;overflow:visible;">
+              <circle cx="60" cy="60" r="48" fill="none" stroke="#F0E4D2" stroke-width="10"/>
+              <circle class="s4-ring" pathLength="100" cx="60" cy="60" r="48" fill="none" stroke="#F2B95C" stroke-width="10" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 60 60)"/>
+            </svg>
+            <div class="display" id="s4-n3" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:2.15cqw;">0%</div>
+          </div>
+          <div class="body" style="font-size:1.3cqw;margin-top:1.1cqw;">hands-free, start to finish</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S5 NO STRESS (17.8–22.2) -->
+  <div class="clip" id="s5" data-start="17.8" data-duration="4.9" data-track-index="6" style="opacity:0;">
+    <svg id="s5-petals" viewBox="0 0 1920 1080" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;" data-layout-allow-occlusion>
+      <ellipse class="s5-pt" cx="300"  cy="-40" rx="14" ry="24" fill="#F3937F"/>
+      <ellipse class="s5-pt" cx="640"  cy="-60" rx="12" ry="20" fill="#E8705F"/>
+      <ellipse class="s5-pt" cx="980"  cy="-40" rx="15" ry="26" fill="#F3C5BB"/>
+      <ellipse class="s5-pt" cx="1320" cy="-70" rx="12" ry="20" fill="#F3937F"/>
+      <ellipse class="s5-pt" cx="1580" cy="-50" rx="14" ry="24" fill="#E8705F"/>
+      <ellipse class="s5-pt" cx="480"  cy="-90" rx="11" ry="18" fill="#F3C5BB"/>
+    </svg>
+    <div class="safe">
+      <div class="ribbon" id="s5-r1" style="opacity:0;">No studio.</div>
+      <div class="ribbon" id="s5-r2" style="opacity:0;margin-top:1.2cqw;background:#7FA876;">No stress.</div>
+      <h1 class="display" id="s5-em" style="font-style:italic;font-size:6.6cqw;margin-top:2.2cqw;opacity:0;">Just a <span style="color:var(--coral);">sentence.</span></h1>
+      <svg id="s5-flourish" width="560" height="34" viewBox="0 0 560 34" style="overflow:visible;max-width:30cqw;">
+        <path d="M8 20 C 150 6, 410 6, 552 20" pathLength="100" fill="none" stroke="#F2B95C" stroke-width="6" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- S6 THE GARDEN OF STYLES (22.2–26.4) -->
+  <div class="clip" id="s6" data-start="22.2" data-duration="4.7" data-track-index="7" style="opacity:0;">
+    <svg id="s6-rainbow" viewBox="0 0 700 360" style="position:absolute;left:50%;top:13%;width:34cqw;margin-left:-17cqw;overflow:visible;" data-layout-allow-occlusion>
+      <path class="s6-arc" pathLength="100" d="M40 350 A 310 310 0 0 1 660 350" fill="none" stroke="#E8705F" stroke-width="16" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path class="s6-arc" pathLength="100" d="M95 350 A 255 255 0 0 1 605 350" fill="none" stroke="#F2B95C" stroke-width="16" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100"/>
+      <path class="s6-arc" pathLength="100" d="M150 350 A 200 200 0 0 1 550 350" fill="none" stroke="#A9D7E8" stroke-width="16" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100"/>
+    </svg>
+    <div class="safe" style="justify-content:flex-end;padding-bottom:15%;">
+      <div style="display:flex;align-items:baseline;gap:1cqw;">
+        <div class="display" id="s6-count" style="font-size:5.6cqw;color:var(--coral);">0</div>
+        <h1 class="display" id="s6-head" style="font-size:3.4cqw;opacity:0;">styles in full bloom.</h1>
+      </div>
+      <div style="display:flex;gap:1.6cqw;margin-top:2.4cqw;flex-wrap:wrap;justify-content:center;max-width:80cqw;">
+        <span class="leaf-tag s6-tag" style="opacity:0;"><i style="background:#F3937F;"></i>bloom-illustrated</span>
+        <span class="leaf-tag s6-tag" style="opacity:0;"><i style="background:#F2B95C;"></i>biennale-yellow</span>
+        <span class="leaf-tag s6-tag" style="opacity:0;"><i style="background:#46345A;"></i>bauhaus-print</span>
+        <span class="leaf-tag s6-tag" style="opacity:0;"><i style="background:#A9D7E8;"></i>longshot-cinema</span>
+        <span class="leaf-tag s6-tag" style="opacity:0;"><i style="background:#E8705F;"></i>vapor-chrome</span>
+        <span class="leaf-tag s6-tag" style="opacity:0;"><i style="background:#7FA876;"></i>fable-storybook</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- S7 PLANT ONE (26.4–30.0) -->
+  <div class="clip" id="s7" data-start="26.4" data-duration="3.6" data-track-index="8" style="opacity:0;">
+    <div class="safe">
+      <div class="script" id="s7-kick" style="opacity:0;">the end — or rather, the beginning</div>
+      <div style="display:flex;align-items:center;gap:1.6cqw;margin-top:1cqw;">
+        <h1 class="display" id="s7-mark" style="font-size:7cqw;opacity:0;">KEYFRAME</h1>
+        <svg id="s7-bloom" width="120" height="120" viewBox="0 0 120 120" style="overflow:visible;opacity:0;">
+          <g>
+            <ellipse cx="60" cy="30" rx="14" ry="24" fill="#E8705F"/><ellipse cx="86" cy="45" rx="14" ry="24" fill="#F3937F" transform="rotate(60 60 60)"/>
+            <ellipse cx="86" cy="75" rx="14" ry="24" fill="#E8705F" transform="rotate(120 60 60)"/><ellipse cx="60" cy="90" rx="14" ry="24" fill="#F3937F" transform="rotate(180 60 60)"/>
+            <ellipse cx="34" cy="75" rx="14" ry="24" fill="#E8705F" transform="rotate(240 60 60)"/><ellipse cx="34" cy="45" rx="14" ry="24" fill="#F3937F" transform="rotate(300 60 60)"/>
+            <circle cx="60" cy="60" r="16" fill="#F2B95C"/>
+          </g>
+        </svg>
+      </div>
+      <div class="body" id="s7-tag" style="opacity:0;margin-top:0.8cqw;">Type a sentence. Watch it grow into a film.</div>
+      <div class="cta" id="s7-cta" style="opacity:0;margin-top:2.4cqw;">Plant your first film <span style="font-weight:700;">&#8594;</span></div>
+    </div>
+  </div>
+
+  <!-- TRACK 20 — captions -->
+  <div id="caps" class="clip" data-start="0" data-duration="30" data-track-index="20"><div id="cap-pill"><div id="cap-text"></div></div></div>
+</div>
+
+<script>
+(function () {
+  const D = 30;
+  const tl = gsap.timeline({ paused: true });
+  const $ = (s) => document.querySelector(s);
+  const reps = (total, cyc) => Math.max(0, Math.floor(total / cyc) - 1);
+  function kill(id, t) { tl.set(id, { opacity: 0 }, t); }
+  function count(sel, to, at, dur, suffix) { const o = { v: 0 }; tl.to(o, { v: to, duration: dur, ease: "power2.out", snap: { v: 1 }, onUpdate() { const e = $(sel); if (e) e.textContent = Math.round(o.v) + (suffix || ""); } }, at); }
+
+  /* ===== MEADOW AMBIENT (finite repeats) ===== */
+  tl.fromTo("#sunwrap", { opacity: 0, y: 150 }, { opacity: 1, y: 0, duration: 1.3, ease: "power2.out" }, 0.2);
+  tl.fromTo("#sun-rays line", { scale: 0, transformOrigin: "center center" }, { scale: 1, duration: 0.5, ease: "back.out(1.8)", stagger: 0.05 }, 1.0);
+  tl.to("#sun-rays", { rotation: 150, duration: D, ease: "none", transformOrigin: "100px 100px" }, 0);
+  tl.fromTo("#cloud1", { opacity: 0, x: 60 }, { opacity: 1, x: 0, duration: 1.2, ease: "power2.out" }, 0.5);
+  tl.fromTo("#cloud2", { opacity: 0, x: -60 }, { opacity: 1, x: 0, duration: 1.2, ease: "power2.out" }, 0.7);
+  tl.to("#cloud1", { x: -70, duration: 13, ease: "sine.inOut", yoyo: true, repeat: reps(D, 13) }, 1.7);
+  tl.to("#cloud2", { x: 60, duration: 11, ease: "sine.inOut", yoyo: true, repeat: reps(D, 11) }, 1.9);
+  tl.to(".blade", { rotation: 5, duration: 2.8, ease: "sine.inOut", yoyo: true, repeat: reps(D - 1, 2.8), transformOrigin: "bottom center", stagger: 0.2 }, 0.5);
+  tl.fromTo(".spark", { opacity: 0.2, scale: 0.7, transformOrigin: "center center" }, { opacity: 1, scale: 1, duration: 1.4, ease: "sine.inOut", yoyo: true, repeat: reps(D - 1, 1.4), stagger: 0.45 }, 0.8);
+
+  /* ===== S1 THE SEED (0–4.4) ===== */
+  tl.fromTo("#s1", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 0);
+  tl.fromTo("#s1-kick", { opacity: 0, y: -16 }, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 0.6);
+  tl.fromTo("#s1 .word", { opacity: 0, y: 42, rotation: -3 }, { opacity: 1, y: 0, rotation: 0, duration: 0.7, ease: "power3.out", stagger: 0.11 }, 1.0);
+  tl.to("#s1-flourish path", { strokeDashoffset: 0, duration: 0.7, ease: "power2.out" }, 2.1);
+  tl.fromTo("#s1-sub", { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 2.5);
+  tl.to("#s1 .safe", { opacity: 0, y: -24, duration: 0.45, ease: "power2.in" }, 3.95);
+  kill("#s1", 4.85);
+
+  /* ===== S2 IT SPROUTS (4.4–9.0) — the flower literally grows ===== */
+  tl.fromTo("#s2", { opacity: 0 }, { opacity: 1, duration: 0.35 }, 4.4);
+  tl.to("#s2-stem", { strokeDashoffset: 0, duration: 1.1, ease: "power2.inOut" }, 4.7);
+  tl.fromTo("#s2-leaf1", { opacity: 0, scale: 0, transformOrigin: "160px 320px" }, { opacity: 1, scale: 1, duration: 0.6, ease: "back.out(2)" }, 5.5);
+  tl.fromTo("#s2-leaf2", { opacity: 0, scale: 0, transformOrigin: "160px 262px" }, { opacity: 1, scale: 1, duration: 0.6, ease: "back.out(2)" }, 5.75);
+  tl.fromTo(".s2-petal", { opacity: 0, scale: 0, rotation: (i) => i * 60, svgOrigin: "160 140" }, { opacity: 1, scale: 1, rotation: (i) => i * 60, svgOrigin: "160 140", duration: 0.9, ease: "elastic.out(1, 0.6)", stagger: 0.09 }, 6.1);
+  tl.fromTo("#s2-heart", { opacity: 0, scale: 0, transformOrigin: "160px 140px" }, { opacity: 1, scale: 1, duration: 0.55, ease: "back.out(2.4)" }, 6.7);
+  tl.to("#s2-flower", { rotation: 2.4, duration: 1.1, ease: "sine.inOut", yoyo: true, repeat: 1, transformOrigin: "50% 96%" }, 7.3);
+  tl.fromTo("#s2-kick", { opacity: 0, y: -14 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 4.9);
+  tl.fromTo("#s2-head", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.65, ease: "power3.out" }, 5.1);
+  tl.fromTo("#s2-sub", { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 5.6);
+  tl.to("#s2", { opacity: 0, duration: 0.45, ease: "power2.in" }, 8.55);
+  kill("#s2", 9.45);
+
+  /* ===== S3 IT GROWS (9.0–13.4) — vine, cards, butterfly ===== */
+  tl.fromTo("#s3", { opacity: 0 }, { opacity: 1, duration: 0.35 }, 9.0);
+  tl.to("#s3-vinepath", { strokeDashoffset: 0, duration: 1.5, ease: "power1.inOut" }, 9.2);
+  tl.fromTo("#s3-kick", { opacity: 0, y: -14 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 9.25);
+  tl.fromTo(".s3-card", { opacity: 0, y: 46, rotation: (i) => (i % 2 ? 2.5 : -2.5) }, { opacity: 1, y: 0, rotation: 0, duration: 0.65, ease: "back.out(1.5)", stagger: 0.35 }, 9.5);
+  tl.to(".s3-ic", { strokeDashoffset: 0, duration: 0.7, ease: "power2.out", stagger: 0.12 }, 10.0);
+  tl.fromTo("#s3-butterfly", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 9.5);
+  tl.to("#s3-butterfly", { x: "+=430", y: -46, duration: 1.0, ease: "sine.inOut" }, 9.6);
+  tl.to("#s3-butterfly", { x: "+=430", y: 30, duration: 1.0, ease: "sine.inOut" }, 10.6);
+  tl.to("#s3-butterfly", { x: "+=560", y: -60, duration: 1.2, ease: "sine.inOut" }, 11.6);
+  tl.to(".bf-wl", { scaleX: 0.32, duration: 0.16, ease: "sine.inOut", yoyo: true, repeat: reps(3.4, 0.16) }, 9.5);
+  tl.to(".bf-wr", { scaleX: 0.32, duration: 0.16, ease: "sine.inOut", yoyo: true, repeat: reps(3.4, 0.16) }, 9.5);
+  tl.to("#s3", { opacity: 0, duration: 0.45, ease: "power2.in" }, 12.95);
+  kill("#s3", 13.85);
+
+  /* ===== S4 TENDED (13.4–17.8) — stat blossoms ===== */
+  tl.fromTo("#s4", { opacity: 0 }, { opacity: 1, duration: 0.35 }, 13.4);
+  tl.fromTo("#s4-kick", { opacity: 0, y: -14 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 13.55);
+  tl.fromTo("#s4-head", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 13.7);
+  tl.fromTo(".s4-card", { opacity: 0, y: 52, scale: 0.92 }, { opacity: 1, y: 0, scale: 1, duration: 0.65, ease: "back.out(1.4)", stagger: 0.22 }, 13.95);
+  tl.to(".s4-ring", { strokeDashoffset: (i) => [10, 4, 0][i], duration: 1.2, ease: "power2.out", stagger: 0.2 }, 14.5);
+  count("#s4-n1", 12, 14.5, 1.0);
+  count("#s4-n2", 1080, 14.7, 1.2, "p");
+  count("#s4-n3", 100, 14.9, 1.2, "%");
+  tl.to(".s4-card", { y: -12, duration: 1.1, ease: "sine.inOut", yoyo: true, repeat: 1, stagger: 0.14 }, 16.0);
+  tl.to("#s4", { opacity: 0, duration: 0.45, ease: "power2.in" }, 17.35);
+  kill("#s4", 18.25);
+
+  /* ===== S5 NO STRESS (17.8–22.2) — ribbons + petal rain ===== */
+  tl.fromTo("#s5", { opacity: 0 }, { opacity: 1, duration: 0.35 }, 17.8);
+  tl.fromTo("#s5-r1", { opacity: 1, scaleX: 0 }, { scaleX: 1, duration: 0.55, ease: "power3.out" }, 18.0);
+  tl.fromTo("#s5-r2", { opacity: 1, scaleX: 0 }, { scaleX: 1, duration: 0.55, ease: "power3.out" }, 18.35);
+  tl.fromTo("#s5-em", { opacity: 0, y: 34, scale: 0.94 }, { opacity: 1, y: 0, scale: 1, duration: 0.7, ease: "power3.out" }, 19.1);
+  tl.to("#s5-flourish path", { strokeDashoffset: 0, duration: 0.7, ease: "power2.out" }, 19.8);
+  tl.fromTo(".s5-pt", { y: 0, rotation: 0 }, { y: 1240, rotation: (i) => (i % 2 ? 200 : -160), x: (i) => (i % 2 ? 60 : -50), duration: 2.6, ease: "none", stagger: 0.14 }, 19.4);
+  tl.to("#s5", { opacity: 0, duration: 0.45, ease: "power2.in" }, 21.75);
+  kill("#s5", 22.65);
+
+  /* ===== S6 GARDEN OF STYLES (22.2–26.4) — rainbow + sprouting tags ===== */
+  tl.fromTo("#s6", { opacity: 0 }, { opacity: 1, duration: 0.35 }, 22.2);
+  tl.to(".s6-arc", { strokeDashoffset: 0, duration: 0.9, ease: "power2.inOut", stagger: 0.22 }, 22.4);
+  tl.fromTo("#s6-head", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" }, 22.6);
+  count("#s6-count", 40, 22.7, 1.2);
+  tl.fromTo(".s6-tag", { opacity: 0, scale: 0, rotation: -6 }, { opacity: 1, scale: 1, rotation: 0, duration: 0.6, ease: "back.out(1.8)", stagger: 0.13 }, 23.1);
+  tl.to(".s6-tag", { rotation: (i) => (i % 2 ? 2 : -2), duration: 0.9, ease: "sine.inOut", yoyo: true, repeat: 1, stagger: 0.08 }, 24.4);
+  tl.to("#s6", { opacity: 0, duration: 0.45, ease: "power2.in" }, 25.95);
+  kill("#s6", 26.85);
+
+  /* ===== S7 PLANT ONE (26.4–30) ===== */
+  tl.fromTo("#s7", { opacity: 0 }, { opacity: 1, duration: 0.35 }, 26.4);
+  tl.fromTo("#s7-kick", { opacity: 0, y: -14 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 26.55);
+  tl.fromTo("#s7-mark", { opacity: 0, y: 34 }, { opacity: 1, y: 0, duration: 0.65, ease: "power3.out" }, 26.75);
+  tl.fromTo("#s7-bloom", { opacity: 0, scale: 0, rotation: -80, transformOrigin: "center center" }, { opacity: 1, scale: 1, rotation: 0, duration: 0.8, ease: "elastic.out(1, 0.65)" }, 27.15);
+  tl.fromTo("#s7-tag", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.55, ease: "power2.out" }, 27.35);
+  tl.fromTo("#s7-cta", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.6, ease: "back.out(1.7)" }, 27.7);
+  tl.to("#s7-cta", { scale: 1.05, duration: 0.6, ease: "sine.inOut", yoyo: true, repeat: 2 }, 28.5);
+  tl.to("#s7-bloom", { rotation: 30, duration: 1.8, ease: "sine.inOut", transformOrigin: "center center" }, 28.1);
+
+  /* ===== CAPTIONS — one proxy, seek-safe ===== */
+  const cues = [
+    [0.7,  4.2,  "Every idea is a seed."],
+    [4.7,  8.8,  "Write one line — KEYFRAME grows the rest."],
+    [9.2,  13.2, "It sprouts a script, scenes, and a score."],
+    [13.6, 17.6, "Twelve gentle agents tend every frame."],
+    [18.0, 22.0, "No studio. No stress. Just a sentence."],
+    [22.4, 26.2, "Forty styles in full bloom."],
+    [26.6, 29.8, "Plant your first film — free."]
+  ];
+  const proxy = { t: 0 };
+  tl.to(proxy, { t: D, duration: D, ease: "none",
+    onUpdate() {
+      const now = proxy.t;
+      const cap = $("#cap-pill"), txt = $("#cap-text");
+      if (!cap || !txt) return;
+      let active = null;
+      for (let k = 0; k < cues.length; k++) { if (now >= cues[k][0] && now < cues[k][1]) { active = cues[k]; break; } }
+      if (active) { if (txt.textContent !== active[2]) txt.textContent = active[2]; cap.style.opacity = "1"; }
+      else { cap.style.opacity = "0"; }
+    } }, 0);
+
+  window.__timelines = window.__timelines || {};
+  window.__timelines["vid"] = tl;
+
+  // --- DEV PREVIEW ONLY (render browser sets navigator.webdriver -> stays paused there)
+  if (typeof navigator === "undefined" || !navigator.webdriver) {
+    (function previewBoot() {
+      var root = document.querySelector('[data-composition-id]');
+      if (root) {
+        var w = +root.getAttribute('data-width') || 1920;
+        var h = +root.getAttribute('data-height') || 1080;
+        document.documentElement.style.height = "100%";
+        document.body.style.minHeight = "100vh";
+        root.style.width = w + 'px'; root.style.height = h + 'px';
+        root.style.position = 'absolute'; root.style.top = '50%'; root.style.left = '50%';
+        root.style.transformOrigin = 'center center';
+        var fit = function () {
+          var f = Math.min(window.innerWidth / w, window.innerHeight / h);
+          root.style.transform = 'translate(-50%,-50%) scale(' + f + ')';
+        };
+        fit(); window.addEventListener('resize', fit);
+        var clips = [].slice.call(root.querySelectorAll('[data-start][data-duration]'));
+        var windowClips = function (t) {
+          for (var i = 0; i < clips.length; i++) {
+            var c = clips[i];
+            var s = +c.getAttribute('data-start') || 0;
+            var d = +c.getAttribute('data-duration');
+            if (!isFinite(d)) d = 1e9;
+            c.style.visibility = (t >= s - 0.02 && t < s + d + 0.02) ? '' : 'hidden';
+          }
+        };
+        windowClips(0);
+        tl.eventCallback('onUpdate', function () { windowClips(tl.time()); });
+      }
+      tl.play(0);
+      tl.eventCallback("onComplete", function () { tl.restart(); });
+    })();
+  }
+})();
+</script>
+</body>
+</html>

@@ -216,7 +216,17 @@ function generatePad(query, outputPath, durationSec = 75) {
   });
 }
 
-async function fetchMusic({ query, outputPath, tracker, durationSec }) {
+// Stable per-video index into a provider's result list, so two videos with the
+// SAME mood query still get DIFFERENT tracks (the root cause of "every video has
+// the same BGM" was always taking result #0). Derived from the job's seed.
+function seedIndex(seed, spread = 8) {
+  const s = String(seed || "");
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+  return spread > 0 ? h % spread : 0;
+}
+
+async function fetchMusic({ query, outputPath, tracker, durationSec, seed }) {
   // Normalize: callers join plan.query + plan.mood, which often repeat
   // ("epic orchestral synthwave epic orchestral synthwave hybrid") — dedupe
   // the words, and derive a broader 2-word core as a retry, since an
@@ -228,15 +238,21 @@ async function fetchMusic({ query, outputPath, tracker, durationSec }) {
 
   // 0) Pixabay bridge — PRIMARY music source (user preference). Real Pixabay
   // tracks (the official API serves no audio); best-effort, falls through to
-  // Freesound if the bridge is down/slow/dry.
+  // Freesound if the bridge is down/slow/dry. VARY the pick: try a seed-derived
+  // result index first (so each video gets a different track for the same mood),
+  // then fall back to #0. This is the fix for "same BGM in every video".
+  const variant = seedIndex(seed, 8);
+  const indices = [...new Set([variant, 0])];
   for (const q of [norm, core]) {
-    const url = await pixabayBridge.firstAudioUrl(q, "music");
-    if (url) {
-      const got = await pixabayBridge.downloadToFile(url, outputPath, { minBytes: 20_000 });
-      if (got) {
-        if (tracker) tracker.addExternal("pixabay_music_download");
-        log(`music: Pixabay bridge "${q}" -> ${url.slice(0, 72)}`);
-        return got;
+    for (const idx of indices) {
+      const url = await pixabayBridge.firstAudioUrl(q, "music", { index: idx });
+      if (url) {
+        const got = await pixabayBridge.downloadToFile(url, outputPath, { minBytes: 20_000 });
+        if (got) {
+          if (tracker) tracker.addExternal("pixabay_music_download");
+          log(`music: Pixabay bridge "${q}" [idx ${idx}] -> ${url.slice(0, 72)}`);
+          return got;
+        }
       }
     }
   }

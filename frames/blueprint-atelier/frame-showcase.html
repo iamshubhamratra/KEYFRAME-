@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>KEYFRAME — Blueprint Atelier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script>
+  /* If GSAP didn't load (offline / ad-blocker), show a note instead of a blank page. */
+  if (!window.gsap) {
+    addEventListener("DOMContentLoaded", function () {
+      var b = document.createElement("div");
+      b.style.cssText = "position:fixed;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;font:600 18px system-ui;color:#fff;background:#111;padding:32px;z-index:99999";
+      b.textContent = "GSAP failed to load — hard-refresh (Ctrl+Shift+R) or disable the ad-blocker for 127.0.0.1.";
+      document.body.appendChild(b);
+    });
+  }
+</script>
+<style>
+  /* ===========================================================
+     BLUEPRINT ATELIER v2 — the film is drafted like an engineering
+     drawing, and the drafting table is ALIVE: edge rulers, a slow
+     compass rose, a wandering crosshair with live X/Y readout, a
+     sheet-wipe between every scene, a pencil that traces lines as
+     they draw, spinning reels + aperture blades on the camera
+     schematic, data packets streaming through the flowchart,
+     a scanning plot with area fill, marker scribbles, ink
+     splatter, and a pencil that circles the CTA.
+     Engineering contract identical to the other showcases:
+     paused timeline on window.__timelines["vid"], direct-child
+     clips, disjoint scenes + kill(), ONE seek-safe caption node,
+     proxy-driven live fields, finite repeats, pathLength=100 on
+     every draw-on, hidden = opacity:0 only.
+     =========================================================== */
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { width:100%; height:100%; overflow:hidden; background:#06131F; }
+  #root { position:relative; width:1920px; height:1080px; overflow:hidden; isolation:isolate;
+          background:
+            radial-gradient(140% 120% at 30% 20%, #17416F 0%, #123659 46%, #0C2440 100%);
+          container-type:size; color:var(--ink); font-family:'IBM Plex Mono',monospace;
+    --sheet:#123659; --ink:#EAF3FF; --faint:#9DB8D9; --amber:#FFB84D; --red:#FF5F5F; --cyan:#8FD8FF;
+    --line:rgba(190,215,255,0.16); }
+  .clip { position:absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; }
+  .safe { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+          padding:8% 7% 12%; text-align:center; will-change:transform; }
+
+  /* ---------- typography ---------- */
+  .display { font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:5.6cqw; line-height:1.02;
+             letter-spacing:0.01em; color:var(--ink); text-transform:uppercase; }
+  .mono { font-family:'IBM Plex Mono',monospace; }
+  .label { font-size:1.15cqw; font-weight:600; letter-spacing:0.28em; text-transform:uppercase; color:var(--amber); }
+  .fig { font-size:1.15cqw; font-weight:500; letter-spacing:0.22em; text-transform:uppercase; color:var(--faint); }
+  .body { font-size:1.6cqw; font-weight:500; line-height:1.55; color:var(--faint); }
+  .caret { display:inline-block; width:0.75cqw; height:2.2cqw; vertical-align:-0.3cqw; background:var(--amber); margin-left:0.3cqw; }
+
+  .stamp { display:inline-block; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:3.4cqw; letter-spacing:0.08em;
+           text-transform:uppercase; color:var(--red); border:0.42cqw solid var(--red); border-radius:0.8cqw;
+           padding:0.9cqw 2.6cqw; will-change:transform; }
+
+  /* ---------- sheet chrome ---------- */
+  #grid-minor { position:absolute; inset:0; pointer-events:none;
+    background-image:linear-gradient(rgba(190,215,255,0.06) 1px, transparent 1px),
+                     linear-gradient(90deg, rgba(190,215,255,0.06) 1px, transparent 1px);
+    background-size:1.25cqw 1.25cqw; }
+  #grid-major { position:absolute; inset:0; pointer-events:none;
+    background-image:linear-gradient(rgba(190,215,255,0.13) 1px, transparent 1px),
+                     linear-gradient(90deg, rgba(190,215,255,0.13) 1px, transparent 1px);
+    background-size:6.25cqw 6.25cqw; }
+  /* drafting-table edge rulers */
+  .ruler-t { position:absolute; left:0; right:0; height:0.55cqw; pointer-events:none; opacity:0.5;
+    background:repeating-linear-gradient(90deg, rgba(190,215,255,0.4) 0 2px, transparent 2px 1.25cqw); }
+  .ruler-T { position:absolute; left:0; right:0; height:1.05cqw; pointer-events:none; opacity:0.55;
+    background:repeating-linear-gradient(90deg, rgba(190,215,255,0.5) 0 2px, transparent 2px 6.25cqw); }
+  .ruler-l { position:absolute; top:0; bottom:0; width:0.55cqw; pointer-events:none; opacity:0.5;
+    background:repeating-linear-gradient(0deg, rgba(190,215,255,0.4) 0 2px, transparent 2px 1.25cqw); }
+  .ruler-L { position:absolute; top:0; bottom:0; width:1.05cqw; pointer-events:none; opacity:0.55;
+    background:repeating-linear-gradient(0deg, rgba(190,215,255,0.5) 0 2px, transparent 2px 6.25cqw); }
+  #compass-rose { position:absolute; right:6cqw; top:9cqw; width:11cqw; height:11cqw; opacity:0.14; pointer-events:none; }
+  .construct { position:absolute; pointer-events:none; background:rgba(143,216,255,0.09); }
+  #sheet-vignette { position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(120% 120% at 50% 42%, transparent 55%, rgba(4,14,28,0.5) 100%); }
+  .regmark { position:absolute; width:2.4cqw; height:2.4cqw; }
+  .regmark path { stroke:var(--faint); stroke-width:2.5; fill:none; }
+  #titleblock { position:absolute; right:1.8cqw; bottom:1.8cqw; width:22cqw; border:1px solid var(--line);
+                background:rgba(9,26,48,0.72); font-size:0.95cqw; color:var(--faint); }
+  #titleblock .tb-row { display:flex; border-top:1px solid var(--line); }
+  #titleblock .tb-row:first-child { border-top:none; }
+  #titleblock .tb-k { width:38%; padding:0.5cqw 0.9cqw; letter-spacing:0.14em; border-right:1px solid var(--line); color:#7E9CC2; }
+  #titleblock .tb-v { flex:1; padding:0.5cqw 0.9cqw; letter-spacing:0.1em; color:var(--ink); white-space:nowrap; }
+  /* wandering crosshair cursor + live coordinates */
+  #ch-v { position:absolute; top:0; bottom:0; left:50%; width:1px; background:rgba(143,216,255,0.34); }
+  #ch-h { position:absolute; left:0; right:0; top:50%; height:1px; background:rgba(143,216,255,0.34); }
+  #ch-dot { position:absolute; left:50%; top:50%; width:1.5cqw; height:1.5cqw; margin:-0.75cqw 0 0 -0.75cqw;
+            border:1.5px solid var(--cyan); border-radius:50%; }
+  #ch-xy { position:absolute; left:50%; top:50%; margin:0.9cqw 0 0 1.1cqw; font-size:0.85cqw; letter-spacing:0.14em;
+           color:rgba(143,216,255,0.75); white-space:nowrap; }
+  /* sheet-wipe transition */
+  #wipe { position:absolute; top:0; bottom:0; left:0; width:100%; pointer-events:none;
+          background:linear-gradient(100deg, rgba(24,70,120,0) 0%, rgba(29,82,138,0.92) 26%, #1B4A7E 50%, rgba(29,82,138,0.92) 74%, rgba(24,70,120,0) 100%); }
+  #wipe i { position:absolute; top:0; bottom:0; right:24%; width:2px; background:rgba(143,216,255,0.8); display:block; }
+
+  /* ---------- shared drawing bits ---------- */
+  .draw { stroke-dasharray:100; stroke-dashoffset:100; }
+  .dim-label { font-size:1cqw; letter-spacing:0.12em; fill:#8FD8FF; font-family:'IBM Plex Mono',monospace; }
+  .pencil { position:absolute; width:2.4cqw; pointer-events:none; will-change:transform; }
+
+  /* ---------- flowchart (S3) ---------- */
+  .fbox { width:19cqw; padding:1.6cqw 1.9cqw 1.4cqw; border:2px dashed rgba(190,215,255,0.55); border-radius:0.7cqw;
+          background:rgba(11,30,54,0.5); text-align:left; position:relative; }
+  .fbox .fb-t { font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:1.9cqw; letter-spacing:0.06em; color:var(--ink); text-transform:uppercase; }
+  .fbox .fb-s { font-size:1.15cqw; color:var(--faint); margin-top:0.6cqw; line-height:1.5; min-height:3.6cqw; }
+  .fbox .pbar { margin-top:0.9cqw; height:0.4cqw; background:rgba(255,184,77,0.18); border-radius:999px; overflow:hidden; }
+  .fbox .pbar i { display:block; height:100%; background:var(--amber); transform:scaleX(0); transform-origin:left center; border-radius:999px; }
+  .fcheck { position:absolute; right:1.2cqw; top:1.2cqw; width:2.2cqw; height:2.2cqw; }
+  .btick { position:absolute; width:1.1cqw; height:1.1cqw; border-color:var(--cyan) !important; }
+  .btick.tl { left:-0.45cqw; top:-0.45cqw; border-left:2.5px solid; border-top:2.5px solid; }
+  .btick.br { right:-0.45cqw; bottom:-0.45cqw; border-right:2.5px solid; border-bottom:2.5px solid; }
+
+  /* ---------- sheet index (S6) ---------- */
+  .idx { width:58cqw; border:1px solid var(--line); background:rgba(9,26,48,0.6); }
+  .idx-row { display:flex; align-items:center; border-top:1px solid var(--line); font-size:1.25cqw; letter-spacing:0.1em; color:var(--ink); position:relative; overflow:hidden; }
+  .idx-row:first-child { border-top:none; }
+  .idx-no { width:14%; padding:0.75cqw 1.3cqw; color:#7E9CC2; border-right:1px solid var(--line); }
+  .idx-name { flex:1; padding:0.75cqw 1.3cqw; text-align:left; }
+  .usebar { width:11cqw; height:0.5cqw; background:rgba(255,184,77,0.15); border-radius:999px; overflow:hidden; margin-right:1.3cqw; }
+  .usebar i { display:block; height:100%; background:var(--amber); transform:scaleX(0); transform-origin:left center; border-radius:999px; }
+  .idx-ok { width:9%; padding:0.75cqw 1.3cqw; color:var(--amber); text-align:right; }
+  .idx-row.ghost { justify-content:center; color:#7E9CC2; padding:0.75cqw 0; letter-spacing:0.22em; font-size:1.05cqw; }
+
+  .cta { display:inline-flex; align-items:center; gap:1.1cqw; font-family:'Space Grotesk',sans-serif; font-weight:700;
+         font-size:2.3cqw; letter-spacing:0.04em; text-transform:uppercase; color:#132441; background:var(--amber);
+         padding:1.35cqw 3.4cqw; border-radius:0.6cqw; box-shadow:0 0 0 0.35cqw rgba(255,184,77,0.22); will-change:transform; }
+
+  /* ---------- captions ---------- */
+  #caps { position:absolute; inset:0; display:flex; justify-content:center; align-items:flex-end; padding-bottom:5%; z-index:50; pointer-events:none; }
+  #cap-pill { max-width:74%; height:fit-content; flex:0 0 auto; text-align:center; padding:0.9cqw 2.4cqw; border-radius:0.5cqw; opacity:0;
+              background:rgba(7,20,38,0.85); border:1px solid rgba(255,184,77,0.45); }
+  #cap-text { font-family:'IBM Plex Mono',monospace; font-weight:500; font-size:1.4cqw; line-height:1.35; color:var(--ink); }
+</style>
+</head>
+<body>
+<div id="root" class="composition" data-composition-id="vid" data-width="1920" data-height="1080" data-start="0" data-duration="30">
+
+  <!-- TRACK 0 — the living drafting sheet -->
+  <div id="sheet" class="clip" data-start="0" data-duration="30" data-track-index="0" data-layout-allow-occlusion style="opacity:0;">
+    <div id="grid-minor"></div>
+    <div id="grid-major"></div>
+    <div class="ruler-t" style="top:0;"></div><div class="ruler-T" style="top:0;"></div>
+    <div class="ruler-t" style="bottom:0;"></div><div class="ruler-T" style="bottom:0;"></div>
+    <div class="ruler-l" style="left:0;"></div><div class="ruler-L" style="left:0;"></div>
+    <div class="ruler-l" style="right:0;"></div><div class="ruler-L" style="right:0;"></div>
+    <svg id="compass-rose" viewBox="0 0 120 120">
+      <g fill="none" stroke="#BFE0FF" stroke-width="1.6">
+        <circle cx="60" cy="60" r="54"/><circle cx="60" cy="60" r="40"/><circle cx="60" cy="60" r="4"/>
+        <line x1="60" y1="2" x2="60" y2="118"/><line x1="2" y1="60" x2="118" y2="60"/>
+        <line x1="19" y1="19" x2="101" y2="101"/><line x1="101" y1="19" x2="19" y2="101"/>
+        <path d="M60 12 L66 40 L60 34 L54 40 Z" fill="#BFE0FF"/>
+      </g>
+    </svg>
+    <div class="construct" id="con1" style="left:-10%; top:24%; width:120%; height:1px; transform:rotate(9deg);"></div>
+    <div class="construct" id="con2" style="left:-10%; top:72%; width:120%; height:1px; transform:rotate(-7deg);"></div>
+    <div id="sheet-vignette"></div>
+  </div>
+
+  <!-- TRACK 1 — corner registration marks (kept above grids, below scenes) -->
+  <div class="clip" data-start="0" data-duration="30" data-track-index="1" data-layout-allow-occlusion>
+    <svg class="regmark" style="left:1.9cqw;top:1.9cqw;" viewBox="0 0 48 48"><path d="M2 46 V2 H46"/></svg>
+    <svg class="regmark" style="right:1.9cqw;top:1.9cqw;" viewBox="0 0 48 48"><path d="M2 2 H46 V46"/></svg>
+    <svg class="regmark" style="left:1.9cqw;bottom:1.9cqw;" viewBox="0 0 48 48"><path d="M2 2 V46 H46"/></svg>
+    <svg class="regmark" style="right:1.9cqw;bottom:1.9cqw;" viewBox="0 0 48 48"><path d="M46 2 V46 H2"/></svg>
+  </div>
+
+  <!-- S1 SHEET 01 — THE BRIEF (0–4.4) -->
+  <div class="clip" id="s1" data-start="0" data-duration="4.9" data-track-index="2" style="opacity:0;">
+    <div class="safe" style="align-items:flex-start;text-align:left;padding-left:12%;">
+      <div class="label" id="s1-lab" style="opacity:0;">Blueprint № 001 — motion picture</div>
+      <h1 class="display" style="margin-top:1.6cqw;min-height:6cqw;"><span id="s1-type"></span><span class="caret" id="s1-caret"></span></h1>
+      <div style="position:relative;max-width:46cqw;">
+        <svg id="s1-dim" width="880" height="70" viewBox="0 0 880 70" style="margin-top:1.8cqw;overflow:visible;width:100%;">
+          <line class="draw" pathLength="100" x1="10" y1="30" x2="870" y2="30" stroke="#8FD8FF" stroke-width="2"/>
+          <path class="s1-arr" d="M10 30 l14 -7 v14 Z" fill="#8FD8FF" opacity="0"/>
+          <path class="s1-arr" d="M870 30 l-14 -7 v14 Z" fill="#8FD8FF" opacity="0"/>
+          <line class="draw" pathLength="100" x1="10" y1="18" x2="10" y2="42" stroke="#8FD8FF" stroke-width="2"/>
+          <line class="draw" pathLength="100" x1="870" y1="18" x2="870" y2="42" stroke="#8FD8FF" stroke-width="2"/>
+          <text class="dim-label" x="440" y="62" text-anchor="middle">SPEC 001 — INPUT: ONE SENTENCE, WRITTEN BY YOU</text>
+        </svg>
+        <!-- the pencil that draws the dimension line -->
+        <svg class="pencil" id="s1-pencil" viewBox="0 0 48 48" style="left:0;top:0.4cqw;opacity:0;">
+          <g transform="rotate(40 24 24)">
+            <rect x="18" y="4" width="12" height="26" rx="2" fill="#FFB84D"/>
+            <path d="M18 30 H30 L24 44 Z" fill="#EAF3FF"/><path d="M22 38 L24 44 L26 38 Z" fill="#123659"/>
+          </g>
+        </svg>
+      </div>
+      <div class="body" id="s1-sub" style="opacity:0;margin-top:1.6cqw;max-width:46cqw;">Everything below this line is drafted, checked and rendered by machines.</div>
+    </div>
+  </div>
+
+  <!-- S2 FIG.1 — THE CAMERA (4.4–9.2) -->
+  <div class="clip" id="s2" data-start="4.4" data-duration="5.3" data-track-index="3" style="opacity:0;">
+    <div class="safe" style="flex-direction:row;gap:6cqw;text-align:left;">
+      <svg id="s2-cam" width="760" height="520" viewBox="0 0 760 520" style="width:37cqw;flex:0 0 auto;overflow:visible;">
+        <!-- dash-dot centre lines (classic engineering centre marks) -->
+        <g id="s2-center" opacity="0" stroke="#8FD8FF" stroke-width="1.6" stroke-dasharray="18 6 3 6">
+          <line x1="190" y1="320" x2="490" y2="320"/><line x1="340" y1="205" x2="340" y2="455"/>
+        </g>
+        <!-- schematic body -->
+        <g fill="none" stroke="#EAF3FF" stroke-width="3">
+          <circle class="s2-d draw" pathLength="100" cx="240" cy="120" r="72"/>
+          <circle class="s2-d draw" pathLength="100" cx="240" cy="120" r="30"/>
+          <circle class="s2-d draw" pathLength="100" cx="430" cy="120" r="72"/>
+          <circle class="s2-d draw" pathLength="100" cx="430" cy="120" r="30"/>
+          <rect  class="s2-d draw" pathLength="100" x="120" y="200" width="440" height="240" rx="22"/>
+          <circle class="s2-d draw" pathLength="100" cx="340" cy="320" r="86"/>
+          <circle class="s2-d draw" pathLength="100" cx="340" cy="320" r="52"/>
+          <path  class="s2-d draw" pathLength="100" d="M560 260 L640 220 V420 L560 380"/>
+          <rect  class="s2-d draw" pathLength="100" x="150" y="230" width="60" height="34" rx="8"/>
+        </g>
+        <!-- spinning film-reel spokes -->
+        <g id="s2-reelA" stroke="#EAF3FF" stroke-width="3" opacity="0">
+          <line x1="240" y1="90" x2="240" y2="48"/>
+          <line x1="266" y1="135" x2="302" y2="156"/>
+          <line x1="214" y1="135" x2="178" y2="156"/>
+        </g>
+        <g id="s2-reelB" stroke="#EAF3FF" stroke-width="3" opacity="0">
+          <line x1="430" y1="90" x2="430" y2="48"/>
+          <line x1="456" y1="135" x2="492" y2="156"/>
+          <line x1="404" y1="135" x2="368" y2="156"/>
+        </g>
+        <!-- rotating aperture blades inside the lens -->
+        <g id="s2-ap" opacity="0" fill="none" stroke="#FFB84D" stroke-width="4" stroke-linecap="round">
+          <path d="M375 306 A38 38 0 0 1 341 358"/>
+          <path d="M310 342 A38 38 0 0 1 315 291"/>
+          <path d="M354 285 A38 38 0 0 1 375 331" opacity="0.7"/>
+        </g>
+        <!-- hatch fill inside the viewfinder -->
+        <clipPath id="vfclip"><path d="M560 260 L640 220 V420 L560 380 Z"/></clipPath>
+        <g id="s2-hatch" clip-path="url(#vfclip)" stroke="rgba(143,216,255,0.55)" stroke-width="3" opacity="0">
+          <line x1="540" y1="440" x2="600" y2="200"/><line x1="558" y1="440" x2="618" y2="200"/>
+          <line x1="576" y1="440" x2="636" y2="200"/><line x1="594" y1="440" x2="654" y2="200"/>
+          <line x1="612" y1="440" x2="672" y2="200"/><line x1="630" y1="440" x2="690" y2="200"/>
+        </g>
+        <!-- leader-line callouts -->
+        <g id="s2-lead1" opacity="0">
+          <path class="draw" pathLength="100" d="M240 44 L200 14 H120" fill="none" stroke="#8FD8FF" stroke-width="2"/>
+          <text class="dim-label" x="114" y="8" text-anchor="end">REEL A</text>
+        </g>
+        <g id="s2-lead2" opacity="0">
+          <path class="draw" pathLength="100" d="M252 322 L180 300 H96" fill="none" stroke="#8FD8FF" stroke-width="2"/>
+          <text class="dim-label" x="92" y="294" text-anchor="end">&#8960; 86 APERTURE</text>
+        </g>
+        <!-- dimensions -->
+        <g id="s2-dims" opacity="0">
+          <line x1="120" y1="480" x2="560" y2="480" stroke="#8FD8FF" stroke-width="2"/>
+          <path d="M120 480 l14 -7 v14 Z" fill="#8FD8FF"/><path d="M560 480 l-14 -7 v14 Z" fill="#8FD8FF"/>
+          <text class="dim-label" id="s2-mm" x="340" y="508" text-anchor="middle">0 mm</text>
+          <line x1="680" y1="200" x2="680" y2="440" stroke="#8FD8FF" stroke-width="2"/>
+          <path d="M680 200 l-7 14 h14 Z" fill="#8FD8FF"/><path d="M680 440 l-7 -14 h14 Z" fill="#8FD8FF"/>
+          <text class="dim-label" x="700" y="326">FRAME</text>
+        </g>
+        <g id="s2-gear" opacity="0">
+          <circle cx="660" cy="96" r="34" fill="none" stroke="#FFB84D" stroke-width="3"/>
+          <circle cx="660" cy="96" r="12" fill="none" stroke="#FFB84D" stroke-width="3"/>
+          <g stroke="#FFB84D" stroke-width="3" stroke-linecap="round">
+            <line x1="660" y1="52" x2="660" y2="66"/><line x1="660" y1="126" x2="660" y2="140"/>
+            <line x1="616" y1="96" x2="630" y2="96"/><line x1="690" y1="96" x2="704" y2="96"/>
+            <line x1="629" y1="65" x2="639" y2="75"/><line x1="681" y1="117" x2="691" y2="127"/>
+            <line x1="691" y1="65" x2="681" y2="75"/><line x1="639" y1="117" x2="629" y2="127"/>
+          </g>
+        </g>
+      </svg>
+      <div style="max-width:38cqw;">
+        <div class="fig" id="s2-fig" style="opacity:0;">Fig. 1 — the director</div>
+        <h2 class="display" id="s2-head" style="font-size:3.6cqw;margin-top:1cqw;opacity:0;">Drawn by<br>twelve agents.</h2>
+        <div class="body" id="s2-sub" style="opacity:0;margin-top:1.4cqw;">Storyboard, styling, camera moves and score — every part is drafted to spec, not improvised.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S3 FIG.2 — THE PIPELINE (9.2–13.8) -->
+  <div class="clip" id="s3" data-start="9.2" data-duration="5.1" data-track-index="4" style="opacity:0;">
+    <div class="safe">
+      <div class="fig" id="s3-fig" style="opacity:0;">Fig. 2 — the pipeline, fully automatic</div>
+      <div style="display:flex;align-items:center;gap:2.6cqw;margin-top:2.6cqw;">
+        <div class="fbox s3-box" style="opacity:0;">
+          <span class="btick tl"></span><span class="btick br"></span>
+          <svg class="fcheck" viewBox="0 0 44 44"><path class="s3-chk draw" pathLength="100" d="M8 24 L18 34 L36 10" fill="none" stroke="#FFB84D" stroke-width="6" stroke-linecap="round"/></svg>
+          <div class="fb-t">01 · Script</div><div class="fb-s">Your sentence becomes scenes, voice and cues.</div>
+          <div class="pbar"><i class="s3-fill"></i></div>
+        </div>
+        <svg class="s3-arrow" width="90" height="40" viewBox="0 0 90 40" style="overflow:visible;">
+          <line class="draw" pathLength="100" x1="4" y1="20" x2="66" y2="20" stroke="#8FD8FF" stroke-width="3"/>
+          <path class="s3-ah" d="M62 8 L86 20 L62 32 Z" fill="#8FD8FF" opacity="0"/>
+          <rect class="s3-pkt" x="2" y="14.5" width="10" height="10" rx="2" fill="#FFB84D" opacity="0"/>
+          <rect class="s3-pkt2" x="2" y="14.5" width="7" height="7" rx="2" fill="#8FD8FF" opacity="0" transform="translate(0 1.5)"/>
+        </svg>
+        <div class="fbox s3-box" style="opacity:0;">
+          <span class="btick tl"></span><span class="btick br"></span>
+          <svg class="fcheck" viewBox="0 0 44 44"><path class="s3-chk draw" pathLength="100" d="M8 24 L18 34 L36 10" fill="none" stroke="#FFB84D" stroke-width="6" stroke-linecap="round"/></svg>
+          <div class="fb-t">02 · Direct</div><div class="fb-s">Agents compose, light and stage every frame.</div>
+          <div class="pbar"><i class="s3-fill"></i></div>
+        </div>
+        <svg class="s3-arrow" width="90" height="40" viewBox="0 0 90 40" style="overflow:visible;">
+          <line class="draw" pathLength="100" x1="4" y1="20" x2="66" y2="20" stroke="#8FD8FF" stroke-width="3"/>
+          <path class="s3-ah" d="M62 8 L86 20 L62 32 Z" fill="#8FD8FF" opacity="0"/>
+          <rect class="s3-pkt" x="2" y="14.5" width="10" height="10" rx="2" fill="#FFB84D" opacity="0"/>
+          <rect class="s3-pkt2" x="2" y="14.5" width="7" height="7" rx="2" fill="#8FD8FF" opacity="0" transform="translate(0 1.5)"/>
+        </svg>
+        <div class="fbox s3-box" style="opacity:0;">
+          <span class="btick tl"></span><span class="btick br"></span>
+          <svg class="fcheck" viewBox="0 0 44 44"><path class="s3-chk draw" pathLength="100" d="M8 24 L18 34 L36 10" fill="none" stroke="#FFB84D" stroke-width="6" stroke-linecap="round"/></svg>
+          <div class="fb-t">03 · Render</div><div class="fb-s">Deterministic frames, zero drift, no retakes.</div>
+          <div class="pbar"><i class="s3-fill"></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S4 FIG.3 — THE OUTPUT PLOT (13.8–18.2) -->
+  <div class="clip" id="s4" data-start="13.8" data-duration="4.9" data-track-index="5" style="opacity:0;">
+    <div class="safe" style="flex-direction:row;gap:6cqw;text-align:left;">
+      <svg id="s4-plot" width="740" height="480" viewBox="0 0 740 480" style="width:36cqw;flex:0 0 auto;overflow:visible;">
+        <line class="s4-ax draw" pathLength="100" x1="70" y1="30" x2="70" y2="410" stroke="#EAF3FF" stroke-width="3"/>
+        <line class="s4-ax draw" pathLength="100" x1="70" y1="410" x2="710" y2="410" stroke="#EAF3FF" stroke-width="3"/>
+        <g stroke="#8FD8FF" stroke-width="2" opacity="0.65">
+          <line class="s4-tick draw" pathLength="100" x1="60" y1="330" x2="70" y2="330"/><line class="s4-tick draw" pathLength="100" x1="60" y1="250" x2="70" y2="250"/>
+          <line class="s4-tick draw" pathLength="100" x1="60" y1="170" x2="70" y2="170"/><line class="s4-tick draw" pathLength="100" x1="60" y1="90"  x2="70" y2="90"/>
+          <line class="s4-tick draw" pathLength="100" x1="230" y1="410" x2="230" y2="420"/><line class="s4-tick draw" pathLength="100" x1="390" y1="410" x2="390" y2="420"/>
+          <line class="s4-tick draw" pathLength="100" x1="550" y1="410" x2="550" y2="420"/>
+        </g>
+        <!-- area under the curve, revealed with the plot -->
+        <clipPath id="s4clip"><rect id="s4-clipr" x="70" y="20" width="0" height="400"/></clipPath>
+        <path d="M70 380 C 190 370, 250 300, 350 240 S 560 90, 700 62 L700 410 L70 410 Z" fill="rgba(255,184,77,0.10)" clip-path="url(#s4clip)"/>
+        <path id="s4-curve" class="draw" pathLength="100" d="M70 380 C 190 370, 250 300, 350 240 S 560 90, 700 62" fill="none" stroke="#FFB84D" stroke-width="5" stroke-linecap="round"/>
+        <line id="s4-scan" x1="70" y1="30" x2="70" y2="410" stroke="#8FD8FF" stroke-width="2" opacity="0"/>
+        <g id="s4-pts">
+          <circle class="s4-pt" cx="230" cy="330" r="9" fill="#0C2440" stroke="#FFB84D" stroke-width="4" opacity="0"/>
+          <circle class="s4-pt" cx="390" cy="216" r="9" fill="#0C2440" stroke="#FFB84D" stroke-width="4" opacity="0"/>
+          <circle class="s4-pt" cx="550" cy="118" r="9" fill="#0C2440" stroke="#FFB84D" stroke-width="4" opacity="0"/>
+        </g>
+        <g font-family="IBM Plex Mono, monospace" font-size="20" fill="#FFB84D">
+          <text class="s4-vlab" x="230" y="300" text-anchor="middle" opacity="0">62</text>
+          <text class="s4-vlab" x="390" y="186" text-anchor="middle" opacity="0">84</text>
+          <text class="s4-vlab" x="550" y="88"  text-anchor="middle" opacity="0">97</text>
+        </g>
+        <circle id="s4-end" cx="700" cy="62" r="10" fill="#FFB84D" opacity="0"/>
+        <ellipse id="s4-circle" class="draw" pathLength="100" cx="602" cy="96" rx="118" ry="52" fill="none" stroke="#FF5F5F" stroke-width="4" transform="rotate(-9 602 96)"/>
+        <text class="dim-label" x="86" y="52" fill="#9DB8D9">QUALITY</text>
+        <text class="dim-label" x="640" y="444" fill="#9DB8D9">EFFORT&#8594;0</text>
+      </svg>
+      <div style="max-width:38cqw;">
+        <div class="fig" id="s4-fig" style="opacity:0;">Fig. 3 — measured output</div>
+        <div style="margin-top:1.4cqw;">
+          <div class="display" id="s4-n1" style="font-size:4.4cqw;color:var(--amber);opacity:0;">0 LINES</div>
+          <div class="display" id="s4-n2" style="font-size:3cqw;color:var(--cyan);margin-top:0.5cqw;opacity:0;">0 FPS</div>
+          <div class="display" id="s4-n3" style="font-size:3cqw;color:var(--red);margin-top:0.5cqw;opacity:0;">0 DRIFT</div>
+        </div>
+        <div class="body" id="s4-sub" style="opacity:0;margin-top:1.4cqw;">Full HD, thirty frames a second, and the red circle is the whole point.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S5 REVISIONS: NONE (18.2–22.6) -->
+  <div class="clip" id="s5" data-start="18.2" data-duration="4.9" data-track-index="6" style="opacity:0;">
+    <div class="safe" style="align-items:flex-start;text-align:left;padding-left:14%;">
+      <div class="fig" id="s5-fig" style="opacity:0;">Revision history</div>
+      <div style="position:relative;margin-top:1.8cqw;"><div class="display s5-line" id="s5-l1" style="font-size:4cqw;opacity:0;color:var(--faint);">REV A — HIRE A CREW</div>
+        <svg viewBox="0 0 400 24" preserveAspectRatio="none" style="position:absolute;left:-1%;top:50%;width:102%;height:1.6cqw;margin-top:-0.8cqw;overflow:visible;">
+          <line class="s5-strike draw" pathLength="100" x1="0" y1="10" x2="400" y2="10" stroke="#FF5F5F" stroke-width="7" stroke-linecap="round"/>
+          <path class="s5-scrib draw" pathLength="100" d="M4 12 L36 4 L70 16 L104 6 L138 17 L172 5 L206 15 L240 6 L274 16 L308 5 L342 15 L376 7 L398 12" fill="none" stroke="#FF5F5F" stroke-width="3" stroke-linecap="round" opacity="0.85"/>
+        </svg></div>
+      <div style="position:relative;margin-top:0.9cqw;"><div class="display s5-line" id="s5-l2" style="font-size:4cqw;opacity:0;color:var(--faint);">REV B — BOOK A STUDIO</div>
+        <svg viewBox="0 0 400 24" preserveAspectRatio="none" style="position:absolute;left:-1%;top:50%;width:102%;height:1.6cqw;margin-top:-0.8cqw;overflow:visible;">
+          <line class="s5-strike draw" pathLength="100" x1="0" y1="10" x2="400" y2="10" stroke="#FF5F5F" stroke-width="7" stroke-linecap="round"/>
+          <path class="s5-scrib draw" pathLength="100" d="M4 12 L36 4 L70 16 L104 6 L138 17 L172 5 L206 15 L240 6 L274 16 L308 5 L342 15 L376 7 L398 12" fill="none" stroke="#FF5F5F" stroke-width="3" stroke-linecap="round" opacity="0.85"/>
+        </svg></div>
+      <div style="position:relative;margin-top:0.9cqw;"><div class="display s5-line" id="s5-l3" style="font-size:4cqw;opacity:0;color:var(--faint);">REV C — EDIT FOR WEEKS</div>
+        <svg viewBox="0 0 400 24" preserveAspectRatio="none" style="position:absolute;left:-1%;top:50%;width:102%;height:1.6cqw;margin-top:-0.8cqw;overflow:visible;">
+          <line class="s5-strike draw" pathLength="100" x1="0" y1="10" x2="400" y2="10" stroke="#FF5F5F" stroke-width="7" stroke-linecap="round"/>
+          <path class="s5-scrib draw" pathLength="100" d="M4 12 L36 4 L70 16 L104 6 L138 17 L172 5 L206 15 L240 6 L274 16 L308 5 L342 15 L376 7 L398 12" fill="none" stroke="#FF5F5F" stroke-width="3" stroke-linecap="round" opacity="0.85"/>
+        </svg></div>
+      <div style="position:relative;">
+        <div class="stamp" id="s5-stamp" style="margin-top:2.4cqw;opacity:0;">Just words.</div>
+        <svg id="s5-splat" width="120" height="120" viewBox="0 0 120 120" style="position:absolute;right:-4cqw;top:0.6cqw;overflow:visible;">
+          <circle class="s5-ink" cx="20" cy="30" r="7" fill="#FF5F5F" opacity="0"/>
+          <circle class="s5-ink" cx="52" cy="12" r="4" fill="#FF5F5F" opacity="0"/>
+          <circle class="s5-ink" cx="84" cy="34" r="6" fill="#FF5F5F" opacity="0"/>
+          <circle class="s5-ink" cx="66" cy="66" r="3.5" fill="#FF5F5F" opacity="0"/>
+          <circle class="s5-ink" cx="30" cy="78" r="5" fill="#FF5F5F" opacity="0"/>
+        </svg>
+      </div>
+      <div class="mono" id="s5-note" style="opacity:0;margin-top:1.3cqw;font-size:1.05cqw;letter-spacing:0.2em;color:#7E9CC2;">FILED PER SPEC 001 · NO FURTHER REVISIONS EXPECTED</div>
+    </div>
+  </div>
+
+  <!-- S6 SHEET INDEX (22.6–26.6) -->
+  <div class="clip" id="s6" data-start="22.6" data-duration="4.5" data-track-index="7" style="opacity:0;">
+    <div class="safe">
+      <div style="display:flex;align-items:baseline;gap:1.2cqw;">
+        <div class="display" id="s6-count" style="font-size:5cqw;color:var(--amber);">0</div>
+        <div class="display" id="s6-head" style="font-size:2.9cqw;opacity:0;">sheets on file.</div>
+      </div>
+      <div class="idx" id="s6-idx" style="margin-top:2cqw;opacity:0;position:relative;">
+        <div class="idx-row s6-row"><span class="idx-no">SHT-01</span><span class="idx-name">bauhaus-print</span><span class="usebar"><i style="--w:0.82;"></i></span><span class="idx-ok s6-ok" style="opacity:0;">OK</span></div>
+        <div class="idx-row s6-row"><span class="idx-no">SHT-02</span><span class="idx-name">biennale-yellow</span><span class="usebar"><i style="--w:0.64;"></i></span><span class="idx-ok s6-ok" style="opacity:0;">OK</span></div>
+        <div class="idx-row s6-row"><span class="idx-no">SHT-03</span><span class="idx-name">longshot-cinema</span><span class="usebar"><i style="--w:0.9;"></i></span><span class="idx-ok s6-ok" style="opacity:0;">OK</span></div>
+        <div class="idx-row s6-row"><span class="idx-no">SHT-04</span><span class="idx-name">vapor-chrome</span><span class="usebar"><i style="--w:0.55;"></i></span><span class="idx-ok s6-ok" style="opacity:0;">OK</span></div>
+        <div class="idx-row s6-row"><span class="idx-no">SHT-05</span><span class="idx-name">bloom-illustrated</span><span class="usebar"><i style="--w:0.72;"></i></span><span class="idx-ok s6-ok" style="opacity:0;">OK</span></div>
+        <div class="idx-row s6-row"><span class="idx-no">SHT-06</span><span class="idx-name">neon-premiere</span><span class="usebar"><i style="--w:0.44;"></i></span><span class="idx-ok s6-ok" style="opacity:0;">OK</span></div>
+        <div class="idx-row ghost s6-row">&#8230; and 34 more sheets in the flat file &#8230;</div>
+        <div id="s6-scan" style="position:absolute;left:0;right:0;top:0;height:14.3%;background:rgba(255,184,77,0.14);border-top:1px solid rgba(255,184,77,0.5);border-bottom:1px solid rgba(255,184,77,0.5);opacity:0;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S7 APPROVED (26.6–30.0) -->
+  <div class="clip" id="s7" data-start="26.6" data-duration="3.4" data-track-index="8" style="opacity:0;">
+    <div class="safe">
+      <div style="position:relative;">
+        <svg id="s7-burst" width="560" height="240" viewBox="0 0 560 240" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);overflow:visible;" data-layout-allow-occlusion>
+          <g stroke="#8FD8FF" stroke-width="2.5" stroke-linecap="round" opacity="0.8">
+            <line class="s7-ray" x1="280" y1="120" x2="280" y2="10"/><line class="s7-ray" x1="280" y1="120" x2="280" y2="230"/>
+            <line class="s7-ray" x1="280" y1="120" x2="60" y2="40"/><line class="s7-ray" x1="280" y1="120" x2="500" y2="40"/>
+            <line class="s7-ray" x1="280" y1="120" x2="60" y2="200"/><line class="s7-ray" x1="280" y1="120" x2="500" y2="200"/>
+          </g>
+        </svg>
+        <div class="display" id="s7-mark" style="font-size:6.6cqw;opacity:0;">KEYFRAME</div>
+      </div>
+      <div style="position:relative;">
+        <div class="body" id="s7-tag" style="opacity:0;margin-top:0.8cqw;">Draft a film from a single sentence.</div>
+        <svg width="480" height="14" viewBox="0 0 480 14" style="position:absolute;left:50%;margin-left:-12.5cqw;bottom:-0.7cqw;width:25cqw;overflow:visible;">
+          <path id="s7-under" class="draw" pathLength="100" d="M4 8 C 130 2, 350 2, 476 8" fill="none" stroke="#FFB84D" stroke-width="4" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div style="position:relative;margin-top:2.6cqw;display:inline-block;" id="s7-ctawrap">
+        <svg width="620" height="190" viewBox="0 0 620 190" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);overflow:visible;" data-layout-allow-occlusion>
+          <rect id="s7-dashrect" x="10" y="10" width="600" height="170" rx="85" fill="none" stroke="rgba(143,216,255,0.75)" stroke-width="3" stroke-dasharray="14 16" opacity="0"/>
+        </svg>
+        <div class="cta" id="s7-cta" style="opacity:0;">Open a new sheet <span>&#8594;</span></div>
+        <svg class="pencil" id="s7-pencil" viewBox="0 0 48 48" style="left:50%;top:50%;margin:-1.2cqw 0 0 -1.2cqw;opacity:0;">
+          <g transform="rotate(40 24 24)">
+            <rect x="18" y="4" width="12" height="26" rx="2" fill="#FFB84D"/>
+            <path d="M18 30 H30 L24 44 Z" fill="#EAF3FF"/><path d="M22 38 L24 44 L26 38 Z" fill="#123659"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+    <div class="stamp" id="s7-stamp" style="position:absolute;right:10%;top:15%;font-size:2.5cqw;border-width:0.34cqw;color:var(--amber);border-color:var(--amber);opacity:0;">
+      APPROVED FOR PRODUCTION
+    </div>
+    <div class="stamp" id="s7-stamp2" style="position:absolute;left:9%;bottom:22%;font-size:1.5cqw;border-width:0.26cqw;padding:0.6cqw 1.6cqw;opacity:0;">
+      REV 0 — SHIP IT
+    </div>
+    <svg id="s7-protractor" width="620" height="320" viewBox="0 0 620 320" style="position:absolute;left:4%;bottom:-2%;overflow:visible;opacity:0.5;" data-layout-allow-occlusion>
+      <path class="draw" id="s7-arc" pathLength="100" d="M40 300 A 270 270 0 0 1 580 300" fill="none" stroke="#8FD8FF" stroke-width="2.5"/>
+      <g stroke="#8FD8FF" stroke-width="2" opacity="0.8">
+        <line x1="94" y1="146" x2="106" y2="158"/><line x1="310" y1="30" x2="310" y2="46"/><line x1="526" y1="146" x2="514" y2="158"/>
+        <line x1="170" y1="80" x2="179" y2="93"/><line x1="450" y1="80" x2="441" y2="93"/>
+      </g>
+    </svg>
+  </div>
+
+  <!-- TRACK 15 — sheet-wipe transition (above scenes, below chrome) -->
+  <div class="clip" data-start="0" data-duration="30" data-track-index="15" data-layout-allow-occlusion style="background:none;">
+    <div id="wipe" style="opacity:0;"><i></i></div>
+  </div>
+
+  <!-- TRACK 19 — title block + crosshair cursor + live coordinates -->
+  <div id="chrome" class="clip" data-start="0" data-duration="30" data-track-index="19" data-layout-allow-occlusion style="opacity:0;">
+    <div id="ch-v"></div><div id="ch-h"></div><div id="ch-dot"></div><div id="ch-xy">X 0960 · Y 0540</div>
+    <div id="titleblock">
+      <div class="tb-row"><span class="tb-k">PROJECT</span><span class="tb-v">KEYFRAME</span></div>
+      <div class="tb-row"><span class="tb-k">SHEET</span><span class="tb-v" id="tb-sheet">01 / 07</span></div>
+      <div class="tb-row"><span class="tb-k">SCALE</span><span class="tb-v">1 : 1</span></div>
+      <div class="tb-row"><span class="tb-k">DRAWN BY</span><span class="tb-v">12 AGENTS</span></div>
+      <div class="tb-row"><span class="tb-k">REVISIONS</span><span class="tb-v" style="color:var(--amber);">NONE</span></div>
+    </div>
+  </div>
+
+  <!-- TRACK 20 — captions -->
+  <div id="caps" class="clip" data-start="0" data-duration="30" data-track-index="20"><div id="cap-pill"><div id="cap-text"></div></div></div>
+</div>
+
+<script>
+(function () {
+  const D = 30;
+  const tl = gsap.timeline({ paused: true });
+  const $ = (s) => document.querySelector(s);
+  const reps = (total, cyc) => Math.max(0, Math.floor(total / cyc) - 1);
+  function kill(id, t) { tl.set(id, { opacity: 0 }, t); }
+  function type(sel, str, at, dur) { const o = { n: 0 }; tl.to(o, { n: str.length, duration: dur, ease: "none", snap: { n: 1 }, onUpdate() { const e = $(sel); if (e) e.textContent = str.slice(0, Math.round(o.n)); } }, at); }
+  function countTxt(sel, to, at, dur, fmt) { const o = { v: 0 }; tl.to(o, { v: to, duration: dur, ease: "power2.out", snap: { v: 1 }, onUpdate() { const e = $(sel); if (e) e.textContent = fmt(Math.round(o.v)); } }, at); }
+  /* rubber stamp slam */
+  function slam(sel, at, rot) { tl.fromTo(sel, { opacity: 0, scale: 2.4, rotation: rot }, { opacity: 0.96, scale: 1, rotation: rot, duration: 0.34, ease: "power4.in" }, at);
+    tl.fromTo(sel, { x: 0 }, { x: 3, duration: 0.05, yoyo: true, repeat: 3, ease: "none" }, at + 0.34); }
+  /* the sheet-wipe that covers every scene change (opacity gates it so a seek
+     can never leave the panel parked over the frame) */
+  gsap.set("#wipe", { xPercent: -115, opacity: 1 });
+  function wipe(at) {
+    tl.set("#wipe", { opacity: 1 }, at - 0.31);
+    tl.fromTo("#wipe", { xPercent: -115 }, { xPercent: 115, duration: 0.6, ease: "power2.inOut" }, at - 0.3);
+    tl.set("#wipe", { opacity: 0 }, at + 0.31);
+  }
+  /* crosshair glides to the focus of each scene; the readout follows */
+  const pad4 = (n) => String(Math.round(n)).padStart(4, "0");
+  function cursor(px, py, at) {
+    tl.to(["#ch-v", "#ch-dot", "#ch-xy"], { x: px, duration: 0.8, ease: "power2.inOut" }, at);
+    tl.to(["#ch-h", "#ch-dot", "#ch-xy"], { y: py, duration: 0.8, ease: "power2.inOut" }, at);
+    tl.set("#ch-xy", { textContent: "X " + pad4(960 + px) + " · Y " + pad4(540 + py) }, at + 0.8);
+  }
+  /* per-scene camera settle (slow scale drift = the smoothness glue) */
+  function settle(sel, start, dur) { tl.fromTo(sel + " .safe", { scale: 1.035 }, { scale: 1.0, duration: dur, ease: "sine.out" }, start); }
+
+  /* ===== SHEET + AMBIENT ===== */
+  tl.fromTo("#sheet", { opacity: 0 }, { opacity: 1, duration: 0.8 }, 0);
+  tl.fromTo("#grid-major", { backgroundPosition: "0cqw 0cqw" }, { backgroundPosition: "6.25cqw 6.25cqw", duration: 26, ease: "none" }, 0);
+  tl.fromTo(".ruler-t, .ruler-T", { backgroundPosition: "0cqw 0" }, { backgroundPosition: "6.25cqw 0", duration: 22, ease: "none" }, 0);
+  tl.fromTo(".ruler-l, .ruler-L", { backgroundPosition: "0 0cqw" }, { backgroundPosition: "0 6.25cqw", duration: 22, ease: "none" }, 0);
+  tl.to("#compass-rose", { rotation: 130, duration: D, ease: "none", transformOrigin: "center center" }, 0);
+  tl.to(["#con1", "#con2"], { opacity: 0.5, duration: 5, ease: "sine.inOut", yoyo: true, repeat: reps(D, 5), stagger: 1.4 }, 0);
+  tl.fromTo("#chrome", { opacity: 0 }, { opacity: 1, duration: 0.6 }, 0.4);
+  tl.fromTo("#titleblock", { y: 26, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "power2.out" }, 0.6);
+  tl.to("#ch-dot", { scale: 1.5, duration: 0.8, ease: "sine.inOut", yoyo: true, repeat: reps(D - 1, 0.8), transformOrigin: "center center" }, 0.8);
+  cursor(-340, -110, 0.5);
+
+  /* ===== S1 THE BRIEF (0–4.4) ===== */
+  tl.fromTo("#s1", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 0);
+  settle("#s1", 0, 4.4);
+  tl.fromTo("#s1-lab", { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }, 0.5);
+  type("#s1-type", "DRAW UP A FILM.", 0.9, 1.5);
+  tl.to("#s1-caret", { opacity: 0, duration: 0.2, ease: "none", yoyo: true, repeat: reps(3.4, 0.44) }, 0.9);
+  tl.to("#s1-dim .draw", { strokeDashoffset: 0, duration: 0.6, ease: "power2.out", stagger: 0.1 }, 2.5);
+  /* the pencil rides along as the dimension line draws */
+  tl.fromTo("#s1-pencil", { opacity: 0, x: 0, y: 0 }, { opacity: 1, duration: 0.15 }, 2.45);
+  tl.fromTo("#s1-pencil", { x: 0 }, { x: "43.5cqw", duration: 0.6, ease: "power2.out" }, 2.5);
+  tl.to("#s1-pencil", { opacity: 0, y: -14, duration: 0.3, ease: "power2.in" }, 3.15);
+  tl.fromTo(".s1-arr", { opacity: 0 }, { opacity: 1, duration: 0.3, stagger: 0.08 }, 2.9);
+  tl.fromTo("#s1-dim text", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 3.1);
+  tl.fromTo("#s1-sub", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.55, ease: "power2.out" }, 3.3);
+  tl.to("#s1", { opacity: 0, duration: 0.4, ease: "power2.in" }, 4.05);
+  wipe(4.4); kill("#s1", 4.85);
+
+  /* ===== S2 FIG.1 — THE CAMERA (4.4–9.2) ===== */
+  tl.fromTo("#s2", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 4.4);
+  settle("#s2", 4.4, 4.8);
+  cursor(-320, 60, 4.5);
+  tl.to(".s2-d", { strokeDashoffset: 0, duration: 0.65, ease: "power1.inOut", stagger: 0.14 }, 4.7);
+  tl.fromTo("#s2-center", { opacity: 0 }, { opacity: 0.55, duration: 0.5 }, 6.1);
+  /* reels spin, aperture blades sweep */
+  tl.fromTo(["#s2-reelA", "#s2-reelB"], { opacity: 0 }, { opacity: 1, duration: 0.4 }, 6.0);
+  tl.to("#s2-reelA", { rotation: 300, duration: 2.9, ease: "none", svgOrigin: "240 120" }, 6.2);
+  tl.to("#s2-reelB", { rotation: -260, duration: 2.9, ease: "none", svgOrigin: "430 120" }, 6.2);
+  tl.fromTo("#s2-ap", { opacity: 0, rotation: -50, svgOrigin: "340 320" }, { opacity: 1, rotation: 0, duration: 0.7, ease: "power2.out", svgOrigin: "340 320" }, 6.2);
+  tl.to("#s2-ap", { rotation: 110, duration: 2.6, ease: "sine.inOut", svgOrigin: "340 320" }, 7.0);
+  tl.fromTo("#s2-hatch", { opacity: 0, x: -24 }, { opacity: 0.6, x: 0, duration: 0.7, ease: "power2.out" }, 6.4);
+  /* callouts + dimensions */
+  tl.fromTo("#s2-lead1", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 6.9);
+  tl.to("#s2-lead1 .draw", { strokeDashoffset: 0, duration: 0.5, ease: "power2.out" }, 6.9);
+  tl.fromTo("#s2-lead2", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 7.2);
+  tl.to("#s2-lead2 .draw", { strokeDashoffset: 0, duration: 0.5, ease: "power2.out" }, 7.2);
+  tl.fromTo("#s2-dims", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 6.6);
+  countTxt("#s2-mm", 440, 6.7, 1.1, (v) => v + " mm");
+  tl.fromTo("#s2-gear", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 6.7);
+  tl.to("#s2-gear", { rotation: 220, duration: 2.4, ease: "none", svgOrigin: "660 96" }, 6.7);
+  tl.fromTo("#s2-fig", { opacity: 0, x: -22 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }, 4.9);
+  tl.fromTo("#s2-head", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 5.1);
+  tl.fromTo("#s2-sub", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.55, ease: "power2.out" }, 5.6);
+  tl.to("#s2", { opacity: 0, duration: 0.4, ease: "power2.in" }, 8.85);
+  wipe(9.2); kill("#s2", 9.65);
+
+  /* ===== S3 FIG.2 — THE PIPELINE (9.2–13.8) ===== */
+  tl.fromTo("#s3", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 9.2);
+  settle("#s3", 9.2, 4.6);
+  cursor(0, 20, 9.3);
+  tl.fromTo("#s3-fig", { opacity: 0, y: -16 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 9.35);
+  tl.fromTo(".s3-box", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out", stagger: 0.42 }, 9.55);
+  tl.fromTo(".btick", { opacity: 0, scale: 2 }, { opacity: 1, scale: 1, duration: 0.35, ease: "power3.out", stagger: 0.1 }, 9.85);
+  tl.to(".s3-arrow .draw", { strokeDashoffset: 0, duration: 0.4, ease: "power2.out", stagger: 0.42 }, 9.95);
+  tl.fromTo(".s3-ah", { opacity: 0, scale: 0, transformOrigin: "left center" }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)", stagger: 0.42 }, 10.25);
+  /* data packets stream through the pipeline */
+  tl.set([".s3-pkt", ".s3-pkt2"], { opacity: 1 }, 10.7);
+  tl.fromTo(".s3-pkt",  { attr: { x: 2 } },  { attr: { x: 68 }, duration: 0.7, ease: "none", repeat: 3, stagger: 0.2 }, 10.7);
+  tl.fromTo(".s3-pkt2", { attr: { x: 2 } },  { attr: { x: 68 }, duration: 0.7, ease: "none", repeat: 3, stagger: 0.2 }, 11.05);
+  tl.set([".s3-pkt", ".s3-pkt2"], { opacity: 0 }, 13.3);
+  /* gates pass: checks + progress bars */
+  tl.to(".s3-chk", { strokeDashoffset: 0, duration: 0.4, ease: "power2.inOut", stagger: 0.26 }, 11.5);
+  tl.to(".s3-fill", { scaleX: 1, duration: 0.5, ease: "power2.out", stagger: 0.26 }, 11.55);
+  tl.to(".s3-box", { borderColor: "rgba(255,184,77,0.75)", duration: 0.4, stagger: 0.26 }, 11.55);
+  tl.to("#s3", { opacity: 0, duration: 0.4, ease: "power2.in" }, 13.45);
+  wipe(13.8); kill("#s3", 14.25);
+
+  /* ===== S4 FIG.3 — THE PLOT (13.8–18.2) ===== */
+  tl.fromTo("#s4", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 13.8);
+  settle("#s4", 13.8, 4.4);
+  cursor(-180, -120, 13.9);
+  tl.to(".s4-ax", { strokeDashoffset: 0, duration: 0.6, ease: "power2.inOut", stagger: 0.15 }, 14.0);
+  tl.to(".s4-tick", { strokeDashoffset: 0, duration: 0.3, ease: "power2.out", stagger: 0.06 }, 14.5);
+  /* curve, area fill and scan line move together */
+  tl.to("#s4-curve", { strokeDashoffset: 0, duration: 1.3, ease: "power1.inOut" }, 14.8);
+  tl.fromTo("#s4-clipr", { attr: { width: 0 } }, { attr: { width: 630 }, duration: 1.3, ease: "power1.inOut" }, 14.8);
+  tl.fromTo("#s4-scan", { opacity: 0.5, attr: { x1: 70, x2: 70 } }, { attr: { x1: 700, x2: 700 }, duration: 1.3, ease: "power1.inOut" }, 14.8);
+  tl.to("#s4-scan", { opacity: 0, duration: 0.3 }, 16.1);
+  tl.fromTo(".s4-pt", { opacity: 0, scale: 0, transformOrigin: "center center" }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2.2)", stagger: 0.22 }, 15.1);
+  tl.fromTo(".s4-vlab", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out", stagger: 0.22 }, 15.2);
+  tl.fromTo("#s4-end", { opacity: 0, scale: 0, transformOrigin: "center center" }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2)" }, 16.1);
+  tl.to("#s4-end", { scale: 1.7, opacity: 0.4, duration: 0.5, ease: "sine.inOut", yoyo: true, repeat: 2, transformOrigin: "center center" }, 16.5);
+  tl.to("#s4-circle", { strokeDashoffset: 0, duration: 0.7, ease: "power2.inOut" }, 16.3);
+  tl.fromTo("#s4-fig", { opacity: 0, x: -22 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }, 14.1);
+  tl.fromTo("#s4-n1", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 14.5);
+  tl.fromTo("#s4-n2", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 14.75);
+  tl.fromTo("#s4-n3", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 15.0);
+  countTxt("#s4-n1", 1080, 14.6, 1.2, (v) => v + " LINES");
+  countTxt("#s4-n2", 30, 14.85, 1.1, (v) => v + " FPS");
+  tl.set("#s4-n3", { textContent: "0 DRIFT" }, 15.0); /* the one number that must stay zero */
+  tl.fromTo("#s4-sub", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.55, ease: "power2.out" }, 15.6);
+  tl.to("#s4", { opacity: 0, duration: 0.4, ease: "power2.in" }, 17.85);
+  wipe(18.2); kill("#s4", 18.65);
+
+  /* ===== S5 REVISIONS: NONE (18.2–22.6) ===== */
+  tl.fromTo("#s5", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 18.2);
+  settle("#s5", 18.2, 4.4);
+  cursor(-260, 40, 18.3);
+  tl.fromTo("#s5-fig", { opacity: 0, x: -22 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }, 18.35);
+  tl.fromTo("#s5-l1", { opacity: 0, x: -36 }, { opacity: 1, x: 0, duration: 0.45, ease: "power3.out" }, 18.55);
+  tl.fromTo("#s5-l2", { opacity: 0, x: -36 }, { opacity: 1, x: 0, duration: 0.45, ease: "power3.out" }, 18.85);
+  tl.fromTo("#s5-l3", { opacity: 0, x: -36 }, { opacity: 1, x: 0, duration: 0.45, ease: "power3.out" }, 19.15);
+  tl.to(".s5-strike", { strokeDashoffset: 0, duration: 0.35, ease: "power3.in", stagger: 0.3 }, 19.6);
+  /* the marker comes back and scribbles them out properly */
+  tl.to(".s5-scrib", { strokeDashoffset: 0, duration: 0.35, ease: "power2.in", stagger: 0.25 }, 20.2);
+  tl.to(".s5-line", { opacity: 0.4, duration: 0.4 }, 20.9);
+  slam("#s5-stamp", 21.1, -6);
+  tl.fromTo(".s5-ink", { opacity: 0, scale: 0, transformOrigin: "center center" }, { opacity: 0.85, scale: 1, duration: 0.3, ease: "back.out(2.4)", stagger: 0.05 }, 21.42);
+  tl.fromTo("#s5-note", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 21.7);
+  tl.to("#s5", { opacity: 0, duration: 0.4, ease: "power2.in" }, 22.25);
+  wipe(22.6); kill("#s5", 23.05);
+
+  /* ===== S6 SHEET INDEX (22.6–26.6) ===== */
+  tl.fromTo("#s6", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 22.6);
+  settle("#s6", 22.6, 4.0);
+  cursor(0, -40, 22.7);
+  countTxt("#s6-count", 40, 22.85, 1.1, (v) => String(v));
+  tl.fromTo("#s6-head", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 22.8);
+  tl.fromTo("#s6-idx", { opacity: 0, y: 34 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 23.0);
+  tl.fromTo(".s6-row", { opacity: 0, x: -26 }, { opacity: 1, x: 0, duration: 0.4, ease: "power2.out", stagger: 0.11 }, 23.2);
+  tl.to(".usebar i", { scaleX: (i, el) => parseFloat(getComputedStyle(el).getPropertyValue("--w")) || 0.6, duration: 0.7, ease: "power2.out", stagger: 0.11 }, 23.7);
+  tl.fromTo(".s6-ok", { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(2)", stagger: 0.11 }, 24.15);
+  tl.fromTo("#s6-scan", { opacity: 0, top: "0%" }, { opacity: 1, top: "0%", duration: 0.3 }, 24.2);
+  tl.to("#s6-scan", { top: "85.7%", duration: 1.5, ease: "power1.inOut" }, 24.4);
+  tl.to("#s6-scan", { opacity: 0, duration: 0.3 }, 25.9);
+  tl.to("#s6", { opacity: 0, duration: 0.4, ease: "power2.in" }, 26.25);
+  wipe(26.6); kill("#s6", 27.05);
+
+  /* ===== S7 APPROVED (26.6–30) ===== */
+  tl.fromTo("#s7", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 26.6);
+  settle("#s7", 26.6, 3.4);
+  cursor(430, -195, 26.7);
+  tl.fromTo(".s7-ray", { scale: 0.2, opacity: 0, transformOrigin: "280px 120px" }, { scale: 1, opacity: 0.8, duration: 0.5, ease: "power2.out", stagger: 0.04 }, 26.8);
+  tl.to(".s7-ray", { opacity: 0, duration: 0.5, ease: "power2.in" }, 27.5);
+  tl.fromTo("#s7-mark", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 26.85);
+  tl.fromTo("#s7-tag", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 27.15);
+  tl.to("#s7-under", { strokeDashoffset: 0, duration: 0.55, ease: "power2.out" }, 27.45);
+  tl.fromTo("#s7-cta", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.55, ease: "back.out(1.7)" }, 27.55);
+  tl.to("#s7-cta", { scale: 1.06, duration: 0.55, ease: "sine.inOut", yoyo: true, repeat: 2 }, 28.5);
+  /* the pencil drafts a dashed capsule around the CTA */
+  tl.fromTo("#s7-dashrect", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 28.05);
+  tl.to("#s7-dashrect", { strokeDashoffset: -120, duration: 1.8, ease: "none" }, 28.1);
+  tl.fromTo("#s7-pencil", { opacity: 0, x: -230, y: -62 }, { opacity: 1, duration: 0.15 }, 28.0);
+  tl.to("#s7-pencil", { x: 230,  duration: 0.5, ease: "none" }, 28.1);
+  tl.to("#s7-pencil", { y: 62,   duration: 0.22, ease: "none" }, 28.6);
+  tl.to("#s7-pencil", { x: -230, duration: 0.5, ease: "none" }, 28.82);
+  tl.to("#s7-pencil", { y: -62,  duration: 0.22, ease: "none" }, 29.32);
+  tl.to("#s7-pencil", { opacity: 0, duration: 0.2 }, 29.56);
+  slam("#s7-stamp", 27.95, 7);
+  slam("#s7-stamp2", 28.75, -5);
+  tl.fromTo("#s7-protractor", { opacity: 0 }, { opacity: 0.5, duration: 0.6 }, 27.3);
+  tl.to("#s7-arc", { strokeDashoffset: 0, duration: 1.0, ease: "power2.inOut" }, 27.4);
+
+  /* ===== CAPTIONS + SHEET COUNTER — one proxy, seek-safe ===== */
+  const cues = [
+    [0.9,  4.1,  "Every film here starts as a drawing — of your sentence."],
+    [4.7,  8.9,  "Twelve agents draft every camera move to spec."],
+    [9.4,  13.5, "Script. Direct. Render. Checked at every gate."],
+    [14.0, 18.0, "1080 lines, 30 fps — and exactly zero drift."],
+    [18.4, 22.3, "Every old revision, struck. Just words now."],
+    [22.8, 26.4, "Forty style sheets on file, ready to draw."],
+    [26.8, 29.8, "KEYFRAME — approved for production. Start free."]
+  ];
+  const sceneStarts = [0, 4.4, 9.2, 13.8, 18.2, 22.6, 26.6];
+  const pad2 = (n) => String(n).padStart(2, "0");
+  const proxy = { t: 0 };
+  tl.to(proxy, { t: D, duration: D, ease: "none",
+    onUpdate() {
+      const now = proxy.t;
+      const cap = $("#cap-pill"), txt = $("#cap-text");
+      if (cap && txt) {
+        let active = null;
+        for (let k = 0; k < cues.length; k++) { if (now >= cues[k][0] && now < cues[k][1]) { active = cues[k]; break; } }
+        if (active) { if (txt.textContent !== active[2]) txt.textContent = active[2]; cap.style.opacity = "1"; }
+        else { cap.style.opacity = "0"; }
+      }
+      const sn = $("#tb-sheet");
+      if (sn) {
+        let idx = 0;
+        for (let k = 0; k < sceneStarts.length; k++) { if (now >= sceneStarts[k]) idx = k; }
+        const label = pad2(idx + 1) + " / 07";
+        if (sn.textContent !== label) sn.textContent = label;
+      }
+    } }, 0);
+
+  window.__timelines = window.__timelines || {};
+  window.__timelines["vid"] = tl;
+
+  // --- DEV PREVIEW ONLY (render browser sets navigator.webdriver -> stays paused there)
+  if (typeof navigator === "undefined" || !navigator.webdriver) {
+    (function previewBoot() {
+      var root = document.querySelector('[data-composition-id]');
+      if (root) {
+        var w = +root.getAttribute('data-width') || 1920;
+        var h = +root.getAttribute('data-height') || 1080;
+        document.documentElement.style.height = "100%";
+        document.body.style.minHeight = "100vh";
+        root.style.width = w + 'px'; root.style.height = h + 'px';
+        root.style.position = 'absolute'; root.style.top = '50%'; root.style.left = '50%';
+        root.style.transformOrigin = 'center center';
+        var fit = function () {
+          var f = Math.min(window.innerWidth / w, window.innerHeight / h);
+          root.style.transform = 'translate(-50%,-50%) scale(' + f + ')';
+        };
+        fit(); window.addEventListener('resize', fit);
+        var clips = [].slice.call(root.querySelectorAll('[data-start][data-duration]'));
+        var windowClips = function (t) {
+          for (var i = 0; i < clips.length; i++) {
+            var c = clips[i];
+            var s = +c.getAttribute('data-start') || 0;
+            var d = +c.getAttribute('data-duration');
+            if (!isFinite(d)) d = 1e9;
+            c.style.visibility = (t >= s - 0.02 && t < s + d + 0.02) ? '' : 'hidden';
+          }
+        };
+        windowClips(0);
+        tl.eventCallback('onUpdate', function () { windowClips(tl.time()); });
+      }
+      tl.play(0);
+      tl.eventCallback("onComplete", function () { tl.restart(); });
+    })();
+  }
+})();
+</script>
+</body>
+</html>

@@ -23,6 +23,7 @@ const { understandWebsite } = require("./ingest/website");
 const { understandBlog } = require("./ingest/blog");
 const { transcribeVideo } = require("./ingest/transcribe");
 const { generateStoryboard } = require("./storyboard");
+const { directText } = require("./text_director");
 const { buildFallback } = require("./fallback");
 const { synthesizeFitted } = require("./vo_fit");
 const { buildCues, writeSrt } = require("./captions");
@@ -247,7 +248,40 @@ function screenshotAssets({ job, script, jobDir }) {
 }
 
 // Acquire the approved script's assetNeeds (our DB first, then providers).
-// Caps: 6 searched assets + up to 3 real screenshots, at most 1 video.
+// Take n items spread evenly across arr (order preserved), so a long film's
+// assets land THROUGHOUT the timeline instead of clustering in the opening
+// scenes. n>=len returns all; n<=0 returns none.
+function spreadPick(arr, n) {
+  if (n <= 0) return [];
+  if (n >= arr.length) return arr.slice();
+  const out = [], step = arr.length / n;
+  for (let i = 0; i < n; i++) out.push(arr[Math.floor(i * step)]);
+  return out;
+}
+
+// Derive a stock-search query for a content scene that declared no asset need,
+// from its own copy (emphasis word / a noun-ish token from the headline) plus
+// the film's subject. Keeps synthesized assets ON-TOPIC (a scene about "search"
+// pulls "search", not a random photo). Returns "" when there's nothing solid to
+// search on — better an honest gap than an off-topic stock photo.
+const STOPWORDS = new Set(["the", "a", "an", "and", "or", "but", "for", "with", "your", "you", "our", "we", "it", "is", "are", "to", "of", "in", "on", "at", "by", "that", "this", "how", "why", "what", "now", "get", "one", "all", "more", "less", "very", "just", "so", "no", "not"]);
+function synthAssetQuery(scene, subject) {
+  const emph = String(scene.emphasis || "").trim();
+  let core = emph;
+  if (!core || core.length < 3) {
+    const words = String(scene.headline || "").replace(/[^\w\s-]/g, " ").split(/\s+/)
+      .filter((w) => w.length >= 3 && !STOPWORDS.has(w.toLowerCase()));
+    core = words.slice(0, 2).join(" ");
+  }
+  core = core.trim();
+  if (!core) return "";
+  // Concept illustration reads cleaner than a literal photo for abstract copy.
+  const subj = String(subject || "").trim().split(/\s+/).slice(0, 2).join(" ");
+  return `${core} ${subj} concept illustration`.replace(/\s+/g, " ").trim().slice(0, 78);
+}
+
+// Caps scale with the film's length (see below): a short pulls ~6, a 2-3 min
+// film pulls up to ~22 + more real screenshots, at most 2 videos.
 // Returns the availableAssets manifest the composer sees.
 async function acquireScriptAssets({ job, script, jobDir, orientation, tracker }) {
   // Screenshot Director: topic-matched INTERNAL page captures (pricing scene ->
@@ -276,16 +310,47 @@ async function acquireScriptAssets({ job, script, jobDir, orientation, tracker }
       }
     }
   }
+  // DENSITY: scale the stock pull with the film's LENGTH. The old flat cap of 6
+  // images was tuned for a 15-30s short; on a 2-3 min film (~30 scenes) it left
+  // ~24 scenes with no real asset — the walls of empty space users complained
+  // about. Aim for ~0.7 assets/scene so most scenes carry a screenshot/photo/
+  // vector, capped at 22 so a runaway script can't hammer the stock APIs.
+  const nScenes = Math.max(1, script.scenes.length);
+  const imgCap = Math.max(6, Math.min(22, Math.round(nScenes * 0.7)));
+  const videoCap = nScenes > 12 ? 2 : 1;
+
+  // The script often UNDER-declares asset needs on long films (the writer tags a
+  // few feature scenes and leaves the rest bare). Synthesize INSET needs for the
+  // still-bare content scenes from their own copy, so the fetch pool is deep
+  // enough to keep every stretch of the film populated. Add-only; never the
+  // branded hook, never a scene that already has a screenshot or a declared need.
+  // Runs BEFORE the empty-guard so a long film that declared ZERO needs (the
+  // worst empty-video case) still gets a full asset pool.
+  const needScenes = new Set(wanted.map((w) => String(w.scene.id)));
+  const subject = (job.brief && job.brief.subject) || job.website_title || "";
+  const declaredImgs = wanted.filter((w) => w.need.type !== "video").length;
+  if (declaredImgs < imgCap) {
+    for (let i = 1; i < script.scenes.length - 1 && wanted.filter((w) => w.need.type !== "video").length < imgCap + 3; i++) {
+      const scene = script.scenes[i];
+      if (needScenes.has(String(scene.id)) || screenshotScenes.has(scene.id)) continue;
+      const q = synthAssetQuery(scene, subject);
+      if (q) wanted.push({ scene, need: { type: "image", role: "inset", query: q }, synthetic: true });
+    }
+  }
+
   if (!wanted.length && !pinned.length) {
     return qaGateScreenshots({
       assets: mergeShots(await topicTask, []), jobDir,
-      subject: (job.brief && job.brief.subject) || job.website_title || "", tracker,
+      subject, tracker,
     });
   }
 
-  const videos = wanted.filter((w) => w.need.type === "video").slice(0, 1);
-  const images = wanted.filter((w) => w.need.type !== "video").slice(0, 6 - videos.length);
+  const videos = wanted.filter((w) => w.need.type === "video").slice(0, videoCap);
+  // Spread the picks ACROSS the timeline (not just the first N scenes) so the
+  // back half of a long film isn't left bare while the front is asset-rich.
+  const images = spreadPick(wanted.filter((w) => w.need.type !== "video"), imgCap - videos.length);
   const picks = [...videos, ...images];
+  console.log(`[project] asset budget: ${nScenes} scenes -> up to ${imgCap} image(s) + ${videoCap} video(s); ${picks.length} picked (${wanted.filter((w) => w.synthetic).length} synthesized need(s))`);
 
   fs.mkdirSync(path.join(jobDir, "assets", "images"), { recursive: true });
   fs.mkdirSync(path.join(jobDir, "assets", "videos"), { recursive: true });
@@ -422,6 +487,16 @@ async function runProduction({ jobId }) {
       const sbRes = await generateStoryboard({ prompt: sbPrompt, duration, orientation: job.orientation });
       tracker.addLlm({ inputTokens: sbRes.tokensIn, outputTokens: sbRes.tokensOut, stage: "storyboard" });
       markStage("storyboard", t0);
+
+      // TEXT DIRECTOR — fill headline-only scenes with subtext/bullets/emphasis
+      // mined from the script + brief (add-only, fail-open). The project path
+      // skipped this (it ran only in the agent graph), so long films read
+      // text-thin — walls of empty space. Denser copy also promotes bare
+      // archText scenes into feature-grid / proof-row / strike-list layouts that
+      // fill the frame. Runs BEFORE re-timing so the added copy is composed.
+      try {
+        await directText({ jobId, brief, script, storyboard: sbRes.storyboard, tracker });
+      } catch (e) { console.warn(`[project] text_director skipped: ${String(e.message).slice(0, 120)}`); }
 
       db.setProgress(jobId, "assets");
       const assets = await assetsTask;

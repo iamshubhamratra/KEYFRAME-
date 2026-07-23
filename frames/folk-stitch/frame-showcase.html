@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Folk Stitch</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<style>
+  /* ===========================================================
+     FOLK STITCH — an embroidered folk sampler sewn in real time
+     on midnight felt. Bright thread on dark fabric; letters are
+     punched in stitch by stitch; borders sew themselves.
+     Surface law: flat matte felt — NO gradients, NO glow, NO
+     blur, NO shadow. Every decoration is THREAD: dashed running
+     stitches, cross-stitch X's, zigzag hems, buttons, tassels.
+     =========================================================== */
+  * { box-sizing:border-box; margin:0; padding:0; }
+  :root {
+    --felt:#232840; --marigold:#F0A83C; --red:#E15546;
+    --cream:#F2E9D8; --teal:#5FB0A0;
+    --cream-dim:rgba(242,233,216,.35); --cream-faint:rgba(242,233,216,.16);
+  }
+  html, body { background:var(--felt); color:var(--cream);
+    font-family:'Inter',system-ui,sans-serif; }
+  .slab { font-family:'Alfa Slab One',serif; font-weight:400; text-transform:uppercase; }
+  .label { font-weight:700; font-size:12px; letter-spacing:4px; text-transform:uppercase; }
+
+  /* thread motion — dashes crawl, tassels sway, buttons turn */
+  @keyframes crawl { to { stroke-dashoffset:-26; } }
+  @keyframes sway  { from { transform:rotate(-6deg);} to { transform:rotate(6deg);} }
+  @keyframes turn  { to { transform:rotate(360deg);} }
+  .crawl path, .crawl line, .crawl rect { animation:crawl 2.6s linear infinite; }
+  .sway { transform-origin:50% 0; animation:sway 2.4s ease-in-out infinite alternate; }
+  .turn { animation:turn 14s linear infinite; }
+  .cx { display:inline-block; vertical-align:middle; }
+
+  /* ---------------- COVER — the living hoop ---------------- */
+  #cover { position:relative; height:100vh; min-height:560px; overflow:hidden;
+    display:flex; align-items:center; justify-content:center; }
+  #bframe { position:absolute; inset:0; width:100%; height:100%; }
+  .corner { position:absolute; display:flex; gap:.35vw; opacity:0; }
+  #c1{ left:4.6vw; top:7.4vh; } #c2{ right:4.6vw; top:7.4vh; }
+  #c3{ left:4.6vw; bottom:7.4vh; } #c4{ right:4.6vw; bottom:7.4vh; }
+  .hem { position:absolute; left:9vw; right:9vw; height:12px; opacity:.85; }
+  #hemT { top:9.8vh; } #hemB { bottom:9.8vh; }
+  .amb { position:absolute; opacity:.28; }
+  #cwrap { position:relative; text-align:center; z-index:3; padding:0 8vw; }
+  #kick { color:var(--teal); opacity:0; }
+  #kick b { color:var(--marigold); font-weight:700; }
+  #headline { font-size:9vw; line-height:1.04; color:var(--cream);
+    margin-top:2.2vh; perspective:60vw; white-space:nowrap; }
+  .ch { display:inline-block; transform-origin:50% 100%; backface-visibility:hidden; opacity:0; }
+  .w2 { position:relative; display:inline-block; color:var(--marigold); margin-left:.22em; }
+  #emr { position:absolute; inset:-1.6vh -1.2vw; width:calc(100% + 2.4vw);
+    height:calc(100% + 3.2vh); overflow:visible; opacity:0; }
+  #emx { position:absolute; left:0; right:0; bottom:-4.6vh; display:flex;
+    justify-content:center; gap:.5vw; }
+  #sub { margin-top:7vh; font-size:1.35vw; font-weight:600; letter-spacing:1px;
+    color:var(--cream); opacity:0; }
+  #sub i { font-style:normal; color:var(--teal); }
+  .cbtn { position:absolute; opacity:0; }
+  #tassel { position:absolute; left:50%; top:9.8vh; margin-left:-14px; opacity:0; }
+  #shuttle { position:absolute; top:-6%; bottom:-6%; left:0; width:34vw;
+    display:flex; z-index:9; transform:translateX(-45vw) skewX(-8deg); }
+  #shuttle i { flex:1; }
+
+  /* ---------------- document sections ---------------- */
+  section.doc { max-width:1060px; margin:0 auto; padding:84px 32px 20px; }
+  .sechead .label { color:var(--teal); }
+  .sechead h2 { font-size:38px; margin:10px 0 14px; color:var(--cream); }
+  .sechead h2 em { font-style:normal; color:var(--marigold); }
+  .rule { width:220px; height:8px; display:block; margin-bottom:34px; }
+  .lede { max-width:640px; color:var(--cream-dim); line-height:1.7; margin-bottom:38px; font-size:15px; }
+  .lede b { color:var(--cream); font-weight:600; }
+
+  /* threads (palette) */
+  #spools { display:flex; flex-wrap:wrap; gap:26px; }
+  .spool { text-align:center; }
+  .spool .nm { font-size:13px; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-top:10px; }
+  .spool .hx { font-size:12px; color:var(--cream-dim); letter-spacing:1px; margin-top:3px; }
+
+  /* type scale */
+  .trow { display:flex; align-items:baseline; gap:26px; padding:20px 0;
+    border-bottom:2px dashed var(--cream-faint); }
+  .trow:last-child { border-bottom:0; }
+  .trow .tag { flex:0 0 190px; font-size:12px; font-weight:700; letter-spacing:3px;
+    text-transform:uppercase; color:var(--teal); }
+  .trow .tag s { text-decoration:none; display:block; color:var(--cream-dim); letter-spacing:1px; margin-top:2px; }
+
+  /* component demos = patches */
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:26px; }
+  .demo { border:2px dashed var(--cream-dim); border-radius:8px; padding:24px 22px 26px; }
+  .demo h3 { font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase;
+    color:var(--marigold); margin-bottom:6px; }
+  .demo p { font-size:13px; color:var(--cream-dim); line-height:1.6; margin-bottom:18px; }
+  .stage { min-height:86px; display:flex; align-items:center; justify-content:flex-start; gap:14px; }
+  .patchette { border:2px dashed var(--teal); border-radius:6px; padding:14px 18px; }
+  .patchette .n { font-family:'Alfa Slab One',serif; font-size:26px; color:var(--marigold); }
+  .patchette .c { font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase;
+    color:var(--cream); margin-top:2px; }
+
+  /* motion grammar */
+  #motion .demo h3 { color:var(--teal); }
+  #mini-weave { position:relative; overflow:hidden; width:100%; height:74px;
+    border:2px dashed var(--cream-faint); border-radius:6px; }
+  #mini-shuttle { position:absolute; top:-8%; bottom:-8%; left:0; width:46%;
+    display:flex; transform:translateX(-120%) skewX(-8deg); }
+  #mini-shuttle i { flex:1; }
+  #mini-punch { font-size:40px; color:var(--cream); perspective:400px; }
+  #mini-punch .p2 { color:var(--marigold); }
+
+  footer { text-align:center; padding:60px 20px 46px; }
+  footer .label { color:var(--cream-dim); }
+</style>
+</head>
+<body>
+
+<!-- shared thread patterns -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <pattern id="zzT" width="24" height="12" patternUnits="userSpaceOnUse">
+      <path d="M0 10 L6 2 L12 10 L18 2 L24 10" fill="none" stroke="#5FB0A0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </pattern>
+    <pattern id="zzR" width="24" height="12" patternUnits="userSpaceOnUse">
+      <path d="M0 10 L6 2 L12 10 L18 2 L24 10" fill="none" stroke="#E15546" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </pattern>
+  </defs>
+</svg>
+
+<!-- ============ COVER — sampler sewing itself ============ -->
+<section id="cover">
+  <svg id="bframe" aria-hidden="true"></svg>
+
+  <svg class="hem" id="hemT"><rect width="100%" height="12" fill="url(#zzT)"/></svg>
+  <svg class="hem" id="hemB"><rect width="100%" height="12" fill="url(#zzT)"/></svg>
+
+  <div class="corner" id="c1"></div><div class="corner" id="c2"></div>
+  <div class="corner" id="c3"></div><div class="corner" id="c4"></div>
+
+  <svg class="amb crawl" style="left:12vw; top:26vh; width:16vw; height:4px">
+    <line x1="0" y1="2" x2="100%" y2="2" stroke="#F2E9D8" stroke-width="3" stroke-linecap="round" stroke-dasharray="13 9"/></svg>
+  <svg class="amb crawl" style="right:11vw; top:32vh; width:12vw; height:4px">
+    <line x1="0" y1="2" x2="100%" y2="2" stroke="#5FB0A0" stroke-width="3" stroke-linecap="round" stroke-dasharray="13 9"/></svg>
+  <svg class="amb crawl" style="left:16vw; bottom:24vh; width:11vw; height:4px">
+    <line x1="0" y1="2" x2="100%" y2="2" stroke="#E15546" stroke-width="3" stroke-linecap="round" stroke-dasharray="13 9"/></svg>
+  <svg class="amb crawl" style="right:15vw; bottom:29vh; width:15vw; height:4px">
+    <line x1="0" y1="2" x2="100%" y2="2" stroke="#F2E9D8" stroke-width="3" stroke-linecap="round" stroke-dasharray="13 9"/></svg>
+
+  <svg class="cbtn" id="btnL" style="left:13vw; top:52vh" width="42" height="42" viewBox="0 0 42 42">
+    <g class="turn" style="transform-origin:21px 21px">
+      <circle cx="21" cy="21" r="17" fill="none" stroke="#F0A83C" stroke-width="4"/>
+      <circle cx="15" cy="15" r="2.4" fill="#F0A83C"/><circle cx="27" cy="15" r="2.4" fill="#F0A83C"/>
+      <circle cx="15" cy="27" r="2.4" fill="#F0A83C"/><circle cx="27" cy="27" r="2.4" fill="#F0A83C"/>
+      <path d="M15 15 L27 27 M27 15 L15 27" stroke="#F0A83C" stroke-width="2" stroke-linecap="round"/>
+    </g></svg>
+  <svg class="cbtn" id="btnR" style="right:13vw; top:38vh" width="34" height="34" viewBox="0 0 42 42">
+    <g class="turn" style="transform-origin:21px 21px; animation-duration:18s">
+      <circle cx="21" cy="21" r="17" fill="none" stroke="#5FB0A0" stroke-width="4"/>
+      <circle cx="15" cy="15" r="2.4" fill="#5FB0A0"/><circle cx="27" cy="15" r="2.4" fill="#5FB0A0"/>
+      <circle cx="15" cy="27" r="2.4" fill="#5FB0A0"/><circle cx="27" cy="27" r="2.4" fill="#5FB0A0"/>
+      <path d="M15 15 L27 27 M27 15 L15 27" stroke="#5FB0A0" stroke-width="2" stroke-linecap="round"/>
+    </g></svg>
+
+  <svg id="tassel" width="28" height="52" viewBox="0 0 28 52">
+    <g class="sway">
+      <circle cx="14" cy="6" r="4" fill="none" stroke="#E15546" stroke-width="3"/>
+      <g stroke="#E15546" stroke-width="2.2" stroke-linecap="round">
+        <line x1="8" y1="10" x2="5" y2="44"/><line x1="11" y1="10" x2="10" y2="48"/>
+        <line x1="14" y1="10" x2="14" y2="50"/><line x1="17" y1="10" x2="18" y2="48"/>
+        <line x1="20" y1="10" x2="23" y2="44"/>
+      </g></g></svg>
+
+  <div id="cwrap">
+    <div class="label" id="kick"><b>&#10005;</b>&nbsp; KEYFRAME &middot; FRAME PACK No. 47 &nbsp;<b>&#10005;</b></div>
+    <h1 class="slab" id="headline"><span class="w1" id="w1">FOLK</span><span class="w2"><span id="w2t">STITCH</span><svg id="emr"><rect x="1" y="1" width="99%" height="96%" rx="6" pathLength="100" fill="none" stroke="#F0A83C" stroke-width="3" stroke-linecap="round" stroke-dasharray="2.6 1.8" vector-effect="non-scaling-stroke"/></svg><span id="emx"></span></span></h1>
+    <div id="sub">Bright thread on midnight felt &mdash; every letter <i>punched in</i>, every border <i>sewn on</i>.</div>
+  </div>
+
+  <div id="shuttle" aria-hidden="true">
+    <i style="background:var(--marigold)"></i><i style="background:var(--red)"></i>
+    <i style="background:var(--cream)"></i><i style="background:var(--teal)"></i>
+    <i style="background:var(--red)"></i>
+  </div>
+</section>
+
+<!-- ============ 01 · THREADS ============ -->
+<section class="doc" id="threads">
+  <div class="sechead">
+    <div class="label">01 &middot; The thread box</div>
+    <h2 class="slab">Four threads, <em>one felt</em></h2>
+    <svg class="rule crawl"><line x1="0" y1="4" x2="100%" y2="4" stroke="#F0A83C" stroke-width="3" stroke-linecap="round" stroke-dasharray="13 9"/></svg>
+  </div>
+  <p class="lede">The ground is always <b>night felt</b> &mdash; dark, flat, matte. Everything on it is thread:
+  <b>yarn cream</b> reads, <b>marigold</b> emphasizes (once per frame), <b>thread red</b> and <b>teal</b>
+  carry the pattern work. No gradients, no glow, no second surface &mdash; if it isn't a stitch, it isn't in the pack.</p>
+  <div id="spools"></div>
+</section>
+
+<!-- ============ 02 · TYPE ============ -->
+<section class="doc" id="type">
+  <div class="sechead">
+    <div class="label">02 &middot; Block letters</div>
+    <h2 class="slab">Counted <em>on cloth</em></h2>
+    <svg class="rule crawl"><line x1="0" y1="4" x2="100%" y2="4" stroke="#5FB0A0" stroke-width="3" stroke-linecap="round" stroke-dasharray="13 9"/></svg>
+  </div>
+  <p class="lede"><b>Alfa Slab One</b> is the sampler alphabet &mdash; always uppercase, cream or marigold only.
+  <b>Inter</b> is the reading thread. Underlines are running stitches, never text-decoration.</p>
+  <div class="trow"><div class="tag">hero-motto<s>6.0cqw &middot; Alfa Slab One</s></div><div class="slab" style="font-size:64px">Sew it live</div></div>
+  <div class="trow"><div class="tag">sampler-headline<s>4.2cqw &middot; Alfa Slab One</s></div><div class="slab" style="font-size:44px; color:var(--marigold)">Stitch by stitch</div></div>
+  <div class="trow"><div class="tag">motto<s>2.8cqw &middot; Alfa Slab One</s></div><div class="slab" style="font-size:30px">A motto on midnight felt</div></div>
+  <div class="trow"><div class="tag">body<s>1.0cqw &middot; Inter 400</s></div><div style="font-size:16px; line-height:1.7; max-width:520px">Body copy is yarn cream Inter &mdash; calm and even, like rows of even tension across the fabric.</div></div>
+  <div class="trow"><div class="tag">stitch-label<s>12px &middot; Inter 700</s></div><div class="label" style="color:var(--teal)">Eyebrow sewn in teal thread</div></div>
+</section>
+
+<!-- ============ 03 · COMPONENTS ============ -->
+<section class="doc" id="components">
+  <div class="sechead">
+    <div class="label">03 &middot; The notions drawer</div>
+    <h2 class="slab">Everything is <em>thread</em></h2>
+    <svg class="rule crawl"><line x1="0" y1="4" x2="100%" y2="4" stroke="#E15546" stroke-width="3" stroke-linecap="round" stroke-dasharray="13 9"/></svg>
+  </div>
+  <div class="grid">
+    <div class="demo"><h3>running-stitch</h3><p>The atom. A dashed hand-sewn line whose dashes crawl &mdash; thread pulled through felt.</p>
+      <div class="stage"><svg class="crawl" width="100%" height="6"><line x1="0" y1="3" x2="100%" y2="3" stroke="#F2E9D8" stroke-width="3.6" stroke-linecap="round" stroke-dasharray="14 10"/></svg></div></div>
+    <div class="demo"><h3>cross-stitch-row</h3><p>A border band of X's, popped in one by one. Sewn under the emphasis word.</p>
+      <div class="stage" id="xdemo"></div></div>
+    <div class="demo"><h3>zigzag-hem</h3><p>Rick-rack ribbon edge for hems and patch trims. A line, never a filled ribbon.</p>
+      <div class="stage" style="flex-direction:column; align-items:stretch; gap:10px">
+        <svg width="100%" height="12"><rect width="100%" height="12" fill="url(#zzT)"/></svg>
+        <svg width="100%" height="12"><rect width="100%" height="12" fill="url(#zzR)"/></svg></div></div>
+    <div class="demo"><h3>patch</h3><p>A stitched-on fabric card &mdash; its dashed seam is its only chrome. Holds stats and captions.</p>
+      <div class="stage"><div class="patchette"><div class="n">&mdash; N&times; &mdash;</div><div class="c">figure from script</div></div></div></div>
+    <div class="demo"><h3>button</h3><p>Four holes, a thread cross, slow turn. The largest filled shape the pack allows.</p>
+      <div class="stage">
+        <svg width="46" height="46" viewBox="0 0 42 42"><g class="turn" style="transform-origin:21px 21px"><circle cx="21" cy="21" r="17" fill="none" stroke="#F0A83C" stroke-width="4"/><circle cx="15" cy="15" r="2.4" fill="#F0A83C"/><circle cx="27" cy="15" r="2.4" fill="#F0A83C"/><circle cx="15" cy="27" r="2.4" fill="#F0A83C"/><circle cx="27" cy="27" r="2.4" fill="#F0A83C"/><path d="M15 15 L27 27 M27 15 L15 27" stroke="#F0A83C" stroke-width="2" stroke-linecap="round"/></g></svg>
+        <svg width="34" height="34" viewBox="0 0 42 42"><g class="turn" style="transform-origin:21px 21px; animation-duration:20s"><circle cx="21" cy="21" r="17" fill="none" stroke="#E15546" stroke-width="4"/><circle cx="15" cy="15" r="2.4" fill="#E15546"/><circle cx="27" cy="15" r="2.4" fill="#E15546"/><circle cx="15" cy="27" r="2.4" fill="#E15546"/><circle cx="27" cy="27" r="2.4" fill="#E15546"/><path d="M15 15 L27 27 M27 15 L15 27" stroke="#E15546" stroke-width="2" stroke-linecap="round"/></g></svg></div></div>
+    <div class="demo"><h3>tassel</h3><p>Knot plus hanging strands, swaying &plusmn;6&deg; on a slow sine. Two per frame, at most.</p>
+      <div class="stage">
+        <svg width="28" height="56" viewBox="0 0 28 52"><g class="sway"><circle cx="14" cy="6" r="4" fill="none" stroke="#5FB0A0" stroke-width="3"/><g stroke="#5FB0A0" stroke-width="2.2" stroke-linecap="round"><line x1="8" y1="10" x2="5" y2="44"/><line x1="11" y1="10" x2="10" y2="48"/><line x1="14" y1="10" x2="14" y2="50"/><line x1="17" y1="10" x2="18" y2="48"/><line x1="20" y1="10" x2="23" y2="44"/></g></g></svg>
+        <svg width="28" height="56" viewBox="0 0 28 52"><g class="sway" style="animation-delay:-1.2s"><circle cx="14" cy="6" r="4" fill="none" stroke="#F0A83C" stroke-width="3"/><g stroke="#F0A83C" stroke-width="2.2" stroke-linecap="round"><line x1="8" y1="10" x2="5" y2="44"/><line x1="11" y1="10" x2="10" y2="48"/><line x1="14" y1="10" x2="14" y2="50"/><line x1="17" y1="10" x2="18" y2="48"/><line x1="20" y1="10" x2="23" y2="44"/></g></g></svg></div></div>
+    <div class="demo" style="grid-column:1/-1"><h3>sampler-frame</h3><p>The traditional border around every scene &mdash; a crawling running-stitch rect, corner X clusters, an optional zigzag band. It sews itself on scene entry; the frame is never bare.</p>
+      <div style="position:relative; border:3px dashed var(--marigold); border-radius:6px; padding:26px; text-align:center">
+        <span class="cxr" style="position:absolute; left:10px; top:8px"></span>
+        <span class="cxr" style="position:absolute; right:10px; top:8px"></span>
+        <span class="cxr" style="position:absolute; left:10px; bottom:8px"></span>
+        <span class="cxr" style="position:absolute; right:10px; bottom:8px"></span>
+        <div class="slab" style="font-size:26px">Home is where the frame is</div></div></div>
+  </div>
+</section>
+
+<!-- ============ 04 · MOTION GRAMMAR ============ -->
+<section class="doc" id="motion">
+  <div class="sechead">
+    <div class="label">04 &middot; Motion grammar</div>
+    <h2 class="slab">The needle <em>keeps time</em></h2>
+    <svg class="rule crawl"><line x1="0" y1="4" x2="100%" y2="4" stroke="#F2E9D8" stroke-width="3" stroke-linecap="round" stroke-dasharray="13 9"/></svg>
+  </div>
+  <div class="grid">
+    <div class="demo"><h3>Needle punch</h3><p>Headline characters flip up from flat (rotationX &minus;90&deg;, origin bottom) one by one on a &sim;0.07s sewing-machine tick, each with a small settle bounce.</p>
+      <div class="stage"><div class="slab" id="mini-punch"><span class="p1">PUNCH</span>&nbsp;<span class="p2">IN</span></div></div></div>
+    <div class="demo"><h3>The weave</h3><p>Scenes never cut &mdash; a band of bold thread stripes shuttles across like a loom pass, wiping one scene into the next.</p>
+      <div class="stage"><div id="mini-weave"><div id="mini-shuttle"><i style="background:var(--marigold)"></i><i style="background:var(--red)"></i><i style="background:var(--cream)"></i><i style="background:var(--teal)"></i></div></div></div></div>
+    <div class="demo"><h3>Live stitching</h3><p>The fabric never rests: running-stitch dashes crawl, border X's pop in and hold, buttons turn, tassels sway &mdash; all under 30% cream so the motto stays loudest.</p>
+      <div class="stage" style="flex-direction:column; align-items:stretch; gap:12px">
+        <svg class="crawl" width="100%" height="5"><line x1="0" y1="2.5" x2="100%" y2="2.5" stroke="#5FB0A0" stroke-width="3" stroke-linecap="round" stroke-dasharray="14 10"/></svg>
+        <svg class="crawl" width="70%" height="5" style="animation-duration:3.4s"><line x1="0" y1="2.5" x2="100%" y2="2.5" stroke="#F2E9D8" stroke-width="3" stroke-linecap="round" stroke-dasharray="14 10"/></svg></div></div>
+    <div class="demo"><h3>Embroidered emphasis</h3><p>The frame's one marigold word: it punches in, a dashed outline sews one lap around it, and a row of cross-stitch X's stitches in underneath.</p>
+      <div class="stage"><div style="position:relative; display:inline-block; padding:8px 14px; border:2px dashed var(--marigold); border-radius:6px"><span class="slab" style="font-size:28px; color:var(--marigold)">EXACTLY</span><span id="emx2" style="position:absolute; left:0; right:0; bottom:-22px; display:flex; justify-content:center; gap:6px"></span></div></div></div>
+  </div>
+</section>
+
+<footer>
+  <svg class="crawl" width="180" height="6" style="display:block; margin:0 auto 18px"><line x1="0" y1="3" x2="100%" y2="3" stroke="#F0A83C" stroke-width="3" stroke-linecap="round" stroke-dasharray="13 9"/></svg>
+  <div class="label">Folk Stitch &middot; a KEYFRAME frame pack &middot; sewn, not printed</div>
+</footer>
+
+<script>
+(function () {
+  var C = { m:"#F0A83C", r:"#E15546", c:"#F2E9D8", t:"#5FB0A0" };
+
+  /* ---- helpers ---- */
+  function xs(n, size, cols) {                       /* a row of cross-stitch X's */
+    var s = "";
+    for (var i = 0; i < n; i++) {
+      var col = cols[i % cols.length];
+      s += '<svg class="cx" width="' + size + '" height="' + size + '" viewBox="0 0 10 10">' +
+           '<path d="M2 2 L8 8 M8 2 L2 8" stroke="' + col + '" stroke-width="2.1" stroke-linecap="round" fill="none"/></svg>';
+    }
+    return s;
+  }
+  function split(el) {                               /* split text into punchable chars */
+    var t = el.textContent; el.textContent = "";
+    for (var i = 0; i < t.length; i++) {
+      var sp = document.createElement("span");
+      sp.className = "ch"; sp.textContent = t[i];
+      el.appendChild(sp);
+    }
+  }
+
+  /* ---- populate stitchwork ---- */
+  document.getElementById("emx").innerHTML = xs(6, 16, [C.r, C.m]);
+  document.getElementById("emx2").innerHTML = xs(5, 13, [C.r, C.m]);
+  document.getElementById("xdemo").innerHTML = xs(9, 18, [C.r, C.m, C.t]);
+  ["c1","c2","c3","c4"].forEach(function (id) {
+    document.getElementById(id).innerHTML = xs(3, 13, [C.r, C.m, C.r]);
+  });
+  var crs = document.querySelectorAll(".cxr");
+  for (var i = 0; i < crs.length; i++) crs[i].innerHTML = xs(3, 11, [C.m, C.t, C.m]);
+
+  /* thread spools (palette) */
+  var spools = [
+    ["Night felt", "#232840", true], ["Marigold thread", C.m],
+    ["Thread red", C.r], ["Yarn cream", C.c], ["Teal thread", C.t]
+  ];
+  var sh = "";
+  spools.forEach(function (sp) {
+    var body = "";
+    if (sp[2]) {                                     /* the felt swatch: bare fabric + one stitch */
+      body = '<rect x="14" y="8" width="68" height="86" rx="5" fill="#232840" stroke="rgba(242,233,216,.35)" stroke-width="2" stroke-dasharray="7 5"/>' +
+             '<line x1="26" y1="51" x2="70" y2="51" stroke="rgba(242,233,216,.4)" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="8 6"/>';
+    } else {
+      body = '<rect x="20" y="4" width="56" height="12" rx="3" fill="none" stroke="' + C.c + '" stroke-width="3"/>' +
+             '<rect x="20" y="86" width="56" height="12" rx="3" fill="none" stroke="' + C.c + '" stroke-width="3"/>';
+      for (var y = 24; y <= 78; y += 7)
+        body += '<line x1="25" y1="' + y + '" x2="71" y2="' + y + '" stroke="' + sp[1] + '" stroke-width="4.4" stroke-linecap="round"/>';
+      body += '<path d="M71 78 Q88 82 84 98" fill="none" stroke="' + sp[1] + '" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="7 5"/>';
+    }
+    sh += '<div class="spool"><svg width="96" height="102" viewBox="0 0 96 102">' + body + "</svg>" +
+          '<div class="nm">' + sp[0] + '</div><div class="hx">' + sp[1] + "</div></div>";
+  });
+  document.getElementById("spools").innerHTML = sh;
+
+  split(document.getElementById("w1"));
+  split(document.getElementById("w2t"));
+  split(document.querySelector("#mini-punch .p1"));
+  split(document.querySelector("#mini-punch .p2"));
+
+  if (!window.gsap) return;                          /* fonts/markup still render without GSAP */
+
+  /* ---- the sampler border builds itself (real px so dashes stay even) ---- */
+  var bsvg = document.getElementById("bframe"), maskRect;
+  function buildBorder() {
+    var w = bsvg.clientWidth, h = bsvg.clientHeight;
+    var i1 = Math.round(Math.min(w, h) * 0.055), i2 = i1 + 14;
+    bsvg.setAttribute("viewBox", "0 0 " + w + " " + h);
+    bsvg.innerHTML =
+      '<defs><mask id="sew"><rect x="' + i1 + '" y="' + i1 + '" width="' + (w - 2 * i1) + '" height="' + (h - 2 * i1) +
+      '" rx="10" fill="none" stroke="#fff" stroke-width="46" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" id="sewmask"/></mask></defs>' +
+      '<g mask="url(#sew)">' +
+      '<rect class="stitch" x="' + i1 + '" y="' + i1 + '" width="' + (w - 2 * i1) + '" height="' + (h - 2 * i1) +
+      '" rx="10" fill="none" stroke="' + C.m + '" stroke-width="4" stroke-linecap="round" stroke-dasharray="15 11"/>' +
+      '<rect class="stitch" x="' + i2 + '" y="' + i2 + '" width="' + (w - 2 * i2) + '" height="' + (h - 2 * i2) +
+      '" rx="8" fill="none" stroke="' + C.t + '" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="10 8" style="animation-direction:reverse"/>' +
+      "</g>";
+    bsvg.querySelectorAll(".stitch").forEach(function (r) { r.style.animation = "crawl 2.8s linear infinite"; });
+    maskRect = document.getElementById("sewmask");
+  }
+  buildBorder();
+  window.addEventListener("resize", buildBorder);
+
+  /* ---- COVER loop: sew border -> punch letters -> embroider -> weave out ---- */
+  var punchIn = { rotationX: -90, opacity: 0 };
+  var punchTo = { rotationX: 0, opacity: 1, duration: 0.34, ease: "back.out(1.6)", stagger: 0.07 };
+  var tl = gsap.timeline({ repeat: -1 });
+
+  tl.add(function () { if (maskRect) gsap.fromTo(maskRect, { strokeDashoffset: 100 }, { strokeDashoffset: 0, duration: 1.5, ease: "power2.inOut" }); }, 0);
+  tl.fromTo("#hemT", { opacity: 0 }, { opacity: 0.85, duration: 0.5 }, 0.9);
+  tl.fromTo("#hemB", { opacity: 0 }, { opacity: 0.85, duration: 0.5 }, 1.0);
+  tl.fromTo("#kick", { opacity: 0, y: -14 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 0.6);
+  tl.fromTo("#w1 .ch", punchIn, punchTo, 0.9);                       /* FOLK — needle punches */
+  tl.fromTo("#w2t .ch", punchIn, punchTo, 1.38);                     /* breath, then STITCH */
+  tl.fromTo("#emr", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 2.1);
+  tl.fromTo("#emr rect", { strokeDashoffset: 46 },                   /* outline sews a lap   */
+    { strokeDashoffset: 0, duration: 0.7, ease: "power2.inOut" }, 2.1);
+  tl.fromTo("#emx .cx", { scale: 0 }, { scale: 1, duration: 0.3, ease: "back.out(2.4)", stagger: 0.06 }, 2.45);
+  tl.fromTo("#sub", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.55, ease: "power2.out" }, 2.7);
+  tl.fromTo(".corner .cx", { scale: 0 }, { scale: 1, duration: 0.3, ease: "back.out(2)", stagger: 0.05 }, 1.7);
+  tl.fromTo(["#btnL", "#btnR"], { opacity: 0, scale: 0.4, rotation: -120 },
+    { opacity: 1, scale: 1, rotation: 0, duration: 0.6, ease: "back.out(1.7)", stagger: 0.15 }, 2.3);
+  tl.fromTo("#tassel", { opacity: 0, y: -18 }, { opacity: 1, y: 0, duration: 0.5, ease: "bounce.out" }, 2.6);
+  tl.to({}, { duration: 3.4 }, 3.4);                                 /* hold — hoop just breathes */
+  tl.fromTo("#shuttle", { x: "-45vw" }, { x: "135vw", duration: 1.15, ease: "power3.inOut" }, 6.8);
+  tl.set(["#kick", "#sub", "#hemT", "#hemB", "#tassel", "#btnL", "#btnR",
+          "#w1 .ch", "#w2t .ch", "#emr", "#emx .cx", ".corner .cx"], { opacity: 0 }, 7.35);
+  tl.add(function () { if (maskRect) gsap.set(maskRect, { strokeDashoffset: 100 }); }, 7.36);
+  tl.to({}, { duration: 0.6 }, 7.4);                                 /* shuttle clears, loop re-sews */
+
+  /* ---- section mini-loops ---- */
+  gsap.fromTo("#xdemo .cx", { scale: 0 },
+    { scale: 1, duration: 0.3, ease: "back.out(2.4)", stagger: 0.12, repeat: -1, repeatDelay: 1.6 });
+  gsap.fromTo("#emx2 .cx", { scale: 0 },
+    { scale: 1, duration: 0.3, ease: "back.out(2.4)", stagger: 0.1, repeat: -1, repeatDelay: 2.2 });
+  var mp = gsap.timeline({ repeat: -1, repeatDelay: 1.4 });
+  mp.fromTo("#mini-punch .p1 .ch", punchIn, punchTo, 0);
+  mp.fromTo("#mini-punch .p2 .ch", punchIn, punchTo, 0.55);
+  mp.to({}, { duration: 1.2 });
+  gsap.fromTo("#mini-shuttle", { xPercent: -120 },
+    { xPercent: 340, duration: 1.1, ease: "power3.inOut", repeat: -1, repeatDelay: 1.8 });
+})();
+</script>
+
+<section id="kf-asset-demo" style="background:#232840;color:#F2E9D8;padding:110px 8% 130px;font-family:Inter,sans-serif;"><div style="font:700 12px/1 Inter,sans-serif;letter-spacing:.34em;text-transform:uppercase;color:#F0A83C;margin-bottom:14px;">NEW · ASSET SYSTEM</div><h2 style="font-family:'Alfa Slab One',serif;font-size:52px;line-height:1.05;margin:0 0 18px;">WHERE YOUR IMAGES GO</h2><p style="max-width:620px;font-size:17px;line-height:1.6;color:rgba(242,233,216,.6);margin:0 0 56px;">Photos are sewn on as fabric patches — dashed thread border, cross-stitch corners. Screenshots and montage tiles get the same stitched treatment. Films are as long as your script — every scene can carry an image.</p><div style="display:flex;gap:64px;flex-wrap:wrap;align-items:flex-start;"><div><div style="position:relative;display:inline-block;background:rgba(242,233,216,.08);border:3px dashed #F0A83C;border-radius:6px;padding:12px;box-shadow:0 10px 26px rgba(0,0,0,.35);transform:rotate(-1.6deg);"><div style="width:300px;height:200px;overflow:hidden;border-radius:inherit;background:linear-gradient(135deg,#5FB0A0,#E15546);display:flex;align-items:center;justify-content:center;"><span style="font:700 13px/1 Inter,sans-serif;letter-spacing:.22em;color:rgba(255,255,255,.85);">YOUR PHOTO</span></div><span style="position:absolute;left:-7px;top:-8px;font:700 15px/1 Inter,sans-serif;color:#E15546;">✕</span><span style="position:absolute;right:-7px;top:-8px;font:700 15px/1 Inter,sans-serif;color:#E15546;">✕</span><span style="position:absolute;left:-7px;bottom:-8px;font:700 15px/1 Inter,sans-serif;color:#E15546;">✕</span><span style="position:absolute;right:-7px;bottom:-8px;font:700 15px/1 Inter,sans-serif;color:#E15546;">✕</span></div><div style="margin-top:22px;font:600 12px/1 Inter,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:rgba(242,233,216,.6);">Photo · themed mount</div></div><div><div style="display:inline-block;border-radius:10px;overflow:hidden;box-shadow:0 14px 34px rgba(0,0,0,.3);"><div style="background:#E8E4DC;padding:9px 12px;display:flex;gap:6px;"><span style="width:9px;height:9px;border-radius:50%;background:#ff5f57;"></span><span style="width:9px;height:9px;border-radius:50%;background:#febc2e;"></span><span style="width:9px;height:9px;border-radius:50%;background:#28c840;"></span></div><div style="width:322px;height:190px;background:linear-gradient(135deg,#5FB0A0,#E15546);display:flex;align-items:center;justify-content:center;"><span style="font:700 12px/1 Inter,sans-serif;letter-spacing:.18em;color:rgba(255,255,255,.85);">YOUR WEBSITE SCREENSHOT</span></div></div><div style="margin-top:22px;font:600 12px/1 Inter,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:rgba(242,233,216,.6);">Screenshot · hero frame</div></div></div></section>
+</body>
+</html>

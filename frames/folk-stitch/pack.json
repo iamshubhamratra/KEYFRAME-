@@ -1,0 +1,90 @@
+{
+  "name": "folk-stitch",
+  "vibe": "an embroidered folk sampler sewn in real time on midnight felt: bright marigold, red and teal thread on dark fabric, slab-serif letters punched up one by one like needle stitches, a sampler border that sews itself around every frame, running stitches crawling as the thread pulls through, scene changes as a loom shuttle of bold stripes — for artisan brands, handmade goods, cozy storytelling and anything that should feel crafted stitch by stitch",
+  "colors": {
+    "felt": "#232840",
+    "marigold": "#F0A83C",
+    "threadred": "#E15546",
+    "yarncream": "#F2E9D8",
+    "tealthread": "#5FB0A0"
+  },
+  "fonts": [
+    "Inter",
+    "Alfa Slab One"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#232840"
+  },
+  "motion": {
+    "cut": "weave",
+    "drift": 1.02
+  },
+  "fx": {
+    "canvas": "stitch",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F0A83C",
+      "#E15546"
+    ],
+    "extras": [
+      "#5FB0A0",
+      "#F2E9D8"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "embroidery folk art textile handmade cross stitch craft",
+    "iconStyle": "outline",
+    "keywords": [
+      "embroidery",
+      "folk",
+      "craft",
+      "textile",
+      "handmade",
+      "pattern"
+    ],
+    "prefer": [
+      "illustration",
+      "vector"
+    ]
+  },
+  "typography": {
+    "display": "Alfa Slab One"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": false,
+    "underline": false,
+    "stat": "headline",
+    "assetStyle": "stitch"
+  },
+  "textfx": {
+    "enter": "stitch",
+    "emphasis": "embroider",
+    "align": "center",
+    "case": "upper",
+    "sizeScale": 0.95
+  },
+  "audio": {
+    "music": {
+      "query": "folk acoustic dulcimer fireside warm",
+      "mood": "warm",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "needle punches, thread pulls and scissor snips — a sewing-machine cadence under the letter stitches, a fabric swish on each weave cut",
+      "palette": [
+        "needle punch",
+        "thread pull",
+        "scissor snip",
+        "fabric swish",
+        "button click",
+        "sewing machine burst"
+      ]
+    }
+  }
+}

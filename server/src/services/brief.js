@@ -7,6 +7,7 @@ const { z } = require("zod");
 const openrouter = require("./openrouter");
 const frameRegistry = require("./frame_registry");
 const frameManifest = require("./frame_manifest");
+const packFamilies = require("./pack_families");
 
 const SYSTEM = fs.readFileSync(
   path.join(__dirname, "..", "prompts", "system_brief.md"),
@@ -80,9 +81,16 @@ async function generateBrief({ intent, signal }) {
   // Only relevant on "auto" — an explicit user choice is echoed verbatim anyway.
   const userChose = intent?.preferences?.framePack && intent.preferences.framePack !== "auto";
   const recentFramePacks = userChose ? [] : recentlyUsedPacks();
+  // The VISUAL FAMILIES of those recent packs — so the LLM avoids repeating a
+  // look (bright-minimal SaaS, dark-premium tech…) not just a pack name. Same-
+  // subject films kept landing in one family and reading as "the same style".
+  const vibeFor = (n) => (availableFramePacks.find((p) => p.name === n) || {}).vibe;
+  const recentFramePackFamilies = recentFramePacks.length
+    ? packFamilies.familiesOf(recentFramePacks, vibeFor) : [];
 
   const user = JSON.stringify(
-    { ...intent, availableFramePacks, ...(recentFramePacks.length ? { recentFramePacks } : {}) },
+    { ...intent, availableFramePacks,
+      ...(recentFramePacks.length ? { recentFramePacks, recentFramePackFamilies } : {}) },
     null, 2
   );
 
@@ -125,6 +133,26 @@ async function generateBrief({ intent, signal }) {
         console.log(`[brief] suggestion "${wanted}" not installed → rotation fallback picked ${snapped}`);
       }
       brief.suggestedFramePack = snapped;
+
+      // Cross-family anti-repeat (auto only). The tone table + soft rotation still
+      // let a run of same-subject films land in the same VISUAL FAMILY, so they
+      // read as "the same style". If this pick shares the LAST film's family,
+      // deterministically rotate to a fitting different family (seed = prompt →
+      // stable). Never overrides an explicit user pick (recentFramePacks is [] then).
+      if (!userChose && recentFramePacks.length) {
+        const installed = availableFramePacks.map((p) => p.name);
+        const swapped = packFamilies.pickCrossFamily({
+          requested: brief.suggestedFramePack,
+          installed,
+          recentPacks: recentFramePacks,
+          seed: String(intent?.prompt || intent?.websiteUrl || wanted || "kf"),
+          vibeFor,
+        });
+        if (swapped && swapped !== brief.suggestedFramePack) {
+          console.log(`[brief] cross-family rotation: ${brief.suggestedFramePack} (${packFamilies.familyOf(brief.suggestedFramePack, vibeFor(brief.suggestedFramePack))}) repeats last film's family → ${swapped} (${packFamilies.familyOf(swapped, vibeFor(swapped))})`);
+          brief.suggestedFramePack = swapped;
+        }
+      }
 
       const repeated = recentFramePacks[0] && recentFramePacks[0] === brief.suggestedFramePack;
       console.log(`[brief] ok on attempt ${attempt} (pack=${brief.suggestedFramePack}${repeated ? " — repeats the previous video's pack" : ""}, duration=${brief.suggestedDuration}s)`);

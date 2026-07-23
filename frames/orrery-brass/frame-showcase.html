@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orrery Brass</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script>
+  /* If GSAP didn't load (offline / ad-blocker), show a note instead of a dead page. */
+  if (!window.gsap) {
+    addEventListener("DOMContentLoaded", function () {
+      var b = document.createElement("div");
+      b.style.cssText = "position:fixed;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;font:600 18px system-ui;color:#EFE3C8;background:#191410;padding:32px;z-index:99999";
+      b.textContent = "GSAP failed to load — hard-refresh (Ctrl+Shift+R) or disable the ad-blocker.";
+      document.body.appendChild(b);
+    });
+  }
+</script>
+<style>
+  /* ===========================================================
+     ORRERY BRASS — an antique clockwork orrery / celestial atlas
+     brought to life. Night bronze, engraved brass hairlines,
+     patina verdigris, parchment ink, one oxblood wax seal.
+     Motion is escapement-driven: pendulum entrances, stepped
+     clock wipes, a living orrery ambient. No neon, no blur.
+     =========================================================== */
+  @property --wipe { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  :root {
+    --bronze:#191410; --brass:#C9973F; --verdigris:#4E9C82;
+    --parchment:#EFE3C8; --oxblood:#93402C;
+    --brass-dim:rgba(201,151,63,.45); --brass-faint:rgba(201,151,63,.22);
+    --parch-dim:rgba(239,227,200,.6); --hair:rgba(201,151,63,.28);
+    --disp:'Cormorant Garamond',Georgia,serif; --body:'Inter',system-ui,sans-serif;
+  }
+  html { scroll-behavior:smooth; }
+  body { background:var(--bronze); color:var(--parchment); font-family:var(--body); overflow-x:hidden; }
+
+  /* ---------------- shared voices ---------------- */
+  .plate-label { font:500 12px/1 var(--body); letter-spacing:5px; text-transform:uppercase; color:var(--brass); }
+  .scale-fig   { font:400 10px/1 var(--body); letter-spacing:3px; text-transform:uppercase; color:var(--brass-dim); }
+  .cartouche { display:inline-block; position:relative; padding:11px 26px; border:1px solid var(--brass-dim);
+               clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px); }
+  .cartouche::before { content:""; position:absolute; inset:3px; border:1px solid var(--brass-faint);
+               clip-path:polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px),0 8px); }
+
+  /* ---------------- cover ---------------- */
+  #cover { position:relative; height:100vh; min-height:560px; overflow:hidden;
+           background:radial-gradient(120% 95% at 50% 42%, #251d13 0%, #1e1712 34%, var(--bronze) 72%); }
+  #orrery-wrap { position:absolute; left:50%; top:50%; width:min(150vh,118vw); aspect-ratio:1;
+                 transform:translate(-50%,-50%) rotate(-8deg) scaleY(.88); }
+  #orrery { width:100%; height:100%; display:block; overflow:visible; }
+  #cover-safe { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+                text-align:center; padding:4vh 6vw; z-index:3; }
+  #hero { font:600 clamp(44px,8.6vw,118px)/1.04 var(--disp); color:var(--parchment); margin-top:2.6vh;
+          text-shadow:0 0 34px rgba(25,20,16,.9); }
+  #hero .w { display:inline-block; will-change:transform; transform-origin:50% -150%; opacity:0; }
+  #hero .em { font-style:italic; color:var(--brass); position:relative; padding:0 .06em; }
+  #ring-svg { position:absolute; left:-16%; top:-22%; width:132%; height:146%; overflow:visible; transform:rotate(-5deg); pointer-events:none; }
+  #ring-svg ellipse { fill:none; stroke:var(--brass); stroke-width:1.6; stroke-dasharray:100; stroke-dashoffset:100; }
+  #hero-sub { margin-top:3vh; font:400 clamp(13px,1.25vw,17px)/1.7 var(--body); color:var(--parch-dim);
+              letter-spacing:.4px; max-width:560px; opacity:0; }
+  #kick { opacity:0; }
+  #moons { display:flex; gap:14px; margin-top:4.2vh; opacity:0; }
+  .moon { width:11px; height:11px; border-radius:50%; border:1px solid var(--brass-dim); position:relative; }
+  .moon i { position:absolute; inset:1px; border-radius:50%; background:var(--brass); transform:scale(0); }
+  .moon.ox i { background:var(--oxblood); }
+  .flo { position:absolute; width:120px; height:120px; z-index:2; opacity:.9; }
+  .flo path { fill:none; stroke:var(--brass-dim); stroke-width:1.2; stroke-linecap:round;
+              stroke-dasharray:100; stroke-dashoffset:100; }
+  .flo circle { fill:var(--brass-dim); opacity:0; }
+  #flo-tl { left:26px; top:24px; }
+  #flo-br { right:26px; bottom:24px; transform:rotate(180deg); }
+  #cover-foot { position:absolute; left:0; right:0; bottom:22px; text-align:center; z-index:3; }
+  #cover-foot .scale-fig { color:var(--brass-faint); }
+
+  /* ---------------- document plates ---------------- */
+  main { max-width:1080px; margin:0 auto; padding:40px 24px 90px; }
+  section { padding:78px 0 30px; }
+  .plate-head { display:flex; align-items:center; gap:22px; margin-bottom:14px; }
+  .plate-head .rule { flex:1; height:1px; background:var(--hair); position:relative; }
+  .plate-head .rule::after { content:""; position:absolute; top:-2px; width:5px; height:5px; border-radius:50%; background:var(--brass-dim); }
+  .plate-head .rule.l::after { right:0; } .plate-head .rule.r::after { left:0; }
+  h2 { font:600 clamp(30px,4vw,46px)/1.1 var(--disp); color:var(--parchment); text-align:center; margin:10px 0 8px; }
+  .lede { text-align:center; font:400 15px/1.75 var(--body); color:var(--parch-dim); max-width:640px; margin:0 auto 44px; }
+  .lede b { color:var(--parchment); font-weight:500; }
+
+  /* palette */
+  #plaques { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:18px; }
+  .plaque { border:1px solid var(--brass-dim); padding:5px; }
+  .plaque .inner { border:1px solid var(--brass-faint); padding:14px; }
+  .plaque .chip { height:96px; margin-bottom:14px; position:relative; }
+  .plaque .chip::after { content:""; position:absolute; inset:6px; border:1px solid rgba(25,20,16,.35); }
+  .plaque.light .chip::after { border-color:rgba(25,20,16,.25); }
+  .plaque h4 { font:600 21px/1.1 var(--disp); color:var(--parchment); }
+  .plaque p { font:400 11px/1.5 var(--body); letter-spacing:2.5px; color:var(--brass-dim); margin-top:5px; text-transform:uppercase; }
+  .plaque .role { font:400 12px/1.55 var(--body); letter-spacing:0; text-transform:none; color:var(--parch-dim); margin-top:8px; }
+
+  /* typography */
+  .type-row { display:flex; align-items:baseline; gap:26px; padding:22px 0; border-bottom:1px solid var(--brass-faint); }
+  .type-row:first-of-type { border-top:1px solid var(--brass-faint); }
+  .type-row .spec { flex:0 0 190px; }
+  .type-row .sample { min-width:0; }
+  .t-hero  { font:600 clamp(40px,5.4vw,64px)/1.05 var(--disp); }
+  .t-hero em { color:var(--brass); }
+  .t-sec   { font:600 clamp(28px,3.6vw,40px)/1.1 var(--disp); }
+  .t-card  { font:600 24px/1.2 var(--disp); }
+  .t-dial  { font:600 30px/1 var(--disp); color:var(--verdigris); }
+  .t-body  { font:400 15px/1.75 var(--body); color:var(--parch-dim); max-width:520px; }
+
+  /* instruments */
+  #instruments { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:18px; }
+  .inst { border:1px solid var(--brass-faint); padding:26px 24px 22px; min-height:230px;
+          display:flex; flex-direction:column; }
+  .inst .demo { flex:1; display:flex; align-items:center; justify-content:center; padding:12px 0 18px; }
+  .inst h4 { font:600 20px/1.2 var(--disp); color:var(--parchment); }
+  .inst p { font:400 12.5px/1.65 var(--body); color:var(--parch-dim); margin-top:5px; }
+  .inst svg { overflow:visible; }
+  #d-orbit-word { font:600 34px/1 var(--disp); font-style:italic; color:var(--brass); position:relative; padding:6px 10px; }
+  #d-orbit-word svg { position:absolute; left:-14%; top:-20%; width:128%; height:142%; transform:rotate(-5deg); }
+  #d-orbit-word ellipse { fill:none; stroke:var(--brass); stroke-width:1.4; stroke-dasharray:100; stroke-dashoffset:100; }
+  .dmoons { display:flex; gap:12px; }
+  .dmoons .moon { width:14px; height:14px; }
+  #d-cart .plate-label { letter-spacing:4px; }
+  .wipebox { width:112px; height:112px; border-radius:50%; border:1px solid var(--brass-dim); position:relative;
+             background:conic-gradient(var(--brass-faint) 0 var(--wipe), transparent var(--wipe) 360deg); }
+  .wipebox .hand { position:absolute; left:calc(50% - .75px); bottom:50%; width:1.5px; height:47%;
+                   background:var(--brass); transform-origin:50% 100%; }
+  .wipebox::after { content:""; position:absolute; left:calc(50% - 3px); top:calc(50% - 3px); width:6px; height:6px;
+                    border-radius:50%; background:var(--brass); }
+  .pend { font:600 30px/1 var(--disp); color:var(--parchment); display:inline-block;
+          transform-origin:50% -150%; }
+
+  /* motion grammar */
+  .gram { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:18px; }
+  .gram .inst { min-height:250px; }
+  .gram h4 span { color:var(--brass-dim); font:400 12px/1 var(--body); letter-spacing:3px; margin-right:8px; }
+
+  footer { text-align:center; padding:30px 0 60px; }
+  footer .seal { width:14px; height:14px; border-radius:50%; background:var(--oxblood); margin:0 auto 16px;
+                 box-shadow:0 0 0 3px var(--bronze), 0 0 0 4px rgba(147,64,44,.45); }
+</style>
+</head>
+<body>
+
+<!-- ============ COVER — the instrument in motion ============ -->
+<div id="cover">
+  <div id="orrery-wrap">
+    <svg id="orrery" viewBox="0 0 1200 1200" aria-hidden="true">
+      <defs>
+        <radialGradient id="sunG" cx="50%" cy="46%" r="60%">
+          <stop offset="0%" stop-color="#F6E3AC"/><stop offset="45%" stop-color="#DDb163"/>
+          <stop offset="100%" stop-color="#C9973F"/>
+        </radialGradient>
+      </defs>
+      <!-- orbit rings -->
+      <circle cx="600" cy="600" r="168" fill="none" stroke="rgba(201,151,63,.42)" stroke-width="1.3"/>
+      <circle cx="600" cy="600" r="288" fill="none" stroke="rgba(201,151,63,.32)" stroke-width="1.2"/>
+      <g id="grad-ring">
+        <circle cx="600" cy="600" r="412" fill="none" stroke="rgba(201,151,63,.30)" stroke-width="1.2"/>
+        <circle cx="600" cy="600" r="412" fill="none" stroke="rgba(201,151,63,.55)" stroke-width="7"
+                stroke-dasharray="1.6 41.55"/>
+        <circle cx="600" cy="600" r="424" fill="none" stroke="rgba(201,151,63,.5)" stroke-width="13"
+                stroke-dasharray="2 219.9"/>
+      </g>
+      <circle cx="600" cy="600" r="540" fill="none" stroke="rgba(201,151,63,.18)" stroke-width="1.1"
+              stroke-dasharray="3 9"/>
+      <circle cx="600" cy="600" r="288" fill="none" stroke="rgba(78,156,130,.28)" stroke-width="1.1"
+              stroke-dasharray="1.5 22.1"/>
+      <!-- graduation figures -->
+      <g font-family="Inter,system-ui" font-size="17" letter-spacing="3" fill="rgba(201,151,63,.5)" text-anchor="middle">
+        <text x="600" y="146">0</text><text x="1062" y="608">XC</text>
+        <text x="600" y="1072">CLXXX</text><text x="140" y="608">CCLXX</text>
+      </g>
+      <!-- clock hand — sweeps in escapement ticks -->
+      <g id="hand">
+        <polygon points="595,600 600,118 605,600" fill="#C9973F" opacity=".9"/>
+        <circle cx="600" cy="648" r="9" fill="none" stroke="#C9973F" stroke-width="2"/>
+        <line x1="600" y1="600" x2="600" y2="639" stroke="#C9973F" stroke-width="2"/>
+      </g>
+      <!-- planets -->
+      <g id="p1"><circle cx="768" cy="600" r="10" fill="#C9973F"/></g>
+      <g id="p2"><circle cx="888" cy="600" r="14" fill="#4E9C82"/>
+                 <circle cx="888" cy="600" r="21" fill="none" stroke="rgba(78,156,130,.5)" stroke-width="1.2"/></g>
+      <g id="p3"><circle cx="1012" cy="600" r="11" fill="#191410" stroke="#EFE3C8" stroke-width="1.4"/>
+                 <g id="p3m"><circle cx="1036" cy="600" r="4" fill="#EFE3C8" opacity=".85"/></g></g>
+      <g id="p4"><circle cx="1140" cy="600" r="7" fill="#93402C"/></g>
+      <!-- sun pivot -->
+      <g id="sun">
+        <circle cx="600" cy="600" r="46" fill="none" stroke="rgba(201,151,63,.4)" stroke-width="1.2" id="halo"/>
+        <circle cx="600" cy="600" r="27" fill="url(#sunG)"/>
+        <circle cx="600" cy="600" r="3" fill="#191410"/>
+      </g>
+    </svg>
+  </div>
+
+  <svg id="flo-tl" class="flo" viewBox="0 0 100 100">
+    <path pathLength="100" d="M4 34 Q4 4 34 4 M4 34 Q10 16 26 12 Q16 24 20 34 Q28 24 42 26"/>
+    <circle cx="46" cy="27" r="2"/>
+  </svg>
+  <svg id="flo-br" class="flo" viewBox="0 0 100 100">
+    <path pathLength="100" d="M4 34 Q4 4 34 4 M4 34 Q10 16 26 12 Q16 24 20 34 Q28 24 42 26"/>
+    <circle cx="46" cy="27" r="2"/>
+  </svg>
+
+  <div id="cover-safe">
+    <span class="cartouche" id="kick"><span class="plate-label">Keyframe · Orrery Brass · Plate I</span></span>
+    <h1 id="hero">
+      <span class="w">The</span> <span class="w">sky,</span> <span class="w">set</span>
+      <span class="w">in</span>&nbsp;<span class="w em" id="em-word">brass<svg id="ring-svg" viewBox="0 0 100 60" preserveAspectRatio="none"><ellipse cx="50" cy="30" rx="47" ry="26" pathLength="100"/></svg></span>
+    </h1>
+    <p id="hero-sub">An antique clockwork orrery brought to life — engraved rings, planets on
+       ticking gear-driven orbits, parchment ink on night bronze. Instrument-maker craft, in motion.</p>
+    <div id="moons">
+      <span class="moon"><i></i></span><span class="moon"><i></i></span><span class="moon"><i></i></span>
+      <span class="moon"><i></i></span><span class="moon"><i></i></span><span class="moon"><i></i></span>
+      <span class="moon ox"><i></i></span>
+    </div>
+  </div>
+  <div id="cover-foot"><span class="scale-fig">Wound &amp; running · scroll for the chart</span></div>
+</div>
+
+<main>
+  <!-- ============ PLATE II — PALETTE ============ -->
+  <section>
+    <div class="plate-head"><div class="rule l"></div><span class="plate-label">Plate II</span><div class="rule r"></div></div>
+    <h2>The Palette</h2>
+    <p class="lede">Five metals and inks, engraved as plaques. <b>Brass</b> is the primary voice,
+       <b>verdigris</b> the patinated second, and <b>oxblood</b> strikes at most once per frame —
+       a wax seal, never a theme.</p>
+    <div id="plaques">
+      <div class="plaque"><div class="inner"><div class="chip" style="background:#191410;border:1px solid var(--brass-faint)"></div><h4>Night Bronze</h4><p>#191410 · Ground</p><div class="role">The cabinet interior. The only surface.</div></div></div>
+      <div class="plaque light"><div class="inner"><div class="chip" style="background:#C9973F"></div><h4>Brass</h4><p>#C9973F · Primary</p><div class="role">Rings, hands, plaques, the circled word.</div></div></div>
+      <div class="plaque light"><div class="inner"><div class="chip" style="background:#4E9C82"></div><h4>Verdigris</h4><p>#4E9C82 · Secondary</p><div class="role">Patina — second orbits, attributions.</div></div></div>
+      <div class="plaque light"><div class="inner"><div class="chip" style="background:#EFE3C8"></div><h4>Parchment</h4><p>#EFE3C8 · Reading ink</p><div class="role">Every headline and body line.</div></div></div>
+      <div class="plaque light"><div class="inner"><div class="chip" style="background:#93402C"></div><h4>Oxblood</h4><p>#93402C · The seal</p><div class="role">One strike per frame, or none.</div></div></div>
+    </div>
+  </section>
+
+  <!-- ============ PLATE III — TYPOGRAPHY ============ -->
+  <section>
+    <div class="plate-head"><div class="rule l"></div><span class="plate-label">Plate III</span><div class="rule r"></div></div>
+    <h2>Typography</h2>
+    <p class="lede"><b>Cormorant Garamond 600</b> declares — sentence case, never tracked caps, one
+       italic word per frame. <b>Inter</b> annotates like the fine print on a chart margin.</p>
+    <div class="type-row"><div class="spec scale-fig">Hero · 6.6cqw · 600</div><div class="sample t-hero">Celestial <em>mechanics</em></div></div>
+    <div class="type-row"><div class="spec scale-fig">Headline · 4.4cqw</div><div class="sample t-sec">Twelve orbits, one axis</div></div>
+    <div class="type-row"><div class="spec scale-fig">Card title · 2.0cqw</div><div class="sample t-card">The astronomer's cabinet</div></div>
+    <div class="type-row"><div class="spec scale-fig">Dial value · 2.8cqw</div><div class="sample t-dial">— figure —</div></div>
+    <div class="type-row"><div class="spec scale-fig">Body · Inter 400</div><div class="sample t-body">Hairline engraving carries the structure; the reading voice stays quiet, warm, and wide-leaded, like a caption beneath a chart.</div></div>
+    <div class="type-row"><div class="spec scale-fig">Plate label</div><div class="sample plate-label">Engraved plaque voice</div></div>
+  </section>
+
+  <!-- ============ PLATE IV — INSTRUMENTS ============ -->
+  <section>
+    <div class="plate-head"><div class="rule l"></div><span class="plate-label">Plate IV</span><div class="rule r"></div></div>
+    <h2>The Instruments</h2>
+    <p class="lede">Seven components, all hairline — <b>1–2px strokes always, never thick bars.</b>
+       Each demo runs on its own escapement.</p>
+    <div id="instruments">
+      <div class="inst"><div class="demo"><span id="d-orbit-word">discovery<svg viewBox="0 0 100 60" preserveAspectRatio="none"><ellipse cx="50" cy="30" rx="47" ry="26" pathLength="100"/></svg></span></div>
+        <h4>orbit-ring</h4><p>A slightly rotated ellipse circles the emphasis word — an astronomer marking a discovery. One per frame.</p></div>
+      <div class="inst"><div class="demo">
+        <svg width="120" height="120" viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="52" fill="none" stroke="var(--brass-dim)" stroke-width="1.2"/>
+          <circle cx="60" cy="60" r="52" fill="none" stroke="var(--brass-dim)" stroke-width="5" stroke-dasharray="1.4 25.8"/>
+          <g id="d-hand"><polygon points="58.6,60 60,16 61.4,60" fill="#C9973F"/><circle cx="60" cy="67" r="3" fill="none" stroke="#C9973F" stroke-width="1.5"/></g>
+          <circle cx="60" cy="60" r="2" fill="#C9973F"/>
+        </svg></div>
+        <h4>brass-hand</h4><p>The pointer advances in discrete escapement ticks — steps(12), never a smooth sweep.</p></div>
+      <div class="inst"><div class="demo">
+        <svg width="220" height="70" viewBox="0 0 220 70">
+          <path d="M10 62 Q110 -14 210 62" fill="none" stroke="var(--brass-dim)" stroke-width="1.2"/>
+          <path d="M10 62 Q110 -14 210 62" fill="none" stroke="var(--brass-dim)" stroke-width="7" stroke-dasharray="1.4 15"/>
+          <text x="10" y="52" class="scale-fig" fill="var(--brass-dim)" font-size="9" font-family="Inter">0</text>
+          <text x="204" y="52" fill="var(--brass-dim)" font-size="9" font-family="Inter">XC</text>
+        </svg></div>
+        <h4>escapement-tick</h4><p>Graduation scales on arcs, rules, and frame edges — the instrument's decoration.</p></div>
+      <div class="inst" id="d-cart"><div class="demo"><span class="cartouche"><span class="plate-label">Chapter the First</span></span></div>
+        <h4>cartouche</h4><p>A thin double-rule frame with angled corners, for kickers and captions. Never filled.</p></div>
+      <div class="inst"><div class="demo"><div class="dmoons" id="d-moons">
+          <span class="moon"><i></i></span><span class="moon"><i></i></span><span class="moon"><i></i></span>
+          <span class="moon"><i></i></span><span class="moon"><i></i></span></div></div>
+        <h4>moon-phase-dots</h4><p>Progress waxes left to right as moons, not bars — and wanes back for the loop.</p></div>
+      <div class="inst"><div class="demo">
+        <svg width="120" height="120" viewBox="0 0 100 100" class="flo" style="position:static;opacity:1">
+          <path id="d-flo" pathLength="100" d="M4 34 Q4 4 34 4 M4 34 Q10 16 26 12 Q16 24 20 34 Q28 24 42 26" fill="none" stroke="var(--brass-dim)" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100"/>
+          <circle id="d-flo-dot" cx="46" cy="27" r="2" fill="var(--brass-dim)" opacity="0"/>
+        </svg></div>
+        <h4>engraved-flourish</h4><p>Fine corner filigree — two opposing corners of a frame, never all four.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ PLATE V — MOTION GRAMMAR ============ -->
+  <section>
+    <div class="plate-head"><div class="rule l"></div><span class="plate-label">Plate V</span><div class="rule r"></div></div>
+    <h2>Motion Grammar</h2>
+    <p class="lede">Everything moves like a mechanism under tension, released in measured beats.
+       Easing vocabulary: <b>elastic</b> (pendulums), <b>steps(n)</b> (hands &amp; wipes),
+       <b>linear</b> (orbits). No bounce, no neon flash.</p>
+    <div class="gram">
+      <div class="inst"><div class="demo"><span class="pend" id="d-pend">pendulum</span></div>
+        <h4><span>I</span>Pendulum entrance</h4><p>Headline words swing in from a pivot high above
+        the word (origin 50% −150%), settling with an elastic ease — a released escapement coming to rest.</p></div>
+      <div class="inst"><div class="demo"><div class="wipebox" id="d-wipe"><div class="hand" id="d-wipe-hand"></div></div></div>
+        <h4><span>II</span>Clock wipe</h4><p>Scene transitions sweep the frame conically behind a
+        rotating brass hand — in discrete ticks, steps(24), tooth by tooth. Never a plain crossfade.</p></div>
+      <div class="inst"><div class="demo">
+        <svg width="150" height="110" viewBox="0 0 150 110" style="transform:rotate(-8deg) scaleY(.8)">
+          <circle cx="75" cy="55" r="28" fill="none" stroke="var(--brass-dim)" stroke-width="1.2"/>
+          <circle cx="75" cy="55" r="46" fill="none" stroke="var(--brass-faint)" stroke-width="1.2"/>
+          <g id="d-o1"><circle cx="103" cy="55" r="4" fill="#C9973F"/></g>
+          <g id="d-o2"><circle cx="121" cy="55" r="5" fill="#4E9C82"/></g>
+          <circle cx="75" cy="55" r="7" fill="url(#sunG)"/>
+        </svg></div>
+        <h4><span>III</span>Orrery ambient</h4><p>Planets run their elliptical rings at
+        non-harmonic periods; the sun-pivot breathes. The instrument runs — it never dances.</p></div>
+      <div class="inst"><div class="demo"><span style="font:600 26px/1 var(--disp);font-style:italic;color:var(--brass);position:relative;padding:4px 8px" id="d-ring2">circled
+        <svg viewBox="0 0 100 60" preserveAspectRatio="none" style="position:absolute;left:-14%;top:-22%;width:128%;height:146%;transform:rotate(-5deg);overflow:visible"><ellipse cx="50" cy="30" rx="47" ry="26" pathLength="100" fill="none" stroke="var(--brass)" stroke-width="1.4" stroke-dasharray="100" stroke-dashoffset="100" id="d-ring2-el"/></svg></span></div>
+        <h4><span>IV</span>Orbit-ring emphasis</h4><p>After its word settles, the ellipse draws on
+        clockwise like a hand-circled note on a chart, then precesses imperceptibly.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="seal"></div>
+    <span class="scale-fig">Orrery Brass · a Keyframe frame pack · engraved MMXXVI</span>
+  </footer>
+</main>
+
+<script>
+(function () {
+  if (!window.gsap) return;
+  var C = "600 600"; /* orrery svgOrigin */
+
+  /* ===== AMBIENT — the instrument runs forever ===== */
+  gsap.to("#p1", { rotation: 360, duration: 9,  ease: "none", repeat: -1, svgOrigin: C });
+  gsap.to("#p2", { rotation: 360, duration: 14, ease: "none", repeat: -1, svgOrigin: C });
+  gsap.to("#p3", { rotation: 360, duration: 21, ease: "none", repeat: -1, svgOrigin: C });
+  gsap.to("#p4", { rotation: 360, duration: 34, ease: "none", repeat: -1, svgOrigin: C });
+  gsap.to("#p3m", { rotation: 360, duration: 3.4, ease: "none", repeat: -1, svgOrigin: "1012 600" });
+  gsap.to("#hand", { rotation: 360, duration: 24, ease: "steps(96)", repeat: -1, svgOrigin: C });
+  gsap.to("#sun",  { scale: 1.04, duration: 3.5, ease: "sine.inOut", yoyo: true, repeat: -1, svgOrigin: C });
+  gsap.to("#halo", { scale: 1.1, opacity: 0.55, duration: 3.5, ease: "sine.inOut", yoyo: true, repeat: -1, svgOrigin: C });
+  gsap.to("#grad-ring", { rotation: 4, duration: 20, ease: "sine.inOut", yoyo: true, repeat: -1, svgOrigin: C });
+
+  /* ===== COVER INTRO — plays on load, loops ===== */
+  var tl = gsap.timeline({ repeat: -1, repeatDelay: 0.4 });
+  tl.set(["#kick", "#hero-sub", "#moons"], { opacity: 0 })
+    .set("#hero .w", { opacity: 0 })
+    .set("#ring-svg ellipse", { strokeDashoffset: 100 })
+    .set("#moons .moon i", { scale: 0 })
+    .set("#cover .flo path", { strokeDashoffset: 100 })
+    .set("#cover .flo circle", { opacity: 0 });
+  tl.to("#kick", { opacity: 1, duration: 0.7, ease: "power2.out" }, 0.3);
+  /* pendulum words — swing from a pivot high above, elastic settle */
+  var words = gsap.utils.toArray("#hero .w");
+  words.forEach(function (w, i) {
+    tl.fromTo(w, { opacity: 0, rotation: (i % 2 ? 22 : -22) },
+      { opacity: 1, rotation: 0, duration: 1.5, ease: "elastic.out(1,0.4)" }, 0.6 + i * 0.14);
+  });
+  /* the astronomer circles the discovery */
+  tl.to("#ring-svg ellipse", { strokeDashoffset: 0, duration: 0.65, ease: "power2.inOut" }, 2.05);
+  tl.to("#hero-sub", { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }, 2.4);
+  tl.to("#moons", { opacity: 1, duration: 0.5 }, 2.7);
+  tl.to("#moons .moon i", { scale: 1, duration: 0.35, ease: "power2.out", stagger: 0.45 }, 2.9);
+  tl.to("#cover .flo path", { strokeDashoffset: 0, duration: 1.1, ease: "power2.inOut", stagger: 0.2 }, 1.2);
+  tl.to("#cover .flo circle", { opacity: 1, duration: 0.4 }, 2.4);
+  /* hold the plate, then wind it back */
+  tl.to({}, { duration: 3.2 });
+  tl.to(["#cover-safe", "#cover .flo"], { opacity: 0, duration: 0.7, ease: "power2.in" });
+  tl.set(["#cover-safe", "#cover .flo"], { opacity: 1 });
+
+  /* ===== INSTRUMENT DEMOS — each on its own escapement ===== */
+  gsap.timeline({ repeat: -1, repeatDelay: 1.4 })
+    .fromTo("#d-orbit-word ellipse", { strokeDashoffset: 100 }, { strokeDashoffset: 0, duration: 0.7, ease: "power2.inOut" })
+    .to({}, { duration: 1.8 })
+    .to("#d-orbit-word ellipse", { opacity: 0, duration: 0.4 })
+    .set("#d-orbit-word ellipse", { strokeDashoffset: 100, opacity: 1 });
+  gsap.to("#d-hand", { rotation: 360, duration: 12, ease: "steps(12)", repeat: -1, svgOrigin: "60 60" });
+  gsap.timeline({ repeat: -1, repeatDelay: 0.8 })
+    .to("#d-moons .moon i", { scale: 1, duration: 0.3, stagger: 0.4, ease: "power2.out" })
+    .to({}, { duration: 0.9 })
+    .to("#d-moons .moon i", { scale: 0, duration: 0.3, stagger: 0.25, ease: "power2.in" });
+  gsap.timeline({ repeat: -1, repeatDelay: 1.2 })
+    .to("#d-flo", { strokeDashoffset: 0, duration: 1.2, ease: "power2.inOut" })
+    .to("#d-flo-dot", { opacity: 1, duration: 0.35 })
+    .to({}, { duration: 1.4 })
+    .to(["#d-flo", "#d-flo-dot"], { opacity: 0, duration: 0.4 })
+    .set("#d-flo", { strokeDashoffset: 100, opacity: 1 });
+
+  /* ===== MOTION GRAMMAR DEMOS ===== */
+  gsap.fromTo("#d-pend", { rotation: -24, opacity: 0 },
+    { rotation: 0, opacity: 1, duration: 1.6, ease: "elastic.out(1,0.4)", repeat: -1, repeatDelay: 1.3 });
+  gsap.timeline({ repeat: -1, repeatDelay: 0.9 })
+    .fromTo("#d-wipe", { "--wipe": "0deg" }, { "--wipe": "360deg", duration: 2.6, ease: "steps(24)" }, 0)
+    .fromTo("#d-wipe-hand", { rotation: 0 }, { rotation: 360, duration: 2.6, ease: "steps(24)" }, 0);
+  gsap.to("#d-o1", { rotation: 360, duration: 6,  ease: "none", repeat: -1, svgOrigin: "75 55" });
+  gsap.to("#d-o2", { rotation: 360, duration: 11, ease: "none", repeat: -1, svgOrigin: "75 55" });
+  gsap.timeline({ repeat: -1, repeatDelay: 1.6 })
+    .fromTo("#d-ring2-el", { strokeDashoffset: 100 }, { strokeDashoffset: 0, duration: 0.7, ease: "power2.inOut" })
+    .to({}, { duration: 1.6 })
+    .to("#d-ring2-el", { opacity: 0, duration: 0.4 })
+    .set("#d-ring2-el", { strokeDashoffset: 100, opacity: 1 });
+})();
+</script>
+
+<section id="kf-asset-demo" style="background:#191410;color:#EFE3C8;padding:110px 8% 130px;font-family:Inter,sans-serif;"><div style="font:700 12px/1 Inter,sans-serif;letter-spacing:.34em;text-transform:uppercase;color:#C9973F;margin-bottom:14px;">NEW · ASSET SYSTEM</div><h2 style="font-family:'Cormorant Garamond',serif;font-size:52px;line-height:1.05;margin:0 0 18px;">Where your images go</h2><p style="max-width:620px;font-size:17px;line-height:1.6;color:rgba(239,227,200,.6);margin:0 0 56px;">Photos are set into an engraved brass instrument bezel with corner screws. Screenshots mount as chart plates; montage tiles align to the graduation grid. Films are as long as your script — every scene can carry an image.</p><div style="display:flex;gap:64px;flex-wrap:wrap;align-items:flex-start;"><div><div style="position:relative;display:inline-block;background:rgba(239,227,200,.05);border:2px solid #C9973F;box-shadow:inset 0 0 0 5px #191410,inset 0 0 0 6px rgba(201,151,63,.55),0 14px 34px rgba(0,0,0,.4);padding:13px;"><div style="width:300px;height:200px;overflow:hidden;border-radius:inherit;background:linear-gradient(135deg,#4E9C82,#93402C);display:flex;align-items:center;justify-content:center;"><span style="font:700 13px/1 Inter,sans-serif;letter-spacing:.22em;color:rgba(255,255,255,.85);">YOUR PHOTO</span></div><span style="position:absolute;left:3px;top:3px;width:8px;height:8px;border-radius:50%;background:#C9973F;box-shadow:inset 0 0 0 2px rgba(25,20,16,.55);"></span><span style="position:absolute;right:3px;top:3px;width:8px;height:8px;border-radius:50%;background:#C9973F;box-shadow:inset 0 0 0 2px rgba(25,20,16,.55);"></span><span style="position:absolute;left:3px;bottom:3px;width:8px;height:8px;border-radius:50%;background:#C9973F;box-shadow:inset 0 0 0 2px rgba(25,20,16,.55);"></span><span style="position:absolute;right:3px;bottom:3px;width:8px;height:8px;border-radius:50%;background:#C9973F;box-shadow:inset 0 0 0 2px rgba(25,20,16,.55);"></span></div><div style="margin-top:22px;font:600 12px/1 Inter,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:rgba(239,227,200,.6);">Photo · themed mount</div></div><div><div style="display:inline-block;border-radius:10px;overflow:hidden;box-shadow:0 14px 34px rgba(0,0,0,.3);"><div style="background:#E8E4DC;padding:9px 12px;display:flex;gap:6px;"><span style="width:9px;height:9px;border-radius:50%;background:#ff5f57;"></span><span style="width:9px;height:9px;border-radius:50%;background:#febc2e;"></span><span style="width:9px;height:9px;border-radius:50%;background:#28c840;"></span></div><div style="width:322px;height:190px;background:linear-gradient(135deg,#4E9C82,#93402C);display:flex;align-items:center;justify-content:center;"><span style="font:700 12px/1 Inter,sans-serif;letter-spacing:.18em;color:rgba(255,255,255,.85);">YOUR WEBSITE SCREENSHOT</span></div></div><div style="margin-top:22px;font:600 12px/1 Inter,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:rgba(239,227,200,.6);">Screenshot · hero frame</div></div></div></section>
+</body>
+</html>

@@ -26,7 +26,7 @@ const PARTS = [
   { id: "render",  label: "Render & Export", x: -120, y:   30, rot: -6 },
 ];
 
-export default function Hero({ onStart }) {
+export default function Hero() {
   const root = useRef(null);
 
   useLayoutEffect(() => {

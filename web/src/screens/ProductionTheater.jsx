@@ -21,26 +21,47 @@ const FRAME_GRADS = [
   "linear-gradient(135deg, #ffb03a, #8a4d0e 55%, #2e1a05)",
 ];
 
+// The AI directors that work this film, mapped to the stage each runs in — they
+// light up as the pipeline reaches their stage. Surfaces the depth of the crew
+// (Text/Screenshot/Creative/Art/Layout/Audio/QA) that used to run invisibly.
+const CREW = [
+  { name: "Text Director", stage: 3, c: "#b9f24a", role: "mines your copy into scene text" },
+  { name: "Screenshot Director", stage: 4, c: "#2b5bff", role: "captures topic-matched site shots" },
+  { name: "Creative Director", stage: 4, c: "#e832a8", role: "reviews & curates every asset" },
+  { name: "Art Director", stage: 4, c: "#ffb03a", role: "skins the film in your brand colors" },
+  { name: "Layout Director", stage: 5, c: "#23c8e0", role: "sizes heroes, crops the montage" },
+  { name: "Audio Director", stage: 6, c: "#8a63ff", role: "scores it & mixes under the VO" },
+  { name: "QA Director", stage: 7, c: "#ff6a3c", role: "watches the cut, orders fixes" },
+];
+
 function stageIndex(progress) {
   const i = STAGES.findIndex((s) => s.key === progress);
   return i === -1 ? 0 : i;
 }
 
-export default function ProductionTheater({ projectId, onDone, onFailed }) {
+export default function ProductionTheater({ projectId, autopilot = false, onDone, onFailed, onScriptReview }) {
   const [project, setProject] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!projectId) return;
     const ac = new AbortController();
-    pollProject(projectId, { onTick: setProject, signal: ac.signal })
+    // Also resolve on script_review: if the job is (or falls back to) the review
+    // pause while we're in the theater — an approve that didn't stick, a
+    // regenerate, or any backend hiccup — the user belongs in the Script Room,
+    // not staring at a fake "Brief…" forever (the stuck-at-5% bug).
+    // EXCEPT under autopilot, where the job legitimately passes through
+    // script_review on its way into production — bouncing there would break the
+    // straight-through render, so we ignore it and roll until done/failed.
+    pollProject(projectId, { onTick: setProject, predicate: (p) => !autopilot && p.status === "script_review", signal: ac.signal })
       .then((p) => {
         if (p.status === "done") setTimeout(onDone, 1200);
         else if (p.status === "failed") setError(p.error || "production failed");
+        else if (p.status === "script_review") onScriptReview ? onScriptReview() : setError("the script is waiting for your review");
       })
       .catch((e) => setError(e.message));
     return () => ac.abort();
-  }, [projectId]);
+  }, [projectId, autopilot]);
 
   const active = stageIndex(project?.progress);
   const done = project?.status === "done";
@@ -130,6 +151,30 @@ export default function ProductionTheater({ projectId, onDone, onFailed }) {
               </span>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* the AI crew — lights up director by director as the stages advance */}
+      <div style={{ marginTop: 34 }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.2em", color: "var(--color-dim)", textTransform: "uppercase", marginBottom: 14 }}>
+          THE CREW — {CREW.length} AI DIRECTORS ON THIS FILM
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px,1fr))", gap: 10 }}>
+          {CREW.map((m) => {
+            const lit = active > m.stage || done;
+            const cur = active === m.stage && project?.status === "running";
+            const on = lit || cur;
+            return (
+              <div key={m.name} style={{ padding: "12px 14px", borderRadius: 12, border: `1px solid ${on ? m.c + "66" : "rgba(242,237,226,.1)"}`, background: on ? m.c + "12" : "transparent", transition: "all .4s", opacity: on ? 1 : 0.55 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: on ? m.c : "rgba(242,237,226,.2)", animation: cur ? "kf2-blink 1s steps(1) infinite" : "none", flexShrink: 0 }} />
+                  <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: on ? "#f2ede2" : "#7d766a" }}>{m.name}</span>
+                  <span style={{ marginLeft: "auto", fontFamily: "var(--font-mono)", fontSize: 11, color: m.c }}>{lit ? "✓" : cur ? "…" : ""}</span>
+                </div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.04em", color: "var(--color-dark-dim)", marginTop: 6, lineHeight: 1.5 }}>{m.role}</div>
+              </div>
+            );
+          })}
         </div>
       </div>
 

@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claymotion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script>
+  if (!window.gsap) addEventListener("DOMContentLoaded", function () {
+    var b = document.createElement("div");
+    b.style.cssText = "position:fixed;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;font:600 18px system-ui;color:#37281F;background:#F1E2D3;padding:32px;z-index:99999";
+    b.textContent = "GSAP failed to load — hard-refresh (Ctrl+Shift+R) or allow the CDN.";
+    document.body.appendChild(b);
+  });
+</script>
+<style>
+  /* ==========================================================
+     CLAYMOTION — a handmade stop-motion clay film in a browser.
+     Every surface is plasticine (blob radii, double lamp
+     shadows, inner highlight/shade, thumbprints). Every motion
+     is QUANTIZED to ~8fps: GSAP steps() eases, durations in
+     multiples of 125ms. Nothing glides. Nothing floats — every
+     prop has a contact shadow on the board.
+     ========================================================== */
+  * { box-sizing:border-box; margin:0; padding:0; }
+  :root{
+    --putty:#F1E2D3; --putty-deep:#E4D0BA; --terra:#DD6B4A; --moss:#7FA05F;
+    --sky:#6FAEC6; --plum:#96639B; --ink:#37281F; --claywhite:#FBF3E7;
+    --lamp:0.4rem 0.55rem 0 rgba(55,40,31,.10), 1rem 1.4rem 1.6rem rgba(55,40,31,.15);
+  }
+  html { scroll-behavior:smooth; }
+  body { background:var(--putty); color:var(--ink); font-family:'Inter',system-ui,sans-serif; overflow-x:hidden; }
+  .baloo { font-family:'Baloo 2','Inter',sans-serif; }
+
+  /* ---------- clay atoms ---------- */
+  .blobbg { border-radius:53% 47% 52% 48% / 46% 55% 45% 54%; }
+  .sphere { border-radius:50%; position:relative;
+            box-shadow:inset 0.9em 0.9em 1.1em rgba(255,255,255,.38), inset -0.7em -0.9em 1.1em rgba(55,40,31,.25); }
+  .cshadow { position:absolute; left:50%; bottom:-14px; width:86%; height:16px; transform:translateX(-50%);
+             background:rgba(55,40,31,.18); border-radius:50%; filter:blur(4px); }
+  .thumbprint { position:absolute; width:86px; height:104px; opacity:.75; pointer-events:none;
+    border-radius:50% 50% 48% 52% / 60% 58% 42% 40%;
+    background:repeating-radial-gradient(ellipse 60% 50% at 50% 46%, rgba(55,40,31,.085) 0 2px, transparent 2px 7px); }
+  .worm { display:block; margin:0 auto; width:min(560px,80%); height:38px; }
+  .googly { display:inline-flex; gap:7px; vertical-align:middle; }
+  .eye { width:27px; height:27px; background:var(--claywhite); border:3px solid var(--ink); border-radius:50%;
+         position:relative; box-shadow:2px 3px 0 rgba(55,40,31,.14); }
+  .pupil { position:absolute; width:10px; height:10px; background:var(--ink); border-radius:50%; left:8px; top:9px; }
+  .donut { border-radius:50%; position:relative;
+           box-shadow:inset 0.5em 0.6em 0.8em rgba(255,255,255,.34), inset -0.4em -0.5em 0.8em rgba(55,40,31,.22),
+                      0.25rem 0.35rem 0 rgba(55,40,31,.10); }
+  .notch { position:absolute; width:12px; height:12px; border-radius:50%; background:var(--claywhite);
+           left:50%; top:9px; transform:translateX(-50%); opacity:.9; }
+
+  /* ---------- COVER : the film set ---------- */
+  #cover { position:relative; min-height:100vh; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+  #floor { position:absolute; left:0; right:0; bottom:0; height:23%; background:var(--putty-deep); }
+  #floor::before { content:""; position:absolute; top:-30px; left:0; right:0; height:30px;
+                   background:linear-gradient(to bottom, rgba(228,208,186,0), var(--putty-deep)); }
+  #ghost { position:absolute; right:-2vw; top:4vh; font-size:26vw; font-weight:800; color:rgba(55,40,31,.06);
+           line-height:1; transform:rotate(-6deg); pointer-events:none; }
+  #cov-inner { position:relative; z-index:5; text-align:center; transform:rotate(-2deg); padding:0 6vw 8vh; }
+  .kicker { display:inline-block; font-weight:700; font-size:clamp(11px,1.1vw,14px); letter-spacing:.32em;
+            text-transform:uppercase; color:var(--ink); background:var(--claywhite); padding:.55em 1.5em;
+            border-radius:48% 52% 55% 45% / 58% 46% 54% 42%; box-shadow:var(--lamp); }
+  #hero { font-weight:800; font-size:clamp(3.2rem, 9.2vw, 8.4rem); line-height:1.02; margin-top:4vh; }
+  .word { display:inline-block; transform-origin:50% 100%; will-change:transform; opacity:0; }
+  #w1 { transform:rotate(-1.5deg); } #w2 { transform:rotate(1deg); }
+  #w3 { position:relative; padding:.02em .28em .06em; margin-left:.12em; color:var(--claywhite); }
+  #pad { position:absolute; inset:-0.06em -0.16em -0.02em; background:var(--terra); z-index:-1;
+         border-radius:51% 49% 54% 46% / 47% 56% 44% 53%;
+         box-shadow:inset 0.35em 0.4em 0.7em rgba(255,255,255,.28), inset -0.3em -0.35em 0.7em rgba(55,40,31,.28), var(--lamp); }
+  #cov-sub { font-size:clamp(15px,1.5vw,20px); font-weight:500; color:#5C4A3B; margin-top:3.2vh; opacity:0; }
+  #smear { position:absolute; z-index:20; left:0; top:38%; width:52vw; height:22vh; background:var(--terra);
+           border-radius:46% 54% 40% 60% / 62% 44% 56% 38%; transform:translateX(-120%) rotate(-3deg);
+           box-shadow:inset 0.6em 0.7em 1em rgba(255,255,255,.24), inset -0.5em -0.6em 1em rgba(55,40,31,.25);
+           will-change:transform; pointer-events:none; }
+  .prop { position:absolute; z-index:2; }
+  .propbody { position:relative; will-change:transform; }
+  #scroll-cue { position:absolute; left:50%; bottom:2.5vh; transform:translateX(-50%); z-index:6;
+                font-weight:600; font-size:11px; letter-spacing:.3em; text-transform:uppercase; color:#7A6350; }
+
+  /* ---------- document sections ---------- */
+  section.doc { position:relative; max-width:1100px; margin:0 auto; padding:9vh 6vw; }
+  .sec-kick { font-weight:700; font-size:12px; letter-spacing:.34em; text-transform:uppercase; color:var(--terra); }
+  .sec-title { font-weight:800; font-size:clamp(2rem,4.4vw,3.4rem); line-height:1.05; margin-top:.4em; transform:rotate(-1.5deg); display:inline-block; }
+  .sec-lead { max-width:62ch; margin-top:1.2em; font-size:clamp(14px,1.25vw,17px); line-height:1.65; color:#544233; }
+  .card { background:var(--claywhite); padding:2rem 1.8rem; box-shadow:var(--lamp); position:relative;
+          border-radius:8% 10% 9% 11% / 12% 9% 13% 8%; }
+
+  /* palette */
+  #pal-row { display:flex; flex-wrap:wrap; gap:3.2rem 2.6rem; margin-top:3.5rem; justify-content:center; }
+  .pal { text-align:center; width:120px; position:relative; }
+  .pal .ballwrap { position:relative; height:100px; }
+  .pal .ball { width:84px; height:84px; margin:0 auto; will-change:transform; }
+  .pal .name { font-weight:700; font-size:15px; margin-top:14px; }
+  .pal .hex { font-size:12px; color:#7A6350; letter-spacing:.08em; }
+
+  /* typography */
+  .type-row { display:flex; align-items:baseline; gap:2rem; flex-wrap:wrap; margin-top:2.2rem; border-bottom:2px dashed rgba(55,40,31,.14); padding-bottom:1.6rem; }
+  .type-meta { font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:#7A6350; min-width:170px; }
+  .t-hero { font-weight:800; font-size:clamp(2.6rem,6vw,4.6rem); line-height:1; transform:rotate(-2deg); display:inline-block; }
+  .t-head { font-weight:800; font-size:clamp(1.8rem,3.6vw,2.8rem); line-height:1.05; transform:rotate(1.5deg); display:inline-block; }
+  .t-card { font-weight:700; font-size:clamp(1.2rem,2vw,1.5rem); }
+  .t-body { font-size:16px; line-height:1.65; max-width:56ch; color:#544233; }
+  .t-blob { position:relative; display:inline-block; font-weight:800; font-size:clamp(1.6rem,3vw,2.4rem);
+            color:var(--claywhite); padding:.05em .5em .12em; transform:rotate(-2deg); }
+  .t-blob i { position:absolute; inset:0; background:var(--plum); z-index:-1; font-style:normal;
+              border-radius:51% 49% 54% 46% / 47% 56% 44% 53%;
+              box-shadow:inset .3em .35em .6em rgba(255,255,255,.28), inset -.25em -.3em .6em rgba(55,40,31,.28), var(--lamp); }
+
+  /* components grid */
+  #comp-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:2.4rem; margin-top:3.2rem; }
+  .comp { text-align:center; }
+  .comp .stage { height:150px; display:flex; align-items:center; justify-content:center; position:relative; }
+  .comp h3 { font-family:'Baloo 2',sans-serif; font-weight:700; font-size:19px; margin-top:1rem; }
+  .comp p { font-size:13px; line-height:1.5; color:#7A6350; margin-top:.35rem; }
+  .comp:nth-child(odd) { transform:rotate(-1.2deg); } .comp:nth-child(even) { transform:rotate(1deg); }
+
+  /* motion grammar */
+  #motion-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:2.4rem; margin-top:3rem; }
+  .law h3 { font-family:'Baloo 2',sans-serif; font-weight:800; font-size:21px; }
+  .law h3 span { color:var(--terra); }
+  .law p { font-size:14px; line-height:1.6; color:#544233; margin-top:.6rem; }
+  .mini-stage { position:relative; height:150px; margin-top:1.2rem; background:var(--putty);
+                border-radius:9% 11% 10% 12% / 13% 10% 14% 9%; overflow:hidden;
+                box-shadow:inset 0 -34px 0 var(--putty-deep), inset .3em .4em .8em rgba(55,40,31,.06); }
+  footer { text-align:center; padding:5vh 6vw 7vh; font-size:12px; letter-spacing:.26em; text-transform:uppercase; color:#8A715C; }
+</style>
+</head>
+<body>
+
+<!-- ======================= COVER — the set, at 8fps ======================= -->
+<section id="cover">
+  <div id="ghost" class="baloo">C</div>
+  <div id="floor"></div>
+
+  <!-- tabletop prop cast (edges only, each with a contact shadow) -->
+  <div class="prop" style="left:6vw; bottom:14vh;">
+    <div class="propbody bob"><div class="sphere" style="width:88px;height:88px;background:var(--moss);"></div></div>
+    <div class="cshadow bobsh" style="width:78px;"></div>
+  </div>
+  <div class="prop" style="right:7vw; bottom:11vh;">
+    <div class="propbody bob"><div class="sphere" style="width:120px;height:120px;background:var(--sky);"></div></div>
+    <div class="cshadow bobsh" style="width:104px;"></div>
+  </div>
+  <div class="prop" style="left:14vw; top:12vh;">
+    <div class="propbody tickrot">
+      <div class="donut" style="width:96px;height:96px;border:30px solid var(--plum);"><div class="notch"></div></div>
+    </div>
+    <div class="cshadow" style="width:70px; bottom:-22px;"></div>
+  </div>
+  <div class="prop" style="right:13vw; top:10vh;">
+    <div class="propbody tickrot-rev">
+      <svg width="104" height="104" viewBox="0 0 100 100"><path d="M50 8 61 38 93 38 67 57 77 88 50 69 23 88 33 57 7 38 39 38Z"
+        fill="#7FA05F" stroke="#7FA05F" stroke-width="13" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="cshadow" style="width:72px; bottom:-20px;"></div>
+  </div>
+  <div class="prop" style="left:24vw; bottom:6vh;">
+    <div class="propbody bob"><div class="sphere" style="width:52px;height:52px;background:var(--plum);"></div></div>
+    <div class="cshadow bobsh" style="width:46px; bottom:-10px;"></div>
+  </div>
+  <div class="thumbprint" style="left:8vw; top:38vh; transform:rotate(18deg);"></div>
+  <div class="thumbprint" style="right:9vw; bottom:32vh; transform:rotate(-24deg) scale(.8);"></div>
+
+  <div id="cov-inner">
+    <span class="kicker" id="cov-kick">Keyframe · Claymotion — a stop-motion clay film</span>
+    <h1 id="hero" class="baloo">
+      <span class="word" id="w1">Sculpt</span>
+      <span class="word" id="w2">every</span>
+      <span class="word" id="w3"><span id="pad"></span>frame.</span>
+    </h1>
+    <p id="cov-sub">Animated by hand, eight frames a second.&nbsp;
+      <span class="googly"><span class="eye"><span class="pupil"></span></span><span class="eye"><span class="pupil"></span></span></span>
+    </p>
+  </div>
+
+  <div id="smear"></div>
+  <div id="scroll-cue">scroll — the making of &darr;</div>
+</section>
+
+<svg class="worm" viewBox="0 0 600 40" aria-hidden="true"><path d="M12 22 Q 86 6 160 22 T 308 22 T 456 22 T 588 19"
+  fill="none" stroke="#DD6B4A" stroke-width="14" stroke-linecap="round"/></svg>
+
+<!-- ======================= PALETTE — clay balls ======================= -->
+<section class="doc">
+  <div class="sec-kick">01 · The clay</div>
+  <h2 class="sec-title baloo">Six lumps of plasticine.</h2>
+  <p class="sec-lead">A putty board under two soft studio lamps. Terracotta is the hero clay — one hero element
+     per frame — while moss, sky and plum play the supporting cast. Ink is clay-brown, never black.</p>
+  <div id="pal-row">
+    <div class="pal"><div class="ballwrap"><div class="ball sphere palball" style="background:var(--putty); box-shadow:inset .9em .9em 1.1em rgba(255,255,255,.5), inset -.7em -.9em 1.1em rgba(55,40,31,.16), 0 0 0 3px rgba(55,40,31,.08);"></div><div class="cshadow palsh"></div></div><div class="name baloo">Putty</div><div class="hex">#F1E2D3</div></div>
+    <div class="pal"><div class="ballwrap"><div class="ball sphere palball" style="background:var(--terra);"></div><div class="cshadow palsh"></div></div><div class="name baloo">Terracotta</div><div class="hex">#DD6B4A</div></div>
+    <div class="pal"><div class="ballwrap"><div class="ball sphere palball" style="background:var(--moss);"></div><div class="cshadow palsh"></div></div><div class="name baloo">Moss</div><div class="hex">#7FA05F</div></div>
+    <div class="pal"><div class="ballwrap"><div class="ball sphere palball" style="background:var(--sky);"></div><div class="cshadow palsh"></div></div><div class="name baloo">Sky</div><div class="hex">#6FAEC6</div></div>
+    <div class="pal"><div class="ballwrap"><div class="ball sphere palball" style="background:var(--plum);"></div><div class="cshadow palsh"></div></div><div class="name baloo">Plum</div><div class="hex">#96639B</div></div>
+    <div class="pal"><div class="ballwrap"><div class="ball sphere palball" style="background:var(--ink);"></div><div class="cshadow palsh"></div></div><div class="name baloo">Clay ink</div><div class="hex">#37281F</div></div>
+  </div>
+</section>
+
+<svg class="worm" viewBox="0 0 600 40" aria-hidden="true"><path d="M12 20 Q 86 34 160 20 T 308 20 T 456 20 T 588 22"
+  fill="none" stroke="#7FA05F" stroke-width="14" stroke-linecap="round"/></svg>
+
+<!-- ======================= TYPOGRAPHY ======================= -->
+<section class="doc">
+  <div class="sec-kick">02 · The lettering</div>
+  <h2 class="sec-title baloo">Letters pressed from cutters.</h2>
+  <p class="sec-lead">Baloo 2 — chunky, rounded, hand-modelled — carries every headline and stat, always sentence
+     case, always tilted ±2–3°. Inter explains. The one loaded word sits on a hand-pressed clay blob.</p>
+  <div class="type-row"><div class="type-meta">hero-title · Baloo 2 · 800</div><div class="t-hero baloo">Roll the clay</div></div>
+  <div class="type-row"><div class="type-meta">section-headline · 800</div><div class="t-head baloo">Eight frames a second</div></div>
+  <div class="type-row"><div class="type-meta">blob-word · 800 · on pad</div><div class="t-blob baloo"><i></i>handmade</div></div>
+  <div class="type-row"><div class="type-meta">card-title · 700</div><div class="t-card baloo">A prop for every scene</div></div>
+  <div class="type-row" style="border-bottom:none;"><div class="type-meta">body · Inter · 400–500</div>
+    <div class="t-body">Body copy stays legible and quiet, letting the sculpted display do the acting. Nothing is
+    machine-straight: the card it sits on tilts a degree or two, like it was set down by hand between takes.</div></div>
+</section>
+
+<svg class="worm" viewBox="0 0 600 40" aria-hidden="true"><path d="M12 22 Q 86 6 160 22 T 308 22 T 456 22 T 588 19"
+  fill="none" stroke="#6FAEC6" stroke-width="14" stroke-linecap="round"/></svg>
+
+<!-- ======================= COMPONENTS ======================= -->
+<section class="doc">
+  <div class="sec-kick">03 · The props department</div>
+  <h2 class="sec-title baloo">Everything gets a shadow.</h2>
+  <p class="sec-lead">Nothing floats on a stop-motion set. Every sphere, donut, star and blob stands on its own
+     soft contact shadow, clustered at the frame edges — never behind the words.</p>
+  <div id="comp-grid">
+    <div class="comp card"><div class="stage">
+        <div style="position:relative;"><div class="propbody demo-press" style="width:150px;height:74px;background:var(--terra);border-radius:51% 49% 54% 46% / 47% 56% 44% 53%;box-shadow:inset .35em .4em .7em rgba(255,255,255,.28), inset -.3em -.35em .7em rgba(55,40,31,.28), var(--lamp);display:flex;align-items:center;justify-content:center;color:var(--claywhite);font-family:'Baloo 2';font-weight:800;font-size:24px;">press</div>
+        <div class="cshadow" style="width:130px;bottom:-18px;"></div></div>
+      </div><h3>clay-blob</h3><p>The emphasis pad — pressed plasticine with an inner highlight, re-pressing on the beat.</p></div>
+    <div class="comp card"><div class="stage">
+        <div style="position:relative;"><div class="propbody bob"><div class="sphere" style="width:78px;height:78px;background:var(--sky);"></div></div>
+        <div class="cshadow bobsh" style="width:66px;"></div></div>
+      </div><h3>clay-sphere</h3><p>Bobs in visible ticks; its contact shadow squashes in counter-phase.</p></div>
+    <div class="comp card"><div class="stage">
+        <div style="position:relative;"><div class="propbody tickrot"><div class="donut" style="width:84px;height:84px;border:26px solid var(--moss);"><div class="notch"></div></div></div>
+        <div class="cshadow" style="width:64px;bottom:-18px;"></div></div>
+      </div><h3>clay-donut</h3><p>Rotates in ticks, never smoothly — the notch dot makes each pose read.</p></div>
+    <div class="comp card"><div class="stage">
+        <div style="position:relative;"><div class="propbody tickrot-rev"><svg width="88" height="88" viewBox="0 0 100 100"><path d="M50 8 61 38 93 38 67 57 77 88 50 69 23 88 33 57 7 38 39 38Z" fill="#96639B" stroke="#96639B" stroke-width="13" stroke-linejoin="round"/></svg></div>
+        <div class="cshadow" style="width:64px;bottom:-14px;"></div></div>
+      </div><h3>clay-star</h3><p>Cookie-cutter star with rounded joints, wobbling around its axis.</p></div>
+    <div class="comp card"><div class="stage">
+        <span class="googly" style="transform:scale(1.7);"><span class="eye"><span class="pupil"></span></span><span class="eye"><span class="pupil"></span></span></span>
+      </div><h3>googly-dot</h3><p>Playful punctuation — pupils dart in single-frame moves with long holds.</p></div>
+    <div class="comp card"><div class="stage">
+        <div class="thumbprint" style="position:relative;left:auto;top:auto;transform:rotate(14deg);"></div>
+      </div><h3>thumbprint</h3><p>The animator's fingerprint left in the clay. One or two per frame, in quiet corners.</p></div>
+    <div class="comp card"><div class="stage">
+        <svg class="wormdemo" width="200" height="46" viewBox="0 0 200 46"><path d="M8 26 Q 40 8 72 24 T 136 24 T 192 22" fill="none" stroke="#DD6B4A" stroke-width="13" stroke-linecap="round"/></svg>
+      </div><h3>worm-rule</h3><p>A rolled clay sausage as the divider — slightly wavy, wiggling in ticks.</p></div>
+    <div class="comp card"><div class="stage">
+        <div class="mini-stage" style="width:100%;height:120px;margin-top:0;"><div style="position:absolute;left:22%;bottom:22px;"><div class="sphere bob" style="width:36px;height:36px;background:var(--moss);"></div><div class="cshadow bobsh" style="width:32px;bottom:-8px;"></div></div></div>
+      </div><h3>set-floor</h3><p>The soft horizon where board meets backdrop — props stand ON it.</p></div>
+  </div>
+</section>
+
+<svg class="worm" viewBox="0 0 600 40" aria-hidden="true"><path d="M12 20 Q 86 34 160 20 T 308 20 T 456 20 T 588 22"
+  fill="none" stroke="#96639B" stroke-width="14" stroke-linecap="round"/></svg>
+
+<!-- ======================= MOTION GRAMMAR ======================= -->
+<section class="doc">
+  <div class="sec-kick">04 · The animator's rules</div>
+  <h2 class="sec-title baloo">Motion, one pose at a time.</h2>
+  <p class="sec-lead">This is the pack no other template shares: nothing glides. Every tween is quantized to
+     visible poses — the browser doing what an animator's thumbs do between camera clicks.</p>
+  <div id="motion-grid">
+    <div class="law card">
+      <h3 class="baloo"><span>1 ·</span> The 8fps law</h3>
+      <p>Every move uses a stepped ease with durations in multiples of 125&nbsp;ms — a half-second move is
+         exactly four poses. Holds are real holds: between moves, the clay is at rest.</p>
+      <div class="mini-stage"><div style="position:absolute;left:16%;bottom:30px;"><div class="propbody tickrot"><div class="donut" style="width:56px;height:56px;border:18px solid var(--sky);"><div class="notch" style="width:9px;height:9px;top:5px;"></div></div></div><div class="cshadow" style="width:44px;bottom:-12px;"></div></div>
+        <div style="position:absolute;right:16%;bottom:30px;"><div class="propbody bob"><div class="sphere" style="width:46px;height:46px;background:var(--plum);"></div></div><div class="cshadow bobsh" style="width:40px;bottom:-10px;"></div></div></div>
+    </div>
+    <div class="law card">
+      <h3 class="baloo"><span>2 ·</span> Squash &amp; stretch</h3>
+      <p>Words and props drop in stretched tall, squash wide for one frame on landing, overshoot back and
+         settle — a six-pose landing, staggered word by word.</p>
+      <div class="mini-stage"><div style="position:absolute;left:50%;bottom:26px;margin-left:-27px;"><div id="demo-ball" class="sphere" style="width:54px;height:54px;background:var(--terra);transform-origin:50% 100%;"></div><div id="demo-ball-sh" class="cshadow" style="width:48px;bottom:-12px;"></div></div></div>
+    </div>
+    <div class="law card">
+      <h3 class="baloo"><span>3 ·</span> The smear frame</h3>
+      <p>Scene changes ride a clay blob streaking across the screen, stretching into a long smear at
+         mid-flight — an animator's in-between drawing — covering the cut for two or three poses.</p>
+      <div class="mini-stage"><div id="demo-smear" style="position:absolute;left:0;top:38%;width:46%;height:34%;background:var(--moss);border-radius:46% 54% 40% 60% / 62% 44% 56% 38%;transform:translateX(-130%) rotate(-3deg);"></div></div>
+    </div>
+  </div>
+</section>
+
+<footer class="baloo">Claymotion · a Keyframe frame pack · sculpted, not rendered</footer>
+
+<script>
+(function () {
+  if (!window.gsap) return;
+  var F = 0.125;                       /* one stop-motion frame = 125ms (~8fps) */
+  var q = function (n) { return n * F; };
+
+  /* ---- drop-in with squash & stretch, fully quantized (6-pose landing) ---- */
+  function drop(tl, sel, at, fall) {
+    fall = fall || -340;
+    tl.fromTo(sel, { opacity: 1, y: fall, scaleY: 1.5, scaleX: 0.64 },
+                   { opacity: 1, y: 0, duration: q(3), ease: "steps(3)" }, at);
+    tl.to(sel, { scaleY: 0.58, scaleX: 1.42, duration: q(1), ease: "steps(1)" }, at + q(3));
+    tl.to(sel, { scaleY: 1.14, scaleX: 0.9,  duration: q(1), ease: "steps(1)" }, at + q(4));
+    tl.to(sel, { scaleY: 1,    scaleX: 1,    duration: q(1), ease: "steps(1)" }, at + q(5));
+  }
+
+  /* ================= COVER — plays on load, loops via smear ================= */
+  var cov = gsap.timeline({ repeat: -1, repeatDelay: q(2) });
+  cov.set(["#w1", "#w2", "#w3", "#cov-sub"], { opacity: 0 }, 0);
+  cov.set("#smear", { x: "-120vw" }, 0);
+  cov.fromTo("#cov-kick", { opacity: 0, y: -24 }, { opacity: 1, y: 0, duration: q(3), ease: "steps(3)" }, q(2));
+  drop(cov, "#w1", q(5));
+  drop(cov, "#w2", q(8));
+  drop(cov, "#w3", q(11));
+  /* the pad re-presses once the word lands */
+  cov.fromTo("#pad", { scale: 1.3 }, { scale: 1, duration: q(2), ease: "steps(2)" }, q(17));
+  cov.fromTo("#cov-sub", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: q(3), ease: "steps(3)" }, q(19));
+  /* a beat later, the blob presses again — the emphasis tic */
+  cov.to("#w3", { scaleY: 0.9, scaleX: 1.08, duration: q(1), ease: "steps(1)" }, 3.5);
+  cov.to("#w3", { scaleY: 1, scaleX: 1, duration: q(1), ease: "steps(1)" }, 3.5 + q(1));
+  /* smear frame streaks across, wiping the take */
+  cov.to("#smear", { x: "26vw", scaleX: 2.5, duration: q(4), ease: "steps(4)" }, 5.25);
+  cov.set(["#w1", "#w2", "#w3", "#cov-sub"], { opacity: 0 }, 5.25 + q(4));
+  cov.to("#smear", { x: "130vw", scaleX: 0.6, duration: q(4), ease: "steps(4)" }, 5.25 + q(4));
+  cov.to("#cov-kick", { opacity: 0, duration: q(1), ease: "steps(1)" }, 5.25 + q(6));
+
+  /* ================= AMBIENT — the living tabletop (all in ticks) ================= */
+  gsap.to(".bob",   { y: -16, duration: q(4), ease: "steps(2)", yoyo: true, repeat: -1, stagger: { each: q(2) } });
+  gsap.to(".bobsh", { scaleX: 0.78, opacity: 0.6, duration: q(4), ease: "steps(2)", yoyo: true, repeat: -1, stagger: { each: q(2) } });
+  gsap.to(".tickrot",     { rotation: 360,  duration: 8,  ease: "steps(16)", repeat: -1, transformOrigin: "center center" });
+  gsap.to(".tickrot-rev", { rotation: -360, duration: 10, ease: "steps(20)", repeat: -1, transformOrigin: "center center" });
+
+  /* googly pupils dart in single-frame moves with long holds */
+  var eyes = gsap.timeline({ repeat: -1, repeatDelay: 1.5 });
+  eyes.to(".pupil", { x: 5,  duration: q(1), ease: "steps(1)" }, 0)
+      .to(".pupil", { x: -5, duration: q(1), ease: "steps(1)" }, 1.25)
+      .to(".pupil", { x: 0,  duration: q(1), ease: "steps(1)" }, 2.5);
+
+  /* ================= SECTION DEMOS (loop autonomously) ================= */
+  /* palette balls take turns hopping */
+  gsap.utils.toArray(".palball").forEach(function (b, i) {
+    var sh = b.parentElement.querySelector(".palsh");
+    var t = gsap.timeline({ repeat: -1, repeatDelay: 4.5, delay: i * 0.75 });
+    t.to(b, { y: -26, scaleY: 1.18, scaleX: 0.88, duration: q(2), ease: "steps(2)" }, 0)
+     .to(b, { y: 0, scaleY: 1, scaleX: 1, duration: q(2), ease: "steps(2)" }, q(2))
+     .to(b, { scaleY: 0.82, scaleX: 1.2, duration: q(1), ease: "steps(1)" }, q(4))
+     .to(b, { scaleY: 1, scaleX: 1, duration: q(1), ease: "steps(1)" }, q(5));
+    if (sh) t.to(sh, { scaleX: 0.7, opacity: 0.5, duration: q(2), ease: "steps(2)", yoyo: true, repeat: 1 }, 0);
+  });
+
+  /* the clay-blob pad re-presses */
+  var press = gsap.timeline({ repeat: -1, repeatDelay: 2 });
+  press.to(".demo-press", { scaleY: 0.86, scaleX: 1.1, duration: q(1), ease: "steps(1)" }, 0)
+       .to(".demo-press", { scaleY: 1.06, scaleX: 0.96, duration: q(1), ease: "steps(1)" }, q(1))
+       .to(".demo-press", { scaleY: 1, scaleX: 1, duration: q(1), ease: "steps(1)" }, q(2));
+
+  /* worm-rule wiggle + typographic blob press */
+  gsap.to(".wormdemo", { rotation: 2, duration: q(3), ease: "steps(3)", yoyo: true, repeat: -1, transformOrigin: "center center" });
+  gsap.to(".t-blob i", { scale: 1.05, duration: q(3), ease: "steps(3)", yoyo: true, repeat: -1, repeatDelay: 1.5, transformOrigin: "center center" });
+
+  /* motion law 2 — the drop demo */
+  var ball = gsap.timeline({ repeat: -1, repeatDelay: 1.25 });
+  ball.fromTo("#demo-ball", { y: -100, scaleY: 1.45, scaleX: 0.68 }, { y: 0, duration: q(3), ease: "steps(3)" }, 0)
+      .to("#demo-ball", { scaleY: 0.58, scaleX: 1.4, duration: q(1), ease: "steps(1)" }, q(3))
+      .to("#demo-ball", { scaleY: 1.12, scaleX: 0.92, duration: q(1), ease: "steps(1)" }, q(4))
+      .to("#demo-ball", { scaleY: 1, scaleX: 1, duration: q(1), ease: "steps(1)" }, q(5))
+      .fromTo("#demo-ball-sh", { scaleX: 0.5, opacity: 0.4 }, { scaleX: 1, opacity: 1, duration: q(3), ease: "steps(3)" }, 0);
+
+  /* motion law 3 — the mini smear */
+  var sm = gsap.timeline({ repeat: -1, repeatDelay: 1.75 });
+  sm.fromTo("#demo-smear", { x: "-130%" }, { x: "60%", scaleX: 2.4, duration: q(4), ease: "steps(4)" }, 0)
+    .to("#demo-smear", { x: "260%", scaleX: 0.6, duration: q(4), ease: "steps(4)" }, q(4));
+})();
+</script>
+
+<section id="kf-asset-demo" style="background:#F1E2D3;color:#37281F;padding:110px 8% 130px;font-family:Inter,sans-serif;"><div style="font:700 12px/1 Inter,sans-serif;letter-spacing:.34em;text-transform:uppercase;color:#DD6B4A;margin-bottom:14px;">NEW · ASSET SYSTEM</div><h2 style="font-family:'Baloo 2',sans-serif;font-size:52px;line-height:1.05;margin:0 0 18px;">Where your images go</h2><p style="max-width:620px;font-size:17px;line-height:1.6;color:rgba(55,40,31,.6);margin:0 0 56px;">Photos press into a hand-rolled plasticine frame that floats in stop-motion steps. Screenshots get the browser frame; every mount casts a soft set shadow. Films are as long as your script — every scene can carry an image.</p><div style="display:flex;gap:64px;flex-wrap:wrap;align-items:flex-start;"><div><div style="position:relative;display:inline-block;background:#FFF8F0;border-radius:26px 20px 24px 18px;padding:14px;box-shadow:inset -3px -5px 0 rgba(0,0,0,.10),inset 3px 5px 0 rgba(255,255,255,.7),0 16px 26px rgba(55,40,31,.20);transform:rotate(-2.2deg);"><div style="width:300px;height:200px;overflow:hidden;border-radius:inherit;background:linear-gradient(135deg,#6FAEC6,#96639B);display:flex;align-items:center;justify-content:center;"><span style="font:700 13px/1 Inter,sans-serif;letter-spacing:.22em;color:rgba(255,255,255,.85);">YOUR PHOTO</span></div></div><div style="margin-top:22px;font:600 12px/1 Inter,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:rgba(55,40,31,.6);">Photo · themed mount</div></div><div><div style="display:inline-block;border-radius:10px;overflow:hidden;box-shadow:0 14px 34px rgba(0,0,0,.3);"><div style="background:#E8E4DC;padding:9px 12px;display:flex;gap:6px;"><span style="width:9px;height:9px;border-radius:50%;background:#ff5f57;"></span><span style="width:9px;height:9px;border-radius:50%;background:#febc2e;"></span><span style="width:9px;height:9px;border-radius:50%;background:#28c840;"></span></div><div style="width:322px;height:190px;background:linear-gradient(135deg,#6FAEC6,#96639B);display:flex;align-items:center;justify-content:center;"><span style="font:700 12px/1 Inter,sans-serif;letter-spacing:.18em;color:rgba(255,255,255,.85);">YOUR WEBSITE SCREENSHOT</span></div></div><div style="margin-top:22px;font:600 12px/1 Inter,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:rgba(55,40,31,.6);">Screenshot · hero frame</div></div></div></section>
+</body>
+</html>

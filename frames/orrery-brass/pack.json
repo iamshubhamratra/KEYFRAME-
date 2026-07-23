@@ -1,0 +1,89 @@
+{
+  "name": "orrery-brass",
+  "vibe": "an antique clockwork orrery / celestial atlas brought to life: candlelit night-bronze ground, engraved brass orbit rings with tick graduations and planets traveling at different periods, parchment serif type swinging in like pendulums, scene changes swept by a ticking brass clock hand, and the emphasis word circled by a hand-engraved orbit ellipse — for heritage brands, observatories of data, roadmaps and anything that should feel like precision instrument-maker craft",
+  "colors": {
+    "bronze": "#191410",
+    "brass": "#C9973F",
+    "patina": "#4E9C82",
+    "parchment": "#EFE3C8",
+    "oxblood": "#93402C"
+  },
+  "fonts": [
+    "Inter",
+    "Cormorant Garamond"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#191410"
+  },
+  "motion": {
+    "cut": "clockwipe",
+    "drift": 1.04
+  },
+  "fx": {
+    "canvas": "orrery",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#C9973F",
+      "#4E9C82"
+    ],
+    "extras": [
+      "#93402C",
+      "#EFE3C8"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "antique brass instrument engraving astronomy vintage warm candlelight",
+    "iconStyle": "outline",
+    "keywords": [
+      "astronomy",
+      "vintage",
+      "brass",
+      "clockwork",
+      "map",
+      "instrument"
+    ],
+    "prefer": [
+      "illustration",
+      "vector"
+    ]
+  },
+  "typography": {
+    "display": "Cormorant Garamond"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": false,
+    "underline": false,
+    "stat": "headline",
+    "assetStyle": "brass"
+  },
+  "textfx": {
+    "enter": "pendulum",
+    "emphasis": "ring",
+    "align": "center",
+    "sizeScale": 1
+  },
+  "audio": {
+    "music": {
+      "query": "baroque harpsichord chamber mysterious slow",
+      "mood": "cinematic",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "escapement ticks, fine gear whirs, a single chime as planets align — precise, mechanical, riding the clock-wipe ticks",
+      "palette": [
+        "clock tick",
+        "gear whir",
+        "chime",
+        "small bell",
+        "metal click",
+        "pendulum swing"
+      ]
+    }
+  }
+}

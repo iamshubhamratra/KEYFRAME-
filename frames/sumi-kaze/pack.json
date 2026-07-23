@@ -1,0 +1,91 @@
+{
+  "name": "sumi-kaze",
+  "vibe": "a Japanese sumi-e ink-wash scroll come alive: warm washi paper with enormous negative space, translucent sumi mountain ridges drifting in parallax, horizontal mist bands and falling vermillion petals; headlines dragged on by a loaded brush stroke, scene changes as blooming ink blots, and the emphasis word stamped with a vermillion hanko seal — calm, poetic launches, brand films and story pieces that should feel hand-painted",
+  "colors": {
+    "washi": "#F5EFE3",
+    "mist": "#E8DFCC",
+    "sumi": "#201D18",
+    "vermillion": "#C93A2B",
+    "indigo": "#39587A",
+    "goldleaf": "#B08D4A",
+    "stone": "#6B6459"
+  },
+  "fonts": [
+    "Inter",
+    "Zen Old Mincho"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#F5EFE3"
+  },
+  "motion": {
+    "cut": "inkblot",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "sumi",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#C93A2B",
+      "#39587A"
+    ],
+    "extras": [
+      "#B08D4A",
+      "#6B6459"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "sumi-e ink wash painting muted zen minimal japanese",
+    "iconStyle": "outline",
+    "keywords": [
+      "zen",
+      "ink",
+      "japan",
+      "minimal",
+      "nature",
+      "calm"
+    ],
+    "prefer": [
+      "illustration",
+      "vector"
+    ]
+  },
+  "typography": {
+    "display": "Zen Old Mincho"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": false,
+    "underline": false,
+    "stat": "headline",
+    "assetStyle": "washi"
+  },
+  "textfx": {
+    "enter": "brush",
+    "emphasis": "hanko",
+    "align": "left",
+    "sizeScale": 1
+  },
+  "audio": {
+    "music": {
+      "query": "japanese koto shakuhachi calm meditative",
+      "mood": "calm",
+      "volume": 0.14
+    },
+    "sfx": {
+      "style": "soft brush swishes, ink drops, a single wooden stamp thud on the seal, distant wind chimes — sparse, contemplative, landing with the ink blots",
+      "palette": [
+        "brush swish",
+        "water drop",
+        "stamp thud",
+        "wind chime",
+        "taiko soft hit",
+        "paper slide"
+      ]
+    }
+  }
+}

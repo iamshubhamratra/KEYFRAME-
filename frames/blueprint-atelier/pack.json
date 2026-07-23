@@ -1,0 +1,88 @@
+{
+  "name": "blueprint-atelier",
+  "renderer": "blueprint",
+  "vibe": "An engineering drawing of a film. A cyanotype-blue drafting sheet with minor/major grids, edge rulers and a live title block; white technical linework that draws itself — schematics, dimension lines with counting measurements, dashed flowcharts, plotted curves — with amber highlights and a red marker for stamps and strikes. IBM Plex Mono labels, Space Grotesk headings, typewriter precision. Smart, technical and trustworthy. For dev tools, SaaS, engineering brands and anything built to spec.",
+  "colors": {
+    "sheet": "#123659",
+    "deep": "#0C2440",
+    "ink": "#EAF3FF",
+    "amber": "#FFB84D",
+    "cyan": "#8FD8FF",
+    "red": "#FF5F5F"
+  },
+  "fonts": [
+    "IBM Plex Mono",
+    "Space Grotesk"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#123659"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid"
+  },
+  "skin": {
+    "accents": [
+      "#FFB84D",
+      "#8FD8FF",
+      "#FF5F5F",
+      "#EAF3FF"
+    ],
+    "extras": [
+      "#9DB8D9",
+      "#7E9CC2"
+    ],
+    "emphasisCss": "color:#FFB84D;"
+  },
+  "assets": {
+    "photoMod": "technical blueprint schematic linework night",
+    "iconStyle": "line",
+    "keywords": [
+      "blueprint",
+      "schematic",
+      "technical",
+      "drafting",
+      "engineering"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Space Grotesk"
+  },
+  "camera3d": {
+    "ground": "#123659"
+  },
+  "textfx": {
+    "enter": "typewriter",
+    "emphasis": "gradient",
+    "case": "upper",
+    "tracking": 0.01,
+    "weight": 700,
+    "sizeScale": 1.0,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "minimal tech ambient focus precise",
+      "mood": "minimal",
+      "volume": 0.14
+    },
+    "sfx": {
+      "style": "pencil strokes, typewriter keys, drafting slides and soft stamps",
+      "palette": [
+        "typewriter key",
+        "pencil sketch",
+        "whoosh transition",
+        "stamp thud"
+      ]
+    }
+  }
+}

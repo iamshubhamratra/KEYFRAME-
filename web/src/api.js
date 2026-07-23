@@ -32,8 +32,9 @@ async function json(resp) {
   return body;
 }
 
-// fields: { prompt?, websiteUrl?, referenceVideo? (File), duration, orientation,
-//           quality, framePack, voiceStyle?, autopilot?, captions? }
+// fields: { prompt?, websiteUrl?, blogUrl?, referenceVideo? (File), duration,
+//           orientation, quality, fps, framePack, voiceStyle?, autopilot?,
+//           captions?, composeMode?, render3d? }
 export async function createProject(fields) {
   const { referenceVideo, ...rest } = fields;
   if (referenceVideo) {

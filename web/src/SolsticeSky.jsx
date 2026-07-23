@@ -43,6 +43,14 @@ const SUN_STOPS = [
   { p: 1.0, c: "#E9EDF5" },
 ];
 
+// Star field is randomized once at module load (render must stay pure).
+const STARS = Array.from({ length: 64 }, () => ({
+  left: `${(Math.random() * 100).toFixed(2)}%`,
+  top: `${(Math.random() * 80).toFixed(2)}%`,
+  size: `${(Math.random() * 2.2 + 1).toFixed(1)}px`,
+  anim: `twinkle ${(Math.random() * 3 + 2).toFixed(1)}s ease-in-out ${(Math.random() * 4).toFixed(1)}s infinite`,
+}));
+
 const lerp = (a, b, t) => a + (b - a) * t;
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
 
@@ -73,16 +81,7 @@ export default function SolsticeSky({ phase = null }) {
   const current = useRef(0); // eased phase
   const target = useRef(0);
 
-  const stars = useMemo(
-    () =>
-      Array.from({ length: 64 }, () => ({
-        left: `${(Math.random() * 100).toFixed(2)}%`,
-        top: `${(Math.random() * 80).toFixed(2)}%`,
-        size: `${(Math.random() * 2.2 + 1).toFixed(1)}px`,
-        anim: `twinkle ${(Math.random() * 3 + 2).toFixed(1)}s ease-in-out ${(Math.random() * 4).toFixed(1)}s infinite`,
-      })),
-    []
-  );
+  const stars = STARS;
 
   // One static gradient per sky stop; cross-faded by opacity at runtime.
   const skyLayers = useMemo(

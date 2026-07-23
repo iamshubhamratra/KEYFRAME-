@@ -14,7 +14,16 @@ const STAGE_COPY = {
   script_review: "SCRIPT READY",
 };
 
-export default function UnderstandingScreen({ projectId, onScriptReady, onFailed }) {
+// Production progress markers — under autopilot the job flips from script_review
+// straight into these, so we hold here until one appears, then hand off to the
+// Theater instead of pausing at the Script Room. Keyed on PROGRESS, not status:
+// intake also runs under status="running" (progress ingest/brief/script), so a
+// status check would fire before the script even exists. A fast job that races
+// past every marker is still caught by pollProject's terminal (done/failed) stop.
+const PRODUCING = new Set(["storyboard", "assets", "composing", "audio", "finalizing"]);
+const isProducing = (p) => PRODUCING.has(p.progress);
+
+export default function UnderstandingScreen({ projectId, autopilot = false, onScriptReady, onProducing, onFailed }) {
   const [project, setProject] = useState(null);
   const [error, setError] = useState(null);
 
@@ -23,16 +32,19 @@ export default function UnderstandingScreen({ projectId, onScriptReady, onFailed
     const ac = new AbortController();
     pollProject(projectId, {
       onTick: setProject,
-      predicate: (p) => p.status === "script_review",
+      // Non-autopilot: stop the moment the script is ready for review.
+      // Autopilot: skip the review pause — hold until production actually starts.
+      predicate: (p) => (autopilot ? isProducing(p) : p.status === "script_review"),
       signal: ac.signal,
     })
       .then((p) => {
-        if (p.status === "script_review") setTimeout(onScriptReady, 900);
-        else if (p.status === "failed") setError(p.error || "intake failed");
+        if (p.status === "failed") setError(p.error || "intake failed");
+        else if (autopilot) setTimeout(onProducing || onScriptReady, 600); // → Theater
+        else if (p.status === "script_review") setTimeout(onScriptReady, 900);
       })
       .catch((e) => setError(e.message));
     return () => ac.abort();
-  }, [projectId]);
+  }, [projectId, autopilot]);
 
   const brief = project?.brief;
   const stage = project?.progress;
@@ -54,8 +66,8 @@ export default function UnderstandingScreen({ projectId, onScriptReady, onFailed
           {error ? "CUT" : (STAGE_COPY[stage] || "UNDERSTANDING")}
         </span>
         {!error && stage !== "script_review" && (
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.18em", color: "var(--color-dim)", textTransform: "uppercase" }}>
-            THE PIPELINE PAUSES FOR YOU AT THE SCRIPT
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.18em", color: autopilot ? "var(--color-lm)" : "var(--color-dim)", textTransform: "uppercase" }}>
+            {autopilot ? "⚡ AUTOPILOT — RENDERING STRAIGHT THROUGH" : "THE PIPELINE PAUSES FOR YOU AT THE SCRIPT"}
           </span>
         )}
       </div>
@@ -78,8 +90,10 @@ export default function UnderstandingScreen({ projectId, onScriptReady, onFailed
           </h2>
           <p style={{ color: "var(--color-dim)", margin: "18px 0 0", lineHeight: 1.65, fontSize: 16 }}>
             KEYFRAME opens a real browser, reads your page and lifts the facts —
-            nothing invented, everything sourced. You approve the understanding
-            before a single frame is drawn.
+            nothing invented, everything sourced.{" "}
+            {autopilot
+              ? "Autopilot is on, so it approves the script and rolls straight into production."
+              : "You approve the understanding before a single frame is drawn."}
           </p>
         </div>
 

@@ -7,6 +7,8 @@
 // routes to the dedicated blueprint composer), out = scripts/portrait-audit-out.
 // Uses the same cached Chromium the renderer uses; seeks the paused GSAP
 // timeline to each scene midpoint (same contract as contrast_check.js).
+// Each build also gets a `preview.html` (GSAP inlined + auto-play scrubber) so
+// the composition is viewable offline in a browser / VS Code Live Server.
 
 const fs = require("node:fs");
 const path = require("node:path");
@@ -57,6 +59,73 @@ function makeAssets(dir) {
     { path: mk("photo1.png", "0xAA5533", 1600, 1000), type: "image", source: "pixabay", visionOk: true, width: 1600, height: 1000, ratio: 1.6, alt: "team collaborating" },
     { path: mk("photo2.png", "0x33AA55", 1000, 1500), type: "image", source: "pixabay", visionOk: true, width: 1000, height: 1500, ratio: 0.667, alt: "product on desk" },
   ];
+}
+
+// Offline preview: the built index.html has a PAUSED timeline (for frame-seeking)
+// and pulls GSAP from a CDN, so it renders blank when opened directly in a
+// browser / VS Code Live Server. Alongside each build we drop a `preview.html`
+// that inlines GSAP (works with no network) and auto-plays + loops the timeline
+// with a spacebar scrubber — purely a dev-viewing aid, never rendered.
+let _gsapCache; // read the local GSAP once per run
+function localGsap() {
+  if (_gsapCache !== undefined) return _gsapCache;
+  const candidates = [
+    path.join(__dirname, "..", "..", "web", "node_modules", "gsap", "dist", "gsap.min.js"),
+    path.join(__dirname, "..", "node_modules", "gsap", "dist", "gsap.min.js"),
+    path.join(__dirname, "..", "showcase", "flagship", "gsap.min.js"),
+  ];
+  for (const p of candidates) {
+    try { _gsapCache = fs.readFileSync(p, "utf8"); return _gsapCache; } catch { /* try next */ }
+  }
+  _gsapCache = null;
+  return null;
+}
+
+// Also SIZE + SCALE #root: the composition's #root carries data-width/height but
+// no CSS size (the hyperframes render runtime sizes it), so a browser collapses
+// it to 0px and shows blank. Fit it to the viewport, centered, then autoplay the
+// paused timeline (retry-waiting until GSAP registers it).
+const PREVIEW_INJECT = `
+<style>html,body{margin:0;background:#0d0d10;overflow:hidden}</style>
+<div id="__pv" style="position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:99999;
+  font:12px ui-monospace,monospace;background:rgba(0,0,0,.72);color:#fff;padding:7px 12px;border-radius:999px;
+  display:flex;gap:12px;align-items:center;user-select:none;pointer-events:none;white-space:nowrap">
+  <span id="__pvt">loading…</span><span style="opacity:.6">space = pause/scrub &middot; click = restart</span></div>
+<script>
+(function(){
+  function fit(){
+    var r=document.getElementById("root"); if(!r) return;
+    var w=+r.getAttribute("data-width")||1080, h=+r.getAttribute("data-height")||1920;
+    r.style.position="fixed"; r.style.top="50%"; r.style.left="50%"; r.style.margin="0";
+    r.style.width=w+"px"; r.style.height=h+"px"; r.style.transformOrigin="center center";
+    var pad=32, s=Math.min((innerWidth-pad)/w,(innerHeight-pad)/h);
+    r.style.transform="translate(-50%,-50%) scale("+s+")";
+  }
+  addEventListener("resize",fit); fit();
+  var lbl=document.getElementById("__pvt");
+  (function wait(n){
+    var tl=window.__timelines && window.__timelines["vid"];
+    if(!tl){ if(n<250) return setTimeout(function(){wait(n+1);},60); if(lbl)lbl.textContent="no timeline"; return; }
+    var dur=tl.duration();
+    tl.eventCallback("onUpdate", function(){ if(lbl)lbl.textContent = tl.time().toFixed(1)+"s / "+dur.toFixed(0)+"s"; });
+    tl.eventCallback("onComplete", function(){ tl.play(0); });
+    tl.play(0);
+    addEventListener("keydown", function(e){ if(e.code==="Space"){ e.preventDefault(); tl.paused()?tl.play():tl.pause(); }});
+    addEventListener("click", function(){ tl.play(0); });
+  })(0);
+})();
+</script>`;
+
+function writePreview(dir, indexHtml) {
+  const gsap = localGsap();
+  let html = indexHtml;
+  if (gsap) {
+    const tag = "<script>/* gsap inlined for offline preview */\n" + gsap + "\n</scr" + "ipt>";
+    html = html.replace(/<script\s+src="https?:\/\/cdn\.jsdelivr\.net\/npm\/gsap@[^"]*"><\/script>/i, tag);
+  }
+  html = html.replace(/<\/body>/i, PREVIEW_INJECT + "\n</body>");
+  fs.writeFileSync(path.join(dir, "preview.html"), html, "utf8");
+  return !!gsap;
 }
 
 async function shoot(page, dir, label) {
@@ -131,10 +200,13 @@ async function shoot(page, dir, label) {
         built = sceneKit.buildComposition({ storyboard, dims, framePack: pack, assets, seedKey: "portrait-audit" });
       }
       fs.writeFileSync(path.join(dir, "index.html"), built.indexHtml, "utf8");
+      const offline = writePreview(dir, built.indexHtml);
+      console.log(`  preview.html (${offline ? "offline — GSAP inlined" : "online — local GSAP not found, CDN kept"})`);
       await shoot(page, dir, pack);
     }
   } finally {
     await browser.close().catch(() => {});
   }
   console.log(`\nscreenshots in ${OUT}`);
+  console.log(`open any build_<pack>/preview.html in a browser / Live Server to view the animation`);
 })().catch((e) => { console.error(e); process.exit(1); });

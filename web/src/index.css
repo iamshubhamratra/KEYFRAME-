@@ -9,6 +9,11 @@
 /* Pack-card display faces — loaded so each Templates card renders in its pack's
    real font (brut-pop, sketchnote + the poster/editorial batch). */
 @import url("https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow:wght@700;900&family=Bebas+Neue&family=Bodoni+Moda:wght@600;700&family=Instrument+Serif&family=Newsreader:wght@500;700&family=Playfair+Display:wght@600;700&family=Shrikhand&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@600;700&family=Cormorant+Garamond:wght@600;700&family=Baloo+2:wght@600;700;800&family=Alfa+Slab+One&family=Comfortaa:wght@500;700&display=swap");
+/* Kaleido (Syne) + Voltage (Orbitron) — the color-adaptive showcase packs. */
+@import url("https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Orbitron:wght@600;700;800&display=swap");
+/* Genesis flagship — Sora (display) + Outfit (subheads). */
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Outfit:wght@500;600;700&display=swap");
 @import "tailwindcss";
 
 /* ---- EXACT v2 tokens ----

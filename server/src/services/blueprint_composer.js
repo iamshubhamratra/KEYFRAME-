@@ -255,7 +255,7 @@ function bpPlot(scene, ctx) {
   const head = String(scene.headline || "measured output").toUpperCase();
   const html = `<div class="clip bp-scene" id="${id}" data-start="${T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">
   <div class="safe" style="flex-direction:${land ? "row" : "column"};gap:${land ? 6 : 3.5}cqw;text-align:left;">
-    <svg id="${id}-plot" width="740" height="480" viewBox="0 0 740 480" style="width:${land ? 36 : 70}cqw;flex:0 0 auto;overflow:visible;">
+    <svg id="${id}-plot" width="740" height="480" viewBox="0 0 740 480" style="width:${land ? 36 : 84}cqw;flex:0 0 auto;overflow:visible;">
       <line class="${id}-ax draw" pathLength="100" x1="70" y1="30" x2="70" y2="410" stroke="${theme.ink}" stroke-width="3"/>
       <line class="${id}-ax draw" pathLength="100" x1="70" y1="410" x2="710" y2="410" stroke="${theme.ink}" stroke-width="3"/>
       <clipPath id="${id}clip"><rect id="${id}-clipr" x="70" y="20" width="0" height="400"/></clipPath>
@@ -269,8 +269,8 @@ function bpPlot(scene, ctx) {
     </svg>
     <div style="max-width:${land ? 38 : 82}cqw;${land ? "" : "text-align:center;"}">
       <div class="fig" id="${id}-figl" style="opacity:0;">${esc(fig)}</div>
-      <div class="display" id="${id}-num" style="font-size:${land ? 4.6 : 7.4}cqw;color:${theme.amber};margin-top:1cqw;opacity:0;">${esc(bigTxt)}</div>
-      <h2 class="display" id="${id}-head" style="font-size:${land ? 2.6 : 4.2}cqw;color:${theme.cyan};margin-top:0.4cqw;opacity:0;">${esc(head)}</h2>
+      <div class="display" id="${id}-num" style="font-size:${land ? 4.6 : 9.5}cqw;color:${theme.amber};margin-top:1cqw;opacity:0;">${esc(bigTxt)}</div>
+      <h2 class="display" id="${id}-head" style="font-size:${land ? 2.6 : 5}cqw;color:${theme.cyan};margin-top:0.4cqw;opacity:0;">${esc(head)}</h2>
       ${scene.subtext ? `<div class="body" id="${id}-sub" style="opacity:0;margin-top:1.2cqw;">${esc(scene.subtext)}</div>` : ""}
     </div>
   </div></div>`;
@@ -377,10 +377,12 @@ function bpPlate(scene, ctx, asset) {
   const { id, T, theme, fig, land = true } = ctx;
   const ratio = Number(asset.ratio) || (asset.width && asset.height ? asset.width / asset.height : 0);
   const portrait = ratio && ratio < 0.9; // the ASSET's shape (not the canvas)
-  // Portrait CANVAS: the plate takes near-full width and the copy stacks below.
-  const plateWn = land ? (portrait ? 24 : 42) : (portrait ? 52 : 78);
+  // Portrait CANVAS: the plate takes near-full width and grows tall so it reads
+  // as the hero of the vertical frame (was a small landscape card lost in the
+  // sheet); the copy stacks below it.
+  const plateWn = land ? (portrait ? 24 : 42) : (portrait ? 60 : 88);
   const plateW = `${plateWn}cqw`;
-  const winH = land ? (portrait ? "34cqw" : "24cqw") : (portrait ? "68cqw" : "46cqw");
+  const winH = land ? (portrait ? "34cqw" : "24cqw") : (portrait ? "82cqw" : "58cqw");
   const callout = esc(String(scene.emphasis || "PLATE").toUpperCase()).slice(0, 18);
   const objPos = "top center";
   const rev = Math.max(1.0, ctx.L - 2.0);

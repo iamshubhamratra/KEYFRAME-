@@ -1,0 +1,89 @@
+{
+  "name": "terminal-departures",
+  "vibe": "An airport departures hall for films. Charcoal-black split-flap boards clack every headline into place character by character (Solari-style), on signal-yellow and ivory with green ON-TIME and red FINAL-CALL accents. Mono labels, hanging gate signage, ticker bands and boarding-pass paper. Mechanical, punctual and charming; motion is clacks, sweeps and conveyor drifts — never blur soup. For launches, product tours, countdowns and anything that departs on time.",
+  "colors": {
+    "void": "#0A0B0E",
+    "ground": "#121317",
+    "board": "#0B0C0F",
+    "ivory": "#F2EEE3",
+    "yellow": "#FFC61A",
+    "green": "#35D07F",
+    "cyan": "#5FD4E6",
+    "red": "#FF4B3E"
+  },
+  "fonts": [
+    "IBM Plex Mono",
+    "Space Grotesk"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#121317"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "flow"
+  },
+  "skin": {
+    "accents": [
+      "#FFC61A",
+      "#5FD4E6",
+      "#35D07F",
+      "#FF4B3E"
+    ],
+    "extras": [
+      "#F2EEE3",
+      "#8B8D96"
+    ],
+    "emphasisCss": "color:#FFC61A;"
+  },
+  "assets": {
+    "photoMod": "night airport terminal signage cinematic",
+    "iconStyle": "line",
+    "keywords": [
+      "terminal",
+      "signage",
+      "departures",
+      "mono",
+      "night"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Space Grotesk"
+  },
+  "camera3d": {
+    "ground": "#121317"
+  },
+  "textfx": {
+    "enter": "flap",
+    "emphasis": "gradient",
+    "case": "upper",
+    "tracking": 0.02,
+    "weight": 700,
+    "sizeScale": 1.0,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "minimal electronic ticking lounge subtle",
+      "mood": "minimal",
+      "volume": 0.14
+    },
+    "sfx": {
+      "style": "split-flap board clacks, soft terminal chimes, mechanical ticks and gate whooshes",
+      "palette": [
+        "mechanical flip clack",
+        "airport chime",
+        "whoosh transition",
+        "clock tick"
+      ]
+    }
+  }
+}

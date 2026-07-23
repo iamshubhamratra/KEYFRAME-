@@ -31,7 +31,7 @@ export default function Gallery({ onOpen, onUseStyle }) {
         key: p.jobId, real: true, title: p.title || "Untitled film",
         pack: p.framePack || "auto", cat: (lore.tag || "FILM"),
         dur: fmtDur(p.duration), views: null, drift: "8s",
-        grad: lore.filmGrad, videoUrl: p.videoUrl,
+        grad: lore.filmGrad, videoUrl: p.videoUrl, orientation: p.orientation,
         onClick: () => onOpen?.(p.jobId),
       };
     });
@@ -71,7 +71,7 @@ export default function Gallery({ onOpen, onUseStyle }) {
             NOTHING IN THIS STYLE YET — PICK IT ON THE TEMPLATES PAGE AND ROLL ONE.
           </p>
         ) : (
-          <div style={{ marginTop: 36, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(330px,100%), 1fr))", gap: 14 }}>
+          <div style={{ marginTop: 36, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(330px,100%), 1fr))", gap: 14, alignItems: "start" }}>
             {films.map((f, i) => <WallCard key={f.key} film={f} delay={(i % 3) * 0.06} />)}
           </div>
         )}
@@ -83,6 +83,16 @@ export default function Gallery({ onOpen, onUseStyle }) {
 // One wall card — the exact v2 SCENE 05 anatomy.
 function WallCard({ film, delay = 0 }) {
   const vidRef = useRef(null);
+  // A rendered film's .mp4 can be reaped by the janitor after the DB row still
+  // advertises it. If the <video> fails to load, degrade to the pack gradient
+  // (same visual as a seed card) instead of a black box + repeated 404 errors.
+  const [videoDead, setVideoDead] = useState(false);
+  const showVideo = film.real && film.videoUrl && !videoDead;
+  // Each card takes its film's real shape so 9:16 and 1:1 films aren't cropped
+  // into a 16:9 slot (grid uses align-items:start, so mixed shapes sit cleanly).
+  const cardAspect = film.orientation === "vertical" ? "9 / 16"
+    : film.orientation === "square" ? "1 / 1"
+    : "16 / 9.4";
 
   return (
     <motion.div
@@ -94,12 +104,13 @@ function WallCard({ film, delay = 0 }) {
       onClick={film.onClick}
       onMouseEnter={() => { const v = vidRef.current; if (v) v.play().catch(() => {}); }}
       onMouseLeave={() => { const v = vidRef.current; if (v) { v.pause(); v.currentTime = 0; } }}
-      style={{ position: "relative", borderRadius: 16, overflow: "hidden", aspectRatio: "16/9.4", cursor: "pointer", background: "#17130e" }}
+      style={{ position: "relative", borderRadius: 16, overflow: "hidden", aspectRatio: cardAspect, cursor: "pointer", background: "#17130e" }}
     >
-      {film.real && film.videoUrl ? (
+      {showVideo ? (
         <video ref={vidRef} src={mediaUrl(film.videoUrl)}
           poster={mediaUrl(String(film.videoUrl).replace(/\.mp4$/, ".jpg"))}
           muted loop playsInline preload="metadata"
+          onError={() => setVideoDead(true)}
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
       ) : (
         <div style={{ position: "absolute", inset: 0, background: film.grad, backgroundSize: "190% 190%", animation: `kf2-drift ${film.drift || "8s"} linear infinite` }} />

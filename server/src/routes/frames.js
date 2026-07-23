@@ -53,11 +53,20 @@ function packMeta(name) {
   return { label, vibe, colors: Object.values(tokens.colors || {}).slice(0, 6), fonts: tokens.fonts || [], displayFont: null, ground: null, accents: [] };
 }
 
+// Preview/poster URLs carry a ?v=<mtime> version tag: the files are served with
+// Cache-Control: max-age=3600 under a FIXED path, so without the tag a browser
+// keeps showing a stale clip for up to an hour after previews are regenerated
+// (scripts/build-previews.js). The mtime changes on every regen → new URL →
+// instant cache bust, while unchanged files stay fully cacheable.
 function mediaUrls(name) {
   const dir = path.join(PUBLIC_FRAMES, name);
-  const preview = fs.existsSync(path.join(dir, "preview.mp4")) ? `/frames/${name}/preview.mp4` : null;
-  const poster = fs.existsSync(path.join(dir, "poster.jpg")) ? `/frames/${name}/poster.jpg` : null;
-  return { previewUrl: preview, posterUrl: poster };
+  const tagged = (file) => {
+    try {
+      const st = fs.statSync(path.join(dir, file));
+      return `/frames/${name}/${file}?v=${Math.floor(st.mtimeMs).toString(36)}`;
+    } catch { return null; }
+  };
+  return { previewUrl: tagged("preview.mp4"), posterUrl: tagged("poster.jpg") };
 }
 
 router.get("/frames", (_req, res) => {

@@ -1,0 +1,92 @@
+{
+  "name": "kaleido",
+  "vibe": "a kaleidoscope come alive on deep violet-black: a slowly turning six-fold mirrored field of prismatic shapes, concentric rings breathing out from the core, a rotating spoke halo and a central mandala that unfurls petal ring by petal ring; headlines bloom open from the center, the accent word refracts through a three-hue prism ring, and scenes hand off with a faceted barrel turn — hypnotic, premium reveals for launches, art, music and anything that should feel mesmerizing. Its whole feel is driven by ONE hue, so it re-tints to any brand color.",
+  "colors": {
+    "void": "#0B0713",
+    "magenta": "#FF4D9D",
+    "cyan": "#4DE1FF",
+    "violet": "#B26BFF",
+    "gold": "#FFD24D",
+    "indigo": "#2A1C4A",
+    "haze": "#F4EEFF"
+  },
+  "fonts": [
+    "Inter",
+    "Syne"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#0B0713",
+    "ink": "#F4EEFF"
+  },
+  "motion": {
+    "cut": "shatter",
+    "drift": 1.04
+  },
+  "fx": {
+    "canvas": "kaleido",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FF4D9D",
+      "#4DE1FF"
+    ],
+    "extras": [
+      "#B26BFF",
+      "#FFD24D"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "vibrant symmetric prismatic abstract geometric neon kaleidoscope pattern",
+    "iconStyle": "line",
+    "keywords": [
+      "abstract",
+      "geometric",
+      "symmetry",
+      "prism",
+      "neon",
+      "pattern"
+    ],
+    "prefer": [
+      "vector",
+      "illustration"
+    ]
+  },
+  "typography": {
+    "display": "Syne"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "hero",
+    "assetStyle": "default"
+  },
+  "textfx": {
+    "enter": "bloom",
+    "emphasis": "prism",
+    "align": "center",
+    "sizeScale": 1
+  },
+  "audio": {
+    "music": {
+      "query": "hypnotic downtempo electronic psychedelic pulse dreamy",
+      "mood": "cinematic",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "glassy shimmers, crystalline chimes, soft prismatic whooshes and a gentle harmonic bloom on each turn — luminous and weightless",
+      "palette": [
+        "glass shimmer",
+        "crystal chime",
+        "prism whoosh",
+        "harmonic bloom",
+        "soft sparkle",
+        "airy swell"
+      ]
+    }
+  }
+}

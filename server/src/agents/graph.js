@@ -22,8 +22,10 @@ const { generateBrief } = require("../services/brief");
 const { generateScript, normalizeScript } = require("../services/script");
 const { generateStoryboard } = require("../services/storyboard");
 const frameRegistry = require("../services/frame_registry");
-const { withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor, retimeScenesToVo } = require("../services/pipeline");
+const { withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor, retimeScenesToVo, contrastFixPass } = require("../services/pipeline");
+const { assembleQualityReport } = require("../services/quality_report");
 const { acquire, hasProviderFor, makeImageDeduper } = require("../services/asset_sources");
+const { generateImage, imageGenEnabled } = require("../services/asset_sources/kie_image");
 const { styleFor, iconColorFor } = require("../services/pack_style");
 const { synthesizeFitted } = require("../services/vo_fit");
 const { buildCues, writeSrt } = require("../services/captions");
@@ -209,12 +211,17 @@ async function assetPlannerAgent(s) {
   // role missed those and fetched explicitly-requested icons as photos).
   const isVectorNeed = (n) => VECTOR_ROLES.has(roleOf(n)) || n.type === "icon";
   const videos = wants.filter((w) => w.need.type === "video").slice(0, 2);
-  // Vectors get their OWN budget so a long photo list can't starve them — this
-  // is what finally feeds the curated SVG library into films.
-  // Caps raised 8→10 vectors / 12→16 photos (user: "amount of assets is very
-  // less") — images are cheap to render; only videos stay tightly capped.
-  const vectors = wants.filter((w) => w.need.type !== "video" && isVectorNeed(w.need)).slice(0, 10);
-  const photos  = wants.filter((w) => w.need.type !== "video" && !isVectorNeed(w.need)).slice(0, 16 - videos.length);
+  // Caps SCALE WITH DURATION. A flat 16-photo cap starved long films — a 30-scene
+  // 2.5-min video got ~0.5 photos/scene, so most scenes fell back to the repeated
+  // synthetic prop-fill card. Budget ~1.2 photos/scene (clamped 8-40) so long
+  // films are dense and short films don't over-fetch (which also trims the
+  // per-asset vision cost). Vectors/icons stay a modest accent tier (~0.45/scene)
+  // so they never dominate the photo mix (a prior run was half icons).
+  const nScenes = (script.scenes && script.scenes.length) || 12;
+  const photoCap  = Math.max(8, Math.min(40, Math.round(nScenes * 1.2)));
+  const vectorCap = Math.max(5, Math.min(14, Math.round(nScenes * 0.45)));
+  const vectors = wants.filter((w) => w.need.type !== "video" && isVectorNeed(w.need)).slice(0, vectorCap);
+  const photos  = wants.filter((w) => w.need.type !== "video" && !isVectorNeed(w.need)).slice(0, photoCap - videos.length);
   console.log(`[agents] asset_planner: ${screenshotPlan.length} screenshot(s) + ${videos.length} video(s) + ${photos.length} photo(s) + ${vectors.length} vector(s) (${wants.filter((w) => w.need.derived).length} derived)`);
   return { assetPlan: { screenshots: screenshotPlan, searches: [...videos, ...photos, ...vectors] } };
 }
@@ -392,7 +399,7 @@ async function assetSearchAgent(s) {
   // creative director ranks them and the composer frames one as the hero.
   const gatedShots = await qaGateScreenshots({
     assets: mergeShots(await topicTask, pinned), jobDir,
-    subject: gateSubject, tracker,
+    subject: gateSubject, script: s.script, tracker,
   });
   // Blog mode: the post's own images join as pinned owner-content assets on
   // scenes the screenshots didn't claim (Creative Director still reviews them).
@@ -413,6 +420,96 @@ async function assetSearchAgent(s) {
       brief: s.brief, subject: gateSubject, framePack: s.framePack,
       assets: [...allPinned, ...results], tracker, jobDir, orientation: job.orientation,
     });
+  }
+
+  // CONTENT-DEDUP — stock providers serve the SAME file for many different scene
+  // queries on niche/B2B topics (Linear: one "dashboard UI" photo filled ~12 slots),
+  // so one picture ends up repeated across the whole film. Collapse content-identical
+  // images (MD5) to a single copy; the freed scenes then get a DISTINCT image from the
+  // generator below (or prop-fill) — this is what turns a repetitive/empty long film
+  // into a varied one. Runs before the generator so the thin-supply trigger sees the
+  // real unique count.
+  if (Array.isArray(kept) && kept.length) {
+    const crypto = require("node:crypto");
+    const seenHash = new Set();
+    const deduped = [];
+    let dropped = 0;
+    for (const a of kept) {
+      if (String(a.type) !== "image" || !a.path) { deduped.push(a); continue; }
+      let h = null;
+      try {
+        const abs = a.__absPath || (path.isAbsolute(a.path) ? a.path : path.join(jobDir, a.path));
+        h = crypto.createHash("md5").update(fs.readFileSync(abs)).digest("hex");
+      } catch { /* unreadable → keep it */ }
+      if (h && seenHash.has(h)) { dropped++; continue; }
+      if (h) seenHash.add(h);
+      deduped.push(a);
+    }
+    if (dropped) {
+      console.log(`[agents] content-dedup: dropped ${dropped} duplicate-image slot(s) → ${deduped.length} unique asset(s)`);
+      kept = deduped;
+    }
+  }
+
+  // ASSET-QUALITY FLOOR (image generation) — when the curated STOCK scored weak
+  // (the "asset quality 40/100 = generic photos" symptom), GENERATE on-brief images
+  // with KIE Flux (reusing the KIE key, no new signup) and re-review, keeping
+  // whichever set scores higher. Gated by IMAGE_GEN (costs ~$0.02-0.04/image);
+  // fail-open — it never blocks or starves the film.
+  if (kept && imageGenEnabled() && gateSubject) {
+    try {
+      const floor = Number(process.env.ASSET_FLOOR) || Number(config.creativeDirector && config.creativeDirector.qualityFloor) || 55;
+      const report0 = db.getRaw(job.id) && db.getRaw(job.id).creative_review;
+      const score0 = report0 && report0.qualityScore;
+      const scenes = (s.storyboard && s.storyboard.scenes) || (s.script && s.script.scenes) || [];
+      const nScenes = scenes.length || 12;
+      // THIN SUPPLY is the real long-form failure mode: for niche/B2B topics stock
+      // returns ~1 usable photo that gets reused across many scenes, so the film
+      // reads empty EVEN when its "quality" score is high. Generate on-brief images
+      // to reach ~0.5 real image/scene — triggered by thin supply OR low quality,
+      // targeting the scenes that currently have NO asset placed (not just the
+      // leading scenes). Fail-open + re-reviewed, so it never worsens a good film.
+      const keptImgs = (kept || []).filter((a) => String(a.type) === "image");
+      const thinSupply = keptImgs.length < nScenes * 0.5;
+      const lowQuality = typeof score0 === "number" && score0 < floor;
+      if (thinSupply || lowQuality) {
+        const cap = Number(config.imageGen && config.imageGen.maxPerVideo) || 10;
+        const maxGen = Math.max(3, Math.min(cap, Math.round(nScenes * 0.35)));
+        const covered = new Set((kept || []).map((a) => a.sceneId).filter((x) => x != null));
+        const uncovered = scenes.filter((sc) => !covered.has(sc.id));
+        const pick = (uncovered.length ? uncovered : scenes).slice(0, maxGen);
+        console.log(`[agents] asset floor: generating ${pick.length} image(s) — ${thinSupply ? `thin supply (${keptImgs.length} img/${nScenes} scenes)` : `low quality (${score0}<${floor})`}`);
+        const gen = [];
+        for (const sc of pick) {
+          const vd = String(sc.visualDirection || sc.title || sc.headline || "").trim();
+          const prompt = `${vd || gateSubject}${vd && !vd.toLowerCase().includes(gateSubject.toLowerCase()) ? `, ${gateSubject}` : ""}, high-quality editorial photography, clean modern composition, soft natural light, no text, no watermark, no logo`;
+          const rel = `gen_${gen.length}.jpg`;
+          const g = await generateImage({ prompt, orientation: job.orientation, destPath: path.join(jobDir, rel) });
+          if (g) {
+            gen.push({ path: rel, type: "image", sceneId: sc.id, startSec: sc.start, durationSec: sc.duration, alt: (vd || gateSubject).slice(0, 80), license: "AI-generated (KIE Flux)", sourceUrl: null, source: "generated", fromCache: false, width: g.width, height: g.height, ratio: g.height ? g.width / g.height : 1.78, visionOk: true, sees: vd || gateSubject });
+            console.log(`[agents] asset floor: generated image for scene ${sc.id} (${g.width}x${g.height})`);
+          }
+        }
+        if (gen.length) {
+          const kept2 = await reviewAndCurate({
+            jobId: job.id, storyboard: s.storyboard || null, script: s.script || null,
+            brief: s.brief, subject: gateSubject, framePack: s.framePack,
+            assets: [...allPinned, ...results, ...gen], tracker, jobDir, orientation: job.orientation,
+          });
+          const score1 = db.getRaw(job.id) && db.getRaw(job.id).creative_review && db.getRaw(job.id).creative_review.qualityScore;
+          if (kept2 && (typeof score1 !== "number" || score1 >= score0)) {
+            kept = kept2;
+            console.log(`[agents] asset floor: ${gen.length} generated image(s) lifted quality ${score0} → ${score1 != null ? score1 : "?"}`);
+          } else {
+            if (report0) db.setCreativeReview(job.id, report0); // generated set scored worse → restore the better original review
+            console.log(`[agents] asset floor: generated images didn't improve (${score0} vs ${score1}) — keeping original`);
+          }
+          try { fs.writeFileSync(path.join(jobDir, "asset-floor.json"), JSON.stringify({ floorTriggered: true, generated: gen.length, scoreBefore: score0, scoreAfter: (db.getRaw(job.id) && db.getRaw(job.id).creative_review && db.getRaw(job.id).creative_review.qualityScore) || score0 }, null, 2)); } catch { /* best-effort */ }
+        }
+      }
+    } catch (e) {
+      console.warn(`[agents] asset floor errored: ${String(e && e.message || e).slice(0, 140)}`);
+    }
   }
 
   // VISION RELEVANCE GATE (batched) — "would a director accept this for a film
@@ -581,21 +678,25 @@ async function voiceAgent(s) {
       : Promise.resolve(null)
   )).then((a) => a.filter(Boolean));
 
-  // Cap SFX low — 6 whooshes/dings layered over per-scene VO + music read as
-  // cluttered, overlapping audio. A few accents beat a wall of sound.
+  // SFX budget SCALES with the film: a flat cap of 3 left long-form videos (30
+  // scenes) essentially silent of accents. Allow ~1 per scene, capped so a short
+  // film stays punchy and a long one stays lively (≈1 SFX / 12s of runtime).
+  // Volume raised to 0.55 so the accents actually read over the VO+music bed.
+  const sfxCap = Math.min(10, Math.max(3, Math.round((script.scenes.length || 3) * 0.8)));
   const sfxWanted = [];
-  for (const sc of script.scenes) for (const name of (sc.sfx || [])) if (sfxWanted.length < 3) sfxWanted.push({ name, startSec: sc.start });
+  for (const sc of script.scenes) for (const name of (sc.sfx || [])) if (sfxWanted.length < sfxCap) sfxWanted.push({ name, startSec: sc.start });
   const sfxTask = Promise.all(sfxWanted.map((x, i) =>
     getSfx({ name: x.name, outputPath: path.join(audioDir, `sfx-${i}.mp3`), tracker })
-      .then((p) => p ? { path: p, startSec: x.startSec, volume: 0.4 } : null).catch(() => null)
+      .then((p) => p ? { path: p, startSec: x.startSec, volume: 0.55 } : null).catch(() => null)
   )).then((a) => a.filter(Boolean));
 
   // Richer music query: fold the mood field into the query so the provider gets
   // genre/feel cues, not just a bare 2-word phrase (which returned off-genre SFX).
+  // seed=job.id varies the Pixabay track PER VIDEO (fixes "same BGM every time").
   const musicQuery = [script.music?.mood, script.music?.query]
     .map((x) => String(x || "").trim()).filter(Boolean).join(" ").slice(0, 80);
   const musicTask = (script.music?.query || script.music?.mood)
-    ? fetchMusic({ query: musicQuery, outputPath: path.join(audioDir, "music.mp3"), tracker }).catch(() => null)
+    ? fetchMusic({ query: musicQuery, outputPath: path.join(audioDir, "music.mp3"), tracker, seed: job.id }).catch(() => null)
     : Promise.resolve(null);
 
   const [voClips, sfxClips, musicPath] = await Promise.all([voTask, sfxTask, musicTask]);
@@ -850,6 +951,54 @@ async function repairAgent(s) {
   return { ...comp, ...anim, ...tl };
 }
 
+// Contrast repair node — the DETERMINISTIC alternative to an LLM repair lap when
+// QA flags a contrast blocker. Re-runs the deterministic contrast fixer on the
+// already-composed index.html (recolor/un-clip/scrim), and if it changed anything
+// re-renders + re-mixes audio. Cheap and targeted: it fixes the exact unreadable
+// text instead of re-rolling the whole composition (which the LLM repair does and
+// which regresses as often as it helps). Sets contrastRepairTried so the loop
+// never enters this branch twice.
+async function contrastRepairNode(s) {
+  const { job, jobDir } = s;
+  db.setProgress(job.id, "qa");
+  const rep = await contrastFixPass(jobDir, {
+    framePack: s.framePack,
+    storyboard: s.storyboard,
+    dims: { width: job.width, height: job.height },
+    label: "qa-contrast",
+  }).catch((e) => { console.warn(`[agents] contrast repair errored: ${e.message.slice(0, 120)}`); return null; });
+
+  // Nothing deterministically fixable (WCAG sampler disagrees with the vision QA,
+  // or the text isn't locatable) — mark tried and let normal repair/END take over.
+  if (!rep || !rep.fixed || !rep.fixed.length) {
+    console.log(`[agents] contrast repair: no deterministic fix applied — deferring to repair/END`);
+    return { contrastRepairTried: true };
+  }
+  console.log(`[agents] contrast repair: applied ${rep.fixed.length} fix(es) — re-rendering`);
+
+  const visual = await render({ jobId: job.id, jobDir, durationSec: s.effectiveDuration || job.duration })
+    .catch((e) => { console.warn(`[agents] contrast re-render failed: ${e.message.slice(0, 120)}`); return null; });
+  if (!visual) return { contrastRepairTried: true };
+
+  // Re-mix audio into the fresh render (mirror timelineAgent's mix).
+  await mixAudioIntoVideo({
+    visualPath: visual.videoPath,
+    durationSec: s.effectiveDuration || job.duration,
+    scenes: s.storyboard?.scenes || null, jobDir,
+    audio: {
+      ttsPath: null,
+      musicPath: s.musicPath || null,
+      sfx: [
+        ...(s.voClips || []).map((c) => ({ path: c.path, startSec: c.startSec, volume: 1.0, kind: "vo" })),
+        ...(s.sfxClips || []),
+      ],
+      musicVolume: config.audio?.defaultMusicVolume ?? 0.15,
+    },
+  }).catch((e) => console.warn(`[agents] contrast-repair mix failed: ${e.message}`));
+
+  return { visual, contrastRepairTried: true };
+}
+
 // QA Agent node — verdict + loop control.
 async function qaAgentNode(s) {
   // Skip QA for the deterministic 3D composer — it's not iteratively repairable,
@@ -888,7 +1037,10 @@ async function qaAgentNode(s) {
       try {
         const snap = path.join(s.jobDir, "best-lap.mp4");
         fs.copyFileSync(s.visual.videoPath, snap);
-        bestQa = { score, snap, lap: (s.qaAttempts || 0) };
+        // Store the VERDICT alongside the snapshot: when we ship this best lap
+        // over a later, lower-scoring one, the surfaced QA must describe the cut
+        // that actually shipped — not the last lap's verdict.
+        bestQa = { score, snap, lap: (s.qaAttempts || 0), verdict };
       } catch (e) {
         console.warn(`[agents] best-lap snapshot failed: ${e.message.slice(0, 100)}`);
       }
@@ -913,7 +1065,7 @@ async function buildGraph() {
     visual: Annotation(), usedFallback: Annotation(), finalAttempt: Annotation(), rendered: Annotation(),
     animationReport: Annotation(), qa: Annotation(), qaAttempts: Annotation(),
     bestQa: Annotation(), usedComposer: Annotation(),
-    composerBudgetDead: Annotation(),
+    composerBudgetDead: Annotation(), contrastRepairTried: Annotation(),
     brandSkin: Annotation(), layoutPlan: Annotation(),
   });
 
@@ -933,6 +1085,7 @@ async function buildGraph() {
     .addNode("animation", animationAgent)
     .addNode("timeline", timelineAgent)
     .addNode("qa_agent", qaAgentNode)
+    .addNode("contrast_repair", contrastRepairNode)
     .addNode("repair", repairAgent);
 
   g.addEdge(START, "frame_selector");
@@ -961,10 +1114,22 @@ async function buildGraph() {
   g.addEdge("animation", "timeline");
   g.addEdge("timeline", "qa_agent");
   g.addConditionalEdges("qa_agent", (s) => {
-    // The composer genuinely repairs from QA feedback, so it earns the full
-    // configured lap budget. Scene-kit/dedicated comps are DETERMINISTIC — a
-    // lap only re-rolls the dressing, which the evidence shows regresses as
-    // often as it helps — so they get at most ONE lap.
+    // 1) DETERMINISTIC contrast repair FIRST when QA flags a contrast blocker —
+    // it fixes the exact unreadable text (recolor/scrim) far more reliably and
+    // cheaply than an LLM re-roll, and it works on the scene-kit path too (which
+    // otherwise only gets a dressing re-roll). Runs at most once.
+    const hasContrastBlocker = !s.qa?.pass && Array.isArray(s.qa?.issues) && s.qa.issues.some(
+      (i) => String(i.severity || "").toLowerCase() === "blocker"
+        && /contrast|legib|readab|washed|illegible|hard to read|low[-\s]?contrast/i.test(`${i.issue || ""} ${i.fix || ""}`),
+    );
+    if (hasContrastBlocker && !s.contrastRepairTried && !s.usedFallback) {
+      console.log(`[agents] QA flagged contrast — deterministic contrast repair (no LLM re-roll)`);
+      return "contrast_repair";
+    }
+    // 2) The composer genuinely repairs from QA feedback, so it earns the full
+    // configured lap budget. Scene-kit/dedicated comps are DETERMINISTIC — an LLM
+    // lap only re-rolls the dressing, which the evidence shows regresses as often
+    // as it helps — so they get at most ONE lap.
     const capLaps = s.usedComposer ? (Number(config.qa?.maxRepairs) || 1) : 1;
     const repairsLeft = (s.qaAttempts || 0) <= capLaps;
     // No repair lap when the composer already failed on budget (402/daily cap)
@@ -977,7 +1142,8 @@ async function buildGraph() {
       console.log(`[agents] QA failed but composer budget is exhausted — delivering best attempt (no repair lap)`);
     }
     return END;
-  }, ["repair", END]);
+  }, ["contrast_repair", "repair", END]);
+  g.addEdge("contrast_repair", "qa_agent");
   g.addEdge("repair", "qa_agent");
 
   compiledGraph = g.compile();
@@ -1007,9 +1173,13 @@ async function runProductionGraph({ jobId }) {
     );
 
     // Ship the BEST QA-scored lap, not the last one: when the loop exhausted
-    // on a lap that scored below an earlier snapshot, restore the snapshot.
-    if (final.qa && final.qa.pass === false && final.bestQa && final.bestQa.snap
-        && (Number(final.qa.score) || 0) < final.bestQa.score) {
+    // on a lap that scored below an earlier snapshot, restore the snapshot AND
+    // surface that lap's verdict (so the stored QA describes the cut that shipped,
+    // not a different, discarded lap — the old code shipped best-lap video but
+    // stored last-lap verdict).
+    const restored = final.qa && final.qa.pass === false && final.bestQa && final.bestQa.snap
+      && (Number(final.qa.score) || 0) < final.bestQa.score;
+    if (restored) {
       try {
         fs.copyFileSync(final.bestQa.snap, final.visual.videoPath);
         console.log(`[agents] shipping best QA lap (lap ${final.bestQa.lap}, score ${final.bestQa.score}) over last lap (score ${Number(final.qa.score) || 0})`);
@@ -1017,6 +1187,7 @@ async function runProductionGraph({ jobId }) {
         console.warn(`[agents] best-lap restore failed: ${e.message.slice(0, 100)}`);
       }
     }
+    const shippedQa = restored ? (final.bestQa.verdict || final.qa) : final.qa;
     const costs = tracker.computeCosts();
     db.markDone(jobId, {
       videoUrl: final.visual.videoUrl,
@@ -1027,8 +1198,17 @@ async function runProductionGraph({ jobId }) {
       stageTimings: { ...(job.stage_timings || {}), productionMs: ms() - t0 },
       finalAttempt: final.finalAttempt || "main",
     });
-    if (final.qa) db.setQa(jobId, final.qa);
-    console.log(`[agents] ${jobId} done — ${final.finalAttempt}, qa=${final.qa?.pass === false ? "FAILED(delivered best attempt)" : final.qa?.skipped ? "skipped" : "pass"}, cost=$${costs.totalCostUsd}`);
+    if (shippedQa) db.setQa(jobId, shippedQa);
+    // Quality Director — assemble the cross-dimension quality summary (contrast
+    // fixes, audio loudness, screenshot QA, asset/template scores, QA verdict) of
+    // the SHIPPED cut and store it for the report card. Never throws.
+    try {
+      const raw = db.getRaw(jobId);
+      db.setQualityReport(jobId, assembleQualityReport({
+        jobDir, qa: shippedQa, creativeReview: raw && raw.creative_review, bestQa: final.bestQa,
+      }));
+    } catch (e) { console.warn(`[agents] quality report failed: ${e.message.slice(0, 100)}`); }
+    console.log(`[agents] ${jobId} done — ${final.finalAttempt}, qa=${shippedQa?.pass === false ? "FAILED(delivered best attempt)" : shippedQa?.skipped ? "skipped" : "pass"}, cost=$${costs.totalCostUsd}`);
   } catch (err) {
     console.error(`[agents] ${jobId} graph failed: ${err.message}`);
     const costs = tracker.computeCosts();

@@ -23,7 +23,7 @@ const AssetNeedSchema = z.object({
 const SceneSchema = z.object({
   id: z.string().min(1).max(12),
   start: z.number().min(0),
-  duration: z.number().min(1).max(12),
+  duration: z.number().min(1).max(15),
   purpose: z.string().min(2).max(24),
   voiceover: z.string().max(400),
   onScreenText: z.array(z.string().min(1).max(80)).max(4).default([]),
@@ -35,7 +35,7 @@ const SceneSchema = z.object({
 
 const ScriptSchema = z.object({
   title: z.string().min(2).max(120),
-  scenes: z.array(SceneSchema).min(2).max(24),
+  scenes: z.array(SceneSchema).min(2).max(30),
   music: z.object({
     mood: z.string().min(2).max(200),
     query: z.string().min(2).max(80),
@@ -58,13 +58,17 @@ function wordCount(s) { return (s.trim().match(/\S+/g) || []).length; }
 // to keep `start` fields consistent by hand.
 function normalizeScript(script, { targetDuration } = {}) {
   const s = JSON.parse(JSON.stringify(script));
-  // Cap scene count first (schema allows max 24) so timing/total below is
-  // computed over the kept scenes only.
-  if (Array.isArray(s.scenes) && s.scenes.length > 24) s.scenes = s.scenes.slice(0, 24);
+  // Cap scene count first (schema allows max 30 — long-form 3-min films) so
+  // timing/total below is computed over the kept scenes only.
+  if (Array.isArray(s.scenes) && s.scenes.length > 30) s.scenes = s.scenes.slice(0, 30);
   let t = 0;
   s.scenes.forEach((scene, i) => {
     scene.id = scene.id || `s${i + 1}`;
-    scene.duration = Math.round(scene.duration * 10) / 10;
+    // Clamp per-scene duration into the schema range [1,15] here (coerce) so a
+    // long-form script where the model emitted a 13-20s scene is FIXED instead
+    // of hard-failing validation (the drift loop below re-absorbs the delta into
+    // the total). Matches the storyboard's [2,15] and the redistribution clamp.
+    scene.duration = Math.min(15, Math.max(1, Math.round((Number(scene.duration) || 4) * 10) / 10));
     scene.start = Math.round(t * 10) / 10;
     t += scene.duration;
     // Clamp per-scene arrays to the schema caps so a minor overflow (e.g. the

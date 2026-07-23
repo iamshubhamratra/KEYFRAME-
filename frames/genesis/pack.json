@@ -1,0 +1,94 @@
+{
+  "name": "genesis",
+  "vibe": "the flagship LIVING WORLD film — instead of text on cards, a whole cinematic world lives behind the story: a deep night skyline of glass towers with lit windows, a brand-colored sun casting god-rays through atmospheric fog, birds crossing in formation and people walking the streets, all under a slow camera push. Eight movie-trailer beats play over it — a world intro, the old chaos, order emerging, an epic product reveal in a floating screenshot showroom, feature mini-worlds, a loved-worldwide crowd with counting metrics, a growth graph drawn into the city, and a logo climax. Built for the most impressive launch, brand and product films — a premium commercial, not a slideshow. Fully brand-adaptive: one hue repaints the whole world.",
+  "colors": {
+    "night": "#070B18",
+    "azure": "#4C8DFF",
+    "violet": "#9B6BFF",
+    "teal": "#28E0C8",
+    "rose": "#FF7AC2",
+    "steel": "#1A2338",
+    "ion": "#EAF0FF"
+  },
+  "fonts": [
+    "Inter",
+    "Sora",
+    "Outfit"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#070B18",
+    "ink": "#EAF0FF"
+  },
+  "motion": {
+    "cut": "flash",
+    "drift": 1.05
+  },
+  "fx": {
+    "canvas": "bokeh",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#4C8DFF",
+      "#9B6BFF"
+    ],
+    "extras": [
+      "#28E0C8",
+      "#FF7AC2"
+    ],
+    "emphasisCss": null
+  },
+  "renderer": "genesis",
+  "assets": {
+    "photoMod": "cinematic modern city skyline product launch premium brand film dramatic light",
+    "iconStyle": "line",
+    "keywords": [
+      "city",
+      "skyline",
+      "cinematic",
+      "future",
+      "launch",
+      "premium"
+    ],
+    "prefer": [
+      "photo",
+      "illustration"
+    ]
+  },
+  "typography": {
+    "display": "Sora"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "hero",
+    "assetStyle": "default"
+  },
+  "textfx": {
+    "enter": "mask-reveal",
+    "emphasis": "gradient",
+    "align": "center",
+    "sizeScale": 1
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic epic uplifting trailer building orchestral electronic",
+      "mood": "cinematic",
+      "volume": 0.17
+    },
+    "sfx": {
+      "style": "cinematic riser swells, deep impact hits on each reveal, airy whooshes for the camera moves and a bright shimmer on the logo climax — trailer-grade, tight to the beats",
+      "palette": [
+        "cinematic riser",
+        "impact hit",
+        "whoosh",
+        "sub boom",
+        "shimmer",
+        "ambient city"
+      ]
+    }
+  }
+}

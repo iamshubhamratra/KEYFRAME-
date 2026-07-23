@@ -262,8 +262,11 @@ async function mix({
       `afade=t=in:st=0:d=${fadeInDur},afade=t=out:st=${fadeOutStart}:d=${fadeOutDur},aresample=44100[muspre]`
     );
     if (voKey.music) {
-      // hard duck: threshold low + high ratio → music drops well under speech
-      parts.push(`[muspre]${voKey.music}sidechaincompress=threshold=0.02:ratio=12:attack=15:release=380[musfinal]`);
+      // Musical duck: sit the bed ~8-10 dB under speech instead of slamming it to
+      // near-silence. ratio 12 + threshold 0.02 pumped the bed to nothing under
+      // continuous VO and only let it swell in 380 ms gaps (an amateur artifact);
+      // ratio 4 + threshold 0.05 keeps the music present but clearly behind the VO.
+      parts.push(`[muspre]${voKey.music}sidechaincompress=threshold=0.05:ratio=4:attack=20:release=350[musfinal]`);
     } else {
       parts.push(`[muspre]anull[musfinal]`);
     }

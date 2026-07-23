@@ -28,6 +28,28 @@ function load() {
   }
 }
 
+// A finished job keeps its video_url in the record forever, but the janitor
+// deletes the rendered .mp4 after its retention window. The gallery renders a
+// <video> for every project the API advertises a videoUrl for — so stale rows
+// pointing at deleted files turned the whole wall into 404s. Only surface a
+// videoUrl when the file is still on disk (cheap: stat, memoized by mtime-free
+// path). Never deletes anything; just stops advertising dead links.
+const _videoExistsCache = new Map(); // videoUrl -> { at, ok }
+function videoUrlIfExists(videoUrl) {
+  if (!videoUrl || typeof videoUrl !== "string") return null;
+  const cached = _videoExistsCache.get(videoUrl);
+  const now = Date.now();
+  if (cached && now - cached.at < 30_000) return cached.ok ? videoUrl : null;
+  let ok = false;
+  try {
+    // videoUrl is a public-relative path like "/videos/<id>.mp4".
+    const rel = videoUrl.replace(/^\/+/, "");
+    ok = fs.existsSync(path.join(config.paths.root, "public", rel));
+  } catch { ok = false; }
+  _videoExistsCache.set(videoUrl, { at: now, ok });
+  return ok ? videoUrl : null;
+}
+
 let writeTimer = null;
 function scheduleWrite() {
   if (writeTimer) return;
@@ -139,6 +161,7 @@ function shape(j) {
     srtUrl: j.srt_url || null,
     qa: j.qa || null,
     creativeReview: j.creative_review || null,
+    qualityReport: j.quality_report || null,
   };
 }
 
@@ -288,6 +311,15 @@ module.exports = {
     scheduleWrite();
   },
 
+  // Quality Director report — the aggregated, cross-dimension quality summary
+  // (contrast fixes, audio loudness, screenshot QA, asset/template scores, QA
+  // verdict) assembled at delivery. See services/quality_report.js.
+  setQualityReport(id, report) {
+    const j = jobs.get(id); if (!j) return;
+    j.quality_report = report || null;
+    scheduleWrite();
+  },
+
   // Caption cues + exported .srt URL.
   setCaptions(id, { cues, srtUrl }) {
     const j = jobs.get(id); if (!j) return;
@@ -321,7 +353,7 @@ module.exports = {
       kind: j.kind || "generate",
       status: j.status,
       title: (j.script && j.script.title) || (j.prompt || "").slice(0, 80) || null,
-      videoUrl: j.video_url,
+      videoUrl: videoUrlIfExists(j.video_url),
       framePack: j.frame_pack || null,
       duration: j.duration,
       orientation: j.orientation,

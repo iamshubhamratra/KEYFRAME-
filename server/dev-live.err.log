@@ -1,0 +1,91 @@
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[kie] grok-4-5 stage=storyboard FAILED after 120012ms: Error
+[llm] KIE kie call timed out on stage=storyboard — retry 1/2 in 1000ms
+[kie] grok-4-5 stage=storyboard FAILED after 120014ms: Error
+[llm] KIE kie call timed out on stage=storyboard — retry 2/2 in 2000ms
+[kie] grok-4-5 stage=storyboard FAILED after 120007ms: Error
+[llm] KIE primary failed (kie call timed out); falling back to OpenRouter google/gemini-3.5-flash
+[pipeline] contrast-fix (graph-main): 3 low-contrast, none deterministically locatable — leaving to QA
+[pipeline] contrast-fix (graph-main): 5 text element(s) still below AA after 2 pass(es) — shipping flagged
+[agents] animation audit: inline transform hidden-state found (composes with GSAP xPercent — content may stay offscreen)
+[pipeline] contrast-fix (graph-repair): 5 text element(s) still below AA after 2 pass(es) — shipping flagged
+[agents] animation audit: inline transform hidden-state found (composes with GSAP xPercent — content may stay offscreen)
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[pipeline] contrast-fix (graph-main): 5 text element(s) still below AA after 2 pass(es) — shipping flagged
+[agents] animation audit: inline transform hidden-state found (composes with GSAP xPercent — content may stay offscreen)
+[pipeline] contrast-fix (qa-contrast): 5 low-contrast, none deterministically locatable — leaving to QA
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[kie] grok-4-5 stage=script FAILED after 180032ms: Error
+[llm] KIE kie call timed out on stage=script — retry 1/2 in 1000ms
+[vo_fit] model ad-libbed (210ch spoken for 43ch line) — one retake
+[vo_fit] model ad-libbed (78ch spoken for 11ch line) — one retake
+[vo_fit] model ad-libbed (337ch spoken for 35ch line) — one retake
+[vo_fit] retake rambled worse (95ch vs 78ch) — keeping take one
+[kie] grok-4-5 stage=storyboard FAILED after 120013ms: Error
+[llm] KIE kie call timed out on stage=storyboard — retry 1/2 in 1000ms
+[kie] grok-4-5 stage=storyboard FAILED after 120021ms: Error
+[llm] KIE kie call timed out on stage=storyboard — retry 2/2 in 2000ms
+[kie] grok-4-5 stage=storyboard FAILED after 119992ms: Error
+[llm] KIE primary failed (kie call timed out); falling back to OpenRouter google/gemini-3.5-flash
+[agents] animation audit: inline transform hidden-state found (composes with GSAP xPercent — content may stay offscreen)
+[agents] animation audit: inline transform hidden-state found (composes with GSAP xPercent — content may stay offscreen)
+[screenshot-qa] shot REJECTED (login-wall: login modal blocking the homepage) — site_0.png
+[screenshot-qa] shot DROPPED (scene mismatch, no free matching scene) — site_2.png
+[openrouter] google/gemini-3.5-flash stage=creative_director returned a bad completion: empty completion (finish=error, out=0)
+[openrouter] google/gemini-3.5-flash stage=creative_director FAILED after 4950ms: Error
+[openrouter] google/gemini-3.5-flash transient Error — retry 1/2 in 1500ms
+[kie] grok-4-5 stage=composer FAILED after 10640ms: TypeError
+[llm] KIE primary failed (fetch failed); falling back to OpenRouter google/gemini-3.5-flash
+[openrouter] google/gemini-3.5-flash stage=composer FAILED after 11071ms: Error
+[openrouter] google/gemini-3.5-flash transient Error — retry 1/2 in 1500ms
+[openrouter] google/gemini-3.5-flash stage=composer FAILED after 7ms: Error
+[openrouter] google/gemini-3.5-flash transient Error — retry 2/2 in 3000ms
+[openrouter] google/gemini-3.5-flash stage=composer FAILED after 16ms: Error
+[agents] composition failed (Connection error.)
+[agents] scene-kit fallback (deterministic, asset-rich)
+[agents] animation audit: inline transform hidden-state found (composes with GSAP xPercent — content may stay offscreen)
+[composer] attempt 1 validation failed (1 errs): typographically DEAD composition: only 1 display-size text element(s) (font-size >= 125px, i.e. ~6.5% of the 1920px canvas), need >= 5. Per the Typography ladder and LAYOUT LAW #2, EVERY scene's primary message is a DISPLAY headline — the largest thing in the frame (headlines >= 80px at 1080p scale,
+[composer] attempt 2 validation failed (1 errs): typographically DEAD composition: only 4 display-size text element(s) (font-size >= 125px, i.e. ~6.5% of the 1920px canvas), need >= 5. Per the Typography ladder and LAYOUT LAW #2, EVERY scene's primary message is a DISPLAY headline — the largest thing in the frame (headlines >= 80px at 1080p scale,
+[composer] attempt 3 validation failed (1 errs): too few animated pop-in stickers/badges/chips (found 37 sticker element(s), 0 sticker class(es) tweened by GSAP; need >=3 elements with at least one class tweened). Add decorative pop-in overlays per the POP-IN STICKERS section (burst badge / glass chip / stat sticker / connector callout) — each an 
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[vo_fit] model ad-libbed (211ch spoken for 23ch line) — one retake
+[pixabay-bridge] sound-effects resolve failed for "pop": The operation was aborted due to timeout
+[sfx] "pop" — Pixabay/Freesound dry; used local cue "pop" as fallback
+[pixabay-bridge] sound-effects resolve failed for "transition": The operation was aborted due to timeout
+[sfx] "transition" — Pixabay/Freesound dry; used local cue "transition" as fallback
+[pixabay-bridge] sound-effects resolve failed for "swoosh": The operation was aborted due to timeout
+[sfx] "swoosh" — Pixabay/Freesound dry; used local cue "swoosh" as fallback
+[pixabay-bridge] sound-effects resolve failed for "whoosh": The operation was aborted due to timeout
+[sfx] "whoosh" — Pixabay/Freesound dry; used local cue "whoosh" as fallback
+[pixabay-bridge] music resolve failed for "precise modern ambient electronica electronic": The operation was aborted due to timeout
+[sfx] "riser" — Pixabay/Freesound dry; used local cue "riser" as fallback
+[kie] grok-4-5 stage=storyboard FAILED after 120012ms: Error
+[llm] KIE kie call timed out on stage=storyboard — retry 1/2 in 1000ms
+[kie] grok-4-5 stage=storyboard FAILED after 120005ms: Error
+[llm] KIE kie call timed out on stage=storyboard — retry 2/2 in 2000ms
+[kie] grok-4-5 stage=storyboard FAILED after 120013ms: Error
+[llm] KIE primary failed (kie call timed out); falling back to OpenRouter google/gemini-3.5-flash
+[openrouter] google/gemini-3.5-flash stage=dressing returned a bad completion: truncated/unparseable JSON (finish=stop, out=12124, 11460ch)
+[openrouter] google/gemini-3.5-flash stage=dressing FAILED after 75744ms: Error
+[openrouter] google/gemini-3.5-flash transient Error — retry 1/2 in 1500ms
+[pipeline] scene-kit lint (non-blocking):  are easier to read, iterate on, and diff.
+    Fix: Split coherent scenes or layers into separate .html files under compositions/, then mount them from the parent with data-composition-src so each file stays small enough to inspect, revise, and validate independently.
+
+◇  3 error(s), 969 warning(s)
+
+[renderer] job a9nrixjhbr attempt 1 failed (code 1 = 0x1); retrying in 5s with --workers 1
+[renderer] job a9nrixjhbr aborted by pipeline; killing
+[agents] composition failed (composition agent exceeded budget of 2700000ms)
+[agents] deterministic fallback
+[renderer] job a9nrixjhbr attempt 1 failed (code 4294967295 = 0xffffffff) — process died at init (out of memory/desktop heap); retrying in 5s with --workers 1
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.

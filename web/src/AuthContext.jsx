@@ -1,22 +1,20 @@
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import * as api from "./api.js";
-
-const AuthCtx = createContext(null);
+import { AuthCtx } from "./useAuth.js";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback(async () => {
-    try {
-      const { user } = await api.fetchMe();
-      setUser(user || null);
-    } catch {
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const refresh = useCallback(
+    () =>
+      api
+        .fetchMe()
+        .then(({ user }) => setUser(user || null))
+        .catch(() => setUser(null))
+        .finally(() => setLoading(false)),
+    []
+  );
 
   useEffect(() => { refresh(); }, [refresh]);
 
@@ -42,10 +40,4 @@ export function AuthProvider({ children }) {
       {children}
     </AuthCtx.Provider>
   );
-}
-
-export function useAuth() {
-  const ctx = useContext(AuthCtx);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
 }

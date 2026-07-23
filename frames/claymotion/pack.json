@@ -1,0 +1,90 @@
+{
+  "name": "claymotion",
+  "vibe": "a handmade stop-motion clay film: putty board set with matte plasticine spheres, donuts and stars bobbing in visible 8fps ticks, headlines dropping in with exaggerated squash-and-stretch quantized like frame-by-frame animation, scene changes as a clay smear frame streaking across, and the emphasis word pressed into a hand-molded clay pad — playful product tours, kids brands, food and anything that should feel sculpted by hand under studio lamps",
+  "colors": {
+    "putty": "#F1E2D3",
+    "terracotta": "#DD6B4A",
+    "moss": "#7FA05F",
+    "sky": "#6FAEC6",
+    "plum": "#96639B",
+    "clayink": "#37281F"
+  },
+  "fonts": [
+    "Inter",
+    "Baloo 2"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#F1E2D3"
+  },
+  "motion": {
+    "cut": "smear",
+    "drift": 1.02
+  },
+  "fx": {
+    "canvas": "clay",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#DD6B4A",
+      "#7FA05F"
+    ],
+    "extras": [
+      "#6FAEC6",
+      "#96639B"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "claymation plasticine handmade craft colorful stop motion",
+    "iconStyle": "solid",
+    "keywords": [
+      "clay",
+      "handmade",
+      "playful",
+      "craft",
+      "toy",
+      "colorful"
+    ],
+    "prefer": [
+      "illustration",
+      "vector"
+    ]
+  },
+  "typography": {
+    "display": "Baloo 2"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": false,
+    "underline": false,
+    "stat": "headline",
+    "assetStyle": "clay"
+  },
+  "textfx": {
+    "enter": "squash",
+    "emphasis": "clay",
+    "align": "rotate",
+    "sizeScale": 1.06
+  },
+  "audio": {
+    "music": {
+      "query": "quirky playful ukulele whistle claymation",
+      "mood": "upbeat",
+      "volume": 0.17
+    },
+    "sfx": {
+      "style": "squishes, boings and soft thuds — foley like a stop-motion studio, popping on every squash landing and smear cut",
+      "palette": [
+        "clay squish",
+        "boing",
+        "soft thud",
+        "pop",
+        "mouth plop",
+        "tape stop"
+      ]
+    }
+  }
+}

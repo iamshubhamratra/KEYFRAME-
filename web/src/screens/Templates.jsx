@@ -80,8 +80,11 @@ export function PackCard({ pack, delay = 0, onUse, compact = false }) {
     >
       <span className="spine" style={{ "--spine": lore.accent, zIndex: 5 }} />
 
-      {/* preview — pack bg + gradient + chip dots + demo type + scanlines */}
-      <div style={{ aspectRatio: "16/10", position: "relative", overflow: "hidden", background: lore.bg, display: "grid", placeItems: "center" }}>
+      {/* preview — pack bg + gradient + chip dots + demo type + scanlines.
+          16/9 matches the preview clips exactly: with the old 16/10 box,
+          object-fit:cover cropped ~11% off the sides — hiding the packs'
+          corner furniture (depth gauge, frame counter, scroll tabs). */}
+      <div style={{ aspectRatio: "16/9", position: "relative", overflow: "hidden", background: lore.bg, display: "grid", placeItems: "center" }}>
         <div style={{ position: "absolute", inset: 0, background: lore.grad, opacity: 0.9 }} />
         <div className="film-scan" style={{ opacity: 0.5 }} />
         <div style={{ position: "absolute", top: 12, left: 17, display: "flex", gap: 5, zIndex: 3 }}>
@@ -95,8 +98,10 @@ export function PackCard({ pack, delay = 0, onUse, compact = false }) {
           </div>
         </div>
         {preview && (
+          /* preload="metadata" (not "none") keeps the first frames warm so the
+             hover fade-in starts playing immediately instead of buffering. */
           <video ref={vidRef} src={preview} poster={pack.posterUrl ? mediaUrl(pack.posterUrl) : undefined}
-            muted loop playsInline preload="none"
+            muted loop playsInline preload="metadata"
             style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 4, opacity: hover ? 1 : 0, transition: "opacity .35s ease" }} />
         )}
       </div>

@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>KEYFRAME — Bauhaus Riot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<script src="gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script>
+  /* If GSAP didn't load (offline / ad-blocker), show a note instead of a blank page. */
+  if (!window.gsap) {
+    addEventListener("DOMContentLoaded", function () {
+      var b = document.createElement("div");
+      b.style.cssText = "position:fixed;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;font:600 18px system-ui;color:#fff;background:#111;padding:32px;z-index:99999";
+      b.textContent = "GSAP failed to load — hard-refresh (Ctrl+Shift+R) or disable the ad-blocker for 127.0.0.1.";
+      document.body.appendChild(b);
+    });
+  }
+</script>
+<style>
+  /* ===========================================================
+     BAUHAUS RIOT — a print poster that came alive. Cream paper,
+     primary-color geometry (bauhaus-print), sticker stamps and
+     dotted texture (blockframe), numbered sheet chrome
+     (biennale-yellow). NO gradients, NO glows, NO blur — motion
+     is stamps, bounces, curtain wipes and marching dashes.
+     Engineering contract (same as the other showcases):
+     - hidden = opacity:0 only; ALL motion in ONE paused GSAP
+       timeline registered on window.__timelines["vid"].
+     - .clip = direct child of #root; scenes sequential with short
+       crossfades; ONE caption node + sheet counter recomputed
+       per frame from a proxy tween (seek-safe); finite repeats.
+     - SVG draw-ons use pathLength="100" so dash math is exact.
+     =========================================================== */
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { width:100%; height:100%; overflow:hidden; background:#111; }
+  #root { position:relative; width:1920px; height:1080px; overflow:hidden; isolation:isolate;
+          background:#F4EEE1; container-type:size; color:var(--ink);
+          font-family:'Inter',system-ui,sans-serif;
+    --paper:#F4EEE1; --cream:#FFFDF6; --ink:#17161B;
+    --red:#E4432C; --blue:#2B4BD7; --yellow:#F2C21F; }
+  .clip { position:absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; }
+  .safe { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+          padding:9% 7% 11%; text-align:center; }
+
+  /* ---------- typography ---------- */
+  .display { font-family:'Archivo Black','Inter',sans-serif; font-weight:400; font-size:8cqw; line-height:0.94;
+             letter-spacing:-0.015em; color:var(--ink); text-transform:uppercase; }
+  .h1 { font-family:'Archivo Black',sans-serif; font-size:4.6cqw; line-height:1.02; color:var(--ink); text-transform:uppercase; letter-spacing:-0.01em; }
+  .body { font-weight:600; font-size:1.9cqw; line-height:1.45; color:#3F3D45; }
+  .word { display:inline-block; will-change:transform,opacity; }
+  .shadow-red  { text-shadow:0.5cqw 0.5cqw 0 var(--red); }
+  .shadow-blue { text-shadow:0.5cqw 0.5cqw 0 var(--blue); }
+  .kicker { display:inline-flex; align-items:center; gap:0.9cqw; font-family:'Space Grotesk',monospace; font-weight:700;
+            font-size:1.2cqw; letter-spacing:0.34em; text-transform:uppercase; color:var(--ink);
+            border:0.18cqw solid var(--ink); background:var(--cream); padding:0.6cqw 1.6cqw; }
+  .kicker .sq { width:0.8cqw; height:0.8cqw; background:var(--red); }
+
+  /* ---------- paper chrome ---------- */
+  #dots { position:absolute; inset:0; pointer-events:none; opacity:0.55;
+          background-image:radial-gradient(rgba(23,22,27,0.13) 1.6px, transparent 1.6px);
+          background-size:2.3cqw 2.3cqw; }
+  .bigshape { position:absolute; pointer-events:none; }
+  #frame { position:absolute; inset:1.5cqw; border:0.2cqw solid var(--ink); pointer-events:none; }
+  #masthead { position:absolute; left:3cqw; top:2.85cqw; display:flex; align-items:center; gap:0.9cqw;
+              font-family:'Space Grotesk',monospace; font-weight:700; font-size:1.15cqw; letter-spacing:0.3em; color:var(--ink);
+              background:var(--cream); border:0.18cqw solid var(--ink); padding:0.45cqw 1.2cqw; }
+  #masthead .sq { width:1.1cqw; height:1.1cqw; background:var(--red); }
+  #sheetno { position:absolute; right:3cqw; top:2.85cqw; font-family:'Space Grotesk',monospace; font-weight:700;
+             font-size:1.15cqw; letter-spacing:0.26em; color:var(--ink); border:0.18cqw solid var(--ink);
+             background:var(--cream); padding:0.45cqw 1.2cqw; }
+  #footline { position:absolute; left:0; right:0; bottom:2.6cqw; text-align:center; font-family:'Space Grotesk',monospace;
+              font-weight:700; font-size:1cqw; letter-spacing:0.4em; color:#6B6860; text-transform:uppercase; }
+
+  /* ---------- curtain (intro wipe) ---------- */
+  .bar { position:absolute; top:0; bottom:0; width:34.5%; transform-origin:top center; }
+
+  /* ---------- shape recipe (S2) ---------- */
+  .recipe-item { display:flex; flex-direction:column; align-items:center; gap:1.4cqw; width:16cqw; }
+  .recipe-label { font-family:'Archivo Black',sans-serif; font-size:1.9cqw; letter-spacing:0.06em; color:var(--ink); text-transform:uppercase; }
+
+  /* ---------- style stamps (S3) ---------- */
+  .stamp { display:inline-block; font-family:'Space Grotesk',monospace; font-weight:700; font-size:1.6cqw; letter-spacing:0.08em;
+           padding:1.1cqw 2cqw; border:0.22cqw solid var(--ink); box-shadow:0.45cqw 0.45cqw 0 var(--ink);
+           text-transform:uppercase; white-space:nowrap; will-change:transform; }
+
+  /* ---------- strike X (S4) ---------- */
+  .xmark { position:absolute; width:5.4cqw; height:5.4cqw; right:-7cqw; top:50%; margin-top:-2.7cqw; }
+  .hilite { position:absolute; left:-3%; top:8%; width:106%; height:88%; background:var(--yellow); z-index:-1;
+            transform:scaleX(0); transform-origin:left center; }
+
+  /* ---------- letter tiles (S6) ---------- */
+  .tile { width:8.6cqw; height:8.6cqw; display:flex; align-items:center; justify-content:center;
+          font-family:'Archivo Black',sans-serif; font-size:4.6cqw; border:0.22cqw solid var(--ink);
+          box-shadow:0.5cqw 0.5cqw 0 var(--ink); will-change:transform; }
+
+  /* ---------- CTA (S7) ---------- */
+  .btn { display:inline-flex; align-items:center; gap:1.2cqw; font-family:'Archivo Black',sans-serif; font-size:3.2cqw;
+         text-transform:uppercase; letter-spacing:0.02em; color:var(--cream); background:var(--red);
+         border:0.24cqw solid var(--ink); box-shadow:0.7cqw 0.7cqw 0 var(--ink); padding:1.7cqw 4cqw; will-change:transform; }
+
+  /* ---------- captions (single seek-safe node) ---------- */
+  #caps { position:absolute; inset:0; display:flex; justify-content:center; align-items:flex-end; padding-bottom:5.6%; z-index:50; pointer-events:none; }
+  #cap-pill { max-width:74%; height:fit-content; flex:0 0 auto; text-align:center; padding:0.9cqw 2.4cqw; opacity:0;
+              background:var(--ink); border:0.18cqw solid var(--ink); box-shadow:0.4cqw 0.4cqw 0 rgba(23,22,27,0.25); }
+  #cap-text { font-weight:700; font-size:1.5cqw; line-height:1.3; color:var(--cream); }
+</style>
+</head>
+<body>
+<div id="root" class="composition" data-composition-id="vid" data-width="1920" data-height="1080" data-start="0" data-duration="30">
+
+  <!-- TRACK 0 — paper, texture, breathing background geometry -->
+  <div id="bg" class="clip" data-start="0" data-duration="30" data-track-index="0" data-layout-allow-occlusion>
+    <div class="bigshape" id="bg-circle-y" style="left:-9cqw; top:-13cqw; width:30cqw; height:30cqw; border-radius:50%; background:var(--yellow);"></div>
+    <div class="bigshape" id="bg-circle-b" style="right:-11cqw; bottom:-15cqw; width:34cqw; height:34cqw; border-radius:50%; background:var(--blue); opacity:0.92;"></div>
+    <div class="bigshape" id="bg-ring" style="right:5.5cqw; top:7.5cqw; width:10.5cqw; height:10.5cqw; border-radius:50%; border:0.9cqw solid var(--red);"></div>
+    <div class="bigshape" id="bg-tri-wrap" style="left:8cqw; bottom:9cqw; width:11cqw; height:11cqw;">
+      <svg viewBox="0 0 100 100" style="width:100%;height:100%;overflow:visible;"><polygon points="50 6 96 94 4 94" fill="none" stroke="#17161B" stroke-width="7"/></svg>
+    </div>
+    <div id="dots"></div>
+  </div>
+
+  <!-- S1 COLD OPEN (0–4.4) -->
+  <div class="clip" id="s1" data-start="0" data-duration="4.9" data-track-index="2" style="opacity:0;">
+    <div class="safe">
+      <span class="kicker" id="s1-kick" style="opacity:0;"><span class="sq"></span>KEYFRAME · AI MOTION PRESS</span>
+      <div class="display" style="margin-top:2.4cqw;font-size:9.6cqw;">
+        <span class="word shadow-red" id="s1-w1" style="opacity:0;">Make</span>
+        <span class="word shadow-blue" id="s1-w2" style="opacity:0;">motion.</span>
+      </div>
+      <div id="s1-bar" style="width:30cqw;height:0.75cqw;background:var(--red);margin-top:2cqw;transform:scaleX(0);"></div>
+      <div class="body" id="s1-sub" style="opacity:0;margin-top:2cqw;font-size:2.1cqw;">Type a sentence — get a poster-grade film.</div>
+    </div>
+    <svg class="bigshape" id="s1-aster" width="170" height="170" viewBox="0 0 100 100" style="right:16cqw;top:17cqw;opacity:0;" data-layout-allow-occlusion>
+      <g stroke="#E4432C" stroke-width="11" stroke-linecap="round">
+        <line x1="50" y1="4" x2="50" y2="96"/><line x1="4" y1="50" x2="96" y2="50"/>
+        <line x1="17" y1="17" x2="83" y2="83"/><line x1="83" y1="17" x2="17" y2="83"/>
+      </g>
+    </svg>
+    <div class="bigshape" id="s1-chip1" style="left:12.5cqw;top:36cqw;width:4.4cqw;height:4.4cqw;background:var(--blue);opacity:0;"></div>
+    <div class="bigshape" id="s1-chip2" style="left:17cqw;top:40.5cqw;width:4.4cqw;height:4.4cqw;border-radius:50%;background:var(--yellow);border:0.2cqw solid var(--ink);opacity:0;"></div>
+    <!-- print curtain: covers the frame at t=0, lifts to reveal -->
+    <div class="bar" id="cur1" style="left:0;   background:var(--red);"></div>
+    <div class="bar" id="cur2" style="left:33%; background:var(--blue);"></div>
+    <div class="bar" id="cur3" style="left:66%; width:34.2%; background:var(--yellow);"></div>
+  </div>
+
+  <!-- S2 THE RECIPE (4.4–8.8) -->
+  <div class="clip" id="s2" data-start="4.4" data-duration="4.9" data-track-index="3" style="opacity:0;">
+    <div class="safe">
+      <span class="kicker" id="s2-kick" style="opacity:0;"><span class="sq" style="background:var(--blue);"></span>The recipe — three moves</span>
+      <h1 class="h1" id="s2-head" style="margin-top:1.6cqw;"><span class="word">Write.</span> <span class="word">Direct.</span> <span class="word">Render.</span></h1>
+      <div style="display:flex;gap:7cqw;margin-top:3.4cqw;align-items:flex-start;position:relative;">
+        <div class="recipe-item">
+          <div id="s2-shape1" style="width:11cqw;height:11cqw;border-radius:50%;background:var(--yellow);border:0.24cqw solid var(--ink);box-shadow:0.5cqw 0.5cqw 0 var(--ink);opacity:0;"></div>
+          <div class="recipe-label s2-lab" style="opacity:0;">Write</div>
+        </div>
+        <svg id="s2-arr1" width="120" height="60" viewBox="0 0 100 50" style="margin-top:4.6cqw;overflow:visible;">
+          <path d="M4 25 H74" pathLength="100" fill="none" stroke="#17161B" stroke-width="9" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100"/>
+          <polygon id="s2-arr1h" points="70 8 98 25 70 42" fill="#17161B" opacity="0"/>
+        </svg>
+        <div class="recipe-item">
+          <svg id="s2-shape2" width="220" height="220" viewBox="0 0 100 100" style="width:11cqw;height:11cqw;overflow:visible;opacity:0;">
+            <polygon points="50 5 97 95 3 95" fill="#E4432C" stroke="#17161B" stroke-width="5"/>
+          </svg>
+          <div class="recipe-label s2-lab" style="opacity:0;">Direct</div>
+        </div>
+        <svg id="s2-arr2" width="120" height="60" viewBox="0 0 100 50" style="margin-top:4.6cqw;overflow:visible;">
+          <path d="M4 25 H74" pathLength="100" fill="none" stroke="#17161B" stroke-width="9" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100"/>
+          <polygon id="s2-arr2h" points="70 8 98 25 70 42" fill="#17161B" opacity="0"/>
+        </svg>
+        <div class="recipe-item">
+          <div id="s2-shape3" style="width:11cqw;height:11cqw;background:var(--blue);border:0.24cqw solid var(--ink);box-shadow:0.5cqw 0.5cqw 0 var(--ink);opacity:0;"></div>
+          <div class="recipe-label s2-lab" style="opacity:0;">Render</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S3 STYLE PRESS (8.8–13.2) -->
+  <div class="clip" id="s3" data-start="8.8" data-duration="4.9" data-track-index="4" style="opacity:0;">
+    <div id="s3-panel" style="position:absolute;left:0;top:0;bottom:0;width:44%;background:var(--ink);display:flex;flex-direction:column;justify-content:center;padding:0 5cqw;">
+      <div style="font-family:'Space Grotesk',monospace;font-weight:700;font-size:1.3cqw;letter-spacing:0.4em;color:var(--yellow);text-transform:uppercase;">The catalogue</div>
+      <div style="display:flex;align-items:baseline;gap:1cqw;margin-top:1cqw;">
+        <div id="s3-count" style="font-family:'Archivo Black',sans-serif;font-size:11cqw;line-height:1;color:var(--yellow);">0</div>
+        <div style="font-family:'Archivo Black',sans-serif;font-size:3cqw;color:var(--cream);">styles</div>
+      </div>
+      <div class="body" style="color:#B9B4A6;margin-top:1.4cqw;font-size:1.7cqw;">Every one art-directed. Every one yours.</div>
+    </div>
+    <div style="position:absolute;left:48%;right:5%;top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;gap:1.9cqw;align-items:flex-start;">
+      <span class="stamp s3-stamp" style="background:var(--yellow);color:var(--ink);opacity:0;">bauhaus-print</span>
+      <span class="stamp s3-stamp" style="background:var(--cream);color:var(--ink);opacity:0;margin-left:6cqw;">biennale-yellow</span>
+      <span class="stamp s3-stamp" style="background:var(--red);color:var(--cream);opacity:0;margin-left:1.6cqw;">blockframe</span>
+      <span class="stamp s3-stamp" style="background:var(--blue);color:var(--cream);opacity:0;margin-left:8cqw;">longshot-cinema</span>
+      <span class="stamp s3-stamp" style="background:var(--cream);color:var(--ink);opacity:0;margin-left:3.4cqw;">vapor-chrome</span>
+      <span class="stamp s3-stamp" style="background:var(--yellow);color:var(--ink);opacity:0;margin-left:9.6cqw;">bloom-illustrated</span>
+    </div>
+  </div>
+
+  <!-- S4 MANIFESTO (13.2–17.6) -->
+  <div class="clip" id="s4" data-start="13.2" data-duration="4.9" data-track-index="5" style="opacity:0;">
+    <div class="safe" style="align-items:flex-start;text-align:left;padding-left:15%;">
+      <div style="position:relative;"><h1 class="display s4-line" id="s4-l1" style="font-size:5.6cqw;opacity:0;">No crew.</h1>
+        <svg class="xmark" id="s4-x1" viewBox="0 0 100 100"><path d="M12 12 L88 88" pathLength="100" stroke="#E4432C" stroke-width="16" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100"/><path d="M88 12 L12 88" pathLength="100" stroke="#E4432C" stroke-width="16" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100"/></svg></div>
+      <div style="position:relative;margin-top:0.7cqw;"><h1 class="display s4-line" id="s4-l2" style="font-size:5.6cqw;opacity:0;">No timeline.</h1>
+        <svg class="xmark" id="s4-x2" viewBox="0 0 100 100"><path d="M12 12 L88 88" pathLength="100" stroke="#E4432C" stroke-width="16" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100"/><path d="M88 12 L12 88" pathLength="100" stroke="#E4432C" stroke-width="16" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100"/></svg></div>
+      <div style="position:relative;margin-top:0.7cqw;"><h1 class="display s4-line" id="s4-l3" style="font-size:5.6cqw;opacity:0;">No render farm.</h1>
+        <svg class="xmark" id="s4-x3" viewBox="0 0 100 100"><path d="M12 12 L88 88" pathLength="100" stroke="#E4432C" stroke-width="16" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100"/><path d="M88 12 L12 88" pathLength="100" stroke="#E4432C" stroke-width="16" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100"/></svg></div>
+      <div style="position:relative;margin-top:2cqw;">
+        <div class="hilite" id="s4-hilite"></div>
+        <h1 class="display" id="s4-em" style="font-size:7.4cqw;opacity:0;padding:0.4cqw 1.2cqw;">Just words.</h1>
+      </div>
+    </div>
+  </div>
+
+  <!-- S5 THE EYE (17.6–22.0) -->
+  <div class="clip" id="s5" data-start="17.6" data-duration="4.9" data-track-index="6" style="opacity:0;">
+    <div class="safe" style="flex-direction:row;gap:6cqw;text-align:left;">
+      <svg id="s5-eye" width="560" height="360" viewBox="0 0 280 180" style="width:29cqw;overflow:visible;flex:0 0 auto;">
+        <g id="s5-rays" opacity="0">
+          <g stroke="#2B4BD7" stroke-width="5" stroke-linecap="round">
+            <line x1="140" y1="-16" x2="140" y2="6"/><line x1="30" y1="10" x2="46" y2="28"/><line x1="250" y1="10" x2="234" y2="28"/>
+            <line x1="140" y1="196" x2="140" y2="174"/><line x1="30" y1="170" x2="46" y2="152"/><line x1="250" y1="170" x2="234" y2="152"/>
+          </g>
+        </g>
+        <path id="s5-lid" d="M10 90 Q140 -30 270 90 Q140 210 10 90 Z" pathLength="100" fill="none" stroke="#17161B" stroke-width="9" stroke-linejoin="round" stroke-dasharray="100" stroke-dashoffset="100"/>
+        <g id="s5-iris" opacity="0">
+          <circle cx="140" cy="90" r="46" fill="#F2C21F" stroke="#17161B" stroke-width="8"/>
+          <circle id="s5-pupil" cx="140" cy="90" r="18" fill="#17161B"/>
+        </g>
+      </svg>
+      <div style="max-width:44cqw;">
+        <span class="kicker" id="s5-kick" style="opacity:0;"><span class="sq" style="background:var(--yellow);"></span>Quality control</span>
+        <h1 class="h1" id="s5-head" style="margin-top:1.4cqw;font-size:4.2cqw;">Twelve agents<br>proof every frame.</h1>
+        <div class="body" id="s5-sub" style="opacity:0;margin-top:1.4cqw;">Layout, contrast, rhythm — checked before the ink dries.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S6 WORDMARK TILES (22.0–26.2) -->
+  <div class="clip" id="s6" data-start="22.0" data-duration="4.7" data-track-index="7" style="opacity:0;perspective:1500px;">
+    <div class="safe">
+      <span class="kicker" id="s6-kick" style="opacity:0;"><span class="sq"></span>Set in eight tiles</span>
+      <div style="display:flex;gap:1.1cqw;margin-top:2.8cqw;">
+        <div class="tile s6-tile" style="background:var(--red);color:var(--cream);opacity:0;">K</div>
+        <div class="tile s6-tile" style="background:var(--cream);color:var(--ink);opacity:0;">E</div>
+        <div class="tile s6-tile" style="background:var(--blue);color:var(--cream);opacity:0;">Y</div>
+        <div class="tile s6-tile" style="background:var(--yellow);color:var(--ink);opacity:0;">F</div>
+        <div class="tile s6-tile" style="background:var(--ink);color:var(--yellow);opacity:0;">R</div>
+        <div class="tile s6-tile" style="background:var(--cream);color:var(--ink);opacity:0;">A</div>
+        <div class="tile s6-tile" style="background:var(--red);color:var(--cream);opacity:0;">M</div>
+        <div class="tile s6-tile" style="background:var(--blue);color:var(--cream);opacity:0;">E</div>
+      </div>
+      <div class="body" id="s6-tag" style="opacity:0;margin-top:2.6cqw;font-size:2cqw;">Script to screen — in print quality.</div>
+    </div>
+  </div>
+
+  <!-- S7 CTA (26.2–30.0) -->
+  <div class="clip" id="s7" data-start="26.2" data-duration="3.8" data-track-index="8" style="opacity:0;">
+    <div class="safe">
+      <h1 class="display" id="s7-mark" style="font-size:5cqw;opacity:0;">Keyframe</h1>
+      <div style="position:relative;margin-top:2.6cqw;">
+        <svg id="s7-dash" width="560" height="220" viewBox="0 0 560 220" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);overflow:visible;" data-layout-allow-occlusion>
+          <rect x="8" y="8" width="544" height="204" rx="102" fill="none" stroke="#17161B" stroke-width="4" stroke-dasharray="14 16" opacity="0" id="s7-dashrect"/>
+        </svg>
+        <div class="btn" id="s7-btn" style="opacity:0;">Start free <span style="font-size:3.6cqw;">&#8594;</span></div>
+      </div>
+      <div class="body" id="s7-url" style="opacity:0;margin-top:2.6cqw;font-family:'Space Grotesk',monospace;letter-spacing:0.2em;font-size:1.4cqw;">KEYFRAME.STUDIO · PRINT YOUR FIRST FILM</div>
+    </div>
+    <div class="bigshape" id="s7-ball" style="left:71%;top:31.5cqw;width:5.4cqw;height:5.4cqw;border-radius:50%;background:var(--yellow);border:0.22cqw solid var(--ink);opacity:0;"></div>
+    <svg class="bigshape" id="s7-aster" width="140" height="140" viewBox="0 0 100 100" style="left:16cqw;top:16cqw;opacity:0;" data-layout-allow-occlusion>
+      <g stroke="#2B4BD7" stroke-width="11" stroke-linecap="round">
+        <line x1="50" y1="4" x2="50" y2="96"/><line x1="4" y1="50" x2="96" y2="50"/>
+        <line x1="17" y1="17" x2="83" y2="83"/><line x1="83" y1="17" x2="17" y2="83"/>
+      </g>
+    </svg>
+  </div>
+
+  <!-- TRACK 19 — print masthead chrome (frame, sheet counter) -->
+  <div id="chrome" class="clip" data-start="0" data-duration="30" data-track-index="19" data-layout-allow-occlusion style="opacity:0;">
+    <div id="frame"></div>
+    <div id="masthead"><span class="sq"></span>KEYFRAME</div>
+    <div id="sheetno">01 / 07</div>
+    <div id="footline">An AI motion press &middot; est. one sentence ago</div>
+  </div>
+
+  <!-- TRACK 20 — captions -->
+  <div id="caps" class="clip" data-start="0" data-duration="30" data-track-index="20"><div id="cap-pill"><div id="cap-text"></div></div></div>
+</div>
+
+<script>
+(function () {
+  const D = 30;
+  const tl = gsap.timeline({ paused: true });
+  const $ = (s) => document.querySelector(s);
+  const reps = (total, cyc) => Math.max(0, Math.floor(total / cyc) - 1);
+  function kill(id, t) { tl.set(id, { opacity: 0 }, t); }
+  function count(sel, to, at, dur) { const o = { v: 0 }; tl.to(o, { v: to, duration: dur, ease: "power2.out", snap: { v: 1 }, onUpdate() { const e = $(sel); if (e) e.textContent = Math.round(o.v); } }, at); }
+  /* a stamp = big & tilted -> snaps flat. The whole grammar of this template. */
+  function stamp(sel, at, rot) { tl.fromTo(sel, { opacity: 0, scale: 1.9, rotation: rot }, { opacity: 1, scale: 1, rotation: 0, duration: 0.42, ease: "power4.in" }, at); }
+
+  /* ===== AMBIENT — breathing geometry, drifting dots (finite repeats) ===== */
+  tl.to("#bg-circle-y", { scale: 1.07, duration: 9,  ease: "sine.inOut", yoyo: true, repeat: reps(D, 9) }, 0);
+  tl.to("#bg-circle-b", { scale: 1.06, duration: 11, ease: "sine.inOut", yoyo: true, repeat: reps(D, 11) }, 0);
+  tl.to("#bg-ring",     { rotation: 180, y: "+=18", duration: 15, ease: "sine.inOut", yoyo: true, repeat: reps(D, 15) }, 0);
+  tl.to("#bg-tri-wrap", { rotation: -14, duration: 8, ease: "sine.inOut", yoyo: true, repeat: reps(D, 8), transformOrigin: "center center" }, 0);
+  tl.fromTo("#dots", { backgroundPosition: "0cqw 0cqw" }, { backgroundPosition: "2.3cqw 2.3cqw", duration: 14, ease: "none", repeat: reps(D, 14) }, 0);
+
+  /* ===== PRINT CHROME ===== */
+  tl.fromTo("#chrome", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 0.7);
+  tl.fromTo("#masthead", { x: -26, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5, ease: "power2.out" }, 0.9);
+  tl.fromTo("#sheetno", { x: 26, opacity: 0 }, { x: 0, opacity: 1, duration: 0.5, ease: "power2.out" }, 0.95);
+
+  /* ===== S1 COLD OPEN (0–4.4) — the curtain lifts ===== */
+  tl.set("#s1", { opacity: 1 }, 0);
+  tl.fromTo("#cur1", { scaleY: 1 }, { scaleY: 0, duration: 0.75, ease: "power4.inOut" }, 0.25);
+  tl.fromTo("#cur2", { scaleY: 1 }, { scaleY: 0, duration: 0.75, ease: "power4.inOut" }, 0.40);
+  tl.fromTo("#cur3", { scaleY: 1 }, { scaleY: 0, duration: 0.75, ease: "power4.inOut" }, 0.55);
+  tl.fromTo("#s1-kick", { opacity: 0, y: -22 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 1.0);
+  stamp("#s1-w1", 1.2, -5);
+  stamp("#s1-w2", 1.45, 4);
+  tl.fromTo("#s1-bar", { scaleX: 0 }, { scaleX: 1, duration: 0.55, ease: "power3.inOut" }, 1.95);
+  tl.fromTo("#s1-sub", { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.55, ease: "power2.out" }, 2.2);
+  tl.fromTo("#s1-aster", { opacity: 0, scale: 0, rotation: -160 }, { opacity: 1, scale: 1, rotation: 0, duration: 0.65, ease: "back.out(1.8)", transformOrigin: "center center" }, 1.75);
+  tl.to("#s1-aster", { rotation: 90, duration: 2.4, ease: "sine.inOut" }, 2.5);
+  tl.fromTo("#s1-chip1", { opacity: 0, scale: 0, rotation: 45 }, { opacity: 1, scale: 1, rotation: 0, duration: 0.5, ease: "back.out(2)" }, 2.35);
+  tl.fromTo("#s1-chip2", { opacity: 0, scale: 0 }, { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(2)" }, 2.5);
+  tl.to("#s1 .safe", { y: -34, opacity: 0, duration: 0.45, ease: "power2.in" }, 3.95);
+  tl.to(["#s1-aster", "#s1-chip1", "#s1-chip2"], { opacity: 0, duration: 0.35, ease: "power2.in" }, 4.0);
+  kill("#s1", 4.85);
+
+  /* ===== S2 THE RECIPE (4.4–8.8) — shapes drop & bounce ===== */
+  tl.fromTo("#s2", { opacity: 0 }, { opacity: 1, duration: 0.35 }, 4.4);
+  tl.fromTo("#s2-kick", { opacity: 0, y: -22 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 4.55);
+  tl.fromTo("#s2-head .word", { yPercent: 105, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 0.55, ease: "power3.out", stagger: 0.1 }, 4.7);
+  tl.fromTo("#s2-shape1", { opacity: 0, y: -320 }, { opacity: 1, y: 0, duration: 0.9, ease: "bounce.out" }, 5.05);
+  tl.fromTo("#s2-shape2", { opacity: 0, y: -320, rotation: 26 }, { opacity: 1, y: 0, rotation: 0, duration: 0.9, ease: "bounce.out" }, 5.3);
+  tl.fromTo("#s2-shape3", { opacity: 0, y: -320, rotation: -18 }, { opacity: 1, y: 0, rotation: 0, duration: 0.9, ease: "bounce.out" }, 5.55);
+  tl.fromTo(".s2-lab", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out", stagger: 0.16 }, 5.7);
+  tl.to("#s2-arr1 path", { strokeDashoffset: 0, duration: 0.45, ease: "power2.out" }, 6.3);
+  tl.fromTo("#s2-arr1h", { opacity: 0, scale: 0, transformOrigin: "left center" }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)" }, 6.65);
+  tl.to("#s2-arr2 path", { strokeDashoffset: 0, duration: 0.45, ease: "power2.out" }, 6.6);
+  tl.fromTo("#s2-arr2h", { opacity: 0, scale: 0, transformOrigin: "left center" }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)" }, 6.95);
+  tl.to(["#s2-shape1", "#s2-shape2", "#s2-shape3"], { rotation: 6, duration: 0.9, ease: "sine.inOut", yoyo: true, repeat: 1, stagger: 0.12, transformOrigin: "center center" }, 7.3);
+  tl.to("#s2", { opacity: 0, duration: 0.45, ease: "power2.in" }, 8.35);
+  kill("#s2", 9.25);
+
+  /* ===== S3 STYLE PRESS (8.8–13.2) — panel slide + sticker slaps ===== */
+  tl.fromTo("#s3", { opacity: 0 }, { opacity: 1, duration: 0.3 }, 8.8);
+  tl.fromTo("#s3-panel", { xPercent: -105 }, { xPercent: 0, duration: 0.7, ease: "expo.out" }, 8.9);
+  count("#s3-count", 40, 9.35, 1.2);
+  stamp(".s3-stamp:nth-child(1)", 9.5,  -8);
+  stamp(".s3-stamp:nth-child(2)", 9.72,  6);
+  stamp(".s3-stamp:nth-child(3)", 9.94, -5);
+  stamp(".s3-stamp:nth-child(4)", 10.16, 7);
+  stamp(".s3-stamp:nth-child(5)", 10.38, -6);
+  stamp(".s3-stamp:nth-child(6)", 10.6,  5);
+  tl.to(".s3-stamp", { rotation: (i) => [-3, 2, -2, 3, -2, 2][i], duration: 0.5, ease: "power2.out", stagger: 0.05 }, 11.0);
+  tl.to(".s3-stamp", { y: -8, duration: 0.9, ease: "sine.inOut", yoyo: true, repeat: 1, stagger: 0.08 }, 11.6);
+  tl.to("#s3", { opacity: 0, duration: 0.45, ease: "power2.in" }, 12.75);
+  kill("#s3", 13.65);
+
+  /* ===== S4 MANIFESTO (13.2–17.6) — red X stamps, yellow highlight ===== */
+  tl.fromTo("#s4", { opacity: 0 }, { opacity: 1, duration: 0.35 }, 13.2);
+  tl.fromTo("#s4-l1", { opacity: 0, x: -46 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" }, 13.4);
+  tl.fromTo("#s4-l2", { opacity: 0, x: -46 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" }, 13.72);
+  tl.fromTo("#s4-l3", { opacity: 0, x: -46 }, { opacity: 1, x: 0, duration: 0.5, ease: "power3.out" }, 14.04);
+  tl.to("#s4-x1 path", { strokeDashoffset: 0, duration: 0.24, ease: "power3.in", stagger: 0.12 }, 14.55);
+  tl.to("#s4-x2 path", { strokeDashoffset: 0, duration: 0.24, ease: "power3.in", stagger: 0.12 }, 14.85);
+  tl.to("#s4-x3 path", { strokeDashoffset: 0, duration: 0.24, ease: "power3.in", stagger: 0.12 }, 15.15);
+  tl.to(".s4-line", { opacity: 0.3, x: -8, duration: 0.45, ease: "power2.out" }, 15.6);
+  stamp("#s4-em", 15.8, -3);
+  tl.to("#s4-hilite", { scaleX: 1, duration: 0.5, ease: "power3.inOut" }, 16.15);
+  tl.to("#s4", { opacity: 0, duration: 0.45, ease: "power2.in" }, 17.15);
+  kill("#s4", 18.05);
+
+  /* ===== S5 THE EYE (17.6–22.0) — draw-on + a look around ===== */
+  tl.fromTo("#s5", { opacity: 0 }, { opacity: 1, duration: 0.35 }, 17.6);
+  tl.to("#s5-lid", { strokeDashoffset: 0, duration: 0.9, ease: "power2.inOut" }, 17.8);
+  tl.fromTo("#s5-iris", { opacity: 0, scale: 0.3, transformOrigin: "center center" }, { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(2)" }, 18.5);
+  tl.fromTo("#s5-rays", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 18.8);
+  tl.to("#s5-pupil", { attr: { cx: 118 }, duration: 0.5, ease: "power2.inOut" }, 19.3);
+  tl.to("#s5-pupil", { attr: { cx: 164 }, duration: 0.6, ease: "power2.inOut" }, 20.0);
+  tl.to("#s5-pupil", { attr: { cx: 140 }, duration: 0.5, ease: "power2.inOut" }, 20.8);
+  tl.fromTo("#s5-kick", { opacity: 0, y: -22 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 17.9);
+  tl.fromTo("#s5-head", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" }, 18.1);
+  tl.fromTo("#s5-sub", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 18.5);
+  tl.to("#s5", { opacity: 0, duration: 0.45, ease: "power2.in" }, 21.55);
+  kill("#s5", 22.45);
+
+  /* ===== S6 WORDMARK TILES (22.0–26.2) — flips + a wave ===== */
+  tl.fromTo("#s6", { opacity: 0 }, { opacity: 1, duration: 0.35 }, 22.0);
+  tl.fromTo("#s6-kick", { opacity: 0, y: -22 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 22.15);
+  tl.fromTo(".s6-tile", { opacity: 0, rotationY: -95, y: 30 }, { opacity: 1, rotationY: 0, y: 0, duration: 0.6, ease: "back.out(1.5)", stagger: 0.09 }, 22.35);
+  tl.fromTo("#s6-tag", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 23.5);
+  tl.to(".s6-tile", { y: -16, duration: 0.34, ease: "sine.inOut", yoyo: true, repeat: 1, stagger: 0.07 }, 24.2);
+  tl.to(".s6-tile", { rotation: (i) => (i % 2 ? 2.5 : -2.5), duration: 0.6, ease: "sine.inOut", yoyo: true, repeat: 1, stagger: 0.05 }, 25.1);
+  tl.to("#s6", { opacity: 0, duration: 0.45, ease: "power2.in" }, 25.75);
+  kill("#s6", 26.65);
+
+  /* ===== S7 CTA (26.2–30.0) — press the button ===== */
+  tl.fromTo("#s7", { opacity: 0 }, { opacity: 1, duration: 0.35 }, 26.2);
+  stamp("#s7-mark", 26.35, -2);
+  tl.fromTo("#s7-btn", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.55, ease: "back.out(1.7)" }, 26.7);
+  tl.fromTo("#s7-dashrect", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 27.1);
+  tl.to("#s7-dashrect", { strokeDashoffset: -120, duration: 2.6, ease: "none" }, 27.1); /* marching ants */
+  tl.fromTo("#s7-url", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 27.35);
+  tl.fromTo("#s7-ball", { opacity: 1, y: -760 }, { y: 0, duration: 1.05, ease: "bounce.out" }, 27.0);
+  tl.to("#s7-ball", { y: -26, duration: 0.55, ease: "sine.inOut", yoyo: true, repeat: 2 }, 28.3);
+  tl.fromTo("#s7-aster", { opacity: 0, scale: 0, rotation: 120 }, { opacity: 1, scale: 1, rotation: 0, duration: 0.6, ease: "back.out(1.8)", transformOrigin: "center center" }, 27.4);
+  /* press: button + shadow squash like a real stamp */
+  tl.to("#s7-btn", { y: 7, boxShadow: "0.2cqw 0.2cqw 0 #17161B", duration: 0.16, ease: "power2.in", yoyo: true, repeat: 3, repeatDelay: 0.5 }, 28.0);
+
+  /* ===== CAPTIONS + SHEET COUNTER — one proxy, seek-safe ===== */
+  const cues = [
+    [0.9,  4.2,  "Ideas, set in motion. Like print — but alive."],
+    [4.6,  8.6,  "Write. Direct. Render. Three moves, zero hands."],
+    [9.0,  13.0, "Forty poster-grade styles, and counting."],
+    [13.4, 17.4, "No crew. No timeline. Just words."],
+    [17.8, 21.8, "Twelve agents proof every single frame."],
+    [22.2, 26.0, "KEYFRAME — a printing press for moving pictures."],
+    [26.5, 29.8, "Start free. Print your first film tonight."]
+  ];
+  const sceneStarts = [0, 4.4, 8.8, 13.2, 17.6, 22.0, 26.2];
+  const pad2 = (n) => String(n).padStart(2, "0");
+  const proxy = { t: 0 };
+  tl.to(proxy, { t: D, duration: D, ease: "none",
+    onUpdate() {
+      const now = proxy.t;
+      const cap = $("#cap-pill"), txt = $("#cap-text");
+      if (cap && txt) {
+        let active = null;
+        for (let k = 0; k < cues.length; k++) { if (now >= cues[k][0] && now < cues[k][1]) { active = cues[k]; break; } }
+        if (active) { if (txt.textContent !== active[2]) txt.textContent = active[2]; cap.style.opacity = "1"; }
+        else { cap.style.opacity = "0"; }
+      }
+      const sn = $("#sheetno");
+      if (sn) {
+        let idx = 0;
+        for (let k = 0; k < sceneStarts.length; k++) { if (now >= sceneStarts[k]) idx = k; }
+        const label = pad2(idx + 1) + " / 07";
+        if (sn.textContent !== label) sn.textContent = label;
+      }
+    } }, 0);
+
+  window.__timelines = window.__timelines || {};
+  window.__timelines["vid"] = tl;
+
+  // --- DEV PREVIEW ONLY (render browser sets navigator.webdriver -> stays paused there)
+  if (typeof navigator === "undefined" || !navigator.webdriver) {
+    (function previewBoot() {
+      var root = document.querySelector('[data-composition-id]');
+      if (root) {
+        var w = +root.getAttribute('data-width') || 1920;
+        var h = +root.getAttribute('data-height') || 1080;
+        document.documentElement.style.height = "100%";
+        document.body.style.minHeight = "100vh";
+        root.style.width = w + 'px'; root.style.height = h + 'px';
+        root.style.position = 'absolute'; root.style.top = '50%'; root.style.left = '50%';
+        root.style.transformOrigin = 'center center';
+        var fit = function () {
+          var f = Math.min(window.innerWidth / w, window.innerHeight / h);
+          root.style.transform = 'translate(-50%,-50%) scale(' + f + ')';
+        };
+        fit(); window.addEventListener('resize', fit);
+        var clips = [].slice.call(root.querySelectorAll('[data-start][data-duration]'));
+        var windowClips = function (t) {
+          for (var i = 0; i < clips.length; i++) {
+            var c = clips[i];
+            var s = +c.getAttribute('data-start') || 0;
+            var d = +c.getAttribute('data-duration');
+            if (!isFinite(d)) d = 1e9;
+            c.style.visibility = (t >= s - 0.02 && t < s + d + 0.02) ? '' : 'hidden';
+          }
+        };
+        windowClips(0);
+        tl.eventCallback('onUpdate', function () { windowClips(tl.time()); });
+      }
+      tl.play(0);
+      tl.eventCallback("onComplete", function () { tl.restart(); });
+    })();
+  }
+})();
+</script>
+</body>
+</html>

@@ -9,7 +9,7 @@ import Gallery from "./screens/Gallery.jsx";
 import Templates from "./screens/Templates.jsx";
 import Auth from "./screens/Auth.jsx";
 import { createProject } from "./api.js";
-import { useAuth } from "./AuthContext.jsx";
+import { useAuth } from "./useAuth.js";
 
 // Landing is the v2 design doc ("the film set") running on its own runtime in
 // an iframe. The STUDIO (create → understanding → script → theater → premiere)
@@ -21,6 +21,7 @@ export default function App() {
   const [prefill, setPrefill] = useState(null);
   const [authMode, setAuthMode] = useState("login");
   const [starting, setStarting] = useState(false);
+  const [autopilot, setAutopilot] = useState(false); // set at creation; routes Understanding→Theater past the Script Room
   const pending = useRef(null);   // action to resume after login
   const startedRef = useRef(false);
 
@@ -37,9 +38,10 @@ export default function App() {
     const hasPrompt = prompt && prompt.trim().length >= 10;
     const hasUrl = url && /^https?:\/\/.+\..+/.test(url.trim());
     if (!hasPrompt && !hasUrl) { setPrefill({ prompt: prompt || "", url: url || "" }); go("create"); return; }
+    setAutopilot(false); // landing quick-start always pauses at the script
     startedRef.current = true; setStarting(true);
     try {
-      const fields = { duration: 30, orientation: "horizontal", quality: "720p", framePack: "auto", captions: false,
+      const fields = { duration: 30, orientation: "horizontal", quality: "1080p", framePack: "auto", captions: false, composeMode: "premium",
         ...(hasPrompt ? { prompt: prompt.trim() } : {}), ...(hasUrl ? { websiteUrl: url.trim() } : {}) };
       const r = await createProject(fields);
       go("understanding", r.projectId);
@@ -99,10 +101,10 @@ export default function App() {
   const studioViews = ["create", "understanding", "script", "theater", "premiere"];
   const screens = {
     auth: <Auth initialMode={authMode} onAuthed={onAuthed} onBack={() => go("landing")} />,
-    create: <CreateScreen onCreated={(id) => go("understanding", id)} prefill={prefill} />,
-    understanding: <UnderstandingScreen projectId={projectId} onScriptReady={() => go("script")} onFailed={() => go("create")} />,
+    create: <CreateScreen onCreated={(id, opts) => { setAutopilot(!!opts?.autopilot); go("understanding", id); }} prefill={prefill} />,
+    understanding: <UnderstandingScreen projectId={projectId} autopilot={autopilot} onScriptReady={() => go("script")} onProducing={() => go("theater")} onFailed={() => go("create")} />,
     script: <ScriptRoom projectId={projectId} onApproved={() => go("theater")} />,
-    theater: <ProductionTheater projectId={projectId} onDone={() => go("premiere")} onFailed={() => go("create")} />,
+    theater: <ProductionTheater projectId={projectId} autopilot={autopilot} onDone={() => go("premiere")} onFailed={() => go("create")} onScriptReview={() => go("script")} />,
     premiere: <Premiere projectId={projectId} onRemix={() => go("script")} onNew={() => enterStudio("create")} />,
     gallery: <Gallery onOpen={(id) => go("premiere", id)} onUseStyle={useStyle} />,
     templates: <Templates onUseStyle={useStyle} />,

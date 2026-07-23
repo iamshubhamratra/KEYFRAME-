@@ -1,0 +1,89 @@
+{
+  "name": "abyssal-glow",
+  "vibe": "the bioluminescent deep sea, 4000 meters down: near-black water crossed by undulating caustic light webs, rising bubbles and pulsing plankton motes, soft rounded type that ripples in as if refracted through the current, scene changes as a crested tide rolling up over the frame, and the emphasis word split into a cyan-and-magenta sonar echo with a luminous halo — for discovery stories, science and research brands, ambient product films and anything that should glow out of the dark",
+  "colors": {
+    "abyss": "#041318",
+    "lumen": "#3FE8CE",
+    "jelly": "#E06BC4",
+    "deepteal": "#0D3B46",
+    "foam": "#E6FAF4"
+  },
+  "fonts": [
+    "Inter",
+    "Comfortaa"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#041318"
+  },
+  "motion": {
+    "cut": "submerge",
+    "drift": 1.05
+  },
+  "fx": {
+    "canvas": "caustics",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#3FE8CE",
+      "#E06BC4"
+    ],
+    "extras": [
+      "#0D3B46",
+      "#E6FAF4"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "bioluminescent deep sea dark underwater glow cinematic",
+    "iconStyle": "outline",
+    "keywords": [
+      "ocean",
+      "deep sea",
+      "glow",
+      "underwater",
+      "science",
+      "dark"
+    ],
+    "prefer": [
+      "photo",
+      "illustration"
+    ]
+  },
+  "typography": {
+    "display": "Comfortaa"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": false,
+    "underline": false,
+    "stat": "headline",
+    "assetStyle": "glow"
+  },
+  "textfx": {
+    "enter": "ripple",
+    "emphasis": "echo",
+    "align": "right",
+    "sizeScale": 1
+  },
+  "audio": {
+    "music": {
+      "query": "ambient deep drone ethereal underwater",
+      "mood": "ambient",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "sonar pings, distant whale calls, bubble columns and slow water swells — vast and submerged, a swell riding every tide cut",
+      "palette": [
+        "sonar ping",
+        "whale call",
+        "bubbles",
+        "water swell",
+        "deep boom",
+        "hydrophone crackle"
+      ]
+    }
+  }
+}

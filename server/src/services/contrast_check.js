@@ -310,6 +310,13 @@ async function probeFrames(aUrl, bUrl, boxes, frameW, frameH) {
       needed,
       large: box.large,
       pass: ratio >= needed,
+      // Rendered foreground + local backdrop (rounded ints) and whether the glyph
+      // is gradient-clipped. The deterministic contrast fixer reads these to pick a
+      // readable on-palette color and predict the post-fix ratio with THIS exact
+      // WCAG math — so a fix it accepts is the same fix this checker will pass.
+      fg: [Math.round(fg[0]), Math.round(fg[1]), Math.round(fg[2])],
+      bg: [Math.round(bg[0]), Math.round(bg[1]), Math.round(bg[2])],
+      transparentFill: !!box.transparentFill,
     });
   }
   return results;
@@ -423,7 +430,7 @@ async function contrastCheck(jobDir, { samples = 5, timeoutMs = 120000 } = {}) {
         await page.evaluate(unhideTaggedGlyphs);
       }
       for (const e of entries) {
-        all.push({ time: t, selector: e.selector, text: e.text, ratio: e.ratio, needed: e.needed, pass: e.pass });
+        all.push({ time: t, selector: e.selector, text: e.text, ratio: e.ratio, needed: e.needed, pass: e.pass, fg: e.fg, bg: e.bg, transparentFill: e.transparentFill });
         if (!e.pass) failures.push({ time: t, selector: e.selector, text: e.text, ratio: e.ratio, needed: e.needed });
       }
     }
@@ -431,11 +438,14 @@ async function contrastCheck(jobDir, { samples = 5, timeoutMs = 120000 } = {}) {
     // measured. A word that dips below during its entrance but reads fine once
     // arrived is legible — only text that's unreadable at its BEST moment is a real
     // finding. This is the verdict the gate reports on; `failures`/`all` stay raw.
-    const best = new Map(); // key(selector||text) -> { selector, text, needed, bestRatio, bestTime }
+    const best = new Map(); // key(selector||text) -> { selector, text, needed, bestRatio, bestTime, bestFg, bestBg, transparentFill }
     for (const e of all) {
       const k = `${e.selector}||${e.text}`;
       const cur = best.get(k);
-      if (!cur || e.ratio > cur.bestRatio) best.set(k, { selector: e.selector, text: e.text, needed: e.needed, bestRatio: e.ratio, bestTime: e.time });
+      // Carry the fg/bg measured at the element's BEST (highest-ratio) settled
+      // moment — the fixer targets that frame's colors so its predicted post-fix
+      // ratio lines up with what persistentFailures reports here.
+      if (!cur || e.ratio > cur.bestRatio) best.set(k, { selector: e.selector, text: e.text, needed: e.needed, bestRatio: e.ratio, bestTime: e.time, bestFg: e.fg, bestBg: e.bg, transparentFill: e.transparentFill });
     }
     const persistentFailures = [...best.values()]
       .filter((g) => g.bestRatio < g.needed)
@@ -450,4 +460,4 @@ async function contrastCheck(jobDir, { samples = 5, timeoutMs = 120000 } = {}) {
   }
 }
 
-module.exports = { contrastCheck, findChromium };
+module.exports = { contrastCheck, findChromium, serveDir };

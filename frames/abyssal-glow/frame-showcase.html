@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Abyssal Glow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<style>
+  /* ============================================================
+     ABYSSAL GLOW — the bioluminescent deep sea.4
+     One surface (near-black water); everything visible EMITS.
+     Cyan is the voice, magenta the echo. Light falls off — every
+     glow is a radial fade; no hard edges anywhere. Motion is the
+     water: caustics undulate, plankton pulses, headlines ripple
+     in as if refracted, scenes submerge beneath a wave crest.
+     ============================================================ */
+  * { box-sizing:border-box; margin:0; padding:0; }
+  :root{ --abyss:#041318; --cyan:#3FE8CE; --mag:#E06BC4; --teal:#0D3B46; --foam:#E6FAF4;
+         --dim:rgba(230,250,244,.62); --rim:rgba(63,232,206,.13); }
+  html{ scroll-behavior:smooth; }
+  body{ background:var(--abyss); color:var(--foam); font-family:'Inter',system-ui,sans-serif;
+        overflow-x:hidden; -webkit-font-smoothing:antialiased; }
+  h1,h2,h3,.display{ font-family:'Comfortaa',sans-serif; font-weight:700; }
+
+  /* ---------- the sonar-echo emphasis ---------- */
+  .echo{ position:relative; display:inline-block; color:var(--cyan);
+         text-shadow:0 0 .55em rgba(63,232,206,.55), 0 0 1.6em rgba(63,232,206,.28); }
+  .echo::before,.echo::after{ content:attr(data-t); position:absolute; left:0; top:0; width:100%;
+         pointer-events:none; text-shadow:none; }
+  .echo::before{ color:var(--mag); opacity:.5;  filter:blur(1px);   animation:echoA 5.2s ease-in-out infinite; }
+  .echo::after { color:var(--cyan); opacity:.32; filter:blur(2.6px); animation:echoB 5.2s ease-in-out infinite; }
+  @keyframes echoA{ 0%,100%{transform:translate(-.05em,.035em)} 50%{transform:translate(-.085em,.06em)} }
+  @keyframes echoB{ 0%,100%{transform:translate(.05em,-.035em)} 50%{transform:translate(.085em,-.06em)} }
+  .ring{ position:absolute; left:50%; top:50%; width:1.1em; height:1.1em; margin:-.55em 0 0 -.55em;
+         border:1px solid var(--cyan); border-radius:50%; opacity:0; pointer-events:none; }
+
+  /* ---------- cover ---------- */
+  #cover{ position:relative; height:100vh; min-height:560px; overflow:hidden;
+          background:linear-gradient(#07222b 0%, var(--abyss) 46%); }
+  #sea{ position:absolute; inset:0; width:100%; height:100%; }
+  #cover-copy{ position:absolute; top:50%; left:52%; transform:translateY(-50%);
+               width:min(44rem,42vw); min-width:320px; z-index:4; }
+  #kick{ display:inline-block; font-size:12px; font-weight:700; letter-spacing:4px;
+         text-transform:uppercase; color:var(--cyan); text-shadow:0 0 14px rgba(63,232,206,.5); }
+  #cover h1{ margin-top:1.2rem; font-size:clamp(2.6rem,6.4vw,6.2rem); line-height:1.08;
+             text-shadow:0 0 30px rgba(230,250,244,.12); }
+  #cover .cw{ display:inline-block; will-change:transform,filter,opacity; }
+  #sub{ margin-top:1.4rem; max-width:30rem; font-weight:300; font-size:clamp(.95rem,1.4vw,1.15rem);
+        line-height:1.7; color:var(--dim); }
+  #cue{ position:absolute; left:50%; bottom:3vh; transform:translateX(-50%); z-index:4;
+        font-size:11px; letter-spacing:3px; text-transform:uppercase; color:rgba(63,232,206,.55); }
+  /* cover depth-gauge */
+  #cgauge{ position:absolute; left:6%; top:18%; bottom:18%; width:1px; z-index:3;
+           background:linear-gradient(rgba(63,232,206,0), rgba(63,232,206,.35), rgba(63,232,206,0)); }
+  #cgauge i{ position:absolute; left:10px; font-style:normal; font-size:10px; font-weight:600;
+             letter-spacing:3px; color:rgba(63,232,206,.5); white-space:nowrap; }
+  #cgm{ position:absolute; left:-4px; top:22%; width:9px; height:9px; border-radius:50%;
+        background:var(--cyan); box-shadow:0 0 12px 3px rgba(63,232,206,.55); }
+  /* jellyfish */
+  .jelly{ position:absolute; z-index:2; pointer-events:none; }
+  #cj{ right:6%; bottom:8%; width:clamp(150px,16vw,240px); opacity:.9; }
+  /* submerge tide */
+  #tide{ position:absolute; left:0; right:0; top:-8%; height:116%; z-index:6;
+         transform:translateY(105%); display:flex; flex-direction:column; pointer-events:none; }
+  #tide svg{ width:100%; height:14vh; display:block; flex:0 0 auto; }
+  #tide .fill{ flex:1; background:linear-gradient(rgba(13,59,70,.96), rgba(4,19,24,.99)); }
+
+  /* ---------- document sections ---------- */
+  section{ position:relative; padding:6.5rem 6vw; }
+  .wrap{ max-width:1080px; margin:0 auto; }
+  .slab{ font-size:12px; font-weight:700; letter-spacing:4px; text-transform:uppercase;
+         color:var(--cyan); text-shadow:0 0 12px rgba(63,232,206,.4); }
+  section h2{ margin:1rem 0 .8rem; font-size:clamp(1.7rem,3.2vw,2.6rem); }
+  .lede{ max-width:46rem; color:var(--dim); font-weight:300; line-height:1.75; }
+  .card{ background:rgba(13,59,70,.30); border:1px solid var(--rim); border-radius:20px;
+         box-shadow:inset 0 0 40px rgba(63,232,206,.03); }
+
+  /* palette */
+  #spec{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1.2rem; margin-top:2.6rem; }
+  .spec{ padding:1.6rem 1.4rem 1.5rem; text-align:center; }
+  .orb{ width:96px; height:96px; margin:0 auto; border-radius:50%; position:relative; }
+  .orb b{ position:absolute; left:50%; top:50%; width:26px; height:26px; margin:-13px;
+          border-radius:50%; }
+  .spec h3{ margin-top:1.1rem; font-size:1.02rem; font-weight:600; }
+  .spec code{ display:block; margin-top:.3rem; font-size:.8rem; color:var(--cyan); letter-spacing:1px; }
+  .spec p{ margin-top:.5rem; font-size:.8rem; line-height:1.55; color:var(--dim); }
+
+  /* typography */
+  .tline{ padding:1.6rem 0; border-bottom:1px solid rgba(63,232,206,.08); }
+  .tline small{ display:block; font-size:11px; letter-spacing:3px; text-transform:uppercase;
+                color:rgba(63,232,206,.55); margin-bottom:.55rem; }
+  .t-hero{ font-family:'Comfortaa'; font-weight:700; font-size:clamp(2.2rem,5vw,4.4rem); line-height:1.08; }
+  .t-head{ font-family:'Comfortaa'; font-weight:700; font-size:clamp(1.5rem,3vw,2.6rem); }
+  .t-card{ font-family:'Comfortaa'; font-weight:700; font-size:1.35rem; }
+  .t-stat{ font-family:'Comfortaa'; font-weight:700; font-size:clamp(2.4rem,5vw,4rem); color:var(--cyan);
+           text-shadow:0 0 28px rgba(63,232,206,.5); }
+  .t-body{ max-width:42rem; line-height:1.75; color:var(--dim); }
+  .t-label{ font-size:12px; font-weight:700; letter-spacing:4px; text-transform:uppercase; color:var(--cyan); }
+
+  /* components */
+  #comps{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1.3rem; margin-top:2.6rem; }
+  .comp{ overflow:hidden; }
+  .stage{ position:relative; height:220px; overflow:hidden; border-radius:20px 20px 0 0;
+          background:linear-gradient(#06202a, var(--abyss)); }
+  .comp footer{ padding:1.1rem 1.3rem 1.3rem; }
+  .comp h3{ font-size:1.05rem; font-weight:600; color:var(--foam); }
+  .comp h3 span{ color:rgba(63,232,206,.6); font-family:'Comfortaa'; font-weight:400; font-size:.85rem; }
+  .comp p{ margin-top:.4rem; font-size:.82rem; line-height:1.55; color:var(--dim); }
+  .tbub{ position:absolute; border:1px solid rgba(230,250,244,.28); border-radius:50%; }
+  .mote{ position:absolute; border-radius:50%; }
+  .sring{ position:absolute; left:50%; top:50%; border:1px solid var(--cyan); border-radius:50%;
+          width:22px; height:22px; margin:-11px; opacity:0; }
+  .score{ position:absolute; left:50%; top:50%; width:10px; height:10px; margin:-5px; border-radius:50%;
+          background:var(--cyan); box-shadow:0 0 16px 4px rgba(63,232,206,.5); }
+  #g-rail{ position:absolute; left:50%; top:12%; bottom:12%; width:1px;
+           background:linear-gradient(rgba(63,232,206,0), rgba(63,232,206,.4), rgba(63,232,206,0)); }
+  #g-rail i{ position:absolute; left:14px; font-style:normal; font-size:10px; font-weight:600;
+             letter-spacing:3px; color:rgba(63,232,206,.55); white-space:nowrap; margin-top:-5px; }
+  #g-mark{ position:absolute; left:-4px; top:0; width:9px; height:9px; border-radius:50%;
+           background:var(--cyan); box-shadow:0 0 12px 3px rgba(63,232,206,.6); }
+  #echo-demo{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+              font-family:'Comfortaa'; font-weight:700; font-size:3.2rem; }
+
+  /* motion grammar */
+  #gram{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:1.3rem; margin-top:2.6rem; }
+  .gr{ padding:1.6rem 1.5rem; }
+  .gr b{ display:block; font-family:'Comfortaa'; font-weight:700; font-size:1.1rem; color:var(--cyan);
+         text-shadow:0 0 14px rgba(63,232,206,.35); }
+  .gr p{ margin-top:.7rem; font-size:.86rem; line-height:1.65; color:var(--dim); }
+
+  #foot{ padding:3.5rem 6vw 4.5rem; text-align:center; font-size:12px; letter-spacing:3px;
+         text-transform:uppercase; color:rgba(63,232,206,.45); }
+  @media (max-width:820px){
+    #cover-copy{ left:50%; transform:translate(-50%,-50%); width:86vw; }
+    #cgauge{ display:none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ======================= COVER — a living title card ======================= -->
+<section id="cover">
+  <canvas id="sea"></canvas>
+
+  <div id="cgauge">
+    <i style="top:0">&minus;3000 M</i><i style="top:48%">&minus;3500 M</i><i style="bottom:0">&minus;4000 M</i>
+    <div id="cgm"></div>
+  </div>
+
+  <div class="jelly" id="cj"></div>
+
+  <div id="cover-copy">
+    <span id="kick">Abyssal Glow &middot; a KEYFRAME frame pack &middot; &minus;4000 m</span>
+    <h1>
+      <span class="cw">Light</span> <span class="cw">lives</span><br>
+      <span class="cw">in</span> <span class="cw echo" data-t="the&nbsp;deep.">the&nbsp;deep.<span class="ring"></span><span class="ring"></span><span class="ring"></span></span>
+    </h1>
+    <p id="sub">A film shot four thousand meters down &mdash; caustic light webs, drifting
+    plankton, jellyfish pulses. Everything luminous emits a halo, and type arrives
+    refracted through the water.</p>
+  </div>
+
+  <div id="cue">descend &darr;</div>
+
+  <div id="tide" aria-hidden="true">
+    <svg viewBox="0 0 1440 120" preserveAspectRatio="none">
+      <path d="M0,120 L0,62 C220,18 470,98 720,54 C970,12 1210,92 1440,48 L1440,120 Z"
+            fill="rgba(13,59,70,.96)"/>
+      <path d="M0,62 C220,18 470,98 720,54 C970,12 1210,92 1440,48"
+            fill="none" stroke="rgba(63,232,206,.5)" stroke-width="2.5" style="filter:blur(1.5px)"/>
+    </svg>
+    <div class="fill"></div>
+  </div>
+</section>
+
+<!-- ======================= PALETTE — bioluminescent specimens ======================= -->
+<section>
+  <div class="wrap">
+    <span class="slab">01 &middot; Palette</span>
+    <h2>Five lights in black water</h2>
+    <p class="lede">There are no lit surfaces at this depth &mdash; a color exists only if it
+    emits. The abyss is the single ground; everything saturated carries a soft radial halo.
+    Cyan is the voice, magenta the echo &mdash; never more magenta than cyan.</p>
+    <div id="spec">
+      <div class="spec card"><div class="orb" style="background:radial-gradient(circle,#0b2e38 0%,rgba(4,19,24,0) 70%)"><b style="background:#041318;box-shadow:0 0 0 1px rgba(230,250,244,.2)"></b></div><h3>Abyss</h3><code>#041318</code><p>The water. Ground of every frame &mdash; never brighter than a whisper of black.</p></div>
+      <div class="spec card"><div class="orb" style="background:radial-gradient(circle,rgba(63,232,206,.5) 0%,rgba(63,232,206,0) 70%)"><b style="background:#3FE8CE"></b></div><h3>Bioluminen Cyan</h3><code>#3FE8CE</code><p>The voice. Labels, stats, caustics, plankton, rings, the echo-word body.</p></div>
+      <div class="spec card"><div class="orb" style="background:radial-gradient(circle,rgba(224,107,196,.45) 0%,rgba(224,107,196,0) 70%)"><b style="background:#E06BC4"></b></div><h3>Jelly Magenta</h3><code>#E06BC4</code><p>The echo. Ghost copies and jellyfish bells &mdash; always subordinate to cyan.</p></div>
+      <div class="spec card"><div class="orb" style="background:radial-gradient(circle,rgba(13,59,70,.9) 0%,rgba(13,59,70,0) 72%)"><b style="background:#0D3B46"></b></div><h3>Deep Teal</h3><code>#0D3B46</code><p>Denser water. Translucent, soft-edged pockets when copy needs stillness.</p></div>
+      <div class="spec card"><div class="orb" style="background:radial-gradient(circle,rgba(230,250,244,.4) 0%,rgba(230,250,244,0) 70%)"><b style="background:#E6FAF4"></b></div><h3>Pale Foam</h3><code>#E6FAF4</code><p>Reading light. Headlines and body &mdash; near-white, slightly translucent.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= TYPOGRAPHY ======================= -->
+<section>
+  <div class="wrap">
+    <span class="slab">02 &middot; Typography</span>
+    <h2>Comfortaa glows, Inter explains</h2>
+    <p class="lede">Nothing sharp survives at this pressure. Comfortaa &mdash; soft, rounded,
+    almost gelatinous &mdash; carries every headline and stat, never uppercase-forced, never
+    tracked wide. Inter carries body, labels, and the depth-gauge readouts.</p>
+    <div class="tline"><small>hero-title &middot; Comfortaa 700 &middot; 5.8cqw</small><div class="t-hero">Down where light<br>is a <span class="echo" data-t="language.">language.</span></div></div>
+    <div class="tline"><small>section-headline &middot; Comfortaa 700 &middot; 3.6cqw</small><div class="t-head">The water never freezes</div></div>
+    <div class="tline"><small>stat-numeral &middot; Comfortaa 700 &middot; 4.8cqw &middot; cyan + halo</small><div class="t-stat">&mdash; figure &mdash;</div></div>
+    <div class="tline"><small>card-title &middot; Comfortaa 700 &middot; 1.8cqw</small><div class="t-card">Caustic web</div></div>
+    <div class="tline"><small>body &middot; Inter 400 &middot; 1.05cqw &middot; foam-dim</small><p class="t-body">Body copy reads by foam-light: Inter at weight 400, line-height 1.7, set on open water or inside a translucent teal pocket. It de-blurs and rises on entrance &mdash; it does not ripple.</p></div>
+    <div class="tline" style="border-bottom:none"><small>section-label / depth-readout &middot; Inter 700 &middot; tracked caps</small><div class="t-label">Specimen 04 &middot; &minus;4000 M</div></div>
+  </div>
+</section>
+
+<!-- ======================= COMPONENTS ======================= -->
+<section>
+  <div class="wrap">
+    <span class="slab">03 &middot; Components</span>
+    <h2>Seven living organisms</h2>
+    <p class="lede">Every component is alive by contract &mdash; ambient loops run unsynced,
+    because synchronized water reads as machinery.</p>
+    <div id="comps">
+      <div class="comp card"><div class="stage"><canvas id="c-caustic" style="position:absolute;inset:0;width:100%;height:100%"></canvas></div><footer><h3>caustic-web <span>&middot; the signature</span></h3><p>Overlapping cyan sine filaments, each undulating on its own 7&ndash;14s period. Lives in the top third &mdash; surface light, 4000&nbsp;m overhead.</p></footer></div>
+      <div class="comp card"><div class="stage" id="s-bub"></div><footer><h3>bubble-column</h3><p>Stroked foam circles rise the full frame with a gentle sine sway, popping near the top. One or two loose columns, off the type's measure.</p></footer></div>
+      <div class="comp card"><div class="stage" id="s-mote"></div><footer><h3>plankton-drift</h3><p>The living dust of the water column &mdash; motes drifting on slow vectors, each pulsing on a 2&ndash;5s heartbeat. Rarely, one is magenta.</p></footer></div>
+      <div class="comp card"><div class="stage" style="display:flex;align-items:center;justify-content:center"><div class="jelly" id="tj" style="position:relative;width:130px"></div></div><footer><h3>jellyfish</h3><p>A soft magenta dome with a cyan rim light and trailing tentacles. The bell pulses every ~2.6s; each pulse propels a slow drift. One per frame, at most.</p></footer></div>
+      <div class="comp card"><div class="stage"><div class="score"></div><div class="sring"></div><div class="sring"></div><div class="sring"></div></div><footer><h3>sonar-ring</h3><p>The attention ping &mdash; concentric strokes expanding 3&ndash;5&times; and fading over 2&ndash;3s, repeating while the target holds the frame. One source per frame.</p></footer></div>
+      <div class="comp card"><div class="stage"><div id="g-rail"><i style="top:0%">&minus;1000 M</i><i style="top:33%">&minus;2000 M</i><i style="top:66%">&minus;3000 M</i><i style="top:100%">&minus;4000 M</i><div id="g-mark"></div></div></div><footer><h3>depth-gauge</h3><p>A thin glowing rail with readouts in meters; the marker sinks between ticks to show progress. Floats in the safe area &mdash; never flush to an edge.</p></footer></div>
+      <div class="comp card" style="grid-column:1/-1"><div class="stage" style="height:180px"><div id="echo-demo"><span class="echo" id="echo-word" data-t="bioluminescent">bioluminescent</span></div></div><footer><h3>echo-text <span>&middot; the emphasis</span></h3><p>The sonar-echo double-image: the cyan word with its glow halo, a magenta ghost offset one way, a fainter cyan ghost the other &mdash; a word heard twice through water. The ghosts never stop swimming. One echo-text per frame.</p></footer></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= MOTION GRAMMAR ======================= -->
+<section>
+  <div class="wrap">
+    <span class="slab">04 &middot; Motion grammar</span>
+    <h2>Motion is the water</h2>
+    <p class="lede">Everything at this depth is slow. Nothing linear, nothing snappier than
+    0.4s except the elastic overshoot; exits sink &mdash; down, fade, blur &mdash; never pop.</p>
+    <div id="gram">
+      <div class="gr card"><b>1 &middot; Ripple-in</b><p>Headline words arrive refracted: vertically stretched (scaleY &asymp; 2.4), skewed, blurred and dim, then wobble elastically into focus &mdash; scale, skew and blur resolving together on elastic.out(1,&nbsp;0.45), staggered so the line un-refracts left to right. After arrival, type keeps a barely-visible drift; nothing at depth is perfectly still.</p></div>
+      <div class="gr card"><b>2 &middot; Submerge</b><p>Scenes do not cut &mdash; they sink. A tide with a curved, cyan-lit wave crest rises from the bottom and rolls up over the frame, carrying the old scene down beneath it; as the crest clears the top, the next scene is already in the water, its headline beginning to ripple in. Never a straight wipe.</p></div>
+      <div class="gr card"><b>3 &middot; Living water</b><p>The ambient layer never stops: caustic filaments undulate on unsynced periods, plankton pulses on individual heartbeats, bubbles rise and pop, and a jellyfish may propel itself through the middle distance. Synchronized loops are a violation &mdash; the sea has no metronome.</p></div>
+      <div class="gr card"><b>4 &middot; Sonar echo</b><p>The emphasis word lands with the ripple grammar, then its magenta and cyan ghosts split outward to their offsets and keep swimming on a slow sine, while sonar rings ping from the word every 4&ndash;6s for as long as it holds the frame.</p></div>
+    </div>
+  </div>
+</section>
+
+<div id="foot">Abyssal Glow &middot; KEYFRAME &middot; cyan is the voice &mdash; magenta the echo</div>
+
+<script>
+(function(){
+  if(!window.gsap){ return; } /* fonts + static layout still read without GSAP */
+
+  /* deterministic rand */
+  var seed=42; function rnd(){ seed=(seed*9301+49297)%233280; return seed/233280; }
+
+  /* ---------- canvas sea: caustics + bubbles + plankton ---------- */
+  function Sea(cv,o){
+    var x=cv.getContext('2d'), W=0,H=0, fil=[],bub=[],mot=[],i;
+    function size(){ W=cv.width=cv.clientWidth; H=cv.height=cv.clientHeight; }
+    size(); addEventListener('resize',size);
+    for(i=0;i<(o.caustics||0);i++) fil.push({y:.05+.38*rnd(),a1:10+22*rnd(),k1:.003+.005*rnd(),s1:.25+.5*rnd(),
+      a2:5+12*rnd(),k2:.008+.008*rnd(),s2:.4+.7*rnd(),al:.05+.08*rnd(),p:rnd()*9});
+    for(i=0;i<(o.bubbles||0);i++) bub.push({x:rnd(),y:rnd(),r:2+6*rnd(),sp:.028+.05*rnd(),sw:8+18*rnd(),ph:rnd()*9});
+    for(i=0;i<(o.motes||0);i++){ var c=rnd(); mot.push({x:rnd(),y:rnd(),vx:(rnd()-.5)*.006,vy:(rnd()-.5)*.004,
+      r:.7+1.6*rnd(),ph:rnd()*9,per:2+3*rnd(),c:c<.1?'224,107,196':(c<.35?'230,250,244':'63,232,206')}); }
+    this.draw=function(t){
+      x.clearRect(0,0,W,H);
+      /* caustic filaments */
+      x.lineWidth=1.4; x.shadowColor='rgba(63,232,206,.8)'; x.shadowBlur=9;
+      for(var f=0;f<fil.length;f++){ var l=fil[f];
+        x.strokeStyle='rgba(63,232,206,'+l.al+')'; x.beginPath();
+        for(var px=-10;px<=W+10;px+=9){
+          var py=H*l.y + l.a1*Math.sin(px*l.k1 + t*l.s1 + l.p) + l.a2*Math.sin(px*l.k2 - t*l.s2 + l.p*2);
+          px<0 ? x.moveTo(px,py) : x.lineTo(px,py);
+        } x.stroke(); }
+      x.shadowBlur=0;
+      /* bubbles */
+      x.lineWidth=1;
+      for(var b0=0;b0<bub.length;b0++){ var b=bub[b0];
+        b.y-=b.sp/60; if(b.y<-.05){ b.y=1.05; b.x=rnd(); }
+        var bx=b.x*W + Math.sin(t*.8+b.ph)*b.sw, by=b.y*H, fa=Math.min(1,b.y*6);
+        x.strokeStyle='rgba(230,250,244,'+(.2*fa)+')';
+        x.beginPath(); x.arc(bx,by,b.r,0,6.284); x.stroke(); }
+      /* plankton */
+      for(var m0=0;m0<mot.length;m0++){ var m=mot[m0];
+        m.x+=m.vx/60; m.y+=m.vy/60;
+        if(m.x<-.02)m.x=1.02; if(m.x>1.02)m.x=-.02; if(m.y<-.02)m.y=1.02; if(m.y>1.02)m.y=-.02;
+        var a=.15+.5*(.5+.5*Math.sin(t/m.per*6.284+m.ph));
+        x.fillStyle='rgba('+m.c+','+a+')';
+        x.beginPath(); x.arc(m.x*W,m.y*H,m.r,0,6.284); x.fill(); }
+    };
+  }
+  var seas=[ new Sea(document.getElementById('sea'),{caustics:7,bubbles:14,motes:60}),
+             new Sea(document.getElementById('c-caustic'),{caustics:5,motes:14}) ];
+  (function loop(ts){ var t=(ts||0)/1000;
+    for(var s=0;s<seas.length;s++) seas[s].draw(t);
+    requestAnimationFrame(loop); })(0);
+
+  /* ---------- jellyfish (injected SVG, animated per instance) ---------- */
+  var jn=0;
+  function jelly(el){
+    var id='jg'+(jn++);
+    el.innerHTML='<svg viewBox="0 0 200 280" style="width:100%;height:auto;overflow:visible">'
+      +'<defs><radialGradient id="'+id+'" cx="50%" cy="32%" r="60%">'
+      +'<stop offset="0%" stop-color="#E06BC4" stop-opacity=".5"/>'
+      +'<stop offset="55%" stop-color="#E06BC4" stop-opacity=".16"/>'
+      +'<stop offset="100%" stop-color="#E06BC4" stop-opacity="0"/></radialGradient></defs>'
+      +'<ellipse cx="100" cy="85" rx="95" ry="85" fill="url(#'+id+')"/>'
+      +'<g class="jbell"><path d="M38 92 Q38 22 100 22 Q162 22 162 92 Q132 108 100 103 Q68 108 38 92 Z" '
+      +'fill="rgba(224,107,196,.32)" stroke="rgba(63,232,206,.55)" stroke-width="1.6"/>'
+      +'<path d="M52 88 Q52 40 100 38" fill="none" stroke="rgba(230,250,244,.25)" stroke-width="1.2"/></g>'
+      +'<g class="jtents" fill="none" stroke="rgba(224,107,196,.42)" stroke-width="1.4">'
+      +'<path d="M58 98 q-10 42 2 82 q6 26 -4 56"/><path d="M80 104 q-4 46 6 88 q4 24 -2 52"/>'
+      +'<path d="M100 106 q2 50 -2 92 q-2 26 4 54"/><path d="M120 104 q6 46 -4 88 q-4 24 4 52"/>'
+      +'<path d="M142 98 q10 42 -2 82 q-6 26 6 56"/></g></svg>';
+    gsap.to(el.querySelector('.jbell'),{scaleY:.94,scaleX:1.04,transformOrigin:'50% 92%',
+      duration:1.35,ease:'sine.inOut',yoyo:true,repeat:-1});
+    gsap.to(el.querySelector('.jtents'),{skewX:6,transformOrigin:'50% 0%',
+      duration:2.7,ease:'sine.inOut',yoyo:true,repeat:-1});
+  }
+  jelly(document.getElementById('cj'));
+  jelly(document.getElementById('tj'));
+  /* cover jelly propels itself */
+  gsap.to('#cj',{y:-70,duration:9,ease:'sine.inOut',yoyo:true,repeat:-1});
+  gsap.to('#cj',{x:-40,rotation:-6,duration:13,ease:'sine.inOut',yoyo:true,repeat:-1});
+
+  /* ---------- cover master loop: ripple-in, hold, submerge, again ---------- */
+  gsap.set('#tide',{yPercent:105});
+  var tl=gsap.timeline({repeat:-1});
+  tl.fromTo('#kick',{opacity:0,y:-14},{opacity:1,y:0,duration:.8,ease:'power2.out'},.2)
+    .fromTo('#cover .cw',
+      {opacity:0,y:46,scaleY:2.4,skewX:14,filter:'blur(15px)'},
+      {opacity:1,y:0,scaleY:1,skewX:0,filter:'blur(0px)',duration:1.7,
+       ease:'elastic.out(1,0.45)',stagger:.14},.55)
+    .fromTo('#sub',{opacity:0,y:22,filter:'blur(8px)'},
+      {opacity:1,y:0,filter:'blur(0px)',duration:1.1,ease:'power2.out'},1.7)
+    .fromTo('#cue',{opacity:0},{opacity:1,duration:.8},2.4)
+    .fromTo('#cgm',{top:'22%'},{top:'78%',duration:8.6,ease:'sine.inOut'},.6)
+    /* headline keeps drifting — nothing at depth is still */
+    .to('#cover h1',{y:-8,duration:3.4,ease:'sine.inOut',yoyo:true,repeat:1},2.6)
+    /* SUBMERGE: the wave crest rolls up and sinks the scene */
+    .to('#tide',{yPercent:0,duration:1.3,ease:'power2.in'},10.2)
+    .set(['#cover .cw','#kick','#sub','#cue'],{opacity:0},11.35)
+    .to('#tide',{yPercent:-116,duration:1.3,ease:'power2.out'},11.5);
+
+  /* sonar rings on the cover echo word */
+  gsap.fromTo('#cover .ring',{scale:.3,opacity:.75},
+    {scale:3.8,opacity:0,duration:2.6,ease:'power1.out',repeat:-1,repeatDelay:1.9,stagger:.55});
+
+  /* ---------- palette orbs breathe ---------- */
+  gsap.to('.orb',{scale:1.09,duration:2.6,ease:'sine.inOut',yoyo:true,repeat:-1,stagger:.35});
+
+  /* ---------- component tiles ---------- */
+  /* bubble-column */
+  var sb=document.getElementById('s-bub'), k;
+  for(k=0;k<9;k++){ var e=document.createElement('i'); e.className='tbub';
+    var r=4+10*rnd(); e.style.width=e.style.height=r+'px';
+    e.style.left=(28+44*rnd())+'%'; e.style.top='105%'; sb.appendChild(e);
+    gsap.to(e,{top:'-12%',duration:4.5+3*rnd(),ease:'none',repeat:-1,delay:k*.7});
+    gsap.to(e,{x:'+='+(10+14*rnd()),duration:1.4+rnd(),ease:'sine.inOut',yoyo:true,repeat:-1}); }
+  /* plankton-drift */
+  var sm=document.getElementById('s-mote');
+  for(k=0;k<26;k++){ var d=document.createElement('i'); d.className='mote';
+    var c=rnd(), col=c<.1?'#E06BC4':(c<.35?'#E6FAF4':'#3FE8CE'), rr=1.5+2.5*rnd();
+    d.style.cssText='width:'+rr+'px;height:'+rr+'px;background:'+col
+      +';box-shadow:0 0 6px '+col+';left:'+(5+90*rnd())+'%;top:'+(8+84*rnd())+'%;opacity:.2';
+    sm.appendChild(d);
+    gsap.to(d,{opacity:.85,duration:1.2+2*rnd(),ease:'sine.inOut',yoyo:true,repeat:-1,delay:rnd()*2});
+    gsap.to(d,{x:(rnd()-.5)*40,y:(rnd()-.5)*30,duration:7+5*rnd(),ease:'sine.inOut',yoyo:true,repeat:-1}); }
+  /* sonar-ring */
+  gsap.fromTo('.sring',{scale:.4,opacity:.8},
+    {scale:8,opacity:0,duration:2.8,ease:'power1.out',repeat:-1,repeatDelay:1.4,stagger:.6});
+  /* depth-gauge marker sinks tick to tick */
+  gsap.timeline({repeat:-1})
+    .to('#g-mark',{top:'33%',duration:1.6,ease:'sine.inOut'},.8)
+    .to('#g-mark',{top:'66%',duration:1.6,ease:'sine.inOut'},'+=.9')
+    .to('#g-mark',{top:'100%',duration:1.6,ease:'sine.inOut'},'+=.9')
+    .to('#g-mark',{top:'0%',duration:2.2,ease:'sine.inOut'},'+=1.4');
+  /* echo-text re-ripples */
+  gsap.timeline({repeat:-1,repeatDelay:3.4})
+    .fromTo('#echo-word',{opacity:0,scaleY:2.2,skewX:12,filter:'blur(12px)'},
+      {opacity:1,scaleY:1,skewX:0,filter:'blur(0px)',duration:1.6,ease:'elastic.out(1,0.45)'})
+    .to('#echo-word',{skewX:2,duration:1.7,ease:'sine.inOut',yoyo:true,repeat:1},1.7);
+})();
+</script>
+
+<section id="kf-asset-demo" style="background:#041318;color:#E6FAF4;padding:110px 8% 130px;font-family:Inter,sans-serif;"><div style="font:700 12px/1 Inter,sans-serif;letter-spacing:.34em;text-transform:uppercase;color:#3FE8CE;margin-bottom:14px;">NEW · ASSET SYSTEM</div><h2 style="font-family:'Comfortaa',sans-serif;font-size:52px;line-height:1.05;margin:0 0 18px;">Where your images go</h2><p style="max-width:620px;font-size:17px;line-height:1.6;color:rgba(230,250,244,.6);margin:0 0 56px;">Photos glow on a bioluminescent specimen plate with a cyan halo. Screenshots surface as illuminated panels rising out of the dark. Films are as long as your script — every scene can carry an image.</p><div style="display:flex;gap:64px;flex-wrap:wrap;align-items:flex-start;"><div><div style="position:relative;display:inline-block;background:rgba(230,250,244,.05);border:1.5px solid rgba(63,232,206,.55);border-radius:16px;padding:10px;box-shadow:0 0 30px rgba(63,232,206,.28),0 0 76px rgba(63,232,206,.13);"><div style="width:300px;height:200px;overflow:hidden;border-radius:inherit;background:linear-gradient(135deg,#0D3B46,#E06BC4);display:flex;align-items:center;justify-content:center;"><span style="font:700 13px/1 Inter,sans-serif;letter-spacing:.22em;color:rgba(255,255,255,.85);">YOUR PHOTO</span></div></div><div style="margin-top:22px;font:600 12px/1 Inter,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:rgba(230,250,244,.6);">Photo · themed mount</div></div><div><div style="display:inline-block;border-radius:10px;overflow:hidden;box-shadow:0 14px 34px rgba(0,0,0,.3);"><div style="background:#E8E4DC;padding:9px 12px;display:flex;gap:6px;"><span style="width:9px;height:9px;border-radius:50%;background:#ff5f57;"></span><span style="width:9px;height:9px;border-radius:50%;background:#febc2e;"></span><span style="width:9px;height:9px;border-radius:50%;background:#28c840;"></span></div><div style="width:322px;height:190px;background:linear-gradient(135deg,#0D3B46,#E06BC4);display:flex;align-items:center;justify-content:center;"><span style="font:700 12px/1 Inter,sans-serif;letter-spacing:.18em;color:rgba(255,255,255,.85);">YOUR WEBSITE SCREENSHOT</span></div></div><div style="margin-top:22px;font:600 12px/1 Inter,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:rgba(230,250,244,.6);">Screenshot · hero frame</div></div></div></section>
+</body>
+</html>

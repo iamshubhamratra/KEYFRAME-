@@ -33,6 +33,7 @@ const brightlifeComposer = require("./brightlife_composer");
 const blueprintComposer = require("./blueprint_composer");
 const bloomComposer = require("./bloom_composer");
 const bauhausComposer = require("./bauhaus_composer");
+const genesisComposer = require("./genesis_composer");
 const frameRegistry = require("./frame_registry");
 const frameManifest = require("./frame_manifest");
 const { render } = require("./renderer");
@@ -50,6 +51,10 @@ const { reviewAndCurate } = require("./creative_director");
 const { styleFor } = require("./pack_style");
 const catalog = require("./catalog");
 const { contrastCheck } = require("./contrast_check");
+const { contrastFix } = require("./contrast_fix");
+const { identityFix } = require("./identity_fix");
+const { layoutFix } = require("./layout_fix");
+const { assembleQualityReport } = require("./quality_report");
 
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
 function ms() { return Date.now(); }
@@ -287,6 +292,142 @@ async function contrastGate(jobDir, label) {
     contrastOnly: true,
     feedback: `Previous HTML passed lint + runtime + spatial inspect but FAILED the WCAG contrast check — this text is too low-contrast to read against what is rendered behind it:\n${lines}\nFIX: raise each listed element to at least its needed ratio — brighten the text color on a dark ground (or darken it on a light ground), or move it onto a more contrasting panel/scrim. Stay within the pack's palette family; do NOT invent new colors and do NOT introduce any lint/track/overlap regressions. Keep everything that already passed.`,
   };
+}
+
+// DETERMINISTIC contrast REPAIR — the "fix" the warn-mode gate never did. Runs
+// on EVERY composition path (incl. scene-kit, which never had a contrast gate),
+// right before render, on the on-disk index.html: check → surgically recolor the
+// offending text to a readable on-palette token (or drop a scrim chip) → re-check,
+// up to maxPasses, with NO LLM (ms-cheap string edits). Default ON; disable with
+// CONTRAST_FIX=off. Fail-open on any trouble (mirrors contrastGate) — never blocks
+// a render. Writes contrast-report.json for the Quality Director to aggregate.
+//   CONTRAST_FIX=off/0/false/no → disable
+//   (anything else / unset)     → on
+function contrastFixMode() {
+  const v = String(process.env.CONTRAST_FIX || "").toLowerCase();
+  return /^(off|0|false|no)$/.test(v) ? "off" : "on";
+}
+// Deterministic template-identity remap (phase 2) — snaps off-palette colors to
+// the nearest pack token (pure string, no browser; cheap). Runs BEFORE the
+// contrast pass so contrast measures the final on-palette colors. Fail-open.
+// Writes identity-report.json for the Quality Director. Disable with IDENTITY_FIX=off.
+function identityFixMode() {
+  const v = String(process.env.IDENTITY_FIX || "").toLowerCase();
+  return /^(off|0|false|no)$/.test(v) ? "off" : "on";
+}
+function identityFixPass(jobDir, { framePack, label = "compose" } = {}) {
+  if (identityFixMode() === "off" || !framePack || framePack === "auto") return null;
+  const indexPath = path.join(jobDir, "index.html");
+  try {
+    const packTokens = frameRegistry.getPackTokens(framePack);
+    if (!packTokens) return null;
+    const html = fs.readFileSync(indexPath, "utf8");
+    const out = identityFix(html, packTokens);
+    if (out.changed.length) {
+      fs.writeFileSync(indexPath, out.html, "utf8");
+      console.log(`[pipeline] identity-fix (${label}): remapped ${out.remapped.length} off-palette color(s) — ${out.changed.slice(0, 4).join(" | ")}`);
+    }
+    try { fs.writeFileSync(path.join(jobDir, "identity-report.json"), JSON.stringify({ remapped: out.remapped }, null, 2)); } catch { /* best-effort */ }
+    return out;
+  } catch (e) {
+    console.warn(`[pipeline] identity-fix (${label}) errored (${String(e.message).slice(0, 120)}) — not blocking`);
+    return null;
+  }
+}
+
+// Deterministic LAYOUT repair — hides duplicate text + scrims text colliding with
+// a graphic (SAFE: never moves elements). Renders the comp once. Runs BEFORE the
+// contrast loop so contrast measures the post-layout DOM. Disable with LAYOUT_FIX=off.
+function layoutFixMode() {
+  const v = String(process.env.LAYOUT_FIX || "").toLowerCase();
+  return /^(off|0|false|no)$/.test(v) ? "off" : "on";
+}
+async function layoutFixPass(jobDir, { label = "compose" } = {}) {
+  if (layoutFixMode() === "off") return null;
+  try {
+    const r = await layoutFix(jobDir, { samples: 6, timeoutMs: 50000 });
+    if (r.skipped) console.log(`[pipeline] layout-fix skipped (${r.skipped}) (${label})`);
+    else if (r.changed && r.changed.length) console.log(`[pipeline] layout-fix (${label}): ${r.duplicatesRemoved} duplicate(s) hidden, ${r.collisionsScrimmed} collision(s) scrimmed — ${r.changed.slice(0, 4).join(" | ")}`);
+    // Accumulate across passes (pre-render + any QA contrast_repair re-run).
+    let prior = { duplicatesRemoved: 0, collisionsScrimmed: 0 };
+    try { prior = JSON.parse(fs.readFileSync(path.join(jobDir, "layout-report.json"), "utf8")); } catch { /* first pass */ }
+    const report = {
+      duplicatesRemoved: (prior.duplicatesRemoved || 0) + (r.duplicatesRemoved || 0),
+      collisionsScrimmed: (prior.collisionsScrimmed || 0) + (r.collisionsScrimmed || 0),
+    };
+    try { fs.writeFileSync(path.join(jobDir, "layout-report.json"), JSON.stringify(report, null, 2)); } catch { /* best-effort */ }
+    return report;
+  } catch (e) {
+    console.warn(`[pipeline] layout-fix (${label}) errored (${String(e.message).slice(0, 120)}) — not blocking`);
+    return null;
+  }
+}
+
+async function contrastFixPass(jobDir, { framePack, storyboard, dims, label = "compose", maxPasses = 2 } = {}) {
+  // Identity remap first (cheap, pure-string) so the contrast check measures the
+  // final on-palette colors. Independent of the CONTRAST_FIX flag.
+  try { identityFixPass(jobDir, { framePack, label }); } catch { /* fail-open */ }
+  // Layout repair next (hide duplicates + scrim collisions) so contrast then
+  // verifies the final DOM. Its own render; gated by LAYOUT_FIX.
+  try { await layoutFixPass(jobDir, { label }); } catch { /* fail-open */ }
+  if (contrastFixMode() === "off") return { checked: false, fixed: [], remaining: [], passes: 0, skipped: "off" };
+  const indexPath = path.join(jobDir, "index.html");
+  let theme = null, packTokens = null;
+  try { theme = sceneKit.deriveTheme(framePack, storyboard); } catch { /* fixer falls back to ground/ink defaults */ }
+  try { packTokens = framePack ? frameRegistry.getPackTokens(framePack) : null; } catch { /* optional */ }
+
+  const allFixed = [];
+  let remaining = [];
+  let passes = 0, checkedAny = false;
+  try {
+    // p indexes CHECKS: check at each p; fix only if p < maxPasses so the final
+    // check always reflects the post-fix state (accurate `remaining`). The healthy
+    // case (0 failures) costs exactly ONE check and returns immediately.
+    for (let p = 0; p <= maxPasses; p++) {
+      let res;
+      try { res = await contrastCheck(jobDir, { samples: 5, timeoutMs: 45000 }); }
+      catch (e) { console.warn(`[pipeline] contrast-fix check errored (${String(e.message).slice(0, 120)}) — stopping`); break; }
+      if (res.skipped) { console.log(`[pipeline] contrast-fix skipped (${res.skipped}) (${label})`); break; }
+      checkedAny = true;
+      const fails = res.persistentFailures || [];
+      remaining = fails;
+      if (!fails.length) { if (p > 0) console.log(`[pipeline] contrast-fix (${label}): all text clears WCAG AA after ${p} pass(es)`); break; }
+      if (p >= maxPasses) { console.warn(`[pipeline] contrast-fix (${label}): ${fails.length} text element(s) still below AA after ${maxPasses} pass(es) — shipping flagged`); break; }
+      let html;
+      try { html = fs.readFileSync(indexPath, "utf8"); } catch { break; }
+      const out = contrastFix(html, fails, { theme, packTokens, isDark: theme ? theme.isDark : undefined });
+      if (!out.changed.length) {
+        console.warn(`[pipeline] contrast-fix (${label}): ${fails.length} low-contrast, none deterministically locatable — leaving to QA`);
+        break;
+      }
+      fs.writeFileSync(indexPath, out.html, "utf8");
+      allFixed.push(...out.fixed);
+      passes = p + 1;
+      console.log(`[pipeline] contrast-fix (${label}) pass ${passes}: fixed ${out.fixed.length}/${fails.length} — ${out.changed.slice(0, 4).join(" | ")}`);
+    }
+  } catch (e) {
+    console.warn(`[pipeline] contrast-fix (${label}) errored (${String(e.message).slice(0, 120)}) — not blocking`);
+  }
+  // ACCUMULATE fixes across passes: this runs both pre-render AND (via the QA
+  // contrast_repair node) post-render. The later pass finding nothing must NOT
+  // erase the record of what the pre-render pass fixed — otherwise the report card
+  // wrongly reads "0 fixed" on a film whose text was actually repaired. Dedup by
+  // selector+text+strategy so an idempotent re-fix isn't double-counted.
+  let priorFixed = [];
+  try { priorFixed = JSON.parse(fs.readFileSync(path.join(jobDir, "contrast-report.json"), "utf8")).fixed || []; } catch { /* first pass */ }
+  const seenFix = new Set();
+  const mergedFixed = [...priorFixed, ...allFixed].filter((f) => {
+    const k = `${f.selector}||${f.text}||${f.strategy}`;
+    return seenFix.has(k) ? false : (seenFix.add(k), true);
+  });
+  const report = {
+    checked: checkedAny || priorFixed.length > 0,
+    fixed: mergedFixed,
+    remaining: remaining.map((r) => ({ selector: r.selector, text: r.text, ratio: r.bestRatio, needed: r.needed })),
+    passes,
+  };
+  try { fs.writeFileSync(path.join(jobDir, "contrast-report.json"), JSON.stringify(report, null, 2)); } catch { /* best-effort */ }
+  return report;
 }
 
 // TEMPLATE IDENTITY gate (identity system) — the LLM remix path receives the
@@ -570,12 +711,24 @@ const PACK_RENDERERS = {
   // All five verified at 1080x1920 via `npm run audit:portrait` (2026-07-17):
   // flagship/brightlife shipped with portrait layouts (Rohit port); blueprint/
   // bloom/bauhaus got portrait type scale + stacked rows the same day.
-  "three-flagship": { label: "flagship", composer: flagshipComposer, desc: "flagship Three.js", portraitOk: true },
-  "three-brightlife": { label: "brightlife", composer: brightlifeComposer, desc: "Bright Life Three.js", portraitOk: true },
-  "blueprint": { label: "blueprint", composer: blueprintComposer, desc: "Blueprint Atelier", portraitOk: true },
-  "bloom-fable": { label: "bloom-fable", composer: bloomComposer, desc: "Bloom Fable", portraitOk: true },
-  "bauhaus-riot": { label: "bauhaus-riot", composer: bauhausComposer, desc: "Bauhaus Riot", portraitOk: true },
+  // longFormOk: the Three.js renderers fill a 2-3 min film with their own 3D
+  // content; the GSAP renderers (blueprint/bloom/bauhaus) draw a few plates then
+  // leave the rest of a long film as empty background — so they're routed to
+  // scene-kit past LONGFORM_RENDERER_SEC (still styled by the pack, but dense +
+  // asset-weaving). NONE of the dedicated renderers weave stock assets, so a
+  // long asset-driven film belongs on scene-kit regardless.
+  "three-flagship": { label: "flagship", composer: flagshipComposer, desc: "flagship Three.js", portraitOk: true, longFormOk: true },
+  "three-brightlife": { label: "brightlife", composer: brightlifeComposer, desc: "Bright Life Three.js", portraitOk: true, longFormOk: true },
+  "blueprint": { label: "blueprint", composer: blueprintComposer, desc: "Blueprint Atelier", portraitOk: true, longFormOk: false },
+  "bloom-fable": { label: "bloom-fable", composer: bloomComposer, desc: "Bloom Fable", portraitOk: true, longFormOk: false },
+  "bauhaus-riot": { label: "bauhaus-riot", composer: bauhausComposer, desc: "Bauhaus Riot", portraitOk: true, longFormOk: false },
+  // Genesis — flagship "Living World" cinematic composer. Fills any length with
+  // its own animated world + eight beats (longFormOk), recomposes for portrait,
+  // and IS brand-adaptive (buildComposition takes brandSkin).
+  "genesis": { label: "genesis", composer: genesisComposer, desc: "Genesis living world", portraitOk: true, longFormOk: true },
 };
+// Past this length the sparse GSAP dedicated renderers hand off to scene-kit.
+const LONGFORM_RENDERER_SEC = 75;
 
 function rendererFor(framePack) {
   if (!framePack) return null;
@@ -586,13 +739,16 @@ function rendererFor(framePack) {
 // Shared envelope for every dedicated pack renderer: build → persist → render.
 // Self-contained composers (own chrome/3D/vector art), so no enrich and no
 // stock-asset weaving. Same seek contract as the scene-kit path.
-async function composeWithPackRenderer({ renderer, storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker }) {
+async function composeWithPackRenderer({ renderer, storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null }) {
   const t0 = ms();
   const R = PACK_RENDERERS[renderer];
   console.log(`[pipeline] ${label}: building ${R.desc} composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
-  const built = R.composer.buildComposition({ storyboard, dims, framePack, captionCues, assets });
+  // brandSkin (Art Director / user color) is forwarded — composers that accept it
+  // (Genesis) recolor their whole world to the brand; the rest ignore the extra key.
+  const built = R.composer.buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin });
   fs.writeFileSync(path.join(jobDir, "index.html"), built.indexHtml, "utf8");
   fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
+  await contrastFixPass(jobDir, { framePack, storyboard, dims, label });
   tracker.addExternal("hyperframes_render");
   const visual = await render({ jobId, jobDir, durationSec, abortSignal });
   console.log(`[pipeline] ${label}: render done in ${ms() - t0}ms total`);
@@ -608,10 +764,19 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
   if (!remix && PACK_RENDERERS[packRenderer]) {
     const R = PACK_RENDERERS[packRenderer];
     const isPortrait = dims && dims.height > dims.width;
-    if (!isPortrait || R.portraitOk) {
-      return composeWithPackRenderer({ renderer: packRenderer, storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || R.label, abortSignal, tracker });
+    // A GSAP dedicated renderer past LONGFORM_RENDERER_SEC renders mostly-empty
+    // (it draws a handful of plates then leaves the rest blank) — route long jobs
+    // to scene-kit, which fills every scene with the pack's styling AND weaves the
+    // fetched screenshots/photos/vectors the dedicated renderer would ignore.
+    const tooLongForRenderer = !R.longFormOk && durationSec > LONGFORM_RENDERER_SEC;
+    if ((!isPortrait || R.portraitOk) && !tooLongForRenderer) {
+      return composeWithPackRenderer({ renderer: packRenderer, storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || R.label, abortSignal, tracker, brandSkin });
     }
-    console.log(`[pipeline] ${R.desc} has no portrait layout yet — 9:16 job renders on scene-kit with the "${framePack}" pack styling`);
+    if (tooLongForRenderer) {
+      console.log(`[pipeline] ${R.desc} renders sparse past ${LONGFORM_RENDERER_SEC}s — ${durationSec}s job routes to scene-kit with "${framePack}" styling (dense + asset-weaving)`);
+    } else {
+      console.log(`[pipeline] ${R.desc} has no portrait layout yet — 9:16 job renders on scene-kit with the "${framePack}" pack styling`);
+    }
   }
   // DEFAULT = the deterministic scene-kit (guaranteed showcase-grade, lint-clean,
   // per-pack styled). Every pipeline path (runJob, graph, project_pipeline) routes
@@ -628,6 +793,7 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
     storyboard, dims, jobDir, availableAssets: assets, tracker, abortSignal, framePack, captionCues, strictIdentity,
   });
   console.log(`[pipeline] ${label}: compose done in ${ms() - t0}ms, render start`);
+  await contrastFixPass(jobDir, { framePack, storyboard, dims, label });
   tracker.addExternal("hyperframes_render");
   const visual = await render({ jobId, jobDir, durationSec, abortSignal });
   console.log(`[pipeline] ${label}: render done in ${ms() - t0}ms total`);
@@ -672,6 +838,7 @@ async function composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack
   tracker.addExternal("hyperframes_lint");
   const lint = await validate(jobDir, { indexHtml, metaJson: built.metaJson }).catch((e) => ({ ok: true, skipped: e.message }));
   if (!lint.ok) console.warn(`[pipeline] scene-kit lint (non-blocking): ${String(lint.stderr || lint.stdout || "").slice(-300)}`);
+  await contrastFixPass(jobDir, { framePack, storyboard, dims, label: label || "scene-kit" });
   console.log(`[pipeline] ${label || "scene-kit"}: built in ${ms() - t0}ms, render start`);
   tracker.addExternal("hyperframes_render");
   const visual = await render({ jobId, jobDir, durationSec, abortSignal });
@@ -720,6 +887,7 @@ async function composeWithThree({ storyboard, dims, jobDir, framePack, captionCu
   const built = composer.buildComposition({ storyboard, dims, framePack, captionCues, assets });
   fs.writeFileSync(path.join(jobDir, "index.html"), built.indexHtml, "utf8");
   fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
+  await contrastFixPass(jobDir, { framePack, storyboard, dims, label: label || "three" });
   tracker.addExternal("hyperframes_render");
   const visual = await render({ jobId, jobDir, durationSec, abortSignal });
   console.log(`[pipeline] ${label || "three"}: render done in ${ms() - t0}ms total`);
@@ -1295,6 +1463,16 @@ async function runJob({
       finalAttempt,
     });
 
+    // Quality Director summary (single-shot path has no post-render QA loop, so
+    // qa is null → the report still surfaces contrast fixes, audio loudness,
+    // screenshot QA and asset/template scores). Never throws.
+    try {
+      const raw = db.getRaw(jobId);
+      db.setQualityReport(jobId, assembleQualityReport({
+        jobDir: jobDirFor(jobId), qa: (raw && raw.qa) || null, creativeReview: raw && raw.creative_review,
+      }));
+    } catch (e) { log.warn?.("quality report failed", { error: e.message }); }
+
     log.info("job done", { attempt: finalAttempt, fallback: usedFallback, visuals: allAssets.length, audio: wantsAudio, effectiveDuration, costUsd: costs.totalCostUsd, timings });
   } catch (err) {
     // Something even the polished fallback couldn't handle. Mark failed.
@@ -1313,4 +1491,4 @@ async function runJob({
 
 module.exports = {
   retimeScenesToVo, runJob, withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor,
-  identityGate };
+  identityGate, contrastFixPass };

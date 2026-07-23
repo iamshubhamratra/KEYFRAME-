@@ -59,7 +59,7 @@ Return ONLY a JSON object, no prose, no markdown fences:
    | story, narrative, journey, emotional, heartfelt | storybook / parchment watercolor / fable |
    | trailer, hype, cinematic, epic announce, film-like | one-take cinema / longshot / letterboxed |
 
-   **Rotation:** if `recentFramePacks` is present, those packs styled this user's last few videos. Each tone row offers several fitting packs — when more than one fits, pick one that is NOT in `recentFramePacks`, so back-to-back videos don't wear the same look. Repeat a recent pack only when it is clearly the single best fit (e.g. the user's brand or subject demands it).
+   **Rotation:** if `recentFramePacks` / `recentFramePackFamilies` are present, those styled this user's last few videos. Pick a look that DIFFERS from those recents — ideally a pack from a DIFFERENT visual family (bright-minimal, dark-premium, poster-loud, editorial-quiet, cinema, story-handmade, retro-terminal), not just a different name in the same family (e.g. don't follow one bright-white SaaS pack with another bright-white SaaS pack). When several packs fit the tone, choose the one that most changes the on-screen look from the last video. Repeat a recent family only when the subject or brand clearly demands it.
 
 5. **suggestedDuration:** echo `preferences.duration` if set; otherwise choose 20-45s based on how much the key messages need (≈4-5s per message + hook + CTA). Integer.
 6. **improvedPrompt** is a paragraph a director could shoot from: subject, audience, the arc (hook → substance → close), and energy. No camera jargon, no markdown. Concrete nouns over abstractions ("a freelance designer drowning in invoices" beats "busy professionals").
