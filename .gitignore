@@ -55,3 +55,7 @@ server/showcase/
 # auth runtime store (file-based users/otps)
 auth-store.json
 **/auth-store.json
+
+# website-asset harvester runtime cache (harvested SVGs/manifests, machine-local)
+server/harvest_cache/
+**/harvest_cache/
