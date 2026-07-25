@@ -6,8 +6,11 @@
 // (screenshot -> ffmpeg rawvideo downscale -> saturation-weighted quantize —
 // no native image deps needed).
 //
-// Output: { url, title, description, headings[], bodyText, brandColors[],
-//           ogImage, screenshotPath }
+// Output: { url, title, description, headings[], bodyText, brandColors[], ogImage,
+//           isAuthWall, screenshotPath, screenshotPaths[], assets[], harvestReview }
+//   assets / harvestReview are present only when the Website Asset Intelligence
+//   harvester is enabled (config.harvester.enabled) — the site's own brand-asset
+//   FILES (logo/icons/hero images), collected off this same page session.
 
 const fs = require("node:fs");
 const path = require("node:path");
@@ -264,8 +267,40 @@ async function understandWebsite({ url, workDir, timeoutMs = 60_000 }) {
     const brandColors = await dominantColors(heroPath).catch(() => []);
     const screenshotPath = isAuthWall ? null : heroPath;
 
+    // WEBSITE ASSET INTELLIGENCE (opt-in): harvest the site's OWN brand-asset files
+    // off this same, already-loaded, overlay-cleaned page — no 2nd navigation, no 2nd
+    // Chrome. Fully fail-open: any failure yields assets:[] and never blocks ingest.
+    let assets = [], harvestReview = null, brandSignals = null;
+    if (config.harvester?.enabled) {
+      try {
+        const { harvestSiteAssets } = require("./website_assets");
+        const h = await harvestSiteAssets({ page, baseUrl: url, workDir, isAuthWall });
+        assets = h.files || [];
+        harvestReview = h.review || null;
+        brandSignals = h.brandSignals || null;
+        console.log(`[ingest] harvested ${assets.length} brand asset(s) from ${new URL(url).host}${harvestReview && harvestReview.discovered ? ` (of ${harvestReview.discovered} discovered)` : ""}${brandSignals && brandSignals.fonts?.heading ? ` · heading font "${brandSignals.fonts.heading.family}"` : ""}`);
+      } catch (e) { console.warn(`[ingest] brand-asset harvest skipped: ${e.message}`); }
+    }
+
+    // MOBILE-VIEWPORT capture — a portrait (phone) render of the SAME page, so a 9:16
+    // film gets a NATIVE mobile product shot and the Visual Layout Director routes any
+    // portrait capture into a phone mockup (deviceKind ratio<0.9). Captured LAST so it
+    // can't affect the desktop shots or the harvest above; same navigation, so it adds NO
+    // SSRF surface (unlike asset-file harvesting). Fail-open; skipped on an auth wall.
+    if (!isAuthWall) {
+      try {
+        await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+        await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+        await new Promise((r) => setTimeout(r, 900)); // responsive reflow + lazy content settle
+        await dismissOverlays(page);                   // mobile menus/consent can differ from desktop
+        const mp = path.join(workDir, "website_mobile.png");
+        await page.screenshot({ path: mp, fullPage: false });
+        screenshotPaths.push(mp);
+      } catch (e) { console.warn(`[ingest] mobile screenshot failed: ${e.message}`); }
+    }
+
     console.log(`[ingest] website understood: "${data.title}" — ${data.headings.length} headings, ${data.bodyText.length}ch body, ${screenshotPaths.length} usable screenshot(s)${isAuthWall ? " (auth wall — screenshots suppressed)" : ""}, colors=${brandColors.join(",")}`);
-    return { url, ...data, isAuthWall, brandColors, screenshotPath, screenshotPaths };
+    return { url, ...data, isAuthWall, brandColors, screenshotPath, screenshotPaths, assets, harvestReview, brandSignals };
   } finally {
     await browser.close().catch(() => {});
   }
