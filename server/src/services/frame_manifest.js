@@ -116,6 +116,23 @@ const PackManifestSchema = z
       })
       .default({}),
 
+    // Per-pack BRAND CONTRACT — what a brand color may steer on this pack. Consumed by
+    // brand_kit.resolveBrand (mode/slots/maxAccents/contrastFloor/hueDriftMax). Absent or
+    // mode:"accents" is today's accent-only behavior (so this validates every existing
+    // pack.json unchanged); mode:"atmosphere" additionally rotates the pack's GROUND hue
+    // toward the brand with luminance pinned (flagship/brightlife only); mode:"off" opts a
+    // pack out entirely (e.g. bauhaus — its primary triad IS the movement).
+    brand: z
+      .object({
+        mode: z.enum(["off", "accent", "accents", "atmosphere"]).default("accents"),
+        slots: z.array(z.any()).default([]),       // role names (string) or {role,from,minRatio}
+        maxAccents: z.number().default(3),
+        contrastFloor: z.number().default(3.0),    // WCAG ratio vs surface.ground — PER PACK
+        hueDriftMax: z.number().default(40),        // degrees a brand hue may travel — PER PACK
+        note: z.string().default(""),
+      })
+      .default({}),
+
     // --- Reserved for later Phase 3/4 population (kept optional, unpopulated). ---
     typography: z.record(z.any()).optional(),
     layout: z.record(z.any()).optional(),

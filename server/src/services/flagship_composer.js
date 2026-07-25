@@ -32,7 +32,7 @@
 // the canvas. Passes `hyperframes lint` with 0 errors.
 
 const { deriveTheme } = require("./scene_kit");
-const { resolveBrand } = require("./brand_kit");
+const { resolveBrand, atmosphericGround } = require("./brand_kit");
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
 const { aspectMode, typeScale, safeArea, headlineCh } = require("./responsive");
 const { buildCaptionOverlay } = require("./caption_overlay");
@@ -143,7 +143,13 @@ function flagshipTheme(framePack, sb, brandSkin) {
   // against — and resolveBrand is the only thing here that knows it.
   const STAGE = "#0A0B16";
   const packAccents = (base.accents && base.accents.length ? base.accents : ["#7C8CFF", "#4ED7FF", "#B16CFF", "#57F2C2"]).slice(0, 4);
-  const brand = resolveBrand(brandSkin, { ground: STAGE, isDark: true, packAccents });
+  // ATMOSPHERE (D2): pass the pack's brand CONTRACT so a mode:"atmosphere" pack lets a brand
+  // rotate the stage HUE toward it while PINNING luminance — same near-black stage, tinted.
+  // Accents still resolve against the authored STAGE (the tint is subtle, so their contrast
+  // is unchanged). No contract / accents-mode → brand.atmosphere is null → byte-identical stage.
+  const contract = (() => { try { const m = require("./frame_manifest").getManifest(framePack); return m && m.brand; } catch { return null; } })();
+  const brand = resolveBrand(brandSkin, { ground: STAGE, isDark: true, packAccents, contract });
+  const stage = atmosphericGround(STAGE, brand.atmosphere);
   const brandLed = brandLedOf(brand, packAccents);
   const accents = brand.accents.slice(0, 4);
   const MONO = "JetBrains Mono";
@@ -163,7 +169,7 @@ function flagshipTheme(framePack, sb, brandSkin) {
   const emphHi = lighten(emphMain, 0.6);
   const kickCol = brand.applied ? brand.emphasis[0] : ensureBright(brand.emphasis[1], 0.6);
   return {
-    ground: STAGE, ground2: "#05060C", surface: "#04050A",
+    ground: stage, ground2: atmosphericGround("#05060C", brand.atmosphere), surface: atmosphericGround("#04050A", brand.atmosphere),
     ink: "#F6F8FF", body: "#AEB6D4", dim: "#7A82A0", hair: "rgba(255,255,255,0.12)",
     accents, uiAccents: panelAccents(packAccents, brandLed),
     brand, brandLed,
@@ -245,10 +251,14 @@ function sceneOverlay(scene, i, total, ctx) {
   const headWords = headStr.split(/\s+/).filter(Boolean);
   const wc = headWords.length || 3;
   const longestWord = headWords.reduce((m, w) => Math.max(m, w.length), 0);
+  // Non-Latin (video-text) scripts render wider per char; scale the length thresholds so CJK/
+  // Devanagari headlines shrink to fit instead of overflowing. `_langCharWidth` is 1 for Latin.
+  const effLen = headStr.length * _langCharWidth;
+  const effLongest = longestWord * _langCharWidth;
   let measure = wc <= 3 ? 1.14 : wc <= 6 ? 1.0 : 0.82;
-  if (headStr.length > 24) measure = Math.min(measure, 0.82);
-  if (headStr.length > 40) measure = Math.min(measure, 0.62);
-  if (longestWord > 14) measure = Math.min(measure, Math.max(0.34, 15 / longestWord));
+  if (effLen > 24) measure = Math.min(measure, 0.82);
+  if (effLen > 40) measure = Math.min(measure, 0.62);
+  if (effLongest > 14) measure = Math.min(measure, Math.max(0.34, 15 / effLongest));
   // Type scales off the SHORT side (never the tall portrait height) so portrait no longer
   // renders ~2.7x-oversized headlines; the final px is also clamped to the canvas width.
   const sc = typeScale(W, H);
@@ -758,7 +768,15 @@ function resolvedSkin(brandSkin, brand, brandLed) {
   };
 }
 
-function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin } = {}) {
+// Per-script render-width factor for the char-count `measure` above. Set at the top of the
+// (synchronous) buildComposition from the video-text language; 1 for Latin/English (no-op).
+// Module-scoped is safe — buildComposition never yields mid-build, so runs can't interleave.
+let _langCharWidth = 1;
+function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin, captionStyle } = {}) {
+  _langCharWidth = (captionStyle && captionStyle.text && captionStyle.text.charWidth) || 1;
+  // Non-Latin scripts (Arabic diacritics, Devanagari matras) collide at the display headline's
+  // tight 0.98 line-height; lift it to a per-script floor so stacked marks clear. 0.98 for Latin.
+  const _headLh = (captionStyle && captionStyle.text && captionStyle.text.lineHeight) || 0.98;
   const sb = storyboard || {};
   const scenes = Array.isArray(sb.scenes) && sb.scenes.length ? sb.scenes : [{ id: "s1", start: 0, duration: 6, purpose: "hook", headline: sb.title || "KEYFRAME" }];
   const D = r2(sb.durationSec || scenes.reduce((a, s) => a + (s.duration || 0), 0) || 12);
@@ -831,10 +849,14 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     `.kkick { display:inline-flex; align-items:center; gap:12px; margin-bottom:${px(24)}px; color:${theme.kickCol}; font-family:${theme.monoStack}; font-size:${px(14)}px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; text-shadow:0 0 16px ${rgba(theme.kickCol, 0.5)}; }`,
     `.kkick::before { content:""; width:${px(40)}px; height:2px; background:${theme.kickCol}; box-shadow:0 0 12px ${rgba(theme.kickCol, 0.85)}; }`,
     `.kwall { position:absolute; top:-0.42em; z-index:-1; font-family:${theme.displayStack}; font-weight:800; font-size:${px(W >= H ? 380 : 250)}px; line-height:1; color:${theme.ink}; opacity:0.06; pointer-events:none; letter-spacing:-0.04em; }`,
-    `.khead { margin:0; font-family:${theme.displayStack}; font-weight:700; line-height:0.98; letter-spacing:-0.03em; color:${theme.ink}; text-shadow:0 2px 24px rgba(0,0,0,0.55),0 1px 2px rgba(0,0,0,0.5); overflow-wrap:anywhere; }`,
+    `.khead { margin:0; font-family:${theme.displayStack}; font-weight:700; line-height:${_headLh}; letter-spacing:-0.03em; color:${theme.ink}; text-shadow:0 2px 24px rgba(0,0,0,0.55),0 1px 2px rgba(0,0,0,0.5); overflow-wrap:anywhere; }`,
     `.kw { display:inline-block; overflow:hidden; vertical-align:top; max-width:100%; }`,
     `.kwi { display:inline-block; overflow-wrap:anywhere; word-break:break-word; }`,
-    `.kacc .kwi { background:linear-gradient(120deg, ${theme.emphA} 0%, ${theme.emphB} 100%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; text-shadow:none; filter:drop-shadow(0 0 22px ${rgba(theme.emphB, 0.5)}); }`,
+    // `color` is a solid accent fallback under the gradient text-clip: inert in
+    // normal rendering (-webkit-text-fill-color:transparent wins), revealed by the
+    // i18n layer for complex scripts, where background-clip:text breaks Devanagari/
+    // Arabic glyph shaping. See caption_render.SHAPING_FIX.
+    `.kacc .kwi { background:linear-gradient(120deg, ${theme.emphA} 0%, ${theme.emphB} 100%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:${theme.emphB}; text-shadow:none; filter:drop-shadow(0 0 22px ${rgba(theme.emphB, 0.5)}); }`,
     `.ksub { margin-top:${px(20)}px; font:500 1em/1.5 ${theme.fontStack}; color:${theme.body}; max-width:44ch; text-shadow:0 2px 16px rgba(0,0,0,0.5); }`,
     `.kchips { display:flex; gap:${px(12)}px; margin-top:${px(28)}px; flex-wrap:wrap; }`,
     `.kchip { display:inline-flex; align-items:center; gap:${px(9)}px; padding:${px(9)}px ${px(16)}px; border-radius:999px; background:rgba(255,255,255,0.06); border:1px solid ${theme.hair}; color:${theme.ink}; font:600 ${px(15)}px/1 ${theme.fontStack}; letter-spacing:-0.01em; box-shadow:0 8px 24px rgba(0,0,0,0.35); backdrop-filter:blur(8px); }`,

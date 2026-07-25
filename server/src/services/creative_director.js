@@ -215,7 +215,7 @@ async function reviewAudio({ subject, script, audioPlan, sceneCount, tracker, si
 // Returns { assets: curatedAssets, report }. `assets` is the surviving, annotated
 // asset list to hand the composer. Fail-open: on any thrown error the caller
 // (reviewAndCurate) passes the original assets through.
-async function directAssets({ storyboard, script, subject, brief, framePack, assets, audioPlan, tracker, signal, jobDir, orientation, category }) {
+async function directAssets({ storyboard, script, subject, brief, framePack, assets, audioPlan, tracker, signal, jobDir, orientation, category, maxTopUp: maxTopUpOverride }) {
   const list = Array.isArray(assets) ? assets.slice() : [];
   const subj = String(subject || (brief && brief.subject) || "").trim();
   const scenes = sceneDigest(storyboard, script);
@@ -226,7 +226,10 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
   const categoryText = taxonomy.describeForDirector(cat);
   const notes = [];
   const recos = [];
-  const { maxPerScene, maxTopUp, chunkSize } = cd();
+  const { maxPerScene, maxTopUp: cfgTopUp, chunkSize } = cd();
+  // Duration-adaptive CD net-new fetch ceiling: the caller (graph) passes a budget-scaled
+  // maxTopUp so a long film isn't bottlenecked at the fixed default; falls back to config.
+  const maxTopUp = Number.isFinite(maxTopUpOverride) ? Math.max(0, Math.round(maxTopUpOverride)) : cfgTopUp;
 
   // Attach absolute paths for thumbnailing (assets carry jobDir-relative paths).
   for (const a of list) a.__absPath = a && a.path ? path.join(jobDir, a.path) : null;

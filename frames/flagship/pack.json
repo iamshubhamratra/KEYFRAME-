@@ -48,5 +48,12 @@
     "enter": "mask-reveal",
     "emphasis": "gradient",
     "align": "center"
+  },
+  "brand": {
+    "mode": "atmosphere",
+    "maxAccents": 3,
+    "contrastFloor": 3.0,
+    "hueDriftMax": 40,
+    "note": "atmosphere: a brand rotates the near-black stage hue (luminance pinned); accents lead the panels/emphasis. Ground/ink/camera/motion/layout stay locked identity."
   }
 }

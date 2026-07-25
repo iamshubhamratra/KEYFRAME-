@@ -51,5 +51,12 @@
     "enter": "mask-reveal",
     "emphasis": "gradient",
     "align": "left"
+  },
+  "brand": {
+    "mode": "atmosphere",
+    "maxAccents": 3,
+    "contrastFloor": 3.0,
+    "hueDriftMax": 40,
+    "note": "atmosphere: a brand faintly tints the near-white secondary surfaces + drives the pastel mesh gradient; the pure-white base + airy motion stay locked identity."
   }
 }

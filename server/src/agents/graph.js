@@ -609,6 +609,11 @@ async function creativeDirectorAgent(s) {
   if (!config.creativeDirector.enabled) return {};
   const { job, jobDir, tracker } = s;
   db.setProgress(job.id, "creative_review");
+  // Duration-adaptive CD top-up ceiling (completes the asset_budget story): a longer film
+  // may fetch more net-new gap-fillers than the fixed default. Recomputed here (pure) so it
+  // stays in sync with assetPlannerAgent without threading extra graph state.
+  const hasUploads = (job.user_assets || []).some((u) => u && u.role !== "logo");
+  const { cdMaxTopUp } = computeAssetBudget({ durationSec: job.duration, sceneCount: (s.script?.scenes || []).length, hasUploads, videoOk: hasProviderFor("video") });
   const curated = await reviewAndCurate({
     jobId: job.id,
     storyboard: s.storyboard,
@@ -620,6 +625,7 @@ async function creativeDirectorAgent(s) {
     tracker,
     jobDir,
     orientation: job.orientation,
+    maxTopUp: cdMaxTopUp,
   });
   db.setAssets(job.id, curated);
   return { assets: curated };
@@ -1313,7 +1319,7 @@ async function qaAgentNode(s) {
   // gain. Only the LLM composer (remix/dress) reads QA feedback and can actually
   // change — compositionAgent flags that path with repairable:true.
   const isFlagship = (() => {
-    try { const m = require("../services/frame_manifest").getManifest(s.framePack); return !!(m && /^(three-(flagship|brightlife)|blueprint|bloom-fable|bauhaus-riot|terminal-departures|paper-tales|kinetic-universe)$/.test(m.renderer || "")); }
+    try { const m = require("../services/frame_manifest").getManifest(s.framePack); return !!(m && /^(three-(flagship|brightlife)|blueprint|bloom-fable|bauhaus-riot|terminal-departures|paper-tales|kinetic-universe|dom-prisma)$/.test(m.renderer || "")); }
     catch { return false; }
   })();
   if (config.qa?.enabled === false || s.usedFallback || s.job?.render3d || isFlagship || s.repairable === false) {

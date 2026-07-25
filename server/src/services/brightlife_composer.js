@@ -29,7 +29,7 @@
 // ABOVE the canvas (ink #111827 on white, indigo→violet gradient on the highlight).
 
 const { deriveTheme } = require("./scene_kit");
-const { resolveBrand } = require("./brand_kit");
+const { resolveBrand, atmosphericGround } = require("./brand_kit");
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
 const { aspectMode, typeScale, safeArea, headlineCh } = require("./responsive");
 const { buildCaptionOverlay } = require("./caption_overlay");
@@ -129,8 +129,12 @@ function brightTheme(framePack, sb, brandSkin) {
   // a bright brand hue that would wash out on white is exactly what resolveBrand corrects).
   // FAIL-OPEN: any hiccup renders the frozen palette.
   let applied = false, PALETTE = PALETTE0, accents = ACCENTS0, emph = EMPH0, brand = null, brandLed = [];
+  // ATMOSPHERE (D2): the pack's brand contract, so a mode:"atmosphere" pack lets a brand
+  // faintly tint the near-white SECONDARY surfaces. The pure-white base stays white — that
+  // luminance IS the pack. No contract / accents-mode → brand.atmosphere is null → no-op.
+  const contract = (() => { try { const m = require("./frame_manifest").getManifest(framePack); return m && m.brand; } catch { return null; } })();
   try {
-    brand = resolveBrand(brandSkin, { ground: "#FFFFFF", isDark: false, packAccents: ACCENTS0 });
+    brand = resolveBrand(brandSkin, { ground: "#FFFFFF", isDark: false, packAccents: ACCENTS0, contract });
     brandLed = brandLedOf(brand, ACCENTS0);
     applied = !!(brand && brand.applied && brandLed.length);
   } catch { applied = false; }
@@ -149,7 +153,7 @@ function brightTheme(framePack, sb, brandSkin) {
   const uiRgb = applied ? hexToRgb(accents[0]).join(",") : "99,102,241";
 
   return {
-    ground: "#FFFFFF", ground2: "#F5F6FF",
+    ground: atmosphericGround("#FFFFFF", brand && brand.atmosphere), ground2: atmosphericGround("#F5F6FF", brand && brand.atmosphere),
     ink: "#111827", dim: "#6B7280", faint: "#9AA3B2",
     border: `rgba(${uiRgb},0.12)`,
     cardShadow: `0 20px 60px rgba(${uiRgb},0.14), 0 6px 18px rgba(17,24,39,0.05)`,
@@ -236,10 +240,14 @@ function sceneOverlay(scene, i, total, ctx) {
   const headWords = headStr.split(/\s+/).filter(Boolean);
   const wc = headWords.length || 3;
   const longestWord = headWords.reduce((m, w) => Math.max(m, w.length), 0);
+  // Non-Latin (video-text) scripts render wider per char; scale the length thresholds so CJK/
+  // Devanagari headlines shrink to fit instead of overflowing. `_langCharWidth` is 1 for Latin.
+  const effLen = headStr.length * _langCharWidth;
+  const effLongest = longestWord * _langCharWidth;
   let measure = wc <= 3 ? 1.14 : wc <= 6 ? 1.0 : 0.82;
-  if (headStr.length > 24) measure = Math.min(measure, 0.82);
-  if (headStr.length > 40) measure = Math.min(measure, 0.62);
-  if (longestWord > 14) measure = Math.min(measure, Math.max(0.34, 15 / longestWord));
+  if (effLen > 24) measure = Math.min(measure, 0.82);
+  if (effLen > 40) measure = Math.min(measure, 0.62);
+  if (effLongest > 14) measure = Math.min(measure, Math.max(0.34, 15 / effLongest));
   // Short-side type scale (portrait no longer ~2.7x-oversized); px clamped to the width.
   const sc = typeScale(W, H);
   const heroBase = land ? 148 : 100, ctaBase = land ? 118 : 88, intBase = land ? 90 : 66;
@@ -924,7 +932,14 @@ function resolvedSkin(brandSkin, theme) {
   };
 }
 
-function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin = null } = {}) {
+// Per-script render-width factor for the char-count `measure` above. Set at the top of the
+// (synchronous) buildComposition from the video-text language; 1 for Latin/English (no-op).
+let _langCharWidth = 1;
+function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin = null, captionStyle = null } = {}) {
+  _langCharWidth = (captionStyle && captionStyle.text && captionStyle.text.charWidth) || 1;
+  // Non-Latin scripts collide at the display headline's tight 0.98 line-height; lift it to a
+  // per-script floor so stacked marks (Devanagari matras / Arabic diacritics) clear. 0.98 Latin.
+  const _headLh = (captionStyle && captionStyle.text && captionStyle.text.lineHeight) || 0.98;
   const sb = storyboard || {};
   const scenes = Array.isArray(sb.scenes) && sb.scenes.length ? sb.scenes : [{ id: "s1", start: 0, duration: 6, purpose: "hook", headline: sb.title || "KEYFRAME" }];
   const D = r2(sb.durationSec || scenes.reduce((a, s) => a + (s.duration || 0), 0) || 12);
@@ -1000,10 +1015,14 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     `.kkick { display:inline-flex; align-items:center; gap:12px; margin-bottom:${px(24)}px; color:${theme.accent}; font-family:${theme.monoStack}; font-size:${px(14)}px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; }`,
     `.kkick::before { content:""; width:${px(40)}px; height:3px; border-radius:2px; background:${accentGrad}; }`,
     `.kwall { position:absolute; top:-0.42em; z-index:-1; font-family:${theme.displayStack}; font-weight:700; font-size:${px(W >= H ? 380 : 250)}px; line-height:1; color:${theme.accent}; opacity:0.05; pointer-events:none; letter-spacing:-0.04em; }`,
-    `.khead { margin:0; font-family:${theme.displayStack}; font-weight:700; line-height:0.98; letter-spacing:-0.032em; color:${theme.ink}; overflow-wrap:anywhere; }`,
+    `.khead { margin:0; font-family:${theme.displayStack}; font-weight:700; line-height:${_headLh}; letter-spacing:-0.032em; color:${theme.ink}; overflow-wrap:anywhere; }`,
     `.kw { display:inline-block; overflow:hidden; vertical-align:top; max-width:100%; }`,
     `.kwi { display:inline-block; overflow-wrap:anywhere; word-break:break-word; }`,
-    `.kacc .kwi { background:${emphGrad}; -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 6px 18px ${rgba(theme.emphB, 0.30)}); }`,
+    // `color` is a solid accent fallback under the gradient text-clip: it is inert
+    // in normal rendering (-webkit-text-fill-color:transparent wins), but the i18n
+    // layer reveals it for complex scripts, where background-clip:text silently
+    // breaks Devanagari/Arabic glyph shaping. See caption_render.SHAPING_FIX.
+    `.kacc .kwi { background:${emphGrad}; -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:${theme.emphB}; filter:drop-shadow(0 6px 18px ${rgba(theme.emphB, 0.30)}); }`,
     `.ksub { margin-top:${px(20)}px; font:500 1em/1.5 ${theme.fontStack}; color:${theme.dim}; max-width:44ch; }`,
     `.kchips { display:flex; gap:${px(12)}px; margin-top:${px(28)}px; flex-wrap:wrap; }`,
     `.kchip { display:inline-flex; align-items:center; gap:${px(9)}px; padding:${px(10)}px ${px(17)}px; border-radius:999px; background:rgba(255,255,255,0.72); border:1px solid ${theme.border}; backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); color:${theme.ink}; font:600 ${px(15)}px/1 ${theme.fontStack}; letter-spacing:-0.01em; box-shadow:${theme.cardShadow}; }`,

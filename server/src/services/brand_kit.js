@@ -162,6 +162,26 @@ function nearlySame(a, b) {
   return Math.abs(x[0] - y[0]) + Math.abs(x[1] - y[1]) + Math.abs(x[2] - y[2]) < 30;
 }
 
+// ATMOSPHERE — rotate a pack GROUND's hue toward the brand while PINNING its lightness. The
+// atmosphere tier's one job (BRAND-COLOR-SYSTEM-PLAN §6c): the pack's dark-or-light identity
+// is a LUMINANCE property, so it is never touched; only the air's tint moves. A Stripe
+// flagship and a Spotify flagship then differ in atmosphere yet keep the same near-black
+// stage, same camera, same motion. `atmosphere` is resolveBrand's {hue, mix} — null unless
+// the pack's contract is mode:"atmosphere" — so this is a pure NO-OP on every accents/off
+// pack and can be called unconditionally. A near-white ground (l≈1) is intentionally
+// unmovable (l is pinned); tint its near-white SECONDARY surfaces instead of the pure base.
+function atmosphericGround(groundHex, atmosphere) {
+  const g = normHex(groundHex);
+  if (!g || !atmosphere || !Number.isFinite(atmosphere.hue)) return groundHex;
+  const [, s0, l0] = rgbToHsl(hexToRgb(g));
+  const mix = clamp(Number(atmosphere.mix) || 0.12, 0, 0.35);
+  // Tint target = the BRAND hue at the ground's OWN lightness (so l0 is preserved), with
+  // enough saturation to actually read as a hue (a near-grey ground carries almost none).
+  const tint = hslToRgb(((atmosphere.hue % 360) + 360) % 360, Math.max(s0, 0.55), l0);
+  const c0 = hexToRgb(g);
+  return rgbToHex(c0.map((v, i) => v + (tint[i] - v) * mix));
+}
+
 // ---- which brand color ARRIVES on this ground -------------------------------
 // Chroma — max-minus-min over normalized RGB, the same quantity HSL spells
 // s*(1-|2l-1|). This, and NOT HSL's `s`, is what "vivid" means to an eye: #bbd5ea
@@ -402,6 +422,6 @@ function cssVarBlock(packSkin) {
 }
 
 module.exports = {
-  relLum, ratio, passesAA, nudgeToRatio, resolveBrand, cssVarBlock,
+  relLum, ratio, passesAA, nudgeToRatio, resolveBrand, cssVarBlock, atmosphericGround,
   DEFAULT_CONTRACT,
 };
