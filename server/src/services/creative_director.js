@@ -25,7 +25,7 @@ const frameManifest = require("./frame_manifest");
 const { acquire } = require("./asset_sources");
 const taxonomy = require("./asset_taxonomy");
 const clip = require("./asset_clip");
-const { rankKey, isLogo } = require("./asset_priority");
+const { rankKey, isLogo, categorize, assetConfidence, WEBSITE_ASSET_SOURCE, WEBSITE_BRAND_SOURCE } = require("./asset_priority");
 
 const SYSTEM = fs.readFileSync(
   path.join(__dirname, "..", "prompts", "system_creative_director.md"),
@@ -143,7 +143,9 @@ async function reviewChunk({ chunk, baseIndex, subject, categoryText, packText, 
       clipHint,
       a.source === "upload"
         ? "THE USER'S OWN UPLOAD (sovereign — never reject; assess honestly and prefer hero/support prominence)"
-        : isWebStock(a) ? "web-stock (rejectable)" : "trusted (owned/curated — do not reject for relevance)",
+        : a.source === WEBSITE_ASSET_SOURCE
+          ? "the brand's OWN site imagery, harvested from their homepage — assess RELEVANCE honestly: hero/support if it's an on-story product/brand visual, background if it is off-story, decorative, or partial. Never DELETE it (it's owner content, not stock), just demote."
+          : isWebStock(a) ? "web-stock (rejectable)" : "trusted (owned/curated — do not reject for relevance)",
     ].filter(Boolean).join(" · ");
     content.push({ type: "text", text: `Asset ${n + 1} (${meta}):` });
     content.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${x.b}` } });
@@ -293,8 +295,11 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
       rejectedAssets.push({ path: a.path, source: a.source, reason: String(v.note || "").slice(0, 120), sees: a.sees || null });
       a.__rejected = true;
     } else {
-      // visionOk gates PROMINENT slots in scene_kit (montage/split/hero).
-      a.visionOk = a.cdProminence === "hero" || a.cdProminence === "support";
+      // visionOk gates PROMINENT slots in scene_kit (montage/split/hero). A reject
+      // verdict on a non-web-stock asset (screenshots/uploads/curated/harvested — never
+      // DELETED) must always DEMOTE, never promote: honor the reject even if the model
+      // paired decision:"reject" with prominence:"hero"/"support".
+      a.visionOk = !rejected && (a.cdProminence === "hero" || a.cdProminence === "support");
     }
 
     // SCREENSHOT INTELLIGENCE (QA axis, source website only): the CD's SAME vision
@@ -305,7 +310,15 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
     // __layoutDemoted (the ONE lever scene_kit.prominentOk honors on EVERY pipeline,
     // since directLayout runs only in the graph path) and disclosed. Fail-open:
     // absent fields → no demotion → today's behavior.
-    if (si.enabled && a.source === "website" && !a.__rejected) {
+    // Popup/loading/broken QA is a SCREENSHOT-CAPTURE concern — it applies to real
+    // website screenshots and to harvested imagery ONLY when it is itself a captured
+    // UI screenshot (kindHint "screenshot"). A designed brand graphic (a hero/marketing/
+    // illustration harvested asset) must NOT be force-demoted for "popup coverage" it
+    // can only fail spuriously (its intentional promo copy read as a popup); those are
+    // relevance-scored by the CD instead. Demotions are tagged with the source so the
+    // disclosure never mislabels a down-ranked brand graphic as a thrown-away screenshot.
+    const qaEligible = a.source === "website" || (a.source === WEBSITE_ASSET_SOURCE && a.kindHint === "screenshot");
+    if (si.enabled && qaEligible && !a.__rejected && !isLogo(a)) {
       const cov = Number(v.popupCoverage);
       const comp = String(v.completeness || "").toLowerCase();
       const incomplete = si.demoteOnIncomplete !== false && ["loading", "broken", "empty"].includes(comp);
@@ -316,6 +329,7 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
         a.cdProminence = "background";
         screenshotDemotions.push({
           path: path.basename(a.path),
+          source: a.source,
           reason: incomplete ? comp : "popup",
           coveragePct: Number.isFinite(cov) ? Math.round(cov) : null,
           obstruction: v.obstruction ? String(v.obstruction).slice(0, 16) : null,
@@ -437,7 +451,9 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
   const sceneAssignments = {};
   for (const a of curated) { const k = a.sceneId != null ? a.sceneId : "_unassigned"; (sceneAssignments[k] ||= []).push(a.path); }
   const screenshots = curated
-    .filter((a) => a.source === "website" || a.sectionType)
+    // Real captured screenshots only — a harvested brand graphic the CD happened to give
+    // a sectionType is NOT a "screenshot" and must not appear in the screenshot rankings.
+    .filter((a) => a.source === "website" || (a.source === WEBSITE_ASSET_SOURCE && a.kindHint === "screenshot"))
     .map((a) => ({ path: a.path, sectionType: a.sectionType || "screenshot", score: a.cdScore != null ? a.cdScore : null }))
     .sort((x, y) => (y.score || 0) - (x.score || 0));
   // Quality = mean score of the SCORED approved assets. Icons/vectors (SVGs, which
@@ -454,8 +470,16 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
     recos.push(`Music: consider "${audio.musicAnalysis.suggestedQuery}" — ${audio.musicAnalysis.note || "better fit for the mood"}.`);
   }
 
-  // Strip the transient absolute-path field before returning assets to callers.
-  for (const a of curated) delete a.__absPath;
+  // Strip the transient absolute-path field before returning assets to callers, and
+  // stamp the unified Asset-Intelligence taxonomy: a single canonical `category` (logo/
+  // screenshot/dashboard/product/team/illustration/marketing/icon/decorative/background)
+  // + a 0..1 `confidence` blended from the CD's own vision score (cdScore) and CLIP
+  // relevance. Both ride the asset record to the UI/disclosure; deterministic, fail-open.
+  for (const a of curated) {
+    delete a.__absPath;
+    a.category = categorize(a);
+    a.confidence = assetConfidence(a);
+  }
 
   const report = {
     approvedAssets: approvedAssets.slice(0, 40),

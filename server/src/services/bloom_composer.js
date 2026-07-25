@@ -109,7 +109,7 @@ function bloomTheme(brandSkin) {
   // never a crash and never a half-branded film. The brand fits to the cream GROUND (the
   // ground the film actually paints on) so an accent that can't clear it is dropped, not
   // dragged to grey.
-  let wheel = null, brand = null, brandLed = [];
+  let wheel = null, brand = null, brandLed = [], bgWash = null;
   try {
     brand = resolveBrand(brandSkin, { ground: "#F8EFDE", isDark: false, packAccents });
     brandLed = brandLedOf(brand, packAccents);
@@ -117,8 +117,11 @@ function bloomTheme(brandSkin) {
       const leadHue = hueOf(brandLed[0]);
       wheel = {};
       for (const f in FAM_FAN) wheel[f] = leadHue + FAM_FAN[f];
+      // The identity-safe background "air" wash — a transparent radial the resolver builds to
+      // tint the air over the sky-to-cream ground, never the ground itself. Layered when branded.
+      bgWash = (brand.gradients && brand.gradients.background) || null;
     }
-  } catch { wheel = null; }
+  } catch { wheel = null; bgWash = null; }
   const applied = !!wheel;
 
   // NO-OP LAW: with no brand skin `wheel` is null and tint is the IDENTITY — every pastel
@@ -135,6 +138,7 @@ function bloomTheme(brandSkin) {
     // LOCKED identity: the sky-to-cream GROUND, the plum INK, the muted-plum body and the
     // near-white paper CARD are the storybook's own luminance and reading; no brand vote.
     groundCss: "linear-gradient(180deg, #E4F1F2 0%, #F8EFDE 46%, #FBF4E8 100%)",
+    bgWash,
     cream: "#FBF4E8", plum: "#46345A", body: "#6C5B80",
     // SLOTTABLE blooms: rehue toward the brand (coral leads, the rest fan for variety). A
     // null skin leaves each at its authored pastel; the MEADOW greens are literals elsewhere,
@@ -299,12 +303,16 @@ function blTitle(scene, ctx) {
 }
 
 function blPlant(scene, ctx) {
-  const { id, T, theme } = ctx;
+  const { id, T, theme, port } = ctx;
   const kick = esc(scene.kicker || ctx.S.plant);
   const ul = underline(id, theme, "__AT__");
   const feat = featList(id, scene, theme, "__AT__");
-  const html = `${open(id, ctx)}<div class="safe" style="flex-direction:row;gap:7cqw;text-align:left;align-items:center;">
-    <svg id="${id}-flower" width="440" height="560" viewBox="0 0 320 420" style="width:18cqw;flex:0 0 auto;overflow:visible;">
+  // Portrait (canvas W<H): stack the flower ABOVE the copy (both wide + centered) instead
+  // of a side-by-side row that overflows a 9:16 frame, and bump type (cqw is width-relative,
+  // so portrait type shrinks otherwise). Landscape values are byte-identical to before.
+  const safe = port ? "flex-direction:column;gap:3cqw;text-align:center;align-items:center;" : "flex-direction:row;gap:7cqw;text-align:left;align-items:center;";
+  const html = `${open(id, ctx)}<div class="safe" style="${safe}">
+    <svg id="${id}-flower" width="440" height="560" viewBox="0 0 320 420" style="width:${port ? "34cqw" : "18cqw"};flex:0 0 auto;overflow:visible;">
       <path id="${id}-stem" class="draw" pathLength="100" d="M160 410 C 150 340 176 300 160 240 C 148 196 164 170 160 140" fill="none" stroke="#6E9670" stroke-width="10" stroke-linecap="round"/>
       <path id="${id}-lf1" d="M160 320 C 120 316 92 290 96 254 C 132 258 158 284 160 320 Z" fill="${theme.sage2}" opacity="0"/>
       <path id="${id}-lf2" d="M160 262 C 200 258 228 232 224 196 C 188 200 162 226 160 262 Z" fill="${theme.sage}" opacity="0"/>
@@ -313,9 +321,9 @@ function blPlant(scene, ctx) {
       </g>
       <circle id="${id}-heart" cx="160" cy="140" r="26" fill="${theme.sun}" stroke="${theme.sunEdge}" stroke-width="4" opacity="0"/>
     </svg>
-    <div style="max-width:48cqw;padding-bottom:4cqw;">
+    <div style="max-width:${port ? "88cqw" : "48cqw"};padding-bottom:4cqw;">
       <div class="script" id="${id}-kick" style="opacity:0;">${kick}</div>
-      <h1 class="display" id="${id}-head" style="font-size:4.8cqw;margin-top:0.8cqw;">${words(scene, theme.coral)}</h1>
+      <h1 class="display" id="${id}-head" style="font-size:${port ? "8.4cqw" : "4.8cqw"};margin-top:0.8cqw;">${words(scene, theme.coral)}</h1>
       ${ul.html}
       ${scene.subtext ? `<div class="body" id="${id}-sub" style="opacity:0;margin-top:1.2cqw;">${esc(scene.subtext)}</div>` : ""}
       ${feat.html}
@@ -341,17 +349,21 @@ function blPlant(scene, ctx) {
 // PLATE — a real screenshot as a framed cream storybook card (soft shadow, rounded),
 // with a leaf-tag label and side copy; gentle grow-in + Ken-Burns.
 function blPlate(scene, ctx, asset) {
-  const { id, T, theme } = ctx;
+  const { id, T, theme, port } = ctx;
   const ratio = Number(asset.ratio) || (asset.width && asset.height ? asset.width / asset.height : 0);
-  const portrait = ratio && ratio < 0.9;
-  const cardW = portrait ? "25cqw" : "42cqw";
-  const winH = portrait ? "34cqw" : "24cqw";
+  const shotTall = ratio && ratio < 0.9;   // the SCREENSHOT's own aspect (tall = mobile)
+  // Canvas-portrait (W<H): stack the framed card ABOVE the copy, both wide + centered,
+  // instead of a side-by-side row that overflows 9:16. The card fills most of the width
+  // (a tall mobile shot is narrower than a wide desktop one). Landscape values unchanged.
+  const cardW = port ? (shotTall ? "52cqw" : "80cqw") : (shotTall ? "25cqw" : "42cqw");
+  const winH  = port ? (shotTall ? "72cqw" : "44cqw") : (shotTall ? "34cqw" : "24cqw");
+  const safe  = port ? "flex-direction:column;gap:3.5cqw;text-align:center;align-items:center;" : "flex-direction:row;gap:5.5cqw;text-align:left;align-items:center;";
   const kick = esc(scene.kicker || ctx.S.plate);
   const tag = esc(String(scene.emphasis || ctx.S.plateSub).toLowerCase()).slice(0, 20);
   const ul = underline(id, theme, "__AT__");
   const feat = featList(id, scene, theme, "__AT__");
   const bobP = Math.max(1, Math.floor((ctx.L - 1.4) / 1.6));
-  const html = `${open(id, ctx)}<div class="safe" style="flex-direction:row;gap:5.5cqw;text-align:left;align-items:center;">
+  const html = `${open(id, ctx)}<div class="safe" style="${safe}">
     <div class="bl-plate-wrap" id="${id}-pw" style="opacity:0;position:relative;width:${cardW};flex:0 0 auto;">
       <div class="card" style="padding:1.1cqw;">
         <div class="bl-plate-win" style="height:${winH};">
@@ -363,9 +375,9 @@ function blPlate(scene, ctx, asset) {
         <path class="draw" id="${id}-sprstem" pathLength="100" d="M40 118 C 38 88 48 74 40 52" fill="none" stroke="${theme.sage}" stroke-width="7" stroke-linecap="round"/>
         <path id="${id}-sprlf" d="M40 78 C 20 76 8 62 10 44 C 30 46 40 60 40 78 Z" fill="${theme.sage2}" opacity="0"/></svg>
     </div>
-    <div style="max-width:40cqw;">
+    <div style="max-width:${port ? "88cqw" : "40cqw"};">
       <div class="script" id="${id}-kick" style="opacity:0;">${kick}</div>
-      <h1 class="display" id="${id}-head" style="font-size:4.2cqw;margin-top:0.5cqw;">${words(scene, theme.coral)}</h1>
+      <h1 class="display" id="${id}-head" style="font-size:${port ? "7.6cqw" : "4.2cqw"};margin-top:0.5cqw;">${words(scene, theme.coral)}</h1>
       ${ul.html}
       ${scene.subtext ? `<div class="body" id="${id}-sub" style="opacity:0;margin-top:1.1cqw;">${esc(scene.subtext)}</div>` : ""}
       ${feat.html}
@@ -439,7 +451,7 @@ function blStats(scene, ctx) {
   const ringHtml = stats.map((st, i) => `<div class="card ${id}-card" style="width:17.5cqw;padding:2.2cqw;display:flex;flex-direction:column;align-items:center;opacity:0;">
       <div style="position:relative;width:7.6cqw;height:7.6cqw;">
         <svg viewBox="0 0 120 120" style="width:100%;height:100%;overflow:visible;">
-          <circle cx="60" cy="60" r="48" fill="none" stroke="#F0E4D2" stroke-width="10"/>
+          <circle cx="60" cy="60" r="48" fill="none" stroke="${theme.resolvedBrand ? `color-mix(in srgb, #F0E4D2 88%, ${theme.coral})` : "#F0E4D2"}" stroke-width="10"/>
           <circle class="${id}-ring" pathLength="100" cx="60" cy="60" r="48" fill="none" stroke="${cols[i % 3]}" stroke-width="10" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 60 60)"/></svg>
         <div class="display ${id}-num" id="${id}-n${i}" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:2.3cqw;color:${theme.plum};">${esc(st.pre)}0${esc(st.suf)}</div>
       </div>
@@ -563,7 +575,7 @@ function styleBlock(theme) {
   return `${theme.fontFace}
   * { box-sizing:border-box; margin:0; padding:0; }
   html, body { width:100%; height:100%; overflow:hidden; background:#111; }
-  #root { position:relative; overflow:hidden; isolation:isolate; background:${theme.groundCss};
+  #root { position:relative; overflow:hidden; isolation:isolate; background:${theme.bgWash ? `${theme.bgWash}, ` : ""}${theme.groundCss};
     container-type:size; color:${theme.plum}; font-family:${theme.bodyStack};
     --cream:${theme.cream}; --plum:${theme.plum}; --coral:${theme.coral}; --sun:${theme.sun}; --sage:${theme.sage}; --body:${theme.body}; }
   .clip { position:absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; }
@@ -624,7 +636,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     const ends = arch === "title" || arch === "cta";
     if (!ends && byScene.has(sid)) { arch = "plate"; asset = byScene.get(sid); }
     else if (arch === "plant" && pooli < pool.length) { arch = "plate"; asset = pool[pooli++]; }
-    const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), isLast: i === scenes.length - 1, track: 2 + i, dims: { width: W, height: H }, theme, S };
+    const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), isLast: i === scenes.length - 1, track: 2 + i, dims: { width: W, height: H }, port: H > W, theme, S };
     const built = (BUILDERS[arch] || blPlant)(scene, ctx, asset);
     bodyParts.push(built.html);
     sceneStarts.push(T);

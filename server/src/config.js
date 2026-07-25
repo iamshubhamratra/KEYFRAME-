@@ -292,6 +292,34 @@ function build() {
     demoteOnIncomplete: siCfg.demoteOnIncomplete !== false,
   };
 
+  // Website Asset Intelligence harvester — collects the site's OWN brand assets
+  // (logo/icons/hero images) during ingest and extracts the logo palette. Deterministic
+  // (no LLM/vision — no stageModels entry). DEFAULT OFF (opt-in): unlike the cheap,
+  // pixels-already-captured screenshot pass, this fetches remote bytes from a
+  // user-supplied URL (a live SSRF surface, guarded in ingest/website_assets.js), so it
+  // is enabled explicitly per environment (config.json harvester.enabled:true or
+  // WEBSITE_HARVESTER=1) once the security posture is validated for the deployment.
+  const hCfg = cfg.harvester || {};
+  cfg.harvester = {
+    enabled: process.env.WEBSITE_HARVESTER != null
+      ? /^(1|true|yes|on)$/i.test(String(process.env.WEBSITE_HARVESTER))
+      : (hCfg.enabled === true),
+    budgetMs: Number.isFinite(hCfg.budgetMs) ? hCfg.budgetMs : 15000, // wall-clock budget for the fetch stage (bounds network I/O; a late fetch may add one bounded probe)
+    maxAssets: Number.isFinite(hCfg.maxAssets) ? hCfg.maxAssets : 24, // kept after ranking
+    fetchConcurrency: Number.isFinite(hCfg.fetchConcurrency) ? hCfg.fetchConcurrency : 6,
+    minDim: Number.isFinite(hCfg.minDim) ? hCfg.minDim : 64,          // raster reject floor
+    approveFloor: Number.isFinite(hCfg.approveFloor) ? hCfg.approveFloor : 45, // min deterministic quality score to keep
+    maxLogos: Number.isFinite(hCfg.maxLogos) ? hCfg.maxLogos : 2,     // keep the N strongest logos; demote the rest to icons
+    // Per-domain cache: skip re-fetching a site's assets on a repeat job (fail-open).
+    cache: hCfg.cache !== false,
+    cacheTtlHours: Number.isFinite(hCfg.cacheTtlHours) ? hCfg.cacheTtlHours : 168, // 7 days
+    // Bounded same-origin crawl (features/pricing/product). DEFAULT OFF — the plan's
+    // lowest-lift item: homepage harvest already yields the logo/colours/fonts, and each
+    // extra page adds a navigation (latency + SSRF surface). Opt-in extension point.
+    crawl: hCfg.crawl === true,
+    crawlMaxPages: Number.isFinite(hCfg.crawlMaxPages) ? hCfg.crawlMaxPages : 2,
+  };
+
   // Caption Director — localizes the film's per-scene lines into the caption
   // language (see services/translate.js + caption_director.js). One batched,
   // text-only JSON call, so any capable model works. Registered here so the usage
@@ -303,6 +331,34 @@ function build() {
     model: process.env.CAPTION_DIRECTOR_MODEL || capCfg.model || "google/gemini-3.1-flash-lite",
   };
   cfg.llm.stageModels = { ...(cfg.llm.stageModels || {}), caption_director: cfg.captions.model };
+
+  // Language Director — the deterministic authority that resolves the unified language plan
+  // at intake (before the brief/script) and persists it as the single source of truth. The
+  // kill-switch (LANGUAGE_DIRECTOR=0) skips the early resolution + localization-aware script
+  // authoring; downstream then falls back to resolving the caption config per-stage as before.
+  const ldCfg = cfg.languageDirector || {};
+  cfg.languageDirector = {
+    enabled: process.env.LANGUAGE_DIRECTOR === "0" ? false : (ldCfg.enabled !== false),
+  };
+
+  // Pre-render Validation Gate — the T2 diagnostic (services in graph.validateBeforeRender).
+  // Always self-heals broken asset paths (drops <img> that would render broken) and records
+  // a diagnostic report via db.setValidationReport. `hardFail` promotes ONE narrow,
+  // genuinely-unrecoverable state to a JOB FAILURE: the user supplied their OWN material
+  // (uploads / captured website screenshots) but NONE of it survived collection AND no stock
+  // was fetched either — a film that silently drops the user's product is worse than an honest
+  // error. Every other check stays disclosure-only (the fail-open house law holds for quality).
+  // Disable the whole gate with VALIDATION_GATE=0; keep the report but never fail with
+  // VALIDATION_HARD_FAIL=0.
+  const vgCfg = cfg.validationGate || {};
+  cfg.validationGate = {
+    enabled: process.env.VALIDATION_GATE != null
+      ? /^(1|true|yes|on)$/i.test(String(process.env.VALIDATION_GATE))
+      : (vgCfg.enabled !== false),
+    hardFail: process.env.VALIDATION_HARD_FAIL != null
+      ? /^(1|true|yes|on)$/i.test(String(process.env.VALIDATION_HARD_FAIL))
+      : (vgCfg.hardFail !== false),
+  };
 
   validate(cfg);
 

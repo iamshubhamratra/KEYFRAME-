@@ -19,6 +19,7 @@
 
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
 const { isTrustedProminent, isLogo } = require("./asset_priority");
+const { resolveBrand } = require("./brand_kit");
 
 const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 const DISPLAY = "Archivo Black";
@@ -32,15 +33,89 @@ function esc(s) {
 }
 const r = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
-function riotTheme() {
+// ---- brand colour-kit (lifted from blueprint_composer / flagship) — rotate a hue while
+// pinning the source's authored LUMINANCE + SATURATION, so a recoloured primary keeps its
+// exact place in the value ladder (yellow bright / red mid / blue dark). Only HUE moves.
+const hexToRgb = (h) => { const n = parseInt(String(h).replace("#", ""), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+const toHex2 = (v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0");
+const relLum = (h) => { const [r0, g0, b0] = hexToRgb(h).map((v) => v / 255); const f = (c) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)); return 0.2126 * f(r0) + 0.7152 * f(g0) + 0.0722 * f(b0); };
+const rgbToHsl = ([r0, g0, b0]) => {
+  r0 /= 255; g0 /= 255; b0 /= 255;
+  const mx = Math.max(r0, g0, b0), mn = Math.min(r0, g0, b0), l = (mx + mn) / 2, d = mx - mn;
+  if (!d) return [0, 0, l];
+  const s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+  const h = mx === r0 ? (g0 - b0) / d + (g0 < b0 ? 6 : 0) : mx === g0 ? (b0 - r0) / d + 2 : (r0 - g0) / d + 4;
+  return [h * 60, s, l];
+};
+const hslHex = (h, s, l) => {
+  if (!s) return `#${toHex2(l * 255).repeat(3)}`;
+  const t = (((h % 360) + 360) % 360) / 360;
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+  const ch = (x) => { if (x < 0) x += 1; if (x > 1) x -= 1; if (x < 1 / 6) return p + (q - p) * 6 * x; if (x < 0.5) return q; if (x < 2 / 3) return p + (q - p) * (2 / 3 - x) * 6; return p; };
+  return `#${toHex2(ch(t + 1 / 3) * 255)}${toHex2(ch(t) * 255)}${toHex2(ch(t - 1 / 3) * 255)}`;
+};
+const hueOf = (hex) => rgbToHsl(hexToRgb(hex))[0];
+const hueDist = (a, b) => { const d = Math.abs(((a - b) % 360 + 360) % 360); return Math.min(d, 360 - d); };
+// fully-saturated primaries (amber/gold-grade): 0.006 is the true 8-bit quantization ceiling.
+const LUM_PIN = 0.006;
+function reHue(hex, hue) {
+  const [, s] = rgbToHsl(hexToRgb(hex));
+  if (s < 0.02) return hex;
+  const target = relLum(hex);
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 24; i++) { const mid = (lo + hi) / 2; if (relLum(hslHex(hue, s, mid)) < target) lo = mid; else hi = mid; }
+  const l = (lo + hi) / 2;
+  let out = hex, err = Infinity;
+  for (const dl of [0, -1 / 255, 1 / 255]) {
+    const cand = hslHex(hue, s, l + dl);
+    const e = Math.abs(relLum(cand) - target);
+    if (e < err) { err = e; out = cand; }
+  }
+  return err <= LUM_PIN ? out : hex;
+}
+// resolveBrand lays accents brand-first then pack, so the brand-led run ends at the first
+// entry the pack already owned; [] means no brand applied.
+function brandLedOf(brand, packAccents) {
+  const pack = new Set(packAccents.map((a) => String(a).toLowerCase()));
+  const out = [];
+  for (const a of brand.accents) { if (pack.has(String(a).toLowerCase())) break; out.push(a); }
+  return out;
+}
+
+// The Bauhaus primaries. Under a brand skin the three rotate TOGETHER by one shared delta
+// onto the brand hue family (each pinned to its OWN authored relative luminance), so the
+// VALUE LADDER and the three-field TRIAD SPACING survive while the hue becomes the brand's.
+// ALL-OR-NOTHING + FAIL-OPEN: a partial rotation (one primary fails the pin) would break the
+// triad, so it is all three or none; any resolver miss keeps the classic primaries. A null
+// skin returns the exact classic literals, byte-for-byte.
+function riotTheme(brandSkin) {
   const fontFace = (isBundled(DISPLAY) ? fontFaceCss(DISPLAY) : "") + (isBundled(MONO) ? fontFaceCss(MONO) : "");
+  let red = "#E4432C", blue = "#2B4BD7", yellow = "#F2C21F", resolvedBrand = null;
+  try {
+    const brand = resolveBrand(brandSkin, { ground: "#F4EEE1", isDark: false, packAccents: [red, blue, yellow] });
+    const led = brandLedOf(brand, [red, blue, yellow]);
+    if (brand.applied && led.length) {
+      const delta = ((hueOf(led[0]) - hueOf(red)) % 360 + 360) % 360;
+      const rot = (hex) => { const tgt = ((hueOf(hex) + delta) % 360 + 360) % 360; const out = reHue(hex, tgt); return { out, ok: hueDist(hueOf(out), tgt) <= 10 }; };
+      const rr = rot(red), rb = rot(blue), ry = rot(yellow);
+      if (rr.ok && rb.ok && ry.ok) {
+        red = rr.out; blue = rb.out; yellow = ry.out;
+        resolvedBrand = {
+          ...(brandSkin && typeof brandSkin === "object" ? brandSkin : {}),
+          accents: led, emphasis: brand.emphasis,
+          adjusted: brand.adjusted, dropped: brand.dropped,
+          tier: brand.tier, applied: true,
+        };
+      }
+    }
+  } catch { red = "#E4432C"; blue = "#2B4BD7"; yellow = "#F2C21F"; resolvedBrand = null; }
   return {
     paper: "#F4EEE1", cream: "#FFFDF6", ink: "#17161B", body: "#3F3D45",
-    red: "#E4432C", blue: "#2B4BD7", yellow: "#F2C21F",
+    red, blue, yellow,
     displayStack: `'${DISPLAY}', 'Inter', system-ui, sans-serif`,
     monoStack: `'${MONO}', ui-monospace, monospace`,
     bodyStack: `'${BODY}', system-ui, sans-serif`,
-    fontFace,
+    fontFace, resolvedBrand,
   };
 }
 
@@ -180,7 +255,7 @@ function riotTitle(scene, ctx) {
 }
 
 function riotRecipe(scene, ctx) {
-  const { id, T, theme } = ctx;
+  const { id, T, theme, port } = ctx;
   let items = bullets(scene, 3);
   if (items.length < 2) items = ctx.S.recipeSteps;
   const shapeFor = (i) => i % 3 === 0
@@ -200,7 +275,7 @@ function riotRecipe(scene, ctx) {
   const html = `${open(id, ctx)}<div class="safe">
     <span class="kicker" id="${id}-kick" style="opacity:0;"><span class="sq" style="background:${theme.blue};"></span>${esc(scene.kicker || ctx.S.recipe).toUpperCase()}</span>
     <h1 class="h1" id="${id}-head" style="margin-top:1.6cqw;">${words(scene)}</h1>
-    <div style="display:flex;gap:5cqw;margin-top:3cqw;align-items:flex-start;justify-content:center;">${row}</div>
+    <div style="display:flex;gap:${port ? "2.5cqw" : "5cqw"};margin-top:3cqw;align-items:flex-start;justify-content:center;">${row}</div>
   </div></div>`;
   const per = Math.max(0.18, (ctx.L - 2.2) / items.length * 0.5);
   const s = [
@@ -217,23 +292,23 @@ function riotRecipe(scene, ctx) {
 }
 
 function riotStats(scene, ctx) {
-  const { id, T, theme } = ctx;
+  const { id, T, theme, port } = ctx;
   const stats = pickStats(scene, 4, ctx.S);
   if (!stats.length) stats.push({ pre: "", target: 40, suf: "", label: ctx.S.statLabel });
   const lead = stats[0];
   const stampCols = [theme.yellow, theme.cream, theme.red, theme.blue, theme.cream, theme.yellow];
   const stampInk = [theme.ink, theme.ink, theme.cream, theme.cream, theme.ink, theme.ink];
-  const chips = stats.slice(0, 6).map((st, i) => `<span class="stamp ${id}-stamp" style="background:${stampCols[i % 6]};color:${stampInk[i % 6]};opacity:0;margin-left:${[0, 6, 1.6, 8, 3.4, 9.6][i % 6]}cqw;">${esc(st.label || (st.pre + st.target + st.suf))}</span>`).join("");
+  const chips = stats.slice(0, 6).map((st, i) => `<span class="stamp ${id}-stamp" style="background:${stampCols[i % 6]};color:${stampInk[i % 6]};opacity:0;margin-left:${port ? 0 : [0, 6, 1.6, 8, 3.4, 9.6][i % 6]}cqw;">${esc(st.label || (st.pre + st.target + st.suf))}</span>`).join("");
   const html = `${open(id, ctx)}
-    <div id="${id}-panel" style="position:absolute;left:0;top:0;bottom:0;width:44%;background:${theme.ink};display:flex;flex-direction:column;justify-content:center;padding:0 5cqw;">
-      <div style="font-family:${theme.monoStack};font-weight:700;font-size:1.3cqw;letter-spacing:0.4em;color:${theme.yellow};text-transform:uppercase;">${esc(scene.kicker || ctx.S.stats).toUpperCase()}</div>
+    <div id="${id}-panel" style="position:absolute;${port ? "left:0;right:0;top:0;height:46%;" : "left:0;top:0;bottom:0;width:44%;"}background:${theme.ink};display:flex;flex-direction:column;justify-content:center;padding:${port ? "5cqw 8cqw" : "0 5cqw"};">
+      <div style="font-family:${theme.monoStack};font-weight:700;font-size:${port ? "2.4cqw" : "1.3cqw"};letter-spacing:0.4em;color:${theme.yellow};text-transform:uppercase;">${esc(scene.kicker || ctx.S.stats).toUpperCase()}</div>
       <div style="display:flex;align-items:baseline;gap:1cqw;margin-top:1cqw;">
         <div id="${id}-count" style="font-family:${theme.displayStack};font-size:11cqw;line-height:1;color:${theme.yellow};">${esc(lead.pre)}0</div>
         <div style="font-family:${theme.displayStack};font-size:3cqw;color:${theme.cream};">${esc(lead.suf || (lead.label || "").split(" ")[0] || "")}</div>
       </div>
-      <div class="body" style="color:#B9B4A6;margin-top:1.4cqw;font-size:1.7cqw;">${esc(scene.subtext || scene.headline || ctx.S.statsBody)}</div>
+      <div class="body" style="color:#B9B4A6;margin-top:1.4cqw;font-size:${port ? "2.8cqw" : "1.7cqw"};">${esc(scene.subtext || scene.headline || ctx.S.statsBody)}</div>
     </div>
-    <div style="position:absolute;left:48%;right:5%;top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;gap:1.7cqw;align-items:flex-start;">${chips}</div>
+    <div style="position:absolute;${port ? "left:0;right:0;top:46%;bottom:0;" : "left:48%;right:5%;top:0;bottom:0;"}display:flex;flex-direction:column;justify-content:center;gap:${port ? "2.6cqw" : "1.7cqw"};align-items:${port ? "center" : "flex-start"};">${chips}</div>
   </div>`;
   const s = [
     `tl.fromTo("#${id}",{opacity:0},{opacity:1,duration:0.3},${T});`,
@@ -246,13 +321,13 @@ function riotStats(scene, ctx) {
 }
 
 function riotManifesto(scene, ctx) {
-  const { id, T, theme } = ctx;
+  const { id, T, theme, port } = ctx;
   let lines = bullets(scene, 3);
   if (lines.length < 2) lines = ctx.S.manifestoLines;
   const emph = String(scene.emphasis || scene.headline || ctx.S.manifestoEmph).slice(0, 22);
   const xmk = () => `<svg class="xmark ${id}-x" viewBox="0 0 100 100"><path class="draw" pathLength="100" d="M12 12 L88 88" stroke="${theme.red}" stroke-width="16" stroke-linecap="round"/><path class="draw" pathLength="100" d="M88 12 L12 88" stroke="${theme.red}" stroke-width="16" stroke-linecap="round"/></svg>`;
   const rows = lines.map((t, i) => `<div style="position:relative;${i ? "margin-top:0.7cqw;" : ""}"><h1 class="display ${id}-line" style="font-size:5.4cqw;opacity:0;">${esc(String(t).toUpperCase())}</h1>${xmk()}</div>`).join("");
-  const html = `${open(id, ctx)}<div class="safe" style="align-items:flex-start;text-align:left;padding-left:14%;">
+  const html = `${open(id, ctx)}<div class="safe" style="align-items:flex-start;text-align:left;padding-left:${port ? "8%" : "14%"};">
     ${rows}
     <div style="position:relative;margin-top:1.8cqw;">
       <div class="hilite ${id}-hl" style="background:${theme.yellow};"></div>
@@ -272,18 +347,18 @@ function riotManifesto(scene, ctx) {
 }
 
 function riotFigure(scene, ctx) {
-  const { id, T, theme } = ctx;
+  const { id, T, theme, port } = ctx;
   const feat = featList(id, scene, theme);
-  const html = `${open(id, ctx)}<div class="safe" style="flex-direction:row;gap:6cqw;text-align:left;align-items:center;">
-    <svg id="${id}-eye" width="560" height="360" viewBox="0 0 280 180" style="width:28cqw;overflow:visible;flex:0 0 auto;">
+  const html = `${open(id, ctx)}<div class="safe" style="${port ? "flex-direction:column;gap:4cqw;text-align:center;align-items:center;" : "flex-direction:row;gap:6cqw;text-align:left;align-items:center;"}">
+    <svg id="${id}-eye" width="560" height="360" viewBox="0 0 280 180" style="width:${port ? "46cqw" : "28cqw"};overflow:visible;flex:0 0 auto;">
       <g id="${id}-rays" opacity="0" stroke="${theme.blue}" stroke-width="5" stroke-linecap="round">
         <line x1="140" y1="-16" x2="140" y2="6"/><line x1="30" y1="10" x2="46" y2="28"/><line x1="250" y1="10" x2="234" y2="28"/>
         <line x1="140" y1="196" x2="140" y2="174"/><line x1="30" y1="170" x2="46" y2="152"/><line x1="250" y1="170" x2="234" y2="152"/></g>
       <path id="${id}-lid" class="draw" pathLength="100" d="M10 90 Q140 -30 270 90 Q140 210 10 90 Z" fill="none" stroke="${theme.ink}" stroke-width="9" stroke-linejoin="round"/>
       <g id="${id}-iris" opacity="0"><circle cx="140" cy="90" r="46" fill="${theme.yellow}" stroke="${theme.ink}" stroke-width="8"/><circle id="${id}-pupil" cx="140" cy="90" r="18" fill="${theme.ink}"/></g></svg>
-    <div style="max-width:44cqw;">
+    <div style="max-width:${port ? "88cqw" : "44cqw"};">
       <span class="kicker" id="${id}-kick" style="opacity:0;"><span class="sq" style="background:${theme.yellow};"></span>${esc(scene.kicker || ctx.S.figure).toUpperCase()}</span>
-      <h1 class="h1" id="${id}-head" style="margin-top:1.4cqw;font-size:4.2cqw;">${words(scene)}</h1>
+      <h1 class="h1" id="${id}-head" style="margin-top:1.4cqw;font-size:${port ? "7.2cqw" : "4.2cqw"};">${words(scene)}</h1>
       ${scene.subtext ? `<div class="body" id="${id}-sub" style="opacity:0;margin-top:1.3cqw;">${esc(scene.subtext)}</div>` : ""}
       ${feat.html}
     </div>
@@ -305,15 +380,15 @@ function riotFigure(scene, ctx) {
 // PLATE — a real screenshot as a poster-framed panel: ink-bordered cream card with a
 // hard offset shadow, a color block behind, and a corner sticker stamp. Stamped in.
 function riotPlate(scene, ctx, asset) {
-  const { id, T, theme } = ctx;
+  const { id, T, theme, port } = ctx;
   const ratio = Number(asset.ratio) || (asset.width && asset.height ? asset.width / asset.height : 0);
-  const portrait = ratio && ratio < 0.9;
-  const cardW = portrait ? "26cqw" : "44cqw";
-  const winH = portrait ? "34cqw" : "24cqw";
+  const shotTall = ratio && ratio < 0.9;
+  const cardW = port ? (shotTall ? "44cqw" : "68cqw") : (shotTall ? "26cqw" : "44cqw");
+  const winH = port ? (shotTall ? "58cqw" : "40cqw") : (shotTall ? "34cqw" : "24cqw");
   const tag = esc(String(scene.emphasis || ctx.S.plateTag).toLowerCase()).slice(0, 18);
   const feat = featList(id, scene, theme);
   const bobP = Math.max(1, Math.floor((ctx.L - 1.6) / 1.6));
-  const html = `${open(id, ctx)}<div class="safe" style="flex-direction:row;gap:5cqw;text-align:left;align-items:center;">
+  const html = `${open(id, ctx)}<div class="safe" style="${port ? "flex-direction:column;gap:4cqw;text-align:center;align-items:center;" : "flex-direction:row;gap:5cqw;text-align:left;align-items:center;"}">
     <div class="riot-plate" id="${id}-pw" style="opacity:0;position:relative;width:${cardW};flex:0 0 auto;">
       <div style="position:absolute;left:1.4cqw;top:1.4cqw;width:100%;height:100%;background:${theme.yellow};border:0.22cqw solid ${theme.ink};"></div>
       <div class="riot-frame" style="position:relative;">
@@ -321,9 +396,9 @@ function riotPlate(scene, ctx, asset) {
       </div>
       <span class="stamp" id="${id}-tag" style="position:absolute;right:-1.4cqw;bottom:-1.6cqw;background:${theme.red};color:${theme.cream};opacity:0;">${tag}</span>
     </div>
-    <div style="max-width:40cqw;">
+    <div style="max-width:${port ? "88cqw" : "40cqw"};">
       <span class="kicker" id="${id}-kick" style="opacity:0;"><span class="sq"></span>${esc(scene.kicker || ctx.S.plate).toUpperCase()}</span>
-      <h1 class="h1" id="${id}-head" style="margin-top:1.2cqw;font-size:4cqw;">${words(scene)}</h1>
+      <h1 class="h1" id="${id}-head" style="margin-top:1.2cqw;font-size:${port ? "7cqw" : "4cqw"};">${words(scene)}</h1>
       ${scene.subtext ? `<div class="body" id="${id}-sub" style="opacity:0;margin-top:1.1cqw;">${esc(scene.subtext)}</div>` : ""}
       ${feat.html}
     </div>
@@ -436,22 +511,20 @@ function styleBlock(theme) {
 }
 
 // ---- MAIN --------------------------------------------------------------------
-// FORMAL BRAND OPT-OUT — bauhaus-riot does NOT take brand colour, by design, and this
-// is the whole reason the signature accepts `brandSkin` yet nothing below ever reads
-// it. It is the ONE pack whose accents cannot be rented: the red / blue / yellow
-// primaries ARE the Bauhaus movement (the manifest vibe, "bold primary-colour
-// geometry"), so a recoloured poster is simply not Bauhaus — the primaries are the
-// IDENTITY, not an accent slot that steers it. IDENTITY = LUMINANCE + MOTION +
-// TYPOGRAPHY + LAYOUT + SEMANTICS, and here HUE joins that list: these three primaries
-// MEAN "Bauhaus" the way terminal's green MEANS on-time, so no hue is the brand's to
-// steer and the pack declares no brand-slottable role. There is nothing to resolve,
-// so there is no resolveBrand / reHue / tint call to fail-open — the opt-out is total,
-// and a green skin, a magenta skin and a null skin all render the exact same poster,
-// byte-for-byte. resolvedBrand is null on the return so the honesty gate
-// (graph.persistWornBrand) shows the Brand panel nothing, never a colour the film
-// will not wear.
+// BRAND: TRIAD ROTATION (was a formal opt-out). The red / blue / yellow primaries are what
+// read as "Bauhaus", but the load-bearing identity is the THREE-FIELD STRUCTURE + the VALUE
+// LADDER (yellow bright / red mid / blue dark) + the ink hard-offset shadow + flat fills +
+// snap motion + Archivo Black — NOT those specific hues. So under a brand skin the three
+// primaries rotate TOGETHER by one shared delta onto the brand hue family (riotTheme), each
+// pinned to its OWN authored relative luminance: the ladder and triad spacing survive, only
+// the hue family becomes the brand's. It is ALL-OR-NOTHING (a partial rotation would not be
+// Bauhaus) and FAIL-OPEN (any resolver miss keeps the classic primaries). NO background wash
+// / gradient / glow is added — flat fills are identity here (unlike the other packs), so the
+// rotation alone carries the brand. A null skin renders the exact classic poster byte-for-
+// byte; resolvedBrand echoes the rotation (or null) so graph.persistWornBrand discloses what
+// the poster actually wears.
 function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin = null, localized = null } = {}) {
-  const theme = riotTheme();
+  const theme = riotTheme(brandSkin);
   const S = localized ? { ...STRINGS, ...localized } : STRINGS;
   const sb = storyboard || {};
   const W = (dims && dims.width) || 1920, H = (dims && dims.height) || 1080;
@@ -475,7 +548,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     const ends = arch === "title" || arch === "cta";
     if (!ends && byScene.has(sid)) { arch = "plate"; asset = byScene.get(sid); }
     else if (arch === "figure" && pooli < pool.length) { arch = "plate"; asset = pool[pooli++]; }
-    const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), i, isLast: i === scenes.length - 1, track: 2 + i, dims: { width: W, height: H }, theme, S };
+    const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), i, isLast: i === scenes.length - 1, track: 2 + i, dims: { width: W, height: H }, port: H > W, theme, S };
     const built = (BUILDERS[arch] || riotFigure)(scene, ctx, asset);
     bodyParts.push(built.html);
     sceneStarts.push(T);
@@ -533,9 +606,9 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   ].join("\n");
 
   const metaJson = JSON.stringify({ compositionId: "vid", width: W, height: H, fps: (dims && dims.fps) || 30, duration: D });
-  // null BY DESIGN (see the opt-out note above): this pack wears no brand, so the
-  // persistence path leaves the disclosure empty rather than promising one.
-  return { indexHtml, metaJson, resolvedBrand: null };
+  // resolvedBrand echoes the triad rotation (or null when no brand applied / the luminance
+  // pin could not be met), so graph.persistWornBrand discloses exactly what the poster wears.
+  return { indexHtml, metaJson, resolvedBrand: theme.resolvedBrand };
 }
 
 module.exports = { buildComposition, STRINGS };

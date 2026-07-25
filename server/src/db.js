@@ -112,6 +112,8 @@ function shape(j) {
     captionMode: j.caption_mode || null,
     captionQuality: j.caption_quality || null,
     localization: j.localization || null,
+    languagePlan: j.language_plan || null,
+    languageQa: j.language_qa || null,
     qa: j.qa || null,
     creativeReview: j.creative_review || null,
     audioReview: j.audio_review || null,
@@ -119,6 +121,9 @@ function shape(j) {
     brandCoverage: j.brand_coverage || null,
     layoutReview: j.layout_review || null,
     screenshotReview: j.screenshot_review || null,
+    assetHarvest: j.asset_harvest || null,
+    assetUsageReport: j.asset_usage_report || null,
+    validationReport: j.validation_report || null,
   };
 }
 
@@ -305,6 +310,16 @@ module.exports = {
     scheduleWrite();
   },
 
+  // Pre-render validation report — the T2 gate's diagnostic (assets collected/approved,
+  // broken-path self-heal, brand extracted, scenes covered). Disclosure by default; when
+  // report.ok is false and report.blockedBy is set, the graph failed the job with this as
+  // the reason (a poor render is worse than an honest error) — see graph.validateBeforeRender.
+  setValidationReport(id, report) {
+    const j = jobs.get(id); if (!j) return;
+    j.validation_report = report ? { ...report, checks: report.checks || {} } : null;
+    scheduleWrite();
+  },
+
   // Screenshot review — the Screenshot Intelligence disclosure: what was captured,
   // kept, dropped (blank/duplicate) at intake, and later demoted (popup/loading/
   // broken) by the Creative Director's vision verdict. Written in TWO passes into
@@ -323,6 +338,44 @@ module.exports = {
       demoted: Array.isArray(merged.demoted) ? merged.demoted : [],
       notes: Array.isArray(merged.notes) ? merged.notes : [],
     };
+    scheduleWrite();
+  },
+
+  // Website Asset Intelligence disclosure — what the harvester collected off the
+  // user's own site (discovered/downloaded/kept/dropped, logos found, brand palette
+  // extracted). Written once at intake. Arrays coerced so the panel never blanks
+  // (same law as setAssetCoverage/setScreenshotReview).
+  setAssetHarvest(id, report) {
+    const j = jobs.get(id); if (!j) return;
+    j.asset_harvest = report ? {
+      ...report,
+      dropped: Array.isArray(report.dropped) ? report.dropped : [],
+      logos: typeof report.logos === "number" ? report.logos : 0,
+      brandColorsExtracted: Array.isArray(report.brandColorsExtracted) ? report.brandColorsExtracted : [],
+      fontsExtracted: Array.isArray(report.fontsExtracted) ? report.fontsExtracted : [],
+      brandPalette: Array.isArray(report.brandPalette) ? report.brandPalette : [],
+      notes: Array.isArray(report.notes) ? report.notes : [],
+    } : null;
+    scheduleWrite();
+  },
+
+  // Website Asset Intelligence — the post-composition Asset Usage Report + Validation
+  // Gate: what was collected vs approved, per-kind lists, brand colours/fonts, and the
+  // 7 non-blocking validation checks. Arrays coerced so the panel never blanks.
+  setAssetUsageReport(id, report) {
+    const j = jobs.get(id); if (!j) return;
+    j.asset_usage_report = report ? {
+      ...report,
+      logos: Array.isArray(report.logos) ? report.logos : [],
+      screenshots: Array.isArray(report.screenshots) ? report.screenshots : [],
+      icons: Array.isArray(report.icons) ? report.icons : [],
+      illustrations: Array.isArray(report.illustrations) ? report.illustrations : [],
+      videos: Array.isArray(report.videos) ? report.videos : [],
+      brandColorsExtracted: Array.isArray(report.brandColorsExtracted) ? report.brandColorsExtracted : [],
+      fontsExtracted: Array.isArray(report.fontsExtracted) ? report.fontsExtracted : [],
+      demotedForRelevance: Array.isArray(report.demotedForRelevance) ? report.demotedForRelevance : [],
+      notes: Array.isArray(report.notes) ? report.notes : [],
+    } : null;
     scheduleWrite();
   },
 
@@ -348,11 +401,29 @@ module.exports = {
     scheduleWrite();
   },
 
+  // The unified language plan resolved by the Language Director at intake — the single source
+  // of truth for voiceover/caption/on-screen-text language, font, direction, glossary, and the
+  // localization-aware script directive. Every downstream stage reads it via languageDirector.getPlan.
+  setLanguagePlan(id, plan) {
+    const j = jobs.get(id); if (!j) return;
+    j.language_plan = plan || null;
+    scheduleWrite();
+  },
+
   // On-screen text localization report (video-text language + coverage). Surfaced in
   // Premiere; best-effort disclosure, never gates a render.
   setLocalization(id, report) {
     const j = jobs.get(id); if (!j) return;
     j.localization = report || null;
+    scheduleWrite();
+  },
+
+  // Consolidated pre-render Language QA (font embedded, English leakage, coverage, consistency)
+  // from the Language Director, scored against the composed HTML. Best-effort disclosure, never
+  // gates a render.
+  setLanguageQa(id, report) {
+    const j = jobs.get(id); if (!j) return;
+    j.language_qa = report || null;
     scheduleWrite();
   },
 

@@ -105,7 +105,7 @@ function blueprintTheme(brandSkin) {
 
   // FAIL-OPEN (art_director.js:14): any resolver/reHue hiccup renders the stock amber, never a
   // crash and never a half-branded sheet. TIER accent — the brand rents exactly this one slot.
-  let amber = AMBER, resolvedBrand = null;
+  let amber = AMBER, resolvedBrand = null, leadHue = null, bgWash = null;
   try {
     const brand = resolveBrand(brandSkin, { ground, isDark: true, packAccents: [AMBER], contract: { mode: "accent", maxAccents: 1, slots: [] } });
     const led = brandLedOf(brand, [AMBER]);
@@ -113,7 +113,14 @@ function blueprintTheme(brandSkin) {
       // The resolver already lifted the brand colour to clear the navy; take its HUE and rotate
       // the amber onto it, keeping the amber's own luminance so the highlight stays as bright a
       // warm-slot as it was — only its colour changes.
-      amber = reHue(AMBER, hueOf(led[0]));
+      leadHue = hueOf(led[0]);
+      amber = reHue(AMBER, leadHue);
+      // NO background air-wash on this dark drafting sheet (unlike the other packs): the
+      // resolver's 0.16-alpha top radial would drop the faint secondary ink (#9DB8D9, 5.09:1)
+      // below WCAG AA for upper-third text under bright accents. The decorative-field rehue
+      // (grid/rulers/compass/crosshair/frames) already carries the brand here, so bgWash stays
+      // null and #root renders its exact stock ground whether branded or not.
+      bgWash = null;
       resolvedBrand = {
         ...(brandSkin && typeof brandSkin === "object" ? brandSkin : {}),
         accents: led, emphasis: brand.emphasis,
@@ -121,7 +128,7 @@ function blueprintTheme(brandSkin) {
         tier: brand.tier, applied: true,
       };
     }
-  } catch { amber = AMBER; resolvedBrand = null; }
+  } catch { amber = AMBER; resolvedBrand = null; leadHue = null; bgWash = null; }
 
   // The amber's low-alpha WASHES (plot fill, progress track, CTA glow, caption border) belong to
   // the amber role and rehue in lockstep with it. With no brand skin `amber` is #FFB84D, so every
@@ -139,11 +146,26 @@ function blueprintTheme(brandSkin) {
   const ratioOn = (fg) => { const a = relLum(fg), b = relLum(amber); return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); };
   const onAccent = ratioOn("#ffffff") >= ratioOn("#14130e") ? "#ffffff" : "#14130e";
 
+  // DECORATIVE brand channel — the blue-white "graph paper" family (grid, rulers, frames,
+  // compass, crosshair, plate lines, CTA burst) is decoration, NOT the SEMANTIC cyan/red
+  // measurement marks, so it rotates onto the brand hue while dimension cyan + revision red
+  // stay locked. Each token falls back to its EXACT stock literal when unbranded (paper
+  // #BED7FF = rgb(190,215,255); decor #8FD8FF = rgb(143,216,255); compass #BFE0FF), so the
+  // NO-OP LAW holds byte-for-byte. Contrast is not load-bearing on these low-alpha washes, so
+  // a hue-only rotation at the source luminance is safe.
+  const PAPER = "#BED7FF", DECOR = "#8FD8FF", COMPASS = "#BFE0FF";
+  const paper = (resolvedBrand && leadHue != null) ? reHue(PAPER, leadHue) : PAPER;
+  const decor = (resolvedBrand && leadHue != null) ? reHue(DECOR, leadHue) : DECOR;
+  const compass = (resolvedBrand && leadHue != null) ? reHue(COMPASS, leadHue) : COMPASS;
+  const rgbaOf = (hex) => { const [R, G, B] = hexToRgb(hex); return (a) => `rgba(${R},${G},${B},${a})`; };
+  const paperRgba = rgbaOf(paper), decorRgba = rgbaOf(decor);
+
   return {
     groundCss: "radial-gradient(140% 120% at 30% 20%, #17416F 0%, #123659 46%, #0C2440 100%)",
     sheet: "#123659", ink: "#EAF3FF", faint: "#9DB8D9",
     amber, red: "#FF5F5F", cyan: "#8FD8FF", amberWash,
-    line: "rgba(190,215,255,0.16)",
+    paper, paperRgba, decor, decorRgba, compass, bgWash,
+    line: paperRgba(0.16),
     displayStack: `'${DISPLAY}', system-ui, sans-serif`,
     monoStack: `'${MONO}', ui-monospace, monospace`,
     fontFace, resolvedBrand, onAccent,
@@ -273,11 +295,12 @@ function bpTitle(scene, ctx) {
 }
 
 function bpFigure(scene, ctx) {
-  const { id, T, theme, fig } = ctx;
+  const { id, T, theme, fig, port } = ctx;
   const callout = esc((scene.emphasis || ctx.S.figureCallout).toUpperCase());
+  const safe = port ? "flex-direction:column;gap:4cqw;text-align:center;align-items:center;" : "flex-direction:row;gap:6cqw;text-align:left;";
   const html = `<div class="clip bp-scene" id="${id}" data-start="${T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">
-  <div class="safe" style="flex-direction:row;gap:6cqw;text-align:left;">
-    <svg id="${id}-fig" width="620" height="520" viewBox="0 0 620 520" style="width:34cqw;flex:0 0 auto;overflow:visible;">
+  <div class="safe" style="${safe}">
+    <svg id="${id}-fig" width="620" height="520" viewBox="0 0 620 520" style="width:${port ? "58cqw" : "34cqw"};flex:0 0 auto;overflow:visible;">
       <g id="${id}-center" opacity="0" stroke="${theme.cyan}" stroke-width="1.6" stroke-dasharray="18 6 3 6">
         <line x1="150" y1="300" x2="470" y2="300"/><line x1="310" y1="150" x2="310" y2="450"/></g>
       <g fill="none" stroke="${theme.ink}" stroke-width="3">
@@ -302,9 +325,9 @@ function bpFigure(scene, ctx) {
         <path d="M120 512 l14 -7 v14 Z" fill="${theme.cyan}"/><path d="M500 512 l-14 -7 v14 Z" fill="${theme.cyan}"/>
         <text class="dim-label" x="310" y="508" text-anchor="middle" dy="-14">TO SPEC</text></g>
     </svg>
-    <div style="max-width:40cqw;">
+    <div style="max-width:${port ? "88cqw" : "40cqw"};">
       <div class="fig" id="${id}-figl" style="opacity:0;">${esc(fig)}</div>
-      <h2 class="display" id="${id}-head" style="font-size:3.6cqw;margin-top:1cqw;opacity:0;">${hl(scene, theme.amber)}</h2>
+      <h2 class="display" id="${id}-head" style="font-size:${port ? "6.4cqw" : "3.6cqw"};margin-top:1cqw;opacity:0;">${hl(scene, theme.amber)}</h2>
       ${scene.subtext ? `<div class="body" id="${id}-sub" style="opacity:0;margin-top:1.4cqw;">${esc(scene.subtext)}</div>` : ""}
     </div>
   </div></div>`;
@@ -328,7 +351,7 @@ function bpFigure(scene, ctx) {
 }
 
 function bpFlowchart(scene, ctx) {
-  const { id, T, theme, fig } = ctx;
+  const { id, T, theme, fig, port } = ctx;
   let items = bullets(scene, 3);
   if (items.length < 2) items = ctx.S.flowchartSteps;
   const boxes = items.map((t, i) => {
@@ -340,7 +363,7 @@ function bpFlowchart(scene, ctx) {
   const arrow = () => `<svg class="${id}-arrow" width="90" height="40" viewBox="0 0 90 40" style="overflow:visible;flex:0 0 auto;">
       <line class="draw" pathLength="100" x1="4" y1="20" x2="66" y2="20" stroke="${theme.cyan}" stroke-width="3"/>
       <path class="${id}-ah" d="M62 8 L86 20 L62 32 Z" fill="${theme.cyan}" opacity="0"/></svg>`;
-  const boxHtml = boxes.map((b) => `<div class="fbox ${id}-box" style="opacity:0;">
+  const boxHtml = boxes.map((b) => `<div class="fbox ${id}-box" style="opacity:0;${port ? "width:70cqw;" : ""}">
       <span class="btick tl"></span><span class="btick br"></span>
       <svg class="fcheck" viewBox="0 0 44 44"><path class="${id}-chk draw" pathLength="100" d="M8 24 L18 34 L36 10" fill="none" stroke="${theme.amber}" stroke-width="6" stroke-linecap="round"/></svg>
       <div class="fb-t">${esc(b.bt)}</div><div class="fb-s">${esc(b.bs)}</div>
@@ -349,7 +372,7 @@ function bpFlowchart(scene, ctx) {
   const html = `<div class="clip bp-scene" id="${id}" data-start="${T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">
   <div class="safe">
     <div class="fig" id="${id}-figl" style="opacity:0;">${esc(fig)}</div>
-    <div style="display:flex;align-items:center;gap:2.4cqw;margin-top:2.6cqw;">${row}</div>
+    <div style="display:flex;${port ? "flex-direction:column;" : ""}align-items:center;gap:2.4cqw;margin-top:2.6cqw;">${row}</div>
   </div></div>`;
   const per = Math.max(0.5, (ctx.L - 1.4) / boxes.length);
   const s = [
@@ -366,13 +389,14 @@ function bpFlowchart(scene, ctx) {
 }
 
 function bpPlot(scene, ctx) {
-  const { id, T, theme, fig } = ctx;
+  const { id, T, theme, fig, port } = ctx;
   const n = pickNumber(scene) || { pre: "", target: 97, suf: "" };
   const bigTxt = `${n.pre}0${n.suf}`;
   const head = String(scene.headline || ctx.S.plotHeadline).toUpperCase();
+  const safe = port ? "flex-direction:column;gap:4cqw;text-align:center;align-items:center;" : "flex-direction:row;gap:6cqw;text-align:left;";
   const html = `<div class="clip bp-scene" id="${id}" data-start="${T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">
-  <div class="safe" style="flex-direction:row;gap:6cqw;text-align:left;">
-    <svg id="${id}-plot" width="740" height="480" viewBox="0 0 740 480" style="width:36cqw;flex:0 0 auto;overflow:visible;">
+  <div class="safe" style="${safe}">
+    <svg id="${id}-plot" width="740" height="480" viewBox="0 0 740 480" style="width:${port ? "62cqw" : "36cqw"};flex:0 0 auto;overflow:visible;">
       <line class="${id}-ax draw" pathLength="100" x1="70" y1="30" x2="70" y2="410" stroke="${theme.ink}" stroke-width="3"/>
       <line class="${id}-ax draw" pathLength="100" x1="70" y1="410" x2="710" y2="410" stroke="${theme.ink}" stroke-width="3"/>
       <clipPath id="${id}clip"><rect id="${id}-clipr" x="70" y="20" width="0" height="400"/></clipPath>
@@ -384,10 +408,10 @@ function bpPlot(scene, ctx) {
       <text class="dim-label" x="86" y="52" fill="${theme.faint}">QUALITY</text>
       <text class="dim-label" x="600" y="444" fill="${theme.faint}">EFFORT&#8594;0</text>
     </svg>
-    <div style="max-width:38cqw;">
+    <div style="max-width:${port ? "88cqw" : "38cqw"};">
       <div class="fig" id="${id}-figl" style="opacity:0;">${esc(fig)}</div>
-      <div class="display" id="${id}-num" style="font-size:4.6cqw;color:${theme.amber};margin-top:1cqw;opacity:0;">${esc(bigTxt)}</div>
-      <h2 class="display" id="${id}-head" style="font-size:2.6cqw;color:${theme.cyan};margin-top:0.4cqw;opacity:0;">${esc(head)}</h2>
+      <div class="display" id="${id}-num" style="font-size:${port ? "8.4cqw" : "4.6cqw"};color:${theme.amber};margin-top:1cqw;opacity:0;">${esc(bigTxt)}</div>
+      <h2 class="display" id="${id}-head" style="font-size:${port ? "4.2cqw" : "2.6cqw"};color:${theme.cyan};margin-top:0.4cqw;opacity:0;">${esc(head)}</h2>
       ${scene.subtext ? `<div class="body" id="${id}-sub" style="opacity:0;margin-top:1.2cqw;">${esc(scene.subtext)}</div>` : ""}
     </div>
   </div></div>`;
@@ -453,7 +477,7 @@ function bpCta(scene, ctx) {
   <div class="safe">
     <div style="position:relative;">
       <svg id="${id}-burst" width="560" height="240" viewBox="0 0 560 240" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);overflow:visible;" data-layout-allow-occlusion>
-        <g stroke="${theme.cyan}" stroke-width="2.5" stroke-linecap="round" opacity="0.8">
+        <g stroke="${theme.decor}" stroke-width="2.5" stroke-linecap="round" opacity="0.8">
           <line class="${id}-ray" x1="280" y1="120" x2="280" y2="10"/><line class="${id}-ray" x1="280" y1="120" x2="280" y2="230"/>
           <line class="${id}-ray" x1="280" y1="120" x2="60" y2="40"/><line class="${id}-ray" x1="280" y1="120" x2="500" y2="40"/>
           <line class="${id}-ray" x1="280" y1="120" x2="60" y2="200"/><line class="${id}-ray" x1="280" y1="120" x2="500" y2="200"/></g>
@@ -467,7 +491,7 @@ function bpCta(scene, ctx) {
     </div>
     <div style="position:relative;margin-top:2.6cqw;display:inline-block;">
       <svg width="620" height="190" viewBox="0 0 620 190" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);overflow:visible;" data-layout-allow-occlusion>
-        <rect id="${id}-dashrect" x="10" y="10" width="600" height="170" rx="85" fill="none" stroke="rgba(143,216,255,0.75)" stroke-width="3" stroke-dasharray="14 16" opacity="0"/></svg>
+        <rect id="${id}-dashrect" x="10" y="10" width="600" height="170" rx="85" fill="none" stroke="${theme.decorRgba(0.75)}" stroke-width="3" stroke-dasharray="14 16" opacity="0"/></svg>
       <div class="cta" id="${id}-cta" style="opacity:0;">${cta} <span>&#8594;</span></div>
     </div>
   </div>
@@ -493,19 +517,20 @@ function bpCta(scene, ctx) {
 // wipe, a slow Ken-Burns, a dimension line, and side copy. Keeps the screenshot in
 // full colour (lightly graded to the palette) so it stays readable.
 function bpPlate(scene, ctx, asset) {
-  const { id, T, theme, fig } = ctx;
+  const { id, T, theme, fig, port } = ctx;
   const ratio = Number(asset.ratio) || (asset.width && asset.height ? asset.width / asset.height : 0);
-  const portrait = ratio && ratio < 0.9;
-  const plateW = portrait ? "24cqw" : "42cqw";
-  const winH = portrait ? "34cqw" : "24cqw";
+  const shotTall = ratio && ratio < 0.9; // SHOT aspect (renamed from `portrait` — this is the screenshot, NOT the canvas)
+  const safe = port ? "flex-direction:column;gap:4cqw;text-align:center;align-items:center;" : "flex-direction:row;gap:6cqw;text-align:left;";
+  const plateW = port ? (shotTall ? "46cqw" : "84cqw") : (shotTall ? "24cqw" : "42cqw");
+  const winH = port ? (shotTall ? "58cqw" : "48cqw") : (shotTall ? "34cqw" : "24cqw");
   const callout = esc(String(scene.emphasis || ctx.S.plateCallout).toUpperCase()).slice(0, 18);
   const objPos = "top center";
   const rev = Math.max(1.0, ctx.L - 2.0);
   // Scan-bar travel in px (transform x, not `left` — lint wants sub-pixel transforms):
   // the plate window is plateW of the canvas width, so the bar crosses that distance.
-  const travel = Math.round((portrait ? 0.24 : 0.42) * ((ctx.dims && ctx.dims.width) || 1920));
+  const travel = Math.round((port ? (shotTall ? 0.46 : 0.84) : (shotTall ? 0.24 : 0.42)) * ((ctx.dims && ctx.dims.width) || 1920));
   const html = `<div class="clip bp-scene" id="${id}" data-start="${T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">
-  <div class="safe" style="flex-direction:row;gap:6cqw;text-align:left;">
+  <div class="safe" style="${safe}">
     <div class="bp-plate" id="${id}-plate" style="opacity:0;position:relative;width:${plateW};flex:0 0 auto;">
       <div class="bp-plate-head">PLATE 0${ctx.sheetNo} <span>${callout}</span></div>
       <div class="bp-plate-win" style="height:${winH};">
@@ -521,9 +546,9 @@ function bpPlate(scene, ctx, asset) {
         <text class="dim-label" x="200" y="16" text-anchor="middle">CAPTURED · TO SPEC 1:1</text>
       </svg>
     </div>
-    <div style="max-width:36cqw;">
+    <div style="max-width:${port ? "88cqw" : "36cqw"};">
       <div class="fig" id="${id}-figl" style="opacity:0;">${esc(fig)}</div>
-      <h2 class="display" id="${id}-head" style="font-size:3.4cqw;margin-top:1cqw;opacity:0;">${hl(scene, theme.amber)}</h2>
+      <h2 class="display" id="${id}-head" style="font-size:${port ? "5.6cqw" : "3.4cqw"};margin-top:1cqw;opacity:0;">${hl(scene, theme.amber)}</h2>
       ${scene.subtext ? `<div class="body" id="${id}-sub" style="opacity:0;margin-top:1.3cqw;">${esc(scene.subtext)}</div>` : ""}
     </div>
   </div></div>`;
@@ -556,11 +581,11 @@ function chromeHtml(theme, W, H, title) {
     <div class="ruler-t" style="bottom:0;"></div><div class="ruler-T" style="bottom:0;"></div>
     <div class="ruler-l" style="left:0;"></div><div class="ruler-L" style="left:0;"></div>
     <div class="ruler-l" style="right:0;"></div><div class="ruler-L" style="right:0;"></div>
-    <svg id="compass-rose" viewBox="0 0 120 120"><g fill="none" stroke="#BFE0FF" stroke-width="1.6">
+    <svg id="compass-rose" viewBox="0 0 120 120"><g fill="none" stroke="${theme.compass}" stroke-width="1.6">
       <circle cx="60" cy="60" r="54"/><circle cx="60" cy="60" r="40"/><circle cx="60" cy="60" r="4"/>
       <line x1="60" y1="2" x2="60" y2="118"/><line x1="2" y1="60" x2="118" y2="60"/>
       <line x1="19" y1="19" x2="101" y2="101"/><line x1="101" y1="19" x2="19" y2="101"/>
-      <path d="M60 12 L66 40 L60 34 L54 40 Z" fill="#BFE0FF"/></g></svg>
+      <path d="M60 12 L66 40 L60 34 L54 40 Z" fill="${theme.compass}"/></g></svg>
     <div class="construct" id="con1" style="left:-10%; top:24%; width:120%; height:1px; transform:rotate(9deg);"></div>
     <div class="construct" id="con2" style="left:-10%; top:72%; width:120%; height:1px; transform:rotate(-7deg);"></div>
     <div id="sheet-vignette"></div>
@@ -591,7 +616,7 @@ function styleBlock(theme) {
   return `${theme.fontFace}
   * { box-sizing:border-box; margin:0; padding:0; }
   html, body { width:100%; height:100%; overflow:hidden; background:#06131F; }
-  #root { position:relative; overflow:hidden; isolation:isolate; background:${theme.groundCss};
+  #root { position:relative; overflow:hidden; isolation:isolate; background:${theme.bgWash ? `${theme.bgWash}, ` : ""}${theme.groundCss};
     container-type:size; color:${theme.ink}; font-family:${theme.monoStack};
     --sheet:${theme.sheet}; --ink:${theme.ink}; --faint:${theme.faint}; --amber:${theme.amber}; --red:${theme.red}; --cyan:${theme.cyan};
     --line:${theme.line}; }
@@ -604,14 +629,14 @@ function styleBlock(theme) {
   .body { font-size:1.6cqw; font-weight:500; line-height:1.55; color:var(--faint); }
   .caret { display:inline-block; width:0.75cqw; height:2.2cqw; vertical-align:-0.3cqw; background:var(--amber); margin-left:0.3cqw; }
   .stamp { display:inline-block; font-family:${theme.displayStack}; font-weight:700; font-size:3.2cqw; letter-spacing:0.08em; text-transform:uppercase; color:var(--red); border:0.42cqw solid var(--red); border-radius:0.8cqw; padding:0.9cqw 2.6cqw; will-change:transform; }
-  #grid-minor { position:absolute; inset:0; pointer-events:none; background-image:linear-gradient(rgba(190,215,255,0.06) 1px, transparent 1px),linear-gradient(90deg, rgba(190,215,255,0.06) 1px, transparent 1px); background-size:1.25cqw 1.25cqw; }
-  #grid-major { position:absolute; inset:0; pointer-events:none; background-image:linear-gradient(rgba(190,215,255,0.13) 1px, transparent 1px),linear-gradient(90deg, rgba(190,215,255,0.13) 1px, transparent 1px); background-size:6.25cqw 6.25cqw; }
-  .ruler-t { position:absolute; left:0; right:0; height:0.55cqw; pointer-events:none; opacity:0.5; background:repeating-linear-gradient(90deg, rgba(190,215,255,0.4) 0 2px, transparent 2px 1.25cqw); }
-  .ruler-T { position:absolute; left:0; right:0; height:1.05cqw; pointer-events:none; opacity:0.55; background:repeating-linear-gradient(90deg, rgba(190,215,255,0.5) 0 2px, transparent 2px 6.25cqw); }
-  .ruler-l { position:absolute; top:0; bottom:0; width:0.55cqw; pointer-events:none; opacity:0.5; background:repeating-linear-gradient(0deg, rgba(190,215,255,0.4) 0 2px, transparent 2px 1.25cqw); }
-  .ruler-L { position:absolute; top:0; bottom:0; width:1.05cqw; pointer-events:none; opacity:0.55; background:repeating-linear-gradient(0deg, rgba(190,215,255,0.5) 0 2px, transparent 2px 6.25cqw); }
+  #grid-minor { position:absolute; inset:0; pointer-events:none; background-image:linear-gradient(${theme.paperRgba(0.06)} 1px, transparent 1px),linear-gradient(90deg, ${theme.paperRgba(0.06)} 1px, transparent 1px); background-size:1.25cqw 1.25cqw; }
+  #grid-major { position:absolute; inset:0; pointer-events:none; background-image:linear-gradient(${theme.paperRgba(0.13)} 1px, transparent 1px),linear-gradient(90deg, ${theme.paperRgba(0.13)} 1px, transparent 1px); background-size:6.25cqw 6.25cqw; }
+  .ruler-t { position:absolute; left:0; right:0; height:0.55cqw; pointer-events:none; opacity:0.5; background:repeating-linear-gradient(90deg, ${theme.paperRgba(0.4)} 0 2px, transparent 2px 1.25cqw); }
+  .ruler-T { position:absolute; left:0; right:0; height:1.05cqw; pointer-events:none; opacity:0.55; background:repeating-linear-gradient(90deg, ${theme.paperRgba(0.5)} 0 2px, transparent 2px 6.25cqw); }
+  .ruler-l { position:absolute; top:0; bottom:0; width:0.55cqw; pointer-events:none; opacity:0.5; background:repeating-linear-gradient(0deg, ${theme.paperRgba(0.4)} 0 2px, transparent 2px 1.25cqw); }
+  .ruler-L { position:absolute; top:0; bottom:0; width:1.05cqw; pointer-events:none; opacity:0.55; background:repeating-linear-gradient(0deg, ${theme.paperRgba(0.5)} 0 2px, transparent 2px 6.25cqw); }
   #compass-rose { position:absolute; right:6cqw; top:9cqw; width:11cqw; height:11cqw; opacity:0.14; pointer-events:none; }
-  .construct { position:absolute; pointer-events:none; background:rgba(143,216,255,0.09); }
+  .construct { position:absolute; pointer-events:none; background:${theme.decorRgba(0.09)}; }
   #sheet-vignette { position:absolute; inset:0; pointer-events:none; background:radial-gradient(120% 120% at 50% 42%, transparent 55%, rgba(4,14,28,0.5) 100%); }
   .regmark { position:absolute; width:2.4cqw; height:2.4cqw; }
   .regmark path { stroke:var(--faint); stroke-width:2.5; fill:none; }
@@ -620,16 +645,16 @@ function styleBlock(theme) {
   #titleblock .tb-row:first-child { border-top:none; }
   #titleblock .tb-k { width:38%; padding:0.5cqw 0.9cqw; letter-spacing:0.14em; border-right:1px solid var(--line); color:#7E9CC2; }
   #titleblock .tb-v { flex:1; padding:0.5cqw 0.9cqw; letter-spacing:0.1em; color:var(--ink); white-space:nowrap; }
-  #ch-v { position:absolute; top:0; bottom:0; left:50%; width:1px; background:rgba(143,216,255,0.34); }
-  #ch-h { position:absolute; left:0; right:0; top:50%; height:1px; background:rgba(143,216,255,0.34); }
+  #ch-v { position:absolute; top:0; bottom:0; left:50%; width:1px; background:${theme.decorRgba(0.34)}; }
+  #ch-h { position:absolute; left:0; right:0; top:50%; height:1px; background:${theme.decorRgba(0.34)}; }
   #ch-dot { position:absolute; left:50%; top:50%; width:1.5cqw; height:1.5cqw; margin:-0.75cqw 0 0 -0.75cqw; border:1.5px solid var(--cyan); border-radius:50%; }
-  #ch-xy { position:absolute; left:50%; top:50%; margin:0.9cqw 0 0 1.1cqw; font-size:0.85cqw; letter-spacing:0.14em; color:rgba(143,216,255,0.75); white-space:nowrap; }
+  #ch-xy { position:absolute; left:50%; top:50%; margin:0.9cqw 0 0 1.1cqw; font-size:0.85cqw; letter-spacing:0.14em; color:${theme.decorRgba(0.75)}; white-space:nowrap; }
   #wipe { position:absolute; top:0; bottom:0; left:0; width:100%; pointer-events:none; background:linear-gradient(100deg, rgba(24,70,120,0) 0%, rgba(29,82,138,0.92) 26%, #1B4A7E 50%, rgba(29,82,138,0.92) 74%, rgba(24,70,120,0) 100%); }
-  #wipe i { position:absolute; top:0; bottom:0; right:24%; width:2px; background:rgba(143,216,255,0.8); display:block; }
+  #wipe i { position:absolute; top:0; bottom:0; right:24%; width:2px; background:${theme.decorRgba(0.8)}; display:block; }
   .draw { stroke-dasharray:100; stroke-dashoffset:100; }
   .dim-label { font-size:1cqw; letter-spacing:0.12em; fill:${theme.cyan}; font-family:${theme.monoStack}; }
   .pencil { position:absolute; width:2.4cqw; pointer-events:none; will-change:transform; }
-  .fbox { width:19cqw; padding:1.6cqw 1.9cqw 1.4cqw; border:2px dashed rgba(190,215,255,0.55); border-radius:0.7cqw; background:rgba(11,30,54,0.5); text-align:left; position:relative; }
+  .fbox { width:19cqw; padding:1.6cqw 1.9cqw 1.4cqw; border:2px dashed ${theme.paperRgba(0.55)}; border-radius:0.7cqw; background:rgba(11,30,54,0.5); text-align:left; position:relative; }
   .fbox .fb-t { font-family:${theme.displayStack}; font-weight:700; font-size:1.9cqw; letter-spacing:0.06em; color:var(--ink); text-transform:uppercase; }
   .fbox .fb-s { font-size:1.15cqw; color:var(--faint); margin-top:0.6cqw; line-height:1.5; min-height:3.6cqw; }
   .fbox .pbar { margin-top:0.9cqw; height:0.4cqw; background:${theme.amberWash("0.18")}; border-radius:999px; overflow:hidden; }
@@ -641,10 +666,10 @@ function styleBlock(theme) {
   .cta { display:inline-flex; align-items:center; gap:1.1cqw; font-family:${theme.displayStack}; font-weight:700; font-size:2.3cqw; letter-spacing:0.04em; text-transform:uppercase; color:${theme.resolvedBrand ? theme.onAccent : "#132441"}; background:var(--amber); padding:1.35cqw 3.4cqw; border-radius:0.6cqw; box-shadow:0 0 0 0.35cqw ${theme.amberWash("0.22")}; will-change:transform; }
   .bp-plate-head { font-family:${theme.monoStack}; font-size:1cqw; letter-spacing:0.18em; text-transform:uppercase; color:var(--faint); margin-bottom:0.7cqw; display:flex; justify-content:space-between; align-items:baseline; }
   .bp-plate-head span { color:var(--amber); }
-  .bp-plate-win { position:relative; width:100%; overflow:hidden; border:2px solid rgba(143,216,255,0.5); border-radius:0.5cqw; background:var(--sheet); box-shadow:0 1.2cqw 3cqw rgba(4,14,28,0.5); }
+  .bp-plate-win { position:relative; width:100%; overflow:hidden; border:2px solid ${theme.decorRgba(0.5)}; border-radius:0.5cqw; background:var(--sheet); box-shadow:0 1.2cqw 3cqw rgba(4,14,28,0.5); }
   .bp-plate-win img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; filter:saturate(0.94) contrast(1.04); display:block; will-change:transform; }
   .bp-plate-tint { position:absolute; inset:0; background:linear-gradient(180deg, rgba(23,65,111,0.10), rgba(12,36,64,0.22)); pointer-events:none; }
-  .bp-plate-lines { position:absolute; inset:0; background:repeating-linear-gradient(0deg, rgba(143,216,255,0.045) 0 2px, transparent 2px 4px); pointer-events:none; }
+  .bp-plate-lines { position:absolute; inset:0; background:repeating-linear-gradient(0deg, ${theme.decorRgba(0.045)} 0 2px, transparent 2px 4px); pointer-events:none; }
   .bp-plate-cover { position:absolute; inset:0; background:var(--sheet); }
   .bp-plate-scan { position:absolute; top:0; bottom:0; left:0; width:0.3cqw; background:${theme.cyan}; box-shadow:0 0 2cqw ${theme.cyan}; }
   #caps { position:absolute; inset:0; display:flex; justify-content:center; align-items:flex-end; padding-bottom:5%; z-index:50; pointer-events:none; }
@@ -703,7 +728,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     else if (arch === "figure" && pooli < pool.length) { arch = "plate"; asset = pool[pooli++]; }
     const figBase = FIG_LABEL[arch] || "";
     const fig = (arch === "figure" || arch === "plate") ? `Fig. ${i} — ${String(scene.purpose || (arch === "plate" ? "captured" : "the figure"))}` : figBase;
-    const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), isLast: i === scenes.length - 1, track: 2 + i, dims: { width: W, height: H }, theme, fig, sheetNo: i + 1, S };
+    const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), isLast: i === scenes.length - 1, track: 2 + i, dims: { width: W, height: H }, theme, fig, sheetNo: i + 1, S, port: H > W };
     const built = (BUILDERS[arch] || bpFigure)(scene, ctx, asset);
     bodyParts.push(built.html);
     sceneStarts.push(T);

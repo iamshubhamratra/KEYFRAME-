@@ -146,7 +146,7 @@ function tealTheme(brandSkin) {
 
   // FAIL-OPEN (art_director.js:14): a resolver/reHue hiccup renders the stock pastels,
   // never a crash and never a half-branded film.
-  let wheel = null, brand = null, brandLed = [];
+  let wheel = null, brand = null, brandLed = [], bgWash = null;
   try {
     brand = resolveBrand(brandSkin, { ground: paper, isDark: false, packAccents });
     brandLed = brandLedOf(brand, packAccents);
@@ -154,8 +154,11 @@ function tealTheme(brandSkin) {
       const leadHue = hueOf(brandLed[0]);
       wheel = {};
       for (const f in FAM_FAN) wheel[f] = leadHue + FAM_FAN[f];
+      // The identity-safe background "air" wash — a transparent radial the resolver builds to
+      // tint the air over the cream desk, never the desk itself. Layered on #root when branded.
+      bgWash = (brand.gradients && brand.gradients.background) || null;
     }
-  } catch { wheel = null; }
+  } catch { wheel = null; bgWash = null; }
   const applied = !!wheel;
 
   // NO-OP LAW: with no brand skin `wheel` is null and tint is the IDENTITY — every pastel
@@ -170,9 +173,15 @@ function tealTheme(brandSkin) {
 
   const rose = tint(FAM_BASE.rose), butter = tint(FAM_BASE.butter), sky = tint(FAM_BASE.sky),
     mint = tint(FAM_BASE.mint), lilac = tint(FAM_BASE.lilac);
+  // Alpha-preserving rose wash for the two decorative literals that escaped tint() into raw
+  // styleBlock CSS (the friend-cheek blush + the CTA-sticker glow): they now track the already-
+  // rehued rose. NO-OP: unbranded rose is #E8938C = rgb(232,147,140), so roseA(a) reduces
+  // byte-for-byte to today's rgba(232,147,140,a).
+  const roseRgb = hexToRgb(rose);
+  const roseA = (a) => `rgba(${roseRgb[0]},${roseRgb[1]},${roseRgb[2]},${a})`;
   return {
     paper, paper2, ink, soft,
-    rose, butter, sky, mint, lilac,
+    rose, butter, sky, mint, lilac, roseA, bgWash,
     accents: [rose, sky, mint, lilac, butter],
     applied, tint,
     // Chapter tabs rehue with their family; both the tab colour and its emphasis word
@@ -299,7 +308,7 @@ function archetype(scene, i, total) {
 // ---- pop-up illustrations (SVG) — simple, charming, deterministic --------------
 function illoBulb(theme) {
   return `<svg viewBox="0 0 140 170" style="width:100%;height:100%;overflow:visible;">
-    <rect x="58" y="120" width="24" height="34" rx="8" fill="#C9A96A"/><rect x="54" y="146" width="32" height="10" rx="5" fill="#B8935A"/>
+    <rect x="58" y="120" width="24" height="34" rx="8" fill="${theme.tint("#C9A96A")}"/><rect x="54" y="146" width="32" height="10" rx="5" fill="${theme.tint("#B8935A")}"/>
     <circle cx="70" cy="72" r="46" fill="${theme.tint("#FFE9A8")}" stroke="${theme.tint("#F5C86E")}" stroke-width="5"/>
     <path d="M52 66 Q70 46 88 66" fill="none" stroke="${theme.tint("#F0B75A")}" stroke-width="4" stroke-linecap="round"/>
     <circle cx="58" cy="76" r="4" fill="#8A6D3B"/><circle cx="82" cy="76" r="4" fill="#8A6D3B"/>
@@ -360,7 +369,7 @@ function chapterSpread(scene, ctx, opts) {
     </div></div>`;
   const illoPage = `<div class="pg ${illoOnLeft ? "pgL" : "pgR"}">
     <div class="pad" style="display:flex;align-items:center;justify-content:center;">
-      <div class="popwrap" id="${id}-popw" style="width:21cqw;height:25cqw;bottom:4.5cqw;left:50%;margin-left:-10.5cqw;">
+      <div class="popwrap" id="${id}-popw" style="width:${ctx.port?"44cqw":"21cqw"};height:${ctx.port?"40cqw":"25cqw"};bottom:${ctx.port?"8cqw":"4.5cqw"};left:50%;margin-left:${ctx.port?"-22cqw":"-10.5cqw"};">
         <div class="popshadow" id="${id}-popsh" style="opacity:0;"></div>
         <div class="pop" id="${id}-pop">${illo}</div>
       </div>
@@ -467,12 +476,12 @@ function statSpread(scene, ctx) {
   const extras = storyExtras(id, scene, ctx, pen, r(T + 2.2), r(T + 1.0));
   const html = `${pageOpen(id, ctx)}
     <div class="pg pgL"><div class="pad" style="display:flex;align-items:center;justify-content:center;">
-      <div class="popwrap" id="${id}-popw" style="width:20cqw;height:15cqw;bottom:6cqw;left:50%;margin-left:-10cqw;">
+      <div class="popwrap" id="${id}-popw" style="width:${ctx.port?"46cqw":"20cqw"};height:${ctx.port?"32cqw":"15cqw"};bottom:${ctx.port?"12cqw":"6cqw"};left:50%;margin-left:${ctx.port?"-23cqw":"-10cqw"};">
         <div class="popshadow" id="${id}-popsh" style="opacity:0;"></div>
         <div class="pop" id="${id}-pop">
           <div class="popcard" style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
-            <div class="h-story" style="font-size:6cqw;color:${tab.emph};line-height:1;">${esc(num.pre)}<span id="${id}-num">0</span>${esc(num.suf)}</div>
-            <div class="hand" style="font-size:1.5cqw;color:${theme.soft};margin-top:0.4cqw;">${esc(String(scene.subtext || scene.headline || "").slice(0, 22) || ctx.S.andCounting)}</div>
+            <div class="h-story" style="font-size:${ctx.port?"9cqw":"6cqw"};color:${tab.emph};line-height:1;">${esc(num.pre)}<span id="${id}-num">0</span>${esc(num.suf)}</div>
+            <div class="hand" style="font-size:${ctx.port?"2.4cqw":"1.5cqw"};color:${theme.soft};margin-top:0.4cqw;">${esc(String(scene.subtext || scene.headline || "").slice(0, 22) || ctx.S.andCounting)}</div>
           </div></div></div>
     </div></div>
     <div class="pg pgR">
@@ -506,7 +515,7 @@ function screenSpread(scene, ctx, asset) {
     : `<div class="cine-screen"><div id="${id}-strip" style="position:absolute;top:14%;left:0;display:flex;gap:0.8cqw;">${["#F3B8B1", "#FFE1A6", "#BFE0F2", "#C9E8CE", "#DCC9EE", "#F3B8B1"].map((c) => `<div style="width:6.4cqw;height:8cqw;border-radius:0.5cqw;background:linear-gradient(160deg,${theme.tint(c)},${theme.tint(c)});"></div>`).join("")}</div></div>`;
   const html = `${pageOpen(id, ctx)}
     <div class="pg pgL"><div class="pad" style="display:flex;align-items:center;justify-content:center;">
-      <div class="popwrap" id="${id}-popw" style="width:26cqw;height:18cqw;bottom:5cqw;left:50%;margin-left:-13cqw;">
+      <div class="popwrap" id="${id}-popw" style="width:${ctx.port?"76cqw":"26cqw"};height:${ctx.port?"52cqw":"18cqw"};bottom:${ctx.port?"6cqw":"5cqw"};left:50%;margin-left:${ctx.port?"-38cqw":"-13cqw"};">
         <div class="popshadow" id="${id}-popsh" style="opacity:0;"></div>
         <div class="pop" id="${id}-pop">
           <div class="cine-body">
@@ -629,12 +638,12 @@ function spreadOut(id, ctx) {
 
 const BUILDERS = { cover: coverSpread, end: endSpread, friends: friendsSpread, paint: paintSpread, stat: statSpread, screen: screenSpread, chapter: chapterSpread };
 
-function styleBlock(theme) {
+function styleBlock(theme, port) {
   return `${theme.fontFace}
   * { box-sizing:border-box; margin:0; padding:0; }
   html, body { width:100%; height:100%; overflow:hidden; background:#F4E3D7; }
   #root { position:relative; overflow:hidden; isolation:isolate; container-type:size; color:${theme.ink}; font-family:${theme.storyStack};
-    background:radial-gradient(90% 80% at 50% 18%, #FBEFE2 0%, #F6E2D2 55%, #EFD3BF 100%);
+    background:${theme.bgWash ? `${theme.bgWash}, ` : ""}radial-gradient(90% 80% at 50% 18%, #FBEFE2 0%, #F6E2D2 55%, #EFD3BF 100%);
     --paper:${theme.paper}; --paper2:${theme.paper2}; --ink:${theme.ink}; --soft:${theme.soft};
     --rose:${theme.rose}; --butter:${theme.butter}; --sky:${theme.sky}; --mint:${theme.mint}; --lilac:${theme.lilac}; --crease:rgba(107,91,115,0.10); }
   .clip { position:absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; }
@@ -662,22 +671,44 @@ function styleBlock(theme) {
   .friend .head { position:absolute; left:50%; top:0; width:3.4cqw; height:3.4cqw; margin-left:-1.7cqw; border-radius:50%; background:#FDE8D8; }
   .friend .eye { position:absolute; top:1.35cqw; width:0.42cqw; height:0.52cqw; border-radius:50%; background:#5A4A62; }
   .friend .smile { position:absolute; top:2.1cqw; left:50%; width:0.95cqw; height:0.5cqw; margin-left:-0.475cqw; border:0.14cqw solid #5A4A62; border-top:none; border-radius:0 0 1cqw 1cqw; }
-  .friend .cheek { position:absolute; top:1.9cqw; width:0.55cqw; height:0.34cqw; border-radius:50%; background:rgba(232,147,140,0.55); }
+  .friend .cheek { position:absolute; top:1.9cqw; width:0.55cqw; height:0.34cqw; border-radius:50%; background:${theme.roseA(0.55)}; }
   .wc { position:absolute; border-radius:50%; filter:blur(4px); opacity:0; mix-blend-mode:multiply; }
   .cine-body { position:absolute; inset:0; background:#6B5B73; border-radius:1.2cqw; box-shadow:0 0.6cqw 1.6cqw rgba(107,91,115,0.3); padding:0.9cqw; }
   .cine-screen { position:absolute; inset:0.9cqw; background:#FFF9F0; border-radius:0.7cqw; overflow:hidden; }
   .cine-screen img { position:absolute; inset:0; width:100%; height:100%; display:block; }
-  .cta-sticker { display:inline-flex; align-items:center; gap:0.9cqw; font-weight:700; font-size:2cqw; color:#fff; background:var(--rose); padding:1.2cqw 3cqw; border-radius:999px; box-shadow:0 0.8cqw 2cqw rgba(232,147,140,0.5), inset 0 -0.35cqw 0 rgba(0,0,0,0.08); will-change:transform; }
+  .cta-sticker { display:inline-flex; align-items:center; gap:0.9cqw; font-weight:700; font-size:2cqw; color:#fff; background:var(--rose); padding:1.2cqw 3cqw; border-radius:999px; box-shadow:0 0.8cqw 2cqw ${theme.roseA(0.5)}, inset 0 -0.35cqw 0 rgba(0,0,0,0.08); will-change:transform; }
   .leaf { position:absolute; left:50%; top:0; width:50%; height:100%; transform-style:preserve-3d; transform-origin:0% 50%; will-change:transform; }
   .face { position:absolute; inset:0; backface-visibility:hidden; border-radius:0.3cqw 1.2cqw 1.2cqw 0.3cqw; background:linear-gradient(90deg,#FFF9F0,#FBF1E1); background-image:repeating-linear-gradient(180deg, transparent 0 2.2cqw, rgba(107,91,115,0.05) 2.2cqw calc(2.2cqw + 1px)); }
   .f-back { transform:rotateY(180deg); border-radius:1.2cqw 0.3cqw 0.3cqw 1.2cqw; }
   #caps { position:absolute; inset:0; display:flex; justify-content:center; align-items:flex-end; padding-bottom:3.4%; z-index:50; pointer-events:none; }
   #cap-pill { max-width:74%; height:fit-content; flex:0 0 auto; text-align:center; padding:0.8cqw 2.4cqw; border-radius:999px; opacity:0; background:rgba(255,249,240,0.95); border:1px solid rgba(107,91,115,0.18); box-shadow:0 0.6cqw 1.8cqw rgba(107,91,115,0.14); }
-  #cap-text { font-family:${theme.storyStack}; font-weight:600; font-size:1.45cqw; line-height:1.35; color:${theme.ink}; }`;
+  #cap-text { font-family:${theme.storyStack}; font-weight:600; font-size:1.45cqw; line-height:1.35; color:${theme.ink}; }
+  ${port ? `
+  /* PORTRAIT (9:16): two-page spread -> ONE tall book. Pages STACK vertically to fill the
+     frame; the 3D leaf-turn is retired (opacity crossfades in spreadIn/spreadOut carry the
+     chapter transitions); cqw type is bumped (cqw is width-relative -> shrinks when tall).
+     Landscape (port=false) appends NOTHING, so the wide render stays byte-identical. */
+  #flipwrap { display:none !important; }
+  .pg { width:86cqw; height:62cqw; }
+  .pgL { left:7cqw; top:15cqw; border-radius:1.6cqw 1.6cqw 0.5cqw 0.5cqw; box-shadow:inset 0 -1cqw 2cqw rgba(107,91,115,0.08); }
+  .pgR { left:7cqw; top:80cqw; border-radius:0.5cqw 0.5cqw 1.6cqw 1.6cqw; box-shadow:inset 0 1cqw 2cqw rgba(107,91,115,0.08); }
+  .pad { inset:3.4cqw 3.6cqw; }
+  [id$="-h"].h-story { font-size:4.6cqw !important; }
+  [id$="-title"].h-story { font-size:6.4cqw !important; }
+  [id$="-mark"].h-story { font-size:5cqw !important; }
+  .hand.pen-clip { font-size:3.2cqw !important; }
+  .chapter-tab { font-size:1.7cqw; padding:1.3cqw 2.4cqw 1cqw; letter-spacing:0.2em; }
+  .story-notes { max-width:70cqw; gap:1.1cqw; margin-top:2.2cqw; }
+  .story-note { font-size:2.5cqw; }
+  .story-dot { width:1.1cqw; height:1.1cqw; margin-top:0.7cqw; }
+  .story-float { font-size:3cqw; }
+  #cap-pill { max-width:88%; padding:1.2cqw 3cqw; }
+  #cap-text { font-size:2.7cqw; }
+  ` : ""}`;
 }
 
 // persistent desk + book + turning leaves + captions.
-function chromeHtml(theme, nLeaves) {
+function chromeHtml(theme, nLeaves, port) {
   const leaves = Array.from({ length: nLeaves }, (_, i) => `<div class="leaf" id="leaf${i}" style="opacity:0;">${i === 0
     ? `<div class="face f-front" style="background:linear-gradient(120deg,${theme.tint("#F3B8B1")},${theme.tint("#E8938C")});"><div style="position:absolute;inset:1.8cqw;border:0.18cqw dashed rgba(255,255,255,0.5);border-radius:0.9cqw;"></div></div><div class="face f-back"></div>`
     : `<div class="face f-front"></div><div class="face f-back"></div>`}</div>`).join("");
@@ -688,13 +719,13 @@ function chromeHtml(theme, nLeaves) {
     <div class="mote" style="position:absolute;left:82%;top:18%;width:0.4cqw;height:0.4cqw;border-radius:50%;background:rgba(255,255,255,0.7);"></div>
     <div class="mote" style="position:absolute;left:88%;top:62%;width:0.55cqw;height:0.55cqw;border-radius:50%;background:rgba(255,255,255,0.75);"></div>
     <div class="mote" style="position:absolute;left:8%;top:66%;width:0.38cqw;height:0.38cqw;border-radius:50%;background:rgba(255,255,255,0.7);"></div>
-    <div style="position:absolute;left:11cqw;top:9.4cqw;width:78cqw;height:41cqw;border-radius:2cqw;background:rgba(120,85,70,0.28);filter:blur(26px);"></div>
-    <div style="position:absolute;left:11.2cqw;top:7cqw;width:77.6cqw;height:42.2cqw;border-radius:1.6cqw;background:linear-gradient(120deg,${theme.tint("#E8938C")}, ${theme.tint("#D97F82")});box-shadow:inset 0 0 0 0.22cqw rgba(255,255,255,0.25);"></div>
-    <div style="position:absolute;left:11.9cqw;top:7.35cqw;width:76.2cqw;height:41.5cqw;border-radius:1.3cqw;background:repeating-linear-gradient(180deg,#FDF4E7 0 0.24cqw,#EFE2CF 0.24cqw 0.42cqw);"></div>
-    <div style="position:absolute;left:49.7cqw;top:7.6cqw;width:0.6cqw;height:41cqw;background:linear-gradient(90deg,transparent,var(--crease),transparent);z-index:3;"></div>
+    <div style="position:absolute;left:${port?4:11}cqw;top:${port?14:9.4}cqw;width:${port?92:78}cqw;height:${port?130:41}cqw;border-radius:2cqw;background:rgba(120,85,70,0.28);filter:blur(26px);"></div>
+    <div style="position:absolute;left:${port?4.2:11.2}cqw;top:${port?11.8:7}cqw;width:${port?91.6:77.6}cqw;height:${port?133:42.2}cqw;border-radius:1.6cqw;background:linear-gradient(120deg,${theme.tint("#E8938C")}, ${theme.tint("#D97F82")});box-shadow:inset 0 0 0 0.22cqw rgba(255,255,255,0.25);"></div>
+    <div style="position:absolute;left:${port?4.9:11.9}cqw;top:${port?12.2:7.35}cqw;width:${port?90.2:76.2}cqw;height:${port?132:41.5}cqw;border-radius:1.3cqw;background:repeating-linear-gradient(180deg,#FDF4E7 0 0.24cqw,#EFE2CF 0.24cqw 0.42cqw);"></div>
+    <div style="position:absolute;left:${port?5:49.7}cqw;top:${port?77.6:7.6}cqw;width:${port?90:0.6}cqw;height:${port?0.6:41}cqw;background:linear-gradient(90deg,transparent,var(--crease),transparent);z-index:3;"></div>
   </div>
   <div class="clip" data-start="0" data-duration="__D__" data-track-index="15" data-layout-allow-occlusion style="background:none;">
-    <div id="flipwrap" style="position:absolute;left:12cqw;top:7.6cqw;width:76cqw;height:41cqw;perspective:2400px;pointer-events:none;">${leaves}</div>
+    <div id="flipwrap" style="position:absolute;left:${port?5:12}cqw;top:${port?12:7.6}cqw;width:${port?90:76}cqw;height:${port?134:41}cqw;perspective:2400px;pointer-events:none;">${leaves}</div>
   </div>
   <div id="caps" class="clip" data-start="0" data-duration="__D__" data-track-index="20"><div id="cap-pill"><div id="cap-text"></div></div></div>`;
 }
@@ -708,6 +739,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   const S = localized ? { ...STRINGS, ...localized } : STRINGS;
   const sb = storyboard || {};
   const W = (dims && dims.width) || 1920, H = (dims && dims.height) || 1080;
+  const port = H > W;   // 9:16 portrait: the two-page spread becomes ONE tall stacked book
   const scenes = Array.isArray(sb.scenes) && sb.scenes.length ? sb.scenes.slice(0, 10) : [{ id: "s1", start: 0, duration: 5, kind: "hook", headline: sb.title || "KEYFRAME" }];
   const D = r(sb.durationSec || scenes.reduce((a, s) => Math.max(a, (Number(s.start) || 0) + (Number(s.duration) || 0)), 0) || 12);
 
@@ -733,7 +765,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     else if (!ends && arch === "screen" && pooli < pool.length) { asset = pool[pooli++]; }
     else if (!ends && arch === "chapter" && pooli < pool.length && i >= 2) { arch = "screen"; asset = pool[pooli++]; }
     const tab = theme.tabs[(i - 1 + theme.tabs.length) % theme.tabs.length];
-    const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), i, isLast: i === N - 1, track: 2 + i, W, H, theme, tab, S, tabLabel: `${S.chapter} ${S.ordinals[Math.max(0, i - 1)] || i}` };
+    const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), i, isLast: i === N - 1, track: 2 + i, W, H, port, theme, tab, S, tabLabel: `${S.chapter} ${S.ordinals[Math.max(0, i - 1)] || i}` };
     // screenSpread takes (scene, ctx, asset); the others take (scene, ctx, opts).
     const built = arch === "screen"
       ? screenSpread(scene, ctx, asset)
@@ -751,7 +783,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     .filter((c) => c && c.text != null)
     .map((c) => [r(c.start != null ? c.start : c.startSec || 0), r(c.end != null ? c.end : (c.start || 0) + 2), String(c.text)]);
 
-  const chrome = chromeHtml(theme, Math.max(1, N - 1)).replace(/__D__/g, String(D));
+  const chrome = chromeHtml(theme, Math.max(1, N - 1), port).replace(/__D__/g, String(D));
 
   const script = `(function(){
   var D=${D};
@@ -801,7 +833,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   const indexHtml = [
     `<!DOCTYPE html>`, `<html lang="en">`, `<head>`, `<meta charset="utf-8">`, `<title>vid</title>`,
     `<script src="${GSAP_CDN}"></script>`,
-    `<style>`, styleBlock(theme), `</style>`, `</head>`, `<body>`,
+    `<style>`, styleBlock(theme, port), `</style>`, `</head>`, `<body>`,
     `<div id="root" class="composition" data-composition-id="vid" data-width="${W}" data-height="${H}" data-start="0" data-duration="${D}" style="width:${W}px;height:${H}px;">`,
     chrome, bodyParts.join("\n"), `</div>`,
     `<script>`, script, `</script>`, `</body>`, `</html>`,

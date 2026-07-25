@@ -24,7 +24,7 @@
 const db = require("../db");
 const config = require("../config");
 const { planLayout } = require("./layout_planner");
-const { isTrustedProminent, isLogo, rankKey } = require("./asset_priority");
+const { isTrustedProminent, isLogo, rankKey, WEBSITE_BRAND_SOURCE, WEBSITE_ASSET_SOURCE } = require("./asset_priority");
 
 const num = (v, d = 0) => { const n = Number(v); return Number.isFinite(n) ? n : d; };
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -52,6 +52,11 @@ function classify(a) {
   // Uploads route by their explicit kindHint (mirrors scene_kit.partitionAssets —
   // their alt is our own sentence, not a sniffable search query).
   if (a.source === "upload") return a.kindHint === "photo" ? "photo" : "screenshot";
+  // Harvested brand assets route by their EXPLICIT kindHint (our own classification),
+  // so a bare logo/cutout SVG is a vector, not forced into a browser/phone frame.
+  if (a.source === WEBSITE_BRAND_SOURCE || a.source === WEBSITE_ASSET_SOURCE) {
+    return a.kindHint === "vector" ? "vector" : a.kindHint === "screenshot" ? "screenshot" : "photo";
+  }
   const s = `${a.source || ""} ${a.style || ""} ${a.alt || ""}`.toLowerCase();
   if (a.source === "website" || /screenshot|webpage|web page|landing|\bsite\b/.test(s)) return "screenshot";
   if (/\.svg($|\?)/i.test(a.path) || /vector|illustration|icon|line.?art|graphic/.test(s)) return "vector";
@@ -159,6 +164,16 @@ function directLayout({ storyboard, script, assets, framePack, dims } = {}) {
     layoutPlan.__heroScale = shots <= 1 ? 0.60 : shots === 2 ? 0.56 : 0.54;
     // A 5+ upload set earns a fuller montage (6 tiles); otherwise the calmer 4.
     layoutPlan.__montageMax = uploadCount >= 5 ? 6 : MONTAGE_MAX;
+    // ASPECT-AWARE: record the canvas mode from `dims` (previously destructured but
+    // unused) so the composer + future portrait budgets can adapt. Portrait/square heroes
+    // are FULL-WIDTH (responsive.heroBox), so __heroScale above is a LANDSCAPE side-panel
+    // lever — the scene-kit already gates it to landscape, so this is honest metadata, not
+    // a behavior change. Lazy require (matches pack_style) avoids a load-order cycle.
+    const { aspectMode } = require("./responsive");
+    layoutPlan.__aspect = (dims && dims.width && dims.height) ? aspectMode(dims.width, dims.height) : "landscape";
+    // In portrait/square the montage stacks vertically, so keep it calmer (fewer, larger
+    // tiles) than a wide grid — cap at 4 unless a big upload set justifies more.
+    if (layoutPlan.__aspect !== "landscape") layoutPlan.__montageMax = Math.min(layoutPlan.__montageMax, uploadCount >= 5 ? 5 : 4);
 
     // 3) PER-SCENE composition report (telemetry, not consumed by the render). A
     //    rough deterministic quality read: penalize scenes that would still be dense.
@@ -183,7 +198,7 @@ function directLayout({ storyboard, script, assets, framePack, dims } = {}) {
       scenes: sceneReports,
       score: { compositionQuality: clamp(100 - demoted * 2, 60, 100), source: "deterministic" },
     };
-    console.log(`[visual_layout_director] kept ${review.keptScreenshots} screenshot(s)/${review.keptPhotos} photo(s), demoted ${demoted}, hero=${layoutPlan.__heroScale}, montage≤${layoutPlan.__montageMax}`);
+    console.log(`[visual_layout_director] kept ${review.keptScreenshots} screenshot(s)/${review.keptPhotos} photo(s), demoted ${demoted}, hero=${layoutPlan.__heroScale}, montage≤${layoutPlan.__montageMax}, aspect=${layoutPlan.__aspect}`);
     return { assets: list, layoutPlan, review };
   } catch (e) {
     console.warn(`[visual_layout_director] failed (${String((e && e.message) || e).slice(0, 140)}) — archetype-only plan`);

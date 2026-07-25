@@ -24,16 +24,34 @@
 const path = require("node:path");
 const { validateImage, makeImageDeduper } = require("./asset_sources/util");
 
-// Rank by detail (stdev from imageDHashStats, surfaced on validateImage.meta):
-// a busier screenshot carries more product story than a sparse one, and — for
-// near-duplicates — the higher-detail shot is the one worth keeping.
-function strength(p) { return typeof p.stdev === "number" ? p.stdev : 0; }
+// Rank by detail, breaking near-duplicate ties toward the CRISPER capture: stdev
+// (overall busy-ness) PLUS a bounded sharpness term (variance-of-Laplacian, from
+// validateImage.meta). When the hero and a scrolled section grab the same fold, the
+// IN-FOCUS / settled copy — higher sharpness — is the one kept, and the softer
+// mid-scroll copy is the near-duplicate that drops.
+//
+// Sharpness is used only RELATIVELY (within a same-content dup group), never as an
+// absolute blur-reject: measured, a valid MINIMAL screenshot can score LOWER than a
+// blurry BUSY one (flat design has few edges; blurred detail still has many soft ones),
+// so an absolute floor would false-reject clean minimal captures. Bounded at +50 so it
+// only ever breaks ties, never reorders genuinely different-detail shots.
+function strength(p) {
+  const sd = typeof p.stdev === "number" ? p.stdev : 0;
+  const sh = typeof p.sharpness === "number" ? Math.min(p.sharpness, 1000) / 20 : 0; // 0..50
+  return sd + sh;
+}
 
 // Filter the captured screenshot paths down to the clean, non-duplicate keepers.
 // `shots` is the ordered absolute-path list (hero first), i.e. website.screenshotPaths.
 // Returns { keptShots:[{ path, ratio }], review } — keptShots preserves the
 // ORIGINAL order (hero first) so the downstream scene-pinning order is unchanged.
-async function filterScreenshots({ shots } = {}) {
+//
+// `deduper` is optional and INJECTABLE: the caller can pass ONE shared makeImageDeduper
+// instance so the harvested-asset prune (website_assets.js) cross-dedups against these
+// kept screenshots — a harvested hero that also appears in a page screenshot is dropped.
+// After this returns, the deduper holds every KEPT screenshot's hashes. Omitted ⇒ a
+// fresh local deduper (backward-compatible).
+async function filterScreenshots({ shots, deduper } = {}) {
   const list = Array.isArray(shots) ? shots.filter(Boolean) : [];
   const review = { captured: list.length, kept: 0, dropped: [], suppressed: [], demoted: [], notes: [] };
   if (!list.length) return { keptShots: [], review };
@@ -47,6 +65,7 @@ async function filterScreenshots({ shots } = {}) {
     return {
       abs, i, ok,
       stdev: meta && meta.stdev != null ? meta.stdev : 0,
+      sharpness: meta && meta.sharpness != null ? meta.sharpness : null,
       dhash: meta ? meta.dhash : null,
       ratio: meta && meta.ratio != null ? meta.ratio : null,
     };
@@ -64,11 +83,11 @@ async function filterScreenshots({ shots } = {}) {
   //    reports later near-duplicates, so the most-detailed member of a duplicate
   //    group is the one recorded (kept) and the weaker copies are dropped.
   const order = nonBlank.slice().sort((a, b) => (strength(b) - strength(a)) || (a.i - b.i));
-  const deduper = makeImageDeduper();
+  const dd = deduper || makeImageDeduper();
   const keep = new Set();
   for (const p of order) {
     let dup = null;
-    try { dup = await deduper.check(p.abs, p.dhash); } catch { dup = null; }
+    try { dup = await dd.check(p.abs, p.dhash); } catch { dup = null; }
     if (dup) review.dropped.push({ path: path.basename(p.abs), reason: "duplicate" });
     else keep.add(p.i);
   }

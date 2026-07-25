@@ -20,9 +20,9 @@ const frameRegistry = require("./frame_registry");
 const frameManifest = require("./frame_manifest");
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
 const { themeFromTokens } = require("./enrich");
-const { safeArea } = require("./responsive");
+const { safeArea, heroBox } = require("./responsive");
 const { resolveBrand } = require("./brand_kit");
-const { isTrustedProminent, isLogo } = require("./asset_priority");
+const { isTrustedProminent, isLogo, WEBSITE_BRAND_SOURCE, WEBSITE_ASSET_SOURCE } = require("./asset_priority");
 
 // SINGLE-quoted family names — these are embedded in double-quoted style="..."
 // attributes, so a double quote here would terminate the attribute early and kill
@@ -258,8 +258,14 @@ function deriveTheme(framePack, storyboard, brandSkin) {
     isDark,
     gradients: !flat,          // flat packs: solid fills + hard borders only
     dim: isDark ? "rgba(255,255,255,0.62)" : "rgba(20,18,12,0.62)",
-    line: isDark ? "rgba(255,255,255,0.14)" : "rgba(20,18,12,0.14)",
-    panel: isDark ? "rgba(255,255,255,0.05)" : "rgba(20,18,12,0.04)",
+    // BRAND LAYER 1 — light up the (previously dead) resolveBrand ui bundle: when a brand
+    // actually applied, card/chip backgrounds and borders carry a subtle brand tint, so
+    // brand color reaches surfaces beyond text (the #7 complaint). Gated on brand.applied →
+    // a null/failed skin leaves these byte-identical to the pack's neutral rgba (fail-open,
+    // art_director.js:14; keeps the null-skin render magenta-test-clean). Flat packs' HARD
+    // borders use theme.ink, not theme.line, so their print identity is untouched.
+    line: brand.applied ? brand.ui.border : (isDark ? "rgba(255,255,255,0.14)" : "rgba(20,18,12,0.14)"),
+    panel: brand.applied ? brand.ui.chip : (isDark ? "rgba(255,255,255,0.05)" : "rgba(20,18,12,0.04)"),
   };
 }
 
@@ -920,6 +926,20 @@ function mix(hex, with_, t) { const a = hexToRgb(hex), b = hexToRgb(with_); cons
 // the single gradient/accent word.
 const CHAR_ENTERS = new Set(["typewriter", "char-pop", "glitch"]);
 
+// Split a word into RENDERABLE units for per-character animation. MUST be by GRAPHEME
+// CLUSTER, not by code point: `[...w]` iterates Unicode scalars, which for Devanagari/
+// Indic/Arabic tears a base consonant apart from its combining matras (base and matra
+// land in separate .kfc spans, so the matra shapes alone — detached and mis-ordered).
+// A grapheme cluster keeps each aksara (base + its matras/virama) whole, so the shaper
+// reorders and forms conjuncts inside one span. Falls back to code points if the
+// runtime lacks Intl.Segmenter (Node ≥16 and the headless-Chrome renderer both have it).
+function graphemesOf(w) {
+  try {
+    const seg = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+    return Array.from(seg.segment(w), (s) => s.segment);
+  } catch { return [...w]; }
+}
+
 function headlineSpans(headline, emphasis, theme) {
   const words = String(headline || "").trim().split(/\s+/).filter(Boolean);
   const emph = String(emphasis || "").trim().toLowerCase();
@@ -932,7 +952,7 @@ function headlineSpans(headline, emphasis, theme) {
     const isEmph = emph && emph.split(/\s+/).includes(w.toLowerCase().replace(/[.,!?]/g, ""));
     const cls = isEmph ? "kfw kfacc" : "kfw";
     const inner = charMode
-      ? [...w].map((ch) => `<span class="kfc">${esc(ch)}</span>`).join("")
+      ? graphemesOf(w).map((ch) => `<span class="kfc">${esc(ch)}</span>`).join("")
       : esc(w);
     return `<span class="${cls}">${inner}</span>`;
   }).join(" ");
@@ -999,11 +1019,17 @@ function emphasisBlock(theme, id) {
 // unbroken word from overflowing horizontally). Short headlines are untouched
 // (scale caps at 1), so only genuinely-long copy shrinks — killing the class of
 // bugs where a long headline overflowed a fixed 14ch/92px box off-frame.
+// Per-script RENDER-WIDTH factor for the char-count fit below. Set once at the top of the
+// (synchronous) buildComposition from the video-text language, 1 for Latin/English. CJK glyphs
+// are ~2x a Latin char but few in number, so plain char count badly UNDER-shrinks them; folding
+// charWidth into `len`/`longest` makes the estimate match the rendered width. Module-scoped is
+// safe: buildComposition is synchronous (never yields mid-build), so no two runs interleave.
+let _langCharWidth = 1;
 function fitBig(text, baseBig, maxCh, maxLines = 3, minRatio = 0.52) {
   const s = String(text || "").trim();
   if (!s) return baseBig;
-  const len = s.length;
-  const longest = s.split(/\s+/).reduce((m, w) => Math.max(m, w.length), 1);
+  const len = s.length * _langCharWidth;
+  const longest = s.split(/\s+/).reduce((m, w) => Math.max(m, w.length), 1) * _langCharWidth;
   // Text area scales with font²; to fit `len` chars in maxCh×maxLines, font ~
   // sqrt(capacity/len). Also bound so the longest word fits maxCh on one line.
   const capScale = Math.sqrt((maxCh * maxLines) / len);
@@ -1287,6 +1313,11 @@ function partitionAssets(assets) {
     // User uploads route by their EXPLICIT kindHint (the alt-sniffing below is for
     // fetched assets whose alt is a search query; an upload's alt is our sentence).
     if (a.source === "upload") { (a.kindHint === "photo" ? photos : screenshots).push(a); continue; }
+    // Harvested brand assets route by their explicit kindHint (same as uploads) — a
+    // logo/icon/illustration SVG is a vector, a hero/product a photo, never mis-sniffed.
+    if (a.source === WEBSITE_BRAND_SOURCE || a.source === WEBSITE_ASSET_SOURCE) {
+      (a.kindHint === "vector" ? vectors : a.kindHint === "screenshot" ? screenshots : photos).push(a); continue;
+    }
     const s = `${a.source || ""} ${a.style || ""} ${a.alt || ""}`.toLowerCase();
     if (a.source === "website" || /screenshot|webpage|web page|landing|\bsite\b/.test(s)) screenshots.push(a);
     else if (/\.svg($|\?)/i.test(a.path) || /vector|illustration|icon|line.?art|graphic/.test(s)) vectors.push(a);
@@ -1333,12 +1364,16 @@ function archScreenshotHero(scene, ctx) {
   // top band so the copy stacks directly beneath it (a true vertical stack, no
   // dead space up top and no overlap — mirrors archPhoneHero's portrait flow).
   const bandH = land ? Math.round(dims.height * 0.52) : Math.round(dims.height * 0.38);
+  // Portrait hero side inset from the shared source of truth (responsive.heroBox: a 0.90
+  // width fraction → a 5% inset). Replaces the hardcoded 6% so the portrait hero width is
+  // governed in ONE place — this wires the previously-unused heroBox export.
+  const pIn = land ? 6 : Math.round((1 - heroBox(dims.width, dims.height).wFrac) / 2 * 100);
   const frameOuter = land
     ? `position:absolute;left:5%;top:0;bottom:0;width:${frameW};display:flex;flex-direction:column;justify-content:center;`
-    : `position:absolute;left:6%;right:6%;top:9%;display:flex;flex-direction:column;align-items:center;`;
+    : `position:absolute;left:${pIn}%;right:${pIn}%;top:9%;display:flex;flex-direction:column;align-items:center;`;
   const copyWrap = land
     ? `position:absolute;right:5%;top:0;bottom:0;width:34%;display:flex;flex-direction:column;justify-content:center;`
-    : `position:absolute;left:6%;right:6%;top:calc(9% + ${bandH + 42 + 22}px);bottom:8%;display:flex;flex-direction:column;justify-content:flex-start;text-align:center;`;
+    : `position:absolute;left:${pIn}%;right:${pIn}%;top:calc(9% + ${bandH + 42 + 22}px);bottom:8%;display:flex;flex-direction:column;justify-content:flex-start;text-align:center;`;
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   <div style="${frameOuter}">
   <div id="${id}fr" class="kfstage" style="${chrome}overflow:hidden;width:100%;">
@@ -1651,7 +1686,10 @@ function buildCaptions(captionCues, dims, D, theme, track) {
 }
 
 // MAIN ENTRY — assemble the full composition.
-function buildComposition({ storyboard, dims, framePack, assets, captionCues, seedKey, dressing, brandSkin, layoutPlan, localized } = {}) {
+function buildComposition({ storyboard, dims, framePack, assets, captionCues, seedKey, dressing, brandSkin, layoutPlan, localized, captionStyle } = {}) {
+  // Non-Latin (video-text) scripts render wider per character; feed that factor into fitBig so
+  // headlines shrink to fit instead of overflowing (esp. CJK). 1 for Latin/English (no-op).
+  _langCharWidth = (captionStyle && captionStyle.text && captionStyle.text.charWidth) || 1;
   // Per-call localized strings: merge any overrides onto the English defaults so
   // a missing key falls back to English. When `localized` is undefined, S is the
   // STRINGS object itself → behavior is byte-identical to the untranslated path.
@@ -1751,6 +1789,14 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
 
   const leftover = () => pools.screenshots.length + pools.vectors.length + pools.photos.length;
   let usedShot = false, montageDone = false;
+  // Creative Director scene assignment: every curated asset carries the scene the CD
+  // chose for it (a.sceneId). sameScene lets the weave PREFER that scene over pool
+  // order, so assets land where the narration wants them (the #5 "random assets" fix).
+  // A null sceneId — today's default and the CD-disabled/legacy path — is a no-op, so
+  // this never regresses a job the CD didn't assign. Native composers already honor
+  // sceneId; this brings the default scene-kit in line with them.
+  const sameScene = (a, scene) => !!a && a.sceneId != null && String(a.sceneId) === String(scene.id);
+  let cdPlaced = 0;
 
   // Pass 1 — FOREGROUND features on every CONTENT scene. The old guard only wove
   // assets into `archText` scenes, so a video whose middle scenes were stat/number
@@ -1770,10 +1816,21 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
   // just the first one. Ties (and the no-signal case) fall to the earliest scene,
   // so a storyboard with no explicit demo cue behaves exactly as before.
   if (pools.screenshots.length && weavable.length) {
-    const target = weavable
-      .map((p) => ({ p, s: assetAffinity(p.scene, "screenshot") }))
-      .sort((a, b) => b.s - a.s || a.p.i - b.p.i)[0].p;
-    target.ctx.asset = pools.screenshots.shift(); target.build = archScreenshotHero; usedShot = true;
+    // Honor the CD's assignment first: if a screenshot was assigned to a WEAVABLE scene,
+    // give it that scene's hero; else fall back to the best product-intent affinity
+    // (ties to the earliest scene) — the null-sceneId path, identical to before.
+    let target, shot;
+    const assigned = weavable.find((p) => pools.screenshots.some((a) => sameScene(a, p.scene)));
+    if (assigned) {
+      const si = pools.screenshots.findIndex((a) => sameScene(a, assigned.scene));
+      shot = pools.screenshots.splice(si, 1)[0]; target = assigned; cdPlaced++;
+    } else {
+      target = weavable
+        .map((p) => ({ p, s: assetAffinity(p.scene, "screenshot") }))
+        .sort((a, b) => b.s - a.s || a.p.i - b.p.i)[0].p;
+      shot = pools.screenshots.shift();
+    }
+    target.ctx.asset = shot; target.build = archScreenshotHero; usedShot = true;
     target.ctx.kicker = target.scene.emphasis || S.livePreview;
   }
 
@@ -1794,13 +1851,19 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
     if (!montageDone && leftover() >= 3) {
       p.ctx.assets = takeMontage(pools, montageMax); p.build = archAssetMontage; montageDone = true;
     } else if (pools[splitPools[0]].length || pools[splitPools[1]].length) {
-      const pool = pools[splitPools[0]].length ? splitPools[0] : splitPools[1];
-      p.ctx.asset = pools[pool].shift(); p.build = archSplitVector;
+      // Prefer an asset the CD assigned to THIS scene (sceneId), from either pool in the
+      // pack's media-preference order; else the front of the preferred pool (unchanged).
+      const takeAssigned = (name) => { const j = pools[name].findIndex((a) => sameScene(a, p.scene)); return j >= 0 ? (cdPlaced++, pools[name].splice(j, 1)[0]) : null; };
+      const pref = pools[splitPools[0]].length ? splitPools[0] : splitPools[1];
+      p.ctx.asset = takeAssigned(splitPools[0]) || takeAssigned(splitPools[1]) || pools[pref].shift();
+      p.build = archSplitVector;
     } else if (pools.screenshots.length) {
       p.ctx.asset = pools.screenshots.shift(); p.build = archScreenshotHero;
       p.ctx.kicker = p.scene.emphasis || S.livePreview;
     }
   }
+
+  if (cdPlaced) console.log(`[scene-kit] placed ${cdPlaced} prominent asset(s) on the Creative Director's assigned scene(s)`);
 
   // Pass 2 — BACKGROUND B-roll behind any scene still without a foreground asset,
   // on ALL packs now (flat packs used to be skipped, which is why blockframe videos

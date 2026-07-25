@@ -29,6 +29,7 @@ const { synthesizeFitted } = require("../services/vo_fit");
 const { buildCues, writeSrt, writeVtt } = require("../services/captions");
 const { resolveCaptionPlan, finalizeQuality } = require("../services/caption_director");
 const captionDirector = require("../services/caption_director");
+const languageDirector = require("../services/language_director");
 const captionLang = require("../services/caption_lang");
 const { injectCaptionStyle } = require("../services/caption_render");
 const { fetchMusic } = require("../services/audio_sources");
@@ -44,8 +45,11 @@ const { directAudio } = require("../services/audio_director");
 const { directBrand, defaultBrandSkin, persistBrandReview } = require("../services/art_director");
 const { directLayout } = require("../services/visual_layout_director");
 const { pinUserAssets } = require("../services/user_assets");
+const { pinWebsiteAssets } = require("../services/website_assets");
 const { coverageFromHtml } = require("../services/asset_coverage");
 const { scoreBrandCoverage } = require("../services/brand_coverage");
+const { computeAssetBudget } = require("../services/asset_budget");
+const { kindForPurpose } = require("../services/asset_taxonomy");
 
 function ms() { return Date.now(); }
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
@@ -195,11 +199,12 @@ async function frameSelectorAgent(s) {
   // USER explicitly chose one, honor it but flag the localization gap for disclosure.
   let localizationPackWarning = null;
   try {
-    const cfg = captionDirector.normalizeConfig(
-      s.job.captions_config != null ? s.job.captions_config : (s.job.captions_enabled === 1)
-    );
-    const vtl = cfg.videoTextLanguage;
-    const needsFont = vtl && vtl !== captionDirector.SOURCE_LANG && !!(captionLang.langMeta(vtl)?.font);
+    // Single source of truth: the Language Director's persisted plan (resolved at intake),
+    // not a fourth independent normalizeConfig. Falls back to on-the-fly resolution for
+    // legacy/regenerated jobs that predate the plan.
+    const plan = languageDirector.getPlan(s.job);
+    const vtl = plan.videoTextLanguage;
+    const needsFont = vtl && vtl !== captionLang.SOURCE_LANG && !!plan.font;
     if (needsFont && isCanvasOrCharsetPack(framePack)) {
       if (via === "user") {
         localizationPackWarning = `The "${framePack}" template bakes some text into graphics that can't be localized — headings are translated, but its built-in labels stay English.`;
@@ -266,10 +271,18 @@ async function assetPlannerAgent(s) {
   const { job, script } = s;
   const videoOk = hasProviderFor("video");
 
+  // DURATION-ADAPTIVE BUDGET — how many stock assets this film should collect, scaled by
+  // runtime + scene count (was fixed 8 vectors / 12 photos / 2 video regardless of length,
+  // so long films starved). Owned pins (uploads/screenshots/brand) are additive and never
+  // reduced below today's baselines. Pure/deterministic; see services/asset_budget.js.
+  const hasUploads = (job.user_assets || []).some((u) => u && u.role !== "logo");
+  const budget = computeAssetBudget({ durationSec: job.duration, sceneCount: script.scenes.length, hasUploads, videoOk });
+  console.log(`[agents] asset_budget → ${budget.total} stock (${budget.maxPhotos} photo / ${budget.maxVectors} vector / ${budget.maxVideos} video) for ${job.duration}s · ${script.scenes.length} scenes`);
+
   // USER UPLOADS — tier 100. Pinned by reference (files already live in
   // jobs/<id>/uploads/), screenshot-like ones leading, round-robin over the
   // showcase scenes. Fail-open: a swept/missing manifest pins nothing.
-  const userPins = await pinUserAssets({ job, script, jobDir: s.jobDir, maxPins: 6 });
+  const userPins = await pinUserAssets({ job, script, jobDir: s.jobDir, maxPins: budget.maxUploads });
 
   const shots = (job.website_screenshots || []).filter((p) => { try { return fs.existsSync(p); } catch { return false; } });
   const showcase = script.scenes.filter((x) => ["feature", "proof", "how", "context"].includes(x.purpose));
@@ -277,15 +290,24 @@ async function assetPlannerAgent(s) {
   // slice(1,-1) is EMPTY) to ALL scenes — otherwise real website screenshots are
   // silently dropped before they ever become assets (short flagship films showed none).
   const mid = script.scenes.slice(1, -1);
-  // Website screenshots fill the showcase scenes the uploads did NOT take — and
-  // fewer of them when uploads exist (2 vs 3): the user's own material is the
-  // show, the site capture is corroboration.
-  const websiteCap = userPins.pinned.length ? 2 : 3;
+  // Website screenshots fill the showcase scenes the uploads did NOT take — fewer when
+  // uploads exist (the user's own material is the show), and more on longer films. Sized
+  // by the duration budget (was a fixed 2/3).
+  const websiteCap = budget.maxScreenshots;
   const targets = (showcase.length ? showcase : (mid.length ? mid : script.scenes))
     .filter((x) => !userPins.usedSceneIds.has(x.id))
     .slice(0, websiteCap);
   const screenshotPlan = shots.slice(0, targets.length).map((src, i) => ({ kind: "screenshot", src, scene: targets[i], index: i }));
   const pinnedSceneIds = new Set([...userPins.usedSceneIds, ...screenshotPlan.map((p) => p.scene.id)]);
+
+  // HARVESTED WEBSITE BRAND ASSETS (tier-90 logo + tier-70 imagery) — pin the site's
+  // OWN visuals to showcase scenes the uploads/screenshots didn't take. Fewer when the
+  // user gave uploads (their material leads). Fail-open inside pinWebsiteAssets.
+  const brandPins = await pinWebsiteAssets({
+    job, script, jobDir: s.jobDir, usedSceneIds: pinnedSceneIds,
+    hasUploadLogo: !!userPins.logoAsset, maxPins: budget.maxBrand,
+  }).catch((e) => { console.warn(`[agents] pinWebsiteAssets failed: ${e.message}`); return { brandPinned: [], brandLogo: null }; });
+  for (const a of brandPins.brandPinned) if (a.sceneId) pinnedSceneIds.add(a.sceneId);
 
   // Derive a concrete image query from a scene's visualDirection when the
   // script asked for nothing — substance scenes should never go imageless.
@@ -307,10 +329,23 @@ async function assetPlannerAgent(s) {
     if (!needs.length && !pinnedSceneIds.has(scene.id)) {
       const q = deriveQuery(scene);
       if (q) {
-        needs.push({ type: "image", query: q, role: "background", derived: true });
-        // Alternate scenes also pull a photo inset for variety.
-        if (script.scenes.indexOf(scene) % 2 === 1) {
-          needs.push({ type: "image", query: q, role: "inset", derived: true });
+        // Scene PURPOSE → asset KIND (asset_taxonomy.PURPOSE_KIND, previously unwired):
+        // proof→people, data/stat→vector, cta/outro→icon, hook/context/feature→photo.
+        // Fail-open: unknown purposes fall back to "photo" (today's behavior). This is a
+        // ranking/routing bias, never a hard filter — a scene is never left imageless.
+        const wantKind = kindForPurpose(scene.purpose);
+        if (wantKind === "vector" || wantKind === "icon") {
+          // Route data/cta scenes into the vector pool (kindPrefFor("icon") → vector).
+          needs.push({ type: "image", query: q, role: "icon", derived: true });
+        } else {
+          // photo / screenshot / people → a background photo, with a light people bias
+          // for proof/testimonial scenes so they stop pulling generic backgrounds.
+          const pq = wantKind === "people" ? `${q} people` : q;
+          needs.push({ type: "image", query: pq, role: "background", derived: true });
+          // Alternate scenes also pull a photo inset for variety.
+          if (script.scenes.indexOf(scene) % 2 === 1) {
+            needs.push({ type: "image", query: pq, role: "inset", derived: true });
+          }
         }
       }
     }
@@ -332,13 +367,14 @@ async function assetPlannerAgent(s) {
   // "icon" (the script schema allows type:"icon" with any role; keying only off
   // role missed those and fetched explicitly-requested icons as photos).
   const isVectorNeed = (n) => VECTOR_ROLES.has(roleOf(n)) || n.type === "icon";
-  const videos = wants.filter((w) => w.need.type === "video").slice(0, 2);
+  const videos = wants.filter((w) => w.need.type === "video").slice(0, budget.maxVideos);
   // Vectors get their OWN budget so a long photo list can't starve them — this
-  // is what finally feeds the curated SVG library into films.
-  const vectors = wants.filter((w) => w.need.type !== "video" && isVectorNeed(w.need)).slice(0, 8);
-  const photos  = wants.filter((w) => w.need.type !== "video" && !isVectorNeed(w.need)).slice(0, 12 - videos.length);
+  // is what finally feeds the curated SVG library into films. All three caps now
+  // scale with the duration budget (were fixed 2 / 8 / 12).
+  const vectors = wants.filter((w) => w.need.type !== "video" && isVectorNeed(w.need)).slice(0, budget.maxVectors);
+  const photos  = wants.filter((w) => w.need.type !== "video" && !isVectorNeed(w.need)).slice(0, budget.maxPhotos);
   console.log(`[agents] asset_planner: ${userPins.pinned.length} upload(s)${userPins.logoAsset ? " + logo" : ""} + ${screenshotPlan.length} screenshot(s) + ${videos.length} video(s) + ${photos.length} photo(s) + ${vectors.length} vector(s) (${wants.filter((w) => w.need.derived).length} derived)`);
-  return { assetPlan: { userAssets: userPins.pinned, logo: userPins.logoAsset, screenshots: screenshotPlan, searches: [...videos, ...photos, ...vectors] } };
+  return { assetPlan: { userAssets: userPins.pinned, logo: userPins.logoAsset, brandAssets: brandPins.brandPinned, brandLogo: brandPins.brandLogo, screenshots: screenshotPlan, searches: [...videos, ...photos, ...vectors] } };
 }
 
 // Asset Search — executes the plan: our database first, then providers.
@@ -430,6 +466,13 @@ async function assetSearchAgent(s) {
     ...(assetPlan.userAssets || []),
     ...(assetPlan.logo ? [assetPlan.logo] : []),
   ];
+  // Harvested website brand assets (logo tier 90 + imagery tier 70) — the site's OWN
+  // visuals, above screenshots/stock, below the user's uploads. Files already live in
+  // jobs/<id>/ingest/brand_assets/ (planner assigned scenes; no copy needed).
+  const brandPinned = [
+    ...(assetPlan.brandLogo ? [assetPlan.brandLogo] : []),
+    ...(assetPlan.brandAssets || []),
+  ];
 
   // Sequential so each curated pick can exclude the library files already
   // chosen for earlier scenes — no single film reuses the same file twice.
@@ -443,6 +486,9 @@ async function assetSearchAgent(s) {
   // upload must be the copy that drops.
   const deduper = makeImageDeduper();
   for (const a of userPinned) { if (a && a.path) { try { await deduper.add(path.join(jobDir, a.path)); } catch { /* noop */ } } }
+  // Seed harvested brand assets BEFORE stock too, so a stock photo that visually
+  // duplicates the site's own hero is the copy that drops (uploads > brand > stock).
+  for (const a of brandPinned) { if (a && a.path) { try { await deduper.add(path.join(jobDir, a.path)); } catch { /* noop */ } } }
   for (const a of pinned) { if (a && a.path) { try { await deduper.add(path.join(jobDir, a.path)); } catch { /* noop */ } } }
   // Operator override: with web stock forced off, PHOTO needs come only from the
   // curated library (or the real screenshots) — no random/off-brand stock. Web
@@ -546,8 +592,10 @@ async function assetSearchAgent(s) {
   }
   const got = results;
 
-  // Tier order on the wire too: uploads, then website captures, then fetched.
-  const assets = [...userPinned, ...pinned, ...got];
+  // Tier order on the wire too: uploads, then harvested brand assets, then website
+  // captures, then fetched (rankKey re-sorts for slot competition; this sets find(isLogo)
+  // precedence — an uploaded logo, listed first, wins over a harvested one).
+  const assets = [...userPinned, ...brandPinned, ...pinned, ...got];
   db.setAssets(job.id, assets);
   console.log(`[agents] asset_search: ${assets.length} asset(s) (${userPinned.length} user upload(s), ${got.filter((a) => a.fromCache).length} from cache)`);
   return { assets };
@@ -688,6 +736,7 @@ async function localizationDirectorAgent(s) {
     // same batch and returned as localizedStrings for the composer to overlay.
     extraStrings: composerStringsFor(s.framePack),
     brief: s.brief, job: s.job, script: s.script, tracker: s.tracker,
+    glossary: languageDirector.getPlan(s.job).glossary,   // same brand/tech protection as the VO/caption pass
   }).catch((e) => { console.warn(`[agents] localization_director failed: ${e.message}`); return null; });
   if (report) {
     // Fold in the explicit-canvas-pack disclosure from the frame selector, if any.
@@ -716,7 +765,8 @@ async function captionDirectorAgent(s) {
   const { job, script, brief, tracker } = s;
   db.setProgress(job.id, "caption_director");
   const captionConfig = job.captions_config != null ? job.captions_config : (job.captions_enabled === 1);
-  const captionPlan = await resolveCaptionPlan({ captionConfig, script, brief, job, tracker })
+  const languagePlan = languageDirector.getPlan(job);   // single source of truth (persisted at intake)
+  const captionPlan = await resolveCaptionPlan({ captionConfig, script, brief, job, tracker, languagePlan })
     .catch((e) => { console.warn(`[agents] caption_director failed: ${e.message}`); return null; });
   if (captionPlan) {
     console.log(`[agents] caption_director → ${captionPlan.enabled ? "on" : "off"} subs=${captionPlan.language} voice=${captionPlan.voiceLanguage} mode=${captionPlan.mode}` +
@@ -856,12 +906,79 @@ async function audioDirectorAgent(s) {
 // skin the finished film ACTUALLY WORE. The split means the authoritative brand write
 // fires in exactly ONE place no matter which compose path won — and, because repair laps
 // re-enter through here, the LAST composition's skin is always the one on record.
+// Pre-render Validation Gate (T2) — config.validationGate. Runs ONCE (first composition
+// pass): (1) SELF-HEALS by dropping any asset whose file is missing on disk so the
+// composer never emits a broken <img src>; (2) records a DIAGNOSTIC report via
+// db.setValidationReport; (3) HARD-FAILS only the one narrow, genuinely-unrecoverable
+// state — the user supplied their OWN material (uploads / captured website screenshots)
+// but none survived collection AND no stock was fetched. Everything else is
+// disclosure-only, so the fail-open house law still governs mere quality shortfalls.
+function validateBeforeRender(s) {
+  if (!config.validationGate?.enabled) return;
+  const { job, jobDir } = s;
+  const before = Array.isArray(s.assets) ? s.assets : [];
+  // Self-heal: a missing file → a broken tile in the render. Unknown/erroring = keep.
+  const fileOk = (a) => { try { return !a || !a.path || fs.existsSync(path.join(jobDir, a.path)); } catch { return true; } };
+  const healed = before.filter(fileOk);
+  const dropped = before.length - healed.length;
+  if (dropped) { s.assets = healed; console.warn(`[agents] validation_gate: self-healed ${dropped} asset(s) with missing files`); }
+
+  const assets = s.assets || [];
+  const isLogoA = (a) => a && a.role === "logo";
+  const usableVisual = assets.filter((a) => a && a.path && !isLogoA(a) && a.type !== "audio");
+  const sceneCount = (s.script?.scenes || []).length || (s.storyboard?.scenes || []).length || 0;
+  const assignedScenes = new Set(assets.map((a) => a && a.sceneId).filter((x) => x != null)).size;
+  const userSupplied = (job.user_assets || []).some((u) => u && u.role !== "logo") || (job.website_screenshots || []).length > 0;
+  const chk = (ok, detail) => ({ ok: !!ok, detail });
+  const report = {
+    ok: true, blockedBy: null, selfHealed: dropped,
+    checks: {
+      assetsCollected:      chk(usableVisual.length > 0, `${usableVisual.length} usable visual asset(s) collected`),
+      noBrokenPaths:        chk(true, dropped ? `dropped ${dropped} missing file(s) (self-healed)` : "all asset files present"),
+      brandExtracted:       chk(!!s.brandSkin, s.brandSkin ? "brand palette resolved" : "unbranded (no palette supplied)"),
+      enoughForDuration:    chk(usableVisual.length >= Math.max(1, Math.ceil(sceneCount / 2)), `${usableVisual.length} visual(s) for ${sceneCount} scene(s)`),
+      scenesAssigned:       chk(assignedScenes > 0 || usableVisual.length === 0, `${assignedScenes} scene(s) have an assigned asset`),
+      userMaterialSurvived: chk(!userSupplied || usableVisual.length > 0, userSupplied ? (usableVisual.length ? "user material present on the wire" : "user supplied material but NONE survived collection") : "no user material supplied"),
+    },
+  };
+  if (config.validationGate.hardFail && userSupplied && usableVisual.length === 0) {
+    report.ok = false; report.blockedBy = "user-material-lost";
+  }
+  try { db.setValidationReport(job.id, report); } catch { /* a disclosure never blocks a render by its own failure */ }
+  if (report.blockedBy) {
+    throw new Error("asset validation failed (user-material-lost): you supplied uploads/website material but no usable visuals survived collection and no stock was fetched. Regenerate, add a website URL with real screens, or check provider keys.");
+  }
+}
+
 async function compositionAgent(s) {
+  if (!s.qa) validateBeforeRender(s); // first pass only — repair laps reuse the healed assets
   const result = await composeVisual(s);
   persistWornBrand(s, result.visual);
   persistAssetCoverage(s, result.visual);
   persistBrandCoverage(s, result.visual);
-  return result;
+  persistAssetUsageReport(s, result.visual);
+  // Return the (possibly self-healed) asset list so repair laps + later nodes see the
+  // broken-path drops rather than the pre-heal list.
+  return { ...result, assets: s.assets };
+}
+
+// Website Asset Intelligence — the post-composition Asset Usage Report + Validation Gate.
+// Best-effort, fail-open (THE LAW: a disclosure never touches the render). Reconciles what
+// the harvester collected at intake against what survived to the composed film (the CD-
+// scored wire assets). Only meaningful when the harvester ran; a job with no harvested
+// manifest still records a report whose validation checks read false (honest disclosure).
+function persistAssetUsageReport(s, visual) {
+  try {
+    if (!config.harvester?.enabled) return;
+    const { buildAssetUsageReport } = require("../services/asset_usage_report");
+    const report = buildAssetUsageReport({
+      job: s.job,
+      assets: s.assets || [],
+      harvestReport: (db.getRaw(s.job.id) || {}).asset_harvest || null,
+      brandReview: visual && visual.resolvedBrand || null,
+    });
+    if (report) db.setAssetUsageReport(s.job.id, report);
+  } catch { /* fail-open: the usage-report disclosure is never worth a lost render */ }
 }
 
 // Brand-color coverage disclosure — best-effort, fail-open (THE LAW: never touches the
@@ -905,13 +1022,17 @@ function persistAssetCoverage(s, visual) {
 // — no lock, no race. A #146eb4 the user picked and a #bbd5ea the near-black stage lifted
 // it to are different claims, and only the composer that fit it knows which one shipped.
 //
-// A composer that does not (yet) consume the skin exposes no resolvedBrand, so we leave
-// the record UNTOUCHED — art_director's own renderer-gate (SKIN_AWARE_RENDERERS) is what
-// keeps those packs' panels empty, and clobbering with null here would only duplicate it.
-// Best-effort + fail-open (THE LAW): a failed disclosure write never touches the render.
+// The film wore NO brand (the composer fell back to its stock palette — a conditional wearer
+// like bauhaus's all-or-nothing triad, or any native pack whose reHue could not clear its
+// ground for this hue). CLEAR any pre-composition proposal so the Brand panel never strands an
+// unworn colour. This clobber-to-null is REQUIRED now that SKIN_AWARE_RENDERERS admits
+// CONDITIONAL wearers (it once held only the always-wearing flagship, so leaving the record
+// untouched was safe); the single downstream choke point makes the proposed-but-not-worn gap
+// disappear for every pack. Best-effort + fail-open (THE LAW): a failed disclosure write never
+// touches the render.
 function persistWornBrand(s, visual) {
   const resolved = visual && visual.resolvedBrand;
-  if (!resolved) return;
+  if (!resolved) { try { db.setBrandReview(s.job.id, null); } catch { /* disclosure never blocks a render */ } return; }
   const input = s.brandSkin || {};
   try {
     db.setBrandReview(s.job.id, {
@@ -1136,6 +1257,22 @@ async function timelineAgent(s) {
     } catch (e) { console.warn(`[agents] subtitle export failed: ${e.message}`); }
   }
 
+  // ---- LANGUAGE QA (Director): consolidated pre-render disclosure — font embedded, English
+  // leakage in on-screen DOM text, coverage, consistency — scored against the composed HTML.
+  // Fail-open (THE LAW): a disclosure write never touches the render.
+  try {
+    const plan = languageDirector.getPlan(job);
+    if (plan && plan.videoTextLanguage && plan.videoTextLanguage !== captionLang.SOURCE_LANG) {
+      let html = ""; try { html = fs.readFileSync(path.join(jobDir, "index.html"), "utf8"); } catch { /* no file */ }
+      const raw = db.getRaw(job.id) || {};
+      const report = languageDirector.runLanguageQa({ plan, indexHtml: html, localization: raw.localization, captionQuality: raw.captionQuality });
+      if (report) {
+        db.setLanguageQa(job.id, report);
+        console.log(`[agents] language_qa → font=${report.fontLoaded ? "ok" : "MISSING"} leakage=${report.leakage.count}word(s)/${report.leakage.score}%${report.degraded ? " DEGRADED" : ""}`);
+      }
+    }
+  } catch (e) { console.warn(`[agents] language_qa skipped: ${e.message}`); }
+
   await mixAudioIntoVideo({
     visualPath: visual.videoPath,
     durationSec: job.duration,
@@ -1176,7 +1313,7 @@ async function qaAgentNode(s) {
   // gain. Only the LLM composer (remix/dress) reads QA feedback and can actually
   // change — compositionAgent flags that path with repairable:true.
   const isFlagship = (() => {
-    try { const m = require("../services/frame_manifest").getManifest(s.framePack); return !!(m && /^(three-(flagship|brightlife)|blueprint|bloom-fable|bauhaus-riot|terminal-departures|paper-tales)$/.test(m.renderer || "")); }
+    try { const m = require("../services/frame_manifest").getManifest(s.framePack); return !!(m && /^(three-(flagship|brightlife)|blueprint|bloom-fable|bauhaus-riot|terminal-departures|paper-tales|kinetic-universe)$/.test(m.renderer || "")); }
     catch { return false; }
   })();
   if (config.qa?.enabled === false || s.usedFallback || s.job?.render3d || isFlagship || s.repairable === false) {
@@ -1335,3 +1472,6 @@ async function runProductionGraph({ jobId }) {
 }
 
 module.exports = { runProductionGraph };
+// Test seam: expose the deterministic asset-planning stage so its duration-adaptive
+// budget + scene-purpose routing can be regression-tested without a full graph run.
+module.exports.__test = { assetPlannerAgent, validateBeforeRender };

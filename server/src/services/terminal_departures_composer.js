@@ -139,12 +139,16 @@ function terminalTheme(brandSkin) {
 
   // FAIL-OPEN (art_director.js:14): any resolver/reHue hiccup renders the stock gold, never
   // a crash and never a half-branded board.
-  let gold = GOLD, resolvedBrand = null;
+  let gold = GOLD, resolvedBrand = null, leadHue = null, bgWash = null;
   try {
     const brand = resolveBrand(brandSkin, { ground: GROUND, isDark: true, packAccents, contract: { mode: "accent", maxAccents: 1 } });
     const brandLed = brandLedOf(brand, packAccents);
     if (brand.applied && brandLed.length) {
-      const rehued = reHue(GOLD, hueOf(brandLed[0]));
+      leadHue = hueOf(brandLed[0]);
+      // The identity-safe background "air" wash the resolver builds — a transparent radial
+      // painted OVER the near-black floor, never instead of it. Layered on #root when branded.
+      bgWash = (brand.gradients && brand.gradients.background) || null;
+      const rehued = reHue(GOLD, leadHue);
       const dc = deconflictStatus(rehued);
       gold = dc.hex;
       const adjusted = brand.adjusted.slice();
@@ -160,7 +164,26 @@ function terminalTheme(brandSkin) {
         tier: brand.tier, applied: true,
       };
     }
-  } catch { gold = GOLD; resolvedBrand = null; }
+  } catch { gold = GOLD; resolvedBrand = null; leadHue = null; bgWash = null; }
+
+  // SECOND brand family — the security / X-ray / HUD cyan (the scanning beam, the gate-monitor
+  // scan sweep, the X-ray dots) is DECORATION, not a status semantic (only green/red are), so it
+  // adopts the brand too. Rehued onto the brand hue but OFFSET by the stock gold→cyan hue gap so
+  // it stays visibly distinct from the signage gold (two families, not one collapsed hue), then
+  // held off the locked ON-TIME green by the same deconflict. FAIL-OPEN + NO-OP: unbranded cyan
+  // is "#5FD4E6" and cyanRgb is [95,212,230], so var(--cyan) and every cyanA() wash reduce
+  // byte-for-byte to today's literal.
+  const CYAN = "#5FD4E6";
+  let cyan = CYAN;
+  if (resolvedBrand && leadHue != null) {
+    const cyanHue = ((leadHue + (hueOf(CYAN) - hueOf(GOLD))) % 360 + 360) % 360;
+    cyan = deconflictStatus(reHue(CYAN, cyanHue)).hex;
+  }
+  const cyanRgb = hexToRgb(cyan);
+  // Baggage colours — decorative luggage; rehued onto the brand hue, each pinned to its OWN
+  // luminance so the varied-luggage value spread survives. Stock trio when unbranded.
+  const CASE = ["#8A4B3B", "#3B5D8A", "#5D5A46"];
+  const caseCols = (resolvedBrand && leadHue != null) ? CASE.map((c) => reHue(c, leadHue)) : CASE;
 
   // NO-OP LAW: with no brand skin `gold` is the literal "#FFC61A" and goldRgb is [255,198,26],
   // so every branded expression below (the --yellow var, the goldA() rgba washes, the SVG gold
@@ -170,7 +193,8 @@ function terminalTheme(brandSkin) {
     ground: GROUND, board: "#0B0C0F", cell: "#101116",
     ivory: "#F2EEE3", dim: "#8B8D96",
     yellow: gold, gold, goldA: (a) => `rgba(${goldRgb[0]},${goldRgb[1]},${goldRgb[2]},${a})`,
-    green: "#35D07F", red: "#FF4B3E", cyan: "#5FD4E6",
+    green: "#35D07F", red: "#FF4B3E", cyan, cyanA: (a) => `rgba(${cyanRgb[0]},${cyanRgb[1]},${cyanRgb[2]},${a})`,
+    caseCols, bgWash,
     line: "rgba(242,238,227,0.14)",
     displayStack: `'${DISPLAY}', system-ui, sans-serif`,
     monoStack: `'${MONO}', ui-monospace, monospace`,
@@ -275,7 +299,7 @@ function open(id, ctx) { return `<div class="clip" id="${id}" data-start="${ctx.
 const FLYSVG = `viewBox="0 0 1920 1080" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;" data-layout-allow-occlusion`;
 
 function tHook(scene, ctx) {
-  const { id, T, L } = ctx;
+  const { id, T, L, theme } = ctx;
   const chip = flapText(scene.kicker || KICK.hook, 30) ? esc(scene.kicker || KICK.hook).slice(0, 30) : "NOW BOARDING";
   const { l1, l2 } = flapHero(scene);
   const sub = esc(String(scene.subtext || scene.voiceover || "welcome to the film terminal").replace(/\s+/g, " ").trim()).slice(0, 62);
@@ -286,8 +310,8 @@ function tHook(scene, ctx) {
     <div class="sub" id="${id}-sub" style="opacity:0;margin-top:2.2cqw;">${sub}</div>
   </div>
   <svg id="${id}-fly" ${FLYSVG}>
-    <path id="${id}-route" d="M180 860 C 560 800, 1100 820, 1740 700" pathLength="100" fill="none" stroke="rgba(242,238,227,0.32)" stroke-width="3" stroke-dasharray="0.9 2.4" stroke-dashoffset="100"/>
-    <g id="${id}-plane" opacity="0"><path d="M0 0 L34 8 L0 16 L8 8 Z M-8 4 L2 8 L-8 12 Z" fill="#F2EEE3" transform="translate(-17,-8)"/></g>
+    <path id="${id}-route" d="M180 860 C 560 800, 1100 820, 1740 700" pathLength="100" fill="none" stroke="${theme.resolvedBrand ? theme.goldA(0.32) : "rgba(242,238,227,0.32)"}" stroke-width="3" stroke-dasharray="0.9 2.4" stroke-dashoffset="100"/>
+    <g id="${id}-plane" opacity="0"><path d="M0 0 L34 8 L0 16 L8 8 Z M-8 4 L2 8 L-8 12 Z" fill="${theme.resolvedBrand ? theme.gold : "#F2EEE3"}" transform="translate(-17,-8)"/></g>
   </svg></div>`;
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
@@ -339,7 +363,7 @@ function tBoard(scene, ctx) {
 }
 
 function tSigns(scene, ctx) {
-  const { id, T, L, theme } = ctx;
+  const { id, T, L, theme, port } = ctx;
   const stats = pickStats(scene, 3);
   if (!stats.length) stats.push({ pre: "", target: 40, suf: "", label: "destinations" });
   const signHtml = stats.map((st, i) => {
@@ -347,8 +371,8 @@ function tSigns(scene, ctx) {
     // Size the flap to the digit count so a long number (e.g. "1080P") fits one row
     // inside the fixed-width sign instead of wrapping.
     const nlen = num.replace(/\s/g, "").length;
-    const fsz = nlen >= 5 ? 2.8 : nlen === 4 ? 3.4 : 4;
-    return `<div class="sign-wrap"><div class="sign-rod r2"></div><div class="sign-rod r3"></div>
+    const fsz = (nlen >= 5 ? 2.8 : nlen === 4 ? 3.4 : 4) * (port ? 1.4 : 1);
+    return `<div class="sign-wrap"${port ? ' style="width:26cqw;"' : ''}><div class="sign-rod r2"></div><div class="sign-rod r3"></div>
       <div class="sign" id="${id}-sg${i}" style="opacity:0;">
         <div class="flap g-flap gold" id="${id}-n${i}" data-text="${esc(num)}" style="font-size:${fsz}cqw;"></div>
         <div class="g-cap">${esc(String(st.label || "metric").slice(0, 22))}</div>
@@ -357,7 +381,7 @@ function tSigns(scene, ctx) {
   const head = flapText(scene.headline || KICK.signs, 22);
   const html = `${open(id, ctx)}<div class="safe" style="justify-content:flex-end;padding-bottom:16%;">
     <span class="chip" id="${id}-chip" style="opacity:0;position:absolute;top:13%;"><span class="dot"></span>${esc(head)}</span>
-    <div style="display:flex;gap:5cqw;align-items:flex-start;">${signHtml}</div>
+    <div style="display:flex;${port ? "gap:2cqw;justify-content:center;" : "gap:5cqw;"}align-items:flex-start;">${signHtml}</div>
   </div></div>`;
   const s = [
     `tl.fromTo("#${id}",{opacity:0},{opacity:1,duration:0.4},${T});`,
@@ -380,7 +404,7 @@ function tBaggage(scene, ctx) {
   if (tags.length < 2) tags = featureLines(scene, 3);
   if (tags.length < 2) tags = ["NO CREW", "NO TIMELINE", "NO RENDER FARM"];
   tags = tags.slice(0, 3).map((t) => esc(flapText(t, 16) || "KEYFRAME"));
-  const caseCols = ["#8A4B3B", "#3B5D8A", "#5D5A46"];
+  const caseCols = theme.caseCols;
   const head = flapText(scene.headline || "NO BAGGAGE REQUIRED", 24);
   const sub = esc(String(scene.subtext || scene.voiceover || "just your words — we pack the rest").replace(/\s+/g, " ").trim()).slice(0, 60);
   const caseHtml = tags.map((t, i) => `<div class="case" id="${id}-c${i}" style="left:-16cqw;top:57.5%;background:${caseCols[i % 3]};"><div class="tag">${t}</div></div>`).join("");
@@ -430,7 +454,7 @@ function tSecurity(scene, ctx) {
     ...tags.flatMap((t, i) => {
       const hit = r(T + 2.0 + i * 0.2);
       return [
-        `tl.to("#${id}-t${i}",{backgroundColor:"rgba(95,212,230,0.9)",color:"#08222A",duration:0.14,yoyo:true,repeat:1,ease:"none"},${hit});`,
+        `tl.to("#${id}-t${i}",{backgroundColor:"${theme.cyanA(0.9)}",color:"#08222A",duration:0.14,yoyo:true,repeat:1,ease:"none"},${hit});`,
         `tl.fromTo("#${id}-t${i} .ok",{opacity:0,scale:0.3},{opacity:1,scale:1,duration:0.35,ease:"back.out(2.2)"},${r(hit + 0.2)});`,
       ];
     }),
@@ -442,26 +466,27 @@ function tSecurity(scene, ctx) {
 // "GATE K·F — LIVE" header bar, the screenshot inside, a soft scan sweep. The signature
 // flap headline + supporting copy sit beside it.
 function tScreen(scene, ctx, asset) {
-  const { id, T, L, theme } = ctx;
+  const { id, T, L, theme, port } = ctx;
   const ratio = Number(asset.ratio) || (asset.width && asset.height ? asset.width / asset.height : 0);
-  const portrait = ratio && ratio < 0.9;
-  const monW = portrait ? "24cqw" : "46cqw";
-  const monH = portrait ? "38cqw" : "27cqw";
-  const fit = portrait ? "contain" : "cover";
+  const shotTall = ratio && ratio < 0.9;
+  const monW = port ? (shotTall ? "52cqw" : "80cqw") : (shotTall ? "24cqw" : "46cqw");
+  const monH = port ? (shotTall ? "72cqw" : "44cqw") : (shotTall ? "38cqw" : "27cqw");
+  const fit = shotTall ? "contain" : "cover";
   const pos = asset.cropFocus || "top center";
   const head = flapText(scene.headline || "SEE IT LIVE", 22);
   const feats = featureLines(scene, 3);
   const featHtml = feats.length
     ? `<ul class="feat">${feats.map((f, i) => `<li class="${id}-fi" style="opacity:0;"><span class="feat-sq" style="background:${[theme.yellow, theme.cyan, theme.green][i % 3]};"></span>${esc(String(f).slice(0, 40))}</li>`).join("")}</ul>` : "";
   const sub = scene.subtext ? `<div class="sub" id="${id}-sub" style="opacity:0;margin-top:1.2cqw;">${esc(String(scene.subtext).slice(0, 70))}</div>` : "";
-  const html = `${open(id, ctx)}<div class="safe" style="flex-direction:row;gap:5cqw;text-align:left;align-items:center;">
+  const safe = port ? "flex-direction:column;gap:3.4cqw;text-align:center;align-items:center;" : "flex-direction:row;gap:5cqw;text-align:left;align-items:center;";
+  const html = `${open(id, ctx)}<div class="safe" style="${safe}">
     <div class="fids" id="${id}-mon" style="opacity:0;width:${monW};">
       <div class="fids-head"><span class="fids-led"></span>GATE K·F — LIVE<span class="fids-time">ON TIME</span></div>
       <div class="fids-screen" style="height:${monH};"><img src="${esc(asset.path)}" alt="${esc(asset.alt || "screenshot")}" style="object-fit:${fit};object-position:${esc(pos)};"><div class="fids-scan" id="${id}-scan"></div></div>
     </div>
-    <div style="max-width:38cqw;">
+    <div style="max-width:${port ? "88cqw" : "38cqw"};">
       <span class="chip" id="${id}-chip" style="opacity:0;"><span class="dot"></span>${esc(scene.kicker || KICK.screen).toUpperCase().slice(0, 22)}</span>
-      <div class="flap h-flap3-big" id="${id}-l1" data-text="${esc(head)}" style="margin-top:1.4cqw;"></div>
+      <div class="flap h-flap3-big" id="${id}-l1" data-text="${esc(head)}" style="margin-top:1.4cqw;${port ? "font-size:4cqw;" : ""}"></div>
       ${sub}
       ${featHtml}
     </div>
@@ -543,7 +568,7 @@ function styleBlock(theme) {
   html, body { width:100%; height:100%; overflow:hidden; background:#0A0B0E; }
   #root { position:relative; overflow:hidden; isolation:isolate; container-type:size; color:var(--ivory); font-family:${theme.displayStack};
     background:
-      linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 18%),
+      ${theme.bgWash ? `${theme.bgWash},\n      ` : ""}linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 18%),
       repeating-linear-gradient(90deg, rgba(255,255,255,0.016) 0 2px, transparent 2px 240px),
       linear-gradient(180deg, #17181D 0%, #121317 55%, #0C0D11 100%);
     --board:${theme.board}; --cell:${theme.cell}; --ivory:${theme.ivory}; --dim:${theme.dim};
@@ -610,8 +635,8 @@ function styleBlock(theme) {
   .scan-tag i { width:0.85cqw; height:0.85cqw; border-radius:0.2cqw; background:var(--yellow); display:inline-block; }
   .scan-tag .ok { position:absolute; right:-0.7cqw; top:-0.7cqw; width:1.7cqw; height:1.7cqw; border-radius:50%; background:var(--green); color:#062;
                   font-weight:700; font-size:1cqw; display:flex; align-items:center; justify-content:center; opacity:0; }
-  .beam { position:absolute; top:26%; bottom:24%; width:4cqw; opacity:0; pointer-events:none; box-shadow:0 0 3cqw rgba(95,212,230,0.4);
-          background:linear-gradient(90deg, transparent, rgba(95,212,230,0.45) 45%, rgba(95,212,230,0.7) 50%, rgba(95,212,230,0.45) 55%, transparent); }
+  .beam { position:absolute; top:26%; bottom:24%; width:4cqw; opacity:0; pointer-events:none; box-shadow:0 0 3cqw ${theme.cyanA(0.4)};
+          background:linear-gradient(90deg, transparent, ${theme.cyanA(0.45)} 45%, ${theme.cyanA(0.7)} 50%, ${theme.cyanA(0.45)} 55%, transparent); }
   /* gate monitor (screenshot) */
   .fids { flex:0 0 auto; background:#050609; border:0.4cqw solid #1B1D24; border-radius:0.9cqw; padding:0.7cqw;
           box-shadow:0 1.6cqw 4cqw rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05); transform-origin:50% -6cqw; will-change:transform; }
@@ -621,7 +646,7 @@ function styleBlock(theme) {
   .fids-head .fids-time { margin-left:auto; }
   .fids-screen { position:relative; width:100%; overflow:hidden; margin-top:0.7cqw; border-radius:0.4cqw; background:#000; }
   .fids-screen img { position:absolute; inset:0; width:100%; height:100%; display:block; }
-  .fids-scan { position:absolute; left:0; right:0; height:30%; pointer-events:none; background:linear-gradient(180deg, transparent, rgba(95,212,230,0.14), transparent); }
+  .fids-scan { position:absolute; left:0; right:0; height:30%; pointer-events:none; background:linear-gradient(180deg, transparent, ${theme.cyanA(0.14)}, transparent); }
   .feat { list-style:none; margin-top:1.4cqw; display:flex; flex-direction:column; gap:0.85cqw; }
   .feat li { display:flex; align-items:center; gap:1cqw; font-family:${theme.monoStack}; font-weight:600; font-size:1.35cqw; color:var(--ivory); }
   .feat-sq { width:1.1cqw; height:1.1cqw; flex:0 0 auto; border-radius:0.15cqw; }
@@ -662,7 +687,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     // middle scene that would otherwise be a plain security/board frame.
     if (!ends && byScene.has(sid)) { arch = "screen"; asset = byScene.get(sid); }
     else if (!ends && (arch === "security" || arch === "board") && pooli < pool.length) { arch = "screen"; asset = pool[pooli++]; }
-    const ctx = { id: `s${i + 1}`, T, L, i, isLast: i === scenes.length - 1, track: 2 + i, dims: { width: W, height: H }, theme };
+    const ctx = { id: `s${i + 1}`, T, L, i, isLast: i === scenes.length - 1, track: 2 + i, dims: { width: W, height: H }, port: H > W, theme };
     const built = (BUILDERS[arch] || tSecurity)(scene, ctx, asset);
     bodyParts.push(built.html);
     sceneStarts.push(T);

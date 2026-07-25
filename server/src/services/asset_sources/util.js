@@ -159,6 +159,44 @@ function imageDHashStats(absPath) {
   });
 }
 
+// Variance-of-Laplacian SHARPNESS proxy (Pech-Pacheco). Downscale to a fixed
+// SHARP_SIZE² gray — normalizing across resolutions so a soft or heavily-upscaled
+// image scores low no matter its pixel count — apply a 3×3 Laplacian, and return the
+// VARIANCE of the response: high for crisp edges (text, UI chrome), low for
+// out-of-focus / upscaled blur. FAIL-OPEN: null on any error, so an unmeasurable image
+// is NEVER treated as blurry (unknown ≠ bad). ffmpeg-only (no `sharp`, per repo policy).
+const SHARP_SIZE = 200;
+function imageSharpness(absPath) {
+  if (path.extname(absPath).toLowerCase() === ".svg") return Promise.resolve(null); // vectors are infinitely sharp
+  return new Promise((resolve) => {
+    const p = spawn("ffmpeg", [
+      "-v", "error", "-i", absPath,
+      "-vf", `scale=${SHARP_SIZE}:${SHARP_SIZE}:flags=area,format=gray`, "-frames:v", "1", "-f", "rawvideo", "-",
+    ], { windowsHide: true });
+    const chunks = [];
+    p.stdout.on("data", (d) => chunks.push(d));
+    const timer = setTimeout(() => { try { p.kill("SIGKILL"); } catch { /* noop */ } }, 15_000);
+    p.on("error", () => { clearTimeout(timer); resolve(null); });
+    p.on("exit", (code) => {
+      clearTimeout(timer);
+      const buf = Buffer.concat(chunks);
+      const N = SHARP_SIZE;
+      if (code !== 0 || buf.length < N * N) return resolve(null);
+      let n = 0, sum = 0, sumSq = 0;
+      for (let y = 1; y < N - 1; y++) {
+        for (let x = 1; x < N - 1; x++) {
+          const i = y * N + x;
+          const lap = 4 * buf[i] - buf[i - 1] - buf[i + 1] - buf[i - N] - buf[i + N];
+          sum += lap; sumSq += lap * lap; n++;
+        }
+      }
+      if (!n) return resolve(null);
+      const mean = sum / n;
+      resolve(Math.round((sumSq / n - mean * mean) * 10) / 10); // variance of the Laplacian
+    });
+  });
+}
+
 // Hamming distance between two 16-hex-char (64-bit) dHashes. 64 (max) if either
 // is missing, so a hashless asset never counts as a duplicate of anything.
 function hammingHex(a, b) {
@@ -183,12 +221,15 @@ async function validateImage(absPath, { kindPref } = {}) {
   if (path.extname(absPath).toLowerCase() === ".svg") {
     return { ok: true, reason: null, meta: { vector: true, hasAlpha: true, dhash: null } };
   }
-  const [probe, sig, dominantColor] = await Promise.all([ffprobeImage(absPath), imageDHashStats(absPath), imageDominantColor(absPath)]);
+  const [probe, sig, dominantColor, sharpness] = await Promise.all([ffprobeImage(absPath), imageDHashStats(absPath), imageDominantColor(absPath), imageSharpness(absPath)]);
   const width = probe ? probe.width : 0;
   const height = probe ? probe.height : 0;
   const hasAlpha = probe ? pixFmtHasAlpha(probe.pixFmt) : false;
   const ratio = width && height ? Math.round((width / height) * 1000) / 1000 : null;
-  const meta = { width, height, ratio, hasAlpha, dhash: sig.dhash, stdev: sig.stdev, dominantColor };
+  // `sharpness` (variance-of-Laplacian) is EXPOSED for callers that want it (screenshot
+  // intake drops clearly-blurry captures) but does NOT gate validateImage itself — the
+  // general stock path stays fail-safe against false-rejects (blur was deferred there).
+  const meta = { width, height, ratio, hasAlpha, dhash: sig.dhash, stdev: sig.stdev, dominantColor, sharpness };
 
   // 1. Near-flat / solid colour: an error page saved as an image, a blank
   //    placeholder, or a plain-colour banner — no visual value in a film.
@@ -324,6 +365,6 @@ function colorDistance(a, b) {
 module.exports = {
   download, validateMedia, validateImage, reencodeForHyperframes, UA,
   rankCandidates, scoreCandidate, MIN_LONG_EDGE,
-  makeImageDeduper, imageDHashStats, hammingHex, pixFmtHasAlpha,
+  makeImageDeduper, imageDHashStats, imageSharpness, hammingHex, pixFmtHasAlpha,
   imageDominantColor, colorDistance, ffprobeImage,
 };
