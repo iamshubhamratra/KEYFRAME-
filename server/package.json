@@ -13,6 +13,7 @@
     "audit:contrast": "node scripts/audit-contrast.js",
     "test:brand-kit": "node scripts/test-brand-kit.js",
     "test:asset-priority": "node scripts/test-asset-priority.js",
+    "test:taxonomy": "node scripts/test-taxonomy-golden.js",
     "test:screenshot-intake": "node scripts/test-screenshot-intake.js"
   },
   "dependencies": {
