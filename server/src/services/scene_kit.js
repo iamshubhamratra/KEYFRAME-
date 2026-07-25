@@ -21,7 +21,7 @@ const frameManifest = require("./frame_manifest");
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
 const { themeFromTokens } = require("./enrich");
 const { safeArea, heroBox } = require("./responsive");
-const { resolveBrand } = require("./brand_kit");
+const { resolveBrand, atmosphericGround } = require("./brand_kit");
 const { isTrustedProminent, isLogo, WEBSITE_BRAND_SOURCE, WEBSITE_ASSET_SOURCE } = require("./asset_priority");
 
 // SINGLE-quoted family names — these are embedded in double-quoted style="..."
@@ -204,6 +204,14 @@ function deriveTheme(framePack, storyboard, brandSkin) {
   // Only a brand that actually applied may touch the list — a null/failed skin
   // leaves the pack's own accents byte-identical (fail-open, art_director.js:14).
   if (brand.applied) accents = brand.accents.slice(0, 4);
+  // ATMOSPHERE (Problem #7 for scene-kit packs): a mode:"atmosphere" pack lets the
+  // brand hue faintly wash its GROUND — the last brand surface beyond accents + the
+  // line/panel retint. atmosphericGround is luminance-pinned, so isDark and the forced
+  // text contrast below are unchanged. brand.atmosphere is null for accents-mode / no-
+  // brand packs, so this is a byte-identical no-op everywhere except a pack that opts
+  // in. Ground authority stays HERE — resolveBrand still returns no ground key (the
+  // art_director house law); scene_kit owns the tint, brand_kit only supplies the hue.
+  if (brand.applied && brand.atmosphere) ground = atmosphericGround(ground, brand.atmosphere);
   // Force maximum text contrast against the ground (the storyboard's text hex is
   // often a mid-tone that reads as muddy).
   ink = isDark ? "#FFFFFF" : "#14130E";

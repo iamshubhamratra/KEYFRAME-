@@ -56,5 +56,12 @@
     "enter": "mask-reveal",
     "emphasis": "gradient",
     "align": "left"
+  },
+  "brand": {
+    "mode": "atmosphere",
+    "maxAccents": 4,
+    "contrastFloor": 3.0,
+    "hueDriftMax": 45,
+    "note": "atmosphere: a brand hue faintly washes the deep-space indigo ground (luminance-pinned, so the dark base + text contrast hold); the aurora drift + gradient-clip identity stay locked."
   }
 }
