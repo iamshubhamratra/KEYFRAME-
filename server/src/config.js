@@ -355,6 +355,29 @@ function build() {
     enabled: process.env.LANGUAGE_DIRECTOR === "0" ? false : (ldCfg.enabled !== false),
   };
 
+  // QA reviewer. `enabled` turns the whole agent off. `inspectNonRepairable` decides
+  // whether a render that CANNOT be repaired is still reviewed.
+  //
+  // That second switch is the decoupling: QA used to be skipped whenever the render
+  // was not repairable, which — because `repairable` is just llm.useComposer, default
+  // false — meant it ran on 7 of 98 finished projects. Inspection and repairability are
+  // different questions: a deterministic composer re-renders byte-identically (so a
+  // repair lap is pointless), but the verdict is still the only check performed on the
+  // finished MP4 rather than on the HTML that made it.
+  //
+  // It is not free: a review samples frames and costs ~27k vision tokens (~$0.013),
+  // roughly half a 30s film's total. Set QA_INSPECT_NON_REPAIRABLE=0 to review only
+  // renders a repair lap could actually fix.
+  const qaCfg = cfg.qa || {};
+  cfg.qa = {
+    ...qaCfg,
+    enabled: process.env.QA != null ? /^(1|true|yes|on)$/i.test(String(process.env.QA)) : (qaCfg.enabled !== false),
+    maxRepairs: Number.isFinite(qaCfg.maxRepairs) ? qaCfg.maxRepairs : 1,
+    inspectNonRepairable: process.env.QA_INSPECT_NON_REPAIRABLE != null
+      ? /^(1|true|yes|on)$/i.test(String(process.env.QA_INSPECT_NON_REPAIRABLE))
+      : (qaCfg.inspectNonRepairable !== false),
+  };
+
   // Pre-render Validation Gate — the T2 diagnostic (services in graph.validateBeforeRender).
   // Always self-heals broken asset paths (drops <img> that would render broken) and records
   // a diagnostic report via db.setValidationReport. `hardFail` promotes ONE narrow,

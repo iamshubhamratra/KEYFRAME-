@@ -1469,21 +1469,36 @@ async function repairAgent(s) {
   return { ...comp, ...anim, ...tl };
 }
 
-// QA Agent node — verdict + loop control.
+// QA Agent node — verdict, then loop control.
+//
+// INSPECTION AND REPAIRABILITY ARE SEPARATE QUESTIONS. This node used to conflate
+// them: `repairable === false` skipped the review entirely, and since `repairable`
+// is just `config.llm.useComposer` (default FALSE), QA ran on 7 of 98 finished
+// projects. The one agent built to catch "empty scenes, offscreen content,
+// unreadable text" — its own words — was off for 93% of renders, including every
+// video in the quality audit that shipped exactly those defects.
+//
+// The old reasoning was half right: a deterministic composer re-renders
+// byte-identically, so a repair lap on it IS pointless. But that is an argument
+// against LOOPING, not against LOOKING. The verdict is worth having on its own —
+// it is the only check performed on the finished MP4 rather than on the HTML that
+// produced it, and it is what tells the user their film has a blank scene.
+//
+// So: review almost always, and let the conditional edge decide whether a repair
+// lap can actually change anything (it consults `repairable`).
 async function qaAgentNode(s) {
-  // Skip QA for any DETERMINISTIC render: the native 3D/flagship/blueprint/bloom/
-  // bauhaus composers AND the default scene-kit. A re-compose produces a byte-
-  // identical video (scene-kit ignores __qaIssuesToFix), so a QA-repair loop would
-  // just re-render an identical (slow) scene and re-pay the vision review for no
-  // gain. Only the LLM composer (remix/dress) reads QA feedback and can actually
-  // change — compositionAgent flags that path with repairable:true.
-  const isFlagship = (() => {
-    try { const m = require("../services/frame_manifest").getManifest(s.framePack); return !!(m && /^(three-(flagship|brightlife)|blueprint|bloom-fable|bauhaus-riot|terminal-departures|paper-tales|kinetic-universe|dom-prisma|om-(garden|lantern|bakehouse|blocks|poster|premiere|hype))$/.test(m.renderer || "")); }
-    catch { return false; }
-  })();
-  if (config.qa?.enabled === false || s.usedFallback || s.job?.render3d || isFlagship || s.repairable === false) {
-    return { qa: { pass: true, issues: [], skipped: true } };
-  }
+  // A fallback render has no composition to critique and no path to improve it;
+  // reviewing it spends a vision call to confirm the template is a template.
+  const repairable = s.repairable !== false;
+  const skip =
+    config.qa?.enabled === false ? "qa disabled"
+      : s.usedFallback ? "fallback render"
+        : !s.visual?.videoPath ? "no rendered video"
+          // The operator can dial inspection back to repairable renders only — a review
+          // costs ~27k vision tokens, roughly half a short film's total spend.
+          : (!repairable && config.qa?.inspectNonRepairable === false) ? "non-repairable render (inspection disabled)"
+            : null;
+  if (skip) return { qa: { pass: true, issues: [], skipped: true, reason: skip } };
   db.setProgress(s.job.id, "qa");
   const verdict = await reviewRender({
     videoPath: s.visual.videoPath,
@@ -1496,6 +1511,13 @@ async function qaAgentNode(s) {
     console.warn(`[agents] qa failed (${e.message.slice(0, 120)}); passing by default`);
     return { pass: true, issues: [], error: e.message };
   });
+  // Record whether anything COULD be done about a failure, so a verdict on a
+  // deterministic pack reads as "inspected, not fixable here" rather than looking
+  // like the repair loop silently declined to run.
+  verdict.repairable = s.repairable !== false;
+  if (!verdict.pass && !verdict.repairable) {
+    console.warn(`[agents] QA found ${verdict.issues?.length || 0} issue(s) on a deterministic render — reported, not repairable (a re-compose would be byte-identical)`);
+  }
   return { qa: verdict, qaAttempts: (s.qaAttempts || 0) + 1 };
 }
 
@@ -1578,11 +1600,18 @@ async function buildGraph() {
   g.addEdge("timeline", "qa_agent");
   g.addConditionalEdges("qa_agent", (s) => {
     const repairsLeft = (s.qaAttempts || 0) <= (Number(config.qa?.maxRepairs) || 1);
-    // No repair lap when the composer already failed on budget (402/daily cap)
-    // — the recompose would hit the identical wall and just burn time.
-    if (!s.qa?.pass && repairsLeft && !s.usedFallback && !s.composerBudgetDead) {
+    // `repairable` now lives HERE rather than in the QA node. Only the LLM composer
+    // reads __qaIssuesToFix and can produce a different render; a deterministic
+    // composer would re-emit the identical bytes, so looping on it burns a full
+    // Chromium render to change nothing. The verdict is still recorded either way —
+    // that separation is the point of the decoupling.
+    const canRepair = s.repairable !== false;
+    if (!s.qa?.pass && repairsLeft && canRepair && !s.usedFallback && !s.composerBudgetDead) {
       console.log(`[agents] QA failed — repair lap ${s.qaAttempts}`);
       return "repair";
+    }
+    if (!s.qa?.pass && !canRepair) {
+      console.log(`[agents] QA failed on a deterministic render — issues reported, no repair lap (a re-compose is byte-identical)`);
     }
     if (!s.qa?.pass && s.composerBudgetDead) {
       console.log(`[agents] QA failed but composer budget is exhausted — delivering best attempt (no repair lap)`);
