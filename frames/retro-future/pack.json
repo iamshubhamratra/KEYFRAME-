@@ -1,0 +1,51 @@
+{
+  "name": "retro-future",
+  "vibe": "An 80s synthwave / outrun film. A persistent, continuously-scrolling neon world — a gradient sunset sky, a twinkling starfield, a banded neon sun sitting on the horizon, an infinite neon perspective grid rushing to the vanishing point, a glowing horizon line and CRT scanlines — flows unbroken across every cut. Chrome/neon italic display headlines ignite over the grid; screenshots ride inside neon-bordered CRT/arcade cabinets; a radiating light-burst climax blooms; a blinking 'Press Start' logo-reveal CTA closes. Everything is theme-driven, so the brand color repaints the whole world — the sky tint, the neon grid, the sun and horizon glow, the CRT borders, the chrome type accent and the CTA, not just the text. Portrait-native 9:16 for Reels, Shorts and TikTok. Rendered as a native GSAP + canvas composition. Best for bold, nostalgic, electric launches, gaming/creator/AI products, hype reels and anything that should feel retro-futuristic and neon.",
+  "renderer": "retro-future",
+  "orientation": "portrait",
+  "colors": {
+    "sky": "#0A0420",
+    "ground": "#080316",
+    "text": "#FDF4FF",
+    "muted": "#8E82A6",
+    "accent": "#FF2E97",
+    "accent-2": "#22D3EE"
+  },
+  "fonts": ["Anton", "JetBrains Mono", "Inter"],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#080316"
+  },
+  "motion": {
+    "cut": "rise",
+    "drift": 0.9
+  },
+  "fx": {
+    "canvas": "synthwave",
+    "three": "none"
+  },
+  "skin": {
+    "accents": ["#FF2E97", "#22D3EE"],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "screenshot inside a neon-bordered CRT / arcade cabinet with scanlines and a neon glow",
+    "iconStyle": "line",
+    "keywords": ["synthwave", "outrun", "retro", "neon", "80s", "grid", "arcade", "portrait"],
+    "prefer": ["photo", "vector"]
+  },
+  "typography": {
+    "display": "Anton",
+    "mono": "JetBrains Mono",
+    "body": "Inter"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "upper",
+    "tracking": -0.01,
+    "align": "center"
+  }
+}

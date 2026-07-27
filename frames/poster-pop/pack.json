@@ -1,0 +1,65 @@
+{
+  "name": "poster-pop",
+  "vibe": "A loud kinetic-typography poster reel — every scene is a solid full-bleed colour field, gigantic condensed uppercase type, one giant slow-turning starburst behind everything, and two scrolling marquee rails that never stop. Thick ink outlines and hard offset shadows on every card and chip; the cut is a hard block wipe arriving from a different edge each time. Brand colour swaps every field, marquee and burst. Portrait-native 9:16. Best for launches, statements, music, events and anything that wants to shout.",
+  "renderer": "om-poster",
+  "orientation": "portrait",
+  "colors": {
+    "ground": "#C67139",
+    "text": "#201E1D",
+    "accent": "#C67139",
+    "accent-2": "#7A8A5E",
+    "accent-3": "#D9B44A"
+  },
+  "fonts": [
+    "Caprasimo",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#C67139"
+  },
+  "motion": {
+    "cut": "wipe",
+    "drift": 1.05
+  },
+  "fx": {
+    "canvas": "poster",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#C67139",
+      "#7A8A5E",
+      "#D9B44A"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "bold poster graphic saturated flat",
+    "iconStyle": "solid",
+    "keywords": [
+      "poster",
+      "loud",
+      "kinetic",
+      "type",
+      "statement",
+      "bold"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
+  },
+  "typography": {
+    "display": "Caprasimo",
+    "body": "Figtree"
+  },
+  "textfx": {
+    "enter": "slide",
+    "emphasis": "boxed",
+    "case": "none",
+    "tracking": -0.01
+  }
+}

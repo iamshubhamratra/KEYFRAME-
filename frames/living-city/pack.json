@@ -1,0 +1,52 @@
+{
+  "name": "living-city",
+  "vibe": "A living neon skyline at night. A persistent, continuously-flowing city backdrop — a dusk sky gradient, a moon and a parallax starfield, a glowing horizon, two layers of building silhouettes with twinkling lit windows, a road band and drifting traffic light-streaks — runs unbroken behind every cut. Neon-sign titles glow over the skyline; screenshots appear as glowing holographic billboards on support poles; neon stat numbers light up like a district ticker; feature billboards line up with numbered labels; a logo-reveal CTA closes with a neon button. Everything is theme-driven, so the brand color repaints the whole city — the sky glow, the silhouettes, the lit windows, the traffic streaks, the billboard neon and the CTA, not just the text. Portrait-native 9:16 for Reels, Shorts and TikTok. Rendered as a native GSAP + canvas composition. Best for product launches, app/SaaS showcases, bold urban brands, screenshots and anything that should feel electric, cinematic and after-dark.",
+  "renderer": "living-city",
+  "orientation": "portrait",
+  "colors": {
+    "sky": "#05060F",
+    "sky-2": "#160A24",
+    "ground": "#04050C",
+    "text": "#F4F6FF",
+    "muted": "#8A8FA5",
+    "accent": "#22D3EE",
+    "near": "#080912"
+  },
+  "fonts": ["Space Grotesk", "JetBrains Mono", "Inter"],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#04050C"
+  },
+  "motion": {
+    "cut": "rise",
+    "drift": 0.9
+  },
+  "fx": {
+    "canvas": "city",
+    "three": "none"
+  },
+  "skin": {
+    "accents": ["#22D3EE"],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "screenshot on a glowing holographic city billboard with a neon border and scan bar",
+    "iconStyle": "line",
+    "keywords": ["city", "skyline", "neon", "night", "billboard", "cyberpunk", "portrait"],
+    "prefer": ["photo", "vector"]
+  },
+  "typography": {
+    "display": "Space Grotesk",
+    "mono": "JetBrains Mono",
+    "body": "Inter"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "none",
+    "tracking": -0.02,
+    "align": "center"
+  }
+}

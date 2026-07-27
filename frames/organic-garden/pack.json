@@ -1,0 +1,66 @@
+{
+  "name": "organic-garden",
+  "vibe": "A warm cream garden that keeps growing behind the film — drifting petals and leaves, soft blooms of colour and two rolling hills, all flowing continuously across every cut so the scenes read as one place rather than a slide deck. Soft serif display over friendly geometric body copy, rounded shadowed device frames, and a calm camera that drifts, swings and pushes through each cut with no hard wipe. Brand colour regrows the whole garden — petals, hills, blooms, chips and the ground itself. Portrait-native 9:16. Best for warm, human, craft and wellbeing brands.",
+  "renderer": "om-garden",
+  "orientation": "portrait",
+  "colors": {
+    "ground": "#FFF6EA",
+    "surface": "#EBDDC5",
+    "text": "#201E1D",
+    "accent": "#C67139",
+    "accent-2": "#7A8A5E",
+    "accent-soft": "#FFC6A5"
+  },
+  "fonts": [
+    "Caprasimo",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#F5EAD8"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1.04
+  },
+  "fx": {
+    "canvas": "garden",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#C67139",
+      "#7A8A5E",
+      "#FFC6A5"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "warm natural daylight organic craft",
+    "iconStyle": "line",
+    "keywords": [
+      "warm",
+      "organic",
+      "natural",
+      "craft",
+      "garden",
+      "handmade"
+    ],
+    "prefer": [
+      "photo",
+      "illustration"
+    ]
+  },
+  "typography": {
+    "display": "Caprasimo",
+    "body": "Figtree"
+  },
+  "textfx": {
+    "enter": "drift",
+    "emphasis": "underline-grow",
+    "case": "none",
+    "tracking": -0.015
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "name": "premiere-night",
+  "vibe": "A cinema premiere — a deep dark house, two spotlights sweeping the room, marquee bulb rails chasing along the top and bottom, a film strip drifting up the edge, projector grain and a heavy vignette. High-contrast serif titling, thin bright device edges, a slow dolly on every scene, and theatre cuts that rotate through doors, iris and blinds so the same door never opens twice. Brand colour relights the house — spotlights, bulbs, glow and edges. Portrait-native 9:16. Best for premium launches, film, entertainment and award-night brands.",
+  "renderer": "om-premiere",
+  "orientation": "portrait",
+  "colors": {
+    "ground": "#171514",
+    "text": "#F5EAD8",
+    "accent": "#C67139",
+    "accent-2": "#E8A066",
+    "accent-3": "#7A8A5E"
+  },
+  "fonts": [
+    "Caprasimo",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#171514"
+  },
+  "motion": {
+    "cut": "doors",
+    "drift": 1.05
+  },
+  "fx": {
+    "canvas": "premiere",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#C67139",
+      "#E8A066",
+      "#7A8A5E"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "cinematic low key dramatic spotlight",
+    "iconStyle": "line",
+    "keywords": [
+      "cinema",
+      "premiere",
+      "spotlight",
+      "marquee",
+      "film",
+      "luxury"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
+  },
+  "typography": {
+    "display": "Caprasimo",
+    "body": "Figtree"
+  },
+  "textfx": {
+    "enter": "drift",
+    "emphasis": "underline-grow",
+    "case": "none",
+    "tracking": -0.01
+  }
+}

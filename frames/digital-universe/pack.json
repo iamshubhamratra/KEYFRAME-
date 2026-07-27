@@ -1,0 +1,52 @@
+{
+  "name": "digital-universe",
+  "vibe": "A prompt-to-video launch film set INSIDE a data-cosmos — you are inside a computer, not looking at a starry sky. A persistent data-space backdrop flows unbroken across every cut: a particle depth field flying toward the camera, faint network connecting-lines strung between the nearest particles, a receding dotted 3D data-grid corridor (floor + ceiling) converging to a central vanishing point, and two soft accent data-nebula glows. Over it: kinetic gradient headlines that pop word-by-word, glowing screenshot data-panel device-frames with HUD corner brackets and a scan-line, a forming data-core, converging data streams and a logo-reveal CTA. Everything is theme-driven, so the brand color repaints the whole universe — particles, grid, network lines, panels, chips and CTA, not just the text. Portrait-native 9:16 for Reels, Shorts and TikTok. Rendered as a native GSAP + canvas composition. Best for AI/tech products, data platforms, developer tools, app launches and anything that should feel deep, systematic and future-facing.",
+  "renderer": "digital-universe",
+  "orientation": "portrait",
+  "colors": {
+    "ground": "#05070F",
+    "ground-2": "#0B0E1A",
+    "text": "#EEF1FF",
+    "muted": "#8A8FB5",
+    "blue": "#4F7CFF",
+    "teal": "#22E0C8",
+    "violet": "#A66BFF"
+  },
+  "fonts": ["Space Grotesk", "JetBrains Mono", "Inter"],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#05070F"
+  },
+  "motion": {
+    "cut": "warp",
+    "drift": 1.0
+  },
+  "fx": {
+    "canvas": "dataspace",
+    "three": "none"
+  },
+  "skin": {
+    "accents": ["#4F7CFF", "#22E0C8", "#A66BFF"],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "product screenshot on a glowing dark HUD data-panel with corner brackets",
+    "iconStyle": "line",
+    "keywords": ["digital", "data", "particles", "network", "grid", "dark", "futuristic", "tech", "portrait"],
+    "prefer": ["photo", "vector"]
+  },
+  "typography": {
+    "display": "Space Grotesk",
+    "mono": "JetBrains Mono",
+    "body": "Inter"
+  },
+  "textfx": {
+    "enter": "blur-up",
+    "emphasis": "glow",
+    "case": "none",
+    "tracking": -0.02,
+    "align": "center"
+  }
+}

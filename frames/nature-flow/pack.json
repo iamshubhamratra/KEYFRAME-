@@ -1,0 +1,52 @@
+{
+  "name": "nature-flow",
+  "vibe": "A calm, living-ecosystem film for wellness, eco and organic brands. A deep-organic forest-dark ground carries a soft flowing mesh gradient, two slow drifting glow-waves, a hazy sun with light rays, gently falling leaves and petals, a water-ripple base with widening rings and a soft vignette that all breathe unbroken across every cut. Serif headlines settle and bloom (the last word in italic leaf-green); real screenshots rest inside soft-rounded leaf-shaped frames; soft feature chips rise and drift; a petal CTA closes. Everything is theme-driven, so the brand color repaints the whole ecosystem — the flowing gradient, the glow-waves, the leaves, the frames, the chips and the CTA, not just the text. Portrait-native 9:16 for Reels, Shorts and TikTok. Rendered as a native GSAP + canvas composition. Best for wellness, sustainability, nature, skincare, food, mindfulness and any product that should feel calm, organic and alive.",
+  "renderer": "nature-flow",
+  "orientation": "portrait",
+  "colors": {
+    "ground": "#0A1F17",
+    "ground-2": "#071812",
+    "text": "#F4FAF0",
+    "muted": "#8FB39F",
+    "leaf": "#4CAF6E",
+    "teal": "#2E9E8F",
+    "cream": "#F3F7EC"
+  },
+  "fonts": ["Fraunces", "IBM Plex Mono", "Inter"],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#0A1F17"
+  },
+  "motion": {
+    "cut": "grow",
+    "drift": 0.8
+  },
+  "fx": {
+    "canvas": "nature",
+    "three": "none"
+  },
+  "skin": {
+    "accents": ["#4CAF6E", "#2E9E8F"],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "product screenshot resting inside a soft-rounded leaf-shaped organic frame",
+    "iconStyle": "line",
+    "keywords": ["nature", "organic", "wellness", "eco", "leaf", "calm", "portrait"],
+    "prefer": ["photo", "vector"]
+  },
+  "typography": {
+    "display": "Fraunces",
+    "mono": "IBM Plex Mono",
+    "body": "Inter"
+  },
+  "textfx": {
+    "enter": "grow",
+    "emphasis": "italic",
+    "case": "none",
+    "tracking": -0.02,
+    "align": "center"
+  }
+}

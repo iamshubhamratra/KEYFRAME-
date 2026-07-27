@@ -1,0 +1,65 @@
+{
+  "name": "story-blocks",
+  "vibe": "An edited-video look with no parked layouts — bold editorial colour panels travelling in from alternating sides, tilted ticker rails marching opposite ways, rotating starbursts, and a full-field colour block for every scene so no two cuts land on the same ground. Condensed uppercase display type, thick ink outlines with hard offset shadows, and a hard block wipe whose edge rotates so the film never arrives from the same side twice. Brand colour repaints every panel, rail, block and field. Portrait-native 9:16. Best for editorial, media, sport and campaign brands.",
+  "renderer": "om-blocks",
+  "orientation": "portrait",
+  "colors": {
+    "ground": "#F5EAD8",
+    "text": "#201E1D",
+    "accent": "#C67139",
+    "accent-2": "#7A8A5E",
+    "accent-3": "#D9B44A"
+  },
+  "fonts": [
+    "Caprasimo",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F5EAD8"
+  },
+  "motion": {
+    "cut": "wipe",
+    "drift": 1.05
+  },
+  "fx": {
+    "canvas": "panels",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#C67139",
+      "#7A8A5E",
+      "#D9B44A"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "bold editorial high contrast graphic",
+    "iconStyle": "solid",
+    "keywords": [
+      "editorial",
+      "bold",
+      "block",
+      "graphic",
+      "campaign",
+      "kinetic"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
+  },
+  "typography": {
+    "display": "Caprasimo",
+    "body": "Figtree"
+  },
+  "textfx": {
+    "enter": "slide",
+    "emphasis": "boxed",
+    "case": "none",
+    "tracking": -0.01
+  }
+}

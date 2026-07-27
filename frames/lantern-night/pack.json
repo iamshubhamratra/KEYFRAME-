@@ -1,0 +1,65 @@
+{
+  "name": "lantern-night",
+  "vibe": "A night lantern festival running continuously behind the film — an ink sky, twinkling stars, a breathing moon with a halo, hill silhouettes, terracotta lanterns rising endlessly through three parallax layers, sage fireflies weaving and a water band carrying their reflections. Warm serif display on a dark house, thin bright device edges, and a lantern-glow iris that opens and closes every cut. Brand colour relights the whole festival — lanterns, glow, fireflies, water and sky. Portrait-native 9:16. Best for evening, hospitality, culture and premium-calm brands.",
+  "renderer": "om-lantern",
+  "orientation": "portrait",
+  "colors": {
+    "ground": "#1A1817",
+    "text": "#F5EAD8",
+    "accent": "#C67139",
+    "accent-2": "#7A8A5E",
+    "accent-3": "#E8A066"
+  },
+  "fonts": [
+    "Caprasimo",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#1A1817"
+  },
+  "motion": {
+    "cut": "iris",
+    "drift": 1.05
+  },
+  "fx": {
+    "canvas": "lanterns",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#C67139",
+      "#7A8A5E",
+      "#E8A066"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "warm night glow lantern light low key",
+    "iconStyle": "line",
+    "keywords": [
+      "night",
+      "warm glow",
+      "lantern",
+      "festival",
+      "evening",
+      "calm"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
+  },
+  "typography": {
+    "display": "Caprasimo",
+    "body": "Figtree"
+  },
+  "textfx": {
+    "enter": "drift",
+    "emphasis": "underline-grow",
+    "case": "none",
+    "tracking": -0.01
+  }
+}

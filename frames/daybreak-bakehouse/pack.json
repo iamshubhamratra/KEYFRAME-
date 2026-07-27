@@ -1,0 +1,65 @@
+{
+  "name": "daybreak-bakehouse",
+  "vibe": "A sunrise bakery at first light — a low sun raking two shafts of warm light across the room, steam rising continuously off the counter, dust motes turning in the beam and pendant lamps swaying overhead. Soft serif display on warm paper, rounded shadowed device frames, and a light sweep that changes edge on every cut. Brand colour retints the whole morning — sun, shafts, motes, lamps and paper. Portrait-native 9:16. Best for food, craft, hospitality and early-morning brands.",
+  "renderer": "om-bakehouse",
+  "orientation": "portrait",
+  "colors": {
+    "ground": "#F7EEDD",
+    "text": "#201E1D",
+    "accent": "#C67139",
+    "accent-2": "#FFB454",
+    "accent-3": "#7A8A5E"
+  },
+  "fonts": [
+    "Caprasimo",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#F7EEDD"
+  },
+  "motion": {
+    "cut": "wipe",
+    "drift": 1.05
+  },
+  "fx": {
+    "canvas": "bakehouse",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#C67139",
+      "#FFB454",
+      "#7A8A5E"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "warm morning light artisan craft golden hour",
+    "iconStyle": "line",
+    "keywords": [
+      "sunrise",
+      "warm light",
+      "bakery",
+      "craft",
+      "morning",
+      "artisan"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
+  },
+  "typography": {
+    "display": "Caprasimo",
+    "body": "Figtree"
+  },
+  "textfx": {
+    "enter": "drift",
+    "emphasis": "underline-grow",
+    "case": "none",
+    "tracking": -0.01
+  }
+}

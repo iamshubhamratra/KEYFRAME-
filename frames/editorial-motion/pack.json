@@ -1,0 +1,51 @@
+{
+  "name": "editorial-motion",
+  "vibe": "A luxury print-magazine kinetic-typography film set on living paper. A warm cream ground with a faint drifting column grid, floating paper grain and a soft edge-vignette flows unbroken behind every page, and a persistent running-head + folio chrome (KeyFrame · The AI Video Issue · Vol. 01 · keyframe.ai) carries continuity across every cut. Oversized high-contrast serif headlines reveal word-by-word with the last word set in a brand-accent italic, hairline rules draw across the column, mono section and issue labels sit in the margins, editorial pull-quotes land with a giant quotation mark, and ruled figure plates hold real screenshots behind a paper-wipe with a thin rule and a mono caption. A colophon CTA closes on a solid ink button. Everything is theme-driven, so the brand color repaints the whole issue — the drawn rules, the accent-text kickers, the highlighted italic words, the pull-quote mark, the chrome rules and the CTA arrow, not just body copy. Portrait-native 9:16 for Reels, Shorts and TikTok. Rendered as a native GSAP + canvas composition. Best for refined, print-inspired, high-contrast brands, editorial launches, feature stories, thought-leadership and anything that should feel like a magazine spread in motion.",
+  "renderer": "editorial-motion",
+  "orientation": "portrait",
+  "colors": {
+    "paper": "#faf9f6",
+    "ink": "#17150f",
+    "ink-soft": "#6B675E",
+    "muted": "#7a756a",
+    "accent": "#B4302A",
+    "plate": "#efece4"
+  },
+  "fonts": ["Fraunces", "Space Grotesk", "JetBrains Mono", "Inter"],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#faf9f6"
+  },
+  "motion": {
+    "cut": "page-set",
+    "drift": 0.6
+  },
+  "fx": {
+    "canvas": "paper",
+    "three": "none"
+  },
+  "skin": {
+    "accents": ["#B4302A"],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "editorial figure plate — a screenshot behind a thin ink rule with a mono caption",
+    "iconStyle": "line",
+    "keywords": ["editorial", "magazine", "print", "serif", "paper", "high-contrast", "portrait"],
+    "prefer": ["photo", "vector"]
+  },
+  "typography": {
+    "display": "Fraunces",
+    "mono": "JetBrains Mono",
+    "body": "Inter"
+  },
+  "textfx": {
+    "enter": "reveal",
+    "emphasis": "accent-italic",
+    "case": "none",
+    "tracking": -0.02,
+    "align": "left"
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "name": "minimal-luxury",
+  "vibe": "A minimalist-luxury keynote film with vast negative space and quiet, tasteful motion. A warm ivory ground, one slowly drifting soft accent glow, a slow soft light sweep, a whisper of fine grain and a barely-there vignette flow unbroken across every cut. A single elegant serif headline with fine letter-spacing, thin hairline rules, wide-tracked small-cap labels, a thin-bordered screenshot frame with generous margin, and a minimal outline-button CTA. One restrained accent — a refined gold by default — recolors the whole film: the accent hairlines, the highlight word, the CTA outline and the ambient glow, not just the text. Understated, premium — a fashion / watch-brand feel. Portrait-native 9:16 for Reels, Shorts and TikTok. Rendered as a native GSAP + canvas composition. Best for premium brands, fashion, watches, high-end SaaS, product launches and anything that should feel elegant, calm and expensive.",
+  "renderer": "minimal-luxury",
+  "orientation": "portrait",
+  "colors": {
+    "ground": "#F4F1EA",
+    "ground-2": "#E9E4D8",
+    "ink": "#1A1712",
+    "muted": "#7A756B",
+    "gold": "#9A7B3D",
+    "frame": "#FFFFFF"
+  },
+  "fonts": ["Fraunces", "Instrument Serif", "IBM Plex Mono", "Inter"],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#F4F1EA"
+  },
+  "motion": {
+    "cut": "fade",
+    "drift": 0.6
+  },
+  "fx": {
+    "canvas": "ambient",
+    "three": "none"
+  },
+  "skin": {
+    "accents": ["#9A7B3D"],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "product screenshot in a thin-bordered white frame with a soft shadow and generous margin",
+    "iconStyle": "line",
+    "keywords": ["luxury", "minimal", "editorial", "serif", "ivory", "gold", "premium", "portrait"],
+    "prefer": ["photo", "vector"]
+  },
+  "typography": {
+    "display": "Fraunces",
+    "mono": "IBM Plex Mono",
+    "body": "Inter"
+  },
+  "textfx": {
+    "enter": "fade-rise",
+    "emphasis": "accent",
+    "case": "none",
+    "tracking": -0.02,
+    "align": "center"
+  }
+}

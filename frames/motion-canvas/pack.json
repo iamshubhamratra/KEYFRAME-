@@ -1,0 +1,51 @@
+{
+  "name": "motion-canvas",
+  "vibe": "An abstract motion-graphics reel on a warm cream canvas. Bold geometric shapes — a ringed circle, a spun square, a triangle and a tilted block — drift and rotate on a soft dot grid that flows unbroken across every cut. Kinetic bold type snaps and sweeps, screenshots are masked into bold shape frames with a hard offset accent shadow, stat bars grow in alternating accents, feature chips rise and a logo-reveal CTA lands. Everything is theme-driven, so the brand color repaints the whole reel — every shape, stroke, fill, frame shadow, bar, chip and accent, not just the text. Portrait-native 9:16 for Reels, Shorts and TikTok. Rendered as a native GSAP + canvas composition. Best for confident, punchy, contemporary brands, design studios, app launches and anything that should feel like a designer's motion reel.",
+  "renderer": "motion-canvas",
+  "orientation": "portrait",
+  "colors": {
+    "ground": "#F2EDE3",
+    "ink": "#17130F",
+    "paper": "#FFFFFF",
+    "muted": "#7A736A",
+    "vermilion": "#FF5A3C",
+    "cobalt": "#2C6BED"
+  },
+  "fonts": ["Archivo Black", "JetBrains Mono", "Inter"],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#F2EDE3"
+  },
+  "motion": {
+    "cut": "snap",
+    "drift": 1.0
+  },
+  "fx": {
+    "canvas": "shape-field",
+    "three": "none"
+  },
+  "skin": {
+    "accents": ["#FF5A3C", "#2C6BED"],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "product screenshot masked into a bold shape frame with a hard offset color shadow",
+    "iconStyle": "solid",
+    "keywords": ["motion", "graphics", "shapes", "bold", "geometric", "cream", "reel", "portrait"],
+    "prefer": ["photo", "vector"]
+  },
+  "typography": {
+    "display": "Archivo Black",
+    "mono": "JetBrains Mono",
+    "body": "Inter"
+  },
+  "textfx": {
+    "enter": "snap-up",
+    "emphasis": "accent",
+    "case": "none",
+    "tracking": -0.03,
+    "align": "center"
+  }
+}

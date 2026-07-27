@@ -1,0 +1,54 @@
+{
+  "name": "prisma-bloc",
+  "vibe": "A designed poster in motion. Flat saturated colour fields that hard-cut scene to scene, warm paper grounds alternating with vermilion / ultramarine / solar-yellow / jade blocks, Archivo Black mega type that crosses a travelling continuity seam, sticker chips with 4px ink outlines and hard offset shadows, a halftone dot rain and a live grain plate. NO glass, NO bloom, NO gradients-as-mood — the motion is block wipes driving in from a rotating edge, mask reveals, pops and draws. Screenshots ride real browser and phone mockups that SCROLL their capture like a product demo. Authored portrait-first (9:16) as a native GSAP + SVG/CSS composition. Best for bold, graphic, product-led brands that need to survive being watched muted on a phone.",
+  "renderer": "dom-prisma",
+  "orientation": "portrait",
+  "colors": {
+    "ground": "#FFF6EA",
+    "text": "#12100E",
+    "muted": "#4A4741",
+    "a1": "#FF4D2E",
+    "a2": "#1B4DFF",
+    "a3": "#FFD23F",
+    "a4": "#14C98E"
+  },
+  "fonts": ["Archivo Black", "Space Grotesk", "JetBrains Mono", "Inter"],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#FFF6EA"
+  },
+  "motion": {
+    "cut": "block-wipe",
+    "drift": 1.07
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": ["#FF4D2E", "#1B4DFF", "#FFD23F", "#14C98E"],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "flat graphic bold colour-blocked product shot",
+    "iconStyle": "solid",
+    "keywords": ["bold", "graphic", "colour block", "poster", "flat", "saturated", "product"],
+    "prefer": ["photo", "vector"]
+  },
+  "typography": {
+    "display": "Archivo Black",
+    "mono": "JetBrains Mono",
+    "sub": "Space Grotesk",
+    "body": "Inter"
+  },
+  "textfx": {
+    "enter": "mask-reveal",
+    "emphasis": "boxed",
+    "case": "upper",
+    "tracking": -0.035,
+    "sizeScale": 1.1,
+    "align": "left"
+  }
+}

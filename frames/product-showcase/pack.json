@@ -1,0 +1,52 @@
+{
+  "name": "product-showcase",
+  "vibe": "A commercial product-ad film shot on a lit studio stage. A near-black stage with a back-wall spotlight, a reflective floor, a glowing horizon line, a floor spotlight pool, drifting light beams and floating light dust flows unbroken across every cut. The hero product rises on a turntable inside a rim-lit device-frame with a soft reflection; feature callout leader-lines draw out to numbered labels; a light-burst climax blooms behind the product; a logo-reveal CTA closes. Everything is theme-driven, so the brand color repaints the whole studio — the stage glow, the spotlight pool, the rim light, the callout leaders, the gradient headlines and the CTA, not just the text. Portrait-native 9:16 for Reels, Shorts and TikTok. Rendered as a native GSAP + canvas composition. Best for product launches, app/SaaS showcases, e-commerce hero shots, screenshots and anything that should feel premium, cinematic and sales-ready.",
+  "renderer": "product-showcase",
+  "orientation": "portrait",
+  "colors": {
+    "stage": "#0B0C12",
+    "stage-2": "#141620",
+    "ground": "#08090F",
+    "text": "#F3F5FB",
+    "muted": "#8A8FA5",
+    "accent": "#FF6A3D",
+    "product": "#171923"
+  },
+  "fonts": ["Space Grotesk", "JetBrains Mono", "Inter"],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#08090F"
+  },
+  "motion": {
+    "cut": "rise",
+    "drift": 0.9
+  },
+  "fx": {
+    "canvas": "studio",
+    "three": "none"
+  },
+  "skin": {
+    "accents": ["#FF6A3D"],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "product screenshot on a rim-lit studio device panel with a soft reflection",
+    "iconStyle": "line",
+    "keywords": ["studio", "product", "spotlight", "premium", "commercial", "hero", "portrait"],
+    "prefer": ["photo", "vector"]
+  },
+  "typography": {
+    "display": "Space Grotesk",
+    "mono": "JetBrains Mono",
+    "body": "Inter"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "none",
+    "tracking": -0.02,
+    "align": "center"
+  }
+}

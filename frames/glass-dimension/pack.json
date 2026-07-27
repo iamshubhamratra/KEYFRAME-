@@ -1,0 +1,52 @@
+{
+  "name": "glass-dimension",
+  "vibe": "A premium glassmorphism depth film. Layered frosted-glass panels float at layered depth over a soft drifting field of accent light-orbs — blur, translucency, thin luminous borders and soft inner glow. Titles, stat cards and screenshots all live inside frosted-glass surfaces; the light field behind is what the glass refracts. Everything is theme-driven, so the brand color repaints the whole film — the light behind the glass, the panel tints, the borders, the glows and the CTA, not just the text. Portrait-native 9:16 for Reels, Shorts and TikTok. Rendered as a native GSAP + canvas composition. Best for modern SaaS, apps and premium products that should feel clean, deep and iOS-like.",
+  "renderer": "glass-dimension",
+  "orientation": "portrait",
+  "colors": {
+    "ground": "#0A0A14",
+    "ground-2": "#12121F",
+    "text": "#FFFFFF",
+    "muted": "#B6B6C8",
+    "light-a": "#6366F1",
+    "light-b": "#EC4899",
+    "glass": "#E8E8F0"
+  },
+  "fonts": ["Space Grotesk", "JetBrains Mono", "Inter"],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#0A0A14"
+  },
+  "motion": {
+    "cut": "blur",
+    "drift": 1.0
+  },
+  "fx": {
+    "canvas": "light-field",
+    "three": "none"
+  },
+  "skin": {
+    "accents": ["#6366F1", "#EC4899"],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "product screenshot floating inside a frosted-glass frame with a thin luminous border",
+    "iconStyle": "line",
+    "keywords": ["glass", "glassmorphism", "frosted", "depth", "blur", "premium", "modern", "portrait"],
+    "prefer": ["photo", "vector"]
+  },
+  "typography": {
+    "display": "Space Grotesk",
+    "mono": "JetBrains Mono",
+    "body": "Inter"
+  },
+  "textfx": {
+    "enter": "blur-up",
+    "emphasis": "glow",
+    "case": "none",
+    "tracking": -0.02,
+    "align": "center"
+  }
+}

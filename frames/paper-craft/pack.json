@@ -1,0 +1,52 @@
+{
+  "name": "paper-craft",
+  "vibe": "A warm handcrafted cut-paper / papercraft film. A cream paper ground carrying soft drifting construction-paper shapes with soft drop-shadows, a paper grain and a soft top light flows unbroken across every cut. Layered paper sheets pop up and fold in with a tactile bounce; screenshots are pasted onto warm paper photo-cards with a soft shadow, a strip of tape and a slight rotation; stats pop off the page on paper discs; feature chips are paper tags; a paper-button CTA closes. Everything is theme-driven, so the brand color repaints the whole collage — every paper tint, the accent ink, the highlight sheet, the cut-out photo wash and the CTA button, not just the text. Portrait-native 9:16 for Reels, Shorts and TikTok. Rendered as a native GSAP + canvas composition. Best for warm, playful, premium-craft brands, storybook product tours, screenshots and anything that should feel made by hand.",
+  "renderer": "paper-craft",
+  "orientation": "portrait",
+  "colors": {
+    "cream": "#f1e7d3",
+    "paper": "#f0e4cd",
+    "photo": "#fbf6ec",
+    "text": "#40352a",
+    "muted": "#8a7a63",
+    "accent": "#E07A3F"
+  },
+  "fonts": ["Bricolage Grotesque", "Fraunces", "IBM Plex Mono", "Inter"],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#f1e7d3"
+  },
+  "motion": {
+    "cut": "fold",
+    "drift": 0.7
+  },
+  "fx": {
+    "canvas": "paper",
+    "three": "none"
+  },
+  "skin": {
+    "accents": ["#E07A3F"],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "screenshot pasted onto a warm paper photo-card with a soft shadow, a strip of tape and a slight rotation",
+    "iconStyle": "cut-paper",
+    "keywords": ["paper", "papercraft", "cut-out", "collage", "handmade", "warm", "craft", "pop-up", "scrapbook", "portrait"],
+    "prefer": ["photo", "vector"]
+  },
+  "typography": {
+    "display": "Bricolage Grotesque",
+    "serif": "Fraunces",
+    "mono": "IBM Plex Mono",
+    "body": "Inter"
+  },
+  "textfx": {
+    "enter": "fold",
+    "emphasis": "accent-ink",
+    "case": "none",
+    "tracking": -0.02,
+    "align": "center"
+  }
+}

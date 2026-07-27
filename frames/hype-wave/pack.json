@@ -1,0 +1,65 @@
+{
+  "name": "hype-wave",
+  "vibe": "Electric sticker pop — blue, yellow, coral and navy fields swapping every scene, scrolling checkerboard rails, wavy ribbons crossing the frame and spinning star stickers with thick outlines. Archivo Black slams in uppercase, every card and chip carries a hard offset shadow, and the cut alternates blinds and iris covers. Brand colour repaints the checkers, ribbons, stars and every field. Portrait-native 9:16. Best for youth, creator, sport, gaming and DTC brands that need to stop a thumb.",
+  "renderer": "om-hype",
+  "orientation": "portrait",
+  "colors": {
+    "ground": "#2B5BFF",
+    "text": "#101433",
+    "accent": "#FFD234",
+    "accent-2": "#FF5A48",
+    "accent-3": "#2B5BFF"
+  },
+  "fonts": [
+    "Archivo Black",
+    "Space Grotesk"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#2B5BFF"
+  },
+  "motion": {
+    "cut": "blinds",
+    "drift": 1.05
+  },
+  "fx": {
+    "canvas": "hype",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FFD234",
+      "#FF5A48",
+      "#2B5BFF"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "vivid saturated pop bold colour",
+    "iconStyle": "solid",
+    "keywords": [
+      "electric",
+      "sticker",
+      "pop",
+      "loud",
+      "youth",
+      "vivid"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
+  },
+  "typography": {
+    "display": "Archivo Black",
+    "body": "Space Grotesk"
+  },
+  "textfx": {
+    "enter": "slide",
+    "emphasis": "boxed",
+    "case": "upper",
+    "tracking": -0.01
+  }
+}
