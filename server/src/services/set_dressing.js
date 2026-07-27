@@ -100,10 +100,10 @@ async function generateDressing({ storyboard, framePack, subject, tracker, signa
       scenes: scenes.map((s) => ({ id: s.id, kind: s.kind, headline: s.headline, subtext: s.subtext })),
     });
 
-    const { text, tokensIn, tokensOut } = await openrouter.chat({
+    const { text, tokensIn, tokensOut, model: servedModel, provider: servedBy } = await openrouter.chat({
       system, user, jsonMode: true, stage: "dressing", temperature: 0.7, signal,
     });
-    if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "dressing" });
+    if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "dressing", model: servedModel, provider: servedBy });
 
     const parsed = extractFirstJsonObject(text);
     const list = Array.isArray(parsed?.scenes) ? parsed.scenes : [];

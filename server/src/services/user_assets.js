@@ -223,11 +223,11 @@ async function classifyUserAssets({ jobDir, manifest, subject, tracker, signal }
         content.push({ type: "text", text: `Image ${n + 1} (file: "${u.originalName || u.path}"${u.width ? `, ${u.width}x${u.height}` : ""}):` });
         content.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${x.b}` } });
       });
-      const { text, tokensIn, tokensOut } = await openrouter.chat({
+      const { text, tokensIn, tokensOut, model: servedModel, provider: servedBy } = await openrouter.chat({
         system: CLASSIFY_SYSTEM, user: content, jsonMode: true, stage: "user_assets",
         model: (config.creativeDirector && config.creativeDirector.model) || undefined, temperature: 0, signal,
       });
-      if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "user_assets" });
+      if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "user_assets", model: servedModel, provider: servedBy });
       const parsed = extractFirstJsonObject(text);
       const verdicts = Array.isArray(parsed && parsed.verdicts) ? parsed.verdicts : [];
       // Key by the model's `n`, fall back to array position (the CD's proven fix:

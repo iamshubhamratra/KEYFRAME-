@@ -151,11 +151,11 @@ async function reviewChunk({ chunk, baseIndex, subject, categoryText, packText, 
     content.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${x.b}` } });
   });
 
-  const { text, tokensIn, tokensOut } = await openrouter.chat({
+  const { text, tokensIn, tokensOut, model: servedModel, provider: servedBy } = await openrouter.chat({
     system: SYSTEM, user: content, jsonMode: true, stage: "creative_director",
     model: cd().model, temperature: 0, signal,
   });
-  if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "creative_director" });
+  if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "creative_director", model: servedModel, provider: servedBy });
 
   const parsed = extractFirstJsonObject(text);
   const verdicts = Array.isArray(parsed && parsed.verdicts) ? parsed.verdicts : [];
@@ -196,11 +196,11 @@ async function reviewAudio({ subject, script, audioPlan, sceneCount, tracker, si
       `{"musicAnalysis":{"classification":"inspirational|corporate|premium|futuristic|energetic|cinematic","fitScore":0-100,"introSuitable":true|false,"featureSuitable":true|false,"ctaSuitable":true|false,"keep":true|false,"suggestedQuery":"<better query if keep=false, else empty>","note":"<one line>"},`,
       `"soundEffectAnalysis":{"recommend":["entry","transition","highlight","cta"],"reject":["<any cheap/redundant names>"],"note":"<one line>"}}`,
     ].join("\n");
-    const { text, tokensIn, tokensOut } = await openrouter.chat({
+    const { text, tokensIn, tokensOut, model: servedModel, provider: servedBy } = await openrouter.chat({
       system: "You are a meticulous audio director for premium promo videos. Strict JSON only.",
       user, jsonMode: true, stage: "creative_director", model: cd().model, temperature: 0.2, signal,
     });
-    if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "creative_director" });
+    if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "creative_director", model: servedModel, provider: servedBy });
     const parsed = extractFirstJsonObject(text);
     return {
       musicAnalysis: (parsed && parsed.musicAnalysis) || {},

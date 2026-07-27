@@ -230,7 +230,7 @@ async function storyboardAgent(s) {
   const sbPrompt = storyboardPromptFromScript(s.script, s.brief);
   try {
     const r = await generateStoryboard({ prompt: sbPrompt, duration: s.job.duration, orientation: s.job.orientation });
-    s.tracker.addLlm({ inputTokens: r.tokensIn, outputTokens: r.tokensOut, stage: "storyboard" });
+    s.tracker.addLlm({ inputTokens: r.tokensIn, outputTokens: r.tokensOut, stage: "storyboard", model: r.model, provider: r.provider });
     return { storyboard: r.storyboard };
   } catch (e) {
     // FAIL-OPEN — this was the ONLY creative node that could abort the whole graph.
@@ -238,7 +238,9 @@ async function storyboardAgent(s) {
     // deterministic storyboard from it rather than failing the job. Still bill the
     // tokens the failed attempts spent (generateStoryboard attaches them to err).
     if (Number.isFinite(e?.tokensIn) || Number.isFinite(e?.tokensOut)) {
-      s.tracker.addLlm({ inputTokens: e.tokensIn || 0, outputTokens: e.tokensOut || 0, stage: "storyboard" });
+      // A FAILED attempt still burned tokens. The error carries whatever the last
+      // provider reported, so bill it at that provider's rate too.
+      s.tracker.addLlm({ inputTokens: e.tokensIn || 0, outputTokens: e.tokensOut || 0, stage: "storyboard", model: e.model || null, provider: e.provider || null });
     }
     console.warn(`[agents] storyboard LLM failed (${String(e?.message || e).slice(0, 140)}) — using deterministic script-derived storyboard`);
     return { storyboard: storyboardFromScript(s.script, s.job, s.brief) };

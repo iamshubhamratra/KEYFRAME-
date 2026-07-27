@@ -212,10 +212,10 @@ async function planAndFetchAssets({ jobDir, storyboard, flags, orientation, trac
   if (!flags.images && !flags.video) return { assets: [] };
 
   const packStyle = styleFor(framePack);
-  const { plan, tokensIn, tokensOut, error } = await planAssets(storyboard, {
+  const { plan, tokensIn, tokensOut, model: servedModel, provider: servedBy, error } = await planAssets(storyboard, {
     images: flags.images, video: flags.video,
   });
-  tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "assets" });
+  tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "assets", model: servedModel, provider: servedBy });
 
   if (error) {
     console.warn(`[pipeline] asset planner failed (${error}); continuing without visuals`);
@@ -526,7 +526,7 @@ async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets
       }
       throw e; // lap 0 failed with no good comp yet — let the caller fall back
     }
-    tracker.addLlm({ inputTokens: files.tokensIn, outputTokens: files.tokensOut, stage: "composer" });
+    tracker.addLlm({ inputTokens: files.tokensIn, outputTokens: files.tokensOut, stage: "composer", model: files.model, provider: files.provider });
 
     const res = await gateComposition({ files, jobDir, tracker, label, enrich, cinematic });
     if (res.ok) return { files };
@@ -1062,8 +1062,8 @@ async function buildAudio({ jobDir, storyboard, flags, tracker, perScene = false
   const audioDir = path.join(jobDir, "audio");
   fs.mkdirSync(audioDir, { recursive: true });
 
-  const { plan, tokensIn, tokensOut, error: planErr } = await planAudio(storyboard, flags);
-  tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "audio" });
+  const { plan, tokensIn, tokensOut, model: servedModel, provider: servedBy, error: planErr } = await planAudio(storyboard, flags);
+  tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "audio", model: servedModel, provider: servedBy });
 
   if (planErr) {
     console.warn(`[pipeline] audio planner failed: ${planErr}. Skipping audio.`);
@@ -1203,7 +1203,7 @@ async function runJob({
       try {
         const intent = { prompt, preferences: { duration, orientation, voiceStyle: voice || "auto", framePack: framePack || "auto" } };
         const briefRes = await generateBrief({ intent });
-        tracker.addLlm({ inputTokens: briefRes.tokensIn, outputTokens: briefRes.tokensOut, stage: "brief" });
+        tracker.addLlm({ inputTokens: briefRes.tokensIn, outputTokens: briefRes.tokensOut, stage: "brief", model: briefRes.model, provider: briefRes.provider });
         effectivePrompt = enrichedStoryboardPrompt(briefRes.brief, prompt);
         // Subject anchor for the asset stage's stock queries + vision gate.
         briefSubject = (briefRes.brief && briefRes.brief.subject) ? String(briefRes.brief.subject).trim() : null;
@@ -1230,7 +1230,7 @@ async function runJob({
       const t0 = ms();
       db.setProgress(jobId, "storyboard");
       sbRes = await generateStoryboard({ prompt: effectivePrompt, duration, orientation, framePack });
-      tracker.addLlm({ inputTokens: sbRes.tokensIn, outputTokens: sbRes.tokensOut, stage: "storyboard" });
+      tracker.addLlm({ inputTokens: sbRes.tokensIn, outputTokens: sbRes.tokensOut, stage: "storyboard", model: sbRes.model, provider: sbRes.provider });
       markStage("storyboard", t0);
       log.info("storyboard ready", { scenes: (sbRes.storyboard.scenes || []).length, title: sbRes.storyboard.title, ms: timings.storyboardMs });
     }

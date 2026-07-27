@@ -192,11 +192,11 @@ function defaultAudioPlan(digest, candidates, durationSec) {
 
 async function buildPlan({ subject, durationSec, digest, voClips, candidates, musicInfo, tracker, signal }) {
   const user = buildUser({ subject, durationSec, digest, voClips, candidates, musicInfo });
-  const { text, tokensIn, tokensOut } = await openrouter.chat({
+  const { text, tokensIn, tokensOut, model: servedModel, provider: servedBy } = await openrouter.chat({
     system: SYSTEM, user, jsonMode: true, stage: "audio_director",
     model: ad().model, temperature: 0.2, signal,
   });
-  if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "audio_director" });
+  if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "audio_director", model: servedModel, provider: servedBy });
   const parsed = extractFirstJsonObject(text);
   return sanitizePlan(parsed, { digest, candidates });
 }

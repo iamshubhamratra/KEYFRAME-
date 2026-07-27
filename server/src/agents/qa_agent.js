@@ -119,7 +119,7 @@ async function reviewRender({ videoPath, scenes, duration, framePack, frameMd, w
     })),
   ];
 
-  const { text, tokensIn, tokensOut } = await openrouter.chat({
+  const { text, tokensIn, tokensOut, model: servedModel, provider: servedBy } = await openrouter.chat({
     system: "You are a meticulous video QA director. Strict JSON only.",
     user: content,
     jsonMode: true,
@@ -127,7 +127,7 @@ async function reviewRender({ videoPath, scenes, duration, framePack, frameMd, w
     temperature: 0.2,
     signal,
   });
-  if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "qa" });
+  if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "qa", model: servedModel, provider: servedBy });
 
   const verdict = extractFirstJsonObject(text);
   const issues = Array.isArray(verdict.issues) ? verdict.issues.slice(0, 8) : [];

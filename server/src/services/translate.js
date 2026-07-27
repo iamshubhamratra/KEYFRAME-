@@ -135,7 +135,7 @@ async function translateLines({ lines, targetLang, sourceLang = captionLang.SOUR
   // occasionally truncated / trailing-junked, more so with multi-byte non-Latin
   // scripts — a single re-ask almost always recovers a clean object).
   async function attempt() {
-    const { text, tokensIn, tokensOut } = await openrouter.chat({
+    const { text, tokensIn, tokensOut, model: servedModel, provider: servedBy } = await openrouter.chat({
       system: SYSTEM, user, jsonMode: true, stage: "caption_director",
       // Deterministic transcreation: stable wording/term choices across renders. The
       // explicit arg wins over the 0.7 stage default (openrouter.js) and applies to the
@@ -143,7 +143,7 @@ async function translateLines({ lines, targetLang, sourceLang = captionLang.SOUR
       temperature: 0.2,
       signal,
     });
-    if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "caption_director" });
+    if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "caption_director", model: servedModel, provider: servedBy });
 
     const raw = parseLenient(text); // throws on unparseable/truncated JSON
     const outLines = Array.isArray(raw?.lines) ? raw.lines : [];

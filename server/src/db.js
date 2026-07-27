@@ -63,6 +63,78 @@ if (recovered > 0) {
   persist();
 }
 
+// Fold a later act's usage report into the one already stored.
+//
+// THE BUG THIS FIXES: a project runs as two acts with two separate UsageTrackers —
+// runIntake (brief + script) then runProduction (storyboard, directors, composer,
+// TTS). Both wrote `j.usage = usage`, so the production write REPLACED the intake
+// one and every finished project reported a cost that began mid-pipeline. Measured
+// across the job history: 98 of 98 finished projects had lost their brief+script
+// cost, understating the true figure by roughly 28%.
+//
+// Merging rather than replacing also makes markFailed honest: a job that dies in
+// production still shows what intake already spent.
+function mergeUsage(prev, next) {
+  if (!prev) return next;
+  if (!next) return prev;
+  const num = (a, b) => (Number(a) || 0) + (Number(b) || 0);
+  const r6 = (n) => Math.round(n * 1e6) / 1e6;
+
+  // byStage rows are keyed by stage+model+provider so the same stage served by two
+  // different providers stays visible as two rows rather than being averaged away.
+  const rows = new Map();
+  for (const b of [...(prev.byStage || []), ...(next.byStage || [])]) {
+    const k = `${b.stage}|${b.model}|${b.provider || ""}`;
+    const cur = rows.get(k);
+    if (!cur) { rows.set(k, { ...b }); continue; }
+    cur.inputTokens  = num(cur.inputTokens,  b.inputTokens);
+    cur.outputTokens = num(cur.outputTokens, b.outputTokens);
+    cur.totalTokens  = num(cur.totalTokens,  b.totalTokens);
+    cur.callCount    = num(cur.callCount,    b.callCount);
+    cur.costUsd      = r6(num(cur.costUsd,   b.costUsd));
+  }
+  const byStage = [...rows.values()].sort((a, b) => (b.costUsd || 0) - (a.costUsd || 0));
+
+  const byProvider = {};
+  for (const src of [prev.byProvider || {}, next.byProvider || {}]) {
+    for (const [k, v] of Object.entries(src)) {
+      const acc = (byProvider[k] ||= { inputTokens: 0, outputTokens: 0, callCount: 0, costUsd: 0 });
+      acc.inputTokens  = num(acc.inputTokens,  v.inputTokens);
+      acc.outputTokens = num(acc.outputTokens, v.outputTokens);
+      acc.callCount    = num(acc.callCount,    v.callCount);
+      acc.costUsd      = r6(num(acc.costUsd,   v.costUsd));
+    }
+  }
+
+  const external = { ...(prev.external || {}) };
+  for (const [k, v] of Object.entries(next.external || {})) external[k] = num(external[k], v);
+
+  const sum = (path, field) => num((prev[path] || {})[field], (next[path] || {})[field]);
+  return {
+    byStage,
+    byProvider,
+    llm: {
+      inputTokens:   sum("llm", "inputTokens"),
+      outputTokens:  sum("llm", "outputTokens"),
+      callCount:     sum("llm", "callCount"),
+      inputCostUsd:  r6(sum("llm", "inputCostUsd")),
+      outputCostUsd: r6(sum("llm", "outputCostUsd")),
+      totalCostUsd:  r6(sum("llm", "totalCostUsd")),
+    },
+    tts: {
+      inputChars:      sum("tts", "inputChars"),
+      inputTokensEst:  sum("tts", "inputTokensEst"),
+      outputTokensEst: sum("tts", "outputTokensEst"),
+      callCount:       sum("tts", "callCount"),
+      inputCostUsd:    r6(sum("tts", "inputCostUsd")),
+      outputCostUsd:   r6(sum("tts", "outputCostUsd")),
+      totalCostUsd:    r6(sum("tts", "totalCostUsd")),
+    },
+    external,
+    totalCostUsd: r6(num(prev.totalCostUsd, next.totalCostUsd)),
+  };
+}
+
 function shape(j) {
   if (!j) return null;
   return {
@@ -488,9 +560,11 @@ module.exports = {
     j.video_url = videoUrl;
     j.finished_at = Date.now();
     j.used_fallback = usedFallback ? 1 : 0;
-    j.llm_tokens_in = tokensIn || 0;
-    j.llm_tokens_out = tokensOut || 0;
-    if (usage)        j.usage         = usage;
+    if (usage) j.usage = mergeUsage(j.usage, usage);
+    // Token counters follow the MERGED usage, not this act's tracker, or they
+    // disagree with the cost report sitting next to them.
+    j.llm_tokens_in  = (j.usage && j.usage.llm) ? j.usage.llm.inputTokens  : (tokensIn  || 0);
+    j.llm_tokens_out = (j.usage && j.usage.llm) ? j.usage.llm.outputTokens : (tokensOut || 0);
     if (stageTimings) j.stage_timings = stageTimings;
     if (finalAttempt) j.final_attempt = finalAttempt;
     scheduleWrite();
@@ -501,9 +575,9 @@ module.exports = {
     j.status = "failed";
     j.error = String(errorMsg).slice(0, 2000);
     j.finished_at = Date.now();
-    j.llm_tokens_in = tokensIn;
-    j.llm_tokens_out = tokensOut;
-    if (usage)        j.usage         = usage;
+    if (usage) j.usage = mergeUsage(j.usage, usage);
+    j.llm_tokens_in  = (j.usage && j.usage.llm) ? j.usage.llm.inputTokens  : tokensIn;
+    j.llm_tokens_out = (j.usage && j.usage.llm) ? j.usage.llm.outputTokens : tokensOut;
     if (stageTimings) j.stage_timings = stageTimings;
     scheduleWrite();
   },

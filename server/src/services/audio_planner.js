@@ -107,20 +107,21 @@ async function planAudio(storyboard, flags) {
   const duration = storyboard.durationSec;
   const tries = 2;
   let lastErr, tokensIn = 0, tokensOut = 0;
+  let servedModel = null, servedBy = null;   // who answered (for correct pricing)
 
   for (let i = 0; i < tries; i++) {
     try {
-      const { text, tokensIn: tIn, tokensOut: tOut } = await openrouter.chat({
+      const { text, tokensIn: tIn, tokensOut: tOut, model: mdl, provider: prov } = await openrouter.chat({
         system: SYSTEM,
         user: buildUser(storyboard, flags),
         jsonMode: true,
         temperature: 0.6,
         stage: "audioPlanner",
       });
-      tokensIn += tIn; tokensOut += tOut;
+      tokensIn += tIn; tokensOut += tOut; servedModel = mdl; servedBy = prov;
       const raw = parseJsonLenient(text);
       const plan = sanitize(raw, { ...flags, duration });
-      return { plan, tokensIn, tokensOut };
+      return { plan, tokensIn, tokensOut, model: servedModel, provider: servedBy };
     } catch (e) {
       lastErr = e;
     }

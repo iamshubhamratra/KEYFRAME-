@@ -37,7 +37,7 @@ async function checkAssetRelevance({ absPath, type, subject, query, tracker, sig
       { type: "image_url", image_url: { url: `data:image/jpeg;base64,${b64}` } },
     ];
 
-    const { text, tokensIn, tokensOut } = await openrouter.chat({
+    const { text, tokensIn, tokensOut, model: servedModel, provider: servedBy } = await openrouter.chat({
       system: "You are a strict stock-footage librarian. Reply with strict JSON only.",
       user,
       jsonMode: true,
@@ -45,7 +45,7 @@ async function checkAssetRelevance({ absPath, type, subject, query, tracker, sig
       temperature: 0,
       signal,
     });
-    if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "vision" });
+    if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "vision", model: servedModel, provider: servedBy });
 
     const v = extractFirstJsonObject(text);
     return { keep: v.usable !== false, sees: typeof v.sees === "string" ? v.sees : null };
@@ -112,7 +112,7 @@ async function checkAssetsRelevance({ assets, subject, tracker, signal }) {
         content.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${x.b}` } });
       });
 
-      const { text, tokensIn, tokensOut } = await openrouter.chat({
+      const { text, tokensIn, tokensOut, model: servedModel, provider: servedBy } = await openrouter.chat({
         system: "You are a strict stock-footage librarian. Reply with strict JSON only.",
         user: content,
         jsonMode: true,
@@ -120,7 +120,7 @@ async function checkAssetsRelevance({ assets, subject, tracker, signal }) {
         temperature: 0,
         signal,
       });
-      if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "vision" });
+      if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "vision", model: servedModel, provider: servedBy });
 
       const parsed = extractFirstJsonObject(text);
       const verdicts = Array.isArray(parsed && parsed.verdicts) ? parsed.verdicts : [];

@@ -181,25 +181,47 @@ function buildUser({ subject, framePack, packVibe, candidates }) {
 
 async function buildSkin({ subject, framePack, packVibe, candidates, provenance, tracker, signal }) {
   const user = buildUser({ subject, framePack, packVibe, candidates });
-  const { text, tokensIn, tokensOut } = await openrouter.chat({
+  const { text, tokensIn, tokensOut, model: servedModel, provider: servedBy } = await openrouter.chat({
     system: SYSTEM, user, jsonMode: true, stage: "art_director",
     model: ard().model, temperature: 0.2, signal,
   });
-  if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "art_director" });
+  if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "art_director", model: servedModel, provider: servedBy });
   return sanitizeSkin(extractFirstJsonObject(text), candidates, provenance);
 }
 
 // ---- persistence (the honesty gate) -----------------------------------------
-// A brand review is a CLAIM about the finished video — the UI's Brand panel shows the
-// user the colors "their" film wears. It may therefore only be written when the pack's
-// renderer actually CONSUMES the skin. Phase 1 wires the scene-kit (any pack with no
-// dedicated renderer) and the flagship; the remaining dedicated composers still drop
-// the skin, and a panel promising an accent the film never shows is worse than an
-// empty panel. Show nothing rather than something false.
+// A brand review is a CLAIM about the finished video — the UI's Brand panel shows the user
+// the colors "their" film wears. It may therefore only be written when the pack's renderer
+// actually CONSUMES the skin. The scene-kit (any pack with no dedicated renderer) plus the
+// flagship, brightlife, generic-three, blueprint, bloom-fable, terminal-departures, paper-tales
+// AND bauhaus-riot composers all now read the skin and return a resolvedBrand (bauhaus rotates
+// its primary triad onto the brand hue), so the pre-composition proposal is legitimate for all
+// of them. Several are CONDITIONAL wearers — a native pack whose reHue can't clear its ground,
+// or bauhaus's all-or-nothing triad, may fall back to its stock palette for some brand hues —
+// but that is corrected at the single choke point downstream: graph.persistWornBrand overwrites
+// this proposal with the ACTUAL worn skin after composition, and CLEARS it when the film wore no
+// brand, so a fallback never strands a false panel. Show the proposal here; render-truth lands
+// post-composition.
 //
 // Mirrors pipeline.rendererFor instead of importing it: pipeline.js drags in every
 // composer, and this is a one-word question for the manifest.
-const SKIN_AWARE_RENDERERS = new Set(["three-flagship"]);
+const SKIN_AWARE_RENDERERS = new Set([
+  "three-flagship", "three-brightlife", "three",
+  "blueprint", "bloom-fable", "terminal-departures", "paper-tales", "bauhaus-riot",
+  "kinetic-universe", "product-showcase",
+  // prisma-bloc rotates its ENTIRE palette (grounds, blocks, chips, outlines, seam and
+  // ink) onto the brand's lead hue with each colour pinned to its authored luminance.
+  "dom-prisma",
+  // The seven OM-stage packs do the same through one shared engine: the brand's accents
+  // take the pack's accent slots and every remaining colour — grounds, skies, lantern
+  // glow, spotlights, checkers, petals — rotates onto the brand's lead hue.
+  "om-garden", "om-lantern", "om-bakehouse", "om-blocks", "om-poster", "om-premiere", "om-hype",
+  // Imported OM portrait packs — all derive their theme from the brand accent(s) via
+  // resolveBrand and return a real resolvedBrand, so they wear the skin fully.
+  "neo-dashboard", "ai-laboratory", "aurora-motion", "digital-universe", "editorial-motion",
+  "glass-dimension", "living-city", "minimal-luxury", "motion-canvas", "nature-flow",
+  "paper-craft", "retro-future",
+]);
 function rendererWearsSkin(framePack) {
   let renderer = null;
   try { const m = frameManifest.getManifest(framePack); renderer = (m && m.renderer) || null; }
