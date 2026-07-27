@@ -90,82 +90,15 @@ function dominantColors(screenshotPath) {
   });
 }
 
-// Clear OVERLAYS so they don't get baked into a screenshot: cookie/consent
-// banners AND the wider family of pop-ups Puppeteer would otherwise capture —
-// newsletter/email-signup modals, live-chat widgets, promo/announcement/app-install
-// bars, and generic role=dialog modals with their dimming backdrop.
-//
-// STRATEGY, in order of safety:
-//   1) For consent banners, click a bare accept/reject control (only these have
-//      simple, safe, well-known labels).
-//   2) For everything else, prefer display:none HIDING over clicking — a wrong
-//      click on a real product CTA is worse than a hidden overlay. We hide BOTH
-//      the dimming backdrop (usually the position:fixed element) AND the dialog
-//      (often an absolute/static child of the backdrop); hiding only one leaves
-//      the other covering content, which is worse than not dismissing at all.
-//   3) Press ESC as a last-resort dismissal for well-behaved modals.
-//
-// On an AUTH WALL we do NOT click anything (a "click" could submit/interact with
-// a real login form) — we only hide overlays. Everything is best-effort inside a
-// swallow-all try/catch: this must never throw and never fail a capture.
-async function dismissOverlays(page, { isAuthWall = false } = {}) {
-  try {
-    await page.evaluate((authWall) => {
-      // 1) Consent accept/reject click (safe, anchored labels only). Skipped on
-      //    auth walls where a stray click is dangerous.
-      if (!authWall) {
-        const rxAccept = /^(accept all|accept|allow all|allow|agree|i agree|got it|ok|okay|continue)$/i;
-        const rxReject = /^(reject all|reject|decline|only necessary|necessary only|dismiss|close|no thanks|not now|maybe later)$/i;
-        const clickable = [...document.querySelectorAll('button,[role="button"],a,input[type="button"],input[type="submit"]')];
-        const byText = (rx) => clickable.find((el) => rx.test(((el.innerText || el.value || el.getAttribute("aria-label") || "")).trim()));
-        const btn = byText(rxAccept) || byText(rxReject);
-        if (btn) { try { btn.click(); } catch { /* noop */ } }
-      }
-      // 2) Hide leftover overlays by container. Cookie/consent/gdpr + newsletter/
-      //    subscribe + chat widgets (Intercom/Drift/Zendesk/Crisp/tawk/HubSpot) +
-      //    promo/announcement/app-install bars. Only hide fixed/sticky/absolute
-      //    positioned overlays (a static in-flow section is real content).
-      const sel = [
-        '[id*="cookie" i]', '[class*="cookie" i]', '[id*="consent" i]', '[class*="consent" i]',
-        '[id*="gdpr" i]', '[class*="gdpr" i]', '[aria-label*="cookie" i]',
-        '#onetrust-banner-sdk', '.ot-sdk-container', '.cookie-banner', '.cookie-consent',
-        '[id*="newsletter" i]', '[class*="newsletter" i]', '[class*="subscribe" i]', '[id*="subscribe" i]',
-        '[class*="signup-modal" i]', '[class*="email-capture" i]', '[class*="popup" i]', '[id*="popup" i]',
-        '[class*="modal" i][class*="promo" i]', '[class*="announcement" i]', '[class*="promo-bar" i]', '[class*="smart-banner" i]', '[class*="app-banner" i]',
-        '.intercom-lightweight-app', '.intercom-app', '#intercom-container', '[class*="intercom" i]',
-        '#drift-widget', '.drift-widget', '[id*="drift" i]',
-        '#hubspot-messages-iframe-container', '[id*="hubspot" i][class*="chat" i]',
-        '[id*="zendesk" i]', '#launcher', '.zEWidget-launcher', '[data-testid="chat-widget"]',
-        '.crisp-client', '#crisp-chatbox', '[class*="crisp" i]',
-        '#tawkchat-container', '.tawk-min-container', '[id*="tawk" i]',
-      ].join(',');
-      document.querySelectorAll(sel).forEach((el) => {
-        try {
-          const st = getComputedStyle(el);
-          if (st.position === "fixed" || st.position === "sticky" || st.position === "absolute") el.style.setProperty("display", "none", "important");
-        } catch { /* noop */ }
-      });
-      // 3) Generic modal dialogs + their dimming backdrop. Hide BOTH: the backdrop
-      //    is usually the fixed full-viewport element, the dialog its child. A
-      //    high-z fixed element that covers most of the viewport and dims the page
-      //    is an overlay by construction.
-      const vw = window.innerWidth, vh = window.innerHeight;
-      document.querySelectorAll('[role="dialog"],[aria-modal="true"],[class*="overlay" i],[class*="backdrop" i],[class*="modal" i]').forEach((el) => {
-        try {
-          const st = getComputedStyle(el);
-          if (st.position !== "fixed" && st.position !== "absolute") return;
-          const r = el.getBoundingClientRect();
-          const covers = r.width >= vw * 0.6 && r.height >= vh * 0.5;
-          const z = parseInt(st.zIndex, 10) || 0;
-          if (covers || z >= 1000) { el.style.setProperty("display", "none", "important"); }
-        } catch { /* noop */ }
-      });
-    }, isAuthWall);
-    // ESC as a fallback for well-behaved modals (harmless if nothing is open).
-    try { await page.keyboard.press("Escape"); } catch { /* noop */ }
-    await new Promise((r) => setTimeout(r, 450)); // let overlays animate out
-  } catch { /* overlay dismissal is best-effort — never blocks a capture */ }
-}
+// Overlay clearing, page-stability waiting, semantic section finding and the
+// dismiss→verify→escalate capture loop all live in ./capture.js. See that file's
+// header for the audit that produced it (shadow-DOM CMPs + the dimming scrim were
+// invisible to the selector-only approach this replaced).
+const {
+  clearOverlays, assessViewport, waitForStable,
+  findSections, frameSection, captureViewport, waitForConsent,
+  MIN_CONTENT_SCORE,
+} = require("./capture");
 
 async function understandWebsite({ url, workDir, timeoutMs = 60_000 }) {
   const chrome = findChrome();
@@ -185,13 +118,51 @@ async function understandWebsite({ url, workDir, timeoutMs = 60_000 }) {
     // crisp when scaled up inside a browser frame in a 1080p+ video.
     await page.setViewport({ width: 1366, height: 900, deviceScaleFactor: 2 });
     await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36");
-    await page.goto(url, { waitUntil: "networkidle2", timeout: timeoutMs });
-    // Let lazy content/fonts settle briefly.
-    await new Promise((r) => setTimeout(r, 1200));
-    // Clear cookie/consent + newsletter/chat/promo overlays before we read or
-    // screenshot anything. (isAuthWall not known yet; the accept/reject click is
-    // anchored to bare labels that never match a login control, so it is safe.)
-    await dismissOverlays(page);
+    // NAVIGATE on `domcontentloaded`, not `networkidle2`.
+    //
+    // networkidle2 waits for <=2 in-flight connections for 500ms, which never happens
+    // on a site holding analytics beacons, a chat socket or any long-poll open — so
+    // goto burned the whole 60s budget and THREW, losing the page entirely. Observed
+    // on wisprflow.ai: the identical capture succeeds in ~28s when the wait is right
+    // and times out at 60s when it is networkidle2. Losing every screenshot because a
+    // third-party beacon stayed open is a bad trade.
+    //
+    // Readiness is waitForStable's job anyway (fonts loaded, in-view images decoded,
+    // two settled animation frames) and it measures what actually matters for a
+    // screenshot rather than proxying it through socket counts. A slow-but-alive page
+    // now degrades to "capture it a little early" instead of "capture nothing".
+    try {
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: Math.min(timeoutMs, 45_000) });
+    } catch (e) {
+      // A navigation timeout does not mean an empty page — the document usually
+      // painted long before the last request settled. Continue if we have content;
+      // only rethrow when there is genuinely nothing to read.
+      const painted = await page.evaluate(() => !!document.body && document.body.innerText.trim().length > 40).catch(() => false);
+      if (!painted) throw e;
+      console.warn(`[ingest] navigation did not settle (${e.message.slice(0, 60)}) — the page has painted, continuing`);
+    }
+    // Now wait for the page to be genuinely photographable — fonts loaded, in-view
+    // images decoded, layout settled — instead of sleeping a flat 1200ms and
+    // shooting whatever happened to be painted.
+    await waitForStable(page, { timeoutMs: 8000 });
+    // Give the consent platform a bounded chance to APPEAR before we dismiss it.
+    // Consent scripts load async and are routinely absent at this point — dismissing
+    // an empty page then shooting seconds later is how a banner got into a capture
+    // that our own checks had already declared clean. Returns as soon as one shows up.
+    const sawConsent = await waitForConsent(page, { timeoutMs: 4000 });
+    if (sawConsent) console.log("[ingest] consent layer detected — dismissing before capture");
+    // Give late hero media a beat, then settle again (SPAs paint their hero after
+    // hydration, which domcontentloaded deliberately does not wait for).
+    await new Promise((r) => setTimeout(r, 900));
+    await waitForStable(page, { timeoutMs: 4000 });
+    // Clear consent/newsletter/chat/promo overlays — and their dimming scrim and
+    // body scroll-lock — before we read or screenshot anything. (isAuthWall is not
+    // known yet; the accept/reject click is anchored to full-string labels that
+    // never match a login control, so it is safe.)
+    const overlayReport = await clearOverlays(page);
+    if (overlayReport.clicked || overlayReport.removedHosts.length) {
+      console.log(`[ingest] overlays cleared${overlayReport.clicked ? ` — clicked "${overlayReport.clicked}"` : ""}${overlayReport.removedHosts.length ? ` — removed ${[...new Set(overlayReport.removedHosts)].join(", ")}` : ""}`);
+    }
 
     const data = await page.evaluate(() => {
       const meta = (name) =>
@@ -230,41 +201,97 @@ async function understandWebsite({ url, workDir, timeoutMs = 60_000 }) {
     delete data.authWall;
     if (isAuthWall) console.warn(`[ingest] "${data.title}" looks like a sign-in / auth wall — NOT using its screenshots as product visuals`);
 
-    // Capture the hero shot regardless — brand colors are still extracted from
-    // it — but only OFFER screenshots as product assets when the page is a real
-    // product/marketing page. On an auth wall the shots are a login form, so we
-    // return none rather than showcase a sign-in page.
-    const heroPath = path.join(workDir, "website.png");
-    await page.screenshot({ path: heroPath, fullPage: false });
+    // ---- CAPTURE ---------------------------------------------------------
+    // `shots` carries per-capture QUALITY METADATA alongside the path. That is the
+    // contract change the audit forced: a path alone cannot tell the intake gate
+    // that a consent bar covered 85% of the frame, so the old pipeline shipped
+    // contaminated captures and merely "demoted" them into the film.
+    const shots = [];
+    const record = (cap, kind, heading) => {
+      if (!cap) return;
+      shots.push({
+        path: cap.path,
+        clean: cap.clean,
+        kind,
+        heading: heading || "",
+        obstructions: cap.assessment.obstructions || [],
+        maxCoveragePct: cap.assessment.maxCoveragePct || 0,
+        contentScore: cap.assessment.contentScore || 0,
+        dismissPasses: cap.attempts,
+      });
+    };
 
-    // Multiple REAL screenshots — the hero plus two deeper sections. These
-    // become first-class video assets (showcased in device frames), which is
-    // far more credible than any stock image.
-    const screenshotPaths = isAuthWall ? [] : [heroPath];
+    // HERO. Captured regardless of auth-wall status — brand colours are still
+    // extracted from it — but only OFFERED as a product visual below.
+    const heroPath = path.join(workDir, "website.png");
+    const hero = await captureViewport(page, { outPath: heroPath, isAuthWall });
+    record(hero, "hero", data.headings[0] || "");
+    if (hero && !hero.clean) {
+      console.warn(`[ingest] hero capture still obstructed after ${hero.attempts} dismissal pass(es): ${hero.assessment.obstructions.map((o) => `${o.kind} ${o.pct}%`).join(", ")}`);
+    }
+
+    // SECTIONS. Real content sections, ranked for what a marketing film wants to
+    // show, framed to their own top edge — not the old "scroll to 35% and 70% of
+    // the page", which sliced cards in half and framed empty bands. We walk MORE
+    // candidates than we need and keep the ones that pass the content floor, so a
+    // weak section is skipped rather than shipped.
     if (!isAuthWall) {
       try {
-        const pageH = await page.evaluate(() => Math.max(document.body?.scrollHeight || 0, document.documentElement.scrollHeight || 0));
         const viewH = 900;
-        for (const [i, frac] of [[2, 0.35], [3, 0.7]]) {
-          const y = Math.floor((pageH - viewH) * frac);
-          if (y < viewH * 0.5) continue; // page too short for distinct sections
-          await page.evaluate((top) => window.scrollTo({ top, behavior: "instant" }), y);
-          await new Promise((r) => setTimeout(r, 900)); // lazy content settles
-          // Re-dismiss: scroll-triggered exit-intent / sticky newsletter / promo
-          // overlays fire only AFTER scrolling, so the hero-only dismiss misses
-          // them and they used to bake into the section shots. (Not an auth wall
-          // here — sections are skipped entirely when isAuthWall.)
-          await dismissOverlays(page, { isAuthWall });
-          const p = path.join(workDir, `website_section${i}.png`);
-          await page.screenshot({ path: p, fullPage: false });
-          screenshotPaths.push(p);
+        const sections = await findSections(page);
+        const want = Math.min(3, Math.max(1, sections.length));
+        let taken = 0, idx = 0;
+        console.log(`[ingest] found ${sections.length} candidate section(s): ${sections.slice(0, 6).map((s) => `${s.kind}(${s.score})`).join(" ")}`);
+        for (const sec of sections) {
+          if (taken >= want) break;
+          idx++;
+          await frameSection(page, sec, viewH);
+          await waitForStable(page, { timeoutMs: 3500 });
+          const p = path.join(workDir, `website_section${taken + 2}.png`);
+          const cap = await captureViewport(page, { outPath: p, isAuthWall });
+          if (!cap) continue;
+          // Content floor — a viewport with almost nothing in it is a spacer band,
+          // not a section. Skip it and try the next-ranked candidate.
+          if (cap.assessment.contentScore < MIN_CONTENT_SCORE) {
+            console.log(`[ingest] section ${idx} (${sec.kind}) skipped — content score ${cap.assessment.contentScore} < ${MIN_CONTENT_SCORE}`);
+            try { fs.unlinkSync(p); } catch { /* noop */ }
+            continue;
+          }
+          record(cap, sec.kind, sec.heading);
+          taken++;
+        }
+        // Fallback: a page with no detectable sections (a single-div SPA) still
+        // deserves deeper shots — fall back to the old fraction scroll, but with
+        // the new clean/verify loop and content floor applied.
+        if (!taken) {
+          const pageH = await page.evaluate(() => Math.max(document.body?.scrollHeight || 0, document.documentElement.scrollHeight || 0));
+          for (const frac of [0.35, 0.7]) {
+            const y = Math.floor((pageH - viewH) * frac);
+            if (y < viewH * 0.5) continue;
+            await page.evaluate((top) => window.scrollTo({ top, behavior: "instant" }), y);
+            await waitForStable(page, { timeoutMs: 3500 });
+            const p = path.join(workDir, `website_section${taken + 2}.png`);
+            const cap = await captureViewport(page, { outPath: p, isAuthWall });
+            if (!cap) continue;
+            if (cap.assessment.contentScore < MIN_CONTENT_SCORE) { try { fs.unlinkSync(p); } catch { /* noop */ } continue; }
+            record(cap, "content", "");
+            taken++;
+          }
         }
       } catch (e) {
         console.warn(`[ingest] section screenshots failed: ${e.message}`);
       }
     }
 
-    const brandColors = await dominantColors(heroPath).catch(() => []);
+    // Brand colours come from the hero — but ONLY when the hero is clean. A capture
+    // taken under a consent scrim is desaturated by construction, and quantizing it
+    // is how the audited film ended up with a grey "brand palette" while the site's
+    // real teal sat unused. An obstructed hero yields no colours, so the pipeline
+    // falls through to the CSS-computed palette instead of trusting a washed image.
+    const brandColors = (hero && hero.clean)
+      ? await dominantColors(heroPath).catch(() => [])
+      : [];
+    if (hero && !hero.clean) console.warn(`[ingest] skipping hero colour quantize — the capture is obstructed/dimmed and would yield a washed palette`);
     const screenshotPath = isAuthWall ? null : heroPath;
 
     // WEBSITE ASSET INTELLIGENCE (opt-in): harvest the site's OWN brand-asset files
@@ -289,18 +316,25 @@ async function understandWebsite({ url, workDir, timeoutMs = 60_000 }) {
     // SSRF surface (unlike asset-file harvesting). Fail-open; skipped on an auth wall.
     if (!isAuthWall) {
       try {
-        await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+        await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
         await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
-        await new Promise((r) => setTimeout(r, 900)); // responsive reflow + lazy content settle
-        await dismissOverlays(page);                   // mobile menus/consent can differ from desktop
+        await waitForStable(page, { timeoutMs: 4000 }); // responsive reflow + lazy content
+        await clearOverlays(page);                       // mobile consent/menus differ from desktop
         const mp = path.join(workDir, "website_mobile.png");
-        await page.screenshot({ path: mp, fullPage: false });
-        screenshotPaths.push(mp);
+        const cap = await captureViewport(page, { outPath: mp, isAuthWall });
+        record(cap, "mobile", "");
       } catch (e) { console.warn(`[ingest] mobile screenshot failed: ${e.message}`); }
     }
 
-    console.log(`[ingest] website understood: "${data.title}" — ${data.headings.length} headings, ${data.bodyText.length}ch body, ${screenshotPaths.length} usable screenshot(s)${isAuthWall ? " (auth wall — screenshots suppressed)" : ""}, colors=${brandColors.join(",")}`);
-    return { url, ...data, isAuthWall, brandColors, screenshotPath, screenshotPaths, assets, harvestReview, brandSignals };
+    // The path list stays a plain string[] for every existing consumer; `shots`
+    // carries the quality metadata the intake gate now needs. On an auth wall the
+    // captures exist (for colours) but are never offered as product visuals.
+    const usableShots = isAuthWall ? [] : shots;
+    const screenshotPaths = usableShots.map((s) => s.path);
+    const obstructed = shots.filter((s) => !s.clean).length;
+
+    console.log(`[ingest] website understood: "${data.title}" — ${data.headings.length} headings, ${data.bodyText.length}ch body, ${screenshotPaths.length} usable screenshot(s)${obstructed ? ` (${obstructed} still obstructed)` : ""}${isAuthWall ? " (auth wall — screenshots suppressed)" : ""}, colors=${brandColors.join(",") || "none"}`);
+    return { url, ...data, isAuthWall, brandColors, screenshotPath, screenshotPaths, shots: usableShots, assets, harvestReview, brandSignals };
   } finally {
     await browser.close().catch(() => {});
   }

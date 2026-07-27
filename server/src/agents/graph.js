@@ -34,6 +34,7 @@ const captionLang = require("../services/caption_lang");
 const { injectCaptionStyle } = require("../services/caption_render");
 const { fetchMusic } = require("../services/audio_sources");
 const { getSfx } = require("../services/sfx_library");
+const { planSfx } = require("../services/sfx_plan");
 const { VALID_VOICES } = require("../services/audio_planner");
 const { buildFallback } = require("../services/fallback");
 const { normalizeComposition } = require("../services/normalize");
@@ -49,6 +50,7 @@ const { pinWebsiteAssets } = require("../services/website_assets");
 const { coverageFromHtml } = require("../services/asset_coverage");
 const { scoreBrandCoverage } = require("../services/brand_coverage");
 const { computeAssetBudget } = require("../services/asset_budget");
+const { preflight } = require("../services/preflight");
 const { kindForPurpose } = require("../services/asset_taxonomy");
 
 function ms() { return Date.now(); }
@@ -270,6 +272,11 @@ async function scenePlannerAgent(s) {
 async function assetPlannerAgent(s) {
   const { job, script } = s;
   const videoOk = hasProviderFor("video");
+  // Can the CHOSEN pack's composer render a vector in a scene slot? Drives the
+  // gap-fill below — asking for assets the composer will discard is how scenes
+  // ended up blank. See frame_manifest.packAcceptsVectors.
+  const acceptsVectors = require("../services/frame_manifest").packAcceptsVectors(s.framePack);
+  if (!acceptsVectors) console.log(`[agents] asset_planner: pack "${s.framePack}" renders photos/screenshots only — vector gap-fill routed to photos`);
 
   // DURATION-ADAPTIVE BUDGET — how many stock assets this film should collect, scaled by
   // runtime + scene count (was fixed 8 vectors / 12 photos / 2 video regardless of length,
@@ -305,7 +312,7 @@ async function assetPlannerAgent(s) {
   // user gave uploads (their material leads). Fail-open inside pinWebsiteAssets.
   const brandPins = await pinWebsiteAssets({
     job, script, jobDir: s.jobDir, usedSceneIds: pinnedSceneIds,
-    hasUploadLogo: !!userPins.logoAsset, maxPins: budget.maxBrand,
+    hasUploadLogo: !!userPins.logoAsset, maxPins: budget.maxBrand, acceptsVectors,
   }).catch((e) => { console.warn(`[agents] pinWebsiteAssets failed: ${e.message}`); return { brandPinned: [], brandLogo: null }; });
   for (const a of brandPins.brandPinned) if (a.sceneId) pinnedSceneIds.add(a.sceneId);
 
@@ -349,13 +356,26 @@ async function assetPlannerAgent(s) {
         }
       }
     }
-    // VECTOR GAP-FILL — the curated 2k+ SVG library was effectively never tapped
-    // because nothing ever requested an icon/vector role. Guarantee EVERY scene
-    // pulls one on-brand vector/icon so the composer always has real graphic
-    // material to layer (not just photos), satisfying the vector cadence mandate.
+    // VECTOR GAP-FILL — the curated SVG library is only worth tapping on a pack
+    // whose composer can actually RENDER a vector in a scene slot. It guarantees
+    // every scene has graphic material to layer on the scene-kit; on a dedicated
+    // native pack the same request fetched an asset the composer discards at its
+    // `.svg → return false` gate, so the scene it was meant to fill rendered an
+    // empty placeholder instead. (Audited film: 5 of 9 assets dead on arrival,
+    // 3 of 7 scenes blank.) See frame_manifest.packAcceptsVectors.
+    //
+    // On a vector-blind pack we spend that slot on a SECOND PHOTO instead, so the
+    // scene still gets a renderable visual — the point of the gap-fill was never
+    // "an icon", it was "never leave a scene with nothing".
     if (!needs.some((n) => VECTOR_ROLES.has(roleOf(n)))) {
       const q = deriveQuery(scene) || (scene.assetNeeds && scene.assetNeeds[0] && scene.assetNeeds[0].query) || null;
-      if (q) needs.push({ type: "image", query: q, role: "icon", derived: true });
+      if (q) {
+        if (acceptsVectors) {
+          needs.push({ type: "image", query: q, role: "icon", derived: true });
+        } else if (!needs.length && !pinnedSceneIds.has(scene.id)) {
+          needs.push({ type: "image", query: q, role: "background", derived: true });
+        }
+      }
     }
     for (const need of needs) {
       if (pinnedSceneIds.has(scene.id) && need.role === "background") continue;
@@ -367,6 +387,23 @@ async function assetPlannerAgent(s) {
   // "icon" (the script schema allows type:"icon" with any role; keying only off
   // role missed those and fetched explicitly-requested icons as photos).
   const isVectorNeed = (n) => VECTOR_ROLES.has(roleOf(n)) || n.type === "icon";
+  // A vector-blind pack also can't use the SCRIPT-authored icon needs. Convert them
+  // to photo needs rather than spending the fetch on something the composer drops,
+  // and hand the vector budget to photos so the film gets MORE renderable material,
+  // not less.
+  if (!acceptsVectors) {
+    let converted = 0;
+    for (const w of wants) {
+      if (w.need.type === "video" || !isVectorNeed(w.need)) continue;
+      w.need = { ...w.need, type: "image", role: w.need.role === "inset" ? "inset" : "background", __wasVector: true };
+      converted++;
+    }
+    if (converted) {
+      budget.maxPhotos += Math.min(budget.maxVectors, converted);
+      budget.maxVectors = 0;
+      console.log(`[agents] asset_planner: converted ${converted} vector need(s) to photo needs for "${s.framePack}" (photo budget → ${budget.maxPhotos})`);
+    }
+  }
   const videos = wants.filter((w) => w.need.type === "video").slice(0, budget.maxVideos);
   // Vectors get their OWN budget so a long photo list can't starve them — this
   // is what finally feeds the curated SVG library into films. All three caps now
@@ -662,10 +699,33 @@ async function artDirectorAgent(s) {
   const logo      = s.job?.intent?.logo?.brandColors || [];
   const extracted = s.job?.intent?.website?.brandColors || [];
   const inferred  = s.brief?.brandColors || [];
-  const [brandColors, provenance] = explicit.length ? [explicit, "explicit"]
-    : logo.length ? [logo, "logo"]
-      : extracted.length ? [extracted, "extracted"]
-        : [inferred, "inferred"];
+
+  // ACHROMATIC GUARD. Source precedence assumes each candidate palette is a real
+  // claim about the brand — but an explicit {#0a0a0a, #ffffff} is a UI default
+  // nobody touched, not a decision that the film should be greyscale. Honouring it
+  // verbatim (the explicit tier skips the LLM by design) is how the audited film
+  // shipped a monochrome grey city while the site's own lavender sat unused in
+  // intent.website.brandColors.
+  //
+  // So an explicit palette with NO chromatic stop steps aside for the first source
+  // that has one. It is not discarded: a genuinely monochrome brand (nothing
+  // chromatic anywhere) still gets its exact pick, and the fall-through is
+  // disclosed rather than silent.
+  const { isChromatic } = require("../services/brand_kit");
+  let colorless = null;
+  let candidates = [
+    [explicit, "explicit"], [logo, "logo"], [extracted, "extracted"], [inferred, "inferred"],
+  ];
+  if (explicit.length && !isChromatic(explicit)) {
+    const rescue = [logo, extracted].find((c) => c.length && isChromatic(c));
+    if (rescue) {
+      colorless = explicit;
+      candidates = candidates.filter(([, name]) => name !== "explicit");
+      console.warn(`[agents] art_director: explicit palette ${explicit.join(",")} carries no colour — deferring to the ${rescue === logo ? "logo" : "site-extracted"} palette`);
+    }
+  }
+  const hit = candidates.find(([c]) => c.length) || [[], "inferred"];
+  const [brandColors, provenance] = hit;
 
   // An unbranded video should LOOK unbranded. Inferred hexes are the brief model's
   // taste, not the product's identity: skinning a pack in invented color buys nothing
@@ -690,6 +750,8 @@ async function artDirectorAgent(s) {
     jobId: s.job.id,
     brandColors,
     provenance,
+    // Disclosure: the user's own pick was set aside because it carried no colour.
+    supersededPalette: colorless,
     subject: s.brief?.subject || null,
     brief: s.brief,
     framePack: s.framePack,
@@ -754,6 +816,39 @@ async function localizationDirectorAgent(s) {
     console.log(`[agents] localization_director → ${vtl} (${report.translatedElements}/${report.elementCount} verified, coverage ${report.localizationCoverage}%)`);
   }
   return { storyboard: s.storyboard, localizedStrings: (report && report.localizedStrings) || null };
+}
+
+// BRAND STRING OVERRIDES — the film's fixed copy, re-pointed at the customer's brand.
+//
+// Every native composer ships a STRINGS table with `ctaUrl: "keyframe.ai"`, and each
+// one renders it as the closing line under the CTA. So a film made FOR wisprflow.ai
+// closed on KEYFRAME's own domain — the studio's watermark stamped where the client's
+// identity belongs, on 14 packs at once.
+//
+// Composers already merge an override object over their STRINGS (`{...STRINGS,
+// ...localized}`), which the Localization Director uses for translation. That is the
+// single choke point, so brand overrides ride the same channel instead of 14 edits.
+// Only overrides what we actually know: with no analysed site the pack keeps its
+// default rather than inventing a domain.
+function brandStringOverrides(job) {
+  const raw = job?.intent?.websiteUrl;
+  if (!raw) return null;
+  try {
+    const host = new URL(raw).hostname.replace(/^www\./i, "");
+    if (!host || host.length > 40) return null;
+    return { ctaUrl: host };
+  } catch { return null; }
+}
+
+// The one object a composer receives to override its built-in STRINGS. Brand facts
+// first, then the Localization Director's translations on top — a translated string
+// must win over an untranslated brand default for the SAME key, and the brand's own
+// domain is not a translatable string, so the two never actually collide.
+function composerStrings(s) {
+  const brand = brandStringOverrides(s.job);
+  const loc = s.localizedStrings || null;
+  if (!brand && !loc) return null;
+  return { ...(brand || {}), ...(loc || {}) };
 }
 
 function persistLocalization(s, report) {
@@ -824,16 +919,29 @@ async function voiceAgent(s) {
       : Promise.resolve(null)
   )).then((a) => a.filter(Boolean));
 
-  // Cap SFX low and QUIET — layered over per-scene VO + music they read as
-  // cluttered. A couple of subtle accents beat a wall of sound. Each cue is nudged
-  // ~120ms BEFORE its scene cut so it punctuates the TRANSITION instead of landing
-  // right on the next line's first word (which muddied the voiceover onsets).
-  const sfxWanted = [];
-  for (const sc of script.scenes) for (const name of (sc.sfx || [])) if (sfxWanted.length < 2) sfxWanted.push({ name, startSec: Math.max(0, (Number(sc.start) || 0) - 0.12) });
-  const sfxTask = Promise.all(sfxWanted.map((x, i) =>
+  // SFX are planned, not skimmed off the top of the script (see services/sfx_plan.js).
+  // Every cue must be supported by something the composition actually does at that
+  // moment, survivors are spread across the runtime, and the budget scales with
+  // length instead of being a flat 2 that always landed in the first four seconds.
+  // Still QUIET — these are accents under the VO, not events in their own right.
+  // The voice branch runs parallel to the asset chain, so assets are usually not
+  // resolved yet here; planSfx then falls back to the script-derived reveal signals
+  // (a number on screen, a second line of copy, a proof/feature purpose), which is
+  // why those exist. When a re-entry does carry assets, they sharpen the test.
+  const assetsByScene = new Map();
+  for (const a of (s.assets || [])) {
+    if (!a || a.sceneId == null) continue;
+    if (!assetsByScene.has(a.sceneId)) assetsByScene.set(a.sceneId, []);
+    assetsByScene.get(a.sceneId).push(a);
+  }
+  const sfxPlan = planSfx({ scenes: script.scenes, assetsByScene, durationSec: job.duration });
+  if (sfxPlan.dropped.length) {
+    console.log(`[agents] sfx_plan: ${sfxPlan.cues.length}/${sfxPlan.cues.length + sfxPlan.dropped.length} cue(s) kept (budget ${sfxPlan.budget}) — dropped: ${sfxPlan.dropped.slice(0, 4).map((d) => `${d.name}@${d.sceneId} (${d.reason})`).join("; ")}`);
+  }
+  const sfxTask = Promise.all(sfxPlan.cues.map((x, i) =>
     getSfx({ name: x.name, outputPath: path.join(audioDir, `sfx-${i}.mp3`), tracker })
-      // Carry the cue name so the Audio Director can curate SFX by intent.
-      .then((p) => p ? { path: p, startSec: x.startSec, volume: 0.22, name: x.name } : null).catch(() => null)
+      // Carry the cue name + what justified it so the Audio Director can curate by intent.
+      .then((p) => p ? { path: p, startSec: x.startSec, volume: 0.22, name: x.name, support: x.support, sceneId: x.sceneId } : null).catch(() => null)
   )).then((a) => a.filter(Boolean));
 
   // Richer music query: fold the mood field into the query so the provider gets
@@ -922,43 +1030,38 @@ async function audioDirectorAgent(s) {
 function validateBeforeRender(s) {
   if (!config.validationGate?.enabled) return;
   const { job, jobDir } = s;
-  const before = Array.isArray(s.assets) ? s.assets : [];
-  // Self-heal: a missing file → a broken tile in the render. Unknown/erroring = keep.
-  const fileOk = (a) => { try { return !a || !a.path || fs.existsSync(path.join(jobDir, a.path)); } catch { return true; } };
-  const healed = before.filter(fileOk);
-  const dropped = before.length - healed.length;
-  if (dropped) { s.assets = healed; console.warn(`[agents] validation_gate: self-healed ${dropped} asset(s) with missing files`); }
-
-  const assets = s.assets || [];
-  const isLogoA = (a) => a && a.role === "logo";
-  const usableVisual = assets.filter((a) => a && a.path && !isLogoA(a) && a.type !== "audio");
-  const sceneCount = (s.script?.scenes || []).length || (s.storyboard?.scenes || []).length || 0;
-  const assignedScenes = new Set(assets.map((a) => a && a.sceneId).filter((x) => x != null)).size;
-  const userSupplied = (job.user_assets || []).some((u) => u && u.role !== "logo") || (job.website_screenshots || []).length > 0;
-  const chk = (ok, detail) => ({ ok: !!ok, detail });
-  const report = {
-    ok: true, blockedBy: null, selfHealed: dropped,
-    checks: {
-      assetsCollected:      chk(usableVisual.length > 0, `${usableVisual.length} usable visual asset(s) collected`),
-      noBrokenPaths:        chk(true, dropped ? `dropped ${dropped} missing file(s) (self-healed)` : "all asset files present"),
-      brandExtracted:       chk(!!s.brandSkin, s.brandSkin ? "brand palette resolved" : "unbranded (no palette supplied)"),
-      enoughForDuration:    chk(usableVisual.length >= Math.max(1, Math.ceil(sceneCount / 2)), `${usableVisual.length} visual(s) for ${sceneCount} scene(s)`),
-      scenesAssigned:       chk(assignedScenes > 0 || usableVisual.length === 0, `${assignedScenes} scene(s) have an assigned asset`),
-      userMaterialSurvived: chk(!userSupplied || usableVisual.length > 0, userSupplied ? (usableVisual.length ? "user material present on the wire" : "user supplied material but NONE survived collection") : "no user material supplied"),
-    },
-  };
-  if (config.validationGate.hardFail && userSupplied && usableVisual.length === 0) {
-    report.ok = false; report.blockedBy = "user-material-lost";
+  const report = preflight({
+    job,
+    assets: Array.isArray(s.assets) ? s.assets : [],
+    script: s.script,
+    storyboard: s.storyboard,
+    brandSkin: s.brandSkin,
+    jobDir,
+    acceptsVectors: require("../services/frame_manifest").packAcceptsVectors(s.framePack),
+    hardFail: config.validationGate.hardFail !== false,
+  });
+  // Adopt the self-healed list so the composer never emits a broken <img src>.
+  if (report.selfHealed) {
+    s.assets = report.healedAssets;
+    console.warn(`[agents] preflight: self-healed ${report.selfHealed} asset(s) with missing files`);
   }
+  delete report.healedAssets; // not disclosure material — it's the whole asset wire
+
+  console.log(`[preflight] ${report.summary}`);
+  for (const w of report.warnings) console.warn(`[preflight] WARN ${w.id}: ${w.detail}`);
+  for (const f of report.failures) console.error(`[preflight] FAIL ${f.id}: ${f.detail}`);
+
   try { db.setValidationReport(job.id, report); } catch { /* a disclosure never blocks a render by its own failure */ }
   if (report.blockedBy) {
-    throw new Error("asset validation failed (user-material-lost): you supplied uploads/website material but no usable visuals survived collection and no stock was fetched. Regenerate, add a website URL with real screens, or check provider keys.");
+    const f = report.failures[0];
+    throw new Error(`pre-render validation failed (${f.id}): ${f.detail}. ${f.fix || ""}`.trim());
   }
 }
 
 async function compositionAgent(s) {
   if (!s.qa) validateBeforeRender(s); // first pass only — repair laps reuse the healed assets
   const result = await composeVisual(s);
+  persistRenderAudit(s);
   persistWornBrand(s, result.visual);
   persistAssetCoverage(s, result.visual);
   persistBrandCoverage(s, result.visual);
@@ -1036,6 +1139,60 @@ function persistAssetCoverage(s, visual) {
 // untouched was safe); the single downstream choke point makes the proposed-but-not-worn gap
 // disappear for every pack. Best-effort + fail-open (THE LAW): a failed disclosure write never
 // touches the render.
+// POST-RENDER audit — reconcile the assets composition RECEIVED against what the
+// composed HTML actually renders, and fold the verdict into the validation report.
+//
+// asset_render_check has computed this all along (including the per-scene spread that
+// would have shown 3 of 7 scenes empty in the audited film) but only ever console.log'd
+// it, so a text-only regression was invisible to anyone not reading server output. The
+// preflight gate can only reason about INTENT; this is the only check that sees what
+// was actually drawn, which makes it the one that closes "templates rendered correctly"
+// and "no broken bindings". Fail-open (THE LAW): a disclosure never touches the render.
+function persistRenderAudit(s) {
+  try {
+    let html = "";
+    try { html = fs.readFileSync(path.join(s.jobDir, "index.html"), "utf8"); } catch { return; }
+    const { auditAssetRender, isAssetRenderFailure } = require("../services/asset_render_check");
+    const audit = auditAssetRender({ indexHtml: html, assets: s.assets || [], jobDir: s.jobDir });
+    if (!audit) return;
+    const emptyScenes = Math.max(0, (audit.sceneCount || 0) - (audit.scenesWithAsset || 0));
+    if (isAssetRenderFailure(audit)) {
+      console.error(`[preflight] POST-RENDER FAIL ${audit.renderStatus}: ${audit.assetsRendered}/${audit.assetsCollected} asset(s) reached the film`);
+    } else if (emptyScenes > 0) {
+      console.warn(`[preflight] POST-RENDER: ${emptyScenes} of ${audit.sceneCount} scene(s) render no asset`);
+    }
+    const prev = (db.getRaw(s.job.id) || {}).validation_report || null;
+    if (!prev) return;
+    const merged = {
+      ...prev,
+      render: {
+        status: audit.renderStatus,
+        assetsRendered: audit.assetsRendered,
+        assetsCollected: audit.assetsCollected,
+        scenesWithAsset: audit.scenesWithAsset,
+        sceneCount: audit.sceneCount,
+        emptyScenes,
+        logoRendered: audit.logoRendered,
+        invalidPaths: audit.invalidPaths,
+      },
+    };
+    if (isAssetRenderFailure(audit)) {
+      merged.failures = [...(prev.failures || []), {
+        id: "templateRenderedAssets",
+        detail: `the composed film renders ${audit.assetsRendered} of ${audit.assetsCollected} collected asset(s) (${audit.renderStatus})`,
+        fix: "The template discarded the assets it was given — check the pack's asset gate against the asset types collected.",
+      }];
+    } else if (emptyScenes > 0) {
+      merged.warnings = [...(prev.warnings || []), {
+        id: "scenesRenderNoAsset",
+        detail: `${emptyScenes} of ${audit.sceneCount} scene(s) show no asset and render template-only panels`,
+        fix: "Assign more visuals per scene, or choose a template whose empty state is a designed graphic rather than a blank plate.",
+      }];
+    }
+    db.setValidationReport(s.job.id, merged);
+  } catch { /* fail-open: the render audit is never worth a lost film */ }
+}
+
 function persistWornBrand(s, visual) {
   const resolved = visual && visual.resolvedBrand;
   if (!resolved) { try { db.setBrandReview(s.job.id, null); } catch { /* disclosure never blocks a render */ } return; }
@@ -1132,7 +1289,7 @@ async function composeVisual(s) {
         jobId: job.id, durationSec: job.duration,
         label: s.qa ? "graph-repair" : "graph-main", abortSignal: signal,
         framePack: s.framePack, captionCues, remix: useComposer,
-        brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null, captionStyle, localized: s.localizedStrings || null,
+        brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null, captionStyle, localized: composerStrings(s),
       }),
       budget, "composition agent"
     );
@@ -1177,7 +1334,7 @@ async function composeVisual(s) {
           framePack: s.framePack, captionCues, remix: false,
           dress: job.compose_mode === "premium" && !composerBudgetDead,
           subject: s.brief?.subject || null,
-          brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null, captionStyle, localized: s.localizedStrings || null,
+          brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null, captionStyle, localized: composerStrings(s),
         });
         return { visual, usedFallback: false, finalAttempt: "scene-kit", rendered: true, composerBudgetDead, repairable: false };
       } catch (e2) {
@@ -1319,7 +1476,7 @@ async function qaAgentNode(s) {
   // gain. Only the LLM composer (remix/dress) reads QA feedback and can actually
   // change — compositionAgent flags that path with repairable:true.
   const isFlagship = (() => {
-    try { const m = require("../services/frame_manifest").getManifest(s.framePack); return !!(m && /^(three-(flagship|brightlife)|blueprint|bloom-fable|bauhaus-riot|terminal-departures|paper-tales|kinetic-universe|dom-prisma)$/.test(m.renderer || "")); }
+    try { const m = require("../services/frame_manifest").getManifest(s.framePack); return !!(m && /^(three-(flagship|brightlife)|blueprint|bloom-fable|bauhaus-riot|terminal-departures|paper-tales|kinetic-universe|dom-prisma|om-(garden|lantern|bakehouse|blocks|poster|premiere|hype))$/.test(m.renderer || "")); }
     catch { return false; }
   })();
   if (config.qa?.enabled === false || s.usedFallback || s.job?.render3d || isFlagship || s.repairable === false) {

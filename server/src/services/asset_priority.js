@@ -65,7 +65,14 @@ function isTrustedProminent(a) {
   // website-brand (the harvested logo) is trusted; plain website-asset imagery is
   // NOT auto-prominent — it reaches a prominent slot only via a.visionOk (the CD
   // actually approved it), so a decorative harvested asset can't out-slot a real shot.
-  return src === "upload" || src === "website" || src === WEBSITE_BRAND_SOURCE || src.startsWith("library:") || a.visionOk === true;
+  //
+  // "iconify" is listed explicitly alongside library:*. tierFor() has always ranked
+  // the two together at tier 60 ("the on-style library + recolored iconify vectors"),
+  // but this predicate only matched the `library:` PREFIX — so a recolored Iconify
+  // vector was tier-60 for ranking and untrusted for admission at the same time.
+  // That inconsistency made every Iconify asset unplaceable on every pipeline.
+  return src === "upload" || src === "website" || src === WEBSITE_BRAND_SOURCE
+    || src.startsWith("library:") || src === "iconify" || a.visionOk === true;
 }
 
 // Tier-first composite rank: tier is the major key (×1000 dwarfs any score sum),

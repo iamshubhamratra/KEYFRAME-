@@ -171,9 +171,24 @@ function scoreAssetQuality(f, meta, assetType) {
 // Logo strength: SVG > alpha-PNG > raster, JSON-LD strongly boosted, then larger
 // min-dimension. Used both to pick the primary logo for colour and to CAP how many
 // candidates keep the tier-90 logo tag on an icon-heavy homepage.
+// WHOSE logo is it? A marketing homepage is full of OTHER companies' marks — the
+// "trusted by" strip, integration tiles, app-store badges — and they are usually
+// bigger, cleaner SVGs than the site's own compact navbar wordmark. Scoring on file
+// qualities alone therefore picks a customer's logo remarkably often: on wisprflow.ai
+// it chose a partner mark, whose colours then became "the brand palette" and painted
+// the entire film yellow while Wispr's own lavender sat unused.
+//
+// Position is the signal that actually answers the question. A mark in the header/nav
+// is the site's own by construction — that is what a header IS — and the filename the
+// site's own build gives it ("navbar_logo", "wordmark", "brand") agrees. Both outrank
+// every cosmetic property, so a partner SVG can no longer win on being prettier.
 function logoStrength(f) {
-  return (f.isSvg ? 3 : f.hasAlpha ? 2 : 1) * 10
-    + (f.discovery === "jsonld-logo" ? 8 : 0)
+  const name = String(f.url || "").split("/").pop().toLowerCase();
+  const selfNamed = /(navbar|header|site|brand|word)[-_ ]?(logo|mark)|logo[-_ ]?(main|primary|full|dark|light)|wordmark/.test(name);
+  return (f.nearHeader ? 40 : 0)
+    + (selfNamed ? 20 : 0)
+    + (f.discovery === "jsonld-logo" ? 25 : 0)   // schema.org publisher logo: an explicit claim
+    + (f.isSvg ? 3 : f.hasAlpha ? 2 : 1) * 10
     + Math.min(4, Math.floor(Math.min(f.width || 0, f.height || 0) / 64));
 }
 function pickPrimaryLogo(logos) {
@@ -405,7 +420,7 @@ function assetFromHarvest(r, scene) {
 //                  lockup). It rides the existing key-moment path via asset_priority.isLogo.
 //   usedSceneIds — updated with the scenes brand imagery now owns.
 // FAIL-OPEN: a missing manifest / swept file / empty harvest → pin nothing, never throw.
-async function pinWebsiteAssets({ job, script, jobDir, usedSceneIds = new Set(), hasUploadLogo = false, maxPins = 4 } = {}) {
+async function pinWebsiteAssets({ job, script, jobDir, usedSceneIds = new Set(), hasUploadLogo = false, maxPins = 4, acceptsVectors = true } = {}) {
   const recs = Array.isArray(job && job.website_assets) ? job.website_assets : [];
   const live = recs.filter((r) => {
     if (!r || !r.path) return false;
@@ -415,7 +430,17 @@ async function pinWebsiteAssets({ job, script, jobDir, usedSceneIds = new Set(),
   if (!live.length) return { brandPinned: [], brandLogo: null, usedSceneIds: used };
 
   const logoRec = live.find((r) => r.assetType === "logo") || null;
-  const images = live.filter((r) => r.assetType !== "logo").slice(0, Math.max(0, maxPins));
+  // Most harvested brand marks are SVG, and a pack whose composer rejects SVG in its
+  // scene slots will discard every one of them — taking the scene's only visual with
+  // it and leaving an empty plate. Same contract as the stock vector gap-fill (see
+  // frame_manifest.packAcceptsVectors); the LOGO is exempt because it is placed
+  // through the composer's dedicated logo path (CTA lockup / brand chip), not a
+  // scene plate, and that path renders vectors fine.
+  const isVec = (r) => r && (r.isSvg === true || /\.svg($|\?)/i.test(String(r.path || "")));
+  const usable = acceptsVectors ? live : live.filter((r) => r.assetType === "logo" || !isVec(r));
+  const skippedVectors = live.length - usable.length;
+  const images = usable.filter((r) => r.assetType !== "logo").slice(0, Math.max(0, maxPins));
+  if (skippedVectors) console.log(`[website_assets] skipped ${skippedVectors} harvested vector(s) — this pack renders photographic scene art only`);
   const scenes = Array.isArray(script && script.scenes) ? script.scenes : [];
   const targets = showcaseTargets(script).filter((s) => !used.has(s.id));
 
@@ -425,9 +450,16 @@ async function pinWebsiteAssets({ job, script, jobDir, usedSceneIds = new Set(),
   let brandLogo = null;
   if (logoRec && !hasUploadLogo) {
     const last = scenes[scenes.length - 1] || null;
+    // Measure the mark's INK so the composer can tell whether it will read on the pack's
+    // ground. A site's navbar logo is drawn for that site's own header, so a
+    // light-background site ships a dark mark — which then vanishes on a dark template.
+    // See services/logo_render.js. Fail-open: no measurement ⇒ rendered exactly as before.
+    let ink = null;
+    try { ink = await require("./logo_render").measureLogoInk(path.join(jobDir, logoRec.path)); } catch { ink = null; }
+    if (ink) console.log(`[website_assets] logo ink: lum=${ink.lum.toFixed(3)} ${ink.mono ? "monochrome" : "colour"} (${ink.source})`);
     brandLogo = {
       ...assetFromHarvest(logoRec, last),
-      role: "logo", style: "inset",
+      role: "logo", style: "inset", ink,
       hasAlpha: logoRec.hasAlpha === true ? true : undefined,
       // "logo" in the alt keeps fallback.js's /\b(logo|wordmark|brand)\b/i outro working.
       alt: "the brand's OWN site logo — brand chip and CTA lockup only, never a full-frame image",

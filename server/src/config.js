@@ -288,22 +288,36 @@ function build() {
     // A surviving overlay covering more than this % of the frame (LLM estimate,
     // a soft bucket not a precise gate) demotes the shot to background B-roll.
     popupDemotePct: Number.isFinite(siCfg.popupDemotePct) ? siCfg.popupDemotePct : 15,
+    // ...and above THIS share it is rejected outright. Demotion was the only lever
+    // the system had, which is how a capture with a consent banner over ~85% of the
+    // frame still shipped as a "product screenshot" — just smaller and dimmer. Past
+    // roughly a third of the frame, no slot or treatment rescues the shot.
+    popupRejectPct: Number.isFinite(siCfg.popupRejectPct) ? siCfg.popupRejectPct : 35,
     // A shot the CD reads as loading/broken/empty is demoted regardless of coverage.
+    // broken/empty escalate to a reject (nothing usable rendered at all).
     demoteOnIncomplete: siCfg.demoteOnIncomplete !== false,
   };
 
   // Website Asset Intelligence harvester — collects the site's OWN brand assets
   // (logo/icons/hero images) during ingest and extracts the logo palette. Deterministic
-  // (no LLM/vision — no stageModels entry). DEFAULT OFF (opt-in): unlike the cheap,
-  // pixels-already-captured screenshot pass, this fetches remote bytes from a
-  // user-supplied URL (a live SSRF surface, guarded in ingest/website_assets.js), so it
-  // is enabled explicitly per environment (config.json harvester.enabled:true or
-  // WEBSITE_HARVESTER=1) once the security posture is validated for the deployment.
+  // (no LLM/vision — no stageModels entry).
+  //
+  // DEFAULT ON as of the brand-identity audit. It shipped opt-in because it fetches
+  // remote bytes from a user-supplied URL (a real SSRF surface), but that posture had
+  // a product cost nobody had priced: the harvester is the ONLY source of the brand's
+  // LOGO, so with it off every film fell back to the composer's generic glyph — a grey
+  // play triangle stood in for the brand on the CTA of the audited video, and "the
+  // audience should immediately recognise the brand" was unachievable by construction.
+  //
+  // The SSRF guard it was gated behind is in place and enforced per fetch
+  // (ingest/website_assets.assertPublicUrl re-resolves and IP-pins every URL, rejecting
+  // private/loopback/link-local space), the same guard the route's create-time check
+  // defers to. Turn it back off with WEBSITE_HARVESTER=0 or harvester.enabled:false.
   const hCfg = cfg.harvester || {};
   cfg.harvester = {
     enabled: process.env.WEBSITE_HARVESTER != null
       ? /^(1|true|yes|on)$/i.test(String(process.env.WEBSITE_HARVESTER))
-      : (hCfg.enabled === true),
+      : (hCfg.enabled !== false),
     budgetMs: Number.isFinite(hCfg.budgetMs) ? hCfg.budgetMs : 15000, // wall-clock budget for the fetch stage (bounds network I/O; a late fetch may add one bounded probe)
     maxAssets: Number.isFinite(hCfg.maxAssets) ? hCfg.maxAssets : 24, // kept after ranking
     fetchConcurrency: Number.isFinite(hCfg.fetchConcurrency) ? hCfg.fetchConcurrency : 6,

@@ -163,8 +163,25 @@ async function assertPublicUrl(rawUrl) {
   for (const a of addrs) {
     if (isBlockedAddress(a.address, a.family)) throw new Error(`blocked address ${a.address}`);
   }
-  const pin = addrs[0];
-  return { url: u, pinnedIp: pin.address, family: pin.family };
+  // ADDRESS ORDER. Every resolved address is validated above, so any of them is safe
+  // to pin — but only some of them are REACHABLE. `dns.lookup(verbatim: true)` returns
+  // the resolver's order, which for a Cloudflare-fronted CDN puts AAAA first; pinning
+  // that on a host without working IPv6 makes every fetch fail at connect time. The
+  // harvester lost all 24 of its queued assets this way, reported as "fetch" failures
+  // indistinguishable from a hostile CDN — while an unpinned request to the same URL
+  // returned 200, because Node's own resolution falls back to IPv4.
+  //
+  // We keep the pin (it is what defeats DNS-rebind TOCTOU) and make it survive the
+  // real network: prefer IPv4, and hand the caller the remaining validated addresses
+  // to fall back through on a connection error.
+  const ordered = [...addrs].sort((a, b) => (a.family === 4 ? 0 : 1) - (b.family === 4 ? 0 : 1));
+  const pin = ordered[0];
+  return {
+    url: u,
+    pinnedIp: pin.address,
+    family: pin.family,
+    alternates: ordered.slice(1).map((a) => ({ address: a.address, family: a.family })),
+  };
 }
 
 // ---------------------------------------------------------------- guarded fetch
@@ -208,12 +225,43 @@ const TYPE_BYTE_CAP = { svg: 1 * 1024 * 1024, image: 8 * 1024 * 1024, video: 16 
 // GET a public URL with the validated IP pinned into the socket, following at most
 // `maxRedirects` hops (each re-validated), buffering up to a byte cap. Returns a
 // Buffer + mime, or null on any failure/violation. Never throws.
-async function fetchGuarded(rawUrl, { timeoutMs = 8000, maxBytes = TYPE_BYTE_CAP.image, maxRedirects = 3, signal, allowMime = IMG_MIME } = {}) {
+// Brand assets normally live on a CDN with hotlink protection, which answers a bare
+// programmatic request with 403. Webflow's cdn.prod.website-files.com — where a large
+// share of marketing sites host their logo — refuses every one of them: the audited
+// harvest discovered 80 assets, queued 24 and lost all 24 to "fetch", so the pipeline
+// had no logo to use even with the harvester switched on.
+//
+// The request the CDN will serve is the one a browser makes for an <img> on that page:
+// the site's own origin as Referer, plus the Sec-Fetch/Accept-Language headers every
+// real image request carries. This is not evasion — it is the same request the user's
+// browser already makes when they load the page we are analysing on their behalf. The
+// SSRF guard is untouched: assertPublicUrl still re-resolves and IP-pins the target.
+function assetHeaders(referer) {
+  const h = {
+    "User-Agent": UA,
+    "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Sec-Fetch-Dest": "image",
+    "Sec-Fetch-Mode": "no-cors",
+    "Sec-Fetch-Site": "cross-site",
+  };
+  if (referer) {
+    h.Referer = referer;
+    try { h.Origin = new URL(referer).origin; } catch { /* referer already validated upstream */ }
+  }
+  return h;
+}
+
+async function fetchGuarded(rawUrl, { timeoutMs = 8000, maxBytes = TYPE_BYTE_CAP.image, maxRedirects = 3, signal, allowMime = IMG_MIME, referer = null } = {}) {
   let target;
   try { target = await assertPublicUrl(rawUrl); } catch { return null; }
-  const { url, pinnedIp, family } = target;
+  const { url } = target;
   const client = url.protocol === "https:" ? https : http;
-  return new Promise((resolve) => {
+
+  // One attempt against ONE validated, pinned address. Resolves the body, or
+  // { __transport: true } when the socket itself failed — the caller distinguishes
+  // "this address is unreachable" (try the next) from "the server said no" (stop).
+  const attempt = (addr) => new Promise((resolve) => {
     let settled = false;
     let onAbort = null;
     const done = (v) => {
@@ -226,9 +274,20 @@ async function fetchGuarded(rawUrl, { timeoutMs = 8000, maxBytes = TYPE_BYTE_CAP
     };
     const req = client.get(url, {
       timeout: timeoutMs,
-      headers: { "User-Agent": UA, "Accept": "image/*,*/*;q=0.5" },
+      headers: assetHeaders(referer),
       // Pin the exact address we validated — defeats DNS-rebind TOCTOU.
-      lookup: (_h, _o, cb) => cb(null, pinnedIp, family),
+      //
+      // The callback MUST honour the `all` option Node passes in. Since Node 20,
+      // net.connect defaults to autoSelectFamily=true and therefore calls a custom
+      // lookup with { all: true }, expecting an ARRAY of {address, family}. Handing
+      // it the classic (err, address, family) triple in that mode fails the whole
+      // connection with ERR_INVALID_IP_ADDRESS — which is what every guarded fetch
+      // in this module had been doing: the harvester's 0-of-24 "fetch" failures were
+      // never the CDN refusing us, they were the socket never opening. Supporting
+      // both shapes keeps the pin intact on old and new Node alike.
+      lookup: (_h, opts, cb) => (opts && opts.all)
+        ? cb(null, [{ address: addr.address, family: addr.family }])
+        : cb(null, addr.address, addr.family),
       servername: url.hostname,
     }, (res) => {
       const status = res.statusCode || 0;
@@ -237,7 +296,7 @@ async function fetchGuarded(rawUrl, { timeoutMs = 8000, maxBytes = TYPE_BYTE_CAP
         if (maxRedirects <= 0) return done(null);
         let next;
         try { next = new URL(res.headers.location, url).href; } catch { return done(null); }
-        return done(fetchGuarded(next, { timeoutMs, maxBytes, maxRedirects: maxRedirects - 1, signal, allowMime }));
+        return done(fetchGuarded(next, { timeoutMs, maxBytes, maxRedirects: maxRedirects - 1, signal, allowMime, referer }));
       }
       if (status !== 200) { res.destroy(); return done(null); }
       const ct = String(res.headers["content-type"] || "").split(";")[0].trim();
@@ -254,13 +313,25 @@ async function fetchGuarded(rawUrl, { timeoutMs = 8000, maxBytes = TYPE_BYTE_CAP
       res.on("end", () => done({ buf: Buffer.concat(chunks), mime: ct }));
       res.on("error", () => done(null));
     });
-    req.on("error", () => done(null));
-    req.on("timeout", () => { try { req.destroy(); } catch { /* noop */ } done(null); });
+    req.on("error", () => done({ __transport: true }));
+    req.on("timeout", () => { try { req.destroy(); } catch { /* noop */ } done({ __transport: true }); });
     if (signal) {
       if (signal.aborted) { try { req.destroy(); } catch { /* noop */ } done(null); }
       else { onAbort = () => { try { req.destroy(); } catch { /* noop */ } done(null); }; signal.addEventListener("abort", onAbort, { once: true }); }
     }
   });
+
+  // Walk the validated addresses (IPv4 first — see assertPublicUrl) until one
+  // actually connects. Every address here already passed the SSRF checks, so this
+  // widens reachability without widening what we are willing to talk to.
+  const addrs = [{ address: target.pinnedIp, family: target.family }, ...(target.alternates || [])];
+  for (const addr of addrs) {
+    if (signal && signal.aborted) return null;
+    const r = await attempt(addr);
+    if (r && r.__transport) continue;   // unreachable address — try the next
+    return r;
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------- SVG sanitize
@@ -550,11 +621,25 @@ async function harvestSiteAssets({ page, baseUrl, workDir, isAuthWall = false } 
   if (h.cache && !isAuthWall) {
     try {
       const cached = loadHarvestCache(baseUrl, outDir);
-      if (cached) {
+      // An EMPTY cache entry is never served. A harvest that yielded no files is far
+      // more likely to be a transient failure (the page hadn't hydrated, the fetch
+      // budget expired, the run pre-dated a fix) than a real finding about the domain
+      // — and caching that verdict for a week means every later film for that brand
+      // silently ships with no logo, with a "served from cache" note explaining why
+      // nothing was even attempted. Observed exactly this on wisprflow.ai: 80 assets
+      // discoverable on the live page, 0 served from a stale entry.
+      //
+      // Re-crawling costs one bounded, budgeted pass; a week of logo-less films does
+      // not have a bound. Brand signals are still adopted from the entry if present.
+      if (cached && cached.files.length) {
         review.discovered = cached.files.length;
         review.downloaded = cached.files.length;
         review.notes.push("served from per-domain cache (skipped re-crawl)");
         return { files: cached.files, review, brandSignals: cached.brandSignals || brandSignals };
+      }
+      if (cached && !cached.files.length) {
+        review.notes.push("ignored an empty cache entry — re-harvesting");
+        if (!brandSignals && cached.brandSignals) brandSignals = cached.brandSignals;
       }
     } catch { /* cache miss → live harvest */ }
   }
@@ -585,7 +670,7 @@ async function harvestSiteAssets({ page, baseUrl, workDir, isAuthWall = false } 
   const materializeVideo = async (c) => {
     if (videoCount >= MAX_VIDEOS) { review.dropped.push({ url: c.url, reason: "video-cap" }); return; }
     if (deadline - Date.now() <= 0) { review.dropped.push({ url: c.url, reason: "deadline" }); return; }
-    const got = await fetchGuarded(c.url, { timeoutMs: 15000, maxBytes: TYPE_BYTE_CAP.video, allowMime: VID_MIME, signal: ac.signal });
+    const got = await fetchGuarded(c.url, { timeoutMs: 15000, maxBytes: TYPE_BYTE_CAP.video, allowMime: VID_MIME, signal: ac.signal, referer: baseUrl });
     if (!got || !got.buf || !got.buf.length) { review.dropped.push({ url: c.url, reason: "fetch" }); return; }
     const ext = sniffVideo(got.buf);
     if (!ext) { review.dropped.push({ url: c.url, reason: "not-a-video" }); return; }
@@ -623,7 +708,7 @@ async function harvestSiteAssets({ page, baseUrl, workDir, isAuthWall = false } 
     if (remaining <= 0) { review.dropped.push({ url: c.url, reason: "deadline" }); return; }
     const isSvg = c.isSvg;
     const cap = isSvg ? TYPE_BYTE_CAP.svg : TYPE_BYTE_CAP.image;
-    const got = await fetchGuarded(c.url, { timeoutMs: Math.min(perAssetMs, remaining), maxBytes: cap, signal: ac.signal });
+    const got = await fetchGuarded(c.url, { timeoutMs: Math.min(perAssetMs, remaining), maxBytes: cap, signal: ac.signal, referer: baseUrl });
     if (!got || !got.buf || !got.buf.length) { review.dropped.push({ url: c.url, reason: "fetch" }); return; }
     let ext = sniffImage(got.buf);
     if (!ext) { review.dropped.push({ url: c.url, reason: "not-an-image" }); return; }

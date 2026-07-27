@@ -421,7 +421,19 @@ function cssVarBlock(packSkin) {
   return Object.entries(vars).filter(([, v]) => v).map(([k, v]) => `${k}:${v};`).join("");
 }
 
+// Does this list of hexes carry any actual COLOR, or is it black/white/grey?
+// The Art Director needs this to tell a real brand pick apart from a placeholder:
+// a palette of {#0a0a0a, #ffffff} is not "the brand is monochrome", it is almost
+// always a UI default that nobody changed — and honouring it verbatim (as the
+// explicit tier does) discards a real extracted palette and ships a grey film.
+// 0.12 ≈ the point below which a hue stops reading as a hue at video scale.
+const CHROMA_FLOOR = 0.12;
+function isChromatic(hexes, floor = CHROMA_FLOOR) {
+  return (Array.isArray(hexes) ? hexes : [hexes]).some((h) => chroma(h) >= floor);
+}
+
 module.exports = {
   relLum, ratio, passesAA, nudgeToRatio, resolveBrand, cssVarBlock, atmosphericGround,
+  chroma, isChromatic, CHROMA_FLOOR,
   DEFAULT_CONTRACT,
 };

@@ -50,4 +50,82 @@ function headlineCh(W, H, centered) {
   return centered ? "20ch" : "11ch";
 }
 
-module.exports = { aspectMode, isPortrait, isSquare, typeScale, safeArea, heroBox, headlineCh };
+// Fit a media plate (screenshot / device frame) inside heroBox, in **cqw** units —
+// the unit the native composers lay out in (1cqw = 1% of the container's WIDTH).
+//
+// WHY THIS EXISTS: composers sized their plates as `w = portrait ? 74 : 56` cqw and
+// derived height as `w * someRatioMultiplier`, also in cqw. In portrait that silently
+// ignores how much room there actually is: a 9:16 frame is 177.8cqw TALL, so a 74cqw
+// plate holding a 16:9 desktop shot came out 44cqw high — 25% of the frame — and the
+// remaining three quarters rendered as empty background. That is the "large empty
+// spaces / tiny screenshot" defect, and it is arithmetic, not art direction.
+//
+// Fitting against BOTH caps also fixes the opposite failure: a portrait phone capture
+// (ratio ~0.46) at 74cqw wide wanted 160cqw of height and overflowed its band.
+//
+// Returns { w, h, frameH } in cqw. `frameH` is the container's own height in cqw, so a
+// caller can reason about the leftover column it needs to fill with copy.
+function mediaBoxCqw(W, H, ratio) {
+  const box = heroBox(W, H);
+  const frameH = ((H || 16) / (W || 9)) * 100;
+  const maxW = box.wFrac * 100;
+  const maxH = box.hFrac * frameH;
+  const r = Number(ratio) > 0 ? Number(ratio) : 1.6;
+  let w = maxW, h = w / r;
+  if (h > maxH) { h = maxH; w = h * r; }
+  const round = (n) => Math.round(n * 100) / 100;
+  return { w: round(w), h: round(h), frameH: round(frameH) };
+}
+
+// Fit a plate the composer has ALREADY art-directed a width for, in cqw.
+//
+// This is the 19-composer sibling of mediaBoxCqw. Those packs each pick their own
+// intended width (`const pw = portrait ? "56cqw" : "34cqw"`) and derive height as
+// `width * frameHmul(asset)` — width units on both axes, with nothing checking the
+// result against how tall the frame actually is. Two failures follow:
+//
+//   • TOO SMALL in portrait. 9:16 is 177.8cqw tall, so a 56cqw plate holding a 16:9
+//     capture comes out ~37cqw high — 21% of the frame, the rest empty background.
+//   • OVERFLOW in portrait. The same 56cqw holding a phone capture (ratio ~0.46)
+//     wants 121cqw of height and runs past its band.
+//
+// Rather than restyle nineteen layouts, this takes each pack's own intended width and
+// applies three bounds: grow until the plate carries a real share of the column, then
+// cap on width, then cap on height. LANDSCAPE IS DELIBERATELY UNTOUCHED — a 16:9 frame
+// is only 56.25cqw tall, so a landscape plate already clears minHFrac and falls
+// through unchanged, which keeps every pack's desktop art direction byte-identical.
+//
+// It takes the pack's OWN width and height and scales that pair UNIFORMLY. It does not
+// re-derive height from the image's aspect ratio: `frameHmul` is a deliberate
+// art-direction bucket (0.62 / 1.0 / 1.5), because the plate is a browser-mockup or
+// card FRAME with the image `object-fit:cover` inside it — the frame's proportions are
+// the pack's design, not the screenshot's. Scaling preserves that design exactly and
+// changes only the SIZE, which is the actual defect.
+//
+// LANDSCAPE RETURNS UNCHANGED. A 16:9 frame is 56.25cqw tall and those layouts were
+// tuned against it; the bug is specific to a 177.8cqw-tall portrait column that nobody
+// measured against. Passing landscape through untouched keeps every existing desktop
+// render byte-identical.
+//
+// `wIn`/`hIn` accept numbers or "56cqw" strings, since the composers hold them both ways.
+function plateBox(W, H, wIn, hIn, opts = {}) {
+  const { minHFrac = 0.34, maxWFrac = 0.9, maxHFrac = 0.52 } = opts;
+  const num = (v) => (typeof v === "string" ? parseFloat(v) : Number(v));
+  const w0 = num(wIn), h0 = num(hIn);
+  const frameH = ((H || 16) / (W || 9)) * 100;
+  const round = (n) => Math.round(n * 100) / 100;
+  if (!Number.isFinite(w0) || !Number.isFinite(h0) || w0 <= 0 || h0 <= 0) {
+    return { w: round(w0) || 56, h: round(h0) || 56, frameH: round(frameH), scaled: 1 };
+  }
+  // Portrait only — see above.
+  if (aspectMode(W, H) !== "portrait") return { w: round(w0), h: round(h0), frameH: round(frameH), scaled: 1 };
+
+  const minH = minHFrac * frameH, maxW = maxWFrac * 100, maxH = maxHFrac * frameH;
+  let scale = 1;
+  if (h0 * scale < minH) scale = minH / h0;              // too small for the column — grow
+  if (w0 * scale > maxW) scale = maxW / w0;              // never wider than the safe column
+  if (h0 * scale > maxH) scale = Math.min(scale, maxH / h0); // never taller than its band
+  return { w: round(w0 * scale), h: round(h0 * scale), frameH: round(frameH), scaled: round(scale) };
+}
+
+module.exports = { aspectMode, isPortrait, isSquare, typeScale, safeArea, heroBox, headlineCh, mediaBoxCqw, plateBox };

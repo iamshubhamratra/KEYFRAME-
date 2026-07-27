@@ -51,19 +51,69 @@ function strength(p) {
 // kept screenshots — a harvested hero that also appears in a page screenshot is dropped.
 // After this returns, the deduper holds every KEPT screenshot's hashes. Omitted ⇒ a
 // fresh local deduper (backward-compatible).
+// `shots` accepts either a plain path string (legacy) or the capture record the
+// rebuilt ingest now emits: { path, clean, kind, heading, obstructions,
+// maxCoveragePct, contentScore }. Normalizing here keeps both callers working while
+// letting the gate act on capture-time DOM truth.
+function normalizeShot(s) {
+  if (typeof s === "string") return { path: s, clean: null, kind: null, heading: "", obstructions: [], maxCoveragePct: null, contentScore: null };
+  if (s && typeof s === "object" && s.path) {
+    return {
+      path: s.path,
+      clean: typeof s.clean === "boolean" ? s.clean : null,
+      kind: s.kind || null,
+      heading: s.heading || "",
+      obstructions: Array.isArray(s.obstructions) ? s.obstructions : [],
+      maxCoveragePct: Number.isFinite(s.maxCoveragePct) ? s.maxCoveragePct : null,
+      contentScore: Number.isFinite(s.contentScore) ? s.contentScore : null,
+    };
+  }
+  return null;
+}
+
 async function filterScreenshots({ shots, deduper } = {}) {
-  const list = Array.isArray(shots) ? shots.filter(Boolean) : [];
+  const list = (Array.isArray(shots) ? shots : []).map(normalizeShot).filter(Boolean);
   const review = { captured: list.length, kept: 0, dropped: [], suppressed: [], demoted: [], notes: [] };
   if (!list.length) return { keptShots: [], review };
+
+  // 0) OBSTRUCTED — reject before anything else. `clean:false` is the capture
+  //    stage reporting, from live DOM geometry, that it could not clear what was
+  //    covering the page (a consent bar, a modal, a chat widget). This is the check
+  //    whose absence let three cookie-bannered captures become the "product
+  //    screenshots" of a shipped film: the old pipeline had no way to know, because
+  //    a path string carries no quality signal, and the only downstream lever
+  //    (the CD's demote) still rendered them.
+  //
+  //    Deliberately a HARD DROP, not a demotion: someone else's UI across the frame
+  //    is not something a smaller slot or a dimmer treatment can rescue.
+  const usable = [];
+  for (const s of list) {
+    if (s.clean === false) {
+      const what = s.obstructions[0];
+      review.dropped.push({
+        path: path.basename(s.path),
+        reason: "obstructed",
+        obstruction: what ? what.kind : "overlay",
+        coveragePct: s.maxCoveragePct,
+      });
+      continue;
+    }
+    usable.push(s);
+  }
+  if (!usable.length) {
+    review.notes.push(`All ${review.captured} capture(s) were obstructed by page overlays (consent/modal/chat) that could not be dismissed — none were usable as product visuals.`);
+    return { keptShots: [], review };
+  }
 
   // 1) Validate each shot (blank/low-info) and gather stdev/dhash/ratio in ONE
   //    ffmpeg/ffprobe pass (validateImage does probe + dHash + dominant color).
   //    Fail-open: a validation error is treated as OK (keep) with zero strength.
-  const probed = await Promise.all(list.map(async (abs, i) => {
+  const probed = await Promise.all(usable.map(async (shot, i) => {
+    const abs = shot.path;
     let ok = true, meta = null;
     try { const v = await validateImage(abs); ok = v.ok; meta = v.meta; } catch { ok = true; meta = null; }
     return {
-      abs, i, ok,
+      abs, i, ok, shot,
       stdev: meta && meta.stdev != null ? meta.stdev : 0,
       sharpness: meta && meta.sharpness != null ? meta.sharpness : null,
       dhash: meta ? meta.dhash : null,
@@ -92,13 +142,22 @@ async function filterScreenshots({ shots, deduper } = {}) {
     else keep.add(p.i);
   }
 
-  // 4) Emit the keepers in ORIGINAL order (hero first).
-  const keptShots = probed.filter((p) => keep.has(p.i)).map((p) => ({ path: p.abs, ratio: p.ratio }));
+  // 4) Emit the keepers in ORIGINAL order (hero first), carrying the capture
+  //    metadata forward — `kind`/`heading` let the asset planner pin a section to
+  //    the scene it actually illustrates instead of round-robining blindly.
+  const keptShots = probed.filter((p) => keep.has(p.i)).map((p) => ({
+    path: p.abs,
+    ratio: p.ratio,
+    kind: p.shot.kind,
+    heading: p.shot.heading,
+    contentScore: p.shot.contentScore,
+  }));
   review.kept = keptShots.length;
   const blanks = review.dropped.filter((d) => d.reason === "blank").length;
   const dups = review.dropped.filter((d) => d.reason === "duplicate").length;
+  const obst = review.dropped.filter((d) => d.reason === "obstructed").length;
   if (review.dropped.length) {
-    review.notes.push(`Dropped ${review.dropped.length} of ${review.captured} captured screenshot(s)${blanks ? ` — ${blanks} blank/low-detail` : ""}${dups ? ` — ${dups} near-duplicate` : ""}. Kept the strongest.`);
+    review.notes.push(`Dropped ${review.dropped.length} of ${review.captured} captured screenshot(s)${obst ? ` — ${obst} obstructed by an overlay` : ""}${blanks ? ` — ${blanks} blank/low-detail` : ""}${dups ? ` — ${dups} near-duplicate` : ""}. Kept the strongest.`);
   }
   return { keptShots, review };
 }

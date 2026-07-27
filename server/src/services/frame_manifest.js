@@ -90,6 +90,11 @@ const PackManifestSchema = z
         // e.g. ["photo","vector"] = a photo-forward pack; default (empty) keeps
         // the vector-first behavior. Values: photo | illustration | vector.
         prefer: z.array(z.string()).default([]),
+        // Can this pack's composer actually RENDER an SVG/vector in a scene slot?
+        // Optional override for packAcceptsVectors() — omit and the renderer decides
+        // (scene-kit yes, dedicated native composers no). See the note by that
+        // function: fetching vectors a composer will discard leaves scenes blank.
+        acceptsVectors: z.boolean().optional(),
       })
       .default({}),
 
@@ -206,4 +211,37 @@ function validateAll() {
   return { valid, missing, invalid };
 }
 
-module.exports = { PackManifestSchema, getManifest, listManifests, manifestPath, validateAll };
+// ---------------------------------------------------------------------------
+// RENDER CAPABILITY — what a pack's composer can actually put on screen.
+//
+// WHY: the asset planner used to guarantee that EVERY scene pulled an icon/vector
+// ("so the composer always has real graphic material to layer"). But every one of
+// the 21 dedicated native composers opens its asset gate with
+//     if (/\.svg($|\?)/i.test(a.path)) return false;
+// because an arbitrary Iconify glyph stretched into a billboard/plate looks broken.
+// So the planner spent a third of its budget fetching assets the chosen composer
+// was guaranteed to discard, and the scenes those vectors were meant to fill
+// rendered an empty placeholder instead. In the audited 30s film that was 5 of 9
+// assets dead on arrival and 3 of 7 scenes showing a blank grey panel.
+//
+// The fix is to make the capability EXPLICIT and let the planner ask for what the
+// pack can use. Only the deterministic scene-kit has real vector treatments
+// (scene_kit partitions assets into photo/vector buckets and art-directs each);
+// dedicated renderers are photographic. A pack can override via
+// `pack.json → assets.acceptsVectors`.
+const VECTOR_CAPABLE_RENDERERS = new Set([
+  "", "scene-kit", "kit", // no dedicated renderer => the scene-kit path
+]);
+
+function packAcceptsVectors(pack) {
+  try {
+    const m = getManifest(pack);
+    if (m && m.assets && typeof m.assets.acceptsVectors === "boolean") return m.assets.acceptsVectors;
+    const renderer = (m && m.renderer) || "";
+    return VECTOR_CAPABLE_RENDERERS.has(String(renderer));
+  } catch {
+    return true; // fail-open: unknown pack keeps the historical behaviour
+  }
+}
+
+module.exports = { PackManifestSchema, getManifest, listManifests, manifestPath, validateAll, packAcceptsVectors };

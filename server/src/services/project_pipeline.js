@@ -26,6 +26,7 @@ const { buildFallback } = require("./fallback");
 const { synthesizeFitted } = require("./vo_fit");
 const { buildCues, writeSrt, writeVtt } = require("./captions");
 const { resolveCaptionPlan, finalizeQuality, localizeStoryboardText } = require("./caption_director");
+const languageDirector = require("./language_director");
 const { injectCaptionStyle } = require("./caption_render");
 const { fetchMusic, fetchSfx } = require("./audio_sources");
 const { VALID_VOICES } = require("./audio_planner");
@@ -35,6 +36,8 @@ const { acquire, hasProviderFor } = require("./asset_sources");
 const { reviewAndCurate } = require("./creative_director");
 const { directAudio } = require("./audio_director");
 const { pinUserAssets, prepareUserAssets, inventoryForScript } = require("./user_assets");
+const { pinWebsiteAssets } = require("./website_assets");
+const { isLogo } = require("./asset_priority");
 const { coverageFromHtml } = require("./asset_coverage");
 const { scoreBrandCoverage } = require("./brand_coverage");
 
@@ -118,11 +121,26 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
         // upstream wiring point — both the legacy screenshotAssets and the graph
         // assetSearchAgent read job.website_screenshots, so cleaning it once feeds
         // both pipelines. Fail-open: any error keeps the original list untouched.
+        //
+        // ONE shared deduper is threaded through the screenshot prune AND the brand-asset
+        // prune below, so a harvested hero that also appears in a page screenshot is
+        // dropped (never shown twice). It records the KEPT screenshots as it runs.
+        const { makeImageDeduper } = require("./asset_sources/util");
+        const sharedDeduper = makeImageDeduper();
+        let deduperSeeded = false;
         if (config.screenshotIntelligence?.enabled && job.website_screenshots.length) {
           try {
             const { filterScreenshots } = require("./screenshot_intake");
-            const { keptShots, review } = await filterScreenshots({ shots: job.website_screenshots });
+            // Pass the CAPTURE RECORDS (path + clean/kind/heading/obstruction), not
+            // bare paths: the gate can only reject an overlay-obstructed shot if the
+            // capture stage's DOM-truth verdict actually reaches it.
+            const { keptShots, review } = await filterScreenshots({
+              shots: website.shots && website.shots.length ? website.shots : job.website_screenshots,
+              deduper: sharedDeduper,
+            });
             job.website_screenshots = keptShots.map((s) => s.path);
+            job.website_shots = keptShots;   // metadata for scene-aware pinning
+            deduperSeeded = true;
             if (website.isAuthWall) review.suppressed.push("auth-wall");
             db.setScreenshotReview(jobId, review);
             if (review.dropped.length) console.log(`[project] screenshot intelligence: kept ${review.kept}/${review.captured} (dropped ${review.dropped.map((d) => d.reason).join(", ")})`);
@@ -130,6 +148,70 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
         } else if (config.screenshotIntelligence?.enabled && website.isAuthWall) {
           // No usable shots but a real auth wall — disclose why the film uses stock.
           db.setScreenshotReview(jobId, { captured: 0, kept: 0, dropped: [], suppressed: ["auth-wall"], notes: ["The site is behind a sign-in wall, so its screens can't be shown — the film uses stock/brand visuals instead."] });
+        }
+
+        // WEBSITE ASSET INTELLIGENCE (harvest → classify → dedup → logo palette + brand
+        // signals). Runs at the SAME shared intake choke point (reaches both orchestrators),
+        // immediately after the screenshot prune so it can share the deduper. Writes
+        // job.website_assets + the disclosure, seeds the harvested LOGO's colours onto
+        // intent.logo.brandColors (Art Director "logo" tier — the highest-lift move), and
+        // captures the site's TYPOGRAPHY + a cleaner CSS-computed brand palette. Runs even
+        // when no asset FILES were harvestable (fonts/colours are DOM-derived). Fail-open.
+        if (config.harvester?.enabled) {
+          try {
+            const { prepareWebsiteAssets, resolveBrandSignals } = require("./website_assets");
+            // 1) Brand signals — fonts (name-only) + computed palette. The CSS-computed
+            //    palette is cleaner than the hero-screenshot quantize (which caught
+            //    marketing-gradient noise), so it leads the "extracted" tier, hero fills.
+            const bs = resolveBrandSignals(website.brandSignals);
+            if (bs.fonts) intent.website.fonts = bs.fonts;
+            if (bs.palette.length) {
+              // CSS leads the extracted tier but is capped at 3 so the hero-screenshot's
+              // dominant colour always survives the slice(0,4) — CSS can be misled by a
+              // stray link/social colour, so we never DISCARD the hero signal entirely.
+              intent.website.brandColors = [...new Set([...bs.palette.slice(0, 3), ...(intent.website.brandColors || [])])].slice(0, 4);
+              console.log(`[project] brand palette (css): ${bs.palette.join(" ")}`);
+            }
+            if (bs.fontsExtracted.length) console.log(`[project] brand fonts: ${bs.fontsExtracted.join(", ")}`);
+
+            // 2) Asset files (logo + imagery), when any were harvestable.
+            let review = null;
+            if (Array.isArray(website.assets) && website.assets.length) {
+              // If the screenshot prune didn't run (SI off / no shots), seed the shared
+              // deduper with the current screenshots so cross-dedup still holds.
+              if (!deduperSeeded) { for (const s of job.website_screenshots || []) { try { await sharedDeduper.add(s); } catch { /* noop */ } } }
+              const hasUploadLogo = (job.user_assets || []).some((u) => u && u.role === "logo");
+              const prepared = await prepareWebsiteAssets({
+                job, jobDir: jobDirFor(jobId), harvest: { files: website.assets, review: website.harvestReview }, deduper: sharedDeduper,
+                // The CSS-computed accent palette (from resolveBrandSignals above) is the
+                // fallback for the logo tier when the mark is a monochrome black/white
+                // wordmark with no extractable hue — so the brand colour still reaches the
+                // Art Director's high-confidence "logo" tier + the CTA lockup.
+                brandPalette: bs.palette,
+              });
+              review = prepared.review;
+              job.website_assets = prepared.records;
+              intent.website.assetInventory = {
+                count: prepared.records.length,
+                hasLogo: prepared.records.some((r) => r.assetType === "logo"),
+                kinds: [...new Set(prepared.records.map((r) => r.assetType))],
+              };
+              // Harvested LOGO palette → Art Director "logo" tier, ONLY when the user did
+              // not upload their own logo (a manual logo always wins its colours). Merge.
+              if (!hasUploadLogo && Array.isArray(prepared.brandColors) && prepared.brandColors.length) {
+                intent.logo = { ...(intent.logo || {}), brandColors: prepared.brandColors };
+                console.log(`[project] harvested logo colors → intent.logo (${prepared.brandColorsSource || "mark"}: ${prepared.brandColors.join(",")})`);
+              }
+              console.log(`[project] website assets: kept ${prepared.records.length} (${review.logos} logo(s))${review.dropped.length ? `, dropped ${review.dropped.length}` : ""}`);
+            }
+
+            // 3) Disclosure — fold the font/palette signals into the harvest review so a
+            //    fonts-only run (no asset files) still discloses what was found.
+            const disclosure = review || { discovered: 0, downloaded: 0, kept: 0, dropped: [], logos: 0, brandColorsExtracted: [], notes: [] };
+            disclosure.fontsExtracted = bs.fontsExtracted;
+            if (bs.palette.length) disclosure.brandPalette = intent.website.brandColors;
+            db.setAssetHarvest(jobId, disclosure);
+          } catch (e) { console.warn(`[project] website-asset harvest skipped: ${e.message}`); }
         }
       }
       if (video) intent.video = video;
@@ -169,12 +251,29 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
           const { dominantColors } = require("./ingest/website");
           const cols = await dominantColors(path.join(jobDirFor(jobId), logoEntry.path)).catch(() => []);
           if (Array.isArray(cols) && cols.length) {
-            intent.logo = { brandColors: cols };
+            // Merge, not replace: a harvested-logo palette may have been seeded above,
+            // and the UPLOADED logo must win — overwrite just brandColors, keep the rest.
+            intent.logo = { ...(intent.logo || {}), brandColors: cols };
             console.log(`[project] logo colors extracted: ${cols.join(",")}`);
           }
         } catch (e) { console.warn(`[project] logo color extraction skipped: ${e.message}`); }
       }
       job.intent = intent;
+    }
+
+    // ---- LANGUAGE DIRECTOR: resolve the unified language plan ONCE, up front (before the
+    // brief/script), and persist it as the single source of truth every downstream stage reads.
+    // Deterministic (no LLM). It makes the script model localization-aware (translate-cleanly
+    // directive), protects brand/tech terms, and guarantees the three axes stay in sync.
+    let languagePlan = null;
+    if (config.languageDirector?.enabled) {
+      try {
+        languagePlan = languageDirector.resolveLanguagePlan({ job, brief: job.brief || null });
+        db.setLanguagePlan(jobId, languagePlan);
+        job.languagePlan = languagePlan;                 // so this run's downstream reads it too
+        intent.language = { code: languagePlan.videoTextLanguage, voice: languagePlan.voiceLanguage, subs: languagePlan.captionLanguage, mode: languagePlan.mode, dir: languagePlan.dir };
+        console.log(`[project] language_director → voice=${languagePlan.voiceLanguage} subs=${languagePlan.captionLanguage} text=${languagePlan.videoTextLanguage} mode=${languagePlan.mode}${languagePlan.dir === "rtl" ? " rtl" : ""}${languagePlan.scriptDirective ? " · localization-aware script" : ""}${languagePlan.consistency.notes.length ? ` · ${languagePlan.consistency.notes.length} consistency note(s)` : ""}`);
+      } catch (e) { console.warn(`[project] language_director skipped: ${e.message}`); }
     }
 
     const intakeBudgetMs = (Number(config.server.stageBudgetSec) || 480) * 1000;
@@ -191,12 +290,24 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
       brief = briefRes.brief;
     }
 
+    // The language plan was resolved BEFORE the brief (to steer script authoring), so its
+    // do-not-translate glossary couldn't yet include the brief's SUBJECT/brand. Enrich it now
+    // that the brief exists and re-persist — production's translation AND the Language QA both
+    // read the enriched glossary, so the brand is protected and not mis-flagged as leakage.
+    if (languagePlan && brief) {
+      try {
+        languagePlan.glossary = languageDirector.buildGlossary({ job, brief });
+        db.setLanguagePlan(jobId, languagePlan);
+        job.languagePlan = languagePlan;
+      } catch { /* keep the intake glossary */ }
+    }
+
     // The user's explicit duration wins over the model's suggestion.
     if (job.duration) brief.suggestedDuration = job.duration;
 
     const tScript = ms();
     db.setProgress(jobId, "script");
-    const scriptRes = await withBudget((signal) => generateScript({ brief, userAssets: intent.userAssets || null, signal }), intakeBudgetMs, "script stage");
+    const scriptRes = await withBudget((signal) => generateScript({ brief, userAssets: intent.userAssets || null, signal, languageDirective: languagePlan?.scriptDirective || null }), intakeBudgetMs, "script stage");
     tracker.addLlm({ inputTokens: scriptRes.tokensIn, outputTokens: scriptRes.tokensOut, stage: "script" });
     timings.scriptMs = ms() - tScript;
 
@@ -291,15 +402,34 @@ async function acquireScriptAssets({ job, script, jobDir, orientation, tracker }
   // Website screenshots then fill the showcase scenes the uploads did not take,
   // and fewer of them when uploads exist (the user's material is the show).
   const userPins = await pinUserAssets({ job, script, jobDir, maxPins: 6 });
+  // Real website SCREENSHOTS (tier 80) claim showcase scenes BEFORE tier-70 harvested
+  // imagery — mirroring the graph orchestrator (which reserves screenshot scenes into
+  // pinnedSceneIds first). Reserving brand imagery first would let tier-70 assets starve
+  // the higher-tier real product captures of showcase scenes (an orchestrator drift +
+  // tier-law inversion). So: screenshots first, then brand imagery fills the leftovers.
+  const shots = screenshotAssets({ job, script, jobDir, excludeSceneIds: userPins.usedSceneIds, max: userPins.pinned.length ? 2 : 3 });
+  const reservedBeforeBrand = new Set([...userPins.usedSceneIds, ...shots.map((a) => a.sceneId).filter(Boolean)]);
+  // Harvested website brand assets (logo tier 90 + imagery tier 70) — the site's OWN
+  // visuals, below uploads/screenshots. Same shared pinner both orchestrators call, so
+  // they can't drift. Fail-open.
+  const brandPins = await pinWebsiteAssets({
+    job, script, jobDir, usedSceneIds: reservedBeforeBrand,
+    hasUploadLogo: !!userPins.logoAsset, maxPins: userPins.pinned.length ? 2 : 4,
+  }).catch((e) => { console.warn(`[project] pinWebsiteAssets failed: ${e.message}`); return { brandPinned: [], brandLogo: null }; });
   const pinned = [
     ...userPins.pinned,
     ...(userPins.logoAsset ? [userPins.logoAsset] : []),
-    ...screenshotAssets({ job, script, jobDir, excludeSceneIds: userPins.usedSceneIds, max: userPins.pinned.length ? 2 : 3 }),
+    ...(brandPins.brandLogo ? [brandPins.brandLogo] : []),
+    ...brandPins.brandPinned,
+    ...shots,
   ];
 
   const wanted = [];
   const videoOk = hasProviderFor("video");
-  const screenshotScenes = new Set(pinned.map((a) => a.sceneId));
+  // Suppress stock backgrounds only on scenes an actual IMAGE claims — an overlay logo
+  // (role:"logo", on the CTA scene) is a chip, not a scene filler, and must NOT veto that
+  // scene's background (matches graph.js, which never reserves the logo's scene).
+  const screenshotScenes = new Set(pinned.filter((a) => !isLogo(a)).map((a) => a.sceneId));
   for (const scene of script.scenes) {
     for (const need of scene.assetNeeds || []) {
       // A scene that already has a real screenshot doesn't need a stock
@@ -401,7 +531,8 @@ async function runProduction({ jobId }) {
     // (burns translated captions in the right font/direction), and the SRT/VTT
     // export. Fail-open: a null plan degrades to the pre-feature English path.
     const captionConfig = job.captions_config != null ? job.captions_config : (job.captions_enabled === 1);
-    const captionPlan = await resolveCaptionPlan({ captionConfig, script, brief, job, tracker })
+    const languagePlan = languageDirector.getPlan(job);   // single source of truth (persisted at intake)
+    const captionPlan = await resolveCaptionPlan({ captionConfig, script, brief, job, tracker, languagePlan })
       .catch((e) => { console.warn(`[project] caption director failed: ${e.message}`); return null; });
     if (captionPlan) {
       console.log(`[project] captions: ${captionPlan.enabled ? "on" : "off"} subs=${captionPlan.language} voice=${captionPlan.voiceLanguage} mode=${captionPlan.mode}` +
@@ -495,7 +626,7 @@ async function runProduction({ jobId }) {
           videoTextLanguageName: captionPlan.videoTextLanguageName,
           textStyle: captionPlan.captionStyle && captionPlan.captionStyle.text,
           extraStrings: composerStringsFor(framePack),
-          brief, job, script, tracker,
+          brief, job, script, tracker, glossary: languagePlan?.glossary,
         }).catch((e) => { console.warn(`[project] localization failed: ${e.message}`); return null; });
         if (locReport) {
           localizedStrings = locReport.localizedStrings || null;
@@ -681,6 +812,37 @@ async function runProduction({ jobId }) {
         if (report) db.setBrandCoverage(jobId, report);
       }
     } catch { /* fail-open */ }
+
+    // Website Asset Intelligence — Asset Usage Report + Validation Gate (fail-open, never
+    // touches the render). Single-sourced with the graph orchestrator via the shared
+    // asset_usage_report module so the two production paths can't drift.
+    try {
+      if (config.harvester?.enabled) {
+        const { buildAssetUsageReport } = require("./asset_usage_report");
+        const report = buildAssetUsageReport({
+          job: db.getRaw(jobId) || job,
+          assets,
+          harvestReport: (db.getRaw(jobId) || {}).asset_harvest || null,
+          brandReview: visualResult && visualResult.resolvedBrand || null,
+        });
+        if (report) db.setAssetUsageReport(jobId, report);
+      }
+    } catch { /* fail-open */ }
+
+    // Language QA disclosure (fail-open, never touches the render): font embedded, English
+    // leakage in on-screen DOM text, coverage, consistency — scored against the composed HTML.
+    try {
+      if (languagePlan && languagePlan.videoTextLanguage && languagePlan.videoTextLanguage !== languagePlan.sourceLang) {
+        let html = "";
+        try { html = fs.readFileSync(path.join(jobDir, "index.html"), "utf8"); } catch { /* no file */ }
+        const raw = db.getRaw(jobId) || {};
+        const report = languageDirector.runLanguageQa({ plan: languagePlan, indexHtml: html, localization: raw.localization, captionQuality: raw.captionQuality });
+        if (report) {
+          db.setLanguageQa(jobId, report);
+          console.log(`[project] language_qa → font=${report.fontLoaded ? "ok" : "MISSING"} leakage=${report.leakage.count}word(s)/${report.leakage.score}%${report.degraded ? " DEGRADED" : ""}`);
+        }
+      }
+    } catch (e) { console.warn(`[project] language_qa skipped: ${e.message}`); }
 
     db.setProgress(jobId, "finalizing");
     const costs = tracker.computeCosts();

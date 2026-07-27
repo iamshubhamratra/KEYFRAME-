@@ -324,9 +324,44 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
     if (si.enabled && qaEligible && !a.__rejected && !isLogo(a)) {
       const cov = Number(v.popupCoverage);
       const comp = String(v.completeness || "").toLowerCase();
+      const demotePct = Number.isFinite(si.popupDemotePct) ? si.popupDemotePct : 15;
+      const rejectPct = Number.isFinite(si.popupRejectPct) ? si.popupRejectPct : 35;
       const incomplete = si.demoteOnIncomplete !== false && ["loading", "broken", "empty"].includes(comp);
-      const popupBad = Number.isFinite(cov) && cov > (Number.isFinite(si.popupDemotePct) ? si.popupDemotePct : 15);
-      if (popupBad || incomplete) {
+      const popupBad = Number.isFinite(cov) && cov > demotePct;
+      // SEVERITY SPLIT (the audit's finding). The old code had exactly one lever —
+      // demote to background — so a shot with a consent banner across 85% of the
+      // frame was still rendered, just smaller and dimmer. That is not a B-roll
+      // asset, it is a broken one: a third of the frame eaten by someone else's UI
+      // makes the shot unusable at ANY size. Above `popupRejectPct` (and for a
+      // broken/empty render) the screenshot is REMOVED from the wire; the milder
+      // band keeps the original demote-to-background behaviour.
+      //
+      // Screenshots keep their relevance sovereignty — this is not the CD second-
+      // guessing whether the shot is on-story, it is a mechanical capture-integrity
+      // failure, the one thing a screenshot cannot argue its way out of.
+      const popupFatal = Number.isFinite(cov) && cov > rejectPct;
+      const renderFatal = ["broken", "empty"].includes(comp);
+      if (popupFatal || renderFatal) {
+        a.__rejected = true;
+        a.__captureUnusable = true;
+        a.visionOk = false;
+        a.cdProminence = "reject";
+        toDelete.add(i);
+        rejectedAssets.push({
+          path: a.path, source: a.source,
+          reason: renderFatal
+            ? `capture is ${comp} — nothing usable rendered`
+            : `obstructed: ${v.obstruction || "overlay"} covers ~${Math.round(cov)}% of the frame`,
+          sees: a.sees || null,
+        });
+        screenshotDemotions.push({
+          path: path.basename(a.path), source: a.source,
+          reason: renderFatal ? comp : "popup",
+          action: "rejected",
+          coveragePct: Number.isFinite(cov) ? Math.round(cov) : null,
+          obstruction: v.obstruction ? String(v.obstruction).slice(0, 16) : null,
+        });
+      } else if (popupBad || incomplete) {
         a.__layoutDemoted = true;
         a.visionOk = false;
         a.cdProminence = "background";
@@ -334,6 +369,7 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
           path: path.basename(a.path),
           source: a.source,
           reason: incomplete ? comp : "popup",
+          action: "demoted",
           coveragePct: Number.isFinite(cov) ? Math.round(cov) : null,
           obstruction: v.obstruction ? String(v.obstruction).slice(0, 16) : null,
         });
@@ -368,7 +404,15 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
   // rescue the single highest-scored reject as a background asset.
   if (survivors0.length === 0 && visual.length > 0 && toDelete.size > 0) {
     let bestI = -1, bestScore = -1;
-    for (const i of toDelete) { const sc = visual[i].cdScore || 0; if (sc > bestScore) { bestScore = sc; bestI = i; } }
+    for (const i of toDelete) {
+      // Never rescue a capture-integrity failure. "Least-bad" is a judgement about
+      // RELEVANCE — a shot with a consent banner across it is not less relevant, it
+      // is mechanically broken, and putting it back dim would reinstate exactly the
+      // defect this rejection exists to remove. A barren film is the honest outcome;
+      // the validation gate reports it rather than hiding it.
+      if (visual[i].__captureUnusable) continue;
+      const sc = visual[i].cdScore || 0; if (sc > bestScore) { bestScore = sc; bestI = i; }
+    }
     if (bestI >= 0) {
       toDelete.delete(bestI);
       visual[bestI].__rejected = false;

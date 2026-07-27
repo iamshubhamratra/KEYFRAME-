@@ -124,10 +124,18 @@ async function pinUserAssets({ job, script, jobDir, maxPins = 6 }) {
     const dim = (logoEntry.width && logoEntry.height)
       ? { width: logoEntry.width, height: logoEntry.height }
       : /\.svg$/i.test(logoEntry.path) ? null : await ffprobeImage(abs).catch(() => null);
+    // Measure the mark's INK so the composer can tell whether it will read on the pack's
+    // ground — an uploaded logo is just as likely to be a dark mark meant for a light
+    // site, and it vanishes the same way on a dark template. See services/logo_render.js.
+    // Fail-open: no measurement ⇒ the logo renders exactly as before.
+    let ink = null;
+    try { ink = await require("./logo_render").measureLogoInk(abs); } catch { ink = null; }
+    if (ink) console.log(`[user_assets] logo ink: lum=${ink.lum.toFixed(3)} ${ink.mono ? "monochrome" : "colour"} (${ink.source})`);
     logoAsset = {
       ...assetFromUpload(logoEntry, last, dim),
       role: "logo",
       style: "inset",
+      ink,
       // SVG logos carry alpha by definition; the probe can't see it.
       hasAlpha: /\.svg$/i.test(logoEntry.path) ? true : logoEntry.hasAlpha === true ? true : undefined,
       alt: "the user's own brand logo — brand chip and CTA lockup only, never a full-frame image",
