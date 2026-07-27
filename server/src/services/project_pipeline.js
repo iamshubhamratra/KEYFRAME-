@@ -16,7 +16,7 @@ const path = require("node:path");
 const config = require("../config");
 const db = require("../db");
 const { UsageTracker } = require("./usage");
-const { checkBudget, BUDGET_EXHAUSTED_MSG } = require("./openrouter");
+const { checkBudget, budgetExhaustedMessage, BUDGET_EXHAUSTED_MSG } = require("./openrouter");
 const { generateBrief } = require("./brief");
 const { generateScript, validateScript, normalizeScript } = require("./script");
 const { understandWebsite } = require("./ingest/website");
@@ -44,6 +44,18 @@ const { scoreBrandCoverage } = require("./brand_coverage");
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
 function ms() { return Date.now(); }
 
+// One-line per-provider headroom for the block log — "$17.34 remaining" told you
+// nothing about WHICH ceiling was actually binding.
+function budgetSummary(b) {
+  const parts = [];
+  if (b.openrouter) {
+    parts.push(`openrouter $${b.openrouter.remaining.toFixed(2)}`
+      + (b.openrouter.dailyLimit != null ? ` (key cap $${b.openrouter.dailyLimit}/day, $${Number(b.openrouter.perKey ?? 0).toFixed(2)} left today)` : ""));
+  }
+  if (b.kie) parts.push(`kie $${b.kie.remaining.toFixed(2)} (${b.kie.credits} credits)`);
+  return parts.join(", ") || "no provider reachable";
+}
+
 // ---------- Act 1: intake ----------
 
 async function runIntake({ jobId, onApproved, skipBrief = false }) {
@@ -54,8 +66,10 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
   // fallback video with no voice is worse than an honest error.
   const budget = await checkBudget();
   if (budget && budget.remaining !== null && budget.remaining < 0.15) {
-    console.warn(`[project] ${jobId} blocked: $${budget.remaining} of $${budget.limit} daily budget remaining`);
-    db.markFailed(jobId, BUDGET_EXHAUSTED_MSG);
+    // `remaining` is the BEST provider's headroom (chat() falls back), so this fires
+    // only when NEITHER KIE nor OpenRouter can serve — not merely when one is capped.
+    console.warn(`[project] ${jobId} blocked — no provider has headroom: ${budgetSummary(budget)}`);
+    db.markFailed(jobId, budgetExhaustedMessage(budget));
     return;
   }
 
@@ -285,7 +299,7 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
       const t0 = ms();
       db.setProgress(jobId, "brief");
       const briefRes = await withBudget((signal) => generateBrief({ intent, signal }), intakeBudgetMs, "brief stage");
-      tracker.addLlm({ inputTokens: briefRes.tokensIn, outputTokens: briefRes.tokensOut, stage: "brief" });
+      tracker.addLlm({ inputTokens: briefRes.tokensIn, outputTokens: briefRes.tokensOut, stage: "brief", model: briefRes.model, provider: briefRes.provider });
       timings.briefMs = ms() - t0;
       brief = briefRes.brief;
     }
@@ -308,7 +322,7 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
     const tScript = ms();
     db.setProgress(jobId, "script");
     const scriptRes = await withBudget((signal) => generateScript({ brief, userAssets: intent.userAssets || null, signal, languageDirective: languagePlan?.scriptDirective || null }), intakeBudgetMs, "script stage");
-    tracker.addLlm({ inputTokens: scriptRes.tokensIn, outputTokens: scriptRes.tokensOut, stage: "script" });
+    tracker.addLlm({ inputTokens: scriptRes.tokensIn, outputTokens: scriptRes.tokensOut, stage: "script", model: scriptRes.model, provider: scriptRes.provider });
     timings.scriptMs = ms() - tScript;
 
     db.markScriptReview(jobId, {
@@ -492,8 +506,8 @@ async function runProduction({ jobId }) {
 
   const budget = await checkBudget();
   if (budget && budget.remaining !== null && budget.remaining < 0.15) {
-    console.warn(`[project] ${jobId} production blocked: $${budget.remaining} of $${budget.limit} daily budget remaining`);
-    db.markFailed(jobId, BUDGET_EXHAUSTED_MSG);
+    console.warn(`[project] ${jobId} production blocked — no provider has headroom: ${budgetSummary(budget)}`);
+    db.markFailed(jobId, budgetExhaustedMessage(budget));
     return;
   }
 
@@ -593,7 +607,7 @@ async function runProduction({ jobId }) {
       db.setProgress(jobId, "storyboard");
       const sbPrompt = storyboardPromptFromScript(script, brief);
       const sbRes = await generateStoryboard({ prompt: sbPrompt, duration, orientation: job.orientation });
-      tracker.addLlm({ inputTokens: sbRes.tokensIn, outputTokens: sbRes.tokensOut, stage: "storyboard" });
+      tracker.addLlm({ inputTokens: sbRes.tokensIn, outputTokens: sbRes.tokensOut, stage: "storyboard", model: sbRes.model, provider: sbRes.provider });
       markStage("storyboard", t0);
 
       db.setProgress(jobId, "assets");

@@ -343,8 +343,38 @@ async function chat({ system, user, jsonMode = false, temperature, model, stage,
 // credits (verified: calls succeed against a $53 account whose key reports
 // $0.004 remaining). Using the max avoids falsely blocking a funded account.
 let budgetCache = { at: 0, value: null };
+// KIE bills in credits at a standard $0.005 each (see services/usage.js).
+const KIE_CREDIT_USD = 0.005;
+
+/**
+ * How much headroom is there to spend, across BOTH providers?
+ *
+ * TWO BUGS THIS REPLACES, which together let a job through to fail at its first
+ * LLM call instead of being refused with a clear reason:
+ *
+ *  1. WITHIN OpenRouter it took `Math.max(perKey, account)`. Those are not
+ *     alternatives — they are two independent ceilings, and spending is blocked by
+ *     whichever is LOWER. A key capped at $3/day with $0.00 left on an account
+ *     holding $17.34 reported "$17.34 remaining" and waved the job through, when
+ *     the true headroom was zero. Within a provider the constraint is the MINIMUM.
+ *
+ *  2. It only ever looked at OpenRouter, which has not been the primary since KIE
+ *     was wired in. A dead OpenRouter key with a funded KIE account would have been
+ *     reported as broke even though every stage would have run fine on KIE — and
+ *     the converse (KIE overdrawn, OpenRouter healthy) was invisible.
+ *
+ * ACROSS providers, `max` IS right: chat() falls back, so a job can run if EITHER
+ * has headroom. The two directions are genuinely different and the old code applied
+ * the wrong one in the one place it mattered.
+ *
+ * Returns null when nothing could be probed (never block on ignorance), else
+ * { remaining, limit, openrouter, kie } where `remaining` is the best provider's
+ * headroom in USD — the number the intake gate should compare against.
+ */
 async function checkBudget() {
   if (Date.now() - budgetCache.at < 60_000) return budgetCache.value;
+
+  // ---- OpenRouter: the lower of the key's allowance and the account's credit.
   const base = config.llm.baseUrl.replace(/\/$/, "");
   const hdr = { Authorization: `Bearer ${config.llm.apiKey}` };
   let perKey = null, account = null, limit = null;
@@ -356,13 +386,60 @@ async function checkBudget() {
     const r = await fetch(`${base}/credits`, { headers: hdr, signal: AbortSignal.timeout(10_000) });
     if (r.ok) { const d = (await r.json()).data || {}; const c = Number(d.total_credits), u = Number(d.total_usage); if (Number.isFinite(c) && Number.isFinite(u)) account = c - u; }
   } catch { /* probe optional */ }
-  const remaining = (perKey != null || account != null) ? Math.max(perKey ?? 0, account ?? 0) : null;
-  budgetCache = { at: Date.now(), value: remaining == null ? null : { remaining, limit } };
-  return budgetCache.value;
+  // An unset ceiling is "no constraint", NOT zero — so it must not drag the min down.
+  const orRemaining = (perKey == null && account == null)
+    ? null
+    : Math.min(perKey ?? Infinity, account ?? Infinity);
+
+  // ---- KIE: credit balance (can go negative when overdrawn, which is the 402).
+  let kieCredits = null;
+  if (config.llm.primary && config.llm.primary.apiKey) {
+    try {
+      const r = await fetch("https://api.kie.ai/api/v1/chat/credit", {
+        headers: { Authorization: `Bearer ${config.llm.primary.apiKey}` },
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (r.ok) { const d = await r.json(); if (Number.isFinite(Number(d.data))) kieCredits = Number(d.data); }
+    } catch { /* probe optional */ }
+  }
+  const kieRemaining = kieCredits == null ? null : kieCredits * KIE_CREDIT_USD;
+
+  const known = [orRemaining, kieRemaining].filter((v) => v != null);
+  const remaining = known.length ? Math.max(...known) : null;
+
+  const value = remaining == null ? null : {
+    remaining,
+    limit,
+    openrouter: orRemaining == null ? null : { remaining: orRemaining, perKey, account, dailyLimit: limit },
+    kie: kieRemaining == null ? null : { remaining: kieRemaining, credits: kieCredits },
+  };
+  budgetCache = { at: Date.now(), value };
+  return value;
+}
+
+// Describe WHICH provider is out and what clears it — "budget exhausted" alone sent
+// people to the wrong dashboard. A daily cap resets on its own; a negative KIE
+// balance only clears with a top-up.
+function budgetExhaustedMessage(budget) {
+  const bits = [];
+  const or = budget && budget.openrouter, kie = budget && budget.kie;
+  if (or) {
+    const capped = or.perKey != null && or.perKey <= 0.15;
+    bits.push(capped
+      ? `OpenRouter: the key's ${or.dailyLimit != null ? `$${or.dailyLimit}/day ` : ""}limit is used up ($${or.perKey.toFixed(2)} left today${or.account != null ? `, $${or.account.toFixed(2)} account credit unused` : ""}) — it resets on the daily boundary, or raise the limit at openrouter.ai/settings/keys`
+      : `OpenRouter: $${Number(or.remaining).toFixed(2)} left — add credits at openrouter.ai/credits`);
+  }
+  if (kie) {
+    bits.push(kie.credits <= 0
+      ? `KIE: balance is ${kie.credits} credits (overdrawn) — top up at kie.ai`
+      : `KIE: $${kie.remaining.toFixed(2)} left`);
+  }
+  return "LLM budget exhausted — no configured provider has headroom. "
+    + (bits.length ? bits.join(". ") + "." : "Add credits or raise the key limits.");
 }
 
 const BUDGET_EXHAUSTED_MSG =
-  "LLM budget exhausted — the OpenRouter key's spend limit is used up. " +
-  "Daily-limit keys reset automatically each day; otherwise add credits or raise the key's limit at openrouter.ai/settings/keys.";
+  "LLM budget exhausted — no configured provider has spending headroom. " +
+  "An OpenRouter daily-limit key resets each day; a negative KIE balance needs a top-up.";
 
-module.exports = { chat, modelForStage, checkBudget, BUDGET_EXHAUSTED_MSG };
+module.exports = { chat, modelForStage, checkBudget, budgetExhaustedMessage, BUDGET_EXHAUSTED_MSG };
