@@ -35,9 +35,59 @@ const bloomComposer = require("./bloom_composer");
 const bauhausComposer = require("./bauhaus_composer");
 const terminalComposer = require("./terminal_departures_composer");
 const paperTalesComposer = require("./paper_tales_composer");
+const kineticUniverseComposer = require("./kinetic_universe_composer");
+const productShowcaseComposer = require("./product_showcase_composer");
+// Imported portrait packs — native GSAP composers, all sharing the product-showcase
+// contract ({ buildComposition, STRINGS }). Table-dispatched below so one generic wrapper
+// routes all of them (no per-renderer branch/wrapper explosion), and composerStringsFor
+// picks up their localizable STRINGS automatically.
+const NATIVE_PACK_COMPOSERS = {
+  // Prisma Bloc — flat colour-blocked poster-in-motion (DOM + GSAP, no WebGL).
+  "dom-prisma": require("./prisma_composer"),
+  // The seven imported "Animated video template" packs. They are one film built seven
+  // ways (same six beats, same progress contract, same media slots), so they share ONE
+  // engine — services/om_stage.js — and ship only a ~200-line skin each.
+  "om-garden": require("./om_skins/organic_garden"),
+  "om-lantern": require("./om_skins/lantern_night"),
+  "om-bakehouse": require("./om_skins/daybreak_bakehouse"),
+  "om-blocks": require("./om_skins/story_blocks"),
+  "om-poster": require("./om_skins/poster_pop"),
+  "om-premiere": require("./om_skins/premiere_night"),
+  "om-hype": require("./om_skins/hype_wave"),
+  "neo-dashboard": require("./neo_dashboard_composer"),
+  "ai-laboratory": require("./ai_laboratory_composer"),
+  "aurora-motion": require("./aurora_motion_composer"),
+  "digital-universe": require("./digital_universe_composer"),
+  "editorial-motion": require("./editorial_motion_composer"),
+  "glass-dimension": require("./glass_dimension_composer"),
+  "living-city": require("./living_city_composer"),
+  "minimal-luxury": require("./minimal_luxury_composer"),
+  "motion-canvas": require("./motion_canvas_composer"),
+  "nature-flow": require("./nature_flow_composer"),
+  "paper-craft": require("./paper_craft_composer"),
+  "retro-future": require("./retro_future_composer"),
+};
 const frameRegistry = require("./frame_registry");
 const frameManifest = require("./frame_manifest");
 const { injectCaptionStyle, hasCaptionTarget } = require("./caption_render");
+const { auditAssetRender, isAssetRenderFailure } = require("./asset_render_check");
+
+// Pre-render asset-placement disclosure. Reconciles the assets a native composer RECEIVED
+// against what its composed HTML actually RENDERS (real <img> refs, per-scene spread), logs
+// the debug report, and SHOUTS when assets were collected but the film is text-only / broken
+// — so a regression is surfaced with a clear diagnostic instead of shipping a generic video.
+// Fail-open (THE LAW): never throws, never blocks the render. Returns the report (or null).
+function discloseAssetRender(jobDir, indexHtml, assets, label) {
+  try {
+    const report = auditAssetRender({ indexHtml, assets, jobDir });
+    if (report && report.assetsCollected > 0) {
+      const line = `[asset-check] ${label}: ${report.assetsRendered}/${report.assetsCollected} asset(s) rendered · ${report.scenesWithAsset}/${report.sceneCount} scenes show one · status=${report.renderStatus}`;
+      if (isAssetRenderFailure(report)) console.warn(`⚠ ${line} — ASSETS COLLECTED BUT NONE REACHED THE FILM. report=${JSON.stringify(report)}`);
+      else console.log(line);
+    }
+    return report;
+  } catch { return null; }
+}
 
 // Write the composed index.html, first injecting the caption language font +
 // text-direction override (multi-language captions). A null/Latin captionStyle
@@ -69,6 +119,10 @@ function composerStringsFor(framePack) {
     "bloom-fable": bloomComposer.STRINGS,
     "bauhaus-riot": bauhausComposer.STRINGS,
     "paper-tales": paperTalesComposer.STRINGS,
+    "kinetic-universe": kineticUniverseComposer.STRINGS,
+    "product-showcase": productShowcaseComposer.STRINGS,
+    // All imported OM portrait packs are DOM-text (GSAP/CSS), so their STRINGS are localizable.
+    ...Object.fromEntries(Object.entries(NATIVE_PACK_COMPOSERS).map(([k, m]) => [k, m.STRINGS])),
   };
   if (Object.prototype.hasOwnProperty.call(map, r)) return map[r] || null;
   return null; // canvas/charset packs: nothing DOM-localizable
@@ -98,6 +152,7 @@ const { acquire, makeImageDeduper } = require("./asset_sources");
 const { checkAssetsRelevance } = require("./asset_vision");
 const { reviewAndCurate } = require("./creative_director");
 const { directAudio } = require("./audio_director");
+const { defaultBrandSkin } = require("./art_director");
 const { coverageFromUsed, shouldRepair } = require("./asset_coverage");
 const { styleFor } = require("./pack_style");
 const catalog = require("./catalog");
@@ -564,6 +619,29 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
   if (rendererFor(framePack) === "paper-tales") {
     return composeWithPaperTales({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "paper-tales", abortSignal, tracker, brandSkin, captionStyle, localized });
   }
+  // KINETIC UNIVERSE TEMPLATE — a pack whose manifest declares renderer:"kinetic-universe"
+  // routes to the native GSAP + canvas dark-cosmic portrait composer. Self-contained
+  // (persistent hf-seek canvas cosmos + per-scene archetypes); same funnel + envelope.
+  if (rendererFor(framePack) === "kinetic-universe") {
+    return composeWithKineticUniverse({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "kinetic-universe", abortSignal, tracker, brandSkin, captionStyle, localized });
+  }
+  // PRODUCT SHOWCASE PRO TEMPLATE — a pack whose manifest declares renderer:"product-showcase"
+  // routes to the native GSAP + canvas studio product-ad composer (persistent hf-seek studio
+  // stage + turntable product device-frames + feature callouts). Fully theme-driven.
+  if (rendererFor(framePack) === "product-showcase") {
+    return composeWithProductShowcase({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "product-showcase", abortSignal, tracker, brandSkin, captionStyle, localized });
+  }
+  // IMPORTED PORTRAIT PACKS — table-dispatched native GSAP composers (prisma-bloc's
+  // "dom-prisma", plus the OM set: neo-dashboard, ai-laboratory, aurora-motion,
+  // digital-universe, editorial-motion, glass-dimension, living-city, minimal-luxury,
+  // motion-canvas, nature-flow, paper-craft, retro-future). All share the product-showcase
+  // contract, so one generic wrapper routes them.
+  {
+    const nativeModule = NATIVE_PACK_COMPOSERS[rendererFor(framePack)];
+    if (nativeModule) {
+      return composeWithNativePack({ module: nativeModule, storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || rendererFor(framePack), abortSignal, tracker, brandSkin, captionStyle, localized });
+    }
+  }
   // DEFAULT = the deterministic scene-kit (guaranteed showcase-grade, lint-clean,
   // per-pack styled). Every pipeline path (runJob, graph, project_pipeline) routes
   // through here, so this single dispatch makes the kit the primary composer
@@ -626,7 +704,7 @@ async function composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack
   }
   // seedKey=jobId: layout/background variety is salted per JOB, so re-running the
   // same prompt (same title) still produces a visibly different composition.
-  let built = sceneKit.buildComposition({ storyboard, dims, framePack, assets: assets || [], captionCues, seedKey: jobId, dressing, brandSkin, layoutPlan, localized });
+  let built = sceneKit.buildComposition({ storyboard, dims, framePack, assets: assets || [], captionCues, seedKey: jobId, dressing, brandSkin, layoutPlan, localized, captionStyle });
 
   // USER-ASSET COVERAGE + one PRE-render repair lap. The kit reports which assets
   // it wove (built.usedAssets); if the user uploaded material and this weave
@@ -643,7 +721,7 @@ async function composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack
       // the montage so more of them can surface; rebuild once.
       for (const a of (assets || [])) { if (a && a.source === "upload" && a.__layoutDemoted) { a.__layoutDemoted = false; a.visionOk = true; } }
       const plan2 = { ...(layoutPlan || {}), __montageMax: 6 };
-      const rebuilt = sceneKit.buildComposition({ storyboard, dims, framePack, assets: assets || [], captionCues, seedKey: jobId, dressing, brandSkin, layoutPlan: plan2, localized });
+      const rebuilt = sceneKit.buildComposition({ storyboard, dims, framePack, assets: assets || [], captionCues, seedKey: jobId, dressing, brandSkin, layoutPlan: plan2, localized, captionStyle });
       const cov2 = coverageFromUsed({ assets: assets || [], usedAssets: rebuilt.usedAssets, logoPlacements: rebuilt.logoPlacements, repairLap: { ran: true, before, after: 0 } });
       // Keep the rebuild only if it actually surfaced more of the user's material.
       if (cov2 && cov2.assetsUsed >= assetCoverage.assetsUsed) {
@@ -728,7 +806,7 @@ async function composeWithThree({ storyboard, dims, jobDir, framePack, captionCu
 async function composeWithFlagship({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null, captionStyle = null }) {
   const t0 = ms();
   console.log(`[pipeline] ${label || "flagship"}: building flagship Three.js composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
-  const built = flagshipComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin });
+  const built = flagshipComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin, captionStyle });
   writeIndexHtml(jobDir, built.indexHtml, captionStyle);
   fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
   tracker.addExternal("hyperframes_render");
@@ -749,7 +827,7 @@ async function composeWithFlagship({ storyboard, dims, jobDir, framePack, captio
 async function composeWithBrightlife({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null, captionStyle = null }) {
   const t0 = ms();
   console.log(`[pipeline] ${label || "brightlife"}: building Bright Life Three.js composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
-  const built = brightlifeComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin });
+  const built = brightlifeComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin, captionStyle });
   writeIndexHtml(jobDir, built.indexHtml, captionStyle);
   fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
   tracker.addExternal("hyperframes_render");
@@ -851,6 +929,73 @@ async function composeWithPaperTales({ storyboard, dims, jobDir, framePack, capt
   const visual = await render({ jobId, jobDir, durationSec, abortSignal });
   visual.resolvedBrand = built.resolvedBrand || null;
   console.log(`[pipeline] ${label || "paper-tales"}: render done in ${ms() - t0}ms total`);
+  return visual;
+}
+
+
+// KINETIC UNIVERSE composition path — a pack whose manifest declares renderer:"kinetic-universe"
+// routes here (see attemptLlmComposition). A native GSAP + canvas dark-cosmic PORTRAIT film
+// (kinetic_universe_composer.js): a persistent hf-seek canvas cosmos (drifting beams, a
+// perspective grid, a parallax starfield, a vignette) with each storyboard scene injected
+// into a cosmic scene-type (ignition / reveal / showcase / discovery / orbit / statement /
+// cta), real screenshots shown in glowing device-frames. Fully theme-driven (brand recolors
+// the whole universe). Same funnel + envelope as the other native composers.
+async function composeWithKineticUniverse({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null, captionStyle = null, localized = null }) {
+  const t0 = ms();
+  console.log(`[pipeline] ${label || "kinetic-universe"}: building Kinetic Universe composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
+  const built = kineticUniverseComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin, localized });
+  writeIndexHtml(jobDir, built.indexHtml, captionStyle);
+  const assetReport = discloseAssetRender(jobDir, built.indexHtml, assets, label || "kinetic-universe");
+  fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
+  tracker.addExternal("hyperframes_render");
+  const visual = await render({ jobId, jobDir, durationSec, abortSignal });
+  visual.resolvedBrand = built.resolvedBrand || null;
+  if (assetReport) visual.assetRenderReport = assetReport;
+  console.log(`[pipeline] ${label || "kinetic-universe"}: render done in ${ms() - t0}ms total`);
+  return visual;
+}
+
+// PRODUCT SHOWCASE PRO — the native GSAP + canvas "studio product-ad" composer. A persistent
+// hf-seek STUDIO backdrop (lit stage, back-wall spotlight, floor, horizon glow, spotlight
+// pool, drifting beams + light dust) carries continuity while each storyboard scene lands in
+// a studio archetype (open / brief / hero / callouts / gallery / climax / cta), real
+// screenshots/uploads shown in rim-lit turntable device-frames with reflections. Fully
+// theme-driven (brand recolors the whole studio). Same funnel + envelope as the others.
+async function composeWithProductShowcase({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null, captionStyle = null, localized = null }) {
+  const t0 = ms();
+  console.log(`[pipeline] ${label || "product-showcase"}: building Product Showcase composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
+  const built = productShowcaseComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin, localized });
+  writeIndexHtml(jobDir, built.indexHtml, captionStyle);
+  const assetReport = discloseAssetRender(jobDir, built.indexHtml, assets, label || "product-showcase");
+  fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
+  tracker.addExternal("hyperframes_render");
+  const visual = await render({ jobId, jobDir, durationSec, abortSignal });
+  visual.resolvedBrand = built.resolvedBrand || null;
+  if (assetReport) visual.assetRenderReport = assetReport;
+  console.log(`[pipeline] ${label || "product-showcase"}: render done in ${ms() - t0}ms total`);
+  return visual;
+}
+
+// Generic wrapper for the imported OM portrait packs — they all share the product-showcase
+// contract (buildComposition({storyboard,dims,framePack,captionCues,assets,brandSkin,localized})
+// → {indexHtml,metaJson,resolvedBrand}), so one wrapper serves the whole table. captionStyle is
+// applied at the writeIndexHtml choke point (these composers emit a #cap-text target).
+async function composeWithNativePack({ module, storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null, captionStyle = null, localized = null }) {
+  const t0 = ms();
+  console.log(`[pipeline] ${label}: building native composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
+  // seedKey=jobId salts the per-video variants a composer chooses at BUILD time (cut
+  // rhythm, ground rotation, decorative anchors), so re-running the same prompt produces
+  // a visibly different film while a re-render of the SAME job stays byte-identical.
+  // Composers that don't take it simply ignore the key.
+  const built = module.buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin, localized, seedKey: jobId });
+  writeIndexHtml(jobDir, built.indexHtml, captionStyle);
+  const assetReport = discloseAssetRender(jobDir, built.indexHtml, assets, label);
+  fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
+  tracker.addExternal("hyperframes_render");
+  const visual = await render({ jobId, jobDir, durationSec, abortSignal });
+  visual.resolvedBrand = built.resolvedBrand || null;
+  if (assetReport) visual.assetRenderReport = assetReport;
+  console.log(`[pipeline] ${label}: render done in ${ms() - t0}ms total`);
   return visual;
 }
 
@@ -1012,6 +1157,7 @@ async function runJob({
   jobId, prompt, duration, orientation, width, height, fps,
   tts = false, music = false, soundEffect = false, voice,
   images = false, video = false, framePack = null, remix = false, render3d = false,
+  brandPalette = null,
 }) {
   const jobDir = jobDirFor(jobId);
   fs.mkdirSync(jobDir, { recursive: true });
@@ -1028,6 +1174,18 @@ async function runJob({
   let sbRes = null;
 
   const dims = { width, height, fps };
+  // An explicit user brand palette is the ONLY branding available on the /api/generate
+  // path (no website ingest / Art Director runs here). Resolve it verbatim to a
+  // deterministic accent-only skin (provenance "explicit" — honored as-is, no LLM), then
+  // thread it into every composer below. Null when no palette was picked → the composers'
+  // no-op path, byte-identical to the pack default.
+  const brandSkin = brandPalette && brandPalette.primary
+    ? defaultBrandSkin(
+        [brandPalette.primary, brandPalette.secondary, brandPalette.accent].filter(Boolean),
+        { provenance: "explicit" }
+      )
+    : null;
+  if (brandSkin) log.info("brand palette resolved (explicit)", { accents: brandSkin.accents.join(",") });
   const wantsAudio = tts || music || soundEffect;
   log.info("job accepted", { dims: `${width}x${height}@${fps}`, duration, orientation, tts, music, images, video, framePack, remix });
 
@@ -1173,7 +1331,7 @@ async function runJob({
           visualResult = await withBudget(
             (signal) => composeWithThree({
               storyboard: sbRes.storyboard, dims, jobDir, framePack, captionCues: null,
-              assets: allAssets, jobId, durationSec: effectiveDuration, label: "three", abortSignal: signal, tracker,
+              assets: allAssets, jobId, durationSec: effectiveDuration, label: "three", abortSignal: signal, tracker, brandSkin,
             }),
             budget, "Three.js composition"
           );
@@ -1184,7 +1342,7 @@ async function runJob({
             (signal) => attemptLlmComposition({
               storyboard: sbRes.storyboard, dims, jobDir,
               assets: allAssets, tracker, jobId, durationSec: effectiveDuration,
-              label: remix ? "remix" : "scene-kit", abortSignal: signal, framePack, remix,
+              label: remix ? "remix" : "scene-kit", abortSignal: signal, framePack, remix, brandSkin,
             }),
             budget, remix ? "LLM remix composition" : "scene-kit composition"
           );
@@ -1208,7 +1366,7 @@ async function runJob({
           (signal) => attemptLlmComposition({
             storyboard: sbRes.storyboard, dims, jobDir,
             assets: imagesOnly, tracker, jobId, durationSec: effectiveDuration,
-            label: "no-videos", abortSignal: signal, framePack,
+            label: "no-videos", abortSignal: signal, framePack, brandSkin,
           }),
           budget, "no-videos retry"
         );
@@ -1239,7 +1397,7 @@ async function runJob({
         visualResult = await composeWithSceneKit({
           storyboard: sbRes.storyboard, dims, jobDir,
           assets: allAssets, framePack, jobId, durationSec: effectiveDuration,
-          label: "scene-kit fallback", tracker,
+          label: "scene-kit fallback", tracker, brandSkin,
         });
         markStage("fallback_render", t0);
         console.log(`[pipeline] scene-kit fallback rendered in ${timings.fallback_renderMs}ms`);
