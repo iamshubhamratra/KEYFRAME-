@@ -43,7 +43,7 @@ Return ONLY a JSON object, no prose, no markdown fences:
 1. **Ground every claim.** Every entry in `mustIncludeFacts` must trace to the prompt, transcript, or website text. If the inputs contain no hard facts, return an empty array — do NOT invent statistics, dates, customer names, or product claims. Inventing a fact is the single worst failure here.
 1b. **subject is LITERAL and SHOOTABLE.** It steers every stock-footage search, so name the physical thing a camera would film: "golden retriever dog", "skincare products on marble counter", "software dashboard UI", "espresso being poured". NEVER abstractions ("innovation", "growth", "their journey"), never adjectives alone ("cinematic", "premium"), never just the brand name. If the film is about a product, name the product category; if about a person/animal, name them.
 2. **Conflict precedence:** the user's `prompt` wins over the `website`, which wins over the video `transcript`. The transcript tells you what was *said*; the prompt tells you what the user *wants*.
-3. **brandColors:** prefer `website.brandColors` when present; otherwise pick 2-3 hex colors matching the tone. Always valid 6-digit hex (`#RRGGBB`).
+3. **brandColors:** echo `website.brandColors` when present. If it is absent, return an EMPTY array — do NOT invent colors. A guessed palette is a claim about someone's brand identity, and inventing one is the same failure as inventing a statistic (rule 1). Valid 6-digit hex (`#RRGGBB`) only.
 4. **suggestedFramePack:** pick ONLY from `availableFramePacks` names. If `preferences.framePack` is not "auto", echo it verbatim. Otherwise match tone → vibe using this table:
 
    | If the tone is… | Lean toward a pack whose vibe is… |

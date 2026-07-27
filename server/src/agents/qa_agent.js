@@ -91,7 +91,7 @@ MINOR issues (report, do NOT fail): cramped spacing, weak hierarchy, a transitio
 
 A frame caught mid-transition with PARTIAL content is NORMAL — do not fail it for that alone. Be strict about the blockers above (especially under-illustration and contrast), lenient about pure style.`;
 
-async function reviewRender({ videoPath, scenes, duration, framePack, frameMd, workDir, tracker, signal }) {
+async function reviewRender({ videoPath, scenes, duration, framePack, frameMd, workDir, tracker, signal, animationWarnings = [] }) {
   fs.mkdirSync(workDir, { recursive: true });
   const times = sampleTimes(scenes, duration);
   const frames = [];
@@ -110,6 +110,12 @@ async function reviewRender({ videoPath, scenes, duration, framePack, frameMd, w
         VERDICT_INSTRUCTIONS,
         "",
         framePack ? packIdentityExpectations(framePack) : "",
+        // The deterministic timeline audit ran just before this and can only see the
+        // HTML. Hand it its open questions: it can say "likely under-animated", only
+        // the frames can say whether the picture actually moves.
+        animationWarnings.length
+          ? `A static analysis of the composed timeline raised these concerns — CONFIRM or DISMISS each against the frames, and if confirmed report it as an issue: ${animationWarnings.map((w) => `"${w}"`).join("; ")}`
+          : "",
         `Frames below are sampled at: ${frames.map((f) => `${f.t}s`).join(", ")} of a ${duration}s video. Scene plan: ${JSON.stringify((scenes || []).map((s) => ({ id: s.id, start: s.start, duration: s.duration, purpose: s.purpose })))}`,
       ].filter(Boolean).join("\n"),
     },

@@ -132,6 +132,32 @@ function validateScript(script, { targetDuration } = {}) {
     if (words > capacity * VO_TOLERANCE) {
       warnings.push(`scene ${scene.id}: VO is ${words} words but ~${Math.floor(capacity)} fit in ${scene.duration}s — will be tightened or feel rushed`);
     }
+
+    // CONTENT checks. Validation used to be purely arithmetic — ids, gapless starts,
+    // duration sum — with exactly one soft warning about VO length. A scene could
+    // therefore carry no on-screen copy at all and pass, which is how "many scenes
+    // contain little or no text" survived every gate until preflight caught it after
+    // the assets were already fetched. The Script Room is where a human can still fix
+    // it in one edit, so the complaint belongs here.
+    const ost = Array.isArray(scene.onScreenText) ? scene.onScreenText.filter((t) => String(t).trim()) : [];
+    const hasVo = !!(scene.voiceover && scene.voiceover.trim());
+    if (!ost.length && !hasVo) {
+      warnings.push(`scene ${scene.id} (${scene.purpose}) is silent AND has no on-screen text — it will render as an empty template panel`);
+    } else if (!ost.length) {
+      warnings.push(`scene ${scene.id} (${scene.purpose}) has no on-screen text — the viewer hears the point but never reads it (most social video is watched muted)`);
+    } else if (ost.length === 1 && scene.duration >= 4) {
+      warnings.push(`scene ${scene.id} (${scene.purpose}) holds a single line for ${scene.duration}s — consider a supporting line so the frame isn't bare`);
+    }
+  }
+
+  // Film-level shape: a marketing film that never asks for anything is a rare mistake
+  // worth surfacing, and a one-scene film is almost always a truncated generation.
+  const purposes = s.scenes.map((x) => String(x.purpose || "").toLowerCase());
+  if (s.scenes.length >= 3 && !purposes.some((p) => /cta|close|sign\s*up|subscribe|download|get\s*started/.test(p))) {
+    warnings.push("no CTA scene — the film ends without asking the viewer to do anything");
+  }
+  if (s.scenes.length < 2) {
+    warnings.push(`only ${s.scenes.length} scene(s) — a single-shot film has no narrative arc and usually means the generation was truncated`);
   }
 
   const total = Math.round(expectedStart * 10) / 10;
@@ -144,7 +170,7 @@ function validateScript(script, { targetDuration } = {}) {
 
 const { extractFirstJsonObject: parseLenient } = require("./json_lenient");
 
-async function generateScript({ brief, userAssets, signal }) {
+async function generateScript({ brief, userAssets, signal, languageDirective = null }) {
   const targetDuration = brief.suggestedDuration;
   // The user's own uploaded material, classified at intake. The static prompt
   // carries the RULE (7b); the dynamic INVENTORY rides the user message — same
@@ -153,10 +179,14 @@ async function generateScript({ brief, userAssets, signal }) {
   const inventoryBlock = userAssets && userAssets.inventory
     ? ["", `USER ASSET INVENTORY (rule 7b — build the film around these; they arrive automatically): ${userAssets.inventory}.`]
     : [];
+  // Language Director's localization-aware authoring directive (non-English films only; null
+  // for English → this block is empty and the payload is byte-identical to before).
+  const languageBlock = languageDirective ? ["", languageDirective] : [];
   const user = [
     "Creative Brief:",
     JSON.stringify(brief, null, 2),
     ...inventoryBlock,
+    ...languageBlock,
     "",
     `Target total duration: ${targetDuration} seconds exactly.`,
     "Write the production script JSON now.",

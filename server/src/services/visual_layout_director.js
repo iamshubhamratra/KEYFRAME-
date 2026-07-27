@@ -182,21 +182,53 @@ function directLayout({ storyboard, script, assets, framePack, dims } = {}) {
       : (script && Array.isArray(script.scenes) ? script.scenes : []));
     const prominentTotal = byKind.screenshot.slice(0, budget.screenshot).length
       + byKind.photo.slice(0, budget.photo).length;
+    // PER-SCENE COVERAGE, not a decoration. The old report repeated the same
+    // __heroScale on every row as though a per-scene decision had been made — in
+    // portrait it isn't even read (see below). What a reader actually needs is
+    // whether THIS scene has a visual, so the empty ones are visible here rather
+    // than only after the render.
+    const assignedTo = new Map();
+    for (const a of list) {
+      if (!a || a.sceneId == null || isLogo(a)) continue;
+      if (!assignedTo.has(a.sceneId)) assignedTo.set(a.sceneId, []);
+      assignedTo.get(a.sceneId).push(a);
+    }
     const sceneReports = scenes.map((sc, i) => {
       const id = sc && sc.id != null ? sc.id : `s${i + 1}`;
       const arch = (layoutPlan[id] && layoutPlan[id].archetype) || "text";
-      return { sceneId: id, archetype: arch, heroScale: layoutPlan.__heroScale };
+      const mine = assignedTo.get(id) || [];
+      const prominent = mine.filter(isProminent).length;
+      return { sceneId: id, archetype: arch, assets: mine.length, prominent };
     });
+    const emptyScenes = sceneReports.filter((r) => r.assets === 0).length;
+
+    // COMPOSITION SCORE, from what the layout actually is. The old
+    // `100 - demoted*2` only moved when assets were demoted, so it read 100 on a film
+    // with three empty scenes — it measured this function's own activity, not the
+    // composition. Score the things a viewer would notice: scenes with nothing in
+    // them, scenes carrying a visual, and whether the prominent set is big enough to
+    // carry the runtime.
+    const sceneCount = sceneReports.length || 1;
+    const covered = sceneCount - emptyScenes;
+    const coverage = covered / sceneCount;                        // 0..1
+    const depth = clamp(prominentTotal / Math.max(2, Math.ceil(sceneCount / 2)), 0, 1);
+    const compositionQuality = Math.round(clamp(coverage * 70 + depth * 30, 0, 100));
+
     const review = {
       keptScreenshots: Math.min(byKind.screenshot.length, budget.screenshot),
       keptPhotos: Math.min(byKind.photo.length, budget.photo),
       uploadedKept: Math.min(uploadedShots, budget.screenshot) + Math.min(uploadedPhotos, budget.photo),
       demoted,
-      heroScale: layoutPlan.__heroScale,
+      // Reported ONLY where it is honoured. responsive.heroBox makes portrait/square
+      // heroes full-width, so the kit reads __heroScale on landscape alone — surfacing
+      // it on a 9:16 job advertised a decision nobody made.
+      heroScale: layoutPlan.__aspect === "landscape" ? layoutPlan.__heroScale : null,
       montageMax: layoutPlan.__montageMax,
+      aspect: layoutPlan.__aspect,
       prominentTotal,
+      emptyScenes,
       scenes: sceneReports,
-      score: { compositionQuality: clamp(100 - demoted * 2, 60, 100), source: "deterministic" },
+      score: { compositionQuality, coverage: Math.round(coverage * 100), source: "deterministic" },
     };
     console.log(`[visual_layout_director] kept ${review.keptScreenshots} screenshot(s)/${review.keptPhotos} photo(s), demoted ${demoted}, hero=${layoutPlan.__heroScale}, montage≤${layoutPlan.__montageMax}, aspect=${layoutPlan.__aspect}`);
     return { assets: list, layoutPlan, review };

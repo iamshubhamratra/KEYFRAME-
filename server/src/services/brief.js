@@ -106,6 +106,24 @@ async function generateBrief({ intent, signal }) {
       const raw = parseLenient(text);
       const brief = BriefSchema.parse(raw);
 
+      // BRAND COLOURS ARE EVIDENCE, NOT TASTE. The schema validates hex SHAPE only, so
+      // a model that ignores rule 3 and picks "colors matching the tone" produces a
+      // palette indistinguishable from a real extraction. Downstream that fiction
+      // reached the storyboard palette, and would have skinned an unbranded film in an
+      // invented identity if the Art Director had not separately refused the "inferred"
+      // tier. Enforce it here instead of trusting the prompt: with no extracted source,
+      // brandColors is empty, and only colours the site ACTUALLY showed survive.
+      const extracted = (intent && intent.website && Array.isArray(intent.website.brandColors))
+        ? intent.website.brandColors.map((c) => String(c).toLowerCase())
+        : [];
+      const before = brief.brandColors.length;
+      brief.brandColors = extracted.length
+        ? brief.brandColors.filter((c) => extracted.includes(String(c).toLowerCase()))
+        : [];
+      if (before && !brief.brandColors.length) {
+        console.log(`[brief] dropped ${before} invented brand colour(s) — none came from the analysed site`);
+      }
+
       // Snap the suggested pack to something installed; honor explicit user choice.
       const userChoice = intent?.preferences?.framePack;
       const wanted = (userChoice && userChoice !== "auto") ? userChoice : brief.suggestedFramePack;

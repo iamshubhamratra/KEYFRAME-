@@ -115,6 +115,11 @@ function storyboardFromScript(script, job, brief) {
   };
   const animFor = (k) => k === "hook" ? "spring" : k === "cta" ? "char-pop" : k === "quote" ? "mask-reveal" : "drift";
   const hex = (c) => { const h = String(c || "").trim(); return /^#?[0-9a-fA-F]{6}$/.test(h) ? (h.startsWith("#") ? h : `#${h}`) : null; };
+  // Only colours the analysed SITE actually showed. brief.brandColors is now filtered
+  // to the extracted set at source (services/brief.js), but this fallback storyboard is
+  // also built for prompt-only jobs where there is no site at all — and it used to take
+  // whatever the brief offered, which is precisely the invented palette the Art Director
+  // refuses. One agent's guard was another's blind spot; both now read the same rule.
   const brand = (Array.isArray(brief?.brandColors) ? brief.brandColors : []).map(hex).filter(Boolean);
   const words = (t) => String(t || "").trim().split(/\s+/).filter(Boolean);
   const sbScenes = scenes.map((sc, i) => {
@@ -180,6 +185,22 @@ function pickVoice(job, script) {
 // state update. `s` carries: job, jobDir, tracker, script, brief, and the
 // artifacts each agent adds.
 
+// The first installed pack that did NOT style one of the last few videos — the
+// deterministic twin of the brief's prompt-level rotation, for when the brief's pick
+// is unavailable. Falls back to the plain default when everything is recent (a small
+// install) or the store is unreadable.
+function rotatedDefaultPack() {
+  try {
+    const recent = new Set(
+      db.listRecent({ limit: 10 }).map((j) => j.framePack).filter(Boolean)
+    );
+    const fresh = frameRegistry.listPacks().find((p) => !recent.has(p));
+    return fresh || null;
+  } catch {
+    return null;
+  }
+}
+
 async function frameSelectorAgent(s) {
   // Only an EXPLICIT, still-installed user pick is honored verbatim. "auto",
   // unset (null), and stale/removed ids are NOT explicit — they must defer to
@@ -191,10 +212,16 @@ async function frameSelectorAgent(s) {
   const explicit = (requested && requested !== "auto")
     ? frameRegistry.resolvePack(requested)   // valid id → that pack; stale id → null
     : null;
-  let framePack = explicit
-    || frameRegistry.resolvePack(s.brief?.suggestedFramePack)
-    || frameRegistry.resolvePack("auto");
-  let via = explicit ? "user" : (frameRegistry.resolvePack(s.brief?.suggestedFramePack) ? "brief" : "default");
+  const fromBrief = frameRegistry.resolvePack(s.brief?.suggestedFramePack);
+  // ROTATION. The brief normally carries it: recentlyUsedPacks() feeds the model a
+  // `recentFramePacks` list and system_brief.md tells it to prefer a pack that is not
+  // in it. But that is a PROMPT instruction on a path that can vanish — if the brief
+  // failed, or suggested a pack that has since been uninstalled, we land on
+  // resolvePack("auto"), which is a fixed default. Every such video would then wear
+  // the same look. Rotate deterministically in exactly that gap.
+  const fallback = explicit || fromBrief ? null : rotatedDefaultPack();
+  let framePack = explicit || fromBrief || fallback || frameRegistry.resolvePack("auto");
+  let via = explicit ? "user" : fromBrief ? "brief" : fallback ? "rotated-default" : "default";
 
   // ON-SCREEN LOCALIZATION ROUTING — a non-Latin video-text language cannot render on the
   // canvas/charset packs. If the pack was auto/brief-picked, swap to a clean pack; if the
@@ -1365,9 +1392,21 @@ async function composeVisual(s) {
 
 // Animation Agent — deterministic timeline audit of the composed HTML:
 // every scene window must be covered by timeline activity, and the known
-// footguns must be absent. Produces warnings; never blocks (QA decides).
+// footguns must be absent.
+//
+// Its findings used to go NOWHERE. `animationReport` was returned into graph state,
+// declared in the Annotation, console.warn'd — and never read by anything: not
+// persisted, not surfaced in the UI, not shown to QA. An agent that detects
+// "likely under-animated" and then whispers it to a log file is not a check, it is
+// a comment. The report now lands on the job (the Premiere panel reads the same
+// validation record as every other disclosure) and its warnings are handed to the
+// QA reviewer, which is the one agent positioned to confirm them against pixels.
 async function animationAgent(s) {
-  if (s.usedFallback) return { animationReport: { warnings: ["fallback composition"] } };
+  if (s.usedFallback) {
+    const report = { tweenCount: 0, sceneCount: 0, warnings: ["fallback composition"] };
+    persistAnimationReport(s, report);
+    return { animationReport: report };
+  }
   let html = "";
   try { html = fs.readFileSync(path.join(s.jobDir, "index.html"), "utf8"); } catch { /* no file */ }
   const warnings = [];
@@ -1377,7 +1416,28 @@ async function animationAgent(s) {
   const sceneCount = (s.storyboard?.scenes || []).length || 1;
   if (tweenCount < sceneCount * 2) warnings.push(`only ${tweenCount} timeline calls for ${sceneCount} scenes — likely under-animated`);
   if (warnings.length) console.warn(`[agents] animation audit: ${warnings.join(" | ")}`);
-  return { animationReport: { tweenCount, warnings } };
+  const report = { tweenCount, sceneCount, tweensPerScene: Math.round((tweenCount / sceneCount) * 10) / 10, warnings };
+  persistAnimationReport(s, report);
+  return { animationReport: report };
+}
+
+// Fold the timeline audit into the job's validation record — the single place the
+// UI already reads for "what is wrong with this film". Fail-open (THE LAW): a
+// disclosure write never touches the render.
+function persistAnimationReport(s, report) {
+  try {
+    const prev = (db.getRaw(s.job.id) || {}).validation_report || null;
+    if (!prev) return;
+    const merged = { ...prev, animation: report };
+    if (report.warnings.length) {
+      merged.warnings = [...(prev.warnings || []), ...report.warnings.map((w) => ({
+        id: "animation",
+        detail: w,
+        fix: "Check the composer's timeline: every scene window needs its own tweens, and hidden states must not be inline transforms.",
+      }))];
+    }
+    db.setValidationReport(s.job.id, merged);
+  } catch { /* never worth a lost render */ }
 }
 
 // Timeline Agent — render (if not already), captions/SRT, audio mix.
@@ -1507,6 +1567,9 @@ async function qaAgentNode(s) {
     framePack: s.framePack,
     workDir: path.join(s.jobDir, "qa"),
     tracker: s.tracker,
+    // The timeline audit can only read HTML; it hands its open questions to the one
+    // reviewer that can settle them against actual pixels.
+    animationWarnings: (s.animationReport && s.animationReport.warnings) || [],
   }).catch((e) => {
     console.warn(`[agents] qa failed (${e.message.slice(0, 120)}); passing by default`);
     return { pass: true, issues: [], error: e.message };
