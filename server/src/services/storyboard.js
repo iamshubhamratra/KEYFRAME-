@@ -152,13 +152,15 @@ async function generateStoryboard({ prompt, duration, orientation, framePack }) 
   const maxTries = (config.llm.storyboardMaxRetries || 2) + 1;
 
   let totalIn = 0, totalOut = 0;
+  // Actual charges reported by the provider, summed across retries/laps.
+  let totalCost = 0, costCalls = 0;
   let lastErrors = [];
   let lastParseError = null;
   let augmentedUser = user;
 
   const system = await getSystem();
   for (let i = 1; i <= maxTries; i++) {
-    const { text, tokensIn, tokensOut } = await openrouter.chat({
+    const { text, tokensIn, tokensOut, costUsd } = await openrouter.chat({
       system,
       user: augmentedUser,
       jsonMode: true,
@@ -166,6 +168,7 @@ async function generateStoryboard({ prompt, duration, orientation, framePack }) 
     });
     totalIn += tokensIn;
     totalOut += tokensOut;
+    if (typeof costUsd === "number") { totalCost += costUsd; costCalls++; }
 
     let storyboard;
     try {
@@ -181,7 +184,7 @@ async function generateStoryboard({ prompt, duration, orientation, framePack }) 
     normalizeTimeline(storyboard, duration);
     const errs = validate(storyboard, { duration, orientation });
     if (errs.length === 0) {
-      return { storyboard, tokensIn: totalIn, tokensOut: totalOut };
+      return { storyboard, tokensIn: totalIn, tokensOut: totalOut, costUsd: costCalls ? totalCost : null };
     }
     lastErrors = errs;
     augmentedUser = `${user}\n\nPrevious attempt had these validation errors — fix them and try again:\n${errs.map(e => `- ${e}`).join("\n")}`;
@@ -192,6 +195,7 @@ async function generateStoryboard({ prompt, duration, orientation, framePack }) 
   );
   err.tokensIn = totalIn;
   err.tokensOut = totalOut;
+  err.costUsd = costCalls ? totalCost : null;
   throw err;
 }
 

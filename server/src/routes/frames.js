@@ -69,6 +69,52 @@ function mediaUrls(name) {
   return { previewUrl: tagged("preview.mp4"), posterUrl: tagged("poster.jpg") };
 }
 
+// Reads a JPEG's pixel dimensions straight from its SOF marker — no ffprobe
+// subprocess, no image lib. Scans the length-prefixed segment chain (SOI, APPn,
+// DQT…) until the first Start-Of-Frame (0xFFC0–0xFFCF, minus DHT/JPG/DAC), where
+// height/width sit at byte offsets +5/+7. Returns null on anything non-standard.
+function jpegDims(buf) {
+  if (buf.length < 4 || buf[0] !== 0xff || buf[1] !== 0xd8) return null;
+  let o = 2;
+  while (o + 9 < buf.length) {
+    if (buf[o] !== 0xff) { o++; continue; }
+    const marker = buf[o + 1];
+    if (marker === 0xff) { o++; continue; }                                // padding
+    if (marker === 0xd8 || marker === 0xd9 || marker === 0x01 ||
+        (marker >= 0xd0 && marker <= 0xd7)) { o += 2; continue; }          // standalone
+    if (marker >= 0xc0 && marker <= 0xcf &&
+        marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
+      return { width: buf.readUInt16BE(o + 7), height: buf.readUInt16BE(o + 5) };
+    }
+    const len = buf.readUInt16BE(o + 2);
+    if (len < 2) return null;
+    o += 2 + len;
+  }
+  return null;
+}
+
+// True when a pack's clip is portrait (9:16-native — the reel/story packs) so
+// the gallery can group it separately and render it in a vertical card instead
+// of cropping a tall clip into a 16:9 box. We read the poster.jpg header (same
+// aspect as preview.mp4, far cheaper than probing the video) and cache the
+// verdict by mtime, so a pack costs one header parse until its preview is
+// regenerated — and a new portrait pack is picked up automatically.
+const _portraitCache = new Map();
+function isPortrait(name) {
+  const file = path.join(PUBLIC_FRAMES, name, "poster.jpg");
+  let st;
+  try { st = fs.statSync(file); } catch { return false; }
+  const hit = _portraitCache.get(file);
+  if (hit && hit.mtime === st.mtimeMs) return hit.portrait;
+  let portrait = false;
+  try {
+    const dims = jpegDims(fs.readFileSync(file));
+    if (dims && dims.width > 0) portrait = dims.height > dims.width * 1.1;
+  } catch { /* fail-open: treat unreadable posters as landscape */ }
+  _portraitCache.set(file, { mtime: st.mtimeMs, portrait });
+  return portrait;
+}
+
 router.get("/frames", (_req, res) => {
   const def = frameRegistry.defaultPack();
   const packs = frameRegistry.listPacks().map((name) => ({
@@ -76,6 +122,7 @@ router.get("/frames", (_req, res) => {
     default: name === def,
     ...packMeta(name),
     ...mediaUrls(name),
+    portrait: isPortrait(name),
     showcaseUrl: frameRegistry.getShowcasePath(name) ? `/api/frames/${name}/showcase` : null,
   }));
   res.json({ packs, defaultPack: def });

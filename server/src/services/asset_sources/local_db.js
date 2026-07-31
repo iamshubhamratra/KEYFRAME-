@@ -55,7 +55,7 @@ function tokenize(q) {
 // return a cached "red apple".
 // `sourceRe` (optional RegExp) restricts hits to entries whose original
 // provider `source` matches — used by PIXABAY_ONLY to keep the cache Pixabay-only.
-function search({ query, type, orientation, limit = 3, sourceRe = null }) {
+function search({ query, type, orientation, limit = 3, sourceRe = null, excludeSourceRe = null }) {
   const idx = load();
   const want = tokenize(query);
   if (!want.length) return [];
@@ -65,6 +65,7 @@ function search({ query, type, orientation, limit = 3, sourceRe = null }) {
     if (type && e.type !== type) continue;
     if (orientation && e.orientation && e.orientation !== orientation && e.orientation !== "all") continue;
     if (sourceRe && !sourceRe.test(e.source || "")) continue;
+    if (excludeSourceRe && excludeSourceRe.test(e.source || "")) continue;
     if (!fs.existsSync(e.file)) continue;
     const overlap = want.filter((w) => e.words.includes(w)).length;
     if (overlap / want.length >= 0.6) scored.push({ score: overlap / want.length, entry: e });

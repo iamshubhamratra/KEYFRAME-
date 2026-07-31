@@ -145,7 +145,7 @@ function bloomArchetype(scene, i, total) {
 const KICK = { title: "~ a little film ~", plant: "chapter one", plate: "a page from the story", cards: "and then, all by itself…", stats: "tended with care", ribbons: "no fuss", cta: "the beginning" };
 
 // ---- scene-type builders  ((scene, ctx, asset) -> { html, s }) ----------------
-function open(id, ctx) { return `<div class="clip bl-scene" id="${id}" data-start="${ctx.T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">`; }
+function open(id, ctx) { return `<div class="clip bl-scene" id="${id}" data-start="${ctx.T}" data-duration="${r(ctx.winL || ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">`; }
 
 function blTitle(scene, ctx) {
   const { id, T, theme, land = true } = ctx;
@@ -393,6 +393,24 @@ function blCta(scene, ctx) {
   return { html, s };
 }
 
+// REF PHOTO — a free pool photo tucked into a text scene as a small pressed-flower
+// snapshot (the family's cream card), so stock/photos that aren't pinned screenshots
+// still reach the film instead of sitting unused. Corner-placed, clear of the copy.
+function blRefPhoto(id, asset, ctx) {
+  const { land = true, T, L } = ctx;
+  const w = land ? 15 : 28, h = land ? 11 : 19;
+  const html = `<div class="bl-ref" id="${id}-ref" style="opacity:0;position:absolute;right:${land ? 4.5 : 6}cqw;bottom:${land ? 7 : 9}cqw;width:${w}cqw;z-index:6;">
+    <div class="card" style="padding:0.9cqw;">
+      <div class="bl-plate-win" style="height:${h}cqw;"><img src="${esc(asset.path)}" alt="${esc(asset.alt || "reference")}"></div>
+    </div>
+  </div>`;
+  const s = [
+    `tl.fromTo("#${id}-ref",{opacity:0,y:22,rotate:-2.5},{opacity:1,y:0,rotate:0,duration:0.62,ease:"back.out(1.4)"},${r(T + 0.9)});`,
+    `tl.fromTo("#${id}-ref img",{scale:1.0},{scale:1.05,duration:${r(Math.max(1.2, L - 1.5))},ease:"sine.inOut"},${r(T + 1.1)});`,
+  ];
+  return { html, s };
+}
+
 const BUILDERS = { title: blTitle, plant: blPlant, plate: blPlate, cards: blCards, stats: blStats, ribbons: blRibbons, cta: blCta };
 
 // ---- meadow chrome + captions (content-independent) --------------------------
@@ -430,6 +448,25 @@ function chromeHtml(theme) {
     <svg class="bl-amb-pt" style="left:82%;top:-6%;width:1.2cqw;height:1.9cqw;" viewBox="0 0 20 32"><ellipse cx="10" cy="16" rx="9" ry="15" fill="${theme.coral}"/></svg>
   </div>
   <div id="caps" class="clip" data-start="0" data-duration="__D__" data-track-index="20"><div id="cap-pill"><div id="cap-text"></div></div></div>`;
+}
+
+// Per-pack typographic treatment from the manifest (`textfx`). Resolved by
+// framePack because no caller passes a manifest — the same reason the family
+// engine had to look it up itself. Targets the composer's own display classes,
+// so it cannot leak into body copy or the script accents.
+function textfxCss(framePack) {
+  let tf = null;
+  try { tf = ((require("./frame_manifest").getManifest(framePack) || {}).textfx) || null; } catch { return ""; }
+  if (!tf) return "";
+  const rules = [];
+  if (String(tf.case).toLowerCase() === "upper") rules.push("text-transform:uppercase");
+  const w = Number(tf.weight);
+  if (Number.isFinite(w) && w >= 100 && w <= 900) rules.push(`font-weight:${Math.round(w)}`);
+  const tr = Number(tf.tracking);
+  if (Number.isFinite(tr) && Math.abs(tr) <= 0.5) rules.push(`letter-spacing:${tr}em`);
+  return rules.length ? `
+.display,.ribbon{${rules.join(";")};}
+` : "";
 }
 
 function styleBlock(theme, land = true) {
@@ -509,11 +546,21 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
     const ends = arch === "title" || arch === "cta";
     if (!ends && byScene.has(sid)) { arch = "plate"; asset = byScene.get(sid); }
     else if (arch === "plant" && pooli < pool.length) { arch = "plate"; asset = pool[pooli++]; }
-    const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), isLast: i === scenes.length - 1, track: 2 + i, dims: { width: W, height: H }, land: W >= H, theme };
+    const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), isLast: i === scenes.length - 1, winL: i === scenes.length - 1 ? r(L + 0.5) : L, track: 2 + i, dims: { width: W, height: H }, land: W >= H, theme };
     const built = (BUILDERS[arch] || blPlant)(scene, ctx, asset);
+    // Weave the free photo pool onto text scenes as a corner snapshot (stock/photos
+    // that aren't pinned screenshots used to go unused — only a plant->plate scene
+    // drew from the pool). Skip opener/closer and any scene already showing a plate.
+    let refScript = [];
+    const textArch = arch === "stats" || arch === "ribbons" || arch === "cards";
+    if (!asset && textArch && pooli < pool.length) {
+      const ref = blRefPhoto(ctx.id, pool[pooli++], ctx);
+      built.html = built.html.replace(/(<div class="clip bl-scene"[^>]*>)/, `$1${ref.html}`);
+      refScript = ref.s;
+    }
     bodyParts.push(built.html);
     sceneStarts.push(T);
-    sceneScripts.push(built.s.join("\n"));
+    sceneScripts.push(built.s.concat(refScript).join("\n"));
     // Scene hand-off: the meadow persists behind every scene, so a scene simply fades
     // its content in and the framework windows the clip out at its data-duration; a
     // boundary opacity:0 hard-kill keeps backward seeks clean. No exit tween on the
@@ -525,7 +572,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
     .filter((c) => c && c.text != null)
     .map((c) => [r(c.start != null ? c.start : c.startSec || 0), r(c.end != null ? c.end : (c.start || 0) + 2), String(c.text)]);
 
-  const chrome = chromeHtml(theme).replace(/__D__/g, String(D));
+  const chrome = chromeHtml(theme).replace(/__D__/g, String(r(D + 0.5)));
 
   const script = `(function(){
   var D=${D};
@@ -571,7 +618,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
   const indexHtml = [
     `<!DOCTYPE html>`, `<html lang="en">`, `<head>`, `<meta charset="utf-8">`, `<title>vid</title>`,
     `<script src="${GSAP_CDN}"></script>`,
-    `<style>`, styleBlock(theme, W >= H), `</style>`, `</head>`, `<body>`,
+    `<style>`, styleBlock(theme, W >= H), textfxCss(framePack), `</style>`, `</head>`, `<body>`,
     `<div id="root" class="composition" data-composition-id="vid" data-width="${W}" data-height="${H}" data-start="0" data-duration="${D}" style="width:${W}px;height:${H}px;">`,
     chrome, bodyParts.join("\n"), `</div>`,
     `<script>`, script, `</script>`, `</body>`, `</html>`,

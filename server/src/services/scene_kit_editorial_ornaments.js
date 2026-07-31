@@ -32,6 +32,7 @@ const EDITORIAL_PACKS = new Set([
   "cartesian", "cobalt-grid", "coral", "creative-mode", "flux-analytics",
   "ledger-noir", "mint-launch", "nimbus-saas", "signal-mono", "vault-gold",
   "sumi-kaze", "orrery-brass", "claymotion", "folk-stitch", "abyssal-glow",
+  "momentum",
 ]);
 
 function buildEditorialOrnaments({ framePack, kind, id, pid, T, L, seed, theme, dims, s0, rgba, esc, sceneIndex, sceneCount }) {
@@ -43,7 +44,42 @@ function buildEditorialOrnaments({ framePack, kind, id, pid, T, L, seed, theme, 
   const reps = (p) => Math.max(1, Math.floor((L - 0.8) / p));
   const idx2 = String((sceneIndex || 0) + 1).padStart(2, "0");
 
-  if (framePack === "bold-poster") {
+  if (framePack === "momentum") {
+    // MOMENTUM — mission-control HUD chrome, straight from its FRAME.md atoms:
+    // thin corner brackets with orange tick accents, a running "SCN 0X / 0N"
+    // mono timecode bottom-left, a huge ghosted "/0X" section number pinned
+    // upper-right (one shade above the ground, structure not decoration), and
+    // a low live audio-waveform line skimming the base edge.
+    const mono = "font-family:'JetBrains Mono',ui-monospace,monospace;";
+    const m = Math.round(Math.min(W, H) * 0.03), bl = Math.round(Math.min(W, H) * 0.032);
+    // corner brackets (4) + a short accent tick riding each horizontal rail
+    [[`M${m + bl} ${m}H${m}V${m + bl}`], [`M${W - m - bl} ${m}H${W - m}V${m + bl}`],
+     [`M${m + bl} ${H - m}H${m}V${H - m - bl}`], [`M${W - m - bl} ${H - m}H${W - m}V${H - m - bl}`]].forEach(([d]) => {
+      sv.push(`<path class="${pid}hk" d="${d}" fill="none" stroke="${rgba(INK, 0.4)}" stroke-width="2" stroke-dasharray="140" stroke-dashoffset="140"/>`);
+    });
+    sv.push(`<line class="${pid}tk" x1="${m + bl + 10}" y1="${m}" x2="${m + bl + 34}" y2="${m}" stroke="${A}" stroke-width="3" opacity="0"/>`);
+    sv.push(`<line class="${pid}tk" x1="${W - m - bl - 34}" y1="${H - m}" x2="${W - m - bl - 10}" y2="${H - m}" stroke="${A}" stroke-width="3" opacity="0"/>`);
+    sc.push(`tl.to("#${id} .${pid}hk",{strokeDashoffset:0,duration:.5,stagger:.07,ease:"power2.out"},${s0(0.25)});`);
+    sc.push(`tl.to("#${id} .${pid}tk",{opacity:.9,duration:.3,stagger:.1},${s0(0.6)});`);
+    // running timecode bottom-left (persists the mission-control feel per scene)
+    const tcN = String((sceneCount || 5)).padStart(2, "0");
+    dv.push(`<div class="${pid}tc" style="position:absolute;left:${m + 4}px;bottom:${m + 6}px;${mono}font-size:${Math.round(Math.min(W, H) * 0.016)}px;letter-spacing:.22em;color:${rgba(INK, 0.55)};opacity:0;">SCN ${idx2} / ${tcN} <span style="color:${A};">●</span></div>`);
+    sc.push(`tl.fromTo("#${id} .${pid}tc",{opacity:0,x:-12},{opacity:1,x:0,duration:.45,ease:"power2.out"},${s0(0.5)});`);
+    // ghosted section number upper-right — one shade above the ground
+    const gfs = Math.round(H * 0.30);
+    dv.push(`<div class="${pid}gn" style="position:absolute;right:${Math.round(W * 0.03)}px;top:${-Math.round(gfs * 0.12)}px;font:800 ${gfs}px/1 ${theme.displayStack};letter-spacing:-.03em;color:${rgba(INK, 0.055)};opacity:0;">/${idx2}</div>`);
+    sc.push(`tl.fromTo("#${id} .${pid}gn",{opacity:0,y:20},{opacity:1,y:0,duration:.7,ease:"power2.out"},${s0(0.35)});`);
+    // live audio waveform skimming the base — drawn once, then its dash crawls
+    const wy = H - m - Math.round(H * 0.012), amp = Math.round(H * 0.012), step = Math.round(W / 56);
+    let wd = `M${m + bl + 46} ${wy}`;
+    for (let x = m + bl + 46; x <= W - m - bl - 46; x += step) {
+      const k = x / W;
+      wd += ` L${x} ${Math.round(wy + Math.sin(k * 30 + (seed % 7)) * amp * (0.35 + 0.65 * Math.abs(Math.sin(k * 9))))}`;
+    }
+    sv.push(`<path class="${pid}wv" d="${wd}" fill="none" stroke="${rgba(A, 0.5)}" stroke-width="1.6" stroke-dasharray="5 4" opacity="0"/>`);
+    sc.push(`tl.to("#${id} .${pid}wv",{opacity:1,duration:.4},${s0(0.55)});`);
+    sc.push(`tl.to("#${id} .${pid}wv",{strokeDashoffset:-180,duration:${Math.max(2, L - 1)},ease:"none"},${s0(0.6)});`);
+  } else if (framePack === "bold-poster") {
     // giant outlined folio numeral, bottom-right, poster-style; CTA fills it
     const fs = Math.round(H * 0.34);
     const fill = kind === "cta" ? A : "transparent";

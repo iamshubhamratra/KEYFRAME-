@@ -31,6 +31,8 @@ const PIXABAY_ONLY = process.env.PIXABAY_ONLY === "1";
 // A cached asset counts as Pixabay when its source is "pixabay" or
 // "pixabay_scrape" (local_db stores the raw provider name).
 const PIXABAY_SOURCE_RE = /^pixabay/;
+// Cache entries written by the image gap-filler (asset_gap_fill.js).
+const GENERATED_SOURCE_RE = /^generated$/;
 
 const PROVIDERS = {
   pixabay: require("./pixabay_api"),
@@ -179,7 +181,14 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
   // were originally sourced from Pixabay, so a pre-existing openverse/pexels/
   // iconify asset can't leak back in through the cache.
   for (const q of queries) {
-    const hits = localDb.search({ query: q, type, orientation, sourceRe: PIXABAY_ONLY ? PIXABAY_SOURCE_RE : null });
+    // AI-generated fills are cached under source "generated" and are reachable
+    // ONLY by the gap-filler that made them — otherwise a job with image
+    // generation switched off would still be served AI imagery from the cache.
+    const hits = localDb.search({
+      query: q, type, orientation,
+      sourceRe: PIXABAY_ONLY ? PIXABAY_SOURCE_RE : null,
+      excludeSourceRe: GENERATED_SOURCE_RE,
+    });
     if (hits.length) {
       const meta = localDb.materialize(hits[0], outputPath);
       if (tracker) tracker.addExternal("asset_cache_hit");

@@ -145,6 +145,14 @@ function deriveTheme(framePack, storyboard, brandSkin) {
     if (!accents.length) accents = ["#7CC4FF", "#FF7DB4", "#FFC878"];
     fonts = [(storyboard && storyboard.fontFamily) || "Inter"];
   }
+  // WEBSITE THEME MATCH (opt-in) — the Art Director attaches the site's OWN ground
+  // color (captured at ingest) when the user asked to match the website's theme.
+  // Adopt it as the film's ground; isDark/ink/dim/line all re-derive from it below,
+  // so a light SaaS site yields a light film and a dark one a dark film — even when
+  // the pack's own ground is the opposite. Accents still come from the brand palette.
+  if (brandSkin && typeof brandSkin.ground === "string" && /^#[0-9a-f]{6}$/i.test(brandSkin.ground)) {
+    ground = brandSkin.ground;
+  }
   const isDark = lum(ground) < 140;
   const flat = manifest ? manifest.surface.flat : (framePack && FLAT_PACKS.has(framePack));
   // Drop any "accent" whose luminance sits too close to the ground (packs often
@@ -242,7 +250,7 @@ function deriveTheme(framePack, storyboard, brandSkin) {
     // washi-taped snapshots on the pack ground instead of full-bleed scrims and
     // glass browser chrome — storybook/scrapbook packs keep their soul in
     // asset-bearing scenes (the "video ignores my template" complaint).
-    assetStyle: ["paper", "washi", "brass", "clay", "stitch", "glow"].includes(lm.assetStyle) ? lm.assetStyle : "default",
+    assetStyle: ["paper", "washi", "brass", "clay", "stitch", "glow", "hud"].includes(lm.assetStyle) ? lm.assetStyle : "default",
   };
   return {
     ground, ink, accents,
@@ -329,6 +337,12 @@ function emitHelpers(D) {
          and skewed with a charge blur, then cracks flat with an aggressive
          back-overshoot (scaleX+skewX ≠ ripple's scaleY, ≠ glitch's small x). */
       + ` if(mode==="zap"){ tl.fromTo(ws,{opacity:0,scaleX:1.4,skewX:-16,filter:"blur(3px)"},{opacity:1,scaleX:1,skewX:0,filter:"blur(0px)",duration:0.46,ease:"back.out(3)",stagger:Math.max(s,0.08)},at); return; }`
+      /* countin — IGNITION's T-minus slam: each word drops from HIGH scale with
+         a motion blur (a countdown digit rushing at the lens) and brakes hard
+         on the baseline. The LONG deliberate stagger is the signature — words
+         land on a countdown cadence (3… 2… 1…), not a ripple. Scale-down+drop
+         +blur+expo (≠ stamp's rotate/power4.in slam, ≠ zap's scaleX skew). */
+      + ` if(mode==="countin"){ tl.fromTo(ws,{opacity:0,scale:2.6,y:-30,filter:"blur(7px)"},{opacity:1,scale:1,y:0,filter:"blur(0px)",duration:0.52,ease:"expo.out",stagger:Math.max(s,0.18)},at); return; }`
       + ` tl.fromTo(ws,{yPercent:80,opacity:0,filter:"blur(8px)"},{yPercent:0,opacity:1,filter:"blur(0px)",duration:0.62,ease:"power3.out",stagger:s},at); }`,
     `function pushIn(sel,at,dur,from,to){ tl.fromTo(sel,{scale:from},{scale:to,duration:dur,ease:"none"},at); }`,
     `function countUp(id,to,at,dur,fmt){ var o={v:0}; tl.to(o,{v:to,duration:dur,ease:"power2.out",snap:{v:1},onUpdate:function(){var el=document.getElementById(id);if(el)el.textContent=fmt(Math.round(o.v));}},at); }`,
@@ -533,6 +547,18 @@ function buildCutLayer(plan, theme, dims, D, motion, seed, track, cutRotation) {
       sc.push(`tl.set("#${id}b",{opacity:1},${r(Tb - 0.16)});`);
       sc.push(`tl.fromTo("#${id}b path",{strokeDashoffset:100},{strokeDashoffset:0,duration:0.15,ease:"none"},${r(Tb - 0.16)});`);
       sc.push(`tl.to("#${id}b",{opacity:0,duration:0.28,ease:"power2.out"},${r(Tb + 0.04)});`);
+    } else if (mcut === "thrust") {
+      // IGNITION's launch wipe: a full-frame column of vertical exhaust streaks
+      // rockets bottom→top across the boundary, its leading edge a hot white
+      // plume fading through ember into the streak field — the frame LIFTS OFF
+      // between scenes. Vertical like panel/submerge, but streaked, fast, and
+      // exhaust-hot (≠ panel's solid slab, ≠ submerge's soft crested wave).
+      const A2c = theme.accent2 || A, Xc = (theme.extras && theme.extras[0]) || A2c;
+      const swc = Math.max(10, Math.round(W * 0.018));
+      els.push(`<div id="${id}" style="position:absolute;left:-6%;right:-6%;top:103%;height:150%;opacity:0;background:linear-gradient(180deg,rgba(255,255,255,0.95),${rgba(A, 0.85)} 9%,${rgba(Xc, 0.4)} 22%,transparent 46%),repeating-linear-gradient(90deg,${rgba(A, 0.9)} 0 ${swc}px,${rgba(theme.ground, 0.94)} ${swc}px ${swc * 2.2}px,${rgba(A2c, 0.8)} ${swc * 2.2}px ${swc * 3.2}px,${rgba(theme.ground, 0.94)} ${swc * 3.2}px ${swc * 4.6}px);"></div>`);
+      sc.push(`tl.set("#${id}",{opacity:1},${r(Tb - 0.34)});`);
+      sc.push(`tl.fromTo("#${id}",{yPercent:0},{yPercent:-172,duration:0.62,ease:"power2.inOut",immediateRender:false},${r(Tb - 0.34)});`);
+      sc.push(`tl.set("#${id}",{opacity:0},${r(Tb + 0.3)});`);
     } else { // glow — luminous pulse riding a motion crossfade
       els.push(`<div id="${id}" style="position:absolute;inset:-10%;opacity:0;background:radial-gradient(52% 52% at 50% 50%,${rgba(cutTint(A, theme), 0.34)},transparent 72%);filter:blur(10px);"></div>`);
       sc.push(`tl.fromTo("#${id}",{opacity:0,scale:0.8},{opacity:1,scale:1.06,duration:0.3,ease:"sine.in"},${r(Tb - 0.3)});`);
@@ -848,6 +874,27 @@ function buildCanvasFx(theme, dims, D, seed, framePack) {
       `cx.globalAlpha=fr<0.1?fr/0.1:1-(fr-0.1)/0.3;cx.beginPath();cx.moveTo(sx,-8);` +
       `for(var j=1;j<=segs;j++){var ny=j/segs*H,nx=sx+(ex-sx)*(j/segs)+(br()-.5)*W*.16;cx.lineTo(nx,ny);if(br()<.32){cx.lineTo(nx+(br()-.5)*W*.14,ny+H*.11);cx.moveTo(nx,ny);}}` +
       `cx.stroke();cx.shadowBlur=0;cx.globalAlpha=1;}`;
+  } else if (mode === "telemetry") {
+    // IGNITION — mission-control ascent: a two-layer starfield drifting DOWN
+    // (the camera rides the vehicle up), hot exhaust embers rising with a
+    // flicker from the lower band, telemetry tick dashes scrolling up the right
+    // margin, and a thin altitude sweep line climbing the whole frame every few
+    // seconds with a bright readout node at its right end. Deterministic (all
+    // motion is a pure function of t) → seek-safe.
+    init =
+      `var TS=[],TE=[],TC1=${JSON.stringify(col(I, ".5"))},TC2=${JSON.stringify(col(I, ".22"))},` +
+      `TEc=${JSON.stringify(col(A, ".85"))},TEg=${JSON.stringify(col(X0, ".7"))},TKc=${JSON.stringify(col(B, ".55"))},SWc=${JSON.stringify(col(B, ".4"))};` +
+      `for(var i=0;i<34;i++)TS.push({x:rnd()*W,y:rnd()*H,r:.5+rnd()*1.4,sp:8+rnd()*26,l:i%3});` +
+      `for(var i=0;i<20;i++)TE.push({x:W*.18+rnd()*W*.64,y:rnd()*H,r:.8+rnd()*2.2,sp:30+rnd()*60,p:rnd()*6.28,c:i%3});`;
+    paint =
+      // starfield falling (ascent illusion): far layer slow+faint, near quicker
+      `for(var i=0;i<TS.length;i++){var s=TS[i],y=((s.y+t*s.sp)%(H+12)+H+12)%(H+12)-6;cx.globalAlpha=s.l?.5:.9;cx.fillStyle=s.l?TC2:TC1;cx.beginPath();cx.arc(s.x,y,s.r,0,6.283);cx.fill();}cx.globalAlpha=1;` +
+      // rising exhaust embers with flicker (warm accent + amber)
+      `for(var i=0;i<TE.length;i++){var e=TE[i],y=H-(((e.y+t*e.sp)%(H*.9)+H*.9)%(H*.9)),x=e.x+Math.sin(t*1.1+e.p)*10;cx.globalAlpha=(.25+.6*Math.abs(Math.sin(t*2.1+e.p)))*(y/H*.5+.5);cx.fillStyle=e.c===2?TEg:TEc;cx.beginPath();cx.arc(x,y,e.r,0,6.283);cx.fill();}cx.globalAlpha=1;` +
+      // telemetry tick column scrolling up the right margin
+      `cx.strokeStyle=TKc;cx.lineWidth=1.6;var to_=(t*34)%28;for(var y2=-28;y2<H+28;y2+=28){var yy=y2+28-to_;var big=(Math.floor((y2+2800)/28)%5)===0;cx.beginPath();cx.moveTo(W-8,yy);cx.lineTo(W-(big?26:15),yy);cx.stroke();}` +
+      // altitude sweep line climbing every ~4.6s + readout node
+      `var sph=(t/4.6)%1,sy=H*(1.04-sph*1.08);var lg=cx.createLinearGradient(0,0,W,0);lg.addColorStop(0,"rgba(0,0,0,0)");lg.addColorStop(.5,SWc);lg.addColorStop(1,SWc);cx.globalAlpha=sph<.08?sph/.08:(sph>.9?(1-sph)/.1:1);cx.strokeStyle=SWc;cx.lineWidth=1;cx.beginPath();cx.moveTo(0,sy);cx.lineTo(W,sy);cx.stroke();cx.fillStyle=TKc;cx.fillRect(W-34,sy-3,20,6);cx.globalAlpha=1;`;
   } else { // bokeh
     init = `var BK=[],KC=[${JSON.stringify(col(A, ".3"))},${JSON.stringify(col(B, ".24"))}];for(var i=0;i<24;i++)BK.push({x:rnd()*W,y:rnd()*H,r:5+rnd()*22,s:.2+rnd()*.7,p:rnd()*6.28,c:i%2});`;
     paint = `for(var i=0;i<BK.length;i++){var b=BK[i],y=(b.y-t*7*b.s%H+H)%H,x=b.x+Math.sin(t*b.s*.7+b.p)*22;var g=cx.createRadialGradient(x,y,0,x,y,b.r);g.addColorStop(0,KC[b.c]);g.addColorStop(1,"rgba(0,0,0,0)");cx.globalAlpha=.5+.5*Math.sin(t*.9+b.p)*.4;cx.fillStyle=g;cx.beginPath();cx.arc(x,y,b.r,0,6.283);cx.fill();}cx.globalAlpha=1;`;
@@ -1554,6 +1601,14 @@ function buildSkinOrnaments(kind, ctx, framePack) {
     const { buildPapertalesOrnaments } = require("./scene_kit_papertales_ornaments");
     const t = buildPapertalesOrnaments({ kind, id, pid, T, L, seed, theme, dims, s0, rgba, esc, scene, sceneIndex, sceneCount, sbTitle });
     sv.push(...t.sv); dv.push(...t.dv); sc.push(...t.sc);
+  } else if (require("./scene_kit_ignition_ornaments").IGNITION_PACKS.has(framePack)) {
+    // IGNITION — the launch-countdown mission-control pack. Prop family:
+    // T-minus countdown ring, right-margin telemetry readout column, dotted
+    // trajectory ascent arc with a climbing vessel, launch-pad status lights +
+    // engine-start spark burst on the CTA, thin HUD corner brackets everywhere.
+    const { buildIgnitionOrnaments } = require("./scene_kit_ignition_ornaments");
+    const t = buildIgnitionOrnaments({ framePack, kind, id, pid, T, L, seed, theme, dims, s0, rgba, mix, esc, scene, sceneIndex, sceneCount });
+    sv.push(...t.sv); dv.push(...t.dv); sc.push(...t.sc);
   } else if (require("./scene_kit_charged_ornaments").CHARGED_PACKS.has(framePack)) {
     // KALEIDO + VOLTAGE — the 2026-07-22 color-adaptive showcase packs. Their
     // prop families (kaleido: central mandala + pulse rings + spoke rays +
@@ -1562,6 +1617,17 @@ function buildSkinOrnaments(kind, ctx, framePack) {
     // Every hue is a theme color, so a brand/user accent recolors the whole pack.
     const { buildChargedOrnaments } = require("./scene_kit_charged_ornaments");
     const t = buildChargedOrnaments({ framePack, kind, id, pid, T, L, seed, theme, dims, s0, rgba, mix, esc, scene, sceneIndex, sceneCount });
+    sv.push(...t.sv); dv.push(...t.dv); sc.push(...t.sc);
+  } else if (require("./scene_kit_hearth_ornaments").HEARTH_PACKS.has(framePack)) {
+    // HEARTH TRIO — the 2026-07-25 wave imported from the user's bundled dc/x-dc
+    // reel templates (daybreak-bakehouse / organic-garden / lantern-night). The
+    // templates ARE their worlds, so each pack carries its film's living
+    // furniture: sunrise counter + steam + swaying pendant lamps · rolling sage
+    // hills + drifting petals + growing stems · rising glow-lanterns + moon +
+    // fireflies + water shimmer. All hues come from the THEME so a brand skin
+    // re-tints the whole world.
+    const { buildHearthOrnaments } = require("./scene_kit_hearth_ornaments");
+    const t = buildHearthOrnaments({ framePack, kind, id, pid, T, L, seed, theme, dims, s0, rgba, esc, scene, sceneIndex, sceneCount });
     sv.push(...t.sv); dv.push(...t.dv); sc.push(...t.sc);
   } else if (require("./scene_kit_bespoke_ornaments").BESPOKE_PACKS.has(framePack)) {
     // BESPOKE-WAVE — the five 2026-07-18 packs (sumi-kaze / orrery-brass /
@@ -1822,6 +1888,34 @@ function emphasisBlock(theme, id) {
       const bolt = `<svg xmlns='http://www.w3.org/2000/svg' width='26' height='8' viewBox='0 0 26 8'><path d='M0 6 L5 2 L9 5 L14 1 L18 5 L22 2 L26 6' fill='none' stroke='${a2}' stroke-width='2' stroke-linejoin='round' stroke-linecap='round'/></svg>`;
       return `${sel}{color:${a};text-shadow:0 0 .35em ${rgba(a, 0.75)},0 0 1em ${rgba(a, 0.4)};}` +
         `${sel}::after{content:"";display:block;height:.34em;margin-top:.04em;background-image:url("data:image/svg+xml,${encodeURIComponent(bolt)}");background-repeat:repeat-x;background-size:auto 100%;filter:drop-shadow(0 0 .12em ${rgba(a2, 0.8)});}`;
+    }
+    case "bullet": {
+      // MOMENTUM: the single hot word — set in the accent ink with a solid
+      // accent square pinned to its left (the FRAME.md's "small solid orange
+      // square bullet"). ::before inline-block so it rides the word's own
+      // entrance transform; static layout, so no lint/measure churn.
+      return `${sel}{color:${a};}${sel}::before{content:"";display:inline-block;width:.3em;height:.3em;background:${a};margin-right:.22em;vertical-align:.06em;}`;
+    }
+    case "reticle": {
+      // IGNITION: HUD target-lock — the word burns in the ember accent under a
+      // heat glow, locked inside corner brackets built from 8 gradient strips
+      // (2 per corner, the classic CSS bracket trick — scales with the type,
+      // no SVG distortion) on ::after, plus mid-edge crosshair ticks on
+      // ::before. Reads as the guidance computer locking onto the key word.
+      const g = `linear-gradient(${a2},${a2})`;
+      const corners = [
+        `${g} 0 0/.32em .06em`, `${g} 0 0/.06em .32em`,
+        `${g} 100% 0/.32em .06em`, `${g} 100% 0/.06em .32em`,
+        `${g} 0 100%/.32em .06em`, `${g} 0 100%/.06em .32em`,
+        `${g} 100% 100%/.32em .06em`, `${g} 100% 100%/.06em .32em`,
+      ].join(",");
+      const ticks = [
+        `${g} 50% 0/.2em .05em`, `${g} 50% 100%/.2em .05em`,
+        `${g} 0 50%/.05em .2em`, `${g} 100% 50%/.05em .2em`,
+      ].join(",");
+      return `${sel}{position:relative;color:${a};text-shadow:0 0 .4em ${rgba(a, 0.55)};}` +
+        `${sel}::after{content:"";position:absolute;inset:-.14em -.24em;background:${corners};background-repeat:no-repeat;opacity:.92;pointer-events:none;}` +
+        `${sel}::before{content:"";position:absolute;inset:-.22em -.34em;background:${ticks};background-repeat:no-repeat;opacity:.55;pointer-events:none;}`;
     }
     case "gradient":
     default: {
@@ -2564,7 +2658,9 @@ function archScreenshotHero(scene, ctx) {
   const chipCss = theme.gradients
     ? `background:${mix(theme.ground, "#ffffff", 0.10)};border:1px solid ${theme.line};box-shadow:0 12px 28px rgba(0,0,0,0.4);border-radius:11px;`
     : `background:${theme.ground};border:2px solid ${theme.ink};box-shadow:4px 4px 0 ${theme.accent};border-radius:8px;`;
-  const chipFs = Math.max(13, Math.round(dims.height * 0.024));
+  // Chip type scales on the MIN dimension — height-based sizing gave portrait
+  // (H=1920) ~46px pills that overflowed the mount and clipped mid-word.
+  const chipFs = Math.max(13, Math.round(Math.min(dims.width, dims.height) * 0.024));
   const annEls = [], annLines = [], annScript = [];
   notes.forEach((txt, k) => {
     const sl = slots[k % slots.length];
@@ -2774,13 +2870,16 @@ function paperTape(pos, tilt) {
 function paperSnapshotBg(asset, ctx, isVideo) {
   const { theme, id, T, L, dims } = ctx;
   const land = dims.width >= dims.height;
-  const w = Math.round(dims.width * (land ? 0.24 : 0.4));
+  // Landscape sizing keeps the snapshot's TOP edge below the bullets/stat card
+  // row (cards span mid-frame down to ~0.62H on text/stat beats, and this mat
+  // is allow-occlusion, so the layout pass will NOT rescue a collision here).
+  const w = Math.round(dims.width * (land ? 0.21 : 0.4));
   const h = Math.round(w * 0.68);
   const media = isVideo
     ? `<video id="${id}vid" src="${esc(asset.path)}" muted playsinline preload="auto" style="width:100%;height:100%;object-fit:cover;filter:saturate(0.85) contrast(1.02);"></video>`
     : `<img src="${esc(asset.path)}" alt="" style="width:100%;height:100%;object-fit:cover;filter:saturate(0.82) contrast(1.02);">`;
   const html = `<div id="${id}bg" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${ctx.bgTrack}" data-layout-allow-occlusion style="opacity:0;">
-  <div style="position:absolute;right:4.5%;bottom:13%;transform:rotate(-3.4deg);">
+  <div style="position:absolute;right:4.5%;bottom:${land ? "3.5%" : "13%"};transform:rotate(-3.4deg);">
     <div id="${id}bgi" style="position:relative;${PAPER_MAT}${paperShadow(1)}padding:10px 10px 30px;">
       <div style="width:${w}px;height:${h}px;overflow:hidden;border-radius:3px;">${media}</div>
       ${paperTape("left:-14px;top:-9px;", -18)}${paperTape("right:-14px;top:-9px;", 14)}
@@ -2805,10 +2904,30 @@ function paperSnapshotBg(asset, ctx, isVideo) {
 // contract as the paper treatment. Chrome is pure CSS + tiny extra spans; the
 // animated element is the INNER mount (wrapper carries the static rotation so
 // GSAP entrances can't clobber it — same lesson as paperSnapshotBg).
-const MOUNT_STYLES = new Set(["washi", "brass", "clay", "stitch", "glow"]);
+const MOUNT_STYLES = new Set(["washi", "brass", "clay", "stitch", "glow", "hud"]);
 function mountChrome(theme) {
   const st = theme.layout.assetStyle;
   const A = theme.accent, B = theme.accent2 || theme.accent;
+  if (st === "hud") {
+    // ignition / momentum: a mission-control readout panel — the media sits in
+    // a near-black card with a 1px ink-alpha border, accent target-lock corner
+    // brackets outside the frame, a live status dot and an accent tick rail —
+    // every screenshot reads as a feed the guidance computer is watching.
+    const brk = (pos, bd) => `<span data-layout-allow-occlusion style="position:absolute;${pos}width:15px;height:15px;${bd}border-color:${B};"></span>`;
+    return {
+      rot: 0,
+      mat: `background:${rgba(theme.ground, 0.8)};border:1px solid ${rgba(theme.ink, 0.2)};border-radius:9px;padding:11px;box-shadow:0 16px 40px rgba(0,0,0,.5),0 0 26px ${rgba(A, 0.12)};`,
+      inner: "border-radius:5px;",
+      extras:
+        brk("left:-6px;top:-6px;", "border-left:2.5px solid;border-top:2.5px solid;") +
+        brk("right:-6px;top:-6px;", "border-right:2.5px solid;border-top:2.5px solid;") +
+        brk("left:-6px;bottom:-6px;", "border-left:2.5px solid;border-bottom:2.5px solid;") +
+        brk("right:-6px;bottom:-6px;", "border-right:2.5px solid;border-bottom:2.5px solid;") +
+        `<span data-layout-allow-occlusion style="position:absolute;left:11px;top:-4px;width:34px;height:3px;background:${A};border-radius:2px;"></span>` +
+        `<span data-layout-allow-occlusion style="position:absolute;right:14px;bottom:-4px;width:8px;height:8px;border-radius:50%;background:${A};box-shadow:0 0 8px ${rgba(A, 0.9)};"></span>`,
+      floatEase: "sine.inOut",
+    };
+  }
   if (st === "washi") {
     // sumi-kaze: warm washi mat, thin sumi keyline, a vermillion hanko chip
     // sealing the bottom-right corner — every image reads as a mounted print.
@@ -2906,6 +3025,11 @@ function themedSnapshotBg(asset, ctx, isVideo) {
 function scrimBg(asset, ctx) {
   const { theme, id, T, L } = ctx;
   if (!asset) return null;
+  // A leftover VECTOR is never snapshot/scrim material: cover-cropping flat art
+  // reads as a blank placeholder in a polaroid (and worse full-bleed — a site's
+  // decorative blob SVG once shipped as the CTA "photo"). No bg beats a blob;
+  // the pack ground + ornaments carry the scene.
+  if (/\.svg([?#]|$)/i.test(String(asset.path || ""))) return null;
   if (theme.layout.assetStyle === "paper") return paperSnapshotBg(asset, ctx, false);
   if (MOUNT_STYLES.has(theme.layout.assetStyle)) return themedSnapshotBg(asset, ctx, false);
   const g = theme.ground;
@@ -2982,6 +3106,25 @@ function assetAffinity(scene, role) {
     if (has(/\b(story|team|people|customer|journey|world|life|human|real|community|founder)\b/)) s += 2;
   }
   return s;
+}
+
+// Pick the leftover screenshot whose page label/alt best matches THIS scene's
+// own copy (keyword overlap) — so a locations crop never fronts the pricing
+// beat just because it was next in the pool. Pinned (sceneId) shots never
+// reach these pools; this guards the UNPINNED landing/scroll leftovers. Ties
+// (no topical signal either way) keep the original pool order.
+function takeBestShot(pool, scene) {
+  if (!pool || !pool.length) return null;
+  const sceneTxt = `${scene.headline || ""} ${scene.subtext || ""} ${(Array.isArray(scene.bullets) ? scene.bullets : []).join(" ")} ${scene.voiceover || ""} ${scene.purpose || ""}`.toLowerCase();
+  const words = new Set(sceneTxt.match(/[a-z]{4,}/g) || []);
+  let best = 0, bestScore = -1;
+  for (let i = 0; i < pool.length; i++) {
+    const label = String(pool[i].alt || pool[i].label || "").toLowerCase();
+    let score = 0;
+    for (const w of label.match(/[a-z]{4,}/g) || []) if (words.has(w)) score++;
+    if (score > bestScore) { bestScore = score; best = i; }
+  }
+  return pool.splice(best, 1)[0];
 }
 
 function pickNumber(scene) {
@@ -3142,6 +3285,7 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
   // a weak hero/tile cheapens the whole film. Low photos fall to scrim B-roll; low
   // vectors/screenshots simply drop (there is no gentle background use for them).
   const prominentOk = (a) => !!a && !a.lowQuality && (a.source === "website"
+    || a.source === "website-image" // the site's OWN downloaded images — owner content, show them big (hero/tile), not just scrim
     || a.source === "blog" // the post's own images — owner content, always showable
     || a.source === "iconify"
     || String(a.source || "").startsWith("library:")
@@ -3262,7 +3406,7 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
     const target = shotWeavable
       .map((p) => ({ p, s: assetAffinity(p.scene, "screenshot") + (p.build === archFeatureGrid ? 0.25 : 0) }))
       .sort((a, b) => b.s - a.s || a.p.i - b.p.i)[0].p;
-    target.ctx.asset = pools.screenshots.shift(); target.build = archScreenshotHero; usedShot = true;
+    target.ctx.asset = takeBestShot(pools.screenshots, target.scene); target.build = archScreenshotHero; usedShot = true;
     target.ctx.kicker = target.scene.kicker || target.scene.emphasis || "Live preview";
   }
 
@@ -3290,7 +3434,7 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
       const pool = pools[splitPools[0]].length ? splitPools[0] : splitPools[1];
       p.ctx.asset = pools[pool].shift(); p.build = archSplitVector;
     } else if (pools.screenshots.length) {
-      p.ctx.asset = pools.screenshots.shift(); p.build = archScreenshotHero;
+      p.ctx.asset = takeBestShot(pools.screenshots, p.scene); p.build = archScreenshotHero;
       p.ctx.kicker = p.scene.kicker || p.scene.emphasis || "Live preview";
     }
   }
@@ -3455,9 +3599,9 @@ function scriptStart(scenes, i) { let s = 0; for (let k = 0; k < i; k++) s += sc
 // six packs shipped cuts that didn't exist). scripts/audit-identity.js validates
 // every manifest against these sets in CI; extend the set in the SAME change
 // that implements the new style.
-const CUT_STYLES = new Set(["glow", "wipe", "push", "whip", "flash", "wash", "panel", "iris", "cut", "fade", "inkblot", "clockwipe", "smear", "weave", "submerge", "shatter", "strike"]);
-const TEXT_ENTERS = new Set(["blur-up", "slide", "spring", "mask-reveal", "line-wipe", "drift", "typewriter", "char-pop", "glitch", "flap", "stamp", "brush", "pendulum", "squash", "stitch", "ripple", "bloom", "zap"]);
-const EMPHASIS_STYLES = new Set(["gradient", "glow", "boxed", "marker", "underline-grow", "bracket", "scribble", "hanko", "ring", "clay", "embroider", "echo", "prism", "volt"]);
-const CANVAS_MODES = new Set(["bokeh", "flow", "grid", "rays", "confetti", "constellation", "prism", "ribbon", "sprinkle", "halftone", "paper", "none", "sumi", "orrery", "clay", "stitch", "caustics", "kaleido", "electric"]);
+const CUT_STYLES = new Set(["glow", "wipe", "push", "whip", "flash", "wash", "panel", "iris", "cut", "fade", "inkblot", "clockwipe", "smear", "weave", "submerge", "shatter", "strike", "thrust"]);
+const TEXT_ENTERS = new Set(["blur-up", "slide", "spring", "mask-reveal", "line-wipe", "drift", "typewriter", "char-pop", "glitch", "flap", "stamp", "brush", "pendulum", "squash", "stitch", "ripple", "bloom", "zap", "countin"]);
+const EMPHASIS_STYLES = new Set(["gradient", "glow", "boxed", "marker", "underline-grow", "bracket", "scribble", "hanko", "ring", "clay", "embroider", "echo", "prism", "volt", "reticle", "bullet"]);
+const CANVAS_MODES = new Set(["bokeh", "flow", "grid", "rays", "confetti", "constellation", "prism", "ribbon", "sprinkle", "halftone", "paper", "none", "sumi", "orrery", "clay", "stitch", "caustics", "kaleido", "electric", "telemetry"]);
 
 module.exports = { buildComposition, deriveTheme, FLAT_PACKS, CUT_STYLES, TEXT_ENTERS, EMPHASIS_STYLES, CANVAS_MODES };

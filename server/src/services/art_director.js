@@ -147,27 +147,38 @@ function buildUser({ subject, framePack, packVibe, candidates }) {
 
 async function buildSkin({ subject, framePack, packVibe, candidates, tracker, signal }) {
   const user = buildUser({ subject, framePack, packVibe, candidates });
-  const { text, tokensIn, tokensOut } = await openrouter.chat({
+  const { text, tokensIn, tokensOut, costUsd } = await openrouter.chat({
     system: SYSTEM, user, jsonMode: true, stage: "art_director",
     model: ard().model, temperature: 0.2, signal,
   });
-  if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "art_director" });
+  if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "art_director", costUsd: costUsd });
   return sanitizeSkin(extractFirstJsonObject(text), candidates);
 }
 
 // ---------------------------------------------------------------- main
 // Thin fail-open wrapper (mirrors directAudio): flag-gate, run, persist, and
 // ALWAYS return either a usable brand skin or null (pack keeps its own accents).
-async function directBrand({ jobId, brandColors, subject, brief, framePack, packVibe, tracker, signal }) {
+async function directBrand({ jobId, brandColors, subject, brief, framePack, packVibe, tracker, signal, siteBg, matchTheme }) {
   const colors = Array.isArray(brandColors) ? brandColors : ((brief && brief.brandColors) || []);
   const candidates = distillAccents(colors, 5);
   const subj = String(subject || (brief && brief.subject) || "").trim();
 
-  // Nothing usable in the extracted palette → let the pack own its accents.
-  if (!candidates.length) return null;
+  // GROUND MATCH (opt-in): when the source is a website and the user asked to match
+  // its theme, the film adopts the SITE's own ground color (light/dark), applied in
+  // scene_kit.deriveTheme. Attach it to the accent skin — or to a ground-only skin
+  // when the brand palette is too dull for accents, so the theme still matches.
+  const groundHex = (matchTheme && typeof siteBg === "string" && /^#[0-9a-f]{6}$/i.test(siteBg)) ? siteBg.toUpperCase() : null;
+  const withGround = (skin) => {
+    if (!groundHex) return skin;
+    return { ...(skin || { source: "site-theme" }), ground: groundHex };
+  };
+
+  // Nothing usable in the extracted palette → keep the pack's accents (but still
+  // apply the ground match if requested).
+  if (!candidates.length) return withGround(null);
   // Disabled → deterministic skin (still an improvement over ignoring brand color).
   if (!ard().enabled) {
-    const skin = defaultBrandSkin(colors);
+    const skin = withGround(defaultBrandSkin(colors));
     if (jobId && skin) { try { db.setBrandReview(jobId, skin); } catch { /* best effort */ } }
     return skin;
   }
@@ -178,12 +189,13 @@ async function directBrand({ jobId, brandColors, subject, brief, framePack, pack
     // to the deterministic skin ONLY if the brand palette is strongly vivid (so a
     // clearly-branded product still gets its color even on a terse model reply).
     if (!skin && vividness(candidates[0]) >= 0.45) skin = defaultBrandSkin(colors);
+    skin = withGround(skin);
     if (jobId && skin) { try { db.setBrandReview(jobId, skin); } catch { /* best effort */ } }
-    console.log(`[art_director] job ${jobId || "?"}: brand skin = ${skin ? `${skin.accents.join(", ")} (${skin.source})` : "none (pack accents kept)"}`);
+    console.log(`[art_director] job ${jobId || "?"}: brand skin = ${skin ? `${(skin.accents || []).join(", ") || "(pack accents kept)"}${skin.ground ? ` · ground ${skin.ground}` : ""} (${skin.source})` : "none (pack accents kept)"}`);
     return skin;
   } catch (e) {
     console.warn(`[art_director] failed (${String((e && e.message) || e).slice(0, 140)}) — deterministic brand skin`);
-    return defaultBrandSkin(colors);
+    return withGround(defaultBrandSkin(colors));
   }
 }
 

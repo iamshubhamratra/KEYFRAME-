@@ -34,6 +34,7 @@ const { withBudget, attemptLlmComposition, mixAudioIntoVideo, fallbackQueriesFor
 const { acquire, hasProviderFor } = require("./asset_sources");
 const { captureTopicShots, mergeShots } = require("./screenshot_director");
 const { blogImageAssets } = require("./blog_assets");
+const { websiteImageAssets } = require("./website_assets");
 const { qaGateScreenshots } = require("./screenshot_qa");
 
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
@@ -101,11 +102,26 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
         intent.website = {
           url: website.url, title: website.title, description: website.description,
           headings: website.headings, bodyText: website.bodyText,
+          // What the product says each of its capabilities DOES (heading + the copy
+          // under it), and the names of its own sections. Without these the brief
+          // only saw bare headings and nav-heavy body text, so `keyMessages` came
+          // back as vibes — and the script, which may state "facts only from the
+          // brief", then had nothing product-specific it was allowed to say.
+          featureCopy: website.featureCopy || [],
+          sitePages: (website.pageLinks || []).map((p) => p && p.text).filter(Boolean).slice(0, 24),
           brandColors: website.brandColors, ogImage: website.ogImage,
           hasRealScreenshots: (website.screenshotPaths || []).length,
         };
         job.website_screenshot = website.screenshotPath;
         job.website_screenshots = website.screenshotPaths || (website.screenshotPath ? [website.screenshotPath] : []);
+        // The site's OWN downloaded images (hero graphics/product shots) + its
+        // ground color — woven into the film + used to match the video's theme.
+        job.website_images = website.siteImages || [];
+        // The site's brand mark, pinned into the film's CTA/logo slot by the packs
+        // that ask for one (family.wantsLogo -> template_engine).
+        job.website_logo = website.siteLogo || null;
+        job.website_bg = website.siteBg || null;
+        job.website_dark = website.siteDark;
         job.website_title = website.title;
         // Internal link map for the Screenshot Director (topic-matched page
         // captures at production time). Persisted with the job like the shots.
@@ -152,7 +168,7 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
       const t0 = ms();
       db.setProgress(jobId, "brief");
       const briefRes = await withBudget((signal) => generateBrief({ intent, signal }), intakeBudgetMs, "brief stage");
-      tracker.addLlm({ inputTokens: briefRes.tokensIn, outputTokens: briefRes.tokensOut, stage: "brief" });
+      tracker.addLlm({ inputTokens: briefRes.tokensIn, outputTokens: briefRes.tokensOut, stage: "brief", costUsd: briefRes.costUsd });
       timings.briefMs = ms() - t0;
       brief = briefRes.brief;
     }
@@ -163,7 +179,7 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
     const tScript = ms();
     db.setProgress(jobId, "script");
     const scriptRes = await withBudget((signal) => generateScript({ brief, signal }), intakeBudgetMs, "script stage");
-    tracker.addLlm({ inputTokens: scriptRes.tokensIn, outputTokens: scriptRes.tokensOut, stage: "script" });
+    tracker.addLlm({ inputTokens: scriptRes.tokensIn, outputTokens: scriptRes.tokensOut, stage: "script", costUsd: scriptRes.costUsd });
     timings.scriptMs = ms() - tScript;
 
     db.markScriptReview(jobId, {
@@ -391,8 +407,10 @@ async function acquireScriptAssets({ job, script, jobDir, orientation, tracker }
   // Blog mode: the post's own images join as pinned owner-content assets on
   // scenes the screenshots didn't claim.
   const blogPins = blogImageAssets({ job, script, jobDir, skipSceneIds: new Set(shots.map((a) => String(a.sceneId))) });
-  console.log(`[project] assets: ${shots.length} real screenshot(s) (${shots.filter((a) => /page_/.test(a.path)).length} topic-matched) + ${blogPins.length} blog image(s) + ${got.length}/${picks.length} acquired (${got.filter((a) => a.fromCache).length} from cache)`);
-  return [...shots, ...blogPins, ...got];
+  // Website mode: the site's OWN downloaded images (hero graphics/product shots).
+  const sitePins = websiteImageAssets({ job, script, jobDir, skipSceneIds: new Set([...shots, ...blogPins].map((a) => String(a.sceneId))) });
+  console.log(`[project] assets: ${shots.length} real screenshot(s) (${shots.filter((a) => /page_/.test(a.path)).length} topic-matched) + ${blogPins.length} blog image(s) + ${sitePins.length} site image(s) + ${got.length}/${picks.length} acquired (${got.filter((a) => a.fromCache).length} from cache)`);
+  return [...shots, ...blogPins, ...sitePins, ...got];
 }
 
 async function runProduction({ jobId }) {
@@ -412,7 +430,9 @@ async function runProduction({ jobId }) {
   const jobDir = jobDirFor(jobId);
   fs.mkdirSync(jobDir, { recursive: true });
 
-  const tracker = new UsageTracker();
+  // Continue the bill intake already started (brief + script), the same way
+  // timings below carry over — otherwise markDone's usage overwrite drops them.
+  const tracker = UsageTracker.from(job.usage);
   const timings = job.stage_timings ? { ...job.stage_timings } : {};
   const markStage = (name, startAt) => { timings[name + "Ms"] = ms() - startAt; };
 
@@ -485,7 +505,7 @@ async function runProduction({ jobId }) {
       db.setProgress(jobId, "storyboard");
       const sbPrompt = storyboardPromptFromScript(script, brief);
       const sbRes = await generateStoryboard({ prompt: sbPrompt, duration, orientation: job.orientation });
-      tracker.addLlm({ inputTokens: sbRes.tokensIn, outputTokens: sbRes.tokensOut, stage: "storyboard" });
+      tracker.addLlm({ inputTokens: sbRes.tokensIn, outputTokens: sbRes.tokensOut, stage: "storyboard", costUsd: sbRes.costUsd });
       markStage("storyboard", t0);
 
       // TEXT DIRECTOR — fill headline-only scenes with subtext/bullets/emphasis

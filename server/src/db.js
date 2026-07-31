@@ -283,6 +283,14 @@ module.exports = {
     scheduleWrite();
   },
 
+  // Template Director report (which authored template scene each beat was cast
+  // as, how many carry media, and any unsourced numbers the fact guard dropped).
+  setTemplateReview(id, review) {
+    const j = jobs.get(id); if (!j) return;
+    j.template_review = review || null;
+    scheduleWrite();
+  },
+
   // Audio degradation notes (silent-shipping must never be silent to the user).
   setAudioNotes(id, notes) {
     const j = jobs.get(id); if (!j) return;

@@ -10,6 +10,7 @@ const { getComposerSkills } = require("./skills");
 const { getCatalogSummary } = require("./catalog");
 const frameRegistry = require("./frame_registry");
 const { extractFirstJsonObject } = require("./json_lenient");
+const { alignmentReport } = require("./av_align");
 
 const SYSTEM_BASE = fs.readFileSync(
   path.join(__dirname, "..", "prompts", "system_composer.md"),
@@ -211,7 +212,26 @@ function buildUser(storyboard, { width, height, fps, availableAssets, framePack,
     assetInstruction = "No image/video assets were pre-fetched, so do NOT include any <img> or <video> tags. Your OWN generated vector graphics are then the PRIMARY material, not a fallback: dense animated SVG in EVERY scene — particle/bokeh fields (8–14 <circle>s drifting at varied speeds), drawing lines/underlines (<path> strokeDashoffset), rotating icons, burst marks, animated gradient meshes — layered continuously so a fresh visual element ENTERS or EXITS the frame at least once every 1–2 seconds. Walk your timeline second-by-second; any ~1.5s dead stretch is a FAILURE. A text-only frame is a FAILURE.";
   }
 
+  // COPY LAW — stated before the storyboard so it frames everything after it.
+  //
+  // The narration is produced from each scene's `voiceover` and mixed in OVER
+  // that scene. Nothing else in this prompt tied the words on screen to the
+  // words being spoken, and the model reliably drifted: a measured premium film
+  // narrated "Still hunting deals everywhere?" while the screen read "INDIA'S
+  // ULTIMATE / One App. Everything.", with six of eight scenes showing copy
+  // lifted off the client's website instead of the scene's own script.
+  const copyLaw =
+    "COPY LAW (highest priority — a composition that breaks this is REJECTED): every scene's on-screen words must be THAT scene's own copy. " +
+    "Scene N's `onScreenText` is its display typography — render those lines in scene N, verbatim or lightly restyled (case/punctuation only). " +
+    "A voice-over is generated from scene N's `voiceover` and plays OVER scene N, so the screen must be talking about the same thing the narrator is: " +
+    "if the narrator says \"Still hunting deals everywhere?\", the screen shows that scene's line (\"Deals everywhere?\") — NOT a headline invented for it. " +
+    "NEVER move a scene's copy to a different scene, never carry text over from the previous scene, and never source headlines from asset alt text, " +
+    "the website's own marketing sections, or your own invention. `voiceover` is the narration — do NOT print it verbatim as a subtitle (captions are handled separately); " +
+    "use it only to keep the visible words on topic. Scenes with no `onScreenText` carry the beat with type drawn from that scene's `visualDirection` and `voiceover` subject — never with another scene's words.";
+
   const lines = [
+    copyLaw,
+    "",
     "Storyboard:",
     JSON.stringify(sb, null, 2),
     "",
@@ -602,6 +622,8 @@ async function compose(storyboard, { width, height, fps, duration, maxRetries, a
   const enforceVectors = !(storyboard && storyboard.__lintFeedback);
   const tries = (maxRetries ?? 2) + 1;
   let totalIn = 0, totalOut = 0;
+  // Actual charges reported by the provider, summed across retries/laps.
+  let totalCost = 0, costCalls = 0;
   let lastErrors = [];
   // The storyboard+asset `user` prefix is constant across laps; only this
   // feedback suffix changes. Passing them separately lets the LLM client cache
@@ -611,7 +633,7 @@ async function compose(storyboard, { width, height, fps, duration, maxRetries, a
   for (let i = 1; i <= tries; i++) {
     if (abortSignal?.aborted) throw abortSignal.reason || new Error("composer aborted");
     console.log(`[composer] attempt ${i}/${tries} — sending to LLM`);
-    const { text, tokensIn, tokensOut } = await openrouter.chat({
+    const { text, tokensIn, tokensOut, costUsd } = await openrouter.chat({
       system,
       user,
       userSuffix: feedback,
@@ -621,6 +643,7 @@ async function compose(storyboard, { width, height, fps, duration, maxRetries, a
     });
     totalIn += tokensIn;
     totalOut += tokensOut;
+    if (typeof costUsd === "number") { totalCost += costUsd; costCalls++; }
 
     let env;
     try {
@@ -638,6 +661,21 @@ async function compose(storyboard, { width, height, fps, duration, maxRetries, a
       width, height, duration, assets: availableAssets, enforceVectors,
       sceneCount: Array.isArray(storyboard?.scenes) ? storyboard.scenes.length : 3,
     });
+    // A/V ALIGNMENT — the prompt states the COPY LAW, this proves it. A film
+    // whose screen contradicts its narration is broken however beautiful it is,
+    // so a failure here is retried with the offending scenes named. Deterministic,
+    // no LLM, no render.
+    try {
+      const align = alignmentReport({
+        html: env.indexHtml,
+        scenes: Array.isArray(storyboard?.scenes) ? storyboard.scenes : [],
+        brand: storyboard?.brand, title: storyboard?.title,
+      });
+      if (align.issues.length) {
+        console.warn(`[composer] attempt ${i} A/V alignment ${Math.round(align.ratio * 100)}% (${align.matched}/${align.counted} scenes on-script)`);
+        errs.push(...align.issues);
+      }
+    } catch (e) { /* never block a build on the checker itself */ }
     if (errs.length === 0) {
       console.log(`[composer] success in ${Date.now() - t0}ms (tokens in=${totalIn} out=${totalOut})`);
       return {
@@ -645,6 +683,7 @@ async function compose(storyboard, { width, height, fps, duration, maxRetries, a
         metaJson: env.metaJson,
         tokensIn: totalIn,
         tokensOut: totalOut,
+        costUsd: costCalls ? totalCost : null,
       };
     }
     lastErrors = errs;
@@ -663,6 +702,7 @@ async function compose(storyboard, { width, height, fps, duration, maxRetries, a
         metaJson: env.metaJson,
         tokensIn: totalIn,
         tokensOut: totalOut,
+        costUsd: costCalls ? totalCost : null,
       };
     }
 
@@ -683,6 +723,7 @@ async function compose(storyboard, { width, height, fps, duration, maxRetries, a
   );
   err.tokensIn = totalIn;
   err.tokensOut = totalOut;
+  err.costUsd = costCalls ? totalCost : null;
   throw err;
 }
 

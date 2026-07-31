@@ -95,11 +95,13 @@ async function generateBrief({ intent, signal }) {
   );
 
   let totalIn = 0, totalOut = 0;
+  // Actual charges reported by the provider, summed across retries/laps.
+  let totalCost = 0, costCalls = 0;
   let lastErr = "";
   let userMsg = user;
 
   for (let attempt = 1; attempt <= 2; attempt++) {
-    const { text, tokensIn, tokensOut } = await openrouter.chat({
+    const { text, tokensIn, tokensOut, costUsd } = await openrouter.chat({
       system: SYSTEM,
       user: userMsg,
       jsonMode: true,
@@ -109,6 +111,7 @@ async function generateBrief({ intent, signal }) {
     });
     totalIn += tokensIn;
     totalOut += tokensOut;
+    if (typeof costUsd === "number") { totalCost += costUsd; costCalls++; }
 
     try {
       const raw = parseLenient(text);
@@ -156,7 +159,7 @@ async function generateBrief({ intent, signal }) {
 
       const repeated = recentFramePacks[0] && recentFramePacks[0] === brief.suggestedFramePack;
       console.log(`[brief] ok on attempt ${attempt} (pack=${brief.suggestedFramePack}${repeated ? " — repeats the previous video's pack" : ""}, duration=${brief.suggestedDuration}s)`);
-      return { brief, tokensIn: totalIn, tokensOut: totalOut };
+      return { brief, tokensIn: totalIn, tokensOut: totalOut, costUsd: costCalls ? totalCost : null };
     } catch (e) {
       lastErr = e instanceof z.ZodError ? JSON.stringify(e.issues).slice(0, 800) : e.message;
       console.warn(`[brief] attempt ${attempt} invalid: ${lastErr.slice(0, 300)}`);

@@ -51,6 +51,32 @@ const isWebStock = (a) => {
   return STOCK_SOURCES.some((p) => s.includes(p));
 };
 
+// A real product SCREENSHOT (the site's own UI) — the most on-topic asset for a
+// product/tool film and what a viewer expects to SEE. Source "website" =
+// captured page shot; path markers cover the screenshot-director outputs.
+const isScreenshot = (a) => {
+  const s = String((a && a.source) || "").toLowerCase();
+  if (s === "website" || s.includes("screenshot")) return true;
+  return /(?:^|[\\/])(?:page_|site_|screenshot|shot_)/i.test(String((a && a.path) || ""));
+};
+// A bare PERSON / PORTRAIT — read from the vision model's own `sees` description
+// (preferred) or the asset's alt text. A scraped testimonial headshot on a
+// product film trips this; the site's UI screenshot does not.
+const looksLikePerson = (a) => {
+  const t = `${String((a && a.sees) || "")} ${String((a && a.alt) || "")}`;
+  if (isScreenshot(a)) return false;
+  return /\b(person|people|man|woman|men|women|guy|lady|face|portrait|headshot|selfie|human|posing|model|smiling|businessman|businesswoman|team member|staff|employee)\b/i.test(t);
+};
+// Is the FILM about people (team/founders/testimonials/agency…)? Then a face is
+// on-topic and stays eligible for prominence. Otherwise (a product/tool/SaaS
+// film) a bare person must not headline it.
+const isPersonSubject = (subj, categoryText) =>
+  /\b(team|people|founder|portrait|profile|hiring|recruit|community|agency|creator|influencer|coach|therapist|doctor|staff|\bhr\b|culture|leadership|testimonial|about us|about-us|nonprofit|charity|personal brand)\b/i
+    .test(`${subj || ""} ${categoryText || ""}`);
+// Scenes where a human face is contextually right (a testimonial/quote/team beat).
+const isPeopleScene = (scene) =>
+  /\b(proof|testimonial|quote|review|social|team|customer|story|voices?)\b/i.test(`${(scene && scene.kind) || ""} ${(scene && scene.purpose) || ""}`);
+
 function cd() {
   // Merge defaults key-by-key: a PARTIAL config block (e.g. CREATIVE_DIRECTOR=1
   // creates { enabled: true } with no tuning keys) must not leave maxPerScene/
@@ -113,6 +139,51 @@ function normScores(raw) {
   return out;
 }
 
+// ---- Craft verdict (merged in from the former standalone Asset Director) ----
+// The vision pass that judges relevance/prominence now ALSO returns how each asset
+// should be fitted and animated, so a job pays for ONE set of image tokens instead
+// of two (the old asset_director re-uploaded the very same thumbnails). scene_kit
+// reads a.kind / a.fit / a.focus / a.effect / a.lowQuality when it places and
+// animates each asset. asset_director.js survives as the CREATIVE_DIRECTOR=0
+// fallback — see graph.js.
+const KINDS = new Set(["vector", "shot", "photo"]);
+const FITS = new Set(["contain", "cover"]);
+const FOCI = new Set(["top", "center", "bottom"]);
+const EFFECTS = new Set(["pop", "rise", "blur-in", "zoom", "draw", "float"]);
+const QUALITY = new Set(["high", "ok", "low"]);
+
+// Copy only recognised enum values onto the asset; drop anything the model
+// invented. Returns true when at least one field landed. Fail-open by omission:
+// an absent/garbage field leaves the asset untouched and the kit falls back to
+// its own fit heuristics.
+function applyCraft(a, v) {
+  if (!a || !v) return false;
+  let hit = false;
+  if (KINDS.has(v.kind))     { a.kind = v.kind;     hit = true; }
+  if (FITS.has(v.fit))       { a.fit = v.fit;       hit = true; }
+  if (FOCI.has(v.focus))     { a.focus = v.focus;   hit = true; }
+  if (EFFECTS.has(v.effect)) { a.effect = v.effect; hit = true; }
+  if (QUALITY.has(v.quality)) {
+    a.quality = v.quality;
+    if (v.quality === "low") a.lowQuality = true;
+    hit = true;
+  }
+  return hit;
+}
+
+// What the file is likely to be, from its provenance. The old asset director was
+// handed this as `kindHint`; the merged call keeps the same evidence so `kind`
+// corrections stay as accurate as before.
+function kindHintFor(a) {
+  const src = String((a && a.source) || "");
+  if (src === "website") return "website screenshot";
+  if (src === "website-logo") return "the brand's own logo mark — never crop it";
+  if (src === "blog") return "image from the source blog post";
+  if (src === "iconify" || src.startsWith("library:")) return "flat vector/icon";
+  if (/\.svg($|\?)/i.test(String((a && a.path) || ""))) return "svg vector";
+  return null;
+}
+
 // One batched vision review over up to `chunkSize` assets. Returns a Map keyed by
 // the ABSOLUTE index into `assets` -> verdict object, or an empty Map on failure
 // (fail-open: callers leave those assets untouched).
@@ -141,11 +212,13 @@ async function reviewChunk({ chunk, baseIndex, subject, categoryText, packText, 
     const clipHint = typeof a.clipRelevance === "number"
       ? `CLIP subject-match: ${a.clipRelevance} (${a.clipRelevance < 0.15 ? "LOW — likely off-topic" : a.clipRelevance > 0.5 ? "high" : "moderate"})`
       : "";
+    const hint = kindHintFor(a);
     const meta = [
       `source: ${a.source || "?"}`,
       a.alt ? `query: "${String(a.alt).slice(0, 60)}"` : "",
       `type: ${a.type}`,
       a.width && a.height ? `dims: ${a.width}x${a.height}` : "",
+      hint ? `looks like: ${hint}` : "",
       clipHint,
       isWebStock(a) ? "web-stock (rejectable)" : "trusted (owned/curated — do not reject for relevance)",
     ].filter(Boolean).join(" · ");
@@ -153,11 +226,11 @@ async function reviewChunk({ chunk, baseIndex, subject, categoryText, packText, 
     content.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${x.b}` } });
   });
 
-  const { text, tokensIn, tokensOut } = await openrouter.chat({
+  const { text, tokensIn, tokensOut, costUsd } = await openrouter.chat({
     system: SYSTEM, user: content, jsonMode: true, stage: "creative_director",
     model: cd().model, temperature: 0, signal,
   });
-  if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "creative_director" });
+  if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "creative_director", costUsd: costUsd });
 
   const parsed = extractFirstJsonObject(text);
   const verdicts = Array.isArray(parsed && parsed.verdicts) ? parsed.verdicts : [];
@@ -190,11 +263,11 @@ async function reviewAudio({ subject, script, audioPlan, sceneCount, tracker, si
       `{"musicAnalysis":{"classification":"inspirational|corporate|premium|futuristic|energetic|cinematic","fitScore":0-100,"introSuitable":true|false,"featureSuitable":true|false,"ctaSuitable":true|false,"keep":true|false,"suggestedQuery":"<better query if keep=false, else empty>","note":"<one line>"},`,
       `"soundEffectAnalysis":{"recommend":["entry","transition","highlight","cta"],"reject":["<any cheap/redundant names>"],"note":"<one line>"}}`,
     ].join("\n");
-    const { text, tokensIn, tokensOut } = await openrouter.chat({
+    const { text, tokensIn, tokensOut, costUsd } = await openrouter.chat({
       system: "You are a meticulous audio director for premium promo videos. Strict JSON only.",
       user, jsonMode: true, stage: "creative_director", model: cd().model, temperature: 0.2, signal,
     });
-    if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "creative_director" });
+    if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "creative_director", costUsd: costUsd });
     const parsed = extractFirstJsonObject(text);
     return {
       musicAnalysis: (parsed && parsed.musicAnalysis) || {},
@@ -269,6 +342,7 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
   const assetScores = {};
   const rejectedAssets = [];
   const toDelete = new Set(); // indices into `visual`
+  let craftDirected = 0;      // assets that got fit/focus/effect/kind from this pass
   visual.forEach((a, i) => {
     const v = verdicts.get(i);
     if (!v) return; // unreviewed -> untouched (fail-open)
@@ -286,6 +360,8 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
       if (sid != null) a.sceneId = sid;
     }
     if (v.sectionType) a.sectionType = String(v.sectionType).slice(0, 20);
+    // Same verdict, no second upload: how this asset is cropped and animated.
+    if (applyCraft(a, v)) craftDirected++;
 
     const rejected = String(v.decision || "").trim().toLowerCase() === "reject" || a.cdProminence === "reject";
     if (rejected && isWebStock(a)) {
@@ -299,6 +375,32 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
       a.visionOk = a.cdProminence === "hero" || a.cdProminence === "support";
     }
   });
+
+  // ---- 2b) TOPIC / TYPE RELEVANCE GUARD ----
+  // A film ABOUT A PRODUCT/TOOL must SHOW the product, not a stray person. The
+  // vision gate never deletes trusted website content, so a scraped testimonial
+  // headshot (source "website-image") could headline a Notion/SaaS film — exactly
+  // the "why is there a random person instead of the screenshot?" bug. Unless the
+  // film is explicitly about people, demote a bare-person/portrait image OUT of
+  // the hero/support slots (it can still scrim as background) so the real product
+  // screenshots win the stage. A face is still allowed on a testimonial/proof/
+  // team scene, where it belongs.
+  const personFilm = isPersonSubject(subj, categoryText);
+  if (!personFilm) {
+    const sceneById = new Map();
+    for (const s of scenes || []) { if (s && s.id != null) { sceneById.set(s.id, s); sceneById.set(String(s.id), s); } }
+    let demoted = 0;
+    for (const a of visual) {
+      if (a.__rejected || !looksLikePerson(a)) continue;
+      const scene = sceneById.get(a.sceneId) || sceneById.get(String(a.sceneId));
+      const okHere = isPeopleScene(scene);           // a face fits a testimonial/proof beat
+      if (a.cdProminence === "hero" && !okHere) { a.cdProminence = "support"; }
+      if ((a.cdProminence === "hero" || a.cdProminence === "support") && !okHere) {
+        a.cdProminence = "background"; a.visionOk = false; a.__personDemoted = true; demoted++;
+      }
+    }
+    if (demoted) console.log(`[creative-director] ${demoted} bare-person image(s) demoted from prominent slots (film subject "${subj}" is not about people) — product screenshots take the stage`);
+  }
 
   // ---- 3) Guardrails: quality-over-quantity cap + never-zero ----
   // Cap prominent assets per scene: keep the top `maxPerScene` by score, demote
@@ -315,7 +417,10 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
   // Rank prominent slots by the CD's score blended with CLIP pixel-relevance, so a
   // genuinely on-subject image wins the hero slot over a higher-talked-up but
   // weaker-matching one (CLIP 0..1 contributes up to ~30 pts against cdScore 0..100).
-  const rankScore = (a) => (a.cdScore || 0) + (typeof a.clipRelevance === "number" ? a.clipRelevance * 30 : 0);
+  // A real product SCREENSHOT is the most on-topic asset for a product film and
+  // what viewers expect to SEE — give it a decisive bonus so it wins the hero slot
+  // over a scraped brand image (e.g. a testimonial face) on the same scene.
+  const rankScore = (a) => (a.cdScore || 0) + (typeof a.clipRelevance === "number" ? a.clipRelevance * 30 : 0) + (isScreenshot(a) ? 45 : 0);
   for (const arr of byScene.values()) {
     arr.sort((x, y) => rankScore(y) - rankScore(x));
     arr.slice(Math.max(1, maxPerScene)).forEach((a) => { a.visionOk = false; a.cdProminence = "background"; });
@@ -395,6 +500,7 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
           a.cdScore = scores.overall; a.sees = v.sees || null;
           const prom = String(v.prominence || "background").toLowerCase();
           a.cdProminence = prom; a.visionOk = prom === "hero" || prom === "support";
+          if (applyCraft(a, v)) craftDirected++;
           curated.push(a);
         } else {
           // No verdict (thumbnail failed, model omitted/misnumbered the entry) —
@@ -460,6 +566,7 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
     },
     qualityScore,
     category: cat,
+    craftDirected,
     creativeDirectorNotes: notes.slice(0, 20),
   };
 
@@ -477,7 +584,7 @@ async function reviewAndCurate({ jobId, ...rest }) {
   try {
     const { assets, report } = await directAssets(rest);
     if (jobId) { try { db.setCreativeReview(jobId, report); } catch { /* best effort */ } }
-    console.log(`[creative_director] job ${jobId || "?"}: ${report.approvedAssets.length} approved / ${report.rejectedAssets.length} rejected, quality=${report.qualityScore}, ${report.creativeDirectorNotes.length} note(s)`);
+    console.log(`[creative_director] job ${jobId || "?"}: ${report.approvedAssets.length} approved / ${report.rejectedAssets.length} rejected, quality=${report.qualityScore}, ${report.craftDirected} craft-directed, ${report.creativeDirectorNotes.length} note(s)`);
     return assets;
   } catch (e) {
     console.warn(`[creative_director] failed (${String(e && e.message || e).slice(0, 140)}) — ${original.length} asset(s) fall back to the legacy vision gate`);

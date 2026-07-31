@@ -2,12 +2,15 @@
 // Exposes chat() returning { text, tokensIn, tokensOut, model }.
 //
 // Provider cascade (per call):
-//   1. PRIMARY  — KIE AI (config.llm.primary.model, e.g. grok-4-5). Two wire
-//      formats, selected by primary.api: "responses" (xAI/OpenAI Responses API —
-//      the ONLY surface KIE exposes for Grok) or the default OpenAI-compatible
-//      /chat/completions (the older Gemini-on-KIE route).
-//   2. FALLBACK — OpenRouter primary model (config.llm.model, e.g. minimax-m3)
-//   3. FALLBACK — OpenRouter secondary model (config.llm.modelFallback)
+//   1. PRIMARY  — KIE AI (config.llm.primary.model, e.g. grok-4-5), premium
+//      creative stages only. Two wire formats, selected by primary.api:
+//      "responses" (xAI/OpenAI Responses API — the ONLY surface KIE exposes for
+//      Grok) or the default OpenAI-compatible /chat/completions.
+//   2. KIE ROUTE — when the stage's model id is a "kie:<route>" alias
+//      (config.llm.kieRoutes), it dispatches to KIE too. That is how every
+//      non-premium stage runs Gemini 3.6 Flash off KIE instead of OpenRouter.
+//   3. FALLBACK — OpenRouter primary model (config.llm.model)
+//   4. FALLBACK — OpenRouter secondary model (config.llm.modelFallback)
 //
 // Any failure of the KIE primary (timeout / 429 / 5xx / auth / empty body)
 // transparently falls back to OpenRouter so a single provider outage never
@@ -90,26 +93,68 @@ function withTimeoutSignal(external, timeoutMs, timeoutMsg) {
   return { signal, clear: () => clearTimeout(timer) };
 }
 
-// ---------- PRIMARY: KIE AI via raw fetch ----------
-// primary.api === "responses": xAI/OpenAI Responses API (KIE's only Grok
-// surface — verified live: /chat/completions 422s "model not supported" for
-// grok-4-5, /responses works). Request: { model, input:[messages], stream,
-// temperature, text.format for JSON mode }. Reply: output[] carrying a
-// "reasoning" item (grok-4-5 is a reasoning model) + a "message" item whose
-// content[] holds { type:"output_text", text }; usage is input_tokens/
-// output_tokens (output INCLUDES reasoning tokens — billed accordingly).
-// Any other primary.api value = legacy OpenAI-compatible /chat/completions.
+// ---------- KIE AI via raw fetch ----------
+// One client, two roles:
+//   * PRIMARY (config.llm.primary) — the premium creative stages.
+//   * NAMED ROUTES (config.llm.kieRoutes) — any model id written "kie:<route>"
+//     dispatches here instead of OpenRouter, so a stage names a KIE-served
+//     model exactly the way it names an OpenRouter one.
+//
+// Two wire formats, selected by <route>.api:
+//   "responses" — xAI/OpenAI Responses API, KIE's only Grok surface (verified
+//     live: /chat/completions 422s "model not supported" for grok-4-5).
+//     Request: { model, input:[messages], stream, temperature, text.format for
+//     JSON mode }. Reply: output[] carrying a "reasoning" item (grok-4-5 is a
+//     reasoning model) + a "message" item whose content[] holds
+//     { type:"output_text", text }; usage is input_tokens/output_tokens (output
+//     INCLUDES reasoning tokens — billed accordingly).
+//   anything else — OpenAI-compatible /chat/completions (the Gemini-on-KIE
+//     routes). Standard messages/choices/usage shapes, and it accepts the
+//     multimodal content arrays the vision stages send (verified live with a
+//     base64 data: image_url part).
+//
 // KIE's Cloudflare edge kills non-streamed responses that take longer than
-// ~100-125s with a 524 — which is every big composer/storyboard call on a
-// reasoning model. STREAM those instead: SSE keeps bytes flowing so the edge
-// never times out. Verified live: KIE emits standard OpenAI Responses-API SSE
-// (response.output_text.delta carrying {delta}, response.completed carrying
-// usage). Short stages keep the simple non-streamed path.
+// ~100-125s with a 524 — which is every big composer/storyboard call. STREAM
+// those instead: SSE keeps bytes flowing so the edge never times out. Both
+// surfaces speak standard SSE (verified live): Responses emits
+// response.output_text.delta + response.completed; /chat/completions emits
+// chat.completion.chunk with choices[].delta.content then a choice-less final
+// chunk carrying usage. Short stages keep the simple non-streamed path.
 const KIE_STREAM_ABOVE_MS = 150_000;
+const KIE_ALIAS = /^kie:(.+)$/;
 
-async function readKieSse(resp) {
+// Resolve a "kie:<route>" model id into a complete provider descriptor. Returns
+// null when the id is not an alias, or when the route has no usable key (the
+// caller then falls through to OpenRouter). An alias naming a route that does
+// not exist is a config typo — throw rather than silently bill a wrong model.
+function kieRoute(modelId) {
+  const m = KIE_ALIAS.exec(String(modelId || ""));
+  if (!m) return null;
+  const route = (config.llm.kieRoutes || {})[m[1]];
+  if (!route) throw new Error(`llm: unknown KIE route "${m[1]}" — add it to config.llm.kieRoutes`);
+  // Routes share the KIE account key by default; an entry may still carry its own.
+  const apiKey = route.apiKey || config.llm.primary?.apiKey || process.env.KIE_API_KEY;
+  if (!apiKey) {
+    console.warn(`[kie] route ${modelId} has no API key — falling back to OpenRouter`);
+    return null;
+  }
+  return { ...route, apiKey, alias: modelId };
+}
+
+// A 200-OK reply that is unusable: empty, or — in JSON mode — not parseable as
+// an object (gemini's intermittent "lazy stop" returns finish_reason:"stop"
+// with a truncated body). It is NOT an HTTP error, so callers synthesize a
+// retryable one from this instead of handing the pipeline junk.
+function badCompletionReason(text, jsonMode, finish, tokensOut) {
+  if (!String(text || "").trim()) return `empty completion (finish=${finish}, out=${tokensOut})`;
+  if (!jsonMode) return null;
+  try { extractFirstJsonObject(text); return null; }
+  catch { return `truncated/unparseable JSON (finish=${finish}, out=${tokensOut}, ${text.length}ch)`; }
+}
+
+async function readKieSse(resp, responsesApi) {
   const decoder = new TextDecoder();
-  let buf = "", text = "", usage = null, completed = false;
+  let buf = "", text = "", usage = null, credits = null, completed = false;
   for await (const chunk of resp.body) {
     buf += decoder.decode(chunk, { stream: true });
     let idx;
@@ -121,22 +166,29 @@ async function readKieSse(resp) {
         if (!payload || payload === "[DONE]") continue;
         let ev;
         try { ev = JSON.parse(payload); } catch { continue; }
-        if (ev.type === "response.output_text.delta" && typeof ev.delta === "string") text += ev.delta;
-        else if (ev.type === "response.completed") { usage = ev.response?.usage || null; completed = true; }
-        else if (ev.type === "response.failed" || ev.type === "error") {
-          throw new Error(`kie stream: ${JSON.stringify(ev).slice(0, 200)}`);
+        if (typeof ev.credits_consumed === "number") credits = ev.credits_consumed;
+        if (responsesApi) {
+          if (ev.type === "response.output_text.delta" && typeof ev.delta === "string") text += ev.delta;
+          else if (ev.type === "response.completed") { usage = ev.response?.usage || null; completed = true; }
+          else if (ev.type === "response.failed" || ev.type === "error") {
+            throw new Error(`kie stream: ${JSON.stringify(ev).slice(0, 200)}`);
+          }
+        } else {
+          const delta = ev.choices?.[0]?.delta?.content;
+          if (typeof delta === "string") text += delta;
+          if (ev.usage) { usage = ev.usage; completed = true; }
+          if (ev.error) throw new Error(`kie stream: ${JSON.stringify(ev.error).slice(0, 200)}`);
         }
       }
     }
   }
-  if (!text) throw new Error(`kie stream: no output_text received (completed=${completed})`);
-  return { text, usage };
+  if (!text) throw new Error(`kie stream: no output text received (completed=${completed})`);
+  return { text, usage, credits };
 }
 
-async function callKie({ messages, jsonMode, temperature, timeoutMs, stage, signal: external }) {
-  const p = config.llm.primary;
+async function callKie(p, { messages, jsonMode, temperature, maxTokens, timeoutMs, stage, signal: external }) {
   const responsesApi = p.api === "responses";
-  const streaming = responsesApi && Number(timeoutMs) > KIE_STREAM_ABOVE_MS;
+  const streaming = Number(timeoutMs) > KIE_STREAM_ABOVE_MS;
   const url = `${p.baseUrl.replace(/\/$/, "")}/${responsesApi ? "responses" : "chat/completions"}`;
   const body = responsesApi
     ? {
@@ -148,8 +200,11 @@ async function callKie({ messages, jsonMode, temperature, timeoutMs, stage, sign
     : {
         model: p.model,
         messages,
-        stream: false, // KIE defaults stream:true — must force false for a single JSON response
+        // KIE defaults stream:true — always send it explicitly so a short stage
+        // gets one JSON body and a long one gets the edge-safe SSE.
+        stream: streaming,
         temperature: temperature ?? config.llm.temperature,
+        ...(maxTokens ? { max_tokens: maxTokens } : {}),
       };
   if (jsonMode) {
     if (responsesApi) body.text = { format: { type: "json_object" } };
@@ -172,12 +227,15 @@ async function callKie({ messages, jsonMode, temperature, timeoutMs, stage, sign
     // Streaming path (long stages): accumulate SSE deltas. Errors still arrive
     // as JSON (in-body {code,msg} or HTTP status) — detect by content-type.
     if (streaming && resp.ok && String(resp.headers.get("content-type") || "").includes("text/event-stream")) {
-      const { text, usage } = await readKieSse(resp);
+      const { text, usage, credits } = await readKieSse(resp, responsesApi);
       const dtS = Date.now() - t0;
-      const tokensInS = usage?.input_tokens ?? 0;
-      const tokensOutS = usage?.output_tokens ?? 0;
-      console.log(`[kie] ${p.model} stage=${stage || "?"} ok (${dtS}ms streamed, in=${tokensInS} out=${tokensOutS}, ${text.length}ch)`);
-      return { text, tokensIn: tokensInS, tokensOut: tokensOutS, model: p.model };
+      const tokensInS = (responsesApi ? usage?.input_tokens : usage?.prompt_tokens) ?? 0;
+      const tokensOutS = (responsesApi ? usage?.output_tokens : usage?.completion_tokens) ?? 0;
+      const badS = badCompletionReason(text, jsonMode, "stream", tokensOutS);
+      if (badS) { const e = new Error(`kie: ${badS}`); e.retryable = true; throw e; }
+      const creditsS = credits == null ? "" : `, ${credits} credits`;
+      console.log(`[kie] ${p.model} stage=${stage || "?"} ok (${dtS}ms streamed, in=${tokensInS} out=${tokensOutS}${creditsS}, ${text.length}ch)`);
+      return { text, tokensIn: tokensInS, tokensOut: tokensOutS, model: p.alias || p.model };
     }
 
     const dt = Date.now() - t0;
@@ -204,21 +262,24 @@ async function callKie({ messages, jsonMode, temperature, timeoutMs, stage, sign
       throw err;
     }
 
-    let text;
+    let text, finish;
     if (responsesApi) {
       const msg = (Array.isArray(data.output) ? data.output : []).find((o) => o && o.type === "message");
       const part = (Array.isArray(msg?.content) ? msg.content : []).find((c) => c && c.type === "output_text");
       text = part?.text ?? "";
+      finish = data.status;
     } else {
       text = data.choices?.[0]?.message?.content ?? "";
-    }
-    if (!text) {
-      throw new Error(`kie: empty content in response: ${rawText.slice(0, 200)}`);
+      finish = data.choices?.[0]?.finish_reason;
     }
     const tokensIn = (responsesApi ? data.usage?.input_tokens : data.usage?.prompt_tokens) ?? 0;
     const tokensOut = (responsesApi ? data.usage?.output_tokens : data.usage?.completion_tokens) ?? 0;
-    console.log(`[kie] ${p.model} stage=${stage || "?"} ok (${dt}ms, in=${tokensIn} out=${tokensOut}, ${text.length}ch)`);
-    return { text, tokensIn, tokensOut, model: p.model };
+    // Retryable rather than fatal: the KIE loop in chat() re-asks, then escalates.
+    const bad = badCompletionReason(text, jsonMode, finish, tokensOut);
+    if (bad) { const e = new Error(`kie: ${bad}`); e.retryable = true; throw e; }
+    const credits = typeof data.credits_consumed === "number" ? `, ${data.credits_consumed} credits` : "";
+    console.log(`[kie] ${p.model} stage=${stage || "?"} ok (${dt}ms, in=${tokensIn} out=${tokensOut}${credits}, ${text.length}ch)`);
+    return { text, tokensIn, tokensOut, model: p.alias || p.model };
   } catch (err) {
     const dt = Date.now() - t0;
     const tag = err?.status || err?.code || err?.name || err?.message?.slice(0, 80) || "unknown";
@@ -237,6 +298,11 @@ async function callKie({ messages, jsonMode, temperature, timeoutMs, stage, sign
 async function callOnce({ body, timeoutMs, stage, model, signal: external }) {
   const MAX_ATTEMPTS = 3;
   let lastErr;
+  // Tokens the provider BILLED for attempts we then discarded. A "bad completion"
+  // below is a 200 OK that already generated — and was charged for — its output;
+  // we throw it away and retry. Only the winning attempt used to report tokens, so
+  // every retry was invisible spend and the job's usage read below the real bill.
+  let wastedIn = 0, wastedOut = 0, wastedCost = 0;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     if (external?.aborted) throw external.reason || new Error("call aborted");
     const { signal, clear: hardTimer } = withTimeoutSignal(external, timeoutMs, "call timed out");
@@ -248,27 +314,32 @@ async function callOnce({ body, timeoutMs, stage, model, signal: external }) {
       const finish = resp.choices?.[0]?.finish_reason;
       const tokensIn = resp.usage?.prompt_tokens ?? 0;
       const tokensOut = resp.usage?.completion_tokens ?? 0;
+      // What OpenRouter actually charged (usage.include). null when the provider
+      // omitted it, in which case callers fall back to the price-table estimate.
+      const costUsd = typeof resp.usage?.cost === "number" ? resp.usage.cost : null;
 
-      // Guard against gemini's intermittent "lazy stop": a 200-OK response
-      // (finish_reason usually "stop") whose body is empty or — in JSON mode — a
-      // truncated/unbalanced object. It is NOT an HTTP error, so without this the
-      // caller gets junk and re-hits the same flaky model. Synthesize a retryable
-      // error so the loop retries this model, then chat() escalates to the fallback.
+      // Guard against gemini's intermittent "lazy stop" (see badCompletionReason):
+      // without this the caller gets junk and re-hits the same flaky model.
+      // Synthesize a retryable error so the loop retries this model, then chat()
+      // escalates to the fallback.
       const wantsJson = body?.response_format?.type === "json_object";
-      let badCompletion = null;
-      if (!text.trim()) {
-        badCompletion = `empty completion (finish=${finish}, out=${tokensOut})`;
-      } else if (wantsJson) {
-        try { extractFirstJsonObject(text); }
-        catch { badCompletion = `truncated/unparseable JSON (finish=${finish}, out=${tokensOut}, ${text.length}ch)`; }
-      }
+      const badCompletion = badCompletionReason(text, wantsJson, finish, tokensOut);
       if (badCompletion) {
         console.warn(`[openrouter] ${model} stage=${stage || "?"} returned a bad completion: ${badCompletion}`);
+        // billed, then thrown away
+        wastedIn += tokensIn; wastedOut += tokensOut; wastedCost += costUsd || 0;
         const e = new Error(badCompletion); e.retryable = true; throw e;
       }
 
-      console.log(`[openrouter] ${model} stage=${stage || "?"} ok (${dt}ms, in=${tokensIn} out=${tokensOut}, ${text.length}ch)`);
-      return { text, tokensIn, tokensOut, model };
+      const waste = wastedIn || wastedOut ? `, +${wastedIn}/${wastedOut} discarded` : "";
+      const billed = costUsd == null ? "" : `, $${(costUsd + wastedCost).toFixed(6)} billed`;
+      console.log(`[openrouter] ${model} stage=${stage || "?"} ok (${dt}ms, in=${tokensIn} out=${tokensOut}${waste}${billed}, ${text.length}ch)`);
+      return {
+        text, model,
+        tokensIn: tokensIn + wastedIn,
+        tokensOut: tokensOut + wastedOut,
+        costUsd: costUsd == null ? null : costUsd + wastedCost,
+      };
     } catch (err) {
       const dt = Date.now() - t0;
       const tag = err?.status || err?.code || err?.name || err?.message?.slice(0, 80) || "unknown";
@@ -335,54 +406,94 @@ async function chat({ system, user, userSuffix, jsonMode = false, temperature, m
     // max_tokens (default 65k), so an explicit cap keeps requests viable as
     // the daily credit limit depletes — and bounds runaway reasoning.
     max_tokens: Number(config.llm.maxTokens?.[stage]) || Number(config.llm.maxTokens?.default) || 12288,
+    // USAGE ACCOUNTING: ask OpenRouter to return what it ACTUALLY charged for this
+    // call (usage.cost, in credits = USD) instead of us re-deriving it from a
+    // hand-maintained price table. The table reproduced our own recorded numbers
+    // almost exactly, yet the key's real daily spend ran ~4.3x higher — the tokens
+    // reported for a vision call do not capture what an image actually costs. This
+    // makes the bill authoritative rather than estimated, at no extra request.
+    usage: { include: true },
   };
   if (jsonMode) orBody.response_format = { type: "json_object" };
 
-  // OpenRouter model selection (used as fallback, or as primary when a caller
-  // forces an explicit `model`).
-  const orPrimary = model || (stage ? modelForStage(stage) : config.llm.model);
-  const orFallback = config.llm.modelFallback;
+  // Model selection. The requested id is either an OpenRouter model or a
+  // "kie:<route>" alias; an alias dispatches to KIE and leaves OpenRouter as the
+  // outage fallback (the alias is not a valid OpenRouter id, so it must never be
+  // sent there). Explicit `model` callers get the same treatment — the script
+  // escalation model, for one, is a KIE route.
+  const requested = model || (stage ? modelForStage(stage) : config.llm.model);
+  const stageRoute = kieRoute(requested);
+  const onKie = KIE_ALIAS.test(String(requested));
+  const orPrimary = onKie
+    ? [config.llm.modelFallback, config.llm.modelFast, config.llm.model].find((m) => m && !KIE_ALIAS.test(m))
+    : requested;
+  const orFallback = onKie ? null : config.llm.modelFallback;
 
   // The KIE primary (grok-4-5) is a REASONING model — output tokens include
   // reasoning and are billed, so a trivial stage (vo_fit, a QA verdict) can burn
-  // 3k+ output tokens where the flat fallback model spends 300. Reserve the
-  // primary for the PREMIUM creative stages (where deep reasoning shows up on
-  // screen) and send everything else straight to the cheap OpenRouter model.
-  // Override with config.llm.premiumStages. usage.js mirrors this split when
-  // pricing stages — keep the two in sync.
+  // 3k+ output tokens where a flat model spends 300. Reserve the primary for the
+  // PREMIUM creative stages (where deep reasoning shows up on screen) and send
+  // everything else straight to its own stage model — normally the flat KIE
+  // gemini route. Override with config.llm.premiumStages. usage.js mirrors this
+  // split when pricing stages — keep the two in sync.
   const premiumStages = new Set(config.llm.premiumStages || ["brief", "storyboard", "script", "composer"]);
   const stagePremium = !stage || premiumStages.has(stage);
   const kieEnabled = config.llm.primary && config.llm.primary.apiKey && !model && stagePremium;
 
-  console.log(`[llm] primary=${kieEnabled ? `kie:${config.llm.primary.model}` : (stagePremium ? "none" : "none (fast stage)")} fallback=${orPrimary}->${orFallback || "none"} stage=${stage || "?"} dispatching (sys=${system.length}ch user=${user.length}ch json=${jsonMode} timeout=${timeoutMs}ms)`);
-
-  // 1. PRIMARY: KIE Gemini. KIE's Cloudflare edge throws transient 524/5xx
-  // timeouts on the bigger prompts (storyboard/composer), so RETRY it a couple of
-  // times before falling back — the OpenRouter fallback is often daily-limited, so
-  // a premature fall-through just fails the whole stage. Any non-retryable error
-  // (or exhausted retries) still falls through. Skip if the stage was cancelled.
-  if (kieEnabled) {
+  // KIE's Cloudflare edge throws transient 524/5xx timeouts on the bigger
+  // prompts (storyboard/composer), so RETRY before falling through — the
+  // OpenRouter fallback is often daily-limited, so a premature fall-through
+  // just fails the whole stage. Any non-retryable error (or exhausted retries)
+  // still falls through. Bails immediately if the stage was cancelled.
+  async function tryKie(provider, label, next) {
     const KIE_ATTEMPTS = 3;
     for (let a = 1; a <= KIE_ATTEMPTS; a++) {
       if (signal?.aborted) throw signal.reason || new Error("llm: aborted");
       try {
-        return await callKie({ messages, jsonMode, temperature: effTemp, timeoutMs, stage, signal });
+        return await callKie(provider, {
+          messages, jsonMode, temperature: effTemp,
+          maxTokens: orBody.max_tokens, timeoutMs, stage, signal,
+        });
       } catch (err) {
         if (signal?.aborted) throw err;
-        const canRetry = a < KIE_ATTEMPTS && isRetryable(err);
-        if (canRetry) {
+        if (a < KIE_ATTEMPTS && isRetryable(err)) {
           const backoff = 1000 * a;
           console.warn(`[llm] KIE ${err?.status || err?.code || err?.message || err} on stage=${stage} — retry ${a}/${KIE_ATTEMPTS - 1} in ${backoff}ms`);
           await new Promise((r) => setTimeout(r, backoff));
           continue;
         }
-        console.warn(`[llm] KIE primary failed (${err?.status || err?.message || err}); falling back to OpenRouter ${orPrimary}`);
-        break;
+        console.warn(`[llm] KIE ${label} failed (${err?.status || err?.message || err}); falling back to ${next}`);
+        return null;
       }
     }
+    return null;
   }
 
-  // 2. FALLBACK: OpenRouter primary model.
+  const kieLabel = kieEnabled ? `kie:${config.llm.primary.model}`
+                 : stageRoute ? `kie:${stageRoute.model}`
+                 : stagePremium ? "none" : "none (fast stage)";
+  console.log(`[llm] primary=${kieLabel}${kieEnabled && stageRoute ? ` then kie:${stageRoute.model}` : ""} fallback=${orPrimary}->${orFallback || "none"} stage=${stage || "?"} dispatching (sys=${system.length}ch user=${user.length}ch json=${jsonMode} timeout=${timeoutMs}ms)`);
+
+  // 1. PRIMARY: the KIE premium model (grok) on the heavy creative stages.
+  if (kieEnabled) {
+    const hit = await tryKie(config.llm.primary, "primary",
+      stageRoute ? `kie:${stageRoute.model}` : `OpenRouter ${orPrimary}`);
+    if (hit) return hit;
+  }
+
+  // 2. The stage's own KIE route (e.g. gemini 3.6 flash) when its model id is a
+  // "kie:" alias. Also catches a premium stage whose grok attempt just failed.
+  if (stageRoute) {
+    const hit = await tryKie(stageRoute, `route ${stageRoute.alias}`, `OpenRouter ${orPrimary}`);
+    if (hit) return hit;
+  }
+
+  // 3. FALLBACK: OpenRouter primary model. Only reachable with no OpenRouter id
+  // to fall back to if every configured model is a KIE alias — say so plainly
+  // rather than dispatching an alias OpenRouter cannot serve.
+  if (!orPrimary) {
+    throw new Error(`llm: stage=${stage || "?"} runs on ${requested} and KIE failed, but no OpenRouter fallback model is configured (llm.modelFallback)`);
+  }
   try {
     return await callOnce({ body: orBody, timeoutMs, stage, model: orPrimary, signal });
   } catch (err) {
@@ -391,7 +502,7 @@ async function chat({ system, user, userSuffix, jsonMode = false, temperature, m
     // (bad id / context overflow) — the latter won't recover by retrying the
     // same model but a different model can, so it must not collapse the stage.
     if (!orFallback || orFallback === orPrimary || !(isRetryable(err) || isModelFatal(err))) throw err;
-    // 3. FALLBACK: OpenRouter secondary model.
+    // 4. FALLBACK: OpenRouter secondary model.
     console.warn(`[openrouter] FALLBACK: ${orPrimary} failed; switching to ${orFallback} for stage=${stage}`);
     try {
       return await callOnce({ body: orBody, timeoutMs, stage, model: orFallback, signal });

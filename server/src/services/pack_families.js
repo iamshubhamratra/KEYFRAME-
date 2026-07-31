@@ -23,9 +23,11 @@ const FAMILY_OF = {
   "vault-gold": "dark-premium", "noir-spotlight": "dark-premium",
   "nova-launch": "dark-premium", "neon-premiere": "dark-premium",
   "abyssal-glow": "dark-premium", "aurora-spectrum": "dark-premium",
+  "lantern-night": "dark-premium",
 
   // cinema — letterboxed, one-take, filmic staging.
   "longshot-cinema": "cinema", "terminal-departures": "cinema",
+  "premiere-night": "cinema",
 
   // poster-loud — bold brutalist / risograph / kinetic-type posters.
   "blockframe": "poster-loud", "bauhaus-riot": "poster-loud",
@@ -34,6 +36,7 @@ const FAMILY_OF = {
   "coral": "poster-loud", "creative-mode": "poster-loud",
   "kinetic-bold": "poster-loud", "riso-press": "poster-loud",
   "cobalt-grid": "poster-loud",
+  "hype-wave": "poster-loud", "poster-pop": "poster-loud", "story-blocks": "poster-loud",
 
   // editorial-quiet — serif/museum/print, warm paper, analyst-restrained.
   "atelier": "editorial-quiet", "cartesian": "editorial-quiet",
@@ -42,6 +45,7 @@ const FAMILY_OF = {
   "blueprint-atelier": "editorial-quiet",
 
   // story-handmade — storybook / craft / illustrated / ink / artisanal.
+  "daybreak-bakehouse": "story-handmade", "organic-garden": "story-handmade",
   "bloom-fable": "story-handmade", "fable-storybook": "story-handmade",
   "paper-tales": "story-handmade", "folk-stitch": "story-handmade",
   "claymotion": "story-handmade", "sketchnote": "story-handmade",

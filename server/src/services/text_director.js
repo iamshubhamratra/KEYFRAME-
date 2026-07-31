@@ -37,7 +37,17 @@ function tdr() {
 }
 
 // ---- sanitization ------------------------------------------------------------
-const clip = (v, n) => String(v == null ? "" : v).replace(/\s+/g, " ").trim().slice(0, n);
+// Word-boundary safe. A raw slice cut lines mid-word ("...teams and agents sh",
+// "...into a single system of") and those land verbatim on screen, where they read
+// as a rendering bug rather than an edit. Only hard-cuts when a single word is
+// itself longer than the budget.
+const clip = (v, n) => {
+  const t = String(v == null ? "" : v).replace(/\s+/g, " ").trim();
+  if (t.length <= n) return t;
+  const cut = t.slice(0, n);
+  const sp = cut.lastIndexOf(" ");
+  return (sp > n * 0.55 ? cut.slice(0, sp) : cut).replace(/[\s,;:.–—-]+$/, "");
+};
 
 // A bullet/subtext line is WORTH rendering when it carries substance: a number,
 // a currency/percent, or at least two real words. Kills "Yes.", "Wow" filler.
@@ -59,7 +69,11 @@ function applyEnrichment(scene, raw) {
   }
   const haveBullets = Array.isArray(scene.bullets) && scene.bullets.filter(Boolean).length > 0;
   if (!haveBullets && Array.isArray(raw.bullets)) {
-    const bullets = raw.bullets.map((b) => clip(b, 42)).filter(meaty).slice(0, 3);
+    // 42 was tuned for single-line chip rows, which re-truncate to their own width
+    // anyway (`fit(c, 24)`). The portrait support list WRAPS, so a longer line
+    // survives intact instead of losing its verb — "One AI workspace where teams
+    // and agents ship together" beat "...teams and".
+    const bullets = raw.bullets.map((b) => clip(b, 58)).filter(meaty).slice(0, 3);
     if (bullets.length) { scene.bullets = bullets; added++; }
   }
   if (!clip(scene.emphasis, 1) && raw.emphasis) {
@@ -159,7 +173,7 @@ function buildUser({ brief, script, storyboard }) {
 }
 
 async function enrichWithLlm({ brief, script, storyboard, tracker, signal }) {
-  const { text, tokensIn, tokensOut } = await openrouter.chat({
+  const { text, tokensIn, tokensOut, costUsd } = await openrouter.chat({
     system: SYSTEM,
     user: buildUser({ brief, script, storyboard }),
     jsonMode: true,
@@ -168,7 +182,7 @@ async function enrichWithLlm({ brief, script, storyboard, tracker, signal }) {
     temperature: 0.3,
     signal,
   });
-  if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "text_director" });
+  if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "text_director", costUsd: costUsd });
   const raw = extractFirstJsonObject(text);
   const perScene = raw && raw.scenes && typeof raw.scenes === "object" ? raw.scenes : {};
   let added = 0;

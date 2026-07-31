@@ -142,10 +142,12 @@ async function planAudio(storyboard, flags, packAudio = null) {
   const duration = storyboard.durationSec;
   const tries = 2;
   let lastErr, tokensIn = 0, tokensOut = 0;
+  // Provider-reported charges, summed across retries.
+  let costUsd_ = 0, costCalls = 0;
 
   for (let i = 0; i < tries; i++) {
     try {
-      const { text, tokensIn: tIn, tokensOut: tOut } = await openrouter.chat({
+      const { text, tokensIn: tIn, tokensOut: tOut, costUsd } = await openrouter.chat({
         system: SYSTEM,
         user: buildUser(storyboard, flags, packAudio),
         jsonMode: true,
@@ -153,9 +155,10 @@ async function planAudio(storyboard, flags, packAudio = null) {
         stage: "audioPlanner",
       });
       tokensIn += tIn; tokensOut += tOut;
+      if (typeof costUsd === "number") { costUsd_ += costUsd; costCalls++; }
       const raw = parseJsonLenient(text);
       const plan = sanitize(raw, { ...flags, duration }, packAudio);
-      return { plan, tokensIn, tokensOut };
+      return { plan, tokensIn, tokensOut, costUsd: costCalls ? costUsd_ : null };
     } catch (e) {
       lastErr = e;
     }
@@ -167,7 +170,7 @@ async function planAudio(storyboard, flags, packAudio = null) {
   const fallback = sanitize({}, { ...flags, duration }, packAudio);
   if (fallback.music) {
     console.warn(`[audio_planner] planner failed (${lastErr?.message || "unknown"}); using pack BGM fallback`);
-    return { plan: { music: fallback.music }, tokensIn, tokensOut };
+    return { plan: { music: fallback.music }, tokensIn, tokensOut, costUsd: costCalls ? costUsd_ : null };
   }
   return {
     plan: {},

@@ -124,12 +124,12 @@ function brandToken(siteUrl) {
 }
 
 async function findAlternateSite({ siteUrl, topic, tracker, signal }) {
-  const { text, tokensIn, tokensOut } = await openrouter.chat({
+  const { text, tokensIn, tokensOut, costUsd } = await openrouter.chat({
     system: ALT_SYSTEM,
     user: `Sign-in-walled product URL: ${siteUrl}${topic ? `\nThe film about it is on: ${topic}` : ""}`,
     jsonMode: true, temperature: 0.1, stage: "screenshot_director", signal,
   });
-  if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "screenshot_director" });
+  if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "screenshot_director", costUsd: costUsd });
   let parsed;
   try { parsed = extractFirstJsonObject(text) || {}; } catch { parsed = {}; }
   const brand = brandToken(siteUrl);
@@ -176,7 +176,7 @@ const SYSTEM = `You are the Screenshot Director of an automated video studio. A 
 Match on TOPIC: a scene about cost/plans -> the pricing page; a scene about capabilities -> the features/product page; social proof -> customers/case studies; setup or how-it-works -> docs/integrations. Only match when the page clearly holds what the scene talks about — a weak or decorative match is worse than none.
 
 Hard rules:
-- Pick AT MOST 3 pairs. Zero picks is a valid answer.
+- Pick AS MANY well-matched pairs as the script supports, up to 6. A film that SHOWS the product on six real pages is far more convincing than one that shows it twice — but a weak match is still worse than none, so do not force a pairing just to reach six. Zero picks is a valid answer.
 - "url" MUST be copied verbatim from the CANDIDATE PAGES list. "sceneId" MUST be one of the scene ids.
 - Never pick login/signup/legal pages. Never pick the homepage (its screenshots are already captured).
 - At most one page per scene and one scene per page.
@@ -204,10 +204,10 @@ ${scenesDigest(script)}
 
 CANDIDATE PAGES:
 ${pageList}`;
-  const { text, tokensIn, tokensOut } = await openrouter.chat({
+  const { text, tokensIn, tokensOut, costUsd } = await openrouter.chat({
     system: SYSTEM, user, jsonMode: true, temperature: 0.2, stage: "screenshot_director", signal,
   });
-  if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "screenshot_director" });
+  if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "screenshot_director", costUsd: costUsd });
   let parsed;
   try { parsed = extractFirstJsonObject(text) || {}; } catch { parsed = {}; } // garbage reply -> zero picks
   const byUrl = new Map(pages.map((p) => [p.url, p]));
@@ -222,7 +222,7 @@ ${pageList}`;
     if (DENY_PATH.test(new URL(url).pathname)) continue;
     seenScene.add(sid); seenUrl.add(url);
     picks.push({ sceneId: sid, url, label: String(raw.label || "page").slice(0, 40), guessed: !!byUrl.get(url).guessed });
-    if (picks.length >= 3) break;
+    if (picks.length >= 6) break;
   }
   return picks;
 }
@@ -297,15 +297,23 @@ async function captureTopicShots({ job, script, jobDir, topic, tracker, signal }
     const title = job.website_title || "the product";
     const settled = await Promise.allSettled(live.map((p, i) => {
       const relPath = `assets/images/page_${i}_${slug(p.label)}.png`;
+      // A pick destined for a `phone` media slot must be shot at a MOBILE
+      // viewport — the site then serves its own mobile breakpoint, so the
+      // capture is genuinely portrait and fits a device bezel uncropped.
+      const vp = peekshot.VIEWPORTS[p.viewport === "phone" ? "phone" : "desktop"];
       return peekshot.capture({
         url: p.url, outPath: path.join(jobDir, relPath),
-        width: 1366, height: 900, retina: true, delay: 3, timeoutMs: 75_000, signal,
-      }).then(() => {
+        width: vp.width, height: vp.height, retina: true, delay: 3, timeoutMs: 75_000, signal,
+      }).then((cap) => {
         const scene = sceneById.get(p.sceneId);
         return {
           path: relPath, type: "image",
           sceneId: scene.id, startSec: scene.start, durationSec: scene.duration,
           style: "inset",
+          // Real probed pixel dims. Without these every shape gate downstream
+          // (isPortraitAsset, scoreAsset's bezel-fit penalty, deviceKind) sees
+          // ratio 0 and silently treats the shot as shapeless.
+          width: cap.width || 0, height: cap.height || 0, ratio: cap.ratio || 0,
           alt: `REAL website screenshot of ${title} — the ${p.label} (matches this scene's topic) — present in a styled browser frame with hero treatment`,
           license: "owner content", sourceUrl: p.url, source: "website", fromCache: false,
         };
@@ -327,7 +335,13 @@ async function captureTopicShots({ job, script, jobDir, topic, tracker, signal }
 // Merge topic shots with the landing-page pins: a scene claimed by a topic
 // shot drops its landing pin (the specific page beats the homepage), and the
 // combined screenshot count is capped so films don't become slideshows.
-function mergeShots(topicShots, landingPinned, cap = 4) {
+// Merge the director's topic-matched page shots with the landing/section shots
+// ingest already captured. The cap was 4 — with 3 topic shots that left room for
+// exactly ONE of the three ingest captures, so a site the pipeline had already
+// photographed six ways shipped a film showing it three times. A product film
+// cannot have too many real screenshots of the product; the composer only ever
+// places what its scenes have slots for, so a generous cap costs nothing.
+function mergeShots(topicShots, landingPinned, cap = 9) {
   const claimed = new Set(topicShots.map((a) => String(a.sceneId)));
   const keep = landingPinned.filter((a) => !claimed.has(String(a.sceneId)));
   return [...topicShots, ...keep].slice(0, cap);

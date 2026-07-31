@@ -134,7 +134,7 @@ async function directAudio({ storyboard, plan, brief = null, hasVoice = false, d
   if (!plan || (!hasDraftMusic && !hasDraftSfx)) return { plan, decision: null };
 
   try {
-    const { text, tokensIn, tokensOut } = await openrouter.chat({
+    const { text, tokensIn, tokensOut, costUsd } = await openrouter.chat({
       system: SYSTEM,
       user: buildUser({ storyboard, plan, brief, hasVoice, duration: dur }),
       jsonMode: true,
@@ -142,7 +142,7 @@ async function directAudio({ storyboard, plan, brief = null, hasVoice = false, d
       stage: "audioDirector",
     });
     if (tracker && typeof tracker.addLlm === "function") {
-      tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "audioDirector" });
+      tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "audioDirector", costUsd: costUsd });
     }
     const decision = parseJsonLenient(text);
     if (!decision || typeof decision !== "object") return { plan, decision: null };

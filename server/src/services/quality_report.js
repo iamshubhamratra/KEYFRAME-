@@ -56,9 +56,13 @@ function assembleQualityReport({ jobDir, qa, creativeReview, bestQa } = {}) {
   const lr = readJson(path.join(jobDir, "layout-report.json"));
   const layout = lr ? { duplicatesRemoved: lr.duplicatesRemoved || 0, collisionsScrimmed: lr.collisionsScrimmed || 0 } : null;
 
-  // ---- asset quality floor (image generation) ----
-  const af = readJson(path.join(jobDir, "asset-floor.json"));
-  const assetFloor = af ? { generated: af.generated || 0, scoreBefore: af.scoreBefore ?? null, scoreAfter: af.scoreAfter ?? null } : null;
+  // ---- image gap-fill (generated images for lookups that missed) ----
+  const gf = readJson(path.join(jobDir, "gap-fill.json"));
+  const gapFill = gf ? {
+    gaps: gf.gaps || 0, filled: gf.filled || 0,
+    skippedBudget: gf.skippedBudget || 0, skippedKind: gf.skippedKind || 0,
+    costUsd: gf.costUsd ?? 0,
+  } : null;
 
   // ---- asset quality + template fit (Creative Director) ----
   const assetQuality = (creativeReview && typeof creativeReview.qualityScore === "number") ? creativeReview.qualityScore : null;
@@ -84,7 +88,7 @@ function assembleQualityReport({ jobDir, qa, creativeReview, bestQa } = {}) {
     contrast,
     identity,
     layout,
-    assetFloor,
+    gapFill,
     audio,
     screenshots,
     assetQuality,

@@ -67,7 +67,7 @@ async function inspectScreenshots({ shots, subject, scenes, tracker, signal } = 
         content.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${x.b}` } });
       });
 
-      const { text, tokensIn, tokensOut } = await openrouter.chat({
+      const { text, tokensIn, tokensOut, costUsd } = await openrouter.chat({
         system: SYSTEM,
         user: content,
         jsonMode: true,
@@ -75,7 +75,7 @@ async function inspectScreenshots({ shots, subject, scenes, tracker, signal } = 
         temperature: 0,
         signal,
       });
-      if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "screenshotQa" });
+      if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "screenshotQa", costUsd: costUsd });
 
       const parsed = extractFirstJsonObject(text);
       const arr = Array.isArray(parsed && parsed.shots) ? parsed.shots : [];

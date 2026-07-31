@@ -112,7 +112,7 @@ function bpTitle(scene, ctx) {
   const sub = esc(scene.subtext || "Everything below this line is drafted, checked and rendered by machines.");
   const dimText = esc((scene.emphasis || "SPEC 001").toUpperCase());
   const colW = land ? 46 : 82; // portrait: the sheet is narrow — use nearly all of it
-  const html = `<div class="clip bp-scene" id="${id}" data-start="${T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">
+  const html = `<div class="clip bp-scene" id="${id}" data-start="${T}" data-duration="${r(ctx.winL || ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">
   <div class="safe" style="align-items:flex-start;text-align:left;padding-left:${land ? 12 : 9}%;">
     <div class="label" id="${id}-lab" style="opacity:0;">${esc(fig)}</div>
     <h1 class="display" style="margin-top:1.6cqw;min-height:${land ? 6 : 9}cqw;"><span id="${id}-type"></span><span class="caret" id="${id}-caret"></span></h1>
@@ -152,7 +152,7 @@ function bpTitle(scene, ctx) {
 function bpFigure(scene, ctx) {
   const { id, T, theme, fig, land = true } = ctx;
   const callout = esc((scene.emphasis || "SPEC").toUpperCase());
-  const html = `<div class="clip bp-scene" id="${id}" data-start="${T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">
+  const html = `<div class="clip bp-scene" id="${id}" data-start="${T}" data-duration="${r(ctx.winL || ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">
   <div class="safe" style="flex-direction:${land ? "row" : "column"};gap:${land ? 6 : 3.5}cqw;text-align:left;">
     <svg id="${id}-fig" width="620" height="520" viewBox="0 0 620 520" style="width:${land ? 34 : 56}cqw;flex:0 0 auto;overflow:visible;">
       <g id="${id}-center" opacity="0" stroke="${theme.cyan}" stroke-width="1.6" stroke-dasharray="18 6 3 6">
@@ -229,7 +229,7 @@ function bpFlowchart(scene, ctx) {
       <div class="fb-t">${esc(b.bt)}</div><div class="fb-s">${esc(b.bs)}</div>
       <div class="pbar"><i class="${id}-fill"></i></div></div>`);
   const row = boxHtml.slice(1).reduce((acc, bx) => acc + arrow() + bx, boxHtml[0]);
-  const html = `<div class="clip bp-scene" id="${id}" data-start="${T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">
+  const html = `<div class="clip bp-scene" id="${id}" data-start="${T}" data-duration="${r(ctx.winL || ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">
   <div class="safe">
     <div class="fig" id="${id}-figl" style="opacity:0;">${esc(fig)}</div>
     <div style="display:flex;flex-direction:${land ? "row" : "column"};align-items:center;gap:${land ? 2.4 : 1.6}cqw;margin-top:2.6cqw;">${row}</div>
@@ -253,7 +253,7 @@ function bpPlot(scene, ctx) {
   const n = pickNumber(scene) || { pre: "", target: 97, suf: "" };
   const bigTxt = `${n.pre}0${n.suf}`;
   const head = String(scene.headline || "measured output").toUpperCase();
-  const html = `<div class="clip bp-scene" id="${id}" data-start="${T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">
+  const html = `<div class="clip bp-scene" id="${id}" data-start="${T}" data-duration="${r(ctx.winL || ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">
   <div class="safe" style="flex-direction:${land ? "row" : "column"};gap:${land ? 6 : 3.5}cqw;text-align:left;">
     <svg id="${id}-plot" width="740" height="480" viewBox="0 0 740 480" style="width:${land ? 36 : 84}cqw;flex:0 0 auto;overflow:visible;">
       <line class="${id}-ax draw" pathLength="100" x1="70" y1="30" x2="70" y2="410" stroke="${theme.ink}" stroke-width="3"/>
@@ -304,7 +304,7 @@ function bpRevisions(scene, ctx) {
         <line class="${id}-strike draw" pathLength="100" x1="0" y1="10" x2="400" y2="10" stroke="${theme.red}" stroke-width="7" stroke-linecap="round"/>
         <path class="${id}-scrib draw" pathLength="100" d="M4 12 L36 4 L70 16 L104 6 L138 17 L172 5 L206 15 L240 6 L274 16 L308 5 L342 15 L376 7 L398 12" fill="none" stroke="${theme.red}" stroke-width="3" stroke-linecap="round" opacity="0.85"/>
       </svg></div>`).join("");
-  const html = `<div class="clip bp-scene" id="${id}" data-start="${T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">
+  const html = `<div class="clip bp-scene" id="${id}" data-start="${T}" data-duration="${r(ctx.winL || ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">
   <div class="safe" style="align-items:flex-start;text-align:left;padding-left:14%;">
     <div class="fig" id="${id}-figl" style="opacity:0;">${esc(fig)}</div>
     ${rowHtml}
@@ -332,7 +332,7 @@ function bpCta(scene, ctx) {
   const mark = String(scene.headline || scene.title || "KEYFRAME").toUpperCase();
   const tag = esc(scene.subtext || "Draft a film from a single sentence.");
   const cta = esc(String(scene.emphasis || "Open a new sheet").slice(0, 26));
-  const html = `<div class="clip bp-scene" id="${id}" data-start="${T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">
+  const html = `<div class="clip bp-scene" id="${id}" data-start="${T}" data-duration="${r(ctx.winL || ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">
   <div class="safe">
     <div style="position:relative;">
       <svg id="${id}-burst" width="560" height="240" viewBox="0 0 560 240" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);overflow:visible;" data-layout-allow-occlusion>
@@ -389,7 +389,7 @@ function bpPlate(scene, ctx, asset) {
   // Scan-bar travel in px (transform x, not `left` — lint wants sub-pixel transforms):
   // the plate window is plateW of the canvas width, so the bar crosses that distance.
   const travel = Math.round((plateWn / 100) * ((ctx.dims && ctx.dims.width) || 1920));
-  const html = `<div class="clip bp-scene" id="${id}" data-start="${T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">
+  const html = `<div class="clip bp-scene" id="${id}" data-start="${T}" data-duration="${r(ctx.winL || ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">
   <div class="safe" style="flex-direction:${land ? "row" : "column"};gap:${land ? 6 : 3}cqw;text-align:left;">
     <div class="bp-plate" id="${id}-plate" style="opacity:0;position:relative;width:${plateW};flex:0 0 auto;">
       <div class="bp-plate-head">PLATE 0${ctx.sheetNo} <span>${callout}</span></div>
@@ -415,17 +415,45 @@ function bpPlate(scene, ctx, asset) {
   const s = [
     `tl.fromTo("#${id}",{opacity:0},{opacity:1,duration:0.4},${T});`,
     `settle("#${id}",${T},${r(ctx.L)});`,
-    `tl.fromTo("#${id}-plate",{opacity:0,y:24},{opacity:1,y:0,duration:0.5,ease:"power2.out"},${r(T + 0.5)});`,
-    `tl.fromTo("#${id}-cover",{scaleX:1},{scaleX:0,transformOrigin:"right center",duration:0.85,ease:"power2.inOut"},${r(T + 0.8)});`,
-    `tl.fromTo("#${id}-pscan",{x:0,opacity:0.9},{x:${travel},duration:0.85,ease:"power2.inOut"},${r(T + 0.8)});`,
-    `tl.set("#${id}-pscan",{opacity:0},${r(T + 1.7)});`,
-    `tl.fromTo("#${id}-plate img",{scale:1.06},{scale:1.0,duration:${r(rev)},ease:"sine.out"},${r(T + 0.8)});`,
+    `tl.fromTo("#${id}-plate",{opacity:0,y:24},{opacity:1,y:0,duration:0.45,ease:"power2.out"},${r(T + 0.35)});`,
+    // The cover is an OPAQUE sheet-coloured panel — until it wipes, the plate reads
+    // as an EMPTY bordered window. It used to start at T+0.8 and take 0.85s (screenshot
+    // not fully visible until ~T+1.65 = ~1.1s of "empty plate"). Start it with the
+    // plate and halve the wipe so the captured screen is up by ~T+1.0.
+    `tl.fromTo("#${id}-cover",{scaleX:1},{scaleX:0,transformOrigin:"right center",duration:0.5,ease:"power2.inOut"},${r(T + 0.5)});`,
+    `tl.fromTo("#${id}-pscan",{x:0,opacity:0.9},{x:${travel},duration:0.5,ease:"power2.inOut"},${r(T + 0.5)});`,
+    `tl.set("#${id}-pscan",{opacity:0},${r(T + 1.05)});`,
+    `tl.fromTo("#${id}-plate img",{scale:1.06},{scale:1.0,duration:${r(rev)},ease:"sine.out"},${r(T + 0.5)});`,
     `tl.to(".${id}-pd",{strokeDashoffset:0,duration:0.5,ease:"power2.out"},${r(T + 1.6)});`,
     `tl.fromTo(".${id}-pa",{opacity:0},{opacity:1,duration:0.3,stagger:0.08},${r(T + 2.0)});`,
     `tl.fromTo("#${id}-figl",{opacity:0,x:-16},{opacity:1,x:0,duration:0.5},${r(T + 0.7)});`,
     `tl.fromTo("#${id}-head",{opacity:0,y:18},{opacity:1,y:0,duration:0.55,ease:"power2.out"},${r(T + 1.0)});`,
     scene.subtext ? `tl.fromTo("#${id}-sub",{opacity:0,y:16},{opacity:1,y:0,duration:0.5},${r(T + 1.4)});` : "",
   ].filter(Boolean);
+  return { html, s };
+}
+
+// REF PHOTO — a small free photo pinned to a text scene like a reference image
+// taped to a drafting sheet. This is how the composer USES the free stock/photo
+// pool on text-heavy scenes (title/plot/flowchart/revisions) instead of leaving
+// it unused: it never masquerades as a captured product screen (that is what the
+// full PLATE with "TO SPEC 1:1" is for — pinned screenshots only), it sits in a
+// corner clear of the copy, and it adds one real visual element per scene.
+function bpRefPhoto(id, asset, ctx) {
+  const { theme, land = true, T, L } = ctx;
+  const w = land ? 16 : 30;   // cqw — a small corner panel, never the hero
+  const h = land ? 11 : 20;
+  const html = `<div class="bp-ref" id="${id}-ref" style="opacity:0;position:absolute;right:${land ? 4.5 : 6}cqw;bottom:${land ? 7 : 9}cqw;width:${w}cqw;z-index:6;">
+    <div style="font-family:${theme.monoStack};font-size:${land ? 0.95 : 1.7}cqw;letter-spacing:0.2em;text-transform:uppercase;color:${theme.faint};margin-bottom:0.5cqw;">REF · <span style="color:${theme.amber};">FIG</span></div>
+    <div style="position:relative;height:${h}cqw;overflow:hidden;border:2px solid rgba(143,216,255,0.42);border-radius:0.5cqw;background:var(--sheet);box-shadow:0 1cqw 2.4cqw rgba(4,14,28,0.5);">
+      <img src="${esc(asset.path)}" alt="${esc(asset.alt || "reference")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(0.9) contrast(1.03);">
+      <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(23,65,111,0.14),rgba(12,36,64,0.30));pointer-events:none;"></div>
+    </div>
+  </div>`;
+  const s = [
+    `tl.fromTo("#${id}-ref",{opacity:0,y:22,scale:0.95},{opacity:1,y:0,scale:1,duration:0.6,ease:"power2.out"},${r(T + 0.9)});`,
+    `tl.fromTo("#${id}-ref img",{scale:1.0},{scale:1.06,duration:${r(Math.max(1.2, L - 1.5))},ease:"sine.inOut"},${r(T + 1.1)});`,
+  ];
   return { html, s };
 }
 
@@ -599,11 +627,22 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
     else if (arch === "figure" && pooli < pool.length) { arch = "plate"; asset = pool[pooli++]; }
     const figBase = FIG_LABEL[arch] || "";
     const fig = (arch === "figure" || arch === "plate") ? `Fig. ${i} — ${String(scene.purpose || (arch === "plate" ? "captured" : "the figure"))}` : figBase;
-    const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), isLast: i === scenes.length - 1, track: 2 + i, dims: { width: W, height: H }, land: W >= H, theme, fig, sheetNo: i + 1 };
+    const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), isLast: i === scenes.length - 1, winL: i === scenes.length - 1 ? r(L + 0.5) : L, track: 2 + i, dims: { width: W, height: H }, land: W >= H, theme, fig, sheetNo: i + 1 };
     const built = (BUILDERS[arch] || bpFigure)(scene, ctx, asset);
+    // Weave the FREE photo pool onto text scenes as a corner reference panel, so
+    // stock/photos that aren't pinned screenshots still reach the film (they used
+    // to sit unused because only a `figure`→plate scene drew from the pool). Skip
+    // the opener/closer (kept clean) and any scene already showing a plate.
+    let refScript = [];
+    const textArch = arch === "plot" || arch === "flowchart" || arch === "revisions" || arch === "figure";
+    if (!asset && textArch && pooli < pool.length) {
+      const ref = bpRefPhoto(ctx.id, pool[pooli++], ctx);
+      built.html = built.html.replace(/(<div class="clip bp-scene"[^>]*>)/, `$1${ref.html}`);
+      refScript = ref.s;
+    }
     bodyParts.push(built.html);
     sceneStarts.push(T);
-    sceneScripts.push(built.s.join("\n"));
+    sceneScripts.push(built.s.concat(refScript).join("\n"));
     // Scene hand-off: the sheet-wipe covers the cut and the framework windows the
     // clip out at its data-duration boundary, so there is NO opacity exit tween on
     // the .clip itself (that trips gsap_exit_missing_hard_kill — the framework owns
@@ -625,7 +664,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
     .filter((a) => a && a.source === "website" && a.sourceUrl)
     .map((a) => { try { return new URL(a.sourceUrl).hostname.replace(/^www\./, ""); } catch { return null; } })
     .find(Boolean);
-  const chrome = chromeHtml(theme, W, H, sb.title, brandHost).replace(/__D__/g, String(D));
+  const chrome = chromeHtml(theme, W, H, sb.title, brandHost).replace(/__D__/g, String(r(D + 0.5)));
 
   const script = `(function(){
   var D=${D};

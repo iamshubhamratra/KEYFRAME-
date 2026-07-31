@@ -27,8 +27,37 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const config = require("../config");
+const { imageDimsFromBuffer } = require("./asset_sources/util");
 
 const BASE = "https://api.peekshot.com/api/v1";
+
+// The two shapes a film ever frames a capture in. A `phone` media slot mounts
+// its image in a device bezel, so it needs a genuinely PORTRAIT capture — at
+// 390px wide essentially every modern site serves its mobile breakpoint (layout
+// keys off viewport width, not user-agent). Sites that UA-sniff return a
+// squeezed desktop layout; screenshot_qa catches that as "broken-layout".
+const VIEWPORTS = {
+  desktop: { width: 1366, height: 900 },
+  phone: { width: 390, height: 844 },
+};
+
+// PeekShot captures used to fire completely unthrottled — screenshot_director
+// does Promise.allSettled over every surviving pick. That was tolerable at the
+// old cap of 6; demand-driven capture can ask for 12+, and each one holds a
+// poll loop open for up to 90s. Cap the in-flight count so a wide film doesn't
+// stampede the API (and so a slow queue can't pin a dozen sockets at once).
+const MAX_INFLIGHT = Math.max(1, Number(process.env.PEEKSHOT_CONCURRENCY) || 4);
+let inFlight = 0;
+const waiters = [];
+function acquireSlot() {
+  if (inFlight < MAX_INFLIGHT) { inFlight++; return Promise.resolve(); }
+  return new Promise((resolve) => waiters.push(resolve));
+}
+function releaseSlot() {
+  const next = waiters.shift();
+  if (next) next();            // hand the slot straight over; inFlight unchanged
+  else inFlight = Math.max(0, inFlight - 1);
+}
 
 function settings() {
   const ps = (config.ingest && config.ingest.peekshot) || {};
@@ -73,10 +102,18 @@ async function resolveProjectId() {
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
-// Capture one screenshot and write it to outPath. Returns { outPath, width,
-// height } (dims from the request, not probed). Throws on failure/timeout —
-// callers treat this as "keep the local shot".
-async function capture({
+// Capture one screenshot and write it to outPath. Throttled to MAX_INFLIGHT.
+// Returns { outPath, requestId, bytes, width, height, ratio } with dims PROBED
+// from the returned bytes — never assumed from the request, because `retina`
+// doubles them and `fullPage` replaces the height entirely. Throws on
+// failure/timeout — callers treat this as "keep the local shot".
+async function capture(opts = {}) {
+  await acquireSlot();
+  try { return await captureOne(opts); }
+  finally { releaseSlot(); }
+}
+
+async function captureOne({
   url,
   outPath,
   width = 1366,
@@ -125,7 +162,21 @@ async function capture({
   if (buf.length < 1024) throw new Error("peekshot: image suspiciously small");
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, buf);
-  return { outPath, requestId, bytes: buf.length };
+  // Real pixel dims, straight from the bytes we already hold. Every downstream
+  // shape decision (phone-vs-desktop slot matching, bezel fit, crop focus) reads
+  // asset.ratio; without this it is 0 and a capture can NEVER satisfy a portrait
+  // slot, so a landscape shot gets crammed into a phone bezel instead.
+  // Named apart from the `width`/`height` REQUEST params above — these are the
+  // real dims of the returned bytes, which `retina` doubles and `fullPage`
+  // replaces outright, so they must not shadow (or be confused with) the request.
+  const dims = imageDimsFromBuffer(buf);
+  const outWidth = (dims && dims.width) || 0;
+  const outHeight = (dims && dims.height) || 0;
+  return {
+    outPath, requestId, bytes: buf.length,
+    width: outWidth, height: outHeight,
+    ratio: outHeight > 0 ? outWidth / outHeight : 0,
+  };
 }
 
-module.exports = { enabled, capture, resolveProjectId, CONSENT_KILLER_JS };
+module.exports = { enabled, capture, resolveProjectId, CONSENT_KILLER_JS, VIEWPORTS };

@@ -88,11 +88,13 @@ async function planAssets(storyboard, flags) {
   if (!flags.images && !flags.video) return { plan: {}, tokensIn: 0, tokensOut: 0 };
 
   let tokensIn = 0, tokensOut = 0;
+  // Provider-reported charges, summed across retries.
+  let costUsd_ = 0, costCalls = 0;
   let lastErr;
 
   for (let i = 0; i < 2; i++) {
     try {
-      const { text, tokensIn: tIn, tokensOut: tOut } = await openrouter.chat({
+      const { text, tokensIn: tIn, tokensOut: tOut, costUsd } = await openrouter.chat({
         system: SYSTEM,
         user: buildUser(storyboard, flags),
         jsonMode: true,
@@ -100,16 +102,17 @@ async function planAssets(storyboard, flags) {
         stage: "assetPlanner",
       });
       tokensIn += tIn; tokensOut += tOut;
+      if (typeof costUsd === "number") { costUsd_ += costUsd; costCalls++; }
       const raw = parseJsonLenient(text);
       const plan = sanitize(raw, storyboard, flags);
-      return { plan, tokensIn, tokensOut };
+      return { plan, tokensIn, tokensOut, costUsd: costCalls ? costUsd_ : null };
     } catch (e) {
       lastErr = e;
     }
   }
 
   console.warn(`[asset_planner] LLM failed: ${lastErr?.message}. Skipping assets.`);
-  return { plan: {}, tokensIn, tokensOut, error: lastErr?.message };
+  return { plan: {}, tokensIn, tokensOut, costUsd: costCalls ? costUsd_ : null, error: lastErr?.message };
 }
 
 module.exports = { planAssets };

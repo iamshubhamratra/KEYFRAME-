@@ -128,7 +128,7 @@ function riotArchetype(scene, i, total) {
 const KICK = { title: "AI motion press", recipe: "the recipe — three moves", stats: "the catalogue", manifesto: "the manifesto", figure: "quality control", plate: "the proof — page one", cta: "print your first film" };
 
 // ---- scene-type builders  ((scene, ctx, asset) -> { html, s }) ----------------
-function open(id, ctx) { return `<div class="clip riot-scene" id="${id}" data-start="${ctx.T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">`; }
+function open(id, ctx) { return `<div class="clip riot-scene" id="${id}" data-start="${ctx.T}" data-duration="${r(ctx.winL || ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">`; }
 
 function riotTitle(scene, ctx) {
   const { id, T, theme, land = true } = ctx;
@@ -368,6 +368,25 @@ function riotCta(scene, ctx) {
   return { html, s };
 }
 
+// REF PHOTO — a free pool photo dropped into a text scene as a small bold framed
+// block (offset shadow + ink border, the poster idiom), so stock/photos that aren't
+// pinned screenshots still reach the film instead of sitting unused. Corner-placed.
+function riotRefPhoto(id, asset, ctx) {
+  const { theme, land = true, T, L } = ctx;
+  const w = land ? 15 : 28, h = land ? 11 : 19;
+  const html = `<div class="riot-ref" id="${id}-ref" style="opacity:0;position:absolute;right:${land ? 5 : 6.5}cqw;bottom:${land ? 7.5 : 9}cqw;width:${w}cqw;z-index:6;">
+    <div style="position:absolute;left:1cqw;top:1cqw;width:100%;height:100%;background:${theme.yellow};border:0.22cqw solid ${theme.ink};"></div>
+    <div class="riot-frame" style="position:relative;">
+      <div class="riot-win" style="height:${h}cqw;"><img src="${esc(asset.path)}" alt="${esc(asset.alt || "reference")}"></div>
+    </div>
+  </div>`;
+  const s = [
+    `tl.fromTo("#${id}-ref",{opacity:0,y:24,scale:0.9},{opacity:1,y:0,scale:1,duration:0.55,ease:"back.out(1.6)"},${r(T + 0.9)});`,
+    `tl.fromTo("#${id}-ref img",{scale:1.0},{scale:1.05,duration:${r(Math.max(1.2, L - 1.5))},ease:"sine.inOut"},${r(T + 1.1)});`,
+  ];
+  return { html, s };
+}
+
 const BUILDERS = { title: riotTitle, recipe: riotRecipe, stats: riotStats, manifesto: riotManifesto, figure: riotFigure, plate: riotPlate, cta: riotCta };
 
 // ---- paper chrome (content-independent) --------------------------------------
@@ -478,11 +497,21 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
     const ends = arch === "title" || arch === "cta";
     if (!ends && byScene.has(sid)) { arch = "plate"; asset = byScene.get(sid); }
     else if (arch === "figure" && pooli < pool.length) { arch = "plate"; asset = pool[pooli++]; }
-    const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), i, isLast: i === scenes.length - 1, track: 2 + i, dims: { width: W, height: H }, land: W >= H, theme };
+    const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), i, isLast: i === scenes.length - 1, winL: i === scenes.length - 1 ? r(L + 0.5) : L, track: 2 + i, dims: { width: W, height: H }, land: W >= H, theme };
     const built = (BUILDERS[arch] || riotFigure)(scene, ctx, asset);
+    // Weave the free photo pool onto text scenes as a corner bold block (stock/photos
+    // that aren't pinned screenshots used to go unused — only a figure->plate scene
+    // drew from the pool). Skip opener/closer and any scene already showing a plate.
+    let refScript = [];
+    const textArch = arch === "recipe" || arch === "stats" || arch === "manifesto";
+    if (!asset && textArch && pooli < pool.length) {
+      const ref = riotRefPhoto(ctx.id, pool[pooli++], ctx);
+      built.html = built.html.replace(/(<div class="clip riot-scene"[^>]*>)/, `$1${ref.html}`);
+      refScript = ref.s;
+    }
     bodyParts.push(built.html);
     sceneStarts.push(T);
-    sceneScripts.push(built.s.join("\n"));
+    sceneScripts.push(built.s.concat(refScript).join("\n"));
     if (!ctx.isLast) sceneScripts.push(`kill("#${ctx.id}",${r(T + L)});`);
   });
 
@@ -490,7 +519,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
     .filter((c) => c && c.text != null)
     .map((c) => [r(c.start != null ? c.start : c.startSec || 0), r(c.end != null ? c.end : (c.start || 0) + 2), String(c.text)]);
 
-  const chrome = chromeHtml(theme, sb.title).replace(/__D__/g, String(D));
+  const chrome = chromeHtml(theme, sb.title).replace(/__D__/g, String(r(D + 0.5)));
 
   const script = `(function(){
   var D=${D};

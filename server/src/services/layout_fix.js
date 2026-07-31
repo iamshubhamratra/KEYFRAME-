@@ -166,9 +166,17 @@ function analyze(frames) {
     // intentionally sets text on — neither is a "collision".
     const graphics = boxes.filter((b) => b.kind === "graphic" && b.areaFrac >= 0.02 && b.areaFrac <= 0.6);
 
-    // duplicates within this frame: same normalized text on 2+ distinct elements
+    // duplicates within this frame: same normalized text on 2+ distinct elements.
+    // Only multi-word LINES qualify — the defect class is a redundant subtitle/
+    // caption. Word-level animation spans (.kfw) legally repeat single words
+    // across a film, and hideText's selector+prefix matching would hide them in
+    // EVERY scene (a quote beat once lost 3 of its 4 words this way).
     const groups = new Map();
-    for (const t of texts) { if (!groups.has(t.normText)) groups.set(t.normText, []); groups.get(t.normText).push(t); }
+    for (const t of texts) {
+      if (t.text.length < 12 || !t.text.includes(" ")) continue;
+      if (!groups.has(t.normText)) groups.set(t.normText, []);
+      groups.get(t.normText).push(t);
+    }
     for (const arr of groups.values()) {
       if (arr.length < 2) continue;
       arr.sort((a, b) => (b.bbox.w * b.bbox.h) - (a.bbox.w * a.bbox.h)); // keep the largest/most-prominent

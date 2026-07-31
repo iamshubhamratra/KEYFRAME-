@@ -102,14 +102,14 @@ async function describeVisualStyle(framePaths, { signal } = {}) {
       image_url: { url: `data:image/jpeg;base64,${fs.readFileSync(p).toString("base64")}` },
     })),
   ];
-  const { text, tokensIn, tokensOut } = await openrouter.chat({
+  const { text, tokensIn, tokensOut, costUsd } = await openrouter.chat({
     system: "You are a senior motion-design director with a precise eye.",
     user: content,
     stage: "vision",
     temperature: 0.4,
     signal,
   });
-  return { notes: text.trim(), tokensIn, tokensOut };
+  return { notes: text.trim(), tokensIn, tokensOut, costUsd };
 }
 
 async function transcribeVideo({ videoPath, workDir, signal, tracker }) {
@@ -135,7 +135,7 @@ async function transcribeVideo({ videoPath, workDir, signal, tracker }) {
   const visionTask = sampleFrames(videoPath, workDir)
     .then((frames) => describeVisualStyle(frames, { signal }))
     .then((r) => {
-      if (r && tracker) tracker.addLlm({ inputTokens: r.tokensIn, outputTokens: r.tokensOut, stage: "transcribe" });
+      if (r && tracker) tracker.addLlm({ inputTokens: r.tokensIn, outputTokens: r.tokensOut, stage: "transcribe", costUsd: r.costUsd });
       return r ? r.notes : null;
     })
     .catch((e) => {

@@ -156,6 +156,8 @@ async function generateScript({ brief, signal }) {
   ].join("\n");
 
   let totalIn = 0, totalOut = 0;
+  // Actual charges reported by the provider, summed across retries/laps.
+  let totalCost = 0, costCalls = 0;
   let lastErr = "";
   let userMsg = user;
 
@@ -166,7 +168,7 @@ async function generateScript({ brief, signal }) {
   const ESCALATION_MODEL = config.llm.scriptEscalationModel || "google/gemini-2.5-pro";
 
   for (let attempt = 1; attempt <= 2; attempt++) {
-    const { text, tokensIn, tokensOut } = await openrouter.chat({
+    const { text, tokensIn, tokensOut, costUsd } = await openrouter.chat({
       system: SYSTEM,
       user: userMsg,
       jsonMode: true,
@@ -177,13 +179,14 @@ async function generateScript({ brief, signal }) {
     });
     totalIn += tokensIn;
     totalOut += tokensOut;
+    if (typeof costUsd === "number") { totalCost += costUsd; costCalls++; }
 
     try {
       const raw = normalizeScript(parseLenient(text), { targetDuration });
       const check = validateScript(raw, { targetDuration });
       if (!check.ok) throw new Error(check.errors.join("; "));
       console.log(`[script] ok on attempt ${attempt} (${raw.scenes.length} scenes, ${targetDuration}s, ${check.warnings.length} pace warning(s))`);
-      return { script: raw, warnings: check.warnings, tokensIn: totalIn, tokensOut: totalOut };
+      return { script: raw, warnings: check.warnings, tokensIn: totalIn, tokensOut: totalOut, costUsd: costCalls ? totalCost : null };
     } catch (e) {
       lastErr = e.message;
       console.warn(`[script] attempt ${attempt} invalid: ${lastErr.slice(0, 300)}`);

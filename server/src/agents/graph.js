@@ -25,7 +25,6 @@ const frameRegistry = require("../services/frame_registry");
 const { withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor, retimeScenesToVo, contrastFixPass } = require("../services/pipeline");
 const { assembleQualityReport } = require("../services/quality_report");
 const { acquire, hasProviderFor, makeImageDeduper } = require("../services/asset_sources");
-const { generateImage, imageGenEnabled } = require("../services/asset_sources/kie_image");
 const { styleFor, iconColorFor } = require("../services/pack_style");
 const { synthesizeFitted } = require("../services/vo_fit");
 const { buildCues, writeSrt } = require("../services/captions");
@@ -38,10 +37,12 @@ const { render } = require("../services/renderer");
 const { reviewRender } = require("./qa_agent");
 const { checkAssetsRelevance } = require("../services/asset_vision");
 const { reviewAndCurate } = require("../services/creative_director");
-const { reviewAssets, summarizeReview } = require("../services/asset_director");
+const { directAssets } = require("../services/asset_director");
 const { captureTopicShots, mergeShots } = require("../services/screenshot_director");
+const { captureTopicSiteShots } = require("../services/topic_shots");
 const { qaGateScreenshots } = require("../services/screenshot_qa");
 const { blogImageAssets } = require("../services/blog_assets");
+const { websiteImageAssets, websiteLogoAsset } = require("../services/website_assets");
 const { directBrand } = require("../services/art_director");
 const { directLayout } = require("../services/visual_layout_director");
 const { directText } = require("../services/text_director");
@@ -128,7 +129,7 @@ async function storyboardAgent(s) {
   // node, so the pick is always resolved here — omitting it made the project
   // path's storyboards pack-blind while /api/generate's were pack-aware.
   const r = await generateStoryboard({ prompt: sbPrompt, duration: s.job.duration, orientation: s.job.orientation, framePack: s.framePack });
-  s.tracker.addLlm({ inputTokens: r.tokensIn, outputTokens: r.tokensOut, stage: "storyboard" });
+  s.tracker.addLlm({ inputTokens: r.tokensIn, outputTokens: r.tokensOut, stage: "storyboard", costUsd: r.costUsd });
   return { storyboard: r.storyboard };
 }
 
@@ -159,10 +160,12 @@ async function assetPlannerAgent(s) {
   const videoOk = hasProviderFor("video");
   const shots = (job.website_screenshots || []).filter((p) => { try { return fs.existsSync(p); } catch { return false; } });
   const showcase = script.scenes.filter((x) => ["feature", "proof", "how", "context"].includes(x.purpose));
-  // Up to 5 scenes carry a pinned real screenshot (was 3 — user: "amount of
-  // screenshots is very less"); ingest + screenshot_director routinely capture
-  // 4-6 shots, and the extra pins surface them instead of dropping them.
-  const targets = (showcase.length ? showcase : script.scenes.slice(1, -1)).slice(0, 5);
+  // Up to 8 scenes carry a pinned real screenshot (3 -> 5 -> 8; user: "collect as
+  // much website or product screenshot you can, at least 6-7"). Ingest now grabs a
+  // hero plus five deep sections and the director matches up to six internal
+  // pages, so the pins have to be able to surface them — a smaller budget just
+  // threw captured screenshots away.
+  const targets = (showcase.length ? showcase : script.scenes.slice(1, -1)).slice(0, 8);
   const screenshotPlan = shots.slice(0, targets.length).map((src, i) => ({ kind: "screenshot", src, scene: targets[i], index: i }));
   const pinnedSceneIds = new Set(screenshotPlan.map((p) => p.scene.id));
 
@@ -291,9 +294,21 @@ async function assetSearchAgent(s) {
   // Screenshot Director — topic-matched INTERNAL page captures (pricing scene ->
   // /pricing shot) via PeekShot, in parallel with the whole stock loop below.
   // Merged before the Creative Director review so topic shots get scored too.
-  const topicTask = captureTopicShots({
-    job, script: s.script, jobDir, topic: (s.brief?.subject || anchor || "").trim(), tracker,
-  }).catch(() => []);
+  // A job WITH a website shoots that product's own internal pages. A job without
+  // one (a plain topic prompt) used to get nothing at all — captureTopicShots
+  // returns [] on its first line with no websiteUrl — so it falls back to real
+  // captures of real, on-topic third-party sites instead.
+  const hasSite = !!(job.intent && job.intent.websiteUrl);
+  const topicSubject = (s.brief?.subject || anchor || "").trim();
+  const topicTask = (hasSite
+    ? captureTopicShots({ job, script: s.script, jobDir, topic: topicSubject, tracker })
+    : ((config.topicShots && config.topicShots.enabled === false)
+      ? Promise.resolve([])
+      : captureTopicSiteShots({
+        script: s.script, jobDir, topic: topicSubject, tracker,
+        max: Number(config.topicShots && config.topicShots.max) || 6,
+      }))
+  ).catch(() => []);
 
   // Map a scene's asset role to the kind of curated asset that fits it:
   // full-bleed backgrounds want real photos; insets/icons/textures want
@@ -329,6 +344,11 @@ async function assetSearchAgent(s) {
   // from BOTH Iconify AND Pixabay (each still falls back to the other on a miss)
   // instead of every vector coming from whichever source answers first.
   let vectorSlot = 0;
+  // Slots the lookup could NOT fill. Every `continue` below leaves a scene without
+  // the asset it asked for; recording them lets the gap-filler generate an
+  // on-brief image for exactly those holes instead of the film rendering empty
+  // or repeating another scene's picture.
+  const misses = [];
   for (const { scene, need } of assetPlan.searches) {
     const isVideo = need.type === "video";
     const relPath = isVideo ? `assets/videos/${iVid++}.mp4` : `assets/images/${iImg++}.jpg`;
@@ -360,7 +380,11 @@ async function assetSearchAgent(s) {
       // Interleave Iconify- and Pixabay-first across vector slots (see vectorSlot).
       vectorPrefer: isIcon ? (vectorSlot++ % 2 === 0 ? "pixabay" : "iconify") : undefined,
     }).catch(() => null);
-    if (!r) continue;
+    if (!r) {
+      // No provider had anything for this query — the scene's slot stays empty.
+      misses.push({ kind: "lookup", scene, need, query: need.query });
+      continue;
+    }
     // Skip an asset we've already used — byte-identical OR visually a duplicate
     // (a different re-encode/crop of the same picture), which MD5 alone missed.
     if (!isVideo) {
@@ -368,6 +392,9 @@ async function assetSearchAgent(s) {
       if (dup) {
         console.log(`[agents] dropped ${dup}-duplicate asset — query "${need.query}"`);
         try { fs.unlinkSync(r.path); } catch { /* noop */ }
+        // The only hit was a picture another scene already uses, so this slot is
+        // still unfilled — exactly the case that makes one photo repeat 4x.
+        misses.push({ kind: "duplicate", scene, need, query: need.query });
         continue;
       }
     }
@@ -403,10 +430,32 @@ async function assetSearchAgent(s) {
   });
   // Blog mode: the post's own images join as pinned owner-content assets on
   // scenes the screenshots didn't claim (Creative Director still reviews them).
-  const allPinned = [
-    ...gatedShots,
-    ...blogImageAssets({ job, script: s.script, jobDir, skipSceneIds: new Set(gatedShots.map((a) => String(a.sceneId))) }),
-  ];
+  const blogPins = blogImageAssets({ job, script: s.script, jobDir, skipSceneIds: new Set(gatedShots.map((a) => String(a.sceneId))) });
+  // Website mode: the site's OWN downloaded images (hero graphics/product shots)
+  // join as pinned owner-content photos on scenes the screenshots + blog didn't claim.
+  const sitePins = websiteImageAssets({ job, script: s.script, jobDir, skipSceneIds: new Set([...gatedShots, ...blogPins].map((a) => String(a.sceneId))) });
+  // The site's brand mark. Unpinned on purpose — template_engine claims it out of
+  // the pool (isLogo) and stages it where the pack's wantsLogo() asks.
+  const logoPin = websiteLogoAsset({ job, jobDir });
+  if (logoPin) console.log(`[agents] website logo pinned as ${logoPin.path}`);
+  const allPinned = [...gatedShots, ...blogPins, ...sitePins, ...(logoPin ? [logoPin] : [])];
+
+  // A scene that asked for a website screenshot but has NO owner-content asset
+  // left (the capture failed, or Screenshot QA dropped it as an error page /
+  // consent modal / blank) is a gap too.
+  {
+    const coveredByPin = new Set(allPinned.map((a) => String(a.sceneId)));
+    for (const { scene } of assetPlan.screenshots || []) {
+      if (!coveredByPin.has(String(scene.id))) {
+        misses.push({ kind: "screenshot", scene, need: { role: "inset", type: "image" }, query: scene.title || gateSubject });
+      }
+    }
+  }
+
+  // AI image generation removed — films use real assets only (stock, website
+  // captures, topic screenshots). A slot with nothing to show stays empty rather
+  // than being filled with a generated picture.
+  const generated = [];
 
   // CREATIVE DIRECTOR (default ON) — reviews EVERY asset (screenshots included:
   // it also ranks them by section), scores on six dimensions, assigns scenes,
@@ -414,11 +463,11 @@ async function assetSearchAgent(s) {
   // plain keep/reject vision gate below stays as the CREATIVE_DIRECTOR=0 fallback.
   const cdEnabled = config.creativeDirector ? config.creativeDirector.enabled !== false : true;
   let kept = null;
-  if (cdEnabled && (allPinned.length + results.length)) {
+  if (cdEnabled && (allPinned.length + results.length + generated.length)) {
     kept = await reviewAndCurate({
       jobId: job.id, storyboard: s.storyboard || null, script: s.script || null,
       brief: s.brief, subject: gateSubject, framePack: s.framePack,
-      assets: [...allPinned, ...results], tracker, jobDir, orientation: job.orientation,
+      assets: [...allPinned, ...results, ...generated], tracker, jobDir, orientation: job.orientation,
     });
   }
 
@@ -448,67 +497,6 @@ async function assetSearchAgent(s) {
     if (dropped) {
       console.log(`[agents] content-dedup: dropped ${dropped} duplicate-image slot(s) → ${deduped.length} unique asset(s)`);
       kept = deduped;
-    }
-  }
-
-  // ASSET-QUALITY FLOOR (image generation) — when the curated STOCK scored weak
-  // (the "asset quality 40/100 = generic photos" symptom), GENERATE on-brief images
-  // with KIE Flux (reusing the KIE key, no new signup) and re-review, keeping
-  // whichever set scores higher. Gated by IMAGE_GEN (costs ~$0.02-0.04/image);
-  // fail-open — it never blocks or starves the film.
-  if (kept && imageGenEnabled() && gateSubject) {
-    try {
-      const floor = Number(process.env.ASSET_FLOOR) || Number(config.creativeDirector && config.creativeDirector.qualityFloor) || 55;
-      const report0 = db.getRaw(job.id) && db.getRaw(job.id).creative_review;
-      const score0 = report0 && report0.qualityScore;
-      const scenes = (s.storyboard && s.storyboard.scenes) || (s.script && s.script.scenes) || [];
-      const nScenes = scenes.length || 12;
-      // THIN SUPPLY is the real long-form failure mode: for niche/B2B topics stock
-      // returns ~1 usable photo that gets reused across many scenes, so the film
-      // reads empty EVEN when its "quality" score is high. Generate on-brief images
-      // to reach ~0.5 real image/scene — triggered by thin supply OR low quality,
-      // targeting the scenes that currently have NO asset placed (not just the
-      // leading scenes). Fail-open + re-reviewed, so it never worsens a good film.
-      const keptImgs = (kept || []).filter((a) => String(a.type) === "image");
-      const thinSupply = keptImgs.length < nScenes * 0.5;
-      const lowQuality = typeof score0 === "number" && score0 < floor;
-      if (thinSupply || lowQuality) {
-        const cap = Number(config.imageGen && config.imageGen.maxPerVideo) || 10;
-        const maxGen = Math.max(3, Math.min(cap, Math.round(nScenes * 0.35)));
-        const covered = new Set((kept || []).map((a) => a.sceneId).filter((x) => x != null));
-        const uncovered = scenes.filter((sc) => !covered.has(sc.id));
-        const pick = (uncovered.length ? uncovered : scenes).slice(0, maxGen);
-        console.log(`[agents] asset floor: generating ${pick.length} image(s) — ${thinSupply ? `thin supply (${keptImgs.length} img/${nScenes} scenes)` : `low quality (${score0}<${floor})`}`);
-        const gen = [];
-        for (const sc of pick) {
-          const vd = String(sc.visualDirection || sc.title || sc.headline || "").trim();
-          const prompt = `${vd || gateSubject}${vd && !vd.toLowerCase().includes(gateSubject.toLowerCase()) ? `, ${gateSubject}` : ""}, high-quality editorial photography, clean modern composition, soft natural light, no text, no watermark, no logo`;
-          const rel = `gen_${gen.length}.jpg`;
-          const g = await generateImage({ prompt, orientation: job.orientation, destPath: path.join(jobDir, rel) });
-          if (g) {
-            gen.push({ path: rel, type: "image", sceneId: sc.id, startSec: sc.start, durationSec: sc.duration, alt: (vd || gateSubject).slice(0, 80), license: "AI-generated (KIE Flux)", sourceUrl: null, source: "generated", fromCache: false, width: g.width, height: g.height, ratio: g.height ? g.width / g.height : 1.78, visionOk: true, sees: vd || gateSubject });
-            console.log(`[agents] asset floor: generated image for scene ${sc.id} (${g.width}x${g.height})`);
-          }
-        }
-        if (gen.length) {
-          const kept2 = await reviewAndCurate({
-            jobId: job.id, storyboard: s.storyboard || null, script: s.script || null,
-            brief: s.brief, subject: gateSubject, framePack: s.framePack,
-            assets: [...allPinned, ...results, ...gen], tracker, jobDir, orientation: job.orientation,
-          });
-          const score1 = db.getRaw(job.id) && db.getRaw(job.id).creative_review && db.getRaw(job.id).creative_review.qualityScore;
-          if (kept2 && (typeof score1 !== "number" || score1 >= score0)) {
-            kept = kept2;
-            console.log(`[agents] asset floor: ${gen.length} generated image(s) lifted quality ${score0} → ${score1 != null ? score1 : "?"}`);
-          } else {
-            if (report0) db.setCreativeReview(job.id, report0); // generated set scored worse → restore the better original review
-            console.log(`[agents] asset floor: generated images didn't improve (${score0} vs ${score1}) — keeping original`);
-          }
-          try { fs.writeFileSync(path.join(jobDir, "asset-floor.json"), JSON.stringify({ floorTriggered: true, generated: gen.length, scoreBefore: score0, scoreAfter: (db.getRaw(job.id) && db.getRaw(job.id).creative_review && db.getRaw(job.id).creative_review.qualityScore) || score0 }, null, 2)); } catch { /* best-effort */ }
-        }
-      }
-    } catch (e) {
-      console.warn(`[agents] asset floor errored: ${String(e && e.message || e).slice(0, 140)}`);
     }
   }
 
@@ -547,35 +535,16 @@ async function assetSearchAgent(s) {
   // which the relevance gate skips — those are exactly the assets whose fit matters
   // most). Fail-open: on any error the assets are left as-is and the kit falls back
   // to its own fit heuristics.
+  //
+  // FALLBACK ONLY. The Creative Director's vision pass above now returns these
+  // craft fields itself, so running this too re-uploaded the SAME thumbnails for a
+  // second opinion — roughly doubling the image tokens of the asset stage for no
+  // new information. It still runs when that pass didn't happen (CREATIVE_DIRECTOR=0,
+  // or it failed and `kept` is null) or came back with no craft verdicts at all.
   const gated = kept || [...allPinned, ...results];
-  const directable = gated.filter((a) => a && a.type !== "video");
-  if (directable.length && gateSubject) {
-    try {
-      const kindHint = (a) => {
-        const src = String(a.source || "");
-        if (src === "website") return "website screenshot";
-        if (src === "blog") return "image from the source blog post";
-        if (src === "iconify" || src.startsWith("library:")) return "flat vector/icon";
-        if (/\.svg($|\?)/i.test(a.path || "")) return "svg vector";
-        return null;
-      };
-      const dirs = await reviewAssets({
-        assets: directable.map((a) => ({ absPath: path.join(jobDir, a.path), type: a.type, query: a.alt, kindHint: kindHint(a) })),
-        subject: gateSubject, tracker,
-      });
-      dirs.forEach((d, i) => {
-        const a = directable[i];
-        if (d.kind) a.kind = d.kind;
-        if (d.fit) a.fit = d.fit;
-        if (d.focus) a.focus = d.focus;
-        if (d.effect) a.effect = d.effect;
-        if (d.quality) { a.quality = d.quality; if (d.quality === "low") a.lowQuality = true; }
-      });
-      console.log(`[agents] asset_director: ${summarizeReview(dirs)}`);
-    } catch (e) {
-      console.warn(`[agents] asset_director skipped: ${String(e?.message || e).slice(0, 120)}`);
-    }
-  }
+  // Per-asset craft review (kind/fit/focus/effect/quality) — now the SHARED helper
+  // that pipeline.runJob also calls, so both paths direct assets identically.
+  await directAssets({ assets: gated, jobDir, subject: gateSubject, tracker });
   const assets = gated;
   db.setAssets(job.id, assets);
   console.log(`[agents] asset_search: ${assets.length} asset(s) (${assets.filter((a) => a.fromCache).length} from cache)`);
@@ -590,7 +559,14 @@ async function assetSearchAgent(s) {
 // own accents, so it never blocks a render or makes a video worse.
 async function artDirectorAgent(s) {
   const brandColors = s.brief?.brandColors || [];
-  if (!config.artDirector?.enabled || !brandColors.length) return { brandSkin: null };
+  // WEBSITE THEME MATCH — adopt the site's own ground color (light/dark) so the
+  // film reads like the product's UI. On by default for website inputs; disable
+  // per-request with matchSiteTheme:false. Proceeds even with no brand accents.
+  const siteBg = s.job.website_bg || null;
+  // ON by default for website inputs; global kill-switch config.matchSiteTheme:false,
+  // per-job override s.job.match_site_theme:false (if a future request field sets it).
+  const matchTheme = config.matchSiteTheme !== false && s.job.match_site_theme !== false && !!siteBg;
+  if ((!config.artDirector?.enabled || !brandColors.length) && !matchTheme) return { brandSkin: null };
   db.setProgress(s.job.id, "art_direction");
   const brandSkin = await directBrand({
     jobId: s.job.id,
@@ -600,6 +576,8 @@ async function artDirectorAgent(s) {
     framePack: s.framePack,
     packVibe: s.framePack ? frameRegistry.getPackVibe(s.framePack) : null,
     tracker: s.tracker,
+    siteBg,
+    matchTheme,
   }).catch((e) => { console.warn(`[agents] art_director failed: ${e.message}`); return null; });
   return { brandSkin };
 }
@@ -952,12 +930,14 @@ async function repairAgent(s) {
 }
 
 // Contrast repair node — the DETERMINISTIC alternative to an LLM repair lap when
-// QA flags a contrast blocker. Re-runs the deterministic contrast fixer on the
-// already-composed index.html (recolor/un-clip/scrim), and if it changed anything
-// re-renders + re-mixes audio. Cheap and targeted: it fixes the exact unreadable
-// text instead of re-rolling the whole composition (which the LLM repair does and
-// which regresses as often as it helps). Sets contrastRepairTried so the loop
-// never enters this branch twice.
+// QA flags a fixable blocker. Re-runs the FULL deterministic fix chain ESCALATED
+// on the already-composed index.html — palette-snap (identity), background
+// ground-veil (bg-harmonize, stronger + CSS-bg coverage), layout dedup/collision-
+// scrim, and contrast recolor/un-clip/scrim — and if ANYTHING changed, re-renders
+// + re-mixes audio, then loops back to QA to re-verify. Cheap + targeted: it fixes
+// the exact defect deterministically instead of re-rolling the whole composition
+// (which the LLM repair does and which regresses as often as it helps). Sets
+// contrastRepairTried so the loop enters this deterministic pass at most once.
 async function contrastRepairNode(s) {
   const { job, jobDir } = s;
   db.setProgress(job.id, "qa");
@@ -965,16 +945,21 @@ async function contrastRepairNode(s) {
     framePack: s.framePack,
     storyboard: s.storyboard,
     dims: { width: job.width, height: job.height },
-    label: "qa-contrast",
-  }).catch((e) => { console.warn(`[agents] contrast repair errored: ${e.message.slice(0, 120)}`); return null; });
+    label: "qa-repair",
+    escalate: true,
+  }).catch((e) => { console.warn(`[agents] deterministic repair errored: ${e.message.slice(0, 120)}`); return null; });
 
-  // Nothing deterministically fixable (WCAG sampler disagrees with the vision QA,
-  // or the text isn't locatable) — mark tried and let normal repair/END take over.
-  if (!rep || !rep.fixed || !rep.fixed.length) {
-    console.log(`[agents] contrast repair: no deterministic fix applied — deferring to repair/END`);
-    return { contrastRepairTried: true };
+  // Nothing deterministically changed (the sampler disagrees with the vision QA,
+  // or the defect isn't one our chain can touch) — mark tried and let the LLM
+  // repair / END take over. Re-render only when a real change was applied.
+  if (!rep || !rep.changedAny) {
+    // Nothing changed → the video is byte-identical, so DON'T pay for a re-review.
+    // detRepairNoop makes qaAgentNode reuse the prior verdict (no reviewRender call,
+    // no qaAttempts burn) and the router then falls to the LLM repair / END.
+    console.log(`[agents] deterministic repair: no change applied — deferring to repair/END (skipping re-QA of identical video)`);
+    return { contrastRepairTried: true, detRepairNoop: true };
   }
-  console.log(`[agents] contrast repair: applied ${rep.fixed.length} fix(es) — re-rendering`);
+  console.log(`[agents] deterministic repair: contrast ${rep.fixed?.length || 0} · bg-veil ${rep.bgVeiled || 0} · palette ${rep.identityRemapped || 0} · layout ${rep.layoutChanged || 0} — re-rendering`);
 
   const visual = await render({ jobId: job.id, jobDir, durationSec: s.effectiveDuration || job.duration })
     .catch((e) => { console.warn(`[agents] contrast re-render failed: ${e.message.slice(0, 120)}`); return null; });
@@ -1001,6 +986,13 @@ async function contrastRepairNode(s) {
 
 // QA Agent node — verdict + loop control.
 async function qaAgentNode(s) {
+  // A deterministic repair pass that changed NOTHING left the video byte-identical:
+  // re-reviewing it would spend an LLM QA call to get the exact same verdict AND
+  // burn a qaAttempts increment. Reuse the prior verdict, clear the flag, and let
+  // the router fall through to the LLM repair / END.
+  if (s.detRepairNoop) {
+    return { qa: s.qa, detRepairNoop: false };
+  }
   // Skip QA for the deterministic 3D composer — it's not iteratively repairable,
   // so a QA-repair loop would just re-render an identical (slow) 3D video.
   if (config.qa?.enabled === false || s.usedFallback || s.job?.render3d) {
@@ -1065,7 +1057,7 @@ async function buildGraph() {
     visual: Annotation(), usedFallback: Annotation(), finalAttempt: Annotation(), rendered: Annotation(),
     animationReport: Annotation(), qa: Annotation(), qaAttempts: Annotation(),
     bestQa: Annotation(), usedComposer: Annotation(),
-    composerBudgetDead: Annotation(), contrastRepairTried: Annotation(),
+    composerBudgetDead: Annotation(), contrastRepairTried: Annotation(), detRepairNoop: Annotation(),
     brandSkin: Annotation(), layoutPlan: Annotation(),
   });
 
@@ -1114,28 +1106,42 @@ async function buildGraph() {
   g.addEdge("animation", "timeline");
   g.addEdge("timeline", "qa_agent");
   g.addConditionalEdges("qa_agent", (s) => {
-    // 1) DETERMINISTIC contrast repair FIRST when QA flags a contrast blocker —
-    // it fixes the exact unreadable text (recolor/scrim) far more reliably and
-    // cheaply than an LLM re-roll, and it works on the scene-kit path too (which
-    // otherwise only gets a dressing re-roll). Runs at most once.
-    const hasContrastBlocker = !s.qa?.pass && Array.isArray(s.qa?.issues) && s.qa.issues.some(
-      (i) => String(i.severity || "").toLowerCase() === "blocker"
-        && /contrast|legib|readab|washed|illegible|hard to read|low[-\s]?contrast/i.test(`${i.issue || ""} ${i.fix || ""}`),
+    // 1) DETERMINISTIC repair FIRST for ANY blocker our fix-chain can address —
+    // not just contrast. The chain (identity palette-snap + background ground-veil
+    // + layout dedup/collision-scrim + contrast recolor/scrim), re-run ESCALATED,
+    // fixes the exact defect far more reliably and cheaply than an LLM re-roll, and
+    // works on the scene-kit/dedicated paths too (which otherwise ship unfixed).
+    // Runs at most once (contrastRepairTried gates the whole deterministic pass).
+    const blockers = (!s.qa?.pass && Array.isArray(s.qa?.issues))
+      ? s.qa.issues.filter((i) => String(i.severity || "").toLowerCase() === "blocker") : [];
+    const btxt = blockers.map((i) => `${i.issue || ""} ${i.fix || ""}`).join(" \n ").toLowerCase();
+    const fixableBlocker = blockers.length > 0 && (
+      /contrast|legib|readab|illegible|hard to read|low[-\s]?contrast|washed[-\s]?out text/.test(btxt)                                       // contrast/legibility
+      || /clash|raw (native )?colou?r|palette[-\s]?clash|harmoniz|not harmoniz|(photo|image|background|video)[^.]{0,40}(clash|raw|native|washed|unscrimmed|no scrim|no tint|too bright)/.test(btxt) // raw-photo clash
+      || /off[-\s]?palette|off[-\s]?brand|wrong colou?r|foreign colou?r|colou?rs?[^.]{0,30}(belong|palette|system|off)/.test(btxt)          // off-palette color
+      || /overlap|overlapp|occlud|collision|collid|stacked|on top of|covering|over the (image|photo|graphic|screenshot)|duplicat/.test(btxt) // collision / text-over-graphic / duplicate
     );
-    if (hasContrastBlocker && !s.contrastRepairTried && !s.usedFallback) {
-      console.log(`[agents] QA flagged contrast — deterministic contrast repair (no LLM re-roll)`);
+    if (fixableBlocker && !s.contrastRepairTried && !s.usedFallback) {
+      console.log(`[agents] QA flagged ${blockers.length} blocker(s) — deterministic repair pass (escalated fix chain, no LLM re-roll)`);
       return "contrast_repair";
     }
-    // 2) The composer genuinely repairs from QA feedback, so it earns the full
-    // configured lap budget. Scene-kit/dedicated comps are DETERMINISTIC — an LLM
-    // lap only re-rolls the dressing, which the evidence shows regresses as often
-    // as it helps — so they get at most ONE lap.
-    const capLaps = s.usedComposer ? (Number(config.qa?.maxRepairs) || 1) : 1;
-    const repairsLeft = (s.qaAttempts || 0) <= capLaps;
+    // 2) The composer genuinely rewrites from QA feedback, so it earns the full
+    // configured lap budget. Scene-kit/dedicated comps are DETERMINISTIC + lint-
+    // clean by construction — an LLM repair lap only re-rolls the dressing, which
+    // the evidence shows regresses as often as it helps AND re-bills the priciest
+    // stage (~$0.02-0.05/lap: the 2× "dressing" charge on QA-flagged films). So
+    // scene-kit gets the FREE deterministic contrast repair above and otherwise
+    // ships its best lap — no costly, coin-flip re-compose. Only the composer path
+    // takes the paid repair lap.
+    const capLaps = Number(config.qa?.maxRepairs) || 1;
+    // The one deterministic repair pass also runs QA (to re-verify its fix), which
+    // increments qaAttempts — but it must NOT eat into the composer's LLM lap
+    // budget. Discount it so the composer still earns its full configured laps.
+    const repairsLeft = ((s.qaAttempts || 0) - (s.contrastRepairTried ? 1 : 0)) <= capLaps;
     // No repair lap when the composer already failed on budget (402/daily cap)
     // — the recompose would hit the identical wall and just burn time.
-    if (!s.qa?.pass && repairsLeft && !s.usedFallback && !s.composerBudgetDead) {
-      console.log(`[agents] QA failed — repair lap ${s.qaAttempts}`);
+    if (!s.qa?.pass && s.usedComposer && repairsLeft && !s.usedFallback && !s.composerBudgetDead) {
+      console.log(`[agents] QA failed — composer repair lap ${s.qaAttempts}`);
       return "repair";
     }
     if (!s.qa?.pass && s.composerBudgetDead) {
@@ -1161,7 +1167,9 @@ async function runProductionGraph({ jobId }) {
   fs.mkdirSync(jobDir, { recursive: true });
   db.markStarted(jobId);
 
-  const tracker = new UsageTracker();
+  // Continue the bill intake already started (brief + script) — a fresh tracker
+  // here meant markDone's usage overwrite dropped those stages from every job.
+  const tracker = UsageTracker.from(job.usage);
   const t0 = ms();
   const script = normalizeScript(job.script, { targetDuration: job.duration });
 
@@ -1216,4 +1224,7 @@ async function runProductionGraph({ jobId }) {
   }
 }
 
-module.exports = { runProductionGraph };
+// assetSearchAgent is exported for harness use only (server/scripts) — it is the
+// node where asset acquisition, gap-fill and curation meet, and is worth driving
+// in isolation without paying for a full render.
+module.exports = { runProductionGraph, __test_assetSearchAgent: assetSearchAgent };

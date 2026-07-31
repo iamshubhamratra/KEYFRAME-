@@ -34,6 +34,25 @@ const blueprintComposer = require("./blueprint_composer");
 const bloomComposer = require("./bloom_composer");
 const bauhausComposer = require("./bauhaus_composer");
 const genesisComposer = require("./genesis_composer");
+const momentumComposer = require("./momentum_composer");
+const showcaseComposer = require("./showcase_composer");
+const omeletteAdapter = require("./omelette_adapter");
+const posterFamily = require("./family_poster");
+const terminalFamily = require("./family_terminal");
+const editorialFamily = require("./family_editorial");
+const darkFamily = require("./family_darkpremium");
+const brightFamily = require("./family_bright");
+const cinemaFamily = require("./family_cinema");
+const storyFamily = require("./family_story");
+const daybreakComposer = require("./daybreak_composer");
+const organicComposer = require("./organic_composer");
+const lanternComposer = require("./lantern_composer");
+const hypeComposer = require("./hype_composer");
+const posterpopComposer = require("./posterpop_composer");
+const storyblocksComposer = require("./storyblocks_composer");
+const premiereComposer = require("./premiere_composer");
+const chargedFamily = require("./family_charged");
+const { directTemplate } = require("./template_director");
 const frameRegistry = require("./frame_registry");
 const frameManifest = require("./frame_manifest");
 const { render } = require("./renderer");
@@ -46,6 +65,8 @@ const { fetchMusic, fetchSfx } = require("./audio_sources");
 const { mix: audioMix } = require("./audio_mix");
 const { planAssets } = require("./asset_planner");
 const { acquire, makeImageDeduper } = require("./asset_sources");
+const { captureTopicSiteShots } = require("./topic_shots");
+const { qaGateScreenshots } = require("./screenshot_qa");
 const { checkAssetsRelevance } = require("./asset_vision");
 const { reviewAndCurate } = require("./creative_director");
 const { styleFor } = require("./pack_style");
@@ -53,6 +74,7 @@ const catalog = require("./catalog");
 const { contrastCheck } = require("./contrast_check");
 const { contrastFix } = require("./contrast_fix");
 const { identityFix } = require("./identity_fix");
+const { harmonizeBackgrounds } = require("./bg_harmonize");
 const { layoutFix } = require("./layout_fix");
 const { assembleQualityReport } = require("./quality_report");
 
@@ -110,10 +132,10 @@ async function planAndFetchAssets({ jobId, jobDir, storyboard, flags, orientatio
   if (!flags.images && !flags.video) return { assets: [] };
 
   const packStyle = styleFor(framePack);
-  const { plan, tokensIn, tokensOut, error } = await planAssets(storyboard, {
+  const { plan, tokensIn, tokensOut, costUsd, error } = await planAssets(storyboard, {
     images: flags.images, video: flags.video,
   });
-  tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "assets" });
+  tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "assets", costUsd: costUsd });
 
   if (error) {
     console.warn(`[pipeline] asset planner failed (${error}); continuing without visuals`);
@@ -123,7 +145,29 @@ async function planAndFetchAssets({ jobId, jobDir, storyboard, flags, orientatio
   fs.mkdirSync(path.join(jobDir, "assets", "images"), { recursive: true });
   fs.mkdirSync(path.join(jobDir, "assets", "videos"), { recursive: true });
 
+  // TOPIC SCREENSHOTS — real captures of real, on-topic sites. This path serves
+  // /api/generate, which has no website of its own, so it previously had NO
+  // screenshot capability at all: screenshot_director only fires for jobs
+  // carrying a websiteUrl. Stock is at its worst on exactly the technical
+  // subjects where a real product page is most convincing, so this runs in
+  // PARALLEL with the stock loop below and merges before curation.
+  const topicShotTask = (config.topicShots && config.topicShots.enabled === false)
+    ? Promise.resolve([])
+    : captureTopicSiteShots({
+      script: storyboard, jobDir, topic: subject, tracker,
+      max: Number(config.topicShots && config.topicShots.max) || 6,
+    }).catch(() => []);
+
   const tasks = [];
+
+  // Shape a planned-but-unfilled slot the way asset_gap_fill expects. The plan
+  // item carries its own scene timing, so no storyboard lookup is needed.
+  const missFor = (a, kind, type = "image") => ({
+    kind,
+    scene: { id: a.sceneId, start: a.startSec, duration: a.durationSec, visualDirection: a.alt || a.query },
+    need: { type, role: a.style === "inset" ? "inset" : "background" },
+    query: a.query,
+  });
 
   if (flags.images && Array.isArray(plan.images)) {
     plan.images.forEach((a, i) => {
@@ -140,14 +184,19 @@ async function planAndFetchAssets({ jobId, jobDir, storyboard, flags, orientatio
           type: "image", orientation, outputPath: absPath, tracker,
           styleKeywords: packStyle.keywords,
         })
+          // A null result is a MISS, not just "no asset": the scene keeps its slot
+          // and renders empty. Carry it through so the gap-filler can generate for
+          // exactly that slot. (Parity with the agent graph.)
           .then((got) => got ? {
-            path: path.relative(jobDir, got.path).split(path.sep).join("/"), type: "image",
-            sceneId: a.sceneId, startSec: a.startSec,
-            durationSec: a.durationSec, style: a.style, alt: a.alt,
-            width: got.width, height: got.height, ratio: got.ratio, hasAlpha: got.hasAlpha, dhash: got.dhash,
-            license: got.license, sourceUrl: got.sourceUrl, source: got.source,
-          } : null)
-          .catch(() => null)
+            asset: {
+              path: path.relative(jobDir, got.path).split(path.sep).join("/"), type: "image",
+              sceneId: a.sceneId, startSec: a.startSec,
+              durationSec: a.durationSec, style: a.style, alt: a.alt,
+              width: got.width, height: got.height, ratio: got.ratio, hasAlpha: got.hasAlpha, dhash: got.dhash,
+              license: got.license, sourceUrl: got.sourceUrl, source: got.source,
+            },
+          } : { miss: missFor(a, "lookup") })
+          .catch(() => ({ miss: missFor(a, "lookup") }))
       );
     });
   }
@@ -162,17 +211,21 @@ async function planAndFetchAssets({ jobId, jobDir, storyboard, flags, orientatio
           type: "video", orientation, outputPath: absPath, tracker,
         })
           .then((got) => got ? {
-            path: path.relative(jobDir, got.path).split(path.sep).join("/"), type: "video",
-            sceneId: a.sceneId, startSec: a.startSec,
-            durationSec: a.durationSec, style: a.style,
-            license: got.license, sourceUrl: got.sourceUrl, source: got.source,
-          } : null)
-          .catch(() => null)
+            asset: {
+              path: path.relative(jobDir, got.path).split(path.sep).join("/"), type: "video",
+              sceneId: a.sceneId, startSec: a.startSec,
+              durationSec: a.durationSec, style: a.style,
+              license: got.license, sourceUrl: got.sourceUrl, source: got.source,
+            },
+          } : { miss: missFor(a, "lookup", "video") })
+          .catch(() => ({ miss: missFor(a, "lookup", "video") }))
       );
     });
   }
 
-  const results = (await Promise.all(tasks)).filter(Boolean);
+  const settled = (await Promise.all(tasks)).filter(Boolean);
+  const results = settled.filter((x) => x.asset).map((x) => x.asset);
+  const misses = settled.filter((x) => x.miss).map((x) => x.miss);
 
   // De-dupe by EXACT (MD5) + PERCEPTUAL (dHash) match — several planner queries
   // resolve to the same, or a visually-identical re-encode of the same, stock
@@ -184,9 +237,37 @@ async function planAndFetchAssets({ jobId, jobDir, storyboard, flags, orientatio
     const abs = path.join(jobDir, item.path);
     if (item.type === "video") { deduped.push(item); continue; }
     const dup = await deduper.check(abs, item.dhash);
-    if (dup) { try { fs.unlinkSync(abs); } catch { /* noop */ } continue; }
+    if (dup) {
+      try { fs.unlinkSync(abs); } catch { /* noop */ }
+      // Its only hit was a picture another scene already uses — the slot is still
+      // unfilled, which is what makes one photo repeat across the film.
+      misses.push(missFor({ sceneId: item.sceneId, startSec: item.startSec, durationSec: item.durationSec, style: item.style, alt: item.alt, query: item.alt }, "duplicate"));
+      continue;
+    }
     deduped.push(item);
   }
+
+  // IMAGE GAP-FILL — generate for the slots above that came back empty, BEFORE the
+  // Creative Director so generated art is reviewed in the same pass as everything
+  // else. Off by default; fail-open; hard USD cap per video. Parity with the agent
+  // graph (agents/graph.js) — /api/generate lands here, /api/projects lands there.
+  // Land the topic captures and vision-gate them exactly like website shots:
+  // drop error pages, consent modals, bot-walls and half-renders before anything
+  // ranks one as a hero.
+  const rawTopicShots = await topicShotTask;
+  const topicShots = rawTopicShots.length
+    ? await qaGateScreenshots({ assets: rawTopicShots, jobDir, subject, script: storyboard, tracker }).catch(() => rawTopicShots)
+    : [];
+  if (topicShots.length) {
+    // Pinned to their scenes, so they lead rather than compete with stock.
+    deduped.unshift(...topicShots);
+    console.log(`[pipeline] ${topicShots.length} topic screenshot(s) joined the pool`);
+  }
+
+  // AI image generation removed — films use real assets only (stock, website
+  // captures, topic screenshots). A slot with nothing to show stays empty rather
+  // than being filled with a generated picture.
+  const genFills = [];
 
   // CREATIVE DIRECTOR (default ON) — richer replacement for the plain vision
   // gate below: scores every asset on six dimensions, assigns each to a scene,
@@ -202,8 +283,10 @@ async function planAndFetchAssets({ jobId, jobDir, storyboard, flags, orientatio
     // null = CD disabled or failed — fall through to the legacy vision gate
     // below so web stock still gets a chance at verified (visionOk) placement.
     if (curated) {
-      console.log(`[pipeline] fetched ${results.length} → ${curated.length} visual asset(s) (dedup + creative director)`);
-      return { assets: curated };
+      const topUp = [];
+      const finalAssets = curated;
+      console.log(`[pipeline] fetched ${results.length}${genFills.length + topUp.length ? ` +${genFills.length + topUp.length} generated` : ""} → ${finalAssets.length} visual asset(s) (dedup + creative director)`);
+      return { assets: finalAssets };
     }
   }
 
@@ -236,7 +319,7 @@ async function planAndFetchAssets({ jobId, jobDir, storyboard, flags, orientatio
     if (rejected.size) survivors = deduped.filter((it) => !rejected.has(it));
   }
 
-  console.log(`[pipeline] fetched ${results.length} → ${survivors.length} visual asset(s) (dedup + vision gate)`);
+  console.log(`[pipeline] fetched ${results.length}${genFills.length?` +${genFills.length} generated`:""} → ${survivors.length} visual asset(s) (dedup + vision gate)`);
   return { assets: survivors };
 }
 
@@ -356,21 +439,48 @@ async function layoutFixPass(jobDir, { label = "compose" } = {}) {
       collisionsScrimmed: (prior.collisionsScrimmed || 0) + (r.collisionsScrimmed || 0),
     };
     try { fs.writeFileSync(path.join(jobDir, "layout-report.json"), JSON.stringify(report, null, 2)); } catch { /* best-effort */ }
-    return report;
+    // Persist the accumulated totals, but return THIS pass's deltas too so the
+    // caller can tell whether the current (e.g. post-QA) run changed anything.
+    return { ...report, duplicatesRemovedNow: r.duplicatesRemoved || 0, collisionsScrimmedNow: r.collisionsScrimmed || 0 };
   } catch (e) {
     console.warn(`[pipeline] layout-fix (${label}) errored (${String(e.message).slice(0, 120)}) — not blocking`);
     return null;
   }
 }
 
-async function contrastFixPass(jobDir, { framePack, storyboard, dims, label = "compose", maxPasses = 2 } = {}) {
+async function contrastFixPass(jobDir, { framePack, storyboard, dims, label = "compose", maxPasses = 2, escalate = false } = {}) {
+  // `escalate` = this is the POST-QA deterministic repair re-pass (QA flagged a
+  // blocker the pre-render pass missed): the sub-fixers try HARDER (stronger veils,
+  // CSS-background coverage) so the re-pass does real work, not an idempotent no-op.
+  let identityRemapped = 0, bgVeiled = 0, layoutChanged = 0;
   // Identity remap first (cheap, pure-string) so the contrast check measures the
   // final on-palette colors. Independent of the CONTRAST_FIX flag.
-  try { identityFixPass(jobDir, { framePack, label }); } catch { /* fail-open */ }
+  try { const idr = identityFixPass(jobDir, { framePack, label }); identityRemapped = (idr && idr.remapped && idr.remapped.length) || 0; } catch { /* fail-open */ }
+  // Background harmonize (pure-string): veil any UNSCRIMMED full-bleed background
+  // photo to the pack ground, so a raw-colored image can't clash with the design.
+  // This is the deterministic fix for the QA "raw background clashing" blocker
+  // that previously only got flagged (composer path) — now prevented before QA,
+  // and escalated (stronger veil + CSS-bg coverage) when QA still flags it.
+  try {
+    const idx = path.join(jobDir, "index.html");
+    const html = fs.readFileSync(idx, "utf8");
+    let th = null; try { th = sceneKit.deriveTheme(framePack, storyboard); } catch { /* defaults */ }
+    const out = harmonizeBackgrounds(html, { theme: th, escalate });
+    if (out.changed.length) {
+      fs.writeFileSync(idx, out.html, "utf8");
+      bgVeiled = out.changed.length;
+      console.log(`[pipeline] bg-harmonize (${label}${escalate ? " ·escalate" : ""}): grounded ${out.changed.length} background(s) so they match the design`);
+    }
+  } catch (e) { console.warn(`[pipeline] bg-harmonize (${label}) skipped (${String(e.message).slice(0, 120)})`); }
   // Layout repair next (hide duplicates + scrim collisions) so contrast then
   // verifies the final DOM. Its own render; gated by LAYOUT_FIX.
-  try { await layoutFixPass(jobDir, { label }); } catch { /* fail-open */ }
-  if (contrastFixMode() === "off") return { checked: false, fixed: [], remaining: [], passes: 0, skipped: "off" };
+  try { const lr = await layoutFixPass(jobDir, { label }); layoutChanged = lr ? ((lr.duplicatesRemovedNow || 0) + (lr.collisionsScrimmedNow || 0)) : 0; } catch { /* fail-open */ }
+  if (contrastFixMode() === "off") {
+    // Contrast loop disabled — but identity/bg/layout already ran above, so still
+    // report their deterministic changes (the QA repair node relies on changedAny).
+    const changedAny = identityRemapped > 0 || bgVeiled > 0 || layoutChanged > 0;
+    return { checked: false, fixed: [], remaining: [], passes: 0, skipped: "off", identityRemapped, bgVeiled, layoutChanged, changedAny };
+  }
   const indexPath = path.join(jobDir, "index.html");
   let theme = null, packTokens = null;
   try { theme = sceneKit.deriveTheme(framePack, storyboard); } catch { /* fixer falls back to ground/ink defaults */ }
@@ -425,8 +535,13 @@ async function contrastFixPass(jobDir, { framePack, storyboard, dims, label = "c
     fixed: mergedFixed,
     remaining: remaining.map((r) => ({ selector: r.selector, text: r.text, ratio: r.bestRatio, needed: r.needed })),
     passes,
+    // Deterministic changes made by THIS run across the whole chain — the QA repair
+    // node re-renders when any of these is non-zero (not only when contrast text was
+    // fixed), so a background veil / palette remap / collision scrim also ships.
+    identityRemapped, bgVeiled, layoutChanged,
+    changedAny: (allFixed.length > 0) || identityRemapped > 0 || bgVeiled > 0 || layoutChanged > 0,
   };
-  try { fs.writeFileSync(path.join(jobDir, "contrast-report.json"), JSON.stringify(report, null, 2)); } catch { /* best-effort */ }
+  try { fs.writeFileSync(path.join(jobDir, "contrast-report.json"), JSON.stringify({ ...report, fixed: mergedFixed }, null, 2)); } catch { /* best-effort */ }
   return report;
 }
 
@@ -662,7 +777,7 @@ async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets
       }
       throw e; // lap 0 failed with no good comp yet — let the caller fall back
     }
-    tracker.addLlm({ inputTokens: files.tokensIn, outputTokens: files.tokensOut, stage: "composer" });
+    tracker.addLlm({ inputTokens: files.tokensIn, outputTokens: files.tokensOut, stage: "composer", costUsd: files.costUsd });
 
     const res = await gateComposition({ files, jobDir, tracker, label, enrich, cinematic });
     if (res.ok) return { files };
@@ -726,6 +841,48 @@ const PACK_RENDERERS = {
   // its own animated world + eight beats (longFormOk), recomposes for portrait,
   // and IS brand-adaptive (buildComposition takes brandSkin).
   "genesis": { label: "genesis", composer: genesisComposer, desc: "Genesis living world", portraitOk: true, longFormOk: true },
+  // Momentum — faithful port of the momentum-template kinetic launch film (8
+  // authored scene types + whip/zoom camera + HUD rail). Maps EVERY storyboard
+  // scene to a template scene type and weaves pinned screenshots/photos into
+  // its browser/phone/gallery slots, so it fills long films too (longFormOk).
+  "momentum": { label: "momentum", composer: momentumComposer, desc: "Momentum kinetic launch", portraitOk: true, longFormOk: true },
+  // Showcase — faithful port of the SHOWCASE annotated product-tour template
+  // (7 scene types, drawn arrows/callouts, browser + phone frames, blob backdrop).
+  // The most screenshot-forward pack: it frames real captures as the product on
+  // every media scene, so it pairs directly with topic_shots.js. Maps every
+  // storyboard scene to a template scene type and tops its slots up from the
+  // asset pool, so it fills long films too (longFormOk).
+  // OMELETTE — renders the ORIGINAL bundled template (server/public/omelette-templates)
+  // rather than a re-implementation, driving its own frame-exact seek contract.
+  // Which template a pack uses comes from its manifest "template" field.
+  "omelette": { label: "omelette", composer: omeletteAdapter, desc: "bundled template", portraitOk: true, longFormOk: true },
+  "showcase": { label: "showcase", composer: showcaseComposer, desc: "Showcase product tour", portraitOk: true, longFormOk: true },
+  // FAMILY templates — one authored scene grammar shared by a visual family,
+  // skinned per pack from its own manifest (scene_kit.deriveTheme) so each pack
+  // keeps its colours/fonts/text effects while the family owns the staging.
+  // Built on template_engine.js, so they inherit the same seek-safe contract,
+  // portrait layouts and asset weaving as the hand-written composers.
+  "poster-loud": { label: "poster", composer: posterFamily, desc: "Poster-loud family", portraitOk: true, longFormOk: true },
+  "retro-terminal": { label: "terminal", composer: terminalFamily, desc: "Retro-terminal family", portraitOk: true, longFormOk: true },
+  "editorial-quiet": { label: "editorial", composer: editorialFamily, desc: "Editorial-quiet family", portraitOk: true, longFormOk: true },
+  "dark-premium": { label: "dark-premium", composer: darkFamily, desc: "Dark-premium family", portraitOk: true, longFormOk: true },
+  "bright-minimal": { label: "bright", composer: brightFamily, desc: "Bright-minimal family", portraitOk: true, longFormOk: true },
+  "cinema": { label: "cinema", composer: cinemaFamily, desc: "Cinema family", portraitOk: true, longFormOk: true },
+  "story-handmade": { label: "story", composer: storyFamily, desc: "Story-handmade family", portraitOk: true, longFormOk: true },
+  "charged": { label: "charged", composer: chargedFamily, desc: "Charged family (per-pack signature FX)", portraitOk: true, longFormOk: true },
+  // DEDICATED template ports — the user's bundled "omelette reel" templates,
+  // each a faithful per-template port of its source film (its own 6 authored
+  // beats, per-beat camera, living world and chrome) on template_engine. These
+  // outrank the family grammar for their packs: selecting the template gives
+  // THE template, content-swapped (script copy, topical assets, the website
+  // screenshot in the film's own media slot).
+  "daybreak-bakehouse": { label: "daybreak", composer: daybreakComposer, desc: "Daybreak Bakehouse template", portraitOk: true, longFormOk: true },
+  "organic-garden": { label: "organic", composer: organicComposer, desc: "Organic Garden template", portraitOk: true, longFormOk: true },
+  "lantern-night": { label: "lantern", composer: lanternComposer, desc: "Lantern Night template", portraitOk: true, longFormOk: true },
+  "hype-wave": { label: "hype", composer: hypeComposer, desc: "Hype Wave template", portraitOk: true, longFormOk: true },
+  "poster-pop": { label: "posterpop", composer: posterpopComposer, desc: "Poster Pop template", portraitOk: true, longFormOk: true },
+  "story-blocks": { label: "storyblocks", composer: storyblocksComposer, desc: "Story Blocks template", portraitOk: true, longFormOk: true },
+  "premiere-night": { label: "premiere", composer: premiereComposer, desc: "Premiere Night template", portraitOk: true, longFormOk: true },
 };
 // Past this length the sparse GSAP dedicated renderers hand off to scene-kit.
 const LONGFORM_RENDERER_SEC = 75;
@@ -739,13 +896,31 @@ function rendererFor(framePack) {
 // Shared envelope for every dedicated pack renderer: build → persist → render.
 // Self-contained composers (own chrome/3D/vector art), so no enrich and no
 // stock-asset weaving. Same seek contract as the scene-kit path.
-async function composeWithPackRenderer({ renderer, storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null }) {
+async function composeWithPackRenderer({ renderer, storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null, subject = null }) {
   const t0 = ms();
   const R = PACK_RENDERERS[renderer];
   console.log(`[pipeline] ${label}: building ${R.desc} composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
+  // TEMPLATE DIRECTOR — a composer that publishes its authored scene vocabulary
+  // (TEMPLATE_SCENES) gets an editorial casting pass: every storyboard beat is
+  // cast as one of the template's real scenes and its slots filled with the
+  // film's own copy + the best-fitting asset. Fail-open: no plan → the composer
+  // routes scenes with its own deterministic logic (identical template, less
+  // nuanced casting).
+  let templatePlan = null;
+  if (Array.isArray(R.composer.TEMPLATE_SCENES) && R.composer.TEMPLATE_SCENES.length) {
+    try {
+      const { plan } = await directTemplate({
+        jobId, storyboard, assets, framePack, subject, tracker, signal: abortSignal,
+        templateScenes: R.composer.TEMPLATE_SCENES,
+      });
+      templatePlan = plan;
+    } catch (e) {
+      console.warn(`[pipeline] template_director skipped: ${String((e && e.message) || e).slice(0, 140)}`);
+    }
+  }
   // brandSkin (Art Director / user color) is forwarded — composers that accept it
-  // (Genesis) recolor their whole world to the brand; the rest ignore the extra key.
-  const built = R.composer.buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin });
+  // (Genesis, momentum) recolor to the brand; the rest ignore the extra key.
+  const built = R.composer.buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin, templatePlan });
   fs.writeFileSync(path.join(jobDir, "index.html"), built.indexHtml, "utf8");
   fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
   await contrastFixPass(jobDir, { framePack, storyboard, dims, label });
@@ -770,7 +945,7 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
     // fetched screenshots/photos/vectors the dedicated renderer would ignore.
     const tooLongForRenderer = !R.longFormOk && durationSec > LONGFORM_RENDERER_SEC;
     if ((!isPortrait || R.portraitOk) && !tooLongForRenderer) {
-      return composeWithPackRenderer({ renderer: packRenderer, storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || R.label, abortSignal, tracker, brandSkin });
+      return composeWithPackRenderer({ renderer: packRenderer, storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || R.label, abortSignal, tracker, brandSkin, subject });
     }
     if (tooLongForRenderer) {
       console.log(`[pipeline] ${R.desc} renders sparse past ${LONGFORM_RENDERER_SEC}s — ${durationSec}s job routes to scene-kit with "${framePack}" styling (dense + asset-weaving)`);
@@ -995,8 +1170,8 @@ async function buildAudio({ jobDir, storyboard, flags, tracker, perScene = false
   // the planner so the audio matches the template's sound (and a template with
   // built-in music still plays it if the planner returns none).
   const packAudio = framePack ? (frameManifest.getManifest(framePack)?.audio || null) : null;
-  const { plan, tokensIn, tokensOut, error: planErr } = await planAudio(storyboard, flags, packAudio);
-  tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "audio" });
+  const { plan, tokensIn, tokensOut, costUsd, error: planErr } = await planAudio(storyboard, flags, packAudio);
+  tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "audio", costUsd: costUsd });
 
   if (planErr) {
     console.warn(`[pipeline] audio planner failed: ${planErr}. Skipping audio.`);
@@ -1184,7 +1359,7 @@ async function runJob({
       try {
         const intent = { prompt, preferences: { duration, orientation, voiceStyle: voice || "auto", framePack: framePack || "auto" } };
         const briefRes = await generateBrief({ intent });
-        tracker.addLlm({ inputTokens: briefRes.tokensIn, outputTokens: briefRes.tokensOut, stage: "brief" });
+        tracker.addLlm({ inputTokens: briefRes.tokensIn, outputTokens: briefRes.tokensOut, stage: "brief", costUsd: briefRes.costUsd });
         effectivePrompt = enrichedStoryboardPrompt(briefRes.brief, prompt);
         // Subject anchor for the asset stage's stock queries + vision gate.
         briefSubject = (briefRes.brief && briefRes.brief.subject) ? String(briefRes.brief.subject).trim() : null;
@@ -1212,10 +1387,22 @@ async function runJob({
       const t0 = ms();
       db.setProgress(jobId, "storyboard");
       sbRes = await generateStoryboard({ prompt: effectivePrompt, duration, orientation, framePack });
-      tracker.addLlm({ inputTokens: sbRes.tokensIn, outputTokens: sbRes.tokensOut, stage: "storyboard" });
+      tracker.addLlm({ inputTokens: sbRes.tokensIn, outputTokens: sbRes.tokensOut, stage: "storyboard", costUsd: sbRes.costUsd });
       markStage("storyboard", t0);
       log.info("storyboard ready", { scenes: (sbRes.storyboard.scenes || []).length, title: sbRes.storyboard.title, ms: timings.storyboardMs });
     }
+
+    // ---- Text Director (path-unification #1) ----
+    // The LangGraph path runs text_director as a node; the single-shot path skipped
+    // it, so /generate films had emptier/boilerplate on-screen copy than /projects.
+    // Mine the script's own lines into empty subtext/bullet slots BEFORE assets/audio/
+    // compose read the storyboard. Enriches sbRes.storyboard IN PLACE. The miner is
+    // free + additive (only fills empty slots); the LLM pass is opt-in via its config.
+    // Fail-open: any failure leaves the storyboard exactly as generated.
+    try {
+      const { directText } = require("./text_director");
+      await directText({ jobId, brief: effectivePrompt, script: sbRes.storyboard, storyboard: sbRes.storyboard, tracker });
+    } catch (e) { console.warn(`[pipeline] text_director skipped: ${String((e && e.message) || e).slice(0, 120)}`); }
 
     // ---- Stages: assets + audio prep run IN PARALLEL (both need only storyboard).
     // The audio result is held in a promise used later at mix time. Asset fetch
@@ -1233,6 +1420,7 @@ async function runJob({
       : Promise.resolve(null);
 
     let allAssets = [];
+    let layoutPlan = null;   // visual_layout_director output (path-unification #1); threaded into compose below
     if (images || video) {
       const t0 = ms();
       const va = await planAndFetchAssets({
@@ -1243,6 +1431,28 @@ async function runJob({
         return { assets: [] };
       });
       allAssets = va.assets;
+      // Asset Director (path-unification #1) — the SAME per-asset craft review
+      // (kind/fit/focus/effect/quality) the LangGraph path runs, via the shared
+      // directAssets helper, so /generate assets are fit-corrected + quality-gated
+      // like /projects (was skipped here → wrong crops + weak assets in slots).
+      // Fail-open + skips if a creative-director craft pass already tagged them.
+      try {
+        const { directAssets } = require("./asset_director");
+        await directAssets({ assets: allAssets, jobDir, subject: briefSubject, tracker });
+      } catch (e) { console.warn(`[pipeline] asset_director skipped: ${String((e && e.message) || e).slice(0, 120)}`); }
+      // Visual Layout Director (path-unification #1) — deterministic (no LLM/IO)
+      // composition-presentation pass the LangGraph path runs: re-levels prominent
+      // asset overflow to scrim B-roll, sets content-aware cropFocus + phone/browser
+      // container, and produces a layoutPlan (per-scene archetype + heroScale/
+      // montageMax) that scene-kit reads. Runs AFTER directAssets so a.focus/a.fit
+      // win, and BEFORE db.setAssets so the demotions persist. Fail-open.
+      try {
+        const { directLayout } = require("./visual_layout_director");
+        const vld = directLayout({ storyboard: sbRes.storyboard, script: sbRes.storyboard, assets: allAssets, framePack, dims });
+        layoutPlan = vld.layoutPlan || null;
+        allAssets = vld.assets || allAssets;
+        if (vld.review) { try { db.setLayoutReview(jobId, vld.review); } catch { /* best effort */ } }
+      } catch (e) { console.warn(`[pipeline] visual_layout_director skipped: ${String((e && e.message) || e).slice(0, 120)}`); }
       // Persist the curated list like the agent-graph path does — without this,
       // /generate jobs show 0 assets in jobs.json and the only audit trail is a
       // job dir the janitor deletes after an hour.
@@ -1338,7 +1548,7 @@ async function runJob({
               storyboard: sbRes.storyboard, dims, jobDir,
               assets: allAssets, tracker, jobId, durationSec: effectiveDuration,
               label: remix ? "remix" : (useDress ? "premium-dress" : "scene-kit"), abortSignal: signal, framePack, remix,
-              dress: useDress, subject: briefSubject, strictIdentity,
+              dress: useDress, subject: briefSubject, strictIdentity, layoutPlan,
             }),
             budget, remix ? "LLM remix composition" : (useDress ? "scene-kit + set-dressing" : "scene-kit composition")
           );
@@ -1416,6 +1626,51 @@ async function runJob({
       }
     }
 
+    // ---- Stage: visual QA (verify-by-default) + bounded deterministic repair ----
+    // The single-shot path shipped with NO post-render check — the reel crop, empty
+    // plates and density gaps all reached users this way. Port the LangGraph path's
+    // reviewRender gate: sample rendered frames, vision-check for HARD defects
+    // (blank/unreadable/clipped/cropped), and if any are found run the deterministic
+    // fix chain + re-render ONCE, BEFORE the audio is mixed in. Config-gated
+    // (config.qa.enabled=false disables); fail-open (any error ships the render).
+    let qaVerdict = null;
+    if (config.qa?.enabled !== false && !usedFallback && visualResult && visualResult.videoPath) {
+      const t0 = ms();
+      db.setProgress(jobId, "qa");
+      const { reviewRender } = require("../agents/qa_agent");
+      const qaArgs = {
+        scenes: sbRes.storyboard.scenes, duration: effectiveDuration, framePack,
+        workDir: path.join(jobDir, "qa"), tracker, dims: { width, height },
+        // scene-kit / dedicated renders judge only HARD defects (their typographic
+        // design language is intentional); an LLM remix is held to the full bar.
+        deterministic: finalAttempt !== "remix",
+      };
+      try {
+        qaVerdict = await reviewRender({ ...qaArgs, videoPath: visualResult.videoPath })
+          .catch((e) => { console.warn(`[pipeline] qa failed (${String(e.message).slice(0, 120)}); passing`); return { pass: true, issues: [], error: e.message }; });
+        const blockers = (qaVerdict.issues || []).filter((x) => x && x.severity === "blocker");
+        if (!qaVerdict.pass && blockers.length) {
+          console.log(`[pipeline] qa: ${blockers.length} blocker(s) — deterministic repair + re-render`);
+          const rep = await contrastFixPass(jobDir, {
+            framePack, storyboard: sbRes.storyboard, dims: { width, height }, label: "qa-repair", escalate: true,
+          }).catch((e) => { console.warn(`[pipeline] qa-repair errored: ${e.message.slice(0, 120)}`); return null; });
+          if (rep && rep.changedAny) {
+            tracker.addExternal("hyperframes_render");
+            visualResult = await render({ jobId, jobDir, durationSec: effectiveDuration });
+            qaVerdict = await reviewRender({ ...qaArgs, videoPath: visualResult.videoPath })
+              .catch((e) => { console.warn(`[pipeline] re-qa failed (${String(e.message).slice(0, 120)})`); return qaVerdict; });
+          } else {
+            console.log(`[pipeline] qa: no deterministically fixable blocker — shipping with verdict recorded`);
+          }
+        }
+        markStage("qa", t0);
+        console.log(`[pipeline] qa: ${qaVerdict.pass ? "pass" : "fail"} score=${qaVerdict.score != null ? qaVerdict.score : "?"} in ${timings.qaMs}ms`);
+      } catch (e) {
+        markStage("qa", t0);
+        console.warn(`[pipeline] qa stage failed: ${e.message}`);
+      }
+    }
+
     // ---- Stage: audio mix (audio was prepared in parallel with compose+render)
     if (wantsAudio) {
       const t0 = ms();
@@ -1463,13 +1718,14 @@ async function runJob({
       finalAttempt,
     });
 
-    // Quality Director summary (single-shot path has no post-render QA loop, so
-    // qa is null → the report still surfaces contrast fixes, audio loudness,
-    // screenshot QA and asset/template scores). Never throws.
+    // Quality Director summary. The single-shot path now runs a post-render visual
+    // QA lap (qaVerdict above), so the report surfaces the real vision verdict
+    // alongside contrast fixes, audio loudness, screenshot QA and asset/template
+    // scores. Falls back to any stored qa / null. Never throws.
     try {
       const raw = db.getRaw(jobId);
       db.setQualityReport(jobId, assembleQualityReport({
-        jobDir: jobDirFor(jobId), qa: (raw && raw.qa) || null, creativeReview: raw && raw.creative_review,
+        jobDir: jobDirFor(jobId), qa: qaVerdict || (raw && raw.qa) || null, creativeReview: raw && raw.creative_review,
       }));
     } catch (e) { log.warn?.("quality report failed", { error: e.message }); }
 

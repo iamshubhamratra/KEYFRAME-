@@ -77,7 +77,7 @@ async function reviewAssets({ assets, subject, tracker, signal } = {}) {
         content.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${x.b}` } });
       });
 
-      const { text, tokensIn, tokensOut } = await openrouter.chat({
+      const { text, tokensIn, tokensOut, costUsd } = await openrouter.chat({
         system: SYSTEM,
         user: content,
         jsonMode: true,
@@ -85,7 +85,7 @@ async function reviewAssets({ assets, subject, tracker, signal } = {}) {
         temperature: 0,
         signal,
       });
-      if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "assetDirector" });
+      if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "assetDirector", costUsd: costUsd });
 
       const parsed = extractFirstJsonObject(text);
       const arr = Array.isArray(parsed && parsed.assets) ? parsed.assets : [];
@@ -111,4 +111,45 @@ function summarizeReview(dirs) {
   return `quality[high:${q.high} ok:${q.ok} low:${q.low}]${effStr ? ` effects[${effStr}]` : ""}`;
 }
 
-module.exports = { reviewAssets, summarizeReview };
+// directAssets — the full "review the fetched visuals and act on them" step, shared
+// by BOTH orchestration paths (graph.js asset_search node AND pipeline.runJob) so
+// the single-shot path gets the same per-asset kind/fit/focus/effect/quality calls
+// as the LangGraph path (they used to diverge — /generate skipped this entirely).
+// Skips videos, skips when a creative-director craft pass already ran (avoids a
+// double vision upload), no-ops without a subject. Mutates the asset objects IN
+// PLACE (scene_kit reads a.kind/a.fit/a.focus/a.effect/a.lowQuality). Fail-open.
+async function directAssets({ assets, jobDir, subject, tracker, signal } = {}) {
+  const list = Array.isArray(assets) ? assets : [];
+  const directable = list.filter((a) => a && a.type !== "video");
+  const craftDone = directable.some((a) => a.fit || a.effect || a.kind);
+  if (!directable.length || !subject || craftDone) return { reviewed: 0 };
+  const kindHint = (a) => {
+    const src = String(a.source || "");
+    if (src === "website") return "website screenshot";
+    if (src === "blog") return "image from the source blog post";
+    if (src === "iconify" || src.startsWith("library:")) return "flat vector/icon";
+    if (/\.svg($|\?)/i.test(a.path || "")) return "svg vector";
+    return null;
+  };
+  try {
+    const dirs = await reviewAssets({
+      assets: directable.map((a) => ({ absPath: path.join(jobDir, a.path), type: a.type, query: a.alt, kindHint: kindHint(a) })),
+      subject, tracker, signal,
+    });
+    dirs.forEach((d, i) => {
+      const a = directable[i];
+      if (d.kind) a.kind = d.kind;
+      if (d.fit) a.fit = d.fit;
+      if (d.focus) a.focus = d.focus;
+      if (d.effect) a.effect = d.effect;
+      if (d.quality) { a.quality = d.quality; if (d.quality === "low") a.lowQuality = true; }
+    });
+    console.log(`[asset_director] ${summarizeReview(dirs)}`);
+    return { reviewed: dirs.length };
+  } catch (e) {
+    console.warn(`[asset_director] skipped: ${String((e && e.message) || e).slice(0, 120)}`);
+    return { reviewed: 0, error: e && e.message };
+  }
+}
+
+module.exports = { reviewAssets, summarizeReview, directAssets };

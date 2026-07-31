@@ -127,6 +127,41 @@ function ffprobeImage(absPath) {
   });
 }
 
+// Pixel dims straight out of an encoded image BUFFER — no subprocess, no native
+// dep. Used where we already hold the bytes (a just-downloaded capture), so the
+// caller can stamp real width/height without paying an ffprobe spawn per image.
+// PNG: IHDR is fixed at byte 16/20. JPEG: walk the length-prefixed segment chain
+// to the first Start-Of-Frame (0xFFC0-0xFFCF minus DHT/JPG/DAC) and read +5/+7.
+// Returns null for anything else — callers fall back to ffprobeImage.
+function imageDimsFromBuffer(buf) {
+  if (!buf || buf.length < 24) return null;
+  // PNG
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) {
+    const width = buf.readUInt32BE(16), height = buf.readUInt32BE(20);
+    return width > 0 && height > 0 ? { width, height } : null;
+  }
+  // JPEG
+  if (buf[0] === 0xff && buf[1] === 0xd8) {
+    let o = 2;
+    while (o + 9 < buf.length) {
+      if (buf[o] !== 0xff) { o++; continue; }
+      const marker = buf[o + 1];
+      if (marker === 0xff) { o++; continue; }                                   // fill byte
+      if (marker === 0xd8 || marker === 0xd9 || marker === 0x01 ||
+          (marker >= 0xd0 && marker <= 0xd7)) { o += 2; continue; }             // standalone
+      if (marker >= 0xc0 && marker <= 0xcf &&
+          marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
+        const height = buf.readUInt16BE(o + 5), width = buf.readUInt16BE(o + 7);
+        return width > 0 && height > 0 ? { width, height } : null;
+      }
+      const len = buf.readUInt16BE(o + 2);
+      if (len < 2) return null;
+      o += 2 + len;
+    }
+  }
+  return null;
+}
+
 // One ffmpeg pass → a 9×8 grayscale thumbnail (72 bytes). From it: a 64-bit
 // dHash (row-wise adjacent-pixel comparisons) for perceptual dedup, and the
 // grayscale standard deviation for the low-information/solid-colour guard.
@@ -325,4 +360,5 @@ module.exports = {
   rankCandidates, scoreCandidate, MIN_LONG_EDGE,
   makeImageDeduper, imageDHashStats, hammingHex, pixFmtHasAlpha,
   imageDominantColor, colorDistance,
+  ffprobeImage, imageDimsFromBuffer,
 };

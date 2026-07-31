@@ -10,14 +10,14 @@ const { probeDurationSec } = require("./media"); // shared ffprobe helper (was d
 
 async function tightenLine({ line, targetSec, signal }) {
   const targetWords = Math.max(3, Math.floor(targetSec * 2.6));
-  const { text, tokensIn, tokensOut } = await openrouter.chat({
+  const { text, tokensIn, tokensOut, costUsd } = await openrouter.chat({
     system: "You tighten voiceover lines. Reply with ONLY the rewritten line — no quotes, no commentary. Preserve the meaning and any names/numbers exactly.",
     user: `Rewrite this voiceover line to at most ${targetWords} words so it can be spoken comfortably in ${targetSec} seconds:\n${line}`,
     stage: "vo_fit",
     temperature: 0.4,
     signal,
   });
-  return { line: text.trim().replace(/^["']|["']$/g, ""), tokensIn, tokensOut };
+  return { line: text.trim().replace(/^["']|["']$/g, ""), tokensIn, tokensOut, costUsd };
 }
 
 // Did the model ad-lib? The spoken transcript materially longer than the
@@ -57,6 +57,32 @@ async function synthOnce({ text, voice, instructions, outputPath, tracker, sessi
     }
   }
   return meta;
+}
+
+// Gentle backstop: SPEED the read to fit instead of cutting it. An atempo of
+// ≤1.18× is imperceptible next to a mid-sentence fade-out, and it keeps every
+// word — the tighten pass routinely lands a hair over budget (TTS reads slower
+// than the words/sec heuristic), and trimming those takes was the #1 source of
+// "the voice cuts off mid-line".
+function atempoFit(filePath, rate) {
+  return new Promise((resolve) => {
+    const tmp = filePath + ".atempo.mp3";
+    const p = spawn("ffmpeg", [
+      "-y", "-hide_banner", "-loglevel", "error", "-i", filePath,
+      "-af", `atempo=${rate.toFixed(4)}`,
+      tmp,
+    ]);
+    const timer = setTimeout(() => { try { p.kill("SIGKILL"); } catch { /* noop */ } }, 30_000);
+    p.on("error", () => { clearTimeout(timer); resolve(false); });
+    p.on("exit", (code) => {
+      clearTimeout(timer);
+      if (code === 0) {
+        try { fs.renameSync(tmp, filePath); resolve(true); return; } catch { /* noop */ }
+      }
+      try { fs.unlinkSync(tmp); } catch { /* noop */ }
+      resolve(false);
+    });
+  });
 }
 
 // Hard backstop: trim the clip to the scene budget + grace with a fade-out,
@@ -99,7 +125,7 @@ async function synthesizeFitted({ text, targetSec, voice, instructions, outputPa
     console.log(`[vo_fit] scene VO ${dur.toFixed(1)}s > ${targetSec}s budget — tightening once`);
     try {
       const t = await tightenLine({ line: text, targetSec, signal });
-      if (tracker) tracker.addLlm({ inputTokens: t.tokensIn, outputTokens: t.tokensOut, stage: "vo_fit" });
+      if (tracker) tracker.addLlm({ inputTokens: t.tokensIn, outputTokens: t.tokensOut, stage: "vo_fit", costUsd: t.costUsd });
       synthMeta = await synthOnce({ text: t.line, voice, instructions, outputPath, tracker, session }) || synthMeta;
       dur = (await probeDurationSec(outputPath)) ?? targetSec;
       spokenText = t.line;
@@ -109,11 +135,20 @@ async function synthesizeFitted({ text, targetSec, voice, instructions, outputPa
     }
   }
 
-  // Last resort: never let a clip exceed scene + 25% — fade it out.
+  // Never let a clip exceed scene + 25%. First choice: speed the read up to
+  // 1.18× so the WHOLE line survives; only a take that is still over after
+  // that (a rambling ad-lib the retake didn't cure) gets the trim+fade.
   const hardCap = targetSec * 1.25;
   if (dur > hardCap) {
-    console.warn(`[vo_fit] VO still ${dur.toFixed(1)}s after tighten — trimming to ${hardCap.toFixed(1)}s with fade`);
-    if (await trimWithFade(outputPath, hardCap)) dur = hardCap;
+    const rate = Math.min(dur / hardCap, 1.18);
+    if (rate > 1.01 && (await atempoFit(outputPath, rate))) {
+      dur = (await probeDurationSec(outputPath)) ?? dur / rate;
+      console.log(`[vo_fit] VO over budget — sped ${rate.toFixed(2)}x to ${dur.toFixed(1)}s (cap ${hardCap.toFixed(1)}s), no words lost`);
+    }
+    if (dur > hardCap + 0.05) {
+      console.warn(`[vo_fit] VO still ${dur.toFixed(1)}s after tighten+atempo — trimming to ${hardCap.toFixed(1)}s with fade`);
+      if (await trimWithFade(outputPath, hardCap)) dur = hardCap;
+    }
   }
 
   return { path: outputPath, durationSec: dur, text: spokenText, tightened, fallbackVoice: synthMeta?.fallbackVoice || null };

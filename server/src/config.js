@@ -74,6 +74,36 @@ function validate(cfg) {
       must(process.env.KIE_API_KEY, "llm.primary set but apiKey missing and KIE_API_KEY env not set");
     }
   }
+  // Named KIE routes (llm.kieRoutes): any model id written "kie:<route>" —
+  // llm.model, a stageModels entry, scriptEscalationModel — is served by KIE
+  // rather than OpenRouter. Catch a dangling alias here, at boot, instead of
+  // mid-render when that stage first dispatches.
+  const routes = cfg.llm.kieRoutes || {};
+  for (const [name, r] of Object.entries(routes)) {
+    must(r && r.baseUrl, `llm.kieRoutes.${name}.baseUrl missing`);
+    must(r && r.model, `llm.kieRoutes.${name}.model missing`);
+  }
+  const aliasUsers = [
+    ["llm.model", cfg.llm.model],
+    ["llm.modelFast", cfg.llm.modelFast],
+    ["llm.modelFallback", cfg.llm.modelFallback],
+    ["llm.scriptEscalationModel", cfg.llm.scriptEscalationModel],
+    ...Object.entries(cfg.llm.stageModels || {}).map(([s, m]) => [`llm.stageModels.${s}`, m]),
+  ];
+  for (const [where, id] of aliasUsers) {
+    const m = /^kie:(.+)$/.exec(String(id || ""));
+    if (m) must(routes[m[1]], `${where} names KIE route "${m[1]}" which is not in llm.kieRoutes`);
+  }
+  // A KIE alias can only be served if KIE is keyed at all; and OpenRouter must
+  // still offer a non-alias model to fall back to when KIE is down.
+  if (aliasUsers.some(([, id]) => /^kie:/.test(String(id || "")))) {
+    must(cfg.llm.primary?.apiKey || process.env.KIE_API_KEY ||
+         Object.values(routes).some((r) => r.apiKey),
+         "a kie: model alias is configured but no KIE api key is set (llm.primary.apiKey / KIE_API_KEY)");
+    must([cfg.llm.modelFallback, cfg.llm.modelFast, cfg.llm.model]
+           .some((m) => m && !/^kie:/.test(String(m))),
+         "every configured model is a kie: alias — set llm.modelFallback to an OpenRouter model for KIE outages");
+  }
 }
 
 /**
@@ -230,12 +260,22 @@ function build() {
   // Text-only (it reasons over hex colors), so any capable JSON model works. Default
   // ON; disable with ART_DIRECTOR=0, override the model with ART_DIRECTOR_MODEL.
   // Fail-open: on any error the pack keeps its own accents, so it never blocks a render.
+  // House model policy: the hard creative stages (llm.premiumStages) run on the
+  // KIE primary (grok-4-5); EVERY other stage — the directors below included —
+  // runs on KIE gemini-3.6-flash. These three pass their model explicitly, so
+  // they can't ride llm.model; name the alias here instead. If the route is not
+  // configured (a stripped config.json), fall back to the cheap OpenRouter
+  // flash-lite rather than booting into validate()'s dangling-alias error.
+  const FAST_STAGE_MODEL = (cfg.llm.kieRoutes || {})["gemini-3.6-flash"]
+    ? "kie:gemini-3.6-flash"
+    : "google/gemini-3.1-flash-lite";
+
   const ardCfg = cfg.artDirector || {};
   cfg.artDirector = {
     enabled: process.env.ART_DIRECTOR != null
       ? /^(1|true|yes|on)$/i.test(String(process.env.ART_DIRECTOR))
       : (ardCfg.enabled !== false),
-    model: process.env.ART_DIRECTOR_MODEL || ardCfg.model || "google/gemini-3.1-flash-lite",
+    model: process.env.ART_DIRECTOR_MODEL || ardCfg.model || FAST_STAGE_MODEL,
   };
   cfg.llm.stageModels = { ...(cfg.llm.stageModels || {}), art_director: cfg.artDirector.model };
 
@@ -262,9 +302,25 @@ function build() {
     enabled: process.env.TEXT_DIRECTOR != null
       ? /^(1|true|yes|on)$/i.test(String(process.env.TEXT_DIRECTOR))
       : (tdrCfg.enabled !== false),
-    model: process.env.TEXT_DIRECTOR_MODEL || tdrCfg.model || "google/gemini-3.1-flash-lite",
+    model: process.env.TEXT_DIRECTOR_MODEL || tdrCfg.model || FAST_STAGE_MODEL,
   };
   cfg.llm.stageModels = { ...(cfg.llm.stageModels || {}), text_director: cfg.textDirector.model };
+
+  // Template Director — for TEMPLATE packs (a pack with a dedicated composer
+  // that exports TEMPLATE_SCENES), casts every storyboard scene as one of the
+  // template's authored scene types and fills that type's slots with the film's
+  // own copy + the best-fitting asset (see services/template_director.js). The
+  // deterministic best-of brain always runs, so turning the LLM off only costs
+  // casting nuance, never renderability. Default ON; disable with
+  // TEMPLATE_DIRECTOR=0, override the model with TEMPLATE_DIRECTOR_MODEL.
+  const tmdCfg = cfg.templateDirector || {};
+  cfg.templateDirector = {
+    enabled: process.env.TEMPLATE_DIRECTOR != null
+      ? /^(1|true|yes|on)$/i.test(String(process.env.TEMPLATE_DIRECTOR))
+      : (tmdCfg.enabled !== false),
+    model: process.env.TEMPLATE_DIRECTOR_MODEL || tmdCfg.model || FAST_STAGE_MODEL,
+  };
+  cfg.llm.stageModels = { ...(cfg.llm.stageModels || {}), template_director: cfg.templateDirector.model };
 
   validate(cfg);
 
