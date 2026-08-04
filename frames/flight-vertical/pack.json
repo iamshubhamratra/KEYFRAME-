@@ -1,0 +1,99 @@
+{
+  "name": "flight-vertical",
+  "vibe": "The 9:16 cut of Flight, re-proportioned rather than scaled: the horizon sits lower, the cabin windows stack down the frame instead of across it, and the instrument dials run as a column. Same graded daylight sky, warm sun disc, scrolling runway and hot orange accent; the aircraft mark still crosses every beat. Authored portrait-first (9:16) as a native GSAP + DOM composition sharing one module with its landscape sibling, so the two cuts can never drift apart. Best for travel, logistics, mobility and onboarding, cut for Reels, Shorts and Stories.",
+  "renderer": "flight-vertical",
+  "orientation": "portrait",
+  "colors": {
+    "ground": "#E9F6FF",
+    "ground-2": "#FFFFFF",
+    "text": "#16222E",
+    "muted": "#5C6B7A",
+    "accent": "#FF5630",
+    "ink": "#16222E",
+    "paper": "#FFFFFF"
+  },
+  "fonts": [
+    "Figtree",
+    "JetBrains Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#E9F6FF"
+  },
+  "motion": {
+    "cut": "slide-push",
+    "drift": 1.2
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FF5630"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "bright airy photograph with open sky and natural light",
+    "iconStyle": "line",
+    "keywords": [
+      "flight",
+      "travel",
+      "sky",
+      "aviation",
+      "journey",
+      "bright",
+      "optimistic"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Figtree",
+    "mono": "JetBrains Mono",
+    "body": "Figtree"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "pill",
+    "case": "sentence",
+    "tracking": -0.03,
+    "align": "left"
+  },
+  "audio": {
+    "mood": "uplifting",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "cinematic",
+      "orchestral",
+      "electronic",
+      "ambient"
+    ],
+    "musicKeywords": [
+      "uplifting cinematic",
+      "soaring strings",
+      "travel adventure",
+      "hopeful build",
+      "open sky ambient",
+      "inspiring modern"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "product-reveal",
+      "data": "data-ping",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

@@ -128,4 +128,40 @@ function plateBox(W, H, wIn, hIn, opts = {}) {
   return { w: round(w0 * scale), h: round(h0 * scale), frameH: round(frameH), scaled: round(scale) };
 }
 
-module.exports = { aspectMode, isPortrait, isSquare, typeScale, safeArea, heroBox, headlineCh, mediaBoxCqw, plateBox };
+// Fit a media plate to the ASSET'S OWN aspect ratio inside a caller-supplied box, in cqw.
+//
+// The third sibling of mediaBoxCqw / plateBox, and the one that fixes a defect neither can:
+//
+//   • mediaBoxCqw fits to the ratio correctly but only ever against ONE box — the single
+//     heroBox — so a composer that lays out a hero, a side-by-side pair and a scatter has
+//     no way to ask for the pair's or the scatter's bounds.
+//   • plateBox deliberately preserves the PACK's frame proportions and ignores the ratio,
+//     which is right for a browser-mockup frame with object-fit:cover inside it, and wrong
+//     for a plate that must not crop.
+//
+// The failure this exists to stop: a composer sizes width from one base (a percentage of a
+// stage) and height from another (a scaled custom property), so the two scale independently
+// and the plate's aspect silently drifts away from the art direction — measured at 2.22 →
+// 1.32 on kinetic-universe, a 68% distortion that then re-cropped the screenshot underneath.
+// Returning BOTH numbers from ONE ratio makes that class of drift unrepresentable.
+//
+// `maxWFrac` is a fraction of the frame's WIDTH, `maxHFrac` a fraction of its HEIGHT, so a
+// caller states its bounds in the terms it actually reasons about. `chromeHCqw` is device
+// furniture (a browser bar, a phone bezel) that must fit INSIDE the height budget rather
+// than push the plate past it. Returns { w, h, mediaH, frameH, ratio } in cqw.
+function fitMediaCqw(W, H, ratio, { maxWFrac = 0.86, maxHFrac = 0.52, chromeHCqw = 0 } = {}) {
+  const frameH = ((H || 16) / (W || 9)) * 100;
+  const round = (n) => Math.round(n * 100) / 100;
+  // An unknown ratio is a real case (assets reach composers without width/height). 1.6 is a
+  // neutral landscape guess AND the plate renders object-fit:contain, so a wrong guess
+  // letterboxes — it never crops. Guessing is safe; cropping would not be.
+  const rr = Number(ratio) > 0 ? Number(ratio) : 1.6;
+  const maxW = Math.max(1, maxWFrac * 100);
+  const maxH = Math.max(1, maxHFrac * frameH);
+  const chrome = Math.max(0, Number(chromeHCqw) || 0);
+  let w = maxW, mediaH = w / rr;
+  if (mediaH + chrome > maxH) { mediaH = Math.max(1, maxH - chrome); w = mediaH * rr; }
+  return { w: round(w), h: round(mediaH + chrome), mediaH: round(mediaH), frameH: round(frameH), ratio: round(rr) };
+}
+
+module.exports = { aspectMode, isPortrait, isSquare, typeScale, safeArea, heroBox, headlineCh, mediaBoxCqw, plateBox, fitMediaCqw };

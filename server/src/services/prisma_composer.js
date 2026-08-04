@@ -40,8 +40,8 @@ const { isTrustedProminent, isLogo, categorize } = require("./asset_priority");
 const { logoFilterCss } = require("./logo_render");
 const { resolveBrand } = require("./brand_kit");
 const { safeArea } = require("./responsive");
+const { GSAP_CDN, r, esc, hexToRgb, bullets } = require("./composer_kit");
 
-const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 // The source named Caprasimo/Figtree (its own doc chrome, not the film) and Archivo
 // Black / Space Grotesk / Inter / JetBrains Mono (the film). Only BUNDLED faces may be
 // named: an unbundled family trips the `font_family_without_font_face` lint and silently
@@ -53,11 +53,6 @@ const MONO = "JetBrains Mono";
 const BODY = "Inter";
 
 // ---- helpers -----------------------------------------------------------------
-function esc(s) {
-  return String(s == null ? "" : s)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-const r = (n) => Math.round((Number(n) || 0) * 100) / 100;
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 
 // The AUTHORED reference frame. Every measurement in this file is lifted from the source
@@ -70,6 +65,9 @@ const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const RW = 1080, RH = 1920;
 const X = (px) => `${r((px / RW) * 100)}cqw`;
 const V = (px) => `${r((px / RH) * 100)}%`;
+// The same vertical position as a NUMBER, for build-time geometry the CSS never sees
+// (the seam's keep-out bands below).
+const Vn = (px) => (px / RH) * 100;
 
 // Type scale, keyed on the SHORT side (responsive.typeScale's law) so a landscape render
 // does not blow the mega stack up. Portrait — the authored aspect — resolves to exactly
@@ -106,7 +104,6 @@ function mulberry32(a) {
 // colour onto `hue` while bisecting HSL lightness back to the SOURCE's relative
 // luminance, so the recoloured value keeps its exact place in the pack's value ladder.
 // Only HUE moves.
-const hexToRgb = (h) => { const n = parseInt(String(h).replace("#", ""), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
 const toHex2 = (v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0");
 const relLum = (h) => {
   const [r0, g0, b0] = hexToRgb(h).map((v) => v / 255);
@@ -147,6 +144,19 @@ function reHue(hex, hue) {
   return err <= LUM_PIN ? out : hex;
 }
 const rgba = (hex, a) => { const c = hexToRgb(hex); return `rgba(${c[0]},${c[1]},${c[2]},${a})`; };
+
+// TONE — the same hue and saturation at a different lightness. This is what lets the
+// pack add depth without a gradient: a decorative shape drawn as a darker or lighter
+// TONE OF ITS OWN GROUND reads as considered, where the same shape in a fixed unrelated
+// accent (a yellow disc on cream, a coral ring on jade) reads as clutter. Flat fill, no
+// blur, no gradient — the identity holds.
+function tone(hex, delta) {
+  const [h, s, l] = rgbToHsl(hexToRgb(hex));
+  return hslHex(h, s, clamp(l + delta, 0.02, 0.98));
+}
+// A tonal shift that always moves AWAY from mid-grey, so a shape stays visible whether
+// its ground is a near-black cobalt or a bright gold.
+const decorTone = (ground, strength) => tone(ground, relLum(ground) > 0.42 ? -strength : strength);
 // resolveBrand lays accents brand-first then pack, so the brand-led run ends at the first
 // entry the pack already owned; [] means no brand applied.
 function brandLedOf(brand, packAccents) {
@@ -166,9 +176,24 @@ function brandLedOf(brand, packAccents) {
 // FAIL-OPEN (art_director.js:14): any resolver/reHue hiccup renders the authored palette,
 // and a null skin returns the exact literals byte-for-byte with a null resolvedBrand —
 // the honest "unbranded" the Brand panel shows.
-const PAPER0 = "#FFF6EA";
-const INK0 = "#12100E";
-const A0 = ["#FF4D2E", "#1B4DFF", "#FFD23F", "#14C98E"];
+// REFINED 2026-07-30. The authored set was every accent at 100% saturation
+// (#FF4D2E / #1B4DFF / #FFD23F / #14C98E) — fluorescent at chip scale and genuinely
+// harsh as a FULL-FRAME ground, which is how this pack uses them. Two of them also
+// failed as body-text fields once the type sat on them.
+//
+// What changed and what did not: the identity is flat saturated colour blocks, so the
+// fields stay saturated — 68-84% rather than 100%, deepened and slightly warmed. The
+// VALUE LADDER (a2 dark < a1 < a4 < a3 bright) is preserved and better spread
+// (.074/.224/.333/.574 vs .128/.268/.439/.677), which matters because the layout was
+// drawn against it and the brand mapper assigns slots by luminance.
+//
+// Every saturated ground now clears AA body contrast with its own best text colour:
+//   a1 ink 4.90:1 · a2 paper 7.41:1 · a3 ink 11.18:1 · a4 ink 6.87:1
+// The paper drops from a 100%-saturation cream to a 39% warm off-white, which stops the
+// unbranded film reading as yellow-tinted.
+const PAPER0 = "#F4EFE6";
+const INK0 = "#14110F";
+const A0 = ["#D95A3A", "#2438C8", "#EFC24A", "#1BB184"];
 
 function prismaTheme(brandSkin) {
   const fontFace = [DISPLAY, SUB, MONO].filter(isBundled).map(fontFaceCss).join("");
@@ -177,23 +202,43 @@ function prismaTheme(brandSkin) {
     const brand = resolveBrand(brandSkin, { ground: PAPER0, isDark: false, packAccents: A0 });
     const led = brandLedOf(brand, A0);
     if (brand.applied && led.length) {
-      // HUE-MAPPING, slot by slot. The brand's OWN accents take the pack's blocks in
-      // order — the user's primary IS a1, their secondary IS a2 — each landing at the
-      // pack's authored luminance for that slot, so the value ladder (mid / dark /
-      // bright / mid) that the layout was drawn against survives untouched. Slots the
-      // brand doesn't reach are carried from the last supplied hue by the pack's OWN
-      // relative offset, which keeps the field spacing that stops two adjacent grounds
-      // reading the same. A one-colour palette therefore still rotates the whole set.
+      // HUE-MAPPING, slot by LUMINANCE FIT — not by ordinal position.
+      //
+      // Every slot keeps its authored luminance (that ladder is the pack's identity and
+      // the layout was drawn against it). The only free choice is WHICH brand hue lands
+      // in WHICH slot — and taking them in order was throwing the user's colours away.
+      //
+      // MEASURED on a violet/amber/emerald brand: amber #F59E0B (luminance .439) was the
+      // second accent, so it took a2 — the pack's DARKEST slot at .128 — and reHue pinned
+      // it there, emitting #8d5800. The user picked amber and the film painted dark
+      // brown. Ordinal position, not colour, decided that.
+      //
+      // Matching each brand colour to the free slot whose authored luminance is nearest
+      // its own costs nothing and removes the distortion: on that same brand, amber now
+      // lands in a4 (.439 — an EXACT match, zero shift) and violet in a2 (.134 vs .128).
+      // Closest pair first, so the best fits claim the slots they need; ties break on
+      // index so the assignment stays deterministic across builds.
       const packH = A0.map(hueOf);
+      const packL = A0.map(relLum);
       const brandH = led.map(hueOf);
-      const last = brandH.length - 1;
-      // Slots the brand doesn't reach CYCLE back through its own hues rather than
+      const slotHue = new Array(A0.length).fill(null);
+      const pairs = [];
+      for (let b = 0; b < led.length; b++) {
+        for (let s = 0; s < A0.length; s++) pairs.push({ b, s, d: Math.abs(relLum(led[b]) - packL[s]) });
+      }
+      pairs.sort((x, y) => (x.d - y.d) || (x.b - y.b) || (x.s - y.s));
+      const usedB = new Set(), usedS = new Set();
+      for (const p of pairs) {
+        if (usedB.has(p.b) || usedS.has(p.s)) continue;
+        slotHue[p.s] = brandH[p.b]; usedB.add(p.b); usedS.add(p.s);
+      }
+      // Slots no brand colour claimed CYCLE back through its own hues rather than
       // inventing a new one — a4 is used as a full-frame GROUND, and a derived hue there
       // paints a whole scene in a colour the user never chose. Cycling keeps every field
       // literally on-palette (the luminance ladder already keeps them distinguishable).
       // A ONE-colour palette is the exception: cycling would make the film monochrome, so
       // it falls back to rotating the pack's own spacing off that single hue.
-      const hueFor = (i) => (i <= last ? brandH[i]
+      const hueFor = (i) => (slotHue[i] != null ? slotHue[i]
         : brandH.length >= 2 ? brandH[i % brandH.length]
           : brandH[0] + (packH[i] - packH[0]));
       const rot = (hex, i) => reHue(hex, ((hueFor(i) % 360) + 360) % 360);
@@ -237,6 +282,7 @@ const STRINGS = {
   packLabel: "Prisma Bloc",
   hookKicker: "Start here",
   problemKicker: "The bottleneck",
+  howKicker: "How it works",
   showcaseKicker: "See it working",
   featuresKicker: "What you get",
   statsKicker: "By the numbers",
@@ -255,13 +301,6 @@ const STRINGS = {
 // ---- content extraction ------------------------------------------------------
 const wordsOf = (t) => String(t || "").trim().split(/\s+/).filter(Boolean);
 
-function bullets(scene, n) {
-  let list = Array.isArray(scene.onScreenText) ? scene.onScreenText.filter(Boolean).map(String) : [];
-  if (!list.length && scene.subtext) {
-    list = String(scene.subtext).split(/[.;\n•]|\s—\s/).map((s) => s.trim()).filter((s) => s.length > 2);
-  }
-  return list.slice(0, n);
-}
 
 // Supporting lines for card decks — onScreenText first, then voiceover sentences, never
 // repeating the headline or subtext.
@@ -348,25 +387,100 @@ function advanceOf(s) {
   for (const ch of String(s)) a += ch === " " ? MEGA_SPACE : per;
   return a || 1;
 }
+
+// Wrap by ADVANCE — the same width model the size search uses — into at most `maxLines`.
+// Returns null when the text cannot be made to fit at this size, which is the signal the
+// search below steps down on. Greedy: a line takes the next word while it still fits.
+function wrapByAdvance(words, maxAdvance, maxLines) {
+  const lines = [];
+  let cur = "";
+  for (const w of words) {
+    const cand = cur ? `${cur} ${w}` : w;
+    if (cur && advanceOf(cand) > maxAdvance) {
+      lines.push(cur);
+      if (lines.length >= maxLines) return null;   // out of rows with words left
+      cur = w;
+    } else {
+      cur = cand;
+    }
+  }
+  if (cur) lines.push(cur);
+  if (lines.length > maxLines) return null;
+  // EVERY line must fit, including one made of a single unbreakable word. A word wider
+  // than the column starts a line with `cur` empty, so the check above never sees it —
+  // "NORTHWIND" is 7.56em against a 5.95em column at the CTA's authored 150px and was
+  // accepted as a one-line fit, then rendered off the right edge as "NORTHWIN|". The
+  // size search only converges if an over-wide line is reported as a MISS.
+  return lines.every((l) => advanceOf(l) <= maxAdvance) ? lines : null;
+}
+
+// THE SIZE SEARCH. Wrapping and sizing are ONE decision, so they are solved together:
+// step down from the authored size and take the first that wraps inside the column in
+// `maxLines` rows.
+//
+// WHY NOT the previous approach. It derived a CHARACTER budget from the base size
+// (`col / (basePx × 0.84)`) — 8 characters per line at a 126px base — filled lines to
+// that budget until `maxLines - 1`, then dumped EVERY remaining word onto the last row.
+// That row's advance then set the size for the whole stack, so the shorter the budget,
+// the sooner the rows ran out, the more words piled onto the last one, and the smaller
+// the result: a feedback loop, not a fit. Measured on real headlines it produced 18-34%
+// of the intended size — "Three days of copy-paste before anyone can decide anything."
+// asked for 126px and rendered at 25px. Archivo Black mega type IS this pack, so the
+// pack's signature was failing on roughly two headlines in five.
+//
+// Stepping by whole pixels keeps the result deterministic (no float drift between
+// builds) and costs at most ~170 cheap wraps per headline.
+// Below this fraction of the authored size the type has stopped being this pack's voice
+// and become body copy — the point at which buying size back with an extra row is worth
+// more than holding the authored row budget.
+const MEGA_VOICE = 0.42;
 function megaFit(text, basePx, maxLines, colPx) {
   const col = (colPx || 930) * MEGA_FILL;
   const words = wordsOf(String(text || "").toUpperCase());
   if (!words.length) return { lines: [], size: basePx };
-  const target = Math.max(3, Math.floor(col / (basePx * MEGA_LETTER)));
-  const lines = [];
-  let cur = "";
-  for (const word of words) {
-    if (!cur) { cur = word; continue; }
-    if ((cur + " " + word).length > target && lines.length < maxLines - 1) { lines.push(cur); cur = word; }
-    else cur += " " + word;
+  const fitAt = (rows) => {
+    for (let s = Math.round(basePx); s >= 8; s--) {
+      const lines = wrapByAdvance(words, col / s, rows);
+      if (lines) return { lines, size: s };
+    }
+    return null;
+  };
+  const rows = Math.max(1, maxLines);
+  let best = fitAt(rows);
+  if (!best) {
+    // Unbreakable single token wider than the column at any usable size: size to the
+    // widest word so it still fits edge to edge rather than bleeding off the frame.
+    const widest = words.reduce((a, w) => Math.max(a, advanceOf(w)), 1);
+    return { lines: words.slice(0, rows), size: col / widest };
   }
-  if (cur) lines.push(cur);
-  const kept = lines.slice(0, maxLines);
-  const widest = kept.reduce((a, l) => Math.max(a, advanceOf(l)), 1);
-  // min() only ever SHRINKS: a short headline keeps its authored size, a long one comes
-  // down to exactly what the column holds. No floor is needed — even a single unbreakable
-  // 30-letter word resolves to a size that fits.
-  return { lines: kept, size: Math.min(basePx, col / widest) };
+  // A long headline in a NARROW column (the swatch beat's 580px text column, the phone
+  // showcase's 520px) fits honestly at ~26px — correct arithmetic, but 26px Archivo Black
+  // is not mega type, and the scene silently loses the pack's voice. Spend up to two
+  // extra ROWS to buy the size back; the columns that hit this are the tall ones, and the
+  // caption-band check covers the added height.
+  for (let extra = 1; extra <= 2 && best.size < basePx * MEGA_VOICE; extra++) {
+    const alt = fitAt(rows + extra);
+    if (alt && alt.size > best.size) best = alt;
+  }
+  return best;
+}
+
+// The vertical band a mega stack occupies, as a percentage of the FRAME height.
+//
+// WHY THIS EXISTS. The continuity seam is a full-width saturated band that travels
+// through every cut, and its anchor was a purely random 26-74% of the frame. Nothing
+// stopped it landing across the headline — and when it did, the type's contrast was
+// computed against the scene GROUND (onField/typeOn) while the pixels behind the glyphs
+// were the SEAM. Measured on a real render: black "CONNECT ONCE." over the ultramarine
+// seam is 2.2:1, well under the 3:1 large-text floor the pack enforces everywhere else.
+// Builders report their mega band so the seam can be anchored in clear space instead.
+//
+// line-height is .86 and megaStack emits one div per line, so the block height is
+// exactly lines x size x .86.
+function megaBandOf(topPct, fit) {
+  if (!fit || !fit.lines.length) return null;
+  const hPx = fit.lines.length * fit.size * 0.86 * TSCALE;
+  return { top: topPct, bottom: topPct + (hPx / RH) * 100 };
 }
 // Sub-display / body text shrinks on length the same way, so a long AI sentence never
 // pushes a card past its box.
@@ -374,6 +488,14 @@ function fitPx(text, basePx, targetCh, floor = 0.58) {
   const len = String(text || "").length || 1;
   return basePx * clamp(targetCh / len, floor, 1);
 }
+
+
+// Where a mega stack ends, in authored px — the anchor every builder below flows from.
+// Fixed V() constants were tuned against one headline length; a two-line hook and a
+// five-line one then left wildly different gaps under the type (measured: 34%-84% of the
+// frame, against a caption reserve starting at 87%). Flowing from the measured block is
+// what turns "large empty area" into deliberate spacing.
+const megaEnd = (topPx, fit) => topPx + (fit && fit.lines.length ? fit.lines.length * fit.size * 0.86 * TSCALE : 0);
 
 // ---- asset gates -------------------------------------------------------------
 // A SHOT is real imagery the film can showcase: not the logo, not a video, not a vector.
@@ -415,6 +537,52 @@ function deviceFor(a) {
   return "card";
 }
 
+// A slot that FOLLOWS ITS ASSET instead of forcing every capture into one box.
+//
+// The deck badge was a fixed landscape plate, so an ultra-tall phone capture (ratio ~0.31)
+// contained down to a thin strip inside it — technically uncropped, visually nothing. A
+// fixed box can only ever be right for one aspect; given a target AREA and a clamp on how
+// extreme a shape the layout can absorb, the slot can take the asset's own proportions and
+// stay inside its row.
+//   area   — the visual weight the slot should carry, in authored px^2
+//   maxW/H — the row's hard limits
+// Returns whole px so the CSS and any geometry derived from it agree exactly.
+function fitBox(asset, { area, maxW, maxH, minW = 90, minH = 90 }) {
+  const q = clamp(ratioOf(asset) || 1.35, 0.42, 2.6);
+  let w = Math.sqrt(area * q), h = w / q;
+  if (w > maxW) { w = maxW; h = w / q; }
+  if (h > maxH) { h = maxH; w = h * q; }
+  if (w < minW) { w = minW; h = Math.min(maxH, w / q); }
+  if (h < minH) { h = minH; w = Math.min(maxW, h * q); }
+  return { w: Math.round(w), h: Math.round(h) };
+}
+
+// THE CREATIVE DIRECTOR'S `alt` IS AN INSTRUCTION, NOT A CAPTION.
+//
+// It arrives as directive prose written for the composer — "the brand's OWN site logo —
+// brand chip and CTA lockup only, never a full-frame image", "REAL WEBSITE SCREENS". Two
+// places rendered it as user-visible text: the gallery's per-cell label, and the `alt`
+// attribute of every <img>, which Chromium PAINTS when an image fails to load. A live run
+// produced both at once — a broken logo showing its own instruction sheet in the hook.
+//
+// A caption must be short, self-contained, and free of directive grammar. Anything that
+// fails those tests is not a caption, and silence beats leaking the brief.
+const INSTRUCTION_RE = /\b(never|only|always|must|should|avoid|prefer|instead|lockup|full-frame|the brand's)\b|[—–]|\.\s|\.$/i;
+function displayLabel(alt, max = 22) {
+  const t = String(alt || "").replace(/\s+/g, " ").trim();
+  if (!t || t.length > max || INSTRUCTION_RE.test(t)) return "";
+  // ALL-CAPS is the other tell. Genuine alts from the pipeline are lowercase description
+  // ("pricing page", "mobile app"); the director's own labels shout ("REAL WEBSITE
+  // SCREENS", "THE BRAND'S OWN HERO"). Costs nothing to reject — the label is rendered
+  // through text-transform:uppercase either way, so a real caption loses no styling.
+  if (/[A-Z]/.test(t) && t === t.toUpperCase() && /\s/.test(t)) return "";
+  return t;
+}
+// What an <img> should carry. Falls back to a neutral noun so a failed decode paints a
+// word, not the brief. Never empty for a logo: that is the one image whose absence a
+// viewer should be able to name.
+const safeAlt = (alt, fallback = "") => displayLabel(alt, 60) || fallback;
+
 // The host of the user's own site, for the browser mockup's address pill — so even the
 // chrome furniture is real. Falls back to the localizable placeholder.
 function addressFrom(assets, S) {
@@ -449,13 +617,34 @@ function scrollPlan(boxW, boxH, asset) {
   return frac < SCROLL_MIN ? { natH: 0, frac: 0 } : { natH, frac };
 }
 
+// A DEVICE WINDOW THAT FITS ITS CAPTURE.
+//
+// The window height was a constant, so a capture that does not scroll was `contain`ed
+// inside it and letterboxed — a 16:9 grab in an 840x660 window (ratio 1.27) renders with
+// matte bands above and below, which reads as an empty screen with a small picture in it.
+// A live QA pass called exactly that "an empty dark screen".
+//
+// Two cases, and only one of them wants a fixed height:
+//   • capture TALLER than the authored window -> it scrolls, `cover` fills the width, and
+//     the authored height is the viewport the pan happens inside. Keep it.
+//   • capture SHORTER -> nothing to scroll, so the window takes the capture's own height
+//     and the letterbox disappears. Bounded so a panorama cannot collapse the frame to a
+//     slot and a near-square cannot outgrow its slot in the layout.
+// Returns the height the window should use, in authored px.
+function windowHeightFor(asset, boxW, authoredH, minH) {
+  const q = ratioOf(asset);
+  if (!asset || !asset.path || !q) return authoredH;   // wireframe plate keeps the authored box
+  const natH = boxW / q;
+  return Math.round(clamp(natH, minH, authoredH));
+}
+
 // The plate that lives inside a device window: either the scrolling full-width capture
 // (natural height, panned by the timeline) or a static contained fit.
 function plate(theme, { asset, scrollId, natH, tint }) {
   if (asset && asset.path) {
     return scrollId && natH
-      ? `<div id="${scrollId}" style="position:absolute;left:0;right:0;top:0;height:${X(natH)};"><img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;"></div>`
-      : `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center;display:block;">`;
+      ? `<div id="${scrollId}" style="position:absolute;left:0;right:0;top:0;height:${X(natH)};"><img src="${esc(asset.path)}" alt="${esc(safeAlt(asset.alt))}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;"></div>`
+      : `<img src="${esc(asset.path)}" alt="${esc(safeAlt(asset.alt))}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center;display:block;">`;
   }
   // Generated wireframe plate — the zero-asset path, built only from pack blocks so it
   // reads as authored. Never shown when a real capture exists.
@@ -466,24 +655,27 @@ function plate(theme, { asset, scrollId, natH, tint }) {
 }
 
 function wirePlate(theme, tint) {
+  // ONE accent (whatever matte the slot passed) plus ink tints — the generated plate
+  // must read as the same design system as the rest of the film, not a fifth palette.
+  const acc = tint || theme.a3;
   const bar = (w, o) => `<div style="height:${X(30)};width:${w};border-radius:999px;background:${rgba(theme.ink, o)};flex:none;"></div>`;
   return `<div style="position:absolute;inset:0;padding:${X(34)} ${X(38)};box-sizing:border-box;display:flex;flex-direction:column;gap:${X(24)};background:${theme.paper};">
     <div style="display:flex;align-items:center;gap:${X(18)};flex:none;">
-      <div style="width:${X(56)};height:${X(56)};border-radius:${X(16)};background:${theme.a1};flex:none;"></div>
+      <div style="width:${X(56)};height:${X(56)};border-radius:${X(16)};background:${acc};flex:none;"></div>
       ${bar("38%", 0.16)}
-      <div style="width:${X(130)};height:${X(38)};border-radius:999px;background:${theme.a2};flex:none;margin-left:auto;"></div>
+      <div style="width:${X(130)};height:${X(38)};border-radius:999px;background:${rgba(theme.ink, 0.14)};flex:none;margin-left:auto;"></div>
     </div>
-    <div style="height:${X(260)};border-radius:${X(24)};background:${tint || theme.a4};flex:none;"></div>
+    <div style="height:${X(260)};border-radius:${X(24)};background:${rgba(acc, 0.30)};flex:none;"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:${X(18)};height:${X(170)};flex:none;">
       <div style="border-radius:${X(20)};background:${rgba(theme.ink, 0.09)};"></div>
-      <div style="border-radius:${X(20)};background:${theme.a3};"></div>
+      <div style="border-radius:${X(20)};background:${rgba(acc, 0.45)};"></div>
       <div style="border-radius:${X(20)};background:${rgba(theme.ink, 0.09)};"></div>
     </div>
     ${bar("70%", 0.14)}${bar("52%", 0.14)}
-    <div style="height:${X(290)};border-radius:${X(24)};background:${theme.a1};flex:none;"></div>
+    <div style="height:${X(290)};border-radius:${X(24)};background:${rgba(acc, 0.22)};flex:none;"></div>
     ${bar("60%", 0.14)}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:${X(20)};height:${X(200)};flex:none;">
-      <div style="border-radius:${X(20)};background:${theme.a3};"></div>
+      <div style="border-radius:${X(20)};background:${rgba(acc, 0.45)};"></div>
       <div style="border-radius:${X(20)};background:${rgba(theme.ink, 0.09)};"></div>
     </div>
   </div>`;
@@ -563,17 +755,146 @@ function archetypeFor(scene, i, total) {
 // Which types can actually put a screenshot on screen. A shot must NEVER be stranded on a
 // scene that shows no imagery (the bug that once left every capture unrendered), so
 // distribution only ever targets these.
-const CAN_SHOW = new Set(["statement", "grid", "cards", "showcase", "gallery", "swatch"]);
+// `stats` earns its place here for the same reason it does in om_stage: archetypeFor sends
+// every numeric proof line ("Trusted by 40,000 teams", "Deploy in 8 seconds") to this beat,
+// so an ordinary five-scene deck resolves to hook / grid / stats / stats / cta — and with
+// stats excluded exactly ONE scene could carry a capture. All three of the Creative
+// Director's shots then piled onto that single scene while four rendered none. The counter
+// cards keep the stage; the capture rides below them in the pack's own hard-edged card
+// frame (see bStats), which is how this poster pack already presents imagery elsewhere.
+const CAN_SHOW = new Set(["statement", "grid", "cards", "showcase", "gallery", "swatch", "stats", "voice"]);
+
+// How many shots each beat can actually RENDER, matching what the dispatch below slices to
+// (a beat holding 2+ is promoted to the 3-up gallery, which is why the text beats read 3).
+// Distribution honours these so a shot is never assigned to a beat that will discard it.
+const SHOT_CAPACITY = { stats: 1, voice: 1, showcase: 2, gallery: 3, statement: 3, grid: 4, cards: 4, swatch: 4 };
+const capacityOf = (arch) => SHOT_CAPACITY[arch] || 0;
+
+// ---- anti-repetition (pack-local) --------------------------------------------
+// archetypeFor ends in a single fallthrough, so every middle scene of a text-led film
+// lands on "statement" and the film reads as one backdrop with rotating copy.
+//
+// WHY NOT services/motion_planner.varyArchetypes. It filters whatever pool it is handed
+// through a SHARED `GENERIC_ARCHETYPES` set written for the flagship vocabulary
+// ("hero", "billboard", "problem", "solution"...). Intersected with THIS pack's builders
+// that leaves exactly {showcase, statement} — so `cards`, `grid` and `swatch` could never
+// participate no matter what was passed, and a run of identical scenes was broken, at
+// best, by alternating two layouts. Extending the shared set would reach into every other
+// pack's routing, so the pack decides for itself instead.
+//
+// Which of its own builders are safe to swap IN:
+//   statement    — the default; safe unconditionally.
+//   cards / grid — safe: the DEGRADE in buildComposition turns a deck with no list copy
+//                  and no imagery straight back into statement.
+//   showcase     — safe ONLY when real shots exist. With none it renders the GENERATED
+//                  wireframe mockup, and a film should show an invented product UI at
+//                  most once (that is wireScene's job, and it already picks its moment).
+// Everything else is excluded on preconditions: hook/cta are structural, logos needs four
+// real marks, gallery needs two shots, stats needs a number, voice is a right-aligned
+// quote composition, swatch is semantically the brand beat.
+const SWAP_POOL = ["statement", "cards", "grid", "showcase"];
+// `profile[i]` = { deckN, hasShot } for scene i — what the scene actually HAS to show.
+// A swap must not cost the scene its content: replacing a deck that holds three bullets
+// with `showcase` throws all three away and shows a device mockup instead. Observed
+// exactly that on a real storyboard — two adjacent `grid` scenes (archetypeFor sends both
+// "3+ bullets" and "feature" there), correctly detected as a repeat, then broken by
+// swapping one to showcase, which dropped its copy AND duplicated the previous scene's
+// mockup and kicker. Rank first, seed second.
+function varyLocal(arch, profile, canShowcase, seedKey) {
+  const pool = SWAP_POOL.filter((a) => a !== "showcase" || canShowcase);
+  const out = arch.slice();
+  if (out.length < 3 || !pool.length) return out;
+  if (/^(1|true|yes|on)$/i.test(String(process.env.KF_NO_ARCHETYPE_VARIATION || ""))) return out;
+  const seed = seedFrom(seedKey);
+  for (let i = 1; i < out.length - 1; i++) {
+    if (out[i] !== out[i - 1]) continue;            // not a repeat — leave it alone
+    if (!pool.includes(out[i])) continue;           // a data-shaped scene keeps its type
+    const pf = (profile && profile[i]) || { deckN: 0, hasShot: false };
+    // Prefer a replacement that also differs from the NEXT scene, so breaking one pair
+    // does not simply create the next one.
+    const strict = pool.filter((a) => a !== out[i - 1] && a !== out[i] && a !== out[i + 1]);
+    const loose = pool.filter((a) => a !== out[i - 1] && a !== out[i]);
+    const list = strict.length ? strict : loose;
+    if (!list.length) continue;
+    // 0 = keeps this scene's list copy · 1 = says it another way · 2 = invents a mockup
+    const rank = (a) => {
+      if (a === "cards" || a === "grid") return pf.deckN >= 2 ? 0 : 2;
+      if (a === "statement") return 1;
+      if (a === "showcase") return pf.hasShot ? 1 : 3;
+      return 2;
+    };
+    const bestRank = Math.min(...list.map(rank));
+    const tier = list.filter((a) => rank(a) === bestRank);
+    out[i] = tier[(seed + i) % tier.length];
+  }
+  return out;
+}
 
 // ---- scene builders ((scene, ctx, sceneAssets, logo) -> {html, scroll?}) ------
 // Every builder returns markup whose RESTING state is the finished frame; the `data-in`
 // "from" values exist only while a tween runs, so a stalled ticker can never capture a
 // blank scene. Entrance tweens are emitted generically by enterScript() below.
 
-const open = (ctx) =>
-  `<div class="clip kf-sc" id="${ctx.id}" data-start="${ctx.T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">` +
-  `<div class="kf-cam" id="${ctx.id}-cam">`;
-const close = () => `</div></div>`;
+// OPTICAL CENTRING. Flowing content down from the measured type block fixed the
+// collisions but not the balance: a scene whose copy is short still ended around 60% of
+// the frame with everything above it, so the poster read top-heavy and the bottom third
+// was empty. Measured across 108 scene shapes, the median gap from the lowest element to
+// the caption reserve was 31.8%.
+//
+// The whole scene block is shifted so it sits centred in the safe band. It rides a THIRD
+// wrapper — .kf-fit inside .kf-cam — because .kf-cam's transform belongs to the camera
+// tween, and GSAP would overwrite any static offset written there. Clamped so the shift
+// can never push content above the safe top or below the reserved caption band.
+function centerOffset(ctx, top, bottom) {
+  // The top needs the SAME camera solve as the bottom. A static floor is not enough:
+  // the push scales content away from the focal point, so at a focal y of 46% a block
+  // parked at 138px arrives at 75px — straight onto the persistent pack label at 70px,
+  // which rides its own layer and never moves. A live render produced exactly that:
+  // "SEE IT WORKING" and "PRISMA BLOC · FEATURE" interleaved on one baseline.
+  const safeTop = Math.max((ctx.safeTopPct / 100) * RH, ctx.camTopPx);
+  // CLAMP AGAINST THE CAMERA, not the static frame. Every scene rides a push that scales
+  // content away from its focal point, so a block that ends inside the safe area at rest
+  // does not necessarily end inside it while moving: the showcase chips sit at 83.9% and
+  // a focal point at y=26% carries them to 88.8% — past the reserved caption band. The
+  // usable bottom is therefore the point that is STILL clear after the push:
+  //     fy + (safeBottom - fy) / camScale
+  // which for a high focal point is ~82% rather than 87%. Solving for it here means the
+  // centring shift pulls such a scene UP instead of merely declining to push it down.
+  // A margin on top of the solve, because a builder's declared extent is an ESTIMATE:
+  // auto-height text and chip rows are counted at nominal heights, so the true bottom can
+  // sit a little below what was declared. 34 authored px (~1.8% of frame) absorbs that
+  // without visibly raising the composition.
+  const camBot = ctx.camBotPx;
+  const h = bottom - top;
+  if (!(h > 0)) return 0;
+  const lo = safeTop - top;        // below this the block rises out of the top safe area
+  const hi = camBot - bottom;      // above this it pushes into the reserved caption band
+  // THE TWO BOUNDS CAN CONFLICT. A scene authored from V(150) — above the 10% safe top —
+  // whose content is taller than the camera-safe band gives lo > hi: "must move down 42px
+  // to respect the top" against "must not move down at all". Clamping naively takes lo and
+  // shoves the block INTO the caption reserve, which is how the showcase chip row reached
+  // 87.7%. The caption band is a hard reserve and a kicker sitting a little high is
+  // harmless, so the bottom bound wins whenever they disagree.
+  // GENUINE CONFLICT — the block is taller than the band between the camera-safe top and
+  // the camera-safe bottom. Something has to give, and the two failure modes are not
+  // equally bad: overrunning the BOTTOM puts content behind the caption pill, which is
+  // opaque and drawn above every scene (track 96), so it is hidden. Overrunning the TOP
+  // interleaves live text with the pack label and reads as corruption. The top wins.
+  if (hi < lo) return Math.round(lo);
+  const want = safeTop + (camBot - safeTop - h) / 2;
+  return Math.round(clamp(want - top, lo, hi));
+}
+// `top`/`bottom` are the scene's content extent in authored px. Omit them and the scene
+// is positioned exactly as authored (the CTA does this — it centres itself with flexbox).
+function open(ctx, top, bottom) {
+  ctx.off = (top != null && bottom != null) ? centerOffset(ctx, top, bottom) : 0;
+  return `<div class="clip kf-sc" id="${ctx.id}" data-start="${ctx.T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">` +
+    `<div class="kf-cam" id="${ctx.id}-cam">` +
+    `<div class="kf-fit"${ctx.off ? ` style="transform:translateY(${X(ctx.off)});"` : ""}>`;
+}
+const close = () => `</div></div></div>`;
+// The seam must avoid where the type ACTUALLY lands, so the band is reported post-shift.
+const bandOf = (ctx, topPx, fit) => megaBandOf(Vn(topPx + (ctx.off || 0)), fit);
 
 // HOOK — the opener: a mono kicker, a 3–4 line mega stack, intake chips, a drawn rule.
 // Flush-left, tall type. Takes the user's logo as a small mark when one exists.
@@ -582,23 +903,35 @@ function bHook(scene, ctx, _assets, logo) {
   const ink = theme.onField(ground);
   const mega = megaFit(scene.headline || scene.title || ctx.title, 172, 5, 930);
   const chips = bullets(scene, 3);
-  const palette = [theme.a3, theme.paper, theme.a4];
+  const palette = [ctx.accent, theme.paper, theme.paper];
   const mark = logo && logo.path
-    ? `<img data-in="pop" src="${esc(logo.path)}" alt="${esc(logo.alt || "logo")}" style="${logoFilterCss(logo, ground)}height:${X(70)};width:auto;max-width:${X(300)};object-fit:contain;object-position:left center;display:block;margin-bottom:${X(24)};">`
+    ? `<img data-in="pop" src="${esc(logo.path)}" alt="${esc(safeAlt(logo.alt, "logo"))}" style="${logoFilterCss(logo, ground)}height:${X(70)};width:auto;max-width:${X(300)};object-fit:contain;object-position:left center;display:block;margin-bottom:${X(24)};">`
     : "";
-  const html = `${open(ctx)}
+  // FLOW FROM THE TYPE, don't guess around it. The chips and the rule used to sit at
+  // fixed V(1150) / V(1330) while the mega stack above them was free to be anywhere from
+  // one line to five — so the gap under a short headline was a quarter of the frame, and
+  // a full five-line headline at the authored 172px runs to 60.9% and COLLIDES with the
+  // chips at 59.9%. (The old megaFit hid that by shrinking almost every headline; with
+  // the fit corrected the collision is reachable, so the layout has to follow the type.)
+  // megaStack's geometry is exactly lines x size x .86, known here, so both anchors are
+  // derived and the composition stays balanced at any headline length.
+  const megaTop = 430;
+  const megaH = mega.lines.length * mega.size * 0.86 * TSCALE;
+  const chipsTop = megaTop + megaH + 78;
+  const ruleTop = Math.min(chipsTop + (chips.length ? 168 : 56), ctx.safeBotPx - 40);
+  const html = `${open(ctx, 196, ruleTop + 14)}
     <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(196)};">
-      ${mark}${kicker(theme, scene.kicker || S.hookKicker, theme.typeOn(theme.a1, ground))}
+      ${mark}${kicker(theme, scene.kicker || S.hookKicker, theme.typeOn(ctx.accent, ground))}
     </div>
-    <div style="position:absolute;left:${X(80)};right:${X(70)};top:${V(430)};">
-      ${megaStack(theme, mega, { ground, accent: theme.a2, align: "left" })}
+    <div style="position:absolute;left:${X(80)};right:${X(70)};top:${V(megaTop)};">
+      ${megaStack(theme, mega, { ground, accent: ctx.accent, align: "left" })}
     </div>
-    ${chips.length ? `<div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(1150)};display:flex;gap:${X(18)};flex-wrap:wrap;">
+    ${chips.length ? `<div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(chipsTop)};display:flex;gap:${X(18)};flex-wrap:wrap;">
       ${chips.map((c, i) => chipHtml(theme, c, palette[i % palette.length])).join("")}
     </div>` : ""}
-    <div data-in="draw" style="position:absolute;left:${X(80)};right:${X(80)};top:${V(1330)};height:${X(14)};background:${ink};transform-origin:left center;"></div>
+    <div data-in="draw" style="position:absolute;left:${X(80)};right:${X(80)};top:${V(ruleTop)};height:${X(14)};background:${ink};transform-origin:left center;"></div>
   ${close()}`;
-  return { html };
+  return { html, band: bandOf(ctx, megaTop, mega) };
 }
 
 // CARDS — three outlined rows, each a colour square + title + note, then a mega statement
@@ -608,15 +941,30 @@ function bCards(scene, ctx, sceneAssets) {
   const { theme, S, ground } = ctx;
   const rows = deck(scene, 3);
   const items = rows.length ? rows : bullets(scene, 3).map((t) => ({ title: t, note: "" }));
-  const cols = [theme.a1, theme.a3, theme.a4];
+  const cols = [ctx.accent, theme.ink, ctx.accent];
   const mega = megaFit(scene.emphasis || scene.subtext || scene.headline || "", 126, 3, 910);
-  const html = `${open(ctx)}
-    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(196)};">${kicker(theme, scene.kicker || S.problemKicker, theme.typeOn(theme.a3, ground), "right")}</div>
+  // Rows are a flex column from V(300): each is its badge height (or the 74px glyph) plus
+  // 68px of vertical padding, with a 26px gap between. Measured, so the mega below always
+  // clears them by the same 86px whether the deck holds one row or three.
+  const rowH = (it, i) => {
+    const shot = sceneAssets && sceneAssets[i];
+    const b = shot && shot.path ? fitBox(shot, { area: 168 * 126, maxW: 210, maxH: 190, minW: 96, minH: 96 }) : null;
+    return Math.max(b ? b.h : 74, 74) + 68;
+  };
+  const megaH2 = mega.lines.length ? mega.lines.length * mega.size * 0.86 * TSCALE : 0;
+  const rowsEnd = 300 + (rows.length ? rows : bullets(scene, 3).map((t) => ({ title: t, note: "" })))
+    .slice(0, 3).reduce((a, it, i) => a + rowH(it, i) + (i ? 26 : 0), 0);
+  const html = `${open(ctx, 196, rowsEnd + 86 + megaH2)}
+    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(196)};">${kicker(theme, scene.kicker || (/how|process|step|workflow/.test(String(scene.purpose || "").toLowerCase()) ? S.howKicker : S.problemKicker), theme.typeOn(ctx.accent, ground), "right")}</div>
     <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(300)};display:flex;flex-direction:column;gap:${X(26)};">
       ${items.map((it, i) => {
         const shot = sceneAssets && sceneAssets[i];
-        const badge = shot && shot.path
-          ? `<div style="width:${X(96)};height:${X(96)};border-radius:${X(18)};overflow:hidden;flex:none;border:${X(4)} solid ${theme.ink};background:${rgba(cols[i % 3], 0.3)};"><img src="${esc(shot.path)}" alt="${esc(shot.alt || "")}" style="width:100%;height:100%;object-fit:cover;display:block;"></div>`
+        // The badge takes the ASSET'S shape at a constant visual weight, so a wide
+        // dashboard becomes a wide plate and a phone capture a tall one — both readable,
+        // neither letterboxed into a sliver by a box that was only ever right for 4:3.
+        const box = shot && shot.path ? fitBox(shot, { area: 168 * 126, maxW: 210, maxH: 190, minW: 96, minH: 96 }) : null;
+        const badge = box
+          ? `<div style="width:${X(box.w)};height:${X(box.h)};border-radius:${X(18)};overflow:hidden;flex:none;border:${X(4)} solid ${theme.ink};background:${rgba(cols[i % 3], 0.22)};"><img src="${esc(shot.path)}" alt="${esc(safeAlt(shot.alt))}" style="width:100%;height:100%;object-fit:contain;display:block;"></div>`
           : `<div style="width:${X(74)};height:${X(74)};border-radius:${X(18)};background:${cols[i % 3]};flex:none;"></div>`;
         return `<div class="kf-card" data-in="slide" style="background:${theme.paper};padding:${X(34)} ${X(40)};display:flex;align-items:center;gap:${X(28)};">
           ${badge}
@@ -627,11 +975,11 @@ function bCards(scene, ctx, sceneAssets) {
         </div>`;
       }).join("")}
     </div>
-    ${mega.lines.length ? `<div style="position:absolute;left:${X(80)};right:${X(90)};top:${V(1120)};">
+    ${mega.lines.length ? `<div style="position:absolute;left:${X(80)};right:${X(90)};top:${V(rowsEnd + 86)};">
       ${megaStack(theme, mega, { ground, accent: theme.paper, align: "left" })}
     </div>` : ""}
   ${close()}`;
-  return { html };
+  return { html, band: bandOf(ctx, rowsEnd + 86, mega) };
 }
 
 // SHOWCASE — one hero capture in its aspect-routed device frame, the capture SCROLLING
@@ -655,68 +1003,120 @@ function bShowcase(scene, ctx, sceneAssets) {
   const megaPhone = megaFit(scene.headline || scene.title || "", 118, 3, 520);
   const megaWide = megaFit(scene.headline || scene.title || "", 132, 3, 910);
 
-  let hero, plan = { frac: 0, natH: 0 };
+  let hero, browserH = SHOW_BROWSER.boxH, plan = { frac: 0, natH: 0 };
   if (isPhone) {
     // interior = wrapper − (border 5 + padding 20) × 2 on each axis
     const boxW = SHOW_PHONE.w - 50, boxH = SHOW_PHONE.h - 50;
     plan = scrollPlan(boxW, boxH, asset);
     hero = `<div data-in="pop" style="position:absolute;right:${X(SHOW_PHONE.right)};top:${V(SHOW_PHONE.top)};width:${X(SHOW_PHONE.w)};height:${X(SHOW_PHONE.h)};">
-      ${frameHtml(theme, { device, asset, boxW, boxH, tint: theme.a3, scrollId: plan.frac ? scrollId : null, natH: plan.natH })}
+      ${frameHtml(theme, { device, asset, boxW, boxH, tint: ctx.soft, scrollId: plan.frac ? scrollId : null, natH: plan.natH })}
     </div>`;
   } else {
     const boxW = RW - SHOW_BROWSER.left - SHOW_BROWSER.right - 10;
-    plan = scrollPlan(boxW, SHOW_BROWSER.boxH, asset);
+    browserH = windowHeightFor(asset, boxW, SHOW_BROWSER.boxH, 380);
+    plan = scrollPlan(boxW, browserH, asset);
     hero = `<div data-in="pop" style="position:absolute;left:${X(SHOW_BROWSER.left)};right:${X(SHOW_BROWSER.right)};top:${V(SHOW_BROWSER.top)};">
-      ${frameHtml(theme, { device: "browser", asset, boxW, boxH: SHOW_BROWSER.boxH, tint: theme.a3, scrollId: plan.frac ? scrollId : null, natH: plan.natH, address })}
+      ${frameHtml(theme, { device: "browser", asset, boxW, boxH: browserH, tint: ctx.soft, scrollId: plan.frac ? scrollId : null, natH: plan.natH, address })}
     </div>`;
   }
   // A decorative block carries the off-edge energy; the ASSET container never does.
-  const bleed = `<div data-in="pop" style="position:absolute;left:${X(520)};right:${X(-140)};top:${V(170)};height:${X(220)};border-radius:${X(40)} 0 0 ${X(40)};background:${theme.a4};border:${X(5)} solid ${theme.ink};border-right:none;"></div>`;
+  // The chips were pinned at V(1520) with a ~430px gap under the wide mega — dead space
+  // AND the reason this scene's declared extent (150->1610) exceeded the camera-safe band,
+  // which then forced the centring clamp to drag the whole block up into the chrome.
+  // Flowed from the type, the same scene fits the band with room to spare.
+  // The window is now sized to its capture, so the type below it has to follow — pinned
+  // at V(1090) it would leave a 270px hole under a short window. Frame furniture is the
+  // 5px border + the ~86px chrome bar + the 5px bottom border.
+  const heroBottom = SHOW_BROWSER.top + 96 + browserH;
+  const wideMegaTop = Math.max(heroBottom + 84, 700);
+  const showChipsTop = megaEnd(wideMegaTop, megaWide) + 74;
+  const showBottom = isPhone ? Math.max(SHOW_PHONE.top + SHOW_PHONE.h, 1180 + 280)
+    : Math.max(megaEnd(wideMegaTop, megaWide), chips.length ? showChipsTop + 90 : 0);
+  const bleed = `<div data-in="pop" style="position:absolute;left:${X(520)};right:${X(-140)};top:${V(170)};height:${X(220)};border-radius:${X(40)} 0 0 ${X(40)};background:${ctx.accent};border:${X(5)} solid ${theme.ink};border-right:none;"></div>`;
   const side = isPhone && second
-    ? `<div data-in="pop" style="position:absolute;left:${X(80)};top:${V(1180)};width:${X(370)};height:${X(280)};">${frameHtml(theme, { device: "card", asset: second, tint: theme.a1 })}</div>`
+    ? `<div data-in="pop" style="position:absolute;left:${X(80)};top:${V(1180)};width:${X(370)};height:${X(280)};">${frameHtml(theme, { device: "card", asset: second, tint: ctx.soft })}</div>`
     : "";
 
-  const html = `${open(ctx)}
+  const html = `${open(ctx, isPhone ? 196 : 150, showBottom)}
     ${isPhone ? "" : bleed}
-    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(isPhone ? 196 : 150)};">${kicker(theme, scene.kicker || S.showcaseKicker, theme.typeOn(theme.a2, ground))}</div>
-    ${isPhone ? `<div style="position:absolute;left:${X(80)};width:${X(520)};top:${V(286)};">${megaStack(theme, megaPhone, { ground, accent: theme.a1, align: "left" })}</div>` : ""}
+    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(isPhone ? 196 : 150)};">${kicker(theme, scene.kicker || S.showcaseKicker, theme.typeOn(ctx.accent, ground))}</div>
+    ${isPhone ? `<div style="position:absolute;left:${X(80)};width:${X(520)};top:${V(286)};">${megaStack(theme, megaPhone, { ground, accent: ctx.accent, align: "left" })}</div>` : ""}
     ${hero}${side}
-    ${isPhone ? "" : `<div style="position:absolute;left:${X(80)};right:${X(90)};top:${V(1090)};">${megaStack(theme, megaWide, { ground, accent: theme.a1, align: "left" })}</div>`}
-    ${chips.length && !isPhone ? `<div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(1520)};display:flex;gap:${X(16)};flex-wrap:wrap;">
-      ${chips.map((c, i) => chipHtml(theme, c, i % 2 ? theme.paper : theme.a4, 26)).join("")}
+    ${isPhone ? "" : `<div style="position:absolute;left:${X(80)};right:${X(90)};top:${V(wideMegaTop)};">${megaStack(theme, megaWide, { ground, accent: ctx.accent, align: "left" })}</div>`}
+    ${chips.length && !isPhone ? `<div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(showChipsTop)};display:flex;gap:${X(16)};flex-wrap:wrap;">
+      ${chips.map((c, i) => chipHtml(theme, c, i % 2 ? theme.paper : ctx.accent, 26)).join("")}
     </div>` : ""}
   ${close()}`;
-  return { html, scroll: plan.frac ? { id: scrollId, frac: plan.frac, kind: isPhone ? "phone" : "web" } : null };
+  return { html, scroll: plan.frac ? { id: scrollId, frac: plan.frac, kind: isPhone ? "phone" : "web" } : null , band: bandOf(ctx, isPhone ? 286 : wideMegaTop, isPhone ? megaPhone : megaWide) };
 }
 
-// GALLERY — a row of aspect-true frames (the source's formats scene, repurposed): 2–3
-// captures side by side AT THEIR OWN RATIOS, each labelled. Widths are budgeted so the
-// row always fits the safe column even under the camera push; ratios stay exact.
+// GALLERY — 2-3 captures at their own ratios, ARRANGED to fill the frame.
+//
+// The row was the only arrangement, and its geometry started from a WIDTH budget: each
+// cell took a share of the 920px safe column proportional to its ratio, and the height
+// fell out as w/ratio. In a 9:16 frame with two 16:9 captures that resolves to 450x253
+// each — a 253px row in a 1920px frame, 13% of the height for the scene's entire subject,
+// with a quarter of the poster empty beneath it. QA blocked it on a live render and was
+// right to.
+//
+// No sizing formula fixes that, because side-by-side is simply the wrong arrangement for
+// wide assets in a tall frame. So compute BOTH candidate layouts at the largest size each
+// can reach in the space actually available, and keep whichever displays more pixels of
+// the user's imagery. For two 16:9 captures the stack wins by ~3.4x; for two tall phone
+// captures the row still wins. The layout follows the assets instead of the assets being
+// forced into the layout.
+// The gap has to CLEAR THE PACK'S HARD SHADOW, which is offset 14px right / 16px down.
+// Stacked, a 22px gap left only 6px of daylight, and card one's ink shadow fell across it
+// — invisible between two light cards, but two dark captures then read as a single
+// collided block (a QA pass called it exactly that). Vertically the gap must beat the 16px
+// drop with room to spare; horizontally the 14px offset is already clear at 24.
+const GAL_GAP_ROW = 24, GAL_GAP_STACK = 48;
+function galleryLayout(shots, availH) {
+  const SAFE = RW - 160;
+  const qs = shots.map((a) => clamp(ratioOf(a) || 1.4, 0.42, 2.6));
+  const n = shots.length;
+  const rowGaps = GAL_GAP_ROW * Math.max(0, n - 1);
+  const stackGaps = GAL_GAP_STACK * Math.max(0, n - 1);
+  const area = (cells) => cells.reduce((t, c) => t + c.w * c.h, 0);
+
+  // ROW — one shared height; widths follow each ratio. Bounded by the safe column and by
+  // the vertical room (the label strip rides under the row, hence the reserve).
+  const rowH = Math.min((SAFE - rowGaps) / qs.reduce((t, q) => t + q, 0), availH - 46);
+  const row = qs.map((q, i) => ({ a: shots[i], w: rowH * q, h: rowH }));
+
+  // STACK — one shared width; heights follow each ratio. Bounded by the vertical room.
+  const stackH = qs.reduce((t, q) => t + SAFE / q, 0) + stackGaps;
+  const k = Math.min(1, (availH - stackGaps) / Math.max(1, stackH - stackGaps));
+  const stack = qs.map((q, i) => ({ a: shots[i], w: SAFE * k, h: (SAFE * k) / q }));
+
+  return area(stack) > area(row)
+    ? { mode: "stack", cells: stack, gap: GAL_GAP_STACK, height: stack.reduce((t, c) => t + c.h, 0) + stackGaps }
+    : { mode: "row", cells: row, gap: GAL_GAP_ROW, height: rowH + 46 };
+}
 function bGallery(scene, ctx, sceneAssets) {
   const { theme, S, ground } = ctx;
   const shots = (sceneAssets || []).slice(0, 3);
   const mega = megaFit(scene.headline || scene.title || "", 126, 2, 910);
-  const GAP = 20, SAFE = RW - 160;
-  const budget = SAFE - GAP * Math.max(0, shots.length - 1);
-  const qs = shots.map((a) => clamp(ratioOf(a) || 1, 0.5, 1.9));
-  const totalQ = qs.reduce((x, q) => x + q, 0) || 1;
-  const cells = shots.map((a, i) => {
-    const w = (budget * qs[i]) / totalQ;
-    const h = clamp(w / qs[i], 180, 700);
-    return { a, w, h, tint: [theme.a3, theme.a4, theme.paper][i % 3], label: String(a.alt || "").slice(0, 20) };
-  });
-  const html = `${open(ctx)}
-    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(170)};">${kicker(theme, scene.kicker || S.galleryKicker, theme.typeOn(theme.a2, ground))}</div>
-    <div style="position:absolute;left:${X(80)};right:${X(90)};top:${V(250)};">${megaStack(theme, mega, { ground, accent: theme.a1, align: "left" })}</div>
-    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(780)};display:flex;align-items:flex-end;justify-content:center;gap:${X(GAP)};">
-      ${cells.map((c) => `<div data-in="pop" style="flex:none;width:${X(c.w)};">
-        <div style="width:100%;height:${X(c.h)};">${frameHtml(theme, { device: "card", asset: c.a, tint: c.tint })}</div>
-        ${c.label ? `<div style="font-family:${theme.monoStack};font-size:${F(22)};letter-spacing:.14em;text-transform:uppercase;color:${rgba(theme.onField(ground), 0.6)};margin-top:${X(16)};text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(c.label)}</div>` : ""}
+  const rowTop = megaEnd(250, mega) + 84;
+  // The room the imagery actually has: from under the type to the safe bottom, less what
+  // the optional supporting sentence needs.
+  const availH = Math.max(240, ctx.camBotPx - rowTop - (scene.subtext ? 150 : 24));
+  const { mode, cells, gap, height } = galleryLayout(shots, availH);
+  const labels = shots.map((a) => displayLabel(a && a.alt));
+  const subTop = rowTop + height + 72;
+  const subBottom = subTop + (scene.subtext ? 120 : -72);
+  const html = `${open(ctx, 170, subBottom)}
+    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(170)};">${kicker(theme, scene.kicker || S.galleryKicker, theme.typeOn(ctx.accent, ground))}</div>
+    <div style="position:absolute;left:${X(80)};right:${X(90)};top:${V(250)};">${megaStack(theme, mega, { ground, accent: ctx.accent, align: "left" })}</div>
+    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(rowTop)};display:flex;${mode === "stack" ? "flex-direction:column;align-items:center;" : "align-items:flex-end;justify-content:center;"}gap:${X(gap)};">
+      ${cells.map((c, i) => `<div data-in="pop" style="flex:none;width:${X(c.w)};">
+        <div style="width:100%;height:${X(c.h)};">${frameHtml(theme, { device: "card", asset: c.a, tint: ctx.soft })}</div>
+        ${mode === "row" && labels[i] ? `<div style="font-family:${theme.monoStack};font-size:${F(22)};letter-spacing:.14em;text-transform:uppercase;color:${rgba(theme.onField(ground), 0.6)};margin-top:${X(16)};text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(labels[i])}</div>` : ""}
       </div>`).join("")}
     </div>
-    ${scene.subtext ? `<div data-in="up" style="position:absolute;left:${X(80)};right:${X(80)};top:${V(1400)};font-family:${theme.bodyStack};font-weight:500;font-size:${F(fitPx(scene.subtext, 38, 120))};line-height:1.45;color:${rgba(theme.onField(ground), 0.74)};">${esc(scene.subtext)}</div>` : ""}
+    ${scene.subtext ? `<div data-in="up" style="position:absolute;left:${X(80)};right:${X(80)};top:${V(subTop)};font-family:${theme.bodyStack};font-weight:500;font-size:${F(fitPx(scene.subtext, 38, 120))};line-height:1.45;color:${rgba(theme.onField(ground), 0.74)};">${esc(scene.subtext)}</div>` : ""}
   ${close()}`;
-  return { html };
+  return { html, band: bandOf(ctx, 250, mega) };
 }
 
 // GRID — the 2×2 outlined card deck. Text mode gives each card a colour-block glyph;
@@ -725,25 +1125,44 @@ function bGrid(scene, ctx, sceneAssets) {
   const { theme, S, ground } = ctx;
   const items = deck(scene, 4);
   const cells = (items.length ? items : bullets(scene, 4).map((t) => ({ title: t, note: "" }))).slice(0, 4);
-  const bgs = [theme.a3, theme.paper, theme.paper, theme.a2];
-  const glyphs = [theme.ink, theme.a1, theme.a4, theme.paper];
+  const bgs = [theme.paper, theme.paper, theme.paper, theme.paper];
+  const glyphs = [ctx.accent, theme.ink, ctx.accent, theme.ink];
   const mega = megaFit(scene.headline || scene.title || "", 136, 2, 920);
   // A 2×2 grid holding one or two cards reads as a half-empty page. Below three cells the
   // deck goes SINGLE COLUMN — full-width cards with a taller art strip — so the same
   // builder fills the frame whether the script gave it two bullets or four.
   const oneCol = cells.length <= 2;
   const artH = oneCol ? 240 : 150;
-  const html = `${open(ctx)}
-    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(196)};">${kicker(theme, scene.kicker || S.featuresKicker, theme.typeOn(theme.a2, ground), "center")}</div>
-    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(290)};">${megaStack(theme, mega, { ground, accent: theme.a1, align: "center" })}</div>
-    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(oneCol ? 700 : 660)};display:grid;grid-template-columns:${oneCol ? "1fr" : "1fr 1fr"};gap:${X(26)};">
+  // THREE cells in a 2x2 leaves a visibly empty quadrant — the "half-empty page" this
+  // fallback exists to prevent, one cell higher up. Three is a common deck size (a
+  // script's three bullets), so it gets its own answer rather than a hole: the third
+  // card spans BOTH columns, closing the grid as a 2-over-1.
+  const spanLast = cells.length === 3;
+  const deckTop = Math.max(megaEnd(290, mega) + 84, 560);
+  // deck height: rows of cards, each art strip + title + padding, plus the gaps
+  const deckRows = oneCol ? cells.length : Math.ceil(cells.length / 2) + (spanLast ? 0 : 0);
+  const deckH = deckRows * ((cells.some((c, i) => sceneAssets && sceneAssets[i]) ? (oneCol ? 240 : 150) : 88) + 150) + Math.max(0, deckRows - 1) * 26;
+  const html = `${open(ctx, 196, deckTop + deckH)}
+    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(196)};">${kicker(theme, scene.kicker || S.featuresKicker, theme.typeOn(ctx.accent, ground), "center")}</div>
+    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(290)};">${megaStack(theme, mega, { ground, accent: ctx.accent, align: "center" })}</div>
+    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(deckTop)};display:grid;grid-template-columns:${oneCol ? "1fr" : "1fr 1fr"};gap:${X(26)};">
       ${cells.map((c, i) => {
         const bg = bgs[i % 4], fg = theme.onField(bg);
         const shot = sceneAssets && sceneAssets[i];
         const art = shot && shot.path
-          ? `<div style="width:100%;height:${X(artH)};border-radius:${X(18)};overflow:hidden;border:${X(4)} solid ${theme.ink};background:${rgba(glyphs[i % 4], 0.24)};"><img src="${esc(shot.path)}" alt="${esc(shot.alt || "")}" style="width:100%;height:100%;object-fit:cover;display:block;"></div>`
+          // The strip's HEIGHT follows the capture. A fixed strip with object-fit:cover
+          // centre-cropped every screenshot — on a tall capture that meant showing a band
+          // from the middle of a page, header and footer both gone. Contain keeps the
+          // whole frame; letting the height track the ratio (clamped so a card cannot run
+          // away) means it is contained without a letterbox in the common cases.
+          ? (() => {
+              const innerW = (spanLast && i === 2 ? 852 : 379);
+              const q = clamp(ratioOf(shot) || 1.4, 0.5, 2.6);
+              const hh = clamp(innerW / q, spanLast && i === 2 ? 170 : 130, spanLast && i === 2 ? 330 : 300);
+              return `<div style="width:100%;height:${X(hh)};border-radius:${X(18)};overflow:hidden;border:${X(4)} solid ${theme.ink};background:${rgba(glyphs[i % 4], 0.18)};"><img src="${esc(shot.path)}" alt="${esc(safeAlt(shot.alt))}" style="width:100%;height:100%;object-fit:contain;display:block;"></div>`;
+            })()
           : `<div style="width:${X(88)};height:${X(88)};border-radius:${i % 2 ? "50%" : X(22)};background:${glyphs[i % 4]};"></div>`;
-        return `<div class="kf-card" data-in="pop" style="background:${bg};padding:${X(40)} ${X(34)};">
+        return `<div class="kf-card" data-in="pop" style="background:${bg};padding:${X(40)} ${X(34)};${spanLast && i === 2 ? "grid-column:1 / -1;" : ""}">
           ${art}
           <div style="font-family:${theme.subStack};font-weight:700;font-size:${F(fitPx(c.title, 50, 18))};line-height:1.04;letter-spacing:-.02em;color:${fg};margin-top:${X(24)};">${esc(c.title)}</div>
           ${c.note ? `<div style="font-family:${theme.bodyStack};font-weight:500;font-size:${F(27)};line-height:1.35;color:${rgba(fg, 0.68)};margin-top:${X(10)};">${esc(c.note)}</div>` : ""}
@@ -751,19 +1170,35 @@ function bGrid(scene, ctx, sceneAssets) {
       }).join("")}
     </div>
   ${close()}`;
-  return { html };
+  return { html, band: bandOf(ctx, 290, mega) };
 }
 
 // STATS — count-up numerals in outlined plates under a mega headline. The proof beat.
-function bStats(scene, ctx) {
+// A capture pinned to this beat rides BELOW the counters in the pack's own card frame —
+// a flat poster pack states its imagery in hard-edged blocks, so a dimmed photographic
+// wash (the right answer for the softer OM packs) would read as a different design system.
+// The card budget drops from three to two to buy the room, so nothing overlaps and the
+// band still clears the portrait bottom safe area. With no capture the beat is unchanged.
+function bStats(scene, ctx, sceneAssets) {
   const { theme, S, ground } = ctx;
-  const stats = pickStats(scene, 3, S);
+  const asset = (sceneAssets && sceneAssets[0]) || null;
+  const stats = pickStats(scene, asset ? 2 : 3, S);
   const mega = megaFit(scene.headline || scene.title || "", 126, 3, 910);
-  const cols = [theme.a1, theme.paper, theme.paper];
-  const html = `${open(ctx)}
-    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(196)};">${kicker(theme, scene.kicker || S.statsKicker, theme.typeOn(theme.a2, ground))}</div>
-    <div style="position:absolute;left:${X(80)};right:${X(90)};top:${V(280)};">${megaStack(theme, mega, { ground, accent: theme.a2, align: "left" })}</div>
-    ${stats.length ? `<div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(900)};display:flex;flex-direction:column;gap:${X(24)};">
+  const cols = [ctx.accent, theme.paper, theme.paper];
+  const statsTop = Math.max(megaEnd(280, mega) + 96, 700);
+  const statsH = stats.length * 148 + Math.max(0, stats.length - 1) * 24;
+  const statsBottom = asset ? Math.max(statsTop + statsH, 1330 + 240) : statsTop + statsH;
+  // Two cards end near V(1200); the band below is sized to sit inside the safe area.
+  const band = asset
+    ? `<div data-in="pop" style="position:absolute;left:${X(80)};right:${X(80)};top:${V(1255)};height:${X(330)};">
+      ${frameHtml(theme, { device: "card", asset, tint: ctx.soft })}
+    </div>`
+    : "";
+  const html = `${open(ctx, 196, statsBottom)}
+    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(196)};">${kicker(theme, scene.kicker || S.statsKicker, theme.typeOn(ctx.accent, ground))}</div>
+    <div style="position:absolute;left:${X(80)};right:${X(90)};top:${V(280)};">${megaStack(theme, mega, { ground, accent: ctx.accent, align: "left" })}</div>
+    ${band}
+    ${stats.length ? `<div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(statsTop)};display:flex;flex-direction:column;gap:${X(24)};">
       ${stats.map((st, i) => {
         const bg = cols[i % 3], fg = theme.onField(bg);
         return `<div class="kf-card" data-in="slide" style="background:${bg};padding:${X(28)} ${X(38)};display:flex;align-items:baseline;gap:${X(24)};">
@@ -773,28 +1208,49 @@ function bStats(scene, ctx) {
       }).join("")}
     </div>` : ""}
   ${close()}`;
-  return { html };
+  return { html, band: bandOf(ctx, 280, mega) };
 }
 
 // VOICE — the film's only right-aligned composition: a mega quote, a breathing waveform
 // and an attribution card. Text-safe (needs no imagery at all).
 const WAVE = [22, 54, 88, 40, 100, 62, 30, 76, 46, 92, 34, 68, 24, 82, 44];
-function bVoice(scene, ctx) {
+// A capture pinned to the quote beat lands as a supporting band beneath the attribution,
+// at a real size in the pack's card frame. It is NOT crammed into the attribution avatar:
+// that circle is X(74), and a website capture squeezed into a 74px disc is the "tiny asset
+// container" failure this pack is meant to avoid — the disc stays a colour mark, and the
+// capture gets its own band in the clear space below the card (the quote is right-aligned
+// and the wave ends well above it, so the room was already there).
+function bVoice(scene, ctx, sceneAssets) {
   const { theme, S, ground } = ctx;
+  const asset = (sceneAssets && sceneAssets[0]) || null;
   const mega = megaFit(scene.headline || scene.title || "", 116, 3, 920);
   const attribution = (bullets(scene, 1)[0] || scene.subtext || "").slice(0, 58);
-  const html = `${open(ctx)}
-    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(196)};">${kicker(theme, scene.kicker || S.voiceKicker, theme.typeOn(theme.a1, ground), "right")}</div>
-    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(280)};">${megaStack(theme, mega, { ground, accent: theme.a2, align: "right" })}</div>
-    <div id="${ctx.id}-wave" style="position:absolute;left:${X(80)};right:${X(80)};top:${V(880)};height:${X(260)};display:flex;align-items:center;justify-content:space-between;gap:${X(8)};">
-      ${WAVE.map((h, i) => `<div data-in="bar" style="flex:1;height:${h}%;border-radius:999px;background:${i % 3 === 2 ? theme.a1 : theme.a2};transform-origin:center center;"></div>`).join("")}
+  const waveTop = Math.max(megaEnd(280, mega) + 96, 640);
+  const attrTop = waveTop + 260 + 96;
+  const voiceBottom = Math.max(attrTop + (attribution ? 150 : -96), asset && asset.path ? 1330 + 240 : 0, waveTop + 260);
+  // CAMERA-SAFE BOTTOM. At V(1420) + X(240) this band ended at 86.5% — inside the frame,
+  // but the scene rides a 1.07x camera push that scales content away from the focal
+  // point, carrying it to 87.6% and 12px INTO the reserved caption band. The static
+  // number was right and the moving one was not, which is why nothing caught it. Lifting
+  // the band to V(1330) leaves it clear at both ends of the push.
+  const band = asset && asset.path
+    ? `<div data-in="pop" style="position:absolute;left:${X(80)};right:${X(80)};top:${V(1330)};height:${X(240)};">
+      ${frameHtml(theme, { device: "card", asset, tint: ctx.soft })}
+    </div>`
+    : "";
+  const html = `${open(ctx, 196, voiceBottom)}
+    ${band}
+    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(196)};">${kicker(theme, scene.kicker || S.voiceKicker, theme.typeOn(ctx.accent, ground), "right")}</div>
+    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(280)};">${megaStack(theme, mega, { ground, accent: ctx.accent, align: "right" })}</div>
+    <div id="${ctx.id}-wave" style="position:absolute;left:${X(80)};right:${X(80)};top:${V(waveTop)};height:${X(260)};display:flex;align-items:center;justify-content:space-between;gap:${X(8)};">
+      ${WAVE.map((h, i) => `<div data-in="bar" style="flex:1;height:${h}%;border-radius:999px;background:${i % 3 === 2 ? ctx.accent : theme.onField(ground)};transform-origin:center center;"></div>`).join("")}
     </div>
-    ${attribution ? `<div class="kf-card" data-in="pop" style="position:absolute;left:${X(80)};right:${X(80)};top:${V(1250)};padding:${X(32)} ${X(40)};background:${theme.paper};display:flex;align-items:center;gap:${X(26)};">
-      <div style="width:${X(74)};height:${X(74)};border-radius:50%;background:${theme.a1};flex:none;"></div>
+    ${attribution ? `<div class="kf-card" data-in="pop" style="position:absolute;left:${X(80)};right:${X(80)};top:${V(attrTop)};padding:${X(32)} ${X(40)};background:${theme.paper};display:flex;align-items:center;gap:${X(26)};">
+      <div style="width:${X(74)};height:${X(74)};border-radius:50%;background:${ctx.accent};flex:none;"></div>
       <div style="font-family:${theme.subStack};font-weight:700;font-size:${F(fitPx(attribution, 44, 30))};line-height:1.1;color:${theme.ink};min-width:0;">${esc(attribution)}</div>
     </div>` : ""}
   ${close()}`;
-  return { html };
+  return { html, band: bandOf(ctx, 280, mega) };
 }
 
 // SWATCH — a full-bleed colour column against a right-hand text block: the brand beat,
@@ -802,28 +1258,39 @@ function bVoice(scene, ctx) {
 // the column's tiles become real crops instead of flat blocks.
 function bSwatch(scene, ctx, sceneAssets) {
   const { theme, S, ground } = ctx;
-  const tiles = [theme.a1, theme.a3, theme.a4, theme.paper];
+  const tiles = [ctx.accent, decorTone(ground, 0.12), ctx.accent, theme.paper];
   const mega = megaFit(scene.headline || scene.title || "", 104, 3, 580);
   const chips = bullets(scene, 3);
-  const chipCols = [theme.paper, theme.a1, theme.a4];
-  const html = `${open(ctx)}
-    <div style="position:absolute;left:${X(-60)};top:${V(150)};width:${X(420)};display:flex;flex-direction:column;gap:${X(24)};">
+  const chipCols = [theme.paper, ctx.accent, theme.paper];
+  const swatchBottom = Math.max(150 + 4 * 290 + 3 * 24, chips.length ? 1200 + 90 : 0, megaEnd(250, mega));
+  // OFF-EDGE BLEED IS FOR DECORATION ONLY. The column is authored to bleed past the left
+  // edge (left:-60) — correct for flat colour tiles, wrong the moment a tile holds a user
+  // screenshot, which is then both cropped by `cover` AND cut off by the frame. FRAME.md
+  // states the rule ("a container holding a user screenshot always stays inside the safe
+  // margin") and this was the one place that broke it. A tile carrying imagery pulls back
+  // inside the margin and contains rather than crops; empty tiles keep the bleed, so the
+  // scene loses none of its graphic edge when there is nothing to protect.
+  const anyShot = (sceneAssets || []).some((a) => a && a.path);
+  const colLeft = anyShot ? 54 : -60;
+  const html = `${open(ctx, 150, swatchBottom)}
+    <div style="position:absolute;left:${X(colLeft)};top:${V(150)};width:${X(420)};display:flex;flex-direction:column;gap:${X(24)};">
       ${tiles.map((c, i) => {
         const shot = sceneAssets && sceneAssets[i];
         const inner = shot && shot.path
-          ? `<img src="${esc(shot.path)}" alt="${esc(shot.alt || "")}" style="width:100%;height:100%;object-fit:cover;display:block;">`
+          ? `<img src="${esc(shot.path)}" alt="${esc(safeAlt(shot.alt))}" style="width:100%;height:100%;object-fit:contain;display:block;">`
           : "";
-        return `<div data-in="pop" style="height:${X(290)};border-radius:0 ${X(40)} ${X(40)} 0;background:${c};border:${X(5)} solid ${theme.paper};border-left:none;overflow:hidden;flex:none;">${inner}</div>`;
+        const radius = anyShot ? `${X(28)}` : `0 ${X(40)} ${X(40)} 0`;
+        return `<div data-in="pop" style="height:${X(290)};border-radius:${radius};background:${shot && shot.path ? rgba(c, 0.22) : c};border:${X(5)} solid ${theme.paper};${anyShot ? "" : "border-left:none;"}overflow:hidden;flex:none;">${inner}</div>`;
       }).join("")}
     </div>
-    <div style="position:absolute;left:${X(430)};right:${X(70)};top:${V(170)};">${kicker(theme, scene.kicker || S.brandKicker, theme.typeOn(theme.a3, ground))}</div>
+    <div style="position:absolute;left:${X(430)};right:${X(70)};top:${V(170)};">${kicker(theme, scene.kicker || S.brandKicker, theme.typeOn(ctx.accent, ground))}</div>
     <div style="position:absolute;left:${X(430)};right:${X(70)};top:${V(250)};">${megaStack(theme, mega, { ground, accent: theme.paper, align: "left" })}</div>
     ${scene.subtext ? `<div data-in="up" style="position:absolute;left:${X(430)};right:${X(70)};top:${V(780)};font-family:${theme.bodyStack};font-weight:500;font-size:${F(fitPx(scene.subtext, 36, 150))};line-height:1.45;color:${rgba(theme.onField(ground), 0.9)};">${esc(scene.subtext)}</div>` : ""}
     ${chips.length ? `<div style="position:absolute;left:${X(430)};right:${X(70)};top:${V(1200)};display:flex;flex-wrap:wrap;gap:${X(16)};">
       ${chips.map((c, i) => chipHtml(theme, c, chipCols[i % 3], 26)).join("")}
     </div>` : ""}
   ${close()}`;
-  return { html };
+  return { html, band: bandOf(ctx, 250, mega) };
 }
 
 // LOGOS — the trust wall: a grid of logo/vector marks on outlined plates with the type
@@ -833,17 +1300,17 @@ function bLogos(scene, ctx, marks) {
   const cells = (marks || []).slice(0, 6);
   const mega = megaFit(scene.headline || scene.title || "", 118, 2, 920);
   const ink = theme.onField(ground);
-  const html = `${open(ctx)}
+  const html = `${open(ctx, 200, 1520 + 14)}
     <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(200)};display:grid;grid-template-columns:1fr 1fr;gap:${X(24)};">
-      ${cells.map((m, i) => `<div class="kf-card" data-in="pop" style="height:${X(150)};background:${i % 5 === 2 ? theme.a4 : i % 5 === 4 ? theme.a3 : theme.paper};display:flex;align-items:center;justify-content:center;padding:${X(20)};">
-        <img src="${esc(m.path)}" alt="${esc(m.alt || S.logoSlot)}" style="max-width:78%;max-height:68%;object-fit:contain;display:block;">
+      ${cells.map((m, i) => `<div class="kf-card" data-in="pop" style="height:${X(150)};background:${theme.paper};display:flex;align-items:center;justify-content:center;padding:${X(20)};">
+        <img src="${esc(m.path)}" alt="${esc(safeAlt(m.alt, S.logoSlot))}" style="max-width:78%;max-height:68%;object-fit:contain;display:block;">
       </div>`).join("")}
     </div>
-    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(1130)};">${kicker(theme, scene.kicker || S.trustKicker, theme.typeOn(theme.a2, ground), "right")}</div>
-    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(1210)};">${megaStack(theme, mega, { ground, accent: theme.a1, align: "right" })}</div>
+    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(1130)};">${kicker(theme, scene.kicker || S.trustKicker, theme.typeOn(ctx.accent, ground), "right")}</div>
+    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(1210)};">${megaStack(theme, mega, { ground, accent: ctx.accent, align: "right" })}</div>
     <div data-in="draw" style="position:absolute;left:${X(400)};right:${X(80)};top:${V(1520)};height:${X(14)};background:${ink};transform-origin:right center;"></div>
   ${close()}`;
-  return { html };
+  return { html, band: bandOf(ctx, 1210, mega) };
 }
 
 // STATEMENT — the dynamic default: a left mega line with chips or a supporting sentence.
@@ -854,39 +1321,45 @@ function bStatement(scene, ctx, sceneAssets) {
   const asset = (sceneAssets && sceneAssets[0]) || null;
   const mega = megaFit(scene.headline || scene.title || "", asset ? 128 : 156, asset ? 3 : 5, 930);
   const chips = bullets(scene, 3);
-  const chipCols = [theme.a3, theme.paper, theme.a4];
+  const chipCols = [ctx.accent, theme.paper, ctx.accent];
   const device = asset ? deviceFor(asset) : null;
+  // Resolved BEFORE stmtBottom, which needs it: the extent this scene declares to the
+  // centring clamp depends on how tall the window turned out.
+  const stmtBrowserH = device === "browser" ? windowHeightFor(asset, RW - 170, STMT.browserBoxH, 320) : STMT.browserBoxH;
+  const frameTop = Math.max(megaEnd(320, mega) + 88, 640);
+  const stmtBottom = asset ? frameTop + (deviceFor(asset) === "phone" ? STMT.phoneH : deviceFor(asset) === "browser" ? stmtBrowserH + 120 : 560)
+    : Math.max(scene.subtext ? frameTop + 40 + 130 : 0, bullets(scene, 3).length ? frameTop + 300 + 90 : 0, megaEnd(320, mega));
   const scrollId = `${ctx.id}-scroll`;
   let frame = "", plan = { frac: 0, natH: 0 };
   if (asset) {
     if (device === "phone") {
       const boxW = STMT.phoneW - 50, boxH = STMT.phoneH - 50;
       plan = scrollPlan(boxW, boxH, asset);
-      frame = `<div data-in="pop" style="position:absolute;left:50%;margin-left:${X(-STMT.phoneW / 2)};top:${V(860)};width:${X(STMT.phoneW)};height:${X(STMT.phoneH)};">
-        ${frameHtml(theme, { device, asset, boxW, boxH, tint: theme.a3, scrollId: plan.frac ? scrollId : null, natH: plan.natH })}
+      frame = `<div data-in="pop" style="position:absolute;left:50%;margin-left:${X(-STMT.phoneW / 2)};top:${V(frameTop)};width:${X(STMT.phoneW)};height:${X(STMT.phoneH)};">
+        ${frameHtml(theme, { device, asset, boxW, boxH, tint: ctx.soft, scrollId: plan.frac ? scrollId : null, natH: plan.natH })}
       </div>`;
     } else if (device === "browser") {
       const boxW = RW - 160 - 10;
-      plan = scrollPlan(boxW, STMT.browserBoxH, asset);
-      frame = `<div data-in="pop" style="position:absolute;left:${X(80)};right:${X(80)};top:${V(900)};">
-        ${frameHtml(theme, { device, asset, boxW, boxH: STMT.browserBoxH, tint: theme.a3, scrollId: plan.frac ? scrollId : null, natH: plan.natH, address })}
+      plan = scrollPlan(boxW, stmtBrowserH, asset);
+      frame = `<div data-in="pop" style="position:absolute;left:${X(80)};right:${X(80)};top:${V(frameTop)};">
+        ${frameHtml(theme, { device, asset, boxW, boxH: stmtBrowserH, tint: ctx.soft, scrollId: plan.frac ? scrollId : null, natH: plan.natH, address })}
       </div>`;
     } else {
-      frame = `<div data-in="pop" style="position:absolute;left:${X(80)};right:${X(80)};top:${V(900)};height:${X(560)};">
-        ${frameHtml(theme, { device: "card", asset, tint: theme.a3 })}
+      frame = `<div data-in="pop" style="position:absolute;left:${X(80)};right:${X(80)};top:${V(frameTop)};height:${X(560)};">
+        ${frameHtml(theme, { device: "card", asset, tint: ctx.soft })}
       </div>`;
     }
   }
-  const html = `${open(ctx)}
-    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(196)};">${kicker(theme, scene.kicker || S.showcaseKicker, theme.typeOn(theme.a1, ground))}</div>
-    <div style="position:absolute;left:${X(80)};right:${X(70)};top:${V(320)};">${megaStack(theme, mega, { ground, accent: theme.a2, align: "left" })}</div>
+  const html = `${open(ctx, 196, stmtBottom)}
+    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(196)};">${kicker(theme, scene.kicker || S.showcaseKicker, theme.typeOn(ctx.accent, ground))}</div>
+    <div style="position:absolute;left:${X(80)};right:${X(70)};top:${V(320)};">${megaStack(theme, mega, { ground, accent: ctx.accent, align: "left" })}</div>
     ${frame}
-    ${!asset && scene.subtext ? `<div data-in="up" style="position:absolute;left:${X(80)};right:${X(80)};top:${V(1040)};font-family:${theme.bodyStack};font-weight:500;font-size:${F(fitPx(scene.subtext, 40, 120))};line-height:1.45;color:${rgba(theme.onField(ground), 0.76)};">${esc(scene.subtext)}</div>` : ""}
-    ${chips.length && !asset ? `<div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(1300)};display:flex;gap:${X(18)};flex-wrap:wrap;">
+    ${!asset && scene.subtext ? `<div data-in="up" style="position:absolute;left:${X(80)};right:${X(80)};top:${V(frameTop + 40)};font-family:${theme.bodyStack};font-weight:500;font-size:${F(fitPx(scene.subtext, 40, 120))};line-height:1.45;color:${rgba(theme.onField(ground), 0.76)};">${esc(scene.subtext)}</div>` : ""}
+    ${chips.length && !asset ? `<div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(frameTop + 300)};display:flex;gap:${X(18)};flex-wrap:wrap;">
       ${chips.map((c, i) => chipHtml(theme, c, chipCols[i % 3])).join("")}
     </div>` : ""}
   ${close()}`;
-  return { html, scroll: plan.frac ? { id: scrollId, frac: plan.frac, kind: device === "phone" ? "phone" : "web" } : null };
+  return { html, scroll: plan.frac ? { id: scrollId, frac: plan.frac, kind: device === "phone" ? "phone" : "web" } : null , band: bandOf(ctx, 320, mega) };
 }
 
 // CTA — the close: the user's logo (or a built mark), the wordmark, a pill button and the
@@ -899,13 +1372,20 @@ function bCta(scene, ctx, _assets, logo) {
   const tag = String(scene.subtext || S.ctaTagline).slice(0, 70);
   const url = ctx.address ? String(ctx.address).toUpperCase() : "";
   const mark = logo && logo.path
-    ? `<img src="${esc(logo.path)}" alt="${esc(logo.alt || "logo")}" style="${logoFilterCss(logo, theme.paper)}max-width:${X(140)};max-height:${X(140)};object-fit:contain;display:block;">`
-    : `<div style="width:${X(76)};height:${X(76)};background:${theme.a2};border-radius:${X(12)};"></div>`;
+    ? `<img src="${esc(logo.path)}" alt="${esc(safeAlt(logo.alt, "logo"))}" style="${logoFilterCss(logo, theme.paper)}max-width:${X(140)};max-height:${X(140)};object-fit:contain;display:block;">`
+    : `<div style="width:${X(76)};height:${X(76)};background:${ctx.accent};border-radius:${X(12)};"></div>`;
+  // CENTRED IN THE SAFE AREA, not pinned to a constant. Anchored at V(420) the closing
+  // frame ran out of content around 62% and left a quarter of the poster empty — the
+  // single worst dead space in the pack, on the one scene a viewer looks at longest.
+  // A flex column between the safe insets distributes it by construction: the stack sits
+  // optically centred whatever the logo, headline length or tagline turn out to be, and
+  // whatever the caption band reserves. Asymmetric emptiness reads as broken; symmetric
+  // whitespace reads as designed.
   const html = `${open(ctx)}
-    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(420)};text-align:center;">
-      <div data-in="pop" style="width:${X(190)};height:${X(190)};border-radius:${X(46)};background:${theme.paper};border:${X(6)} solid ${theme.ink};margin:0 auto;display:flex;align-items:center;justify-content:center;overflow:hidden;">${mark}</div>
-      <div style="margin-top:${X(56)};">${megaStack(theme, mega, { ground, accent: theme.paper, align: "center" })}</div>
-      <div data-in="up" style="font-family:${theme.subStack};font-weight:700;font-size:${F(fitPx(tag, 52, 40))};line-height:1.15;color:${rgba(ink, 0.9)};margin-top:${X(40)};">${esc(tag)}</div>
+    <div style="position:absolute;left:${X(80)};right:${X(80)};top:${ctx.safeTopPct}%;bottom:${ctx.safeBotPct}%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
+      <div data-in="pop" style="width:${X(190)};height:${X(190)};border-radius:${X(46)};background:${theme.paper};border:${X(6)} solid ${theme.ink};margin:0 auto;display:flex;align-items:center;justify-content:center;overflow:hidden;flex:none;">${mark}</div>
+      <div style="margin-top:${X(56)};width:100%;flex:none;">${megaStack(theme, mega, { ground, accent: theme.paper, align: "center" })}</div>
+      <div data-in="up" style="font-family:${theme.subStack};font-weight:700;font-size:${F(fitPx(tag, 52, 40))};line-height:1.15;color:${rgba(ink, 0.9)};margin-top:${X(40)};width:100%;flex:none;">${esc(tag)}</div>
       <div data-in="pop" style="margin-top:${X(64)};display:inline-flex;align-items:center;gap:${X(20)};background:${theme.paper};border:${X(6)} solid ${theme.ink};border-radius:999px;padding:${X(26)} ${X(56)};">
         <span style="font-family:${theme.subStack};font-weight:700;font-size:${F(fitPx(btn, 52, 14))};color:${theme.ink};white-space:nowrap;">${esc(btn)}</span>
         <span class="kf-arrow" style="width:${X(28)};height:${X(28)};border-top:${X(7)} solid ${theme.ink};border-right:${X(7)} solid ${theme.ink};display:inline-block;flex:none;"></span>
@@ -913,12 +1393,42 @@ function bCta(scene, ctx, _assets, logo) {
       ${url ? `<div data-in="up" style="font-family:${theme.monoStack};font-size:${F(30)};letter-spacing:.2em;text-transform:uppercase;color:${rgba(ink, 0.85)};margin-top:${X(52)};">${esc(url)}</div>` : ""}
     </div>
   ${close()}`;
-  return { html };
+  return { html, band: bandOf(ctx, 560, mega) };
 }
 
 const BUILDERS = {
   hook: bHook, cards: bCards, showcase: bShowcase, gallery: bGallery, grid: bGrid,
   stats: bStats, voice: bVoice, swatch: bSwatch, logos: bLogos, statement: bStatement, cta: bCta,
+};
+
+// ---- motion tuning -----------------------------------------------------------
+// ONE PLACE for the film's rhythm. These were scattered literals across the entrance
+// builder, the cut loop and the persistent layers, so the pace could not be judged or
+// changed as a whole — and it had drifted slow.
+//
+// What was actually costing the energy, measured on the timeline rather than guessed:
+//   • a scene took ~0.70s to reach its finished frame (0.40s tween + 5 mega lines x
+//     0.05s stagger). Now ~0.42s.
+//   • the seam — the largest moving object on screen — re-anchored over 1.10s, so the
+//     one element the eye tracks was always the slowest thing in the frame.
+//   • the mid-scene punch sat at 46% of the scene, leaving ~1.6s of nothing but a linear
+//     camera crawl between the entrance finishing and anything else happening.
+//   • the cut itself ran 0.56s of wipe (0.26 in + 0.30 out) against scene content that
+//     had already stopped moving.
+//
+// Faster does NOT mean snappier-to-the-point-of-jitter: durations come down, the eases
+// get more aggressive at the head (expo/power4 out) so motion still decelerates into
+// place, and the punch moves earlier so the gap between beats shrinks rather than the
+// beats themselves becoming abrupt.
+const ANIM = {
+  enterDur: 0.30, popDur: 0.34, stagger: 0.035, enterLead: 0.04,
+  enterEase: "expo.out", popEase: "back.out(2.1)",
+  punchAt: 0.34, punchDur: 0.16, punchBack: 0.26, punchStagger: 0.03,
+  wipeIn: 0.20, wipeOut: 0.24, cutLead: 0.40,
+  seamSettle: 0.62, seamLead: 0.20,
+  camScale: 1.085,
+  countDur: 0.62, countLead: 0.18,
+  scrollLead: 0.50, scrollTail: 0.75,
 };
 
 // ---- entrance script ---------------------------------------------------------
@@ -949,13 +1459,18 @@ function kindsIn(html) {
 }
 function enterScript(id, T, html) {
   const out = [];
-  for (const k of kindsIn(html)) {
+  const kinds = kindsIn(html);
+  for (const k of kinds) {
     if (!FROM[k]) continue;
-    const dur = k === "pop" ? 0.46 : 0.4;
-    const ease = k === "pop" ? "back.out(1.7)" : "expo.out";
-    out.push(`tl.fromTo("#${id} [data-in='${k}']",${FROM[k]},{${TO[k]},duration:${dur},ease:"${ease}",stagger:0.05,immediateRender:false},${r(T + 0.06)});`);
+    const dur = k === "pop" ? ANIM.popDur : ANIM.enterDur;
+    const ease = k === "pop" ? ANIM.popEase : ANIM.enterEase;
+    // Kinds are offset a HAIR from each other (0.03s apart in emit order) rather than all
+    // firing on the same frame. Free variety: the kicker, the mega stack and the chips
+    // read as a sequence instead of one simultaneous flash, at no cost in total time.
+    const at = r(T + ANIM.enterLead + out.length * 0.03);
+    out.push(`tl.fromTo("#${id} [data-in='${k}']",${FROM[k]},{${TO[k]},duration:${dur},ease:"${ease}",stagger:${ANIM.stagger},immediateRender:false},${at});`);
   }
-  if (/data-count=/.test(html)) out.push(`count("#${id}",${r(T + 0.25)},0.85);`);
+  if (/data-count=/.test(html)) out.push(`count("#${id}",${r(T + ANIM.countLead)},${ANIM.countDur});`);
   return out;
 }
 
@@ -968,7 +1483,8 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   // The reserved caption band tracks the shared safe-area law rather than a literal:
   // portrait resolves to the authored 5% inset, landscape pulls the pill up to its own
   // 8% band (safeArea keys on the canvas aspect).
-  const capBottom = r(safeArea(W, H).bottom * 38);
+  const SA = safeArea(W, H);
+  const capBottom = r(SA.bottom * 38);
   // Type keyed on the SHORT side (responsive.typeScale's law). Portrait — the authored
   // aspect — resolves to exactly 1, so 9:16 output matches the design byte-for-byte.
   TSCALE = clamp(Math.min(W, H) / W, 0.5, 1);
@@ -993,6 +1509,16 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   const marks = all.filter((a) => markOk(a) && a !== logo).slice(0, 6);
 
   const baseArch = scenes.map((sc, i) => archetypeFor(sc, i, scenes.length));
+
+  // ANTI-REPETITION — see varyLocal above for why this is pack-local rather than the
+  // shared motion_planner helper. `showcase` only joins the pool when real shots exist.
+  // Runs BEFORE asset distribution on purpose — a swap changes CAN_SHOW membership, so
+  // reordering these would assign shots against a scene list that is about to change.
+  // That is also why the profile carries only `deckN`: per-scene shots are not known yet,
+  // and the film-wide `shots.length > 0` already gates whether showcase is eligible.
+  const swapProfile = scenes.map((sc) => ({ deckN: Math.max(deck(sc, 4).length, bullets(sc, 4).length) }));
+  const varied = varyLocal(baseArch, swapProfile, shots.length > 0, scenes.map((s) => s && s.id).join("|"));
+  for (let vi = 0; vi < baseArch.length; vi++) baseArch[vi] = varied[vi];
   // A trust wall only earns its scene when there are enough real marks to fill it.
   if (marks.length >= 4) {
     const idx = baseArch.findIndex((a, i) => i > 0 && i < scenes.length - 1 && (a === "statement" || a === "grid"));
@@ -1008,9 +1534,22 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
       const target = sid != null ? displayIdx.find((i) => sceneIdOf(i) === sid) : undefined;
       if (target != null) sceneShots[target].push(a); else leftovers.push(a);
     }
+    // Capacity-bounded, coverage first. A beat is only offered a shot it can actually draw
+    // (see SHOT_CAPACITY) — the counter beat caps at one, so routing a surplus there had
+    // the dispatch slice it away after the Creative Director had already paid to fetch,
+    // score and assign it. And an uncovered beat outranks a second shot for a covered one:
+    // spreading imagery across the film beats stacking it on whichever beat sorted first.
     for (const a of leftovers) {
-      let best = displayIdx[0];
-      for (const i of displayIdx) if (sceneShots[i].length < sceneShots[best].length) best = i;
+      const room = (i) => sceneShots[i].length < capacityOf(baseArch[i]);
+      let best = displayIdx.find((i) => !sceneShots[i].length && room(i));
+      if (best == null) {
+        const open = displayIdx.filter(room);
+        if (open.length) {
+          best = open[0];
+          for (const i of open) if (sceneShots[i].length < sceneShots[best].length) best = i;
+        }
+      }
+      if (best == null) continue;   // every display beat full — better unused than discarded
       sceneShots[best].push(a);
     }
   }
@@ -1044,6 +1583,23 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   // The CTA always closes on a saturated field — the one fixed beat in the pattern.
   if (scenes.length > 1) grounds[scenes.length - 1] = satPool[(satStart + 1) % satPool.length];
 
+  // ONE LEAD ACCENT PER SCENE.
+  //
+  // Builders each reached into a1/a3/a4 independently, so a single frame could show a
+  // vermilion square, a solar chip and a jade chip over an ultramarine ground — four
+  // full-strength hues competing for one eye. That is what read as cluttered rather than
+  // art-directed; a poster commits to a ground plus ONE accent and lets tone do the rest.
+  //
+  // Each scene now picks a single accent that genuinely separates from its own ground
+  // (>=3:1 so it is also usable as TYPE; >=2.2 as a fallback for shapes). Everything else
+  // in the scene draws from paper / ink / a TONE of the ground. Rotating the pick by scene
+  // index keeps the film varied across its length while any one frame stays disciplined.
+  const accents = grounds.map((g, i) => {
+    const strong = theme.a.filter((c) => ratio(c, g) >= 3);
+    const usable = strong.length ? strong : theme.a.filter((c) => ratio(c, g) >= 2.2);
+    return usable.length ? usable[(satStart + i) % usable.length] : theme.paper;
+  });
+
   // ---- wipe edges: never repeat a direction on consecutive cuts ---------------
   const EDGES = ["bottom", "left", "top", "right"];
   const dirs = [];
@@ -1057,7 +1613,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
 
   // ---- build the scenes -------------------------------------------------------
   const startOf = (i) => scenes.slice(0, i).reduce((a, s) => a + (Number(s.duration) || 0), 0);
-  const bodyParts = [], sceneScripts = [], labels = [], starts = [], durs = [];
+  const bodyParts = [], sceneScripts = [], labels = [], starts = [], durs = [], bands = [];
 
   scenes.forEach((scene, i) => {
     const T = r(scene.start != null ? scene.start : startOf(i));
@@ -1078,6 +1634,10 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
       const deckN = Math.max(deck(scene, 4).length, bullets(scene, 4).length);
       const isDeck = arch === "grid" || arch === "cards";
       if (arch === "swatch") sceneAssets = sceneAssets.slice(0, 4);
+      // The counter beat keeps its identity and takes ONE capture for its band — promoting
+      // it to a gallery would trade the proof numbers, which are the point of the scene,
+      // for a row of thumbnails.
+      else if (arch === "stats" || arch === "voice") sceneAssets = sceneAssets.slice(0, 1);
       else if (sceneAssets.length >= 2) { arch = "gallery"; sceneAssets = sceneAssets.slice(0, 3); }
       else if (isDeck && deckN >= 3 && !heroScene.has(i)) sceneAssets = sceneAssets.slice(0, 4);
       else { arch = "showcase"; sceneAssets = sceneAssets.slice(0, 2); }
@@ -1089,19 +1649,48 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
         && !deck(scene, 2).length && !bullets(scene, 2).length) arch = "statement";
     if (arch === "stats" && !pickStats(scene, 1, S).length) arch = "statement";
 
+    const fy0 = parseFloat(String(FOCI[i % FOCI.length]).split(" ")[1]) || 46;
     const ctx = {
       id: `s${i + 1}`, T, L, i, isLast: i === scenes.length - 1, track: 10 + i,
       theme, S, ground, address, title,
+      // This scene's single lead accent, and a soft matte derived from it. Builders take
+      // colour from these plus paper/ink/tone rather than picking accents themselves.
+      accent: accents[i], matte: rgba(accents[i], 0.16), soft: decorTone(grounds[i], 0.1),
+      // This scene's camera focal point (vertical %), so the centring clamp can solve for
+      // where content still lands AFTER the push rather than only at rest.
+      focusY: fy0,
+      // The safe area as builders need it: percentages for CSS insets, and the bottom as
+      // an authored-frame px so a builder flowing content downward (bHook) can clamp
+      // against the same boundary the caption band is measured from.
+      safeTopPct: r(SA.top * 100), safeBotPct: r(SA.bottom * 100), safeBotPx: (1 - SA.bottom) * RH,
+      // THE CAMERA-SAFE BOTTOM — the lowest a scene may place content and still clear the
+      // reserved caption band once the push has scaled it away from the focal point:
+      //     fy + (safeBottom - fy) / camScale
+      // ~82% of the frame for a high focal point, not 87%. Computed once here because two
+      // callers need the SAME number: centerOffset clamps against it, and a builder sizing
+      // to fill the frame (bGallery) must budget against it. They disagreed once — the
+      // gallery sized to 87%, the clamp could not pull it back, and 12 storyboards put
+      // content in the caption band. Less CAM_MARGIN, since a builder's declared extent is
+      // an estimate (auto-height text counted at nominal heights).
+      camBotPx: ((fy0 + ((100 - r(SA.bottom * 100)) - fy0) / ANIM.camScale) / 100) * RH - 34,
+      // ...and its mirror at the top. The pack label occupies ~70-96px on a layer that does
+      // NOT ride the camera, so scene content must still clear it AFTER the push. Solving
+      // `fy + (chromeTop - fy) / camScale` for a 6.5% chrome band gives ~154px at a high
+      // focal point and ~220px at a low one, against the flat 138px that let it collide.
+      camTopPx: ((fy0 + (6.5 - fy0) / ANIM.camScale) / 100) * RH,
     };
     const built = (BUILDERS[arch] || bStatement)(scene, ctx, arch === "logos" ? marks : sceneAssets, logo);
     bodyParts.push(built.html);
     labels.push(String(scene.kicker || scene.purpose || arch).slice(0, 22));
     starts.push(T); durs.push(L);
+    bands.push(built.band || null);   // where this scene's mega type sits — the seam avoids it
 
     const s = [];
-    // The scene reveals 0.16s EARLY — while the outgoing wipe block still covers the
-    // frame — so a cut never shows bare ground.
-    s.push(`tl.set("#${ctx.id}",{opacity:1},${r(Math.max(0, T - 0.16))});`);
+    // The scene reveals EARLY — while the outgoing wipe block still covers the frame — so
+    // a cut never shows bare ground. 0.19s, matching the swap window: the wipe covers from
+    // T-0.20 and starts leaving at T-0.18, and the old 0.16 was tuned to the slower cut,
+    // so with the faster wipe it would have revealed after the block had begun to clear.
+    s.push(`tl.set("#${ctx.id}",{opacity:1},${r(Math.max(0, T - 0.19))});`);
     s.push(...enterScript(ctx.id, T, built.html));
 
     // CAMERA — a continuous push-in / pull-back for the whole scene, alternating so the
@@ -1110,16 +1699,29 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     // never overwrite an authored rotation.
     const push = i % 2 === 0;
     s.push(`tl.set("#${ctx.id}-cam",{transformOrigin:"${FOCI[i % FOCI.length]}"},${r(Math.max(0, T - 0.16))});`);
-    s.push(`tl.fromTo("#${ctx.id}-cam",{scale:${push ? 1 : 1.07},y:"${push ? 1.2 : -1.2}%"},{scale:${push ? 1.07 : 1},y:"${push ? -1.2 : 1.2}%",duration:${L},ease:"none",immediateRender:false},${T});`);
+    // A LINEAR camera over the whole scene is imperceptible — it reads as drift, not as a
+    // move. power1.out gives it a discernible push at the head (where the entrance is
+    // landing, so the two reinforce) and lets it settle, and the travel is a touch wider.
+    s.push(`tl.fromTo("#${ctx.id}-cam",{scale:${push ? 1 : ANIM.camScale},y:"${push ? 1.4 : -1.4}%"},{scale:${push ? ANIM.camScale : 1},y:"${push ? -1.4 : 1.4}%",duration:${L},ease:"power1.out",immediateRender:false},${T});`);
 
-    // MID-SCENE BEAT — a second punch at 46% so the viewer gets new motion every ~1.5s
-    // instead of one entrance and then dead air. Type is never jittered; only blocks.
+    // MID-SCENE BEAT — moved from 46% to 34% of the scene. At 46% a 5s scene finished its
+    // entrance around 0.7s and then showed nothing new until 2.3s; pulling the punch
+    // forward halves that gap, and the punch itself is quicker so it reads as a snap
+    // rather than a wobble. Type is never jittered; only blocks.
     if (/kf-chip|kf-card/.test(built.html)) {
-      s.push(`tl.to("#${ctx.id} .kf-chip, #${ctx.id} .kf-card",{y:-22,rotate:function(k){return k%2?1.4:-1.4;},duration:0.22,ease:"power2.out",stagger:0.045,immediateRender:false},${r(T + L * 0.46)});`);
+      const punch = r(T + L * ANIM.punchAt);
+      s.push(`tl.to("#${ctx.id} .kf-chip, #${ctx.id} .kf-card",{y:-18,rotate:function(k){return k%2?1.2:-1.2;},duration:${ANIM.punchDur},ease:"power2.out",stagger:${ANIM.punchStagger},immediateRender:false},${punch});`);
       // overwrite:"auto" — the settle deliberately catches the kick mid-flight (that
       // overlap IS the back-ease bounce), so it must claim the properties rather than
       // race the outgoing tween for them.
-      s.push(`tl.to("#${ctx.id} .kf-chip, #${ctx.id} .kf-card",{y:0,rotate:0,duration:0.36,ease:"back.out(2.4)",stagger:0.045,overwrite:"auto"},${r(T + L * 0.46 + 0.2)});`);
+      s.push(`tl.to("#${ctx.id} .kf-chip, #${ctx.id} .kf-card",{y:0,rotate:0,duration:${ANIM.punchBack},ease:"back.out(2.6)",stagger:${ANIM.punchStagger},overwrite:"auto"},${r(punch + 0.14)});`);
+      // A SECOND, smaller punch late in a long scene. Anything past ~6s otherwise coasts
+      // on the camera alone for its whole back half.
+      if (L >= 6) {
+        const punch2 = r(T + L * 0.72);
+        s.push(`tl.to("#${ctx.id} .kf-chip, #${ctx.id} .kf-card",{y:-9,duration:0.14,ease:"power2.out",stagger:${ANIM.punchStagger},immediateRender:false},${punch2});`);
+        s.push(`tl.to("#${ctx.id} .kf-chip, #${ctx.id} .kf-card",{y:0,duration:0.22,ease:"back.out(2.4)",stagger:${ANIM.punchStagger},overwrite:"auto"},${r(punch2 + 0.12)});`);
+      }
     }
     // WAVEFORM — bars breathe for the whole scene so the voice beat reads live.
     if (arch === "voice") {
@@ -1131,8 +1733,12 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     // never depends on when the image decoded.
     if (built.scroll) {
       const win = built.scroll.kind === "phone" ? 0.9 : 1;
-      const dur = r(Math.max(0.6, L - 1.2));
-      s.push(`tl.fromTo("#${built.scroll.id}",{yPercent:0},{yPercent:${r(-built.scroll.frac * 100 * win)},duration:${dur},ease:"none",immediateRender:false},${r(T + 0.8)});`);
+      // Starts sooner and runs longer: the pan used to wait 0.8s and then finish 1.2s
+      // early, so a third of the scene showed a STATIC screenshot inside a device frame —
+      // the exact "slide, not a demo" impression this scroll exists to avoid. Linear is
+      // deliberate here: a real page scroll has no easing.
+      const dur = r(Math.max(0.8, L - ANIM.scrollLead - ANIM.scrollTail));
+      s.push(`tl.fromTo("#${built.scroll.id}",{yPercent:0},{yPercent:${r(-built.scroll.frac * 100 * win)},duration:${dur},ease:"none",immediateRender:false},${r(T + ANIM.scrollLead)});`);
     }
     if (!ctx.isLast) s.push(`tl.set("#${ctx.id}",{opacity:0},${r(T + L)});`);
     sceneScripts.push(s.join("\n  "));
@@ -1143,8 +1749,8 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   // ground's luminance so the texture reads on both paper and saturated fields.
   const bg = `<div id="kf-bg" class="clip" data-start="0" data-duration="${D}" data-track-index="0" data-layout-allow-occlusion style="background:${grounds[0]};">
     <div id="kf-dots" style="position:absolute;inset:0;color:${rgba(theme.onField(grounds[0]), 0.14)};background-image:radial-gradient(currentColor ${X(3.2)},transparent ${X(3.6)});background-size:${X(26)} ${X(26)};"></div>
-    <div id="kf-blob1" class="kf-blob" style="width:${X(640)};height:${X(640)};left:${X(-200)};top:${V(-120)};background:${theme.a3};opacity:.5;"></div>
-    <div id="kf-blob2" class="kf-blob" style="width:${X(520)};height:${X(520)};right:${X(-180)};top:${V(820)};background:${theme.a1};opacity:.42;"></div>
+    <div id="kf-blob1" class="kf-shape" style="width:${X(560)};height:${X(560)};border-radius:50%;left:${X(-200)};top:${V(-110)};background:${decorTone(grounds[0], 0.085)};"></div>
+    <div id="kf-blob2" class="kf-shape" style="width:${X(620)};height:${X(620)};border-radius:50%;right:${X(-230)};top:${V(1150)};border:${X(18)} solid ${decorTone(grounds[0], 0.105)};"></div>
   </div>`;
 
   // CONTINUITY SEAM — the one element that never leaves. It re-anchors and re-angles per
@@ -1152,21 +1758,89 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   // Positioned at top:0 and driven purely by transform, so its travel is GPU-cheap and
   // its authored angle can never be discarded by a competing CSS transform.
   const SEAM_H = 150, SEAM2_H = 26;
+  // THE HOOK HAS NO SEAM. The opener is the one scene whose headline is authored to fill
+  // the frame — five lines of mega type across ~38% of it — so there is frequently no
+  // clear band for the seam to occupy, and it ends up crossing the very line the film
+  // opens on. Measured across 64 storyboards, every unavoidable seam-over-type case was
+  // the hook and no other scene.
+  //
+  // So the seam ARRIVES on the first cut instead of being there from frame one. That also
+  // reads better than it sounds: the opener is pure type, and the continuity device
+  // entering with the first block wipe gives the cut something to deliver. It is a hard
+  // arrival under the covering block, never a fade — the pack does not dissolve.
+  //
+  // A single-scene film keeps its seam: there is no cut to bring it in, and a title card
+  // with no continuity device at all is worse than one that never travels.
+  const skipHookSeam = scenes.length > 1;
   const seam = `<div id="kf-seam-clip" class="clip" data-start="0" data-duration="${D}" data-track-index="4" data-layout-allow-occlusion>
-    <div id="kf-seam" style="position:absolute;left:-30%;width:160%;height:${X(SEAM_H)};top:0;background:${theme.a2};opacity:.9;"></div>
-    <div id="kf-seam2" style="position:absolute;left:-30%;width:160%;height:${X(SEAM2_H)};top:0;background:${theme.ink};opacity:.5;"></div>
+    <div id="kf-seam" style="position:absolute;left:-30%;width:160%;height:${X(SEAM_H)};top:0;background:${theme.a2};opacity:${skipHookSeam ? 0 : ".9"};"></div>
+    <div id="kf-seam2" style="position:absolute;left:-30%;width:160%;height:${X(SEAM2_H)};top:0;background:${theme.ink};opacity:${skipHookSeam ? 0 : ".5"};"></div>
   </div>`;
   // Seam anchors — a seeded vertical position (in OUTPUT px, so GSAP's `y` is exact),
   // angle, thickness and colour per scene. Kept clear of the reserved caption band.
-  const seamAt = scenes.map(() => {
-    const yPct = 26 + rnd() * 48;                       // 26–74% of the frame
-    return {
-      y: r((yPct / 100) * H),
-      a: r((rnd() < 0.5 ? -1 : 1) * (3 + rnd() * 6)),
-      sy: r(0.5 + rnd() * 1.1),
-      c: [theme.a2, theme.a1, theme.a3, theme.a4][Math.floor(rnd() * 4)],
-      drift: r((rnd() < 0.5 ? -1 : 1) * H * 0.014),
-    };
+  // The seam's own vertical span, as a % of the frame: its 150px bar (up to 1.6x scaleY)
+  // PLUS the spread its rotation adds across a 160%-wide band. Both are needed — a 9°
+  // tilt moves the far end of the bar ~7% of the frame, which is more than the bar itself.
+  const SEAM_LO = 18, SEAM_HI = 80;
+  const seamAt = scenes.map((_, i) => {
+    const band = bands[i];
+    const pick = (a, b) => a + rnd() * Math.max(0, b - a);
+    // Draw the seam's SHAPE first, because its true vertical reach depends on it. A flat
+    // 15% worst-case (max scaleY plus max tilt) was reserving nearly twice the room a
+    // shallow, thin seam actually needs, which is why a tall headline so often left "no
+    // clear band" and the seam fell back to landing across the type.
+    //   bar  = 150 authored px scaled by scaleY, as a % of frame height
+    //   tilt = how far a 160%-wide band's ends rise and fall at this angle
+    const a = r((rnd() < 0.5 ? -1 : 1) * (3 + rnd() * 6));
+    const sy = r(0.5 + rnd() * 1.1);
+    const barPct = ((SEAM_H * sy) / RW) * (W / H) * 100;
+    const tiltPct = ((1.6 * W * Math.abs(Math.sin((a * Math.PI) / 180))) / H) * 100;
+    const SEAM_SPAN = clamp(barPct + tiltPct, 5, 22);
+    let crosses = false;   // set when the type could not be cleared at any position
+    let yPct = pick(SEAM_LO, SEAM_HI - SEAM_SPAN);
+    if (band) {
+      // Anchor the seam in CLEAR space. Below the headline is preferred — that is where
+      // this pack's dead space is, so the seam does double duty as the element that
+      // occupies it. Above is the fallback; if the type spans the whole frame there is
+      // no clear band by definition and the seeded position stands.
+      const belowFrom = band.bottom + 3, belowTo = SEAM_HI - SEAM_SPAN;
+      const aboveTo = band.top - SEAM_SPAN - 3;
+      const canBelow = belowFrom <= belowTo, canAbove = aboveTo >= SEAM_LO;
+      if (canBelow && canAbove) yPct = rnd() < 0.62 ? pick(belowFrom, belowTo) : pick(SEAM_LO, aboveTo);
+      else if (canBelow) yPct = pick(belowFrom, belowTo);
+      else if (canAbove) yPct = pick(SEAM_LO, aboveTo);
+      else {
+        // NO CLEAR BAND — a five-line hook headline can occupy 38% of the frame with the
+        // safe area either side of it too tight to hold the seam. Taking the seeded
+        // position here meant the one case with no good answer got a RANDOM one, and the
+        // seam crossed the headline in ~1 scene in 4. Scan instead and take the least-bad
+        // placement: whichever candidate overlaps the type least, ties going lower (the
+        // dead space is below). Deterministic — no rnd() consumed.
+        let best = SEAM_LO, bestOv = Infinity;
+        for (let y = SEAM_LO; y <= SEAM_HI - SEAM_SPAN; y += 1) {
+          const ov = Math.max(0, Math.min(band.bottom, y + SEAM_SPAN) - Math.max(band.top, y));
+          if (ov < bestOv - 0.01) { bestOv = ov; best = y; }
+        }
+        yPct = best;
+        crosses = bestOv > 0.5;
+      }
+    }
+    // COLOUR vs the scene's own GROUND. The pick was a flat 1-of-4, so the seam could
+    // land on the accent the ground already is — on the yellow a3 field it simply
+    // vanished. Only accents that actually separate from this ground are eligible; if
+    // none do (a brand collapsed to one hue), the ink reads on every field by
+    // construction.
+    // When the type could not be avoided, the seam must also clear the TEXT that will sit
+    // over it — a decorative band is never worth an unreadable headline. Large-text floor
+    // (3:1), the same one typeOn enforces everywhere else in the pack.
+    const overType = theme.onField(grounds[i]);
+    let pool = [theme.a2, theme.a1, theme.a3, theme.a4].filter((c) => ratio(c, grounds[i]) >= 1.6);
+    if (crosses) {
+      const safe = pool.filter((c) => ratio(overType, c) >= 3);
+      pool = safe.length ? safe : [grounds[i] === theme.paper ? theme.ink : theme.paper].filter((c) => ratio(overType, c) >= 3);
+    }
+    const c = pool.length ? pool[Math.floor(rnd() * pool.length)] : decorTone(grounds[i], 0.12);
+    return { y: r((yPct / 100) * H), a, sy, c, drift: r((rnd() < 0.5 ? -1 : 1) * H * 0.014) };
   });
 
   const wipe = `<div id="kf-wipe-clip" class="clip" data-start="0" data-duration="${D}" data-track-index="90" data-layout-allow-occlusion style="pointer-events:none;">
@@ -1179,7 +1853,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
 
   const chrome = `<div id="kf-chrome" class="clip" data-start="0" data-duration="${D}" data-track-index="94" data-layout-allow-occlusion style="pointer-events:none;">
     <div style="position:absolute;left:0;right:0;top:0;height:${X(10)};background:${rgba(theme.ink, 0.14)};">
-      <div id="kf-prog" style="height:100%;width:100%;background:${theme.a1};transform-origin:left center;"></div>
+      <div id="kf-prog" style="height:100%;width:100%;background:${accents[0]};transform-origin:left center;"></div>
     </div>
     <div id="kf-label" style="position:absolute;left:${X(80)};top:${V(70)};font-family:${theme.monoStack};font-size:${F(22)};letter-spacing:.2em;text-transform:uppercase;color:${rgba(theme.onField(grounds[0]), 0.55)};"></div>
   </div>`;
@@ -1227,6 +1901,12 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   var labels=${JSON.stringify(labels.map((l) => String(l).toUpperCase()))};
   var inks=${JSON.stringify(grounds.map((g) => rgba(theme.onField(g), 0.55)))};
   var dots=${JSON.stringify(grounds.map((g) => rgba(theme.onField(g), 0.14)))};
+  // Ambient shapes and the progress rule follow the SCENE, so a decorative disc is always
+  // a tone of the field it sits on rather than a fixed accent dropped onto whatever ground
+  // happens to be there. Swapped under the wipe with the ground, so the change is unseen.
+  var decA=${JSON.stringify(grounds.map((g) => decorTone(g, 0.085)))};
+  var decB=${JSON.stringify(grounds.map((g) => decorTone(g, 0.105)))};
+  var progs=${JSON.stringify(grounds.map((g, i) => accents[i]))};
   var seams=${JSON.stringify(seamAt)};
   var dirs=${JSON.stringify(dirs)};
   var dIn={bottom:{yPercent:112,xPercent:0},top:{yPercent:-112,xPercent:0},left:{xPercent:-112,yPercent:0},right:{xPercent:112,yPercent:0}};
@@ -1250,21 +1930,32 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     var at=starts[i],L=durs[i],sm=seams[i],push=(i%2===0);
     // SEAM — eases to this scene's anchor over the first second, then keeps creeping, so
     // it is always in motion and always continuous with the last cut.
-    tl.to("#kf-seam",{y:sm.y,rotate:sm.a,scaleY:sm.sy,backgroundColor:sm.c,duration:1.1,ease:"expo.out"},Math.max(0,at-0.2));
-    tl.to("#kf-seam",{y:sm.y+(push?-sm.drift:sm.drift),duration:Math.max(0.3,L-1.1),ease:"sine.inOut"},at+0.9);
-    tl.to("#kf-seam2",{y:sm.y+${r(H * 0.055)},rotate:sm.a,duration:1.1,ease:"expo.out"},Math.max(0,at-0.14));
-    tl.to("#kf-seam2",{y:sm.y+${r(H * 0.055)}+(push?-sm.drift:sm.drift)*1.3,duration:Math.max(0.3,L-1.1),ease:"sine.inOut"},at+0.96);
+    tl.to("#kf-seam",{y:sm.y,rotate:sm.a,scaleY:sm.sy,backgroundColor:sm.c,duration:${ANIM.seamSettle},ease:"expo.out"},Math.max(0,at-${ANIM.seamLead}));
+    tl.to("#kf-seam",{y:sm.y+(push?-sm.drift:sm.drift),duration:Math.max(0.3,L-${ANIM.seamSettle}),ease:"sine.inOut"},at+${r(ANIM.seamSettle - 0.14)});
+    tl.to("#kf-seam2",{y:sm.y+${r(H * 0.055)},rotate:sm.a,duration:${ANIM.seamSettle},ease:"expo.out"},Math.max(0,at-${r(ANIM.seamLead - 0.06)}));
+    tl.to("#kf-seam2",{y:sm.y+${r(H * 0.055)}+(push?-sm.drift:sm.drift)*1.3,duration:Math.max(0.3,L-${ANIM.seamSettle}),ease:"sine.inOut"},at+${r(ANIM.seamSettle - 0.08)});
 
     // CUT — a hard block wipe entering from a rotating edge. The ground swaps while the
     // block FULLY covers the frame, so the colour change is never seen as a jerk: you
     // only ever see the block move. Never a dissolve.
     if(i<starts.length-1){
-      var cut=at+L-0.42,nx=i+1;
+      var cut=at+L-${ANIM.cutLead},nx=i+1;
       tl.set("#kf-wipe",{backgroundColor:grounds[nx]},cut);
-      tl.fromTo("#kf-wipe",{x:0,y:0,xPercent:dIn[dirs[i]].xPercent,yPercent:dIn[dirs[i]].yPercent},{xPercent:0,yPercent:0,duration:0.26,ease:"power3.inOut",immediateRender:false},cut);
-      tl.set("#kf-bg",{backgroundColor:grounds[nx]},cut+0.27);
-      tl.set("#kf-dots",{color:dots[nx]},cut+0.27);
-      tl.to("#kf-wipe",{xPercent:dOut[dirs[i]].xPercent,yPercent:dOut[dirs[i]].yPercent,duration:0.3,ease:"power3.inOut",overwrite:"auto"},cut+0.28);
+      tl.fromTo("#kf-wipe",{x:0,y:0,xPercent:dIn[dirs[i]].xPercent,yPercent:dIn[dirs[i]].yPercent},{xPercent:0,yPercent:0,duration:${ANIM.wipeIn},ease:"power3.in",immediateRender:false},cut);
+      tl.set("#kf-bg",{backgroundColor:grounds[nx]},cut+0.21);
+      tl.set("#kf-dots",{color:dots[nx]},cut+0.21);
+      tl.set("#kf-blob1",{backgroundColor:decA[nx]},cut+0.21);
+      tl.set("#kf-blob2",{borderColor:decB[nx]},cut+0.21);
+      tl.set("#kf-prog",{backgroundColor:progs[nx]},cut+0.21);
+      // The seam joins the film on the FIRST cut — set, not tweened, inside the same
+      // under-cover window as the ground swap, so it is simply there when the block
+      // clears. Its scene-1 anchor tween has already started by this point (it fires at
+      // start-0.20), so it arrives mid-travel rather than parked.
+      ${skipHookSeam ? `if(i===0){tl.set("#kf-seam",{opacity:0.9},cut+0.21);tl.set("#kf-seam2",{opacity:0.5},cut+0.21);}` : ""}
+      // power3.in on the way in, power3.out on the way out — the block ACCELERATES into
+      // frame and DECELERATES away, so a 0.44s cut reads harder than the old 0.56s one
+      // that eased at both ends and felt like a slide.
+      tl.to("#kf-wipe",{xPercent:dOut[dirs[i]].xPercent,yPercent:dOut[dirs[i]].yPercent,duration:${ANIM.wipeOut},ease:"power3.out",overwrite:"auto"},cut+0.22);
     }
   }
 
@@ -1278,7 +1969,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     var now=tl.time();
     // Chrome flips 0.22s EARLY — while the wipe still covers the frame — so its colour
     // change is hidden by the cut instead of popping after it.
-    var si=0; while(si<starts.length-1&&now+0.22>=starts[si+1])si++;
+    var si=0; while(si<starts.length-1&&now+0.19>=starts[si+1])si++;
     if(si!==curScene){
       curScene=si;
       if(labelEl){labelEl.textContent=PACK+" · "+labels[si];labelEl.style.color=inks[si];}
@@ -1326,7 +2017,18 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   #root { position:relative; overflow:hidden; isolation:isolate; container-type:size; background:${theme.paper}; color:${theme.ink}; font-family:${theme.bodyStack}; }
   .clip { position:absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; }
   .kf-cam { position:absolute; inset:0; will-change:transform; }
-  .kf-blob { position:absolute; border-radius:50%; filter:blur(${X(58)}); will-change:transform; }
+  /* Static optical-centring shift. Separate from .kf-cam because that element's transform
+     is owned by the camera tween — a static offset written there would be overwritten on
+     the tween's first frame. */
+  .kf-fit { position:absolute; inset:0; }
+  /* Ambient geometry — FLAT, never blurred. These were two blur(58cqw) radial blobs,
+     which is precisely the "gradients-as-mood" this pack's own manifest and FRAME.md
+     rule out ("NO glass, NO bloom, NO gradients-as-mood"); on the saturated CTA field
+     they turned a flat poster into soft gradient wallpaper. A solid disc bleeding off
+     one edge and an ink-weight outlined ring off the other keep the ambient colour and
+     the drift while staying inside the pack's hard-edged vocabulary — and the ring sits
+     low on purpose, where the composition's dead space is. */
+  .kf-shape { position:absolute; will-change:transform; }
   .kf-chip { display:inline-flex; align-items:center; gap:${X(12)}; padding:${X(14)} ${X(26)}; border-radius:999px;
              font-family:${theme.bodyStack}; font-weight:600; border:${X(4)} solid ${theme.ink};
              white-space:nowrap; max-width:${X(860)}; overflow:hidden; text-overflow:ellipsis;

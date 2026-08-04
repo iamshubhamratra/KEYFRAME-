@@ -133,7 +133,19 @@ function validateCreate(body, { hasUpload = false } = {}) {
 
   if (typeof body.websiteUrl === "string" && body.websiteUrl.trim()) {
     const u = body.websiteUrl.trim().slice(0, 2000);
-    if (!/^https?:\/\/.+\..+/i.test(u)) errs.push("websiteUrl must be a valid http(s) URL");
+    // Early SSRF rejection (defense-in-depth; the harvester re-resolves + IP-pins every
+    // URL at fetch time in ingest/website_assets.assertPublicUrl). Reject non-http(s),
+    // IP-literal hosts, and obviously-internal names so a public hostname with a real
+    // TLD is required up front.
+    let parsed = null;
+    try { parsed = new URL(u); } catch { /* invalid */ }
+    const host = parsed ? parsed.hostname.replace(/^\[|\]$/g, "") : "";
+    const badHost = !parsed
+      || (parsed.protocol !== "http:" && parsed.protocol !== "https:")
+      || require("node:net").isIP(host) !== 0
+      || /^(localhost|.*\.localhost|.*\.local|.*\.internal)$/i.test(host)
+      || !/^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(host);
+    if (badHost) errs.push("websiteUrl must be a public http(s) URL with a domain name (IP addresses and internal hosts are not allowed)");
     else out.websiteUrl = u;
   }
 
@@ -162,6 +174,16 @@ function validateCreate(body, { hasUpload = false } = {}) {
 
   out.voiceStyle = typeof body.voiceStyle === "string" ? body.voiceStyle.slice(0, 200) : null;
   out.autopilot = body.autopilot === true || body.autopilot === "true";
+
+  // VOICEOVER — OPT-OUT, the mirror image of captions above. Absent means enabled, so
+  // every existing client (and every stored job) keeps its narration untouched. Accepts
+  // the boolean or its multipart string form, since multipart coerces every field to text.
+  //
+  // Narration off is a MIX decision, not a script decision: the script model still writes
+  // the lines and the storyboard still reads them (they are scene context), so the picture
+  // is byte-identical either way and the user can flip narration back on from the Script
+  // Room without regenerating. Only synthesis is skipped. See graph.voiceAgent.
+  out.voiceover = !(body.voiceover === false || body.voiceover === "false");
   // Captions — OPT-IN. Accepts either the legacy boolean (`captions: true`) or the
   // multi-language config object `{ enabled, language, translateVoiceover |
   // voiceoverLanguage, exportSRT, exportVTT }`. Over multipart (file uploads) the
@@ -341,6 +363,7 @@ function buildRouter({ enqueueIntake, enqueueProduction }) {
       brandPalette: out.brandPalette,
       userAssets,
       voiceStyle: out.voiceStyle,
+      voiceoverEnabled: out.voiceover,
       autopilot: out.autopilot,
       captionsEnabled: out.captions,
       captionsConfig: out.captionsConfig || null,

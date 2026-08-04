@@ -1,0 +1,101 @@
+{
+  "name": "teampulse",
+  "vibe": "A kinetic-typography film where the TYPE is the design. A warm earthy office ground — deep umber washed with a terracotta bloom and a sage counter-tone — with cream paper for every card. Headlines are set enormous in a chunky display face and animated WORD BY WORD: words flip on their X axis, type on one at a time under a blinking cursor, or slide out of hard-edged masks, with every third word taking the accent. Feature rows slide in from alternating sides and the figures land on full-width cream slabs. Authored portrait-first (9:16) as a native GSAP + DOM composition. Best for hiring, culture, internal comms, agencies and any brand whose message is a sentence rather than a screenshot.",
+  "renderer": "teampulse",
+  "orientation": "portrait",
+  "colors": {
+    "ground": "#20201E",
+    "ground-2": "#3B2A1D",
+    "text": "#F6F0E4",
+    "muted": "#9C9484",
+    "accent": "#C67139",
+    "ink": "#F6F0E4",
+    "paper": "#F6F0E4"
+  },
+  "fonts": [
+    "Caprasimo",
+    "JetBrains Mono",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#20201E"
+  },
+  "motion": {
+    "cut": "slide-push",
+    "drift": 0.9
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#C67139"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "warm natural photograph of people or workspace with soft light",
+    "iconStyle": "line",
+    "keywords": [
+      "typography",
+      "kinetic",
+      "team",
+      "culture",
+      "hiring",
+      "warm",
+      "earthy",
+      "portrait"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Caprasimo",
+    "mono": "JetBrains Mono",
+    "body": "Figtree"
+  },
+  "textfx": {
+    "enter": "word-flip",
+    "emphasis": "accent-word",
+    "case": "sentence",
+    "tracking": 0,
+    "align": "left"
+  },
+  "audio": {
+    "mood": "warm",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "indie",
+      "acoustic",
+      "electronic",
+      "modern"
+    ],
+    "musicKeywords": [
+      "warm indie",
+      "modern acoustic groove",
+      "optimistic workplace",
+      "friendly electronic",
+      "uplifting mid tempo",
+      "human centred"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "soft-tap",
+      "reveal": "pop",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": false
+    }
+  }
+}

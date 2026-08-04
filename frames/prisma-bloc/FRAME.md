@@ -4,13 +4,13 @@ renderer: dom-prisma
 vibe: "A designed poster in motion — flat saturated colour fields that hard-cut on block wipes, Archivo Black mega type crossing a travelling seam, outlined sticker chips with hard offset shadows and a halftone dot rain. Screenshots ride browser and phone mockups that scroll like a real product demo. Brand colour rotates the whole palette, grounds included. Portrait-native 9:16."
 fontFamily: "Archivo Black"
 colors:
-  ground: "#FFF6EA"
-  text: "#12100E"
-  muted: "#4A4741"
-  a1: "#FF4D2E"
-  a2: "#1B4DFF"
-  a3: "#FFD23F"
-  a4: "#14C98E"
+  ground: "#F4EFE6"
+  text: "#14110F"
+  muted: "#48413D"
+  a1: "#D95A3A"
+  a2: "#2438C8"
+  a3: "#EFC24A"
+  a4: "#1BB184"
 ---
 
 # Prisma Bloc
@@ -23,10 +23,22 @@ outlines and hard offset shadows, a halftone dot rain and a live grain plate. It
 is built to survive being watched **muted, at 40% screen size, on a phone**.
 
 ## Palette (NO gradients, glows or blur as mood)
-- **Paper** `#FFF6EA`, **ink** `#12100E`.
-- **Blocks** — a1 vermilion `#FF4D2E`, a2 ultramarine `#1B4DFF`, a3 solar
-  `#FFD23F`, a4 jade `#14C98E` — used FLAT, as full grounds, cards, chips and the
-  seam. Grounds alternate paper → saturated so no two adjacent scenes share a field.
+- **Paper** `#F4EFE6`, **ink** `#14110F`, **muted** `#48413D`.
+- **Blocks** — a1 terracotta `#D95A3A`, a2 cobalt `#2438C8`, a3 gold `#EFC24A`,
+  a4 emerald `#1BB184` — used FLAT, as full grounds, cards, chips and the seam.
+  Grounds alternate paper → saturated so no two adjacent scenes share a field, so
+  **a saturated full-frame ground is correct, not a defect** — the pack is not a
+  light-ground system.
+- They are **deliberately not full-chroma** (68–84%, not 100%). At chip scale a
+  100%-saturation accent is fluorescent and as a full-frame ground it is harsh;
+  every ground here instead clears **AA body contrast** with its own best text
+  colour — a1 ink 4.90:1, a2 paper 7.41:1, a3 ink 11.18:1, a4 ink 6.87:1.
+- The four sit on a deliberate **value ladder** (a2 .074 < a1 .224 < a4 .333 <
+  a3 .574). The layout was drawn against that spacing and the brand mapper assigns
+  slots by luminance, so the ladder is load-bearing, not decorative.
+- A scene commits to its ground plus **ONE lead accent**; everything else is paper,
+  ink, or a *tone of the ground*. Decoration is always a tone of the field it sits
+  on, never a fixed colour dropped onto whatever ground is there.
 - Under a brand skin the **whole palette rotates together onto the brand hue**,
   each colour pinned to its authored luminance — so blocks, grounds, chips,
   outlines, seam, waveform, progress rule and CTA all become the brand's, at
@@ -50,8 +62,11 @@ is built to survive being watched **muted, at 40% screen size, on a phone**.
 - Six entrance primitives — `mask` (clip-path wipe), `up` (y + blur rise), `pop`
   (scale + back-ease), `slide` (x with skew), `draw` (scaleX from an edge), `bar`
   (scaleY from base) — plus a numeral count-up.
-- A **continuity seam** never leaves: it re-anchors and re-angles per scene,
-  travelling *through* the cut so the scenes read as one film.
+- A **continuity seam** carries the film: it re-anchors and re-angles per scene,
+  travelling *through* the cut so the scenes read as one film. It is absent from the
+  **hook** and arrives with the first block wipe — the opener is pure mega type filling
+  the frame, so there is often no clear band for the seam there, and the first cut gains
+  something to deliver. Once in, it never leaves.
 - A continuous **camera drift** (alternating push-in / pull-back) runs the whole
   scene, with a per-scene focal point.
 

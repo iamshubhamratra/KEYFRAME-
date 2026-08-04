@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@600;700;800;900&family=Spectral:ital,wght@0,500;0,600;1,500;1,600&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{height:100%;background:#EFE9DA}
+    body{overflow:hidden;font-family:'Archivo',system-ui,sans-serif}
+    a{color:#DA3A24;text-decoration:none}
+    a:hover{color:#e8654f}
+  </style>
+  <script>window.OM_SCENES = '[{"name":"Cover","dur":2.5,"kicker":"The Masthead","eyebrow":"The first issue of","brand":"EDITION","issue":"01","tagline":"A field manual for the product, printed in motion — set, exposed and pressed one page at a time."},{"name":"Lead","dur":3.7,"kicker":"Lead Feature","headline":"One layout,|zero clutter.","body":"Everything that matters is set above the fold and locked to a strict grid, so the reader lands exactly where the story begins.","chips":["SET IN SECONDS","NO PROOFS","PRESS-READY"]},{"name":"Spread","dur":3.3,"kicker":"The Spread","headline":"Every page,|on the grid.","body":"Desktop, tablet and phone laid out as plates in a single spread — each captioned, each aligned to the same baseline."},{"name":"Ledger","dur":3.3,"kicker":"By the Numbers","headline":"The ledger.","stats":[{"v":2.4,"suf":"M","l":"COPIES IN PRINT"},{"v":128,"suf":"","l":"EDITIONS SHIPPED"},{"v":99,"suf":"%","l":"ON DEADLINE"}]},{"name":"PullQuote","dur":2.3,"kicker":"Marginalia","quote":"The best interface is one you can read like a well-set page.","author":"The Editors"},{"name":"Colophon","dur":3.7,"kicker":"Colophon","headline":"Go to|press.","body":"Subscribe today and every future edition of your product lands, printed in motion, on your reader’s desk.","cta":"SUBSCRIBE","url":"edition.press"}]';</script>
+  <script>window.OM_PLAYBACK = '{"mode":"times","count":1}';</script>
+  <script>window.OM_TWEAKS = /*EDITMODE-BEGIN*/{
+    "accent": "#DA3A24",
+    "brandName": "Edition",
+    "url": "edition.press",
+    "motionEditor": true
+  }/*EDITMODE-END*/;</script>
+</helmet>
+<div style="position:fixed;inset:0;background:#EFE9DA;overflow:hidden">
+  <x-import component-from-global-scope="EditionFilm" from="./animations-v2.jsx ./tweaks-panel.jsx ./edition-film.jsx" hint-size="100%,100%" style="position:absolute;inset:0"></x-import>
+</div>
+
+<template id="__bundler_thumbnail">
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="22" fill="#EFE9DA"/><rect x="20" y="24" width="60" height="8" fill="#16130D"/><rect x="20" y="40" width="60" height="4" fill="#16130D" opacity="0.5"/><rect x="20" y="50" width="60" height="4" fill="#16130D" opacity="0.5"/><rect x="20" y="62" width="26" height="14" fill="#DA3A24"/></svg>
+</template></x-dc>
+</body>
+</html>

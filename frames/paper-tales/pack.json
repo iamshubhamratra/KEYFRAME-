@@ -13,7 +13,9 @@
     "lilac": "#C5AEDD",
     "butter": "#F7C873"
   },
-  "fonts": ["Fraunces"],
+  "fonts": [
+    "Fraunces"
+  ],
   "surface": {
     "flat": true,
     "lightCinematic": false,
@@ -28,15 +30,31 @@
     "three": "none"
   },
   "skin": {
-    "accents": ["#E8938C", "#9CCFE8", "#9CCEA4", "#C5AEDD", "#F7C873"],
+    "accents": [
+      "#E8938C",
+      "#9CCFE8",
+      "#9CCEA4",
+      "#C5AEDD",
+      "#F7C873"
+    ],
     "extras": [],
     "emphasisCss": null
   },
   "assets": {
     "photoMod": "soft warm product screenshot in a paper cinema",
     "iconStyle": "flat",
-    "keywords": ["storybook", "paper", "pastel", "hand-drawn", "warm", "gentle"],
-    "prefer": ["photo", "vector"]
+    "keywords": [
+      "storybook",
+      "paper",
+      "pastel",
+      "hand-drawn",
+      "warm",
+      "gentle"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
   },
   "typography": {
     "display": "Fraunces",
@@ -47,5 +65,36 @@
     "emphasis": "tint",
     "case": "none",
     "tracking": 0
+  },
+  "audio": {
+    "mood": "calm",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "acoustic",
+      "piano",
+      "folk",
+      "storytelling"
+    ],
+    "musicKeywords": [
+      "acoustic storytelling",
+      "soft piano",
+      "gentle folk",
+      "calm storybook",
+      "warm acoustic",
+      "bright folk"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
   }
 }

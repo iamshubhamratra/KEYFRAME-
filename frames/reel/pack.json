@@ -1,0 +1,100 @@
+{
+  "name": "reel",
+  "vibe": "A social story film, built for the thumb. A deep violet ground washed with three saturated blooms and one electric lime accent; Archivo set heavy, tight and uppercase, stacked so each line lands on its own beat. Everything is a sticker card with a hard offset shadow rather than a panel in a UI, tilted a degree or two and snapping in from alternating sides. A segmented story bar runs across the top, one segment per scene, filling in real time. Authored portrait-first (9:16) as a native GSAP + DOM composition. Best for Reels, Shorts, TikTok, DTC launches and any brand that needs to stop a scroll in the first second.",
+  "renderer": "reel",
+  "orientation": "portrait",
+  "colors": {
+    "ground": "#150A2E",
+    "ground-2": "#FFFFFF",
+    "text": "#FFFFFF",
+    "muted": "#A99BC6",
+    "accent": "#D4FF3F",
+    "ink": "#FFFFFF",
+    "paper": "#FFFFFF"
+  },
+  "fonts": [
+    "Archivo",
+    "JetBrains Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#150A2E"
+  },
+  "motion": {
+    "cut": "hard-cut",
+    "drift": 1.5
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#D4FF3F"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "bright saturated lifestyle photograph with strong colour",
+    "iconStyle": "line",
+    "keywords": [
+      "social",
+      "story",
+      "reel",
+      "vertical",
+      "bold",
+      "sticker",
+      "youth",
+      "portrait"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Archivo",
+    "mono": "JetBrains Mono",
+    "body": "Archivo"
+  },
+  "textfx": {
+    "enter": "mask-up",
+    "emphasis": "pill",
+    "case": "upper",
+    "tracking": -0.04,
+    "align": "left"
+  },
+  "audio": {
+    "mood": "energetic",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "pop",
+      "electronic",
+      "hip hop",
+      "upbeat"
+    ],
+    "musicKeywords": [
+      "viral pop",
+      "upbeat electronic",
+      "social trending",
+      "punchy beat",
+      "energetic hip hop",
+      "catchy hook"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "pop",
+      "reveal": "pop",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
+  }
+}

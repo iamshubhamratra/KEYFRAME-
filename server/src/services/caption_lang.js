@@ -8,16 +8,25 @@
 // fonts/caption_fonts.js). `null` means the existing Latin stack (Inter / the
 // pack display face) already covers it — no special font, no injection.
 // `dir` is the base text direction; Arabic renders right-to-left.
+// `expansion` is the rough LENGTH multiplier vs English (German ~1.35x longer,
+// CJK ~0.7x shorter) and `lineHeight` a per-script line-height floor for stacked
+// marks — both DEFINED here as the single language table, CONSUMED by the layout
+// follow-up (Language Director surfaces them on the plan; harmless until then).
 
+// `expansion` — translation LENGTH ratio vs English (German ~1.35x more chars). `charWidth`
+// — per-char RENDER width vs a Latin char, the factor that corrects the composers' char-count
+// text-fit (Latin languages already have their length in the char count, so 1.0; CJK glyphs
+// are ~2x wide but few, so char-count sizing under-shrinks them → overflow → 2.0). `lineHeight`
+// — a per-script line-height floor so stacked marks (Devanagari matras, CJK) don't clip.
 const LANGUAGES = {
-  en: { name: "English (US)", native: "English",  dir: "ltr", font: null },
-  hi: { name: "Hindi",        native: "हिन्दी",    dir: "ltr", font: "devanagari" },
-  es: { name: "Spanish",      native: "Español",  dir: "ltr", font: null },
-  fr: { name: "French",       native: "Français", dir: "ltr", font: null },
-  de: { name: "German",       native: "Deutsch",  dir: "ltr", font: null },
-  pt: { name: "Portuguese",   native: "Português", dir: "ltr", font: null },
-  ar: { name: "Arabic",       native: "العربية",   dir: "rtl", font: "arabic" },
-  ja: { name: "Japanese",     native: "日本語",     dir: "ltr", font: "japanese" },
+  en: { name: "English (US)", native: "English",  dir: "ltr", font: null,          expansion: 1.0,  charWidth: 1.0,  lineHeight: null },
+  hi: { name: "Hindi",        native: "हिन्दी",    dir: "ltr", font: "devanagari",  expansion: 1.1,  charWidth: 1.15, lineHeight: 1.15 },
+  es: { name: "Spanish",      native: "Español",  dir: "ltr", font: null,          expansion: 1.2,  charWidth: 1.0,  lineHeight: null },
+  fr: { name: "French",       native: "Français", dir: "ltr", font: null,          expansion: 1.2,  charWidth: 1.0,  lineHeight: null },
+  de: { name: "German",       native: "Deutsch",  dir: "ltr", font: null,          expansion: 1.35, charWidth: 1.0,  lineHeight: null },
+  pt: { name: "Portuguese",   native: "Português", dir: "ltr", font: null,          expansion: 1.2,  charWidth: 1.0,  lineHeight: null },
+  ar: { name: "Arabic",       native: "العربية",   dir: "rtl", font: "arabic",      expansion: 1.15, charWidth: 1.35, lineHeight: 1.25 },
+  ja: { name: "Japanese",     native: "日本語",     dir: "ltr", font: "japanese",    expansion: 0.7,  charWidth: 2.0,  lineHeight: 1.2 },
 };
 
 // Reserved for phase 2 — recognized so the API can 400 with a "coming soon"

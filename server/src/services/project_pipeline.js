@@ -28,18 +28,24 @@ const { buildCues, writeSrt, writeVtt } = require("./captions");
 const { resolveCaptionPlan, finalizeQuality, localizeStoryboardText } = require("./caption_director");
 const languageDirector = require("./language_director");
 const { injectCaptionStyle } = require("./caption_render");
-const { fetchMusic, fetchSfx } = require("./audio_sources");
+const { fetchMusic } = require("./audio_sources");
+const { getSfx } = require("./sfx_library");
+const { resolveIntent } = require("./audio_cues");
 const { VALID_VOICES } = require("./audio_planner");
 const { render } = require("./renderer");
 const { withBudget, attemptLlmComposition, mixAudioIntoVideo, fallbackQueriesFor, composerStringsFor } = require("./pipeline");
 const { acquire, hasProviderFor } = require("./asset_sources");
 const { reviewAndCurate } = require("./creative_director");
 const { directAudio } = require("./audio_director");
+const audioProfileSvc = require("./audio_profile");
 const { pinUserAssets, prepareUserAssets, inventoryForScript } = require("./user_assets");
 const { pinWebsiteAssets } = require("./website_assets");
 const { isLogo } = require("./asset_priority");
 const { coverageFromHtml } = require("./asset_coverage");
 const { scoreBrandCoverage } = require("./brand_coverage");
+const { showcaseTargets } = require("./scene_role");
+const { reconcileStoryboard } = require("./continuity");
+const { planMotion } = require("./motion_planner");
 
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
 function ms() { return Date.now(); }
@@ -118,7 +124,54 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
             .catch((e) => { console.warn(`[project] video ingest failed: ${e.message}`); return null; })
         : Promise.resolve(null);
 
-      const [website, video] = await Promise.all([websiteTask, videoTask]);
+      let [website, video] = await Promise.all([websiteTask, videoTask]);
+
+      // ---- SCREENSHOT RESCUE (PeekShot) ------------------------------------------
+      // The local headless-Chrome capture is primary and stays primary: it yields DOM
+      // text, brand colours, typography and harvested assets that a hosted image API
+      // cannot. But when it returns NOTHING — no Chrome, an SSRF/connection pin, a page
+      // that never reaches networkidle — the film silently ships on stock, which is the
+      // complaint this whole ingest exists to prevent. A hosted capture rescues exactly
+      // that case, and natively blocks the consent banners that ruin these shots.
+      //
+      // Never on the happy path (each capture costs a credit), and never fatal.
+      if (intent.websiteUrl && config.screenshotProvider !== "local") {
+        const peekshot = require("./ingest/peekshot");
+        const localShots = (website && website.shots && website.shots.length)
+          ? website.shots.length
+          : (website && (website.screenshotPaths || []).length) || 0;
+        const forced = config.screenshotProvider === "peekshot";
+        // An auth wall is a real answer, not a capture failure — a hosted browser hits
+        // the same sign-in page, so spending credits there buys a screenshot of a login form.
+        const authWalled = !!(website && website.isAuthWall);
+        if (peekshot.enabled() && !authWalled && (forced || localShots === 0)) {
+          console.warn(`[project] website capture produced ${localShots} usable screenshot(s)${forced ? "" : " — rescuing with PeekShot"}`);
+          const rescued = await peekshot.captureShots({
+            url: intent.websiteUrl,
+            workDir,
+            max: config.peekshot.mobileShot ? config.peekshot.maxShots : 1,
+          }).catch((e) => { console.warn(`[project] peekshot rescue failed: ${e.message}`); return []; });
+          if (rescued.length) {
+            if (website) {
+              // Merge: the local run may still have produced DOM signal worth keeping.
+              website.shots = [...(website.shots || []), ...rescued];
+              website.screenshotPaths = website.shots.map((s) => s.path);
+              website.screenshotPath = website.screenshotPath || rescued[0].path;
+            } else {
+              // Chrome failed outright — seed the minimum the pipeline needs so the
+              // captures still reach the film, without inventing DOM signal we don't have.
+              website = {
+                url: intent.websiteUrl, title: "", description: "", headings: [], bodyText: "",
+                brandColors: [], ogImage: null, isAuthWall: false,
+                shots: rescued, screenshotPaths: rescued.map((s) => s.path), screenshotPath: rescued[0].path,
+                assets: [], harvestReview: null, brandSignals: null, source: "peekshot",
+              };
+            }
+            db.setScreenshotSource(jobId, { provider: "peekshot", captured: rescued.length, rescued: !forced });
+          }
+        }
+      }
+
       if (website) {
         intent.website = {
           url: website.url, title: website.title, description: website.description,
@@ -159,6 +212,43 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
             db.setScreenshotReview(jobId, review);
             if (review.dropped.length) console.log(`[project] screenshot intelligence: kept ${review.kept}/${review.captured} (dropped ${review.dropped.map((d) => d.reason).join(", ")})`);
           } catch (e) { console.warn(`[project] screenshot intake skipped: ${e.message}`); }
+
+          // SECOND RESCUE WINDOW — after the prune, not before it.
+          //
+          // The first rescue (above) fires when capture returns NOTHING. But the far more
+          // common failure is capture returning shots that the intake gate then rejects as
+          // overlay-obstructed — consent banners it could not dismiss. Observed live: a
+          // real run produced 2 captures, the gate dropped both, and preflight hard-failed
+          // the job with "all 2 capture(s) were rejected".
+          //
+          // That is precisely the case a hosted capture exists to solve (PeekShot blocks
+          // cookie banners natively), and checking the count BEFORE the prune meant it
+          // never got the chance. Rescued shots go through the same gate — they are not
+          // trusted just because they cost a credit.
+          if (job.website_screenshots.length === 0 && intent.websiteUrl
+              && config.screenshotProvider !== "local" && !website.isAuthWall) {
+            const peekshot = require("./ingest/peekshot");
+            if (peekshot.enabled()) {
+              console.warn(`[project] every capture was rejected by the quality gate — rescuing with PeekShot (it suppresses the consent banners that caused this)`);
+              const rescued = await peekshot.captureShots({ url: intent.websiteUrl, workDir, max: 1 })
+                .catch((e) => { console.warn(`[project] peekshot rescue failed: ${e.message}`); return []; });
+              if (rescued.length) {
+                try {
+                  const { filterScreenshots } = require("./screenshot_intake");
+                  const { keptShots } = await filterScreenshots({ shots: rescued, deduper: sharedDeduper });
+                  if (keptShots.length) {
+                    job.website_screenshots = keptShots.map((s) => s.path);
+                    job.website_shots = keptShots;
+                    website.shots = keptShots;
+                    website.screenshotPaths = job.website_screenshots;
+                    website.screenshotPath = job.website_screenshots[0];
+                    db.setScreenshotSource(jobId, { provider: "peekshot", captured: keptShots.length, rescued: true, after: "quality-gate" });
+                    console.log(`[project] PeekShot rescue: ${keptShots.length} usable capture(s) recovered`);
+                  }
+                } catch (e) { console.warn(`[project] rescue prune skipped: ${e.message}`); }
+              }
+            }
+          }
         } else if (config.screenshotIntelligence?.enabled && website.isAuthWall) {
           // No usable shots but a real auth wall — disclose why the film uses stock.
           db.setScreenshotReview(jobId, { captured: 0, kept: 0, dropped: [], suppressed: ["auth-wall"], notes: ["The site is behind a sign-in wall, so its screens can't be shown — the film uses stock/brand visuals instead."] });
@@ -385,9 +475,10 @@ function screenshotAssets({ job, script, jobDir, excludeSceneIds = new Set(), ma
   if (!shots.length) return [];
 
   fs.mkdirSync(path.join(jobDir, "assets", "images"), { recursive: true });
-  const showcaseScenes = script.scenes.filter((s) => ["feature", "proof", "how", "context"].includes(s.purpose));
-  const fallbackScenes = script.scenes.slice(1, -1);
-  const targets = (showcaseScenes.length ? showcaseScenes : fallbackScenes)
+  // Shared, role-based showcase targeting (services/scene_role) — the same rule the
+  // graph and both asset pinners use, instead of a fourth copy that exact-matched
+  // `purpose` and therefore missed "benefit"/"solution"/"the problem".
+  const targets = showcaseTargets(script)
     .filter((s) => !excludeSceneIds.has(s.id))
     .slice(0, max);
   const title = job.website_title || "the product";
@@ -528,6 +619,20 @@ async function runProduction({ jobId }) {
   let usedFallback = false;
   let finalAttempt = "main";
   let visualResult = null;
+  // The Creative Director's soundtrack verdict, captured when it reviews the assets and
+  // consumed by the Audio Director further down (it is authored in an inner block, so it
+  // has to live out here). Null when the director is disabled or fails — the Audio
+  // Director then behaves exactly as before.
+  let audioAdvice = null;
+  // The storyboard result. Declared HERE rather than inside the storyboard block because
+  // the audio stage below reads it: `const sbRes` was block-scoped and the Audio Director
+  // call sat outside that block, so this function threw
+  // `ReferenceError: sbRes is not defined` at the audio stage — every single run, AFTER
+  // the render and the voiceover had already succeeded, turning a finished film into a
+  // failed job. It never surfaced because `orchestrator: "langgraph"` routes production
+  // through agents/graph.js; this path is only reached if that flag is flipped, and it
+  // has no integration test.
+  let sbRes = null;
 
   try {
     // ---- Audio starts immediately, in parallel with the visual chain.
@@ -565,18 +670,26 @@ async function runProduction({ jobId }) {
       ? captionPlan.voiceLanguageName : null;
     const voInstructions = `${voLangName ? `Speak entirely in ${voLangName}, as a native speaker. ` : ""}${script.voice.style}. Pace: ${script.voice.pace}.`;
 
-    const voTask = Promise.all(script.scenes.map((s) =>
-      (s.voiceover && s.voiceover.trim())
-        ? synthesizeFitted({
-            text: voTextFor(s), targetSec: s.duration, voice,
-            instructions: voInstructions,
-            outputPath: path.join(audioDir, `vo-${s.id}.mp3`),
-            tracker,
-          })
-            .then((r) => r ? { sceneId: s.id, startSec: s.start, durationSec: r.durationSec, sceneDurationSec: s.duration, text: r.text, path: r.path } : null)
-            .catch((e) => { console.warn(`[project] vo for ${s.id} failed: ${e.message}`); return null; })
-        : Promise.resolve(null)
-    )).then((arr) => arr.filter(Boolean));
+    // THE VOICEOVER DECISION — identical contract to graph.voiceAgent (the two
+    // orchestrators must not drift): the toggle skips SYNTHESIS only. The script keeps
+    // its narration text because storyboardPromptFromScript feeds it to the storyboard
+    // model, so the picture is the same film either way.
+    const voEnabled = job.voiceover_enabled !== 0;
+    if (!voEnabled) console.log(`[project] narration DISABLED by the user — skipping synthesis (script text kept), music-led mix`);
+    const voTask = voEnabled
+      ? Promise.all(script.scenes.map((s) =>
+          (s.voiceover && s.voiceover.trim())
+            ? synthesizeFitted({
+                text: voTextFor(s), targetSec: s.duration, voice,
+                instructions: voInstructions,
+                outputPath: path.join(audioDir, `vo-${s.id}.mp3`),
+                tracker,
+              })
+                .then((r) => r ? { sceneId: s.id, startSec: s.start, durationSec: r.durationSec, sceneDurationSec: s.duration, text: r.text, path: r.path } : null)
+                .catch((e) => { console.warn(`[project] vo for ${s.id} failed: ${e.message}`); return null; })
+            : Promise.resolve(null)
+        )).then((arr) => arr.filter(Boolean))
+      : Promise.resolve([]);
 
     // Sound effects from the script's per-scene sfx[] — fetched in parallel,
     // landed at each scene's start, mixed under the VO.
@@ -586,14 +699,37 @@ async function runProduction({ jobId }) {
         if (sfxWanted.length < 6) sfxWanted.push({ query: name, startSec: s.start });
       }
     }
-    const sfxTask = Promise.all(sfxWanted.map((s, i) =>
-      fetchSfx({ query: s.query, outputPath: path.join(audioDir, `sfx-${i}.mp3`), tracker })
-        .then((p) => p ? { path: p, startSec: s.startSec, volume: 0.4 } : null)
-        .catch(() => null)
-    )).then((arr) => arr.filter(Boolean));
+    // getSfx, not fetchSfx: the curated library + intent vocabulary + the template's
+    // palette + conditionCue all live behind getSfx. Calling the web fetcher directly
+    // skipped every one of them, so cues arrived at whatever level the provider served —
+    // the exact level defect audio_cues.js documents. Music on this path was already
+    // template-driven; this brings its sound effects in line.
+    const sfxProfile = audioProfileSvc.profileFor(framePack);
+    const sfxTask = Promise.all(sfxWanted.map((s, i) => {
+      const raw = s.query;
+      const cue = audioProfileSvc.paletteCueFor(sfxProfile, resolveIntent(raw) || raw);
+      return getSfx({ name: cue, outputPath: path.join(audioDir, `sfx-${i}.mp3`), tracker })
+        .then((p) => p ? { path: p, startSec: s.startSec, volume: 0.4, name: cue } : null)
+        .catch(() => null);
+    })).then((arr) => arr.filter(Boolean));
 
-    const musicTask = script.music?.query
-      ? fetchMusic({ query: script.music.query, outputPath: path.join(audioDir, "music.mp3"), tracker })
+    // TEMPLATE-DRIVEN MUSIC — same resolver as the graph path, so a film sounds like its
+    // template on either orchestrator. A pack with no audio block yields exactly the old
+    // script-derived query.
+    const audioProfile = audioProfileSvc.profileFor(framePack);
+    const musicSelection = {};
+    const musicPlan = audioProfileSvc.musicCandidatesFor({
+      framePack, jobId, narration: voEnabled ? "on" : "off",
+      scriptMusic: script.music || null, profile: audioProfile,
+    });
+    if (musicPlan.candidates.length) {
+      console.log(`[project] music search (${musicPlan.source}${musicPlan.keywords.length ? `: ${musicPlan.keywords.join(" + ")}` : ""}) → ${musicPlan.candidates.slice(0, 3).map((c) => `"${c}"`).join(", ")}`);
+    }
+    const musicTask = musicPlan.candidates.length
+      ? fetchMusic({
+          candidates: musicPlan.candidates, outputPath: path.join(audioDir, "music.mp3"),
+          tracker, durationSec: duration, style: audioProfile.style, selection: musicSelection,
+        })
           .catch((e) => { console.warn(`[project] music failed: ${e.message}`); return null; })
       : Promise.resolve(null);
 
@@ -606,8 +742,22 @@ async function runProduction({ jobId }) {
       const t0 = ms();
       db.setProgress(jobId, "storyboard");
       const sbPrompt = storyboardPromptFromScript(script, brief);
-      const sbRes = await generateStoryboard({ prompt: sbPrompt, duration, orientation: job.orientation });
+      // framePack is part of this stage's brief (pack-specific motifs + adjacent-scene
+      // variety live in system_storyboard.md behind it) — see graph.storyboardAgent.
+      sbRes = await generateStoryboard({ prompt: sbPrompt, duration, orientation: job.orientation, framePack });
       tracker.addLlm({ inputTokens: sbRes.tokensIn, outputTokens: sbRes.tokensOut, stage: "storyboard", model: sbRes.model, provider: sbRes.provider });
+      // CONTINUITY GATE — same authority the graph runs: the approved script owns
+      // scene structure/timing, the storyboard owns enrichment. Without it the
+      // composition renders on rescaled timings while the VO/captions/assets use the
+      // script's, and the two drift apart audibly. Fail-open.
+      try {
+        const { storyboard: fixedSb, report } = reconcileStoryboard({ storyboard: sbRes.storyboard, script });
+        sbRes.storyboard = fixedSb;
+        if (report.changed) {
+          console.warn(`[project] continuity: ${report.notes.join(" | ")}`);
+          try { db.setContinuityReport(jobId, report); } catch { /* best effort */ }
+        }
+      } catch (e) { console.warn(`[project] continuity check skipped: ${e.message}`); }
       markStage("storyboard", t0);
 
       db.setProgress(jobId, "assets");
@@ -622,6 +772,11 @@ async function runProduction({ jobId }) {
         assets = await reviewAndCurate({
           jobId, storyboard: sbRes.storyboard, script, subject: brief?.subject || null,
           brief, framePack, assets, tracker, jobDir, orientation: job.orientation,
+          // Same in-band handoff the graph makes: the director's soundtrack verdict
+          // reaches the Audio Director below instead of dead-ending in the database.
+          onReview: (report) => {
+            audioAdvice = { music: report.musicAnalysis || null, sfx: report.soundEffectAnalysis || null };
+          },
         });
         db.setAssets(jobId, assets);
       }
@@ -668,17 +823,49 @@ async function runProduction({ jobId }) {
               }))
           ).map((c) => ({ start: Math.round(c.start * 10) / 10, end: Math.round(c.end * 10) / 10, text: c.text })));
 
+      // ---- ASSET REUSE OPTIMIZER — the same call the graph makes (its asset_reuse node),
+      // at the same point in the flow: after assignment, before composition. Single-sourced
+      // through services/asset_reuse so the two orchestrators cannot drift, exactly like
+      // pinUserAssets / pinWebsiteAssets. Deterministic and fail-open.
+      if (config.assetReuse?.enabled) {
+        try {
+          const { optimizeAssetReuse } = require("./asset_reuse");
+          const { assets: withReuse, review } = optimizeAssetReuse({
+            assets, script, storyboard: sbRes.storyboard, framePack,
+            dims: { width: dims.width, height: dims.height },
+            native: !!require("./frame_manifest").getManifest(framePack)?.renderer,
+            renderer: require("./frame_manifest").getManifest(framePack)?.renderer || null,
+            acceptsVectors: require("./frame_manifest").packAcceptsVectors(framePack),
+            seedKey: jobId,
+          });
+          if (review) {
+            assets = withReuse;
+            db.setAssets(jobId, assets);
+            db.setAssetReuseReport(jobId, review);
+            console.log(`[project] asset_reuse → ${review.assetCoverage} of ${review.slotsDemanded} slot(s) covered `
+              + `(${review.slotsFilledUnique} unique, ${review.slotsFilledReuse} reuse, ${review.slotsFilledDecorative} decorative)`);
+          }
+        } catch (e) { console.warn(`[project] asset_reuse skipped: ${e.message}`); }
+      }
+
       // ---- Compose + render (frame-pack styled), with the v1 budget wrapper.
       // Tier 1: with assets. Tier 2: asset-less. Tier 3: deterministic fallback.
       const budget = (Number(config.server.stageBudgetSec) || 240) * 1000;
       const t1 = ms();
+      // MOTION PLAN — per-scene entrance + camera, decided before composition (the same
+      // planner the graph runs). Deterministic; null degrades to the pack film-level motion.
+      let motionPlan = null;
+      try {
+        motionPlan = planMotion({ storyboard: sbRes.storyboard, framePack, layoutPlan: null, seedKey: jobId });
+        if (motionPlan) { try { db.setMotionPlan(jobId, motionPlan); } catch { /* disclosure never blocks a render */ } }
+      } catch (e) { console.warn(`[project] motion planner skipped: ${e.message}`); }
       db.setProgress(jobId, "composing");
       try {
         visualResult = await withBudget(
           (signal) => attemptLlmComposition({
             storyboard: sbRes.storyboard, dims, jobDir,
             assets, tracker, jobId, durationSec: duration,
-            label: "project-main", abortSignal: signal, framePack, captionCues, captionStyle, localized: localizedStrings,
+            label: "project-main", abortSignal: signal, framePack, captionCues, captionStyle, localized: localizedStrings, motionPlan,
           }),
           budget, "project composition"
         );
@@ -694,7 +881,7 @@ async function runProduction({ jobId }) {
               (signal) => attemptLlmComposition({
                 storyboard: sbRes.storyboard, dims, jobDir,
                 assets: [], tracker, jobId, durationSec: duration,
-                label: "project-no-assets", abortSignal: signal, framePack, captionCues, captionStyle, localized: localizedStrings,
+                label: "project-no-assets", abortSignal: signal, framePack, captionCues, captionStyle, localized: localizedStrings, motionPlan,
               }),
               budget, "project no-assets retry"
             );
@@ -749,7 +936,18 @@ async function runProduction({ jobId }) {
         ...c,
         text: (captionPlan && captionPlan.captionTextById[String(c.sceneId)]) || c.text,
       }));
-      const cues = buildCues(captionClips);
+      let cues = buildCues(captionClips);
+      // Captions must not vanish with the voice — same guard as graph.timelineAgent. Cue
+      // timing is MEASURED from the VO clips, so a narration-free film would export no
+      // .srt and no .vtt at all, which is backwards: muted social video is where
+      // subtitles matter most. Fall back to the Caption Director's estimated timing and
+      // record which it was.
+      let cueTiming = "measured";
+      if (!cues.length && captionPlan && Array.isArray(captionPlan.bakedCues) && captionPlan.bakedCues.length) {
+        cues = captionPlan.bakedCues.map((c) => ({ start: c.start, end: c.end, text: c.text }));
+        cueTiming = "estimated";
+        console.log(`[project] captions: no measured VO clips — exporting ${cues.length} cue(s) from estimated timing`);
+      }
       if (cues.length) {
         try {
           const wantSrt = !captionPlan || captionPlan.exportSRT;
@@ -769,7 +967,8 @@ async function runProduction({ jobId }) {
             cues, srtUrl, vttUrl,
             language: captionPlan ? captionPlan.language : undefined,
             mode: captionPlan ? captionPlan.mode : undefined,
-            quality,
+            timing: cueTiming,
+            quality: quality ? { ...quality, timingSource: cueTiming } : quality,
           });
           if (quality) console.log(`[project] caption quality — lang=${quality.languageCode} sync=${quality.syncAccuracy} read=${quality.readabilityScore} cov=${quality.subtitleCoverage} font=${quality.fontCompatibility} xlate=${quality.translationQuality}`);
         } catch (e) {
@@ -782,7 +981,29 @@ async function runProduction({ jobId }) {
         jobId, storyboard: sbRes.storyboard, script, voClips,
         sfxClips, musicPath, brief, subject: brief?.subject || null,
         durationSec: duration, tracker,
+        musicAdvice: audioAdvice?.music || null,
+        sfxAdvice: audioAdvice?.sfx || null,
+        narration: voEnabled ? "on" : "off",
+        framePack, audioProfile,
       }).catch(() => null);
+
+      // Deterministic audio validation — the graph orchestrator has always built this;
+      // the legacy path never did, so a film produced here had no soundtrack record at
+      // all. Same module, same inputs, so the two paths cannot report differently.
+      // Fail-open (THE LAW): a disclosure never touches the render.
+      try {
+        const { buildAudioReport } = require("./audio_report");
+        const report = buildAudioReport({
+          plan: audioPlan, sfxClips, scenes: script.scenes, musicPath,
+          musicMood: (script.music && script.music.mood) || "", voClips,
+          narration: voEnabled ? "on" : "off",
+          voiceoverRequested: voEnabled, profile: audioProfile,
+          musicSelection: { ...musicSelection, keywords: musicPlan.keywords },
+        });
+        db.setAudioReport(jobId, report);
+        console.log(`[project] audio: ${report.soundEffects} effect(s), narration=${report.narration}, music=${report.musicSource}, quality=${report.qualityScore}`
+          + (report.issues.length ? ` — ${report.issues.join("; ")}` : ""));
+      } catch (e) { console.warn(`[project] audio report skipped: ${e.message}`); }
       await mixAudioIntoVideo({
         visualPath: visualResult.videoPath,
         durationSec: duration,
@@ -801,6 +1022,23 @@ async function runProduction({ jobId }) {
       }).catch((e) => console.warn(`[project] mix failed: ${e.message}`));
       markStage("audio", t0);
     }
+
+    // MOTION VERIFICATION — plan vs. what the composer actually emitted. The graph runs
+    // this as its `animation` node; without it here the legacy path would plan motion and
+    // never check whether any of it survived. Fail-open (THE LAW).
+    try {
+      const { verifyMotion } = require("./motion_planner");
+      let html = "";
+      try { html = fs.readFileSync(path.join(jobDir, "index.html"), "utf8"); } catch { /* no file */ }
+      const v = verifyMotion({ plan: db.getRaw(jobId)?.motion_plan || null, indexHtml: html, storyboard: sbRes.storyboard });
+      db.setMotionAudit(jobId, {
+        tweenCount: v.totalTweens, sceneCount: (sbRes.storyboard?.scenes || []).length,
+        tweensPerScene: v.tweensPerScene, planned: v.planned, planHonored: v.honored,
+        honoredCount: v.honoredCount, checkedCount: v.checkedCount, ownChoreography: !v.planAware,
+        staticScenes: v.staticScenes, driftedScenes: v.driftedScenes, scenes: v.scenes, warnings: v.warnings,
+      });
+      if (v.warnings.length) console.warn(`[project] motion audit: ${v.warnings.join(" | ")}`);
+    } catch (e) { console.warn(`[project] motion audit skipped: ${e.message}`); }
 
     // User-asset coverage disclosure (fail-open, never touches the render). The
     // scene-kit attaches an exact assetCoverage; other paths get an HTML scan.

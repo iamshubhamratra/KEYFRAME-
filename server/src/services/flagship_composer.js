@@ -32,6 +32,7 @@
 // the canvas. Passes `hyperframes lint` with 0 errors.
 
 const { deriveTheme } = require("./scene_kit");
+const { varyArchetypes } = require("./motion_planner");
 const { resolveBrand, atmosphericGround } = require("./brand_kit");
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
 const { aspectMode, typeScale, safeArea, headlineCh } = require("./responsive");
@@ -388,6 +389,20 @@ const fill=new THREE.DirectionalLight(0xdfe6ff,0.5); fill.position.set(-6,2,4); 
 // ================= BACKGROUND: bright pastel MESH-GRADIENT environment =========
 const AUR_FRAG=\`
 uniform float uTime; varying vec2 vUv;
+// PER-SCENE STAGE DRESSING. The wash used to be three accent blobs at FIXED weights and
+// FIXED positions, drifting only with uTime — so every scene of the film sat on the
+// identical backdrop, which is what a QA review called out as "multiple scenes share the
+// identical purple wave background". These three uniforms let the render loop re-dress
+// the set per scene WITHOUT leaving the pack's palette: uMix re-weights which accent
+// leads, uOff slides the whole wash so the composition differs, uVig opens or closes the
+// vignette. Colours themselves are never invented — only their emphasis and placement.
+uniform vec3 uMix; uniform vec2 uOff; uniform float uVig;
+// TRIED AND REMOVED: a per-scene ground tint (mixing G a few percent toward an accent).
+// The theory was sound — weights and offsets only change the wash where the blobs land,
+// so tinting the ground would move every pixel — but measured against a controlled A/B
+// render it moved the adjacent-scene difference by 0.1 (min 16.4 → 16.5, mean 47.6 →
+// 46.7), i.e. nothing: the blobs and vignette overwrite the ground where it would have
+// shown. Not worth a uniform and a shader branch. Recorded so it isn't re-attempted.
 const vec3 G=vec3(${gRgb.join(",")});
 const vec3 CA=vec3(${aRgb[0].join(",")});
 const vec3 CB=vec3(${(aRgb[1] || aRgb[0]).join(",")});
@@ -395,21 +410,21 @@ const vec3 CC=vec3(${(aRgb[2] || aRgb[0]).join(",")});
 const vec3 EDGE=vec3(${edgeRgb.join(",")});
 float blob(vec2 uv,vec2 c,float r){return smoothstep(r,0.0,distance(uv,c));}
 void main(){
-  vec2 uv=vUv;
+  vec2 uv=vUv+uOff;
   vec2 pA=vec2(0.24+sin(uTime*0.13)*0.12,0.70+cos(uTime*0.11)*0.10);
   vec2 pB=vec2(0.78+cos(uTime*0.10)*0.12,0.30+sin(uTime*0.15)*0.11);
   vec2 pC=vec2(0.54+sin(uTime*0.08+2.0)*0.16,0.52+cos(uTime*0.12+1.0)*0.12);
   vec3 col=G;
-  col=mix(col,CA,blob(uv,pA,0.55)*0.5);
-  col=mix(col,CC,blob(uv,pC,0.62)*0.34);
-  col=mix(col,CB,blob(uv,pB,0.50)*0.46);
-  // deepen toward the edges for a cinematic vignette.
+  col=mix(col,CA,blob(uv,pA,0.55)*0.5*uMix.x);
+  col=mix(col,CC,blob(uv,pC,0.62)*0.34*uMix.y);
+  col=mix(col,CB,blob(uv,pB,0.50)*0.46*uMix.z);
+  // deepen toward the edges for a cinematic vignette (depth is per-scene).
   float d=distance(uv,vec2(0.5,0.44));
-  col=mix(col,EDGE,smoothstep(0.28,1.05,d)*0.9);
+  col=mix(col,EDGE,smoothstep(0.28,1.05,d)*uVig);
   gl_FragColor=vec4(col,1.0);
 }\`;
 const AUR_VERT="varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}";
-const aurMat=new THREE.ShaderMaterial({vertexShader:AUR_VERT,fragmentShader:AUR_FRAG,uniforms:{uTime:{value:0}},depthWrite:false,fog:false});
+const aurMat=new THREE.ShaderMaterial({vertexShader:AUR_VERT,fragmentShader:AUR_FRAG,uniforms:{uTime:{value:0},uMix:{value:new THREE.Vector3(1,1,1)},uOff:{value:new THREE.Vector2(0,0)},uVig:{value:0.9}},depthWrite:false,fog:false});
 const aurora=new THREE.Mesh(new THREE.PlaneGeometry(230,140),aurMat); aurora.position.z=-40; scene.add(aurora);
 
 // perspective grid floor — faint accent lines for tech depth on the dark stage
@@ -621,19 +636,29 @@ for(const sc of SCENES){
   const g=new THREE.Group();
   const mine=PLATES.filter(p=>p.scene===sc.i);
   mine.forEach((spec,idx)=>{
+  // PORTRAIT COPY BAND. On every treatment except hook/cta the copy is pinned to the TOP safe
+  // area (sceneOverlay: justify-content:flex-start) and its height is unbounded, while the
+  // plate stack is centred on y=0. A one-line headline clears it; a two-line one does not —
+  // rendered at 1080x1920 the word "everything" sat straight across the hero plate holding the
+  // real product screenshot, covering the thing the film exists to show. Nothing reconciled the
+  // DOM copy with the WebGL stack because they live in different coordinate systems.
+  //
+  // Dropping the stack by one plate-gap clears the two-line case with room to spare and leaves
+  // hook/cta — whose copy is vertically centred, so it never competed — exactly as authored.
+  const COPYDROP = (PORT && sc.type !== "hook" && sc.type !== "cta") ? -1.2 : 0;
     const pl=makePlate(spec);
     // Text lives LOWER-LEFT (see sceneOverlay); panels sit CENTER-RIGHT big, so the
     // screenshot fills 40-60% without covering the headline.
     // Portrait/square: a NATIVE vertical stack — hero centred in the mid-band, features
     // STACKED down the column (never fanned sideways), everything at x=0. Landscape keeps
     // the lower-left text / center-right panel split.
-    if(spec.role==="hero"){pl.position.set(PORT?0:2.4, PORT?-0.7:0.9, 0); pl.rotation.y=PORT?-0.05:-0.16;}
+    if(spec.role==="hero"){pl.position.set(PORT?0:2.4, PORT?(-0.7+COPYDROP):0.9, 0); pl.rotation.y=PORT?-0.05:-0.16;}
     else if(spec.role==="feature"){const n=mine.length;const spread=n>1?(idx-(n-1)/2):0;
-      if(PORT){pl.position.set(0, -spread*2.9, -Math.abs(spread)*0.5); pl.rotation.y=-0.05;}
+      if(PORT){pl.position.set(0, -spread*2.9+COPYDROP, -Math.abs(spread)*0.5); pl.rotation.y=-0.05;}
       else{pl.position.set(2.2+spread*3.4, 1.2+(idx%2?-0.5:0.5), -idx*1.6); pl.rotation.y=-0.18-spread*0.14;}}
-    else if(spec.role==="side"){pl.position.set(PORT?0:3.4, PORT?-0.7:1.1, -0.3); pl.rotation.y=PORT?-0.05:-0.22;}
+    else if(spec.role==="side"){pl.position.set(PORT?0:3.4, PORT?(-0.7+COPYDROP):1.1, -0.3); pl.rotation.y=PORT?-0.05:-0.22;}
     else if(spec.role==="frag"){
-      if(PORT){pl.position.set(0, idx?-2.3:2.3, -0.8-idx*0.4); pl.rotation.set(0.02,-0.05,(idx?-0.05:0.05));}
+      if(PORT){pl.position.set(0, (idx?-2.3:2.3)+COPYDROP, -0.8-idx*0.4); pl.rotation.set(0.02,-0.05,(idx?-0.05:0.05));}
       else{pl.position.set(2.6+(idx?2.0:-2.0), 1.5+(idx?-0.8:0.6), -1.2-idx*0.8); pl.rotation.set(0.02,-0.2+(idx?0.1:-0.1),(idx?-0.06:0.06));}}
     pl.userData.jit={ph:rand()*6.28, ax:0.05+rand()*0.05, ay:0.06+rand()*0.06};
     g.add(pl);
@@ -664,8 +689,55 @@ function winOpacity(t,s,e){
 }
 function setOpacity(g,o){g.visible=o>0.01;g.traverse((o2)=>{if(o2.material&&"opacity" in o2.material){o2.userData.__b=o2.userData.__b!==undefined?o2.userData.__b:o2.material.opacity;o2.material.transparent=true;o2.material.opacity=o2.userData.__b*o;}});}
 
+// ---- per-scene STAGE DRESSING -------------------------------------------------
+// One set per scene, derived from its index + treatment, so consecutive scenes never
+// share a backdrop. Deliberately bounded: this re-emphasises and re-places the pack's
+// OWN accents, it does not introduce colour. Three dressings rotate, which is enough to
+// guarantee adjacent difference while keeping the film coherent.
+const DRESS=${JSON.stringify(
+  /^(1|true|yes|on)$/i.test(String(process.env.KF_NO_STAGE_DRESSING || ""))
+    // Kill switch — every scene gets the ORIGINAL single dressing. Baked at build time
+    // (this table is generated in Node), so it also gives a controlled A/B: render the
+    // same film with and without, and the only variable is the set.
+    ? [{ mix: [1, 1, 1], off: [0, 0], vig: 0.9, gop: 0.28, grot: 0 },
+       { mix: [1, 1, 1], off: [0, 0], vig: 0.9, gop: 0.28, grot: 0 },
+       { mix: [1, 1, 1], off: [0, 0], vig: 0.9, gop: 0.28, grot: 0 }]
+    : [{ mix: [1.00, 0.42, 0.62], off: [0.000, 0.000], vig: 0.90, gop: 0.28, grot: 0.00 },
+       { mix: [0.45, 1.00, 0.55], off: [-0.085, 0.055], vig: 0.74, gop: 0.20, grot: 0.16 },
+       { mix: [0.58, 0.50, 1.00], off: [0.075, -0.050], vig: 1.00, gop: 0.34, grot: -0.14 }]
+)};
+// A CTA pulls back and should feel like the film opening out: brightest wash, softest edge.
+const dressIndexFor=(sc,i)=>sc.type==="cta"?1:(sc.type==="hook"?0:(i%3));
+const DRESSES=SCENES.map((sc,i)=>DRESS[dressIndexFor(sc,i)]);
+// PURE FUNCTION OF t — the renderer scrubs the timeline in both directions, so the set
+// must be reconstructible at any instant, never accumulated frame to frame. Scenes
+// cross-fade their dressing over the last 0.5s so a change reads as a deliberate
+// re-light rather than a cut.
+function dressAt(t){
+  let i=0; for(let k=0;k<SCENES.length;k++){ if(t>=SCENES[k].start) i=k; }
+  const cur=DRESSES[i], nxt=DRESSES[Math.min(i+1,DRESSES.length-1)];
+  const end=SCENES[i].end, blend=0.5;
+  const w=(i<SCENES.length-1&&t>end-blend)?Math.max(0,Math.min(1,(t-(end-blend))/blend)):0;
+  const lp=(a,b)=>a+(b-a)*w;
+  return {
+    mix:[lp(cur.mix[0],nxt.mix[0]),lp(cur.mix[1],nxt.mix[1]),lp(cur.mix[2],nxt.mix[2])],
+    off:[lp(cur.off[0],nxt.off[0]),lp(cur.off[1],nxt.off[1])],
+    vig:lp(cur.vig,nxt.vig), gop:lp(cur.gop,nxt.gop), grot:lp(cur.grot,nxt.grot),
+  };
+}
+
 function render3d(t){
   aurMat.uniforms.uTime.value=t;
+  {
+    const dr=dressAt(t);
+    aurMat.uniforms.uMix.value.set(dr.mix[0],dr.mix[1],dr.mix[2]);
+    aurMat.uniforms.uOff.value.set(dr.off[0],dr.off[1]);
+    aurMat.uniforms.uVig.value=dr.vig;
+    // The floor grid is the other half of the "same set" read — vary its density and
+    // yaw with the wash so the whole stage turns, not just its colour.
+    grid.material.opacity=dr.gop;
+    grid.rotation.y=dr.grot;
+  }
   waves.children.forEach((rib)=>{rib.userData.m.uniforms.uTime.value=t;});
   // orbs drift (ambient, always moving)
   orbs.children.forEach((sp)=>{sp.position.x=sp.userData.x0+Math.sin(t*sp.userData.sp+sp.userData.ph)*1.4;sp.position.y=sp.userData.y0+Math.cos(t*sp.userData.sp*0.8+sp.userData.ph)*0.9;});
@@ -793,6 +865,22 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     cursor = r2(cursor + dur);
     return { i, type: treatmentFor(scene, i, scenes.length), start, end: r2(start + dur) };
   });
+  // ANTI-REPETITION (services/motion_planner). treatmentFor keys off purpose, so two
+  // adjacent scenes whose purposes match the same branch (e.g. both /feature|how|demo/)
+  // get the SAME treatment — the same backdrop and layout twice in a row, which is the
+  // blocker a real render produced here ("the background and layout are identical to the
+  // scene at 5.9s"). Only this pack's generic narrative treatments are interchangeable;
+  // `benefits` renders animated metrics and keeps whatever treatmentFor decided.
+  {
+    const { archetypes, changed } = varyArchetypes(sceneWindows.map((w) => w.type), {
+      pool: ["problem", "solution", "features"],
+      seedKey: scenes.map((s) => s && s.id).join("|"),
+    });
+    if (changed) {
+      sceneWindows.forEach((w, i) => { w.type = archetypes[i]; });
+      console.log(`[flagship] varied ${changed} repeated treatment(s) so adjacent scenes don't share a set`);
+    }
+  }
 
   const plates = assignPlates(scenes, sceneWindows, assets);
 

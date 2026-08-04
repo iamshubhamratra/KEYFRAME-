@@ -13,6 +13,9 @@ const path = require("node:path");
 
 const BASE = (process.env.PIXABAY_BRIDGE_URL || "http://localhost:3007/api/v1").replace(/\/$/, "");
 const ENABLED = process.env.PIXABAY_BRIDGE_DISABLED !== "1";
+// One-shot latch: a connection-level failure is announced once per process, not per query.
+let unreachableWarned = false;
+const bridgeReachable = () => !unreachableWarned;
 
 async function getJson(url, timeoutMs) {
   const resp = await fetch(url, {
@@ -56,7 +59,29 @@ async function firstAudioUrl(query, category, { index = 0, timeoutMs = 45_000 } 
     const data = await getJson(url, timeoutMs);
     return data && typeof data.mp3Url === "string" && /^https?:/.test(data.mp3Url) ? data.mp3Url : null;
   } catch (e) {
-    console.warn(`[pixabay-bridge] ${cat} resolve failed for "${query}": ${e.message}`);
+    // A DOWN BRIDGE IS NOT A DRY SEARCH, AND THE LOG MUST NOT READ LIKE ONE.
+    //
+    // This is the PRIMARY source for both music and sound effects. When the service is not
+    // running, every call fails identically and the pipeline falls through to Freesound —
+    // correct fail-soft behaviour, but with only a per-query warning it looks like the
+    // provider had nothing, so an entire film's audio can come from the fallback catalogue
+    // with nobody noticing. Freesound skews field-recording/documentary, which is exactly
+    // how a template-steered search still ends up sounding generic.
+    //
+    // A connection-level failure is therefore reported ONCE, loudly, naming the service and
+    // how to start it. Per-query misses stay quiet.
+    const offline = /fetch failed|ECONNREFUSED|ENOTFOUND|timed out|aborted/i.test(e.message || "");
+    if (offline && !unreachableWarned) {
+      unreachableWarned = true;
+      console.warn(
+        `[pixabay-bridge] UNREACHABLE at ${BASE} — falling back to Freesound for ALL music and SFX ` +
+        `this process. Pixabay is the primary source. Start it with ` +
+        `\`cd pixabay-no-node-modules && npm install && npm start\` (repo root), ` +
+        `or set PIXABAY_BRIDGE_DISABLED=1 to silence this.`
+      );
+    } else if (!offline) {
+      console.warn(`[pixabay-bridge] ${cat} resolve failed for "${query}": ${e.message}`);
+    }
     return null;
   }
 }
@@ -80,4 +105,4 @@ async function downloadToFile(url, outPath, { timeoutMs = 60_000, minBytes = 2_0
   }
 }
 
-module.exports = { searchVectors, firstAudioUrl, downloadToFile, enabled: () => ENABLED, BASE };
+module.exports = { searchVectors, firstAudioUrl, downloadToFile, enabled: () => ENABLED, bridgeReachable, BASE };

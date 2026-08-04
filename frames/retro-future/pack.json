@@ -11,7 +11,11 @@
     "accent": "#FF2E97",
     "accent-2": "#22D3EE"
   },
-  "fonts": ["Anton", "JetBrains Mono", "Inter"],
+  "fonts": [
+    "Anton",
+    "JetBrains Mono",
+    "Inter"
+  ],
   "surface": {
     "flat": false,
     "lightCinematic": false,
@@ -26,15 +30,30 @@
     "three": "none"
   },
   "skin": {
-    "accents": ["#FF2E97", "#22D3EE"],
+    "accents": [
+      "#FF2E97",
+      "#22D3EE"
+    ],
     "extras": [],
     "emphasisCss": null
   },
   "assets": {
     "photoMod": "screenshot inside a neon-bordered CRT / arcade cabinet with scanlines and a neon glow",
     "iconStyle": "line",
-    "keywords": ["synthwave", "outrun", "retro", "neon", "80s", "grid", "arcade", "portrait"],
-    "prefer": ["photo", "vector"]
+    "keywords": [
+      "synthwave",
+      "outrun",
+      "retro",
+      "neon",
+      "80s",
+      "grid",
+      "arcade",
+      "portrait"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
   },
   "typography": {
     "display": "Anton",
@@ -47,5 +66,36 @@
     "case": "upper",
     "tracking": -0.01,
     "align": "center"
+  },
+  "audio": {
+    "mood": "retro",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "synthwave",
+      "retrowave",
+      "outrun",
+      "electronic"
+    ],
+    "musicKeywords": [
+      "synthwave retro",
+      "80s electronic",
+      "outrun neon",
+      "retrowave arpeggio",
+      "driving synthwave",
+      "high energy outrun"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "data-ping",
+      "reveal": "product-reveal",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
   }
 }

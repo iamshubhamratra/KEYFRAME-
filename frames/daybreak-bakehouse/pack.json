@@ -61,5 +61,36 @@
     "emphasis": "underline-grow",
     "case": "none",
     "tracking": -0.01
+  },
+  "audio": {
+    "mood": "warm",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "acoustic",
+      "folk",
+      "jazz",
+      "morning"
+    ],
+    "musicKeywords": [
+      "warm acoustic morning",
+      "gentle folk",
+      "soft cafe jazz",
+      "artisan acoustic",
+      "cheerful morning",
+      "upbeat acoustic"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
   }
 }

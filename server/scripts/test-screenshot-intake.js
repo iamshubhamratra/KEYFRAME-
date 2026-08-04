@@ -101,18 +101,33 @@ function mk(name, spec) { const p = path.join(TMP, name); execFileSync("ffmpeg",
 
   async function runCD(id, verdict) {
     db.insert({ id, kind: "project", created_at: Date.now() });
+    // Re-stage the fixture for EVERY run: a rejected shot is unlinked from disk by the
+    // director (that is the point of the reject band), and the three cases share one
+    // path — so without this, case 1's rejection starved cases 2 and 3 of a file and
+    // they failed with "undefined" for reasons that had nothing to do with what they test.
+    fs.copyFileSync(hero, shotAbs);
     stubVerdict(verdict);
     const assets = await reviewAndCurate({ jobId: id, storyboard, script, subject: "a dev tool", framePack: null, assets: [websiteAsset()], tracker: null, jobDir, orientation: "horizontal" });
     return assets.find((a) => a.source === "website");
   }
   const goodScores = { relevance: 90, visualQuality: 90, brandCompat: 80, storytelling: 85, motionPotential: 70, templateCompat: 85 };
 
-  await check("popupCoverage 40 (> 15) → __layoutDemoted + disclosed", async () => {
-    const a = await runCD("ssi_popup", { n: 1, decision: "approve", scores: goodScores, prominence: "hero", assignScene: "s1", sectionType: "dashboard", sees: "dashboard", popupCoverage: 40, completeness: "ok", obstruction: "newsletter" });
+  // The director has TWO popup bands (config.screenshotIntelligence): above
+  // popupDemotePct (15) the shot drops to background B-roll; above popupRejectPct (35)
+  // it leaves the wire entirely, because no slot or treatment rescues a frame a third
+  // covered by someone else's UI. Both bands are asserted.
+  await check("popupCoverage 25 (demote band) → __layoutDemoted + disclosed", async () => {
+    const a = await runCD("ssi_popup", { n: 1, decision: "approve", scores: goodScores, prominence: "hero", assignScene: "s1", sectionType: "dashboard", sees: "dashboard", popupCoverage: 25, completeness: "ok", obstruction: "newsletter" });
     eq(a.__layoutDemoted, true, "demoted");
     eq(a.visionOk, false, "not prominent");
     const r = db.get("ssi_popup").screenshotReview;
-    ok(r && r.demoted.some((d) => d.reason === "popup" && d.coveragePct === 40), "popup demotion disclosed");
+    ok(r && r.demoted.some((d) => d.reason === "popup" && d.coveragePct === 25), "popup demotion disclosed");
+  });
+  await check("popupCoverage 40 (reject band) → removed from the wire + disclosed", async () => {
+    const a = await runCD("ssi_popup_bad", { n: 1, decision: "approve", scores: goodScores, prominence: "hero", assignScene: "s1", sectionType: "dashboard", sees: "dashboard", popupCoverage: 40, completeness: "ok", obstruction: "consent" });
+    ok(!a, "an unusable capture must not survive to the composer");
+    const r = db.get("ssi_popup_bad").screenshotReview;
+    ok(r && r.demoted.some((d) => d.action === "rejected" && d.coveragePct === 40), "popup rejection disclosed");
   });
   await check("completeness 'loading' → __layoutDemoted regardless of coverage", async () => {
     const a = await runCD("ssi_loading", { n: 1, decision: "approve", scores: goodScores, prominence: "hero", assignScene: "s1", sectionType: "dashboard", sees: "skeleton", popupCoverage: 0, completeness: "loading", obstruction: "none" });

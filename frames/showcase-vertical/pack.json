@@ -1,0 +1,100 @@
+{
+  "name": "showcase-vertical",
+  "vibe": "The portrait sibling of Showcase: an annotated product tour re-authored for the tall frame rather than scaled into it. Near-white paper washed with soft colour blooms and a fine 52px grid. The phone becomes the natural device — it fills the height the way a browser window fills a wide frame — with copy stacked above it and numbered callouts landing ON the screen instead of beside it. The gallery beat stacks browser windows that snap in from alternating sides, and the closing figures ride full-width panel cards. Authored portrait-first (9:16) as a native GSAP + DOM composition. Best for mobile apps, SaaS and any product whose story IS its interface, cut for Reels, Shorts and Stories.",
+  "renderer": "showcase-vertical",
+  "orientation": "portrait",
+  "colors": {
+    "ground": "#EEF1F7",
+    "ground-2": "#FFFFFF",
+    "text": "#131722",
+    "muted": "#5B6472",
+    "accent": "#2F6BFF",
+    "ink": "#131722",
+    "paper": "#FFFFFF"
+  },
+  "fonts": [
+    "Space Grotesk",
+    "JetBrains Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#EEF1F7"
+  },
+  "motion": {
+    "cut": "slide-push",
+    "drift": 1.1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#2F6BFF"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "clean bright mobile app interface screenshot on a light background",
+    "iconStyle": "line",
+    "keywords": [
+      "product",
+      "tour",
+      "screenshot",
+      "mobile",
+      "app",
+      "interface",
+      "saas",
+      "portrait"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Space Grotesk",
+    "mono": "JetBrains Mono",
+    "body": "Space Grotesk"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "callout",
+    "case": "sentence",
+    "tracking": -0.025,
+    "align": "left"
+  },
+  "audio": {
+    "mood": "optimistic",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "light electronic",
+      "corporate",
+      "upbeat",
+      "clean"
+    ],
+    "musicKeywords": [
+      "bright corporate",
+      "optimistic tech",
+      "light electronic groove",
+      "product demo underscore",
+      "clean modern pop",
+      "friendly startup"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "ui-click",
+      "reveal": "pop",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": false
+    }
+  }
+}

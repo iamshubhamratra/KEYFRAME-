@@ -1,0 +1,100 @@
+{
+  "name": "deep",
+  "vibe": "A descent into a bioluminescent trench. The ground DARKENS down the frame — a teal shelf at the surface grading to near-black at the foot — with god-rays raking down and motes of marine snow drifting up through them. One bioluminescent teal against a deep violet counter-glow, and everything glows rather than shines: type carries a soft halo, copy sits on slabs lit from within, and pictures ride in rim-lit portholes with a caustic sheen that bob gently on the current. The closing beat inverts the whole column so the light rises. Authored landscape-first (16:9) as a native GSAP + DOM composition. Best for research, biotech, data, AI and any brand that wants depth and discovery rather than noise.",
+  "renderer": "deep",
+  "orientation": "landscape",
+  "colors": {
+    "ground": "#02101A",
+    "ground-2": "#062632",
+    "text": "#E9FBF8",
+    "muted": "#7FB8B8",
+    "accent": "#3FE7D6",
+    "ink": "#E9FBF8",
+    "paper": "#0C3E4A"
+  },
+  "fonts": [
+    "Figtree",
+    "JetBrains Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#02101A"
+  },
+  "motion": {
+    "cut": "slide-push",
+    "drift": 0.7
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#3FE7D6"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "moody underwater or low-light photograph with teal glow",
+    "iconStyle": "line",
+    "keywords": [
+      "ocean",
+      "deep",
+      "bioluminescent",
+      "dark",
+      "research",
+      "discovery",
+      "science",
+      "landscape"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Figtree",
+    "mono": "JetBrains Mono",
+    "body": "Figtree"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "glow",
+    "case": "sentence",
+    "tracking": -0.03,
+    "align": "left"
+  },
+  "audio": {
+    "mood": "mysterious",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "ambient",
+      "cinematic",
+      "electronic",
+      "atmospheric"
+    ],
+    "musicKeywords": [
+      "deep ambient",
+      "underwater atmosphere",
+      "mysterious cinematic",
+      "slow build",
+      "ethereal pads",
+      "exploration underscore"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

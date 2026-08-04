@@ -180,6 +180,9 @@ function shape(j) {
     srtUrl: j.srt_url || null,
     vttUrl: j.vtt_url || null,
     captionConfig: j.captions_config || null,
+    // Legacy jobs (pre-toggle) carry no column at all — undefined !== 0 is true, so
+    // they read as voiced, which is what they were.
+    voiceoverEnabled: j.voiceover_enabled !== 0,
     captionLanguage: j.caption_language || null,
     captionMode: j.caption_mode || null,
     captionQuality: j.caption_quality || null,
@@ -192,11 +195,29 @@ function shape(j) {
     brandReview: j.brand_review || null,
     brandCoverage: j.brand_coverage || null,
     layoutReview: j.layout_review || null,
+    assetReuse: j.asset_reuse || null,
     screenshotReview: j.screenshot_review || null,
     assetHarvest: j.asset_harvest || null,
     assetUsageReport: j.asset_usage_report || null,
     validationReport: j.validation_report || null,
+    continuityReport: j.continuity_report || null,
+    motionPlan: j.motion_plan || null,
+    motionAudit: j.motion_audit || null,
+    audioReport: j.audio_report || null,
+    screenshotSource: j.screenshot_source || null,
+    // DELIVER-AND-FLAG. Derived on read rather than stored: it is a VIEW over signals the
+    // pipeline already recorded (qa, preflight, layout, audio, motion), so it can never
+    // drift from them, and improving the assessment does not require re-running old jobs.
+    // Only meaningful once a film exists.
+    deliveryQuality: j.status === "done" && j.video_url ? safeAssess(j) : null,
   };
+}
+
+// Fail-open (THE LAW): a disclosure must never break the API response that carries the
+// film. A broken assessment costs the quality panel, not the video.
+function safeAssess(j) {
+  try { return require("./services/delivery_quality").assessDelivery(j); }
+  catch { return null; }
 }
 
 module.exports = {
@@ -242,6 +263,15 @@ module.exports = {
       captions_enabled: (job.captions === true || job.captionsEnabled === true
         || (job.captionsConfig && job.captionsConfig.enabled === true)) ? 1 : 0,
       captions_config: job.captionsConfig || null,
+      // NARRATION is OPT-OUT (the inverse of captions): every film has a voice
+      // unless the user says otherwise. Stored as the flag, never as an absence —
+      // a job created before this field existed reads `undefined`, and every
+      // consumer tests `!== false` / `!== 0`, so legacy jobs keep their voice.
+      //
+      // This flag governs SYNTHESIS ONLY. The script still writes narration and the
+      // storyboard still reads it (see graph.storyboardPromptFromScript) — a voiceover
+      // toggle that silently redesigned the scenes would be a bug, not a feature.
+      voiceover_enabled: job.voiceoverEnabled === false ? 0 : 1,
       caption_language: job.captionsConfig ? job.captionsConfig.language : null,
       caption_mode: null,
       caption_quality: null,
@@ -456,6 +486,77 @@ module.exports = {
   setLayoutReview(id, review) {
     const j = jobs.get(id); if (!j) return;
     j.layout_review = review || null;
+    scheduleWrite();
+  },
+
+  // Asset Reuse Optimizer — which scenes were covered by a unique asset, which by a
+  // deliberate second appearance, and which were left to the decorative brand fallback,
+  // plus the per-asset ledger (usage count + the scenes each asset appears on). This is
+  // the record that answers "why does this asset show up twice?" with a scored reason
+  // instead of a shrug.
+  setAssetReuseReport(id, report) {
+    const j = jobs.get(id); if (!j) return;
+    j.asset_reuse = report || null;
+    scheduleWrite();
+  },
+
+  // Which capture provider actually produced the website screenshots. Only written when
+  // the hosted rescue ran, so its presence answers "why does this film's imagery look
+  // different from the last one's?" without anyone reading logs.
+  setScreenshotSource(id, info) {
+    const j = jobs.get(id); if (!j) return;
+    j.screenshot_source = info || null;
+    scheduleWrite();
+  },
+
+  // Audio validation report — the deterministic check on the finished soundtrack
+  // (effects mapped to scenes, duplicates, unjustified cues, ducking, loudness targets).
+  // Distinct from audio_review, which is the Audio Director's own plan + self-score.
+  setAudioReport(id, report) {
+    const j = jobs.get(id); if (!j) return;
+    j.audio_report = report || null;
+    scheduleWrite();
+  },
+
+  // Motion plan — the per-scene choreography (entrance + camera + timing) decided
+  // BEFORE composition. Persisted so the post-render verification can be read against
+  // what was actually intended, and so "why does every scene move the same way?" is a
+  // question with an answer on the job.
+  setMotionPlan(id, plan) {
+    const j = jobs.get(id); if (!j) return;
+    j.motion_plan = plan || null;
+    scheduleWrite();
+  },
+
+  // Motion audit — plan vs. what the composition actually emitted (honoured entrances,
+  // static scenes, drift). Its own key rather than a fold into validation_report,
+  // because BOTH runners produce it and only the graph writes a validation record.
+  setMotionAudit(id, report) {
+    const j = jobs.get(id); if (!j) return;
+    j.motion_audit = report || null;
+    scheduleWrite();
+  },
+
+  // Continuity report — what the reconciliation had to correct between the approved
+  // script and the regenerated storyboard (retimed / re-paired / synthesized /
+  // dropped scenes). Only written when something actually changed, so its presence
+  // means "the scene designer drifted and we pulled it back".
+  setContinuityReport(id, report) {
+    const j = jobs.get(id); if (!j) return;
+    j.continuity_report = report || null;
+    scheduleWrite();
+  },
+
+  // A free-text disclosure appended to the validation record — for degradations that
+  // are not a preflight CHECK but that a viewer would want explained (e.g. the scene
+  // designer was unavailable and the film was built from the script alone). Deduped,
+  // capped, and safe to call before the validation report exists.
+  setValidationNote(id, note) {
+    const j = jobs.get(id); if (!j || !note) return;
+    const prev = j.validation_report || { summary: "", failures: [], warnings: [], checks: {} };
+    const notes = Array.isArray(prev.notes) ? prev.notes : [];
+    if (!notes.includes(note)) notes.push(note);
+    j.validation_report = { ...prev, notes: notes.slice(0, 8) };
     scheduleWrite();
   },
 

@@ -155,10 +155,14 @@ async function generateStoryboard({ prompt, duration, orientation, framePack }) 
   let lastErrors = [];
   let lastParseError = null;
   let augmentedUser = user;
+  // The provider that served the call (KIE primary / OpenRouter fallback). Reported
+  // on BOTH the success return and the thrown error — a failed attempt still burned
+  // tokens, and the graph bills those too (graph.js storyboardAgent catch).
+  let servedModel = null, servedBy = null;
 
   const system = await getSystem();
   for (let i = 1; i <= maxTries; i++) {
-    const { text, tokensIn, tokensOut } = await openrouter.chat({
+    const { text, tokensIn, tokensOut, model, provider } = await openrouter.chat({
       system,
       user: augmentedUser,
       jsonMode: true,
@@ -166,6 +170,8 @@ async function generateStoryboard({ prompt, duration, orientation, framePack }) 
     });
     totalIn += tokensIn;
     totalOut += tokensOut;
+    servedModel = model || servedModel;
+    servedBy = provider || servedBy;
 
     let storyboard;
     try {
@@ -181,7 +187,7 @@ async function generateStoryboard({ prompt, duration, orientation, framePack }) 
     normalizeTimeline(storyboard, duration);
     const errs = validate(storyboard, { duration, orientation });
     if (errs.length === 0) {
-      return { storyboard, tokensIn: totalIn, tokensOut: totalOut };
+      return { storyboard, tokensIn: totalIn, tokensOut: totalOut, model: servedModel, provider: servedBy };
     }
     lastErrors = errs;
     augmentedUser = `${user}\n\nPrevious attempt had these validation errors — fix them and try again:\n${errs.map(e => `- ${e}`).join("\n")}`;
@@ -192,7 +198,12 @@ async function generateStoryboard({ prompt, duration, orientation, framePack }) 
   );
   err.tokensIn = totalIn;
   err.tokensOut = totalOut;
+  err.model = servedModel;
+  err.provider = servedBy;
   throw err;
 }
 
-module.exports = { generateStoryboard, normalizeTimeline, validate };
+// buildUser is exported for the handoff regression test: the pack-specific design
+// direction only exists if the caller actually passes framePack (both live callers
+// used to omit it).
+module.exports = { generateStoryboard, normalizeTimeline, validate, buildUser };

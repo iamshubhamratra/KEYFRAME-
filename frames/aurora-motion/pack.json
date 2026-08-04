@@ -12,7 +12,11 @@
     "accent": "#8B5CF6",
     "accent-2": "#2DD4BF"
   },
-  "fonts": ["Space Grotesk", "JetBrains Mono", "Inter"],
+  "fonts": [
+    "Space Grotesk",
+    "JetBrains Mono",
+    "Inter"
+  ],
   "surface": {
     "flat": false,
     "lightCinematic": false,
@@ -20,22 +24,36 @@
   },
   "motion": {
     "cut": "drift",
-    "drift": 1.0
+    "drift": 1
   },
   "fx": {
     "canvas": "aurora",
     "three": "none"
   },
   "skin": {
-    "accents": ["#8B5CF6", "#2DD4BF"],
+    "accents": [
+      "#8B5CF6",
+      "#2DD4BF"
+    ],
     "extras": [],
     "emphasisCss": null
   },
   "assets": {
     "photoMod": "app screenshot floating in a frosted-glass frame amid the aurora light",
     "iconStyle": "line",
-    "keywords": ["aurora", "gradient", "glass", "ambient", "premium", "dreamy", "portrait"],
-    "prefer": ["photo", "vector"]
+    "keywords": [
+      "aurora",
+      "gradient",
+      "glass",
+      "ambient",
+      "premium",
+      "dreamy",
+      "portrait"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
   },
   "typography": {
     "display": "Space Grotesk",
@@ -48,5 +66,36 @@
     "case": "none",
     "tracking": -0.02,
     "align": "center"
+  },
+  "audio": {
+    "mood": "dreamy",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "ambient",
+      "chillout",
+      "cinematic",
+      "downtempo"
+    ],
+    "musicKeywords": [
+      "ambient dreamy",
+      "soft cinematic pad",
+      "atmospheric chillout",
+      "aurora ambient",
+      "flowing electronic",
+      "uplifting ambient"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
   }
 }

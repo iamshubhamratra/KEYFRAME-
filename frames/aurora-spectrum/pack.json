@@ -60,8 +60,39 @@
   "brand": {
     "mode": "atmosphere",
     "maxAccents": 4,
-    "contrastFloor": 3.0,
+    "contrastFloor": 3,
     "hueDriftMax": 45,
     "note": "atmosphere: a brand hue faintly washes the deep-space indigo ground (luminance-pinned, so the dark base + text contrast hold); the aurora drift + gradient-clip identity stay locked."
+  },
+  "audio": {
+    "mood": "calm",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "ambient",
+      "electronic",
+      "corporate",
+      "chillout"
+    ],
+    "musicKeywords": [
+      "calm ambient",
+      "soft electronic",
+      "modern corporate",
+      "gradient chillout",
+      "uplifting technology",
+      "flowing electronic"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
   }
 }

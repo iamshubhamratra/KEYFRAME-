@@ -1,0 +1,101 @@
+{
+  "name": "drive",
+  "vibe": "A golden-hour highway film. A sunset sky graded amber to coral to rose over a violet skyline that scrolls past in two parallax bands, with a dark road filling the lower third and a dashed centreline running toward you. One cool teal against all that warmth — the signal colour in a warm frame. The signature device is the BILLBOARD: pictures ride on roadside hoardings with two support posts, angled slightly and sweeping in from the right as though you were driving by. Authored landscape-first (16:9) as a native GSAP + DOM composition. Best for automotive, travel, delivery, outdoor brands and any product with somewhere to be.",
+  "renderer": "drive",
+  "orientation": "landscape",
+  "colors": {
+    "ground": "#FFF7EA",
+    "ground-2": "#2B2733",
+    "text": "#2A2233",
+    "muted": "#6B6070",
+    "accent": "#12B5C8",
+    "ink": "#2A2233",
+    "paper": "#FFF7EA"
+  },
+  "fonts": [
+    "Archivo",
+    "JetBrains Mono",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#FFF7EA"
+  },
+  "motion": {
+    "cut": "slide-push",
+    "drift": 1.4
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#12B5C8"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "warm golden-hour photograph with long light",
+    "iconStyle": "line",
+    "keywords": [
+      "highway",
+      "road",
+      "sunset",
+      "automotive",
+      "travel",
+      "journey",
+      "outdoor",
+      "landscape"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Archivo",
+    "mono": "JetBrains Mono",
+    "body": "Figtree"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "plate",
+    "case": "upper",
+    "tracking": -0.045,
+    "align": "left"
+  },
+  "audio": {
+    "mood": "warm",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "indie",
+      "rock",
+      "electronic",
+      "americana"
+    ],
+    "musicKeywords": [
+      "sunset drive",
+      "indie road trip",
+      "warm guitar groove",
+      "open highway",
+      "retro synthwave",
+      "easy cruising"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "product-reveal",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

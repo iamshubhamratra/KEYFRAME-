@@ -56,5 +56,36 @@
     "enter": "mask-reveal",
     "emphasis": "glow",
     "align": "center"
+  },
+  "audio": {
+    "mood": "dramatic",
+    "energy": "medium",
+    "tempo": "slow",
+    "style": [
+      "cinematic",
+      "orchestral",
+      "jazz",
+      "noir"
+    ],
+    "musicKeywords": [
+      "dark cinematic",
+      "noir jazz",
+      "dramatic orchestral",
+      "tension score",
+      "building cinematic",
+      "epic dramatic"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "product-reveal",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
   }
 }

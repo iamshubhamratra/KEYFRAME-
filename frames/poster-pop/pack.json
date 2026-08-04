@@ -61,5 +61,36 @@
     "emphasis": "boxed",
     "case": "none",
     "tracking": -0.01
+  },
+  "audio": {
+    "mood": "loud",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "pop",
+      "electronic",
+      "punk",
+      "percussion"
+    ],
+    "musicKeywords": [
+      "bold pop",
+      "punchy electronic",
+      "loud kinetic",
+      "statement beat",
+      "high energy pop",
+      "aggressive drive"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "pop",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
   }
 }

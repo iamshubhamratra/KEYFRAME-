@@ -72,6 +72,25 @@ function sweepUploads(now) {
   return removed;
 }
 
+// The Website Asset Intelligence per-domain harvest cache lives OUTSIDE jobsDir
+// (jobs/../harvest_cache/<sha1(origin)>/), so nothing else sweeps it — evict entries
+// whose manifest.fetchedAt is past the harvester TTL (fall back to dir mtime).
+function sweepHarvestCache(now) {
+  const cacheDir = path.join(config.paths.jobsDir, "..", "harvest_cache");
+  const ttlMs = (Number(config.harvester?.cacheTtlHours) || 168) * 60 * 60 * 1000;
+  let removed = 0;
+  for (const ent of safeReaddir(cacheDir)) {
+    if (!ent.isDirectory()) continue;
+    const full = path.join(cacheDir, ent.name);
+    let fetchedAt = null;
+    try { fetchedAt = JSON.parse(fs.readFileSync(path.join(full, "manifest.json"), "utf8")).fetchedAt; } catch { /* unreadable */ }
+    const st = statOr(full);
+    const age = now - (Number(fetchedAt) || (st ? st.mtimeMs : 0));
+    if (age > ttlMs) { rmDir(full); removed++; }
+  }
+  return removed;
+}
+
 function sweepVideos(now) {
   const ttl = config.server.videoTtlHours * 60 * 60 * 1000;
   const entries = safeReaddir(config.paths.videosDir);
@@ -114,14 +133,15 @@ function runOnce() {
     const jobs = sweepJobDirs(now);
     const vids = sweepVideos(now);
     const uploads = sweepUploads(now);
+    const harvestCache = sweepHarvestCache(now);
     let cachePruned = 0;
     try {
       const localDb = require("./asset_sources/local_db");
       const capMb = Number(config.assetProviders?.maxCacheMb) || 1024;
       cachePruned = localDb.prune(capMb * 1024 * 1024);
     } catch { /* cache module optional */ }
-    if (jobs || vids.removedTtl || vids.removedCap || uploads || cachePruned) {
-      console.log(`[janitor] swept jobs=${jobs} videosTtl=${vids.removedTtl} videosCap=${vids.removedCap} uploads=${uploads} cachePruned=${cachePruned} bytes=${vids.totalBytes}`);
+    if (jobs || vids.removedTtl || vids.removedCap || uploads || cachePruned || harvestCache) {
+      console.log(`[janitor] swept jobs=${jobs} videosTtl=${vids.removedTtl} videosCap=${vids.removedCap} uploads=${uploads} harvestCache=${harvestCache} cachePruned=${cachePruned} bytes=${vids.totalBytes}`);
     }
   } catch (e) {
     console.error(`[janitor] sweep failed: ${e.message}`);

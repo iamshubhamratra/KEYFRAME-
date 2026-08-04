@@ -27,13 +27,14 @@
 // touches. Portrait is detected from dims (W<H); no manifest flag. Deterministic.
 
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
+const { varyArchetypes } = require("./motion_planner");
 const { isTrustedProminent, isLogo } = require("./asset_priority");
 const { logoMark } = require("./logo_render");
 const { plateBox } = require("./responsive");
-const { charSpans, supportLine } = require("./text_fx");
+const { charSpans, wordCharSpans, supportLine } = require("./text_fx");
 const { resolveBrand } = require("./brand_kit");
+const { GSAP_CDN, r, esc, hexToRgb, relLum, bullets, logoAssetOf, grainUri, displayShadow } = require("./composer_kit");
 
-const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 // Sora (the template's Google display) is NOT bundled for the CDN-free render — Fraunces
 // is the bundled elegant serif that carries the same quiet-luxury spirit (Instrument Serif
 // is its bundled fallback); IBM Plex Mono is the bundled wide-tracked small-cap LABEL face;
@@ -51,16 +52,6 @@ const GROUND_2 = "#E9E4D8";   // deeper ivory (vignette / frame wash)
 const INK = "#1A1712";        // warm near-black ink
 
 // ---- helpers -----------------------------------------------------------------
-function esc(s) {
-  return String(s == null ? "" : s)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-const r = (n) => Math.round((Number(n) || 0) * 100) / 100;
-const hexToRgb = (h) => { const n = parseInt(String(h).replace("#", ""), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
-function relLum(hex) {
-  const [rr, gg, bb] = hexToRgb(hex).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
-  return 0.2126 * rr + 0.7152 * gg + 0.0722 * bb;
-}
 function seedFrom(str) { let h = 2166136261; const s = String(str || "luxury"); for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0) || 7; }
 // finite yoyo repeat count for a segment of `t` seconds at period `c`.
 function reps(t, c) { return Math.max(0, Math.floor((Number(t) || 0) / (c || 1)) - 1); }
@@ -122,11 +113,6 @@ const STRINGS = {
 
 // ---- content extraction (shared shapes) --------------------------------------
 function wordsOf(t) { return String(t || "").trim().split(/\s+/).filter(Boolean); }
-function bullets(scene, n) {
-  let list = Array.isArray(scene.onScreenText) ? scene.onScreenText.filter(Boolean).map(String) : [];
-  if (!list.length && scene.subtext) list = String(scene.subtext).split(/[.;\n•]|\s—\s/).map((s) => s.trim()).filter((s) => s.length > 2);
-  return list.slice(0, n);
-}
 // Headline sized so long copy never overflows the portrait column (serif runs wide).
 function headlineSize(text, base) {
   const len = String(text || "").length;
@@ -150,9 +136,6 @@ function screenOk(a) {
   if (a.type === "video" || /\.(mp4|webm|mov)($|\?)/i.test(a.path)) return false;
   if (/\.svg($|\?)/i.test(a.path)) return false;
   return isTrustedProminent(a) || a.cdProminence === "hero" || a.cdProminence === "support";
-}
-function logoAssetOf(assets) {
-  return (Array.isArray(assets) ? assets : []).find((a) => a && a.path && isLogo(a) && !/\.(mp4|webm|mov)($|\?)/i.test(a.path)) || null;
 }
 
 // A refined thin-bordered frame holding a real screenshot — or, with no asset, an
@@ -408,7 +391,7 @@ function bCta(scene, ctx, logo) {
         <div style="position:absolute;inset:0;border-radius:50%;border:0.16cqw solid ${theme.frameBorder};"></div>
         <div style="font-family:${theme.displayStack};font-weight:400;font-size:8cqw;color:${theme.accent};line-height:1;">${esc((word[0] || "K").toUpperCase())}</div>
       </div>`;
-  const chars = charSpans(word, `${id}-ch`);
+  const chars = wordCharSpans(word, `${id}-ch`);
   const html = `${open(id, ctx)}<div class="lux-safe">
     <div class="lux-label ${id}-label" style="opacity:0;margin-bottom:3cqw;">${esc(scene.kicker || S.ctaLabel)}</div>
     <div class="${id}-mark" style="opacity:0;">${mark}</div>
@@ -478,8 +461,7 @@ function ambientClip(theme, dims, D, seed) {
 }
 
 // ---- grain overlay (top layer) -----------------------------------------------
-const GRAIN_SVG = "<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(#n)' opacity='0.5'/></svg>";
-const GRAIN_URI = "data:image/svg+xml;base64," + Buffer.from(GRAIN_SVG).toString("base64");
+const GRAIN_URI = grainUri(0.9);
 function grainClip(D) {
   return `<div id="lux-grain" class="clip" data-start="0" data-duration="${D}" data-track-index="40" data-layout-allow-occlusion style="pointer-events:none;background-image:url('${GRAIN_URI}');background-size:280px 280px;opacity:0.03;mix-blend-mode:multiply;"></div>`;
 }
@@ -493,15 +475,15 @@ function styleBlock(theme, portrait) {
   #root { position:relative; overflow:hidden; isolation:isolate; background:${theme.ground}; container-type:size; color:${theme.ink}; font-family:${theme.bodyStack}; }
   .clip { position:absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; }
   .lux-safe { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:${safePad}; text-align:center; }
-  .lux-display { font-family:${theme.displayStack}; font-weight:300; line-height:1.0; letter-spacing:-0.03em; color:${theme.ink}; }
-  .lux-h1 { font-family:${theme.displayStack}; font-weight:400; line-height:1.08; letter-spacing:-0.02em; color:${theme.ink}; }
+  .lux-display { font-family:${theme.displayStack}; font-weight:300; line-height:1.0; letter-spacing:-0.03em; color:${theme.ink}; ${displayShadow(theme.ground)} }
+  .lux-h1 { font-family:${theme.displayStack}; font-weight:400; line-height:1.08; letter-spacing:-0.02em; color:${theme.ink}; ${displayShadow(theme.ground)} }
   .lux-display .lux-gword:last-child, .lux-h1 .lux-gword:last-child { color:${theme.accent}; }
   .lux-gword { will-change:transform,opacity; }
   .lux-label { display:inline-flex; align-items:center; font-family:${theme.labelStack}; font-weight:500; font-size:2cqw; letter-spacing:0.42em; text-transform:uppercase; color:${theme.dim}; }
   .lux-cap-sm { font-family:${theme.labelStack}; font-weight:500; font-size:1.9cqw; letter-spacing:0.2em; text-transform:uppercase; color:${theme.dim}; }
   .lux-body { font-family:${theme.bodyStack}; font-weight:400; font-size:2.6cqw; line-height:1.5; color:${theme.dim}; }
   .lux-rule-accent { height:0.16cqw; border-radius:999px; background:${theme.hairAccent}; }
-  .lux-wordmark { display:flex; font-family:${theme.displayStack}; font-weight:500; font-size:10cqw; letter-spacing:-0.02em; color:${theme.ink}; }
+  .lux-wordmark { display:flex; flex-wrap:wrap; justify-content:center; text-align:center; gap:0 0.26em; max-width:92%; font-family:${theme.displayStack}; font-weight:500; font-size:10cqw; letter-spacing:-0.02em; color:${theme.ink}; }
   .lux-btn { display:inline-flex; align-items:center; justify-content:center; padding:2.6cqw 7cqw; border-radius:999px; background:transparent; border:0.16cqw solid ${theme.accent}; color:${theme.accent}; font-family:${theme.labelStack}; font-weight:500; font-size:2.8cqw; letter-spacing:0.18em; text-transform:uppercase; will-change:transform,opacity; }
   .lux-prod, .pf { will-change:transform,opacity; }
   #caps { position:absolute; inset:0; display:flex; justify-content:center; align-items:flex-end; padding-bottom:${portrait ? "16%" : "7%"}; z-index:60; pointer-events:none; }
@@ -531,6 +513,16 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   const shots = (Array.isArray(assets) ? assets : []).filter(screenOk)
     .sort((a, b) => (Number(b.cdScore) || 0) - (Number(a.cdScore) || 0));
   const baseArch = scenes.map((scene, i) => archetypeFor(scene, i, scenes.length));
+  // ANTI-REPETITION (services/motion_planner). archetypeFor above ends in a single
+  // fallthrough, so every middle scene of a text-led film lands on the same type and the
+  // film reads as one backdrop with rotating copy. This breaks adjacent duplicates using
+  // ONLY this pack's own generic scene types — data-shaped ones (stats/chart/gallery)
+  // keep their type, because their builders have preconditions a swap would violate.
+  const { archetypes: __varied } = varyArchetypes(baseArch, {
+    pool: Object.keys(BUILDERS),
+    seedKey: scenes.map((s) => s && s.id).join("|"),
+  });
+  for (let __i = 0; __i < baseArch.length; __i++) baseArch[__i] = __varied[__i];
   // EVERY content archetype hosts its assigned shot in the luxury visual language (the
   // thin-bordered luxFrame): a hook (open) can show a hero shot, a stat/quote (statement)
   // shows its screenshot above the serif line, features (hero/index→detail) frame theirs —

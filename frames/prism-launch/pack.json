@@ -61,5 +61,36 @@
     "enter": "line-wipe",
     "emphasis": "gradient",
     "align": "center"
+  },
+  "audio": {
+    "mood": "modern",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "electronic",
+      "corporate",
+      "modern",
+      "pop"
+    ],
+    "musicKeywords": [
+      "modern studio",
+      "clean product",
+      "bright electronic",
+      "corporate launch",
+      "upbeat modern",
+      "energetic launch"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "product-reveal",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
   }
 }

@@ -51,5 +51,36 @@
     "emphasis": "boxed",
     "case": "upper",
     "align": "left"
+  },
+  "audio": {
+    "mood": "bold",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "electronic",
+      "rock",
+      "percussion",
+      "modern"
+    ],
+    "musicKeywords": [
+      "bold modern",
+      "punchy electronic",
+      "kinetic percussion",
+      "driving rock",
+      "high energy electronic",
+      "aggressive beat"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "pop",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
   }
 }

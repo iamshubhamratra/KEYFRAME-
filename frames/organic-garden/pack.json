@@ -62,5 +62,36 @@
     "emphasis": "underline-grow",
     "case": "none",
     "tracking": -0.015
+  },
+  "audio": {
+    "mood": "warm",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "acoustic",
+      "folk",
+      "organic",
+      "ukulele"
+    ],
+    "musicKeywords": [
+      "warm acoustic",
+      "gentle folk",
+      "handmade organic",
+      "soft ukulele",
+      "cheerful acoustic",
+      "bright folk"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
   }
 }

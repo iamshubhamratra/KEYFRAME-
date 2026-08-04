@@ -59,6 +59,29 @@ function charSpans(text, cls, style = "display:inline-block;opacity:0;") {
 }
 
 /**
+ * charSpans, but grouped into unbreakable WORDS.
+ *
+ * A per-character reveal needs one element per character, and that is exactly what makes
+ * the line break badly: to a wrapping container every character is an independent item, so
+ * a headline too wide for the frame breaks wherever it happens to run out of room —
+ * mid-word. Rendered on a 720-wide portrait stage, "Serving humanity's" came back as
+ * "Serving humanity'" over an orphaned "s".
+ *
+ * Grouping each word in a `nowrap` inline-flex box moves every break opportunity to a word
+ * boundary, which is where a reader expects one. The character spans keep their class, so a
+ * composer's existing `.${cls}` stagger selector is unaffected.
+ *
+ * Word SPACING is the container's job (flexbox discards whitespace between items) — callers
+ * should set a `gap` such as `0 0.26em`.
+ */
+function wordCharSpans(text, cls, style = "display:inline-block;opacity:0;") {
+  const words = String(text || "").split(/\s+/).filter(Boolean);
+  return words
+    .map((w) => `<span style="display:inline-flex;white-space:nowrap;">${charSpans(w, cls, style)}</span>`)
+    .join("");
+}
+
+/**
  * The first line of a scene's copy that the composer has NOT already shown.
  *
  * The storyboard hands every scene a headline plus subtext and 2–3 on-screen lines, and
@@ -84,4 +107,4 @@ function supportLine(scene, shown = []) {
   return "";
 }
 
-module.exports = { charSpans, graphemesOf, esc, supportLine };
+module.exports = { charSpans, wordCharSpans, graphemesOf, esc, supportLine };

@@ -61,5 +61,36 @@
     "enter": "line-wipe",
     "emphasis": "gradient",
     "align": "left"
+  },
+  "audio": {
+    "mood": "cinematic",
+    "energy": "medium",
+    "tempo": "slow",
+    "style": [
+      "cinematic",
+      "orchestral",
+      "ambient",
+      "score"
+    ],
+    "musicKeywords": [
+      "cinematic score",
+      "slow orchestral",
+      "atmospheric film",
+      "tension cinematic",
+      "building orchestral",
+      "epic cinematic"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
   }
 }

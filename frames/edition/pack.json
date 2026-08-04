@@ -1,0 +1,100 @@
+{
+  "name": "edition",
+  "vibe": "A printed broadsheet in motion. Warm newsprint stock, near-black ink, one editorial red and one ink blue. Anton set enormous and tight for every headline, heavy rules that draw themselves across the measure, a six-column grid with hairline column rules, and a dateline and folio on every page. Pictures are PRINTED in the grid with a keyline and a caption beneath, never floated as decoration; the index page rules itself into a numbered contents list and the comment page sets one statement between two heavy rules. Authored landscape-first (16:9) as a native GSAP + DOM composition. Best for journalism, research, long-form, policy, publishing and any brand that wants to sound authoritative rather than excited.",
+  "renderer": "edition",
+  "orientation": "landscape",
+  "colors": {
+    "ground": "#EFE9DA",
+    "ground-2": "#FFFFFF",
+    "text": "#16130D",
+    "muted": "#6A6252",
+    "accent": "#DA3A24",
+    "ink": "#16130D",
+    "paper": "#FFFFFF"
+  },
+  "fonts": [
+    "Anton",
+    "JetBrains Mono"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#EFE9DA"
+  },
+  "motion": {
+    "cut": "hard-cut",
+    "drift": 0.5
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#DA3A24"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "documentary editorial photograph with strong contrast",
+    "iconStyle": "line",
+    "keywords": [
+      "editorial",
+      "newspaper",
+      "print",
+      "broadsheet",
+      "typographic",
+      "swiss",
+      "journalism",
+      "landscape"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Anton",
+    "mono": "JetBrains Mono",
+    "body": "JetBrains Mono"
+  },
+  "textfx": {
+    "enter": "mask-up",
+    "emphasis": "rule",
+    "case": "upper",
+    "tracking": -0.02,
+    "align": "left"
+  },
+  "audio": {
+    "mood": "serious",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "acoustic",
+      "documentary",
+      "minimal",
+      "orchestral"
+    ],
+    "musicKeywords": [
+      "documentary underscore",
+      "serious editorial",
+      "understated piano",
+      "reflective strings",
+      "minimal acoustic",
+      "thoughtful ambient"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 0,
+      "sfxDensity": "normal",
+      "ambient": false
+    }
+  }
+}

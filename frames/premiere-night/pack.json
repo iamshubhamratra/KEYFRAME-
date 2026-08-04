@@ -61,5 +61,36 @@
     "emphasis": "underline-grow",
     "case": "none",
     "tracking": -0.01
+  },
+  "audio": {
+    "mood": "glamorous",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "orchestral",
+      "cinematic",
+      "jazz",
+      "swing"
+    ],
+    "musicKeywords": [
+      "red carpet orchestral",
+      "glamorous swing",
+      "cinematic score",
+      "premiere fanfare",
+      "building orchestral",
+      "epic fanfare"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "product-reveal",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
   }
 }

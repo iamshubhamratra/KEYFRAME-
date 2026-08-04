@@ -92,6 +92,7 @@ const PURPOSE_KIND = {
   demo: "screenshot",
   proof: "people",      // testimonials / real users
   testimonial: "people",
+  quote: "people",      // a canonical scene_role — a quote wants a face, not a chart
   context: "photo",
   benefit: "photo",
   data: "vector",       // charts / abstract data

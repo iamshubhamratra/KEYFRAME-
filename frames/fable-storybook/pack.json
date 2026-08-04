@@ -58,5 +58,36 @@
     "enter": "drift",
     "emphasis": "underline-grow",
     "align": "left"
+  },
+  "audio": {
+    "mood": "warm",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "acoustic",
+      "folk",
+      "storytelling",
+      "orchestral"
+    ],
+    "musicKeywords": [
+      "soft storytelling",
+      "gentle acoustic",
+      "warm folk",
+      "whimsical orchestral",
+      "cheerful folk",
+      "bright storybook"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": false
+    }
   }
 }

@@ -29,13 +29,14 @@
 // touches. Portrait is detected from dims (W<H); no manifest flag. Deterministic.
 
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
+const { varyArchetypes } = require("./motion_planner");
 const { isTrustedProminent, isLogo } = require("./asset_priority");
 const { logoMark } = require("./logo_render");
 const { plateBox } = require("./responsive");
-const { charSpans } = require("./text_fx");
+const { charSpans, wordCharSpans } = require("./text_fx");
 const { resolveBrand } = require("./brand_kit");
+const { GSAP_CDN, r, esc, hexToRgb, relLum, longestWord, bullets, logoAssetOf, grainUri, displayShadow } = require("./composer_kit");
 
-const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 // Archivo Black (bundled) is the punchy poster grotesque that carries the template's
 // bold motion-graphics headlines; JetBrains Mono is the bundled label/kicker face;
 // Inter falls to system-ui for supporting copy. No Google <link> — bundled only.
@@ -51,16 +52,6 @@ const DEF_SHAPE_A = "#FF5A3C"; // vermilion
 const DEF_SHAPE_B = "#2C6BED"; // cobalt
 
 // ---- helpers -----------------------------------------------------------------
-function esc(s) {
-  return String(s == null ? "" : s)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-const r = (n) => Math.round((Number(n) || 0) * 100) / 100;
-const hexToRgb = (h) => { const n = parseInt(String(h).replace("#", ""), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
-function relLum(hex) {
-  const [rr, gg, bb] = hexToRgb(hex).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
-  return 0.2126 * rr + 0.7152 * gg + 0.0722 * bb;
-}
 function seedFrom(str) { let h = 2166136261; const s = String(str || "motion"); for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0) || 7; }
 // finite yoyo repeat count for a segment of `t` seconds at period `c`.
 function reps(t, c) { return Math.max(0, Math.floor((Number(t) || 0) / (c || 1)) - 1); }
@@ -117,23 +108,41 @@ const STRINGS = {
 
 // ---- content extraction (shared shapes) --------------------------------------
 function wordsOf(t) { return String(t || "").trim().split(/\s+/).filter(Boolean); }
-function bullets(scene, n) {
-  let list = Array.isArray(scene.onScreenText) ? scene.onScreenText.filter(Boolean).map(String) : [];
-  if (!list.length && scene.subtext) list = String(scene.subtext).split(/[.;\n•]|\s—\s/).map((s) => s.trim()).filter((s) => s.length > 2);
-  return list.slice(0, n);
-}
 function pickNumber(scene) {
   const src = [scene.emphasis, scene.subtext, scene.headline, ...(Array.isArray(scene.onScreenText) ? scene.onScreenText : [])]
     .map((x) => String(x || "")).find((x) => /\d/.test(x)) || "";
   return /\d/.test(src);
 }
 // Headline sized so long copy never overflows the portrait column.
+// PORTRAIT FILL. The length ladder below keeps long copy from overflowing the column —
+// but it is aspect-BLIND, and cqw is a fraction of WIDTH, so a headline occupies the same
+// share of the line in 16:9 and 9:16 while a 9:16 frame is 177cqw TALL. Short headlines
+// therefore sat as a small line in a very tall empty frame: the "under-illustrated /
+// massive empty space" blocker the 9:16 audit kept finding.
+//
+// In portrait the slack is spent on the headlines that HAVE slack: short copy grows, long
+// copy is left exactly where the ladder put it, so nothing that previously fitted starts
+// to overflow.  is set once per build (see buildComposition).
+let _portrait = false;
+// FIT, rather than guess. The ladder below buckets by character count, which decides how
+// many LINES a headline needs — not whether it fits the frame. Headlines are word spans, so
+// they wrap between words and the binding constraint is the LONGEST WORD: that word cannot
+// break, so if it is wider than the column it leaves the frame however many lines exist.
+// Capping on the whole string instead would shrink perfectly good two-line headlines.
+//
+// 0.56em is the mean advance of a heavy display face; it is an estimate, so it is paired
+// with a wrapping container as the safety net rather than trusted on its own.
+const MEAN_ADVANCE_EM = 0.56;
+const SAFE_LINE_CQW = 92;
+function fitCap(text) {
+  const len = longestWord(text).length;
+  return len ? SAFE_LINE_CQW / (len * MEAN_ADVANCE_EM) : Infinity;
+}
 function headlineSize(text, base) {
   const len = String(text || "").length;
-  if (len > 42) return base * 0.62;
-  if (len > 28) return base * 0.76;
-  if (len > 18) return base * 0.88;
-  return base;
+  const s = len > 42 ? base * 0.62 : len > 28 ? base * 0.76 : len > 18 ? base * 0.88 : base;
+  const p = _portrait ? s * (len > 28 ? 1.0 : len > 18 ? 1.08 : 1.18) : s;
+  return Math.min(p, fitCap(text));
 }
 // Split a headline into word spans for the sweep; the last word carries the accent.
 function accentWords(id, text) {
@@ -149,9 +158,6 @@ function screenOk(a) {
   if (a.type === "video" || /\.(mp4|webm|mov)($|\?)/i.test(a.path)) return false;
   if (/\.svg($|\?)/i.test(a.path)) return false;
   return isTrustedProminent(a) || a.cdProminence === "hero" || a.cdProminence === "support";
-}
-function logoAssetOf(assets) {
-  return (Array.isArray(assets) ? assets : []).find((a) => a && a.path && isLogo(a) && !/\.(mp4|webm|mov)($|\?)/i.test(a.path)) || null;
 }
 // Portrait screenshots (ratio<0.9) get a tall frame; wide shots a shorter one.
 function frameHmul(asset) {
@@ -428,11 +434,11 @@ function bCta(scene, ctx, logo) {
         <div style="position:absolute;left:0;top:12%;width:52%;height:52%;border-radius:50%;background:${theme.shapeA};"></div>
         <div style="position:absolute;right:0;bottom:6%;width:46%;height:46%;background:${theme.shapeB};transform:rotate(45deg);"></div>
       </div>`;
-  const chars = charSpans(word, `${id}-ch`);
+  const chars = wordCharSpans(word, `${id}-ch`);
   const html = `${open(id, ctx)}<div class="mc-safe">
     <div class="mc-kicker ${id}-kick" style="opacity:0;margin-bottom:2.4cqw;">${esc(scene.kicker || S.ctaKicker)}</div>
     <div class="${id}-mark" style="opacity:0;">${mark}</div>
-    <div class="mc-wordmark" style="margin-top:3.2cqw;">${chars}</div>
+    <div class="mc-wordmark" style="font-size:${r(Math.min(11, fitCap(word)))}cqw;margin-top:3.2cqw;">${chars}</div>
     <div class="mc-body ${id}-tag" style="opacity:0;margin-top:1.8cqw;">${tagline}</div>
     <div class="mc-btn ${id}-btn" style="opacity:0;margin-top:3.6cqw;color:${theme.onA};">${btn} →</div>
     <div class="${id}-url" style="opacity:0;font-family:${theme.monoStack};letter-spacing:0.22em;font-size:2.4cqw;color:${theme.faint};margin-top:2.4cqw;">${url}</div>
@@ -499,8 +505,7 @@ function shapeFieldClip(theme, dims, D, seed) {
 }
 
 // ---- grain overlay (top layer) -----------------------------------------------
-const GRAIN_SVG = "<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(#n)' opacity='0.5'/></svg>";
-const GRAIN_URI = "data:image/svg+xml;base64," + Buffer.from(GRAIN_SVG).toString("base64");
+const GRAIN_URI = grainUri(0.9);
 function grainClip(D) {
   return `<div id="mc-grain" class="clip" data-start="0" data-duration="${D}" data-track-index="40" data-layout-allow-occlusion style="pointer-events:none;background-image:url('${GRAIN_URI}');background-size:260px 260px;opacity:0.04;mix-blend-mode:multiply;"></div>`;
 }
@@ -514,14 +519,14 @@ function styleBlock(theme, portrait) {
   #root { position:relative; overflow:hidden; isolation:isolate; background:${theme.ground}; container-type:size; color:${theme.ink}; font-family:${theme.bodyStack}; }
   .clip { position:absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; }
   .mc-safe { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:${safePad}; text-align:center; }
-  .mc-display { font-family:${theme.displayStack}; font-weight:800; line-height:0.94; letter-spacing:-0.03em; color:${theme.ink}; }
-  .mc-h1 { font-family:${theme.displayStack}; font-weight:700; line-height:1.02; letter-spacing:-0.02em; color:${theme.ink}; }
+  .mc-display { font-family:${theme.displayStack}; font-weight:800; line-height:0.94; letter-spacing:-0.03em; color:${theme.ink}; ${displayShadow(theme.ground)} }
+  .mc-h1 { font-family:${theme.displayStack}; font-weight:700; line-height:1.02; letter-spacing:-0.02em; color:${theme.ink}; ${displayShadow(theme.ground)} }
   .mc-kinetic { font-family:${theme.displayStack}; font-weight:800; line-height:0.9; letter-spacing:-0.03em; color:${theme.ink}; text-transform:uppercase; }
   .mc-kinetic .mc-word:last-child { color:${theme.shapeA}; }
   .mc-word { will-change:transform,opacity; }
   .mc-kicker { display:inline-flex; align-items:center; gap:0.6cqw; font-family:${theme.monoStack}; font-weight:600; font-size:2cqw; letter-spacing:0.34em; text-transform:uppercase; color:${theme.dim}; }
   .mc-body { font-family:${theme.bodyStack}; font-weight:500; font-size:2.7cqw; line-height:1.42; color:${theme.dim}; }
-  .mc-wordmark { display:flex; font-family:${theme.displayStack}; font-weight:800; font-size:11cqw; letter-spacing:-0.02em; color:${theme.ink}; }
+  .mc-wordmark { display:flex; flex-wrap:wrap; justify-content:center; text-align:center; gap:0 0.26em; max-width:92%; font-family:${theme.displayStack}; font-weight:800; font-size:11cqw; letter-spacing:-0.02em; color:${theme.ink}; }
   .mc-chip { display:inline-flex; align-items:center; gap:1.4cqw; padding:1.8cqw 3.2cqw; border-radius:1.4cqw; background:${theme.paper}; border:0.4cqw solid ${theme.ink}; font-family:${theme.bodyStack}; font-weight:700; font-size:2.6cqw; letter-spacing:0.01em; color:${theme.ink}; white-space:nowrap; box-shadow:0.7cqw 0.7cqw 0 ${theme.shapeA}; will-change:transform,opacity; }
   .mc-chip-lg { font-size:3cqw; padding:2.2cqw 4cqw; }
   .mc-dot { width:1.8cqw; height:1.8cqw; border-radius:50%; flex:0 0 auto; }
@@ -534,6 +539,8 @@ function styleBlock(theme, portrait) {
 
 // ---- MAIN --------------------------------------------------------------------
 function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin = null, localized = null } = {}) {
+  // Portrait drives the headline fill ladder (see headlineSize).
+  _portrait = (dims && dims.height > dims.width) || false;
   const theme = canvasTheme(brandSkin);
   const S = localized ? { ...STRINGS, ...localized } : STRINGS;
   const sb = storyboard || {};
@@ -555,6 +562,16 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   const shots = (Array.isArray(assets) ? assets : []).filter(screenOk)
     .sort((a, b) => (Number(b.cdScore) || 0) - (Number(a.cdScore) || 0));
   const baseArch = scenes.map((scene, i) => archetypeFor(scene, i, scenes.length));
+  // ANTI-REPETITION (services/motion_planner). archetypeFor above ends in a single
+  // fallthrough, so every middle scene of a text-led film lands on the same type and the
+  // film reads as one backdrop with rotating copy. This breaks adjacent duplicates using
+  // ONLY this pack's own generic scene types — data-shaped ones (stats/chart/gallery)
+  // keep their type, because their builders have preconditions a swap would violate.
+  const { archetypes: __varied } = varyArchetypes(baseArch, {
+    pool: Object.keys(BUILDERS),
+    seedKey: scenes.map((s) => s && s.id).join("|"),
+  });
+  for (let __i = 0; __i < baseArch.length; __i++) baseArch[__i] = __varied[__i];
   // EVERY content archetype hosts its assigned shot in the composer's own bold shape-mask
   // frame (open / showcase / kinetic / stats / bullets) — only the pure CTA (logo lockup) is
   // excluded — so a stat/quote/bullet/hook scene the CD pinned a screenshot to renders it on

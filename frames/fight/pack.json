@@ -1,0 +1,100 @@
+{
+  "name": "fight",
+  "vibe": "A fight-night promo. Near-black arena under a breathing spotlight pool, one hot red and one belt gold, ring ropes across the foot of every frame. Anton set enormous and tight so beats LAND rather than arrive: type slams in on back-eased scale, the frame shakes once on the hit, and a struck VS drops between two angled fighter cards. Pictures ride in gold-keylined cards with a corner flash and a name plate; the tale of the tape slams its points in one at a time and the judges' scorecard counts real figures onto gold plates. Authored landscape-first (16:9) as a native GSAP + DOM composition. Best for sports, fitness, competitive products, launches and any brand that wants confrontation and stakes.",
+  "renderer": "fight",
+  "orientation": "landscape",
+  "colors": {
+    "ground": "#0B0B10",
+    "ground-2": "#15151F",
+    "text": "#F5EFE6",
+    "muted": "#8A8496",
+    "accent": "#E23130",
+    "ink": "#F5EFE6",
+    "paper": "#15151F"
+  },
+  "fonts": [
+    "Anton",
+    "JetBrains Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#0B0B10"
+  },
+  "motion": {
+    "cut": "hard-cut",
+    "drift": 1.4
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#E23130"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "high-contrast dramatic portrait with hard rim light on a dark background",
+    "iconStyle": "line",
+    "keywords": [
+      "fight",
+      "boxing",
+      "sport",
+      "bold",
+      "poster",
+      "arena",
+      "competitive",
+      "landscape"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Anton",
+    "mono": "JetBrains Mono",
+    "body": "Anton"
+  },
+  "textfx": {
+    "enter": "slam",
+    "emphasis": "accent-word",
+    "case": "upper",
+    "tracking": -0.02,
+    "align": "left"
+  },
+  "audio": {
+    "mood": "aggressive",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "trap",
+      "percussion",
+      "electronic",
+      "cinematic"
+    ],
+    "musicKeywords": [
+      "hard trap",
+      "aggressive percussion",
+      "fight entrance",
+      "epic hype",
+      "heavy drums",
+      "sports anthem"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "pop",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
+  }
+}

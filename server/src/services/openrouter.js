@@ -1,85 +1,104 @@
-// LLM client with cross-provider fallback.
+// LLM client — per-stage model routing across two providers.
 // Exposes chat() returning { text, tokensIn, tokensOut, model, provider }.
 // `model` + `provider` identify who ACTUALLY served the call, so usage.js can price
-// KIE and OpenRouter at their own published rates instead of assuming one of them.
+// each stage at the rate of the model that answered it.
 //
-// Provider cascade (per call):
-//   1. PRIMARY  — KIE AI (Gemini 3.5 Flash), OpenAI-compatible /chat/completions
-//   2. FALLBACK — OpenRouter primary model (config.llm.model, e.g. minimax-m3)
-//   3. FALLBACK — OpenRouter secondary model (config.llm.modelFallback)
+// Model cascade (per call):
+//   1. config.llm.primary.stageModels[stage]  (heavy stages -> grok-4-5)
+//      falling back to config.llm.primary.model (gemini-3-6-flash) for every other stage
+//   2. config.llm.primary.fallbackModel — tried once if the first one fails outright.
+//   3. throw — the stage drops to its DETERMINISTIC fallback (scene-kit composer /
+//      script-derived storyboard). This is the codebase's fail-open law.
 //
-// Any failure of the KIE primary (timeout / 429 / 5xx / auth / empty body)
-// transparently falls back to OpenRouter so a single provider outage never
-// takes down the pipeline.
+// TWO PROVIDERS. Every model is declared in config.llm.primary.models with an optional
+// `provider` ("kie" by default, or "openrouter"). KIE serves the heavy and vision
+// stages; OpenRouter serves the cheap TEXT-ONLY light tier (vo_fit, art_director,
+// dressing, and the legacy assets/audio planners) where a 15x cheaper model is worth
+// more than a marginally better one, and where every stage already fails open.
 //
-// KIE quirk handled here: KIE returns transport-level errors as HTTP 200 with
-// a JSON body {code, msg, data} (code !== 200). The OpenAI SDK would treat that
-// as a success and yield empty content, so we use raw fetch for KIE and inspect
-// the body explicitly, mapping code -> err.status so isRetryable() works.
+// Because fallbackModel is a KIE model, the cascade crosses providers automatically:
+// an OpenRouter light stage that flakes lands on gemini-3-6-flash rather than dropping
+// to its template. config.llm.baseUrl / llm.apiKey are the OpenRouter credential — they
+// also still serve TTS (services/tts.js) and the OpenRouter half of checkBudget().
 //
-// OpenAI SDK's internal retries are disabled (maxRetries: 0) to prevent hidden
-// stacking that caused 1000s hangs in earlier iterations.
+// TWO WIRE PROTOCOLS, because KIE does not serve both models the same way:
+//   - "openai"    — https://api.kie.ai/<slug>-openai/v1/chat/completions. Standard
+//                   OpenAI chat completions. Serves the gemini family (incl. vision).
+//   - "responses" — https://api.kie.ai/grok/v1/responses. xAI's Responses API: the
+//                   messages go in `input`, the ceiling is `max_output_tokens`, JSON mode
+//                   is `text.format`, and the reply is an `output[]` array of reasoning +
+//                   message parts. grok-4-5 is ONLY available here — every
+//                   `grok-*-openai/v1` slug returns 422 "The model is not supported".
+//
+// KIE quirk handled here (BOTH protocols): KIE returns transport-level errors as HTTP
+// 200 with a JSON body {code, msg, data} (code !== 200). An SDK would treat that as a
+// success and yield empty content, so we use raw fetch and inspect the body explicitly,
+// mapping code -> err.status so isRetryable() works.
 
-const OpenAI = require("openai");
 const config = require("../config");
 const { extractFirstJsonObject } = require("./json_lenient");
 
-const client = new OpenAI({
-  apiKey: config.llm.apiKey,
-  baseURL: config.llm.baseUrl,
-  timeout: config.llm.requestTimeoutMs,
-  maxRetries: 0,
-  defaultHeaders: {
-    "HTTP-Referer": config.llm.httpReferer,
-    "X-Title": config.llm.xTitle,
-  },
-});
+const KIE = config.llm.primary || {};
 
+// The KIE model id for a stage. Kept exported under the old name because usage.js
+// re-exports it and scripts/backfill-usage.js prices historical jobs through it.
 function modelForStage(stage) {
-  const table = config.llm.stageModels || {};
-  const kind = table[stage] || "default";
-  if (kind === "fast") return config.llm.modelFast || config.llm.model;
-  if (kind === "default") return config.llm.model;
-  // Any other value is treated as a literal OpenRouter model id, so a single
-  // heavy stage (the composer) can run on a stronger model than the cheap
-  // default used for planning. e.g. stageModels.composer = "anthropic/claude-..."
-  return kind;
+  const table = KIE.stageModels || {};
+  const kind = stage ? table[stage] : null;
+  if (!kind || kind === "default") return KIE.model;
+  if (kind === "fast") return KIE.modelFast || KIE.model;
+  return kind; // a literal KIE model id, e.g. "grok-4-5" for the composer
+}
+
+// Where a model lives, how it must be spoken to, and WHOSE KEY pays for it.
+//
+// PROVIDER vs PROTOCOL — two independent axes that used to be the same axis:
+//   provider — who bills the call and which credential it carries.
+//     "kie" (default)  -> llm.primary.apiKey
+//     "openrouter"     -> llm.apiKey (the key that already serves TTS)
+//   protocol — the wire dialect ("openai" chat/completions, or xAI "responses").
+// OpenRouter speaks the same OpenAI dialect as KIE's gemini slugs, so a cheap
+// OpenRouter model is reachable without a second transport — only a second key.
+// Declared per-model in llm.primary.models[id].provider.
+function endpointFor(modelId) {
+  const entry = (KIE.models || {})[modelId];
+  if (entry && entry.baseUrl) {
+    const provider = entry.provider === "openrouter" ? "openrouter" : "kie";
+    return {
+      baseUrl: String(entry.baseUrl).replace(/\/$/, ""),
+      protocol: entry.protocol || "openai",
+      provider,
+      apiKey: provider === "openrouter" ? config.llm.apiKey : KIE.apiKey,
+      // `reasoning: false` in the model entry suppresses a reasoning model's thinking
+      // trace. Not a micro-optimisation — MEASURED on qwen3.7-flash's vo_fit call:
+      // 1961 output tokens of thinking for a 7-token answer, which at $0.13/1M still
+      // costs 4x what gemini-3-6-flash charges for the same rewrite at $2.25/1M.
+      // The cheap tier is only cheap if the token COUNT stays small; per-token price
+      // alone is a trap for short-output stages. Same answer either way (verified).
+      reasoning: entry.reasoning,
+    };
+  }
+  // Back-compat with the single-model primary shape (baseUrl + model, no models map).
+  if (KIE.baseUrl) {
+    return { baseUrl: String(KIE.baseUrl).replace(/\/$/, ""), protocol: "openai", provider: "kie", apiKey: KIE.apiKey };
+  }
+  throw new Error(`llm: no endpoint configured for model "${modelId}" (add it to llm.primary.models)`);
 }
 
 function isRetryable(err) {
-  // Empty / truncated-JSON completions are flagged retryable by callOnce (gemini
-  // "lazy stop" returns finish_reason:"stop" with a near-empty body — not an HTTP
-  // error, so we synthesize one to drive a retry + model fallback).
+  // Empty / truncated-JSON completions are flagged retryable by assertUsable() — a
+  // 200-OK reply with nothing in it is not an HTTP error, so we synthesize one.
   if (err?.retryable === true) return true;
   const status = err?.status || err?.response?.status;
   if (status === 429) return true;
-  // 402 (the key's daily credit limit is used up) is deliberately NOT retryable:
-  // near the limit, retrying the same request only burns MORE OpenRouter calls
-  // for no gain — the budget is gone. Fail fast so the stage drops to its
-  // fallback instead of amplifying spend. (callOnce no longer shrink-and-retries
-  // 402 either.)
+  // 402 (out of credit) is deliberately NOT retryable: retrying the same request only
+  // burns more calls for no gain. It still escalates to the fallback MODEL below.
   if (status >= 500 && status < 600) return true;
   const code = err?.code || err?.cause?.code || err?.name;
   if (code === "ETIMEDOUT" || code === "ECONNRESET" || code === "ENOTFOUND" ||
       code === "APIConnectionTimeoutError" || code === "AbortError") return true;
   if (err?.message && /\btimed out\b|\baborted\b/i.test(err.message)) return true;
   return false;
-}
-
-// A hard "this MODEL can't serve this request" error: an unknown/removed model
-// id, or the prompt overflowing the model's context window. Retrying the SAME
-// model is futile (so isRetryable stays false — no wasted same-model retries),
-// but a DIFFERENT fallback model may well succeed. These must ESCALATE to the
-// fallback instead of collapsing the stage — e.g. the composer dropping straight
-// to the bland deterministic template when gemini could have composed the video.
-function isModelFatal(err) {
-  const status = err?.status || err?.response?.status;
-  // 400/404 = bad id / context overflow. 403 = a premium model (e.g. opus)
-  // intermittently refused by OpenRouter policy/routing — a DIFFERENT fallback
-  // model serves it, so escalate instead of collapsing to the bland template.
-  if (status === 400 || status === 403 || status === 404) return true;
-  const msg = String(err?.message || "").toLowerCase();
-  return /context length|maximum context|context_length_exceeded|no endpoints|not a valid model|model.*not found|no such model/.test(msg);
 }
 
 // Combine an optional external AbortSignal (e.g. the pipeline stage budget) with
@@ -91,35 +110,102 @@ function withTimeoutSignal(external, timeoutMs, timeoutMsg) {
   return { signal, clear: () => clearTimeout(timer) };
 }
 
-// ---------- PRIMARY: KIE AI (Gemini 3.5 Flash) via raw fetch ----------
-async function callKie({ messages, jsonMode, temperature, maxTokens, timeoutMs, stage, signal: external }) {
-  const p = config.llm.primary;
-  const url = `${p.baseUrl.replace(/\/$/, "")}/chat/completions`;
-  const body = {
-    model: p.model,
-    messages,
-    stream: false, // KIE defaults stream:true — must force false for a single JSON response
-    temperature: temperature ?? config.llm.temperature,
-  };
-  // Forward the SAME output ceiling OpenRouter gets. Omitting it makes KIE apply its own
-  // LOW default (~1k tokens), which silently TRUNCATES long replies — notably multi-line
-  // Devanagari/CJK translations (token-expensive scripts) — into unbalanced JSON that
-  // fails to parse, dropping the whole film's on-screen text back to English (0% localized).
-  if (Number(maxTokens) > 0) body.max_tokens = Number(maxTokens);
-  if (jsonMode) body.response_format = { type: "json_object" };
+// A 200-OK reply that is unusable: empty, or — in JSON mode — truncated/unbalanced.
+// Observed on gemini-3-6-flash roughly 1 call in 5 (identical requests then succeed),
+// so this MUST be retryable: with no cross-provider fallback left, treating a flake as
+// fatal would collapse the stage to its deterministic template on the first hiccup.
+function assertUsable({ text, jsonMode, finish, tokensOut, modelId }) {
+  let bad = null;
+  if (!String(text || "").trim()) {
+    bad = `empty completion (finish=${finish}, out=${tokensOut})`;
+  } else if (jsonMode) {
+    try { extractFirstJsonObject(text); }
+    catch { bad = `truncated/unparseable JSON (finish=${finish}, out=${tokensOut}, ${text.length}ch)`; }
+  }
+  if (bad) {
+    const e = new Error(`${modelId}: ${bad}`);
+    e.retryable = true;
+    throw e;
+  }
+}
 
-  const { signal, clear: hardTimer } = withTimeoutSignal(external, timeoutMs, "kie call timed out");
+// xAI's Responses API names its content parts differently from OpenAI's chat format.
+// Heavy (grok) stages are text-only today, so this is defensive: a vision payload that
+// slipped onto the responses protocol is translated rather than silently rejected.
+function toResponsesInput(messages) {
+  return messages.map((m) => {
+    if (!Array.isArray(m.content)) return { role: m.role, content: m.content };
+    const parts = m.content.map((p) => {
+      if (p && p.type === "image_url") {
+        return { type: "input_image", image_url: p.image_url?.url || p.image_url };
+      }
+      if (p && p.type === "text") return { type: "input_text", text: p.text };
+      return p;
+    });
+    return { role: m.role, content: parts };
+  });
+}
+
+// ---------- model call (both providers, both protocols) ----------
+async function callModel({ modelId, messages, jsonMode, temperature, maxTokens, timeoutMs, stage, signal: external }) {
+  const { baseUrl, protocol, provider, apiKey, reasoning } = endpointFor(modelId);
+  if (!apiKey) {
+    throw new Error(
+      `llm: model "${modelId}" is declared provider="${provider}" but its key is missing ` +
+      `(${provider === "openrouter" ? "llm.apiKey / OPENROUTER_API_KEY" : "llm.primary.apiKey / KIE_API_KEY"}).`
+    );
+  }
+  const responses = protocol === "responses";
+  const url = responses ? `${baseUrl}/responses` : `${baseUrl}/chat/completions`;
+
+  // KIE defaults stream:true on BOTH protocols — it must be forced off or the body
+  // comes back as an SSE event stream instead of one JSON object.
+  const body = responses
+    ? {
+        model: modelId,
+        stream: false,
+        input: toResponsesInput(messages),
+        temperature: temperature ?? config.llm.temperature,
+      }
+    : {
+        model: modelId,
+        messages,
+        stream: false,
+        temperature: temperature ?? config.llm.temperature,
+      };
+
+  // Always send the output ceiling. Omitting it makes KIE apply its OWN low default
+  // (~1k tokens), which silently TRUNCATES long replies — notably multi-line
+  // Devanagari/CJK translations — into unbalanced JSON that fails to parse, dropping
+  // the whole film's on-screen text back to English (0% localized).
+  if (Number(maxTokens) > 0) {
+    if (responses) body.max_output_tokens = Number(maxTokens);
+    else body.max_tokens = Number(maxTokens);
+  }
+  if (jsonMode) {
+    if (responses) body.text = { format: { type: "json_object" } };
+    else body.response_format = { type: "json_object" };
+  }
+  // OpenRouter's unified reasoning control. Only `enabled:false` is honored here —
+  // `effort:"minimal"` still emitted 1245 thinking tokens in testing, and
+  // `max_tokens:0` is rejected outright (HTTP 400) by the upstream provider.
+  if (provider === "openrouter" && reasoning === false) {
+    body.reasoning = { enabled: false };
+  }
+
+  const { signal, clear: hardTimer } = withTimeoutSignal(external, timeoutMs, `${provider} call timed out`);
   const t0 = Date.now();
   try {
-    const resp = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${p.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-      signal,
-    });
+    const headers = {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    };
+    // OpenRouter attributes traffic by these two; both already live in config for TTS.
+    if (provider === "openrouter") {
+      if (config.llm.httpReferer) headers["HTTP-Referer"] = config.llm.httpReferer;
+      if (config.llm.xTitle) headers["X-Title"] = config.llm.xTitle;
+    }
+    const resp = await fetch(url, { method: "POST", headers, body: JSON.stringify(body), signal });
     const dt = Date.now() - t0;
     const rawText = await resp.text();
 
@@ -127,221 +213,146 @@ async function callKie({ messages, jsonMode, temperature, maxTokens, timeoutMs, 
     try {
       data = JSON.parse(rawText);
     } catch {
-      const err = new Error(`kie: non-JSON response (HTTP ${resp.status}): ${rawText.slice(0, 200)}`);
+      const err = new Error(`${provider}: non-JSON response (HTTP ${resp.status}): ${rawText.slice(0, 200)}`);
       err.status = resp.status;
       throw err;
     }
 
     // KIE returns transport errors in-body with HTTP 200: {code, msg, data}.
     if (data && typeof data.code === "number" && data.code !== 200) {
-      const err = new Error(`kie: API error ${data.code} — ${data.msg || "unknown"}`);
+      const err = new Error(`${provider}: API error ${data.code} — ${data.msg || "unknown"}`);
       err.status = data.code; // 429/5xx -> retryable via isRetryable()
       throw err;
     }
+    // OpenRouter's equivalent: HTTP 200 carrying {error:{code,message}} and no choices.
+    // Without this the reply reads as an empty completion — retried three times and
+    // then blamed on the model, when the real cause was a 402 or a bad key.
+    if (data && data.error && typeof data.error === "object") {
+      const err = new Error(`${provider}: API error ${data.error.code || "?"} — ${data.error.message || "unknown"}`);
+      err.status = Number(data.error.code) || resp.status;
+      throw err;
+    }
     if (!resp.ok) {
-      const err = new Error(`kie: HTTP ${resp.status} — ${rawText.slice(0, 200)}`);
+      const err = new Error(`${provider}: HTTP ${resp.status} — ${rawText.slice(0, 200)}`);
       err.status = resp.status;
       throw err;
     }
 
-    const text = data.choices?.[0]?.message?.content ?? "";
-    if (!text) {
-      throw new Error(`kie: empty content in response: ${rawText.slice(0, 200)}`);
+    let text, tokensIn, tokensOut, finish;
+    if (responses) {
+      // output[] interleaves reasoning and message parts; only the message carries text.
+      const messagesOut = (data.output || []).filter((o) => o && o.type === "message");
+      text = messagesOut
+        .flatMap((m) => (m.content || [])
+          .filter((c) => c && typeof c.text === "string")
+          .map((c) => c.text))
+        .join("");
+      tokensIn = data.usage?.input_tokens ?? 0;
+      tokensOut = data.usage?.output_tokens ?? 0;
+      finish = data.status || data.incomplete_details?.reason || "?";
+    } else {
+      text = data.choices?.[0]?.message?.content ?? "";
+      tokensIn = data.usage?.prompt_tokens ?? 0;
+      tokensOut = data.usage?.completion_tokens ?? 0;
+      finish = data.choices?.[0]?.finish_reason || "?";
     }
-    const tokensIn = data.usage?.prompt_tokens ?? 0;
-    const tokensOut = data.usage?.completion_tokens ?? 0;
-    console.log(`[kie] ${p.model} stage=${stage || "?"} ok (${dt}ms, in=${tokensIn} out=${tokensOut}, ${text.length}ch)`);
-    return { text, tokensIn, tokensOut, model: p.model, provider: "kie" };
+
+    assertUsable({ text, jsonMode, finish, tokensOut, modelId });
+
+    console.log(`[${provider}] ${modelId} stage=${stage || "?"} ok (${dt}ms, in=${tokensIn} out=${tokensOut}, ${text.length}ch)`);
+    return { text, tokensIn, tokensOut, model: modelId, provider };
   } catch (err) {
     const dt = Date.now() - t0;
     const tag = err?.status || err?.code || err?.name || err?.message?.slice(0, 80) || "unknown";
-    console.warn(`[kie] ${p.model} stage=${stage || "?"} FAILED after ${dt}ms: ${tag}`);
+    console.warn(`[${provider}] ${modelId} stage=${stage || "?"} FAILED after ${dt}ms: ${tag}`);
     throw err;
   } finally {
     hardTimer();
   }
 }
 
-// ---------- FALLBACK: OpenRouter via OpenAI SDK ----------
-// Retries transient failures (429/402/5xx/timeout) on the SAME model with
-// backoff before giving up — Gemini's OpenAI-compat endpoint throws frequent
-// transient 503s, and without this a single 503 on a composer repair lap kills
-// the whole composition (falling back to the deterministic template).
-async function callOnce({ body, timeoutMs, stage, model, signal: external }) {
-  const MAX_ATTEMPTS = 3;
-  let lastErr;
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    if (external?.aborted) throw external.reason || new Error("call aborted");
-    const { signal, clear: hardTimer } = withTimeoutSignal(external, timeoutMs, "call timed out");
-    const t0 = Date.now();
-    try {
-      const resp = await client.chat.completions.create({ ...body, model }, { signal });
-      const dt = Date.now() - t0;
-      const text = resp.choices?.[0]?.message?.content ?? "";
-      const finish = resp.choices?.[0]?.finish_reason;
-      const tokensIn = resp.usage?.prompt_tokens ?? 0;
-      const tokensOut = resp.usage?.completion_tokens ?? 0;
-
-      // Guard against gemini's intermittent "lazy stop": a 200-OK response
-      // (finish_reason usually "stop") whose body is empty or — in JSON mode — a
-      // truncated/unbalanced object. It is NOT an HTTP error, so without this the
-      // caller gets junk and re-hits the same flaky model. Synthesize a retryable
-      // error so the loop retries this model, then chat() escalates to the fallback.
-      const wantsJson = body?.response_format?.type === "json_object";
-      let badCompletion = null;
-      if (!text.trim()) {
-        badCompletion = `empty completion (finish=${finish}, out=${tokensOut})`;
-      } else if (wantsJson) {
-        try { extractFirstJsonObject(text); }
-        catch { badCompletion = `truncated/unparseable JSON (finish=${finish}, out=${tokensOut}, ${text.length}ch)`; }
-      }
-      if (badCompletion) {
-        console.warn(`[openrouter] ${model} stage=${stage || "?"} returned a bad completion: ${badCompletion}`);
-        const e = new Error(badCompletion); e.retryable = true; throw e;
-      }
-
-      console.log(`[openrouter] ${model} stage=${stage || "?"} ok (${dt}ms, in=${tokensIn} out=${tokensOut}, ${text.length}ch)`);
-      return { text, tokensIn, tokensOut, model, provider: "openrouter" };
-    } catch (err) {
-      const dt = Date.now() - t0;
-      const tag = err?.status || err?.code || err?.name || err?.message?.slice(0, 80) || "unknown";
-      console.warn(`[openrouter] ${model} stage=${stage || "?"} FAILED after ${dt}ms: ${tag}`);
-      lastErr = err;
-      hardTimer();
-      // The former 402 "shrink max_tokens and retry" amplification was removed:
-      // near the daily limit it only spent MORE OpenRouter calls squeezing in
-      // requests. 402 is now non-retryable (see isRetryable) and fails fast.
-      if (attempt < MAX_ATTEMPTS && isRetryable(err) && !external?.aborted) {
-        const backoff = 1500 * attempt;
-        console.warn(`[openrouter] ${model} transient ${tag} — retry ${attempt}/${MAX_ATTEMPTS - 1} in ${backoff}ms`);
-        await new Promise((r) => setTimeout(r, backoff));
-        continue;
-      }
-      throw err;
-    } finally {
-      hardTimer();
-    }
-  }
-  throw lastErr;
-}
-
 async function chat({ system, user, jsonMode = false, temperature, model, stage, signal }) {
   if (signal?.aborted) throw signal.reason || new Error("llm: aborted before dispatch");
+  // A per-model key check lives in callModel(); this only rejects the case where
+  // NEITHER provider is configured, so an OpenRouter-served light stage is not
+  // blocked by a missing KIE key it never uses.
+  if (!KIE.apiKey && !config.llm.apiKey) {
+    throw new Error("llm: no provider configured (llm.primary.apiKey / KIE_API_KEY, or llm.apiKey / OPENROUTER_API_KEY).");
+  }
 
   const messages = [
     { role: "system", content: system },
     { role: "user", content: user },
   ];
-  // Per-stage timeout: the composer authors a ~25KB document from a ~140KB
-  // prompt and is legitimately slow (deepseek ~170s) — a flat 180s times it out
-  // and re-sends the giant prompt on retry. Heavy stages get a longer ceiling.
+  // Per-stage timeout: the composer authors a ~25KB document from a ~140KB prompt and is
+  // legitimately slow — a flat 180s times it out and re-sends the giant prompt on retry.
   const timeoutMs = Math.max(
     10_000,
     Number(config.llm.requestTimeoutByStage?.[stage]) || Number(config.llm.requestTimeoutMs) || 90_000
   );
 
-  // Per-stage temperature: a distilled, decision-table-driven stage (composer)
-  // should TRANSCRIBE its recipe, not improvise — low temp makes a cheap model
-  // copy defaults instead of inventing variance. Explicit caller arg always wins.
+  // Per-stage temperature: a distilled, decision-table-driven stage (composer) should
+  // TRANSCRIBE its recipe, not improvise. Explicit caller arg always wins.
   const effTemp = temperature ?? config.llm.temperatureByStage?.[stage] ?? config.llm.temperature;
 
-  // Explicit output ceiling, shared by BOTH providers (KIE + OpenRouter). OpenRouter
-  // pre-charges affordability against max_tokens (default 65k), so an explicit cap keeps
-  // requests viable as the daily credit depletes and bounds runaway reasoning; KIE needs
-  // it because its OWN default cap (~1k) truncates long non-Latin translations.
   const maxTokens = Number(config.llm.maxTokens?.[stage]) || Number(config.llm.maxTokens?.default) || 12288;
-  const orBody = {
-    messages,
-    temperature: effTemp,
-    max_tokens: maxTokens,
-  };
-  if (jsonMode) orBody.response_format = { type: "json_object" };
 
-  // OpenRouter model selection (used as fallback, or as primary when a caller
-  // forces an explicit `model`).
-  const orPrimary = model || (stage ? modelForStage(stage) : config.llm.model);
-  const orFallback = config.llm.modelFallback;
+  // An explicit `model` arg pins the call to that model with no fallback (no caller
+  // does this today; it exists for one-off scripts). Otherwise: stage model -> fallback.
+  //
+  // The fallback is a KIE model, so for a stage pinned to an OpenRouter model this
+  // chain now CROSSES PROVIDERS — a cheap model that flakes, 402s, or returns
+  // unparseable JSON lands on gemini-3-6-flash instead of collapsing the stage to its
+  // deterministic template. That resilience is free and is the reason a light tier is
+  // safe to run on a second provider at all.
+  const primaryModel = model || modelForStage(stage);
+  const useFallback = !model && KIE.fallbackModel && KIE.fallbackModel !== primaryModel;
+  const chain = useFallback ? [primaryModel, KIE.fallbackModel] : [primaryModel];
 
-  const kieEnabled = config.llm.primary && config.llm.primary.apiKey && !model;
+  console.log(`[llm] ${chain.join(" -> ")} stage=${stage || "?"} dispatching (sys=${system.length}ch user=${typeof user === "string" ? user.length : "multipart"}ch json=${jsonMode} timeout=${timeoutMs}ms)`);
 
-  // Stages that must NEVER spill onto OpenRouter when KIE fails. The composer
-  // (mapped to opus-4.8 — the priciest model — in config.stageModels) and the
-  // storyboard send huge prompts; a single KIE 524 would otherwise dump the
-  // whole prompt onto OpenRouter and drain the daily budget. For these, the
-  // OpenRouter fallback is skipped entirely — a KIE failure drops the stage to
-  // its deterministic fallback (scene-kit composer / script-derived storyboard).
-  // An explicit `model` arg still overrides (a caller that hard-picks a model
-  // genuinely wants OpenRouter). Tune via config.llm.noOpenRouterFallbackStages.
-  const noOrStages = config.llm.noOpenRouterFallbackStages || ["composer", "storyboard"];
-  const blockOpenRouter = !model && !!stage && noOrStages.includes(stage);
-
-  const fallbackDesc = blockOpenRouter ? "none(KIE-only)" : `${orPrimary}->${orFallback || "none"}`;
-  console.log(`[llm] primary=${kieEnabled ? `kie:${config.llm.primary.model}` : "none"} fallback=${fallbackDesc} stage=${stage || "?"} dispatching (sys=${system.length}ch user=${user.length}ch json=${jsonMode} timeout=${timeoutMs}ms)`);
-
-  // 1. PRIMARY: KIE Gemini. KIE's Cloudflare edge throws transient 524/5xx
-  // timeouts on the bigger prompts (storyboard/composer), so RETRY it a couple of
-  // times before falling back — the OpenRouter fallback is often daily-limited, so
-  // a premature fall-through just fails the whole stage. Any non-retryable error
-  // (or exhausted retries) still falls through. Skip if the stage was cancelled.
-  if (kieEnabled) {
-    const KIE_ATTEMPTS = 3;
-    for (let a = 1; a <= KIE_ATTEMPTS; a++) {
+  const ATTEMPTS = 3;
+  let lastErr;
+  for (let i = 0; i < chain.length; i++) {
+    const modelId = chain[i];
+    // KIE's Cloudflare edge throws transient 524/5xx timeouts on the bigger prompts
+    // (storyboard/composer), so retry the SAME model before switching.
+    for (let a = 1; a <= ATTEMPTS; a++) {
       if (signal?.aborted) throw signal.reason || new Error("llm: aborted");
       try {
-        return await callKie({ messages, jsonMode, temperature: effTemp, maxTokens, timeoutMs, stage, signal });
+        return await callModel({ modelId, messages, jsonMode, temperature: effTemp, maxTokens, timeoutMs, stage, signal });
       } catch (err) {
         if (signal?.aborted) throw err;
-        const canRetry = a < KIE_ATTEMPTS && isRetryable(err);
-        if (canRetry) {
+        lastErr = err;
+        if (a < ATTEMPTS && isRetryable(err)) {
           const backoff = 1000 * a;
-          console.warn(`[llm] KIE ${err?.status || err?.code || err?.message || err} on stage=${stage} — retry ${a}/${KIE_ATTEMPTS - 1} in ${backoff}ms`);
+          console.warn(`[llm] ${modelId} ${err?.status || err?.code || err?.message || err} on stage=${stage} — retry ${a}/${ATTEMPTS - 1} in ${backoff}ms`);
           await new Promise((r) => setTimeout(r, backoff));
           continue;
         }
-        console.warn(`[llm] KIE primary failed (${err?.status || err?.message || err}); falling back to OpenRouter ${orPrimary}`);
         break;
       }
     }
-  }
-
-  // KIE-only stages: do not fall through to OpenRouter (see blockOpenRouter).
-  // Throwing here hands the stage to its deterministic fallback instead of
-  // burning the OpenRouter daily budget on a giant composer/storyboard prompt.
-  if (blockOpenRouter) {
-    throw new Error(
-      `llm: stage=${stage} runs KIE-only (no OpenRouter fallback); ` +
-      `KIE ${kieEnabled ? "exhausted its retries" : "is not configured"}. ` +
-      `Stage will use its deterministic fallback.`
-    );
-  }
-
-  // 2. FALLBACK: OpenRouter primary model.
-  try {
-    return await callOnce({ body: orBody, timeoutMs, stage, model: orPrimary, signal });
-  } catch (err) {
-    if (signal?.aborted) throw err;
-    // Escalate to the fallback model on a transient error OR a model-fatal one
-    // (bad id / context overflow) — the latter won't recover by retrying the
-    // same model but a different model can, so it must not collapse the stage.
-    if (!orFallback || orFallback === orPrimary || !(isRetryable(err) || isModelFatal(err))) throw err;
-    // 3. FALLBACK: OpenRouter secondary model.
-    console.warn(`[openrouter] FALLBACK: ${orPrimary} failed; switching to ${orFallback} for stage=${stage}`);
-    try {
-      return await callOnce({ body: orBody, timeoutMs, stage, model: orFallback, signal });
-    } catch (err2) {
-      const e = new Error(`llm: all providers failed for stage=${stage}. openrouter ${orPrimary}: ${err?.status || err?.code || err?.message || err}. openrouter ${orFallback}: ${err2?.status || err2?.code || err2?.message || err2}`);
-      throw e;
+    const next = chain[i + 1];
+    if (next) {
+      console.warn(`[llm] FALLBACK: ${modelId} failed (${lastErr?.status || lastErr?.message || lastErr}); switching to ${next} for stage=${stage}`);
     }
   }
+
+  throw new Error(
+    `llm: all models failed for stage=${stage} (${chain.join(", ")}). ` +
+    `Last error: ${lastErr?.status || lastErr?.code || lastErr?.message || lastErr}. ` +
+    `Stage will use its deterministic fallback.`
+  );
 }
 
 // Budget probe (free endpoints, 60s cache). Returns { remaining, limit } in
 // USD, or null when the probe fails — callers must treat null as "unknown,
-// proceed". True spendable budget is the LARGER of the per-key remaining
-// (/key.limit_remaining) and the account balance (/credits: total - usage):
-// a key can show a low per-key cap reading yet still draw from the account's
-// credits (verified: calls succeed against a $53 account whose key reports
-// $0.004 remaining). Using the max avoids falsely blocking a funded account.
+// proceed".
+//
+// Both providers are still probed: KIE serves every LLM stage, and OpenRouter still
+// bills the voiceover (services/tts.js), so a dead OpenRouter key is a real failure
+// even though no LLM call touches it any more.
 let budgetCache = { at: 0, value: null };
 // KIE bills in credits at a standard $0.005 each (see services/usage.js).
 const KIE_CREDIT_USD = 0.005;
@@ -349,32 +360,19 @@ const KIE_CREDIT_USD = 0.005;
 /**
  * How much headroom is there to spend, across BOTH providers?
  *
- * TWO BUGS THIS REPLACES, which together let a job through to fail at its first
- * LLM call instead of being refused with a clear reason:
+ * WITHIN a provider the constraint is the MINIMUM of its ceilings: a key capped at
+ * $3/day with $0.00 left on an account holding $17.34 has zero headroom, not $17.34.
  *
- *  1. WITHIN OpenRouter it took `Math.max(perKey, account)`. Those are not
- *     alternatives — they are two independent ceilings, and spending is blocked by
- *     whichever is LOWER. A key capped at $3/day with $0.00 left on an account
- *     holding $17.34 reported "$17.34 remaining" and waved the job through, when
- *     the true headroom was zero. Within a provider the constraint is the MINIMUM.
- *
- *  2. It only ever looked at OpenRouter, which has not been the primary since KIE
- *     was wired in. A dead OpenRouter key with a funded KIE account would have been
- *     reported as broke even though every stage would have run fine on KIE — and
- *     the converse (KIE overdrawn, OpenRouter healthy) was invisible.
- *
- * ACROSS providers, `max` IS right: chat() falls back, so a job can run if EITHER
- * has headroom. The two directions are genuinely different and the old code applied
- * the wrong one in the one place it mattered.
+ * ACROSS providers `max` is right — a job can run if either has headroom (KIE for the
+ * LLM stages, OpenRouter for the voiceover).
  *
  * Returns null when nothing could be probed (never block on ignorance), else
- * { remaining, limit, openrouter, kie } where `remaining` is the best provider's
- * headroom in USD — the number the intake gate should compare against.
+ * { remaining, limit, openrouter, kie }.
  */
 async function checkBudget() {
   if (Date.now() - budgetCache.at < 60_000) return budgetCache.value;
 
-  // ---- OpenRouter: the lower of the key's allowance and the account's credit.
+  // ---- OpenRouter (TTS + historical): the lower of the key's allowance and the account credit.
   const base = config.llm.baseUrl.replace(/\/$/, "");
   const hdr = { Authorization: `Bearer ${config.llm.apiKey}` };
   let perKey = null, account = null, limit = null;
@@ -393,10 +391,10 @@ async function checkBudget() {
 
   // ---- KIE: credit balance (can go negative when overdrawn, which is the 402).
   let kieCredits = null;
-  if (config.llm.primary && config.llm.primary.apiKey) {
+  if (KIE.apiKey) {
     try {
       const r = await fetch("https://api.kie.ai/api/v1/chat/credit", {
-        headers: { Authorization: `Bearer ${config.llm.primary.apiKey}` },
+        headers: { Authorization: `Bearer ${KIE.apiKey}` },
         signal: AbortSignal.timeout(10_000),
       });
       if (r.ok) { const d = await r.json(); if (Number.isFinite(Number(d.data))) kieCredits = Number(d.data); }
@@ -423,16 +421,16 @@ async function checkBudget() {
 function budgetExhaustedMessage(budget) {
   const bits = [];
   const or = budget && budget.openrouter, kie = budget && budget.kie;
+  if (kie) {
+    bits.push(kie.credits <= 0
+      ? `KIE (every LLM stage): balance is ${kie.credits} credits (overdrawn) — top up at kie.ai`
+      : `KIE: $${kie.remaining.toFixed(2)} left`);
+  }
   if (or) {
     const capped = or.perKey != null && or.perKey <= 0.15;
     bits.push(capped
-      ? `OpenRouter: the key's ${or.dailyLimit != null ? `$${or.dailyLimit}/day ` : ""}limit is used up ($${or.perKey.toFixed(2)} left today${or.account != null ? `, $${or.account.toFixed(2)} account credit unused` : ""}) — it resets on the daily boundary, or raise the limit at openrouter.ai/settings/keys`
-      : `OpenRouter: $${Number(or.remaining).toFixed(2)} left — add credits at openrouter.ai/credits`);
-  }
-  if (kie) {
-    bits.push(kie.credits <= 0
-      ? `KIE: balance is ${kie.credits} credits (overdrawn) — top up at kie.ai`
-      : `KIE: $${kie.remaining.toFixed(2)} left`);
+      ? `OpenRouter (voiceover): the key's ${or.dailyLimit != null ? `$${or.dailyLimit}/day ` : ""}limit is used up ($${or.perKey.toFixed(2)} left today${or.account != null ? `, $${or.account.toFixed(2)} account credit unused` : ""}) — it resets on the daily boundary, or raise the limit at openrouter.ai/settings/keys`
+      : `OpenRouter (voiceover): $${Number(or.remaining).toFixed(2)} left — add credits at openrouter.ai/credits`);
   }
   return "LLM budget exhausted — no configured provider has headroom. "
     + (bits.length ? bits.join(". ") + "." : "Add credits or raise the key limits.");
@@ -440,6 +438,6 @@ function budgetExhaustedMessage(budget) {
 
 const BUDGET_EXHAUSTED_MSG =
   "LLM budget exhausted — no configured provider has spending headroom. " +
-  "An OpenRouter daily-limit key resets each day; a negative KIE balance needs a top-up.";
+  "A negative KIE balance needs a top-up; an OpenRouter daily-limit key resets each day.";
 
 module.exports = { chat, modelForStage, checkBudget, budgetExhaustedMessage, BUDGET_EXHAUSTED_MSG };

@@ -105,6 +105,82 @@ function containerFor(kind, a) {
   return "Media Frame";
 }
 
+// ---------------------------------------------------------------- distribution
+//
+// SPREAD BEFORE STACKING — the single highest-impact layout decision, and it was missing.
+//
+// The Creative Director assigns each asset the scene where it best supports the story,
+// judging assets one at a time. Nothing ever looked at the RESULT as a distribution, so
+// several assets routinely landed on the same scene while other scenes got none. Measured
+// across the recent 9:16 films:
+//
+//   755o2m8g21  6 assets → s1,s1,s1,s2,s5,s9   3 scenes covered of 9   layout score 41
+//   48vb7svz9s  6 assets → s1,s1,s2,s5,s8,s8   4 of 8                  score 58
+//   8qcod42pjf  8 assets → s4,s2,s3,s5,s1,s6,s2,s7  7 of 7             score 90
+//
+// The best and worst films differ by DISTRIBUTION, not by how many assets were collected.
+// A film with six visuals and nine scenes should cover six scenes; leaving six scenes as
+// bare template panels is the "empty scenes / only 2-3 images / excessive empty space"
+// complaint, and it is arithmetic rather than taste.
+//
+// So: every scene gets ONE asset before any scene gets TWO. The surplus moved is always
+// the LOWEST-ranked asset on an over-subscribed scene, so a scene keeps its strongest
+// visual and the hero never moves. `maxPerScene` (the CD's prominence cap) is unchanged —
+// this decides WHERE assets sit, not how prominent they are.
+function spreadAcrossScenes(assets, scenes, { isLogo: isLogoFn = isLogo } = {}) {
+  const list = Array.isArray(assets) ? assets : [];
+  const sceneIds = (scenes || []).map((s, i) => (s && s.id != null ? String(s.id) : `s${i + 1}`));
+  if (sceneIds.length < 2) return { moved: 0, moves: [] };
+
+  // The logo is key-moment material (open + CTA), not a scene filler — never relocate it.
+  const placeable = list.filter((a) => a && a.path && !isLogoFn(a) && a.sceneId != null);
+  const byScene = new Map();
+  for (const a of placeable) {
+    const k = String(a.sceneId);
+    if (!byScene.has(k)) byScene.set(k, []);
+    byScene.get(k).push(a);
+  }
+  const uncovered = sceneIds.filter((id) => !byScene.has(id) || !byScene.get(id).length);
+  if (!uncovered.length) return { moved: 0, moves: [] };
+
+  // Surplus = everything beyond the first asset on each over-subscribed scene, weakest
+  // first, so the strongest visual stays where the director put it.
+  const surplus = [];
+  for (const [, arr] of byScene) {
+    if (arr.length <= 1) continue;
+    const ranked = arr.slice().sort((x, y) => importance(y) - importance(x));
+    surplus.push(...ranked.slice(1));
+  }
+  if (!surplus.length) return { moved: 0, moves: [] };
+  surplus.sort((x, y) => importance(x) - importance(y));   // weakest moves first
+
+  // Fill the uncovered scenes NEAREST the asset's current home first: a visual that was
+  // meant for scene 2 belongs on scene 3 rather than scene 9 — moving it across the film
+  // would break the story beat it was chosen for.
+  const idxOf = (id) => sceneIds.indexOf(String(id));
+  const moves = [];
+  const open = uncovered.slice();
+  for (const a of surplus) {
+    if (!open.length) break;
+    const from = idxOf(a.sceneId);
+    let bestI = 0, bestD = Infinity;
+    open.forEach((id, i) => {
+      const d = Math.abs(idxOf(id) - from);
+      if (d < bestD) { bestD = d; bestI = i; }
+    });
+    const to = open.splice(bestI, 1)[0];
+    const scene = (scenes || [])[idxOf(to)];
+    moves.push({ path: a.path, from: String(a.sceneId), to });
+    a.sceneId = scene && scene.id != null ? scene.id : to;
+    // Timing rides with the scene, or the asset animates in a window it no longer occupies.
+    if (scene) {
+      if (scene.start != null) a.startSec = scene.start;
+      if (scene.duration != null) a.durationSec = scene.duration;
+    }
+  }
+  return { moved: moves.length, moves };
+}
+
 // ---------------------------------------------------------------- main
 // Returns { assets, layoutPlan, review }. `assets` is the SAME array with prominence
 // re-leveled (weak overflow demoted to background) and `cropFocus` annotated.
@@ -175,11 +251,21 @@ function directLayout({ storyboard, script, assets, framePack, dims } = {}) {
     // tiles) than a wide grid — cap at 4 unless a big upload set justifies more.
     if (layoutPlan.__aspect !== "landscape") layoutPlan.__montageMax = Math.min(layoutPlan.__montageMax, uploadCount >= 5 ? 5 : 4);
 
-    // 3) PER-SCENE composition report (telemetry, not consumed by the render). A
-    //    rough deterministic quality read: penalize scenes that would still be dense.
     const scenes = (storyboard && Array.isArray(storyboard.scenes) && storyboard.scenes.length
       ? storyboard.scenes
       : (script && Array.isArray(script.scenes) ? script.scenes : []));
+
+    // 2b) DISTRIBUTION — every scene gets one asset before any scene gets two. Runs
+    //     before the per-scene report below so the report describes the film as it will
+    //     actually be composed. See spreadAcrossScenes for the measurements behind this.
+    const spread = spreadAcrossScenes(list, scenes);
+    if (spread.moved) {
+      console.log(`[visual_layout_director] spread ${spread.moved} asset(s) onto empty scenes: `
+        + spread.moves.map((m) => `${m.from}→${m.to}`).join(", "));
+    }
+
+    // 3) PER-SCENE composition report (telemetry, not consumed by the render). A
+    //    rough deterministic quality read: penalize scenes that would still be dense.
     const prominentTotal = byKind.screenshot.slice(0, budget.screenshot).length
       + byKind.photo.slice(0, budget.photo).length;
     // PER-SCENE COVERAGE, not a decoration. The old report repeated the same
@@ -227,6 +313,8 @@ function directLayout({ storyboard, script, assets, framePack, dims } = {}) {
       aspect: layoutPlan.__aspect,
       prominentTotal,
       emptyScenes,
+      redistributed: spread.moved,
+      redistribution: spread.moves.slice(0, 12),
       scenes: sceneReports,
       score: { compositionQuality, coverage: Math.round(coverage * 100), source: "deterministic" },
     };

@@ -11,7 +11,11 @@
     "vermilion": "#FF5A3C",
     "cobalt": "#2C6BED"
   },
-  "fonts": ["Archivo Black", "JetBrains Mono", "Inter"],
+  "fonts": [
+    "Archivo Black",
+    "JetBrains Mono",
+    "Inter"
+  ],
   "surface": {
     "flat": true,
     "lightCinematic": true,
@@ -19,22 +23,37 @@
   },
   "motion": {
     "cut": "snap",
-    "drift": 1.0
+    "drift": 1
   },
   "fx": {
     "canvas": "shape-field",
     "three": "none"
   },
   "skin": {
-    "accents": ["#FF5A3C", "#2C6BED"],
+    "accents": [
+      "#FF5A3C",
+      "#2C6BED"
+    ],
     "extras": [],
     "emphasisCss": null
   },
   "assets": {
     "photoMod": "product screenshot masked into a bold shape frame with a hard offset color shadow",
     "iconStyle": "solid",
-    "keywords": ["motion", "graphics", "shapes", "bold", "geometric", "cream", "reel", "portrait"],
-    "prefer": ["photo", "vector"]
+    "keywords": [
+      "motion",
+      "graphics",
+      "shapes",
+      "bold",
+      "geometric",
+      "cream",
+      "reel",
+      "portrait"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
   },
   "typography": {
     "display": "Archivo Black",
@@ -47,5 +66,36 @@
     "case": "none",
     "tracking": -0.03,
     "align": "center"
+  },
+  "audio": {
+    "mood": "playful",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "electronic",
+      "funk",
+      "abstract",
+      "percussion"
+    ],
+    "musicKeywords": [
+      "abstract electronic",
+      "playful percussion",
+      "modern groove",
+      "rhythmic funk",
+      "upbeat energetic",
+      "driving groove"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "pop",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
   }
 }

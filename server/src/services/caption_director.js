@@ -107,11 +107,16 @@ function modeFor(cfg) {
 // Latin: the site title, plus the brief's subject WHEN it reads like a brand name (ASCII,
 // no exotic chars) — a subject like "golden retriever dog" is a common noun and should
 // still be translated, so the regex gate keeps only brand-ish subjects.
-function buildTranslateContext(brief, job, script) {
-  const doNotTranslate = [
-    job?.website_title,
-    brief?.subject && /^[A-Za-z0-9 .\-&]+$/.test(brief.subject) ? brief.subject : null,
-  ].filter(Boolean);
+function buildTranslateContext(brief, job, script, glossary) {
+  // The Language Director supplies a richer do-not-translate glossary (fixed brand/tech terms
+  // + site title + gated subject) when present; fall back to the minimal seed otherwise so
+  // callers that don't pass one behave exactly as before.
+  const doNotTranslate = Array.isArray(glossary) && glossary.length
+    ? glossary
+    : [
+        job?.website_title,
+        brief?.subject && /^[A-Za-z0-9 .\-&]+$/.test(brief.subject) ? brief.subject : null,
+      ].filter(Boolean);
   return {
     subject: brief?.subject || "",
     tone: brief?.tone || script?.voice?.style || "",
@@ -171,8 +176,23 @@ function buildEstimatedCues({ scenes, textById, langCode }) {
 //     exportSRT, exportVTT, style, highlightWords,
 //     quality,                      // partial; finalized at timeline
 //   }
-async function resolveCaptionPlan({ captionConfig, script, brief, job, tracker, signal } = {}) {
-  const cfg = normalizeConfig(captionConfig);
+async function resolveCaptionPlan({ captionConfig, script, brief, job, tracker, signal, languagePlan } = {}) {
+  // The Language Director resolves the language triple ONCE (at intake) and persists it; when
+  // it's handed in, use its resolved codes verbatim so this stage never re-normalizes config
+  // independently. Fall back to normalizeConfig (unchanged) when no plan is supplied.
+  const cfg = languagePlan
+    ? {
+        enabled: languagePlan.captionsEnabled,
+        language: languagePlan.captionLanguage,
+        voiceoverLanguage: languagePlan.voiceLanguage,
+        videoTextLanguage: languagePlan.videoTextLanguage,
+        translateVoiceover: languagePlan.voiceLanguage !== SOURCE,
+        translateVideoText: languagePlan.videoTextLanguage !== SOURCE,
+        exportSRT: languagePlan.exportSRT !== false,
+        exportVTT: languagePlan.exportVTT !== false,
+        style: null, highlightWords: false,
+      }
+    : normalizeConfig(captionConfig);
   const mode = modeFor(cfg);
   const scenes = Array.isArray(script?.scenes) ? script.scenes : [];
   const meta = captionLang.langMeta(cfg.language);
@@ -185,7 +205,7 @@ async function resolveCaptionPlan({ captionConfig, script, brief, job, tracker, 
   const voScenes = scenes.filter((s) => s.voiceover && String(s.voiceover).trim());
   const sourceById = Object.fromEntries(voScenes.map((s) => [String(s.id), String(s.voiceover)]));
 
-  const context = buildTranslateContext(brief, job, script);
+  const context = buildTranslateContext(brief, job, script, languagePlan?.glossary);
   const lines = voScenes.map((s) => ({ id: String(s.id), text: String(s.voiceover) }));
   const skipped = () => ({ ok: true, byId: sourceById, translatedCount: 0, totalCount: voScenes.length, scriptOkCount: voScenes.length, untranslatedIds: [], skipped: true });
 
@@ -376,7 +396,7 @@ function finalizeQuality(plan, { voScenes = [], measuredCues = [], voClips = [] 
 // Fail-open: any failure leaves English text. Returns null when target === source.
 //   report: { videoTextLanguage, videoTextLanguageName, translatedElements, elementCount,
 //             localizationCoverage, fontCompatibility, degraded, notes[] }
-async function localizeStoryboardText({ storyboard, videoTextLanguage, videoTextLanguageName, textStyle, extraStrings = null, brief, job, script, tracker, signal } = {}) {
+async function localizeStoryboardText({ storyboard, videoTextLanguage, videoTextLanguageName, textStyle, extraStrings = null, brief, job, script, tracker, signal, glossary } = {}) {
   const vtl = videoTextLanguage;
   const sb = storyboard;
   if (!vtl || vtl === SOURCE || !sb || !Array.isArray(sb.scenes)) return null;
@@ -403,7 +423,7 @@ async function localizeStoryboardText({ storyboard, videoTextLanguage, videoText
   const base = { videoTextLanguage: vtl, videoTextLanguageName: videoTextLanguageName || meta?.name || vtl, fontCompatibility };
   if (!lines.length) return { ...base, translatedElements: 0, elementCount: 0, localizationCoverage: 0, degraded: false, notes: [] };
 
-  const context = buildTranslateContext(brief, job, script);
+  const context = buildTranslateContext(brief, job, script, glossary);
   const res = await translateLines({ lines, targetLang: vtl, sourceLang: SOURCE, context, tracker, signal }).catch(() => null);
 
   const sk = needsFont ? meta.font : null;

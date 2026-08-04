@@ -25,7 +25,7 @@ const frameManifest = require("./frame_manifest");
 const { acquire } = require("./asset_sources");
 const taxonomy = require("./asset_taxonomy");
 const clip = require("./asset_clip");
-const { rankKey, isLogo, categorize, assetConfidence, WEBSITE_ASSET_SOURCE, WEBSITE_BRAND_SOURCE } = require("./asset_priority");
+const { rankKey, isLogo, isOwned, categorize, assetConfidence, WEBSITE_ASSET_SOURCE, WEBSITE_BRAND_SOURCE } = require("./asset_priority");
 
 const SYSTEM = fs.readFileSync(
   path.join(__dirname, "..", "prompts", "system_creative_director.md"),
@@ -47,7 +47,7 @@ const isWebStock = (a) => {
 };
 
 function cd() {
-  return config.creativeDirector || { enabled: true, maxPerScene: 2, maxTopUp: 3, chunkSize: 6 };
+  return config.creativeDirector || { enabled: true, maxPerScene: 2, maxTopUp: 3, chunkSize: 6, minScore: 45, rejectScore: 25 };
 }
 
 // Mechanical query broadening for a top-up fetch (local copy so this module has
@@ -97,13 +97,67 @@ function packContext(framePack) {
 }
 
 const clamp100 = (n) => Math.max(0, Math.min(100, Math.round(Number(n) || 0)));
-const SCORE_KEYS = ["relevance", "visualQuality", "brandCompat", "storytelling", "motionPotential", "templateCompat"];
 
+// THE RUBRIC. Two problems with the old six-dimension unweighted mean:
+//
+//  1. It DOUBLE-COUNTED template fit. `brandCompat` was defined in the prompt as "fits
+//     the template's colors, style, industry" and `templateCompat` as "how well it fits
+//     this selected frame pack" — the same question, so template fit carried 2/6 of the
+//     score while nothing measured the brand itself.
+//  2. READABILITY was absent. The single most consequential property of an image in a
+//     motion-graphics film is whether display type can sit on it and stay legible, and
+//     it was not scored at all — so a gorgeous, busy photo out-ranked a calm one with
+//     usable negative space, and the QA agent caught the contrast failure two stages
+//     later, after the render.
+//
+// Weights, not a flat mean: relevance and readability decide whether an asset helps or
+// hurts; motionPotential is a nice-to-have. They sum to 1.
+const SCORE_WEIGHTS = {
+  relevance: 0.26,
+  readability: 0.20,
+  visualQuality: 0.18,
+  storytelling: 0.14,
+  templateCompat: 0.10,
+  brandAlignment: 0.07,
+  motionPotential: 0.05,
+};
+const SCORE_KEYS = Object.keys(SCORE_WEIGHTS);
+// A model still answering the previous rubric returns brandCompat; read it as the
+// template dimension it actually described, so an old/cached reply never scores 0.
+const SCORE_ALIASES = { brandCompat: "templateCompat" };
+
+// Normalize a verdict's scores into the canonical set + a weighted `overall`.
+//
+// MISSING DIMENSIONS ARE NOT ZEROS. A terse model that omits `readability` must not be
+// read as "readability: 0" — with a quality floor downstream that would reject half the
+// assets in the film for a wording problem. An absent dimension inherits the mean of
+// the ones that ARE present, and `overall` is null when the model returned nothing
+// numeric at all (the floor then does not apply — fail-open, as everywhere else).
 function normScores(raw) {
+  const src = raw && typeof raw === "object" ? raw : {};
+  const present = {};
+  for (const k of SCORE_KEYS) {
+    if (Number.isFinite(Number(src[k]))) present[k] = clamp100(src[k]);
+  }
+  for (const [alias, target] of Object.entries(SCORE_ALIASES)) {
+    if (present[target] === undefined && Number.isFinite(Number(src[alias]))) present[target] = clamp100(src[alias]);
+  }
+  const vals = Object.values(present);
+  if (!vals.length) {
+    const out = {};
+    for (const k of SCORE_KEYS) out[k] = null;
+    out.overall = null;
+    return out;
+  }
+  const mean = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
   const out = {};
-  let sum = 0;
-  for (const k of SCORE_KEYS) { out[k] = clamp100(raw && raw[k]); sum += out[k]; }
-  out.overall = Math.round(sum / SCORE_KEYS.length);
+  let weighted = 0;
+  for (const k of SCORE_KEYS) {
+    out[k] = present[k] !== undefined ? present[k] : mean;   // inherit, never zero
+    weighted += out[k] * SCORE_WEIGHTS[k];
+  }
+  out.overall = Math.round(weighted);
+  out.scoredDimensions = vals.length;   // how much of the rubric the model actually answered
   return out;
 }
 
@@ -152,8 +206,12 @@ async function reviewChunk({ chunk, baseIndex, subject, categoryText, packText, 
   });
 
   const { text, tokensIn, tokensOut, model: servedModel, provider: servedBy } = await openrouter.chat({
+    // No explicit `model`: passing one pins the call to that model with no fallback.
+    // config.js mirrors creativeDirector.model into llm.primary.stageModels, so the
+    // stage dispatches to that KIE model and still gets the fallback leg behind it.
+    // NOTE: this is the VISION path — the model here must be vision-capable.
     system: SYSTEM, user: content, jsonMode: true, stage: "creative_director",
-    model: cd().model, temperature: 0, signal,
+    temperature: 0, signal,
   });
   if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "creative_director", model: servedModel, provider: servedBy });
 
@@ -198,7 +256,8 @@ async function reviewAudio({ subject, script, audioPlan, sceneCount, tracker, si
     ].join("\n");
     const { text, tokensIn, tokensOut, model: servedModel, provider: servedBy } = await openrouter.chat({
       system: "You are a meticulous audio director for premium promo videos. Strict JSON only.",
-      user, jsonMode: true, stage: "creative_director", model: cd().model, temperature: 0.2, signal,
+      // KIE-first (see the soundtrack review's sibling call above) — no explicit model.
+      user, jsonMode: true, stage: "creative_director", temperature: 0.2, signal,
     });
     if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "creative_director", model: servedModel, provider: servedBy });
     const parsed = extractFirstJsonObject(text);
@@ -275,6 +334,8 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
   // verdict flagged as popup-covered / loading / broken) — for disclosure.
   const si = config.screenshotIntelligence || {};
   const screenshotDemotions = [];
+  // Quality-floor actions, for the report + the log line.
+  const floorEvents = [];
   visual.forEach((a, i) => {
     const v = verdicts.get(i);
     if (!v) return; // unreviewed -> untouched (fail-open)
@@ -290,12 +351,47 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
     }
     if (v.sectionType) a.sectionType = String(v.sectionType).slice(0, 20);
 
-    const rejected = String(v.decision || "").toLowerCase() === "reject" || a.cdProminence === "reject";
+    // ---- QUALITY FLOOR ----------------------------------------------------------
+    // Approval was a pure LLM boolean: an asset the model scored 20 shipped exactly
+    // like one it scored 95, because `overall` was computed and then never compared to
+    // anything. A director that says "this is weak" and places it prominently anyway
+    // is not directing. The floor turns the score into a decision:
+    //
+    //   below rejectScore + web stock  → rejected (and the file deleted, as with any reject)
+    //   below minScore                 → demoted to background B-roll (never deleted)
+    //
+    // OWNER CONTENT IS EXEMPT (uploads / the user's own site captures / their harvested
+    // logo). The tier law says those are sovereign — the user's own dashboard is the
+    // film's subject even if a stock model would score it a 40, and capture-integrity
+    // problems are already handled by the screenshot QA axis below. The floor exists to
+    // stop weak STOCK, not to overrule the customer about their own product.
+    const floorCfg = cd();
+    const minScore = Number.isFinite(floorCfg.minScore) ? floorCfg.minScore : 45;
+    const rejectScore = Number.isFinite(floorCfg.rejectScore) ? floorCfg.rejectScore : 25;
+    let floorAction = null;
+    if (scores.overall != null && !isOwned(a) && !isLogo(a)) {
+      if (scores.overall < rejectScore && isWebStock(a)) floorAction = "reject";
+      else if (scores.overall < minScore) floorAction = "demote";
+    }
+    a.floorPassed = scores.overall == null ? null : floorAction === null;
+
+    const rejected = String(v.decision || "").toLowerCase() === "reject"
+      || a.cdProminence === "reject"
+      || floorAction === "reject";
+    if (floorAction) {
+      floorEvents.push({ path: path.basename(a.path), score: scores.overall, action: floorAction, source: a.source || null });
+    }
     if (rejected && isWebStock(a)) {
       // Only real web stock is deleted. Trusted content (screenshots, curated,
       // iconify) is never deleted — at worst demoted to background below.
       toDelete.add(i);
-      rejectedAssets.push({ path: a.path, source: a.source, reason: String(v.note || "").slice(0, 120), sees: a.sees || null });
+      rejectedAssets.push({
+        path: a.path, source: a.source,
+        reason: floorAction === "reject"
+          ? `below the quality floor (scored ${scores.overall}/100)${v.note ? ` — ${String(v.note).slice(0, 80)}` : ""}`
+          : String(v.note || "").slice(0, 120),
+        sees: a.sees || null,
+      });
       a.__rejected = true;
     } else {
       // visionOk gates PROMINENT slots in scene_kit (montage/split/hero). A reject
@@ -303,6 +399,15 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
       // DELETED) must always DEMOTE, never promote: honor the reject even if the model
       // paired decision:"reject" with prominence:"hero"/"support".
       a.visionOk = !rejected && (a.cdProminence === "hero" || a.cdProminence === "support");
+      // A floor DEMOTE lands here: keep the file, but take it out of the prominent
+      // slots. __layoutDemoted is the lever scene_kit.prominentOk honors on EVERY
+      // pipeline (directLayout runs only in the graph path), so the demotion holds
+      // even when the Visual Layout Director never runs.
+      if (floorAction === "demote") {
+        a.visionOk = false;
+        a.cdProminence = "background";
+        a.__layoutDemoted = true;
+      }
     }
 
     // SCREENSHOT INTELLIGENCE (QA axis, source website only): the CD's SAME vision
@@ -470,16 +575,26 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
       const m = await reviewChunk({ chunk: topUpAssets, baseIndex: 0, subject: subj, categoryText, packText, scenes, orientation, tracker, signal });
       topUpAssets.forEach((a, i) => {
         const v = m.get(i);
-        if (v && String(v.decision || "").toLowerCase() !== "reject") {
-          const scores = normScores(v.scores);
-          assetScores[a.path] = scores;
-          a.cdScore = scores.overall; a.sees = v.sees || null;
-          const prom = String(v.prominence || "background").toLowerCase();
-          a.cdProminence = prom; a.visionOk = prom === "hero" || prom === "support";
-          curated.push(a);
-        } else {
+        if (v && String(v.decision || "").toLowerCase() === "reject") {
+          // An explicit reject is the only thing that deletes a top-up.
           try { fs.unlinkSync(a.__absPath); } catch { /* noop */ }
+          return;
         }
+        if (!v) {
+          // UNREVIEWED != rejected. The main review loop leaves an unreviewed asset
+          // untouched (fail-open, line ~280); this branch used to DELETE it, so a
+          // top-up whose thumbnail simply failed to generate was destroyed while the
+          // identical failure upstream was forgiven. Keep it as background B-roll.
+          a.cdProminence = "background"; a.visionOk = false;
+          curated.push(a);
+          return;
+        }
+        const scores = normScores(v.scores);
+        assetScores[a.path] = scores;
+        a.cdScore = scores.overall; a.sees = v.sees || null;
+        const prom = String(v.prominence || "background").toLowerCase();
+        a.cdProminence = prom; a.visionOk = prom === "hero" || prom === "support";
+        curated.push(a);
       });
     } catch {
       // Couldn't review the top-ups — keep them as background (fail-open).
@@ -511,6 +626,15 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
   const qualityScore = approvedScores.length ? Math.round(approvedScores.reduce((s, n) => s + n, 0) / approvedScores.length) : null;
   const templateAvgKey = curated.map((a) => assetScores[a.path] && assetScores[a.path].templateCompat).filter((n) => typeof n === "number");
 
+  const floorRejected = floorEvents.filter((f) => f.action === "reject").length;
+  const floorDemoted = floorEvents.filter((f) => f.action === "demote").length;
+  if (floorRejected || floorDemoted) {
+    notes.push(
+      `Quality floor (${Number.isFinite(cd().minScore) ? cd().minScore : 45}/100): ` +
+      [floorRejected ? `rejected ${floorRejected}` : "", floorDemoted ? `demoted ${floorDemoted} to background` : ""]
+        .filter(Boolean).join(", ") + ". Weak stock is no longer placed as though it were strong."
+    );
+  }
   if (rejectedAssets.length) notes.push(`Rejected ${rejectedAssets.length} weak/off-topic asset(s); prioritized quality over quantity.`);
   if (approvedAssets.length) notes.push(`Approved ${approvedAssets.length} asset(s); ${approvedAssets.filter((a) => a.prominence === "hero" || a.prominence === "support").length} cleared for prominent placement.`);
   if (audio.musicAnalysis && audio.musicAnalysis.keep === false && audio.musicAnalysis.suggestedQuery) {
@@ -544,6 +668,14 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
       averageScore: templateAvgKey.length ? Math.round(templateAvgKey.reduce((s, n) => s + n, 0) / templateAvgKey.length) : null,
     },
     qualityScore,
+    // The floor is disclosure material: "why is my stock photo dim?" has an answer now.
+    qualityFloor: {
+      minScore: Number.isFinite(cd().minScore) ? cd().minScore : 45,
+      rejectScore: Number.isFinite(cd().rejectScore) ? cd().rejectScore : 25,
+      rejected: floorRejected,
+      demoted: floorDemoted,
+      events: floorEvents.slice(0, 20),
+    },
     category: cat,
     creativeDirectorNotes: notes.slice(0, 20),
   };
@@ -553,12 +685,20 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
 
 // Thin wrapper used by all three pipeline paths: flag-gate, run, persist the
 // report to the job, and ALWAYS fail-open to the original assets on any error.
-async function reviewAndCurate({ jobId, ...rest }) {
+//
+// `onReview` is how the director's non-asset findings reach the agents that can act on
+// them. Its audio verdict (does this music fit the film? which SFX are cheap or
+// redundant?) used to be written to the DB and read by nobody — a paid LLM call whose
+// output dead-ended one node before the Audio Director, which plans the entire mix and
+// had no way to know the bed it is balancing is the wrong genre. Callers pass a
+// collector; the report still lands on the job for the UI either way.
+async function reviewAndCurate({ jobId, onReview, ...rest }) {
   if (!cd().enabled) return rest.assets || [];
   const original = rest.assets || [];
   try {
     const { assets, report, screenshotDemotions } = await directAssets(rest);
     if (jobId) { try { db.setCreativeReview(jobId, report); } catch { /* best effort */ } }
+    if (typeof onReview === "function") { try { onReview(report); } catch { /* a consumer's failure never costs us the curation */ } }
     // Merge the QA demotions into the intake-written screenshot review (disclosure).
     if (jobId && screenshotDemotions && screenshotDemotions.length) {
       try { db.setScreenshotReview(jobId, { demoted: screenshotDemotions }); } catch { /* best effort */ }

@@ -28,12 +28,13 @@
 // Portrait is detected from dims (W<H); no manifest flag. Deterministic.
 
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
+const { varyArchetypes } = require("./motion_planner");
 const { isTrustedProminent, isLogo } = require("./asset_priority");
 const { logoMark } = require("./logo_render");
 const { plateBox } = require("./responsive");
 const { resolveBrand } = require("./brand_kit");
+const { GSAP_CDN, r, esc, hexToRgb, relLum, bullets, logoAssetOf, grainUri } = require("./composer_kit");
 
-const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 // Fraunces (bundled) is the high-contrast serif display carrying the template's Playfair
 // spirit; Space Grotesk is the bundled grotesque for section labels / running head;
 // JetBrains Mono is the bundled folio/issue-number/caption face; Inter → system-ui body.
@@ -48,16 +49,6 @@ const PAPER = "#faf9f6";
 const INK = "#17150f";
 
 // ---- helpers -----------------------------------------------------------------
-function esc(s) {
-  return String(s == null ? "" : s)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-const r = (n) => Math.round((Number(n) || 0) * 100) / 100;
-const hexToRgb = (h) => { const n = parseInt(String(h).replace("#", ""), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
-function relLum(hex) {
-  const [rr, gg, bb] = hexToRgb(hex).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
-  return 0.2126 * rr + 0.7152 * gg + 0.0722 * bb;
-}
 function seedFrom(str) { let h = 2166136261; const s = String(str || "editorial"); for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0) || 7; }
 // finite yoyo repeat count for a segment of `t` seconds at period `c`.
 function reps(t, c) { return Math.max(0, Math.floor((Number(t) || 0) / (c || 1)) - 1); }
@@ -124,11 +115,6 @@ const STRINGS = {
 
 // ---- content extraction (shared shapes) --------------------------------------
 function wordsOf(t) { return String(t || "").trim().split(/\s+/).filter(Boolean); }
-function bullets(scene, n) {
-  let list = Array.isArray(scene.onScreenText) ? scene.onScreenText.filter(Boolean).map(String) : [];
-  if (!list.length && scene.subtext) list = String(scene.subtext).split(/[.;\n•]|\s—\s/).map((s) => s.trim()).filter((s) => s.length > 2);
-  return list.slice(0, n);
-}
 function pickNumber(scene) {
   const src = [scene.emphasis, scene.subtext, scene.headline, ...(Array.isArray(scene.onScreenText) ? scene.onScreenText : [])]
     .map((x) => String(x || "")).find((x) => /\d/.test(x)) || "";
@@ -159,9 +145,6 @@ function screenOk(a) {
   if (a.type === "video" || /\.(mp4|webm|mov)($|\?)/i.test(a.path)) return false;
   if (/\.svg($|\?)/i.test(a.path)) return false;
   return isTrustedProminent(a) || a.cdProminence === "hero" || a.cdProminence === "support";
-}
-function logoAssetOf(assets) {
-  return (Array.isArray(assets) ? assets : []).find((a) => a && a.path && isLogo(a) && !/\.(mp4|webm|mov)($|\?)/i.test(a.path)) || null;
 }
 
 // A ruled image PLATE holding a real screenshot — or, with no asset, an intentional
@@ -545,8 +528,7 @@ function chromeClip(theme, S, D) {
 }
 
 // ---- grain overlay (top layer) -----------------------------------------------
-const GRAIN_SVG = "<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(#n)' opacity='0.5'/></svg>";
-const GRAIN_URI = "data:image/svg+xml;base64," + Buffer.from(GRAIN_SVG).toString("base64");
+const GRAIN_URI = grainUri(0.85);
 function grainClip(D) {
   return `<div id="ed-grain" class="clip" data-start="0" data-duration="${D}" data-track-index="40" data-layout-allow-occlusion style="pointer-events:none;background-image:url('${GRAIN_URI}');background-size:240px 240px;opacity:0.05;mix-blend-mode:multiply;"></div>`;
 }
@@ -605,6 +587,16 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   const shots = (Array.isArray(assets) ? assets : []).filter(screenOk)
     .sort((a, b) => (Number(b.cdScore) || 0) - (Number(a.cdScore) || 0));
   const baseArch = scenes.map((scene, i) => archetypeFor(scene, i, scenes.length));
+  // ANTI-REPETITION (services/motion_planner). archetypeFor above ends in a single
+  // fallthrough, so every middle scene of a text-led film lands on the same type and the
+  // film reads as one backdrop with rotating copy. This breaks adjacent duplicates using
+  // ONLY this pack's own generic scene types — data-shaped ones (stats/chart/gallery)
+  // keep their type, because their builders have preconditions a swap would violate.
+  const { archetypes: __varied } = varyArchetypes(baseArch, {
+    pool: Object.keys(BUILDERS),
+    seedKey: scenes.map((s) => s && s.id).join("|"),
+  });
+  for (let __i = 0; __i < baseArch.length; __i++) baseArch[__i] = __varied[__i];
   // EVERY content archetype hosts its assigned asset in editorial language — only the
   // colophon (CTA logo lockup) stays asset-free. So the CD's per-asset sceneId hint for a
   // stat/quote/hook scene lands on that very scene instead of being redistributed away.

@@ -24,13 +24,14 @@
 // detected from dims (W<H); no manifest flag. Deterministic. GSAP is the only CDN.
 
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
+const { varyArchetypes } = require("./motion_planner");
 const { isTrustedProminent, isLogo } = require("./asset_priority");
 const { logoMark } = require("./logo_render");
 const { plateBox } = require("./responsive");
-const { charSpans, supportLine } = require("./text_fx");
+const { charSpans, wordCharSpans, supportLine } = require("./text_fx");
 const { resolveBrand } = require("./brand_kit");
+const { GSAP_CDN, r, esc, hexToRgb, relLum, longestWord, bullets, logoAssetOf } = require("./composer_kit");
 
-const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 // Anton (bundled) is the heavy condensed display that carries the template's chrome-outrun
 // headline spirit (the React source used italic Sora); JetBrains Mono is the bundled arcade
 // mono face for prompts/labels/URLs; Inter → system-ui in the CDN-free render.
@@ -48,20 +49,10 @@ const SKY_MID = "#140830";
 const SKY_BOT = "#22072E";
 
 // ---- helpers -----------------------------------------------------------------
-function esc(s) {
-  return String(s == null ? "" : s)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-const r = (n) => Math.round((Number(n) || 0) * 100) / 100;
-const hexToRgb = (h) => { const n = parseInt(String(h).replace("#", ""), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
 // mix hexA into hexB at weight tA (tA of A, 1-tA of B) → "r,g,b" for canvas fills.
 function mixRgb(hexA, hexB, tA) {
   const a = hexToRgb(hexA), b = hexToRgb(hexB);
   return a.map((v, i) => Math.round(v * tA + b[i] * (1 - tA))).join(",");
-}
-function relLum(hex) {
-  const [rr, gg, bb] = hexToRgb(hex).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
-  return 0.2126 * rr + 0.7152 * gg + 0.0722 * bb;
 }
 function seedFrom(str) { let h = 2166136261; const s = String(str || "retro"); for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0) || 7; }
 // finite yoyo repeat count for a segment of `t` seconds at period `c`.
@@ -126,11 +117,6 @@ const STRINGS = {
 
 // ---- content extraction (shared shapes) --------------------------------------
 function wordsOf(t) { return String(t || "").trim().split(/\s+/).filter(Boolean); }
-function bullets(scene, n) {
-  let list = Array.isArray(scene.onScreenText) ? scene.onScreenText.filter(Boolean).map(String) : [];
-  if (!list.length && scene.subtext) list = String(scene.subtext).split(/[.;\n•]|\s—\s/).map((s) => s.trim()).filter((s) => s.length > 2);
-  return list.slice(0, n);
-}
 function pickNumber(scene) {
   const src = [scene.emphasis, scene.subtext, scene.headline, ...(Array.isArray(scene.onScreenText) ? scene.onScreenText : [])]
     .map((x) => String(x || "")).find((x) => /\d/.test(x)) || "";
@@ -142,12 +128,35 @@ function numberOf(scene) {
     .map((x) => String(x || "")).find((x) => /\d/.test(x)) || "";
 }
 // Headline sized so long copy never overflows the portrait column.
+// PORTRAIT FILL. The length ladder below keeps long copy from overflowing the column —
+// but it is aspect-BLIND, and cqw is a fraction of WIDTH, so a headline occupies the same
+// share of the line in 16:9 and 9:16 while a 9:16 frame is 177cqw TALL. Short headlines
+// therefore sat as a small line in a very tall empty frame: the "under-illustrated /
+// massive empty space" blocker the 9:16 audit kept finding.
+//
+// In portrait the slack is spent on the headlines that HAVE slack: short copy grows, long
+// copy is left exactly where the ladder put it, so nothing that previously fitted starts
+// to overflow.  is set once per build (see buildComposition).
+let _portrait = false;
+// FIT, rather than guess. The ladder below buckets by character count, which decides how
+// many LINES a headline needs — not whether it fits the frame. Headlines are word spans, so
+// they wrap between words and the binding constraint is the LONGEST WORD: that word cannot
+// break, so if it is wider than the column it leaves the frame however many lines exist.
+// Capping on the whole string instead would shrink perfectly good two-line headlines.
+//
+// 0.56em is the mean advance of a heavy display face; it is an estimate, so it is paired
+// with a wrapping container as the safety net rather than trusted on its own.
+const MEAN_ADVANCE_EM = 0.56;
+const SAFE_LINE_CQW = 92;
+function fitCap(text) {
+  const len = longestWord(text).length;
+  return len ? SAFE_LINE_CQW / (len * MEAN_ADVANCE_EM) : Infinity;
+}
 function headlineSize(text, base) {
   const len = String(text || "").length;
-  if (len > 42) return base * 0.62;
-  if (len > 28) return base * 0.76;
-  if (len > 18) return base * 0.88;
-  return base;
+  const s = len > 42 ? base * 0.62 : len > 28 ? base * 0.76 : len > 18 ? base * 0.88 : base;
+  const p = _portrait ? s * (len > 28 ? 1.0 : len > 18 ? 1.08 : 1.18) : s;
+  return Math.min(p, fitCap(text));
 }
 // Split a headline into word spans for the neon reveal (each word glows + staggers in).
 function neonWords(id, text) {
@@ -163,9 +172,6 @@ function screenOk(a) {
   if (a.type === "video" || /\.(mp4|webm|mov)($|\?)/i.test(a.path)) return false;
   if (/\.svg($|\?)/i.test(a.path)) return false;
   return isTrustedProminent(a) || a.cdProminence === "hero" || a.cdProminence === "support";
-}
-function logoAssetOf(assets) {
-  return (Array.isArray(assets) ? assets : []).find((a) => a && a.path && isLogo(a) && !/\.(mp4|webm|mov)($|\?)/i.test(a.path)) || null;
 }
 
 // A neon-bordered CRT/arcade screen holding a real screenshot — or, with no asset, an
@@ -418,11 +424,11 @@ function bCta(scene, ctx, logo) {
           <div style="width:0;height:0;border-top:3.4cqw solid transparent;border-bottom:3.4cqw solid transparent;border-left:5.4cqw solid ${theme.onPrimary};margin-left:1.2cqw;"></div>
         </div>
       </div>`;
-  const chars = charSpans(word, `${id}-ch`);
+  const chars = wordCharSpans(word, `${id}-ch`);
   const html = `${open(id, ctx)}<div class="rf-safe">
     <div class="rf-neon ${id}-kick" style="opacity:0;margin-bottom:2.4cqw;color:${theme.secondary};text-shadow:0 0 2.4cqw ${theme.secondary};letter-spacing:0.24em;text-transform:uppercase;font-size:3.4cqw;">${esc(scene.kicker || S.ctaKicker)}</div>
     <div class="${id}-mark" style="opacity:0;">${mark}</div>
-    <div class="rf-wordmark ${id}-wm" style="margin-top:3.4cqw;background:${theme.chrome};-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;">${chars}</div>
+    <div class="rf-wordmark ${id}-wm" style="font-size:${r(Math.min(12, fitCap(word)))}cqw;margin-top:3.4cqw;background:${theme.chrome};-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;">${chars}</div>
     <div class="rf-body ${id}-tag" style="opacity:0;margin-top:1.8cqw;">${tagline}</div>
     <div class="rf-btn ${id}-btn" style="opacity:0;margin-top:3.6cqw;color:${theme.primary};border:0.4cqw solid ${theme.primary};box-shadow:0 0 3cqw ${theme.primary};">▸ ${btn}</div>
     <div class="${id}-url" style="opacity:0;font-family:${theme.monoStack};letter-spacing:0.24em;font-size:2.4cqw;color:${theme.faint};margin-top:2.4cqw;">${url}</div>
@@ -521,7 +527,7 @@ function styleBlock(theme, portrait) {
   .rf-neon { font-family:${theme.displayStack}; font-weight:700; font-style:italic; line-height:1.1; }
   .rf-nword { will-change:transform,opacity; }
   .rf-body { font-family:${theme.bodyStack}; font-weight:500; font-size:2.7cqw; line-height:1.42; color:${theme.dim}; }
-  .rf-wordmark { display:flex; font-family:${theme.displayStack}; font-weight:800; font-style:italic; font-size:12cqw; letter-spacing:-0.01em; filter:drop-shadow(0 0 2.4cqw ${theme.primary}); }
+  .rf-wordmark { display:flex; flex-wrap:wrap; justify-content:center; text-align:center; gap:0 0.26em; max-width:92%; font-family:${theme.displayStack}; font-weight:800; font-style:italic; font-size:12cqw; letter-spacing:-0.01em; filter:drop-shadow(0 0 2.4cqw ${theme.primary}); }
   .rf-chip { display:inline-flex; align-items:center; gap:1.4cqw; padding:1.8cqw 3.4cqw; border-radius:0; background:rgba(10,4,28,0.55); border:0.24cqw solid ${theme.border}; font-family:${theme.monoStack}; font-weight:600; font-size:2.7cqw; letter-spacing:0.06em; color:${theme.ink}; white-space:nowrap; box-shadow:0 0 2cqw -0.4cqw ${theme.primary}; will-change:transform,opacity; }
   .rf-dot { width:1.6cqw; height:1.6cqw; border-radius:50%; flex:0 0 auto; }
   .rf-btn { display:inline-flex; align-items:center; gap:1cqw; padding:2.8cqw 6.4cqw; border-radius:0; background:rgba(10,4,28,0.5); font-family:${theme.displayStack}; font-style:italic; font-weight:700; font-size:4cqw; letter-spacing:0.14em; text-transform:uppercase; text-shadow:0 0 1.6cqw ${theme.primary}; will-change:transform,opacity; }
@@ -533,6 +539,8 @@ function styleBlock(theme, portrait) {
 
 // ---- MAIN --------------------------------------------------------------------
 function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin = null, localized = null } = {}) {
+  // Portrait drives the headline fill ladder (see headlineSize).
+  _portrait = (dims && dims.height > dims.width) || false;
   const theme = retroTheme(brandSkin);
   const S = localized ? { ...STRINGS, ...localized } : STRINGS;
   const sb = storyboard || {};
@@ -553,6 +561,16 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   const shots = (Array.isArray(assets) ? assets : []).filter(screenOk)
     .sort((a, b) => (Number(b.cdScore) || 0) - (Number(a.cdScore) || 0));
   const baseArch = scenes.map((scene, i) => archetypeFor(scene, i, scenes.length));
+  // ANTI-REPETITION (services/motion_planner). archetypeFor above ends in a single
+  // fallthrough, so every middle scene of a text-led film lands on the same type and the
+  // film reads as one backdrop with rotating copy. This breaks adjacent duplicates using
+  // ONLY this pack's own generic scene types — data-shaped ones (stats/chart/gallery)
+  // keep their type, because their builders have preconditions a swap would violate.
+  const { archetypes: __varied } = varyArchetypes(baseArch, {
+    pool: Object.keys(BUILDERS),
+    seedKey: scenes.map((s) => s && s.id).join("|"),
+  });
+  for (let __i = 0; __i < baseArch.length; __i++) baseArch[__i] = __varied[__i];
   const canShow = (a) => a === "showcase" || a === "reveal" || a === "bullets" || a === "stats";
   const displayIdx = scenes.map((_, i) => i).filter((i) => canShow(baseArch[i]));
   // A valuable owned screenshot must NEVER produce a fully text-only film: if archetype

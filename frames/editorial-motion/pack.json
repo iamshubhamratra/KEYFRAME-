@@ -11,7 +11,12 @@
     "accent": "#B4302A",
     "plate": "#efece4"
   },
-  "fonts": ["Fraunces", "Space Grotesk", "JetBrains Mono", "Inter"],
+  "fonts": [
+    "Fraunces",
+    "Space Grotesk",
+    "JetBrains Mono",
+    "Inter"
+  ],
   "surface": {
     "flat": true,
     "lightCinematic": true,
@@ -26,15 +31,28 @@
     "three": "none"
   },
   "skin": {
-    "accents": ["#B4302A"],
+    "accents": [
+      "#B4302A"
+    ],
     "extras": [],
     "emphasisCss": null
   },
   "assets": {
     "photoMod": "editorial figure plate — a screenshot behind a thin ink rule with a mono caption",
     "iconStyle": "line",
-    "keywords": ["editorial", "magazine", "print", "serif", "paper", "high-contrast", "portrait"],
-    "prefer": ["photo", "vector"]
+    "keywords": [
+      "editorial",
+      "magazine",
+      "print",
+      "serif",
+      "paper",
+      "high-contrast",
+      "portrait"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
   },
   "typography": {
     "display": "Fraunces",
@@ -47,5 +65,36 @@
     "case": "none",
     "tracking": -0.02,
     "align": "left"
+  },
+  "audio": {
+    "mood": "refined",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "jazz",
+      "piano",
+      "editorial",
+      "acoustic"
+    ],
+    "musicKeywords": [
+      "refined piano",
+      "editorial jazz",
+      "elegant acoustic",
+      "sophisticated minimal",
+      "upbeat jazz",
+      "driving editorial"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
   }
 }

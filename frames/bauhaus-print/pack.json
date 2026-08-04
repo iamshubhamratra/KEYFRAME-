@@ -52,5 +52,36 @@
     "emphasis": "boxed",
     "case": "upper",
     "align": "left"
+  },
+  "audio": {
+    "mood": "minimal",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "minimal",
+      "abstract",
+      "jazz",
+      "experimental"
+    ],
+    "musicKeywords": [
+      "minimal abstract",
+      "modern creative",
+      "geometric ambient",
+      "playful minimal",
+      "upbeat minimal",
+      "abstract percussion"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "pop",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
   }
 }

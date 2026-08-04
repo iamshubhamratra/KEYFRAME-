@@ -27,13 +27,14 @@
 // Portrait is detected from dims (W<H); no manifest flag. Deterministic.
 
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
+const { varyArchetypes } = require("./motion_planner");
 const { isTrustedProminent, isLogo } = require("./asset_priority");
 const { logoMark } = require("./logo_render");
 const { plateBox } = require("./responsive");
-const { charSpans, supportLine } = require("./text_fx");
+const { charSpans, wordCharSpans, supportLine } = require("./text_fx");
 const { resolveBrand } = require("./brand_kit");
+const { GSAP_CDN, r, esc, hexToRgb, relLum, longestWord, bullets, logoAssetOf, grainUri } = require("./composer_kit");
 
-const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 // Bricolage Grotesque (bundled) is the friendly rounded display that carries the template's
 // Poppins spirit; Fraunces (bundled) is the warm serif that stands in for the handwritten
 // Caveat accents; IBM Plex Mono is the bundled numeral/label face; Inter → system-ui.
@@ -52,16 +53,6 @@ const PAPER2_BASE = "#f0e4cd";
 const PAPERDEEP_BASE = "#efe2c8";
 
 // ---- helpers -----------------------------------------------------------------
-function esc(s) {
-  return String(s == null ? "" : s)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-const r = (n) => Math.round((Number(n) || 0) * 100) / 100;
-const hexToRgb = (h) => { const n = parseInt(String(h).replace("#", ""), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
-function relLum(hex) {
-  const [rr, gg, bb] = hexToRgb(hex).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
-  return 0.2126 * rr + 0.7152 * gg + 0.0722 * bb;
-}
 // sRGB mix of two hexes (canvas can't do color-mix); wa is the accent weight.
 function mixRgb(aHex, bHex, wa) { const a = hexToRgb(aHex), b = hexToRgb(bHex); return [0, 1, 2].map((i) => Math.round(a[i] * wa + b[i] * (1 - wa))); }
 const rgbStr = (a) => `${a[0]},${a[1]},${a[2]}`;
@@ -133,11 +124,6 @@ const STRINGS = {
 
 // ---- content extraction (shared shapes) --------------------------------------
 function wordsOf(t) { return String(t || "").trim().split(/\s+/).filter(Boolean); }
-function bullets(scene, n) {
-  let list = Array.isArray(scene.onScreenText) ? scene.onScreenText.filter(Boolean).map(String) : [];
-  if (!list.length && scene.subtext) list = String(scene.subtext).split(/[.;\n•]|\s—\s/).map((s) => s.trim()).filter((s) => s.length > 2);
-  return list.slice(0, n);
-}
 function pickNumber(scene) {
   const src = [scene.emphasis, scene.subtext, scene.headline, ...(Array.isArray(scene.onScreenText) ? scene.onScreenText : [])]
     .map((x) => String(x || "")).find((x) => /\d/.test(x)) || "";
@@ -151,12 +137,35 @@ function numberOf(scene) {
   return m ? m[0].trim() : "";
 }
 // Headline sized so long copy never overflows the portrait column.
+// PORTRAIT FILL. The length ladder below keeps long copy from overflowing the column —
+// but it is aspect-BLIND, and cqw is a fraction of WIDTH, so a headline occupies the same
+// share of the line in 16:9 and 9:16 while a 9:16 frame is 177cqw TALL. Short headlines
+// therefore sat as a small line in a very tall empty frame: the "under-illustrated /
+// massive empty space" blocker the 9:16 audit kept finding.
+//
+// In portrait the slack is spent on the headlines that HAVE slack: short copy grows, long
+// copy is left exactly where the ladder put it, so nothing that previously fitted starts
+// to overflow.  is set once per build (see buildComposition).
+let _portrait = false;
+// FIT, rather than guess. The ladder below buckets by character count, which decides how
+// many LINES a headline needs — not whether it fits the frame. Headlines are word spans, so
+// they wrap between words and the binding constraint is the LONGEST WORD: that word cannot
+// break, so if it is wider than the column it leaves the frame however many lines exist.
+// Capping on the whole string instead would shrink perfectly good two-line headlines.
+//
+// 0.56em is the mean advance of a heavy display face; it is an estimate, so it is paired
+// with a wrapping container as the safety net rather than trusted on its own.
+const MEAN_ADVANCE_EM = 0.56;
+const SAFE_LINE_CQW = 92;
+function fitCap(text) {
+  const len = longestWord(text).length;
+  return len ? SAFE_LINE_CQW / (len * MEAN_ADVANCE_EM) : Infinity;
+}
 function headlineSize(text, base) {
   const len = String(text || "").length;
-  if (len > 42) return base * 0.62;
-  if (len > 28) return base * 0.76;
-  if (len > 18) return base * 0.88;
-  return base;
+  const s = len > 42 ? base * 0.62 : len > 28 ? base * 0.76 : len > 18 ? base * 0.88 : base;
+  const p = _portrait ? s * (len > 28 ? 1.0 : len > 18 ? 1.08 : 1.18) : s;
+  return Math.min(p, fitCap(text));
 }
 // Split a headline into word spans for the reveal; the last word carries the accent ink.
 function accentWords(id, text) {
@@ -173,9 +182,6 @@ function screenOk(a) {
   if (a.type === "video" || /\.(mp4|webm|mov)($|\?)/i.test(a.path)) return false;
   if (/\.svg($|\?)/i.test(a.path)) return false;
   return isTrustedProminent(a) || a.cdProminence === "hero" || a.cdProminence === "support";
-}
-function logoAssetOf(assets) {
-  return (Array.isArray(assets) ? assets : []).find((a) => a && a.path && isLogo(a) && !/\.(mp4|webm|mov)($|\?)/i.test(a.path)) || null;
 }
 // Portrait screenshots want a taller card; wide ones a shorter one.
 function frameHmul(asset) {
@@ -463,11 +469,11 @@ function bCta(scene, ctx, logo) {
     : `<div class="pc-sheet pc-glyph" style="transform:rotate(-3deg);">
         <div style="width:0;height:0;border-top:3.4cqw solid transparent;border-bottom:3.4cqw solid transparent;border-left:5.4cqw solid ${theme.onAccent};margin-left:1.2cqw;"></div>
       </div>`;
-  const chars = charSpans(word, `${id}-ch`);
+  const chars = wordCharSpans(word, `${id}-ch`);
   const html = `${open(id, ctx)}<div class="pc-safe">
     <div class="pc-kicker ${id}-kick" style="opacity:0;margin-bottom:2.4cqw;">${esc(scene.kicker || S.ctaKicker)}</div>
     <div class="${id}-mark" style="opacity:0;">${mark}</div>
-    <div class="pc-wordmark" style="margin-top:3.4cqw;">${chars}</div>
+    <div class="pc-wordmark" style="font-size:${r(Math.min(11, fitCap(word)))}cqw;margin-top:3.4cqw;">${chars}</div>
     <div class="pc-hand ${id}-tag" style="opacity:0;margin-top:2cqw;">${tagline}</div>
     <div class="pc-btn ${id}-btn" style="opacity:0;margin-top:4cqw;color:${theme.onAccent};">${btn} ▸</div>
     <div class="${id}-url" style="opacity:0;font-family:${theme.monoStack};letter-spacing:0.22em;font-size:2.4cqw;color:${theme.inkFaint};margin-top:2.6cqw;">${url}</div>
@@ -539,8 +545,7 @@ function paperClip(theme, dims, D, seed) {
 }
 
 // ---- grain overlay (top layer) -----------------------------------------------
-const GRAIN_SVG = "<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(#n)' opacity='0.5'/></svg>";
-const GRAIN_URI = "data:image/svg+xml;base64," + Buffer.from(GRAIN_SVG).toString("base64");
+const GRAIN_URI = grainUri(0.85);
 function grainClip(D) {
   return `<div id="pc-grain" class="clip" data-start="0" data-duration="${D}" data-track-index="40" data-layout-allow-occlusion style="pointer-events:none;background-image:url('${GRAIN_URI}');background-size:240px 240px;opacity:0.06;mix-blend-mode:multiply;"></div>`;
 }
@@ -580,7 +585,7 @@ function styleBlock(theme, portrait) {
   .pc-chipstack { display:flex; flex-direction:column; gap:2.2cqw; align-items:center; }
   .pc-chip { display:inline-flex; align-items:center; gap:1.6cqw; padding:2cqw 3.6cqw; border-radius:2cqw; background:${theme.paper1}; box-shadow:${theme.shadowSm}; font-family:${theme.displayStack}; font-weight:600; font-size:3cqw; color:${theme.ink}; white-space:nowrap; will-change:transform,opacity; }
   .pc-dot { width:1.8cqw; height:1.8cqw; border-radius:50%; background:${theme.accent}; box-shadow:${theme.shadowSm}; flex:0 0 auto; }
-  .pc-wordmark { display:flex; font-family:${theme.displayStack}; font-weight:800; font-size:11cqw; letter-spacing:-0.02em; color:${theme.ink}; }
+  .pc-wordmark { display:flex; flex-wrap:wrap; justify-content:center; text-align:center; gap:0 0.26em; max-width:92%; font-family:${theme.displayStack}; font-weight:800; font-size:11cqw; letter-spacing:-0.02em; color:${theme.ink}; }
   .pc-glyph { width:20cqw; height:20cqw; border-radius:22%; background:${theme.gradient}; display:flex; align-items:center; justify-content:center; box-shadow:${theme.shadow}; }
   .pc-btn { display:inline-flex; align-items:center; gap:1cqw; padding:2.8cqw 6.4cqw; border-radius:999px; background:${theme.accent}; font-family:${theme.displayStack}; font-weight:700; font-size:3.4cqw; letter-spacing:0.02em; box-shadow:${theme.shadow}; will-change:transform,opacity; }
   .pc-polaroid, .pc-sheet, .pc-chip { will-change:transform,opacity; }
@@ -591,6 +596,8 @@ function styleBlock(theme, portrait) {
 
 // ---- MAIN --------------------------------------------------------------------
 function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin = null, localized = null } = {}) {
+  // Portrait drives the headline fill ladder (see headlineSize).
+  _portrait = (dims && dims.height > dims.width) || false;
   const theme = paperTheme(brandSkin);
   const S = localized ? { ...STRINGS, ...localized } : STRINGS;
   const sb = storyboard || {};
@@ -612,6 +619,16 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   const shots = (Array.isArray(assets) ? assets : []).filter(screenOk)
     .sort((a, b) => (Number(b.cdScore) || 0) - (Number(a.cdScore) || 0));
   const baseArch = scenes.map((scene, i) => archetypeFor(scene, i, scenes.length));
+  // ANTI-REPETITION (services/motion_planner). archetypeFor above ends in a single
+  // fallthrough, so every middle scene of a text-led film lands on the same type and the
+  // film reads as one backdrop with rotating copy. This breaks adjacent duplicates using
+  // ONLY this pack's own generic scene types — data-shaped ones (stats/chart/gallery)
+  // keep their type, because their builders have preconditions a swap would violate.
+  const { archetypes: __varied } = varyArchetypes(baseArch, {
+    pool: Object.keys(BUILDERS),
+    seedKey: scenes.map((s) => s && s.id).join("|"),
+  });
+  for (let __i = 0; __i < baseArch.length; __i++) baseArch[__i] = __varied[__i];
   // EVERY content archetype pastes its assigned shot onto paper in the collage's own
   // photo-card / disc / banner / chip language — only the pure CTA (logo lockup) is
   // excluded — so a stat/quote/bullet/hook scene the CD pinned a screenshot to renders it

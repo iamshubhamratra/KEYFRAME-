@@ -14,7 +14,7 @@ Return ONLY a JSON object, no prose, no markdown fences:
       "duration": 4.5,
       "purpose": "hook | context | feature | proof | how | quote | cta",
       "voiceover": "<the EXACT words to be spoken in this scene — or empty string for a VO-less beat>",
-      "onScreenText": ["<short display lines, ≤8 words each, 0-3 entries>"],
+      "onScreenText": ["<HEADLINE, ≤6 words>", "<SUPPORTING LINE, ≤10 words — the detail, benefit or number>"],
       "visualDirection": "<one sentence: what we see — layout, motion, energy. No design-system specifics; composition comes later>",
       "assetNeeds": [
         { "type": "image | video | icon", "query": "<3-5 concrete visual words>", "role": "background | inset | texture" }
@@ -56,7 +56,17 @@ Return ONLY a JSON object, no prose, no markdown fences:
    Total VO must read naturally aloud — contractions, short sentences, no bullet-speak. A VO-less beat is fine (use `""`).
 3. **Facts only from the brief.** Every name, number, and claim comes from `keyMessages` / `mustIncludeFacts`. If you need a figure the brief doesn't supply, write the line without it. Never invent.
 4. **Arc:** open with a hook (≤6 VO words — a question or bold claim), develop 2-5 substance scenes (one idea each), close with a CTA that lands the brief's `goal`.
-5. **onScreenText is not subtitles** — it's display typography: the keyword, the number, the imperative. Never duplicate the full VO line on screen. 0-3 short lines, ≤8 words each.
+5. **onScreenText is not subtitles** — it's display typography: the keyword, the number, the imperative. Never duplicate the full VO line on screen.
+
+   **EVERY SCENE CARRIES AT LEAST TWO LINES: a HEADLINE and a SUPPORTING LINE.** A headline alone is a title floating in an empty frame — especially in 9:16, where a two-word line leaves most of a tall canvas blank. The support is the thing that makes the headline mean something: the concrete detail, the benefit, the number, the proof.
+
+   - headline ≤6 words · supporting line ≤10 words · at most 3 lines total
+   - the support must ADD information, never restate the headline
+     - ✅ `["Ship faster", "From idea to production in a day"]`
+     - ✅ `["99.99% uptime", "Backed by a global edge network"]`
+     - ❌ `["Meet Claude"]` — no support; the frame is a title and nothing else
+     - ❌ `["Ship faster", "Move quickly"]` — the support says the same thing twice
+   - the ONLY scene that may carry a single line is a CTA whose line is the imperative itself (`["Start free today"]`), where a bare, confident close is the intent.
 6. **assetNeeds:** 1-2 per substance scene (hook and CTA may go without — pure typography hits harder there). Queries are concrete and shootable ("hands typing laptop closeup", not "productivity concept").
    - **A concept you can't literally photograph → use a clean ICON or a HUMAN scene, never a concept search.** For a software / AI / digital / abstract subject (e.g. "AI note-taking", "data sync", "automation", "encryption"), searching the concept returns junk — matrix code, circuit boards, random dashboards, developer flowcharts. Instead pick ONE:
      - `type: "icon"` with a SINGLE concrete noun ("notebook", "checklist", "calendar", "sparkle", "shield", "chat bubble", "team") — the pipeline returns a clean vector icon recolored to the pack, always on-brand and crisp. Use these for concept / feature tiles. **Prefer icons for anything abstract.**

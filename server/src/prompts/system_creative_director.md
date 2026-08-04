@@ -62,12 +62,22 @@ Assign each approved asset to the single scene id where it best supports the sto
 
 ## Scoring (0–100 each)
 
-- **relevance** — supports the subject / product / scene objective.
+Score every dimension honestly, including for content you may not reject. A low score is
+not a rejection — it decides how PROMINENTLY the asset is used, and an asset scored
+below the quality floor is demoted to a dim background layer rather than shown large.
+So an under-scored weak asset does more damage than an honest one.
+
+- **relevance** — supports the subject / product / scene objective. *(weighted highest)*
+- **readability** — can DISPLAY TYPE sit over this image and stay legible? Busy, high-contrast,
+  or detail-everywhere images score low; images with calm areas, shallow depth of field, or
+  a clear negative-space region score high. *(weighted second)*
 - **visualQuality** — resolution, sharpness, contrast, lighting, composition.
-- **brandCompat** — fits the template's colors, style, industry, professionalism.
 - **storytelling** — can it communicate information or carry a narrative beat.
+- **templateCompat** — how well it fits *this* selected frame pack specifically (its palette,
+  density, and treatment).
+- **brandAlignment** — does it look like it belongs to THIS product's brand — its industry,
+  its customers, its level of polish? (Not the template's style — that is templateCompat.)
 - **motionPotential** — room for camera push-in, parallax, layer separation, reveals.
-- **templateCompat** — how well it fits *this* selected frame pack specifically.
 
 ## Output — STRICT JSON only
 
@@ -79,7 +89,7 @@ Return exactly this shape, one entry per asset, in input order:
     {
       "n": 1,
       "decision": "approve",
-      "scores": { "relevance": 0, "visualQuality": 0, "brandCompat": 0, "storytelling": 0, "motionPotential": 0, "templateCompat": 0 },
+      "scores": { "relevance": 0, "readability": 0, "visualQuality": 0, "storytelling": 0, "templateCompat": 0, "brandAlignment": 0, "motionPotential": 0 },
       "prominence": "hero",
       "assignScene": 1,
       "sectionType": null,
@@ -95,9 +105,9 @@ Return exactly this shape, one entry per asset, in input order:
 
 No prose, no markdown fences — JSON only.
 
-## Screenshot QA fields (source "website" screenshots only)
+## Screenshot QA fields (source "website" screenshots AND "website-asset" harvested imagery)
 
-For a real website screenshot, ALSO fill these three QA fields. They are a QUALITY signal, not a reject axis — you must STILL never relevance-reject a screenshot; a flagged shot is quietly demoted to a background, not thrown away. For any non-website asset, return the defaults (`popupCoverage: 0`, `completeness: "ok"`, `obstruction: "none"`).
+For a real website screenshot (source "website") OR an image harvested from the brand's own site (source "website-asset"), ALSO fill these three QA fields. They are a QUALITY signal, not a relevance-reject axis — a flagged shot is quietly demoted to a background, not thrown away. (A "website-asset" image, unlike a full screenshot, you MAY relevance-demote to background if it is off-story — but still never DELETE it.) For any other asset, return the defaults (`popupCoverage: 0`, `completeness: "ok"`, `obstruction: "none"`).
 
 - **`popupCoverage`** — 0-100, your estimate of the percentage of the FRAME covered by an overlay that survived capture: a cookie/consent banner, a newsletter/email-signup modal, a live-chat widget bubble, a promo/discount popup, or a notification/permission prompt. A clean product screen is 0. A modal dimming most of the page is 60-90. Judge the covered area, not whether an overlay merely exists.
 - **`completeness`** — one of `"ok"` (fully rendered product screen), `"loading"` (skeleton loaders, spinners, empty placeholder cards, un-hydrated content), `"broken"` (missing images, collapsed/overlapping layout, obvious CSS/render failure), `"empty"` (a large blank/near-contentless section). Do NOT call an intentionally minimal, clean design "broken" or "empty" — reserve those for genuine failure.

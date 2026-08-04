@@ -61,5 +61,36 @@
     "emphasis": "underline-grow",
     "case": "none",
     "tracking": -0.01
+  },
+  "audio": {
+    "mood": "serene",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "ambient",
+      "acoustic",
+      "world",
+      "cinematic"
+    ],
+    "musicKeywords": [
+      "serene ambient",
+      "warm night acoustic",
+      "gentle world",
+      "soft cinematic",
+      "uplifting ambient",
+      "flowing acoustic"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
   }
 }

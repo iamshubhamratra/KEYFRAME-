@@ -27,13 +27,14 @@
 // opacity:0 only. Portrait is detected from dims (W<H); no manifest flag. Deterministic.
 
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
+const { varyArchetypes } = require("./motion_planner");
 const { isTrustedProminent, isLogo } = require("./asset_priority");
 const { logoMark } = require("./logo_render");
 const { plateBox } = require("./responsive");
-const { charSpans } = require("./text_fx");
+const { charSpans, wordCharSpans } = require("./text_fx");
 const { resolveBrand } = require("./brand_kit");
+const { GSAP_CDN, r, esc, hexToRgb, relLum, longestWord, bullets, logoAssetOf, grainUri } = require("./composer_kit");
 
-const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 // The template's display face is Sora (a geometric grotesque); Space Grotesk (bundled)
 // carries the same clean-scientific spirit; JetBrains Mono is the bundled HUD/mono
 // face the template also uses; Inter → system-ui in the CDN-free render.
@@ -47,16 +48,6 @@ const GROUND = "#05060D";     // deep near-black lab ground
 const GROUND_MID = "#0B0E1A"; // panel / surface ground
 
 // ---- helpers -----------------------------------------------------------------
-function esc(s) {
-  return String(s == null ? "" : s)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-const r = (n) => Math.round((Number(n) || 0) * 100) / 100;
-const hexToRgb = (h) => { const n = parseInt(String(h).replace("#", ""), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
-function relLum(hex) {
-  const [rr, gg, bb] = hexToRgb(hex).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
-  return 0.2126 * rr + 0.7152 * gg + 0.0722 * bb;
-}
 function seedFrom(str) { let h = 2166136261; const s = String(str || "ailab"); for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0) || 7; }
 // finite yoyo repeat count for a segment of `t` seconds at period `c`.
 function reps(t, c) { return Math.max(0, Math.floor((Number(t) || 0) / (c || 1)) - 1); }
@@ -127,23 +118,52 @@ const STRINGS = {
 
 // ---- content extraction (shared shapes) --------------------------------------
 function wordsOf(t) { return String(t || "").trim().split(/\s+/).filter(Boolean); }
-function bullets(scene, n) {
-  let list = Array.isArray(scene.onScreenText) ? scene.onScreenText.filter(Boolean).map(String) : [];
-  if (!list.length && scene.subtext) list = String(scene.subtext).split(/[.;\n•]|\s—\s/).map((s) => s.trim()).filter((s) => s.length > 2);
-  return list.slice(0, n);
-}
 function pickNumberStr(scene) {
   return [scene.emphasis, ...(Array.isArray(scene.onScreenText) ? scene.onScreenText : []), scene.subtext, scene.headline]
     .map((x) => String(x || "")).find((x) => /\d/.test(x)) || "";
 }
 function hasNumber(scene) { return /\d/.test(pickNumberStr(scene)); }
 // Headline sized so long copy never overflows the portrait column.
+// PORTRAIT FILL. The length ladder below keeps long copy from overflowing the column —
+// but it is aspect-BLIND, and cqw is a fraction of WIDTH, so a headline occupies the same
+// share of the line in 16:9 and 9:16 while a 9:16 frame is 177cqw TALL. Short headlines
+// therefore sat as a small line in a very tall empty frame: the "under-illustrated /
+// massive empty space" blocker the 9:16 audit kept finding.
+//
+// In portrait the slack is spent on the headlines that HAVE slack: short copy grows, long
+// copy is left exactly where the ladder put it, so nothing that previously fitted starts
+// to overflow.  is set once per build (see buildComposition).
+let _portrait = false;
 function headlineSize(text, base) {
+  const str = String(text || "");
+  const len = str.length;
+  const s = len > 42 ? base * 0.62 : len > 28 ? base * 0.76 : len > 18 ? base * 0.88 : base;
+  const p = _portrait ? s * (len > 28 ? 1.0 : len > 18 ? 1.08 : 1.18) : s;
+  // THE LADDER IS NOT A FIT. It buckets by total character count, which decides how many
+  // LINES the headline needs — not whether it fits the frame. Headlines here are word spans
+  // (`display:inline-block`), so they wrap between words and the binding constraint is the
+  // LONGEST WORD: that word cannot break, so if it is wider than the column it leaves the
+  // frame no matter how many lines are available. Capping on the whole string instead would
+  // shrink perfectly good two-line headlines for no reason.
+  //
+  // Measured: "Integrated Tools" came out of the ladder at 15.34cqw in portrait. Whole-string
+  // width is 137cqw — apparently a disaster — but it wraps to "Integrated" / "Tools" and the
+  // longest word needs only 86cqw, so it fits and the ladder's size is kept.
+  return Math.min(p, fitSize(longestWord(str), Infinity));
+}
+// FIT, rather than guess. `headlineSize` buckets by character count, which is a proxy for
+// width and a poor one at large base sizes: at 11cqw an 18-character line needs ~109cqw on a
+// 100cqw-wide stage no matter which bucket it lands in. This solves for the size instead —
+// the largest that still fits the given width — and never returns MORE than the art-directed
+// base, so short copy keeps the design and only over-long copy is pulled back.
+//
+// 0.56em is the mean advance of the heavy display face at its -0.02em tracking; it is an
+// estimate, so callers pair it with a wrapping container as the safety net.
+const MEAN_ADVANCE_EM = 0.56;
+function fitSize(text, base, widthCqw = 92) {
   const len = String(text || "").length;
-  if (len > 42) return base * 0.62;
-  if (len > 28) return base * 0.76;
-  if (len > 18) return base * 0.88;
-  return base;
+  if (!len) return base;
+  return Math.min(base, widthCqw / (len * MEAN_ADVANCE_EM));
 }
 // Split a headline into word spans for the reveal; the last word carries the accent.
 function accentWords(id, text) {
@@ -160,9 +180,6 @@ function screenOk(a) {
   if (a.type === "video" || /\.(mp4|webm|mov)($|\?)/i.test(a.path)) return false;
   if (/\.svg($|\?)/i.test(a.path)) return false;
   return isTrustedProminent(a) || a.cdProminence === "hero" || a.cdProminence === "support";
-}
-function logoAssetOf(assets) {
-  return (Array.isArray(assets) ? assets : []).find((a) => a && a.path && isLogo(a) && !/\.(mp4|webm|mov)($|\?)/i.test(a.path)) || null;
 }
 
 // A holographic lab panel holding a real screenshot — or, with no asset, an intentional
@@ -268,11 +285,24 @@ function bInput(scene, ctx, sceneAssets) {
   const ih = r(iw * frameHmul(asset));
   const kick = esc(scene.kicker || S.inputKicker);
   const prompt = String(scene.headline || scene.title || scene.subtext || S.promptPlaceholder).slice(0, 96);
-  let toks = Array.isArray(scene.onScreenText) ? scene.onScreenText.filter(Boolean).map(String) : [];
-  if (!toks.length) toks = wordsOf(prompt);
+  // TOKENS ARE WORDS. The scene's whole conceit is a prompt being tokenized, and each chip
+  // is `white-space:nowrap`, absolutely positioned and centred on its own x — so its width
+  // is whatever its text needs, and a chip centred near the edge of the 16%..84% band runs
+  // straight off the frame. That stayed hidden while onScreenText held bare two-word titles.
+  // Once every scene carries a supporting line (services/script.js content floor), the same
+  // code was handed "Built for scientific discovery" and clipped it at the frame edge.
+  //
+  // Feeding it WORDS is both the correct reading of the scene (a tokenizer emits tokens, not
+  // sentences) and a hard bound on chip width: at 2.4cqw mono a 14-character token is ~24cqw
+  // wide including padding, so even centred at the edge of the tightened band it stays on
+  // screen. Long words are dropped rather than cut — a token is a sample, not a caption.
+  const MAX_TOK_CHARS = 14;
+  const copy = Array.isArray(scene.onScreenText) ? scene.onScreenText.filter(Boolean).map(String) : [];
+  let toks = wordsOf(copy.length ? copy.join(" ") : prompt).filter((w) => w.length <= MAX_TOK_CHARS);
+  if (!toks.length) toks = wordsOf(prompt).map((w) => w.slice(0, MAX_TOK_CHARS));
   toks = toks.slice(0, 6);
   const tokHtml = toks.map((tk, i) => {
-    const lx = 16 + (i / Math.max(1, toks.length - 1)) * 68; // 16%..84%
+    const lx = 24 + (i / Math.max(1, toks.length - 1)) * 52; // 24%..76% — keeps a wide chip inside the frame
     return `<div class="${id}-tok" data-i="${i}" style="position:absolute;left:${r(lx)}%;top:44%;transform:translate(-50%,-50%);opacity:0;font-family:${theme.monoStack};font-size:2.4cqw;color:${theme.accent};border:0.14cqw solid ${theme.edge};padding:0.8cqw 2cqw;background:${theme.ground};white-space:nowrap;border-radius:1cqw;">${esc(tk)}</div>`;
   }).join("");
   const html = `${open(id, ctx)}<div class="clip" style="position:absolute;inset:0;">
@@ -538,13 +568,13 @@ function bCta(scene, ctx, logo) {
     : `<div style="position:relative;width:24cqw;height:24cqw;clip-path:polygon(50% 0,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%);border:0.5cqw solid ${theme.accent};box-shadow:0 0 6cqw ${theme.accent};display:flex;align-items:center;justify-content:center;">
         <div style="width:0;height:0;border-top:4cqw solid transparent;border-bottom:4cqw solid transparent;border-left:6.4cqw solid ${theme.accent};margin-left:1.4cqw;filter:drop-shadow(0 0 2cqw ${theme.accent});"></div>
       </div>`;
-  const chars = charSpans(word, `${id}-ch`);
+  const chars = wordCharSpans(word, `${id}-ch`);
   const html = `${open(id, ctx)}<div class="ai-safe" style="justify-content:center;">
     ${conv}
     <div class="ai-kicker ${id}-kick" style="opacity:0;margin-bottom:2.4cqw;">${esc(scene.kicker || S.ctaKicker)}</div>
     <div class="${id}-mark" style="opacity:0;">${mark}</div>
     <div class="ai-glow ${id}-glow" style="opacity:0;position:absolute;left:50%;top:38%;width:64cqw;height:64cqw;margin-left:-32cqw;margin-top:-32cqw;border-radius:50%;background:radial-gradient(circle,${theme.accent},transparent 62%);mix-blend-mode:screen;pointer-events:none;"></div>
-    <div class="ai-wordmark" style="margin-top:3.4cqw;">${chars}</div>
+    <div class="ai-wordmark" style="margin-top:3.4cqw;font-size:${r(fitSize(word, 11))}cqw;">${chars}</div>
     <div class="ai-body ${id}-tag" style="opacity:0;margin-top:1.8cqw;">${tagline}</div>
     <div class="ai-btn ${id}-btn" style="opacity:0;margin-top:3.6cqw;color:${theme.onAccent};">${btn} →</div>
     <div class="${id}-url" style="opacity:0;font-family:${theme.monoStack};letter-spacing:0.24em;font-size:2.4cqw;color:${theme.faint};margin-top:2.4cqw;">${url}</div>
@@ -623,8 +653,7 @@ function labClip(theme, dims, D, seed) {
 }
 
 // ---- grain overlay (top layer) -----------------------------------------------
-const GRAIN_SVG = "<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(#n)' opacity='0.5'/></svg>";
-const GRAIN_URI = "data:image/svg+xml;base64," + Buffer.from(GRAIN_SVG).toString("base64");
+const GRAIN_URI = grainUri(0.9);
 function grainClip(D) {
   return `<div id="ai-grain" class="clip" data-start="0" data-duration="${D}" data-track-index="40" data-layout-allow-occlusion style="pointer-events:none;background-image:url('${GRAIN_URI}');background-size:260px 260px;opacity:0.045;mix-blend-mode:overlay;"></div>`;
 }
@@ -647,7 +676,12 @@ function styleBlock(theme, portrait) {
   .ai-kicker { display:inline-flex; align-items:center; gap:0.9cqw; font-family:${theme.monoStack}; font-weight:600; font-size:2cqw; letter-spacing:0.32em; text-transform:uppercase; color:${theme.dim}; }
   .ai-mono { font-family:${theme.monoStack}; font-weight:500; font-size:2.6cqw; letter-spacing:0.2em; text-transform:uppercase; color:${theme.dim}; }
   .ai-body { font-family:${theme.bodyStack}; font-weight:500; font-size:2.7cqw; line-height:1.42; color:${theme.dim}; }
-  .ai-wordmark { display:flex; font-family:${theme.displayStack}; font-weight:800; font-size:11cqw; letter-spacing:-0.02em; color:${theme.ink}; }
+  /* The CTA word is one flex item PER CHARACTER (the stagger needs them), and a flex row
+     does not wrap unless told to — so a long headline ran off both edges of the frame
+     ("Serving humanity's", 18 chars at 11cqw ≈ 109cqw wide on a 100cqw stage). flex-wrap
+     lets it fall to a second line; the caller sizes it to fit. Portrait text-safety CSS
+     could not rescue this: overflow-wrap has no effect on flex items. */
+  .ai-wordmark { display:flex; flex-wrap:wrap; justify-content:center; text-align:center; gap:0 0.26em; max-width:92%; font-family:${theme.displayStack}; font-weight:800; font-size:11cqw; line-height:1.02; letter-spacing:-0.02em; color:${theme.ink}; }
   .ai-gword { will-change:transform,opacity; }
   .ai-chip { display:inline-flex; align-items:center; gap:1.4cqw; padding:1.6cqw 3cqw; border-radius:999px; background:rgba(255,255,255,0.04); border:1px solid ${theme.border}; backdrop-filter:blur(6px); font-family:${theme.monoStack}; font-weight:600; font-size:2.6cqw; letter-spacing:0.06em; color:${theme.ink}; white-space:nowrap; box-shadow:0 1.4cqw 5cqw -2cqw ${theme.accent}; will-change:transform,opacity; }
   .ai-btn { display:inline-flex; align-items:center; gap:1cqw; padding:2.8cqw 6.4cqw; border-radius:999px; background:${theme.accent}; font-family:${theme.monoStack}; font-weight:700; font-size:3.4cqw; letter-spacing:0.08em; text-transform:uppercase; box-shadow:0 2cqw 6cqw -1.5cqw ${theme.accent}; will-change:transform,opacity; }
@@ -661,6 +695,8 @@ function styleBlock(theme, portrait) {
 
 // ---- MAIN --------------------------------------------------------------------
 function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin = null, localized = null } = {}) {
+  // Portrait drives the headline fill ladder (see headlineSize).
+  _portrait = (dims && dims.height > dims.width) || false;
   const theme = labTheme(brandSkin);
   const S = localized ? { ...STRINGS, ...localized } : STRINGS;
   const sb = storyboard || {};
@@ -682,6 +718,16 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   const shots = (Array.isArray(assets) ? assets : []).filter(screenOk)
     .sort((a, b) => (Number(b.cdScore) || 0) - (Number(a.cdScore) || 0));
   const baseArch = scenes.map((scene, i) => archetypeFor(scene, i, scenes.length));
+  // ANTI-REPETITION (services/motion_planner). archetypeFor above ends in a single
+  // fallthrough, so every middle scene of a text-led film lands on the same type and the
+  // film reads as one backdrop with rotating copy. This breaks adjacent duplicates using
+  // ONLY this pack's own generic scene types — data-shaped ones (stats/chart/gallery)
+  // keep their type, because their builders have preconditions a swap would violate.
+  const { archetypes: __varied } = varyArchetypes(baseArch, {
+    pool: Object.keys(BUILDERS),
+    seedKey: scenes.map((s) => s && s.id).join("|"),
+  });
+  for (let __i = 0; __i < baseArch.length; __i++) baseArch[__i] = __varied[__i];
   // Every content archetype is display-capable — only the pure CTA scene (logo lockup)
   // is excluded — so the Creative Director's per-asset sceneId hint lands on the very
   // stat / quote / hook scene it targets instead of being redistributed away, and

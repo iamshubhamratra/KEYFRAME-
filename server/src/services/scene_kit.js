@@ -333,6 +333,16 @@ const PACK_MOTION = {
   "biennale-yellow":  { cut: "wipe",  drift: 1.025 },
   "mono-corporate":   { cut: "panel", drift: 1.03 },
 };
+// THE PER-SCENE ENTRANCE. Every archetype used to emit `theme.textfx.enter` — ONE text
+// entrance for the whole film, so a hook, a stat, a quote and a CTA all arrived
+// identically. The Motion Planner (services/motion_planner.js) decides a distinct
+// entrance per scene from its narrative role and duration, with adjacent scenes
+// guaranteed to differ; it lands on ctx.fx. Falls back to the pack's own textfx when no
+// plan was supplied, so a planless build is byte-identical to before.
+function enterFx(ctx) {
+  return (ctx && ctx.fx && ctx.fx.enter) || (ctx && ctx.theme && ctx.theme.textfx && ctx.theme.textfx.enter) || "drift";
+}
+
 function motionFor(framePack, theme) {
   if (theme && theme.manifest && theme.manifest.motion && theme.manifest.motion.cut) return theme.manifest.motion;
   return PACK_MOTION[framePack] || (theme.gradients ? { cut: "glow", drift: 1.05 } : { cut: "wipe", drift: 1.02 });
@@ -414,7 +424,9 @@ function sceneMotion(p, motion, seed, total) {
   const { id, T, L } = p.ctx;
   const i = p.i;
   const out = [];
-  const cut = motion.cut;
+  // The camera move is per-SCENE when the Motion Planner supplied one (a quote washes
+  // in, a stat flashes, a CTA irises), falling back to the pack's single film-level cut.
+  const cut = (p.ctx.fx && p.ctx.fx.camera) || motion.cut;
   // -- entrance (scene 0 opens cold; the hook's own choreography carries it)
   if (i > 0) {
     if (cut === "whip") out.push(`tl.fromTo("#${id}",{xPercent:16,filter:"blur(10px)"},{xPercent:0,filter:"blur(0px)",duration:0.5,ease:"power3.out"},${r(T)});`);
@@ -1095,7 +1107,7 @@ function archHook(scene, ctx) {
     `tl.set("#${id}",{opacity:1},${T});`,
     // The logo mark animates itself; the text kicker keeps its own tween.
     logo && logo.html ? logo.script : `tl.fromTo("#${id}k",{opacity:0,y:14},{opacity:1,y:0,duration:0.5},${r(T + 0.25)});`,
-    `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.45)},0.09);`,
+    `textIn("${enterFx(ctx)}","#${id} .kfw","#${id} .kfc",${r(T + 0.45)},0.09);`,
     scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:20},{opacity:1,y:0,duration:0.55},${r(T + 1.05)});` : "",
     `tl.fromTo("#${id}u",{scaleX:0,transformOrigin:"left"},{scaleX:1,duration:0.7,ease:"power2.inOut"},${r(T + 1.1)});`,
     ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
@@ -1121,7 +1133,7 @@ function archStat(scene, ctx) {
     `tl.set("#${id}",{opacity:1},${T});`,
     `pushIn("#${id} .kfstage",${T},${r(L - 0.4)},1.0,1.04);`,
     `countUp("${id}n",${num.value},${r(T + 0.3)},${r(Math.min(1.6, L - 1))},${fmt});`,
-    `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.45)},0.07);`,
+    `textIn("${enterFx(ctx)}","#${id} .kfw","#${id} .kfc",${r(T + 0.45)},0.07);`,
     scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:16},{opacity:1,y:0,duration:0.5},${r(T + 0.9)});` : "",
     ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
   ].filter(Boolean).join("\n");
@@ -1146,7 +1158,7 @@ function archCta(scene, ctx) {
     `tl.set("#${id}",{opacity:1},${T});`,
     theme.gradients ? `tl.fromTo("#${id}g",{opacity:0,scale:0.85},{opacity:1,scale:1,duration:0.8},${r(T + 0.05)});` : "",
     logo && logo.script ? logo.script : "",
-    `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.25)},0.08);`,
+    `textIn("${enterFx(ctx)}","#${id} .kfw","#${id} .kfc",${r(T + 0.25)},0.08);`,
     scene.subtext ? `tl.fromTo("#${id}b",{opacity:0,scale:0.85,y:16},{opacity:1,scale:1,y:0,duration:0.6,ease:"back.out(1.7)"},${r(T + 0.9)});` : "",
     scene.subtext ? `tl.to("#${id}b",{scale:1.04,duration:0.8,ease:"sine.inOut",yoyo:true,repeat:sreps(${r(L - 1)},1.6)},${r(T + 1.5)});` : "",
     // last scene: NO exit (holds to D)
@@ -1199,7 +1211,7 @@ function archText(scene, ctx) {
 </div>`;
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
-    `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.3)},0.07);`,
+    `textIn("${enterFx(ctx)}","#${id} .kfw","#${id} .kfc",${r(T + 0.3)},0.07);`,
     underline ? `tl.fromTo("#${id}u",{scaleX:0,transformOrigin:"center"},{scaleX:1,duration:0.6,ease:"power2.inOut"},${r(T + 0.78)});` : "",
     scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:18},{opacity:1,y:0,duration:0.5},${r(T + 0.85)});` : "",
     bullets.length ? `tl.fromTo("#${id} .kfbl",{opacity:0,x:${right ? 18 : -18}},{opacity:1,x:0,duration:0.45,stagger:0.12,ease:"power2.out"},${r(T + 1.0)});` : "",
@@ -1230,7 +1242,7 @@ function archQuoteCard(scene, ctx) {
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
     `tl.fromTo("#${id}q",{opacity:0,scale:0.5,transformOrigin:"left top"},{opacity:0.9,scale:1,duration:0.5,ease:"back.out(2)"},${r(T + 0.25)});`,
-    `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.5)},0.05);`,
+    `textIn("${enterFx(ctx)}","#${id} .kfw","#${id} .kfc",${r(T + 0.5)},0.05);`,
     scene.subtext ? `tl.fromTo("#${id}a",{opacity:0,y:16},{opacity:1,y:0,duration:0.5,ease:"power2.out"},${r(T + Math.min(L - 0.5, 1.1))});` : "",
     ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
   ].filter(Boolean).join("\n");
@@ -1265,40 +1277,115 @@ function orderByPaletteAffinity(pool, theme) {
 // colors — reads as the product, adds a vector + motion, and never depends on
 // stock. `side` = which half is empty ("right" for left-aligned text, "left" for
 // right-aligned). Semi-transparent so it supports, not competes with, the copy.
-function buildPropFill(ctx, side) {
+// IT DEPICTS NOTHING, DELIBERATELY. This used to draw a synthetic product card — a
+// window dot, two grey text rows and a hardcoded six-bar chart. However on-palette that
+// was, it showed a product that DOES NOT EXIST, which is indistinguishable from demo
+// filler and was read as exactly that. The fourteen native composers already solved this
+// correctly ("an intentional branded placeholder — gradient wash + faint grid + a glowing
+// node", ai_laboratory_composer.js:186 and siblings); this brings the default scene-kit
+// into line with them. Pure brand geometry, no depiction, pack tokens only.
+//
+// PLACEMENT IS ASPECT-AWARE, which is the other half of the fix. The old version was
+// gated to landscape because a floating half-width card would sit behind portrait's
+// full-width centred copy. That reasoning was sound; its consequence was not — a 9:16
+// scene with no asset rendered COMPLETELY BARE, which is the "empty placeholder" defect
+// this exists to prevent.
+//   "left" / "right" — landscape: a panel in the genuinely empty half of the scene.
+//   "band"           — portrait/square: a full-bleed atmosphere layer whose geometry is
+//                      confined to the OUTER THIRDS, so it never competes with the
+//                      vertically-centred copy block.
+//
+// Every tween is on the one paused GSAP timeline (no rAF, no Date.now, no Math.random) so
+// the deterministic seeked capture is unaffected.
+function buildPropFill(ctx, placement) {
   const { theme, id, dims, T, L } = ctx;
-  const W = dims.width, H = dims.height, land = W > H;
-  const pw = Math.round(W * (land ? 0.30 : 0.5)), ph = Math.round(H * (land ? 0.44 : 0.3));
-  const px = side === "left" ? Math.round(W * 0.07) : Math.round(W - pw - W * 0.07);
-  const py = Math.round((H - ph) / 2);
-  const A = theme.accent, B = theme.accent2 || theme.accent, ink = theme.ink, line = theme.line;
-  const card = theme.isDark ? "rgba(255,255,255,0.045)" : "rgba(20,18,12,0.035)";
+  const W = dims.width, H = dims.height;
+  const band = placement === "band";
+  const A = theme.accent, B = theme.accent2 || theme.accent;
+  const flat = !theme.gradients;              // flat packs: solid edges, no glow
   const pid = `${id}pf`;
-  const hh = Math.round(ph * 0.15);      // header height
-  const pad = Math.round(pw * 0.07);
-  const chartY = Math.round(ph * 0.60), chartH = Math.round(ph * 0.28), bw = Math.round((pw - pad * 2) / 9);
-  const hts = [0.42, 0.66, 0.5, 0.82, 1.0, 0.72];
-  const bars = hts.map((f, i) =>
-    `<rect class="kfbar" x="${pad + i * (bw + Math.round(bw * 0.5))}" y="${chartY + chartH - Math.round(chartH * f)}" width="${bw}" height="${Math.round(chartH * f)}" rx="3" fill="${i === 3 ? A : rgba(B, 0.55)}"/>`).join("");
-  const rows = [0, 1].map((i) => {
-    const ry = Math.round(ph * 0.28) + i * Math.round(ph * 0.12);
-    return `<rect x="${pad}" y="${ry}" width="${Math.round(ph * 0.055)}" height="${Math.round(ph * 0.055)}" rx="3" fill="none" stroke="${A}" stroke-width="2"/>` +
-      `<rect x="${pad + Math.round(ph * 0.09)}" y="${ry + Math.round(ph * 0.012)}" width="${Math.round(pw * (i ? 0.42 : 0.55))}" height="${Math.round(ph * 0.03)}" rx="3" fill="${rgba(ink, 0.32)}"/>`;
-  }).join("");
-  const svg =
-    `<svg viewBox="0 0 ${pw} ${ph}" width="100%" height="100%" style="overflow:visible;">` +
-    `<rect x="0" y="0" width="${pw}" height="${ph}" rx="${Math.round(pw * 0.05)}" fill="${card}" stroke="${line}" stroke-width="1.5"/>` +
-    `<rect x="0" y="0" width="${pw}" height="${hh}" rx="${Math.round(pw * 0.05)}" fill="${rgba(A, 0.10)}"/>` +
-    `<rect x="0" y="${Math.round(hh * 0.5)}" width="${pw}" height="${Math.round(hh * 0.5)}" fill="${rgba(A, 0.10)}"/>` +
-    `<circle cx="${pad + Math.round(ph * 0.03)}" cy="${Math.round(hh / 2)}" r="${Math.round(ph * 0.022)}" fill="${A}"/>` +
-    `<rect x="${pad + Math.round(ph * 0.07)}" y="${Math.round(hh / 2 - ph * 0.014)}" width="${Math.round(pw * 0.4)}" height="${Math.round(ph * 0.028)}" rx="3" fill="${rgba(ink, 0.4)}"/>` +
-    rows + bars +
-    `</svg>`;
-  const html = `<div id="${pid}" style="position:absolute;left:${px}px;top:${py}px;width:${pw}px;height:${ph}px;opacity:0;pointer-events:none;" data-layout-allow-occlusion>${svg}</div>`;
+  const S = Math.min(W, H);
+
+  // ---- atoms (shared by both placements) ----
+  // A ring draws itself in via stroke-dashoffset — circumference is computed here, so the
+  // animation never has to measure the DOM (which would depend on decode timing).
+  const ring = (cx, cy, rad, alpha) => {
+    const c = r(2 * Math.PI * rad);
+    return `<circle class="kfpfr" cx="${r(cx)}" cy="${r(cy)}" r="${r(rad)}" fill="none" stroke="${rgba(A, alpha)}" stroke-width="1.5" stroke-dasharray="${c}" stroke-dashoffset="${c}" style="opacity:0;"/>`;
+  };
+  // The focal node: a soft radial glow on cinematic packs, a hard square on flat ones
+  // (a blurred glow would erase a flat pack's identity — see enrich.js / isFlatPack).
+  const node = (cx, cy, rad) => flat
+    ? `<rect class="kfpfn" x="${r(cx - rad)}" y="${r(cy - rad)}" width="${r(rad * 2)}" height="${r(rad * 2)}" rx="2" fill="${A}"/>`
+    : `<circle class="kfpfn" cx="${r(cx)}" cy="${r(cy)}" r="${r(rad * 2.6)}" fill="url(#${pid}n)"/>`;
+
+  const step = Math.max(18, Math.round(S * (band ? 0.062 : 0.085)));
+  const defs = `<defs>`
+    + `<pattern id="${pid}p" width="${step}" height="${step}" patternUnits="userSpaceOnUse">`
+    + `<path d="M ${step} 0 L 0 0 0 ${step}" fill="none" stroke="${rgba(theme.ink, theme.isDark ? 0.07 : 0.05)}" stroke-width="1"/>`
+    + `</pattern>`
+    + (flat ? "" :
+        `<radialGradient id="${pid}n"><stop offset="0%" stop-color="${rgba(A, 0.9)}"/><stop offset="45%" stop-color="${rgba(A, 0.38)}"/><stop offset="100%" stop-color="${rgba(A, 0)}"/></radialGradient>`
+      + `<linearGradient id="${pid}w" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${rgba(A, 0.15)}"/><stop offset="48%" stop-color="${rgba(A, 0)}"/><stop offset="100%" stop-color="${rgba(B, 0.18)}"/></linearGradient>`)
+    + `</defs>`;
+
+  let html;
+  if (band) {
+    // Full-bleed. Geometry sits at 13.5% and 86.5% of height — the copy block is centred
+    // with translateY(-50%), so the outer thirds are the reliably-free bands.
+    const n1x = W * 0.22, n1y = H * 0.135, n2x = W * 0.78, n2y = H * 0.865;
+    const nr = S * 0.030;
+    const wash = flat
+      ? `<rect x="0" y="0" width="${W}" height="${r(H * 0.05)}" fill="${rgba(A, 0.55)}"/>`
+        + `<rect x="0" y="${r(H - H * 0.05)}" width="${W}" height="${r(H * 0.05)}" fill="${rgba(B, 0.55)}"/>`
+      : `<rect class="kfpfw" x="0" y="0" width="${W}" height="${H}" fill="url(#${pid}w)"/>`;
+    const inner = wash
+      + `<rect class="kfpfg" x="0" y="0" width="${W}" height="${H}" fill="url(#${pid}p)"/>`
+      + `<g class="kfpfd">`
+      + ring(n1x, n1y, S * 0.105, 0.30) + ring(n1x, n1y, S * 0.062, 0.18)
+      + ring(n2x, n2y, S * 0.135, 0.26) + ring(n2x, n2y, S * 0.080, 0.16)
+      + node(n1x, n1y, nr) + node(n2x, n2y, nr * 1.15)
+      + `</g>`;
+    // preserveAspectRatio="none" is exact here (the viewBox matches the element's own
+    // W×H), so it guarantees the bleed without distorting the circles.
+    html = `<div id="${pid}" style="position:absolute;inset:0;opacity:0;pointer-events:none;" data-layout-allow-occlusion>`
+      + `<svg viewBox="0 0 ${W} ${H}" width="100%" height="100%" preserveAspectRatio="none" style="display:block;">${defs}${inner}</svg></div>`;
+  } else {
+    const pw = Math.round(W * 0.30), ph = Math.round(H * 0.44);
+    const px = placement === "left" ? Math.round(W * 0.07) : Math.round(W - pw - W * 0.07);
+    const py = Math.round((H - ph) / 2);
+    const card = theme.isDark ? "rgba(255,255,255,0.045)" : "rgba(20,18,12,0.035)";
+    const rx = Math.round(pw * 0.05);
+    const cx = pw / 2, cy = ph / 2, fit = Math.min(pw, ph);
+    const nr = fit * 0.055;
+    const inner =
+      `<rect x="0" y="0" width="${pw}" height="${ph}" rx="${rx}" fill="${card}" stroke="${theme.line}" stroke-width="1.5"/>`
+      + (flat
+        ? `<rect x="0" y="0" width="${pw}" height="${Math.round(ph * 0.05)}" fill="${A}"/>`
+        : `<rect class="kfpfw" x="0" y="0" width="${pw}" height="${ph}" rx="${rx}" fill="url(#${pid}w)"/>`)
+      + `<rect class="kfpfg" x="0" y="0" width="${pw}" height="${ph}" rx="${rx}" fill="url(#${pid}p)"/>`
+      + `<g class="kfpfd">`
+      + ring(cx, cy, fit * 0.40, 0.26) + ring(cx, cy, fit * 0.27, 0.20) + ring(cx, cy, fit * 0.15, 0.14)
+      + node(cx, cy, nr)
+      + `</g>`;
+    html = `<div id="${pid}" style="position:absolute;left:${px}px;top:${py}px;width:${pw}px;height:${ph}px;opacity:0;pointer-events:none;" data-layout-allow-occlusion>`
+      + `<svg viewBox="0 0 ${pw} ${ph}" width="100%" height="100%" style="display:block;overflow:hidden;">${defs}${inner}</svg></div>`;
+  }
+
+  // Entrance: the layer fades up, the rings draw themselves in, the node pops, then the
+  // geometry breathes. The band drifts only its INNER group (`.kfpfd`) — drifting a
+  // full-bleed layer would walk its edge into frame.
+  const drift = band ? `#${pid} .kfpfd` : `#${pid}`;
   const s = [
-    `tl.fromTo("#${pid}",{opacity:0,y:30,rotationZ:${side === "left" ? 3 : -3}},{opacity:1,y:0,rotationZ:0,duration:0.75,ease:"power3.out"},${r(T + 0.5)});`,
-    `tl.fromTo("#${pid} .kfbar",{scaleY:0,transformOrigin:"50% 100%"},{scaleY:1,duration:0.55,stagger:0.07,ease:"power2.out"},${r(T + 0.95)});`,
-    `tl.to("#${pid}",{y:"-=12",duration:${r(Math.max(2, L - 1))},ease:"sine.inOut",yoyo:true,repeat:1},${r(T + 0.9)});`,
+    band
+      ? `tl.fromTo("#${pid}",{opacity:0},{opacity:1,duration:0.9,ease:"power2.out"},${r(T + 0.3)});`
+      : `tl.fromTo("#${pid}",{opacity:0,y:30,rotationZ:${placement === "left" ? 3 : -3}},{opacity:1,y:0,rotationZ:0,duration:0.75,ease:"power3.out"},${r(T + 0.5)});`,
+    // The start value is the inline stroke-dashoffset (= circumference, written above), so
+    // the draw-in never measures the DOM: a `to` tween reads the presentation attribute.
+    `tl.to("#${pid} .kfpfr",{strokeDashoffset:0,opacity:1,duration:1.1,stagger:0.13,ease:"power2.out"},${r(T + 0.6)});`,
+    `tl.fromTo("#${pid} .kfpfn",{scale:0,transformOrigin:"50% 50%"},{scale:1,duration:0.6,stagger:0.12,ease:"back.out(1.6)"},${r(T + 0.85)});`,
+    `tl.to("#${pid} .kfpfn",{opacity:0.5,duration:1.6,ease:"sine.inOut",yoyo:true,repeat:sreps(${r(Math.max(1.6, L - 1.4))},1.6)},${r(T + 1.4)});`,
+    `tl.to("${drift}",{y:"-=${band ? 8 : 12}",duration:${r(Math.max(2, L - 1))},ease:"sine.inOut",yoyo:true,repeat:1},${r(T + 0.9)});`,
     ctx.isLast ? "" : `tl.to("#${pid}",{opacity:0,duration:0.3,ease:"power2.in"},${r(T + L - 0.35)});`,
   ].filter(Boolean).join("\n");
   return { html, script: s };
@@ -1334,6 +1421,40 @@ function partitionAssets(assets) {
   return { screenshots, vectors, photos, videos };
 }
 
+// PER-INSTANCE VARIATION — the Asset Reuse Optimizer stamps `__variant` on the SECOND and
+// later appearances of an asset, never the first. So a reused picture arrives already
+// carrying a different crop anchor, a slightly different size, its own entrance and (on
+// flat packs) a small tilt — which is the difference between "reused" and "repeated".
+//
+// Returns null for every unvaried asset, and every call site below keeps its ORIGINAL
+// literal on the null path. That is deliberate: a film with no reuse must emit byte-identical
+// markup to one built before this existed, and "the default is a separate branch" is the
+// only way to guarantee it.
+function variantOf(asset, theme) {
+  const v = asset && asset.__variant;
+  if (!v) return null;
+  const n = (x, lo, hi, d) => { const q = Number(x); return Number.isFinite(q) ? Math.max(lo, Math.min(hi, q)) : d; };
+  return {
+    scale: n(v.scale, 0.85, 1.15, 1),
+    enter: typeof v.enter === "string" ? v.enter : "rise",
+    // A tilted plate reads as a mistake on a glass/cinematic pack; only flat (poster) packs
+    // wear one. The optimizer emits the value; the PACK decides whether it applies.
+    tilt: theme && !theme.gradients ? n(v.tilt, -3, 3, 0) : 0,
+  };
+}
+// The entrance a varied instance uses. The verbs are the ones the pack's own choreography
+// already speaks, so a variation can never introduce motion the design system does not use.
+function variantEnterTween(sel, at, v) {
+  const to = `{opacity:1,x:0,y:0,scale:1,rotationZ:${v.tilt},duration:0.7,ease:"back.out(1.5)"}`;
+  switch (v.enter) {
+    case "slide-left":  return `tl.fromTo("${sel}",{opacity:0,x:-46,rotationZ:${v.tilt}},${to},${at});`;
+    case "slide-right": return `tl.fromTo("${sel}",{opacity:0,x:46,rotationZ:${v.tilt}},${to},${at});`;
+    case "pop":         return `tl.fromTo("${sel}",{opacity:0,scale:0.7,rotationZ:${v.tilt}},${to},${at});`;
+    case "fade":        return `tl.fromTo("${sel}",{opacity:0,scale:1.04,rotationZ:${v.tilt}},${to},${at});`;
+    default:            return `tl.fromTo("${sel}",{opacity:0,scale:0.82,y:24,rotationZ:${v.tilt}},${to},${at});`;
+  }
+}
+
 // SCREENSHOT-HERO — the user's real website screenshot in a per-pack device frame
 // (rounded glass chrome for cinematic packs; a hard-bordered card with an offset
 // solid shadow for flat packs), with side copy and a slow Ken-Burns scroll inside
@@ -1358,7 +1479,12 @@ function archScreenshotHero(scene, ctx) {
   const dots = ["#FF5F57", "#FEBC2E", "#28C840"].map((c) => `<span style="width:11px;height:11px;border-radius:50%;background:${flat ? theme.ink : c};display:inline-block;"></span>`).join("");
   // Visual Layout Director may enlarge the hero (readability): honor ctx.heroScale
   // as the landscape width fraction; portrait stays full-width. Null → kit default.
-  const frameW = (ctx.heroScale && land) ? `${Math.round(ctx.heroScale * 100)}%` : (land ? "52%" : "84%");
+  // A reused instance is sized slightly differently so two appearances of the same capture
+  // never present at identical scale. Null variant → the original literal, unchanged.
+  const heroVar = variantOf(asset, theme);
+  const frameW = heroVar
+    ? `${Math.round(((ctx.heroScale && land) ? ctx.heroScale * 100 : (land ? 52 : 84)) * heroVar.scale)}%`
+    : ((ctx.heroScale && land) ? `${Math.round(ctx.heroScale * 100)}%` : (land ? "52%" : "84%"));
   // The OUTER wrapper owns positioning/centering; the INNER #fr owns the GSAP
   // entrance (opacity/yPercent/rotationX). They MUST be separate elements: GSAP
   // rewrites the whole `transform` of whatever it animates, so animating yPercent
@@ -1371,7 +1497,12 @@ function archScreenshotHero(scene, ctx) {
   // Screenshot band height: landscape fills the mid-band; portrait is a fixed
   // top band so the copy stacks directly beneath it (a true vertical stack, no
   // dead space up top and no overlap — mirrors archPhoneHero's portrait flow).
-  const bandH = land ? Math.round(dims.height * 0.52) : Math.round(dims.height * 0.38);
+  // PORTRAIT gets its size variation HERE, not from frameW. A portrait hero is full-width
+  // by contract (responsive.heroBox), so `frameW` above is a LANDSCAPE-only lever and
+  // scaling it would have varied nothing in 9:16 — the format where reuse is most visible.
+  // The plate's HEIGHT is the portrait equivalent, and copyWrap below is derived from
+  // bandH, so the copy follows the plate instead of colliding with it.
+  const bandH = Math.round(dims.height * (land ? 0.52 : 0.38) * ((heroVar && !land) ? heroVar.scale : 1));
   // Portrait hero side inset from the shared source of truth (responsive.heroBox: a 0.90
   // width fraction → a 5% inset). Replaces the hardcoded 6% so the portrait hero width is
   // governed in ONE place — this wires the previously-unused heroBox export.
@@ -1397,10 +1528,12 @@ function archScreenshotHero(scene, ctx) {
 </div>`;
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
-    `tl.fromTo("#${id}fr",{opacity:0,yPercent:6,rotationX:12,transformPerspective:1200,transformOrigin:"50% 100%"},{opacity:1,yPercent:0,rotationX:0,duration:0.85,ease:"expo.out"},${r(T + 0.1)});`,
+    heroVar
+      ? variantEnterTween(`#${id}fr`, r(T + 0.1), heroVar)
+      : `tl.fromTo("#${id}fr",{opacity:0,yPercent:6,rotationX:12,transformPerspective:1200,transformOrigin:"50% 100%"},{opacity:1,yPercent:0,rotationX:0,duration:0.85,ease:"expo.out"},${r(T + 0.1)});`,
     `tl.fromTo("#${id}img",{y:0},{y:function(i,el){var h=el.scrollHeight-el.clientHeight;return -(h>0?Math.min(h,el.clientHeight*0.5):0);},duration:${r(L - 0.6)},ease:"sine.inOut"},${r(T + 0.4)});`,
     `tl.fromTo("#${id}k",{opacity:0,y:12},{opacity:1,y:0,duration:0.5},${r(T + 0.5)});`,
-    `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.65)},0.08);`,
+    `textIn("${enterFx(ctx)}","#${id} .kfw","#${id} .kfc",${r(T + 0.65)},0.08);`,
     scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:14},{opacity:1,y:0,duration:0.5},${r(T + 1.1)});` : "",
     ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
   ].filter(Boolean).join("\n");
@@ -1450,7 +1583,7 @@ function archPhoneHero(scene, ctx) {
     `tl.fromTo("#${id}fr",{opacity:0,yPercent:8,rotationX:10,transformPerspective:1200,transformOrigin:"50% 100%"},{opacity:1,yPercent:0,rotationX:0,duration:0.85,ease:"expo.out"},${r(T + 0.1)});`,
     `tl.fromTo("#${id}img",{y:0},{y:function(i,el){var h=el.scrollHeight-el.clientHeight;return -(h>0?Math.min(h,el.clientHeight*0.5):0);},duration:${r(L - 0.6)},ease:"sine.inOut"},${r(T + 0.4)});`,
     `tl.fromTo("#${id}k",{opacity:0,y:12},{opacity:1,y:0,duration:0.5},${r(T + 0.5)});`,
-    `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.65)},0.08);`,
+    `textIn("${enterFx(ctx)}","#${id} .kfw","#${id} .kfc",${r(T + 0.65)},0.08);`,
     scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:14},{opacity:1,y:0,duration:0.5},${r(T + 1.1)});` : "",
     ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
   ].filter(Boolean).join("\n");
@@ -1483,6 +1616,8 @@ function archSplitVector(scene, ctx) {
   const artGlow = (artTone || theme.gradients)
     ? `filter:${artTone}${theme.gradients ? `drop-shadow(0 18px 40px ${rgba(theme.accent, 0.35)})` : ""};`
     : "";
+  // Per-instance variation for a reused asset (null on every first appearance).
+  const artVar = variantOf(asset, theme);
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;display:flex;align-items:center;justify-content:center;">
   <div class="kfstage" style="display:flex;flex-direction:${dir};align-items:center;gap:${land ? 56 : 28}px;width:100%;padding:0 7%;">
     <div style="flex:1;">
@@ -1490,15 +1625,17 @@ function archSplitVector(scene, ctx) {
       <h2 style="font:800 ${fitBig(scene.headline, big, 16)}px/1.05 ${cssFont(theme)};letter-spacing:-0.02em;color:${theme.ink};"><style>${emphasisBlock(theme, id)}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</h2>
       ${scene.subtext ? `<p id="${id}s" style="opacity:0;margin-top:14px;font:500 ${Math.round(big * 0.4)}px/1.45 ${cssFont(theme)};color:${theme.dim};">${esc(scene.subtext)}</p>` : ""}
     </div>
-    <div style="flex:1;display:flex;align-items:center;justify-content:center;"><img id="${id}art" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;max-width:${land ? "44%" : "60%"};height:auto;max-height:${Math.round(dims.height * (land ? 0.6 : 0.34))}px;object-fit:contain;${artGlow}"></div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;"><img id="${id}art" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;max-width:${artVar ? `${Math.round((land ? 44 : 60) * artVar.scale)}%` : (land ? "44%" : "60%")};height:auto;max-height:${Math.round(dims.height * (land ? 0.6 : 0.34))}px;object-fit:contain;${artGlow}"></div>
   </div>
 </div>`;
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
     `tl.from("#${id} .h1, #${id} h2",{x:-36,opacity:0,duration:0.6,ease:"expo.out"},${r(T + 0.15)});`,
-    `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.25)},0.07);`,
+    `textIn("${enterFx(ctx)}","#${id} .kfw","#${id} .kfc",${r(T + 0.25)},0.07);`,
     scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:16},{opacity:1,y:0,duration:0.5},${r(T + 0.8)});` : "",
-    `tl.fromTo("#${id}art",{opacity:0,scale:0.82,y:24},{opacity:1,scale:1,y:0,duration:0.7,ease:"back.out(1.5)"},${r(T + 0.4)});`,
+    artVar
+      ? variantEnterTween(`#${id}art`, r(T + 0.4), artVar)
+      : `tl.fromTo("#${id}art",{opacity:0,scale:0.82,y:24},{opacity:1,scale:1,y:0,duration:0.7,ease:"back.out(1.5)"},${r(T + 0.4)});`,
     `tl.to("#${id}art",{y:"-=14",duration:1.6,ease:"sine.inOut",yoyo:true,repeat:sreps(${r(L - 0.8)},1.6)},${r(T + 1.1)});`,
     ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
   ].filter(Boolean).join("\n");
@@ -1547,7 +1684,7 @@ function archAssetMontage(scene, ctx) {
 </div>`;
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
-    `textIn("${theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.25)},0.06);`,
+    `textIn("${enterFx(ctx)}","#${id} .kfw","#${id} .kfc",${r(T + 0.25)},0.06);`,
     `tl.fromTo("#${id} .kftile",{opacity:0,scale:0.82,y:26},{opacity:1,scale:1,y:0,duration:0.55,stagger:0.1,ease:"back.out(1.5)"},${r(T + 0.55)});`,
     `tl.to("#${id} .kftile",{y:"-=8",duration:1.8,ease:"sine.inOut",yoyo:true,stagger:0.12,repeat:sreps(${r(L - 1.2)},1.8)},${r(T + 1.5)});`,
     ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
@@ -1600,12 +1737,24 @@ function videoBg(asset, ctx) {
 // Pull up to `max` assets for a montage, round-robin across kinds for variety.
 function takeMontage(pools, max) {
   const out = [];
+  const seen = new Set();
   const order = [pools.screenshots, pools.vectors, pools.photos];
   let progressed = true;
   while (out.length < max && progressed) {
     progressed = false;
     for (const arr of order) {
-      if (out.length < max && arr.length) { out.push(arr.shift()); progressed = true; }
+      if (out.length >= max || !arr.length) continue;
+      // A tile wall must never show the same picture twice. With the Asset Reuse Optimizer
+      // on the wire an asset can legitimately appear as SEVERAL entries (one path, several
+      // scenes), and consecutive entries land in the same pool — so take the first entry
+      // whose path is new rather than blindly shifting the front. Byte-identical when every
+      // path is unique (findIndex then returns 0, which is what shift() took).
+      const j = arr.findIndex((a) => a && a.path && !seen.has(a.path));
+      if (j < 0) continue;
+      const a = arr.splice(j, 1)[0];
+      seen.add(a.path);
+      out.push(a);
+      progressed = true;
     }
   }
   return out;
@@ -1694,7 +1843,7 @@ function buildCaptions(captionCues, dims, D, theme, track) {
 }
 
 // MAIN ENTRY — assemble the full composition.
-function buildComposition({ storyboard, dims, framePack, assets, captionCues, seedKey, dressing, brandSkin, layoutPlan, localized, captionStyle } = {}) {
+function buildComposition({ storyboard, dims, framePack, assets, captionCues, seedKey, dressing, brandSkin, layoutPlan, localized, captionStyle, motionPlan } = {}) {
   // Non-Latin (video-text) scripts render wider per character; feed that factor into fitBig so
   // headlines shrink to fit instead of overflowing (esp. CJK). 1 for Latin/English (no-op).
   _langCharWidth = (captionStyle && captionStyle.text && captionStyle.text.charWidth) || 1;
@@ -1786,6 +1935,9 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
       asset: null, assets: null, bgAsset: null,
       seed, sceneIndex: i, sceneCount: scenes.length,
       variant: dress?.variant != null ? dress.variant : textVariant(theme, seed, i), // 0-3 layout variant
+      // Motion Planner: this scene's own entrance + camera (see enterFx / sceneMotion).
+      // Null when no plan was supplied → the pack's film-level textfx/cut, as before.
+      fx: (motionPlan && motionPlan.byScene && motionPlan.byScene[scene.id]) || null,
       decorSvg: dress?.decorSvg || null,
       heroScale, // Visual Layout Director: target hero width fraction (null → default)
       // The logo appears at the OPEN (scene 0) and the CTA (last scene) only.
@@ -1796,6 +1948,15 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
   });
 
   const leftover = () => pools.screenshots.length + pools.vectors.length + pools.photos.length;
+  // DISTINCT PICTURES left, not wire entries. The Asset Reuse Optimizer can put one asset
+  // on the wire several times (one path, several scenes), so an entry count no longer
+  // answers "is there enough material for a tile wall?" — a two-picture film with two
+  // clones counts four and builds a montage it can only fill by showing a picture that is
+  // already on the neighbouring scene. Byte-identical before reuse, where every entry is a
+  // distinct path.
+  const distinctLeftover = () => new Set(
+    [...pools.screenshots, ...pools.vectors, ...pools.photos].map((a) => a && a.path).filter(Boolean)
+  ).size;
   let usedShot = false, montageDone = false;
   // Creative Director scene assignment: every curated asset carries the scene the CD
   // chose for it (a.sceneId). sameScene lets the weave PREFER that scene over pool
@@ -1856,7 +2017,7 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
   for (const p of weavable) {
     if (p.ctx.asset || p.ctx.assets) continue;
     if (!leftover()) break;
-    if (!montageDone && leftover() >= 3) {
+    if (!montageDone && distinctLeftover() >= 3) {
       p.ctx.assets = takeMontage(pools, montageMax); p.build = archAssetMontage; montageDone = true;
     } else if (pools[splitPools[0]].length || pools[splitPools[1]].length) {
       // Prefer an asset the CD assigned to THIS scene (sceneId), from either pool in the
@@ -1909,13 +2070,23 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
     // scene reads as half-empty. Centered text (variant 1) has no empty side; stat/
     // cta/quote/asset scenes are already full, so they're skipped.
     const noVisual = !p.ctx.asset && !p.ctx.assets && !p.ctx.bgAsset && !p.ctx.bgVideo;
-    // Prop-fill lives in the EMPTY half of a side-aligned scene. Portrait/square
-    // copy is full-width and centered, so a floating half-width card would sit
-    // behind the text — skip it off the landscape path (the copy fills the frame).
-    const propEligible = noVisual && W > H && (p.build === archHook || (p.build === archText && p.ctx.variant !== 1));
+    // DECORATIVE FALLBACK — aspect-aware, and the reason it is no longer landscape-only.
+    //
+    // The old gate was `noVisual && W > H && …`. The stated reason was sound (portrait copy
+    // is full-width and centred, so a floating half-width card would sit behind the text)
+    // but the consequence was not: a 9:16 scene with no fetched visual got NOTHING, which
+    // is the "empty placeholder / unfinished video" defect — worst in exactly the format
+    // the product targets. Landscape keeps the card in its genuinely empty half; portrait
+    // and square get a full-bleed atmosphere layer whose geometry stays in the outer
+    // thirds, clear of the centred copy block. See buildPropFill.
+    const land = W > H;
+    const propEligible = noVisual
+      && (p.build === archHook || (p.build === archText && (land ? p.ctx.variant !== 1 : true)));
     if (propEligible) {
-      const side = (p.build === archText && p.ctx.variant === 3) ? "left" : "right";
-      const prop = buildPropFill(p.ctx, side);
+      // Landscape: fill the half the copy does NOT occupy (v3 is right-aligned → card left).
+      // Portrait/square: a band, because there is no empty half to fill.
+      const placement = !land ? "band" : (p.build === archText && p.ctx.variant === 3) ? "left" : "right";
+      const prop = buildPropFill(p.ctx, placement);
       const withProp = out.html.replace(new RegExp(`(<div id="${p.ctx.id}"[^>]*>)`), `$1${prop.html}`);
       if (withProp !== out.html) { out.html = withProp; out.script += `\n${prop.script}`; }
     }

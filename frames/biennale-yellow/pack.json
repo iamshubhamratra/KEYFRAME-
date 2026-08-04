@@ -52,5 +52,36 @@
     "enter": "line-wipe",
     "emphasis": "marker",
     "align": "left"
+  },
+  "audio": {
+    "mood": "elegant",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "classical",
+      "piano",
+      "acoustic",
+      "ambient"
+    ],
+    "musicKeywords": [
+      "soft piano",
+      "elegant acoustic",
+      "gentle classical",
+      "warm ambient",
+      "cultural strings",
+      "uplifting piano"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": false
+    }
   }
 }

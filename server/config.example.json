@@ -16,22 +16,28 @@
     "renderWorkers": 1
   },
   "llm": {
+    "_comment": "Every LLM stage runs on KIE (llm.primary). llm.baseUrl/apiKey below are OpenRouter, kept ONLY for the voiceover (audio.ttsModel) and the budget probe.",
     "primary": {
       "provider": "kie",
-      "baseUrl": "https://api.kie.ai/gemini-3-5-flash-openai/v1",
-      "model": "gemini-3-5-flash",
+      "model": "gemini-3-6-flash",
+      "fallbackModel": "gemini-3-6-flash",
+      "models": {
+        "gemini-3-6-flash":   { "baseUrl": "https://api.kie.ai/gemini-3-6-flash-openai/v1", "protocol": "openai" },
+        "grok-4-5":           { "baseUrl": "https://api.kie.ai/grok/v1",                    "protocol": "responses" },
+        "qwen/qwen3.7-flash": { "baseUrl": "https://openrouter.ai/api/v1", "protocol": "openai", "provider": "openrouter", "reasoning": false }
+      },
+      "stageModels": {
+        "composer":   "grok-4-5",
+        "storyboard": "grok-4-5",
+        "script":     "grok-4-5",
+        "vo_fit":     "qwen/qwen3.7-flash",
+        "dressing":   "qwen/qwen3.7-flash",
+        "assets":     "qwen/qwen3.7-flash",
+        "audio":      "qwen/qwen3.7-flash"
+      },
       "apiKey": ""
     },
-    "provider": "openrouter",
-    "model":         "google/gemini-2.5-flash-lite",
-    "modelFast":     "google/gemini-2.5-flash-lite",
-    "modelFallback": "google/gemini-2.5-flash",
-    "stageModels": {
-      "storyboard":   "default",
-      "composer":     "anthropic/claude-opus-4.8",
-      "assetPlanner": "default",
-      "audioPlanner": "default"
-    },
+    "provider": "kie",
     "baseUrl": "https://openrouter.ai/api/v1",
     "apiKey": "",
     "maxTokens": {
@@ -83,7 +89,19 @@
   "render": {
     "hyperframesVersion": "0.6.120"
   },
+  "creativeDirector": {
+    "enabled": true,
+    "maxPerScene": 2,
+    "maxTopUp": 3,
+    "chunkSize": 6,
+    "minScore": 45,
+    "rejectScore": 25
+  },
   "orchestrator": "langgraph",
+  "artDirector": {
+    "_comment": "art_director is one of five stages whose stageModels entry is OVERWRITTEN at boot from its own block (see src/config.js). Set the model HERE, not in stageModels.",
+    "model": "qwen/qwen3.7-flash"
+  },
   "qa": {
     "enabled": true,
     "maxRepairs": 2

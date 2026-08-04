@@ -61,5 +61,36 @@
     "emphasis": "boxed",
     "case": "upper",
     "tracking": -0.01
+  },
+  "audio": {
+    "mood": "hype",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "hip hop",
+      "trap",
+      "pop",
+      "electronic"
+    ],
+    "musicKeywords": [
+      "upbeat pop",
+      "energetic hip hop",
+      "youth anthem",
+      "punchy trap",
+      "high energy hype",
+      "driving beat"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "pop",
+      "reveal": "product-reveal",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
   }
 }

@@ -77,11 +77,23 @@ function materialize(entry, outputPath) {
   entry.hits = (entry.hits || 0) + 1;
   persist();
   console.log(`[asset_db] cache HIT "${entry.query}" (${entry.type}, ${entry.source}) -> ${path.basename(outputPath)}`);
-  return { license: entry.license, sourceUrl: entry.sourceUrl, source: `cache:${entry.source}`, width: entry.width, height: entry.height };
+  // A cache hit must describe the asset as fully as a fresh download does. It used to
+  // return license/url/source/width/height only, so a cached image reached the wire
+  // with no `ratio` (the Visual Layout Director's phone-vs-browser routing and crop
+  // focus both key off it and silently defaulted), no dhash, and no dominantColor —
+  // and it skips validateImage, so nothing recomputed them. The fields are cheap to
+  // store; entries cached before this change simply return undefined, exactly as before.
+  return {
+    license: entry.license, sourceUrl: entry.sourceUrl, source: `cache:${entry.source}`,
+    width: entry.width, height: entry.height,
+    ratio: entry.ratio != null ? entry.ratio
+      : (entry.width && entry.height ? Math.round((entry.width / entry.height) * 1000) / 1000 : undefined),
+    hasAlpha: entry.hasAlpha, dhash: entry.dhash, dominantColor: entry.dominantColor,
+  };
 }
 
 // Register a freshly downloaded asset: copy into the cache and index it.
-function register({ filePath, query, type, orientation, source, license, sourceUrl, width, height }) {
+function register({ filePath, query, type, orientation, source, license, sourceUrl, width, height, ratio, hasAlpha, dhash, dominantColor }) {
   try {
     const idx = load();
     fs.mkdirSync(FILES_DIR, { recursive: true });
@@ -94,6 +106,13 @@ function register({ filePath, query, type, orientation, source, license, sourceU
       id, query, words: tokenize(query), type, orientation: orientation || "all",
       source, license: license || "unknown", sourceUrl: sourceUrl || null,
       width: width || null, height: height || null,
+      // Measured once at download time so a later cache hit doesn't have to re-probe
+      // (and, today, simply went without). All optional — a caller that has no meta
+      // stores nulls and the cache behaves exactly as it did.
+      ratio: ratio != null ? ratio : null,
+      hasAlpha: hasAlpha != null ? hasAlpha : null,
+      dhash: dhash || null,
+      dominantColor: dominantColor || null,
       file: dest, bytes: fs.statSync(dest).size, addedAt: Date.now(), hits: 0,
     });
     persist();

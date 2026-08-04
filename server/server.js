@@ -137,7 +137,7 @@ async function main() {
     console.log(`[server] listening on :${config.server.port}`);
     console.log(`[server] videosDir=${config.paths.videosDir}`);
     console.log(`[server] jobsDir=${config.paths.jobsDir}`);
-    console.log(`[server] model=${config.llm.model}`);
+    console.log(`[server] llm=kie:${config.llm.primary.model} heavy=${JSON.stringify(config.llm.primary.stageModels || {})}`);
     // Verify the director / stage model ids resolve at the provider. Non-blocking:
     // a bad id otherwise silently fails-open at runtime (see model_health.js).
     require("./src/services/model_health").checkModels().catch(() => {});

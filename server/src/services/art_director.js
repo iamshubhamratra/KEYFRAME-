@@ -35,10 +35,6 @@ const SYSTEM = fs.readFileSync(
   "utf8"
 );
 
-function ard() {
-  return config.artDirector || { enabled: true, model: "google/gemini-3.1-flash-lite" };
-}
-
 // ONE pool, two caps. MAX_CANDIDATES is what a palette distills to — the menu the
 // model chooses from AND the pool the deterministic skin is cut from. They used to be
 // distilled separately (5 for the model, 3 for the fallback), so the model could
@@ -182,8 +178,11 @@ function buildUser({ subject, framePack, packVibe, candidates }) {
 async function buildSkin({ subject, framePack, packVibe, candidates, provenance, tracker, signal }) {
   const user = buildUser({ subject, framePack, packVibe, candidates });
   const { text, tokensIn, tokensOut, model: servedModel, provider: servedBy } = await openrouter.chat({
+    // No explicit `model` (that would pin the call with no fallback behind it).
+    // config.js mirrors artDirector.model into llm.primary.stageModels, which is
+    // what routes this stage to its KIE model.
     system: SYSTEM, user, jsonMode: true, stage: "art_director",
-    model: ard().model, temperature: 0.2, signal,
+    temperature: 0.2, signal,
   });
   if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "art_director", model: servedModel, provider: servedBy });
   return sanitizeSkin(extractFirstJsonObject(text), candidates, provenance);
@@ -209,9 +208,26 @@ const SKIN_AWARE_RENDERERS = new Set([
   "three-flagship", "three-brightlife", "three",
   "blueprint", "bloom-fable", "terminal-departures", "paper-tales", "bauhaus-riot",
   "kinetic-universe", "product-showcase",
+  // grid-dispatch is a MONO scheme: the brand accent replaces its single accent outright,
+  // taking the poster fields, rules, tags, counters, the CTA block and the spec figures with
+  // it — so the skin reaches far more than the type.
+  "grid-dispatch",
+  // slab-stage carries TWO accents through grounds, slabs, karaoke words, props, tags, the
+  // progress bar, the cut bar and the CTA field; a brand supplying one accent gets its
+  // partner derived by hue rotation rather than falling back to the pack's own blue.
+  "slab-stage",
   // prisma-bloc rotates its ENTIRE palette (grounds, blocks, chips, outlines, seam and
   // ink) onto the brand's lead hue with each colour pinned to its authored luminance.
   "dom-prisma",
+  // showcase wears the brand accent on the CTA pill, the arrows, callout chips, highlight
+  // boxes, the brand badge and the stat figures — AND derives its four companion backdrop
+  // hues and its highlight mark from it by hue rotation, so a branded film repaints the whole
+  // wash rather than only its furniture.
+  "showcase",
+  // The om_port_kit ports. Each resolves ONE brand accent against its own ground (dark grounds
+  // LIFT it, light grounds darken it) and derives every companion hue from it by rotation, so a
+  // rebranded film repaints its whole palette rather than only its furniture.
+  "hacker", "orbit", "edition", "fight", "reel", "showcase-vertical", "flight", "flight-vertical", "pipeline", "momentum", "deep", "jungle", "drive", "fetch", "teampulse",
   // The seven OM-stage packs do the same through one shared engine: the brand's accents
   // take the pack's accent slots and every remaining colour — grounds, skies, lantern
   // glow, spotlights, checkers, petals — rotates onto the brand's lead hue.

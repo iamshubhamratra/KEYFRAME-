@@ -89,9 +89,14 @@ async function generateBrief({ intent, signal }) {
   let totalIn = 0, totalOut = 0;
   let lastErr = "";
   let userMsg = user;
+  // WHO ACTUALLY SERVED THE CALL. chat() falls back across providers (KIE primary ->
+  // OpenRouter), and they bill at very different rates. Returning these lets the
+  // caller's tracker.addLlm price the stage correctly; without them usage.priceFor
+  // fell through to DEFAULT_MODEL_PRICE and over-costed every intake stage ~3.3x.
+  let servedModel = null, servedBy = null;
 
   for (let attempt = 1; attempt <= 2; attempt++) {
-    const { text, tokensIn, tokensOut } = await openrouter.chat({
+    const { text, tokensIn, tokensOut, model, provider } = await openrouter.chat({
       system: SYSTEM,
       user: userMsg,
       jsonMode: true,
@@ -101,6 +106,8 @@ async function generateBrief({ intent, signal }) {
     });
     totalIn += tokensIn;
     totalOut += tokensOut;
+    servedModel = model || servedModel;
+    servedBy = provider || servedBy;
 
     try {
       const raw = parseLenient(text);
@@ -131,7 +138,7 @@ async function generateBrief({ intent, signal }) {
 
       const repeated = recentFramePacks[0] && recentFramePacks[0] === brief.suggestedFramePack;
       console.log(`[brief] ok on attempt ${attempt} (pack=${brief.suggestedFramePack}${repeated ? " — repeats the previous video's pack" : ""}, duration=${brief.suggestedDuration}s)`);
-      return { brief, tokensIn: totalIn, tokensOut: totalOut };
+      return { brief, tokensIn: totalIn, tokensOut: totalOut, model: servedModel, provider: servedBy };
     } catch (e) {
       lastErr = e instanceof z.ZodError ? JSON.stringify(e.issues).slice(0, 800) : e.message;
       console.warn(`[brief] attempt ${attempt} invalid: ${lastErr.slice(0, 300)}`);

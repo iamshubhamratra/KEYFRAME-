@@ -59,3 +59,14 @@ auth-store.json
 # website-asset harvester runtime cache (harvested SVGs/manifests, machine-local)
 server/harvest_cache/
 **/harvest_cache/
+
+# reference handoffs: standalone/ is a self-contained BUILD of src/ (~24MB of
+# inlined React+Babel+fonts). src/ is the source and is committed; serve it with
+# `python3 -m http.server` -> <Template>.dc.html to watch any reference.
+templete-design/all-template-handoffs/*/standalone/
+
+# server runtime artefacts (logs, last-job markers, jobs.json snapshots)
+server/.server*.log
+server/.last_job
+server/.lastprisma
+server/jobs.json.bak-*

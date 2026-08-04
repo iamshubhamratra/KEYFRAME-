@@ -69,6 +69,8 @@ export default function Premiere({ projectId, onRemix, onNew }) {
           )}
         </div>
 
+        <QualityPanel q={project.deliveryQuality} onRemix={onRemix} />
+
         {Array.isArray(project.audioNotes) && project.audioNotes.length > 0 && (
           <div style={{ marginTop: 18, padding: "12px 16px", borderRadius: 12, border: "1px solid rgba(255,176,58,.4)", background: "rgba(255,176,58,.08)" }}>
             {project.audioNotes.map((n, i) => (
@@ -200,6 +202,68 @@ export default function Premiere({ projectId, onRemix, onNew }) {
           FIN<span style={{ color: "var(--color-mag)" }}>.</span>
         </div>
       </div>
+    </div>
+  );
+}
+
+// DELIVER-AND-FLAG. The film is handed over either way — a watchable video beats a hard
+// failure — but when the automated review found something, it is stated here instead of
+// being buried in a log. Every issue names WHERE (timestamp or area) and, where the
+// pipeline supplied one, what would fix it.
+//
+// Silent on a clean film: a panel that always appears becomes furniture and stops being read.
+function QualityPanel({ q, onRemix }) {
+  if (!q || q.verdict === "clean" || !q.issues || !q.issues.length) return null;
+  const weak = q.verdict === "weak";
+  const accent = weak ? "var(--color-rec)" : "var(--color-am)";
+  const tint = weak ? "rgba(216,39,27,.09)" : "rgba(255,176,58,.08)";
+  const border = weak ? "rgba(216,39,27,.42)" : "rgba(255,176,58,.40)";
+  const AREA = { picture: "PICTURE", composition: "LAYOUT", assets: "ASSETS", audio: "AUDIO", motion: "MOTION", language: "LANGUAGE" };
+
+  return (
+    <div style={{ marginTop: 18, borderRadius: 12, border: `1px solid ${border}`, background: tint, overflow: "hidden" }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", padding: "12px 16px 8px" }}>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: accent }}>
+          {weak ? "⚠ Quality review" : "Quality review"}
+        </span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em", color: "var(--color-dark-dim)" }}>
+          {q.score}/100
+          {q.signals && q.signals.qaScore != null && ` · frame review ${q.signals.qaScore}/10`}
+          {q.counts && q.counts.blockers > 0 && ` · ${q.counts.blockers} blocking`}
+        </span>
+      </div>
+
+      <div style={{ padding: "0 16px 4px", fontFamily: "var(--font-mono)", fontSize: 11, lineHeight: 1.6, color: "var(--color-dark-ink)" }}>
+        {q.headline}
+      </div>
+
+      <ul style={{ listStyle: "none", margin: 0, padding: "8px 16px 14px", display: "grid", gap: 8 }}>
+        {q.issues.map((it, i) => (
+          <li key={i} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "start" }}>
+            <span style={{
+              fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.14em", padding: "3px 6px", borderRadius: 4,
+              whiteSpace: "nowrap", marginTop: 2,
+              color: it.severity === "blocker" ? "var(--color-ink-2)" : accent,
+              background: it.severity === "blocker" ? accent : "transparent",
+              border: it.severity === "blocker" ? "none" : `1px solid ${border}`,
+            }}>
+              {AREA[it.area] || String(it.area || "").toUpperCase()}
+            </span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, lineHeight: 1.55, color: "var(--color-dark-ink)" }}>
+              {it.detail}
+              {it.fix && (
+                <span style={{ display: "block", color: "var(--color-dark-dim)", marginTop: 3 }}>→ {it.fix}</span>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      {weak && onRemix && (
+        <div style={{ padding: "0 16px 14px" }}>
+          <button onClick={onRemix} className="btn-outline-dark btn-sm">✂ Edit the script and regenerate</button>
+        </div>
+      )}
     </div>
   );
 }

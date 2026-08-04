@@ -1,0 +1,100 @@
+{
+  "name": "orbit",
+  "renderer": "orbit",
+  "orientation": "landscape",
+  "vibe": "A launch-control film. Deep-space ground scattered with a slow-drifting starfield, a cool blue accent set against a hot flame orange, and thin hairline panels with corner ticks — mission-control instrumentation rather than sci-fi chrome. A monospace clock ticks the opener down from ten; the reveal beat rides the payload up out of frame-bottom on a flame column; screenshots sit inside bracketed viewports labelled like telemetry feeds, and the closing readouts count real figures onto accent-topped panels. Authored landscape-first (16:9) as a native GSAP + DOM composition. Best for launches, hardware, deep-tech, fintech and any product that wants to feel engineered rather than decorated.",
+  "colors": {
+    "ground": "#060814",
+    "ground-2": "#0E1426",
+    "text": "#EAF0FF",
+    "muted": "#8A93B2",
+    "accent": "#5B8CFF",
+    "ink": "#EAF0FF",
+    "paper": "#0E1426"
+  },
+  "fonts": [
+    "Space Grotesk",
+    "JetBrains Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#060814"
+  },
+  "motion": {
+    "cut": "slide-push",
+    "drift": 0.9
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#5B8CFF"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "clean high-contrast product interface on a dark background",
+    "iconStyle": "line",
+    "keywords": [
+      "space",
+      "launch",
+      "rocket",
+      "telemetry",
+      "dark",
+      "technical",
+      "engineering",
+      "landscape"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Space Grotesk",
+    "mono": "JetBrains Mono",
+    "body": "Space Grotesk"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "glow",
+    "case": "sentence",
+    "tracking": -0.03,
+    "align": "left"
+  },
+  "audio": {
+    "mood": "epic",
+    "energy": "high",
+    "tempo": "mid",
+    "style": [
+      "cinematic",
+      "electronic",
+      "orchestral",
+      "modern"
+    ],
+    "musicKeywords": [
+      "cinematic build",
+      "epic electronic",
+      "launch countdown",
+      "rising tension",
+      "space ambient",
+      "triumphant modern"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "product-reveal",
+      "data": "data-ping",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

@@ -61,5 +61,36 @@
     "emphasis": "boxed",
     "case": "none",
     "tracking": -0.01
+  },
+  "audio": {
+    "mood": "editorial",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "electronic",
+      "pop",
+      "percussion",
+      "modern"
+    ],
+    "musicKeywords": [
+      "bold editorial",
+      "modern percussion",
+      "kinetic pop",
+      "campaign electronic",
+      "driving beat",
+      "high energy modern"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "pop",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
   }
 }

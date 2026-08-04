@@ -366,8 +366,79 @@ function sanitizeSvg(markup) {
   // url(http…) and CSS @import inside any surviving style/attributes.
   s = s.replace(/url\(\s*['"]?\s*(?:https?:|\/\/|data:)[^)]*\)/gi, "none");
   s = s.replace(/@import\b[^;]*;?/gi, "");
-  return s;
+  // A SAFE svg can still be an UNLOADABLE or INVISIBLE one. Both normalizations run from
+  // this one choke point so the inline and fetched write paths cannot drift.
+  return ensureSvgNamespace(unhideSvgRoot(s));
 }
+
+// THE NAMESPACE — the defect that actually reached a delivered film.
+//
+// An inline `<svg>` in an HTML document needs no `xmlns`: the HTML parser puts it in the SVG
+// namespace implicitly. Harvesting captures `svg.outerHTML`, which does NOT add the missing
+// declaration, and we then write those bytes to a standalone `.svg`. A standalone SVG loaded
+// through `<img src>` is parsed as **XML**, where the namespace is mandatory — so the browser
+// cannot parse it, the image fails to load, and the composer's `alt` string renders on screen
+// in place of the brand mark. Observed in job 9e0fq1724n (prisma-bloc hook), whose logo came
+// from linear.app as `<svg width="13" height="13" viewBox="0 0 100 100" fill="#E2E4E6" …>`:
+// well-formed, drawable, and unloadable.
+//
+// It is invisible to every existing gate: the file EXISTS (so preflight's `invalidPaths` is
+// happy), the path IS in the HTML (so the render audit counts it as rendered), and vectors
+// skip `validateImage` entirely. Measured across the harvest cache: **26 of 201** SVGs.
+function ensureSvgNamespace(markup) {
+  const s = String(markup || "");
+  const m = /<svg\b[^>]*>/i.exec(s);
+  if (!m) return s;
+  let tag = m[0];
+  if (!/\sxmlns\s*=/i.test(tag)) {
+    tag = tag.replace(/^<svg\b/i, '<svg xmlns="http://www.w3.org/2000/svg"');
+  }
+  // An undeclared `xlink:` prefix is the same class of XML parse error.
+  if (/\sxlink:[a-z]+\s*=/i.test(s) && !/\sxmlns:xlink\s*=/i.test(tag)) {
+    tag = tag.replace(/^<svg\b/i, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+  }
+  return s.slice(0, m.index) + tag + s.slice(m.index + m[0].length);
+}
+
+// VISUAL normalization — deliberately separate in intent from the security pass above.
+//
+// Sites routinely ship their logo inline with the ROOT hidden: a sprite, or a mark revealed
+// later by CSS/script. `svg.outerHTML` captures that state verbatim, so the harvested file
+// opens `<svg … style="visibility: hidden;">` (real example:
+// harvest_cache/10c8fa41703d5b6a/a1.svg). Loaded as an <img> it paints NOTHING, and the
+// composer's alt text lands on screen where the brand mark should be — observed in a
+// delivered film (job 9e0fq1724n, the prisma-bloc hook). Nothing downstream catches it:
+// preflight's `invalidPaths` only asks whether the FILE EXISTS.
+//
+// ROOT ONLY, deliberately. Logos commonly pack several variants into one file with all but
+// one hidden (light/dark, wordmark/monogram); un-hiding those would stack every variant on
+// top of each other. The root element's own hidden state is the only one that is
+// unambiguously wrong — nothing can see the mark at all.
+function unhideSvgRoot(markup) {
+  const s = String(markup || "");
+  const m = /<svg\b[^>]*>/i.exec(s);
+  if (!m) return s;
+  let tag = m[0];
+  // Presentation attributes.
+  tag = tag.replace(/\svisibility\s*=\s*(["'])\s*(?:hidden|collapse)\s*\1/gi, "");
+  tag = tag.replace(/\sdisplay\s*=\s*(["'])\s*none\s*\1/gi, "");
+  tag = tag.replace(/\sopacity\s*=\s*(["'])\s*0*(?:\.0+)?\s*\1/gi, "");
+  // The same three, as declarations inside the root's style attribute.
+  tag = tag.replace(/\sstyle\s*=\s*(["'])([\s\S]*?)\1/i, (_full, q, css) => {
+    const kept = String(css).split(";")
+      .filter((d) => d.trim() && !/^\s*(?:visibility\s*:\s*(?:hidden|collapse)|display\s*:\s*none|opacity\s*:\s*0*(?:\.0+)?)\s*$/i.test(d))
+      .join(";");
+    return kept.trim() ? ` style=${q}${kept}${q}` : "";
+  });
+  return s.slice(0, m.index) + tag + s.slice(m.index + m[0].length);
+}
+
+// Does this markup draw anything at all? A vector with no drawable element renders as an
+// empty box — which, in an <img>, is indistinguishable from a broken one. Cheap and
+// structural; a TRUE paint check would need rasterisation (Chromium/resvg), which is far
+// more than this is worth. `<use>` counts: internal `#` references survive sanitizing.
+const SVG_DRAWABLE = /<(?:path|rect|circle|ellipse|polygon|polyline|line|text|image|use)\b/i;
+function svgPaintsSomething(markup) { return SVG_DRAWABLE.test(String(markup || "")); }
 
 // ---------------------------------------------------------------- discovery
 
@@ -698,6 +769,9 @@ async function harvestSiteAssets({ page, baseUrl, workDir, isAuthWall = false } 
     if (c.inlineSvg) {
       try {
         const clean = sanitizeSvg(c.inlineSvg);
+        // A vector that paints nothing is worse than no vector: as an <img> it renders an
+        // empty box, and the composer's alt text shows in its place.
+        if (!svgPaintsSomething(clean)) { review.dropped.push({ url: "inline-svg", reason: "blank-svg" }); return; }
         const abs = path.join(outDir, `a${seq++}.svg`);
         fs.writeFileSync(abs, clean, "utf8");
         files.push({ absPath: abs, url: null, discovery: c.discovery, isSvg: true, nearHeader: !!c.nearHeader, alt: c.alt || "", cls: c.cls || "", width: c.w || 0, height: c.h || 0, hasAlpha: true, mime: "image/svg+xml", bytes: Buffer.byteLength(clean), styleColors: Array.isArray(c.styleColors) ? c.styleColors : [] });
@@ -714,7 +788,11 @@ async function harvestSiteAssets({ page, baseUrl, workDir, isAuthWall = false } 
     if (!ext) { review.dropped.push({ url: c.url, reason: "not-an-image" }); return; }
     try {
       let abs = path.join(outDir, `a${seq++}.${ext}`);
-      if (ext === "svg") { fs.writeFileSync(abs, sanitizeSvg(got.buf.toString("utf8")), "utf8"); }
+      if (ext === "svg") {
+        const clean = sanitizeSvg(got.buf.toString("utf8"));
+        if (!svgPaintsSomething(clean)) { review.dropped.push({ url: c.url, reason: "blank-svg" }); return; }
+        fs.writeFileSync(abs, clean, "utf8");
+      }
       else { fs.writeFileSync(abs, got.buf); }
       let width = c.w || 0, height = c.h || 0, hasAlpha = ext === "png" || ext === "webp" || ext === "gif";
       // Skip the probe once the budget is spent — fall back to the DOM natural w/h so a
@@ -750,6 +828,6 @@ async function harvestSiteAssets({ page, baseUrl, workDir, isAuthWall = false } 
 module.exports = {
   harvestSiteAssets, discoverAssetsInPage, discoverBrandSignals,
   // exported for unit tests / reuse
-  assertPublicUrl, fetchGuarded, sanitizeSvg, sniffImage,
+  assertPublicUrl, fetchGuarded, sanitizeSvg, unhideSvgRoot, ensureSvgNamespace, svgPaintsSomething, sniffImage,
   _internal: { isBlockedAddress, v4ToBig, v6ToBig, inBlock },
 };

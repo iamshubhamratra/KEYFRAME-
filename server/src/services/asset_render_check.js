@@ -28,6 +28,21 @@ function pathInHtml(html, p) {
   return html.indexOf(p) !== -1;
 }
 
+// How MANY times a path is drawn. Presence alone stopped being the whole answer once the
+// Asset Reuse Optimizer could put one picture on several scenes: a clone and its original
+// share a path, so both satisfy pathInHtml even if the composer drew the picture once.
+// Counting occurrences is what separates "reused as designed" from "the second instance
+// was silently dropped".
+function countInHtml(html, p) {
+  if (!html || !p) return 0;
+  let n = 0, i = 0;
+  for (;;) {
+    const at = html.indexOf(p, i);
+    if (at === -1) return n;
+    n++; i = at + p.length;
+  }
+}
+
 // Scene-level placement audit. Native composers emit each scene as a direct-child
 // `<div class="clip … " id="sN" …>` in timeline order (backdrop first, then s1..sN, then
 // grain/caps). We segment the HTML by the scene-id markers and count how many SCENE clips
@@ -89,10 +104,31 @@ function auditAssetRender({ indexHtml = "", assets = [], jobDir = null } = {}) {
     }
 
     const templateSupportsAssets = /<img\b/i.test(indexHtml);
-    const assetsCollected = list.length;
-    const assetsSelected = shots.length;              // usable (non-logo) shots available to place
-    const assetsRendered = shotsRendered.length + (logoRendered ? 1 : 0);
+    // DISTINCT PICTURES, not wire entries. The Asset Reuse Optimizer can place one picture
+    // on several scenes as several entries sharing a path, so an entry count would report a
+    // 2-picture film as having collected 4. Identical to the old value before reuse, where
+    // every entry is already a distinct path.
+    const uniqueShotPaths = [...new Set(shots.map((a) => a.path))];
+    const assetsCollected = new Set(list.map((a) => a.path)).size;
+    const assetsSelected = uniqueShotPaths.length;    // usable (non-logo) PICTURES available to place
+    const renderedShotPaths = uniqueShotPaths.filter((p) => pathInHtml(indexHtml, p));
+    const assetsRendered = renderedShotPaths.length + (logoRendered ? 1 : 0);
     const placement = auditScenePlacement(indexHtml, assets); // per-scene spread (RC-3 detector)
+
+    // PER-INSTANCE AUDIT — how many times each picture is actually drawn, and whether that
+    // matches how many times it was placed on the wire. A picture placed on two scenes but
+    // drawn once means the second instance was dropped; drawn more often than placed means
+    // a composer duplicated it on its own.
+    const placedPerPath = new Map();
+    for (const a of shots) placedPerPath.set(a.path, (placedPerPath.get(a.path) || 0) + 1);
+    const instances = uniqueShotPaths.map((p) => ({
+      path: p,
+      placed: placedPerPath.get(p) || 0,
+      drawn: countInHtml(indexHtml, p),
+    }));
+    const reusedPlaced = instances.filter((x) => x.placed > 1);
+    const droppedInstances = instances.filter((x) => x.drawn < x.placed).length;
+    const maxDrawn = instances.reduce((m, x) => Math.max(m, x.drawn), 0);
 
     // Verdict — the loud signal. Only meaningful when assets were actually available.
     let renderStatus;
@@ -115,6 +151,11 @@ function auditAssetRender({ indexHtml = "", assets = [], jobDir = null } = {}) {
       templateSupportsAssets,
       sceneCount: placement.sceneCount,
       scenesWithAsset: placement.scenesWithAsset,
+      // Reuse disclosure — present on every audit; all zeros on a film with no reuse.
+      reusedPictures: reusedPlaced.length,
+      maxAppearances: maxDrawn,
+      droppedInstances,
+      instances,
       renderStatus,
     };
   } catch (e) {

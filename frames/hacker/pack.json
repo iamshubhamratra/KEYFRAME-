@@ -1,0 +1,99 @@
+{
+  "name": "hacker",
+  "vibe": "A terminal in motion. Near-black ground, phosphor green, one monospace face for the entire system — bracketed prompts, boot logs that type themselves line by line, progress bars that fill in discrete blocks, and scanlines with a soft CRT flicker over every frame. Screenshots are framed as terminal windows with a filesystem path in the titlebar rather than as pictures on a wall; the reveal beat glitches a full-width banner across the screen in hard step-eased jumps. Authored landscape-first (16:9) as a native GSAP + DOM composition. Best for developer tools, security, infrastructure, CLI products and anything whose audience lives in a shell.",
+  "renderer": "hacker",
+  "orientation": "landscape",
+  "colors": {
+    "ground": "#05080B",
+    "ground-2": "#0B1016",
+    "text": "#D7F5E1",
+    "muted": "#4C6B58",
+    "accent": "#37FF7A",
+    "ink": "#D7F5E1",
+    "paper": "#0B1016"
+  },
+  "fonts": [
+    "JetBrains Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#05080B"
+  },
+  "motion": {
+    "cut": "hard-cut",
+    "drift": 0.6
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#37FF7A"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "dark moody technical photograph with green screen glow",
+    "iconStyle": "line",
+    "keywords": [
+      "terminal",
+      "code",
+      "developer",
+      "dark",
+      "matrix",
+      "cli",
+      "security",
+      "landscape"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "JetBrains Mono",
+    "mono": "JetBrains Mono",
+    "body": "JetBrains Mono"
+  },
+  "textfx": {
+    "enter": "type-on",
+    "emphasis": "glitch-band",
+    "case": "upper",
+    "tracking": 0.02,
+    "align": "left"
+  },
+  "audio": {
+    "mood": "tense",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "electronic",
+      "glitch",
+      "synth",
+      "dark"
+    ],
+    "musicKeywords": [
+      "dark synth",
+      "glitch electronic",
+      "cyber tension",
+      "hacker underscore",
+      "driving techno",
+      "digital pulse"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "ui-click",
+      "reveal": "gentle-impact",
+      "data": "data-ping",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
+  }
+}

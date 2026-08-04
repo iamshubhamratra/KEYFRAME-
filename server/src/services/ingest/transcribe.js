@@ -128,7 +128,7 @@ async function transcribeVideo({ videoPath, workDir, signal, tracker }) {
   const visionTask = sampleFrames(videoPath, workDir)
     .then((frames) => describeVisualStyle(frames, { signal }))
     .then((r) => {
-      if (r && tracker) tracker.addLlm({ inputTokens: r.tokensIn, outputTokens: r.tokensOut, stage: "transcribe" });
+      if (r && tracker) tracker.addLlm({ inputTokens: r.tokensIn, outputTokens: r.tokensOut, stage: "transcribe", model: r.model, provider: r.provider });
       return r ? r.notes : null;
     })
     .catch((e) => {

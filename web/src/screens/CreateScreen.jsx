@@ -61,6 +61,11 @@ export default function CreateScreen({ onCreated, prefill }) {
   const [orientation, setOrientation] = useState("horizontal");
   const [framePack, setFramePack] = useState(prefill?.framePack || "auto");
   const [captions, setCaptions] = useState(false);
+  // NARRATION — on by default (opt-OUT, the mirror of captions' opt-IN). Off produces a
+  // music-led film: the bed comes forward, ducking is bypassed, sound design carries the
+  // beats. It changes only the MIX — the script still writes its narration lines, so the
+  // scenes are designed identically and this can be flipped back on without regenerating.
+  const [voiceover, setVoiceover] = useState(true);
   // Multi-language captions. `captionLang` is the SUBTITLE language and
   // `voiceLang` is the VOICEOVER (spoken) language — chosen independently, so any
   // combination works (English audio + Hindi subs, Hindi audio + English subs,
@@ -161,17 +166,22 @@ export default function CreateScreen({ onCreated, prefill }) {
     try {
       const fields = {
         duration, orientation, quality: "720p", framePack,
-        // Captions: send the multi-language config object when enabled (subtitle
-        // language, INDEPENDENT voiceover language, SRT+VTT export), or `false`
-        // when off. The API accepts both the object and the legacy boolean.
-        captions: captions ? {
-          enabled: true,
+        // Captions burn-in and the FILM'S LANGUAGE are now INDEPENDENT controls (two
+        // separate cards). Send the config whenever captions are on OR the film is
+        // localized — a non-English voiceover or an explicit non-English on-screen text —
+        // so a Hindi film with NO burned-in subtitles still gets Hindi voice + on-screen
+        // text. `enabled` carries ONLY the captions toggle; the languages ride regardless.
+        captions: (captions || voiceLang !== "en" || (videoTextLang !== "auto" && videoTextLang !== "en")) ? {
+          enabled: captions,
           language: captionLang,
           voiceoverLanguage: voiceLang,
           videoTextLanguage: videoTextLang, // "auto" = match voiceover; else a language code
           exportSRT: true,
           exportVTT: true,
         } : false,
+        // Sent ONLY when disabled. Absent means enabled server-side, so an enabled film
+        // posts nothing new and every older client keeps working unchanged.
+        ...(voiceover ? {} : { voiceover: false }),
         // null is the answer, not a missing one: it says the user looked at the
         // palette tile and kept the pack's accents. The API treats it the same as
         // absent, so the default stays a true no-op.
@@ -309,11 +319,16 @@ export default function CreateScreen({ onCreated, prefill }) {
                 <div style={{ display: "flex", gap: 14, fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.14em", color: "#9a9284", flexWrap: "wrap" }}>
                   <span>⏱ {duration}S</span>
                   <span>▦ {ASPECT[orientation]}</span>
-                  <span>{captions
-                    ? (captionLang === "en" && voiceLang === "en" ? "CC ON"
-                      : voiceLang === captionLang ? `CC ${captionLang.toUpperCase()}`
-                      : `🔊${voiceLang.toUpperCase()} CC ${captionLang.toUpperCase()}`)
-                    : "♪ SCORED"}</span>
+                  <span>{(() => {
+                    // Film language (voice/on-screen) and captions are independent now.
+                    const rvt = videoTextLang === "auto" ? voiceLang : videoTextLang;
+                    const filmLoc = voiceLang !== "en" || rvt !== "en";
+                    const bits = [];
+                    if (!voiceover) bits.push("🎵 NO VO");
+                    if (filmLoc) bits.push(`🌐 ${(voiceLang !== "en" ? voiceLang : rvt).toUpperCase()}`);
+                    if (captions) bits.push(`CC ${captionLang.toUpperCase()}`);
+                    return bits.length ? bits.join(" · ") : "♪ SCORED";
+                  })()}</span>
                   <span style={{ color: activeLore ? activeLore.accent : "#9a9284" }}>{activeLore ? activeLore.name.toUpperCase() : "AUTO LOOK"}</span>
                   {/* The brand rides a dot, not the label's own color: a dark pick
                       would make a colored label unreadable on this dark head, and a
@@ -371,7 +386,13 @@ export default function CreateScreen({ onCreated, prefill }) {
         {error && <p style={{ marginTop: 16, fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-rec)" }}>{error}</p>}
 
         {/* ---------- options: white spine cards ---------- */}
+        {/* Three balanced COLUMN-GROUPS, not one flat grid: a flat grid coupled every
+            row's height to its tallest card, so the short cards left big empty gaps under
+            them. Each group is a flex column that packs its own cards tightly top-to-bottom;
+            columns may differ in height (that's fine) but never gap internally. */}
         <div style={{ marginTop: 20, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px,1fr))", gap: 14, alignItems: "start" }}>
+          {/* ── Column 1 · FORMAT — duration · orientation · finish ── */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
           <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
             <span className="spine" style={{ "--spine": "#e832a8" }} />
             <div className="label-mono" style={{ marginBottom: 10 }}>DURATION — {duration}S</div>
@@ -396,94 +417,8 @@ export default function CreateScreen({ onCreated, prefill }) {
               ))}
             </div>
           </div>
-          <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
-            <span className="spine" style={{ "--spine": "#ffb03a" }} />
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-              <div>
-                <div className="label-mono" style={{ marginBottom: 4 }}>CAPTIONS &amp; LANGUAGE</div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)" }}>
-                  {!captions ? "OFF — NO BURNED-IN CAPTIONS" : (() => {
-                    const lbl = (c) => ((CAPTION_LANGS.find((l) => l.code === c) || {}).label || c).toUpperCase();
-                    const rvt = videoTextLang === "auto" ? voiceLang : videoTextLang;
-                    if (voiceLang === "en" && captionLang === "en" && rvt === "en") return "ENGLISH — VOICE, SUBS & TEXT";
-                    if (voiceLang === captionLang && captionLang === rvt) return `FULLY LOCALIZED · ${lbl(voiceLang)}`;
-                    return `🔊 ${voiceLang.toUpperCase()} · CC ${captionLang.toUpperCase()} · 🎬 ${rvt.toUpperCase()}`;
-                  })()}
-                </div>
-              </div>
-              <button
-                type="button" role="switch" aria-checked={captions} aria-label="Toggle burned-in captions"
-                onClick={() => setCaptions((v) => !v)}
-                style={{ position: "relative", flexShrink: 0, width: 44, height: 24, borderRadius: 999, cursor: "pointer", transition: "background .3s, border-color .3s", background: captions ? "var(--color-am)" : "var(--color-paper-2)", border: `1px solid ${captions ? "var(--color-am)" : "rgba(23,19,14,.25)"}` }}
-              >
-                <span style={{ position: "absolute", top: 2, left: 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(23,19,14,.3)", transition: "transform .3s", transform: captions ? "translateX(20px)" : "translateX(0)" }} />
-              </button>
-            </div>
-            {captions && (
-              <div style={{ marginTop: 16 }}>
-                {/* Three independent language axes: 🔊 voice · CC subs · 🎬 on-screen text.
-                    Stacked (label over a full-width select) so the language name never
-                    truncates inside a narrow card. */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <label style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
-                    <span className="label-mono">🔊 VOICEOVER</span>
-                    <select className="select-field" value={voiceLang} onChange={(e) => setVoiceLang(e.target.value)} aria-label="Voiceover language">
-                      {CAPTION_LANGS.map((l) => <option key={l.code} value={l.code}>{langOption(l)}</option>)}
-                    </select>
-                  </label>
-                  <label style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
-                    <span className="label-mono">CC CAPTIONS</span>
-                    <select className="select-field" value={captionLang} onChange={(e) => setCaptionLang(e.target.value)} aria-label="Caption language">
-                      {CAPTION_LANGS.map((l) => <option key={l.code} value={l.code}>{langOption(l)}</option>)}
-                    </select>
-                  </label>
-                  <label style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
-                    <span className="label-mono">🎬 VIDEO TEXT</span>
-                    <select className="select-field" value={videoTextLang} onChange={(e) => setVideoTextLang(e.target.value)} aria-label="On-screen video text language">
-                      <option value="auto">Auto — match voiceover</option>
-                      {CAPTION_LANGS.map((l) => <option key={l.code} value={l.code}>{langOption(l)}</option>)}
-                    </select>
-                  </label>
-                </div>
-
-                {/* Contextual tags: RTL for Arabic, and the auto-match hint. */}
-                {(() => {
-                  const rvt = videoTextLang === "auto" ? voiceLang : videoTextLang;
-                  const tags = [];
-                  if ([voiceLang, captionLang, rvt].includes("ar")) tags.push("↔ Arabic renders right-to-left");
-                  if (videoTextLang === "auto") {
-                    const vl = (CAPTION_LANGS.find((l) => l.code === voiceLang) || {}).label || voiceLang;
-                    tags.push(`🎬 on-screen text follows the voiceover (${vl})`);
-                  }
-                  return tags.length ? (
-                    <div style={{ marginTop: 11, display: "flex", flexWrap: "wrap", gap: 6 }}>
-                      {tags.map((t, i) => (
-                        <span key={i} style={{ fontFamily: "var(--font-mono)", fontSize: 8.5, letterSpacing: "0.06em", color: "var(--color-dim)", padding: "4px 9px", borderRadius: 999, border: "1px solid rgba(23,19,14,.14)", background: "var(--color-paper-2)" }}>{t}</span>
-                      ))}
-                    </div>
-                  ) : null;
-                })()}
-
-                {/* Full 3-axis summary + mode word — every chosen language shows up here. */}
-                {(() => {
-                  const lbl = (c) => (CAPTION_LANGS.find((l) => l.code === c) || {}).label || c;
-                  const rvt = videoTextLang === "auto" ? voiceLang : videoTextLang;
-                  const allEn = voiceLang === "en" && captionLang === "en" && rvt === "en";
-                  const allSame = voiceLang === captionLang && captionLang === rvt;
-                  const mode = allEn ? "ENGLISH FILM" : allSame ? `FULLY LOCALIZED · ${lbl(voiceLang).toUpperCase()}` : "MIXED LANGUAGES";
-                  return (
-                    <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: "5px 10px", flexWrap: "wrap", fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.08em", color: "var(--color-dim)" }}>
-                      <span style={{ color: "var(--color-ink)", letterSpacing: "0.12em" }}>{mode}</span>
-                      <span style={{ opacity: 0.5 }}>·</span>
-                      <span>🔊 {lbl(voiceLang)}</span><span style={{ opacity: 0.5 }}>·</span>
-                      <span>CC {lbl(captionLang)}</span><span style={{ opacity: 0.5 }}>·</span>
-                      <span>🎬 {lbl(rvt)}{videoTextLang === "auto" ? " (auto)" : ""}</span>
-                    </div>
-                  );
-                })()}
-              </div>
-            )}
-          </div>
+          {/* FINISH — lives in the FORMAT column (moved up from below) so this column
+              balances against the taller LANGUAGE and BRAND columns. */}
           <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
             <span className="spine" style={{ "--spine": "#b9f24a" }} />
             <div className="label-mono" style={{ marginBottom: 10 }}>FINISH — {finish === "premium" ? "PREMIUM" : finish === "cinema" ? "CINEMA 3D" : "STANDARD"}</div>
@@ -513,6 +448,155 @@ export default function CreateScreen({ onCreated, prefill }) {
                 : "CODE-BUILT SCENES · ~2 MIN · RELIABLE"}
             </div>
           </div>
+          </div>{/* /Column 1 · FORMAT */}
+
+          {/* ── Column 2 · LANGUAGE & CAPTIONS — the two related-but-separate cards ── */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
+          {/* LANGUAGE — the FILM's spoken + on-screen language. INDEPENDENT of captions
+              (a Hindi film needs no burned-in subtitles), so this card is always visible. */}
+          <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
+            <span className="spine" style={{ "--spine": "#8b5cf6" }} />
+            <div className="label-mono" style={{ marginBottom: 4 }}>LANGUAGE</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)", marginBottom: 14 }}>
+              {(() => {
+                const lbl = (c) => ((CAPTION_LANGS.find((l) => l.code === c) || {}).label || c).toUpperCase();
+                const rvt = videoTextLang === "auto" ? voiceLang : videoTextLang;
+                if (voiceLang === "en" && rvt === "en") return "ENGLISH — VOICE & ON-SCREEN TEXT";
+                if (voiceLang === rvt) return `FULLY LOCALIZED · ${lbl(voiceLang)}`;
+                return `🔊 ${voiceLang.toUpperCase()} · 🎬 ${rvt.toUpperCase()}`;
+              })()}
+            </div>
+            {/* Two independent language axes: 🔊 voiceover · 🎬 on-screen text. Stacked
+                (label over a full-width select) so the language name never truncates. */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <label style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
+                {/* Still meaningful with narration off: this language is what "auto"
+                    on-screen text follows, so it keeps steering the film's written
+                    language even when nothing is spoken. Say so rather than disabling it. */}
+                <span className="label-mono">🔊 VOICEOVER{!voiceover && " — SETS THE FILM'S LANGUAGE"}</span>
+                <select className="select-field" value={voiceLang} onChange={(e) => setVoiceLang(e.target.value)} aria-label="Voiceover language">
+                  {CAPTION_LANGS.map((l) => <option key={l.code} value={l.code}>{langOption(l)}</option>)}
+                </select>
+              </label>
+              <label style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
+                <span className="label-mono">🎬 ON-SCREEN TEXT</span>
+                <select className="select-field" value={videoTextLang} onChange={(e) => setVideoTextLang(e.target.value)} aria-label="On-screen video text language">
+                  <option value="auto">Auto — match voiceover</option>
+                  {CAPTION_LANGS.map((l) => <option key={l.code} value={l.code}>{langOption(l)}</option>)}
+                </select>
+              </label>
+            </div>
+            {/* Contextual tags: RTL for Arabic, and the auto-match hint. */}
+            {(() => {
+              const rvt = videoTextLang === "auto" ? voiceLang : videoTextLang;
+              const tags = [];
+              if ([voiceLang, rvt].includes("ar")) tags.push("↔ Arabic renders right-to-left");
+              if (videoTextLang === "auto") {
+                const vl = (CAPTION_LANGS.find((l) => l.code === voiceLang) || {}).label || voiceLang;
+                tags.push(`🎬 on-screen text follows the voiceover (${vl})`);
+              }
+              return tags.length ? (
+                <div style={{ marginTop: 11, display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {tags.map((t, i) => (
+                    <span key={i} style={{ fontFamily: "var(--font-mono)", fontSize: 8.5, letterSpacing: "0.06em", color: "var(--color-dim)", padding: "4px 9px", borderRadius: 999, border: "1px solid rgba(23,19,14,.14)", background: "var(--color-paper-2)" }}>{t}</span>
+                  ))}
+                </div>
+              ) : null;
+            })()}
+          </div>
+
+          {/* VOICEOVER — narration on/off. Sits ABOVE captions deliberately: it is the
+              decision the rest of the soundtrack depends on, and with narration off the
+              captions below stop being optional polish and become how the film is read. */}
+          <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
+            <span className="spine" style={{ "--spine": voiceover ? "#22c55e" : "#8b5cf6" }} />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <div>
+                <div className="label-mono" style={{ marginBottom: 4 }}>VOICEOVER</div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)" }}>
+                  {voiceover ? "ON — NARRATED, MUSIC DUCKS UNDER THE VOICE" : "OFF — MUSIC-LED CINEMATIC MIX"}
+                </div>
+              </div>
+              <button
+                type="button" role="switch" aria-checked={voiceover} aria-label="Toggle voiceover narration"
+                onClick={() => setVoiceover((v) => !v)}
+                style={{ position: "relative", flexShrink: 0, width: 44, height: 24, borderRadius: 999, cursor: "pointer", transition: "background .3s, border-color .3s", background: voiceover ? "var(--color-am)" : "var(--color-paper-2)", border: `1px solid ${voiceover ? "var(--color-am)" : "rgba(23,19,14,.25)"}` }}
+              >
+                <span style={{ position: "absolute", top: 2, left: 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(23,19,14,.3)", transition: "transform .3s", transform: voiceover ? "translateX(20px)" : "translateX(0)" }} />
+              </button>
+            </div>
+            <div style={{ marginTop: 12, fontSize: 12, lineHeight: 1.55, color: "var(--color-dim)" }}>
+              {voiceover
+                ? "A narrator reads each scene. The music bed sits under the voice and ducks automatically; sound effects stay subtle accents."
+                : "No narration. The music comes forward and carries the film, with richer sound design timed to the animation — built for product showcases, brand reveals, Reels and Shorts that play on mute."}
+            </div>
+            {!voiceover && (
+              <div style={{ marginTop: 11, display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {[
+                  "🎵 music-led mix",
+                  "✨ richer sound design",
+                  captions ? "💬 captions on" : "💬 turn captions on for muted playback",
+                ].map((t, i) => (
+                  <span key={i} style={{ fontFamily: "var(--font-mono)", fontSize: 8.5, letterSpacing: "0.06em", color: "var(--color-dim)", padding: "4px 9px", borderRadius: 999, border: "1px solid rgba(23,19,14,.14)", background: "var(--color-paper-2)" }}>{t}</span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* CAPTIONS — burned-in subtitles ONLY. Its own on/off toggle + subtitle language,
+              separate from the film's language above. Off by default. */}
+          <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
+            <span className="spine" style={{ "--spine": "#ffb03a" }} />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <div>
+                <div className="label-mono" style={{ marginBottom: 4 }}>CAPTIONS</div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)" }}>
+                  {!captions ? "OFF — NO BURNED-IN SUBTITLES"
+                    : `CC ${((CAPTION_LANGS.find((l) => l.code === captionLang) || {}).label || captionLang).toUpperCase()}`}
+                </div>
+              </div>
+              <button
+                type="button" role="switch" aria-checked={captions} aria-label="Toggle burned-in captions"
+                onClick={() => setCaptions((v) => !v)}
+                style={{ position: "relative", flexShrink: 0, width: 44, height: 24, borderRadius: 999, cursor: "pointer", transition: "background .3s, border-color .3s", background: captions ? "var(--color-am)" : "var(--color-paper-2)", border: `1px solid ${captions ? "var(--color-am)" : "rgba(23,19,14,.25)"}` }}
+              >
+                <span style={{ position: "absolute", top: 2, left: 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(23,19,14,.3)", transition: "transform .3s", transform: captions ? "translateX(20px)" : "translateX(0)" }} />
+              </button>
+            </div>
+            {captions && (
+              <div style={{ marginTop: 16 }}>
+                <label style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
+                  <span className="label-mono">CC SUBTITLES</span>
+                  <select className="select-field" value={captionLang} onChange={(e) => setCaptionLang(e.target.value)} aria-label="Caption language">
+                    {CAPTION_LANGS.map((l) => <option key={l.code} value={l.code}>{langOption(l)}</option>)}
+                  </select>
+                </label>
+                {/* Contextual tags: RTL for Arabic subs, and a hint when subs differ from voice. */}
+                {(() => {
+                  const tags = [];
+                  if (captionLang === "ar") tags.push("↔ Arabic subtitles render right-to-left");
+                  if (captionLang !== "en" && captionLang !== voiceLang) {
+                    const cl = (CAPTION_LANGS.find((l) => l.code === captionLang) || {}).label || captionLang;
+                    const vl = (CAPTION_LANGS.find((l) => l.code === voiceLang) || {}).label || voiceLang;
+                    tags.push(`💬 subtitles (${cl}) differ from the voiceover (${vl})`);
+                  }
+                  return tags.length ? (
+                    <div style={{ marginTop: 11, display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {tags.map((t, i) => (
+                        <span key={i} style={{ fontFamily: "var(--font-mono)", fontSize: 8.5, letterSpacing: "0.06em", color: "var(--color-dim)", padding: "4px 9px", borderRadius: 999, border: "1px solid rgba(23,19,14,.14)", background: "var(--color-paper-2)" }}>{t}</span>
+                      ))}
+                    </div>
+                  ) : null;
+                })()}
+              </div>
+            )}
+          </div>
+          </div>{/* /Column 2 · LANGUAGE & CAPTIONS */}
+
+          {/* ── Column 3 · BRAND — colors · assets ── */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
+          {/* Leads this column so the note sits directly above the controls it names. */}
+          <BrandAssetTips />
           {/* Brand colors — ACCENTS ONLY. The pack owns identity (luminance, motion,
               type, layout, semantics); a brand palette only owns hue, and only where
               the eye is already meant to land. A site's own colors are still lifted
@@ -637,6 +721,7 @@ export default function CreateScreen({ onCreated, prefill }) {
                 : "OPTIONAL — UPLOAD YOUR LOGO & PRODUCT SHOTS AND THE FILM IS BUILT AROUND THEM"}
             </div>
           </div>
+          </div>{/* /Column 3 · BRAND */}
         </div>
       </section>
 
@@ -687,6 +772,24 @@ function orderPacks(serverPacks) {
   const known = PACK_ORDER.map((name) => ({ name, ...(byName[name] || {}) }));
   const extras = serverPacks.filter((p) => !PACK_LORE[p.name]);
   return [...known, ...extras];
+}
+
+// BRAND-ASSET NOTE. A plain, non-blocking hint that the optional inputs below are what make
+// a film look like the customer's rather than the template's. Informational only — nothing
+// here gates the Produce button.
+function BrandAssetTips() {
+  return (
+    <div className="card" style={{ padding: "14px 18px 14px 23px", background: "linear-gradient(180deg,#fffdf6,#fff 60%)" }}>
+      <span className="spine" style={{ "--spine": "var(--color-am)" }} />
+      <p style={{ margin: 0, display: "flex", alignItems: "flex-start", gap: 9, fontSize: 12.5, lineHeight: 1.55, color: "var(--color-dim)" }}>
+        <span aria-hidden="true" style={{ flex: "none", fontSize: 14, lineHeight: 1.35 }}>💡</span>
+        <span style={{ minWidth: 0 }}>
+          For the best experience, provide your brand colours, logo, screenshots, images, and
+          other assets. This helps generate a more personalised and professional video.
+        </span>
+      </p>
+    </div>
+  );
 }
 
 // One palette option — a labeled chip: a gradient swatch carrying two stops (an

@@ -55,5 +55,36 @@
     "enter": "slide",
     "emphasis": "underline-grow",
     "align": "left"
+  },
+  "audio": {
+    "mood": "professional",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "corporate",
+      "minimal",
+      "electronic",
+      "ambient"
+    ],
+    "musicKeywords": [
+      "clean corporate",
+      "minimal professional",
+      "modern business",
+      "confident corporate",
+      "upbeat corporate",
+      "driving business"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "ui-click",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
   }
 }

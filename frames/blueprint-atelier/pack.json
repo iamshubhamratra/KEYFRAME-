@@ -11,7 +11,10 @@
     "cyan": "#8FD8FF",
     "red": "#FF5F5F"
   },
-  "fonts": ["Space Grotesk", "IBM Plex Mono"],
+  "fonts": [
+    "Space Grotesk",
+    "IBM Plex Mono"
+  ],
   "surface": {
     "flat": false,
     "lightCinematic": false,
@@ -19,22 +22,36 @@
   },
   "motion": {
     "cut": "wipe",
-    "drift": 1.0
+    "drift": 1
   },
   "fx": {
     "canvas": "none",
     "three": "none"
   },
   "skin": {
-    "accents": ["#FFB84D", "#8FD8FF", "#FF5F5F"],
+    "accents": [
+      "#FFB84D",
+      "#8FD8FF",
+      "#FF5F5F"
+    ],
     "extras": [],
     "emphasisCss": null
   },
   "assets": {
     "photoMod": "technical schematic blueprint line drawing",
     "iconStyle": "line",
-    "keywords": ["blueprint", "technical", "schematic", "engineering", "drafting", "monochrome"],
-    "prefer": ["vector", "photo"]
+    "keywords": [
+      "blueprint",
+      "technical",
+      "schematic",
+      "engineering",
+      "drafting",
+      "monochrome"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
   },
   "typography": {
     "display": "Space Grotesk",
@@ -45,5 +62,36 @@
     "emphasis": "gradient",
     "case": "upper",
     "tracking": 0.01
+  },
+  "audio": {
+    "mood": "technical",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "minimal",
+      "electronic",
+      "ambient tech",
+      "mechanical"
+    ],
+    "musicKeywords": [
+      "minimal technical",
+      "precise electronic",
+      "ambient engineering",
+      "mechanical minimal",
+      "driving technical",
+      "industrial electronic"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "ui-click",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
   }
 }

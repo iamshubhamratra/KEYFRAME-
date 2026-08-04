@@ -3,6 +3,31 @@ import { motion } from "framer-motion";
 import { listFrames, mediaUrl } from "../api.js";
 import { PACK_LORE, PACK_ORDER, loreFor } from "../packlore.js";
 
+// Template categories by aspect ratio. Portrait 9:16 leads (the imported vertical packs).
+const CATEGORIES = [
+  ["portrait", "9:16 · VERTICAL", "Reels, Shorts & TikTok", "#e832a8"],
+  ["horizontal", "16:9 · LANDSCAPE", "YouTube, web & keynote", "#23c8e0"],
+  ["square", "1:1 · SQUARE", "Feed posts", "#b9f24a"],
+];
+// A pack's aspect category — from the server manifest `orientation`, with a lore-tag fallback
+// (a "9:16" in the pack's tag) so a portrait pack still lands right if orientation is absent.
+function catOf(pack) {
+  const o = String(pack.orientation || "").toLowerCase();
+  if (o === "portrait" || o === "vertical") return "portrait";
+  if (o === "square") return "square";
+  if (o === "horizontal" || o === "landscape") return "horizontal";
+  const tag = String(loreFor(pack.name).tag || "");
+  if (/9:16/.test(tag)) return "portrait";
+  if (/1:1/.test(tag)) return "square";
+  return "horizontal";
+}
+
+// The thumbnail frame per aspect category. A pack's preview.mp4/poster.jpg is rendered at
+// its OWN aspect (9:16 portrait packs ship 540x960 / 648x1152), so showing every card in
+// one 16/10 box cropped a vertical preview down to a horizontal sliver — the headline and
+// the whole lower composition fell outside the frame. Match the frame to the pack.
+const THUMB_ASPECT = { portrait: "9 / 16", square: "1 / 1", horizontal: "16 / 10" };
+
 // Frame packs in the v2 voice: paper page, scene pill, white cards with a
 // color spine per pack. Hovering fades the pack's real motion preview in.
 export default function Templates({ onUseStyle }) {
@@ -30,11 +55,27 @@ export default function Templates({ onUseStyle }) {
       </section>
 
       <section style={{ maxWidth: 1200, margin: "0 auto", padding: "0 clamp(16px,4vw,60px) clamp(70px,10vw,120px)" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(310px,1fr))", gap: 18 }}>
-          {list.map((p, i) => (
-            <PackCard key={p.name} pack={p} delay={(i % 3) * 0.07} onUse={() => onUseStyle?.(p.name)} />
-          ))}
-        </div>
+        {CATEGORIES.map(([key, title, sub, accent]) => {
+          const group = list.filter((p) => catOf(p) === key);
+          if (!group.length) return null;
+          return (
+            <div key={key} style={{ marginBottom: "clamp(40px,6vw,72px)" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap", margin: "0 0 20px" }}>
+                <span className="scene-pill" style={{ "--tagc": accent }}>{title}</span>
+                <span style={{ color: "var(--color-dim)", fontSize: 13.5 }}>{sub}</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.14em", color: "var(--color-dim)", marginLeft: "auto" }}>{group.length} STYLES</span>
+              </div>
+              {/* A 9:16 card is ~1.8x as tall as it is wide, so a portrait row uses a
+                  narrower column — at the 310px landscape width these would tower over
+                  the page. Each group is single-aspect, so rows stay even. */}
+              <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${key === "portrait" ? 230 : key === "square" ? 270 : 310}px,1fr))`, gap: 18 }}>
+                {group.map((p, i) => (
+                  <PackCard key={p.name} pack={p} delay={(i % 3) * 0.07} onUse={() => onUseStyle?.(p.name)} />
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </section>
     </div>
   );
@@ -55,6 +96,11 @@ export function PackCard({ pack, delay = 0, onUse, compact = false }) {
   const [hover, setHover] = useState(false);
   const preview = pack.previewUrl ? mediaUrl(pack.previewUrl) : null;
   const poster = pack.posterUrl ? mediaUrl(pack.posterUrl) : null;
+  // The gallery groups packs by aspect, so a pack-true frame keeps rows even and shows a
+  // 9:16 preview whole. `compact` is the CreateScreen picker, where every aspect shares
+  // ONE grid — a mixed row of 9:16 and 16:10 cards would leave ragged gaps, so that grid
+  // stays uniform and accepts the crop.
+  const aspect = compact ? THUMB_ASPECT.horizontal : (THUMB_ASPECT[catOf(pack)] || THUMB_ASPECT.horizontal);
 
   const enter = () => {
     setHover(true);
@@ -84,7 +130,7 @@ export function PackCard({ pack, delay = 0, onUse, compact = false }) {
       {/* thumbnail — the pack's REAL rendered look (its poster frame). The synthetic
           bg / gradient / chips / demo-type below is only a FALLBACK for a pack that
           has no poster; when a poster exists it fully covers them (zIndex 4). */}
-      <div style={{ aspectRatio: "16/10", position: "relative", overflow: "hidden", background: lore.bg, display: "grid", placeItems: "center" }}>
+      <div style={{ aspectRatio: aspect, position: "relative", overflow: "hidden", background: lore.bg, display: "grid", placeItems: "center" }}>
         <div style={{ position: "absolute", inset: 0, background: lore.grad, opacity: 0.9 }} />
         <div className="film-scan" style={{ opacity: 0.5 }} />
         <div style={{ position: "absolute", top: 12, left: 17, display: "flex", gap: 5, zIndex: 3 }}>

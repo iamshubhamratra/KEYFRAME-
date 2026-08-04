@@ -56,5 +56,36 @@
     "enter": "glitch",
     "emphasis": "glow",
     "align": "left"
+  },
+  "audio": {
+    "mood": "retro",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "vaporwave",
+      "synthwave",
+      "electronic",
+      "retro"
+    ],
+    "musicKeywords": [
+      "vaporwave chill",
+      "retro synthwave",
+      "y2k electronic",
+      "neon nostalgia",
+      "driving synthwave",
+      "high energy retro"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "pop",
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
   }
 }

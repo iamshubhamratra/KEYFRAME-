@@ -12,7 +12,10 @@
     "red": "#FF4B3E",
     "cyan": "#5FD4E6"
   },
-  "fonts": ["Space Grotesk", "IBM Plex Mono"],
+  "fonts": [
+    "Space Grotesk",
+    "IBM Plex Mono"
+  ],
   "surface": {
     "flat": false,
     "lightCinematic": false,
@@ -20,22 +23,36 @@
   },
   "motion": {
     "cut": "flap",
-    "drift": 1.0
+    "drift": 1
   },
   "fx": {
     "canvas": "none",
     "three": "none"
   },
   "skin": {
-    "accents": ["#FFC61A", "#5FD4E6", "#35D07F"],
+    "accents": [
+      "#FFC61A",
+      "#5FD4E6",
+      "#35D07F"
+    ],
     "extras": [],
     "emphasisCss": null
   },
   "assets": {
     "photoMod": "clean product screenshot on a dark FIDS gate monitor",
     "iconStyle": "line",
-    "keywords": ["airport", "departures", "terminal", "signage", "travel", "board"],
-    "prefer": ["photo", "vector"]
+    "keywords": [
+      "airport",
+      "departures",
+      "terminal",
+      "signage",
+      "travel",
+      "board"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
   },
   "typography": {
     "display": "Space Grotesk",
@@ -47,5 +64,36 @@
     "emphasis": "gold",
     "case": "upper",
     "tracking": 0.02
+  },
+  "audio": {
+    "mood": "futuristic",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "synthwave",
+      "electronic",
+      "cyber",
+      "ambient tech"
+    ],
+    "musicKeywords": [
+      "cyber electronic",
+      "futuristic ambient",
+      "terminal atmosphere",
+      "synthwave arpeggio",
+      "driving cyber",
+      "high energy electronic"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "ui-click",
+      "reveal": "product-reveal",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
   }
 }

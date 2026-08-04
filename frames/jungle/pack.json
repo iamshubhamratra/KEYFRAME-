@@ -1,0 +1,101 @@
+{
+  "name": "jungle",
+  "vibe": "A rainforest expedition. Four layered canopy bands from pale mist at the horizon to near-black undergrowth at the foot, each with a scalloped leaf edge and each drifting at its own speed so the frame has real depth. Fireflies rise and fade through it. Warm cream paper for every card, one marigold accent and a coral pop, and a chunky hand-lettered display face on every headline. Pictures ride in leaf-cut frames — two opposite corners rounded hard — pinned with a wooden peg and swinging in from above. The route beat lays numbered stops along a dashed trail. Authored landscape-first (16:9) as a native GSAP + DOM composition. Best for kids, education, eco, travel, food and any brand that wants warmth and adventure.",
+  "renderer": "jungle",
+  "orientation": "landscape",
+  "colors": {
+    "ground": "#DFF3D0",
+    "ground-2": "#FCF7E9",
+    "text": "#12301E",
+    "muted": "#4A6B52",
+    "accent": "#F4A100",
+    "ink": "#12301E",
+    "paper": "#FCF7E9"
+  },
+  "fonts": [
+    "Caprasimo",
+    "JetBrains Mono",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#DFF3D0"
+  },
+  "motion": {
+    "cut": "slide-push",
+    "drift": 1.3
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F4A100"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "lush vibrant nature photograph with rich greens and warm light",
+    "iconStyle": "line",
+    "keywords": [
+      "jungle",
+      "nature",
+      "adventure",
+      "playful",
+      "eco",
+      "kids",
+      "education",
+      "landscape"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Caprasimo",
+    "mono": "JetBrains Mono",
+    "body": "Figtree"
+  },
+  "textfx": {
+    "enter": "pop",
+    "emphasis": "badge",
+    "case": "sentence",
+    "tracking": 0,
+    "align": "left"
+  },
+  "audio": {
+    "mood": "playful",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "acoustic",
+      "world",
+      "percussion",
+      "folk"
+    ],
+    "musicKeywords": [
+      "playful acoustic",
+      "tribal percussion",
+      "adventure folk",
+      "warm marimba",
+      "jungle rhythm",
+      "curious whimsical"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "pop",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

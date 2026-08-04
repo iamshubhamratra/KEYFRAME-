@@ -750,15 +750,25 @@ for(const sc of SCENES){
   const g=new THREE.Group();
   const mine=PLATES.filter(p=>p.scene===sc.i);
   mine.forEach((spec,idx)=>{
+  // PORTRAIT COPY BAND. On every treatment except hook/cta the copy is pinned to the TOP safe
+  // area (sceneOverlay: justify-content:flex-start) and its height is unbounded, while the
+  // plate stack is centred on y=0. A one-line headline clears it; a two-line one does not —
+  // rendered at 1080x1920 the word "everything" sat straight across the hero plate holding the
+  // real product screenshot, covering the thing the film exists to show. Nothing reconciled the
+  // DOM copy with the WebGL stack because they live in different coordinate systems.
+  //
+  // Dropping the stack by one plate-gap clears the two-line case with room to spare and leaves
+  // hook/cta — whose copy is vertically centred, so it never competed — exactly as authored.
+  const COPYDROP = (PORT && sc.type !== "hook" && sc.type !== "cta") ? -1.2 : 0;
     const pl=makeCard(spec);
     // Text lives LOWER-LEFT (see sceneOverlay), so cards sit UPPER-RIGHT.
     // Portrait/square: NATIVE vertical stack — hero centred mid-band, features STACKED
     // down the column (never fanned), everything at x=0. Landscape keeps the panel split.
-    if(spec.role==="hero"){pl.position.set(PORT?0:2.1, PORT?-0.7:1.35, 0); pl.rotation.y=PORT?-0.05:-0.14;}
+    if(spec.role==="hero"){pl.position.set(PORT?0:2.1, PORT?(-0.7+COPYDROP):1.35, 0); pl.rotation.y=PORT?-0.05:-0.14;}
     else if(spec.role==="feature"){const n=mine.length;const spread=n>1?(idx-(n-1)/2):0;
-      if(PORT){pl.position.set(0, -spread*2.9, -Math.abs(spread)*0.5); pl.rotation.y=-0.05;}
+      if(PORT){pl.position.set(0, -spread*2.9+COPYDROP, -Math.abs(spread)*0.5); pl.rotation.y=-0.05;}
       else{pl.position.set(1.9+spread*3.0, 1.5+(idx%2?-0.34:0.34), -idx*1.5); pl.rotation.y=-0.15-spread*0.16;}}
-    else if(spec.role==="side"){pl.position.set(PORT?0:3.1, PORT?-0.7:1.3, -0.3); pl.rotation.y=PORT?-0.05:-0.22;}
+    else if(spec.role==="side"){pl.position.set(PORT?0:3.1, PORT?(-0.7+COPYDROP):1.3, -0.3); pl.rotation.y=PORT?-0.05:-0.22;}
     pl.userData.jit={ph:rand()*6.28, ax:0.05+rand()*0.05, ay:0.06+rand()*0.06};
     g.add(pl);
   });

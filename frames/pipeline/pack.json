@@ -1,0 +1,100 @@
+{
+  "name": "pipeline",
+  "vibe": "A factory line in motion. Cool machine-shop grey under a fine engineering grid, white equipment panels with hard 3px borders, brushed-steel rules and one safety orange. A conveyor runs across the foot of every frame with chevrons scrolling along it and parts travelling into station. Screenshots ride in inspection bays — a bordered panel with a station number, a label and a status lamp — and the process beat lays numbered stations across the frame linked by feed arrows. The close is a full-bleed safety field over hazard stripes. Authored landscape-first (16:9) as a native GSAP + DOM composition. Best for manufacturing, logistics, devops, data pipelines, QA and any product that is really a process.",
+  "renderer": "pipeline",
+  "orientation": "landscape",
+  "colors": {
+    "ground": "#EAEDF2",
+    "ground-2": "#FFFFFF",
+    "text": "#1E2230",
+    "muted": "#6B7385",
+    "accent": "#FF8A00",
+    "ink": "#1E2230",
+    "paper": "#FFFFFF"
+  },
+  "fonts": [
+    "Archivo",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#EAEDF2"
+  },
+  "motion": {
+    "cut": "hard-cut",
+    "drift": 0.8
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FF8A00"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "clean industrial or interface photograph with strong structure",
+    "iconStyle": "line",
+    "keywords": [
+      "factory",
+      "industrial",
+      "process",
+      "pipeline",
+      "manufacturing",
+      "technical",
+      "devops",
+      "landscape"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Archivo",
+    "mono": "IBM Plex Mono",
+    "body": "Archivo"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "station",
+    "case": "sentence",
+    "tracking": -0.03,
+    "align": "left"
+  },
+  "audio": {
+    "mood": "industrious",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "electronic",
+      "percussive",
+      "industrial",
+      "modern"
+    ],
+    "musicKeywords": [
+      "industrial rhythm",
+      "mechanical groove",
+      "steady percussion",
+      "factory pulse",
+      "technical electronic",
+      "driving mid-tempo"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "ui-click",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
+  }
+}

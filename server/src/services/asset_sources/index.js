@@ -210,6 +210,12 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
             filePath: outputPath, query: q, type, orientation,
             source: provider.name, license: c.license, sourceUrl: c.sourceUrl,
             width: (imageMeta && imageMeta.width) || c.width, height: (imageMeta && imageMeta.height) || c.height,
+            // Persist what validateImage already measured, so a cache hit is as
+            // well-described as this download was (see local_db.materialize).
+            ratio: imageMeta ? imageMeta.ratio : undefined,
+            hasAlpha: imageMeta ? imageMeta.hasAlpha : undefined,
+            dhash: imageMeta ? imageMeta.dhash : undefined,
+            dominantColor: imageMeta ? imageMeta.dominantColor : undefined,
           });
           console.log(`[assets] "${q}" (${type}) <- ${provider.name} (${(imageMeta && imageMeta.width) || c.width || "?"}x${(imageMeta && imageMeta.height) || c.height || "?"})`);
           return {

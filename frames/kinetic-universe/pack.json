@@ -12,7 +12,11 @@
     "cyan": "#22D3EE",
     "magenta": "#F0459B"
   },
-  "fonts": ["Space Grotesk", "JetBrains Mono", "Inter"],
+  "fonts": [
+    "Space Grotesk",
+    "JetBrains Mono",
+    "Inter"
+  ],
   "surface": {
     "flat": false,
     "lightCinematic": false,
@@ -20,22 +24,37 @@
   },
   "motion": {
     "cut": "warp",
-    "drift": 1.0
+    "drift": 1
   },
   "fx": {
     "canvas": "cosmos",
     "three": "none"
   },
   "skin": {
-    "accents": ["#7A5AE0", "#22D3EE", "#F0459B"],
+    "accents": [
+      "#7A5AE0",
+      "#22D3EE",
+      "#F0459B"
+    ],
     "extras": [],
     "emphasisCss": null
   },
   "assets": {
     "photoMod": "product screenshot on a glowing dark holographic device panel",
     "iconStyle": "line",
-    "keywords": ["cosmic", "space", "nebula", "dark", "futuristic", "tech", "portrait"],
-    "prefer": ["photo", "vector"]
+    "keywords": [
+      "cosmic",
+      "space",
+      "nebula",
+      "dark",
+      "futuristic",
+      "tech",
+      "portrait"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
   },
   "typography": {
     "display": "Space Grotesk",
@@ -48,5 +67,36 @@
     "case": "none",
     "tracking": -0.02,
     "align": "center"
+  },
+  "audio": {
+    "mood": "cosmic",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "cinematic",
+      "electronic",
+      "ambient",
+      "space"
+    ],
+    "musicKeywords": [
+      "cosmic ambient",
+      "space cinematic",
+      "deep electronic",
+      "epic cinematic",
+      "driving electronic",
+      "powerful trailer"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "data-ping",
+      "reveal": "product-reveal",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
   }
 }

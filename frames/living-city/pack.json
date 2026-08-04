@@ -12,7 +12,11 @@
     "accent": "#22D3EE",
     "near": "#080912"
   },
-  "fonts": ["Space Grotesk", "JetBrains Mono", "Inter"],
+  "fonts": [
+    "Space Grotesk",
+    "JetBrains Mono",
+    "Inter"
+  ],
   "surface": {
     "flat": false,
     "lightCinematic": false,
@@ -27,15 +31,28 @@
     "three": "none"
   },
   "skin": {
-    "accents": ["#22D3EE"],
+    "accents": [
+      "#22D3EE"
+    ],
     "extras": [],
     "emphasisCss": null
   },
   "assets": {
     "photoMod": "screenshot on a glowing holographic city billboard with a neon border and scan bar",
     "iconStyle": "line",
-    "keywords": ["city", "skyline", "neon", "night", "billboard", "cyberpunk", "portrait"],
-    "prefer": ["photo", "vector"]
+    "keywords": [
+      "city",
+      "skyline",
+      "neon",
+      "night",
+      "billboard",
+      "cyberpunk",
+      "portrait"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
   },
   "typography": {
     "display": "Space Grotesk",
@@ -48,5 +65,36 @@
     "case": "none",
     "tracking": -0.02,
     "align": "center"
+  },
+  "audio": {
+    "mood": "nocturnal",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "synthwave",
+      "electronic",
+      "lofi",
+      "cyberpunk"
+    ],
+    "musicKeywords": [
+      "night city lofi",
+      "neon synthwave",
+      "urban electronic",
+      "cyberpunk atmosphere",
+      "driving synthwave",
+      "high energy neon"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "data-ping",
+      "reveal": "product-reveal",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
   }
 }

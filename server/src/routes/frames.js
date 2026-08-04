@@ -34,6 +34,9 @@ function packMeta(name) {
     return {
       label,
       vibe,
+      // Orientation drives the gallery's aspect CATEGORY (9:16 / 16:9 / 1:1). Portrait-native
+      // packs (the imported OM templates) declare "portrait"; default is horizontal.
+      orientation: m.orientation || "horizontal",
       colors: Object.values(m.colors || {}).slice(0, 6),
       fonts: m.fonts || [],
       displayFont: (m.typography && m.typography.display) || null,
@@ -50,7 +53,7 @@ function packMeta(name) {
   vibe = vibe.replace(/\s+/g, " ").trim();
   if (vibe.length > 180) vibe = vibe.slice(0, 177).trimEnd() + "…";
   const tokens = frameRegistry.getPackTokens(name) || { colors: {}, fonts: [] };
-  return { label, vibe, colors: Object.values(tokens.colors || {}).slice(0, 6), fonts: tokens.fonts || [], displayFont: null, ground: null, accents: [] };
+  return { label, vibe, orientation: "horizontal", colors: Object.values(tokens.colors || {}).slice(0, 6), fonts: tokens.fonts || [], displayFont: null, ground: null, accents: [] };
 }
 
 function mediaUrls(name) {

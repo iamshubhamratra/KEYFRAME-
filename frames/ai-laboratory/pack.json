@@ -11,7 +11,11 @@
     "muted": "#8A93AD",
     "accent": "#00E5C0"
   },
-  "fonts": ["Space Grotesk", "JetBrains Mono", "Inter"],
+  "fonts": [
+    "Space Grotesk",
+    "JetBrains Mono",
+    "Inter"
+  ],
   "surface": {
     "flat": false,
     "lightCinematic": false,
@@ -26,15 +30,30 @@
     "three": "none"
   },
   "skin": {
-    "accents": ["#00E5C0"],
+    "accents": [
+      "#00E5C0"
+    ],
     "extras": [],
     "emphasisCss": null
   },
   "assets": {
     "photoMod": "product screenshot as a holographic lab panel with a scanline sheen and a soft reflection",
     "iconStyle": "line",
-    "keywords": ["ai", "neural", "lab", "network", "nodes", "synthesis", "telemetry", "hologram", "portrait"],
-    "prefer": ["photo", "vector"]
+    "keywords": [
+      "ai",
+      "neural",
+      "lab",
+      "network",
+      "nodes",
+      "synthesis",
+      "telemetry",
+      "hologram",
+      "portrait"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
   },
   "typography": {
     "display": "Space Grotesk",
@@ -47,5 +66,36 @@
     "case": "none",
     "tracking": -0.02,
     "align": "center"
+  },
+  "audio": {
+    "mood": "clinical",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "electronic",
+      "techno",
+      "ambient tech",
+      "idm"
+    ],
+    "musicKeywords": [
+      "ambient technology",
+      "research laboratory",
+      "electronic minimal",
+      "neural tech",
+      "driving electronic",
+      "dark techno pulse"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "data-ping",
+      "reveal": "product-reveal",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
   }
 }

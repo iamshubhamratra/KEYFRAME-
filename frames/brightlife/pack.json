@@ -16,7 +16,10 @@
     "amber": "#F59E0B",
     "purple": "#A855F7"
   },
-  "fonts": ["Space Grotesk", "Inter"],
+  "fonts": [
+    "Space Grotesk",
+    "Inter"
+  ],
   "surface": {
     "flat": false,
     "lightCinematic": true,
@@ -24,22 +27,44 @@
   },
   "motion": {
     "cut": "glow",
-    "drift": 1.0
+    "drift": 1
   },
   "fx": {
     "canvas": "flow",
     "three": "brightlife"
   },
   "skin": {
-    "accents": ["#6366F1", "#8B5CF6", "#06B6D4", "#EC4899"],
-    "extras": ["#3B82F6", "#10B981", "#F59E0B", "#A855F7"],
+    "accents": [
+      "#6366F1",
+      "#8B5CF6",
+      "#06B6D4",
+      "#EC4899"
+    ],
+    "extras": [
+      "#3B82F6",
+      "#10B981",
+      "#F59E0B",
+      "#A855F7"
+    ],
     "emphasisCss": null
   },
   "assets": {
     "photoMod": "bright clean modern product ui on white",
     "iconStyle": "gradient",
-    "keywords": ["bright", "clean", "modern", "premium", "gradient", "minimal", "pastel", "glass"],
-    "prefer": ["photo", "vector"]
+    "keywords": [
+      "bright",
+      "clean",
+      "modern",
+      "premium",
+      "gradient",
+      "minimal",
+      "pastel",
+      "glass"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
   },
   "typography": {
     "display": "Space Grotesk"
@@ -55,8 +80,39 @@
   "brand": {
     "mode": "atmosphere",
     "maxAccents": 3,
-    "contrastFloor": 3.0,
+    "contrastFloor": 3,
     "hueDriftMax": 40,
     "note": "atmosphere: a brand faintly tints the near-white secondary surfaces + drives the pastel mesh gradient; the pure-white base + airy motion stay locked identity."
+  },
+  "audio": {
+    "mood": "inspiring",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "corporate",
+      "uplifting",
+      "electronic",
+      "cinematic"
+    ],
+    "musicKeywords": [
+      "inspiring corporate",
+      "bright modern",
+      "optimistic startup",
+      "uplifting cinematic",
+      "innovation technology",
+      "energetic corporate"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "product-reveal",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
   }
 }

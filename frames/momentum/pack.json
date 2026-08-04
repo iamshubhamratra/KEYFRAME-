@@ -1,0 +1,100 @@
+{
+  "name": "momentum",
+  "vibe": "A kinetic-velocity film. A near-black warm ground with cream ink and one hot vermilion, and a horizontal motion axis on every single beat. Headlines arrive as whole words sliding out of hard-edged masks; speed rules streak in from the left and settle; a marquee of the beat's OWN words scrolls through the middle band. Pictures are not panels here — they are edge-to-edge bands that crop wide and drift under a directional scrim, so the film always reads as moving rather than presenting. Authored landscape-first (16:9) as a native GSAP + DOM composition. Best for sport, automotive, fintech, agencies and any brand whose pitch is speed.",
+  "renderer": "momentum",
+  "orientation": "landscape",
+  "colors": {
+    "ground": "#131210",
+    "ground-2": "#1C1A17",
+    "text": "#F5F2EA",
+    "muted": "#8C877D",
+    "accent": "#FF4B2B",
+    "ink": "#F5F2EA",
+    "paper": "#1C1A17"
+  },
+  "fonts": [
+    "Figtree",
+    "JetBrains Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#131210"
+  },
+  "motion": {
+    "cut": "slide-push",
+    "drift": 1.6
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FF4B2B"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "dynamic high-contrast photograph with motion and directional light",
+    "iconStyle": "line",
+    "keywords": [
+      "kinetic",
+      "speed",
+      "velocity",
+      "bold",
+      "dark",
+      "motion",
+      "sport",
+      "landscape"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Figtree",
+    "mono": "JetBrains Mono",
+    "body": "Figtree"
+  },
+  "textfx": {
+    "enter": "slide-mask",
+    "emphasis": "accent-bar",
+    "case": "upper",
+    "tracking": -0.04,
+    "align": "left"
+  },
+  "audio": {
+    "mood": "driving",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "electronic",
+      "percussive",
+      "rock",
+      "modern"
+    ],
+    "musicKeywords": [
+      "driving electronic",
+      "high energy percussion",
+      "kinetic build",
+      "fast modern beat",
+      "aggressive groove",
+      "momentum pulse"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "product-reveal",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
+  }
+}

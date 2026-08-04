@@ -12,7 +12,11 @@
     "teal": "#22E0C8",
     "violet": "#A66BFF"
   },
-  "fonts": ["Space Grotesk", "JetBrains Mono", "Inter"],
+  "fonts": [
+    "Space Grotesk",
+    "JetBrains Mono",
+    "Inter"
+  ],
   "surface": {
     "flat": false,
     "lightCinematic": false,
@@ -20,22 +24,39 @@
   },
   "motion": {
     "cut": "warp",
-    "drift": 1.0
+    "drift": 1
   },
   "fx": {
     "canvas": "dataspace",
     "three": "none"
   },
   "skin": {
-    "accents": ["#4F7CFF", "#22E0C8", "#A66BFF"],
+    "accents": [
+      "#4F7CFF",
+      "#22E0C8",
+      "#A66BFF"
+    ],
     "extras": [],
     "emphasisCss": null
   },
   "assets": {
     "photoMod": "product screenshot on a glowing dark HUD data-panel with corner brackets",
     "iconStyle": "line",
-    "keywords": ["digital", "data", "particles", "network", "grid", "dark", "futuristic", "tech", "portrait"],
-    "prefer": ["photo", "vector"]
+    "keywords": [
+      "digital",
+      "data",
+      "particles",
+      "network",
+      "grid",
+      "dark",
+      "futuristic",
+      "tech",
+      "portrait"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
   },
   "typography": {
     "display": "Space Grotesk",
@@ -48,5 +69,36 @@
     "case": "none",
     "tracking": -0.02,
     "align": "center"
+  },
+  "audio": {
+    "mood": "futuristic",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "electronic",
+      "synthwave",
+      "tech",
+      "cinematic"
+    ],
+    "musicKeywords": [
+      "digital electronic",
+      "futuristic technology",
+      "cinematic electronic",
+      "data pulse",
+      "driving synth",
+      "high energy electronic"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "data-ping",
+      "reveal": "product-reveal",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
   }
 }

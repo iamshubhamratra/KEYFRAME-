@@ -12,14 +12,17 @@ async function tightenLine({ line, targetSec, signal }) {
   // optimistic and left every "fitted" line still overrunning its scene). Leave a
   // little headroom so the rewritten line actually fits when spoken.
   const targetWords = Math.max(3, Math.floor(targetSec * 2.1));
-  const { text, tokensIn, tokensOut } = await openrouter.chat({
+  const { text, tokensIn, tokensOut, model, provider } = await openrouter.chat({
     system: "You tighten voiceover lines. Reply with ONLY the rewritten line — no quotes, no commentary. Preserve the meaning and any names/numbers exactly.",
     user: `Rewrite this voiceover line to at most ${targetWords} words so it can be spoken comfortably in ${targetSec} seconds:\n${line}`,
     stage: "vo_fit",
     temperature: 0.4,
     signal,
   });
-  return { line: text.trim().replace(/^["']|["']$/g, ""), tokensIn, tokensOut };
+  // model/provider are forwarded because synthesizeFitted's tracker.addLlm already
+  // reads t.model / t.provider — they were simply never returned, so every tighten
+  // call was priced at the default (OpenRouter) rate even when KIE served it.
+  return { line: text.trim().replace(/^["']|["']$/g, ""), tokensIn, tokensOut, model, provider };
 }
 
 // Did the model ad-lib? The spoken transcript materially longer than the
@@ -108,7 +111,7 @@ async function synthesizeFitted({ text, targetSec, voice, instructions, outputPa
     console.log(`[vo_fit] scene VO ${dur.toFixed(1)}s > ${targetSec}s budget — tightening once`);
     try {
       const t = await tightenLine({ line: text, targetSec, signal });
-      if (tracker) tracker.addLlm({ inputTokens: t.tokensIn, outputTokens: t.tokensOut, stage: "vo_fit" });
+      if (tracker) tracker.addLlm({ inputTokens: t.tokensIn, outputTokens: t.tokensOut, stage: "vo_fit", model: t.model, provider: t.provider });
       synthMeta = await synthOnce({ text: t.line, voice, instructions, outputPath, tracker }) || synthMeta;
       dur = (await probeDurationSec(outputPath)) ?? targetSec;
       spokenText = t.line;

@@ -61,5 +61,36 @@
     "enter": "slide",
     "emphasis": "underline-grow",
     "align": "center"
+  },
+  "audio": {
+    "mood": "professional",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "corporate",
+      "orchestral",
+      "ambient",
+      "piano"
+    ],
+    "musicKeywords": [
+      "executive corporate",
+      "professional ambient",
+      "confident piano",
+      "keynote corporate",
+      "uplifting corporate",
+      "driving business"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
   }
 }

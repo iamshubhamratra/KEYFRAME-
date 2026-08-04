@@ -1,0 +1,99 @@
+{
+  "name": "flight",
+  "vibe": "A departure film. A daylight sky graded from a pale horizon to a deeper zenith, a warm sun disc bleeding light, drifting cloud banks and a dark ground plane with a dashed runway centreline that scrolls beneath you. One hot orange against all that blue. A simple aircraft mark crosses the frame on every beat — taxiing on the opener, banking up and away on the reveal — and pictures ride in rounded cabin-window panels with an inner light-catch. Authored landscape-first (16:9) as a native GSAP + DOM composition, sharing one module with its 9:16 cut. Best for travel, logistics, mobility, onboarding and any brand whose story is going somewhere.",
+  "renderer": "flight",
+  "orientation": "landscape",
+  "colors": {
+    "ground": "#E9F6FF",
+    "ground-2": "#FFFFFF",
+    "text": "#16222E",
+    "muted": "#5C6B7A",
+    "accent": "#FF5630",
+    "ink": "#16222E",
+    "paper": "#FFFFFF"
+  },
+  "fonts": [
+    "Figtree",
+    "JetBrains Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#E9F6FF"
+  },
+  "motion": {
+    "cut": "slide-push",
+    "drift": 1.2
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FF5630"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "bright airy photograph with open sky and natural light",
+    "iconStyle": "line",
+    "keywords": [
+      "flight",
+      "travel",
+      "sky",
+      "aviation",
+      "journey",
+      "bright",
+      "optimistic"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Figtree",
+    "mono": "JetBrains Mono",
+    "body": "Figtree"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "pill",
+    "case": "sentence",
+    "tracking": -0.03,
+    "align": "left"
+  },
+  "audio": {
+    "mood": "uplifting",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "cinematic",
+      "orchestral",
+      "electronic",
+      "ambient"
+    ],
+    "musicKeywords": [
+      "uplifting cinematic",
+      "soaring strings",
+      "travel adventure",
+      "hopeful build",
+      "open sky ambient",
+      "inspiring modern"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "product-reveal",
+      "data": "data-ping",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

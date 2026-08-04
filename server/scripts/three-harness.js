@@ -14,7 +14,7 @@ const path = require("node:path");
 const three = require("../src/services/three_composer");
 
 const outDir = path.resolve(process.argv[2] || "jobs/_3dtest");
-const pack = process.argv[3] || "nimbus-saas";
+const pack = process.argv[3] || "flagship";
 const mode = process.argv[4] || "shot";
 const W = Number(process.argv[5]) || 1280;
 const H = Number(process.argv[6]) || 720;

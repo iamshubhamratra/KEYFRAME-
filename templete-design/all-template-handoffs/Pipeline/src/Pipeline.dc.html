@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{height:100%;background:#EAEDF2}
+    body{overflow:hidden;font-family:'Chakra Petch',system-ui,sans-serif}
+    a{color:#FF8A00;text-decoration:none}
+    a:hover{color:#ffa640}
+  </style>
+  <script>window.OM_SCENES = '[{"name":"Boot","dur":2.3,"kicker":"SYSTEM ONLINE","brand":"PIPELINE","tagline":"Ship your product down the line."},{"name":"Line","dur":2.8,"kicker":"ON THE LINE","headline":"Every screen,|down the line."},{"name":"Inspect","dur":3.3,"kicker":"INSPECTION","eyebrow":"QUALITY CHECKED","headline":"Built right,|every time.","chips":["AUTO-BUILD","ZERO DOWNTIME","SHIP ON MERGE"]},{"name":"Assemble","dur":2.5,"kicker":"ASSEMBLY","headline":"BUILT PIECE BY PIECE"},{"name":"Throughput","dur":3,"kicker":"THROUGHPUT","headline":"Runs at|full speed.","stats":[{"v":8,"suf":"K","l":"BUILDS / DAY"},{"v":99.9,"suf":"%","l":"UPTIME"},{"v":42,"suf":"s","l":"AVG SHIP TIME"}]},{"name":"Ship","dur":2.8,"kicker":"SHIP IT","headline":"Ship it|today.","cta":"START BUILDING","url":"pipeline.dev"}]';</script>
+  <script>window.OM_PLAYBACK = '{"mode":"times","count":1}';</script>
+  <script>window.OM_TWEAKS = /*EDITMODE-BEGIN*/{"accent":"#FF8A00","brandName":"Pipeline","url":"pipeline.dev","motionEditor":true}/*EDITMODE-END*/;</script>
+</helmet>
+<div style="position:fixed;inset:0;background:#EAEDF2;overflow:hidden">
+  <x-import component-from-global-scope="PipelineFilm" from="./animations-v2.jsx ./tweaks-panel.jsx ./pipeline-film.jsx" hint-size="100%,100%" style="position:absolute;inset:0"></x-import>
+</div>
+
+<template id="__bundler_thumbnail">
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="22" fill="#FF8A00"/><g fill="#FFFFFF"><rect x="20" y="60" width="60" height="16" rx="4"/><circle cx="30" cy="82" r="5"/><circle cx="50" cy="82" r="5"/><circle cx="70" cy="82" r="5"/></g><g fill="#1E2230"><circle cx="38" cy="34" r="15"/><g transform="translate(38 34)"><rect x="-4" y="-21" width="8" height="8"/><rect x="-4" y="13" width="8" height="8"/><rect x="-21" y="-4" width="8" height="8"/><rect x="13" y="-4" width="8" height="8"/></g><circle cx="38" cy="34" r="5" fill="#FF8A00"/></g></svg>
+</template></x-dc>
+</body>
+</html>

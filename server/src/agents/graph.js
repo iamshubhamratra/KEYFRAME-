@@ -35,6 +35,7 @@ const { injectCaptionStyle } = require("../services/caption_render");
 const { fetchMusic } = require("../services/audio_sources");
 const { getSfx } = require("../services/sfx_library");
 const { planSfx } = require("../services/sfx_plan");
+const audioProfileSvc = require("../services/audio_profile");
 const { VALID_VOICES } = require("../services/audio_planner");
 const { buildFallback } = require("../services/fallback");
 const { normalizeComposition } = require("../services/normalize");
@@ -52,6 +53,9 @@ const { scoreBrandCoverage } = require("../services/brand_coverage");
 const { computeAssetBudget } = require("../services/asset_budget");
 const { preflight } = require("../services/preflight");
 const { kindForPurpose } = require("../services/asset_taxonomy");
+const { roleOf, showcaseTargets } = require("../services/scene_role");
+const { reconcileStoryboard } = require("../services/continuity");
+const { planMotion, verifyMotion } = require("../services/motion_planner");
 
 function ms() { return Date.now(); }
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
@@ -77,6 +81,21 @@ function pickCleanPack(prefer) {
     if (rp && !isCanvasOrCharsetPack(rp)) return rp;
   }
   return frameRegistry.resolvePack("auto");
+}
+
+// The first installed pack authored for THIS job's aspect — preferring the brief's
+// suggestion when it already fits. Returns null when no installed pack can serve the
+// orientation, in which case the caller keeps its pick and discloses rather than
+// swapping to something equally wrong.
+function pickFittingPack(prefer, orientation) {
+  const { packFitsOrientation } = require("../services/frame_manifest");
+  const p = frameRegistry.resolvePack(prefer);
+  if (p && packFitsOrientation(p, orientation)) return p;
+  for (const id of frameRegistry.listPacks()) {
+    const rp = frameRegistry.resolvePack(id);
+    if (rp && packFitsOrientation(rp, orientation)) return rp;
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------- helpers
@@ -202,17 +221,32 @@ function rotatedDefaultPack() {
 }
 
 async function frameSelectorAgent(s) {
-  // Only an EXPLICIT, still-installed user pick is honored verbatim. "auto",
-  // unset (null), and stale/removed ids are NOT explicit — they must defer to
-  // the brief's tone-matched suggestion BEFORE the global default. The old code
-  // ran resolvePack(job.frame_pack) first, but resolvePack(null|"auto") returns
-  // the DEFAULT pack (non-null), so every auto video short-circuited to
-  // blockframe and the brief's pick + anti-repeat rotation were dead code.
-  const requested = s.job.frame_pack;
+  // WHOSE CHOICE IS THIS? The question this node exists to answer, and it was asking
+  // the wrong column. `job.frame_pack` is NOT the user's pick: intake overwrites it
+  // with the brief's suggestion (db.markScriptReview -> db.js setFramePack), so by
+  // production every auto job looked hand-picked. Two branches died as a result —
+  // the anti-repeat rotation below became unreachable, and the localization reroute
+  // took the "honor the user's explicit choice" path for a choice nobody made,
+  // shipping non-Latin films on packs that cannot render their text.
+  //
+  // The user's actual answer is preserved verbatim at create time in
+  // intent.preferences.framePack ("auto" or a pack id) — routes/projects.js. Read it
+  // there. Jobs created before that field existed fall back to the old reading, so a
+  // legacy explicit pick is still honored.
+  const userPick = s.job?.intent?.preferences?.framePack;
+  const requested = userPick != null
+    ? (userPick !== "auto" ? userPick : null)
+    : s.job.frame_pack;                      // legacy jobs: no preferences recorded
   const explicit = (requested && requested !== "auto")
     ? frameRegistry.resolvePack(requested)   // valid id → that pack; stale id → null
     : null;
-  const fromBrief = frameRegistry.resolvePack(s.brief?.suggestedFramePack);
+  // The brief's tone-matched suggestion: from this run's brief, or (on a resumed /
+  // regenerated job whose brief isn't in state) the one intake persisted. Guarded on
+  // a real id — resolvePack(null|"auto") returns the DEFAULT pack, which would make
+  // this branch always truthy and re-kill the rotation below.
+  const persisted = (s.job.frame_pack && s.job.frame_pack !== "auto") ? s.job.frame_pack : null;
+  const fromBrief = frameRegistry.resolvePack(s.brief?.suggestedFramePack)
+    || (explicit || !persisted ? null : frameRegistry.resolvePack(persisted));
   // ROTATION. The brief normally carries it: recentlyUsedPacks() feeds the model a
   // `recentFramePacks` list and system_brief.md tells it to prefer a pack that is not
   // in it. But that is a PROMPT instruction on a path that can vanish — if the brief
@@ -222,6 +256,39 @@ async function frameSelectorAgent(s) {
   const fallback = explicit || fromBrief ? null : rotatedDefaultPack();
   let framePack = explicit || fromBrief || fallback || frameRegistry.resolvePack("auto");
   let via = explicit ? "user" : fromBrief ? "brief" : fallback ? "rotated-default" : "default";
+
+  // ORIENTATION ROUTING — a pack authored for one aspect cannot lay out another. A portrait
+  // composer positions vertically as a fraction of HEIGHT and sizes every height as a
+  // fraction of WIDTH (cqw, the only definite unit inside an auto-height parent); those two
+  // are calibrated against each other at the authored 1080x1920 and nowhere else. Render it
+  // at 1920x1080 and heights inflate while the room for them shrinks — measured on
+  // organic-garden, the hook's device frame ends 99.2cqw deep in a 56.3cqw-tall frame, a 76%
+  // overflow. 22 packs declared `orientation` in pack.json while nothing on this path read
+  // it, so nothing prevented that pairing.
+  //
+  // Same law as the localization reroute below: an auto/brief pick is CORRECTED, an explicit
+  // user pick is HONORED and disclosed. Runs first so a swap here is still checked for the
+  // charset constraint afterwards.
+  let orientationPackWarning = null;
+  try {
+    const { packFitsOrientation, packOrientation } = require("../services/frame_manifest");
+    if (!packFitsOrientation(framePack, s.job.orientation)) {
+      const authored = packOrientation(framePack);
+      if (via === "user") {
+        orientationPackWarning = `The "${framePack}" template is designed for ${authored} video, so parts of its layout can overflow at your chosen ${s.job.orientation} size. Switch the template — or the video size — for a clean fit.`;
+        console.warn(`[agents] frame_selector: ${framePack} is authored ${authored} but the job is ${s.job.orientation}; honoring explicit pick with a disclosure`);
+      } else {
+        const fitting = pickFittingPack(s.brief?.suggestedFramePack, s.job.orientation);
+        if (fitting && fitting !== framePack) {
+          console.log(`[agents] frame_selector: swapped ${framePack} → ${fitting} (${authored} pack on a ${s.job.orientation} job)`);
+          framePack = fitting; via = `${via}+oriented`;
+        } else {
+          orientationPackWarning = `No installed template is designed for ${s.job.orientation} video, so this film uses a ${authored} one — some scenes may crop or overflow.`;
+          console.warn(`[agents] frame_selector: no pack fits ${s.job.orientation}; keeping ${framePack} (${authored}) with a disclosure`);
+        }
+      }
+    }
+  } catch (e) { console.warn(`[agents] frame_selector orientation routing skipped: ${e.message}`); }
 
   // ON-SCREEN LOCALIZATION ROUTING — a non-Latin video-text language cannot render on the
   // canvas/charset packs. If the pack was auto/brief-picked, swap to a clean pack; if the
@@ -248,17 +315,36 @@ async function frameSelectorAgent(s) {
     }
   } catch (e) { console.warn(`[agents] frame_selector localization routing skipped: ${e.message}`); }
 
+  // Persist the pack the film is ACTUALLY rendered in. Until now this node's
+  // resolution lived only in graph state, so a localization swap or a rotation never
+  // reached the job — and the anti-repeat history (rotatedDefaultPack here,
+  // recentlyUsedPacks in brief.js) read a column that only ever held intake's guess.
+  try { db.setFramePack(s.job.id, framePack); } catch { /* disclosure never blocks a render */ }
+
+  // The orientation gap is disclosed HERE rather than threaded through graph state: unlike
+  // the localization warning — which folds into the Localization Director's report, a node
+  // that only runs for a non-English film — this one has no downstream owner and applies to
+  // every job. Fail-open (THE LAW): a disclosure never blocks a render.
+  if (orientationPackWarning) {
+    try { db.setValidationNote(s.job.id, orientationPackWarning); } catch { /* never blocks */ }
+  }
+
   console.log(`[agents] frame_selector → ${framePack} (${via})`);
-  return { framePack, localizationPackWarning };
+  return { framePack, localizationPackWarning, orientationPackWarning };
 }
 
 async function storyboardAgent(s) {
   db.setProgress(s.job.id, "storyboard");
   const sbPrompt = storyboardPromptFromScript(s.script, s.brief);
   try {
-    const r = await generateStoryboard({ prompt: sbPrompt, duration: s.job.duration, orientation: s.job.orientation });
+    // The pack is part of the BRIEF for this stage, not decoration: system_storyboard
+    // tells the model to design each scene's layout/motif for THIS design system and
+    // to keep adjacent scenes visually distinct. Both live callers used to omit it,
+    // so that instruction never fired — and "every scene is the same set" is exactly
+    // what the QA agent's blocker #11 exists to catch downstream.
+    const r = await generateStoryboard({ prompt: sbPrompt, duration: s.job.duration, orientation: s.job.orientation, framePack: s.framePack });
     s.tracker.addLlm({ inputTokens: r.tokensIn, outputTokens: r.tokensOut, stage: "storyboard", model: r.model, provider: r.provider });
-    return { storyboard: r.storyboard };
+    return { storyboard: continuityGate(s, r.storyboard) };
   } catch (e) {
     // FAIL-OPEN — this was the ONLY creative node that could abort the whole graph.
     // The approved script already has validated scenes/timing, so derive a
@@ -270,7 +356,34 @@ async function storyboardAgent(s) {
       s.tracker.addLlm({ inputTokens: e.tokensIn || 0, outputTokens: e.tokensOut || 0, stage: "storyboard", model: e.model || null, provider: e.provider || null });
     }
     console.warn(`[agents] storyboard LLM failed (${String(e?.message || e).slice(0, 140)}) — using deterministic script-derived storyboard`);
-    return { storyboard: storyboardFromScript(s.script, s.job, s.brief) };
+    // Disclose the downgrade. Every LLM stage is KIE-only now (grok-4-5 here, with
+    // gemini-3-6-flash as the in-KIE fallback), so a KIE outage silently sends EVERY
+    // film down this path — the film still ships, but without the model's
+    // motifs/emphasis, and nobody could see that from the outside.
+    try {
+      db.setValidationNote(s.job.id, "The scene designer was unavailable, so the film was built from the approved script's own structure — timing and copy are exactly as you approved, but the per-scene visual motifs are the template's defaults.");
+    } catch { /* disclosure never blocks a render */ }
+    return { storyboard: continuityGate(s, storyboardFromScript(s.script, s.job, s.brief)) };
+  }
+}
+
+// CONTINUITY GATE — the storyboard must describe the film the user approved. The
+// script owns structure (ids/order/timing/copy), the storyboard owns enrichment
+// (kind/animation/motif/beats). Deterministic, fail-open, and disclosed when it has to
+// correct something. See services/continuity.js for why this class of drift is audible.
+function continuityGate(s, storyboard) {
+  try {
+    const { storyboard: fixed, report } = reconcileStoryboard({ storyboard, script: s.script });
+    if (report.changed) {
+      console.warn(`[agents] continuity: ${report.notes.join(" | ")}`);
+      try { db.setContinuityReport(s.job.id, report); } catch { /* best effort */ }
+    } else {
+      console.log(`[agents] continuity: storyboard matches the approved script (${report.sceneCount.script} scenes)`);
+    }
+    return fixed;
+  } catch (e) {
+    console.warn(`[agents] continuity check skipped: ${e.message}`);
+    return storyboard;
   }
 }
 
@@ -321,16 +434,15 @@ async function assetPlannerAgent(s) {
   const userPins = await pinUserAssets({ job, script, jobDir: s.jobDir, maxPins: budget.maxUploads });
 
   const shots = (job.website_screenshots || []).filter((p) => { try { return fs.existsSync(p); } catch { return false; } });
-  const showcase = script.scenes.filter((x) => ["feature", "proof", "how", "context"].includes(x.purpose));
-  // Fall back to the mid scenes, then (for very short 2-scene scripts, where
-  // slice(1,-1) is EMPTY) to ALL scenes — otherwise real website screenshots are
-  // silently dropped before they ever become assets (short flagship films showed none).
-  const mid = script.scenes.slice(1, -1);
+  // Showcase targeting is now role-based and shared (services/scene_role): it already
+  // folds in the mid-scene fallback AND the 2-scene fallback (slice(1,-1) is EMPTY
+  // there, which once silently dropped every real screenshot), and it no longer misses
+  // a scene the script labelled "benefit"/"the problem" instead of "feature".
   // Website screenshots fill the showcase scenes the uploads did NOT take — fewer when
   // uploads exist (the user's own material is the show), and more on longer films. Sized
   // by the duration budget (was a fixed 2/3).
   const websiteCap = budget.maxScreenshots;
-  const targets = (showcase.length ? showcase : (mid.length ? mid : script.scenes))
+  const targets = showcaseTargets(script)
     .filter((x) => !userPins.usedSceneIds.has(x.id))
     .slice(0, websiteCap);
   const screenshotPlan = shots.slice(0, targets.length).map((src, i) => ({ kind: "screenshot", src, scene: targets[i], index: i }));
@@ -365,11 +477,12 @@ async function assetPlannerAgent(s) {
     if (!needs.length && !pinnedSceneIds.has(scene.id)) {
       const q = deriveQuery(scene);
       if (q) {
-        // Scene PURPOSE → asset KIND (asset_taxonomy.PURPOSE_KIND, previously unwired):
-        // proof→people, data/stat→vector, cta/outro→icon, hook/context/feature→photo.
-        // Fail-open: unknown purposes fall back to "photo" (today's behavior). This is a
+        // Scene ROLE → asset KIND (asset_taxonomy.PURPOSE_KIND): proof/quote→people,
+        // feature/how→screenshot, cta→icon, hook/context→photo. Keyed off the CANONICAL
+        // role rather than the raw purpose string, which missed every synonym the model
+        // invented. Fail-open: an unknown role falls back to "photo". This is a
         // ranking/routing bias, never a hard filter — a scene is never left imageless.
-        const wantKind = kindForPurpose(scene.purpose);
+        const wantKind = kindForPurpose(roleOf(scene));
         if (wantKind === "vector" || wantKind === "icon") {
           // Route data/cta scenes into the vector pool (kindPrefFor("icon") → vector).
           needs.push({ type: "image", query: q, role: "icon", derived: true });
@@ -611,6 +724,13 @@ async function assetSearchAgent(s) {
       sceneId: scene.id, startSec: scene.start, durationSec: scene.duration,
       style: need.role === "inset" ? "inset" : "background", alt: need.query,
       width: r.width, height: r.height, ratio: r.ratio, hasAlpha: r.hasAlpha,
+      // dhash + dominantColor are COMPUTED for every fetched image (asset_sources/util
+      // validateImage runs an ffmpeg pass for each) and were dropped right here, one
+      // line before their consumers: scene_kit orders a scene's assets by palette
+      // affinity off `dominantColor` (scene_kit.js paletteAffinity) and read neutral
+      // for every asset, and nothing downstream could dedup or cache by hash. Carrying
+      // them costs nothing — the work was already done and thrown away.
+      dhash: r.dhash, dominantColor: r.dominantColor,
       license: r.license, sourceUrl: r.sourceUrl, source: r.source, fromCache: r.fromCache === true,
     };
     results.push(resultObj);
@@ -680,6 +800,11 @@ async function creativeDirectorAgent(s) {
   // stays in sync with assetPlannerAgent without threading extra graph state.
   const hasUploads = (job.user_assets || []).some((u) => u && u.role !== "logo");
   const { cdMaxTopUp } = computeAssetBudget({ durationSec: job.duration, sceneCount: (s.script?.scenes || []).length, hasUploads, videoOk: hasProviderFor("video") });
+  // The director's SOUNDTRACK verdict, captured in-band. It reviews the planned music
+  // and SFX against the film's subject; that opinion previously went to the database
+  // and no further, so the Audio Director — the one agent that could act on it — never
+  // saw it and planned the whole mix without knowing whether the bed even fits.
+  let audioAdvice = null;
   const curated = await reviewAndCurate({
     jobId: job.id,
     storyboard: s.storyboard,
@@ -692,9 +817,12 @@ async function creativeDirectorAgent(s) {
     jobDir,
     orientation: job.orientation,
     maxTopUp: cdMaxTopUp,
+    onReview: (report) => {
+      audioAdvice = { music: report.musicAnalysis || null, sfx: report.soundEffectAnalysis || null };
+    },
   });
   db.setAssets(job.id, curated);
-  return { assets: curated };
+  return { assets: curated, audioAdvice };
 }
 
 // Art Director — decides WHICH palette the film is allowed to wear, then turns it into
@@ -810,6 +938,53 @@ async function visualLayoutDirectorAgent(s) {
   if (review) { try { db.setLayoutReview(s.job.id, review); } catch { /* best effort */ } }
   try { db.setAssets(s.job.id, assets); } catch { /* best effort */ }
   return { assets, layoutPlan };
+}
+
+// Asset Reuse Optimizer — the last stage of asset intelligence, and the only one allowed
+// to make an asset appear twice.
+//
+// The Visual Layout Director's spreadAcrossScenes already gives every scene one asset
+// before any scene gets two, but it MOVES assets and never duplicates them, so its coverage
+// ceiling is min(assets, scenes): a six-asset film with nine scenes leaves three scenes with
+// nothing, however well everything upstream ranks. This node closes exactly that gap — it
+// scores every approved asset against each uncovered scene (semantic fit, quality, scene
+// distance, visual diversity, usage headroom, aspect, composition) and clones the winner
+// onto it, under a hard per-asset usage ceiling with an adjacency veto.
+//
+// Runs after the layout director (it needs the final placements) and before composition.
+// Deterministic and free — no LLM, no vision, no I/O — so it adds no measurable latency.
+// Fail-open: on any error the wire is returned untouched.
+async function assetReuseAgent(s) {
+  if (!config.assetReuse?.enabled) return {};
+  db.setProgress(s.job.id, "asset_reuse");
+  const { optimizeAssetReuse } = require("../services/asset_reuse");
+  const { assets, review } = optimizeAssetReuse({
+    assets: s.assets || [],
+    script: s.script,
+    storyboard: s.storyboard,
+    framePack: s.framePack,
+    dims: { width: s.job.width, height: s.job.height },
+    // Native packs place by sceneId across their own display beats; the scene-kit weave
+    // only reaches CONTENT scenes. The slot model differs, so the composer family is part
+    // of the question — see asset_reuse.buildSlots.
+    native: !!rendererOf(s.framePack),
+    // The renderer id, not just "is it native": WHICH scene roles can draw a picture
+    // differs per composer (om_stage's hook draws one, prisma's does not).
+    renderer: rendererOf(s.framePack) || null,
+    acceptsVectors: require("../services/frame_manifest").packAcceptsVectors(s.framePack),
+    seedKey: s.job.id,          // same per-job salt the scene-kit uses for layout variety
+  });
+  if (review) {
+    try { db.setAssetReuseReport(s.job.id, review); } catch { /* disclosure never blocks a render */ }
+    try { db.setAssets(s.job.id, assets); } catch { /* best effort */ }
+    console.log(`[agents] asset_reuse → ${review.assetCoverage} of ${review.slotsDemanded} slot(s) covered `
+      + `(${review.slotsFilledUnique} unique, ${review.slotsFilledReuse} reuse, ${review.slotsFilledDecorative} decorative)`
+      + (review.reusedAssets ? ` · ${review.reusedAssets} asset(s) reused, max ${review.maximumReuseCount}×` : ""));
+  }
+  // The review rides graph state (not just the DB) so the QA reviewer can be told which
+  // pictures recur ON PURPOSE — it is the only stage that can check whether the re-styling
+  // actually reads as different, because that is a question about pixels.
+  return { assets, assetReuse: review || null };
 }
 
 // Localization Director — translates the storyboard's ON-SCREEN text (headline, subtext,
@@ -940,13 +1115,27 @@ async function voiceAgent(s) {
   // differ from the caption language). Guarded by the same source-voiceover check
   // so only scenes that HAD narration get synthesized.
   const voTextFor = (sc) => (s.captionPlan && s.captionPlan.voTextById[String(sc.id)]) || sc.voiceover;
-  const voTask = Promise.all(script.scenes.map((sc) =>
-    (sc.voiceover && sc.voiceover.trim())
-      ? synthesizeFitted({ text: voTextFor(sc), targetSec: sc.duration, voice, instructions, outputPath: path.join(audioDir, `vo-${sc.id}.mp3`), tracker })
-          .then((r) => r ? { sceneId: sc.id, startSec: sc.start, durationSec: r.durationSec, sceneDurationSec: sc.duration, text: r.text, path: r.path, fallbackVoice: r.fallbackVoice || null } : null)
-          .catch((e) => { console.warn(`[agents] vo ${sc.id} failed: ${e.message}`); return null; })
-      : Promise.resolve(null)
-  )).then((a) => a.filter(Boolean));
+
+  // THE VOICEOVER DECISION. The user's toggle acts at exactly ONE place — here, on
+  // SYNTHESIS. The script keeps its narration text and the storyboard has already read it
+  // (storyboardPromptFromScript feeds every VO line into the storyboard prompt), so the
+  // PICTURE is byte-identical whether narration is on or off. That is the property that
+  // makes this a mix control rather than a regeneration: the user can flip it back on from
+  // the Script Room without redesigning the film.
+  //
+  // Side benefit worth naming: with VO off, synthesizeFitted never runs, so the film costs
+  // ZERO TTS — the largest per-character spend in the audio stage.
+  const voEnabled = job.voiceover_enabled !== 0;
+  const voTask = voEnabled
+    ? Promise.all(script.scenes.map((sc) =>
+        (sc.voiceover && sc.voiceover.trim())
+          ? synthesizeFitted({ text: voTextFor(sc), targetSec: sc.duration, voice, instructions, outputPath: path.join(audioDir, `vo-${sc.id}.mp3`), tracker })
+              .then((r) => r ? { sceneId: sc.id, startSec: sc.start, durationSec: r.durationSec, sceneDurationSec: sc.duration, text: r.text, path: r.path, fallbackVoice: r.fallbackVoice || null } : null)
+              .catch((e) => { console.warn(`[agents] vo ${sc.id} failed: ${e.message}`); return null; })
+          : Promise.resolve(null)
+      )).then((a) => a.filter(Boolean))
+    : Promise.resolve([]);
+  if (!voEnabled) console.log(`[agents] voice: narration DISABLED by the user — skipping synthesis (script text kept), music-led mix`);
 
   // SFX are planned, not skimmed off the top of the script (see services/sfx_plan.js).
   // Every cue must be supported by something the composition actually does at that
@@ -963,22 +1152,54 @@ async function voiceAgent(s) {
     if (!assetsByScene.has(a.sceneId)) assetsByScene.set(a.sceneId, []);
     assetsByScene.get(a.sceneId).push(a);
   }
-  const sfxPlan = planSfx({ scenes: script.scenes, assetsByScene, durationSec: job.duration });
+  // NO-VO DENSITY. With narration off the film has to carry itself on picture and sound
+  // design, so the cue budget rises (`sfxDensity: "rich"` on the pack's profile). The
+  // SUPPORT requirement is unchanged and non-negotiable — a denser mix must still never
+  // mean unmotivated sounds, which is the exact defect sfx_plan exists to prevent. More
+  // cues are ALLOWED; only moments that genuinely happen on screen can fill them.
+  const audioProfile = audioProfileSvc.profileFor(s.framePack);
+  const sfxDensity = (!voEnabled && audioProfile.noVo.sfxDensity === "rich") ? 1.5 : 1;
+  const sfxPlan = planSfx({ scenes: script.scenes, assetsByScene, durationSec: job.duration, densityScale: sfxDensity });
   if (sfxPlan.dropped.length) {
-    console.log(`[agents] sfx_plan: ${sfxPlan.cues.length}/${sfxPlan.cues.length + sfxPlan.dropped.length} cue(s) kept (budget ${sfxPlan.budget}) — dropped: ${sfxPlan.dropped.slice(0, 4).map((d) => `${d.name}@${d.sceneId} (${d.reason})`).join("; ")}`);
+    console.log(`[agents] sfx_plan: ${sfxPlan.cues.length}/${sfxPlan.cues.length + sfxPlan.dropped.length} cue(s) kept (budget ${sfxPlan.budget}${sfxDensity > 1 ? ", no-VO density" : ""}) — dropped: ${sfxPlan.dropped.slice(0, 4).map((d) => `${d.name}@${d.sceneId} (${d.reason})`).join("; ")}`);
   }
-  const sfxTask = Promise.all(sfxPlan.cues.map((x, i) =>
-    getSfx({ name: x.name, outputPath: path.join(audioDir, `sfx-${i}.mp3`), tracker })
+  const sfxTask = Promise.all(sfxPlan.cues.map((x, i) => {
+    // Fetch the INTENT, not the script's word. `intent` is the sound this moment should
+    // make (logo-rise, counter-tick, cta-impact…), decided from what the scene actually
+    // does; the raw word was how a counter ended up with a whoosh. See services/audio_cues.
+    //
+    // THE TEMPLATE PALETTE then decides what that intent SOUNDS LIKE on this pack —
+    // terminal-departures' transition is a synthy sweep, paper-tales' is a paper slide.
+    // A bias on the timbre only: it cannot add a cue, remove one, or move one, so the
+    // support gate above still governs whether anything fires at all.
+    const base = x.intent || x.name;
+    const cue = audioProfileSvc.paletteCueFor(audioProfile, base);
+    return getSfx({ name: cue, outputPath: path.join(audioDir, `sfx-${i}.mp3`), tracker })
       // Carry the cue name + what justified it so the Audio Director can curate by intent.
-      .then((p) => p ? { path: p, startSec: x.startSec, volume: 0.22, name: x.name, support: x.support, sceneId: x.sceneId } : null).catch(() => null)
-  )).then((a) => a.filter(Boolean));
+      .then((p) => p ? { path: p, startSec: x.startSec, volume: 0.22, name: cue, requested: x.name, intent: base, support: x.support, sceneId: x.sceneId } : null).catch(() => null);
+  })).then((a) => a.filter(Boolean));
 
-  // Richer music query: fold the mood field into the query so the provider gets
-  // genre/feel cues, not just a bare 2-word phrase (which returned off-genre SFX).
-  const musicQuery = [script.music?.mood, script.music?.query]
-    .map((x) => String(x || "").trim()).filter(Boolean).join(" ").slice(0, 80);
-  const musicTask = (script.music?.query || script.music?.mood)
-    ? fetchMusic({ query: musicQuery, outputPath: path.join(audioDir, "music.mp3"), tracker }).catch(() => null)
+  // TEMPLATE-DRIVEN MUSIC. The query used to be `script.music.mood + script.music.query` —
+  // two fields the SCRIPT model invented from the film's SUBJECT, which never saw which
+  // template the film wears. A Bauhaus poster and a cyberpunk terminal searched the same
+  // phrase. musicCandidatesFor puts the PACK's own keywords first (rotated deterministically
+  // per job, so two films on one template sound related but not identical), keeps the
+  // subject query as a later candidate, and tilts toward the pack's driving end when
+  // narration is off. A pack with no audio block returns exactly today's query.
+  const musicSelection = {};
+  const musicPlan = audioProfileSvc.musicCandidatesFor({
+    framePack: s.framePack, jobId: job.id,
+    narration: voEnabled ? "on" : "off",
+    scriptMusic: script.music || null, profile: audioProfile,
+  });
+  if (musicPlan.candidates.length) {
+    console.log(`[agents] music search (${musicPlan.source}${musicPlan.keywords.length ? `: ${musicPlan.keywords.join(" + ")}` : ""}) → ${musicPlan.candidates.slice(0, 3).map((c) => `"${c}"`).join(", ")}`);
+  }
+  const musicTask = musicPlan.candidates.length
+    ? fetchMusic({
+        candidates: musicPlan.candidates, outputPath: path.join(audioDir, "music.mp3"),
+        tracker, durationSec: job.duration, style: audioProfile.style, selection: musicSelection,
+      }).catch(() => null)
     : Promise.resolve(null);
 
   const [voClips, sfxClips, musicPath] = await Promise.all([voTask, sfxTask, musicTask]);
@@ -1000,12 +1221,18 @@ async function voiceAgent(s) {
 
   // Surface audio degradation on the job — a silent film must never ship
   // silently. (The Premiere screen shows these notes with the details.)
+  //
+  // TRAP #1, and it fires on EVERY narration-free film if missed. We deliberately KEEP the
+  // script's voiceover text (the storyboard reads it), so `wantedVo` stays true with the
+  // toggle off — and this note would then tell every user who chose a music-only film that
+  // their film is broken. `voEnabled` is what separates "the user asked for no voice" from
+  // "the voice failed to arrive", and those two states must never share a disclosure.
   const wantedVo = script.scenes.some((sc) => sc.voiceover && sc.voiceover.trim());
   const notes = [];
-  if (wantedVo && voClips.length === 0) {
+  if (voEnabled && wantedVo && voClips.length === 0) {
     notes.push("Voiceover unavailable — the TTS provider failed (budget/limits). The film shipped without narration; regenerate once the provider resets to add the voice back.");
   }
-  if (!musicPath && (script.music?.query || script.music?.mood)) {
+  if (!musicPath && musicPlan.candidates.length) {
     notes.push("Music unavailable — no source matched and the generated bed also failed; the film shipped without a music track.");
   }
   // A requested non-English voiceover whose translation failed spoke ENGLISH
@@ -1016,7 +1243,15 @@ async function voiceAgent(s) {
   }
   if (notes.length) db.setAudioNotes(job.id, notes);
 
-  return { voClips, sfxClips, musicPath };
+  // `narration` + `musicSelection` ride the state to the Audio Director and the audio
+  // report: the director branches on the mode, and the report can only assert "the
+  // template steered the music" if it knows which query actually won.
+  return {
+    voClips, sfxClips, musicPath,
+    narration: voEnabled ? "on" : "off",
+    audioProfile,
+    musicSelection: { ...musicSelection, source: musicPlan.source, keywords: musicPlan.keywords, candidates: musicPlan.candidates },
+  };
 }
 
 // Audio Director — decides the per-scene audio MIX (broadcast loudness targets,
@@ -1038,7 +1273,42 @@ async function audioDirectorAgent(s) {
     subject: s.brief?.subject || null,
     durationSec: job.duration,
     tracker,
+    // The Creative Director's soundtrack verdict (creative_director node → this node).
+    musicAdvice: s.audioAdvice?.music || null,
+    sfxAdvice: s.audioAdvice?.sfx || null,
+    // THE VOICEOVER DECISION, made in voiceAgent and read here BEFORE any other audio
+    // decision — the brief's "Audio Director should first determine whether voiceover is
+    // enabled". Taken from the state (not re-derived from voClips.length) so a TTS
+    // failure on a narrated film is never mistaken for a music-led film the user chose.
+    narration: s.narration || "on",
+    framePack: s.framePack || null,
+    audioProfile: s.audioProfile || null,
   }).catch((e) => { console.warn(`[agents] audio_director failed: ${e.message}`); return null; });
+
+  // DETERMINISTIC AUDIO VALIDATION. The plan's own `score` is the model grading itself;
+  // this checks the finished soundtrack against the actual scenes and cues — every effect
+  // mapped, no duplicates, nothing firing without an on-screen action, voice protected.
+  // Fail-open (THE LAW): a disclosure never touches the render.
+  try {
+    const { buildAudioReport } = require("../services/audio_report");
+    const report = buildAudioReport({
+      plan: audioPlan, sfxClips: s.sfxClips || [], scenes: (s.script && s.script.scenes) || [],
+      musicPath: s.musicPath || null, musicMood: (s.script && s.script.music && s.script.music.mood) || "",
+      voClips: s.voClips || [],
+      // The four checks the flexible-audio feature adds: was the user's toggle respected,
+      // did the TEMPLATE steer the music, is ducking correct FOR THIS MODE, and did the
+      // no-VO mix actually open up. All need inputs the plan alone does not carry.
+      narration: s.narration || "on",
+      voiceoverRequested: job.voiceover_enabled !== 0,
+      profile: s.audioProfile || null,
+      musicSelection: s.musicSelection || null,
+    });
+    db.setAudioReport(job.id, report);
+    console.log(`[audio] ${report.soundEffects} effect(s), ${report.sceneMatches} scene-matched, ${report.duplicateEffects} duplicate(s), ducking=${report.voiceoverDucking}/${report.sfxDucking}, `
+      + `narration=${report.narration}${report.voiceoverRespected === false ? " MISMATCH" : ""}, music=${report.musicSource}, quality=${report.qualityScore}`
+      + (report.issues.length ? ` — ${report.issues.join("; ")}` : ""));
+  } catch (e) { console.warn(`[agents] audio report skipped: ${e.message}`); }
+
   return { audioPlan };
 }
 
@@ -1318,7 +1588,7 @@ async function composeVisual(s) {
         jobId: job.id, durationSec: job.duration,
         label: s.qa ? "graph-repair" : "graph-main", abortSignal: signal,
         framePack: s.framePack, captionCues, remix: useComposer,
-        brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null, captionStyle, localized: composerStrings(s),
+        brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null, motionPlan: s.motionPlan || null, captionStyle, localized: composerStrings(s),
       }),
       budget, "composition agent"
     );
@@ -1363,7 +1633,7 @@ async function composeVisual(s) {
           framePack: s.framePack, captionCues, remix: false,
           dress: job.compose_mode === "premium" && !composerBudgetDead,
           subject: s.brief?.subject || null,
-          brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null, captionStyle, localized: composerStrings(s),
+          brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null, motionPlan: s.motionPlan || null, captionStyle, localized: composerStrings(s),
         });
         return { visual, usedFallback: false, finalAttempt: "scene-kit", rendered: true, composerBudgetDead, repairable: false };
       } catch (e2) {
@@ -1390,6 +1660,59 @@ async function composeVisual(s) {
   }
 }
 
+// MOTION PLANNER — decides how each scene MOVES, before anything is composed.
+//
+// This node used to be an "animation" audit that ran AFTER composition and grepped the
+// finished HTML for a tween count. It planned nothing, because motion was decided per
+// FILM two levels down: one text-entrance mode and one camera cut for the entire video,
+// so every scene arrived identically. The planner (services/motion_planner.js) chooses a
+// distinct entrance + camera per scene from its narrative role and duration, guarantees
+// adjacent scenes differ, and stays inside the vocabulary the composer implements.
+//
+// Deterministic and free (no LLM). Runs after the storyboard is fully built and the
+// layout archetypes are typed; joins composition alongside the brand skin. Fail-open: a
+// null plan makes the scene-kit fall back to the pack's film-level motion exactly as before.
+// A pack with a dedicated renderer draws its own choreography: om_stage rotates its camera
+// order and cut kinds per job, prisma runs its own entrance primitives, and none of them read
+// `motionPlan` — it is threaded only into the scene-kit (services/pipeline.attemptLlmComposition).
+// So for those packs the planner was computing a plan, persisting it, and being ignored, while
+// verifyMotion reported `honored: null` for every scene — which reads as "could not measure"
+// rather than "does not apply". Two different failures look identical in that record, and the
+// one that was actually happening was neither.
+function packOwnsChoreography(pack) {
+  return !!rendererOf(pack);   // "" => no dedicated renderer => the scene-kit path
+}
+
+async function motionPlannerAgent(s) {
+  // Record the REASON rather than a plan nobody will read. The audit then says the template
+  // owns its motion, which is true and checkable, instead of leaving a plan-vs-actual
+  // comparison permanently unanswerable.
+  if (packOwnsChoreography(s.framePack)) {
+    const note = { ownChoreography: true, framePack: s.framePack, reason: "the template draws its own per-scene entrances, camera and cuts; a film-level motion plan does not apply" };
+    try { db.setMotionPlan(s.job.id, note); } catch { /* disclosure never blocks a render */ }
+    console.log(`[agents] motion_planner → skipped: "${s.framePack}" owns its choreography`);
+    return { motionPlan: null };
+  }
+  try {
+    const plan = planMotion({
+      storyboard: s.storyboard,
+      framePack: s.framePack,
+      layoutPlan: s.layoutPlan,
+      seedKey: s.job.id,          // same per-job salt the kit uses for layout variety
+    });
+    if (plan) {
+      try { db.setMotionPlan(s.job.id, plan); } catch { /* disclosure never blocks a render */ }
+      console.log(`[agents] motion_planner → ${plan.variety.distinctEnters} entrance(s) / ${plan.variety.distinctCameras} camera(s) across ${plan.variety.sceneCount} scene(s)`
+        + (plan.vocabulary.signatureCut ? `, pack cut "${plan.vocabulary.signatureCut}"` : "")
+        + (plan.variety.adjacentRepeats ? ` — ${plan.variety.adjacentRepeats} adjacent repeat(s)` : ""));
+    }
+    return { motionPlan: plan };
+  } catch (e) {
+    console.warn(`[agents] motion_planner failed (${String(e.message).slice(0, 120)}) — pack motion`);
+    return { motionPlan: null };
+  }
+}
+
 // Animation Agent — deterministic timeline audit of the composed HTML:
 // every scene window must be covered by timeline activity, and the known
 // footguns must be absent.
@@ -1401,6 +1724,18 @@ async function composeVisual(s) {
 // a comment. The report now lands on the job (the Premiere panel reads the same
 // validation record as every other disclosure) and its warnings are handed to the
 // QA reviewer, which is the one agent positioned to confirm them against pixels.
+// MOTION VERIFICATION — what the composition actually DID, against what was planned.
+//
+// The old version of this node counted `tl.*(` calls across the whole document and
+// warned when the total fell under scenes×2. That heuristic could not name a scene, and
+// it misfires on canvas-driven packs (kinetic-universe, product-showcase, the three-*
+// family) which animate through an hf-seek listener and legitimately emit few timeline
+// calls — so it handed the QA reviewer false "under-animated" concerns to chase.
+//
+// With a plan to compare against, the check becomes specific: which scenes are static,
+// and which did not use the entrance they were planned. Composers that own their
+// choreography (the native packs) are detected and graded on the generic checks only,
+// rather than reported as drift.
 async function animationAgent(s) {
   if (s.usedFallback) {
     const report = { tweenCount: 0, sceneCount: 0, warnings: ["fallback composition"] };
@@ -1409,14 +1744,39 @@ async function animationAgent(s) {
   }
   let html = "";
   try { html = fs.readFileSync(path.join(s.jobDir, "index.html"), "utf8"); } catch { /* no file */ }
-  const warnings = [];
-  if (/repeat:\s*-1/.test(html)) warnings.push("repeat:-1 found (breaks deterministic capture)");
-  if (/style="[^"]*transform:\s*translate/i.test(html)) warnings.push("inline transform hidden-state found (composes with GSAP xPercent — content may stay offscreen)");
-  const tweenCount = (html.match(/tl\.(to|fromTo|from|set)\(/g) || []).length;
+
+  const v = verifyMotion({ plan: s.motionPlan, indexHtml: html, storyboard: s.storyboard });
   const sceneCount = (s.storyboard?.scenes || []).length || 1;
-  if (tweenCount < sceneCount * 2) warnings.push(`only ${tweenCount} timeline calls for ${sceneCount} scenes — likely under-animated`);
-  if (warnings.length) console.warn(`[agents] animation audit: ${warnings.join(" | ")}`);
-  const report = { tweenCount, sceneCount, tweensPerScene: Math.round((tweenCount / sceneCount) * 10) / 10, warnings };
+  // Only meaningful for a DOM-timeline composer; a canvas pack's low tween count says
+  // nothing about whether the picture moves.
+  if (v.planAware && v.totalTweens < sceneCount * 2) {
+    v.warnings.push(`only ${v.totalTweens} timeline calls for ${sceneCount} scenes — likely under-animated`);
+  }
+  if (v.warnings.length) console.warn(`[agents] motion audit: ${v.warnings.join(" | ")}`);
+  else if (v.checkedCount) console.log(`[agents] motion audit: ${v.honoredCount}/${v.checkedCount} scene(s) used their planned entrance, ${v.totalTweens} tween(s)`);
+
+  // A pack that owns its choreography was never given a plan (motionPlannerAgent skips it),
+  // so plan-vs-actual is not a measurement that failed — it is one that does not apply. Saying
+  // so explicitly keeps "the composer drifted from its plan" and "there was no plan" from
+  // sharing the same null.
+  const ownsChoreography = packOwnsChoreography(s.framePack);
+  const report = {
+    tweenCount: v.totalTweens,
+    sceneCount,
+    tweensPerScene: v.tweensPerScene,
+    // Plan-vs-actual, the part a tween count could never express.
+    planned: ownsChoreography ? false : v.planned,
+    planHonored: v.honored,
+    honoredCount: v.honoredCount,
+    checkedCount: v.checkedCount,
+    ownChoreography: ownsChoreography || !v.planAware,   // a dedicated composer owns its motion
+    planApplies: !ownsChoreography,
+    ...(ownsChoreography ? { note: `"${s.framePack}" draws its own entrances, camera and cuts — no film-level motion plan applies` } : {}),
+    staticScenes: v.staticScenes,
+    driftedScenes: v.driftedScenes,
+    scenes: v.scenes,
+    warnings: v.warnings,
+  };
   persistAnimationReport(s, report);
   return { animationReport: report };
 }
@@ -1425,6 +1785,10 @@ async function animationAgent(s) {
 // UI already reads for "what is wrong with this film". Fail-open (THE LAW): a
 // disclosure write never touches the render.
 function persistAnimationReport(s, report) {
+  // The motion audit lands on its own key first: BOTH runners produce it, but only the
+  // graph writes a validation record, so folding it exclusively into validation_report
+  // (as this did) meant the legacy path planned motion and then verified it into a void.
+  try { db.setMotionAudit(s.job.id, report); } catch { /* disclosure never blocks a render */ }
   try {
     const prev = (db.getRaw(s.job.id) || {}).validation_report || null;
     if (!prev) return;
@@ -1458,7 +1822,24 @@ async function timelineAgent(s) {
   const captionClips = (s.voClips || []).map((c) => ({
     ...c, text: (plan && plan.captionTextById[String(c.sceneId)]) || c.text,
   }));
-  const cues = buildCues(captionClips);
+  let cues = buildCues(captionClips);
+
+  // TRAP #2 — CAPTIONS MUST NOT VANISH WITH THE VOICE. Subtitle timing is MEASURED from
+  // the synthesized VO clips, so with narration off there are no clips, no cues, and the
+  // film ships with no burned-in captions, no .srt and no .vtt. That is precisely
+  // backwards: a silent-autoplay social video is where subtitles matter MOST, and it is
+  // the film the toggle exists to make.
+  //
+  // The fallback is already computed. The Caption Director builds `bakedCues` from
+  // estimated (language-aware) timing for the burn-in, which composeVisual has been using
+  // all along — so the burned-in captions were never at risk, only the sidecar exports.
+  // Reuse them, and DISCLOSE the downgrade: estimated timing is honest, silent timing is not.
+  let cueTiming = "measured";
+  if (!cues.length && plan && Array.isArray(plan.bakedCues) && plan.bakedCues.length) {
+    cues = plan.bakedCues.map((c) => ({ start: c.start, end: c.end, text: c.text }));
+    cueTiming = "estimated";
+    console.log(`[agents] captions: no measured VO clips (narration ${s.narration || "on"}) — exporting ${cues.length} cue(s) from the Caption Director's estimated timing`);
+  }
   if (cues.length) {
     try {
       const wantSrt = !plan || plan.exportSRT;
@@ -1476,7 +1857,10 @@ async function timelineAgent(s) {
         cues, srtUrl, vttUrl,
         language: plan ? plan.language : undefined,
         mode: plan ? plan.mode : undefined,
-        quality,
+        // A user reading "sync 100%" on estimated timing would be reading a number nobody
+        // measured. Say which it is, right next to the score it qualifies.
+        timing: cueTiming,
+        quality: quality ? { ...quality, timingSource: cueTiming } : quality,
       });
       if (quality) console.log(`[agents] caption quality — lang=${quality.languageCode} sync=${quality.syncAccuracy} read=${quality.readabilityScore} cov=${quality.subtitleCoverage} font=${quality.fontCompatibility} xlate=${quality.translationQuality}`);
     } catch (e) { console.warn(`[agents] subtitle export failed: ${e.message}`); }
@@ -1570,6 +1954,9 @@ async function qaAgentNode(s) {
     // The timeline audit can only read HTML; it hands its open questions to the one
     // reviewer that can settle them against actual pixels.
     animationWarnings: (s.animationReport && s.animationReport.warnings) || [],
+    // Which pictures recur BY DESIGN — so a deliberate second appearance is not reported as
+    // repetition, and an under-varied one IS. See qa_agent.reusePrompt.
+    reusePlan: s.assetReuse || null,
   }).catch((e) => {
     console.warn(`[agents] qa failed (${e.message.slice(0, 120)}); passing by default`);
     return { pass: true, issues: [], error: e.message };
@@ -1595,10 +1982,11 @@ async function buildGraph() {
     job: Annotation(), jobDir: Annotation(), tracker: Annotation(),
     brief: Annotation(), script: Annotation(),
     framePack: Annotation(), storyboard: Annotation(),
-    brandSkin: Annotation(), layoutPlan: Annotation(),
-    captionPlan: Annotation(), localizationPackWarning: Annotation(), localizedStrings: Annotation(),
-    assetPlan: Annotation(), assets: Annotation(),
+    brandSkin: Annotation(), layoutPlan: Annotation(), motionPlan: Annotation(),
+    captionPlan: Annotation(), localizationPackWarning: Annotation(), orientationPackWarning: Annotation(), localizedStrings: Annotation(),
+    assetPlan: Annotation(), assets: Annotation(), audioAdvice: Annotation(), assetReuse: Annotation(),
     voClips: Annotation(), sfxClips: Annotation(), musicPath: Annotation(), audioPlan: Annotation(),
+    narration: Annotation(), audioProfile: Annotation(), musicSelection: Annotation(),
     visual: Annotation(), usedFallback: Annotation(), finalAttempt: Annotation(), rendered: Annotation(),
     animationReport: Annotation(), qa: Annotation(), qaAttempts: Annotation(),
     composerBudgetDead: Annotation(), repairable: Annotation(),
@@ -1615,8 +2003,10 @@ async function buildGraph() {
     .addNode("asset_search", assetSearchAgent)
     .addNode("creative_director", creativeDirectorAgent)
     .addNode("visual_layout_director", visualLayoutDirectorAgent)
+    .addNode("asset_reuse", assetReuseAgent)
     .addNode("caption_director", captionDirectorAgent)
     .addNode("localization_director", localizationDirectorAgent)
+    .addNode("motion_planner", motionPlannerAgent)
     .addNode("voice_agent", voiceAgent)
     .addNode("audio_director", audioDirectorAgent)
     .addNode("composition", compositionAgent)
@@ -1645,15 +2035,23 @@ async function buildGraph() {
   // to decide presentation (count/size/crop) + type each scene's base archetype.
   g.addEdge(["scene_planner", "asset_search"], "creative_director");
   g.addEdge("creative_director", "visual_layout_director");
+  // The Asset Reuse Optimizer closes the coverage gap the layout director cannot: it needs
+  // the FINAL placements (so it knows which scenes are still empty), and everything
+  // downstream must see the clones it adds, so it sits directly between the two.
+  g.addEdge("visual_layout_director", "asset_reuse");
   // The Localization Director translates the storyboard's ON-SCREEN text into the
-  // video-text language. It needs the fully-built storyboard (via visual_layout_director,
-  // which is downstream of scene_planner) AND the resolved videoTextLanguage (from
+  // video-text language. It needs the fully-built storyboard (via visual_layout_director →
+  // asset_reuse, both downstream of scene_planner) AND the resolved videoTextLanguage (from
   // caption_director), so it joins on both; composition then waits on it + the brand skin.
-  g.addEdge(["visual_layout_director", "caption_director"], "localization_director");
+  g.addEdge(["asset_reuse", "caption_director"], "localization_director");
   // Join: composition waits for the localized storyboard (archetypes + sizing/crop +
   // re-leveled assets + translated on-screen text) AND the brand skin (accent-only
   // palette). The caption plan's font/direction rides through localization_director.
-  g.addEdge(["localization_director", "art_director"], "composition");
+  // The Motion Planner needs the finished storyboard (roles + timing) and the layout
+  // archetypes, both settled by localization_director; it joins composition alongside the
+  // brand skin. Deterministic, so it adds no measurable latency.
+  g.addEdge("localization_director", "motion_planner");
+  g.addEdge(["motion_planner", "art_director"], "composition");
   g.addEdge("composition", "animation");
   // Join: the Audio Director needs the render (scene/animation plan) AND the
   // voice branch (measured VO + fetched SFX/music). It decides the mix; the
@@ -1731,4 +2129,8 @@ async function runProductionGraph({ jobId }) {
 module.exports = { runProductionGraph };
 // Test seam: expose the deterministic asset-planning stage so its duration-adaptive
 // budget + scene-purpose routing can be regression-tested without a full graph run.
-module.exports.__test = { assetPlannerAgent, validateBeforeRender };
+// buildGraph is exposed so the TOPOLOGY itself is testable. LangGraph validates node names,
+// edge endpoints and channel collisions at compile() — none of which any existing test
+// reached, because test-production-integration.js exercises the legacy project_pipeline
+// path. A mistyped edge would otherwise surface for the first time mid-render.
+module.exports.__test = { assetPlannerAgent, validateBeforeRender, frameSelectorAgent, buildGraph };

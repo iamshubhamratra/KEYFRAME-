@@ -66,7 +66,74 @@ const NATIVE_PACK_COMPOSERS = {
   "nature-flow": require("./nature_flow_composer"),
   "paper-craft": require("./paper_craft_composer"),
   "retro-future": require("./retro_future_composer"),
+  // Grid Dispatch — a Swiss-modernist "dispatch sheet in motion" ported from an imported
+  // OM/Modernist template. Table-dispatched like the rest, which also hands it
+  // composerStringsFor + composerModuleFor (and therefore the portrait regression guard)
+  // for free — one map entry instead of a bespoke branch, wrapper and STRINGS line.
+  "grid-dispatch": require("./grid_dispatch_composer"),
+  // Slab Stage — grid-dispatch's sibling from the same import, and deliberately its
+  // opposite: dimensional rather than flat, two accents rather than mono, and a camera that
+  // never settles rather than one that settles before every cut.
+  "slab-stage": require("./slab_stage_composer"),
+  // The imported OM ports built on om_port_kit. Each supplies a theme, its STRINGS and its
+  // scene builders; the kit supplies the shell, the camera, the caption node, role assignment,
+  // slot filling and the pictureless STATEMENT fallback.
+  "hacker": require("./hacker_composer"),
+  "teampulse": require("./teampulse_composer"),
+  "fetch": require("./fetch_composer"),
+  "drive": require("./drive_composer"),
+  "jungle": require("./jungle_composer"),
+  "deep": require("./deep_composer"),
+  "momentum": require("./momentum_composer"),
+  "pipeline": require("./pipeline_composer"),
+  "flight-vertical": require("./flight_vertical_composer"),
+  "flight": require("./flight_composer"),
+  "showcase-vertical": require("./showcase_vertical_composer"),
+  "reel": require("./reel_composer"),
+  "fight": require("./fight_composer"),
+  "edition": require("./edition_composer"),
+  "orbit": require("./orbit_composer"),
+  // Showcase — the library's first LANDSCAPE-authored native pack, and its most
+  // screenshot-hungry: an annotated product tour in real device chrome, with drawn arrows,
+  // numbered callouts and a travelling cursor. Ported from the same imported OM set.
+  "showcase": require("./showcase_composer"),
 };
+
+// THE AUTHORITATIVE renderer -> composer module map. Every pack that owns a dedicated
+// composer appears here exactly once: the nine that attemptLlmComposition dispatches
+// through their own branch (they take different argument shapes, so the branches stay)
+// plus the table-dispatched natives above.
+//
+// WHY IT EXISTS. Tooling used to re-derive this by GUESSING a filename from the renderer
+// id (`"om-garden"` -> `om_garden_composer.js`). Nothing enforced that guess, and it is
+// wrong for every pack whose module does not happen to be named that way — the seven OM
+// skins live in `om_skins/`, and prisma-bloc's renderer is "dom-prisma" but its module is
+// `prisma_composer.js`. scripts/test-portrait-assets.js took that miss as "no dedicated
+// composer — routes to scene-kit" and SKIPPED them, so the regression guard that is
+// supposed to prove every portrait template renders assets was silently blind to 8 of the
+// 22 portrait packs (36%), the entire OM family included. A filename convention is not a
+// contract; this table is. Resolve through composerModuleFor(), never by filename.
+const DEDICATED_COMPOSERS = {
+  "three-flagship": flagshipComposer,
+  "three-brightlife": brightlifeComposer,
+  blueprint: blueprintComposer,
+  "bloom-fable": bloomComposer,
+  "bauhaus-riot": bauhausComposer,
+  "terminal-departures": terminalComposer,
+  "paper-tales": paperTalesComposer,
+  "kinetic-universe": kineticUniverseComposer,
+  "product-showcase": productShowcaseComposer,
+  ...NATIVE_PACK_COMPOSERS,
+};
+
+// The composer module a renderer id routes to, or null when the pack has none (it then
+// falls through to the deterministic scene-kit). The single resolver for dispatch-adjacent
+// tooling: harnesses, pack scaffolding, and the portrait regression guard.
+function composerModuleFor(renderer) {
+  const m = DEDICATED_COMPOSERS[String(renderer || "")];
+  return m && typeof m.buildComposition === "function" ? m : null;
+}
+
 const frameRegistry = require("./frame_registry");
 const frameManifest = require("./frame_manifest");
 const { injectCaptionStyle, hasCaptionTarget } = require("./caption_render");
@@ -145,7 +212,10 @@ const { buildFallback } = require("./fallback");
 const { planAudio } = require("./audio_planner");
 const { synthesize: ttsSynthesize } = require("./tts");
 const { synthesizeFitted } = require("./vo_fit");
-const { fetchMusic, fetchSfx } = require("./audio_sources");
+const { fetchMusic } = require("./audio_sources");
+const { getSfx } = require("./sfx_library");
+const { resolveIntent } = require("./audio_cues");
+const audioProfileSvc = require("./audio_profile");
 const { mix: audioMix } = require("./audio_mix");
 const { planAssets } = require("./asset_planner");
 const { acquire, makeImageDeduper } = require("./asset_sources");
@@ -558,7 +628,7 @@ async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets
 
 // ========== One attempt at full LLM comp + render with a given asset set ==========
 
-async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker, jobId, durationSec, label, abortSignal, framePack, captionCues, remix = false, dress = false, subject = null, brandSkin = null, layoutPlan = null, captionStyle = null, localized = null }) {
+async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker, jobId, durationSec, label, abortSignal, framePack, captionCues, remix = false, dress = false, subject = null, brandSkin = null, layoutPlan = null, captionStyle = null, localized = null, motionPlan = null }) {
   // `brandSkin` (Art Director) rides along to EVERY composer below, not just the
   // scene-kit. It is hue-only — accents/emphasis/glow — and carries no authority over
   // a pack's ground, ink, type, motion, layout, or semantic colors (terminal's
@@ -649,7 +719,7 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
   // `dress` (premium hybrid): a small bounded LLM pass art-directs the kit's
   // variants/emphasis/decor without any power to break the layout.
   if (!remix) {
-    return composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "scene-kit", abortSignal, tracker, dress, subject, brandSkin, layoutPlan, captionStyle, localized });
+    return composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "scene-kit", abortSignal, tracker, dress, subject, brandSkin, layoutPlan, captionStyle, localized, motionPlan });
   }
   const t0 = ms();
   console.log(`[pipeline] ${label}: LLM remix compose start (assets=${assets.length}, framePack=${framePack || "none"})`);
@@ -691,7 +761,7 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
 // freehand → lint-clean by construction, no occlusion/truncation/junk). The agents
 // still "think" (they wrote the storyboard + picked the assets); the kit guarantees
 // the execution. This is the reliable default; the LLM composer is the opt-in remix.
-async function composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label, abortSignal, tracker, dress = false, subject = null, brandSkin = null, layoutPlan = null, captionStyle = null, localized = null }) {
+async function composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label, abortSignal, tracker, dress = false, subject = null, brandSkin = null, layoutPlan = null, captionStyle = null, localized = null, motionPlan = null }) {
   const t0 = ms();
   console.log(`[pipeline] ${label || "scene-kit"}: building deterministic composition (assets=${assets ? assets.length : 0}, framePack=${framePack || "none"}${dress ? ", +set-dressing" : ""})`);
   // Premium hybrid: one bounded LLM pass picks per-scene layout variants, the
@@ -704,7 +774,7 @@ async function composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack
   }
   // seedKey=jobId: layout/background variety is salted per JOB, so re-running the
   // same prompt (same title) still produces a visibly different composition.
-  let built = sceneKit.buildComposition({ storyboard, dims, framePack, assets: assets || [], captionCues, seedKey: jobId, dressing, brandSkin, layoutPlan, localized, captionStyle });
+  let built = sceneKit.buildComposition({ storyboard, dims, framePack, assets: assets || [], captionCues, seedKey: jobId, dressing, brandSkin, layoutPlan, localized, captionStyle, motionPlan });
 
   // USER-ASSET COVERAGE + one PRE-render repair lap. The kit reports which assets
   // it wove (built.usedAssets); if the user uploaded material and this weave
@@ -721,7 +791,7 @@ async function composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack
       // the montage so more of them can surface; rebuild once.
       for (const a of (assets || [])) { if (a && a.source === "upload" && a.__layoutDemoted) { a.__layoutDemoted = false; a.visionOk = true; } }
       const plan2 = { ...(layoutPlan || {}), __montageMax: 6 };
-      const rebuilt = sceneKit.buildComposition({ storyboard, dims, framePack, assets: assets || [], captionCues, seedKey: jobId, dressing, brandSkin, layoutPlan: plan2, localized, captionStyle });
+      const rebuilt = sceneKit.buildComposition({ storyboard, dims, framePack, assets: assets || [], captionCues, seedKey: jobId, dressing, brandSkin, layoutPlan: plan2, localized, captionStyle, motionPlan });
       const cov2 = coverageFromUsed({ assets: assets || [], usedAssets: rebuilt.usedAssets, logoPlacements: rebuilt.logoPlacements, repairLap: { ran: true, before, after: 0 } });
       // Keep the rebuild only if it actually surfaced more of the user's material.
       if (cov2 && cov2.assetsUsed >= assetCoverage.assetsUsed) {
@@ -988,8 +1058,24 @@ async function composeWithNativePack({ module, storyboard, dims, jobDir, framePa
   // a visibly different film while a re-render of the SAME job stays byte-identical.
   // Composers that don't take it simply ignore the key.
   const built = module.buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin, localized, seedKey: jobId });
-  writeIndexHtml(jobDir, built.indexHtml, captionStyle);
-  const assetReport = discloseAssetRender(jobDir, built.indexHtml, assets, label);
+  // BACKGROUND TIER. These packs place only assets the director marked hero/support, so a
+  // `background` asset is discarded rather than demoted and its scene renders as a bare
+  // template panel. Give those scenes the leftover imagery as a quiet blurred wash — see
+  // services/scene_backdrop.js. Fail-open: any surprise returns the original HTML.
+  let indexHtml = built.indexHtml;
+  try {
+    const { injectSceneBackdrops, injectPortraitTextSafety } = require("./scene_backdrop");
+    const bd = injectSceneBackdrops({ indexHtml, assets: assets || [], storyboard, framePack, jobDir, dims });
+    if (bd.injected.length) {
+      indexHtml = bd.html;
+      console.log(`[pipeline] ${label}: backdropped ${bd.injected.length} empty scene(s) with unused imagery (${bd.injected.map((x) => x.sceneId).join(", ")})`);
+    }
+    // 9:16 copy must wrap rather than leave the frame — the "Meet Claud…" clipping class.
+    const ts = injectPortraitTextSafety({ indexHtml, dims });
+    if (ts.applied) { indexHtml = ts.html; console.log(`[pipeline] ${label}: portrait text-safety applied`); }
+  } catch (e) { console.warn(`[pipeline] ${label}: scene backdrops skipped (${String(e.message).slice(0, 120)})`); }
+  writeIndexHtml(jobDir, indexHtml, captionStyle);
+  const assetReport = discloseAssetRender(jobDir, indexHtml, assets, label);
   fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
   tracker.addExternal("hyperframes_render");
   const visual = await render({ jobId, jobDir, durationSec, abortSignal });
@@ -1090,18 +1176,52 @@ async function buildAudio({ jobDir, storyboard, flags, tracker, perScene = false
   let musicVolume = config.audio?.defaultMusicVolume ?? 0.15;
   if (flags.music && plan.music?.volume) musicVolume = plan.music.volume;
 
-  const musicTask = (flags.music && plan.music?.query)
-    ? fetchMusic({ query: plan.music.query, outputPath: path.join(audioDir, "music.mp3"), tracker })
-        .then((p) => { if (p) console.log(`[pipeline] music fetched ("${plan.music.query}")`); return p; })
+  // TEMPLATE-AWARE AUDIO ON THIS PATH TOO.
+  //
+  // This branch used to call `fetchMusic({ query: plan.music.query })` — the SCRIPT's
+  // subject-derived query, which is the exact defect services/audio_profile.js exists to
+  // fix. Three things were lost by not passing the rest:
+  //   • no `candidates` → musicCandidatesFor never ran, so the pack's own keywords never
+  //     reached the provider and every template searched alike;
+  //   • no `style`     → scoreTrack's tag-overlap term (max +30) scored 0 for every track;
+  //   • no `durationSec` → the LENGTH-FIT term (−15…+40, the dominant signal) scored 0.
+  // Ranking therefore collapsed to rating + downloads, which is "generic music" by
+  // construction. The graph path has done this correctly for a while; this brings
+  // /api/generate in line. Same fail-soft contract — a pack with no audio block resolves
+  // to NEUTRAL and this behaves exactly as it did before.
+  const audioProfile = audioProfileSvc.profileFor(framePack);
+  const musicSelection = {};
+  const musicPlan = audioProfileSvc.musicCandidatesFor({
+    framePack, jobId, narration: flags.tts ? "on" : "off",
+    scriptMusic: plan.music || null, profile: audioProfile,
+  });
+  if (flags.music && musicPlan.candidates.length) {
+    console.log(`[pipeline] music search (${musicPlan.source}${musicPlan.keywords.length ? `: ${musicPlan.keywords.join(" + ")}` : ""}) → ${musicPlan.candidates.slice(0, 3).map((c) => `"${c}"`).join(", ")}`);
+  }
+  const musicTask = (flags.music && musicPlan.candidates.length)
+    ? fetchMusic({
+        candidates: musicPlan.candidates, outputPath: path.join(audioDir, "music.mp3"),
+        tracker, durationSec: duration, style: audioProfile.style, selection: musicSelection,
+      })
+        .then((p) => { if (p) console.log(`[pipeline] music fetched (${musicSelection.provider || "?"}: "${musicSelection.query || ""}")`); return p; })
         .catch((e) => { console.warn(`[pipeline] music failed: ${e.message}`); return null; })
     : Promise.resolve(null);
 
+  // SFX likewise: `fetchSfx` is the WEB fallback, not the entry point. Calling it directly
+  // skipped the curated library, the intent vocabulary, the template's palette AND
+  // conditionCue — so cues arrived unconditioned, at whatever level the provider happened
+  // to serve, which is the level defect audio_cues documents. getSfx is the front door.
   const sfxPlan = (flags.soundEffect && Array.isArray(plan.soundEffects)) ? plan.soundEffects : [];
-  const sfxTasks = sfxPlan.map((s, i) =>
-    fetchSfx({ query: s.query, outputPath: path.join(audioDir, `sfx-${i}.mp3`), tracker })
-      .then((p) => p ? { path: p, startSec: s.startSec, volume: s.volume } : null)
-      .catch(() => null)
-  );
+  const sfxTasks = sfxPlan.map((s, i) => {
+    // Resolve the script's free-text word to a CUES INTENT first — paletteCueFor keys on
+    // intents (whoosh, ui-click…), not on raw words, so passing "transition" straight in
+    // silently no-ops the palette and every template gets the house cue.
+    const raw = s.name || s.query;
+    const cue = audioProfileSvc.paletteCueFor(audioProfile, resolveIntent(raw) || raw);
+    return getSfx({ name: cue, outputPath: path.join(audioDir, `sfx-${i}.mp3`), tracker })
+      .then((p) => p ? { path: p, startSec: s.startSec, volume: s.volume, name: cue } : null)
+      .catch(() => null);
+  });
 
   const [ttsPath, musicPath, ...sfxResults] = await Promise.all([ttsTask, musicTask, ...sfxTasks]);
   const sfx = sfxResults.filter(Boolean);
@@ -1484,4 +1604,4 @@ async function runJob({
   }
 }
 
-module.exports = { runJob, withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor, composerStringsFor };
+module.exports = { runJob, withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor, composerStringsFor, composerModuleFor };

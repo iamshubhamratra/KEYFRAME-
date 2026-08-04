@@ -135,18 +135,25 @@ First boot takes ~5–8 minutes (prebuild installs ARM FFmpeg + Chromium libs + 
 | `server.jobConcurrency` | 1 | Parallel jobs. Overridden via `JOB_CONCURRENCY` env. |
 | `server.renderWorkers` | 1 | Parallel frame capture. Overridden via `RENDER_WORKERS` env. |
 | `server.maxStorageMb` | 500 | Total videos directory cap |
-| `llm.primary.model` | `gemini-3-5-flash` | Primary model ID (KIE AI, OpenAI-compatible) |
-| `llm.primary.apiKey` | *in file* | KIE AI key. Any KIE failure falls back to OpenRouter. |
-| `llm.model` | `minimax/minimax-m3` | OpenRouter fallback model ID |
-| `llm.modelFallback` | `minimax/minimax-m2.7` | OpenRouter secondary fallback model |
-| `llm.apiKey` | *in file* | OpenRouter key (fallback LLM **and** TTS) |
+| `llm.primary.model` | `gemini-3-6-flash` | KIE model for every non-heavy stage |
+| `llm.primary.stageModels` | `{composer, storyboard: grok-4-5}` | Per-stage KIE overrides — the heavy stages |
+| `llm.primary.fallbackModel` | `gemini-3-6-flash` | Second KIE model, tried once if the first fails |
+| `llm.primary.models` | *see config* | Per-model `{baseUrl, protocol}` — **required** (see below) |
+| `llm.primary.apiKey` | *in file* | KIE AI key. Serves **every** LLM stage. |
+| `llm.apiKey` / `llm.baseUrl` | *in file* | OpenRouter — **voiceover + budget probe only**, no LLM stage |
 | `orientations` | horizontal/vertical/square | Canvas dimensions |
 
-**Provider cascade per LLM call:** KIE Gemini 3.5 Flash → OpenRouter `minimax-m3` → OpenRouter `minimax-m2.7`. KIE returns transport errors as HTTP 200 with an in-body `{code,msg}`; `openrouter.js` detects this and falls back rather than silently returning empty text.
+**Model cascade per LLM call (KIE only):** `primary.stageModels[stage]` → `primary.fallbackModel` → throw, and the stage uses its deterministic fallback. OpenRouter is never used for an LLM call.
+
+**Why `primary.models` exists:** KIE does not serve both models the same way.
+- `gemini-3-6-flash` → `https://api.kie.ai/gemini-3-6-flash-openai/v1` — OpenAI `chat/completions` (`protocol: "openai"`). Handles vision.
+- `grok-4-5` → `https://api.kie.ai/grok/v1` — xAI **Responses** API (`protocol: "responses"`): messages go in `input`, the ceiling is `max_output_tokens`, JSON mode is `text.format`, and the reply is an `output[]` array. There is no `grok-*-openai/v1` slug; it returns 422.
+
+KIE returns transport errors as HTTP 200 with an in-body `{code,msg}`; `openrouter.js` detects this on both protocols rather than silently returning empty text.
 
 EB env vars that override at runtime (all handled in `src/config.js`):
 - `KIE_API_KEY` (overrides `llm.primary.apiKey`)
-- `OPENROUTER_API_KEY` (overrides `llm.apiKey` — fallback LLM + TTS)
+- `OPENROUTER_API_KEY` (overrides `llm.apiKey` — TTS/voiceover only)
 - `PORT`
 - `JOB_CONCURRENCY`
 - `RENDER_WORKERS`
@@ -187,6 +194,48 @@ Your previous 30 s vertical on t3.medium took 547 s (~9 min). On t4g.xlarge with
 - [ ] Paste it into `config.json` `llm.apiKey` **or** set env var `OPENROUTER_API_KEY` in EB console (preferred).
 - [ ] Keep `config.json` out of git (already in `.gitignore`).
 - [ ] Do a test render end-to-end before giving out the URL.
+
+---
+
+## Website screenshots — capture providers
+
+Two capture paths, and the split matters:
+
+| | Provider | Gives you |
+|---|---|---|
+| **Primary** | local headless Chrome (`ingest/website.js`) | screenshots **+** DOM text, headings, brand colours, computed typography, harvested brand assets, and capture-time obstruction geometry |
+| **Rescue** | PeekShot hosted API (`ingest/peekshot.js`) | screenshots only |
+
+The local path stays primary because most of what intake needs is DOM signal, not pixels.
+PeekShot runs **only when the primary returns no usable screenshots** — no Chrome, an
+SSRF/connection pin, a page that never settles — which otherwise ships a film with no
+product imagery at all. It natively blocks cookie banners and ads, the single most common
+capture defect here.
+
+```bash
+# server/.env  (gitignored)
+PEEKSHOT_API_KEY=…            # from peekshot.com
+PEEKSHOT_PROJECT_ID=          # optional — the account's first project is used when unset
+SCREENSHOT_PROVIDER=auto      # auto (default) = local, rescue with PeekShot
+                              # local   = never call it
+                              # peekshot = always capture with it as well
+PEEKSHOT_MOBILE_SHOT=0        # 1 = also take a phone-shaped capture (2× the credits)
+```
+
+Notes worth knowing before relying on it:
+
+- **Every capture costs a credit** and is asynchronous. Measured on the live queue:
+  ~15 s at best, but individual requests have sat queued past 100 s while later ones
+  finished. `PEEKSHOT_TIMEOUT_MS` (default 180000) bounds it.
+- **A hosted capture has no DOM truth.** Its records carry `clean: null` (unknown) rather
+  than claiming a verdict — the deterministic blank/duplicate gates and the Creative
+  Director's vision pass still judge the pixels.
+- **It cannot tell a good page from a broken one.** A capture of a site's "an error
+  occurred" screen returns `COMPLETE` like any other; the CD's `completeness: broken`
+  reject band is what catches it.
+
+Tests: `npm run test:peekshot` (offline, stubbed `fetch`, no credits).
+Live smoke: `node scripts/test-peekshot.js --live https://example.com` (1 credit).
 
 ---
 

@@ -12,7 +12,10 @@
     "sage": "#7FA876",
     "sky": "#A9D7E8"
   },
-  "fonts": ["Fraunces", "Inter"],
+  "fonts": [
+    "Fraunces",
+    "Inter"
+  ],
   "surface": {
     "flat": false,
     "lightCinematic": true,
@@ -27,15 +30,29 @@
     "three": "none"
   },
   "skin": {
-    "accents": ["#E8705F", "#F2B95C", "#7FA876"],
+    "accents": [
+      "#E8705F",
+      "#F2B95C",
+      "#7FA876"
+    ],
     "extras": [],
     "emphasisCss": null
   },
   "assets": {
     "photoMod": "soft warm pastel hand-drawn illustration",
     "iconStyle": "line",
-    "keywords": ["pastel", "warm", "organic", "botanical", "storybook", "soft"],
-    "prefer": ["illustration", "photo"]
+    "keywords": [
+      "pastel",
+      "warm",
+      "organic",
+      "botanical",
+      "storybook",
+      "soft"
+    ],
+    "prefer": [
+      "illustration",
+      "photo"
+    ]
   },
   "typography": {
     "display": "Fraunces",
@@ -46,5 +63,36 @@
     "emphasis": "gradient",
     "case": "none",
     "tracking": -0.01
+  },
+  "audio": {
+    "mood": "gentle",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "acoustic",
+      "folk",
+      "ukulele",
+      "storytelling"
+    ],
+    "musicKeywords": [
+      "gentle acoustic",
+      "soft ukulele",
+      "storybook folk",
+      "warm acoustic",
+      "cheerful folk",
+      "bright acoustic"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
   }
 }

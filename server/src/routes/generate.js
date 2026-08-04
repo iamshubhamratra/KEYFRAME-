@@ -97,6 +97,27 @@ function validateBody(body) {
     out.framePack = null; // auto — resolved from the brief after intake
   }
 
+  // Brand palette (optional). SAME shape + validation as /api/projects: an explicit
+  // user pick that steers the composition's accents. Kept as its own field, never
+  // laundered through the brief model. Absent/empty is NOT an error. Without this, the
+  // /api/generate path had no way to receive a palette at all, so it rendered every
+  // pack unbranded (the composers' no-op path).
+  let bp = body.brandPalette;
+  if (typeof bp === "string" && bp.trim() !== "") {
+    try { bp = JSON.parse(bp); } catch { errs.push("brandPalette must be JSON"); bp = null; }
+  }
+  if (bp && typeof bp === "object") {
+    const hex = (v) => (/^#[0-9a-fA-F]{6}$/.test(String(v || "")) ? String(v).toLowerCase() : null);
+    const primary = hex(bp.primary);
+    if (!primary) errs.push("brandPalette.primary must be #RRGGBB");
+    else out.brandPalette = {
+      v: 1, primary, secondary: hex(bp.secondary), accent: hex(bp.accent),
+      source: ["manual", "preset", "website", "logo"].includes(bp.source) ? bp.source : "manual",
+      presetId: typeof bp.presetId === "string" ? bp.presetId.slice(0, 32) : null,
+      raw: Array.isArray(bp.raw) ? bp.raw.map(hex).filter(Boolean).slice(0, 6) : [],
+    };
+  }
+
   return { errs, out };
 }
 
@@ -136,6 +157,7 @@ function buildRouter({ enqueue }) {
       height: dims.height,
       fps: out.fps,
       framePack: out.framePack,
+      brandPalette: out.brandPalette || null,
       captions: out.captions,
       created_at: Date.now(),
       client_ip: clientIp(req),
@@ -158,6 +180,7 @@ function buildRouter({ enqueue }) {
       video: out.video,
       render3d: out.render3d,
       framePack: out.framePack,
+      brandPalette: out.brandPalette || null,
     });
 
     // Queue state *after* this insert; subtract 1 so the count represents jobs AHEAD of mine.

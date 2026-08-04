@@ -57,7 +57,8 @@ function validate(cfg) {
   must(cfg.server.maxDurationSec > 0, "maxDurationSec must be positive");
   must(cfg.server.minDurationSec > 0 && cfg.server.minDurationSec <= cfg.server.maxDurationSec,
        "minDurationSec invalid");
-  must(cfg.llm.model, "llm.model missing");
+  // llm.baseUrl/apiKey are OpenRouter's, still REQUIRED because the voiceover
+  // (services/tts.js) and the budget probe run there. No LLM stage uses them.
   must(cfg.llm.baseUrl, "llm.baseUrl missing");
   for (const q of Object.values(cfg.qualities)) {
     must(q.short > 0 && q.long > 0, "quality entries must have 'short' and 'long' pixel values");
@@ -65,13 +66,32 @@ function validate(cfg) {
   if (!cfg.llm.apiKey) {
     must(process.env.OPENROUTER_API_KEY, "llm.apiKey missing and OPENROUTER_API_KEY env not set");
   }
-  // Primary provider (KIE) is optional — if absent or unkeyed, the LLM client
-  // simply runs OpenRouter as the sole provider. If present, it must be complete.
-  if (cfg.llm.primary) {
-    must(cfg.llm.primary.baseUrl, "llm.primary.baseUrl missing");
-    must(cfg.llm.primary.model, "llm.primary.model missing");
-    if (!cfg.llm.primary.apiKey) {
-      must(process.env.KIE_API_KEY, "llm.primary set but apiKey missing and KIE_API_KEY env not set");
+  // KIE (llm.primary) serves EVERY LLM stage — it is no longer optional.
+  must(cfg.llm.primary, "llm.primary (KIE) missing — it serves every LLM stage");
+  must(cfg.llm.primary.model, "llm.primary.model missing");
+  if (!cfg.llm.primary.apiKey) {
+    must(process.env.KIE_API_KEY, "llm.primary.apiKey missing and KIE_API_KEY env not set");
+  }
+  // Each model must declare where it lives and how it is spoken to, because KIE serves
+  // the gemini family on an OpenAI-compatible path and grok on the xAI Responses API.
+  // A model id with no endpoint would throw at the first call of that stage — i.e.
+  // mid-render — so it is caught at boot instead.
+  const models = cfg.llm.primary.models || {};
+  const hasLegacyBase = !!cfg.llm.primary.baseUrl;
+  must(hasLegacyBase || Object.keys(models).length, "llm.primary.models missing (or a legacy llm.primary.baseUrl)");
+  const referenced = new Set([
+    cfg.llm.primary.model,
+    cfg.llm.primary.fallbackModel,
+    ...Object.values(cfg.llm.primary.stageModels || {}),
+  ].filter((m) => m && m !== "default" && m !== "fast"));
+  for (const id of referenced) {
+    must(models[id]?.baseUrl || hasLegacyBase, `llm.primary.models["${id}"].baseUrl missing (referenced by primary.model / fallbackModel / stageModels)`);
+    // A model routed to OpenRouter is billed to llm.apiKey, NOT llm.primary.apiKey.
+    // Caught at boot for the same reason the endpoint map is: the alternative is a
+    // stage discovering it mid-render and failing open into a template.
+    if (models[id]?.provider === "openrouter") {
+      must(cfg.llm.apiKey || process.env.OPENROUTER_API_KEY,
+        `llm.primary.models["${id}"] is provider:"openrouter" but llm.apiKey is unset and OPENROUTER_API_KEY env not set`);
     }
   }
 }
@@ -103,6 +123,16 @@ function build() {
   if (process.env.KIE_API_KEY && cfg.llm.primary) {
     cfg.llm.primary.apiKey = process.env.KIE_API_KEY;
   }
+  // The KIE model every non-heavy stage runs on, and the default for the four LLM
+  // directors below. Per-stage overrides live in llm.primary.stageModels; see
+  // services/openrouter.js.
+  //
+  // composer/storyboard/script were pinned to grok-4-5 and are now gemini-3-6-flash:
+  // grok dominated wall-clock (storyboard alone measured 89-164s, script up to 300s)
+  // for output the downstream validators gate anyway — normalizeScript, the storyboard
+  // retry ladder and the composer lint/repair laps all still run unchanged.
+  cfg.llm.primary = cfg.llm.primary || {};
+  const kieDefaultModel = cfg.llm.primary.model || "gemini-3-6-flash";
   // Stock-media keys. PIXABAY_API_KEY feeds both the modern provider path
   // (assetProviders.pixabay) and the legacy audio.pixabayKey fallback.
   if (process.env.PIXABAY_API_KEY) {
@@ -214,25 +244,40 @@ function build() {
   // composition (see services/creative_director.js). Default ON; disable with
   // CREATIVE_DIRECTOR=0. Fail-open, so it never blocks a render.
   //
-  // `model` is the vision model that actually ANALYZES the assets. It is passed
-  // explicitly to openrouter.chat(), which bypasses the KIE primary and runs this
-  // exact model (falling back to llm.modelFallback only if it errors). Override
-  // with CREATIVE_DIRECTOR_MODEL. Must be a vision-capable model (it is shown the
-  // asset thumbnails).
+  // `model` is the vision model that actually ANALYZES the assets — a KIE model id,
+  // registered into llm.primary.stageModels below (the call site passes only `stage`).
+  // Override with CREATIVE_DIRECTOR_MODEL. Must be a vision-capable model (it is shown
+  // the asset thumbnails) and must appear in llm.primary.models.
   const cdCfg = cfg.creativeDirector || {};
   cfg.creativeDirector = {
     enabled: process.env.CREATIVE_DIRECTOR != null
       ? /^(1|true|yes|on)$/i.test(String(process.env.CREATIVE_DIRECTOR))
       : (cdCfg.enabled !== false),
-    model: process.env.CREATIVE_DIRECTOR_MODEL || cdCfg.model || "google/gemini-3.1-flash-lite",
+    model: process.env.CREATIVE_DIRECTOR_MODEL || cdCfg.model || kieDefaultModel,
     maxPerScene: Number(cdCfg.maxPerScene) || 2,
     maxTopUp: Number(cdCfg.maxTopUp) || 3,
     chunkSize: Number(cdCfg.chunkSize) || 6,
+    // QUALITY FLOOR. The director scores every asset 0-100 and, until now, never
+    // compared that score to anything — approval was a pure model boolean, so a
+    // 20/100 asset was placed exactly like a 95/100 one.
+    //   minScore     — below this an asset is demoted to background B-roll.
+    //   rejectScore  — below this, WEB STOCK is rejected outright (and deleted).
+    // Owner content (uploads, the user's own site captures, their logo) is exempt:
+    // the tier law makes it sovereign. Set CD_MIN_SCORE=0 to disable the floor.
+    minScore: Number.isFinite(Number(process.env.CD_MIN_SCORE)) ? Number(process.env.CD_MIN_SCORE)
+      : (Number.isFinite(Number(cdCfg.minScore)) ? Number(cdCfg.minScore) : 45),
+    rejectScore: Number.isFinite(Number(process.env.CD_REJECT_SCORE)) ? Number(process.env.CD_REJECT_SCORE)
+      : (Number.isFinite(Number(cdCfg.rejectScore)) ? Number(cdCfg.rejectScore) : 25),
   };
-  // Register the stage->model mapping so the usage tracker prices the
-  // creative_director tokens at this model's rate (the dispatch itself uses the
-  // explicit model arg; this is purely for accurate cost attribution).
-  cfg.llm.stageModels = { ...(cfg.llm.stageModels || {}), creative_director: cfg.creativeDirector.model };
+  // Register the stage->model mapping. This is load-bearing for DISPATCH, not just cost
+  // attribution: the director call sites pass only a `stage`, so this entry is what
+  // decides which KIE model answers them.
+  // `user_assets` shares the Creative Director's model — it is the same vision classifier.
+  cfg.llm.primary.stageModels = {
+    ...(cfg.llm.primary.stageModels || {}),
+    creative_director: cfg.creativeDirector.model,
+    user_assets: cfg.creativeDirector.model,
+  };
 
   // Audio Director agent — decides the per-scene audio MIX (loudness targets,
   // music energy curve, ducking, SFX curation) that audio_mix.js executes.
@@ -243,9 +288,9 @@ function build() {
     enabled: process.env.AUDIO_DIRECTOR != null
       ? /^(1|true|yes|on)$/i.test(String(process.env.AUDIO_DIRECTOR))
       : (adCfg.enabled !== false),
-    model: process.env.AUDIO_DIRECTOR_MODEL || adCfg.model || "google/gemini-3.1-flash-lite",
+    model: process.env.AUDIO_DIRECTOR_MODEL || adCfg.model || kieDefaultModel,
   };
-  cfg.llm.stageModels = { ...(cfg.llm.stageModels || {}), audio_director: cfg.audioDirector.model };
+  cfg.llm.primary.stageModels = { ...(cfg.llm.primary.stageModels || {}), audio_director: cfg.audioDirector.model };
 
   // Art Director agent — turns the website's extracted brand colors (brief.brandColors,
   // previously unused) into an ACCENT-ONLY brand skin so the video reads on-brand
@@ -258,9 +303,9 @@ function build() {
     enabled: process.env.ART_DIRECTOR != null
       ? /^(1|true|yes|on)$/i.test(String(process.env.ART_DIRECTOR))
       : (ardCfg.enabled !== false),
-    model: process.env.ART_DIRECTOR_MODEL || ardCfg.model || "google/gemini-3.1-flash-lite",
+    model: process.env.ART_DIRECTOR_MODEL || ardCfg.model || kieDefaultModel,
   };
-  cfg.llm.stageModels = { ...(cfg.llm.stageModels || {}), art_director: cfg.artDirector.model };
+  cfg.llm.primary.stageModels = { ...(cfg.llm.primary.stageModels || {}), art_director: cfg.artDirector.model };
 
   // Visual Layout Director — DETERMINISTIC (no LLM). Reuses the Creative Director's
   // per-asset scores to decide presentation: how many assets appear prominently
@@ -274,12 +319,70 @@ function build() {
       : (vldCfg.enabled !== false),
   };
 
+  // Asset Reuse Optimizer — the last stage of asset intelligence (services/asset_reuse.js).
+  // DETERMINISTIC (no LLM, no vision, no I/O). Fills scenes the Creative Director and Visual
+  // Layout Director could not cover, by cloning the best-fitting already-approved asset onto
+  // them under a hard usage ceiling. It exists because spreadAcrossScenes MOVES assets and
+  // never duplicates them, so its coverage ceiling is min(assets, scenes) — a six-asset film
+  // with nine scenes leaves three scenes bare no matter how well everything upstream ranks.
+  //
+  // Default ON, because the behaviour it replaces is an empty frame. Disable with
+  // ASSET_REUSE=0. Fail-open — it can never block or starve a render.
+  //   maxUses  — appearances per asset (the logo is exempt when allowLogoReuse)
+  //   minGap   — scenes between appearances before the recency term stops penalising
+  //   minScore — below this, the scene is left to the decorative brand fallback rather
+  //              than forced to wear an asset that fights it
+  const arCfg = cfg.assetReuse || {};
+  cfg.assetReuse = {
+    enabled: process.env.ASSET_REUSE != null
+      ? /^(1|true|yes|on)$/i.test(String(process.env.ASSET_REUSE))
+      : (arCfg.enabled !== false),
+    maxUses: Number(process.env.ASSET_REUSE_MAX_USES) || Number(arCfg.maxUses) || 2,
+    minGap: Number.isFinite(Number(arCfg.minGap)) ? Number(arCfg.minGap) : 3,
+    minScore: Number.isFinite(Number(arCfg.minScore)) ? Number(arCfg.minScore) : 40,
+    allowLogoReuse: arCfg.allowLogoReuse !== false,
+  };
+
   // Screenshot Intelligence — captures cleaner shots (broadened overlay dismissal
   // at ingest), prunes blank/duplicate website screenshots deterministically before
   // they become assets (services/screenshot_intake.js), and lets the Creative
   // Director's EXISTING vision verdict demote popup/loading/broken shots. Adds NO
   // new vision call. Default ON; disable with SCREENSHOT_INTELLIGENCE=0. Fail-open —
   // never blocks a render; a bad screenshot is de-pinned/demoted, never rejected.
+  // PeekShot — hosted screenshot capture (services/ingest/peekshot.js), the RESCUE path
+  // for website ingest. The local headless-Chrome capture stays primary: it yields DOM
+  // text, brand colours, harvested assets and capture-time obstruction geometry, none of
+  // which a hosted image API can provide. PeekShot runs only when that primary produces
+  // no usable screenshots — the failure mode that otherwise ships a film with no product
+  // imagery at all. Every capture costs a credit, hence "rescue", not "always".
+  //   SCREENSHOT_PROVIDER=auto|local|peekshot   auto (default) = local, rescue with peekshot
+  //                                             peekshot = always capture with peekshot too
+  //                                             local = never call peekshot
+  const psCfg = cfg.peekshot || {};
+  const psProvider = String(process.env.SCREENSHOT_PROVIDER || psCfg.provider || "auto").toLowerCase();
+  cfg.screenshotProvider = ["auto", "local", "peekshot"].includes(psProvider) ? psProvider : "auto";
+  cfg.peekshot = {
+    apiKey: process.env.PEEKSHOT_API_KEY || psCfg.apiKey || "",
+    projectId: process.env.PEEKSHOT_PROJECT_ID || psCfg.projectId || "",
+    // Enabled when a key exists and the operator has not forced local-only.
+    enabled: cfg.screenshotProvider !== "local" && !!(process.env.PEEKSHOT_API_KEY || psCfg.apiKey),
+    width: Number(psCfg.width) || 1280,
+    height: Number(psCfg.height) || 720,
+    delaySec: Number.isFinite(Number(psCfg.delaySec)) ? Number(psCfg.delaySec) : 3,
+    // Measured against the live API: a plain capture can complete in ~15s, but the queue
+    // is shared and individual requests have sat past 100s while later ones finished. The
+    // ceiling is generous because a queued request is not a failed one, and this path only
+    // runs when the alternative is a film with no product imagery at all.
+    captureTimeoutMs: Number(psCfg.captureTimeoutMs) || Number(process.env.PEEKSHOT_TIMEOUT_MS) || 180_000,
+    pollMs: Number(psCfg.pollMs) || 3000,
+    requestTimeoutMs: Number(psCfg.requestTimeoutMs) || 25_000,
+    // A second, phone-shaped capture (the layout director routes it to a phone mockup).
+    // Off by default: it doubles the credit cost of a rescue.
+    mobileShot: psCfg.mobileShot === true || /^(1|true|yes|on)$/i.test(String(process.env.PEEKSHOT_MOBILE_SHOT || "")),
+    mobileDevice: psCfg.mobileDevice || "iPhone 15",
+    maxShots: Number(psCfg.maxShots) || 2,
+  };
+
   const siCfg = cfg.screenshotIntelligence || {};
   cfg.screenshotIntelligence = {
     enabled: process.env.SCREENSHOT_INTELLIGENCE != null
@@ -342,9 +445,9 @@ function build() {
   const capCfg = cfg.captions || {};
   cfg.captions = {
     defaultLanguage: capCfg.defaultLanguage || "en",
-    model: process.env.CAPTION_DIRECTOR_MODEL || capCfg.model || "google/gemini-3.1-flash-lite",
+    model: process.env.CAPTION_DIRECTOR_MODEL || capCfg.model || kieDefaultModel,
   };
-  cfg.llm.stageModels = { ...(cfg.llm.stageModels || {}), caption_director: cfg.captions.model };
+  cfg.llm.primary.stageModels = { ...(cfg.llm.primary.stageModels || {}), caption_director: cfg.captions.model };
 
   // Language Director — the deterministic authority that resolves the unified language plan
   // at intake (before the brief/script) and persists it as the single source of truth. The

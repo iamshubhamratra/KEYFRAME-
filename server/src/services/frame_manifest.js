@@ -32,6 +32,20 @@ const PackManifestSchema = z
     // One-line human "vibe" used for tone->pack matching (brief PACK_VIBES today).
     vibe: z.string().default(""),
 
+    // The aspect the pack was AUTHORED against. Omit for an aspect-agnostic pack (the
+    // scene-kit packs, which lay out through services/responsive.js and adapt to any frame).
+    //
+    // This is load-bearing, not documentation. A portrait composer measures vertical
+    // POSITION as a fraction of height and every HEIGHT as a fraction of width (cqw is the
+    // only definite unit inside an auto-height parent) — the two are calibrated against each
+    // other at the authored 1080x1920 and nowhere else. Render the same markup at 1920x1080
+    // and heights inflate while the room for them contracts: measured on organic-garden, the
+    // hook's device frame runs 99.2cqw deep in a 56.3cqw-tall frame, overflowing by 76%.
+    //
+    // 22 packs carried this key while it sat outside the schema and nothing in the selection
+    // path read it, so the mismatch had no guard at all. See frameSelectorAgent.
+    orientation: z.enum(["portrait", "landscape", "square"]).optional(),
+
     // Authored color roles from FRAME.md — name -> #RRGGBB. Order is authored law.
     colors: z.record(HEX).default({}),
     // Distinct font families the pack declares (FRAME.md fontFamily). The first
@@ -50,6 +64,13 @@ const PackManifestSchema = z
         // which mis-grounded light packs (bloom, mono) onto their dark ink token
         // and dark packs (noir) onto their lightest token.
         ground: HEX.optional(),
+        // Does `ground` describe the WHOLE film, or only one of the fields it uses?
+        // "single" (the default, and true of every pack that does not say otherwise) —
+        // one ground for the film. "alternating" — the pack deliberately swaps between
+        // that ground and full-frame saturated accent fields, so a saturated scene is
+        // correct rather than a mis-grounding. Read by the QA reviewer's identity
+        // expectations, which otherwise blocks a correct scene for "the wrong lightness".
+        groundMode: z.enum(["single", "alternating"]).default("single"),
       })
       .default({}),
 
@@ -138,6 +159,41 @@ const PackManifestSchema = z
       })
       .default({}),
 
+    // Per-pack AUDIO IDENTITY — the pack's sound, declared the same way its look is.
+    // Consumed by services/audio_profile.profileFor, which steers the music search and
+    // biases the SFX palette. Absent (or empty) = NEUTRAL = exactly today's behaviour:
+    // the query falls back to the script's subject-derived mood/query and every cue
+    // resolves through audio_cues.intentFor alone. That default is what let this land
+    // pack-by-pack without touching the packs that had not been written yet.
+    //
+    // `sfxPalette` values MUST name a real audio_cues.CUES intent — validateAll() below
+    // rejects anything else at boot, loudly, rather than letting a typo degrade silently
+    // in the middle of a render.
+    audio: z
+      .object({
+        mood: z.string().default(""),
+        energy: z.enum(["low", "medium", "high"]).default("medium"),
+        tempo: z.enum(["slow", "mid", "fast"]).default("mid"),
+        // Genre tags — used to score candidate tracks against the pack's identity.
+        style: z.array(z.string()).default([]),
+        // The actual search phrases, authored CALMEST-FIRST: with narration off the
+        // rotation prefers the later entries, which is how "more energetic without a
+        // genre change" is implemented. Write 5-8; one or two are picked per job.
+        musicKeywords: z.array(z.string()).default([]),
+        // Scene function -> the cue that function sounds like ON THIS PACK.
+        sfxPalette: z.record(z.string()).default({}),
+        // How this pack behaves with narration off. energyBoost 0 opts out of the
+        // tilt entirely (a pack that should stay exactly as calm with no voice).
+        noVo: z
+          .object({
+            energyBoost: z.number().min(0).max(2).default(1),
+            sfxDensity: z.enum(["normal", "rich"]).default("rich"),
+            ambient: z.boolean().default(false),
+          })
+          .default({}),
+      })
+      .default({}),
+
     // --- Reserved for later Phase 3/4 population (kept optional, unpopulated). ---
     typography: z.record(z.any()).optional(),
     layout: z.record(z.any()).optional(),
@@ -191,6 +247,7 @@ function listManifests() {
 function validateAll() {
   const packs = frameRegistry.listPacks();
   const valid = [], missing = [], invalid = [];
+  let withAudio = 0;
   for (const name of packs) {
     const p = manifestPath(name);
     let exists = false;
@@ -198,7 +255,15 @@ function validateAll() {
     if (!exists) { missing.push(name); continue; }
     // Force a fresh validate (bypass cache) so a bad file is always reported.
     try {
-      PackManifestSchema.parse(JSON.parse(fs.readFileSync(p, "utf8")));
+      const m = PackManifestSchema.parse(JSON.parse(fs.readFileSync(p, "utf8")));
+      // AUDIO PALETTE — zod can only assert "a record of strings". Whether those strings
+      // name a sound this system can actually PRODUCE is a cross-module question, and the
+      // only place it can be answered cheaply is here, at boot. A pack naming a cue the
+      // library cannot resolve would otherwise fall back silently mid-render — the exact
+      // class of failure this manifest exists to make loud.
+      const badCues = audioPaletteErrors(m.audio);
+      if (badCues.length) throw new Error(`audio.sfxPalette: ${badCues.join("; ")}`);
+      if (m.audio && (m.audio.musicKeywords || []).length) withAudio++;
       valid.push(name);
     } catch (err) {
       invalid.push({ name, error: err && err.message ? String(err.message).split("\n")[0] : String(err) });
@@ -206,9 +271,34 @@ function validateAll() {
   }
   console.log(`[manifest] ${valid.length}/${packs.length} packs have a valid pack.json` +
     (missing.length ? ` · ${missing.length} legacy-only (no manifest)` : "") +
-    (invalid.length ? ` · ${invalid.length} INVALID` : ""));
+    (invalid.length ? ` · ${invalid.length} INVALID` : "") +
+    ` · ${withAudio} with an audio identity`);
   for (const { name, error } of invalid) console.error(`[manifest] INVALID ${name}/pack.json — ${error}`);
-  return { valid, missing, invalid };
+  return { valid, missing, invalid, withAudio };
+}
+
+// Which sfxPalette entries name something the cue library cannot produce. Returns [] for
+// an absent/empty block, so a pack with no audio identity is never reported as broken.
+// Required lazily: audio_cues spawns ffmpeg at call time but not at require time, and
+// keeping the dependency lazy means a frames-only tool can load this module standalone.
+function audioPaletteErrors(audio) {
+  if (!audio || !audio.sfxPalette) return [];
+  let CUES, PALETTE_ROLES;
+  try {
+    ({ CUES } = require("./audio_cues"));
+    ({ PALETTE_ROLES } = require("./audio_profile"));
+  } catch { return []; }   // can't check => don't block a boot on it
+  const errs = [];
+  for (const [role, cue] of Object.entries(audio.sfxPalette)) {
+    if (!PALETTE_ROLES.includes(role)) {
+      errs.push(`unknown scene role "${role}" (expected ${PALETTE_ROLES.join(" | ")})`);
+      continue;
+    }
+    // null is a deliberate "this pack has no ambient layer" — absence, not a typo.
+    if (cue == null || cue === "") continue;
+    if (!CUES[cue]) errs.push(`"${role}" names cue "${cue}", which is not in audio_cues.CUES`);
+  }
+  return errs;
 }
 
 // ---------------------------------------------------------------------------
@@ -244,4 +334,35 @@ function packAcceptsVectors(pack) {
   }
 }
 
-module.exports = { PackManifestSchema, getManifest, listManifests, manifestPath, validateAll, packAcceptsVectors };
+// The aspect a pack was authored against, or null when it declared none (aspect-agnostic —
+// it lays out through services/responsive.js and adapts to whatever frame it is given).
+function packOrientation(pack) {
+  try { const m = getManifest(pack); return (m && m.orientation) || null; }
+  catch { return null; }
+}
+
+// The job orientations the pipeline emits, expressed as the manifest's vocabulary.
+// config.orientations: horizontal(16:9) | vertical(9:16) | square(1:1).
+const JOB_ASPECT = { horizontal: "landscape", vertical: "portrait", square: "square" };
+
+// Can `pack` serve a job rendered at this orientation?
+//
+// An undeclared pack is compatible with everything — that is what "aspect-agnostic" means,
+// and it keeps every scene-kit pack behaving exactly as it always has. A pack that DID
+// declare an aspect only serves that aspect, with one deliberate exception: a square job is
+// close enough to either authored aspect to be served by both (responsive.aspectMode treats
+// 0.86..1.2 as its own mode and the composers already branch on it), so squares are never
+// starved of choices.
+function packFitsOrientation(pack, jobOrientation) {
+  const authored = packOrientation(pack);
+  if (!authored) return true;
+  const want = JOB_ASPECT[String(jobOrientation || "")] || null;
+  if (!want) return true;              // unknown orientation — never block on it
+  if (want === "square") return true;
+  return authored === want;
+}
+
+module.exports = {
+  PackManifestSchema, getManifest, listManifests, manifestPath, validateAll,
+  packAcceptsVectors, packOrientation, packFitsOrientation, audioPaletteErrors,
+};

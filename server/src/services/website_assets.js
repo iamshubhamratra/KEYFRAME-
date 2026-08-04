@@ -375,14 +375,11 @@ function resolveBrandSignals(brandSignals) {
 
 // ---------------------------------------------------------------- M2: pin to scenes
 
-// Showcase scene targeting — the graph's proven rule (mirrors user_assets), incl. the
-// short-script fallback (slice(1,-1) is EMPTY on 2-scene scripts).
-function showcaseTargets(script) {
-  const scenes = Array.isArray(script && script.scenes) ? script.scenes : [];
-  const showcase = scenes.filter((s) => ["feature", "proof", "how", "context"].includes(s.purpose));
-  const mid = scenes.slice(1, -1);
-  return showcase.length ? showcase : (mid.length ? mid : scenes);
-}
+// Showcase scene targeting — now the SHARED rule (services/scene_role), role-based
+// rather than an exact-string match on `purpose`. It lived here, in user_assets, in
+// graph and in project_pipeline as four copies of the same three lines, each free to
+// drift, and all four excluded any scene the script happened to label "benefit".
+const { showcaseTargets } = require("./scene_role");
 
 // The pinned-asset wire record for one harvested manifest entry. Harvested files
 // already live under jobDir (ingest/brand_assets/…) — a valid jobDir-relative path,

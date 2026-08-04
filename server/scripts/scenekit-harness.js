@@ -17,7 +17,7 @@ const scenekit = require("../src/services/scene_kit");
 const { coverageFromUsed } = require("../src/services/asset_coverage");
 
 const outDir = path.resolve(process.argv[2] || "jobs/_sktest");
-const pack = process.argv[3] || "nimbus-saas";
+const pack = process.argv[3] || "flagship";
 const mode = process.argv[4] || "shot";
 const W = Number(process.argv[5]) || 720;
 const H = Number(process.argv[6]) || 1280;

@@ -52,5 +52,36 @@
     "enter": "spring",
     "emphasis": "gradient",
     "align": "left"
+  },
+  "audio": {
+    "mood": "friendly",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "acoustic",
+      "indie pop",
+      "corporate",
+      "warm"
+    ],
+    "musicKeywords": [
+      "warm acoustic",
+      "friendly corporate",
+      "soft indie pop",
+      "optimistic acoustic",
+      "upbeat friendly",
+      "bright indie pop"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "pop",
+      "reveal": "shimmer",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
   }
 }

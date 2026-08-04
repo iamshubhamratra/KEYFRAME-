@@ -9,8 +9,10 @@
 // This is a RAW baseline metric on purpose. It does NOT yet exclude a pack's
 // deliberately-locked ground/ink/semantic colors (that needs a per-pack contract), so
 // a pack that correctly keeps its ground/semantics reads LOW here — which is fine: the
-// number is a per-renderer BASELINE + regression detector, not a pass/fail bar. A pack
-// that legitimately opts out (bauhaus) scores ~0 and that is correct, not a failure.
+// number is a per-renderer BASELINE + regression detector, not a pass/fail bar. A restrained
+// pack (blueprint/terminal lock heavy semantics; bauhaus rotates a whole triad but reports only
+// its brand-lead accents, not the two triadic partners it also paints) reads LOW here even when
+// it is correctly on-brand — read the per-renderer baseline, never a global floor.
 //
 // Fail-open (THE LAW, brand_kit.js:28): returns null on any problem; never throws,
 // never blocks a render.

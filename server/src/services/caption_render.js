@@ -25,7 +25,10 @@ const captionFonts = require("../fonts/caption_fonts");
 
 // Build the caption STYLE descriptor for a language, or null when the default
 // Latin stack already suffices (English + es/fr/de/pt). Shape:
-//   { lang, direction, fontFamily, fontFaceCss, fontKey }
+//   { lang, direction, fontFamily, fontFaceCss, fontKey, charWidth, lineHeight }
+// charWidth/lineHeight let the composers' char-count text-fit account for scripts that render
+// wider/taller than a Latin char (CJK, Devanagari) so headlines don't overflow. Only non-Latin
+// languages return a non-null style, so Latin films never see these and are unaffected.
 function buildCaptionStyle(lang) {
   const meta = captionLang.langMeta(lang);
   if (!meta) return null;
@@ -39,6 +42,8 @@ function buildCaptionStyle(lang) {
     fontFamily: font ? font.stack : null,
     fontFaceCss: font ? font.faceCss : "",
     fontKey: meta.font || null,
+    charWidth: meta.charWidth || 1,
+    lineHeight: meta.lineHeight || null,
   };
 }
 
@@ -68,6 +73,28 @@ const CAPTION_SELECTORS = "#kfcap, #cap-text, .cap";
 // from `body` alone would not override an element that sets its own font (the same bet
 // the caption override relies on, now applied to all on-screen text).
 const TEXT_SELECTORS = "body, body *";
+
+// COMPLEX-SCRIPT SHAPING FIX — applied to ALL on-screen text ONLY when the video-text
+// language is non-Latin (needsText). Three Chromium behaviors silently DISABLE Indic
+// (Devanagari/Bengali/Tamil…) and Arabic glyph shaping — the i-matra reorder and the
+// half-form/conjunct ligatures fail, so combining matras detach and jump to the front
+// of the word (e.g. "शॉपिंग" → "।शोपेग"). The font is fine; the shaper never runs because
+// a clipping/containment box on a small inline text run trips per-glyph fallback:
+//   (a) overflow:hidden on the per-WORD mask-reveal wrapper `.kw` (flagship/brightlife —
+//       each word slides up behind an overflow clip). overflow:visible restores shaping.
+//   (b) clip-path:inset on the reveal wrappers `.kfw`/`.kfc` (scene-kit mask-reveal /
+//       line-wipe) and `.pen-clip` (paper-tales handwriting wipe). clip-path:none restores
+//       it; the accompanying opacity/yPercent tween still plays, so words still animate in.
+//   (c) -webkit-background-clip:text used to paint GRADIENT emphasis words (`.kacc .kwi`
+//       in flagship/brightlife, `.kfacc` in scene-kit). Dropping the text-clip lets the
+//       word render in its solid accent `color` (declared alongside the gradient in every
+//       composer), correctly shaped — accented, just not gradient.
+// All three are inert for Latin/English (gated behind needsText), so the mask reveal, the
+// handwriting wipe, and the gradient emphasis are untouched for English output.
+const SHAPING_FIX =
+  ".kw{overflow:visible !important;}" +
+  ".kw,.kwi,.kfw,.kfc,.pen-clip{clip-path:none !important;}" +
+  ".kacc .kwi,.kfacc{-webkit-text-fill-color:currentColor !important;background:none !important;filter:none !important;}";
 
 function styleDecls(style, { withOverflow = false } = {}) {
   const decls = [];
@@ -100,6 +127,9 @@ function injectCaptionStyle(html, style) {
   if (needsText) {
     if (text.fontFaceCss) faces.set(text.fontKey || text.lang, text.fontFaceCss);
     rules.push(`${TEXT_SELECTORS}{${styleDecls(text).join(";")};}`);
+    // Non-Latin on-screen text: neutralize the two composer effects that break
+    // complex-script glyph shaping in Chromium (see SHAPING_FIX).
+    rules.push(SHAPING_FIX);
   }
   // Caption language: font + direction on the caption elements (id specificity beats
   // the all-text rule, so a DIFFERENT caption language still wins on captions).

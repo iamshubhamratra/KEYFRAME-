@@ -12,7 +12,11 @@
     "light-b": "#EC4899",
     "glass": "#E8E8F0"
   },
-  "fonts": ["Space Grotesk", "JetBrains Mono", "Inter"],
+  "fonts": [
+    "Space Grotesk",
+    "JetBrains Mono",
+    "Inter"
+  ],
   "surface": {
     "flat": false,
     "lightCinematic": false,
@@ -20,22 +24,37 @@
   },
   "motion": {
     "cut": "blur",
-    "drift": 1.0
+    "drift": 1
   },
   "fx": {
     "canvas": "light-field",
     "three": "none"
   },
   "skin": {
-    "accents": ["#6366F1", "#EC4899"],
+    "accents": [
+      "#6366F1",
+      "#EC4899"
+    ],
     "extras": [],
     "emphasisCss": null
   },
   "assets": {
     "photoMod": "product screenshot floating inside a frosted-glass frame with a thin luminous border",
     "iconStyle": "line",
-    "keywords": ["glass", "glassmorphism", "frosted", "depth", "blur", "premium", "modern", "portrait"],
-    "prefer": ["photo", "vector"]
+    "keywords": [
+      "glass",
+      "glassmorphism",
+      "frosted",
+      "depth",
+      "blur",
+      "premium",
+      "modern",
+      "portrait"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
   },
   "typography": {
     "display": "Space Grotesk",
@@ -48,5 +67,36 @@
     "case": "none",
     "tracking": -0.02,
     "align": "center"
+  },
+  "audio": {
+    "mood": "premium",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "ambient",
+      "electronic",
+      "chillout",
+      "modern"
+    ],
+    "musicKeywords": [
+      "ambient premium",
+      "soft electronic",
+      "frosted chillout",
+      "modern atmospheric",
+      "flowing electronic",
+      "uplifting modern"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
   }
 }

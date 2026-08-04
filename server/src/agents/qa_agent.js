@@ -26,9 +26,19 @@ function packIdentityExpectations(framePack) {
   const ground = (m.surface && m.surface.ground) || "the system ground";
   const accents = (m.skin && m.skin.accents && m.skin.accents.length ? m.skin.accents : Object.values(m.colors || {})).slice(0, 3);
   const lightWord = m.surface && m.surface.ground ? (parseInt(m.surface.ground.slice(1), 16) > 0x888888 ? "LIGHT" : "DARK") : "";
+  // SOME PACKS ALTERNATE THEIR GROUND BY DESIGN. The single-ground expectation below is
+  // right for most packs and wrong for those: prisma-bloc deliberately alternates paper
+  // with full-frame saturated accent fields, so the reviewer was told "a LIGHT ground,
+  // FAIL if the lightness is wrong" and duly blocked a correct terracotta scene. A pack
+  // opts out by declaring surface.groundMode:"alternating"; every other pack's prompt is
+  // byte-identical to before.
+  const alternating = m.surface && m.surface.groundMode === "alternating";
+  const groundLine = alternating
+    ? `- GROUND: this pack ALTERNATES its ground by design — a ${lightWord} paper ground near ${ground} on some scenes and a FULL-FRAME SATURATED accent field on others. A saturated ground is CORRECT here, never a defect; do not report it. Only fail the ground if a scene's text does not read against whatever field it sits on.`
+    : `- GROUND: a ${lightWord} ground near ${ground}. FAIL as a blocker if the ground is the wrong lightness (e.g. a light pack shown on a dark ground or vice-versa).`;
   return [
     `The video must honor the "${framePack}" design system. Concrete, checkable expectations:`,
-    `- GROUND: a ${lightWord} ground near ${ground}. FAIL as a blocker if the ground is the wrong lightness (e.g. a light pack shown on a dark ground or vice-versa).`,
+    groundLine,
     `- TYPOGRAPHY: headlines must render in the "${display}" display face (its distinctive letterforms), NOT a generic system sans. FAIL as a blocker if headlines are in a plain default font instead of the pack's display type.`,
     `- PALETTE: the design uses ${accents.join(", ")} as accents; colors on screen should belong to this system.`,
     `- COMPONENTS: the pack's ornaments/furniture (corner brackets, rules, shapes, etc.) should be present, not a bare frame.`,
@@ -91,7 +101,48 @@ MINOR issues (report, do NOT fail): cramped spacing, weak hierarchy, a transitio
 
 A frame caught mid-transition with PARTIAL content is NORMAL — do not fail it for that alone. Be strict about the blockers above (especially under-illustration and contrast), lenient about pure style.`;
 
-async function reviewRender({ videoPath, scenes, duration, framePack, frameMd, workDir, tracker, signal, animationWarnings = [] }) {
+// INTENTIONAL REUSE — the brief the reviewer needs so it judges the right thing.
+//
+// The Asset Reuse Optimizer deliberately shows some pictures more than once, to fill scenes
+// that would otherwise render as bare template panels. Without this brief the reviewer sees
+// a recurring picture and reports it as repetition (blocker #11's territory), which is a
+// false positive against a deliberate art-direction decision.
+//
+// But the inverse is the check nobody else can perform. Every other guarantee about reuse is
+// structural — the ledger proves the usage ceiling held, preflight proves no adjacency, the
+// render audit proves both instances were drawn. NONE of them can answer "do the two
+// appearances actually LOOK different?", because that is a question about pixels. This
+// reviewer is the only stage that sees pixels, so the variation is handed to it as something
+// to VERIFY rather than something to ignore.
+function reusePrompt(reusePlan, scenes) {
+  const rows = (reusePlan && Array.isArray(reusePlan.ledger) ? reusePlan.ledger : [])
+    .filter((r) => r && r.usageCount > 1);
+  if (!rows.length) return "";
+  const startOf = (id) => {
+    const s = (scenes || []).find((x) => String(x.id) === String(id));
+    return s && s.start != null ? `${s.start}s` : String(id);
+  };
+  const varBy = new Map();
+  for (const d of (reusePlan.decisions || [])) if (d && d.chose && d.variation) varBy.set(d.chose, d.variation);
+  const lines = rows.map((r) => {
+    const v = varBy.get(r.assetId);
+    const where = r.sceneAssignments.map(startOf).join(" and ");
+    return `- one picture appears at ${where}`
+      + (v ? ` — the later appearance was deliberately re-styled (entrance "${v.enter}", size ×${v.scale}${v.cropFocus && v.cropFocus !== "unchanged (crop is load-bearing)" ? `, crop "${v.cropFocus}"` : ""})` : "");
+  });
+  return [
+    "DELIBERATE ASSET REUSE — read this before judging repetition:",
+    "This film intentionally shows some pictures more than once, so that scenes which would",
+    "otherwise be bare template panels carry real imagery. That is art direction, not an error.",
+    ...lines,
+    "So: do NOT report a recurring picture as an issue merely because it recurs.",
+    "DO report it as a MINOR issue if a later appearance is indistinguishable from the earlier one",
+    "(same size, same crop, same framing — meaning the re-styling did not land), and as a BLOCKER",
+    "if the same picture appears in two CONSECUTIVE scenes, or twice within a single frame.",
+  ].join("\n");
+}
+
+async function reviewRender({ videoPath, scenes, duration, framePack, frameMd, workDir, tracker, signal, animationWarnings = [], reusePlan = null }) {
   fs.mkdirSync(workDir, { recursive: true });
   const times = sampleTimes(scenes, duration);
   const frames = [];
@@ -116,6 +167,7 @@ async function reviewRender({ videoPath, scenes, duration, framePack, frameMd, w
         animationWarnings.length
           ? `A static analysis of the composed timeline raised these concerns — CONFIRM or DISMISS each against the frames, and if confirmed report it as an issue: ${animationWarnings.map((w) => `"${w}"`).join("; ")}`
           : "",
+        reusePrompt(reusePlan, scenes),
         `Frames below are sampled at: ${frames.map((f) => `${f.t}s`).join(", ")} of a ${duration}s video. Scene plan: ${JSON.stringify((scenes || []).map((s) => ({ id: s.id, start: s.start, duration: s.duration, purpose: s.purpose })))}`,
       ].filter(Boolean).join("\n"),
     },

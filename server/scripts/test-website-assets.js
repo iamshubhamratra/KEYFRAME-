@@ -326,6 +326,67 @@ async function main() {
   });
   ok(colorPrep.brandColors.includes("#0FB5A6") && colorPrep.brandColorsSource === "mark", "coloured mark keeps 'mark' provenance (accent not used when the mark has a hue)");
 
+  // ---- HARVESTED SVG VISIBILITY -------------------------------------------------
+  // Regression: a delivered film (job 9e0fq1724n, prisma-bloc) rendered the composer's ALT
+  // TEXT where the brand logo belonged. The site ships its logo inline with the root hidden,
+  // `svg.outerHTML` captured that verbatim, and as an <img> it painted nothing. The security
+  // sanitizer passed it happily — safe is not the same as visible.
+  {
+    const S = harvester.sanitizeSvg;
+    const rootOf = (s) => (/<svg\b[^>]*>/i.exec(s) || [""])[0];
+
+    const hidden = `<svg viewBox="0 0 10 10" style="visibility: hidden;"><path d="M0 0h10v10H0z"/></svg>`;
+    ok(!/visibility/i.test(rootOf(S(hidden))), "root style visibility:hidden is removed");
+
+    const none = `<svg viewBox="0 0 10 10" style="display:none;color:red"><circle cx="5" cy="5" r="4"/></svg>`;
+    const noneRoot = rootOf(S(none));
+    ok(!/display\s*:\s*none/i.test(noneRoot), "root style display:none is removed");
+    ok(/color\s*:\s*red/i.test(noneRoot), "…and the rest of the root style survives");
+
+    const attr = `<svg viewBox="0 0 10 10" visibility="hidden" display="none" opacity="0"><rect width="10" height="10"/></svg>`;
+    const attrRoot = rootOf(S(attr));
+    ok(!/visibility=|display=|opacity=/i.test(attrRoot), "hidden PRESENTATION attributes are removed too");
+
+    // ROOT ONLY. A logo that packs a light and a dark variant hides one on purpose;
+    // un-hiding it would stack both marks on top of each other.
+    const variants = `<svg viewBox="0 0 10 10" style="visibility:hidden"><g class="dark" style="display:none"><path d="M0 0h5v5H0z"/></g><g class="light"><path d="M5 5h5v5H5z"/></g></svg>`;
+    const vOut = S(variants);
+    ok(!/visibility/i.test(rootOf(vOut)), "root is un-hidden");
+    ok(/class="dark" style="display:none"/.test(vOut), "an INNER hidden variant is left alone");
+
+    // A vector that paints nothing renders an empty box — indistinguishable from broken.
+    ok(harvester.svgPaintsSomething(`<svg><path d="M0 0h1v1H0z"/></svg>`), "a mark with a path paints");
+    ok(harvester.svgPaintsSomething(`<svg><use href="#m"/></svg>`), "an internal <use> counts as drawable");
+    ok(!harvester.svgPaintsSomething(`<svg viewBox="0 0 10 10"><defs><mask id="m"/></defs></svg>`), "defs-only markup paints nothing");
+
+    // ---- THE NAMESPACE: the defect that actually reached a delivered film ----
+    // An inline <svg> needs no xmlns inside HTML (the parser supplies it), but written to a
+    // standalone .svg and loaded through <img src> it is parsed as XML, where the namespace
+    // is mandatory — no xmlns, no image, and the composer's alt text renders instead.
+    const inline = `<svg width="13" height="13" viewBox="0 0 100 100" fill="#E2E4E6"><path d="M0 0h1v1H0z"/></svg>`;
+    ok(!/xmlns=/i.test(inline), "fixture really is missing the namespace");
+    ok(/xmlns="http:\/\/www\.w3\.org\/2000\/svg"/.test(rootOf(S(inline))), "xmlns is added so the file loads as an <img>");
+
+    const already = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path d="M0 0h1v1H0z"/></svg>`;
+    ok((rootOf(S(already)).match(/xmlns=/gi) || []).length === 1, "an existing namespace is not duplicated");
+
+    const xlink = `<svg viewBox="0 0 10 10"><use xlink:href="#m"/></svg>`;
+    ok(/xmlns:xlink=/i.test(rootOf(S(xlink))), "an undeclared xlink: prefix is declared too (same XML parse error)");
+    ok(!/xmlns:xlink=/i.test(rootOf(S(inline))), "…and is NOT added when nothing uses xlink");
+
+    // The real files from the audited job, while they are still in the cache.
+    const linear = path.join(__dirname, "..", "harvest_cache", "521f3583da1e0468", "a1.svg");
+    if (fs.existsSync(linear)) {
+      ok(/xmlns=/i.test(rootOf(S(fs.readFileSync(linear, "utf8")))),
+        "the real linear.app logo that broke job 9e0fq1724n now carries a namespace");
+    }
+    const duo = path.join(__dirname, "..", "harvest_cache", "10c8fa41703d5b6a", "a1.svg");
+    if (fs.existsSync(duo)) {
+      ok(!/visibility\s*:\s*hidden/i.test(rootOf(S(fs.readFileSync(duo, "utf8")))),
+        "the real duolingo logo with a hidden root is un-hidden");
+    }
+  }
+
   try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* noop */ }
 
   console.log(`\n${fail === 0 ? "✓ ALL PASS" : "✗ FAILURES"} — ${pass} passed, ${fail} failed`);

@@ -57,5 +57,36 @@
     "enter": "mask-reveal",
     "emphasis": "glow",
     "align": "left"
+  },
+  "audio": {
+    "mood": "premium",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "electronic",
+      "ambient",
+      "tech",
+      "deep house"
+    ],
+    "musicKeywords": [
+      "dark premium tech",
+      "cinematic ambient",
+      "deep electronic",
+      "nocturnal modern",
+      "driving deep house",
+      "energetic technology"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "data-ping",
+      "reveal": "product-reveal",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
   }
 }

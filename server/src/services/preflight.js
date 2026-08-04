@@ -24,6 +24,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const config = require("../config");
 const { isLogo } = require("./asset_priority");
 const { isChromatic } = require("./brand_kit");
 
@@ -136,6 +137,43 @@ function preflight({ job, assets = [], script = null, storyboard = null, brandSk
       : `${deadAssets} collected asset(s) are vectors the chosen template cannot render and will discard`,
     "The pack renders photographic assets only; the planner should not be requesting vectors for it."
   ));
+
+  // ---- 5b) REUSE: within limits, and never on adjacent scenes ---------------
+  // Derived from the WIRE, not from the optimizer's own report. preflight's whole premise
+  // is that a check must ask the real question directly (see the header): a report claiming
+  // "max 2 uses" is the claim, and the wire is the fact. All-zero on a film with no reuse.
+  {
+    const perPath = new Map();
+    for (const a of renderable) {
+      if (!a.path || a.sceneId == null) continue;
+      if (!perPath.has(a.path)) perPath.set(a.path, []);
+      perPath.get(a.path).push(String(a.sceneId));
+    }
+    const maxUses = Number(config.assetReuse?.maxUses) || 2;
+    const over = [...perPath.entries()].filter(([, ids]) => ids.length > maxUses);
+    checks.push(check(
+      "reuseWithinLimits", WARN,
+      over.length === 0,
+      over.length === 0
+        ? `no asset appears more than ${maxUses}×`
+        : `${over.length} asset(s) exceed the ${maxUses}-appearance limit (${over.map(([p, ids]) => `${p}×${ids.length}`).join(", ")})`,
+      "Lower assetReuse.maxUses, or collect more visuals so the optimizer has alternatives."
+    ));
+
+    const idx = (id) => scenes.findIndex((s) => String(s.id) === id);
+    const adjacent = [...perPath.entries()].filter(([, ids]) => {
+      const ns = ids.map(idx).filter((i) => i >= 0).sort((x, y) => x - y);
+      return ns.some((n, i) => i > 0 && n - ns[i - 1] === 1);
+    });
+    checks.push(check(
+      "noAdjacentRepeat", WARN,
+      adjacent.length === 0,
+      adjacent.length === 0
+        ? "no asset repeats on consecutive scenes"
+        : `${adjacent.length} asset(s) appear on back-to-back scenes (${adjacent.map(([p]) => p).join(", ")}) — the most visible form of repetition`,
+      "The reuse optimizer vetoes this; a composer may have re-homed the asset after assignment."
+    ));
+  }
 
   // ---- 6) TEXT: every scene says something ---------------------------------
   const sbScenes = (storyboard && Array.isArray(storyboard.scenes)) ? storyboard.scenes : [];

@@ -1,0 +1,100 @@
+{
+  "name": "grid-dispatch",
+  "vibe": "A Swiss-modernist dispatch sheet in motion. Flat off-white paper, near-black ink and ONE saturated accent — no gradients, no glass, no glow, zero corner radius. A visible six-column grid organises every frame; 2px rules draw themselves across it, accent poster fields wipe in on scaleX, and headline lines rise out of hard-edged masks. Screenshots ride technical asset panels with a spec header bar that states the slot and the aspect. A camera pushes into each composition and settles back before the cut, so every frame lands square on the grid. Authored portrait-first (9:16) as a native GSAP + DOM composition. Best for engineering, developer-tool, fintech, research and editorial brands that want authority and precision rather than spectacle.",
+  "renderer": "grid-dispatch",
+  "orientation": "portrait",
+  "colors": {
+    "ground": "#F3F2F2",
+    "ground-2": "#E7E5E4",
+    "text": "#201E1D",
+    "muted": "#6B6866",
+    "accent": "#EC3013",
+    "ink": "#201E1D",
+    "paper": "#FFFFFF"
+  },
+  "fonts": [
+    "Archivo",
+    "JetBrains Mono"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#F3F2F2"
+  },
+  "motion": {
+    "cut": "grid-wipe",
+    "drift": 0.9
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#EC3013"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "high-contrast editorial black and white documentary photograph",
+    "iconStyle": "line",
+    "keywords": [
+      "modernist",
+      "swiss",
+      "grid",
+      "editorial",
+      "flat",
+      "technical",
+      "print",
+      "portrait"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Archivo",
+    "mono": "JetBrains Mono",
+    "body": "Archivo"
+  },
+  "textfx": {
+    "enter": "mask-up",
+    "emphasis": "accent-field",
+    "case": "upper",
+    "tracking": -0.035,
+    "align": "left"
+  },
+  "audio": {
+    "mood": "precise",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "minimal",
+      "editorial",
+      "documentary",
+      "electronic"
+    ],
+    "musicKeywords": [
+      "minimal electronic",
+      "documentary underscore",
+      "precise rhythmic",
+      "modern corporate clean",
+      "understated tension",
+      "editorial pulse"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "ui-click",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": false
+    }
+  }
+}

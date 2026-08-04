@@ -53,5 +53,36 @@
     "emphasis": "boxed",
     "case": "upper",
     "align": "left"
+  },
+  "audio": {
+    "mood": "playful",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "pop",
+      "funk",
+      "indie",
+      "upbeat"
+    ],
+    "musicKeywords": [
+      "upbeat pop",
+      "playful funk",
+      "quirky indie",
+      "bright energetic",
+      "punchy pop",
+      "high energy funk"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "pop",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
   }
 }

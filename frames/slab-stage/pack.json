@@ -1,0 +1,37 @@
+{
+  "name": "slab-stage",
+  "vibe": "A film shot on one continuously moving stage. Deep 3D slabs — flat planes carrying screenshots and copy — hang in a perspective room on a shared vanishing point, each breathing on its own phase so nothing ever sits still. A single camera pans, breathes and drifts off the FILM clock rather than the scene clock, so the move carries straight through every cut and the whole piece reads as one take. Type arrives karaoke-style, word by word, the live word snapping large in the accent while the rest hold back, echoed by huge outlined ghost letters drifting behind. Line-art props draw themselves on. Grounds alternate light and dark, both tinted by the brand, and two accents carry the energy. Authored portrait-first (9:16) as a native GSAP + DOM composition. Best for bold product launches, agencies, creative tools and anything that should feel kinetic and physically staged.",
+  "renderer": "slab-stage",
+  "orientation": "portrait",
+  "colors": {
+    "ground": "#F3F2F2",
+    "ground-2": "#16161A",
+    "text": "#201E1D",
+    "muted": "#6B6866",
+    "accent": "#EC3013",
+    "accent-2": "#1F5FD8",
+    "ink": "#201E1D"
+  },
+  "fonts": ["Archivo", "JetBrains Mono"],
+  "surface": { "flat": false, "lightCinematic": true, "ground": "#F3F2F2", "groundMode": "alternating" },
+  "motion": { "cut": "slab-flip", "drift": 1.12 },
+  "fx": { "canvas": "none", "three": null },
+  "skin": { "accents": ["#EC3013", "#1F5FD8"], "extras": [], "emphasisCss": null },
+  "assets": {
+    "photoMod": "bold high-contrast product photograph on a clean staged surface",
+    "iconStyle": "line",
+    "keywords": ["bold", "kinetic", "3d", "staged", "depth", "editorial", "launch", "portrait"],
+    "prefer": ["screenshot", "photo"]
+  },
+  "typography": { "display": "Archivo", "mono": "JetBrains Mono", "body": "Archivo" },
+  "textfx": { "enter": "char-pop", "emphasis": "accent-word", "case": "upper", "tracking": -0.04, "align": "left" },
+  "audio": {
+    "mood": "kinetic",
+    "energy": "high",
+    "tempo": "fast",
+    "style": ["electronic", "percussive", "modern", "driving"],
+    "musicKeywords": ["driving electronic", "percussive modern", "bold energetic", "kinetic pulse", "confident drums", "punchy electronic"],
+    "sfxPalette": { "transition": "whoosh", "ui": "soft-tap", "reveal": "product-reveal", "data": "data-ping", "cta": "cta-impact" },
+    "noVo": { "energyBoost": 2, "sfxDensity": "rich", "ambient": false }
+  }
+}

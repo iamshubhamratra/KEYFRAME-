@@ -1,0 +1,100 @@
+{
+  "name": "showcase",
+  "vibe": "An annotated product tour, shot like a guided walkthrough. Near-white paper washed with soft colour blobs and a fine 52px grid; paper planes cross the sky. Real screenshots ride inside real device chrome — a browser window with a URL bar, a phone with a notch — and the film ANNOTATES them the way a product tour does: curved arrows draw themselves toward a feature, numbered callout bubbles pop at the point they name, a highlight box pulses around a region, a cursor travels and clicks, and one screen slowly zooms toward its focal point. Beats cut hard, each one pushed in and out by a slide camera. Authored landscape-first (16:9) as a native GSAP + DOM composition. Best for SaaS, developer tools, dashboards, mobile apps and anything whose story IS its interface — this pack shows the product rather than describing it, and wants real screenshots to do it.",
+  "renderer": "showcase",
+  "orientation": "landscape",
+  "colors": {
+    "ground": "#EEF1F7",
+    "ground-2": "#FFFFFF",
+    "text": "#131722",
+    "muted": "#5B6472",
+    "accent": "#2F6BFF",
+    "ink": "#131722",
+    "paper": "#FFFFFF"
+  },
+  "fonts": [
+    "Space Grotesk",
+    "JetBrains Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#EEF1F7"
+  },
+  "motion": {
+    "cut": "slide-push",
+    "drift": 1.1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#2F6BFF"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "clean bright product interface screenshot on a light background",
+    "iconStyle": "line",
+    "keywords": [
+      "product",
+      "tour",
+      "screenshot",
+      "dashboard",
+      "interface",
+      "saas",
+      "walkthrough",
+      "landscape"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Space Grotesk",
+    "mono": "JetBrains Mono",
+    "body": "Space Grotesk"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "callout",
+    "case": "sentence",
+    "tracking": -0.025,
+    "align": "left"
+  },
+  "audio": {
+    "mood": "optimistic",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "light electronic",
+      "corporate",
+      "upbeat",
+      "clean"
+    ],
+    "musicKeywords": [
+      "bright corporate",
+      "optimistic tech",
+      "light electronic groove",
+      "product demo underscore",
+      "clean modern pop",
+      "friendly startup"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "ui-click",
+      "reveal": "pop",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": false
+    }
+  }
+}

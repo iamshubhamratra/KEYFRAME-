@@ -50,12 +50,11 @@ function liveUserAssets(job, jobDir) {
 // Showcase scene targeting — the graph's proven rule (including the short-script
 // fallback: slice(1,-1) is EMPTY on 2-scene scripts, which once silently dropped
 // every real screenshot).
-function showcaseTargets(script) {
-  const scenes = Array.isArray(script && script.scenes) ? script.scenes : [];
-  const showcase = scenes.filter((s) => ["feature", "proof", "how", "context"].includes(s.purpose));
-  const mid = scenes.slice(1, -1);
-  return showcase.length ? showcase : (mid.length ? mid : scenes);
-}
+// Now the SHARED implementation (services/scene_role) — this rule lived in four files
+// as a copy-pasted exact-string match on `purpose`, so a script that said "benefit"
+// instead of "feature" matched nothing and the user's own uploads were pinned
+// somewhere other than the scenes meant to showcase them.
+const { showcaseTargets } = require("./scene_role");
 
 // The pinned-asset record for one upload, mirroring the website-screenshot shape
 // (graph.js/project_pipeline.js) so everything downstream — CD, layout director,
@@ -224,8 +223,11 @@ async function classifyUserAssets({ jobDir, manifest, subject, tracker, signal }
         content.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${x.b}` } });
       });
       const { text, tokensIn, tokensOut, model: servedModel, provider: servedBy } = await openrouter.chat({
+        // KIE-first: no explicit `model` (that would disable KIE entirely — see
+        // openrouter.js kieEnabled). config.js maps the user_assets stage onto the
+        // Creative Director's model, so the OpenRouter fallback stays on flash-lite.
         system: CLASSIFY_SYSTEM, user: content, jsonMode: true, stage: "user_assets",
-        model: (config.creativeDirector && config.creativeDirector.model) || undefined, temperature: 0, signal,
+        temperature: 0, signal,
       });
       if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "user_assets", model: servedModel, provider: servedBy });
       const parsed = extractFirstJsonObject(text);

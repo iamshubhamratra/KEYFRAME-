@@ -32,18 +32,14 @@
 // inline opacity:0 only (never gsap.set); no Math.random / Date / rAF at runtime.
 
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
+const { varyArchetypes } = require("./motion_planner");
 const { isTrustedProminent, isLogo, categorize } = require("./asset_priority");
 const { resolveBrand } = require("./brand_kit");
 const { safeArea } = require("./responsive");
+const { GSAP_CDN, r, esc, hexToRgb, bullets } = require("./composer_kit");
 
-const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 
 // ---- helpers -----------------------------------------------------------------
-function esc(s) {
-  return String(s == null ? "" : s)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-const r = (n) => Math.round((Number(n) || 0) * 100) / 100;
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 
 // The AUTHORED reference frame — every source template is 1080×1920, and every
@@ -82,7 +78,6 @@ function mulberry32(a) {
 }
 
 // ---- colour maths (shared with the other native packs) ------------------------
-const hexToRgb = (h) => { const n = parseInt(String(h).replace("#", ""), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
 const toHex2 = (v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0");
 const relLum = (h) => {
   const [r0, g0, b0] = hexToRgb(h).map((v) => v / 255);
@@ -212,13 +207,6 @@ const BASE_STRINGS = {
 // ---- content extraction ------------------------------------------------------
 const wordsOf = (t) => String(t || "").trim().split(/\s+/).filter(Boolean);
 
-function bullets(scene, n) {
-  let list = Array.isArray(scene.onScreenText) ? scene.onScreenText.filter(Boolean).map(String) : [];
-  if (!list.length && scene.subtext) {
-    list = String(scene.subtext).split(/[.;\n•]|\s—\s/).map((s) => s.trim()).filter((s) => s.length > 2);
-  }
-  return list.slice(0, n);
-}
 function featureLines(scene, n) {
   let src = Array.isArray(scene.onScreenText) ? scene.onScreenText.filter(Boolean).map(String) : [];
   if (src.length < 2 && scene.voiceover) src = src.concat(String(scene.voiceover).split(/[.!?;\n]|\s—\s/));
@@ -246,6 +234,23 @@ function pickNumber(scene) {
   if (!isFinite(target)) return null;
   return { pre: m[1] || "", target: clamp(target, 0, 100000), suf: m[3] || "" };
 }
+// Shorten to a WORD boundary, and say so when something was dropped.
+//
+// This was a bare `.slice(0, 28)`, which cuts mid-word: a real render shipped the stat card
+// "Serving+ monthly website vis" — the sentence simply stops, with no ellipsis to signal it,
+// so it reads as a rendering fault rather than an abbreviation. Trimming back to the last
+// whole word and appending an ellipsis costs nothing and always reads as deliberate.
+const LABEL_MAX = 28;
+function shortLabel(text, max = LABEL_MAX) {
+  const s = String(text || "").trim();
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max);
+  const at = cut.lastIndexOf(" ");
+  // Only honour the word boundary if it leaves a sensible amount of the label.
+  const base = at > max * 0.5 ? cut.slice(0, at) : cut;
+  return base.replace(/[\s,;:.!-]+$/, "") + "…";
+}
+
 function pickStats(scene, max, S) {
   const out = [];
   for (const l of (Array.isArray(scene.onScreenText) ? scene.onScreenText : [])) {
@@ -253,14 +258,14 @@ function pickStats(scene, max, S) {
     if (m && isFinite(parseFloat(m[2].replace(/,/g, "")))) {
       out.push({
         pre: m[1] || "", target: Math.round(parseFloat(m[2].replace(/,/g, ""))), suf: m[3] || "",
-        label: String(l).replace(m[0], "").trim().slice(0, 28) || S.metric,
+        label: shortLabel(String(l).replace(m[0], "").trim()) || S.metric,
       });
     }
     if (out.length >= max) break;
   }
   if (!out.length) {
     const n = pickNumber(scene);
-    if (n) out.push({ ...n, label: String(scene.subtext || scene.headline || S.metric).slice(0, 28) });
+    if (n) out.push({ ...n, label: shortLabel(scene.subtext || scene.headline || S.metric) });
   }
   return out.slice(0, max);
 }
@@ -318,6 +323,31 @@ function shotOk(a) {
   if (a.__layoutDemoted) return false;
   return isTrustedProminent(a) || a.cdProminence === "hero" || a.cdProminence === "support";
 }
+// THE RESERVE — captures the Visual Layout Director demoted past its presentation budget.
+//
+// VLD's contract is explicit: "no asset is discarded" — demoted assets are supposed to fall
+// through to atmospheric B-roll (visual_layout_director.js:18, :228). This pack has no
+// B-roll layer, and `shotOk` above rejects `__layoutDemoted` outright, so on all seven OM
+// skins a DEMOTION WAS A DELETION. With a thin asset set that starved the very display
+// beats the demotion was meant to improve: VLD trimmed to "fewer, larger, better" and the
+// film rendered fewer, larger, and EMPTY.
+//
+// So a demoted-but-trusted capture becomes a reserve, appended AFTER the primary shots.
+// Distribution below is coverage-first, so a reserve asset is only ever reached once every
+// beat that could hold a better one already has it — VLD's ranking is preserved, its
+// starvation side-effect is not.
+//
+// Demoted STOCK deliberately stays out: VLD zeroes `visionOk` when it demotes, so
+// isTrustedProminent rejects it. That is the trim working as intended — it should drop weak
+// stock, never the user's own uploads or their site's captures.
+function shotReserveOk(a) {
+  if (!a || !a.path) return false;
+  if (!a.__layoutDemoted) return false;            // the reserve is ONLY the demoted set
+  if (isLogo(a)) return false;
+  if (a.type === "video" || /\.(mp4|webm|mov)($|\?)/i.test(a.path)) return false;
+  if (/\.svg($|\?)/i.test(a.path)) return false;
+  return isTrustedProminent(a);
+}
 function markOk(a) {
   if (!a || !a.path) return false;
   if (a.type === "video" || /\.(mp4|webm|mov)($|\?)/i.test(a.path)) return false;
@@ -340,11 +370,31 @@ function deviceFor(a) {
   if (q <= 0.7) return (Number(a && a.width) || 0) >= 1000 ? "browser" : "phone";
   return "card";
 }
+// Hosts that serve a brand's FILES but are not the brand's address. An asset harvested from
+// a site routinely carries a storage/CDN sourceUrl, and putting one on screen tells the
+// viewer to visit a bucket.
+const NOT_A_BRAND_HOST = /(^|\.)(blob\.[a-z0-9-]+-storage\.com|s3[.-][a-z0-9-]*\.amazonaws\.com|amazonaws\.com|cloudfront\.net|akamaized\.net|fastly\.net|cdn\.[a-z0-9-]+\.[a-z]+|googleusercontent\.com|githubusercontent\.com|imgix\.net|cloudinary\.com|wp\.com|shopifycdn\.com|squarespace-cdn\.com|typekit\.net|gstatic\.com)$/i;
+
+// The address the film puts on screen — in the browser chrome and, more importantly, under
+// the CTA.
+//
+// The brand's OWN domain wins, and it is already known: graph.js derives it from the job's
+// websiteUrl (brandStringOverrides) and passes it through `localized` as ctaUrl for exactly
+// this purpose. This function ignored it and read the first asset's sourceUrl instead, so a
+// film made for vercel.com closed on "lishhsx6kmthaacj.public.blob.vercel-storage.com" — an
+// internal bucket hostname, in the one frame that exists to tell the viewer where to go.
+// Asset sourceUrls remain the fallback for a job with no analysed site, but storage/CDN
+// hosts are rejected there too: they are never the address anyone should type.
 function addressFrom(assets, S) {
+  const brand = String((S && S.ctaUrl) || "").trim().replace(/^https?:\/\//i, "").replace(/^www\./i, "").replace(/\/.*$/, "");
+  if (brand) return brand;
   for (const a of Array.isArray(assets) ? assets : []) {
     const u = a && a.sourceUrl;
     if (!u) continue;
-    try { const h = new URL(String(u)).hostname.replace(/^www\./, ""); if (h) return h; } catch { /* not a URL */ }
+    try {
+      const h = new URL(String(u)).hostname.replace(/^www\./, "");
+      if (h && !NOT_A_BRAND_HOST.test(h)) return h;
+    } catch { /* not a URL */ }
   }
   return S.addressBar;
 }
@@ -368,17 +418,65 @@ function scrollPlan(boxW, boxH, asset) {
 // fit, or — with no asset — a generated wireframe built from the pack's own colours so an
 // empty slot still reads as designed. The source's dashed "DROP IMAGE TO REPLACE" box is
 // deliberately gone: a placeholder must never reach a rendered film.
+// FIT BY WHAT THE ASSET IS. `contain` is correct for a SCREENSHOT — cropping a UI cuts off
+// the very thing the shot exists to show — but it is the wrong default for a photograph:
+// a portrait photo in a landscape tile gets pillarboxed, and the pack's own background shows
+// through the dead bands on both sides. A real montage rendered a person-at-a-desk photo
+// filling barely a fifth of its tile with empty maroon either side.
+//
+// A photo has no such constraint: it is a texture, and cropping it is what every editor does.
+// So screenshots keep `contain`, photography gets `cover`. Anything unclassified stays on the
+// conservative `contain` — showing all of an unknown asset beats cropping something important
+// out of it.
+const PHOTO_KINDS = new Set(["photo", "illustration", "people", "texture"]);
+function fitFor(asset) {
+  const hint = String((asset && (asset.kindHint || asset.assetType)) || "").toLowerCase();
+  if (PHOTO_KINDS.has(hint)) return "cover";
+  if (hint === "screenshot") return "contain";
+  // No hint: a wide-ish capture from the site is almost certainly a screen; a stock photo
+  // reaches us from a provider. Fall back on source rather than guessing from the ratio.
+  const src = String((asset && asset.source) || "").toLowerCase();
+  if (src === "website" || src === "upload") return "contain";
+  return src ? "cover" : "contain";
+}
 function plate(theme, { asset, scrollId, natH, tint }) {
   if (asset && asset.path) {
     return scrollId && natH
       ? `<div id="${scrollId}" style="position:absolute;left:0;right:0;top:0;height:${X(natH)};"><img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;"></div>`
-      : `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center;display:block;">`;
+      : `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:${fitFor(asset)};object-position:center;display:block;">`;
   }
   const wire = wirePlate(theme, tint);
   return scrollId && natH
     ? `<div id="${scrollId}" style="position:absolute;left:0;right:0;top:0;height:${X(natH)};">${wire}</div>`
     : `<div style="position:absolute;inset:0;">${wire}</div>`;
 }
+// A capture used as a BACKDROP rather than as a subject.
+//
+// Two things have to be true for this to read as art direction instead of a screenshot
+// pasted behind copy, and the first version of this plate got both wrong:
+//
+//  1. THE CAPTURE'S OWN TYPOGRAPHY MUST STOP COMPETING. Opacity alone does not achieve that.
+//     A white marketing page at opacity .2 over a near-black ground still resolves its black
+//     headings to mid-grey — a real render showed the site's own "Ship apps that scale from
+//     zero to millions instantly" and its whole nav bar fully readable, fighting the film's
+//     headline. Blur is what actually destroys glyph legibility while keeping the impression
+//     of a product screen, so the plate is blurred, not merely faded. The slight scale-up
+//     hides the transparent edge blur leaves behind.
+//
+//  2. THE EDGES MUST FADE INTO WHAT IS ACTUALLY BEHIND. The first version painted a scrim in
+//     `ctx.ground` — the flat scene colour — but every OM pack draws a live canvas world
+//     (hills, water, lanterns) between the ground and the copy. Wherever the world differed
+//     from the flat ground the scrim's edge did not match it and left a visible horizontal
+//     seam. This is the same blind spot as the headline contrast fix: code reasoning about
+//     `ctx.ground` while a canvas is what is really on screen. So the plate now fades its own
+//     ALPHA with a mask and makes no assumption about the colour behind it at all.
+const PLATE_MASK = "linear-gradient(to bottom,rgba(0,0,0,0) 0%,rgba(0,0,0,1) 22%,rgba(0,0,0,1) 78%,rgba(0,0,0,0) 100%)";
+function backingPlate(asset, top, height) {
+  return `<div style="position:absolute;left:0;right:0;top:${top};height:${height};overflow:hidden;-webkit-mask-image:${PLATE_MASK};mask-image:${PLATE_MASK};">
+      <img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;object-fit:cover;object-position:center;opacity:.22;filter:blur(${X(9)});transform:scale(1.06);display:block;">
+    </div>`;
+}
+
 function wirePlate(theme, tint) {
   const t = tint || theme.accent;
   const bar = (w, o) => `<div style="height:${X(28)};width:${w};border-radius:999px;background:${rgba(theme.ink, o)};flex:none;"></div>`;
@@ -461,7 +559,29 @@ function archetypeFor(scene, i, total) {
 }
 // Beats that can put imagery on screen. A shot must NEVER be stranded on a scene that
 // shows none, so distribution only ever targets these.
-const CAN_SHOW = new Set(["hook", "feature", "montage", "statement"]);
+// `stats` is here because a proof beat that the director assigned a capture to should SHOW
+// it. It was excluded, so on any ordinary deck — where "Trusted by 40,000 teams" and
+// "Deploy in 8 seconds" both classify as stats — a five-scene film had only TWO beats that
+// could carry imagery, and the shot the Creative Director pinned to the proof scene was
+// re-homed onto a beat that already had one. The counters keep the stage; the capture sits
+// behind them as a dimmed backing plate (see bStats), which is how a proof scene is shot in
+// any real product film.
+const CAN_SHOW = new Set(["hook", "feature", "montage", "statement", "stats"]);
+
+// How many shots a beat can actually RENDER. This is not decoration — it is the contract
+// the builders below implement, and distribution has to respect it or it hands a beat
+// material that beat will throw away:
+//   hook      — bHook draws sceneAssets[0] and nothing else                   → 1
+//   statement — deliberately takes at most one grounding shot                 → 1
+//   stats     — one soft backing plate behind the counters                    → 1
+//   feature   — one hero frame, but 2+ upgrades it to the wall (see dispatch) → 4
+//   montage   — the 2×2 tile wall                                            → 4
+// Without this, surplus shots were routed onto beats already at capacity and silently
+// vanished: the dispatch slices to the beat's limit, so the extras were dropped after the
+// Creative Director had paid to fetch, score and assign them. On the standard feature deck
+// that lost one of three captures outright.
+const SHOT_CAPACITY = { hook: 1, statement: 1, stats: 1, feature: 4, montage: 4 };
+const capacityOf = (arch) => SHOT_CAPACITY[arch] || 0;
 
 // ---- shared scene fragments --------------------------------------------------
 const PAD = 72;                                     // the source templates' safe margin
@@ -472,11 +592,29 @@ const kicker = (theme, text, color, align) =>
 
 // The display stack: one line per row, each its own animated element. `mark` underlines /
 // rings the emphasis word when the skin asks for it.
-function headStack(theme, skin, fit, { color, accent, align, markLast }) {
+// SEPARATION FROM THE WORLD. Every OM pack paints a live <canvas> world behind the copy —
+// rising lanterns, petals, sunrise beams, spotlights — and the pack's contrast machinery
+// (typeOn / onField / contrastFloor) grades text against `ctx.ground`, the flat scene colour.
+// It cannot see the canvas painted between the two. So a decoration in the pack's accent hue
+// can drift directly behind an accent-coloured headline and the glyphs lose almost all
+// separation: measured on a real render, a lantern passed behind "Notion" and the QA
+// reviewer flagged it as a readability blocker.
+//
+// The film cannot know where a decoration will be (the world is time-driven), so the type
+// carries its own protection: a tight shadow in the GROUND colour, which is by definition the
+// value the scene was designed to read against. On a clean background it is invisible; where
+// something passes behind, it restores the edge. Cheap, static, and applied at the one place
+// every display line is built.
+function headShadow(ground) {
+  const g = rgba(ground, 0.55);
+  return `text-shadow:0 ${X(2)} ${X(10)} ${g}, 0 0 ${X(4)} ${g};`;
+}
+function headStack(theme, skin, fit, { color, accent, align, markLast, ground }) {
   const { lines, size } = fit;
+  const shadow = ground ? headShadow(ground) : "";
   return lines.map((l, i) => {
     const isMark = markLast && i === lines.length - 1 && lines.length > 1;
-    return `<div data-in="rise" style="font-family:${theme.displayStack};font-size:${F(size)};line-height:${skin.headLine || 1.02};letter-spacing:${skin.headTrack || "-0.01em"};${skin.headTransform ? `text-transform:${skin.headTransform};` : ""}color:${isMark ? accent : color};text-align:${align || "left"};position:relative;">${esc(l)}</div>`;
+    return `<div data-in="rise" style="font-family:${theme.displayStack};font-size:${F(size)};line-height:${skin.headLine || 1.02};letter-spacing:${skin.headTrack || "-0.01em"};${skin.headTransform ? `text-transform:${skin.headTransform};` : ""}color:${isMark ? accent : color};text-align:${align || "left"};position:relative;${shadow}">${esc(l)}</div>`;
   }).join("");
 }
 
@@ -520,7 +658,7 @@ function bHook(scene, ctx, sceneAssets, logo) {
   const html = `${open(ctx)}
     <div style="position:absolute;left:${X(PAD)};right:${X(PAD)};top:${V(asset ? 300 : 520)};">
       ${mark}${kicker(theme, scene.kicker || S.hookKicker, theme.typeOn(theme.accent, ctx.ground))}
-      <div style="margin-top:${X(28)};">${headStack(theme, skin, fit, { color: theme.onField(ctx.ground), accent: theme.typeOn(theme.accent, ctx.ground), align: "left", markLast: true })}</div>
+      <div style="margin-top:${X(28)};">${headStack(theme, skin, fit, { color: theme.onField(ctx.ground), accent: theme.typeOn(theme.accent, ctx.ground), align: "left", markLast: true, ground: ctx.ground })}</div>
       ${sub ? `<div data-in="rise" style="font-family:${theme.bodyStack};font-weight:500;font-size:${F(fitPx(sub, 40, 90))};line-height:1.35;color:${rgba(theme.onField(ctx.ground), 0.68)};margin-top:${X(32)};max-width:${X(760)};">${esc(sub)}</div>` : ""}
     </div>
     ${frame}
@@ -546,7 +684,7 @@ function bStatement(scene, ctx, sceneAssets) {
   const html = `${open(ctx)}
     <div style="position:absolute;left:${X(PAD)};right:${X(PAD)};top:${V(asset ? 380 : 620)};">
       <div data-in="draw" style="width:${X(96)};height:${X(10)};border-radius:999px;background:${theme.typeOn(theme.accent, ctx.ground)};margin-bottom:${X(42)};transform-origin:left center;"></div>
-      ${headStack(theme, skin, fit, { color: theme.onField(ctx.ground), accent: theme.typeOn(theme.accent, ctx.ground), align: "left", markLast: true })}
+      ${headStack(theme, skin, fit, { color: theme.onField(ctx.ground), accent: theme.typeOn(theme.accent, ctx.ground), align: "left", markLast: true, ground: ctx.ground })}
       ${sub ? `<div data-in="rise" style="font-family:${theme.bodyStack};font-weight:500;font-size:${F(fitPx(sub, 38, 100))};line-height:1.38;color:${rgba(theme.onField(ctx.ground), 0.66)};margin-top:${X(36)};max-width:${X(780)};">${esc(sub)}</div>` : ""}
       ${attribution && !sub ? `<div data-in="rise" style="font-family:${theme.bodyStack};font-weight:700;font-size:${F(34)};color:${theme.typeOn(theme.accent, ctx.ground)};margin-top:${X(32)};">${esc(attribution)}</div>` : ""}
     </div>
@@ -572,7 +710,7 @@ function bFeature(scene, ctx, sceneAssets) {
   const html = `${open(ctx)}
     <div style="position:absolute;left:${X(PAD)};right:${X(PAD)};top:${V(300)};">
       ${kicker(theme, scene.kicker || S.featureKicker, theme.typeOn(theme.accent, ctx.ground))}
-      <div style="margin-top:${X(22)};">${headStack(theme, skin, fit, { color: theme.onField(ctx.ground), accent: theme.typeOn(theme.accent, ctx.ground), align: "left", markLast: true })}</div>
+      <div style="margin-top:${X(22)};">${headStack(theme, skin, fit, { color: theme.onField(ctx.ground), accent: theme.typeOn(theme.accent, ctx.ground), align: "left", markLast: true, ground: ctx.ground })}</div>
     </div>
     <div data-in="pop" style="position:absolute;left:${X(isPhone ? 340 : PAD)};right:${X(isPhone ? 340 : PAD)};top:${V(760)};${isPhone ? `height:${X(760)};` : ""}">
       ${frameHtml(theme, skin, { device, asset, boxH, tint: theme.accent, scrollId: plan.frac ? scrollId : null, natH: plan.natH, address })}
@@ -599,7 +737,7 @@ function bMontage(scene, ctx, sceneAssets) {
   const html = `${open(ctx)}
     <div style="position:absolute;left:${X(PAD)};right:${X(PAD)};top:${V(300)};">
       ${kicker(theme, scene.kicker || S.montageKicker, theme.typeOn(theme.accent, ctx.ground))}
-      <div style="margin-top:${X(22)};">${headStack(theme, skin, fit, { color: theme.onField(ctx.ground), accent: theme.typeOn(theme.accent, ctx.ground), align: "left", markLast: true })}</div>
+      <div style="margin-top:${X(22)};">${headStack(theme, skin, fit, { color: theme.onField(ctx.ground), accent: theme.typeOn(theme.accent, ctx.ground), align: "left", markLast: true, ground: ctx.ground })}</div>
     </div>
     <div style="position:absolute;left:${X(PAD)};right:${X(PAD)};top:${V(720)};display:grid;grid-template-columns:${cells.length <= 2 ? "1fr" : "1fr 1fr"};gap:${X(24)};">
       ${cells.map((c) => `<div data-in="pop" style="height:${X(cells.length <= 2 ? 380 : 290)};position:relative;">
@@ -612,17 +750,27 @@ function bMontage(scene, ctx, sceneAssets) {
 }
 
 // STATS — animated counters in the display face with their labels. The proof beat.
-function bStats(scene, ctx) {
+//
+// When the director pinned a capture to this beat it now sits BEHIND the counters as a
+// dimmed backing plate, scrimmed top and bottom into the ground so the cards keep their
+// contrast (they are drawn on opaque `theme.paper`, so the plate cannot touch their
+// legibility). Deliberately static: the counters are the motion here, and a moving
+// backdrop under rising cards is noise, not hierarchy — it drifts with the scene camera
+// like the rest of the frame. With no capture the beat renders exactly as it always did.
+function bStats(scene, ctx, sceneAssets) {
   const { theme, skin, S } = ctx;
+  const asset = (sceneAssets && sceneAssets[0]) || null;
   const stats = pickStats(scene, 3, S);
   const fit = fitLines(scene.headline || scene.title || "", {
     basePx: skin.sizes.stats, maxLines: 2, colPx: COL, em: skin.em, upper: skin.headUpper,
   });
   const hard = skin.frameStyle === "hard";
+  const backing = asset && asset.path ? backingPlate(asset, V(700), V(1000)) : "";
   const html = `${open(ctx)}
+    ${backing}
     <div style="position:absolute;left:${X(PAD)};right:${X(PAD)};top:${V(340)};">
       ${kicker(theme, scene.kicker || S.statsKicker, theme.typeOn(theme.accent, ctx.ground))}
-      <div style="margin-top:${X(22)};">${headStack(theme, skin, fit, { color: theme.onField(ctx.ground), accent: theme.typeOn(theme.accent, ctx.ground), align: "left", markLast: true })}</div>
+      <div style="margin-top:${X(22)};">${headStack(theme, skin, fit, { color: theme.onField(ctx.ground), accent: theme.typeOn(theme.accent, ctx.ground), align: "left", markLast: true, ground: ctx.ground })}</div>
     </div>
     <div style="position:absolute;left:${X(PAD)};right:${X(PAD)};top:${V(820)};display:flex;flex-direction:column;gap:${X(28)};">
       ${stats.map((st) => `<div data-in="rise" style="display:flex;align-items:center;gap:${X(36)};background:${theme.paper};border-radius:${X(hard ? 20 : 30)};padding:${X(30)} ${X(42)};${hard ? `border:${X(4)} solid ${theme.ink};box-shadow:${X(10)} ${X(12)} 0 ${theme.ink};` : `border:${X(2)} solid ${rgba(theme.ink, 0.1)};box-shadow:0 ${X(16)} ${X(36)} ${rgba(theme.ink, 0.07)};`}">
@@ -647,11 +795,20 @@ function bCta(scene, ctx, _assets, logo) {
   const mark = logo && logo.path
     ? `<img src="${esc(logo.path)}" alt="${esc(logo.alt || "logo")}" style="max-width:${X(110)};max-height:${X(110)};object-fit:contain;display:block;">`
     : `<div style="width:${X(58)};height:${X(58)};border-radius:${X(14)};background:${theme.accent2};"></div>`;
+  // THE CTA FILLS ITS FRAME. This block was pinned at `top:V(560)` — a fixed 29% anchor — so
+  // its content ended around 64% of frame height and the bottom third of the film's most
+  // important shot was empty ground. In portrait that is the most valuable space there is.
+  //
+  // Centring inside the safe band fixes both halves of the problem at once: the composition
+  // is balanced whatever the headline runs to (one line or three), instead of a fixed start
+  // point that only looked right for one length. The band comes from responsive.safeArea, so
+  // the CTA also stays clear of the platform chrome Reels/TikTok/Shorts overlay on top of it.
+  const sa = ctx.sa || { top: 0.10, bottom: 0.13 };
   const html = `${open(ctx)}
-    <div style="position:absolute;left:${X(PAD)};right:${X(PAD)};top:${V(560)};">
-      <div data-in="pop" style="width:${X(150)};height:${X(150)};border-radius:${X(hard ? 28 : 999)};background:${theme.paper};display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:${X(44)};${hard ? `border:${X(5)} solid ${theme.ink};box-shadow:${X(10)} ${X(12)} 0 ${theme.ink};` : `box-shadow:0 ${X(20)} ${X(44)} ${rgba(theme.ink, 0.18)};`}">${mark}</div>
-      ${headStack(theme, skin, fit, { color: ink, accent: theme.typeOn(theme.accent, ctx.ground), align: "left", markLast: true })}
-      <div data-in="pop" style="display:inline-flex;align-items:center;gap:${X(18)};margin-top:${X(52)};padding:${X(26)} ${X(50)};border-radius:999px;background:${theme.accent};color:${theme.onField(theme.accent)};font-family:${theme.displayStack};font-size:${F(fitPx(btn, 46, 16))};${hard ? `border:${X(5)} solid ${theme.ink};box-shadow:${X(9)} ${X(10)} 0 ${theme.ink};` : ""}">
+    <div style="position:absolute;left:${X(PAD)};right:${X(PAD)};top:${r(sa.top * 100)}%;bottom:${r(sa.bottom * 100)}%;display:flex;flex-direction:column;justify-content:center;">
+      <div data-in="pop" style="width:${X(150)};height:${X(150)};border-radius:${X(hard ? 28 : 999)};background:${theme.paper};display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:${X(44)};flex:none;${hard ? `border:${X(5)} solid ${theme.ink};box-shadow:${X(10)} ${X(12)} 0 ${theme.ink};` : `box-shadow:0 ${X(20)} ${X(44)} ${rgba(theme.ink, 0.18)};`}">${mark}</div>
+      ${headStack(theme, skin, fit, { color: ink, accent: theme.typeOn(theme.accent, ctx.ground), align: "left", markLast: true, ground: ctx.ground })}
+      <div data-in="pop" style="display:inline-flex;align-self:flex-start;flex:none;align-items:center;gap:${X(18)};margin-top:${X(52)};padding:${X(26)} ${X(50)};border-radius:999px;background:${theme.accent};color:${theme.onField(theme.accent)};font-family:${theme.displayStack};font-size:${F(fitPx(btn, 46, 16))};${hard ? `border:${X(5)} solid ${theme.ink};box-shadow:${X(9)} ${X(10)} 0 ${theme.ink};` : ""}">
         ${esc(btn)}<span style="width:${X(24)};height:${X(24)};border-top:${X(6)} solid currentColor;border-right:${X(6)} solid currentColor;display:inline-block;flex:none;transform:rotate(45deg);"></span>
       </div>
       ${url ? `<div data-in="rise" style="font-family:${theme.bodyStack};font-weight:700;font-size:${F(38)};letter-spacing:.04em;color:${theme.typeOn(theme.accent, ctx.ground)};margin-top:${X(44)};">${esc(url)}</div>` : ""}
@@ -825,12 +982,44 @@ function build(skin, { storyboard, dims, framePack, captionCues, assets, brandSk
   // film with no imagery at all.
   const all = Array.isArray(assets) ? assets : [];
   const logo = logoAssetOf(all);
-  const shots = all.filter(shotOk).sort((a, b) => (Number(b.cdScore) || 0) - (Number(a.cdScore) || 0));
+  const byScore = (a, b) => (Number(b.cdScore) || 0) - (Number(a.cdScore) || 0);
+  const primaryShots = all.filter(shotOk).sort(byScore);
+  // Demoted-but-trusted captures, ranked among themselves, appended behind the primaries
+  // (see shotReserveOk). Coverage-first distribution means these only fill beats that
+  // would otherwise render no imagery at all.
+  const reserveShots = all.filter(shotReserveOk).sort(byScore);
+  const shots = [...primaryShots, ...reserveShots];
+  if (reserveShots.length) {
+    console.log(`[om_stage] ${reserveShots.length} layout-demoted capture(s) held in reserve for otherwise-empty beats`);
+  }
 
   const baseArch = scenes.map((sc, i) => archetypeFor(sc, i, scenes.length));
+
+  // ANTI-REPETITION (services/motion_planner). archetypeFor above ends in a single
+
+  // fallthrough, so every middle scene of a text-led film lands on the same type and the
+
+  // film reads as one backdrop with rotating copy. This breaks adjacent duplicates using
+
+  // ONLY this pack's own generic scene types — data-shaped ones (stats/chart/gallery)
+
+  // keep their type, because their builders have preconditions a swap would violate.
+
+  const { archetypes: __varied } = varyArchetypes(baseArch, {
+
+    pool: Object.keys(BUILDERS),
+
+    seedKey: scenes.map((s) => s && s.id).join("|"),
+
+  });
+
+  for (let __i = 0; __i < baseArch.length; __i++) baseArch[__i] = __varied[__i];
   // A montage beat only earns its tile wall when there is enough real imagery to fill it;
   // with 3+ captures, promote a middle scene so the wall actually happens.
-  if (shots.length >= 3 && !baseArch.includes("montage")) {
+  // Promotion is judged on the PRIMARY shots only: a tile wall must be earned by imagery
+  // VLD actually endorsed, not by the reserve it demoted — otherwise a heavily-trimmed film
+  // would grow a wall it has nothing good to fill.
+  if (primaryShots.length >= 3 && !baseArch.includes("montage")) {
     const idx = baseArch.findIndex((a, i) => i > 0 && i < scenes.length - 1 && a === "statement");
     if (idx >= 0) baseArch[idx] = "montage";
   }
@@ -844,11 +1033,59 @@ function build(skin, { storyboard, dims, framePack, captionCues, assets, brandSk
       const target = sid != null ? displayIdx.find((i) => sceneIdOf(i) === sid) : undefined;
       if (target != null) sceneShots[target].push(a); else leftovers.push(a);
     }
-    // The montage wall wants MULTIPLE shots; feed it before evening out the rest.
+    // COVERAGE BEFORE DEPTH. Every display beat earns its FIRST shot before any beat earns
+    // a second; only then does the montage wall accumulate the surplus.
+    //
+    // This used to read "the montage wall wants MULTIPLE shots; feed it before evening out
+    // the rest", and fed the wall unconditionally until it held four. The even-out branch
+    // was gated on `montage == null`, so whenever a wall existed it never ran at all — and
+    // a wall almost always exists, because varyArchetypes() breaks the adjacent-duplicate
+    // `feature, feature` that any ordinary deck produces by promoting one of them to
+    // "montage". Net effect on a 5-scene film with 3 captures: feature=1, montage=2, and
+    // the HOOK — a display beat holding nothing — skipped, so three of five scenes rendered
+    // no imagery at all while one scene stacked two. Concentration, not distribution.
+    //
+    // A wall degrades gracefully (bMontage pads empty tiles with the pack's own colour
+    // blocks and drops to a single column at ≤2), so spreading costs it nothing real;
+    // leaving beats empty costs the film a visual on screen. Spread wins.
+    // Every step below is capacity-bounded (see SHOT_CAPACITY): a beat is only ever offered
+    // a shot it can actually draw, so nothing is assigned and then sliced away.
+    const room = (i) => sceneShots[i].length < capacityOf(baseArch[i]);
+    // A BEAT MUST NEVER HOLD THE SAME PICTURE TWICE. With the Asset Reuse Optimizer on the
+    // wire, one picture can arrive as SEVERAL entries (one path, several scenes). A clone
+    // whose own scene is not display-capable falls through to `leftovers` — and the even-out
+    // steps below would happily hand it to the very beat already showing its original. The
+    // result would be a 2×2 wall with the same capture in two tiles, which is strictly worse
+    // than the palette colour block bMontage pads a short wall with (see its header): the
+    // block reads as design, the duplicate reads as a bug.
+    //
+    // Byte-identical before reuse — upstream de-duplication means every entry already has a
+    // distinct path, so `holds` is uniformly false and `free` collapses to `room`.
+    const holds = (i, a) => sceneShots[i].some((x) => x && a && x.path === a.path);
+    const free = (i, a) => room(i) && !holds(i, a);
     for (const a of leftovers) {
-      const montage = displayIdx.find((i) => baseArch[i] === "montage" && sceneShots[i].length < 4);
-      let best = montage != null ? montage : displayIdx[0];
-      if (montage == null) for (const i of displayIdx) if (sceneShots[i].length < sceneShots[best].length) best = i;
+      // 1) any display beat still showing NOTHING — the wall first among equals, so a
+      //    promoted montage is never the one left bare. (An empty beat cannot hold a
+      //    duplicate, so this step needs no `free` check.)
+      let best = displayIdx.find((i) => baseArch[i] === "montage" && !sceneShots[i].length);
+      if (best == null) best = displayIdx.find((i) => !sceneShots[i].length && free(i, a));
+      // 2) everyone covered — the wall takes the surplus, up to its four tiles.
+      if (best == null) best = displayIdx.find((i) => baseArch[i] === "montage" && free(i, a));
+      // 3) no wall, or it is full — even out onto the least-loaded beat that still has room.
+      if (best == null) {
+        const open = displayIdx.filter((i) => free(i, a));
+        if (open.length) {
+          best = open[0];
+          for (const i of open) if (sceneShots[i].length < sceneShots[best].length) best = i;
+        }
+      }
+      // 4) every display beat is at capacity. Dropping the shot here is the one outcome
+      //    worth avoiding, so the least-loaded wall-capable beat absorbs it; if there is
+      //    genuinely nowhere (a deck of nothing but hook + statement), it is left out
+      //    rather than assigned to a beat that would silently discard it. Still never onto
+      //    a beat already showing this picture — a dropped duplicate beats a doubled tile.
+      if (best == null) best = displayIdx.find((i) => capacityOf(baseArch[i]) >= 4 && !holds(i, a));
+      if (best == null) continue;
       sceneShots[best].push(a);
     }
   }
@@ -887,14 +1124,16 @@ function build(skin, { storyboard, dims, framePack, captionCues, assets, brandSk
     // its identity and takes at most one grounding shot.
     if (CAN_SHOW.has(arch) && sceneAssets.length) {
       if (arch === "montage") sceneAssets = sceneAssets.slice(0, 4);
-      else if (arch === "statement") sceneAssets = sceneAssets.slice(0, 1);
+      // statement and stats keep their identity — the rule-and-quote layout and the counter
+      // cards ARE the beat. They take one grounding/backing shot and never become a wall.
+      else if (arch === "statement" || arch === "stats") sceneAssets = sceneAssets.slice(0, 1);
       else if (sceneAssets.length >= 2 && arch !== "hook") { arch = "montage"; sceneAssets = sceneAssets.slice(0, 4); }
       else sceneAssets = sceneAssets.slice(0, 1);
     } else if (arch === "montage" && !sceneAssets.length) {
       arch = "feature";     // an empty wall is worse than one wireframe product moment
     }
 
-    const ctx = { id: `s${i + 1}`, T, L, i, isLast: i === scenes.length - 1, track: 10 + i, theme, skin, S, ground, address, title };
+    const ctx = { id: `s${i + 1}`, T, L, i, isLast: i === scenes.length - 1, track: 10 + i, theme, skin, S, ground, address, title, sa: safeArea(W, H) };
     const built = (BUILDERS[arch] || bStatement)(scene, ctx, arch === "cta" ? null : sceneAssets, logo);
     bodyParts.push(built.html);
     labels.push(String(scene.kicker || scene.purpose || arch).slice(0, 22));

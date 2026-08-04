@@ -29,9 +29,24 @@ const CUES = {
   "transition":{ q: "cinematic transition sweep", dur: "[0.5 TO 3]" },
 };
 
+// PEAK-normalize, not program-normalize.
+//
+// This used to be `loudnorm=I=-18` — an INTEGRATED-LOUDNESS algorithm, applied to
+// sub-second one-shots. Integrated loudness is measured over a 400ms window against a
+// gating threshold; on a 200ms click there is nothing for it to measure, and on a short
+// transient it mis-corrects badly. Measured on the library it produced: `impact` at
+// −26.2 LUFS against −18.4 for everything else — 8 dB down, so the cue reserved for the
+// film's climax was the quietest thing in it — and `click`/`pop` unmeasurable entirely.
+//
+// One-shots are normalized by PEAK. Perceived level between cue families is then set by
+// audio_cues.CUES[*].trimDb, and the final mix level by the Audio Director's gainDb.
+// (services/audio_cues.conditionCue applies the same treatment at use time, so a cue from
+// any source — this library or the web — arrives comparable.)
 function ffmpegNormalize(src, dest) {
   return new Promise((resolve, reject) => {
-    const p = spawn("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error", "-i", src, "-af", "loudnorm=I=-18:TP=-2:LRA=7", "-ar", "44100", "-b:a", "128k", dest]);
+    const p = spawn("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error", "-i", src,
+      "-af", "silenceremove=start_periods=1:start_threshold=-50dB:start_silence=0.01,highpass=f=60,dynaudnorm=p=0.9:m=1:g=3,alimiter=level=false:limit=0.84",
+      "-ar", "44100", "-b:a", "160k", dest]);
     p.on("error", reject);
     p.on("exit", (c) => c === 0 ? resolve() : reject(new Error(`ffmpeg exit ${c}`)));
   });
