@@ -14,6 +14,7 @@
 // ─────────────────────────────────────────────────────────────────────────────────────
 
 const K = require("./om_port_kit");
+const F = require("./deep_furniture");
 const { r, esc, rgba } = K;
 
 const STAGE = K.stageOf(1920, 1080);
@@ -52,22 +53,15 @@ const COL = U(1920) - M * 2;
 // Everything is a gradient or a solid — no blur filters, which is what keeps the
 // heavy-overlay count low (a stack of them is what makes a composition capture black).
 const MOTES = [[8, 72], [21, 34], [33, 88], [44, 18], [56, 60], [67, 30], [78, 80], [89, 46], [95, 14], [15, 52]];
+// REBUILT 5 Aug 2026 against the readable reference. The port had the trench COLOURS and none of
+// its life — the reference's OceanBG carries caustic light shafts, drifting plankton, kelp
+// swaying from the seabed, fish crossing the frame and bubbles rising continuously. See
+// deep_furniture.js. The theme names its grounds top/mid/bg; the furniture takes bgTop/bgMid/
+// bgDeep, mapped here rather than renaming a theme four other scenes read.
 function water(id, th) {
-  const rays = [14, 33, 58, 79].map((x, i) =>
-    `linear-gradient(${172 + i * 3}deg, transparent 0%, ${rgba(th.accent, 0.09)} 18%, transparent 52%)`).join(",");
-  const motes = MOTES.map(([x, y], i) =>
-    `radial-gradient(circle ${(i % 3) + 2}px at ${x}% ${y}%, ${rgba(th.ink, 0.5 - (i % 3) * 0.1)} 0 100%, transparent 100%)`).join(",");
-  return `<div style="position:absolute;inset:0;background:linear-gradient(180deg, ${th.top} 0%, ${th.mid} 46%, ${th.bg} 100%);overflow:hidden;">
-    <div class="${id}-rays" style="position:absolute;inset:${r(-U(80))}cqw;background:${rays};"></div>
-    <div style="position:absolute;left:-8%;top:52%;width:56%;height:56%;background:radial-gradient(ellipse, ${rgba(th.glow2, 0.3)} 0%, transparent 66%);"></div>
-    <div style="position:absolute;right:-6%;top:8%;width:44%;height:48%;background:radial-gradient(ellipse, ${rgba(th.accent, 0.18)} 0%, transparent 66%);"></div>
-    <div class="${id}-motes" style="position:absolute;inset:${r(-U(60))}cqw;background:${motes};"></div>
-  </div>`;
+  return F.oceanBg({ ...th, bgTop: th.top, bgMid: th.mid, bgDeep: th.bg }, { cls: id });
 }
-const waterTweens = (id, ctx) => [
-  `tl.to(".${id}-rays",{x:"${r(U(40))}cqw",duration:${r(Math.max(5, ctx.L * 1.6))},ease:"sine.inOut",repeat:${K.reps(ctx.L, Math.max(5, ctx.L * 1.6))},yoyo:true},${r(ctx.T)});`,
-  `tl.to(".${id}-motes",{y:"${r(-U(140))}cqw",duration:${r(Math.max(6, ctx.L * 2))},ease:"none"},${r(ctx.T)});`,
-];
+const waterTweens = (id, ctx) => F.oceanTweens(ctx, { cls: id });
 
 const glowText = (th) => `text-shadow:0 0 ${r(U(26))}cqw ${th.halo};`;
 const kicker = (th, t) =>
@@ -259,6 +253,7 @@ function sSurface(scene, ctx, logo) {
       </div>
     </div>`,
     s: [
+      ...waterTweens(id, ctx),
       `tl.to(".${id}-motes",{y:"${r(-U(160))}cqw",duration:${r(Math.max(5, ctx.L * 1.8))},ease:"none"},${r(ctx.T)});`,
       hasMark ? `tl.fromTo(".${id}-logo",{opacity:0,scale:0.5,y:"${r(U(40))}cqw"},{opacity:1,scale:1,y:0,duration:${du(0.6)},ease:"back.out(1.8)"},${at(0.28)});` : "",
       `tl.fromTo(".${id}-head",{opacity:0,y:"${r(U(40))}cqw"},{opacity:1,y:0,duration:${du(0.75)},ease:"power3.out"},${at(0.55)});`,
@@ -287,8 +282,8 @@ const SPEC = {
 };
 const BUILDERS = {
   descend: sDescend, discover: sDiscover, pocket: sPocket, explore: sExplore, signals: sSignals, surface: sSurface,
-  statement: (sc, ctx) => ({ ...K.statement(sc, ctx), backdrop: water(ctx.id, ctx.th) }),
-  "statement-c": (sc, ctx) => ({ ...K.statement(sc, ctx, { centred: true }), backdrop: water(ctx.id, ctx.th) }),
+  statement: (sc, ctx) => { const b = K.statement(sc, ctx); return { ...b, backdrop: water(ctx.id, ctx.th), s: [...(b.s || []), ...waterTweens(ctx.id, ctx)] }; },
+  "statement-c": (sc, ctx) => { const b = K.statement(sc, ctx, { centred: true }); return { ...b, backdrop: water(ctx.id, ctx.th), s: [...(b.s || []), ...waterTweens(ctx.id, ctx)] }; },
 };
 const LABELS = {
   descend: STRINGS.descend, discover: STRINGS.discover, explore: STRINGS.explore,
