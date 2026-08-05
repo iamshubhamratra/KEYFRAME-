@@ -437,6 +437,7 @@ function buildComposition(input) {
     ...input, stage: STAGE, theme, STRINGS, spec: SPEC, builders: BUILDERS, labels: LABELS,
     refBeat: 2.65,                      // the reference runs 6 scenes in ~15.9s
     camera: { push: 0.03, drift: 0.012 },
+    signature: "cinematic",
     fallbackBrand: "DRIVE",
   });
 }

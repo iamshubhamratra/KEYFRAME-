@@ -28,6 +28,9 @@
 const { fontFaceCss, isBundled } = require("./../fonts/pack_fonts");
 const { resolveBrand } = require("./brand_kit");
 const { GSAP_CDN, r, esc, hexToRgb, relLum, bullets, logoAssetOf, resolveBrandName } = require("./composer_kit");
+const {
+  dealTransitions, classifyBeat, xfadeFor, accentsFrom, mulberry, RUNTIME_HELPERS,
+} = require("./transition_kit");
 
 // ---- stage -------------------------------------------------------------------
 // Every geometry helper is built against ONE stage, so a template states its authored size
@@ -297,16 +300,31 @@ function seedFrom(str) {
 const pad2 = (n) => String(n).padStart(2, "0");
 
 // ---- shell -------------------------------------------------------------------
-// The clip + camera + chrome wrapper every scene shares. Background and chrome sit OUTSIDE the
-// camera layer; everything the beat draws sits inside it. That separation is the only reason
-// the reference's hard cuts read as cuts rather than as jumps — the furniture never moves.
+// The clip + camera + chrome wrapper every scene shares.
+//
+// FOUR LAYERS, AND EACH ONE IS OWNED BY EXACTLY ONE ANIMATOR. That single-ownership rule is
+// what lets this family have both a continuously-alive frame and varied cuts without the two
+// systems fighting for a property (`overlapping_gsap_tweens` is a seek-order hazard, not just
+// a lint nit):
+//
+//   .om-cam    the CUT layer      — owned by transition_kit. transform/opacity/filter/clip-path.
+//   .om-bg     the PARALLAX layer — the pack's backdrop, drifting slower than the content.
+//   .om-drift  the AMBIENT layer  — the content's own slow push across the beat.
+//   .om-hud    the FURNITURE      — chrome. Sits OUTSIDE .om-cam so it never rides the cut;
+//                                   cross-faded across the overlap so two scenes' HUDs never
+//                                   ghost over each other.
+//
+// The HUD wrapper is kit-owned on purpose: packs return wildly different chrome markup (a
+// bare positioned div, a `.om-chrome` block, a story bar), so there is no class the kit could
+// rely on. The wrapper is `position:static`, so absolutely-positioned chrome still resolves
+// against the clip root exactly as it did before — geometry is untouched.
 function open(ctx, inner, { backdrop = "", chrome = null } = {}) {
   return `<div id="${ctx.id}" class="clip om-scene" data-start="${r(ctx.T)}" data-duration="${r(ctx.clipDur)}" data-track-index="${ctx.track}" style="opacity:0;">
   <div class="om-cam">
-    ${backdrop}
-    ${inner}
+    <div class="om-bg">${backdrop}</div>
+    <div class="om-drift">${inner}</div>
   </div>
-  ${chrome == null ? chromeHtml(ctx) : chrome}
+  <div class="om-hud">${chrome == null ? chromeHtml(ctx) : chrome}</div>
 </div>`;
 }
 
@@ -333,9 +351,10 @@ function chromeTweens(ctx, D) {
   return [`tl.fromTo(".${ctx.id}-prog",{scaleX:${r(from)}},{scaleX:${r(to)},duration:${r(ctx.clipDur)},ease:"none"},${r(ctx.T)});`];
 }
 
-// The camera: a slide-push in, a slow scale across the beat, a slide-push out. Authored as a
-// FRACTION of the beat — a 2-second scene given a fixed 0.55s push would spend half its life
-// arriving. The opacity dip at each end is what gives a hard cut its breath.
+// LEGACY camera: a slide-push in, a slow scale across the beat, a slide-push out — ONE move,
+// performed identically by every scene of every film of all 14 packs. Kept only for a pack that
+// explicitly opts out of the transition system (`transitions:false`), because a template with a
+// bespoke edit of its own should not be forced onto the shared one.
 function cameraTweens(ctx, { push = 200, scale = 1.03 } = {}) {
   const { id, L, U } = ctx;
   const IN = Math.min(0.55, L * 0.12), OUT = Math.max(0.1, L * 0.12);
@@ -348,6 +367,39 @@ function cameraTweens(ctx, { push = 200, scale = 1.03 } = {}) {
     // non-linear seek landing after the exit would restore stale visibility on `.om-cam`
     // while the root is hidden, and the renderer's lint fails the composition for it.
     `tl.set("#${id} .om-cam",{opacity:0},${r(ctx.T + ctx.clipDur)});`,
+  ];
+}
+
+// THE CAMERA CONFIG WAS BEING READ IN TWO DIFFERENT UNITS. `cameraTweens` takes `push` in
+// AUTHORED PIXELS and runs it through U(); drive, momentum and teampulse each passed a
+// FRACTION (`push: 0.03`) plus a `drift` key that nothing read. U(0.03) is 0.003cqw, so those
+// three packs pushed by three thousandths of a frame — no camera move at all, only the 3%
+// scale — and momentum's own comment says its per-scene "zoom/whip rig becomes the kit's
+// camera". The intent was there; the units silently ate it.
+//
+// Both spellings are now honoured: >= 1 means authored px, < 1 means a fraction of the frame.
+function normalizeCamera(camera = {}, stage) {
+  const raw = Number(camera.push);
+  const pushPx = !Number.isFinite(raw) ? 200 : (raw >= 1 ? raw : raw * stage.W);
+  const scale = Number(camera.scale) || (Number(camera.drift) ? 1 + Number(camera.drift) : 1.03);
+  return { push: pushPx, scale };
+}
+
+// AMBIENT MOTION — the reason a frame reads as alive between cuts rather than as a still that
+// happens to arrive and leave. Two layers moving at different rates is the cheapest honest
+// parallax there is: the backdrop creeps, the content pushes, and the gap between them reads
+// as depth.
+//
+// The magnitude is deliberately the SAME 1.03 the old single-layer camera used, so the safe
+// area every pack's layout was measured against is unchanged (the SAFE-AREA LAW: a camera that
+// scales its own layer shrinks the usable frame). This is a redistribution of existing motion
+// across layers, not an increase in it.
+function driftTweens(ctx, { scale = 1.03, dir = 1 } = {}) {
+  const { id, L, T } = ctx;
+  const bgScale = 1 + (scale - 1) * 0.45;   // the backdrop creeps at under half the content's rate
+  return [
+    `tl.fromTo("#${id} .om-drift",{scale:1,y:"${r(0.5 * dir)}cqw"},{scale:${r(scale)},y:"${r(-0.5 * dir)}cqw",duration:${r(L)},ease:"sine.inOut"},${r(T)});`,
+    `tl.fromTo("#${id} .om-bg",{scale:${r(bgScale)},x:"${r(-0.6 * dir)}cqw"},{scale:1,x:"${r(0.6 * dir)}cqw",duration:${r(L)},ease:"sine.inOut"},${r(T)});`,
   ];
 }
 // The camera scales its own layer, so that fraction of every edge is off-frame for the whole
@@ -416,8 +468,25 @@ function baseCss(th, stage, extra = "") {
   html, body { width:100%; height:100%; overflow:hidden; background:${th.bg}; }
   #root { position:relative; overflow:hidden; isolation:isolate; background:${th.bg}; container-type:size; color:${th.ink}; font-family:${th.displayStack}; }
   .clip { position:absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; }
-  .om-scene { background:${th.bg}; }
-  .om-cam { position:absolute; inset:0; will-change:transform, opacity; transform-origin:center center; }
+  /* The perspective lives on the SCENE, not on the layer being rotated: a transform layer
+     cannot supply its own vanishing point, so perspective-flip would otherwise flatten into a
+     horizontal squash instead of reading as a card turning in space. */
+  /* The base plate lives on .om-cam, NOT on the scene root. Two scenes coexist for the length of
+     a cut, and the incoming clip's root turns opaque the instant its beat starts — an opaque root
+     would slam a flat rectangle over the outgoing scene and eat the whole transition. On .om-cam
+     the plate is carried BY the cut, so it moves, fades and clips with the scene it belongs to.
+     #root paints th.bg underneath, so a transition that scales or slides .om-cam away still lands
+     on the pack's own background rather than on white. */
+  .om-scene { perspective:1400px; }
+  .om-cam { position:absolute; inset:0; background:${th.bg}; will-change:transform, opacity, filter; transform-origin:center center; }
+  /* Parallax pair. Both inset:0 and unpositioned-content-transparent: absolutely positioned
+     children resolve against a box identical to .om-cam's, so every pack's existing geometry
+     is byte-for-byte unchanged by the extra nesting. */
+  .om-bg { position:absolute; inset:0; will-change:transform; transform-origin:center center; }
+  .om-drift { position:absolute; inset:0; will-change:transform; transform-origin:center center; }
+  /* Static on purpose — see open(). Absolutely positioned chrome keeps resolving against the
+     clip root, so wrapping it changes opacity ownership and nothing else. */
+  .om-hud { position:static; }
   .om-chrome { position:absolute; inset:0; pointer-events:none; z-index:40; }
   /* .kw / .kwi are the names caption_render.js's SHAPING_FIX targets — a non-Latin video-text
      language relies on the overflow being neutralised HERE. */
@@ -431,9 +500,14 @@ function baseCss(th, stage, extra = "") {
 ${extra}`;
 }
 
-// Assemble the document. IT CUTS: a scene's clip ends exactly where the next begins — the
-// reference's own `transition="cut"`.
-function document_({ th, stage, css, bodyParts, sceneScripts, captionCues, D, dims, W, H }) {
+// Assemble the document.
+//
+// It no longer merely CUTS. The reference's `transition="cut"` was faithfully ported and then
+// became the family's biggest weakness: every scene arrived and left the same way, so a
+// seven-beat film performed one move seven times. Scenes now OVERLAP by a clamped xfade on
+// their (already unique) tracks, and transition_kit choreographs each cut. `overlayParts`
+// carries the clips a transition draws for itself — a light bar, a seam, a particle burst.
+function document_({ th, stage, css, bodyParts, overlayParts = [], sceneScripts, captionCues, D, dims, W, H, helpers = "" }) {
   const cues = (Array.isArray(captionCues) ? captionCues : [])
     .filter((c) => c && c.text != null)
     .map((c) => [r(c.start != null ? c.start : c.startSec || 0), r(c.end != null ? c.end : (c.start || 0) + 2), String(c.text)]);
@@ -445,6 +519,7 @@ function document_({ th, stage, css, bodyParts, sceneScripts, captionCues, D, di
   var tl=gsap.timeline({paused:true});
   var $=function(s){return document.querySelector(s);};
   function kill(id,t){tl.set(id,{opacity:0},t);}
+  ${helpers}
 
   ${sceneScripts.join("\n  ")}
 
@@ -466,6 +541,7 @@ function document_({ th, stage, css, bodyParts, sceneScripts, captionCues, D, di
     `<style>`, css || baseCss(th, stage), `</style>`, `</head>`, `<body>`,
     `<div id="root" class="composition" data-composition-id="vid" data-width="${W}" data-height="${H}" data-start="0" data-duration="${D}" style="width:${W}px;height:${H}px;">`,
     bodyParts.join("\n"),
+    overlayParts.join("\n"),
     caps,
     `</div>`,
     `<script>`, script, `</script>`,
@@ -484,6 +560,11 @@ function buildFilm({
   storyboard, dims, captionCues, assets, brandSkin, localized, seedKey,
   stage, theme, STRINGS, spec, builders, css, refBeat = 4.4, camera = {}, labels = {},
   backdropFor = null, fallbackBrand = "FILM",
+  // The pack's cut personality (transition_kit.SIGNATURES). A shared library must not make 14
+  // templates cut alike, so each pack draws from its own pool first.
+  signature = "cinematic",
+  // Escape hatch for a pack with an edit of its own: false restores the legacy single camera.
+  transitions = true,
 } = {}) {
   const th = theme(brandSkin);
   const S = localized ? { ...STRINGS, ...localized } : STRINGS;
@@ -507,27 +588,58 @@ function buildFilm({
   const sceneShots = fillSlots(scenes, roles, shots, spec);
 
   const scriptStart = (i) => scenes.slice(0, i).reduce((a, x) => a + (Number(x.duration) || 0), 0);
-  const bodyParts = [], sceneScripts = [];
+  const bodyParts = [], overlayParts = [], sceneScripts = [];
   const seed = seedFrom(`${seedKey || ""}|${title || "om"}`);
+  const cam = normalizeCamera(camera, stage);
 
-  scenes.forEach((scene, i) => {
+  // PASS 1 — RESOLVE EVERY BEAT BEFORE DRAWING ANY OF THEM. The transition dealer needs the
+  // whole sequence up front: "no repeat within three cuts" and "the cut means something about
+  // the beat it lands on" are both properties of the EDIT, and neither can be honoured one
+  // scene at a time. The role downgrade below used to happen mid-draw, which is exactly why
+  // the sequence was never knowable in advance.
+  const plan = scenes.map((scene, i) => {
     const T = r(scene.start != null ? scene.start : scriptStart(i));
     const L = r(scene.duration || 5);
-    const clipDur = i === scenes.length - 1 ? Math.max(0.1, D - T) : L;
     let role = roles[i] || "statement";
     // LAST GATE BEFORE DRAWING. Roles were assigned against a BUDGET; this is the beat's
     // ACTUAL hand. A layout that ended up short would draw hollow containers, so it degrades
     // to `statement` — the one layout that is complete without a picture.
     const need = spec.needs ? spec.needs(role) : 0;
     if (need > 0 && sceneShots[i].length < need) role = "statement";
+    return { scene, i, T, L, role };
+  });
+
+  const useTx = transitions !== false && plan.length > 1;
+  const cuts = useTx
+    ? dealTransitions({
+        classes: plan.map((p) => classifyBeat({
+          role: p.role, scene: p.scene, shotCount: sceneShots[p.i].length,
+          i: p.i, total: plan.length, numbers: numbersIn(p.scene, 3).length,
+        })),
+        seed, signature,
+      })
+    : [];
+  // xf[i] is the overlap of the cut OUT of scene i — which is the same window as the cut INTO
+  // scene i+1. Clamped against the SHORTER neighbour so a long move never outlives a short beat.
+  const xf = plan.map((p, i) => (useTx && i < plan.length - 1 ? xfadeFor(p.L, plan[i + 1].L) : 0));
+  const acc = accentsFrom(th);
+  const rnd = mulberry(seed ^ 0x9E3779B9);
+
+  plan.forEach((p, i) => {
+    const { scene, T, L, role } = p;
+    const isLast = i === plan.length - 1;
+    // The clip lives its own xfade PAST its end, so the outgoing scene is still alive while
+    // the incoming one arrives — the window a transition needs. Unique tracks keep the overlap
+    // legal (`overlapping_clips_same_track` keys by track, not by time).
+    const clipDur = isLast ? Math.max(0.1, D - T) : Math.min(Math.max(0.1, D - T), L + xf[i]);
     const k = Math.min(1, L / refBeat);
     const ctx = {
-      id: `s${i + 1}`, T, L, clipDur, i, isLast: i === scenes.length - 1, track: 2 + i,
+      id: `s${i + 1}`, T, L, clipDur, i, isLast, track: 2 + i,
       th, S, W, H, k, seed, U: stage.U, VH: stage.VH, portrait: stage.portrait,
       at: (sec) => r(T + sec * k),
       du: (sec) => r(Math.max(0.06, sec * k)),
       title, brand: String(brand).slice(0, 22), label: labels[role] || "",
-      total: scenes.length, url: filmUrl, role,
+      total: plan.length, url: filmUrl, role,
     };
     const build = builders[role]
       || (role === "statement-c" ? (sc, c) => statement(sc, c, { centred: true }) : null)
@@ -538,19 +650,59 @@ function buildFilm({
     const built = build(scene, ctx, role === spec.last ? logo : sceneShots[i], logo);
     const backdrop = built.backdrop != null ? built.backdrop : (backdropFor ? backdropFor(ctx) : "");
     bodyParts.push(built.wrapped ? built.html : open(ctx, built.html, { backdrop, chrome: built.chrome }));
+
+    const xIn = i > 0 ? xf[i - 1] : 0;
+    const motion = [];
+    if (built.noCamera) {
+      // The pack drives its own camera — leave every layer alone.
+    } else if (!useTx) {
+      motion.push(...cameraTweens(ctx, cam));
+    } else {
+      // AMBIENT on the inner layers, CUTS on .om-cam. Alternating the drift direction per beat
+      // stops a long film from feeling like one continuous slow zoom.
+      motion.push(...driftTweens(ctx, { scale: cam.scale, dir: i % 2 ? -1 : 1 }));
+      if (i === 0) {
+        // No cut lands on the first beat, so it needs an opening of its own — otherwise the
+        // film starts on a hard appear while every later beat gets a designed arrival.
+        motion.push(`tl.fromTo("#${ctx.id} .om-cam",{opacity:0,scale:1.055,filter:"blur(9px)"},{opacity:1,scale:1,filter:"blur(0px)",duration:${r(Math.min(0.9, L * 0.35))},ease:"expo.out"},${r(T)});`);
+      }
+      // Same seek-safety kill the legacy camera carried: the root going hidden is not enough,
+      // because a non-linear seek landing past the exit would restore stale visibility here.
+      motion.push(`tl.set("#${ctx.id} .om-cam",{opacity:0},${r(T + clipDur)});`);
+      // THE FURNITURE MUST NOT GHOST. Two scenes coexist during a cut, and their HUDs are not
+      // identical — the progress rule is at a different fill and the scene counter reads a
+      // different number. Cross-fading the wrapper is what keeps an overlap from showing two
+      // brand badges and two progress bars at once.
+      if (xIn > 0) motion.push(`tl.fromTo("#${ctx.id} .om-hud",{opacity:0},{opacity:1,duration:${r(xIn * 0.9)},ease:"power2.out"},${r(T)});`);
+      if (!isLast && xf[i] > 0) motion.push(`tl.to("#${ctx.id} .om-hud",{opacity:0,duration:${r(xf[i] * 0.75)},ease:"power2.in"},${r(T + L)});`);
+    }
+
     sceneScripts.push([
       `tl.set("#${ctx.id}",{opacity:1},${r(T)});`,
       ...built.s,
-      ...(built.noCamera ? [] : cameraTweens(ctx, camera)),
+      ...motion,
       ...chromeTweens(ctx, D),
       built.capTint ? `tl.set("#cap-text",{color:"${built.capTint}"},${r(T)});` : "",
     ].filter(Boolean).join("\n  "));
+
+    // The cut OUT of this beat, choreographed by transition_kit. Overlay tracks sit above the
+    // scenes (2+i) and below the caption node (50), so a light bar sweeps the picture without
+    // ever crossing the subtitle.
+    if (useTx && !isLast && cuts[i]) {
+      const piece = cuts[i].build({
+        o: `#${ctx.id} .om-cam`, n: `#s${i + 2} .om-cam`,
+        t: plan[i + 1].T, x: xf[i], id: `tx${i + 1}`, track: 20 + i, acc, th, rnd,
+      });
+      if (piece.html) overlayParts.push(piece.html);
+      sceneScripts.push(piece.js.filter(Boolean).join("\n  "));
+    }
     sceneScripts.push(`kill("#${ctx.id}",${r(T + clipDur)});`);
   });
 
   const out = document_({
     th, stage, css: css ? css(th, stage) : baseCss(th, stage),
-    bodyParts, sceneScripts, captionCues, D, dims, W, H,
+    bodyParts, overlayParts, sceneScripts, captionCues, D, dims, W, H,
+    helpers: useTx ? RUNTIME_HELPERS : "",
   });
   return { ...out, resolvedBrand: th.resolvedBrand };
 }
@@ -561,6 +713,6 @@ module.exports = {
   wordsOf, clampWords, fitLines, fitOne, ADVANCE, domainOf, numbersIn, statLabel, bullets,
   ratioOf, screenOk, isOwnAsset, shotFill, logoAssetOf,
   assignRoles, fillSlots, reps, seedFrom, pad2,
-  open, chromeHtml, chromeTweens, cameraTweens, camSafe, statement,
+  open, chromeHtml, chromeTweens, cameraTweens, driftTweens, normalizeCamera, camSafe, statement,
   baseCss, document_, buildFilm, esc, r,
 };

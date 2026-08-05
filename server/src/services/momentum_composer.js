@@ -492,6 +492,7 @@ function buildComposition(input) {
     ...input, stage: STAGE, theme, STRINGS, spec: SPEC, builders: BUILDERS, labels: LABELS,
     refBeat: 2.5,                       // the reference runs 8 scenes in ~19.9s
     camera: { push: 0.035, drift: 0.012 },
+    signature: "kinetic",
     fallbackBrand: "MOMENTUM",
   });
 }

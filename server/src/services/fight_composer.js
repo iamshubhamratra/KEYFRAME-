@@ -337,7 +337,8 @@ const css = (th, stage) => K.baseCss(th, stage, `
 function buildComposition(opts = {}) {
   return K.buildFilm({
     ...opts, stage: STAGE, theme, STRINGS, spec: SPEC, builders: BUILDERS, labels: LABELS,
-    css, refBeat: 4.2, camera: { push: 130, scale: 1.04 }, fallbackBrand: "MAIN EVENT",
+    css, refBeat: 4.2, camera: { push: 130, scale: 1.04 },
+    signature: "kinetic", fallbackBrand: "MAIN EVENT",
   });
 }
 

@@ -157,7 +157,8 @@ function makeBuilders(stage) {
         `tl.fromTo(".${id}-plane",{x:0,y:0,rotation:0},{x:"${r(U(680))}cqw",duration:${du(0.9)},ease:"power2.in"},${at(0.05)});`,
         `tl.to(".${id}-plane",{y:"${r(-U(520))}cqw",rotation:-13,duration:${du(0.45)},ease:"power2.out"},${at(0.5)});`,
         `tl.to(".${id}-rw",{y:"${r(U(120))}cqw",opacity:0,duration:${du(0.45)},ease:"power2.out"},${at(0.5)});`,
-        `tl.set(".${id}-rw",{opacity:0},${r(ctx.T + ctx.clipDur)});`,
+        // The BEAT end, not the clip end — a clip outlives its beat by the cut's xfade.
+        `tl.set(".${id}-rw",{opacity:0},${r(ctx.T + ctx.L)});`,
         ...skyTweens(id, ctx),
       ].filter(Boolean),
     };
@@ -333,7 +334,8 @@ const css = (th, stage) => K.baseCss(th, stage, `
 function buildFor(stage, fallbackBrand) {
   return (opts = {}) => K.buildFilm({
     ...opts, stage, theme, STRINGS, spec: SPEC, builders: makeBuilders(stage), labels: LABELS,
-    css, refBeat: 4.4, camera: { push: 130, scale: 1.03 }, fallbackBrand,
+    css, refBeat: 4.4, camera: { push: 130, scale: 1.03 },
+    signature: "cinematic", fallbackBrand,
   });
 }
 

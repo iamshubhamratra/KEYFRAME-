@@ -305,14 +305,14 @@ const BUILDERS = {
 const LABELS = { boot: STRINGS.boot, access: STRINGS.access, nodes: STRINGS.nodes, compile: STRINGS.compile, metrics: STRINGS.metrics, deploy: STRINGS.deploy };
 
 const css = (th, stage) => K.baseCss(th, stage, `
-  .om-scene { background:${th.bg}; }
   #cap-pill { border:1px solid ${rgba(th.accent, 0.4)}; }
   #cap-text { font-family:${th.monoStack}; }`);
 
 function buildComposition(opts = {}) {
   return K.buildFilm({
     ...opts, stage: STAGE, theme, STRINGS, spec: SPEC, builders: BUILDERS, labels: LABELS,
-    css, refBeat: 4.4, camera: { push: 140, scale: 1.03 }, fallbackBrand: "TERMINAL",
+    css, refBeat: 4.4, camera: { push: 140, scale: 1.03 },
+    signature: "technical", fallbackBrand: "TERMINAL",
   });
 }
 

@@ -174,7 +174,11 @@ const officeTweens = (id, ctx, { scroll = 46 } = {}) => {
     // The steam FADES OUT, so it needs its own hard kill at the clip boundary — killing the
     // scene root is not enough when a seek can land after the fade.
     `tl.fromTo(".${id}-steam",{opacity:0.5,y:0},{opacity:0,y:-42,duration:1.8,ease:"none",repeat:${K.reps(ctx.L, 1.8)},stagger:0.6},${r(ctx.T)});`,
-    `tl.set(".${id}-steam",{opacity:0},${r(ctx.T + ctx.clipDur)});`,
+    // Keyed to the BEAT (T+L), not to the clip. Since the cut system landed, a clip outlives
+    // its own beat by the xfade so the outgoing scene is still there for the incoming one to
+    // transition against — so a kill at T+clipDur now falls AFTER the boundary the steam's
+    // repeat window actually ends on, and a non-linear seek into the overlap could restore it.
+    `tl.set(".${id}-steam",{opacity:0},${r(ctx.T + ctx.L)});`,
     `tl.to(".${id}-screen",{opacity:0.55,duration:0.63,ease:"sine.inOut",repeat:${K.reps(ctx.L, 0.63)},yoyo:true},${r(ctx.T)});`,
   ];
 };
@@ -821,6 +825,7 @@ function buildComposition(input) {
     ...input, stage: STAGE, theme, STRINGS, spec: SPEC, builders: BUILDERS, labels: LABELS, css,
     refBeat: 2.6,                       // the reference runs 14 scenes in ~35.8s
     camera: { push: 0.026, drift: 0.014 },
+    signature: "kinetic",
     fallbackBrand: "TEAMPULSE",
   });
 }

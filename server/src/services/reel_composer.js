@@ -293,7 +293,10 @@ const SPEC = {
 // bar fills the CURRENT segment 0->1 across its own beat and leaves the earlier segments full.
 // Rather than repeat that tween in six builders, every builder is wrapped with it here.
 const segTween = (ctx) =>
-  `tl.fromTo(".${ctx.id}-seg",{scaleX:0},{scaleX:1,duration:${r(ctx.clipDur)},ease:"none"},${r(ctx.T)});`;
+  // The story bar tracks the BEAT the viewer is watching, not the clip's technical lifetime —
+  // the clip now runs the cut's xfade longer, which would leave the segment still filling while
+  // the next scene is already on screen.
+  `tl.fromTo(".${ctx.id}-seg",{scaleX:0},{scaleX:1,duration:${r(ctx.L)},ease:"none"},${r(ctx.T)});`;
 
 const RAW = {
   hook: sHook, show: sShow, perks: sPerks, proof: sProof, numbers: sNumbers, cta: sCta,
@@ -317,7 +320,8 @@ const css = (th, stage) => K.baseCss(th, stage, `
 function buildComposition(opts = {}) {
   const out = K.buildFilm({
     ...opts, stage: STAGE, theme, STRINGS, spec: SPEC, builders: BUILDERS, labels: LABELS,
-    css, refBeat: 4.0, camera: { push: 90, scale: 1.03 }, fallbackBrand: "REEL",
+    css, refBeat: 4.0, camera: { push: 90, scale: 1.03 },
+    signature: "kinetic", fallbackBrand: "REEL",
   });
   return out;
 }
