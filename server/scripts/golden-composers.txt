@@ -66,8 +66,8 @@ paper-craft          plain  f4acc8dc15b7ad07
 paper-craft          brand  dcf5b4bd9d8f7d82
 paper-tales          plain  0d4366f7fcac1cb2
 paper-tales          brand  a7d5b1a37c768505
-pipeline             plain  b3715416b5eae51f
-pipeline             brand  a7f932abba30db17
+pipeline             plain  e9a5db7c9e6ba705
+pipeline             brand  11553b1ba8824f27
 poster-pop           plain  c1a83b7a61d2e4dd
 poster-pop           brand  8b1828d1400d0c70
 premiere-night       plain  f67d0e4059cced6a

@@ -17,6 +17,7 @@
 // ─────────────────────────────────────────────────────────────────────────────────────
 
 const K = require("./om_port_kit");
+const F = require("./pipeline_furniture");
 const { r, esc, rgba } = K;
 
 const STAGE = K.stageOf(1920, 1080);
@@ -37,7 +38,7 @@ function theme(brandSkin) {
   const { accent, resolvedBrand } = K.resolveAccent(brandSkin, { ground: BG, isDark: false, packAccent: ACCENT });
   return {
     accent, bg: BG, panel: PANEL, ink: INK, sub: STEEL_DK, line: STEEL,
-    belt: BELT, beltDk: BELT_DK, steel: STEEL,
+    belt: BELT, beltDk: BELT_DK, steel: STEEL, steelDk: STEEL_DK,
     // The status lamp — a green derived from the accent so a rebranded line still reads GO.
     lamp: K.spin(accent, 96, -0.06, 0.6),
     adv: K.ADVANCE.mixed,
@@ -53,18 +54,15 @@ const COL = U(1920) - M * 2;
 const BELT_TOP = VH - U(190);
 
 // The shop floor: a cool grade, a faint engineering grid, and the conveyor across the foot.
+// REBUILT 5 Aug 2026 against the readable reference. The port drew a flat gradient floor with a
+// CSS chevron strip whose only motion was backgroundPositionX — a paint property, animated on
+// every frame of a 1080p capture. The reference runs an actual FACTORY under every scene:
+// blueprint grid, three corner gears at 26/-40/-22 deg per second, a conveyor with scrolling
+// tread and counter-rotating rollers, and an articulating robotic arm. See pipeline_furniture.js.
 function floor(id, th) {
-  return `<div style="position:absolute;inset:0;background:linear-gradient(180deg, #F3F5F9 0%, ${th.bg} 62%);overflow:hidden;">
-    <div style="position:absolute;inset:0;background-image:linear-gradient(${rgba(th.ink, 0.05)} 1px, transparent 1px),linear-gradient(90deg, ${rgba(th.ink, 0.05)} 1px, transparent 1px);background-size:${r(U(64))}cqw ${r(U(64))}cqw;opacity:0.7;"></div>
-    <div style="position:absolute;left:0;right:0;top:${r(BELT_TOP)}cqw;bottom:0;background:linear-gradient(180deg, ${th.belt} 0%, ${th.beltDk} 100%);"></div>
-    <div style="position:absolute;left:0;right:0;top:${r(BELT_TOP)}cqw;height:${r(U(5))}cqw;background:${th.steel};"></div>
-    <div class="${id}-chev" style="position:absolute;left:0;right:0;top:${r(BELT_TOP + U(60))}cqw;height:${r(U(46))}cqw;background:repeating-linear-gradient(115deg, ${rgba(th.accent, 0.85)} 0 ${r(U(22))}cqw, transparent ${r(U(22))}cqw ${r(U(74))}cqw);"></div>
-    <div style="position:absolute;left:0;right:0;top:${r(BELT_TOP + U(140))}cqw;height:${r(U(3))}cqw;background:${rgba(th.steel, 0.4)};"></div>
-  </div>`;
+  return F.machineBg(th, { cls: id });
 }
-const floorTweens = (id, ctx) => [
-  `tl.to(".${id}-chev",{backgroundPositionX:"${r(U(74))}cqw",duration:0.85,ease:"none",repeat:${K.reps(ctx.L, 0.85)}},${r(ctx.T)});`,
-];
+const floorTweens = (id, ctx) => F.machineBgTweens(ctx, { cls: id });
 
 // A station tag — squared, with a number.
 const station = (th, n, label) =>
