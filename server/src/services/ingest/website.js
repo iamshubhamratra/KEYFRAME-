@@ -188,6 +188,26 @@ async function understandWebsite({ url, workDir, timeoutMs = 60_000 }) {
         const sparse = document.querySelectorAll("h1,h2,h3").length <= 2 && bodyText.length < 1200;
         return ((titleHit || urlHit) && (hasPw || oauth)) || (hasPw && oauth && sparse);
       })();
+      // Dead-page detection: a 404/410/500 still renders, still screenshots, and still carries
+      // a title — so it flows downstream as a "REAL website screenshot" and gets printed as the
+      // product. A shipped film put an "Oops, the page you requested could not be found!" capture
+      // on two figure plates, captioned OVERVIEW, because nothing between capture and render
+      // asked whether the page was alive. Same treatment as the auth wall: suppress the shots.
+      //
+      // Conservative on purpose — a title or heading hit, or an explicit dead-page phrase on a
+      // sparse page. A marketing page that merely mentions "404" somewhere in its copy is not a
+      // dead page and must not be suppressed.
+      const deadPage = (() => {
+        const t = (document.title || "").toLowerCase().trim();
+        const h1 = (document.querySelector("h1") || {}).textContent || "";
+        const head = h1.toLowerCase().trim();
+        const codeRe = /(^|\s)(404|410|403|500|502|503)(\s|$|[^0-9])/;
+        const phraseRe = /\b(page not found|not found|page (you (requested|were looking for) )?(could not be|couldn'?t be|cannot be) found|page does(n'?t| not) exist|no longer exists|internal server error|service unavailable|forbidden)\b/;
+        const titleHit = codeRe.test(t) || phraseRe.test(t);
+        const headHit = codeRe.test(head) || phraseRe.test(head);
+        const sparse = document.querySelectorAll("h1,h2,h3").length <= 3 && bodyText.length < 1200;
+        return titleHit || headHit || (phraseRe.test(bodyText.toLowerCase()) && sparse);
+      })();
       return {
         title: document.title || null,
         description: meta("description") || meta("og:description"),
@@ -195,11 +215,18 @@ async function understandWebsite({ url, workDir, timeoutMs = 60_000 }) {
         headings,
         bodyText,
         authWall,
+        deadPage,
       };
     });
     const isAuthWall = !!data.authWall;
+    const isDeadPage = !!data.deadPage;
     delete data.authWall;
+    delete data.deadPage;
     if (isAuthWall) console.warn(`[ingest] "${data.title}" looks like a sign-in / auth wall — NOT using its screenshots as product visuals`);
+    if (isDeadPage) console.warn(`[ingest] "${data.title}" looks like a dead page (404/error) — NOT using its screenshots as product visuals`);
+    // Both conditions mean the same thing downstream: whatever rendered is not the product, and
+    // no smaller slot or dimmer treatment can rescue it. Gate the captures on the pair.
+    const noProductShots = isAuthWall || isDeadPage;
 
     // ---- CAPTURE ---------------------------------------------------------
     // `shots` carries per-capture QUALITY METADATA alongside the path. That is the
@@ -235,7 +262,7 @@ async function understandWebsite({ url, workDir, timeoutMs = 60_000 }) {
     // the page", which sliced cards in half and framed empty bands. We walk MORE
     // candidates than we need and keep the ones that pass the content floor, so a
     // weak section is skipped rather than shipped.
-    if (!isAuthWall) {
+    if (!noProductShots) {
       try {
         const viewH = 900;
         const sections = await findSections(page);
@@ -292,7 +319,7 @@ async function understandWebsite({ url, workDir, timeoutMs = 60_000 }) {
       ? await dominantColors(heroPath).catch(() => [])
       : [];
     if (hero && !hero.clean) console.warn(`[ingest] skipping hero colour quantize — the capture is obstructed/dimmed and would yield a washed palette`);
-    const screenshotPath = isAuthWall ? null : heroPath;
+    const screenshotPath = noProductShots ? null : heroPath;
 
     // WEBSITE ASSET INTELLIGENCE (opt-in): harvest the site's OWN brand-asset files
     // off this same, already-loaded, overlay-cleaned page — no 2nd navigation, no 2nd
@@ -314,7 +341,7 @@ async function understandWebsite({ url, workDir, timeoutMs = 60_000 }) {
     // portrait capture into a phone mockup (deviceKind ratio<0.9). Captured LAST so it
     // can't affect the desktop shots or the harvest above; same navigation, so it adds NO
     // SSRF surface (unlike asset-file harvesting). Fail-open; skipped on an auth wall.
-    if (!isAuthWall) {
+    if (!noProductShots) {
       try {
         await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
         await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
@@ -329,12 +356,12 @@ async function understandWebsite({ url, workDir, timeoutMs = 60_000 }) {
     // The path list stays a plain string[] for every existing consumer; `shots`
     // carries the quality metadata the intake gate now needs. On an auth wall the
     // captures exist (for colours) but are never offered as product visuals.
-    const usableShots = isAuthWall ? [] : shots;
+    const usableShots = noProductShots ? [] : shots;
     const screenshotPaths = usableShots.map((s) => s.path);
     const obstructed = shots.filter((s) => !s.clean).length;
 
-    console.log(`[ingest] website understood: "${data.title}" — ${data.headings.length} headings, ${data.bodyText.length}ch body, ${screenshotPaths.length} usable screenshot(s)${obstructed ? ` (${obstructed} still obstructed)` : ""}${isAuthWall ? " (auth wall — screenshots suppressed)" : ""}, colors=${brandColors.join(",") || "none"}`);
-    return { url, ...data, isAuthWall, brandColors, screenshotPath, screenshotPaths, shots: usableShots, assets, harvestReview, brandSignals };
+    console.log(`[ingest] website understood: "${data.title}" — ${data.headings.length} headings, ${data.bodyText.length}ch body, ${screenshotPaths.length} usable screenshot(s)${obstructed ? ` (${obstructed} still obstructed)` : ""}${isAuthWall ? " (auth wall — screenshots suppressed)" : ""}${isDeadPage ? " (dead page — screenshots suppressed)" : ""}, colors=${brandColors.join(",") || "none"}`);
+    return { url, ...data, isAuthWall, isDeadPage, brandColors, screenshotPath, screenshotPaths, shots: usableShots, assets, harvestReview, brandSignals };
   } finally {
     await browser.close().catch(() => {});
   }
