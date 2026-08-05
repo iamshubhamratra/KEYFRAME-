@@ -147,7 +147,10 @@ function sIntro(scene, ctx, _shots, logo) {
   // Reference Intro is a BRAND lockup — not the beat emphasis.
   const word = K.clampWords(String(ctx.brand || scene.emphasis || ctx.title || ""), 30);
   const size = K.fitOne(word, COL / K.camSafe(), U(150), th.adv);
-  const tag = String(scene.subtext || scene.kicker || "").trim().slice(0, 46);
+  // Word-boundary clamp, not a bare slice: at 46 chars a normal one-line subtitle lost its
+  // last word and the poster read "ART-DIRECTED END TO". The tag is one mono line at U(22)
+  // with 0.28em tracking — about 19 authored px per character — so the column takes ~80.
+  const tag = K.clampWords(String(scene.subtext || scene.kicker || "").trim(), 72);
   const hasMark = !!(logo && logo.path);
   return {
     backdrop: ground(id, th),
@@ -456,7 +459,14 @@ function sCTA(scene, ctx) {
 // Reference order: Intro · Statement · Feature · Mobile · Stats · Quote · Gallery · CTA.
 const SPEC = {
   first: "intro", last: "cta",
-  middle: ["statement", "feature", "mobile", "stats", "quote", "gallery"],
+  // DELIBERATE DEVIATION from the reference order (statement leads there). `intro` and `cta`
+  // are both lockups that take no picture, so on a SHORT film the single middle slot is the
+  // only chance this pack has to show one. Roles are picked by a rotating cursor, so whatever
+  // sits first here wins that slot — and with `statement` first, a three-scene film placed
+  // every image and drew none of them (FAIL_TEXT_ONLY: assets collected, nothing on screen).
+  // Leading with `feature` costs one swap against the reference on a full eight-beat film and
+  // guarantees a picture on every film shorter than that.
+  middle: ["feature", "statement", "mobile", "stats", "quote", "gallery"],
   shapes: {
     intro: [], statement: [], feature: [900 / 574], mobile: [356 / 736],
     stats: [], quote: [], gallery: [1.55, 0.86], cta: [], "statement-c": [],

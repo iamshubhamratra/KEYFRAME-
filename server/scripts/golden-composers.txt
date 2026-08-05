@@ -50,8 +50,8 @@ living-city          plain  23239871f78fff4f
 living-city          brand  7c4a794ee7c77256
 minimal-luxury       plain  8979d06c644a21ba
 minimal-luxury       brand  9bec280bf016afc0
-momentum             plain  243356620da03637
-momentum             brand  0c2723ed914a62a3
+momentum             plain  77327ad4391e2a85
+momentum             brand  8a515bb822da95d5
 motion-canvas        plain  7816c7450104bfaf
 motion-canvas        brand  bb0cd2f73229af55
 nature-flow          plain  31a8d86e57f42020

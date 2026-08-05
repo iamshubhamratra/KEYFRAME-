@@ -11,7 +11,12 @@
 //   node scripts/make-pack-preview.js missing              # only packs with no preview yet
 //   node scripts/make-pack-preview.js all --force          # re-render every pack
 //   node scripts/make-pack-preview.js organic-garden prisma-bloc
-//   node scripts/make-pack-preview.js missing --quality draft --concurrency 2
+//   node scripts/make-pack-preview.js missing --quality draft
+//
+// `--quality` is the ONLY flag that takes a value (see VALUE_FLAGS). Any other `--flag value`
+// pair leaves `value` in the positional list, where it reads as a pack name and aborts the
+// whole run with "unknown pack(s)". Packs render sequentially — one Chromium at a time is
+// deliberate, since each render is already the machine's full load.
 //
 // It composes through the REAL dispatch (pipeline.attemptLlmComposition with remix:false), so
 // a pack is previewed by the exact composer that will render the customer's film — native
