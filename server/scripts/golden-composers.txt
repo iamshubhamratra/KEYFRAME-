@@ -36,8 +36,8 @@ glass-dimension      plain  fa85bb6ae4756591
 glass-dimension      brand  873439c503f9ccd7
 grid-dispatch        plain  5c8b886480fd1a5e
 grid-dispatch        brand  d6ba6f81eb3f7d11
-hacker               plain  db0e54388cc0a6e5
-hacker               brand  d9f44d9abaa98a49
+hacker               plain  b67c27db46e91405
+hacker               brand  4827a56b74012519
 hype-wave            plain  e7105127e1340891
 hype-wave            brand  bd5f16240935588b
 jungle               plain  1f5e29aba785575a

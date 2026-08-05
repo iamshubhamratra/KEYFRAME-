@@ -15,6 +15,7 @@
 // ─────────────────────────────────────────────────────────────────────────────────────
 
 const K = require("./om_port_kit");
+const F = require("./hacker_furniture");
 const { r, esc, rgba, U: _U } = K;   // eslint-disable-line no-unused-vars
 
 const STAGE = K.stageOf(1920, 1080);
@@ -49,14 +50,20 @@ function theme(brandSkin) {
 // The CRT: scanlines + a vignette, over everything. One element, no blur filter — the
 // heavy-overlay lint counts blurred/gradient nodes and a per-scene stack of them is what
 // makes a composition capture black.
-function crt(id, th) {
+// REBUILT 5 Aug 2026 against the readable reference. The port had two flat gradients here; the
+// reference grounds every scene in FALLING MATRIX RAIN under a five-layer CRT stack (scanlines,
+// a refresh roll band, a curvature vignette, cyan/magenta chromatic fringing, a flicker). That
+// absence is most of why our frames read as a dark slide with a terminal on it rather than as a
+// screen. See hacker_furniture.js for the transcription.
+function crt(id, th, { rain = true, rainOpacity = 0.72, cols = 40 } = {}) {
   return `<div style="position:absolute;inset:0;background:${th.bg};overflow:hidden;">
-    <div style="position:absolute;inset:0;background-image:repeating-linear-gradient(180deg, ${rgba(th.accent, 0.05)} 0 1px, transparent 1px 3px);opacity:0.8;"></div>
-    <div class="${id}-flick" style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 45%, ${rgba(th.accent, 0.07)} 0%, transparent 62%);"></div>
+    ${rain ? F.matrix(th, { cls: id, cols, opacity: rainOpacity }) : ""}
+    ${F.crt(th, { cls: id, U })}
   </div>`;
 }
-const crtTweens = (id, ctx) => [
-  `tl.to(".${id}-flick",{opacity:0.55,duration:0.9,ease:"sine.inOut",repeat:${K.reps(ctx.L, 0.9)},yoyo:true},${r(ctx.T)});`,
+const crtTweens = (id, ctx, { rain = true } = {}) => [
+  ...(rain ? F.matrixTweens(ctx, { cls: id }) : []),
+  ...F.crtTweens(ctx, { cls: id, U }),
 ];
 
 // A bracketed prompt line — the pack's kicker.
@@ -297,11 +304,25 @@ const SPEC = {
     return true;
   },
 };
-const BUILDERS = {
-  boot: sBoot, access: sAccess, nodes: sNodes, compile: sCompile, metrics: sMetrics, deploy: sDeploy,
-  statement: (sc, ctx) => ({ ...K.statement(sc, ctx), backdrop: crt(ctx.id, ctx.th) }),
-  "statement-c": (sc, ctx) => ({ ...K.statement(sc, ctx, { centred: true }), backdrop: crt(ctx.id, ctx.th) }),
+// THE HUD BELONGS TO EVERY SCENE. The reference draws it on all six and it fills all four
+// margins — keyline, corner brackets, a live prompt with a blinking cursor, the sync/REC/LIVE
+// strip, a hex address rail, an EQ meter, a telemetry ticker. Wrapping the builders applies it
+// (and the ground's repeating tweens) at ONE place; six separate edits would drift.
+const withTerminal = (fn) => (sc, ctx, shots, logo) => {
+  const out = fn(sc, ctx, shots, logo) || {};
+  const hudHtml = F.hud(ctx.th, { cls: ctx.id, U, url: ctx.url || "root@node", label: ctx.label, brand: ctx.brand });
+  return {
+    ...out,
+    chrome: out.chrome != null ? out.chrome : hudHtml,
+    s: [...(out.s || []), ...F.hudTweens(ctx, { cls: ctx.id, U })],
+  };
 };
+const RAW_BUILDERS = {
+  boot: sBoot, access: sAccess, nodes: sNodes, compile: sCompile, metrics: sMetrics, deploy: sDeploy,
+  statement: (sc, ctx) => { const b = K.statement(sc, ctx); return { ...b, backdrop: crt(ctx.id, ctx.th), s: [...(b.s || []), ...crtTweens(ctx.id, ctx)] }; },
+  "statement-c": (sc, ctx) => { const b = K.statement(sc, ctx, { centred: true }); return { ...b, backdrop: crt(ctx.id, ctx.th), s: [...(b.s || []), ...crtTweens(ctx.id, ctx)] }; },
+};
+const BUILDERS = Object.fromEntries(Object.entries(RAW_BUILDERS).map(([k, fn]) => [k, withTerminal(fn)]));
 const LABELS = { boot: STRINGS.boot, access: STRINGS.access, nodes: STRINGS.nodes, compile: STRINGS.compile, metrics: STRINGS.metrics, deploy: STRINGS.deploy };
 
 const css = (th, stage) => K.baseCss(th, stage, `
