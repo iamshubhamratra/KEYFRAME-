@@ -185,6 +185,12 @@ function sSpread(scene, ctx, shots) {
   if (!shots.length) return { ...K.statement(scene, ctx), backdrop: press(id, th), chrome: chrome(ctx, STRINGS.theSpread) };
   const head = K.fitLines(scene.headline || scene.title || "", U(600) / K.camSafe(), U(132), 3, th.adv);
   const body = K.clampWords(String(scene.subtext || scene.body || ""), 190);
+  // The reference pins the standfirst at y=420 because its headline is two known lines. Ours is
+  // AI-authored: "FINANCIAL OPERATING SYSTEM" set three lines deep, ran to 22.15cqw and printed
+  // straight through the body pinned at 21.88cqw. A fixed y is only safe against fixed copy, so
+  // the standfirst now clears whatever the headline actually measured.
+  const headBot = U(140) + head.lines.length * head.size * 0.86 + U(46);
+  const bodyTop = Math.max(U(420), headBot);
   const n = Math.min(3, shots.length);
   // A short deck must not leave a keyline standing empty, so fewer pictures re-flow the page
   // rather than drawing an unfilled plate.
@@ -197,7 +203,7 @@ function sSpread(scene, ctx, shots) {
     chrome: chrome(ctx, scene.kicker || STRINGS.theSpread),
     html: `
     ${K.clipHead(th, { cls: `${id}-hd`, U, x: M, y: U(140), w: U(600), lines: head.lines, size: head.size, lh: 0.86 })}
-    ${body ? `<div class="${id}-bd" style="position:absolute;left:${r(M)}cqw;top:${r(U(420))}cqw;width:${r(U(620))}cqw;font-family:${th.bodyStack};font-size:${r(U(26))}cqw;line-height:1.5;color:${th.ink};opacity:0;">${esc(body)}</div>` : ""}
+    ${body ? `<div class="${id}-bd" style="position:absolute;left:${r(M)}cqw;top:${r(bodyTop)}cqw;width:${r(U(620))}cqw;font-family:${th.bodyStack};font-size:${r(U(26))}cqw;line-height:1.5;color:${th.ink};opacity:0;">${esc(body)}</div>` : ""}
     ${boxes.map((b, i) => K.figPlate(th, { cls: `${id}-p${i}`, U, x: b.x, y: b.y, w: b.w, h: b.h, shot: shots[i], fig: b.fig, label: b.label, shotFill: K.shotFill })).join("")}`,
     s: [
       ...pressTweens(ctx), ...chromeT(ctx),
@@ -304,7 +310,18 @@ function sColophon(scene, ctx, shots, logo) {
   const { id, th, at, du } = ctx;
   const head = K.fitLines(scene.headline || scene.emphasis || ctx.title, U(960) / K.camSafe(), U(210), 2, th.adv);
   const body = K.clampWords(String(scene.subtext || scene.body || ""), 180);
-  const cta = K.clampWords(String(scene.emphasis || STRINGS.subscribe).toUpperCase(), 22);
+  // THE BUTTON IS NOT THE HEADLINE. Sourcing it from `emphasis` — the same field the headline
+  // falls back to — printed "POWER YOUR" under a headline reading "POWER YOUR BUSINESS": a
+  // chopped fragment of the sign-off masquerading as a call to action. Take a real CTA field if
+  // the storyboard supplies one, use `emphasis` only when it is genuinely different copy, and
+  // fall back to the generic label rather than ever printing a truncation.
+  const headText = String(scene.headline || scene.emphasis || ctx.title || "").trim();
+  const ctaSrc = String(scene.cta || scene.ctaText || "").trim()
+    || (String(scene.emphasis || "").trim() && String(scene.emphasis).trim() !== headText ? String(scene.emphasis).trim() : "")
+    || STRINGS.subscribe;
+  const ctaFull = ctaSrc.toUpperCase();
+  const ctaClamped = K.clampWords(ctaFull, 22);
+  const cta = ctaClamped === ctaFull ? ctaFull : STRINGS.subscribe;
   const mark = logo && logo.path ? logo : null;
 
   return {
