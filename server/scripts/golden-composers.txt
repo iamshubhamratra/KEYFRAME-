@@ -40,8 +40,8 @@ hacker               plain  b67c27db46e91405
 hacker               brand  4827a56b74012519
 hype-wave            plain  e7105127e1340891
 hype-wave            brand  bd5f16240935588b
-jungle               plain  1f5e29aba785575a
-jungle               brand  83c7db93a59e33ca
+jungle               plain  96ce66b99b27c375
+jungle               brand  e96493dca1a71704
 kinetic-universe     plain  1d3285d32979f7cd
 kinetic-universe     brand  269fb5640137bd64
 lantern-night        plain  d83321b98fcb51e1

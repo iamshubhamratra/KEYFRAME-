@@ -14,6 +14,7 @@
 // ─────────────────────────────────────────────────────────────────────────────────────
 
 const K = require("./om_port_kit");
+const F = require("./jungle_furniture");
 const { r, esc, rgba } = K;
 
 const STAGE = K.stageOf(1920, 1080);
@@ -54,27 +55,13 @@ const COL = U(1920) - M * 2;
 // radial gradients. Solids and gradients only — no blur filters.
 const scallop = (c, size) =>
   `repeating-radial-gradient(circle ${size}px at ${size}px 0, ${c} 0 ${size}px, transparent ${size}px)`;
+// REBUILT 5 Aug 2026 against the readable reference. Twenty trigonometric calls drive the
+// reference's JungleBG and the port carried none of them: no light shafts, no parallax canopy,
+// no hanging vines, no fronds, no fireflies, no butterflies. See jungle_furniture.js.
 function canopy(id, th) {
-  const bands = [
-    { c: th.c1, y: 0.30, h: 0.20, s: 46, cls: "b1" },
-    { c: th.c2, y: 0.44, h: 0.24, s: 60, cls: "b2" },
-    { c: th.c3, y: 0.62, h: 0.24, s: 74, cls: "b3" },
-    { c: th.c4, y: 0.80, h: 0.24, s: 92, cls: "b4" },
-  ];
-  return `<div style="position:absolute;inset:0;background:linear-gradient(180deg, ${th.bg} 0%, ${SKY_B} 34%);overflow:hidden;">
-    <div style="position:absolute;right:12%;top:6%;width:${r(U(180))}cqw;height:${r(U(180))}cqw;border-radius:50%;background:radial-gradient(circle, ${rgba(th.accent, 0.85)} 0%, ${rgba(th.accent, 0.2)} 52%, transparent 72%);"></div>
-    ${bands.map((b) => `<div class="${id}-${b.cls}" style="position:absolute;left:${r(-U(120))}cqw;right:${r(-U(120))}cqw;top:${r(VH * b.y)}cqw;height:${r(VH * b.h + VH * 0.3)}cqw;background:${b.c};">
-      <div style="position:absolute;left:0;right:0;top:${r(-b.s / 1920 * 100)}cqw;height:${r(b.s / 1920 * 100 * 2)}cqw;background:${scallop(b.c, b.s)};"></div>
-    </div>`).join("")}
-    ${[[10, 0.24], [26, 0.4], [58, 0.3], [76, 0.5], [90, 0.22]].map(([x, y], i) =>
-    `<div class="${id}-ff" style="position:absolute;left:${x}%;top:${r(VH * y)}cqw;width:${r(U(12))}cqw;height:${r(U(12))}cqw;border-radius:50%;background:${rgba(th.accent, 0.9)};box-shadow:0 0 ${r(U(20))}cqw ${rgba(th.accent, 0.7)};"></div>`).join("")}
-  </div>`;
+  return F.jungleBg({ ...th, skyA: th.bg, skyB: SKY_B }, { cls: id });
 }
-const canopyTweens = (id, ctx) => [
-  ...[["b1", 16, 3.4], ["b2", -22, 4.1], ["b3", 18, 4.8], ["b4", -14, 5.5]].map(([c, dx, t]) =>
-    `tl.to(".${id}-${c}",{x:"${r(U(dx))}cqw",duration:${t},ease:"sine.inOut",repeat:${K.reps(ctx.L, t)},yoyo:true},${r(ctx.T)});`),
-  `tl.to(".${id}-ff",{y:"${r(-U(40))}cqw",opacity:0.35,duration:2.2,ease:"sine.inOut",repeat:${K.reps(ctx.L, 2.2)},yoyo:true,stagger:0.3},${r(ctx.T)});`,
-];
+const canopyTweens = (id, ctx) => F.jungleTweens(ctx, { cls: id });
 
 // A leaf-cut card — two opposite corners rounded hard — pinned with a wooden peg. Only ever
 // drawn around a real picture.
