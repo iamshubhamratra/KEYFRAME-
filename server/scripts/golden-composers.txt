@@ -18,8 +18,8 @@ digital-universe     plain  bbe41b084a9d4f1b
 digital-universe     brand  e92965a5982274de
 drive                plain  9f3be5219467d730
 drive                brand  24c44dbf6687dba0
-edition              plain  2304eb293f5a9a97
-edition              brand  ee7218dd4a3b7851
+edition              plain  db49cd160c0b3cc8
+edition              brand  3802161059214bf7
 editorial-motion     plain  aa8e9cc8cf845d6e
 editorial-motion     brand  0f5613d16f4aabfe
 fetch                plain  55429609a848eebb
