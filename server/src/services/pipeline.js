@@ -129,8 +129,40 @@ const DEDICATED_COMPOSERS = {
 // The composer module a renderer id routes to, or null when the pack has none (it then
 // falls through to the deterministic scene-kit). The single resolver for dispatch-adjacent
 // tooling: harnesses, pack scaffolding, and the portrait regression guard.
+// NODE CACHES A COMPOSER MODULE AT BOOT, and a long-lived server therefore keeps rendering the
+// version it loaded no matter what is on disk. That has now cost real jobs more than once: a
+// composer was rebuilt at 12:18, a job ran at 12:30, and it rendered the pre-rebuild film
+// because the server had been up since 11:38. The failure is silent — the output is a
+// plausible-looking video of the WRONG design, so nothing errors and nothing looks broken.
+//
+// So dispatch re-checks the file's mtime and reloads it when it has changed. Composers are pure
+// (they export buildComposition and hold no state), which is what makes this safe. Fail-open, as
+// everywhere else in this file: a reload that throws leaves the already-loaded module in place
+// and never blocks a render.
+const COMPOSER_LOADED_AT = new Map();
+function composerFileOf(mod) {
+  for (const [file, m] of Object.entries(require.cache)) if (m && m.exports === mod) return file;
+  return null;
+}
 function composerModuleFor(renderer) {
-  const m = DEDICATED_COMPOSERS[String(renderer || "")];
+  const key = String(renderer || "");
+  let m = DEDICATED_COMPOSERS[key];
+  if (!m) return null;
+  try {
+    const file = composerFileOf(m);
+    if (file) {
+      const mtime = fs.statSync(file).mtimeMs;
+      const known = COMPOSER_LOADED_AT.get(file);
+      if (known === undefined) COMPOSER_LOADED_AT.set(file, mtime);
+      else if (mtime > known) {
+        delete require.cache[file];
+        const fresh = require(file);
+        if (fresh && typeof fresh.buildComposition === "function") { DEDICATED_COMPOSERS[key] = fresh; m = fresh; }
+        COMPOSER_LOADED_AT.set(file, mtime);
+        console.warn(`[composer] ${path.basename(file)} changed on disk — reloaded (was serving the boot-time copy)`);
+      }
+    }
+  } catch { /* fail-open: keep the loaded module */ }
   return m && typeof m.buildComposition === "function" ? m : null;
 }
 
