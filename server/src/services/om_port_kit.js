@@ -715,4 +715,9 @@ module.exports = {
   assignRoles, fillSlots, reps, seedFrom, pad2,
   open, chromeHtml, chromeTweens, cameraTweens, driftTweens, normalizeCamera, camSafe, statement,
   baseCss, document_, buildFilm, esc, r,
+  // The shared decorative vocabulary (om_furniture.js), re-exported so a pack reaches it as
+  // K.figPlate / K.marquee / K.clipHead with no second require. That module must NOT require
+  // this one back — the cycle would resolve to a half-built export object at load time, which
+  // is also why it keeps its own one-line copy of `reps`.
+  ...require("./om_furniture"),
 };
