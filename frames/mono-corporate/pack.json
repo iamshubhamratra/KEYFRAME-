@@ -1,5 +1,6 @@
 {
   "name": "mono-corporate",
+  "renderer": "mono-corporate",
   "vibe": "Clean minimal enterprise system for Ledger, a B2B finance platform. Atoms are sacred — near-white paper grounds with a faint 1px grid, generous open whitespace, crisp hairline dividers, small IBM Plex Mono caps labels, and ONE saturated dee",
   "colors": {
     "paper": "#FFFFFF",
@@ -67,12 +68,16 @@
       "ambient"
     ],
     "musicKeywords": [
+      "clean",
+      "soft",
       "clean corporate",
       "minimal professional",
       "modern business",
       "confident corporate",
       "upbeat corporate",
-      "driving business"
+      "driving business",
+      "uplifting",
+      "dynamic"
     ],
     "sfxPalette": {
       "transition": "card-slide",
@@ -85,14 +90,14 @@
       "energyBoost": 1,
       "sfxDensity": "rich",
       "ambient": false
-    }
+    },
+    "archetype": "corporate"
   },
   "media": {
     "requiredAssets": {
       "screenshots": 3,
       "productImages": 5,
-      "logos": 1,
-      "illustrations": 2
+      "logos": 1
     },
     "placeholders": [],
     "slotsByRole": {

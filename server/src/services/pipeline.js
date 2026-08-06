@@ -69,6 +69,9 @@ const NATIVE_PACK_COMPOSERS = {
   // KINETIC BOLD — not a port: written from its own manifest, because the pack shipped with no
   // renderer at all and every film that chose it rendered through the generic kit.
   "kinetic-bold": require("./kinetic_bold_composer"),
+  // MONO CORPORATE — likewise written from its own manifest, not ported: the second of the ten packs
+  // scripts/test-pack-composers.js found rendering as the generic kit.
+  "mono-corporate": require("./mono_corporate_composer"),
   "hacker": require("./hacker_composer"),
   "teampulse": require("./teampulse_composer"),
   "fetch": require("./fetch_composer"),
