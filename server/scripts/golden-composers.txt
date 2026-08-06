@@ -58,8 +58,8 @@ reel                 plain  6d42f9c4a89bb814
 reel                 brand  76433efd18f5bff4
 showcase             plain  035e03e98050d92c
 showcase             brand  b6308b8462bb60f7
-showcase-vertical    plain  6d3c2057cfb71afb
-showcase-vertical    brand  9a0f83bfb6f64059
+showcase-vertical    plain  00d1246929cb284a
+showcase-vertical    brand  d73c406376ccc2c1
 slab-stage           plain  88610e3fcc331cd9
 slab-stage           brand  82c22185145fff29
 story-blocks         plain  109eccb4e8f13d39

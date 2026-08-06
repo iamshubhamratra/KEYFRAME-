@@ -17,6 +17,9 @@ const K = require("./om_port_kit");
 const { r, esc, rgba } = K;
 
 const STAGE = K.stageOf(1080, 1920);
+// A percentage radius resolves against the box on each axis, so a round blob needs its vertical
+// radius scaled by the stage aspect.
+const ASPECT = STAGE.W / STAGE.H;
 const { U } = STAGE;
 
 const BG = "#EEF1F7", PANEL = "#FFFFFF", INK = "#131722", SUB = "#5B6472", LINE = "#D9DEE8";
@@ -53,7 +56,12 @@ const BLOBS = [
 ];
 const blobLayer = (th, layer) => BLOBS.map((b, i) => ({ b, hue: th.blobs[i % th.blobs.length] }))
   .filter(({ b }) => b.layer === layer)
-  .map(({ b, hue }) => `radial-gradient(circle ${b.s}% at ${b.x}% ${b.y}%, ${rgba(hue, b.o)} 0%, ${rgba(hue, b.o * 0.5)} 44%, ${rgba(hue, 0)} 72%)`)
+  // `circle` TAKES A LENGTH OR AN EXTENT KEYWORD, NEVER A PERCENTAGE — only `ellipse` takes
+  // percentages, and it needs two. The whole comma-joined `background` was therefore dropped and
+  // this pack's colour atmosphere never painted in any scene. Third instance of the same one-word
+  // mistake (showcase, reel, showcase-vertical); scripts/test-dropped-css.js now fails on it.
+  // Round blobs, so both radii are the same fraction expressed per axis.
+  .map(({ b, hue }) => `radial-gradient(ellipse ${b.s}% ${r(b.s * ASPECT)}% at ${b.x}% ${b.y}%, ${rgba(hue, b.o)} 0%, ${rgba(hue, b.o * 0.5)} 44%, ${rgba(hue, 0)} 72%)`)
   .join(",");
 
 function sheet(id, th) {
@@ -134,24 +142,34 @@ function sTour(scene, ctx, shots) {
   const { id, th, at, du } = ctx;
   const shot = shots[0] || null;
   if (!shot) return { ...K.statement(scene, ctx), backdrop: sheet(id, th) };
-  const head = K.fitLines(scene.headline || scene.title || "", U(920) / K.camSafe(), U(80), 2, th.adv);
-  const list = K.bullets(scene, 2);
+  // CENTRED, AND AT THE REFERENCE'S SIZE. This beat's copy was left-aligned at a 80px ceiling; the
+  // reference centres it across the full measure at 110 (`left:60 right:60 textAlign:center`,
+  // `fontSize:110`). On a 1080-wide frame that is the difference between a caption and a title.
+  const head = K.fitLines(scene.headline || scene.title || "", U(960) / K.camSafe(), U(110), 2, th.adv);
+  // THE PILL ROW WAS MISSING ENTIRELY. The reference seats a centred row of light chips — panel
+  // ground, hairline border, soft shadow, an accent dot, mono 24 — directly under the headline, and
+  // pops them in one after another. It is the most visible thing on the beat after the device.
+  //
+  // Its callout carries copy of its OWN (`s.callout`, distinct from `s.chips`); we have one bullet
+  // list, so the bullets go to the chips rather than being printed twice, once as a pill and again
+  // as a numbered tag. The Detail beat keeps this pack's on-device annotation duty.
+  const chips = K.bullets(scene, 3).map((b) => K.wordsOf(b).slice(0, 3).join(" ").toUpperCase());
 
   return {
     backdrop: sheet(id, th),
     html: `
-    <div class="${id}-copy" style="position:absolute;left:${r(U(80))}cqw;top:${r(U(250))}cqw;width:${r(U(920))}cqw;opacity:0;z-index:4;">
+    <div class="${id}-copy" style="position:absolute;left:${r(U(60))}cqw;top:${r(U(200))}cqw;width:${r(U(960))}cqw;text-align:center;opacity:0;z-index:4;">
       ${eyebrow(th, String(scene.kicker || STRINGS.feature).toUpperCase().slice(0, 30))}
-      <div style="font-family:${th.displayStack};font-weight:700;font-size:${r(head.size)}cqw;line-height:0.98;letter-spacing:-0.02em;color:${th.ink};">${head.lines.map((l) => `<span style="display:block;">${esc(l)}</span>`).join("")}</div>
+      <div style="font-family:${th.displayStack};font-weight:700;font-size:${r(head.size)}cqw;line-height:0.96;letter-spacing:-0.02em;color:${th.ink};">${head.lines.map((l) => `<span style="display:block;">${esc(l)}</span>`).join("")}</div>
+      ${chips.length ? `<div style="margin-top:${r(U(26))}cqw;display:flex;gap:${r(U(16))}cqw;flex-wrap:wrap;justify-content:center;">
+        ${chips.map((c) => `<span class="${id}-chip" style="display:inline-flex;align-items:center;gap:${r(U(10))}cqw;padding:${r(U(14))}cqw ${r(U(24))}cqw;border-radius:${r(U(14))}cqw;background:${th.panel};border:1px solid ${th.line};box-shadow:0 ${r(U(6))}cqw ${r(U(18))}cqw ${rgba(th.ink, 0.08)};font-family:${th.monoStack};font-size:${r(U(24))}cqw;color:${th.ink};white-space:nowrap;opacity:0;"><span style="width:${r(U(11))}cqw;height:${r(U(11))}cqw;border-radius:50%;background:${th.accent};flex:0 0 auto;"></span>${esc(c)}</span>`).join("")}
+      </div>` : ""}
     </div>
-    ${phone(th, { cls: `${id}-ph`, x: U(280), y: U(560), w: U(520), h: U(1090), inner: K.shotFill(shot, { focus: "center top", bg: th.panel }) })}
-    ${list[0] ? callout(`${id}-co`, th, { x: U(90), y: U(940), num: "1", text: K.wordsOf(list[0]).slice(0, 3).join(" ") }) : ""}
-    ${list[1] ? callout(`${id}-co2`, th, { x: U(560), y: U(1330), num: "2", text: K.wordsOf(list[1]).slice(0, 3).join(" ") }) : ""}`,
+    ${phone(th, { cls: `${id}-ph`, x: U(280), y: U(640), w: U(520), h: U(1090), inner: K.shotFill(shot, { focus: "center top", bg: th.panel }) })}`,
     s: [
       `tl.fromTo(".${id}-copy",{opacity:0,y:"${r(U(38))}cqw"},{opacity:1,y:0,duration:${du(0.65)},ease:"back.out(1.5)"},${at(0.3)});`,
       `tl.fromTo(".${id}-ph",{y:"${r(U(700))}cqw"},{y:0,duration:${du(1.2)},ease:"back.out(1.1)"},${at(0.35)});`,
-      list[0] ? `tl.fromTo(".${id}-co",{opacity:0,scale:0.5},{opacity:1,scale:1,duration:${du(0.4)},ease:"back.out(2.4)"},${at(1.3)});` : "",
-      list[1] ? `tl.fromTo(".${id}-co2",{opacity:0,scale:0.5},{opacity:1,scale:1,duration:${du(0.4)},ease:"back.out(2.4)"},${at(1.6)});` : "",
+      chips.length ? `tl.fromTo(".${id}-chip",{opacity:0,scale:0.6},{opacity:1,scale:1,duration:${du(0.34)},ease:"back.out(2.2)",stagger:${du(0.13)}},${at(1.1)});` : "",
       ...sheetTweens(id, ctx),
     ].filter(Boolean),
   };
