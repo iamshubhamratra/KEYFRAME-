@@ -103,7 +103,7 @@ function carG(id, { x, y, s = 1, color }) {
 }
 
 // The whole set: sky, sun, clouds, two parallax skylines, road, centre dashes and traffic.
-function road(id, th) {
+function road(id, th, { softSkyline = false } = {}) {
   const clouds = [[300, 150, 1.0], [900, 120, 0.8], [1600, 175, 0.95]].map(([x, y, s]) =>
     `<g transform="translate(${x} ${y}) scale(${s})" fill="${rgba("#FFFFFF", 0.6)}"><ellipse cx="0" cy="0" rx="86" ry="30" /><ellipse cx="66" cy="10" rx="54" ry="24" /><ellipse cx="-60" cy="12" rx="48" ry="22" /></g>`).join("");
   const far = [0, 420, 840, 1260, 1680, 2100].map((bx, i) =>
@@ -122,8 +122,8 @@ function road(id, th) {
     <circle cx="1300" cy="${HORIZON - 250}" r="340" fill="url(#${id}-sun)" opacity="0.8" />
     <circle cx="1300" cy="${HORIZON - 250}" r="120" fill="#FFEFC2" opacity="0.9" />
     <g class="${id}-cloud">${clouds}</g>
-    <g class="${id}-far" opacity="0.8">${far}</g>
-    <g class="${id}-near">${near}</g>
+    <g class="${id}-far" opacity="${softSkyline ? 0.34 : 0.8}">${far}</g>
+    <g class="${id}-near" opacity="${softSkyline ? 0.42 : 1}">${near}</g>
     <rect x="0" y="${HORIZON}" width="1920" height="${1080 - HORIZON}" fill="${th.road}" />
     <rect x="0" y="${HORIZON}" width="1920" height="8" fill="${th.roadEdge}" />
     <rect x="0" y="${HORIZON + 8}" width="1920" height="3" fill="${rgba(th.sun, 0.35)}" />
@@ -140,11 +140,19 @@ const roadTweens = (id, ctx) => {
     `tl.to(".${id}-dash",{x:-210,duration:${r(loop(210, 260))},ease:"none",repeat:${K.reps(ctx.L, loop(210, 260))}},${r(ctx.T)});`,
     `tl.to(".${id}-wh",{rotation:360,duration:0.5,ease:"none",repeat:${K.reps(ctx.L, 0.5)},transformOrigin:"50% 50%"},${r(ctx.T)});`,
   ];
-  // Three lanes at the reference's speeds. ONE tween each: staggering by starting each car
-  // further off-screen LEFT keeps the entries apart without a second overlapping tween on the
-  // same property — two tweens on `x` is what the overlap lint (correctly) flags.
-  [150, 108, 205].forEach((sp, i) => {
-    const from = -(i * 813), dist = 2440 - from, d = loop(dist, sp);
+  // THE TRAFFIC IS ALWAYS ALREADY THERE. The reference's cars are placed from the FILM's clock —
+  // `x = ((clock * speed + offset) % 2440) - 260` — so at any instant they sit at three unrelated
+  // points of the same loop and the road is never empty. Ours started all three off-screen left at
+  // every scene's start, so each beat opened on a bare road and one car crawled in: at the beat
+  // shot here the reference had three cars and we had one.
+  //
+  // Each car now starts where the reference's formula puts it at THIS scene's start time (the cars
+  // therefore carry across a cut, as they do in the reference) and drives out. One tween on `x`, so
+  // the overlap lint stays happy, and no loop restart is visible: the shortest remaining crossing
+  // is over 9s, longer than any beat, so `reps` resolves to zero and the car never snaps back.
+  [{ sp: 150, o: 0 }, { sp: 108, o: 760 }, { sp: 205, o: 1500 }].forEach(({ sp, o }, i) => {
+    // `x` here is a translation applied to a car drawn at -260, so the reference's -260 cancels.
+    const from = (ctx.T * sp + o) % 2440, d = loop(2440 - from, sp);
     t.push(`tl.fromTo(".${id}-car${i}",{x:${r(from)}},{x:2440,duration:${r(d)},ease:"none",repeat:${K.reps(ctx.L, d)}},${r(ctx.T)});`);
   });
   return t;
@@ -174,14 +182,19 @@ function browser(th, { cls, x, y, w, h, url, shot }) {
       ${["#FF5F57", "#FEBC2E", "#28C840"].map((c) => `<span style="width:${r(U(13))}cqw;height:${r(U(13))}cqw;border-radius:50%;background:${c};flex:0 0 auto;"></span>`).join("")}
       <div style="margin-left:${r(U(14))}cqw;flex:1 1 auto;max-width:${r(U(440))}cqw;height:${r(U(26))}cqw;border-radius:${r(U(13))}cqw;background:${rgba(th.ink, 0.06)};display:flex;align-items:center;padding:0 ${r(U(14))}cqw;box-sizing:border-box;font-family:${th.bodyStack};font-weight:600;font-size:${r(U(13))}cqw;color:${rgba(th.ink, 0.55)};overflow:hidden;white-space:nowrap;">${esc(url)}</div>
     </div>
-    <div style="flex:1 1 auto;min-height:0;">${K.shotFill(shot, { bg: th.paper })}</div>
+    <!-- position:relative IS THE DEVICE. K.shotFill emits position:absolute;inset:0, so without a
+         positioned ancestor here the screenshot resolves against the CARD and paints straight over
+         the title bar: no dots, no url, no browser. Every beat that drew a browser lost its chrome,
+         and nothing could see it — the markup is all present, the CSS is all valid, and the tween
+         targets all exist. Only the reference frames showed it. Same fix in phone() below. -->
+    <div style="position:relative;flex:1 1 auto;min-height:0;">${K.shotFill(shot, { bg: th.paper })}</div>
   </div>`;
 }
 // A handset — the reference's second device.
 function phone(th, { cls, x, y, w, h, shot, right = false }) {
   return `<div class="${cls}" style="position:absolute;${right ? "right" : "left"}:${r(x)}cqw;top:${r(y)}cqw;width:${r(w)}cqw;height:${r(h)}cqw;border-radius:${r(U(46))}cqw;padding:${r(U(13))}cqw;box-sizing:border-box;background:${th.ink};box-shadow:0 ${r(U(50))}cqw ${r(U(100))}cqw ${rgba("#2A1420", 0.45)};z-index:5;opacity:0;">
     <div style="position:absolute;top:${r(U(24))}cqw;left:50%;translate:-50% 0;width:${r(U(96))}cqw;height:${r(U(24))}cqw;border-radius:${r(U(24))}cqw;background:${th.ink};z-index:2;"></div>
-    <div style="width:100%;height:100%;border-radius:${r(U(34))}cqw;overflow:hidden;background:${th.paper};">${K.shotFill(shot, { bg: th.paper })}</div>
+    <div style="position:relative;width:100%;height:100%;border-radius:${r(U(34))}cqw;overflow:hidden;background:${th.paper};">${K.shotFill(shot, { bg: th.paper })}</div>
   </div>`;
 }
 // A legibility plate for headlines set over the sky. NO backdrop-filter: a stack of blurred
@@ -194,6 +207,32 @@ const chip = (th, t) =>
     <span style="width:${r(U(8))}cqw;height:${r(U(8))}cqw;border-radius:50%;background:${th.accent};flex:0 0 auto;"></span>${esc(t)}</span>`;
 
 // ---- scenes ------------------------------------------------------------------
+// A DEGRADED BEAT IS STILL ON THE ROAD. Two separate defects lived here.
+//
+// One: BUILDERS had `statement-c` but no plain `statement`, so a beat that degraded to that role
+// fell through to the kit's own layout — a flat accent panel with no sky, no skyline, no road and no
+// traffic. Not hypothetical: shot against the reference, the Fleet beat rendered exactly that the
+// moment it could not claim enough pictures.
+//
+// Two: the four in-scene fallbacks that DID draw the road never spread `roadTweens`, so they drew
+// the world frozen — clouds parked, both skylines still, three cars stopped mid-lane, wheels locked.
+// A drawn-but-unanimated layer is invisible to every guard we have; `test-dead-tweens` looks for the
+// opposite (a tween with no target).
+// Three: copy landed straight on the skyline. The kit's statement seats its bullets in the lower
+// half, which is exactly where this pack's towers are, so "THE WHOLE APP" read as dark ink on a
+// mid-purple building. Only the SKYLINE steps back for these beats — sky, sun, road and traffic are
+// untouched. A paper wash over the copy column was tried first and thrown away: it bleached the road
+// and the buildings to a grey haze, which fixed the contrast by deleting the world.
+const onRoad = (sc, ctx, opts) => {
+  const base = K.statement(sc, ctx, opts);
+  return {
+    ...base,
+    backdrop: road(ctx.id, ctx.th, { softSkyline: true }),
+    chrome: chrome(ctx),
+    s: [...(base.s || []), ...roadTweens(ctx.id, ctx)],
+  };
+};
+
 // INTRO — the brand over the road, the hero browser rising 520px from below.
 function sIntro(scene, ctx, shots) {
   const { id, th, at, du } = ctx;
@@ -223,7 +262,7 @@ function sIntro(scene, ctx, shots) {
 // BILLBOARDS — the showcase: a plated headline, a big browser rising, a phone beside it.
 function sBillboards(scene, ctx, shots) {
   const { id, th, at, du } = ctx;
-  if (!shots.length) return { ...K.statement(scene, ctx), backdrop: road(id, th), chrome: chrome(ctx) };
+  if (!shots.length) return onRoad(scene, ctx);
   const text = String(scene.headline || scene.title || "").toUpperCase().slice(0, 34);
   const head = K.fitOne(text, U(1500) / K.camSafe(), U(66), th.adv);
   const two = shots.length > 1;
@@ -250,7 +289,7 @@ function sBillboards(scene, ctx, shots) {
 // FEATURE — copy top-left, a browser sliding in from the left, a phone rising, chips beside them.
 function sFeature(scene, ctx, shots) {
   const { id, th, at, du } = ctx;
-  if (!shots.length) return { ...K.statement(scene, ctx), backdrop: road(id, th), chrome: chrome(ctx) };
+  if (!shots.length) return onRoad(scene, ctx);
   const head = K.fitLines(scene.headline || scene.title || "", U(760) / K.camSafe(), U(86), 3, th.adv);
   const chips = K.bullets(scene, 3).map((b) => String(b).slice(0, 20));
   const two = shots.length > 1;
@@ -298,7 +337,7 @@ const FLEET_FITS = {
 };
 function sFleet(scene, ctx, shots) {
   const { id, th, at, du } = ctx;
-  if (!shots.length) return { ...K.statement(scene, ctx), backdrop: road(id, th), chrome: chrome(ctx) };
+  if (!shots.length) return onRoad(scene, ctx);
   const n = Math.min(6, shots.length);
   const tiles = FLEET_FITS[n] || FLEET_TILES;
   const text = String(scene.headline || scene.title || "").toUpperCase().slice(0, 30);
@@ -326,7 +365,7 @@ function sFleet(scene, ctx, shots) {
 function sStats(scene, ctx) {
   const { id, th, at, du } = ctx;
   const stats = K.numbersIn(scene, 3);
-  if (stats.length < 2) return { ...K.statement(scene, ctx), backdrop: road(id, th), chrome: chrome(ctx) };
+  if (stats.length < 2) return onRoad(scene, ctx);
   const head = K.fitLines(scene.headline || scene.title || "", U(900) / K.camSafe(), U(92), 2, th.adv);
   const CX = 1540, CY = 360, R = 150;
   const pt = (deg, rr) => [CX + Math.cos((deg * Math.PI) / 180) * rr, CY + Math.sin((deg * Math.PI) / 180) * rr];
@@ -407,7 +446,7 @@ const SPEC = {
   shapes: {
     intro: [1160 / 550], billboards: [1080 / 560, 330 / 594], feature: [760 / 420, 360 / 634],
     fleet: [560 / 300, 380 / 300, 720 / 300, 720 / 280, 380 / 280, 556 / 280],
-    stats: [], cta: [], "statement-c": [],
+    stats: [], cta: [], statement: [], "statement-c": [],
   },
   slots: (role, budget) => (role === "intro" ? 1
     : role === "billboards" || role === "feature" ? Math.min(2, Math.max(0, budget))
@@ -425,7 +464,8 @@ const SPEC = {
 };
 const BUILDERS = {
   intro: sIntro, billboards: sBillboards, feature: sFeature, fleet: sFleet, stats: sStats, cta: sCTA,
-  "statement-c": (sc, ctx) => ({ ...K.statement(sc, ctx, { centred: true }), backdrop: road(ctx.id, ctx.th), chrome: chrome(ctx) }),
+  statement: (sc, ctx) => onRoad(sc, ctx),
+  "statement-c": (sc, ctx) => onRoad(sc, ctx, { centred: true }),
 };
 const LABELS = {
   intro: STRINGS.intro, billboards: STRINGS.billboards, feature: STRINGS.feature,
