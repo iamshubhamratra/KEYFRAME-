@@ -564,6 +564,54 @@ function collectionTargetFor(plan, floor = {}) {
   };
 }
 
+/**
+ * HOW MANY SCREENSHOTS TO CAPTURE, decided BEFORE the browser opens.
+ *
+ * This is the awkward one, and the awkwardness is structural: screenshots are captured at
+ * INTAKE (project_pipeline.runIntake), and the frame pack is not chosen until PRODUCTION
+ * (graph.frameSelectorAgent). So at the moment of capture there is usually no single template
+ * to ask — which is why the capture cap was a literal `3` and why a pack that can place ten
+ * screenshots only ever saw three.
+ *
+ * Two cases, and the first is exact:
+ *   • the user PINNED a pack (intent.preferences.framePack !== "auto") — ask that pack.
+ *   • "auto" — the pack is unknowable, so ask the HUNGRIEST installed pack. Capturing for the
+ *     appetite we might need is the right side to err on: an unused capture costs one scroll
+ *     and one PNG, while a missing one cannot be recovered without relaunching Chrome in the
+ *     middle of production.
+ *
+ * Clamped hard. `cap` exists because "the hungriest pack" is a number that grows every time
+ * someone authors an ambitious template, and nobody should discover that by watching intake
+ * take a minute longer.
+ */
+function screenshotAppetite(pack) {
+  try {
+    const m = require("./frame_manifest").getManifest(pack);
+    const n = m && m.media && m.media.requiredAssets && Number(m.media.requiredAssets.screenshots);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  } catch { return 0; }
+}
+
+function captureTarget({ framePack = null, cap = 6, floor = 3 } = {}) {
+  const clamp = (n) => Math.max(floor, Math.min(cap, n));
+  try {
+    if (framePack && framePack !== "auto") {
+      const n = screenshotAppetite(framePack);
+      return { target: clamp(n || floor), source: `pack ${framePack}`, appetite: n };
+    }
+    const registry = require("./frame_registry");
+    let best = 0, bestPack = null;
+    for (const p of registry.listPacks()) {
+      const n = screenshotAppetite(p);
+      if (n > best) { best = n; bestPack = p; }
+    }
+    return { target: clamp(best || floor), source: best ? `hungriest installed pack (${bestPack} wants ${best})` : "default", appetite: best };
+  } catch {
+    // FAIL-OPEN: an unreadable registry must never stop a capture — it just captures as before.
+    return { target: floor, source: "fallback", appetite: 0 };
+  }
+}
+
 /** Slots that MUST be filled for the film to read as designed. */
 function criticalPlaceholders(plan) {
   return (plan.placeholders || []).filter((p) => p.priority === "critical");
@@ -623,7 +671,7 @@ function describePlan(plan) {
 module.exports = {
   MediaSchema, PlaceholderSchema, RoleSlotSchema,
   resolveMediaPlan, collectionTargetFor, criticalPlaceholders, describePlan,
-  slotsPerScene, sceneIsSatisfied,
+  slotsPerScene, sceneIsSatisfied, screenshotAppetite, captureTarget,
   aspectOf, derivePlan, quotaFromPlan,
   PRIORITIES, PRIORITY_WEIGHT, KINDS, KIND_CATEGORIES, KIND_PREF,
 };

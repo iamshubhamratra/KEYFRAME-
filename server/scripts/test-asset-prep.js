@@ -223,6 +223,32 @@ t("PIN SUPPRESSION: slotsPerScene counts real slots and ignores logo lockups", (
   assert.ok([...per.values()].some((n) => n >= 2), "a multi-slot scene must be visible as such");
 });
 
+t("CAPTURE TARGET: the collector asks the template BEFORE the browser opens", () => {
+  // The capture cap was a literal `3` in ingest/website.js, chosen before any template could
+  // declare an appetite. Measured on a real razorpay.com ingest: the page offered EIGHT
+  // candidate sections and three were allowed, while `drive` declares it can place 13.
+  const pinned = tm.captureTarget({ framePack: "drive", cap: 6 });
+  assert.ok(pinned.target > 3, `a hungry pinned pack must raise the target, got ${pinned.target}`);
+  assert.ok(pinned.target <= 6, "and stay under the cap");
+  assert.match(pinned.source, /drive/, "the reason must name the pack");
+
+  // A SPARSE pinned pack must not drag capture below the historical floor: screenshots are
+  // tier-80 owned material and the floor is what every pack got before this existed.
+  const sparse = tm.captureTarget({ framePack: "fetch", cap: 6 });
+  assert.equal(sparse.target, 3, `a sparse pack must not capture less than the floor, got ${sparse.target}`);
+
+  // "auto" cannot know the pack — the frame selector has not run — so it captures for the
+  // hungriest installed one. Erring high is right: an unused capture costs one scroll and one
+  // PNG; a missing one cannot be recovered without relaunching Chrome mid-production.
+  const auto = tm.captureTarget({ framePack: "auto", cap: 6 });
+  assert.ok(auto.target >= 3 && auto.target <= 6);
+  assert.match(auto.source, /hungriest/, "and it must say so");
+
+  // Unknown pack and a dead registry both degrade to the floor, never to zero.
+  assert.equal(tm.captureTarget({ framePack: "no-such-pack", cap: 6 }).target, 3);
+  assert.equal(tm.screenshotAppetite("no-such-pack"), 0);
+});
+
 console.log("\n-- asset_quality -------------------------------------------------");
 
 t("SCORING: a crisp, large, information-rich image outranks a soft, small, flat one", () => {

@@ -100,7 +100,9 @@ const {
   MIN_CONTENT_SCORE,
 } = require("./capture");
 
-async function understandWebsite({ url, workDir, timeoutMs = 60_000 }) {
+// `sectionTarget` — how many CONTENT SECTION screenshots to keep. Defaults to the historical
+// 3 so any caller that has not been taught about template appetite behaves exactly as before.
+async function understandWebsite({ url, workDir, timeoutMs = 60_000, sectionTarget = 3 }) {
   const chrome = findChrome();
   if (!chrome) throw new Error("no Chrome found for website ingest (set PUPPETEER_EXECUTABLE_PATH or config.ingest.chromePath)");
   fs.mkdirSync(workDir, { recursive: true });
@@ -266,7 +268,19 @@ async function understandWebsite({ url, workDir, timeoutMs = 60_000 }) {
       try {
         const viewH = 900;
         const sections = await findSections(page);
-        const want = Math.min(3, Math.max(1, sections.length));
+        // HOW MANY SECTIONS TO KEEP — the template's appetite, not a fixed 3.
+        //
+        // This was `Math.min(3, ...)`, and it is the reason templates starve of the highest-
+        // tier visual material there is. Measured on a real razorpay.com ingest: the page
+        // offered EIGHT candidate sections and this line allowed three. Meanwhile `drive`
+        // declares it can place 13 screenshots and `showcase` 10 — so the ceiling that decided
+        // how much of the product a film could show was a literal, chosen before any template
+        // existed to ask.
+        //
+        // `sectionTarget` comes from the resolved media contracts (see the caller). We still
+        // walk MORE candidates than we keep, so the content floor below can reject a weak
+        // section rather than ship it — the target is what we KEEP, not what we try.
+        const want = Math.min(Math.max(1, sectionTarget), Math.max(1, sections.length));
         let taken = 0, idx = 0;
         console.log(`[ingest] found ${sections.length} candidate section(s): ${sections.slice(0, 6).map((s) => `${s.kind}(${s.score})`).join(" ")}`);
         for (const sec of sections) {

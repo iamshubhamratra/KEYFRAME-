@@ -118,7 +118,8 @@
   },
   "ingest": {
     "maxUploadMb": 200,
-    "websiteTimeoutMs": 60000
+    "websiteTimeoutMs": 60000,
+    "maxSectionShots": 6
   },
   "paths": {
     "jobsDir": "jobs",

@@ -114,8 +114,26 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
       db.setProgress(jobId, "ingest");
       const workDir = path.join(jobDirFor(jobId), "ingest");
 
+      // THE COLLECTOR READS THE TEMPLATE'S APPETITE BEFORE IT CAPTURES.
+      //
+      // Capture happens here, at intake, and the frame pack is not chosen until production —
+      // so this asks the pinned pack when the user pinned one, and the hungriest installed
+      // pack when they left it on "auto". Bounded by config.ingest.maxSectionShots, because
+      // every extra section is a scroll, a settle and a PNG on the intake path.
+      const shotPlan = (() => {
+        try {
+          return require("./template_media").captureTarget({
+            framePack: (intent.preferences && intent.preferences.framePack) || job.frame_pack || "auto",
+            cap: Math.max(1, Number(config.ingest?.maxSectionShots) || 6),
+          });
+        } catch { return { target: 3, source: "fallback", appetite: 0 }; }
+      })();
+      if (intent.websiteUrl) {
+        console.log(`[project] capture target: ${shotPlan.target} section shot(s) — ${shotPlan.source}`);
+      }
+
       const websiteTask = intent.websiteUrl
-        ? understandWebsite({ url: intent.websiteUrl, workDir, timeoutMs: config.ingest?.websiteTimeoutMs || 60_000 })
+        ? understandWebsite({ url: intent.websiteUrl, workDir, timeoutMs: config.ingest?.websiteTimeoutMs || 60_000, sectionTarget: shotPlan.target })
             .catch((e) => { console.warn(`[project] website ingest failed: ${e.message}`); return null; })
         : Promise.resolve(null);
 
