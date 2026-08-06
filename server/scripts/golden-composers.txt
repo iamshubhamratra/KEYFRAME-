@@ -32,6 +32,8 @@ hype-wave            plain  f4517e191bc41a19
 hype-wave            brand  486b93eb785ca68a
 jungle               plain  02b5cd84692a19ca
 jungle               brand  4294f65036dac90f
+kinetic-bold         plain  59c2c092f4e79773
+kinetic-bold         brand  45db0e56b7348b92
 lantern-night        plain  df6302cfb772ca62
 lantern-night        brand  f2771664d0470611
 momentum             plain  99ed7455952e278f

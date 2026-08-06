@@ -35,10 +35,8 @@ const bloomComposer = require("./bloom_composer");
 const bauhausComposer = require("./bauhaus_composer");
 const terminalComposer = require("./terminal_departures_composer");
 const paperTalesComposer = require("./paper_tales_composer");
-const kineticUniverseComposer = require("./kinetic_universe_composer");
-const productShowcaseComposer = require("./product_showcase_composer");
-// Imported portrait packs — native GSAP composers, all sharing the product-showcase
-// contract ({ buildComposition, STRINGS }). Table-dispatched below so one generic wrapper
+// Imported portrait packs — native GSAP composers, all sharing one contract
+// ({ buildComposition, STRINGS }). Table-dispatched below so one generic wrapper
 // routes all of them (no per-renderer branch/wrapper explosion), and composerStringsFor
 // picks up their localizable STRINGS automatically.
 const NATIVE_PACK_COMPOSERS = {
@@ -54,18 +52,8 @@ const NATIVE_PACK_COMPOSERS = {
   "om-poster": require("./om_skins/poster_pop"),
   "om-premiere": require("./om_skins/premiere_night"),
   "om-hype": require("./om_skins/hype_wave"),
-  "neo-dashboard": require("./neo_dashboard_composer"),
-  "ai-laboratory": require("./ai_laboratory_composer"),
-  "aurora-motion": require("./aurora_motion_composer"),
-  "digital-universe": require("./digital_universe_composer"),
-  "editorial-motion": require("./editorial_motion_composer"),
-  "glass-dimension": require("./glass_dimension_composer"),
-  "living-city": require("./living_city_composer"),
-  "minimal-luxury": require("./minimal_luxury_composer"),
   "motion-canvas": require("./motion_canvas_composer"),
-  "nature-flow": require("./nature_flow_composer"),
   "paper-craft": require("./paper_craft_composer"),
-  "retro-future": require("./retro_future_composer"),
   // Grid Dispatch — a Swiss-modernist "dispatch sheet in motion" ported from an imported
   // OM/Modernist template. Table-dispatched like the rest, which also hands it
   // composerStringsFor + composerModuleFor (and therefore the portrait regression guard)
@@ -78,6 +66,9 @@ const NATIVE_PACK_COMPOSERS = {
   // The imported OM ports built on om_port_kit. Each supplies a theme, its STRINGS and its
   // scene builders; the kit supplies the shell, the camera, the caption node, role assignment,
   // slot filling and the pictureless STATEMENT fallback.
+  // KINETIC BOLD — not a port: written from its own manifest, because the pack shipped with no
+  // renderer at all and every film that chose it rendered through the generic kit.
+  "kinetic-bold": require("./kinetic_bold_composer"),
   "hacker": require("./hacker_composer"),
   "teampulse": require("./teampulse_composer"),
   "fetch": require("./fetch_composer"),
@@ -100,7 +91,7 @@ const NATIVE_PACK_COMPOSERS = {
 };
 
 // THE AUTHORITATIVE renderer -> composer module map. Every pack that owns a dedicated
-// composer appears here exactly once: the nine that attemptLlmComposition dispatches
+// composer appears here exactly once: the seven that attemptLlmComposition dispatches
 // through their own branch (they take different argument shapes, so the branches stay)
 // plus the table-dispatched natives above.
 //
@@ -121,8 +112,6 @@ const DEDICATED_COMPOSERS = {
   "bauhaus-riot": bauhausComposer,
   "terminal-departures": terminalComposer,
   "paper-tales": paperTalesComposer,
-  "kinetic-universe": kineticUniverseComposer,
-  "product-showcase": productShowcaseComposer,
   ...NATIVE_PACK_COMPOSERS,
 };
 
@@ -218,8 +207,6 @@ function composerStringsFor(framePack) {
     "bloom-fable": bloomComposer.STRINGS,
     "bauhaus-riot": bauhausComposer.STRINGS,
     "paper-tales": paperTalesComposer.STRINGS,
-    "kinetic-universe": kineticUniverseComposer.STRINGS,
-    "product-showcase": productShowcaseComposer.STRINGS,
     // All imported OM portrait packs are DOM-text (GSAP/CSS), so their STRINGS are localizable.
     ...Object.fromEntries(Object.entries(NATIVE_PACK_COMPOSERS).map(([k, m]) => [k, m.STRINGS])),
   };
@@ -721,23 +708,10 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
   if (rendererFor(framePack) === "paper-tales") {
     return composeWithPaperTales({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "paper-tales", abortSignal, tracker, brandSkin, captionStyle, localized });
   }
-  // KINETIC UNIVERSE TEMPLATE — a pack whose manifest declares renderer:"kinetic-universe"
-  // routes to the native GSAP + canvas dark-cosmic portrait composer. Self-contained
-  // (persistent hf-seek canvas cosmos + per-scene archetypes); same funnel + envelope.
-  if (rendererFor(framePack) === "kinetic-universe") {
-    return composeWithKineticUniverse({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "kinetic-universe", abortSignal, tracker, brandSkin, captionStyle, localized });
-  }
-  // PRODUCT SHOWCASE PRO TEMPLATE — a pack whose manifest declares renderer:"product-showcase"
-  // routes to the native GSAP + canvas studio product-ad composer (persistent hf-seek studio
-  // stage + turntable product device-frames + feature callouts). Fully theme-driven.
-  if (rendererFor(framePack) === "product-showcase") {
-    return composeWithProductShowcase({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "product-showcase", abortSignal, tracker, brandSkin, captionStyle, localized });
-  }
   // IMPORTED PORTRAIT PACKS — table-dispatched native GSAP composers (prisma-bloc's
-  // "dom-prisma", plus the OM set: neo-dashboard, ai-laboratory, aurora-motion,
-  // digital-universe, editorial-motion, glass-dimension, living-city, minimal-luxury,
-  // motion-canvas, nature-flow, paper-craft, retro-future). All share the product-showcase
-  // contract, so one generic wrapper routes them.
+  // "dom-prisma", the seven om_stage skins, the om_port_kit ports, plus motion-canvas and
+  // paper-craft from the OM set). All share one buildComposition contract, so a single
+  // generic wrapper routes them.
   {
     const nativeModule = NATIVE_PACK_COMPOSERS[rendererFor(framePack)];
     if (nativeModule) {
@@ -1035,50 +1009,7 @@ async function composeWithPaperTales({ storyboard, dims, jobDir, framePack, capt
 }
 
 
-// KINETIC UNIVERSE composition path — a pack whose manifest declares renderer:"kinetic-universe"
-// routes here (see attemptLlmComposition). A native GSAP + canvas dark-cosmic PORTRAIT film
-// (kinetic_universe_composer.js): a persistent hf-seek canvas cosmos (drifting beams, a
-// perspective grid, a parallax starfield, a vignette) with each storyboard scene injected
-// into a cosmic scene-type (ignition / reveal / showcase / discovery / orbit / statement /
-// cta), real screenshots shown in glowing device-frames. Fully theme-driven (brand recolors
-// the whole universe). Same funnel + envelope as the other native composers.
-async function composeWithKineticUniverse({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null, captionStyle = null, localized = null }) {
-  const t0 = ms();
-  console.log(`[pipeline] ${label || "kinetic-universe"}: building Kinetic Universe composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
-  const built = kineticUniverseComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin, localized });
-  writeIndexHtml(jobDir, built.indexHtml, captionStyle);
-  const assetReport = discloseAssetRender(jobDir, built.indexHtml, assets, label || "kinetic-universe");
-  fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
-  tracker.addExternal("hyperframes_render");
-  const visual = await render({ jobId, jobDir, durationSec, abortSignal });
-  visual.resolvedBrand = built.resolvedBrand || null;
-  if (assetReport) visual.assetRenderReport = assetReport;
-  console.log(`[pipeline] ${label || "kinetic-universe"}: render done in ${ms() - t0}ms total`);
-  return visual;
-}
-
-// PRODUCT SHOWCASE PRO — the native GSAP + canvas "studio product-ad" composer. A persistent
-// hf-seek STUDIO backdrop (lit stage, back-wall spotlight, floor, horizon glow, spotlight
-// pool, drifting beams + light dust) carries continuity while each storyboard scene lands in
-// a studio archetype (open / brief / hero / callouts / gallery / climax / cta), real
-// screenshots/uploads shown in rim-lit turntable device-frames with reflections. Fully
-// theme-driven (brand recolors the whole studio). Same funnel + envelope as the others.
-async function composeWithProductShowcase({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null, captionStyle = null, localized = null }) {
-  const t0 = ms();
-  console.log(`[pipeline] ${label || "product-showcase"}: building Product Showcase composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
-  const built = productShowcaseComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin, localized });
-  writeIndexHtml(jobDir, built.indexHtml, captionStyle);
-  const assetReport = discloseAssetRender(jobDir, built.indexHtml, assets, label || "product-showcase");
-  fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
-  tracker.addExternal("hyperframes_render");
-  const visual = await render({ jobId, jobDir, durationSec, abortSignal });
-  visual.resolvedBrand = built.resolvedBrand || null;
-  if (assetReport) visual.assetRenderReport = assetReport;
-  console.log(`[pipeline] ${label || "product-showcase"}: render done in ${ms() - t0}ms total`);
-  return visual;
-}
-
-// Generic wrapper for the imported OM portrait packs — they all share the product-showcase
+// Generic wrapper for the imported OM portrait packs — they all share one
 // contract (buildComposition({storyboard,dims,framePack,captionCues,assets,brandSkin,localized})
 // → {indexHtml,metaJson,resolvedBrand}), so one wrapper serves the whole table. captionStyle is
 // applied at the writeIndexHtml choke point (these composers emit a #cap-text target).
@@ -1234,6 +1165,11 @@ async function buildAudio({ jobDir, storyboard, flags, tracker, perScene = false
     ? fetchMusic({
         candidates: musicPlan.candidates, outputPath: path.join(audioDir, "music.mp3"),
         tracker, durationSec: duration, style: audioProfile.style, selection: musicSelection,
+        // Per-job search window, and no synthesized pad when the bed is the whole
+        // soundtrack — see the notes in audio_sources.fetchMusic.
+        seed: `${jobId || ""}|${framePack || ""}`,
+        allowGeneratedPad: !!flags.tts,
+        jobId: jobId || "", framePack: framePack || "",
       })
         .then((p) => { if (p) console.log(`[pipeline] music fetched (${musicSelection.provider || "?"}: "${musicSelection.query || ""}")`); return p; })
         .catch((e) => { console.warn(`[pipeline] music failed: ${e.message}`); return null; })

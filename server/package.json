@@ -33,6 +33,7 @@
     "test:dead-tweens": "node scripts/test-dead-tweens.js",
     "test:dropped-css": "node scripts/test-dropped-css.js",
     "test:shot-containment": "node scripts/test-shot-containment.js",
+    "test:pack-composers": "node scripts/test-pack-composers.js",
     "test:audio": "node scripts/test-audio.js",
     "test:audio-profiles": "node scripts/apply-audio-profiles.js --check",
     "test:music-diversity": "node scripts/test-music-diversity.js",
