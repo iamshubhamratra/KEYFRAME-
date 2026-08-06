@@ -64,7 +64,7 @@ slab-stage           plain  88610e3fcc331cd9
 slab-stage           brand  82c22185145fff29
 story-blocks         plain  109eccb4e8f13d39
 story-blocks         brand  a26c1df0a7f25729
-teampulse            plain  63865d46b9a4fb8e
-teampulse            brand  a8fc8b6c9e772cae
+teampulse            plain  c5b8a2d21590e9bc
+teampulse            brand  22fd51c4db548925
 terminal-departures  plain  f9228a3ccca2967e
 terminal-departures  brand  f5258922e60caf4b

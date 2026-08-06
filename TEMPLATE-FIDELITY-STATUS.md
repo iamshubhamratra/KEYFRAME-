@@ -395,6 +395,45 @@ elsewhere because Archivo kerns Y-to-Y across it. That is correct typography, no
 
 ---
 
+## 3j. `kinetic-bold` has NO COMPOSER — found while auditing Stomp
+
+Looking for a pack matching the reference **Stomp**, I found two candidates and one real hole.
+
+- **Stomp is already ported — as `teampulse`.** Its composer names Stomp as its source and reproduces
+  it closely: the cream Organic ground, the green header band, the character-cascade heading, the
+  numbered captions, the browser cards, the worker/desk/coffee. Audited against
+  `framecheck/ref/Stomp`; one defect found and fixed (§ below).
+- **`kinetic-bold` has no `renderer` key at all**, so `composerModuleFor` returns nothing and the
+  pack renders through the GENERIC scene kit. Its own vibe — *"a kinetic-typography poster system…
+  enormous Anton words fill the frame, scenes hard-cut between near-black and off-white grounds,
+  each scene carries exactly one electric accent"* — describes a pack that does not exist in code.
+  Every film that selects it gets the default kit with kinetic-bold's palette.
+
+This is a different failure from anything else in this document. The other 20 templates were ported
+badly or partially; this one was never ported, and nothing flags it: no guard asserts that a pack
+with a distinctive vibe has a composer, and the goldens only cover the 35 packs that HAVE one — so
+`kinetic-bold` is invisible to the entire suite by construction.
+
+**Worth doing:** a one-line check that every pack in `frames/` either declares a renderer with a
+composer or is deliberately listed as kit-rendered. That turns "silently generic" into a build
+failure. Then port it (Anton, hard cuts, one accent per scene — closest sibling is `grid-dispatch`
+for flat print and `slab-stage` for the type scale).
+
+### teampulse — one card must not sit where two would
+
+The reference's Showcase stacks two browser windows at y=390 and y=1090. Ours reused the first slot
+whatever the count, so a beat that could only claim ONE screenshot parked it at the top and left
+about 800px of bare ground beneath — exactly where the second window belongs. The card cannot grow
+(its height is its screenshot's 16:9), so the single case is now centred in the band.
+
+Also worth recording, because it cost me a wrong diagnosis first: **`shot-pack` aligns our film to
+the reference's beat TIMES, not its roles.** Our spine assigns roles independently, so a frame
+labelled `Problem` may be our showcase beat. Read the built HTML's scene ids before calling a beat
+missing — I briefly believed teampulse never drew its screenshots at all, when in fact its showcase
+beat had run three scenes earlier.
+
+---
+
 ## 4. Deliberate divergences — keep these
 
 Not every difference is a defect. From the original audit §6, all still valid:

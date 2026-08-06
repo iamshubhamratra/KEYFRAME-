@@ -467,6 +467,11 @@ function sShowcase(scene, ctx, shots) {
   // and broke mid-word ("THREE THINGS T / O NO"). Size it to the measure like any other run.
   const capSize = K.fitOne(heading, COL / K.camSafe(), U(104), K.ADVANCE.upper);
   const caps = K.bullets(scene, 2).map((b) => String(b).toUpperCase().slice(0, 18));
+  // ONE CARD MUST NOT SIT WHERE TWO WOULD. The reference stacks two windows at 390 and 1090, and
+  // ours reused the first slot whatever the count — so a beat that could only claim one screenshot
+  // parked it at the top and left about 800px of bare ground under it, exactly where the second
+  // window belongs. The card cannot grow (its height is its screenshot's 16:9), so the single case
+  // is CENTRED in the band instead: 390 to the floor, less the caption and the card itself.
   return {
     backdrop: groundOf(id, th, [{ t: 0, h: 320, c: th.accent2 }]),
     chrome: chrome(ctx),
@@ -474,7 +479,7 @@ function sShowcase(scene, ctx, shots) {
     <div style="position:absolute;left:${r(M)}cqw;right:${r(M)}cqw;top:${r(U(180))}cqw;display:flex;flex-wrap:wrap;">
       ${heading.split("").map((c) => `<span class="${id}-cc" style="font-family:${th.displayStack};font-size:${r(capSize)}cqw;line-height:0.96;color:${th.n100};white-space:pre;opacity:0;">${esc(c)}</span>`).join("")}
     </div>
-    ${Array.from({ length: n }, (_, i) => `<div style="position:absolute;left:${r(U(52))}cqw;right:${r(U(52))}cqw;top:${r(U(390 + i * 700))}cqw;">
+    ${Array.from({ length: n }, (_, i) => `<div style="position:absolute;left:${r(U(52))}cqw;right:${r(U(52))}cqw;top:${r(U(n === 1 ? 782 : 390 + i * 700))}cqw;">
       <div class="${id}-cap" style="display:flex;align-items:center;gap:${r(U(16))}cqw;margin-bottom:${r(U(14))}cqw;opacity:0;">
         <span style="width:${r(U(52))}cqw;height:${r(U(52))}cqw;border-radius:50%;background:${th.text};color:${th.n100};display:grid;place-items:center;font-family:${th.displayStack};font-size:${r(U(26))}cqw;flex:0 0 auto;">${i + 1}</span>
         <span style="font-family:${th.displayStack};font-size:${r(U(52))}cqw;color:${th.text};">${esc(caps[i] || "")}</span>
@@ -802,12 +807,44 @@ const SPEC = {
     return true;
   },
 };
+// PRUNE TWEENS WHOSE FURNITURE THIS BEAT DID NOT DRAW.
+//
+// `officeTweens` emits one block for the whole office — the scrolling band, the workers' bob /
+// tap / step / swing / wave, the chair, the plant leaf, the coffee steam and the desk screen —
+// and eleven of the fourteen beats call it. But only six draw the band, and the others compose
+// their own cast: the `outline` beat, for instance, stands two standalone workers on the ground
+// and has no desk, no plant and no coffee cup at all. The result was 32 tweens per film against
+// elements that were never there (found by scripts/test-dead-tweens.js).
+//
+// THIS IS THE CASE WHERE PRUNING IS THE FIX, not a mask. On jungle and deep the same guard
+// pointed at furniture that SHOULD have been drawn and wasn't, and the fix there was to draw it.
+// Here the absence is the design — a beat with two walking workers correctly has no coffee cup —
+// so the tween is the thing that is wrong. Pruning at one choke point also means it cannot drift
+// again as beats are re-composed: the motion now follows the markup by construction.
+function pruneDeadTweens(built, id) {
+  if (!built || !Array.isArray(built.s)) return built;
+  const markup = `${built.html || ""}${built.backdrop || ""}${built.chrome || ""}`;
+  const s = built.s.filter((line) => {
+    if (typeof line !== "string" || !line) return false;
+    // Only judge lines whose target is a literal `.<id>-something` class — ids, compound
+    // selectors and anything built at runtime are left alone.
+    const m = line.match(/^\s*tl\.[a-zA-Z]+\(\s*"\.(\S+?)"/);
+    if (!m) return true;
+    const cls = m[1];
+    if (!cls.startsWith(`${id}-`)) return true;
+    return markup.includes(cls);
+  });
+  return s.length === built.s.length ? built : { ...built, s };
+}
+const withPrune = (fn) => (sc, ctx, ...rest) => pruneDeadTweens(fn(sc, ctx, ...rest), ctx.id);
+
 const BUILDERS = {
   hook: sHook, typewall: sTypeWall, problem: sProblem, outline: sOutline, reveal: sReveal,
   typewriter: sTypewriter, showcase: sShowcase, highlight: sHighlight, features: sFeatures,
   flipwords: sFlipWords, team: sTeam, bigquote: sBigQuote, numbers: sNumbers, cta: sCTA,
   "statement-c": (sc, ctx) => ({ ...K.statement(sc, ctx, { centred: true }), backdrop: groundOf(ctx.id, ctx.th, []), chrome: chrome(ctx) }),
 };
+for (const k of Object.keys(BUILDERS)) BUILDERS[k] = withPrune(BUILDERS[k]);
 const LABELS = {
   hook: STRINGS.hook, typewall: STRINGS.wall, problem: STRINGS.problem, outline: STRINGS.outline,
   reveal: STRINGS.reveal, typewriter: STRINGS.typewriter, showcase: STRINGS.showcase,
