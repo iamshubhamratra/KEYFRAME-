@@ -14,8 +14,8 @@ drive                plain  b8128e791e9c276d
 drive                brand  6b05e70cffe926ce
 edition              plain  30fe667fdc037820
 edition              brand  f2b3c73d7620420c
-fetch                plain  b69d4defdac4a2a7
-fetch                brand  0492e8b769910d71
+fetch                plain  32c4f8b9f7164c82
+fetch                brand  ba3ac0d8c33021fc
 fight                plain  1b55544b6c9fd1dd
 fight                brand  b17faf9b0cf9c942
 flagship             plain  d9b1d1301edafd6c

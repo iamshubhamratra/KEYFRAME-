@@ -23,11 +23,12 @@ const { U, VH } = STAGE;
 
 const SKY_TOP = "#EAF7FB", SKY = "#C7E7F1", GRASS = "#8FC15A", GRASS_DK = "#7CAF49";
 const INK = "#3A352C", PAPER = "#FFFDF6", SUN = "#FFC24C", ACCENT = "#F2683C";
+const DOG = "#E6A95C", DOG_DK = "#CE9142";
 // FONTS: the reference's own Fredoka + Nunito, both bundled.
 const DISPLAY = "Fredoka", MONO = "JetBrains Mono", BODY = "Nunito";
 
 const STRINGS = {
-  title: "OFF THE LEAD", run: "THE RUN", fetch: "FETCH",
+  title: "OFF THE LEAD", run: "THE RUN", incoming: "INCOMING DELIVERY", fetch: "FETCH",
   feature: "GOOD STUFF", stats: "THE SCORE", scene: "LAP", of: "OF", go: "COME PLAY",
 };
 
@@ -37,6 +38,10 @@ function theme(brandSkin) {
     accent, bg: SKY_TOP, sky: SKY, paper: PAPER, panel: PAPER, ink: INK,
     sub: "#7A7263", line: rgba(INK, 0.14),
     grass: GRASS, grassDk: GRASS_DK, sun: SUN,
+    // The dog's own two tans. Not brand-derived and not optional: the cast reads these directly,
+    // and an undefined fill is not "no colour" in SVG — it paints BLACK, which is how the first
+    // shot of the run came back with a black dog in a pastel meadow.
+    dog: DOG, dogDk: DOG_DK,
     adv: K.ADVANCE.mixed,
     capBg: PAPER, capInk: INK,
     ...K.fontStacks(DISPLAY, MONO, `'${BODY}', system-ui, sans-serif`, [BODY]),
@@ -56,7 +61,7 @@ const HORIZON = VH * 0.66;
 // hills, no fence, no trees, no grass, and a sun with no rays. The whole set now comes from
 // fetch_furniture.js as flat SVG in the reference's own 1920x1080 coordinates.
 const F = require("./fetch_furniture");
-const park = (id, th) => F.park(id, th);
+const park = (id, th, extra) => F.park(id, th, extra);
 const parkTweens = (id, ctx) => F.parkTweens(id, ctx, K);
 
 // The ball — arcs across the frame on every beat. Pure CSS, no asset needed.
@@ -100,6 +105,42 @@ function sTitle(scene, ctx, shots) {
       ...ballTween(id, ctx),
       ...parkTweens(id, ctx),
     ].filter(Boolean),
+  };
+}
+
+// THE RUN — the beat this pack is named for, and it did not exist. The reference opens its second
+// scene with the dog carrying a ball the width of the pasture while someone waits at the far fence,
+// copy held at the top of the frame so the ground stays clear for it. Every one of our beats was a
+// card or a plate on empty grass instead.
+//
+// It takes no picture on purpose: it is the pack's one wholly illustrated beat, and giving it a
+// photo slot would put a screenshot exactly where the cast runs.
+function sRun(scene, ctx) {
+  const { id, th, at, du } = ctx;
+  const head = K.fitLines(scene.headline || scene.title || ctx.title, U(1500) / K.camSafe(), U(118), 2, th.adv);
+  const kick = String(scene.kicker || STRINGS.incoming).toUpperCase().slice(0, 28);
+  // Reference geometry, in its own 1920x1080 space: dog 160 -> 1230 at the ground line, someone
+  // waiting at 1620, prints from 180 to just behind the dog's finish.
+  const RUN_FROM = 0.08, RUN_DUR = 0.86;
+  const cast = `${F.pawTrail(id, { from: 180, to: 1160, y: F.GROUND_Y + 92 })}
+    ${F.master(id, th, { x: 1620, y: F.GROUND_Y + 70 })}
+    ${F.dog(id, th, { x: 160, y: F.GROUND_Y + 78 })}`;
+  return {
+    backdrop: park(id, th, cast),
+    html: `
+    <div class="${id}-run-copy" style="position:absolute;left:0;right:0;top:${r(U(150))}cqw;text-align:center;opacity:0;">
+      <div style="display:inline-block;padding:${r(U(10))}cqw ${r(U(30))}cqw;border-radius:${r(U(999))}cqw;background:${th.ink};color:${th.paper};font-family:${th.displayStack};font-weight:600;font-size:${r(U(30))}cqw;letter-spacing:0.02em;">${esc(kick)}</div>
+      <div style="margin-top:${r(U(14))}cqw;font-family:${th.displayStack};font-weight:700;font-size:${r(head.size)}cqw;line-height:0.92;color:${th.ink};text-shadow:0 ${r(U(7))}cqw 0 ${rgba(INK, 0.12)};">
+        ${head.lines.map((l) => `<div>${esc(l)}</div>`).join("")}
+      </div>
+    </div>`,
+    s: [
+      `tl.fromTo(".${id}-run-copy",{opacity:0,y:"${r(U(50))}cqw"},{opacity:1,y:0,duration:${du(0.3)},ease:"power3.out"},${at(0.12)});`,
+      ...F.dogTweens(id, ctx, K, { spanX: 1070, from: RUN_FROM * ctx.L, dur: RUN_DUR * ctx.L }),
+      ...F.masterTweens(id, ctx, K),
+      ...F.pawTweens(id, ctx, K, { from: 0.1 * ctx.L, dur: RUN_DUR * ctx.L }),
+      ...parkTweens(id, ctx),
+    ],
   };
 }
 
@@ -224,8 +265,8 @@ function sComePlay(scene, ctx, logo) {
 // ---- spine -------------------------------------------------------------------
 const SPEC = {
   first: "title", last: "comeplay",
-  middle: ["fetch", "feature", "stats"],
-  shapes: { title: [790 / 560], fetch: [860 / 600], feature: [], stats: [], comeplay: [], statement: [], "statement-c": [] },
+  middle: ["run", "fetch", "feature", "stats"],
+  shapes: { title: [790 / 560], run: [], fetch: [860 / 600], feature: [], stats: [], comeplay: [], statement: [], "statement-c": [] },
   slots: (role) => (role === "title" || role === "fetch" ? 1 : 0),
   needs: (role) => (role === "fetch" ? 1 : 0),
   carry: (role, scene, budget) => {
@@ -236,12 +277,12 @@ const SPEC = {
   },
 };
 const BUILDERS = {
-  title: sTitle, fetch: sFetch, feature: sFeature, stats: sStats, comeplay: sComePlay,
+  title: sTitle, run: sRun, fetch: sFetch, feature: sFeature, stats: sStats, comeplay: sComePlay,
   statement: (sc, ctx) => ({ ...K.statement(sc, ctx), backdrop: park(ctx.id, ctx.th) }),
   "statement-c": (sc, ctx) => ({ ...K.statement(sc, ctx, { centred: true }), backdrop: park(ctx.id, ctx.th) }),
 };
 const LABELS = {
-  title: STRINGS.title, fetch: STRINGS.fetch, feature: STRINGS.feature,
+  title: STRINGS.title, run: STRINGS.run, fetch: STRINGS.fetch, feature: STRINGS.feature,
   stats: STRINGS.stats, comeplay: STRINGS.go,
 };
 
