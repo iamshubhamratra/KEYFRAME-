@@ -50,29 +50,14 @@ const M = U(96);
 const COL = U(1920) - M * 2;
 const HORIZON = VH * 0.66;
 
-// Sky, sun, drifting clouds and two rolling grass bands with scalloped tops.
-const roll = (c, size) =>
-  `repeating-radial-gradient(circle ${size}px at ${size}px 0, ${c} 0 ${size}px, transparent ${size}px)`;
-function park(id, th) {
-  return `<div style="position:absolute;inset:0;background:linear-gradient(180deg, ${th.bg} 0%, ${th.sky} ${r(HORIZON / VH * 100)}%);overflow:hidden;">
-    <div style="position:absolute;right:9%;top:7%;width:${r(U(210))}cqw;height:${r(U(210))}cqw;border-radius:50%;background:radial-gradient(circle, ${rgba(th.sun, 0.95)} 0%, ${rgba(th.sun, 0.35)} 48%, transparent 72%);"></div>
-    <div class="${id}-cloud" style="position:absolute;inset:0;background:
-      radial-gradient(ellipse ${r(U(230))}cqw ${r(U(56))}cqw at 16% 18%, ${rgba("#FFFFFF", 0.92)} 0%, transparent 72%),
-      radial-gradient(ellipse ${r(U(190))}cqw ${r(U(46))}cqw at 54% 12%, ${rgba("#FFFFFF", 0.8)} 0%, transparent 72%),
-      radial-gradient(ellipse ${r(U(210))}cqw ${r(U(50))}cqw at 84% 26%, ${rgba("#FFFFFF", 0.72)} 0%, transparent 72%);"></div>
-    <div class="${id}-g1" style="position:absolute;left:${r(-U(120))}cqw;right:${r(-U(120))}cqw;top:${r(HORIZON)}cqw;bottom:0;background:${th.grass};">
-      <div style="position:absolute;left:0;right:0;top:${r(-U(30))}cqw;height:${r(U(60))}cqw;background:${roll(th.grass, 60)};"></div>
-    </div>
-    <div class="${id}-g2" style="position:absolute;left:${r(-U(120))}cqw;right:${r(-U(120))}cqw;top:${r(HORIZON + U(120))}cqw;bottom:0;background:${th.grassDk};">
-      <div style="position:absolute;left:0;right:0;top:${r(-U(38))}cqw;height:${r(U(76))}cqw;background:${roll(th.grassDk, 76)};"></div>
-    </div>
-  </div>`;
-}
-const parkTweens = (id, ctx) => [
-  `tl.to(".${id}-cloud",{x:"${r(-U(70))}cqw",duration:${r(Math.max(6, ctx.L * 2))},ease:"none"},${r(ctx.T)});`,
-  `tl.to(".${id}-g1",{x:"${r(U(20))}cqw",duration:4.2,ease:"sine.inOut",repeat:${K.reps(ctx.L, 4.2)},yoyo:true},${r(ctx.T)});`,
-  `tl.to(".${id}-g2",{x:"${r(-U(16))}cqw",duration:5.1,ease:"sine.inOut",repeat:${K.reps(ctx.L, 5.1)},yoyo:true},${r(ctx.T)});`,
-];
+// THE PARK IS AN ILLUSTRATION, NOT A GRADIENT. This used to be CSS: a linear-gradient sky, a
+// radial-gradient blob for the sun, three blurred ellipses for clouds and two green bands with a
+// repeating-radial scallop. It read as a pale backdrop where the reference reads as a place — no
+// hills, no fence, no trees, no grass, and a sun with no rays. The whole set now comes from
+// fetch_furniture.js as flat SVG in the reference's own 1920x1080 coordinates.
+const F = require("./fetch_furniture");
+const park = (id, th) => F.park(id, th);
+const parkTweens = (id, ctx) => F.parkTweens(id, ctx, K);
 
 // The ball — arcs across the frame on every beat. Pure CSS, no asset needed.
 const ball = (id, th) =>

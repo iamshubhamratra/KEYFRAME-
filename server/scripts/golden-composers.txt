@@ -14,8 +14,8 @@ drive                plain  b8128e791e9c276d
 drive                brand  6b05e70cffe926ce
 edition              plain  30fe667fdc037820
 edition              brand  f2b3c73d7620420c
-fetch                plain  55429609a848eebb
-fetch                brand  5275cbffcf3928f4
+fetch                plain  b69d4defdac4a2a7
+fetch                brand  0492e8b769910d71
 fight                plain  1b55544b6c9fd1dd
 fight                brand  b17faf9b0cf9c942
 flagship             plain  d9b1d1301edafd6c
@@ -24,8 +24,8 @@ flight               plain  874471187d48993c
 flight               brand  bd1ba8583b89b04a
 flight-vertical      plain  e2acbb852ab0103a
 flight-vertical      brand  faa81dccc0a6698b
-grid-dispatch        plain  5f043b4cb6e57949
-grid-dispatch        brand  b25b242761b2ff53
+grid-dispatch        plain  a2a43e9639579a7a
+grid-dispatch        brand  ae1b9dfe4dd9c567
 hacker               plain  ffebea232c2dfbba
 hacker               brand  15ca1971baf8ead4
 hype-wave            plain  f4517e191bc41a19
