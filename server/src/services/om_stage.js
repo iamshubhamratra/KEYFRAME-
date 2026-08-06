@@ -429,6 +429,13 @@ function scrollPlan(boxW, boxH, asset) {
 // conservative `contain` — showing all of an unknown asset beats cropping something important
 // out of it.
 const PHOTO_KINDS = new Set(["photo", "illustration", "people", "texture"]);
+// The content-derived crop anchor for a cover-fit box. Lazy + defensive: the crop engine is
+// optional infrastructure and a composer must render without it. THE HOUSE LAW.
+function cropFocus(asset, w, h, fallback) {
+  try { return require("./crop_engine").focusFor(asset, w, h, fallback); }
+  catch { return (asset && asset.cropFocus) || fallback; }
+}
+
 function fitFor(asset) {
   const hint = String((asset && (asset.kindHint || asset.assetType)) || "").toLowerCase();
   if (PHOTO_KINDS.has(hint)) return "cover";
@@ -443,7 +450,9 @@ function plate(theme, { asset, scrollId, natH, tint }) {
   if (asset && asset.path) {
     return scrollId && natH
       ? `<div id="${scrollId}" style="position:absolute;left:0;right:0;top:0;height:${X(natH)};"><img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;"></div>`
-      : `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:${fitFor(asset)};object-position:center;display:block;">`;
+      // CONTAIN never crops, so an object-position on it is inert — the anchor only matters
+      // on the cover branch, which is where a photo loses its subject to a centred crop.
+      : `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:${fitFor(asset)};object-position:${fitFor(asset) === "cover" ? cropFocus(asset, 0, 0, "center") : "center"};display:block;">`;
   }
   const wire = wirePlate(theme, tint);
   return scrollId && natH

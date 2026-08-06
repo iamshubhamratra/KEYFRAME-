@@ -46,7 +46,7 @@ const FLAT_PACKS = new Set([
 // flat packs) but keep the full gradient/glow treatment (unlike them) — the
 // keynote/product-studio/storybook look: soft washes on porcelain grounds.
 const LIGHT_GRADIENT_PACKS = new Set([
-  "summit-keynote", "prism-launch", "fable-storybook",
+  "fable-storybook",
 ]);
 
 // PACK SKINS — deep per-pack identity for the premium packs: pinned accent
@@ -54,32 +54,22 @@ const LIGHT_GRADIENT_PACKS = new Set([
 // treatment, extra hues for ornaments, and a Three.js signature scene. The
 // generic archetypes stay untouched; skins ADD ornament layers on top.
 const PACK_SKINS = {
-  "summit-keynote": {
-    accents: ["#2B5BFF", "#D4A94E"],          // cobalt beam, champagne gold
-    extras: ["#10214B", "#5A6B8C"],
-    three: "constellation",
-  },
-  "prism-launch": {
-    accents: ["#FF5A3C", "#8B7CF6"],          // ember CTA, iris
-    extras: ["#5AD7E6", "#FFA3C0"],           // aqua, blush
-    // signature: iridescent gradient clipped onto the emphasis word
-    emphasisCss: "background:linear-gradient(100deg,#8B7CF6,#5AD7E6 50%,#FFA3C0);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#8B7CF6;",
-    three: "shards",
-  },
   "fable-storybook": {
     accents: ["#D8734B", "#E8B84B"],          // terracotta, honey
     extras: ["#7FA37C", "#7A93B8"],           // sage, dusk
     three: "paper",
   },
-  "longshot-cinema": {
-    accents: ["#FFB454", "#4D9FFF"],          // tungsten key, beam counter
-    extras: ["#F2F5F9", "#8B94A7"],
-    emphasisCss: "background:linear-gradient(100deg,#FFB454,#4D9FFF);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#FFB454;",
-  },
 };
 
 function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
 function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+// The content-derived crop anchor for a cover-fit box of (w x h). Passing 0 for either
+// asks for the image's generic focus instead of a box-specific one. Lazy + defensive: the
+// crop engine is optional infrastructure and the kit must render without it — THE HOUSE LAW.
+function kitCropFocus(asset, w, h, fallback) {
+  try { return require("./crop_engine").focusFor(asset, w, h, fallback); }
+  catch { return (asset && asset.cropFocus) || fallback; }
+}
 // Deterministic per-video seed (from the jobId + title) — drives layout/motion
 // VARIANT choices so two different videos never render the identical template,
 // while a single video stays stable (re-renders are identical). FNV-1a.
@@ -1517,7 +1507,7 @@ function archScreenshotHero(scene, ctx) {
   <div style="${frameOuter}">
   <div id="${id}fr" class="kfstage" style="${chrome}overflow:hidden;width:100%;">
     <div style="height:42px;display:flex;align-items:center;gap:9px;padding:0 16px;background:${barBg};border-bottom:1px solid ${theme.line};">${dots}<span style="margin-left:12px;flex:1;max-width:340px;height:22px;border-radius:9999px;background:${rgba(theme.ink, 0.08)};"></span></div>
-    <div style="position:relative;width:100%;height:${bandH}px;overflow:hidden;"><img id="${id}img" src="${esc(asset.path)}" alt="${esc(asset.alt || "screenshot")}" style="position:absolute;top:0;left:0;width:100%;height:auto;min-height:100%;object-fit:cover;object-position:${asset.cropFocus || "top center"};"></div>
+    <div style="position:relative;width:100%;height:${bandH}px;overflow:hidden;"><img id="${id}img" src="${esc(asset.path)}" alt="${esc(asset.alt || "screenshot")}" style="position:absolute;top:0;left:0;width:100%;height:auto;min-height:100%;object-fit:cover;object-position:${kitCropFocus(asset, 0, 0, "top center")};"></div>
   </div>
   </div>
   <div style="${copyWrap}">
@@ -1568,7 +1558,7 @@ function archPhoneHero(scene, ctx) {
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   <div style="${frameOuter}">
   <div id="${id}fr" class="kfstage" style="position:relative;width:${phoneW}px;height:${phoneH}px;border-radius:${rad}px;background:${bezel};border:${bezelBorder};box-shadow:${bodyShadow};padding:${pad}px;">
-    <div style="position:relative;width:100%;height:100%;border-radius:${Math.round(rad * 0.72)}px;overflow:hidden;background:${theme.ground};"><img id="${id}img" src="${esc(asset.path)}" alt="${esc(asset.alt || "screenshot")}" style="position:absolute;top:0;left:0;width:100%;height:auto;min-height:100%;object-fit:cover;object-position:${asset.cropFocus || "top center"};"></div>
+    <div style="position:relative;width:100%;height:100%;border-radius:${Math.round(rad * 0.72)}px;overflow:hidden;background:${theme.ground};"><img id="${id}img" src="${esc(asset.path)}" alt="${esc(asset.alt || "screenshot")}" style="position:absolute;top:0;left:0;width:100%;height:auto;min-height:100%;object-fit:cover;object-position:${kitCropFocus(asset, phoneW, phoneH, "top center")};"></div>
     <div style="position:absolute;top:${Math.round(phoneW * 0.05)}px;left:50%;margin-left:-${Math.round(notchW / 2)}px;width:${notchW}px;height:${notchH}px;border-radius:9999px;background:#04050a;"></div>
   </div>
   </div>
@@ -1673,7 +1663,7 @@ function archAssetMontage(scene, ctx) {
     const isShot = a.source === "website" || /screenshot|webpage|web page|landing|\bsite\b/.test(meta);
     const tone = (isVec || isShot) ? "" : `filter:${photoToneFns(theme)};`;
     const wash = (isVec || isShot) ? "" : `<span style="position:absolute;inset:0;background:linear-gradient(180deg,${rgba(theme.ground, 0.12)},${rgba(theme.ground, 0.32)});pointer-events:none;"></span>`;
-    return `<div class="kftile" style="opacity:0;position:relative;overflow:hidden;border-radius:${flat ? 8 : 14}px;${tileChrome}${pad}height:${tileH}px;display:flex;align-items:center;justify-content:center;"><img src="${esc(a.path)}" alt="${esc(a.alt || "")}" style="width:100%;height:100%;object-fit:${fit};object-position:${a.cropFocus || "center"};display:block;${tone}">${wash}</div>`;
+    return `<div class="kftile" style="opacity:0;position:relative;overflow:hidden;border-radius:${flat ? 8 : 14}px;${tileChrome}${pad}height:${tileH}px;display:flex;align-items:center;justify-content:center;"><img src="${esc(a.path)}" alt="${esc(a.alt || "")}" style="width:100%;height:100%;object-fit:${fit};object-position:${fit === "cover" ? kitCropFocus(a, tileW, tileH, "center") : "center"};display:block;${tone}">${wash}</div>`;
   }).join("");
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   <div style="position:absolute;left:6%;right:6%;top:50%;transform:translateY(-50%);">
@@ -1697,11 +1687,17 @@ function archAssetMontage(scene, ctx) {
 // guarantees text contrast; data-layout-allow-occlusion keeps occlusion lint
 // calm (the scene's text clip is meant to sit over it). Cinematic packs only.
 function scrimBg(asset, ctx) {
-  const { theme, id, T, L } = ctx;
+  const { theme, id, T, L, dims } = ctx;
   if (!asset) return null;
   const g = theme.ground;
   const scrim = `linear-gradient(180deg, ${rgba(g, 0.55)} 0%, ${rgba(g, 0.74)} 55%, ${rgba(g, 0.9)} 100%)`;
-  const html = `<div id="${id}bg" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${ctx.bgTrack}" data-layout-allow-occlusion style="opacity:0;overflow:hidden;"><img id="${id}bgi" src="${esc(asset.path)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"><div style="position:absolute;inset:0;background:${scrim};"></div></div>`;
+  // FULL-BLEED, AND IT WAS CROPPING FROM THE GEOMETRIC CENTRE. This emitted `object-fit:cover`
+  // with no `object-position` at all — the browser default, 50% 50%. It is also the single most
+  // common placement in the library: every demoted or overflow asset takes this path as scrimmed
+  // background B-roll (see the __layoutDemoted route in visual_layout_director). The box is the
+  // whole frame, so the slot aspect is the job's own.
+  const bgPos = kitCropFocus(asset, dims && dims.width, dims && dims.height, "center");
+  const html = `<div id="${id}bg" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${ctx.bgTrack}" data-layout-allow-occlusion style="opacity:0;overflow:hidden;"><img id="${id}bgi" src="${esc(asset.path)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${bgPos};"><div style="position:absolute;inset:0;background:${scrim};"></div></div>`;
   const s = [
     `tl.fromTo("#${id}bg",{opacity:0},{opacity:1,duration:0.6},${r(T)});`,
     `tl.fromTo("#${id}bgi",{scale:1.09},{scale:1.0,duration:${r(L)},ease:"none"},${r(T)});`,

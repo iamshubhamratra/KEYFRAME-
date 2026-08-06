@@ -211,11 +211,31 @@ function screenOk(a) {
 const BRAND_SOURCES = new Set(["upload", "website", "website-brand", "website-asset"]);
 const isOwnAsset = (a) => !!a && (BRAND_SOURCES.has(String(a.source || "")) || String(a.role || "") === "logo");
 
-// A picture filling a box, cropped from its centre. `filter` lets a pack impose a treatment
-// (a trench blue-shift, a terminal green-screen) without every scene repeating it.
-function shotFill(asset, { focus = "center center", filter = null, bg = "#000" } = {}) {
+// A picture filling a box, cropped to keep its SUBJECT. `filter` lets a pack impose a
+// treatment (a trench blue-shift, a terminal green-screen) without every scene repeating it.
+//
+// THIS ONE FUNCTION IS THE CROP FOR FIFTEEN PACKS. deep, drive, edition, fetch, fight,
+// flight, hacker, jungle, momentum, orbit, pipeline, reel and their siblings all draw their
+// cover-fit media through here, and every one of them called it without a `focus` — so the
+// default won every time and every picture in every one of those films was cropped from its
+// geometric centre, whatever was actually in it.
+//
+// `crop_engine.focusFor` returns the content-derived anchor computed at asset-prep time,
+// falling back to the caller's literal and then to the centre, so a pack that never opted
+// in still renders exactly as before when no analysis is present. Pass `w`/`h` (the box's
+// own dimensions, in any consistent unit) to get the crop computed for THAT box's shape
+// rather than the image's generic one.
+function shotFill(asset, { focus = null, filter = null, bg = "#000", w = 0, h = 0 } = {}) {
   if (!asset || !asset.path) return "";
-  return `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${focus};display:block;background:${bg};${filter ? `filter:${filter};` : ""}">`;
+  const pos = cropFocus(asset, w, h, focus || "center center");
+  return `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${pos};display:block;background:${bg};${filter ? `filter:${filter};` : ""}">`;
+}
+
+// Lazy + defensive: the crop engine is optional infrastructure, and a composer must render
+// even if it is missing or throws. THE HOUSE LAW — a crop improvement never costs a film.
+function cropFocus(asset, w, h, fallback) {
+  try { return require("./crop_engine").focusFor(asset, w, h, fallback); }
+  catch { return (asset && asset.cropFocus) || fallback; }
 }
 
 // ---- the spine ---------------------------------------------------------------
@@ -711,7 +731,7 @@ module.exports = {
   stageOf, rgba, mixHex, spin, rgbHex, hexToRgb, relLum, rgbToHsl, hslToHex,
   ensureContrast, inkOn, resolveAccent, fontStacks, clamp01, lerp,
   wordsOf, clampWords, fitLines, fitOne, ADVANCE, domainOf, numbersIn, statLabel, bullets,
-  ratioOf, screenOk, isOwnAsset, shotFill, logoAssetOf,
+  ratioOf, screenOk, isOwnAsset, shotFill, cropFocus, logoAssetOf,
   assignRoles, fillSlots, reps, seedFrom, pad2,
   open, chromeHtml, chromeTweens, cameraTweens, driftTweens, normalizeCamera, camSafe, statement,
   baseCss, document_, buildFilm, esc, r,

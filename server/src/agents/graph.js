@@ -425,7 +425,38 @@ async function assetPlannerAgent(s) {
   // so long films starved). Owned pins (uploads/screenshots/brand) are additive and never
   // reduced below today's baselines. Pure/deterministic; see services/asset_budget.js.
   const hasUploads = (job.user_assets || []).some((u) => u && u.role !== "logo");
-  const budget = computeAssetBudget({ durationSec: job.duration, sceneCount: script.scenes.length, hasUploads, videoOk });
+  const floor = computeAssetBudget({ durationSec: job.duration, sceneCount: script.scenes.length, hasUploads, videoOk });
+
+  // TEMPLATE-AWARE BUDGET. The duration budget above is a FLOOR, not the answer: it knows
+  // how long the film is and how many scenes it has, and nothing whatsoever about what the
+  // chosen template can show. A ten-panel product tour and a one-plate-per-scene mood piece
+  // got the identical stock ceiling, which starved the first and over-collected for the
+  // second. The pack's own media contract (frames/<pack>/pack.json -> media, resolved by
+  // services/template_media) says how many slots there really are and what shape they are;
+  // collectionTargetFor raises the floor to cover them and never lowers it.
+  let mediaPlan = null;
+  let budget = floor;
+  try {
+    const tm = require("../services/template_media");
+    mediaPlan = tm.resolveMediaPlan({
+      pack: s.framePack,
+      scenes: script.scenes,
+      dims: { width: job.width, height: job.height },
+    });
+    budget = tm.collectionTargetFor(mediaPlan, floor);
+    console.log(`[agents] media plan → ${tm.describePlan(mediaPlan)}`);
+    if (budget.__raisedBy !== 0) {
+      const verb = budget.__raisedBy > 0 ? "raised" : "capped";
+      console.log(`[agents] template ${verb} the asset budget (${floor.total} → ${budget.total}) for ${mediaPlan.slotCount} slot(s) — `
+        + (budget.__raisedBy > 0 ? "duration alone would have starved this template" : "the surplus would have been fetched, scored and discarded"));
+    }
+  } catch (e) {
+    // FAIL-OPEN: a bad media block must never cost a film its assets — fall back to the
+    // duration budget, which is exactly today's behaviour.
+    console.warn(`[agents] media plan unavailable (${e.message}) — using the duration budget alone`);
+    mediaPlan = null;
+    budget = floor;
+  }
   console.log(`[agents] asset_budget → ${budget.total} stock (${budget.maxPhotos} photo / ${budget.maxVectors} vector / ${budget.maxVideos} video) for ${job.duration}s · ${script.scenes.length} scenes`);
 
   // USER UPLOADS — tier 100. Pinned by reference (files already live in
@@ -469,12 +500,42 @@ async function assetPlannerAgent(s) {
   const VECTOR_ROLES = new Set(["icon", "texture", "vector"]);
   const roleOf = (n) => String(n.role || "").toLowerCase();
 
+  // ---- PIN SUPPRESSION IS A COUNT, NOT A BOOLEAN --------------------------------------
+  //
+  // A scene that owned ANY pin had every `role:"background"` stock need dropped and its derived
+  // gap-fill suppressed. That was written when nothing knew how many pictures a scene could
+  // show, so one pin had to stand for "this scene is handled".
+  //
+  // It is the binding constraint on "not enough images", and it is measurable: `showcaseTargets`
+  // returns EVERY feature/proof/how/context scene, so on a website-ingest job the 3 screenshot
+  // pins plus 4 harvested brand pins claim essentially every substance scene. Audited job
+  // ahtquvd86o (30s, grid-dispatch, 8 scenes) shipped 9 assets of which exactly ONE was stock —
+  // while its own budget said maxPhotos = 9. Raising the budget alone cannot fix that; the wants
+  // were never created.
+  //
+  // The media plan now knows the real number of slots per scene, so suppression becomes
+  // arithmetic: a scene stops asking for stock when its pins have filled its slots, not when it
+  // receives its first pin. The predicate itself lives in template_media (pure, and therefore
+  // testable); this only counts the pins.
+  const tmedia = require("../services/template_media");
+  const slots = mediaPlan ? tmedia.slotsPerScene(mediaPlan) : new Map();
+  const pins = new Map();
+  const countPin = (sceneId) => {
+    if (sceneId == null) return;
+    const k = String(sceneId);
+    pins.set(k, (pins.get(k) || 0) + 1);
+  };
+  for (const a of userPins.pinned) countPin(a && a.sceneId);
+  for (const p of screenshotPlan) countPin(p.scene && p.scene.id);
+  for (const a of brandPins.brandPinned) countPin(a && a.sceneId);
+  const sceneIsSatisfied = (sceneId) => tmedia.sceneIsSatisfied(sceneId, { pins, slots });
+
   const wants = [];
   for (const scene of script.scenes) {
     const needs = [...(scene.assetNeeds || [])];
     // Gap-fill: EVERY scene with no asset request gets a derived one (hook/cta
     // included — dense visuals everywhere beats sparse pure-typography beats).
-    if (!needs.length && !pinnedSceneIds.has(scene.id)) {
+    if (!needs.length && !sceneIsSatisfied(scene.id)) {
       const q = deriveQuery(scene);
       if (q) {
         // Scene ROLE → asset KIND (asset_taxonomy.PURPOSE_KIND): proof/quote→people,
@@ -520,7 +581,7 @@ async function assetPlannerAgent(s) {
       }
     }
     for (const need of needs) {
-      if (pinnedSceneIds.has(scene.id) && need.role === "background") continue;
+      if (sceneIsSatisfied(scene.id) && need.role === "background") continue;
       const type = need.type === "video" && !videoOk ? "image" : need.type;
       wants.push({ kind: "search", scene, need: { ...need, type } });
     }
@@ -553,7 +614,13 @@ async function assetPlannerAgent(s) {
   const vectors = wants.filter((w) => w.need.type !== "video" && isVectorNeed(w.need)).slice(0, budget.maxVectors);
   const photos  = wants.filter((w) => w.need.type !== "video" && !isVectorNeed(w.need)).slice(0, budget.maxPhotos);
   console.log(`[agents] asset_planner: ${userPins.pinned.length} upload(s)${userPins.logoAsset ? " + logo" : ""} + ${screenshotPlan.length} screenshot(s) + ${videos.length} video(s) + ${photos.length} photo(s) + ${vectors.length} vector(s) (${wants.filter((w) => w.need.derived).length} derived)`);
-  return { assetPlan: { userAssets: userPins.pinned, logo: userPins.logoAsset, brandAssets: brandPins.brandPinned, brandLogo: brandPins.brandLogo, screenshots: screenshotPlan, searches: [...videos, ...photos, ...vectors] } };
+  return {
+    assetPlan: { userAssets: userPins.pinned, logo: userPins.logoAsset, brandAssets: brandPins.brandPinned, brandLogo: brandPins.brandLogo, screenshots: screenshotPlan, searches: [...videos, ...photos, ...vectors] },
+    // The template's slot contract travels forward: asset_prep needs its aspect list, the
+    // layout director and the reuse optimizer need its placeholders, and the pre-render
+    // gate needs to know which of them are critical.
+    mediaPlan,
+  };
 }
 
 // Asset Search — executes the plan: our database first, then providers.
@@ -664,50 +731,160 @@ async function assetSearchAgent(s) {
   // survives a collision, and a site capture that duplicates the user's own
   // upload must be the copy that drops.
   const deduper = makeImageDeduper();
-  for (const a of userPinned) { if (a && a.path) { try { await deduper.add(path.join(jobDir, a.path)); } catch { /* noop */ } } }
+  // PASS THE HASH WE ALREADY HAVE. `deduper.add(abs)` with no second argument makes
+  // util.dhashFor spawn a fresh ffmpeg pass per pin (util.js:252-256) — and the uploads
+  // measured theirs at user_assets.js:190 and the harvested brand assets at
+  // website_assets.js, only to drop it. Six to twelve serial process launches, on the critical
+  // path, to recompute numbers already in memory.
+  //
+  // The GROUPS stay ordered — uploads, then brand, then screenshots — because seeding order is
+  // what decides who survives a collision (a site capture that duplicates the user's own upload
+  // must be the copy that drops). Within a group the adds are independent, so they run together.
+  const seed = async (group) => {
+    await Promise.all(group.map(async (a) => {
+      if (!a || !a.path) return;
+      try { await deduper.add(path.join(jobDir, a.path), a.dhash || undefined); } catch { /* noop */ }
+    }));
+  };
+  await seed(userPinned);
   // Seed harvested brand assets BEFORE stock too, so a stock photo that visually
   // duplicates the site's own hero is the copy that drops (uploads > brand > stock).
-  for (const a of brandPinned) { if (a && a.path) { try { await deduper.add(path.join(jobDir, a.path)); } catch { /* noop */ } } }
-  for (const a of pinned) { if (a && a.path) { try { await deduper.add(path.join(jobDir, a.path)); } catch { /* noop */ } } }
+  await seed(brandPinned);
+  await seed(pinned);
   // Operator override: with web stock forced off, PHOTO needs come only from the
   // curated library (or the real screenshots) — no random/off-brand stock. Web
   // vectors/icons (usually clean flat art) still reach the web.
   const forceCurated = process.env.CURATED_ONLY_IMAGES === "1";
-  let iImg = 0, iVid = 0;
   const results = [];
   // Web-stock assets to run through the vision relevance gate AFTER the fetch
   // loop, in one batched call rather than one LLM call per asset.
   const pendingGate = [];
-  for (const { scene, need } of assetPlan.searches) {
+
+  // ---- PARALLEL FETCH, SEQUENTIAL DEDUPE -----------------------------------
+  //
+  // This loop used to be strictly serial: one `await acquire(...)` per need, each a full
+  // provider round-trip plus a download plus four ffmpeg probes. On a 30s film that is
+  // fifteen to thirty of them end to end, and it was the single largest block of
+  // wall-clock in the whole production graph — pure network latency, spent one request
+  // at a time.
+  //
+  // It was serial for two REAL reasons, both stated in the comments it replaces, and both
+  // are preserved here rather than waved away:
+  //
+  //   1. `usedLibraryIds` — each curated pick excludes the library files already chosen,
+  //      so no film shows the same library asset twice. A shared Set still does this: the
+  //      event loop is single-threaded, so a lane that adds an id between two awaits is
+  //      visible to every lane that starts afterwards. What parallelism costs is the
+  //      GUARANTEE — two lanes in flight at the same moment can still land on the same
+  //      file — so the dedupe pass below catches the remainder by content hash, which is
+  //      strictly stronger than an id match anyway.
+  //
+  //   2. The DEDUPER is order-dependent: whoever is added first wins a collision, and the
+  //      seeding order above (uploads > brand > screenshots > stock) is deliberate. That
+  //      guarantee cannot survive a race, so deduping does NOT run inside the lanes. Every
+  //      fetch completes first; the winners are then decided in one pass, in the original
+  //      plan order, exactly as before.
+  //
+  // Output paths are assigned BEFORE dispatch, from the need's index, so two lanes can
+  // never race for the same filename — the `iImg++` inside the old loop body would have
+  // been a genuine correctness bug the moment it ran concurrently.
+  const lanes = Math.max(1, Math.min(
+    Number(config.assetPrep?.concurrency) || 0,
+    6
+  ) || Math.max(2, Math.min(6, (require("node:os").cpus().length || 4))));
+
+  // THE SHAPE OF THE BOX THIS ASSET IS BEING FETCHED FOR.
+  //
+  // `acquire()` has always accepted a `targetRatio` and `util.rankCandidates` has always
+  // implemented the aspect-fit reward for it (util.js:309) — but no call site ever passed one,
+  // so every fetch fell back to the job-orientation default at asset_sources/index.js:188. The
+  // ranking was fully coded and entirely unwired: a 16:9 desktop capture and a 9:16 phone shot
+  // scored identically for a tall hero plate, and whichever had the better keyword match won.
+  //
+  // The media plan now knows each scene's real slot geometry, so a want destined for a given
+  // scene can be ranked against THAT box. Falls back to the plan's dominant aspect, then to
+  // nothing — in which case the old orientation default applies and behaviour is unchanged.
+  const slotAspectFor = (() => {
+    const plan = s.mediaPlan;
+    if (!plan || !Array.isArray(plan.placeholders) || !plan.placeholders.length) return () => undefined;
+    const byScene = new Map();
+    for (const p of plan.placeholders) {
+      if (p.objectFit !== "cover") continue;           // a contain slot never crops; shape is free
+      const k = String(p.sceneId);
+      // The most important slot on the scene is the one worth ranking for.
+      const cur = byScene.get(k);
+      if (!cur || (p.weight || 0) > (cur.weight || 0)) byScene.set(k, p);
+    }
+    const dominant = plan.aspects && plan.aspects.length
+      ? plan.aspects[Math.floor(plan.aspects.length / 2)]
+      : undefined;
+    return (scene) => {
+      const p = scene && scene.id != null ? byScene.get(String(scene.id)) : null;
+      return (p && p.aspect) || dominant;
+    };
+  })();
+
+  let nImg = 0, nVid = 0;
+  const jobs = assetPlan.searches.map(({ scene, need }) => {
     const isVideo = need.type === "video";
-    const relPath = isVideo ? `assets/videos/${iVid++}.mp4` : `assets/images/${iImg++}.jpg`;
-    // type:"icon" OR role icon/texture -> want a curated vector. Do NOT append
-    // "icon flat" to the query: that suffix trips the curated library's 0.5
-    // relevance gate and zeroes its SVG hits — kindPref:"vector" already routes
-    // to the SVG library on the concrete subject query.
-    const isIcon = need.type === "icon" || ["icon", "texture"].includes(String(need.role || "").toLowerCase());
-    // Anchor PHOTO/background queries to the video's subject so a derived
-    // direction like "scalable growth" becomes "beauty cosmetics scalable
-    // growth" — on-topic stock instead of trading charts. Icons/vectors keep
-    // their concrete query (anchoring an abstract shape rarely helps).
-    // The search query is the SUBJECT (anchor + concrete need). The pack's visual
-    // style is applied at RANK time via styleKeywords and at render time as a
-    // treatment — NOT concatenated into the search text (that overflowed provider
-    // length limits and diluted the subject). See asset_sources query hygiene.
-    const query = (!isIcon && anchor) ? `${anchor} ${need.query}` : need.query;
-    const r = await acquire({
-      query,
-      fallbackQueries: [...new Set([need.query, ...fallbackQueriesFor(query)])],
-      type: isVideo ? "video" : "image",
-      orientation: job.orientation, outputPath: path.join(jobDir, relPath), tracker,
-      kindPref: isVideo ? undefined : (isIcon ? "vector" : kindPrefFor(need.role)),
-      excludeIds: usedLibraryIds,
-      curatedOnly: forceCurated && !isVideo && !isIcon,
-      iconColor: isIcon ? iconColor : undefined,
-      iconStyle: isIcon ? packStyle.iconStyle : undefined,
-      styleKeywords: !isIcon ? packStyle.keywords : undefined,
-    }).catch(() => null);
+    const relPath = isVideo ? `assets/videos/${nVid++}.mp4` : `assets/images/${nImg++}.jpg`;
+    return { scene, need, isVideo, relPath, targetRatio: slotAspectFor(scene) };
+  });
+
+  const tFetch = ms();
+  let cursor = 0;
+  const fetched = new Array(jobs.length).fill(null);
+  const lane = async () => {
+    for (;;) {
+      const i = cursor++;
+      if (i >= jobs.length) return;
+      const { scene, need, isVideo, relPath, targetRatio } = jobs[i];
+      // type:"icon" OR role icon/texture -> want a curated vector. Do NOT append
+      // "icon flat" to the query: that suffix trips the curated library's 0.5
+      // relevance gate and zeroes its SVG hits — kindPref:"vector" already routes
+      // to the SVG library on the concrete subject query.
+      const isIcon = need.type === "icon" || ["icon", "texture"].includes(String(need.role || "").toLowerCase());
+      // Anchor PHOTO/background queries to the video's subject so a derived
+      // direction like "scalable growth" becomes "beauty cosmetics scalable
+      // growth" — on-topic stock instead of trading charts. Icons/vectors keep
+      // their concrete query (anchoring an abstract shape rarely helps).
+      // The search query is the SUBJECT (anchor + concrete need). The pack's visual
+      // style is applied at RANK time via styleKeywords and at render time as a
+      // treatment — NOT concatenated into the search text (that overflowed provider
+      // length limits and diluted the subject). See asset_sources query hygiene.
+      const query = (!isIcon && anchor) ? `${anchor} ${need.query}` : need.query;
+      const r = await acquire({
+        query,
+        fallbackQueries: [...new Set([need.query, ...fallbackQueriesFor(query)])],
+        type: isVideo ? "video" : "image",
+        orientation: job.orientation, outputPath: path.join(jobDir, relPath), tracker,
+        kindPref: isVideo ? undefined : (isIcon ? "vector" : kindPrefFor(need.role)),
+        excludeIds: usedLibraryIds,
+        curatedOnly: forceCurated && !isVideo && !isIcon,
+        iconColor: isIcon ? iconColor : undefined,
+        iconStyle: isIcon ? packStyle.iconStyle : undefined,
+        styleKeywords: !isIcon ? packStyle.keywords : undefined,
+        // Rank candidates against the SHAPE OF THE BOX this asset is destined for. Icons are
+        // exempt: a vector is drawn to fit and has no natural aspect to reward.
+        targetRatio: isIcon ? undefined : targetRatio,
+      }).catch(() => null);
+      if (!r) continue;
+      // Claim the library id as soon as it is known, so later lanes exclude it. Best
+      // effort by construction (see note 1 above); the dedupe pass is the real guarantee.
+      if (r.libraryId) usedLibraryIds.add(r.libraryId);
+      fetched[i] = r;
+    }
+  };
+  await Promise.all(Array.from({ length: lanes }, lane));
+  const gotCount = fetched.filter(Boolean).length;
+  console.log(`[agents] asset_search: fetched ${gotCount}/${jobs.length} in ${ms() - tFetch}ms across ${lanes} lane(s)`);
+
+  // DEDUPE in plan order — the sequential pass whose ordering guarantee the parallel
+  // fetch above deliberately does not try to keep.
+  for (let i = 0; i < jobs.length; i++) {
+    const r = fetched[i];
     if (!r) continue;
+    const { scene, need, isVideo } = jobs[i];
     // Skip an asset we've already used — byte-identical OR visually a duplicate
     // (a different re-encode/crop of the same picture), which MD5 alone missed.
     if (!isVideo) {
@@ -718,7 +895,6 @@ async function assetSearchAgent(s) {
         continue;
       }
     }
-    if (r.libraryId) usedLibraryIds.add(r.libraryId);
     const resultObj = {
       path: path.relative(jobDir, r.path).split(path.sep).join("/"), type: isVideo ? "video" : "image",
       sceneId: scene.id, startSec: scene.start, durationSec: scene.duration,
@@ -731,6 +907,13 @@ async function assetSearchAgent(s) {
       // for every asset, and nothing downstream could dedup or cache by hash. Carrying
       // them costs nothing — the work was already done and thrown away.
       dhash: r.dhash, dominantColor: r.dominantColor,
+      // The PIXEL-QUALITY evidence, for exactly the same reason. `sharpness` (variance of
+      // the Laplacian) and `stdev` (grayscale spread) are measured for every fetched image
+      // by the same validateImage pass that produced dhash, and were dropped on this line
+      // while their neighbours were rescued. services/asset_quality grades on them; without
+      // them every stock asset arrives "unmeasured" and scores a neutral 0.6, which is how
+      // a soft, over-compressed photo reached a hero slot indistinguishable from a crisp one.
+      sharpness: r.sharpness, stdev: r.stdev,
       license: r.license, sourceUrl: r.sourceUrl, source: r.source, fromCache: r.fromCache === true,
     };
     results.push(resultObj);
@@ -785,6 +968,133 @@ async function assetSearchAgent(s) {
   db.setAssets(job.id, assets);
   console.log(`[agents] asset_search: ${assets.length} asset(s) (${userPinned.length} user upload(s), ${got.filter((a) => a.fromCache).length} from cache)`);
   return { assets };
+}
+
+// ---------------------------------------------------------------------------
+// ASSET PREPARATION — the parallel sub-agent stage between collection and curation.
+//
+// WHY IT IS ITS OWN NODE. Everything here is (a) independent of everything else here,
+// (b) CPU-bound rather than LLM-bound, and (c) a PRECONDITION for judging an asset well.
+// Before this node existed, none of it happened at all: an asset reached the Creative
+// Director carrying its dimensions and a perceptual hash, and nothing else. The sharpness
+// and standard deviation that `asset_sources/util.validateImage` had already measured were
+// dropped one line before the wire (assetSearchAgent's resultObj), and no pixel had ever
+// been consulted about where to crop.
+//
+// THREE SUB-AGENTS, RUN CONCURRENTLY. They are genuinely independent — each reads the files
+// and writes disjoint fields on the assets — so they are a `Promise.all`, not a sequence:
+//
+//   IMAGE QUALITY AGENT    measure what is missing (sharpness / stdev / bpp / dominant
+//                          colour) -> score 0-100 -> grade hero|high|medium|low|reject
+//   CROP INTELLIGENCE      content-aware focal points, one per slot aspect the chosen
+//                          template actually needs, cached by file content
+//   CLASSIFICATION AGENT   canonical category + the measurement kind, so the later stages
+//                          stop re-deriving it from `alt` strings four different ways
+//
+// The quality scorer READS what the crop agent writes (`subjectFocus`), so scoring runs
+// after the two file-reading agents settle — a single join, not a chain of three.
+//
+// FAIL-OPEN (THE HOUSE LAW): every sub-agent is individually caught. A crop failure costs
+// a crop, not a film; a scoring failure leaves the assets exactly as collected.
+async function assetPrepAgent(s) {
+  const { job, jobDir } = s;
+  if (config.assetPrep && config.assetPrep.enabled === false) return {};
+  const assets = Array.isArray(s.assets) ? s.assets : [];
+  if (!assets.length) return { assetPrep: null };
+
+  db.setProgress(job.id, "asset_prep");
+  const t0 = ms();
+  const crop = require("../services/crop_engine");
+  const quality = require("../services/asset_quality");
+  const { categorize } = require("../services/asset_priority");
+
+  // The slot shapes this film actually needs a crop for. Resolved from the chosen pack's
+  // media contract — typically two or three distinct aspects even on a ten-panel template,
+  // which is what keeps per-placeholder cropping affordable.
+  const plan = s.mediaPlan || null;
+  const aspects = (plan && plan.aspects && plan.aspects.length)
+    ? plan.aspects
+    // No plan: cover the shapes every composer family draws (a wide plate, a squarish tile,
+    // a tall portrait card) so a generic focus is still box-appropriate.
+    : (job.width >= job.height ? [1.78, 1.33, 1.0] : [0.75, 1.0, 1.33]);
+
+  // The measurement kind, shared by the crop prior and the quality bands. One definition,
+  // read by both, so a screenshot cannot be cropped as a screenshot and scored as a photo.
+  const kindOf = (a) => quality.measureKind(a);
+
+  const [measure, cropReport] = await Promise.all([
+    quality.measureMissing(assets, { jobDir })
+      .catch((e) => { console.warn(`[agents] asset_prep: measurement failed (${e.message})`); return null; }),
+    crop.annotateAssets(assets, { jobDir, aspects, kindOf })
+      .catch((e) => { console.warn(`[agents] asset_prep: crop analysis failed (${e.message})`); return null; }),
+  ]);
+
+  // CLASSIFICATION — pure and instant, so it rides here rather than earning a lane.
+  for (const a of assets) {
+    if (!a || !a.path) continue;
+    try {
+      a.category = categorize(a);
+      a.measureKind = kindOf(a);
+    } catch { /* an unclassifiable asset keeps whatever it had */ }
+  }
+
+  // NEAR-DUPLICATE MARKING. The fetch-time deduper (asset_sources.makeImageDeduper) deletes
+  // an exact or perceptual duplicate outright, but it only sees STOCK: uploads, website
+  // captures and harvested brand assets are seeded into it as references, never checked
+  // against each other. So two near-identical captures of the same page can both reach the
+  // wire, and the reuse optimizer's diversity term is the only thing that notices — after
+  // placement, not before ranking.
+  //
+  // Marking rather than deleting is deliberate: these are the user's own pixels and the
+  // pipeline does not get to throw them away. The weaker of a near-identical pair is simply
+  // ranked below the stronger (asset_quality caps a marked asset at 22), so it becomes the
+  // one that fills a minor slot instead of competing for the hero.
+  // It runs BEFORE scoring, so it cannot rank the pair by `qualityScore` — that does not
+  // exist yet, and using it here would silently compare 0 to 0 and pick by array order.
+  // Tier then sharpness is the honest ordering with the evidence available at this point:
+  // whose pixels they are first (the house law), then which copy is crisper.
+  let dupMarked = 0;
+  try {
+    const { dhashSimilarity } = require("../services/asset_reuse");
+    const { tierFor } = require("../services/asset_priority");
+    const withHash = assets.filter((a) => a && a.dhash && !a.__duplicateOf);
+    const strength = (a) => tierFor(a) * 1e6 + (Number(a.sharpness) || 0);
+    for (let i = 0; i < withHash.length; i++) {
+      for (let j = i + 1; j < withHash.length; j++) {
+        const x = withHash[i], y = withHash[j];
+        if (x.__duplicateOf || y.__duplicateOf) continue;
+        // 0.92 over a 64-bit dHash is ~5 differing bits — visibly the same picture, while
+        // leaving room for a legitimately similar shot of a different page.
+        if (dhashSimilarity(x.dhash, y.dhash) < 0.92) continue;
+        const weaker = strength(y) > strength(x) ? x : y;
+        const stronger = weaker === x ? y : x;
+        weaker.__duplicateOf = stronger.path;
+        dupMarked++;
+      }
+    }
+    if (dupMarked) console.log(`[agents] asset_prep: marked ${dupMarked} near-duplicate(s) — kept as minor-slot material, ranked below their twin`);
+  } catch { /* fail-open: duplicate marking is a ranking hint, never a gate */ }
+
+  const hist = quality.scoreAssets(assets, { frame: { width: job.width, height: job.height } });
+
+  const report = {
+    assets: assets.length,
+    measured: measure ? measure.measured : 0,
+    cropAnalyzed: cropReport ? cropReport.analyzed : 0,
+    cropCached: cropReport ? cropReport.cached : 0,
+    cropSkipped: cropReport ? cropReport.skipped : 0,
+    cropSource: cropReport ? cropReport.source : "none",
+    measureCached: measure ? (measure.cached || 0) : 0,
+    nearDuplicates: dupMarked,
+    aspects,
+    grades: hist,
+    ms: ms() - t0,
+  };
+  console.log(`[agents] asset_prep: ${assets.length} asset(s) in ${report.ms}ms — `
+    + `${report.measured} measured, ${report.cropAnalyzed} cropped (${report.cropCached} cached, ${report.cropSkipped} skipped) via ${report.cropSource}; `
+    + `grades ${hist.hero}★ / ${hist.high} high / ${hist.medium} med / ${hist.low} low / ${hist.reject} reject`);
+  try { db.setAssets(job.id, assets); } catch { /* the wire is already in state; the DB copy is a disclosure */ }
+  return { assets, assetPrep: report };
 }
 
 // Creative Director — the final creative authority before composition. Reviews,
@@ -973,12 +1283,18 @@ async function assetReuseAgent(s) {
     renderer: rendererOf(s.framePack) || null,
     acceptsVectors: require("../services/frame_manifest").packAcceptsVectors(s.framePack),
     seedKey: s.job.id,          // same per-job salt the scene-kit uses for layout variety
+    // The template's declared slot list — real boxes with real priorities, instead of the
+    // one-addressable-slot-per-scene approximation. It is what lets this stage say "the
+    // hero" at all, and therefore what lets it put the best picture there.
+    mediaPlan: s.mediaPlan || null,
   });
   if (review) {
     try { db.setAssetReuseReport(s.job.id, review); } catch { /* disclosure never blocks a render */ }
     try { db.setAssets(s.job.id, assets); } catch { /* best effort */ }
     console.log(`[agents] asset_reuse → ${review.assetCoverage} of ${review.slotsDemanded} slot(s) covered `
       + `(${review.slotsFilledUnique} unique, ${review.slotsFilledReuse} reuse, ${review.slotsFilledDecorative} decorative)`
+      + (review.criticalSlots ? ` · ${review.criticalFilled}/${review.criticalSlots} critical filled` : "")
+      + (review.qualityPromotions ? ` · ${review.qualityPromotions} quality promotion(s)` : "")
       + (review.reusedAssets ? ` · ${review.reusedAssets} asset(s) reused, max ${review.maximumReuseCount}×` : ""));
   }
   // The review rides graph state (not just the DB) so the QA reviewer can be told which
@@ -1338,6 +1654,9 @@ function validateBeforeRender(s) {
     jobDir,
     acceptsVectors: require("../services/frame_manifest").packAcceptsVectors(s.framePack),
     hardFail: config.validationGate.hardFail !== false,
+    // The template's slot contract, so the gate can finally ask "is the HERO empty?"
+    // instead of settling for "how many scenes have something in them".
+    mediaPlan: s.mediaPlan || null,
   });
   // Adopt the self-healed list so the composer never emits a broken <img src>.
   if (report.selfHealed) {
@@ -1985,6 +2304,7 @@ async function buildGraph() {
     brandSkin: Annotation(), layoutPlan: Annotation(), motionPlan: Annotation(),
     captionPlan: Annotation(), localizationPackWarning: Annotation(), orientationPackWarning: Annotation(), localizedStrings: Annotation(),
     assetPlan: Annotation(), assets: Annotation(), audioAdvice: Annotation(), assetReuse: Annotation(),
+    mediaPlan: Annotation(), assetPrep: Annotation(), placementReview: Annotation(),
     voClips: Annotation(), sfxClips: Annotation(), musicPath: Annotation(), audioPlan: Annotation(),
     narration: Annotation(), audioProfile: Annotation(), musicSelection: Annotation(),
     visual: Annotation(), usedFallback: Annotation(), finalAttempt: Annotation(), rendered: Annotation(),
@@ -2001,6 +2321,7 @@ async function buildGraph() {
     .addNode("scene_planner", scenePlannerAgent)
     .addNode("asset_planner", assetPlannerAgent)
     .addNode("asset_search", assetSearchAgent)
+    .addNode("asset_prep", assetPrepAgent)
     .addNode("creative_director", creativeDirectorAgent)
     .addNode("visual_layout_director", visualLayoutDirectorAgent)
     .addNode("asset_reuse", assetReuseAgent)
@@ -2030,10 +2351,15 @@ async function buildGraph() {
   g.addEdge("caption_director", "voice_agent");
   g.addEdge("storyboard_agent", "scene_planner");
   g.addEdge("asset_planner", "asset_search");
-  // Join: the Creative Director needs the scene plan AND the fetched assets. It
+  // ASSET PREPARATION sits between collection and curation, on the asset branch alone, so
+  // its CPU-bound work (pixel measurement + content-aware crop) overlaps the storyboard and
+  // voice branches rather than extending the critical path. The Creative Director is the
+  // first consumer that benefits: it now judges assets that carry a real quality grade.
+  g.addEdge("asset_search", "asset_prep");
+  // Join: the Creative Director needs the scene plan AND the prepared assets. It
   // curates/scores/assigns them; the Visual Layout Director then reuses those scores
   // to decide presentation (count/size/crop) + type each scene's base archetype.
-  g.addEdge(["scene_planner", "asset_search"], "creative_director");
+  g.addEdge(["scene_planner", "asset_prep"], "creative_director");
   g.addEdge("creative_director", "visual_layout_director");
   // The Asset Reuse Optimizer closes the coverage gap the layout director cannot: it needs
   // the FINAL placements (so it knows which scenes are still empty), and everything

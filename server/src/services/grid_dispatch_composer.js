@@ -372,6 +372,13 @@ const BRAND_SOURCES = new Set(["upload", "website", "website-brand", "website-as
 const isOwnAsset = (a) => !!a && (BRAND_SOURCES.has(String(a.source || "")) || String(a.role || "") === "logo");
 const assetFilter = (a) => (isOwnAsset(a) ? "none" : "grayscale(1) contrast(1.08)");
 
+// The content-derived crop anchor for a cover-fit box of (w x h). Lazy + defensive: the
+// crop engine is optional infrastructure and this composer must render without it.
+function cropFocus(asset, w, h, fallback) {
+  try { return require("./crop_engine").focusFor(asset, w, h, fallback); }
+  catch { return (asset && asset.cropFocus) || fallback; }
+}
+
 // The aspect label the spec bar prints. Real ratios, named where a designer would name them.
 function ratioLabel(a) {
   const rr = ratioOf(a);
@@ -430,9 +437,39 @@ function emptyPlate() { return ""; }
 // grows to consume the slack instead of leaving paper. A tall asset therefore yields a TALL,
 // NARROW panel; the caller puts the scene's copy beside it rather than under it, which is how
 // the reference composes its own device screen.
-function panelBox(asset, availW, availH, { chromeH = 0 } = {}) {
+// How far a `fill` plate may be widened past its picture's own shape, as a ratio multiplier.
+// 1.5 lets a 0.46 phone capture render at 0.69 — two thirds of the grid instead of under a
+// half — while still keeping two thirds of the image's height. Beyond this a tall capture
+// starts losing the content it was collected for.
+const MAX_FILL_CROP = 1.5;
+
+// The plate's box. By default it carries the PICTURE's shape, which is deliberate: a tall
+// capture becomes a tall narrow plate rather than a small picture letterboxed inside a wide
+// box, and an earlier review blocked a film for exactly that ("product UI screenshot rendered
+// too small"). The pack's answer to the width a narrow plate frees is its own idiom —
+// "BESIDE A NARROW PLATE, UNDER A WIDE ONE" (see `asideMain` in the main scene, which moves
+// the card deck into that column).
+//
+// `fill` is for the callers that have NOTHING to put beside it. Four of the five did not, so a
+// portrait capture simply left bare paper: measured on a real render, the figure scene's plate
+// came out 40.73 of 88.15cqw — 46% of the grid, 54% of it empty — and QA blocked the film for
+// "massive empty space on the right side of the canvas". Those callers now widen the plate
+// toward the slot, bounded by MAX_FILL_CROP.
+//
+// Widening only ever CROPS, never stretches, and it is safe now in a way it was not before:
+// every asset reaches the composer carrying a content-derived `cropFocus` (services/crop_engine),
+// so the height given up is taken from the edge furthest from the subject rather than split
+// evenly around a guessed centre. The main scene does NOT pass `fill` — its aside still wants
+// the narrow plate.
+function panelBox(asset, availW, availH, { chromeH = 0, fill = false } = {}) {
   const inner = Math.max(U(60), availH - chromeH);
-  const ar = ratioOf(asset) || 1.5;
+  let ar = ratioOf(asset) || 1.5;
+  if (fill) {
+    const slotAr = availW / inner;
+    // Only ever widen toward the slot. A picture already wider than its box is left alone —
+    // narrowing it would give back width the layout has no other use for.
+    if (slotAr > ar) ar = Math.min(slotAr, ar * MAX_FILL_CROP);
+  }
   let w = availW, h = w / ar;
   if (h > inner) { h = inner; w = h * ar; }
   // Never so narrow it reads as a thumbnail: below this a portrait asset is better shown
@@ -450,7 +487,10 @@ function fixedPanel(id, th, { asset, x, y, w, h, slot, note, focus, optional, la
   }
   const barH = U(46);
   const lbl = `${STRINGS.slot} ${pad2(slot || 1)}${note ? ` — ${String(note).toUpperCase()}` : ""}`;
-  const media = `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${focus || "center top"};background:${th.paper};filter:${assetFilter(asset)};">`;
+  // The panel knows its own box, so the crop is computed for THIS shape rather than the
+  // image's generic one — the same picture keeps a different region in a tall spec panel
+  // than in a wide one, which is the whole reason crops are per-placeholder.
+  const media = `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${cropFocus(asset, w, h - barH, focus || "center top")};background:${th.paper};filter:${assetFilter(asset)};">`;
   return `<div class="${id}-panel gd-panel" style="left:${r(x)}cqw;top:${r(y)}cqw;width:${r(w)}cqw;height:${r(h)}cqw;">
     <div class="gd-bar" style="height:${r(barH)}cqw;">
       <span>${esc(lbl)}</span><span style="color:${th.accent};">${esc(ratioLabel(asset))}</span>
@@ -464,7 +504,7 @@ function fixedPanel(id, th, { asset, x, y, w, h, slot, note, focus, optional, la
 // portrait. Same cover discipline.
 function bareShot(id, th, { asset, x, y, w, h, border, focus }) {
   const media = asset && asset.path
-    ? `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${focus || "center top"};background:${th.paper};filter:${assetFilter(asset)};">`
+    ? `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${cropFocus(asset, w, h, focus || "center top")};background:${th.paper};filter:${assetFilter(asset)};">`
     : `<div style="position:absolute;inset:0;background:${th.accent};"></div>`;
   return `<div class="${id}-shot" style="position:absolute;left:${r(x)}cqw;top:${r(y)}cqw;width:${r(w)}cqw;height:${r(h)}cqw;border:${r(border || RULE)}cqw solid ${th.ink};background:${th.paper};overflow:hidden;">
     <div class="${id}-zoom" style="position:absolute;inset:0;">${media}</div>
@@ -682,7 +722,8 @@ function sHook(scene, ctx, sceneAssets) {
   // authored 672px, which is what turns the reference's bare lower half into a filled frame.
   const hookFoot = U(26) + U(40) + U(54) + U(50) + U(46) + U(104);
   const panelH = plateRoom(panelY, hookFoot);
-  const hookBox = panelBox(asset, GW, panelH, { chromeH: U(46) });
+  // fill: the hook's plate is the only thing in its row — nothing sits beside it.
+  const hookBox = panelBox(asset, GW, panelH, { chromeH: U(46), fill: true });
   const tickY = panelY + hookBox.h + U(40);
   const sectY = tickY + U(54), ruleY = sectY + U(50), specY = ruleY + U(46);
   const spec = [
@@ -872,7 +913,7 @@ function sSolution(scene, ctx, sceneAssets) {
       <div style="position:absolute;left:${r(U(14))}cqw;top:${r(U(34))}cqw;right:${r(U(14))}cqw;bottom:${r(U(14))}cqw;overflow:hidden;">
         <div class="${id}-dzoom" style="position:absolute;inset:0;">${
           shots[1] && shots[1].path
-            ? `<img src="${esc(shots[1].path)}" alt="${esc(shots[1].alt || "")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;background:${th.paper};filter:${assetFilter(shots[1])};">`
+            ? `<img src="${esc(shots[1].path)}" alt="${esc(shots[1].alt || "")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${cropFocus(shots[1], devW, devH, "center top")};background:${th.paper};filter:${assetFilter(shots[1])};">`
             : `<div style="position:absolute;inset:0;background:${th.accent};"></div>`
         }</div>
       </div>
@@ -937,7 +978,8 @@ function sFeatures(scene, ctx, sceneAssets) {
   // features, not four, so a whole quadrant row goes spare. The plate takes it — a strip at
   // ten percent of frame is what the review called "tiny with excessive blank backdrop".
   const stripAvail = plateRoom(stripY, U(30));
-  const stripBox = panelBox(asset, GW, stripAvail, { chromeH: U(46) });
+  // fill: the strip spans the grid under the quadrant devices; nothing shares its row.
+  const stripBox = panelBox(asset, GW, stripAvail, { chromeH: U(46), fill: true });
   const stripH = stripBox.h;
 
   // The four ambient devices, one per quadrant, quoted from the reference. Each is finite and
@@ -1073,7 +1115,13 @@ function sBenefits(scene, ctx, sceneAssets) {
 
     <div class="${id}-hr2" style="position:absolute;left:${M}cqw;top:${r(tailY - U(40))}cqw;width:${GW}cqw;height:${RULE}cqw;background:${th.ink};transform:scaleX(0);transform-origin:left center;"></div>
     ${sectionLabel(id, th, `${pad2(stats.length)} ${ctx.S.figure}`, M, tailY - U(16), GW)}
-    ${(() => { const b = panelBox(asset, GW, plateRoom(tailY + U(30)), { chromeH: U(46) }); return fixedPanel(id, th, { asset, x: M, y: tailY + U(30), w: b.w, h: b.h, slot: ctx.i + 1, note: ctx.S.proof, focus: "center center", label: ctx.S.proof }); })()}`);
+    ${(() => {
+      // fill: the tail plate closes the figure scene with the stats stacked ABOVE it, so the
+      // column beside it is bare. This is the scene QA blocked for "massive empty space on the
+      // right side of the canvas" — measured at 40.73 of 88.15cqw.
+      const b = panelBox(asset, GW, plateRoom(tailY + U(30)), { chromeH: U(46), fill: true });
+      return fixedPanel(id, th, { asset, x: M, y: tailY + U(30), w: b.w, h: b.h, slot: ctx.i + 1, note: ctx.S.proof, focus: "center center", label: ctx.S.proof });
+    })()}`);
 
   const s = [
     `tl.set("#${id}",{opacity:1},${r(ctx.T)});`,
@@ -1139,7 +1187,8 @@ function sProof(scene, ctx, sceneAssets) {
   // the reference's absolute 1440px start happened to leave.
   const metH = metric ? U(260) : 0;
   const wallAvail = plateRoom(wallY, metric ? metH + U(26) : 0);
-  const wallBox = panelBox(wall, GW, wallAvail, { chromeH: U(46) });
+  // fill: the wall plate sits above a pinned metric footer, with nothing to either side.
+  const wallBox = panelBox(wall, GW, wallAvail, { chromeH: U(46), fill: true });
   const wallH = wallBox.h;
   const metY = wallY + wallH + U(26);
 
@@ -1152,7 +1201,7 @@ function sProof(scene, ctx, sceneAssets) {
 
     ${attrib || portrait ? `<div class="${id}-att" style="position:absolute;left:${M}cqw;top:${r(attY)}cqw;width:${GW}cqw;display:flex;align-items:center;gap:${r(U(26))}cqw;opacity:0;">
       ${portrait ? `<div style="position:relative;width:${r(U(112))}cqw;height:${r(U(112))}cqw;border:${RULE}cqw solid ${th.ink};overflow:hidden;flex:0 0 auto;">
-        <img src="${esc(portrait.path)}" alt="${esc(portrait.alt || "")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center center;background:${th.paper};filter:${assetFilter(portrait)};">
+        <img src="${esc(portrait.path)}" alt="${esc(portrait.alt || "")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${cropFocus(portrait, 1, 1, "center center")};background:${th.paper};filter:${assetFilter(portrait)};">
       </div>` : ""}
       ${attrib ? `<div>
         <div style="font-family:${th.displayStack};font-weight:700;font-size:${r(fitOne(who.title, GW - U(180), U(36)))}cqw;line-height:1.1;letter-spacing:-0.02em;color:${th.ink};">${esc(who.title)}</div>

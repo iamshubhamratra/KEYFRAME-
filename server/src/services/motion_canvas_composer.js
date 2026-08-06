@@ -180,13 +180,22 @@ function fitPlateW(ctx, wCqw, asset) {
   return `${box.w}cqw`;
 }
 
+// The content-derived crop anchor for a cover-fit box. Lazy + defensive: the crop engine is
+// optional infrastructure and this composer must render without it.
+function mcCropFocus(asset, w, h) {
+  try { return require("./crop_engine").focusFor(asset, w, h, "center center"); }
+  catch { return (asset && asset.cropFocus) || "center center"; }
+}
+
 // A bold shape-masked frame holding a real screenshot — or, with no asset, an
 // intentional branded placeholder (accent wash + a ringed shape) so an empty slot
 // still reads as designed, never blank. Filled 100%×100%; the caller sizes it.
 function shapeScreen(idn, theme, { w, h, asset, radius, shadow }) {
   const sh = shadow || theme.shapeA;
   const inner = asset && asset.path
-    ? `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;">`
+    // No object-position at all meant the browser default (50% 50%) — every picture cropped
+    // from its geometric centre. Anchor it on the measured subject instead.
+    ? `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${mcCropFocus(asset, w, h)};display:block;">`
     : `<div style="position:absolute;inset:0;background:${theme.gradient};opacity:0.92;"></div>` +
       `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;"><div style="width:32%;aspect-ratio:1;border-radius:50%;border:1cqw solid ${theme.paper};"></div></div>`;
   return `<div id="${idn}" class="mc-screen" style="width:${w};height:${h};border-radius:${radius || "2cqw"};position:relative;overflow:hidden;background:${theme.paper};border:0.5cqw solid ${theme.ink};box-shadow:1.4cqw 1.4cqw 0 ${sh};">

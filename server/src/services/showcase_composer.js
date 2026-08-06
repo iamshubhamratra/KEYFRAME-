@@ -243,8 +243,17 @@ const isOwnAsset = (a) => !!a && (BRAND_SOURCES.has(String(a.source || "")) || S
 // A picture filling a box, cropped from its centre. Showcase is a HIGH-KEY, full-colour
 // template — unlike grid-dispatch there is no grayscale-by-provenance rule here, because a
 // desaturated screenshot inside browser chrome reads as a broken page rather than a style.
-function shotFill(asset, { focus = "center center" } = {}) {
-  return `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${focus};display:block;background:${PANEL};">`;
+function shotFill(asset, { focus = "center center", w = 0, h = 0 } = {}) {
+  return `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${cropFocus(asset, w, h, focus)};display:block;background:${PANEL};">`;
+}
+
+// The content-derived crop anchor for a cover-fit box. Lazy + defensive: the crop engine is
+// optional infrastructure and this composer must render without it. Content truth outranks
+// the call site's literal — those literals ("center top") are generic defaults written
+// before anything had measured the picture.
+function cropFocus(asset, w, h, fallback) {
+  try { return require("./crop_engine").focusFor(asset, w, h, fallback); }
+  catch { return (asset && asset.cropFocus) || fallback; }
 }
 
 // ---- device chrome -----------------------------------------------------------

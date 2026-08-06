@@ -209,13 +209,22 @@ function fitPlateW(ctx, wCqw, asset) {
 // placeholder (paper wash + a glowing accent node) so an empty slot still reads as designed,
 // never blank. GSAP animates the OUTER `.cls`; the paper rotation is static CSS on the inner
 // wrapper GSAP never touches (so the float can't discard it). `w` is card width in cqw.
+// The content-derived crop anchor for a cover-fit box. Lazy + defensive: the crop engine is
+// optional infrastructure and this composer must render without it.
+function pcCropFocus(asset, w, h) {
+  try { return require("./crop_engine").focusFor(asset, w, h, "center center"); }
+  catch { return (asset && asset.cropFocus) || "center center"; }
+}
+
 function photoCard(theme, { cls, w, asset, label, tape, rot }) {
   const hmul = frameHmul(asset);
   const imgH = r(w * hmul);
   const pad = r(w * 0.05);
   const capH = r(w * 0.14);
   const inner = asset && asset.path
-    ? `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;">`
+    // No object-position at all meant the browser default (50% 50%) — every picture cropped
+    // from its geometric centre. Anchor it on the measured subject instead.
+    ? `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${pcCropFocus(asset, w, imgH)};display:block;">`
     : `<div style="position:absolute;inset:0;background:${theme.paper2};"></div>` +
       `<div style="position:absolute;inset:0;background-image:radial-gradient(circle at 50% 42%, ${theme.accentSoft}, transparent 62%);"></div>` +
       `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;"><div style="width:22%;aspect-ratio:1;border-radius:50%;background:${theme.gradient};box-shadow:${theme.shadowSm};opacity:0.9;"></div></div>`;
