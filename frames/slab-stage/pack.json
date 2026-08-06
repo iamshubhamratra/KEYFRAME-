@@ -12,26 +12,139 @@
     "accent-2": "#1F5FD8",
     "ink": "#201E1D"
   },
-  "fonts": ["Archivo", "JetBrains Mono"],
-  "surface": { "flat": false, "lightCinematic": true, "ground": "#F3F2F2", "groundMode": "alternating" },
-  "motion": { "cut": "slab-flip", "drift": 1.12 },
-  "fx": { "canvas": "none", "three": null },
-  "skin": { "accents": ["#EC3013", "#1F5FD8"], "extras": [], "emphasisCss": null },
+  "fonts": [
+    "Archivo",
+    "JetBrains Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#F3F2F2",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "slab-flip",
+    "drift": 1.12
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#EC3013",
+      "#1F5FD8"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
   "assets": {
     "photoMod": "bold high-contrast product photograph on a clean staged surface",
     "iconStyle": "line",
-    "keywords": ["bold", "kinetic", "3d", "staged", "depth", "editorial", "launch", "portrait"],
-    "prefer": ["screenshot", "photo"]
+    "keywords": [
+      "bold",
+      "kinetic",
+      "3d",
+      "staged",
+      "depth",
+      "editorial",
+      "launch",
+      "portrait"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
   },
-  "typography": { "display": "Archivo", "mono": "JetBrains Mono", "body": "Archivo" },
-  "textfx": { "enter": "char-pop", "emphasis": "accent-word", "case": "upper", "tracking": -0.04, "align": "left" },
+  "typography": {
+    "display": "Archivo",
+    "mono": "JetBrains Mono",
+    "body": "Archivo"
+  },
+  "textfx": {
+    "enter": "char-pop",
+    "emphasis": "accent-word",
+    "case": "upper",
+    "tracking": -0.04,
+    "align": "left"
+  },
   "audio": {
     "mood": "kinetic",
     "energy": "high",
     "tempo": "fast",
-    "style": ["electronic", "percussive", "modern", "driving"],
-    "musicKeywords": ["driving electronic", "percussive modern", "bold energetic", "kinetic pulse", "confident drums", "punchy electronic"],
-    "sfxPalette": { "transition": "whoosh", "ui": "soft-tap", "reveal": "product-reveal", "data": "data-ping", "cta": "cta-impact" },
-    "noVo": { "energyBoost": 2, "sfxDensity": "rich", "ambient": false }
+    "style": [
+      "electronic",
+      "percussive",
+      "modern",
+      "driving"
+    ],
+    "musicKeywords": [
+      "driving electronic",
+      "percussive modern",
+      "bold energetic",
+      "kinetic pulse",
+      "confident drums",
+      "punchy electronic"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "product-reveal",
+      "data": "data-ping",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 4,
+      "productImages": 2,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "feature": {
+        "count": 1,
+        "width": 470,
+        "height": 791,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": ""
+      },
+      "how": {
+        "count": 1,
+        "width": 470,
+        "height": 791,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": ""
+      },
+      "proof": {
+        "count": 1,
+        "width": 470,
+        "height": 791,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": ""
+      },
+      "context": {
+        "count": 1,
+        "width": 470,
+        "height": 791,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": ""
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
   }
 }

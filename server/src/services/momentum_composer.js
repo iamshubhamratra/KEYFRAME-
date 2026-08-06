@@ -62,11 +62,68 @@ const COL = U(1920) - M * 2;
 function ground(id, th) {
   return `<div style="position:absolute;inset:0;background:${th.bg};overflow:hidden;">
     <div class="${id}-grid" style="position:absolute;inset:${r(-U(46))}cqw;opacity:0.5;background-image:radial-gradient(${rgba(th.ink, 0.5)} ${r(U(1.3))}cqw, transparent ${r(U(1.3))}cqw);background-size:${r(U(46))}cqw ${r(U(46))}cqw;"></div>
+    ${vectorField(id, th)}
     <div style="position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 42%, transparent 40%, ${rgba(th.bg, 0.85)} 100%);"></div>
   </div>`;
 }
 const groundTweens = (id, ctx) => [
   `tl.to(".${id}-grid",{x:"${r(-U(46))}cqw",y:"${r(-U(18.4))}cqw",duration:${r(46 / 22)},ease:"none",repeat:${K.reps(ctx.L, 46 / 22)}},${r(ctx.T)});`,
+  ...vectorTweens(id, ctx),
+];
+
+// THE VECTOR FIELD — the reference draws this in EVERY scene, inside its Frame, and we had none of
+// it: a near constellation of linked nodes, a far one at the right, a rotating dashed double-ring, a
+// dashed curve with an accent dot travelling along it, five plus-marks, and an accent sine wave
+// running along the bottom right. It is what makes the pack read as instrumentation rather than a
+// dark slide. All coordinates are the reference's own 1920x1080 space.
+const NODES = [[250, 300], [372, 214], [188, 436], [430, 356], [300, 508]];
+const FAR = [[1600, 300], [1742, 232], [1682, 430], [1820, 372]];
+const MARKS = [[110, 150], [1810, 150], [960, 116], [110, 940], [1500, 470]];
+// The wave: y = 928 + 9*sin(clock*3 + i*0.5) sampled every 15px. Its SPATIAL period is
+// (2*PI/0.5)*15 = 188.5px and the phase advances 3 rad/s, i.e. 6 samples = 90px a second — so a
+// static sine polyline translated left at 90px/s IS the reference's wave, exactly, for one tween.
+// Drawn 1.5 periods wider than needed so the loop has something to slide in from.
+const WAVE_STEP = 15, WAVE_PERIOD = (2 * Math.PI / 0.5) * WAVE_STEP;
+const wavePts = Array.from({ length: 46 + 14 }, (_, i) => `${1180 + i * WAVE_STEP},${K.r(928 + Math.sin(i * 0.5) * 9)}`).join(" ");
+// The dot rides a quadratic Bezier: P0 (150,760), C (720,560), P1 (1240,800). A paused timeline
+// cannot evaluate the curve per frame, so it is sampled into keyframes — a straight chord would cut
+// the corner the curve exists to make.
+const BEZ = Array.from({ length: 9 }, (_, k) => {
+  const t = k / 8, u = 1 - t;
+  return { x: K.r(u * u * 150 + 2 * u * t * 720 + t * t * 1240 - 150), y: K.r(u * u * 760 + 2 * u * t * 560 + t * t * 800 - 760) };
+});
+function vectorField(id, th) {
+  const near = NODES.flatMap((n, i) => NODES.slice(i + 1)
+    .filter((m) => Math.hypot(n[0] - m[0], n[1] - m[1]) < 210)
+    .map((m) => `<line x1="${n[0]}" y1="${n[1]}" x2="${m[0]}" y2="${m[1]}" stroke="${rgba(th.ink, 0.16)}" stroke-width="1" />`)).join("");
+  const farLines = FAR.slice(0, -1).map((n, i) => `<line x1="${n[0]}" y1="${n[1]}" x2="${FAR[i + 1][0]}" y2="${FAR[i + 1][1]}" stroke="${rgba(th.ink, 0.14)}" stroke-width="1" />`).join("");
+  return `<svg viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;">
+    <g opacity="0.55">
+      ${near}${farLines}
+      ${NODES.map((n, i) => `<circle class="${id}-vfn" cx="${n[0]}" cy="${n[1]}" r="${i % 2 ? 3.5 : 2.5}" fill="${i === 0 ? th.accent : rgba(th.ink, 0.5)}" />`).join("")}
+      ${FAR.map((n) => `<circle cx="${n[0]}" cy="${n[1]}" r="2.5" fill="${rgba(th.ink, 0.4)}" />`).join("")}
+    </g>
+    <g transform="translate(1700 250)" opacity="0.8"><g class="${id}-vfring">
+      <circle r="92" fill="none" stroke="${rgba(th.accent, 0.55)}" stroke-width="2" stroke-dasharray="58 30" />
+      <circle r="62" fill="none" stroke="${rgba(th.ink, 0.22)}" stroke-width="1.5" stroke-dasharray="18 14" />
+      <circle cx="92" cy="0" r="5" fill="${th.accent}" />
+    </g></g>
+    <path d="M 150 760 Q 720 560 1240 800" fill="none" stroke="${rgba(th.ink, 0.16)}" stroke-width="1.5" stroke-dasharray="6 9" />
+    <circle class="${id}-vfdot" cx="150" cy="760" r="6" fill="${th.accent}" opacity="0.9" />
+    ${MARKS.map((p) => `<g stroke="${rgba(th.ink, 0.28)}" stroke-width="1.5"><line x1="${p[0] - 8}" y1="${p[1]}" x2="${p[0] + 8}" y2="${p[1]}" /><line x1="${p[0]}" y1="${p[1] - 8}" x2="${p[0]}" y2="${p[1] + 8}" /></g>`).join("")}
+    <g class="${id}-vfwave"><polyline points="${wavePts}" fill="none" stroke="${rgba(th.accent, 0.45)}" stroke-width="2" /></g>
+  </svg>`;
+}
+const vectorTweens = (id, ctx) => [
+  // svgOrigin IS IN THE ELEMENT'S OWN SPACE, not the viewBox's. The ring's parent already translates
+  // to (1700 250), so passing that point again put the pivot at (3400 500) and threw the ring clean
+  // off the frame — it rendered nowhere until this was "0 0".
+  `tl.to(".${id}-vfring",{rotation:360,duration:${K.r(360 / 22)},ease:"none",repeat:${K.reps(ctx.L, 360 / 22)},svgOrigin:"0 0"},${r(ctx.T)});`,
+  `tl.to(".${id}-vfwave",{x:${K.r(-WAVE_PERIOD)},duration:${K.r(WAVE_PERIOD / 90)},ease:"none",repeat:${K.reps(ctx.L, WAVE_PERIOD / 90)}},${r(ctx.T)});`,
+  `tl.to(".${id}-vfdot",{keyframes:${JSON.stringify(BEZ)},duration:${K.r(Math.PI / 0.9)},ease:"sine.inOut",repeat:${K.reps(ctx.L, Math.PI / 0.9)},yoyo:true},${r(ctx.T)});`,
+  // The nodes breathe on an 8s cycle; a stagger gives each its own phase for one tween, and at this
+  // amplitude (6px) the ones that start late simply sit still, which is what they do anyway.
+  `tl.to(".${id}-vfn",{x:6,y:-6,duration:3.93,ease:"sine.inOut",repeat:${K.reps(ctx.L, 3.93)},yoyo:true,stagger:0.4},${r(ctx.T)});`,
 ];
 
 // The LOCKED HUD — crop marks, top ticker, status light, bottom rail. It lives OUTSIDE the
@@ -126,7 +183,9 @@ function browser(th, { cls, x, y, w, h, url, shot }) {
       ${["#FF5F57", "#FEBC2E", "#28C840"].map((c) => `<span style="width:${r(U(12))}cqw;height:${r(U(12))}cqw;border-radius:50%;background:${c};flex:0 0 auto;"></span>`).join("")}
       <div style="margin-left:${r(U(14))}cqw;flex:1 1 auto;max-width:${r(U(380))}cqw;height:${r(U(24))}cqw;border-radius:${r(U(12))}cqw;background:${rgba(th.ink, 0.08)};display:flex;align-items:center;padding:0 ${r(U(14))}cqw;box-sizing:border-box;font-family:${th.monoStack};font-size:${r(U(12))}cqw;color:${rgba(th.ink, 0.5)};letter-spacing:0.06em;overflow:hidden;white-space:nowrap;">${esc(url)}</div>
     </div>
-    <div style="flex:1 1 auto;min-height:0;">${K.shotFill(shot, { bg: th.panel })}</div>
+    <!-- position:relative IS THE DEVICE: K.shotFill is position:absolute;inset:0, so without a
+         positioned ancestor the screenshot resolves against the CARD and covers the title bar. -->
+    <div style="position:relative;flex:1 1 auto;min-height:0;">${K.shotFill(shot, { bg: th.panel })}</div>
   </div>`;
 }
 
@@ -134,7 +193,7 @@ function browser(th, { cls, x, y, w, h, url, shot }) {
 function phone(th, { cls, x, y, w, h, shot }) {
   return `<div class="${cls}" style="position:absolute;left:${r(x)}cqw;top:${r(y)}cqw;width:${r(w)}cqw;height:${r(h)}cqw;border-radius:${r(U(42))}cqw;padding:${r(U(12))}cqw;box-sizing:border-box;background:#0a0908;border:${r(U(2))}cqw solid ${rgba(th.ink, 0.16)};box-shadow:0 ${r(U(40))}cqw ${r(U(90))}cqw ${rgba("#000000", 0.6)};opacity:0;">
     <div style="position:absolute;top:${r(U(22))}cqw;left:50%;translate:-50% 0;width:${r(U(96))}cqw;height:${r(U(22))}cqw;border-radius:${r(U(22))}cqw;background:#0a0908;z-index:2;"></div>
-    <div style="width:100%;height:100%;border-radius:${r(U(32))}cqw;overflow:hidden;background:#151311;">${K.shotFill(shot, { bg: th.panel })}</div>
+    <div style="position:relative;width:100%;height:100%;border-radius:${r(U(32))}cqw;overflow:hidden;background:#151311;">${K.shotFill(shot, { bg: th.panel })}</div>
   </div>`;
 }
 

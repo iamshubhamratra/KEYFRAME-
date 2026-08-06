@@ -97,5 +97,53 @@
       "sfxDensity": "normal",
       "ambient": false
     }
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 4,
+      "productImages": 6,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "context": {
+        "count": 1,
+        "width": 968,
+        "height": 540,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": ""
+      },
+      "feature": {
+        "count": 1,
+        "width": 968,
+        "height": 484,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": ""
+      },
+      "how": {
+        "count": 1,
+        "width": 968,
+        "height": 484,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": ""
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 1920,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": ""
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
   }
 }
