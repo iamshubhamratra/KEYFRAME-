@@ -350,6 +350,13 @@ const BRAND_SOURCES = new Set(["upload", "website", "website-brand", "website-as
 const isOwnAsset = (a) => !!a && (BRAND_SOURCES.has(String(a.source || "")) || String(a.role || "") === "logo");
 const assetFilter = (a) => (isOwnAsset(a) ? "none" : "grayscale(1) contrast(1.05)");
 
+// The content-derived crop anchor for a cover-fit box. Lazy + defensive: the crop engine is
+// optional infrastructure and this composer must render without it.
+function slabCropFocus(asset, w, h, fallback) {
+  try { return require("./crop_engine").focusFor(asset, w, h, fallback); }
+  catch { return (asset && asset.cropFocus) || fallback; }
+}
+
 // ONE slab: a flat 3D plane carrying a screenshot. Sized from the asset's own ratio; the 3D
 // rotation is STATIC CSS on an inner wrapper GSAP never animates, so the float/entrance
 // tweens on the outer can never discard it (gsap_css_transform_conflict).
@@ -370,7 +377,8 @@ function slab(id, cls, th, sf, { asset, wCqw, hCqw, ry = -14, rx = 5, rot = 0, l
   const mode = slabFit(asset, box.mediaH > 0 ? box.w / box.mediaH : 0);
   const dim = 1 - depth * 0.16;
   const media = asset && asset.path
-    ? `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="display:block;width:${box.w}cqw;height:${r(box.mediaH)}cqw;object-fit:${mode};object-position:center top;background:${sf.slabBg};filter:${assetFilter(asset)};">`
+    // CONTAIN never crops, so the anchor only matters on the cover branch (slabFit decides).
+    ? `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="display:block;width:${box.w}cqw;height:${r(box.mediaH)}cqw;object-fit:${mode};object-position:${mode === "cover" ? slabCropFocus(asset, box.w, box.mediaH, "center top") : "center top"};background:${sf.slabBg};filter:${assetFilter(asset)};">`
     : `<div style="width:${box.w}cqw;height:${r(box.mediaH)}cqw;background:${sf.slabBg};"></div>`;
   return {
     w: box.w, h: box.h,

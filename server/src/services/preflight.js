@@ -44,8 +44,10 @@ function check(id, level, ok, detail, fix) {
  * @param {string}  args.jobDir
  * @param {boolean} args.acceptsVectors whether the chosen pack can render a vector
  * @param {boolean} args.hardFail       promote the blocking checks (config.validationGate.hardFail)
+ * @param {object}  args.mediaPlan      the chosen template's resolved slot contract
+ *                                      (services/template_media.resolveMediaPlan), or null
  */
-function preflight({ job, assets = [], script = null, storyboard = null, brandSkin = null, jobDir = "", acceptsVectors = true, hardFail = true } = {}) {
+function preflight({ job, assets = [], script = null, storyboard = null, brandSkin = null, jobDir = "", acceptsVectors = true, hardFail = true, mediaPlan = null } = {}) {
   const checks = [];
   const list = Array.isArray(assets) ? assets : [];
 
@@ -214,6 +216,75 @@ function preflight({ job, assets = [], script = null, storyboard = null, brandSk
       : "no user material supplied",
     "Regenerate, add a website URL with real product screens, or check the stock provider keys."
   ));
+
+  // ---- 9) THE TEMPLATE'S OWN SLOTS ----------------------------------------
+  // Every check above asks about the FILM in general — enough visuals, enough scenes
+  // covered, enough copy. None of them can ask the question the chosen template would
+  // ask, because until the media contract existed there was nothing to ask it of: which
+  // boxes does THIS pack draw, which of them does a viewer actually look at, and is
+  // anything in them?
+  //
+  // "5 of 7 scenes have an asset" was the closest the old gate could get, and it is the
+  // proxy this whole file exists to distrust: a film can cover five scenes and still open
+  // on an empty hero, which is the first and worst thing a viewer sees.
+  if (mediaPlan && Array.isArray(mediaPlan.placeholders) && mediaPlan.placeholders.length) {
+    const bySceneId = new Map();
+    for (const a of healed) {
+      if (!a || a.sceneId == null || isLogo(a)) continue;
+      if (acceptsVectors || !isVector(a)) {
+        const k = String(a.sceneId);
+        if (!bySceneId.has(k)) bySceneId.set(k, []);
+        bySceneId.get(k).push(a);
+      }
+    }
+    // A logo lockup is the pack's own brand treatment, fed by find(isLogo) rather than from
+    // the asset pool (asset_reuse.buildSlots skips them for the same reason). A contain-fit
+    // CONTENT plate is a real slot — om_stage letterboxes nearly all of its pictures — so it
+    // is counted here; contain only means the picture is never cropped.
+    const fillable = mediaPlan.placeholders.filter((p) => p.kind !== "logos");
+    const critical = fillable.filter((p) => p.priority === "critical");
+    const emptyCritical = critical.filter((p) => !(bySceneId.get(String(p.sceneId)) || []).length);
+    const emptyAll = fillable.filter((p) => !(bySceneId.get(String(p.sceneId)) || []).length);
+
+    // A DERIVED plan is an approximation of the pack's layout, so its slot list is a floor
+    // and a miss is a warning. An AUTHORED plan is the pack telling us what it draws, so an
+    // empty critical box there is a real, blocking defect: the film will render its most
+    // important frame as a blank plate.
+    const authored = mediaPlan.source === "authored";
+    checks.push(check(
+      "criticalPlaceholdersFilled", authored ? FAIL : WARN,
+      emptyCritical.length === 0,
+      critical.length === 0
+        ? "this template declares no critical slot"
+        : (emptyCritical.length === 0
+          ? `all ${critical.length} critical slot(s) hold a visual`
+          : `${emptyCritical.length} of ${critical.length} critical slot(s) are EMPTY (${emptyCritical.map((p) => p.id).join(", ")})`),
+      "Add or upload more visuals, or pick a template with fewer prominent slots."
+    ));
+
+    checks.push(check(
+      "placeholdersFilled", WARN,
+      emptyAll.length === 0,
+      emptyAll.length === 0
+        ? `all ${fillable.length} template slot(s) hold a visual`
+        : `${emptyAll.length} of ${fillable.length} template slot(s) render without an asset (${emptyAll.slice(0, 6).map((p) => p.id).join(", ")}${emptyAll.length > 6 ? "…" : ""})`,
+      "The reuse optimizer fills what it can under the 2-appearance ceiling; beyond that the pack draws its decorative fallback."
+    ));
+
+    // QUALITY IN THE PLACES THAT MATTER. A critical slot holding an asset graded `reject`
+    // is the "poor-quality asset in the hero" complaint, stated precisely enough to check.
+    const weakCritical = critical
+      .map((p) => ({ p, a: (bySceneId.get(String(p.sceneId)) || [])[0] }))
+      .filter((x) => x.a && String(x.a.qualityGrade || "") === "reject");
+    checks.push(check(
+      "criticalSlotQuality", WARN,
+      weakCritical.length === 0,
+      weakCritical.length === 0
+        ? "no critical slot holds a rejected asset"
+        : `${weakCritical.length} critical slot(s) hold an asset graded "reject" (${weakCritical.map((x) => x.p.id).join(", ")})`,
+      "Upload a sharper image, or let the pipeline collect more candidates so the ranker has a better one to promote."
+    ));
+  }
 
   const failed = checks.filter((c) => !c.ok && c.level === FAIL);
   const warned = checks.filter((c) => !c.ok && c.level === WARN);

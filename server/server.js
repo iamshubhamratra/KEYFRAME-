@@ -26,6 +26,27 @@ async function loadQueue() {
   return mod.default || mod;
 }
 
+// NATIVE LOAD ORDER — sharp MUST initialise before onnxruntime, or the process dies.
+//
+// Measured directly on this codebase: requiring `sharp` and then importing
+// `@huggingface/transformers` survives; doing it the other way round segfaults with
+// `GLib-GObject-CRITICAL: invalid uninstantiatable type (NULL) in cast to GObject`. Both
+// pull native image libraries and the second to initialise loses.
+//
+// Today the graph happens to get this right — `asset_prep` (crop_engine -> sharp) runs before
+// `creative_director` (CLIP -> onnxruntime) — but that is an accident of node ordering, not a
+// guarantee, and a lazy `require("sharp")` reached first from the CLIP side would take down a
+// render with a stack trace pointing at neither. Loading it HERE, at boot, before any request
+// can reach either path, makes the order impossible to get wrong.
+//
+// Non-fatal: a deployment without a working sharp binary keeps running — crop_engine falls back
+// to its ffmpeg edge analyzer, which is why that fallback exists.
+try {
+  require("sharp");
+} catch (e) {
+  console.warn(`[server] sharp unavailable (${e && e.message ? e.message : e}) — the crop engine will use its ffmpeg fallback`);
+}
+
 async function main() {
   // Ensure working dirs exist.
   fs.mkdirSync(config.paths.jobsDir, { recursive: true });

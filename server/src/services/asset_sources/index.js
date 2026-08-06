@@ -114,6 +114,11 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
             license: c.license, sourceUrl: c.sourceUrl,
             width: v.meta.width, height: v.meta.height, ratio: v.meta.ratio,
             hasAlpha: v.meta.hasAlpha, dhash: v.meta.dhash, dominantColor: v.meta.dominantColor,
+            // sharpness + stdev are measured by validateImage on this very line and were
+            // dropped here — the same "computed one line before its consumer" loss the
+            // comment beside dhash/dominantColor in graph.assetSearchAgent describes having
+            // already fixed once. services/asset_quality grades every asset on them.
+            sharpness: v.meta.sharpness, stdev: v.meta.stdev,
           };
         } catch (e) { console.warn(`[assets] pixabay-bridge vector candidate failed for "${q}": ${e.message}`); }
       }
@@ -206,7 +211,10 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
             imageMeta = v.meta;
           }
           if (type === "video") await util.reencodeForHyperframes(outputPath);
-          localDb.register({
+          // Awaited: `register` became async (streamed hash + async copy) and its
+          // check-then-push must complete before this lane returns, or two lanes racing on the
+          // same bytes can both append to the shared index.
+          await localDb.register({
             filePath: outputPath, query: q, type, orientation,
             source: provider.name, license: c.license, sourceUrl: c.sourceUrl,
             width: (imageMeta && imageMeta.width) || c.width, height: (imageMeta && imageMeta.height) || c.height,
@@ -227,6 +235,11 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
             hasAlpha: imageMeta ? imageMeta.hasAlpha : undefined,
             dhash: imageMeta ? imageMeta.dhash : undefined,
             dominantColor: imageMeta ? imageMeta.dominantColor : undefined,
+            // The pixel-quality evidence validateImage already measured. Carrying it costs
+            // nothing (the ffmpeg passes have run) and saves asset_prep from re-measuring
+            // every stock asset it receives.
+            sharpness: imageMeta ? imageMeta.sharpness : undefined,
+            stdev: imageMeta ? imageMeta.stdev : undefined,
           };
         } catch (e) {
           console.warn(`[assets] ${provider.name} candidate failed for "${q}": ${e.message}`);

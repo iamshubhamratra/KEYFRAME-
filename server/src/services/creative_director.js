@@ -165,11 +165,18 @@ function normScores(raw) {
 // the ABSOLUTE index into `assets` -> verdict object, or an empty Map on failure
 // (fail-open: callers leave those assets untouched).
 async function reviewChunk({ chunk, baseIndex, subject, categoryText, packText, scenes, orientation, tracker, signal }) {
-  const thumbs = [];
-  for (const a of chunk) {
+  // THUMBNAILS IN PARALLEL. Each `thumbBase64` spawns an ffmpeg process, and this used to be a
+  // serial `for (const a of chunk) thumbs.push(await ...)` — so a six-asset chunk paid six
+  // process launches end to end before the model call could even start, on the critical path,
+  // once per chunk. They are wholly independent (each reads a different file and writes
+  // nothing), so the only reason for the sequence was the shape of the loop.
+  //
+  // Promise.all preserves ORDER, which matters: `usable` maps back into `chunk` by index below,
+  // and the model's verdicts are numbered against that same order.
+  const thumbs = await Promise.all(chunk.map((a) => {
     const abs = a.__absPath;
-    thumbs.push(abs ? await thumbBase64(abs, a.type === "video") : null);
-  }
+    return abs ? thumbBase64(abs, a.type === "video").catch(() => null) : Promise.resolve(null);
+  }));
   const usable = thumbs.map((b, i) => ({ b, i })).filter((x) => x.b);
   if (!usable.length) return new Map();
 
@@ -299,6 +306,23 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
   // the asset list untouched (key-moment treatment happens in the composers).
   const visual = list.filter((a) => a && !isLogo(a) && (a.type === "image" || a.type === "video") && a.__absPath && fs.existsSync(a.__absPath));
 
+  // ---- AUDIO (advisory), STARTED HERE, AWAITED AT THE END ----
+  //
+  // This is a text-only music/SFX verdict. Its only input from the asset director is
+  // `scenes.length`, which is known right here — yet it used to be `await`ed as step 5, after
+  // CLIP, after the whole vision review, and after the top-up fetch. Three to ten seconds of a
+  // completely independent model round-trip, spent in series with work it shares nothing with.
+  //
+  // Kicked off now and collected at the end, so it overlaps everything below for free. The
+  // `.catch` is attached IMMEDIATELY: an un-awaited promise that rejects before its await point
+  // is an unhandled rejection, and this one is advisory — a failed audio opinion must never take
+  // the asset review down with it.
+  const audioPromise = reviewAudio({ subject: subj, script, audioPlan, sceneCount: scenes.length, tracker, signal })
+    .catch((e) => {
+      notes.push(`Audio review skipped: ${String((e && e.message) || e).slice(0, 80)}`);
+      return null;
+    });
+
   // ---- 0) CLIP pre-scoring: local image<->text semantic relevance ----
   // A cheap, deterministic "do the PIXELS match the subject?" probability (0..1)
   // per image, computed before the LLM review. It becomes (a) a hint the vision
@@ -313,16 +337,49 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
   }
 
   // ---- 1) Batched vision review over every visual asset ----
+  //
+  // CHUNKS RUN CONCURRENTLY. This was a serial `for` loop awaiting one chunk at a time, and it
+  // was the single most expensive thing in the asset subsystem: measured across 13 real jobs in
+  // this repo's own job store (`stage_timings.creativeReviewMs`) it ran 18.4–52.4s, median ~36s,
+  // entirely on the critical path.
+  //
+  // Nothing about it needed to be sequential. Each chunk sends its own images and writes a
+  // DISJOINT key range into `verdicts` (`baseIndex + i`, see reviewChunk), so there is no shared
+  // state, no ordering requirement, and no cross-chunk context — the model never sees more than
+  // one chunk anyway. The loop was serial because that is the shape a `for` loop has.
+  //
+  // Concurrency is bounded rather than unlimited: these are paid vision calls against a provider
+  // with rate limits, and a 40-asset film would otherwise open seven simultaneous 180s-timeout
+  // requests. Four is enough to collapse the common 2-4 chunk case into a single round-trip.
+  //
+  // FAIL-OPEN PER CHUNK, exactly as before: a chunk that throws costs only its own assets their
+  // verdicts, never the whole review.
+  const CHUNK_LANES = 4;
   const verdicts = new Map(); // absolute index in `visual` -> verdict
-  for (let start = 0; start < visual.length; start += chunkSize) {
-    const chunk = visual.slice(start, start + chunkSize);
-    try {
-      const m = await reviewChunk({ chunk, baseIndex: start, subject: subj, categoryText, packText, scenes, orientation, tracker, signal });
-      for (const [k, v] of m) verdicts.set(k, v);
-    } catch (e) {
-      // Fail-open for this chunk — its assets keep whatever flags they already had.
-      notes.push(`Vision review skipped for ${chunk.length} asset(s): ${String(e && e.message || e).slice(0, 80)}`);
+  const starts = [];
+  for (let start = 0; start < visual.length; start += chunkSize) starts.push(start);
+
+  let nextChunk = 0;
+  const chunkWorker = async () => {
+    for (;;) {
+      const ci = nextChunk++;
+      if (ci >= starts.length) return;
+      const start = starts[ci];
+      const chunk = visual.slice(start, start + chunkSize);
+      try {
+        const m = await reviewChunk({ chunk, baseIndex: start, subject: subj, categoryText, packText, scenes, orientation, tracker, signal });
+        for (const [k, v] of m) verdicts.set(k, v);
+      } catch (e) {
+        // Fail-open for this chunk — its assets keep whatever flags they already had.
+        notes.push(`Vision review skipped for ${chunk.length} asset(s): ${String(e && e.message || e).slice(0, 80)}`);
+      }
     }
+  };
+  if (starts.length) {
+    const tReview = Date.now();
+    await Promise.all(Array.from({ length: Math.min(CHUNK_LANES, starts.length) }, chunkWorker));
+    console.log(`[creative_director] reviewed ${visual.length} asset(s) in ${starts.length} chunk(s) across `
+      + `${Math.min(CHUNK_LANES, starts.length)} lane(s) — ${Date.now() - tReview}ms`);
   }
 
   // ---- 2) Apply verdicts (annotate; collect rejects) ----
@@ -540,35 +597,67 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
   const fullSceneById = new Map(fullScenes.map((s, i) => [s.id != null ? s.id : i + 1, s]));
   const assignedScenes = new Set(curated.filter((a) => a.sceneId != null).map((a) => a.sceneId));
   const gapScenes = scenes.filter((s) => !assignedScenes.has(s.id) && s.direction);
-  let topUps = 0;
-  const topUpAssets = [];
+  // PLAN FIRST, THEN FETCH IN LANES. This was a serial `for` loop of `await acquire()`, one
+  // provider round-trip plus a download plus four ffmpeg probes per gap scene, up to `maxTopUp`
+  // (3-12) of them end to end — 10-60s on the critical path, and it runs AFTER the entire vision
+  // review, so nothing is overlapping it.
+  //
+  // The output index is assigned during PLANNING, not from `topUpAssets.length` inside the loop.
+  // That read-then-append pattern is safe only while the loop is serial; the moment two fetches
+  // are in flight they compute the same `idx` and write to the same `topup_N.jpg`. It is the same
+  // filename race the asset_search lanes had to avoid.
+  const topUpPlan = [];
   for (const s of gapScenes) {
-    if (topUps >= maxTopUp) { recos.push(`Scene ${s.id} (${s.purpose}) has no supporting asset — consider adding one for "${s.direction.slice(0, 60)}".`); continue; }
+    if (topUpPlan.length >= maxTopUp) {
+      recos.push(`Scene ${s.id} (${s.purpose}) has no supporting asset — consider adding one for "${s.direction.slice(0, 60)}".`);
+      continue;
+    }
     const words = (s.direction.toLowerCase().match(/[a-z]{3,}/g) || []).filter((w) => !["the", "and", "with", "into", "over", "scene", "text", "screen"].includes(w)).slice(0, 3).join(" ");
     const q = [subj, words].filter(Boolean).join(" ").trim();
     if (!q) continue;
-    topUps++;
-    try {
-      const idx = topUpAssets.length;
-      const rel = `assets/images/topup_${idx}.jpg`;
-      const got = await acquire({
-        query: q, fallbackQueries: [words, ...fallbackQueriesFor(q)].filter(Boolean),
-        type: "image", orientation, outputPath: path.join(jobDir, rel), tracker,
-      }).catch(() => null);
-      if (got) {
-        const full = fullSceneById.get(s.id) || {};
-        topUpAssets.push({
-          path: path.relative(jobDir, got.path).split(path.sep).join("/"), type: "image",
-          sceneId: s.id, startSec: full.start, durationSec: full.duration, style: "background",
-          alt: words, width: got.width, height: got.height, ratio: got.ratio, hasAlpha: got.hasAlpha,
-          license: got.license, sourceUrl: got.sourceUrl, source: got.source,
-          __absPath: got.path,
-        });
-      } else {
-        recos.push(`Wanted a top-up asset for scene ${s.id} ("${q}") but none was found — scene will carry on typography + vectors.`);
-      }
-    } catch { /* fail-open */ }
+    topUpPlan.push({ scene: s, words, q, rel: `assets/images/topup_${topUpPlan.length}.jpg` });
   }
+
+  const TOPUP_LANES = 4;
+  const fetchedTopUps = new Array(topUpPlan.length).fill(null);
+  if (topUpPlan.length) {
+    let nextTopUp = 0;
+    const topUpWorker = async () => {
+      for (;;) {
+        const i = nextTopUp++;
+        if (i >= topUpPlan.length) return;
+        const { q, words, rel } = topUpPlan[i];
+        try {
+          fetchedTopUps[i] = await acquire({
+            query: q, fallbackQueries: [words, ...fallbackQueriesFor(q)].filter(Boolean),
+            type: "image", orientation, outputPath: path.join(jobDir, rel), tracker,
+          }).catch(() => null);
+        } catch { /* fail-open */ }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(TOPUP_LANES, topUpPlan.length) }, topUpWorker));
+  }
+
+  // Assemble in PLAN order, so the reviewed chunk below is ordered the way the scenes are.
+  const topUpAssets = [];
+  topUpPlan.forEach((p, i) => {
+    const got = fetchedTopUps[i];
+    if (!got) {
+      recos.push(`Wanted a top-up asset for scene ${p.scene.id} ("${p.q}") but none was found — scene will carry on typography + vectors.`);
+      return;
+    }
+    const full = fullSceneById.get(p.scene.id) || {};
+    topUpAssets.push({
+      path: path.relative(jobDir, got.path).split(path.sep).join("/"), type: "image",
+      sceneId: p.scene.id, startSec: full.start, durationSec: full.duration, style: "background",
+      alt: p.words, width: got.width, height: got.height, ratio: got.ratio, hasAlpha: got.hasAlpha,
+      // The pixel-quality evidence validateImage already measured. Carried for the same reason
+      // the main fetch path carries it: without it every top-up reaches asset_quality unmeasured.
+      sharpness: got.sharpness, stdev: got.stdev, dhash: got.dhash, dominantColor: got.dominantColor,
+      license: got.license, sourceUrl: got.sourceUrl, source: got.source,
+      __absPath: got.path,
+    });
+  });
   // Review the topped-up assets (one more chunk); keep only director-approved ones.
   if (topUpAssets.length) {
     try {
@@ -602,8 +691,8 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
     }
   }
 
-  // ---- 5) Audio (advisory) ----
-  const audio = await reviewAudio({ subject: subj, script, audioPlan, sceneCount: scenes.length, tracker, signal });
+  // ---- 5) Audio (advisory) — started before the vision review, collected here ----
+  const audio = await audioPromise;
 
   // ---- 6) Build the report ----
   const approvedAssets = curated.map((a) => ({

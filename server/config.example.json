@@ -53,7 +53,7 @@
       "composer": 0.2
     },
     "requestTimeoutMs": 180000,
-    "requestTimeoutByStage": { "composer": 300000 },
+    "requestTimeoutByStage": { "composer": 300000, "creative_director": 90000 },
     "httpReferer": "https://video-gen.local",
     "xTitle": "video-gen"
   },

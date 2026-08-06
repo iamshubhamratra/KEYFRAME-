@@ -92,16 +92,41 @@ function materialize(entry, outputPath) {
   };
 }
 
+// Content id, streamed. Was a synchronous whole-file read on the main thread, inside the
+// acquire hot path — two full reads and a write per downloaded asset, all blocking a process
+// that is also serving HTTP.
+function sha1File(filePath) {
+  return new Promise((resolve, reject) => {
+    const h = crypto.createHash("sha1");
+    const s = fs.createReadStream(filePath);
+    s.on("data", (d) => h.update(d));
+    s.on("error", reject);
+    s.on("end", () => resolve(h.digest("hex").slice(0, 16)));
+  });
+}
+
 // Register a freshly downloaded asset: copy into the cache and index it.
-function register({ filePath, query, type, orientation, source, license, sourceUrl, width, height, ratio, hasAlpha, dhash, dominantColor }) {
+//
+// NOW ASYNC. The `index` array is module-level and shared, and `load()` hands back that same
+// reference, so pushes are safe under the single-threaded event loop — but only while no `await`
+// separates the "is it already there?" check from the push. With the fetch lanes now running
+// concurrently, two registrations of the same bytes could otherwise both pass the check and both
+// append. The hash and the copy therefore happen FIRST, and the check-then-push at the end runs
+// without an await between the two halves.
+async function register({ filePath, query, type, orientation, source, license, sourceUrl, width, height, ratio, hasAlpha, dhash, dominantColor }) {
   try {
     const idx = load();
-    fs.mkdirSync(FILES_DIR, { recursive: true });
-    const id = crypto.createHash("sha1").update(fs.readFileSync(filePath)).digest("hex").slice(0, 16);
+    await fs.promises.mkdir(FILES_DIR, { recursive: true });
+    const id = await sha1File(filePath);
     if (idx.some((e) => e.id === id)) return; // identical bytes already cached
     const ext = path.extname(filePath) || (type === "video" ? ".mp4" : ".jpg");
     const dest = path.join(FILES_DIR, `${id}${ext}`);
-    fs.copyFileSync(filePath, dest);
+    await fs.promises.copyFile(filePath, dest);
+    // Size measured here, ahead of the atomic section below, so the push stays await-free.
+    const bytes = await fs.promises.stat(dest).then((s) => s.size).catch(() => 0);
+    // Re-check after the awaits: another lane may have registered these exact bytes while this
+    // one was hashing. From here to `push` there is no await, so the pair is atomic.
+    if (idx.some((e) => e.id === id)) return;
     idx.push({
       id, query, words: tokenize(query), type, orientation: orientation || "all",
       source, license: license || "unknown", sourceUrl: sourceUrl || null,
@@ -113,7 +138,7 @@ function register({ filePath, query, type, orientation, source, license, sourceU
       hasAlpha: hasAlpha != null ? hasAlpha : null,
       dhash: dhash || null,
       dominantColor: dominantColor || null,
-      file: dest, bytes: fs.statSync(dest).size, addedAt: Date.now(), hits: 0,
+      file: dest, bytes, addedAt: Date.now(), hits: 0,
     });
     persist();
     console.log(`[asset_db] cached "${query}" (${type}, ${source}, ${id})`);

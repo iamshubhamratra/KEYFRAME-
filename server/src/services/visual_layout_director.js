@@ -67,7 +67,16 @@ function classify(a) {
 // ×1000 major key via asset_priority.rankKey, the CD's blended quality score the
 // minor — so a presentation budget can trim the user's WEAKEST uploads against
 // each other, but a stock photo can never demote a user upload out of a slot.
-const importance = (a) => rankKey(a, num(a && a.cdScore, 0) + (typeof (a && a.clipRelevance) === "number" ? a.clipRelevance * 30 : 0));
+// The pixel grade joins the blend. Before it existed, two of the user's uploads that the
+// Creative Director scored equally were ordered arbitrarily, so which one got the prominent
+// slot and which got demoted to B-roll was decided by array order — a soft 400px capture and
+// a crisp 2400px one were indistinguishable here. `qualityScore` (services/asset_quality) is
+// 0-100 and stays well inside the tier's ×1000 major key, so the house law is untouched: a
+// stock photo still cannot outrank an upload, however sharp it is.
+const importance = (a) => rankKey(a,
+  num(a && a.cdScore, 0)
+  + (typeof (a && a.clipRelevance) === "number" ? a.clipRelevance * 30 : 0)
+  + num(a && a.qualityScore, 0));
 
 // Is this asset currently eligible for a PROMINENT slot? (Owned screenshots, curated
 // picks, and CD-approved stock — the same trust the kit's prominentOk gate applies.)
@@ -76,10 +85,19 @@ function isProminent(a) {
     || a.cdProminence === "hero" || a.cdProminence === "support");
 }
 
-// Content-aware crop focus (deterministic, no vision): where a cover-fit image is
-// anchored so its important content survives the crop. Dashboards / UI captures keep
-// their header + top content (nav is above the fold); mobile shots keep the top;
-// photos stay centered on their subject. scene_kit reads `asset.cropFocus`.
+// Crop focus — where a cover-fit image is anchored so its important content survives.
+//
+// THIS IS NOW THE FALLBACK, NOT THE ANSWER. It reads only the ASPECT RATIO and returns one
+// of two literals; it never opens the image, which is why a portrait product shot whose
+// subject sat low was anchored dead centre and beheaded. services/crop_engine computes a
+// real focal point from the pixels during asset preparation (graph.assetPrepAgent, which
+// runs upstream of this node) and writes it to the same `asset.cropFocus` field.
+//
+// So this function must NOT clobber that. It used to run unconditionally —
+//     if (k === "screenshot" || k === "photo") a.cropFocus = cropFocusFor(a, k);
+// — which, once preparation moved upstream, would have overwritten every measured focal
+// point with the ratio guess and silently reverted the entire feature. The guard is at the
+// call site below; this stays as the honest last resort for an image that could not be read.
 function cropFocusFor(a, kind) {
   const ratio = num(a && a.ratio, 0) || (a && a.width && a.height ? a.width / a.height : 0);
   if (kind === "screenshot") {
@@ -202,8 +220,11 @@ function directLayout({ storyboard, script, assets, framePack, dims } = {}) {
     for (const a of list) {
       const k = classify(a);
       if (k && byKind[k] && isProminent(a)) byKind[k].push(a);
-      // Annotate crop focus on every image (harmless on contain-fit slots).
-      if (k === "screenshot" || k === "photo") a.cropFocus = cropFocusFor(a, k);
+      // Annotate crop focus on every image (harmless on contain-fit slots) — but ONLY when
+      // nothing has actually measured the picture. A focus computed from the pixels by
+      // services/crop_engine outranks this ratio guess by construction; overwriting it here
+      // would revert the content-aware crop for every film.
+      if ((k === "screenshot" || k === "photo") && !a.cropFocus) a.cropFocus = cropFocusFor(a, k);
       // Tag the device chrome so the kit renders a phone mockup for portrait
       // (mobile) screenshots instead of a browser frame.
       if (k === "screenshot") a.container = deviceKind(a);

@@ -206,9 +206,23 @@ function hammingHex(a, b) {
   return n;
 }
 
+// STREAMED, NOT SLURPED. This was `readFileSync` on the main thread — a full synchronous read
+// of every candidate image, in a process that is also serving HTTP. On the multi-megabyte
+// website captures this pipeline routinely handles that is a 10-100ms event-loop stall each,
+// and the parallel fetch lanes multiplied how often it happens.
+//
+// Streaming also means the whole file is never resident at once, which matters for video.
+// Both callers (`deduper.add` / `deduper.check`) were already async, so this is a drop-in.
 function md5File(absPath) {
-  try { return crypto.createHash("md5").update(fs.readFileSync(absPath)).digest("hex"); }
-  catch { return null; }
+  return new Promise((resolve) => {
+    try {
+      const h = crypto.createHash("md5");
+      const s = fs.createReadStream(absPath);
+      s.on("data", (d) => h.update(d));
+      s.on("error", () => resolve(null));
+      s.on("end", () => resolve(h.digest("hex")));
+    } catch { resolve(null); }
+  });
 }
 
 const LOW_INFO_STDEV = 5; // grayscale stdev (0–255) below this ≈ solid/near-flat
@@ -258,12 +272,15 @@ function makeImageDeduper({ threshold = 10 } = {}) {
   return {
     // Record a known-keep asset (e.g. a pinned screenshot) without reporting.
     async add(absPath, dhash) {
-      const m = md5File(absPath); if (m) md5s.add(m);
-      const d = await dhashFor(absPath, dhash); if (d) dhashes.push(d);
+      // The exact hash and the perceptual hash are independent reads of the same file; there is
+      // no reason for the second to wait on the first.
+      const [m, d] = await Promise.all([md5File(absPath), dhashFor(absPath, dhash)]);
+      if (m) md5s.add(m);
+      if (d) dhashes.push(d);
     },
     // "exact" | "perceptual" | null. Records the asset on a miss.
     async check(absPath, dhash) {
-      const m = md5File(absPath);
+      const m = await md5File(absPath);
       if (m && md5s.has(m)) return "exact";
       const d = await dhashFor(absPath, dhash);
       if (d) { for (const h of dhashes) if (hammingHex(d, h) <= threshold) return "perceptual"; }

@@ -130,10 +130,29 @@ function colorProximity(a, b) {
   const d = Math.sqrt((x[0] - y[0]) ** 2 + (x[1] - y[1]) ** 2 + (x[2] - y[2]) ** 2);
   return Math.max(0, 1 - d / 441.67);        // 441.67 = max RGB distance
 }
+// MEMOIZED. Each call parses two 64-bit hex hashes into BigInts, popcounts them, and parses two
+// hex colours — and it is called once per (candidate, neighbour) pair, per slot. That was
+// tolerable at one slot per scene; the template media plan now declares two or three per beat,
+// so the same pair is recomputed several times over. The inputs are immutable for the life of a
+// run (a path's pixels do not change), so the pair's answer is cacheable.
+//
+// The cache is per-CALL-TREE, not module-global: `optimizeAssetReuse` clears it on entry, so one
+// job can never see another's entries and the map cannot grow without bound in a long-lived
+// server process.
+const simCache = new Map();
+function simKey(a, b) {
+  const x = (a && a.path) || "", y = (b && b.path) || "";
+  return x < y ? `${x} ${y}` : `${y} ${x}`;
+}
 function similarity(a, b) {
   if (!a || !b) return 0;
   if (a.path && a.path === b.path) return 1;
-  return 0.7 * dhashSimilarity(a.dhash, b.dhash) + 0.3 * colorProximity(a.dominantColor, b.dominantColor);
+  const k = simKey(a, b);
+  const hit = simCache.get(k);
+  if (hit !== undefined) return hit;
+  const v = 0.7 * dhashSimilarity(a.dhash, b.dhash) + 0.3 * colorProximity(a.dominantColor, b.dominantColor);
+  simCache.set(k, v);
+  return v;
 }
 
 // ---------------------------------------------------------------- variation
@@ -186,8 +205,16 @@ function variationFor(row, instance, seedKey) {
   // Tilt is emitted always and honoured only by packs whose surface is flat — a tilted
   // plate reads as a mistake on a glass/cinematic pack, so the pack keeps that decision.
   const tilt = (rnd() < 0.5 ? -1 : 1) * 1.5;
-  const cropFocus = CROP_LOCKED.has(row.type)
-    ? null                                   // keep the director's anchor
+  // RE-ANCHORING IS ONLY SAFE ON AN UNMEASURED PICTURE. This picks a different crop anchor
+  // so a second appearance does not read as a repeat, and that was harmless while every
+  // anchor was a ratio guess anyway. It is NOT harmless against a focal point computed from
+  // the pixels (services/crop_engine): moving a measured anchor to "bottom center" throws
+  // away the subject the measurement existed to keep. Scale, tilt and entrance still make
+  // the second appearance visibly different, which is all the variation was ever for.
+  const measured = row.ref && row.ref.cropFocusSource
+    && row.ref.cropFocusSource !== "heuristic" && row.ref.cropFocusSource !== "none";
+  const cropFocus = (CROP_LOCKED.has(row.type) || measured)
+    ? null                                   // keep the anchor that knows where the subject is
     : CROP_ANCHORS[Math.floor(rnd() * CROP_ANCHORS.length)];
   return { instance, enter, scale, tilt, cropFocus };
 }
@@ -246,8 +273,45 @@ function buildLedger(assets) {
 // fixed, and one-per-scene is within every composer's per-beat capacity, so nothing can be
 // assigned and then sliced away. (Per-renderer multi-slot capacity — om_stage's
 // SHOT_CAPACITY and friends — is P3 in the plan; it raises DEPTH, not coverage.)
-function buildSlots(scenes, { native, renderer = null }) {
+function buildSlots(scenes, { native, renderer = null, mediaPlan = null, dims = null }) {
   const total = scenes.length;
+
+  // TEMPLATE-DECLARED SLOTS take precedence. When the chosen pack ships a media contract
+  // (frames/<pack>/pack.json -> media, resolved by services/template_media) it knows its own
+  // layout far better than the one-slot-per-scene approximation below: how many pictures a
+  // beat really holds, how big each box is, and which of them a viewer actually looks at.
+  // That last part is the whole point — without a declared PRIORITY there is no such thing
+  // as a hero slot, and "the best asset in the best slot" cannot be expressed at all.
+  if (mediaPlan && Array.isArray(mediaPlan.placeholders) && mediaPlan.placeholders.length) {
+    const byIndex = new Map(scenes.map((sc, i) => [i, sc]));
+    const out = [];
+    for (const p of mediaPlan.placeholders) {
+      // A LOGO LOCKUP is not an asset slot: it is the pack's own brand treatment, fed by
+      // `find(isLogo)` rather than from the asset pool.
+      //
+      // A CONTAIN-FIT CONTENT PLATE, however, IS one — and reading `objectFit === "contain"`
+      // as "not a slot" was wrong. om_stage.fitFor (om_stage.js:433) returns `contain` for
+      // every screenshot and every owned asset, so the seven om skins draw almost all of their
+      // pictures letterboxed inside a designed frame. Excluding those dropped most of their
+      // real slots. Contain only means the picture is never CROPPED; it says nothing about
+      // whether a slot exists or whether it can be left empty.
+      if (p.kind === "logos") continue;
+      const sc = byIndex.get(p.sceneIndex);
+      if (!sc) continue;
+      if (CONTENT_CRITICAL.has(p.role)) continue;
+      out.push({
+        sceneId: p.sceneId, index: p.sceneIndex, role: p.role, scene: sc,
+        filled: false, via: null,
+        // The geometry that makes aspect scoring exact rather than an approximation.
+        placeholderId: p.id, priority: p.priority, weight: p.weight,
+        targetRatio: p.aspect, areaShare: p.areaShare, wantKind: p.kind,
+      });
+    }
+    if (out.length) return out;
+    // A declared plan that yields nothing addressable falls through to the legacy rule
+    // rather than reporting a film with no slots at all.
+  }
+
   const showable = showableRoles(renderer);
   const out = [];
   scenes.forEach((sc, i) => {
@@ -259,8 +323,17 @@ function buildSlots(scenes, { native, renderer = null }) {
     out.push({
       sceneId: sc.id != null ? String(sc.id) : `s${i + 1}`,
       index: i, role, scene: sc, filled: false, via: null,
+      // Legacy slots carry no declared priority. The EARLIEST addressable scene is still the
+      // first picture a viewer sees, so it is treated as critical for ranking purposes —
+      // the same rule template_media applies when it derives a plan. Everything else is
+      // "high", which keeps the historical behaviour of treating all slots alike.
+      priority: null, weight: 50, targetRatio: slotRatio(dims), areaShare: null, wantKind: null,
     });
   });
+  if (out.length && out.every((s) => s.priority == null)) {
+    out[0].priority = "critical"; out[0].weight = 100;
+    for (let i = 1; i < out.length; i++) { out[i].priority = "high"; out[i].weight = 70; }
+  }
   return out;
 }
 
@@ -284,7 +357,7 @@ function aspectFit(assetRatio, target) {
  * Score one candidate for one slot. Returns { score, vetoed, reason, parts }.
  * A veto is -Infinity, never a low score, so it can never be outweighed by quality.
  */
-function scoreCandidate(row, slot, { neighbours, dims, acceptsVectors, prominentSlot, tuning }) {
+function scoreCandidate(row, slot, { neighbours, dims, acceptsVectors, prominentSlot, tuning, sceneIndex = null }) {
   const veto = (reason) => ({ score: -Infinity, vetoed: true, reason, parts: null });
   const a = row.ref;
 
@@ -300,8 +373,15 @@ function scoreCandidate(row, slot, { neighbours, dims, acceptsVectors, prominent
   // Adjacency: the same picture on consecutive scenes reads as a mistake. A user's own
   // upload that is the only one of its category is the film's subject, so it is allowed to
   // recur — that is the `narrativeCentral` escape hatch, derived rather than modelled.
+  // Scene id -> position, as a Map. `neighbours.indexOf(id)` is a linear scan of the scene list,
+  // run once per assignment per candidate per slot; on a multi-slot plan that is the innermost
+  // term of an O(slots x assets x assignments x scenes) product. The caller passes a prebuilt
+  // index; the fallback keeps the exported signature usable from tests with a bare array.
+  const posOf = (id) => (sceneIndex ? (sceneIndex.has(String(id)) ? sceneIndex.get(String(id)) : -1)
+    : neighbours.indexOf(id));
+
   const adjacent = row.sceneAssignments.some((id) => {
-    const other = neighbours.indexOf(id);
+    const other = posOf(id);
     return other >= 0 && Math.abs(other - slot.index) <= 1;
   });
   if (adjacent && !row.narrativeCentral) return veto("would repeat on an adjacent scene");
@@ -310,14 +390,18 @@ function scoreCandidate(row, slot, { neighbours, dims, acceptsVectors, prominent
   const sem = semanticFit(row.type, slot.role);
   const qual = qualityNorm(a);
   const gap = row.sceneAssignments.reduce((best, id) => {
-    const i = neighbours.indexOf(id);
+    const i = posOf(id);
     return i < 0 ? best : Math.min(best, Math.abs(i - slot.index));
   }, Infinity);
   const recency = gap === Infinity ? 1 : Math.min(1, gap / Math.max(1, tuning.minGap));
   const near = (slot.neighbourAssets || []).reduce((m, other) => Math.max(m, similarity(a, other)), 0);
   const diversity = 1 - near;
   const headroom = row.usageCount === 0 ? 1 : 0.35;
-  const asp = aspectFit(row.ratio, slotRatio(dims));
+  // The slot's REAL shape when the template declared one. `slotRatio(dims)` is the honest
+  // approximation for a legacy slot (portrait films frame tall, landscape wide); a declared
+  // placeholder knows its own box, which is what makes aspect scoring exact instead of a
+  // guess — and it is why `aspect` was only ever worth 8 of the 100 points before.
+  const asp = aspectFit(row.ratio, Number(slot.targetRatio) || slotRatio(dims));
   // A contain-fit slot never crops, so composition is only at risk on cover-fit photos.
   const contain = row.type === "screenshot" || row.type === "dashboard" || row.type === "icon" || row.type === "logo";
   const composition = contain ? 1 : (asp >= 0.65 ? 1 : 0.4);
@@ -333,6 +417,148 @@ function scoreCandidate(row, slot, { neighbours, dims, acceptsVectors, prominent
   };
   const score = Object.values(parts).reduce((x, y) => x + y, 0);
   return { score: Math.round(score * 100) / 100, vetoed: false, reason: null, parts };
+}
+
+// ---------------------------------------------------------------- quality promotion
+//
+// THE BEST PICTURE BELONGS IN THE SLOT PEOPLE LOOK AT.
+//
+// Nothing upstream guarantees this, and both halves of the complaint come from the same gap.
+// The Creative Director assigns each asset to the scene where it best supports the STORY,
+// one asset at a time; the Visual Layout Director then SPREADS assets so no scene is bare
+// (visual_layout_director.spreadAcrossScenes) and moves the WEAKEST surplus asset to do it.
+// Neither ever asks the one question a viewer answers instantly: is the picture in the hero
+// the best picture we have? So a sharp 2732x1800 product capture could sit in a fourth-scene
+// support tile while a soft stock photo held the opening plate, and every stage in the chain
+// considered its own job correctly done.
+//
+// This is a SWAP pass, deliberately, rather than a re-assignment. Swapping conserves coverage
+// exactly — no scene gains or loses a picture, so nothing this fixes can un-fix the empty-scene
+// work that precedes it — and it only ever moves two assets that are each acceptable in the
+// other's slot. Three guards keep it from fighting the director:
+//
+//   1. GAIN THRESHOLD  the quality difference must be big enough to be visible, not noise.
+//   2. SEMANTIC FLOOR  neither asset may land in a slot its category cannot serve (a chart
+//                      into a testimonial, a face into a feature panel). `semanticFit` is the
+//                      same matrix the reuse scorer uses, so the two cannot disagree.
+//   3. TIER            a swap may not demote owned material out of a prominent slot for a
+//                      stock photo. The single exception is the one already stated in
+//                      asset_quality.compareForSlot: a CRITICAL slot showing an asset graded
+//                      `reject` is worse than showing a decent one, so that case may swap
+//                      across tiers. Bounded and explicit, never general.
+
+// How many quality points a swap must gain to be worth making. Below this the two pictures
+// are equivalent to a viewer and moving them would only churn the director's intent.
+const MIN_SWAP_GAIN = 12;
+
+const qualityOf = (a) => {
+  const q = Number(a && a.qualityScore);
+  return Number.isFinite(q) ? q : Math.round(qualityNorm(a) * 100);
+};
+const gradeOf = (a) => String((a && a.qualityGrade) || "medium");
+
+function promoteByQuality(slots, placed, { acceptsVectors = true } = {}) {
+  const swaps = [];
+  // Only slots that actually hold something can take part — an empty slot is the reuse pass's
+  // problem, not this one's.
+  //
+  // PAIR SLOTS TO ASSETS INDEX-WISE, one asset per slot. The obvious version took
+  // `placed.get(sceneId)[0]` for every slot, which is correct only while a scene has exactly
+  // one slot. Once templates declare two or three per beat (om_stage draws four on a montage),
+  // every slot on a scene mapped to the SAME first asset: the others became invisible as
+  // donors, so a hero-grade picture sitting in the second slot of a support beat could never
+  // be promoted. Caught by the named best-donor test.
+  const bySceneQueue = new Map();
+  const held = [];
+  for (const s of slots) {
+    if (!bySceneQueue.has(s.sceneId)) {
+      bySceneQueue.set(s.sceneId, (placed.get(s.sceneId) || []).filter((a) => !isLogo(a)).slice());
+    }
+    const queue = bySceneQueue.get(s.sceneId);
+    const asset = queue.shift();
+    if (asset) held.push({ slot: s, asset });
+  }
+  if (held.length < 2) return swaps;
+
+  // Best slots first, so the strongest picture available settles into the most-looked-at box
+  // before the merely-good boxes start competing for what is left.
+  const byImportance = held.slice().sort((x, y) => (y.slot.weight || 50) - (x.slot.weight || 50) || x.slot.index - y.slot.index);
+
+  for (const target of byImportance) {
+    // THE BEST ELIGIBLE DONOR, not the first one. Taking the first acceptable swap is the
+    // obvious loop and it is wrong: with a hero slot holding a `low` asset and two lesser
+    // slots holding a `medium` and a `hero`, iteration order decided the winner, and the
+    // first end-to-end run duly promoted the medium (55) while the hero (88) stayed in a
+    // support tile — a smaller version of the exact defect this pass exists to fix.
+    let best = null;
+    for (const donor of byImportance) {
+      if (donor === target) continue;
+      if ((donor.slot.weight || 50) >= (target.slot.weight || 50)) continue;   // never demote into a better slot
+      const tA = target.asset, dA = donor.asset;
+      const gain = qualityOf(dA) - qualityOf(tA);
+      if (gain < MIN_SWAP_GAIN) continue;
+
+      const tType = categorize(tA), dType = categorize(dA);
+      // Guard 2: neither may land somewhere its category cannot serve.
+      if (semanticFit(dType, target.slot.role) <= NONE) continue;
+      if (semanticFit(tType, donor.slot.role) <= NONE) continue;
+      // A vector-blind template must not receive an SVG in the swap either.
+      if (!acceptsVectors && /\.svg($|\?)/i.test(String(dA.path || ""))) continue;
+
+      // Guard 3: tier. The only cross-tier swap allowed is rescuing a critical slot from an
+      // asset that is genuinely broken.
+      const tierDrop = tierFor(dA) < tierFor(tA);
+      const rescuingCritical = target.slot.priority === "critical"
+        && gradeOf(tA) === "reject" && GOOD_ENOUGH.has(gradeOf(dA));
+      if (tierDrop && !rescuingCritical) continue;
+
+      // Rank donors by the quality they BRING, then by how well their shape suits this box —
+      // between two equally good pictures the one that fits the slot loses less to the crop.
+      const fit = aspectFit(ratioOf(dA), Number(target.slot.targetRatio) || 0);
+      const key = gain * 100 + Math.round(fit * 10);
+      if (!best || key > best.key) best = { donor, gain, rescuingCritical, key };
+    }
+    if (!best) continue;
+
+    const { donor, gain, rescuingCritical } = best;
+    const tA = target.asset, dA = donor.asset;
+    // Do it: exchange the two assets' scene bindings (and the timing that rides with them).
+    swapPlacement(tA, dA, target.slot, donor.slot);
+    const arrT = placed.get(target.slot.sceneId) || [];
+    const arrD = placed.get(donor.slot.sceneId) || [];
+    const iT = arrT.indexOf(tA), iD = arrD.indexOf(dA);
+    if (iT >= 0) arrT[iT] = dA;
+    if (iD >= 0) arrD[iD] = tA;
+    target.asset = dA; donor.asset = tA;
+    swaps.push({
+      into: target.slot.placeholderId || target.slot.sceneId,
+      outOf: donor.slot.placeholderId || donor.slot.sceneId,
+      promoted: dA.path, demoted: tA.path,
+      gain, priority: target.slot.priority || "high",
+      because: `${gradeOf(dA)} (${qualityOf(dA)}) replaced ${gradeOf(tA)} (${qualityOf(tA)}) in the ${target.slot.priority || "high"} slot`
+        + (rescuingCritical ? " — critical-slot rescue: the incumbent was graded reject" : ""),
+    });
+  }
+  return swaps;
+}
+
+const GOOD_ENOUGH = new Set(["hero", "high", "medium"]);
+
+// Exchange two assets' scene bindings in place. Timing rides with the scene — an asset that
+// keeps its old window would animate in a slot it no longer occupies, which is the same trap
+// spreadAcrossScenes documents at visual_layout_director.js:176.
+function swapPlacement(a, b, slotA, slotB) {
+  const sA = slotA.scene, sB = slotB.scene;
+  a.sceneId = sB && sB.id != null ? sB.id : slotB.sceneId;
+  b.sceneId = sA && sA.id != null ? sA.id : slotA.sceneId;
+  if (sB) {
+    if (sB.start != null) a.startSec = sB.start;
+    if (sB.duration != null) a.durationSec = sB.duration;
+  }
+  if (sA) {
+    if (sA.start != null) b.startSec = sA.start;
+    if (sA.duration != null) b.durationSec = sA.duration;
+  }
 }
 
 // ---------------------------------------------------------------- main
@@ -352,10 +578,12 @@ function scoreCandidate(row, slot, { neighbours, dims, acceptsVectors, prominent
  *                               reproducible — the renderer seeks a paused timeline.
  * @returns {{assets: object[], review: object|null}} the SAME array, plus clones
  */
-function optimizeAssetReuse({ assets, script, storyboard, framePack, dims, native = false, acceptsVectors = true, seedKey = null, renderer = null } = {}) {
+function optimizeAssetReuse({ assets, script, storyboard, framePack, dims, native = false, acceptsVectors = true, seedKey = null, renderer = null, mediaPlan = null } = {}) {
   const list = Array.isArray(assets) ? assets : [];
   const tuning = cfg();
   if (!tuning.enabled) return { assets: list, review: null };
+  // Per-run, so a long-lived server process never accumulates another job's pairs.
+  simCache.clear();
 
   try {
     const scenes = (script && Array.isArray(script.scenes) && script.scenes.length)
@@ -364,7 +592,7 @@ function optimizeAssetReuse({ assets, script, storyboard, framePack, dims, nativ
     if (!scenes.length || !list.length) return { assets: list, review: null };
 
     const ledger = buildLedger(list);
-    const slots = buildSlots(scenes, { native, renderer });
+    const slots = buildSlots(scenes, { native, renderer, mediaPlan, dims });
     const sceneIds = scenes.map((s, i) => (s && s.id != null ? String(s.id) : `s${i + 1}`));
 
     // narrativeCentral: the user's own upload, sole example of its category. Derived, not
@@ -390,6 +618,16 @@ function optimizeAssetReuse({ assets, script, storyboard, framePack, dims, nativ
       if ((placed.get(s.sceneId) || []).length) { s.filled = true; s.via = "assigned"; }
     }
 
+    // PASS 0 — PROMOTION. Before filling anything, make sure what is ALREADY placed is placed
+    // in the right order of importance. Runs first on purpose: the reuse passes below decide
+    // what to put in the empty slots, and they should be reasoning about a film whose best
+    // picture is already in its best slot, not one they are about to have rearranged.
+    const swaps = promoteByQuality(slots, placed, { acceptsVectors });
+    if (swaps.length) {
+      console.log(`[asset_reuse] promoted ${swaps.length} asset(s) into higher-visibility slots: `
+        + swaps.map((s) => `${String(s.promoted).split("/").pop()}→${s.into} (+${s.gain})`).join(", "));
+    }
+
     const decisions = [];
     const added = [];
     // Neighbour context for the diversity term: what sits on the scenes either side.
@@ -405,7 +643,14 @@ function optimizeAssetReuse({ assets, script, storyboard, framePack, dims, nativ
     // ---- PASS A: genuinely unused assets first (the "exhaust unique before reusing" rule).
     // VLD's spread already did most of this; what reaches here are assets it demoted or
     // never assigned at all.
+    // Built ONCE. `unusedRows.filter(r => r.usageCount === 0)` used to run inside the slot loop,
+    // rebuilding an array of every ledger row for every empty slot. A Set that rows are removed
+    // from as they are consumed says the same thing in O(1).
     const unusedRows = [...ledger.values()].filter((r) => r.usageCount === 0 && !r.isLogo);
+    const unusedSet = new Set(unusedRows);
+    const allRows = [...ledger.values()].filter((r) => !r.isLogo);
+    // Scene id -> position, so the scorer stops linear-scanning the scene list.
+    const sceneIndex = new Map(sceneIds.map((id, i) => [String(id), i]));
     // ---- PASS B: reuse. Both passes run through the same scorer, so the ONLY difference is
     // which candidate pool is offered — that is what makes "unused wins" a property of the
     // headroom term rather than a special case.
@@ -413,11 +658,10 @@ function optimizeAssetReuse({ assets, script, storyboard, framePack, dims, nativ
       if (slot.filled) continue;
       slot.neighbourAssets = neighbourAssetsFor(slot);
       const prominentSlot = true;                  // one-per-scene slots are the scene's visual
-      const pool = unusedRows.filter((r) => r.usageCount === 0);
-      const candidates = (pool.length ? pool : [...ledger.values()].filter((r) => !r.isLogo));
+      const candidates = unusedSet.size ? unusedSet : allRows;
       let best = null;
       for (const row of candidates) {
-        const v = scoreCandidate(row, slot, { neighbours: sceneIds, dims, acceptsVectors, prominentSlot, tuning });
+        const v = scoreCandidate(row, slot, { neighbours: sceneIds, dims, acceptsVectors, prominentSlot, tuning, sceneIndex });
         if (v.vetoed) continue;
         if (!best || v.score > best.v.score) best = { row, v };
       }
@@ -455,6 +699,10 @@ function optimizeAssetReuse({ assets, script, storyboard, framePack, dims, nativ
         if (variation.cropFocus) clone.cropFocus = variation.cropFocus;
       }
       row.usageCount++;
+      // Consumed — drop it from the unused pool so the next slot's candidate set shrinks
+      // instead of being re-filtered from scratch. This is what preserves the "exhaust unique
+      // before reusing" rule now that the pool is a Set rather than a per-slot filter.
+      unusedSet.delete(row);
       row.sceneAssignments.push(slot.sceneId);
       row.reuseEligible = row.isLogo ? tuning.allowLogoReuse : row.usageCount < tuning.maxUses;
       added.push(clone);
@@ -495,6 +743,13 @@ function optimizeAssetReuse({ assets, script, storyboard, framePack, dims, nativ
       slotsFilledDecorative: slots.filter((s) => s.via === "decorative").length,
       framePack: framePack || null,
       composerFamily: native ? "native" : "scene-kit",
+      // Where the slot list came from, so a reader can tell a template's declared layout from
+      // the one-per-scene approximation — the two mean very different things about coverage.
+      slotSource: (mediaPlan && mediaPlan.placeholders && mediaPlan.placeholders.length) ? mediaPlan.source : "per-scene",
+      criticalSlots: slots.filter((s) => s.priority === "critical").length,
+      criticalFilled: slots.filter((s) => s.priority === "critical" && s.filled).length,
+      qualityPromotions: swaps.length,
+      promotions: swaps.slice(0, 8),
       ledger: rows.map((r) => ({
         assetId: r.assetId, type: r.type, qualityScore: r.qualityScore,
         sceneAssignments: r.sceneAssignments.slice(), usageCount: r.usageCount,

@@ -524,7 +524,13 @@ function bpPlate(scene, ctx, asset) {
   const plateW = port ? (shotTall ? "46cqw" : "84cqw") : (shotTall ? "24cqw" : "42cqw");
   const winH = port ? (shotTall ? "58cqw" : "48cqw") : (shotTall ? "34cqw" : "24cqw");
   const callout = esc(String(scene.emphasis || ctx.S.plateCallout).toUpperCase()).slice(0, 18);
-  const objPos = "top center";
+  // The plate window is a cover-fit box: anchor it on the picture's own subject, falling
+  // back to the drawing-office default (top of the sheet) when nothing has been measured.
+  // Lazy + defensive — the crop engine is optional and this composer must render without it.
+  const objPos = (() => {
+    try { return require("./crop_engine").focusFor(asset, 0, 0, "top center"); }
+    catch { return (asset && asset.cropFocus) || "top center"; }
+  })();
   const rev = Math.max(1.0, ctx.L - 2.0);
   // Scan-bar travel in px (transform x, not `left` — lint wants sub-pixel transforms):
   // the plate window is plateW of the canvas width, so the bar crosses that distance.
