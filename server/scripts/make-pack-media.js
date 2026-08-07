@@ -155,28 +155,51 @@ function ff(args) {
 // then the closing lockup, then the mid-film — and the first one that is not near-black wins. Luma is
 // only a floor now, not the objective.
 const POSTER_FLOOR = 26;
-async function lumaAt(video, t) {
+
+// Luma alone cannot tell a good card from a half-empty one. Sampled at the opening beat, paper-tales
+// produced an open storybook with the headline on the right page and the LEFT PAGE BLANK: bright,
+// well over the floor, and half of it nothing. So each candidate is also measured for DETAIL — the
+// spread of an 8x8 luma grid. A frame with type and furniture across it varies; a frame with a large
+// empty page, or one filled by a flat grey placeholder, does not. Among candidates that clear the
+// darkness floor the most detailed wins, which rejects both failure modes with one number.
+async function sampleAt(video, t) {
   try {
-    const buf = await ff(["-v", "error", "-ss", String(t), "-i", video, "-frames:v", "1", "-vf", "scale=1:1,format=gray", "-f", "rawvideo", "-"]);
-    return buf.length ? buf[0] : 0;
-  } catch { return -1; }
+    const buf = await ff(["-v", "error", "-ss", String(t), "-i", video, "-frames:v", "1", "-vf", "scale=8:8,format=gray", "-f", "rawvideo", "-"]);
+    if (!buf.length) return { luma: 0, detail: 0 };
+    const px = [...buf];
+    const mean = px.reduce((a, b) => a + b, 0) / px.length;
+    const detail = Math.sqrt(px.reduce((a, v) => a + (v - mean) ** 2, 0) / px.length);
+    return { luma: Math.round(mean), detail: Math.round(detail) };
+  } catch { return { luma: -1, detail: -1 }; }
 }
 async function posterFrame(video, scenes) {
   const first = scenes[0], last = scenes[scenes.length - 1];
+  // LATE IN THE BEAT, NOT MID-BEAT. Sampled at 0.82 of the opening, paper-tales' card came out as an
+  // open storybook with a headline on the right page and the LEFT PAGE COMPLETELY EMPTY — that beat
+  // fills its facing page last. Most packs reveal their opening in stages, so the last moment of the
+  // beat is the only one where all of it is on screen. 0.94 rather than 1.0 to stay clear of whatever
+  // the pack does on its way out.
   const candidates = [
-    first.start + first.duration * 0.82,          // the opening, fully revealed
+    first.start + first.duration * 0.94,          // the opening, everything landed
     last.start + last.duration * 0.7,             // the closing lockup
-    first.start + first.duration * 0.6,
-    ...scenes.slice(1, -1).map((sc) => sc.start + sc.duration * 0.7),
+    first.start + first.duration * 0.82,
+    ...scenes.slice(1, -1).map((sc) => sc.start + sc.duration * 0.86),
   ].map((t) => +t.toFixed(2));
 
-  let best = candidates[0], bestLuma = -1;
-  for (const t of candidates) {
-    const luma = await lumaAt(video, t);
-    if (luma > bestLuma) { bestLuma = luma; best = t; }
-    if (luma >= POSTER_FLOOR) return { t, luma };   // first acceptable candidate, in preference order
+  const scored = [];
+  for (const t of candidates) scored.push({ t, ...(await sampleAt(video, t)) });
+
+  const lit = scored.filter((s) => s.luma >= POSTER_FLOOR);
+  if (lit.length) {
+    // Most detailed of the well-lit candidates. Ties go to the earlier candidate, which keeps the
+    // preference order (opening, then closing, then middles) as the decider when nothing separates them.
+    const pick = lit.reduce((a, b) => (b.detail > a.detail ? b : a));
+    return { t: pick.t, luma: pick.luma, detail: pick.detail };
   }
-  return { t: best, luma: bestLuma };               // nothing clears the floor: take the least dark
+  // Nothing clears the floor — a genuinely dark pack. Take the least dark rather than the most detailed;
+  // on a near-black frame "detail" is mostly noise.
+  const fallback = scored.reduce((a, b) => (b.luma > a.luma ? b : a));
+  return { t: fallback.t, luma: fallback.luma, detail: fallback.detail };
 }
 
 async function encodePreview(src, dest, portrait) {
@@ -305,6 +328,31 @@ async function main() {
   const all = frameRegistry.listPacks();
   let packs = named.length ? named : argv.includes("--stale") ? all.filter(isStale) : all;
   if (limit) packs = packs.slice(0, limit);
+
+  // --poster-only: re-pick and re-cut the poster from the preview ALREADY on disk. The poster is a
+  // frame of the preview, so improving the frame-choice rule does not need another render — that would
+  // be two minutes a pack to change which second of an existing clip gets saved as a JPEG.
+  if (argv.includes("--poster-only")) {
+    let done = 0, dark = [];
+    for (const pack of packs) {
+      const dir = path.join(PUBLIC_FRAMES, pack);
+      const preview = path.join(dir, "preview.mp4");
+      if (!fs.existsSync(preview)) continue;
+      const portrait = /portrait/i.test(String((fm.getManifest(pack) || {}).orientation || ""));
+      try {
+        const { t, luma, detail } = await posterFrame(preview, FIXTURE.scenes);
+        await encodePoster(preview, path.join(dir, "poster.jpg"), t, portrait);
+        if (luma <= 12) dark.push(`${pack}(${luma})`);
+        done++;
+        console.log(`  ${pack.padEnd(22)} poster @${t}s luma ${luma} detail ${detail}`);
+      } catch (e) {
+        console.log(`  ${pack.padEnd(22)} FAILED — ${String(e.message).slice(0, 120)}`);
+      }
+    }
+    console.log(`\nre-cut ${done}/${packs.length} poster(s) from existing previews`);
+    if (dark.length) console.log(`  ⚠ still very dark: ${dark.join(", ")}`);
+    process.exit(0);
+  }
 
   if (argv.includes("--stamp-only")) {
     const n = stampOnly(packs);
