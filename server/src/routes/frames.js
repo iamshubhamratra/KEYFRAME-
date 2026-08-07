@@ -56,11 +56,26 @@ function packMeta(name) {
   return { label, vibe, orientation: "horizontal", colors: Object.values(tokens.colors || {}).slice(0, 6), fonts: tokens.fonts || [], displayFont: null, ground: null, accents: [] };
 }
 
+// THE URL CARRIES THE FILE'S VERSION, or a regenerated pack still shows the old card.
+//
+// These paths are constant — /frames/<name>/poster.jpg — and the .mp4 is served with
+// `Cache-Control: public, max-age=3600` (see server.js). So after regenerating a pack's media the
+// browser keeps serving what it already has: for up to an hour from its own cache, and indefinitely
+// from any CDN or proxy in front of it. The files on disk were new and the picker still showed the
+// old design, which is exactly what a stale poster looked like before it was ever regenerated.
+//
+// Appending the file's mtime makes the URL change whenever the bytes change, so a new render is a new
+// URL and the cache cannot hold it. It also lets the mp4 keep its long max-age, which is what a
+// picker grid wants — the same file, cached hard, until it genuinely differs.
+function stamped(name, file) {
+  const abs = path.join(PUBLIC_FRAMES, name, file);
+  let stat;
+  try { stat = fs.statSync(abs); } catch { return null; }
+  return `/frames/${name}/${file}?v=${Math.round(stat.mtimeMs)}`;
+}
+
 function mediaUrls(name) {
-  const dir = path.join(PUBLIC_FRAMES, name);
-  const preview = fs.existsSync(path.join(dir, "preview.mp4")) ? `/frames/${name}/preview.mp4` : null;
-  const poster = fs.existsSync(path.join(dir, "poster.jpg")) ? `/frames/${name}/poster.jpg` : null;
-  return { previewUrl: preview, posterUrl: poster };
+  return { previewUrl: stamped(name, "preview.mp4"), posterUrl: stamped(name, "poster.jpg") };
 }
 
 router.get("/frames", (_req, res) => {
