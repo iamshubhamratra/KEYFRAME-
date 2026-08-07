@@ -25,6 +25,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { execFile } = require("node:child_process");
+const crypto = require("node:crypto");
 
 const config = require("../src/config");
 const frameRegistry = require("../src/services/frame_registry");
@@ -87,21 +88,50 @@ const ASSET_SHAPES = [
   { path: "pm-card.svg", w: 998, h: 367, ratio: 998 / 367, kindHint: "illustration", cdProminence: "support", cdScore: 0.62 },
 ];
 
+// The asset DESCRIPTORS (what the composer sees) are separate from writing the files, because the
+// guard needs the descriptors to reproduce a hash and must not write anything.
+function assetDescriptors() {
+  const out = ASSET_SHAPES.map((a) => ({
+    path: a.path, type: "image", width: a.w, height: a.h, ratio: a.ratio,
+    source: "website", kindHint: a.kindHint, cdProminence: a.cdProminence, cdScore: a.cdScore,
+    visionOk: true, alt: "product interface",
+  }));
+  out.push({ path: "pm-logo.svg", type: "image", width: 400, height: 400, ratio: 1, source: "website-brand", role: "logo", alt: "logo" });
+  return out;
+}
+
 function writeAssets(dir) {
-  const out = [];
-  for (const a of ASSET_SHAPES) {
-    fs.writeFileSync(path.join(dir, a.path), uiPlaceholder(a.w, a.h), "utf8");
-    out.push({
-      path: a.path, type: "image", width: a.w, height: a.h, ratio: a.ratio,
-      source: "website", kindHint: a.kindHint, cdProminence: a.cdProminence, cdScore: a.cdScore,
-      visionOk: true, alt: "product interface",
-    });
-  }
+  for (const a of ASSET_SHAPES) fs.writeFileSync(path.join(dir, a.path), uiPlaceholder(a.w, a.h), "utf8");
   // A mark for the packs whose closing beat takes a logo. A ring and an N, in the same neutral grey.
   fs.writeFileSync(path.join(dir, "pm-logo.svg"),
     `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400"><circle cx="200" cy="200" r="150" fill="none" stroke="#5B616E" stroke-width="26"/><path d="M150 268V132l100 136V132" fill="none" stroke="#5B616E" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/></svg>`, "utf8");
-  out.push({ path: "pm-logo.svg", type: "image", width: 400, height: 400, ratio: 1, source: "website-brand", role: "logo", alt: "logo" });
-  return out;
+  return assetDescriptors();
+}
+
+// ---- composition identity ----------------------------------------------------
+// The generator records WHICH COMPOSITION it rendered, and the guard recomputes it. Both use this one
+// function so they cannot drift: it is byte-identical to scripts/golden-composers.js's hash, whose
+// separator is a NUL. Written as String.fromCharCode(0) because this value passes through several
+// layers of quoting and a one-byte difference would fail every pack for no reason.
+const NUL = String.fromCharCode(0);
+function compositionHash(built) {
+  return crypto.createHash("sha256").update(built.indexHtml + NUL + (built.metaJson || "")).digest("hex").slice(0, 16);
+}
+
+// Build a pack's composition WITHOUT touching the disk — the guard needs the hash, not the files.
+// It must mirror buildPack()'s call exactly (same fixture, same asset descriptors, same seedKey) or
+// the hash it computes will not be the hash that was recorded.
+function buildForHash(pack) {
+  const manifest = fm.getManifest(pack) || {};
+  const comp = composerModuleFor(manifest.renderer);
+  if (!comp) return null;
+  const portrait = /portrait/i.test(String(manifest.orientation || ""));
+  const dims = portrait ? { width: 1080, height: 1920, fps: 30 } : { width: 1920, height: 1080, fps: 30 };
+  return comp.buildComposition({
+    storyboard: JSON.parse(JSON.stringify(FIXTURE)),
+    dims, framePack: pack, assets: assetDescriptors(), captionCues: [], brandSkin: null,
+    seedKey: `packmedia-${pack}`,
+  });
 }
 
 // ---- ffmpeg ------------------------------------------------------------------
@@ -203,6 +233,21 @@ async function buildPack(pack, { dryRun }) {
   try { fs.unlinkSync(videoPath.replace(/\.mp4$/, ".jpg")); } catch { /* the render's own thumb */ }
   fs.rmSync(jobDir, { recursive: true, force: true });
 
+  // STAMP THE MEDIA WITH THE COMPOSITION IT CAME FROM. The guard needs to know whether the pack's
+  // OUTPUT changed, not whether its file was touched: keying staleness on mtime fails the build for a
+  // comment edit and costs a 2-minute re-render to clear, and a guard that nags on no-ops is a guard
+  // that gets exempted. This is the same hash scripts/golden-composers.js uses, so "the render
+  // changed" means exactly what it means there.
+  fs.writeFileSync(path.join(outDir, "media.json"), `${JSON.stringify({
+    pack,
+    composition: compositionHash(built),
+    fixture: FIXTURE.title,
+    previewSec: PREVIEW_SEC,
+    posterAt: t,
+    generatedAt: new Date().toISOString(),
+  }, null, 2)}
+`, "utf8");
+
   return {
     pack, posterAt: t, posterLuma: luma,
     previewKb: Math.round(fs.statSync(previewPath).size / 1024),
@@ -228,6 +273,28 @@ function isStale(pack) {
   return cT > fs.statSync(poster).mtimeMs || cT > fs.statSync(preview).mtimeMs;
 }
 
+// Write media.json for media that was ALREADY rendered from the current composition, without
+// re-rendering it. Needed because a sweep already in flight loaded this module before stamping
+// existed, and re-rendering thirty packs to add a six-line JSON file would be absurd. Only valid when
+// the files on disk really did come from today's composer — the caller asserts that; nothing here can
+// verify it after the fact.
+function stampOnly(packs) {
+  let done = 0;
+  for (const pack of packs) {
+    const dir = path.join(PUBLIC_FRAMES, pack);
+    if (!fs.existsSync(path.join(dir, "poster.jpg")) || !fs.existsSync(path.join(dir, "preview.mp4"))) continue;
+    let built = null;
+    try { built = buildForHash(pack); } catch { built = null; }
+    if (!built) continue;
+    fs.writeFileSync(path.join(dir, "media.json"), `${JSON.stringify({
+      pack, composition: compositionHash(built), fixture: FIXTURE.title, previewSec: PREVIEW_SEC,
+      stampedAt: new Date().toISOString(), note: "stamped for media rendered from this composition",
+    }, null, 2)}\n`, "utf8");
+    done++;
+  }
+  return done;
+}
+
 async function main() {
   const argv = process.argv.slice(2);
   const dryRun = argv.includes("--dry-run");
@@ -238,6 +305,12 @@ async function main() {
   const all = frameRegistry.listPacks();
   let packs = named.length ? named : argv.includes("--stale") ? all.filter(isStale) : all;
   if (limit) packs = packs.slice(0, limit);
+
+  if (argv.includes("--stamp-only")) {
+    const n = stampOnly(packs);
+    console.log(`\nPACK MEDIA — stamped ${n}/${packs.length} pack(s) with their composition hash\n`);
+    process.exit(0);
+  }
 
   console.log(`\nPACK MEDIA — ${packs.length} pack(s)${dryRun ? " (dry run)" : ""}\n`);
   fs.mkdirSync(WORK, { recursive: true });
@@ -265,5 +338,7 @@ async function main() {
   if (dark.length) console.log(`  ⚠ ${dark.length} poster(s) still very dark: ${dark.map((d) => `${d.pack}(${d.posterLuma})`).join(", ")}`);
   process.exit(failed.length ? 1 : 0);
 }
+
+module.exports = { FIXTURE, buildForHash, compositionHash, PREVIEW_SEC };
 
 if (require.main === module) main().catch((e) => { console.error(e); process.exit(1); });

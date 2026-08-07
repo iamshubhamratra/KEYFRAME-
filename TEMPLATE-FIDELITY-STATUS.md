@@ -446,6 +446,52 @@ resolve to a composer, so "silently generic" is a build failure from here on. Th
 of the chain until the last pack landed, on purpose: an exemption list is exactly how the next
 kinetic-bold would have hidden.
 
+### 3k. The shop window was advertising designs the renderer could not produce
+
+The fidelity program made 46 composers real. The picker was still showing something else.
+
+`/api/frames` gives the template gallery a `posterUrl` and a `previewUrl` per pack, served from
+`public/frames/<pack>/{poster.jpg,preview.mp4}`. All 46 packs had both, so nothing looked broken —
+but **33 of the 46 posters were older than the composer they claim to show**. They were hand-made
+design mocks, and ten of those packs had no composer at all until the day this was written: their
+previews advertised a design nothing in the codebase could render. The previews were also ~4.5MB
+each, two of them 9.8MB, carrying an audio track no picker grid can play (a grid autoplays muted).
+
+`scripts/make-pack-media.js` now renders both, per pack, through the real render path — build the
+composition, run it, encode the preview, cut the poster out of it. ~160–470kb per preview, 960px on
+the long edge, muted, faststart, exactly 8.4s.
+
+**One fixture for every pack, deliberately.** Same neutral brand, same copy, same mid-grey UI
+placeholders everywhere, so a user comparing two cards is comparing the two DESIGNS. Per-pack bespoke
+copy would turn the picker into a measure of the copywriting. It also means every card must be a
+RENDER — leaving thirteen hand-made mocks in place would have the picker comparing a designer's mock
+against a real render, which is worse than either alone.
+
+**Two defects in the generator, both visible only in a rendered poster:**
+- **It chose the worst frame on purpose.** The first version took the BRIGHTEST sampled frame — the
+  rule `renderer.js` uses for a user's own gallery thumbnail, which is right there and exactly wrong
+  here. On a dark pack the brightest frame is whichever one the grey placeholder fills, so
+  noir-spotlight's card came out as two grey bars under a headline: the least representative frame in
+  the film, selected on purpose. Candidates are now ORDERED by what makes a good card (the opening
+  beat once its type has landed, then the closing lockup, then mid-film) and the first that clears a
+  darkness floor wins. Luma is a floor, not the objective.
+- The placeholders were near-white and blew out on near-black packs. Mid-grey reads on both a cream
+  catalogue page and a noir void.
+
+**And one defect that made the whole exercise look like a no-op.** `/frames/<pack>/poster.jpg` is a
+constant URL and the `.mp4` is served `max-age=3600`, so a browser kept serving the old file for an
+hour — and any CDN indefinitely. New bytes on disk, identical URL, picker unchanged: indistinguishable
+from the generator having done nothing, which is exactly what it looked like. `mediaUrls()` now stamps
+each URL with the file's mtime, so new bytes are a new URL. That also makes the long `max-age`
+correct rather than harmful.
+
+**Guard:** `npm run test:pack-media` — both files exist, **neither is older than the pack's
+composer**, the poster's orientation matches the manifest (a landscape card for a 9:16 pack lies about
+the shape of the film), the poster is not near-black or flat, and the preview is neither too small to
+be a clip nor too heavy for a grid. Nothing could have caught this before: the files existed, the
+route resolved, the JSON was well-formed and the card rendered. Only the *date* was wrong, and nothing
+in the suite knew what that meant for a poster.
+
 ### What the render caught that the code could not
 
 Every defect in these ten was invisible in source and visible only in a frame. Recorded because the
