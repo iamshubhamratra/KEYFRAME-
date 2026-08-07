@@ -419,6 +419,78 @@ composer or is deliberately listed as kit-rendered. That turns "silently generic
 failure. Then port it (Anton, hard cuts, one accent per scene — closest sibling is `grid-dispatch`
 for flat print and `slab-stage` for the type scale).
 
+### 3j-bis. The composer gap: ten packs, not one
+
+`npm run test:pack-composers` walks the registry and asserts every pack resolves to a composer. It
+found **ten of the library's 46 packs rendering through the generic scene kit**, each with a
+distinctive brief in its manifest that no code implemented. That is why the guard exists and why it
+walks the registry rather than the composer table: every other check in `scripts/` enumerates the
+packs that HAVE a composer, so a pack with none is not a failing row anywhere — it is an absent one.
+
+| Pack | What its manifest asks for | State |
+| --- | --- | --- |
+| kinetic-bold | Anton type-as-image, hard cuts between near-black and off-white, one electric accent per beat | **DONE** — §3j |
+| mono-corporate | near-white enterprise system, faint grid, hairline dividers, IBM Plex Mono labels, one deep blue | **DONE** |
+| aurora-spectrum | deep-space indigo lit by drifting aurora blobs, gradient-clip headlines, frosted 5% cards | **DONE** |
+| bauhaus-print | offset-print misregistration, confetti canvas, Archivo Black | **DONE** — registration marks, halftone, red/blue offsets |
+| biennale-yellow | Instrument Serif + mono, wipe cuts | **DONE** — catalogue page, roman-numeral index, folio |
+| blockframe | Space Grotesk, wipe | **DONE** — neo-brutalist stickers on graph paper |
+| bloom-illustrated | Bricolage Grotesque, wash cuts, bokeh | **DONE** — pastel wash, spot illustration, no blur |
+| fable-storybook | storybook voice, wash cuts, ribbon canvas | **DONE** — parchment, paper planes at four depths, fireflies |
+| midnight-glass | panel cuts, flow canvas | **DONE** — glass window with titlebar, specular streak |
+| noir-spotlight | one theatrical spotlight on near-black, iris cuts, rays | **DONE** — one light pool, Fraunces, cinema-slate counter |
+| vapor-chrome | Y2K / retro-future indigo synthwave, whip cuts, grid | **DONE** — perspective grid horizon, neon pills |
+
+**All ten are built, and `test:pack-composers` is now IN the `npm test` chain** — 46 of 46 packs
+resolve to a composer, so "silently generic" is a build failure from here on. The guard was held out
+of the chain until the last pack landed, on purpose: an exemption list is exactly how the next
+kinetic-bold would have hidden.
+
+### What the render caught that the code could not
+
+Every defect in these ten was invisible in source and visible only in a frame. Recorded because the
+list is the actual value of this program:
+
+| Pack | Defect | Why no guard saw it |
+| --- | --- | --- |
+| mono-corporate | the accent underline resolved to 2cqw (38px) and painted a block over its own word | `Math.max(2, …)` is valid JS and valid CSS; only the pixels are wrong |
+| mono-corporate | hairline dividers invisible — the manifest's `#E2E5EA` is a CARD border, unseeable on the mist ground | a correct colour in the wrong place |
+| kinetic-bold | the kit's chrome painted a near-black wordmark on a near-black beat — gone, on half the film | the element IS revealed; it is revealed in the ground's own colour |
+| kinetic-bold | a fixed media band ran under a two-line headline | the band and the headline are both correct in isolation |
+| biennale-yellow | a full-measure `contain` box letterboxed the picture to a stamp adrift in an empty column | valid CSS, valid layout, wrong picture |
+| blockframe | a tilted full-measure strip put its corners outside the frame's own keyline | (w/2)·sin(t) is invisible until it is rendered |
+| vapor-chrome | a contained picture floated inside a wider neon window | same class as biennale, different pack |
+| fetch | the dog rendered BLACK — two theme colours were never defined, and SVG paints an undefined fill black | `undefined` is a valid fill string as far as the DOM is concerned |
+
+### Two checks of my own that were wrong before they were right
+
+- **The authoring brief I gave the parallel agents contained a self-check that could not pass.** It
+  failed the build on `/undefined/` or `/NaN/` anywhere in the emitted HTML — but the kit's runtime
+  contains `typeof navigator === "undefined"` and its bundled fonts are base64 blobs containing
+  `NaN`. Three known-good composers fail it. Half the agents in the first run never returned, most
+  likely iterating against an impossible gate.
+- **`test-shot-containment` reported a clean 35/35 on its first run and then failed its own
+  calibration.** It probed the loaded page, where only the opening beat has layout; every later scene
+  is hidden and skipped. Then its fixture (six scenes, five assets) never reached momentum's phone at
+  all, so the calibration still could not fire. It took eight scenes and six pictures to make it bite.
+
+The rule both teach: **calibrate a check against known-good input, and against the bug it was built
+for, before believing a green result.** A guard that has never failed has never been tested.
+
+### One kit-level fact, found while auditing a composer's deviation
+
+`transition_kit.js:133` — the `light-wipe` move's overlay hardcodes `filter: blur(1.2cqw)`. So blur
+reaches every pack's output through the transition dealer regardless of what its composer does. It is
+a single transient overlay rather than a per-scene stack, which is why captures do not blacken, but it
+means "no blur in this pack" can only ever be a statement about the composer's own markup.
+
+**What these three builds taught, and what the remaining ones are briefed against:** every defect
+found in them was invisible in the code and visible only in a rendered frame. The accent underline
+that resolved to 2cqw and painted a block over its own word; the hairline that was a card border on a
+mist ground and could not be seen; the chrome that painted a near-black wordmark on a near-black beat;
+the media band at a fixed y that ran under a two-line headline. Those are now written down as laws in
+the authoring brief, and three of them are enforced by guards.
+
 ### teampulse — one card must not sit where two would
 
 The reference's Showcase stacks two browser windows at y=390 and y=1090. Ours reused the first slot

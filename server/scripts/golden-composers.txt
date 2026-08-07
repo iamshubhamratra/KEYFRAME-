@@ -24,6 +24,8 @@ drive                plain  776ea2a4c16c92ae
 drive                brand  cfcf03ac6578eb48
 edition              plain  30fe667fdc037820
 edition              brand  f2b3c73d7620420c
+fable-storybook      plain  eb85a22fff370d3f
+fable-storybook      brand  dcae5b58abeb5c43
 fetch                plain  32c4f8b9f7164c82
 fetch                brand  ba3ac0d8c33021fc
 fight                plain  1b55544b6c9fd1dd
@@ -46,12 +48,16 @@ kinetic-bold         plain  59c2c092f4e79773
 kinetic-bold         brand  45db0e56b7348b92
 lantern-night        plain  df6302cfb772ca62
 lantern-night        brand  f2771664d0470611
+midnight-glass       plain  9b374ddf91ca0fc5
+midnight-glass       brand  005e80198ab8ff24
 momentum             plain  99ed7455952e278f
 momentum             brand  c3af9db5eafd6179
 mono-corporate       plain  a5df215b9eb0b30b
 mono-corporate       brand  cdb5a384f997d391
 motion-canvas        plain  485bdf10444e901f
 motion-canvas        brand  f5d2b0bad282c8ea
+noir-spotlight       plain  7685a6f4b2e03176
+noir-spotlight       brand  3d12ed8e7acd369d
 orbit                plain  5b5320a93a0274a1
 orbit                brand  fc4ba71df4eafd9a
 organic-garden       plain  575f0836f6d3cc62
@@ -82,3 +88,5 @@ teampulse            plain  c5b8a2d21590e9bc
 teampulse            brand  22fd51c4db548925
 terminal-departures  plain  f9228a3ccca2967e
 terminal-departures  brand  f5258922e60caf4b
+vapor-chrome         plain  1816f297e42ff0bb
+vapor-chrome         brand  851de73e606e6332

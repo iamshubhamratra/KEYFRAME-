@@ -1,5 +1,6 @@
 {
   "name": "fable-storybook",
+  "renderer": "fable-storybook",
   "vibe": "warm storybook: parchment, ink-brown serif spirit, watercolor terracotta/sage/dusk washes, paper planes + firefly orbs in gentle 3D — for narratives, brand stories, emotional arcs, journeys",
   "colors": {
     "parchment": "#FAF5EA",
@@ -70,12 +71,16 @@
       "orchestral"
     ],
     "musicKeywords": [
+      "gentle",
+      "calm",
       "soft storytelling",
       "gentle acoustic",
       "warm folk",
       "whimsical orchestral",
       "cheerful folk",
-      "bright storybook"
+      "bright orchestral",
+      "bright",
+      "happy"
     ],
     "sfxPalette": {
       "transition": "card-slide",
@@ -88,14 +93,14 @@
       "energyBoost": 1,
       "sfxDensity": "normal",
       "ambient": false
-    }
+    },
+    "archetype": "warm"
   },
   "media": {
     "requiredAssets": {
       "screenshots": 3,
       "productImages": 3,
-      "logos": 1,
-      "illustrations": 4
+      "logos": 1
     },
     "placeholders": [],
     "slotsByRole": {

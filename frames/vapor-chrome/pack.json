@@ -1,5 +1,6 @@
 {
   "name": "vapor-chrome",
+  "renderer": "vapor-chrome",
   "vibe": "Tasteful Y2K / retro-future for Nova, a creator monetization platform. A deep indigo synthwave night with a scrolling perspective-grid horizon, a single glowing sun-orb, chrome/gradient-clipped Space Grotesk headlines with a light sweep, an",
   "colors": {
     "void": "#0D0A2B",
@@ -68,12 +69,16 @@
       "retro"
     ],
     "musicKeywords": [
+      "dreamy",
+      "chill",
       "vaporwave chill",
       "retro synthwave",
       "y2k electronic",
       "neon nostalgia",
       "driving synthwave",
-      "high energy retro"
+      "high energy retro",
+      "fast",
+      "powerful"
     ],
     "sfxPalette": {
       "transition": "whoosh",
@@ -86,14 +91,14 @@
       "energyBoost": 2,
       "sfxDensity": "rich",
       "ambient": false
-    }
+    },
+    "archetype": "retro"
   },
   "media": {
     "requiredAssets": {
       "screenshots": 3,
       "productImages": 5,
-      "logos": 1,
-      "illustrations": 2
+      "logos": 1
     },
     "placeholders": [],
     "slotsByRole": {

@@ -73,6 +73,10 @@ const NATIVE_PACK_COMPOSERS = {
   // scripts/test-pack-composers.js found rendering as the generic kit.
   "mono-corporate": require("./mono_corporate_composer"),
   "aurora-spectrum": require("./aurora_spectrum_composer"),
+  "fable-storybook": require("./fable_storybook_composer"),
+  "midnight-glass": require("./midnight_glass_composer"),
+  "noir-spotlight": require("./noir_spotlight_composer"),
+  "vapor-chrome": require("./vapor_chrome_composer"),
   "bauhaus-print": require("./bauhaus_print_composer"),
   "biennale-yellow": require("./biennale_yellow_composer"),
   "blockframe": require("./blockframe_composer"),

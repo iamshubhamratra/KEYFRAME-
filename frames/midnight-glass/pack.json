@@ -1,5 +1,6 @@
 {
   "name": "midnight-glass",
+  "renderer": "midnight-glass",
   "vibe": "dark glassmorphism: deep navy, frosted cards, one neon accent — premium, technical, nocturnal",
   "colors": {
     "midnight": "#0A0F2A",
@@ -69,12 +70,16 @@
       "deep house"
     ],
     "musicKeywords": [
+      "atmospheric",
+      "digital",
       "dark premium tech",
       "cinematic ambient",
       "deep electronic",
       "nocturnal modern",
       "driving deep house",
-      "energetic technology"
+      "energetic technology",
+      "driving",
+      "powerful"
     ],
     "sfxPalette": {
       "transition": "light-sweep",
@@ -87,14 +92,14 @@
       "energyBoost": 1,
       "sfxDensity": "rich",
       "ambient": false
-    }
+    },
+    "archetype": "tech"
   },
   "media": {
     "requiredAssets": {
       "screenshots": 3,
       "productImages": 5,
-      "logos": 1,
-      "illustrations": 2
+      "logos": 1
     },
     "placeholders": [],
     "slotsByRole": {
