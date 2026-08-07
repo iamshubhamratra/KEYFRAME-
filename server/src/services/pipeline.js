@@ -72,6 +72,7 @@ const NATIVE_PACK_COMPOSERS = {
   // MONO CORPORATE — likewise written from its own manifest, not ported: the second of the ten packs
   // scripts/test-pack-composers.js found rendering as the generic kit.
   "mono-corporate": require("./mono_corporate_composer"),
+  "aurora-spectrum": require("./aurora_spectrum_composer"),
   "hacker": require("./hacker_composer"),
   "teampulse": require("./teampulse_composer"),
   "fetch": require("./fetch_composer"),

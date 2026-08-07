@@ -1,5 +1,6 @@
 {
   "name": "aurora-spectrum",
+  "renderer": "aurora-spectrum",
   "vibe": "A Stripe/Linear/Vercel-tier living-gradient system: deep-space indigo grounds lit by large, soft, slowly-drifting multi-stop aurora blobs. Gradient-CLIP headlines, frosted 5%-white micro-cards, soft light everywhere, zero hard shadow. Inter",
   "colors": {
     "ground": "#0B0B14",
@@ -75,12 +76,16 @@
       "chillout"
     ],
     "musicKeywords": [
+      "clean",
+      "soft",
       "calm ambient",
       "soft electronic",
       "modern corporate",
-      "gradient chillout",
+      "atmospheric chillout",
       "uplifting technology",
-      "flowing electronic"
+      "flowing electronic",
+      "uplifting",
+      "dynamic"
     ],
     "sfxPalette": {
       "transition": "light-sweep",
@@ -93,14 +98,14 @@
       "energyBoost": 1,
       "sfxDensity": "rich",
       "ambient": true
-    }
+    },
+    "archetype": "corporate"
   },
   "media": {
     "requiredAssets": {
       "screenshots": 3,
       "productImages": 5,
-      "logos": 1,
-      "illustrations": 2
+      "logos": 1
     },
     "placeholders": [],
     "slotsByRole": {

@@ -1,3 +1,5 @@
+aurora-spectrum      plain  3710004984ce74e1
+aurora-spectrum      brand  d3476cbf5f1bc531
 bauhaus-riot         plain  e7dbd50a2a691f94
 bauhaus-riot         brand  3bba731ad9dd3dec
 bloom-fable          plain  fe6faae80de12272
