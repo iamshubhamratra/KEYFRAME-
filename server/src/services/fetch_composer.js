@@ -11,7 +11,17 @@
 // everything arrives on an overshoot and settles, and a ball arcs across the frame on every
 // beat. Pictures ride in rounded cards tilted a degree or two, like photos on a fridge.
 //
-// FONT SUBSTITUTION: none — every reference face is now bundled (see src/fonts/pack_fonts.js).
+// FONTS: THE PACK MANIFEST WINS, NOT THE REFERENCE. frames/fetch/pack.json declares
+// typography.display "Caprasimo", body "Figtree", mono "JetBrains Mono" — and /api/frames publishes
+// exactly that list to the template picker. This composer was ported from the reference JSX, which
+// sets Fredoka + Nunito, and shipped rendering those: the picker advertised Caprasimo while the film
+// rendered Fredoka, which is thinner and rounder. Caught by grading the pack's own picker card beside
+// daybreak-bakehouse, which sets the identical string in Caprasimo as a fat slab.
+//
+// The manifest is the pack's published identity — it drives the picker, the media profiles and the
+// audio profile — so it is the authority here, and the reference's faces are recorded as the
+// divergence rather than the other way round. Both declared faces are bundled; the advance stays
+// ADVANCE.mixed, which is what teampulse already uses for Caprasimo.
 
 // ─────────────────────────────────────────────────────────────────────────────────────
 
@@ -24,8 +34,7 @@ const { U, VH } = STAGE;
 const SKY_TOP = "#EAF7FB", SKY = "#C7E7F1", GRASS = "#8FC15A", GRASS_DK = "#7CAF49";
 const INK = "#3A352C", PAPER = "#FFFDF6", SUN = "#FFC24C", ACCENT = "#F2683C";
 const DOG = "#E6A95C", DOG_DK = "#CE9142";
-// FONTS: the reference's own Fredoka + Nunito, both bundled.
-const DISPLAY = "Fredoka", MONO = "JetBrains Mono", BODY = "Nunito";
+const DISPLAY = "Caprasimo", MONO = "JetBrains Mono", BODY = "Figtree";
 
 const STRINGS = {
   title: "OFF THE LEAD", run: "THE RUN", incoming: "INCOMING DELIVERY", fetch: "FETCH",
