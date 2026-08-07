@@ -412,5 +412,80 @@ t("OM STAGE: a beat never receives a picture it already holds", () => {
   });
 });
 
+// ------------------------------------------------- per-placeholder accounting (the seating fix)
+//
+// The defect these pin: `filled` was marked per SCENE, so one asset on a three-slot beat
+// marked all three occupied. They were then skipped by both fill passes and reported as
+// covered. 30 of 46 packs declare a role with count >= 2, so this was the common case.
+
+// A plan whose feature beat draws THREE pictures and whose hook draws one.
+const MULTI_PLAN = {
+  source: "authored",
+  placeholders: [
+    { id: "hook-1",    sceneId: "s1", sceneIndex: 0, role: "hook",    priority: "critical", weight: 100, aspect: 1.78, areaShare: 0.6, kind: "screenshots", objectFit: "cover" },
+    { id: "feature-1", sceneId: "s3", sceneIndex: 2, role: "feature", priority: "high",     weight: 70,  aspect: 1.5,  areaShare: 0.3, kind: "screenshots", objectFit: "cover" },
+    { id: "feature-2", sceneId: "s3", sceneIndex: 2, role: "feature", priority: "medium",   weight: 50,  aspect: 1.5,  areaShare: 0.3, kind: "screenshots", objectFit: "cover" },
+    { id: "feature-3", sceneId: "s3", sceneIndex: 2, role: "feature", priority: "medium",   weight: 50,  aspect: 1.5,  areaShare: 0.3, kind: "screenshots", objectFit: "cover" },
+  ],
+};
+
+t("SEATING: a three-slot beat holding one asset reports two slots empty, not zero", () => {
+  const slots = buildSlots(SCRIPT.scenes, { native: true, renderer: "grid-dispatch", mediaPlan: MULTI_PLAN, dims: DIMS });
+  assert.strictEqual(slots.length, 4, `expected 4 slots, got ${slots.length}`);
+  const onS3 = slots.filter((s) => s.sceneId === "s3");
+  assert.strictEqual(onS3.length, 3, "the feature beat must contribute three distinct slots");
+
+  const out = optimizeAssetReuse({
+    assets: [shot("assets/a.png", { sceneId: "s1" }), shot("assets/b.png", { sceneId: "s3" })],
+    script: SCRIPT, framePack: "grid-dispatch", dims: DIMS,
+    native: true, renderer: "grid-dispatch", mediaPlan: MULTI_PLAN,
+  });
+  assert.ok(out.review, "a plan with unfilled slots must produce a review");
+  assert.strictEqual(out.review.slotsDemanded, 4);
+  // Two assets seated; the two remaining feature tiles are real vacancies. Whether they end
+  // up reused or decorative, they must NOT be silently counted as assigned.
+  const assigned = out.review.slotsFilledUnique;
+  assert.ok(assigned <= 2, `only two assets were placed, so at most two slots may read as assigned — got ${assigned}`);
+});
+
+t("SEATING: coverage stops reporting 100% for a beat that drew one of three pictures", () => {
+  const out = optimizeAssetReuse({
+    assets: [shot("assets/only.png", { sceneId: "s3" })],
+    script: SCRIPT, framePack: "grid-dispatch", dims: DIMS,
+    native: true, renderer: "grid-dispatch", mediaPlan: MULTI_PLAN,
+  });
+  const pct = parseInt(String(out.review.assetCoverage), 10);
+  assert.ok(Number.isFinite(pct), `coverage should be a percentage, got ${out.review.assetCoverage}`);
+  assert.ok(pct < 100, `one asset across four slots cannot be 100% coverage — got ${out.review.assetCoverage}`);
+});
+
+t("SEATING: one slot per scene is byte-identical to the old per-scene rule", () => {
+  // THE REGRESSION GUARD. Every pack that draws one picture per beat must be untouched:
+  // its slots are all seat 0, so seating and the old rule agree exactly.
+  const SINGLE_PLAN = { source: "authored", placeholders: MULTI_PLAN.placeholders.filter((p) => p.id !== "feature-2" && p.id !== "feature-3") };
+  const assets = [shot("assets/a.png", { sceneId: "s1" }), shot("assets/b.png", { sceneId: "s3" })];
+  const out = optimizeAssetReuse({
+    assets, script: SCRIPT, framePack: "grid-dispatch", dims: DIMS,
+    native: true, renderer: "grid-dispatch", mediaPlan: SINGLE_PLAN,
+  });
+  assert.strictEqual(out.review.slotsDemanded, 2);
+  assert.strictEqual(out.review.assetCoverage, "100%", "a fully-served one-per-scene plan is still 100%");
+  assert.strictEqual(out.assets, assets, "with every slot served the wire must be returned unchanged");
+});
+
+t("SEATING: the supporting tiles of a beat are not held to the hero prominence gate", () => {
+  // An untrusted stock photo is vetoed from a prominent slot. Before the fix every slot was
+  // prominent, so the newly-visible tiles would all fall through to the decorative fallback
+  // and the seating fix would deliver nothing.
+  const stock = shot("assets/stock.png", { source: "stock", kindHint: "photo", visionOk: undefined, cdScore: 60, alt: "abstract office photo" });
+  const out = optimizeAssetReuse({
+    assets: [shot("assets/hero.png", { sceneId: "s1" }), shot("assets/f1.png", { sceneId: "s3" }), { ...stock, sceneId: null }],
+    script: SCRIPT, framePack: "grid-dispatch", dims: DIMS,
+    native: true, renderer: "grid-dispatch", mediaPlan: MULTI_PLAN,
+  });
+  const decorative = out.review.slotsFilledDecorative;
+  assert.ok(decorative < 2, `both spare tiles fell to the decorative fallback (${decorative}) — the prominence gate is still hero-strict on seat 1+`);
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

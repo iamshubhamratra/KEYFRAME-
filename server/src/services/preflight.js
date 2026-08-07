@@ -243,8 +243,27 @@ function preflight({ job, assets = [], script = null, storyboard = null, brandSk
     // is counted here; contain only means the picture is never cropped.
     const fillable = mediaPlan.placeholders.filter((p) => p.kind !== "logos");
     const critical = fillable.filter((p) => p.priority === "critical");
-    const emptyCritical = critical.filter((p) => !(bySceneId.get(String(p.sceneId)) || []).length);
-    const emptyAll = fillable.filter((p) => !(bySceneId.get(String(p.sceneId)) || []).length);
+    // SEAT THE PLACEHOLDERS ONE PER ASSET. Asking `does this placeholder's SCENE hold anything`
+    // answers a different question than `is this placeholder filled`, and answers it wrongly
+    // for every beat that draws more than one picture: three placeholders on a scene holding
+    // one asset all read as satisfied. That is the same per-scene approximation the comment
+    // above says this file exists to distrust, reintroduced one level down — a gate blind to
+    // exactly the shortfall it was built to catch. Give each placeholder its own seat and a
+    // scene with one asset satisfies one placeholder.
+    const seats = new Map();
+    const seatedEmpty = (p) => {
+      const k = String(p.sceneId);
+      const taken = seats.get(k) || 0;
+      seats.set(k, taken + 1);
+      return taken >= (bySceneId.get(k) || []).length;
+    };
+    // Critical placeholders are seated FIRST so a scarce asset is credited to the hero box
+    // rather than to whichever tile happens to come first in the plan's ordering.
+    const seatOrder = [...fillable].sort((a, b) =>
+      (a.priority === "critical" ? 0 : 1) - (b.priority === "critical" ? 0 : 1));
+    const emptySet = new Set(seatOrder.filter(seatedEmpty));
+    const emptyCritical = critical.filter((p) => emptySet.has(p));
+    const emptyAll = fillable.filter((p) => emptySet.has(p));
 
     // A DERIVED plan is an approximation of the pack's layout, so its slot list is a floor
     // and a miss is a warning. An AUTHORED plan is the pack telling us what it draws, so an

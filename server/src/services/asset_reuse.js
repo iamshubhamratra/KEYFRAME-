@@ -614,8 +614,30 @@ function optimizeAssetReuse({ assets, script, storyboard, framePack, dims, nativ
       if (!placed.has(k)) placed.set(k, []);
       placed.get(k).push(a);
     }
+    // SEAT THE ASSETS ONE PER SLOT, not one per scene.
+    //
+    // This loop used to read `if (placed.get(s.sceneId).length) s.filled = true`, which marks
+    // EVERY slot on a scene occupied the moment that scene holds a SINGLE asset. That is only
+    // correct while a scene has exactly one slot. It does not: 30 of the 46 packs declare a
+    // role with `count >= 2` (drive declares feature/how/proof/context x3), so on two thirds
+    // of the library the second and third boxes a pack asks for were marked full, skipped by
+    // both fill passes below, and then counted as covered — `assetCoverage` reported 100% for
+    // a film that had drawn one picture into a three-picture beat.
+    //
+    // Seat them index-wise instead, the same pairing `promoteByQuality` already does: the Nth
+    // slot on a scene takes the Nth asset placed there, and slots past the end stay genuinely
+    // empty so PASS A and PASS B can fill them. For a one-slot-per-scene pack this is exactly
+    // the old behaviour — the queue holds one asset and the first slot takes it.
+    const seatQueue = new Map();
+    const seatNo = new Map();
     for (const s of slots) {
-      if ((placed.get(s.sceneId) || []).length) { s.filled = true; s.via = "assigned"; }
+      if (!seatQueue.has(s.sceneId)) seatQueue.set(s.sceneId, (placed.get(s.sceneId) || []).slice());
+      // Which seat this slot is on its scene, counted over the slot list so it does not move
+      // with occupancy. Seat 0 is the picture the beat is built around; the later seats are
+      // its supporting tiles, and the prominence gate below reads this.
+      s.seat = seatNo.get(s.sceneId) || 0;
+      seatNo.set(s.sceneId, s.seat + 1);
+      if (seatQueue.get(s.sceneId).shift()) { s.filled = true; s.via = "assigned"; }
     }
 
     // PASS 0 — PROMOTION. Before filling anything, make sure what is ALREADY placed is placed
@@ -657,7 +679,16 @@ function optimizeAssetReuse({ assets, script, storyboard, framePack, dims, nativ
     for (const slot of slots) {
       if (slot.filled) continue;
       slot.neighbourAssets = neighbourAssetsFor(slot);
-      const prominentSlot = true;                  // one-per-scene slots are the scene's visual
+      // PROMINENCE IS PER SLOT, not per scene. This was a hardcoded `true` on the reasoning
+      // that a one-per-scene slot IS the scene's visual — true then, and the seating fix above
+      // has just made it false: the supporting tiles of a multi-picture beat are now visible
+      // to this loop for the first time. Holding every one of them to the hero standard would
+      // veto ordinary stock out of every secondary box and hand them all to the decorative
+      // fallback, which is the spec's own rule inverted ("lower-priority placeholders can use
+      // medium-ranked assets"). Seat 0 and any declared-critical slot keep the strict gate;
+      // the later seats do not. On a one-slot-per-scene pack every slot is seat 0, so this is
+      // exactly the previous behaviour.
+      const prominentSlot = slot.seat === 0 || slot.priority === "critical";
       const candidates = unusedSet.size ? unusedSet : allRows;
       let best = null;
       for (const row of candidates) {
