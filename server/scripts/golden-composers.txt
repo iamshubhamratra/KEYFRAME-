@@ -1,9 +1,17 @@
 aurora-spectrum      plain  3710004984ce74e1
 aurora-spectrum      brand  d3476cbf5f1bc531
+bauhaus-print        plain  82bb3ecd1a8e6125
+bauhaus-print        brand  0f14b7bd3e5a6466
 bauhaus-riot         plain  e7dbd50a2a691f94
 bauhaus-riot         brand  3bba731ad9dd3dec
+biennale-yellow      plain  174f31ac9fbad9d3
+biennale-yellow      brand  b2d43615bd908acc
+blockframe           plain  245a75473ccb958e
+blockframe           brand  f5fe86d26dc9f978
 bloom-fable          plain  fe6faae80de12272
 bloom-fable          brand  598ec43cdf060180
+bloom-illustrated    plain  85371609770768ce
+bloom-illustrated    brand  1561d866acce5dda
 blueprint-atelier    plain  30063d409d7af732
 blueprint-atelier    brand  0f1d6a88283cdcb3
 brightlife           plain  15a5609e29f9532d

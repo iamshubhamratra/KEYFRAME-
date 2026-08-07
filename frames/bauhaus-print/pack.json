@@ -1,5 +1,6 @@
 {
   "name": "bauhaus-print",
+  "renderer": "bauhaus-print",
   "vibe": "A retro risograph Bauhaus poster system: cream paper, two-color overprint, and primary geometric shapes — big circles, triangles, squares — as composition anchors. Halftone dot textures, slight overprint offset (a shape's duplicate in a sec",
   "colors": {
     "cream": "#F3ECD8",
@@ -64,12 +65,16 @@
       "experimental"
     ],
     "musicKeywords": [
+      "thoughtful",
+      "reflective",
       "minimal abstract",
       "modern creative",
-      "geometric ambient",
+      "rhythmic ambient",
       "playful minimal",
       "upbeat minimal",
-      "abstract percussion"
+      "abstract percussion",
+      "percussive",
+      "build"
     ],
     "sfxPalette": {
       "transition": "card-slide",
@@ -82,14 +87,14 @@
       "energyBoost": 1,
       "sfxDensity": "rich",
       "ambient": false
-    }
+    },
+    "archetype": "editorial"
   },
   "media": {
     "requiredAssets": {
       "screenshots": 3,
       "productImages": 3,
-      "logos": 1,
-      "illustrations": 4
+      "logos": 1
     },
     "placeholders": [],
     "slotsByRole": {

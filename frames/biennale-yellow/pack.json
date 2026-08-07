@@ -1,5 +1,6 @@
 {
   "name": "biennale-yellow",
+  "renderer": "biennale-yellow",
   "vibe": "literary editorial: warm parchment, indigo ink, solar yellow blooms, serif display — elegant, cultural, slow-confidence",
   "colors": {
     "paper": "#E9E5DB",
@@ -64,12 +65,16 @@
       "ambient"
     ],
     "musicKeywords": [
+      "serene",
+      "soft",
       "soft piano",
       "elegant acoustic",
       "gentle classical",
       "warm ambient",
       "cultural strings",
-      "uplifting piano"
+      "uplifting piano",
+      "dramatic",
+      "rising"
     ],
     "sfxPalette": {
       "transition": "card-slide",
@@ -82,14 +87,14 @@
       "energyBoost": 1,
       "sfxDensity": "normal",
       "ambient": false
-    }
+    },
+    "archetype": "luxury"
   },
   "media": {
     "requiredAssets": {
       "screenshots": 3,
       "productImages": 3,
-      "logos": 1,
-      "illustrations": 4
+      "logos": 1
     },
     "placeholders": [],
     "slotsByRole": {
