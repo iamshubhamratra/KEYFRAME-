@@ -211,7 +211,7 @@ function sHook(scene, ctx, shots) {
   const { id, th, at, du } = ctx;
   const shot = shots[0] || null;
   const head = K.fitLines(scene.headline || scene.title || ctx.title, U(920) / K.camSafe(), U(150), 4, th.adv);
-  const kick = String(scene.kicker || STRINGS.hook).toUpperCase().slice(0, 26);
+  const kick = K.clampWords(String(scene.kicker || STRINGS.hook).toUpperCase(), 26);
 
   return {
     backdrop: wash(id, th, shot ? ring(id, th, ((U(1030) + U(660) / 2) / VH) * 100) : ""),
@@ -222,7 +222,7 @@ function sHook(scene, ctx, shots) {
       ${head.lines.map((l) => `<span class="kw" style="display:block;overflow:hidden;"><span class="kwi ${id}-l" style="display:block;">${esc(l)}</span></span>`).join("")}
     </div>
     ${shot ? `<div class="${id}-card" style="position:absolute;left:${r(U(90))}cqw;top:${r(U(1030))}cqw;width:${r(U(900))}cqw;height:${r(U(660))}cqw;${cardStyle(th, -2)}overflow:hidden;opacity:0;">${K.shotFill(shot, { bg: th.panel })}</div>`
-    : (scene.subtext ? `<div class="${id}-sub" style="position:absolute;left:${r(U(80))}cqw;top:${r(U(1080))}cqw;width:${r(U(880))}cqw;font-family:${th.displayStack};font-weight:500;font-size:${r(U(40))}cqw;line-height:1.4;color:${th.sub};opacity:0;">${esc(String(scene.subtext).slice(0, 150))}</div>` : "")}`,
+    : (scene.subtext ? `<div class="${id}-sub" style="position:absolute;left:${r(U(80))}cqw;top:${r(U(1080))}cqw;width:${r(U(880))}cqw;font-family:${th.displayStack};font-weight:500;font-size:${r(U(40))}cqw;line-height:1.4;color:${th.sub};opacity:0;">${esc(K.clampWords(String(scene.subtext), 150))}</div>` : "")}`,
     s: [
       `tl.fromTo(".${id}-kick",{opacity:0,scale:0.6},{opacity:1,scale:1,duration:${du(0.4)},ease:"back.out(2.4)"},${at(0.2)});`,
       `tl.fromTo(".${id}-l",{yPercent:112},{yPercent:0,duration:${du(0.44)},ease:"back.out(1.5)",stagger:${du(0.16)}},${at(0.45)});`,
@@ -245,16 +245,28 @@ function sShow(scene, ctx, shots) {
   const list = K.bullets(scene, 2);
   // The callouts land ON the screenshot, so they have to finish INSIDE it — pinned to an
   // absolute y they straddled the card's bottom edge and hung into the ground below it.
-  const CARD_BOT = U(1580), CHIP_H = U(76), CHIP_STEP = U(110);
-  const chipTop = CARD_BOT - U(48) - CHIP_H - Math.max(0, list.length - 1) * CHIP_STEP;
+  // CALLOUTS BELOW THE PICTURE, NOT ON IT. They used to be pinned inside the card's lower third, which
+  // put them straight over whatever the screenshot itself shows there — in the job that surfaced this,
+  // two lime pills sat on top of the site's own "FREE LENS REPLACEMENT" banner and its product photo.
+  // A screenshot is content, not a backdrop; the card gives up the height instead.
+  const CARD_TOP = U(500), CARD_H = U(920), CARD_BOT = CARD_TOP + CARD_H;
+  const CHIP_STEP = U(112);
+  const chipTop = CARD_BOT + U(56);
+  // Word-safe and FITTED. This was `String(b).slice(0, 24)` — a hard CHARACTER cut that produced
+  // "Thousands of stylish fra" on screen. clampWords never splits a word, and fitOne shrinks the pill's
+  // type until it fits the measure, so a long line can neither be chopped nor run off the frame. The
+  // floor keeps it readable rather than shrinking to nothing.
+  const CHIP_MEASURE = U(860);
+  const chipText = list.map((b) => K.clampWords(String(b), 60));
+  const chipSize = Math.min(U(34), ...chipText.map((t) => K.fitOne(t, CHIP_MEASURE, U(34), th.adv, U(22))));
 
   return {
     backdrop: wash(id, th),
     chrome: storyBar(ctx),
     html: `
     <div class="${id}-head" style="position:absolute;left:${r(U(80))}cqw;top:${r(U(240))}cqw;width:${r(U(920))}cqw;font-family:${th.displayStack};font-weight:800;font-size:${r(head.size)}cqw;line-height:0.98;letter-spacing:-0.03em;text-transform:uppercase;color:${th.ink};opacity:0;">${head.lines.map((l) => `<span style="display:block;">${esc(l)}</span>`).join("")}</div>
-    <div class="${id}-card" style="position:absolute;left:${r(U(80))}cqw;top:${r(U(500))}cqw;width:${r(U(920))}cqw;height:${r(U(1080))}cqw;${cardStyle(th, 1.5)}overflow:hidden;opacity:0;">${K.shotFill(shot, { bg: th.panel })}</div>
-    ${list.map((b, i) => `<div class="${id}-chip" style="position:absolute;left:${r(U(120) + (i % 2) * U(60))}cqw;top:${r(chipTop + i * CHIP_STEP)}cqw;padding:${r(U(16))}cqw ${r(U(30))}cqw;border-radius:${r(U(100))}cqw;background:${th.accent};color:${K.inkOn(th.accent)};font-family:${th.displayStack};font-weight:800;font-size:${r(U(34))}cqw;letter-spacing:-0.01em;white-space:nowrap;box-shadow:${r(U(6))}cqw ${r(U(6))}cqw 0 ${rgba("#000000", 0.35)};opacity:0;z-index:6;">${esc(String(b).slice(0, 24))}</div>`).join("")}`,
+    <div class="${id}-card" style="position:absolute;left:${r(U(80))}cqw;top:${r(CARD_TOP)}cqw;width:${r(U(920))}cqw;height:${r(CARD_H)}cqw;${cardStyle(th, 1.5)}overflow:hidden;opacity:0;">${K.shotFill(shot, { bg: th.panel })}</div>
+    ${chipText.map((t, i) => `<div class="${id}-chip" style="position:absolute;left:${r(U(80) + (i % 2) * U(48))}cqw;top:${r(chipTop + i * CHIP_STEP)}cqw;max-width:${r(CHIP_MEASURE)}cqw;padding:${r(U(16))}cqw ${r(U(30))}cqw;border-radius:${r(U(100))}cqw;background:${th.accent};color:${K.inkOn(th.accent)};font-family:${th.displayStack};font-weight:800;font-size:${r(chipSize)}cqw;letter-spacing:-0.01em;white-space:nowrap;box-shadow:${r(U(6))}cqw ${r(U(6))}cqw 0 ${rgba("#000000", 0.35)};opacity:0;z-index:6;">${esc(t)}</div>`).join("")}`,
     s: [
       `tl.fromTo(".${id}-head",{opacity:0,y:"${r(U(34))}cqw"},{opacity:1,y:0,duration:${du(0.5)},ease:"power3.out"},${at(0.2)});`,
       `tl.fromTo(".${id}-card",{opacity:0,y:"${r(U(90))}cqw",scale:0.94},{opacity:1,y:0,scale:1,duration:${du(0.65)},ease:"back.out(1.3)"},${at(0.4)});`,
@@ -270,16 +282,28 @@ function sPerks(scene, ctx) {
   const list = K.bullets(scene, 4);
   if (list.length < 2) return { ...K.statement(scene, ctx), backdrop: wash(id, th), chrome: storyBar(ctx) };
   const head = K.fitLines(scene.headline || scene.title || "", U(920) / K.camSafe(), U(96), 2, th.adv);
-  const top = U(620), rowH = Math.min(U(230), (U(1660) - top) / list.length);
+  // FILL THE BAND, DO NOT BUNCH AT THE TOP. rowH was capped at U(230) and the stack was pinned to a
+  // fixed top, so a two-bullet beat drew two cards in the upper third and left the lower ~55% of a
+  // 9:16 frame as bare wash — flagged twice in one film as "massive empty space, low visual density".
+  // The rows now share the band, the card padding grows when there are few of them, and the block is
+  // CENTRED in what is left, so two cards read as a deliberate pair rather than an abandoned list.
+  const BAND_TOP = U(560), BAND_BOT = U(1700);
+  const rowH = Math.min(U(380), (BAND_BOT - BAND_TOP) / list.length);
+  const cardMinH = Math.max(U(150), rowH - U(44));
+  const cardPad = Math.max(U(30), Math.min(U(64), rowH * 0.2));
+  const top = BAND_TOP + Math.max(0, (BAND_BOT - BAND_TOP - rowH * list.length) / 2);
+  // Two lines of a fitted label instead of a 40-character cut. The old slice printed
+  // "Fast doorstep delivery with 14 days retu" — clipped mid-word AND at the card's edge.
+  const labelChars = 66;
 
   return {
     backdrop: wash(id, th),
     chrome: storyBar(ctx),
     html: `
     <div class="${id}-head" style="position:absolute;left:${r(U(80))}cqw;top:${r(U(280))}cqw;width:${r(U(920))}cqw;font-family:${th.displayStack};font-weight:800;font-size:${r(head.size)}cqw;line-height:0.96;letter-spacing:-0.04em;text-transform:uppercase;color:${th.ink};opacity:0;">${head.lines.map((l) => `<span style="display:block;">${esc(l)}</span>`).join("")}</div>
-    ${list.map((b, i) => `<div class="${id}-p${i}" style="position:absolute;left:${r(U(80))}cqw;top:${r(top + i * rowH)}cqw;width:${r(U(900))}cqw;padding:${r(U(30))}cqw ${r(U(36))}cqw;${cardStyle(th, i % 2 ? 1.4 : -1.4)}display:flex;align-items:center;gap:${r(U(24))}cqw;opacity:0;">
+    ${list.map((b, i) => `<div class="${id}-p${i}" style="position:absolute;left:${r(U(80))}cqw;top:${r(top + i * rowH)}cqw;width:${r(U(900))}cqw;padding:${r(cardPad)}cqw ${r(U(36))}cqw;min-height:${r(cardMinH)}cqw;box-sizing:border-box;${cardStyle(th, i % 2 ? 1.4 : -1.4)}display:flex;align-items:center;gap:${r(U(24))}cqw;opacity:0;">
       <span style="width:${r(U(56))}cqw;height:${r(U(56))}cqw;border-radius:50%;background:${th.accent};color:${K.inkOn(th.accent)};display:grid;place-items:center;font-family:${th.displayStack};font-weight:800;font-size:${r(U(28))}cqw;flex:0 0 auto;">${K.pad2(i + 1)}</span>
-      <span style="font-family:${th.displayStack};font-weight:700;font-size:${r(U(38))}cqw;line-height:1.2;color:${th.cardInk};">${esc(String(b).slice(0, 40))}</span>
+      <span style="font-family:${th.displayStack};font-weight:700;font-size:${r(U(38))}cqw;line-height:1.2;color:${th.cardInk};">${esc(K.clampWords(String(b), labelChars))}</span>
     </div>`).join("")}`,
     s: [
       `tl.fromTo(".${id}-head",{opacity:0,y:"${r(U(34))}cqw"},{opacity:1,y:0,duration:${du(0.5)},ease:"power3.out"},${at(0.2)});`,
@@ -302,7 +326,7 @@ function sProof(scene, ctx) {
   if (words.length < 3) return { ...K.statement(scene, ctx), backdrop: wash(id, th), chrome: storyBar(ctx) };
   const run = words.join(" ");
   const size = Math.min(U(72), ((U(920) / K.camSafe()) * 0.92 * 3) / Math.max(1, run.length * th.adv));
-  const by = String(scene.subtext || "").trim().slice(0, 40);
+  const by = K.clampWords(String(scene.subtext || "").trim(), 40);
   return {
     backdrop: wash(id, th),
     chrome: storyBar(ctx),
