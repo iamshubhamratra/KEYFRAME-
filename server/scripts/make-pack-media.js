@@ -155,6 +155,8 @@ function ff(args) {
 // then the closing lockup, then the mid-film — and the first one that is not near-black wins. Luma is
 // only a floor now, not the objective.
 const POSTER_FLOOR = 26;
+// Below this the frame is nearly uniform — a bare page, or one filled by a flat placeholder slab.
+const DETAIL_FLOOR = 14;
 
 // Luma alone cannot tell a good card from a half-empty one. Sampled at the opening beat, paper-tales
 // produced an open storybook with the headline on the right page and the LEFT PAGE BLANK: bright,
@@ -164,35 +166,92 @@ const POSTER_FLOOR = 26;
 // darkness floor the most detailed wins, which rejects both failure modes with one number.
 async function sampleAt(video, t) {
   try {
-    const buf = await ff(["-v", "error", "-ss", String(t), "-i", video, "-frames:v", "1", "-vf", "scale=8:8,format=gray", "-f", "rawvideo", "-"]);
-    if (!buf.length) return { luma: 0, detail: 0 };
-    const px = [...buf];
-    const mean = px.reduce((a, b) => a + b, 0) / px.length;
-    const detail = Math.sqrt(px.reduce((a, v) => a + (v - mean) ** 2, 0) / px.length);
-    return { luma: Math.round(mean), detail: Math.round(detail) };
-  } catch { return { luma: -1, detail: -1 }; }
+    const buf = await ff(["-v", "error", "-ss", String(t), "-i", video, "-frames:v", "1", "-vf", "scale=8:8,format=rgb24", "-f", "rawvideo", "-"]);
+    if (buf.length < 192) return { luma: 0, detail: 0, rgb: null };
+    const lum = [], rgb = [0, 0, 0];
+    for (let i = 0; i < 192; i += 3) {
+      const r = buf[i], g = buf[i + 1], b = buf[i + 2];
+      rgb[0] += r; rgb[1] += g; rgb[2] += b;
+      lum.push(0.299 * r + 0.587 * g + 0.114 * b);
+    }
+    const n = 64;
+    const mean = lum.reduce((a, b) => a + b, 0) / n;
+    const detail = Math.sqrt(lum.reduce((a, v) => a + (v - mean) ** 2, 0) / n);
+    return { luma: Math.round(mean), detail: Math.round(detail), rgb: rgb.map((c) => Math.round(c / n)) };
+  } catch { return { luma: -1, detail: -1, rgb: null }; }
 }
-async function posterFrame(video, scenes) {
+
+// THE CARD MUST SIT ON THE PACK'S OWN SURFACE. This is what the critics actually judged by:
+// biennale-yellow was marked off-brief because its card was "a dark indigo field" when the manifest's
+// lead surface is warm parchment — indigo is that pack's INK. Beat order cannot express this, because
+// which beat inverts the ground differs per pack: biennale inverts on its closing lockup, kinetic-bold
+// inverts on every other beat by design. The manifest already states the answer, so read it.
+function groundOf(pack) {
+  const m = fm.getManifest(pack) || {};
+  const hex = (m.surface && m.surface.ground) || (m.colors && (m.colors.ground || m.colors.paper || m.colors.bg));
+  if (typeof hex !== "string") return null;
+  const h = hex.replace("#", "").trim();
+  if (h.length !== 6) return null;
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+const groundDistance = (rgb, ground) => (!rgb || !ground ? Infinity
+  : Math.sqrt((rgb[0] - ground[0]) ** 2 + (rgb[1] - ground[1]) ** 2 + (rgb[2] - ground[2]) ** 2));
+// A frame this far from the declared surface is showing a different ground than the pack advertises.
+const GROUND_TOLERANCE = 105;
+async function posterFrame(video, scenes, pack) {
   const first = scenes[0], last = scenes[scenes.length - 1];
-  // LATE IN THE BEAT, NOT MID-BEAT. Sampled at 0.82 of the opening, paper-tales' card came out as an
-  // open storybook with a headline on the right page and the LEFT PAGE COMPLETELY EMPTY — that beat
-  // fills its facing page last. Most packs reveal their opening in stages, so the last moment of the
-  // beat is the only one where all of it is on screen. 0.94 rather than 1.0 to stay clear of whatever
-  // the pack does on its way out.
+  // WHAT A CARD SHOULD SHOW, learned by having six critics grade all 46 of them against their briefs.
+  // Three findings drove this order:
+  //
+  // 1. PREFER A TYPE-LED BEAT. Eight cards were judged "the grey placeholder is the loudest thing on
+  //    the card" — on a dark pack a flat light mock is the brightest object in the frame, so the card
+  //    sold a wireframe instead of the pack. The fixture's figures, quote and closing beats carry no
+  //    picture, so they show the pack's own type and furniture. The preview still shows the picture
+  //    beats; the CARD does not have to.
+  // 2. STAY INSIDE THE BEAT. Sampling at 0.94 put three cards mid-cut — two headlines at once, a
+  //    half-wiped panel, type sliced by a transition edge. 0.55-0.7 is clear of both edges.
+  // 3. FIRST ACCEPTABLE, NOT MOST DETAILED. Taking the global maximum detail moved biennale-yellow off
+  //    its parchment opening onto a dark indigo frame — atypical of the pack and against its brief. So
+  //    preference order decides, and detail is only a floor that rejects a near-empty frame.
+  const mid = scenes.slice(1, -1);
   const candidates = [
-    first.start + first.duration * 0.94,          // the opening, everything landed
-    last.start + last.duration * 0.7,             // the closing lockup
-    first.start + first.duration * 0.82,
-    ...scenes.slice(1, -1).map((sc) => sc.start + sc.duration * 0.86),
+    ...mid.slice(1).map((sc) => sc.start + sc.duration * 0.66),  // figures / quote: type-led, no picture
+    last.start + last.duration * 0.62,                            // the closing lockup
+    first.start + first.duration * 0.8,                            // the opening, most of it landed
+    ...mid.slice(0, 1).map((sc) => sc.start + sc.duration * 0.66), // the picture beat, last resort
   ].map((t) => +t.toFixed(2));
 
+  const ground = groundOf(pack);
   const scored = [];
-  for (const t of candidates) scored.push({ t, ...(await sampleAt(video, t)) });
+  for (const t of candidates) {
+    const s = { t, ...(await sampleAt(video, t)) };
+    s.groundGap = Math.round(groundDistance(s.rgb, ground));
+    scored.push(s);
+  }
 
+  // FIRST candidate that is neither too dark nor too flat. Preference order decides; the two floors
+  // only reject a frame that would make a bad card. Maximising detail instead moved packs onto
+  // atypical frames (see the note above).
+  // First candidate that is on the pack's own surface AND neither too dark nor too flat.
+  const onBrief = scored.find((s) => s.luma >= POSTER_FLOOR && s.detail >= DETAIL_FLOOR && s.groundGap <= GROUND_TOLERANCE);
+  if (onBrief) return { t: onBrief.t, luma: onBrief.luma, detail: onBrief.detail, groundGap: onBrief.groundGap };
+
+  // No frame is inside the tolerance: take the CLOSEST to the declared surface among the frames that
+  // clear the floors — not the first one in preference order. Taking the first left biennale-yellow on
+  // its dark closing lockup (gap 265) when its parchment opening sat further down the same list.
+  // The detail floor is dropped here on purpose. It was excluding the very frames that ARE on the
+  // pack's surface: early in a beat little type has landed, so an on-brief parchment frame scores low
+  // on detail and never reached the ground comparison. Being on the right surface matters more to a
+  // card than being busy, so luma is the only floor at this stage and detail breaks ties.
+  const usable = scored.filter((s) => s.luma >= POSTER_FLOOR);
+  if (usable.length) {
+    const closest = usable.reduce((a, b) => (b.groundGap < a.groundGap || (b.groundGap === a.groundGap && b.detail > a.detail) ? b : a));
+    return { t: closest.t, luma: closest.luma, detail: closest.detail, groundGap: closest.groundGap };
+  }
+
+  // Nothing clears both floors: take the best-lit frame that at least has some detail, then any lit one.
   const lit = scored.filter((s) => s.luma >= POSTER_FLOOR);
   if (lit.length) {
-    // Most detailed of the well-lit candidates. Ties go to the earlier candidate, which keeps the
-    // preference order (opening, then closing, then middles) as the decider when nothing separates them.
     const pick = lit.reduce((a, b) => (b.detail > a.detail ? b : a));
     return { t: pick.t, luma: pick.luma, detail: pick.detail };
   }
@@ -340,11 +399,11 @@ async function main() {
       if (!fs.existsSync(preview)) continue;
       const portrait = /portrait/i.test(String((fm.getManifest(pack) || {}).orientation || ""));
       try {
-        const { t, luma, detail } = await posterFrame(preview, FIXTURE.scenes);
+        const { t, luma, detail, groundGap } = await posterFrame(preview, FIXTURE.scenes, pack);
         await encodePoster(preview, path.join(dir, "poster.jpg"), t, portrait);
         if (luma <= 12) dark.push(`${pack}(${luma})`);
         done++;
-        console.log(`  ${pack.padEnd(22)} poster @${t}s luma ${luma} detail ${detail}`);
+        console.log(`  ${pack.padEnd(22)} poster @${t}s luma ${luma} detail ${detail} groundGap ${groundGap}`);
       } catch (e) {
         console.log(`  ${pack.padEnd(22)} FAILED — ${String(e.message).slice(0, 120)}`);
       }

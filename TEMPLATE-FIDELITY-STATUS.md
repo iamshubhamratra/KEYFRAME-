@@ -485,12 +485,47 @@ from the generator having done nothing, which is exactly what it looked like. `m
 each URL with the file's mtime, so new bytes are a new URL. That also makes the long `max-age`
 correct rather than harmful.
 
-**Guard:** `npm run test:pack-media` — both files exist, **neither is older than the pack's
-composer**, the poster's orientation matches the manifest (a landscape card for a 9:16 pack lies about
-the shape of the film), the poster is not near-black or flat, and the preview is neither too small to
-be a clip nor too heavy for a grid. Nothing could have caught this before: the files existed, the
-route resolved, the JSON was well-formed and the card rendered. Only the *date* was wrong, and nothing
-in the suite knew what that meant for a poster.
+**Guard:** `npm run test:pack-media`, now in the `npm test` chain — both files exist, **the media was
+rendered from the composition the pack produces today** (a hash in `media.json`, not a file date, so a
+comment edit does not fail the build), the poster's orientation matches the manifest (a landscape card
+for a 9:16 pack lies about the shape of the film), the poster is not near-black or flat, the preview is
+neither too small to be a clip nor too heavy for a grid, and **the preview actually moves** (a frozen
+frame passes every other check). Nothing could have caught the original rot: the files existed, the
+route resolved, the JSON was well-formed and the card rendered.
+
+### 3k-bis. What six critics found in the 46 finished cards
+
+Every card was then graded against its own pack's `vibe` by six agents — the judgement no heuristic
+makes. **19 GOOD, 27 flagged.** The breakdown matters more than the count, because most of it is the
+FIXTURE and the frame chooser, not the packs:
+
+| Verdict | Count | Cause |
+| --- | --- | --- |
+| PLACEHOLDER | 8 | the neutral grey UI mock is the brightest, largest object — worst on dark packs, where a flat light slab beats the pack's own furniture for attention |
+| OFF-BRIEF | 9 | mixed: two are real pack defects (below), the rest are frame choice or genuine pack gaps |
+| EMPTY | 5 | the chosen frame leaves half the card bare |
+| MID-TRANSITION | 3 | the poster was cut during a wipe — two headlines at once, type sliced by the transition edge |
+| ILLEGIBLE / CLIPPED | 2 | jungle's cream headline crosses a pale canopy (≈1.6:1); reel clips |
+
+**Fixed from that report:** MID-TRANSITION (sample mid-beat, never at 0.94 of it, which sat in the
+outgoing cut) and the frame chooser now prefers a frame **on the pack's own declared `surface.ground`**
+— which is what the critics judged by when they marked biennale-yellow off-brief for showing "a dark
+indigo field" where the manifest's lead surface is warm parchment. Beat order cannot express that:
+biennale inverts on its closing beat, kinetic-bold inverts on every other beat by design. The manifest
+already states the answer, so the chooser reads it.
+
+**Two real pack defects the cards exposed, both worth their own fix:**
+- **fetch's headline is not using Caprasimo.** It falls back to a thin geometric sans while
+  daybreak-bakehouse renders the identical string in Caprasimo as a fat slab — obvious the moment the
+  two cards sit side by side. A font-resolution bug, not a card bug.
+- **biennale-yellow's rendered ground contradicts its manifest.** Its type-led beats are dark indigo;
+  its parchment beats are the ones carrying pictures. So its card can be on-brief OR
+  placeholder-free, not both — no frame chooser can resolve that, and it is recorded here rather than
+  papered over.
+
+**The remaining PLACEHOLDER cards are mine to fix, and the fix is the placeholder itself** — a flat
+grey slab reads as a wireframe. A mid-tone stand-in with photographic structure would stop competing
+with the pack's design for the eye. That is the next step, not a tuning parameter.
 
 ### What the render caught that the code could not
 
