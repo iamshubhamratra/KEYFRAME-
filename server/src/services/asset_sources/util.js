@@ -38,6 +38,11 @@ function download(url, outPath, { timeoutMs = 60_000, headers = {} } = {}) {
 
 // ffprobe validates both images and videos: a decodable stream with real
 // dimensions. Also rejects suspiciously tiny files (error pages saved as media).
+//
+// FOR VIDEO THIS IS NOT ENOUGH, and for a long time it was the whole gate: "over 5 KB with a
+// decodable stream" admits a 320x180 two-frame clip as readily as a usable shot. `validateClip`
+// below adds the floors the image path has had all along; this function stays exactly as it
+// was so every existing image caller is untouched.
 function validateMedia(filePath, type) {
   return new Promise((resolve) => {
     try {
@@ -130,10 +135,18 @@ function ffprobeImage(absPath) {
 // One ffmpeg pass → a 9×8 grayscale thumbnail (72 bytes). From it: a 64-bit
 // dHash (row-wise adjacent-pixel comparisons) for perceptual dedup, and the
 // grayscale standard deviation for the low-information/solid-colour guard.
-function imageDHashStats(absPath) {
+// `seekSec` exists for VIDEO. The same 9x8 gray reduction describes a clip perfectly well —
+// ffmpeg decodes one frame either way — but frame ZERO is the wrong frame to describe a clip
+// by: stock footage routinely opens on a fade, and two unrelated clips that both start near
+// black hash alike and would be called duplicates of each other. Seeking a third of the way in
+// lands on the actual shot. `-ss` goes BEFORE `-i` so ffmpeg seeks rather than decoding and
+// discarding everything up to that point.
+function imageDHashStats(absPath, { seekSec = 0 } = {}) {
   return new Promise((resolve) => {
     const p = spawn("ffmpeg", [
-      "-v", "error", "-i", absPath,
+      "-v", "error",
+      ...(seekSec > 0 ? ["-ss", String(seekSec)] : []),
+      "-i", absPath,
       "-vf", "scale=9:8:flags=area,format=gray", "-frames:v", "1", "-f", "rawvideo", "-",
     ], { windowsHide: true });
     const chunks = [];
@@ -255,6 +268,34 @@ async function validateImage(absPath, { kindPref } = {}) {
     return { ok: false, reason: "opaque raster for a vector/icon role (no alpha)", meta };
   }
   return { ok: true, reason: null, meta };
+}
+
+// VIDEO's counterpart to validateImage. Everything the image path has had for a long time —
+// a resolution floor, a usable-length floor, and a perceptual hash so the same clip fetched
+// from two providers is caught — video had none of. The probe is one ffprobe call and the hash
+// is one seek-and-decode, so a clip now costs about what an image costs.
+//
+// FAIL-SAFE in the same direction as validateImage: an unreadable probe returns ok:true with
+// null meta, because "we could not measure it" must never mean "reject it".
+async function validateClip(absPath) {
+  const { probeVideo, gradeClip } = require("../video_probe");
+  const probe = await probeVideo(absPath);
+  if (!probe || probe.ok !== true) {
+    // A file ffprobe cannot open at all is already rejected by validateMedia upstream; if we
+    // got here with an unreadable probe, say nothing rather than double-rejecting.
+    return { ok: true, reason: null, meta: null };
+  }
+  const grade = gradeClip(probe);
+  // A third of the way in, capped so a long clip does not seek past anything interesting.
+  const seekSec = probe.durationSec ? Math.min(probe.durationSec / 3, 3) : 0;
+  const { dhash, stdev } = await imageDHashStats(absPath, { seekSec });
+  const meta = {
+    width: probe.width, height: probe.height,
+    ratio: probe.width && probe.height ? Math.round((probe.width / probe.height) * 1000) / 1000 : null,
+    durationSec: probe.durationSec, fps: probe.fps, bitrateKbps: probe.bitrateKbps,
+    codec: probe.codec, hasAudio: probe.hasAudio, dhash, stdev,
+  };
+  return { ok: grade.ok, reason: grade.ok ? null : grade.reasons.join("; "), meta };
 }
 
 // Exact (MD5) + perceptual (dHash) de-duplication across a video's asset pool.
@@ -380,7 +421,7 @@ function colorDistance(a, b) {
 }
 
 module.exports = {
-  download, validateMedia, validateImage, reencodeForHyperframes, UA,
+  download, validateMedia, validateImage, validateClip, reencodeForHyperframes, UA,
   rankCandidates, scoreCandidate, MIN_LONG_EDGE,
   makeImageDeduper, imageDHashStats, imageSharpness, hammingHex, pixFmtHasAlpha,
   imageDominantColor, colorDistance, ffprobeImage,

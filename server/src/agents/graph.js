@@ -36,6 +36,8 @@ const { fetchMusic } = require("../services/audio_sources");
 const { getSfx } = require("../services/sfx_library");
 const { planSfx } = require("../services/sfx_plan");
 const audioProfileSvc = require("../services/audio_profile");
+const { tempoFor } = require("../services/pacing");
+const beatGrid = require("../services/beat_grid");
 const { VALID_VOICES } = require("../services/audio_planner");
 const { buildFallback } = require("../services/fallback");
 const { normalizeComposition } = require("../services/normalize");
@@ -404,6 +406,20 @@ async function scenePlannerAgent(s) {
     }
   }
   if (derived) console.log(`[agents] scene_planner derived beats for ${derived} scene(s)`);
+
+  // PACING RIDES THE STORYBOARD. Every composer already receives the storyboard, so this is
+  // the one place a film-level tempo can reach all of them without changing 27 signatures.
+  // Stamped here rather than at each composer call site because this node is the single gate
+  // every storyboard passes through.
+  //
+  // It scales MOTION only — cut overlap, animation durations, camera travel. Scene count and
+  // scene durations are the approved script's and are not touched; see services/pacing.js.
+  const voEnabled = s.job.voiceover_enabled !== 0;
+  const packNoVo = audioProfileSvc.profileFor(s.job.frame_pack).noVo;
+  sb.pacing = tempoFor({ narration: voEnabled ? "on" : "off", energyBoost: packNoVo.energyBoost });
+  if (!voEnabled) {
+    console.log(`[agents] pacing → ${sb.pacing.label}: motion x${sb.pacing.motion}, cuts x${sb.pacing.xfade}, camera x${sb.pacing.camera}`);
+  }
   return { storyboard: sb };
 }
 
@@ -887,10 +903,24 @@ async function assetSearchAgent(s) {
     const { scene, need, isVideo } = jobs[i];
     // Skip an asset we've already used — byte-identical OR visually a duplicate
     // (a different re-encode/crop of the same picture), which MD5 alone missed.
-    if (!isVideo) {
+    //
+    // VIDEO USED TO BE EXEMPT (`if (!isVideo)`), which made it the one medium with no
+    // duplicate detection whatsoever: the same stock clip fetched from two providers, or the
+    // same clip answering two similar queries, was placed twice. It is included now, hashed on
+    // a frame a THIRD of the way in — hashing frame zero would call every clip that opens on a
+    // fade a duplicate of every other, which is worse than not checking at all.
+    // The clip's quality floor is applied inside `acquire` now, where a rejection can fall
+    // through to the next candidate. By the time it reaches here it has already passed, and
+    // `r.dhash` carries the hash measured from the SOURCE — so this stays a dedupe test only.
+    //
+    // A clip with no hash (an unmeasurable container) is passed through UNCHECKED rather than
+    // re-hashed here: the file on disk has been re-encoded by now, and hashing it at frame
+    // zero — which is what the deduper would do unaided — makes every clip that opens on a
+    // fade look like every other, which is worse than not checking.
+    if (!isVideo || r.dhash) {
       const dup = await deduper.check(r.path, r.dhash);
       if (dup) {
-        console.log(`[agents] dropped ${dup}-duplicate asset — query "${need.query}"`);
+        console.log(`[agents] dropped ${dup}-duplicate ${isVideo ? "clip" : "asset"} — query "${need.query}"`);
         try { fs.unlinkSync(r.path); } catch { /* noop */ }
         continue;
       }
@@ -914,6 +944,14 @@ async function assetSearchAgent(s) {
       // them every stock asset arrives "unmeasured" and scores a neutral 0.6, which is how
       // a soft, over-compressed photo reached a hero slot indistinguishable from a crisp one.
       sharpness: r.sharpness, stdev: r.stdev,
+      // THE SAME EVIDENCE FOR FOOTAGE. A clip used to arrive with none of it — no dimensions,
+      // no length, no frame rate — so asset_quality scored it on neutral defaults and a
+      // 320x180 two-second scrap could outrank a measured photograph. `acquire` measures these
+      // from the SOURCE, before the HyperFrames re-encode normalises frame rate and bitrate.
+      ...(isVideo ? {
+        clipDurationSec: r.clipDurationSec, fps: r.fps,
+        bitrateKbps: r.bitrateKbps, codec: r.codec,
+      } : {}),
       license: r.license, sourceUrl: r.sourceUrl, source: r.source, fromCache: r.fromCache === true,
     };
     results.push(resultObj);
@@ -1515,10 +1553,41 @@ async function voiceAgent(s) {
     ? fetchMusic({
         candidates: musicPlan.candidates, outputPath: path.join(audioDir, "music.mp3"),
         tracker, durationSec: job.duration, style: audioProfile.style, selection: musicSelection,
+        // The search window (sort mode + page) is seeded per job so two films never read the
+        // same ten results, and a re-render of THIS job reads the same window again.
+        seed: `${job.id || ""}|${job.frame_pack || ""}`,
+        // With no voice the bed is the whole soundtrack, so the synthesized pad — identical
+        // on every film that reaches it — is not an acceptable floor. See audio_sources.
+        allowGeneratedPad: voEnabled,
+        // The variety ledger: penalise what this studio shipped recently, and pin this
+        // job's own previous track so a re-render reproduces its film.
+        jobId: job.id || "", framePack: job.frame_pack || "",
       }).catch(() => null)
     : Promise.resolve(null);
 
-  const [voClips, sfxClips, musicPath] = await Promise.all([voTask, sfxTask, musicTask]);
+  const [voClips, sfxClipsRaw, musicPath] = await Promise.all([voTask, sfxTask, musicTask]);
+  let sfxClips = sfxClipsRaw;
+
+  // BEAT SNAP — make the accents agree with the music (music-led films only).
+  //
+  // sfx_plan placed every cue against the PICTURE, and it is right to: a sound with nothing
+  // happening under it is noise. But in a film with no voice the bed is the rhythm, and an
+  // accent 150ms off the beat is the difference between punctuation and approximation.
+  // This nudges each cue to the nearest beat ONLY when that beat is already within 120ms —
+  // it makes the two agree where they nearly do, and never overrules the edit.
+  //
+  // Narrated films are left alone: there the voice is the rhythm, and pulling an accent onto
+  // a musical beat would move it off the word it was placed for.
+  if (!voEnabled && musicPath && sfxClips.length) {
+    const grid = await beatGrid.analyze(musicPath, { durationSec: job.duration }).catch(() => null);
+    if (grid) {
+      const snapped = beatGrid.snapCues(sfxClips, grid);
+      sfxClips = snapped.cues;
+      console.log(`[agents] beat grid: ${grid.bpm} BPM (confidence ${grid.confidence}) — snapped ${snapped.moved}/${sfxClips.length} cue(s), max shift ${snapped.maxShift}s`);
+    } else {
+      console.log(`[agents] beat grid: no usable pulse in this track — cues stay where the picture put them`);
+    }
+  }
 
   // ANTI-OVERLAP: guarantee no two voiceover lines ever play at once. vo_fit already
   // speed-fits each clip inside its scene, but as a hard safety net each line starts
@@ -2047,9 +2116,9 @@ async function motionPlannerAgent(s) {
 //
 // The old version of this node counted `tl.*(` calls across the whole document and
 // warned when the total fell under scenes×2. That heuristic could not name a scene, and
-// it misfires on canvas-driven packs (kinetic-universe, product-showcase, the three-*
-// family) which animate through an hf-seek listener and legitimately emit few timeline
-// calls — so it handed the QA reviewer false "under-animated" concerns to chase.
+// it misfires on canvas-driven packs (the three-* family, terminal-departures) which
+// animate through an hf-seek listener and legitimately emit few timeline calls — so it
+// handed the QA reviewer false "under-animated" concerns to chase.
 //
 // With a plan to compare against, the check becomes specific: which scenes are static,
 // and which did not use the entrance they were planned. Composers that own their
@@ -2433,6 +2502,26 @@ async function runProductionGraph({ jobId }) {
       { recursionLimit: 40 }
     );
 
+    // PROBE THE ARTIFACT, not the plan — the one check that opens the delivered file.
+    //
+    // COMPARE AGAINST WHAT WAS RENDERED, NOT WHAT WAS ORDERED. The graph renders to the length
+    // the SCRIPT resolves to (see the same reduce at the top of this file), which legitimately
+    // differs from `job.duration` whenever the script is re-timed. Checking the delivered file
+    // against the request would report that ordinary, correct behaviour as a film "cut short".
+    // Fall back to the request only when there is no script to measure.
+    const renderedSec = (final.script && Array.isArray(final.script.scenes)
+      ? final.script.scenes.reduce((a, s) => Math.max(a, (s.start || 0) + (s.duration || 0)), 0)
+      : 0) || job.duration;
+    // `expectAudio` asserts only what was actually MIXED — the same three state fields the
+    // mix step consumed. Asserting it from the REQUEST instead (`voiceover_enabled`) would
+    // blocker a film whose narration was legitimately skipped or whose music provider was
+    // down: a correct silent film, reported as a broken one, with a suggested fix that could
+    // not have helped.
+    const mixedAudio = Boolean(final.musicPath || (final.voClips || []).length || (final.sfxClips || []).length);
+    await require("../services/video_probe").recordDeliveryProbe(jobId, final.visual.videoPath, {
+      width: job.width, height: job.height, fps: job.fps,
+      durationSec: renderedSec, expectAudio: mixedAudio,
+    });
     const costs = tracker.computeCosts();
     db.markDone(jobId, {
       videoUrl: final.visual.videoUrl,

@@ -269,6 +269,89 @@ function scoreAsset(a, { slot = null, frame = null } = {}) {
       parts, reasons: ["logo — graded as a brand mark, not a photograph"], vetoes,
     };
   }
+  // FOOTAGE IS JUDGED AS FOOTAGE. A clip has no sharpness measurement and no bits-per-pixel
+  // (measureMissing skips `type === "video"` — four ffmpeg probes per clip is not worth it),
+  // so it used to fall through this scorer collecting the neutral 0.6 that every unmeasured
+  // component returns. That is a score of roughly 60 for free: a 320x180 two-second scrap
+  // outranked a genuinely measured photograph, and no amount of tuning the image bands could
+  // fix it, because the clip was never being measured in the first place.
+  //
+  // Score it on what a clip actually has — frame size, length, frame rate, and bitrate
+  // density — all of which `validateClip` already probed at fetch time. Unknown stays
+  // neutral, so a clip that arrived before this evidence existed is not punished for it.
+  if (String(a && a.type || "") === "video") {
+    const w = num(a.width), h = num(a.height);
+    const px = w && h ? w * h : null;
+    const sec = num(a.clipDurationSec);
+    const fps = num(a.fps);
+    const kbps = num(a.bitrateKbps);
+
+    // `ramp` already answers 0.6 for an unmeasurable input, so every term degrades to neutral
+    // on its own — a clip fetched before this evidence existed is not punished for it.
+    //
+    // RESOLUTION IS RELATIVE TO THE FRAME, exactly as it is for stills: what matters is
+    // whether the clip fills the picture without upscaling, not its absolute pixel count.
+    //
+    // AND IT IS ORIENTATION-AWARE. Comparing long edge to long edge is blind to shape: a
+    // 1920x1080 landscape clip in a 1080x1920 portrait film scored a perfect 1.0, when filling
+    // that frame actually means cropping to a 1080-wide strip and scaling 1080 up to 1920 — the
+    // clip supplies barely half the height it needs. Cover-fitting scales by whichever axis is
+    // SHORT of the frame, so that is the ratio to judge.
+    const fw = num(frame && frame.width) || 1920;
+    const fh = num(frame && frame.height) || 1080;
+    const cover = w && h ? Math.min(w / fw, h / fh) : null;
+    const resV = ramp(cover, 0.4, 0.95);
+    // Under ~1.2s there is no shot; 5s covers any beat this system cuts.
+    const lenV = ramp(sec, 1.2, 5);
+    // 25fps reads as motion; below ~12 it reads as a slideshow.
+    const fpsV = ramp(fps, 12, 25);
+
+    // BITRATE DENSITY ONLY EVER SUBTRACTS, and it does so as a MULTIPLIER.
+    //
+    // Scoring density as a reward inverts the ranking, which a test caught at once:
+    // kbps-per-megapixel RISES as the frame shrinks, so a 320x180 scrap at 80kbps earned a
+    // perfect density mark and finished ABOVE a 640x360 clip — the smaller the picture, the
+    // better it scored. A fixed penalty was no better: capped at 18 points it left a 1080p
+    // clip at 120kbps (visibly smeared) still grading `hero`. Density cannot establish that a
+    // clip is good; it can only establish that the encoder destroyed it, and that is
+    // proportional to what the clip would otherwise have been worth.
+    const density = kbps && px ? kbps / (px / 1_000_000) : null;
+    const intact = density == null ? 1 : 0.55 + 0.45 * ramp(density, 60, 200);
+
+    let vScore = Math.max(0, Math.round(100 * (resV * 0.45 + lenV * 0.33 + fpsV * 0.22) * intact));
+
+    // THE VETOES BELOW APPLY TO FOOTAGE TOO. This branch returns early, which quietly exempted
+    // clips from the two hard floors the rest of the scorer enforces — and `stdev` IS measured
+    // for a clip (validateClip hashes a frame a third of the way in and returns its spread), so
+    // a stock shot of a plain white cyclorama or a clear sky carried a real, near-zero stdev
+    // and still graded `hero` on frame size alone. The tier floor is restated for the same
+    // reason: a user's own uploaded video must not be rejected on pixel evidence.
+    const vsd = num(a.stdev);
+    if (vsd != null && vsd < 5 && !isOwned(a)) {
+      vScore = Math.min(vScore, 20);
+      vetoes.push(`near-flat clip (stdev ${vsd.toFixed(1)})`);
+    }
+    if (a.__duplicateOf) {
+      vScore = Math.min(vScore, 22);
+      vetoes.push(`perceptual duplicate of ${a.__duplicateOf}`);
+    }
+    if (isOwned(a) && vScore < GRADES[3][1]) {
+      vScore = GRADES[3][1];
+      vetoes.push("tier floor: owned material is never rejected on pixel evidence alone");
+    }
+    const vGrade = GRADES.find(([, cut]) => vScore >= cut)[0];
+    return {
+      score: vScore, grade: vGrade, kind: "video", tier,
+      parts: { resolution: resV, duration: lenV, fps: fpsV, encodeIntact: Math.round(intact * 100) / 100 },
+      reasons: [
+        px == null
+          ? "clip graded without a probe — neutral"
+          : `${a.width}x${a.height}${sec != null ? `, ${sec.toFixed(1)}s` : ""}${fps != null ? `, ${fps.toFixed(0)}fps` : ""}${kbps != null ? `, ${kbps}kbps` : ""}`,
+      ],
+      vetoes,
+    };
+  }
+
   // THE TIER FLOOR. Owned material (the user's uploads, their own site capture, their own
   // harvested logo) is never REJECTED by a pixel measurement. The user chose it; the most
   // this engine may do is rank it below their better material.

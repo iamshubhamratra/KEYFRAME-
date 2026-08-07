@@ -1521,6 +1521,11 @@ async function runJob({
     }
 
     // ---- Stage: audio mix (audio was prepared in parallel with compose+render)
+    // What was actually MIXED, not what was asked for. The delivery probe asserts the film
+    // carries an audio track from this, and it must not assert it from `wantsAudio`: a job can
+    // legitimately request music, have every provider fail, and deliver a correct silent film.
+    // Blaming the mix step for that would be a blocker whose suggested remedy cannot work.
+    let audioMixed = false;
     if (wantsAudio) {
       const t0 = ms();
       db.setProgress(jobId, "audio");
@@ -1547,6 +1552,7 @@ async function runJob({
           visualPath: visualResult.videoPath,
           durationSec: effectiveDuration, audio,
         }).catch((e) => { console.warn(`[pipeline] mix failed: ${e.message}`); return false; }) : false;
+        audioMixed = mixed === true;
         markStage("audio", t0);
         console.log(`[pipeline] audio ${mixed ? "mixed in" : "(nothing to mix)"} in ${timings.audioMs}ms (was prepared in parallel)`);
       } catch (e) {
@@ -1557,6 +1563,11 @@ async function runJob({
 
     // ---- Finalize ----
     db.setProgress(jobId, "finalizing");
+    // PROBE THE ARTIFACT, not the plan. Everything above this line describes what the pipeline
+    // intended; this is the one check that opens the file it just wrote.
+    await require("./video_probe").recordDeliveryProbe(jobId, visualResult.videoPath, {
+      width, height, fps, durationSec: effectiveDuration, expectAudio: audioMixed,
+    });
     const costs = tracker.computeCosts();
     db.markDone(jobId, {
       videoUrl: visualResult.videoUrl,

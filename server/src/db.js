@@ -518,6 +518,15 @@ module.exports = {
     scheduleWrite();
   },
 
+  // The ffprobe of the DELIVERED file — the only signal in the system taken from the artifact
+  // itself rather than from the plan that produced it. Recorded once at finalize because
+  // `assessDelivery` runs synchronously on every job read and must never spawn a process.
+  setDeliveryProbe(id, probe) {
+    const j = jobs.get(id); if (!j) return;
+    j.delivery_probe = probe || null;
+    scheduleWrite();
+  },
+
   // Motion plan — the per-scene choreography (entrance + camera + timing) decided
   // BEFORE composition. Persisted so the post-render verification can be read against
   // what was actually intended, and so "why does every scene move the same way?" is a

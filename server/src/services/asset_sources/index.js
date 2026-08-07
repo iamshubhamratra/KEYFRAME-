@@ -210,7 +210,28 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
             }
             imageMeta = v.meta;
           }
-          if (type === "video") await util.reencodeForHyperframes(outputPath);
+          // VIDEO, MEASURED BEFORE THE RE-ENCODE AND REJECTED HERE — both halves matter.
+          //
+          // BEFORE: `reencodeForHyperframes` forces `-r 30 -crf 23 -an`. Anything probed after
+          // it describes OUR transcode, not the clip the provider offered: every clip reads
+          // exactly 30fps whatever it really was, and its bitrate is a property of our encoder
+          // setting. Measuring here is the only place the source facts still exist.
+          //
+          // HERE: this is inside the provider/candidate ladder, so a rejected clip falls
+          // through to `continue` and the NEXT candidate is tried — exactly as a rejected image
+          // has always done. Rejecting later (after acquire returned) would delete the file
+          // with nothing left to retry, and the scene would simply lose its visual.
+          let clipMeta = null;
+          if (type === "video") {
+            const v = await util.validateClip(outputPath);
+            if (!v.ok) {
+              console.warn(`[assets] rejected clip "${q}" from ${provider.name}: ${v.reason}`);
+              try { fs.unlinkSync(outputPath); } catch { /* noop */ }
+              continue;
+            }
+            clipMeta = v.meta;
+            await util.reencodeForHyperframes(outputPath);
+          }
           // Awaited: `register` became async (streamed hash + async copy) and its
           // check-then-push must complete before this lane returns, or two lanes racing on the
           // same bytes can both append to the shared index.
@@ -240,6 +261,14 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
             // every stock asset it receives.
             sharpness: imageMeta ? imageMeta.sharpness : undefined,
             stdev: imageMeta ? imageMeta.stdev : undefined,
+            // The SOURCE clip's facts, measured above before the re-encode normalised them
+            // away. Without these asset_quality has nothing to grade footage on.
+            ...(clipMeta ? {
+              width: clipMeta.width || c.width, height: clipMeta.height || c.height,
+              ratio: clipMeta.ratio, dhash: clipMeta.dhash, stdev: clipMeta.stdev,
+              clipDurationSec: clipMeta.durationSec, fps: clipMeta.fps,
+              bitrateKbps: clipMeta.bitrateKbps, codec: clipMeta.codec,
+            } : {}),
           };
         } catch (e) {
           console.warn(`[assets] ${provider.name} candidate failed for "${q}": ${e.message}`);

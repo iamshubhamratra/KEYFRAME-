@@ -72,6 +72,20 @@ function assessDelivery(job) {
     push(issues, w.id === "scenesRenderNoAsset" ? "major" : "minor", "assets", w.detail, w.fix);
   }
 
+  // ---- 2b) THE FILE ITSELF ----
+  //
+  // Every other signal here describes what the pipeline INTENDED. This one describes what it
+  // actually wrote to disk, and it is the only one that can catch a film delivered at the
+  // wrong resolution, cut short, or silent after a voiceover was synthesised — three faults
+  // that leave no trace anywhere in the plan. Produced once at finalize by
+  // video_probe.recordDeliveryProbe; read here, never computed here, because this function
+  // runs synchronously on every job read.
+  const dp = j.delivery_probe || null;
+  for (const i of (dp && Array.isArray(dp.issues) ? dp.issues : []).slice(0, 4)) {
+    push(issues, i.severity === "blocker" ? "blocker" : (i.severity === "major" ? "major" : "minor"),
+      "delivery", i.detail, i.fix);
+  }
+
   // ---- 3) Audio ----
   const ar = j.audio_report || null;
   if (ar && Array.isArray(ar.issues)) {
@@ -142,6 +156,11 @@ function assessDelivery(job) {
       compositionQuality: layout && layout.score ? layout.score.compositionQuality : null,
       audioQuality: ar ? ar.qualityScore : null,
       usedFallback: !!j.used_fallback,
+      // The artifact's own numbers, so the panel can state them rather than imply them.
+      delivered: dp && dp.ok ? {
+        width: dp.width, height: dp.height, durationSec: dp.durationSec,
+        fps: dp.fps, bitrateKbps: dp.bitrateKbps, hasAudio: dp.hasAudio,
+      } : null,
     },
   };
 }

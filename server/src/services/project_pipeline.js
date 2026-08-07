@@ -38,6 +38,7 @@ const { acquire, hasProviderFor } = require("./asset_sources");
 const { reviewAndCurate } = require("./creative_director");
 const { directAudio } = require("./audio_director");
 const audioProfileSvc = require("./audio_profile");
+const { tempoFor } = require("./pacing");
 const { pinUserAssets, prepareUserAssets, inventoryForScript } = require("./user_assets");
 const { pinWebsiteAssets } = require("./website_assets");
 const { isLogo } = require("./asset_priority");
@@ -747,6 +748,11 @@ async function runProduction({ jobId }) {
       ? fetchMusic({
           candidates: musicPlan.candidates, outputPath: path.join(audioDir, "music.mp3"),
           tracker, durationSec: duration, style: audioProfile.style, selection: musicSelection,
+          // Per-job search window, and no synthesized pad when the bed is the whole
+          // soundtrack — see the notes in audio_sources.fetchMusic.
+          seed: `${jobId || ""}|${framePack || ""}`,
+          allowGeneratedPad: voEnabled,
+          jobId: jobId || "", framePack: framePack || "",
         })
           .catch((e) => { console.warn(`[project] music failed: ${e.message}`); return null; })
       : Promise.resolve(null);
@@ -776,6 +782,15 @@ async function runProduction({ jobId }) {
           try { db.setContinuityReport(jobId, report); } catch { /* best effort */ }
         }
       } catch (e) { console.warn(`[project] continuity check skipped: ${e.message}`); }
+
+      // PACING RIDES THE STORYBOARD — same stamp the graph applies, so a film cut on this
+      // orchestrator moves at the same tempo as one cut on the other. Motion only: scene
+      // count and durations stay the approved script's. See services/pacing.js.
+      sbRes.storyboard.pacing = tempoFor({
+        narration: voEnabled ? "on" : "off",
+        energyBoost: audioProfileSvc.profileFor(framePack).noVo.energyBoost,
+      });
+      if (!voEnabled) console.log(`[project] pacing → ${sbRes.storyboard.pacing.label}: motion x${sbRes.storyboard.pacing.motion}, cuts x${sbRes.storyboard.pacing.xfade}`);
       markStage("storyboard", t0);
 
       db.setProgress(jobId, "assets");
@@ -939,10 +954,14 @@ async function runProduction({ jobId }) {
     }
 
     // ---- Mix audio: per-scene VO clips at their offsets + ducked music ----
+    // Hoisted out of the block below so the delivery probe at finalize can assert an audio
+    // track from what was actually MIXED rather than from what the job requested.
+    let audioMixed = false;
     {
       const t0 = ms();
       db.setProgress(jobId, "audio");
       const [voClips, musicPath, sfxClips] = await Promise.all([voTask, musicTask, sfxTask]);
+      audioMixed = Boolean(musicPath || voClips.length || sfxClips.length);
       if (sfxClips.length) console.log(`[project] ${sfxClips.length} sfx mixed in`);
 
       // Captions: cue objects + subtitle files exported next to the MP4. Timing
@@ -1115,6 +1134,13 @@ async function runProduction({ jobId }) {
     } catch (e) { console.warn(`[project] language_qa skipped: ${e.message}`); }
 
     db.setProgress(jobId, "finalizing");
+    // PROBE THE ARTIFACT, not the plan — see the note at the same point in pipeline.js.
+    await require("./video_probe").recordDeliveryProbe(jobId, visualResult.videoPath, {
+      width: dims.width, height: dims.height, fps: dims.fps,
+      durationSec: duration,
+      // Only what was actually mixed — see the note at the same call in agents/graph.js.
+      expectAudio: audioMixed,
+    });
     const costs = tracker.computeCosts();
     db.markDone(jobId, {
       videoUrl: visualResult.videoUrl,
