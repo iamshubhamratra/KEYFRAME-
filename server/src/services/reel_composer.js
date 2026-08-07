@@ -189,6 +189,30 @@ const confettiTweens = (id, ctx) => [
   ]),
 ];
 
+// A PICTURE IN A FRAME, NEVER UNDER THE TYPE. Job 1ntmvaft5g's review read "4 of 7 scenes show no
+// asset and render template-only panels" — reel could only place a picture in three of its six roles,
+// so on a seven-beat film four beats were bare by construction, however many assets were collected.
+//
+// The first attempt at fixing that gave `perks` and `proof` a full-bleed screenshot ground behind
+// their copy, scrimmed at 0.93 and zoomed to 1.32 so the site's own words would fall outside the
+// frame. Rendering it settled the question: a website screenshot is the highest-contrast image a film
+// ever carries — near-black type on white — so even at 7% effective opacity the site's "Categories"
+// heading still read THROUGH the scrim, directly behind the beat's own headline, and its "FREE LENS
+// REPLACEMENT" banner still read along the bottom edge. Zooming moved which words showed, not
+// whether they showed. That is the same collision this pack was just fixed for, arriving from behind
+// instead of in front, and dimming it far enough to disappear would mean placing an asset nobody can
+// see. So a screenshot is CONTENT here, always inside a bounded sticker card, and the type beats give
+// up height to make room for it rather than standing on top of it.
+//
+// The rotation stays in CSS (`cardStyle` writes the independent `rotate` property) and the tween only
+// moves opacity/y/scale — GSAP's `rotate` writes the transform matrix, which would compose with it.
+function picSticker(id, th, shot, top, h, tilt) {
+  return `<div class="${id}-pic" style="position:absolute;left:${r(U(80))}cqw;top:${r(top)}cqw;width:${r(U(900))}cqw;height:${r(h)}cqw;${cardStyle(th, tilt)}overflow:hidden;opacity:0;">${K.shotFill(shot, { bg: th.panel })}</div>`;
+}
+const picTweens = (id, ctx, when) => [
+  `tl.fromTo(".${id}-pic",{opacity:0,y:"${r(U(80))}cqw",scale:0.94},{opacity:1,y:0,scale:1,duration:${ctx.du(0.6)},ease:"back.out(1.3)"},${ctx.at(when)});`,
+];
+
 // The segmented story bar — one segment per scene, the current one filling in real time.
 function storyBar(ctx) {
   const { th, total, i, id } = ctx;
@@ -277,9 +301,10 @@ function sShow(scene, ctx, shots) {
 }
 
 // PERKS — the reasons, as a stack of tilted sticker rows that snap in alternating from each side.
-function sPerks(scene, ctx) {
+function sPerks(scene, ctx, shots) {
   const { id, th, at, du } = ctx;
   const list = K.bullets(scene, 4);
+  const bg = (shots || [])[0] || null;
   if (list.length < 2) return { ...K.statement(scene, ctx), backdrop: wash(id, th), chrome: storyBar(ctx) };
   const head = K.fitLines(scene.headline || scene.title || "", U(920) / K.camSafe(), U(96), 2, th.adv);
   // FILL THE BAND, DO NOT BUNCH AT THE TOP. rowH was capped at U(230) and the stack was pinned to a
@@ -287,7 +312,12 @@ function sPerks(scene, ctx) {
   // 9:16 frame as bare wash — flagged twice in one film as "massive empty space, low visual density".
   // The rows now share the band, the card padding grows when there are few of them, and the block is
   // CENTRED in what is left, so two cards read as a deliberate pair rather than an abandoned list.
-  const BAND_TOP = U(560), BAND_BOT = U(1700);
+  const BAND_TOP = U(560), BAND_END = U(1700);
+  // The picture takes whatever the rows do not need, down to nothing. Two bullets leave a tall card,
+  // four leave a letterbox strip, and a beat with no picture keeps the whole band — so the asset never
+  // has to be stranded to keep the rows readable, and the rows never shrink below their own floor.
+  const PIC_H = bg ? Math.max(0, Math.min(U(520), BAND_END - BAND_TOP - list.length * U(200) - U(60))) : 0;
+  const BAND_BOT = BAND_END - (PIC_H ? PIC_H + U(60) : 0);
   const rowH = Math.min(U(380), (BAND_BOT - BAND_TOP) / list.length);
   const cardMinH = Math.max(U(150), rowH - U(44));
   const cardPad = Math.max(U(30), Math.min(U(64), rowH * 0.2));
@@ -304,10 +334,12 @@ function sPerks(scene, ctx) {
     ${list.map((b, i) => `<div class="${id}-p${i}" style="position:absolute;left:${r(U(80))}cqw;top:${r(top + i * rowH)}cqw;width:${r(U(900))}cqw;padding:${r(cardPad)}cqw ${r(U(36))}cqw;min-height:${r(cardMinH)}cqw;box-sizing:border-box;${cardStyle(th, i % 2 ? 1.4 : -1.4)}display:flex;align-items:center;gap:${r(U(24))}cqw;opacity:0;">
       <span style="width:${r(U(56))}cqw;height:${r(U(56))}cqw;border-radius:50%;background:${th.accent};color:${K.inkOn(th.accent)};display:grid;place-items:center;font-family:${th.displayStack};font-weight:800;font-size:${r(U(28))}cqw;flex:0 0 auto;">${K.pad2(i + 1)}</span>
       <span style="font-family:${th.displayStack};font-weight:700;font-size:${r(U(38))}cqw;line-height:1.2;color:${th.cardInk};">${esc(K.clampWords(String(b), labelChars))}</span>
-    </div>`).join("")}`,
+    </div>`).join("")}
+    ${PIC_H ? picSticker(id, th, bg, BAND_BOT + U(60), PIC_H, 1.6) : ""}`,
     s: [
       `tl.fromTo(".${id}-head",{opacity:0,y:"${r(U(34))}cqw"},{opacity:1,y:0,duration:${du(0.5)},ease:"power3.out"},${at(0.2)});`,
       ...list.map((b, i) => `tl.fromTo(".${id}-p${i}",{opacity:0,x:"${r((i % 2 ? 1 : -1) * U(220))}cqw"},{opacity:1,x:0,duration:${du(0.45)},ease:"back.out(1.6)"},${at(0.6 + i * 0.26)});`),
+      ...(PIC_H ? picTweens(id, ctx, 0.5 + list.length * 0.26) : []),
       ...washTweens(id, ctx),
     ],
   };
@@ -320,13 +352,23 @@ function sPerks(scene, ctx) {
 // is the only beat in the film that carries a testimonial.
 // Reference geometry: block 80/80 at top 420, stars 90px/0.1em, words 72px, avatars 70px with a
 // -22px overlap and a 4px white ring, attribution 32px.
-function sProof(scene, ctx) {
+function sProof(scene, ctx, shots) {
   const { id, th, at, du } = ctx;
   const words = K.wordsOf(scene.emphasis || scene.headline || "").slice(0, 16);
+  const bg = (shots || [])[0] || null;
   if (words.length < 3) return { ...K.statement(scene, ctx), backdrop: wash(id, th), chrome: storyBar(ctx) };
   const run = words.join(" ");
   const size = Math.min(U(72), ((U(920) / K.camSafe()) * 0.92 * 3) / Math.max(1, run.length * th.adv));
   const by = K.clampWords(String(scene.subtext || "").trim(), 40);
+  // WHAT THIS BEAT HAS ALWAYS HAD IS ROOM. The quote block is short by design — stars, three to
+  // sixteen words, an attribution row — so on a 9:16 frame it ends around the halfway mark and the
+  // rest was bare wash; the review called it out twice as "large blank lower canvas". The block's
+  // bottom is MEASURED (the word run's own size decides how many lines it takes) rather than guessed,
+  // and the picture card fills what is left below it.
+  const wLines = Math.max(1, Math.min(3, Math.ceil((run.length * th.adv * size) / ((U(920) / K.camSafe()) * 0.92))));
+  const blockBot = U(420) + U(90) + U(20) + wLines * size * 1.2 + (by ? U(60) + U(70) : 0);
+  const PIC_H = U(600);
+  const picTop = Math.min(Math.max(blockBot + U(80), U(1060)), U(1120));
   return {
     backdrop: wash(id, th),
     chrome: storyBar(ctx),
@@ -340,11 +382,13 @@ function sProof(scene, ctx) {
         <span style="display:flex;">${[th.c1, th.c2, th.c3].map((c, i) => `<span style="width:${r(U(70))}cqw;height:${r(U(70))}cqw;border-radius:50%;background:${c};border:${r(U(4))}cqw solid #fff;box-sizing:border-box;${i ? `margin-left:${r(-U(22))}cqw;` : ""}"></span>`).join("")}</span>
         <span style="font-family:${th.displayStack};font-weight:800;font-size:${r(U(32))}cqw;color:${th.ink};">${esc(by)}</span>
       </div>` : ""}
-    </div>`,
+    </div>
+    ${bg ? picSticker(id, th, bg, picTop, PIC_H, -1.6) : ""}`,
     s: [
       `tl.fromTo(".${id}-stars",{opacity:0,scale:0.4},{opacity:1,scale:1,duration:${du(0.4)},ease:"back.out(1.8)"},${at(0.1)});`,
       `tl.fromTo(".${id}-w",{opacity:0,y:"${r(U(26))}cqw"},{opacity:1,y:0,duration:${du(0.2)},ease:"back.out(1.7)",stagger:${du(0.1)}},${at(0.24)});`,
       by ? `tl.fromTo(".${id}-by",{opacity:0,y:"${r(U(30))}cqw"},{opacity:1,y:0,duration:${du(0.3)},ease:"power3.out"},${at(0.72)});` : "",
+      ...(bg ? picTweens(id, ctx, 1.0) : []),
       ...washTweens(id, ctx),
     ].filter(Boolean),
   };
@@ -361,28 +405,28 @@ function sNumbers(scene, ctx, shots) {
   if (stats.length < 2) return { ...K.statement(scene, ctx, { centred: true }), backdrop: wash(id, th), chrome: storyBar(ctx) };
   const bg = (shots || [])[0] || null;
   const head = K.fitLines(scene.headline || scene.title || "", U(920) / K.camSafe(), U(92), 2, th.adv);
-  const top = U(620), rowH = Math.min(U(320), (U(1680) - top) / stats.length);
-  // THE WASH'S DRIFT BELONGS TO THE WASH. This beat swaps the colour wash for a darkened version
-  // of its own screenshot when it has one, but it spread `washTweens` regardless — animating a
-  // `.<id>-wash` this scene never drew. Found by scripts/test-dead-tweens.js.
-  const usesWash = !bg;
-  const ground = usesWash
-    ? wash(id, th)
-    : `<div style="position:absolute;inset:0;background:${th.bg};overflow:hidden;">
-        <div class="${id}-nb" style="position:absolute;inset:0;">${K.shotFill(bg, { bg: th.bg })}</div>
-        <div style="position:absolute;inset:0;background:${rgba(th.bg, 0.88)};"></div>
-        ${likes(id)}
-      </div>`;
+  // THE PICTURE IS A CARD HERE TOO. This beat used to trade its colour wash for its own screenshot
+  // darkened to 0.88 — the pattern `perks` and `proof` briefly copied, and the pattern a render
+  // disproved: a site's headings read straight through a scrim that heavy because their contrast is
+  // near-maximum, so they sat behind the beat's headline. The stat cards keep the top of the band and
+  // the picture takes what is left, exactly as in `perks`.
+  const BAND_TOP = U(620), BAND_END = U(1680);
+  const PIC_H = bg ? Math.max(0, Math.min(U(480), BAND_END - BAND_TOP - stats.length * U(230) - U(56))) : 0;
+  const top = BAND_TOP, rowH = Math.min(U(320), (BAND_END - (PIC_H ? PIC_H + U(56) : 0) - top) / stats.length);
 
   return {
-    backdrop: ground,
+    // The wash draws the reaction layer itself, so this beat gets it back for free now that its
+    // screenshot ground is gone — no `extra`, or the twelve reactions would be drawn twice under
+    // one set of class names.
+    backdrop: wash(id, th),
     chrome: storyBar(ctx),
     html: `
     <div class="${id}-head" style="position:absolute;left:${r(U(80))}cqw;top:${r(U(300))}cqw;width:${r(U(920))}cqw;font-family:${th.displayStack};font-weight:800;font-size:${r(head.size)}cqw;line-height:0.96;letter-spacing:-0.04em;text-transform:uppercase;color:${th.ink};opacity:0;">${head.lines.map((l) => `<span style="display:block;">${esc(l)}</span>`).join("")}</div>
     ${stats.map((st, i) => `<div class="${id}-c${i}" style="position:absolute;left:${r(U(80))}cqw;top:${r(top + i * rowH)}cqw;width:${r(U(900))}cqw;height:${r(rowH - U(30))}cqw;${cardStyle(th, i % 2 ? -1.2 : 1.2)}display:flex;align-items:center;justify-content:space-between;padding:0 ${r(U(46))}cqw;opacity:0;">
       <span style="font-family:${th.displayStack};font-weight:800;font-size:${r(U(112))}cqw;line-height:1;letter-spacing:-0.05em;color:${th.cardInk};white-space:nowrap;"><span class="${id}-n${i}">0</span>${esc(st.suffix)}</span>
       <span style="font-family:${th.monoStack};font-size:${r(U(24))}cqw;letter-spacing:0.16em;color:${rgba(th.cardInk, 0.6)};text-align:right;white-space:nowrap;">${esc(K.statLabel(scene, i))}</span>
-    </div>`).join("")}`,
+    </div>`).join("")}
+    ${PIC_H ? picSticker(id, th, bg, top + rowH * stats.length + U(26), PIC_H, -1.4) : ""}`,
     s: [
       `tl.fromTo(".${id}-head",{opacity:0,y:"${r(U(34))}cqw"},{opacity:1,y:0,duration:${du(0.5)},ease:"power3.out"},${at(0.2)});`,
       ...stats.flatMap((st, i) => {
@@ -393,8 +437,8 @@ function sNumbers(scene, ctx, shots) {
           `tl.fromTo(".${id}-n${i}",{innerText:0},{innerText:${num},duration:${du(0.66)},ease:"power2.out",snap:{innerText:${dp ? 0.1 : 1}},onUpdate:function(){var e=document.querySelector(".${id}-n${i}");if(e)e.textContent=Number(e.textContent).toFixed(${dp});}},${at(0.72 + i * 0.26)});`,
         ];
       }),
-      // The reactions rise in EVERY beat, wash or screenshot; only the wash's own drift is optional.
-      ...(usesWash ? washTweens(id, ctx) : likeTweens(id, ctx)),
+      ...(PIC_H ? picTweens(id, ctx, 0.6 + stats.length * 0.26) : []),
+      ...washTweens(id, ctx),
     ],
   };
 }
@@ -437,8 +481,17 @@ function sCta(scene, ctx, logo) {
 const SPEC = {
   first: "hook", last: "cta",
   middle: ["show", "perks", "numbers", "proof"],
-  shapes: { hook: [900 / 660], show: [920 / 1080], perks: [], proof: [], numbers: [1080 / 1920], cta: [], statement: [], "statement-c": [] },
-  slots: (role, budget) => (role === "hook" || role === "show" ? 1 : role === "numbers" ? Math.min(1, Math.max(0, budget)) : 0),
+  // perks/proof/numbers carry a landscape sticker card in the room their copy leaves, so they ask for
+  // a wide crop — not the portrait full-bleed a ground would have wanted.
+  shapes: { hook: [900 / 660], show: [920 / 1080], perks: [900 / 460], proof: [900 / 600], numbers: [900 / 440], cta: [], statement: [], "statement-c": [] },
+  // PERKS AND PROOF EARN A PICTURE ONLY ONCE THE PICTURE BEATS ARE FED. `hook` and `show` are the
+  // beats built around a screenshot; these two show one under their copy. Gating them behind a budget
+  // of three keeps a two-asset film from spending its material on a supporting card — and lifts a
+  // seven-beat film from three picture-bearing beats to five, which is what the review meant by
+  // "4 of 7 scenes show no asset".
+  slots: (role, budget) => (role === "hook" || role === "show" ? 1
+    : role === "numbers" ? Math.min(1, Math.max(0, budget))
+      : (role === "perks" || role === "proof") ? (budget >= 3 ? 1 : 0) : 0),
   needs: (role) => (role === "show" ? 1 : 0),
   carry: (role, scene, budget) => {
     // Roles are picked by a ROTATING cursor, not by priority. `numbers` is the only layout that

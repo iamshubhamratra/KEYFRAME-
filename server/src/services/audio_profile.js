@@ -21,6 +21,7 @@
 // track family. See pickMusicKeywords.
 
 const { CUES } = require("./audio_cues");
+const { queryLadder } = require("./music_vocabulary");
 
 // ---------------------------------------------------------------- the neutral profile
 //
@@ -31,6 +32,7 @@ const { CUES } = require("./audio_cues");
 // degraded; it is unchanged.
 const NEUTRAL = Object.freeze({
   mood: "",
+  archetype: "",
   energy: "medium",
   tempo: "mid",
   style: [],
@@ -69,6 +71,10 @@ function profileFor(framePack) {
   const noVo = (a.noVo && typeof a.noVo === "object") ? a.noVo : {};
   return Object.freeze({
     mood: str(a.mood, 40),
+    // Provenance only — the archetype's contribution is already baked into musicKeywords
+    // by scripts/apply-audio-profiles.js. Carried so the report and the tests can group
+    // packs without re-deriving the grouping.
+    archetype: str(a.archetype, 24),
     energy: ENERGY.includes(a.energy) ? a.energy : "medium",
     tempo: TEMPO.includes(a.tempo) ? a.tempo : "mid",
     style,
@@ -188,20 +194,24 @@ function musicCandidatesFor({ framePack, jobId, narration = "on", scriptMusic = 
     };
   }
 
-  const keywords = pickMusicKeywords({ profile: p, seedKey: `${jobId || "kf"}|${framePack || ""}`, narration });
-  const candidates = [];
-  // The lead query is the pack's keywords plus its mood word — specific enough to land in
-  // the right genre, short enough that the provider returns something. fetchMusic already
-  // dedupes words and widens a dry query, so a two-keyword phrase is safe to lead with.
-  if (keywords.length) candidates.push([...keywords, p.mood].filter(Boolean).join(" "));
-  // Then each keyword alone (a widening step inside the template's own vocabulary),
-  // then the script's subject-derived query, then the pack's raw style tags.
-  for (const k of keywords) candidates.push(k);
-  if (scriptQuery) candidates.push(scriptQuery);
-  if (p.style.length) candidates.push(p.style.slice(0, 2).join(" "));
+  const seedKey = `${jobId || "kf"}|${framePack || ""}`;
+  // `keywords` stays the pack's own phrasings — the log line and the audio report both name
+  // them, and they are what a human recognises as "this template's sound".
+  const keywords = pickMusicKeywords({ profile: p, seedKey, narration });
+
+  // THE QUERY ITSELF IS NOT A PHRASE. It used to be:
+  //
+  //     [...keywords, p.mood].join(" ")  ->  "driving electronic dark techno pulse clinical"
+  //
+  // which AND-matches and therefore returned NOTHING for 19 of the 20 packs measured on
+  // 2026-08-05. Every film then fell through to fetchMusic's generic two-word widening,
+  // which several packs share — the actual cause of "every music-only video sounds the
+  // same". music_vocabulary.queryLadder asks in TERMS instead, widest-useful-first, so the
+  // pool is never empty and the pack's identity survives into the ranking stage.
+  const candidates = queryLadder({ profile: p, seedKey, narration, scriptQuery });
 
   return {
-    candidates: [...new Set(candidates.map((c) => c.trim()).filter(Boolean))].slice(0, 5),
+    candidates,
     source: "template", keywords, profile: p,
   };
 }
@@ -224,12 +234,43 @@ const INTENT_ROLE = {
   "cta-impact": "cta", "success": "cta",
 };
 
-function paletteCueFor(profile, intent) {
+// SIBLING CUES. Two moments of the same KIND in one film map to the same pack cue, and the planner's
+// no-repeat rule only looks at the immediately previous cue — so job 1ntmvaft5g fired counter-tick
+// twice with another cue between them, which the quality review flagged as repetition. Varying the
+// INTENT upstream cannot fix it, because the palette collapses siblings by role: reel maps every
+// "data" moment to counter-tick. So the variety is applied here, after the mapping, by swapping in a
+// sibling that makes the same kind of sound.
+const CUE_SIBLINGS = {
+  "counter-tick": "data-ping",
+  "data-ping": "counter-tick",
+  "pop": "soft-tap",
+  "soft-tap": "ui-click",
+  "ui-click": "pop",
+  "whoosh": "light-sweep",
+  "light-sweep": "whoosh",
+  "gentle-impact": "product-reveal",
+  "product-reveal": "gentle-impact",
+  "shimmer": "notification",
+  "notification": "shimmer",
+};
+
+/**
+ * paletteCueFor(profile, intent, { avoid } = {})
+ *   → the cue name this pack makes for that intent.
+ *
+ * `avoid` is the set of cue names already used in THIS film. When the pack's own choice is already
+ * in it, a sibling is substituted if one is free; if none is, the original stands rather than
+ * dropping the moment, because a repeated tick still reads better than a silent beat that the
+ * animation is clearly asking to punctuate.
+ */
+function paletteCueFor(profile, intent, { avoid = null } = {}) {
   const p = profile || NEUTRAL;
   const role = INTENT_ROLE[intent];
-  if (!role) return intent;
-  const mapped = p.sfxPalette && p.sfxPalette[role];
-  return (mapped && CUES[mapped]) ? mapped : intent;
+  const mapped = role && p.sfxPalette && p.sfxPalette[role];
+  const cue = (mapped && CUES[mapped]) ? mapped : intent;
+  if (!avoid || !avoid.has(cue)) return cue;
+  const sibling = CUE_SIBLINGS[cue];
+  return (sibling && CUES[sibling] && !avoid.has(sibling)) ? sibling : cue;
 }
 
 /** The scene functions a palette may map. Exported so the manifest schema and the

@@ -74,8 +74,8 @@ premiere-night       plain  a4b5feb727afcb43
 premiere-night       brand  b47a6a5e0a2cdd2e
 prisma-bloc          plain  6185b79347838869
 prisma-bloc          brand  2c30d75af5d15ba8
-reel                 plain  b418d1ba9c4abfb3
-reel                 brand  83c893ff184e585f
+reel                 plain  3cc9e95405a78a3d
+reel                 brand  40d571b39a314358
 showcase             plain  035e03e98050d92c
 showcase             brand  b6308b8462bb60f7
 showcase-vertical    plain  00d1246929cb284a

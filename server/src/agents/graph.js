@@ -1517,6 +1517,12 @@ async function voiceAgent(s) {
   if (sfxPlan.dropped.length) {
     console.log(`[agents] sfx_plan: ${sfxPlan.cues.length}/${sfxPlan.cues.length + sfxPlan.dropped.length} cue(s) kept (budget ${sfxPlan.budget}${sfxDensity > 1 ? ", no-VO density" : ""}) — dropped: ${sfxPlan.dropped.slice(0, 4).map((d) => `${d.name}@${d.sceneId} (${d.reason})`).join("; ")}`);
   }
+  // ONE FILM, ONE SET OF SOUNDS. The planner's no-repeat rule only compares a cue with the one
+  // immediately before it, so two moments of the same kind separated by a third both fired the same
+  // sample — flagged on job 1ntmvaft5g as "counter-tick x2 repeated". Passing what has been used lets
+  // the palette swap in a sibling that makes the same kind of sound. map() runs its callbacks in order
+  // synchronously, so the set is filled deterministically even though the fetches are parallel.
+  const usedCues = new Set();
   const sfxTask = Promise.all(sfxPlan.cues.map((x, i) => {
     // Fetch the INTENT, not the script's word. `intent` is the sound this moment should
     // make (logo-rise, counter-tick, cta-impact…), decided from what the scene actually
@@ -1527,7 +1533,8 @@ async function voiceAgent(s) {
     // A bias on the timbre only: it cannot add a cue, remove one, or move one, so the
     // support gate above still governs whether anything fires at all.
     const base = x.intent || x.name;
-    const cue = audioProfileSvc.paletteCueFor(audioProfile, base);
+    const cue = audioProfileSvc.paletteCueFor(audioProfile, base, { avoid: usedCues });
+    usedCues.add(cue);
     return getSfx({ name: cue, outputPath: path.join(audioDir, `sfx-${i}.mp3`), tracker })
       // Carry the cue name + what justified it so the Audio Director can curate by intent.
       .then((p) => p ? { path: p, startSec: x.startSec, volume: 0.22, name: cue, requested: x.name, intent: base, support: x.support, sceneId: x.sceneId } : null).catch(() => null);

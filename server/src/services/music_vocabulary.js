@@ -30,6 +30,14 @@ const STOPWORDS = new Set([
   "a", "an", "and", "the", "of", "with", "for", "in", "on", "to", "no",
   "very", "more", "most", "less", "quite", "sort", "kind", "type", "style", "sound", "music",
   "feel", "feeling", "vibe", "mood", "tone",
+  // NOT GENRE TAGS, measured. scripts/audit-music-vocabulary.js counts every term this module can
+  // emit against the live catalogue: for reel, `electronic` matches 2375 tracks and `beat` 1675, but
+  // `hook` matches NINE and `social` nineteen. They describe a song's STRUCTURE and a distribution
+  // CHANNEL, not a sound, so no library tags with them — and worse, they get paired: job 1ntmvaft5g
+  // searched "hop hook", which is unanswerable, so the template's turn was wasted and the film fell
+  // through to the script's own subject query. This module's own header already warned that "hip hop
+  // hook is a query with no results behind it"; these words are why it happened anyway.
+  "hook", "social", "viral", "trending", "background", "backing", "track", "song", "loop",
 ]);
 
 const words = (s) => String(s || "").toLowerCase().match(/[a-z][a-z'-]*/g) || [];

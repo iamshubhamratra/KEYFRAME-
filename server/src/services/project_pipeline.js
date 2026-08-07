@@ -724,9 +724,15 @@ async function runProduction({ jobId }) {
     // the exact level defect audio_cues.js documents. Music on this path was already
     // template-driven; this brings its sound effects in line.
     const sfxProfile = audioProfileSvc.profileFor(framePack);
+    // ONE FILM, ONE SET OF SOUNDS — same rule as the graph path. Two moments of the same kind map to
+    // the same pack cue, and a repeated sample reads as a mistake ("counter-tick x2" on job
+    // 1ntmvaft5g). Passing what has been used lets the palette swap in a sibling; map() runs its
+    // callbacks in order synchronously, so the set fills deterministically.
+    const usedCues = new Set();
     const sfxTask = Promise.all(sfxWanted.map((s, i) => {
       const raw = s.query;
-      const cue = audioProfileSvc.paletteCueFor(sfxProfile, resolveIntent(raw) || raw);
+      const cue = audioProfileSvc.paletteCueFor(sfxProfile, resolveIntent(raw) || raw, { avoid: usedCues });
+      usedCues.add(cue);
       return getSfx({ name: cue, outputPath: path.join(audioDir, `sfx-${i}.mp3`), tracker })
         .then((p) => p ? { path: p, startSec: s.startSec, volume: 0.4, name: cue } : null)
         .catch(() => null);
