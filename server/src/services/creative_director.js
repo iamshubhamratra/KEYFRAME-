@@ -580,11 +580,49 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
   //
   // `minKeep` is the caller's statement of need (graph passes the media plan's fillable slot
   // count). Absent one, the floor is the historical "never zero".
+  //
+  // ...BUT THE FLOOR NEEDS A CEILING, AND THE FIRST VERSION OF IT DID NOT HAVE ONE.
+  //
+  // It was bounded by COUNT ("do not fall below the film's slot count") and by nothing else,
+  // so it would restore an asset at ANY score to fill a box. Measured on a real render: a
+  // recipe-app film whose six collected images the director scored 15, 27, 21, 18, 24 and 20
+  // out of 100 — it wanted to reject five and demote the sixth. The floor put all six on
+  // screen, and the frame reviewer returned 3/10 with "off-topic stock character image
+  // clashes with recipe collection subject".
+  //
+  // The comment above says "empty panels read worse than imperfect ones". That is true of
+  // IMPERFECT pictures and false of WRONG ones, and `rejectScore` is exactly where the
+  // pipeline already draws that line: below it, web stock is deleted from disk because the
+  // director judged it unusable. Restoring from below that line overrides the one verdict the
+  // operator explicitly configured, to put a picture of the wrong thing in the film.
+  //
+  // So the floor restores only from the band BETWEEN "unusable" and "weak" — assets the
+  // director demoted rather than condemned. When that band is empty the film stays short and
+  // preflight reports the shortfall loudly, which is the honest outcome: a half-empty film
+  // says "we could not find good pictures", a full one of wrong pictures says nothing true.
+  const floorCfgOut = cd();
+  const restoreFloor = Number.isFinite(Number(floorCfgOut.restoreFloor))
+    ? Number(floorCfgOut.restoreFloor)
+    : (Number.isFinite(Number(floorCfgOut.rejectScore)) ? Number(floorCfgOut.rejectScore) : 25);
   const needFloor = Math.max(0, Number(minKeep) || 0);
   if (needFloor > 0 && survivors0.length < needFloor && toDelete.size > 0) {
+    let barred = 0;
     const restorable = [...toDelete]
       .filter((i) => !visual[i].__captureUnusable)
+      .filter((i) => {
+        const sc = Number(visual[i].cdScore);
+        // An UNSCORED asset is not a bad one — the director never got to it (a chunk failure,
+        // an exhausted budget). Fail-open, as everywhere else: it is eligible.
+        if (!Number.isFinite(sc)) return true;
+        if (sc >= restoreFloor) return true;
+        barred++;
+        return false;
+      })
       .sort((a, b) => (visual[b].cdScore || 0) - (visual[a].cdScore || 0));
+    if (barred) {
+      notes.push(`${barred} rejected image(s) were too far off-topic to restore (scored below ${restoreFloor}/100); the film is short of visuals rather than filled with the wrong ones.`);
+      console.log(`[creative_director] supply floor: ${barred} reject(s) barred — below the ${restoreFloor}/100 usability line`);
+    }
     let restored = 0;
     for (const i of restorable) {
       if (survivors0.length + restored >= needFloor) break;

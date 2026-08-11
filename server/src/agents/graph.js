@@ -100,6 +100,67 @@ function pickFittingPack(prefer, orientation) {
   return null;
 }
 
+// HOW MANY PICTURES THIS JOB CAN REALISTICALLY SUPPLY.
+//
+// Owned material is countable: uploads and site captures are already on disk. Stock is not —
+// it is however many on-topic images a provider happens to hold for this subject, and the
+// honest estimate is "a handful". A prompt-only film has no owned material at all, so its
+// whole supply is that handful; a URL job adds its captures and harvested brand assets on top.
+//
+// The number is deliberately conservative. It is used to avoid pairing an asset-poor job with
+// a slot-hungry template, and being wrong in the generous direction costs exactly the defect
+// it exists to prevent.
+function expectedVisualSupply(job) {
+  const uploads = (job.user_assets || []).filter((u) => u && u.role !== "logo").length;
+  const shots = (job.website_screenshots || []).length;
+  const owned = uploads + shots;
+  // Stock that survives the Creative Director's relevance bar. Measured across real
+  // prompt-only renders on a single provider: six collected, one cleared the usability line.
+  // Two providers or a curated library raise this, which is why it is a floor, not a constant.
+  const stock = owned > 0 ? 4 : 5;
+  return owned + stock;
+}
+
+// The template's fillable box count for THIS script (logo lockups excluded — the pack feeds
+// those from find(isLogo), not from the asset pool). 0 when the pack declares nothing usable.
+function fillableSlotCount(pack, scenes, dims) {
+  try {
+    const plan = require("../services/template_media").resolveMediaPlan({ pack, scenes, dims });
+    return (plan.placeholders || []).filter((p) => p.kind !== "logos").length;
+  } catch { return 0; }
+}
+
+// THE PACK A JOB CAN ACTUALLY FILL.
+//
+// `frame_selector` has always chosen on tone, rotation, orientation and charset — never on
+// whether the film has enough pictures to fill the template it is choosing. The packs differ
+// enormously here: `string-and-sky` declares twelve fillable boxes, `bauhaus-riot` declares
+// four. Pair the first with a prompt-only film and the arithmetic is decided before a single
+// asset is fetched — measured on a real render, six collected for twelve boxes, and the QA
+// reviewer reported "4 of 12 template slot(s) render without an asset".
+//
+// So a pack whose appetite runs far past this job's supply is swapped for the closest-fitting
+// one that does not. Returns null when nothing fits better, in which case the caller keeps its
+// pick and discloses — the same law the orientation and localization reroutes follow.
+function pickAffordablePack(prefer, { scenes, dims, supply, orientation }) {
+  const { packFitsOrientation } = require("../services/frame_manifest");
+  const want = Math.max(2, supply);
+  const cur = frameRegistry.resolvePack(prefer);
+  if (cur && fillableSlotCount(cur, scenes, dims) <= want) return cur;
+  let best = null, bestSlots = Infinity;
+  for (const id of frameRegistry.listPacks()) {
+    const rp = frameRegistry.resolvePack(id);
+    if (!rp || rp === cur) continue;
+    if (!packFitsOrientation(rp, orientation)) continue;
+    if (isCanvasOrCharsetPack(rp)) continue;
+    const n = fillableSlotCount(rp, scenes, dims);
+    if (!n || n > want) continue;
+    // Closest fit from below: a pack that can show what we have, with the least waste.
+    if (n > (best ? bestSlots : 0)) { best = rp; bestSlots = n; }
+  }
+  return best;
+}
+
 // ---------------------------------------------------------------- helpers
 function storyboardPromptFromScript(script, brief) {
   const lines = [
@@ -292,6 +353,42 @@ async function frameSelectorAgent(s) {
     }
   } catch (e) { console.warn(`[agents] frame_selector orientation routing skipped: ${e.message}`); }
 
+  // SUPPLY ROUTING — can this job actually FILL the pack it just chose?
+  //
+  // Every other consideration here is about the film's LOOK. This one is arithmetic, and it
+  // decides more of the finished quality than any of them: a template that draws twelve
+  // pictures, handed a film that can supply five, renders seven empty boxes however good the
+  // collection, ranking, placement and crop stages are. All of those ran correctly on the
+  // audited render and the reviewer still returned 3/10, because the pairing was wrong before
+  // any of them started.
+  //
+  // Same law as the two reroutes below: an auto/brief pick is CORRECTED, an explicit user
+  // pick is HONORED and disclosed. A user who chooses a ten-panel product tour for a film
+  // with no product shots gets the film they asked for, and a note saying why it is sparse.
+  let supplyPackWarning = null;
+  try {
+    const supply = expectedVisualSupply(s.job);
+    const dims = { width: s.job.width, height: s.job.height };
+    const scenes = (s.script && s.script.scenes) || [];
+    const slots = fillableSlotCount(framePack, scenes, dims);
+    if (scenes.length && slots > Math.max(2, supply)) {
+      if (via === "user") {
+        supplyPackWarning = `The "${framePack}" template draws ${slots} pictures, and this film can supply about ${supply} — some panels will render without an image. Add a website URL or upload product images, or pick a simpler template.`;
+        console.warn(`[agents] frame_selector: ${framePack} wants ${slots} visual(s), job supplies ~${supply}; honoring explicit pick with a disclosure`);
+      } else {
+        const afford = pickAffordablePack(s.brief?.suggestedFramePack, { scenes, dims, supply, orientation: s.job.orientation });
+        if (afford && afford !== framePack) {
+          const n = fillableSlotCount(afford, scenes, dims);
+          console.log(`[agents] frame_selector: swapped ${framePack} (${slots} slots) → ${afford} (${n} slots) — this job supplies ~${supply} visual(s)`);
+          framePack = afford; via = `${via}+supply`;
+        } else {
+          supplyPackWarning = `No installed template is small enough for the ${supply} visual(s) this film can supply, so some panels may render without an image.`;
+          console.warn(`[agents] frame_selector: no pack fits a supply of ~${supply}; keeping ${framePack} (${slots} slots) with a disclosure`);
+        }
+      }
+    }
+  } catch (e) { console.warn(`[agents] frame_selector supply routing skipped: ${e.message}`); }
+
   // ON-SCREEN LOCALIZATION ROUTING — a non-Latin video-text language cannot render on the
   // canvas/charset packs. If the pack was auto/brief-picked, swap to a clean pack; if the
   // USER explicitly chose one, honor it but flag the localization gap for disclosure.
@@ -329,6 +426,9 @@ async function frameSelectorAgent(s) {
   // every job. Fail-open (THE LAW): a disclosure never blocks a render.
   if (orientationPackWarning) {
     try { db.setValidationNote(s.job.id, orientationPackWarning); } catch { /* never blocks */ }
+  }
+  if (supplyPackWarning) {
+    try { db.setValidationNote(s.job.id, supplyPackWarning); } catch { /* never blocks */ }
   }
 
   console.log(`[agents] frame_selector → ${framePack} (${via})`);

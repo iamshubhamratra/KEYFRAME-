@@ -268,7 +268,16 @@ function build() {
       : (Number.isFinite(Number(cdCfg.minScore)) ? Number(cdCfg.minScore) : 45),
     rejectScore: Number.isFinite(Number(process.env.CD_REJECT_SCORE)) ? Number(process.env.CD_REJECT_SCORE)
       : (Number.isFinite(Number(cdCfg.rejectScore)) ? Number(cdCfg.rejectScore) : 25),
+    // THE LOWEST SCORE THE SUPPLY FLOOR MAY RESTORE FROM. When rejecting everything would
+    // leave the film short of the template's slots, the director restores its least-bad
+    // rejects as dim background — but only from ABOVE this line. Below it the picture is not
+    // weak, it is wrong, and a half-empty film reads better than one full of the wrong
+    // subject (measured: six images scored 15-27/100 shipped, frame review came back 3/10).
+    // Defaults to `rejectScore`, the line the operator already set for "unusable".
+    restoreFloor: Number.isFinite(Number(process.env.CD_RESTORE_FLOOR)) ? Number(process.env.CD_RESTORE_FLOOR)
+      : (Number.isFinite(Number(cdCfg.restoreFloor)) ? Number(cdCfg.restoreFloor) : null),
   };
+  if (cfg.creativeDirector.restoreFloor == null) cfg.creativeDirector.restoreFloor = cfg.creativeDirector.rejectScore;
   // Register the stage->model mapping. This is load-bearing for DISPATCH, not just cost
   // attribution: the director call sites pass only a `stage`, so this entry is what
   // decides which KIE model answers them.
