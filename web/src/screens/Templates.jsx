@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { listFrames, mediaUrl } from "../api.js";
-import { PACK_LORE, PACK_ORDER, loreFor } from "../packlore.js";
+import { PACK_LORE, PACK_ORDER, loreFor, loreForPack } from "../packlore.js";
 
 // Template categories by aspect ratio. Portrait 9:16 leads (the imported vertical packs).
 const CATEGORIES = [
@@ -26,7 +26,25 @@ function catOf(pack) {
 // its OWN aspect (9:16 portrait packs ship 540x960 / 648x1152), so showing every card in
 // one 16/10 box cropped a vertical preview down to a horizontal sliver — the headline and
 // the whole lower composition fell outside the frame. Match the frame to the pack.
-const THUMB_ASPECT = { portrait: "9 / 16", square: "1 / 1", horizontal: "16 / 10" };
+//
+// THE FRAME MUST MATCH THE POSTER EXACTLY, NOT APPROXIMATELY.
+//
+// `horizontal` was 16/10 while every landscape pack renders its poster at 1280x720 — 16/9.
+// With `object-fit: cover` a 1.778 image covering a 1.6 box is scaled by height, so its width
+// overflows by 1.778/1.6 = 11.1% and gets cropped: 5.6% off EACH side. On a ~355px card that
+// is ~20px a side, which is exactly one capital letter of a left-aligned headline.
+//
+// The picker was quietly beheading its own type. Measured across the gallery screenshots:
+// "One clear view" -> "ne clear view", "Everything in one place" -> "verything in one place",
+// "NORTHWIND" -> "IORTHWIND", and bauhaus-riot's stat panel cut on both edges. Every landscape
+// pack, every card, every time — a template picker whose whole job is to show what a pack
+// looks like.
+const THUMB_ASPECT = { portrait: "9 / 16", square: "1 / 1", horizontal: "16 / 9" };
+// The CreateScreen picker puts every aspect in ONE grid, so its frame cannot be pack-true
+// without ragged rows. It stays uniform and letterboxes instead (see `fit` below) — a
+// contained poster on the pack's own ground reads as a designed thumbnail; a poster cropped
+// to a sliver reads as a bug.
+const COMPACT_ASPECT = "16 / 10";
 
 // Frame packs in the v2 voice: paper page, scene pill, white cards with a
 // color spine per pack. Hovering fades the pack's real motion preview in.
@@ -40,6 +58,9 @@ export default function Templates({ onUseStyle }) {
   }, []);
 
   const list = packs || orderPacks([]);
+  // Group once: the jump bar and the sections below must agree on which aspects
+  // exist and how many packs each holds.
+  const groups = CATEGORIES.map((cat) => [cat, list.filter((p) => catOf(p) === cat[0])]).filter(([, g]) => g.length);
 
   return (
     <div>
@@ -52,14 +73,20 @@ export default function Templates({ onUseStyle }) {
           Each pack is a complete design system — colors, type and motion are sacred;
           composition is free. Hover any card to preview its motion language.
         </p>
+
+        {/* Jump to an aspect. Portrait leads the gallery, so landscape and square
+            sat below a long scroll — these put every aspect one click from the top. */}
+        <nav aria-label="Jump to an aspect ratio" style={{ display: "flex", gap: 10, flexWrap: "wrap", margin: "26px 0 0" }}>
+          {groups.map(([[key, title, sub, accent], group]) => (
+            <AspectJump key={key} target={key} title={title} sub={sub} accent={accent} count={group.length} />
+          ))}
+        </nav>
       </section>
 
       <section style={{ maxWidth: 1200, margin: "0 auto", padding: "0 clamp(16px,4vw,60px) clamp(70px,10vw,120px)" }}>
-        {CATEGORIES.map(([key, title, sub, accent]) => {
-          const group = list.filter((p) => catOf(p) === key);
-          if (!group.length) return null;
+        {groups.map(([[key, title, sub, accent], group]) => {
           return (
-            <div key={key} style={{ marginBottom: "clamp(40px,6vw,72px)" }}>
+            <div key={key} id={`packs-${key}`} style={{ marginBottom: "clamp(40px,6vw,72px)", scrollMarginTop: 24 }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap", margin: "0 0 20px" }}>
                 <span className="scene-pill" style={{ "--tagc": accent }}>{title}</span>
                 <span style={{ color: "var(--color-dim)", fontSize: 13.5 }}>{sub}</span>
@@ -81,6 +108,48 @@ export default function Templates({ onUseStyle }) {
   );
 }
 
+// One aspect-ratio jump button. Scrolls the matching group into view rather than
+// navigating, so the gallery keeps its scroll position and its in-view card
+// animations. Honors prefers-reduced-motion — an instant jump is the accessible
+// answer there, not a slow one.
+function AspectJump({ target, title, sub, accent, count }) {
+  const [hot, setHot] = useState(false);
+  const go = () => {
+    const el = document.getElementById(`packs-${target}`);
+    if (!el) return;
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+  };
+  return (
+    <button
+      type="button"
+      onClick={go}
+      onMouseEnter={() => setHot(true)}
+      onMouseLeave={() => setHot(false)}
+      onFocus={() => setHot(true)}
+      onBlur={() => setHot(false)}
+      title={`${title} — ${sub}`}
+      className="scene-pill"
+      style={{
+        "--tagc": accent,
+        gap: 8,
+        cursor: "pointer",
+        background: hot ? `color-mix(in srgb, ${accent} 12%, transparent)` : "transparent",
+        transition: "background .2s ease, transform .2s ease",
+        transform: hot ? "translateY(-1px)" : "none",
+        font: "inherit",
+        fontFamily: "var(--font-mono)",
+        fontSize: 11,
+        letterSpacing: "0.3em",
+        textTransform: "uppercase",
+      }}
+    >
+      {title}
+      <span style={{ letterSpacing: "0.14em", opacity: 0.65 }}>{count}</span>
+    </button>
+  );
+}
+
 // Merge server packs with the design lore, in the design's order.
 function orderPacks(serverPacks) {
   const byName = Object.fromEntries(serverPacks.map((p) => [p.name, p]));
@@ -91,16 +160,18 @@ function orderPacks(serverPacks) {
 
 // One pack card — v2 anatomy: white card, color spine, scanlined preview.
 export function PackCard({ pack, delay = 0, onUse, compact = false }) {
-  const lore = loreFor(pack.name);
+  const lore = loreForPack(pack);
   const vidRef = useRef(null);
   const [hover, setHover] = useState(false);
   const preview = pack.previewUrl ? mediaUrl(pack.previewUrl) : null;
   const poster = pack.posterUrl ? mediaUrl(pack.posterUrl) : null;
-  // The gallery groups packs by aspect, so a pack-true frame keeps rows even and shows a
-  // 9:16 preview whole. `compact` is the CreateScreen picker, where every aspect shares
-  // ONE grid — a mixed row of 9:16 and 16:10 cards would leave ragged gaps, so that grid
-  // stays uniform and accepts the crop.
-  const aspect = compact ? THUMB_ASPECT.horizontal : (THUMB_ASPECT[catOf(pack)] || THUMB_ASPECT.horizontal);
+  // The gallery groups packs by aspect, so a pack-true frame keeps rows even AND shows every
+  // preview whole — with the frame now matching the poster exactly, `cover` crops nothing.
+  // `compact` is the CreateScreen picker, where every aspect shares ONE grid: it keeps a
+  // uniform frame and CONTAINS the poster instead, so a 9:16 pack is letterboxed on its own
+  // ground rather than reduced to a horizontal sliver of itself.
+  const aspect = compact ? COMPACT_ASPECT : (THUMB_ASPECT[catOf(pack)] || THUMB_ASPECT.horizontal);
+  const fit = compact ? "contain" : "cover";
 
   const enter = () => {
     setHover(true);
@@ -146,13 +217,13 @@ export function PackCard({ pack, delay = 0, onUse, compact = false }) {
         {/* real template look — static poster frame is the DEFAULT thumbnail */}
         {poster && (
           <img src={poster} alt={`${lore.name || pack.label || pack.name} preview`} loading="lazy" draggable={false}
-            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 4 }} />
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: fit, zIndex: 4 }} />
         )}
         {/* hover — the pack's motion preview fades in over the poster */}
         {preview && (
           <video ref={vidRef} src={preview} poster={poster || undefined}
             muted loop playsInline preload="none"
-            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 5, opacity: hover ? 1 : 0, transition: "opacity .35s ease" }} />
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: fit, zIndex: 5, opacity: hover ? 1 : 0, transition: "opacity .35s ease" }} />
         )}
       </div>
 
@@ -165,7 +236,19 @@ export function PackCard({ pack, delay = 0, onUse, compact = false }) {
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.18em", color: lore.accent, whiteSpace: "nowrap" }}>{lore.tag}</span>
         </div>
         {!compact && (
-          <p style={{ color: "var(--color-dim)", fontSize: 13.5, lineHeight: 1.55, margin: "10px 0 16px" }}>
+          // CLAMPED TO THREE LINES so every card in a row is the same height. The vibe copy
+          // is free-form and runs from one line ("Type is the hero — words fly, stack and
+          // snap.") to five, and a CSS grid sizes each row to its tallest card — so one long
+          // description left a visible step in the row and a band of dead white under every
+          // other card beside it. Three lines is the length most of the copy already is.
+          <p
+            title={lore.vibe || pack.vibe}
+            style={{
+              color: "var(--color-dim)", fontSize: 13.5, lineHeight: 1.55, margin: "10px 0 16px",
+              display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical",
+              overflow: "hidden", minHeight: "calc(3 * 1.55em)",
+            }}
+          >
             {lore.vibe || pack.vibe}
           </p>
         )}
