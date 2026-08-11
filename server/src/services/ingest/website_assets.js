@@ -545,7 +545,25 @@ async function discoverAssetsInPage(page) {
         if (typeof cand === "string") { const u = abs(cand); if (u && !u.startsWith("data:")) push({ url: u, discovery: "jsonld-logo", isSvg: /\.svg(\?|$)/i.test(u), nearHeader: true, alt: "organization logo", cls: "logo brand", w: 0, h: 0 }); }
       }
     }
-    return out.slice(0, 80);
+    // THE DISCOVERY CAP MUST NOT BE POSITIONAL.
+    //
+    // `out.slice(0, 80)` cut the list in PUSH order, and the push order is source order:
+    // every <img>, then every inline <svg>, then link icons, og/twitter, video, and JSON-LD
+    // LAST. On an image-heavy page — the exact page worth harvesting — the eighty slots were
+    // spent before the loop reached the four highest-signal sources in the whole function, so
+    // the site's declared logo and its curated share image were never discovered at all.
+    //
+    // The bulk sources are the two that can run to dozens of elements; everything else is at
+    // most a handful and is kept unconditionally. Ranking happens later (harvestSiteAssets),
+    // so this only has to avoid throwing away the rare, high-signal records.
+    const BULK = new Set(["img", "svg-inline"]);
+    const signal = out.filter((c) => !BULK.has(c.discovery));
+    const bulk = out.filter((c) => BULK.has(c.discovery));
+    const area = (c) => (Number(c.w) || 0) * (Number(c.h) || 0);
+    // Keep the BIGGEST of the bulk rather than the first ones in the document — a page's
+    // real photographs are almost never its first <img> (that is usually a header sprite).
+    bulk.sort((a, b) => area(b) - area(a));
+    return [...signal, ...bulk].slice(0, Math.max(80, signal.length + 40));
   });
 }
 
@@ -727,9 +745,49 @@ async function harvestSiteAssets({ page, baseUrl, workDir, isAuthWall = false } 
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), budgetMs);
 
-  // Rank so the caps bite junk first: logos/hero/JSON-LD before generic imgs; larger first.
-  const weight = (c) => (c.isVideo ? 3 : c.discovery === "jsonld-logo" ? 5 : /logo|brand|wordmark/i.test(c.cls + " " + c.alt) ? 4 : c.discovery === "og" || c.discovery === "twitter" ? 3 : c.isSvg ? 2 : 1);
-  candidates.sort((a, b) => (weight(b) - weight(a)) || ((b.w * b.h) - (a.w * a.h)));
+  // RANK SO THE CAP BITES JUNK FIRST — and the previous ranking did the opposite.
+  //
+  // It ended `: c.isSvg ? 2 : 1`, which put EVERY inline <svg> ahead of EVERY <img>. A modern
+  // marketing page carries twenty to sixty inline SVGs — chevrons, checkmarks, social glyphs,
+  // sprite fragments — and a handful of real photographs. With `maxAssets` at 24 the queue was
+  // therefore filled with 16x17 UI glyphs before a single photograph was considered, and the
+  // film that came out of it showed the site's arrow icons instead of the site's product.
+  //
+  // The intent behind the SVG bonus was right: a vector BRAND MARK is precious (it is crisp at
+  // any size and it is usually the logo). But that is a statement about a mark, not about the
+  // tag — and the two are trivially separable, because the discovery pass already records each
+  // element's RENDERED size. A wordmark renders around 120x32; a chevron renders at 16x16.
+  //
+  // So size gates the vector bonus, and a real photograph now outranks a glyph.
+  const px = (c) => Math.max(0, Number(c.w) || 0) * Math.max(0, Number(c.h) || 0);
+  // The brand-token test reads the CLASS and the URL, never the ALT PROSE. Alt text is a
+  // sentence written for screen readers, and "…the window display shows the shop's logo…" is
+  // a description of a photograph, not a declaration that the photograph IS one. Measured on
+  // the cached stripe.com harvest, that mistake promoted a 2460x1060 marketing photo to the
+  // top of the queue and then classified it as the brand mark.
+  const brandToken = (c) => /\b(logo|brand[-_]?mark|brandmark|wordmark)\b/i.test(`${c.cls || ""} ${c.url || ""}`);
+  const weight = (c) => {
+    if (c.discovery === "jsonld-logo") return 6;          // the site declaring its own mark
+    if (brandToken(c)) return 5;                          // self-labelled in class or filename
+    if (c.isVideo) return 4;                              // a hero clip is a whole scene
+    if (c.discovery === "og" || c.discovery === "twitter") return 4; // the share card: curated
+    if (c.isSvg) {
+      // A vector big enough to be a mark or an illustration, and sitting in the header, is
+      // the logo candidate this bonus was written for. Anything smaller is interface furniture.
+      const area = px(c);
+      if (c.nearHeader && area >= 900) return 5;          // >= ~30x30 in a header: a mark
+      if (area >= 10000) return 3;                        // >= ~100x100: an illustration
+      return 0.5;                                          // a glyph — behind every photograph
+    }
+    // A raster image, ranked by whether it is big enough to be CONTENT. naturalWidth/Height
+    // is the file's true size, so this is a statement about the picture, not its CSS box.
+    const area = px(c);
+    if (area >= 640 * 360) return 3.5;                    // a real photograph / product shot
+    if (area >= 200 * 200) return 2;                      // a card image or a small illustration
+    if (area === 0) return 1.5;                            // unmeasured (favicon, meta) — mid
+    return 0.8;                                            // a thumbnail or a tracking pixel
+  };
+  candidates.sort((a, b) => (weight(b) - weight(a)) || (px(b) - px(a)));
   const queue = candidates.slice(0, maxAssets);
 
   const files = [];

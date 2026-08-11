@@ -27,6 +27,15 @@ const BriefSchema = z.object({
   goal: z.string().min(2).max(400),
   keyMessages: z.array(z.string().min(1).max(400)).min(1).max(8),
   mustIncludeFacts: z.array(z.string().min(1).max(500)).max(12),
+  // THE NARRATIVE SPINE. The script prompt has always asked for a Hook -> Problem -> Pain ->
+  // Solution -> Proof -> Result -> CTA arc, but the brief handed it only `keyMessages` — a
+  // flat list — so the writer had to infer the tension from a bag of bullet points, and on a
+  // prompt-only job there was nothing to infer it from. These four carry the shape explicitly.
+  // ALL OPTIONAL: briefs cached before this existed, and models that skip them, still validate.
+  problem: z.string().max(400).default(""),
+  solution: z.string().max(400).default(""),
+  benefits: z.array(z.string().min(1).max(200)).max(6).default([]),
+  cta: z.string().max(120).default(""),
   brandColors: z.array(z.string().regex(HEX)).max(6).default([]),
   suggestedFramePack: z.string(),
   suggestedDuration: z.number().int().min(5).max(150),
@@ -40,10 +49,7 @@ const PACK_VIBES = {
   "blockframe": "maximalist neo-brutalist: candy pastels, 4px black borders, hard shadows, loud uppercase — playful, bold, product-launch energy",
   "biennale-yellow": "literary editorial: warm parchment, indigo ink, solar yellow blooms, serif display — elegant, cultural, slow-confidence",
   "midnight-glass": "dark glassmorphism: deep navy, frosted cards, one neon accent — premium, technical, nocturnal",
-  "summit-keynote": "executive pitch light: porcelain grounds, deep navy ink, one cobalt beam + champagne gold, floating glass panels, 3D data constellation — for investor pitches, keynotes, founder stories, B2B decks",
-  "prism-launch": "white-studio product reveal: gallery white, carbon display type, iridescent prism gradients, one ember-hot CTA, rotating 3D shards — for product launches, release ads, feature announcements",
   "fable-storybook": "warm storybook: parchment, ink-brown serif spirit, watercolor terracotta/sage/dusk washes, paper planes + firefly orbs in gentle 3D — for narratives, brand stories, emotional arcs, journeys",
-  "longshot-cinema": "one-take cinema: graphite stage, tungsten amber + beam blue, letterboxed continuous camera travel with live timecode, pop-up stat figures, animated product mocks, light sweeps — for trailers, hype reels, cinematic announcements",
 };
 
 const { extractFirstJsonObject: parseLenient } = require("./json_lenient");

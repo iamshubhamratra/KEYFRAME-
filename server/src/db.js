@@ -592,6 +592,24 @@ module.exports = {
     scheduleWrite();
   },
 
+  // The Product Understanding model (prompt-only jobs). Kept as a disclosure so the Script
+  // Room can show WHAT the pipeline believed the product to be — and, critically, its
+  // `inferred[]` list, which is the honest answer to "where did this claim come from?".
+  setProductModel(id, product) {
+    const j = jobs.get(id); if (!j) return;
+    j.product_model = product || null;
+    scheduleWrite();
+  },
+
+  // Asset Placement review — which picture the pipeline put in which of the template's boxes,
+  // why it chose it, and which boxes it could not fill. The one record that answers "why is
+  // that image there?" without watching the film. Best-effort; never gates a render.
+  setPlacementReview(id, review) {
+    const j = jobs.get(id); if (!j) return;
+    j.placement_review = review || null;
+    scheduleWrite();
+  },
+
   // On-screen text localization report (video-text language + coverage). Surfaced in
   // Premiere; best-effort disclosure, never gates a render.
   setLocalization(id, report) {

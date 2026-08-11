@@ -100,7 +100,36 @@ const NATIVE_PACK_COMPOSERS = {
   // screenshot-hungry: an annotated product tour in real device chrome, with drawn arrows,
   // numbered callouts and a travelling cursor. Ported from the same imported OM set.
   "showcase": require("./showcase_composer"),
+  // The 70 imported FilmKit packs — the same story as the seven OM skins above, one scale
+  // up. They are one film built seventy ways (the handoff's source/film-kit.js), so they
+  // share ONE engine — services/film_stage.js — and each ships a generated skin under
+  // film_skins/. Registered by directory scan rather than seventy literal lines, so
+  // `node scripts/gen-film-skins.js` adding a template is all it takes to install it.
+  ...filmSkinComposers(),
 };
+
+// Every generated FilmKit skin, keyed by its renderer id ("film-<slug>", which is what the
+// pack's own frames/<slug>/pack.json declares). FAIL-OPEN PER SKIN: one bad module must cost
+// its own pack, never the boot — this map is built at require time and a throw here would
+// take the whole server down before it could serve a single job.
+function filmSkinComposers() {
+  const out = {};
+  const dir = path.join(__dirname, "film_skins");
+  let files = [];
+  try { files = fs.readdirSync(dir).filter((f) => f.endsWith(".js") && !f.startsWith("_")); }
+  catch { return out; }
+  for (const f of files) {
+    const slug = f.replace(/\.js$/, "").replace(/_/g, "-");
+    try {
+      const m = require(path.join(dir, f));
+      if (m && typeof m.buildComposition === "function") out[`film-${slug}`] = m;
+      else console.warn(`[composer] film_skins/${f} exports no buildComposition — skipped`);
+    } catch (e) {
+      console.warn(`[composer] film_skins/${f} failed to load (${e.message.slice(0, 120)}) — skipped`);
+    }
+  }
+  return out;
+}
 
 // THE AUTHORITATIVE renderer -> composer module map. Every pack that owns a dedicated
 // composer appears here exactly once: the seven that attemptLlmComposition dispatches
@@ -262,14 +291,33 @@ const { contrastCheck } = require("./contrast_check");
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
 function ms() { return Date.now(); }
 
-// Mechanical fallback queries so a too-specific search degrades to a broader
-// one instead of failing: drop the last word, then keep only the first two.
+// Mechanical fallback queries so a too-specific search degrades to a broader one instead of
+// failing.
+//
+// This used to be "drop the last word, then keep the first two", which works for a 3-4 word
+// query and fails badly for a described SCENE. Asset needs are now written as shootable
+// sentences ("hand holding smartphone photographing a paper receipt on a café table"), and
+// that rule degraded it to "…on a café" and then to "hand holding" — the second of which is
+// not a search for anything.
+//
+// A stock search wants CONTENT NOUNS. So the ladder drops the function words first and keeps
+// the most meaningful head of the phrase: four content words, then three, then two.
+const QUERY_STOP = new Set([
+  "a", "an", "the", "and", "or", "of", "in", "on", "at", "to", "for", "with", "from", "into",
+  "over", "under", "onto", "by", "as", "is", "are", "its", "his", "her", "their", "while",
+  "that", "this", "it", "up", "down", "out",
+]);
 function fallbackQueriesFor(query) {
-  const words = String(query).trim().split(/\s+/);
+  const raw = String(query).trim().split(/\s+/).filter(Boolean);
+  const content = raw.filter((w) => !QUERY_STOP.has(w.toLowerCase()));
   const out = [];
-  if (words.length >= 3) out.push(words.slice(0, -1).join(" "));
-  if (words.length >= 2) out.push(words.slice(0, 2).join(" "));
-  return [...new Set(out)].filter((q) => q !== query);
+  if (raw.length >= 3) out.push(raw.slice(0, -1).join(" "));
+  // The content-word head: the part a stock library actually indexes.
+  for (const n of [4, 3, 2]) {
+    if (content.length > n) out.push(content.slice(0, n).join(" "));
+  }
+  if (content.length >= 2 && content.length <= 4) out.push(content.join(" "));
+  return [...new Set(out)].filter((q) => q && q !== query);
 }
 
 // Fold a creative brief into a rich, directive storyboard prompt — the brief

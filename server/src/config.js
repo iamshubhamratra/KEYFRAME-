@@ -319,6 +319,26 @@ function build() {
       : (vldCfg.enabled !== false),
   };
 
+  // ASSET PREPARATION — the parallel sub-agent stage between collection and curation
+  // (graph.assetPrepAgent). Measures the pixel evidence every later stage wants (sharpness,
+  // information, compression, subject concentration), grades each asset 0-100, and computes
+  // a content-aware crop focus per slot shape the chosen template declares.
+  //
+  // DETERMINISTIC (no LLM, no vision): libvips/ffmpeg only, bounded concurrency, results
+  // cached by file CONTENT so the same stock photo is analysed once across every job that
+  // ever fetches it. Default ON, because what it replaces is a centre-crop guess and an
+  // unranked pool. Disable with ASSET_PREP=0. Fail-open — it can never block a render.
+  //   cropAspects  — extra slot ratios to analyse beyond the ones the pack declares
+  //   concurrency  — analysis lanes; defaults to (cores - 1), clamped to [1,4]
+  const apCfg = cfg.assetPrep || {};
+  cfg.assetPrep = {
+    enabled: process.env.ASSET_PREP != null
+      ? /^(1|true|yes|on)$/i.test(String(process.env.ASSET_PREP))
+      : (apCfg.enabled !== false),
+    concurrency: Number(process.env.ASSET_PREP_CONCURRENCY) || apCfg.concurrency || null,
+    cropAspects: Array.isArray(apCfg.cropAspects) ? apCfg.cropAspects : [],
+  };
+
   // Asset Reuse Optimizer — the last stage of asset intelligence (services/asset_reuse.js).
   // DETERMINISTIC (no LLM, no vision, no I/O). Fills scenes the Creative Director and Visual
   // Layout Director could not cover, by cloning the best-fitting already-approved asset onto
@@ -457,6 +477,26 @@ function build() {
   cfg.languageDirector = {
     enabled: process.env.LANGUAGE_DIRECTOR === "0" ? false : (ldCfg.enabled !== false),
   };
+
+  // Product Understanding — the intake stage that expands a bare PROMPT into a structured
+  // product model (category / problem / solution / features-with-proof / benefits / a
+  // shootable visual vocabulary) before the brief is written.
+  //
+  // It runs ONLY when the job has no richer ground truth — no website body text, no
+  // transcript (services/product_understanding.shouldRun). A website ingest already supplies
+  // evidence, and inferring over evidence would make the brief less grounded, not more. So on
+  // the URL path this costs nothing at all; on the prompt-only path it is the difference
+  // between a script with something to say and the filler the brief's own anti-invention rule
+  // guarantees when the inputs carry no facts.
+  //
+  // Text-only, so the default flash model serves it. Disable with PRODUCT_UNDERSTANDING=0.
+  // Fail-open: any error returns null and intake proceeds exactly as before.
+  const puCfg = cfg.productUnderstanding || {};
+  cfg.productUnderstanding = {
+    enabled: process.env.PRODUCT_UNDERSTANDING === "0" ? false : (puCfg.enabled !== false),
+    model: process.env.PRODUCT_UNDERSTANDING_MODEL || puCfg.model || kieDefaultModel,
+  };
+  cfg.llm.primary.stageModels = { ...(cfg.llm.primary.stageModels || {}), product: cfg.productUnderstanding.model };
 
   // QA reviewer. `enabled` turns the whole agent off. `inspectNonRepairable` decides
   // whether a render that CANNOT be repaired is still reviewed.

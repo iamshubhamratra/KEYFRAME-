@@ -48,13 +48,16 @@ Assets with source "upload" are the user's OWN materials — their product's scr
 
 ## Prominence
 
-Decide how boldly each approved asset may appear:
-- `hero` — strong enough to carry a scene (large split, montage centerpiece, full device-frame hero).
-- `support` — good enough to feature as an inset / montage tile.
-- `background` — usable only as a dimmed, scrimmed backdrop behind content.
-- `reject` — do not use at all (pair with decision:"reject").
+Prominence answers **"how boldly may this appear?"** — it is a RANKING, not a permission slip. Every approved asset is placed somewhere; prominence decides which box it lands in when there are more assets than good boxes.
 
-Reserve `hero`/`support` for assets you are confident genuinely show the subject and look premium. When in doubt, use `background`.
+- `hero` — strong enough to carry a scene (large split, montage centerpiece, full device-frame hero).
+- `support` — good enough to feature as an inset / montage tile. **This is the normal verdict for any usable, on-topic picture.**
+- `background` — weak: it can sit behind content but should not be the thing a viewer looks at. Use it for images that are on-topic but visually poor, generic, or nearly a duplicate of something better.
+- `reject` — genuinely unusable: off-topic, wrong brand, broken, unreadable, near-blank. Pair with `decision:"reject"`.
+
+**Do not use `background` as a "not sure" answer.** Most films have more scenes than assets, so a picture you rank low still ends up on screen — just in a smaller, later box. If an image genuinely shows the subject and is technically fine, `support` is the honest verdict even if it is not remarkable. Reserve `hero` for the few that are.
+
+The only verdict that removes an asset from the film is `reject`. Use it decisively when an asset is wrong, and not otherwise — a film that shows a merely-average on-topic photo reads far better than a film that shows nothing.
 
 ## Scene assignment
 

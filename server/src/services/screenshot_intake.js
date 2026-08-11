@@ -101,8 +101,18 @@ async function filterScreenshots({ shots, deduper } = {}) {
     usable.push(s);
   }
   if (!usable.length) {
-    review.notes.push(`All ${review.captured} capture(s) were obstructed by page overlays (consent/modal/chat) that could not be dismissed — none were usable as product visuals.`);
-    return { keptShots: [], review };
+    // Same floor as below, applied one stage earlier. An overlay that survived dismissal is
+    // a real defect, but returning nothing hard-fails the job (preflight.userMaterialSurvived
+    // is FAIL-level and config.validationGate.hardFail is true), and the caller's PeekShot
+    // rescue only fires when it can — the film should not die because a consent banner won.
+    // Keep the LEAST obstructed capture and disclose it.
+    const least = shots.slice().sort((a, b) => (Number(a.maxCoveragePct) || 0) - (Number(b.maxCoveragePct) || 0))[0];
+    review.notes.push(`All ${review.captured} capture(s) were obstructed by page overlays (consent/modal/chat) that could not be dismissed.`
+      + (least ? " Kept the least-covered one so the film still shows the real site." : ""));
+    if (!least) return { keptShots: [], review };
+    review.dropped = review.dropped.filter((d) => d.path !== path.basename(least.path));
+    review.floored = true;
+    usable.push(least);
   }
 
   // 1) Validate each shot (blank/low-info) and gather stdev/dhash/ratio in ONE
@@ -126,6 +136,26 @@ async function filterScreenshots({ shots, deduper } = {}) {
   for (const p of probed) {
     if (!p.ok) review.dropped.push({ path: path.basename(p.abs), reason: "blank" });
     else nonBlank.push(p);
+  }
+  // THE FLOOR: NEVER RETURN NOTHING WHEN SOMETHING WAS CAPTURED.
+  //
+  // Three independent paths here can empty the list — every shot obstructed, every shot
+  // blank, every shot a near-duplicate — and the cost of that is not "a film with fewer
+  // screenshots". `config.validationGate.hardFail` is true, so preflight's
+  // `userMaterialSurvived` check FAILS the whole job: the user gave a URL, nothing survived,
+  // and they get an error instead of a film.
+  //
+  // A gate that can reject 100% of its input needs a floor, and the honest one is: keep the
+  // single strongest capture and SAY that it was kept under protest. A slightly obstructed
+  // hero shown once is a better answer than a failed render, and the disclosure means nobody
+  // is misled about what they are looking at. (An AUTH WALL is different and is handled by
+  // the caller — there the correct answer really is "we cannot show this site".)
+  if (!nonBlank.length && probed.length) {
+    const best = probed.slice().sort((a, b) => strength(b) - strength(a))[0];
+    nonBlank.push(best);
+    review.dropped = review.dropped.filter((d) => d.path !== path.basename(best.abs));
+    review.notes.push("Every capture failed the quality gate; kept the strongest one so the film still shows the real site.");
+    review.floored = true;
   }
 
   // 3) Keep-strongest dedup. Process STRONGEST-first (stdev desc, original order

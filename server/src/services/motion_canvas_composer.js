@@ -30,11 +30,14 @@
 
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
 const { varyArchetypes } = require("./motion_planner");
-const { isTrustedProminent, isLogo } = require("./asset_priority");
+const { isLogo } = require("./asset_priority");
+const admission = require("./asset_admission");
 const { logoMark } = require("./logo_render");
 const { plateBox } = require("./responsive");
 const { charSpans, wordCharSpans } = require("./text_fx");
 const { resolveBrand } = require("./brand_kit");
+const CUTS = require("./om_scene_cuts");
+const { tempoOf } = require("./pacing");
 const { GSAP_CDN, r, esc, hexToRgb, relLum, longestWord, bullets, logoAssetOf, grainUri, displayShadow } = require("./composer_kit");
 
 // Archivo Black (bundled) is the punchy poster grotesque that carries the template's
@@ -157,7 +160,12 @@ function screenOk(a) {
   if (isLogo(a)) return false; // the logo is CTA / key-moment material, not a shape panel
   if (a.type === "video" || /\.(mp4|webm|mov)($|\?)/i.test(a.path)) return false;
   if (/\.svg($|\?)/i.test(a.path)) return false;
-  return isTrustedProminent(a) || a.cdProminence === "hero" || a.cdProminence === "support";
+  // ADMISSION IS SHARED (services/asset_admission). This line used to read a TRUST signal
+  // as an ADMISSION test: web stock satisfies neither clause and the Creative Director is
+  // told "when in doubt, use background", so a stock photo was never drawn at all — measured
+  // as zero <img> from a wire of five good pictures. Trust now ORDERS the pool
+  // (admission.displayRank); only an explicit reject is excluded.
+  return admission.displayOk(a);
 }
 // Portrait screenshots (ratio<0.9) get a tall frame; wide shots a shorter one.
 function frameHmul(asset) {
@@ -213,7 +221,7 @@ function shotFrame(idn, theme, { w, asset, tilt, shadow }) {
 }
 
 // ---- scene clip open ---------------------------------------------------------
-function open(id, ctx) { return `<div class="clip mc-scene" id="${id}" data-start="${ctx.T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">`; }
+function open(id, ctx) { return `<div class="clip mc-scene" id="${id}" data-start="${ctx.T}" data-duration="${r(ctx.clipDur != null ? ctx.clipDur : ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">`; }
 
 // ---- archetype selection -----------------------------------------------------
 function archetypeFor(scene, i, total) {
@@ -569,7 +577,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   // is reserved for the CTA mark (never a shape panel).
   const logo = logoAssetOf(assets);
   const shots = (Array.isArray(assets) ? assets : []).filter(screenOk)
-    .sort((a, b) => (Number(b.cdScore) || 0) - (Number(a.cdScore) || 0));
+    .sort(admission.byDisplayRank);
   const baseArch = scenes.map((scene, i) => archetypeFor(scene, i, scenes.length));
   // ANTI-REPETITION (services/motion_planner). archetypeFor above ends in a single
   // fallthrough, so every middle scene of a text-led film lands on the same type and the
@@ -612,6 +620,19 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   const scriptStart = (i) => scenes.slice(0, i).reduce((a, s) => a + (Number(s.duration) || 0), 0);
   const bodyParts = [], sceneScripts = [];
 
+  // THE CUT PLAN. Resolved before the scene loop, because a clip's duration now depends on the
+  // cut that follows it and a cut cannot be chosen until every beat's class is known.
+  const cutPlan = CUTS.plan({
+    // Film tempo — cuts tighten with no narration (services/pacing.js).
+    tempo: tempoOf(sb),
+    seed, D, signature: CUTS.SIGNATURES["motion-canvas"],
+    beats: scenes.map((scene, i) => ({
+      T: r(scene.start != null ? scene.start : scriptStart(i)),
+      L: r(scene.duration || 5),
+      role: baseArch[i], scene, shotCount: (sceneShots[i] || []).length,
+    })),
+  });
+
   scenes.forEach((scene, i) => {
     const T = r(scene.start != null ? scene.start : scriptStart(i));
     const L = r(scene.duration || 5);
@@ -623,12 +644,18 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     // The logo is CTA-only (never a shape panel).
     if (canShow(arch)) sceneAssets = (sceneAssets || []).slice(0, arch === "showcase" ? 3 : 1);
     else sceneAssets = [];
-    const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), i, isLast: i === scenes.length - 1, track: 2 + i, theme, S, W, H, portrait };
+    const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), i, isLast: i === scenes.length - 1, track: 2 + i, clipDur: cutPlan.clipDur[i], theme, S, W, H, portrait };
     const built = (BUILDERS[arch] || bKinetic)(scene, ctx, arch === "cta" ? logo : sceneAssets);
-    bodyParts.push(built.html);
-    sceneScripts.push(built.s.filter(Boolean).join("\n  "));
-    if (!ctx.isLast) sceneScripts.push(`kill("#${ctx.id}",${r(T + L)});`);
+    bodyParts.push(CUTS.camWrap(built.html));
+    sceneScripts.push(CUTS.sceneJs(built.s.filter(Boolean), ctx, cutPlan, i).join("\n  "));
   });
+
+  // The cuts themselves. Overlay clips sit on tracks 20+ — above the scenes, below the grain and
+  // the caption node — so a light bar sweeps the picture without crossing the subtitle, and the
+  // pack's persistent world on track 0 keeps flowing underneath every one of them.
+  const tx = CUTS.build(cutPlan, { theme });
+  bodyParts.push(...tx.html);
+  if (tx.js.length) sceneScripts.push(tx.js.join("\n  "));
 
   const cues = (Array.isArray(captionCues) ? captionCues : [])
     .filter((c) => c && c.text != null)
@@ -642,6 +669,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   var tl=gsap.timeline({paused:true});
   var $=function(s){return document.querySelector(s);};
   function kill(id,t){tl.set(id,{opacity:0},t);}
+  ${CUTS.HELPERS}
   // scrub a substring of full text across [at, at+dur] — deterministic typing.
   function type(sel,full,at,dur){var o={n:0};tl.to(o,{n:full.length,duration:dur,ease:"none",snap:{n:1},onUpdate:function(){var e=$(sel);if(e){var s=full.slice(0,Math.round(o.n));if(e.textContent!==s)e.textContent=s;}}},at);}
 
@@ -663,7 +691,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   const indexHtml = [
     `<!DOCTYPE html>`, `<html lang="en">`, `<head>`, `<meta charset="utf-8">`, `<title>vid</title>`,
     `<script src="${GSAP_CDN}"></script>`,
-    `<style>`, styleBlock(theme, portrait), `</style>`, `</head>`, `<body>`,
+    `<style>`, styleBlock(theme, portrait) + CUTS.CAM_CSS, `</style>`, `</head>`, `<body>`,
     `<div id="root" class="composition" data-composition-id="vid" data-width="${W}" data-height="${H}" data-start="0" data-duration="${D}" style="width:${W}px;height:${H}px;">`,
     field.html,
     bodyParts.join("\n"),

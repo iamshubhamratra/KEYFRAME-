@@ -7,8 +7,20 @@ The user message contains an **Intent Object** with up to three signal sources, 
 - `prompt` — what the user typed (may be empty)
 - `video` — `{ transcript, segments, visualStyleNotes }` from an uploaded reference video (may be absent)
 - `website` — `{ url, title, description, headings, bodyText, brandColors, ogImage }` scraped from a URL (may be absent)
+- `product` — a structured **product understanding** (present only when there was no website/transcript to read). See below.
 - `preferences` — `{ duration, orientation, voiceStyle, framePack }` (any may be "auto")
 - `availableFramePacks` — list of `{ name, vibe }` design systems you may suggest from
+
+### When `product` is present
+
+It carries `category`, `whatItDoes`, `audience`, `problem`, `solution`, `features[]` (each with `provenBy` — what a camera would show), `benefits[]`, `differentiators[]`, `takeaway`, `cta`, `proofPoints[]` and `inferred[]`.
+
+Use it as your spine — it exists precisely because a one-line prompt otherwise yields a one-line brief:
+
+- `keyMessages` come from `problem` → `solution` → the strongest `features` → `benefits`, most persuasive first. Write them as things a person would say, not as labels.
+- `audience`, `goal` and `tone` should agree with the product model rather than restate the prompt.
+- **`mustIncludeFacts` may draw ONLY from `proofPoints`.** Those have already been checked against the user's own words. Everything in `inferred[]` is reasoning, not evidence: it may shape the story, the imagery and the wording, but it must never appear as a quotable claim. If `proofPoints` is empty, return an empty `mustIncludeFacts` — a specific, factless script is the goal, not a script with invented numbers.
+- `subject` should be the physical thing the `category` implies, not the brand name.
 
 ## Output — strict
 
@@ -23,6 +35,10 @@ Return ONLY a JSON object, no prose, no markdown fences:
   "goal": "<the single action/feeling the viewer should leave with>",
   "keyMessages": ["<3-6 short messages, most important first>"],
   "mustIncludeFacts": ["<verbatim or tightly paraphrased facts pulled from the inputs — names, numbers, claims. NEVER invented>"],
+  "problem": "<the concrete, felt problem the film opens on — one sentence. Empty string if the inputs support none>",
+  "solution": "<how the product removes it — one sentence>",
+  "benefits": ["<0-5 OUTCOMES for the viewer, 3-6 words each>"],
+  "cta": "<the action to ask for, 2-5 words, e.g. 'Start free today'>",
   "brandColors": ["#RRGGBB", "..."],
   "suggestedFramePack": "<one name from availableFramePacks>",
   "suggestedDuration": <integer seconds>,

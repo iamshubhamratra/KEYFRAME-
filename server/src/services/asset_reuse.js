@@ -715,6 +715,16 @@ function optimizeAssetReuse({ assets, script, storyboard, framePack, dims, nativ
         ...(scene.start != null ? { startSec: scene.start } : {}),
         ...(scene.duration != null ? { durationSec: scene.duration } : {}),
       };
+      // A CLONE IS NOT THE ORIGINAL'S PLACEMENT. `{...row.ref}` copies every field, including
+      // the `__placement` stamp the Asset Placement stage wrote on the original — so a clone
+      // arrived claiming to occupy a box that its parent is already sitting in, two scenes
+      // away. Nothing renders wrong (preflight dedupes by placeholderId), but the disclosure
+      // then reports a second asset in a box that holds one, and `__slotWeight` would seat the
+      // clone by the PARENT's box priority rather than this slot's. This appearance is placed
+      // by THIS stage, so it carries this stage's identity.
+      delete clone.__placement;
+      clone.__slotWeight = Number(slot.weight) || 40;
+      clone.__reuseSlot = slot.placeholderId || slot.sceneId;
       let variation = null;
       if (reused) {
         clone.__reuseOf = row.assetId;

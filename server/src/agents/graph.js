@@ -492,7 +492,70 @@ async function assetPlannerAgent(s) {
   const targets = showcaseTargets(script)
     .filter((x) => !userPins.usedSceneIds.has(x.id))
     .slice(0, websiteCap);
-  const screenshotPlan = shots.slice(0, targets.length).map((src, i) => ({ kind: "screenshot", src, scene: targets[i], index: i }));
+
+  // ---- WHICH CAPTURE GOES WHERE ---------------------------------------------------------
+  //
+  // This was `shots.slice(0, targets.length)` zipped positionally against the scene list: the
+  // FIRST captures in file order, handed to scenes in plan order. Two things were wrong with
+  // it, and the second is the expensive one.
+  //
+  // 1) TRUNCATING FROM THE FRONT throws away the last captures, and the MOBILE shot is
+  //    captured last (ingest/website.js captures it after the harvest) — so on a 30s film,
+  //    where the duration budget allows three screenshots, the native portrait capture was
+  //    almost never used. On a 9:16 film that is the one shot that fits the frame.
+  //
+  // 2) `screenshot_intake` measures each capture and hands forward `{kind, heading,
+  //    contentScore}` with the comment "let the asset planner pin a section to the scene it
+  //    actually illustrates instead of round-robining blindly". `job.website_shots` is
+  //    written at intake and — until now — read by nothing at all. The pricing section could
+  //    land on the scene about analytics while the analytics capture sat unused.
+  //
+  // So: rank the captures on what was measured, and match them to scenes on what they SAY.
+  const shotMeta = new Map();
+  for (const s of (job.website_shots || [])) if (s && s.path) shotMeta.set(String(s.path), s);
+  const wantPortrait = Number(job.height) > Number(job.width);
+  const metaFor = (p) => shotMeta.get(String(p)) || {};
+  const shotRank = (p) => {
+    const m = metaFor(p);
+    let v = Number(m.contentScore) || 0;
+    // The hero is the film's establishing shot whatever it scores — it is the page the user
+    // actually recognises. Everything else competes on measured content.
+    if (m.kind === "hero" || /website\.png$/i.test(String(p))) v += 40;
+    // A capture whose shape matches the film's frame needs far less cropping. Worth real
+    // points on a portrait film, where a 16:9 desktop shot loses two thirds of its width.
+    const r = Number(m.ratio) || 0;
+    if (r) v += (wantPortrait ? (r < 0.9 ? 25 : 0) : (r >= 1.2 ? 15 : 0));
+    return v;
+  };
+  const ranked = shots.slice().sort((a, b) => shotRank(b) - shotRank(a));
+
+  // Pair each scene with the capture whose SECTION HEADING best matches what the scene talks
+  // about; fall back to rank order. A greedy best-pair walk, which is enough for the three or
+  // four captures a film actually carries.
+  const wordsOf = (t) => new Set(String(t || "").toLowerCase().match(/[a-z]{4,}/g) || []);
+  const overlap = (a, b) => { let n = 0; for (const w of a) if (b.has(w)) n++; return n; };
+  const screenshotPlan = [];
+  {
+    const pool = ranked.slice();
+    for (let i = 0; i < targets.length && pool.length; i++) {
+      const scene = targets[i];
+      const sceneWords = wordsOf(`${scene.headline || ""} ${scene.subtext || ""} ${scene.purpose || ""} ${(scene.onScreenText || []).join(" ")} ${scene.voiceover || ""}`);
+      let bestI = 0, bestScore = -1;
+      pool.forEach((p, k) => {
+        const m = metaFor(p);
+        // Heading affinity is worth up to ~30 points, so it can reorder captures of similar
+        // measured content without overriding a much stronger shot.
+        const affinity = overlap(wordsOf(m.heading), sceneWords) * 12;
+        const v = shotRank(p) + affinity - k * 0.01;   // stable: earlier rank breaks ties
+        if (v > bestScore) { bestScore = v; bestI = k; }
+      });
+      const src = pool.splice(bestI, 1)[0];
+      screenshotPlan.push({ kind: "screenshot", src, scene, index: i, meta: metaFor(src) });
+    }
+  }
+  if (screenshotPlan.length) {
+    console.log(`[agents] screenshots → ${screenshotPlan.map((p) => `${p.meta.kind || "shot"}${p.meta.heading ? `("${String(p.meta.heading).slice(0, 22)}")` : ""}→${p.scene.id}`).join(", ")}`);
+  }
   const pinnedSceneIds = new Set([...userPins.usedSceneIds, ...screenshotPlan.map((p) => p.scene.id)]);
 
   // HARVESTED WEBSITE BRAND ASSETS (tier-90 logo + tier-70 imagery) — pin the site's
@@ -602,6 +665,76 @@ async function assetPlannerAgent(s) {
       wants.push({ kind: "search", scene, need: { ...need, type } });
     }
   }
+
+  // ---- FILL THE TEMPLATE'S REMAINING BOXES -----------------------------------------------
+  //
+  // THE BUDGET WAS A CEILING WITH NO FLOOR. Everything above builds wants from
+  // `scene.assetNeeds`, plus a gap-fill that fires only when a scene authored NOTHING
+  // (`if (!needs.length && ...)`). So a scene that authored ONE need produced exactly ONE
+  // want — and the template's own contract, which may say that beat draws FOUR pictures, had
+  // no way to ask for the other three. `collectionTargetFor` computed a target of 14 while
+  // the want list stood at 6, and the difference was simply never fetched. That is the
+  // arithmetic behind "12 placeholders, 2 images, 10 empty areas": the collector could not
+  // want what the template needed.
+  //
+  // The requirement planner knows every box (services/asset_requirements), so the shortfall
+  // is now a subtraction. Boxes already covered by a pin or an authored need are skipped;
+  // what is left becomes a want carrying the box's own priority, aspect and minimum size.
+  let boxWants = 0;
+  try {
+    const { planRequirements, describeRequirements } = require("../services/asset_requirements");
+    const inventory = {
+      screenshots: screenshotPlan.length,
+      uploads: userPins.pinned.length,
+      logos: (userPins.logoAsset ? 1 : 0) + (brandPins.brandLogo ? 1 : 0),
+    };
+    const { requirements, summary } = planRequirements({
+      scenes: script.scenes, mediaPlan,
+      product: (job.intent && job.intent.product) || null,
+      dims: { width: job.width, height: job.height },
+      acceptsVectors, videoOk, inventory,
+    });
+    console.log(`[agents] asset_requirements → ${describeRequirements(summary)}`);
+
+    // How many wants each scene already has, counting the pins that own a box.
+    const covered = new Map();
+    for (const [k, v] of pins) covered.set(k, v);
+    for (const w of wants) {
+      const k = String(w.scene.id);
+      covered.set(k, (covered.get(k) || 0) + 1);
+    }
+    for (const r of requirements) {
+      if (!r.searchable || !r.query) continue;            // owned material, or nothing to search
+      const k = String(r.sceneId);
+      const slotsHere = slots.size ? (slots.get(k) || 0) : 0;
+      // Only ADD where the template says there is still a box. With no contract (`slots`
+      // empty) this adds nothing at all, so a pack with a malformed media block behaves
+      // exactly as it did before.
+      if (!slotsHere || (covered.get(k) || 0) >= slotsHere) continue;
+      const scene = script.scenes.find((sc) => String(sc.id) === k);
+      if (!scene) continue;
+      covered.set(k, (covered.get(k) || 0) + 1);
+      wants.push({
+        kind: "search", scene,
+        need: {
+          type: r.type === "video" && videoOk ? "video" : "image",
+          query: r.query,
+          role: r.kindPref === "vector" ? "icon" : (r.priority === "critical" || r.priority === "high" ? "background" : "inset"),
+          derived: true, fromBox: true,
+          // Carried so the search does not anchor a query that is already the subject.
+          concrete: r.concrete === true,
+        },
+        // The box this want exists to fill — carried so the search can rank against ITS shape
+        // rather than the scene's dominant one, and so the log can say what was missing.
+        requirement: r,
+      });
+      boxWants++;
+    }
+    if (boxWants) console.log(`[agents] asset_planner: +${boxWants} want(s) for template boxes the script did not ask for`);
+  } catch (e) {
+    // FAIL-OPEN: the film collects exactly what it collected before.
+    console.warn(`[agents] box-driven wants skipped: ${e.message}`);
+  }
   // A need is a vector if its ROLE is icon/texture/vector OR its script TYPE is
   // "icon" (the script schema allows type:"icon" with any role; keying only off
   // role missed those and fetched explicitly-requested icons as photos).
@@ -623,12 +756,45 @@ async function assetPlannerAgent(s) {
       console.log(`[agents] asset_planner: converted ${converted} vector need(s) to photo needs for "${s.framePack}" (photo budget → ${budget.maxPhotos})`);
     }
   }
-  const videos = wants.filter((w) => w.need.type === "video").slice(0, budget.maxVideos);
+  // A CAP MUST NOT BE A PREFIX. `wants` is built by walking the scenes in order, so
+  // `.slice(0, maxPhotos)` cut from the END of the film: when the cap bound, the closing
+  // scenes were starved to zero while an early scene kept three. That is the same
+  // "coverage before depth" rule the layout director and every composer already apply,
+  // missing at the one place that decides what is fetched at all.
+  //
+  // Round-robin: every scene's FIRST want is taken before any scene's second. Within a lap,
+  // the more important box goes first, so a cap that bites still leaves each beat its
+  // strongest picture.
+  const fairSlice = (list, n) => {
+    if (n <= 0) return [];
+    if (list.length <= n) return list;
+    const byScene = new Map();
+    for (const w of list) {
+      const k = String(w.scene.id);
+      if (!byScene.has(k)) byScene.set(k, []);
+      byScene.get(k).push(w);
+    }
+    const weightOf = (w) => (w.requirement && Number(w.requirement.weight)) || (w.need.derived ? 30 : 55);
+    for (const arr of byScene.values()) arr.sort((a, b) => weightOf(b) - weightOf(a));
+    const lanes = [...byScene.values()];
+    const out = [];
+    for (let lap = 0; out.length < n; lap++) {
+      let progressed = false;
+      for (const lane of lanes) {
+        if (lap >= lane.length) continue;
+        out.push(lane[lap]); progressed = true;
+        if (out.length >= n) break;
+      }
+      if (!progressed) break;
+    }
+    return out;
+  };
+  const videos = fairSlice(wants.filter((w) => w.need.type === "video"), budget.maxVideos);
   // Vectors get their OWN budget so a long photo list can't starve them — this
   // is what finally feeds the curated SVG library into films. All three caps now
   // scale with the duration budget (were fixed 2 / 8 / 12).
-  const vectors = wants.filter((w) => w.need.type !== "video" && isVectorNeed(w.need)).slice(0, budget.maxVectors);
-  const photos  = wants.filter((w) => w.need.type !== "video" && !isVectorNeed(w.need)).slice(0, budget.maxPhotos);
+  const vectors = fairSlice(wants.filter((w) => w.need.type !== "video" && isVectorNeed(w.need)), budget.maxVectors);
+  const photos  = fairSlice(wants.filter((w) => w.need.type !== "video" && !isVectorNeed(w.need)), budget.maxPhotos);
   console.log(`[agents] asset_planner: ${userPins.pinned.length} upload(s)${userPins.logoAsset ? " + logo" : ""} + ${screenshotPlan.length} screenshot(s) + ${videos.length} video(s) + ${photos.length} photo(s) + ${vectors.length} vector(s) (${wants.filter((w) => w.need.derived).length} derived)`);
   return {
     assetPlan: { userAssets: userPins.pinned, logo: userPins.logoAsset, brandAssets: brandPins.brandPinned, brandLogo: brandPins.brandLogo, screenshots: screenshotPlan, searches: [...videos, ...photos, ...vectors] },
@@ -841,10 +1007,14 @@ async function assetSearchAgent(s) {
   })();
 
   let nImg = 0, nVid = 0;
-  const jobs = assetPlan.searches.map(({ scene, need }) => {
+  const jobs = assetPlan.searches.map(({ scene, need, requirement }) => {
     const isVideo = need.type === "video";
     const relPath = isVideo ? `assets/videos/${nVid++}.mp4` : `assets/images/${nImg++}.jpg`;
-    return { scene, need, isVideo, relPath, targetRatio: slotAspectFor(scene) };
+    // A want created FOR a specific box knows that box's exact aspect; rank against it rather
+    // than against the scene's dominant slot, which is only an approximation when a beat draws
+    // more than one picture in more than one shape.
+    const targetRatio = (requirement && requirement.preferredAspect) || slotAspectFor(scene);
+    return { scene, need, isVideo, relPath, targetRatio, requirement: requirement || null };
   });
 
   const tFetch = ms();
@@ -868,7 +1038,30 @@ async function assetSearchAgent(s) {
       // style is applied at RANK time via styleKeywords and at render time as a
       // treatment — NOT concatenated into the search text (that overflowed provider
       // length limits and diluted the subject). See asset_sources query hygiene.
-      const query = (!isIcon && anchor) ? `${anchor} ${need.query}` : need.query;
+      //
+      // ANCHORING AN ALREADY-CONCRETE QUERY DESTROYS THE FILM'S VARIETY.
+      //
+      // The anchor exists for a VAGUE need — a stopword-stripped camera direction that
+      // could return anything. A query that names a real scene ("hand holding smartphone
+      // photographing a paper receipt on a café table") does not need it, and prepending
+      // 38 characters of subject in front of one is actively harmful, because `acquire`
+      // hard-caps the query at 90 characters (Pixabay 400s past ~100). Measured on a real
+      // prompt-only run, every one of the film's queries became the SAME 38-char prefix
+      // plus a truncated tail:
+      //
+      //   "smartphone photographing paper receipt hand holding smartphone photographing a paper recei"
+      //   "smartphone photographing paper receipt desk cluttered with wrinkled receipts and an open n"
+      //   "smartphone photographing paper receipt freelancer working on a laptop in a bright home stu"
+      //
+      // The provider saw one query three times and returned the same pictures. The deduper
+      // then correctly dropped them, and a 7-fetch plan collapsed to 2 assets — 5 of 7
+      // scenes rendered with no visual. The collector defeated itself.
+      //
+      // So: anchor only what is actually vague. A need that came from the script or from
+      // the product model's visual vocabulary is already the subject.
+      const wordCount = String(need.query || "").trim().split(/\s+/).length;
+      const concrete = need.concrete === true || (!need.derived && wordCount >= 3) || wordCount >= 5;
+      const query = (!isIcon && anchor && !concrete) ? `${anchor} ${need.query}` : need.query;
       const r = await acquire({
         query,
         fallbackQueries: [...new Set([need.query, ...fallbackQueriesFor(query)])],
@@ -1165,6 +1358,22 @@ async function creativeDirectorAgent(s) {
     jobDir,
     orientation: job.orientation,
     maxTopUp: cdMaxTopUp,
+    // HOW MANY PICTURES THIS FILM ACTUALLY NEEDS — the director's rejection floor.
+    //
+    // The director judges assets one at a time and, until it was told this, nothing looked at
+    // the total. A real prompt-only render came back "2 approved / 6 rejected" and shipped
+    // with 4 of 8 scenes bare: every rejection defensible alone, the outcome indefensible.
+    // A prompt-only film has no owned material to fall back on, so the floor is the only
+    // thing standing between an honest quality bar and an empty film.
+    //
+    // It is the template's own fillable slot count — the number of boxes the pack will draw —
+    // so the director may still reject freely when the pool is deep, and must demote rather
+    // than delete when it is not. Absent a media plan, 0 keeps the historical behaviour.
+    minKeep: (() => {
+      const p = s.mediaPlan;
+      if (!p || !Array.isArray(p.placeholders)) return 0;
+      return p.placeholders.filter((x) => x.kind !== "logos").length;
+    })(),
     onReview: (report) => {
       audioAdvice = { music: report.musicAnalysis || null, sfx: report.soundEffectAnalysis || null };
     },
@@ -1302,6 +1511,72 @@ async function visualLayoutDirectorAgent(s) {
 // Runs after the layout director (it needs the final placements) and before composition.
 // Deterministic and free — no LLM, no vision, no I/O — so it adds no measurable latency.
 // Fail-open: on any error the wire is returned untouched.
+// ASSET PLACEMENT — which collected picture goes in which of the template's BOXES.
+//
+// It sits between the Visual Layout Director (which decides how boldly things appear) and the
+// Asset Reuse Optimizer (which covers whatever is still empty), because that is the only
+// point where all three inputs exist at once: the final asset wire with its quality grades and
+// crop analyses, the template's resolved placeholder contract, and the requirement list the
+// script and the product model produced.
+//
+// Before it, "placement" was an emergent property of three unrelated decisions — the Creative
+// Director picked a SCENE, the layout director moved surplus off over-subscribed scenes, and
+// the composer sorted whatever arrived by `cdScore`. No stage ever compared a picture's SHAPE
+// or SIZE against the box it would be drawn into, which is why a tall phone capture could win
+// a 2:1 hero plate on relevance alone.
+//
+// Deterministic and free (no LLM, no vision, no I/O). Fail-open: on any error the assets keep
+// the scene assignment they already had and the film renders exactly as before.
+async function assetPlacementAgent(s) {
+  if (config.assetPlacement?.enabled === false) return {};
+  const assets = Array.isArray(s.assets) ? s.assets : [];
+  if (!assets.length) return {};
+  try {
+    const { planRequirements, describeRequirements } = require("../services/asset_requirements");
+    const { placeAssets, describePlacement } = require("../services/asset_placement");
+    const acceptsVectors = require("../services/frame_manifest").packAcceptsVectors(s.framePack);
+    const scenes = (s.storyboard && Array.isArray(s.storyboard.scenes) && s.storyboard.scenes.length)
+      ? s.storyboard.scenes
+      : (s.script && Array.isArray(s.script.scenes) ? s.script.scenes : []);
+
+    // What OWNED material this film actually has. Counted from the WIRE, not from the job,
+    // because that is the only place that knows what survived capture, pruning, the vision
+    // review and the quality floor. A template box that wants a screenshot the film does not
+    // have degrades to a searchable one rather than becoming a box nothing can ever fill —
+    // the difference between a prompt-only film with eight pictures and one with five.
+    const inventory = {
+      screenshots: assets.filter((a) => a && a.source === "website" && !isLogoAsset(a)).length,
+      uploads: assets.filter((a) => a && a.source === "upload" && !isLogoAsset(a)).length,
+      logos: assets.filter((a) => a && isLogoAsset(a)).length,
+    };
+
+    const { requirements, summary } = planRequirements({
+      scenes,
+      mediaPlan: s.mediaPlan || null,
+      product: (s.job && s.job.intent && s.job.intent.product) || null,
+      dims: { width: s.job.width, height: s.job.height },
+      acceptsVectors, videoOk: hasProviderFor("video"), inventory,
+    });
+    console.log(`[agents] asset_requirements → ${describeRequirements(summary)}`);
+
+    const { review } = placeAssets({ assets, requirements, scenes, dims: { width: s.job.width, height: s.job.height } });
+    if (review) {
+      console.log(`[agents] asset_placement → ${describePlacement(review)}`);
+      try { db.setPlacementReview(s.job.id, review); } catch { /* disclosure never blocks a render */ }
+    }
+    return { assets, placementReview: review || null, requirements };
+  } catch (e) {
+    console.warn(`[agents] asset_placement skipped: ${e.message}`);
+    return {};
+  }
+}
+
+// The logo predicate, re-exported locally so the inventory count above cannot drift from the
+// one every composer uses.
+function isLogoAsset(a) {
+  return !!a && String(a.role || "").toLowerCase() === "logo";
+}
+
 async function assetReuseAgent(s) {
   if (!config.assetReuse?.enabled) return {};
   db.setProgress(s.job.id, "asset_reuse");
@@ -2380,7 +2655,7 @@ async function buildGraph() {
     brandSkin: Annotation(), layoutPlan: Annotation(), motionPlan: Annotation(),
     captionPlan: Annotation(), localizationPackWarning: Annotation(), orientationPackWarning: Annotation(), localizedStrings: Annotation(),
     assetPlan: Annotation(), assets: Annotation(), audioAdvice: Annotation(), assetReuse: Annotation(),
-    mediaPlan: Annotation(), assetPrep: Annotation(), placementReview: Annotation(),
+    mediaPlan: Annotation(), assetPrep: Annotation(), placementReview: Annotation(), requirements: Annotation(),
     voClips: Annotation(), sfxClips: Annotation(), musicPath: Annotation(), audioPlan: Annotation(),
     narration: Annotation(), audioProfile: Annotation(), musicSelection: Annotation(),
     visual: Annotation(), usedFallback: Annotation(), finalAttempt: Annotation(), rendered: Annotation(),
@@ -2400,6 +2675,7 @@ async function buildGraph() {
     .addNode("asset_prep", assetPrepAgent)
     .addNode("creative_director", creativeDirectorAgent)
     .addNode("visual_layout_director", visualLayoutDirectorAgent)
+    .addNode("asset_placement", assetPlacementAgent)
     .addNode("asset_reuse", assetReuseAgent)
     .addNode("caption_director", captionDirectorAgent)
     .addNode("localization_director", localizationDirectorAgent)
@@ -2437,10 +2713,17 @@ async function buildGraph() {
   // to decide presentation (count/size/crop) + type each scene's base archetype.
   g.addEdge(["scene_planner", "asset_prep"], "creative_director");
   g.addEdge("creative_director", "visual_layout_director");
+  // Asset Placement binds each collected picture to a real BOX (template_media placeholder)
+  // rather than merely to a scene, matching kind + shape + size + quality against the box's
+  // own contract. It must run after the layout director (whose demotions and crop annotations
+  // are inputs) and before the reuse optimizer, which exists to cover the boxes placement
+  // could not fill — asking it to do that before the unique pool has been assigned would have
+  // it cloning into boxes a real picture was about to take.
+  g.addEdge("visual_layout_director", "asset_placement");
   // The Asset Reuse Optimizer closes the coverage gap the layout director cannot: it needs
   // the FINAL placements (so it knows which scenes are still empty), and everything
   // downstream must see the clones it adds, so it sits directly between the two.
-  g.addEdge("visual_layout_director", "asset_reuse");
+  g.addEdge("asset_placement", "asset_reuse");
   // The Localization Director translates the storyboard's ON-SCREEN text into the
   // video-text language. It needs the fully-built storyboard (via visual_layout_director →
   // asset_reuse, both downstream of scene_planner) AND the resolved videoTextLanguage (from

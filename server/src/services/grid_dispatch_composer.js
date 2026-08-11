@@ -76,7 +76,8 @@
 //   language is non-Latin. A bespoke class name would silently break Devanagari/Arabic.
 
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
-const { isTrustedProminent, isLogo } = require("./asset_priority");
+const { isLogo } = require("./asset_priority");
+const admission = require("./asset_admission");
 const { logoMark } = require("./logo_render");
 const { supportLine } = require("./text_fx");
 const { resolveBrand } = require("./brand_kit");
@@ -359,7 +360,12 @@ function screenOk(a) {
   if (isLogo(a)) return false;
   if (a.type === "video" || /\.(mp4|webm|mov)($|\?)/i.test(a.path)) return false;
   if (/\.svg($|\?)/i.test(a.path)) return false;
-  return isTrustedProminent(a) || a.cdProminence === "hero" || a.cdProminence === "support";
+  // ADMISSION IS SHARED (services/asset_admission). This line used to read a TRUST signal
+  // as an ADMISSION test: web stock satisfies neither clause and the Creative Director is
+  // told "when in doubt, use background", so a stock photo was never drawn at all — measured
+  // as zero <img> from a wire of five good pictures. Trust now ORDERS the pool
+  // (admission.displayRank); only an explicit reject is excluded.
+  return admission.displayOk(a);
 }
 const ratioOf = (a) => Number(a && a.ratio) || (a && a.width && a.height ? a.width / a.height : 0);
 
@@ -762,8 +768,11 @@ function sHook(scene, ctx, sceneAssets) {
     `tl.fromTo(".${id}-sq",{scale:0,rotation:45},{scale:1,rotation:${r(45 + 0.6 * 9)},duration:${du(0.6)},ease:"${POP}"},${at(1.0)});`,
     `tl.to(".${id}-sq",{rotation:${r(45 + Math.max(6, ctx.L * 9))},duration:${r(Math.max(0.4, ctx.L - 1.6 * k))},ease:"none"},${at(1.6)});`,
     `tl.fromTo(".${id}-fr",{scaleX:0},{scaleX:1,duration:${du(0.5)},ease:"${DRAW}",transformOrigin:"left center"},${at(1.05)});`,
-    `tl.fromTo(".${id}-panel",{clipPath:"inset(0% 100% 0% 0%)"},{clipPath:"inset(0% 0% 0% 0%)",duration:${du(0.5)},ease:"${DRAW}"},${at(0.3)});`,
-    `tl.fromTo(".${id}-zoom",{scale:1},{scale:1.07,duration:${r(Math.max(1.2, ctx.L - 0.8 * k))},ease:"${DRAW}",transformOrigin:"50% 50%"},${at(0.8)});`,
+    // `fixedPanel` returns an emptyPlate when there is no picture, so neither `-panel` nor
+    // `-zoom` exists on a pictureless hook — these two were emitted regardless. Found by
+    // scripts/test-dead-tweens.js.
+    asset ? `tl.fromTo(".${id}-panel",{clipPath:"inset(0% 100% 0% 0%)"},{clipPath:"inset(0% 0% 0% 0%)",duration:${du(0.5)},ease:"${DRAW}"},${at(0.3)});` : "",
+    asset ? `tl.fromTo(".${id}-zoom",{scale:1},{scale:1.07,duration:${r(Math.max(1.2, ctx.L - 0.8 * k))},ease:"${DRAW}",transformOrigin:"50% 50%"},${at(0.8)});` : "",
     `tl.fromTo(".${id}-mk",{scale:0},{scale:1,duration:${du(0.4)},ease:"${POP}",stagger:${du(0.06)}},${at(1.7)});`,
     `tl.fromTo(".${id}-sect",{opacity:0},{opacity:1,duration:${du(0.4)},ease:"none"},${at(2.1)});`,
     `tl.fromTo(".${id}-hr",{scaleX:0},{scaleX:1,duration:${du(0.5)},ease:"${DRAW}",transformOrigin:"left center"},${at(2.2)});`,
@@ -841,7 +850,11 @@ function sProblem(scene, ctx) {
 
   const s = [
     `tl.set("#${id}",{opacity:1},${r(ctx.T)});`,
-    `tl.fromTo(".${id}-carry",{top:"${r(c0.y)}cqw",height:"${r(c0.h)}cqw"},{top:"${r(carryRest)}cqw",height:"${r(U(6))}cqw",duration:${du(0.5)},ease:"${DRAW}"},${at(0.02)});`,
+    // `y`, not `top`. The bar is parked at c0.y by its inline style, so the slide is a pure
+    // delta — and `top` snaps to integer device pixels during layout, which stutters under the
+    // seek-by-frame capture engine. `height` stays: the collapse IS a size change, and the
+    // renderer accepts it.
+    `tl.fromTo(".${id}-carry",{y:0,height:"${r(c0.h)}cqw"},{y:"${r(carryRest - c0.y)}cqw",height:"${r(U(6))}cqw",duration:${du(0.5)},ease:"${DRAW}"},${at(0.02)});`,
     `tl.fromTo(".${id}-l",{yPercent:110},{yPercent:0,duration:${du(0.5)},ease:"${ENTER}",stagger:${du(0.11)}},${at(0.42)});`,
     rows.length ? `tl.fromTo(".${id}-row",{opacity:0,x:"-3cqw"},{opacity:1,x:0,duration:${du(0.5)},ease:"${ENTER}",stagger:${du(0.13)}},${at(0.5)});` : "",
     rows.length ? `tl.fromTo(".${id}-rl",{scaleX:0},{scaleX:1,duration:${du(0.45)},ease:"${DRAW}",transformOrigin:"left center",stagger:${du(0.13)}},${at(0.6)});` : "",
@@ -1288,7 +1301,11 @@ function sCall(scene, ctx, logo) {
 
   // The closing field is FULL BLEED, so it sits outside the band clip: at t=0 it is exactly
   // scene 6's metric block, then it grows to the whole frame.
-  ctx.bleed = `<div class="${id}-bleed" style="position:absolute;left:${M}cqw;right:${M}cqw;top:${r(c0.y)}cqw;bottom:${r(100 * (STAGE_H / STAGE_W) - (c0.y + c0.h))}cqw;background:${th.accent};"></div>`;
+  // PARKED FULL BLEED and CLIPPED back to scene 6's metric block, rather than parked at the
+  // block and grown on left/right/top/bottom. Inset properties re-flow the layer every frame and
+  // snap to integer device pixels; clip-path is composited and interpolates sub-pixel.
+  ctx.bleedInset = `inset(${r(c0.y)}cqw ${M}cqw ${r(100 * (STAGE_H / STAGE_W) - (c0.y + c0.h))}cqw ${M}cqw)`;
+  ctx.bleed = `<div class="${id}-bleed" style="position:absolute;inset:0;clip-path:${ctx.bleedInset};background:${th.accent};"></div>`;
 
   const html = open(ctx, `
     ${mark}
@@ -1317,7 +1334,7 @@ function sCall(scene, ctx, logo) {
 
   const s = [
     `tl.set("#${id}",{opacity:1},${r(ctx.T)});`,
-    `tl.fromTo(".${id}-bleed",{left:"${M}cqw",right:"${M}cqw",top:"${r(c0.y)}cqw",bottom:"${r(100 * (STAGE_H / STAGE_W) - (c0.y + c0.h))}cqw"},{left:"0cqw",right:"0cqw",top:"0cqw",bottom:"0cqw",duration:${du(0.6)},ease:"${DRAW}"},${at(0.04)});`,
+    `tl.fromTo(".${id}-bleed",{clipPath:"${ctx.bleedInset}"},{clipPath:"inset(0cqw 0cqw 0cqw 0cqw)",duration:${du(0.6)},ease:"${DRAW}"},${at(0.04)});`,
     mark ? `tl.fromTo(".${id}-mark",{opacity:0,y:"2cqw"},{opacity:1,y:0,duration:${du(0.5)},ease:"${ENTER}"},${at(0.42)});` : "",
     `tl.fromTo(".${id}-w",{yPercent:112},{yPercent:0,duration:${du(0.5)},ease:"${ENTER}",stagger:${du(0.13)}},${at(0.55)});`,
     `tl.fromTo(".${id}-hr",{scaleX:0},{scaleX:1,duration:${du(0.5)},ease:"${DRAW}",transformOrigin:"left center"},${at(0.92)});`,
@@ -1468,7 +1485,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
 
   const logo = logoAssetOf(assets);
   const shots = (Array.isArray(assets) ? assets : []).filter(screenOk)
-    .sort((a, b) => (Number(b.cdScore) || 0) - (Number(a.cdScore) || 0));
+    .sort(admission.byDisplayRank);
 
   // Roles first, then assets — because how many pictures a scene can hold is a property of
   // the LAYOUT it was given, not of the beat. Assigning the other way round is what produced

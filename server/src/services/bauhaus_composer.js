@@ -18,7 +18,8 @@
 // draw-ons; cqw units + container-type:size; hidden = opacity:0 only. Deterministic.
 
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
-const { isTrustedProminent, isLogo } = require("./asset_priority");
+const { isLogo } = require("./asset_priority");
+const admission = require("./asset_admission");
 const { resolveBrand } = require("./brand_kit");
 
 const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
@@ -187,7 +188,12 @@ function plateOk(a) {
   if (isLogo(a)) return false; // the logo is key-moment material, never a poster panel
   if (a.type === "video" || /\.(mp4|webm|mov)($|\?)/i.test(a.path)) return false;
   if (/\.svg($|\?)/i.test(a.path)) return false;
-  return isTrustedProminent(a) || a.cdProminence === "hero" || a.cdProminence === "support";
+  // ADMISSION IS SHARED (services/asset_admission). This line used to read a TRUST signal
+  // as an ADMISSION test: web stock satisfies neither clause and the Creative Director is
+  // told "when in doubt, use background", so a stock photo was never drawn at all — measured
+  // as zero <img> from a wire of five good pictures. Trust now ORDERS the pool
+  // (admission.displayRank); only an explicit reject is excluded.
+  return admission.displayOk(a);
 }
 
 function riotArchetype(scene, i, total) {
@@ -531,7 +537,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   const scenes = Array.isArray(sb.scenes) && sb.scenes.length ? sb.scenes.slice(0, 12) : [{ id: "s1", start: 0, duration: 4, kind: "hook", headline: sb.title || "KEYFRAME" }];
   const D = r(sb.durationSec || scenes.reduce((a, s) => Math.max(a, (Number(s.start) || 0) + (Number(s.duration) || 0)), 0) || 12);
 
-  const images = (Array.isArray(assets) ? assets : []).filter(plateOk).sort((a, b) => (Number(b.cdScore) || 0) - (Number(a.cdScore) || 0));
+  const images = (Array.isArray(assets) ? assets : []).filter(plateOk).sort(admission.byDisplayRank);
   const byScene = new Map();
   const pool = [];
   for (const a of images) { const sid = a.sceneId != null ? String(a.sceneId) : null; if (sid && !byScene.has(sid)) byScene.set(sid, a); else pool.push(a); }

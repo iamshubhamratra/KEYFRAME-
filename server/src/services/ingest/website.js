@@ -341,6 +341,22 @@ async function understandWebsite({ url, workDir, timeoutMs = 60_000, sectionTarg
     let assets = [], harvestReview = null, brandSignals = null;
     if (config.harvester?.enabled) {
       try {
+        // SCROLL BACK TO THE TOP FIRST — the single line that decides whether the harvest can
+        // find the brand's logo at all.
+        //
+        // `discoverAssetsInPage` scores every candidate with `nearHeader`, which falls back to
+        // `el.getBoundingClientRect().top < 220` — a VIEWPORT-relative measure. The section
+        // capture loop above scrolls the page down (capture.frameSection -> window.scrollTo)
+        // and never scrolls back, so by the time the harvest runs the viewport is parked
+        // thousands of pixels into the page. Every element that happens to sit near the TOP OF
+        // THAT VIEW then reads as "near the header", and the real header — long since scrolled
+        // off — reads as not.
+        //
+        // `nearHeader` is worth 40 of the ~99 points in `logoStrength`, and it is the first
+        // clause of the logo classifier. Measured across the cached harvests, 4 of 5 real sites
+        // yielded ZERO logos. This restores the frame the measurement assumes.
+        await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" })).catch(() => {});
+        await new Promise((r) => setTimeout(r, 150));   // let a sticky header re-pin
         const { harvestSiteAssets } = require("./website_assets");
         const h = await harvestSiteAssets({ page, baseUrl: url, workDir, isAuthWall });
         assets = h.files || [];

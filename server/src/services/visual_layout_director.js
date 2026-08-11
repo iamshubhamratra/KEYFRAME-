@@ -24,7 +24,8 @@
 const db = require("../db");
 const config = require("../config");
 const { planLayout } = require("./layout_planner");
-const { isTrustedProminent, isLogo, rankKey, WEBSITE_BRAND_SOURCE, WEBSITE_ASSET_SOURCE } = require("./asset_priority");
+const { isLogo, rankKey, WEBSITE_BRAND_SOURCE, WEBSITE_ASSET_SOURCE } = require("./asset_priority");
+const admission = require("./asset_admission");
 
 const num = (v, d = 0) => { const n = Number(v); return Number.isFinite(n) ? n : d; };
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -78,11 +79,17 @@ const importance = (a) => rankKey(a,
   + (typeof (a && a.clipRelevance) === "number" ? a.clipRelevance * 30 : 0)
   + num(a && a.qualityScore, 0));
 
-// Is this asset currently eligible for a PROMINENT slot? (Owned screenshots, curated
-// picks, and CD-approved stock — the same trust the kit's prominentOk gate applies.)
+// Is this asset currently eligible for a PROMINENT slot? Delegated to the shared authority
+// (services/asset_admission) so "prominent" means one thing across the pipeline.
+//
+// NOTE THE CHANGE IN WHAT A DEMOTION COSTS. This predicate decides which assets enter the
+// presentation BUDGET below, and everything past the budget is demoted. Until the admission
+// split, twelve composers treated a demotion as a deletion — so trimming to "fewer, larger,
+// better" could empty a film whose whole wire was stock. Demoted assets are now the composers'
+// reserve: seated last, into beats that would otherwise render no picture at all. The ranking
+// this director expresses is preserved; only its starvation side-effect is gone.
 function isProminent(a) {
-  return !!a && (isTrustedProminent(a)
-    || a.cdProminence === "hero" || a.cdProminence === "support");
+  return admission.prominentOk(a);
 }
 
 // Crop focus — where a cover-fit image is anchored so its important content survives.

@@ -28,11 +28,14 @@
 
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
 const { varyArchetypes } = require("./motion_planner");
-const { isTrustedProminent, isLogo } = require("./asset_priority");
+const { isLogo } = require("./asset_priority");
+const admission = require("./asset_admission");
 const { logoMark } = require("./logo_render");
 const { plateBox } = require("./responsive");
 const { charSpans, wordCharSpans, supportLine } = require("./text_fx");
 const { resolveBrand } = require("./brand_kit");
+const CUTS = require("./om_scene_cuts");
+const { tempoOf } = require("./pacing");
 const { GSAP_CDN, r, esc, hexToRgb, relLum, longestWord, bullets, logoAssetOf, grainUri } = require("./composer_kit");
 
 // Bricolage Grotesque (bundled) is the friendly rounded display that carries the template's
@@ -96,6 +99,13 @@ function paperTheme(brandSkin) {
     tape: "rgba(255,255,255,0.5)",
     shadow: "0 3cqw 5.6cqw -2.6cqw rgba(74,54,34,0.5)",
     shadowSm: "0 1.4cqw 3cqw -1.6cqw rgba(74,54,34,0.45)",
+    // `drop-shadow()` IS NOT `box-shadow`. It takes at most THREE lengths — offset-x, offset-y,
+    // blur — and has NO SPREAD parameter. `shadowSm` carries a 4th length (-1.6cqw spread), which
+    // is correct for the four box-shadow sites that use it and INVALID inside drop-shadow(): the
+    // whole `filter` declaration was rejected, so the CTA logo mark rendered with no shadow at all.
+    // Caught by scripts/test-dropped-css.js — computed `filter: none` against an inline style that
+    // plainly contained it. Same blur and colour, spread dropped.
+    dropShadowSm: "0 1.4cqw 3cqw rgba(74,54,34,0.45)",
     displayStack: `'${DISPLAY}', 'Inter', system-ui, sans-serif`,
     serifStack: `'${SERIF}', Georgia, serif`,
     monoStack: `'${MONO}', ui-monospace, monospace`,
@@ -181,7 +191,12 @@ function screenOk(a) {
   if (isLogo(a)) return false; // the logo is CTA / key-moment material, not a photo plate
   if (a.type === "video" || /\.(mp4|webm|mov)($|\?)/i.test(a.path)) return false;
   if (/\.svg($|\?)/i.test(a.path)) return false;
-  return isTrustedProminent(a) || a.cdProminence === "hero" || a.cdProminence === "support";
+  // ADMISSION IS SHARED (services/asset_admission). This line used to read a TRUST signal
+  // as an ADMISSION test: web stock satisfies neither clause and the Creative Director is
+  // told "when in doubt, use background", so a stock photo was never drawn at all — measured
+  // as zero <img> from a wire of five good pictures. Trust now ORDERS the pool
+  // (admission.displayRank); only an explicit reject is excluded.
+  return admission.displayOk(a);
 }
 // Portrait screenshots want a taller card; wide ones a shorter one.
 function frameHmul(asset) {
@@ -239,7 +254,7 @@ function photoCard(theme, { cls, w, asset, label, tape, rot }) {
 }
 
 // ---- scene clip open ---------------------------------------------------------
-function open(id, ctx) { return `<div class="clip pc-scene" id="${id}" data-start="${ctx.T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">`; }
+function open(id, ctx) { return `<div class="clip pc-scene" id="${id}" data-start="${ctx.T}" data-duration="${r(ctx.clipDur != null ? ctx.clipDur : ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;">`; }
 
 // ---- archetype selection -----------------------------------------------------
 function archetypeFor(scene, i, total) {
@@ -474,7 +489,7 @@ function bCta(scene, ctx, logo) {
   const tagline = esc(String(scene.subtext || S.ctaTagline).slice(0, 60));
   const url = esc(String(S.ctaUrl).toUpperCase());
   const mark = logo && logo.path
-    ? logoMark(logo, { sizeCqw: 20, ground: theme.cream, extraFilter: `drop-shadow(${theme.shadowSm})`, escape: esc })
+    ? logoMark(logo, { sizeCqw: 20, ground: theme.cream, extraFilter: `drop-shadow(${theme.dropShadowSm})`, escape: esc })
     : `<div class="pc-sheet pc-glyph" style="transform:rotate(-3deg);">
         <div style="width:0;height:0;border-top:3.4cqw solid transparent;border-bottom:3.4cqw solid transparent;border-left:5.4cqw solid ${theme.onAccent};margin-left:1.2cqw;"></div>
       </div>`;
@@ -626,7 +641,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   // the CTA mark.
   const logo = logoAssetOf(assets);
   const shots = (Array.isArray(assets) ? assets : []).filter(screenOk)
-    .sort((a, b) => (Number(b.cdScore) || 0) - (Number(a.cdScore) || 0));
+    .sort(admission.byDisplayRank);
   const baseArch = scenes.map((scene, i) => archetypeFor(scene, i, scenes.length));
   // ANTI-REPETITION (services/motion_planner). archetypeFor above ends in a single
   // fallthrough, so every middle scene of a text-led film lands on the same type and the
@@ -669,6 +684,19 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   const scriptStart = (i) => scenes.slice(0, i).reduce((a, s) => a + (Number(s.duration) || 0), 0);
   const bodyParts = [], sceneScripts = [];
 
+  // THE CUT PLAN. Resolved before the scene loop, because a clip's duration now depends on the
+  // cut that follows it and a cut cannot be chosen until every beat's class is known.
+  const cutPlan = CUTS.plan({
+    // Film tempo — cuts tighten with no narration (services/pacing.js).
+    tempo: tempoOf(sb),
+    seed, D, signature: CUTS.SIGNATURES["paper-craft"],
+    beats: scenes.map((scene, i) => ({
+      T: r(scene.start != null ? scene.start : scriptStart(i)),
+      L: r(scene.duration || 5),
+      role: baseArch[i], scene, shotCount: (sceneShots[i] || []).length,
+    })),
+  });
+
   scenes.forEach((scene, i) => {
     const T = r(scene.start != null ? scene.start : scriptStart(i));
     const L = r(scene.duration || 5);
@@ -683,12 +711,18 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     if (canShow(arch) && sceneAssets.length) {
       sceneAssets = sceneAssets.slice(0, arch === "showcase" ? 3 : 1);
     }
-    const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), i, isLast: i === scenes.length - 1, track: 2 + i, theme, S, W, H, portrait };
+    const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), i, isLast: i === scenes.length - 1, track: 2 + i, clipDur: cutPlan.clipDur[i], theme, S, W, H, portrait };
     const built = (BUILDERS[arch] || bShowcase)(scene, ctx, arch === "cta" ? logo : sceneAssets);
-    bodyParts.push(built.html);
-    sceneScripts.push(built.s.filter(Boolean).join("\n  "));
-    if (!ctx.isLast) sceneScripts.push(`kill("#${ctx.id}",${r(T + L)});`);
+    bodyParts.push(CUTS.camWrap(built.html));
+    sceneScripts.push(CUTS.sceneJs(built.s.filter(Boolean), ctx, cutPlan, i).join("\n  "));
   });
+
+  // The cuts themselves. Overlay clips sit on tracks 20+ — above the scenes, below the grain and
+  // the caption node — so a light bar sweeps the picture without crossing the subtitle, and the
+  // pack's persistent world on track 0 keeps flowing underneath every one of them.
+  const tx = CUTS.build(cutPlan, { theme });
+  bodyParts.push(...tx.html);
+  if (tx.js.length) sceneScripts.push(tx.js.join("\n  "));
 
   const cues = (Array.isArray(captionCues) ? captionCues : [])
     .filter((c) => c && c.text != null)
@@ -702,6 +736,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   var tl=gsap.timeline({paused:true});
   var $=function(s){return document.querySelector(s);};
   function kill(id,t){tl.set(id,{opacity:0},t);}
+  ${CUTS.HELPERS}
   function type(sel,full,at,dur){var o={n:0};tl.to(o,{n:full.length,duration:dur,ease:"none",snap:{n:1},onUpdate:function(){var e=$(sel);if(e){var s=full.slice(0,Math.round(o.n));if(e.textContent!==s)e.textContent=s;}}},at);}
 
   ${sceneScripts.join("\n  ")}
@@ -722,7 +757,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   const indexHtml = [
     `<!DOCTYPE html>`, `<html lang="en">`, `<head>`, `<meta charset="utf-8">`, `<title>vid</title>`,
     `<script src="${GSAP_CDN}"></script>`,
-    `<style>`, styleBlock(theme, portrait), `</style>`, `</head>`, `<body>`,
+    `<style>`, styleBlock(theme, portrait) + CUTS.CAM_CSS, `</style>`, `</head>`, `<body>`,
     `<div id="root" class="composition" data-composition-id="vid" data-width="${W}" data-height="${H}" data-start="0" data-duration="${D}" style="width:${W}px;height:${H}px;">`,
     paper.html,
     bodyParts.join("\n"),

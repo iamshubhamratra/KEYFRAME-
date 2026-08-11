@@ -84,15 +84,47 @@ function paletteFromCssList(list) {
 // website-asset and must earn prominence via the CD's visionOk), and logoVariant.
 function classify(f) {
   const tokens = `${f.cls || ""} ${f.alt || ""} ${f.url || ""}`.toLowerCase();
+  // THE LOGO TEST READS LABELS, NOT PROSE.
+  //
+  // `tokens` folds in the ALT TEXT, which is a sentence written for screen readers. Testing
+  // LOGO_RX against it means any photograph whose description happens to contain the word
+  // "logo" is classified as the brand mark — and one does. Measured on the cached stripe.com
+  // harvest: a 2460x1060 photograph with alt "Exterior view of a clothing boutique … where the
+  // window displays the shop's logo …" was tagged `assetType:"logo"`, which also demoted it to
+  // `kindHint:"vector"` and took a real hero photo out of the photo pool.
+  //
+  // A CLASS name and a FILE NAME are labels an author chose for the element; alt text is a
+  // description of what is in the picture. Only the first two are evidence here.
+  const labels = `${f.cls || ""} ${f.url || ""}`.toLowerCase();
   const longEdge = Math.max(f.width || 0, f.height || 0);
   const minEdge = Math.min(f.width || 0, f.height || 0);
   const ratio = f.width && f.height ? f.width / f.height : 0;
 
-  // 1) LOGO — the one thing we classify with high confidence (JSON-LD, or a header
-  //    mark with alpha/vector + a logo/brand token). brandCritical.
+  // 1) LOGO — brandCritical, and the hardest thing on this list to get right.
+  //
+  // The old test required the literal word logo/brand/wordmark in class+alt+url. On the
+  // dominant discovery channel — an inline <svg> brand mark — the record has `url: null` and,
+  // on most real sites, an empty class (the mark is a bare <svg> inside <a href="/">). So the
+  // test could not fire, and 4 of the 5 cached real-site harvests yielded ZERO logos: every
+  // film then fell back to the composer's generic glyph, which is why "the audience should
+  // recognise the brand" was unachievable by construction.
+  //
+  // A brand mark is recognisable without a label, by three things a header mark almost always
+  // has and interface furniture almost never does:
+  //   • it sits in the header (or the site declared it in JSON-LD)
+  //   • it is transparent or vector — a mark is drawn, not photographed
+  //   • it is WORDMARK-SHAPED: wider than tall, and small. A hero photograph in the header is
+  //     wide but big; a chevron is small but square.
+  // Any ONE of the label routes still qualifies on its own, so nothing that used to be found
+  // stops being found.
+  const markShaped = (ratio >= 1.4 && ratio <= 9 && longEdge >= 40 && longEdge <= 520)   // a wordmark
+    || (ratio >= 0.75 && ratio <= 1.35 && longEdge >= 24 && longEdge <= 200);            // a square/badge mark
   const isLogoAsset = f.discovery === "jsonld-logo"
-    || (f.nearHeader && (f.isSvg || f.hasAlpha) && LOGO_RX.test(tokens))
-    || (f.discovery === "link-icon" && f.isSvg && LOGO_RX.test(tokens));
+    || (f.nearHeader && (f.isSvg || f.hasAlpha) && LOGO_RX.test(labels))
+    || (f.discovery === "link-icon" && f.isSvg && LOGO_RX.test(labels))
+    // UNLABELLED HEADER MARK — the case that was missing entirely.
+    || (f.nearHeader && (f.isSvg || f.hasAlpha) && markShaped
+        && !/\b(icon|glyph|sprite|chevron|arrow|caret|menu|close|search|cart|burger|social|facebook|twitter|linkedin|instagram|youtube|github)\b/.test(labels));
   if (isLogoAsset) {
     return {
       assetType: "logo", kindHint: "vector", brandCritical: true,
@@ -426,7 +458,13 @@ async function pinWebsiteAssets({ job, script, jobDir, usedSceneIds = new Set(),
   const used = new Set(usedSceneIds);
   if (!live.length) return { brandPinned: [], brandLogo: null, usedSceneIds: used };
 
-  const logoRec = live.find((r) => r.assetType === "logo") || null;
+  // The strongest mark, not the first one materialized. `logoStrength` already ranks them
+  // (header position, self-naming, JSON-LD, format, size) and `prepareWebsiteAssets` uses it
+  // to pick the palette — but the PIN read `find(...)`, so the film could wear a different
+  // mark from the one the brand colours came from.
+  const logoRec = live.filter((r) => r.assetType === "logo")
+    .sort((a, b) => (Number(b.logoStrength) || 0) - (Number(a.logoStrength) || 0)
+      || ((Number(b.width) || 0) * (Number(b.height) || 0)) - ((Number(a.width) || 0) * (Number(a.height) || 0)))[0] || null;
   // Most harvested brand marks are SVG, and a pack whose composer rejects SVG in its
   // scene slots will discard every one of them — taking the scene's only visual with
   // it and leaving an empty plate. Same contract as the stock vector gap-fill (see
@@ -436,8 +474,27 @@ async function pinWebsiteAssets({ job, script, jobDir, usedSceneIds = new Set(),
   const isVec = (r) => r && (r.isSvg === true || /\.svg($|\?)/i.test(String(r.path || "")));
   const usable = acceptsVectors ? live : live.filter((r) => r.assetType === "logo" || !isVec(r));
   const skippedVectors = live.length - usable.length;
-  const images = usable.filter((r) => r.assetType !== "logo").slice(0, Math.max(0, maxPins));
+  // RANK BEFORE SLICING. This was `usable.filter(...).slice(0, maxPins)` — a positional take
+  // in harvest-materialization order. Inline SVGs materialize instantly (no network round
+  // trip) while a 2880x1600 hero photograph needs a download, so manifest order is close to
+  // "smallest and least useful first", and the four pins the film actually shows were the
+  // site's chevrons while its product photography sat in the manifest unused.
+  //
+  // The ordering is the one a person would use: what KIND of picture is it, then how big, then
+  // what the quality scorer thought of it.
+  const KIND_RANK = { screenshot: 5, product: 4, hero: 4, marketing: 3, team: 3, illustration: 2, background: 2, icon: 0, decorative: 0 };
+  const areaOf = (r) => (Number(r.width) || 0) * (Number(r.height) || 0);
+  const pinRank = (r) => (KIND_RANK[String(r.assetType)] ?? 1) * 1e9
+    + Math.min(areaOf(r), 40e6) * 10
+    + (Number(r.qualityScore) || 0);
+  const images = usable.filter((r) => r.assetType !== "logo")
+    .sort((a, b) => pinRank(b) - pinRank(a))
+    .slice(0, Math.max(0, maxPins));
   if (skippedVectors) console.log(`[website_assets] skipped ${skippedVectors} harvested vector(s) — this pack renders photographic scene art only`);
+  if (images.length) {
+    console.log(`[website_assets] pinning ${images.length} of ${usable.filter((r) => r.assetType !== "logo").length} harvested image(s), best first: `
+      + images.map((r) => `${r.assetType}${r.width && r.height ? ` ${r.width}x${r.height}` : ""}`).join(", "));
+  }
   const scenes = Array.isArray(script && script.scenes) ? script.scenes : [];
   const targets = showcaseTargets(script).filter((s) => !used.has(s.id));
 

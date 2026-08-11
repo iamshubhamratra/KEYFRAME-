@@ -243,19 +243,44 @@ function preflight({ job, assets = [], script = null, storyboard = null, brandSk
     // is counted here; contain only means the picture is never cropped.
     const fillable = mediaPlan.placeholders.filter((p) => p.kind !== "logos");
     const critical = fillable.filter((p) => p.priority === "critical");
-    // SEAT THE PLACEHOLDERS ONE PER ASSET. Asking `does this placeholder's SCENE hold anything`
-    // answers a different question than `is this placeholder filled`, and answers it wrongly
-    // for every beat that draws more than one picture: three placeholders on a scene holding
-    // one asset all read as satisfied. That is the same per-scene approximation the comment
-    // above says this file exists to distrust, reintroduced one level down — a gate blind to
-    // exactly the shortfall it was built to catch. Give each placeholder its own seat and a
-    // scene with one asset satisfies one placeholder.
+    // WHO ACTUALLY SITS IN WHICH BOX.
+    //
+    // The Asset Placement stage (services/asset_placement) binds each collected picture to a
+    // specific placeholder and stamps `asset.__placement.placeholderId` on it. When that
+    // stamp is present this gate reads the REAL assignment instead of guessing — which is the
+    // whole point, because the guess below could only ever count pictures per SCENE and then
+    // hand them out in plan order.
+    //
+    // Clones added afterwards by the reuse optimizer carry no stamp (they are addressed by
+    // scene, which is all their own slot model needs), so both mechanisms have to coexist:
+    // read the explicit assignments first, then seat whatever is left by the per-scene count.
+    const claimedIds = new Set();
+    const bySceneUnclaimed = new Map();
+    for (const [k, arr] of bySceneId) bySceneUnclaimed.set(k, arr.length);
+    for (const a of healed) {
+      const pid = a && a.__placement && a.__placement.placeholderId;
+      if (!pid || a.sceneId == null || isLogo(a)) continue;
+      if (!acceptsVectors && isVector(a)) continue;
+      if (claimedIds.has(pid)) continue;              // one asset per box
+      claimedIds.add(pid);
+      const k = String(a.sceneId);
+      bySceneUnclaimed.set(k, Math.max(0, (bySceneUnclaimed.get(k) || 0) - 1));
+    }
+
+    // SEAT THE REMAINING PLACEHOLDERS ONE PER ASSET. Asking `does this placeholder's SCENE
+    // hold anything` answers a different question than `is this placeholder filled`, and
+    // answers it wrongly for every beat that draws more than one picture: three placeholders
+    // on a scene holding one asset all read as satisfied. That is the same per-scene
+    // approximation the comment above says this file exists to distrust, reintroduced one
+    // level down — a gate blind to exactly the shortfall it was built to catch. Give each
+    // placeholder its own seat and a scene with one asset satisfies one placeholder.
     const seats = new Map();
     const seatedEmpty = (p) => {
+      if (claimedIds.has(p.id)) return false;         // explicitly filled by placement
       const k = String(p.sceneId);
       const taken = seats.get(k) || 0;
       seats.set(k, taken + 1);
-      return taken >= (bySceneId.get(k) || []).length;
+      return taken >= (bySceneUnclaimed.get(k) || 0);
     };
     // Critical placeholders are seated FIRST so a scarce asset is credited to the hero box
     // rather than to whichever tile happens to come first in the plan's ordering.
@@ -292,8 +317,17 @@ function preflight({ job, assets = [], script = null, storyboard = null, brandSk
 
     // QUALITY IN THE PLACES THAT MATTER. A critical slot holding an asset graded `reject`
     // is the "poor-quality asset in the hero" complaint, stated precisely enough to check.
+    //
+    // Read the ASSIGNED asset when placement stamped one. Before, this took the first asset
+    // on the critical slot's SCENE — which on a beat holding three pictures is a one-in-three
+    // chance of inspecting the picture that is actually in the hero box.
+    const placedInto = new Map();
+    for (const a of healed) {
+      const pid = a && a.__placement && a.__placement.placeholderId;
+      if (pid && !placedInto.has(pid)) placedInto.set(pid, a);
+    }
     const weakCritical = critical
-      .map((p) => ({ p, a: (bySceneId.get(String(p.sceneId)) || [])[0] }))
+      .map((p) => ({ p, a: placedInto.get(p.id) || (bySceneId.get(String(p.sceneId)) || [])[0] }))
       .filter((x) => x.a && String(x.a.qualityGrade || "") === "reject");
     checks.push(check(
       "criticalSlotQuality", WARN,

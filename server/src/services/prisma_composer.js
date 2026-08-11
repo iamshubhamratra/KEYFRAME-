@@ -36,7 +36,8 @@
 // the DOM), so nothing depends on when an image happens to decode. Deterministic.
 
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
-const { isTrustedProminent, isLogo, categorize } = require("./asset_priority");
+const { isLogo, categorize } = require("./asset_priority");
+const admission = require("./asset_admission");
 const { logoFilterCss } = require("./logo_render");
 const { resolveBrand } = require("./brand_kit");
 const { safeArea } = require("./responsive");
@@ -506,8 +507,17 @@ function shotOk(a) {
   if (isLogo(a)) return false;
   if (a.type === "video" || /\.(mp4|webm|mov)($|\?)/i.test(a.path)) return false;
   if (/\.svg($|\?)/i.test(a.path)) return false;
-  if (a.__layoutDemoted) return false;
-  return isTrustedProminent(a) || a.cdProminence === "hero" || a.cdProminence === "support";
+  // `__layoutDemoted` USED to be rejected here. This pack has no B-roll layer, so that made
+  // the Visual Layout Director's demotion a DELETION — and on a prompt-only film, where the
+  // whole wire is stock and the VLD trims it against its presentation budget, the pack could
+  // be left with nothing to show. A demotion is a preference; displayRank honours it by
+  // seating demoted material last.
+  // ADMISSION IS SHARED (services/asset_admission). This line used to read a TRUST signal
+  // as an ADMISSION test: web stock satisfies neither clause and the Creative Director is
+  // told "when in doubt, use background", so a stock photo was never drawn at all — measured
+  // as zero <img> from a wire of five good pictures. Trust now ORDERS the pool
+  // (admission.displayRank); only an explicit reject is excluded.
+  return admission.displayOk(a);
 }
 // A MARK is logo-grade material for the trust wall: harvested/uploaded logos and clean
 // recoloured vectors. These are the only assets shown small, on a plain plate.
@@ -742,8 +752,26 @@ const chipHtml = (theme, text, bg, sizePx) =>
 function archetypeFor(scene, i, total) {
   const k = String(scene.kind || "").toLowerCase();
   const p = String(scene.purpose || "").toLowerCase();
-  if (i === 0 || k === "hook" || k === "title" || /hook|intro|open/.test(p)) return "hook";
-  if (i === total - 1 || k === "cta" || /cta|close|outro|sign\s*up|subscribe|download|get\s*started/.test(p)) return "cta";
+  // ONE OPENER, ONE CLOSER — and they are decided by POSITION, not by wording.
+  //
+  // These two lines used to read `i === 0 || k === "hook" || /hook|intro|open/.test(p)`, so
+  // ANY scene could claim the opener by describing itself as one. The storyboard model
+  // routinely does: it stamped `kind:"hook"` on scene 3 of a real film whose purpose was
+  // "feature", and the substring test alone would promote a scene called "open new doors"
+  // or "introducing the team".
+  //
+  // bHook is a fixed composition — kicker, flush-left mega stack, chip row, drawn rule — so
+  // a second hook is not a variation on the opener, it IS the opener, rendered again with
+  // different words. Measured on a real render: frames at 0.6s and 9.1s were structurally
+  // identical (same four block positions, same left-origin rule), and the QA reviewer
+  // reported it as a "groundhog set". The same hazard runs in reverse for `cta`, where a
+  // middle scene whose purpose merely mentions "download" becomes a second closing lockup.
+  //
+  // Position is the only honest source for a structural beat: the opener is the scene that
+  // opens. A middle scene that describes itself as a hook still has content, and falls
+  // through to the type that content implies.
+  if (i === 0) return "hook";
+  if (i === total - 1) return "cta";
   if (k === "quote" || /quote|testimonial|manifesto/.test(p)) return "voice";
   if (k === "stat" || k === "chart" || k === "countdown" || (pickNumber(scene) && /proof|result|metric|stat|number|data/.test(p + k))) return "stats";
   if (/brand|palette|style|identity/.test(p + k)) return "swatch";
@@ -896,6 +924,26 @@ const close = () => `</div></div></div>`;
 // The seam must avoid where the type ACTUALLY lands, so the band is reported post-shift.
 const bandOf = (ctx, topPx, fit) => megaBandOf(Vn(topPx + (ctx.off || 0)), fit);
 
+// ...AND "THE TYPE" MEANS EVERYTHING THE SCENE DRAWS, NOT JUST THE MEGA STACK.
+//
+// `bandOf` reports the mega block alone, and the seam anchors itself at `band.bottom + 3`
+// because "below the headline is where this pack's dead space is". It is not: bHook draws
+// its chip row at `megaTop + megaH + 78` and its rule below that, and bStatement puts its
+// subtext or chips under the type too. So the seam was aimed at the one strip of frame the
+// scene was about to fill, and a 150px bar tilted up to 9° landed straight across the pills.
+// The QA reviewer reported it as "decorative red bar collides with and runs directly
+// behind/through the text pill container", which is exactly what it is.
+//
+// Every builder ALREADY knows its true extent — it passes it to `open(ctx, top, bottom)` for
+// the centring clamp. This reports the same number, so the seam clears the whole composition
+// rather than just its loudest part. Callers pass the identical `bottom` they hand `open`.
+const bandFull = (ctx, topPx, bottomPx) => {
+  const top = Vn(topPx + (ctx.off || 0));
+  const bottom = Vn(bottomPx + (ctx.off || 0));
+  if (!(bottom > top)) return null;
+  return { top, bottom };
+};
+
 // HOOK — the opener: a mono kicker, a 3–4 line mega stack, intake chips, a drawn rule.
 // Flush-left, tall type. Takes the user's logo as a small mark when one exists.
 function bHook(scene, ctx, _assets, logo) {
@@ -931,7 +979,7 @@ function bHook(scene, ctx, _assets, logo) {
     </div>` : ""}
     <div data-in="draw" style="position:absolute;left:${X(80)};right:${X(80)};top:${V(ruleTop)};height:${X(14)};background:${ink};transform-origin:left center;"></div>
   ${close()}`;
-  return { html, band: bandOf(ctx, megaTop, mega) };
+  return { html, band: bandFull(ctx, 196, ruleTop + 14) };
 }
 
 // CARDS — three outlined rows, each a colour square + title + note, then a mega statement
@@ -979,7 +1027,7 @@ function bCards(scene, ctx, sceneAssets) {
       ${megaStack(theme, mega, { ground, accent: theme.paper, align: "left" })}
     </div>` : ""}
   ${close()}`;
-  return { html, band: bandOf(ctx, rowsEnd + 86, mega) };
+  return { html, band: bandFull(ctx, 196, rowsEnd + 86 + megaH2) };
 }
 
 // SHOWCASE — one hero capture in its aspect-routed device frame, the capture SCROLLING
@@ -1047,7 +1095,7 @@ function bShowcase(scene, ctx, sceneAssets) {
       ${chips.map((c, i) => chipHtml(theme, c, i % 2 ? theme.paper : ctx.accent, 26)).join("")}
     </div>` : ""}
   ${close()}`;
-  return { html, scroll: plan.frac ? { id: scrollId, frac: plan.frac, kind: isPhone ? "phone" : "web" } : null , band: bandOf(ctx, isPhone ? 286 : wideMegaTop, isPhone ? megaPhone : megaWide) };
+  return { html, scroll: plan.frac ? { id: scrollId, frac: plan.frac, kind: isPhone ? "phone" : "web" } : null , band: bandFull(ctx, isPhone ? 196 : 150, showBottom) };
 }
 
 // GALLERY — 2-3 captures at their own ratios, ARRANGED to fill the frame.
@@ -1116,7 +1164,7 @@ function bGallery(scene, ctx, sceneAssets) {
     </div>
     ${scene.subtext ? `<div data-in="up" style="position:absolute;left:${X(80)};right:${X(80)};top:${V(subTop)};font-family:${theme.bodyStack};font-weight:500;font-size:${F(fitPx(scene.subtext, 38, 120))};line-height:1.45;color:${rgba(theme.onField(ground), 0.74)};">${esc(scene.subtext)}</div>` : ""}
   ${close()}`;
-  return { html, band: bandOf(ctx, 250, mega) };
+  return { html, band: bandFull(ctx, 170, subBottom) };
 }
 
 // GRID — the 2×2 outlined card deck. Text mode gives each card a colour-block glyph;
@@ -1170,7 +1218,7 @@ function bGrid(scene, ctx, sceneAssets) {
       }).join("")}
     </div>
   ${close()}`;
-  return { html, band: bandOf(ctx, 290, mega) };
+  return { html, band: bandFull(ctx, 196, deckTop + deckH) };
 }
 
 // STATS — count-up numerals in outlined plates under a mega headline. The proof beat.
@@ -1208,7 +1256,7 @@ function bStats(scene, ctx, sceneAssets) {
       }).join("")}
     </div>` : ""}
   ${close()}`;
-  return { html, band: bandOf(ctx, 280, mega) };
+  return { html, band: bandFull(ctx, 196, statsBottom) };
 }
 
 // VOICE — the film's only right-aligned composition: a mega quote, a breathing waveform
@@ -1250,7 +1298,7 @@ function bVoice(scene, ctx, sceneAssets) {
       <div style="font-family:${theme.subStack};font-weight:700;font-size:${F(fitPx(attribution, 44, 30))};line-height:1.1;color:${theme.ink};min-width:0;">${esc(attribution)}</div>
     </div>` : ""}
   ${close()}`;
-  return { html, band: bandOf(ctx, 280, mega) };
+  return { html, band: bandFull(ctx, 196, voiceBottom) };
 }
 
 // SWATCH — a full-bleed colour column against a right-hand text block: the brand beat,
@@ -1290,7 +1338,7 @@ function bSwatch(scene, ctx, sceneAssets) {
       ${chips.map((c, i) => chipHtml(theme, c, chipCols[i % 3], 26)).join("")}
     </div>` : ""}
   ${close()}`;
-  return { html, band: bandOf(ctx, 250, mega) };
+  return { html, band: bandFull(ctx, 150, swatchBottom) };
 }
 
 // LOGOS — the trust wall: a grid of logo/vector marks on outlined plates with the type
@@ -1310,7 +1358,7 @@ function bLogos(scene, ctx, marks) {
     <div style="position:absolute;left:${X(80)};right:${X(80)};top:${V(1210)};">${megaStack(theme, mega, { ground, accent: ctx.accent, align: "right" })}</div>
     <div data-in="draw" style="position:absolute;left:${X(400)};right:${X(80)};top:${V(1520)};height:${X(14)};background:${ink};transform-origin:right center;"></div>
   ${close()}`;
-  return { html, band: bandOf(ctx, 1210, mega) };
+  return { html, band: bandFull(ctx, 200, 1520 + 14) };
 }
 
 // STATEMENT — the dynamic default: a left mega line with chips or a supporting sentence.
@@ -1359,7 +1407,7 @@ function bStatement(scene, ctx, sceneAssets) {
       ${chips.map((c, i) => chipHtml(theme, c, chipCols[i % 3])).join("")}
     </div>` : ""}
   ${close()}`;
-  return { html, scroll: plan.frac ? { id: scrollId, frac: plan.frac, kind: device === "phone" ? "phone" : "web" } : null , band: bandOf(ctx, 320, mega) };
+  return { html, scroll: plan.frac ? { id: scrollId, frac: plan.frac, kind: device === "phone" ? "phone" : "web" } : null , band: bandFull(ctx, 196, stmtBottom) };
 }
 
 // CTA — the close: the user's logo (or a built mark), the wordmark, a pill button and the
@@ -1393,7 +1441,12 @@ function bCta(scene, ctx, _assets, logo) {
       ${url ? `<div data-in="up" style="font-family:${theme.monoStack};font-size:${F(30)};letter-spacing:.2em;text-transform:uppercase;color:${rgba(ink, 0.85)};margin-top:${X(52)};">${esc(url)}</div>` : ""}
     </div>
   ${close()}`;
-  return { html, band: bandOf(ctx, 560, mega) };
+  // The CTA is the one beat that fills the whole safe area by construction — a flex column
+  // centred between the safe insets — so its occupied band is the safe area itself, and
+  // there is no clear strip for the seam to sit in. Reporting the full span is the honest
+  // answer: the seam's "no clear band" branch then parks it deliberately rather than
+  // dropping a bar across the closing lockup, which is the frame a viewer looks at longest.
+  return { html, band: { top: ctx.safeTopPct, bottom: 100 - ctx.safeBotPct } };
 }
 
 const BUILDERS = {
@@ -1505,7 +1558,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   // renders a film with no imagery at all.
   const all = Array.isArray(assets) ? assets : [];
   const logo = logoAssetOf(all);
-  const shots = all.filter(shotOk).sort((a, b) => (Number(b.cdScore) || 0) - (Number(a.cdScore) || 0));
+  const shots = all.filter(shotOk).sort(admission.byDisplayRank);
   const marks = all.filter((a) => markOk(a) && a !== logo).slice(0, 6);
 
   const baseArch = scenes.map((sc, i) => archetypeFor(sc, i, scenes.length));
@@ -1906,6 +1959,26 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   // happens to be there. Swapped under the wipe with the ground, so the change is unseen.
   var decA=${JSON.stringify(grounds.map((g) => decorTone(g, 0.085)))};
   var decB=${JSON.stringify(grounds.map((g) => decorTone(g, 0.105)))};
+  // ...AND THE SHAPES THEMSELVES MOVE, not only their tone.
+  //
+  // The two discs are declared once in the markup at a fixed corner each and then only ever
+  // RECOLOURED at a cut. Their one motion is a slow global yoyo (see below), which travels a
+  // few percent over several seconds — so on a 3.5s beat they are, to the eye, in exactly the
+  // same place in every scene of the film. A QA reviewer comparing two text beats seven
+  // seconds apart reported "identical background layout, grid, and corner shapes", and it was
+  // literally true: the only thing that had changed was the words.
+  //
+  // Each scene now gets its own placement and size, set under the wipe alongside the colour
+  // swap, so the change is unseen and the set reads as re-dressed between beats. Deterministic
+  // (seeded per job), and expressed as TRANSFORMS — xPercent/yPercent/scale — which compose
+  // with the ambient yoyo's x/y/rotate instead of fighting it, and keep the discs off the
+  // layout properties the motion-safety guard forbids animating.
+  var blobA=${JSON.stringify(scenes.map(() => ({
+    xp: r(-18 + rnd() * 42), yp: r(-14 + rnd() * 30), s: r(0.74 + rnd() * 0.62),
+  })))};
+  var blobB=${JSON.stringify(scenes.map(() => ({
+    xp: r(-26 + rnd() * 34), yp: r(-22 + rnd() * 26), s: r(0.72 + rnd() * 0.7),
+  })))};
   var progs=${JSON.stringify(grounds.map((g, i) => accents[i]))};
   var seams=${JSON.stringify(seamAt)};
   var dirs=${JSON.stringify(dirs)};
@@ -1921,6 +1994,10 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
 
   // Progress rule — one linear scaleX across the whole film.
   tl.fromTo("#kf-prog",{scaleX:0},{scaleX:1,duration:D,ease:"none",immediateRender:false},0);
+  // Scene 1's own dressing, parked before the timeline runs so the opener is placed by the
+  // same rule as every later beat rather than sitting at the markup's default.
+  gsap.set("#kf-blob1",{xPercent:blobA[0].xp,yPercent:blobA[0].yp,scale:blobA[0].s});
+  gsap.set("#kf-blob2",{xPercent:blobB[0].xp,yPercent:blobB[0].yp,scale:blobB[0].s});
   // Blobs drift for the whole film on finite yoyos (the source used CSS keyframes, which
   // a frame-capturing renderer cannot reproduce deterministically).
   tl.to("#kf-blob1",{y:"-6%",x:"3%",rotate:7,duration:5.5,ease:"sine.inOut",yoyo:true,repeat:${yoyoReps(D, 5.5)},immediateRender:false},0);
@@ -1944,8 +2021,8 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
       tl.fromTo("#kf-wipe",{x:0,y:0,xPercent:dIn[dirs[i]].xPercent,yPercent:dIn[dirs[i]].yPercent},{xPercent:0,yPercent:0,duration:${ANIM.wipeIn},ease:"power3.in",immediateRender:false},cut);
       tl.set("#kf-bg",{backgroundColor:grounds[nx]},cut+0.21);
       tl.set("#kf-dots",{color:dots[nx]},cut+0.21);
-      tl.set("#kf-blob1",{backgroundColor:decA[nx]},cut+0.21);
-      tl.set("#kf-blob2",{borderColor:decB[nx]},cut+0.21);
+      tl.set("#kf-blob1",{backgroundColor:decA[nx],xPercent:blobA[nx].xp,yPercent:blobA[nx].yp,scale:blobA[nx].s},cut+0.21);
+      tl.set("#kf-blob2",{borderColor:decB[nx],xPercent:blobB[nx].xp,yPercent:blobB[nx].yp,scale:blobB[nx].s},cut+0.21);
       tl.set("#kf-prog",{backgroundColor:progs[nx]},cut+0.21);
       // The seam joins the film on the FIRST cut — set, not tweened, inside the same
       // under-cover window as the ground swap, so it is simply there when the block

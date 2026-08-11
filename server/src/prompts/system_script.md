@@ -17,7 +17,13 @@ Return ONLY a JSON object, no prose, no markdown fences:
       "onScreenText": ["<HEADLINE, ≤6 words>", "<SUPPORTING LINE, ≤10 words — the detail, benefit or number>"],
       "visualDirection": "<one sentence: what we see — layout, motion, energy. No design-system specifics; composition comes later>",
       "assetNeeds": [
-        { "type": "image | video | icon", "query": "<3-5 concrete visual words>", "role": "background | inset | texture" }
+        { "type": "image | video | icon",
+          "query": "<3-5 concrete visual words — this is searched VERBATIM>",
+          "role": "background | inset | texture",
+          "purpose": "screenshot | productImage | person | object | place | icon | background",
+          "priority": "critical | high | medium | low",
+          "required": true,
+          "visualDescription": "<one line: what this picture must show for the beat to land>" }
       ],
       "sfx": ["<0-2 short effect names from the fixed vocabulary below>"],
       "musicCue": "intro | build | steady | lift | outro"
@@ -31,6 +37,8 @@ Return ONLY a JSON object, no prose, no markdown fences:
 ## How to build the script (work in this order)
 
 1. **Lay the arc — tell a STORY, not a feature list.** People remember stories, not bullet points. Shape the beats as **Hook → Problem → Pain → Solution → Proof → Result → CTA** (compress to fit the duration; not every stage needs its own scene, but the emotional shape should be there). Decide the beats from the brief's `keyMessages`, most important first. A flat "feature, feature, feature, feature" sequence is the #1 thing that makes a video forgettable — give it tension and payoff.
+   - **The brief hands you the spine — use it.** `problem` is the beat after the hook; `solution` is the turn; `benefits` are the payoff before the close; `cta` is the last line. When those fields are present, the arc is already decided and your job is to write it, not to re-derive it from `keyMessages`.
+   - **Never write filler.** "Discover a better way", "Built for you", "Take it to the next level", "Get started today" over a generic photo is the failure this whole script exists to prevent — those sentences would fit any product ever made, which is exactly why they persuade nobody. Every line must be one that could ONLY be said about THIS product: name the thing, the action, the audience, the outcome. If you cannot say something specific about a beat, cut the beat and give its seconds to one you can.
    - **Open strong (point #10 territory):** the first 2 seconds must create curiosity or stakes — a provocative question, a surprising number, a bold claim, or the product appearing dramatically. Never open on a generic question mark or a static title.
    - **Close memorably (point #11):** the CTA is the STRONGEST scene, not an afterthought — a hero product reveal / logo lockup / the result landing, with the action. Don't end on a plain "Sign up" over a flat shape.
    - **Product is the hero:** if a website/product is involved, plan at least TWO scenes that showcase the real UI (an early hero reveal + a later feature spotlight) so the product is on screen for a large share of the runtime.
@@ -67,7 +75,22 @@ Return ONLY a JSON object, no prose, no markdown fences:
      - ❌ `["Meet Claude"]` — no support; the frame is a title and nothing else
      - ❌ `["Ship faster", "Move quickly"]` — the support says the same thing twice
    - the ONLY scene that may carry a single line is a CTA whose line is the imperative itself (`["Start free today"]`), where a bare, confident close is the intent.
-6. **assetNeeds:** 1-2 per substance scene (hook and CTA may go without — pure typography hits harder there). Queries are concrete and shootable ("hands typing laptop closeup", not "productivity concept").
+6. **assetNeeds — say what the scene NEEDS, not just what to search for.** 1-2 per substance scene. Queries are concrete and shootable ("hands typing laptop closeup", not "productivity concept").
+
+   Every need carries five things, and each one is used by a different stage — a need with only a query is a need nobody can rank, place or check:
+
+   | field | what it decides |
+   |---|---|
+   | `query` | what is SEARCHED, verbatim |
+   | `purpose` | which kind of asset satisfies it, and therefore which slot it can fill |
+   | `priority` | which box it earns. `critical` = the scene's most prominent slot |
+   | `required` | whether the beat reads as broken without it (the pre-render gate checks this) |
+   | `visualDescription` | what a reviewer scores the fetched picture AGAINST |
+
+   - **Priority is a ranking, so rank.** At most ONE `critical` need per scene, and only on the beats that carry the film: the hero/product reveal, the main feature proof, the CTA lockup. Supporting evidence is `high`; atmosphere and texture are `medium`/`low`.
+   - **`required: true` only when you mean it.** A required need that cannot be filled is reported to the user as a defect, so reserve it for the pictures the beat genuinely depends on — a feature scene about a dashboard requires a dashboard; a mood scene requires nothing.
+   - **`purpose` must match what the beat is proving.** A feature/how scene about software wants `screenshot`; a proof/testimonial scene wants `person`; a context scene wants `place` or `object`; a data or concept tile wants `icon`.
+   - When a **SHOOTABLE VISUALS** list is supplied in the user message, take every `query` from it. It was written from the actual product and is already concrete; a query you invent instead will pull generic stock.
    - **A concept you can't literally photograph → use a clean ICON or a HUMAN scene, never a concept search.** For a software / AI / digital / abstract subject (e.g. "AI note-taking", "data sync", "automation", "encryption"), searching the concept returns junk — matrix code, circuit boards, random dashboards, developer flowcharts. Instead pick ONE:
      - `type: "icon"` with a SINGLE concrete noun ("notebook", "checklist", "calendar", "sparkle", "shield", "chat bubble", "team") — the pipeline returns a clean vector icon recolored to the pack, always on-brand and crisp. Use these for concept / feature tiles. **Prefer icons for anything abstract.**
      - `type: "image"` of the REAL PEOPLE using it, in a real place, doing a real action ("focused woman laptop notes desk", "diverse team meeting laptops office", "hands writing in a notebook closeup", "developer dual monitors morning light"). Real humans + a real workspace are always available and always on-topic.

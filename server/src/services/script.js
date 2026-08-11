@@ -14,10 +14,35 @@ const SYSTEM = fs.readFileSync(
   "utf8"
 );
 
+// AN ASSET NEED IS A REQUIREMENT, NOT A SEARCH STRING.
+//
+// It used to carry three fields — type, query, role — and nothing that said what the picture
+// is FOR, whether the scene fails without it, or what shape it has to be. So the planner
+// (graph.assetPlannerAgent) could only turn it into "fetch an image for this scene", the
+// ranker had nothing to rank a hero against a texture with, and the pre-render gate could not
+// tell a missing decoration from a missing product shot.
+//
+// The four new fields are all OPTIONAL and all defaulted, so a script written before they
+// existed — or by a model that ignores them — validates and behaves exactly as before.
+// `services/asset_requirements` fills the gaps deterministically from the scene's role and
+// the template's own slot contract, so the model is a source of intent, never a bottleneck.
 const AssetNeedSchema = z.object({
   type: z.enum(["image", "video", "icon"]),
   query: z.string().min(2).max(80),
   role: z.enum(["background", "inset", "texture"]),
+  // WHAT this picture is for, in the product-facing vocabulary the template contract speaks
+  // (template_media.KINDS). Steers retrieval and slot matching; never a hard filter.
+  purpose: z.enum(["screenshot", "productImage", "person", "object", "place", "icon", "background"]).optional(),
+  // How much the scene depends on it. `critical` earns the scene's most prominent box and is
+  // what the pre-render gate checks; `low` is texture that may be dropped without harm.
+  priority: z.enum(["critical", "high", "medium", "low"]).optional(),
+  // Does the beat read as broken without it? Distinct from priority: a `high` need may still
+  // be optional (nice to have, big if present), and a `medium` one may be required.
+  required: z.boolean().optional(),
+  // A one-line description of the picture in the writer's own words. Retrieval uses `query`;
+  // this is what a vision reviewer scores relevance AGAINST, and what a disclosure shows the
+  // user when a slot could not be filled.
+  visualDescription: z.string().max(220).optional(),
 });
 
 const { ROLES, stampRoles } = require("./scene_role");
@@ -255,7 +280,7 @@ function validateScript(script, { targetDuration } = {}) {
 
 const { extractFirstJsonObject: parseLenient } = require("./json_lenient");
 
-async function generateScript({ brief, userAssets, signal, languageDirective = null }) {
+async function generateScript({ brief, userAssets, signal, languageDirective = null, product = null }) {
   const targetDuration = brief.suggestedDuration;
   // The user's own uploaded material, classified at intake. The static prompt
   // carries the RULE (7b); the dynamic INVENTORY rides the user message — same
@@ -267,9 +292,26 @@ async function generateScript({ brief, userAssets, signal, languageDirective = n
   // Language Director's localization-aware authoring directive (non-English films only; null
   // for English → this block is empty and the payload is byte-identical to before).
   const languageBlock = languageDirective ? ["", languageDirective] : [];
+  // PRODUCT UNDERSTANDING (prompt-only jobs). The brief distils it, but two things do not
+  // survive distillation and the script needs both: the STATED-vs-INFERRED boundary (which
+  // sentences may be spoken as the user's own claim) and the VISUAL VOCABULARY — literal,
+  // shootable subjects already ranked by importance. Without the second, `assetNeeds` is
+  // written from the writer's imagination and the collector chases prose.
+  const productBlock = (() => {
+    if (!product) return [];
+    const out = ["", require("./product_understanding").describe(product)];
+    if (Array.isArray(product.visualVocabulary) && product.visualVocabulary.length) {
+      out.push("", "SHOOTABLE VISUALS — draw every `assetNeeds.query` from this list (it is already concrete and on-topic; a query you invent instead will pull generic stock):");
+      for (const v of product.visualVocabulary) {
+        out.push(`  - "${v.subject}" [${v.assetType}, ${v.priority}]${v.why ? ` — ${v.why}` : ""}`);
+      }
+    }
+    return out;
+  })();
   const user = [
     "Creative Brief:",
     JSON.stringify(brief, null, 2),
+    ...productBlock,
     ...inventoryBlock,
     ...languageBlock,
     "",

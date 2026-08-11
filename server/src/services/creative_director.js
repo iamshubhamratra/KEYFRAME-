@@ -281,7 +281,7 @@ async function reviewAudio({ subject, script, audioPlan, sceneCount, tracker, si
 // Returns { assets: curatedAssets, report }. `assets` is the surviving, annotated
 // asset list to hand the composer. Fail-open: on any thrown error the caller
 // (reviewAndCurate) passes the original assets through.
-async function directAssets({ storyboard, script, subject, brief, framePack, assets, audioPlan, tracker, signal, jobDir, orientation, category, maxTopUp: maxTopUpOverride }) {
+async function directAssets({ storyboard, script, subject, brief, framePack, assets, audioPlan, tracker, signal, jobDir, orientation, category, maxTopUp: maxTopUpOverride, minKeep = 0 }) {
   const list = Array.isArray(assets) ? assets.slice() : [];
   const subj = String(subject || (brief && brief.subject) || "").trim();
   const scenes = sceneDigest(storyboard, script);
@@ -560,6 +560,47 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
   for (const arr of byScene.values()) {
     arr.sort((x, y) => rankScore(y) - rankScore(x));
     arr.slice(Math.max(1, maxPerScene)).forEach((a) => { a.visionOk = false; a.cdProminence = "background"; });
+  }
+
+  // ---- THE SUPPLY FLOOR ------------------------------------------------------------------
+  //
+  // REJECTION MUST NOT OUTRUN SUPPLY. The director judges each asset on its own merits, one
+  // at a time, and nothing ever looked at the RESULT as a quantity. Measured on a real
+  // prompt-only render: 8 collected, "2 approved / 6 rejected", and the film shipped with 4 of
+  // its 8 scenes showing nothing. Every rejection was defensible in isolation; the outcome was
+  // not, because a prompt-only film has no owned material to fall back on and the top-up
+  // refetches the same cache.
+  //
+  // The rule is the one this pipeline keeps re-learning at every layer: a judgement about
+  // QUALITY is a ranking when supply is scarce and a deletion only when supply is plentiful.
+  // So a merely-weak or off-topic asset is restored as background B-roll when the film would
+  // otherwise fall below what it needs to fill its boxes — ranked last, never prominent, and
+  // disclosed. A TECHNICALLY BROKEN asset (an unusable capture) is never restored: those are
+  // not weak pictures, they are broken ones, and showing them dim would reinstate the defect.
+  //
+  // `minKeep` is the caller's statement of need (graph passes the media plan's fillable slot
+  // count). Absent one, the floor is the historical "never zero".
+  const needFloor = Math.max(0, Number(minKeep) || 0);
+  if (needFloor > 0 && survivors0.length < needFloor && toDelete.size > 0) {
+    const restorable = [...toDelete]
+      .filter((i) => !visual[i].__captureUnusable)
+      .sort((a, b) => (visual[b].cdScore || 0) - (visual[a].cdScore || 0));
+    let restored = 0;
+    for (const i of restorable) {
+      if (survivors0.length + restored >= needFloor) break;
+      toDelete.delete(i);
+      visual[i].__rejected = false;
+      visual[i].visionOk = false;
+      visual[i].cdProminence = "background";
+      visual[i].__layoutDemoted = true;      // seated only where a box would otherwise be bare
+      const ri = rejectedAssets.findIndex((r) => r.path === visual[i].path);
+      if (ri >= 0) rejectedAssets.splice(ri, 1);
+      restored++;
+    }
+    if (restored) {
+      notes.push(`Kept ${restored} weaker image(s) as dim background: rejecting them all would have left ${survivors0.length} visual(s) for ${needFloor} slot(s), and empty panels read worse than imperfect ones.`);
+      console.log(`[creative_director] supply floor: restored ${restored} reject(s) as background — ${survivors0.length} survivor(s) for ${needFloor} slot(s)`);
+    }
   }
 
   // Never zero-out: if we started with assets and deletion would leave none,

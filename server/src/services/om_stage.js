@@ -34,9 +34,11 @@
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
 const { varyArchetypes } = require("./motion_planner");
 const { isTrustedProminent, isLogo, categorize } = require("./asset_priority");
+const admission = require("./asset_admission");
 const { resolveBrand } = require("./brand_kit");
 const { safeArea } = require("./responsive");
 const { GSAP_CDN, r, esc, hexToRgb, bullets } = require("./composer_kit");
+const { tempoOf } = require("./pacing");
 
 
 // ---- helpers -----------------------------------------------------------------
@@ -315,13 +317,12 @@ function fitPx(text, basePx, targetCh, floor = 0.58) {
 }
 
 // ---- asset gates + presentation ----------------------------------------------
+// ADMISSION IS SHARED (services/asset_admission) — see that file for the measurement.
+// The trailing `isTrustedProminent(a) || cdProminence hero|support` was a TRUST test doing
+// an ADMISSION job: web stock satisfies neither clause, and the Creative Director is told
+// "when in doubt, use background", so a stock photo never reached these seven skins at all.
 function shotOk(a) {
-  if (!a || !a.path) return false;
-  if (isLogo(a)) return false;
-  if (a.type === "video" || /\.(mp4|webm|mov)($|\?)/i.test(a.path)) return false;
-  if (/\.svg($|\?)/i.test(a.path)) return false;
-  if (a.__layoutDemoted) return false;
-  return isTrustedProminent(a) || a.cdProminence === "hero" || a.cdProminence === "support";
+  return admission.displayOk(a) && a.__layoutDemoted !== true;
 }
 // THE RESERVE — captures the Visual Layout Director demoted past its presentation budget.
 //
@@ -337,16 +338,14 @@ function shotOk(a) {
 // beat that could hold a better one already has it — VLD's ranking is preserved, its
 // starvation side-effect is not.
 //
-// Demoted STOCK deliberately stays out: VLD zeroes `visionOk` when it demotes, so
-// isTrustedProminent rejects it. That is the trim working as intended — it should drop weak
-// stock, never the user's own uploads or their site's captures.
+// Demoted stock USED to stay out — "VLD zeroes visionOk when it demotes, so
+// isTrustedProminent rejects it. That is the trim working as intended." It was not: on a
+// prompt-only film every asset is stock, so the trim did not drop the WEAK stock, it dropped
+// ALL of it, and a film whose whole wire was demoted rendered no pictures whatever. The
+// reserve is now the demoted set regardless of source; coverage-first distribution already
+// guarantees it is reached only after every beat that could hold something better has it.
 function shotReserveOk(a) {
-  if (!a || !a.path) return false;
-  if (!a.__layoutDemoted) return false;            // the reserve is ONLY the demoted set
-  if (isLogo(a)) return false;
-  if (a.type === "video" || /\.(mp4|webm|mov)($|\?)/i.test(a.path)) return false;
-  if (/\.svg($|\?)/i.test(a.path)) return false;
-  return isTrustedProminent(a);
+  return admission.displayOk(a) && a.__layoutDemoted === true;
 }
 function markOk(a) {
   if (!a || !a.path) return false;
@@ -547,8 +546,14 @@ function frameHtml(theme, skin, { device, asset, boxH, tint, scrollId, address, 
       </div>
     </div>`;
   }
+  // THE CARD FRAME MUST SCROLL LIKE THE OTHER TWO — the same defect film_stage carried.
+  // Dropping `scrollId`/`natH` here stops `plate` drawing the scrolling wrapper, while the
+  // caller has already committed to animating it (`bHook`/`bFeature` return
+  // `scroll: {id, frac}` and the timeline emits `tl.fromTo("#<id>", …)`), so a card-ratio
+  // capture produced a tween pointing at a node that does not exist. Caught by
+  // test:dead-tweens once the admission fix let the hook actually hold a picture.
   return `<div style="width:100%;height:100%;border-radius:${X(rad)};${shell}overflow:hidden;position:relative;background:${rgba(t, 0.18)};">
-    ${plate(theme, { asset, tint: t })}
+    ${plate(theme, { asset, scrollId, natH, tint: t })}
   </div>`;
 }
 
@@ -862,54 +867,78 @@ function enterScript(id, T, html, energy) {
 // boundary), a hard block WIPE, and the theatre COVERS (doors / iris / blinds). A skin
 // names the ones it wants and they rotate; the ground swaps while the frame is covered,
 // so a colour change is never seen as a jerk.
-function cutLayer(theme, kind) {
+// THE COVER MARKUP MUST COVER EVERY KIND THE FILM USES.
+//
+// `cutLayer` drew the children for `cutKinds[0]` alone, while the cut loop below rotates through
+// ALL of a skin's declared kinds (`cutKinds[i % cutKinds.length]`). So a skin declaring
+// `cuts: ["blinds", "wipe"]` drew the blind bands and then scripted wipe cuts against an
+// `#om-cut-a` that was never drawn — every second cut in the film did nothing at all. Two of the
+// seven om_stage skins shipped that way (found by scripts/test-dead-tweens.js); `cutParkAt`
+// already looped `new Set(cutKinds)`, so the design always intended the kinds to coexist and only
+// the markup never caught up.
+//
+// The covers cannot share one element: doors, iris and wipe each need a DIFFERENT geometry for
+// their `-a` pane. So the ids are scoped BY KIND and the layer emits the union.
+const cutSel = (kind, part) => `#om-cut-${kind}-${part}`;
+
+function cutChildren(kind) {
   if (kind === "doors") {
-    return `<div id="om-cut" class="clip" data-start="0" data-duration="__D__" data-track-index="88" data-layout-allow-occlusion style="pointer-events:none;">
-      <div id="om-cut-a" style="position:absolute;top:-2%;bottom:-2%;left:0;width:51%;background:transparent;"></div>
-      <div id="om-cut-b" style="position:absolute;top:-2%;bottom:-2%;right:0;width:51%;background:transparent;"></div>
-    </div>`;
+    return `<div id="om-cut-doors-a" style="position:absolute;top:-2%;bottom:-2%;left:0;width:51%;background:transparent;"></div>
+      <div id="om-cut-doors-b" style="position:absolute;top:-2%;bottom:-2%;right:0;width:51%;background:transparent;"></div>`;
   }
   if (kind === "blinds") {
-    const bands = Array.from({ length: 5 }, (_, i) =>
+    return Array.from({ length: 5 }, (_, i) =>
       `<div class="om-blind" style="flex:1;background:transparent;transform-origin:${i % 2 ? "bottom" : "top"};"></div>`).join("");
-    return `<div id="om-cut" class="clip" data-start="0" data-duration="__D__" data-track-index="88" data-layout-allow-occlusion style="pointer-events:none;display:flex;flex-direction:column;">${bands}</div>`;
   }
   if (kind === "iris") {
-    return `<div id="om-cut" class="clip" data-start="0" data-duration="__D__" data-track-index="88" data-layout-allow-occlusion style="pointer-events:none;">
-      <div id="om-cut-a" style="position:absolute;inset:-2%;background:transparent;"></div>
-    </div>`;
+    return `<div id="om-cut-iris-a" style="position:absolute;inset:-2%;background:transparent;"></div>`;
   }
-  // wipe (also the coverless "push" skin's fallback, parked off-frame and never shown)
-  return `<div id="om-cut" class="clip" data-start="0" data-duration="__D__" data-track-index="88" data-layout-allow-occlusion style="pointer-events:none;">
-    <div id="om-cut-a" style="position:absolute;left:-8%;right:-8%;top:-10%;bottom:-10%;background:transparent;"></div>
-  </div>`;
+  if (kind === "wipe") {
+    return `<div id="om-cut-wipe-a" style="position:absolute;left:-8%;right:-8%;top:-10%;bottom:-10%;background:transparent;"></div>`;
+  }
+  return "";   // push draws no cover — its cut IS the camera
+}
+
+// `kinds` is the skin's whole rotation. The container is a flex column so the blind bands stack;
+// every other cover is absolutely positioned and therefore out of flow, so the flex box is
+// harmless when blinds are not among the kinds.
+function cutLayer(theme, kinds) {
+  const uniq = [...new Set(Array.isArray(kinds) ? kinds : [kinds])].filter((k) => k && k !== "push");
+  if (!uniq.length) return "";
+  return `<div id="om-cut" class="clip" data-start="0" data-duration="__D__" data-track-index="88" data-layout-allow-occlusion style="pointer-events:none;display:flex;flex-direction:column;">${uniq.map(cutChildren).join("")}</div>`;
 }
 // The tweens for one cut at time `cut`, covering the boundary and revealing the next
 // ground. Returns [] for "push" — that skin's cut IS the camera, so no cover is drawn.
-function cutScript(kind, cut, nextGround, idx) {
+function cutScript(kind, cut, nextGround, idx, xf = 1) {
   if (kind === "push") return [];
+  // A music-led film cuts harder. `xf` is the film tempo's cut multiplier
+  // (services/pacing.js); at 1 these are the authored values exactly. Both the durations
+  // and the exit OFFSETS scale together, or the cover would start leaving before it
+  // finished arriving.
+  const dIn = r(0.26 * xf), dOut = r(0.3 * xf), dIris = r(0.28 * xf);
+  const oOut = 0.3 * xf, oBlind = 0.32 * xf;
   if (kind === "doors") {
     return [
-      `tl.set("#om-cut-a",{backgroundColor:${JSON.stringify(nextGround)}},${r(cut)});`,
-      `tl.set("#om-cut-b",{backgroundColor:${JSON.stringify(nextGround)}},${r(cut)});`,
-      `tl.fromTo("#om-cut-a",{xPercent:-104},{xPercent:0,duration:0.26,ease:"power3.inOut",immediateRender:false},${r(cut)});`,
-      `tl.fromTo("#om-cut-b",{xPercent:104},{xPercent:0,duration:0.26,ease:"power3.inOut",immediateRender:false},${r(cut)});`,
-      `tl.to("#om-cut-a",{xPercent:-104,duration:0.3,ease:"power3.inOut",overwrite:"auto"},${r(cut + 0.3)});`,
-      `tl.to("#om-cut-b",{xPercent:104,duration:0.3,ease:"power3.inOut",overwrite:"auto"},${r(cut + 0.3)});`,
+      `tl.set("${cutSel("doors","a")}",{backgroundColor:${JSON.stringify(nextGround)}},${r(cut)});`,
+      `tl.set("${cutSel("doors","b")}",{backgroundColor:${JSON.stringify(nextGround)}},${r(cut)});`,
+      `tl.fromTo("${cutSel("doors","a")}",{xPercent:-104},{xPercent:0,duration:${dIn},ease:"power3.inOut",immediateRender:false},${r(cut)});`,
+      `tl.fromTo("${cutSel("doors","b")}",{xPercent:104},{xPercent:0,duration:${dIn},ease:"power3.inOut",immediateRender:false},${r(cut)});`,
+      `tl.to("${cutSel("doors","a")}",{xPercent:-104,duration:${dOut},ease:"power3.inOut",overwrite:"auto"},${r(cut + oOut)});`,
+      `tl.to("${cutSel("doors","b")}",{xPercent:104,duration:${dOut},ease:"power3.inOut",overwrite:"auto"},${r(cut + oOut)});`,
     ];
   }
   if (kind === "blinds") {
     return [
       `tl.set("#om-cut .om-blind",{backgroundColor:${JSON.stringify(nextGround)}},${r(cut)});`,
-      `tl.fromTo("#om-cut .om-blind",{scaleY:0},{scaleY:1,duration:0.26,ease:"power2.inOut",stagger:0.03,immediateRender:false},${r(cut)});`,
-      `tl.to("#om-cut .om-blind",{scaleY:0,duration:0.3,ease:"power2.inOut",stagger:0.03,overwrite:"auto"},${r(cut + 0.32)});`,
+      `tl.fromTo("#om-cut .om-blind",{scaleY:0},{scaleY:1,duration:${dIn},ease:"power2.inOut",stagger:0.03,immediateRender:false},${r(cut)});`,
+      `tl.to("#om-cut .om-blind",{scaleY:0,duration:${dOut},ease:"power2.inOut",stagger:0.03,overwrite:"auto"},${r(cut + oBlind)});`,
     ];
   }
   if (kind === "iris") {
     return [
-      `tl.set("#om-cut-a",{backgroundColor:${JSON.stringify(nextGround)}},${r(cut)});`,
-      `tl.fromTo("#om-cut-a",{clipPath:"circle(0% at 50% 50%)"},{clipPath:"circle(122% at 50% 50%)",duration:0.28,ease:"power2.inOut",immediateRender:false},${r(cut)});`,
-      `tl.to("#om-cut-a",{clipPath:"circle(0% at 50% 50%)",duration:0.3,ease:"power2.inOut",overwrite:"auto"},${r(cut + 0.32)});`,
+      `tl.set("${cutSel("iris","a")}",{backgroundColor:${JSON.stringify(nextGround)}},${r(cut)});`,
+      `tl.fromTo("${cutSel("iris","a")}",{clipPath:"circle(0% at 50% 50%)"},{clipPath:"circle(122% at 50% 50%)",duration:${dIris},ease:"power2.inOut",immediateRender:false},${r(cut)});`,
+      `tl.to("${cutSel("iris","a")}",{clipPath:"circle(0% at 50% 50%)",duration:${dOut},ease:"power2.inOut",overwrite:"auto"},${r(cut + oBlind)});`,
     ];
   }
   // wipe — a hard block driving in from an edge and out the opposite side. The edge
@@ -918,9 +947,9 @@ function cutScript(kind, cut, nextGround, idx) {
   const EDGE_IN = [{ x: 0, y: 112 }, { x: -112, y: 0 }, { x: 0, y: -112 }, { x: 112, y: 0 }];
   const e = EDGE_IN[(idx || 0) % 4], out = { x: -e.x, y: -e.y };
   return [
-    `tl.set("#om-cut-a",{backgroundColor:${JSON.stringify(nextGround)}},${r(cut)});`,
-    `tl.fromTo("#om-cut-a",{xPercent:${e.x},yPercent:${e.y}},{xPercent:0,yPercent:0,duration:0.26,ease:"power3.inOut",immediateRender:false},${r(cut)});`,
-    `tl.to("#om-cut-a",{xPercent:${out.x},yPercent:${out.y},duration:0.3,ease:"power3.inOut",overwrite:"auto"},${r(cut + 0.3)});`,
+    `tl.set("${cutSel("wipe","a")}",{backgroundColor:${JSON.stringify(nextGround)}},${r(cut)});`,
+    `tl.fromTo("${cutSel("wipe","a")}",{xPercent:${e.x},yPercent:${e.y}},{xPercent:0,yPercent:0,duration:${dIn},ease:"power3.inOut",immediateRender:false},${r(cut)});`,
+    `tl.to("${cutSel("wipe","a")}",{xPercent:${out.x},yPercent:${out.y},duration:${dOut},ease:"power3.inOut",overwrite:"auto"},${r(cut + oOut)});`,
   ];
 }
 // The cover's RESTING (invisible) state, emitted as timeline `set`s rather than a bare
@@ -929,10 +958,10 @@ function cutScript(kind, cut, nextGround, idx) {
 // cuts (where its own tweens took over). Parking on the timeline at t=0 and again after
 // every cut exit means the resting state is re-asserted by any seek, forward or backward.
 function cutRest(kind) {
-  if (kind === "doors") return [["#om-cut-a", "{xPercent:-104}"], ["#om-cut-b", "{xPercent:104}"]];
+  if (kind === "doors") return [[cutSel("doors", "a"), "{xPercent:-104}"], [cutSel("doors", "b"), "{xPercent:104}"]];
   if (kind === "blinds") return [["#om-cut .om-blind", "{scaleY:0}"]];
-  if (kind === "iris") return [["#om-cut-a", `{clipPath:"circle(0% at 50% 50%)"}`]];
-  return [["#om-cut-a", "{x:0,y:0,xPercent:0,yPercent:112}"]];
+  if (kind === "iris") return [[cutSel("iris", "a"), `{clipPath:"circle(0% at 50% 50%)"}`]];
+  return [[cutSel("wipe", "a"), "{x:0,y:0,xPercent:0,yPercent:112}"]];
 }
 function cutParkAt(kind, t) {
   if (kind === "push") return [];
@@ -982,7 +1011,12 @@ function build(skin, { storyboard, dims, framePack, captionCues, assets, brandSk
   const rnd = mulberry32(seedFrom(seedKey || sb.title || (scenes[0] && scenes[0].headline) || skin.id));
   const title = String(sb.title || "").slice(0, 60);
   const address = addressFrom(assets, S);
-  const energy = skin.energy || 1;
+  // FILM TEMPO folds into the skin's own energy, which this engine already divides every
+  // entrance duration and stagger by, and multiplies every camera offset by. One number
+  // therefore quickens the type AND widens the camera across all seven skins — no new
+  // plumbing, and a skin's authored character stays proportional to its neighbours'.
+  const tempo = tempoOf(sb);
+  const energy = (skin.energy || 1) / (tempo.motion || 1);
 
   // ---- assets: distribute captures across DISPLAY-CAPABLE beats ---------------
   // The Creative Director's per-asset `sceneId` is a HINT, not a binding: honour it when
@@ -991,9 +1025,12 @@ function build(skin, { storyboard, dims, framePack, captionCues, assets, brandSk
   // film with no imagery at all.
   const all = Array.isArray(assets) ? assets : [];
   const logo = logoAssetOf(all);
-  const byScore = (a, b) => (Number(b.cdScore) || 0) - (Number(a.cdScore) || 0);
+  // Tier-first seat order (services/asset_admission.displayRank). Ordering by `cdScore`
+  // alone put an asset the CD never scored at 0 — dead last behind everything — and let a
+  // lucky stock photo take a display beat ahead of the user's own capture.
+  const byScore = admission.byDisplayRank;
   const primaryShots = all.filter(shotOk).sort(byScore);
-  // Demoted-but-trusted captures, ranked among themselves, appended behind the primaries
+  // Demoted captures, ranked among themselves, appended behind the primaries
   // (see shotReserveOk). Coverage-first distribution means these only fill beats that
   // would otherwise render no imagery at all.
   const reserveShots = all.filter(shotReserveOk).sort(byScore);
@@ -1204,7 +1241,7 @@ function build(skin, { storyboard, dims, framePack, captionCues, assets, brandSk
   // A coverless "push" pack emits NO cover layer at all. Emitting one and simply not
   // animating it parks a full-frame accent block on top of the entire film — which is
   // exactly what happened the first time this ran.
-  const cut = cutKinds[0] === "push" ? "" : cutLayer(theme, cutKinds[0]).replace("__D__", String(D));
+  const cut = cutKinds[0] === "push" ? "" : cutLayer(theme, cutKinds).replace("__D__", String(D));
 
   const chrome = `<div id="om-chrome" class="clip" data-start="0" data-duration="${D}" data-track-index="92" data-layout-allow-occlusion style="pointer-events:none;">
     <div style="position:absolute;left:0;right:0;top:0;height:${X(8)};background:${rgba(theme.ink, 0.16)};">
@@ -1235,7 +1272,7 @@ function build(skin, { storyboard, dims, framePack, captionCues, assets, brandSk
   for (let i = 0; i < scenes.length - 1; i++) {
     const at = starts[i] + durs[i] - 0.44;
     const kind = cutKinds[i % cutKinds.length];
-    cutLines.push(...cutScript(kind, at, grounds[i + 1], i));
+    cutLines.push(...cutScript(kind, at, grounds[i + 1], i, tempo.xfade));
     // …and re-park once the exit has finished, so the next interval is covered too.
     cutLines.push(...cutParkAt(kind, at + 0.64));
     // The ground swaps while the frame is covered (or, for a coverless push, on the cut).
