@@ -418,7 +418,29 @@ module.exports = {
   // the reason (a poor render is worse than an honest error) — see graph.validateBeforeRender.
   setValidationReport(id, report) {
     const j = jobs.get(id); if (!j) return;
-    j.validation_report = report ? { ...report, checks: report.checks || {} } : null;
+    // PRESERVE THE NOTES THE EARLIER STAGES WROTE.
+    //
+    // `setValidationNote` stores into `validation_report.notes`, and the stages that raise
+    // those notes run EARLY — frame_selector is the graph's first node, and it is where the
+    // orientation and supply disclosures are written ("this template draws 14 pictures and
+    // your film can supply about 5"). This setter then ran at pre-render time and replaced
+    // the whole object, so every one of those notes was silently discarded before the user
+    // could ever see it.
+    //
+    // Measured: a job that explicitly pinned a 14-slot template to a prompt-only film — the
+    // exact case the honour-the-user-and-disclose branch exists for — shipped with
+    // `validation_report.notes: null`. The pipeline made the right decision, told the user
+    // nothing, and delivered a film with ten empty boxes. A disclosure that is overwritten
+    // before it is read is the same as no disclosure at all.
+    const prevNotes = (j.validation_report && Array.isArray(j.validation_report.notes))
+      ? j.validation_report.notes : [];
+    if (!report) { j.validation_report = prevNotes.length ? { notes: prevNotes } : null; scheduleWrite(); return; }
+    const merged = [...prevNotes, ...(Array.isArray(report.notes) ? report.notes : [])];
+    j.validation_report = {
+      ...report,
+      checks: report.checks || {},
+      ...(merged.length ? { notes: [...new Set(merged)].slice(0, 8) } : {}),
+    };
     scheduleWrite();
   },
 
