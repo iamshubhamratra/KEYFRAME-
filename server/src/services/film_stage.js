@@ -316,6 +316,36 @@ function fitPx(text, basePx, targetCh, floor = 0.58) {
   return basePx * clamp(targetCh / len, floor, 1);
 }
 
+/**
+ * A TEXT-ONLY BEAT FILLS THE FRAME IT WAS GIVEN.
+ *
+ * `fitLines` above returns `Math.min(basePx, col / widest)` — it only ever SHRINKS. That is
+ * exactly right when a beat holds a picture: the authored size was chosen to leave room for
+ * one, and long copy comes down to fit the column. It is wrong when the beat holds NO picture,
+ * because the authored size still reserves the picture's share of the canvas and short copy
+ * keeps it — so the frame renders as type floating in the space a photograph was meant to
+ * occupy.
+ *
+ * Measured on real renders, twice, and the reviewer named it both times: "massive empty space
+ * and under-illustrated layout covering under 40% of canvas", and "excessive empty canvas area
+ * above and below central text elements — scale up counter component to fill 60% width".
+ *
+ * On a prompt-only film roughly half the beats are text-only whatever the collection stage
+ * achieves, so this is not an edge case, it is the common case.
+ *
+ * Raising the CEILING is all this does. `fitLines` still shrinks whatever it is handed, so
+ * long copy is unaffected and nothing can overflow the safe column; only short copy on an
+ * empty beat grows. The grown size is additionally capped so a full `maxLines` block cannot
+ * run past `capFrac` of the frame height and into the caption band.
+ */
+const SOLO_GROW = 1.45;
+function soloSize(basePx, hasAsset, { maxLines = 4, lineHeight = 1.04, capFrac = 0.54 } = {}) {
+  const base = Number(basePx) || 0;
+  if (hasAsset || !base) return base;
+  const vertical = (RH * capFrac) / Math.max(1, maxLines * lineHeight);
+  return Math.max(base, Math.min(base * SOLO_GROW, vertical));
+}
+
 // ---- asset gates + presentation ----------------------------------------------
 // ADMISSION IS SHARED (services/asset_admission). This used to end in
 //     return isTrustedProminent(a) || a.cdProminence === "hero" || a.cdProminence === "support";
@@ -1084,7 +1114,7 @@ module.exports = {
   build, BASE_STRINGS, PRESETS,
   X, V, F, RW, RH, clamp, clamp01, rgba, hexToRgb, relLum, ratio, reHue, hueOf,
   seedFrom, mulberry32, buildTheme,
-  wordsOf, forcedLines, featureLines, pickNumber, pickStats, shortLabel, fitLines, fitPx,
+  wordsOf, forcedLines, featureLines, pickNumber, pickStats, shortLabel, fitLines, fitPx, soloSize,
   shotOk, shotReserveOk, logoAssetOf, ratioOf, deviceFor, addressFrom, scrollPlan,
   fitFor, cropFocus, plate, wirePlate, backingPlate, frameHtml,
   archetypeFor, CAN_SHOW, SHOT_CAPACITY, capacityOf, MECHANIC_FOR, MECHANIC_NEEDS_NO_SHOT,

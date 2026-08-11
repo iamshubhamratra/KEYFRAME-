@@ -165,7 +165,7 @@ function bHook(scene, ctx, sceneAssets, logo) {
   const html = `${open(ctx)}
     <div style="position:absolute;left:${X(PAD)};right:${X(PAD)};top:${V(asset ? Math.min(L.top || 320, 300) : (L.top || 320))};text-align:${L.align || "left"};">
       ${mark}${kicker(theme, skin, L.kicker, scene.kicker || Str.hookKicker)}
-      ${title(theme, skin, scene.headline || scene.title || ctx.title, { size: L.size || 126, fg, hi, upper: L.upper, from: 1, align: L.align || "left", maxLines: asset ? 3 : 4, ground: ctx.ground })}
+      ${title(theme, skin, scene.headline || scene.title || ctx.title, { size: S.soloSize(L.size || 126, !!asset, { maxLines: asset ? 3 : 4, lineHeight: skin.titleLine || 1.04 }), fg, hi, upper: L.upper, from: 1, align: L.align || "left", maxLines: asset ? 3 : 4, ground: ctx.ground })}
       ${sub ? `<div data-in="rise" data-i="5" style="font-family:${theme.bodyStack};font-weight:600;font-size:${F(fitPx(sub, 35, 90))};color:${rgba(fg, 0.74)};margin-top:${X(36)};max-width:${X(740)};line-height:1.45;${L.align === "center" ? "margin-left:auto;margin-right:auto;" : ""}">${esc(sub)}</div>` : ""}
     </div>
     ${frame}
@@ -189,7 +189,7 @@ function bStatement(scene, ctx, sceneAssets) {
     : "";
   const html = `${open(ctx)}
     <div style="position:absolute;left:${X(PAD)};right:${X(PAD)};top:${V(asset ? Math.min(L.top || 630, 420) : (L.top || 630))};text-align:${L.align || "left"};">
-      ${title(theme, skin, scene.headline || scene.title || "", { size: L.size || 160, fg, hi, upper: L.upper, from: 0, align: L.align || "left", maxLines: asset ? 3 : 4, ground: ctx.ground })}
+      ${title(theme, skin, scene.headline || scene.title || "", { size: S.soloSize(L.size || 160, !!asset, { maxLines: asset ? 3 : 4, lineHeight: skin.titleLine || 1.04 }), fg, hi, upper: L.upper, from: 0, align: L.align || "left", maxLines: asset ? 3 : 4, ground: ctx.ground })}
       ${sub ? `<div data-in="rise" data-i="4" style="font-family:${theme.bodyStack};font-weight:600;font-size:${F(fitPx(sub, 35, 100))};color:${rgba(fg, 0.7)};margin-top:${X(42)};max-width:${X(700)};line-height:1.45;${L.align === "center" ? "margin-left:auto;margin-right:auto;" : ""}">${esc(sub)}</div>` : ""}
       ${attribution && !sub ? `<div data-in="rise" data-i="4" style="font-family:${theme.bodyStack};font-weight:700;font-size:${F(34)};color:${hi};margin-top:${X(32)};">${esc(attribution)}</div>` : ""}
     </div>
@@ -308,7 +308,12 @@ function bStats(scene, ctx, sceneAssets) {
   const cols = (L.cols || ["accent"]).map((k) => col(theme, k));
   const stats = pickStats(scene, 3, Str);
   const asset = (skin.media === false ? null : (sceneAssets && sceneAssets[0])) || null;
-  const num = L.num || 156;
+  // The counters carry the beat when there is no capture behind them, so they grow into the
+  // space the backing plate would have filled — the reviewer's own note was "scale up counter
+  // component to fill 60% width". Same rule as the headline: this raises a ceiling, it does
+  // not force a size. The row is `white-space:nowrap` with a bounded label column, so a long
+  // number still cannot push the label out of the frame.
+  const num = S.soloSize(L.num || 156, !!asset, { maxLines: 1, lineHeight: 0.9, capFrac: 0.17 });
   const rows = (stats.length ? stats : [{ pre: "", target: 100, suf: "%", label: Str.metric }]).map((st, i) => {
     const c = cols[i % cols.length];
     return `<div data-in="rise" data-i="${i + 2}" style="display:flex;align-items:baseline;gap:${X(30)};${L.rule ? `border-bottom:${X(4)} solid ${c};padding-bottom:${X(24)};` : ""}">
@@ -323,7 +328,7 @@ function bStats(scene, ctx, sceneAssets) {
     html: `${open(ctx)}
       ${backing}
       <div style="position:absolute;left:${X(PAD)};right:${X(PAD)};top:${V(L.top || 410)};">
-        ${title(theme, skin, scene.headline || scene.title || Str.statsKicker, { size: L.size || 102, fg, hi, upper: L.upper, maxLines: 2, ground: ctx.ground })}
+        ${title(theme, skin, scene.headline || scene.title || Str.statsKicker, { size: S.soloSize(L.size || 102, !!asset, { maxLines: 2, lineHeight: skin.titleLine || 1.04 }), fg, hi, upper: L.upper, maxLines: 2, ground: ctx.ground })}
         <div style="margin-top:${X(62)};display:flex;flex-direction:column;gap:${X(L.rule ? 42 : 52)};">${rows}</div>
       </div>
     ${close()}`,
