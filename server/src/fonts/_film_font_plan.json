@@ -1,0 +1,553 @@
+[
+  {
+    "family": "Abril Fatface",
+    "status": "bundled"
+  },
+  {
+    "family": "Albert Sans",
+    "status": "bundled"
+  },
+  {
+    "family": "Alegreya Sans",
+    "status": "bundled"
+  },
+  {
+    "family": "Alegreya Sans SC",
+    "pkg": "alegreya-sans-sc",
+    "kind": "static",
+    "spec": "@fontsource/alegreya-sans-sc",
+    "status": "new"
+  },
+  {
+    "family": "Alfa Slab One",
+    "status": "bundled"
+  },
+  {
+    "family": "Amiri",
+    "pkg": "amiri",
+    "kind": "static",
+    "spec": "@fontsource/amiri",
+    "status": "new"
+  },
+  {
+    "family": "Andada Pro",
+    "status": "bundled"
+  },
+  {
+    "family": "Anton",
+    "status": "bundled"
+  },
+  {
+    "family": "Archivo",
+    "status": "bundled"
+  },
+  {
+    "family": "Archivo Black",
+    "status": "bundled"
+  },
+  {
+    "family": "Asap",
+    "status": "bundled"
+  },
+  {
+    "family": "Assistant",
+    "status": "bundled"
+  },
+  {
+    "family": "Atkinson Hyperlegible",
+    "status": "bundled"
+  },
+  {
+    "family": "Audiowide",
+    "status": "bundled"
+  },
+  {
+    "family": "Baloo 2",
+    "status": "bundled"
+  },
+  {
+    "family": "Bangers",
+    "status": "bundled"
+  },
+  {
+    "family": "Barlow",
+    "status": "bundled"
+  },
+  {
+    "family": "Barlow Condensed",
+    "status": "bundled"
+  },
+  {
+    "family": "Be Vietnam Pro",
+    "status": "bundled"
+  },
+  {
+    "family": "Bebas Neue",
+    "status": "bundled"
+  },
+  {
+    "family": "Bevan",
+    "status": "bundled"
+  },
+  {
+    "family": "Big Shoulders Display",
+    "status": "bundled"
+  },
+  {
+    "family": "Bitter",
+    "status": "bundled"
+  },
+  {
+    "family": "Boogaloo",
+    "status": "bundled"
+  },
+  {
+    "family": "Bree Serif",
+    "status": "bundled"
+  },
+  {
+    "family": "Bungee",
+    "status": "bundled"
+  },
+  {
+    "family": "Cabin",
+    "status": "bundled"
+  },
+  {
+    "family": "Caprasimo",
+    "status": "bundled"
+  },
+  {
+    "family": "Cardo",
+    "pkg": "cardo",
+    "kind": "static",
+    "spec": "@fontsource/cardo",
+    "status": "new"
+  },
+  {
+    "family": "Castoro",
+    "status": "bundled"
+  },
+  {
+    "family": "Catamaran",
+    "status": "bundled"
+  },
+  {
+    "family": "Caveat",
+    "status": "bundled"
+  },
+  {
+    "family": "Chakra Petch",
+    "status": "bundled"
+  },
+  {
+    "family": "Chivo",
+    "status": "bundled"
+  },
+  {
+    "family": "Chonburi",
+    "status": "bundled"
+  },
+  {
+    "family": "Cinzel",
+    "status": "bundled"
+  },
+  {
+    "family": "Comfortaa",
+    "status": "bundled"
+  },
+  {
+    "family": "Commissioner",
+    "status": "bundled"
+  },
+  {
+    "family": "Cormorant Garamond",
+    "status": "bundled"
+  },
+  {
+    "family": "DM Sans",
+    "status": "bundled"
+  },
+  {
+    "family": "DM Serif Display",
+    "status": "bundled"
+  },
+  {
+    "family": "EB Garamond",
+    "status": "bundled"
+  },
+  {
+    "family": "Epilogue",
+    "status": "bundled"
+  },
+  {
+    "family": "Exo 2",
+    "status": "bundled"
+  },
+  {
+    "family": "Familjen Grotesk",
+    "status": "bundled"
+  },
+  {
+    "family": "Figtree",
+    "status": "bundled"
+  },
+  {
+    "family": "Fira Sans",
+    "status": "bundled"
+  },
+  {
+    "family": "Fjalla One",
+    "status": "bundled"
+  },
+  {
+    "family": "Fraunces",
+    "status": "bundled"
+  },
+  {
+    "family": "Fredoka",
+    "status": "bundled"
+  },
+  {
+    "family": "Gelasio",
+    "status": "bundled"
+  },
+  {
+    "family": "Geologica",
+    "status": "bundled"
+  },
+  {
+    "family": "Gilda Display",
+    "status": "bundled"
+  },
+  {
+    "family": "Gloock",
+    "status": "bundled"
+  },
+  {
+    "family": "Gochi Hand",
+    "status": "bundled"
+  },
+  {
+    "family": "Grandstander",
+    "status": "bundled"
+  },
+  {
+    "family": "Grenze Gotisch",
+    "status": "bundled"
+  },
+  {
+    "family": "Hanken Grotesk",
+    "status": "bundled"
+  },
+  {
+    "family": "Hind",
+    "status": "bundled"
+  },
+  {
+    "family": "IBM Plex Mono",
+    "status": "bundled"
+  },
+  {
+    "family": "IBM Plex Sans",
+    "status": "bundled"
+  },
+  {
+    "family": "Instrument Sans",
+    "status": "bundled"
+  },
+  {
+    "family": "Inter Tight",
+    "pkg": "inter-tight",
+    "kind": "variable",
+    "spec": "@fontsource-variable/inter-tight",
+    "status": "new"
+  },
+  {
+    "family": "Italiana",
+    "status": "bundled"
+  },
+  {
+    "family": "Jost",
+    "status": "bundled"
+  },
+  {
+    "family": "Kanit",
+    "status": "bundled"
+  },
+  {
+    "family": "Karla",
+    "status": "bundled"
+  },
+  {
+    "family": "Krona One",
+    "status": "bundled"
+  },
+  {
+    "family": "Kumbh Sans",
+    "status": "bundled"
+  },
+  {
+    "family": "Lato",
+    "status": "bundled"
+  },
+  {
+    "family": "Lexend",
+    "status": "bundled"
+  },
+  {
+    "family": "Libre Bodoni",
+    "status": "bundled"
+  },
+  {
+    "family": "Lilita One",
+    "status": "bundled"
+  },
+  {
+    "family": "Livvic",
+    "status": "bundled"
+  },
+  {
+    "family": "Lobster Two",
+    "status": "bundled"
+  },
+  {
+    "family": "Lora",
+    "status": "bundled"
+  },
+  {
+    "family": "Manrope",
+    "status": "bundled"
+  },
+  {
+    "family": "Marcellus",
+    "status": "bundled"
+  },
+  {
+    "family": "Merriweather",
+    "status": "bundled"
+  },
+  {
+    "family": "Michroma",
+    "status": "bundled"
+  },
+  {
+    "family": "Monoton",
+    "status": "bundled"
+  },
+  {
+    "family": "Mukta",
+    "status": "bundled"
+  },
+  {
+    "family": "Mulish",
+    "status": "bundled"
+  },
+  {
+    "family": "Neucha",
+    "status": "bundled"
+  },
+  {
+    "family": "Nunito",
+    "status": "bundled"
+  },
+  {
+    "family": "Nunito Sans",
+    "status": "bundled"
+  },
+  {
+    "family": "Onest",
+    "status": "bundled"
+  },
+  {
+    "family": "Orbitron",
+    "status": "bundled"
+  },
+  {
+    "family": "Oswald",
+    "status": "bundled"
+  },
+  {
+    "family": "Outfit",
+    "status": "bundled"
+  },
+  {
+    "family": "Overpass",
+    "status": "bundled"
+  },
+  {
+    "family": "PT Sans",
+    "status": "bundled"
+  },
+  {
+    "family": "Passion One",
+    "status": "bundled"
+  },
+  {
+    "family": "Paytone One",
+    "status": "bundled"
+  },
+  {
+    "family": "Permanent Marker",
+    "status": "bundled"
+  },
+  {
+    "family": "Playfair Display",
+    "status": "bundled"
+  },
+  {
+    "family": "Poppins",
+    "status": "bundled"
+  },
+  {
+    "family": "Prata",
+    "status": "bundled"
+  },
+  {
+    "family": "Press Start 2P",
+    "status": "bundled"
+  },
+  {
+    "family": "Prompt",
+    "status": "bundled"
+  },
+  {
+    "family": "Public Sans",
+    "status": "bundled"
+  },
+  {
+    "family": "Quicksand",
+    "status": "bundled"
+  },
+  {
+    "family": "Radio Canada",
+    "status": "bundled"
+  },
+  {
+    "family": "Red Hat Text",
+    "status": "bundled"
+  },
+  {
+    "family": "Righteous",
+    "status": "bundled"
+  },
+  {
+    "family": "Rubik",
+    "status": "bundled"
+  },
+  {
+    "family": "Russo One",
+    "status": "bundled"
+  },
+  {
+    "family": "Saira",
+    "status": "bundled"
+  },
+  {
+    "family": "Sarabun",
+    "status": "bundled"
+  },
+  {
+    "family": "Sarala",
+    "status": "bundled"
+  },
+  {
+    "family": "Schibsted Grotesk",
+    "status": "bundled"
+  },
+  {
+    "family": "Sen",
+    "status": "bundled"
+  },
+  {
+    "family": "Shrikhand",
+    "status": "bundled"
+  },
+  {
+    "family": "Silkscreen",
+    "status": "bundled"
+  },
+  {
+    "family": "Sofia Sans",
+    "status": "bundled"
+  },
+  {
+    "family": "Sora",
+    "status": "bundled"
+  },
+  {
+    "family": "Source Sans 3",
+    "status": "bundled"
+  },
+  {
+    "family": "Space Grotesk",
+    "status": "bundled"
+  },
+  {
+    "family": "Space Mono",
+    "status": "bundled"
+  },
+  {
+    "family": "Spectral",
+    "status": "bundled"
+  },
+  {
+    "family": "Staatliches",
+    "status": "bundled"
+  },
+  {
+    "family": "Syne",
+    "status": "bundled"
+  },
+  {
+    "family": "Tajawal",
+    "pkg": "tajawal",
+    "kind": "static",
+    "spec": "@fontsource/tajawal",
+    "status": "new"
+  },
+  {
+    "family": "Titan One",
+    "status": "bundled"
+  },
+  {
+    "family": "Unbounded",
+    "status": "bundled"
+  },
+  {
+    "family": "Urbanist",
+    "status": "bundled"
+  },
+  {
+    "family": "VT323",
+    "status": "bundled"
+  },
+  {
+    "family": "Varela Round",
+    "status": "bundled"
+  },
+  {
+    "family": "Vollkorn",
+    "status": "bundled"
+  },
+  {
+    "family": "Wix Madefor Text",
+    "status": "bundled"
+  },
+  {
+    "family": "Work Sans",
+    "status": "bundled"
+  },
+  {
+    "family": "Yeseva One",
+    "status": "bundled"
+  },
+  {
+    "family": "Young Serif",
+    "status": "bundled"
+  },
+  {
+    "family": "Zilla Slab",
+    "status": "bundled"
+  }
+]

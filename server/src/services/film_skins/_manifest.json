@@ -1,0 +1,1595 @@
+[
+  {
+    "slug": "ember-roast",
+    "module": "ember_roast.js",
+    "label": "Ember Roast",
+    "display": "Alfa Slab One",
+    "body": "Karla",
+    "accents": [
+      "ember",
+      "gold",
+      "cream"
+    ],
+    "groundKey": "roast",
+    "dark": true,
+    "variants": {
+      "Ring": "gauge",
+      "Scroll": "board",
+      "Toggle": "switch",
+      "Morph": "fade"
+    }
+  },
+  {
+    "slug": "sole-drop",
+    "module": "sole_drop.js",
+    "label": "SOLE DROP",
+    "display": "Archivo Black",
+    "body": "Archivo",
+    "accents": [
+      "volt",
+      "flame",
+      "court"
+    ],
+    "groundKey": "court",
+    "dark": true,
+    "variants": {
+      "Cursor": "keys",
+      "Notify": "pop",
+      "Swipe": "swipe",
+      "Ring": "bar"
+    }
+  },
+  {
+    "slug": "abyss-dive",
+    "module": "abyss_dive.js",
+    "label": "Abyss Dive",
+    "display": "Krona One",
+    "body": "Overpass",
+    "accents": [
+      "glow",
+      "coral",
+      "deep"
+    ],
+    "groundKey": "deep",
+    "dark": true,
+    "variants": {
+      "Ring": "ring",
+      "Scroll": "feed",
+      "Typing": "terminal",
+      "Notify": "side"
+    }
+  },
+  {
+    "slug": "hive-and-honey",
+    "module": "hive_and_honey.js",
+    "label": "Hive & Honey",
+    "display": "Fredoka",
+    "body": "Quicksand",
+    "accents": [
+      "comb",
+      "honey",
+      "cream"
+    ],
+    "groundKey": "cream",
+    "dark": false,
+    "variants": {
+      "Toggle": "check",
+      "Ring": "gauge",
+      "DragDrop": "drag",
+      "Morph": "roll"
+    }
+  },
+  {
+    "slug": "groove-crate",
+    "module": "groove_crate.js",
+    "label": "Groove Crate",
+    "display": "Righteous",
+    "body": "Mulish",
+    "accents": [
+      "tang",
+      "cream",
+      "rose"
+    ],
+    "groundKey": "wax",
+    "dark": true,
+    "variants": {
+      "Scroll": "stack",
+      "Cursor": "slider",
+      "Morph": "flap",
+      "Notify": "drop"
+    }
+  },
+  {
+    "slug": "midnight-ramen",
+    "module": "midnight_ramen.js",
+    "label": "Midnight Ramen",
+    "display": "Kanit",
+    "body": "Sarabun",
+    "accents": [
+      "chili",
+      "noodle",
+      "broth"
+    ],
+    "groundKey": "broth",
+    "dark": true,
+    "variants": {
+      "Scroll": "board",
+      "Typing": "hand",
+      "Ring": "ring",
+      "Swipe": "flip"
+    }
+  },
+  {
+    "slug": "kickflip-co",
+    "module": "kickflip_co.js",
+    "label": "KICKFLIP CO",
+    "display": "Bungee",
+    "body": "Rubik",
+    "accents": [
+      "safety",
+      "crete"
+    ],
+    "groundKey": "crete",
+    "dark": false,
+    "variants": {
+      "Cursor": "keys",
+      "Ring": "bar",
+      "Notify": "pop",
+      "Morph": "roll"
+    }
+  },
+  {
+    "slug": "star-watch",
+    "module": "star_watch.js",
+    "label": "Star Watch",
+    "display": "Prata",
+    "body": "Manrope",
+    "accents": [
+      "star",
+      "lilac",
+      "midnight"
+    ],
+    "groundKey": "midnight",
+    "dark": true,
+    "variants": {
+      "Ring": "gauge",
+      "Scroll": "ticker",
+      "Typing": "caret",
+      "Notify": "side"
+    }
+  },
+  {
+    "slug": "lift-off",
+    "module": "lift_off.js",
+    "label": "Lift Off",
+    "display": "Chonburi",
+    "body": "Prompt",
+    "accents": [
+      "balloon",
+      "ink",
+      "dawn"
+    ],
+    "groundKey": "dawn",
+    "dark": false,
+    "variants": {
+      "Ring": "bar",
+      "Toggle": "switch",
+      "Morph": "fade",
+      "Cursor": "slider"
+    }
+  },
+  {
+    "slug": "endgame",
+    "module": "endgame.js",
+    "label": "Endgame",
+    "display": "DM Serif Display",
+    "body": "DM Sans",
+    "accents": [
+      "check",
+      "board"
+    ],
+    "groundKey": "board",
+    "dark": false,
+    "variants": {
+      "Scroll": "board",
+      "Toggle": "check",
+      "Typing": "typewriter",
+      "Morph": "flap"
+    }
+  },
+  {
+    "slug": "fold-studio",
+    "module": "fold_studio.js",
+    "label": "Fold Studio",
+    "display": "Zilla Slab",
+    "body": "Source Sans 3",
+    "accents": [
+      "crane",
+      "ink",
+      "washi"
+    ],
+    "groundKey": "washi",
+    "dark": false,
+    "variants": {
+      "DragDrop": "assemble",
+      "Morph": "fade",
+      "Toggle": "switch",
+      "Swipe": "flip"
+    }
+  },
+  {
+    "slug": "night-bazaar",
+    "module": "night_bazaar.js",
+    "label": "Night Bazaar",
+    "display": "Baloo 2",
+    "body": "Be Vietnam Pro",
+    "accents": [
+      "amber",
+      "plum"
+    ],
+    "groundKey": "plum",
+    "dark": true,
+    "variants": {
+      "Scroll": "ticker",
+      "Cursor": "click",
+      "Notify": "pop",
+      "Ring": "bar"
+    }
+  },
+  {
+    "slug": "dawn-patrol",
+    "module": "dawn_patrol.js",
+    "label": "Dawn Patrol",
+    "display": "Big Shoulders Display",
+    "body": "Red Hat Text",
+    "accents": [
+      "hivis",
+      "coral",
+      "pale"
+    ],
+    "groundKey": "predawn",
+    "dark": true,
+    "variants": {
+      "Ring": "gauge",
+      "Scroll": "feed",
+      "Toggle": "check",
+      "Morph": "roll"
+    }
+  },
+  {
+    "slug": "fade-parlor",
+    "module": "fade_parlor.js",
+    "label": "Fade Parlor",
+    "display": "Abril Fatface",
+    "body": "Work Sans",
+    "accents": [
+      "gold",
+      "navy",
+      "red"
+    ],
+    "groundKey": "navy",
+    "dark": true,
+    "variants": {
+      "Cursor": "slider",
+      "Scroll": "board",
+      "Notify": "side",
+      "Morph": "flap"
+    }
+  },
+  {
+    "slug": "kiln-and-clay",
+    "module": "kiln_and_clay.js",
+    "label": "Kiln & Clay",
+    "display": "Gloock",
+    "body": "Schibsted Grotesk",
+    "accents": [
+      "rust",
+      "char",
+      "studio"
+    ],
+    "groundKey": "studio",
+    "dark": false,
+    "variants": {
+      "DragDrop": "drag",
+      "Ring": "ring",
+      "Typing": "hand",
+      "Scroll": "stack"
+    }
+  },
+  {
+    "slug": "crux-climb",
+    "module": "crux_climb.js",
+    "label": "Crux Climb",
+    "display": "Anton",
+    "body": "Asap",
+    "accents": [
+      "hold",
+      "chalk",
+      "wall"
+    ],
+    "groundKey": "wall",
+    "dark": true,
+    "variants": {
+      "Cursor": "keys",
+      "Toggle": "dial",
+      "Notify": "drop",
+      "Swipe": "swipe"
+    }
+  },
+  {
+    "slug": "harbor-light",
+    "module": "harbor_light.js",
+    "label": "Harbor Light",
+    "display": "Cormorant Garamond",
+    "body": "Nunito Sans",
+    "accents": [
+      "lamp",
+      "rust",
+      "fog"
+    ],
+    "groundKey": "hull",
+    "dark": true,
+    "variants": {
+      "Typing": "typewriter",
+      "Ring": "ring",
+      "Scroll": "feed",
+      "Morph": "fade"
+    }
+  },
+  {
+    "slug": "forest-floor",
+    "module": "forest_floor.js",
+    "label": "Forest Floor",
+    "display": "Vollkorn",
+    "body": "Alegreya Sans",
+    "accents": [
+      "chant",
+      "cream",
+      "moss"
+    ],
+    "groundKey": "moss",
+    "dark": true,
+    "variants": {
+      "Toggle": "check",
+      "DragDrop": "drag",
+      "Morph": "roll",
+      "Notify": "pop"
+    }
+  },
+  {
+    "slug": "steep-ritual",
+    "module": "steep_ritual.js",
+    "label": "Steep Ritual",
+    "display": "Marcellus",
+    "body": "Mukta",
+    "accents": [
+      "matcha",
+      "gold",
+      "ink"
+    ],
+    "groundKey": "porcelain",
+    "dark": false,
+    "variants": {
+      "Ring": "gauge",
+      "Toggle": "switch",
+      "Typing": "caret",
+      "Scroll": "board"
+    }
+  },
+  {
+    "slug": "darkroom-dev",
+    "module": "darkroom_dev.js",
+    "label": "Darkroom Dev",
+    "display": "Syne",
+    "body": "Hanken Grotesk",
+    "accents": [
+      "safe",
+      "dark",
+      "amber"
+    ],
+    "groundKey": "dark",
+    "dark": true,
+    "variants": {
+      "Typing": "terminal",
+      "Ring": "bar",
+      "Scroll": "stack",
+      "Notify": "side"
+    }
+  },
+  {
+    "slug": "velvet-brass",
+    "module": "velvet_brass.js",
+    "label": "Velvet Brass",
+    "display": "Yeseva One",
+    "body": "Jost",
+    "accents": [
+      "brass",
+      "cream",
+      "velvet"
+    ],
+    "groundKey": "velvet",
+    "dark": true,
+    "variants": {
+      "Cursor": "slider",
+      "Scroll": "stack",
+      "Notify": "drop",
+      "Morph": "fade"
+    }
+  },
+  {
+    "slug": "scoop-lab",
+    "module": "scoop_lab.js",
+    "label": "Scoop Lab",
+    "display": "Titan One",
+    "body": "Varela Round",
+    "accents": [
+      "pink",
+      "ink",
+      "cream"
+    ],
+    "groundKey": "cream",
+    "dark": false,
+    "variants": {
+      "Cursor": "click",
+      "Ring": "bar",
+      "Toggle": "switch",
+      "Swipe": "swipe"
+    }
+  },
+  {
+    "slug": "pedal-express",
+    "module": "pedal_express.js",
+    "label": "Pedal Express",
+    "display": "Passion One",
+    "body": "Fira Sans",
+    "accents": [
+      "orange",
+      "chalk",
+      "cyan"
+    ],
+    "groundKey": "asphalt",
+    "dark": true,
+    "variants": {
+      "Ring": "gauge",
+      "Scroll": "ticker",
+      "Notify": "side",
+      "DragDrop": "drag"
+    }
+  },
+  {
+    "slug": "moon-card",
+    "module": "moon_card.js",
+    "label": "Moon Card",
+    "display": "Italiana",
+    "body": "Sen",
+    "accents": [
+      "gold",
+      "blush",
+      "violet"
+    ],
+    "groundKey": "violet",
+    "dark": true,
+    "variants": {
+      "Swipe": "flip",
+      "Morph": "fade",
+      "Ring": "ring",
+      "Typing": "caret"
+    }
+  },
+  {
+    "slug": "magma-trail",
+    "module": "magma_trail.js",
+    "label": "Magma Trail",
+    "display": "Bevan",
+    "body": "Commissioner",
+    "accents": [
+      "lava",
+      "basalt",
+      "ember"
+    ],
+    "groundKey": "basalt",
+    "dark": true,
+    "variants": {
+      "Ring": "gauge",
+      "Scroll": "board",
+      "Notify": "drop",
+      "Morph": "roll"
+    }
+  },
+  {
+    "slug": "wing-garden",
+    "module": "wing_garden.js",
+    "label": "Wing Garden",
+    "display": "Lobster Two",
+    "body": "Cabin",
+    "accents": [
+      "monarch",
+      "cream",
+      "leaf"
+    ],
+    "groundKey": "leaf",
+    "dark": true,
+    "variants": {
+      "Toggle": "check",
+      "Notify": "pop",
+      "Scroll": "feed",
+      "DragDrop": "drag"
+    }
+  },
+  {
+    "slug": "atlas-and-ink",
+    "module": "atlas_and_ink.js",
+    "label": "Atlas & Ink",
+    "display": "Young Serif",
+    "body": "Assistant",
+    "accents": [
+      "compass",
+      "gold",
+      "parch"
+    ],
+    "groundKey": "parch",
+    "dark": false,
+    "variants": {
+      "Typing": "typewriter",
+      "DragDrop": "assemble",
+      "Ring": "gauge",
+      "Scroll": "board"
+    }
+  },
+  {
+    "slug": "on-air",
+    "module": "on_air.js",
+    "label": "On Air",
+    "display": "Unbounded",
+    "body": "Wix Madefor Text",
+    "accents": [
+      "purple",
+      "signal",
+      "ink"
+    ],
+    "groundKey": "studio",
+    "dark": true,
+    "variants": {
+      "Cursor": "click",
+      "Ring": "bar",
+      "Notify": "side",
+      "Typing": "caret"
+    }
+  },
+  {
+    "slug": "steam-spring",
+    "module": "steam_spring.js",
+    "label": "Steam Spring",
+    "display": "Castoro",
+    "body": "Catamaran",
+    "accents": [
+      "water",
+      "ink",
+      "stone"
+    ],
+    "groundKey": "stone",
+    "dark": true,
+    "variants": {
+      "Toggle": "switch",
+      "Scroll": "feed",
+      "Typing": "hand",
+      "Notify": "drop"
+    }
+  },
+  {
+    "slug": "turbine-coast",
+    "module": "turbine_coast.js",
+    "label": "Turbine Coast",
+    "display": "Michroma",
+    "body": "Saira",
+    "accents": [
+      "signal",
+      "seagreen",
+      "sky"
+    ],
+    "groundKey": "sky",
+    "dark": false,
+    "variants": {
+      "Toggle": "dial",
+      "Code": "terminal",
+      "Notify": "side",
+      "Morph": "flap"
+    }
+  },
+  {
+    "slug": "lock-and-legend",
+    "module": "lock_and_legend.js",
+    "label": "Lock & Legend",
+    "display": "Cinzel",
+    "body": "Radio Canada",
+    "accents": [
+      "brass",
+      "mahog"
+    ],
+    "groundKey": "mahog",
+    "dark": true,
+    "variants": {
+      "Cursor": "keys",
+      "Toggle": "check",
+      "Ring": "bar",
+      "Notify": "drop"
+    }
+  },
+  {
+    "slug": "koi-court",
+    "module": "koi_court.js",
+    "label": "Koi Court",
+    "display": "Gelasio",
+    "body": "Kumbh Sans",
+    "accents": [
+      "koi",
+      "pond",
+      "gold"
+    ],
+    "groundKey": "pond",
+    "dark": true,
+    "variants": {
+      "Scroll": "feed",
+      "Ring": "ring",
+      "Notify": "side",
+      "Morph": "fade"
+    }
+  },
+  {
+    "slug": "salsa-wheels",
+    "module": "salsa_wheels.js",
+    "label": "Salsa Wheels",
+    "display": "Boogaloo",
+    "body": "Nunito",
+    "accents": [
+      "salsa",
+      "corn",
+      "crema"
+    ],
+    "groundKey": "crema",
+    "dark": false,
+    "variants": {
+      "Cursor": "click",
+      "Scroll": "board",
+      "Notify": "pop",
+      "Swipe": "swipe"
+    }
+  },
+  {
+    "slug": "spinnaker-cup",
+    "module": "spinnaker_cup.js",
+    "label": "Spinnaker Cup",
+    "display": "Libre Bodoni",
+    "body": "PT Sans",
+    "accents": [
+      "regatta",
+      "navy",
+      "brass"
+    ],
+    "groundKey": "navy",
+    "dark": true,
+    "variants": {
+      "Ring": "gauge",
+      "Scroll": "ticker",
+      "Toggle": "switch",
+      "Morph": "roll"
+    }
+  },
+  {
+    "slug": "rocket-nights",
+    "module": "rocket_nights.js",
+    "label": "Rocket Nights",
+    "display": "Paytone One",
+    "body": "Outfit",
+    "accents": [
+      "spark",
+      "night",
+      "rocket"
+    ],
+    "groundKey": "night",
+    "dark": true,
+    "variants": {
+      "Code": "terminal",
+      "Notify": "pop",
+      "Morph": "flap",
+      "Swipe": "flip"
+    }
+  },
+  {
+    "slug": "stacks-and-spines",
+    "module": "stacks_and_spines.js",
+    "label": "Stacks & Spines",
+    "display": "EB Garamond",
+    "body": "Public Sans",
+    "accents": [
+      "spine",
+      "oak",
+      "green"
+    ],
+    "groundKey": "green",
+    "dark": true,
+    "variants": {
+      "Typing": "typewriter",
+      "Scroll": "stack",
+      "Toggle": "check",
+      "Notify": "side"
+    }
+  },
+  {
+    "slug": "rind-and-wheel",
+    "module": "rind_and_wheel.js",
+    "label": "Rind & Wheel",
+    "display": "Bree Serif",
+    "body": "Sarala",
+    "accents": [
+      "rind",
+      "paste",
+      "cave"
+    ],
+    "groundKey": "cave",
+    "dark": true,
+    "variants": {
+      "Toggle": "dial",
+      "Scroll": "board",
+      "DragDrop": "drag",
+      "Morph": "fade"
+    }
+  },
+  {
+    "slug": "prop-wash",
+    "module": "prop_wash.js",
+    "label": "Prop Wash",
+    "display": "Orbitron",
+    "body": "Exo 2",
+    "accents": [
+      "cyan",
+      "magenta",
+      "carbon"
+    ],
+    "groundKey": "carbon",
+    "dark": true,
+    "variants": {
+      "Cursor": "slider",
+      "Ring": "bar",
+      "Notify": "side",
+      "Code": "diff"
+    }
+  },
+  {
+    "slug": "tube-and-glow",
+    "module": "tube_and_glow.js",
+    "label": "Tube & Glow",
+    "display": "Monoton",
+    "body": "Epilogue",
+    "accents": [
+      "pink",
+      "blue",
+      "shop"
+    ],
+    "groundKey": "shop",
+    "dark": true,
+    "variants": {
+      "Cursor": "click",
+      "Toggle": "switch",
+      "Morph": "fade",
+      "Typing": "caret"
+    }
+  },
+  {
+    "slug": "front-and-isobar",
+    "module": "front_and_isobar.js",
+    "label": "Front & Isobar",
+    "display": "Space Mono",
+    "body": "Familjen Grotesk",
+    "accents": [
+      "warn",
+      "isobar",
+      "chart"
+    ],
+    "groundKey": "chart",
+    "dark": false,
+    "variants": {
+      "Typing": "terminal",
+      "Ring": "gauge",
+      "Scroll": "board",
+      "Notify": "drop"
+    }
+  },
+  {
+    "slug": "scale-line",
+    "module": "scale_line.js",
+    "label": "Scale Line",
+    "display": "Staatliches",
+    "body": "Onest",
+    "accents": [
+      "signal",
+      "baize",
+      "maroon"
+    ],
+    "groundKey": "baize",
+    "dark": true,
+    "variants": {
+      "Toggle": "switch",
+      "Scroll": "board",
+      "Cursor": "slider",
+      "Morph": "roll"
+    }
+  },
+  {
+    "slug": "molten-studio",
+    "module": "molten_studio.js",
+    "label": "Molten Studio",
+    "display": "Comfortaa",
+    "body": "Livvic",
+    "accents": [
+      "molten",
+      "aqua",
+      "shop"
+    ],
+    "groundKey": "shop",
+    "dark": true,
+    "variants": {
+      "Ring": "gauge",
+      "Typing": "hand",
+      "Notify": "drop",
+      "Morph": "fade"
+    }
+  },
+  {
+    "slug": "nose-and-note",
+    "module": "nose_and_note.js",
+    "label": "Nose & Note",
+    "display": "Gilda Display",
+    "body": "Albert Sans",
+    "accents": [
+      "plum",
+      "blush",
+      "ivory"
+    ],
+    "groundKey": "ivory",
+    "dark": false,
+    "variants": {
+      "Swipe": "flip",
+      "Ring": "ring",
+      "Typing": "caret",
+      "Notify": "side"
+    }
+  },
+  {
+    "slug": "ink-and-panel",
+    "module": "ink_and_panel.js",
+    "label": "Ink & Panel",
+    "display": "Bangers",
+    "body": "Lexend",
+    "accents": [
+      "action",
+      "yellow",
+      "bristol"
+    ],
+    "groundKey": "bristol",
+    "dark": false,
+    "variants": {
+      "Typing": "typewriter",
+      "Morph": "flap",
+      "DragDrop": "assemble",
+      "Scroll": "stack"
+    }
+  },
+  {
+    "slug": "string-and-sky",
+    "module": "string_and_sky.js",
+    "label": "String & Sky",
+    "display": "Grandstander",
+    "body": "Sofia Sans",
+    "accents": [
+      "kite",
+      "sun",
+      "sky"
+    ],
+    "groundKey": "sky",
+    "dark": false,
+    "variants": {
+      "Toggle": "check",
+      "Ring": "bar",
+      "Notify": "pop",
+      "Morph": "roll"
+    }
+  },
+  {
+    "slug": "twenty-moves",
+    "module": "twenty_moves.js",
+    "label": "Twenty Moves",
+    "display": "Russo One",
+    "body": "Geologica",
+    "accents": [
+      "cube",
+      "white",
+      "mat"
+    ],
+    "groundKey": "mat",
+    "dark": true,
+    "variants": {
+      "Cursor": "keys",
+      "Ring": "ring",
+      "Scroll": "ticker",
+      "Toggle": "dial"
+    }
+  },
+  {
+    "slug": "ghost-route",
+    "module": "ghost_route.js",
+    "label": "Ghost Route",
+    "display": "Grenze Gotisch",
+    "body": "Spectral",
+    "accents": [
+      "spectral",
+      "lantern",
+      "fog"
+    ],
+    "groundKey": "fog",
+    "dark": true,
+    "variants": {
+      "Scroll": "feed",
+      "Ring": "gauge",
+      "Swipe": "swipe",
+      "Typing": "caret"
+    }
+  },
+  {
+    "slug": "semolina-club",
+    "module": "semolina_club.js",
+    "label": "Semolina Club",
+    "display": "Lilita One",
+    "body": "Urbanist",
+    "accents": [
+      "tomato",
+      "semolina",
+      "flour"
+    ],
+    "groundKey": "flour",
+    "dark": false,
+    "variants": {
+      "DragDrop": "drag",
+      "Toggle": "check",
+      "Scroll": "board",
+      "Morph": "roll"
+    }
+  },
+  {
+    "slug": "tide-pool-lab",
+    "module": "tide_pool_lab.js",
+    "label": "Tide Pool Lab",
+    "display": "Shrikhand",
+    "body": "Poppins",
+    "accents": [
+      "anemone",
+      "seafoam",
+      "sand"
+    ],
+    "groundKey": "sand",
+    "dark": false,
+    "variants": {
+      "Ring": "bar",
+      "Scroll": "feed",
+      "Toggle": "check",
+      "Typing": "hand"
+    }
+  },
+  {
+    "slug": "cold-plunge-club",
+    "module": "cold_plunge_club.js",
+    "label": "Cold Plunge Club",
+    "display": "Bebas Neue",
+    "body": "Instrument Sans",
+    "accents": [
+      "flush",
+      "plunge",
+      "ice"
+    ],
+    "groundKey": "ice",
+    "dark": false,
+    "variants": {
+      "Cursor": "slider",
+      "Toggle": "switch",
+      "Notify": "drop",
+      "Morph": "roll"
+    }
+  },
+  {
+    "slug": "loom-and-weft",
+    "module": "loom_and_weft.js",
+    "label": "Loom & Weft",
+    "display": "Cardo",
+    "body": "Karla",
+    "accents": [
+      "madder",
+      "ink",
+      "linen"
+    ],
+    "groundKey": "linen",
+    "dark": false,
+    "variants": {
+      "DragDrop": "assemble",
+      "Scroll": "stack",
+      "Toggle": "check",
+      "Morph": "roll"
+    }
+  },
+  {
+    "slug": "vault-twelve",
+    "module": "vault_twelve.js",
+    "label": "Vault Twelve",
+    "display": "Chakra Petch",
+    "body": "IBM Plex Sans",
+    "accents": [
+      "laser",
+      "bullion",
+      "steel"
+    ],
+    "groundKey": "steel",
+    "dark": true,
+    "variants": {
+      "Code": "terminal",
+      "Ring": "ring",
+      "Cursor": "keys",
+      "Notify": "drop"
+    }
+  },
+  {
+    "slug": "bonsai-bench",
+    "module": "bonsai_bench.js",
+    "label": "Bonsai Bench",
+    "display": "Fraunces",
+    "body": "Rubik",
+    "accents": [
+      "pine",
+      "stone",
+      "paper"
+    ],
+    "groundKey": "paper",
+    "dark": false,
+    "variants": {
+      "Toggle": "dial",
+      "Ring": "gauge",
+      "Typing": "hand",
+      "Scroll": "board"
+    }
+  },
+  {
+    "slug": "slow-rise",
+    "module": "slow_rise.js",
+    "label": "Slow Rise",
+    "display": "Bitter",
+    "body": "Mulish",
+    "accents": [
+      "crust",
+      "wheat",
+      "ink"
+    ],
+    "groundKey": "crumb",
+    "dark": false,
+    "variants": {
+      "Ring": "bar",
+      "Scroll": "feed",
+      "Toggle": "check",
+      "Morph": "roll"
+    }
+  },
+  {
+    "slug": "aerial-silk",
+    "module": "aerial_silk.js",
+    "label": "Aerial Silk",
+    "display": "Playfair Display",
+    "body": "Figtree",
+    "accents": [
+      "silk",
+      "gilt",
+      "chalkw"
+    ],
+    "groundKey": "house",
+    "dark": true,
+    "variants": {
+      "Swipe": "flip",
+      "Ring": "ring",
+      "Cursor": "slider",
+      "Notify": "side"
+    }
+  },
+  {
+    "slug": "alpine-post",
+    "module": "alpine_post.js",
+    "label": "Alpine Post",
+    "display": "Alegreya Sans SC",
+    "body": "Barlow",
+    "accents": [
+      "post",
+      "ink",
+      "snow"
+    ],
+    "groundKey": "snow",
+    "dark": false,
+    "variants": {
+      "Scroll": "board",
+      "DragDrop": "drag",
+      "Toggle": "switch",
+      "Morph": "flap"
+    }
+  },
+  {
+    "slug": "reef-build",
+    "module": "reef_build.js",
+    "label": "Reef Build",
+    "display": "Outfit",
+    "body": "Nunito Sans",
+    "accents": [
+      "coral",
+      "aqua",
+      "lagoon"
+    ],
+    "groundKey": "lagoon",
+    "dark": true,
+    "variants": {
+      "Ring": "gauge",
+      "Scroll": "feed",
+      "DragDrop": "assemble",
+      "Notify": "pop"
+    }
+  },
+  {
+    "slug": "clay-court",
+    "module": "clay_court.js",
+    "label": "Clay Court",
+    "display": "Archivo Black",
+    "body": "Archivo",
+    "accents": [
+      "lime",
+      "clay"
+    ],
+    "groundKey": "clay",
+    "dark": true,
+    "variants": {
+      "Cursor": "keys",
+      "Ring": "bar",
+      "Scroll": "ticker",
+      "Toggle": "dial"
+    }
+  },
+  {
+    "slug": "escapement",
+    "module": "escapement.js",
+    "label": "Escapement",
+    "display": "Cormorant Garamond",
+    "body": "Inter Tight",
+    "accents": [
+      "brass",
+      "deep"
+    ],
+    "groundKey": "deep",
+    "dark": true,
+    "variants": {
+      "Ring": "ring",
+      "Typing": "terminal",
+      "Toggle": "dial",
+      "Morph": "flap"
+    }
+  },
+  {
+    "slug": "dune-camp",
+    "module": "dune_camp.js",
+    "label": "Dune Camp",
+    "display": "Amiri",
+    "body": "Tajawal",
+    "accents": [
+      "sand",
+      "ember2",
+      "dusk"
+    ],
+    "groundKey": "dusk",
+    "dark": true,
+    "variants": {
+      "Scroll": "ticker",
+      "Ring": "gauge",
+      "Typing": "caret",
+      "Swipe": "swipe"
+    }
+  },
+  {
+    "slug": "safari-dawn",
+    "module": "safari_dawn.js",
+    "label": "Safari Dawn",
+    "display": "Staatliches",
+    "body": "Assistant",
+    "accents": [
+      "paper",
+      "sun",
+      "sky"
+    ],
+    "groundKey": "sky",
+    "dark": false,
+    "variants": {
+      "Scroll": "feed",
+      "Ring": "gauge",
+      "Toggle": "switch",
+      "Morph": "fade"
+    }
+  },
+  {
+    "slug": "city-pulse",
+    "module": "city_pulse.js",
+    "label": "City Pulse",
+    "display": "Oswald",
+    "body": "Work Sans",
+    "accents": [
+      "window",
+      "sign",
+      "steel"
+    ],
+    "groundKey": "steel",
+    "dark": true,
+    "variants": {
+      "Notify": "side",
+      "Scroll": "stack",
+      "Cursor": "click",
+      "Code": "editor"
+    }
+  },
+  {
+    "slug": "retro-arcade",
+    "module": "retro_arcade.js",
+    "label": "Retro Arcade",
+    "display": "Press Start 2P",
+    "body": "VT323",
+    "accents": [
+      "green",
+      "magenta",
+      "cyan"
+    ],
+    "groundKey": "void",
+    "dark": true,
+    "variants": {
+      "Code": "terminal",
+      "Cursor": "keys",
+      "Swipe": "flip",
+      "Ring": "bar"
+    }
+  },
+  {
+    "slug": "snow-peak",
+    "module": "snow_peak.js",
+    "label": "Snow Peak",
+    "display": "Fjalla One",
+    "body": "Hind",
+    "accents": [
+      "coral",
+      "ice",
+      "pine"
+    ],
+    "groundKey": "ice",
+    "dark": false,
+    "variants": {
+      "Toggle": "check",
+      "Ring": "ring",
+      "DragDrop": "drag",
+      "Morph": "roll"
+    }
+  },
+  {
+    "slug": "space-hop",
+    "module": "space_hop.js",
+    "label": "Space Hop",
+    "display": "Righteous",
+    "body": "Chivo",
+    "accents": [
+      "mint",
+      "coral",
+      "violet"
+    ],
+    "groundKey": "space",
+    "dark": true,
+    "variants": {
+      "Code": "diff",
+      "Ring": "ring",
+      "Typing": "terminal",
+      "Notify": "drop"
+    }
+  },
+  {
+    "slug": "paper-cut",
+    "module": "paper_cut.js",
+    "label": "Paper Cut",
+    "display": "Shrikhand",
+    "body": "Sen",
+    "accents": [
+      "coral",
+      "mustard",
+      "teal"
+    ],
+    "groundKey": "cream",
+    "dark": false,
+    "variants": {
+      "DragDrop": "assemble",
+      "Typing": "caret",
+      "Swipe": "swipe",
+      "Toggle": "check"
+    }
+  },
+  {
+    "slug": "ink-brush",
+    "module": "ink_brush.js",
+    "label": "Ink & Brush",
+    "display": "Cormorant Garamond",
+    "body": "Commissioner",
+    "accents": [
+      "seal",
+      "rice"
+    ],
+    "groundKey": "rice",
+    "dark": false,
+    "variants": {
+      "Typing": "hand",
+      "Morph": "roll",
+      "Scroll": "feed",
+      "Ring": "ring"
+    }
+  },
+  {
+    "slug": "synthwave-sunset",
+    "module": "synthwave_sunset.js",
+    "label": "Synthwave",
+    "display": "Audiowide",
+    "body": "Jost",
+    "accents": [
+      "cyan",
+      "pink",
+      "orange"
+    ],
+    "groundKey": "dusk",
+    "dark": true,
+    "variants": {
+      "Code": "editor",
+      "Cursor": "slider",
+      "Morph": "flap",
+      "Notify": "drop"
+    }
+  },
+  {
+    "slug": "festival-stage",
+    "module": "festival_stage.js",
+    "label": "Festival",
+    "display": "Bungee",
+    "body": "Rubik",
+    "accents": [
+      "lime",
+      "hot",
+      "violet"
+    ],
+    "groundKey": "night",
+    "dark": true,
+    "variants": {
+      "Notify": "pop",
+      "Swipe": "swipe",
+      "Cursor": "slider",
+      "Toggle": "dial"
+    }
+  },
+  {
+    "slug": "storybook-pop",
+    "module": "storybook_pop.js",
+    "label": "Storybook",
+    "display": "Bitter",
+    "body": "Nunito Sans",
+    "accents": [
+      "gold",
+      "ribbon",
+      "page"
+    ],
+    "groundKey": "page",
+    "dark": false,
+    "variants": {
+      "Typing": "typewriter",
+      "Scroll": "stack",
+      "Morph": "roll",
+      "DragDrop": "drag"
+    }
+  },
+  {
+    "slug": "bird-sky",
+    "module": "bird_sky.js",
+    "label": "Bird Sky",
+    "display": "Yeseva One",
+    "body": "Mukta",
+    "accents": [
+      "coral",
+      "sun",
+      "sky"
+    ],
+    "groundKey": "sky",
+    "dark": false,
+    "variants": {
+      "Scroll": "ticker",
+      "Toggle": "switch",
+      "Notify": "side",
+      "Morph": "fade"
+    }
+  },
+  {
+    "slug": "desert-neon",
+    "module": "desert_neon.js",
+    "label": "Desert Neon",
+    "display": "Monoton",
+    "body": "Outfit",
+    "accents": [
+      "cactus",
+      "motel",
+      "sand"
+    ],
+    "groundKey": "dusk",
+    "dark": true,
+    "variants": {
+      "Cursor": "click",
+      "Typing": "caret",
+      "Swipe": "flip",
+      "Notify": "pop"
+    }
+  },
+  {
+    "slug": "rainy-window",
+    "module": "rainy_window.js",
+    "label": "Rainy Window",
+    "display": "Merriweather",
+    "body": "Public Sans",
+    "accents": [
+      "bokeh",
+      "drop",
+      "slate"
+    ],
+    "groundKey": "slate",
+    "dark": true,
+    "variants": {
+      "Typing": "typewriter",
+      "Scroll": "feed",
+      "Ring": "ring",
+      "Notify": "drop"
+    }
+  },
+  {
+    "slug": "bloom-market",
+    "module": "bloom_market.js",
+    "label": "Bloom Market",
+    "display": "DM Serif Display",
+    "body": "Albert Sans",
+    "accents": [
+      "magenta",
+      "butter",
+      "leaf"
+    ],
+    "groundKey": "blush",
+    "dark": false,
+    "variants": {
+      "DragDrop": "drag",
+      "Toggle": "switch",
+      "Cursor": "slider",
+      "Ring": "gauge"
+    }
+  },
+  {
+    "slug": "pixel-pet",
+    "module": "pixel_pet.js",
+    "label": "Pixel Pet",
+    "display": "Silkscreen",
+    "body": "IBM Plex Mono",
+    "accents": [
+      "accent",
+      "mint",
+      "dark"
+    ],
+    "groundKey": "mint",
+    "dark": false,
+    "variants": {
+      "Cursor": "keys",
+      "Ring": "bar",
+      "Notify": "side",
+      "DragDrop": "drag"
+    }
+  },
+  {
+    "slug": "metro-line",
+    "module": "metro_line.js",
+    "label": "Metro Line",
+    "display": "Barlow Condensed",
+    "body": "Barlow",
+    "accents": [
+      "red",
+      "yellow",
+      "blue"
+    ],
+    "groundKey": "paper",
+    "dark": false,
+    "variants": {
+      "Scroll": "board",
+      "Notify": "drop",
+      "Morph": "flap",
+      "Ring": "bar"
+    }
+  },
+  {
+    "slug": "serif-manifesto",
+    "module": "serif_manifesto.js",
+    "label": "Manifesto",
+    "display": "Playfair Display",
+    "body": "Lato",
+    "accents": [
+      "gold",
+      "ox",
+      "ivory"
+    ],
+    "groundKey": "ink",
+    "dark": true,
+    "variants": {
+      "Typing": "typewriter",
+      "Morph": "fade",
+      "Swipe": "flip",
+      "Scroll": "board"
+    }
+  },
+  {
+    "slug": "chalk-talk",
+    "module": "chalk_talk.js",
+    "label": "Chalk Talk",
+    "display": "Gochi Hand",
+    "body": "Neucha",
+    "accents": [
+      "yellow",
+      "pink",
+      "board"
+    ],
+    "groundKey": "board",
+    "dark": true,
+    "variants": {
+      "Typing": "hand",
+      "DragDrop": "drag",
+      "Toggle": "check",
+      "Morph": "roll"
+    }
+  },
+  {
+    "slug": "aurora-night",
+    "module": "aurora_night.js",
+    "label": "Aurora Night",
+    "display": "Sora",
+    "body": "Atkinson Hyperlegible",
+    "accents": [
+      "green",
+      "violet",
+      "arctic"
+    ],
+    "groundKey": "arctic",
+    "dark": true,
+    "variants": {
+      "Ring": "ring",
+      "Scroll": "ticker",
+      "Code": "terminal",
+      "Notify": "side"
+    }
+  },
+  {
+    "slug": "robot-factory",
+    "module": "robot_factory.js",
+    "label": "Robot Factory",
+    "display": "Chakra Petch",
+    "body": "IBM Plex Sans",
+    "accents": [
+      "orange",
+      "warn",
+      "paper"
+    ],
+    "groundKey": "floor",
+    "dark": true,
+    "variants": {
+      "Code": "diff",
+      "DragDrop": "assemble",
+      "Toggle": "dial",
+      "Ring": "gauge"
+    }
+  }
+]
