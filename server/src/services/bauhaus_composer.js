@@ -455,8 +455,28 @@ function riotCta(scene, ctx) {
 
 const BUILDERS = { title: riotTitle, recipe: riotRecipe, stats: riotStats, manifesto: riotManifesto, figure: riotFigure, plate: riotPlate, cta: riotCta };
 
+// A MASTHEAD IS A LABEL, AND A LABEL IS NEVER CUT MID-WORD.
+//
+// This was `title.toUpperCase().slice(0, 20)`, which is a character budget applied to a
+// human-readable string — so a real film shipped `DIGITIZE FAMILY RECI` in the corner of
+// every one of its frames. A hard slice is right for a `data-` attribute and wrong for
+// anything a viewer reads: cut on a word, and if even the first word will not fit, cut that
+// one and mark it with an ellipsis so it reads as shortened rather than broken.
+function mastheadLabel(title, max = 20) {
+  const t = String(title || "KEYFRAME").trim().toUpperCase();
+  if (t.length <= max) return t;
+  const words = t.split(/\s+/);
+  let out = "";
+  for (const w of words) {
+    const next = out ? `${out} ${w}` : w;
+    if (next.length > max) break;
+    out = next;
+  }
+  return out || `${t.slice(0, Math.max(1, max - 1))}…`;
+}
+
 // ---- paper chrome (content-independent) --------------------------------------
-function chromeHtml(theme, title) {
+function chromeHtml(theme, title, colophon) {
   return `
   <div id="bg" class="clip" data-start="0" data-duration="__D__" data-track-index="0" data-layout-allow-occlusion>
     <div class="bigshape" id="bg-cy" style="position:absolute;left:-9cqw;top:-13cqw;width:30cqw;height:30cqw;border-radius:50%;background:${theme.yellow};"></div>
@@ -467,9 +487,9 @@ function chromeHtml(theme, title) {
   </div>
   <div id="chrome" class="clip" data-start="0" data-duration="__D__" data-track-index="19" data-layout-allow-occlusion style="opacity:0;">
     <div id="frame"></div>
-    <div id="masthead"><span class="sq"></span>${esc(String(title || "KEYFRAME").toUpperCase()).slice(0, 20)}</div>
+    <div id="masthead"><span class="sq"></span>${esc(mastheadLabel(title))}</div>
     <div id="sheetno">01 / 01</div>
-    <div id="footline">An AI motion press &middot; est. one sentence ago</div>
+    ${colophon ? `<div id="footline">${esc(colophon)}</div>` : ""}
   </div>
   <div id="caps" class="clip" data-start="0" data-duration="__D__" data-track-index="20"><div id="cap-pill"><div id="cap-text"></div></div></div>`;
 }
@@ -529,7 +549,7 @@ function styleBlock(theme) {
 // rotation alone carries the brand. A null skin renders the exact classic poster byte-for-
 // byte; resolvedBrand echoes the rotation (or null) so graph.persistWornBrand discloses what
 // the poster actually wears.
-function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin = null, localized = null } = {}) {
+function buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin = null, localized = null, seedKey = null } = {}) {
   const theme = riotTheme(brandSkin);
   const S = localized ? { ...STRINGS, ...localized } : STRINGS;
   const sb = storyboard || {};
@@ -566,7 +586,46 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     .filter((c) => c && c.text != null)
     .map((c) => [r(c.start != null ? c.start : c.startSec || 0), r(c.end != null ? c.end : (c.start || 0) + 2), String(c.text)]);
 
-  const chrome = chromeHtml(theme, sb.title).replace(/__D__/g, String(D));
+  // THE COLOPHON IS THE FILM'S, NOT THE PACK'S.
+  //
+  // The footer line was hard-coded `An AI motion press · est. one sentence ago` — the
+  // TEMPLATE's own advertising copy, baked into every frame of every film any customer makes
+  // with this pack, in a slot a viewer reads as the publisher's mark. It is also the one
+  // string here that never passed through the Localization Director, so a Japanese film
+  // carried an English tagline along its bottom edge.
+  //
+  // A colophon should say something true about THIS film: its own web address when the job
+  // has one, otherwise its title. When neither exists the line is omitted entirely — an empty
+  // strip of paper is correct, and a slogan for the tool that made it is not.
+  // Per-scene ornament dressing, seeded per job so two films on this pack differ and one film
+  // is reproducible. Ranges are deliberately modest: these are corner furniture on a print
+  // poster, and a shape that leaps across the sheet reads as a mistake rather than a re-dress.
+  const dressSeed = (() => {
+    let h = 2166136261;
+    for (const ch of String(seedKey || sb.title || "riot")) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
+    return () => { h += 0x6D2B79F5; let t = h; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  })();
+  const sceneDress = scenes.map(() => {
+    const pick = (lo, hi) => Math.round((lo + dressSeed() * (hi - lo)) * 10) / 10;
+    return {
+      cy:   [pick(-28, 18), pick(-22, 14)],
+      cb:   [pick(-16, 26), pick(-14, 20)],
+      ring: [pick(-34, 22), pick(-26, 40)],
+      tri:  [pick(-20, 46), pick(-30, 16)],
+    };
+  });
+
+  const colophon = (() => {
+    const addr = assets && assets.length
+      ? (assets.map((a) => a && a.sourceUrl).filter(Boolean)
+          .map((u) => { try { return new URL(u).host.replace(/^www\./, ""); } catch { return null; } })
+          .find(Boolean) || null)
+      : null;
+    if (addr) return addr.toUpperCase();
+    const t = String(sb.title || "").trim();
+    return t ? t.toUpperCase().slice(0, 46) : "";
+  })();
+  const chrome = chromeHtml(theme, sb.title, colophon).replace(/__D__/g, String(D));
 
   const script = `(function(){
   var D=${D};
@@ -582,6 +641,32 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   tl.to("#bg-cb",{scale:1.06,duration:11,ease:"sine.inOut",yoyo:true,repeat:reps(D,11)},0);
   tl.to("#bg-ring",{rotation:180,y:"+=18",duration:15,ease:"sine.inOut",yoyo:true,repeat:reps(D,15)},0);
   tl.to("#bg-tri",{rotation:-14,duration:8,ease:"sine.inOut",yoyo:true,repeat:reps(D,8),transformOrigin:"center center"},0);
+
+  // THE SET IS RE-DRESSED BETWEEN SCENES.
+  //
+  // The four corner ornaments are declared once at fixed insets and then only ever breathe on
+  // long ambient yoyos — 9 to 15 seconds for a few percent of travel. Over a 4-second beat
+  // that is invisible, so every scene of the film shows the same yellow quarter-disc top-left,
+  // the same red ring top-right, the same triangle bottom-left and the same blue disc
+  // bottom-right. A QA reviewer comparing five frames of a real film reported exactly that:
+  // "Groundhog set pattern detected across scenes at 2.1s, 5.9s, 10.2s, 19.5s and 23.9s,
+  // using identical corner ornaments and background layout."
+  //
+  // Each scene now gets its own seeded offset, scale and rotation for the four shapes, moved
+  // ON the cut so the change is read as a page turn rather than as drift. Expressed as
+  // transforms that COMPOSE with the ambient tweens above (those animate scale/rotation, these
+  // set xPercent/yPercent and a scale multiplier via a separate wrapper property) — and never
+  // as left/top, which the motion-safety guard forbids animating.
+  var dress=${JSON.stringify(sceneDress)};
+  function dressAt(i,at){
+    var d=dress[i]; if(!d) return;
+    tl.set("#bg-cy",{xPercent:d.cy[0],yPercent:d.cy[1]},at);
+    tl.set("#bg-cb",{xPercent:d.cb[0],yPercent:d.cb[1]},at);
+    tl.set("#bg-ring",{xPercent:d.ring[0],yPercent:d.ring[1]},at);
+    tl.set("#bg-tri",{xPercent:d.tri[0],yPercent:d.tri[1]},at);
+  }
+  dressAt(0,0);
+  for(var di=1;di<dress.length;di++) dressAt(di,${JSON.stringify(sceneStarts)}[di]);
   tl.fromTo("#dots",{backgroundPosition:"0cqw 0cqw"},{backgroundPosition:"2.3cqw 2.3cqw",duration:14,ease:"none",repeat:reps(D,14)},0);
   tl.fromTo("#chrome",{opacity:0},{opacity:1,duration:0.5},0.7);
   tl.fromTo("#masthead",{x:-26,opacity:0},{x:0,opacity:1,duration:0.5,ease:"power2.out"},0.9);

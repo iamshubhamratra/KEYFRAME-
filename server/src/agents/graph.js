@@ -121,13 +121,42 @@ function expectedVisualSupply(job) {
   return owned + stock;
 }
 
-// The template's fillable box count for THIS script (logo lockups excluded — the pack feeds
-// those from find(isLogo), not from the asset pool). 0 when the pack declares nothing usable.
-function fillableSlotCount(pack, scenes, dims) {
+// The template's fillable boxes for THIS script (logo lockups excluded — the pack feeds those
+// from find(isLogo), not from the asset pool), biggest first. `areaShare` is each box's share
+// of the frame, which template_media already computes.
+function fillableBoxes(pack, scenes, dims) {
   try {
     const plan = require("../services/template_media").resolveMediaPlan({ pack, scenes, dims });
-    return (plan.placeholders || []).filter((p) => p.kind !== "logos").length;
-  } catch { return 0; }
+    return (plan.placeholders || [])
+      .filter((p) => p.kind !== "logos")
+      .map((p) => Number(p.areaShare) || 0)
+      .sort((a, b) => b - a);
+  } catch { return []; }
+}
+function fillableSlotCount(pack, scenes, dims) { return fillableBoxes(pack, scenes, dims).length; }
+
+/**
+ * HOW MUCH OF THE FILM THIS PACK WOULD ACTUALLY COVER, given the pictures this job can supply.
+ *
+ * The first version of this routing counted SLOTS and picked the largest pack that fit. That
+ * optimises the wrong quantity, and the audited render proved it: routing a thin film to a
+ * 5-slot pack removed every empty slot and the reviewer still returned a blocker — "product
+ * inset covers under 50% of frame area, resulting in excessive empty space". Fewer boxes is
+ * not a denser frame. A pack with five big plates and a pack with five postage stamps score
+ * identically on count and could not look more different.
+ *
+ * So score the AREA: what the fillable boxes would cover, minus what the unfillable ones leave
+ * as visible holes. Assume placement fills the biggest boxes first, which is what
+ * asset_placement actually does (most important box picks first, and priority tracks size).
+ */
+function coverageScore(pack, scenes, dims, supply) {
+  const boxes = fillableBoxes(pack, scenes, dims);
+  if (!boxes.length) return -Infinity;
+  const filled = boxes.slice(0, Math.max(0, supply));
+  const empty = boxes.slice(Math.max(0, supply));
+  const covered = filled.reduce((a, b) => a + b, 0);
+  const holes = empty.reduce((a, b) => a + b, 0);
+  return covered - holes;
 }
 
 // THE PACK A JOB CAN ACTUALLY FILL.
@@ -142,23 +171,41 @@ function fillableSlotCount(pack, scenes, dims) {
 // So a pack whose appetite runs far past this job's supply is swapped for the closest-fitting
 // one that does not. Returns null when nothing fits better, in which case the caller keeps its
 // pick and discloses — the same law the orientation and localization reroutes follow.
-function pickAffordablePack(prefer, { scenes, dims, supply, orientation }) {
+function pickAffordablePack(prefer, { scenes, dims, supply, orientation, seedKey = "" }) {
   const { packFitsOrientation } = require("../services/frame_manifest");
-  const want = Math.max(2, supply);
   const cur = frameRegistry.resolvePack(prefer);
-  if (cur && fillableSlotCount(cur, scenes, dims) <= want) return cur;
-  let best = null, bestSlots = Infinity;
+  const curScore = cur ? coverageScore(cur, scenes, dims, supply) : -Infinity;
+  const cands = [];
   for (const id of frameRegistry.listPacks()) {
     const rp = frameRegistry.resolvePack(id);
-    if (!rp || rp === cur) continue;
+    if (!rp) continue;
     if (!packFitsOrientation(rp, orientation)) continue;
     if (isCanvasOrCharsetPack(rp)) continue;
-    const n = fillableSlotCount(rp, scenes, dims);
-    if (!n || n > want) continue;
-    // Closest fit from below: a pack that can show what we have, with the least waste.
-    if (n > (best ? bestSlots : 0)) { best = rp; bestSlots = n; }
+    cands.push({ pack: rp, score: coverageScore(rp, scenes, dims, supply) });
   }
-  return best;
+  if (!cands.length) return null;
+  cands.sort((a, b) => b.score - a.score);
+  const top = cands[0].score;
+  if (!(top > curScore)) return null;                 // the current pick is already as good
+
+  // ONE WINNER WOULD BE A DIFFERENT KIND OF BUG. Taking the single highest-coverage pack
+  // sends EVERY thin film to the same template — and "every video wears the same look" is the
+  // defect the brief's rotation and rotatedDefaultPack already exist to prevent. Coverage is a
+  // constraint, not a ranking to be maximised at the cost of the film's identity.
+  //
+  // A RELATIVE band does not work here: measured across the portrait packs at a supply of 5,
+  // coverage runs 826, 556, 434, 380, 269, 256, … — the leader is an outlier, so "within 15%
+  // of the best" qualifies exactly one pack and rotation dies. Take the densest FEW instead.
+  // The six that qualify are six genuinely different designs, so the film stays dense and two
+  // films still look different. The brief's own pick wins whenever it is among them, because
+  // matching tone was its entire job.
+  const BAND_N = 6;
+  const band = cands.slice(0, BAND_N);
+  const preferred = band.find((c) => c.pack === cur);
+  if (preferred) return null;                          // the brief's pick is dense enough: keep it
+  let h = 2166136261;
+  for (const ch of String(seedKey)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
+  return band[(h >>> 0) % band.length].pack;
 }
 
 // ---------------------------------------------------------------- helpers
@@ -376,10 +423,12 @@ async function frameSelectorAgent(s) {
         supplyPackWarning = `The "${framePack}" template draws ${slots} pictures, and this film can supply about ${supply} — some panels will render without an image. Add a website URL or upload product images, or pick a simpler template.`;
         console.warn(`[agents] frame_selector: ${framePack} wants ${slots} visual(s), job supplies ~${supply}; honoring explicit pick with a disclosure`);
       } else {
-        const afford = pickAffordablePack(s.brief?.suggestedFramePack, { scenes, dims, supply, orientation: s.job.orientation });
+        const afford = pickAffordablePack(s.brief?.suggestedFramePack, { scenes, dims, supply, orientation: s.job.orientation, seedKey: s.job.id });
         if (afford && afford !== framePack) {
           const n = fillableSlotCount(afford, scenes, dims);
-          console.log(`[agents] frame_selector: swapped ${framePack} (${slots} slots) → ${afford} (${n} slots) — this job supplies ~${supply} visual(s)`);
+          const was = Math.round(coverageScore(framePack, scenes, dims, supply) * 100);
+          const now = Math.round(coverageScore(afford, scenes, dims, supply) * 100);
+          console.log(`[agents] frame_selector: swapped ${framePack} (${slots} slots, coverage ${was}) → ${afford} (${n} slots, coverage ${now}) — this job supplies ~${supply} visual(s)`);
           framePack = afford; via = `${via}+supply`;
         } else {
           supplyPackWarning = `No installed template is small enough for the ${supply} visual(s) this film can supply, so some panels may render without an image.`;

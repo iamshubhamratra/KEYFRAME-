@@ -1021,7 +1021,7 @@ async function composeWithBloom({ storyboard, dims, jobDir, framePack, captionCu
 async function composeWithBauhaus({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null, captionStyle = null, localized = null }) {
   const t0 = ms();
   console.log(`[pipeline] ${label || "bauhaus-riot"}: building Bauhaus Riot composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
-  const built = bauhausComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin, localized });
+  const built = bauhausComposer.buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin, localized, seedKey: jobId });
   writeIndexHtml(jobDir, built.indexHtml, captionStyle);
   fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
   tracker.addExternal("hyperframes_render");
