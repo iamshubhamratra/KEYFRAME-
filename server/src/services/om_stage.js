@@ -746,8 +746,13 @@ function bMontage(scene, ctx, sceneAssets) {
     basePx: skin.sizes.montage, maxLines: 2, colPx: COL, em: skin.em, upper: skin.headUpper,
   });
   const tints = [theme.accent, theme.accent2, theme.accent3, theme.accent];
-  const n = Math.max(shots.length, Math.min(4, Math.max(2, labels.length)));
-  const cells = Array.from({ length: n }, (_, i) => ({ a: shots[i] || null, label: labels[i] || (S.tiles[i] || ""), tint: tints[i % 4] }));
+  // THE WALL IS AS WIDE AS THE PICTURES. Same defect, same fix as film_beats.bMontage — see
+  // the long note there. This variant was worse in one respect: the inner Math.max(2, ...)
+  // put a FLOOR of two tiles under every montage, so a scene holding a single asset drew a
+  // second cell that could only ever be empty. The count is now what was actually collected,
+  // and the `<= 2` branches below already switch to one taller column for it.
+  const n = Math.min(shots.length, 4);
+  const cells = Array.from({ length: n }, (_, i) => ({ a: shots[i] || null, label: labels[i] || "", tint: tints[i % 4] }));
   const html = `${open(ctx)}
     <div style="position:absolute;left:${X(PAD)};right:${X(PAD)};top:${V(300)};">
       ${kicker(theme, scene.kicker || S.montageKicker, theme.typeOn(theme.accent, ctx.ground))}

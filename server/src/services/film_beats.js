@@ -255,9 +255,26 @@ function bMontage(scene, ctx, sceneAssets) {
   const tbg = col(theme, L.tile.bg), tlabel = col(theme, L.tile.label);
   const rad = L.tile.r == null ? 22 : L.tile.r;
   const shots = (sceneAssets || []).slice(0, 4);
+  // THE WALL IS AS WIDE AS THE PICTURES, NOT AS WIDE AS THE COPY.
+  //
+  // `n` used to be max(shots, labels): the tile count came from how many FEATURE LINES the
+  // script happened to yield, and when it yielded fewer than two the beat fell back to four
+  // generic names ("Home/Detail/Mobile/Dashboard") which then set n = 4. Measured on job
+  // zwq8nrrpht (alpine-post, 9:16): scenes with 2, 1 and 2 assets each drew FOUR tiles, so
+  // seven of twelve tiles rendered as flat rgba(hi) blocks — the "purple placeholders" the
+  // reviewer blocked on — under labels naming screens ("MOBILE", "DASHBOARD") that a
+  // note-taking app does not have. Both halves of that came from this one line.
+  //
+  // The count is now the number of pictures actually in hand. `single` (below) already
+  // renders one taller column for n <= 2, so two assets now produce two LARGE plates rather
+  // than a half-empty grid — that layout existed all along and was simply unreachable.
+  const n = Math.min(shots.length, 4);
+  // Labels only when the script really named the features. The generic set stays for the
+  // media-less branch below, where the tiles ARE the content; over pictures a fabricated
+  // caption is worse than none.
   const labels = featureLines(scene, 4);
   const tiles = (labels.length >= 2 ? labels : (Str.tiles || ["Home", "Detail", "Mobile", "Dashboard"])).slice(0, 4);
-  const n = Math.max(shots.length, Math.min(tiles.length, 4)) || 4;
+  const mediaTiles = labels.length >= 2 ? labels.slice(0, 4) : [];
   const glow = L.tile.glow ? col(theme, L.tile.glow) : null;
 
   if (skin.media === false) {
@@ -282,11 +299,31 @@ function bMontage(scene, ctx, sceneAssets) {
         <div style="margin-top:${X(54)};display:grid;grid-template-columns:${single ? "1fr" : "1fr 1fr"};gap:${X(26)};">
           ${Array.from({ length: n }).map((_, i) => {
             const a = shots[i] || null;
-            const label = shortLabel(tiles[i] || (Str.tiles || [])[i] || "", 22);
-            return `<div data-in="item" data-i="${i + 2}" style="transform:rotate(${tilts[i % tilts.length]}deg);">
-              <div style="height:${X(single ? 380 : 292)};border-radius:${X(rad)};background:${tbg};padding:${X(11)};${glow ? `border:1px solid ${rgba(glow, 0.55)};box-shadow:0 0 ${X(26)} ${rgba(glow, 0.2)};` : `box-shadow:0 ${X(20)} ${X(44)} rgba(10,10,12,0.3);`}">
+            const label = shortLabel(mediaTiles[i] || "", 22);
+            // THE CARD TAKES THE PICTURE'S SHAPE, NOT THE OTHER WAY ROUND.
+            //
+            // plate() fits a website capture with object-fit:contain — deliberately, because
+            // cropping a UI screenshot cuts off the thing the shot exists to show. But a
+            // PORTRAIT phone capture inside a full-width landscape card then contains into a
+            // narrow strip with two thirds of the card painted in its own tint, which is what
+            // the reported render shows on the HOME tile. Neither stretching nor cropping is
+            // the fix: the card is what should move. In the single column there is room to
+            // give each plate the aspect of the asset it holds — a phone shot gets a phone-
+            // shaped card, centred; a dashboard keeps the full width. Nothing is cropped,
+            // nothing is stretched, and no tinted dead area is left over.
+            const budget = n === 1 ? 620 : 500;             // vertical room per plate, under a 2-line title
+            const ratio = a && Number(a.ratio) > 0 ? Number(a.ratio)
+              : (a && Number(a.width) > 0 && Number(a.height) > 0 ? Number(a.width) / Number(a.height) : 0);
+            const cardH = single ? budget : 292;
+            // Width follows the ratio only when the asset is TALLER than the full-width card
+            // would be; a landscape asset keeps the whole column as before.
+            const natW = single && ratio > 0 ? Math.round(budget * ratio) : COL;
+            const cardW = single ? Math.max(Math.round(COL * 0.42), Math.min(COL, natW)) : COL;
+            const centred = single && cardW < COL;
+            return `<div data-in="item" data-i="${i + 2}" style="transform:rotate(${tilts[i % tilts.length]}deg);${centred ? `width:${X(cardW)};margin-left:auto;margin-right:auto;` : ""}">
+              <div style="height:${X(cardH)};border-radius:${X(rad)};background:${tbg};padding:${X(11)};${glow ? `border:1px solid ${rgba(glow, 0.55)};box-shadow:0 0 ${X(26)} ${rgba(glow, 0.2)};` : `box-shadow:0 ${X(20)} ${X(44)} rgba(10,10,12,0.3);`}">
                 <div style="position:relative;width:100%;height:100%;border-radius:${X(Math.max(4, rad - 9))};overflow:hidden;background:${rgba(hi, 0.16)};">
-                  ${a ? S.plate(theme, { asset: a, tint: hi }) : `<div style="position:absolute;inset:0;background:${rgba(hi, i % 2 ? 0.55 : 0.3)};"></div>`}
+                  ${S.plate(theme, { asset: a, tint: hi })}
                 </div>
               </div>
               ${label ? `<div style="font-family:${theme.displayStack};font-size:${F(L.tile.labelSize || 28)};color:${tlabel};margin-top:${X(13)};text-align:center;${L.upper ? "text-transform:uppercase;" : ""}">${esc(label)}</div>` : ""}
@@ -340,7 +377,18 @@ function bCta(scene, ctx, _sceneAssets, logo) {
   const { theme, skin, Str } = ctx;
   const L = ctx.look.cta;
   const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground);
-  const bbg = col(theme, L.btn.bg), bc = col(theme, L.btn.c);
+  const bbg = col(theme, L.btn.bg);
+  // THE BUTTON IS THE ONE PIECE OF TYPE THAT NEVER MET THE CONTRAST MACHINERY.
+  //
+  // `fg` and `hi` above go through ink() -> theme.typeOn(colour, ground), which returns the
+  // authored colour at ratio >= 3 and the field's own readable ink otherwise. The button took
+  // BOTH its background and its label straight from the skin with col(), so nothing ever
+  // compared the label against the pill it sits on — and unlike the headline it does not even
+  // sit on `ground`, so the ground-based guard would not have covered it anyway. On job
+  // zwq8nrrpht that shipped "TRY GEMINI NOTEBOOK" below the readable threshold and the
+  // reviewer blocked on it. Judge the label against its OWN background, which is the surface
+  // it is actually drawn on.
+  const bc = theme.typeOn(col(theme, L.btn.c), bbg);
   const center = (L.align || "center") === "center";
   const btnV = L.btn.v === "block" ? `border-radius:${X(10)};`
     : L.btn.v === "glow" ? `border-radius:${X(12)};box-shadow:0 0 ${X(52)} ${rgba(bbg, 0.55)};`

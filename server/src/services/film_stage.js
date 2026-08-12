@@ -822,6 +822,30 @@ function build(skin, { storyboard, dims, framePack, captionCues, assets, brandSk
     let sceneAssets = sceneShots[i];
     const m = mechPlan[i];
 
+    // AN OFF-TOPIC PICTURE IS WORSE THAN NO PICTURE — BUT ONLY WHEN IT IS THE WHOLE SCENE.
+    //
+    // The Creative Director already judges every asset and records the verdict: on job
+    // zwq8nrrpht the s6 wire carried sees:"person walking away outdoors holding bottle",
+    // cdScore:38, floorPassed:false, visionOk:false — and __rejected:false. Everything
+    // downstream treats visionOk:false as a RANKING penalty (asset_priority caps the score at
+    // 0.5, asset_quality at 0.4) and nothing treats it as a reason not to show the thing, so
+    // it became the sole visual of a beat about understanding complex topics. This engine had
+    // no relevance gate at all — unlike scene_kit, om_stage, flagship, brightlife and
+    // blueprint, which all consult visionOk before promoting an asset.
+    //
+    // The gate is deliberately narrow, because the wide version is a known regression:
+    // om_stage.shotReserveOk carries the scar — "on a prompt-only film every asset is stock,
+    // so the trim did not drop the WEAK stock, it dropped ALL of it, and a film whose whole
+    // wire was demoted rendered no pictures whatever". So a rejected asset is dropped ONLY
+    // when it would be the ONE picture in the beat; where it is one tile among several it
+    // still earns its place, ranked last as it already is. Owned material (uploads, site
+    // captures) is never dropped — that is the tier law.
+    const { isOwned } = require("./asset_priority");
+    const offTopic = (a) => a && !isOwned(a) && a.visionOk === false && a.floorPassed === false;
+    if (!m && CAN_SHOW.has(arch) && sceneAssets.length === 1 && offTopic(sceneAssets[0])) {
+      sceneAssets = [];
+    }
+
     if (!m && CAN_SHOW.has(arch) && sceneAssets.length) {
       if (arch === "montage") sceneAssets = sceneAssets.slice(0, 4);
       else if (arch === "statement" || arch === "stats") sceneAssets = sceneAssets.slice(0, 1);

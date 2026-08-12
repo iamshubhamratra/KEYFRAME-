@@ -190,7 +190,7 @@ function musicCandidatesFor({ framePack, jobId, narration = "on", scriptMusic = 
   if (p.source !== "manifest") {
     return {
       candidates: scriptQuery ? [scriptQuery] : [],
-      source: "script", keywords: [], profile: p,
+      source: "script", keywords: [], profile: p, scriptQuery,
     };
   }
 
@@ -212,6 +212,12 @@ function musicCandidatesFor({ framePack, jobId, narration = "on", scriptMusic = 
 
   return {
     candidates,
+    // The subject query rides INSIDE `candidates` (queryLadder reserves it a slot), so a
+    // consumer asking "did the template steer this search" has to be able to tell the pack's
+    // own queries from the film's. Returned rather than re-derived: audio_report used to
+    // compare the winner against `keywords`, which is a 1-2 entry sample, and mislabelled
+    // every genre-term win as a script fallback.
+    scriptQuery,
     source: "template", keywords, profile: p,
   };
 }

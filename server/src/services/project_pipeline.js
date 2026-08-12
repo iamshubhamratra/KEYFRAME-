@@ -1076,7 +1076,10 @@ async function runProduction({ jobId }) {
           musicMood: (script.music && script.music.mood) || "", voClips,
           narration: voEnabled ? "on" : "off",
           voiceoverRequested: voEnabled, profile: audioProfile,
-          musicSelection: { ...musicSelection, keywords: musicPlan.keywords },
+          // candidates + scriptQuery, not just keywords: audio_report validates the winning query
+          // against what was ASKED. Passing only `keywords` left this path on the 1-2 entry
+          // sample and reproduced the false "script-fallback" verdict the graph path had.
+          musicSelection: { ...musicSelection, keywords: musicPlan.keywords, candidates: musicPlan.candidates, scriptQuery: musicPlan.scriptQuery },
         });
         db.setAudioReport(jobId, report);
         console.log(`[project] audio: ${report.soundEffects} effect(s), narration=${report.narration}, music=${report.musicSource}, quality=${report.qualityScore}`

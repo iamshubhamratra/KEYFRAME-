@@ -2066,7 +2066,7 @@ async function voiceAgent(s) {
     voClips, sfxClips, musicPath,
     narration: voEnabled ? "on" : "off",
     audioProfile,
-    musicSelection: { ...musicSelection, source: musicPlan.source, keywords: musicPlan.keywords, candidates: musicPlan.candidates },
+    musicSelection: { ...musicSelection, source: musicPlan.source, keywords: musicPlan.keywords, candidates: musicPlan.candidates, scriptQuery: musicPlan.scriptQuery },
   };
 }
 

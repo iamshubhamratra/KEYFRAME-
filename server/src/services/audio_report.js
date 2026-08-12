@@ -86,11 +86,46 @@ function buildAudioReport({
   //    did this fall back to the script's subject-derived query? `musicSelection.query` is
   //    what WON, not what was asked — a template keyword that returned nothing and lost to
   //    a later candidate must not be reported as a template-steered choice.
+  //    MEASURE AGAINST WHAT WAS ASKED, NOT AGAINST A SAMPLE OF IT. `musicSelection.keywords`
+  //    is pickMusicKeywords' output: ONE OR TWO rotated musicKeywords phrasings, kept for the
+  //    log line. It is not the search. The search is `candidates` — music_vocabulary.queryLadder
+  //    — which deliberately LEADS with the genre terms from the pack's `style[]` because those
+  //    are "the deep pool; this is what guarantees the search is never empty". So the query most
+  //    likely to WIN was structurally absent from the list this check compared against.
+  //
+  //    Measured on job zwq8nrrpht (alpine-post): the winning query was "horn", a genre term off
+  //    style:["alpine horn",...]. The template steered the search exactly as designed, and this
+  //    line reported musicSource:"script-fallback", raised a blocking issue, and docked six
+  //    points. `candidates` was already being passed in and never read.
+  //
+  //    The script's own subject query rides in the SAME ladder (queryLadder reserves a slot for
+  //    it), so it is excluded here — otherwise every film would look template-steered.
   const profiled = !!(profile && profile.source === "manifest");
+  // Still reported under templateAudio below — it is what a human recognises as this
+  // template's sound. It is simply no longer what the verdict is measured against.
   const keywords = (musicSelection && Array.isArray(musicSelection.keywords)) ? musicSelection.keywords : [];
   const wonQuery = String((musicSelection && musicSelection.query) || "").toLowerCase();
-  const musicFromTemplate = profiled && !!wonQuery
-    && keywords.some((k) => k && wonQuery.includes(String(k).toLowerCase().split(" ")[0]));
+  const hasLadder = !!(musicSelection && Array.isArray(musicSelection.candidates) && musicSelection.candidates.length);
+  const subject = String((musicSelection && musicSelection.scriptQuery) || "").trim().toLowerCase();
+  // fetchMusic normalizes a candidate (lowercase, de-duplicated words) before searching, so the
+  // winner is compared on the same footing.
+  const norm = (q) => [...new Set(String(q || "").toLowerCase().match(/[a-z][a-z'-]*/g) || [])].join(" ");
+  const wonNorm = norm(wonQuery);
+  let musicFromTemplate;
+  if (hasLadder) {
+    // The ladder holds the LITERAL strings that were searched, so identity is the right test:
+    // a pair ("techno driving") is itself an entry, not a prefix of one.
+    const templateAsked = musicSelection.candidates
+      .map((q) => String(q || "").trim().toLowerCase())
+      .filter((q) => q && q !== subject);
+    musicFromTemplate = profiled && !!wonNorm && templateAsked.some((q) => norm(q) === wonNorm);
+  } else {
+    // LEGACY SHAPE — a caller that passes only `keywords` (the 1-2 phrasings). There the winner
+    // is often a pair BUILT from a keyword ("future bass" -> "future bass driving"), so identity
+    // would under-report. Keep the original containment reading for that path exactly.
+    musicFromTemplate = profiled && !!wonQuery
+      && keywords.some((k) => k && wonQuery.includes(String(k).toLowerCase().split(" ")[0]));
+  }
   const musicSource = !musicPath ? "none"
     : !profiled ? "script-fallback"
       : musicFromTemplate ? "template"
