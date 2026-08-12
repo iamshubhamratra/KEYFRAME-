@@ -58,10 +58,18 @@ function main() {
   }
   console.log(`handoffs: ${path.relative(path.join(__dirname, "..", ".."), HANDOFFS)}`);
 
+  // ENUMERATE ON THE FILE THIS GUARD ACTUALLY OPENS. It read OM_SCENES out of the TRACKED
+  // `<tpl>/src/<tpl>.dc.html` but admitted a template only if `<tpl>/standalone/<tpl>.html`
+  // existed — and standalone/ is a ~24MB inlined BUILD of src/ that .gitignore excludes on
+  // purpose. So on any clean checkout the filter matched nothing, the guard reported "found 0"
+  // and failed, while every input it needs was sitting right there. Gating on a build artifact
+  // it never opens is defect #1's own shape (the tool exists, its input does not), one level in.
+  // The capture tool in shot-reference.js still keys on standalone/, correctly — it screenshots
+  // that page. This guard does not.
   const templates = fs.readdirSync(HANDOFFS, { withFileTypes: true })
     .filter((d) => d.isDirectory())
     .map((d) => d.name)
-    .filter((n) => fs.existsSync(path.join(HANDOFFS, n, "standalone", `${n}.html`)))
+    .filter((n) => fs.existsSync(path.join(HANDOFFS, n, "src", `${n}.dc.html`)))
     .sort();
 
   ok(templates.length >= 20, `expected >=20 handoff templates, found ${templates.length}`);

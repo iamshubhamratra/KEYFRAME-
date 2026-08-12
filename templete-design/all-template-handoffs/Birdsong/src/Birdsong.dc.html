@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Karla:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{height:100%;background:#FDF6E9}
+    body{overflow:hidden;font-family:'Bricolage Grotesque',system-ui,sans-serif}
+    a{color:#FF6B4A;text-decoration:none}
+    a:hover{color:#ff8f76}
+  </style>
+  <script>window.OM_SCENES = '[{"name":"Cover","dur":1.8,"eyebrow":"A LITTLE STORY","headline":"FIND|YOUR|FLOCK.","body":"Every big journey starts with one small bird leaving the branch.","tags":["1M+ BIRDERS","11K SPECIES","FREE"],"nat":5},{"name":"Story","dur":2,"headline":"How it goes","sub":"Three small steps, one loud chorus.","footer":"and it all starts with you","blocks":[{"n":"1","t":"One branch","b":"It starts alone — a single idea on a quiet limb, waiting for a reason to fly."},{"n":"2","t":"One song","b":"You call out. Somewhere across the canopy, someone answers you back."},{"n":"3","t":"One flock","b":"Soon the whole tree is singing the same bright tune, all together."}],"nat":6},{"name":"Feature","dur":2,"eyebrow":"ON EVERY SCREEN","headline":"Hear every|song.","body":"Log a sighting, learn the call, and watch your life list grow one bird at a time — on desktop or on the trail.","bullets":["Identify any call in under two seconds","Auto-logged sightings with date and place","Share your list with the whole flock"],"tags":["FREE FOREVER","NO ADS","OFFLINE"],"url":"app.birdsong.app","nat":6},{"name":"Gallery","dur":2,"headline":"Every screen","sub":"Built wide for the desktop birder.","url":"app.birdsong.app","shots":[{"k":"shot1","cap":"THE DASHBOARD"},{"k":"shot2","cap":"THE LIVE MAP"},{"k":"shot3","cap":"YOUR LIFE LIST"}],"nat":6},{"name":"Cards","dur":1.8,"headline":"What you get","sub":"Everything a birder needs, nothing they do not.","cards":[{"e":"🎧","t":"Real calls","b":"Thousands of recorded songs."},{"e":"🗺️","t":"Live map","b":"See what is nearby right now."},{"e":"🪶","t":"Life list","b":"Every sighting, kept forever."},{"e":"🌱","t":"Give back","b":"Your logs help conservation."}],"nat":5.5},{"name":"Numbers","dur":1.8,"headline":"The flock|is growing.","body":"Birders in every timezone, logging songs from dawn until dusk.","stats":[{"v":240,"suf":"K","l":"BIRDERS"},{"v":11,"suf":"K","l":"SPECIES"},{"v":4.9,"suf":"★","l":"RATING"}],"nat":5},{"name":"Join","dur":2,"headline":"Join the|flock.","body":"Free to start, forever. Your first sighting is waiting outside.","tags":["NO CARD NEEDED","iOS + ANDROID","WEB"],"cta":"GET BIRDSONG","url":"birdsong.app","nat":6}]';</script>
+  <script>window.OM_PLAYBACK = '{"mode":"times","count":1}';</script>
+  <script>window.OM_TWEAKS = /*EDITMODE-BEGIN*/{"teal":"#0E9B8E","coral":"#FF6B4A","mustard":"#FFC231","brandName":"Birdsong","url":"birdsong.app","motionEditor":true}/*EDITMODE-END*/;</script>
+</helmet>
+<div style="position:fixed;inset:0;background:#FDF6E9;overflow:hidden">
+  <x-import component-from-global-scope="BirdsongFilm" from="./animations-v2.jsx ./tweaks-panel.jsx ./birdsong-film.jsx" hint-size="100%,100%" style="position:absolute;inset:0"></x-import>
+</div>
+</x-dc>
+</body>
+</html>

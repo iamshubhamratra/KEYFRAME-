@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{height:100%;background:#EAF7FB}
+    body{overflow:hidden;font-family:'Fredoka',system-ui,sans-serif}
+    a{color:#F2683C;text-decoration:none}
+    a:hover{color:#ff855c}
+  </style>
+  <script>window.OM_SCENES = '[{"name":"Title","dur":2.5,"kicker":"A GOOD BOY STORY","brand":"FETCH","tagline":"Every good boy delivers."},{"name":"Run","dur":3.3,"kicker":"THE FETCH","eyebrow":"INCOMING DELIVERY","headline":"RUN, BOY,|RUN!"},{"name":"Fetch","dur":2.3,"kicker":"DELIVERED","headline":"GOOD BOY!","sub":"Delivered — tail wags included."},{"name":"Feature","dur":3.7,"kicker":"THE APP","eyebrow":"IN YOUR POCKET","headline":"Track every|fetch.","chips":["LIVE TRACKING","TREAT REWARDS","PAW-FECT MATCH"]},{"name":"Stats","dur":3,"kicker":"BY THE NUMBERS","headline":"Tails don’t lie.","stats":[{"v":2,"suf":"M","l":"BALLS FETCHED"},{"v":98,"suf":"%","l":"HAPPY PUPS"},{"v":4.9,"suf":"★","l":"APP RATING"}]},{"name":"CTA","dur":2.8,"kicker":"GET FETCH","headline":"Bring joy|home.","cta":"GET FETCH","url":"fetch.dog"}]';</script>
+  <script>window.OM_PLAYBACK = '{"mode":"times","count":1}';</script>
+  <script>window.OM_TWEAKS = /*EDITMODE-BEGIN*/{"accent":"#F2683C","brandName":"Fetch","url":"fetch.dog","dogColor":"Golden","motionEditor":true}/*EDITMODE-END*/;</script>
+</helmet>
+<div style="position:fixed;inset:0;background:#EAF7FB;overflow:hidden">
+  <x-import component-from-global-scope="FetchFilm" from="./animations-v2.jsx ./tweaks-panel.jsx ./fetch-film.jsx" hint-size="100%,100%" style="position:absolute;inset:0"></x-import>
+</div>
+
+<template id="__bundler_thumbnail">
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="22" fill="#C7E7F1"/><rect x="0" y="68" width="100" height="32" fill="#8FC15A"/><ellipse cx="44" cy="60" rx="21" ry="13" fill="#E6A95C"/><circle cx="64" cy="57" r="7" fill="#F2683C"/><circle cx="74" cy="26" r="11" fill="#FFC24C"/></svg>
+</template></x-dc>
+</body>
+</html>

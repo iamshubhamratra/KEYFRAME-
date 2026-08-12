@@ -19,9 +19,36 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const ROOT = path.resolve(__dirname, "..", "..");
-const HANDOFF = path.join(ROOT, "templete-design", "keyframe-handoff");
-const SRC = path.join(HANDOFF, "source");
 const OUT_DIR = path.join(__dirname, "..", "src", "services", "film_skins");
+
+// THE SOURCE THIS DERIVES FROM IS NOT IN THE REPO.
+//
+// `keyframe-handoff/` is an authoring drop — it has never been tracked, and the sibling
+// library beside it has already moved once (templete-design/ -> old-templete/, see the same
+// note in shot-reference.js). A single hardcoded join therefore did two harmful things: it
+// crashed with a raw ENOENT stack out of a top-level readdirSync at REQUIRE time, before
+// main() could say what was missing, and it made `npm test` permanently red on every machine
+// that is not the original author's — a red chain nobody can green is a chain people stop
+// reading. Resolve against candidates, env override first, and return null rather than throw
+// so the caller decides what an absent source means for the mode it is running in.
+const HANDOFF_CANDIDATES = [
+  process.env.KEYFRAME_FILM_HANDOFF || "",
+  path.join(ROOT, "old-templete", "keyframe-handoff"),
+  path.join(ROOT, "old-template", "keyframe-handoff"),
+  path.join(ROOT, "templete-design", "keyframe-handoff"),
+].filter(Boolean);
+
+function resolveHandoff() {
+  for (const dir of HANDOFF_CANDIDATES) {
+    try { if (fs.statSync(path.join(dir, "source")).isDirectory()) return dir; } catch { /* next candidate */ }
+  }
+  return null;
+}
+const HANDOFF = resolveHandoff();
+const SRC = HANDOFF ? path.join(HANDOFF, "source") : null;
+const MISSING_MSG =
+  `no FilmKit handoff source found. Looked in:\n  ${HANDOFF_CANDIDATES.join("\n  ")}\n` +
+  `Set KEYFRAME_FILM_HANDOFF to the directory containing source/{mega,world}-pack-N.js.`;
 
 // ---- extraction ---------------------------------------------------------------
 function extractConfigs() {
@@ -46,8 +73,13 @@ function extractConfigs() {
 }
 
 // ---- slugs --------------------------------------------------------------------
-const SLUGS = fs.readdirSync(path.join(HANDOFF, "standalone"))
-  .filter((f) => f.endsWith(".html") && f !== "index.html").map((f) => f.replace(/\.html$/, ""));
+// Lazy, not top-level: a missing handoff must reach main()'s legible report rather than
+// aborting the require with a stack trace that names only node:fs.
+let SLUGS = [];
+function loadSlugs() {
+  SLUGS = fs.readdirSync(path.join(HANDOFF, "standalone"))
+    .filter((f) => f.endsWith(".html") && f !== "index.html").map((f) => f.replace(/\.html$/, ""));
+}
 const norm = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, "");
 function slugFor(cfg) {
   for (const c of [cfg.global, cfg.brand]) {
@@ -268,6 +300,22 @@ function main() {
   const check = argv.includes("--check");
   const only = argv.filter((a) => !a.startsWith("--"));
 
+  // AN ABSENT SOURCE MEANS DIFFERENT THINGS IN THE TWO MODES, and conflating them is how a
+  // generator silently produces nothing. `--check` verifies a DERIVATION: with no source to
+  // derive from there is nothing to compare, so it reports that plainly and stands down —
+  // skipping loudly, never claiming the skins were checked. Write mode has no such out: being
+  // asked to regenerate from a source that is not there is a hard error.
+  if (!HANDOFF) {
+    if (check) {
+      console.log(`[film-skins] SKIPPED — ${MISSING_MSG.split("\n")[0]}`);
+      console.log(`[film-skins] the handoff drop is an authoring input and is not tracked in this repo; on-disk skins were NOT verified.`);
+      process.exit(0);
+    }
+    console.error(MISSING_MSG);
+    process.exit(1);
+  }
+  loadSlugs();
+
   const configs = extractConfigs();
   // Re-run the pack files one at a time so each cfg knows which file it came from.
   const packOf = new Map();
@@ -299,11 +347,22 @@ function main() {
     fs.writeFileSync(file, body, "utf8");
     written++;
   });
-  fs.writeFileSync(path.join(OUT_DIR, "_manifest.json"), JSON.stringify(manifest, null, 2), "utf8");
+  // A CHECK THAT WRITES IS NOT A CHECK. `--check` used to fall through to this line and
+  // rewrite _manifest.json on every run — so the verifier `npm test` invokes could modify
+  // tracked source, and a drifted manifest silently repaired itself instead of being reported.
+  // (Same defect family as apply-media-profiles.js's write-by-default.) Compare it instead;
+  // a filtered subset can't speak for the whole file, so it only compares on a full run.
+  const manifestPath = path.join(OUT_DIR, "_manifest.json");
+  const manifestBody = JSON.stringify(manifest, null, 2);
   if (check) {
+    if (!only.length) {
+      const cur = fs.existsSync(manifestPath) ? fs.readFileSync(manifestPath, "utf8") : "";
+      if (cur !== manifestBody) { console.error(`DRIFT _manifest.json`); drift++; }
+    }
     console.log(drift ? `${drift} skin(s) drifted from the handoff source` : `all skins match the handoff source`);
     process.exit(drift ? 1 : 0);
   }
+  fs.writeFileSync(manifestPath, manifestBody, "utf8");
   console.log(`wrote ${written} skin(s) -> ${path.relative(ROOT, OUT_DIR)}${skipped ? ` (${skipped} skipped)` : ""}`);
 }
 

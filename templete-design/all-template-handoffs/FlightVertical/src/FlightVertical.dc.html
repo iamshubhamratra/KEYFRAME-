@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{height:100%;background:#8FCBF5}
+    body{overflow:hidden;font-family:'Manrope',system-ui,sans-serif}
+    a{color:#FF5630;text-decoration:none}
+    a:hover{color:#ff7a5c}
+  </style>
+  <script>window.OM_SCENES = '[{"name":"Gate","dur":3,"brand":"SKYWARD","tagline":"Cleared for takeoff","body":"Your whole team boards together — one runway from idea to launch."},{"name":"Takeoff","dur":3.7,"eyebrow":"V1 · ROTATE","headline":"And we are|airborne.","body":"Full throttle — setup takes minutes, not weeks, and your product leaves the ground the moment you decide to fly."},{"name":"Climb","dur":3.3,"eyebrow":"CRUISING ALTITUDE","headline":"Smooth all|the way up.","chips":["NONSTOP","ZERO LAG","FIRST CLASS"]},{"name":"Cruise","dur":2.3,"headline":"On board."},{"name":"Instruments","dur":2.7,"headline":"Numbers|that soar.","stats":[{"v":38,"suf":"K FT","l":"ALTITUDE"},{"v":560,"suf":"MPH","l":"SPEED"},{"v":2,"suf":"M","l":"MILES FLOWN"}]},{"name":"Arrival","dur":2.8,"headline":"Ready for|takeoff?","cta":"BOOK YOUR SEAT","url":"skyward.air"}]';</script>
+  <script>window.OM_PLAYBACK = '{"mode":"times","count":1}';</script>
+  <script>window.OM_TWEAKS = /*EDITMODE-BEGIN*/{"accent":"#FF5630","brandName":"Skyward","url":"skyward.air","motionEditor":true}/*EDITMODE-END*/;</script>
+</helmet>
+<div style="position:fixed;inset:0;background:#8FCBF5;overflow:hidden">
+  <x-import component-from-global-scope="FlightVertFilm" from="./animations-v2.jsx ./tweaks-panel.jsx ./flightvert-film.jsx" hint-size="100%,100%" style="position:absolute;inset:0"></x-import>
+</div>
+
+<template id="__bundler_thumbnail">
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="22" fill="#8FCBF5"/><rect x="16" y="78" width="68" height="5" rx="2" fill="#F2F5F9"/><g transform="rotate(-18 50 50)"><path d="M26 52 l40 -6 20 6 -20 6 -40 -6z" fill="#EEF3F8"/><path d="M24 52 l-10 -14 8 0 12 12z" fill="#FF5630"/></g></svg>
+</template></x-dc>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{height:100%;background:#EEF1F7}
+    body{overflow:hidden;font-family:'Space Grotesk',system-ui,sans-serif}
+    a{color:#2F6BFF;text-decoration:none}
+    a:hover{color:#5a8bff}
+  </style>
+  <script>window.OM_SCENES = '[{"name":"Intro","dur":2.7,"eyebrow":"A QUICK TOUR","headline":"See how|it works.","body":"Thirty seconds, six screens — everything your product does, start to finish.","url":"yourapp.com"},{"name":"Tour","dur":3.3,"headline":"One view,|zero noise.","chips":["REAL-TIME","ONE-TAP","OFFLINE"],"callout":"Live metrics","calloutNum":"1","url":"app.yourapp.com"},{"name":"Detail","dur":2.5,"headline":"Things to notice."},{"name":"Gallery","dur":2.3,"headline":"Every screen."},{"name":"Stats","dur":2.3,"headline":"Loved|at scale.","stats":[{"v":12,"suf":"K+","l":"TEAMS"},{"v":4.9,"suf":"★","l":"RATING"},{"v":99.9,"suf":"%","l":"UPTIME"}]},{"name":"CTA","dur":2.3,"headline":"Start the|free trial.","cta":"GET STARTED","url":"yourapp.com"}]';</script>
+  <script>window.OM_PLAYBACK = '{"mode":"times","count":1}';</script>
+  <script>window.OM_TWEAKS = /*EDITMODE-BEGIN*/{"accent":"#2F6BFF","brandName":"Showcase","url":"yourapp.com","motionEditor":true}/*EDITMODE-END*/;</script>
+</helmet>
+<div style="position:fixed;inset:0;background:#EEF1F7;overflow:hidden">
+  <x-import component-from-global-scope="ShowVertFilm" from="./animations-v2.jsx ./tweaks-panel.jsx ./showvert-film.jsx" hint-size="100%,100%" style="position:absolute;inset:0"></x-import>
+</div>
+
+<template id="__bundler_thumbnail">
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="22" fill="#EEF1F7"/><rect x="34" y="22" width="32" height="56" rx="8" fill="#FFFFFF" stroke="#131722" stroke-width="3"/><path d="M20 44 l14 10 -14 10" fill="none" stroke="#2F6BFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="50" cy="50" r="5" fill="#2F6BFF"/></svg>
+</template></x-dc>
+</body>
+</html>
