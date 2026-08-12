@@ -133,8 +133,23 @@ async function understandWebsite({ url, workDir, timeoutMs = 60_000, sectionTarg
     // two settled animation frames) and it measures what actually matters for a
     // screenshot rather than proxying it through socket counts. A slow-but-alive page
     // now degrades to "capture it a little early" instead of "capture nothing".
+    // IS THIS THE SITE, OR THE SERVER SAYING IT ISN'T?
+    //
+    // goto returns the navigation response and this discarded it, so an HTTP error page was
+    // ingested exactly like a real homepage. Job po0ltq31c4 is the whole failure in one line:
+    // https://brandfetch.com/ answers 404 with the stock Apache page, and the pipeline shot it
+    // twice (one "blank", one "broken" at 0% coverage), harvested 0 assets from it, read its
+    // brand as system-ui and a single grey, and then spent a full render making a 30-second
+    // film about a company from an error page. It scored 5/100 and nothing anywhere said the
+    // URL was dead.
+    //
+    // A status alone is not proof — some working sites answer non-2xx on the document and
+    // hydrate fine — so it is corroborated against the page itself: an error page is tiny,
+    // pictureless, and says so. Both together are conclusive; either alone only warns.
+    let navStatus = null;
     try {
-      await page.goto(url, { waitUntil: "domcontentloaded", timeout: Math.min(timeoutMs, 45_000) });
+      const resp = await page.goto(url, { waitUntil: "domcontentloaded", timeout: Math.min(timeoutMs, 45_000) });
+      if (resp) navStatus = resp.status();
     } catch (e) {
       // A navigation timeout does not mean an empty page — the document usually
       // painted long before the last request settled. Continue if we have content;
@@ -147,6 +162,43 @@ async function understandWebsite({ url, workDir, timeoutMs = 60_000, sectionTarg
     // images decoded, layout settled — instead of sleeping a flat 1200ms and
     // shooting whatever happened to be painted.
     await waitForStable(page, { timeoutMs: 8000 });
+
+    // The corroboration half of the status check above. Measured on the Apache 404 that job
+    // po0ltq31c4 ingested: 11 DOM nodes, 0 images, 0 svgs, 114 characters of text reading
+    // "The requested URL was not found on this server." A real homepage does not look like
+    // that, whatever it answers on the wire.
+    try {
+      const shape = await page.evaluate(() => ({
+        nodes: document.querySelectorAll("*").length,
+        imgs: document.querySelectorAll("img,svg,picture,video").length,
+        text: ((document.body && document.body.innerText) || "").replace(/\s+/g, " ").trim(),
+      }));
+      // CONTENTLESS IS THE TEST, NOT THE WORDING. The first version of this also required the
+      // page to SAY "not found"/"error", and brandfetch.com promptly proved why that is wrong:
+      // within the same hour it served an Apache 404 and a Cloudflare "Just a moment..."
+      // challenge (HTTP 403, 44 nodes, 0 images). Both are equally useless to a film and only
+      // one admits it — and a non-English error page admits it in words this would not match.
+      // A real homepage that answers non-2xx still has a homepage's worth of DOM and pictures,
+      // so shape alone separates them.
+      const looksLikeError = shape.nodes < 60 && shape.imgs === 0 && shape.text.length < 600;
+      const badStatus = navStatus != null && (navStatus < 200 || navStatus >= 400);
+      if (badStatus && looksLikeError) {
+        // Hard stop. Everything downstream — captures, harvest, brand extraction — would be
+        // reading the error page, and the film that results is worse than no film because it
+        // looks finished. The caller degrades to prompt-only and tells the user which URL died.
+        const err = new Error(`the site returned HTTP ${navStatus} and served an error page, not a website (${url})`);
+        err.code = "SITE_UNAVAILABLE";
+        err.status = navStatus;
+        throw err;
+      }
+      if (badStatus || looksLikeError) {
+        console.warn(`[ingest] ${url} looks doubtful (HTTP ${navStatus == null ? "?" : navStatus}, ${shape.nodes} nodes, ${shape.imgs} image(s)) — capturing anyway`);
+      }
+    } catch (e) {
+      if (e && e.code === "SITE_UNAVAILABLE") throw e;
+      /* shape probe is best-effort; never block a capture on it */
+    }
+
     // Give the consent platform a bounded chance to APPEAR before we dismiss it.
     // Consent scripts load async and are routinely absent at this point — dismissing
     // an empty page then shooting seconds later is how a banner got into a capture

@@ -21,7 +21,7 @@
 // exactly as the source does per frame — which is what makes those beats seek-exact.
 
 const S = require("./film_stage");
-const { X, V, F, rgba, clamp, clamp01, fitLines, fitPx, featureLines, pickStats, shortLabel } = S;
+const { X, V, F, rgba, clamp, clamp01, fitLines, fitPx, featureLines, pickStats, shortLabel, trackEm } = S;
 const { esc, r, bullets } = require("./composer_kit");
 
 const PAD = 72;                    // the source's safe margin (cfg.PAD)
@@ -48,7 +48,8 @@ const splitLines = (t) => String(t == null ? "" : t).split("|");
 // detail is most of why these titles read as designed rather than typed, so it is
 // preserved exactly (`i === 1 ? hi : fg`).
 function title(theme, skin, txt, { size, fg, hi, upper, from = 0, align = "left", maxLines = 4, ground }) {
-  const fit = fitLines(txt, { basePx: size, maxLines, colPx: COL, em: skin.em, upper });
+  // the skin tracks its display type; that tracking is part of the line width (see fitLines)
+  const fit = fitLines(txt, { basePx: size, maxLines, colPx: COL, em: skin.em, upper, track: trackEm(skin.titleSpace) });
   // A tight shadow in the GROUND colour: every pack paints a live world behind the copy and
   // the contrast machinery cannot see it, so the type carries its own separation. Invisible
   // on a clean field; restores the edge wherever a decoration drifts behind a glyph.
@@ -351,7 +352,16 @@ function bStats(scene, ctx, sceneAssets) {
   // not force a size. The row is `white-space:nowrap` with a bounded label column, so a long
   // number still cannot push the label out of the frame.
   const num = S.soloSize(L.num || 156, !!asset, { maxLines: 1, lineHeight: 0.9, capFrac: 0.17 });
-  const rows = (stats.length ? stats : [{ pre: "", target: 100, suf: "%", label: Str.metric }]).map((st, i) => {
+  // NEVER INVENT A NUMBER. This used to fall back to `{ target: 100, suf: "%", label: "Metric" }`
+  // when the scene carried no measurable figure — and it shipped: job o9q96ik3ra (tube-and-glow,
+  // linktr.ee) drew "100%" beside "Metric", counting up, on a beat whose authored copy was
+  // "DEEP ANALYTICS / Track clicks, traffic, and total sales". There is no 100% anywhere in that
+  // film. An empty container is a defect; a container filled with a fabricated statistic about a
+  // real company is a worse one, because it reads as fact.
+  //
+  // The routing in film_stage now sends a figureless scene to a text beat, so this is the
+  // belt-and-braces: with no stat, draw no stat. The headline and body still carry the beat.
+  const rows = stats.map((st, i) => {
     const c = cols[i % cols.length];
     return `<div data-in="rise" data-i="${i + 2}" style="display:flex;align-items:baseline;gap:${X(30)};${L.rule ? `border-bottom:${X(4)} solid ${c};padding-bottom:${X(24)};` : ""}">
       <div style="font-family:${theme.displayStack};font-size:${F(num)};line-height:0.9;color:${c};font-variant-numeric:tabular-nums;${L.glowNums ? `text-shadow:0 0 ${X(36)} ${rgba(c, 0.5)};` : ""}white-space:nowrap;"><span data-count="${st.target}" data-suffix="${esc(st.suf || "")}">${esc(st.pre)}${st.target}${esc(st.suf || "")}</span></div>

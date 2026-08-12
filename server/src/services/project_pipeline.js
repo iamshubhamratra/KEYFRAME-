@@ -135,7 +135,23 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
 
       const websiteTask = intent.websiteUrl
         ? understandWebsite({ url: intent.websiteUrl, workDir, timeoutMs: config.ingest?.websiteTimeoutMs || 60_000, sectionTarget: shotPlan.target })
-            .catch((e) => { console.warn(`[project] website ingest failed: ${e.message}`); return null; })
+            .catch((e) => {
+              console.warn(`[project] website ingest failed: ${e.message}`);
+              // A DEAD URL IS THE USER'S TO KNOW. Degrading to prompt-only is right — a film
+              // is better than an error — but silently is not: job po0ltq31c4 shipped a
+              // 30-second film built from an Apache 404 and told nobody the address was bad.
+              // Disclosed on the same surface as the auth-wall case below, which is already
+              // read back to the user.
+              if (e && e.code === "SITE_UNAVAILABLE") {
+                try {
+                  db.setScreenshotReview(jobId, {
+                    captured: 0, kept: 0, dropped: [], suppressed: ["site-unavailable"],
+                    notes: [`${intent.websiteUrl} returned HTTP ${e.status || "an error"} and served an error page, not a website — the film was made from the prompt alone. Check the address (a www. or a different domain often works).`],
+                  });
+                } catch { /* a disclosure never blocks intake */ }
+              }
+              return null;
+            })
         : Promise.resolve(null);
 
       const videoTask = job.upload_path

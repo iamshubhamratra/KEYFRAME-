@@ -157,12 +157,6 @@ function getPlan(job) {
 
 // Script-detection ranges (mirror translate.js) — used to measure how much on-screen text is
 // actually in the target script vs unexpected Latin.
-const SCRIPT_RANGES = {
-  devanagari: /[ऀ-ॿ]/,
-  arabic: /[؀-ۿݐ-ݿ]/,
-  japanese: /[぀-ヿ㐀-䶿一-鿿ｦ-ﾝ]/,
-};
-
 // Pure pack CHROME that is legitimately Latin even in a localized film (the studio mark, status
 // pills, counters). These are not the film's MESSAGE, so they don't count as leakage.
 const CHROME_LITERALS = new Set([
@@ -187,8 +181,36 @@ function visibleText(html) {
 
 // English words in the composed on-screen text that AREN'T allowed (brand/tech glossary, pure
 // chrome, short initials). For a localized film these are LEAKS worth disclosing.
-function scanLeakage(indexHtml, plan, scriptRe) {
+// Every script this check can tell apart from Latin at a glance: Greek, Cyrillic, Armenian,
+// Hebrew, Arabic, Devanagari, Bengali, Tamil, Thai, Kana, CJK, Hangul.
+const NON_LATIN_RE = /[Ͱ-ϿЀ-ӿ԰-֏֐-׿؀-ۿऀ-ॿঀ-৿஀-௿฀-๿぀-ヿ一-鿿가-힯]/g;
+
+// THIS CHECK ONLY WORKS WHEN THE TWO LANGUAGES USE DIFFERENT ALPHABETS.
+//
+// It finds "English" by looking for Latin characters — which is sound for Hindi or Japanese and
+// meaningless for French. Job po0ltq31c4 (deep, videoText=fr) is the demonstration: a correctly
+// localized French film was reported as "61 English word(s) remain ... e.g. Fini, chasse, aux,
+// cherchez" — four French words — in the same report that put localization coverage at 92%.
+// Every translated word matched [A-Za-z] and was counted as a leak.
+//
+// The score was worse. `targetChars` came from SCRIPT_RANGES, which holds only devanagari,
+// arabic and japanese, so for French the denominator was zero and the score pinned at 100% —
+// and `degraded` fires at 10. Russian had the same fault for the opposite reason: Cyrillic is
+// absent from that table, so a genuine leak scored against a zero denominator too.
+//
+// So the script is now read from the TEXT rather than from a font table that never listed every
+// alphabet. When the composed copy carries no non-Latin content there is nothing to compare
+// against: a French film and an un-localized English one look identical to a character class,
+// and the honest answer is that this instrument cannot tell. It stands down and says so —
+// localization COVERAGE (counted against the source strings, reported alongside) is the signal
+// that does work for those languages.
+function scanLeakage(indexHtml, plan) {
   const text = visibleText(indexHtml);
+  const targetChars = (text.match(NON_LATIN_RE) || []).length;
+  // A handful of stray glyphs is not a localized film; require enough to be the copy itself.
+  if (targetChars < 12) {
+    return { ok: true, applicable: false, count: 0, score: 0, samples: [], reason: "same-script target — Latin characters cannot distinguish the target language from the source" };
+  }
   const glossary = new Set((plan.glossary || []).map((g) => String(g).toLowerCase()));
   const words = text.match(/[A-Za-z][A-Za-z'’&.\-]{2,}/g) || [];
   const leaked = [];
@@ -199,11 +221,10 @@ function scanLeakage(indexHtml, plan, scriptRe) {
     leaked.push(w);
   }
   const uniq = [...new Set(leaked)];
-  const targetChars = scriptRe ? (text.match(new RegExp(scriptRe.source, "gu")) || []).length : 0;
   const leakChars = leaked.join("").length;
-  const denom = targetChars + leakChars;
+  const denom = targetChars + leakChars;   // targetChars is measured above, from the text itself
   const score = denom ? Math.round((leakChars / denom) * 100) : 0; // % of content that's unexpected Latin
-  return { ok: uniq.length === 0, count: uniq.length, score, samples: uniq.slice(0, 15) };
+  return { ok: uniq.length === 0, applicable: true, count: uniq.length, score, samples: uniq.slice(0, 15) };
 }
 
 // runLanguageQa({ plan, indexHtml, localization?, captionQuality? }) -> report | null.
@@ -212,24 +233,26 @@ function runLanguageQa({ plan, indexHtml, localization, captionQuality } = {}) {
   const vtl = plan && plan.videoTextLanguage;
   if (!vtl || vtl === SOURCE) return null;
   const meta = captionLang.langMeta(vtl);
-  const scriptRe = meta && meta.font ? SCRIPT_RANGES[meta.font] : null;
 
   // Font embedded? (only meaningful for a non-Latin script that needs an injected face.)
   const fontFamily = plan.font && plan.font.family;
   const fontLoaded = !fontFamily ? true : String(indexHtml || "").includes(fontFamily);
 
-  const leakage = scanLeakage(indexHtml, plan, scriptRe);
+  const leakage = scanLeakage(indexHtml, plan);
   const cov = localization && localization.localizationCoverage != null ? localization.localizationCoverage : null;
 
   const notes = [];
   if (!fontLoaded) notes.push(`The ${meta ? meta.name : vtl} font (${fontFamily}) is not embedded — on-screen text may render as blank boxes; regenerate to re-inject it.`);
-  if (leakage.count) notes.push(`${leakage.count} English word(s) remain in on-screen text (e.g. ${leakage.samples.slice(0, 5).join(", ")}) — some template labels/CTAs did not localize.`);
+  if (leakage.applicable && leakage.count) notes.push(`${leakage.count} English word(s) remain in on-screen text (e.g. ${leakage.samples.slice(0, 5).join(", ")}) — some template labels/CTAs did not localize.`);
   if (cov != null && cov < 100) notes.push(`On-screen localization coverage ${cov}% (${localization.translatedElements}/${localization.elementCount}) — some strings kept their source text (often protected brand terms).`);
   for (const n of (plan.consistency && plan.consistency.notes) || []) notes.push(n);
 
   // "degraded" = something a viewer would actually notice: missing font (tofu) or SIGNIFICANT
   // leakage. A couple of English CTA labels (low char ratio) are noted but not "degraded".
-  const degraded = !fontLoaded || leakage.score >= 10 || !!(plan.consistency && plan.consistency.synced === false);
+  // `leakage.score` is only a fact when the scan could run; an inapplicable check must never
+  // mark a correctly localized film degraded (it used to pin at 100% for every Latin-script
+  // target, because the denominator was zero).
+  const degraded = !fontLoaded || (leakage.applicable && leakage.score >= 10) || !!(plan.consistency && plan.consistency.synced === false);
 
   return {
     localized: true,

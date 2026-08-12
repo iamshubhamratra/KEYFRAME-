@@ -239,14 +239,26 @@ function featureLines(scene, n) {
 }
 
 const STAT_RE = /([$₹€£]?)\s?(\d[\d,]*(?:\.\d+)?)\s?(%|x|\+|k|m|bn?)?(?![A-Za-z])/i;
+// KEEP LOOKING. This committed to the FIRST field containing any digit and then gave up if
+// that field's number was not STAT_RE-shaped — so a scene reading
+//   emphasis "6h" · subtext "92% still use it after a year, rated 4.9 out of 5"
+// found nothing at all: "6h" holds a digit so it won the search, and STAT_RE rejects it
+// (`h` is not in the suffix set, and a digit followed by a letter is excluded), while the 92%
+// sitting in the very next field was never tried. bStats then filled the gap with a
+// hardcoded "100% / Metric" — which is how the shared pack-media fixture, whose stat scene
+// is exactly that shape, put an invented statistic on EVERY FilmKit pack's poster.
+// Try each candidate in priority order and take the first that actually parses.
 function pickNumber(scene) {
-  const src = [scene.emphasis, scene.subtext, scene.headline, ...(Array.isArray(scene.onScreenText) ? scene.onScreenText : [])]
-    .map((x) => String(x || "")).find((x) => /\d/.test(x)) || "";
-  const m = STAT_RE.exec(src);
-  if (!m) return null;
-  const target = Math.round(parseFloat(m[2].replace(/,/g, "")));
-  if (!isFinite(target)) return null;
-  return { pre: m[1] || "", target: clamp(target, 0, 100000), suf: m[3] || "" };
+  const cands = [scene.emphasis, scene.subtext, scene.headline, ...(Array.isArray(scene.onScreenText) ? scene.onScreenText : [])]
+    .map((x) => String(x || "")).filter((x) => /\d/.test(x));
+  for (const src of cands) {
+    const m = STAT_RE.exec(src);
+    if (!m) continue;
+    const target = Math.round(parseFloat(m[2].replace(/,/g, "")));
+    if (!isFinite(target)) continue;
+    return { pre: m[1] || "", target: clamp(target, 0, 100000), suf: m[3] || "" };
+  }
+  return null;
 }
 // Shorten to a WORD boundary, and say so when something was dropped — a bare slice cuts
 // mid-word and reads as a rendering fault rather than an abbreviation.
@@ -284,11 +296,25 @@ function pickStats(scene, max, S) {
 // would either clip one or leave the other timid. Animations key off ELEMENT COUNTS,
 // never off text length, so dynamic copy cannot break the motion.
 const WIDE_SCRIPT = /[ऀ-ॿ؀-ۿ　-ヿ一-鿿가-힯]/;
-function fitLines(text, { basePx, maxLines, colPx, em, upper }) {
+// LETTER-SPACING IS PART OF THE WIDTH. `em` is the face's average glyph advance, but a skin
+// also tracks its display type (`titleSpace`, 0 to 0.05em across the 89 FilmKit skins) and that
+// tracking is added to EVERY character. Leaving it out of the model understates the line by
+// exactly the tracking ratio, so the size this function returns as "what the column holds" does
+// not hold it. Measured on job o9q96ik3ra (tube-and-glow, Monoton at em 0.78 + titleSpace
+// 0.05em): the headline "CREATORS" needed 658px in a 624px column — 5.4% over, almost exactly
+// the 6.4% the tracking adds — and the stylesheet's overflow-wrap:anywhere safety net did what
+// it is there for and broke the word, leaving an orphaned "S" on its own line.
+//
+// The net is not the bug; being handed a size that cannot fit is. Callers pass `track` in em.
+const trackEm = (v) => { const m = /^\s*(-?\.?\d*\.?\d+)\s*em\s*$/.exec(String(v == null ? "" : v)); return m ? Number(m[1]) : 0; };
+function fitLines(text, { basePx, maxLines, colPx, em, upper, track = 0 }) {
   const src = upper ? String(text || "").toUpperCase() : String(text || "");
   const forced = forcedLines(src);
   const col = colPx * 0.97;
-  const per = WIDE_SCRIPT.test(src) ? Math.max(em, 1.05) : em;
+  // Tracking widens every glyph, so it belongs in the per-character advance. Clamped at zero
+  // from below: negative tracking tightens the line, and modelling that would let the fitter
+  // choose a LARGER size on the strength of kerning it cannot verify.
+  const per = (WIDE_SCRIPT.test(src) ? Math.max(em, 1.05) : em) + Math.max(0, Number(track) || 0);
   const advance = (s) => { let a = 0; for (const ch of String(s)) a += ch === " " ? per * 0.4 : per; return a || 1; };
   let lines;
   if (forced) {
@@ -855,6 +881,16 @@ function build(skin, { storyboard, dims, framePack, captionCues, assets, brandSk
       arch = "feature";          // an empty wall is worse than one wireframe product moment
     }
 
+    // A COUNTER NEEDS SOMETHING TO COUNT. The stats beat is the pack's proof moment, and it was
+    // reached on narrative role alone — so a "proof" scene whose copy carries no figure still got
+    // the counter treatment, and the beat filled it with an invented one. Same shape as the empty
+    // montage above: when the ingredient is missing, change the presentation rather than
+    // manufacture the ingredient. `pickStats` is the same reader the beat itself uses, so the two
+    // cannot disagree about whether this scene has a number.
+    if (!m && arch === "stats" && !pickStats(scene, 3, Str).length) {
+      arch = sceneAssets.length ? "feature" : "statement";
+    }
+
     const ground = groundOf(i);
     grounds.push(ground);
     // Does the animated world show on THIS beat? The resolved look answers it — an interaction
@@ -1144,7 +1180,7 @@ module.exports = {
   build, BASE_STRINGS, PRESETS,
   X, V, F, RW, RH, clamp, clamp01, rgba, hexToRgb, relLum, ratio, reHue, hueOf,
   seedFrom, mulberry32, buildTheme,
-  wordsOf, forcedLines, featureLines, pickNumber, pickStats, shortLabel, fitLines, fitPx, soloSize,
+  wordsOf, forcedLines, featureLines, pickNumber, pickStats, shortLabel, fitLines, fitPx, soloSize, trackEm,
   shotOk, shotReserveOk, logoAssetOf, ratioOf, deviceFor, addressFrom, scrollPlan,
   fitFor, cropFocus, plate, wirePlate, backingPlate, frameHtml,
   archetypeFor, CAN_SHOW, SHOT_CAPACITY, capacityOf, MECHANIC_FOR, MECHANIC_NEEDS_NO_SHOT,
