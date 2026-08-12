@@ -138,6 +138,17 @@ function hud(ctx, label, over) {
       <div style="position:absolute;${v}:0;${h}:0;width:${r(thick)}cqw;height:${r(arm)}cqw;background:${c};"></div>
     </div>`;
   const strip = new Array(8).fill(`${ctx.brand}  ◆  ${ctx.url}`).join("     ◆     ");
+  // NO PROGRESS RULE. The reference's RailHUD computes a playhead fraction and then deliberately
+  // draws no rule with it — the rail IS the HUD's corner reticles and ticker. This chrome used to
+  // append one anyway, as a track with an accent fill baked at `transform:scaleX(0)`; because the
+  // pack supplies its own chrome, om_port_kit gates `chromeTweens` off (see its `!built.wrapped &&
+  // built.chrome == null` condition), so NOTHING ever drove that fill. The result was an invisible
+  // accent bar rendered into every frame of every momentum film — simultaneously invented
+  // furniture the reference declines, dead markup, and a baked `transform` hidden state, which the
+  // family's own rule forbids (only `opacity:0` may hide an element in CSS).
+  //
+  // test:dead-tweens could not see it: it catches a tween whose element is missing, and this is the
+  // mirror image — an element with no tween.
   return `<div class="om-chrome">
     <div style="position:absolute;inset:${r(U(54))}cqw;">${corner("top", "left")}${corner("top", "right")}${corner("bottom", "left")}${corner("bottom", "right")}</div>
     <div style="position:absolute;top:${r(U(24))}cqw;left:0;right:0;height:${r(U(22))}cqw;overflow:hidden;display:flex;align-items:center;">
@@ -148,9 +159,6 @@ function hud(ctx, label, over) {
     </div>
     <div style="position:absolute;left:${r(M)}cqw;bottom:${r(U(90))}cqw;font-family:${th.monoStack};font-size:${r(U(14))}cqw;letter-spacing:0.2em;color:${rgba(th.ink, 0.6)};white-space:nowrap;">${esc(ctx.brand)}</div>
     <div style="position:absolute;right:${r(M)}cqw;bottom:${r(U(90))}cqw;font-family:${th.monoStack};font-size:${r(U(14))}cqw;letter-spacing:0.2em;color:${rgba(th.ink, 0.6)};white-space:nowrap;">${esc(ctx.brand)} <span style="color:${th.accent};">▸</span> ${esc(ctx.S.runtime)}</div>
-    <div style="position:absolute;left:${r(M)}cqw;right:${r(M)}cqw;bottom:${r(U(72))}cqw;height:${r(U(2))}cqw;background:${rgba(th.ink, 0.12)};overflow:hidden;">
-      <div class="${id}-prog" style="width:100%;height:100%;background:${th.accent};transform:scaleX(0);transform-origin:left center;"></div>
-    </div>
   </div>`;
 }
 const hudTweens = (id, ctx) => [

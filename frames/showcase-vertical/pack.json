@@ -77,12 +77,16 @@
       "clean"
     ],
     "musicKeywords": [
+      "clean",
+      "soft",
       "bright corporate",
       "optimistic tech",
       "light electronic groove",
       "product demo underscore",
       "clean modern pop",
-      "friendly startup"
+      "friendly startup",
+      "uplifting",
+      "dynamic"
     ],
     "sfxPalette": {
       "transition": "light-sweep",
@@ -95,7 +99,8 @@
       "energyBoost": 1,
       "sfxDensity": "normal",
       "ambient": false
-    }
+    },
+    "archetype": "corporate"
   },
   "media": {
     "requiredAssets": {

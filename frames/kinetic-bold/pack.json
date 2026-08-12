@@ -1,6 +1,7 @@
 {
   "name": "kinetic-bold",
   "renderer": "kinetic-bold",
+  "orientation": "landscape",
   "vibe": "A kinetic-typography poster system for Pulse, a marketing-analytics app. Type IS the visual: enormous Anton words fill the frame, scenes hard-cut between near-black and off-white grounds, and each scene carries exactly one electric accent. ",
   "colors": {
     "ink": "#0B0B0B",

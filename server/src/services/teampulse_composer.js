@@ -206,9 +206,6 @@ function chrome(ctx, ink) {
       <span style="font-family:${th.displayStack};font-size:${r(U(42))}cqw;color:${c};white-space:nowrap;">${esc(ctx.brand)}</span>
       <span style="margin-left:auto;font-family:${th.bodyStack};font-weight:800;font-size:${r(U(25))}cqw;color:${rgba(c, 0.72)};white-space:nowrap;">${esc(ctx.url)}</span>
     </div>
-    <div style="position:absolute;left:${r(U(46))}cqw;right:${r(U(46))}cqw;bottom:${r(U(30))}cqw;height:${r(U(6))}cqw;background:${rgba(c, 0.16)};overflow:hidden;border-radius:${r(U(6))}cqw;">
-      <div class="${id}-prog" style="width:100%;height:100%;background:${th.accent};transform:scaleX(0);transform-origin:left center;"></div>
-    </div>
   </div>`;
 }
 const chromeSpin = (id, ctx) =>

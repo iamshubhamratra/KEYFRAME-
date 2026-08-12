@@ -21,11 +21,28 @@ const PUBLIC_FRAMES = path.join(config.paths.root, "public", "frames");
 // (which had its own folded-`description:` handling). Only the human display
 // LABEL still comes from FRAME.md `name:` (the manifest holds the slug, not the
 // title). Falls back to FRAME.md parsing when a pack ships no manifest.
+const MINOR = new Set(["and", "of", "the", "a", "an", "to", "in", "on", "at", "for", "or", "vs"]);
+const titleize = (slug) => String(slug)
+  .split("-")
+  .map((w, i) => (i > 0 && MINOR.has(w) ? w : w.charAt(0).toUpperCase() + w.slice(1)))
+  .join(" ");
+
 function packMeta(name) {
   const md = frameRegistry.getFrameMd(name) || "";
   const fm = (md.match(/^---\r?\n([\s\S]*?)\r?\n---/) || [])[1] || md;
-  let label = (fm.match(/^name:\s*"?(.+?)"?\s*$/m) || [])[1] || name;
+  // `label:` FIRST, then `name:`. The older packs put their human title in `name:`
+  // ("BlockFrame — Frame (video / frame layer)"), but the generated packs use `name:` for the
+  // SLUG and carry the title in `label:` — so reading `name:` alone titled 89 of 135 cards
+  // "aerial-silk", "loom-and-weft", "vault-twelve". The picker is the shop window; a card
+  // labelled with a URL fragment reads like an internal build artefact.
+  let label = (fm.match(/^label:\s*"?(.+?)"?\s*$/m) || [])[1]
+    || (fm.match(/^name:\s*"?(.+?)"?\s*$/m) || [])[1]
+    || name;
   label = label.replace(/\s*[—-]\s*Frame.*$/i, "").trim(); // drop "— Frame (video…)"
+  // Last resort: a pack whose only title IS its slug (`name: grid-dispatch`, or no front matter
+  // at all) still deserves a readable card. Small joining words stay lowercase so the
+  // "<noun> and <noun>" pack names read as English rather than as a header.
+  if (label === name) label = titleize(name);
 
   const m = frameManifest.getManifest(name);
   if (m) {
@@ -34,6 +51,11 @@ function packMeta(name) {
     return {
       label,
       vibe,
+      // The picker groups and labels cards by these. They come from the manifest so a pack
+      // that ships no hand-authored front-end "lore" entry still renders a correct card —
+      // with 116 packs installed, hand-maintaining a second table per pack is not viable.
+      category: m.category || "",
+      tags: Array.isArray(m.tags) ? m.tags.slice(0, 8) : [],
       // Orientation drives the gallery's aspect CATEGORY (9:16 / 16:9 / 1:1). Portrait-native
       // packs (the imported OM templates) declare "portrait"; default is horizontal.
       orientation: m.orientation || "horizontal",

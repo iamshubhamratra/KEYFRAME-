@@ -17,9 +17,6 @@ const PACK_STYLE = {
   "kinetic-bold":      { photoMod: "bold minimal high energy",        iconStyle: "solid",   keywords: ["bold", "minimal", "energetic"] },
   "mono-corporate":    { photoMod: "clean minimal professional office",iconStyle: "line",   keywords: ["clean", "professional", "corporate", "minimal"] },
   "bloom-illustrated": { photoMod: "soft illustrated pastel friendly",iconStyle: "soft",    keywords: ["illustrated", "soft", "pastel", "warm"] },
-  "longshot-cinema":   { photoMod: "cinematic film still moody",      iconStyle: "line",    keywords: ["cinematic", "film", "moody"] },
-  "summit-keynote":    { photoMod: "clean corporate keynote professional", iconStyle: "line", keywords: ["clean", "corporate", "professional"] },
-  "prism-launch":      { photoMod: "modern product studio iridescent",iconStyle: "duotone", keywords: ["modern", "studio", "vibrant"] },
   "fable-storybook":   { photoMod: "warm storybook watercolor illustrated", iconStyle: "soft", keywords: ["watercolor", "illustrated", "warm", "soft"] },
 };
 

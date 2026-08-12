@@ -75,12 +75,16 @@
       "storytelling"
     ],
     "musicKeywords": [
+      "gentle",
+      "calm",
       "gentle acoustic",
       "soft ukulele",
-      "storybook folk",
+      "gentle folk",
       "warm acoustic",
       "cheerful folk",
-      "bright acoustic"
+      "bright acoustic",
+      "bright",
+      "happy"
     ],
     "sfxPalette": {
       "transition": "card-slide",
@@ -93,7 +97,8 @@
       "energyBoost": 1,
       "sfxDensity": "rich",
       "ambient": false
-    }
+    },
+    "archetype": "warm"
   },
   "media": {
     "requiredAssets": {

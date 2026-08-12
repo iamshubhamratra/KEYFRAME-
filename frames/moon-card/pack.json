@@ -1,0 +1,174 @@
+{
+  "name": "moon-card",
+  "vibe": "Deep violet-night #1d1430 over near-black #140e22, lit by gold #d4af6a and a blush #e8b4c8. Italiana's high-contrast serif runs at 0.04em tracking above Sen, and titles only drowse up 34px — nothing here slams. The world never switches off: it runs behind every beat including Statement and CTA. Five gold moon phases arc across the top, eighteen stars breathe in and out of visibility, two gold-edged tarot cards rock at the lower corners on slow sines, and a bone candle burns at the right with a flame that flickers on two frequencies at once. Cards turn by squashing flat on their own axis and reappearing; the moon reads on a full twelve-tick dial; words crossfade rather than cut. Numbers carry a gold glow. Best where patience is the product.",
+  "orientation": "portrait",
+  "category": "Mystic",
+  "tags": [
+    "tarot",
+    "astrology",
+    "candlelit",
+    "gold",
+    "ritual",
+    "calm",
+    "serif",
+    "wellness"
+  ],
+  "renderer": "film-moon-card",
+  "colors": {
+    "violet": "#1d1430",
+    "gold": "#d4af6a",
+    "blush": "#e8b4c8",
+    "bone": "#f2ead9",
+    "ink": "#140e22",
+    "ground": "#1d1430",
+    "text": "#f2ead9",
+    "accent": "#d4af6a",
+    "paper": "#f2ead9"
+  },
+  "fonts": [
+    "Italiana",
+    "Sen"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#1d1430",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#d4af6a",
+      "#e8b4c8",
+      "#1d1430"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "candlelit low-key photograph of tarot cards, gold leaf and dark velvet, warm rim light and deep falloff",
+    "iconStyle": "solid",
+    "keywords": [
+      "tarot cards",
+      "crescent moon",
+      "candlelight",
+      "night sky stars",
+      "gold foil",
+      "velvet cloth",
+      "astrology chart",
+      "incense smoke"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "vector"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Italiana",
+    "body": "Sen"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "candlelit hush with gilded shimmer and a slow breath",
+    "archetype": "luxury",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "hushed",
+      "gilded",
+      "nocturnal",
+      "meditative"
+    ],
+    "musicKeywords": [
+      "nocturne strings",
+      "moonlit harp",
+      "candle ambient",
+      "mystic celeste",
+      "crystal chimes",
+      "tarot ritual",
+      "night oracle",
+      "harmonium drone",
+      "bowed strings",
+      "midnight waltz",
+      "choir swell",
+      "gothic organ"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

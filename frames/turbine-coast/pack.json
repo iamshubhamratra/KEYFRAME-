@@ -1,0 +1,173 @@
+{
+  "name": "turbine-coast",
+  "vibe": "Pale sky #dce8ea over a sea-green #2e6e63 horizon, with safety orange #e8641f reserved for whatever is live. Michroma's wide squared caps set every title uppercase at 0.03em tracking; Saira carries the data. The world is a working offshore array: three white towers at different scales, rotors turning at different speeds, orange nacelle hubs, white swells scrolling left in parallax, a gull riding a slow sine, and a WIND 14 KN readout in the top corner whose number actually changes. Nothing tilts — montage tiles sit at exactly zero degrees, chips are square, corners are 12–16px. Its own beats are a 2×2 of rotary dials whose needles sweep to position, a terminal typing the 06:00 check, and a split-flap live meter.",
+  "orientation": "portrait",
+  "category": "Energy",
+  "tags": [
+    "light",
+    "technical",
+    "offshore",
+    "wind",
+    "sea-green",
+    "safety-orange",
+    "dashboard",
+    "uppercase"
+  ],
+  "renderer": "film-turbine-coast",
+  "colors": {
+    "sky": "#dce8ea",
+    "white": "#fafcfc",
+    "seagreen": "#2e6e63",
+    "signal": "#e8641f",
+    "ink": "#22343c",
+    "ground": "#dce8ea",
+    "text": "#22343c",
+    "accent": "#e8641f",
+    "paper": "#fafcfc"
+  },
+  "fonts": [
+    "Michroma",
+    "Saira"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#dce8ea",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#e8641f",
+      "#2e6e63",
+      "#dce8ea"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "crisp overcast documentary photography of offshore wind turbines and service vessels — pale sea-grey light, wet steel, high-visibility orange details",
+    "iconStyle": "line",
+    "keywords": [
+      "wind turbine",
+      "offshore array",
+      "service vessel",
+      "control room",
+      "technician",
+      "turbine blade",
+      "coastline",
+      "grid meter"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo",
+      "vector"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Michroma",
+    "body": "Saira"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "clean coastal engineering; competent, awake, unsentimental",
+    "archetype": "tech",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "clean electronic",
+      "documentary underscore",
+      "motorik pulse"
+    ],
+    "musicKeywords": [
+      "offshore ambient",
+      "turbine hum",
+      "sea breeze",
+      "horizon pad",
+      "control room",
+      "coastal synth",
+      "tidal arpeggio",
+      "rotor rhythm",
+      "harbour tech",
+      "array techno",
+      "gale drive",
+      "generator drums"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "ui-click",
+      "reveal": "gentle-impact",
+      "data": "data-ping",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

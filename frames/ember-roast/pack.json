@@ -1,0 +1,174 @@
+{
+  "name": "ember-roast",
+  "vibe": "A roastery rendered in cocoa brown (#2b1d16) and cream, lit by one burnt-orange ember (#e0662c) with gold as the second voice. Alfa Slab One slams fat slab headlines over a live backdrop: three cream steam curls climb the frame and dissolve as they rise, a gold ring in the lower corner spins eight ember spokes like a cooling tray, and gold beans tumble down end over end. Statement beats kill the world and drop to near-black with gold type; the closing card floods full ember with an ink pill button. The camera pushes and drops on a light 7-8px drift — busy, never frantic. Its mechanics are a roast-curve gauge, a chalkboard price scroll, a switch toggle and a soft cross-fade. Best for roasters, bakeries and distillers — anything sold on smell and heat.",
+  "orientation": "portrait",
+  "category": "Food & Drink",
+  "tags": [
+    "coffee",
+    "roastery",
+    "warm",
+    "small-batch",
+    "slab-serif",
+    "hospitality",
+    "artisan-food",
+    "retail"
+  ],
+  "renderer": "film-ember-roast",
+  "colors": {
+    "roast": "#2b1d16",
+    "cream": "#f3e9dc",
+    "ember": "#e0662c",
+    "gold": "#caa465",
+    "ink": "#1c110c",
+    "ground": "#2b1d16",
+    "text": "#f3e9dc",
+    "accent": "#e0662c",
+    "paper": "#f3e9dc"
+  },
+  "fonts": [
+    "Alfa Slab One",
+    "Karla"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#2b1d16",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#e0662c",
+      "#caa465",
+      "#f3e9dc"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "warm tungsten-lit documentary photography of a working roastery — drum doors open, steam in the air, hands in green beans, deep brown shadows with orange spill",
+    "iconStyle": "line",
+    "keywords": [
+      "coffee roasting drum",
+      "green coffee beans",
+      "espresso pour",
+      "cafe counter",
+      "burlap coffee sack",
+      "cupping spoons",
+      "roastery interior",
+      "pour-over steam"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Alfa Slab One",
+    "body": "Karla"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "warm, unhurried craft — a shop that opens before the city does",
+    "archetype": "warm",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "brushed drums",
+      "upright bass",
+      "tape warmth",
+      "unhurried swing"
+    ],
+    "musicKeywords": [
+      "jazz trio",
+      "lounge ballad",
+      "morning stroll",
+      "vintage soul",
+      "cafe bossa",
+      "loose shuffle",
+      "walking blues",
+      "hammond organ",
+      "soul revue",
+      "greasy funk",
+      "horn section",
+      "hard bop"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

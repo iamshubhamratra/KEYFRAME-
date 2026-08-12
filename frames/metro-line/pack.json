@@ -1,0 +1,174 @@
+{
+  "name": "metro-line",
+  "vibe": "A transit diagram that actually runs. Off-white #f4f4f0 map paper carries four service colours — red #d9363e, blue #2f6db5, green #3f9b57, yellow #e8b820 — as 16px rounded polylines with 45° corners and white interchange dots ringed in ink. A red train, two white windows and all, crawls its route on a six-second loop while a rule at the foot extends and resets. Barlow Condensed sets everything in caps at sign weight. The camera glides on the axes only — no rotation, no skew — so the frame pans like a map under glass. Its signature is the split-flap Morph, letters clattering over, beside a scrolling departures board, drop-in alerts and a bar gauge. Dark ink panels hold screenshots; the last beat floods red. Best for transit, logistics, delivery and city services.",
+  "orientation": "portrait",
+  "category": "Transit",
+  "tags": [
+    "transit",
+    "wayfinding",
+    "schedule",
+    "logistics",
+    "condensed type",
+    "split-flap",
+    "civic",
+    "dashboard"
+  ],
+  "renderer": "film-metro-line",
+  "colors": {
+    "paper": "#f4f4f0",
+    "red": "#d9363e",
+    "blue": "#2f6db5",
+    "green": "#3f9b57",
+    "yellow": "#e8b820",
+    "ink": "#1d1d1b",
+    "ground": "#f4f4f0",
+    "text": "#1d1d1b",
+    "accent": "#d9363e"
+  },
+  "fonts": [
+    "Barlow Condensed",
+    "Barlow"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#f4f4f0",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#d9363e",
+      "#e8b820",
+      "#2f6db5"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "high-contrast documentary photograph of an underground platform, tiled walls and enamel signage, a motion-blurred train, cool daylight falling from the vent shafts",
+    "iconStyle": "line",
+    "keywords": [
+      "subway map",
+      "train platform",
+      "departure board",
+      "tunnel tracks",
+      "station signage",
+      "turnstile gates",
+      "tram carriage",
+      "commuter crowd"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo",
+      "vector"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Barlow Condensed",
+    "body": "Barlow"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "Commuter motorik — a steady eight-note pulse that leaves on time and never misses a stop",
+    "archetype": "groove",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "motorik drums",
+      "bass pulse",
+      "tape organ",
+      "mechanical percussion"
+    ],
+    "musicKeywords": [
+      "ambient organ",
+      "tape delay",
+      "minimal synth",
+      "octave bass",
+      "analog sequencer",
+      "clockwork rhythm",
+      "drum machine",
+      "steady kick",
+      "krautrock groove",
+      "new wave",
+      "post punk",
+      "minimal techno"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "ui-click",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

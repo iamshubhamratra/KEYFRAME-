@@ -629,43 +629,51 @@ function columnsFor(th, tone) {
 function chromeFor(ctx, th, total, inkColor) {
   const ink = inkColor || th.ink;
   const soft = inkColor ? rgba(inkColor, 0.6) : th.muted;
+// NO PLAYBACK CHROME. Four things left this masthead, all of them describing the viewer's
+// position in the film rather than the product: the `gd-prog` accent rail, the running head's
+// scene counter ("SCENE 03 / 07"), its mm:ss timecode, and the marker row's fill-to-current
+// behaviour (see `markerRow`).
+//
+// These were faithful to the reference render, and that is the point worth recording: the
+// reference was a DESIGN MOCK of a dispatch sheet, where a scene counter and a timecode are
+// set dressing that makes the sheet look real. Rendered into an actual film they stop being
+// set dressing and become true readouts of playback position — the same information a player's
+// scrubber gives, in a nicer typeface. The dispatch-sheet look survives intact without them:
+// the rules, the six-column grid, the wordmark, the diamond and the spec block all remain.
   return `<div class="gd-chrome ${ctx.id}-chrome">
     <div class="gd-rule-top" style="background:${ink};"></div>
-    <div class="${ctx.id}-prog gd-prog" style="background:${th.accent};"></div>
     <div class="gd-rule-bot" style="background:${ink};"></div>
     <div class="gd-word" style="color:${ink};">
       <span class="${ctx.id}-dia gd-dia" style="background:${th.accent};"></span>
       <span>${esc(ctx.brand)}</span>
     </div>
-    <div class="gd-head" style="color:${soft};">${esc(STRINGS.scene)} ${pad2(ctx.i + 1)} / ${pad2(total)}&nbsp;&nbsp;&nbsp;${esc(timecode(ctx.T))}</div>
   </div>`;
 }
-// The chrome's own two continuous animations, quoted from the reference's global clock.
+// The diamond's slow rotation and the sheet's drift stay — neither resolves to an end state, so
+// neither tells you where you are. The progress fill that led this list is gone.
 function chromeTweens(ctx, D) {
   const { id, T, L } = ctx;
   const p0 = D > 0 ? T / D : 0, p1 = D > 0 ? Math.min(1, (T + L) / D) : 0;
   return [
-    `tl.fromTo(".${id}-prog",{scaleX:${r(p0)}},{scaleX:${r(p1)},duration:${r(L)},ease:"none",transformOrigin:"left center"},${r(T)});`,
     `tl.fromTo(".${id}-dia",{rotation:${r(45 + T * 12)}},{rotation:${r(45 + (T + L) * 12)},duration:${r(L)},ease:"none"},${r(T)});`,
     `tl.fromTo(".${id}-drift",{scale:${r(1 + 0.012 * p0)}},{scale:${r(1 + 0.012 * p1)},duration:${r(L)},ease:"none",transformOrigin:"50% 50%"},${r(T)});`,
   ];
 }
 
 // ---- reference furniture -----------------------------------------------------
-// A dispatch sheet states its own position on the reel. mm:ss of the scene's true start.
-function timecode(t) {
-  const s = Math.max(0, Math.round(Number(t) || 0));
-  return `${pad2(Math.floor(s / 60))}:${pad2(s % 60)}`;
-}
-// The row of registration marks: one square per scene, filled up to the current one, so the
-// row doubles as a position indicator. Belongs to the SHEET, so it renders whether or not the
-// scene received an asset.
+// The row of registration marks. It used to fill up to the current scene — `k <= at ? accent :
+// dim` — which made it a chapter strip: count the accent squares and you know how far through
+// the film you are. THE MARKS THEMSELVES ARE NOT THE PROBLEM. Registration marks are real print
+// furniture and the sheet looks wrong without them, so rather than delete the row, the row no
+// longer encodes POSITION: every mark carries the same weight, the way marks on an actual press
+// sheet do. `at` is kept in the signature because callers pass it positionally and it reads as
+// the scene index at each call site; nothing consumes it now.
 function markerRow(id, th, total, at, x, y, size) {
   const n = Math.min(8, Math.max(2, total));
   const sz = size || U(26), gap = U(12);
   return `<div style="position:absolute;left:${r(x)}cqw;top:${r(y)}cqw;display:flex;gap:${r(gap)}cqw;">${
-    Array.from({ length: n }).map((_, k) =>
-      `<span class="${id}-mk" style="width:${r(sz)}cqw;height:${r(sz)}cqw;display:inline-block;flex:0 0 auto;background:${k <= at ? th.accent : rgba(th.ink, 0.25)};"></span>`).join("")}</div>`;
+    Array.from({ length: n }).map(() =>
+      `<span class="${id}-mk" style="width:${r(sz)}cqw;height:${r(sz)}cqw;display:inline-block;flex:0 0 auto;background:${rgba(th.ink, 0.25)};"></span>`).join("")}</div>`;
 }
 // A section label flanked by rules that draw outward from it — the reference's way of
 // captioning a band without a heading.
@@ -732,12 +740,10 @@ function sHook(scene, ctx, sceneAssets) {
   const hookBox = panelBox(asset, GW, panelH, { chromeH: U(46), fill: true });
   const tickY = panelY + hookBox.h + U(40);
   const sectY = tickY + U(54), ruleY = sectY + U(50), specY = ruleY + U(46);
-  const spec = [
-    [ctx.S.format, `${W}×${H}`],
-    [ctx.S.scenes, pad2(ctx.total)],
-    [ctx.S.runtime, ctx.runtime],
-  ];
-  const kicker = `${ctx.S.scene} ${pad2(ctx.i + 1)} / ${pad2(ctx.total)}`;
+  // The kicker names the beat's ROLE, the way every other scene in this pack already does
+  // (INDEX, FIGURE, RECORD, DETAIL, COMPARE). It used to read "SCENE 01 / 07" — a position
+  // counter, and the only scene here that announced one.
+  const kicker = ctx.S.hero;
 
   const html = open(ctx, `
     <div class="${id}-field" style="position:absolute;left:${M}cqw;top:${r(fieldY)}cqw;width:${GW}cqw;height:${r(fieldH)}cqw;background:${th.accent};transform:scaleX(0);transform-origin:left center;"></div>
@@ -753,12 +759,12 @@ function sHook(scene, ctx, sceneAssets) {
     ${fixedPanel(id, th, { asset, x: M, y: panelY, w: hookBox.w, h: hookBox.h, slot: 1, note: ctx.S.hero })}
 
     ${markerRow(id, th, ctx.total, ctx.i, M, tickY, U(26))}
-    ${sectionLabel(id, th, `${pad2(ctx.total)} ${ctx.S.scenes} · ${ctx.runtime}`, M, sectY, GW)}
-    <div class="${id}-hr" style="position:absolute;left:${M}cqw;top:${r(ruleY)}cqw;width:${GW}cqw;height:${RULE}cqw;background:${th.ink};transform:scaleX(0);transform-origin:left center;"></div>
-    ${spec.map(([lab, val], j) => `<div class="${id}-sp" style="position:absolute;left:${cx(j * 2)}cqw;top:${r(specY)}cqw;width:${r(COL * 2 - U(30))}cqw;opacity:0;">
-      <div style="font-family:${th.monoStack};font-weight:600;font-size:${r(U(18))}cqw;letter-spacing:0.22em;color:${th.accent};">${esc(lab)}</div>
-      <div style="margin-top:${r(U(14))}cqw;font-family:${th.displayStack};font-weight:700;font-size:${r(U(26))}cqw;letter-spacing:-0.01em;color:${th.ink};">${esc(val)}</div>
-    </div>`).join("")}`);
+    <div class="${id}-hr" style="position:absolute;left:${M}cqw;top:${r(ruleY)}cqw;width:${GW}cqw;height:${RULE}cqw;background:${th.ink};transform:scaleX(0);transform-origin:left center;"></div>`);
+  // GONE FROM THIS BEAT: the section label "07 SCENES · 0:08" and the three-column spec block
+  // reading FORMAT 1080x1920 / SCENES 07 / RUNTIME 0:08. Both stated the RENDER's properties —
+  // its dimensions, its scene count, its duration — which is production metadata, not anything
+  // the film is advertising. Their reveal tweens went with them rather than being left to
+  // animate nothing (scripts/test-dead-tweens.js would have caught that, correctly).
 
   const s = [
     `tl.set("#${id}",{opacity:1},${r(ctx.T)});`,
@@ -774,9 +780,7 @@ function sHook(scene, ctx, sceneAssets) {
     asset ? `tl.fromTo(".${id}-panel",{clipPath:"inset(0% 100% 0% 0%)"},{clipPath:"inset(0% 0% 0% 0%)",duration:${du(0.5)},ease:"${DRAW}"},${at(0.3)});` : "",
     asset ? `tl.fromTo(".${id}-zoom",{scale:1},{scale:1.07,duration:${r(Math.max(1.2, ctx.L - 0.8 * k))},ease:"${DRAW}",transformOrigin:"50% 50%"},${at(0.8)});` : "",
     `tl.fromTo(".${id}-mk",{scale:0},{scale:1,duration:${du(0.4)},ease:"${POP}",stagger:${du(0.06)}},${at(1.7)});`,
-    `tl.fromTo(".${id}-sect",{opacity:0},{opacity:1,duration:${du(0.4)},ease:"none"},${at(2.1)});`,
     `tl.fromTo(".${id}-hr",{scaleX:0},{scaleX:1,duration:${du(0.5)},ease:"${DRAW}",transformOrigin:"left center"},${at(2.2)});`,
-    `tl.fromTo(".${id}-sp",{opacity:0,y:"2.2cqw"},{opacity:1,y:0,duration:${du(0.5)},ease:"${ENTER}",stagger:${du(0.1)}},${at(2.4)});`,
     ...camera(id, k, ctx.T, { s: 1.085, x: 540, y: 1060, i0: 2.5, i1: 2.9, o0: 3.9, o1: 4.5 }, ctx.L),
   ];
   return { html, s, carry: { kind: "field", y: fieldY, h: fieldH } };
@@ -907,7 +911,7 @@ function sSolution(scene, ctx, sceneAssets) {
   const urlSize = fitOne(url, GW - U(300), U(40));
 
   const html = open(ctx, `
-    <div class="${id}-kick gd-kicker" style="position:absolute;left:${M}cqw;top:${r(U(192))}cqw;color:${th.accent};opacity:0;">${esc(ctx.S.scene)} ${pad2(ctx.i + 1)}</div>
+    <div class="${id}-kick gd-kicker" style="position:absolute;left:${M}cqw;top:${r(U(192))}cqw;color:${th.accent};opacity:0;">${esc(ctx.S.screen)}</div>
     ${url ? `<div class="${id}-input" style="position:absolute;left:${M}cqw;top:${r(fieldY)}cqw;width:${GW}cqw;height:${r(fieldH)}cqw;border:${RULE}cqw solid ${th.ink};display:flex;align-items:center;transform:scaleX(0);transform-origin:left center;">
       <div style="flex:1;padding:0 ${r(U(26))}cqw;font-family:${th.displayStack};font-weight:600;font-size:${r(urlSize)}cqw;letter-spacing:-0.01em;color:${th.ink};white-space:nowrap;overflow:hidden;">
         <span class="${id}-typed" style="clip-path:inset(0 100% 0 0);display:inline-block;">${esc(url)}</span><span class="${id}-caret" style="color:${th.accent};">▌</span>
@@ -919,7 +923,7 @@ function sSolution(scene, ctx, sceneAssets) {
     ${fixedPanel(id, th, { asset: shots[0] || null, x: M, y: panelY, w: mainBox.w, h: mainBox.h, slot: 1, note: ctx.S.hero, label: ctx.S.hero })}
 
     <div class="${id}-hr" style="position:absolute;left:${M}cqw;top:${r(ruleY)}cqw;width:${GW}cqw;height:${RULE}cqw;background:${th.ink};transform:scaleX(0);transform-origin:left center;"></div>
-    ${sectionLabel(id, th, head ? String(head).toUpperCase().slice(0, 46) : `${pad2(ctx.total)} ${ctx.S.scenes}`, M, ruleY + U(24), GW)}
+    ${sectionLabel(id, th, String(head || ctx.brand || "").toUpperCase().slice(0, 46), M, ruleY + U(24), GW)}
 
     ${shots[1] ? `<div class="${id}-dev" style="position:absolute;left:${M}cqw;top:${r(deckY)}cqw;width:${r(devW)}cqw;height:${r(devH)}cqw;border:${r(U(3))}cqw solid ${th.ink};background:${th.paper};opacity:0;">
       <div style="position:absolute;left:50%;top:${r(U(12))}cqw;width:${r(U(120))}cqw;height:${r(U(8))}cqw;background:${th.ink};transform:translateX(-50%);"></div>
@@ -1327,7 +1331,10 @@ function sCall(scene, ctx, logo) {
     </div>` : ""}
 
     ${url ? `<div class="${id}-url" style="position:absolute;left:${M}cqw;top:${r(U(1370))}cqw;font-family:${th.displayStack};font-weight:800;font-size:${r(fitOne(url, SAFE_GW, U(58)))}cqw;letter-spacing:-0.02em;color:${fg};opacity:0;">${esc(url)}</div>` : ""}
-    <div class="${id}-foot gd-kicker" style="position:absolute;left:${M}cqw;top:${r(U(1460))}cqw;width:${GW}cqw;color:${rgba(fg, 0.75)};opacity:0;font-size:${r(U(20))}cqw;">${esc(ctx.S.runtime)} ${esc(ctx.runtime)} · ${pad2(ctx.total)} ${esc(ctx.S.scenes)}</div>
+    <!-- The closing frame used to sign off with "RUNTIME 0:08 · 07 SCENES". The URL directly
+         above it is the actual call to action; the runtime and scene count are facts about the
+         file, and stamping them on the last frame of an advertisement is the clearest possible
+         statement that what you are watching is a render. Element and reveal tween both removed. -->
 
     ${[0, 1, 2, 3, 4, 5].map((j) => `<div class="${id}-tk" style="position:absolute;left:${r(cx(j) + U(4))}cqw;top:${r(U(1560))}cqw;width:${r(U(30))}cqw;height:${r(U(30))}cqw;background:${fg};"></div>`).join("")}
     <div class="${id}-bsq" style="position:absolute;right:${M}cqw;top:${r(U(1548))}cqw;width:${r(U(120))}cqw;height:${r(U(120))}cqw;border:${r(U(4))}cqw solid ${rgba(fg, 0.9)};"></div>`);
@@ -1343,7 +1350,6 @@ function sCall(scene, ctx, logo) {
     action ? `tl.fromTo(".${id}-btxt",{opacity:0},{opacity:1,duration:${du(0.3)},ease:"none"},${at(1.5)});` : "",
     action ? `tl.fromTo(".${id}-arr",{x:0,opacity:1},{x:"${r(U(40))}cqw",opacity:0.3,duration:1.6,ease:"none",repeat:${reps(Math.max(0, ctx.L - 1.6 * k), 1.6)}},${at(1.6)});` : "",
     url ? `tl.fromTo(".${id}-url",{opacity:0,y:"1.4cqw"},{opacity:1,y:0,duration:${du(0.4)},ease:"${ENTER}"},${at(1.68)});` : "",
-    `tl.fromTo(".${id}-foot",{opacity:0},{opacity:1,duration:${du(0.4)},ease:"none"},${at(1.85)});`,
     `tl.fromTo(".${id}-tk",{scale:0},{scale:1,duration:${du(0.4)},ease:"${POP}",stagger:${du(0.06)}},${at(2.0)});`,
     `tl.fromTo(".${id}-bsq",{scale:0,rotation:45},{scale:1,rotation:${r(45 + 2.25 * 8)},duration:${du(0.5)},ease:"${POP}"},${at(2.25)});`,
     `tl.to(".${id}-bsq",{rotation:${r(45 + Math.max(8, ctx.L * 8))},duration:${r(Math.max(0.4, ctx.L - 2.75 * k))},ease:"none"},${at(2.75)});`,
@@ -1436,11 +1442,9 @@ function styleBlock(th, portrait) {
   .gd-cam { position:absolute; inset:0; will-change:transform; }
   .gd-chrome { position:absolute; inset:0; pointer-events:none; }
   .gd-rule-top { position:absolute; left:${M}cqw; right:${M}cqw; top:${BAND}cqw; height:${RULE}cqw; }
-  .gd-prog { position:absolute; left:${M}cqw; width:${GW}cqw; top:${BAND}cqw; height:${RULE}cqw; transform:scaleX(0); transform-origin:left center; }
   .gd-rule-bot { position:absolute; left:${M}cqw; right:${M}cqw; bottom:${BAND}cqw; height:${RULE}cqw; }
   .gd-word { position:absolute; left:${M}cqw; top:${r(U(78))}cqw; display:flex; align-items:center; gap:${r(U(16))}cqw; font-family:${th.displayStack}; font-weight:800; font-size:${r(U(28))}cqw; letter-spacing:0.3em; text-transform:uppercase; }
   .gd-dia { width:${r(U(18))}cqw; height:${r(U(18))}cqw; display:inline-block; flex:0 0 auto; }
-  .gd-head { position:absolute; left:${M}cqw; right:${M}cqw; top:${r(U(84))}cqw; text-align:right; font-family:${th.monoStack}; font-weight:600; font-size:${r(U(20))}cqw; letter-spacing:0.22em; text-transform:uppercase; }
   /* .kw / .kwi are the names caption_render.js's SHAPING_FIX targets — a non-Latin
      video-text language relies on the overflow being neutralised HERE. */
   .kw { display:block; overflow:hidden; }

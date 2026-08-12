@@ -1,0 +1,175 @@
+{
+  "name": "synthwave-sunset",
+  "vibe": "Side B, 1986. A #1a0b2e dusk sky holds a pink #ff5c8a sun disc sliced by slats that scroll upward through it, and below a #45e0ff horizon the perspective grid accelerates toward you — six horizontals eased on ph² so each widens and brightens as it arrives. Audiowide sets every headline uppercase at 0.04em; Jost carries the body. Cards are cyan-lined with a glow and stat numerals glow too. It owns Code:editor — a mac-chrome panel typing numbered lines out to a badge — and Morph:flap, a split-flap board where every character physically scaleY-flips into the next word. The camera is the hardest here: spin in the set, 8° skew, 0.65 zoom-in. Best for synths, dev tools, launch nights, retro hardware — anything that wants chrome.",
+  "orientation": "portrait",
+  "category": "Retro",
+  "tags": [
+    "synthwave",
+    "neon grid",
+    "dark ground",
+    "uppercase",
+    "code",
+    "cursor",
+    "morph",
+    "notify",
+    "80s"
+  ],
+  "renderer": "film-synthwave-sunset",
+  "colors": {
+    "dusk": "#1a0b2e",
+    "pink": "#ff5c8a",
+    "cyan": "#45e0ff",
+    "orange": "#ffa14a",
+    "paper": "#f6ecff",
+    "ink": "#120722",
+    "ground": "#1a0b2e",
+    "text": "#f6ecff",
+    "accent": "#45e0ff"
+  },
+  "fonts": [
+    "Audiowide",
+    "Jost"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#1a0b2e",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#45e0ff",
+      "#ff5c8a",
+      "#ffa14a"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "high-contrast night photograph lit by magenta and cyan neon, wet asphalt reflections, 1980s Kodachrome grain and lens flare",
+    "iconStyle": "solid",
+    "keywords": [
+      "neon grid",
+      "retro synthesizer",
+      "cassette tape",
+      "sunset gradient",
+      "arcade cabinet",
+      "chrome lettering",
+      "night drive",
+      "modular rack"
+    ],
+    "prefer": [
+      "screenshot",
+      "illustration",
+      "photo"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Audiowide",
+    "body": "Jost"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "nostalgic",
+    "archetype": "retro",
+    "energy": "high",
+    "tempo": "mid",
+    "style": [
+      "synthwave",
+      "outrun",
+      "analog synth",
+      "arpeggio"
+    ],
+    "musicKeywords": [
+      "chillwave",
+      "analog pad",
+      "retrowave sunset",
+      "vhs synth",
+      "gated reverb",
+      "analog bass",
+      "chrome arpeggiator",
+      "outrun arpeggio",
+      "80s nightdrive",
+      "italo disco",
+      "synthwave drive",
+      "outrun chase"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "ui-click",
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
+  }
+}

@@ -891,10 +891,18 @@ function build(skin, { storyboard, dims, framePack, captionCues, assets, brandSk
     <svg id="fk-svg" width="${W}" height="${H}" viewBox="0 0 ${RW} ${RH}" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0;width:100%;height:100%;"></svg>
   </div>`;
 
+  // NO PROGRESS RAIL. A `#fk-prog` fill used to run across the top of every film, scaling 0->1
+  // over the whole duration on a track above the picture. It was never a design decision — the
+  // idiom was copied from engine to engine (om_stage, prisma, om_port_kit, grid-dispatch,
+  // slab-stage all grew one) and it is baked into the exported MP4, not preview chrome. A
+  // finished advertisement does not wear a scrubber: the bar was the single clearest tell that
+  // a KEYFRAME film was a "render" rather than a film.
+  //
+  // The chrome layer itself STAYS — it carries the brand badge and brand name, which are the
+  // reason it exists. Only the rail and the band it sat in are gone. Guarded by
+  // `npm run test:no-playback-chrome`, which rebuilds every pack and fails on both the naming
+  // and the shape of a progress fill, so re-adding one cannot pass silently.
   const chrome = `<div id="fk-chrome" class="clip" data-start="0" data-duration="${D}" data-track-index="92" data-layout-allow-occlusion style="pointer-events:none;">
-    <div style="position:absolute;left:0;right:0;top:0;height:${X(8)};background:${rgba(theme.ink, 0.16)};">
-      <div id="fk-prog" style="height:100%;width:100%;background:${theme.accent};transform-origin:left center;"></div>
-    </div>
     <div style="position:absolute;left:${X(72)};top:${V(56)};display:flex;align-items:center;gap:${X(15)};">
       ${skin.badge === "none" ? "" : `<div style="width:${X(47)};height:${X(47)};border-radius:${skin.badge === "square" ? X(11) : "999px"};background:${skin.badge === "outline" ? "transparent" : theme.accent};${skin.badge === "outline" ? `border:${X(2)} solid ${theme.accent};` : ""}display:flex;align-items:center;justify-content:center;overflow:hidden;">${renderIcon(skin, theme, grounds[0])}</div>`}
       <span id="fk-brandname" style="font-family:${theme.displayStack};font-size:${F(31)};color:${theme.onField(grounds[0])};">${esc(String(Str.brandName || theme.brand || "").slice(0, 24))}</span>
@@ -937,8 +945,6 @@ function build(skin, { storyboard, dims, framePack, captionCues, assets, brandSk
   ${starts.map((t, i) => `count("#s${i + 1}",${r(t + 0.25)},${r(Math.max(0.8, durs[i] * 0.6))});`).join("\n  ")}
 
   ${sceneScripts.join("\n  ")}
-
-  tl.fromTo("#fk-prog",{scaleX:0},{scaleX:1,duration:D,ease:"none",immediateRender:false},0);
 
   // ---- ONE seek-safe proxy: world, camera drift, mechanics, chrome and captions ----
   var cues=${JSON.stringify(cues)};

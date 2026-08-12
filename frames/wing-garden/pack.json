@@ -1,0 +1,174 @@
+{
+  "name": "wing-garden",
+  "vibe": "The only script face in this set — Lobster Two over Cabin — and and it stays in sentence case throughout. Deep leaf #2e4636 with a monarch orange #f28c28 that swallows the whole CTA frame, plus a morpho blue #4a7de0 that appears exactly where a second butterfly is needed. The world is a glasshouse: three butterflies drift left to right at different speeds, banking up to fourteen degrees while their wings flap by squashing on the X axis nine times a second — the middle one blue, the outer two orange. Three cream-stemmed flowers sway from the bottom edge with five-petal blooms, and faint six-percent light shafts rake down from the top right. Checks tick themselves on, garden news pops in as staggered pills, nectar is dragged into place. Calm camera, wide slow drift.",
+  "orientation": "portrait",
+  "category": "Nature",
+  "tags": [
+    "butterflies",
+    "conservatory",
+    "botanical",
+    "script",
+    "glasshouse",
+    "calm",
+    "family",
+    "attraction"
+  ],
+  "renderer": "film-wing-garden",
+  "colors": {
+    "leaf": "#2e4636",
+    "monarch": "#f28c28",
+    "morpho": "#4a7de0",
+    "cream": "#f4efe2",
+    "ink": "#24301f",
+    "ground": "#2e4636",
+    "text": "#f4efe2",
+    "accent": "#f28c28",
+    "paper": "#f4efe2"
+  },
+  "fonts": [
+    "Lobster Two",
+    "Cabin"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#2e4636",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#f28c28",
+      "#f4efe2",
+      "#2e4636"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "soft daylight macro photograph of butterflies on flowers inside a humid glasshouse, shallow depth of field, pale green bokeh",
+    "iconStyle": "line",
+    "keywords": [
+      "monarch butterfly",
+      "blue morpho",
+      "glasshouse",
+      "nectar flower",
+      "conservatory",
+      "chrysalis",
+      "botanical garden",
+      "green foliage"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Lobster Two",
+    "body": "Cabin"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "greenhouse warmth, wingbeats and slow sun through glass",
+    "archetype": "warm",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "pastoral",
+      "airy",
+      "gentle",
+      "organic"
+    ],
+    "musicKeywords": [
+      "greenhouse ambient",
+      "botanical harp",
+      "conservatory strings",
+      "orchid flute",
+      "glasshouse morning",
+      "nectar drift",
+      "butterfly garden",
+      "wing flutter",
+      "meadow waltz",
+      "orchard mandolin",
+      "sunlit pizzicato",
+      "summer fiddle"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

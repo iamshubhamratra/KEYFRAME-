@@ -78,12 +78,16 @@
       "percussion"
     ],
     "musicKeywords": [
+      "chill",
+      "playful",
       "abstract electronic",
       "playful percussion",
       "modern groove",
       "rhythmic funk",
       "upbeat energetic",
-      "driving groove"
+      "driving groove",
+      "drums",
+      "energetic"
     ],
     "sfxPalette": {
       "transition": "card-slide",
@@ -96,7 +100,8 @@
       "energyBoost": 2,
       "sfxDensity": "rich",
       "ambient": false
-    }
+    },
+    "archetype": "groove"
   },
   "media": {
     "requiredAssets": {

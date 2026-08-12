@@ -1,0 +1,176 @@
+{
+  "name": "ink-and-panel",
+  "vibe": "Bristol board #f6f4ec, ink #1a1a1e and a four-colour comic kit: action red #e8402e, cyan #3cb8e8, yellow #f2c14b. Bangers slams every headline in caps; Lexend handles the fine print. The world is a page being made — a panel border strokes itself around the frame, gutter lines snap in at 60% and 80%, thirty cyan Ben-Day dots grid the corner, five speed lines rake across at -16°, a red dashed circle spins at 80°/s, and a yellow POW! starburst punches in with a 5px ink outline. Statement beats flood full red at 156px, the largest type here. The camera hits hardest of any pack — 7× multiplier with a spin in the set, 4° of skew, titles landing from 2.2× scale. Mechanics: jittering typewriter text, split-flap SFX words, a chip flown into a paste-up slot, and a deck flicked panel by panel.",
+  "orientation": "portrait",
+  "category": "Retro",
+  "tags": [
+    "comic",
+    "halftone",
+    "four-colour",
+    "bold",
+    "print",
+    "zine",
+    "loud",
+    "caps"
+  ],
+  "renderer": "film-ink-and-panel",
+  "colors": {
+    "bristol": "#f6f4ec",
+    "inkk": "#1a1a1e",
+    "action": "#e8402e",
+    "cyan": "#3cb8e8",
+    "yellow": "#f2c14b",
+    "ground": "#f6f4ec",
+    "text": "#1a1a1e",
+    "accent": "#e8402e",
+    "ink": "#1a1a1e",
+    "paper": "#f6f4ec"
+  },
+  "fonts": [
+    "Bangers",
+    "Lexend"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#f6f4ec",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#e8402e",
+      "#f2c14b",
+      "#f6f4ec"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "hard-lit high-contrast photograph of a comic artist's desk, ink bottles and bristol boards, saturated red and cyan, crisp shadows",
+    "iconStyle": "flat",
+    "keywords": [
+      "comic panels",
+      "ink pens",
+      "drawing desk",
+      "bristol board",
+      "halftone print",
+      "artist hands",
+      "printing press",
+      "comic shop"
+    ],
+    "prefer": [
+      "illustration",
+      "photo",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Bangers",
+    "body": "Lexend"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "brash newsprint action — big brass punctuation, nothing subtle, every hit lands on the beat",
+    "archetype": "retro",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "punchy",
+      "brassy",
+      "garage",
+      "kinetic",
+      "vintage"
+    ],
+    "musicKeywords": [
+      "crime jazz",
+      "bongo shuffle",
+      "spy horns",
+      "mambo break",
+      "surf rock",
+      "big band",
+      "brass stab",
+      "organ growl",
+      "snare roll",
+      "fuzz chase",
+      "power riff",
+      "action fanfare"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "pop",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
+  }
+}

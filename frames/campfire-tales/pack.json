@@ -1,0 +1,174 @@
+{
+  "name": "campfire-tales",
+  "vibe": "A night camp in navy (#1b2233) and pine, lit by one flame orange (#f2913d) with a soft ember glow behind it. Caveat handwriting sets the headlines like something scratched in a notebook, over Andada Pro body copy. The world keeps a fire alive all film: sparks rise and die, the flame licks on its own cycle, log embers pulse, and the treeline sits black against a star field. Best for outdoor gear, scouting and camp brands, storytelling podcasts, and anything sold on being away from the city.",
+  "orientation": "portrait",
+  "category": "Outdoors",
+  "tags": [
+    "camping",
+    "outdoors",
+    "night",
+    "handwritten",
+    "fire",
+    "storytelling",
+    "cosy",
+    "adventure"
+  ],
+  "renderer": "film-campfire-tales",
+  "colors": {
+    "night": "#1b2233",
+    "pine": "#2e4038",
+    "flame": "#f2913d",
+    "glow": "#f7c66b",
+    "log": "#6b4a32",
+    "paper": "#f4ecdd",
+    "ink": "#241f18",
+    "ground": "#1b2233",
+    "text": "#f4ecdd",
+    "accent": "#f2913d"
+  },
+  "fonts": [
+    "Caveat",
+    "Andada Pro"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#1b2233",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#f2913d",
+      "#f7c66b",
+      "#f4ecdd"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "firelit night photography — warm key light on faces from below, deep blue shadows, sparks and smoke caught in the air",
+    "iconStyle": "line",
+    "keywords": [
+      "campfire at night",
+      "tent under stars",
+      "pine forest silhouette",
+      "hiking boots",
+      "enamel mug",
+      "wood stack",
+      "headlamp trail"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Caveat",
+    "body": "Andada Pro"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "hushed camaraderie — the hour after the food is gone",
+    "archetype": "warm",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "acoustic guitar",
+      "brushed snare",
+      "folk",
+      "field recording"
+    ],
+    "musicKeywords": [
+      "campfire acoustic",
+      "fingerpicked guitar",
+      "night crickets",
+      "quiet folk",
+      "mandolin warmth",
+      "brushed folk",
+      "singalong strum",
+      "banjo lilt",
+      "stomp clap",
+      "folk build",
+      "driving bluegrass",
+      "barn dance"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

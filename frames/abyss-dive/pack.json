@@ -1,0 +1,174 @@
+{
+  "name": "abyss-dive",
+  "vibe": "Ink-teal water (#061c26) with bioluminescent cyan (#35d0d6), a coral orange and a sand cream, set in wide Krona One. Uniquely, the world never cuts away — it runs under every single beat including the closer. Hollow cyan bubbles wobble upward the full height, a coral jellyfish drifts on a slow lissajous with a scalloped hem that breathes and three tentacles that undulate, an anglerfish orb pulses on its sand filament, and a depth ladder ticks 100m to 500m down the right edge. Rotation is near zero at 0.4°; the drift is vertical, the title easing is a drowse, and cards, tiles and stat numbers all glow. Mechanics: a sonar terminal typewriter, a dive-log feed, a hull ring and side-docked surface messages. Best for marine and environmental work, research and documentary series.",
+  "orientation": "portrait",
+  "category": "Nature",
+  "tags": [
+    "deep-sea",
+    "research",
+    "documentary",
+    "bioluminescent",
+    "calm",
+    "expedition",
+    "science",
+    "dark-ui"
+  ],
+  "renderer": "film-abyss-dive",
+  "colors": {
+    "deep": "#061c26",
+    "glow": "#35d0d6",
+    "coral": "#ff7e67",
+    "sand": "#e8d9b0",
+    "ink": "#04141c",
+    "ground": "#061c26",
+    "text": "#e8d9b0",
+    "accent": "#35d0d6",
+    "paper": "#e8d9b0"
+  },
+  "fonts": [
+    "Krona One",
+    "Overpass"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#061c26",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#35d0d6",
+      "#ff7e67",
+      "#061c26"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "cold submersible-light underwater photography — a single lamp cutting into black water, jellyfish and particulate suspended in a cyan beam, sand-toned instrument panels",
+    "iconStyle": "line",
+    "keywords": [
+      "deep sea submersible",
+      "bioluminescent jellyfish",
+      "research vessel deck",
+      "sonar display",
+      "underwater lamp beam",
+      "ocean trench",
+      "marine biologist",
+      "dive log instruments"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Krona One",
+    "body": "Overpass"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "hushed and weightless — instruments listening in the dark",
+    "archetype": "editorial",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "sub drone",
+      "glassy pads",
+      "hydrophone texture",
+      "reverb tails"
+    ],
+    "musicKeywords": [
+      "underwater ambient",
+      "abyssal hush",
+      "slow cello",
+      "oceanic drift",
+      "sonar pulse",
+      "marine nocturne",
+      "documentary score",
+      "deep shimmer",
+      "tidal swell",
+      "cinematic undertow",
+      "orchestral surge",
+      "deep dub"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

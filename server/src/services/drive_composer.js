@@ -159,6 +159,14 @@ const roadTweens = (id, ctx) => {
 };
 
 // The locked chrome — brand badge, beat label, and a bottom scrim carrying the url.
+//
+// NO PROGRESS RULE: the reference's Chrome (drive-film.jsx:146-158) computes a beat fraction and
+// draws the brand badge and the url with it, and no rule. Ours appended a 420px track whose accent
+// fill was baked at `transform:scaleX(0)` and never tweened — om_port_kit only emits chromeTweens
+// for packs that DON'T supply their own chrome, and this pack does. So every frame of every drive
+// film carried an invisible accent bar: invented furniture, dead markup, and a baked `transform`
+// hidden state the family's rules forbid. Removed rather than animated, because the reference
+// declines the rule outright.
 function chrome(ctx) {
   const { th, id } = ctx;
   return `<div class="om-chrome">
@@ -168,9 +176,6 @@ function chrome(ctx) {
     </div>
     <div style="position:absolute;bottom:0;left:0;right:0;padding:${r(U(44))}cqw ${r(U(58))}cqw ${r(U(22))}cqw;display:flex;align-items:center;gap:${r(U(14))}cqw;background:linear-gradient(0deg, ${rgba(th.ink, 0.62)} 0%, ${rgba(th.ink, 0.3)} 55%, transparent 100%);box-sizing:border-box;">
       <span style="font-family:${th.bodyStack};font-weight:800;font-size:${r(U(14))}cqw;letter-spacing:0.12em;color:${th.paper};white-space:nowrap;">${esc(ctx.url)}</span>
-      <span style="margin-left:auto;flex:1 1 auto;max-width:${r(U(420))}cqw;height:${r(U(4))}cqw;border-radius:${r(U(4))}cqw;background:${rgba(th.paper, 0.28)};overflow:hidden;">
-        <span class="${id}-prog" style="display:block;width:100%;height:100%;background:${th.accent};transform:scaleX(0);transform-origin:left center;"></span>
-      </span>
     </div>
   </div>`;
 }

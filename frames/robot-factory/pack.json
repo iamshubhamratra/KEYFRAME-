@@ -1,0 +1,174 @@
+{
+  "name": "robot-factory",
+  "vibe": "A #23262b factory floor lit by safety orange #ff7a1a and #ffd23c warning yellow. Chakra Petch caps over IBM Plex Sans, tracked two hundredths. The world runs a conveyor: eight steel rollers and three scored orange crates travel right at 120px per second, a steel arm bolted at the right swings its gripper 26° on a 1.1Hz sine, a beacon hard-blinks on a square wave with no fade at all, and a dashed hazard rule marches along the bottom edge. The camera shears four degrees as it moves — notably, it skews — and titles slam. Mechanics: a code diff, drag-to-assemble, a rotary dial and an arc gauge. The closing beat floods full orange. Best for manufacturing, robotics, hardware, devtools and operations.",
+  "orientation": "portrait",
+  "category": "Industrial",
+  "tags": [
+    "manufacturing",
+    "robotics",
+    "industrial",
+    "devtools",
+    "hardware",
+    "logistics",
+    "safety orange",
+    "operations"
+  ],
+  "renderer": "film-robot-factory",
+  "colors": {
+    "floor": "#23262b",
+    "orange": "#ff7a1a",
+    "steel": "#9aa4b2",
+    "warn": "#ffd23c",
+    "paper": "#f0f0ec",
+    "ink": "#141518",
+    "ground": "#23262b",
+    "text": "#f0f0ec",
+    "accent": "#ff7a1a"
+  },
+  "fonts": [
+    "Chakra Petch",
+    "IBM Plex Sans"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#23262b",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#ff7a1a",
+      "#ffd23c",
+      "#f0f0ec"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "hard-lit industrial photograph of a robotic arm on a factory floor, safety-orange machinery against steel and shadow, wide-angle documentary framing",
+    "iconStyle": "line",
+    "keywords": [
+      "robotic arm",
+      "factory floor",
+      "conveyor belt",
+      "assembly line",
+      "machine operator",
+      "steel gantry",
+      "warning beacon",
+      "safety helmet"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo",
+      "vector"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Chakra Petch",
+    "body": "IBM Plex Sans"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "Shift-work momentum — heavy, mechanical and relentlessly on-schedule",
+    "archetype": "hype",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "industrial percussion",
+      "distorted bass",
+      "metal hits",
+      "arpeggiated synth"
+    ],
+    "musicKeywords": [
+      "industrial ambient",
+      "machine hum",
+      "metal clank",
+      "hydraulic pulse",
+      "conveyor groove",
+      "piston beat",
+      "sawtooth bass",
+      "electro industrial",
+      "stomping drums",
+      "warehouse techno",
+      "acid techno",
+      "techno drive"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "ui-click",
+      "reveal": "product-reveal",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

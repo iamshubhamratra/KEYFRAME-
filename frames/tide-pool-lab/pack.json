@@ -1,0 +1,174 @@
+{
+  "name": "tide-pool-lab",
+  "vibe": "Sand #f0e6cc shore, slate rock #4a5258 grounds, anemone pink #f27d98 and seafoam #8fd8c8 — and the roomiest type here, with titles at 108px and stat numerals at 144 where other packs push 150+. Shrikhand gives a fat retro-poster display; Poppins sets everything else. The world is a rock pool in cross-section: a seafoam ellipse ringed by a 14px slate rim, two white ripples expanding and fading across its surface, a ten-point pink starfish rocking ±14° on the rim, an anemone whose ten tentacles each wobble on their own 2.4Hz phase, and a hermit crab that walks the full width of the sand below, flipping direction each pass, six legs oscillating at 8Hz with one claw raised. It is and it titles rise rather than slam or bounce. Mechanics: a bottom-filling tide gauge, a scrolling pool census, a ticked field kit, and handwriting that lands one word at a time.",
+  "orientation": "portrait",
+  "category": "Nature",
+  "tags": [
+    "tidepool",
+    "marine",
+    "education",
+    "coastal",
+    "field-study",
+    "gentle",
+    "family",
+    "seashore"
+  ],
+  "renderer": "film-tide-pool-lab",
+  "colors": {
+    "sand": "#f0e6cc",
+    "rock": "#4a5258",
+    "anemone": "#f27d98",
+    "seafoam": "#8fd8c8",
+    "ink": "#2a3238",
+    "ground": "#f0e6cc",
+    "text": "#2a3238",
+    "accent": "#f27d98",
+    "paper": "#f0e6cc"
+  },
+  "fonts": [
+    "Shrikhand",
+    "Poppins"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#f0e6cc",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#f27d98",
+      "#8fd8c8",
+      "#f0e6cc"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "clear overcast daylight photograph of a rocky shore at low tide, wet rocks and shallow pools, natural sea colours, close observational framing",
+    "iconStyle": "duotone",
+    "keywords": [
+      "tide pool",
+      "starfish",
+      "hermit crab",
+      "rocky shore",
+      "low tide",
+      "sea anemone",
+      "children exploring",
+      "wet rocks"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "vector"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Shrikhand",
+    "body": "Poppins"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "curious and gentle; small bright details over a soft bed, the sound of looking closely at something",
+    "archetype": "editorial",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "organic",
+      "light",
+      "inquisitive",
+      "spacious"
+    ],
+    "musicKeywords": [
+      "tidepool ambient",
+      "shallow bells",
+      "field study",
+      "kalimba curiosity",
+      "marimba tide",
+      "glockenspiel drift",
+      "rockpool shimmer",
+      "playful woodwind",
+      "beachcomber ukulele",
+      "pebble percussion",
+      "sunshine pop",
+      "shoreline groove"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "pop",
+      "data": "data-ping",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

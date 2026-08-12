@@ -24,7 +24,6 @@ COPY package*.json ./
 RUN npm ci --omit=dev || npm install --omit=dev
 
 COPY . .
-
 # Render injects PORT; config.js reads it. EXPOSE is informational.
 EXPOSE 8080
 CMD ["node", "server.js"]

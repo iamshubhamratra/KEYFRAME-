@@ -1,0 +1,173 @@
+{
+  "name": "aerial-silk",
+  "vibe": "A theatre in aubergine (#22132a) with a gilt spotlight cone falling from the flies and two silk-pink ribbons (#e05a7a) swaying the full height of the frame. Playfair Display sets high-contrast serif headlines over Figtree. The world performs continuously: the light cone drifts on its own slow arc, the twin silks curl and uncurl on independent phases, and gilt motes hang in the beam. Its mechanics are a card flip, a progress ring, a slider the cursor drags and side-entering toasts. Best for performing arts, dance and fitness studios, luxury events and any brand that sells a spectacle rather than a spec sheet.",
+  "orientation": "portrait",
+  "category": "Performance",
+  "tags": [
+    "circus",
+    "performance",
+    "theatre",
+    "luxury",
+    "serif",
+    "aubergine",
+    "dance",
+    "events"
+  ],
+  "renderer": "film-aerial-silk",
+  "colors": {
+    "house": "#22132a",
+    "silk": "#e05a7a",
+    "gilt": "#dfae5c",
+    "chalkw": "#f2ecf2",
+    "ink": "#150c19",
+    "ground": "#22132a",
+    "text": "#f2ecf2",
+    "accent": "#e05a7a",
+    "paper": "#f2ecf2"
+  },
+  "fonts": [
+    "Playfair Display",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#22132a",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#e05a7a",
+      "#dfae5c",
+      "#f2ecf2"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "theatrical low-key performance photography — a single hard spotlight on skin and fabric, deep aubergine shadows, gold rim light",
+    "iconStyle": "line",
+    "keywords": [
+      "aerial silks performer",
+      "theatre stage lighting",
+      "dance studio",
+      "spotlight beam",
+      "circus tent interior",
+      "stretching dancer",
+      "velvet curtain"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Playfair Display",
+    "body": "Figtree"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "held-breath elegance — a room watching one body in the air",
+    "archetype": "luxury",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "lush strings",
+      "waltz",
+      "theatre brass",
+      "cabaret"
+    ],
+    "musicKeywords": [
+      "cirque ambient",
+      "aerial waltz",
+      "proscenium hush",
+      "spotlight nocturne",
+      "silk glide",
+      "trapeze theme",
+      "cabaret swell",
+      "carnival strings",
+      "big top",
+      "acrobat crescendo",
+      "circus brass",
+      "finale fanfare"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

@@ -31,6 +31,7 @@ const { GSAP_CDN, r, esc, hexToRgb, relLum, bullets, logoAssetOf, resolveBrandNa
 const {
   dealTransitions, classifyBeat, xfadeFor, accentsFrom, mulberry, RUNTIME_HELPERS,
 } = require("./transition_kit");
+const { tempoOf } = require("./pacing");
 
 // ---- stage -------------------------------------------------------------------
 // Every geometry helper is built against ONE stage, so a template states its authored size
@@ -88,7 +89,18 @@ function ensureContrast(hex, { dark = false, limit = dark ? 0.34 : 0.46 } = {}) 
   }
   return rgbHex([rr, gg, bb]);
 }
-const inkOn = (hex, dark = "#0B0B0C", light = "#FFFFFF") => (relLum(hex) > 0.5 ? dark : light);
+// WHICH INK READS ON THIS SURFACE. The pivot is not 0.5 — it is 0.179, and that is arithmetic,
+// not taste. WCAG contrast against white is 1.05/(L+0.05) and against black is (L+0.05)/0.05;
+// setting them equal gives (L+0.05)^2 = 1.05*0.05, so L = 0.179. Above that tie point black wins,
+// below it white does.
+//
+// The old 0.5 pivot handed WHITE ink to every surface in the 0.18-0.50 band — the exact band
+// ensureContrast() lifts a dark pack's brand accent into (its `limit` is 0.34). So a brand-coloured
+// chip or badge got white type on a mid-light ground at around 2.5:1, below the 4.5:1 floor, and
+// the more successfully the accent was corrected the worse its label read. brand_kit.js and
+// blockframe_composer.js had both already measured this; the kit had not.
+const INK_TIE_POINT = 0.179;
+const inkOn = (hex, dark = "#0B0B0C", light = "#FFFFFF") => (relLum(hex) > INK_TIE_POINT ? dark : light);
 
 // Resolve the brand once, the same way for every port: one accent, contrast-corrected against
 // the pack's own ground, plus the `resolvedBrand` return trip the Brand panel reads.
@@ -349,26 +361,39 @@ function open(ctx, inner, { backdrop = "", chrome = null } = {}) {
 }
 
 // A running HUD: brand badge, beat label, scene counter, film-wide progress rule.
+//
+// THE HUD ASSUMES THE PIXELS BEHIND IT ARE `th.bg`. THAT IS OFTEN FALSE.
+//
+// It paints the brand in `th.ink` and the label in `th.sub`, both chosen to read on the pack's
+// GROUND. But the HUD sits in `.om-hud`, above the backdrop — and a backdrop is free to draw
+// something else exactly where the chrome lands. jungle draws an opaque canopy band (`c4`,
+// #0E2C1B) across the top 150px, precisely under the brand lockup, and `th.ink` is #12301E:
+// measured contrast 1.05:1. The brand name was not dim, it was GONE, in every frame of every
+// jungle film — and no guard could see it, because the element is present, revealed, and animated.
+//
+// So the ink is now chosen against whatever the pack says is actually behind the HUD.
+// `th.chromeGround` lets a pack name that surface; without it the behaviour is unchanged.
+// `inkOn` picks black or white at the true 0.179 tie point, and the label keeps `th.sub` only
+// while `th.sub` still clears the ground — otherwise it takes the same ink at reduced alpha.
 function chromeHtml(ctx) {
   const { th, U } = ctx;
   const initial = (ctx.brand || "F").trim().charAt(0).toUpperCase() || "F";
   const pad = ctx.portrait ? U(54) : U(60);
+  const ground = th.chromeGround || th.bg;
+  const contrast = (a, b) => {
+    const L1 = relLum(a), L2 = relLum(b);
+    return (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
+  };
+  // 3:1 is the WCAG floor for large text, which is what all of this is.
+  const hudInk = contrast(th.ink, ground) >= 3 ? th.ink : inkOn(ground);
+  const hudSub = contrast(th.sub, ground) >= 3 ? th.sub : rgba(hudInk, 0.66);
   return `<div class="om-chrome">
     <div style="position:absolute;top:${r(ctx.portrait ? U(64) : U(46))}cqw;left:${r(pad)}cqw;display:flex;align-items:center;gap:${r(U(14))}cqw;">
       <span style="width:${r(U(30))}cqw;height:${r(U(30))}cqw;border-radius:${r(U(9))}cqw;background:${th.accent};display:grid;place-items:center;color:${inkOn(th.accent)};font-family:${th.displayStack};font-weight:700;font-size:${r(U(18))}cqw;flex:0 0 auto;">${esc(initial)}</span>
-      <span style="font-family:${th.displayStack};font-weight:700;font-size:${r(U(22))}cqw;color:${th.ink};letter-spacing:-0.01em;white-space:nowrap;">${esc(ctx.brand)}</span>
-      ${ctx.label ? `<span style="font-family:${th.monoStack};font-size:${r(U(13))}cqw;letter-spacing:0.14em;color:${th.sub};text-transform:uppercase;white-space:nowrap;">／ ${esc(ctx.label)}</span>` : ""}
-    </div>
-    ${ctx.portrait ? "" : `<div style="position:absolute;top:${r(U(52))}cqw;right:${r(pad)}cqw;font-family:${th.monoStack};font-size:${r(U(13))}cqw;letter-spacing:0.18em;color:${th.sub};">${esc(ctx.S.scene || "SCENE")} ${pad2(ctx.i + 1)} ${esc(ctx.S.of || "OF")} ${pad2(ctx.total)}</div>`}
-    <div style="position:absolute;bottom:${r(ctx.portrait ? U(62) : U(52))}cqw;left:${r(pad)}cqw;right:${r(pad)}cqw;height:${r(U(4))}cqw;border-radius:${r(U(4))}cqw;background:${rgba(th.ink, 0.1)};overflow:hidden;">
-      <div class="${ctx.id}-prog" style="width:100%;height:100%;border-radius:${r(U(4))}cqw;background:${th.accent};transform:scaleX(0);transform-origin:left center;"></div>
+      <span style="font-family:${th.displayStack};font-weight:700;font-size:${r(U(22))}cqw;color:${hudInk};letter-spacing:-0.01em;white-space:nowrap;">${esc(ctx.brand)}</span>
+      ${ctx.label ? `<span style="font-family:${th.monoStack};font-size:${r(U(13))}cqw;letter-spacing:0.14em;color:${hudSub};text-transform:uppercase;white-space:nowrap;">／ ${esc(ctx.label)}</span>` : ""}
     </div>
   </div>`;
-}
-// The progress rule fills across the WHOLE film, so it is driven from absolute time.
-function chromeTweens(ctx, D) {
-  const from = ctx.T / Math.max(0.001, D), to = (ctx.T + ctx.clipDur) / Math.max(0.001, D);
-  return [`tl.fromTo(".${ctx.id}-prog",{scaleX:${r(from)}},{scaleX:${r(to)},duration:${r(ctx.clipDur)},ease:"none"},${r(ctx.T)});`];
 }
 
 // LEGACY camera: a slide-push in, a slow scale across the beat, a slide-push out — ONE move,
@@ -377,7 +402,8 @@ function chromeTweens(ctx, D) {
 // bespoke edit of its own should not be forced onto the shared one.
 function cameraTweens(ctx, { push = 200, scale = 1.03 } = {}) {
   const { id, L, U } = ctx;
-  const IN = Math.min(0.55, L * 0.12), OUT = Math.max(0.1, L * 0.12);
+  const sp = (ctx.tempo && ctx.tempo.motion) || 1;
+  const IN = Math.max(0.12, Math.min(0.55, L * 0.12) * sp), OUT = Math.max(0.1, L * 0.12 * sp);
   const tail = Math.max(0.1, L - OUT);
   return [
     `tl.fromTo("#${id} .om-cam",{x:"${r(U(push))}cqw",opacity:0},{x:0,opacity:1,duration:${r(IN)},ease:"power3.out"},${r(ctx.T)});`,
@@ -417,14 +443,31 @@ function normalizeCamera(camera = {}, stage) {
 function driftTweens(ctx, { scale = 1.03, dir = 1 } = {}) {
   const { id, L, T } = ctx;
   const bgScale = 1 + (scale - 1) * 0.45;   // the backdrop creeps at under half the content's rate
+  // A music-led film travels further in the same beat. Only the TRANSLATION grows — `scale`
+  // is untouched on purpose, because the camera scales its own layer and every pack's layout
+  // was measured against that exact fraction (the SAFE-AREA LAW). More travel is free; more
+  // scale would push authored type off the edge of the frame.
+  const tv = (ctx.tempo && ctx.tempo.camera) || 1;
   return [
-    `tl.fromTo("#${id} .om-drift",{scale:1,y:"${r(0.5 * dir)}cqw"},{scale:${r(scale)},y:"${r(-0.5 * dir)}cqw",duration:${r(L)},ease:"sine.inOut"},${r(T)});`,
-    `tl.fromTo("#${id} .om-bg",{scale:${r(bgScale)},x:"${r(-0.6 * dir)}cqw"},{scale:1,x:"${r(0.6 * dir)}cqw",duration:${r(L)},ease:"sine.inOut"},${r(T)});`,
+    `tl.fromTo("#${id} .om-drift",{scale:1,y:"${r(0.5 * dir * tv)}cqw"},{scale:${r(scale)},y:"${r(-0.5 * dir * tv)}cqw",duration:${r(L)},ease:"sine.inOut"},${r(T)});`,
+    `tl.fromTo("#${id} .om-bg",{scale:${r(bgScale)},x:"${r(-0.6 * dir * tv)}cqw"},{scale:1,x:"${r(0.6 * dir * tv)}cqw",duration:${r(L)},ease:"sine.inOut"},${r(T)});`,
   ];
 }
 // The camera scales its own layer, so that fraction of every edge is off-frame for the whole
 // beat. Anything MEASURED must divide by this. (SAFE-AREA LAW, learned from slab-stage.)
-const camSafe = (scale = 1.03) => scale;
+//
+// IT MUST BE THE PACK'S OWN SCALE, NOT A CONSTANT. The signature reads `camSafe(scale = 1.03)`,
+// and 124 of the library's 127 call sites invoke it as `camSafe()` — so every measurement in every
+// pack was divided by 1.03 no matter what that pack's camera actually does. `driftTweens` mean-
+// while scales by `cam.scale`, which `normalizeCamera` derives from the pack's own
+// `camera.scale` / `camera.drift`. A pack drifting at 1.06 therefore had 6% of each edge off-frame
+// and measured its type against 3% — the SAFE-AREA LAW applied to the wrong number, which is the
+// same defect slab-stage taught, one level of indirection further out.
+//
+// `ctx.camScale` now carries the resolved value, so `camSafe(ctx.camScale)` is exact. The default
+// stays 1.03 so the 124 bare call sites keep their present behaviour until each pack's own wave
+// threads ctx through — this change is a correction available to callers, not a silent global move.
+const camSafe = (scale = 1.03) => (Number(scale) > 0 ? Number(scale) : 1.03);
 
 // ---- the statement layout ----------------------------------------------------
 // THE LAYOUT FOR A BEAT WITH NO PICTURE.
@@ -437,17 +480,43 @@ const camSafe = (scale = 1.03) => scale;
 // So: oversized type scaled to the room it has, an accent rule, and the beat's own bullets as
 // a full-width ruled list whose rows DIVIDE the remaining height — one bullet and four bullets
 // both reach the foot of the stage. Every word comes from the script.
-function statement(scene, ctx, { centred = false } = {}) {
+function statement(scene, ctx, { centred = false, headMax: headMaxOpt = null } = {}) {
   const { id, th, U, VH, at, du } = ctx;
-  const eyebrow = String(scene.kicker || scene.purpose || ctx.label || "").toUpperCase().slice(0, 34);
+  // WORD-SAFE, NOT CHARACTER-SAFE. These three were bare `.slice(0, N)` — the most-executed text
+  // clips in the library, one per pack per pictureless beat — so a kicker, a body paragraph or a
+  // bullet whose Nth character fell mid-word shipped a severed word ("…14 days retu"). `clampWords`
+  // has been defined 300 lines above them since the kit was written; it simply was not called here.
+  const eyebrow = clampWords(String(scene.kicker || scene.purpose || ctx.label || "").toUpperCase(), 34);
   const list = bullets(scene, 4);
-  const body = String(scene.subtext || scene.body || "").slice(0, 140);
+  const body = clampWords(String(scene.subtext || scene.body || ""), 140);
 
   const margin = ctx.portrait ? U(84) : U(96);
   const colW = centred ? ctx.U(ctx.W) - margin * 2.5 : ctx.U(ctx.W) - margin * 2;
   const left = centred ? margin * 1.25 : margin;
-  const headMax = list.length ? (ctx.portrait ? U(104) : U(126)) : (ctx.portrait ? U(126) : U(158));
-  const head = fitLines(scene.headline || scene.title || "", colW / camSafe(), headMax, 3, th.adv || ADVANCE.mixed);
+  // THE CEILING BELONGS TO THE PACK, NOT TO THE KIT. This was a hard `U(126)`/`U(158)`, and
+  // `statement` is where every pictureless beat in all 16 ported packs lands — so a pack that
+  // authored its display at 190px (fetch), 200px (deep) or 250px (fight) was silently capped at
+  // 158 on any beat that happened to have no picture, and its type scale changed depending on the
+  // asset budget. Five of the six rebuild agents asked for this independently, which is the best
+  // evidence in the audit that the kit's default was outranking the design.
+  //
+  // Resolution order: an explicit per-call override, then the pack's own `th.statementMax`, then
+  // the historical constant — so a pack that says nothing renders exactly as it did before.
+  const packMax = headMaxOpt != null ? headMaxOpt : (th.statementMax != null ? th.statementMax : null);
+  const headMax = packMax != null
+    ? (list.length ? packMax * 0.8 : packMax)
+    : (list.length ? (ctx.portrait ? U(104) : U(126)) : (ctx.portrait ? U(126) : U(158)));
+  const head = fitLines(scene.headline || scene.title || "", colW / camSafe(ctx.camScale), headMax, 3, th.adv || ADVANCE.mixed);
+
+  // BODY COPY IS NOT DISPLAY TYPE. The body paragraph and every bullet row were set in
+  // `th.displayStack`, so edition's pictureless beats set running prose in ANTON — a condensed
+  // poster face with no lowercase rhythm, at 30px over 1.45 line-height. The headline stays in the
+  // display face, which is the point of having two.
+  //
+  // Falls back to the display stack when a pack declares no body face, so a pack that never
+  // distinguished the two renders byte-identically and only the packs that DID declare a body
+  // family change. That keeps the golden diff to the packs this actually corrects.
+  const bodyFace = th.bodyStack || th.displayStack;
 
   const top = VH * 0.21;
   const eyeH = eyebrow ? U(40) : 0;
@@ -459,7 +528,7 @@ function statement(scene, ctx, { centred = false } = {}) {
 
   const rows = list.map((b, i) => `<div class="${id}-row" style="position:absolute;left:${r(left)}cqw;top:${r(listY + i * rowH)}cqw;width:${r(colW)}cqw;height:${r(rowH)}cqw;display:flex;align-items:center;gap:${r(U(20))}cqw;border-top:1px solid ${rgba(th.ink, 0.14)};opacity:0;">
       <span style="width:${r(U(12))}cqw;height:${r(U(12))}cqw;border-radius:50%;background:${th.accent};flex:0 0 auto;"></span>
-      <span style="font-family:${th.displayStack};font-weight:600;font-size:${r(U(30))}cqw;line-height:1.25;color:${th.ink};">${esc(String(b).slice(0, 78))}</span>
+      <span style="font-family:${bodyFace};font-weight:600;font-size:${r(U(30))}cqw;line-height:1.25;color:${th.ink};">${esc(clampWords(String(b), 78))}</span>
     </div>`).join("");
 
   return {
@@ -469,7 +538,7 @@ function statement(scene, ctx, { centred = false } = {}) {
       <div style="font-family:${th.displayStack};font-weight:700;font-size:${r(head.size)}cqw;line-height:1.02;letter-spacing:-0.03em;color:${th.ink};">${head.lines.map((l) => `<span style="display:block;">${esc(l)}</span>`).join("")}</div>
     </div>
     <div class="${id}-rule" style="position:absolute;left:${r(centred ? left + colW / 2 - U(300) : left)}cqw;top:${r(ruleY)}cqw;width:${r(U(560))}cqw;height:${r(U(6))}cqw;background:${th.accent};transform:scaleX(0);transform-origin:${centred ? "center" : "left"} center;"></div>
-    ${body ? `<div class="${id}-body" style="position:absolute;left:${r(left)}cqw;top:${r(bodyY)}cqw;width:${r(colW)}cqw;${centred ? "text-align:center;" : ""}font-family:${th.displayStack};font-weight:400;font-size:${r(U(30))}cqw;line-height:1.45;color:${th.sub};opacity:0;">${esc(body)}</div>` : ""}
+    ${body ? `<div class="${id}-body" style="position:absolute;left:${r(left)}cqw;top:${r(bodyY)}cqw;width:${r(colW)}cqw;${centred ? "text-align:center;" : ""}font-family:${bodyFace};font-weight:400;font-size:${r(U(30))}cqw;line-height:1.45;color:${th.sub};opacity:0;">${esc(body)}</div>` : ""}
     ${rows}`,
     s: [
       `tl.fromTo(".${id}-head",{opacity:0,y:"${r(U(46))}cqw"},{opacity:1,y:0,duration:${du(0.75)},ease:"back.out(1.4)"},${at(0.25)});`,
@@ -641,7 +710,17 @@ function buildFilm({
     : [];
   // xf[i] is the overlap of the cut OUT of scene i — which is the same window as the cut INTO
   // scene i+1. Clamped against the SHORTER neighbour so a long move never outlives a short beat.
-  const xf = plan.map((p, i) => (useTx && i < plan.length - 1 ? xfadeFor(p.L, plan[i + 1].L) : 0));
+  // FILM TEMPO. With no narration the cuts tighten and the motion inside each beat quickens
+  // (services/pacing.js). Scene starts and durations are untouched — this changes how the
+  // picture MOVES, never the structure the user approved.
+  const tempo = tempoOf(sb);
+  // A neutral tempo must be a literal no-op, not "the same value rounded": wrapping the
+  // unscaled result in r() shifted one pack's golden output by a rounding step. A narrated
+  // film has to be byte-identical to what it was before this feature existed.
+  const xfade = (a, b) => (tempo.xfade === 1
+    ? xfadeFor(a, b)
+    : r(Math.max(0.12, xfadeFor(a, b) * tempo.xfade)));
+  const xf = plan.map((p, i) => (useTx && i < plan.length - 1 ? xfade(p.L, plan[i + 1].L) : 0));
   const acc = accentsFrom(th);
   const rnd = mulberry(seed ^ 0x9E3779B9);
 
@@ -655,9 +734,16 @@ function buildFilm({
     const k = Math.min(1, L / refBeat);
     const ctx = {
       id: `s${i + 1}`, T, L, clipDur, i, isLast, track: 2 + i,
-      th, S, W, H, k, seed, U: stage.U, VH: stage.VH, portrait: stage.portrait,
+      th, S, W, H, k, seed, tempo, U: stage.U, VH: stage.VH, portrait: stage.portrait,
+      // The camera scale this film actually runs, so a builder can measure against its own
+      // safe area (`colW / K.camSafe(ctx.camScale)`) instead of the hardcoded 1.03.
+      camScale: cam.scale,
+      // EVERY builder's animation timing goes through these two, which makes them the one
+      // place a film-level tempo can reach all twenty packs built on this kit. `at` keeps
+      // its position within the beat (a cue that lands 30% in still lands 30% in); only the
+      // DURATION shortens, so nothing slides out of the window it was authored for.
       at: (sec) => r(T + sec * k),
-      du: (sec) => r(Math.max(0.06, sec * k)),
+      du: (sec) => r(Math.max(0.06, sec * k * tempo.motion)),
       title, brand: String(brand).slice(0, 22), label: labels[role] || "",
       total: plan.length, url: filmUrl, role,
     };
@@ -697,11 +783,14 @@ function buildFilm({
       if (!isLast && xf[i] > 0) motion.push(`tl.to("#${ctx.id} .om-hud",{opacity:0,duration:${r(xf[i] * 0.75)},ease:"power2.in"},${r(T + L)});`);
     }
 
+    // THE DEFAULT HUD NO LONGER CARRIES A PROGRESS RULE, so there is nothing here to drive.
+    // `chromeHtml` used to end in a track-and-fill pinned across the frame, filled from absolute
+    // film time by a `chromeTweens(ctx, D)` call in this list; both are gone. The HUD keeps what
+    // it was actually for — the brand badge, the brand name and the pack's label.
     sceneScripts.push([
       `tl.set("#${ctx.id}",{opacity:1},${r(T)});`,
       ...built.s,
       ...motion,
-      ...chromeTweens(ctx, D),
       built.capTint ? `tl.set("#cap-text",{color:"${built.capTint}"},${r(T)});` : "",
     ].filter(Boolean).join("\n  "));
 
@@ -733,7 +822,7 @@ module.exports = {
   wordsOf, clampWords, fitLines, fitOne, ADVANCE, domainOf, numbersIn, statLabel, bullets,
   ratioOf, screenOk, isOwnAsset, shotFill, cropFocus, logoAssetOf,
   assignRoles, fillSlots, reps, seedFrom, pad2,
-  open, chromeHtml, chromeTweens, cameraTweens, driftTweens, normalizeCamera, camSafe, statement,
+  open, chromeHtml, cameraTweens, driftTweens, normalizeCamera, camSafe, statement,
   baseCss, document_, buildFilm, esc, r,
   // The shared decorative vocabulary (om_furniture.js), re-exported so a pack reaches it as
   // K.figPlate / K.marquee / K.clipHead with no second require. That module must NOT require

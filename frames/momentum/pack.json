@@ -1,6 +1,6 @@
 {
   "name": "momentum",
-  "vibe": "A kinetic-velocity film. A near-black warm ground with cream ink and one hot vermilion, and a horizontal motion axis on every single beat. Headlines arrive as whole words sliding out of hard-edged masks; speed rules streak in from the left and settle; a marquee of the beat's OWN words scrolls through the middle band. Pictures are not panels here — they are edge-to-edge bands that crop wide and drift under a directional scrim, so the film always reads as moving rather than presenting. Authored landscape-first (16:9) as a native GSAP + DOM composition. Best for sport, automotive, fintech, agencies and any brand whose pitch is speed.",
+  "vibe": "A kinetic-velocity film. A near-black warm ground with cream ink and one hot vermilion, and a horizontal motion axis on every single beat. Headlines arrive as whole words sliding out of hard-edged masks; speed rules streak in from the left and settle; a marquee of the beat's OWN words scrolls through the middle band. Pictures ride two devices — a wide browser card that throws in from the right, and a bezelled phone that rises from below — plus a two-row gallery grid whose second column can give way to an accent-tinted figure tile. The opening lockup and the close are type and mark only. Authored landscape-first (16:9) as a native GSAP + DOM composition. Best for sport, automotive, fintech, agencies and any brand whose pitch is speed.",
   "renderer": "momentum",
   "orientation": "landscape",
   "colors": {
@@ -13,8 +13,8 @@
     "paper": "#1C1A17"
   },
   "fonts": [
-    "Figtree",
-    "JetBrains Mono"
+    "Hanken Grotesk",
+    "Space Mono"
   ],
   "surface": {
     "flat": false,
@@ -55,9 +55,9 @@
     ]
   },
   "typography": {
-    "display": "Figtree",
-    "mono": "JetBrains Mono",
-    "body": "Figtree"
+    "display": "Hanken Grotesk",
+    "mono": "Space Mono",
+    "body": "Hanken Grotesk"
   },
   "textfx": {
     "enter": "slide-mask",
@@ -77,12 +77,16 @@
       "modern"
     ],
     "musicKeywords": [
+      "atmospheric",
+      "digital",
       "driving electronic",
       "high energy percussion",
-      "kinetic build",
+      "percussive build",
       "fast modern beat",
       "aggressive groove",
-      "momentum pulse"
+      "momentum pulse",
+      "driving",
+      "powerful"
     ],
     "sfxPalette": {
       "transition": "whoosh",
@@ -95,7 +99,8 @@
       "energyBoost": 2,
       "sfxDensity": "rich",
       "ambient": false
-    }
+    },
+    "archetype": "tech"
   },
   "media": {
     "requiredAssets": {

@@ -63,7 +63,7 @@
     "tracking": -0.01
   },
   "audio": {
-    "mood": "editorial",
+    "mood": "underscore",
     "energy": "high",
     "tempo": "fast",
     "style": [
@@ -73,12 +73,16 @@
       "modern"
     ],
     "musicKeywords": [
-      "bold editorial",
+      "chill",
+      "playful",
+      "bold campaign",
       "modern percussion",
-      "kinetic pop",
+      "energetic pop",
       "campaign electronic",
       "driving beat",
-      "high energy modern"
+      "high energy modern",
+      "drums",
+      "energetic"
     ],
     "sfxPalette": {
       "transition": "card-slide",
@@ -91,7 +95,8 @@
       "energyBoost": 2,
       "sfxDensity": "rich",
       "ambient": false
-    }
+    },
+    "archetype": "groove"
   },
   "media": {
     "requiredAssets": {

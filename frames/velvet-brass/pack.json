@@ -1,0 +1,174 @@
+{
+  "name": "velvet-brass",
+  "vibe": "Plum-velvet room (#2a1420) with brass (#cf9b52) catching the light, cream (#f0e8da) type and a teal stage wash (#34687a) as the second chip. Yeseva One's high-contrast decorative serif over geometric Jost. The world is a basement jazz club: a brass-tinted spotlight triangle sweeping side to side on a 0.6Hz sine with its elliptical pool of light tracking underneath, four cream musical notes rising and fading on a slow 0.16Hz cycle, and along the whole bottom edge a fourteen-key piano keyboard where one white key lights up at a time on a marching index, black keys laid over it. Its signature mechanic is the front-of-house slider — a pointer dragging a level to a big percentage, then flipping a switch. Brass-glow feature cards, drowse titles, calm 0.5-roll camera. For live venues, bars, festivals and any brand that trades in evenings.",
+  "orientation": "portrait",
+  "category": "Nightlife",
+  "tags": [
+    "jazz club",
+    "nightlife",
+    "live music",
+    "brass and plum",
+    "decorative serif",
+    "spotlight",
+    "after hours",
+    "venue"
+  ],
+  "renderer": "film-velvet-brass",
+  "colors": {
+    "velvet": "#2a1420",
+    "brass": "#cf9b52",
+    "cream": "#f0e8da",
+    "blue": "#34687a",
+    "ink": "#1c0e16",
+    "ground": "#2a1420",
+    "text": "#f0e8da",
+    "accent": "#cf9b52",
+    "paper": "#f0e8da"
+  },
+  "fonts": [
+    "Yeseva One",
+    "Jost"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#2a1420",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#cf9b52",
+      "#f0e8da",
+      "#2a1420"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "low-light jazz club photograph, brass instruments glinting under a single spotlight, plum shadow and warm highlight, visible film grain",
+    "iconStyle": "solid",
+    "keywords": [
+      "jazz club",
+      "brass horn",
+      "spotlight stage",
+      "upright bass",
+      "bar at night",
+      "live set",
+      "piano keys",
+      "velvet booth"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot",
+      "illustration"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Yeseva One",
+    "body": "Jost"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "smoky and unhurried swing — a room after ten, brushes on a snare, brass carrying the melody",
+    "archetype": "groove",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "jazz",
+      "brushed drums",
+      "upright bass",
+      "warm brass"
+    ],
+    "musicKeywords": [
+      "piano trio",
+      "tenor saxophone",
+      "vibraphone lounge",
+      "after hours",
+      "muted trumpet",
+      "basement club",
+      "second set",
+      "cocktail swing",
+      "walking bassline",
+      "snare shuffle",
+      "hard bop",
+      "jump blues"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

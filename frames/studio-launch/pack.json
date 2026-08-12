@@ -1,0 +1,173 @@
+{
+  "name": "studio-launch",
+  "vibe": "A warm dark house in deep olive (#3d472b) with cream surfaces and a terracotta accent (#c67139). Caprasimo sets full-bodied headlines over Figtree body copy. The world is a lit stage rather than a scene: soft coloured bloom fields drift and overlap, a slow conic sweep rotates behind everything, banded light wipes across the frame, and a vignette keeps the centre bright. The most product-forward film here — the world exists to light a screenshot, not to tell its own story. Best for software launches, studio and agency reels, and premium product reveals.",
+  "orientation": "portrait",
+  "category": "Launch",
+  "tags": [
+    "launch",
+    "premium",
+    "warm-dark",
+    "studio",
+    "product",
+    "bloom",
+    "cinematic",
+    "agency"
+  ],
+  "renderer": "film-studio-launch",
+  "colors": {
+    "ground": "#3d472b",
+    "surface": "#f5ead8",
+    "paper": "#f5ead8",
+    "cardInk": "#201e1d",
+    "accent": "#c67139",
+    "accent2": "#7a8a5e",
+    "accentText": "#d69a6f",
+    "accent2Text": "#b0b494",
+    "text": "#f5ead8",
+    "ink": "#201e1d"
+  },
+  "fonts": [
+    "Caprasimo",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#3d472b",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#c67139",
+      "#7a8a5e"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "studio product photography on a warm dark set — soft large-source key, terracotta and cream props, clean gradient falloff",
+    "iconStyle": "line",
+    "keywords": [
+      "product on plinth",
+      "studio lighting setup",
+      "laptop on desk",
+      "design studio interior",
+      "hands presenting",
+      "clean workspace",
+      "launch event"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo",
+      "illustration"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Caprasimo",
+    "body": "Figtree"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "poised anticipation — a room going quiet before a reveal",
+    "archetype": "luxury",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "cinematic strings",
+      "sub hits",
+      "piano motif",
+      "airy pad"
+    ],
+    "musicKeywords": [
+      "reveal underscore",
+      "poised piano",
+      "airy strings",
+      "warm swell",
+      "anticipation bed",
+      "cinematic rise",
+      "sub impact",
+      "orchestral lift",
+      "triumphant brass",
+      "widescreen climax",
+      "percussive finale",
+      "grand close"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "product-reveal",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

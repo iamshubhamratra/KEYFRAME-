@@ -537,9 +537,7 @@ function open(ctx, inner) {
       <div class="sb-mark">
         <div class="${id}-dia" style="width:${r(U(14))}cqw;height:${r(U(14))}cqw;background:${sf.a1};"></div>
         <div style="font-weight:800;font-size:${r(U(22))}cqw;letter-spacing:0.3em;color:${sf.ink};">${esc(ctx.brand)}</div>
-        <div style="font-weight:600;font-size:${r(U(18))}cqw;letter-spacing:0.2em;color:${rgba(sf.ink, 0.5)};">${pad2(ctx.i + 1)} / ${pad2(ctx.total)}</div>
       </div>
-      <div class="${id}-prog sb-prog" style="background:linear-gradient(90deg,${th.a1},${th.a2});"></div>
     </div>
   </div>`;
 }
@@ -864,8 +862,10 @@ function cameraTweens(ctx) {
 function chromeTweens(ctx, D) {
   const { id, T, L } = ctx;
   const p0 = D > 0 ? T / D : 0, p1 = D > 0 ? Math.min(1, (T + L) / D) : 0;
+  // The `.<id>-prog` fill that used to lead this list is gone (see the note at the masthead).
+  // The slowly rotating diamond stays — it is the pack's signature mark, not a playhead: it
+  // never reaches an end state and encodes nothing about position in the film.
   return [
-    `tl.fromTo(".${id}-prog",{scaleX:${r(p0)}},{scaleX:${r(p1)},duration:${r(L)},ease:"none",transformOrigin:"left center"},${r(T)});`,
     `tl.fromTo(".${id}-dia",{rotation:${r(45 + T * 10)}},{rotation:${r(45 + (T + L) * 10)},duration:${r(L)},ease:"none"},${r(T)});`,
   ];
 }
@@ -981,7 +981,6 @@ function styleBlock(th, portrait) {
   .sb-slab { overflow:hidden; will-change:transform,opacity; }
   .sb-bar { display:flex; align-items:center; justify-content:space-between; padding:0 ${r(U(18))}cqw; font-family:${th.monoStack}; font-weight:600; font-size:${r(U(20))}cqw; letter-spacing:0.2em; text-transform:uppercase; }
   .sb-mark { position:absolute; left:${M}cqw; bottom:${r(U(78))}cqw; display:flex; align-items:center; gap:${r(U(14))}cqw; z-index:30; }
-  .sb-prog { position:absolute; left:0; bottom:0; height:${r(U(5))}cqw; width:100%; transform:scaleX(0); transform-origin:left center; z-index:30; }
   /* The caption rides just above the footer wordmark, never over the karaoke band. */
   #caps { position:absolute; inset:0; display:flex; justify-content:center; align-items:flex-end; padding:0 ${M}cqw ${portrait ? "9%" : "7%"}; z-index:60; pointer-events:none; }
   #cap-pill { max-width:84%; height:fit-content; flex:0 0 auto; text-align:center; padding:${r(U(12))}cqw ${r(U(22))}cqw; opacity:0; }

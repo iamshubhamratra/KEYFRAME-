@@ -76,12 +76,16 @@
       "dark"
     ],
     "musicKeywords": [
+      "atmospheric",
+      "digital",
       "dark synth",
       "glitch electronic",
       "cyber tension",
       "hacker underscore",
       "driving techno",
-      "digital pulse"
+      "digital pulse",
+      "driving",
+      "powerful"
     ],
     "sfxPalette": {
       "transition": "whoosh",
@@ -94,7 +98,8 @@
       "energyBoost": 1,
       "sfxDensity": "rich",
       "ambient": false
-    }
+    },
+    "archetype": "tech"
   },
   "media": {
     "requiredAssets": {

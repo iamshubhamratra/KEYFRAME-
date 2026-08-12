@@ -1904,10 +1904,11 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   // costs the timeline nothing and can never desync from a seeked capture.
   const grain = `<div id="kf-grain" class="clip" data-start="0" data-duration="${D}" data-track-index="92" data-layout-allow-occlusion style="pointer-events:none;opacity:.14;mix-blend-mode:multiply;background-image:radial-gradient(${rgba(theme.ink, 0.7)} 1px,transparent 1.4px);background-size:4px 4px;"></div>`;
 
+  // NO PROGRESS RAIL — see film_stage.js. `#kf-prog` ran the width of the frame for the whole
+  // film and even re-tinted itself on every cut so the rail stayed legible against each new
+  // palette; all of that effort went into a scrubber the viewer never asked for. The chrome
+  // layer stays for the scene label. Guarded by `npm run test:no-playback-chrome`.
   const chrome = `<div id="kf-chrome" class="clip" data-start="0" data-duration="${D}" data-track-index="94" data-layout-allow-occlusion style="pointer-events:none;">
-    <div style="position:absolute;left:0;right:0;top:0;height:${X(10)};background:${rgba(theme.ink, 0.14)};">
-      <div id="kf-prog" style="height:100%;width:100%;background:${accents[0]};transform-origin:left center;"></div>
-    </div>
     <div id="kf-label" style="position:absolute;left:${X(80)};top:${V(70)};font-family:${theme.monoStack};font-size:${F(22)};letter-spacing:.2em;text-transform:uppercase;color:${rgba(theme.onField(grounds[0]), 0.55)};"></div>
   </div>`;
 
@@ -1992,8 +1993,6 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   gsap.set("#kf-seam",{y:seams[0].y,rotate:seams[0].a,scaleY:seams[0].sy});
   gsap.set("#kf-seam2",{y:seams[0].y+${r(H * 0.055)},rotate:seams[0].a});
 
-  // Progress rule — one linear scaleX across the whole film.
-  tl.fromTo("#kf-prog",{scaleX:0},{scaleX:1,duration:D,ease:"none",immediateRender:false},0);
   // Scene 1's own dressing, parked before the timeline runs so the opener is placed by the
   // same rule as every later beat rather than sitting at the markup's default.
   gsap.set("#kf-blob1",{xPercent:blobA[0].xp,yPercent:blobA[0].yp,scale:blobA[0].s});
@@ -2023,7 +2022,6 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
       tl.set("#kf-dots",{color:dots[nx]},cut+0.21);
       tl.set("#kf-blob1",{backgroundColor:decA[nx],xPercent:blobA[nx].xp,yPercent:blobA[nx].yp,scale:blobA[nx].s},cut+0.21);
       tl.set("#kf-blob2",{borderColor:decB[nx],xPercent:blobB[nx].xp,yPercent:blobB[nx].yp,scale:blobB[nx].s},cut+0.21);
-      tl.set("#kf-prog",{backgroundColor:progs[nx]},cut+0.21);
       // The seam joins the film on the FIRST cut — set, not tweened, inside the same
       // under-cover window as the ground swap, so it is simply there when the block
       // clears. Its scene-1 anchor tween has already started by this point (it fires at

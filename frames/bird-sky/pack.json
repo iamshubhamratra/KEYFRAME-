@@ -1,0 +1,174 @@
+{
+  "name": "bird-sky",
+  "vibe": "Look up more often. A pale #cfe6f2 sky with a yellow #f2c14e sun, three lobed clouds crossing at different speeds, nine ink chevrons flying in a V that flaps as it tracks past, a coral #e2705c kite bobbing on a slow sine with a tail that snakes behind it, and a dark hill silhouette rolling along the bottom edge. Yeseva One's high-contrast serif sits over Mukta in sentence case. Its signature is Scroll:ticker — three marquee rails of names running in alternating directions at 66/58/50px — backed by Toggle:switch flipping rows on one at a time and Notify:side sliding cards in with draining timer bars. Titles rise; the camera hops with 12px vertical drift. Best for nature, travel, wellbeing and outdoor kit.",
+  "orientation": "portrait",
+  "category": "Nature",
+  "tags": [
+    "birdwatching",
+    "open sky",
+    "light ground",
+    "serif",
+    "scroll",
+    "toggle",
+    "notify",
+    "morph",
+    "outdoors"
+  ],
+  "renderer": "film-bird-sky",
+  "colors": {
+    "sky": "#cfe6f2",
+    "ink": "#2e3440",
+    "sun": "#f2c14e",
+    "coral": "#e2705c",
+    "paper": "#fbf9f4",
+    "ground": "#cfe6f2",
+    "text": "#2e3440",
+    "accent": "#e2705c"
+  },
+  "fonts": [
+    "Yeseva One",
+    "Mukta"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#cfe6f2",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#e2705c",
+      "#f2c14e",
+      "#cfe6f2"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "bright naturalistic outdoor photograph of birds against a pale blue morning sky, wide open air, clean daylight and long horizons",
+    "iconStyle": "line",
+    "keywords": [
+      "birds in flight",
+      "open sky clouds",
+      "birdwatching binoculars",
+      "marsh at dawn",
+      "murmuration",
+      "kite flying",
+      "nature reserve",
+      "field notebook"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Yeseva One",
+    "body": "Mukta"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "airy",
+    "archetype": "warm",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "acoustic folk",
+      "fingerpicked guitar",
+      "strings",
+      "whistle"
+    ],
+    "musicKeywords": [
+      "ambient folk",
+      "acoustic ballad",
+      "tin whistle",
+      "meadow strings",
+      "mandolin folk",
+      "indie folk",
+      "acoustic strum",
+      "folk pop",
+      "celtic reel",
+      "folk rock",
+      "folk stomp",
+      "anthemic folk"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

@@ -1,0 +1,174 @@
+{
+  "name": "aurora-night",
+  "vibe": "Arctic #0e1b2e night under three aurora bands — nine-point sine curtains filled at 8–12% and re-stroked bright, band two violet #8f7ae0, the others green #57e6a8 — rippling above a fixed black mountain ridge while twenty stars twinkle on their own phases. Sora over Atkinson Hyperlegible. The hook pushes its title down to 900px so the sky owns two thirds of the frame, and the camera drifts vertically at the calmest ambient rate in its family. Cards are glowing dark panels, montage tiles halo violet and the stat numerals themselves glow. Mechanics: a circular ring gauge, a ticker, a terminal and side alerts. Best for dark-mode products, developer tools, observability, astronomy and cold-weather travel.",
+  "orientation": "portrait",
+  "category": "Nature",
+  "tags": [
+    "dark mode",
+    "aurora",
+    "travel",
+    "glow ui",
+    "developer",
+    "terminal",
+    "night",
+    "astronomy"
+  ],
+  "renderer": "film-aurora-night",
+  "colors": {
+    "arctic": "#0e1b2e",
+    "green": "#57e6a8",
+    "violet": "#8f7ae0",
+    "ice": "#dfe9f2",
+    "ink": "#0a1220",
+    "ground": "#0e1b2e",
+    "text": "#dfe9f2",
+    "accent": "#57e6a8",
+    "paper": "#dfe9f2"
+  },
+  "fonts": [
+    "Sora",
+    "Atkinson Hyperlegible"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#0e1b2e",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#57e6a8",
+      "#8f7ae0",
+      "#0e1b2e"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "long-exposure night photograph of green aurora over a snow ridge, star-filled sky, deep blue shadows, no light pollution",
+    "iconStyle": "line",
+    "keywords": [
+      "northern lights",
+      "snowy ridge",
+      "night sky stars",
+      "arctic cabin",
+      "frozen lake",
+      "moonlit snow",
+      "timelapse camera",
+      "thermal parka"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo",
+      "illustration"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Sora",
+    "body": "Atkinson Hyperlegible"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "Cold, wide-eyed calm — sub-bass under a sky that will not stop moving",
+    "archetype": "tech",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "synth pads",
+      "sub bass",
+      "glass bells",
+      "granular air"
+    ],
+    "musicKeywords": [
+      "ambient nocturne",
+      "crystal chimes",
+      "granular texture",
+      "subsonic rumble",
+      "arctic drone",
+      "modular synth",
+      "downtempo pulse",
+      "analog arpeggio",
+      "ambient techno",
+      "dub techno",
+      "synth bassline",
+      "melodic techno"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

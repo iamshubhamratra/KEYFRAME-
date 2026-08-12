@@ -79,12 +79,16 @@
       "driving"
     ],
     "musicKeywords": [
+      "atmospheric",
+      "digital",
       "driving electronic",
       "percussive modern",
       "bold energetic",
-      "kinetic pulse",
+      "driving pulse",
       "confident drums",
-      "punchy electronic"
+      "powerful electronic",
+      "driving",
+      "powerful"
     ],
     "sfxPalette": {
       "transition": "whoosh",
@@ -97,7 +101,8 @@
       "energyBoost": 2,
       "sfxDensity": "rich",
       "ambient": false
-    }
+    },
+    "archetype": "tech"
   },
   "media": {
     "requiredAssets": {

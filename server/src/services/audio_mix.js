@@ -365,6 +365,30 @@ async function mixWithPlan({ videoPath, outputPath, durationSec, ttsPath, musicP
     sfxBus = "[sfxbus]";
   }
 
+  // ---- REVERSE DUCK: the music steps aside for an accent (music-led films only).
+  //
+  // With a voice, everything already defers to speech and a third relationship would only
+  // pump. With none, NOTHING arbitrates the bed against the accents — they collide and the
+  // limiter decides, which is what makes a music-led film's punctuation read as mush. The
+  // director sets `musicUnderSfxDuckDb` (0 = off, and it is 0 in every narrated mix).
+  //
+  // The split must feed TWO consumed outputs. An asplit branch nothing reads is the exact
+  // ffmpeg deadlock this file already paid for once on the voice bus, so the key is either
+  // built AND used, or never built.
+  const sfxDuckDbRaw = Math.abs(Number.isFinite(m.musicUnderSfxDuckDb) ? m.musicUnderSfxDuckDb : 0);
+  let reverseDucked = false;
+  if (sfxBus && musFinal && sfxDuckDbRaw > 0) {
+    const ratio = Math.max(2, Math.min(8, Math.round(sfxDuckDbRaw * 0.6)));
+    parts.push(`${sfxBus}asplit=2[sfxout][sfxkeypre]`);
+    // The key listens above the bed's fundamentals so a kick in the music cannot key the
+    // duck against itself; only the accents open it.
+    parts.push(`[sfxkeypre]highpass=f=180,aresample=44100[sfxkey]`);
+    parts.push(`${musFinal}[sfxkey]sidechaincompress=threshold=0.12:ratio=${ratio}:attack=5:release=180:makeup=1[musrev]`);
+    sfxBus = "[sfxout]";
+    musFinal = "[musrev]";
+    reverseDucked = true;
+  }
+
   // Terminate every key branch nothing consumed. Three ways this happens, and only the
   // last one was previously handled: no music at all (the duck had nothing to apply to —
   // a latent stall whenever TTS succeeded and every music source came up dry), a plan
@@ -405,7 +429,7 @@ async function mixWithPlan({ videoPath, outputPath, durationSec, ttsPath, musicP
   const noVo = audioPlan.narration === "off";
   log(`plan mix [${noVo ? "MUSIC-LED (no narration)" : "voice-led"}]: ${voLabels.length} vo, music=${musicIdx !== null}`
     + `${musicIdx !== null ? `@${Number.isFinite(m.musicSoloLufs) ? m.musicSoloLufs : -23} LUFS` : ""}, `
-    + `${kept}/${sfxList.length} sfx, duck=${voKeyUsed ? "on" : "bypassed"}, `
+    + `${kept}/${sfxList.length} sfx, duck=${voKeyUsed ? "on" : "bypassed"}${reverseDucked ? ", music-under-sfx=on" : ""}, `
     + `carve=${(Number.isFinite(m.musicMidCarveDb) ? m.musicMidCarveDb : -4) < 0 ? "on" : "off"} `
     + `into ${path.basename(outputPath)} (t=${durationSec}s)`);
   const timeoutMs = Math.max(90_000, Math.round(durationSec * 8_000));

@@ -1,0 +1,175 @@
+{
+  "name": "groove-crate",
+  "vibe": "A back-room record shop: aubergine-black (#17141a), an orange label (#ff8c42), a hot rose and a teal, with Righteous stamping every title. The backdrop is a working deck — a cream-rimmed platter with three groove rings and an orange centre label, its tonearm line sweeping the record at 2.4 rad/s; a second teal arm sways above it carrying a rose headshell; five sleeve spines fan across the top corner, each bobbing out of time; a three-bar orange equaliser jumps at the left. Statement beats flood full rose over wax; the closing card flips to teal. The camera opens on a spin and stays loose — 1.4° roll with a slight skew. Mechanics: a stacked crate scroll, a crossfader slider, a sleeve-flap morph and dropped want-list alerts. Best for record shops, labels, club nights and bars.",
+  "orientation": "portrait",
+  "category": "Retro",
+  "tags": [
+    "vinyl",
+    "record-shop",
+    "retro",
+    "funk",
+    "music-retail",
+    "warm-dark",
+    "nightlife",
+    "collector"
+  ],
+  "renderer": "film-groove-crate",
+  "colors": {
+    "wax": "#17141a",
+    "tang": "#ff8c42",
+    "rose": "#ff5d8f",
+    "cream": "#f2ead9",
+    "teal": "#3fb8af",
+    "ground": "#17141a",
+    "text": "#f2ead9",
+    "accent": "#ff8c42",
+    "ink": "#17141a",
+    "paper": "#f2ead9"
+  },
+  "fonts": [
+    "Righteous",
+    "Mulish"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#17141a",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#ff8c42",
+      "#f2ead9",
+      "#ff5d8f"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "warm shop-light photography of vinyl culture — hands flipping through crates, a platter and tonearm in shallow focus, faded sleeve spines, slight grain and colour cast",
+    "iconStyle": "line",
+    "keywords": [
+      "vinyl records crate",
+      "turntable tonearm",
+      "album sleeves wall",
+      "record shop interior",
+      "mixer crossfader",
+      "dj hands",
+      "45 rpm single",
+      "listening booth"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Righteous",
+    "body": "Mulish"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "dusty crate-dig groove, room-tone and all",
+    "archetype": "groove",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "rare-groove drums",
+      "wurlitzer",
+      "clavinet stabs",
+      "vinyl crackle"
+    ],
+    "musicKeywords": [
+      "dusty soul",
+      "soul jazz",
+      "crate digger",
+      "northern soul",
+      "motown bounce",
+      "funk break",
+      "boogie bassline",
+      "brass hits",
+      "disco strut",
+      "breakbeat cut",
+      "afrobeat drive",
+      "dancefloor stomp"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "ui-click",
+      "reveal": "product-reveal",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

@@ -72,17 +72,21 @@
     "tempo": "mid",
     "style": [
       "minimal",
-      "editorial",
+      "underscore",
       "documentary",
       "electronic"
     ],
     "musicKeywords": [
+      "thoughtful",
+      "reflective",
       "minimal electronic",
       "documentary underscore",
       "precise rhythmic",
       "modern corporate clean",
       "understated tension",
-      "editorial pulse"
+      "percussive pulse",
+      "percussive",
+      "build"
     ],
     "sfxPalette": {
       "transition": "card-slide",
@@ -95,7 +99,8 @@
       "energyBoost": 1,
       "sfxDensity": "normal",
       "ambient": false
-    }
+    },
+    "archetype": "editorial"
   },
   "media": {
     "requiredAssets": {

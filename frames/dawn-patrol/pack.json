@@ -1,0 +1,174 @@
+{
+  "name": "dawn-patrol",
+  "vibe": "5:45am on an empty road. #16324f predawn blue, a coral (#ff7955) sun that physically climbs as the scene advances, and hi-vis #ffe14d for anything that matters. Big Shoulders Display runs tall, condensed and uppercase on every beat. The world sweeps a 90px-wide pale road arc across the lower frame with seven yellow lane dashes streaming along it, plants 5K / 4K / 3K distance posts down the right, and animates a pale stick runner whose arms and legs swing on a 6Hz cadence while the whole body bobs. Statement beats go full coral; the CTA goes full hi-vis yellow with an ink block button — the loudest frame in this batch. Titles and items both streak in, and the camera adds a hard 0.34 lateral slide at multiplier 7. Owns a gauge Ring, feed Scroll, check Toggles and roll Morphs. For run clubs, gyms, races and sportswear.",
+  "orientation": "portrait",
+  "category": "Sport",
+  "tags": [
+    "running",
+    "dawn",
+    "fitness",
+    "condensed-type",
+    "hi-vis",
+    "club",
+    "uppercase",
+    "high-energy"
+  ],
+  "renderer": "film-dawn-patrol",
+  "colors": {
+    "predawn": "#16324f",
+    "coral": "#ff7955",
+    "hivis": "#ffe14d",
+    "pale": "#eef4f8",
+    "ink": "#0e2032",
+    "ground": "#16324f",
+    "text": "#eef4f8",
+    "accent": "#ffe14d",
+    "paper": "#eef4f8"
+  },
+  "fonts": [
+    "Big Shoulders Display",
+    "Red Hat Text"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#16324f",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#ffe14d",
+      "#ff7955",
+      "#eef4f8"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "cold blue-hour sports photograph of runners on an empty road, low coral sun flare on the horizon, breath vapour and hi-vis reflective detail",
+    "iconStyle": "line",
+    "keywords": [
+      "morning run",
+      "runner silhouette",
+      "sunrise road",
+      "running club",
+      "empty street dawn",
+      "athletic training",
+      "reflective vest",
+      "race start"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot",
+      "illustration"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Big Shoulders Display",
+    "body": "Red Hat Text"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "cold-morning adrenaline — a steady cadence that keeps building toward the sun",
+    "archetype": "hype",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "electronic",
+      "driving",
+      "motivational",
+      "four-on-the-floor"
+    ],
+    "musicKeywords": [
+      "downtempo sunrise",
+      "morning arpeggio",
+      "hopeful synth",
+      "progressive house",
+      "road tempo",
+      "running cadence",
+      "drum machine",
+      "training montage",
+      "sunrise drive",
+      "electro push",
+      "techno sprint",
+      "hard house"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "ui-click",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

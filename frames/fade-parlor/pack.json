@@ -1,0 +1,175 @@
+{
+  "name": "fade-parlor",
+  "vibe": "A barbershop with brass fittings. #1b2838 navy walls, #f4eee4 cream, pole red #c8433b, and a #caa24f gold used only for trim. Abril Fatface stamps titles down hard; Work Sans handles the detail. The world stands a barber's pole at the right whose skewed red-and-navy stripes scroll endlessly upward between gold end caps, opens and closes a pair of steel scissors with gold finger-rings at lower-left on a 2.2Hz rhythm, chases five gold bulbs across the upper-left, and rules a steel shelf line under a comb-wave squiggle. Statement beats flood full pole red with cream copy; the CTA flips to full cream with a navy block button. Cards are near-black navy frames carrying gold and steel outline chips. The camera zooms and drops at a lively but controlled magnitude. Owns a slider Cursor, board Scroll, side Notify and flap Morphs. For barbers, salons, tattoo studios and heritage service trades.",
+  "orientation": "portrait",
+  "category": "Grooming",
+  "tags": [
+    "barbershop",
+    "grooming",
+    "heritage",
+    "navy-and-brass",
+    "stamp-type",
+    "service-business",
+    "booking",
+    "dark"
+  ],
+  "renderer": "film-fade-parlor",
+  "colors": {
+    "navy": "#1b2838",
+    "cream": "#f4eee4",
+    "red": "#c8433b",
+    "steel": "#9fb2c1",
+    "gold": "#caa24f",
+    "ground": "#1b2838",
+    "text": "#f4eee4",
+    "accent": "#caa24f",
+    "ink": "#1b2838",
+    "paper": "#f4eee4"
+  },
+  "fonts": [
+    "Abril Fatface",
+    "Work Sans"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#1b2838",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#caa24f",
+      "#1b2838",
+      "#c8433b"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "moody warm-tungsten portrait photography inside a vintage barbershop, navy walls, brass fixtures, cream tile and a chair under a single hanging light",
+    "iconStyle": "line",
+    "keywords": [
+      "barbershop",
+      "barber chair",
+      "fade haircut",
+      "clippers",
+      "barber pole",
+      "straight razor",
+      "grooming products",
+      "shop mirror"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot",
+      "illustration"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Abril Fatface",
+    "body": "Work Sans"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "brass-and-leather swagger — relaxed, confident, a little vintage",
+    "archetype": "retro",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "soul",
+      "funk",
+      "live-band",
+      "vintage"
+    ],
+    "musicKeywords": [
+      "rhodes ballad",
+      "lounge guitar",
+      "smooth blues",
+      "hammond organ",
+      "brass swagger",
+      "shop floor",
+      "horn section",
+      "dusty funk",
+      "clavinet groove",
+      "wah guitar",
+      "rare groove",
+      "funk drums"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "ui-click",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

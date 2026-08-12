@@ -81,12 +81,16 @@
       "indie"
     ],
     "musicKeywords": [
+      "gentle",
+      "calm",
       "handmade acoustic",
       "whimsical folk",
       "playful indie",
-      "warm papercraft",
+      "warm handmade",
       "upbeat acoustic",
-      "cheerful indie"
+      "cheerful indie",
+      "bright",
+      "happy"
     ],
     "sfxPalette": {
       "transition": "card-slide",
@@ -99,7 +103,8 @@
       "energyBoost": 1,
       "sfxDensity": "rich",
       "ambient": false
-    }
+    },
+    "archetype": "warm"
   },
   "media": {
     "requiredAssets": {

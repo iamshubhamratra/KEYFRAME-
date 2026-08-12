@@ -1,0 +1,172 @@
+{
+  "name": "bonsai-bench",
+  "vibe": "Warm paper (#eee9dc) with a pine green (#41613f), bark brown and a grey stone. Fraunces sets soft-contrast serif headlines over Rubik. The world is one potted bonsai on a bench in the lower right: the trunk sways a couple of degrees on a slow cycle, its branches drawn as round-capped strokes, the pot sitting on a shadowed lip. Nothing else moves — the restraint is the design. Its mechanics are a dial, a gauge, handwriting that appears word by word and a ruled board. Best for craft and horticulture, wellness, slow-made goods and studios that want patience to read as expertise.",
+  "orientation": "portrait",
+  "category": "Craft",
+  "tags": [
+    "bonsai",
+    "craft",
+    "horticulture",
+    "calm",
+    "paper",
+    "serif",
+    "patient",
+    "wellness"
+  ],
+  "renderer": "film-bonsai-bench",
+  "colors": {
+    "paper": "#eee9dc",
+    "pine": "#41613f",
+    "bark": "#6b4f34",
+    "stone": "#9aa39a",
+    "ink": "#26302a",
+    "ground": "#eee9dc",
+    "text": "#26302a",
+    "accent": "#41613f"
+  },
+  "fonts": [
+    "Fraunces",
+    "Rubik"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#eee9dc",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#41613f",
+      "#9aa39a",
+      "#eee9dc"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "soft north-light still-life photography — a workbench, hand tools and greenery on warm paper tones, shallow depth, no hard shadow",
+    "iconStyle": "line",
+    "keywords": [
+      "bonsai tree",
+      "pruning shears",
+      "potting bench",
+      "moss and stone",
+      "japanese garden",
+      "hands working soil",
+      "ceramic pot"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Fraunces",
+    "body": "Rubik"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "unhurried attention — one task, done properly",
+    "archetype": "warm",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "zither",
+      "wind chime",
+      "hand percussion",
+      "wood block"
+    ],
+    "musicKeywords": [
+      "bonsai stillness",
+      "garden hush",
+      "wind bell",
+      "pruning ritual",
+      "moss quiet",
+      "bamboo breath",
+      "stone garden",
+      "slow zither",
+      "tending rhythm",
+      "earth drums",
+      "cultivation build",
+      "harvest drums"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

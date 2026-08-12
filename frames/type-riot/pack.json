@@ -1,0 +1,133 @@
+{
+  "name": "type-riot",
+  "vibe": "Pure black ink (#141414), off-white paper and one riot red (#e63329) — no third colour anywhere. Anton stacks condensed uppercase headlines to the edges over Space Grotesk. The world is made of type: a giant ghost word scrolls behind everything at low contrast, a marquee rail runs the reserved band, and a hard red rule slams across on the beat. The only film here whose backdrop is language rather than landscape. Best for manifestos, music and culture, political and campaign work, streetwear drops and any brand that would rather shout than explain.",
+  "orientation": "portrait",
+  "category": "Editorial",
+  "tags": [
+    "editorial",
+    "typographic",
+    "monochrome",
+    "condensed",
+    "manifesto",
+    "punk",
+    "red",
+    "bold"
+  ],
+  "renderer": "film-type-riot",
+  "colors": {
+    "ink": "#141414",
+    "paper": "#f4f1ea",
+    "red": "#e63329",
+    "ground": "#141414",
+    "text": "#f4f1ea",
+    "accent": "#e63329"
+  },
+  "fonts": [
+    "Anton",
+    "Space Grotesk"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#141414",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#e63329",
+      "#f4f1ea"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "high-contrast black and white reportage — grainy, hard flash, crowds and printed matter, red only as a graphic overlay",
+    "iconStyle": "solid",
+    "keywords": [
+      "protest crowd",
+      "letterpress type",
+      "poster wall",
+      "megaphone",
+      "printing press",
+      "concert crowd",
+      "screen print"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot",
+      "vector"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Anton",
+    "body": "Space Grotesk"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 0,
+      "productImages": 0,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "cta": {
+        "count": 1,
+        "width": 148,
+        "height": 148,
+        "priority": "medium",
+        "objectFit": "contain",
+        "kind": "logos",
+        "note": "the CTA logo lockup — this pack is typographic and shows no other imagery"
+      }
+    },
+    "oversample": 1,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "controlled aggression — a statement with a fist behind it",
+    "archetype": "hype",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "distorted bass",
+      "industrial drums",
+      "noise sweep",
+      "hard clap"
+    ],
+    "musicKeywords": [
+      "industrial stomp",
+      "distorted bass",
+      "punk drums",
+      "noise sweep",
+      "hard clap",
+      "grinding riff",
+      "aggressive break",
+      "post punk",
+      "shouted chorus",
+      "relentless kick",
+      "riot energy",
+      "wall of sound"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "ui-click",
+      "reveal": "pop",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
+  }
+}

@@ -1,0 +1,173 @@
+{
+  "name": "vault-twelve",
+  "vibe": "Gunmetal (#141920) under a laser red (#ff3355), a bullion gold and a cold chrome. Chakra Petch sets technical headlines over IBM Plex Sans. The world is a vault door: a 132-radius dial in the lower right with twenty-four tick marks, every sixth one brighter, rotating back and forth as though someone is working the combination — it never completes, which is the joke. Its mechanics are a terminal writing code, a sweep ring, a keyboard cursor and dropping alerts. Best for security and fintech, infrastructure and access control, crypto custody and anything sold on being hard to get into.",
+  "orientation": "portrait",
+  "category": "Security",
+  "tags": [
+    "security",
+    "vault",
+    "fintech",
+    "tech",
+    "gunmetal",
+    "laser-red",
+    "infrastructure",
+    "crypto"
+  ],
+  "renderer": "film-vault-twelve",
+  "colors": {
+    "steel": "#141920",
+    "laser": "#ff3355",
+    "bullion": "#e8c35a",
+    "chrome": "#c8d2dc",
+    "ink": "#0a0d11",
+    "ground": "#141920",
+    "text": "#c8d2dc",
+    "accent": "#ff3355",
+    "paper": "#c8d2dc"
+  },
+  "fonts": [
+    "Chakra Petch",
+    "IBM Plex Sans"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#141920",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#ff3355",
+      "#e8c35a",
+      "#141920"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "hard-light industrial photography — brushed steel, machined edges and server rooms, cold grey with a single red indicator",
+    "iconStyle": "solid",
+    "keywords": [
+      "bank vault door",
+      "combination dial",
+      "server room racks",
+      "steel machined parts",
+      "security keypad",
+      "gold bullion",
+      "biometric scanner"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo",
+      "vector"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Chakra Petch",
+    "body": "IBM Plex Sans"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "coiled precision — a system that does not want you inside",
+    "archetype": "tech",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "industrial synth",
+      "sub bass",
+      "sequencer",
+      "hard techno"
+    ],
+    "musicKeywords": [
+      "vault hum",
+      "steel ambient",
+      "tumbler click",
+      "security drone",
+      "laser grid",
+      "combination lock",
+      "alarm pulse",
+      "breach tension",
+      "heist electro",
+      "siren drive",
+      "lockdown techno",
+      "extraction rush"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "ui-click",
+      "reveal": "product-reveal",
+      "data": "data-ping",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
+  }
+}

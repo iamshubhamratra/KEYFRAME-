@@ -1,6 +1,6 @@
 {
   "name": "flight",
-  "vibe": "A departure film. A daylight sky graded from a pale horizon to a deeper zenith, a warm sun disc bleeding light, drifting cloud banks and a dark ground plane with a dashed runway centreline that scrolls beneath you. One hot orange against all that blue. A simple aircraft mark crosses the frame on every beat — taxiing on the opener, banking up and away on the reveal — and pictures ride in rounded cabin-window panels with an inner light-catch. Authored landscape-first (16:9) as a native GSAP + DOM composition, sharing one module with its 9:16 cut. Best for travel, logistics, mobility, onboarding and any brand whose story is going somewhere.",
+  "vibe": "A departure film. A daylight sky graded from a pale horizon to a deeper zenith, a warm sun disc bleeding light, drifting cloud banks and a dark ground plane with a dashed runway centreline that scrolls beneath you. One hot orange against all that blue. A simple aircraft mark crosses the frame on every beat — taxiing on the opener, banking up and away on the reveal — and EVERY PICTURE RIDES A DEVICE: a browser card with three traffic lights and the site address in a mono url pill, or a handset with an ink bezel and a notch. The cruise beat lays five of them across the frame in a deliberately unequal mosaic; the instruments beat sets a sweeping gauge beside the readouts. Authored landscape-first (16:9) as a native GSAP + DOM composition, sharing one module with its 9:16 cut. Best for travel, logistics, mobility, onboarding and any brand whose story is going somewhere.",
   "renderer": "flight",
   "orientation": "landscape",
   "colors": {
@@ -13,8 +13,8 @@
     "paper": "#FFFFFF"
   },
   "fonts": [
-    "Figtree",
-    "JetBrains Mono"
+    "Manrope",
+    "DM Mono"
   ],
   "surface": {
     "flat": false,
@@ -54,9 +54,9 @@
     ]
   },
   "typography": {
-    "display": "Figtree",
-    "mono": "JetBrains Mono",
-    "body": "Figtree"
+    "display": "Manrope",
+    "mono": "DM Mono",
+    "body": "Manrope"
   },
   "textfx": {
     "enter": "rise",
@@ -76,12 +76,16 @@
       "ambient"
     ],
     "musicKeywords": [
+      "serene",
+      "soft",
       "uplifting cinematic",
       "soaring strings",
       "travel adventure",
       "hopeful build",
       "open sky ambient",
-      "inspiring modern"
+      "inspiring modern",
+      "dramatic",
+      "rising"
     ],
     "sfxPalette": {
       "transition": "whoosh",
@@ -94,7 +98,8 @@
       "energyBoost": 1,
       "sfxDensity": "normal",
       "ambient": true
-    }
+    },
+    "archetype": "luxury"
   },
   "media": {
     "requiredAssets": {

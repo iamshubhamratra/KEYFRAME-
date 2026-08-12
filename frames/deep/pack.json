@@ -1,6 +1,6 @@
 {
   "name": "deep",
-  "vibe": "A descent into a bioluminescent trench. The ground DARKENS down the frame — a teal shelf at the surface grading to near-black at the foot — with god-rays raking down and motes of marine snow drifting up through them. One bioluminescent teal against a deep violet counter-glow, and everything glows rather than shines: type carries a soft halo, copy sits on slabs lit from within, and pictures ride in rim-lit portholes with a caustic sheen that bob gently on the current. The closing beat inverts the whole column so the light rises. Authored landscape-first (16:9) as a native GSAP + DOM composition. Best for research, biotech, data, AI and any brand that wants depth and discovery rather than noise.",
+  "vibe": "A descent into a bioluminescent trench. The ground DARKENS down the frame — a teal shelf at the surface grading to near-black at the foot — with god-rays raking down and motes of marine snow drifting up through them. One bioluminescent teal against a deep violet counter-glow, and everything glows rather than shines: type carries a soft halo, copy sits on slabs lit from within, and pictures ride in rim-lit glass VIEWPORTS — rounded rectangles with a lamp-and-url titlebar and a caustic sheen — that bob gently on the current. One beat puts the product in a rim-lit handset instead. The closing beat inverts the whole column so the light rises. Authored landscape-first (16:9) as a native GSAP + DOM composition. Best for research, biotech, data, AI and any brand that wants depth and discovery rather than noise.",
   "renderer": "deep",
   "orientation": "landscape",
   "colors": {
@@ -13,8 +13,8 @@
     "paper": "#0C3E4A"
   },
   "fonts": [
-    "Figtree",
-    "JetBrains Mono"
+    "Outfit",
+    "DM Mono"
   ],
   "surface": {
     "flat": false,
@@ -55,9 +55,9 @@
     ]
   },
   "typography": {
-    "display": "Figtree",
-    "mono": "JetBrains Mono",
-    "body": "Figtree"
+    "display": "Outfit",
+    "mono": "DM Mono",
+    "body": "Outfit"
   },
   "textfx": {
     "enter": "rise",
@@ -77,12 +77,16 @@
       "atmospheric"
     ],
     "musicKeywords": [
+      "serene",
+      "soft",
       "deep ambient",
       "underwater atmosphere",
       "mysterious cinematic",
       "slow build",
       "ethereal pads",
-      "exploration underscore"
+      "exploration underscore",
+      "dramatic",
+      "rising"
     ],
     "sfxPalette": {
       "transition": "light-sweep",
@@ -95,7 +99,8 @@
       "energyBoost": 1,
       "sfxDensity": "normal",
       "ambient": true
-    }
+    },
+    "archetype": "luxury"
   },
   "media": {
     "requiredAssets": {
@@ -103,52 +108,63 @@
       "productImages": 7,
       "logos": 1
     },
-    "placeholders": [],
+    "placeholders": [
+      {
+        "id": "deep-pocket-handset",
+        "role": "feature",
+        "width": 360,
+        "height": 736,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "Pocket's rim-lit handset (deep_composer.js:171, SPEC.shapes.pocket 360/736). Declared as a fixed role-matched slot because a role entry carries ONE shape and Deep's only portrait device shares its beat with landscape viewports — without it template_media emits no portrait bucket and crop_engine has no analysis to hand this box."
+      }
+    ],
     "slotsByRole": {
       "hook": {
         "count": 1,
-        "width": 701,
-        "height": 700,
+        "width": 940,
+        "height": 440,
         "priority": "critical",
         "objectFit": "cover",
         "kind": "productImages",
-        "note": ""
+        "note": "Descend's hero viewport (deep_composer.js:201, SPEC.shapes.descend). NOT a square: the reference's Porthole is declared and never called and the composer draws Viewport, a rounded rectangle."
       },
       "feature": {
         "count": 2,
-        "width": 545,
-        "height": 545,
+        "width": 900,
+        "height": 620,
         "priority": "high",
         "objectFit": "cover",
         "kind": "productImages",
-        "note": ""
+        "note": "Discover's viewport (deep_composer.js:243, SPEC.shapes.discover)."
       },
       "how": {
         "count": 2,
-        "width": 545,
-        "height": 545,
+        "width": 640,
+        "height": 300,
         "priority": "high",
         "objectFit": "cover",
         "kind": "productImages",
-        "note": ""
+        "note": "Explore's wide tile (deep_composer.js:265, EXPLORE_TILES[2])."
       },
       "proof": {
         "count": 2,
-        "width": 545,
-        "height": 545,
+        "width": 500,
+        "height": 300,
         "priority": "high",
         "objectFit": "cover",
         "kind": "productImages",
-        "note": ""
+        "note": "Explore's standard tile (deep_composer.js:263, EXPLORE_TILES[0]) — also the shape the sub-four-picture fallback row is built from."
       },
       "context": {
         "count": 2,
-        "width": 545,
-        "height": 545,
+        "width": 560,
+        "height": 250,
         "priority": "medium",
         "objectFit": "cover",
         "kind": "productImages",
-        "note": ""
+        "note": "Explore's lower-row tile (deep_composer.js:266, EXPLORE_TILES[3])."
       }
     },
     "oversample": 1.8,

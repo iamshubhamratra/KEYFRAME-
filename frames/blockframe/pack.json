@@ -1,6 +1,7 @@
 {
   "name": "blockframe",
   "renderer": "blockframe",
+  "orientation": "landscape",
   "vibe": "maximalist neo-brutalist: candy pastels, 4px black borders, hard shadows, loud uppercase — playful, bold, product-launch energy",
   "colors": {
     "black": "#000000",

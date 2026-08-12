@@ -1,6 +1,6 @@
 {
   "name": "fetch",
-  "vibe": "A bright park afternoon. Pale blue sky, a warm sun, drifting clouds and rolling grass in two greens with a scalloped horizon that sways. Cream cards with soft rounded corners and a friendly chunky display face, and one warm orange accent. The signature is BOUNCE — everything arrives on an overshoot and settles, and a ball arcs and spins across the frame on every single beat. Pictures ride in rounded cream cards tilted a degree or two, like photos stuck to a fridge, and the figures land on cream rosettes. Authored landscape-first (16:9) as a native GSAP + DOM composition. Best for pets, family, food, community, education and any brand that should feel warm and unserious.",
+  "vibe": "A flat-vector park afternoon with a story in it: a dog runs a ball across the meadow and delivers it, and the whole film is that errand. Pale blue sky, a sun with twelve turning rays, drifting clouds, rolling hills in three greens, a picket fence and a swaying grass field. Every surface is a STICKER — cream paper behind a solid ink outline and a hard offset shadow with no blur anywhere — set in a soft rounded display face with one warm orange accent. The signature is BOUNCE: everything arrives on an overshoot and settles, the dog's run cycle drags the park past on five parallax layers, and hearts, sparkles, dust and paw prints carry the ambience. One screenshot slot, and it is a portrait PHONE. Authored landscape-first (16:9) as a native GSAP + DOM/SVG composition. Best for pets, family, food, community, education and any brand that should feel warm and unserious.",
   "renderer": "fetch",
   "orientation": "landscape",
   "colors": {
@@ -13,12 +13,11 @@
     "paper": "#FFFDF6"
   },
   "fonts": [
-    "Caprasimo",
-    "JetBrains Mono",
-    "Figtree"
+    "Fredoka",
+    "Nunito"
   ],
   "surface": {
-    "flat": false,
+    "flat": true,
     "lightCinematic": true,
     "ground": "#EAF7FB"
   },
@@ -56,9 +55,8 @@
     ]
   },
   "typography": {
-    "display": "Caprasimo",
-    "mono": "JetBrains Mono",
-    "body": "Figtree"
+    "display": "Fredoka",
+    "body": "Nunito"
   },
   "textfx": {
     "enter": "pop",
@@ -78,12 +76,16 @@
       "ukulele"
     ],
     "musicKeywords": [
+      "gentle",
+      "calm",
       "happy ukulele",
       "cheerful acoustic",
       "playful whistle",
       "sunny folk pop",
       "light hearted",
-      "feel good strum"
+      "feel good strum",
+      "bright",
+      "happy"
     ],
     "sfxPalette": {
       "transition": "whoosh",
@@ -96,7 +98,8 @@
       "energyBoost": 1,
       "sfxDensity": "rich",
       "ambient": true
-    }
+    },
+    "archetype": "warm"
   },
   "media": {
     "requiredAssets": {

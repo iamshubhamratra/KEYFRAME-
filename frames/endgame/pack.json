@@ -1,0 +1,173 @@
+{
+  "name": "endgame",
+  "vibe": "A chess club on a parchment table. #efe6d8 board tone under DM Serif Display, walnut #6b4a2f for the furniture, and a single brick red #b3452e for whatever is under attack. The world draws a translucent 5×5 board into the bottom-right corner and hops a red knight between four squares in a genuine arc, while an analogue clock top-left runs one fast red hand against one slow ink hand and ♟ ♞ ♛ glyphs light in rotation along the base. The montage grid is the only one here with zero tilt — every tile sits square, radius 8, like a printed scoresheet. Statement beats invert to near-black #221c16; the CTA goes full walnut. Titles settle slowly while items flip in like turned cards. Owns a board Scroll, check Toggles, a typewriter Typing pass and split-flap Morphs. For clubs, leagues, courses, bookshops — anything cerebral and unhurried.",
+  "orientation": "portrait",
+  "category": "Games",
+  "tags": [
+    "chess",
+    "club-night",
+    "parchment",
+    "walnut",
+    "cerebral",
+    "tournament",
+    "serif",
+    "tabletop"
+  ],
+  "renderer": "film-endgame",
+  "colors": {
+    "board": "#efe6d8",
+    "walnut": "#6b4a2f",
+    "ink": "#221c16",
+    "check": "#b3452e",
+    "sage": "#7d8c69",
+    "ground": "#efe6d8",
+    "text": "#221c16",
+    "accent": "#b3452e",
+    "paper": "#efe6d8"
+  },
+  "fonts": [
+    "DM Serif Display",
+    "DM Sans"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#efe6d8",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#b3452e",
+      "#efe6d8"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "warm tungsten-lit documentary photograph of a chess club, parchment and walnut tones, shallow depth of field over a board mid-game",
+    "iconStyle": "solid",
+    "keywords": [
+      "chess board",
+      "wooden chess pieces",
+      "chess clock",
+      "club night",
+      "strategy game",
+      "tournament hall",
+      "notation sheet",
+      "hands over board"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "DM Serif Display",
+    "body": "DM Sans"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "measured and wooden — concentration with a competitive edge underneath",
+    "archetype": "editorial",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "chamber",
+      "acoustic-jazz",
+      "minimal-percussion",
+      "period"
+    ],
+    "musicKeywords": [
+      "string quartet",
+      "quiet gambit",
+      "pizzicato study",
+      "wood block",
+      "clock tick",
+      "vibraphone thought",
+      "walking bassline",
+      "brushed snare",
+      "staccato strings",
+      "clockwork tension",
+      "tightening pulse",
+      "brisk allegro"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "ui-click",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

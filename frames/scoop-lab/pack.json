@@ -1,0 +1,175 @@
+{
+  "name": "scoop-lab",
+  "vibe": "A pastel parlor built on pink-cream #fdeff2 with a hot pink #f25d9c that takes whole frames — the Statement beat flips to solid pink with cream type at 150px, and the CTA drops to plum-ink #33202a. Titan One's fat rounded caps sit over Varela Round. The backdrop is a candy counter: twelve sprinkles in pink, mint and waffle-tan tumble down the frame end over end while a waffle cone with a pink scoop, a white gloss dot and a scalloped drip edge parks in the upper right — a pink drip falls from it on a loop and a cherry bobs on a green stem. Titles land with an outBack bounce, items pop, and the camera hops, spins and drops with the widest drift here. Freezer levels read on a thermometer tube; lab switches flip; the tasting counter gets clicked through.",
+  "orientation": "portrait",
+  "category": "Food & Drink",
+  "tags": [
+    "ice cream",
+    "pastel",
+    "playful",
+    "bouncy",
+    "dessert",
+    "small-batch",
+    "kids",
+    "candy"
+  ],
+  "renderer": "film-scoop-lab",
+  "colors": {
+    "cream": "#fdeff2",
+    "pink": "#f25d9c",
+    "mint": "#59c9a5",
+    "waffle": "#d9a05b",
+    "ink": "#33202a",
+    "ground": "#fdeff2",
+    "text": "#33202a",
+    "accent": "#f25d9c",
+    "paper": "#fdeff2"
+  },
+  "fonts": [
+    "Titan One",
+    "Varela Round"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#fdeff2",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#f25d9c",
+      "#33202a",
+      "#fdeff2"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "bright pastel-lit studio photograph of ice cream, cones and sprinkles on pink surfaces, soft even shadows",
+    "iconStyle": "line",
+    "keywords": [
+      "ice cream cone",
+      "sprinkles",
+      "soft serve",
+      "gelato counter",
+      "waffle cone",
+      "pastel dessert",
+      "cherry topping",
+      "summer treat"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Titan One",
+    "body": "Varela Round"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "sugar-rush bubblegum bounce with a soft-serve swirl",
+    "archetype": "groove",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "bouncy",
+      "sweet",
+      "kinetic",
+      "toy-box"
+    ],
+    "musicKeywords": [
+      "glockenspiel melody",
+      "soda fountain",
+      "ice cream",
+      "parlor ragtime",
+      "marimba bounce",
+      "sprinkle skip",
+      "summer scoop",
+      "kazoo groove",
+      "bubblegum pop",
+      "whipped funk",
+      "sugar rush",
+      "surf twist",
+      "dance pop"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "pop",
+      "reveal": "pop",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
+  }
+}

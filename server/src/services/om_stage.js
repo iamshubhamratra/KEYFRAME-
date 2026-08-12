@@ -1243,10 +1243,11 @@ function build(skin, { storyboard, dims, framePack, captionCues, assets, brandSk
   // exactly what happened the first time this ran.
   const cut = cutKinds[0] === "push" ? "" : cutLayer(theme, cutKinds).replace("__D__", String(D));
 
+  // NO PROGRESS RAIL — see the same note in film_stage.js. `#om-prog` scaled 0->1 across the
+  // top of all seven om-stage skins for the film's whole duration; it is burned into the export,
+  // and a finished ad does not carry a scrubber. The chrome layer stays for the brand dot and
+  // label. Guarded by `npm run test:no-playback-chrome`.
   const chrome = `<div id="om-chrome" class="clip" data-start="0" data-duration="${D}" data-track-index="92" data-layout-allow-occlusion style="pointer-events:none;">
-    <div style="position:absolute;left:0;right:0;top:0;height:${X(8)};background:${rgba(theme.ink, 0.16)};">
-      <div id="om-prog" style="height:100%;width:100%;background:${theme.accent};transform-origin:left center;"></div>
-    </div>
     <div style="position:absolute;left:${X(PAD)};top:${V(60)};display:flex;align-items:center;gap:${X(16)};">
       <div style="width:${X(40)};height:${X(40)};border-radius:999px;background:${theme.accent};flex:none;"></div>
       <span id="om-label" style="font-family:${theme.displayStack};font-size:${F(32)};color:${theme.onField(grounds[0])};"></span>
@@ -1302,8 +1303,6 @@ function build(skin, { storyboard, dims, framePack, captionCues, assets, brandSk
   ${sceneScripts.join("\n  ")}
 
   ${cutLines.join("\n  ")}
-
-  tl.fromTo("#om-prog",{scaleX:0},{scaleX:1,duration:D,ease:"none",immediateRender:false},0);
 
   // ---- one seek-safe proxy: the world clock, the chrome label and the captions ----
   var cues=${JSON.stringify(cues)};

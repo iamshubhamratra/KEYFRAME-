@@ -1,0 +1,174 @@
+{
+  "name": "twenty-moves",
+  "vibe": "Charcoal mat #1e2024 under a six-sticker cube palette — cube yellow #ffcb2e, blue #3d7bff, white #f4f4f6 over near-black #141518. Russo One squares off every uppercase title; Geologica sets the data. The backdrop is a 3×3 cube drawn isometrically, top face and left face, all eighteen tiles re-picking a sticker colour on separate clocks so the cube visibly scrambles in place; a ghosted 6.42-style timer runs at 16% white behind the type, five move notations R U' F2 D L' light one at a time on a 2.5Hz step, and a blue bar breathes underneath from 30% to 100%. Statement beats flash full yellow, the CTA floods blue. The camera is the hardest of any pack — 7× with a spin, 4° skew — and it is the only one where titles and items both slam in from 2.2× scale. Mechanics: keycap presses, a dial grid, tri-speed tickers, a circular dial.",
+  "orientation": "portrait",
+  "category": "Sport",
+  "tags": [
+    "speedcubing",
+    "timer",
+    "competition",
+    "dark-ui",
+    "isometric",
+    "club",
+    "technical",
+    "leaderboard"
+  ],
+  "renderer": "film-twenty-moves",
+  "colors": {
+    "mat": "#1e2024",
+    "cube": "#ffcb2e",
+    "blue": "#3d7bff",
+    "white": "#f4f4f6",
+    "ink": "#141518",
+    "ground": "#1e2024",
+    "text": "#f4f4f6",
+    "accent": "#ffcb2e",
+    "paper": "#f4f4f6"
+  },
+  "fonts": [
+    "Russo One",
+    "Geologica"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#1e2024",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#ffcb2e",
+      "#f4f4f6",
+      "#1e2024"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "tight low-key photograph of hands and a speedcube on a dark club table, single hard key light, yellow and blue accents",
+    "iconStyle": "line",
+    "keywords": [
+      "rubiks cube",
+      "speedcube timer",
+      "hands solving",
+      "club table",
+      "competition mat",
+      "stopwatch",
+      "dark desk",
+      "scoreboard"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo",
+      "vector"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Russo One",
+    "body": "Geologica"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "clipped and competitive; a metronome under pressure, tension held then released on the solve",
+    "archetype": "tech",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "electronic",
+      "percussive",
+      "tense",
+      "precise"
+    ],
+    "musicKeywords": [
+      "minimal techno",
+      "metronome tick",
+      "clave click",
+      "glitch percussion",
+      "arcade tension",
+      "tech house",
+      "esports build",
+      "sprint synth",
+      "trance riser",
+      "countdown drive",
+      "speedrun push",
+      "footwork drums"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "ui-click",
+      "reveal": "gentle-impact",
+      "data": "data-ping",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
+  }
+}

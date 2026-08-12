@@ -1,0 +1,175 @@
+{
+  "name": "forest-floor",
+  "vibe": "Deep moss (#3e4a36) and bark brown (#5c4633) grounds under cream (#efe9db) type, with chanterelle gold (#d9913b) and fern green (#7ba05b) doing the picking. Vollkorn's sturdy bookish serif over Alegreya Sans. The world grows in front of you: five mushrooms pop up from the ground line on staggered outBack scales — cream stems, domed caps alternating gold and fern, wart dots on the even ones — nine spore motes drift through the mid-frame on crossed sine and cosine loops, and a fern frond on the left sways ±10° with four pairs of pinnae. Its own beats are the basket checklist that ticks itself off and the drag that carries a find into a slot. Springier than its calm siblings: rise titles, pop items, a 0.7 roll and a pushD in the camera set. For foraging walks, nature schools, botanical brands and outdoor guiding.",
+  "orientation": "portrait",
+  "category": "Nature",
+  "tags": [
+    "foraging",
+    "woodland",
+    "botanical",
+    "earth tones",
+    "bookish serif",
+    "checklist",
+    "autumn",
+    "guided walks"
+  ],
+  "renderer": "film-forest-floor",
+  "colors": {
+    "moss": "#3e4a36",
+    "cream": "#efe9db",
+    "chant": "#d9913b",
+    "bark": "#5c4633",
+    "fern": "#7ba05b",
+    "ground": "#3e4a36",
+    "text": "#efe9db",
+    "accent": "#d9913b",
+    "ink": "#3e4a36",
+    "paper": "#efe9db"
+  },
+  "fonts": [
+    "Vollkorn",
+    "Alegreya Sans"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#3e4a36",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#d9913b",
+      "#efe9db",
+      "#3e4a36"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "soft-focus woodland macro photograph, damp forest floor at golden hour, moss ferns and chanterelles, dappled light through canopy",
+    "iconStyle": "duotone",
+    "keywords": [
+      "forest floor",
+      "chanterelle",
+      "fern frond",
+      "moss log",
+      "foraging basket",
+      "woodland canopy",
+      "fallen leaves",
+      "mushroom cap"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Vollkorn",
+    "body": "Alegreya Sans"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "curious and damp — walking under a canopy, noticing things, a little whimsy without cuteness",
+    "archetype": "warm",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "folk",
+      "fingerpicked strings",
+      "woodwind",
+      "field-recording texture"
+    ],
+    "musicKeywords": [
+      "wooden flute",
+      "damp woodland",
+      "warm clarinet",
+      "spore drift",
+      "canopy morning",
+      "foraging walk",
+      "mandolin trail",
+      "autumn woods",
+      "whistle tune",
+      "banjo roll",
+      "foot stomp",
+      "bluegrass jig"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "pop",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

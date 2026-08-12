@@ -1,0 +1,175 @@
+{
+  "name": "atlas-and-ink",
+  "vibe": "Parchment #efe4cf and sepia #4a3826 with a rust compass red #a8402e, a muted sea blue #6a92a8 and gold. Young Serif's chunky old-style caps run in sentence case over Assistant; titles only drowse up, and the camera drifts five pixels — the stillest frame in this set. The backdrop is a chart being made: a faint sepia graticule rules the whole frame, a sea-tinted landmass sits under a hand-inked outline, and a rust dashed voyage route draws itself across the frame in step with the scene's own progress, its arrowhead appearing only once the line has finished. A compass rose rocks at the lower right, and a sea serpent bobs beside the italic words hic sunt dracones. Type sets one jittering character at a time; a cartouche flies in and locks into its slot with a shake.",
+  "orientation": "portrait",
+  "category": "Craft",
+  "tags": [
+    "cartography",
+    "parchment",
+    "heritage",
+    "archival",
+    "hand-drawn",
+    "publishing",
+    "studio",
+    "serif"
+  ],
+  "renderer": "film-atlas-and-ink",
+  "colors": {
+    "parch": "#efe4cf",
+    "sepia": "#4a3826",
+    "compass": "#a8402e",
+    "sea": "#6a92a8",
+    "gold": "#c9a24b",
+    "ground": "#efe4cf",
+    "text": "#4a3826",
+    "accent": "#a8402e",
+    "ink": "#4a3826",
+    "paper": "#efe4cf"
+  },
+  "fonts": [
+    "Young Serif",
+    "Assistant"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#efe4cf",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#a8402e",
+      "#c9a24b",
+      "#efe4cf"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "warm tungsten still-life photograph of antique maps, brass dividers and ink pens on a worn drafting table, soft directional light",
+    "iconStyle": "line",
+    "keywords": [
+      "antique map",
+      "compass rose",
+      "drafting table",
+      "parchment",
+      "ink pen",
+      "nautical chart",
+      "brass dividers",
+      "cartographer"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "vector"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Young Serif",
+    "body": "Assistant"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "quiet drafting room, ink drying on paper",
+    "archetype": "editorial",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "antiquarian",
+      "unhurried",
+      "acoustic",
+      "narrated"
+    ],
+    "musicKeywords": [
+      "cartography ambient",
+      "sepia piano",
+      "archive strings",
+      "quill scratch",
+      "compass drift",
+      "parchment nocturne",
+      "voyage folk",
+      "mapmaker waltz",
+      "sea shanty",
+      "maritime fiddle",
+      "concertina jig",
+      "capstan stomp"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "data-ping",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

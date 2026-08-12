@@ -308,11 +308,8 @@ function emitHelpers(D) {
 // persistent top track and is timed to peak exactly on the boundary, hiding the
 // clip swap the way a real edit hides a cut.
 const PACK_MOTION = {
-  "longshot-cinema":  { cut: "whip",  drift: 1.055 },
   "vapor-chrome":     { cut: "whip",  drift: 1.05 },
-  "summit-keynote":   { cut: "panel", drift: 1.04 },
   "midnight-glass":   { cut: "panel", drift: 1.05 },
-  "prism-launch":     { cut: "flash", drift: 1.05 },
   "aurora-spectrum":  { cut: "glow",  drift: 1.055 },
   "bloom-illustrated":{ cut: "wash",  drift: 1.04 },
   "fable-storybook":  { cut: "wash",  drift: 1.035 },
@@ -624,54 +621,7 @@ function buildSkinOrnaments(kind, ctx, framePack) {
   const end = r(T + L);
   const s0 = (n) => r(T + n);
 
-  if (framePack === "summit-keynote") {
-    // corner brackets (HUD confidence)
-    const bl = Math.round(W * 0.03);
-    sv.push(`<path class="${pid}k" d="M${bl * 2} ${bl}H${bl}V${bl * 2}" fill="none" stroke="${A}" stroke-width="3" opacity=".5" stroke-dasharray="200" stroke-dashoffset="200"/>`);
-    sv.push(`<path class="${pid}k" d="M${W - bl * 2} ${H - bl}H${W - bl}V${H - bl * 2}" fill="none" stroke="${A}" stroke-width="3" opacity=".5" stroke-dasharray="200" stroke-dashoffset="200"/>`);
-    sc.push(`tl.to("#${id} .${pid}k",{strokeDashoffset:0,duration:.7,stagger:.15,ease:"power2.out"},${s0(0.4)});`);
-    if (kind === "stat" || kind === "text") {
-      // rising bar chart + gold trend line (the pitch's proof, abstracted)
-      const bx = Math.round(W * 0.68), bw = Math.round(W * 0.028), gap = Math.round(W * 0.014), byBase = Math.round(H * 0.82);
-      const hts = [0.10, 0.16, 0.13, 0.22, 0.3].map((f) => Math.round(H * f));
-      const ptsArr = [];
-      hts.forEach((h, i) => {
-        const x = bx + i * (bw + gap);
-        sv.push(`<rect class="${pid}b" x="${x}" y="${byBase - h}" width="${bw}" height="${h}" rx="4" fill="${A}" opacity=".18"/>`);
-        ptsArr.push(`${x + bw / 2},${byBase - h - 14}`);
-      });
-      sv.push(`<polyline class="${pid}t" points="${ptsArr.join(" ")}" fill="none" stroke="${B}" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="600" stroke-dashoffset="600" opacity=".9"/>`);
-      sc.push(`tl.fromTo("#${id} .${pid}b",{scaleY:0,transformOrigin:"50% 100%"},{scaleY:1,duration:.7,stagger:.1,ease:"power3.out"},${s0(0.6)});`);
-      sc.push(`tl.to("#${id} .${pid}t",{strokeDashoffset:0,duration:1.0,ease:"power2.inOut"},${s0(1.1)});`);
-    }
-    if (kind === "hook" || kind === "cta") {
-      // dotted orbit ring, top-right — the constellation echoed in DOM
-      const cxp = Math.round(W * 0.86), cyp = Math.round(H * 0.2), rr = Math.round(H * 0.11);
-      sv.push(`<circle class="${pid}r" cx="${cxp}" cy="${cyp}" r="${rr}" fill="none" stroke="${A}" stroke-width="1.5" stroke-dasharray="4 9" opacity=".45"/>`);
-      sv.push(`<circle class="${pid}d" cx="${cxp + rr}" cy="${cyp}" r="5" fill="${B}" opacity=".9"/>`);
-      sc.push(`tl.to("#${id} .${pid}r",{rotation:360,transformOrigin:"${cxp}px ${cyp}px",duration:14,ease:"none",repeat:reps(14)},0);`);
-      sc.push(`tl.fromTo("#${id} .${pid}d",{scale:0,transformOrigin:"50% 50%"},{scale:1,duration:.5,ease:"back.out(2)"},${s0(0.8)});`);
-    }
-  } else if (framePack === "prism-launch") {
-    // refraction streaks sweeping across the studio
-    dv.push(`<div class="${pid}s" style="position:absolute;top:${18 + (seed % 12)}%;left:-45%;width:44%;height:3px;transform:rotate(-16deg);background:linear-gradient(90deg,transparent,${rgba(B, 0.55)},${rgba(X0, 0.55)},${rgba(X1, 0.5)},transparent);"></div>`);
-    dv.push(`<div class="${pid}s" style="position:absolute;top:${60 + (seed % 14)}%;left:-45%;width:34%;height:2px;transform:rotate(-16deg);background:linear-gradient(90deg,transparent,${rgba(X0, 0.45)},${rgba(X1, 0.45)},transparent);"></div>`);
-    sc.push(`tl.fromTo("#${id} .${pid}s",{xPercent:0},{xPercent:340,duration:${Math.min(3.4, L - 0.4)},stagger:.5,ease:"sine.inOut"},${s0(0.3)});`);
-    // triangle cluster (the shards, echoed) in a margin corner
-    const tx = kind === "cta" ? W * 0.5 : W * 0.84, ty = kind === "cta" ? H * 0.18 : H * 0.76;
-    const tricols = [B, X0, X1];
-    for (let i = 0; i < 3; i++) {
-      const s = 16 + i * 10, ox = Math.round(tx + (i - 1) * 44), oy = Math.round(ty + (i % 2 ? -18 : 12));
-      sv.push(`<polygon class="${pid}g" points="${ox},${oy - s} ${ox + s * 0.87},${oy + s / 2} ${ox - s * 0.87},${oy + s / 2}" fill="${tricols[i]}" opacity=".4"/>`);
-    }
-    sc.push(`tl.fromTo("#${id} .${pid}g",{scale:0,transformOrigin:"50% 50%",rotation:-30},{scale:1,rotation:0,duration:.6,stagger:.12,ease:"back.out(1.8)"},${s0(0.7)});`);
-    sc.push(`tl.to("#${id} .${pid}g",{rotation:14,duration:${Math.max(2, L - 1.6)},ease:"sine.inOut"},${s0(1.4)});`);
-    if (kind === "stat") {
-      const cxp = Math.round(W * 0.5), cyp = Math.round(H * 0.48), rr = Math.round(H * 0.26);
-      sv.push(`<circle class="${pid}r" cx="${cxp}" cy="${cyp}" r="${rr}" fill="none" stroke="${X0}" stroke-width="1.5" stroke-dasharray="10 14" opacity=".5"/>`);
-      sc.push(`tl.to("#${id} .${pid}r",{rotation:180,transformOrigin:"${cxp}px ${cyp}px",duration:${L},ease:"none"},${T});`);
-    }
-  } else if (framePack === "fable-storybook") {
+  if (framePack === "fable-storybook") {
     // watercolor blooms (blurred ellipses) + fireflies + hand-drawn accents
     const corner = seed % 2 === 0;
     sv.push(`<defs><filter id="${pid}bl" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="26"/></filter></defs>`);
@@ -814,51 +764,19 @@ function buildSkinOrnaments(kind, ctx, framePack) {
     sc.push(`tl.to("#${id} .${pid}p",{y:-22,duration:${Math.max(1.6, L - 0.8)},stagger:.15,ease:"sine.inOut"},${s0(0.4)});`);
   }
 
-  if (framePack === "longshot-cinema") {
-    // cinema chrome: letterbox slivers + light sweep + HUD brackets per scene
-    const lb = Math.round(H * 0.055);
-    dv.push(`<div style="position:absolute;left:0;right:0;top:0;height:${lb}px;background:#06070A;"></div>`);
-    dv.push(`<div style="position:absolute;left:0;right:0;bottom:0;height:${lb}px;background:#06070A;"></div>`);
-    dv.push(`<div class="${pid}s" style="position:absolute;top:0;bottom:0;left:-30%;width:24%;transform:skewX(-14deg);background:linear-gradient(90deg,transparent,rgba(242,245,249,.06),transparent);"></div>`);
-    sc.push(`tl.fromTo("#${id} .${pid}s",{xPercent:0},{xPercent:560,duration:${Math.min(3.2, Math.max(1.6, L - 0.6))},ease:"sine.inOut"},${s0(0.3)});`);
-    const bl = Math.round(W * 0.022);
-    sv.push(`<path class="${pid}k" d="M${bl * 2} ${lb + bl}H${bl}V${lb + bl * 2}" fill="none" stroke="${rgba("#F2F5F9", 0.4)}" stroke-width="2.5" stroke-dasharray="150" stroke-dashoffset="150"/>`);
-    sv.push(`<path class="${pid}k" d="M${W - bl * 2} ${H - lb - bl}H${W - bl}V${H - lb - bl * 2}" fill="none" stroke="${rgba("#F2F5F9", 0.4)}" stroke-width="2.5" stroke-dasharray="150" stroke-dashoffset="150"/>`);
-    sc.push(`tl.to("#${id} .${pid}k",{strokeDashoffset:0,duration:.6,stagger:.12,ease:"power2.out"},${s0(0.35)});`);
-    if (kind === "stat") {
-      const cxp = Math.round(W * 0.5), cyp = Math.round(H * 0.5), rr = Math.round(H * 0.3);
-      sv.push(`<circle class="${pid}r" cx="${cxp}" cy="${cyp}" r="${rr}" fill="none" stroke="${A}" stroke-width="2" stroke-dasharray="8 14" opacity=".35"/>`);
-      sc.push(`tl.to("#${id} .${pid}r",{rotation:160,transformOrigin:"${cxp}px ${cyp}px",duration:${L},ease:"none"},${T});`);
-    }
-    if (kind === "cta") {
-      const cxp = Math.round(W * 0.5), cyp = Math.round(H * 0.44);
-      const CC = [A, B, "#F2F5F9"];
-      for (let i = 0; i < 8; i++) {
-        const shape = i % 2 === 0
-          ? `<rect class="${pid}c" x="${cxp - 6}" y="${cyp - 6}" width="12" height="12" rx="3" fill="${CC[i % 3]}"/>`
-          : `<circle class="${pid}c" cx="${cxp}" cy="${cyp}" r="5.5" fill="${CC[i % 3]}"/>`;
-        sv.push(shape);
-      }
-      const dx = [210, -240, 150, -170, 260, -120, 90, -280], dy = [-160, -120, 180, 150, 40, -200, -240, 60];
-      sc.push(`var ${pid}dx=${JSON.stringify(dx)},${pid}dy=${JSON.stringify(dy)};`);
-      sc.push(`tl.fromTo("#${id} .${pid}c",{x:0,y:0,scale:0,opacity:1},{x:function(i){return ${pid}dx[i];},y:function(i){return ${pid}dy[i];},rotation:function(i){return (i%2?-1:1)*(120+i*20);},scale:1,opacity:.9,duration:1.1,ease:"power3.out",stagger:.03},${s0(Math.max(0.6, L - 2.2))});`);
-      sc.push(`tl.to("#${id} .${pid}c",{opacity:0,duration:.5},${r(T + Math.max(1.6, L - 0.6))});`);
-    }
-  } else {
-    // GENERIC ornament fallback (Phase 3) — a pack with a manifest but no bespoke
-    // branch above (e.g. a future manifest-only pack) still gets baseline skin
-    // depth: theme-colored corner brackets on every scene, plus a drawing accent
-    // underline on hook/cta. Tasteful and universal, so "add a pack = 1 folder,
-    // 0 code" no longer means a bare, ornament-less pack.
-    const bl = Math.round(W * 0.032);
-    sv.push(`<path class="${pid}k" d="M${bl * 2} ${bl}H${bl}V${bl * 2}" fill="none" stroke="${A}" stroke-width="3" opacity=".45" stroke-dasharray="220" stroke-dashoffset="220"/>`);
-    sv.push(`<path class="${pid}k" d="M${W - bl * 2} ${H - bl}H${W - bl}V${H - bl * 2}" fill="none" stroke="${B}" stroke-width="3" opacity=".45" stroke-dasharray="220" stroke-dashoffset="220"/>`);
-    sc.push(`tl.to("#${id} .${pid}k",{strokeDashoffset:0,duration:.7,stagger:.15,ease:"power2.out"},${s0(0.4)});`);
-    if (kind === "hook" || kind === "cta") {
-      const ux = Math.round(W * 0.07), uy = Math.round(H * 0.66), uw = Math.round(W * 0.14);
-      sv.push(`<line class="${pid}u" x1="${ux}" y1="${uy}" x2="${ux + uw}" y2="${uy}" stroke="${A}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${uw}" stroke-dashoffset="${uw}"/>`);
-      sc.push(`tl.to("#${id} .${pid}u",{strokeDashoffset:0,duration:.6,ease:"power2.out"},${s0(0.7)});`);
-    }
+  // GENERIC ornament baseline (Phase 3) — theme-colored corner brackets on every scene,
+  // plus a drawing accent underline on hook/cta. Tasteful and universal, so "add a pack =
+  // 1 folder, 0 code" never means a bare, ornament-less pack. It rides ON TOP of any
+  // bespoke cluster from the chain above. (This used to be the `else` of a longshot-cinema
+  // branch; that pack was removed, so the baseline is now simply unconditional.)
+  const gbl = Math.round(W * 0.032);
+  sv.push(`<path class="${pid}k" d="M${gbl * 2} ${gbl}H${gbl}V${gbl * 2}" fill="none" stroke="${A}" stroke-width="3" opacity=".45" stroke-dasharray="220" stroke-dashoffset="220"/>`);
+  sv.push(`<path class="${pid}k" d="M${W - gbl * 2} ${H - gbl}H${W - gbl}V${H - gbl * 2}" fill="none" stroke="${B}" stroke-width="3" opacity=".45" stroke-dasharray="220" stroke-dashoffset="220"/>`);
+  sc.push(`tl.to("#${id} .${pid}k",{strokeDashoffset:0,duration:.7,stagger:.15,ease:"power2.out"},${s0(0.4)});`);
+  if (kind === "hook" || kind === "cta") {
+    const ux = Math.round(W * 0.07), uy = Math.round(H * 0.66), uw = Math.round(W * 0.14);
+    sv.push(`<line class="${pid}u" x1="${ux}" y1="${uy}" x2="${ux + uw}" y2="${uy}" stroke="${A}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${uw}" stroke-dashoffset="${uw}"/>`);
+    sc.push(`tl.to("#${id} .${pid}u",{strokeDashoffset:0,duration:.6,ease:"power2.out"},${s0(0.7)});`);
   }
 
   if (!sv.length && !dv.length) return null;
@@ -1650,6 +1568,11 @@ function archAssetMontage(scene, ctx) {
     ? `border:3px solid ${theme.ink};box-shadow:6px 6px 0 ${theme.accent};`
     : `border:1px solid ${theme.line};box-shadow:0 22px 50px rgba(0,0,0,0.45);`;
   const tileH = Math.round(dims.height * (land ? 0.2 : 0.15));
+  // The tiles share one flex row inside a 6%-inset container, so each is roughly an equal
+  // slice of it. Approximate is fine and far better than nothing: the crop engine buckets
+  // aspects to two decimals, so a tile that is 10% narrower than estimated still resolves
+  // to the same analysis.
+  const tileW = Math.max(1, Math.round((dims.width * 0.88) / Math.max(1, items.length)));
   const tiles = items.map((a) => {
     const meta = `${a.source || ""} ${a.style || ""} ${a.alt || ""}`.toLowerCase();
     const isVec = /\.svg($|\?)/i.test(a.path) || /vector|illustration|icon|line.?art|graphic/.test(meta);

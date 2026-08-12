@@ -73,12 +73,16 @@
       "swing"
     ],
     "musicKeywords": [
+      "serene",
+      "soft",
       "red carpet orchestral",
-      "glamorous swing",
+      "dramatic swing",
       "cinematic score",
-      "premiere fanfare",
+      "orchestral fanfare",
       "building orchestral",
-      "epic fanfare"
+      "epic fanfare",
+      "dramatic",
+      "rising"
     ],
     "sfxPalette": {
       "transition": "light-sweep",
@@ -91,7 +95,8 @@
       "energyBoost": 1,
       "sfxDensity": "rich",
       "ambient": true
-    }
+    },
+    "archetype": "luxury"
   },
   "media": {
     "requiredAssets": {

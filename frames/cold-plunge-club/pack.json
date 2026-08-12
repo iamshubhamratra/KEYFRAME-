@@ -1,0 +1,175 @@
+{
+  "name": "cold-plunge-club",
+  "vibe": "A pale ice-blue field (#cfe6ee) carrying deep water-navy (#16344a) Bebas Neue caps, with one flushed-skin coral (#e85c4a) that is held back until it floods the entire CTA frame. The world is a literal dawn swim, drawn not suggested: a white snowbank, a navy hole cut through the ice with broken shards at its rim, two ripple rings pushing outward from a swimmer's head while a breath-cloud rises and fades, a timber sauna at the right whose amber window pulses and whose chimney smoke climbs on a loop, fourteen flakes falling, and a thermometer at the left whose coral column breathes up and down beneath a hand-set '4°'. Cameras drift and rise gently; titles rise, items streak. Built for cold-water clubs, saunas, recovery studios and breathwork apps.",
+  "orientation": "portrait",
+  "category": "Wellness",
+  "tags": [
+    "wellness",
+    "cold-water",
+    "sauna",
+    "recovery",
+    "ritual",
+    "dawn",
+    "community",
+    "ice-blue"
+  ],
+  "renderer": "film-cold-plunge-club",
+  "colors": {
+    "ice": "#cfe6ee",
+    "plunge": "#16344a",
+    "flush": "#e85c4a",
+    "white": "#fafcfd",
+    "steel": "#6a8ca0",
+    "ground": "#cfe6ee",
+    "text": "#16344a",
+    "accent": "#e85c4a",
+    "ink": "#16344a",
+    "paper": "#fafcfd"
+  },
+  "fonts": [
+    "Bebas Neue",
+    "Instrument Sans"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#cfe6ee",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#e85c4a",
+      "#16344a",
+      "#cfe6ee"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "crisp blue-hour documentary photograph of open-water winter swimmers, breath steaming over pale ice and dark still water",
+    "iconStyle": "line",
+    "keywords": [
+      "ice bath",
+      "frozen lake swim",
+      "sauna steam",
+      "winter sunrise shore",
+      "breath vapour",
+      "wool hat swimmer",
+      "snow bank",
+      "cold plunge tub"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Bebas Neue",
+    "body": "Instrument Sans"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "bracing calm — a held breath, then a grin",
+    "archetype": "luxury",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "held breath",
+      "felt piano",
+      "metallic shimmer",
+      "CTA lands"
+    ],
+    "musicKeywords": [
+      "nordic ambient",
+      "frozen lake",
+      "glacial piano",
+      "sauna steam",
+      "breath drone",
+      "icy shimmer",
+      "shiver strings",
+      "sub bass",
+      "recovery ritual",
+      "breathwork pulse",
+      "cold plunge",
+      "downtempo house"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

@@ -1,0 +1,174 @@
+{
+  "name": "on-air",
+  "vibe": "Booth-black #16181d and #101216 with a purple #8b5cf6 and a signal green #3ddc84 that means live. Unbounded's wide geometric caps chop in from the left on a six-degree skew; items streak in after them. The world is a working booth: a twenty-two-bar meter breathes along the lower frame on two stacked sines with every fourth bar green, an ON AIR sign at the top right actually blinks — lamp, outline and lettering hard-switching together on a 2.8Hz sine — a fog-white condenser mic on a stand sits under three purple ring pulses that expand and fade, and a green scrub dot runs a playhead rule left to right on a loop. Statement is the one bright wall, a full purple frame at 144px. Levels read on a vertical tube; producer alerts slide in with draining timer bars; show notes type under a blinking caret.",
+  "orientation": "portrait",
+  "category": "Media",
+  "tags": [
+    "podcast",
+    "radio",
+    "studio",
+    "broadcast",
+    "dark-ui",
+    "waveform",
+    "creator",
+    "audio"
+  ],
+  "renderer": "film-on-air",
+  "colors": {
+    "studio": "#16181d",
+    "purple": "#8b5cf6",
+    "signal": "#3ddc84",
+    "fog": "#e8e9ee",
+    "ink": "#101216",
+    "ground": "#16181d",
+    "text": "#e8e9ee",
+    "accent": "#8b5cf6",
+    "paper": "#e8e9ee"
+  },
+  "fonts": [
+    "Unbounded",
+    "Wix Madefor Text"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#16181d",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#8b5cf6",
+      "#3ddc84",
+      "#101216"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "moody low-key photograph of a recording studio, condenser microphone and mixing console under purple practical lighting",
+    "iconStyle": "line",
+    "keywords": [
+      "condenser microphone",
+      "recording booth",
+      "mixing console",
+      "headphones",
+      "waveform",
+      "podcast studio",
+      "on air sign",
+      "audio interface"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo",
+      "vector"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Unbounded",
+    "body": "Wix Madefor Text"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "clean booth pulse, headphones on, red light lit",
+    "archetype": "tech",
+    "energy": "medium",
+    "tempo": "fast",
+    "style": [
+      "polished",
+      "synthetic",
+      "modern",
+      "punchy"
+    ],
+    "musicKeywords": [
+      "podcast bed",
+      "console hum",
+      "vocal booth",
+      "interview lofi",
+      "studio synth",
+      "signal chain",
+      "talk radio",
+      "broadcast pulse",
+      "mixdown groove",
+      "airwave house",
+      "network electro",
+      "transmitter drive"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "ui-click",
+      "reveal": "product-reveal",
+      "data": "data-ping",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

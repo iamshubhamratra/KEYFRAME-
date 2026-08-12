@@ -1,0 +1,173 @@
+{
+  "name": "star-watch",
+  "vibe": "A public observatory at 11pm. #0b1026 midnight indigo grounds every frame, Prata's high-contrast serif is set in pale #ece9f4, and one warm gold (#ffd97b) is reserved for whatever glows. This is the rare pack whose world runs on all seven beats: 26 stars twinkling on independent sine phases, a five-point constellation whose gold line literally draws itself across the scene, a meteor streaking down-right on a slow loop, and a lilac telescope planted bottom-left with a gold star at the eyepiece. Cards, montage tiles and stat numbers all carry a glow halo, so copy reads lit rather than printed. The camera drifts and pushes at very low magnitude, nothing snaps, and titles settle in on a drowse. Owns a gauge Ring, ticker Scroll, caret Typing pass and side-entering Notify cards. Built for planetariums, science centres, dark-sky tourism and night events.",
+  "orientation": "portrait",
+  "category": "Nature",
+  "tags": [
+    "astronomy",
+    "night-sky",
+    "observatory",
+    "dark-mode",
+    "serif-elegance",
+    "glow",
+    "calm",
+    "stargazing"
+  ],
+  "renderer": "film-star-watch",
+  "colors": {
+    "midnight": "#0b1026",
+    "star": "#ffd97b",
+    "lilac": "#9a8fd0",
+    "paper": "#ece9f4",
+    "ink": "#070b1c",
+    "ground": "#0b1026",
+    "text": "#ece9f4",
+    "accent": "#ffd97b"
+  },
+  "fonts": [
+    "Prata",
+    "Manrope"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#0b1026",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#ffd97b",
+      "#9a8fd0",
+      "#0b1026"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "long-exposure astrophotography under a dark sky, deep indigo night with warm gold starlight and a single silhouetted figure",
+    "iconStyle": "solid",
+    "keywords": [
+      "night sky",
+      "observatory dome",
+      "telescope",
+      "stargazing",
+      "milky way",
+      "constellation",
+      "dark sky reserve",
+      "astronomy class"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Prata",
+    "body": "Manrope"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "patient nocturnal awe — wide, quiet, faintly ceremonial",
+    "archetype": "editorial",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "ambient",
+      "cinematic",
+      "sparse-orchestral",
+      "nocturne"
+    ],
+    "musicKeywords": [
+      "solo piano",
+      "starlit reverie",
+      "observatory calm",
+      "astral pad",
+      "glass harmonics",
+      "telescope wonder",
+      "meteor shimmer",
+      "planetarium score",
+      "string swell",
+      "cosmic crescendo",
+      "timpani rise",
+      "celestial fanfare"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

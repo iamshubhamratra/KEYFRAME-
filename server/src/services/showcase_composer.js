@@ -30,6 +30,8 @@
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
 const { logoMark } = require("./logo_render");
 const { resolveBrand } = require("./brand_kit");
+const { dealTransitions, classifyBeat, xfadeFor, accentsFrom, mulberry, RUNTIME_HELPERS } = require("./transition_kit");
+const { tempoOf } = require("./pacing");
 const { GSAP_CDN, r, esc, hexToRgb, relLum, bullets, logoAssetOf, resolveBrandName } = require("./composer_kit");
 
 const DISPLAY = "Space Grotesk";   // bundled — headlines, body, callouts, the CTA pill
@@ -142,6 +144,16 @@ function showcaseTheme(brandSkin) {
 // Neutral, localizable furniture ONLY — every one of these labels the film's own structure.
 // Never a claim, never a product name.
 const STRINGS = {
+  // EYEBROWS ARE NOT LABELS. The reference gives every beat its own editorial eyebrow — 'A
+  // 30-SECOND TOUR', '01 — THE DASHBOARD', '02 — POCKET-SIZED' — and never repeats the masthead
+  // label in it. Ours fell back to `scene.purpose`, i.e. the INTERNAL ROLE SLUG, so a beat with no
+  // authored kicker printed 'TOUR' / 'INTRO' / 'PROOF' in the copy column, and the Mobile beat
+  // printed 'ON MOBILE' three times over (masthead, eyebrow and callout chip). A role name is
+  // pipeline vocabulary; it should never reach the frame.
+  ebIntro: "A 30-SECOND TOUR",
+  ebTour: "01 — THE DASHBOARD",
+  ebDetail: "02 — THE DETAIL",
+  ebMobile: "03 — POCKET-SIZED",
   tour: "GUIDED TOUR",
   feature: "FEATURE",
   how: "HOW IT WORKS",
@@ -284,6 +296,24 @@ function phoneFrame(th, { cls, x, y, w, h, inner, z = 2 }) {
 // reference's own coordinates port across unchanged.
 const SVG_OPEN = `<svg viewBox="0 0 ${STAGE_W} ${STAGE_H}" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;">`;
 
+// AN ANNOTATION LAYER HAS TO OUTRANK THE THING IT ANNOTATES.
+//
+// `SVG_OPEN` sets no z-index, so an arrow or the cursor landed at `auto` (= 0) while the device
+// frames it points AT are `z-index:2`. A positioned element with z-index 2 beats an `auto` sibling
+// regardless of DOM order, so every arrow drew UNDERNEATH the browser/phone window: Detail's was
+// invisible outright, Tour's was sliced at the window edge, and the intro cursor never appeared at
+// all. The reference has no such problem because it relies on DOM order alone — nothing in its
+// stack carries a z-index.
+//
+// Deliberately 5, not higher: it clears the device frame (2) and the copy column (4) while staying
+// UNDER the section head (6), the highlight box (7) and the numbered callout chips (8). The
+// reference draws its callout after its arrow, so a chip must keep winning over the line that
+// leads to it. This is NOT applied to the ambient sky layer (planes, birds, dots) — that one is
+// wallpaper and must stay behind everything, which is why the z-index lives here rather than in
+// SVG_OPEN itself.
+const SVG_LAYER = (z) => SVG_OPEN.replace("pointer-events:none;", `pointer-events:none;z-index:${z};`);
+const ANNOTATION_Z = 5;
+
 // A curved arrow that draws itself, with an arrowhead that pops on at the end.
 function arrowSvg(cls, from, to, bend, color, width = 5) {
   const mx = (from[0] + to[0]) / 2, my = (from[1] + to[1]) / 2;
@@ -297,7 +327,7 @@ function arrowSvg(cls, from, to, bend, color, width = 5) {
   // disappears the moment it crosses a screenshot that happens to be the same hue — and the
   // arrow is the one element whose whole job is to point at that screenshot. The white casing
   // under it is what every real annotation tool does, for exactly this reason.
-  return `${SVG_OPEN}
+  return `${SVG_LAYER(ANNOTATION_Z)}
     <path class="${cls}-p" d="${d}" fill="none" stroke="#FFFFFF" stroke-width="${width + 4}" stroke-linecap="round" stroke-dasharray="${L}" stroke-dashoffset="${L}" opacity="0.92"></path>
     <path class="${cls}-p" d="${d}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-dasharray="${L}" stroke-dashoffset="${L}"></path>
     <g class="${cls}-h" transform="translate(${r(to[0])} ${r(to[1])}) rotate(${r(ang)})" style="transform-box:view-box;transform-origin:${r(to[0])}px ${r(to[1])}px;">
@@ -323,7 +353,7 @@ function highlightHtml(cls, th, { x, y, w, h }) {
 
 // A cursor that travels from -> to and leaves a click ripple.
 function cursorSvg(cls, th, from, to) {
-  return `${SVG_OPEN}
+  return `${SVG_LAYER(ANNOTATION_Z)}
     <circle class="${cls}-r" cx="${r(to[0])}" cy="${r(to[1])}" r="10" fill="none" stroke="${th.accent}" stroke-width="3" opacity="0"></circle>
     <g class="${cls}-c" transform="translate(${r(from[0])} ${r(from[1])})" opacity="0">
       <path d="M0 0 L0 26 L7 19 L12 30 L16 28 L11 18 L20 18 Z" fill="#fff" stroke="${th.ink}" stroke-width="2" stroke-linejoin="round"></path>
@@ -364,8 +394,22 @@ function blobLayer(th, layer) {
     .filter(({ b }) => b.layer === layer)
     .map(({ b, hue }) => {
       const cx = ((b.x + b.w / 2) / STAGE_W) * 100, cy = ((b.y + b.w / 2) / STAGE_H) * 100;
+      // `ellipse` WITH TWO PERCENTAGES, NOT `circle` WITH ONE.
+      //
+      // This read `radial-gradient(circle <pct>% at ...)`, which is INVALID CSS: a `circle` radius
+      // may only be a <length> or an extent keyword — percentages are legal solely for `ellipse`,
+      // which needs two. The browser therefore dropped the entire comma-joined `background`
+      // declaration on both blob layers, so the reference's five-colour wash never painted in ANY
+      // scene. Proven by computed style, not by reading: 14 blob layers on a 7-scene film, all
+      // reporting `background-image: none` while their inline style clearly contained the
+      // gradients. That is the whole ambient atmosphere of the template, and it is also why no
+      // string-matching check ever caught it — the CSS is present in the HTML and merely refused.
+      //
+      // The blob is round in the reference, so the ellipse radii are the same PIXEL length
+      // expressed against each axis: rx against the stage width, ry against its height.
       const rx = (b.w / STAGE_W) * 100 * 0.78;
-      return `radial-gradient(circle ${r(rx)}% at ${r(cx)}% ${r(cy)}%, ${rgba(hue, b.o)} 0%, ${rgba(hue, b.o * 0.55)} 42%, ${rgba(hue, 0)} 72%)`;
+      const ry = (b.w / STAGE_H) * 100 * 0.78;
+      return `radial-gradient(ellipse ${r(rx)}% ${r(ry)}% at ${r(cx)}% ${r(cy)}%, ${rgba(hue, b.o)} 0%, ${rgba(hue, b.o * 0.55)} 42%, ${rgba(hue, 0)} 72%)`;
     }).join(",");
 }
 // The ambient sky is drawn INSIDE the backdrop and UNDER the 52px grid, so the grid's rules
@@ -431,6 +475,17 @@ function skyTweens(id, ctx) {
 // The tour HUD: a brand badge, the beat's label, and a progress rule. It sits OUTSIDE the
 // camera layer and is identical across every cut — which is the only reason the reference's
 // hard cuts read as cuts rather than as jumps.
+// NO SCENE COUNTER, AND THE BOTTOM RULE IS AN EMPTY TRACK.
+//
+// The reference's Chrome (showcase-film.jsx 198-208) is exactly two things: the badge + brand +
+// slash-label lockup above, and a bare 4px rule at rgba(ink,0.08) below. There is no top-right
+// readout, and the rule's div has NO CHILD — the author even computes `frac` and then never uses
+// it. Ours had added a "SCENE 03 OF 07" counter and an accent progress FILL: the shared kit's HUD
+// habit leaking into a pack that deliberately has neither. On an annotated product tour the eye is
+// meant to be on the arrow, not on a chapter marker.
+//
+// (`i` and `total` are now unused by the markup. They stay in the signature because the call sites
+// pass them positionally and a future chrome may want them again.)
 function chromeHtml(id, th, { brand, label, i, total }) {
   const initial = (brand || "S").trim().charAt(0).toUpperCase() || "S";
   return `<div class="sc-chrome">
@@ -439,18 +494,16 @@ function chromeHtml(id, th, { brand, label, i, total }) {
       <span style="font-family:${th.displayStack};font-weight:700;font-size:${r(U(22))}cqw;color:${th.ink};letter-spacing:-0.01em;white-space:nowrap;">${esc(brand)}</span>
       ${label ? `<span style="font-family:${th.monoStack};font-size:${r(U(13))}cqw;letter-spacing:0.14em;color:${th.sub};text-transform:uppercase;white-space:nowrap;">／ ${esc(label)}</span>` : ""}
     </div>
-    <div style="position:absolute;top:${r(U(52))}cqw;right:${r(U(60))}cqw;font-family:${th.monoStack};font-size:${r(U(13))}cqw;letter-spacing:0.18em;color:${th.sub};">${esc(STRINGS.scene)} ${pad2(i + 1)} ${esc(STRINGS.of)} ${pad2(total)}</div>
-    <div style="position:absolute;bottom:${r(U(52))}cqw;left:${r(U(60))}cqw;right:${r(U(60))}cqw;height:${r(U(4))}cqw;border-radius:${r(U(4))}cqw;background:${rgba(th.ink, 0.08)};overflow:hidden;">
-      <div class="${id}-prog" style="width:100%;height:100%;border-radius:${r(U(4))}cqw;background:${th.accent};transform:scaleX(0);transform-origin:left center;"></div>
-    </div>
+    <div style="position:absolute;bottom:${r(U(52))}cqw;left:${r(U(60))}cqw;right:${r(U(60))}cqw;height:${r(U(4))}cqw;border-radius:${r(U(4))}cqw;background:${rgba(th.ink, 0.08)};"></div>
   </div>`;
 }
-// The progress rule fills across the WHOLE film, so it is driven from absolute time.
-function chromeTweens(ctx, D) {
-  const from = ctx.T / Math.max(0.001, D), to = (ctx.T + ctx.clipDur) / Math.max(0.001, D);
-  return [
-    `tl.fromTo(".${ctx.id}-prog",{scaleX:${r(from)}},{scaleX:${r(to)},duration:${r(ctx.clipDur)},ease:"none"},${r(ctx.T)});`,
-  ];
+// THE CHROME NO LONGER ANIMATES. Its rule is an unfilled track (see chromeHtml), so there is
+// nothing left to drive — and leaving the tween behind would have animated a `.<id>-prog` that no
+// longer exists, which is precisely the dead-tween class `npm run test:dead-tweens` now fails on.
+// Kept as a function returning [] so the ~7 call sites need no edit and the seam stays obvious if
+// the pack ever grows chrome motion again.
+function chromeTweens() {
+  return [];
 }
 
 // ---- the camera --------------------------------------------------------------
@@ -459,6 +512,31 @@ function chromeTweens(ctx, D) {
 // background and chrome stay lit underneath it.
 function cameraTweens(id, ctx) {
   const { L } = ctx;
+  // WITH CUTS ON (the default), transition_kit owns `.sc-cam` outright and this contributes only
+  // the AMBIENT drift — on `.sc-drift`, a different element, so the cut and the drift never share
+  // a transform channel. The magnitude is the same 1.03 the old single camera applied, so the
+  // safe area every layout in this pack was measured against is unchanged.
+  if (ctx.useTx) {
+    const dir = ctx.i % 2 ? -1 : 1;
+    return [
+      `tl.fromTo("#${id} .sc-drift",{scale:1,y:"${r(0.5 * dir)}cqw"},{scale:1.03,y:"${r(-0.5 * dir)}cqw",duration:${r(L)},ease:"sine.inOut"},${r(ctx.T)});`,
+      // No cut lands on the first beat, so it needs an arrival of its own.
+      ctx.i === 0
+        ? `tl.fromTo("#${id} .sc-cam",{opacity:0,scale:1.05,filter:"blur(8px)"},{opacity:1,scale:1,filter:"blur(0px)",duration:${r(Math.min(0.85, L * 0.32))},ease:"expo.out"},${r(ctx.T)});`
+        : "",
+      // Same seek-safety hard kill the legacy camera carried, for the same reason.
+      `tl.set("#${id} .sc-cam",{opacity:0},${r(ctx.T + ctx.clipDur)});`,
+      // THE HUD MUST NOT GHOST. Two scenes coexist during a cut and their chrome is not
+      // identical — the progress rule sits at a different fill and the beat counter reads a
+      // different number. Without the cross-fade an overlap shows two of each.
+      ctx.xIn > 0
+        ? `tl.fromTo("#${id} .sc-chrome",{opacity:0},{opacity:1,duration:${r(ctx.xIn * 0.9)},ease:"power2.out"},${r(ctx.T)});`
+        : "",
+      ctx.xOut > 0
+        ? `tl.to("#${id} .sc-chrome",{opacity:0,duration:${r(ctx.xOut * 0.75)},ease:"power2.in"},${r(ctx.T + L)});`
+        : "",
+    ].filter(Boolean);
+  }
   // Authored as a FRACTION of the beat, not a constant: a 2-second scene given the reference's
   // 0.55s push would spend half its life arriving.
   const IN = Math.min(0.55, L * 0.12), OUT = Math.max(0.1, L * 0.12);
@@ -479,10 +557,10 @@ function cameraTweens(id, ctx) {
 function open(ctx, inner) {
   const { id, th } = ctx;
   return `<div id="${id}" class="clip sc-scene" data-start="${r(ctx.T)}" data-duration="${r(ctx.clipDur)}" data-track-index="${ctx.track}" style="opacity:0;">
-  <div class="sc-cam">
+  <div class="sc-cam"><div class="sc-drift">
     ${backdropHtml(id, th)}
     ${inner}
-  </div>
+  </div></div>
   ${chromeHtml(id, th, { brand: ctx.brand, label: ctx.label, i: ctx.i, total: ctx.total })}
 </div>`;
 }
@@ -503,7 +581,7 @@ const ambient = (ctx) => [...backdropTweens(ctx.id, ctx), ...skyTweens(ctx.id, c
 // real content given real weight, not decoration invented to cover a hole.
 function sStatement(scene, ctx, _shots, { centred = false } = {}) {
   const { id, th, at, du } = ctx;
-  const eyebrow = String(scene.kicker || scene.purpose || ctx.label || "").toUpperCase().slice(0, 34);
+  const eyebrow = String(scene.kicker || STRINGS.ebIntro).toUpperCase().slice(0, 34);
   const list = bullets(scene, 4);
   const body = String(scene.subtext || scene.body || "").slice(0, 140);
 
@@ -564,7 +642,7 @@ function sIntro(scene, ctx, shots) {
   // statement layout is built for that case, so hand it over rather than degrade into it.
   if (!shot) return sStatement(scene, ctx, shots, { centred: true });
 
-  const eyebrow = String(scene.kicker || scene.purpose || STRINGS.tour).toUpperCase().slice(0, 34);
+  const eyebrow = String(scene.kicker || STRINGS.ebTour).toUpperCase().slice(0, 34);
   const headText = scene.headline || scene.title || ctx.title;
   const headMax = U(104), headTop = U(150);
   const head = fitLines(headText, (U(1520) / CAM_SAFE), headMax, 2);
@@ -607,7 +685,7 @@ function sTour(scene, ctx, shots) {
   // screenshot away and it is a headline in the top-left corner of an empty stage.
   if (!shot) return sStatement(scene, ctx, shots, { centred: false });
 
-  const eyebrow = String(scene.kicker || scene.purpose || STRINGS.feature).toUpperCase().slice(0, 30);
+  const eyebrow = String(scene.kicker || STRINGS.ebDetail).toUpperCase().slice(0, 30);
   const colW = U(560);
   const head = fitLines(scene.headline || scene.title || "", colW / CAM_SAFE, U(76), 3);
   const body = String(scene.subtext || scene.body || "").slice(0, 150);
@@ -632,12 +710,21 @@ function sTour(scene, ctx, shots) {
     `tl.set("#${id}",{opacity:1},${r(ctx.T)});`,
     `tl.fromTo(".${id}-copy",{opacity:0,y:"${r(U(40))}cqw"},{opacity:1,y:0,duration:${du(0.7)},ease:"back.out(1.5)"},${at(0.35)});`,
     shot ? `tl.fromTo(".${id}-win",{x:"${r(U(900))}cqw"},{x:0,duration:${du(1.1)},ease:"back.out(1.1)"},${at(0.25)});` : "",
-    shot ? `tl.fromTo(".${id}-zoom",{scale:1},{scale:1.4,duration:${du(2.4)},ease:"power1.inOut"},${at(1.3)});` : "",
-    shot ? `tl.fromTo(".${id}-hl",{scaleX:0},{scaleX:1,duration:${du(0.5)},ease:"back.out(1.6)"},${at(1.6)});` : "",
-    shot ? `tl.to(".${id}-hl",{boxShadow:"0 0 0 ${r(U(12))}cqw ${rgba(th.accent, 0.1)}",duration:0.9,ease:"sine.inOut",repeat:${reps(Math.max(0, ctx.L - 1.6 * ctx.k), 0.9)},yoyo:true},${at(1.9)});` : "",
-    shot ? `tl.to(".${id}-ar-p",{strokeDashoffset:0,duration:${du(0.7)},ease:"power2.out"},${at(1.85)});` : "",
-    shot ? `tl.fromTo(".${id}-ar-h",{scale:0},{scale:1,duration:${du(0.3)},ease:"back.out(2.4)"},${at(2.4)});` : "",
-    shot && callout ? `tl.fromTo(".${id}-co",{opacity:0,scale:0.5},{opacity:1,scale:1,duration:${du(0.45)},ease:"back.out(2.4)"},${at(2.1)});` : "",
+    // ANNOTATION CUES ARE FRACTIONS OF THE BEAT, NOT SECONDS.
+    //
+    // The reference fires them off scene PROGRESS: ZoomShot at 0.42 (over 0.55), Highlight 0.52,
+    // Arrow 0.60, Callout 0.64 (showcase-film.jsx, Tour). Ours used at(1.3/1.6/1.85/2.1) — the
+    // kit's at() is absolute seconds, so on a short beat the whole annotation sequence had already
+    // landed before the reference had started it, and on a long beat it fired in the first third
+    // and then sat still. Same defect the Orbit rocket had: a whole-beat event expressed in
+    // seconds. The short POP durations stay in du() on purpose — a 0.45s chip pop is 0.45s at any
+    // beat length; only the cue's START and the zoom's long travel scale with L.
+    shot ? `tl.fromTo(".${id}-zoom",{scale:1},{scale:1.4,duration:${r(0.55 * ctx.L)},ease:"power1.inOut"},${r(ctx.T + 0.42 * ctx.L)});` : "",
+    shot ? `tl.fromTo(".${id}-hl",{scaleX:0},{scaleX:1,duration:${du(0.5)},ease:"back.out(1.6)"},${r(ctx.T + 0.52 * ctx.L)});` : "",
+    shot ? `tl.to(".${id}-hl",{boxShadow:"0 0 0 ${r(U(12))}cqw ${rgba(th.accent, 0.1)}",duration:0.9,ease:"sine.inOut",repeat:${reps(Math.max(0, ctx.L * 0.42), 0.9)},yoyo:true},${r(ctx.T + 0.58 * ctx.L)});` : "",
+    shot ? `tl.to(".${id}-ar-p",{strokeDashoffset:0,duration:${du(0.7)},ease:"power2.out"},${r(ctx.T + 0.6 * ctx.L)});` : "",
+    shot ? `tl.fromTo(".${id}-ar-h",{scale:0},{scale:1,duration:${du(0.3)},ease:"back.out(2.4)"},${r(ctx.T + 0.72 * ctx.L)});` : "",
+    shot && callout ? `tl.fromTo(".${id}-co",{opacity:0,scale:0.5},{opacity:1,scale:1,duration:${du(0.45)},ease:"back.out(2.4)"},${r(ctx.T + 0.64 * ctx.L)});` : "",
     ...cameraTweens(id, ctx),
     ...ambient(ctx),
   ].filter(Boolean);
@@ -699,7 +786,7 @@ function sDetail(scene, ctx, shots) {
 function sMobile(scene, ctx, shots) {
   const { id, th, at, du } = ctx;
   const shot = shots[0] || null;
-  const eyebrow = String(scene.kicker || STRINGS.mobile).toUpperCase().slice(0, 30);
+  const eyebrow = String(scene.kicker || STRINGS.ebMobile).toUpperCase().slice(0, 30);
   const head = fitLines(scene.headline || scene.title || "", U(620) / CAM_SAFE, U(82), 3);
   const list = bullets(scene, 2);
   const callout = list[0] ? wordsOf(list[0]).slice(0, 3).join(" ") : "";
@@ -718,9 +805,10 @@ function sMobile(scene, ctx, shots) {
     `tl.set("#${id}",{opacity:1},${r(ctx.T)});`,
     `tl.fromTo(".${id}-copy",{opacity:0,y:"${r(U(40))}cqw"},{opacity:1,y:0,duration:${du(0.7)},ease:"back.out(1.5)"},${at(0.5)});`,
     shot ? `tl.fromTo(".${id}-ph",{y:"${r(U(820))}cqw"},{y:0,duration:${du(1.25)},ease:"back.out(1.1)"},${at(0.3)});` : "",
-    shot ? `tl.to(".${id}-ar-p",{strokeDashoffset:0,duration:${du(0.6)},ease:"power2.out"},${at(1.55)});` : "",
-    shot ? `tl.fromTo(".${id}-ar-h",{scale:0},{scale:1,duration:${du(0.28)},ease:"back.out(2.4)"},${at(2.05)});` : "",
-    shot && callout ? `tl.fromTo(".${id}-co",{opacity:0,scale:0.5},{opacity:1,scale:1,duration:${du(0.4)},ease:"back.out(2.4)"},${at(1.75)});` : "",
+    // Same progress fractions as Tour — see the note there.
+    shot ? `tl.to(".${id}-ar-p",{strokeDashoffset:0,duration:${du(0.6)},ease:"power2.out"},${r(ctx.T + 0.6 * ctx.L)});` : "",
+    shot ? `tl.fromTo(".${id}-ar-h",{scale:0},{scale:1,duration:${du(0.28)},ease:"back.out(2.4)"},${r(ctx.T + 0.72 * ctx.L)});` : "",
+    shot && callout ? `tl.fromTo(".${id}-co",{opacity:0,scale:0.5},{opacity:1,scale:1,duration:${du(0.4)},ease:"back.out(2.4)"},${r(ctx.T + 0.64 * ctx.L)});` : "",
     ...(shot ? cursorTweens(`${id}-cur`, ctx, [900, 780], [566, 620], 2.0, 1.3) : []),
     ...cameraTweens(id, ctx),
     ...ambient(ctx),
@@ -938,10 +1026,18 @@ function styleBlock(th) {
   html, body { width:100%; height:100%; overflow:hidden; background:${th.bg}; }
   #root { position:relative; overflow:hidden; isolation:isolate; background:${th.bg}; container-type:size; color:${th.ink}; font-family:${th.displayStack}; }
   .clip { position:absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; }
-  .sc-scene { background:${th.bg}; }
-  /* The camera layer. Everything the beat draws rides it; the background wash and the tour
-     HUD do not, which is what makes the reference's hard cuts read as cuts. */
-  .sc-cam { position:absolute; inset:0; will-change:transform, opacity; transform-origin:center center; }
+  /* The base plate lives on .sc-cam, NOT on the scene root. Two scenes coexist for the length of
+     a cut and the incoming clip's root turns opaque the instant its beat starts — an opaque root
+     would slam a flat rectangle over the outgoing scene and eat the whole transition. #root
+     paints th.bg underneath, so a cut that slides .sc-cam away still lands on paper.
+     The perspective must live on the SCENE, not on the layer being rotated. */
+  .sc-scene { perspective:1400px; }
+  /* The CUT layer — owned by transition_kit. Everything the beat draws rides it; the tour HUD
+     does not, which is what lets an overlap show one HUD rather than two. */
+  .sc-cam { position:absolute; inset:0; background:${th.bg}; will-change:transform, opacity, filter; transform-origin:center center; }
+  /* The AMBIENT layer. The cut and the drift must never share an element: two systems animating
+     one transform channel is the oldest bug in this codebase. */
+  .sc-drift { position:absolute; inset:0; will-change:transform; transform-origin:center center; }
   .sc-chrome { position:absolute; inset:0; pointer-events:none; z-index:40; }
   /* .kw / .kwi are the names caption_render.js's SHAPING_FIX targets — a non-Latin video-text
      language relies on the overflow being neutralised HERE. */
@@ -1018,13 +1114,12 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
 
   const scriptStart = (i) => scenes.slice(0, i).reduce((a, x) => a + (Number(x.duration) || 0), 0);
   const LABELS = { intro: S.tour, tour: S.feature, detail: S.how, mobile: S.mobile, montage: S.everything, proof: S.numbers, call: S.start };
-  const bodyParts = [], sceneScripts = [];
+  const bodyParts = [], overlayParts = [], sceneScripts = [];
 
-  scenes.forEach((scene, i) => {
-    const T = r(scene.start != null ? scene.start : scriptStart(i));
-    const L = r(scene.duration || 5);
-    const isLast = i === scenes.length - 1;
-    const clipDur = isLast ? Math.max(0.1, D - T) : L;
+  // PASS 1 — resolve the beats before drawing any of them. A cut has to be chosen for the beat it
+  // LANDS ON, and the role a beat ends up with is only known after the picture-count downgrade
+  // below, so the classes cannot be read off `roles[]` as assigned.
+  const plan = scenes.map((scene, i) => {
     let role = roles[i] || "tour";
     // LAST GATE BEFORE DRAWING. Roles were assigned against a BUDGET; this is the beat's
     // actual hand. A montage that ended up with one picture, or a mobile/detail beat with
@@ -1032,17 +1127,62 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     // that is complete without a picture.
     const got = sceneShots[i].length;
     if ((role === "montage" && got < 2) || ((role === "mobile" || role === "detail") && got < 1)) role = "statement";
+    return { scene, role, i, T: r(scene.start != null ? scene.start : scriptStart(i)), L: r(scene.duration || 5) };
+  });
+
+  // Deterministic in the film, so a QA repair lap cuts the same way as the render it repairs.
+  // `seedFrom` already existed here unused — this pack had no randomised anything before now.
+  const seed = seedFrom(seedKey || title || brand);
+  const useTx = plan.length > 1;
+  const cuts = useTx
+    ? dealTransitions({
+        classes: plan.map((p) => classifyBeat({
+          role: p.role, scene: p.scene, shotCount: sceneShots[p.i].length,
+          i: p.i, total: plan.length,
+        })),
+        seed, signature: "editorial",
+      })
+    : [];
+  // xf[i] is the overlap of the cut OUT of beat i — the same window as the cut INTO beat i+1,
+  // clamped against the SHORTER neighbour so a long move never outlives a short beat.
+  // Film tempo — cuts tighten with no narration (services/pacing.js). Beats are untouched.
+  const tempo = tempoOf(sb);
+  // Neutral tempo = literal no-op (see om_port_kit): a narrated film must not shift at all.
+  const xfade = (a, b) => (tempo.xfade === 1
+    ? xfadeFor(a, b)
+    : r(Math.max(0.12, xfadeFor(a, b) * tempo.xfade)));
+  const xf = plan.map((p, i) => (useTx && i < plan.length - 1 ? xfade(p.L, plan[i + 1].L) : 0));
+  const acc = accentsFrom(th);
+  const rnd = mulberry((seed ^ 0x9e3779b9) >>> 0);
+
+  plan.forEach(({ scene, role, T, L, i }) => {
+    const isLast = i === plan.length - 1;
+    // The clip lives its own xfade PAST its beat, so the outgoing scene is still alive while the
+    // incoming one arrives. Unique tracks keep the overlap legal.
+    const clipDur = isLast ? Math.max(0.1, D - T) : Math.min(Math.max(0.1, D - T), L + xf[i]);
     const k = Math.min(1, L / REF_BEAT);
     const ctx = {
       id: `s${i + 1}`, T, L, clipDur, i, isLast, track: 2 + i, th, S, W, H, k,
+      useTx, xIn: i > 0 ? xf[i - 1] : 0, xOut: isLast ? 0 : xf[i],
       at: (sec) => r(T + sec * k),
       du: (sec) => r(Math.max(0.06, sec * k)),
       title, brand: String(brand).slice(0, 22),
-      label: LABELS[role] || "", total: scenes.length, url: filmUrl,
+      label: LABELS[role] || "", total: plan.length, url: filmUrl,
     };
     const built = (BUILDERS[role] || BUILDERS.statement)(scene, ctx, role === "call" ? logo : sceneShots[i]);
     bodyParts.push(built.html);
     sceneScripts.push([...built.s, ...chromeTweens(ctx, D)].filter(Boolean).join("\n  "));
+
+    // The cut OUT of this beat. Overlay tracks sit above the scenes (2+i) and below the caption
+    // node (50), so a light bar sweeps the picture without ever crossing the subtitle.
+    if (useTx && !isLast && cuts[i] && xf[i] > 0) {
+      const piece = cuts[i].build({
+        o: `#${ctx.id} .sc-cam`, n: `#s${i + 2} .sc-cam`,
+        t: plan[i + 1].T, x: xf[i], id: `tx${i + 1}`, track: 20 + i, acc, th, rnd,
+      });
+      if (piece.html) overlayParts.push(piece.html);
+      sceneScripts.push(piece.js.filter(Boolean).join("\n  "));
+    }
     sceneScripts.push(`kill("#${ctx.id}",${r(T + clipDur)});`);
   });
 
@@ -1057,6 +1197,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   var tl=gsap.timeline({paused:true});
   var $=function(s){return document.querySelector(s);};
   function kill(id,t){tl.set(id,{opacity:0},t);}
+  ${RUNTIME_HELPERS}
 
   ${sceneScripts.join("\n  ")}
 
@@ -1078,6 +1219,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     `<style>`, styleBlock(th), `</style>`, `</head>`, `<body>`,
     `<div id="root" class="composition" data-composition-id="vid" data-width="${W}" data-height="${H}" data-start="0" data-duration="${D}" style="width:${W}px;height:${H}px;">`,
     bodyParts.join("\n"),
+    overlayParts.join("\n"),
     caps,
     `</div>`,
     `<script>`, script, `</script>`,

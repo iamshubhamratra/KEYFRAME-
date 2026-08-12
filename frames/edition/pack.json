@@ -1,6 +1,6 @@
 {
   "name": "edition",
-  "vibe": "A printed broadsheet in motion. Warm newsprint stock, near-black ink, one editorial red and one ink blue. Anton set enormous and tight for every headline, heavy rules that draw themselves across the measure, a six-column grid with hairline column rules, and a dateline and folio on every page. Pictures are PRINTED in the grid with a keyline and a caption beneath, never floated as decoration; the index page rules itself into a numbered contents list and the comment page sets one statement between two heavy rules. Authored landscape-first (16:9) as a native GSAP + DOM composition. Best for journalism, research, long-form, policy, publishing and any brand that wants to sound authoritative rather than excited.",
+  "vibe": "A printed broadsheet in motion. Warm newsprint stock, near-black ink, one editorial red and one ink blue. Anton set enormous and tight for every headline, Archivo for the labels and folios and a Spectral serif for the running text, heavy rules that draw themselves across the measure, a six-column grid with hairline column rules, and a dateline and folio on every page. Pictures are PRINTED in the grid as figure plates with a keyline and a FIG. caption inside it, never floated as decoration; the spread page sets three plates — two landscape, one tall — around a headline, the index page rules itself into a numbered contents list and the comment page sets one statement between two heavy rules. Authored landscape-first (16:9) as a native GSAP + DOM composition. Best for journalism, research, long-form, policy, publishing and any brand that wants to sound authoritative rather than excited.",
   "renderer": "edition",
   "orientation": "landscape",
   "colors": {
@@ -14,7 +14,8 @@
   },
   "fonts": [
     "Anton",
-    "JetBrains Mono"
+    "Archivo",
+    "Spectral"
   ],
   "surface": {
     "flat": true,
@@ -56,8 +57,8 @@
   },
   "typography": {
     "display": "Anton",
-    "mono": "JetBrains Mono",
-    "body": "JetBrains Mono"
+    "mono": "Archivo",
+    "body": "Spectral"
   },
   "textfx": {
     "enter": "mask-up",
@@ -77,12 +78,16 @@
       "orchestral"
     ],
     "musicKeywords": [
+      "thoughtful",
+      "reflective",
       "documentary underscore",
-      "serious editorial",
+      "serious underscore",
       "understated piano",
       "reflective strings",
       "minimal acoustic",
-      "thoughtful ambient"
+      "thoughtful ambient",
+      "percussive",
+      "build"
     ],
     "sfxPalette": {
       "transition": "card-slide",
@@ -95,7 +100,8 @@
       "energyBoost": 0,
       "sfxDensity": "normal",
       "ambient": false
-    }
+    },
+    "archetype": "editorial"
   },
   "media": {
     "requiredAssets": {

@@ -1,0 +1,174 @@
+{
+  "name": "rocket-nights",
+  "vibe": "Near-black #10101c under hot red #ff4757, spark yellow #ffd23c and violet #7c5cff — notably, it glows, with glowing card borders, glowing stat numbers and a glowing button. Paytone One slams titles in from 2.2× scale with a −4° twist; Outfit does the body. The world is a live show: three shells rise on their own coloured tracer lines behind white heads, then burst into twelve-spoke stars with eight white embers that fall under gravity and fade, each on an independent loop, over fourteen twinkling stars and a black headland silhouette. Unlike its neighbours the sky stays on through montage, stats and CTA — the show never stops behind the copy. Fastest settle here (0.18) plus a spin move. Beats: a firing-script terminal, a split-flap T-minus, popping crowd pings, a card that flips on its axis.",
+  "orientation": "portrait",
+  "category": "Events",
+  "tags": [
+    "dark",
+    "glow",
+    "fireworks",
+    "night",
+    "hot-red",
+    "violet",
+    "event",
+    "poster-weight"
+  ],
+  "renderer": "film-rocket-nights",
+  "colors": {
+    "night": "#10101c",
+    "rocket": "#ff4757",
+    "spark": "#ffd23c",
+    "violet": "#7c5cff",
+    "smoke": "#e8e6f0",
+    "ground": "#10101c",
+    "text": "#e8e6f0",
+    "accent": "#ffd23c",
+    "ink": "#10101c",
+    "paper": "#e8e6f0"
+  },
+  "fonts": [
+    "Paytone One",
+    "Outfit"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#10101c",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#ffd23c",
+      "#10101c",
+      "#ff4757"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "long-exposure night photography of fireworks over a harbour — crowd silhouettes, reflected colour on black water, streaking ember trails against deep indigo sky",
+    "iconStyle": "solid",
+    "keywords": [
+      "fireworks",
+      "night sky burst",
+      "harbour crowd",
+      "pyrotechnic crew",
+      "sparkler",
+      "festival night",
+      "long exposure",
+      "launch barge"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo",
+      "illustration"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Paytone One",
+    "body": "Outfit"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "harbour crowd anticipation, then payoff; silence used as a weapon",
+    "archetype": "hype",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "stadium electronic",
+      "anthemic build",
+      "big-room percussion"
+    ],
+    "musicKeywords": [
+      "twilight pad",
+      "waterfront hush",
+      "sparkler synth",
+      "violet arpeggio",
+      "ember cascade",
+      "fuse riser",
+      "pyro show",
+      "shell burst",
+      "festival trance",
+      "grandstand rush",
+      "midnight rave",
+      "finale drop"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "pop",
+      "reveal": "pop",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

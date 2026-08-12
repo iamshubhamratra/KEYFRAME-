@@ -76,12 +76,16 @@
       "modern"
     ],
     "musicKeywords": [
+      "chill",
+      "playful",
       "modern creative",
       "abstract minimal",
-      "playful geometric",
+      "playful rhythmic",
       "rhythmic percussion",
       "bold upbeat",
-      "driving abstract"
+      "driving abstract",
+      "drums",
+      "energetic"
     ],
     "sfxPalette": {
       "transition": "card-slide",
@@ -94,7 +98,8 @@
       "energyBoost": 2,
       "sfxDensity": "rich",
       "ambient": false
-    }
+    },
+    "archetype": "groove"
   },
   "media": {
     "requiredAssets": {
@@ -142,6 +147,10 @@
       }
     },
     "oversample": 1.3,
-    "addressing": "scene"
+    "addressing": "scene",
+    "stage": {
+      "width": 1920,
+      "height": 1080
+    }
   }
 }

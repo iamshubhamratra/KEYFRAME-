@@ -1,0 +1,175 @@
+{
+  "name": "ghost-route",
+  "vibe": "Fog #1a2026 that never lifts — this is and it animated world runs on every beat, statements and CTA included. Bone #ece8dc type, phosphor-mint #9fe8c4 accents, one amber #e8a23c lantern. Grenze Gotisch sets a gothic display over a Spectral serif body. The world: two translucent ghosts rise slowly out of the bottom of frame, swaying and fading as they climb; a lantern hangs at the right rocking ±10° with its flame pulsing at 6Hz; three headstones sit on a ground band; two sheets of bone-tinted mist breathe up and down; eight stars twinkle at fixed points. Cards, tiles and the stat numerals all carry a mint glow. Motion is deliberately unhurried — drowse titles, half a degree of roll, a slow vertical drift and dolly. Mechanics: a sightings feed, an EMF needle gauge, a swipeable route stack, and a typed guide's note.",
+  "orientation": "portrait",
+  "category": "Mystery",
+  "tags": [
+    "ghost",
+    "night",
+    "gothic",
+    "walking-tour",
+    "glow",
+    "dark",
+    "atmospheric",
+    "folklore"
+  ],
+  "renderer": "film-ghost-route",
+  "colors": {
+    "fog": "#1a2026",
+    "spectral": "#9fe8c4",
+    "lantern": "#e8a23c",
+    "bone": "#ece8dc",
+    "ink": "#12161a",
+    "ground": "#1a2026",
+    "text": "#ece8dc",
+    "accent": "#9fe8c4",
+    "paper": "#ece8dc"
+  },
+  "fonts": [
+    "Grenze Gotisch",
+    "Spectral"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#1a2026",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#9fe8c4",
+      "#e8a23c",
+      "#1a2026"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "long-exposure night photograph of lamplit cobbled alleys and iron railings, cold blue shadows with a single warm lantern",
+    "iconStyle": "line",
+    "keywords": [
+      "cobbled alley",
+      "lantern",
+      "night fog",
+      "iron gate",
+      "old cemetery",
+      "gaslamp",
+      "walking tour",
+      "historic doorway"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Grenze Gotisch",
+    "body": "Spectral"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "cold and patient dread; long tails, sparse events, more air than music",
+    "archetype": "editorial",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "ambient",
+      "gothic",
+      "sparse",
+      "unsettling"
+    ],
+    "musicKeywords": [
+      "spectral drone",
+      "fog pad",
+      "bowed saw",
+      "gaslamp cello",
+      "minor harpsichord",
+      "theremin wail",
+      "pipe organ",
+      "bell toll",
+      "choir chant",
+      "tremolo strings",
+      "funeral dirge",
+      "horror stinger",
+      "witch house"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

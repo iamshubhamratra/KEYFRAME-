@@ -7,7 +7,6 @@ import { loreFor, fmtDur } from "../packlore.js";
 // glow, downloads, remix and the production-details monitor.
 export default function Premiere({ projectId, onRemix, onNew }) {
   const [project, setProject] = useState(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
 
   useEffect(() => {
     if (!projectId) return;
@@ -22,18 +21,10 @@ export default function Premiere({ projectId, onRemix, onNew }) {
     );
   }
 
-  const cost = project.usage?.totalCostUsd;
-  const secs = project.durationMs ? Math.round(project.durationMs / 1000) : null;
   const lore = loreFor(project.framePack);
 
-  // Per-video token consumption: LLM (script + planners + composer + QA + repairs)
-  // plus the estimated TTS audio tokens. Output tokens dominate the cost.
-  const llm = project.usage?.llm;
-  const tts = project.usage?.tts;
-  const totalTokens = llm
-    ? llm.inputTokens + llm.outputTokens + ((tts?.inputTokensEst || 0) + (tts?.outputTokensEst || 0))
-    : null;
-  const fmt = (n) => Number(n).toLocaleString();
+  // `project.usage` (cost, per-stage tokens, TTS estimates) is still returned by the API and
+  // still worth having — it just no longer has a reader on this screen.
 
   return (
     <div style={{ background: "var(--color-dark)", marginTop: -90, paddingTop: 90, position: "relative", overflow: "hidden" }}>
@@ -140,63 +131,13 @@ export default function Premiere({ projectId, onRemix, onNew }) {
           </div>
         )}
 
-        <button onClick={() => setDetailsOpen((v) => !v)}
-          style={{ marginTop: 34, cursor: "pointer", background: "none", border: "none", padding: 0, fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--color-dark-dim)" }}>
-          {detailsOpen ? "▾ HIDE" : "▸ SHOW"} PRODUCTION DETAILS
-        </button>
-
-        {detailsOpen && (
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-            className="editor-card" style={{ marginTop: 16 }}>
-            <div className="editor-head">
-              <span className="tl-dot" style={{ background: "#ff5f57" }} />
-              <span className="tl-dot" style={{ background: "#febc2e" }} />
-              <span className="tl-dot" style={{ background: "#28c840" }} />
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.2em", color: "#7d766a", marginLeft: 10 }}>PRODUCTION REPORT</span>
-            </div>
-            <div style={{ padding: 24 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px,1fr))", gap: 20 }}>
-                <Stat label="TOTAL COST" value={cost != null ? `$${Number(cost).toFixed(3)}` : "—"} c="#e832a8" />
-                <Stat label="PRODUCTION TIME" value={secs ? `${secs}s` : "—"} c="#23c8e0" />
-                <Stat label="COMPOSITION" value={project.finalAttempt || "—"} c="#ffb03a" />
-                <Stat
-                  label="TOKENS USED"
-                  value={totalTokens != null ? fmt(totalTokens) : "—"} c="#b9f24a"
-                  sub={llm ? `${fmt(llm.inputTokens)} in · ${fmt(llm.outputTokens)} out · ${llm.callCount} calls` : null}
-                />
-              </div>
-              {project.usage?.byStage?.length > 0 && (
-                <div style={{ marginTop: 24 }}>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.22em", color: "#7d766a", marginBottom: 10 }}>TOKENS BY STAGE</div>
-                  <ul style={{ display: "flex", flexDirection: "column", gap: 6, margin: 0, padding: 0, listStyle: "none" }}>
-                    {project.usage.byStage.map((s) => (
-                      <li key={s.stage} style={{ display: "flex", alignItems: "baseline", gap: 12, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--color-dark-dim)" }}>
-                        <span style={{ color: "var(--color-dark-ink)", textTransform: "capitalize" }}>{s.stage}</span>
-                        <span style={{ flex: 1, borderBottom: "1px solid rgba(242,237,226,.12)", transform: "translateY(-3px)" }} />
-                        <span>{fmt(s.totalTokens)} tok · {s.callCount} {s.callCount === 1 ? "call" : "calls"} · ${Number(s.costUsd).toFixed(3)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {project.assets?.length > 0 && (
-                <div style={{ marginTop: 24 }}>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.22em", color: "#7d766a", marginBottom: 10 }}>ASSET ATTRIBUTION</div>
-                  <ul style={{ display: "flex", flexDirection: "column", gap: 5, margin: 0, padding: 0, listStyle: "none" }}>
-                    {project.assets.map((a, i) => (
-                      <li key={i} style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--color-dark-dim)" }}>
-                        {a.type} · {a.license} · {a.sourceUrl
-                          ? <a href={a.sourceUrl} target="_blank" rel="noreferrer" style={{ textDecoration: "underline", color: "inherit" }}>{a.source}</a>
-                          : a.source}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
+        {/* THE PRODUCTION REPORT IS GONE — cost, production time, composition attempt and
+            the per-stage token ledger are what it costs US to make the film, not something
+            the person watching it asked for. NOTE FOR WHOEVER READS THIS NEXT: the report
+            also carried the ASSET ATTRIBUTION list (type · license · source, linked), which
+            was the only place in the UI a stock asset's license was ever shown. If any
+            provider in the pool requires visible attribution, it has to come back somewhere
+            — this comment is the trail, since the panel that used to say it is deleted. */}
 
         <div style={{ marginTop: 60, textAlign: "center", fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 26, color: "var(--color-dark-ink)", letterSpacing: "0.3em" }}>
           FIN<span style={{ color: "var(--color-mag)" }}>.</span>
@@ -268,12 +209,3 @@ function QualityPanel({ q, onRemix }) {
   );
 }
 
-function Stat({ label, value, sub, c }) {
-  return (
-    <div>
-      <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.22em", color: c || "#7d766a" }}>{label}</div>
-      <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 24, color: "var(--color-dark-ink)", marginTop: 4 }}>{value}</div>
-      {sub && <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--color-dark-mono)", marginTop: 4 }}>{sub}</div>}
-    </div>
-  );
-}

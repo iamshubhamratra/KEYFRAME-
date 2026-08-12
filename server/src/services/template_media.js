@@ -146,6 +146,12 @@ const MediaSchema = z.object({
   // Does this pack's composer place assets by `sceneId` (true for essentially every
   // composer) or does it consume a flat ordered pool? Recorded for the placement stage.
   addressing: z.enum(["scene", "pool"]).default("scene"),
+  // THE SHEET EVERY SLOT ABOVE IS MEASURED ON. Slot sizes are authored pixels against the
+  // composer's own stage (`om_port_kit.stageOf(W,H)`, film_stage's 1080x1920), and are
+  // meaningless without it — see the areaShare note in resolveMediaPlan. Normally implied by
+  // `orientation`; declared explicitly by a pack that RENDERS at both aspects and therefore
+  // declares no orientation, since there is nothing else for the stage to be inferred from.
+  stage: z.object({ width: z.number().int().min(16), height: z.number().int().min(16) }).optional(),
 });
 
 // ---------------------------------------------------------------- derivation
@@ -367,6 +373,12 @@ function instantiateAuthored(media, { scenes, dims }) {
  *   requiredAssets: object, quota: object, aspects: number[], oversample: number
  * }}
  */
+// The pack's authored stage, via the manifest (lazy require — frame_manifest reads this
+// module's MediaSchema, so the two are mutually recursive at load time).
+function packStageFor(pack) {
+  try { return require("./frame_manifest").packStage(pack); } catch { return null; }
+}
+
 function resolveMediaPlan({ pack, scenes, dims, manifest = undefined } = {}) {
   let m = manifest;
   if (m === undefined) {
@@ -451,12 +463,38 @@ function resolveMediaPlan({ pack, scenes, dims, manifest = undefined } = {}) {
   }
 
   // Annotate each slot with its aspect ratio + a normalized area share. The crop engine
-  // buckets by `aspect`; the ranking engine uses `areaShare` to know how much of the
-  // frame a weak asset would occupy.
-  const frameArea = (Number(dims && dims.width) || 1920) * (Number(dims && dims.height) || 1080);
+  // buckets by `aspect`; the ranking engine and the frame_selector's supply routing use
+  // `areaShare` to know how much of the frame a box would actually occupy.
+  //
+  // A SLOT'S PIXELS BELONG TO THE PACK'S STAGE, NOT TO THE DELIVERED FRAME.
+  //
+  // This divided the authored `w x h` by the JOB's pixel area, which conflates three different
+  // frames and was wrong on two independent axes:
+  //
+  //   • RESOLUTION. The same pack scored 900x516/(1280x720) = 50% at 720p and 22% at 1080p —
+  //     the identical design, rated twice as dense for being rendered smaller. Coverage is a
+  //     property of a composition, and cannot depend on the encoder's output size.
+  //   • ASPECT. A composer lays out in `cqw`, so an authored box occupies `w/stageW` of the
+  //     frame's WIDTH and `h/stageW` of it too — a HEIGHT expressed in width units. Rendered at
+  //     a different aspect, its share of the frame's height therefore scales by the aspect
+  //     ratio between the two frames. showcase's 1119x544 hook computed 29.4% of a 1080x1920
+  //     frame and truly renders 9.3%: overstated 3.2x, on exactly the cross-aspect pairing the
+  //     supply router exists to catch.
+  //
+  // So: express the box against the pack's OWN stage, then map that stage onto the job's.
+  // Algebraically identical to the old formula whenever the two frames match, which keeps every
+  // same-aspect 1080p pairing byte-identical. A pack with no declared stage keeps the legacy
+  // reading — an unknown stage is not guessed.
+  const stage = packStageFor(pack);
+  const jobW = Number(dims && dims.width) || 1920, jobH = Number(dims && dims.height) || 1080;
   for (const p of placeholders) {
     p.aspect = Math.round((p.width / p.height) * 1000) / 1000;
-    p.areaShare = Math.round(((p.width * p.height) / frameArea) * 1000) / 1000;
+    const share = stage
+      ? (p.width / stage.width) * (p.height / stage.width) * (jobW / jobH)
+      : (p.width * p.height) / (jobW * jobH);
+    // A box cannot cover more than the frame. Clamping keeps a mis-declared stage from
+    // handing the router a coverage score no layout could deliver.
+    p.areaShare = Math.round(Math.min(1, share) * 1000) / 1000;
     p.weight = PRIORITY_WEIGHT[p.priority] || 40;
   }
 

@@ -518,14 +518,24 @@ already states the answer, so the chooser reads it.
 - **fetch's headline is not using Caprasimo.** It falls back to a thin geometric sans while
   daybreak-bakehouse renders the identical string in Caprasimo as a fat slab — obvious the moment the
   two cards sit side by side. A font-resolution bug, not a card bug.
-- **biennale-yellow's rendered ground contradicts its manifest.** Its type-led beats are dark indigo;
-  its parchment beats are the ones carrying pictures. So its card can be on-brief OR
-  placeholder-free, not both — no frame chooser can resolve that, and it is recorded here rather than
-  papered over.
+- ~~**biennale-yellow's rendered ground contradicts its manifest.**~~ **WRONG — withdrawn 7 Aug 2026.**
+  I recorded this from the cards without reading the composer, and it does not hold. Every beat is
+  printed on parchment; `skin(th, true)` is called exactly once, for the indigo colophon that closes
+  the film (`biennale_yellow_composer.js:505`), which the pack's own `camera3d.ground: "#1B2566"`
+  declares. Enumerating the grounds of a five-beat build: `#E9E5DB` ×4, `#1B2566` ×1. What the critics
+  saw was the frame CHOOSER landing on the colophon, and the ground-affinity rule added in the same
+  round is the fix — there is no pack defect underneath it.
 
-**The remaining PLACEHOLDER cards are mine to fix, and the fix is the placeholder itself** — a flat
-grey slab reads as a wireframe. A mid-tone stand-in with photographic structure would stop competing
-with the pack's design for the eye. That is the next step, not a tuning parameter.
+**The remaining PLACEHOLDER cards were mine to fix, and the fix was the placeholder itself.** DONE
+7 Aug 2026, `make-pack-media.js:uiPlaceholder`. The flat grey wireframe is now a page: white chrome
+with a nav row, a hero on a soft slate→teal gradient carrying two title bars and a small warm pill,
+and a tile row whose image areas are three different gradients over text at three different measures.
+Two constraints shaped it. It stays DESATURATED — a stand-in with real colour gets read as part of the
+pack's palette, and 46 packs have 46 accents to clash with. And it stays DETERMINISTIC — every
+dimension comes from `w`/`h` or an index, never a random source, so two runs write identical bytes and
+the media guard's staleness check keeps meaning something. It renders correctly at all five asset
+shapes including the 4.2:1 strip, where the tile row drops out for want of height rather than
+collapsing.
 
 ### What the render caught that the code could not
 
@@ -584,6 +594,58 @@ the reference's beat TIMES, not its roles.** Our spine assigns roles independent
 labelled `Problem` may be our showcase beat. Read the built HTML's scene ids before calling a beat
 missing — I briefly believed teampulse never drew its screenshots at all, when in fact its showcase
 beat had run three scenes earlier.
+
+### 3l. A screenshot cannot be a ground — job 1ntmvaft5g, the asset half
+
+The review of job `1ntmvaft5g` scored 65/100 with three blocking layout defects (all fixed: a
+character-cut chip that printed "Thousands of stylish fra", a bullet stack bunched in the upper third
+leaving 60% bare, a 40-character slice that clipped "…14 days retu") and then said something the
+layout fixes did not touch: **"4 of 7 scenes show no asset and render template-only panels."**
+
+That was arithmetic, not bad luck. reel could place a picture in three of its six roles, so a
+seven-beat film had four bare beats however many assets were collected.
+
+**The first fix was wrong, and the render is what said so.** I gave `perks` and `proof` a full-bleed
+screenshot ground behind their copy, scrimmed to `rgba(bg, 0.93)` and zoomed to `scale(1.32)` with
+`transform-origin: 50% 42%`, reasoning that a scrim dims type and a crop removes it, so pushing the
+picture past the frame would put the site's own words outside it. Both frames came back with the
+fixture site's "Categories" heading legible directly behind the beat's headline and its "FREE LENS
+REPLACEMENT" banner legible along the bottom edge.
+
+The reason generalises past this pack: **a website screenshot is the highest-contrast image a film ever
+carries** — near-black type on white. At 7% effective opacity that still clears the wash. Zooming
+changes which words show, not whether they show, and dimming far enough to hide them means placing an
+asset nobody can see. `numbers` had shipped the same device at 0.88 and had the same fault; it is now
+withdrawn too, which incidentally returns the reaction layer its ground had replaced.
+
+**So in this pack a screenshot is CONTENT, always inside a bounded sticker card, and the type beats
+give up height for it instead of standing on top of it:**
+
+| Beat | How the room is found |
+| --- | --- |
+| `perks` | the rows keep what they need, the card takes the rest — down to a letterbox strip at four bullets. The asset is never stranded to keep the rows readable, and the rows never drop below their floor |
+| `proof` | the quote block's bottom is MEASURED (the word run's own size decides its line count) and the card fills what is left — which is also what the review called "large blank lower canvas" |
+| `numbers` | the stat cards keep the top of the band, the card takes the bottom, the colour wash comes back |
+
+Six of seven beats now carry a picture on a seven-beat film; only a plain `statement` beat is
+type-only. Verified by rendering late in each beat with a deliberately busy fixture screenshot — one
+whose own headings would be impossible to miss if they were still showing through.
+
+**One thing NOT to chase from those frames:** where a card's cover-crop cuts a word of the site's own
+type at its edge. That is the fixture handing a raw 1000×1250 SVG to a 900×600 box. In the pipeline the
+media contract crops each asset to the `shapes` ratio the role asked for before the render, so
+`object-fit: cover` has almost nothing left to trim. `shapes` was updated with the three new ratios.
+
+**The audio half of the same review.** "counter-tick ×2 repeated" was a picker with no memory across a
+film: two beats mapping to one intent asked for one cue. It now takes the set already spent and steps
+to a sibling (`counter-tick → data-ping`). "Music did not come from the template's keywords (fell back
+to the script query)" was not the profile being ignored — the query was UNANSWERABLE. reel's terms
+include "hook" (9 tracks in the corpus) and "social" (19), and the AND-matched pair "hop hook" matched
+nothing at all. Those plus seven more words that describe a brief rather than a sound are stopwords
+now, and `test:music-vocab` holds every term in every pack to at least three tracks.
+
+**Not a code fix:** the review's "unbranded — the template keeps its own designed accents" is correct
+and expected. No brand colour was chosen for that job and none was extractable from the site.
 
 ---
 
@@ -668,3 +730,140 @@ node scripts/golden-composers.js --update            # review the diff in the co
 ```
 Lint, goldens and `npm test` have passed through **every** visual defect this library has had.
 They are necessary and not sufficient. The frames are the check.
+
+---
+
+## 7. 10 Aug 2026 — the instrument was broken, and it was making false findings
+
+Everything in §6's validation block assumes the harness tells the truth. It did not.
+
+### 7a. The handoff library moved and `shot-reference.js` died silently
+
+The source of truth is now **`old-templete/all-template-handoffs/`**. `shot-reference.js:31` was a
+single hardcoded join to `templete-design/all-template-handoffs`, which no longer exists, so the
+harness threw on every template — while `framecheck/ref/` still held the pre-move captures. The
+comparison workflow looked alive and was frozen in the past. This is §1's failure one level up: there
+the documented tool no longer existed; here the tool existed and its input did not.
+
+Now resolved against a candidate list with a `KEYFRAME_HANDOFFS` override, and `resolveHandoffs()`
+is exported so every consumer reads one answer. (Note `templete-design/keyframe-handoff/` still
+exists and is a *different* library — the 70 FilmKit skins. Do not conflate them.)
+
+### 7b. Four defects in `shot-pack.js` that manufactured false defects in all 16 ported packs
+
+This harness's whole claim is *"every remaining difference is the DESIGN, not the content."*
+
+| Defect | What it did |
+| --- | --- |
+| `stats: [{v, suf, l}]` — the shape **all 20** templates use — was read with `label\|title\|k\|name\|value` | Every entry resolved to `""` and the array was dropped. `K.numbersIn()` found no figures, so **the stats beat of every one of the 16 ported packs fell to the pictureless `statement` fallback.** Drive's speedometer, its sweeping arc and its hard-shadowed cards, and momentum's full-bleed orange ground and bar chart, are all implemented in the composers and were absent from every frame. |
+| Display lines under `lines` / `words` / `quote` / `text` / `stamp` / `caption` / `pill` were unread | `head` fell through to the SCENE NAME. Momentum's manifesto beat printed the word **"STATEMENT"** where the reference sets "BUILD / BOLD. / SHIP / FASTER."; its quote beat printed "QUOTE"; its gallery beat "SHOWCASE". And because `lines` is an array, the authored headline was then scraped as the chip row — headline and chips swapped places. 5 of momentum's 8 beats compared as garbage. Also hits hacker, reel, edition, stomp, cadence. |
+| Cadence's composites `value`+`suffix` ("72%") and `prefix`+`states` ("Status: Draft") were unread | 3 more bare beats. |
+| `--assets` defaulted to 4, below the reference's own slot table | Drive's four-window Fleet received zero and fell back — comparing our fallback against their designed beat. Now 8; pass `--assets 4` to inspect sparse behaviour deliberately. |
+
+Every one of these sends an engineer to rebuild a composer that was already correct. That is worse
+than a missed defect: it burns a session and it *removes* correct work.
+
+### 7c. Two new guards, and one new tool
+
+- **`npm run test:framecheck`** — 359 assertions over all 20 handoffs: the library resolves, every
+  beat's display line is the reference's own copy and not a role label, an authored headline never
+  leaks into the chip row, every `stats` array survives into `numbersIn()` + `statLabel()`, and every
+  duration matches `OM_SCENES`. It found the Cadence composites on its first run. One documented bare
+  beat remains (`Hacker/Compile` genuinely has no display line).
+- **`npm run test:tween-units`** — a length tween value must carry its unit. Written for
+  `deep_composer.js:301`, which animated Explore's five suspended panels with `y:"+=${r(U(20))}"` —
+  no `cqw` — so GSAP moved them **1.04 pixels instead of ~20**, a 19× amplitude error that renders as
+  "frozen". No existing guard could see it: the element exists, the property is legal, the copy is
+  revealed, and the tween runs. It scans emitted HTML, because these values are template-interpolated
+  and never appear in source. **SVG-aware** — a bare number inside an `<svg>` is user-space and
+  correct (orbit's documented ±4px rocket idle), so only DOM targets are flagged.
+- **`npm run test:dead-exports`** — furniture written, exported and never called. The mirror of
+  `test:dead-tweens`: that one catches a tween whose element is missing, this catches a drawing
+  nothing asks for. It follows spread re-exports (`om_port_kit.js:773` spreads `om_furniture`, so a
+  direct-require check declared all 13 of its helpers dead while packs called them daily), and
+  reports internal-only exports as information rather than failure.
+- **`scripts/framecheck-sheet.js`** — stitches reference-left / ours-right, one row per scene, one
+  PNG per template into `framecheck/sheets/`. §1 ends with "Open them side by side", which in practice
+  meant twelve windows per template and a comparison held in short-term memory. That friction is a
+  large part of why this library was ported without its atmosphere. Portrait halves its column width;
+  a beat present in the reference and missing from ours draws an explicit MISSING panel rather than
+  shortening the sheet.
+
+**Known debt, deliberately not fixed here:** `bauhaus-riot` (`#bg-ring`, `y:"+=18"`) and `bloom-fable`
+(`#amb-bf` `y:"-=70"`, `.bl-amb-pt` `x:"+=48"`) carry the same unit defect. Both are cqw-authored and
+both are real, but neither is one of the 20 handoff packs, so they are listed in `KNOWN_DEBT` rather
+than changed on the way past. The list is asserted EXACTLY — a new violation fails the build and so
+does a fixed one — so it can only shrink.
+
+### 7d. Re-audit scoreboard, all 20 templates
+
+Read line-by-line against the handoff `*-film.jsx`, by read-only agents (the §5 incident is why they
+had no Edit/Write tools at all).
+
+| Score | Templates |
+| --- | --- |
+| 84 | Edition *(faithful)* |
+| 78 | Drive · Deep · Momentum · Orbit · Showcase · Stomp/teampulse |
+| 66 | Flight · Jungle |
+| 64 | FlightVertical |
+| 61 | ShowcaseVertical |
+| 60 | Reel |
+| 58 | Hacker |
+| 57 | Fetch |
+| 56 | Pipeline |
+| 52 | Fight |
+| — | Launch · FetchVertical · Birdsong · Cadence *(never ported)* |
+
+**Orbit, Showcase and Teampulse are the exemplars** — exact display ceilings, own chrome,
+world-semantic colours locked. Copy their patterns; do not re-lay their beats.
+
+Full per-template audits and the five cross-cutting systemic audits (display-type ceilings, brand
+colour vs template identity, asset placement, 9:16 safe area, architectural overrides) are the input
+to the wave plan; the dominant root causes are unchanged in kind from §0 — the shared kit's defaults
+outranking the pack's authored design, the manifest and the composer describing different films,
+constants re-derived defensively instead of transcribed, and signature cast dropped or left unwired.
+
+### 7e. Fixed in this pass, outside the per-pack waves
+
+| Fix | File | Why it mattered |
+| --- | --- | --- |
+| Explore's tile float given its `cqw` | `deep_composer.js:301` | 19× amplitude error; the beat's only motion |
+| `takeoff` moved to the FRONT of `SPEC.middle` | `flight_composer.js:384` | The cursor starts at index 0, so a five-beat film **never took off** — it went from the gate straight to the air |
+| Dead `-prog` rail deleted | `momentum_composer.js:151-153`, `drive_composer.js:171-173` | An accent bar baked at `transform:scaleX(0)` and never tweened (the kit only emits `chromeTweens` for packs that *don't* supply their own chrome, and both do) — invented furniture the reference declines, dead markup, and a baked transform hidden state, in every frame |
+
+---
+
+## 8. Wave 2 — the kit contracts (`om_port_kit.js`)
+
+Shipped alone, as the plan requires. **19 of 125 packs moved; 106 are byte-identical** — the change
+is confined to packs that reach `statement`, use the default HUD, or declare a distinct body face.
+
+| Contract | Change | Evidence it is right |
+| --- | --- | --- |
+| **`statement` body face** | body paragraph and every bullet row now take `th.bodyStack \|\| th.displayStack` | edition set running prose in **Anton** — a condensed poster face — on every pictureless beat. The fallback means a pack that never declared a body family renders identically, so the golden diff lands only on packs this corrects. |
+| **`statement` headline ceiling** | resolution order: per-call override → `th.statementMax` → the historical constant | `statement` is where every pictureless beat in all 16 ported packs lands, and it hard-capped at `U(158)`. A pack authored at 190px (fetch), 200px (deep) or 250px (fight) was silently capped, so its type scale changed with the asset budget. **Five of the six rebuild agents requested this independently** — the strongest signal in the audit that a kit default was outranking the design. |
+| **Word-safe clipping** | the three bare `.slice(0, 34/140/78)` → `clampWords` | The most-executed text clips in the library, one per pack per pictureless beat. `clampWords` had been defined 300 lines above them since the kit was written and was never called. Verified: body and bullets now end on whole words. |
+| **`inkOn` pivot 0.5 → 0.179** | the true tie point, derived not guessed | `1.05/(L+0.05) = (L+0.05)/0.05` ⇒ `L = 0.179`. The old pivot handed WHITE ink to everything in 0.18–0.50 — exactly the band `ensureContrast` lifts a dark pack's brand accent into (`limit: 0.34`), so the better the accent was corrected the worse its label read. Measured over an 86-sample grey sweep: **23 improved, 0 worsened, 63 unchanged**. A brand blue lifted for a dark ground goes **2.51:1 → 7.84:1**. |
+| **HUD ink follows its real ground** | `chromeHtml` picks ink against `th.chromeGround ?? th.bg`, keeping `th.ink`/`th.sub` whenever they already clear 3:1 | The jungle class, fixed for all eight default-chrome packs **without touching one of their files**: the HUD assumed the pixels behind it were `th.bg`, but a backdrop is free to paint something else there. jungle's canopy band put `#12301E` on `#0E2C1B` — 1.05:1, the brand name simply gone, in every frame, invisible to every guard because the element is present, revealed and animated. |
+| **`camSafe` honours the pack's camera** | `ctx.camScale` added; default still 1.03 | The signature reads `camSafe(scale = 1.03)` and **124 of 127 call sites pass nothing**, so every measurement divided by 1.03 regardless of what that pack's camera does, while `driftTweens` scales by the pack's own `cam.scale`. The SAFE-AREA LAW applied to the wrong number. Left opt-in so no pack moves until its own wave threads `ctx` through. |
+
+### Refuted, and deliberately not changed
+
+**`reps(span, dur)` is not "systematically wrong for yoyo tweens."** A rebuild agent reported it as a
+kit defect. For a tween of duration `dur` with `repeat:N`, total playing time is `dur × (N+1)`;
+`floor(span/dur) − 1` fills the span without overrunning the beat, which is the intent. Checked
+before acting, and left alone.
+
+### Deferred out of Wave 2, on purpose
+
+`om_svg_cast.js`, `driftTweens` push/roll, a non-cross-faded overlay layer in `open()`, `shotFill`
+box plumbing, the caption-pad `safeArea` fix and the `ensureContrast` → `brand_kit` delegation are
+all still open. The first four are **additive API with no caller yet** — adding them now would create
+exactly the written-and-left-unwired condition `npm run test:dead-exports` was built to catch. They
+land with the pack wave that consumes them.
+
+**Verified:** ghosts · motion-safety · dead-tweens · tween-units · dropped-css · pack-composers ·
+dead-exports · transitions · shot-containment (125/125) · portrait 95/95 · orientation 14/14 ·
+content-floor · spread · framecheck 359/359 — all green; goldens re-baselined and re-verified
+byte-identical. One flaky `shot-containment` run inspected 124 of 125 compositions under CPU
+contention and passed twice on re-run; it is a load artefact, not a layout failure.

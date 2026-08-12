@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createProject, listFrames } from "../api.js";
-import { PACK_LORE, PACK_ORDER, loreFor } from "../packlore.js";
+import { PACK_LORE, PACK_ORDER, loreFor, loreForPack } from "../packlore.js";
 import { PackCard } from "./Templates.jsx";
 
 // The v2 editor, made real: "Type. Then watch it shoot itself."
@@ -105,13 +105,15 @@ export default function CreateScreen({ onCreated, prefill }) {
   useEffect(() => { if (prefill?.framePack) setFramePack(prefill.framePack); }, [prefill]);
 
   const packList = packs || orderPacks([]);
-  const activeLore = framePack !== "auto" ? loreFor(framePack) : null;
 
   // /api/frames is the ONE source for what a pack's accents are: packlore.js is a
   // hand-copied presentation layer (it says itself it mirrors another file), so
   // seeding from it would let these swatches drift away from the colors the
   // renderer actually paints.
   const activePack = framePack !== "auto" ? packList.find((p) => p.name === framePack) : null;
+  // Resolved from the PACK, not from its name: only the pack object carries the manifest
+  // data a pack with no hand-authored lore entry needs to describe itself correctly.
+  const activeLore = activePack ? loreForPack(activePack) : (framePack !== "auto" ? loreFor(framePack) : null);
   const packAccents = ((activePack && activePack.accents) || []).slice(0, 2);
   const brandPreset = BRAND_PRESETS.find((p) => p.id === brandChoice) || null;
   // The wells open on the STUDIO's accents, never on the selected pack's. A pre-filled

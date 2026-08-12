@@ -1,0 +1,174 @@
+{
+  "name": "koi-court",
+  "vibe": "Pond #14262b — a deep teal-black — with koi orange #f07d3c, jade #3f8c7a and gold #d9b45c as the only bright things in it. Gelasio's readable serif keeps titles in the case they were written, up to 148px; Kumbh Sans handles labels. The world is a stocked pond seen from above: three koi in orange, white and gold swimming continuous elliptical orbits at different radii and speeds, tails wiggling six times a second, the lead fish carrying a dark spot; ripple rings opening on the surface; three jade lily pads rocking on a slow sine; and one orange petal spinning as it drifts diagonally across the whole frame. Cards are 22px-round, chips are pills. Beats: a twelve-tick clarity ring, a scrolling pond census, side-sliding garden notes, words cross-fading into each other.",
+  "orientation": "portrait",
+  "category": "Nature",
+  "tags": [
+    "calm",
+    "dark-teal",
+    "koi-orange",
+    "pond",
+    "garden",
+    "serif",
+    "meditative",
+    "nature"
+  ],
+  "renderer": "film-koi-court",
+  "colors": {
+    "pond": "#14262b",
+    "koi": "#f07d3c",
+    "white": "#f4f1e8",
+    "jade": "#3f8c7a",
+    "gold": "#d9b45c",
+    "ground": "#14262b",
+    "text": "#f4f1e8",
+    "accent": "#f07d3c",
+    "ink": "#14262b",
+    "paper": "#f4f1e8"
+  },
+  "fonts": [
+    "Gelasio",
+    "Kumbh Sans"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#14262b",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#f07d3c",
+      "#14262b",
+      "#d9b45c"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "overhead and low-angle photography of a koi pond in a formal garden — dark green water, orange and white fish, lily pads, soft overcast light and gentle surface reflections",
+    "iconStyle": "line",
+    "keywords": [
+      "koi fish",
+      "garden pond",
+      "lily pad",
+      "japanese garden",
+      "tea pavilion",
+      "stone lantern",
+      "water ripple",
+      "maple leaf"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Gelasio",
+    "body": "Kumbh Sans"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "still water and long attention; a garden diary read aloud",
+    "archetype": "editorial",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "meditative",
+      "asian strings",
+      "piano ambient"
+    ],
+    "musicKeywords": [
+      "guzheng calm",
+      "koi pond",
+      "still water",
+      "lotus hush",
+      "erhu drift",
+      "courtyard meditation",
+      "wind chime",
+      "pentatonic reverie",
+      "plucked ostinato",
+      "jade marimba",
+      "zen groove",
+      "temple drums"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

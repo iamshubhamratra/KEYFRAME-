@@ -1,0 +1,175 @@
+{
+  "name": "stacks-and-spines",
+  "vibe": "A late-shift reading room in forest green (#223828) and lamp-warm paper (#f2ecdc), with rust-red spines (#a8402e) and oak (#8a6a42) doing all the pointing. EB Garamond sets titles in a genuine book serif at 92–142px; Public Sans keeps the ledgers plain. Behind the type, two oak rails carry thirty-two book spines — varied heights, thin paper banding, one in seven leaning — under a banker's lamp whose bulb breathes on sin(2t) and throws an 8%-opacity cone of #f6e6b0 light that ten dust motes fall through. Cards are cream paper with a green keyline and zero tilt: catalogue discipline, not scrapbook. The camera drifts 4px and rolls a third of a degree; titles settle on drowse. It owns a typed catalogue card, a stacking returns trolley, a closing-rounds checklist and side-sliding desk notices.",
+  "orientation": "portrait",
+  "category": "Culture",
+  "tags": [
+    "library",
+    "bookish",
+    "serif",
+    "calm",
+    "archive",
+    "warm-dark",
+    "literary",
+    "quiet-luxury"
+  ],
+  "renderer": "film-stacks-and-spines",
+  "colors": {
+    "green": "#223828",
+    "oak": "#8a6a42",
+    "lamp": "#2e6e4e",
+    "paper": "#f2ecdc",
+    "spine": "#a8402e",
+    "ground": "#223828",
+    "text": "#f2ecdc",
+    "accent": "#a8402e",
+    "ink": "#223828"
+  },
+  "fonts": [
+    "EB Garamond",
+    "Public Sans"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#223828",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#a8402e",
+      "#8a6a42",
+      "#223828"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "warm lamplit documentary photograph of a library reading room, deep green walls and oak shelving, shallow depth of field, dust in the beam",
+    "iconStyle": "line",
+    "keywords": [
+      "library stacks",
+      "bookshelf spines",
+      "reading room",
+      "card catalog",
+      "rare books",
+      "brass desk lamp",
+      "archive boxes",
+      "aged paper texture",
+      "open book"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "EB Garamond",
+    "body": "Public Sans"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "hushed, lamplit, unhurried — the sound of a room that closes late and nobody wants to leave",
+    "archetype": "editorial",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "felt piano",
+      "brushed jazz",
+      "chamber folk",
+      "room-tone ambience"
+    ],
+    "musicKeywords": [
+      "lamplight guitar",
+      "muted cello",
+      "reading room",
+      "page turn",
+      "oak nocturne",
+      "vibraphone dusk",
+      "catalogue waltz",
+      "walking bassline",
+      "wurlitzer stroll",
+      "rimshot swing",
+      "nightshift bossa",
+      "bebop trio"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

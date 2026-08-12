@@ -77,4 +77,85 @@ const oceanTweens = (ctx, { cls }) => {
   return t;
 };
 
-module.exports = { oceanBg, oceanTweens };
+// ═══════════════════════════ the jellyfish ═══════════════════════════
+// THE PACK'S SIGNATURE CREATURE, and it was missing entirely. The reference places EIGHT of
+// them across five of its six scenes; it is also the pack's own thumbnail glyph. Nothing else on
+// the Deep fidelity list changes the frame as much.
+//
+// Reference `Jelly` (deep-film.jsx 78-95), transcribed in the authored 1920x1080 space:
+//   halo      circle r110, fill colour@0.14, blur(6px)
+//   bell      a scalloped dome, fill colour@0.5, stroke colour@0.85 w2, pulsing
+//             scale(1 - pulse*0.06, 1 + pulse*0.12) where pulse = sin(clock*1.6 + phase)
+//   highlight an arc, white@0.4 w2
+//   tentacles five, at x = -42 -22 0 22 42, each a curve waving by sin(clock*2 + i + phase)*14
+//
+// SEEK-SAFETY / GUARD-SAFETY. The tentacle wave moves a Bezier CONTROL POINT, which would mean
+// tweening the `d` attribute. That is a string tween, and `npm run test:motion-safety` requires
+// motion to stay on transform/opacity/filter — so each tentacle instead ROTATES a few degrees
+// about its own anchor at (x, 8). Same read (tentacles trailing and waving), same period, and it
+// stays inside the transform budget. A 14px lateral swing over a ~182px tentacle is ~4.5 degrees.
+const JELLY_PULSE = 3.93;    // 2*pi / 1.6
+const JELLY_WAVE = 3.14;     // 2*pi / 2
+const JELLY_DRIFT = 12.57;   // 2*pi / 0.5, +-20px on x
+const JELLY_BOB = 15.71;     // 2*pi / 0.4, +-22px on y
+const TENTACLES = [-42, -22, 0, 22, 42];
+
+// The scalloped bell. Six shallow scoops along the lower edge is what separates it from a dome.
+const BELL_D = "M-70 6 Q -70 -78 0 -78 Q 70 -78 70 6 Q 40 22 34 6 Q 22 22 12 6 Q 0 22 -12 6 Q -22 22 -34 6 Q -40 22 -70 6 Z";
+
+function jelly(cls, { x, y, s = 1, color }) {
+  // A BOW IS BAKED INTO EACH TENTACLE. The reference's control point is offset by
+  // `sin(clock*2 + i + phase)*14`, so a tentacle is essentially never straight — collapsing the
+  // control point onto the endpoints (as the first build did) draws five stiff parallel wires
+  // under the bell. The bow alternates side by index so they don't read as a comb, and the
+  // rotation below swings them.
+  const tent = TENTACLES.map((tx, i) => {
+    const bow = (i % 2 === 0 ? 1 : -1) * (9 + (i % 3) * 3);
+    return `<path class="${cls}-t${i}" d="M${tx} 8 Q ${tx + bow} 90 ${tx + bow * 0.6} 190" fill="none" stroke="${rgba(color, 0.5)}" stroke-width="4" stroke-linecap="round"></path>`;
+  }).join("");
+  return `<g class="${cls}-w"><g transform="translate(${r(x)} ${r(y)}) scale(${r(s)})">
+    <circle r="110" fill="${rgba(color, 0.14)}" style="filter:blur(6px);"></circle>
+    <g class="${cls}-b">
+      <path d="${BELL_D}" fill="${rgba(color, 0.5)}" stroke="${rgba(color, 0.85)}" stroke-width="2"></path>
+      <path d="M-46 -40 Q 0 -66 46 -40" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2"></path>
+    </g>
+    ${tent}
+  </g></g>`;
+}
+
+function jellyTweens(ctx, cls, { phase = 0 } = {}) {
+  const T = ctx.T, L = Math.max(0.4, ctx.L);
+  const t = [];
+  // Drift and bob ride the OUTER wrapper so they compose with nothing else; the inner group
+  // carries the static translate/scale, which GSAP must not touch (it replaces `transform`
+  // wholesale — the lesson the orbit ring taught).
+  t.push(`tl.fromTo(".${cls}-w",{x:-20,y:-22},{x:20,y:22,duration:${r(JELLY_DRIFT / 2)},ease:"sine.inOut",repeat:${reps(L, JELLY_DRIFT / 2)},yoyo:true},${r(T + phase * 0.5)});`);
+  // The bell pulse: taller and narrower, then shorter and wider. scaleX and scaleY move in
+  // OPPOSITE directions — that counter-motion is what makes it read as swimming rather than
+  // throbbing.
+  t.push(`tl.fromTo(".${cls}-b",{scaleX:1.06,scaleY:0.88},{scaleX:0.94,scaleY:1.12,duration:${r(JELLY_PULSE / 2)},ease:"sine.inOut",repeat:${reps(L, JELLY_PULSE / 2)},yoyo:true,transformOrigin:"50% 0%"},${r(T + phase * 0.3)});`);
+  TENTACLES.forEach((tx, i) => {
+    t.push(`tl.fromTo(".${cls}-t${i}",{rotation:-4.5},{rotation:4.5,duration:${r(JELLY_WAVE / 2)},ease:"sine.inOut",repeat:${reps(L, JELLY_WAVE / 2)},yoyo:true,svgOrigin:"${tx} 8"},${r(T + (phase + i * 0.35) * 0.25)});`);
+  });
+  return t;
+}
+
+// ═══════════════════════════ sonar ═══════════════════════════
+// Expanding rings that fade as they grow (reference `Sonar`, 115-117): r 0 -> 360, stroke
+// accent fading (1-t)*0.6, stroke-width 3, each ring staggered. Progress-based in the
+// reference, so the timing here is a fraction of the BEAT, not a fixed number of seconds.
+function sonar(cls, { cx, cy, n = 3 }) {
+  return `<g class="${cls}-so">${Array.from({ length: n }, (_, i) =>
+    `<circle class="${cls}-so${i}" cx="${r(cx)}" cy="${r(cy)}" r="360" fill="none" stroke-width="3" opacity="0" style="transform-box:fill-box;transform-origin:center;"></circle>`).join("")}</g>`;
+}
+function sonarTweens(ctx, cls, th, { n = 3, at = 0.2 } = {}) {
+  const L = Math.max(0.4, ctx.L);
+  return Array.from({ length: n }, (_, i) => {
+    const start = ctx.T + (at + i * 0.16) * L;
+    const dur = 0.7 * L;
+    return `tl.set(".${cls}-so${i}",{stroke:"${rgba(th.accent, 0.6)}"},${r(ctx.T)});`
+      + `\n  tl.fromTo(".${cls}-so${i}",{scale:0,opacity:0.6},{scale:1,opacity:0,duration:${r(dur)},ease:"power2.out"},${r(start)});`;
+  });
+}
+
+module.exports = { oceanBg, oceanTweens, jelly, jellyTweens, sonar, sonarTweens };

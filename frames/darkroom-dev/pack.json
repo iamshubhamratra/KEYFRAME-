@@ -1,0 +1,174 @@
+{
+  "name": "darkroom-dev",
+  "vibe": "Near-black warm room (#14100e) lit only by a pulsing safelight red (#e2483d), with amber (#e89b3c) in the film frames and warm grey (#cfc9bd) type. Syne's wide geometric display over Hanken Grotesk, uppercase on every beat. The world is a working darkroom: a red bulb breathing r40±6 inside a soft 110px halo, a drying line strung across the frame with three film strips clipped to it swaying ±5°, each with sprocket holes down its edge and five amber frames inside, and a developing tray at the floor where concentric ripples expand and fade in safelight red. Cards and stat numbers actually glow. Its terminal beat runs a real console with a block caret and a green OK, and its Ring is a graduated cylinder that fills — the chemistry, not a chart. Machete titles slash in at −6° skew, cadence 7, Lively not bouncy. Best of this set for dark product UI.",
+  "orientation": "portrait",
+  "category": "Retro",
+  "tags": [
+    "analog film",
+    "darkroom",
+    "dark ui",
+    "glow",
+    "uppercase",
+    "terminal",
+    "safelight red",
+    "photography"
+  ],
+  "renderer": "film-darkroom-dev",
+  "colors": {
+    "dark": "#14100e",
+    "safe": "#e2483d",
+    "amber": "#e89b3c",
+    "grey": "#cfc9bd",
+    "paper": "#f4f1ea",
+    "ground": "#14100e",
+    "text": "#f4f1ea",
+    "accent": "#e2483d",
+    "ink": "#14100e"
+  },
+  "fonts": [
+    "Syne",
+    "Hanken Grotesk"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#14100e",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#e2483d",
+      "#14100e",
+      "#e89b3c"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "high-ISO photograph under red safelight, hanging film strips and developer trays, deep shadow with amber highlights, visible grain",
+    "iconStyle": "line",
+    "keywords": [
+      "darkroom safelight",
+      "film negatives",
+      "contact sheet",
+      "enlarger",
+      "developer tray",
+      "35mm roll",
+      "drying line",
+      "black and white print"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo",
+      "illustration"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Syne",
+    "body": "Hanken Grotesk"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "patient and mechanical under red light — a process running at its own pace, warm tape underneath",
+    "archetype": "retro",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "analog synth",
+      "tape saturation",
+      "motorik pulse",
+      "dub delay"
+    ],
+    "musicKeywords": [
+      "dark ambient",
+      "safelight hum",
+      "darkroom drone",
+      "grain texture",
+      "patient arpeggio",
+      "enlarger click",
+      "spring reverb",
+      "mellotron chords",
+      "sequencer groove",
+      "moog bass",
+      "krautrock groove",
+      "dub techno"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "ui-click",
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

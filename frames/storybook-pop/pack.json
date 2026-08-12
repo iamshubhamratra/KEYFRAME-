@@ -1,0 +1,175 @@
+{
+  "name": "storybook-pop",
+  "vibe": "An open book that never stops turning. On cream page #f8efdf, two facing leaves are drawn with a hand-inked outline, a red ribbon #cf4633 hangs from the spine, four rule lines run across the verso, and one page sweeps back and forth forever while ten gold #d9a13b sparkles drift upward and twinkle. Bitter's slab serif reads like a printed chapter head over Nunito Sans; statement beats go forest green #3e6b4c and the CTA goes full ribbon red. It owns Scroll:stack, which deals cards one at a time and lifts the top one away with an n/N counter, and DragDrop:drag, which arcs a chip into a dashed slot and locks it with a tick. The calmest camera in the set. Best for kids' publishing, family apps, courses and nonprofits.",
+  "orientation": "portrait",
+  "category": "Kids",
+  "tags": [
+    "storybook",
+    "picture book",
+    "light ground",
+    "slab serif",
+    "typing",
+    "scroll",
+    "morph",
+    "dragdrop",
+    "bedtime"
+  ],
+  "renderer": "film-storybook-pop",
+  "colors": {
+    "page": "#f8efdf",
+    "ink": "#37302a",
+    "ribbon": "#cf4633",
+    "forest": "#3e6b4c",
+    "gold": "#d9a13b",
+    "paper": "#fffdf6",
+    "ground": "#f8efdf",
+    "text": "#37302a",
+    "accent": "#d9a13b"
+  },
+  "fonts": [
+    "Bitter",
+    "Nunito Sans"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#f8efdf",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#d9a13b",
+      "#cf4633",
+      "#f8efdf"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "soft warm-lamp photograph of an open illustrated children's book on cream paper, shallow depth of field, cosy bedtime light",
+    "iconStyle": "line",
+    "keywords": [
+      "open storybook",
+      "illustrated fairy tale",
+      "bedtime reading",
+      "page turn",
+      "children's book",
+      "ribbon bookmark",
+      "endpaper map",
+      "reading nook"
+    ],
+    "prefer": [
+      "illustration",
+      "photo",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Bitter",
+    "body": "Nunito Sans"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "gentle",
+    "archetype": "warm",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "music box",
+      "celesta",
+      "pizzicato strings",
+      "storybook orchestral"
+    ],
+    "musicKeywords": [
+      "lullaby chimes",
+      "bedtime score",
+      "toy piano",
+      "harp glissando",
+      "picture book",
+      "gentle woodwinds",
+      "nursery waltz",
+      "whimsical flute",
+      "clarinet skip",
+      "playful ostinato",
+      "adventure theme",
+      "cheerful fanfare"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

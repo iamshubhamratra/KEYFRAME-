@@ -1,0 +1,175 @@
+{
+  "name": "rainy-window",
+  "vibe": "Let it pour. Slate #2c3440 glass with seven bokeh discs breathing in amber #f2b552, blue #7ac7e0 and rose, twelve drops falling at 180–420px/s as streaks with fat heads, and two long condensation runnels wandering the full height of the frame on wobbling control points. Merriweather sets headlines with real italics over Public Sans; the feature card is a #39424f glass panel with a paper hairline. It owns Ring:ring — a 240px circular gauge with twelve tick marks counting a number up — alongside Typing:typewriter, Scroll:feed and Notify:drop. Everything is slow on purpose: drowse titles, 0.4 rotation, 5px drift, the softest camera in this batch. Best for cosy retail, reading and journaling apps, tea and coffee, weather and insurance — anything selling staying in.",
+  "orientation": "portrait",
+  "category": "Lifestyle",
+  "tags": [
+    "rain",
+    "window bokeh",
+    "dark ground",
+    "serif",
+    "typing",
+    "scroll",
+    "ring",
+    "notify",
+    "cosy"
+  ],
+  "renderer": "film-rainy-window",
+  "colors": {
+    "slate": "#2c3440",
+    "glass": "#39424f",
+    "bokeh": "#f2b552",
+    "drop": "#7ac7e0",
+    "paper": "#eef1f2",
+    "ink": "#1a2027",
+    "ground": "#2c3440",
+    "text": "#eef1f2",
+    "accent": "#f2b552"
+  },
+  "fonts": [
+    "Merriweather",
+    "Public Sans"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#2c3440",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#f2b552",
+      "#7ac7e0",
+      "#2c3440"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "intimate low-light photograph shot through a rain-beaded window, amber street bokeh, shallow focus, moody blue evening",
+    "iconStyle": "line",
+    "keywords": [
+      "rain on window",
+      "city bokeh night",
+      "window seat",
+      "steaming mug",
+      "wet street lights",
+      "reading indoors",
+      "overcast evening",
+      "umbrella street"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot",
+      "illustration"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Merriweather",
+    "body": "Public Sans"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "cosy",
+    "archetype": "warm",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "lofi",
+      "rhodes piano",
+      "jazz brushes",
+      "tape hiss"
+    ],
+    "musicKeywords": [
+      "ambient rain",
+      "felt keys",
+      "cassette warmth",
+      "bossa guitar",
+      "slow chillhop",
+      "lofi beat",
+      "vinyl crackle",
+      "jazzhop groove",
+      "neo soul",
+      "trip hop",
+      "boom bap",
+      "dusty drums"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

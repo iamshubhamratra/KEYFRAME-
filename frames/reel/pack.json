@@ -77,12 +77,16 @@
       "upbeat"
     ],
     "musicKeywords": [
-      "viral pop",
+      "chill",
+      "lofi",
+      "catchy pop",
       "upbeat electronic",
-      "social trending",
-      "punchy beat",
+      "social upbeat",
+      "powerful beat",
       "energetic hip hop",
-      "catchy hook"
+      "catchy hook",
+      "heavy",
+      "loud"
     ],
     "sfxPalette": {
       "transition": "whoosh",
@@ -95,7 +99,8 @@
       "energyBoost": 2,
       "sfxDensity": "rich",
       "ambient": false
-    }
+    },
+    "archetype": "hype"
   },
   "media": {
     "requiredAssets": {

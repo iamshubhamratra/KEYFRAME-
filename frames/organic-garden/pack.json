@@ -74,12 +74,16 @@
       "ukulele"
     ],
     "musicKeywords": [
+      "gentle",
+      "calm",
       "warm acoustic",
       "gentle folk",
       "handmade organic",
       "soft ukulele",
       "cheerful acoustic",
-      "bright folk"
+      "bright folk",
+      "bright",
+      "happy"
     ],
     "sfxPalette": {
       "transition": "card-slide",
@@ -92,7 +96,8 @@
       "energyBoost": 1,
       "sfxDensity": "rich",
       "ambient": true
-    }
+    },
+    "archetype": "warm"
   },
   "media": {
     "requiredAssets": {

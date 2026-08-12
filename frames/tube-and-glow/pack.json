@@ -1,0 +1,175 @@
+{
+  "name": "tube-and-glow",
+  "vibe": "A neon shop after dark: near-black violet (#121016) lit only by hot pink (#ff3ec8) and ice blue (#2ee6ff), with warm bulb-white (#fff3d6) for type. Monoton — a real tube-outline face — sets titles at 1.22 line and 0.05em so the words read as bent glass. The backdrop is the workshop itself: a blue-bordered OPEN sign whose pink letters flicker on a two-frequency gate and bloom with a 14px drop-shadow when they catch; a glowing blue script squiggle; a pink hook bend; three marquee bulbs pulsing out of phase; a tilted bending-bench rack; and a slow-breathing pink tube coil. Statement beats keep the world lit behind them. It owns a POWER-ON click, a window-display switch list, a caret work order and a fade morph.",
+  "orientation": "portrait",
+  "category": "Nightlife",
+  "tags": [
+    "neon",
+    "signage",
+    "after-dark",
+    "glow",
+    "workshop",
+    "retro-shop",
+    "pink-cyan",
+    "storefront"
+  ],
+  "renderer": "film-tube-and-glow",
+  "colors": {
+    "shop": "#121016",
+    "pink": "#ff3ec8",
+    "blue": "#2ee6ff",
+    "warm": "#fff3d6",
+    "ink": "#0d0b11",
+    "ground": "#121016",
+    "text": "#fff3d6",
+    "accent": "#ff3ec8",
+    "paper": "#fff3d6"
+  },
+  "fonts": [
+    "Monoton",
+    "Epilogue"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#121016",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#ff3ec8",
+      "#2ee6ff",
+      "#121016"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "night photograph of hand-bent neon signage glowing pink and cyan in a dark workshop window, long exposure with soft bloom",
+    "iconStyle": "line",
+    "keywords": [
+      "neon sign",
+      "glass tube bending",
+      "open sign",
+      "workshop bench",
+      "marquee bulbs",
+      "storefront at night",
+      "glass torch flame",
+      "transformer wiring",
+      "bar signage"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot",
+      "illustration"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Monoton",
+    "body": "Epilogue"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "after-hours swagger — a workshop that hums at 15 kV and a street that never fully sleeps",
+    "archetype": "groove",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "surf guitar",
+      "lounge organ",
+      "synthwave",
+      "electrified blues"
+    ],
+    "musicKeywords": [
+      "vibraphone glow",
+      "transformer buzz",
+      "hammond swell",
+      "tiki exotica",
+      "slide reverb",
+      "baritone twang",
+      "jukebox groove",
+      "neon strut",
+      "boogaloo shuffle",
+      "rockabilly slink",
+      "garage twist",
+      "psychobilly rush"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "ui-click",
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

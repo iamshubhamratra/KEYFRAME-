@@ -1,6 +1,7 @@
 {
   "name": "mono-corporate",
   "renderer": "mono-corporate",
+  "orientation": "landscape",
   "vibe": "Clean minimal enterprise system for Ledger, a B2B finance platform. Atoms are sacred — near-white paper grounds with a faint 1px grid, generous open whitespace, crisp hairline dividers, small IBM Plex Mono caps labels, and ONE saturated dee",
   "colors": {
     "paper": "#FFFFFF",

@@ -1,0 +1,174 @@
+{
+  "name": "retro-arcade",
+  "vibe": "A CRT indigo void (#14122b) lit by phosphor green (#6ef06e), magenta (#ff4fd8) and cyan (#4fd8ff). Press Start 2P sets small slammed caps at 64–110px; VT323 does the body. The world is an actual attract-mode loop: twenty-two square stars stepping in quantised jumps, five invader sprites cycling two hand-drawn pixel frames at 1.6Hz and marching 30px sideways, a translucent scanline band sweeping the full height, a green cannon sliding on a sine at the bottom and two shots — one white, one magenta — climbing away from it. Roll and skew are pinned to zero and the camera alternates strictly pushL / pushR, so nothing ever tilts off the pixel grid. Terminal code, key-press cursor, flip swipe, bar meters. For games, dev tools, launches and arcade nostalgia.",
+  "orientation": "portrait",
+  "category": "Retro",
+  "tags": [
+    "arcade",
+    "pixel",
+    "chiptune",
+    "gaming",
+    "crt",
+    "nostalgia",
+    "neon",
+    "dev-tool"
+  ],
+  "renderer": "film-retro-arcade",
+  "colors": {
+    "void": "#14122b",
+    "green": "#6ef06e",
+    "magenta": "#ff4fd8",
+    "cyan": "#4fd8ff",
+    "paper": "#f2f2f2",
+    "ink": "#0c0b1c",
+    "ground": "#14122b",
+    "text": "#f2f2f2",
+    "accent": "#6ef06e"
+  },
+  "fonts": [
+    "Press Start 2P",
+    "VT323"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#14122b",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#6ef06e",
+      "#ff4fd8",
+      "#4fd8ff"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "flash-lit night photograph of a neon arcade room, CRT cabinets glowing magenta and cyan against deep indigo darkness",
+    "iconStyle": "flat",
+    "keywords": [
+      "arcade cabinet",
+      "pixel art sprite",
+      "crt screen glow",
+      "joystick and buttons",
+      "neon game room",
+      "high score board",
+      "coin slot",
+      "8-bit character"
+    ],
+    "prefer": [
+      "illustration",
+      "screenshot",
+      "vector"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Press Start 2P",
+    "body": "VT323"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "gleeful, competitive, coin-fed",
+    "archetype": "retro",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "pulse bass",
+      "noise snare",
+      "to grid",
+      "everything beat"
+    ],
+    "musicKeywords": [
+      "chiptune attract",
+      "crt hum",
+      "scanline synth",
+      "pixel theme",
+      "pulse bass",
+      "coin arpeggio",
+      "chip drums",
+      "noise snare",
+      "invader march",
+      "high score",
+      "joystick chase",
+      "boss battle"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "ui-click",
+      "reveal": "pop",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
+  }
+}

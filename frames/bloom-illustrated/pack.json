@@ -1,6 +1,7 @@
 {
   "name": "bloom-illustrated",
   "renderer": "bloom-illustrated",
+  "orientation": "landscape",
   "vibe": "A warm, friendly, illustration-forward SaaS system: cream paper grounds, big soft pastel blobs drifting behind everything, and generously rounded cards (28px+). Simple hand-drawn-feel inline-SVG characters and objects — circles and organic ",
   "colors": {
     "cream": "#FFF7EE",

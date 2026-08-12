@@ -1,0 +1,173 @@
+{
+  "name": "alpine-post",
+  "vibe": "A crisp snowfield ground (#eef4f8) under a slate-blue mountain range with white caps, cut by one postal red (#c0392b) and a deep pine. Alegreya Sans SC sets small-caps headlines over Barlow — civic, printed, legible. The world holds a whole valley: a layered peak silhouette across the base, snow caps catching light, and a route threading between them. It is the only light-ground pack in this batch, and its split-flap Morph makes it read like a station board. Best for transport and logistics, alpine tourism, civic and public-service brands, and anything that runs to a timetable.",
+  "orientation": "portrait",
+  "category": "Travel",
+  "tags": [
+    "alpine",
+    "postal",
+    "transit",
+    "light",
+    "small-caps",
+    "mountains",
+    "civic",
+    "timetable"
+  ],
+  "renderer": "film-alpine-post",
+  "colors": {
+    "snow": "#eef4f8",
+    "post": "#c0392b",
+    "pine": "#2f4f43",
+    "slateb": "#4a6478",
+    "ink": "#1e2c36",
+    "ground": "#eef4f8",
+    "text": "#1e2c36",
+    "accent": "#c0392b",
+    "paper": "#eef4f8"
+  },
+  "fonts": [
+    "Alegreya Sans SC",
+    "Barlow"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#eef4f8",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#c0392b",
+      "#1e2c36",
+      "#eef4f8"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "clear high-altitude daylight photography — snow, pine and painted timber, hard shadows, cold blue-white cast with one saturated red object",
+    "iconStyle": "line",
+    "keywords": [
+      "alpine village",
+      "mountain railway",
+      "snow covered pines",
+      "post office sign",
+      "mail sack",
+      "cable car",
+      "valley panorama"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot",
+      "illustration"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Alegreya Sans SC",
+    "body": "Barlow"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "brisk and orderly — cold air and a schedule that is kept",
+    "archetype": "editorial",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "alpine horn",
+      "brass",
+      "folk strings",
+      "marching snare"
+    ],
+    "musicKeywords": [
+      "alpine calm",
+      "cold morning",
+      "snowfield hush",
+      "valley strings",
+      "postal march",
+      "telegraph rhythm",
+      "mountain horn",
+      "alpine folk",
+      "sleigh trot",
+      "oompah brass",
+      "summit push",
+      "descent gallop"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "ui-click",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": false
+    }
+  }
+}

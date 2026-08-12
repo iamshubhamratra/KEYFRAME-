@@ -1,0 +1,175 @@
+{
+  "name": "midnight-ramen",
+  "vibe": "Eleven at night to four in the morning, in blackened plum (#1a1216), chili red (#e63946), noodle yellow and a jade green, with condensed Kanit and titles that flip in like a menu board turning over. The world is a working counter: three steam plumes climb 800px from the base and thin out as they go, three noodle waves scroll leftward at three different depths and opacities, three hanging menu panels rock ±5° with the middle one lit chili, and a jade chopstick pair leans in from the right edge. Statement beats flood full chili; the last card goes noodle yellow with dark type. The camera drifts vertically — steam logic — under a gentle 0.7° roll. Mechanics: a menu-board scroll, a handwritten chef's note that types itself, a broth-remaining ring and a flip-to-choose swipe. Best for late-night food, bars and street markets.",
+  "orientation": "portrait",
+  "category": "Nightlife",
+  "tags": [
+    "ramen",
+    "late-night",
+    "noodles",
+    "neon",
+    "street-food",
+    "condensed-type",
+    "counter-service",
+    "asian-kitchen"
+  ],
+  "renderer": "film-midnight-ramen",
+  "colors": {
+    "broth": "#1a1216",
+    "chili": "#e63946",
+    "noodle": "#f4c95d",
+    "steam": "#f2e8dc",
+    "jade": "#57a773",
+    "ground": "#1a1216",
+    "text": "#f2e8dc",
+    "accent": "#e63946",
+    "ink": "#1a1216",
+    "paper": "#f2e8dc"
+  },
+  "fonts": [
+    "Kanit",
+    "Sarabun"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#1a1216",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#e63946",
+      "#f4c95d",
+      "#1a1216"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "neon-lit night photography of a counter kitchen — steam off a bowl backlit by red signage, wet pavement reflections, chef hands under a hood lamp, deep shadow with saturated red and amber",
+    "iconStyle": "line",
+    "keywords": [
+      "ramen bowl steam",
+      "noodle counter seats",
+      "neon alley signage",
+      "chef plating night",
+      "hanging menu board",
+      "chopsticks broth",
+      "street food stall",
+      "kitchen pass hood light"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Kanit",
+    "body": "Sarabun"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "neon-wet street appetite after midnight",
+    "archetype": "groove",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "pop bass",
+      "lo-fi drums",
+      "muted trumpet",
+      "room tone"
+    ],
+    "musicKeywords": [
+      "midnight jazz",
+      "neon nocturne",
+      "rainy ballad",
+      "izakaya hush",
+      "smoky sax",
+      "alley shuffle",
+      "tokyo lounge",
+      "diner swing",
+      "japanese funk",
+      "night drive",
+      "shibuya boogie",
+      "future funk"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

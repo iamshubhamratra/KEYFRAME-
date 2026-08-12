@@ -1,0 +1,173 @@
+{
+  "name": "road-trip",
+  "vibe": "Sun-bleached map paper (#f2e8d5) with a route red (#e05e4e), a teal camper van and a soft desert sky. Permanent Marker scrawls the headlines like a felt-tip on a map, over Karla body copy. The world travels: a dashed route line draws itself across the paper, a van rolls along it, telegraph poles pass in the middle distance, and a low sun sits over layered hills. Best for travel and tourism, vans and outdoor rental, festivals, and any brand whose story is a journey with stops on it.",
+  "orientation": "portrait",
+  "category": "Travel",
+  "tags": [
+    "travel",
+    "roadtrip",
+    "paper",
+    "handdrawn",
+    "light",
+    "vintage",
+    "map",
+    "journey"
+  ],
+  "renderer": "film-road-trip",
+  "colors": {
+    "paper": "#f2e8d5",
+    "route": "#e05e4e",
+    "van": "#3f8f8a",
+    "sun": "#eec96f",
+    "sky": "#cfe8ee",
+    "ink": "#33291f",
+    "ground": "#f2e8d5",
+    "text": "#33291f",
+    "accent": "#e05e4e"
+  },
+  "fonts": [
+    "Permanent Marker",
+    "Karla"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#f2e8d5",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#e05e4e",
+      "#3f8f8a",
+      "#eec96f"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "warm sun-faded travel photography — desert highway, camper vans, golden hour haze, slightly washed film colour",
+    "iconStyle": "line",
+    "keywords": [
+      "desert highway",
+      "camper van",
+      "road map",
+      "roadside diner",
+      "mountain pass",
+      "packed trunk",
+      "sunset drive"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Permanent Marker",
+    "body": "Karla"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "open-road optimism — windows down, no schedule",
+    "archetype": "warm",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "surf guitar",
+      "tambourine",
+      "organ",
+      "handclaps"
+    ],
+    "musicKeywords": [
+      "open road",
+      "surf twang",
+      "desert organ",
+      "tambourine shuffle",
+      "roadside blues",
+      "vintage rocknroll",
+      "twangy riff",
+      "sunny motown",
+      "gallop drums",
+      "highway rock",
+      "big chorus",
+      "horn finale"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
+  }
+}

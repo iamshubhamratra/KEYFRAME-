@@ -1,0 +1,173 @@
+{
+  "name": "steam-spring",
+  "vibe": "Slate #33404a walls, cedar #a8794a, and a pale aqua #7fc4bd that only ever means water. Castoro's bookish serif sets two-line titles that fade up on an unusually soft entrance — drowse — while Catamaran handles the small print. Behind them the pack draws an actual hot spring: an aqua pool ellipse ringed with ink boulders, ripple rings widening across its surface, three fat steam curls climbing and thinning out of frame, pale flecks drifting down, and a wooden post whose paper lantern breathes amber. The camera never hurries — rotation 0.3, a long 30% settle, no spin move anywhere. Its signature beat is hand-lettering: a guest-book entry arrives one rotated word at a time, every fourth word in aqua. For onsen, spa, sauna, retreat and slow hospitality.",
+  "orientation": "portrait",
+  "category": "Wellness",
+  "tags": [
+    "calm",
+    "serif",
+    "onsen",
+    "steam",
+    "slate-blue",
+    "aqua",
+    "wellness",
+    "handwritten"
+  ],
+  "renderer": "film-steam-spring",
+  "colors": {
+    "stone": "#33404a",
+    "water": "#7fc4bd",
+    "wood": "#a8794a",
+    "paper": "#f2ede2",
+    "ink": "#22303c",
+    "ground": "#33404a",
+    "text": "#f2ede2",
+    "accent": "#7fc4bd"
+  },
+  "fonts": [
+    "Castoro",
+    "Catamaran"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#33404a",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#7fc4bd",
+      "#22303c",
+      "#33404a"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "misty low-contrast documentary photograph of a mountain hot-spring bathhouse in winter — steam, wet stone and cedar, soft cool daylight, no flash",
+    "iconStyle": "line",
+    "keywords": [
+      "onsen",
+      "hot spring",
+      "steam",
+      "cedar bathhouse",
+      "snowfall",
+      "stone pool",
+      "paper lantern",
+      "folded towels"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Castoro",
+    "body": "Catamaran"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "steam-warm hush; a room where nobody raises their voice",
+    "archetype": "warm",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "ambient",
+      "minimal",
+      "japanese folk",
+      "spa underscore"
+    ],
+    "musicKeywords": [
+      "onsen ambience",
+      "steam drone",
+      "bathhouse hush",
+      "shakuhachi drift",
+      "snowfall koto",
+      "mineral pad",
+      "mountain inn",
+      "ryokan piano",
+      "shamisen pluck",
+      "hinoki groove",
+      "warm handpan",
+      "frame drum"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

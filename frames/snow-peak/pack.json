@@ -1,0 +1,175 @@
+{
+  "name": "snow-peak",
+  "vibe": "Pale ice sky (#dfeef7) over a slate-pine ridge (#2c4a5a), pure white caps and a single coral (#e0685c). Fjalla One is left in sentence case — this is the one pack in its family that never forces uppercase, so it reads like resort signage rather than a shout. The world draws a five-vertex ridgeline with two separately-capped summits, a darker drift curve in front, a cable strung from lower-left to upper-right, and a coral gondola cabin that actually travels that cable at 60px/s with its height following the slope and a slow sway, while eighteen flakes fall at four speeds with a sideways wander. The camera drops and floats on a roll of only 0.6. It owns drag-to-pack, checklists and progress rings. For ski resorts, alpine gear, cabins and outdoor booking.",
+  "orientation": "portrait",
+  "category": "Sport",
+  "tags": [
+    "ski",
+    "alpine",
+    "winter",
+    "mountain",
+    "gear",
+    "resort",
+    "calm",
+    "sentence-case"
+  ],
+  "renderer": "film-snow-peak",
+  "colors": {
+    "ice": "#dfeef7",
+    "pine": "#2c4a5a",
+    "deep": "#1d3440",
+    "snow": "#ffffff",
+    "coral": "#e0685c",
+    "ink": "#20313b",
+    "ground": "#dfeef7",
+    "text": "#20313b",
+    "accent": "#e0685c",
+    "paper": "#ffffff"
+  },
+  "fonts": [
+    "Fjalla One",
+    "Hind"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#dfeef7",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#e0685c",
+      "#dfeef7",
+      "#2c4a5a"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "clean bluebird-day mountain photograph, pale ice-blue sky over a snow ridge with one coral accent in the frame",
+    "iconStyle": "line",
+    "keywords": [
+      "snow ridge summit",
+      "gondola cable car",
+      "ski lift chair",
+      "alpine cabin",
+      "fresh powder tracks",
+      "winter gear flat lay",
+      "bluebird sky mountain",
+      "snow-laden pines"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Fjalla One",
+    "body": "Hind"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "still, wide and early; nobody else on the hill",
+    "archetype": "editorial",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "sustained strings",
+      "acoustic guitar",
+      "mallet accents",
+      "barely there"
+    ],
+    "musicKeywords": [
+      "alpine ambient",
+      "valley piano",
+      "wide strings",
+      "muted guitar",
+      "mallet hush",
+      "bluebird morning",
+      "lodge fireside",
+      "first chair",
+      "gondola glide",
+      "powder day",
+      "ski documentary",
+      "post rock"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

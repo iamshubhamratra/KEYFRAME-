@@ -176,9 +176,16 @@ const PackManifestSchema = z
         tempo: z.enum(["slow", "mid", "fast"]).default("mid"),
         // Genre tags — used to score candidate tracks against the pack's identity.
         style: z.array(z.string()).default([]),
+        // Which shared flavour pool this pack draws from (tech / luxury / editorial /
+        // hype / warm / retro / corporate / groove). Authored in
+        // scripts/apply-audio-profiles.js and written here for provenance: an archetype
+        // widens a pack's COLOUR vocabulary and never its genre, so packs that share one
+        // still search differently. Absent on a pack that predates the grouping.
+        archetype: z.string().default(""),
         // The actual search phrases, authored CALMEST-FIRST: with narration off the
         // rotation prefers the later entries, which is how "more energetic without a
-        // genre change" is implemented. Write 5-8; one or two are picked per job.
+        // genre change" is implemented. 10 per pack — 6 hand-authored, plus the
+        // archetype's two calmer and two more driving words at either end.
         musicKeywords: z.array(z.string()).default([]),
         // Scene function -> the cue that function sounds like ON THIS PACK.
         sfxPalette: z.record(z.string()).default({}),
@@ -193,6 +200,25 @@ const PackManifestSchema = z
           .default({}),
       })
       .default({}),
+
+    // Per-pack MEDIA CONTRACT — how many pictures this template can show, and the shape
+    // and importance of each box it shows them in. Consumed by services/template_media,
+    // which resolves it against the approved script into concrete placeholders; those then
+    // drive the collection quota (graph.assetPlannerAgent), the crop aspects
+    // (graph.assetPrepAgent), the placement priorities (asset_reuse.buildSlots) and the
+    // pre-render gate (preflight's criticalPlaceholdersFilled).
+    //
+    // ABSENT = DERIVED, which is exactly today's behaviour: template_media falls back to a
+    // conservative one-slot-per-showable-scene plan sized from the renderer family, and the
+    // duration budget alone decides how much to collect. That default is what let this land
+    // pack-by-pack without touching the 46 packs that have not been authored yet.
+    //
+    // The schema lives in template_media (it is that module's contract, not this one's) and
+    // is required lazily so a frames-only tool can still load this module standalone. Kept
+    // permissive here — `.passthrough()` above already preserves it, and template_media
+    // re-validates and degrades to a derived plan on anything malformed, so a typo costs a
+    // pack its authored slots and never a film its render.
+    media: z.record(z.any()).optional(),
 
     // --- Reserved for later Phase 3/4 population (kept optional, unpopulated). ---
     typography: z.record(z.any()).optional(),
@@ -247,7 +273,7 @@ function listManifests() {
 function validateAll() {
   const packs = frameRegistry.listPacks();
   const valid = [], missing = [], invalid = [];
-  let withAudio = 0;
+  let withAudio = 0, withMedia = 0;
   for (const name of packs) {
     const p = manifestPath(name);
     let exists = false;
@@ -264,6 +290,14 @@ function validateAll() {
       const badCues = audioPaletteErrors(m.audio);
       if (badCues.length) throw new Error(`audio.sfxPalette: ${badCues.join("; ")}`);
       if (m.audio && (m.audio.musicKeywords || []).length) withAudio++;
+      // MEDIA CONTRACT — same reasoning as the audio palette above: zod can only assert
+      // "a record of anything" at this layer, because the real shape belongs to
+      // template_media. Validate it against that module's own schema HERE, at boot, so a
+      // malformed slot list is reported loudly against the pack that owns it rather than
+      // silently degrading to a derived plan in the middle of a render.
+      const badMedia = mediaErrors(m.media);
+      if (badMedia) throw new Error(`media: ${badMedia}`);
+      if (m.media) withMedia++;
       valid.push(name);
     } catch (err) {
       invalid.push({ name, error: err && err.message ? String(err.message).split("\n")[0] : String(err) });
@@ -272,9 +306,26 @@ function validateAll() {
   console.log(`[manifest] ${valid.length}/${packs.length} packs have a valid pack.json` +
     (missing.length ? ` · ${missing.length} legacy-only (no manifest)` : "") +
     (invalid.length ? ` · ${invalid.length} INVALID` : "") +
-    ` · ${withAudio} with an audio identity`);
+    ` · ${withAudio} with an audio identity` +
+    ` · ${withMedia} with a media contract`);
   for (const { name, error } of invalid) console.error(`[manifest] INVALID ${name}/pack.json — ${error}`);
-  return { valid, missing, invalid, withAudio };
+  return { valid, missing, invalid, withAudio, withMedia };
+}
+
+// The first schema error in a pack's media block, or null when it is absent or valid.
+// Required lazily for the same reason audioPaletteErrors is: template_media reaches back
+// into asset_reuse (and therefore config), and a frames-only tool must still be able to
+// load this module standalone.
+function mediaErrors(media) {
+  if (!media) return null;
+  try {
+    const { MediaSchema } = require("./template_media");
+    MediaSchema.parse(media);
+    return null;
+  } catch (e) {
+    if (e && e.name === "ZodError") return String(e.message).split("\n").slice(0, 3).join(" ").slice(0, 240);
+    return null;   // can't check (module unavailable) => don't block a boot on it
+  }
 }
 
 // Which sfxPalette entries name something the cue library cannot produce. Returns [] for
@@ -345,6 +396,36 @@ function packOrientation(pack) {
 // config.orientations: horizontal(16:9) | vertical(9:16) | square(1:1).
 const JOB_ASPECT = { horizontal: "landscape", vertical: "portrait", square: "square" };
 
+// THE FRAME A PACK'S OWN NUMBERS ARE MEASURED AGAINST.
+//
+// Every slot in `media.slotsByRole` is an AUTHORED pixel size — the box as the composer draws
+// it on the stage that composer states once (`om_port_kit.stageOf(W, H)`, film_stage's
+// RW/RH = 1080x1920). Those numbers are meaningless without the frame they were measured
+// against, and every consumer that treated them as pixels of the DELIVERED frame has been
+// wrong twice over: wrong by the resolution (the same pack scored 2.25x the coverage at 720p
+// as at 1080p) and wrong by the aspect (a 1920x1080-authored box scored ~3.2x its true share
+// of a 1080x1920 frame).
+//
+// Declared `media.stage` wins; otherwise the authored orientation implies it. A pack that
+// declares neither returns null and its callers keep their previous behaviour — an unknown
+// stage must not be guessed, because guessing it wrong is the defect this exists to close.
+const STAGE_FOR = {
+  landscape: { width: 1920, height: 1080 },
+  portrait: { width: 1080, height: 1920 },
+  square: { width: 1080, height: 1080 },
+};
+function packStage(pack) {
+  try {
+    const m = getManifest(pack);
+    const s = m && m.media && m.media.stage;
+    if (s && Number(s.width) > 0 && Number(s.height) > 0) {
+      return { width: Number(s.width), height: Number(s.height) };
+    }
+    const o = (m && m.orientation) || null;
+    return (o && STAGE_FOR[o]) ? { ...STAGE_FOR[o] } : null;
+  } catch { return null; }
+}
+
 // Can `pack` serve a job rendered at this orientation?
 //
 // An undeclared pack is compatible with everything — that is what "aspect-agnostic" means,
@@ -364,5 +445,5 @@ function packFitsOrientation(pack, jobOrientation) {
 
 module.exports = {
   PackManifestSchema, getManifest, listManifests, manifestPath, validateAll,
-  packAcceptsVectors, packOrientation, packFitsOrientation, audioPaletteErrors,
+  packAcceptsVectors, packOrientation, packFitsOrientation, packStage, audioPaletteErrors, mediaErrors,
 };

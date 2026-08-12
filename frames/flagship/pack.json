@@ -85,12 +85,16 @@
       "corporate"
     ],
     "musicKeywords": [
+      "serene",
+      "soft",
       "premium cinematic",
       "dark modern technology",
       "ambient electronic",
-      "keynote cinematic",
+      "inspiring cinematic",
       "driving cinematic",
-      "epic technology"
+      "epic technology",
+      "dramatic",
+      "rising"
     ],
     "sfxPalette": {
       "transition": "light-sweep",
@@ -103,7 +107,8 @@
       "energyBoost": 1,
       "sfxDensity": "rich",
       "ambient": false
-    }
+    },
+    "archetype": "luxury"
   },
   "media": {
     "requiredAssets": {

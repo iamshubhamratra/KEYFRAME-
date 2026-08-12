@@ -1,0 +1,176 @@
+{
+  "name": "rind-and-wheel",
+  "vibe": "An affinage cave held at 11°C: cave brown (#3c3630) ground, golden rind (#d9a441), pale paste (#f4e8c8) and red wax (#8c3a2e) for the sharp edges. Bree Serif gives titles a pressed-slab weight; Sarala keeps the ledgers legible. Behind the type, two shelf planks carry six cheese wheels drawn as stacked ellipses — some gold, some cream, one cut open to wax red — while humidity droplets fall down the left and a wax-red hygrometer column rises and falls on sin(0.6t) beside typeset readings of 11°C and 94% RH. A vast 60px ink ellipse arches over the top like a cellar mouth. Statements flip to full wax red; the CTA lands on gold. It owns a drag-and-drop turning day, a dial cave control, a board of wheel ages and a fade morph.",
+  "orientation": "portrait",
+  "category": "Food & Drink",
+  "tags": [
+    "cheese",
+    "fermentation",
+    "cellar",
+    "artisan",
+    "slow-food",
+    "gold",
+    "provenance",
+    "tactile"
+  ],
+  "renderer": "film-rind-and-wheel",
+  "colors": {
+    "cave": "#3c3630",
+    "rind": "#d9a441",
+    "paste": "#f4e8c8",
+    "wax": "#8c3a2e",
+    "ink": "#241f1a",
+    "ground": "#3c3630",
+    "text": "#f4e8c8",
+    "accent": "#d9a441",
+    "paper": "#f4e8c8"
+  },
+  "fonts": [
+    "Bree Serif",
+    "Sarala"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#3c3630",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#d9a441",
+      "#f4e8c8",
+      "#3c3630"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "warm cellar-lit documentary photograph of aging cheese wheels on wooden shelves, golden rind against dark stone, soft raking light",
+    "iconStyle": "solid",
+    "keywords": [
+      "cheese wheel",
+      "aging cellar",
+      "wooden shelving",
+      "cheese rind",
+      "wax seal",
+      "cheesemonger counter",
+      "brine bath",
+      "dairy barn",
+      "cheese knife"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Bree Serif",
+    "body": "Sarala"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "patient and provincial — cellar cool, hand-turned, faintly ceremonial",
+    "archetype": "luxury",
+    "energy": "medium",
+    "tempo": "slow",
+    "style": [
+      "pastoral acoustic",
+      "alpine folk",
+      "warm woodwind",
+      "cellar drone"
+    ],
+    "musicKeywords": [
+      "zither ambient",
+      "alphorn hush",
+      "dulcimer patience",
+      "cowbell chime",
+      "hurdy gurdy",
+      "melodeon lilt",
+      "yodel chorus",
+      "fiddle waltz",
+      "clarinet jig",
+      "barn dance",
+      "harvest reel",
+      "village polka",
+      "barrel stomp"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

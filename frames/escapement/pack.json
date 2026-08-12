@@ -1,0 +1,172 @@
+{
+  "name": "escapement",
+  "vibe": "Deep navy (#152030) with brass (#d0a75c), one ruby stop and a cold silver. Cormorant Garamond sets fine high-contrast serif headlines over Inter Tight. The world is the inside of a movement: interlocking gears, each drawn with real teeth, a hub and spokes, rotating at different speeds so the train never repeats its alignment. Its mechanics are a sweeping ring, a terminal, a dial and a split-flap. Best for watchmaking and jewellery, precision engineering, fintech and any brand whose promise is tolerance measured in fractions.",
+  "orientation": "portrait",
+  "category": "Luxury",
+  "tags": [
+    "horology",
+    "precision",
+    "luxury",
+    "brass",
+    "navy",
+    "mechanism",
+    "engineering",
+    "serif"
+  ],
+  "renderer": "film-escapement",
+  "colors": {
+    "deep": "#152030",
+    "brass": "#d0a75c",
+    "ruby": "#c0384f",
+    "silverw": "#dce4ec",
+    "ink": "#101a26",
+    "ground": "#152030",
+    "text": "#dce4ec",
+    "accent": "#d0a75c",
+    "paper": "#dce4ec"
+  },
+  "fonts": [
+    "Cormorant Garamond",
+    "Inter Tight"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#152030",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#d0a75c",
+      "#152030"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "macro product photography of mechanism — brass and steel under raking light, shallow focus on jewels and teeth, deep navy surround",
+    "iconStyle": "line",
+    "keywords": [
+      "watch movement macro",
+      "gears and cogs",
+      "watchmaker bench",
+      "loupe and tweezers",
+      "brass mechanism",
+      "luxury watch face",
+      "precision tools"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot",
+      "illustration"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Cormorant Garamond",
+    "body": "Inter Tight"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "exacting calm — something intricate running exactly to time",
+    "archetype": "luxury",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "chamber strings",
+      "celesta",
+      "muted percussion",
+      "minimal piano"
+    ],
+    "musicKeywords": [
+      "clockwork calm",
+      "escapement tick",
+      "brass mechanism",
+      "horology ambient",
+      "pendulum sway",
+      "jeweled movement",
+      "gear cadence",
+      "mainspring tension",
+      "precision pulse",
+      "complication build",
+      "tourbillon drive",
+      "chronograph rush"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "product-reveal",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

@@ -105,14 +105,8 @@ const COMPOSER_FOR = {
   "three-flagship": "flagship_composer", "three-brightlife": "brightlife_composer",
   "blueprint": "blueprint_composer", "bloom-fable": "bloom_composer", "bauhaus-riot": "bauhaus_composer",
   "terminal-departures": "terminal_departures_composer", "paper-tales": "paper_tales_composer",
-  "kinetic-universe": "kinetic_universe_composer", "product-showcase": "product_showcase_composer",
-  "dom-prisma": "prisma_composer", "neo-dashboard": "neo_dashboard_composer",
-  "ai-laboratory": "ai_laboratory_composer", "aurora-motion": "aurora_motion_composer",
-  "digital-universe": "digital_universe_composer", "editorial-motion": "editorial_motion_composer",
-  "glass-dimension": "glass_dimension_composer", "living-city": "living_city_composer",
-  "minimal-luxury": "minimal_luxury_composer", "motion-canvas": "motion_canvas_composer",
-  "nature-flow": "nature_flow_composer", "paper-craft": "paper_craft_composer",
-  "retro-future": "retro_future_composer",
+  "dom-prisma": "prisma_composer",
+  "motion-canvas": "motion_canvas_composer", "paper-craft": "paper_craft_composer",
 };
 
 // Per-scene content proxy: how much markup the composer emitted inside each scene clip.

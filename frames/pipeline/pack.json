@@ -13,7 +13,7 @@
     "paper": "#FFFFFF"
   },
   "fonts": [
-    "Archivo",
+    "Chakra Petch",
     "IBM Plex Mono"
   ],
   "surface": {
@@ -55,9 +55,9 @@
     ]
   },
   "typography": {
-    "display": "Archivo",
+    "display": "Chakra Petch",
     "mono": "IBM Plex Mono",
-    "body": "Archivo"
+    "body": "Chakra Petch"
   },
   "textfx": {
     "enter": "rise",
@@ -77,12 +77,16 @@
       "modern"
     ],
     "musicKeywords": [
+      "atmospheric",
+      "digital",
       "industrial rhythm",
       "mechanical groove",
       "steady percussion",
       "factory pulse",
       "technical electronic",
-      "driving mid-tempo"
+      "driving mid-tempo",
+      "driving",
+      "powerful"
     ],
     "sfxPalette": {
       "transition": "card-slide",
@@ -95,7 +99,8 @@
       "energyBoost": 1,
       "sfxDensity": "rich",
       "ambient": false
-    }
+    },
+    "archetype": "tech"
   },
   "media": {
     "requiredAssets": {

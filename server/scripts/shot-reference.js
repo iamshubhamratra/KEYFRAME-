@@ -28,7 +28,38 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const REPO = path.resolve(__dirname, "..", "..");
-const HANDOFFS = path.join(REPO, "templete-design", "all-template-handoffs");
+
+// THE SOURCE OF TRUTH MOVES, AND THIS HARNESS DIES SILENTLY WHEN IT DOES.
+//
+// The handoff library was authored under `templete-design/` and later relocated to
+// `old-templete/`. This constant was a single hardcoded join, so the move turned the ONE tool
+// that makes fidelity checkable into a script that throws ENOENT on `all` and reports "unknown
+// template" for every name — while `framecheck/ref/` still held the pre-move captures, so the
+// comparison workflow looked alive and was quietly frozen in the past. That is the same failure
+// shape as §1 of TEMPLATE-FIDELITY-STATUS.md (a documented validation step whose tool no longer
+// existed), one level up: the tool exists, its input does not.
+//
+// Resolved against candidates instead, newest naming first, with the env override ahead of both
+// so a handoff checked out anywhere is one variable away. `resolveHandoffs()` is exported so the
+// our-side harness and the audit tooling read the SAME answer rather than re-deriving it.
+const HANDOFF_CANDIDATES = [
+  process.env.KEYFRAME_HANDOFFS || "",
+  path.join(REPO, "old-templete", "all-template-handoffs"),
+  path.join(REPO, "old-template", "all-template-handoffs"),
+  path.join(REPO, "templete-design", "all-template-handoffs"),
+].filter(Boolean);
+
+function resolveHandoffs() {
+  for (const dir of HANDOFF_CANDIDATES) {
+    try { if (fs.statSync(dir).isDirectory()) return dir; } catch { /* next candidate */ }
+  }
+  throw new Error(
+    `no handoff library found. Looked in:\n  ${HANDOFF_CANDIDATES.join("\n  ")}\n` +
+    `Set KEYFRAME_HANDOFFS to the directory containing <Template>/standalone/<Template>.html.`
+  );
+}
+
+const HANDOFFS = (() => { try { return resolveHandoffs(); } catch { return HANDOFF_CANDIDATES[HANDOFF_CANDIDATES.length - 1]; } })();
 const DEFAULT_OUT = path.join(__dirname, "..", "framecheck", "ref");
 
 function findChromium() {
@@ -52,10 +83,13 @@ function findChromium() {
 }
 
 function listTemplates() {
-  return fs.readdirSync(HANDOFFS, { withFileTypes: true })
+  // resolveHandoffs() rather than the cached HANDOFFS so a missing library reports WHERE it
+  // looked instead of an ENOENT on a path the caller never chose.
+  const dir = resolveHandoffs();
+  return fs.readdirSync(dir, { withFileTypes: true })
     .filter((d) => d.isDirectory())
     .map((d) => d.name)
-    .filter((n) => fs.existsSync(path.join(HANDOFFS, n, "standalone", `${n}.html`)))
+    .filter((n) => fs.existsSync(path.join(dir, n, "standalone", `${n}.html`)))
     .sort();
 }
 
@@ -261,4 +295,4 @@ async function main() {
 }
 
 if (require.main === module) main().catch((e) => { console.error(e); process.exit(1); });
-module.exports = { listTemplates, shootTemplate, findChromium };
+module.exports = { listTemplates, shootTemplate, findChromium, resolveHandoffs, HANDOFFS };

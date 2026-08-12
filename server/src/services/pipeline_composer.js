@@ -108,40 +108,63 @@ function sBoot(scene, ctx, shots) {
 }
 
 // LINE — the process: numbered stations laid across the frame, each locking in with a stamp.
-function sLine(scene, ctx) {
+// LINE — THE CONVEYOR PRODUCT PARADE, which is this template's hero beat.
+//
+// The reference (pipeline-film.jsx 291-304) seats three device mounts on the belt at
+// `BELT_Y - 296 / -262 / -292`, spaced 600px apart, and TRAVELS them the whole way across the
+// frame — `scroll = easeInOutSine(progress 0.04..0.96) * 2200`, `x = base - scroll + 300` — with
+// the robotic arm working above them and the headline held left.
+//
+// Our port had an unrelated STATION DIAGRAM here: four numbered cards in a static row joined by
+// arrows, carrying bullet text and no pictures at all. It is the one beat where the customer's
+// screenshots ride the factory line, and it was the beat with no screenshots in it.
+const LINE_MOUNTS = [
+  { x: 760, y: 296, w: 330, h: 290 },
+  { x: 1360, y: 262, w: 250, h: 256 },
+  { x: 1980, y: 292, w: 340, h: 286 },
+];
+function sLine(scene, ctx, shots) {
   const { id, th, at, du } = ctx;
-  const list = K.bullets(scene, 4);
-  if (list.length < 2) return { ...K.statement(scene, ctx), backdrop: floor(id, th) };
-  const head = K.fitLines(scene.headline || scene.title || "", COL / K.camSafe(), U(78), 1, th.adv);
-  const gap = U(24), each = (COL - gap * (list.length - 1)) / list.length;
+  const pics = (shots || []).filter(Boolean);
+  // Below two pictures there is no parade to run — fall back rather than trundle one lonely card
+  // across the frame. The floor and its machines still turn.
+  if (pics.length < 2) {
+    const st = K.statement(scene, ctx);
+    return { ...st, backdrop: floor(id, th), s: [...(st.s || []), ...floorTweens(id, ctx)] };
+  }
+  const mounts = LINE_MOUNTS.slice(0, Math.min(LINE_MOUNTS.length, pics.length));
+  const head = K.fitLines(scene.headline || scene.title || "", U(640), U(88), 3, th.adv);
+
   return {
     backdrop: floor(id, th),
     html: `
-    <div class="${id}-head" style="position:absolute;left:${r(M)}cqw;top:${r(U(180))}cqw;width:${r(COL)}cqw;font-family:${th.displayStack};font-weight:800;font-size:${r(head.size)}cqw;letter-spacing:-0.02em;color:${th.ink};opacity:0;">${esc(head.lines.join(" "))}</div>
-    ${list.map((b, i) => `<div class="${id}-st${i}" style="position:absolute;left:${r(M + i * (each + gap))}cqw;top:${r(U(330))}cqw;width:${r(each)}cqw;height:${r(U(400))}cqw;background:${th.panel};border:${r(U(3))}cqw solid ${th.ink};box-shadow:0 ${r(U(14))}cqw ${r(U(32))}cqw ${rgba(th.ink, 0.14)};padding:${r(U(28))}cqw;display:flex;flex-direction:column;justify-content:space-between;opacity:0;">
-      <span style="font-family:${th.monoStack};font-size:${r(U(46))}cqw;color:${th.accent};">${K.pad2(i + 1)}</span>
-      <span style="font-family:${th.displayStack};font-weight:700;font-size:${r(U(30))}cqw;line-height:1.24;color:${th.ink};">${esc(String(b).slice(0, 44))}</span>
-      <span style="font-family:${th.monoStack};font-size:${r(U(14))}cqw;letter-spacing:0.2em;color:${th.lamp};text-transform:uppercase;">${esc(ctx.S.ok)}</span>
-    </div>`).join("")}
-    ${list.map((b, i) => i < list.length - 1 ? `<div class="${id}-arr" style="position:absolute;left:${r(M + i * (each + gap) + each + gap * 0.18)}cqw;top:${r(U(516))}cqw;width:${r(gap * 0.64)}cqw;height:${r(U(6))}cqw;background:${th.steel};"></div>` : "").join("")}`,
+    <svg viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;">
+      ${F.roboArm(th, { cls: `${id}-arm` })}
+    </svg>
+    <!-- ONE TRAVELLING WRAPPER, not three moving parts. The mounts keep their reference spacing
+         because they are positioned inside it; the belt carries the whole run at one speed, which
+         is what makes it read as a conveyor rather than three independent slides. -->
+    <div class="${id}-run" style="position:absolute;left:0;top:0;right:0;bottom:0;z-index:2;">
+      ${mounts.map((m, i) => bay(th, {
+        cls: `${id}-m${i}`, x: U(m.x), y: BELT_TOP - U(m.y), w: U(m.w), h: U(m.h),
+        shot: pics[i], n: i + 1, label: ctx.S.slot || ctx.S.ok,
+      })).join("")}
+    </div>
+    <div class="${id}-head" style="position:absolute;left:${r(M)}cqw;top:${r(U(200))}cqw;width:${r(U(640))}cqw;z-index:6;font-family:${th.displayStack};font-weight:700;font-size:${r(head.size)}cqw;line-height:0.95;color:${th.ink};opacity:0;">${head.lines.map((l) => `<span style="display:block;">${esc(l)}</span>`).join("")}</div>`,
     s: [
-      `tl.fromTo(".${id}-head",{opacity:0,y:"${r(U(24))}cqw"},{opacity:1,y:0,duration:${du(0.5)},ease:"power3.out"},${at(0.2)});`,
-      ...list.map((b, i) => `tl.fromTo(".${id}-st${i}",{opacity:0,y:"${r(U(50))}cqw"},{opacity:1,y:0,duration:${du(0.4)},ease:"back.out(1.6)"},${at(0.55 + i * 0.24)});`),
-      `tl.fromTo(".${id}-arr",{scaleX:0},{scaleX:1,duration:${du(0.24)},ease:"power2.out",transformOrigin:"left center",stagger:${du(0.24)}},${at(0.78)});`,
+      `tl.fromTo(".${id}-head",{opacity:0,y:"${r(U(40))}cqw"},{opacity:1,y:0,duration:${du(0.6)},ease:"power3.out"},${at(0.3)});`,
+      // The mounts are drawn opaque and the RUN is what moves — a per-mount fade would make them
+      // pop in mid-belt instead of arriving along it.
+      ...mounts.map((m, i) => `tl.set(".${id}-m${i}",{opacity:1},${r(ctx.T)});`),
+      // scroll: base + 300 -> base - 1900, easeInOutSine across progress 0.04..0.96.
+      `tl.fromTo(".${id}-run",{x:"${r(U(300))}cqw"},{x:"${r(-U(1900))}cqw",duration:${r(0.92 * ctx.L)},ease:"sine.inOut"},${r(ctx.T + 0.04 * ctx.L)});`,
+      // The arm reaches on a 4.19s cycle — sin(localTime * 1.5) in the reference.
+      ...F.roboArmTweens(ctx, { cls: `${id}-arm` }),
       ...floorTweens(id, ctx),
     ],
   };
 }
 
-// ASSEMBLE — several bays at once. The row FITS the pictures; never a bay standing empty.
-const BAYS = {
-  2: [{ x: 96, y: 260, w: 840, h: 520 }, { x: 984, y: 260, w: 840, h: 520 }],
-  3: [{ x: 96, y: 260, w: 546, h: 520 }, { x: 690, y: 260, w: 546, h: 520 }, { x: 1284, y: 260, w: 540, h: 520 }],
-};
-// INSPECT — the quality-check beat: copy left, a picture bay rising on the right under an
-// inspection arm. RESTORED 4 Aug 2026 — the bundle-derived port dropped it.
-// Reference geometry: copy 96/200 w620, eyebrow MONO 18/0.16em, head 84px, chips at 0.46+i*0.09;
-// bay right 130 top 250 780x470 rising 560px on a back-ease.
 function sInspect(scene, ctx, shots) {
   const { id, th, at, du } = ctx;
   const shot = shots[0] || null;
@@ -176,6 +199,20 @@ function sInspect(scene, ctx, shots) {
     ].filter(Boolean),
   };
 }
+
+// ASSEMBLE — several bays at once. The row FITS the pictures; never a bay standing empty.
+//
+// RESTORED. This constant existed in the last commit and was deleted along with the sLine conveyor
+// rewrite, while its only use — five lines below — stayed. That left a bare `ReferenceError: BAYS
+// is not defined` on every pipeline film whose Assemble beat received two or more pictures: not a
+// fidelity gap, a CRASHED RENDER. Nothing caught it, because every guard in the suite exercised the
+// composers at 0/1/2/4/6 assets and the beat only claims its second picture higher up the budget;
+// the crash lived in the working tree behind a green `npm test`. Geometry is unchanged from the
+// committed version, which took it from the reference.
+const BAYS = {
+  2: [{ x: 96, y: 260, w: 840, h: 520 }, { x: 984, y: 260, w: 840, h: 520 }],
+  3: [{ x: 96, y: 260, w: 546, h: 520 }, { x: 690, y: 260, w: 546, h: 520 }, { x: 1284, y: 260, w: 540, h: 520 }],
+};
 
 function sAssemble(scene, ctx, shots) {
   const { id, th, at, du } = ctx;
@@ -259,9 +296,9 @@ function sShip(scene, ctx, logo) {
 const SPEC = {
   first: "boot", last: "ship",
   middle: ["line", "inspect", "assemble", "throughput"],
-  shapes: { boot: [824 / 508], inspect: [780 / 420], assemble: [840 / 468, 840 / 468, 546 / 468], line: [], throughput: [], ship: [], statement: [], "statement-c": [] },
-  slots: (role, budget) => (role === "boot" || role === "inspect" ? 1 : role === "assemble" ? Math.min(3, Math.max(0, budget)) : 0),
-  needs: (role) => (role === "assemble" ? 2 : role === "inspect" ? 1 : 0),
+  shapes: { boot: [824 / 508], inspect: [780 / 420], assemble: [840 / 468, 840 / 468, 546 / 468], line: [330 / 290, 250 / 256, 340 / 286], throughput: [], ship: [], statement: [], "statement-c": [] },
+  slots: (role, budget) => (role === "boot" || role === "inspect" ? 1 : (role === "assemble" || role === "line") ? Math.min(3, Math.max(0, budget)) : 0),
+  needs: (role) => (role === "assemble" || role === "line" ? 2 : role === "inspect" ? 1 : 0),
   carry: (role, scene, budget) => {
     // Roles are picked by a ROTATING cursor, not by priority. `throughput` is the only layout that
     // prints figures AS figures, so every other role declines a beat carrying two or more.
@@ -269,7 +306,7 @@ const SPEC = {
     if (role === "throughput") return isStats;
     if (isStats) return false;
     if (role === "inspect") return budget >= 1;
-    if (role === "line") return K.bullets(scene, 4).length >= 2;
+    if (role === "line") return budget >= 2;
     if (role === "assemble") return budget >= 2;
     return true;
   },

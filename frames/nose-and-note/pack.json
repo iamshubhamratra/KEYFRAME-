@@ -1,0 +1,174 @@
+{
+  "name": "nose-and-note",
+  "vibe": "Ivory #f6f0e8 paper, deep plum #4a2438 floods and bronze #a86e3c hairlines — a bespoke-perfume atelier shot as a still, patient film. Gilda Display sets high-contrast serif titles over Albert Sans body. The backdrop is a working bench: three capped bottles in plum, bronze and blush, each with a highlight dot, while three scent trails curl 500px upward and dissolve; a fan of five blotter strips rocks ±3° with the centre one in blush; bronze droplets bob; and a bronze ring draws itself once per beat like a maceration timer. Titles drowse in across 46% of the beat and the camera barely moves — 0.3° of roll, four pixels of drift. Mechanics: a card that flips on its axis, a full circular dial, a caret typing a formula, and toasts sliding in from the side. Suits fragrance, skincare, fine jewellery, small-batch spirits.",
+  "orientation": "portrait",
+  "category": "Craft",
+  "tags": [
+    "perfume",
+    "atelier",
+    "luxury",
+    "serif",
+    "calm",
+    "boutique",
+    "apothecary",
+    "cream-and-plum"
+  ],
+  "renderer": "film-nose-and-note",
+  "colors": {
+    "ivory": "#f6f0e8",
+    "plum": "#4a2438",
+    "bronze": "#a86e3c",
+    "blush": "#e8c4b8",
+    "ink": "#2e1a26",
+    "ground": "#f6f0e8",
+    "text": "#2e1a26",
+    "accent": "#4a2438",
+    "paper": "#f6f0e8"
+  },
+  "fonts": [
+    "Gilda Display",
+    "Albert Sans"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#f6f0e8",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#4a2438",
+      "#e8c4b8",
+      "#f6f0e8"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "warm low-light studio photograph of amber glass, blotter strips and a perfumer's hands, shallow depth of field, ivory and deep plum",
+    "iconStyle": "line",
+    "keywords": [
+      "perfume bottle",
+      "blotter strips",
+      "apothecary shelf",
+      "amber glass",
+      "perfumer hands",
+      "dried botanicals",
+      "atelier bench",
+      "linen backdrop"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Gilda Display",
+    "body": "Albert Sans"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "hushed and unhurried; a warm room you are allowed to linger in, with nothing hurrying the next line",
+    "archetype": "luxury",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "sparse",
+      "warm",
+      "intimate",
+      "analogue"
+    ],
+    "musicKeywords": [
+      "cello adagio",
+      "velvet strings",
+      "harp bloom",
+      "silk piano",
+      "torch ballad",
+      "chanson murmur",
+      "boudoir noir",
+      "amber lounge",
+      "musette waltz",
+      "bossa sway",
+      "cool jazz",
+      "bolero build"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

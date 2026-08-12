@@ -210,5 +210,58 @@ for (const pack of KIT_PACKS) {
   });
 }
 
+// The IMPORTED OM portrait packs (om_scene_cuts) plus `showcase`, the one landscape pack
+// that predates om_port_kit. They carry the same vocabulary on a different shell: their cut layer
+// is TRANSPARENT, because a persistent world on track 0 flows behind every scene and must keep
+// showing through the cut. So the invariants asserted here are the ones that still apply —
+// overlap, unique tracks, a hard kill per cut layer, and no leftover uniform root fade.
+const IMPORTED_PACKS = [
+  "motion-canvas", "paper-craft",
+];
+
+console.log("\nEVERY IMPORTED OM PACK + SHOWCASE\n");
+
+for (const pack of [...IMPORTED_PACKS, "showcase"]) {
+  const cam = pack === "showcase" ? "sc-cam" : "om-cam";
+  ok(`${pack}: cuts are wired, legal and seek-safe`, () => {
+    for (const n of [6, 2, 0]) {
+      const html = buildPack(pack, n);
+
+      const tracks = [...html.matchAll(/data-track-index="(\d+)"/g)].map((m) => Number(m[1]));
+      assert.strictEqual(tracks.length, new Set(tracks).size, `${pack}@${n}: duplicate track index`);
+
+      const clips = [...html.matchAll(/id="s\d+"[^>]*data-start="([\d.]+)" data-duration="([\d.]+)"|data-start="([\d.]+)" data-duration="([\d.]+)"[^>]*class="clip [a-z-]*scene"/g)]
+        .map((m) => ({ start: Number(m[1] ?? m[3]), dur: Number(m[2] ?? m[4]) }))
+        .filter((c) => Number.isFinite(c.start) && Number.isFinite(c.dur));
+      assert(clips.length >= 2, `${pack}@${n}: expected multiple scene clips`);
+      let overlaps = 0;
+      for (let i = 0; i < clips.length - 1; i++) {
+        if (clips[i].start + clips[i].dur > clips[i + 1].start + 1e-6) overlaps++;
+      }
+      assert(overlaps >= clips.length - 2, `${pack}@${n}: only ${overlaps} overlapping cut(s) of ${clips.length - 1}`);
+
+      // Every scene must have a cut layer, and every cut layer must hard-kill itself: a
+      // non-linear seek landing past the exit would otherwise restore stale visibility.
+      const scenes = [...html.matchAll(new RegExp(`id="(s\\\\d+)" class="clip [a-z-]*scene"|<div id="(s\\\\d+)"[^>]*class="clip [a-z-]*scene"`, "g"))]
+        .map((m) => m[1] || m[2]).filter(Boolean);
+      const camCount = (html.match(new RegExp(`class="${cam}"`, "g")) || []).length;
+      assert(camCount >= 2, `${pack}@${n}: only ${camCount} cut layer(s)`);
+      for (const id of scenes) {
+        assert(html.includes(`tl.set("#${id} .${cam}",{opacity:0}`), `${pack}@${n}: ${id} never hard-kills .${cam}`);
+      }
+
+      // THE UNIFORM EDIT MUST BE GONE. Every archetype in all twelve opened with the same
+      // `tl.fromTo("#sN",{opacity:0},{opacity:1,duration:0.4},T)` — that WAS the transition
+      // system. A leftover one double-fades the incoming scene and fights the cut for opacity.
+      if (pack !== "showcase") {
+        assert(!/tl\.fromTo\("#s\d+",\{opacity:0\},\{opacity:1,duration:[\d.]+\}/.test(html),
+          `${pack}@${n}: a uniform scene-root fade survived the retrofit`);
+      }
+
+      if (html.includes('burst(".tx')) assert(html.includes("function burst("), `${pack}@${n}: burst() called but not defined`);
+    }
+  });
+}
+
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);

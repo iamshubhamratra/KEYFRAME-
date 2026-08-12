@@ -315,7 +315,7 @@ const tone = (p, { freq = 440, dur = 1, vol = 1 } = {}) => {
   });
 
   await test("a pack with energyBoost 0 stays exactly as calm with no narration", () => {
-    const declared = profileSvc.profileFor("minimal-luxury");
+    const declared = profileSvc.profileFor("edition");
     assert.strictEqual(declared.noVo.energyBoost, 0);
     const on = profileSvc.pickMusicKeywords({ profile: declared, seedKey: "k", narration: "on" });
     const off = profileSvc.pickMusicKeywords({ profile: declared, seedKey: "k", narration: "off" });

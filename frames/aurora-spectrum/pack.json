@@ -1,6 +1,7 @@
 {
   "name": "aurora-spectrum",
   "renderer": "aurora-spectrum",
+  "orientation": "landscape",
   "vibe": "A Stripe/Linear/Vercel-tier living-gradient system: deep-space indigo grounds lit by large, soft, slowly-drifting multi-stop aurora blobs. Gradient-CLIP headlines, frosted 5%-white micro-cards, soft light everywhere, zero hard shadow. Inter",
   "colors": {
     "ground": "#0B0B14",

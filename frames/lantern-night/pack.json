@@ -73,12 +73,16 @@
       "cinematic"
     ],
     "musicKeywords": [
+      "serene",
+      "soft",
       "serene ambient",
       "warm night acoustic",
       "gentle world",
       "soft cinematic",
       "uplifting ambient",
-      "flowing acoustic"
+      "flowing acoustic",
+      "dramatic",
+      "rising"
     ],
     "sfxPalette": {
       "transition": "light-sweep",
@@ -91,7 +95,8 @@
       "energyBoost": 1,
       "sfxDensity": "rich",
       "ambient": true
-    }
+    },
+    "archetype": "luxury"
   },
   "media": {
     "requiredAssets": {

@@ -1,0 +1,173 @@
+{
+  "name": "clay-court",
+  "vibe": "A full-bleed clay orange court (#c1552f) with chalk lines drawn in perspective — baselines, service line and a net band across the upper third — under an acid lime accent (#d8f04b). Archivo Black stamps heavy uppercase headlines over Archivo. The court is the world: the lines sit where they would on a real surface, and the frame reads as the view from behind the baseline. Its mechanics are a keyboard-driven cursor, a linear fill bar, a scrolling ticker and a dial. Best for sport and fitness, tournaments and clubs, athletic apparel and anything with a scoreboard.",
+  "orientation": "portrait",
+  "category": "Sport",
+  "tags": [
+    "tennis",
+    "sport",
+    "clay",
+    "high-contrast",
+    "lime",
+    "athletic",
+    "tournament",
+    "bold"
+  ],
+  "renderer": "film-clay-court",
+  "colors": {
+    "clay": "#c1552f",
+    "lime": "#d8f04b",
+    "chalkline": "#f6f1e6",
+    "shade": "#3a2016",
+    "court": "#8c3f22",
+    "ground": "#c1552f",
+    "text": "#f6f1e6",
+    "accent": "#d8f04b",
+    "ink": "#3a2016",
+    "paper": "#f6f1e6"
+  },
+  "fonts": [
+    "Archivo Black",
+    "Archivo"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#c1552f",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#d8f04b",
+      "#c1552f"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "high-sun sports photography on clay — orange dust in the air, hard shadows, motion-frozen athletes, saturated and contrasty",
+    "iconStyle": "solid",
+    "keywords": [
+      "tennis clay court",
+      "player mid serve",
+      "racket and ball",
+      "court lines chalk",
+      "stadium crowd",
+      "sports drink",
+      "athletic shoes"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot",
+      "vector"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Archivo Black",
+    "body": "Archivo"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "competitive heat — a long rally in full sun",
+    "archetype": "hype",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "breakbeat",
+      "stadium brass",
+      "percussion",
+      "electro rock"
+    ],
+    "musicKeywords": [
+      "baseline groove",
+      "clay dust",
+      "court rhythm",
+      "rally tempo",
+      "topspin funk",
+      "sideline horns",
+      "match point",
+      "tiebreak tension",
+      "serve slam",
+      "crowd roar",
+      "championship brass",
+      "victory stomp"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "ui-click",
+      "reveal": "pop",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
+  }
+}

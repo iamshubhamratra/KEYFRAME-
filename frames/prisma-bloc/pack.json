@@ -84,12 +84,16 @@
       "corporate"
     ],
     "musicKeywords": [
+      "atmospheric",
+      "digital",
       "modern corporate",
       "technology electronic",
       "dynamic motion",
       "digital energetic",
       "future bass",
-      "driving electronic"
+      "driving electronic",
+      "driving",
+      "powerful"
     ],
     "sfxPalette": {
       "transition": "card-slide",
@@ -102,7 +106,8 @@
       "energyBoost": 2,
       "sfxDensity": "rich",
       "ambient": false
-    }
+    },
+    "archetype": "tech"
   },
   "media": {
     "requiredAssets": {

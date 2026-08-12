@@ -1,0 +1,175 @@
+{
+  "name": "molten-studio",
+  "vibe": "A hot shop at working temperature: dark ember brown (#1c1512) with a molten gather (#ff9633), aquamarine glass (#6fd8d0) and sand (#e8dcc4) type. Comfortaa's rounded display face matches the blobs; Livvic carries the batch notes. Right of frame a furnace box glows — an orange ellipse breathing on sin(3t) around a pale #ffd9a0 core — while three heat plumes rise from its mouth and loop every 140px. A blowpipe enters from the left at 18°, its gather pulsing ±12%, and a cooling shelf holds three outlined vessels in aqua, orange and sand across which a specular highlight sweeps and lights each in turn. Despite the fire, the motion is Calm: 0.5° roll, 8px vertical drift, drowse titles, 22px glow cards. It owns a furnace-climb gauge, handwritten batch notes and drop-in kiln alerts.",
+  "orientation": "portrait",
+  "category": "Craft",
+  "tags": [
+    "glassblowing",
+    "hot-shop",
+    "handmade",
+    "glow",
+    "rounded",
+    "aqua-orange",
+    "kiln",
+    "slow-craft"
+  ],
+  "renderer": "film-molten-studio",
+  "colors": {
+    "shop": "#1c1512",
+    "molten": "#ff9633",
+    "aqua": "#6fd8d0",
+    "sand": "#e8dcc4",
+    "ink": "#14100c",
+    "ground": "#1c1512",
+    "text": "#e8dcc4",
+    "accent": "#ff9633",
+    "paper": "#e8dcc4"
+  },
+  "fonts": [
+    "Comfortaa",
+    "Livvic"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#1c1512",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#ff9633",
+      "#6fd8d0",
+      "#1c1512"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "warm low-light documentary photograph of a glassblower's hot shop, glowing orange gather on the pipe against deep shadow, sparks and shallow focus",
+    "iconStyle": "duotone",
+    "keywords": [
+      "glassblowing",
+      "molten glass gather",
+      "furnace glow",
+      "blowpipe",
+      "hot shop studio",
+      "hand blown vessel",
+      "kiln interior",
+      "artisan hands",
+      "glass bowl aquamarine"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Comfortaa",
+    "body": "Livvic"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "patient heat — breath, rhythm and hands working in a room that is always warm",
+    "archetype": "warm",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "ambient rhodes",
+      "handpan",
+      "glass resonance",
+      "brass pad"
+    ],
+    "musicKeywords": [
+      "singing bowl",
+      "furnace hum",
+      "flugelhorn breath",
+      "udu heartbeat",
+      "kalimba ember",
+      "molten swell",
+      "dub echo",
+      "downtempo warmth",
+      "hand percussion",
+      "trip hop",
+      "balearic groove",
+      "smoulder funk"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

@@ -1,0 +1,174 @@
+{
+  "name": "dune-camp",
+  "vibe": "A desert night in dusk indigo (#241d3e) over sand gold, warmed by one ember orange (#e8703c). Amiri sets classical serif headlines over Tajawal — a pairing built for Arabic as readily as Latin. The world is a full camp: twenty-two stars twinkling on independent phases, a crescent moon cut from a disc, layered dune ridges rolling across the lower frame, a tent silhouette and a small fire. Its mechanics are a ticker, a gauge, a caret typewriter and a swipe deck. Best for travel and hospitality, heritage and cultural brands, and any product with a story set after dark.",
+  "orientation": "portrait",
+  "category": "Travel",
+  "tags": [
+    "desert",
+    "night",
+    "travel",
+    "heritage",
+    "arabic-ready",
+    "serif",
+    "camp",
+    "stars"
+  ],
+  "renderer": "film-dune-camp",
+  "colors": {
+    "dusk": "#241d3e",
+    "sand": "#e0b878",
+    "ember2": "#e8703c",
+    "night": "#151030",
+    "cream2": "#f4ecdc",
+    "ground": "#241d3e",
+    "text": "#f4ecdc",
+    "accent": "#e0b878",
+    "ink": "#151030",
+    "paper": "#f4ecdc"
+  },
+  "fonts": [
+    "Amiri",
+    "Tajawal"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#241d3e",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#e0b878",
+      "#e8703c",
+      "#241d3e"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "blue-hour desert photography — cool indigo sky over warm sand, firelight as the only warm source, long dune shadows",
+    "iconStyle": "line",
+    "keywords": [
+      "sand dunes at dusk",
+      "desert camp tent",
+      "camel caravan",
+      "night sky stars",
+      "campfire in sand",
+      "woven textiles",
+      "oasis palms"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Amiri",
+    "body": "Tajawal"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "wide and quiet — distance, warmth and a long night",
+    "archetype": "warm",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "oud",
+      "ney flute",
+      "frame drum",
+      "desert rock"
+    ],
+    "musicKeywords": [
+      "desert night",
+      "dune ambient",
+      "oud nocturne",
+      "ney flute",
+      "starlit qanun",
+      "caravan sway",
+      "tabla pulse",
+      "darbuka groove",
+      "bedouin chant",
+      "desert rock",
+      "sandstorm drive",
+      "nomad drums"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "data-ping",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

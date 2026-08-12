@@ -207,7 +207,6 @@ async function buildSkin({ subject, framePack, packVibe, candidates, provenance,
 const SKIN_AWARE_RENDERERS = new Set([
   "three-flagship", "three-brightlife", "three",
   "blueprint", "bloom-fable", "terminal-departures", "paper-tales", "bauhaus-riot",
-  "kinetic-universe", "product-showcase",
   // grid-dispatch is a MONO scheme: the brand accent replaces its single accent outright,
   // taking the poster fields, rules, tags, counters, the CTA block and the spec figures with
   // it — so the skin reaches far more than the type.
@@ -232,11 +231,9 @@ const SKIN_AWARE_RENDERERS = new Set([
   // take the pack's accent slots and every remaining colour — grounds, skies, lantern
   // glow, spotlights, checkers, petals — rotates onto the brand's lead hue.
   "om-garden", "om-lantern", "om-bakehouse", "om-blocks", "om-poster", "om-premiere", "om-hype",
-  // Imported OM portrait packs — all derive their theme from the brand accent(s) via
+  // Imported OM portrait packs — both derive their theme from the brand accent(s) via
   // resolveBrand and return a real resolvedBrand, so they wear the skin fully.
-  "neo-dashboard", "ai-laboratory", "aurora-motion", "digital-universe", "editorial-motion",
-  "glass-dimension", "living-city", "minimal-luxury", "motion-canvas", "nature-flow",
-  "paper-craft", "retro-future",
+  "motion-canvas", "paper-craft",
 ]);
 function rendererWearsSkin(framePack) {
   let renderer = null;

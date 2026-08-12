@@ -1,0 +1,173 @@
+{
+  "name": "night-bazaar",
+  "vibe": "A street market after dark. #221430 plum night, #ffb454 lantern amber, and a #59d4a4 mint that takes over the entire CTA frame. Baloo 2 is set uppercase on every single beat — chunky, rounded, shouted. Overhead, two sagging strings of festoon bulbs flicker on independent phases; an amber-and-chalk striped stall awning fills the bottom-right above a dark valance bar; a hanging mint sign swings ±7° on its wire; a thick curl of smoke drifts up the left edge. Feature cards sit deliberately askew on the tilt variant, montage tiles lean up to 3°, and the camera is the busiest in the batch — pushes, hops, and an outright spin at multiplier 7 with the highest ambient clock (1.9). Titles bounce, items pop. Owns a ticker Scroll, click Cursor, pop Notify and bar Rings. For food halls, markets, festivals and nightlife.",
+  "orientation": "portrait",
+  "category": "Nightlife",
+  "tags": [
+    "night-market",
+    "street-food",
+    "festival",
+    "lanterns",
+    "rounded-type",
+    "bouncy",
+    "uppercase",
+    "dark-warm"
+  ],
+  "renderer": "film-night-bazaar",
+  "colors": {
+    "plum": "#221430",
+    "amber": "#ffb454",
+    "mint": "#59d4a4",
+    "chalk": "#f6efe6",
+    "ink": "#180e24",
+    "ground": "#221430",
+    "text": "#f6efe6",
+    "accent": "#ffb454",
+    "paper": "#f6efe6"
+  },
+  "fonts": [
+    "Baloo 2",
+    "Be Vietnam Pro"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#221430",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#ffb454",
+      "#221430"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "vivid handheld night photograph of a street food market, amber lantern glow against deep plum darkness, steam, bokeh and crowded stalls",
+    "iconStyle": "line",
+    "keywords": [
+      "night market",
+      "street food stall",
+      "festoon lights",
+      "grilled skewers",
+      "market crowd",
+      "hawker centre",
+      "food vendor",
+      "neon signage"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Baloo 2",
+    "body": "Be Vietnam Pro"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "festive after-dark bustle — warm, crowded, generous",
+    "archetype": "groove",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "world-percussion",
+      "upbeat",
+      "festive",
+      "hand-drums-and-brass"
+    ],
+    "musicKeywords": [
+      "gypsy swing",
+      "oud melody",
+      "lantern serenade",
+      "market bustle",
+      "hand drums",
+      "cumbia sway",
+      "brass band",
+      "tabla roll",
+      "festival horns",
+      "bhangra bounce",
+      "street parade",
+      "carnival samba"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "ui-click",
+      "reveal": "pop",
+      "data": "data-ping",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

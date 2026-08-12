@@ -1,0 +1,174 @@
+{
+  "name": "city-pulse",
+  "vibe": "Night steel (#1d2735) with lit-window amber (#f0b954) and one neon-teal sign colour (#4fd8c4); Oswald condensed over Work Sans. The backdrop is a working skyline, not wallpaper: five towers whose twelve windows each switch on and off on their own sine phase, so the block genuinely flickers with occupancy; a construction crane in thin translucent line with a hook that swings; a red aviation beacon blinking on a mast; and amber and teal light-trails streaking across the bottom as traffic. Montage tiles have zero tilt — a hard upright grid — and feature cards glow teal over near-black. It owns the click cursor, side-in notifications, stacked feeds and a code editor. Camera skews 6° and pushes hard. For transit apps, city guides, nightlife, urban data and anything with real UI to show.",
+  "orientation": "portrait",
+  "category": "Urban",
+  "tags": [
+    "urban",
+    "night",
+    "transit",
+    "neon",
+    "skyline",
+    "product-ui",
+    "data",
+    "dark-mode"
+  ],
+  "renderer": "film-city-pulse",
+  "colors": {
+    "steel": "#1d2735",
+    "block": "#28354a",
+    "window": "#f0b954",
+    "sign": "#4fd8c4",
+    "paper": "#eef0f4",
+    "ink": "#141a24",
+    "ground": "#1d2735",
+    "text": "#eef0f4",
+    "accent": "#f0b954"
+  },
+  "fonts": [
+    "Oswald",
+    "Work Sans"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#1d2735",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#f0b954",
+      "#4fd8c4",
+      "#1d2735"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "long-exposure night photograph of a dense skyline, amber window grids and teal neon signage with red traffic light trails",
+    "iconStyle": "duotone",
+    "keywords": [
+      "night skyline",
+      "lit office windows",
+      "traffic light trails",
+      "metro platform",
+      "rooftop city view",
+      "construction crane",
+      "neon street sign",
+      "late commuter crowd"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo",
+      "illustration"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Oswald",
+    "body": "Work Sans"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "restless, lit and rhythmic after dark",
+    "archetype": "groove",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "night-drive tempo",
+      "analogue bass",
+      "synth stabs",
+      "tape-delay percussion"
+    ],
+    "musicKeywords": [
+      "deep house",
+      "night drive",
+      "filtered bass",
+      "tape delay",
+      "skyline house",
+      "neon commute",
+      "rooftop set",
+      "traffic groove",
+      "rush hour",
+      "city techno",
+      "warehouse techno",
+      "acid bassline"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "ui-click",
+      "reveal": "product-reveal",
+      "data": "data-ping",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

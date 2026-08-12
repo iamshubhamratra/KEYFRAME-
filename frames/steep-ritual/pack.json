@@ -1,0 +1,174 @@
+{
+  "name": "steep-ritual",
+  "vibe": "Porcelain (#f7f3ea) with matcha green (#7a8c4f) and clay-pot brown (#8c5a3c), gold (#c9a24b) reserved for the montage and CTA. Marcellus — a Roman inscriptional serif — over Mukta. The world is a tea room: a matcha bowl sits on its own shadow while a double-S steam ribbon rises and settles on |sin(0.7t)|, three tea-plant stems sway with node ticks and small leaves, and a gold circle draws itself around the character 茶 set in Marcellus. It owns the half-circle gauge — a needle sweeping five ticks to water temperature — plus a dotted-leader menu board where prices flicker in. This is the slowest pack here by construction: camera cadence 3, roll 0.3, ambient clock 1.4, drift 4×6. For tea houses, ceremony and wellness, quiet retail and any brand whose product is the pause.",
+  "orientation": "portrait",
+  "category": "Food & Drink",
+  "tags": [
+    "tea house",
+    "ceremony",
+    "minimal",
+    "porcelain",
+    "inscriptional serif",
+    "slowest camera",
+    "matcha",
+    "wellness"
+  ],
+  "renderer": "film-steep-ritual",
+  "colors": {
+    "matcha": "#7a8c4f",
+    "porcelain": "#f7f3ea",
+    "pot": "#8c5a3c",
+    "ink": "#2b2b26",
+    "gold": "#c9a24b",
+    "ground": "#f7f3ea",
+    "text": "#2b2b26",
+    "accent": "#7a8c4f",
+    "paper": "#f7f3ea"
+  },
+  "fonts": [
+    "Marcellus",
+    "Mukta"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#f7f3ea",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#7a8c4f",
+      "#c9a24b",
+      "#2b2b26"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "still minimal tea-house photograph in soft window light, porcelain cups and matcha green, steam rising, shallow depth of field, generous negative space",
+    "iconStyle": "line",
+    "keywords": [
+      "tea ceremony",
+      "matcha bowl",
+      "clay teapot",
+      "loose leaf",
+      "steam rising",
+      "tea house interior",
+      "porcelain cup",
+      "tea plantation"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Marcellus",
+    "body": "Mukta"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "quiet and ceremonial — a room where the loudest sound is water, and every note is given space",
+    "archetype": "luxury",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "minimal",
+      "sparse acoustic",
+      "air breath",
+      "long decay"
+    ],
+    "musicKeywords": [
+      "minimalist piano",
+      "kettle steam",
+      "porcelain bells",
+      "incense smoke",
+      "water pour",
+      "bamboo wind",
+      "singing bowl",
+      "koto tremolo",
+      "shamisen pluck",
+      "temple gong",
+      "ceremony drum",
+      "taiko pulse"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

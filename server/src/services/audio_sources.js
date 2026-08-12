@@ -17,10 +17,21 @@ const { spawn } = require("node:child_process");
 const config = require("../config");
 
 const pixabayBridge = require("./pixabay_bridge");
+const musicHistory = require("./music_history");
 
 const FREESOUND_BASE = "https://freesound.org/apiv2";
 
 function log(...args) { console.log("[audio_sources]", ...args); }
+
+// Seed for the per-job search window (sort mode + page). Math.random is forbidden in the
+// render path — a re-render of the same job must read the same window and return the same
+// track — so the variation is derived from the job id instead.
+function hash32(s) {
+  let h = 2166136261;
+  const str = String(s || "");
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
 
 // ---------- low-level HTTP helpers ----------
 
@@ -75,7 +86,7 @@ async function fetchJson(url, { headers = {}, timeoutMs = 20_000 } = {}) {
 
 // ---------- Freesound (primary) ----------
 
-async function freesoundSearch({ query, filter, sort, pageSize = 10 }) {
+async function freesoundSearch({ query, filter, sort, pageSize = 10, page = 1 }) {
   const token = config.audio?.freesoundToken;
   if (!token) {
     log("no freesound token configured; skipping");
@@ -85,6 +96,7 @@ async function freesoundSearch({ query, filter, sort, pageSize = 10 }) {
   url.searchParams.set("query", query);
   url.searchParams.set("fields", "id,name,duration,previews,license,tags,avg_rating,num_downloads");
   url.searchParams.set("page_size", String(pageSize));
+  if (page > 1) url.searchParams.set("page", String(page));
   if (filter) url.searchParams.set("filter", filter);
   if (sort)   url.searchParams.set("sort", sort);
 
@@ -260,37 +272,120 @@ function scoreTrack(r, { filmSec, style }) {
  * caller (and the integration test's stub) keeps working; a caller that wants to VALIDATE
  * that the template steered the search passes the object. See audio_report.musicFromTemplate.
  */
-async function fetchMusic({ query, candidates: candidatesIn, outputPath, tracker, durationSec, style = [], selection = null }) {
+async function fetchMusic({
+  query, candidates: candidatesIn, outputPath, tracker, durationSec, style = [], selection = null,
+  seed = "", allowGeneratedPad = true, jobId = "", framePack = "", useHistory = true,
+}) {
   // Normalize each candidate: callers join plan.query + plan.mood, which often repeat
   // ("epic orchestral synthwave epic orchestral synthwave hybrid") — dedupe the words.
   const normalize = (q) => {
     const words = String(q || "").toLowerCase().match(/[a-z][a-z'-]*/g) || [];
     return [...new Set(words)].join(" ").trim();
   };
-  const asked = (Array.isArray(candidatesIn) && candidatesIn.length ? candidatesIn : [query])
-    .map(normalize).filter(Boolean);
+  const fromLadder = Array.isArray(candidatesIn) && candidatesIn.length;
+  const asked = (fromLadder ? candidatesIn : [query]).map(normalize).filter(Boolean);
   const norm = asked[0] || "ambient music";
-  // A broader 2-word core as a final retry — an over-specific query zeroes out Freesound
-  // entirely, and widening inside the template's own vocabulary beats giving up on it.
+  // THE GENERIC WIDENING IS NOW LEGACY-ONLY. Appending `core` (the first two words) and
+  // `"<first word> music"` was the funnel that made different templates converge: when a
+  // pack's own query missed, several packs widened to the SAME two-word phrase and drew
+  // from the same ten results. audio_profile.musicCandidatesFor now supplies a ladder that
+  // already ends in broad single genre terms, so the widening is only needed for the old
+  // single-`query` callers that have no ladder.
   const core = norm.split(" ").slice(0, 2).join(" ");
-  const queries = [...new Set([...asked, core, `${core.split(" ")[0]} music`])].filter(Boolean);
+  const queries = fromLadder
+    ? [...new Set(asked)]
+    : [...new Set([...asked, core, `${core.split(" ")[0]} music`])].filter(Boolean);
   const styleTags = (Array.isArray(style) ? style : []).map((s) => String(s).toLowerCase()).filter(Boolean);
   const filmSec = Number(durationSec) || 0;
   const note = (o) => { if (selection) Object.assign(selection, o); };
+
+  // THE RESULT WINDOW MOVES PER JOB. `sort: rating_desc` with no page is deterministic —
+  // the same query returns the same ten tracks forever, so two jobs that widen to the same
+  // query MUST receive the same bed. Measured 2026-08-05: one query across five sort modes
+  // yields 67 distinct tracks vs 15 from rating_desc alone, and three pages yield 45. The
+  // catalogue was always deep (electronic 2375, ambient 1932); the pipeline only ever read
+  // one page of one ordering of it.
+  //
+  // Seeded on the job, never Math.random: a re-render of the same job reads the same window
+  // and reproduces the film.
+  const SORTS = ["rating_desc", "downloads_desc", "score", "created_desc"];
+  const s = hash32(String(seed || norm));
+  const sortMode = SORTS[s % SORTS.length];
+  const pageNo = 1 + ((s >>> 8) % 3);
+
+  // THE VARIETY LEDGER. Read once, so every candidate in this job is judged against the
+  // same snapshot of what the studio has already shipped.
+  const hist = useHistory
+    ? musicHistory.penaltiesFor({ pack: framePack, jobId })
+    : { penalty: () => 0, recent: new Set(), pinned: null, size: 0 };
+  const remember = (provider, id, q) => {
+    if (!useHistory || !id) return;
+    const key = musicHistory.trackKey(provider, id);
+    musicHistory.record({ key, provider, pack: framePack, jobId, query: q });
+    note({ trackKey: key });
+  };
+
+  // RE-RENDER PIN. This job has shipped a track before, so it ships that same track again —
+  // history gives variety ACROSS jobs without making one job's own re-render a lottery.
+  if (hist.pinned && hist.pinned.key) {
+    const [prov, ...rest] = String(hist.pinned.key).split(":");
+    const id = rest.join(":");
+    let got = null;
+    if (prov === "pixabay" && /^https?:/.test(id)) {
+      got = await pixabayBridge.downloadToFile(id, outputPath, { minBytes: 20_000 });
+    } else if (prov === "freesound") {
+      try {
+        const token = config.audio?.freesoundToken;
+        const meta = await fetchJson(`${FREESOUND_BASE}/sounds/${encodeURIComponent(id)}/?fields=id,name,duration,previews`, {
+          headers: { Authorization: `Token ${token}` },
+        });
+        const url = meta?.previews?.["preview-hq-mp3"] || meta?.previews?.["preview-lq-mp3"];
+        if (url) got = await downloadSafe(url, outputPath);
+      } catch { /* fall through to a normal search */ }
+    }
+    if (got) {
+      log(`music: re-render of job ${jobId} — pinned to its previous track (${hist.pinned.key.slice(0, 60)})`);
+      note({ query: hist.pinned.query || norm, provider: prov, rank: null, score: null, ranked: false, pinned: true, trackKey: hist.pinned.key });
+      return got;
+    }
+    log(`music: pinned track for job ${jobId} no longer resolves — searching again`);
+  }
 
   // 0) Pixabay bridge — PRIMARY music source (user preference). Real Pixabay tracks (the
   // official API serves no audio); best-effort, falls through to Freesound if the bridge
   // is down/slow/dry. Asked in candidate ORDER, so the template's keywords get first
   // refusal — the only steering available on a provider that exposes no metadata.
+  //
+  // The bridge exposes no metadata to rank, so its variety has to come from WHERE in the
+  // result list we read. `index` was hardcoded to 0, which means one query returned one
+  // track forever. Seeded per job, the same query now walks a different position on every
+  // film while a re-render of one job returns to its own.
+  const pixIndex = (s >>> 16) % 6;
+  // The bridge exposes no metadata, so a recency PENALTY has nothing to apply to. The
+  // equivalent move is to step past a track we already shipped and take the next one —
+  // same intent (prefer fresh, never fail for want of it), expressed as position.
+  const PIX_SKIPS = 3;
   for (let i = 0; i < queries.length; i++) {
     const q = queries[i];
-    const url = await pixabayBridge.firstAudioUrl(q, "music");
+    let url = null, usedIndex = pixIndex;
+    for (let skip = 0; skip < PIX_SKIPS; skip++) {
+      const idx = (pixIndex + skip) % 8;
+      const candidate = await pixabayBridge.firstAudioUrl(q, "music", { index: idx });
+      if (!candidate) break;
+      usedIndex = idx;
+      url = candidate;
+      if (!hist.recent.has(musicHistory.trackKey("pixabay", candidate))) break;
+      // Recently shipped — try the next position, but keep this as the fallback so a
+      // query with only one usable result still returns something.
+      log(`music: Pixabay "${q}" index ${idx} was used recently — stepping on`);
+    }
     if (url) {
       const got = await pixabayBridge.downloadToFile(url, outputPath, { minBytes: 20_000 });
       if (got) {
         if (tracker) tracker.addExternal("pixabay_music_download");
-        log(`music: Pixabay bridge "${q}" (candidate ${i + 1}/${queries.length}) -> ${url.slice(0, 72)}`);
-        note({ query: q, provider: "pixabay", rank: i, score: null, ranked: false });
+        log(`music: Pixabay bridge "${q}" (candidate ${i + 1}/${queries.length}, index ${usedIndex}) -> ${url.slice(0, 72)}`);
+        note({ query: q, provider: "pixabay", rank: i, score: null, ranked: false, window: `index${usedIndex}` });
+        remember("pixabay", url, q);
         return got;
       }
     }
@@ -299,31 +394,57 @@ async function fetchMusic({ query, candidates: candidatesIn, outputPath, tracker
   // 1) Freesound — bias to MUSIC, not foley/field-recordings. Unlike the bridge, this
   // returns real metadata, so candidates are POOLED and the best track wins rather than
   // the first one that happened to resolve.
+  //
+  // POOL WIDE. The old target of 12 was reached by the first one or two queries, so the
+  // rest of the ladder never ran and the choice was made from a single query's fixed page.
+  // Ranking can only express a preference over what it is given; a wide pool is the whole
+  // mechanism by which the template's genre, the film's length and (later) recency get to
+  // matter at all.
+  const POOL_TARGET = 40;
   const pool = [];
+  const seenIds = new Set();
   for (const q of queries) {
     if (tracker) tracker.addExternal("freesound_search");
-    let fsResults = await freesoundSearch({ query: q, filter: "duration:[20 TO 180] tag:music", sort: "rating_desc" });
-    if (!fsResults.length) {
-      fsResults = await freesoundSearch({ query: q, filter: "duration:[20 TO 180]", sort: "rating_desc" });
+    let fsResults = await freesoundSearch({ query: q, filter: "duration:[20 TO 180] tag:music", sort: sortMode, pageSize: 15, page: pageNo });
+    // A page past the end of a thin catalogue is empty but the catalogue is not — fall
+    // back to page 1 before widening the filter, or a rare genre silently drops out.
+    if (!fsResults.length && pageNo > 1) {
+      fsResults = await freesoundSearch({ query: q, filter: "duration:[20 TO 180] tag:music", sort: sortMode, pageSize: 15 });
     }
-    for (const r of fsResults) pool.push({ r, q, rank: queries.indexOf(q) });
-    // Enough to choose from. Pooling every candidate would spend searches to re-rank a
-    // decision that is already well-supported.
-    if (pool.length >= 12) break;
+    if (!fsResults.length) {
+      fsResults = await freesoundSearch({ query: q, filter: "duration:[20 TO 180]", sort: sortMode, pageSize: 15 });
+    }
+    for (const r of fsResults) {
+      if (seenIds.has(r.id)) continue;      // the ladder's tiers overlap by design
+      seenIds.add(r.id);
+      pool.push({ r, q, rank: queries.indexOf(q) });
+    }
+    if (pool.length >= POOL_TARGET) break;
   }
   if (pool.length) {
     const ranked = pool
       // Earlier candidate = closer to the template's own vocabulary. A small bonus, so a
       // clearly better track from a later query can still win — this is a tie-breaker,
       // not a veto.
-      .map((e) => ({ ...e, score: scoreTrack(e.r, { filmSec, style: styleTags }) + Math.max(0, 8 - e.rank * 3) }))
+      //
+      // The recency penalty is subtracted here rather than filtering the pool, so a track
+      // this studio shipped last week loses to any comparable fresh one but still wins over
+      // nothing at all. That is the difference between "prefer variety" and "forbid reuse",
+      // and only the first is safe on a thin genre.
+      .map((e) => ({
+        ...e,
+        score: scoreTrack(e.r, { filmSec, style: styleTags })
+          + Math.max(0, 8 - e.rank * 3)
+          - hist.penalty(musicHistory.trackKey("freesound", e.r.id)),
+      }))
       .sort((a, b) => b.score - a.score);
     for (const e of ranked) {
       const got = await downloadFirstFreesoundPreview([e.r], outputPath);
       if (got) {
         if (tracker) tracker.addExternal("freesound_download");
-        log(`music: Freesound "${e.q}" -> id=${e.r.id} (${(Number(e.r.duration) || 0).toFixed(0)}s, score ${e.score}, best of ${pool.length})`);
-        note({ query: e.q, provider: "freesound", rank: e.rank, score: e.score, ranked: true });
+        log(`music: Freesound "${e.q}" -> id=${e.r.id} (${(Number(e.r.duration) || 0).toFixed(0)}s, score ${e.score}, best of ${pool.length} · window ${sortMode} p${pageNo}${hist.size ? ` · ledger ${hist.size}` : ""})`);
+        note({ query: e.q, provider: "freesound", rank: e.rank, score: e.score, ranked: true, poolSize: pool.length, window: `${sortMode}/p${pageNo}` });
+        remember("freesound", e.r.id, e.q);
         return got;
       }
     }
@@ -342,6 +463,16 @@ async function fetchMusic({ query, candidates: candidatesIn, outputPath, tracker
   }
 
   // 3) GUARANTEED FLOOR — a synthesized ambient pad beats a silent film.
+  //
+  // EXCEPT WITH NO NARRATION. Under a voice the pad is an unobtrusive bed nobody listens
+  // to; with no voice it IS the soundtrack, and it is byte-identical on every film that
+  // reaches it — the most literal possible form of "every video sounds the same". A
+  // music-led film with no real track is a reportable failure, not something to paper over.
+  if (!allowGeneratedPad) {
+    log(`music: all sources dry for "${norm}" and narration is off — refusing the synthesized pad (a music-led film needs a real bed)`);
+    note({ query: norm, provider: null, rank: null, score: null, ranked: false, refusedPad: true });
+    return null;
+  }
   const pad = await generatePad(norm, outputPath, durationSec);
   if (pad) {
     log(`music: all sources dry for "${norm}" — synthesized an ambient pad bed instead`);

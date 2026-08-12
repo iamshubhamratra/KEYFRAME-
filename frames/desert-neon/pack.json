@@ -1,0 +1,175 @@
+{
+  "name": "desert-neon",
+  "vibe": "Vacancy, always. A #241a33 dusk over a sand ridge with sixteen stars twinkling, and a saguaro drawn as three green #59e07a neon tubes wrapped in a 30px halo — the whole cactus drops to 35% opacity whenever the buzz cycle dips, a real gas-tube flicker. A tumbleweed of two dashed rings rolls across at 120px/s while spinning at 160°/s, and a pink #ff7ac2 VACANCY box blinks out of phase with its own bulb. Monoton — hollow, genuinely a neon-sign face — sets uppercase headlines at 0.05em over Outfit, on generous 1.24 leading. It owns Cursor:click, where a pointer walks to a button, ripples, then flips a toggle, and Swipe:flip, a scaleX rolodex through three faces. Titles slam in from 2.2×. Best for road trips, motels, bars and retro Americana.",
+  "orientation": "portrait",
+  "category": "Travel",
+  "tags": [
+    "motel neon",
+    "desert night",
+    "dark ground",
+    "uppercase",
+    "cursor",
+    "typing",
+    "swipe",
+    "notify",
+    "americana"
+  ],
+  "renderer": "film-desert-neon",
+  "colors": {
+    "dusk": "#241a33",
+    "cactus": "#59e07a",
+    "motel": "#ff7ac2",
+    "sand": "#e8c98f",
+    "paper": "#f6eefc",
+    "ink": "#170f22",
+    "ground": "#241a33",
+    "text": "#f6eefc",
+    "accent": "#59e07a"
+  },
+  "fonts": [
+    "Monoton",
+    "Outfit"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#241a33",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#59e07a",
+      "#ff7ac2",
+      "#e8c98f"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "night photograph of a roadside motel lit by pink and green neon, deep blue desert sky, long exposure with a faint star field",
+    "iconStyle": "line",
+    "keywords": [
+      "motel neon sign",
+      "desert highway night",
+      "saguaro cactus",
+      "vacancy sign",
+      "roadside diner",
+      "starry desert",
+      "vintage motel pool",
+      "empty road"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Monoton",
+    "body": "Outfit"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "nocturnal",
+    "archetype": "retro",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "desert rock",
+      "reverb guitar",
+      "spaghetti western",
+      "dusty groove"
+    ],
+    "musicKeywords": [
+      "desert ambient",
+      "lap steel",
+      "slide guitar",
+      "harmonica wail",
+      "tremolo guitar",
+      "dusty blues",
+      "baritone twang",
+      "outlaw country",
+      "americana rock",
+      "rockabilly shuffle",
+      "fuzz riff",
+      "stoner rock"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "ui-click",
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

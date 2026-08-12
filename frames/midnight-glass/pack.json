@@ -1,6 +1,7 @@
 {
   "name": "midnight-glass",
   "renderer": "midnight-glass",
+  "orientation": "landscape",
   "vibe": "dark glassmorphism: deep navy, frosted cards, one neon accent — premium, technical, nocturnal",
   "colors": {
     "midnight": "#0A0F2A",

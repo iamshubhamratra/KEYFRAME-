@@ -1,0 +1,174 @@
+{
+  "name": "lift-off",
+  "vibe": "Sunrise ballooning in peach and burnt orange. A #f6d8c3 dawn-paper ground, Chonburi's rounded decorative serif in #33232a, and #d95d39 doing every piece of accent work. The world is literal: a hot-air balloon rises in step with the scene's own progress, white gore lines curving over the envelope, a wicker basket swinging on ropes below, and a burner flame that pulses in place; three white clouds drift past at staggered speeds over a brown hill silhouette with tiny bird ticks. Statement beats cut the world away entirely and go full #9fc4d8 morning blue; the CTA goes solid burnt orange with an ink pill. Camera work is calm — pushes, one small hop, a lazy drift — and everything enters by rising. Owns bar Rings, switch Toggles, fade Morphs and a slider Cursor. For tour operators, resorts, retreats and anything sold at first light.",
+  "orientation": "portrait",
+  "category": "Travel",
+  "tags": [
+    "hot-air-balloon",
+    "sunrise",
+    "travel",
+    "warm-pastel",
+    "calm",
+    "outdoor",
+    "tourism",
+    "peach-and-orange"
+  ],
+  "renderer": "film-lift-off",
+  "colors": {
+    "dawn": "#f6d8c3",
+    "balloon": "#d95d39",
+    "basket": "#7a5230",
+    "sky": "#9fc4d8",
+    "ink": "#33232a",
+    "ground": "#f6d8c3",
+    "text": "#33232a",
+    "accent": "#d95d39",
+    "paper": "#f6d8c3"
+  },
+  "fonts": [
+    "Chonburi",
+    "Prompt"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#f6d8c3",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#d95d39",
+      "#33232a",
+      "#f6d8c3"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "soft golden-hour photograph at sunrise, peach and pale-blue sky, hot-air balloons drifting over misty fields, warm haze",
+    "iconStyle": "line",
+    "keywords": [
+      "hot air balloon",
+      "sunrise field",
+      "morning mist",
+      "ballooning basket",
+      "golden hour",
+      "countryside",
+      "launch crew",
+      "aerial view"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Chonburi",
+    "body": "Prompt"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "hushed dawn optimism that gradually lifts",
+    "archetype": "warm",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "acoustic",
+      "folk",
+      "pastoral",
+      "uplifting"
+    ],
+    "musicKeywords": [
+      "fingerstyle guitar",
+      "sunrise hymn",
+      "balloon ascent",
+      "morning strings",
+      "gentle uplift",
+      "updraft hum",
+      "wide horizon",
+      "mandolin roll",
+      "hopeful swell",
+      "rising chorus",
+      "anthemic strum",
+      "soaring finale"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

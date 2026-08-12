@@ -1,0 +1,175 @@
+{
+  "name": "festival-stage",
+  "vibe": "Three days, no sleep. Night #191227 under two swinging beam polygons — violet #8f5cff and hot pink #ff4f9a at 22% — with fourteen confetti chips in lime #c8f04f and pink tumbling at 120°/s, a solid ink crowd wave along the bottom edge and seven raised-arm strokes swaying above it. Bungee sets everything uppercase and blocky over Rubik; cards carry a pink glow and tiles sit tilted ±2.5°. Its own beats are crowd control: Notify:pop fires pill toasts at staggered offsets, Swipe:swipe flings the top card right at 18° with a stamp, Toggle:dial sweeps a 2×2 wall of rotary knobs. Titles bounce in with overshoot; the camera hops and spins. Best for festivals, club nights, sports drops, ticketing and youth brands.",
+  "orientation": "portrait",
+  "category": "Nightlife",
+  "tags": [
+    "festival",
+    "stage lights",
+    "dark ground",
+    "uppercase",
+    "notify",
+    "swipe",
+    "cursor",
+    "toggle",
+    "crowd"
+  ],
+  "renderer": "film-festival-stage",
+  "colors": {
+    "night": "#191227",
+    "violet": "#8f5cff",
+    "hot": "#ff4f9a",
+    "lime": "#c8f04f",
+    "paper": "#f6f2ff",
+    "ink": "#120d1e",
+    "ground": "#191227",
+    "text": "#f6f2ff",
+    "accent": "#c8f04f"
+  },
+  "fonts": [
+    "Bungee",
+    "Rubik"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#191227",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#c8f04f",
+      "#ff4f9a",
+      "#8f5cff"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "wide-angle night photograph of a festival crowd under violet and pink beam lights, confetti mid-air, long-exposure highlights and haze",
+    "iconStyle": "line",
+    "keywords": [
+      "festival crowd",
+      "stage lights",
+      "wristband",
+      "confetti",
+      "main stage",
+      "light beams",
+      "camping field",
+      "night concert"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot",
+      "illustration"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Bungee",
+    "body": "Rubik"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "euphoric",
+    "archetype": "hype",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "festival house",
+      "big room",
+      "edm",
+      "live crowd"
+    ],
+    "musicKeywords": [
+      "melodic techno",
+      "anthemic pads",
+      "open air",
+      "rave piano",
+      "sidechain pump",
+      "supersaw lead",
+      "mainstage euphoria",
+      "confetti anthem",
+      "stadium clap",
+      "riser build",
+      "headline set",
+      "hardstyle kick"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "pop",
+      "reveal": "pop",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

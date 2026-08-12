@@ -1,0 +1,174 @@
+{
+  "name": "bloom-market",
+  "vibe": "Blush #f6e7e9 paper with a magenta that behaves like a bloom rather than a brand colour. DM Serif Display sets headlines in sentence case; Albert Sans handles kickers and labels. Four stems grow from the bottom edge and sway on a slow sine, five ellipse petals turning around a butter-yellow centre, while loose petals spin down the frame at 55% opacity — the backdrop is a stall, not a pattern. Cards land tilted with an ink outline and pill chips in magenta, leaf and butter; one beat floods full magenta with butter type, and the stats beat drops to near-black #322a2e. Its owned mechanics are drag-to-arrange, a switch list, a dragged slider and an arc gauge. Best for florists, farmers markets, bakeries, artisan retail and seasonal subscription boxes.",
+  "orientation": "portrait",
+  "category": "Craft",
+  "tags": [
+    "florist",
+    "farmers market",
+    "serif",
+    "pastel",
+    "handmade",
+    "seasonal",
+    "boutique retail",
+    "subscription"
+  ],
+  "renderer": "film-bloom-market",
+  "colors": {
+    "blush": "#f6e7e9",
+    "magenta": "#c2477e",
+    "leaf": "#5d8f57",
+    "butter": "#f2cf6b",
+    "ink": "#322a2e",
+    "paper": "#fffbf7",
+    "ground": "#f6e7e9",
+    "text": "#322a2e",
+    "accent": "#c2477e"
+  },
+  "fonts": [
+    "DM Serif Display",
+    "Albert Sans"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#f6e7e9",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#c2477e",
+      "#f2cf6b",
+      "#5d8f57"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "sun-warmed documentary photograph of a flower market stall, soft morning backlight, shallow depth of field, blush and magenta blooms against pale linen",
+    "iconStyle": "line",
+    "keywords": [
+      "flower market stall",
+      "peony bouquet",
+      "florist hands",
+      "wrapped bouquet",
+      "market morning light",
+      "garden shears",
+      "paper wrap",
+      "bud vase"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "DM Serif Display",
+    "body": "Albert Sans"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "Sunlit Saturday-morning warmth — unhurried, hand-made, faintly romantic, never twee",
+    "archetype": "warm",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "nylon-string guitar",
+      "brushed kit",
+      "upright bass",
+      "hand percussion"
+    ],
+    "musicKeywords": [
+      "acoustic waltz",
+      "nylon guitar",
+      "ragtime piano",
+      "bossa nova",
+      "shaker rhythm",
+      "gypsy jazz",
+      "folk swing",
+      "tambourine skip",
+      "summer pop",
+      "clap groove",
+      "sunshine pop",
+      "indie pop"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

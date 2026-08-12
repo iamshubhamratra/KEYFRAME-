@@ -1,0 +1,175 @@
+{
+  "name": "kiln-and-clay",
+  "vibe": "An oatmeal studio wall (#f1e9df) with terracotta (#b85c38) doing all the shouting, Gloock's high-contrast serif over Schibsted Grotesk captions. The backdrop is a wheel session in progress: a rust vessel that literally grows taller and wider across the beat while its shadow ellipse wobbles under it, a celadon zig-zag firing curve drawing itself in beneath the label \"cone 6 · 1222°C\", and three outlined pots standing on a drying shelf. Its signature beat is the drag — a chip pointer-dragged into a dashed slot that locks in with a tick — and its typing beat sets glaze notes word by word in tilted display serif. The camera drowses: slow 34px lifts, a half-degree roll, six unhurried moves. For ceramics studios, craft classes, makers' markets and any brand that wants patience to read as quality.",
+  "orientation": "portrait",
+  "category": "Craft",
+  "tags": [
+    "ceramics",
+    "handmade",
+    "workshop",
+    "warm neutral",
+    "serif display",
+    "calm camera",
+    "terracotta",
+    "artisan"
+  ],
+  "renderer": "film-kiln-and-clay",
+  "colors": {
+    "studio": "#f1e9df",
+    "rust": "#b85c38",
+    "slip": "#7e93a0",
+    "char": "#33302c",
+    "glaze": "#5f9e94",
+    "ground": "#f1e9df",
+    "text": "#33302c",
+    "accent": "#b85c38",
+    "ink": "#33302c",
+    "paper": "#f1e9df"
+  },
+  "fonts": [
+    "Gloock",
+    "Schibsted Grotesk"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#f1e9df",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#b85c38",
+      "#33302c",
+      "#f1e9df"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "warm natural-light documentary photograph of a working pottery studio, terracotta and oatmeal tones, clay-dusted hands, shallow depth of field",
+    "iconStyle": "line",
+    "keywords": [
+      "pottery wheel",
+      "wet clay",
+      "kiln shelf",
+      "glazed bowl",
+      "ceramic studio",
+      "potter hands",
+      "drying rack",
+      "craft workshop"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Gloock",
+    "body": "Schibsted Grotesk"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "unhurried and hand-made — a warm room where one thing is being shaped slowly and nothing is rushing it",
+    "archetype": "warm",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "acoustic",
+      "organic percussion",
+      "spacious",
+      "analog warmth"
+    ],
+    "musicKeywords": [
+      "classical guitar",
+      "slow marimba",
+      "clay studio",
+      "kalimba pluck",
+      "wheel session",
+      "kiln fire",
+      "wood blocks",
+      "handmade craft",
+      "earthy strum",
+      "shaker rhythm",
+      "hand drums",
+      "marimba groove"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

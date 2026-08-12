@@ -77,12 +77,16 @@
       "cinematic"
     ],
     "musicKeywords": [
+      "chill",
+      "lofi",
       "hard trap",
       "aggressive percussion",
       "fight entrance",
-      "epic hype",
+      "epic anthem",
       "heavy drums",
-      "sports anthem"
+      "sports anthem",
+      "heavy",
+      "loud"
     ],
     "sfxPalette": {
       "transition": "whoosh",
@@ -95,7 +99,8 @@
       "energyBoost": 2,
       "sfxDensity": "rich",
       "ambient": false
-    }
+    },
+    "archetype": "hype"
   },
   "media": {
     "requiredAssets": {

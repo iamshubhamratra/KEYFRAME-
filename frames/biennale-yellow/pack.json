@@ -1,6 +1,7 @@
 {
   "name": "biennale-yellow",
   "renderer": "biennale-yellow",
+  "orientation": "landscape",
   "vibe": "literary editorial: warm parchment, indigo ink, solar yellow blooms, serif display — elegant, cultural, slow-confidence",
   "colors": {
     "paper": "#E9E5DB",

@@ -1,0 +1,173 @@
+{
+  "name": "reef-build",
+  "vibe": "Lagoon teal (#0d3d4a) lit by four drifting light shafts, with coral (#ff7a5c) and an aqua (#4fd6c0) as the two accents. Outfit sets clean geometric headlines over Nunito Sans. The world grows as the scene does: four coral colonies rise out of the floor on eased curves, staggered so they build one after another rather than together, under caustic rays that sway on their own cycle. Its mechanics are a gauge, a scrolling feed, an assembling drag and popping toasts. Best for marine conservation and science, sustainability reporting, diving and any brand whose story is restoration rather than extraction.",
+  "orientation": "portrait",
+  "category": "Nature",
+  "tags": [
+    "reef",
+    "marine",
+    "conservation",
+    "teal",
+    "coral",
+    "science",
+    "sustainability",
+    "growth"
+  ],
+  "renderer": "film-reef-build",
+  "colors": {
+    "lagoon": "#0d3d4a",
+    "coral": "#ff7a5c",
+    "aqua": "#4fd6c0",
+    "shell": "#f2ead9",
+    "ink": "#062730",
+    "ground": "#0d3d4a",
+    "text": "#f2ead9",
+    "accent": "#ff7a5c",
+    "paper": "#f2ead9"
+  },
+  "fonts": [
+    "Outfit",
+    "Nunito Sans"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#0d3d4a",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#ff7a5c",
+      "#4fd6c0",
+      "#0d3d4a"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "bright underwater photography with strong caustics — teal water, coral colour as the warm note, divers and nursery structures in mid-water light",
+    "iconStyle": "line",
+    "keywords": [
+      "coral reef restoration",
+      "diver planting coral",
+      "reef nursery frame",
+      "tropical fish",
+      "caustic light underwater",
+      "marine biologist",
+      "shallow lagoon"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot",
+      "illustration"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Outfit",
+    "body": "Nunito Sans"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "patient optimism — something slowly coming back",
+    "archetype": "editorial",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "submerged pad",
+      "glass marimba",
+      "documentary score",
+      "warm synth"
+    ],
+    "musicKeywords": [
+      "reef ambient",
+      "lagoon drift",
+      "tidal calm",
+      "coral bloom",
+      "nursery pulse",
+      "reef current",
+      "marine uplift",
+      "restoration build",
+      "aqua house",
+      "tropical drive",
+      "reef anthem",
+      "surfacing rush"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "pop",
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

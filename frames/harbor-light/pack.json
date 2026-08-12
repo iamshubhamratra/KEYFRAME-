@@ -1,0 +1,174 @@
+{
+  "name": "harbor-light",
+  "vibe": "Deep hull navy (#1f3242) lit by a single amber lamp (#e8b23c), with pale sea-mist (#dfe6e2) flipping in for the statements and iron-oxide rust (#a34a2c) taking the CTA. Cormorant Garamond sets the titles thin and old-world over Nunito Sans. The world is a working lighthouse: two opposing amber wedges actually rotate at 40°/sec out of a lamp housing above a tapering tower with two rust bands, three wave lines scroll left at 46, 64 and 82px/sec in falling opacity, two gull silhouettes drift on lazy sine paths, and a fog band breathes up and down across the water. Its typewriter beat strikes each glyph at its own tilt and jitter, and its feed beat scrolls a real list with a live scrollbar. Slow zoomOut/drop camera, 0.4 roll. For coastal stays, heritage sites, harbour towns and quiet-luxury hospitality.",
+  "orientation": "portrait",
+  "category": "Travel",
+  "tags": [
+    "maritime",
+    "coastal",
+    "heritage",
+    "navy and amber",
+    "garamond serif",
+    "calm camera",
+    "fog",
+    "nocturnal"
+  ],
+  "renderer": "film-harbor-light",
+  "colors": {
+    "fog": "#dfe6e2",
+    "lamp": "#e8b23c",
+    "hull": "#1f3242",
+    "rust": "#a34a2c",
+    "ink": "#16232c",
+    "ground": "#1f3242",
+    "text": "#dfe6e2",
+    "accent": "#e8b23c",
+    "paper": "#dfe6e2"
+  },
+  "fonts": [
+    "Cormorant Garamond",
+    "Nunito Sans"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#1f3242",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#e8b23c",
+      "#a34a2c",
+      "#dfe6e2"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "moody coastal photograph at blue hour, fog rolling past amber lamplight, weathered lighthouse and harbour detail, muted sea-green and navy tones",
+    "iconStyle": "line",
+    "keywords": [
+      "lighthouse",
+      "harbour at dusk",
+      "sea fog",
+      "fresnel lens",
+      "rocky coastline",
+      "gulls in flight",
+      "keeper cottage",
+      "calm swell"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Cormorant Garamond",
+    "body": "Nunito Sans"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "patient and nocturnal — a beam turning through fog, water underneath, nobody in a hurry",
+    "archetype": "editorial",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "cinematic",
+      "string swells",
+      "sparse piano",
+      "maritime folk"
+    ],
+    "musicKeywords": [
+      "chamber strings",
+      "fog ambience",
+      "nocturne piano",
+      "keeper watch",
+      "lighthouse night",
+      "distant horn",
+      "harbor bell",
+      "ocean drone",
+      "accordion tide",
+      "beacon swell",
+      "sailor waltz",
+      "fiddle reel"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

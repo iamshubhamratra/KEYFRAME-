@@ -1,0 +1,174 @@
+{
+  "name": "hive-and-honey",
+  "vibe": "Cream (#fff8e8) and honey yellow (#f7c948) over a dark comb brown, with a leaf green for balance — and and it never shouts: Fredoka and Quicksand run in sentence case on every beat. The world builds rather than loops: six hexagons pop into a comb on an overshoot ease, one after another, timed to the beat's own progress instead of the clock; two round cartoon bees with white wing glints bank along sine paths; a honey drop swells off a bar and falls, shrinking and fading as it goes. The camera is the gentlest of the set — a soft hop and push at multiplier 3 — and titles bounce. Mechanics: a checklist toggle, a capped-frame gauge, a jar-to-crate drag and a rolling morph. Best for apiaries, farm stands, kids' brands and garden goods.",
+  "orientation": "portrait",
+  "category": "Craft",
+  "tags": [
+    "apiary",
+    "farm",
+    "honey",
+    "rounded",
+    "sentence-case",
+    "wholesome",
+    "kids",
+    "market-stand"
+  ],
+  "renderer": "film-hive-and-honey",
+  "colors": {
+    "honey": "#f7c948",
+    "comb": "#7a4f16",
+    "cream": "#fff8e8",
+    "ink": "#3a2c14",
+    "leaf": "#8aa34f",
+    "ground": "#fff8e8",
+    "text": "#3a2c14",
+    "accent": "#7a4f16",
+    "paper": "#fff8e8"
+  },
+  "fonts": [
+    "Fredoka",
+    "Quicksand"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#fff8e8",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#7a4f16",
+      "#f7c948",
+      "#fff8e8"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "soft daylight farm photography — a beekeeper in the field, wax comb dripping in warm sun, honey jars on a wooden stand, creamy highlights and shallow depth",
+    "iconStyle": "flat",
+    "keywords": [
+      "beekeeper hive frame",
+      "honeycomb wax",
+      "honey jar pouring",
+      "wildflower meadow",
+      "bee on flower",
+      "farmers market stall",
+      "hive smoker",
+      "orchard blossom"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "vector"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Fredoka",
+    "body": "Quicksand"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "sunny, hand-made, small-farm cheerful",
+    "archetype": "warm",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "ukulele whistle",
+      "handclaps",
+      "glockenspiel",
+      "brush kit"
+    ],
+    "musicKeywords": [
+      "cottage folk",
+      "meadow lullaby",
+      "honey waltz",
+      "acoustic skip",
+      "banjo lilt",
+      "clarinet hop",
+      "polka bounce",
+      "fiddle jig",
+      "sunshine pop",
+      "barn dance",
+      "bluegrass romp",
+      "hoedown stomp"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "pop",
+      "reveal": "pop",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

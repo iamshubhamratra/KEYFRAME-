@@ -1,0 +1,173 @@
+{
+  "name": "sole-drop",
+  "vibe": "Near-black court (#101014) with an acid volt green (#d4f24b) and a flame orange (#ff5a36), set in Archivo Black at its heaviest. The backdrop is a drop-day scoreboard: four volt speed streaks tear across the upper third at different weights, a flame ball bounces the full width on a stitched ink seam, a flame zigzag runs the floor like tread, and a hollow chalk two-digit counter ticks up in the corner. Statement beats invert to a solid volt wall with ink type — a shout, not a caption. The camera is the hardest here: 5° skew, a spin, a drop, bouncy easing, titles streaking in. It owns a keyboard-driven checkout cursor, popping notifications, a swipe carousel and a claim bar. Montage tiles sit dead straight. Best for sneaker drops, streetwear releases and anything with a queue.",
+  "orientation": "portrait",
+  "category": "Streetwear",
+  "tags": [
+    "sneakers",
+    "drop",
+    "streetwear",
+    "hype",
+    "high-contrast",
+    "acid-green",
+    "sport",
+    "launch"
+  ],
+  "renderer": "film-sole-drop",
+  "colors": {
+    "court": "#101014",
+    "volt": "#d4f24b",
+    "chalk": "#f4f4f2",
+    "flame": "#ff5a36",
+    "ink": "#0a0a0c",
+    "ground": "#101014",
+    "text": "#f4f4f2",
+    "accent": "#d4f24b",
+    "paper": "#f4f4f2"
+  },
+  "fonts": [
+    "Archivo Black",
+    "Archivo"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#101014",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#d4f24b",
+      "#ff5a36",
+      "#101014"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "hard-flash streetwear product photography on concrete and chain-link — sneakers on-foot at night, high contrast, deep blacks with a sharp specular highlight",
+    "iconStyle": "solid",
+    "keywords": [
+      "sneakers on concrete",
+      "shoe box unboxing",
+      "streetwear queue",
+      "basketball court night",
+      "sneaker detail stitching",
+      "chain link fence",
+      "retail drop line"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot",
+      "vector"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Archivo Black",
+    "body": "Archivo"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "countdown adrenaline — a release with a clock on it",
+    "archetype": "hype",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "808 sub",
+      "triplet hats",
+      "hard-clipped drums",
+      "riser drop"
+    ],
+    "musicKeywords": [
+      "dark trap",
+      "low rumble",
+      "tension build",
+      "hat rolls",
+      "drill beat",
+      "street rap",
+      "beat switch",
+      "phonk bounce",
+      "hype anthem",
+      "hard drill",
+      "rage beat",
+      "stadium trap"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "ui-click",
+      "reveal": "pop",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": false
+    }
+  }
+}

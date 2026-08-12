@@ -1,0 +1,173 @@
+{
+  "name": "slow-rise",
+  "vibe": "Crumb cream (#f4e7cf) with a crust brown (#a9642c), rye and a wheat gold. Bitter sets sturdy slab-serif headlines over Mulish. The world proves in real time: a loaf dome in the lower right actually GROWS with scene progress — its height driven by the beat's own timeline, not a loop — breathing gently on top of that, with scoring slashes cut across the crust and a shadow pooling under it. Its mechanics are a fill bar, a feed, checkboxes and a rolling word. Best for bakeries and food producers, farm and provenance stories, and any brand whose product takes time on purpose.",
+  "orientation": "portrait",
+  "category": "Food & Drink",
+  "tags": [
+    "bakery",
+    "sourdough",
+    "food",
+    "warm",
+    "slab-serif",
+    "cream",
+    "artisan",
+    "provenance"
+  ],
+  "renderer": "film-slow-rise",
+  "colors": {
+    "crumb": "#f4e7cf",
+    "crust": "#a9642c",
+    "rye": "#6b4a2f",
+    "wheat": "#dcae5c",
+    "ink": "#33261a",
+    "ground": "#f4e7cf",
+    "text": "#33261a",
+    "accent": "#a9642c",
+    "paper": "#f4e7cf"
+  },
+  "fonts": [
+    "Bitter",
+    "Mulish"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#f4e7cf",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#a9642c",
+      "#dcae5c",
+      "#33261a"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "warm window-light food photography — flour-dusted timber, proving baskets and open crumb, soft shadow, no styling gloss",
+    "iconStyle": "line",
+    "keywords": [
+      "sourdough loaf",
+      "proving basket",
+      "flour on wood",
+      "bakery oven",
+      "scored crust",
+      "dough hands",
+      "bread on rack"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Bitter",
+    "body": "Mulish"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "early and unhurried — a room warm before the door opens",
+    "archetype": "warm",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "upright bass",
+      "brushed drums",
+      "warm keys",
+      "acoustic swing"
+    ],
+    "musicKeywords": [
+      "sourdough calm",
+      "proving hush",
+      "flour dust",
+      "bakers morning",
+      "kneading rhythm",
+      "oven warmth",
+      "crust crackle",
+      "levain groove",
+      "bakery shuffle",
+      "counter jazz",
+      "weekend rush",
+      "harvest jig"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

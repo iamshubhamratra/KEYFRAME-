@@ -1,0 +1,174 @@
+{
+  "name": "space-hop",
+  "vibe": "Deep navy void (#0b0f2a) with mint (#6be0b8), coral (#ff6b4a) and violet (#8f7ae0); Righteous rounds the display while Chivo keeps the body sober. Twenty-six stars twinkle on independent sine phases and drift sideways; a mint ringed planet bobs at the right with its violet ring tilted −16° and two crater discs; a small violet moon sits low-left; and a cartoon rocket climbs the full frame height on a loop, rotated −14°, weaving on a slow sine, with a coral flame flickering under it at 9Hz. It carries the most aggressive camera of its family — roll 1.4, a 0.7 zoom punch, a spin in the set — over a deliberately unhurried world. Its mechanics are code diffs, terminal typing, telemetry rings and glowing numbers. For dev tools, launches, deploys and playful space-age product films.",
+  "orientation": "portrait",
+  "category": "Tech",
+  "tags": [
+    "space",
+    "launch",
+    "retro-future",
+    "dev-tool",
+    "terminal",
+    "telemetry",
+    "playful",
+    "dark-mode"
+  ],
+  "renderer": "film-space-hop",
+  "colors": {
+    "space": "#0b0f2a",
+    "mint": "#6be0b8",
+    "coral": "#ff6b4a",
+    "violet": "#8f7ae0",
+    "paper": "#f2f4ff",
+    "ink": "#070a1e",
+    "ground": "#0b0f2a",
+    "text": "#f2f4ff",
+    "accent": "#6be0b8"
+  },
+  "fonts": [
+    "Righteous",
+    "Chivo"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#0b0f2a",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#6be0b8",
+      "#ff6b4a",
+      "#8f7ae0"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "clean studio photograph of retro space-age hardware on deep navy, lit with mint and coral rim light",
+    "iconStyle": "line",
+    "keywords": [
+      "ringed planet illustration",
+      "retro rocket model",
+      "astronaut helmet",
+      "deep space starfield",
+      "mission control desk",
+      "earth from orbit",
+      "station docking port",
+      "night launch pad"
+    ],
+    "prefer": [
+      "screenshot",
+      "illustration",
+      "photo"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Righteous",
+    "body": "Chivo"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "buoyant precision — a countdown told with a smile",
+    "archetype": "tech",
+    "energy": "medium",
+    "tempo": "fast",
+    "style": [
+      "synth arpeggio",
+      "moog bass",
+      "spring-reverb blips",
+      "at liftoff"
+    ],
+    "musicKeywords": [
+      "space lounge",
+      "spring reverb",
+      "moog bass",
+      "orbital arpeggio",
+      "zero gravity",
+      "weightless bounce",
+      "mission control",
+      "telemetry pulse",
+      "launch countdown",
+      "rocket ascent",
+      "space disco",
+      "electro funk"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "ui-click",
+      "reveal": "product-reveal",
+      "data": "data-ping",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

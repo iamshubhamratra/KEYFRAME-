@@ -73,12 +73,16 @@
       "morning"
     ],
     "musicKeywords": [
+      "gentle",
+      "calm",
       "warm acoustic morning",
       "gentle folk",
       "soft cafe jazz",
-      "artisan acoustic",
+      "handmade acoustic",
       "cheerful morning",
-      "upbeat acoustic"
+      "upbeat acoustic",
+      "bright",
+      "happy"
     ],
     "sfxPalette": {
       "transition": "card-slide",
@@ -91,7 +95,8 @@
       "energyBoost": 1,
       "sfxDensity": "rich",
       "ambient": true
-    }
+    },
+    "archetype": "warm"
   },
   "media": {
     "requiredAssets": {

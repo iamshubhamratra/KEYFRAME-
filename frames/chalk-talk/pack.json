@@ -1,0 +1,175 @@
+{
+  "name": "chalk-talk",
+  "vibe": "A dark green #2e3d38 board with a wooden ledge across the bottom, a fat chalk stick and a pink eraser lying on it. Gochi Hand writes the headlines, Neucha reads underneath. The diagrams draw themselves against scene progress rather than the clock — a yellow lens shape strokes on between 5% and 60% of each beat, a pink triangle between 30% and 80% — so every cut looks like a teacher drawing live. A faint wipe smear drifts across the board and chalk dust jitters near the top. Everything sits slightly crooked at 1.2° of rotation, the most in this set, and photos arrive as cream paper sheets pinned to the board. Mechanics: handwriting, drag-to-label, tick-box registers, a roll morph. Best for schools, courses, explainers and community work.",
+  "orientation": "portrait",
+  "category": "Education",
+  "tags": [
+    "education",
+    "classroom",
+    "handwritten",
+    "explainer",
+    "courses",
+    "kids",
+    "workshop",
+    "nonprofit"
+  ],
+  "renderer": "film-chalk-talk",
+  "colors": {
+    "board": "#2e3d38",
+    "chalk": "#f2efe6",
+    "yellow": "#f2d478",
+    "pink": "#e8a0b4",
+    "wood": "#8a6a4a",
+    "ink": "#232f2b",
+    "ground": "#2e3d38",
+    "text": "#f2efe6",
+    "accent": "#f2d478",
+    "paper": "#f2efe6"
+  },
+  "fonts": [
+    "Gochi Hand",
+    "Neucha"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#2e3d38",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#f2d478",
+      "#e8a0b4",
+      "#2e3d38"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "warm classroom documentary photograph, chalk dust catching low afternoon light, a dark green board behind, slightly grainy and unposed",
+    "iconStyle": "line",
+    "keywords": [
+      "chalkboard drawing",
+      "classroom desks",
+      "chalk dust",
+      "teacher hands",
+      "notebook sketch",
+      "school supplies",
+      "science diagram",
+      "field trip"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Gochi Hand",
+    "body": "Neucha"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "Friendly classroom curiosity — encouraging, a bit clumsy, never solemn",
+    "archetype": "warm",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "pizzicato strings",
+      "felt piano",
+      "whistling",
+      "hand percussion"
+    ],
+    "musicKeywords": [
+      "toy piano",
+      "clarinet melody",
+      "pizzicato plucks",
+      "glockenspiel skip",
+      "curious marimba",
+      "cheerful whistling",
+      "kids choir",
+      "hand drums",
+      "brass band",
+      "playground chant",
+      "marching band",
+      "brass fanfare"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "pop",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

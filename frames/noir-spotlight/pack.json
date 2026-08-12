@@ -1,6 +1,7 @@
 {
   "name": "noir-spotlight",
   "renderer": "noir-spotlight",
+  "orientation": "landscape",
   "vibe": "Cinematic dark luxury — a product film lit by one theatrical spotlight. Near-black void grounds, a single drifting volumetric beam that reveals the hero, deep falloff shadows, gold hairline accents, and a film-grain vignette over everything",
   "colors": {
     "void": "#08080B",

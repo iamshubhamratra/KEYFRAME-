@@ -1,0 +1,174 @@
+{
+  "name": "puppy-park",
+  "vibe": "A bright park in sky blue (#a5d8f0) and grass green, with a sun yellow (#f7c948) and a bouncing ball orange. Baloo 2 sets fat rounded headlines over Nunito — the only light-ground film in this group. The world plays continuously: clouds drift at two speeds, a ball arcs and bounces along the grass line, paw prints press into the turf and fade, and the sun wobbles gently. Best for pet brands, kids and family products, community apps and anything that should read friendly before it reads serious.",
+  "orientation": "portrait",
+  "category": "Pets",
+  "tags": [
+    "pets",
+    "playful",
+    "bright",
+    "rounded",
+    "family",
+    "outdoors",
+    "light",
+    "friendly"
+  ],
+  "renderer": "film-puppy-park",
+  "colors": {
+    "sky": "#a5d8f0",
+    "grass": "#8cc063",
+    "grassDark": "#4f8a3d",
+    "sun": "#f7c948",
+    "ball": "#e8622c",
+    "paper": "#fdf6ec",
+    "ink": "#2b2320",
+    "ground": "#a5d8f0",
+    "text": "#2b2320",
+    "accent": "#e8622c"
+  },
+  "fonts": [
+    "Baloo 2",
+    "Nunito"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#a5d8f0",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#e8622c",
+      "#f7c948",
+      "#8cc063"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "bright daylight pet photography — open grass, blue sky, dogs mid-motion at low camera height, saturated and cheerful",
+    "iconStyle": "solid",
+    "keywords": [
+      "dog running grass",
+      "park daylight",
+      "tennis ball",
+      "puppy portrait",
+      "dog leash",
+      "family picnic",
+      "open field sky"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Baloo 2",
+    "body": "Nunito"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "uncomplicated delight — a good day outside",
+    "archetype": "warm",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "ukulele",
+      "handclaps",
+      "whistling",
+      "toy piano"
+    ],
+    "musicKeywords": [
+      "sunny ukulele",
+      "whistled melody",
+      "toy piano",
+      "happy claps",
+      "skipping rhythm",
+      "playful pizzicato",
+      "bouncy banjo",
+      "cheerful marimba",
+      "upbeat swing",
+      "romp tempo",
+      "gleeful gallop",
+      "joyful finale"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "pop",
+      "reveal": "pop",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
+  }
+}

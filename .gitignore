@@ -46,6 +46,15 @@ server/public/showcase.mp4
 # render/debug scratch output (generated, not source)
 server/scrub/
 server/framecheck/occ_test/
+# framecheck contact sheets — ~170MB of regenerable comparison PNGs. Rebuild with
+# scripts/shot-pack.js (per-pack shots) + scripts/framecheck-sheet.js (the sheets).
+server/framecheck/ours/
+server/framecheck/ref/
+server/framecheck/sheets/
+server/framecheck/reelfix/
+server/framecheck/ph*.png
+# stray composed HTML from a shell redirect that lost its variable
+server/$OUT
 
 # stray debug screenshots + large showcase binaries (re-added)
 image copy*.png

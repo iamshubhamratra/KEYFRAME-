@@ -1,6 +1,6 @@
 {
   "name": "flight-vertical",
-  "vibe": "The 9:16 cut of Flight, re-proportioned rather than scaled: the horizon sits lower, the cabin windows stack down the frame instead of across it, and the instrument dials run as a column. Same graded daylight sky, warm sun disc, scrolling runway and hot orange accent; the aircraft mark still crosses every beat. Authored portrait-first (9:16) as a native GSAP + DOM composition sharing one module with its landscape sibling, so the two cuts can never drift apart. Best for travel, logistics, mobility and onboarding, cut for Reels, Shorts and Stories.",
+  "vibe": "The 9:16 cut of Flight, re-proportioned rather than scaled: the horizon sits lower, the browser cards stack DOWN the frame in an alternating left/right column instead of across it, the hero picture rides a full-height phone under centred copy, and the readouts run as full-width rows with the figure left and its label opposite. Same graded daylight sky, warm sun disc, scrolling runway and hot orange accent; the aircraft mark still crosses every beat, passing above the card rather than over it. The opening gate beat is a pure type lockup — this cut puts no picture on beat one. Authored portrait-first (9:16) as a native GSAP + DOM composition sharing one module with its landscape sibling, so the two cuts can never drift apart. Best for travel, logistics, mobility and onboarding, cut for Reels, Shorts and Stories.",
   "renderer": "flight-vertical",
   "orientation": "portrait",
   "colors": {
@@ -13,8 +13,8 @@
     "paper": "#FFFFFF"
   },
   "fonts": [
-    "Figtree",
-    "JetBrains Mono"
+    "Manrope",
+    "DM Mono"
   ],
   "surface": {
     "flat": false,
@@ -54,9 +54,9 @@
     ]
   },
   "typography": {
-    "display": "Figtree",
-    "mono": "JetBrains Mono",
-    "body": "Figtree"
+    "display": "Manrope",
+    "mono": "DM Mono",
+    "body": "Manrope"
   },
   "textfx": {
     "enter": "rise",
@@ -76,12 +76,16 @@
       "ambient"
     ],
     "musicKeywords": [
+      "serene",
+      "soft",
       "uplifting cinematic",
       "soaring strings",
       "travel adventure",
       "hopeful build",
       "open sky ambient",
-      "inspiring modern"
+      "inspiring modern",
+      "dramatic",
+      "rising"
     ],
     "sfxPalette": {
       "transition": "whoosh",
@@ -94,7 +98,8 @@
       "energyBoost": 1,
       "sfxDensity": "normal",
       "ambient": true
-    }
+    },
+    "archetype": "luxury"
   },
   "media": {
     "requiredAssets": {

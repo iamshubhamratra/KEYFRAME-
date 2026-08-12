@@ -2,6 +2,7 @@
   "name": "terminal-departures",
   "vibe": "An airport departures hall for films. A dark FIDS terminal — dim slate ground, a light sweep across the concourse, a soft vignette, a masthead and an analog clock whose second hand laps the whole film, a scrolling yellow ticker band. The SIGNATURE is the SPLIT-FLAP BOARD: every headline arrives by mechanically cycling characters in Solari-style flap cells with a scaleY 'clack' per swap. Around it: a live departures board, hanging gate signs that swing in on ceiling pivots, a baggage belt carrying labelled cases, a security beam that x-ray-pings each style tag it crosses, and a mounted gate MONITOR that shows a real product screenshot. Warm amber/ivory over near-black, IBM Plex Mono chrome under Space Grotesk display. Rendered as a native GSAP + SVG/CSS composition. Best for launches, waitlists, travel/logistics, and bold 'your idea departs today' hooks.",
   "renderer": "terminal-departures",
+  "orientation": "landscape",
   "colors": {
     "ground": "#0C0D11",
     "ground-2": "#101116",
@@ -76,12 +77,16 @@
       "ambient tech"
     ],
     "musicKeywords": [
+      "atmospheric",
+      "digital",
       "cyber electronic",
       "futuristic ambient",
       "terminal atmosphere",
       "synthwave arpeggio",
       "driving cyber",
-      "high energy electronic"
+      "high energy electronic",
+      "driving",
+      "powerful"
     ],
     "sfxPalette": {
       "transition": "light-sweep",
@@ -94,7 +99,8 @@
       "energyBoost": 2,
       "sfxDensity": "rich",
       "ambient": true
-    }
+    },
+    "archetype": "tech"
   },
   "media": {
     "requiredAssets": {

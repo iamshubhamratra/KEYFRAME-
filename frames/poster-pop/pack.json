@@ -73,12 +73,16 @@
       "percussion"
     ],
     "musicKeywords": [
+      "chill",
+      "lofi",
       "bold pop",
-      "punchy electronic",
-      "loud kinetic",
-      "statement beat",
+      "powerful electronic",
+      "loud percussive",
+      "powerful drums",
       "high energy pop",
-      "aggressive drive"
+      "aggressive drive",
+      "heavy",
+      "loud"
     ],
     "sfxPalette": {
       "transition": "whoosh",
@@ -91,7 +95,8 @@
       "energyBoost": 2,
       "sfxDensity": "rich",
       "ambient": false
-    }
+    },
+    "archetype": "hype"
   },
   "media": {
     "requiredAssets": {

@@ -214,15 +214,17 @@ const picTweens = (id, ctx, when) => [
 ];
 
 // The segmented story bar — one segment per scene, the current one filling in real time.
-function storyBar(ctx) {
-  const { th, total, i, id } = ctx;
-  const w = (U(1080) - U(120) - U(8) * (total - 1)) / total;
-  return `<div style="position:absolute;top:${r(U(56))}cqw;left:${r(U(60))}cqw;display:flex;gap:${r(U(8))}cqw;z-index:45;">
-    ${Array.from({ length: total }, (_, k) => `<div style="width:${r(w)}cqw;height:${r(U(6))}cqw;border-radius:${r(U(6))}cqw;background:${rgba(th.ink, 0.24)};overflow:hidden;">
-      <div ${k === i ? `class="${id}-seg"` : ""} style="width:100%;height:100%;background:${th.accent};transform:scaleX(${k < i ? 1 : 0});transform-origin:left center;"></div>
-    </div>`).join("")}
-  </div>`;
-}
+// THE STORY BAR IS GONE. This drew the Instagram-Stories strip — one thin segment per beat
+// across the top of the frame, earlier segments full, the current one filling over its own
+// clip. It is the most literal form of the defect: chrome borrowed from a PLAYER, rendered
+// into the film itself, telling the viewer how much of the ad is left.
+//
+// It read as deliberate here more than anywhere else in the library, because this pack is the
+// social/story template and the strip is what a story looks like. It still goes: the film is
+// posted INTO a story, where the platform draws its own segments over it, so ours was a fake
+// under a real one. Guarded by `npm run test:no-playback-chrome`, whose segment detector keys
+// on the shape (one linear 0->1 fill per scene) rather than the name.
+const storyBar = () => "";
 
 // A sticker card — white, hard offset shadow, slight tilt. Drawn only around real content.
 const cardStyle = (th, tilt = 0) =>
@@ -505,25 +507,14 @@ const SPEC = {
     return true;
   },
 };
-// THE STORY BAR IS THIS PACK'S PROGRESS CHROME, and it does not fill the way the kit's rule
-// does: the kit drives ONE rule across the whole film (scaleX = elapsed/total), whereas a story
-// bar fills the CURRENT segment 0->1 across its own beat and leaves the earlier segments full.
-// Rather than repeat that tween in six builders, every builder is wrapped with it here.
-const segTween = (ctx) =>
-  // The story bar tracks the BEAT the viewer is watching, not the clip's technical lifetime —
-  // the clip now runs the cut's xfade longer, which would leave the segment still filling while
-  // the next scene is already on screen.
-  `tl.fromTo(".${ctx.id}-seg",{scaleX:0},{scaleX:1,duration:${r(ctx.L)},ease:"none"},${r(ctx.T)});`;
-
 const RAW = {
   hook: sHook, show: sShow, perks: sPerks, proof: sProof, numbers: sNumbers, cta: sCta,
   statement: (sc, ctx) => ({ ...K.statement(sc, ctx), backdrop: wash(ctx.id, ctx.th), chrome: storyBar(ctx) }),
   "statement-c": (sc, ctx) => ({ ...K.statement(sc, ctx, { centred: true }), backdrop: wash(ctx.id, ctx.th), chrome: storyBar(ctx) }),
 };
-const BUILDERS = Object.fromEntries(Object.entries(RAW).map(([k, fn]) => [k, (sc, ctx, sh) => {
-  const built = fn(sc, ctx, sh);
-  return { ...built, s: [...built.s, segTween(ctx)] };
-}]));
+// Every builder used to be wrapped here to append the story bar's per-beat fill tween. With the
+// bar gone there is nothing to append, so the builders are used as authored.
+const BUILDERS = RAW;
 const LABELS = { hook: STRINGS.hook, show: STRINGS.show, perks: STRINGS.perks, proof: STRINGS.proof, numbers: STRINGS.numbers, cta: STRINGS.go };
 
 const css = (th, stage) => K.baseCss(th, stage, `

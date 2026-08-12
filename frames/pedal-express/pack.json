@@ -1,0 +1,174 @@
+{
+  "name": "pedal-express",
+  "vibe": "Asphalt #26282c and chalk with a courier orange #ff6b35 and a cyan #4cc9f0 reserved for the fast parts. Passion One's condensed poster caps slice in from the right on a twelve-degree skew, and the camera carries skew 5 — the hardest lean in this set. Behind the type the city scrolls: five dark building slabs parallax past at 620px a second, a chalk bicycle wheel spins its six spokes at the lower left around an orange hub, cyan speed streaks flick across, and an orange dashed route crawls down the frame from a cyan waypoint dot. Its beats are dispatch furniture — a needle gauge for ETA, three marquee rails of display type running in opposite directions for the feed, right-edge alerts with draining timer bars, and a chip dragged into a rack slot. The CTA flips to full cyan.",
+  "orientation": "portrait",
+  "category": "Logistics",
+  "tags": [
+    "courier",
+    "urban",
+    "delivery",
+    "speed",
+    "dispatch",
+    "street",
+    "condensed",
+    "logistics"
+  ],
+  "renderer": "film-pedal-express",
+  "colors": {
+    "asphalt": "#26282c",
+    "orange": "#ff6b35",
+    "cyan": "#4cc9f0",
+    "chalk": "#f2f4f6",
+    "ink": "#1b1d21",
+    "ground": "#26282c",
+    "text": "#f2f4f6",
+    "accent": "#ff6b35",
+    "paper": "#f2f4f6"
+  },
+  "fonts": [
+    "Passion One",
+    "Fira Sans"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#26282c",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#ff6b35",
+      "#f2f4f6",
+      "#4cc9f0"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "high-contrast street photograph of cyclists cutting through city traffic at dusk, motion blur, wet asphalt reflections",
+    "iconStyle": "line",
+    "keywords": [
+      "bike courier",
+      "city street",
+      "delivery bag",
+      "bicycle wheel",
+      "urban traffic",
+      "messenger",
+      "asphalt night",
+      "route map"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot",
+      "vector"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Passion One",
+    "body": "Fira Sans"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "rush-hour street sprint, chain tension and horns",
+    "archetype": "hype",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "driving",
+      "urban",
+      "percussive",
+      "gritty"
+    ],
+    "musicKeywords": [
+      "lofi commute",
+      "bike messenger",
+      "dispatch groove",
+      "traffic funk",
+      "city bassline",
+      "asphalt drums",
+      "chain drive",
+      "breakbeat courier",
+      "delivery sprint",
+      "big beat",
+      "jungle breaks",
+      "acid techno"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "ui-click",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

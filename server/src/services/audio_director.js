@@ -47,6 +47,16 @@ const MASTER_DEFAULTS = {
   // Carried on the plan (rather than hardcoded in audio_mix) so the mixer executes a
   // DECISION instead of an assumption, and so the report can state what was applied.
   musicMidCarveDb: -4,
+  // THE REVERSE DUCK, and why it is 0 with a voice.
+  //
+  // With narration on, the SFX bus is already ducked UNDER the voice and the music is
+  // ducked under it too — everything defers to speech, and a third relationship would just
+  // pump. With narration OFF nothing arbitrates music against SFX at all: an impact and a
+  // bed peak collide and the limiter sorts it out, which is what makes a music-led film's
+  // accents read as mush rather than as punctuation. So in that mode only, the music
+  // briefly steps aside for the accent — shallow and fast, so the bed is back before the
+  // next beat.
+  musicUnderSfxDuckDb: 0,
 };
 
 // ---- NARRATION MODE ----------------------------------------------------------
@@ -79,6 +89,7 @@ function masterDefaultsFor(narration, profile) {
     musicSoloLufs: NO_VO_MUSIC_LUFS[boost] != null ? NO_VO_MUSIC_LUFS[boost] : -16,
     musicUnderVoDuckDb: 0,   // nothing to duck under
     musicMidCarveDb: 0,      // no voice to clear
+    musicUnderSfxDuckDb: -7, // the accents now punctuate the bed — see MASTER_DEFAULTS
   };
 }
 
@@ -315,6 +326,9 @@ function sanitizePlan(raw, { digest, candidates, narration = "on", profile = nul
     // not merely useless, it is a claim the report would have to call false; the mixer
     // builds no sidechain at all without a voice bus.
     musicUnderVoDuckDb: noVo ? 0 : clamp(rm.musicUnderVoDuckDb, -24, -4, D.musicUnderVoDuckDb),
+    // Structural, like the duck bypass above: the mode decides whether this relationship
+    // exists at all, and the model may only shape it within the mode.
+    musicUnderSfxDuckDb: noVo ? clamp(rm.musicUnderSfxDuckDb, -12, -2, D.musicUnderSfxDuckDb) : 0,
     duckAttackMs: clamp(rm.duckAttackMs, 5, 200, D.duckAttackMs),
     duckReleaseMs: clamp(rm.duckReleaseMs, 100, 1200, D.duckReleaseMs),
     masterTruePeakDb: clamp(rm.masterTruePeakDb, -3, -0.3, D.masterTruePeakDb),

@@ -95,12 +95,16 @@
       "cinematic"
     ],
     "musicKeywords": [
+      "clean",
+      "soft",
       "inspiring corporate",
       "bright modern",
       "optimistic startup",
       "uplifting cinematic",
       "innovation technology",
-      "energetic corporate"
+      "energetic corporate",
+      "uplifting",
+      "dynamic"
     ],
     "sfxPalette": {
       "transition": "light-sweep",
@@ -113,7 +117,8 @@
       "energyBoost": 1,
       "sfxDensity": "rich",
       "ambient": false
-    }
+    },
+    "archetype": "corporate"
   },
   "media": {
     "requiredAssets": {

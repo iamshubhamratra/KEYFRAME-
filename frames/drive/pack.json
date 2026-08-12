@@ -1,6 +1,6 @@
 {
   "name": "drive",
-  "vibe": "A golden-hour highway film. A sunset sky graded amber to coral to rose over a violet skyline that scrolls past in two parallax bands, with a dark road filling the lower third and a dashed centreline running toward you. One cool teal against all that warmth — the signal colour in a warm frame. The signature device is the BILLBOARD: pictures ride on roadside hoardings with two support posts, angled slightly and sweeping in from the right as though you were driving by. Authored landscape-first (16:9) as a native GSAP + DOM composition. Best for automotive, travel, delivery, outdoor brands and any product with somewhere to be.",
+  "vibe": "A golden-hour highway film. A sunset sky graded amber to coral to rose over a violet skyline that scrolls past in two parallax bands, with a dark road filling the lower third and a dashed centreline running toward you. One cool teal against all that warmth — the signal colour in a warm frame. THE ROAD IS THE SET AND THE PRODUCT IS THE SUBJECT: every picture rides one of two devices, a warm-chrome browser card with three lamps and the site address in its title bar, or a dark handset that rises into frame beside it. The showcase beat lifts a full-width browser off the tarmac with a phone alongside; the feature beat slides the browser in from the left under a plated headline; the fleet beat lays the whole product out as a grid of browser cards; the numbers beat sets hard-shadowed cards beside a sweeping speedometer. Authored landscape-first (16:9) as a native GSAP + DOM composition. Best for automotive, travel, delivery, outdoor brands and any product with somewhere to be.",
   "renderer": "drive",
   "orientation": "landscape",
   "colors": {
@@ -13,9 +13,9 @@
     "paper": "#FFF7EA"
   },
   "fonts": [
-    "Archivo",
-    "JetBrains Mono",
-    "Figtree"
+    "Barlow Semi Condensed",
+    "Sora",
+    "JetBrains Mono"
   ],
   "surface": {
     "flat": false,
@@ -56,9 +56,9 @@
     ]
   },
   "typography": {
-    "display": "Archivo",
+    "display": "Barlow Semi Condensed",
     "mono": "JetBrains Mono",
-    "body": "Figtree"
+    "body": "Sora"
   },
   "textfx": {
     "enter": "rise",
@@ -75,15 +75,19 @@
       "indie",
       "rock",
       "electronic",
-      "americana"
+      "guitar"
     ],
     "musicKeywords": [
+      "gentle",
+      "calm",
       "sunset drive",
       "indie road trip",
       "warm guitar groove",
       "open highway",
       "retro synthwave",
-      "easy cruising"
+      "easy cruising",
+      "bright",
+      "happy"
     ],
     "sfxPalette": {
       "transition": "whoosh",
@@ -96,7 +100,8 @@
       "energyBoost": 1,
       "sfxDensity": "normal",
       "ambient": true
-    }
+    },
+    "archetype": "warm"
   },
   "media": {
     "requiredAssets": {

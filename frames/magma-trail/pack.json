@@ -1,0 +1,175 @@
+{
+  "name": "magma-trail",
+  "vibe": "Basalt #1f1a18 and bone under a lava #f43f1e that only owns a whole frame on the Statement beat; ember #ffa03c and an ash grey do the rest. Bevan's heavy slab caps slam in at 2.2x scale with a four-degree kick. The backdrop is a working volcano and it is deliberately slow: an ash-grey crater silhouette fills the lower frame, a lava tongue at the lip pulses on a sine, four bombs arc out of the vent and fall on a ballistic curve, three ash plumes rise and thin over five seconds, ember heat-shimmer squiggles drift upward, and a lava-dashed ridgeline crawls along the bottom like a waymarked route. Its beats are field kit — a needle gauge for crater temp, dotted-leader ledger boards, alerts that drop in from above, and an odometer word roll.",
+  "orientation": "portrait",
+  "category": "Adventure",
+  "tags": [
+    "volcano",
+    "hiking",
+    "geology",
+    "expedition",
+    "slab-serif",
+    "documentary",
+    "outdoors",
+    "dark"
+  ],
+  "renderer": "film-magma-trail",
+  "colors": {
+    "basalt": "#1f1a18",
+    "lava": "#f43f1e",
+    "ash": "#8c8480",
+    "bone": "#efe6dc",
+    "ember": "#ffa03c",
+    "ground": "#1f1a18",
+    "text": "#efe6dc",
+    "accent": "#f43f1e",
+    "ink": "#1f1a18",
+    "paper": "#efe6dc"
+  },
+  "fonts": [
+    "Bevan",
+    "Commissioner"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#1f1a18",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#f43f1e",
+      "#1f1a18",
+      "#ffa03c"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "wide documentary photograph of black volcanic rock and glowing lava at dusk, hard low sun, drifting ash haze",
+    "iconStyle": "line",
+    "keywords": [
+      "volcano crater",
+      "lava flow",
+      "basalt rock",
+      "hiking trail",
+      "ash plume",
+      "geology field",
+      "obsidian",
+      "ridge sunrise"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot",
+      "illustration"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Bevan",
+    "body": "Commissioner"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "slow geologic heat under a documentary hush",
+    "archetype": "editorial",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "cinematic",
+      "earthen",
+      "patient",
+      "wide"
+    ],
+    "musicKeywords": [
+      "volcanic drone",
+      "basalt ambient",
+      "ash plume",
+      "crater dawn",
+      "field documentary",
+      "obsidian pulse",
+      "expedition strings",
+      "tectonic swell",
+      "cinder groove",
+      "taiko roll",
+      "lava percussion",
+      "eruption drums"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

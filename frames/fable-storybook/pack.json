@@ -1,6 +1,7 @@
 {
   "name": "fable-storybook",
   "renderer": "fable-storybook",
+  "orientation": "landscape",
   "vibe": "warm storybook: parchment, ink-brown serif spirit, watercolor terracotta/sage/dusk washes, paper planes + firefly orbs in gentle 3D — for narratives, brand stories, emotional arcs, journeys",
   "colors": {
     "parchment": "#FAF5EA",

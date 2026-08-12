@@ -1,0 +1,175 @@
+{
+  "name": "semolina-club",
+  "vibe": "Flour cream #f8f0dc counters, tomato #cf3b2e floods, basil #3e7a44 montage grounds and semolina gold #e8b93c — a pasta school at working temperature. Lilita One is fat and rounded on titles; Urbanist keeps the body crisp. The world is the bench itself: a wooden rolling pin tracks left to right on a 90px/s loop with its interior line spinning to show it rolling, three puffs of flour rise and expand as they fade, three tall serpentine ribbons of semolina pasta sway on separate phases, and three ravioli — dashed ink crimp, translucent tomato filling dot — pop into place one after another with an overshoot. A basil leaf rocks in the corner at 1Hz. Bounce titles, hop cuts, eight pixels of horizontal drift. Mechanics: drag a chip onto the tray, tick the mise en place, a dotted-leader menu board, and a word roll for tonight's shape.",
+  "orientation": "portrait",
+  "category": "Food & Drink",
+  "tags": [
+    "pasta",
+    "cooking-class",
+    "italian",
+    "workshop",
+    "hands-on",
+    "warm",
+    "kitchen",
+    "food"
+  ],
+  "renderer": "film-semolina-club",
+  "colors": {
+    "flour": "#f8f0dc",
+    "tomato": "#cf3b2e",
+    "basil": "#3e7a44",
+    "semolina": "#e8b93c",
+    "ink": "#2e1f18",
+    "ground": "#f8f0dc",
+    "text": "#2e1f18",
+    "accent": "#cf3b2e",
+    "paper": "#f8f0dc"
+  },
+  "fonts": [
+    "Lilita One",
+    "Urbanist"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#f8f0dc",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#cf3b2e",
+      "#e8b93c",
+      "#f8f0dc"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "warm daylight food photograph of flour-dusted wooden benches and hands shaping fresh pasta, soft window light",
+    "iconStyle": "solid",
+    "keywords": [
+      "fresh pasta",
+      "flour dust",
+      "rolling pin",
+      "cooking class",
+      "ravioli tray",
+      "wooden bench",
+      "basil leaves",
+      "italian kitchen"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Lilita One",
+    "body": "Urbanist"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "busy warm kitchen; plucked and hand-played, cheerful without being frantic",
+    "archetype": "groove",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "acoustic",
+      "rhythmic",
+      "rustic",
+      "cheerful"
+    ],
+    "musicKeywords": [
+      "mandolin tremolo",
+      "neapolitan serenade",
+      "nonna waltz",
+      "brushed cymbal",
+      "kitchen clatter",
+      "accordion strut",
+      "upright shuffle",
+      "trattoria swing",
+      "tambourine ring",
+      "mazurka spin",
+      "saltarello dance",
+      "festa march",
+      "tarantella rhythm"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "soft-tap",
+      "reveal": "pop",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

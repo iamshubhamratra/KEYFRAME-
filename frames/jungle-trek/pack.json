@@ -1,0 +1,175 @@
+{
+  "name": "jungle-trek",
+  "vibe": "Deep canopy green (#17301f) under layered leaf shapes, cut by an acid firefly yellow (#cde34f) and a pale mist. Alfa Slab One stamps heavy slab headlines over Cabin body copy. The world is a living canopy: broad leaves sway on their own phase, mist drifts in bands, fireflies blink on independent cycles, and light shafts angle through the layers. Best for expedition and eco brands, botanical products, field research, and anything that wants to feel overgrown rather than manicured.",
+  "orientation": "portrait",
+  "category": "Nature",
+  "tags": [
+    "jungle",
+    "canopy",
+    "expedition",
+    "eco",
+    "slab-serif",
+    "green",
+    "botanical",
+    "field"
+  ],
+  "renderer": "film-jungle-trek",
+  "colors": {
+    "deep": "#17301f",
+    "leaf": "#4e8a4a",
+    "leafDark": "#27502e",
+    "fly": "#cde34f",
+    "mist": "#bfe6c8",
+    "paper": "#f1e9d2",
+    "shadow": "#0d1f12",
+    "ground": "#17301f",
+    "text": "#f1e9d2",
+    "accent": "#cde34f",
+    "ink": "#0d1f12"
+  },
+  "fonts": [
+    "Alfa Slab One",
+    "Cabin"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#17301f",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#cde34f",
+      "#4e8a4a",
+      "#f1e9d2"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "humid rainforest photography — dense green layers, shafts of light through canopy, wet leaves with specular highlights",
+    "iconStyle": "line",
+    "keywords": [
+      "rainforest canopy",
+      "monstera leaf",
+      "jungle trail",
+      "waterfall pool",
+      "field notebook",
+      "macro insect",
+      "green undergrowth"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Alfa Slab One",
+    "body": "Cabin"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "humid anticipation — dense, alive, moving forward",
+    "archetype": "warm",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "hand percussion",
+      "marimba",
+      "field recording",
+      "low flute"
+    ],
+    "musicKeywords": [
+      "canopy ambience",
+      "distant birdsong",
+      "low flute",
+      "marimba pattern",
+      "hand drums",
+      "tribal percussion",
+      "shaker groove",
+      "djembe pulse",
+      "expedition build",
+      "polyrhythm drive",
+      "brass stabs",
+      "jungle break"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "data-ping",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

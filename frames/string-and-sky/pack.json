@@ -1,0 +1,175 @@
+{
+  "name": "string-and-sky",
+  "vibe": "Sky #a8d8ea overhead, kite red #e84855 and sun gold #f2b13c against navy #23364a, with grass #5a9e54 along the bottom. Grandstander rounds every title; Sofia Sans keeps the body plain. The backdrop is a complete outdoor scene, not a texture: two diamond kites bob on their own sine, tethered by navy lines back to the field, tails whipping with bow-ties that flap ±20°; three white clouds cross at different speeds and opacities; a gold sun sits top-right; and eight grass tufts lean along a rolling green hill. Bounce titles overshoot up from 110px below and the whole frame drifts ten pixels either way, as if standing in the same breeze that lifts the kites. Mechanics: a launch checklist that ticks, a bottom-filling line-out meter, pill announcements that pop in at staggered indents, and word rolls. For festivals, family events, camps and parks.",
+  "orientation": "portrait",
+  "category": "Kids",
+  "tags": [
+    "kite",
+    "festival",
+    "outdoors",
+    "family",
+    "playful",
+    "sky",
+    "rounded",
+    "event"
+  ],
+  "renderer": "film-string-and-sky",
+  "colors": {
+    "sky": "#a8d8ea",
+    "kite": "#e84855",
+    "sun": "#f2b13c",
+    "grass": "#5a9e54",
+    "navy": "#23364a",
+    "ground": "#a8d8ea",
+    "text": "#23364a",
+    "accent": "#e84855",
+    "ink": "#23364a",
+    "paper": "#a8d8ea"
+  },
+  "fonts": [
+    "Grandstander",
+    "Sofia Sans"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#a8d8ea",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#e84855",
+      "#f2b13c",
+      "#a8d8ea"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "bright midday outdoor photograph of kites over open grass, wide sky, backlit families, high-key summer light",
+    "iconStyle": "flat",
+    "keywords": [
+      "kites",
+      "open field",
+      "blue sky",
+      "families outdoors",
+      "wind sock",
+      "picnic blanket",
+      "coastal bluff",
+      "drifting clouds"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "vector"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Grandstander",
+    "body": "Sofia Sans"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "open-air and buoyant; a bright afternoon with room to breathe between the hits",
+    "archetype": "warm",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "acoustic",
+      "airy",
+      "upbeat",
+      "hand-played"
+    ],
+    "musicKeywords": [
+      "pennywhistle melody",
+      "autoharp strum",
+      "glockenspiel sparkle",
+      "picnic banjo",
+      "washboard clap",
+      "jug band",
+      "hoedown fiddle",
+      "skiffle skip",
+      "stomp clap",
+      "bluegrass run",
+      "summer pop",
+      "festival anthem"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "pop",
+      "reveal": "pop",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

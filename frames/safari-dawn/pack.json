@@ -1,0 +1,174 @@
+{
+  "name": "safari-dawn",
+  "vibe": "Amber sky (#ef9d4f) over dark-earth ink (#3a2417) and cream (#fbeed8), with a yellow sun (#f6d35c) that is not decoration — it climbs 140px through every beat, tied to scene progress rather than the clock, so the light literally rises while you read. Staatliches stamps the titles; Assistant carries the body. Behind them three cloud ellipses drift at separate speeds, a sienna hill band rolls across, two flat-top acacias anchor left and right at different scales, and three filled animal silhouettes gallop the plain on hopping legs while a huge ink ellipse closes the foreground like a viewing hide. The frame rolls a full 1.2° and spins on one beat. Feature panels drop the world and sit on burnt sienna. For safari lodges, expedition travel, outdoor gear and nature-documentary storytelling.",
+  "orientation": "portrait",
+  "category": "Nature",
+  "tags": [
+    "safari",
+    "wildlife",
+    "sunrise",
+    "travel",
+    "expedition",
+    "outdoors",
+    "silhouette",
+    "amber"
+  ],
+  "renderer": "film-safari-dawn",
+  "colors": {
+    "sky": "#ef9d4f",
+    "dusk": "#c96f35",
+    "ink": "#3a2417",
+    "sun": "#f6d35c",
+    "tree": "#4a2e1c",
+    "paper": "#fbeed8",
+    "ground": "#ef9d4f",
+    "text": "#3a2417",
+    "accent": "#fbeed8"
+  },
+  "fonts": [
+    "Staatliches",
+    "Assistant"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#ef9d4f",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#fbeed8",
+      "#f6d35c",
+      "#ef9d4f"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "backlit golden-hour wildlife photograph on open savanna, long amber light and dust haze behind acacia silhouettes",
+    "iconStyle": "solid",
+    "keywords": [
+      "savanna sunrise",
+      "acacia tree silhouette",
+      "game drive vehicle",
+      "grazing herd",
+      "dust golden hour",
+      "ranger binoculars",
+      "bush camp tent",
+      "dry plains grass"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "vector"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Staatliches",
+    "body": "Assistant"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "patient, warm and expectant; the light arriving",
+    "archetype": "warm",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "hand drums",
+      "upright bass",
+      "bird texture",
+      "sun does"
+    ],
+    "musicKeywords": [
+      "savanna ambient",
+      "bush chorus",
+      "kalimba morning",
+      "acacia plains",
+      "golden grassland",
+      "lifting strings",
+      "marimba trek",
+      "savanna sunrise",
+      "hand drums",
+      "hooves percussion",
+      "highlife guitar",
+      "afrobeat groove"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

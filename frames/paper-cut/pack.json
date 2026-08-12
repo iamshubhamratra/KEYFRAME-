@@ -1,0 +1,174 @@
+{
+  "name": "paper-cut",
+  "vibe": "Cream (#f4e9dc) with coral (#e2654e), teal (#2f8f83) and mustard (#e8b23c) — notably, it rotates full-bleed colour fields, dropping statement onto coral, montage onto teal, stats onto ink and the CTA onto mustard, so the film changes paper stock as it goes. Shrikhand, a fat display serif, is the only serif in the set; Sen carries the body. The world is three torn-paper wave bands stacked at 62%, 72% and 84% of the height, each breathing up and down on its own slow sine so the layers lift against one another, plus a two-tone paper sun (coral disc, mustard core) at upper right and nine rounded offcuts drifting and spinning continuously. Cards are matte paper sheets with ink outlines; chips are squares. Drag-to-assemble is its signature. For craft brands, zines, studios, kids and print-led makers.",
+  "orientation": "portrait",
+  "category": "Craft",
+  "tags": [
+    "collage",
+    "craft",
+    "paper",
+    "zine",
+    "handmade",
+    "colour-fields",
+    "serif-display",
+    "print"
+  ],
+  "renderer": "film-paper-cut",
+  "colors": {
+    "cream": "#f4e9dc",
+    "coral": "#e2654e",
+    "teal": "#2f8f83",
+    "mustard": "#e8b23c",
+    "ink": "#2c2620",
+    "paper": "#fffaf2",
+    "ground": "#f4e9dc",
+    "text": "#2c2620",
+    "accent": "#e2654e"
+  },
+  "fonts": [
+    "Shrikhand",
+    "Sen"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#f4e9dc",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#e2654e",
+      "#e8b23c",
+      "#2f8f83"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "flat-lay daylight photograph of a craft table — torn coloured paper, scissors and glue on warm cream, soft shadows",
+    "iconStyle": "solid",
+    "keywords": [
+      "torn paper texture",
+      "collage cutout shapes",
+      "scissors and glue",
+      "craft studio desk",
+      "layered paper waves",
+      "risograph print",
+      "coloured card stock",
+      "zine spread"
+    ],
+    "prefer": [
+      "illustration",
+      "photo",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Shrikhand",
+    "body": "Sen"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "hand-made and cheerful; scissors, glue and nerve",
+    "archetype": "warm",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "finger snaps",
+      "pizzicato strings",
+      "block shaker",
+      "bass bounce"
+    ],
+    "musicKeywords": [
+      "chamber pop",
+      "pizzicato bounce",
+      "cutout marimba",
+      "woodblock shuffle",
+      "shaker groove",
+      "finger snaps",
+      "paper collage",
+      "scissor percussion",
+      "zine bounce",
+      "upright bass",
+      "handclap pop",
+      "stomp clap"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "pop",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
+  }
+}

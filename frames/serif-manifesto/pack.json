@@ -1,0 +1,136 @@
+{
+  "name": "serif-manifesto",
+  "vibe": "The only pack in this set with no image slots at all — it is typography and nothing else. An ivory #f6f1e7 page, ink #1e1b17 text, oxblood #7a2e2e and a gold #b08d3f hairline for emphasis. Playfair Display sets the hook centred and low on the page with Lato beneath it. The world is almost still: a 2px rule hanging from the top edge to a small oxblood dot, an italic asterism near the foot, and a band of 400px outline italic 'Aa' at 10% opacity drifting left at 24 pixels a second. The camera barely breathes and titles use an unusually soft entrance. Mechanics: a typewriter, a cross-fade morph, a page flip and a numbered maxim list. Best for essays, publishers, law and consultancy, book launches and brand manifestos.",
+  "orientation": "portrait",
+  "category": "Editorial",
+  "tags": [
+    "editorial",
+    "typography",
+    "essay",
+    "publishing",
+    "manifesto",
+    "no images",
+    "calm luxury",
+    "thought leadership"
+  ],
+  "renderer": "film-serif-manifesto",
+  "colors": {
+    "ivory": "#f6f1e7",
+    "ink": "#1e1b17",
+    "ox": "#7a2e2e",
+    "gold": "#b08d3f",
+    "paper": "#fbf8f1",
+    "ground": "#1e1b17",
+    "text": "#fbf8f1",
+    "accent": "#b08d3f"
+  },
+  "fonts": [
+    "Playfair Display",
+    "Lato"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#1e1b17",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#b08d3f",
+      "#7a2e2e",
+      "#f6f1e7"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "quiet natural-light still life photograph of an open book on ivory paper, warm side light and deep shadow, the grain of a 35mm film scan",
+    "iconStyle": "solid",
+    "keywords": [
+      "open book pages",
+      "letterpress type",
+      "fountain pen",
+      "ivory paper",
+      "reading desk",
+      "proof sheet",
+      "library shelf",
+      "ink well"
+    ],
+    "prefer": [
+      "photo",
+      "illustration"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Playfair Display",
+    "body": "Lato"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 0,
+      "productImages": 0,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "cta": {
+        "count": 1,
+        "width": 148,
+        "height": 148,
+        "priority": "medium",
+        "objectFit": "contain",
+        "kind": "logos",
+        "note": "the CTA logo lockup — this pack is typographic and shows no other imagery"
+      }
+    },
+    "oversample": 1,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "A quiet reading room — one idea at a time, with space left between the sentences",
+    "archetype": "editorial",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "solo piano",
+      "bowed cello",
+      "room tone",
+      "typewriter percussion"
+    ],
+    "musicKeywords": [
+      "neoclassical piano",
+      "minimalist score",
+      "adagio strings",
+      "chamber ensemble",
+      "string quartet",
+      "baroque harpsichord",
+      "essay documentary",
+      "editorial underscore",
+      "pizzicato ostinato",
+      "timpani swell",
+      "cinematic strings",
+      "orchestral crescendo"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "ui-click",
+      "reveal": "shimmer",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

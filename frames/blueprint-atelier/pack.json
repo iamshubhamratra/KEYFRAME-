@@ -2,6 +2,7 @@
   "name": "blueprint-atelier",
   "vibe": "The film is drafted like an engineering drawing on a living drafting table: a blue graph-paper sheet with edge rulers, a slow compass rose, a wandering crosshair with a live X/Y readout, dimension lines that draw themselves with a trailing pencil, dashed-box flowcharts, a scanning output plot, red revision strike-throughs, rubber stamps, and a sheet-wipe between every scene. Deep engineering blue with amber, cyan and red ink; Space Grotesk display over IBM Plex Mono chrome. Rendered as a native GSAP + SVG/CSS composition.",
   "renderer": "blueprint",
+  "orientation": "landscape",
   "colors": {
     "ground": "#0C2440",
     "ground-2": "#123659",
@@ -74,12 +75,16 @@
       "mechanical"
     ],
     "musicKeywords": [
+      "atmospheric",
+      "digital",
       "minimal technical",
       "precise electronic",
       "ambient engineering",
       "mechanical minimal",
       "driving technical",
-      "industrial electronic"
+      "industrial electronic",
+      "driving",
+      "powerful"
     ],
     "sfxPalette": {
       "transition": "light-sweep",
@@ -92,7 +97,8 @@
       "energyBoost": 1,
       "sfxDensity": "rich",
       "ambient": true
-    }
+    },
+    "archetype": "tech"
   },
   "media": {
     "requiredAssets": {

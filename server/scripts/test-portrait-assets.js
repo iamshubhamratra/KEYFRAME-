@@ -87,7 +87,22 @@ for (const pack of portraitPacks) {
     for (const [, sb] of STORYBOARDS) {
       const built = comp.buildComposition({ storyboard: sb, dims: DIMS, framePack: pack, captionCues: [], assets: ASSETS, brandSkin: null });
       const rep = auditAssetRender({ indexHtml: built.indexHtml, assets: ASSETS });
-      const deckOk = !/^FAIL_/.test(rep.renderStatus) && rep.shotsRendered >= MIN_SHOTS && rep.scenesWithAsset >= MIN_SCENES && rep.logoRendered === true && rep.missingAssignments <= MAX_MISSING;
+      // A TEXT-LED template is asserted differently, not exempted. Some templates are
+      // authored as pure typography — the FilmKit family's Serif Manifesto draws underlined
+      // lines where other packs draw a media card, and its source Hook has no image slot at
+      // all. Holding it to "renders >= 2 shots" would fail a faithful port for being faithful.
+      // The manifest states this declaratively (zero screenshot AND zero productImage slots),
+      // so the guard reads it rather than carrying a hardcoded exception list — and it still
+      // asserts the things that CAN regress: the logo lockup must render, no path may be
+      // broken, and it must not silently start drawing image frames it cannot fill.
+      const req = (m && m.media && m.media.requiredAssets) || {};
+      const textLed = Number(req.screenshots || 0) === 0 && Number(req.productImages || 0) === 0;
+      // FAIL_TEXT_ONLY is auditAssetRender's verdict for "this composition drew no pictures".
+      // For a declared text-led pack that is the CORRECT outcome, so it is the expected
+      // status here rather than a defect — any OTHER FAIL_ status still fails.
+      const deckOk = textLed
+        ? ((rep.renderStatus === "FAIL_TEXT_ONLY" || !/^FAIL_/.test(rep.renderStatus)) && rep.logoRendered === true && rep.invalidPaths === 0 && rep.shotsRendered === 0)
+        : (!/^FAIL_/.test(rep.renderStatus) && rep.shotsRendered >= MIN_SHOTS && rep.scenesWithAsset >= MIN_SCENES && rep.logoRendered === true && rep.missingAssignments <= MAX_MISSING);
       if (!deckOk) { ok = false; fails.push({ pack, rep }); }
       cells.push(`${rep.scenesWithAsset}/${rep.sceneCount}·${rep.shotsRendered}shots`);
     }

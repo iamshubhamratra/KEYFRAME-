@@ -1,0 +1,174 @@
+{
+  "name": "fold-studio",
+  "vibe": "An origami studio in washi #f2ede3, with Zilla Slab set in warm #26221c, one vermilion (#d64545) and one deep indigo (#2e4a7d). The world folds: three large translucent triangles squash and stretch on independent sine phases while slowly rotating, so sheets appear to crease open and shut; a small vermilion crane flies across the upper third with wing points that actually flap on a 4Hz beat; four dashed diagonals sit underneath like crease-pattern guides. Corners are near-square everywhere — chips are literal squares, tiles round at 4px, cards at 6 — and the camera carries a 2° skew, and it tips its own plane like a held sheet. Titles and items both flip in. Owns an assemble DragDrop, a flip Swipe, fade Morphs and switch Toggles. For workshops, classes, stationery, studios and patient handmade work.",
+  "orientation": "portrait",
+  "category": "Craft",
+  "tags": [
+    "origami",
+    "paper-craft",
+    "workshop",
+    "slab-serif",
+    "washi",
+    "handmade",
+    "vermilion-indigo",
+    "classes"
+  ],
+  "renderer": "film-fold-studio",
+  "colors": {
+    "washi": "#f2ede3",
+    "crane": "#d64545",
+    "indigo": "#2e4a7d",
+    "kraft": "#b89b6a",
+    "ink": "#26221c",
+    "ground": "#f2ede3",
+    "text": "#26221c",
+    "accent": "#d64545",
+    "paper": "#f2ede3"
+  },
+  "fonts": [
+    "Zilla Slab",
+    "Source Sans 3"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#f2ede3",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#d64545",
+      "#26221c",
+      "#f2ede3"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "clean daylight studio photograph of paper craft on a washi-toned worktable, crisp shadows, folded forms in vermilion and indigo, hands in frame",
+    "iconStyle": "flat",
+    "keywords": [
+      "origami crane",
+      "folded paper",
+      "paper craft workshop",
+      "washi paper",
+      "craft worktable",
+      "hands folding",
+      "paper sculpture",
+      "stationery"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Zilla Slab",
+    "body": "Source Sans 3"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "patient handcraft — precise, unhurried, with a crisp snap at each turn",
+    "archetype": "warm",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "minimal",
+      "mallet-percussion",
+      "acoustic",
+      "japanese-influenced"
+    ],
+    "musicKeywords": [
+      "koto pluck",
+      "hushed keys",
+      "paper craft",
+      "handmade studio",
+      "marimba patience",
+      "kalimba pattern",
+      "folding rhythm",
+      "wood chime",
+      "crisp snap",
+      "shamisen strum",
+      "steady mallets",
+      "taiko drive"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "soft-tap",
+      "reveal": "pop",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
+  }
+}

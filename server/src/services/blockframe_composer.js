@@ -101,10 +101,11 @@ function theme(brandSkin) {
 const M = U(96);
 const COL = U(1728);
 const TOP = U(200);          // the first content line, clear of the brand chip row
-// NOTHING IS DRAWN BELOW THIS. The block rail lives at 996 and a hard shadow hangs 13px past its
-// own box, so 946 is the last usable edge: 946 + 13 = 959, still clear of the rail.
+// NOTHING IS DRAWN BELOW THIS. The bound dates from when a block rail sat at 996 and a hard
+// shadow hung 13px past its own box, making 946 the last usable edge (946 + 13 = 959, clear of
+// the rail). The rail is gone, but the bound stays: it is also what keeps the hard shadows off
+// the frame's bottom border, and widening the safe area is a layout change, not a cleanup.
 const FOOT = U(946);
-const RAIL_Y = U(996);
 const GRID = 64;             // the ground's hard 2px grid, one cell per creep cycle
 
 // The colour that clears a candy fill. Every pastel in the pack is light, so this is black virtually
@@ -284,14 +285,12 @@ function skin(ctx, flood = false) {
       shape1: K.mixHex(bg, fg, 0.14), shape2: K.mixHex(bg, fg, 0.1),
       tape0: PAPER, tape1: WHITE, chips: [PAPER, WHITE, PAPER, WHITE, PAPER],
       pick: (k) => (k % 2 ? WHITE : PAPER),
-      railBase: K.mixHex(bg, fg, 0.12), railFill: fg,
     };
   }
   return {
     flood: false, bg: PAPER, ink: INK, line: INK, sub: rgba(INK, 0.66), acc: at(0), chip: at(0),
     shape1: at(1), shape2: at(3), tape0: at(2), tape1: at(4), chips: candy,
     pick: (k) => at(k),
-    railBase: WHITE, railFill: at(0),
   };
 }
 
@@ -308,9 +307,6 @@ function hud(ctx, sk) {
   const S = ctx.S || STRINGS;
   const brand = (String(ctx.brand || "").toUpperCase().slice(0, 18) || "BLOCKFRAME");
   const label = String(ctx.label || "").toUpperCase().slice(0, 22);
-  const cells = Math.max(1, ctx.total);
-  const cw = (COL - U(6) * (cells - 1)) / cells;
-  const counter = `${S.scene || STRINGS.scene} ${K.pad2(ctx.i + 1)} ${S.of || STRINGS.of} ${K.pad2(cells)}`;
   return `<div class="om-chrome">
     <div style="position:absolute;inset:${r(U(30))}cqw;border:${r(BW)}cqw solid ${sk.line};box-sizing:border-box;"></div>
     <div style="position:absolute;left:${r(M)}cqw;top:${r(U(54))}cqw;display:flex;align-items:center;gap:${r(U(16))}cqw;">
@@ -318,20 +314,20 @@ function hud(ctx, sk) {
       <span style="font-family:${th.displayStack};font-size:${r(K.fitOne(brand, U(420), U(32), th.adv))}cqw;text-transform:uppercase;letter-spacing:-0.01em;color:${sk.ink};white-space:nowrap;">${esc(brand)}</span>
       ${label ? `<span style="font-family:${th.monoStack};font-weight:700;font-size:${r(U(17))}cqw;letter-spacing:0.18em;text-transform:uppercase;color:${sk.sub};white-space:nowrap;">// ${esc(label)}</span>` : ""}
     </div>
-    <div style="position:absolute;right:${r(M)}cqw;top:${r(U(64))}cqw;font-family:${th.monoStack};font-weight:700;font-size:${r(U(17))}cqw;letter-spacing:0.18em;text-transform:uppercase;color:${sk.sub};">${esc(counter)}</div>
-    <div style="position:absolute;left:${r(M)}cqw;top:${r(RAIL_Y)}cqw;width:${r(COL)}cqw;height:${r(U(26))}cqw;display:flex;gap:${r(U(6))}cqw;">
-      ${Array.from({ length: cells }, (_, j) => `<div style="width:${r(cw)}cqw;height:100%;background:${sk.railBase};border:${r(BW2)}cqw solid ${sk.line};box-sizing:border-box;overflow:hidden;">
-        <div ${j === ctx.i ? `class="${id}-cell"` : ""} style="width:100%;height:100%;background:${sk.railFill};transform:scaleX(${j < ctx.i ? 1 : 0});transform-origin:left center;"></div>
-      </div>`).join("")}
-    </div>
   </div>`;
 }
-// Only the CURRENT cell is animated, and it always exists (`i < total`), so this can never become a
-// tween against nothing. Inline `transform:scaleX(0)` under a `scaleX` tween is the library's
-// standard progress idiom, not a transform conflict.
-const hudTweens = (id, ctx) => [
-  `tl.fromTo(".${id}-cell",{scaleX:0},{scaleX:1,duration:${r(Math.max(0.1, ctx.L))},ease:"none"},${r(ctx.T)});`,
-];
+// THE BLOCK RAIL AND ITS BEAT COUNTER ARE GONE. The rail was a row of one bordered cell per
+// beat, earlier cells flooded, the current one filling linearly across its own clip — the same
+// Instagram-Stories strip reel drew, in this pack's neo-brutal costume. The counter beside it
+// ("03 / 06") said the same thing in text. Both describe the viewer's position in the playback,
+// which a finished advertisement has no business showing.
+//
+// Worth recording: the old comment here called this "the library's standard progress idiom",
+// which is exactly how the habit spread — each engine copied it believing it was a convention
+// rather than a defect. `npm run test:no-playback-chrome` now makes it a build failure. This
+// pack's class was `-cell`, matching no progress vocabulary at all, so it is the guard's SHAPE
+// detector (one linear 0->1 fill per scene) that catches a reimplementation here.
+const hudTweens = () => [];
 
 // THE PICTURELESS BEAT. The kit's `statement` layout wearing this pack's ground and chrome — and its
 // ground TWEENS, which is the pairing jungle dropped. Every builder's "I did not get what I need"

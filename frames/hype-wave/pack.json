@@ -73,12 +73,16 @@
       "electronic"
     ],
     "musicKeywords": [
+      "chill",
+      "lofi",
       "upbeat pop",
       "energetic hip hop",
       "youth anthem",
-      "punchy trap",
-      "high energy hype",
-      "driving beat"
+      "powerful trap",
+      "high energy beat",
+      "driving beat",
+      "heavy",
+      "loud"
     ],
     "sfxPalette": {
       "transition": "whoosh",
@@ -91,7 +95,8 @@
       "energyBoost": 2,
       "sfxDensity": "rich",
       "ambient": false
-    }
+    },
+    "archetype": "hype"
   },
   "media": {
     "requiredAssets": {

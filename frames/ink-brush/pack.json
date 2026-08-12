@@ -1,0 +1,173 @@
+{
+  "name": "ink-brush",
+  "vibe": "A calligraphy studio at working pace. The ground is rice paper #f2ede2 carrying #26221e ink and exactly one vermilion seal #c93b2a; Cormorant Garamond sets headlines in sentence case over Commissioner body — nothing is uppercase, nothing shouts. The backdrop is a brush drawing itself: a 26px stroke sweeps the lower third as a thinner stroke falls down the right, pale wash ellipses drift sideways, a broken ink circle turns slowly at the top-left, and a red hanko seal sits stamped in the corner. Its signature beat is Typing:hand — words land one at a time, each tilted a degree or two, every fourth in seal red, closing on an underlined stamp. The camera barely moves (rotation 0.5). Best for tea, stationery, ceramics, meditation and patient craft brands.",
+  "orientation": "portrait",
+  "category": "Craft",
+  "tags": [
+    "calligraphy",
+    "sumi ink",
+    "light ground",
+    "serif",
+    "typing",
+    "morph",
+    "scroll",
+    "ring",
+    "meditative"
+  ],
+  "renderer": "film-ink-brush",
+  "colors": {
+    "rice": "#f2ede2",
+    "ink": "#26221e",
+    "wash": "#8d8478",
+    "seal": "#c93b2a",
+    "paper": "#faf7ef",
+    "ground": "#f2ede2",
+    "text": "#26221e",
+    "accent": "#c93b2a"
+  },
+  "fonts": [
+    "Cormorant Garamond",
+    "Commissioner"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#f2ede2",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#c93b2a",
+      "#f2ede2"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "natural-light still-life photograph of a calligraphy desk — wolf-hair brush, sumi inkstone, warm rice paper, soft window shadows",
+    "iconStyle": "line",
+    "keywords": [
+      "calligraphy brush",
+      "sumi ink",
+      "rice paper",
+      "inkstone",
+      "brush stroke",
+      "hanko seal",
+      "artist desk",
+      "handmade paper"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Cormorant Garamond",
+    "body": "Commissioner"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "meditative",
+    "archetype": "warm",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "shakuhachi",
+      "koto",
+      "ambient",
+      "minimal"
+    ],
+    "musicKeywords": [
+      "shakuhachi flute",
+      "sumi ambient",
+      "zen minimal",
+      "rice paper",
+      "koto strings",
+      "ink wash",
+      "brush stroke",
+      "vermilion seal",
+      "biwa drone",
+      "shamisen pluck",
+      "taiko pulse",
+      "ceremonial drums"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

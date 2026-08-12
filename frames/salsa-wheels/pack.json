@@ -1,0 +1,174 @@
+{
+  "name": "salsa-wheels",
+  "vibe": "Crema #fdf3e0 paper, chile red #d93425, corn yellow #f2c14b and a teal #2a9d8f truck. Boogaloo shouts every title in caps at up to 152px on the bounciest entrance here — a 110px drop with an overshoot — while Nunito keeps the prices legible. The world is a street corner: papel picado strung on a sagging line, nine flags swaying out of phase with zigzag fringes; a teal taco truck bouncing on its suspension three times a second under a red awning with corn scallops, smoke looping from the stack; a teal cactus; three red chiles tumbling. Highest rotation in the set (1.4), a spin move, and the busiest world clock (2.0). Its beats: a dotted-leader menu board whose prices flicker as they land, a clicking pointer, popping pill alerts, and a heat card flung off the stack under a stamp.",
+  "orientation": "portrait",
+  "category": "Food & Drink",
+  "tags": [
+    "bright",
+    "cream",
+    "chile-red",
+    "food-truck",
+    "bouncy",
+    "playful",
+    "street-food",
+    "papel-picado"
+  ],
+  "renderer": "film-salsa-wheels",
+  "colors": {
+    "crema": "#fdf3e0",
+    "salsa": "#d93425",
+    "corn": "#f2c14b",
+    "teal": "#2a9d8f",
+    "ink": "#2b1a14",
+    "ground": "#fdf3e0",
+    "text": "#2b1a14",
+    "accent": "#d93425",
+    "paper": "#fdf3e0"
+  },
+  "fonts": [
+    "Boogaloo",
+    "Nunito"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#fdf3e0",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#d93425",
+      "#f2c14b",
+      "#fdf3e0"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "bright midday street-food photography of a taco truck and its queue — char and steam off the griddle, saturated reds and yellows, handheld candid framing",
+    "iconStyle": "solid",
+    "keywords": [
+      "taco truck",
+      "street food",
+      "salsa",
+      "tortilla",
+      "papel picado",
+      "chile pepper",
+      "food queue",
+      "market stall"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Boogaloo",
+    "body": "Nunito"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "lunch-rush street party; brass, griddle and a queue that keeps growing",
+    "archetype": "groove",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "cumbia",
+      "latin brass",
+      "hand percussion",
+      "norteño guitar"
+    ],
+    "musicKeywords": [
+      "bolero nylon",
+      "trio serenade",
+      "bajo sexto",
+      "cantina shuffle",
+      "mariachi trumpet",
+      "accordion fiesta",
+      "taco truck",
+      "street party",
+      "salsa horns",
+      "banda tuba",
+      "timbale break",
+      "conga stomp"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "pop",
+      "reveal": "pop",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

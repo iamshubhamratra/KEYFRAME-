@@ -1,0 +1,174 @@
+{
+  "name": "crux-climb",
+  "vibe": "Slate gym wall (#2c2f33) under safety-orange holds (#ff8a3d) and crash-pad blue (#3d7bff), everything set in Anton and locked to uppercase on every single beat. The backdrop is a bouldering wall: an overhang wedge cut out of the right edge, five differently-shaped holds popping in on an outBack stagger — jug, crimp, triangle sloper, oval pinch, curved pinch — a chalk puff blooming and fading off one of them, a rope swaying on a sine into an orange belay ring, and four blue pads laid down the floor. It owns the keycap mechanic: oversized keys physically depress with a squashing bottom edge, then a payoff word pops. Camera cadence 7 with 0.9 roll and 3° skew — the hardest-cutting pack in this set, defaulting to Bouncy. Built for climbing gyms, training apps, session trackers and any brand that sells effort.",
+  "orientation": "portrait",
+  "category": "Sport",
+  "tags": [
+    "climbing",
+    "gym",
+    "high energy",
+    "uppercase",
+    "condensed display",
+    "bouncy",
+    "dark slate",
+    "orange accent"
+  ],
+  "renderer": "film-crux-climb",
+  "colors": {
+    "wall": "#2c2f33",
+    "hold": "#ff8a3d",
+    "pad": "#3d7bff",
+    "chalk": "#f2f2ee",
+    "ink": "#191b1e",
+    "ground": "#2c2f33",
+    "text": "#f2f2ee",
+    "accent": "#ff8a3d",
+    "paper": "#f2f2ee"
+  },
+  "fonts": [
+    "Anton",
+    "Asap"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#2c2f33",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#ff8a3d",
+      "#f2f2ee",
+      "#2c2f33"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "high-contrast indoor climbing gym photograph, orange resin holds on slate overhang walls, chalk dust caught in raking light, mid-move athlete",
+    "iconStyle": "solid",
+    "keywords": [
+      "bouldering wall",
+      "climbing holds",
+      "chalk bag",
+      "crash pad",
+      "overhang route",
+      "belay rope",
+      "gym session",
+      "climbing shoes"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot",
+      "illustration"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Anton",
+    "body": "Asap"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "kinetic and chalky — a gym floor at peak session, drums and effort, tension into release",
+    "archetype": "hype",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "percussive",
+      "gritty",
+      "driving drums",
+      "distorted bass"
+    ],
+    "musicKeywords": [
+      "post rock",
+      "tension build",
+      "gym floor",
+      "tribal toms",
+      "bouldering session",
+      "stomp claps",
+      "send train",
+      "raw breakbeat",
+      "drum break",
+      "punk riff",
+      "hardcore stomp",
+      "hard rock"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "ui-click",
+      "reveal": "pop",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

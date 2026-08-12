@@ -13,9 +13,9 @@
     "paper": "#FCF7E9"
   },
   "fonts": [
-    "Caprasimo",
+    "Chewy",
     "JetBrains Mono",
-    "Figtree"
+    "Nunito"
   ],
   "surface": {
     "flat": false,
@@ -56,9 +56,9 @@
     ]
   },
   "typography": {
-    "display": "Caprasimo",
+    "display": "Chewy",
     "mono": "JetBrains Mono",
-    "body": "Figtree"
+    "body": "Nunito"
   },
   "textfx": {
     "enter": "pop",
@@ -78,12 +78,16 @@
       "folk"
     ],
     "musicKeywords": [
+      "gentle",
+      "calm",
       "playful acoustic",
       "tribal percussion",
       "adventure folk",
       "warm marimba",
       "jungle rhythm",
-      "curious whimsical"
+      "curious whimsical",
+      "bright",
+      "happy"
     ],
     "sfxPalette": {
       "transition": "whoosh",
@@ -96,7 +100,8 @@
       "energyBoost": 1,
       "sfxDensity": "rich",
       "ambient": true
-    }
+    },
+    "archetype": "warm"
   },
   "media": {
     "requiredAssets": {

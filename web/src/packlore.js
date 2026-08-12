@@ -84,30 +84,6 @@ export const PACK_LORE = {
     vibe: "Hand-warm illustration, blush palette, organic shapes. Friendly and human.",
     filmGrad: "linear-gradient(135deg,#ff7aa8,#ffd166,#8ad9b0)",
   },
-  "longshot-cinema": {
-    name: "Longshot Cinema", tag: "ONE-TAKE · FILM", bg: "#101318", ink: "#F2F5F9", accent: "#FFB454",
-    chips: ["#FFB454", "#4D9FFF", "#F2F5F9"],
-    grad: "radial-gradient(120% 90% at 30% 0%, #1a2029, #0A0C10 65%)",
-    font: "'Bricolage Grotesque'", tracking: "-.03em", demo: "One Take.",
-    vibe: "A single camera travels through every scene — letterbox, live timecode, pop-up figures, light sweeps. The anti-slideshow.",
-    filmGrad: "linear-gradient(135deg,#FFB454,#4D9FFF 55%,#0A0C10)",
-  },
-  "summit-keynote": {
-    name: "Summit Keynote", tag: "PITCH · 3D", bg: "#F7F8FC", ink: "#10214B", accent: "#2B5BFF",
-    chips: ["#2B5BFF", "#10214B", "#D4A94E"],
-    grad: "radial-gradient(circle at 78% 22%, rgba(43,91,255,.14), transparent 55%), radial-gradient(circle at 18% 80%, rgba(212,169,78,.12), transparent 50%)",
-    font: "'Bricolage Grotesque'", tracking: "-.02em", demo: "The Round Closes",
-    vibe: "Porcelain keynote stage, navy ink, one cobalt beam + champagne gold, a 3D data constellation drifting behind the numbers. Built for pitches.",
-    filmGrad: "linear-gradient(135deg,#F7F8FC,#2B5BFF 60%,#10214B)",
-  },
-  "prism-launch": {
-    name: "Prism Launch", tag: "LAUNCH · 3D", bg: "#FAFAFC", ink: "#0E0F14", accent: "#FF5A3C",
-    chips: ["#8B7CF6", "#5AD7E6", "#FFA3C0"],
-    grad: "linear-gradient(120deg, rgba(139,124,246,.16), rgba(90,215,230,.14) 50%, rgba(255,163,192,.16))",
-    font: "'Bricolage Grotesque'", tracking: "-.03em", demo: "Reveal Day",
-    vibe: "Gallery-white studio, carbon type, iridescent prism shards rotating in 3D, one ember-hot CTA. Built for product launches.",
-    filmGrad: "linear-gradient(135deg,#8B7CF6,#5AD7E6,#FFA3C0)",
-  },
   "fable-storybook": {
     name: "Fable Storybook", tag: "STORY · 3D", bg: "#FAF5EA", ink: "#33261A", accent: "#D8734B",
     chips: ["#D8734B", "#7FA37C", "#7A93B8"],
@@ -260,14 +236,6 @@ export const PACK_LORE = {
     vibe: "An annotated product tour — your screenshots inside real browser and phone chrome, with arrows that draw themselves, numbered callouts, a pulsing highlight and a cursor that clicks. Bright paper, soft colour blobs, paper planes. Built landscape, for products whose story IS their interface.",
     filmGrad: "linear-gradient(135deg,#2F6BFF,#131722)",
   },
-  "kinetic-universe": {
-    name: "Kinetic Universe", tag: "COSMIC · 9:16", bg: "#040509", ink: "#F2F5FC", accent: "#7A5AE0",
-    chips: ["#7A5AE0", "#22D3EE", "#F0459B"],
-    grad: "radial-gradient(circle at 30% 25%, rgba(122,90,224,.5), transparent 55%), radial-gradient(circle at 78% 78%, rgba(34,211,238,.42), transparent 55%)",
-    font: "'Bricolage Grotesque'", tracking: "-.03em", demo: "Prompt to Video",
-    vibe: "A living cosmos — drifting light beams, a perspective grid and a parallax starfield flowing behind kinetic gradient headlines and floating screenshot frames. Brand color repaints the whole universe. Built vertical for Reels, Shorts & TikTok.",
-    filmGrad: "linear-gradient(135deg,#7A5AE0,#22D3EE,#F0459B)",
-  },
 
   "prisma-bloc": {
     name: "Prisma Bloc", tag: "COLOUR BLOCK · 9:16", bg: "#FFF6EA", ink: "#12100E", accent: "#FF4D2E",
@@ -339,78 +307,6 @@ export const PACK_LORE = {
   },
 
   // ── Imported OM portrait pack — native GSAP + hf-seek canvas, brand recolors everything ──
-  "product-showcase": {
-    name: "Product Showcase Pro", tag: "STUDIO · 9:16", bg: "#0B0C12", ink: "#F3F5FB", accent: "#FF6A3D",
-    chips: ["#FF6A3D", "#FFD1B8", "#12131B"],
-    grad: "radial-gradient(circle at 50% 22%, rgba(255,106,61,.42), transparent 55%), radial-gradient(ellipse at 50% 78%, rgba(255,106,61,.28), transparent 60%)",
-    font: "'Bricolage Grotesque'", tracking: "-.02em", demo: "Every angle sells",
-    vibe: "A lit studio stage — a back-wall spotlight, reflective floor, drifting beams and light dust behind a hero product that rises on a turntable in a rim-lit frame. Brand color repaints the whole studio. Vertical for Reels, Shorts & TikTok.",
-    filmGrad: "linear-gradient(135deg,#FF6A3D,#FFB07A,#0B0C12)",
-  },
-  "neo-dashboard": {
-    name: "Neo Dashboard", tag: "SAAS · 9:16", bg: "#070912", ink: "#EAF0FF", accent: "#6366F1",
-    chips: ["#6366F1", "#22D3EE", "#8B5CF6"],
-    grad: "radial-gradient(circle at 28% 24%, rgba(99,102,241,.4), transparent 55%), radial-gradient(circle at 82% 80%, rgba(34,211,238,.3), transparent 55%)",
-    font: "'Bricolage Grotesque'", tracking: "-.02em", demo: "Data, alive",
-    vibe: "A dark SaaS analytics dashboard coming alive — counting KPI cards, self-drawing charts and real dashboard screenshots in browser frames on a subtle data-grid. Brand color repaints the whole interface. Vertical.",
-    filmGrad: "linear-gradient(135deg,#6366F1,#22D3EE,#070912)",
-  },
-  "ai-laboratory": {
-    name: "AI Laboratory", tag: "AI LAB · 9:16", bg: "#05060D", ink: "#EAFFF9", accent: "#00E5C0",
-    chips: ["#00E5C0", "#5B8CFF", "#0B1020"],
-    grad: "radial-gradient(circle at 32% 30%, rgba(0,229,192,.4), transparent 55%), radial-gradient(circle at 76% 74%, rgba(91,140,255,.3), transparent 55%)",
-    font: "'Bricolage Grotesque'", tracking: "-.02em", demo: "Synthesizing…",
-    vibe: "A neural research lab — a living lattice of glowing nodes and connections that pulse and fire, holographic screenshot panels and electric readouts on deep near-black. Brand color repaints the whole network. Vertical.",
-    filmGrad: "linear-gradient(135deg,#00E5C0,#5B8CFF,#05060D)",
-  },
-  "aurora-motion": {
-    name: "Aurora Motion", tag: "AURORA · 9:16", bg: "#080511", ink: "#F2EEFF", accent: "#8B5CF6",
-    chips: ["#8B5CF6", "#2DD4BF", "#1A1030"],
-    grad: "radial-gradient(ellipse at 30% 30%, rgba(139,92,246,.45), transparent 55%), radial-gradient(ellipse at 75% 70%, rgba(45,212,191,.4), transparent 55%)",
-    font: "'Bricolage Grotesque'", tracking: "-.02em", demo: "Northern lights",
-    vibe: "Ambient aurora — flowing ribbons and curtains of light drifting over a dark sky under minimal elegant glass typography. Calm, premium, dreamy. Brand color repaints the aurora. Vertical.",
-    filmGrad: "linear-gradient(135deg,#8B5CF6,#2DD4BF,#080511)",
-  },
-  "digital-universe": {
-    name: "Digital Universe", tag: "DATA-COSMOS · 9:16", bg: "#03040A", ink: "#EAF1FF", accent: "#4F7CFF",
-    chips: ["#4F7CFF", "#22E0C8", "#A66BFF"],
-    grad: "radial-gradient(circle at 30% 26%, rgba(79,124,255,.42), transparent 55%), radial-gradient(circle at 78% 78%, rgba(166,107,255,.34), transparent 55%)",
-    font: "'Bricolage Grotesque'", tracking: "-.03em", demo: "Enter the grid",
-    vibe: "A data-cosmos inside the machine — particle depth fields, network lines and a receding 3D data-grid behind kinetic gradient headlines and HUD screenshot panels. Brand color repaints the whole grid. Vertical.",
-    filmGrad: "linear-gradient(135deg,#4F7CFF,#22E0C8,#03040A)",
-  },
-  "editorial-motion": {
-    name: "Editorial Motion", tag: "EDITORIAL · 9:16", bg: "#FAF9F6", ink: "#17150F", accent: "#B4302A",
-    chips: ["#B4302A", "#17150F", "#EFECE4"],
-    grad: "radial-gradient(circle at 78% 22%, rgba(180,48,42,.18), transparent 55%)",
-    font: "'Bricolage Grotesque'", tracking: "-.01em", demo: "The Issue",
-    vibe: "A print-magazine kinetic-typography film on living cream paper — oversized serif headlines reveal word-by-word, hairline rules draw, and figure plates uncover screenshots via a paper-wipe. Brand color paints the rules, highlights and CTA. Vertical.",
-    filmGrad: "linear-gradient(135deg,#B4302A,#7A756A,#FAF9F6)",
-  },
-  "glass-dimension": {
-    name: "Glass Dimension", tag: "GLASS · 9:16", bg: "#0A0A14", ink: "#FFFFFF", accent: "#6366F1",
-    chips: ["#6366F1", "#EC4899", "#12121F"],
-    grad: "radial-gradient(circle at 30% 28%, rgba(99,102,241,.42), transparent 55%), radial-gradient(circle at 76% 74%, rgba(236,72,153,.36), transparent 55%)",
-    font: "'Bricolage Grotesque'", tracking: "-.02em", demo: "Frosted depth",
-    vibe: "Glassmorphism depth — layered frosted-glass panels floating over drifting accent light-orbs; titles, stat cards and screenshots all live in glass. Brand color paints the light behind the glass. Vertical.",
-    filmGrad: "linear-gradient(135deg,#6366F1,#EC4899,#0A0A14)",
-  },
-  "living-city": {
-    name: "Living City", tag: "NEON CITY · 9:16", bg: "#04050C", ink: "#EAF6FF", accent: "#22D3EE",
-    chips: ["#22D3EE", "#F0459B", "#0A1420"],
-    grad: "radial-gradient(ellipse at 50% 90%, rgba(34,211,238,.4), transparent 55%), radial-gradient(circle at 78% 24%, rgba(240,69,155,.28), transparent 55%)",
-    font: "'Bricolage Grotesque'", tracking: "-.02em", demo: "After dark",
-    vibe: "A living neon skyline at night — parallax buildings, twinkling windows, a glowing horizon and traffic streaks, with screenshots as holographic billboards. Brand color repaints the whole city. Vertical.",
-    filmGrad: "linear-gradient(135deg,#22D3EE,#F0459B,#04050C)",
-  },
-  "minimal-luxury": {
-    name: "Minimal Luxury", tag: "LUXURY · 9:16", bg: "#F6F3ED", ink: "#1A1712", accent: "#9A7B3D",
-    chips: ["#9A7B3D", "#1A1712", "#E7E0D3"],
-    grad: "radial-gradient(circle at 68% 30%, rgba(154,123,61,.16), transparent 55%)",
-    font: "'Bricolage Grotesque'", tracking: "0", demo: "Quiet luxury",
-    vibe: "Minimalist luxury — vast negative space, one elegant serif headline, thin gold hairlines and wide-tracked small caps over warm ivory, with slow tasteful fades. Brand color paints the hairlines and CTA. Vertical.",
-    filmGrad: "linear-gradient(135deg,#9A7B3D,#C7B182,#F6F3ED)",
-  },
   "motion-canvas": {
     name: "Motion Canvas", tag: "MOTION GFX · 9:16", bg: "#F2EDE3", ink: "#171310", accent: "#FF5A3C",
     chips: ["#FF5A3C", "#2C6BED", "#171310"],
@@ -418,14 +314,6 @@ export const PACK_LORE = {
     font: "'Bricolage Grotesque'", tracking: "-.03em", demo: "Shapes in motion",
     vibe: "An abstract motion-graphics reel — bold geometric shapes assemble and sweep on a soft dot grid, kinetic type snaps, screenshots mask into shapes. Brand color paints every shape and stroke. Vertical.",
     filmGrad: "linear-gradient(135deg,#FF5A3C,#2C6BED,#F2EDE3)",
-  },
-  "nature-flow": {
-    name: "Nature Flow", tag: "ORGANIC · 9:16", bg: "#08160F", ink: "#EBFBF0", accent: "#4CAF6E",
-    chips: ["#4CAF6E", "#2E9E8F", "#0C2018"],
-    grad: "radial-gradient(ellipse at 32% 30%, rgba(76,175,110,.4), transparent 55%), radial-gradient(ellipse at 76% 74%, rgba(46,158,143,.34), transparent 55%)",
-    font: "'Bricolage Grotesque'", tracking: "-.01em", demo: "Breathe",
-    vibe: "An organic living ecosystem — flowing gradient waves, drifting leaves and water ripples behind serene serif headlines and leaf-framed screenshots. Brand color repaints the whole flora. Vertical.",
-    filmGrad: "linear-gradient(135deg,#4CAF6E,#2E9E8F,#08160F)",
   },
   "paper-craft": {
     name: "Paper Craft", tag: "PAPERCRAFT · 9:16", bg: "#F1E7D3", ink: "#2A2117", accent: "#E07A3F",
@@ -435,28 +323,19 @@ export const PACK_LORE = {
     vibe: "A warm handcrafted cut-paper collage — layered construction-paper shapes pop up and fold in with a tactile bounce; screenshots paste onto paper cards. Brand color tints every paper layer. Vertical.",
     filmGrad: "linear-gradient(135deg,#E07A3F,#C79A5E,#F1E7D3)",
   },
-  "retro-future": {
-    name: "Retro Future", tag: "SYNTHWAVE · 9:16", bg: "#080316", ink: "#FFEAFA", accent: "#FF2E97",
-    chips: ["#FF2E97", "#22D3EE", "#1A0730"],
-    grad: "radial-gradient(ellipse at 50% 78%, rgba(255,46,151,.42), transparent 55%), radial-gradient(circle at 50% 32%, rgba(34,211,238,.3), transparent 50%)",
-    font: "'Bricolage Grotesque'", tracking: "-.01em", demo: "Outrun",
-    vibe: "80s synthwave — a neon perspective grid rushing to a glowing horizon sun, chrome type and CRT-framed screenshots. Brand color repaints the grid, sun and neon. Vertical.",
-    filmGrad: "linear-gradient(135deg,#FF2E97,#22D3EE,#080316)",
-  },
 };
 
 export const PACK_ORDER = [
-  // Portrait 9:16 packs lead (prisma-bloc + the imported OM templates + kinetic-universe).
+  // Portrait 9:16 packs lead (prisma-bloc + the imported OM templates).
   "prisma-bloc", "organic-garden", "lantern-night", "daybreak-bakehouse", "story-blocks", "poster-pop",
-  "premiere-night", "hype-wave", "kinetic-universe", "grid-dispatch", "slab-stage", "product-showcase", "neo-dashboard", "glass-dimension", "aurora-motion",
-  "ai-laboratory", "digital-universe", "retro-future", "living-city", "motion-canvas",
-  "editorial-motion", "minimal-luxury", "nature-flow", "paper-craft",
+  "premiere-night", "hype-wave", "grid-dispatch", "slab-stage",
+  "motion-canvas", "paper-craft",
   "reel",
   "showcase-vertical",
   "flight-vertical",
   "teampulse",
   // Landscape / other packs.
-  "showcase", "orbit", "hacker", "fetch", "drive", "jungle", "deep", "momentum", "pipeline", "flight", "fight", "edition", "longshot-cinema", "summit-keynote", "prism-launch", "fable-storybook",
+  "showcase", "orbit", "hacker", "fetch", "drive", "jungle", "deep", "momentum", "pipeline", "flight", "fight", "edition", "fable-storybook",
   "blockframe", "biennale-yellow", "midnight-glass", "noir-spotlight", "vapor-chrome",
   "aurora-spectrum", "bauhaus-print", "kinetic-bold", "mono-corporate", "bloom-illustrated",
 ];
@@ -469,22 +348,62 @@ const FALLBACK_LORE = {
   filmGrad: "linear-gradient(135deg,#b9f24a,#3cf0c0)",
 };
 
-// Lore for a server pack name; tolerant of key drift (prefix match), always returns something.
+// Lore for a server pack name. EXACT MATCH ONLY.
+//
+// This used to fall back to a PREFIX match — `packName.startsWith(k.split("-")[0])` — which
+// was a tolerable guess at 14 packs and is actively wrong at 116: "bloom-market" resolved to
+// bloom-fable's lore, "paper-cut" to paper-craft's and "jungle-trek" to jungle's, so those
+// cards showed another template's NAME, ACCENT, CHIPS and VIBE. A card that describes a
+// different template is worse than a plain one. Prefer `loreForPack`, which derives a correct
+// card from the pack's own manifest instead of guessing at a neighbour's.
 export function loreFor(packName) {
   if (!packName) return FALLBACK_LORE;
   if (PACK_LORE[packName]) return PACK_LORE[packName];
-  const hit = Object.keys(PACK_LORE).find(
-    (k) => k.startsWith(packName) || packName.startsWith(k.split("-")[0])
-  );
-  return hit ? PACK_LORE[hit] : { ...FALLBACK_LORE, name: packName };
+  return { ...FALLBACK_LORE, name: packName };
+}
+
+const readable = (hex) => {
+  const h = String(hex || "").replace("#", "");
+  if (h.length !== 6) return "#f2f4ec";
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+  const f = (c) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b) > 0.45 ? "#17130e" : "#f7f5f0";
+};
+
+// A card built from what the SERVER already knows about the pack. /api/frames returns the
+// manifest's label, vibe, category, ground, colors and accents, so every installed pack can
+// present itself correctly whether or not anyone hand-wrote lore for it.
+export function loreForPack(pack) {
+  if (!pack || !pack.name) return FALLBACK_LORE;
+  const authored = PACK_LORE[pack.name];
+  if (authored) return authored;
+  const colors = Array.isArray(pack.colors) ? pack.colors.filter(Boolean) : [];
+  const accents = (Array.isArray(pack.accents) ? pack.accents.filter(Boolean) : []);
+  const accent = accents[0] || colors[1] || colors[0] || FALLBACK_LORE.accent;
+  const bg = pack.ground || colors[0] || FALLBACK_LORE.bg;
+  const chips = [...new Set([...accents, ...colors])].slice(0, 3);
+  return {
+    name: pack.label || pack.name,
+    tag: String(pack.category || (pack.orientation === "portrait" ? "9:16" : "PACK")).toUpperCase(),
+    bg,
+    ink: readable(bg),
+    accent,
+    chips: chips.length ? chips : FALLBACK_LORE.chips,
+    grad: "none",
+    font: pack.displayFont ? `'${pack.displayFont}'` : FALLBACK_LORE.font,
+    tracking: "-.01em",
+    demo: pack.label || pack.name,
+    vibe: pack.vibe || FALLBACK_LORE.vibe,
+    filmGrad: `linear-gradient(135deg, ${(chips.length ? chips : [accent]).join(", ")})`,
+  };
 }
 
 // Gallery filter pills — the design's list, remapped to server pack names.
 export const GALLERY_FILTERS = [
   ["all", "ALL FILMS"], ["prisma-bloc", "PRISMA"], ["organic-garden", "GARDEN"], ["lantern-night", "LANTERN"],
   ["poster-pop", "POSTER"], ["premiere-night", "PREMIERE"], ["hype-wave", "HYPE"], ["story-blocks", "BLOCKS"],
-  ["daybreak-bakehouse", "DAYBREAK"], ["kinetic-universe", "KINETIC"], ["grid-dispatch", "DISPATCH"], ["slab-stage", "SLAB"], ["showcase", "SHOWCASE"], ["orbit", "ORBIT"], ["hacker", "HACKER"], ["teampulse", "TEAMPULSE"], ["fetch", "FETCH"], ["drive", "DRIVE"], ["jungle", "JUNGLE"], ["deep", "DEEP"], ["momentum", "MOMENTUM"], ["pipeline", "PIPELINE"], ["flight-vertical", "FLIGHT V"], ["flight", "FLIGHT"], ["showcase-vertical", "SHOWCASE V"], ["reel", "REEL"], ["fight", "FIGHT"], ["edition", "EDITION"], ["longshot-cinema", "LONGSHOT"],
-  ["summit-keynote", "SUMMIT"], ["prism-launch", "PRISM"], ["fable-storybook", "FABLE"], ["blockframe", "BLOCKFRAME"], ["biennale-yellow", "BIENNALE"],
+  ["daybreak-bakehouse", "DAYBREAK"], ["grid-dispatch", "DISPATCH"], ["slab-stage", "SLAB"], ["showcase", "SHOWCASE"], ["orbit", "ORBIT"], ["hacker", "HACKER"], ["teampulse", "TEAMPULSE"], ["fetch", "FETCH"], ["drive", "DRIVE"], ["jungle", "JUNGLE"], ["deep", "DEEP"], ["momentum", "MOMENTUM"], ["pipeline", "PIPELINE"], ["flight-vertical", "FLIGHT V"], ["flight", "FLIGHT"], ["showcase-vertical", "SHOWCASE V"], ["reel", "REEL"], ["fight", "FIGHT"], ["edition", "EDITION"],
+  ["fable-storybook", "FABLE"], ["blockframe", "BLOCKFRAME"], ["biennale-yellow", "BIENNALE"],
   ["midnight-glass", "MIDNIGHT"], ["vapor-chrome", "VAPOR"], ["aurora-spectrum", "AURORA"],
   ["bloom-illustrated", "BLOOM"], ["noir-spotlight", "NOIR"],
 ];

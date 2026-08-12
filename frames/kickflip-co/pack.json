@@ -1,0 +1,173 @@
+{
+  "name": "kickflip-co",
+  "vibe": "Sun-bleached concrete (#d8d4cc) under charcoal ink and one traffic-cone orange (#ff4d00), with Bungee stacking headlines like a hand-painted park sign. A single ink line draws the coping of a bowl right across the frame, and an orange board actually skates it — rolling wall to wall, popping about 200px into the air at each lip and whipping a full 160° rotation before it lands, wobbling 8° through the flat. An orange grind-spark scrawl sits in the top corner; pebbles scatter on the deck. Everything slams: titles and items share the hardest entrance, the camera spins and skews 6°, montage tiles cock up to 4°. Statements go black, the closer floods orange. Mechanics: a combo-line key cursor, a rebuild progress bar, park alerts and a rolling morph. Best for skate shops, DIY builds and scrappy local sport.",
+  "orientation": "portrait",
+  "category": "Sport",
+  "tags": [
+    "skateboarding",
+    "concrete",
+    "diy",
+    "punk",
+    "orange",
+    "youth",
+    "park",
+    "local-brand"
+  ],
+  "renderer": "film-kickflip-co",
+  "colors": {
+    "crete": "#d8d4cc",
+    "ink": "#191a1c",
+    "safety": "#ff4d00",
+    "sky": "#4fa3d1",
+    "grip": "#2e2e30",
+    "ground": "#d8d4cc",
+    "text": "#191a1c",
+    "accent": "#ff4d00",
+    "paper": "#d8d4cc"
+  },
+  "fonts": [
+    "Bungee",
+    "Rubik"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#d8d4cc",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#ff4d00",
+      "#d8d4cc"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "harsh-daylight fisheye skate photography on grey concrete — a board mid-rotation against a flat sky, scuffed coping and grip tape, blown highlights and hard shadows",
+    "iconStyle": "solid",
+    "keywords": [
+      "skateboard mid air",
+      "concrete bowl coping",
+      "skate park daylight",
+      "grip tape deck",
+      "deck graphics wall",
+      "street spot ledge",
+      "skate shop counter",
+      "scuffed wheels"
+    ],
+    "prefer": [
+      "photo",
+      "vector",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Bungee",
+    "body": "Rubik"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "scrappy and loud — a session that starts before anyone stretches",
+    "archetype": "hype",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "fuzz guitar",
+      "punk kit",
+      "surf reverb",
+      "gang shouts"
+    ],
+    "musicKeywords": [
+      "garage rock",
+      "jangle pop",
+      "twang riff",
+      "power chords",
+      "skate rock",
+      "amp buzz",
+      "snare slam",
+      "distorted shout",
+      "hardcore stomp",
+      "thrash tempo",
+      "blast beat",
+      "riot noise"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "ui-click",
+      "reveal": "pop",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

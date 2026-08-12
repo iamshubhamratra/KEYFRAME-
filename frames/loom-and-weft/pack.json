@@ -1,0 +1,173 @@
+{
+  "name": "loom-and-weft",
+  "vibe": "Undyed linen (#efe4d0) with madder red (#b5503c), indigo and olive — a natural dyer's palette. Cardo sets bookish serif headlines over Karla. The world is a working loom: eighteen warp threads run the full height and alternate lift on a shed cycle, while a shuttle travels the full width and flips at each selvedge to come back. It is the only pack here whose backdrop is a mechanism doing real work. Its mechanics are an assembling drag, a card stack, checkboxes and a rolling word. Best for textiles and fashion, makers and manufacturing, heritage crafts and supply-chain stories.",
+  "orientation": "portrait",
+  "category": "Craft",
+  "tags": [
+    "weaving",
+    "textile",
+    "craft",
+    "linen",
+    "natural-dye",
+    "heritage",
+    "manufacturing",
+    "serif"
+  ],
+  "renderer": "film-loom-and-weft",
+  "colors": {
+    "linen": "#efe4d0",
+    "madder": "#b5503c",
+    "indigo": "#3b4a6b",
+    "olive": "#7d8556",
+    "ink": "#2a231a",
+    "ground": "#efe4d0",
+    "text": "#2a231a",
+    "accent": "#b5503c",
+    "paper": "#efe4d0"
+  },
+  "fonts": [
+    "Cardo",
+    "Karla"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#efe4d0",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#b5503c",
+      "#2a231a",
+      "#efe4d0"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "warm workshop photography — raw yarn, dyed skeins and timber machinery in soft side light, natural undyed tones with one madder accent",
+    "iconStyle": "line",
+    "keywords": [
+      "handloom weaving",
+      "yarn skeins",
+      "textile workshop",
+      "natural dye vats",
+      "woven fabric detail",
+      "spinning wheel",
+      "artisan hands"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Cardo",
+    "body": "Karla"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "steady industry — a rhythm that has run all day",
+    "archetype": "warm",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "hand percussion",
+      "acoustic guitar",
+      "workshop rhythm",
+      "folk strings"
+    ],
+    "musicKeywords": [
+      "loom rhythm",
+      "weft hush",
+      "textile calm",
+      "spinning wheel",
+      "shuttle pass",
+      "warp pulse",
+      "dye workshop",
+      "handloom groove",
+      "treadle tempo",
+      "weaving drums",
+      "mill machinery",
+      "power loom"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

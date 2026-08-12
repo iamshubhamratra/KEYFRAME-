@@ -1,0 +1,171 @@
+{
+  "name": "lock-and-legend",
+  "vibe": "Mahogany #3a2618 and #1c1410 ink lit by brass #c9a24b, with oxblood #7a2e2e saved for the things that count down. Cinzel's inscriptional capitals stamp in from 1.7× scale with a 6° twist; Radio Canada does the plain speaking. The world is a Victorian study that is also a puzzle: a wall clock whose oxblood second hand sweeps in real time above a slow brass hour hand, two counter-rotating cog wheels, a keyhole monument throwing a faint brass light beam, and a brass padlock at the front whose shackle actually swings open partway through every single beat. This is the most restless camera here — the set steps by seven, rotation 0.8, a spin move included, and only a 20% settle before the title lands.",
+  "orientation": "portrait",
+  "category": "Entertainment",
+  "tags": [
+    "dark",
+    "mahogany",
+    "brass",
+    "escape-room",
+    "mystery",
+    "cinzel",
+    "countdown",
+    "puzzle"
+  ],
+  "renderer": "film-lock-and-legend",
+  "colors": {
+    "mahog": "#3a2618",
+    "brass": "#c9a24b",
+    "oxblood": "#7a2e2e",
+    "paper": "#e8dcc0",
+    "ink": "#1c1410",
+    "ground": "#3a2618",
+    "text": "#e8dcc0",
+    "accent": "#c9a24b"
+  },
+  "fonts": [
+    "Cinzel",
+    "Radio Canada"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#3a2618",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#c9a24b",
+      "#3a2618"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "warm tungsten-lit photograph of a Victorian study interior — mahogany, brass instruments, leather and candlelight, shallow depth of field, deep shadows",
+    "iconStyle": "line",
+    "keywords": [
+      "escape room",
+      "padlock",
+      "brass key",
+      "victorian study",
+      "pocket watch",
+      "cipher wheel",
+      "candlelight",
+      "antique cogs"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Cinzel",
+    "body": "Radio Canada"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "candlelit puzzle tension; clockwork under a low ceiling",
+    "archetype": "retro",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "orchestral suspense",
+      "pizzicato",
+      "clockwork percussion"
+    ],
+    "musicKeywords": [
+      "harpsichord mystery",
+      "candlelit strings",
+      "victorian detective",
+      "parlour intrigue",
+      "keyhole minuet",
+      "brass cipher",
+      "cogwheel march",
+      "ticking metronome",
+      "vault heist",
+      "escape tension",
+      "countdown timpani",
+      "chase gallop"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "ui-click",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

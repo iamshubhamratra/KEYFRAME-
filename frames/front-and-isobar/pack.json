@@ -1,0 +1,175 @@
+{
+  "name": "front-and-isobar",
+  "vibe": "The one chart-paper ground here: aged cream (#f0ead8) under met-blue isobars (#2e5fb3), with warning orange (#e8641f) reserved for the low. Space Mono sets the display — a monospace title face — against Familjen Grotesk body copy, so it reads like a station log rather than a poster. The backdrop is a live synoptic chart: four pressure contours undulate across the full width at falling opacity, labelled 1016 and 1012 in mono; a warm front sweeps left to right at 60px/s with three solid pips riding its arc; two ink wind barbs rock on their staffs; blue wind ticks scroll downward; and an orange dashed circle marked L rotates over the low. Montage tiles have zero tilt and stats carry hairline rules. It owns a METAR terminal, a barometer gauge, a station board and drop-in alerts.",
+  "orientation": "portrait",
+  "category": "Science",
+  "tags": [
+    "weather",
+    "data",
+    "monospace",
+    "instrumentation",
+    "chart-paper",
+    "observability",
+    "light-ground",
+    "forecast"
+  ],
+  "renderer": "film-front-and-isobar",
+  "colors": {
+    "chart": "#f0ead8",
+    "isobar": "#2e5fb3",
+    "warn": "#e8641f",
+    "slate": "#37424e",
+    "ink": "#1e242c",
+    "ground": "#f0ead8",
+    "text": "#1e242c",
+    "accent": "#e8641f",
+    "paper": "#f0ead8"
+  },
+  "fonts": [
+    "Space Mono",
+    "Familjen Grotesk"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#f0ead8",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#e8641f",
+      "#2e5fb3",
+      "#f0ead8"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "crisp overcast documentary photograph of a hilltop weather station, Stevenson screen and spinning anemometer against fast-moving cloud",
+    "iconStyle": "line",
+    "keywords": [
+      "weather station",
+      "anemometer",
+      "synoptic chart",
+      "barometer dial",
+      "stevenson screen",
+      "rain gauge",
+      "storm clouds",
+      "meteorology instruments",
+      "logbook readings"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo",
+      "illustration"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Space Mono",
+    "body": "Familjen Grotesk"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "measured and instrument-precise, with weather coming — calm readings over a rising barometer",
+    "archetype": "tech",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "minimal electronic",
+      "instrument texture",
+      "coastal drone",
+      "ostinato piano"
+    ],
+    "musicKeywords": [
+      "harmonium hush",
+      "shipping forecast",
+      "tape hiss",
+      "celeste tick",
+      "barometer arpeggio",
+      "morse rhythm",
+      "gale swell",
+      "sequencer step",
+      "squall pulse",
+      "dub techno",
+      "storm surge",
+      "cyclone drive"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "data-ping",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

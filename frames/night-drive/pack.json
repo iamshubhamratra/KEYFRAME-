@@ -1,0 +1,175 @@
+{
+  "name": "night-drive",
+  "vibe": "Asphalt black (#0c0e14) under a cyan neon (#39e6d0) and a magenta counter-light. Orbitron sets the headlines as instrument-panel type over Exo 2 body copy. The world is a road at speed: lane markers stream past on a perspective floor, neon signage smears by, a horizon glow sits low, and the whole frame carries a faint dashboard reflection. Best for automotive, delivery and logistics, late-night apps, esports and anything that trades on velocity after dark.",
+  "orientation": "portrait",
+  "category": "Automotive",
+  "tags": [
+    "automotive",
+    "neon",
+    "night",
+    "speed",
+    "techno",
+    "cyan",
+    "dashboard",
+    "urban"
+  ],
+  "renderer": "film-night-drive",
+  "colors": {
+    "asphalt": "#0c0e14",
+    "midnight": "#080a10",
+    "panel": "#0a0d14",
+    "neon": "#39e6d0",
+    "magenta": "#e04fa3",
+    "amber": "#f5b942",
+    "paper": "#eef2f7",
+    "ground": "#0c0e14",
+    "text": "#eef2f7",
+    "accent": "#39e6d0",
+    "ink": "#080a10"
+  },
+  "fonts": [
+    "Orbitron",
+    "Exo 2"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#0c0e14",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#39e6d0",
+      "#e04fa3",
+      "#f5b942"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "long-exposure automotive night photography — wet asphalt reflecting neon, motion-streaked lights, cyan and magenta rim light on dark bodywork",
+    "iconStyle": "line",
+    "keywords": [
+      "car at night",
+      "neon city street",
+      "wet road reflection",
+      "dashboard lights",
+      "tunnel motion blur",
+      "headlight trails",
+      "underground garage"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot",
+      "vector"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Orbitron",
+    "body": "Exo 2"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "focused momentum — empty road, steady speed",
+    "archetype": "tech",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "analog synth",
+      "motorik drums",
+      "arpeggio",
+      "sidechain pad"
+    ],
+    "musicKeywords": [
+      "night highway",
+      "analog arp",
+      "motorik pulse",
+      "neon synthwave",
+      "retro drive",
+      "pulsing bassline",
+      "chrome arpeggio",
+      "midnight techno",
+      "driving synth",
+      "hard four",
+      "acid bass",
+      "peak techno"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "ui-click",
+      "reveal": "product-reveal",
+      "data": "data-ping",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
+  }
+}

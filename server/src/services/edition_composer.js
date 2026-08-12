@@ -147,6 +147,18 @@ function sLead(scene, ctx, shots) {
   const body = K.clampWords(String(scene.subtext || scene.body || ""), 220);
   const chips = K.bullets(scene, 3).map((b) => K.clampWords(String(b).toUpperCase(), 22));
   const headBot = U(480) + head.lines.length * head.size * 0.9 + U(40);
+  // STACK THE CHIP ROW BELOW THE BODY'S MEASURED HEIGHT, not below a fixed guess.
+  //
+  // The row used to sit at `headBot + U(120)` — a blind 120-unit gap that assumed the body copy
+  // was about three lines. `body` is an AI-authored paragraph clamped at 220 words, so on a long
+  // one it ran straight through the row's top rule and under the chips. The body's own box is
+  // known here (width, 27-unit type, 1.5 line-height), so its height can simply be measured: the
+  // same `th.adv` advance metric `fitLines` uses, against the width the paragraph actually gets.
+  const bodyW = Math.min(COL, U(640));
+  const bodyH = body
+    ? Math.max(1, Math.ceil((body.length * th.adv * U(27)) / bodyW)) * U(27) * 1.5
+    : 0;
+  const chipTop = headBot + (body ? bodyH + U(56) : U(40));
 
   return {
     backdrop: press(id, th),
@@ -155,8 +167,8 @@ function sLead(scene, ctx, shots) {
     ${K.ghostNum(th, { cls: `${id}-gn`, U, text: K.pad2(ctx.i + 1), x: M, y: U(150), size: U(300), color: th.accent })}
     ${ruleV(th, { cls: `${id}-rv`, x: M, y: U(470), h: U(1080) - U(470) - U(140) })}
     ${K.clipHead(th, { cls: `${id}-hd`, U, x: U(96), y: U(480), w: COL, lines: head.lines, size: head.size, lh: 0.9, measure: false })}
-    ${body ? `<div class="${id}-bd" style="position:absolute;left:${r(U(96))}cqw;top:${r(headBot)}cqw;width:${r(Math.min(COL, U(640)))}cqw;font-family:${th.bodyStack};font-size:${r(U(27))}cqw;line-height:1.5;color:${th.ink};opacity:0;">${esc(body)}</div>` : ""}
-    ${chips.length ? `<div style="position:absolute;left:${r(U(96))}cqw;top:${r(headBot + U(120))}cqw;width:${r(COL)}cqw;display:flex;flex-wrap:wrap;border-top:${r(U(2))}cqw solid ${th.ink};">
+    ${body ? `<div class="${id}-bd" style="position:absolute;left:${r(U(96))}cqw;top:${r(headBot)}cqw;width:${r(bodyW)}cqw;font-family:${th.bodyStack};font-size:${r(U(27))}cqw;line-height:1.5;color:${th.ink};opacity:0;">${esc(body)}</div>` : ""}
+    ${chips.length ? `<div style="position:absolute;left:${r(U(96))}cqw;top:${r(chipTop)}cqw;width:${r(COL)}cqw;display:flex;flex-wrap:wrap;border-top:${r(U(2))}cqw solid ${th.ink};">
       ${chips.map((c) => `<span class="${id}-ch" style="padding:${r(U(12))}cqw ${r(U(22))}cqw;border-right:${r(U(2))}cqw solid ${th.ink};font-family:${th.monoStack};font-weight:800;font-size:${r(U(15))}cqw;letter-spacing:0.08em;color:${th.ink};opacity:0;">${esc(c)}</span>`).join("")}
     </div>` : ""}
     ${K.figPlate(th, { cls: `${id}-p0`, U, x: U(1920) - M - U(900), y: U(150), w: U(900), h: U(780), shot, fig: "II", label: STRINGS.dashboard, shotFill: K.shotFill })}`,

@@ -77,12 +77,16 @@
       "storytelling"
     ],
     "musicKeywords": [
+      "gentle",
+      "calm",
       "acoustic storytelling",
       "soft piano",
       "gentle folk",
-      "calm storybook",
+      "calm folk",
       "warm acoustic",
-      "bright folk"
+      "bright folk",
+      "bright",
+      "happy"
     ],
     "sfxPalette": {
       "transition": "card-slide",
@@ -95,7 +99,8 @@
       "energyBoost": 1,
       "sfxDensity": "rich",
       "ambient": false
-    }
+    },
+    "archetype": "warm"
   },
   "media": {
     "requiredAssets": {

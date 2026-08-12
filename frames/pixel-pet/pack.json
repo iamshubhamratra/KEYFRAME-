@@ -1,0 +1,173 @@
+{
+  "name": "pixel-pet",
+  "vibe": "A handheld screen you can read across the room: #cfe8b8 mint LCD, #274029 pixels, one orange #e07a3f for alarm. Silkscreen bitmap caps over IBM Plex Mono, every beat uppercased, leading opened to 1.3 so lines read like status rows. The world is a 10-column dot grid at 12% opacity, a six-times-scaled sprite hopping on |sin(3t)| while gliding 220px each way, a pixel heart rising and fading above it, three ground blocks that jitter on a hard 2Hz step with no easing, and a white 6% scanline band sweeping down the frame. The camera translates only — zero rotation, zero skew — so pixels never smear. Mechanics: D-pad key presses, a segmented bar meter, side notifications, drag-to-feed. Best for games, toys, kids' apps and mascot-led products.",
+  "orientation": "portrait",
+  "category": "Retro",
+  "tags": [
+    "8-bit",
+    "game",
+    "virtual pet",
+    "mono type",
+    "retro",
+    "mobile app",
+    "playful",
+    "hardware toy"
+  ],
+  "renderer": "film-pixel-pet",
+  "colors": {
+    "mint": "#cfe8b8",
+    "shade": "#a8c890",
+    "dark": "#274029",
+    "accent": "#e07a3f",
+    "paper": "#f2f8e8",
+    "ink": "#1c2e1e",
+    "ground": "#cfe8b8",
+    "text": "#1c2e1e"
+  },
+  "fonts": [
+    "Silkscreen",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#cfe8b8",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#e07a3f",
+      "#cfe8b8",
+      "#274029"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "flash-lit close-up photograph of a handheld game console on a desk, chunky moulded plastic, green LCD glow, 1990s toy-catalogue lighting",
+    "iconStyle": "flat",
+    "keywords": [
+      "handheld console",
+      "pixel sprite",
+      "green lcd screen",
+      "game cartridge",
+      "d-pad buttons",
+      "arcade cabinet",
+      "pixel art creature",
+      "crt scanline"
+    ],
+    "prefer": [
+      "screenshot",
+      "illustration",
+      "photo"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Silkscreen",
+    "body": "IBM Plex Mono"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "Gleeful handheld mischief — bleepy, restless, always one beat from a level-up",
+    "archetype": "retro",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "chiptune",
+      "square-wave bass",
+      "fast arpeggios",
+      "noise-channel drums"
+    ],
+    "musicKeywords": [
+      "chiptune lullaby",
+      "handheld synth",
+      "square wave",
+      "bleep melody",
+      "game boy",
+      "bitpop",
+      "chiptune pop",
+      "pixel platformer",
+      "fast arpeggio",
+      "noise drums",
+      "chiptune punk",
+      "chiptune rave"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "ui-click",
+      "reveal": "pop",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
+  }
+}

@@ -401,6 +401,41 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
 
     const intakeBudgetMs = (Number(config.server.stageBudgetSec) || 480) * 1000;
 
+    // ---- PRODUCT UNDERSTANDING: the stage that stops a bare prompt producing a bare film.
+    //
+    // On the URL path this is a no-op — `shouldRun` returns false the moment the ingest
+    // produced real body text or headings, because a brief distilled from evidence beats a
+    // brief distilled from inference. It fires on the PROMPT-ONLY path, which is the one
+    // that had no research stage at all: brief.js received one sentence, system_brief.md
+    // rule 1 correctly forbade inventing anything, `mustIncludeFacts` came back empty, and
+    // system_script.md rule 3 ("facts only from the brief") left the writer with nothing
+    // concrete to say. That is the mechanical origin of the generic filler.
+    //
+    // The model it produces separates CATEGORY KNOWLEDGE (allowed, and what makes a script
+    // specific) from SPECIFIC CLAIMS (forbidden, and re-checked against the user's own words
+    // before it is allowed to become a quotable fact). It also carries `visualVocabulary` —
+    // literal, shootable subjects with an asset type and a priority — which the asset
+    // requirement planner uses instead of stripping stopwords out of a prose direction.
+    //
+    // Fail-open, and OUTSIDE the ingest cache gate so a regenerate can recover it.
+    if (config.productUnderstanding?.enabled && !intent.product) {
+      const t0 = ms();
+      try {
+        const pu = require("./product_understanding");
+        if (pu.shouldRun(intent)) {
+          db.setProgress(jobId, "understanding");
+          const res = await withBudget((signal) => pu.understandProduct({ intent, signal }), intakeBudgetMs, "product understanding");
+          if (res && res.product) {
+            tracker.addLlm({ inputTokens: res.tokensIn, outputTokens: res.tokensOut, stage: "product", model: res.model, provider: res.provider });
+            intent.product = res.product;
+            job.intent = intent;
+            timings.productMs = ms() - t0;
+            try { db.setProductModel(jobId, res.product); } catch { /* disclosure never blocks intake */ }
+          }
+        }
+      } catch (e) { console.warn(`[project] product understanding skipped: ${e.message}`); }
+    }
+
     let brief;
     if (skipBrief && job.brief) {
       brief = job.brief; // regenerate-script keeps the existing brief
@@ -430,7 +465,7 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
 
     const tScript = ms();
     db.setProgress(jobId, "script");
-    const scriptRes = await withBudget((signal) => generateScript({ brief, userAssets: intent.userAssets || null, signal, languageDirective: languagePlan?.scriptDirective || null }), intakeBudgetMs, "script stage");
+    const scriptRes = await withBudget((signal) => generateScript({ brief, userAssets: intent.userAssets || null, signal, languageDirective: languagePlan?.scriptDirective || null, product: intent.product || null }), intakeBudgetMs, "script stage");
     tracker.addLlm({ inputTokens: scriptRes.tokensIn, outputTokens: scriptRes.tokensOut, stage: "script", model: scriptRes.model, provider: scriptRes.provider });
     timings.scriptMs = ms() - tScript;
 

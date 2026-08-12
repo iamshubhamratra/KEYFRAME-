@@ -1,0 +1,174 @@
+{
+  "name": "spinnaker-cup",
+  "vibe": "Navy #12294a with regatta red #d94141, brass #c9a24b and sail white — and a CTA that flips the whole frame to white. Libre Bodoni's high-contrast didone sets uppercase titles; PT Sans does the numbers. The world is one boat racing: the entire rig heels to −12° and rocks on a slow sine while it bobs, mainsail white, spinnaker filled in red, brass burgee at the masthead; four swell lines scroll left at staggered speeds with only the top one in white; and a red mark buoy to the left bobs and rocks under its own flag. Drift is 9 on both axes, so the frame itself carries a swell. Items enter on streak, sliding in with a −12° skew. Beats: a semicircular needle gauge, a three-row race ticker running in alternating directions, trim switches, an odometer word roll.",
+  "orientation": "portrait",
+  "category": "Sport",
+  "tags": [
+    "navy",
+    "didone",
+    "sailing",
+    "regatta",
+    "brass",
+    "sport",
+    "uppercase",
+    "coastal"
+  ],
+  "renderer": "film-spinnaker-cup",
+  "colors": {
+    "navy": "#12294a",
+    "regatta": "#d94141",
+    "sail": "#f8f6f0",
+    "sea": "#2a6d9e",
+    "brass": "#c9a24b",
+    "ground": "#12294a",
+    "text": "#f8f6f0",
+    "accent": "#d94141",
+    "ink": "#12294a",
+    "paper": "#f8f6f0"
+  },
+  "fonts": [
+    "Libre Bodoni",
+    "PT Sans"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#12294a",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#d94141",
+      "#12294a",
+      "#c9a24b"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "sharp coastal sports photography of yachts racing under spinnaker — salt spray, hard directional sunlight, deep navy water and bleached white sailcloth",
+    "iconStyle": "line",
+    "keywords": [
+      "sailing yacht",
+      "regatta",
+      "spinnaker",
+      "mark buoy",
+      "crew hiking out",
+      "harbour",
+      "nautical flags",
+      "clubhouse"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot",
+      "illustration"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Libre Bodoni",
+    "body": "PT Sans"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "salt-spray composure; a crew that is working hard and not shouting",
+    "archetype": "luxury",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "cinematic strings",
+      "nautical adventure",
+      "driving percussion"
+    ],
+    "musicKeywords": [
+      "marina piano",
+      "yacht club",
+      "regatta overture",
+      "spinnaker run",
+      "windward swell",
+      "mainsail march",
+      "leeward sprint",
+      "crew cadence",
+      "brass fanfare",
+      "victory anthem",
+      "racing timpani",
+      "podium drums"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "ui-click",
+      "reveal": "product-reveal",
+      "data": "data-ping",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

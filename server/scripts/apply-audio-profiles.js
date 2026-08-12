@@ -27,38 +27,24 @@ const FRAMES = path.resolve(__dirname, "..", "..", "frames");
 
 // mood · energy · tempo · style[] · musicKeywords[] (calm → driving) · sfxPalette · noVo
 const PROFILES = {
-  "ai-laboratory": {
-    mood: "clinical", energy: "high", tempo: "fast",
-    style: ["electronic", "techno", "ambient tech", "idm"],
-    musicKeywords: ["ambient technology", "research laboratory", "electronic minimal", "neural tech", "driving electronic", "dark techno pulse"],
-    sfxPalette: { transition: "light-sweep", ui: "data-ping", reveal: "product-reveal", data: "counter-tick", cta: "cta-impact" },
-    noVo: { energyBoost: 1, sfxDensity: "rich", ambient: true },
-  },
-  "aurora-motion": {
-    mood: "dreamy", energy: "medium", tempo: "mid",
-    style: ["ambient", "chillout", "cinematic", "downtempo"],
-    musicKeywords: ["ambient dreamy", "soft cinematic pad", "atmospheric chillout", "aurora ambient", "flowing electronic", "uplifting ambient"],
-    sfxPalette: { transition: "light-sweep", ui: "soft-tap", reveal: "shimmer", data: "data-ping", cta: "logo-rise" },
-    noVo: { energyBoost: 1, sfxDensity: "rich", ambient: true },
-  },
   "aurora-spectrum": {
     mood: "calm", energy: "medium", tempo: "mid",
     style: ["ambient", "electronic", "corporate", "chillout"],
-    musicKeywords: ["calm ambient", "soft electronic", "modern corporate", "gradient chillout", "uplifting technology", "flowing electronic"],
+    musicKeywords: ["calm ambient", "soft electronic", "modern corporate", "atmospheric chillout", "uplifting technology", "flowing electronic"],
     sfxPalette: { transition: "light-sweep", ui: "soft-tap", reveal: "shimmer", data: "data-ping", cta: "logo-rise" },
     noVo: { energyBoost: 1, sfxDensity: "rich", ambient: true },
   },
   "bauhaus-print": {
     mood: "minimal", energy: "medium", tempo: "mid",
     style: ["minimal", "abstract", "jazz", "experimental"],
-    musicKeywords: ["minimal abstract", "modern creative", "geometric ambient", "playful minimal", "upbeat minimal", "abstract percussion"],
+    musicKeywords: ["minimal abstract", "modern creative", "rhythmic ambient", "playful minimal", "upbeat minimal", "abstract percussion"],
     sfxPalette: { transition: "card-slide", ui: "pop", reveal: "gentle-impact", data: "counter-tick", cta: "cta-impact" },
     noVo: { energyBoost: 1, sfxDensity: "rich", ambient: false },
   },
   "bauhaus-riot": {
     mood: "bold", energy: "high", tempo: "fast",
     style: ["minimal", "abstract", "percussion", "modern"],
-    musicKeywords: ["modern creative", "abstract minimal", "playful geometric", "rhythmic percussion", "bold upbeat", "driving abstract"],
+    musicKeywords: ["modern creative", "abstract minimal", "playful rhythmic", "rhythmic percussion", "bold upbeat", "driving abstract"],
     sfxPalette: { transition: "card-slide", ui: "pop", reveal: "gentle-impact", data: "counter-tick", cta: "cta-impact" },
     noVo: { energyBoost: 2, sfxDensity: "rich", ambient: false },
   },
@@ -72,21 +58,21 @@ const PROFILES = {
   "blockframe": {
     mood: "playful", energy: "high", tempo: "fast",
     style: ["pop", "funk", "indie", "upbeat"],
-    musicKeywords: ["upbeat pop", "playful funk", "quirky indie", "bright energetic", "punchy pop", "high energy funk"],
+    musicKeywords: ["upbeat pop", "playful funk", "quirky indie", "bright energetic", "powerful pop", "high energy funk"],
     sfxPalette: { transition: "whoosh", ui: "pop", reveal: "gentle-impact", data: "counter-tick", cta: "cta-impact" },
     noVo: { energyBoost: 2, sfxDensity: "rich", ambient: false },
   },
   "bloom-fable": {
     mood: "gentle", energy: "low", tempo: "slow",
     style: ["acoustic", "folk", "ukulele", "storytelling"],
-    musicKeywords: ["gentle acoustic", "soft ukulele", "storybook folk", "warm acoustic", "cheerful folk", "bright acoustic"],
+    musicKeywords: ["gentle acoustic", "soft ukulele", "gentle folk", "warm acoustic", "cheerful folk", "bright acoustic"],
     sfxPalette: { transition: "card-slide", ui: "soft-tap", reveal: "shimmer", data: "counter-tick", cta: "success" },
     noVo: { energyBoost: 1, sfxDensity: "rich", ambient: false },
   },
   "bloom-illustrated": {
     mood: "friendly", energy: "medium", tempo: "mid",
-    style: ["acoustic", "indie pop", "corporate", "warm"],
-    musicKeywords: ["warm acoustic", "friendly corporate", "soft indie pop", "optimistic acoustic", "upbeat friendly", "bright indie pop"],
+    style: ["acoustic", "indie", "corporate", "warm"],
+    musicKeywords: ["warm acoustic", "friendly corporate", "soft indie", "optimistic acoustic", "upbeat friendly", "bright indie"],
     sfxPalette: { transition: "card-slide", ui: "pop", reveal: "shimmer", data: "counter-tick", cta: "success" },
     noVo: { energyBoost: 1, sfxDensity: "rich", ambient: false },
   },
@@ -107,72 +93,44 @@ const PROFILES = {
   "daybreak-bakehouse": {
     mood: "warm", energy: "low", tempo: "slow",
     style: ["acoustic", "folk", "jazz", "morning"],
-    musicKeywords: ["warm acoustic morning", "gentle folk", "soft cafe jazz", "artisan acoustic", "cheerful morning", "upbeat acoustic"],
+    musicKeywords: ["warm acoustic morning", "gentle folk", "soft cafe jazz", "handmade acoustic", "cheerful morning", "upbeat acoustic"],
     sfxPalette: { transition: "card-slide", ui: "soft-tap", reveal: "shimmer", data: "counter-tick", cta: "success" },
     noVo: { energyBoost: 1, sfxDensity: "rich", ambient: true },
-  },
-  "digital-universe": {
-    mood: "futuristic", energy: "high", tempo: "fast",
-    style: ["electronic", "synthwave", "tech", "cinematic"],
-    musicKeywords: ["digital electronic", "futuristic technology", "cinematic electronic", "data pulse", "driving synth", "high energy electronic"],
-    sfxPalette: { transition: "light-sweep", ui: "data-ping", reveal: "product-reveal", data: "counter-tick", cta: "cta-impact" },
-    noVo: { energyBoost: 2, sfxDensity: "rich", ambient: true },
-  },
-  "editorial-motion": {
-    mood: "refined", energy: "medium", tempo: "mid",
-    style: ["jazz", "piano", "editorial", "acoustic"],
-    musicKeywords: ["refined piano", "editorial jazz", "elegant acoustic", "sophisticated minimal", "upbeat jazz", "driving editorial"],
-    sfxPalette: { transition: "card-slide", ui: "soft-tap", reveal: "gentle-impact", data: "counter-tick", cta: "logo-rise" },
-    noVo: { energyBoost: 1, sfxDensity: "rich", ambient: false },
   },
   "fable-storybook": {
     mood: "warm", energy: "low", tempo: "slow",
     style: ["acoustic", "folk", "storytelling", "orchestral"],
-    musicKeywords: ["soft storytelling", "gentle acoustic", "warm folk", "whimsical orchestral", "cheerful folk", "bright storybook"],
+    musicKeywords: ["soft storytelling", "gentle acoustic", "warm folk", "whimsical orchestral", "cheerful folk", "bright orchestral"],
     sfxPalette: { transition: "card-slide", ui: "soft-tap", reveal: "shimmer", data: "counter-tick", cta: "success" },
     noVo: { energyBoost: 1, sfxDensity: "normal", ambient: false },
   },
   "flagship": {
     mood: "premium", energy: "medium", tempo: "mid",
     style: ["cinematic", "electronic", "ambient", "corporate"],
-    musicKeywords: ["premium cinematic", "dark modern technology", "ambient electronic", "keynote cinematic", "driving cinematic", "epic technology"],
+    musicKeywords: ["premium cinematic", "dark modern technology", "ambient electronic", "inspiring cinematic", "driving cinematic", "epic technology"],
     sfxPalette: { transition: "light-sweep", ui: "soft-tap", reveal: "product-reveal", data: "counter-tick", cta: "logo-rise" },
     noVo: { energyBoost: 1, sfxDensity: "rich", ambient: false },
   },
   "grid-dispatch": {
     mood: "precise", energy: "medium", tempo: "mid",
-    style: ["minimal", "editorial", "documentary", "electronic"],
-    musicKeywords: ["minimal electronic", "documentary underscore", "precise rhythmic", "modern corporate clean", "understated tension", "editorial pulse"],
+    style: ["minimal", "underscore", "documentary", "electronic"],
+    musicKeywords: ["minimal electronic", "documentary underscore", "precise rhythmic", "modern corporate clean", "understated tension", "percussive pulse"],
     sfxPalette: { transition: "card-slide", ui: "ui-click", reveal: "gentle-impact", data: "counter-tick", cta: "cta-impact" },
     noVo: { energyBoost: 1, sfxDensity: "normal", ambient: false },
-  },
-  "glass-dimension": {
-    mood: "premium", energy: "medium", tempo: "mid",
-    style: ["ambient", "electronic", "chillout", "modern"],
-    musicKeywords: ["ambient premium", "soft electronic", "frosted chillout", "modern atmospheric", "flowing electronic", "uplifting modern"],
-    sfxPalette: { transition: "light-sweep", ui: "soft-tap", reveal: "shimmer", data: "data-ping", cta: "logo-rise" },
-    noVo: { energyBoost: 1, sfxDensity: "rich", ambient: true },
   },
   "hype-wave": {
     mood: "hype", energy: "high", tempo: "fast",
     style: ["hip hop", "trap", "pop", "electronic"],
-    musicKeywords: ["upbeat pop", "energetic hip hop", "youth anthem", "punchy trap", "high energy hype", "driving beat"],
+    musicKeywords: ["upbeat pop", "energetic hip hop", "youth anthem", "powerful trap", "high energy beat", "driving beat"],
     sfxPalette: { transition: "whoosh", ui: "pop", reveal: "product-reveal", data: "counter-tick", cta: "cta-impact" },
     noVo: { energyBoost: 2, sfxDensity: "rich", ambient: false },
   },
   "kinetic-bold": {
     mood: "bold", energy: "high", tempo: "fast",
     style: ["electronic", "rock", "percussion", "modern"],
-    musicKeywords: ["bold modern", "punchy electronic", "kinetic percussion", "driving rock", "high energy electronic", "aggressive beat"],
+    musicKeywords: ["bold modern", "powerful electronic", "heavy percussion", "driving rock", "high energy electronic", "aggressive beat"],
     sfxPalette: { transition: "whoosh", ui: "pop", reveal: "gentle-impact", data: "counter-tick", cta: "cta-impact" },
     noVo: { energyBoost: 2, sfxDensity: "rich", ambient: false },
-  },
-  "kinetic-universe": {
-    mood: "cosmic", energy: "high", tempo: "fast",
-    style: ["cinematic", "electronic", "ambient", "space"],
-    musicKeywords: ["cosmic ambient", "space cinematic", "deep electronic", "epic cinematic", "driving electronic", "powerful trailer"],
-    sfxPalette: { transition: "light-sweep", ui: "data-ping", reveal: "product-reveal", data: "counter-tick", cta: "logo-rise" },
-    noVo: { energyBoost: 2, sfxDensity: "rich", ambient: true },
   },
   "lantern-night": {
     mood: "serene", energy: "low", tempo: "slow",
@@ -181,36 +139,12 @@ const PROFILES = {
     sfxPalette: { transition: "light-sweep", ui: "soft-tap", reveal: "shimmer", data: "counter-tick", cta: "logo-rise" },
     noVo: { energyBoost: 1, sfxDensity: "rich", ambient: true },
   },
-  "living-city": {
-    mood: "nocturnal", energy: "high", tempo: "fast",
-    style: ["synthwave", "electronic", "lofi", "cyberpunk"],
-    musicKeywords: ["night city lofi", "neon synthwave", "urban electronic", "cyberpunk atmosphere", "driving synthwave", "high energy neon"],
-    sfxPalette: { transition: "whoosh", ui: "data-ping", reveal: "product-reveal", data: "counter-tick", cta: "cta-impact" },
-    noVo: { energyBoost: 2, sfxDensity: "rich", ambient: true },
-  },
-  "longshot-cinema": {
-    mood: "cinematic", energy: "medium", tempo: "slow",
-    style: ["cinematic", "orchestral", "ambient", "score"],
-    musicKeywords: ["cinematic score", "slow orchestral", "atmospheric film", "tension cinematic", "building orchestral", "epic cinematic"],
-    sfxPalette: { transition: "light-sweep", ui: "soft-tap", reveal: "gentle-impact", data: "counter-tick", cta: "logo-rise" },
-    noVo: { energyBoost: 1, sfxDensity: "rich", ambient: true },
-  },
   "midnight-glass": {
     mood: "premium", energy: "medium", tempo: "mid",
     style: ["electronic", "ambient", "tech", "deep house"],
     musicKeywords: ["dark premium tech", "cinematic ambient", "deep electronic", "nocturnal modern", "driving deep house", "energetic technology"],
     sfxPalette: { transition: "light-sweep", ui: "data-ping", reveal: "product-reveal", data: "counter-tick", cta: "logo-rise" },
     noVo: { energyBoost: 1, sfxDensity: "rich", ambient: false },
-  },
-  "minimal-luxury": {
-    mood: "refined", energy: "low", tempo: "slow",
-    style: ["piano", "ambient", "classical", "minimal"],
-    musicKeywords: ["minimal piano", "refined ambient", "quiet luxury", "elegant classical", "uplifting minimal", "flowing piano"],
-    sfxPalette: { transition: "light-sweep", ui: "soft-tap", reveal: "shimmer", data: "counter-tick", cta: "logo-rise" },
-    // energyBoost 0 — restraint IS this pack's identity. Vast negative space and quiet
-    // motion do not become punchy because nobody is talking; the mix still opens up
-    // (music target rises, duck bypassed), but the track stays as quiet as the picture.
-    noVo: { energyBoost: 0, sfxDensity: "normal", ambient: false },
   },
   "mono-corporate": {
     mood: "professional", energy: "medium", tempo: "mid",
@@ -225,20 +159,6 @@ const PROFILES = {
     musicKeywords: ["abstract electronic", "playful percussion", "modern groove", "rhythmic funk", "upbeat energetic", "driving groove"],
     sfxPalette: { transition: "card-slide", ui: "pop", reveal: "gentle-impact", data: "counter-tick", cta: "cta-impact" },
     noVo: { energyBoost: 2, sfxDensity: "rich", ambient: false },
-  },
-  "nature-flow": {
-    mood: "calm", energy: "low", tempo: "slow",
-    style: ["acoustic", "ambient", "organic", "world"],
-    musicKeywords: ["calm nature ambient", "organic acoustic", "gentle wellness", "soft ambient", "uplifting organic", "flowing acoustic"],
-    sfxPalette: { transition: "light-sweep", ui: "soft-tap", reveal: "shimmer", data: "counter-tick", cta: "success" },
-    noVo: { energyBoost: 1, sfxDensity: "rich", ambient: true },
-  },
-  "neo-dashboard": {
-    mood: "technical", energy: "medium", tempo: "mid",
-    style: ["electronic", "tech", "corporate", "minimal"],
-    musicKeywords: ["modern technology", "clean electronic", "saas corporate", "data driven tech", "driving electronic", "energetic technology"],
-    sfxPalette: { transition: "light-sweep", ui: "ui-click", reveal: "product-reveal", data: "counter-tick", cta: "cta-impact" },
-    noVo: { energyBoost: 1, sfxDensity: "rich", ambient: false },
   },
   "noir-spotlight": {
     mood: "dramatic", energy: "medium", tempo: "slow",
@@ -257,28 +177,28 @@ const PROFILES = {
   "paper-craft": {
     mood: "handmade", energy: "medium", tempo: "mid",
     style: ["acoustic", "folk", "whimsical", "indie"],
-    musicKeywords: ["handmade acoustic", "whimsical folk", "playful indie", "warm papercraft", "upbeat acoustic", "cheerful indie"],
+    musicKeywords: ["handmade acoustic", "whimsical folk", "playful indie", "warm handmade", "upbeat acoustic", "cheerful indie"],
     sfxPalette: { transition: "card-slide", ui: "soft-tap", reveal: "shimmer", data: "counter-tick", cta: "success" },
     noVo: { energyBoost: 1, sfxDensity: "rich", ambient: false },
   },
   "paper-tales": {
     mood: "calm", energy: "low", tempo: "slow",
     style: ["acoustic", "piano", "folk", "storytelling"],
-    musicKeywords: ["acoustic storytelling", "soft piano", "gentle folk", "calm storybook", "warm acoustic", "bright folk"],
+    musicKeywords: ["acoustic storytelling", "soft piano", "gentle folk", "calm folk", "warm acoustic", "bright folk"],
     sfxPalette: { transition: "card-slide", ui: "soft-tap", reveal: "shimmer", data: "counter-tick", cta: "success" },
     noVo: { energyBoost: 1, sfxDensity: "rich", ambient: false },
   },
   "poster-pop": {
     mood: "loud", energy: "high", tempo: "fast",
     style: ["pop", "electronic", "punk", "percussion"],
-    musicKeywords: ["bold pop", "punchy electronic", "loud kinetic", "statement beat", "high energy pop", "aggressive drive"],
+    musicKeywords: ["bold pop", "powerful electronic", "loud percussive", "powerful drums", "high energy pop", "aggressive drive"],
     sfxPalette: { transition: "whoosh", ui: "pop", reveal: "gentle-impact", data: "counter-tick", cta: "cta-impact" },
     noVo: { energyBoost: 2, sfxDensity: "rich", ambient: false },
   },
   "premiere-night": {
     mood: "glamorous", energy: "medium", tempo: "mid",
     style: ["orchestral", "cinematic", "jazz", "swing"],
-    musicKeywords: ["red carpet orchestral", "glamorous swing", "cinematic score", "premiere fanfare", "building orchestral", "epic fanfare"],
+    musicKeywords: ["red carpet orchestral", "dramatic swing", "cinematic score", "orchestral fanfare", "building orchestral", "epic fanfare"],
     sfxPalette: { transition: "light-sweep", ui: "soft-tap", reveal: "product-reveal", data: "counter-tick", cta: "logo-rise" },
     noVo: { energyBoost: 1, sfxDensity: "rich", ambient: true },
   },
@@ -288,27 +208,6 @@ const PROFILES = {
     musicKeywords: ["modern corporate", "technology electronic", "dynamic motion", "digital energetic", "future bass", "driving electronic"],
     sfxPalette: { transition: "card-slide", ui: "pop", reveal: "product-reveal", data: "counter-tick", cta: "cta-impact" },
     noVo: { energyBoost: 2, sfxDensity: "rich", ambient: false },
-  },
-  "prism-launch": {
-    mood: "modern", energy: "medium", tempo: "mid",
-    style: ["electronic", "corporate", "modern", "pop"],
-    musicKeywords: ["modern studio", "clean product", "bright electronic", "corporate launch", "upbeat modern", "energetic launch"],
-    sfxPalette: { transition: "light-sweep", ui: "soft-tap", reveal: "product-reveal", data: "counter-tick", cta: "logo-rise" },
-    noVo: { energyBoost: 1, sfxDensity: "rich", ambient: false },
-  },
-  "product-showcase": {
-    mood: "premium", energy: "medium", tempo: "mid",
-    style: ["cinematic", "electronic", "commercial", "corporate"],
-    musicKeywords: ["premium commercial", "product cinematic", "modern advertising", "studio electronic", "driving commercial", "epic product"],
-    sfxPalette: { transition: "light-sweep", ui: "soft-tap", reveal: "product-reveal", data: "counter-tick", cta: "cta-impact" },
-    noVo: { energyBoost: 2, sfxDensity: "rich", ambient: false },
-  },
-  "retro-future": {
-    mood: "retro", energy: "high", tempo: "fast",
-    style: ["synthwave", "retrowave", "outrun", "electronic"],
-    musicKeywords: ["synthwave retro", "80s electronic", "outrun neon", "retrowave arpeggio", "driving synthwave", "high energy outrun"],
-    sfxPalette: { transition: "whoosh", ui: "data-ping", reveal: "product-reveal", data: "counter-tick", cta: "cta-impact" },
-    noVo: { energyBoost: 2, sfxDensity: "rich", ambient: true },
   },
   // The one pack whose beats are UI events — a cursor click, a callout popping onto a
   // screenshot, an arrow arriving. Bright and unhurried; the SFX mark the annotations.
@@ -322,21 +221,21 @@ const PROFILES = {
   "edition": {
     mood: "serious", energy: "low", tempo: "slow",
     style: ["acoustic", "documentary", "minimal", "orchestral"],
-    musicKeywords: ["documentary underscore", "serious editorial", "understated piano", "reflective strings", "minimal acoustic", "thoughtful ambient"],
+    musicKeywords: ["documentary underscore", "serious underscore", "understated piano", "reflective strings", "minimal acoustic", "thoughtful ambient"],
     sfxPalette: {"transition": "card-slide", "ui": "soft-tap", "reveal": "gentle-impact", "data": "counter-tick", "cta": "logo-rise"},
     noVo: { energyBoost: 0, sfxDensity: "normal", ambient: false },
   },
   "fight": {
     mood: "aggressive", energy: "high", tempo: "fast",
     style: ["trap", "percussion", "electronic", "cinematic"],
-    musicKeywords: ["hard trap", "aggressive percussion", "fight entrance", "epic hype", "heavy drums", "sports anthem"],
+    musicKeywords: ["hard trap", "aggressive percussion", "fight entrance", "epic anthem", "heavy drums", "sports anthem"],
     sfxPalette: {"transition": "whoosh", "ui": "pop", "reveal": "gentle-impact", "data": "counter-tick", "cta": "cta-impact"},
     noVo: { energyBoost: 2, sfxDensity: "rich", ambient: false },
   },
   "reel": {
     mood: "energetic", energy: "high", tempo: "fast",
     style: ["pop", "electronic", "hip hop", "upbeat"],
-    musicKeywords: ["viral pop", "upbeat electronic", "social trending", "punchy beat", "energetic hip hop", "catchy hook"],
+    musicKeywords: ["catchy pop", "upbeat electronic", "social upbeat", "powerful beat", "energetic hip hop", "catchy hook"],
     sfxPalette: {"transition": "whoosh", "ui": "pop", "reveal": "pop", "data": "counter-tick", "cta": "cta-impact"},
     noVo: { energyBoost: 2, sfxDensity: "rich", ambient: false },
   },
@@ -371,7 +270,7 @@ const PROFILES = {
   "momentum": {
     mood: "driving", energy: "high", tempo: "fast",
     style: ["electronic", "percussive", "rock", "modern"],
-    musicKeywords: ["driving electronic", "high energy percussion", "kinetic build", "fast modern beat", "aggressive groove", "momentum pulse"],
+    musicKeywords: ["driving electronic", "high energy percussion", "percussive build", "fast modern beat", "aggressive groove", "momentum pulse"],
     sfxPalette: {"transition": "whoosh", "ui": "soft-tap", "reveal": "product-reveal", "data": "counter-tick", "cta": "cta-impact"},
     noVo: { energyBoost: 2, sfxDensity: "rich", ambient: false },
   },
@@ -391,7 +290,7 @@ const PROFILES = {
   },
   "drive": {
     mood: "warm", energy: "medium", tempo: "mid",
-    style: ["indie", "rock", "electronic", "americana"],
+    style: ["indie", "rock", "electronic", "guitar"],
     musicKeywords: ["sunset drive", "indie road trip", "warm guitar groove", "open highway", "retro synthwave", "easy cruising"],
     sfxPalette: {"transition": "whoosh", "ui": "soft-tap", "reveal": "product-reveal", "data": "counter-tick", "cta": "cta-impact"},
     noVo: { energyBoost: 1, sfxDensity: "normal", ambient: true },
@@ -406,7 +305,7 @@ const PROFILES = {
   "teampulse": {
     mood: "warm", energy: "medium", tempo: "mid",
     style: ["indie", "acoustic", "electronic", "modern"],
-    musicKeywords: ["warm indie", "modern acoustic groove", "optimistic workplace", "friendly electronic", "uplifting mid tempo", "human centred"],
+    musicKeywords: ["warm indie", "modern acoustic groove", "optimistic business", "friendly electronic", "uplifting mid tempo", "human centred"],
     sfxPalette: {"transition": "card-slide", "ui": "soft-tap", "reveal": "pop", "data": "counter-tick", "cta": "cta-impact"},
     noVo: { energyBoost: 1, sfxDensity: "normal", ambient: false },
   },
@@ -420,30 +319,23 @@ const PROFILES = {
   "orbit": {
     mood: "epic", energy: "high", tempo: "mid",
     style: ["cinematic", "electronic", "orchestral", "modern"],
-    musicKeywords: ["cinematic build", "epic electronic", "launch countdown", "rising tension", "space ambient", "triumphant modern"],
+    musicKeywords: ["cinematic build", "epic electronic", "rising countdown", "rising tension", "space ambient", "triumphant modern"],
     sfxPalette: { transition: "whoosh", ui: "soft-tap", reveal: "product-reveal", data: "data-ping", cta: "cta-impact" },
     noVo: { energyBoost: 2, sfxDensity: "rich", ambient: true },
   },
   "slab-stage": {
     mood: "kinetic", energy: "high", tempo: "fast",
     style: ["electronic", "percussive", "modern", "driving"],
-    musicKeywords: ["driving electronic", "percussive modern", "bold energetic", "kinetic pulse", "confident drums", "punchy electronic"],
+    musicKeywords: ["driving electronic", "percussive modern", "bold energetic", "driving pulse", "confident drums", "powerful electronic"],
     sfxPalette: { transition: "whoosh", ui: "soft-tap", reveal: "product-reveal", data: "data-ping", cta: "cta-impact" },
     noVo: { energyBoost: 2, sfxDensity: "rich", ambient: false },
   },
   "story-blocks": {
-    mood: "editorial", energy: "high", tempo: "fast",
+    mood: "underscore", energy: "high", tempo: "fast",
     style: ["electronic", "pop", "percussion", "modern"],
-    musicKeywords: ["bold editorial", "modern percussion", "kinetic pop", "campaign electronic", "driving beat", "high energy modern"],
+    musicKeywords: ["bold campaign", "modern percussion", "energetic pop", "campaign electronic", "driving beat", "high energy modern"],
     sfxPalette: { transition: "card-slide", ui: "pop", reveal: "gentle-impact", data: "counter-tick", cta: "cta-impact" },
     noVo: { energyBoost: 2, sfxDensity: "rich", ambient: false },
-  },
-  "summit-keynote": {
-    mood: "professional", energy: "medium", tempo: "mid",
-    style: ["corporate", "orchestral", "ambient", "piano"],
-    musicKeywords: ["executive corporate", "professional ambient", "confident piano", "keynote corporate", "uplifting corporate", "driving business"],
-    sfxPalette: { transition: "light-sweep", ui: "soft-tap", reveal: "gentle-impact", data: "counter-tick", cta: "logo-rise" },
-    noVo: { energyBoost: 1, sfxDensity: "rich", ambient: false },
   },
   "terminal-departures": {
     mood: "futuristic", energy: "high", tempo: "fast",
@@ -461,18 +353,113 @@ const PROFILES = {
   },
 };
 
+// ---------------------------------------------------------------- archetypes
+//
+// WHY THESE EXIST. Every pack above hand-authors six keywords. Six is enough to sound like
+// something and not enough to sound different twice: the rotation runs out, and the packs
+// that share a genre run out onto the same terms. An archetype is a SHARED FLAVOUR POOL
+// that widens each pack at both ends of its energy range without touching what makes it
+// itself.
+//
+// WHAT AN ARCHETYPE DELIBERATELY DOES NOT DO: it never contributes GENRE. `style[]` stays
+// exactly as each pack authored it, because genre is what music_vocabulary leads queries
+// with, and pushing a shared genre list into fifteen luxury packs would make them converge —
+// the opposite of the goal. (The "guaranteed floor" the archetype was originally going to
+// provide is already guaranteed: audit-music-vocabulary reports 0 dead terms.)
+//
+// So an archetype supplies COLOUR only: two calmer words at the front, two more driving
+// words at the back. musicKeywords are ordered calmest-first, so this widens the pool from
+// 6 to 10 AND deepens the driving half that narration-off draws from.
+//
+// Every word below is validated live by scripts/audit-music-vocabulary.js.
+const ARCHETYPES = {
+  tech:      { calm: ["atmospheric", "digital"],   driving: ["driving", "powerful"] },
+  luxury:    { calm: ["serene", "soft"],           driving: ["dramatic", "rising"] },
+  editorial: { calm: ["thoughtful", "reflective"], driving: ["percussive", "build"] },
+  hype:      { calm: ["chill", "lofi"],            driving: ["heavy", "loud"] },
+  warm:      { calm: ["gentle", "calm"],           driving: ["bright", "happy"] },
+  retro:     { calm: ["dreamy", "chill"],          driving: ["fast", "powerful"] },
+  corporate: { calm: ["clean", "soft"],            driving: ["uplifting", "dynamic"] },
+  groove:    { calm: ["chill", "playful"],         driving: ["drums", "energetic"] },
+};
+
+// Derived by scoring each pack's own declared style + keywords against the archetype
+// vocabularies, then hand-corrected where the score was a tie or the genre words misled
+// (a funk-pop pack scores on "indie" and lands in `warm`, which is a folk pool).
+// Corrections: blockframe/motion-canvas/bauhaus-riot/story-blocks -> groove,
+// kinetic-bold -> hype.
+const ARCHETYPE_OF = {
+  "aurora-spectrum": "corporate", "bauhaus-print": "editorial", "bauhaus-riot": "groove",
+  "biennale-yellow": "luxury", "blockframe": "groove", "bloom-fable": "warm",
+  "bloom-illustrated": "warm", "blueprint-atelier": "tech", "brightlife": "corporate",
+  "daybreak-bakehouse": "warm", "deep": "luxury", "drive": "warm", "edition": "editorial",
+  "fable-storybook": "warm", "fetch": "warm", "fight": "hype", "flagship": "luxury",
+  "flight": "luxury", "flight-vertical": "luxury", "grid-dispatch": "editorial",
+  "hacker": "tech", "hype-wave": "hype", "jungle": "warm", "kinetic-bold": "hype",
+  "lantern-night": "luxury", "midnight-glass": "tech", "momentum": "tech",
+  "mono-corporate": "corporate", "motion-canvas": "groove", "noir-spotlight": "luxury",
+  "orbit": "luxury", "organic-garden": "warm", "paper-craft": "warm", "paper-tales": "warm",
+  "pipeline": "tech", "poster-pop": "hype", "premiere-night": "luxury",
+  "prisma-bloc": "tech", "reel": "hype", "showcase": "corporate",
+  "showcase-vertical": "corporate", "slab-stage": "tech", "story-blocks": "groove",
+  "teampulse": "corporate", "terminal-departures": "tech", "vapor-chrome": "retro",
+};
+
+/**
+ * Expand a hand-authored profile with its archetype's colour pool.
+ * Order is preserved as calm -> driving, which is the contract pickMusicKeywords relies on.
+ */
+function resolveProfile(name, profile) {
+  const arch = ARCHETYPES[ARCHETYPE_OF[name]];
+  if (!arch) return profile;
+  const seen = new Set();
+  const keep = (list) => list.filter((k) => {
+    const t = String(k).toLowerCase();
+    if (seen.has(t)) return false;
+    seen.add(t);
+    return true;
+  });
+  return {
+    ...profile,
+    // Named in the manifest so the grouping is visible to a reader of the pack, and
+    // assertable by scripts/test-music-diversity.js.
+    archetype: ARCHETYPE_OF[name],
+    musicKeywords: keep([...arch.calm, ...profile.musicKeywords, ...arch.driving]),
+  };
+}
+
 // ---------------------------------------------------------------- apply
 
 const check = process.argv.includes("--check");
 const packs = fs.readdirSync(FRAMES, { withFileTypes: true })
   .filter((d) => d.isDirectory()).map((d) => d.name).sort();
 
+// THE FILMKIT FAMILY AUTHORS ITS PROFILES IN ITS OWN SINGLE FILE.
+//
+// The table above exists so a reviewer can read every pack's sound side by side and keep
+// them distinguishable — that is the stated reason it is one file rather than N. The 70
+// imported FilmKit packs are authored the same way, in
+// src/services/film_skins/_metadata.json, which is generated alongside their skins and has
+// exactly the same side-by-side property. Reading both here keeps ONE applier and one
+// drift check over all 116 packs, instead of leaving 70 of them permanently reported as
+// "unprofiled" while their pack.json plainly carries an identity.
+const FILM_META = path.resolve(__dirname, "..", "src", "services", "film_skins", "_metadata.json");
+const FILM_PROFILES = (() => {
+  try {
+    const m = JSON.parse(fs.readFileSync(FILM_META, "utf8"));
+    const out = {};
+    for (const [slug, v] of Object.entries(m)) if (v && v.audio) out[slug] = v.audio;
+    return out;
+  } catch { return {}; }
+})();
+
 let written = 0, skipped = 0, drift = 0, unknown = [];
 for (const name of packs) {
   const p = path.join(FRAMES, name, "pack.json");
   if (!fs.existsSync(p)) continue;
-  const profile = PROFILES[name];
-  if (!profile) { unknown.push(name); continue; }
+  const authored = PROFILES[name] || FILM_PROFILES[name];
+  if (!authored) { unknown.push(name); continue; }
+  const profile = resolveProfile(name, authored);
 
   const raw = fs.readFileSync(p, "utf8");
   const manifest = JSON.parse(raw);

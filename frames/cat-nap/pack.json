@@ -1,0 +1,174 @@
+{
+  "name": "cat-nap",
+  "vibe": "A twilight living room in plum and deep violet, warmed by a single lamp amber (#f0b45c) with a rose yarn accent. Lora serif headlines sit on Quicksand body copy — bookish, unhurried. The world is a room that never quite settles: the lamp glow pulses, dust motes drift through it, a yarn ball rolls and trails its thread, stars cross the window, and a cat silhouette flicks its tail on a slow loop. Best for sleep and wellness brands, home goods, pet care, and any product whose promise is calm.",
+  "orientation": "portrait",
+  "category": "Home & Living",
+  "tags": [
+    "cosy",
+    "twilight",
+    "pets",
+    "wellness",
+    "serif",
+    "home",
+    "calm",
+    "lamplight"
+  ],
+  "renderer": "film-cat-nap",
+  "colors": {
+    "night": "#332a47",
+    "plum": "#59436b",
+    "lamp": "#f0b45c",
+    "yarn": "#c96b8e",
+    "paper": "#f6efe4",
+    "catInk": "#241d2e",
+    "ground": "#332a47",
+    "text": "#f6efe4",
+    "accent": "#f0b45c",
+    "ink": "#241d2e"
+  },
+  "fonts": [
+    "Lora",
+    "Quicksand"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#332a47",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#f0b45c",
+      "#c96b8e",
+      "#59436b"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "soft lamplit interior photography at dusk — low warm key, deep violet shadows, shallow focus on textiles and a sleeping animal",
+    "iconStyle": "line",
+    "keywords": [
+      "cat sleeping",
+      "reading lamp",
+      "knitted blanket",
+      "window at dusk",
+      "yarn ball",
+      "armchair corner",
+      "warm interior"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Lora",
+    "body": "Quicksand"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "drowsy contentment — a room winding down",
+    "archetype": "warm",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "felt piano",
+      "music box",
+      "warm pad",
+      "vinyl hiss"
+    ],
+    "musicKeywords": [
+      "sleepy lullaby",
+      "music box",
+      "felt keys",
+      "purring warmth",
+      "dusk piano",
+      "soft nocturne",
+      "gentle waltz",
+      "hushed strings",
+      "cosy jazz",
+      "slow rhodes",
+      "lilting shuffle",
+      "tender swell"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

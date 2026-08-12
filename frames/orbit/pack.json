@@ -77,12 +77,16 @@
       "modern"
     ],
     "musicKeywords": [
+      "serene",
+      "soft",
       "cinematic build",
       "epic electronic",
-      "launch countdown",
+      "rising countdown",
       "rising tension",
       "space ambient",
-      "triumphant modern"
+      "triumphant modern",
+      "dramatic",
+      "rising"
     ],
     "sfxPalette": {
       "transition": "whoosh",
@@ -95,7 +99,8 @@
       "energyBoost": 2,
       "sfxDensity": "rich",
       "ambient": true
-    }
+    },
+    "archetype": "luxury"
   },
   "media": {
     "requiredAssets": {

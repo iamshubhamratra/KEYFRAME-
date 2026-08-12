@@ -56,18 +56,41 @@ function build(family, spec) {
     if (!fs.existsSync(f)) throw new Error(`missing variable file for ${family}: ${f}`);
     return rule(family, "1 1000", f);
   }
-  // A single-weight family still maps across 1 1000 so any authored weight resolves to it.
-  if (spec.weights.length === 1) {
-    const f = path.join(NM, "@fontsource", spec.pkg, "files", `${spec.pkg}-latin-${spec.weights[0]}-normal.woff2`);
-    if (!fs.existsSync(f)) throw new Error(`missing file for ${family}: ${f}`);
-    return rule(family, "1 1000", f);
-  }
-  return spec.weights.map((w) => {
-    const f = path.join(NM, "@fontsource", spec.pkg, "files", `${spec.pkg}-latin-${w}-normal.woff2`);
-    if (!fs.existsSync(f)) throw new Error(`missing file for ${family} ${w}: ${f}`);
-    return rule(family, w, f);
-  }).join("");
+  // ASK THE PACKAGE WHAT IT SHIPS. Most display faces are single-weight (Abril Fatface,
+  // Bungee, Monoton, Titan One…), so a blanket [400,700] request throws on the 700 that was
+  // never published. Scan the files directory and take what is actually there, preferring
+  // the requested weights when they exist.
+  const dir = path.join(NM, "@fontsource", spec.pkg, "files");
+  if (!fs.existsSync(dir)) throw new Error(`package not installed for ${family}: ${dir}`);
+  const have = fs.readdirSync(dir)
+    .map((f) => new RegExp(`^${spec.pkg}-latin-(\\d+)-normal\\.woff2$`).exec(f))
+    .filter(Boolean).map((m) => Number(m[1])).sort((a, b) => a - b);
+  if (!have.length) throw new Error(`no latin normal woff2 for ${family} in ${dir}`);
+  const want = (spec.weights || []).filter((w) => have.includes(w));
+  // Nothing requested is published: fall back to the family's own range — its lightest
+  // usable text weight and its heaviest, which is what display type actually needs.
+  const use = want.length ? want : [...new Set([have.find((w) => w >= 400) || have[0], have[have.length - 1]])];
+  // A single-weight family still maps across 1 1000 so any authored weight resolves to it
+  // instead of the browser synthesising a bold.
+  if (use.length === 1) return rule(family, "1 1000", path.join(dir, `${spec.pkg}-latin-${use[0]}-normal.woff2`));
+  return use.map((w) => rule(family, w, path.join(dir, `${spec.pkg}-latin-${w}-normal.woff2`))).join("");
 }
+
+// THE FILMKIT FAMILIES. The 70 imported FilmKit packs name 121 distinct Google families
+// between them and the renderer cannot load a webfont, so every one has to be inlined here
+// or the pack renders in a substitute — the single largest typographic difference between a
+// KEYFRAME render and its reference. scripts/add-film-fonts.js resolves each family against
+// the npm registry (variable build preferred) and writes the plan; this merges it in, so
+// adding a template never means hand-editing the table above.
+try {
+  const plan = require(path.join(ROOT, "src", "fonts", "_film_font_plan.json"));
+  for (const p of plan) {
+    if (p.status !== "new" || NEW_FACES[p.family]) continue;
+    NEW_FACES[p.family] = p.kind === "variable"
+      ? { pkg: p.pkg, variable: true }
+      : { pkg: p.pkg, weights: [400, 700] };
+  }
+} catch { /* no plan yet — the eleven original families still regenerate */ }
 
 // Read the existing module's entries so the originals survive verbatim.
 const existing = require(OUT).FONT_FACES;

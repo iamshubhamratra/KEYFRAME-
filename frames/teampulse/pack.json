@@ -78,12 +78,16 @@
       "modern"
     ],
     "musicKeywords": [
+      "clean",
+      "soft",
       "warm indie",
       "modern acoustic groove",
-      "optimistic workplace",
+      "optimistic business",
       "friendly electronic",
       "uplifting mid tempo",
-      "human centred"
+      "human centred",
+      "uplifting",
+      "dynamic"
     ],
     "sfxPalette": {
       "transition": "card-slide",
@@ -96,7 +100,8 @@
       "energyBoost": 1,
       "sfxDensity": "normal",
       "ambient": false
-    }
+    },
+    "archetype": "corporate"
   },
   "media": {
     "requiredAssets": {

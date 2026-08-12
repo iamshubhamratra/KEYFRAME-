@@ -60,22 +60,66 @@ const FIXTURE = {
   ],
 };
 
-// A placeholder that reads as a product UI at thumbnail size: header bar, sidebar, a few cards. Flat
-// neutral greys only — a coloured stand-in gets read as part of the pack's palette.
+// The stand-in for the site a real film would carry.
+//
+// This was a flat grey wireframe — honest about being a placeholder, and the wrong thing on a poster.
+// The picker's card is the only look at a template a user gets before choosing it, and every pack whose
+// chosen frame puts a screenshot near the middle showed a dead grey slab there: the review's "the grey
+// placeholder dominates the card" on eight of them. A poster has to show what the TEMPLATE looks like,
+// which means the picture inside it has to look like a picture.
+//
+// So it still declares itself a stand-in — no logo, no words, no brand — but it has the structure and
+// the tonal range of a page: chrome, a hero with a soft gradient, image tiles, text at varying measure.
+// The palette is deliberately desaturated slate and teal. A stand-in with real colour in it gets read
+// as part of the pack's own palette, and 46 packs have 46 different accents to clash with.
+//
+// Deterministic by construction: every dimension comes from w/h or an index, never a random source, so
+// two runs of the generator write identical bytes and the guard's staleness check stays meaningful.
 function uiPlaceholder(w, h) {
-  const pad = Math.round(Math.min(w, h) * 0.05);
-  const barH = Math.round(h * 0.11);
-  const sideW = Math.round(w * 0.2);
-  const cardTop = barH + pad;
-  const cardH = Math.max(8, Math.round((h - cardTop - pad * 2) / 3));
-  const cards = [0, 1, 2].map((i) => `<rect x="${sideW + pad * 2}" y="${cardTop + i * (cardH + pad)}" width="${w - sideW - pad * 3}" height="${cardH}" rx="${Math.round(cardH * 0.14)}" fill="#C6CBD4"/>`).join("");
-  const rows = [0, 1, 2, 3].map((i) => `<rect x="${pad * 1.5}" y="${cardTop + i * (barH * 0.75)}" width="${sideW - pad}" height="${Math.round(barH * 0.34)}" rx="4" fill="#B9BFC9"/>`).join("");
+  const wide = w / h >= 1.25;
+  const P = Math.max(6, Math.round(Math.min(w, h) * 0.045));
+  const barH = Math.max(14, Math.round(Math.min(h * 0.14, Math.min(w, h) * 0.12)));
+  const top = barH + P;
+  const bodyH = Math.max(10, h - top - P);
+  const bodyW = w - P * 2;
+  const heroH = Math.round(bodyH * (wide ? 0.46 : 0.34));
+  const heroR = Math.round(Math.min(w, h) * 0.02);
+  // Two title bars and a small pill inside the hero, so it reads as a banner rather than a swatch.
+  const hy = top + Math.round(heroH * 0.3), hbH = Math.max(4, Math.round(heroH * 0.11));
+  const hero = `<rect x="${P}" y="${top}" width="${bodyW}" height="${heroH}" rx="${heroR}" fill="url(#pmHero)"/>
+    <rect x="${P * 2}" y="${hy}" width="${Math.round(bodyW * 0.46)}" height="${hbH}" rx="${Math.round(hbH / 2)}" fill="#FFFFFF" opacity="0.86"/>
+    <rect x="${P * 2}" y="${hy + Math.round(hbH * 2)}" width="${Math.round(bodyW * 0.29)}" height="${Math.max(3, Math.round(hbH * 0.62))}" rx="2" fill="#FFFFFF" opacity="0.5"/>
+    <rect x="${P * 2}" y="${hy + Math.round(hbH * 3.7)}" width="${Math.round(bodyW * 0.13)}" height="${Math.max(5, Math.round(hbH * 1.1))}" rx="${Math.round(hbH * 0.55)}" fill="#E3B279" opacity="0.9"/>`;
+  // The tile row only exists when there is room for one — the widest asset shape is a 4.2:1 strip.
+  const tileTop = top + heroH + P;
+  const tileH = bodyH - heroH - P;
+  const cols = wide ? 3 : 2;
+  const gap = P;
+  const tileW = Math.round((bodyW - gap * (cols - 1)) / cols);
+  const picH = Math.round(tileH * 0.6);
+  const lineH = Math.max(3, Math.round(tileH * 0.075));
+  const tiles = tileH < Math.min(w, h) * 0.16 ? "" : Array.from({ length: cols }, (_, i) => {
+    const x = P + i * (tileW + gap);
+    // Measures that vary per column, from the index — a column of identical bars reads as a wireframe.
+    const w1 = [0.82, 0.64, 0.73][i % 3], w2 = [0.45, 0.56, 0.38][i % 3];
+    return `<rect x="${x}" y="${tileTop}" width="${tileW}" height="${tileH}" rx="${heroR}" fill="#FFFFFF"/>
+      <rect x="${x}" y="${tileTop}" width="${tileW}" height="${picH}" rx="${heroR}" fill="url(#pmPic${i % 3})"/>
+      <rect x="${x + P}" y="${tileTop + picH + Math.round(lineH * 1.2)}" width="${Math.round((tileW - P * 2) * w1)}" height="${lineH}" rx="2" fill="#94A3B1"/>
+      <rect x="${x + P}" y="${tileTop + picH + Math.round(lineH * 3.1)}" width="${Math.round((tileW - P * 2) * w2)}" height="${lineH}" rx="2" fill="#C0CAD5"/>`;
+  }).join("");
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-    <rect width="100%" height="100%" fill="#D5D9E0"/>
-    <rect x="0" y="0" width="${w}" height="${barH}" fill="#E4E7EC"/>
-    <rect x="${pad}" y="${Math.round(barH * 0.32)}" width="${Math.round(w * 0.16)}" height="${Math.round(barH * 0.36)}" rx="6" fill="#A9B0BB"/>
-    <rect x="0" y="${barH}" width="${sideW}" height="${h - barH}" fill="#E4E7EC"/>
-    ${rows}${cards}
+    <defs>
+      <linearGradient id="pmHero" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2F4A60"/><stop offset="1" stop-color="#527F8B"/></linearGradient>
+      <linearGradient id="pmPic0" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9FB4C1"/><stop offset="1" stop-color="#728E9E"/></linearGradient>
+      <linearGradient id="pmPic1" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#B3C3CC"/><stop offset="1" stop-color="#87A2AE"/></linearGradient>
+      <linearGradient id="pmPic2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8FA8B8"/><stop offset="1" stop-color="#B8C6CF"/></linearGradient>
+    </defs>
+    <rect width="100%" height="100%" fill="#F3F6F9"/>
+    <rect x="0" y="0" width="${w}" height="${barH}" fill="#FFFFFF"/>
+    <rect x="0" y="${barH - 1}" width="${w}" height="1" fill="#E1E7ED"/>
+    <rect x="${P}" y="${Math.round(barH * 0.34)}" width="${Math.round(barH * 0.9)}" height="${Math.round(barH * 0.32)}" rx="${Math.round(barH * 0.16)}" fill="#41627A"/>
+    ${[0, 1, 2].map((i) => `<rect x="${P + Math.round(barH * 1.5) + i * Math.round(barH * 1.15)}" y="${Math.round(barH * 0.42)}" width="${Math.round(barH * 0.78)}" height="${Math.max(3, Math.round(barH * 0.16))}" rx="2" fill="#AFBCC7"/>`).join("")}
+    ${hero}${tiles}
   </svg>`;
 }
 
@@ -338,20 +382,72 @@ async function buildPack(pack, { dryRun }) {
 }
 
 // ---- selection ---------------------------------------------------------------
+// RESOLVE THROUGH THE DISPATCH TABLE, NEVER BY FILENAME.
+//
+// This guessed `<renderer>_composer.js` from the renderer id, which is the same mistake
+// pipeline.js documents at DEDICATED_COMPOSERS ("a filename convention is not a contract").
+// It is wrong for every pack whose module is not named that way — the seven OM skins live in
+// om_skins/, prisma-bloc's renderer is "dom-prisma", and the seventy-nine FilmKit packs are
+// "film-<slug>" in film_skins/. The guess returned null for all of them, `isStale` read that
+// as "not stale", and `--stale` therefore reported nothing to do no matter what changed.
 function composerPathFor(pack) {
   const renderer = String((fm.getManifest(pack) || {}).renderer || "");
   if (!renderer) return null;
+  const mod = composerModuleFor(renderer);
+  if (mod) {
+    for (const [file, m] of Object.entries(require.cache)) {
+      if (m && m.exports === mod) return file;
+    }
+  }
   try { return require.resolve(path.join(__dirname, "..", "src", "services", `${renderer.replace(/-/g, "_")}_composer`)); }
   catch { return null; }
 }
 
+// THE COMPOSER IS NOT ONE FILE. Most packs in this studio are a thin SKIN over a shared
+// engine — the seven om_stage skins, and the seventy-nine film_skins over film_stage — so a
+// change to the engine changes what every one of them renders while leaving their own file
+// untouched. Comparing against the skin alone therefore reports "nothing is stale" straight
+// after an engine fix, and the picker keeps advertising the pre-fix design indefinitely.
+//
+// Walking the composer's real require graph (one load, then read require.cache) costs nothing
+// and closes that.
+//
+// SCOPED TO src/services — the composition logic — deliberately. Widening it to src/ pulls in
+// src/fonts/pack_fonts.js, which is APPEND-ONLY: bundling a family for one new pack rewrites
+// that module and would mark all 125 stale, re-rendering two hours of media for packs whose
+// output is byte-identical. A pack that gains a real typeface change needs an explicit
+// `--pack <name>` pass; everything that changes what a composer DRAWS lives under services.
+const SERVICES = path.resolve(__dirname, "..", "src", "services");
+function composerMtimeFor(pack) {
+  const cp = composerPathFor(pack);
+  if (!cp) return 0;
+  let newest = 0;
+  try { newest = fs.statSync(cp).mtimeMs; } catch { return 0; }
+  try {
+    require(cp);                                     // already loaded in this process; cheap
+    const seen = new Set();
+    const walk = (file, depth) => {
+      if (depth > 3 || seen.has(file)) return;
+      seen.add(file);
+      const mod = require.cache[file];
+      if (!mod) return;
+      for (const child of mod.children || []) {
+        const f = child.filename || "";
+        if (!f.startsWith(SERVICES)) continue;
+        try { newest = Math.max(newest, fs.statSync(f).mtimeMs); } catch { /* ignore */ }
+        walk(f, depth + 1);
+      }
+    };
+    walk(require.resolve(cp), 0);
+  } catch { /* fall back to the composer file's own mtime */ }
+  return newest;
+}
 function isStale(pack) {
   const poster = path.join(PUBLIC_FRAMES, pack, "poster.jpg");
   const preview = path.join(PUBLIC_FRAMES, pack, "preview.mp4");
   if (!fs.existsSync(poster) || !fs.existsSync(preview)) return true;
-  const cp = composerPathFor(pack);
-  if (!cp) return false;
-  const cT = fs.statSync(cp).mtimeMs;
+  const cT = composerMtimeFor(pack);
+  if (!cT) return false;
   return cT > fs.statSync(poster).mtimeMs || cT > fs.statSync(preview).mtimeMs;
 }
 

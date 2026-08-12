@@ -1,0 +1,176 @@
+{
+  "name": "scale-line",
+  "vibe": "Club-night model railway: baize green (#31402e), maroon livery (#7a2e35), signal red (#c23b2e) and cream (#f0e9da). Staatliches sets condensed poster caps; Onest runs the timetable. The world is a working HO layout — a stadium-shaped loop drawn as a 22px slate rail bed with a dashed cream centre line, and three cars actually circulating it on a real parametric path, the signal-red loco leading two maroon coaches and rotating correctly through the 200-radius curves at 0.14 laps a second. A slate station with an arched roof sits top-right, conifers stand at two heights, and a semaphore signal snaps its red arm between clear and danger while its lamp flips green to red. Zero-tilt montage tiles, ruled stats. It owns a DCC throttle slider, signal-box switches, a scrolling timetable and a rolling destination morph.",
+  "orientation": "portrait",
+  "category": "Hobby",
+  "tags": [
+    "model-railway",
+    "miniature",
+    "club",
+    "poster-caps",
+    "heritage",
+    "timetable",
+    "green-baize",
+    "hand-built"
+  ],
+  "renderer": "film-scale-line",
+  "colors": {
+    "baize": "#31402e",
+    "maroon": "#7a2e35",
+    "cream": "#f0e9da",
+    "signal": "#c23b2e",
+    "slate": "#3a4148",
+    "ground": "#31402e",
+    "text": "#f0e9da",
+    "accent": "#c23b2e",
+    "ink": "#31402e",
+    "paper": "#f0e9da"
+  },
+  "fonts": [
+    "Staatliches",
+    "Onest"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#31402e",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#c23b2e",
+      "#31402e",
+      "#7a2e35"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "tilt-shift macro photograph of an HO-scale model railway layout, signal-red locomotive on green baize, warm club-room lighting and shallow focus",
+    "iconStyle": "flat",
+    "keywords": [
+      "model railway",
+      "ho scale layout",
+      "miniature train",
+      "semaphore signal",
+      "railway station platform",
+      "scenery modelling",
+      "hobby workbench",
+      "toy locomotive",
+      "timetable board"
+    ],
+    "prefer": [
+      "photo",
+      "illustration",
+      "screenshot"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Staatliches",
+    "body": "Onest"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 430,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 910,
+        "height": 562,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 292,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "club-room nostalgia with timetable precision — hand-built pride, gently ceremonial",
+    "archetype": "retro",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "brass band",
+      "travelogue score",
+      "clockwork ragtime",
+      "light orchestral"
+    ],
+    "musicKeywords": [
+      "toy piano",
+      "pizzicato tiptoe",
+      "celesta chime",
+      "branch line",
+      "steam whistle",
+      "tuba bounce",
+      "platform bustle",
+      "oompah march",
+      "cakewalk stride",
+      "dixieland roll",
+      "marching snare",
+      "quickstep drive"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "ui-click",
+      "reveal": "pop",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}
