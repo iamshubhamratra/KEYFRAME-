@@ -5,6 +5,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const config = require("./config");
+const { assessDelivery } = require("./services/delivery_quality");
 
 const DB_FILE = config.paths.dbFile;
 const TMP_FILE = DB_FILE + ".tmp";
@@ -143,6 +144,13 @@ function shape(j) {
     fps: j.fps,
     duration: j.duration,
     framePack: j.frame_pack || null,
+    voiceoverEnabled: j.voiceover_enabled !== 0,
+    brandPalette: j.brand_palette || null,
+    userAssets: Array.isArray(j.user_assets) ? j.user_assets.map((u) => ({
+      id: u.id, role: u.role, path: u.path, originalName: u.originalName,
+      assetType: u.assetType || null, classified: u.classified === true,
+      sees: u.sees || null, quality: u.quality == null ? null : u.quality,
+    })) : null,
     createdAt: j.created_at,
     startedAt: j.started_at,
     finishedAt: j.finished_at,
@@ -162,6 +170,18 @@ function shape(j) {
     qa: j.qa || null,
     creativeReview: j.creative_review || null,
     qualityReport: j.quality_report || null,
+    deliveryProbe: j.delivery_probe || null,
+    // ONE honest verdict on the finished film, assembled from signals the
+    // pipeline already produced (QA's frame review, empty-scene counts, the
+    // delivery probe, audio, fallback). Every one of these was already being
+    // DETECTED and RECORDED before delivery and then shipped silently — nothing
+    // turned them into something the person watching the result could see.
+    // Policy is deliver-and-flag: the film is still handed over, but the job says
+    // what is wrong with it. Computed on read (pure, fail-open).
+    deliveryQuality: (() => {
+      if (j.status !== "done") return null;
+      try { return assessDelivery(j); } catch { return null; }
+    })(),
   };
 }
 
@@ -201,7 +221,15 @@ module.exports = {
       voice_style: job.voiceStyle || null,
       // Subtitles are OPT-IN: off unless the request explicitly asks for them.
       captions_enabled: (job.captions === true || job.captionsEnabled === true) ? 1 : 0,
+      // Full multi-language caption settings (subtitle language, voiceover
+      // language, on-screen video-text language, SRT/VTT export). The boolean
+      // above stays the legacy switch; this carries the three independent
+      // language axes the Language Director resolves into one plan.
+      captions_config: job.captionsConfig || null,
+      voiceover_enabled: job.voiceoverEnabled === false ? 0 : 1,
+      brand_palette: job.brandPalette || null,
       upload_path: job.uploadPath || null,
+      user_assets: job.userAssets || null,
       // Full pipeline task (flags included) so a boot-orphaned generate job
       // can be requeued faithfully instead of failed. null for other kinds.
       task: job.task || null,
@@ -268,6 +296,15 @@ module.exports = {
     scheduleWrite();
   },
 
+  // The user-upload manifest (logo + product images), written at create and
+  // refined by intake classification. markRequeued does NOT clear it, so a
+  // regenerate keeps the uploads.
+  setUserAssets(id, manifest) {
+    const j = jobs.get(id); if (!j) return;
+    j.user_assets = Array.isArray(manifest) ? manifest : null;
+    scheduleWrite();
+  },
+
   // Visual Layout Director report (kept/demoted asset counts, hero scale, montage
   // budget, per-scene composition score). Surfaced to the UI via the job view.
   setLayoutReview(id, review) {
@@ -326,6 +363,60 @@ module.exports = {
     const j = jobs.get(id); if (!j) return;
     j.quality_report = report || null;
     scheduleWrite();
+  },
+
+  // Delivery probe — what ffprobe found in the file we actually handed over
+  // (resolution, duration, fps, audio presence) plus any mismatch against what
+  // was requested. Every other check in the pipeline runs on the PLAN; this is
+  // the only one that runs on the artifact. See services/video_probe.js.
+  setDeliveryProbe(id, probe) {
+    const j = jobs.get(id); if (!j) return;
+    j.delivery_probe = probe || null;
+    scheduleWrite();
+  },
+
+  // Deterministic soundtrack validation (services/audio_report.js) — cue-to-scene
+  // mapping, duplicate effects, voice protection, loudness. Feeds delivery_quality.
+  setAudioReport(id, report) {
+    const j = jobs.get(id); if (!j) return;
+    j.audio_report = report || null;
+    scheduleWrite();
+  },
+
+  // Pre-render validation gate report (services/preflight.js) — self-heal count,
+  // per-scene visual coverage, and the warnings delivery_quality reads.
+  setValidationReport(id, report) {
+    const j = jobs.get(id); if (!j) return;
+    j.validation_report = report || null;
+    scheduleWrite();
+  },
+
+  // Localization Director report — how much of the storyboard's on-screen text
+  // was verified as translated into the video-text language, and what fell back.
+  setLocalization(id, report) {
+    const j = jobs.get(id); if (!j) return;
+    j.localization = report || null;
+    scheduleWrite();
+  },
+
+  // Pre-render language QA — was the script font actually embedded (else tofu),
+  // and how much English leaked into the on-screen DOM text. Disclosure only.
+  setLanguageQa(id, report) {
+    const j = jobs.get(id); if (!j) return;
+    j.language_qa = report || null;
+    scheduleWrite();
+  },
+
+  // The resolved language plan (the three axes + font/direction/glossary).
+  setLanguagePlan(id, plan) {
+    const j = jobs.get(id); if (!j) return;
+    j.language_plan = plan || null;
+    scheduleWrite();
+  },
+
+  // Raw job record — for stages that need fields `shape()` does not expose.
+  getRaw(id) {
+    return jobs.get(id) || null;
   },
 
   // Caption cues + exported .srt URL.

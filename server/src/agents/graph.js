@@ -50,14 +50,18 @@ function drainNodeTimings(jobId, totalMs) {
 }
 const fallbackLog = require("../services/fallback_log");
 const { showcaseTargets } = require("../services/scene_role");
+const { pinUserAssets } = require("../services/user_assets");
 const db = require("../db");
 const { UsageTracker } = require("../services/usage");
 const { generateBrief } = require("../services/brief");
 const { generateScript, normalizeScript } = require("../services/script");
 const { generateStoryboard } = require("../services/storyboard");
 const frameRegistry = require("../services/frame_registry");
-const { withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor, retimeScenesToVo, contrastFixPass } = require("../services/pipeline");
+const { withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor, retimeScenesToVo, contrastFixPass, setCaptionStyle, clearCaptionStyle, writeComposedHtml } = require("../services/pipeline");
 const { assembleQualityReport } = require("../services/quality_report");
+const { auditAssetRender } = require("../services/asset_render_check");
+const { preflight } = require("../services/preflight");
+const { buildAudioReport } = require("../services/audio_report");
 const { acquire, hasProviderFor, makeImageDeduper } = require("../services/asset_sources");
 // The same subject reducer + camera/adjective stop list asset_sources applies
 // before it searches a provider (asset_sources/query_terms.js). Deriving queries
@@ -67,6 +71,10 @@ const { subjectQuery, STOP: DIRECTION_STOP } = require("../services/asset_source
 const { styleFor, iconColorFor } = require("../services/pack_style");
 const { synthesizeFitted } = require("../services/vo_fit");
 const { buildCues, writeSrt } = require("../services/captions");
+const captionDirector = require("../services/caption_director");
+const { resolveCaptionPlan } = require("../services/caption_director");
+const languageDirector = require("../services/language_director");
+const { injectCaptionStyle } = require("../services/caption_render");
 const { fetchMusic } = require("../services/audio_sources");
 const { getSfx } = require("../services/sfx_library");
 const { VALID_VOICES } = require("../services/audio_planner");
@@ -363,9 +371,12 @@ async function assetPlannerAgent(s) {
   // hero plus five deep sections and the director matches up to six internal
   // pages, so the pins have to be able to surface them — a smaller budget just
   // threw captured screenshots away.
-  const targets = showcaseTargets(script).slice(0, 8);
+  // The user's own uploads claim the showcase scenes FIRST (tier 100); site
+  // captures fill what remains.
+  const userPins = await pinUserAssets({ job, script, jobDir: s.jobDir, maxPins: 6 });
+  const targets = showcaseTargets(script).filter((x) => !userPins.usedSceneIds.has(x.id)).slice(0, userPins.pinned.length ? 5 : 8);
   const screenshotPlan = shots.slice(0, targets.length).map((src, i) => ({ kind: "screenshot", src, scene: targets[i], index: i }));
-  const pinnedSceneIds = new Set(screenshotPlan.map((p) => p.scene.id));
+  const pinnedSceneIds = new Set([...userPins.usedSceneIds, ...screenshotPlan.map((p) => p.scene.id)]);
 
   // Derive a concrete image query from what the scene SAYS and SHOWS when the
   // script asked for nothing — substance scenes should never go imageless.
@@ -422,7 +433,7 @@ async function assetPlannerAgent(s) {
   const vectors = wants.filter((w) => w.need.type !== "video" && isVectorNeed(w.need)).slice(0, vectorCap);
   const photos  = wants.filter((w) => w.need.type !== "video" && !isVectorNeed(w.need)).slice(0, photoCap - videos.length);
   console.log(`[agents] asset_planner: ${screenshotPlan.length} screenshot(s) + ${videos.length} video(s) + ${photos.length} photo(s) + ${vectors.length} vector(s) (${wants.filter((w) => w.need.derived).length} derived)`);
-  return { assetPlan: { screenshots: screenshotPlan, searches: [...videos, ...photos, ...vectors] } };
+  return { assetPlan: { screenshots: screenshotPlan, searches: [...videos, ...photos, ...vectors], userAssets: userPins.pinned, logo: userPins.logoAsset } };
 }
 
 // Asset Search — executes the plan: our database first, then providers.
@@ -543,6 +554,10 @@ async function assetSearchAgent(s) {
   // shown 4× in the montage. Seed with the pinned screenshots so stock can't
   // duplicate one of them either.
   const deduper = makeImageDeduper();
+  // Uploads seed FIRST — order matters: if a site capture duplicates the user's
+  // own image, the capture is the one that drops.
+  const userPinned = [...(assetPlan.userAssets || []), ...(assetPlan.logo ? [assetPlan.logo] : [])];
+  for (const a of userPinned) { if (a && a.path) { try { await deduper.add(path.join(jobDir, a.path)); } catch { /* noop */ } } }
   for (const a of pinned) { if (a && a.path) { try { await deduper.add(path.join(jobDir, a.path)); } catch { /* noop */ } } }
   // Operator override: with web stock forced off, PHOTO needs come only from the
   // curated library (or the real screenshots) — no random/off-brand stock. Web
@@ -755,7 +770,10 @@ async function assetSearchAgent(s) {
   // the pool (isLogo) and stages it where the pack's wantsLogo() asks.
   const logoPin = websiteLogoAsset({ job, jobDir });
   if (logoPin) console.log(`[agents] website logo pinned as ${logoPin.path}`);
-  const allPinned = [...gatedShots, ...blogPins, ...sitePins, ...(logoPin ? [logoPin] : [])];
+  // Uploads FIRST: array order decides who wins a downstream tie, and the user's
+  // own logo must beat the site's harvested one (every composer does .find(isLogo)).
+  // (`userPinned` is declared beside the dedup seed above.)
+  const allPinned = [...userPinned, ...gatedShots, ...blogPins, ...sitePins, ...(logoPin ? [logoPin] : [])];
 
   // A scene that asked for a website screenshot but has NO owner-content asset
   // left (the capture failed, or Screenshot QA dropped it as an error page /
@@ -964,7 +982,10 @@ function unpinIrrelevant(assets) {
   const dropped = [];
   for (const a of list) {
     if (!a || a.sceneId == null) continue;
-    const owner = String(a.source || "") === "website" || a.kind === "screenshot" || a.kind === "logo";
+    // Uploads are owner content too — without this, an unscored upload was
+    // unpinned to scrim B-roll ("I uploaded my dashboard and it never showed").
+    const owner = String(a.source || "") === "website" || String(a.source || "") === "upload"
+      || a.kind === "screenshot" || a.kind === "logo" || String(a.role || "") === "logo";
     if (owner) continue;
     const sceneRel = typeof a.clipSceneRelevance === "number" ? a.clipSceneRelevance : null;
     if (sceneRel !== null && sceneRel < PIN_SCENE_FLOOR) {
@@ -1001,7 +1022,23 @@ function unpinIrrelevant(assets) {
 // composition. Fail-open: any failure returns a null skin → the pack keeps its
 // own accents, so it never blocks a render or makes a video worse.
 async function artDirectorAgent(s) {
-  const brandColors = s.brief?.brandColors || [];
+  // SOURCE PRECEDENCE (user > extracted > inferred). The candidates are not
+  // equally true:
+  //   explicit  — job.brand_palette: the user's own pick from the Create screen.
+  //               A decision; it travels as its own field, never through the
+  //               brief (the brief is model input and may substitute hexes).
+  //   extracted — intent.website.brandColors: quantized off the real hero
+  //               screenshot. Raw truth, unlabeled.
+  //   inferred  — brief.brandColors: an LLM output (site-provenance-filtered in
+  //               brief.js, so on a prompt-only job this is now empty rather
+  //               than invented).
+  const bp = s.job?.brand_palette || null;
+  const explicit = bp ? [bp.primary, bp.secondary, bp.accent].filter(Boolean) : [];
+  const extracted = s.job?.intent?.website?.brandColors || [];
+  const brandColors = explicit.length ? explicit
+    : (s.brief?.brandColors || []).length ? s.brief.brandColors
+    : extracted;
+  if (explicit.length) console.log(`[agents] art_director: USER palette ${explicit.join(" ")} (${bp.source}${bp.presetId ? `:${bp.presetId}` : ""})`);
   // WEBSITE THEME MATCH — adopt the site's own ground color (light/dark) so the
   // film reads like the product's UI. On by default for website inputs; disable
   // per-request with matchSiteTheme:false. Proceeds even with no brand accents.
@@ -1070,6 +1107,73 @@ async function textDirectorAgent(s) {
   }
 }
 
+// CAPTION DIRECTOR — resolves the film's three INDEPENDENT language axes into one
+// plan and does the translation work up front (ported from Rohit).
+//
+// The axes are deliberately separate: a film can be SPOKEN in English, SUBTITLED
+// in Hindi, and have its ON-SCREEN TYPE in Hindi too. Previously the caption
+// config was a boolean and every language decision was English by construction.
+// The Language Director resolves the triple deterministically (no LLM, no
+// latency); this node performs the actual per-scene translation under that plan,
+// protecting a brand/tech glossary so a Hindi film still says "API" and "Stripe".
+//
+// Runs before voice_agent because the VO must be synthesised in the resolved
+// voice language. Fail-open: any failure leaves the film English.
+async function captionDirectorAgent(s) {
+  const { job, script, brief, tracker } = s;
+  const languagePlan = languageDirector.getPlan(job);
+  // Nothing to do for an all-English film — the overwhelmingly common case. Skip
+  // the node entirely rather than pay a no-op translate round trip.
+  const allSource = languagePlan.captionLanguage === captionDirector.SOURCE_LANG
+    && languagePlan.voiceLanguage === captionDirector.SOURCE_LANG
+    && languagePlan.videoTextLanguage === captionDirector.SOURCE_LANG;
+  if (allSource) return { languagePlan, captionPlan: null };
+
+  db.setProgress(job.id, "caption_director");
+  const captionConfig = job.captions_config != null ? job.captions_config : (job.captions_enabled === 1);
+  const captionPlan = await resolveCaptionPlan({ captionConfig, script, brief, job, tracker, languagePlan })
+    .catch((e) => { console.warn(`[agents] caption_director failed: ${e.message}`); return null; });
+  if (captionPlan) {
+    console.log(`[agents] caption_director → ${captionPlan.enabled ? "on" : "off"} subs=${captionPlan.language} voice=${captionPlan.voiceLanguage} mode=${captionPlan.mode}`
+      + (captionPlan.mode !== "original" ? ` (subs ${captionPlan.translate.translatedCount}/${captionPlan.translate.totalCount}${captionPlan.translate.ok ? "" : " FELL BACK"})` : ""));
+    // Register the script font + text direction for THIS job. Every composer path
+    // writes index.html through pipeline.writeComposedHtml, which consults this —
+    // without the @font-face Chromium renders every non-Latin glyph as a tofu box.
+    try { setCaptionStyle(job.id, captionPlan.captionStyle || null); } catch { /* non-fatal */ }
+    try { db.setLanguagePlan(job.id, languagePlan); } catch { /* disclosure only */ }
+  }
+  return { languagePlan, captionPlan };
+}
+
+// LOCALIZATION DIRECTOR — translates the storyboard's ON-SCREEN text (headline,
+// subtext, bullets, onScreenText, emphasis) into the video-text language, so the
+// film reads as designed-in-language rather than translated-after.
+//
+// Runs after the storyboard is fully built (it needs the final on-screen strings,
+// which text_director writes) and after the Caption Director resolved the target
+// language. MUTATES the storyboard scenes in place — they flow by reference into
+// composition. No-op when the video-text language is English.
+async function localizationDirectorAgent(s) {
+  const plan = s.captionPlan;
+  const vtl = plan && plan.videoTextLanguage;
+  if (!vtl || vtl === captionDirector.SOURCE_LANG || !s.storyboard) return {};
+  db.setProgress(s.job.id, "localization");
+  const report = await captionDirector.localizeStoryboardText({
+    storyboard: s.storyboard,
+    videoTextLanguage: vtl,
+    videoTextLanguageName: plan.videoTextLanguageName,
+    textStyle: plan.captionStyle && plan.captionStyle.text,
+    brief: s.brief, job: s.job, script: s.script, tracker: s.tracker,
+    // The same brand/tech protection the VO and caption passes use.
+    glossary: languageDirector.getPlan(s.job).glossary,
+  }).catch((e) => { console.warn(`[agents] localization_director failed: ${e.message}`); return null; });
+  if (report) {
+    try { db.setLocalization(s.job.id, report); } catch { /* disclosure only */ }
+    console.log(`[agents] localization_director → ${vtl} (${report.translatedElements}/${report.elementCount} verified, coverage ${report.localizationCoverage}%)`);
+  }
+  return { storyboard: s.storyboard, localizedStrings: (report && report.localizedStrings) || null };
+}
+
 // Voice Agent — per-scene fitted VO + script SFX + music, in parallel.
 async function voiceAgent(s) {
   const { job, jobDir, tracker, script } = s;
@@ -1091,9 +1195,19 @@ async function voiceAgent(s) {
   // One shared ttsSession = one narrator: the provider that speaks the first
   // clip is pinned for the whole take (no more mid-film voice swaps).
   const ttsSession = {};
-  const voTask = Promise.all(script.scenes.map((sc) =>
+  // THE NARRATION SPEAKS THE PLAN'S LANGUAGE. The Caption Director resolves
+  // per-scene VO text (voTextById — translated when the user chose a voiceover
+  // language, source otherwise); reading sc.voiceover directly here meant a
+  // Hindi dub was resolved, logged… and then spoken in English.
+  const voTextFor = (sc) => (s.captionPlan && s.captionPlan.voTextById && s.captionPlan.voTextById[sc.id]) || sc.voiceover;
+  // VOICEOVER OFF = a music-led cinematic mix. The PICTURE is byte-identical
+  // (script overlay + on-screen text still carry the words), the mix simply has
+  // no narration — and synthesizeFitted never runs, so the film costs zero TTS.
+  const voEnabled = job.voiceover_enabled !== 0;
+  if (!voEnabled) console.log(`[agents] voiceover OFF — music-led mix, zero TTS`);
+  const voTask = !voEnabled ? Promise.resolve([]) : Promise.all(script.scenes.map((sc) =>
     (sc.voiceover && sc.voiceover.trim())
-      ? synthesizeFitted({ text: sc.voiceover, targetSec: sc.duration, voice, instructions, outputPath: path.join(audioDir, `vo-${sc.id}.mp3`), tracker, session: ttsSession })
+      ? synthesizeFitted({ text: voTextFor(sc), targetSec: sc.duration, voice, instructions, outputPath: path.join(audioDir, `vo-${sc.id}.mp3`), tracker, session: ttsSession })
           .then((r) => r ? { sceneId: sc.id, startSec: sc.start, durationSec: r.durationSec, sceneDurationSec: sc.duration, text: r.text, path: r.path, fallbackVoice: r.fallbackVoice || null } : null)
           .catch((e) => { console.warn(`[agents] vo ${sc.id} failed: ${e.message}`); return null; })
       : Promise.resolve(null)
@@ -1140,7 +1254,16 @@ async function voiceAgent(s) {
   sfxWanted.sort((a, b) => a.startSec - b.startSec);
   const sfxTask = Promise.all(sfxWanted.map((x, i) =>
     getSfx({ name: x.name, outputPath: path.join(audioDir, `sfx-${i}.mp3`), tracker })
-      .then((p) => p ? { path: p, startSec: x.startSec, sceneId: x.sceneId, offsetFrac: x.offsetFrac, volume: 0.55 } : null).catch(() => null)
+      // `name` and `support` are carried through so the soundtrack report can
+      // name the cue and say why it fires. Without `name` every effect reported
+      // as the literal string "sfx" and a film with two DIFFERENT sounds read as
+      // a duplicate. `support` records the justification this engine actually
+      // has: the script asked for this cue on this beat (it is not yet tied to a
+      // measured on-screen reveal — that is what sfx_plan.js would add).
+      .then((p) => p ? {
+        path: p, startSec: x.startSec, sceneId: x.sceneId, offsetFrac: x.offsetFrac, volume: 0.55,
+        name: x.name, support: `script cue on scene ${x.sceneId}`,
+      } : null).catch(() => null)
   )).then((a) => a.filter(Boolean));
 
   // Richer music query: fold the mood field into the query so the provider gets
@@ -1203,8 +1326,58 @@ async function voiceAgent(s) {
 }
 
 // Composition Agent (+ the Animation agent's work product: the timeline).
+// PRE-RENDER VALIDATION GATE (ported from Rohit's preflight.js).
+//
+// Two jobs, both of which used to have no owner. First it SELF-HEALS: an asset
+// whose file vanished between fetch and compose (a failed re-encode, a cleanup
+// race, a rejected-and-deleted stock photo still on the wire) becomes a broken
+// <img src> in the render — a visible hole nothing detected. Second it reports
+// whether every scene actually got a visual, which is the signal
+// delivery_quality reads as `validation_report`.
+//
+// Disclosure by default: warnings are logged and persisted, and only the
+// genuinely unrenderable case can block. Off with VALIDATION_GATE=0.
+function validateBeforeRender(s) {
+  if (!config.validationGate?.enabled) return;
+  const { job, jobDir } = s;
+  let report;
+  try {
+    report = preflight({
+      job,
+      assets: Array.isArray(s.assets) ? s.assets : [],
+      script: s.script,
+      storyboard: s.storyboard,
+      brandSkin: s.brandSkin,
+      jobDir,
+      acceptsVectors: require("../services/frame_manifest").packAcceptsVectors(s.framePack),
+      hardFail: config.validationGate.hardFail !== false,
+    });
+  } catch (e) {
+    console.warn(`[preflight] skipped: ${e.message}`);
+    return;
+  }
+  // Adopt the self-healed list so the composer never emits a broken <img src>.
+  if (report.selfHealed) {
+    s.assets = report.healedAssets;
+    console.warn(`[agents] preflight: self-healed ${report.selfHealed} asset(s) with missing files`);
+  }
+  delete report.healedAssets; // not disclosure material — it's the whole asset wire
+
+  console.log(`[preflight] ${report.summary}`);
+  for (const w of report.warnings) console.warn(`[preflight] WARN ${w.id}: ${w.detail}`);
+  for (const f of report.failures) console.error(`[preflight] FAIL ${f.id}: ${f.detail}`);
+
+  try { db.setValidationReport(job.id, report); } catch { /* a disclosure never blocks a render by its own failure */ }
+  if (report.blockedBy) {
+    const f = report.failures[0];
+    throw new Error(`pre-render validation failed (${f.id}): ${f.detail}. ${f.fix || ""}`.trim());
+  }
+}
+
 async function compositionAgent(s) {
   const { job, jobDir, tracker } = s;
+  // First pass only — repair laps reuse the already-healed asset list.
+  if (!s.qa) validateBeforeRender(s);
   db.setProgress(job.id, "composing");
   const dims = { width: job.width, height: job.height, fps: job.fps };
 
@@ -1450,7 +1623,10 @@ async function compositionAgent(s) {
     // Run the fallback through the same safe normalizer the LLM path uses, so a
     // pack font token / track overlap never ships an un-checked fallback.
     const fbNorm = normalizeComposition(fb.indexHtml);
-    fs.writeFileSync(path.join(jobDir, "index.html"), fbNorm.html, "utf8");
+    // Through the shared writer so the emergency fallback gets the same language
+    // CSS as a designed composition — a localized film must not lose its script
+    // font precisely when it has already degraded.
+    writeComposedHtml(jobDir, fbNorm.html, job.id);
     fs.writeFileSync(path.join(jobDir, "meta.json"), fb.metaJson, "utf8");
     tracker.addExternal("hyperframes_render");
     const visual = await render({ jobId: job.id, jobDir, durationSec: effDur });
@@ -1471,8 +1647,48 @@ async function animationAgent(s) {
   const tweenCount = (html.match(/tl\.(to|fromTo|from|set)\(/g) || []).length;
   const sceneCount = (s.storyboard?.scenes || []).length || 1;
   if (tweenCount < sceneCount * 2) warnings.push(`only ${tweenCount} timeline calls for ${sceneCount} scenes — likely under-animated`);
+
+  // ASSET RENDER AUDIT (ported from Rohit's asset_render_check.js). The timeline
+  // audit above measures MOTION; nothing measured whether the pictures the
+  // pipeline collected, ranked and paid to fetch actually reached the screen. A
+  // composer that silently drops every image still passes every check here — the
+  // "empty frames / text-only film" class. Reconciles assets-received against
+  // <img src> in the composed HTML. Pure disclosure: warns, never blocks.
+  let assetRender = null;
+  try {
+    assetRender = auditAssetRender({ indexHtml: html, assets: s.assets || [], jobDir: s.jobDir });
+    if (assetRender && assetRender.assetsSelected > 0 && assetRender.assetsRendered === 0) {
+      warnings.push(`ASSET BLACKOUT — ${assetRender.assetsSelected} picture(s) collected, 0 drawn`);
+    } else if (assetRender && assetRender.missingAssignments > 0) {
+      warnings.push(`${assetRender.missingAssignments} asset(s) assigned to a scene but never drawn`);
+    }
+    if (assetRender && assetRender.invalidPaths > 0) {
+      warnings.push(`${assetRender.invalidPaths} rendered <img> point at a missing file`);
+    }
+  } catch { /* fail-open: disclosure is never worth a lost render */ }
+
+  // LANGUAGE QA — only meaningful for a localized film. Catches the two faults
+  // numeric translation coverage cannot see: the script font not actually being
+  // embedded (so the film renders as tofu boxes), and English LEAKING into the
+  // on-screen DOM through composer-owned strings that never went through
+  // translation. Disclosure only.
+  try {
+    const plan = s.languagePlan;
+    if (plan && plan.videoTextLanguage && plan.videoTextLanguage !== captionDirector.SOURCE_LANG) {
+      const raw = db.getRaw(s.job.id) || {};
+      const report = languageDirector.runLanguageQa({
+        plan, indexHtml: html, localization: raw.localization, captionQuality: raw.captionQuality,
+      });
+      if (report) {
+        db.setLanguageQa(s.job.id, report);
+        console.log(`[agents] language_qa → font=${report.fontLoaded ? "ok" : "MISSING"} leakage=${report.leakage.count}word(s)/${report.leakage.score}%${report.degraded ? " DEGRADED" : ""}`);
+        if (report.degraded) warnings.push(`localization degraded (${report.fontLoaded ? "" : "font missing; "}${report.leakage.count} English word(s) on screen)`);
+      }
+    }
+  } catch (e) { console.warn(`[agents] language_qa skipped: ${e.message}`); }
+
   if (warnings.length) console.warn(`[agents] animation audit: ${warnings.join(" | ")}`);
-  return { animationReport: { tweenCount, warnings } };
+  return { animationReport: { tweenCount, warnings, assetRender } };
 }
 
 // Timeline Agent — render (if not already), captions/SRT, audio mix.
@@ -1513,6 +1729,37 @@ async function timelineAgent(s) {
         musicEnvelope: musicEnvelopeFromScript(s.script, (s.voClips || []).length > 0),
     },
   }).catch((e) => console.warn(`[agents] mix failed: ${e.message}`));
+
+  // AUDIO VALIDATION REPORT (ported from Rohit's audio_report.js). Deterministic
+  // check on the soundtrack the film actually received, as opposed to the one the
+  // Audio Director intended: is every effect mapped to a scene that still exists,
+  // are two cues the same sound, is the voice protected, is the master sane. Feeds
+  // `delivery_quality` as `audio_report` (its qualityScore is 20% of the delivery
+  // score). Disclosure only — never blocks.
+  try {
+    const hasVo = (s.voClips || []).length > 0;
+    const report = buildAudioReport({
+      // This engine ducks in the MIXER, not via a director's plan: audio_mix.js
+      // sidechains the bed under the voice key (ratio 4 / threshold 0.05, which
+      // sits the music ~8-10 dB under speech) and does the same for SFX and
+      // ambient, then normalizes the master. The report grades a PLAN, so state
+      // the mix's real behaviour rather than passing null — with no plan it would
+      // read "music is not ducked" on every narrated film and dock 32 points for
+      // a duck that is demonstrably there.
+      plan: { master: { musicUnderVoDuckDb: hasVo ? -9 : 0, normalize: true } },
+      sfxClips: s.sfxClips || [],
+      scenes: s.storyboard?.scenes || s.script?.scenes || [],
+      musicPath: s.musicPath || null,
+      musicMood: s.script?.music?.mood || "",
+      voClips: s.voClips || [],
+      voiceoverRequested: (s.voClips || []).length > 0,
+    });
+    if (report) {
+      db.setAudioReport(job.id, report);
+      console.log(`[agents] audio_report → quality ${report.qualityScore}/100`
+        + (report.issues && report.issues.length ? ` · ${report.issues.length} issue(s): ${report.issues.slice(0, 2).join("; ")}` : " · clean"));
+    }
+  } catch (e) { console.warn(`[agents] audio_report skipped: ${e.message}`); }
 
   return { visual };
 }
@@ -1746,6 +1993,7 @@ async function buildGraph() {
     bestQa: Annotation(), usedComposer: Annotation(),
     composerBudgetDead: Annotation(), contrastRepairTried: Annotation(), detRepairNoop: Annotation(),
     brandSkin: Annotation(), layoutPlan: Annotation(), deadFrameTried: Annotation(),
+    languagePlan: Annotation(), captionPlan: Annotation(), localizedStrings: Annotation(),
   });
 
   // PER-NODE WALL CLOCK.
@@ -1786,6 +2034,8 @@ async function buildGraph() {
     .addNode("scene_planner", timed("scene_planner", scenePlannerAgent))
     .addNode("asset_search", timed("asset_search", assetSearchAgent))
     .addNode("text_director", timed("text_director", textDirectorAgent))
+    .addNode("caption_director", timed("caption_director", captionDirectorAgent))
+    .addNode("localization_director", timed("localization_director", localizationDirectorAgent))
     .addNode("visual_layout_director", timed("visual_layout_director", visualLayoutDirectorAgent))
     .addNode("voice_agent", timed("voice_agent", voiceAgent))
     .addNode("composition", timed("composition", compositionAgent))
@@ -1804,17 +2054,26 @@ async function buildGraph() {
   // asset_search plans its own fetch list inline (see assetSearchAgent) — a
   // separate asset_planner node cost a whole superstep behind the storyboard LLM.
   g.addEdge("frame_selector", "asset_search");
-  g.addEdge("frame_selector", "voice_agent");
+  // The Caption Director resolves the language triple and translates the spoken
+  // lines BEFORE the voice branch, because the VO must be synthesised in the
+  // resolved voice language. It short-circuits for an all-English film, so this
+  // adds no latency to the common case.
+  g.addEdge("frame_selector", "caption_director");
+  g.addEdge("caption_director", "voice_agent");
   g.addEdge("frame_selector", "art_director");
   g.addEdge("storyboard_agent", "scene_planner");
   // The Text Director enriches the planned scenes with mined copy (subtext/
   // bullets/emphasis) BEFORE layout, so archetype typing sees the final text
   // (a scene that just gained proof bullets can become a feature grid).
   g.addEdge("scene_planner", "text_director");
-  // Join: the Visual Layout Director needs the enriched scene plan AND the
-  // curated assets (it reuses their scores to re-level prominence + type each
-  // scene's archetype).
-  g.addEdge(["text_director", "asset_search"], "visual_layout_director");
+  // Localization runs on the FINAL on-screen strings, so it sits after
+  // text_director (which writes them) and after caption_director (which resolved
+  // the target language). No-op for an English film.
+  g.addEdge(["text_director", "caption_director"], "localization_director");
+  // Join: the Visual Layout Director needs the enriched (and, if localized,
+  // translated) scene plan AND the curated assets (it reuses their scores to
+  // re-level prominence + type each scene's archetype).
+  g.addEdge(["localization_director", "asset_search"], "visual_layout_director");
   // Join: composition waits for the layout direction (archetypes + sizing/crop +
   // re-leveled assets), the brand skin (accent-only palette) AND the voice branch.
   g.addEdge(["visual_layout_director", "art_director", "voice_agent"], "composition");
@@ -1973,6 +2232,27 @@ async function runProductionGraphInner({ jobId }) {
       }
     }
     const shippedQa = restored ? (final.bestQa.verdict || final.qa) : final.qa;
+
+    // DELIVERY PROBE (ported from Rohit's video_probe.js). Every check in this
+    // pipeline runs on the PLAN — the storyboard, the composition, the mix
+    // manifest. Nothing ever ffprobed the file we hand over, so a film could ship
+    // at the wrong resolution, at half the requested length, or SILENT after a
+    // voiceover was synthesised and paid for, and every gate would still read
+    // green. This runs on the artifact. Disclosure only: it records and logs,
+    // never blocks a delivery.
+    try {
+      const mixedAudio = Boolean(final.musicPath || (final.voClips || []).length || (final.sfxClips || []).length);
+      await require("../services/video_probe").recordDeliveryProbe(jobId, final.visual.videoPath, {
+        width: job.width, height: job.height, fps: job.fps,
+        durationSec: Number(job.duration) || null, expectAudio: mixedAudio,
+      });
+    } catch { /* fail-open: a probe must never cost a finished film */ }
+
+    // The per-job language style is keyed by job id and the pipeline module is
+    // long-lived, so release it or a busy server leaks one entry per localized
+    // film. Done here (not in a node) because repair laps re-enter composition.
+    try { clearCaptionStyle(jobId); } catch { /* noop */ }
+
     const costs = tracker.computeCosts();
     db.markDone(jobId, {
       videoUrl: final.visual.videoUrl,
@@ -2031,4 +2311,13 @@ async function runProductionGraph(opts) {
   });
 }
 
-module.exports = { runProductionGraph, __test_assetSearchAgent: assetSearchAgent, __test_makeQueryDeriver: makeQueryDeriver };
+module.exports = {
+  runProductionGraph,
+  __test_assetSearchAgent: assetSearchAgent,
+  __test_makeQueryDeriver: makeQueryDeriver,
+  // Exposed so a guard can COMPILE the graph without running a job: LangGraph
+  // validates the node/edge topology at compile time, so a bad edge (a typo, a
+  // node that is never reachable, a join on a node that does not exist) is a
+  // build error rather than something a paid production run discovers.
+  __test_buildGraph: buildGraph,
+};

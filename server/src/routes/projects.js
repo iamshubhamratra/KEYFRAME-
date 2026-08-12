@@ -11,6 +11,7 @@
 
 const express = require("express");
 const path = require("node:path");
+const fs = require("node:fs");
 const rateLimit = require("express-rate-limit");
 const multer = require("multer");
 const { customAlphabet } = require("nanoid");
@@ -18,35 +19,93 @@ const config = require("../config");
 const db = require("../db");
 const frameRegistry = require("../services/frame_registry");
 const { validateScript, normalizeScript } = require("../services/script");
+const captionLang = require("../services/caption_lang");
+const captionDirector = require("../services/caption_director");
 
 const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 10);
 
-// Reference-video uploads (multipart). JSON bodies bypass multer entirely.
+// Uploads (multipart). JSON bodies bypass multer entirely. Three file fields:
+//   referenceVideo — 1 video, transcribed at intake
+//   logo           — 1 image, the user's own brand logo (SVG allowed HERE ONLY)
+//   assets         — up to 12 images, the user's own product material (tier-100 pins)
 const VIDEO_MIMES = new Set(["video/mp4", "video/quicktime", "video/webm"]);
+const IMAGE_MIMES = new Set(["image/png", "image/jpeg", "image/webp"]);
+// SVG is logo-only: a vector logo is safe as an <img> in the headless render page
+// (scripts don't execute in <img>), but arbitrary SVGs skip every ffprobe gate
+// (asset_sources/util.validateImage returns ok:true for .svg WITHOUT probing),
+// so the general assets field stays raster-only.
+const LOGO_MIMES = new Set([...IMAGE_MIMES, "image/svg+xml"]);
+const MAX_USER_IMAGES = 12;
+const IMAGE_MAX_MB = 15;
+// The saved extension comes from the MIME, never the client filename: the old
+// `extname || ".mp4"` default mislabeled anything extension-less as video, and
+// downstream code sniffs extensions.
+const MIME_EXT = {
+  "video/mp4": ".mp4", "video/quicktime": ".mov", "video/webm": ".webm",
+  "image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp", "image/svg+xml": ".svg",
+};
 const upload = multer({
   storage: multer.diskStorage({
     destination: (_req, _file, cb) => cb(null, config.paths.uploadsDir),
     filename: (_req, file, cb) => {
-      const ext = (path.extname(file.originalname) || ".mp4").toLowerCase().slice(0, 8);
+      const ext = MIME_EXT[file.mimetype] || (path.extname(file.originalname) || ".bin").toLowerCase().slice(0, 8);
       cb(null, `${nanoid()}${ext}`);
     },
   }),
-  limits: { fileSize: (config.ingest?.maxUploadMb || 200) * 1024 * 1024, files: 1 },
+  // fileSize is multer-GLOBAL and video-sized; the tighter per-image cap is
+  // enforced post-parse in the route (multer cannot do per-field sizes).
+  limits: { fileSize: (config.ingest?.maxUploadMb || 200) * 1024 * 1024, files: 2 + MAX_USER_IMAGES },
   fileFilter: (_req, file, cb) => {
-    if (VIDEO_MIMES.has(file.mimetype)) cb(null, true);
-    else cb(new Error(`unsupported video type ${file.mimetype} (mp4/mov/webm only)`));
+    if (file.fieldname === "referenceVideo") {
+      if (VIDEO_MIMES.has(file.mimetype)) return cb(null, true);
+      return cb(new Error(`unsupported video type ${file.mimetype} (mp4/mov/webm only)`));
+    }
+    if (file.fieldname === "logo") {
+      if (LOGO_MIMES.has(file.mimetype)) return cb(null, true);
+      return cb(new Error(`unsupported logo type ${file.mimetype} (png/jpg/webp/svg only)`));
+    }
+    if (file.fieldname === "assets") {
+      if (IMAGE_MIMES.has(file.mimetype)) return cb(null, true);
+      return cb(new Error(`unsupported image type ${file.mimetype} (png/jpg/webp only)`));
+    }
+    return cb(new Error(`unexpected file field "${file.fieldname}" (use referenceVideo, logo, or assets)`));
   },
 });
+const uploadFields = upload.fields([
+  { name: "referenceVideo", maxCount: 1 },
+  { name: "logo", maxCount: 1 },
+  { name: "assets", maxCount: MAX_USER_IMAGES },
+]);
 
 function maybeMultipart(req, res, next) {
   if (req.is("multipart/form-data")) {
-    upload.single("referenceVideo")(req, res, (err) => {
-      if (err) return res.status(400).json({ error: "upload failed", details: [err.message] });
+    uploadFields(req, res, (err) => {
+      if (err) {
+        // Multer's field-count errors are cryptic ("Unexpected field") — translate.
+        const msg = err.code === "LIMIT_UNEXPECTED_FILE"
+          ? `too many files or unknown file field "${err.field}" (referenceVideo ×1, logo ×1, assets ×${MAX_USER_IMAGES})`
+          : err.message;
+        return res.status(400).json({ error: "upload failed", details: [msg] });
+      }
       next();
     });
   } else {
     next();
   }
+}
+
+// Belt-and-braces for the one non-raster type we accept: the first bytes of a real
+// SVG are "<svg" or an XML prolog. A mislabeled binary posing as image/svg+xml is
+// rejected at create.
+function looksLikeSvg(filePath) {
+  try {
+    const fd = fs.openSync(filePath, "r");
+    const buf = Buffer.alloc(512);
+    const n = fs.readSync(fd, buf, 0, 512, 0);
+    fs.closeSync(fd);
+    const head = buf.slice(0, n).toString("utf8").trimStart().toLowerCase();
+    return head.startsWith("<svg") || head.startsWith("<?xml");
+  } catch { return false; }
 }
 
 function clientIp(req) {
@@ -111,7 +170,68 @@ function validateCreate(body, { hasUpload = false } = {}) {
   // Subtitles/captions are OPT-IN (default OFF) — baked captions overlap scene
   // content and users overwhelmingly dislike burnt-in subtitles. Matches the
   // /api/generate route. Turn on only with an explicit captions:true (or "true").
-  out.captions = body.captions === true || body.captions === "true";
+  //
+  // Now also accepts the MULTI-LANGUAGE config object (ported from Rohit):
+  //   { enabled, language, voiceoverLanguage, videoTextLanguage, exportSRT, exportVTT }
+  // The three axes are independent — a film can be spoken in English, subtitled
+  // in Hindi and have its on-screen type in Hindi too. The legacy boolean still
+  // works unchanged. Over multipart (file uploads) the object arrives
+  // JSON-stringified, so parse a "{...}" string first.
+  {
+    let capIn = body.captions;
+    if (typeof capIn === "string") {
+      const s = capIn.trim();
+      if (s === "true" || s === "false") capIn = s === "true";
+      else if (s.startsWith("{")) { try { capIn = JSON.parse(s); } catch { capIn = undefined; } }
+    }
+    if (capIn && typeof capIn === "object" && capIn.enabled !== false) {
+      const supported = captionLang.listLanguages().map((l) => l.code).join(", ");
+      // "auto" is the video-text default (match the voiceover) and is not a
+      // language code, so it skips validation.
+      for (const [field, val] of [["caption", capIn.language], ["voiceover", capIn.voiceoverLanguage], ["video text", capIn.videoTextLanguage]]) {
+        if (val == null || String(val).toLowerCase() === "auto") continue;
+        if (!captionLang.normalizeLang(val)) {
+          if (captionLang.isFuture(val)) errs.push(`${field} language "${val}" is coming soon; supported now: ${supported}`);
+          else errs.push(`unsupported ${field} language "${val}"; supported: ${supported}`);
+        }
+      }
+    }
+    const cfg = captionDirector.normalizeConfig(capIn);
+    out.captions = cfg.enabled;   // the legacy boolean the rest of the code reads
+    out.captionsConfig = cfg;     // full multi-language settings for the Caption Director
+  }
+
+  // VOICEOVER — narration on/off. Default ON; only an explicit false disables it,
+  // so every existing client keeps working unchanged. With it off the film is a
+  // music-led cinematic mix, the PICTURE is byte-identical, and TTS costs zero.
+  out.voiceover = !(body.voiceover === false || body.voiceover === "false");
+
+  // BRAND PALETTE — the user's own primary/secondary/accent, overriding the
+  // pack's accents. Travels to the graph as its OWN field (never through the
+  // brief: the brief is model input and the model may substitute hexes — a
+  // palette is only the user's pick while no model has had an opinion on it).
+  // An empty string is how both client paths spell "no colour picked" — absent,
+  // not malformed.
+  let bp = body.brandPalette;
+  if (typeof bp === "string" && bp.trim() !== "") {
+    try { bp = JSON.parse(bp); } catch { errs.push("brandPalette must be JSON"); bp = null; }
+  }
+  if (bp && typeof bp === "object") {
+    const hex = (v) => (/^#[0-9a-fA-F]{6}$/.test(String(v || "")) ? String(v).toLowerCase() : null);
+    const primary = hex(bp.primary);
+    // primary is the one required stop: secondary/accent are derived downstream
+    // when absent, but a palette with nothing to lead it cannot steer an accent.
+    if (!primary) errs.push("brandPalette.primary must be #RRGGBB");
+    else out.brandPalette = {
+      v: 1,
+      primary,
+      secondary: hex(bp.secondary),
+      accent: hex(bp.accent),
+      source: ["manual", "preset", "website", "logo"].includes(bp.source) ? bp.source : "manual",
+      presetId: typeof bp.presetId === "string" ? bp.presetId.slice(0, 32) : null,
+      raw: Array.isArray(bp.raw) ? bp.raw.map(hex).filter(Boolean).slice(0, 6) : [],
+    };
+  }
 
   // Three.js/WebGL cinematic composer (opt-in). Website screenshots texture the
   // reveal plate. Default off → scene-kit / LLM composer.
@@ -155,8 +275,24 @@ function buildRouter({ enqueueIntake, enqueueProduction }) {
   });
 
   router.post("/projects", limiter, maybeMultipart, (req, res) => {
-    const uploadPath = req.file ? req.file.path : null;
+    // upload.fields() puts files on req.files (keyed by field); req.file is gone.
+    const files = req.files || {};
+    const referenceVideo = files.referenceVideo && files.referenceVideo[0] ? files.referenceVideo[0] : null;
+    const logoFile = files.logo && files.logo[0] ? files.logo[0] : null;
+    const imageFiles = Array.isArray(files.assets) ? files.assets : [];
+    const uploadPath = referenceVideo ? referenceVideo.path : null;
+
+    // hasUpload means the VIDEO: images supplement a subject, they cannot BE one.
     const { errs, out } = validateCreate(req.body || {}, { hasUpload: !!uploadPath });
+    if (!out.prompt && !out.websiteUrl && !out.blogUrl && !uploadPath && (logoFile || imageFiles.length)) {
+      errs.push("images supplement a subject — also provide a prompt, websiteUrl, blogUrl, or referenceVideo");
+    }
+    for (const f of [logoFile, ...imageFiles].filter(Boolean)) {
+      if (f.size > IMAGE_MAX_MB * 1024 * 1024) errs.push(`${f.fieldname} "${f.originalname}" exceeds ${IMAGE_MAX_MB}MB`);
+    }
+    if (logoFile && logoFile.mimetype === "image/svg+xml" && !looksLikeSvg(logoFile.path)) {
+      errs.push("logo claims image/svg+xml but does not look like an SVG");
+    }
     if (errs.length) return res.status(400).json({ error: "invalid request", details: errs });
 
     const since = Date.now() - 24 * 60 * 60 * 1000;
@@ -166,6 +302,32 @@ function buildRouter({ enqueueIntake, enqueueProduction }) {
 
     const dims = config.dimensionsFor(out.orientation, out.quality);
     const jobId = nanoid();
+
+    // The user's own images become part of the JOB, not transient uploads: copy them
+    // into jobs/<id>/uploads/ (jobDir-relative paths — the convention every asset
+    // carries, and what hyperframes resolves against since it renders with cwd:jobDir).
+    // Originals stay in uploadsDir under its janitor TTL as the regenerate recovery
+    // source. Copy failures degrade the manifest, never the create.
+    let userAssets = null;
+    if (logoFile || imageFiles.length) {
+      const upDir = path.join(config.paths.jobsDir, jobId, "uploads");
+      fs.mkdirSync(upDir, { recursive: true });
+      const manifest = [];
+      const stage = (file, id, role) => {
+        try {
+          const rel = `uploads/${id}${MIME_EXT[file.mimetype] || ".bin"}`;
+          fs.copyFileSync(file.path, path.join(config.paths.jobsDir, jobId, rel));
+          manifest.push({
+            id, role, path: rel,
+            originalName: String(file.originalname || "").slice(0, 120),
+            mime: file.mimetype, bytes: file.size, classified: false,
+          });
+        } catch (e) { console.warn(`[projects] failed to stage upload ${file.originalname}: ${e.message}`); }
+      };
+      if (logoFile) stage(logoFile, "logo", "logo");
+      imageFiles.forEach((f, i) => stage(f, `u${i + 1}`, "asset"));
+      if (manifest.length) userAssets = manifest;
+    }
 
     db.insert({
       id: jobId,
@@ -181,14 +343,19 @@ function buildRouter({ enqueueIntake, enqueueProduction }) {
       voiceStyle: out.voiceStyle,
       autopilot: out.autopilot,
       captionsEnabled: out.captions,
+      captionsConfig: out.captionsConfig || null,
+      voiceoverEnabled: out.voiceover,
+      brandPalette: out.brandPalette || null,
       render3d: out.render3d,
       composeMode: out.composeMode,
       uploadPath,
+      userAssets,
       intent: {
         prompt: out.prompt,
         websiteUrl: out.websiteUrl || null,
         blogUrl: out.blogUrl || null,
         hasReferenceVideo: !!uploadPath,
+        hasUserAssets: userAssets ? { count: userAssets.filter((u) => u.role === "asset").length, hasLogo: userAssets.some((u) => u.role === "logo") } : null,
         preferences: {
           duration: out.duration,
           orientation: out.orientation,

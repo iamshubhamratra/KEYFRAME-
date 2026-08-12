@@ -28,6 +28,19 @@ const ASPECT = { horizontal: "16:9", vertical: "9:16", square: "1:1" };
 // The caption/on-screen-text languages the backend supports (server/src/services/
 // caption_lang.js is the source of truth — keep in step). Hindi, Arabic and
 // Japanese need a bundled script font; the rest ride the Latin stack.
+// Studio-owned brand presets. The custom wells open on KEYFRAME's own accents,
+// never the selected pack's — a pre-filled well is an answer the user can accept
+// by not touching it, so it may only hold something honestly attributable to them.
+const BRAND_PRESETS = [
+  { id: "ocean", label: "Ocean", primary: "#3b82f6", secondary: "#06b6d4" },
+  { id: "sunset", label: "Sunset", primary: "#f97316", secondary: "#ef4444" },
+  { id: "forest", label: "Forest", primary: "#10b981", secondary: "#22c55e" },
+  { id: "royal", label: "Royal", primary: "#6366f1", secondary: "#8b5cf6" },
+  { id: "neon", label: "Neon", primary: "#ec4899", secondary: "#a855f7" },
+  { id: "gold", label: "Luxury Gold", primary: "#f59e0b", secondary: "#fbbf24" },
+];
+const HEX_RE = /^#[0-9a-fA-F]{6}$/;
+
 const LANGUAGES = [
   { code: "en", label: "English", native: "English" },
   { code: "hi", label: "Hindi", native: "हिन्दी" },
@@ -83,8 +96,17 @@ export default function CreateScreen({ onCreated, prefill }) {
   const [fps, setFps] = useState(30);               // frame rate → config.allowedFps
   const [framePack, setFramePack] = useState(prefill?.framePack || "auto");
   const [captions, setCaptions] = useState(false);
-  const [language, setLanguage] = useState("en");   // subtitle + on-screen text language
-  const [dubVoice, setDubVoice] = useState(false);   // ALSO speak the narration in `language` (explicit, never implicit)
+  // THREE independent language axes (the server's caption_director treats each
+  // as first-class): what is SPOKEN, what is SUBTITLED, what is PRINTED on
+  // screen. "auto" on-screen text follows the voiceover so the film reads in
+  // one language by default.
+  const [voiceLang, setVoiceLang] = useState("en");
+  const [captionLang, setCaptionLang] = useState("en");
+  const [videoTextLang, setVideoTextLang] = useState("auto");
+  const [voiceover, setVoiceover] = useState(true);  // narration on/off — off = music-led cinematic mix
+  const [brandChoice, setBrandChoice] = useState("template"); // "template" (pack keeps its accents) · preset id · "custom"
+  const [customPrimary, setCustomPrimary] = useState("");
+  const [customSecondary, setCustomSecondary] = useState("");
   const [logoFile, setLogoFile] = useState(null);    // the user's own brand mark
   const [assetFiles, setAssetFiles] = useState([]);  // the user's own product images (tier-100, outrank stock)
   const [voice, setVoice] = useState("auto");        // narration character (voiceStyle)
@@ -111,6 +133,17 @@ export default function CreateScreen({ onCreated, prefill }) {
     return next.slice(0, MAX_ASSETS);
   });
   const acceptLogo = (f) => { if (f && [...IMAGE_TYPES, "image/svg+xml"].includes(f.type) && f.size <= IMG_MAX_MB * 1024 * 1024) setLogoFile(f); };
+  // The palette that travels with the job. null = "the pack keeps its own
+  // accents" — a real answer, treated by the API exactly like absent.
+  const brandPreset = BRAND_PRESETS.find((p) => p.id === brandChoice) || null;
+  const cp = HEX_RE.test(customPrimary) ? customPrimary.toLowerCase() : null;
+  const cs = HEX_RE.test(customSecondary) ? customSecondary.toLowerCase() : null;
+  const brandPalette = brandPreset
+    ? { primary: brandPreset.primary, secondary: brandPreset.secondary, source: "preset", presetId: brandPreset.id }
+    : (brandChoice === "custom" && cp)
+      ? { primary: cp, secondary: cs, source: "manual", presetId: null }
+      : null;
+
   const assetThumbs = useMemo(() => assetFiles.map((f) => URL.createObjectURL(f)), [assetFiles]);
   useEffect(() => () => assetThumbs.forEach((u) => URL.revokeObjectURL(u)), [assetThumbs]);
 
@@ -177,14 +210,19 @@ export default function CreateScreen({ onCreated, prefill }) {
         // translates the type baked into the frame, not just the subtitle track;
         // the voiceover deliberately stays English — dubbing is a separate,
         // costlier axis we do not turn on implicitly.
-        // A non-English film sends the full config REGARDLESS of the captions
-        // toggle — translation is not a subtitle sub-feature (the server localizes
-        // VO and on-screen type with enabled:false; it only skips the burn-in).
-        // `enabled` is always explicit: the server's normalizeConfig defaults a
-        // bare object to true, which would burn captions nobody asked for.
-        captions: (language !== "en" || dubVoice)
-          ? { enabled: captions, language, videoTextLanguage: language, ...(dubVoice ? { voiceoverLanguage: language } : {}) }
+        // Captions burn-in and the FILM'S LANGUAGE are INDEPENDENT controls. The
+        // config is sent whenever captions are on OR any axis is localized, so a
+        // Hindi film with no burned-in subtitles still gets Hindi voice +
+        // on-screen text. `enabled` carries ONLY the captions toggle (always
+        // explicit — the server defaults a bare object to true).
+        captions: (captions || voiceLang !== "en" || captionLang !== "en" || (videoTextLang !== "auto" && videoTextLang !== "en"))
+          ? { enabled: captions, language: captionLang, voiceoverLanguage: voiceLang, videoTextLanguage: videoTextLang, exportSRT: true, exportVTT: true }
           : captions,
+        // Sent ONLY when disabled — absent means enabled server-side, so every
+        // older client keeps working unchanged.
+        ...(voiceover ? {} : { voiceover: false }),
+        // null = the user kept the pack's accents; the API treats it as absent.
+        ...(brandPalette ? { brandPalette } : {}),
         ...(logoFile ? { logo: logoFile } : {}),
         ...(assetFiles.length ? { assets: assetFiles } : {}),
         composeMode: finish === "cinema" ? "standard" : finish,
@@ -490,45 +528,106 @@ export default function CreateScreen({ onCreated, prefill }) {
               independent, but the common ask is "the whole film in X", so one
               picker sets subtitles + on-screen type together and the voiceover
               stays English unless explicitly dubbed. */}
-          {/* ALWAYS visible — the language axis is not a captions sub-setting.
-              Translation is decoupled from burn-in server-side (enabled:false +
-              language still localizes the VO and on-screen type), so hiding this
-              behind the captions toggle made the whole feature undiscoverable. */}
-          {(
-            <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
-              <span className="spine" style={{ "--spine": "#8a63ff" }} />
-              <div className="label-mono" style={{ marginBottom: 4 }}>LANGUAGE — {(LANGUAGES.find((l) => l.code === language) || LANGUAGES[0]).label.toUpperCase()}</div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)", marginBottom: 10 }}>
-                {language === "en" ? "FILM IN ENGLISH"
-                  : dubVoice ? `ON-SCREEN TYPE + VOICEOVER IN ${(LANGUAGES.find((l) => l.code === language) || {}).label?.toUpperCase()}${captions ? " · SUBTITLES BURNED IN" : ""}`
-                  : `ON-SCREEN TYPE TRANSLATED · VOICEOVER STAYS ENGLISH${captions ? " · SUBTITLES BURNED IN" : ""}`}
+          {/* LANGUAGE — three independent axes: what is SPOKEN, what is SUBTITLED,
+              what is PRINTED on screen. Always visible; translation is decoupled
+              from caption burn-in server-side. */}
+          <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
+            <span className="spine" style={{ "--spine": "#8a63ff" }} />
+            <div className="label-mono" style={{ marginBottom: 4 }}>LANGUAGE</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)", marginBottom: 10 }}>
+              {voiceLang === "en" && captionLang === "en" && (videoTextLang === "auto" || videoTextLang === "en")
+                ? "ENGLISH · NO TRANSLATION PASS"
+                : "TRANSLATED · ONE EXTRA MODEL CALL"}
+            </div>
+            <div style={{ display: "grid", gap: 10 }}>
+              {[["🔊 VOICEOVER", voiceLang, setVoiceLang, LANGUAGES],
+                ["💬 SUBTITLES", captionLang, setCaptionLang, LANGUAGES],
+                ["🎬 ON-SCREEN TEXT", videoTextLang, setVideoTextLang,
+                  [{ code: "auto", label: "Auto — match voiceover" }, ...LANGUAGES]]
+              ].map(([label, val, set, opts]) => (
+                <label key={label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)" }}>{label}</span>
+                  <select value={val} onChange={(e) => set(e.target.value)} aria-label={label}
+                    style={{ flex: "0 0 200px", padding: "6px 8px", fontFamily: "var(--font-mono)", fontSize: 11, background: "var(--color-paper-2)", border: "1px solid rgba(23,19,14,.25)", borderRadius: 4 }}>
+                    {opts.map((o) => <option key={o.code} value={o.code}>{o.native ? `${o.label} · ${o.native}` : o.label}</option>)}
+                  </select>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* VOICEOVER — narration on/off. Off = music-led cinematic mix; the
+              picture is identical and the film costs zero TTS. */}
+          <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
+            <span className="spine" style={{ "--spine": voiceover ? "#22c55e" : "#8b5cf6" }} />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <div>
+                <div className="label-mono" style={{ marginBottom: 4 }}>VOICEOVER</div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)" }}>
+                  {voiceover ? "ON — NARRATED, MUSIC DUCKS UNDER THE VOICE" : "OFF — MUSIC-LED CINEMATIC MIX"}
+                </div>
               </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {LANGUAGES.map((l) => {
-                  const on = language === l.code;
+              <button
+                type="button" role="switch" aria-checked={voiceover} aria-label="Toggle voiceover narration"
+                onClick={() => setVoiceover((v) => !v)}
+                style={{ position: "relative", flexShrink: 0, width: 44, height: 24, borderRadius: 999, cursor: "pointer", transition: "background .3s, border-color .3s", background: voiceover ? "#22c55e" : "var(--color-paper-2)", border: `1px solid ${voiceover ? "#22c55e" : "rgba(23,19,14,.25)"}` }}
+              >
+                <span style={{ position: "absolute", top: 2, left: 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(23,19,14,.3)", transition: "transform .3s", transform: voiceover ? "translateX(20px)" : "translateX(0)" }} />
+              </button>
+            </div>
+          </div>
+
+          {/* BRAND COLOURS — override the pack's accents with the user's own.
+              "Template" = the pack keeps its accents (a real answer, sent as
+              nothing). Presets are KEYFRAME's; custom takes typed, validated hex. */}
+          <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
+            <span className="spine" style={{ "--spine": brandPalette ? brandPalette.primary : "#17130e" }} />
+            <div className="label-mono" style={{ marginBottom: 4 }}>
+              BRAND COLOURS — {brandPreset ? brandPreset.label.toUpperCase() : brandChoice === "custom" ? "CUSTOM" : "TEMPLATE"}
+            </div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)", marginBottom: 10 }}>
+              {brandPalette ? "THE FILM'S ACCENTS FOLLOW YOUR PALETTE" : "THE TEMPLATE KEEPS ITS OWN ACCENTS"}
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: brandChoice === "custom" ? 10 : 0 }}>
+              <button type="button" onClick={() => setBrandChoice("template")} aria-pressed={brandChoice === "template"}
+                style={{ padding: "7px 12px", borderRadius: 999, cursor: "pointer", fontSize: 12.5, fontWeight: brandChoice === "template" ? 700 : 500, border: `1px solid ${brandChoice === "template" ? "var(--color-ink)" : "rgba(23,19,14,.16)"}`, background: brandChoice === "template" ? "var(--color-ink)" : "transparent", color: brandChoice === "template" ? "#fff" : "var(--color-ink)" }}>
+                Template
+              </button>
+              {BRAND_PRESETS.map((p) => {
+                const on = brandChoice === p.id;
+                return (
+                  <button key={p.id} type="button" onClick={() => setBrandChoice(p.id)} aria-pressed={on} title={`${p.primary} · ${p.secondary}`}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 999, cursor: "pointer", fontSize: 12.5, fontWeight: on ? 700 : 500, border: `1px solid ${on ? p.primary : "rgba(23,19,14,.16)"}`, background: on ? p.primary : "transparent", color: on ? "#fff" : "var(--color-ink)" }}>
+                    <span style={{ width: 12, height: 12, borderRadius: "50%", background: `linear-gradient(135deg, ${p.primary} 50%, ${p.secondary} 50%)`, border: "1px solid rgba(255,255,255,.5)" }} />
+                    {p.label}
+                  </button>
+                );
+              })}
+              <button type="button" onClick={() => setBrandChoice("custom")} aria-pressed={brandChoice === "custom"}
+                style={{ padding: "7px 12px", borderRadius: 999, cursor: "pointer", fontSize: 12.5, fontWeight: brandChoice === "custom" ? 700 : 500, border: `1px solid ${brandChoice === "custom" ? "var(--color-am)" : "rgba(23,19,14,.16)"}`, background: brandChoice === "custom" ? "var(--color-am)" : "transparent", color: brandChoice === "custom" ? "#fff" : "var(--color-ink)" }}>
+                Custom…
+              </button>
+            </div>
+            {brandChoice === "custom" && (
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                {[["PRIMARY", customPrimary, setCustomPrimary, true], ["SECONDARY (OPTIONAL)", customSecondary, setCustomSecondary, false]].map(([lbl, val, set, req]) => {
+                  const ok = val === "" ? !req : HEX_RE.test(val);
                   return (
-                    <button key={l.code} type="button" onClick={() => setLanguage(l.code)} aria-pressed={on}
-                      title={l.native}
-                      style={{
-                        padding: "7px 12px", borderRadius: 999, cursor: "pointer", fontSize: 12.5, fontWeight: on ? 700 : 500,
-                        transition: "all .2s",
-                        border: `1px solid ${on ? "#8a63ff" : "rgba(23,19,14,.16)"}`,
-                        background: on ? "#8a63ff" : "transparent", color: on ? "#fff" : "var(--color-ink)",
-                      }}>
-                      {l.label}
-                    </button>
+                    <label key={lbl} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)" }}>{lbl}</span>
+                      <span style={{ width: 22, height: 22, borderRadius: 4, border: "1px solid rgba(23,19,14,.25)", background: HEX_RE.test(val) ? val : "transparent" }} />
+                      <input value={val} onChange={(e) => set(e.target.value.trim())} placeholder="#RRGGBB" maxLength={7} spellCheck={false}
+                        style={{ width: 92, padding: "6px 8px", fontFamily: "var(--font-mono)", fontSize: 11, borderRadius: 4, background: "var(--color-paper-2)", border: `1px solid ${ok ? "rgba(23,19,14,.25)" : "#ef4444"}` }} />
+                    </label>
                   );
                 })}
+                {brandChoice === "custom" && !cp && (
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "#ef4444", alignSelf: "center" }}>ENTER A VALID #RRGGBB PRIMARY</span>
+                )}
               </div>
-              {language !== "en" && (
-                <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, cursor: "pointer",
-                  fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-ink)" }}>
-                  <input type="checkbox" checked={dubVoice} onChange={(e) => setDubVoice(e.target.checked)} />
-                  ALSO SPEAK THE NARRATION IN {(LANGUAGES.find((l) => l.code === language) || {}).label?.toUpperCase()}
-                </label>
-              )}
-            </div>
-          )}
+            )}
+          </div>
+
 
           <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
             <span className="spine" style={{ "--spine": "#b9f24a" }} />
