@@ -152,7 +152,27 @@ function buildTheme(skin, brandSkin) {
     const brand = resolveBrand(brandSkin, { ground: P0[skin.groundKey], isDark: !!skin.dark, packAccents });
     const led = brandLedOf(brand, packAccents);
     if (brand.applied && led.length) {
-      const brandH = led.map(hueOf);
+      // TWO SHADES OF ONE COLOUR ARE ONE COLOUR.
+      //
+      // The monochrome guard below (`brandH[0] + (packH[i] - packH[0])`, which keeps the PACK's
+      // own hue spacing) existed for a single-colour brand — but it was selected on the COUNT of
+      // supplied hues, not on how far apart they are. Measured on job qfmnfo0gcg (poster-pop,
+      // duolingo.com): the harvested brand was #4ECA00 and #66D114, hues 96.8 and 94.0 — 2.9
+      // degrees apart. Two entries, so the count test passed, so accent slots cycled between two
+      // indistinguishable greens while every non-accent colour rotated onto the same lead. A
+      // palette authored across 58 degrees (#C67139 / #7A8A5E / #D9B44A) collapsed to about
+      // three, and the film had nothing but luminance left to separate a headline from its
+      // ground — which is exactly what the reviewer blocked on twice, once as "dark olive green
+      // ground" and once as "green headline fails contrast".
+      //
+      // So collapse near-duplicates FIRST and let the existing spacing path do its job. The
+      // brand still leads the film; it just stops flattening the design's own hue structure.
+      const hueGap = (a, b) => { const d = Math.abs(((a - b) % 360 + 360) % 360); return Math.min(d, 360 - d); };
+      const DISTINCT_HUE_DEG = 18;          // inside this, two hues read as one colour on screen
+      const brandH = led.map(hueOf).reduce((acc, h) => {
+        if (!acc.some((k) => hueGap(k, h) < DISTINCT_HUE_DEG)) acc.push(h);
+        return acc;
+      }, []);
       const packH = packAccents.map(hueOf);
       const last = brandH.length - 1;
       const hueFor = (i) => (i <= last ? brandH[i]

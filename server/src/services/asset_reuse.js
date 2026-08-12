@@ -512,6 +512,29 @@ function promoteByQuality(slots, placed, { acceptsVectors = true } = {}) {
         && gradeOf(tA) === "reject" && GOOD_ENOUGH.has(gradeOf(dA));
       if (tierDrop && !rescuingCritical) continue;
 
+      // Guard 4: THIS PASS MUST NOT UNDO THE ADJACENCY RULE THE ASSIGNMENT PASS ENFORCED.
+      //
+      // scoreCandidate already vetoes "would repeat on an adjacent scene" — the most visible
+      // form of repetition — but it decides that at ASSIGNMENT time, and this promotion runs
+      // afterwards and moves assets between scenes. Nothing re-checked the invariant, so the
+      // two passes could disagree: on job qfmnfo0gcg (poster-pop) reuse legitimately cloned
+      // site_3.png into s5 while s6 held something else, then this pass promoted that same
+      // site_3.png out of s2 and into s6 for a quality gain — landing it on back-to-back
+      // scenes, which the reviewer duly blocked. The reuse report even recorded the move, so
+      // the evidence was sitting in the job the whole time.
+      //
+      // Checked in BOTH directions: a swap is an exchange, so the demoted asset can create an
+      // adjacency at the donor's scene just as easily as the promoted one can at the target's.
+      // `held` holds live {slot, asset} pairs (mutated in place as swaps commit), so this reads
+      // current placements, not the opening arrangement.
+      const placementsOf = (p, exclude) => held
+        .filter((h) => h !== exclude && h.asset && p && h.asset.path === p)
+        .map((h) => h.slot.index);
+      const touches = (p, atIndex, exclude) =>
+        placementsOf(p, exclude).some((i) => Number.isFinite(i) && Math.abs(i - atIndex) <= 1);
+      if (touches(dA.path, target.slot.index, donor)) continue;
+      if (touches(tA.path, donor.slot.index, target)) continue;
+
       // Rank donors by the quality they BRING, then by how well their shape suits this box —
       // between two equally good pictures the one that fits the slot loses less to the crop.
       const fit = aspectFit(ratioOf(dA), Number(target.slot.targetRatio) || 0);

@@ -120,13 +120,28 @@ function preflight({ job, assets = [], script = null, storyboard = null, brandSk
 
   // ---- 4) ASSETS: every scene covered -------------------------------------
   const assignedScenes = new Set(renderable.map((a) => a.sceneId).filter((x) => x != null));
-  const uncovered = scenes.filter((s) => !assignedScenes.has(s.id)).map((s) => s.id);
+  // THE CLOSER'S PICTURE IS THE LOGO. `visual` drops logos on purpose — a lockup is not a
+  // product picture and must not pad the coverage denominator — but the CTA beat draws that
+  // lockup as its visual (film_beats.bCta, om_stage's closer), so a logo-only closer is not an
+  // empty panel. On job qfmnfo0gcg that misread reported "1 of 7 scene(s) have NO renderable
+  // visual (s7)" for a scene that rendered TWO images. Counted only for the closer, so a
+  // mid-film scene holding nothing but a logo is still reported.
+  const closerId = sceneCount ? String(scenes[sceneCount - 1].id) : null;
+  const logoScenes = new Set(healed.filter((a) => a && a.path && isLogo(a)).map((a) => a.sceneId).filter((x) => x != null).map(String));
+  const covered = (s) => assignedScenes.has(s.id) || (String(s.id) === closerId && logoScenes.has(String(s.id)));
+  const uncovered = scenes.filter((s) => !covered(s)).map((s) => s.id);
   checks.push(check(
     "everySceneHasVisual", WARN,
     sceneCount > 0 && uncovered.length === 0,
     uncovered.length === 0
       ? `all ${sceneCount} scene(s) have a renderable visual assigned`
-      : `${uncovered.length} of ${sceneCount} scene(s) have NO renderable visual (${uncovered.join(", ")}) — these will render as empty template panels`,
+      // SAY WHAT THIS KNOWS. Preflight reads the ASSIGNMENT; it runs before a line of HTML
+      // exists and cannot see what the composer will draw — reuse and quality promotion both
+      // move pictures afterwards, and a beat can pull one it was never assigned. Claiming
+      // "these will render as empty template panels" stated an outcome as fact and was
+      // contradicted by the post-render audit on the same job (scenesWithAsset 7/7,
+      // emptyScenes 0), which measures the document and is the authority on what shipped.
+      : `${uncovered.length} of ${sceneCount} scene(s) have no visual ASSIGNED (${uncovered.join(", ")}) — they may still be filled by reuse at compose time; the post-render audit reports what actually rendered`,
     "Widen the asset budget, add a website URL with real product screens, or upload product images."
   ));
 
