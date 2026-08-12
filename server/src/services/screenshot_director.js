@@ -31,6 +31,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const openrouter = require("./openrouter");
 const peekshot = require("./peekshot");
+const { isShowcase } = require("./scene_role");
 const { extractFirstJsonObject } = require("./json_lenient");
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36";
@@ -320,7 +321,7 @@ async function captureTopicShots({ job, script, jobDir, topic, tracker, signal }
     // the first showcase scene no topic shot claimed.
     if (rescued && picks.length < 3 && !(job.website_screenshots || []).length) {
       const claimed = new Set(picks.map((p) => p.sceneId));
-      const home = script.scenes.find((sc) => ["feature", "proof", "how", "context"].includes(String(sc.purpose || "")) && !claimed.has(String(sc.id)))
+      const home = script.scenes.find((sc, i) => isShowcase(sc, { index: i, total: script.scenes.length }) && !claimed.has(String(sc.id)))
         || script.scenes.slice(1, -1).find((sc) => !claimed.has(String(sc.id)));
       if (home) picks.unshift({ sceneId: String(home.id), url: norm(activeSite + "/"), label: "homepage", guessed: false });
     }

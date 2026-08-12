@@ -49,6 +49,7 @@ function drainNodeTimings(jobId, totalMs) {
   return out;
 }
 const fallbackLog = require("../services/fallback_log");
+const { showcaseTargets } = require("../services/scene_role");
 const db = require("../db");
 const { UsageTracker } = require("../services/usage");
 const { generateBrief } = require("../services/brief");
@@ -351,13 +352,18 @@ async function assetPlannerAgent(s) {
   const { job, script } = s;
   const videoOk = hasProviderFor("video");
   const shots = (job.website_screenshots || []).filter((p) => { try { return fs.existsSync(p); } catch { return false; } });
-  const showcase = script.scenes.filter((x) => ["feature", "proof", "how", "context"].includes(x.purpose));
+  // `purpose` is free text (SceneSchema allows any 2-24 chars) and this used to
+  // match it by EXACT STRING. A model that wrote "benefit", "solution" or "the
+  // problem" matched nothing, so that scene silently stopped being a screenshot
+  // target — invisible, because nothing errors and the film just stops showing
+  // the product where the script said to. showcaseTargets derives the role, and
+  // carries the same showcase-else-mid-scenes fallback this site had inline.
   // Up to 8 scenes carry a pinned real screenshot (3 -> 5 -> 8; user: "collect as
   // much website or product screenshot you can, at least 6-7"). Ingest now grabs a
   // hero plus five deep sections and the director matches up to six internal
   // pages, so the pins have to be able to surface them — a smaller budget just
   // threw captured screenshots away.
-  const targets = (showcase.length ? showcase : script.scenes.slice(1, -1)).slice(0, 8);
+  const targets = showcaseTargets(script).slice(0, 8);
   const screenshotPlan = shots.slice(0, targets.length).map((src, i) => ({ kind: "screenshot", src, scene: targets[i], index: i }));
   const pinnedSceneIds = new Set(screenshotPlan.map((p) => p.scene.id));
 

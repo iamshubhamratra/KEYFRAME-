@@ -11,6 +11,7 @@
 // treats them as PHOTOS (contain), not shots.
 
 const fs = require("node:fs");
+const { isShowcase } = require("./scene_role");
 const path = require("node:path");
 
 function websiteImageAssets({ job, script, jobDir, skipSceneIds = new Set(), cap = 5 }) {
@@ -19,7 +20,8 @@ function websiteImageAssets({ job, script, jobDir, skipSceneIds = new Set(), cap
   if (!imgs.length || !script || !Array.isArray(script.scenes)) return [];
 
   const skip = new Set([...skipSceneIds].map(String));
-  const showcase = script.scenes.filter((s) => ["feature", "proof", "how", "context"].includes(String(s.purpose || "")) && !skip.has(String(s.id)));
+  const total = script.scenes.length;
+  const showcase = script.scenes.filter((s, i) => isShowcase(s, { index: i, total }) && !skip.has(String(s.id)));
   const fallback = script.scenes.slice(1, -1).filter((s) => !skip.has(String(s.id)));
   const targets = (showcase.length ? showcase : fallback).slice(0, cap);
   if (!targets.length) return [];

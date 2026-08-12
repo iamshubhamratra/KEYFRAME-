@@ -242,9 +242,8 @@ function screenshotAssets({ job, script, jobDir }) {
   if (!shots.length) return [];
 
   fs.mkdirSync(path.join(jobDir, "assets", "images"), { recursive: true });
-  const showcaseScenes = script.scenes.filter((s) => ["feature", "proof", "how", "context"].includes(s.purpose));
-  const fallbackScenes = script.scenes.slice(1, -1);
-  const targets = (showcaseScenes.length ? showcaseScenes : fallbackScenes).slice(0, 3);
+  // Role-derived, not exact-string-matched on free-text `purpose` — see scene_role.js.
+  const targets = showcaseTargets(script).slice(0, 3);
   const title = job.website_title || "the product";
 
   return shots.slice(0, targets.length).map((src, i) => {
