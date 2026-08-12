@@ -508,74 +508,64 @@ export default function CreateScreen({ onCreated, prefill }) {
             </div>
           </div>
 
-          <div className="card" style={{ padding: "20px 22px 20px 27px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-            <span className="spine" style={{ "--spine": "#ffb03a" }} />
-            <div>
-              <div className="label-mono" style={{ marginBottom: 4 }}>CAPTIONS</div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)" }}>{captions ? "BURNED IN — SMALL, BOTTOM" : "OFF — .SRT EXPORTED"}</div>
-            </div>
-            <button
-              type="button" role="switch" aria-checked={captions} aria-label="Toggle burned-in captions"
-              onClick={() => setCaptions((v) => !v)}
-              style={{ position: "relative", flexShrink: 0, width: 44, height: 24, borderRadius: 999, cursor: "pointer", transition: "background .3s, border-color .3s", background: captions ? "var(--color-am)" : "var(--color-paper-2)", border: `1px solid ${captions ? "var(--color-am)" : "rgba(23,19,14,.25)"}` }}
-            >
-              <span style={{ position: "absolute", top: 2, left: 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(23,19,14,.3)", transition: "transform .3s", transform: captions ? "translateX(20px)" : "translateX(0)" }} />
-            </button>
-          </div>
-
-          {/* LANGUAGE — only meaningful once captions are on, so it unfolds under
-              the switch rather than sitting there greyed out. The three axes are
-              independent, but the common ask is "the whole film in X", so one
-              picker sets subtitles + on-screen type together and the voiceover
-              stays English unless explicitly dubbed. */}
-          {/* LANGUAGE — three independent axes: what is SPOKEN, what is SUBTITLED,
-              what is PRINTED on screen. Always visible; translation is decoupled
-              from caption burn-in server-side. */}
+          {/* LANGUAGE & NARRATION — one card for everything the film SAYS.
+              Narration on/off, the three language axes (spoken / subtitled /
+              printed), and caption burn-in. Merged from three cards: the old
+              standalone CAPTIONS and VOICEOVER cards were a label + one switch
+              floating in a tall grid cell — two-thirds dead space. Selects sit
+              UNDER their labels at full width so nothing clips at any column
+              width. */}
           <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
             <span className="spine" style={{ "--spine": "#8a63ff" }} />
-            <div className="label-mono" style={{ marginBottom: 4 }}>LANGUAGE</div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)", marginBottom: 10 }}>
-              {voiceLang === "en" && captionLang === "en" && (videoTextLang === "auto" || videoTextLang === "en")
-                ? "ENGLISH · NO TRANSLATION PASS"
-                : "TRANSLATED · ONE EXTRA MODEL CALL"}
+            <div className="label-mono" style={{ marginBottom: 4 }}>LANGUAGE &amp; NARRATION</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)", marginBottom: 12 }}>
+              {!voiceover ? "NO NARRATION — MUSIC-LED CINEMATIC MIX"
+                : voiceLang === "en" && captionLang === "en" && (videoTextLang === "auto" || videoTextLang === "en")
+                  ? "ENGLISH · NO TRANSLATION PASS"
+                  : "TRANSLATED · ONE EXTRA MODEL CALL"}
             </div>
-            <div style={{ display: "grid", gap: 10 }}>
-              {[["🔊 VOICEOVER", voiceLang, setVoiceLang, LANGUAGES],
-                ["💬 SUBTITLES", captionLang, setCaptionLang, LANGUAGES],
-                ["🎬 ON-SCREEN TEXT", videoTextLang, setVideoTextLang,
-                  [{ code: "auto", label: "Auto — match voiceover" }, ...LANGUAGES]]
-              ].map(([label, val, set, opts]) => (
-                <label key={label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)" }}>{label}</span>
-                  <select value={val} onChange={(e) => set(e.target.value)} aria-label={label}
-                    style={{ flex: "0 0 200px", padding: "6px 8px", fontFamily: "var(--font-mono)", fontSize: 11, background: "var(--color-paper-2)", border: "1px solid rgba(23,19,14,.25)", borderRadius: 4 }}>
+            {[["NARRATION", voiceover, () => setVoiceover((v) => !v), voiceover ? "MUSIC DUCKS UNDER THE VOICE" : "OFF — ZERO TTS COST", "#22c55e"]].map(([lbl, on, flip, hint, c]) => (
+              <div key={lbl} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, paddingBottom: 12, marginBottom: 12, borderBottom: "1px solid rgba(23,19,14,.08)" }}>
+                <div style={{ minWidth: 0 }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-ink)" }}>{lbl}</span>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 8.5, letterSpacing: "0.08em", color: "var(--color-dim)", marginTop: 2 }}>{hint}</div>
+                </div>
+                <button type="button" role="switch" aria-checked={on} aria-label={`Toggle ${lbl.toLowerCase()}`} onClick={flip}
+                  style={{ position: "relative", flexShrink: 0, width: 44, height: 24, borderRadius: 999, cursor: "pointer", transition: "background .3s, border-color .3s", background: on ? c : "var(--color-paper-2)", border: `1px solid ${on ? c : "rgba(23,19,14,.25)"}` }}>
+                  <span style={{ position: "absolute", top: 2, left: 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(23,19,14,.3)", transition: "transform .3s", transform: on ? "translateX(20px)" : "translateX(0)" }} />
+                </button>
+              </div>
+            ))}
+            <div style={{ display: "grid", gap: 10, opacity: 1 }}>
+              {[["VOICEOVER LANGUAGE", voiceLang, setVoiceLang, LANGUAGES, !voiceover],
+                ["SUBTITLE LANGUAGE", captionLang, setCaptionLang, LANGUAGES, false],
+                ["ON-SCREEN TEXT", videoTextLang, setVideoTextLang,
+                  [{ code: "auto", label: "Auto — match voiceover" }, ...LANGUAGES], false]
+              ].map(([label, val, set, opts, dim]) => (
+                <label key={label} style={{ display: "block", opacity: dim ? 0.45 : 1 }}>
+                  <span style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)", marginBottom: 4 }}>{label}</span>
+                  <select value={val} onChange={(e) => set(e.target.value)} aria-label={label} disabled={dim}
+                    style={{ width: "100%", boxSizing: "border-box", padding: "7px 8px", fontFamily: "var(--font-mono)", fontSize: 11, background: "var(--color-paper-2)", border: "1px solid rgba(23,19,14,.25)", borderRadius: 4 }}>
                     {opts.map((o) => <option key={o.code} value={o.code}>{o.native ? `${o.label} · ${o.native}` : o.label}</option>)}
                   </select>
                 </label>
               ))}
             </div>
-          </div>
-
-          {/* VOICEOVER — narration on/off. Off = music-led cinematic mix; the
-              picture is identical and the film costs zero TTS. */}
-          <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
-            <span className="spine" style={{ "--spine": voiceover ? "#22c55e" : "#8b5cf6" }} />
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-              <div>
-                <div className="label-mono" style={{ marginBottom: 4 }}>VOICEOVER</div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)" }}>
-                  {voiceover ? "ON — NARRATED, MUSIC DUCKS UNDER THE VOICE" : "OFF — MUSIC-LED CINEMATIC MIX"}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, paddingTop: 12, marginTop: 12, borderTop: "1px solid rgba(23,19,14,.08)" }}>
+              <div style={{ minWidth: 0 }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-ink)" }}>BURN-IN SUBTITLES</span>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 8.5, letterSpacing: "0.08em", color: "var(--color-dim)", marginTop: 2 }}>
+                  {captions ? "SMALL, BOTTOM OF FRAME" : "OFF — .SRT / .VTT STILL EXPORTED"}
                 </div>
               </div>
-              <button
-                type="button" role="switch" aria-checked={voiceover} aria-label="Toggle voiceover narration"
-                onClick={() => setVoiceover((v) => !v)}
-                style={{ position: "relative", flexShrink: 0, width: 44, height: 24, borderRadius: 999, cursor: "pointer", transition: "background .3s, border-color .3s", background: voiceover ? "#22c55e" : "var(--color-paper-2)", border: `1px solid ${voiceover ? "#22c55e" : "rgba(23,19,14,.25)"}` }}
-              >
-                <span style={{ position: "absolute", top: 2, left: 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(23,19,14,.3)", transition: "transform .3s", transform: voiceover ? "translateX(20px)" : "translateX(0)" }} />
+              <button type="button" role="switch" aria-checked={captions} aria-label="Toggle burned-in captions"
+                onClick={() => setCaptions((v) => !v)}
+                style={{ position: "relative", flexShrink: 0, width: 44, height: 24, borderRadius: 999, cursor: "pointer", transition: "background .3s, border-color .3s", background: captions ? "var(--color-am)" : "var(--color-paper-2)", border: `1px solid ${captions ? "var(--color-am)" : "rgba(23,19,14,.25)"}` }}>
+                <span style={{ position: "absolute", top: 2, left: 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(23,19,14,.3)", transition: "transform .3s", transform: captions ? "translateX(20px)" : "translateX(0)" }} />
               </button>
             </div>
           </div>
+
 
           {/* BRAND COLOURS — override the pack's accents with the user's own.
               "Template" = the pack keeps its accents (a real answer, sent as
@@ -586,7 +576,9 @@ export default function CreateScreen({ onCreated, prefill }) {
               BRAND COLOURS — {brandPreset ? brandPreset.label.toUpperCase() : brandChoice === "custom" ? "CUSTOM" : "TEMPLATE"}
             </div>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)", marginBottom: 10 }}>
-              {brandPalette ? "THE FILM'S ACCENTS FOLLOW YOUR PALETTE" : "THE TEMPLATE KEEPS ITS OWN ACCENTS"}
+              {brandPalette ? "THE FILM'S ACCENTS FOLLOW YOUR PALETTE"
+                : brandChoice === "custom" ? "TYPE A PRIMARY HEX BELOW TO APPLY"
+                : "THE TEMPLATE KEEPS ITS OWN ACCENTS"}
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: brandChoice === "custom" ? 10 : 0 }}>
               <button type="button" onClick={() => setBrandChoice("template")} aria-pressed={brandChoice === "template"}
@@ -609,20 +601,24 @@ export default function CreateScreen({ onCreated, prefill }) {
               </button>
             </div>
             {brandChoice === "custom" && (
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                {[["PRIMARY", customPrimary, setCustomPrimary, true], ["SECONDARY (OPTIONAL)", customSecondary, setCustomSecondary, false]].map(([lbl, val, set, req]) => {
-                  const ok = val === "" ? !req : HEX_RE.test(val);
+              <div style={{ display: "grid", gap: 8 }}>
+                {/* Stacked rows, label above nothing — swatch + input on one line
+                    per colour, contained at any card width. The red state means
+                    "you typed something that isn't a hex", never "you haven't
+                    typed yet" — an empty well is a neutral prompt, not an error. */}
+                {[["PRIMARY", customPrimary, setCustomPrimary], ["SECONDARY — OPTIONAL", customSecondary, setCustomSecondary]].map(([lbl, val, set]) => {
+                  const invalid = val !== "" && !HEX_RE.test(val);
                   return (
-                    <label key={lbl} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)" }}>{lbl}</span>
-                      <span style={{ width: 22, height: 22, borderRadius: 4, border: "1px solid rgba(23,19,14,.25)", background: HEX_RE.test(val) ? val : "transparent" }} />
+                    <label key={lbl} style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                      <span style={{ flex: "0 0 40%", fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lbl}</span>
+                      <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 4, border: "1px solid rgba(23,19,14,.25)", background: HEX_RE.test(val) ? val : "transparent" }} />
                       <input value={val} onChange={(e) => set(e.target.value.trim())} placeholder="#RRGGBB" maxLength={7} spellCheck={false}
-                        style={{ width: 92, padding: "6px 8px", fontFamily: "var(--font-mono)", fontSize: 11, borderRadius: 4, background: "var(--color-paper-2)", border: `1px solid ${ok ? "rgba(23,19,14,.25)" : "#ef4444"}` }} />
+                        style={{ flex: "1 1 60px", minWidth: 0, boxSizing: "border-box", padding: "6px 8px", fontFamily: "var(--font-mono)", fontSize: 11, borderRadius: 4, background: "var(--color-paper-2)", border: `1px solid ${invalid ? "#ef4444" : "rgba(23,19,14,.25)"}` }} />
                     </label>
                   );
                 })}
-                {brandChoice === "custom" && !cp && (
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "#ef4444", alignSelf: "center" }}>ENTER A VALID #RRGGBB PRIMARY</span>
+                {customPrimary !== "" && !cp && (
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "#ef4444" }}>PRIMARY MUST BE #RRGGBB</span>
                 )}
               </div>
             )}
