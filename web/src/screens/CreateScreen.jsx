@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createProject, listFrames } from "../api.js";
 import { PACK_LORE, PACK_ORDER, loreFor } from "../packlore.js";
-import { PackCard } from "./Templates.jsx";
+import { PackCard, ORIENTATIONS, OrientationTab, splitByOrientation } from "./Templates.jsx";
 
 // The v2 editor, made real: "Type. Then watch it shoot itself."
 // Dark editor card with traffic lights, colored source chips, timeline
@@ -24,6 +24,20 @@ const SURPRISE_PROMPT =
   "A 30-second cinematic launch film for an AI note-taking app called Lumen — fast kinetic typography, a warm sunrise-to-night palette, three crisp feature beats, and a confident closing call to action.";
 
 const ASPECT = { horizontal: "16:9", vertical: "9:16", square: "1:1" };
+
+// The caption/on-screen-text languages the backend supports (server/src/services/
+// caption_lang.js is the source of truth — keep in step). Hindi, Arabic and
+// Japanese need a bundled script font; the rest ride the Latin stack.
+const LANGUAGES = [
+  { code: "en", label: "English", native: "English" },
+  { code: "hi", label: "Hindi", native: "हिन्दी" },
+  { code: "es", label: "Spanish", native: "Español" },
+  { code: "fr", label: "French", native: "Français" },
+  { code: "de", label: "German", native: "Deutsch" },
+  { code: "pt", label: "Portuguese", native: "Português" },
+  { code: "ar", label: "Arabic", native: "العربية" },
+  { code: "ja", label: "Japanese", native: "日本語" },
+];
 
 // Duration now runs to the backend's real 180s ceiling (long-form: ~2-3 min,
 // up to ~30 scenes). Quick-pick the common lengths; ≥90s is flagged long-form.
@@ -69,13 +83,36 @@ export default function CreateScreen({ onCreated, prefill }) {
   const [fps, setFps] = useState(30);               // frame rate → config.allowedFps
   const [framePack, setFramePack] = useState(prefill?.framePack || "auto");
   const [captions, setCaptions] = useState(false);
+  const [language, setLanguage] = useState("en");   // subtitle + on-screen text language
+  const [dubVoice, setDubVoice] = useState(false);   // ALSO speak the narration in `language` (explicit, never implicit)
+  const [logoFile, setLogoFile] = useState(null);    // the user's own brand mark
+  const [assetFiles, setAssetFiles] = useState([]);  // the user's own product images (tier-100, outrank stock)
   const [voice, setVoice] = useState("auto");        // narration character (voiceStyle)
   const [autopilot, setAutopilot] = useState(false); // skip the script-review pause, render straight through
   const [finish, setFinish] = useState("standard"); // standard (default) = scene-kit templates · premium = LLM-composed scenes · cinema = Three.js 3D set
   const [packs, setPacks] = useState(null);
+  const [packTab, setPackTab] = useState(null); // null = follow the film's orientation
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(prefill?.error || null);
   const fileInput = useRef(null);
+  const logoInput = useRef(null);
+  const assetsInput = useRef(null);
+  const IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
+  const MAX_ASSETS = 12, IMG_MAX_MB = 15;
+  const addAssetFiles = (list) => setAssetFiles((prev) => {
+    const seen = new Set(prev.map((f) => `${f.name}|${f.size}`));
+    const next = [...prev];
+    for (const f of Array.from(list || [])) {
+      if (!IMAGE_TYPES.includes(f.type) || f.size > IMG_MAX_MB * 1024 * 1024) continue;
+      const k = `${f.name}|${f.size}`;
+      if (seen.has(k)) continue;
+      seen.add(k); next.push(f);
+    }
+    return next.slice(0, MAX_ASSETS);
+  });
+  const acceptLogo = (f) => { if (f && [...IMAGE_TYPES, "image/svg+xml"].includes(f.type) && f.size <= IMG_MAX_MB * 1024 * 1024) setLogoFile(f); };
+  const assetThumbs = useMemo(() => assetFiles.map((f) => URL.createObjectURL(f)), [assetFiles]);
+  useEffect(() => () => assetThumbs.forEach((u) => URL.revokeObjectURL(u)), [assetThumbs]);
 
   useEffect(() => {
     listFrames()
@@ -102,6 +139,21 @@ export default function CreateScreen({ onCreated, prefill }) {
   const packList = packs || orderPacks([]);
   const activeLore = framePack !== "auto" ? loreFor(framePack) : null;
 
+  // Frame packs, split by native aspect exactly like the Templates page. Merging
+  // them put 9:16 reel packs in the middle of a widescreen brief (and landscape
+  // packs in a vertical one), so the grid never matched the film being made.
+  const packGroups = splitByOrientation(packList);
+  // Which tab is showing: an explicit tab click wins; otherwise follow the pack
+  // the user has already picked, then the film's own orientation (square films
+  // are widescreen-ish, so they land on Horizontal). Never strand on an empty tab.
+  const selectedPack = framePack !== "auto" ? packList.find((p) => p.name === framePack) : null;
+  const preferredTab = packTab
+    || (selectedPack ? (selectedPack.portrait ? "vertical" : "horizontal") : null)
+    || (orientation === "vertical" ? "vertical" : "horizontal");
+  const packTabKey = packGroups[preferredTab]?.length ? preferredTab : "horizontal";
+  const shownPacks = packGroups[packTabKey] || [];
+  const packOrientation = ORIENTATIONS.find((o) => o.key === packTabKey) || ORIENTATIONS[0];
+
   const sourceLen = tab === "prompt" ? prompt.trim().length
     : tab === "url" ? url.trim().length
     : tab === "blog" ? blogUrl.trim().length
@@ -119,7 +171,22 @@ export default function CreateScreen({ onCreated, prefill }) {
     try {
       const voiceStyle = VOICES.find((v) => v.key === voice)?.style || null;
       const fields = {
-        duration, orientation, quality, fps, framePack, captions, autopilot,
+        duration, orientation, quality, fps, framePack, autopilot,
+        // A non-English film sends the full caption CONFIG object (the backend
+        // accepts either that or the legacy boolean). `videoTextLanguage` is what
+        // translates the type baked into the frame, not just the subtitle track;
+        // the voiceover deliberately stays English — dubbing is a separate,
+        // costlier axis we do not turn on implicitly.
+        // A non-English film sends the full config REGARDLESS of the captions
+        // toggle — translation is not a subtitle sub-feature (the server localizes
+        // VO and on-screen type with enabled:false; it only skips the burn-in).
+        // `enabled` is always explicit: the server's normalizeConfig defaults a
+        // bare object to true, which would burn captions nobody asked for.
+        captions: (language !== "en" || dubVoice)
+          ? { enabled: captions, language, videoTextLanguage: language, ...(dubVoice ? { voiceoverLanguage: language } : {}) }
+          : captions,
+        ...(logoFile ? { logo: logoFile } : {}),
+        ...(assetFiles.length ? { assets: assetFiles } : {}),
         composeMode: finish === "cinema" ? "standard" : finish,
         ...(finish === "cinema" ? { render3d: true } : {}),
         ...(voiceStyle ? { voiceStyle } : {}),
@@ -417,6 +484,52 @@ export default function CreateScreen({ onCreated, prefill }) {
               <span style={{ position: "absolute", top: 2, left: 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(23,19,14,.3)", transition: "transform .3s", transform: captions ? "translateX(20px)" : "translateX(0)" }} />
             </button>
           </div>
+
+          {/* LANGUAGE — only meaningful once captions are on, so it unfolds under
+              the switch rather than sitting there greyed out. The three axes are
+              independent, but the common ask is "the whole film in X", so one
+              picker sets subtitles + on-screen type together and the voiceover
+              stays English unless explicitly dubbed. */}
+          {/* ALWAYS visible — the language axis is not a captions sub-setting.
+              Translation is decoupled from burn-in server-side (enabled:false +
+              language still localizes the VO and on-screen type), so hiding this
+              behind the captions toggle made the whole feature undiscoverable. */}
+          {(
+            <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
+              <span className="spine" style={{ "--spine": "#8a63ff" }} />
+              <div className="label-mono" style={{ marginBottom: 4 }}>LANGUAGE — {(LANGUAGES.find((l) => l.code === language) || LANGUAGES[0]).label.toUpperCase()}</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)", marginBottom: 10 }}>
+                {language === "en" ? "FILM IN ENGLISH"
+                  : dubVoice ? `ON-SCREEN TYPE + VOICEOVER IN ${(LANGUAGES.find((l) => l.code === language) || {}).label?.toUpperCase()}${captions ? " · SUBTITLES BURNED IN" : ""}`
+                  : `ON-SCREEN TYPE TRANSLATED · VOICEOVER STAYS ENGLISH${captions ? " · SUBTITLES BURNED IN" : ""}`}
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {LANGUAGES.map((l) => {
+                  const on = language === l.code;
+                  return (
+                    <button key={l.code} type="button" onClick={() => setLanguage(l.code)} aria-pressed={on}
+                      title={l.native}
+                      style={{
+                        padding: "7px 12px", borderRadius: 999, cursor: "pointer", fontSize: 12.5, fontWeight: on ? 700 : 500,
+                        transition: "all .2s",
+                        border: `1px solid ${on ? "#8a63ff" : "rgba(23,19,14,.16)"}`,
+                        background: on ? "#8a63ff" : "transparent", color: on ? "#fff" : "var(--color-ink)",
+                      }}>
+                      {l.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {language !== "en" && (
+                <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, cursor: "pointer",
+                  fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-ink)" }}>
+                  <input type="checkbox" checked={dubVoice} onChange={(e) => setDubVoice(e.target.checked)} />
+                  ALSO SPEAK THE NARRATION IN {(LANGUAGES.find((l) => l.code === language) || {}).label?.toUpperCase()}
+                </label>
+              )}
+            </div>
+          )}
+
           <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
             <span className="spine" style={{ "--spine": "#b9f24a" }} />
             <div className="label-mono" style={{ marginBottom: 10 }}>FINISH — {finish === "premium" ? "PREMIUM" : finish === "cinema" ? "CINEMA 3D" : "STANDARD"}</div>
@@ -445,6 +558,44 @@ export default function CreateScreen({ onCreated, prefill }) {
                 : finish === "cinema" ? "3D SET · CRT SCREEN + FILM GRAIN · ~3–5 MIN"
                 : "CODE-BUILT SCENES · ~2 MIN · RELIABLE"}
             </div>
+          </div>
+
+          {/* BRAND ASSETS — the user's own logo + up to 12 product images. These become
+              tier-100 primary visuals that outrank everything the pipeline fetches. */}
+          <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
+            <span className="spine" style={{ "--spine": "#e832a8" }} />
+            <div className="label-mono" style={{ marginBottom: 10 }}>BRAND ASSETS — YOUR OWN MATERIAL</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <button type="button" onClick={() => logoInput.current?.click()}
+                style={{ width: 54, height: 54, borderRadius: 6, border: "1px dashed rgba(23,19,14,.35)", background: "var(--color-paper-2)", cursor: "pointer", display: "grid", placeItems: "center", overflow: "hidden", padding: 0 }}>
+                {logoFile ? <img alt="logo" src={URL.createObjectURL(logoFile)} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 18 }}>+</span>}
+              </button>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)" }}>
+                {logoFile ? `LOGO · ${logoFile.name}` : "LOGO — PNG / JPG / WEBP / SVG · ≤15MB"}
+                {logoFile && <button type="button" onClick={() => setLogoFile(null)} style={{ marginLeft: 8, cursor: "pointer" }}>REMOVE</button>}
+              </div>
+            </div>
+            <div onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); addAssetFiles(e.dataTransfer.files); }}
+              style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {assetFiles.map((f, i) => (
+                <button key={`${f.name}${f.size}`} type="button" title="click to remove"
+                  onClick={() => setAssetFiles((p) => p.filter((_, j) => j !== i))}
+                  style={{ width: 54, height: 54, padding: 0, borderRadius: 6, border: "1px solid rgba(23,19,14,.2)", overflow: "hidden", cursor: "pointer" }}>
+                  <img alt={f.name} src={assetThumbs[i]} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </button>
+              ))}
+              {assetFiles.length < MAX_ASSETS && (
+                <button type="button" onClick={() => assetsInput.current?.click()}
+                  style={{ width: 54, height: 54, borderRadius: 6, border: "1px dashed rgba(23,19,14,.35)", background: "var(--color-paper-2)", cursor: "pointer", fontSize: 18 }}>+</button>
+              )}
+            </div>
+            <div style={{ marginTop: 10, fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)" }}>
+              {assetFiles.length ? `${assetFiles.length}/${MAX_ASSETS} IMAGES · YOURS OUTRANK STOCK` : "PRODUCT SCREENSHOTS / PHOTOS — PNG / JPG / WEBP · ≤15MB · MAX 12"}
+            </div>
+            <input ref={logoInput} type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" style={{ display: "none" }}
+              onChange={(e) => { acceptLogo(e.target.files?.[0]); e.target.value = ""; }} />
+            <input ref={assetsInput} type="file" multiple accept="image/png,image/jpeg,image/webp" style={{ display: "none" }}
+              onChange={(e) => { addAssetFiles(e.target.files); e.target.value = ""; }} />
           </div>
 
           {/* narration voice — voiceStyle hint the brief casts from */}
@@ -494,28 +645,44 @@ export default function CreateScreen({ onCreated, prefill }) {
         </h2>
         <p style={{ maxWidth: 560, color: "var(--color-dim)", fontSize: 16, lineHeight: 1.6, margin: "16px 0 0" }}>
           {packList.length} frame packs, each a complete design system — or leave it on auto and
-          the pipeline casts the look that fits your brief.
+          the pipeline casts the look that fits your brief. Hover a card to watch its motion.
         </p>
 
-        <div style={{ marginTop: 36, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px,1fr))", gap: 16 }}>
+        {/* Same Horizontal / Vertical split as the Templates page. */}
+        <div role="tablist" aria-label="Frame pack orientation"
+          style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginTop: 30 }}>
+          {ORIENTATIONS.map((o) => (
+            <OrientationTab key={o.key} o={o} count={packGroups[o.key].length}
+              selected={o.key === packTabKey} onSelect={() => setPackTab(o.key)} />
+          ))}
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: ".14em", color: "var(--color-dim)", textTransform: "uppercase" }}>
+            {packOrientation.title}
+          </span>
+        </div>
+
+        {/* keyed on the tab so switching re-runs the card entrance animation */}
+        <motion.div key={packTabKey}
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28, ease: "easeOut" }}
+          role="tabpanel" aria-label={`${packOrientation.label} frame packs`}
+          style={{ marginTop: 22, display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${packTabKey === "vertical" ? 210 : 240}px,1fr))`, gap: 16 }}>
           <SelectablePack active={framePack === "auto"} onSelect={() => setFramePack("auto")}>
-            <AutoCard />
+            <AutoCard portrait={packTabKey === "vertical"} />
           </SelectablePack>
-          {packList.map((p) => (
+          {shownPacks.map((p) => (
             <SelectablePack key={p.name} active={framePack === p.name}
               onSelect={() => {
                 const next = framePack === p.name ? "auto" : p.name;
                 setFramePack(next);
-                // A portrait-native template (the Vertical section on Templates)
-                // should film vertical by default — otherwise a 9:16 pack renders
-                // into a 16:9 frame. Only auto-switch ON select, never override a
-                // deselect, so the user can still change it after.
+                // A portrait-native template (the Vertical tab) should film
+                // vertical by default — otherwise a 9:16 pack renders into a 16:9
+                // frame. Only auto-switch ON select, never override a deselect,
+                // so the user can still change it after.
                 if (next !== "auto" && p.portrait) setOrientation("vertical");
               }}>
               <PackCard compact pack={p} portrait={p.portrait} />
             </SelectablePack>
           ))}
-        </div>
+        </motion.div>
 
         <div style={{ marginTop: 46, textAlign: "center" }}>
           <button onClick={submit} disabled={!canSubmit} className="btn-mag btn-big">
@@ -561,12 +728,13 @@ function SelectablePack({ active, onSelect, children }) {
   );
 }
 
-// The "auto-direct" card in the same v2 anatomy.
-function AutoCard() {
+// The "auto-direct" card in the same v2 anatomy. Its art box matches the tab's
+// aspect (16:9 / 9:16) so it lines up with the pack cards beside it.
+function AutoCard({ portrait = false }) {
   return (
     <div className="card card-lift" style={{ overflow: "hidden", cursor: "pointer" }}>
       <span className="spine" style={{ "--spine": "#e832a8", zIndex: 2 }} />
-      <div className="film-drift" style={{ aspectRatio: "16/10", position: "relative", overflow: "hidden", background: "linear-gradient(135deg, #e832a8, #23c8e0 55%, #17130e)", display: "grid", placeItems: "center" }}>
+      <div className="film-drift" style={{ aspectRatio: portrait ? "9/16" : "16/9", position: "relative", overflow: "hidden", background: "linear-gradient(135deg, #e832a8, #23c8e0 55%, #17130e)", display: "grid", placeItems: "center" }}>
         <div className="film-scan" />
         <div style={{ position: "relative", zIndex: 2, fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "clamp(17px,2vw,24px)", color: "#fff", letterSpacing: "-.02em", textShadow: "0 4px 20px rgba(0,0,0,.35)" }}>✦ Auto-direct</div>
       </div>
