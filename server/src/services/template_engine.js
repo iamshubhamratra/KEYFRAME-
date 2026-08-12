@@ -36,6 +36,7 @@
 // (see family_bright) and the engine emits the presets for it — so the timing,
 // easing and physics of a card or a headline are identical in every template.
 const motion = require("./motion_presets");
+const { displayOk } = require("./asset_admission");
 
 const r = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
@@ -197,12 +198,32 @@ function isLogo(a) {
   const k = String((a && a.kind) || "").toLowerCase();
   return k === "logo" || /\blogo\b/i.test(String((a && a.alt) || "")) || /logo\.[a-z]+($|\?)/i.test(String((a && a.path) || ""));
 }
+// ADMISSION vs PREFERENCE (ported from Rohit's asset_admission.js).
+//
+// This used to end with a TRUST test — website/blog/library source, or the
+// Creative Director promoting the asset to hero/support. Read as an admission
+// gate, which is how the pool at `pool = assets.filter(plateOk)` used it, that
+// silently deletes every stock photo the CD demoted to "background" — and the CD
+// demotes everything past its per-scene cap, as does the layout director past its
+// budget. A film could arrive with five perfectly good pictures on the wire and
+// render as text-only.
+//
+// The give-away is thirty lines below: `take()` ends with
+// `free.find((x) => free1(x) && !demoted(x)) || free.find(free1)` — a deliberate
+// last-resort pass over demoted assets that could never fire, because plateOk had
+// already removed them from `free`. The intent was always "seat them last", not
+// "drop them".
+//
+// So admission now asks only whether something JUDGED this asset unusable
+// (__rejected / __captureUnusable / __missingFile). Absence of approval is not a
+// rejection. Seat order is still governed by `rank`/`demoted` below, so a demoted
+// stock photo fills a box that would otherwise render empty and nothing better is
+// ever displaced.
 function plateOk(a) {
   if (!a || !a.path) return false;
-  if (a.type === "video" || /\.(mp4|webm|mov)($|\?)/i.test(a.path) || /\.svg($|\?)/i.test(a.path)) return false;
-  const src = String(a.source || "").toLowerCase();
-  return src === "website" || src === "blog" || src === "website-image" || src.startsWith("library")
-    || a.visionOk === true || a.cdProminence === "hero" || a.cdProminence === "support";
+  // allowLogo: this pool has always permitted logos; logo-specific slots pick
+  // them out by isLogo() rather than by excluding them here.
+  return displayOk(a, { allowLogo: true, allowVideo: false, allowVector: false });
 }
 // A topical VECTOR (iconify/undraw art fetched for this film's subject). Never a
 // plate — cover-cropping flat art reads as a blank — but far better than an
@@ -990,7 +1011,14 @@ function buildFilm(family, opts = {}) {
     // second face, over whatever the scene drew. It renders only on an explicit
     // request now; `captionCues` no longer implies it, because subtitles and a
     // full-frame script layer are different asks.
-    if (!opts.scriptOverlay || !Array.isArray(opts.scriptCues) || !opts.scriptCues.length) {
+    // `!== true` on purpose — the default "omelette" mode must not reach this
+    // path: this engine has no placeScript (the layer pins to a fixed band,
+    // which is exactly the burned-in-caption look the user rejected), 46/49
+    // family packs fall back to the generic Anton stack because
+    // theme.fonts.display doesn't resolve here, and the halo is hardcoded black
+    // behind the pack's dark ink. Only an explicit job-level `true` turns the
+    // layer on for family/landscape packs.
+    if (opts.scriptOverlay !== true || !Array.isArray(opts.scriptCues) || !opts.scriptCues.length) {
       throw new Error("script overlay not requested");
     }
     // The pack's ink on the pack's ground, run through readable() so the pairing

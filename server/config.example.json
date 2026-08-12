@@ -100,7 +100,7 @@
     "orientation": "horizontal",
     "quality": "1080p",
     "fps": 30,
-    "scriptOverlay": false
+    "scriptOverlay": "omelette"
   },
   "allowedFps": [
     24,

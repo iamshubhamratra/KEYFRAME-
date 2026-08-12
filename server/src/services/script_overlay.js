@@ -148,8 +148,8 @@ function buildScriptOverlay(cues, W, H, opts = {}) {
      typography rather than a caption bar. */
   text-shadow:${edge("0.035em")},0 0.1em 0.35em ${hexA("#000000", 0.55)};
   paint-order:stroke fill;-webkit-text-stroke:0.012em ${hexA(ground, 0.55)};}
-/* The pack's own subtitle node is suppressed — this layer IS the spoken text. */
-#cap-pill{display:none !important;}`;
+${opts.suppressCaptions === false ? "" : `/* The pack's own subtitle node is suppressed — this layer IS the spoken text. */
+#cap-pill{display:none !important;}`}`;
 
   // A single time lookup, no state. Callers drive it from their own seek.
   const js = `(function(){

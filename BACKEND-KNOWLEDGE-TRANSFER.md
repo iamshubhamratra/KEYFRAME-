@@ -756,9 +756,15 @@ audio_planner (LLM)  →  audio_director (LLM)  →  fetch  →  TTS per scene  
 8. **`captions.js`** — `.srt` from the approved script's VO plus measured clip durations. Each caption
    spans scene start → start + measured VO duration (clamped). Long lines split into ≤2 balanced chunks.
    **Burnt-in subtitles are opt-in** (`captions:true`) — users overwhelmingly dislike them on short promos.
-9. **`script_overlay.js`** — a separate, always-on layer that renders ~80% of the narration as large
-   animated display type, template-independent. It **suppresses the subtitle node** so the two never
-   double up.
+9. **`script_overlay.js`** — a layer that renders the narration as large display type. Three-state
+   via `config.defaults.scriptOverlay`: **`"omelette"` (default) = on for the 139 vertical/omelette
+   packs only** — the path with a per-frame placer (`placeScript`) and the pack's own display face;
+   `true` = on everywhere including the family engine (explicit opt-in only — that path has no
+   placer and a generic font fallback); `false` = off. `placeScript` also **dedups per frame**: a
+   phrase whose words the film is already drawing (≥60% overlap) is hidden, which is the fix for
+   the duplicated-headline defect that got the layer switched off on 08-11. It suppresses the
+   subtitle node **only when captions were not explicitly requested**; with `captions:true` both
+   render (captions keep the bottom strip, the layer stays out of it).
 
 ---
 

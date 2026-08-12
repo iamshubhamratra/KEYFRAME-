@@ -2179,6 +2179,11 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
       // blinking out between phrases.
       ground: "#0B0B0C", ink: "#FFFFFF", coverage: 1,
       font: dispFont,
+      // Burned-in subtitles and this layer used to be mutually exclusive by
+      // construction — the overlay's CSS display:none'd #cap-pill outright. When
+      // the user explicitly asked for captions, keep them; the two occupy
+      // different bands (placeScript stays out of the bottom strip).
+      suppressCaptions: !(Array.isArray(captionCues) && captionCues.length),
     });
   } catch { /* no VO, nothing to show */ }
 
@@ -2477,8 +2482,9 @@ ${vectorFitCss}
         var mine=vis.getBoundingClientRect();
         var need=Math.max(40, mine.height);
         var root=el.getBoundingClientRect();
-        // Everything already on the frame that must not be covered.
-        var boxes=[];
+        // Everything already on the frame that must not be covered — and every
+        // word the frame is already saying, for the dedup below.
+        var boxes=[], drawn='';
         (function walk(node){
           var kids=node.querySelectorAll('*');
           for(var j=0;j<kids.length;j++){
@@ -2499,8 +2505,29 @@ ${vectorFitCss}
             // picture: outlined display type over imagery is the look we want,
             // two headlines on top of each other is never readable.
             boxes.push([r.top-root.top, r.bottom-root.top, hasText?6:1]);
+            if(hasText) drawn+=' '+n.textContent.toLowerCase().replace(/[^a-z0-9' ]+/g,' ');
           }
         })(document);
+        // DON'T PRINT WHAT THE FILM IS ALREADY SAYING. The defect that got this
+        // layer switched off was duplication, not presence: the pack's headline
+        // and this phrase carrying the SAME words, one stamped across the
+        // screenshot (job 5i94yvz5fv — "INDIA'S ULTIMATE ONE-STOP DESTINATION"
+        // twice, QA ELEMENT COLLISION @7.6s). Measured on the fixtures, only
+        // 2-4 of 22 phrases per film are full duplicates and they are always the
+        // hook and the CTA — exactly the frames QA flagged; incidental overlap
+        // sits at 23-35%, so 0.6 separates the two cleanly. Stay off this frame
+        // when the film already says it; the other ~18 phrases still render,
+        // which is where the coverage comes from. Per-frame and stateless:
+        // __kfScript(t) re-sets every phrase's display on each seek, so hiding
+        // never leaks across frames and seek-safety holds.
+        drawn=(' '+drawn+' ').replace(/\s+/g,' ');
+        var mw=(vis.textContent||'').toLowerCase().replace(/[^a-z0-9' ]+/g,' ')
+          .split(/\s+/).filter(function(w){return w.length>2;});
+        if(mw.length){
+          var dup=0;
+          for(var q=0;q<mw.length;q++) if(drawn.indexOf(' '+mw[q]+' ')>=0) dup++;
+          if(dup/mw.length>=0.6){ vis.style.display='none'; return; }
+        }
         // Score candidate bands by how much occupied area they would cover.
         var best=null;
         for(var p=0.10;p<=0.72;p+=0.02){

@@ -1250,12 +1250,22 @@ async function compositionAgent(s) {
     })
   ).map((c) => ({ start: Math.round(c.start * 10) / 10, end: Math.round(c.end * 10) / 10, text: c.text }));
   const captionCues = job.captions_enabled === 0 ? [] : voCues;
-  // The full-frame narration layer is OFF unless config.defaults.scriptOverlay
-  // says otherwise (or a job explicitly asks). It used to be unconditional and
-  // self-deriving, which is how a film ended up showing its headline twice — once
-  // in the template's face, once more in the overlay's, across the screenshot.
-  const scriptOverlay = job.script_overlay === 1 || job.script_overlay === true
-    || config.defaults.scriptOverlay === true;
+  // The full-frame narration layer, three-state:
+  //   false      — off everywhere (a job can still opt in)
+  //   "omelette" — DEFAULT: on for the omelette/vertical path only. That is the
+  //                path where it works — all 139 packs carry typography.display so
+  //                the phrase renders in the template's own face, and placeScript
+  //                measures each frame and dedups against the pack's own words
+  //                (the duplication that got it switched off, job 5i94yvz5fv).
+  //   true       — on everywhere, including the family engine. Explicit only: the
+  //                family path has no placer, falls back to a generic font stack
+  //                on 46/49 packs, and hardcodes a black halo behind dark ink.
+  // The user's standing rule (~80% of the narration on screen as big type,
+  // 2026-07-31, restated 2026-08-05) is met by "omelette" + the packs' own
+  // mined slots; their 08-11 complaint was about DUPLICATED words, not presence.
+  const scriptOverlay = (job.script_overlay === 1 || job.script_overlay === true)
+    ? true
+    : (config.defaults.scriptOverlay || false);
 
   // A PIN TO A SCENE THAT DOES NOT EXIST THROWS THE ASSET AWAY.
   //
