@@ -235,6 +235,20 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
               continue;
             }
             imageMeta = v.meta;
+          } else if (type === "video") {
+            // Video used to skip this gate entirely: a clip passed validateMedia
+            // (over 5KB, one decodable stream) and nothing else — no resolution
+            // floor, no length floor, and no perceptual hash, which made video
+            // the only asset type with NO duplicate detection at all. The meta
+            // captured here also gives clips real width/height/ratio for
+            // downstream fitting, which they never carried before.
+            const v = await util.validateClip(outputPath);
+            if (!v.ok) {
+              console.warn(`[assets] rejected clip "${q}" from ${provider.name}: ${v.reason}`);
+              try { fs.unlinkSync(outputPath); } catch { /* noop */ }
+              continue;
+            }
+            imageMeta = v.meta;
           }
           if (type === "video") await util.reencodeForHyperframes(outputPath);
           localDb.register({

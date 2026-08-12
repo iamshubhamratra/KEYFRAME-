@@ -165,10 +165,17 @@ function imageDimsFromBuffer(buf) {
 // One ffmpeg pass → a 9×8 grayscale thumbnail (72 bytes). From it: a 64-bit
 // dHash (row-wise adjacent-pixel comparisons) for perceptual dedup, and the
 // grayscale standard deviation for the low-information/solid-colour guard.
-function imageDHashStats(absPath) {
+// `seekSec` (ported from Rohit) matters only for VIDEO: frame 0 of a stock clip
+// is very often a black or white fade-in, so hashing it makes every clip in the
+// pool look like every other one — the perceptual dedupe would either drop
+// everything or nothing. Seeking a little way in samples an actual picture.
+// Images ignore it (they have one frame); default 0 keeps every existing caller
+// byte-identical.
+function imageDHashStats(absPath, { seekSec = 0 } = {}) {
   return new Promise((resolve) => {
+    const seek = Number(seekSec) > 0 ? ["-ss", String(Number(seekSec))] : [];
     const p = spawn("ffmpeg", [
-      "-v", "error", "-i", absPath,
+      "-v", "error", ...seek, "-i", absPath,
       "-vf", "scale=9:8:flags=area,format=gray", "-frames:v", "1", "-f", "rawvideo", "-",
     ], { windowsHide: true });
     const chunks = [];
@@ -244,6 +251,42 @@ async function validateImage(absPath, { kindPref } = {}) {
     return { ok: false, reason: `low-resolution (${width}x${height}; need ${MIN_LONG_EDGE}px long edge)`, meta };
   }
   return { ok: true, reason: null, meta };
+}
+
+// VIDEO's counterpart to validateImage (ported from Rohit's asset_sources/util.js).
+//
+// Everything the image path has had for a long time — a resolution floor, a
+// usable-length floor, and a perceptual hash so the same clip fetched from two
+// providers is caught — video had NONE of. A fetched clip passed exactly one
+// test upstream (validateMedia: over 5KB, one decodable stream with non-zero
+// dimensions), which is why video was also the only asset type with no duplicate
+// detection at all. The probe is one ffprobe call and the hash is one
+// seek-and-decode, so a clip now costs about what an image costs.
+//
+// FAIL-SAFE in the same direction as validateImage: an unreadable probe returns
+// ok:true with null meta, because "we could not measure it" must never mean
+// "reject it".
+async function validateClip(absPath) {
+  const { probeVideo, gradeClip } = require("../video_probe");
+  const probe = await probeVideo(absPath);
+  if (!probe || probe.ok !== true) {
+    // A file ffprobe cannot open at all is already rejected by validateMedia
+    // upstream; if we got here with an unreadable probe, say nothing rather than
+    // double-rejecting.
+    return { ok: true, reason: null, meta: null };
+  }
+  const grade = gradeClip(probe);
+  // A third of the way in, capped so a long clip does not seek past anything
+  // interesting — and past the fade-in that would otherwise be the hash.
+  const seekSec = probe.durationSec ? Math.min(probe.durationSec / 3, 3) : 0;
+  const { dhash, stdev } = await imageDHashStats(absPath, { seekSec });
+  const meta = {
+    width: probe.width, height: probe.height,
+    ratio: probe.width && probe.height ? Math.round((probe.width / probe.height) * 1000) / 1000 : null,
+    durationSec: probe.durationSec, fps: probe.fps, bitrateKbps: probe.bitrateKbps,
+    codec: probe.codec, hasAudio: probe.hasAudio, dhash, stdev,
+  };
+  return { ok: grade.ok, reason: grade.ok ? null : grade.reasons.join("; "), meta };
 }
 
 // Exact (MD5) + perceptual (dHash) de-duplication across a video's asset pool.
@@ -362,7 +405,7 @@ function colorDistance(a, b) {
 }
 
 module.exports = {
-  download, validateMedia, validateImage, reencodeForHyperframes, UA,
+  download, validateMedia, validateImage, validateClip, reencodeForHyperframes, UA,
   rankCandidates, scoreCandidate, MIN_LONG_EDGE,
   makeImageDeduper, imageDHashStats, hammingHex, pixFmtHasAlpha,
   imageDominantColor, colorDistance,

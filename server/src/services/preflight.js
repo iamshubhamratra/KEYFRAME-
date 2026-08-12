@@ -1,0 +1,360 @@
+// PRE-RENDER PREFLIGHT — the validation gate, rebuilt.
+//
+// WHY: the gate this replaces reported `ok: true` on the audited film. All six of
+// its checks passed while the film being approved had three screenshots with a
+// consent banner across them, five of nine assets that the chosen composer would
+// discard unrendered, three scenes that rendered an empty grey panel, and a "brand
+// palette" that was literally grey. It passed because of what it asked:
+//
+//   assetsCollected      "9 usable visual asset(s) collected"   — counted files, not usable ones
+//   brandExtracted       "brand palette resolved"               — true of #0a0a0a + #ffffff
+//   enoughForDuration    "9 visual(s) for 7 scene(s)"           — a total, never a per-scene check
+//   scenesAssigned       "5 scene(s) have an assigned asset"    — 5 of 7 passes; ok:true anyway
+//
+// Every one of those is a proxy for the thing that matters, and each proxy was
+// satisfied by a film that failed the real question. So the checks here ask the
+// real question directly, and each one names what would be wrong with the FILM —
+// not with the data structures — when it fails.
+//
+// SEVERITY. `fail` blocks the render (the user gets an honest error instead of a
+// bad video); `warn` is disclosed on the job and shown in Premiere. The house
+// fail-open law still holds for quality shortfalls: only genuinely unrecoverable
+// states block. What changed is that "unrecoverable" now includes "the user gave us
+// their website and every capture of it is unusable", which used to ship.
+
+const fs = require("node:fs");
+const path = require("node:path");
+const config = require("../config");
+const { isLogo } = require("./asset_priority");
+const { isChromatic } = require("./brand_kit");
+
+const FAIL = "fail", WARN = "warn", PASS = "pass";
+
+function check(id, level, ok, detail, fix) {
+  return { id, ok: !!ok, level: ok ? PASS : level, detail, fix: ok ? null : (fix || null) };
+}
+
+/**
+ * @param {object}  args
+ * @param {object}  args.job            the job row (user_assets, website_screenshots, screenshot_review…)
+ * @param {object[]} args.assets        the asset wire as composition will receive it
+ * @param {object}  args.script         the approved script
+ * @param {object}  args.storyboard     the built storyboard (scene copy lives here)
+ * @param {object}  args.brandSkin      the Art Director's skin (null = unbranded)
+ * @param {string}  args.jobDir
+ * @param {boolean} args.acceptsVectors whether the chosen pack can render a vector
+ * @param {boolean} args.hardFail       promote the blocking checks (config.validationGate.hardFail)
+ * @param {object}  args.mediaPlan      the chosen template's resolved slot contract
+ *                                      (services/template_media.resolveMediaPlan), or null
+ */
+function preflight({ job, assets = [], script = null, storyboard = null, brandSkin = null, jobDir = "", acceptsVectors = true, hardFail = true, mediaPlan = null } = {}) {
+  const checks = [];
+  const list = Array.isArray(assets) ? assets : [];
+
+  // ---- self-heal: drop assets whose file vanished (a broken <img> in the render).
+  const fileOk = (a) => { try { return !a || !a.path || !jobDir || fs.existsSync(path.join(jobDir, a.path)); } catch { return true; } };
+  const healed = list.filter(fileOk);
+  const selfHealed = list.length - healed.length;
+
+  const isVector = (a) => /\.svg($|\?)/i.test(String(a.path || ""));
+  const visual = healed.filter((a) => a && a.path && !isLogo(a) && a.type !== "audio");
+  // RENDERABLE is the honest denominator: an asset the chosen composer will actually
+  // put on screen. A vector handed to a pack whose composer opens with
+  // `if (/\.svg/.test(path)) return false` is a file on disk and nothing more —
+  // counting it as a "collected visual" is what let 5 dead assets read as coverage.
+  const renderable = visual.filter((a) => acceptsVectors || !isVector(a));
+  const deadAssets = visual.length - renderable.length;
+
+  const scenes = (script && Array.isArray(script.scenes) && script.scenes.length)
+    ? script.scenes
+    : (storyboard && Array.isArray(storyboard.scenes) ? storyboard.scenes : []);
+  const sceneCount = scenes.length;
+
+  // ---- 1) SCREENSHOTS ------------------------------------------------------
+  const sr = job && job.screenshot_review;
+  const websiteAsked = !!(job && job.intent && job.intent.websiteUrl);
+  if (websiteAsked) {
+    const captured = sr ? Number(sr.captured) || 0 : 0;
+    const kept = (job.website_screenshots || []).length;
+    const obstructed = sr && Array.isArray(sr.dropped) ? sr.dropped.filter((d) => d.reason === "obstructed").length : 0;
+    const authWall = sr && Array.isArray(sr.suppressed) && sr.suppressed.includes("auth-wall");
+    checks.push(check(
+      "screenshotsUsable", FAIL,
+      kept > 0 || authWall || captured === 0,
+      kept > 0
+        ? `${kept} of ${captured || kept} capture(s) passed the quality gate${obstructed ? ` (${obstructed} rejected as overlay-obstructed)` : ""}`
+        : authWall
+          ? "the site is behind a sign-in wall — no product screens to capture"
+          : `all ${captured} capture(s) were rejected${obstructed ? ` (${obstructed} obstructed by page overlays)` : ""}`,
+      "The consent/modal overlay on this site could not be dismissed. Re-run the project — capture retries dismissal — or supply product screenshots as uploads."
+    ));
+  }
+
+  // ---- 2) BRAND: logo ------------------------------------------------------
+  const logoAsset = healed.find((a) => a && a.path && isLogo(a));
+  const uploadedLogo = (job.user_assets || []).some((u) => u && u.role === "logo");
+  checks.push(check(
+    "brandLogo", WARN,
+    !!logoAsset,
+    logoAsset
+      ? `logo present (${logoAsset.source === "upload" ? "uploaded" : "harvested from the site"}) and available to the CTA / key moments`
+      : uploadedLogo
+        ? "a logo was uploaded but did not survive asset collection"
+        : "no brand logo — the film falls back to the template's generic mark",
+    "Upload a logo, or enable the website harvester (WEBSITE_HARVESTER=1) so the site's own mark is collected."
+  ));
+
+  // ---- 3) BRAND: colour ----------------------------------------------------
+  const accents = (brandSkin && Array.isArray(brandSkin.accents)) ? brandSkin.accents : [];
+  const chromatic = accents.length ? isChromatic(accents) : false;
+  checks.push(check(
+    "brandColour", WARN,
+    !!brandSkin && chromatic,
+    !brandSkin
+      ? "unbranded — the template keeps its own designed accents"
+      : chromatic
+        ? `brand accents applied: ${accents.join(", ")}`
+        : `the resolved palette (${accents.join(", ") || "none"}) carries no colour — the film will read greyscale`,
+    "Pick a brand colour on the create screen, or supply a website whose palette can be extracted."
+  ));
+
+  // ---- 4) ASSETS: every scene covered -------------------------------------
+  const assignedScenes = new Set(renderable.map((a) => a.sceneId).filter((x) => x != null));
+  const uncovered = scenes.filter((s) => !assignedScenes.has(s.id)).map((s) => s.id);
+  checks.push(check(
+    "everySceneHasVisual", WARN,
+    sceneCount > 0 && uncovered.length === 0,
+    uncovered.length === 0
+      ? `all ${sceneCount} scene(s) have a renderable visual assigned`
+      : `${uncovered.length} of ${sceneCount} scene(s) have NO renderable visual (${uncovered.join(", ")}) — these will render as empty template panels`,
+    "Widen the asset budget, add a website URL with real product screens, or upload product images."
+  ));
+
+  // ---- 5) ASSETS: nothing fetched that the template cannot show ------------
+  checks.push(check(
+    "noDeadAssets", WARN,
+    deadAssets === 0,
+    deadAssets === 0
+      ? "every collected asset is renderable by the chosen template"
+      : `${deadAssets} collected asset(s) are vectors the chosen template cannot render and will discard`,
+    "The pack renders photographic assets only; the planner should not be requesting vectors for it."
+  ));
+
+  // ---- 5b) REUSE: within limits, and never on adjacent scenes ---------------
+  // Derived from the WIRE, not from the optimizer's own report. preflight's whole premise
+  // is that a check must ask the real question directly (see the header): a report claiming
+  // "max 2 uses" is the claim, and the wire is the fact. All-zero on a film with no reuse.
+  {
+    const perPath = new Map();
+    for (const a of renderable) {
+      if (!a.path || a.sceneId == null) continue;
+      if (!perPath.has(a.path)) perPath.set(a.path, []);
+      perPath.get(a.path).push(String(a.sceneId));
+    }
+    const maxUses = Number(config.assetReuse?.maxUses) || 2;
+    const over = [...perPath.entries()].filter(([, ids]) => ids.length > maxUses);
+    checks.push(check(
+      "reuseWithinLimits", WARN,
+      over.length === 0,
+      over.length === 0
+        ? `no asset appears more than ${maxUses}×`
+        : `${over.length} asset(s) exceed the ${maxUses}-appearance limit (${over.map(([p, ids]) => `${p}×${ids.length}`).join(", ")})`,
+      "Lower assetReuse.maxUses, or collect more visuals so the optimizer has alternatives."
+    ));
+
+    const idx = (id) => scenes.findIndex((s) => String(s.id) === id);
+    const adjacent = [...perPath.entries()].filter(([, ids]) => {
+      const ns = ids.map(idx).filter((i) => i >= 0).sort((x, y) => x - y);
+      return ns.some((n, i) => i > 0 && n - ns[i - 1] === 1);
+    });
+    checks.push(check(
+      "noAdjacentRepeat", WARN,
+      adjacent.length === 0,
+      adjacent.length === 0
+        ? "no asset repeats on consecutive scenes"
+        : `${adjacent.length} asset(s) appear on back-to-back scenes (${adjacent.map(([p]) => p).join(", ")}) — the most visible form of repetition`,
+      "The reuse optimizer vetoes this; a composer may have re-homed the asset after assignment."
+    ));
+  }
+
+  // ---- 6) TEXT: every scene says something ---------------------------------
+  const sbScenes = (storyboard && Array.isArray(storyboard.scenes)) ? storyboard.scenes : [];
+  const copyFor = (s, i) => {
+    const sb = sbScenes[i] || {};
+    const ost = [].concat(s.onScreenText || [], sb.onScreenText || []).filter(Boolean);
+    return String(sb.headline || s.headline || ost[0] || "").trim();
+  };
+  const textless = scenes.map((s, i) => ({ id: s.id, copy: copyFor(s, i) })).filter((x) => !x.copy);
+  checks.push(check(
+    "everySceneHasText", WARN,
+    textless.length === 0,
+    textless.length === 0
+      ? `all ${sceneCount} scene(s) carry on-screen copy`
+      : `${textless.length} scene(s) have no on-screen text (${textless.map((x) => x.id).join(", ")})`,
+    "Edit the script in the Script Room to add a headline for these scenes."
+  ));
+
+  // ---- 7) FILE INTEGRITY ---------------------------------------------------
+  checks.push(check(
+    "noBrokenPaths", WARN,
+    selfHealed === 0,
+    selfHealed === 0 ? "all asset files present" : `dropped ${selfHealed} asset(s) whose file was missing (self-healed)`,
+    null
+  ));
+
+  // ---- 8) THE ONE UNRECOVERABLE STATE -------------------------------------
+  // The user supplied their OWN material and none of it survived, with no stock to
+  // stand in. A film that silently drops the user's product is worse than an error.
+  const userSupplied = (job.user_assets || []).some((u) => u && u.role !== "logo")
+    || (job.website_screenshots || []).length > 0
+    || websiteAsked;
+  checks.push(check(
+    "userMaterialSurvived", FAIL,
+    !userSupplied || renderable.length > 0,
+    userSupplied
+      ? (renderable.length ? `${renderable.length} usable visual(s) on the wire` : "you supplied material but NO usable visual survived collection")
+      : "no user material supplied",
+    "Regenerate, add a website URL with real product screens, or check the stock provider keys."
+  ));
+
+  // ---- 9) THE TEMPLATE'S OWN SLOTS ----------------------------------------
+  // Every check above asks about the FILM in general — enough visuals, enough scenes
+  // covered, enough copy. None of them can ask the question the chosen template would
+  // ask, because until the media contract existed there was nothing to ask it of: which
+  // boxes does THIS pack draw, which of them does a viewer actually look at, and is
+  // anything in them?
+  //
+  // "5 of 7 scenes have an asset" was the closest the old gate could get, and it is the
+  // proxy this whole file exists to distrust: a film can cover five scenes and still open
+  // on an empty hero, which is the first and worst thing a viewer sees.
+  if (mediaPlan && Array.isArray(mediaPlan.placeholders) && mediaPlan.placeholders.length) {
+    const bySceneId = new Map();
+    for (const a of healed) {
+      if (!a || a.sceneId == null || isLogo(a)) continue;
+      if (acceptsVectors || !isVector(a)) {
+        const k = String(a.sceneId);
+        if (!bySceneId.has(k)) bySceneId.set(k, []);
+        bySceneId.get(k).push(a);
+      }
+    }
+    // A logo lockup is the pack's own brand treatment, fed by find(isLogo) rather than from
+    // the asset pool (asset_reuse.buildSlots skips them for the same reason). A contain-fit
+    // CONTENT plate is a real slot — om_stage letterboxes nearly all of its pictures — so it
+    // is counted here; contain only means the picture is never cropped.
+    const fillable = mediaPlan.placeholders.filter((p) => p.kind !== "logos");
+    const critical = fillable.filter((p) => p.priority === "critical");
+    // WHO ACTUALLY SITS IN WHICH BOX.
+    //
+    // The Asset Placement stage (services/asset_placement) binds each collected picture to a
+    // specific placeholder and stamps `asset.__placement.placeholderId` on it. When that
+    // stamp is present this gate reads the REAL assignment instead of guessing — which is the
+    // whole point, because the guess below could only ever count pictures per SCENE and then
+    // hand them out in plan order.
+    //
+    // Clones added afterwards by the reuse optimizer carry no stamp (they are addressed by
+    // scene, which is all their own slot model needs), so both mechanisms have to coexist:
+    // read the explicit assignments first, then seat whatever is left by the per-scene count.
+    const claimedIds = new Set();
+    const bySceneUnclaimed = new Map();
+    for (const [k, arr] of bySceneId) bySceneUnclaimed.set(k, arr.length);
+    for (const a of healed) {
+      const pid = a && a.__placement && a.__placement.placeholderId;
+      if (!pid || a.sceneId == null || isLogo(a)) continue;
+      if (!acceptsVectors && isVector(a)) continue;
+      if (claimedIds.has(pid)) continue;              // one asset per box
+      claimedIds.add(pid);
+      const k = String(a.sceneId);
+      bySceneUnclaimed.set(k, Math.max(0, (bySceneUnclaimed.get(k) || 0) - 1));
+    }
+
+    // SEAT THE REMAINING PLACEHOLDERS ONE PER ASSET. Asking `does this placeholder's SCENE
+    // hold anything` answers a different question than `is this placeholder filled`, and
+    // answers it wrongly for every beat that draws more than one picture: three placeholders
+    // on a scene holding one asset all read as satisfied. That is the same per-scene
+    // approximation the comment above says this file exists to distrust, reintroduced one
+    // level down — a gate blind to exactly the shortfall it was built to catch. Give each
+    // placeholder its own seat and a scene with one asset satisfies one placeholder.
+    const seats = new Map();
+    const seatedEmpty = (p) => {
+      if (claimedIds.has(p.id)) return false;         // explicitly filled by placement
+      const k = String(p.sceneId);
+      const taken = seats.get(k) || 0;
+      seats.set(k, taken + 1);
+      return taken >= (bySceneUnclaimed.get(k) || 0);
+    };
+    // Critical placeholders are seated FIRST so a scarce asset is credited to the hero box
+    // rather than to whichever tile happens to come first in the plan's ordering.
+    const seatOrder = [...fillable].sort((a, b) =>
+      (a.priority === "critical" ? 0 : 1) - (b.priority === "critical" ? 0 : 1));
+    const emptySet = new Set(seatOrder.filter(seatedEmpty));
+    const emptyCritical = critical.filter((p) => emptySet.has(p));
+    const emptyAll = fillable.filter((p) => emptySet.has(p));
+
+    // A DERIVED plan is an approximation of the pack's layout, so its slot list is a floor
+    // and a miss is a warning. An AUTHORED plan is the pack telling us what it draws, so an
+    // empty critical box there is a real, blocking defect: the film will render its most
+    // important frame as a blank plate.
+    const authored = mediaPlan.source === "authored";
+    checks.push(check(
+      "criticalPlaceholdersFilled", authored ? FAIL : WARN,
+      emptyCritical.length === 0,
+      critical.length === 0
+        ? "this template declares no critical slot"
+        : (emptyCritical.length === 0
+          ? `all ${critical.length} critical slot(s) hold a visual`
+          : `${emptyCritical.length} of ${critical.length} critical slot(s) are EMPTY (${emptyCritical.map((p) => p.id).join(", ")})`),
+      "Add or upload more visuals, or pick a template with fewer prominent slots."
+    ));
+
+    checks.push(check(
+      "placeholdersFilled", WARN,
+      emptyAll.length === 0,
+      emptyAll.length === 0
+        ? `all ${fillable.length} template slot(s) hold a visual`
+        : `${emptyAll.length} of ${fillable.length} template slot(s) render without an asset (${emptyAll.slice(0, 6).map((p) => p.id).join(", ")}${emptyAll.length > 6 ? "…" : ""})`,
+      "The reuse optimizer fills what it can under the 2-appearance ceiling; beyond that the pack draws its decorative fallback."
+    ));
+
+    // QUALITY IN THE PLACES THAT MATTER. A critical slot holding an asset graded `reject`
+    // is the "poor-quality asset in the hero" complaint, stated precisely enough to check.
+    //
+    // Read the ASSIGNED asset when placement stamped one. Before, this took the first asset
+    // on the critical slot's SCENE — which on a beat holding three pictures is a one-in-three
+    // chance of inspecting the picture that is actually in the hero box.
+    const placedInto = new Map();
+    for (const a of healed) {
+      const pid = a && a.__placement && a.__placement.placeholderId;
+      if (pid && !placedInto.has(pid)) placedInto.set(pid, a);
+    }
+    const weakCritical = critical
+      .map((p) => ({ p, a: placedInto.get(p.id) || (bySceneId.get(String(p.sceneId)) || [])[0] }))
+      .filter((x) => x.a && String(x.a.qualityGrade || "") === "reject");
+    checks.push(check(
+      "criticalSlotQuality", WARN,
+      weakCritical.length === 0,
+      weakCritical.length === 0
+        ? "no critical slot holds a rejected asset"
+        : `${weakCritical.length} critical slot(s) hold an asset graded "reject" (${weakCritical.map((x) => x.p.id).join(", ")})`,
+      "Upload a sharper image, or let the pipeline collect more candidates so the ranker has a better one to promote."
+    ));
+  }
+
+  const failed = checks.filter((c) => !c.ok && c.level === FAIL);
+  const warned = checks.filter((c) => !c.ok && c.level === WARN);
+  const ok = !hardFail || failed.length === 0;
+
+  return {
+    ok,
+    blockedBy: hardFail && failed.length ? failed[0].id : null,
+    selfHealed,
+    healedAssets: healed,
+    summary: `${checks.filter((c) => c.ok).length}/${checks.length} checks passed` +
+      (failed.length ? ` · ${failed.length} BLOCKING` : "") +
+      (warned.length ? ` · ${warned.length} warning(s)` : ""),
+    failures: failed.map((c) => ({ id: c.id, detail: c.detail, fix: c.fix })),
+    warnings: warned.map((c) => ({ id: c.id, detail: c.detail, fix: c.fix })),
+    checks: Object.fromEntries(checks.map((c) => [c.id, { ok: c.ok, level: c.level, detail: c.detail }])),
+  };
+}
+
+module.exports = { preflight };
