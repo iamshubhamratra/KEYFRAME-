@@ -150,7 +150,15 @@ async function countTracks(term, token) {
       const packs = dead.filter((d) => d.t === t).map((d) => d.pack);
       console.log(`  ${t.padEnd(22)} ${String(cache[t] ?? 0).padStart(4)} track(s)   used by: ${packs.slice(0, 6).join(", ")}${packs.length > 6 ? ` +${packs.length - 6}` : ""}`);
     }
-    console.log(`\nFAIL — remove or replace these in scripts/apply-audio-profiles.js, then re-run.`);
+    // TWO TABLES AUTHOR THESE PROFILES, and naming only one sends the reader to a file that
+    // does not contain the word they were told to replace. apply-audio-profiles.js holds the
+    // original packs and READS the FilmKit family's own table; a dead term in a film-* pack is
+    // fixed in _metadata.json, and applied from there by `npm run audio:profiles`.
+    console.log(`\nFAIL — replace these where the pack is authored, then run \`npm run audio:profiles\` and re-run:`);
+    console.log(`  · original packs      scripts/apply-audio-profiles.js (the PROFILES table)`);
+    console.log(`  · FilmKit packs       src/services/film_skins/_metadata.json (audio.style / audio.musicKeywords)`);
+    console.log(`  A term must resolve to >= ${MIN_HITS} tracks. style[] entries are emitted as the PHRASE *and* its`);
+    console.log(`  component words, so a compound like "upright bass" must itself resolve — prefer a single tagged word.`);
     process.exit(1);
   }
 

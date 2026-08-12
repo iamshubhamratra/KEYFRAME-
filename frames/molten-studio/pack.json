@@ -141,23 +141,23 @@
     "tempo": "slow",
     "style": [
       "ambient rhodes",
-      "handpan",
-      "glass resonance",
-      "brass pad"
+      "hand-percussion",
+      "resonance",
+      "brass"
     ],
     "musicKeywords": [
       "singing bowl",
-      "furnace hum",
+      "fire hum",
       "flugelhorn breath",
-      "udu heartbeat",
-      "kalimba ember",
-      "molten swell",
+      "hand-percussion heartbeat",
+      "kalimba fire",
+      "metal swell",
       "dub echo",
       "downtempo warmth",
       "hand percussion",
       "trip hop",
-      "balearic groove",
-      "smoulder funk"
+      "house groove",
+      "smoke funk"
     ],
     "sfxPalette": {
       "transition": "light-sweep",

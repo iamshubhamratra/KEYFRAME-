@@ -140,23 +140,23 @@
     "energy": "low",
     "tempo": "slow",
     "style": [
-      "sustained strings",
+      "sustained",
       "acoustic guitar",
-      "mallet accents",
-      "barely there"
+      "mallet-percussion",
+      "minimal"
     ],
     "musicKeywords": [
-      "alpine ambient",
+      "folk ambient",
       "valley piano",
       "wide strings",
       "muted guitar",
-      "mallet hush",
-      "bluebird morning",
-      "lodge fireside",
+      "mallet quiet",
+      "bird morning",
+      "wooden fire",
       "first chair",
-      "gondola glide",
-      "powder day",
-      "ski documentary",
+      "lift glide",
+      "ice day",
+      "racing documentary",
       "post rock"
     ],
     "sfxPalette": {

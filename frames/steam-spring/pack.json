@@ -141,21 +141,21 @@
       "ambient",
       "minimal",
       "japanese folk",
-      "spa underscore"
+      "spa"
     ],
     "musicKeywords": [
-      "onsen ambience",
+      "zen ambience",
       "steam drone",
-      "bathhouse hush",
-      "shakuhachi drift",
-      "snowfall koto",
-      "mineral pad",
+      "water quiet",
+      "flute drift",
+      "ice koto",
+      "cold pad",
       "mountain inn",
-      "ryokan piano",
-      "shamisen pluck",
-      "hinoki groove",
-      "warm handpan",
-      "frame drum"
+      "temple piano",
+      "koto pluck",
+      "wood groove",
+      "warm hand-percussion",
+      "hand drum"
     ],
     "sfxPalette": {
       "transition": "light-sweep",

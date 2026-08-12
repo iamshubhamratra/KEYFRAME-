@@ -138,24 +138,24 @@
     "energy": "medium",
     "tempo": "mid",
     "style": [
-      "alpine horn",
+      "horn",
       "brass",
       "folk strings",
-      "marching snare"
+      "marching"
     ],
     "musicKeywords": [
-      "alpine calm",
+      "folk calm",
       "cold morning",
-      "snowfield hush",
+      "ice quiet",
       "valley strings",
-      "postal march",
-      "telegraph rhythm",
+      "archive march",
+      "signal rhythm",
       "mountain horn",
-      "alpine folk",
-      "sleigh trot",
-      "oompah brass",
-      "summit push",
-      "descent gallop"
+      "village folk",
+      "bells march",
+      "marching brass",
+      "rise push",
+      "drift chase"
     ],
     "sfxPalette": {
       "transition": "card-slide",

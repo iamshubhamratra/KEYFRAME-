@@ -140,24 +140,24 @@
     "energy": "medium",
     "tempo": "mid",
     "style": [
-      "surf guitar",
+      "guitar",
       "lounge organ",
       "synthwave",
-      "electrified blues"
+      "blues"
     ],
     "musicKeywords": [
       "vibraphone glow",
       "transformer buzz",
       "hammond swell",
-      "tiki exotica",
+      "tropical lounge",
       "slide reverb",
-      "baritone twang",
+      "low twang",
       "jukebox groove",
-      "neon strut",
-      "boogaloo shuffle",
-      "rockabilly slink",
+      "neon bounce",
+      "latin shuffle",
+      "rock smooth",
       "garage twist",
-      "psychobilly rush"
+      "punk rush"
     ],
     "sfxPalette": {
       "transition": "light-sweep",

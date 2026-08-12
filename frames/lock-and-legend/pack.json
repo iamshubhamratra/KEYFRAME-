@@ -139,21 +139,21 @@
     "style": [
       "orchestral suspense",
       "pizzicato",
-      "clockwork percussion"
+      "clockwork"
     ],
     "musicKeywords": [
       "harpsichord mystery",
-      "candlelit strings",
+      "warm strings",
       "victorian detective",
-      "parlour intrigue",
-      "keyhole minuet",
-      "brass cipher",
-      "cogwheel march",
+      "lounge intrigue",
+      "mystery minuet",
+      "brass detective",
+      "clockwork march",
       "ticking metronome",
       "vault heist",
       "escape tension",
       "countdown timpani",
-      "chase gallop"
+      "chase tempo"
     ],
     "sfxPalette": {
       "transition": "card-slide",

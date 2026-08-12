@@ -140,23 +140,23 @@
     "tempo": "mid",
     "style": [
       "hand drums",
-      "upright bass",
-      "bird texture",
-      "sun does"
+      "bass",
+      "bird",
+      "sun"
     ],
     "musicKeywords": [
-      "savanna ambient",
-      "bush chorus",
+      "desert ambient",
+      "desert chorus",
       "kalimba morning",
-      "acacia plains",
-      "golden grassland",
+      "tribal plains",
+      "golden field",
       "lifting strings",
-      "marimba trek",
-      "savanna sunrise",
+      "marimba travel",
+      "desert sunrise",
       "hand drums",
-      "hooves percussion",
-      "highlife guitar",
-      "afrobeat groove"
+      "drums percussion",
+      "world guitar",
+      "world groove"
     ],
     "sfxPalette": {
       "transition": "whoosh",

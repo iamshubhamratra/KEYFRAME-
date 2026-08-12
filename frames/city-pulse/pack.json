@@ -140,7 +140,7 @@
     "tempo": "fast",
     "style": [
       "night-drive tempo",
-      "analogue bass",
+      "analogue",
       "synth stabs",
       "tape-delay percussion"
     ],
@@ -149,13 +149,13 @@
       "night drive",
       "filtered bass",
       "tape delay",
-      "skyline house",
-      "neon commute",
-      "rooftop set",
+      "city house",
+      "neon traffic",
+      "urban set",
       "traffic groove",
       "rush hour",
       "city techno",
-      "warehouse techno",
+      "club techno",
       "acid bassline"
     ],
     "sfxPalette": {

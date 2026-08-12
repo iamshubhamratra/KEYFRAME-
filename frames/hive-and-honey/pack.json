@@ -139,24 +139,24 @@
     "energy": "medium",
     "tempo": "mid",
     "style": [
-      "ukulele whistle",
+      "ukulele",
       "handclaps",
       "glockenspiel",
-      "brush kit"
+      "jazz"
     ],
     "musicKeywords": [
-      "cottage folk",
-      "meadow lullaby",
+      "farm folk",
+      "garden lullaby",
       "honey waltz",
       "acoustic skip",
-      "banjo lilt",
+      "banjo swing",
       "clarinet hop",
-      "polka bounce",
-      "fiddle jig",
+      "waltz bounce",
+      "fiddle reel",
       "sunshine pop",
-      "barn dance",
-      "bluegrass romp",
-      "hoedown stomp"
+      "farm dance",
+      "banjo bounce",
+      "country stomp"
     ],
     "sfxPalette": {
       "transition": "card-slide",

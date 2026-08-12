@@ -138,24 +138,24 @@
     "energy": "medium",
     "tempo": "mid",
     "style": [
-      "upright bass",
-      "brushed drums",
+      "bass",
+      "jazz",
       "warm keys",
       "acoustic swing"
     ],
     "musicKeywords": [
-      "sourdough calm",
-      "proving hush",
-      "flour dust",
-      "bakers morning",
-      "kneading rhythm",
-      "oven warmth",
-      "crust crackle",
-      "levain groove",
-      "bakery shuffle",
+      "farm calm",
+      "proving quiet",
+      "warm desert",
+      "quiet morning",
+      "hand rhythm",
+      "fire warmth",
+      "crisp crackle",
+      "slow groove",
+      "cafe shuffle",
       "counter jazz",
       "weekend rush",
-      "harvest jig"
+      "autumn reel"
     ],
     "sfxPalette": {
       "transition": "card-slide",

@@ -140,14 +140,14 @@
     "tempo": "fast",
     "style": [
       "pulse bass",
-      "noise snare",
+      "noise",
       "to grid",
       "everything beat"
     ],
     "musicKeywords": [
       "chiptune attract",
-      "crt hum",
-      "scanline synth",
+      "pixel hum",
+      "vhs synth",
       "pixel theme",
       "pulse bass",
       "coin arpeggio",
@@ -155,7 +155,7 @@
       "noise snare",
       "invader march",
       "high score",
-      "joystick chase",
+      "arcade chase",
       "boss battle"
     ],
     "sfxPalette": {

@@ -141,22 +141,22 @@
     "style": [
       "organic",
       "light",
-      "inquisitive",
-      "spacious"
+      "curious",
+      "ambient"
     ],
     "musicKeywords": [
-      "tidepool ambient",
-      "shallow bells",
+      "ocean ambient",
+      "water bells",
       "field study",
-      "kalimba curiosity",
+      "kalimba curious",
       "marimba tide",
       "glockenspiel drift",
-      "rockpool shimmer",
+      "pond shimmer",
       "playful woodwind",
-      "beachcomber ukulele",
-      "pebble percussion",
+      "walking ukulele",
+      "water percussion",
       "sunshine pop",
-      "shoreline groove"
+      "sea groove"
     ],
     "sfxPalette": {
       "transition": "light-sweep",

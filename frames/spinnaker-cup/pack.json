@@ -141,22 +141,22 @@
     "tempo": "mid",
     "style": [
       "cinematic strings",
-      "nautical adventure",
+      "adventure",
       "driving percussion"
     ],
     "musicKeywords": [
-      "marina piano",
-      "yacht club",
-      "regatta overture",
-      "spinnaker run",
-      "windward swell",
-      "mainsail march",
-      "leeward sprint",
-      "crew cadence",
+      "sea piano",
+      "ocean club",
+      "sports orchestral",
+      "wind run",
+      "breeze swell",
+      "open march",
+      "calm run",
+      "march cadence",
       "brass fanfare",
       "victory anthem",
       "racing timpani",
-      "podium drums"
+      "victory drums"
     ],
     "sfxPalette": {
       "transition": "light-sweep",

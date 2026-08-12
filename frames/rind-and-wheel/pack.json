@@ -140,25 +140,25 @@
     "energy": "medium",
     "tempo": "slow",
     "style": [
-      "pastoral acoustic",
-      "alpine folk",
-      "warm woodwind",
+      "acoustic",
+      "folk",
+      "woodwind",
       "cellar drone"
     ],
     "musicKeywords": [
       "zither ambient",
-      "alphorn hush",
-      "dulcimer patience",
+      "alphorn quiet",
+      "dulcimer calm",
       "cowbell chime",
-      "hurdy gurdy",
-      "melodeon lilt",
-      "yodel chorus",
+      "folk fiddle",
+      "accordion swing",
+      "village chorus",
       "fiddle waltz",
-      "clarinet jig",
-      "barn dance",
-      "harvest reel",
-      "village polka",
-      "barrel stomp"
+      "clarinet reel",
+      "farm dance",
+      "autumn reel",
+      "village waltz",
+      "wooden stomp"
     ],
     "sfxPalette": {
       "transition": "card-slide",

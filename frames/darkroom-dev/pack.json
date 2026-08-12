@@ -140,22 +140,22 @@
     "tempo": "mid",
     "style": [
       "analog synth",
-      "tape saturation",
-      "motorik pulse",
-      "dub delay"
+      "saturation",
+      "pulse",
+      "dub"
     ],
     "musicKeywords": [
       "dark ambient",
-      "safelight hum",
-      "darkroom drone",
+      "red hum",
+      "dark drone",
       "grain texture",
       "patient arpeggio",
-      "enlarger click",
+      "mechanism click",
       "spring reverb",
       "mellotron chords",
       "sequencer groove",
       "moog bass",
-      "krautrock groove",
+      "electronic groove",
       "dub techno"
     ],
     "sfxPalette": {

@@ -140,7 +140,7 @@
     "energy": "high",
     "tempo": "fast",
     "style": [
-      "festival house",
+      "house",
       "big room",
       "edm",
       "live crowd"
@@ -151,12 +151,12 @@
       "open air",
       "rave piano",
       "sidechain pump",
-      "supersaw lead",
-      "mainstage euphoria",
-      "confetti anthem",
+      "saw lead",
+      "festival uplifting",
+      "party anthem",
       "stadium clap",
       "riser build",
-      "headline set",
+      "anthem set",
       "hardstyle kick"
     ],
     "sfxPalette": {

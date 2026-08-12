@@ -26,13 +26,13 @@
       ],
       "musicKeywords": [
         "solo piano",
-        "starlit reverie",
-        "observatory calm",
-        "astral pad",
+        "stargazing reverie",
+        "celestial calm",
+        "cosmic pad",
         "glass harmonics",
-        "telescope wonder",
-        "meteor shimmer",
-        "planetarium score",
+        "night wonder",
+        "drift shimmer",
+        "orchestral score",
         "string swell",
         "cosmic crescendo",
         "timpani rise",
@@ -100,10 +100,10 @@
       "musicKeywords": [
         "fingerstyle guitar",
         "sunrise hymn",
-        "balloon ascent",
+        "flying lift",
         "morning strings",
         "gentle uplift",
-        "updraft hum",
+        "breeze hum",
         "wide horizon",
         "mandolin roll",
         "hopeful swell",
@@ -172,17 +172,17 @@
       ],
       "musicKeywords": [
         "string quartet",
-        "quiet gambit",
+        "quiet study",
         "pizzicato study",
         "wood block",
         "clock tick",
         "vibraphone thought",
         "walking bassline",
-        "brushed snare",
+        "jazz snare",
         "staccato strings",
         "clockwork tension",
-        "tightening pulse",
-        "brisk allegro"
+        "rising pulse",
+        "fast tempo"
       ],
       "sfxPalette": {
         "transition": "card-slide",
@@ -245,15 +245,15 @@
       ],
       "musicKeywords": [
         "koto pluck",
-        "hushed keys",
+        "quiet keys",
         "paper craft",
         "handmade studio",
-        "marimba patience",
+        "marimba calm",
         "kalimba pattern",
         "folding rhythm",
         "wood chime",
         "crisp snap",
-        "shamisen strum",
+        "koto strum",
         "steady mallets",
         "taiko drive"
       ],
@@ -319,14 +319,14 @@
       "musicKeywords": [
         "gypsy swing",
         "oud melody",
-        "lantern serenade",
-        "market bustle",
+        "golden serenade",
+        "market street",
         "hand drums",
         "cumbia sway",
         "brass band",
         "tabla roll",
         "festival horns",
-        "bhangra bounce",
+        "tabla bounce",
         "street parade",
         "carnival samba"
       ],
@@ -400,7 +400,7 @@
         "training montage",
         "sunrise drive",
         "electro push",
-        "techno sprint",
+        "techno run",
         "hard house"
       ],
       "sfxPalette": {
@@ -467,7 +467,7 @@
         "lounge guitar",
         "smooth blues",
         "hammond organ",
-        "brass swagger",
+        "brass bounce",
         "shop floor",
         "horn section",
         "dusty funk",
@@ -530,10 +530,10 @@
       "energy": "medium",
       "tempo": "mid",
       "style": [
-        "brushed drums",
-        "upright bass",
-        "tape warmth",
-        "unhurried swing"
+        "jazz",
+        "bass",
+        "vintage",
+        "swing"
       ],
       "musicKeywords": [
         "jazz trio",
@@ -544,8 +544,8 @@
         "loose shuffle",
         "walking blues",
         "hammond organ",
-        "soul revue",
-        "greasy funk",
+        "soul band",
+        "dusty funk",
         "horn section",
         "hard bop"
       ],
@@ -604,9 +604,9 @@
       "tempo": "fast",
       "style": [
         "808 sub",
-        "triplet hats",
+        "trap",
         "hard-clipped drums",
-        "riser drop"
+        "edm"
       ],
       "musicKeywords": [
         "dark trap",
@@ -617,7 +617,7 @@
         "street rap",
         "beat switch",
         "phonk bounce",
-        "hype anthem",
+        "energetic anthem",
         "hard drill",
         "rage beat",
         "stadium trap"
@@ -675,22 +675,22 @@
       "energy": "low",
       "tempo": "slow",
       "style": [
-        "sub drone",
-        "glassy pads",
-        "hydrophone texture",
+        "drone",
+        "pads",
+        "texture",
         "reverb tails"
       ],
       "musicKeywords": [
         "underwater ambient",
-        "abyssal hush",
+        "abyssal quiet",
         "slow cello",
         "oceanic drift",
         "sonar pulse",
         "marine nocturne",
         "documentary score",
         "deep shimmer",
-        "tidal swell",
-        "cinematic undertow",
+        "ocean swell",
+        "cinematic current",
         "orchestral surge",
         "deep dub"
       ],
@@ -748,24 +748,24 @@
       "energy": "medium",
       "tempo": "mid",
       "style": [
-        "ukulele whistle",
+        "ukulele",
         "handclaps",
         "glockenspiel",
-        "brush kit"
+        "jazz"
       ],
       "musicKeywords": [
-        "cottage folk",
-        "meadow lullaby",
+        "farm folk",
+        "garden lullaby",
         "honey waltz",
         "acoustic skip",
-        "banjo lilt",
+        "banjo swing",
         "clarinet hop",
-        "polka bounce",
-        "fiddle jig",
+        "waltz bounce",
+        "fiddle reel",
         "sunshine pop",
-        "barn dance",
-        "bluegrass romp",
-        "hoedown stomp"
+        "farm dance",
+        "banjo bounce",
+        "country stomp"
       ],
       "sfxPalette": {
         "transition": "card-slide",
@@ -822,22 +822,22 @@
       "tempo": "mid",
       "style": [
         "rare-groove drums",
-        "wurlitzer",
-        "clavinet stabs",
+        "rhodes",
+        "funk",
         "vinyl crackle"
       ],
       "musicKeywords": [
         "dusty soul",
         "soul jazz",
-        "crate digger",
+        "vinyl record",
         "northern soul",
-        "motown bounce",
+        "soul bounce",
         "funk break",
         "boogie bassline",
         "brass hits",
-        "disco strut",
+        "disco bounce",
         "breakbeat cut",
-        "afrobeat drive",
+        "world drive",
         "dancefloor stomp"
       ],
       "sfxPalette": {
@@ -903,14 +903,14 @@
         "midnight jazz",
         "neon nocturne",
         "rainy ballad",
-        "izakaya hush",
-        "smoky sax",
+        "lounge quiet",
+        "smoke sax",
         "alley shuffle",
         "tokyo lounge",
-        "diner swing",
+        "cafe swing",
         "japanese funk",
         "night drive",
-        "shibuya boogie",
+        "urban boogie",
         "future funk"
       ],
       "sfxPalette": {
@@ -968,23 +968,23 @@
       "tempo": "fast",
       "style": [
         "fuzz guitar",
-        "punk kit",
-        "surf reverb",
-        "gang shouts"
+        "punk",
+        "reverb",
+        "shouts"
       ],
       "musicKeywords": [
         "garage rock",
-        "jangle pop",
+        "guitar pop",
         "twang riff",
         "power chords",
-        "skate rock",
+        "punk rock",
         "amp buzz",
         "snare slam",
         "distorted shout",
         "hardcore stomp",
         "thrash tempo",
         "blast beat",
-        "riot noise"
+        "rage noise"
       ],
       "sfxPalette": {
         "transition": "whoosh",
@@ -1042,8 +1042,8 @@
       "style": [
         "acoustic",
         "organic percussion",
-        "spacious",
-        "analog warmth"
+        "ambient",
+        "analog"
       ],
       "musicKeywords": [
         "classical guitar",
@@ -1051,7 +1051,7 @@
         "clay studio",
         "kalimba pluck",
         "wheel session",
-        "kiln fire",
+        "workshop fire",
         "wood blocks",
         "handmade craft",
         "earthy strum",
@@ -1123,7 +1123,7 @@
         "tension build",
         "gym floor",
         "tribal toms",
-        "bouldering session",
+        "training session",
         "stomp claps",
         "send train",
         "raw breakbeat",
@@ -1187,21 +1187,21 @@
       "tempo": "slow",
       "style": [
         "cinematic",
-        "string swells",
-        "sparse piano",
-        "maritime folk"
+        "strings",
+        "piano",
+        "folk"
       ],
       "musicKeywords": [
         "chamber strings",
         "fog ambience",
         "nocturne piano",
-        "keeper watch",
-        "lighthouse night",
+        "night watch",
+        "sea night",
         "distant horn",
-        "harbor bell",
+        "ocean bell",
         "ocean drone",
         "accordion tide",
-        "beacon swell",
+        "signal swell",
         "sailor waltz",
         "fiddle reel"
       ],
@@ -1260,23 +1260,23 @@
       "tempo": "mid",
       "style": [
         "folk",
-        "fingerpicked strings",
+        "fingerstyle",
         "woodwind",
         "field-recording texture"
       ],
       "musicKeywords": [
         "wooden flute",
-        "damp woodland",
+        "woods woodland",
         "warm clarinet",
-        "spore drift",
-        "canopy morning",
-        "foraging walk",
+        "nature drift",
+        "woods morning",
+        "walking walk",
         "mandolin trail",
         "autumn woods",
         "whistle tune",
         "banjo roll",
         "foot stomp",
-        "bluegrass jig"
+        "banjo reel"
       ],
       "sfxPalette": {
         "transition": "whoosh",
@@ -1333,20 +1333,20 @@
       "tempo": "slow",
       "style": [
         "minimal",
-        "sparse acoustic",
-        "air breath",
+        "acoustic",
+        "breath",
         "long decay"
       ],
       "musicKeywords": [
         "minimalist piano",
-        "kettle steam",
-        "porcelain bells",
-        "incense smoke",
+        "gentle steam",
+        "glass bells",
+        "temple smoke",
         "water pour",
         "bamboo wind",
         "singing bowl",
         "koto tremolo",
-        "shamisen pluck",
+        "koto pluck",
         "temple gong",
         "ceremony drum",
         "taiko pulse"
@@ -1406,22 +1406,22 @@
       "tempo": "mid",
       "style": [
         "analog synth",
-        "tape saturation",
-        "motorik pulse",
-        "dub delay"
+        "saturation",
+        "pulse",
+        "dub"
       ],
       "musicKeywords": [
         "dark ambient",
-        "safelight hum",
-        "darkroom drone",
+        "red hum",
+        "dark drone",
         "grain texture",
         "patient arpeggio",
-        "enlarger click",
+        "mechanism click",
         "spring reverb",
         "mellotron chords",
         "sequencer groove",
         "moog bass",
-        "krautrock groove",
+        "electronic groove",
         "dub techno"
       ],
       "sfxPalette": {
@@ -1479,9 +1479,8 @@
       "tempo": "mid",
       "style": [
         "jazz",
-        "brushed drums",
-        "upright bass",
-        "warm brass"
+        "bass",
+        "brass"
       ],
       "musicKeywords": [
         "piano trio",
@@ -1553,20 +1552,20 @@
       "style": [
         "bouncy",
         "sweet",
-        "kinetic",
+        "energetic",
         "toy-box"
       ],
       "musicKeywords": [
         "glockenspiel melody",
-        "soda fountain",
+        "sweet fountain",
         "ice cream",
         "parlor ragtime",
         "marimba bounce",
-        "sprinkle skip",
-        "summer scoop",
-        "kazoo groove",
-        "bubblegum pop",
-        "whipped funk",
+        "toy skip",
+        "summer sweet",
+        "whistle groove",
+        "sunny pop",
+        "bouncy funk",
         "sugar rush",
         "surf twist",
         "dance pop"
@@ -1631,15 +1630,15 @@
         "gritty"
       ],
       "musicKeywords": [
-        "lofi commute",
-        "bike messenger",
-        "dispatch groove",
+        "lofi traffic",
+        "bike city",
+        "radio groove",
         "traffic funk",
         "city bassline",
-        "asphalt drums",
+        "street drums",
         "chain drive",
-        "breakbeat courier",
-        "delivery sprint",
+        "breakbeat urban",
+        "delivery run",
         "big beat",
         "jungle breaks",
         "acid techno"
@@ -1698,19 +1697,19 @@
       "energy": "low",
       "tempo": "slow",
       "style": [
-        "hushed",
-        "gilded",
+        "quiet",
+        "warm",
         "nocturnal",
         "meditative"
       ],
       "musicKeywords": [
         "nocturne strings",
-        "moonlit harp",
-        "candle ambient",
+        "midnight harp",
+        "warm ambient",
         "mystic celeste",
         "crystal chimes",
-        "tarot ritual",
-        "night oracle",
+        "mystic ritual",
+        "night mystery",
         "harmonium drone",
         "bowed strings",
         "midnight waltz",
@@ -1772,23 +1771,23 @@
       "tempo": "mid",
       "style": [
         "cinematic",
-        "earthen",
+        "organic",
         "patient",
         "wide"
       ],
       "musicKeywords": [
-        "volcanic drone",
-        "basalt ambient",
-        "ash plume",
-        "crater dawn",
+        "fire drone",
+        "dark ambient",
+        "ash smoke",
+        "deep dawn",
         "field documentary",
-        "obsidian pulse",
+        "gothic pulse",
         "expedition strings",
-        "tectonic swell",
-        "cinder groove",
+        "rumble swell",
+        "fire groove",
         "taiko roll",
-        "lava percussion",
-        "eruption drums"
+        "heavy percussion",
+        "impact drums"
       ],
       "sfxPalette": {
         "transition": "whoosh",
@@ -1850,17 +1849,17 @@
         "organic"
       ],
       "musicKeywords": [
-        "greenhouse ambient",
-        "botanical harp",
+        "garden ambient",
+        "nature harp",
         "conservatory strings",
-        "orchid flute",
-        "glasshouse morning",
-        "nectar drift",
+        "gentle flute",
+        "glass morning",
+        "sweet drift",
         "butterfly garden",
         "wing flutter",
-        "meadow waltz",
-        "orchard mandolin",
-        "sunlit pizzicato",
+        "garden waltz",
+        "farm mandolin",
+        "sunny pizzicato",
         "summer fiddle"
       ],
       "sfxPalette": {
@@ -1917,24 +1916,24 @@
       "energy": "low",
       "tempo": "slow",
       "style": [
-        "antiquarian",
-        "unhurried",
+        "vintage",
+        "slow",
         "acoustic",
         "narrated"
       ],
       "musicKeywords": [
-        "cartography ambient",
-        "sepia piano",
+        "archive ambient",
+        "vintage piano",
         "archive strings",
-        "quill scratch",
+        "page scratch",
         "compass drift",
-        "parchment nocturne",
+        "book nocturne",
         "voyage folk",
-        "mapmaker waltz",
-        "sea shanty",
-        "maritime fiddle",
-        "concertina jig",
-        "capstan stomp"
+        "study waltz",
+        "sea sailor",
+        "sea fiddle",
+        "accordion reel",
+        "wooden stomp"
       ],
       "sfxPalette": {
         "transition": "card-slide",
@@ -1993,21 +1992,21 @@
         "polished",
         "synthetic",
         "modern",
-        "punchy"
+        "hard"
       ],
       "musicKeywords": [
         "podcast bed",
         "console hum",
-        "vocal booth",
+        "vocal radio",
         "interview lofi",
         "studio synth",
         "signal chain",
         "talk radio",
         "broadcast pulse",
         "mixdown groove",
-        "airwave house",
+        "broadcast house",
         "network electro",
-        "transmitter drive"
+        "signal drive"
       ],
       "sfxPalette": {
         "transition": "whoosh",
@@ -2066,21 +2065,21 @@
         "ambient",
         "minimal",
         "japanese folk",
-        "spa underscore"
+        "spa"
       ],
       "musicKeywords": [
-        "onsen ambience",
+        "zen ambience",
         "steam drone",
-        "bathhouse hush",
-        "shakuhachi drift",
-        "snowfall koto",
-        "mineral pad",
+        "water quiet",
+        "flute drift",
+        "ice koto",
+        "cold pad",
         "mountain inn",
-        "ryokan piano",
-        "shamisen pluck",
-        "hinoki groove",
-        "warm handpan",
-        "frame drum"
+        "temple piano",
+        "koto pluck",
+        "wood groove",
+        "warm hand-percussion",
+        "hand drum"
       ],
       "sfxPalette": {
         "transition": "light-sweep",
@@ -2137,21 +2136,21 @@
       "tempo": "mid",
       "style": [
         "clean electronic",
-        "documentary underscore",
-        "motorik pulse"
+        "documentary",
+        "pulse"
       ],
       "musicKeywords": [
-        "offshore ambient",
-        "turbine hum",
+        "ocean ambient",
+        "machine hum",
         "sea breeze",
         "horizon pad",
         "control room",
-        "coastal synth",
-        "tidal arpeggio",
+        "sea synth",
+        "ocean arpeggio",
         "rotor rhythm",
         "harbour tech",
-        "array techno",
-        "gale drive",
+        "grid techno",
+        "storm drive",
         "generator drums"
       ],
       "sfxPalette": {
@@ -2210,21 +2209,21 @@
       "style": [
         "orchestral suspense",
         "pizzicato",
-        "clockwork percussion"
+        "clockwork"
       ],
       "musicKeywords": [
         "harpsichord mystery",
-        "candlelit strings",
+        "warm strings",
         "victorian detective",
-        "parlour intrigue",
-        "keyhole minuet",
-        "brass cipher",
-        "cogwheel march",
+        "lounge intrigue",
+        "mystery minuet",
+        "brass detective",
+        "clockwork march",
         "ticking metronome",
         "vault heist",
         "escape tension",
         "countdown timpani",
-        "chase gallop"
+        "chase tempo"
       ],
       "sfxPalette": {
         "transition": "card-slide",
@@ -2286,15 +2285,15 @@
       ],
       "musicKeywords": [
         "guzheng calm",
-        "koi pond",
+        "garden pond",
         "still water",
-        "lotus hush",
+        "lotus quiet",
         "erhu drift",
         "courtyard meditation",
         "wind chime",
         "pentatonic reverie",
         "plucked ostinato",
-        "jade marimba",
+        "zen marimba",
         "zen groove",
         "temple drums"
       ],
@@ -2355,20 +2354,20 @@
         "cumbia",
         "latin brass",
         "hand percussion",
-        "norteño guitar"
+        "latin"
       ],
       "musicKeywords": [
-        "bolero nylon",
+        "latin nylon",
         "trio serenade",
-        "bajo sexto",
-        "cantina shuffle",
+        "bass guitar",
+        "latin shuffle",
         "mariachi trumpet",
-        "accordion fiesta",
+        "accordion party",
         "taco truck",
         "street party",
         "salsa horns",
         "banda tuba",
-        "timbale break",
+        "percussion break",
         "conga stomp"
       ],
       "sfxPalette": {
@@ -2426,22 +2425,22 @@
       "tempo": "mid",
       "style": [
         "cinematic strings",
-        "nautical adventure",
+        "adventure",
         "driving percussion"
       ],
       "musicKeywords": [
-        "marina piano",
-        "yacht club",
-        "regatta overture",
-        "spinnaker run",
-        "windward swell",
-        "mainsail march",
-        "leeward sprint",
-        "crew cadence",
+        "sea piano",
+        "ocean club",
+        "sports orchestral",
+        "wind run",
+        "breeze swell",
+        "open march",
+        "calm run",
+        "march cadence",
         "brass fanfare",
         "victory anthem",
         "racing timpani",
-        "podium drums"
+        "victory drums"
       ],
       "sfxPalette": {
         "transition": "light-sweep",
@@ -2497,21 +2496,21 @@
       "energy": "high",
       "tempo": "fast",
       "style": [
-        "stadium electronic",
-        "anthemic build",
+        "electronic",
+        "anthemic",
         "big-room percussion"
       ],
       "musicKeywords": [
-        "twilight pad",
-        "waterfront hush",
-        "sparkler synth",
-        "violet arpeggio",
-        "ember cascade",
+        "sunset pad",
+        "city quiet",
+        "bright synth",
+        "night arpeggio",
+        "fire flowing",
         "fuse riser",
-        "pyro show",
-        "shell burst",
+        "fire show",
+        "boom burst",
         "festival trance",
-        "grandstand rush",
+        "crowd rush",
         "midnight rave",
         "finale drop"
       ],
@@ -2570,23 +2569,23 @@
       "tempo": "slow",
       "style": [
         "felt piano",
-        "brushed jazz",
-        "chamber folk",
+        "jazz",
+        "chamber",
         "room-tone ambience"
       ],
       "musicKeywords": [
-        "lamplight guitar",
+        "warm guitar",
         "muted cello",
         "reading room",
         "page turn",
         "oak nocturne",
         "vibraphone dusk",
-        "catalogue waltz",
+        "archive waltz",
         "walking bassline",
-        "wurlitzer stroll",
-        "rimshot swing",
-        "nightshift bossa",
-        "bebop trio"
+        "rhodes stroll",
+        "snare swing",
+        "night bossa",
+        "bop trio"
       ],
       "sfxPalette": {
         "transition": "card-slide",
@@ -2643,25 +2642,25 @@
       "energy": "medium",
       "tempo": "slow",
       "style": [
-        "pastoral acoustic",
-        "alpine folk",
-        "warm woodwind",
+        "acoustic",
+        "folk",
+        "woodwind",
         "cellar drone"
       ],
       "musicKeywords": [
         "zither ambient",
-        "alphorn hush",
-        "dulcimer patience",
+        "alphorn quiet",
+        "dulcimer calm",
         "cowbell chime",
-        "hurdy gurdy",
-        "melodeon lilt",
-        "yodel chorus",
+        "folk fiddle",
+        "accordion swing",
+        "village chorus",
         "fiddle waltz",
-        "clarinet jig",
-        "barn dance",
-        "harvest reel",
-        "village polka",
-        "barrel stomp"
+        "clarinet reel",
+        "farm dance",
+        "autumn reel",
+        "village waltz",
+        "wooden stomp"
       ],
       "sfxPalette": {
         "transition": "card-slide",
@@ -2720,21 +2719,21 @@
       "style": [
         "hard techno",
         "breakbeat",
-        "electro punk",
+        "electro",
         "synth drive"
       ],
       "musicKeywords": [
         "modular arpeggio",
-        "telemetry bleep",
-        "rotor whine",
-        "acid squelch",
+        "data bleep",
+        "rotor buzz",
+        "acid buzz",
         "gate riser",
         "throttle surge",
-        "warehouse rave",
+        "club rave",
         "amen break",
-        "neurofunk roll",
+        "drill roll",
         "siren stab",
-        "gabber kick",
+        "hardcore kick",
         "hardcore rush"
       ],
       "sfxPalette": {
@@ -2792,24 +2791,24 @@
       "energy": "medium",
       "tempo": "mid",
       "style": [
-        "surf guitar",
+        "guitar",
         "lounge organ",
         "synthwave",
-        "electrified blues"
+        "blues"
       ],
       "musicKeywords": [
         "vibraphone glow",
         "transformer buzz",
         "hammond swell",
-        "tiki exotica",
+        "tropical lounge",
         "slide reverb",
-        "baritone twang",
+        "low twang",
         "jukebox groove",
-        "neon strut",
-        "boogaloo shuffle",
-        "rockabilly slink",
+        "neon bounce",
+        "latin shuffle",
+        "rock smooth",
         "garage twist",
-        "psychobilly rush"
+        "punk rush"
       ],
       "sfxPalette": {
         "transition": "light-sweep",
@@ -2868,19 +2867,19 @@
       "style": [
         "minimal electronic",
         "instrument texture",
-        "coastal drone",
-        "ostinato piano"
+        "drone",
+        "piano"
       ],
       "musicKeywords": [
-        "harmonium hush",
-        "shipping forecast",
+        "harmonium quiet",
+        "shipping weather",
         "tape hiss",
         "celeste tick",
-        "barometer arpeggio",
+        "signal arpeggio",
         "morse rhythm",
-        "gale swell",
+        "storm swell",
         "sequencer step",
-        "squall pulse",
+        "storm pulse",
         "dub techno",
         "storm surge",
         "cyclone drive"
@@ -2941,23 +2940,23 @@
       "tempo": "mid",
       "style": [
         "brass band",
-        "travelogue score",
-        "clockwork ragtime",
+        "score",
+        "clockwork",
         "light orchestral"
       ],
       "musicKeywords": [
         "toy piano",
-        "pizzicato tiptoe",
+        "pizzicato soft",
         "celesta chime",
-        "branch line",
+        "woods line",
         "steam whistle",
         "tuba bounce",
-        "platform bustle",
-        "oompah march",
+        "platform street",
+        "brass march",
         "cakewalk stride",
-        "dixieland roll",
+        "jazz roll",
         "marching snare",
-        "quickstep drive"
+        "swing drive"
       ],
       "sfxPalette": {
         "transition": "card-slide",
@@ -3015,23 +3014,23 @@
       "tempo": "slow",
       "style": [
         "ambient rhodes",
-        "handpan",
-        "glass resonance",
-        "brass pad"
+        "hand-percussion",
+        "resonance",
+        "brass"
       ],
       "musicKeywords": [
         "singing bowl",
-        "furnace hum",
+        "fire hum",
         "flugelhorn breath",
-        "udu heartbeat",
-        "kalimba ember",
-        "molten swell",
+        "hand-percussion heartbeat",
+        "kalimba fire",
+        "metal swell",
         "dub echo",
         "downtempo warmth",
         "hand percussion",
         "trip hop",
-        "balearic groove",
-        "smoulder funk"
+        "house groove",
+        "smoke funk"
       ],
       "sfxPalette": {
         "transition": "light-sweep",
@@ -3095,17 +3094,17 @@
       ],
       "musicKeywords": [
         "cello adagio",
-        "velvet strings",
+        "smooth strings",
         "harp bloom",
         "silk piano",
-        "torch ballad",
-        "chanson murmur",
-        "boudoir noir",
-        "amber lounge",
-        "musette waltz",
+        "lounge ballad",
+        "ballad murmur",
+        "smooth noir",
+        "golden lounge",
+        "accordion waltz",
         "bossa sway",
         "cool jazz",
-        "bolero build"
+        "latin build"
       ],
       "sfxPalette": {
         "transition": "light-sweep",
@@ -3161,17 +3160,17 @@
       "energy": "high",
       "tempo": "fast",
       "style": [
-        "punchy",
-        "brassy",
+        "hard",
+        "brass",
         "garage",
-        "kinetic",
+        "energetic",
         "vintage"
       ],
       "musicKeywords": [
         "crime jazz",
         "bongo shuffle",
         "spy horns",
-        "mambo break",
+        "latin break",
         "surf rock",
         "big band",
         "brass stab",
@@ -3241,16 +3240,16 @@
         "hand-played"
       ],
       "musicKeywords": [
-        "pennywhistle melody",
-        "autoharp strum",
+        "whistle melody",
+        "harp strum",
         "glockenspiel sparkle",
-        "picnic banjo",
-        "washboard clap",
-        "jug band",
-        "hoedown fiddle",
-        "skiffle skip",
+        "summer banjo",
+        "folk clap",
+        "blues band",
+        "country fiddle",
+        "folk skip",
         "stomp clap",
-        "bluegrass run",
+        "banjo run",
         "summer pop",
         "festival anthem"
       ],
@@ -3316,16 +3315,16 @@
       "musicKeywords": [
         "minimal techno",
         "metronome tick",
-        "clave click",
+        "percussion click",
         "glitch percussion",
         "arcade tension",
         "tech house",
-        "esports build",
-        "sprint synth",
+        "arcade build",
+        "run synth",
         "trance riser",
         "countdown drive",
-        "speedrun push",
-        "footwork drums"
+        "racing push",
+        "dance drums"
       ],
       "sfxPalette": {
         "transition": "whoosh",
@@ -3390,16 +3389,16 @@
         "spectral drone",
         "fog pad",
         "bowed saw",
-        "gaslamp cello",
+        "gothic cello",
         "minor harpsichord",
         "theremin wail",
         "pipe organ",
         "bell toll",
         "choir chant",
         "tremolo strings",
-        "funeral dirge",
+        "funeral march",
         "horror stinger",
-        "witch house"
+        "mystic house"
       ],
       "sfxPalette": {
         "transition": "whoosh",
@@ -3457,23 +3456,23 @@
       "style": [
         "acoustic",
         "rhythmic",
-        "rustic",
+        "folk",
         "cheerful"
       ],
       "musicKeywords": [
         "mandolin tremolo",
-        "neapolitan serenade",
-        "nonna waltz",
-        "brushed cymbal",
-        "kitchen clatter",
-        "accordion strut",
+        "latin serenade",
+        "warm waltz",
+        "jazz cymbal",
+        "kitchen percussion",
+        "accordion bounce",
         "upright shuffle",
-        "trattoria swing",
+        "cafe swing",
         "tambourine ring",
-        "mazurka spin",
-        "saltarello dance",
+        "waltz spin",
+        "folk dance",
         "festa march",
-        "tarantella rhythm"
+        "folk rhythm"
       ],
       "sfxPalette": {
         "transition": "card-slide",
@@ -3531,22 +3530,22 @@
       "style": [
         "organic",
         "light",
-        "inquisitive",
-        "spacious"
+        "curious",
+        "ambient"
       ],
       "musicKeywords": [
-        "tidepool ambient",
-        "shallow bells",
+        "ocean ambient",
+        "water bells",
         "field study",
-        "kalimba curiosity",
+        "kalimba curious",
         "marimba tide",
         "glockenspiel drift",
-        "rockpool shimmer",
+        "pond shimmer",
         "playful woodwind",
-        "beachcomber ukulele",
-        "pebble percussion",
+        "walking ukulele",
+        "water percussion",
         "sunshine pop",
-        "shoreline groove"
+        "sea groove"
       ],
       "sfxPalette": {
         "transition": "light-sweep",
@@ -3602,22 +3601,22 @@
       "energy": "medium",
       "tempo": "mid",
       "style": [
-        "held breath",
+        "breath",
         "felt piano",
-        "metallic shimmer",
-        "CTA lands"
+        "metallic",
+        "impact"
       ],
       "musicKeywords": [
-        "nordic ambient",
+        "cold ambient",
         "frozen lake",
-        "glacial piano",
-        "sauna steam",
+        "ice piano",
+        "quiet steam",
         "breath drone",
-        "icy shimmer",
-        "shiver strings",
+        "chill shimmer",
+        "tremolo strings",
         "sub bass",
         "recovery ritual",
-        "breathwork pulse",
+        "breath pulse",
         "cold plunge",
         "downtempo house"
       ],
@@ -3676,23 +3675,23 @@
       "tempo": "mid",
       "style": [
         "hand drums",
-        "upright bass",
-        "bird texture",
-        "sun does"
+        "bass",
+        "bird",
+        "sun"
       ],
       "musicKeywords": [
-        "savanna ambient",
-        "bush chorus",
+        "desert ambient",
+        "desert chorus",
         "kalimba morning",
-        "acacia plains",
-        "golden grassland",
+        "tribal plains",
+        "golden field",
         "lifting strings",
-        "marimba trek",
-        "savanna sunrise",
+        "marimba travel",
+        "desert sunrise",
         "hand drums",
-        "hooves percussion",
-        "highlife guitar",
-        "afrobeat groove"
+        "drums percussion",
+        "world guitar",
+        "world groove"
       ],
       "sfxPalette": {
         "transition": "whoosh",
@@ -3749,7 +3748,7 @@
       "tempo": "fast",
       "style": [
         "night-drive tempo",
-        "analogue bass",
+        "analogue",
         "synth stabs",
         "tape-delay percussion"
       ],
@@ -3758,13 +3757,13 @@
         "night drive",
         "filtered bass",
         "tape delay",
-        "skyline house",
-        "neon commute",
-        "rooftop set",
+        "city house",
+        "neon traffic",
+        "urban set",
         "traffic groove",
         "rush hour",
         "city techno",
-        "warehouse techno",
+        "club techno",
         "acid bassline"
       ],
       "sfxPalette": {
@@ -3822,14 +3821,14 @@
       "tempo": "fast",
       "style": [
         "pulse bass",
-        "noise snare",
+        "noise",
         "to grid",
         "everything beat"
       ],
       "musicKeywords": [
         "chiptune attract",
-        "crt hum",
-        "scanline synth",
+        "pixel hum",
+        "vhs synth",
         "pixel theme",
         "pulse bass",
         "coin arpeggio",
@@ -3837,7 +3836,7 @@
         "noise snare",
         "invader march",
         "high score",
-        "joystick chase",
+        "arcade chase",
         "boss battle"
       ],
       "sfxPalette": {
@@ -3894,23 +3893,23 @@
       "energy": "low",
       "tempo": "slow",
       "style": [
-        "sustained strings",
+        "sustained",
         "acoustic guitar",
-        "mallet accents",
-        "barely there"
+        "mallet-percussion",
+        "minimal"
       ],
       "musicKeywords": [
-        "alpine ambient",
+        "folk ambient",
         "valley piano",
         "wide strings",
         "muted guitar",
-        "mallet hush",
-        "bluebird morning",
-        "lodge fireside",
+        "mallet quiet",
+        "bird morning",
+        "wooden fire",
         "first chair",
-        "gondola glide",
-        "powder day",
-        "ski documentary",
+        "lift glide",
+        "ice day",
+        "racing documentary",
         "post rock"
       ],
       "sfxPalette": {
@@ -3969,8 +3968,8 @@
       "style": [
         "synth arpeggio",
         "moog bass",
-        "spring-reverb blips",
-        "at liftoff"
+        "spring-reverb",
+        "lift"
       ],
       "musicKeywords": [
         "space lounge",
@@ -3980,9 +3979,9 @@
         "zero gravity",
         "weightless bounce",
         "mission control",
-        "telemetry pulse",
-        "launch countdown",
-        "rocket ascent",
+        "data pulse",
+        "lift countdown",
+        "space lift",
         "space disco",
         "electro funk"
       ],
@@ -4040,21 +4039,21 @@
       "energy": "medium",
       "tempo": "mid",
       "style": [
-        "finger snaps",
+        "claps",
         "pizzicato strings",
-        "block shaker",
+        "shaker",
         "bass bounce"
       ],
       "musicKeywords": [
         "chamber pop",
         "pizzicato bounce",
-        "cutout marimba",
-        "woodblock shuffle",
+        "craft marimba",
+        "wood shuffle",
         "shaker groove",
         "finger snaps",
         "paper collage",
-        "scissor percussion",
-        "zine bounce",
+        "cut percussion",
+        "page bounce",
         "upright bass",
         "handclap pop",
         "stomp clap"
@@ -4114,22 +4113,22 @@
       "energy": "low",
       "tempo": "slow",
       "style": [
-        "shakuhachi",
+        "flute",
         "koto",
         "ambient",
         "minimal"
       ],
       "musicKeywords": [
-        "shakuhachi flute",
-        "sumi ambient",
+        "bamboo flute",
+        "japanese ambient",
         "zen minimal",
         "rice paper",
         "koto strings",
-        "ink wash",
-        "brush stroke",
-        "vermilion seal",
-        "biwa drone",
-        "shamisen pluck",
+        "dark wash",
+        "jazz stroke",
+        "red ceremonial",
+        "koto drone",
+        "koto pluck",
         "taiko pulse",
         "ceremonial drums"
       ],
@@ -4189,7 +4188,7 @@
       "tempo": "mid",
       "style": [
         "synthwave",
-        "outrun",
+        "retrowave",
         "analog synth",
         "arpeggio"
       ],
@@ -4200,12 +4199,12 @@
         "vhs synth",
         "gated reverb",
         "analog bass",
-        "chrome arpeggiator",
-        "outrun arpeggio",
-        "80s nightdrive",
-        "italo disco",
+        "metallic arpeggiator",
+        "retrowave arpeggio",
+        "80s night-drive",
+        "retro disco",
         "synthwave drive",
-        "outrun chase"
+        "retrowave chase"
       ],
       "sfxPalette": {
         "transition": "light-sweep",
@@ -4262,7 +4261,7 @@
       "energy": "high",
       "tempo": "fast",
       "style": [
-        "festival house",
+        "house",
         "big room",
         "edm",
         "live crowd"
@@ -4273,12 +4272,12 @@
         "open air",
         "rave piano",
         "sidechain pump",
-        "supersaw lead",
-        "mainstage euphoria",
-        "confetti anthem",
+        "saw lead",
+        "festival uplifting",
+        "party anthem",
         "stadium clap",
         "riser build",
-        "headline set",
+        "anthem set",
         "hardstyle kick"
       ],
       "sfxPalette": {
@@ -4339,16 +4338,16 @@
         "music box",
         "celesta",
         "pizzicato strings",
-        "storybook orchestral"
+        "orchestral"
       ],
       "musicKeywords": [
         "lullaby chimes",
-        "bedtime score",
+        "lullaby score",
         "toy piano",
         "harp glissando",
         "picture book",
         "gentle woodwinds",
-        "nursery waltz",
+        "kids waltz",
         "whimsical flute",
         "clarinet skip",
         "playful ostinato",
@@ -4418,8 +4417,8 @@
       "musicKeywords": [
         "ambient folk",
         "acoustic ballad",
-        "tin whistle",
-        "meadow strings",
+        "toy whistle",
+        "garden strings",
         "mandolin folk",
         "indie folk",
         "acoustic strum",
@@ -4484,22 +4483,22 @@
       "energy": "medium",
       "tempo": "mid",
       "style": [
-        "desert rock",
+        "desert",
         "reverb guitar",
-        "spaghetti western",
-        "dusty groove"
+        "western",
+        "groove"
       ],
       "musicKeywords": [
         "desert ambient",
-        "lap steel",
+        "racing steel",
         "slide guitar",
         "harmonica wail",
         "tremolo guitar",
         "dusty blues",
-        "baritone twang",
-        "outlaw country",
-        "americana rock",
-        "rockabilly shuffle",
+        "low twang",
+        "western country",
+        "country rock",
+        "rock shuffle",
         "fuzz riff",
         "stoner rock"
       ],
@@ -4560,7 +4559,7 @@
       "style": [
         "lofi",
         "rhodes piano",
-        "jazz brushes",
+        "jazz",
         "tape hiss"
       ],
       "musicKeywords": [
@@ -4568,10 +4567,10 @@
         "felt keys",
         "cassette warmth",
         "bossa guitar",
-        "slow chillhop",
+        "slow lofi",
         "lofi beat",
         "vinyl crackle",
-        "jazzhop groove",
+        "hop groove",
         "neo soul",
         "trip hop",
         "boom bap",
@@ -4632,8 +4631,8 @@
       "tempo": "mid",
       "style": [
         "nylon-string guitar",
-        "brushed kit",
-        "upright bass",
+        "jazz",
+        "bass",
         "hand percussion"
       ],
       "musicKeywords": [
@@ -4706,7 +4705,7 @@
       "style": [
         "chiptune",
         "square-wave bass",
-        "fast arpeggios",
+        "arpeggios",
         "noise-channel drums"
       ],
       "musicKeywords": [
@@ -4715,7 +4714,7 @@
         "square wave",
         "bleep melody",
         "game boy",
-        "bitpop",
+        "chiptune",
         "chiptune pop",
         "pixel platformer",
         "fast arpeggio",
@@ -4777,10 +4776,10 @@
       "energy": "medium",
       "tempo": "mid",
       "style": [
-        "motorik drums",
+        "drums",
         "bass pulse",
-        "tape organ",
-        "mechanical percussion"
+        "organ",
+        "mechanical"
       ],
       "musicKeywords": [
         "ambient organ",
@@ -4791,7 +4790,7 @@
         "clockwork rhythm",
         "drum machine",
         "steady kick",
-        "krautrock groove",
+        "electronic groove",
         "new wave",
         "post punk",
         "minimal techno"
@@ -4853,7 +4852,7 @@
         "solo piano",
         "bowed cello",
         "room tone",
-        "typewriter percussion"
+        "percussion"
       ],
       "musicKeywords": [
         "neoclassical piano",
@@ -4862,8 +4861,8 @@
         "chamber ensemble",
         "string quartet",
         "baroque harpsichord",
-        "essay documentary",
-        "editorial underscore",
+        "slow documentary",
+        "podcast underscore",
         "pizzicato ostinato",
         "timpani swell",
         "cinematic strings",
@@ -4997,15 +4996,15 @@
       "style": [
         "synth pads",
         "sub bass",
-        "glass bells",
-        "granular air"
+        "bells",
+        "granular"
       ],
       "musicKeywords": [
         "ambient nocturne",
         "crystal chimes",
         "granular texture",
-        "subsonic rumble",
-        "arctic drone",
+        "sub-bass rumble",
+        "ice drone",
         "modular synth",
         "downtempo pulse",
         "analog arpeggio",
@@ -5076,14 +5075,14 @@
       "musicKeywords": [
         "industrial ambient",
         "machine hum",
-        "metal clank",
-        "hydraulic pulse",
-        "conveyor groove",
-        "piston beat",
+        "metal metallic",
+        "machine pulse",
+        "factory groove",
+        "mechanical beat",
         "sawtooth bass",
         "electro industrial",
         "stomping drums",
-        "warehouse techno",
+        "club techno",
         "acid techno",
         "techno drive"
       ],
@@ -5142,23 +5141,23 @@
       "tempo": "slow",
       "style": [
         "acoustic guitar",
-        "brushed snare",
+        "snare",
         "folk",
         "field recording"
       ],
       "musicKeywords": [
-        "campfire acoustic",
+        "fire acoustic",
         "fingerpicked guitar",
         "night crickets",
         "quiet folk",
         "mandolin warmth",
-        "brushed folk",
-        "singalong strum",
-        "banjo lilt",
+        "jazz folk",
+        "chorus strum",
+        "banjo swing",
         "stomp clap",
         "folk build",
-        "driving bluegrass",
-        "barn dance"
+        "driving banjo",
+        "farm dance"
       ],
       "sfxPalette": {
         "transition": "whoosh",
@@ -5221,14 +5220,14 @@
         "sleepy lullaby",
         "music box",
         "felt keys",
-        "purring warmth",
+        "hum warmth",
         "dusk piano",
         "soft nocturne",
         "gentle waltz",
-        "hushed strings",
-        "cosy jazz",
+        "quiet strings",
+        "warm jazz",
         "slow rhodes",
-        "lilting shuffle",
+        "swing shuffle",
         "tender swell"
       ],
       "sfxPalette": {
@@ -5289,7 +5288,7 @@
         "low flute"
       ],
       "musicKeywords": [
-        "canopy ambience",
+        "woods ambience",
         "distant birdsong",
         "low flute",
         "marimba pattern",
@@ -5355,18 +5354,18 @@
       "tempo": "fast",
       "style": [
         "analog synth",
-        "motorik drums",
+        "drums",
         "arpeggio",
-        "sidechain pad"
+        "pad"
       ],
       "musicKeywords": [
         "night highway",
         "analog arp",
-        "motorik pulse",
+        "electronic pulse",
         "neon synthwave",
         "retro drive",
         "pulsing bassline",
-        "chrome arpeggio",
+        "metallic arpeggio",
         "midnight techno",
         "driving synth",
         "hard four",
@@ -5425,21 +5424,21 @@
       "energy": "low",
       "tempo": "slow",
       "style": [
-        "submerged pad",
-        "sonar ping",
-        "glass bells",
+        "pad",
+        "ambience",
+        "bells",
         "sub bass"
       ],
       "musicKeywords": [
         "underwater ambient",
         "sonar pulse",
         "glass bells",
-        "submerged pad",
+        "deep pad",
         "slow tide",
-        "aquatic drift",
-        "whale tones",
+        "underwater drift",
+        "ocean tones",
         "deep swell",
-        "buoyant pulse",
+        "bouncy pulse",
         "current groove",
         "surfacing build",
         "oceanic climax"
@@ -5511,8 +5510,8 @@
         "bouncy banjo",
         "cheerful marimba",
         "upbeat swing",
-        "romp tempo",
-        "gleeful gallop",
+        "bounce tempo",
+        "joyful chase",
         "joyful finale"
       ],
       "sfxPalette": {
@@ -5567,7 +5566,7 @@
       "energy": "medium",
       "tempo": "mid",
       "style": [
-        "surf guitar",
+        "guitar",
         "tambourine",
         "organ",
         "handclaps"
@@ -5577,11 +5576,11 @@
         "surf twang",
         "desert organ",
         "tambourine shuffle",
-        "roadside blues",
+        "road blues",
         "vintage rocknroll",
-        "twangy riff",
-        "sunny motown",
-        "gallop drums",
+        "country riff",
+        "sunny soul",
+        "chase drums",
         "highway rock",
         "big chorus",
         "horn finale"
@@ -5639,13 +5638,13 @@
       "tempo": "mid",
       "style": [
         "cinematic strings",
-        "sub hits",
-        "piano motif",
+        "hits",
+        "motif",
         "airy pad"
       ],
       "musicKeywords": [
         "reveal underscore",
-        "poised piano",
+        "calm piano",
         "airy strings",
         "warm swell",
         "anticipation bed",
@@ -5653,7 +5652,7 @@
         "sub impact",
         "orchestral lift",
         "triumphant brass",
-        "widescreen climax",
+        "cinematic climax",
         "percussive finale",
         "grand close"
       ],
@@ -5711,8 +5710,8 @@
       "style": [
         "distorted bass",
         "industrial drums",
-        "noise sweep",
-        "hard clap"
+        "sweep",
+        "clap"
       ],
       "musicKeywords": [
         "industrial stomp",
@@ -5724,8 +5723,8 @@
         "aggressive break",
         "post punk",
         "shouted chorus",
-        "relentless kick",
-        "riot energy",
+        "driving kick",
+        "rage energy",
         "wall of sound"
       ],
       "sfxPalette": {
@@ -5782,20 +5781,19 @@
       "style": [
         "lush strings",
         "waltz",
-        "theatre brass",
-        "cabaret"
+        "theatre"
       ],
       "musicKeywords": [
-        "cirque ambient",
+        "circus ambient",
         "aerial waltz",
-        "proscenium hush",
+        "theatre quiet",
         "spotlight nocturne",
         "silk glide",
-        "trapeze theme",
-        "cabaret swell",
+        "carnival theme",
+        "theatre swell",
         "carnival strings",
         "big top",
-        "acrobat crescendo",
+        "circus crescendo",
         "circus brass",
         "finale fanfare"
       ],
@@ -5851,24 +5849,24 @@
       "energy": "medium",
       "tempo": "mid",
       "style": [
-        "alpine horn",
+        "horn",
         "brass",
         "folk strings",
-        "marching snare"
+        "marching"
       ],
       "musicKeywords": [
-        "alpine calm",
+        "folk calm",
         "cold morning",
-        "snowfield hush",
+        "ice quiet",
         "valley strings",
-        "postal march",
-        "telegraph rhythm",
+        "archive march",
+        "signal rhythm",
         "mountain horn",
-        "alpine folk",
-        "sleigh trot",
-        "oompah brass",
-        "summit push",
-        "descent gallop"
+        "village folk",
+        "bells march",
+        "marching brass",
+        "rise push",
+        "drift chase"
       ],
       "sfxPalette": {
         "transition": "card-slide",
@@ -5925,21 +5923,21 @@
         "zither",
         "wind chime",
         "hand percussion",
-        "wood block"
+        "wood"
       ],
       "musicKeywords": [
-        "bonsai stillness",
-        "garden hush",
+        "zen stillness",
+        "garden quiet",
         "wind bell",
-        "pruning ritual",
-        "moss quiet",
+        "gentle ritual",
+        "woods quiet",
         "bamboo breath",
         "stone garden",
         "slow zither",
-        "tending rhythm",
+        "calm rhythm",
         "earth drums",
-        "cultivation build",
-        "harvest drums"
+        "garden build",
+        "autumn drums"
       ],
       "sfxPalette": {
         "transition": "card-slide",
@@ -5994,22 +5992,22 @@
       "tempo": "fast",
       "style": [
         "breakbeat",
-        "stadium brass",
+        "brass",
         "percussion",
         "electro rock"
       ],
       "musicKeywords": [
-        "baseline groove",
-        "clay dust",
+        "bassline groove",
+        "clay desert",
         "court rhythm",
-        "rally tempo",
-        "topspin funk",
-        "sideline horns",
+        "match tempo",
+        "spin funk",
+        "crowd horns",
         "match point",
-        "tiebreak tension",
+        "match tension",
         "serve slam",
         "crowd roar",
-        "championship brass",
+        "victory brass",
         "victory stomp"
       ],
       "sfxPalette": {
@@ -6065,22 +6063,22 @@
       "tempo": "mid",
       "style": [
         "oud",
-        "ney flute",
-        "frame drum",
-        "desert rock"
+        "flute",
+        "drum",
+        "desert"
       ],
       "musicKeywords": [
         "desert night",
         "dune ambient",
         "oud nocturne",
         "ney flute",
-        "starlit qanun",
+        "stargazing oud",
         "caravan sway",
         "tabla pulse",
         "darbuka groove",
-        "bedouin chant",
+        "desert chant",
         "desert rock",
-        "sandstorm drive",
+        "storm drive",
         "nomad drums"
       ],
       "sfxPalette": {
@@ -6137,22 +6135,22 @@
       "style": [
         "chamber strings",
         "celesta",
-        "muted percussion",
+        "muted",
         "minimal piano"
       ],
       "musicKeywords": [
         "clockwork calm",
         "escapement tick",
         "brass mechanism",
-        "horology ambient",
-        "pendulum sway",
-        "jeweled movement",
+        "clockwork ambient",
+        "clock sway",
+        "golden movement",
         "gear cadence",
-        "mainspring tension",
+        "spring tension",
         "precision pulse",
-        "complication build",
-        "tourbillon drive",
-        "chronograph rush"
+        "mechanism build",
+        "mechanical drive",
+        "watch rush"
       ],
       "sfxPalette": {
         "transition": "light-sweep",
@@ -6212,18 +6210,18 @@
         "folk strings"
       ],
       "musicKeywords": [
-        "loom rhythm",
-        "weft hush",
-        "textile calm",
+        "workshop rhythm",
+        "pattern quiet",
+        "craft calm",
         "spinning wheel",
-        "shuttle pass",
+        "rhythm pass",
         "warp pulse",
-        "dye workshop",
-        "handloom groove",
-        "treadle tempo",
-        "weaving drums",
+        "handmade workshop",
+        "workshop groove",
+        "mechanical tempo",
+        "rhythmic drums",
         "mill machinery",
-        "power loom"
+        "power workshop"
       ],
       "sfxPalette": {
         "transition": "card-slide",
@@ -6277,23 +6275,23 @@
       "energy": "medium",
       "tempo": "mid",
       "style": [
-        "submerged pad",
-        "glass marimba",
+        "pad",
+        "marimba",
         "documentary score",
         "warm synth"
       ],
       "musicKeywords": [
-        "reef ambient",
-        "lagoon drift",
-        "tidal calm",
-        "coral bloom",
-        "nursery pulse",
-        "reef current",
+        "ocean ambient",
+        "ocean drift",
+        "ocean calm",
+        "tropical bloom",
+        "kids pulse",
+        "ocean current",
         "marine uplift",
-        "restoration build",
-        "aqua house",
+        "craft build",
+        "water house",
         "tropical drive",
-        "reef anthem",
+        "ocean anthem",
         "surfacing rush"
       ],
       "sfxPalette": {
@@ -6348,24 +6346,24 @@
       "energy": "medium",
       "tempo": "mid",
       "style": [
-        "upright bass",
-        "brushed drums",
+        "bass",
+        "jazz",
         "warm keys",
         "acoustic swing"
       ],
       "musicKeywords": [
-        "sourdough calm",
-        "proving hush",
-        "flour dust",
-        "bakers morning",
-        "kneading rhythm",
-        "oven warmth",
-        "crust crackle",
-        "levain groove",
-        "bakery shuffle",
+        "farm calm",
+        "proving quiet",
+        "warm desert",
+        "quiet morning",
+        "hand rhythm",
+        "fire warmth",
+        "crisp crackle",
+        "slow groove",
+        "cafe shuffle",
         "counter jazz",
         "weekend rush",
-        "harvest jig"
+        "autumn reel"
       ],
       "sfxPalette": {
         "transition": "card-slide",
@@ -6427,12 +6425,12 @@
       "musicKeywords": [
         "vault hum",
         "steel ambient",
-        "tumbler click",
+        "metallic click",
         "security drone",
         "laser grid",
-        "combination lock",
+        "combination mechanism",
         "alarm pulse",
-        "breach tension",
+        "impact tension",
         "heist electro",
         "siren drive",
         "lockdown techno",

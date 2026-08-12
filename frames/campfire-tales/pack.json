@@ -140,23 +140,23 @@
     "tempo": "slow",
     "style": [
       "acoustic guitar",
-      "brushed snare",
+      "snare",
       "folk",
       "field recording"
     ],
     "musicKeywords": [
-      "campfire acoustic",
+      "fire acoustic",
       "fingerpicked guitar",
       "night crickets",
       "quiet folk",
       "mandolin warmth",
-      "brushed folk",
-      "singalong strum",
-      "banjo lilt",
+      "jazz folk",
+      "chorus strum",
+      "banjo swing",
       "stomp clap",
       "folk build",
-      "driving bluegrass",
-      "barn dance"
+      "driving banjo",
+      "farm dance"
     ],
     "sfxPalette": {
       "transition": "whoosh",

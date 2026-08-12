@@ -38,6 +38,13 @@ const STOPWORDS = new Set([
   // through to the script's own subject query. This module's own header already warned that "hip hop
   // hook is a query with no results behind it"; these words are why it happened anyway.
   "hook", "social", "viral", "trending", "background", "backing", "track", "song", "loop",
+  // ALIVE AND STILL USELESS — the failure mode the DEAD/THIN counts cannot see. The audit asks
+  // "does this word return tracks", and these return thousands: `long` matches 1790, `tails`
+  // 40-odd. But `long` is tagged on a recording's LENGTH and `tails` on a reverb's decay, so
+  // steep-ritual asking for "long" and abyss-dive for "tails" pull a slice of the catalogue
+  // that has nothing to do with either film — a query that looks healthy on every metric and
+  // steers the pool nowhere. Same rule as the words above: it names the artefact, not the sound.
+  "long", "tails",
 ]);
 
 const words = (s) => String(s || "").toLowerCase().match(/[a-z][a-z'-]*/g) || [];

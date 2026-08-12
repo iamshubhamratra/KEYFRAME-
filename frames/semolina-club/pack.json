@@ -141,23 +141,23 @@
     "style": [
       "acoustic",
       "rhythmic",
-      "rustic",
+      "folk",
       "cheerful"
     ],
     "musicKeywords": [
       "mandolin tremolo",
-      "neapolitan serenade",
-      "nonna waltz",
-      "brushed cymbal",
-      "kitchen clatter",
-      "accordion strut",
+      "latin serenade",
+      "warm waltz",
+      "jazz cymbal",
+      "kitchen percussion",
+      "accordion bounce",
       "upright shuffle",
-      "trattoria swing",
+      "cafe swing",
       "tambourine ring",
-      "mazurka spin",
-      "saltarello dance",
+      "waltz spin",
+      "folk dance",
       "festa march",
-      "tarantella rhythm"
+      "folk rhythm"
     ],
     "sfxPalette": {
       "transition": "card-slide",

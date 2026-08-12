@@ -139,23 +139,23 @@
     "tempo": "fast",
     "style": [
       "fuzz guitar",
-      "punk kit",
-      "surf reverb",
-      "gang shouts"
+      "punk",
+      "reverb",
+      "shouts"
     ],
     "musicKeywords": [
       "garage rock",
-      "jangle pop",
+      "guitar pop",
       "twang riff",
       "power chords",
-      "skate rock",
+      "punk rock",
       "amp buzz",
       "snare slam",
       "distorted shout",
       "hardcore stomp",
       "thrash tempo",
       "blast beat",
-      "riot noise"
+      "rage noise"
     ],
     "sfxPalette": {
       "transition": "whoosh",

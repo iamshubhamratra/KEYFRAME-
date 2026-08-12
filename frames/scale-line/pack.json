@@ -142,23 +142,23 @@
     "tempo": "mid",
     "style": [
       "brass band",
-      "travelogue score",
-      "clockwork ragtime",
+      "score",
+      "clockwork",
       "light orchestral"
     ],
     "musicKeywords": [
       "toy piano",
-      "pizzicato tiptoe",
+      "pizzicato soft",
       "celesta chime",
-      "branch line",
+      "woods line",
       "steam whistle",
       "tuba bounce",
-      "platform bustle",
-      "oompah march",
+      "platform street",
+      "brass march",
       "cakewalk stride",
-      "dixieland roll",
+      "jazz roll",
       "marching snare",
-      "quickstep drive"
+      "swing drive"
     ],
     "sfxPalette": {
       "transition": "card-slide",

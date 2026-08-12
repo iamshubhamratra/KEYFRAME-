@@ -138,21 +138,21 @@
     "energy": "low",
     "tempo": "slow",
     "style": [
-      "submerged pad",
-      "sonar ping",
-      "glass bells",
+      "pad",
+      "ambience",
+      "bells",
       "sub bass"
     ],
     "musicKeywords": [
       "underwater ambient",
       "sonar pulse",
       "glass bells",
-      "submerged pad",
+      "deep pad",
       "slow tide",
-      "aquatic drift",
-      "whale tones",
+      "underwater drift",
+      "ocean tones",
       "deep swell",
-      "buoyant pulse",
+      "bouncy pulse",
       "current groove",
       "surfacing build",
       "oceanic climax"

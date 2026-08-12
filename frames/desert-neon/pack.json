@@ -140,22 +140,22 @@
     "energy": "medium",
     "tempo": "mid",
     "style": [
-      "desert rock",
+      "desert",
       "reverb guitar",
-      "spaghetti western",
-      "dusty groove"
+      "western",
+      "groove"
     ],
     "musicKeywords": [
       "desert ambient",
-      "lap steel",
+      "racing steel",
       "slide guitar",
       "harmonica wail",
       "tremolo guitar",
       "dusty blues",
-      "baritone twang",
-      "outlaw country",
-      "americana rock",
-      "rockabilly shuffle",
+      "low twang",
+      "western country",
+      "country rock",
+      "rock shuffle",
       "fuzz riff",
       "stoner rock"
     ],

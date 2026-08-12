@@ -140,21 +140,21 @@
     "tempo": "slow",
     "style": [
       "cinematic",
-      "string swells",
-      "sparse piano",
-      "maritime folk"
+      "strings",
+      "piano",
+      "folk"
     ],
     "musicKeywords": [
       "chamber strings",
       "fog ambience",
       "nocturne piano",
-      "keeper watch",
-      "lighthouse night",
+      "night watch",
+      "sea night",
       "distant horn",
-      "harbor bell",
+      "ocean bell",
       "ocean drone",
       "accordion tide",
-      "beacon swell",
+      "signal swell",
       "sailor waltz",
       "fiddle reel"
     ],

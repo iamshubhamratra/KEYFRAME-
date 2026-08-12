@@ -141,23 +141,23 @@
     "tempo": "mid",
     "style": [
       "cinematic",
-      "earthen",
+      "organic",
       "patient",
       "wide"
     ],
     "musicKeywords": [
-      "volcanic drone",
-      "basalt ambient",
-      "ash plume",
-      "crater dawn",
+      "fire drone",
+      "dark ambient",
+      "ash smoke",
+      "deep dawn",
       "field documentary",
-      "obsidian pulse",
+      "gothic pulse",
       "expedition strings",
-      "tectonic swell",
-      "cinder groove",
+      "rumble swell",
+      "fire groove",
       "taiko roll",
-      "lava percussion",
-      "eruption drums"
+      "heavy percussion",
+      "impact drums"
     ],
     "sfxPalette": {
       "transition": "whoosh",

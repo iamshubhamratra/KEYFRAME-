@@ -141,8 +141,8 @@
     "style": [
       "synth arpeggio",
       "moog bass",
-      "spring-reverb blips",
-      "at liftoff"
+      "spring-reverb",
+      "lift"
     ],
     "musicKeywords": [
       "space lounge",
@@ -152,9 +152,9 @@
       "zero gravity",
       "weightless bounce",
       "mission control",
-      "telemetry pulse",
-      "launch countdown",
-      "rocket ascent",
+      "data pulse",
+      "lift countdown",
+      "space lift",
       "space disco",
       "electro funk"
     ],

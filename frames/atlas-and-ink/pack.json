@@ -140,24 +140,24 @@
     "energy": "low",
     "tempo": "slow",
     "style": [
-      "antiquarian",
-      "unhurried",
+      "vintage",
+      "slow",
       "acoustic",
       "narrated"
     ],
     "musicKeywords": [
-      "cartography ambient",
-      "sepia piano",
+      "archive ambient",
+      "vintage piano",
       "archive strings",
-      "quill scratch",
+      "page scratch",
       "compass drift",
-      "parchment nocturne",
+      "book nocturne",
       "voyage folk",
-      "mapmaker waltz",
-      "sea shanty",
-      "maritime fiddle",
-      "concertina jig",
-      "capstan stomp"
+      "study waltz",
+      "sea sailor",
+      "sea fiddle",
+      "accordion reel",
+      "wooden stomp"
     ],
     "sfxPalette": {
       "transition": "card-slide",

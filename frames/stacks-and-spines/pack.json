@@ -141,23 +141,23 @@
     "tempo": "slow",
     "style": [
       "felt piano",
-      "brushed jazz",
-      "chamber folk",
+      "jazz",
+      "chamber",
       "room-tone ambience"
     ],
     "musicKeywords": [
-      "lamplight guitar",
+      "warm guitar",
       "muted cello",
       "reading room",
       "page turn",
       "oak nocturne",
       "vibraphone dusk",
-      "catalogue waltz",
+      "archive waltz",
       "walking bassline",
-      "wurlitzer stroll",
-      "rimshot swing",
-      "nightshift bossa",
-      "bebop trio"
+      "rhodes stroll",
+      "snare swing",
+      "night bossa",
+      "bop trio"
     ],
     "sfxPalette": {
       "transition": "card-slide",

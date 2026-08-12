@@ -139,22 +139,22 @@
     "energy": "low",
     "tempo": "slow",
     "style": [
-      "sub drone",
-      "glassy pads",
-      "hydrophone texture",
+      "drone",
+      "pads",
+      "texture",
       "reverb tails"
     ],
     "musicKeywords": [
       "underwater ambient",
-      "abyssal hush",
+      "abyssal quiet",
       "slow cello",
       "oceanic drift",
       "sonar pulse",
       "marine nocturne",
       "documentary score",
       "deep shimmer",
-      "tidal swell",
-      "cinematic undertow",
+      "ocean swell",
+      "cinematic current",
       "orchestral surge",
       "deep dub"
     ],

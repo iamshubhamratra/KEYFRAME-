@@ -141,7 +141,7 @@
     "tempo": "mid",
     "style": [
       "synthwave",
-      "outrun",
+      "retrowave",
       "analog synth",
       "arpeggio"
     ],
@@ -152,12 +152,12 @@
       "vhs synth",
       "gated reverb",
       "analog bass",
-      "chrome arpeggiator",
-      "outrun arpeggio",
-      "80s nightdrive",
-      "italo disco",
+      "metallic arpeggiator",
+      "retrowave arpeggio",
+      "80s night-drive",
+      "retro disco",
       "synthwave drive",
-      "outrun chase"
+      "retrowave chase"
     ],
     "sfxPalette": {
       "transition": "light-sweep",

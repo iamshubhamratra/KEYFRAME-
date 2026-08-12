@@ -139,22 +139,22 @@
     "style": [
       "chamber strings",
       "celesta",
-      "muted percussion",
+      "muted",
       "minimal piano"
     ],
     "musicKeywords": [
       "clockwork calm",
       "escapement tick",
       "brass mechanism",
-      "horology ambient",
-      "pendulum sway",
-      "jeweled movement",
+      "clockwork ambient",
+      "clock sway",
+      "golden movement",
       "gear cadence",
-      "mainspring tension",
+      "spring tension",
       "precision pulse",
-      "complication build",
-      "tourbillon drive",
-      "chronograph rush"
+      "mechanism build",
+      "mechanical drive",
+      "watch rush"
     ],
     "sfxPalette": {
       "transition": "light-sweep",
