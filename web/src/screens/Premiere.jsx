@@ -7,17 +7,50 @@ import { loreFor, fmtDur } from "../packlore.js";
 // glow, downloads, remix and the production-details monitor.
 export default function Premiere({ projectId, onRemix, onNew }) {
   const [project, setProject] = useState(null);
+  const [loadError, setLoadError] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   useEffect(() => {
     if (!projectId) return;
-    getProject(projectId).then(setProject).catch(() => {});
+    let cancelled = false;
+    setLoadError(null);
+    getProject(projectId)
+      .then((p) => { if (!cancelled) setProject(p); })
+      // Swallowing this used to pin the screen on "LOADING…" FOREVER. A 400
+      // (malformed id), a 404 (film deleted by the janitor) and a slow network
+      // were indistinguishable, so a permanently broken link looked exactly like
+      // one that was still loading — with nothing on screen or in the console.
+      .catch((e) => { if (!cancelled) setLoadError(String((e && e.message) || e)); });
+    return () => { cancelled = true; };
   }, [projectId]);
 
   if (!project) {
+    const shell = { background: "var(--color-dark)", marginTop: -90, paddingTop: 90, minHeight: "100vh" };
+    const pad = { maxWidth: 940, margin: "0 auto", padding: "70px 24px", fontFamily: "var(--font-mono)", fontSize: 12, letterSpacing: "0.1em", color: "var(--color-dark-dim)" };
+    if (!loadError) {
+      return <div style={shell}><div style={pad}>LOADING…</div></div>;
+    }
     return (
-      <div style={{ background: "var(--color-dark)", marginTop: -90, paddingTop: 90, minHeight: "100vh" }}>
-        <div style={{ maxWidth: 940, margin: "0 auto", padding: "70px 24px", fontFamily: "var(--font-mono)", fontSize: 12, letterSpacing: "0.1em", color: "var(--color-dark-dim)" }}>LOADING…</div>
+      <div style={shell}>
+        <div style={pad}>
+          <div style={{ color: "var(--color-magenta, #ff3d81)", marginBottom: 14 }}>THIS FILM COULDN’T BE LOADED</div>
+          <div style={{ color: "var(--color-dark-dim)", letterSpacing: "0.06em", lineHeight: 1.7, textTransform: "none", fontSize: 13 }}>
+            {loadError === "bad id"
+              ? "That link doesn’t look like a film id."
+              : loadError === "not found"
+                ? "This film is no longer available — finished films are cleared automatically after a while."
+                : loadError}
+          </div>
+          {onNew ? (
+            <button
+              type="button"
+              onClick={onNew}
+              style={{ marginTop: 26, background: "transparent", color: "var(--color-dark-dim)", border: "1px solid currentColor", padding: "10px 18px", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.14em", cursor: "pointer" }}
+            >
+              ← BACK
+            </button>
+          ) : null}
+        </div>
       </div>
     );
   }

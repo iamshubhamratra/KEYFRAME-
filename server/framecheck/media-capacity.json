@@ -1,0 +1,839 @@
+{
+ "measuredWith": "9-scene film, 17 real assets",
+ "packs": {
+  "jungle-wild": {
+   "images": 13,
+   "mediaBeats": 8,
+   "beats": 9,
+   "shots": 6
+  },
+  "deep-sea": {
+   "images": 12,
+   "mediaBeats": 9,
+   "beats": 9,
+   "shots": 5
+  },
+  "flight-sky": {
+   "images": 12,
+   "mediaBeats": 6,
+   "beats": 9,
+   "shots": 6
+  },
+  "drive-highway": {
+   "images": 11,
+   "mediaBeats": 9,
+   "beats": 9,
+   "shots": 6
+  },
+  "birdsong-field": {
+   "images": 10,
+   "mediaBeats": 4,
+   "beats": 9,
+   "shots": 5
+  },
+  "campfire-tales": {
+   "images": 10,
+   "mediaBeats": 5,
+   "beats": 9,
+   "shots": 5
+  },
+  "cat-nap": {
+   "images": 10,
+   "mediaBeats": 5,
+   "beats": 9,
+   "shots": 5
+  },
+  "flight-vertical": {
+   "images": 10,
+   "mediaBeats": 8,
+   "beats": 9,
+   "shots": 5
+  },
+  "jungle-trek": {
+   "images": 10,
+   "mediaBeats": 5,
+   "beats": 9,
+   "shots": 5
+  },
+  "night-drive": {
+   "images": 10,
+   "mediaBeats": 5,
+   "beats": 9,
+   "shots": 5
+  },
+  "ocean-dive": {
+   "images": 10,
+   "mediaBeats": 5,
+   "beats": 9,
+   "shots": 5
+  },
+  "orbit-space": {
+   "images": 10,
+   "mediaBeats": 5,
+   "beats": 9,
+   "shots": 4
+  },
+  "pipeline-factory": {
+   "images": 10,
+   "mediaBeats": 9,
+   "beats": 9,
+   "shots": 6
+  },
+  "puppy-park": {
+   "images": 10,
+   "mediaBeats": 5,
+   "beats": 9,
+   "shots": 5
+  },
+  "road-trip": {
+   "images": 10,
+   "mediaBeats": 5,
+   "beats": 9,
+   "shots": 5
+  },
+  "showcase-vertical": {
+   "images": 10,
+   "mediaBeats": 9,
+   "beats": 9,
+   "shots": 5
+  },
+  "edition-press": {
+   "images": 8,
+   "mediaBeats": 6,
+   "beats": 9,
+   "shots": 3
+  },
+  "hacker-terminal": {
+   "images": 7,
+   "mediaBeats": 6,
+   "beats": 9,
+   "shots": 4
+  },
+  "launch-pop": {
+   "images": 7,
+   "mediaBeats": 8,
+   "beats": 9,
+   "shots": 5
+  },
+  "abyss-dive": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "aerial-silk": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "alpine-post": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "atlas-and-ink": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "bonsai-bench": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "clay-court": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "cold-plunge-club": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "crux-climb": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "darkroom-dev": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "dawn-patrol": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "dune-camp": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "ember-roast": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "endgame": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "escapement": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "fade-parlor": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "fetch-vertical": {
+   "images": 5,
+   "mediaBeats": 6,
+   "beats": 9,
+   "shots": 4
+  },
+  "fight-night": {
+   "images": 5,
+   "mediaBeats": 6,
+   "beats": 9,
+   "shots": 3
+  },
+  "fold-studio": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "forest-floor": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "front-and-isobar": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "ghost-route": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "groove-crate": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "harbor-light": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "hive-and-honey": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "ink-and-panel": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "kickflip-co": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "kiln-and-clay": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "koi-court": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "lift-off": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "lock-and-legend": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "loom-and-weft": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "magma-trail": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "midnight-ramen": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "molten-studio": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "moon-card": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "night-bazaar": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "nose-and-note": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "on-air": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "pedal-express": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "prop-wash": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "reef-build": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "rind-and-wheel": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "rocket-nights": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "salsa-wheels": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "scale-line": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "scoop-lab": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "semolina-club": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "slow-rise": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "sole-drop": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "spinnaker-cup": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "stacks-and-spines": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "star-watch": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "steam-spring": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "steep-ritual": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "string-and-sky": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "tide-pool-lab": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "tube-and-glow": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "turbine-coast": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "twenty-moves": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "vault-twelve": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "velvet-brass": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "wing-garden": {
+   "images": 5,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "alchemy": {
+   "images": 3,
+   "mediaBeats": 4,
+   "beats": 9,
+   "shots": 2
+  },
+  "altitude": {
+   "images": 3,
+   "mediaBeats": 4,
+   "beats": 9,
+   "shots": 2
+  },
+  "bloom": {
+   "images": 3,
+   "mediaBeats": 4,
+   "beats": 9,
+   "shots": 2
+  },
+  "cadence-premium": {
+   "images": 3,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 3
+  },
+  "circuit": {
+   "images": 3,
+   "mediaBeats": 4,
+   "beats": 9,
+   "shots": 2
+  },
+  "circus": {
+   "images": 3,
+   "mediaBeats": 4,
+   "beats": 9,
+   "shots": 2
+  },
+  "frostbite": {
+   "images": 3,
+   "mediaBeats": 4,
+   "beats": 9,
+   "shots": 2
+  },
+  "hamlet": {
+   "images": 3,
+   "mediaBeats": 4,
+   "beats": 9,
+   "shots": 2
+  },
+  "jackpot": {
+   "images": 3,
+   "mediaBeats": 4,
+   "beats": 9,
+   "shots": 2
+  },
+  "motorway": {
+   "images": 3,
+   "mediaBeats": 4,
+   "beats": 9,
+   "shots": 2
+  },
+  "newsroom": {
+   "images": 3,
+   "mediaBeats": 4,
+   "beats": 9,
+   "shots": 2
+  },
+  "studio-launch": {
+   "images": 3,
+   "mediaBeats": 4,
+   "beats": 9,
+   "shots": 2
+  },
+  "sushi": {
+   "images": 3,
+   "mediaBeats": 4,
+   "beats": 9,
+   "shots": 2
+  },
+  "bluesite": {
+   "images": 2,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "channel": {
+   "images": 2,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 1
+  },
+  "cosmodrome": {
+   "images": 2,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 1
+  },
+  "diner": {
+   "images": 2,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 1
+  },
+  "fetch-park": {
+   "images": 2,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 1
+  },
+  "groove": {
+   "images": 2,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 1
+  },
+  "neonrain": {
+   "images": 2,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 1
+  },
+  "papercut": {
+   "images": 2,
+   "mediaBeats": 2,
+   "beats": 9,
+   "shots": 0
+  },
+  "peaks": {
+   "images": 2,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 1
+  },
+  "pixelquest": {
+   "images": 2,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "postmark": {
+   "images": 2,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 1
+  },
+  "redshift": {
+   "images": 2,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "reel": {
+   "images": 2,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "repzone": {
+   "images": 2,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 1
+  },
+  "stomp-office": {
+   "images": 2,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "teampulse": {
+   "images": 2,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 2
+  },
+  "toybox": {
+   "images": 2,
+   "mediaBeats": 3,
+   "beats": 9,
+   "shots": 1
+  },
+  "aurora-night": {
+   "images": 1,
+   "mediaBeats": 2,
+   "beats": 9,
+   "shots": 1
+  },
+  "bird-sky": {
+   "images": 1,
+   "mediaBeats": 2,
+   "beats": 9,
+   "shots": 1
+  },
+  "bloom-market": {
+   "images": 1,
+   "mediaBeats": 2,
+   "beats": 9,
+   "shots": 1
+  },
+  "chalk-talk": {
+   "images": 1,
+   "mediaBeats": 2,
+   "beats": 9,
+   "shots": 1
+  },
+  "city-pulse": {
+   "images": 1,
+   "mediaBeats": 2,
+   "beats": 9,
+   "shots": 1
+  },
+  "desert-neon": {
+   "images": 1,
+   "mediaBeats": 2,
+   "beats": 9,
+   "shots": 1
+  },
+  "festival-stage": {
+   "images": 1,
+   "mediaBeats": 2,
+   "beats": 9,
+   "shots": 1
+  },
+  "ink-brush": {
+   "images": 1,
+   "mediaBeats": 2,
+   "beats": 9,
+   "shots": 1
+  },
+  "inkpress": {
+   "images": 1,
+   "mediaBeats": 2,
+   "beats": 9,
+   "shots": 0
+  },
+  "metro-line": {
+   "images": 1,
+   "mediaBeats": 2,
+   "beats": 9,
+   "shots": 1
+  },
+  "paper-collage": {
+   "images": 1,
+   "mediaBeats": 2,
+   "beats": 9,
+   "shots": 1
+  },
+  "pixel-pet": {
+   "images": 1,
+   "mediaBeats": 2,
+   "beats": 9,
+   "shots": 1
+  },
+  "proof": {
+   "images": 1,
+   "mediaBeats": 2,
+   "beats": 9,
+   "shots": 1
+  },
+  "rainy-window": {
+   "images": 1,
+   "mediaBeats": 2,
+   "beats": 9,
+   "shots": 1
+  },
+  "retro-arcade": {
+   "images": 1,
+   "mediaBeats": 2,
+   "beats": 9,
+   "shots": 1
+  },
+  "robot-factory": {
+   "images": 1,
+   "mediaBeats": 2,
+   "beats": 9,
+   "shots": 1
+  },
+  "safari-dawn": {
+   "images": 1,
+   "mediaBeats": 2,
+   "beats": 9,
+   "shots": 1
+  },
+  "snow-peak": {
+   "images": 1,
+   "mediaBeats": 2,
+   "beats": 9,
+   "shots": 1
+  },
+  "space-hop": {
+   "images": 1,
+   "mediaBeats": 2,
+   "beats": 9,
+   "shots": 1
+  },
+  "storybook-pop": {
+   "images": 1,
+   "mediaBeats": 2,
+   "beats": 9,
+   "shots": 1
+  },
+  "synthwave-sunset": {
+   "images": 1,
+   "mediaBeats": 2,
+   "beats": 9,
+   "shots": 1
+  },
+  "transit": {
+   "images": 1,
+   "mediaBeats": 2,
+   "beats": 9,
+   "shots": 1
+  },
+  "undertow": {
+   "images": 1,
+   "mediaBeats": 2,
+   "beats": 9,
+   "shots": 1
+  },
+  "dragboard": {
+   "images": 0,
+   "mediaBeats": 1,
+   "beats": 9,
+   "shots": 0
+  },
+  "keystroke": {
+   "images": 0,
+   "mediaBeats": 1,
+   "beats": 9,
+   "shots": 0
+  },
+  "lumen": {
+   "images": 0,
+   "mediaBeats": 1,
+   "beats": 9,
+   "shots": 0
+  },
+  "serif-manifesto": {
+   "images": 0,
+   "mediaBeats": 1,
+   "beats": 9,
+   "shots": 0
+  },
+  "type-riot": {
+   "images": 0,
+   "mediaBeats": 0,
+   "beats": 9,
+   "shots": 0
+  }
+ }
+}

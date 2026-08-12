@@ -1,0 +1,98 @@
+{
+  "name": "midnight-ramen",
+  "renderer": "omelette",
+  "template": "MidnightRamen",
+  "portraitNative": true,
+  "vibe": "steam wisps, noodle waves, swaying noren, chopsticks Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#1A1216",
+    "ink": "#F2E8DC",
+    "accent": "#E63946",
+    "a2": "#F4C95D"
+  },
+  "fonts": [
+    "Kanit",
+    "Sarabun"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#1A1216",
+    "ink": "#F2E8DC"
+  },
+  "motion": {
+    "cut": "clockwipe",
+    "drift": 0.96
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#E63946",
+      "#F4C95D"
+    ],
+    "extras": [
+      "#120D11",
+      "#221419",
+      "#2A1D24"
+    ],
+    "emphasisCss": "color:#E63946;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "midnight",
+      "ramen",
+      "steam",
+      "wisps",
+      "noodle",
+      "waves"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Kanit",
+    "body": "Sarabun"
+  },
+  "camera3d": {
+    "ground": "#1A1216"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "spring",
+    "emphasis": "accent",
+    "case": "upper",
+    "tracking": 0.02,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic dark ambient low pulse atmospheric",
+      "mood": "moody",
+      "volume": 0.12
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "name": "undertow",
+  "renderer": "omelette",
+  "template": "Undertow",
+  "portraitNative": true,
+  "vibe": "\"UNDERTOW\" 9:16 DEEP-OCEAN world film. A vertical journey from sunlit surface to abyssal trench and back: live waves, fish schools, kelp forest, jellyfish, sonar, porthole screenshot, anglerfish trench, reef shelves, tide data, storm — own ocean palette (foam/teal/abyss/coral). , fast cuts. Portrait-native 9:16 (13 authored beats, 39s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#062C47",
+    "ink": "#FF7A59",
+    "accent": "#0E6F8C",
+    "a2": "#F2FBFA"
+  },
+  "fonts": [
+    "Caprasimo",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#062C47",
+    "ink": "#FF7A59"
+  },
+  "motion": {
+    "cut": "inkblot",
+    "drift": 1.1
+  },
+  "fx": {
+    "canvas": "paper",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#0E6F8C",
+      "#F2FBFA"
+    ],
+    "extras": [
+      "#05263B",
+      "#FFC94D",
+      "#DFF0EF"
+    ],
+    "emphasisCss": "color:#0E6F8C;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "undertow-film",
+      "undertow",
+      "deep-ocean",
+      "world",
+      "vertical",
+      "journey"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Caprasimo",
+    "body": "Figtree"
+  },
+  "camera3d": {
+    "ground": "#062C47"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "zap",
+    "emphasis": "bracket",
+    "case": "upper",
+    "tracking": -0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic dark ambient low pulse atmospheric",
+      "mood": "moody",
+      "volume": 0.12
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

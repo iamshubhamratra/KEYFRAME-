@@ -1,0 +1,98 @@
+{
+  "name": "transit",
+  "renderer": "omelette",
+  "template": "Transit",
+  "portraitNative": true,
+  "vibe": "\"TRANSIT\" metro world. Route lines, stations, train-pass wipes. Portrait-native 9:16 (12 authored beats, 35.8s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#F4F1E8",
+    "ink": "#14203A",
+    "accent": "#F5C518",
+    "a2": "#D9433B"
+  },
+  "fonts": [
+    "Barlow Condensed",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F4F1E8",
+    "ink": "#14203A"
+  },
+  "motion": {
+    "cut": "smear",
+    "drift": 0.97
+  },
+  "fx": {
+    "canvas": "rays",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F5C518",
+      "#D9433B"
+    ],
+    "extras": [
+      "#2E9E6B",
+      "#3D6BD9",
+      "#1B2A4A"
+    ],
+    "emphasisCss": "color:#F5C518;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "transit-film",
+      "transit",
+      "metro",
+      "world",
+      "route",
+      "lines"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Barlow Condensed",
+    "body": "IBM Plex Mono"
+  },
+  "camera3d": {
+    "ground": "#F4F1E8"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "ring",
+    "case": "none",
+    "tracking": 0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "name": "sole-drop",
+  "renderer": "omelette",
+  "template": "SoleDrop",
+  "portraitNative": true,
+  "vibe": "sneaker release — speed lines, tread zigzag, bouncing ball Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#101014",
+    "ink": "#F4F4F2",
+    "accent": "#D4F24B",
+    "a2": "#FF5A36"
+  },
+  "fonts": [
+    "Archivo Black"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#101014",
+    "ink": "#F4F4F2"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1.14
+  },
+  "fx": {
+    "canvas": "prism",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#D4F24B",
+      "#FF5A36"
+    ],
+    "extras": [
+      "#000000",
+      "#0A0A0C",
+      "#16161C"
+    ],
+    "emphasisCss": "color:#D4F24B;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "sole",
+      "drop",
+      "sneaker",
+      "release",
+      "speed",
+      "lines"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Archivo Black",
+    "body": "Archivo Black"
+  },
+  "camera3d": {
+    "ground": "#101014"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "squash",
+    "emphasis": "boxed",
+    "case": "upper",
+    "tracking": -0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "driving percussive energetic sports rock beat",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

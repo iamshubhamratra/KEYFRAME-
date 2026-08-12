@@ -1,0 +1,98 @@
+{
+  "name": "frostbite",
+  "renderer": "omelette",
+  "template": "Frostbite",
+  "portraitNative": true,
+  "vibe": "\"FROSTBITE\" arctic-expedition world. Aurora, snow, ice. Portrait-native 9:16 (9 authored beats, 27.8s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#0E2233",
+    "ink": "#EAF6FB",
+    "accent": "#FF7E67",
+    "a2": "#6FE3B4"
+  },
+  "fonts": [
+    "Comfortaa",
+    "Jost"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#0E2233",
+    "ink": "#EAF6FB"
+  },
+  "motion": {
+    "cut": "fade",
+    "drift": 1.1
+  },
+  "fx": {
+    "canvas": "sumi",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FF7E67",
+      "#6FE3B4"
+    ],
+    "extras": [
+      "#9F8CFF",
+      "#123048",
+      "#0A1826"
+    ],
+    "emphasisCss": "color:#FF7E67;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "frostbite-film",
+      "frostbite",
+      "arctic-expedition",
+      "world",
+      "aurora",
+      "snow"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Comfortaa",
+    "body": "Jost"
+  },
+  "camera3d": {
+    "ground": "#0E2233"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "zap",
+    "emphasis": "underline-grow",
+    "case": "none",
+    "tracking": 0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

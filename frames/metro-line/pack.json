@@ -1,0 +1,98 @@
+{
+  "name": "metro-line",
+  "renderer": "omelette",
+  "template": "MetroLine",
+  "portraitNative": true,
+  "vibe": "transit-map lines snaking, a train dot running them Portrait-native 9:16 (18 authored beats, 49.9s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#F4F4F0",
+    "ink": "#1D1D1B",
+    "accent": "#D9363E",
+    "a2": "#2F6DB5"
+  },
+  "fonts": [
+    "Barlow Condensed",
+    "Barlow"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F4F4F0",
+    "ink": "#1D1D1B"
+  },
+  "motion": {
+    "cut": "wipe",
+    "drift": 1.1
+  },
+  "fx": {
+    "canvas": "halftone",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#D9363E",
+      "#2F6DB5"
+    ],
+    "extras": [
+      "#3F9B57",
+      "#FFFFFF",
+      "#E8B820"
+    ],
+    "emphasisCss": "color:#D9363E;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "metro",
+      "line",
+      "transit-map",
+      "lines",
+      "snaking",
+      "train"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Barlow Condensed",
+    "body": "Barlow Condensed"
+  },
+  "camera3d": {
+    "ground": "#F4F4F0"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "underline-grow",
+    "case": "none",
+    "tracking": 0.02,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "name": "harbor-light",
+  "renderer": "omelette",
+  "template": "HarborLight",
+  "portraitNative": true,
+  "vibe": "sweeping beam, waves, gulls, fog band Portrait-native 9:16 (15 authored beats, 44.4s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#1F3242",
+    "ink": "#DFE6E2",
+    "accent": "#A34A2C",
+    "a2": "#E8B23C"
+  },
+  "fonts": [
+    "Cormorant Garamond",
+    "Nunito Sans"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#1F3242",
+    "ink": "#DFE6E2"
+  },
+  "motion": {
+    "cut": "whip",
+    "drift": 0.97
+  },
+  "fx": {
+    "canvas": "sprinkle",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#A34A2C",
+      "#E8B23C"
+    ],
+    "extras": [
+      "#16232C",
+      "#283D50",
+      "#D8E2E8"
+    ],
+    "emphasisCss": "color:#A34A2C;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "harbor",
+      "light",
+      "sweeping",
+      "beam",
+      "waves",
+      "gulls"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Cormorant Garamond",
+    "body": "Nunito Sans"
+  },
+  "camera3d": {
+    "ground": "#1F3242"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "zap",
+    "emphasis": "bracket",
+    "case": "none",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

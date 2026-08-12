@@ -204,12 +204,19 @@ function starburst(id, ctx, { left, top, size, color, speed }) {
 // chrome while scenes sat half empty — so the slot now carries the film's OWN
 // words (the `text` argument every caller was already passing and this function
 // silently threw away).
-function ticker(id, text, ctx, { fg, top }) {
+function ticker(id, text, ctx, { fg, bg, top }) {
   const { land, T, theme: th } = ctx;
-  const col = fg || th.ink;
+  // Every caller passes a `bg` — and this function used to drop it on the floor,
+  // so the ticker was drawn in `fg` (th.paper) straight onto whatever happened to
+  // be behind it. In this pack paper IS the ground, so wherever the ticker did
+  // not overlap a panel it was cream on cream: measured 1.43:1 in landscape,
+  // where the row sits lower and misses the panel entirely. Painting the plate
+  // the callers asked for gives the type a known surface in both orientations.
+  const plate = bg || th.ink;
+  const col = E.readable(plate, fg || th.paper, 1, 4.5);
   const label = String(text || "").trim();
   if (!label) return { html: "", s: [] };
-  const html = `<div id="${id}" style="opacity:0;position:absolute;left:${q(64, land)}cqw;right:${q(64, land)}cqw;top:${top}cqw;display:flex;align-items:center;gap:${q(20, land)}cqw;z-index:4;">
+  const html = `<div id="${id}" style="opacity:0;position:absolute;left:${q(64, land)}cqw;top:${top}cqw;display:inline-flex;align-items:center;gap:${q(20, land)}cqw;z-index:4;background:${plate};padding:${q(10, land)}cqw ${q(26, land)}cqw;border-radius:999px;max-width:${q(900, land)}cqw;">
     <span style="display:inline-block;flex:none;width:${q(56, land)}cqw;height:${q(9, land)}cqw;border-radius:999px;background:${col};"></span>
     <span style="font-family:${FB};font-weight:800;font-size:${q(27, land)}cqw;letter-spacing:0.18em;color:${col};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(label.toUpperCase())}</span>
   </div>`;
@@ -349,11 +356,11 @@ function statement(scene, ctx) {
   const b1 = beatIO(`#${id}-b1`, ctx, 0, 0.47, 1, -1);
   const b2 = beatIO(`#${id}-b2`, ctx, 0.5, 1, -1, 1, { noExit: ctx.isLast });
   const k1 = kinetic(`${id}-w1`, first, 148, ctx, {
-    color: th.paper, hiColor: th.accent, hiWords: hiOf(scene, first),
+    color: th.paper, hiColor: E.readable(th.ink, th.accent, 1, 4.5), hiWords: hiOf(scene, first),
     at: r(b1.bT + 0.06 * b1.bL), step: Math.min(0.18, b1.bL * 0.09), dur: Math.min(0.9, b1.bL * 0.3), until: r(b1.bT + b1.bL * 0.72),
   });
   const k2 = kinetic(`${id}-w2`, second, 148, ctx, {
-    color: th.paper, hiColor: th.accent2, hiWords: hiOf(scene, second),
+    color: th.paper, hiColor: E.readable(th.ink, th.accent2, 1, 4.5), hiWords: hiOf(scene, second),
     at: r(b2.bT + 0.06 * b2.bL), step: Math.min(0.18, b2.bL * 0.09), dur: Math.min(0.9, b2.bL * 0.3), until: r(b2.bT + b2.bL * 0.72),
   });
   const burst = starburst(`${id}-sb`, ctx, land ? { left: 25, top: -12, size: 55, color: rgba(th.accent, 0.15), petals: 16, speed: 6 }
@@ -367,14 +374,14 @@ function statement(scene, ctx) {
   // inside a beat) so they hold while the two headline beats swap above.
   const sup = land ? { html: "", s: [] } : E.supportList(`${id}-sup`, bullets(scene, 3), ctx, {
     top: q(1150, land), left: q(64, land), right: q(64, land),
-    font: q(38, land), fontFamily: FB, fg: rgba(th.paper, 0.8), dot: th.accent,
+    font: q(38, land), fontFamily: FB, plate: th.ink, fg: E.readable(th.ink, th.paper, 1, 4.5), dot: th.accent,
     max: 3, at: r(T + Math.min(1.6, L * 0.36)),
   });
   const html = `${panelBg(th.ink, th.accent, "left")}
     ${burst.html}
     <div id="${id}-b1" style="opacity:0;position:absolute;${pos}">${k1.html}</div>
     <div id="${id}-b2" style="opacity:0;position:absolute;${pos}">${k2.html}
-      <div style="margin-top:${q(40, land)}cqw;"><span id="${id}-su" style="opacity:0;display:inline-block;font-family:${FB};font-weight:700;font-size:${q(38, land)}cqw;color:${rgba(th.paper, 0.7)};">${esc(sub)}</span></div>
+      <div style="margin-top:${q(40, land)}cqw;"><span id="${id}-su" style="opacity:0;display:inline-block;font-family:${FB};font-weight:700;font-size:${q(38, land)}cqw;color:${E.readable(th.ink, th.paper, 0.7, 4.5)};">${esc(sub)}</span></div>
     </div>
     ${sup.html}
     ${tick.html}`;
@@ -392,12 +399,12 @@ function feature(scene, ctx, a) {
   const chips = (Array.isArray(scene.chips) && scene.chips.length ? scene.chips : bullets(scene, 3));
   const items = (chips.length ? chips : ["Drag in screenshots", "Swap every word", "Recolor in one tap"]).slice(0, 3).map((c) => fit(String(c), 24));
   const lines = breakLines(scene.headline, "Built from|your screens.").slice(0, 3);
-  const kin = kinetic(`${id}-wf`, lines, 100, ctx, { color: th.ink, hiColor: th.accent, hiWords: hiOf(scene, lines) });
+  const kin = kinetic(`${id}-wf`, lines, 100, ctx, { color: th.ink, hiColor: E.readable(th.ink, th.accent, 1, 4.5), hiWords: hiOf(scene, lines) });
   const burst = starburst(`${id}-sb`, ctx, land ? { left: 84, top: 34, size: 20, color: rgba(th.accent2, 0.35), petals: 12, speed: -9 }
     : { left: 73, top: 103, size: 43, color: rgba(th.accent2, 0.35), petals: 12, speed: -9 });
   const cols = [th.accent, th.ink, th.accent2];
   const chipRow = items.map((c, j) =>
-    `<div class="${id}-tag" style="opacity:0;display:inline-flex;align-items:center;gap:${q(18, land)}cqw;padding:${q(16, land)}cqw ${q(30, land)}cqw;border-radius:${q(14, land)}cqw;background:${cols[j % 3]};color:${th.paper};font-family:${FH};font-size:${q(36, land)}cqw;text-transform:uppercase;box-shadow:0 ${q(12, land)}cqw ${q(30, land)}cqw ${rgba(th.ink, 0.18)};">
+    `<div class="${id}-tag" style="opacity:0;display:inline-flex;align-items:center;gap:${q(18, land)}cqw;padding:${q(16, land)}cqw ${q(30, land)}cqw;border-radius:${q(14, land)}cqw;background:${cols[j % 3]};color:${E.readable(cols[j % 3], E.inkOn(cols[j % 3], th.ink, th.paper), 1, 4.5)};font-family:${FH};font-size:${q(36, land)}cqw;text-transform:uppercase;box-shadow:0 ${q(12, land)}cqw ${q(30, land)}cqw ${rgba(th.ink, 0.18)};">
       <span style="font-family:${FH};font-size:${q(28, land)}cqw;color:${rgba(th.paper, 0.6)};">0${j + 1}</span>${esc(c)}</div>`).join("");
   const chipCol = `<div style="display:flex;flex-direction:column;gap:${q(18, land)}cqw;align-items:flex-start;margin-top:${q(44, land)}cqw;">${chipRow}</div>`;
   const kick = scene.kicker ? chipHtml(`${id}-k`, fit(String(scene.kicker), 22).toUpperCase(), ctx, { bg: th.ink, fg: th.paper }) : "";
@@ -479,7 +486,7 @@ function stats(scene, ctx) {
   const ranges = n === 1 ? [[0.06, 0.9]] : n === 2 ? [[0.04, 0.48], [0.52, 0.97]] : [[0.04, 0.36], [0.38, 0.68], [0.7, 0.97]];
   const cols = [th.accent, th.paper, th.accent2];
   const lines = breakLines(scene.headline, "Numbers with|weight.").slice(0, 2);
-  const kin = kinetic(`${id}-ws`, lines, 92, ctx, { color: th.paper, hiColor: th.accent, hiWords: hiOf(scene, lines) });
+  const kin = kinetic(`${id}-ws`, lines, 92, ctx, { color: th.paper, hiColor: E.readable(th.ink, th.accent, 1, 4.5), hiWords: hiOf(scene, lines) });
   const kick = scene.kicker ? chipHtml(`${id}-k`, fit(String(scene.kicker), 22).toUpperCase(), ctx, { bg: th.accent, fg: th.paper }) : "";
   const burst = starburst(`${id}-sb`, ctx, land ? { left: 28, top: -14, size: 52, color: rgba(th.accent, 0.12), petals: 18, speed: 7 }
     : { left: 4, top: 28, size: 93, color: rgba(th.accent, 0.12), petals: 18, speed: 7 });
@@ -494,7 +501,7 @@ function stats(scene, ctx) {
   // supporting points fill it without competing with the counting figure above.
   const sup = land ? { html: "", s: [] } : E.supportList(`${id}-sup`, bullets(scene, 3), ctx, {
     top: q(1250, land), left: q(64, land), right: q(64, land),
-    font: q(36, land), fontFamily: FB, fg: rgba(th.paper, 0.72), dot: th.accent2,
+    font: q(36, land), fontFamily: FB, plate: th.ink, fg: E.readable(th.ink, th.paper, 1, 4.5), dot: th.accent2,
     max: 3, at: r(T + Math.min(1.8, L * 0.4)),
   });
   const html = `${panelBg(th.ink, th.accent2, "left")}
@@ -537,7 +544,7 @@ function cta(scene, ctx, a) {
   // the ticker empty. Close on the film's own proof points rather than dead colour.
   const sup = land ? { html: "", s: [] } : E.supportList(`${id}-sup`, bullets(scene, 3), ctx, {
     top: q(1230, land), left: q(64, land), right: q(64, land),
-    font: q(36, land), fontFamily: FB, fg: rgba(fg, 0.82), dot: th.ink,
+    font: q(36, land), fontFamily: FB, plate: th.paper, fg: E.readable(th.paper, th.ink, 1, 4.5), dot: th.ink,
     max: 3, at: r(T + Math.min(2.2, L * 0.42)),
   });
   const html = `${panelBg(bg, th.ink, "up")}

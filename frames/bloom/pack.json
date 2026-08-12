@@ -1,0 +1,97 @@
+{
+  "name": "bloom",
+  "renderer": "omelette",
+  "template": "Bloom",
+  "portraitNative": true,
+  "vibe": "\"BLOOM\" botanical-garden world. Growing vines, petals, greenhouse. Portrait-native 9:16 (9 authored beats, 27.8s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#FBF0E5",
+    "ink": "#12372A",
+    "accent": "#F2B24C",
+    "a2": "#F4A7B9"
+  },
+  "fonts": [
+    "Cormorant Garamond"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#FBF0E5",
+    "ink": "#12372A"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 0.98
+  },
+  "fx": {
+    "canvas": "clay",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F2B24C",
+      "#F4A7B9"
+    ],
+    "extras": [
+      "#2E7D54",
+      "#B07E20",
+      "#FFFFFF"
+    ],
+    "emphasisCss": "color:#F2B24C;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "bloom-film",
+      "bloom",
+      "botanical-garden",
+      "world",
+      "growing",
+      "vines"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Cormorant Garamond",
+    "body": "Sen"
+  },
+  "camera3d": {
+    "ground": "#FBF0E5"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "marker",
+    "case": "upper",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

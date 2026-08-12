@@ -1,0 +1,98 @@
+{
+  "name": "space-hop",
+  "renderer": "omelette",
+  "template": "SpaceHop",
+  "portraitNative": true,
+  "vibe": "parallax starfield, ringed planet, thruster rocket Portrait-native 9:16 (18 authored beats, 49.9s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#0B0F2A",
+    "ink": "#F2F4FF",
+    "accent": "#6BE0B8",
+    "a2": "#FF6B4A"
+  },
+  "fonts": [
+    "Righteous",
+    "Chivo"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#0B0F2A",
+    "ink": "#F2F4FF"
+  },
+  "motion": {
+    "cut": "wipe",
+    "drift": 0.95
+  },
+  "fx": {
+    "canvas": "halftone",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#6BE0B8",
+      "#FF6B4A"
+    ],
+    "extras": [
+      "#8F7AE0",
+      "#070A1E",
+      "#7AB8FF"
+    ],
+    "emphasisCss": "color:#6BE0B8;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "space",
+      "parallax",
+      "starfield",
+      "ringed",
+      "planet",
+      "thruster"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Righteous",
+    "body": "Righteous"
+  },
+  "camera3d": {
+    "ground": "#0B0F2A"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slam",
+    "emphasis": "accent",
+    "case": "none",
+    "tracking": 0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "name": "diner",
+  "renderer": "omelette",
+  "template": "Diner",
+  "portraitNative": true,
+  "vibe": "\"DINER\" 50s roadside diner world. Neon, chrome, checkerboard. Portrait-native 9:16 (9 authored beats, 27.8s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#231B2E",
+    "ink": "#FFF3DC",
+    "accent": "#D62828",
+    "a2": "#8FE0C8"
+  },
+  "fonts": [
+    "Lilita One",
+    "Rubik"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#231B2E",
+    "ink": "#FFF3DC"
+  },
+  "motion": {
+    "cut": "fade",
+    "drift": 0.98
+  },
+  "fx": {
+    "canvas": "sumi",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#D62828",
+      "#8FE0C8"
+    ],
+    "extras": [
+      "#F4B942",
+      "#1E7F7A",
+      "#1B1526"
+    ],
+    "emphasisCss": "color:#D62828;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "diner-film",
+      "diner",
+      "roadside",
+      "world",
+      "neon",
+      "chrome"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Lilita One",
+    "body": "Rubik"
+  },
+  "camera3d": {
+    "ground": "#231B2E"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slide",
+    "emphasis": "marker",
+    "case": "upper",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "synthwave retro electronic driving arpeggio neon",
+      "mood": "energetic",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

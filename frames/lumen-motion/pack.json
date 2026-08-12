@@ -1,5 +1,6 @@
 {
   "name": "lumen-motion",
+  "renderer": "bright-minimal",
   "vibe": "a bright animated-explainer system: warm paper ground, playful coral + indigo + teal + amber, friendly rounded display type, and dense HAND-DRAWN animated vectors that EXPLAIN the story — a launching rocket, a real line graph whose points pop in and connect, turning gears, popping checkmarks, a clicking cursor and confetti — for product launches, explainers, onboarding, feature tours and demos",
   "colors": {
     "paper": "#FFF7EF",
@@ -11,8 +12,8 @@
     "amber": "#FFB020"
   },
   "fonts": [
-    "Inter",
-    "Bricolage Grotesque"
+    "Bricolage Grotesque",
+    "JetBrains Mono"
   ],
   "surface": {
     "flat": false,
@@ -62,26 +63,27 @@
     "ground": "#FFF7EF"
   },
   "textfx": {
-    "enter": "spring",
-    "emphasis": "boxed",
+    "enter": "slide",
+    "emphasis": "echo",
     "align": "center",
-    "sizeScale": 1.0
+    "sizeScale": 1.12,
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035
   },
   "audio": {
     "music": {
-      "query": "upbeat playful pop",
-      "mood": "upbeat",
+      "query": "marching snare stomp clap epic energetic",
+      "mood": "energetic",
       "volume": 0.16
     },
     "sfx": {
-      "style": "bright bouncy pops, soft cartoon swooshes, cheerful ding chimes and a confetti success chime — light and playful, synced to the pop-ins and the graph drawing",
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
       "palette": [
-        "bubble pop",
-        "cartoon swoosh",
-        "ui click pop",
-        "sparkle chime ding",
-        "confetti success chime",
-        "boing bounce"
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
       ]
     }
   }

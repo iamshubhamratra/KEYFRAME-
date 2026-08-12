@@ -1,0 +1,98 @@
+{
+  "name": "postmark",
+  "renderer": "omelette",
+  "template": "Postmark",
+  "portraitNative": true,
+  "vibe": "\"POSTMARK\" vintage mail world. Envelopes, stamps, airmail. Portrait-native 9:16 (9 authored beats, 27.8s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#F4E9D3",
+    "ink": "#3A2E26",
+    "accent": "#2F5D8A",
+    "a2": "#C6402F"
+  },
+  "fonts": [
+    "Special Elite",
+    "Karla"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F4E9D3",
+    "ink": "#3A2E26"
+  },
+  "motion": {
+    "cut": "flash",
+    "drift": 1.04
+  },
+  "fx": {
+    "canvas": "kaleido",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#2F5D8A",
+      "#C6402F"
+    ],
+    "extras": [
+      "#EADFC6",
+      "#FDF6E6",
+      "#D9B98A"
+    ],
+    "emphasisCss": "color:#2F5D8A;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "postmark-film",
+      "postmark",
+      "vintage",
+      "mail",
+      "world",
+      "envelopes"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Special Elite",
+    "body": "Special Elite"
+  },
+  "camera3d": {
+    "ground": "#F4E9D3"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "boxed",
+    "case": "none",
+    "tracking": -0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

@@ -1,5 +1,6 @@
 {
   "name": "capsule",
+  "renderer": "editorial-quiet",
   "vibe": "A playful editorial system where every container is an inflated candy pill wrapped in a 2px ink outline, floating on sun-bleached cream warmed by radial glows and grain.",
   "colors": {
     "cream": "#F5F5F0",
@@ -12,7 +13,7 @@
     "yellow": "#F2D160"
   },
   "fonts": [
-    "Bodoni Moda",
+    "Orbitron",
     "Space Grotesk"
   ],
   "surface": {
@@ -56,29 +57,27 @@
     ]
   },
   "textfx": {
-    "enter": "spring",
+    "enter": "stamp",
     "emphasis": "boxed",
-    "case": "none",
-    "tracking": -0.02,
-    "weight": null,
-    "sizeScale": 1.05,
+    "case": "upper",
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.18,
     "align": "center"
   },
   "audio": {
     "music": {
-      "query": "playful indie pop",
-      "mood": "playful",
+      "query": "big beat breakbeat percussive energetic drive",
+      "mood": "energetic",
       "volume": 0.15
     },
     "sfx": {
-      "style": "soft bouncy pops and rounded pill clicks",
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
       "palette": [
-        "soft pop",
-        "bubble pop",
-        "pill click",
-        "gentle whoosh",
-        "candy chime",
-        "page turn"
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
       ]
     }
   },
@@ -87,5 +86,8 @@
     "kicker": true,
     "underline": true,
     "stat": "headline"
+  },
+  "typography": {
+    "display": "Orbitron"
   }
 }

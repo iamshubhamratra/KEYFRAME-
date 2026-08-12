@@ -1,0 +1,98 @@
+{
+  "name": "bird-sky",
+  "renderer": "omelette",
+  "template": "BirdSky",
+  "portraitNative": true,
+  "vibe": "morning flock in formation, drifting clouds, kite Portrait-native 9:16 (18 authored beats, 49.9s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#CFE6F2",
+    "ink": "#2E3440",
+    "accent": "#E2705C",
+    "a2": "#FBF9F4"
+  },
+  "fonts": [
+    "Yeseva One",
+    "Mukta"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#CFE6F2",
+    "ink": "#2E3440"
+  },
+  "motion": {
+    "cut": "weave",
+    "drift": 1.01
+  },
+  "fx": {
+    "canvas": "stitch",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#E2705C",
+      "#FBF9F4"
+    ],
+    "extras": [
+      "#F2C14E",
+      "#FFFFFF",
+      "#9FC4D8"
+    ],
+    "emphasisCss": "color:#E2705C;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "bird",
+      "morning",
+      "flock",
+      "formation",
+      "drifting",
+      "clouds"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Yeseva One",
+    "body": "Yeseva One"
+  },
+  "camera3d": {
+    "ground": "#CFE6F2"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "zap",
+    "emphasis": "bracket",
+    "case": "none",
+    "tracking": -0.02,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "name": "atlas-and-ink",
+  "renderer": "omelette",
+  "template": "AtlasAndInk",
+  "portraitNative": true,
+  "vibe": "voyage route, compass rose, sea monster, grid Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#EFE4CF",
+    "ink": "#4A3826",
+    "accent": "#C9A24B",
+    "a2": "#A8402E"
+  },
+  "fonts": [
+    "Young Serif",
+    "Assistant"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#EFE4CF",
+    "ink": "#4A3826"
+  },
+  "motion": {
+    "cut": "fade",
+    "drift": 0.96
+  },
+  "fx": {
+    "canvas": "sumi",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#C9A24B",
+      "#A8402E"
+    ],
+    "extras": [
+      "#F8F0E0",
+      "#000000",
+      "#6A92A8"
+    ],
+    "emphasisCss": "color:#C9A24B;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "atlas",
+      "voyage",
+      "route",
+      "compass",
+      "rose",
+      "monster"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Young Serif",
+    "body": "Young Serif"
+  },
+  "camera3d": {
+    "ground": "#EFE4CF"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "stamp",
+    "emphasis": "accent",
+    "case": "none",
+    "tracking": 0.02,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "acoustic handmade warm folk gentle plucked strings",
+      "mood": "warm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

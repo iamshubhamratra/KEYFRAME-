@@ -1,0 +1,98 @@
+{
+  "name": "newsroom",
+  "renderer": "omelette",
+  "template": "Newsroom",
+  "portraitNative": true,
+  "vibe": "\"NEWSROOM\" broadcast-studio world. Lower thirds, tickers, monitors. Portrait-native 9:16 (9 authored beats, 27.8s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#0C1B3A",
+    "ink": "#F2F4F7",
+    "accent": "#F5B929",
+    "a2": "#29B6E8"
+  },
+  "fonts": [
+    "Archivo Black",
+    "Archivo"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#0C1B3A",
+    "ink": "#F2F4F7"
+  },
+  "motion": {
+    "cut": "wash",
+    "drift": 1.08
+  },
+  "fx": {
+    "canvas": "caustics",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F5B929",
+      "#29B6E8"
+    ],
+    "extras": [
+      "#D8262C",
+      "#000000",
+      "#081228"
+    ],
+    "emphasisCss": "color:#F5B929;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "newsroom-film",
+      "newsroom",
+      "broadcast-studio",
+      "world",
+      "lower",
+      "thirds"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Archivo Black",
+    "body": "Archivo Black"
+  },
+  "camera3d": {
+    "ground": "#0C1B3A"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "squash",
+    "emphasis": "bullet",
+    "case": "none",
+    "tracking": -0.02,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

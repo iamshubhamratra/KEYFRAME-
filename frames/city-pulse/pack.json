@@ -1,0 +1,97 @@
+{
+  "name": "city-pulse",
+  "renderer": "omelette",
+  "template": "CityPulse",
+  "portraitNative": true,
+  "vibe": "skyline window grids flicking on, crane, blinking antennas Portrait-native 9:16 (18 authored beats, 49.9s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#1D2735",
+    "ink": "#EEF0F4",
+    "accent": "#F0B954",
+    "a2": "#4FD8C4"
+  },
+  "fonts": [
+    "Oswald"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#1D2735",
+    "ink": "#EEF0F4"
+  },
+  "motion": {
+    "cut": "weave",
+    "drift": 0.97
+  },
+  "fx": {
+    "canvas": "stitch",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F0B954",
+      "#4FD8C4"
+    ],
+    "extras": [
+      "#E6EDF3",
+      "#9AA4B2",
+      "#141A24"
+    ],
+    "emphasisCss": "color:#F0B954;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "city",
+      "pulse",
+      "skyline",
+      "grids",
+      "flicking",
+      "crane"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Oswald",
+    "body": "Work Sans"
+  },
+  "camera3d": {
+    "ground": "#1D2735"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "squash",
+    "emphasis": "ring",
+    "case": "none",
+    "tracking": -0.02,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "acoustic handmade warm folk gentle plucked strings",
+      "mood": "warm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

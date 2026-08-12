@@ -1,0 +1,98 @@
+{
+  "name": "jackpot",
+  "renderer": "omelette",
+  "template": "Jackpot",
+  "portraitNative": true,
+  "vibe": "\"JACKPOT\" casino slot-machine world. Reels, bulbs, coins. Portrait-native 9:16 (9 authored beats, 28s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#5C0E1E",
+    "ink": "#FFF3DC",
+    "accent": "#F5C542",
+    "a2": "#1FA88C"
+  },
+  "fonts": [
+    "Alfa Slab One",
+    "Rubik"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#5C0E1E",
+    "ink": "#FFF3DC"
+  },
+  "motion": {
+    "cut": "whip",
+    "drift": 0.98
+  },
+  "fx": {
+    "canvas": "sprinkle",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F5C542",
+      "#1FA88C"
+    ],
+    "extras": [
+      "#3A0813",
+      "#F26D85",
+      "#D9A32B"
+    ],
+    "emphasisCss": "color:#F5C542;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "jackpot-film",
+      "jackpot",
+      "casino",
+      "slot-machine",
+      "world",
+      "reels"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Alfa Slab One",
+    "body": "Rubik"
+  },
+  "camera3d": {
+    "ground": "#5C0E1E"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "squash",
+    "emphasis": "bullet",
+    "case": "none",
+    "tracking": -0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

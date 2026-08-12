@@ -1,0 +1,98 @@
+{
+  "name": "neonrain",
+  "renderer": "omelette",
+  "template": "Neonrain",
+  "portraitNative": true,
+  "vibe": "\"NEONRAIN\" rainy neon-city world. Flicker, rain, reflections. Portrait-native 9:16 (11 authored beats, 32s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#0B0F1A",
+    "ink": "#F3F6FF",
+    "accent": "#22E6F2",
+    "a2": "#FF3DBE"
+  },
+  "fonts": [
+    "Outfit",
+    "Monoton"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#0B0F1A",
+    "ink": "#F3F6FF"
+  },
+  "motion": {
+    "cut": "weave",
+    "drift": 1.01
+  },
+  "fx": {
+    "canvas": "stitch",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#22E6F2",
+      "#FF3DBE"
+    ],
+    "extras": [
+      "#FFB300",
+      "#121A2E",
+      "#060911"
+    ],
+    "emphasisCss": "color:#22E6F2;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "neonrain-film",
+      "neonrain",
+      "rainy",
+      "neon-city",
+      "world",
+      "flicker"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Outfit",
+    "body": "Outfit"
+  },
+  "camera3d": {
+    "ground": "#0B0F1A"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "stamp",
+    "emphasis": "accent",
+    "case": "none",
+    "tracking": -0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "synthwave retro electronic driving arpeggio neon",
+      "mood": "energetic",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

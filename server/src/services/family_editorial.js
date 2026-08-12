@@ -21,6 +21,9 @@
 
 const { deriveTheme } = require("./scene_kit");
 const E = require("./template_engine");
+// The shared motion vocabulary — see services/motion_presets.js. Physics for
+// headlines and cards lives there now, so every template moves alike.
+const MOTION = require("./motion_presets");
 const { esc, r, rgba, mix, statsOf, breakLines, bullets, fit, mineStat, isScreenshot } = E;
 
 // ---- theme -------------------------------------------------------------------
@@ -56,6 +59,13 @@ function theme(manifest, brandSkin, { framePack } = {}) {
     copy: E.readable(t.ground, ink, 0.82, 4.5),
     faint: E.readable(t.ground, ink, 0.56, 4.5),
     mat: t.isDark ? mix(t.ground, "#FFFFFF", 0.07) : mix(t.ground, "#FFFFFF", 0.55),
+    // …and the same tiers again for small copy that sits on the MAT rather than
+    // on the paper. The mat is up to 55% toward white, so a colour guaranteed
+    // against the ground lands short on it — the section labels and figure
+    // numbers measured 3.92-4.4:1 against a 4.5 floor exactly this way. Target 6
+    // so a tinted panel or a rule underneath cannot eat the remaining margin.
+    matAccent: E.readable(t.isDark ? mix(t.ground, "#FFFFFF", 0.07) : mix(t.ground, "#FFFFFF", 0.55), accents[0], 1, 6),
+    matFaint: E.readable(t.isDark ? mix(t.ground, "#FFFFFF", 0.07) : mix(t.ground, "#FFFFFF", 0.55), ink, 1, 6),
     displayStack,
     bodyStack: t.fontStack || "system-ui, sans-serif",
     fontFace: t.fontFace || "",
@@ -149,7 +159,7 @@ const LAB = (land) => (land ? 0.95 : 1.6);
 const COPY = (land) => (land ? 1.3 : 2.05);
 
 const caps = (txt, th, land, color, extra) =>
-  `<span style="font-family:${th.bodyStack};font-size:${r(LAB(land))}cqw;letter-spacing:0.3em;text-transform:uppercase;white-space:nowrap;color:${color || th.faint};${extra || ""}">${esc(txt)}</span>`;
+  `<span style="font-family:${th.bodyStack};font-size:${r(LAB(land))}cqw;letter-spacing:0.3em;text-transform:uppercase;white-space:nowrap;color:${color || th.matFaint};${extra || ""}">${esc(txt)}</span>`;
 
 // Display size that keeps the longest line inside a column `col` cqw wide.
 // ~0.5em average advance for a book face at normal tracking.
@@ -227,7 +237,6 @@ function titlespread(scene, ctx) {
   const s = [
     `tl.fromTo("#${id}-date",{opacity:0,y:${land ? 10 : 14}},{opacity:1,y:0,duration:0.8,ease:"power2.out"},${r(T + 0.15)});`,
     `tl.fromTo(".${id}-dr",{scaleX:0},{scaleX:1,duration:1.25,ease:"power2.inOut"},${r(T + 0.25)});`,
-    `tl.fromTo(".${id}-line",{opacity:0,y:${land ? 20 : 26}},{opacity:1,y:0,duration:0.9,ease:"power2.out",stagger:0.18},${r(T + 0.45)});`,
     `tl.fromTo("#${id}-krule",{scaleX:0},{scaleX:1,duration:0.85,ease:"power2.out"},${r(T + 1)});`,
     stand ? `tl.fromTo("#${id}-stand",{opacity:0,y:${land ? 12 : 16}},{opacity:1,y:0,duration:0.85,ease:"power2.out"},${r(T + 1.2)});` : "",
   ];
@@ -264,7 +273,7 @@ function feature(scene, ctx) {
       </div>` : "";
   const leftBlock = `
       <div style="${land ? `flex:0 0 ${leftPct}%;` : ""}display:flex;flex-direction:column;justify-content:${land ? "center" : "flex-start"};">
-        ${label ? `<div id="${id}-lab" style="opacity:0;display:flex;align-items:center;gap:1.1cqw;margin-bottom:${land ? 1.4 : 2.2}cqw;">${caps(label, th, land, th.accentText)}<span style="display:inline-block;width:${land ? 3.2 : 4.6}cqw;height:${r(HAIR(land) * 2)}cqw;background:${th.accent};"></span></div>` : ""}
+        ${label ? `<div id="${id}-lab" style="opacity:0;display:flex;align-items:center;gap:1.1cqw;margin-bottom:${land ? 1.4 : 2.2}cqw;">${caps(label, th, land, th.matAccent)}<span style="display:inline-block;width:${land ? 3.2 : 4.6}cqw;height:${r(HAIR(land) * 2)}cqw;background:${th.accent};"></span></div>` : ""}
         <div>${serifLines(lines, size, th.ink, `${id}-line`, th)}</div>
       </div>`;
   const rightBlock = `
@@ -283,7 +292,6 @@ function feature(scene, ctx) {
     </div>`;
   const s = [
     label ? `tl.fromTo("#${id}-lab",{opacity:0,y:${land ? 9 : 12}},{opacity:1,y:0,duration:0.7,ease:"power2.out"},${r(T + 0.15)});` : "",
-    `tl.fromTo(".${id}-line",{opacity:0,y:${land ? 18 : 22}},{opacity:1,y:0,duration:0.85,ease:"power2.out",stagger:0.17},${r(T + 0.35)});`,
     divider ? `tl.fromTo("#${id}-vr",{scaleY:0},{scaleY:1,duration:1.1,ease:"power2.inOut"},${r(T + 0.5)});` : "",
     lede ? `tl.fromTo("#${id}-lede",{opacity:0,y:${land ? 12 : 16}},{opacity:1,y:0,duration:0.9,ease:"power2.out"},${r(T + 0.85)});` : "",
     detail ? `tl.fromTo("#${id}-drule",{scaleX:0},{scaleX:1,duration:0.9,ease:"power2.out"},${r(T + 1.25)});` : "",
@@ -317,7 +325,7 @@ function plate(scene, ctx, a, b) {
     <div style="position:absolute;left:${m}cqw;right:${m}cqw;top:13%;bottom:12%;display:flex;flex-direction:column;">
       <div style="display:flex;align-items:center;gap:1.4cqw;">
         <span id="${id}-fig" style="opacity:0;flex:0 0 auto;">${caps(`Fig. ${figNo}`, th, land, th.accentText)}</span>
-        ${label ? `<span id="${id}-lab" style="opacity:0;flex:0 0 auto;">${caps(label, th, land, th.faint)}</span>` : ""}
+        ${label ? `<span id="${id}-lab" style="opacity:0;flex:0 0 auto;">${caps(label, th, land, th.matFaint)}</span>` : ""}
         ${hairline(`class="${id}-hr"`, th, land, th.hair, "left center", "flex:1 1 auto;")}
       </div>
       <div style="margin-top:${land ? 1.3 : 2.1}cqw;max-width:${land ? 66 : 100}%;">${serifLines(lines, size, th.ink, `${id}-line`, th)}</div>
@@ -336,8 +344,6 @@ function plate(scene, ctx, a, b) {
     `tl.fromTo("#${id}-fig",{opacity:0,y:8},{opacity:1,y:0,duration:0.7,ease:"power2.out"},${r(T + 0.15)});`,
     label ? `tl.fromTo("#${id}-lab",{opacity:0,y:8},{opacity:1,y:0,duration:0.7,ease:"power2.out"},${r(T + 0.25)});` : "",
     `tl.fromTo(".${id}-hr",{scaleX:0},{scaleX:1,duration:1.1,ease:"power2.inOut"},${r(T + 0.25)});`,
-    `tl.fromTo(".${id}-line",{opacity:0,y:${land ? 16 : 20}},{opacity:1,y:0,duration:0.85,ease:"power2.out",stagger:0.16},${r(T + 0.4)});`,
-    `tl.fromTo("#${id}-plate",{opacity:0,y:${land ? 16 : 22}},{opacity:1,y:0,duration:0.95,ease:"power2.out"},${r(T + 0.7)});`,
     a && a.path ? `tl.fromTo(".${id}-img",{scale:1},{scale:1.045,duration:${r(Math.max(1.2, L - 0.7))},ease:"sine.inOut"},${r(T + 0.7)});` : "",
     inset ? `tl.fromTo("#${id}-inset",{opacity:0,y:10},{opacity:1,y:0,duration:0.8,ease:"power2.out"},${r(T + 1.25)});` : "",
     caption ? `tl.fromTo("#${id}-cap",{opacity:0,y:9},{opacity:1,y:0,duration:0.8,ease:"power2.out"},${r(T + 1.15)});` : "",
@@ -387,7 +393,7 @@ function ledger(scene, ctx) {
   const html = `
     <div style="position:absolute;left:${m}cqw;right:${m}cqw;top:14%;bottom:13%;display:flex;flex-direction:column;justify-content:${land ? "flex-start" : "center"};">
       <div style="display:flex;align-items:center;gap:1.4cqw;">
-        <span id="${id}-lab" style="opacity:0;flex:0 0 auto;">${caps(label || `Table ${String(ctx.i + 1).padStart(2, "0")}`, th, land, th.accentText)}</span>
+        <span id="${id}-lab" style="opacity:0;flex:0 0 auto;">${caps(label || `Table ${String(ctx.i + 1).padStart(2, "0")}`, th, land, th.matAccent)}</span>
         ${hairline(`class="${id}-hr"`, th, land, th.hair, "left center", "flex:1 1 auto;")}
       </div>
       <div style="margin-top:${land ? 1.3 : 2.1}cqw;">${serifLines(lines, size, th.ink, `${id}-line`, th)}</div>
@@ -404,7 +410,6 @@ function ledger(scene, ctx) {
   const s = [
     `tl.fromTo("#${id}-lab",{opacity:0,y:8},{opacity:1,y:0,duration:0.7,ease:"power2.out"},${r(T + 0.15)});`,
     `tl.fromTo(".${id}-hr",{scaleX:0},{scaleX:1,duration:1.1,ease:"power2.inOut"},${r(T + 0.2)});`,
-    `tl.fromTo(".${id}-line",{opacity:0,y:${land ? 16 : 20}},{opacity:1,y:0,duration:0.85,ease:"power2.out",stagger:0.16},${r(T + 0.35)});`,
     `tl.fromTo(".${id}-dbl",{scaleX:0},{scaleX:1,duration:1,ease:"power2.inOut",stagger:0.1},${r(T + 0.65)});`,
     `tl.fromTo(".${id}-row",{opacity:0,y:${land ? 12 : 16}},{opacity:1,y:0,duration:0.8,ease:"power2.out",stagger:0.22},${r(T + 0.85)});`,
     rows.length > 1 ? `tl.fromTo(".${id}-rl",{scaleX:0},{scaleX:1,duration:0.85,ease:"power2.out",stagger:0.22},${r(T + 1)});` : "",
@@ -430,7 +435,7 @@ function footnotes(scene, ctx) {
   const itemSize = land ? Math.min(2.7, Math.max(1.35, 46 / Math.max(...items.map((x) => x.length), 1) * 1.6)) : 3.2;
   const rows = items.map((t, k) => `
       <div class="${id}-row" style="opacity:0;display:flex;align-items:flex-start;gap:${land ? 1.8 : 2.6}cqw;padding:${land ? 0.8 : 2.2}cqw 0;">
-        <span style="flex:0 0 ${land ? 3 : 5}cqw;font-family:${th.bodyStack};font-size:${r(LAB(land) * 0.92)}cqw;letter-spacing:0.16em;color:${th.accentText};padding-top:${land ? 0.35 : 0.6}cqw;">${String(k + 1).padStart(2, "0")}</span>
+        <span style="flex:0 0 ${land ? 3 : 5}cqw;font-family:${th.bodyStack};font-size:${r(LAB(land) * 0.92)}cqw;letter-spacing:0.16em;color:${th.matAccent};padding-top:${land ? 0.35 : 0.6}cqw;">${String(k + 1).padStart(2, "0")}</span>
         <span style="font-family:${th.displayStack};font-size:${r(itemSize)}cqw;line-height:1.38;color:${th.ink};overflow-wrap:break-word;">${esc(t)}</span>
       </div>
       ${hairline(`class="${id}-rl"`, th, land, th.hair, "left center", "")}`).join("");
@@ -441,7 +446,7 @@ function footnotes(scene, ctx) {
     : "flex:0 0 auto;display:flex;flex-direction:column;";
   const html = `
     <div style="position:absolute;left:${m}cqw;right:${m}cqw;top:14%;bottom:13%;display:flex;flex-direction:column;justify-content:${land ? "flex-start" : "center"};">
-      ${label ? `<div id="${id}-lab" style="opacity:0;margin-bottom:${land ? 1.3 : 2.1}cqw;">${caps(label, th, land, th.accentText)}</div>` : ""}
+      ${label ? `<div id="${id}-lab" style="opacity:0;margin-bottom:${land ? 1.3 : 2.1}cqw;">${caps(label, th, land, th.matAccent)}</div>` : ""}
       <div>${serifLines(lines, size, th.ink, `${id}-line`, th)}</div>
       <div style="${fillCol}margin-top:${land ? 2.2 : 3.4}cqw;">
         ${hairline(`class="${id}-top"`, th, land, th.rule, "left center", "")}
@@ -450,7 +455,6 @@ function footnotes(scene, ctx) {
     </div>`;
   const s = [
     label ? `tl.fromTo("#${id}-lab",{opacity:0,y:8},{opacity:1,y:0,duration:0.7,ease:"power2.out"},${r(T + 0.15)});` : "",
-    `tl.fromTo(".${id}-line",{opacity:0,y:${land ? 16 : 20}},{opacity:1,y:0,duration:0.85,ease:"power2.out",stagger:0.16},${r(T + 0.3)});`,
     `tl.fromTo(".${id}-top",{scaleX:0},{scaleX:1,duration:1,ease:"power2.inOut"},${r(T + 0.6)});`,
     `tl.fromTo(".${id}-row",{opacity:0,y:${land ? 12 : 16}},{opacity:1,y:0,duration:0.8,ease:"power2.out",stagger:0.28},${r(T + 0.8)});`,
     `tl.fromTo(".${id}-rl",{scaleX:0},{scaleX:1,duration:0.8,ease:"power2.out",stagger:0.28},${r(T + 0.95)});`,
@@ -528,7 +532,6 @@ function colophon(scene, ctx, a) {
     logo ? `tl.fromTo("#${id}-logo",{opacity:0,y:${land ? 10 : 14}},{opacity:1,y:0,duration:0.8,ease:"power2.out"},${r(T + 0.05)});` : "",
     `tl.fromTo("#${id}-mark",{opacity:0,scale:0.4},{opacity:1,scale:1,duration:0.75,ease:"power2.out"},${r(T + 0.15)});`,
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,y:9},{opacity:1,y:0,duration:0.75,ease:"power2.out"},${r(T + 0.3)});` : "",
-    `tl.fromTo(".${id}-line",{opacity:0,y:${land ? 18 : 24}},{opacity:1,y:0,duration:0.9,ease:"power2.out",stagger:0.18},${r(T + 0.45)});`,
     cta ? `tl.fromTo("#${id}-cta",{opacity:0,y:12},{opacity:1,y:0,duration:0.85,ease:"power2.out"},${r(T + 1)});` : "",
     `tl.fromTo("#${id}-frule",{scaleX:0},{scaleX:1,duration:1,ease:"power2.inOut"},${r(T + 1.15)});`,
     `tl.fromTo("#${id}-url",{opacity:0,y:10},{opacity:1,y:0,duration:0.85,ease:"power2.out"},${r(T + 1.35)});`,
@@ -581,6 +584,22 @@ function styleBlock(th, land) {
 }
 
 const family = {
+  // ---- SCENE FILL (services/template_engine.js sceneFill) ---------------------
+  // Measured 2026-08-04: scenes carried ~11 words over ~14% of the frame, so the
+  // script's spare copy (supporting points, a figure, a subtext) never reached the
+  // screen. It is drawn here as a chip row + broadcast ticker in the lower band.
+  // Skipped on the closer, the pull-quote and the type whose own design owns that
+  // band — furniture under a CTA or a quote costs more than the density gains.
+  fill: (type, ctx, scene) => {
+    if (["colophon","pullquote","plate"].includes(type)) return null;
+    const land = ctx.land;
+    return {
+      left: land ? 7 : 6, right: land ? 7 : 6, bottom: land ? 7 : 10,
+      font: land ? 1.12 : 1.95, max: 3,
+      plate: ctx.theme.ground, ink: ctx.theme.ink, accent: ctx.theme.accent,
+      used: bullets(scene || {}, 3),
+    };
+  },
   theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaFallback,
   // The engine injects the site logo into `a` for the closing colophon only —
   // no demand-math change (colophon keeps media:[]).
@@ -588,9 +607,31 @@ const family = {
   fallbackType: "feature",
   variants: 3,
   // A quiet page turn: no whips, barely any blur, a push you feel rather than see.
-  camera: {
+  camera: { enabled: false,
     kinds: ["zoom", "zoom", "zoom", "zoom", "zoom", "zoom", "zoom", "zoom"],
     blur: 4, push: 0.02, zoomIn: 1.06, zoomOut: 1.05,
+  },
+
+  // ---- SHARED MOTION SYSTEM (services/motion_presets.js) ----------------------
+  // This family publishes WHERE its headline, card and camera live; the engine
+  // drives them from the one preset library. Its own entrance tweens for those
+  // elements were removed in the same change — two timelines on one property
+  // fight, and the loser is whichever the browser applies second.
+  motion: {
+    heroType: "titlespread",
+    text: (id) => `.${id}-line`,
+    card: (id) => `#${id}-plate, .${id}-plate`,
+    camera: (id) => `#${id}-cami`,
+    // The film's two hero moments carry the signature type treatments; the
+    // middle stays on the house word stagger so the signatures stay signatures.
+    tokens: (type, i, ctx, { hasCard } = {}) => ({
+      text: type === "titlespread" ? "outlineFillReveal"
+        : type === "colophon" ? "characterReveal" : "wordStaggerBlur",
+      enter: hasCard ? "cardRise3D" : "none",
+      idle: hasCard ? "floatSoft" : "none",
+      camera: MOTION.CAMERA_MOVES[i % MOTION.CAMERA_MOVES.length],
+      transition: MOTION.TRANSITIONS[i % MOTION.TRANSITIONS.length],
+    }),
   },
 };
 

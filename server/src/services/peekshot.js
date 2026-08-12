@@ -122,7 +122,10 @@ async function captureOne({
   fullPage = false,
   fileType = "png",
   delay = 3,               // seconds before capture — lets the consent killer run
-  timeoutMs = 90_000,
+  // Measured completion latency on a live account (2026-08-03): median ~47s,
+  // max 112s, and a queue backlog can push past that. The old 90s default sat
+  // inside the normal spread, so ordinary captures failed as "timeouts".
+  timeoutMs = 180_000,
   signal = null,
 } = {}) {
   if (!enabled()) throw new Error("peekshot: no apiKey configured");

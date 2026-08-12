@@ -1,0 +1,91 @@
+{
+  "name": "pipeline-factory",
+  "renderer": "omelette",
+  "template": "Pipeline",
+  "vibe": "A working assembly line: product screenshots ride a conveyor past turning gears, a robotic arm and a stamping press, with throughput counters ticking. Industrial light grey and safety orange. For process, automation, CI/CD and anything built to scale.",
+  "colors": {
+    "ground": "#EAEDF2",
+    "ink": "#1E2230",
+    "accent": "#FF8A00",
+    "a2": "#6B7385",
+    "a3": "#AEB6C4"
+  },
+  "fonts": [
+    "Chakra Petch"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#EAEDF2"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none"
+  },
+  "skin": {
+    "accents": [
+      "#FF8A00",
+      "#6B7385"
+    ],
+    "extras": [
+      "#AEB6C4"
+    ],
+    "emphasisCss": "color:#FF8A00;"
+  },
+  "assets": {
+    "photoMod": "",
+    "iconStyle": "line",
+    "keywords": [
+      "pipeline",
+      "factory",
+      "automation",
+      "process",
+      "industrial"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Chakra Petch"
+  },
+  "camera3d": {
+    "ground": "#EAEDF2"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "countin",
+    "emphasis": "glow",
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035,
+    "sizeScale": 1.12,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "punchy electronic percussion hard hitting drive",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
+  }
+}

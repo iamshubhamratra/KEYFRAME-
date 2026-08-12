@@ -1,0 +1,98 @@
+{
+  "name": "circuit",
+  "renderer": "omelette",
+  "template": "Circuit",
+  "portraitNative": true,
+  "vibe": "\"CIRCUIT\" PCB electronics world. Traces, chips, scope. Portrait-native 9:16 (9 authored beats, 27.8s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#0A1F14",
+    "ink": "#E8F5EC",
+    "accent": "#29D07E",
+    "a2": "#3AA6FF"
+  },
+  "fonts": [
+    "Rajdhani",
+    "Red Hat Mono"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#0A1F14",
+    "ink": "#E8F5EC"
+  },
+  "motion": {
+    "cut": "smear",
+    "drift": 0.96
+  },
+  "fx": {
+    "canvas": "rays",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#29D07E",
+      "#3AA6FF"
+    ],
+    "extras": [
+      "#E0913F",
+      "#071710",
+      "#101B14"
+    ],
+    "emphasisCss": "color:#29D07E;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "circuit-film",
+      "circuit",
+      "electronics",
+      "world",
+      "traces",
+      "chips"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Rajdhani",
+    "body": "Red Hat Mono"
+  },
+  "camera3d": {
+    "ground": "#0A1F14"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "spring",
+    "emphasis": "underline-grow",
+    "case": "none",
+    "tracking": -0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "driving percussive energetic sports rock beat",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

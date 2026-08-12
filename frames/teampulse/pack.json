@@ -1,0 +1,93 @@
+{
+  "name": "teampulse",
+  "renderer": "omelette",
+  "template": "Teampulse",
+  "portraitNative": true,
+  "vibe": "A punchy 9:16 office ad. Kinetic word-slams and a typewriter line open it, a marquee ticker runs the brand, then the product reveal, a feature wall, the team roster with a pull-quote, counting numbers and a hard CTA. Fourteen authored beats built for a phone feed — for team tools, workplace products, hiring films and anything that should feel like a confident in-house ad.",
+  "colors": {
+    "ground": "#0E0F14",
+    "ink": "#FFFFFF",
+    "accent": "#FF4D2E",
+    "a2": "#FFD23F",
+    "a3": "#2BD9A3"
+  },
+  "fonts": [
+    "Caprasimo",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#0E0F14"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none"
+  },
+  "skin": {
+    "accents": [
+      "#FF4D2E",
+      "#FFD23F"
+    ],
+    "extras": [
+      "#2BD9A3"
+    ],
+    "emphasisCss": "color:#FF4D2E;"
+  },
+  "assets": {
+    "photoMod": "",
+    "iconStyle": "line",
+    "keywords": [
+      "team",
+      "office",
+      "workplace",
+      "collaboration",
+      "product"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Caprasimo"
+  },
+  "camera3d": {
+    "ground": "#0E0F14"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "stamp",
+    "emphasis": "boxed",
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035,
+    "sizeScale": 1.12,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "stomp claps big drums anthemic energetic build",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
+  }
+}

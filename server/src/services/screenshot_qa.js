@@ -1,12 +1,17 @@
 // SCREENSHOT QA AGENT — the last gate between a website capture and the screen.
 //
-// Runs AFTER all screenshots are collected (ingest landing shots + the
-// Screenshot Director's topic captures) and BEFORE the creative director /
-// composition ever sees them. Screenshots are "trusted owner content" so they
-// skip the stock relevance gate — which meant a capture that came back as a
-// 404, a Cloudflare bot-wall, a cookie-consent modal or a blank half-render
-// went straight into the film as a full-screen hero shot. This agent looks at
-// every capture and DROPS the broken ones.
+// Runs AFTER all owner imagery is collected (ingest landing shots, the Screenshot
+// Director's topic captures, the site's own images, blog images) and BEFORE the
+// creative director / composition ever sees them. All of it is "trusted owner
+// content" so it skips the stock relevance gate — which meant a capture that came
+// back as a 404, a Cloudflare bot-wall, a cookie-consent modal or a blank
+// half-render went straight into the film as a full-screen hero shot. This agent
+// looks at every one and DROPS the broken ones.
+//
+// It is also the ONLY per-scene "does this picture match what this scene SAYS"
+// test in the pipeline (matchesScene / bestSceneId below), which is why it must
+// see every owner class rather than just the landing captures — see
+// OWNER_SHOT_SOURCES.
 //
 // One batched vision pass (chunks of 6), same cheap flash model as the other
 // directors. FAIL-OPEN by design: any error (dead budget, un-thumbnailable
@@ -50,14 +55,15 @@ async function inspectScreenshots({ shots, subject, scenes, tracker, signal } = 
     const chunk = shots.slice(start, start + CHUNK);
     try {
       const thumbs = [];
-      for (const s of chunk) thumbs.push(await thumbBase64(s.absPath, false));
+      // Independent per-file decodes — see the note in creative_director.reviewChunk.
+      thumbs.push(...await Promise.all(chunk.map((s) => thumbBase64(s.absPath, false).catch(() => null))));
       const usable = thumbs.map((b, i) => ({ b, i })).filter((x) => x.b);
       if (!usable.length) continue;
 
       const content = [{
         type: "text",
         text:
-          `${scenesLine}These ${usable.length} website screenshot(s) were captured for a short promo film about: "${subject || "a product"}". ` +
+          `${scenesLine}These ${usable.length} owner image(s) — website captures and the site's / post's own images — were collected for a short promo film about: "${subject || "a product"}". ` +
           `For EACH, judge BOTH the capture quality AND whether it matches the scene it is pinned to (per the schema). ` +
           `Each screenshot is preceded by its number and the topic of the scene it is pinned to.`,
       }];
@@ -110,19 +116,43 @@ function sceneTopic(sc) {
   ].map((x) => String(x || "").trim()).filter(Boolean).join(" · ").slice(0, 160);
 }
 
-// Convenience wrapper used by the pipelines: takes the pinned screenshot asset
-// objects (path relative to jobDir, source:"website"), inspects each for BOTH
-// capture quality AND scene-match, then FIXES problems:
-//   • broken/error/blank capture  -> DROP (delete from disk),
-//   • good page on the WRONG scene -> RE-PIN to the scene it actually fits
-//     (if that scene is free), else DROP (a wrong-scene shot is worse than a vector),
-//   • good page on the right scene -> keep.
+// EVERY owner/trusted image class, not just the landing captures. All four are
+// pinned to a scene in pure ARRIVAL ORDER by whoever produced them, and all four
+// skip the stock relevance gate because they are "owner content" — so this gate is
+// the ONLY place anything asks "does this picture match the line this scene
+// speaks?". Restricting it to source==="website" left three classes unchecked:
+//   "topic-screenshot" — the Screenshot Director's topic captures, which ship
+//                        `visionOk: true` (pre-approved for prominent slots) from
+//                        topic_shots.js and were never looked at again. On
+//                        /api/generate (pipeline.js) the gate is handed NOTHING
+//                        BUT topic captures, so it inspected zero assets there.
+//   "website-image"    — the site's own downloaded images (hero art, decorative
+//                        gradients) pinned to showcase scenes in arrival order.
+//   "blog"             — images lifted from the source post, pinned the same way.
+const OWNER_SHOT_SOURCES = new Set(["website", "topic-screenshot", "website-image", "blog"]);
+
+// A real CAPTURE can come back broken (404, consent modal, bot-wall) and is cheap
+// to re-take, so a failed one is deleted from disk. A downloaded owner IMAGE is
+// not a capture and cannot be re-shot — drop it from the pool on a failure, but
+// never unlink it, so a false positive costs a slot rather than the file.
+const isCapture = (a) => {
+  const s = String((a && a.source) || "");
+  return s === "website" || s === "topic-screenshot";
+};
+
+// Convenience wrapper used by the pipelines: takes the pinned owner-content asset
+// objects (path relative to jobDir, source in OWNER_SHOT_SOURCES), inspects each
+// for BOTH capture quality AND scene-match, then FIXES problems:
+//   • broken/error/blank capture  -> DROP (and delete from disk, if a capture),
+//   • good image on the WRONG scene -> RE-PIN to the scene it actually fits
+//     (if that scene is free), else UNPIN into the free pool,
+//   • good image on the right scene -> keep.
 // `script` supplies the scenes (topics + timing) used for matching + re-pinning.
-// Non-screenshot assets pass through untouched. Fail-open throughout.
-async function qaGateScreenshots({ assets, jobDir, subject, script, tracker, log = console, _inspect = inspectScreenshots } = {}) {
+// Stock and every other non-owner asset passes through untouched. Fail-open throughout.
+async function qaGateScreenshots({ assets, jobDir, subject, script, tracker, log = console, onDrop, _inspect = inspectScreenshots } = {}) {
   const list = Array.isArray(assets) ? assets : [];
   const shotIdx = [];
-  list.forEach((a, i) => { if (a && a.source === "website" && a.type === "image") shotIdx.push(i); });
+  list.forEach((a, i) => { if (a && OWNER_SHOT_SOURCES.has(String(a.source || "")) && a.type === "image") shotIdx.push(i); });
   if (!shotIdx.length) return list;
 
   const allScenes = (script && Array.isArray(script.scenes)) ? script.scenes : [];
@@ -133,9 +163,16 @@ async function qaGateScreenshots({ assets, jobDir, subject, script, tracker, log
     shots: shotIdx.map((i) => {
       const a = list[i];
       const sc = sceneById.get(String(a.sceneId));
+      // Tell the model WHAT it is looking at. The quality half of its verdict is
+      // written for page captures ("blank", "consent-overlay"); a photo lifted off
+      // a blog post is not a failed capture and must not be failed as one.
+      const cls = a.source === "blog" ? "image from the source blog post"
+        : a.source === "website-image" ? "image downloaded from the site itself"
+        : a.source === "topic-screenshot" ? "capture of a third-party site, shown as an industry example"
+        : null;
       return {
         absPath: path.isAbsolute(a.path) ? a.path : path.join(jobDir, a.path),
-        label: a.alt ? String(a.alt).slice(0, 70) : undefined,
+        label: [cls, a.alt ? String(a.alt).slice(0, 70) : ""].filter(Boolean).join(" — ") || undefined,
         sceneText: sc ? sceneTopic(sc) : undefined,
       };
     }),
@@ -158,7 +195,10 @@ async function qaGateScreenshots({ assets, jobDir, subject, script, tracker, log
     if (!v.pass) { // capture-quality failure → drop
       dropZ.add(i); problems.push(v.problem || "rejected"); claimed.delete(String(a.sceneId));
       log.warn?.(`[screenshot-qa] shot REJECTED (${v.problem}${v.sees ? `: ${v.sees}` : ""}) — ${base}`);
-      del(a.path);
+      // Report it: this page is unusable, but ANOTHER page may still serve the
+      // scene, and only the caller knows how to go and get one.
+      try { onDrop?.({ sceneId: String(a.sceneId), reason: String(v.problem || "rejected"), recoverable: isCapture(a), path: a.path }); } catch { /* noop */ }
+      if (isCapture(a)) del(a.path);
       return;
     }
     if (v.matchesScene) { // clean + on-topic → keep
@@ -172,13 +212,29 @@ async function qaGateScreenshots({ assets, jobDir, subject, script, tracker, log
     if (target && bestId !== cur && !claimed.has(bestId)) {
       claimed.delete(cur); claimed.add(bestId);
       a.sceneId = target.id; a.startSec = target.start; a.durationSec = target.duration;
-      a.alt = "REAL website screenshot — matches this scene's topic — present in a styled browser frame with hero treatment";
+      // Only a real capture gets the browser-frame instruction — wrapping a blog
+      // photo in browser chrome tells the viewer it is a page, which it is not.
+      a.alt = isCapture(a)
+        ? "REAL website screenshot — matches this scene's topic — present in a styled browser frame with hero treatment"
+        : `${String(a.alt || "owner image").slice(0, 90)} — matches this scene's topic`;
       repinned++;
       log.log?.(`[screenshot-qa] shot RE-PINNED scene ${cur} → ${bestId} (${v.sees || "better match"}) — ${base}`);
     } else {
-      dropZ.add(i); problems.push("scene-mismatch"); claimed.delete(cur);
-      log.warn?.(`[screenshot-qa] shot DROPPED (scene mismatch, no free matching scene) — ${base}`);
-      del(a.path);
+      // A CLEAN SCREENSHOT WITH NOWHERE TO SIT IS STILL A REAL SCREENSHOT.
+      // This branch used to DELETE it — measured on a finished film, two good
+      // Trello captures were destroyed purely because every scene already held
+      // one, and generic stock then filled the montage slots. Unpin it instead:
+      // with no sceneId it joins the composer's free pool, where walls, montages
+      // and B-roll slots can use it. Only a capture that is genuinely BROKEN
+      // (the branch above) is worth deleting.
+      claimed.delete(cur);
+      a.sceneId = null; a.startSec = undefined; a.durationSec = undefined;
+      a.style = "background";
+      a.alt = isCapture(a)
+        ? "REAL website screenshot — product UI, unpinned (no scene of its own)"
+        : `${String(a.alt || "owner image").slice(0, 90)} — unpinned (no scene of its own)`;
+      problems.push("scene-mismatch-unpinned");
+      log.log?.(`[screenshot-qa] shot UNPINNED (clean, but no free matching scene) — ${base}`);
     }
   });
 

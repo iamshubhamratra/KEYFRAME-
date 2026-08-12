@@ -1,0 +1,98 @@
+{
+  "name": "stacks-and-spines",
+  "renderer": "omelette",
+  "template": "StacksAndSpines",
+  "portraitNative": true,
+  "vibe": "shelf spines, lamp glow, dust motes Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#223828",
+    "ink": "#F2ECDC",
+    "accent": "#A8402E",
+    "a2": "#8A6A42"
+  },
+  "fonts": [
+    "EB Garamond",
+    "Public Sans"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#223828",
+    "ink": "#F2ECDC"
+  },
+  "motion": {
+    "cut": "whip",
+    "drift": 0.95
+  },
+  "fx": {
+    "canvas": "sprinkle",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#A8402E",
+      "#8A6A42"
+    ],
+    "extras": [
+      "#1A2C20",
+      "#2E4636",
+      "#2E6E4E"
+    ],
+    "emphasisCss": "color:#A8402E;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "stacks",
+      "spines",
+      "shelf",
+      "lamp",
+      "glow",
+      "dust"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "EB Garamond",
+    "body": "Public Sans"
+  },
+  "camera3d": {
+    "ground": "#223828"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "char-pop",
+    "emphasis": "marker",
+    "case": "none",
+    "tracking": -0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

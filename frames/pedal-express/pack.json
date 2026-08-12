@@ -1,0 +1,98 @@
+{
+  "name": "pedal-express",
+  "renderer": "omelette",
+  "template": "PedalExpress",
+  "portraitNative": true,
+  "vibe": "wheel spokes, speed lines, route dash, skyline scroll Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#26282C",
+    "ink": "#F2F4F6",
+    "accent": "#FF6B35",
+    "a2": "#4CC9F0"
+  },
+  "fonts": [
+    "Passion One",
+    "Fira Sans"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#26282C",
+    "ink": "#F2F4F6"
+  },
+  "motion": {
+    "cut": "wash",
+    "drift": 0.95
+  },
+  "fx": {
+    "canvas": "caustics",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FF6B35",
+      "#4CC9F0"
+    ],
+    "extras": [
+      "#1B1D21",
+      "#2F3238",
+      "#FFD23C"
+    ],
+    "emphasisCss": "color:#FF6B35;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "pedal",
+      "express",
+      "wheel",
+      "spokes",
+      "speed",
+      "lines"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Passion One",
+    "body": "Passion One"
+  },
+  "camera3d": {
+    "ground": "#26282C"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "char-pop",
+    "emphasis": "echo",
+    "case": "none",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "driving percussive energetic sports rock beat",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

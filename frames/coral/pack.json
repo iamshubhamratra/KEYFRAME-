@@ -1,5 +1,6 @@
 {
   "name": "coral",
+  "renderer": "poster-loud",
   "vibe": "A bold magazine poster built from three solid surfaces — coral fire, ink black, warm cream — meeting at hard color edges where the region boundary itself is the layout.",
   "colors": {
     "coral": "#E85D5D",
@@ -12,8 +13,8 @@
     "white": "#FFFFFF"
   },
   "fonts": [
-    "Bebas Neue",
-    "Inter"
+    "Archivo Black",
+    "JetBrains Mono"
   ],
   "surface": {
     "flat": true,
@@ -55,29 +56,27 @@
     ]
   },
   "textfx": {
-    "enter": "mask-reveal",
-    "emphasis": "underline-grow",
+    "enter": "zap",
+    "emphasis": "ring",
     "case": "upper",
-    "tracking": 0.04,
-    "weight": null,
-    "sizeScale": 1.12,
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.25,
     "align": "left"
   },
   "audio": {
     "music": {
-      "query": "bold brass anthem",
-      "mood": "dramatic",
+      "query": "driving percussion tribal toms punchy energetic",
+      "mood": "energetic",
       "volume": 0.15
     },
     "sfx": {
-      "style": "hard cuts and heavy impacts, poster-punch stingers",
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
       "palette": [
-        "whoosh transition",
         "impact hit",
-        "hard cut thud",
-        "paper snap",
-        "deep boom",
-        "riser sweep"
+        "clap",
+        "riser sweep",
+        "whoosh transition"
       ]
     }
   },
@@ -86,5 +85,8 @@
     "kicker": true,
     "underline": true,
     "stat": "headline"
+  },
+  "typography": {
+    "display": "Archivo Black"
   }
 }

@@ -100,7 +100,8 @@ async function checkAssetsRelevance({ assets, subject, tracker, signal }) {
     try {
       // Thumbnail each; an asset we can't render stays keep=true (skipped below).
       const thumbs = [];
-      for (const a of chunk) thumbs.push(await thumbBase64(a.absPath, a.type === "video"));
+      // Independent per-file decodes — see the note in creative_director.reviewChunk.
+      thumbs.push(...await Promise.all(chunk.map((a) => thumbBase64(a.absPath, a.type === "video").catch(() => null))));
       const usable = thumbs.map((b, i) => ({ b, i })).filter((x) => x.b);
       if (!usable.length) continue;
 

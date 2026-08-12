@@ -16,7 +16,10 @@
     "amber": "#F59E0B",
     "purple": "#A855F7"
   },
-  "fonts": ["Space Grotesk", "Inter"],
+  "fonts": [
+    "Bricolage Grotesque",
+    "Space Grotesk"
+  ],
   "surface": {
     "flat": false,
     "lightCinematic": true,
@@ -24,32 +27,74 @@
   },
   "motion": {
     "cut": "glow",
-    "drift": 1.0
+    "drift": 1
   },
   "fx": {
     "canvas": "flow",
     "three": "brightlife"
   },
   "skin": {
-    "accents": ["#6366F1", "#8B5CF6", "#06B6D4", "#EC4899"],
-    "extras": ["#3B82F6", "#10B981", "#F59E0B", "#A855F7"],
+    "accents": [
+      "#6366F1",
+      "#8B5CF6",
+      "#06B6D4",
+      "#EC4899"
+    ],
+    "extras": [
+      "#3B82F6",
+      "#10B981",
+      "#F59E0B",
+      "#A855F7"
+    ],
     "emphasisCss": null
   },
   "assets": {
     "photoMod": "bright clean modern product ui on white",
     "iconStyle": "gradient",
-    "keywords": ["bright", "clean", "modern", "premium", "gradient", "minimal", "pastel", "glass"],
-    "prefer": ["photo", "vector"]
+    "keywords": [
+      "bright",
+      "clean",
+      "modern",
+      "premium",
+      "gradient",
+      "minimal",
+      "pastel",
+      "glass"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
   },
   "typography": {
-    "display": "Space Grotesk"
+    "display": "Bricolage Grotesque"
   },
   "camera3d": {
     "ground": "#FFFFFF"
   },
   "textfx": {
-    "enter": "mask-reveal",
-    "emphasis": "gradient",
-    "align": "left"
+    "enter": "slide",
+    "emphasis": "echo",
+    "align": "left",
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035,
+    "sizeScale": 1.12
+  },
+  "audio": {
+    "music": {
+      "query": "marching snare stomp clap epic energetic",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
   }
 }

@@ -1,0 +1,94 @@
+{
+  "name": "showcase",
+  "renderer": "showcase",
+  "vibe": "A bright, annotated product tour. Real screenshots sit in clean browser chrome and phone bezels on a soft blue-grey sheet washed with blurred colour blobs, a fine grid and drifting paper planes. Curved arrows draw themselves onto the UI, numbered callout bubbles pop beside the parts that matter, a highlight box pulses and a cursor glides in to click. Space Grotesk display over JetBrains Mono labels; motion is a clean slide-push between scenes with a slow Ken Burns into each capture. The most screenshot-forward pack in the library — for product tours, feature walkthroughs, onboarding explainers and anything where the product itself is the story.",
+  "colors": {
+    "bg": "#EEF1F7",
+    "panel": "#FFFFFF",
+    "ink": "#131722",
+    "sub": "#5B6472",
+    "line": "#D9DEE8",
+    "blue": "#2F6BFF",
+    "mark": "#FFC53D"
+  },
+  "fonts": [
+    "Orbitron",
+    "Space Grotesk"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#EEF1F7"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid"
+  },
+  "skin": {
+    "accents": [
+      "#2F6BFF",
+      "#FFC53D"
+    ],
+    "extras": [
+      "#57B894",
+      "#8B5CF6"
+    ],
+    "emphasisCss": "color:#2F6BFF;"
+  },
+  "assets": {
+    "photoMod": "clean bright product interface workspace daylight minimal",
+    "iconStyle": "line",
+    "keywords": [
+      "product",
+      "dashboard",
+      "interface",
+      "software",
+      "workspace"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Orbitron"
+  },
+  "camera3d": {
+    "ground": "#EEF1F7"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "stamp",
+    "emphasis": "boxed",
+    "case": "upper",
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.12,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "big beat breakbeat percussive energetic drive",
+      "mood": "energetic",
+      "volume": 0.14
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
+  }
+}

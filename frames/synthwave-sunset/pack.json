@@ -1,0 +1,98 @@
+{
+  "name": "synthwave-sunset",
+  "renderer": "omelette",
+  "template": "SynthwaveSunset",
+  "portraitNative": true,
+  "vibe": "striped sun over a scrolling perspective grid Portrait-native 9:16 (18 authored beats, 49.9s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#1A0B2E",
+    "ink": "#45E0FF",
+    "accent": "#F6ECFF",
+    "a2": "#FF5C8A"
+  },
+  "fonts": [
+    "Audiowide",
+    "Jost"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#1A0B2E",
+    "ink": "#45E0FF"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 0.99
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F6ECFF",
+      "#FF5C8A"
+    ],
+    "extras": [
+      "#FFA14A",
+      "#120722",
+      "#FFFFFF"
+    ],
+    "emphasisCss": "color:#F6ECFF;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "synthwave",
+      "sunset",
+      "striped",
+      "scrolling",
+      "perspective",
+      "grid"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Audiowide",
+    "body": "Jost"
+  },
+  "camera3d": {
+    "ground": "#1A0B2E"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "marker",
+    "case": "none",
+    "tracking": 0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "synthwave retro electronic driving arpeggio neon",
+      "mood": "energetic",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

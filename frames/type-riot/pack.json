@@ -1,0 +1,96 @@
+{
+  "name": "type-riot",
+  "renderer": "omelette",
+  "template": "TypeRiot",
+  "portraitNative": true,
+  "vibe": "\"Type Riot\" Pure kinetic typography: giant Anton word slams, per-letter cascades, outline/fill flips, a huge drifting ghost word behind everything. Black / off-white / riot red. Portrait-native 9:16 (18 authored beats, 49.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#141414",
+    "ink": "#F4F1EA",
+    "accent": "#E63329",
+    "a2": "#2E5BFF"
+  },
+  "fonts": [
+    "Anton",
+    "Space Grotesk"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#141414",
+    "ink": "#F4F1EA"
+  },
+  "motion": {
+    "cut": "fade",
+    "drift": 1.02
+  },
+  "fx": {
+    "canvas": "sumi",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#E63329",
+      "#2E5BFF"
+    ],
+    "extras": [
+      "#FF9F1C"
+    ],
+    "emphasisCss": "color:#E63329;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "type-riot-film",
+      "type",
+      "riot",
+      "pure",
+      "kinetic",
+      "typography"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Anton",
+    "body": "Space Grotesk"
+  },
+  "camera3d": {
+    "ground": "#141414"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slide",
+    "emphasis": "marker",
+    "case": "none",
+    "tracking": 0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

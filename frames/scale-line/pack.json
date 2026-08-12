@@ -1,0 +1,98 @@
+{
+  "name": "scale-line",
+  "renderer": "omelette",
+  "template": "ScaleLine",
+  "portraitNative": true,
+  "vibe": "oval track loop, tunnel, cone trees, signal arm Portrait-native 9:16 (14 authored beats, 41.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#31402E",
+    "ink": "#F0E9DA",
+    "accent": "#C23B2E",
+    "a2": "#7A2E35"
+  },
+  "fonts": [
+    "Staatliches",
+    "Onest"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#31402E",
+    "ink": "#F0E9DA"
+  },
+  "motion": {
+    "cut": "iris",
+    "drift": 1.11
+  },
+  "fx": {
+    "canvas": "bokeh",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#C23B2E",
+      "#7A2E35"
+    ],
+    "extras": [
+      "#3A4148",
+      "#3E5039",
+      "#4A6E42"
+    ],
+    "emphasisCss": "color:#C23B2E;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "scale",
+      "line",
+      "oval",
+      "track",
+      "tunnel",
+      "cone"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Staatliches",
+    "body": "Staatliches"
+  },
+  "camera3d": {
+    "ground": "#31402E"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "stamp",
+    "emphasis": "underline-grow",
+    "case": "upper",
+    "tracking": 0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

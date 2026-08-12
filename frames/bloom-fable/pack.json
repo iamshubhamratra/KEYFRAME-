@@ -12,8 +12,8 @@
     "blush": "#F3C5BB"
   },
   "fonts": [
-    "Fraunces",
-    "Inter"
+    "Bricolage Grotesque",
+    "JetBrains Mono"
   ],
   "surface": {
     "flat": false,
@@ -56,32 +56,32 @@
     ]
   },
   "typography": {
-    "display": "Fraunces"
+    "display": "Bricolage Grotesque"
   },
   "camera3d": {
     "ground": "#FBF4E8"
   },
   "textfx": {
-    "enter": "drift",
-    "emphasis": "gradient",
-    "case": "none",
-    "tracking": -0.01,
-    "weight": 600,
-    "sizeScale": 1.0,
+    "enter": "slide",
+    "emphasis": "echo",
+    "case": "upper",
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.12,
     "align": "center"
   },
   "audio": {
     "music": {
-      "query": "gentle acoustic folk warm morning light",
-      "mood": "warm",
+      "query": "marching snare stomp clap epic energetic",
+      "mood": "energetic",
       "volume": 0.15
     },
     "sfx": {
-      "style": "soft chimes, gentle pops and airy sparkles",
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
       "palette": [
-        "soft chime",
-        "gentle pop",
-        "sparkle",
+        "impact hit",
+        "clap",
+        "riser sweep",
         "whoosh transition"
       ]
     }

@@ -24,6 +24,9 @@
 
 const { deriveTheme } = require("./scene_kit");
 const E = require("./template_engine");
+// The shared motion vocabulary — see services/motion_presets.js. Physics for
+// headlines and cards lives there now, so every template moves alike.
+const MOTION = require("./motion_presets");
 const { esc, r, rgba, mix, statsOf, breakLines, bullets, fit, isScreenshot } = E;
 
 // ---- theme -------------------------------------------------------------------
@@ -227,10 +230,10 @@ function slate(scene, ctx) {
     </div>
     <div id="${id}-gate" style="position:absolute;inset:0;background:#000000;"></div>`;
   const s = [
+    `tl.fromTo("#${id}-pool",{opacity:0,scale:0.9},{opacity:1,scale:1,duration:1.1,ease:"power2.out"},${T});`,
     `tl.fromTo("#${id}-gate",{opacity:${gateA}},{opacity:0,duration:${gateD},ease:"power2.out"},${T});`,
     `tl.fromTo("#${id}-tag",{opacity:0,y:${land ? -10 : -14}},{opacity:1,y:0,duration:0.6,ease:"power2.out"},${r(T + 0.08)});`,
     `tl.fromTo("#${id}-rule",{scaleX:0},{scaleX:1,duration:0.85,ease:"power2.out"},${r(T + 0.18)});`,
-    `tl.fromTo(".${id}-ln",{opacity:0,y:${land ? 26 : 32},filter:"blur(9px)"},{opacity:1,y:0,filter:"blur(0px)",duration:0.9,ease:"power2.out",stagger:0.16},${r(T + 0.28)});`,
     sub ? `tl.fromTo("#${id}-sub",{opacity:0,y:16},{opacity:1,y:0,duration:0.85,ease:"power2.out"},${r(T + 0.9)});` : "",
     `tl.to("#${id}-rule",{scaleX:${left ? 1.7 : 1.4},duration:${r(Math.max(0.8, L - 1.6))},ease:"sine.inOut"},${r(T + 1.45)});`,
   ];
@@ -264,7 +267,6 @@ function onetake(scene, ctx, asset) {
     `tl.fromTo("#${id}-img",{scale:1.18,xPercent:${r(-dir)}},{scale:1.06,xPercent:${r(dir)},duration:${r(Math.max(1.4, L))},ease:"none"},${T});`,
     `tl.fromTo("#${id}-mark",{scaleY:0},{scaleY:1,duration:0.8,ease:"power2.out"},${r(T + 0.1)});`,
     kick ? `tl.fromTo("#${id}-kick",{opacity:0,x:-18},{opacity:1,x:0,duration:0.65,ease:"power2.out"},${r(T + 0.14)});` : "",
-    `tl.fromTo(".${id}-ln",{opacity:0,y:${land ? 22 : 26},clipPath:"inset(0 0 100% 0)"},{opacity:1,y:0,clipPath:"inset(0 0 0% 0)",duration:0.85,ease:"power2.out",stagger:0.15},${r(T + 0.26)});`,
     body ? `tl.fromTo("#${id}-body",{opacity:0,y:14},{opacity:1,y:0,duration:0.8,ease:"power2.out"},${r(T + 0.82)});` : "",
   ];
   return { html, s };
@@ -381,7 +383,6 @@ function lowerthird(scene, ctx, a) {
       ${attrib ? `<div id="${id}-at" style="opacity:0;margin-top:${land ? 1.5 : 2.4}cqw;font-family:${th.bodyStack};font-size:${land ? 1.05 : 1.8}cqw;letter-spacing:0.36em;text-transform:uppercase;color:${th.accentText};">${esc(attrib)}</div>` : ""}
     </div>`;
   const s = [
-    `tl.fromTo("#${id}-pool",{opacity:0,scale:0.9},{opacity:1,scale:1,duration:1.1,ease:"power2.out"},${T});`,
     `tl.fromTo("#${id}-mark",{opacity:0,y:${land ? 18 : 24}},{opacity:1,y:0,duration:1,ease:"power2.out"},${r(T + 0.06)});`,
     `tl.fromTo("#${id}-hz",{scaleX:0},{scaleX:1,duration:1,ease:"power2.out"},${r(T + 0.15)});`,
   ];
@@ -479,7 +480,6 @@ function endcard(scene, ctx, a) {
     kick ? `tl.fromTo("#${id}-kick",{opacity:0,y:-14},{opacity:1,y:0,duration:0.7,ease:"power2.out"},${r(T + 0.06)});` : "",
     `tl.fromTo("#${id}-rt",{scaleX:0},{scaleX:1,duration:1,ease:"power2.out"},${r(T + 0.12)});`,
     `tl.fromTo("#${id}-rb",{scaleX:0},{scaleX:1,duration:1,ease:"power2.out"},${r(T + 0.24)});`,
-    `tl.fromTo(".${id}-ln",{opacity:0,y:${land ? 24 : 30},filter:"blur(8px)"},{opacity:1,y:0,filter:"blur(0px)",duration:0.9,ease:"power2.out",stagger:0.18},${r(T + 0.26)});`,
     cta ? `tl.fromTo("#${id}-cta",{opacity:0,scale:0.94},{opacity:1,scale:1,duration:0.8,ease:"power2.out"},${r(T + 1)});` : "",
     `tl.fromTo("#${id}-url",{opacity:0,y:14},{opacity:1,y:0,duration:0.9,ease:"power2.out"},${r(T + 1.35)});`,
   ];
@@ -562,15 +562,53 @@ function styleBlock(th, land) {
 }
 
 const family = {
+  // ---- SCENE FILL (services/template_engine.js sceneFill) ---------------------
+  // Measured 2026-08-04: scenes carried ~11 words over ~14% of the frame, so the
+  // script's spare copy (supporting points, a figure, a subtext) never reached the
+  // screen. It is drawn here as a chip row + broadcast ticker in the lower band.
+  // Skipped on the closer, the pull-quote and the type whose own design owns that
+  // band — furniture under a CTA or a quote costs more than the density gains.
+  fill: (type, ctx, scene) => {
+    if (["endcard","lowerthird","diptych"].includes(type)) return null;
+    const land = ctx.land;
+    return {
+      left: land ? 7 : 6, right: land ? 7 : 6, bottom: land ? 9 : 12,
+      font: land ? 1.12 : 1.95, max: 3,
+      plate: ctx.theme.ground, ink: ctx.theme.ink, accent: ctx.theme.accent,
+      used: bullets(scene || {}, 3),
+    };
+  },
   theme, styleBlock, chrome, perScene, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaFallback,
   wantsLogo: (t) => t === "endcard",
   fallbackType: "slate",
   variants: 2,
   // Cinema never whips: every transition is a slow push with a focus pull, and
   // the shot keeps creeping for its whole length.
-  camera: {
+  camera: { enabled: false,
     kinds: ["zoom", "zoom", "zoom", "zoom", "zoom", "zoom", "zoom", "zoom"],
     blur: 15, push: 0.045, zoomIn: 1.09, zoomOut: 1.07,
+  },
+
+  // ---- SHARED MOTION SYSTEM (services/motion_presets.js) ----------------------
+  // This family publishes WHERE its headline, card and camera live; the engine
+  // drives them from the one preset library. Its own entrance tweens for those
+  // elements were removed in the same change — two timelines on one property
+  // fight, and the loser is whichever the browser applies second.
+  motion: {
+    heroType: "slate",
+    text: (id) => `.${id}-ln`,
+    card: (id) => `#${id}-card, .${id}-card`,
+    camera: (id) => `#${id}-cami`,
+    // The film's two hero moments carry the signature type treatments; the
+    // middle stays on the house word stagger so the signatures stay signatures.
+    tokens: (type, i, ctx, { hasCard } = {}) => ({
+      text: type === "slate" ? "outlineFillReveal"
+        : type === "endcard" ? "characterReveal" : "wordStaggerBlur",
+      enter: hasCard ? "cardRise3D" : "none",
+      idle: hasCard ? "floatSoft" : "none",
+      camera: MOTION.CAMERA_MOVES[i % MOTION.CAMERA_MOVES.length],
+      transition: MOTION.TRANSITIONS[i % MOTION.TRANSITIONS.length],
+    }),
   },
 };
 

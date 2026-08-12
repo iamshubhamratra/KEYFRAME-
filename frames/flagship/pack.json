@@ -12,7 +12,10 @@
     "cyan": "#4ED7FF",
     "mint": "#57F2C2"
   },
-  "fonts": ["Space Grotesk", "Inter"],
+  "fonts": [
+    "Anton",
+    "Space Grotesk"
+  ],
   "surface": {
     "flat": false,
     "lightCinematic": false,
@@ -27,25 +30,59 @@
     "three": "flagship"
   },
   "skin": {
-    "accents": ["#6E8BFF", "#4ED7FF", "#B16CFF", "#57F2C2"],
+    "accents": [
+      "#6E8BFF",
+      "#4ED7FF",
+      "#B16CFF",
+      "#57F2C2"
+    ],
     "extras": [],
     "emphasisCss": null
   },
   "assets": {
     "photoMod": "clean modern product ui",
     "iconStyle": "duotone",
-    "keywords": ["clean", "modern", "premium", "gradient", "minimal"],
-    "prefer": ["photo", "vector"]
+    "keywords": [
+      "clean",
+      "modern",
+      "premium",
+      "gradient",
+      "minimal"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
   },
   "typography": {
-    "display": "Space Grotesk"
+    "display": "Anton"
   },
   "camera3d": {
     "ground": "#07080F"
   },
   "textfx": {
-    "enter": "mask-reveal",
-    "emphasis": "gradient",
-    "align": "center"
+    "enter": "glitch",
+    "emphasis": "bracket",
+    "align": "center",
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035,
+    "sizeScale": 1.12
+  },
+  "audio": {
+    "music": {
+      "query": "hand claps foot stomps rock energetic anthem",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
   }
 }

@@ -1,0 +1,98 @@
+{
+  "name": "star-watch",
+  "renderer": "omelette",
+  "template": "StarWatch",
+  "portraitNative": true,
+  "vibe": "constellation draw, telescope, meteor streak Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#0B1026",
+    "ink": "#ECE9F4",
+    "accent": "#9A8FD0",
+    "a2": "#FFD97B"
+  },
+  "fonts": [
+    "Prata",
+    "Manrope"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#0B1026",
+    "ink": "#ECE9F4"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1.13
+  },
+  "fx": {
+    "canvas": "clay",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#9A8FD0",
+      "#FFD97B"
+    ],
+    "extras": [
+      "#070B1C",
+      "#0D1230",
+      "#0E1330"
+    ],
+    "emphasisCss": "color:#9A8FD0;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "star",
+      "watch",
+      "constellation",
+      "draw",
+      "telescope",
+      "meteor"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Prata",
+    "body": "Prata"
+  },
+  "camera3d": {
+    "ground": "#0B1026"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "spring",
+    "emphasis": "underline-grow",
+    "case": "none",
+    "tracking": 0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

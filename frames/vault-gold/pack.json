@@ -1,5 +1,6 @@
 {
   "name": "vault-gold",
+  "renderer": "dark-premium",
   "vibe": "a premium dark-fintech system: deep near-black ground, precise numerics, one metallic accent + one signal green — for finance, fintech, trading, crypto and investor stories",
   "colors": {
     "void": "#08090C",
@@ -10,8 +11,7 @@
     "slate": "#5A6B8C"
   },
   "fonts": [
-    "Inter",
-    "Archivo Black",
+    "Syne",
     "IBM Plex Mono"
   ],
   "surface": {
@@ -54,18 +54,34 @@
     ]
   },
   "textfx": {
-    "enter": "line-wipe",
-    "emphasis": "gradient",
-    "case": "none",
-    "tracking": 0,
-    "weight": null,
-    "sizeScale": 1,
+    "enter": "char-pop",
+    "emphasis": "marker",
+    "case": "upper",
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.12,
     "align": "left"
   },
   "typography": {
-    "display": "Archivo Black"
+    "display": "Syne"
   },
   "camera3d": {
     "ground": "#08090C"
+  },
+  "audio": {
+    "music": {
+      "query": "trap percussion hard claps energetic hype",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
   }
 }

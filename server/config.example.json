@@ -23,13 +23,21 @@
       "model": "grok-4-5",
       "apiKey": ""
     },
+    "kieRoutes": {
+      "gemini-3.6-flash": {
+        "provider": "kie",
+        "baseUrl": "https://api.kie.ai/gemini-3-6-flash-openai/v1",
+        "api": "chat",
+        "model": "gemini-3.6-flash"
+      }
+    },
     "provider": "openrouter",
-    "model":         "google/gemini-2.5-flash-lite",
-    "modelFast":     "google/gemini-2.5-flash-lite",
-    "modelFallback": "google/gemini-2.5-flash",
+    "model": "kie:gemini-3.6-flash",
+    "modelFast": "kie:gemini-3.6-flash",
+    "modelFallback": "google/gemini-3-flash-preview",
     "stageModels": {
-      "storyboard":   "default",
-      "composer":     "anthropic/claude-opus-4.8",
+      "storyboard": "default",
+      "composer": "default",
       "assetPlanner": "default",
       "audioPlanner": "default"
     },
@@ -48,19 +56,36 @@
       "composer": 0.2
     },
     "requestTimeoutMs": 180000,
-    "requestTimeoutByStage": { "composer": 300000 },
+    "requestTimeoutByStage": {
+      "composer": 300000
+    },
     "httpReferer": "https://video-gen.local",
     "xTitle": "video-gen"
   },
   "orientations": {
-    "horizontal": { "aspectRatio": "16:9" },
-    "vertical":   { "aspectRatio": "9:16" },
-    "square":     { "aspectRatio": "1:1" }
+    "horizontal": {
+      "aspectRatio": "16:9"
+    },
+    "vertical": {
+      "aspectRatio": "9:16"
+    },
+    "square": {
+      "aspectRatio": "1:1"
+    }
   },
   "qualities": {
-    "480p":  { "short": 480,  "long": 854 },
-    "720p":  { "short": 720,  "long": 1280 },
-    "1080p": { "short": 1080, "long": 1920 }
+    "480p": {
+      "short": 480,
+      "long": 854
+    },
+    "720p": {
+      "short": 720,
+      "long": 1280
+    },
+    "1080p": {
+      "short": 1080,
+      "long": 1920
+    }
   },
   "audio": {
     "pixabayKey": "",
@@ -74,9 +99,14 @@
   "defaults": {
     "orientation": "horizontal",
     "quality": "1080p",
-    "fps": 30
+    "fps": 30,
+    "scriptOverlay": false
   },
-  "allowedFps": [24, 30, 60],
+  "allowedFps": [
+    24,
+    30,
+    60
+  ],
   "frames": {
     "dir": "../frames",
     "defaultPack": "blockframe"
@@ -95,14 +125,26 @@
     "pythonBin": "python"
   },
   "assetProviders": {
-    "order": ["pixabay", "openverse", "pexels", "pixabay_scrape"],
-    "pixabay": { "apiKey": "" },
-    "pexels":  { "apiKey": "" }
+    "order": [
+      "pixabay",
+      "openverse",
+      "pexels",
+      "pixabay_scrape"
+    ],
+    "pixabay": {
+      "apiKey": ""
+    },
+    "pexels": {
+      "apiKey": ""
+    }
   },
   "ingest": {
     "maxUploadMb": 200,
     "websiteTimeoutMs": 60000,
-    "peekshot": { "apiKey": "", "projectId": null }
+    "peekshot": {
+      "apiKey": "",
+      "projectId": null
+    }
   },
   "paths": {
     "jobsDir": "jobs",

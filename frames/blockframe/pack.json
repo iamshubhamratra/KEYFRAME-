@@ -1,5 +1,6 @@
 {
   "name": "blockframe",
+  "renderer": "poster-loud",
   "vibe": "maximalist neo-brutalist: candy pastels, 4px black borders, hard shadows, loud uppercase — playful, bold, product-launch energy",
   "colors": {
     "black": "#000000",
@@ -12,7 +13,7 @@
     "cream": "#FFDC8B"
   },
   "fonts": [
-    "Inter",
+    "Anton",
     "Space Grotesk"
   ],
   "surface": {
@@ -43,15 +44,34 @@
     ]
   },
   "typography": {
-    "display": "Inter"
+    "display": "Anton"
   },
   "camera3d": {
     "ground": "#0A0A0A"
   },
   "textfx": {
-    "enter": "spring",
-    "emphasis": "boxed",
+    "enter": "glitch",
+    "emphasis": "bracket",
     "case": "upper",
-    "align": "left"
+    "align": "left",
+    "weight": 900,
+    "tracking": -0.035,
+    "sizeScale": 1.12
+  },
+  "audio": {
+    "music": {
+      "query": "hand claps foot stomps rock energetic anthem",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
   }
 }

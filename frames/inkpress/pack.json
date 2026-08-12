@@ -1,0 +1,97 @@
+{
+  "name": "inkpress",
+  "renderer": "omelette",
+  "template": "Inkpress",
+  "portraitNative": true,
+  "vibe": "\"INKPRESS\" living type-specimen world. 17 unique scenes, dense, fast. Portrait-native 9:16 (17 authored beats, 44.4s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#161511",
+    "ink": "#FAF7EC",
+    "accent": "#6D28D9",
+    "a2": "#E4FF3F"
+  },
+  "fonts": [
+    "Anton",
+    "Instrument Serif"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#161511",
+    "ink": "#FAF7EC"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.11
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#6D28D9",
+      "#E4FF3F"
+    ],
+    "extras": [
+      "#000000",
+      "#FF4D17"
+    ],
+    "emphasisCss": "color:#6D28D9;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "inkpress-film",
+      "inkpress",
+      "living",
+      "type-specimen",
+      "world",
+      "unique"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Anton",
+    "body": "Instrument Serif"
+  },
+  "camera3d": {
+    "ground": "#161511"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "echo",
+    "case": "none",
+    "tracking": -0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "acoustic handmade warm folk gentle plucked strings",
+      "mood": "warm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

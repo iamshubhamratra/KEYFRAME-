@@ -20,6 +20,9 @@
 
 const { deriveTheme } = require("./scene_kit");
 const E = require("./template_engine");
+// The shared motion vocabulary — see services/motion_presets.js. Physics for
+// headlines and cards lives there now, so every template moves alike.
+const MOTION = require("./motion_presets");
 const { esc, r, rgba, mix, lum, inkOn, statsOf, breakLines, bullets, fit, mineStat } = E;
 
 // ---- contrast guard -----------------------------------------------------------
@@ -56,6 +59,16 @@ function theme(manifest, brandSkin, { framePack, land } = {}) {
     // SMALL TEXT needs AA (measured failures at 4.12:1 and 1.09:1 across the
     // gallery). Text use goes through these; fills keep the raw accent.
     accentText: E.readable(ground, accent, 1, 4.5),
+    // Type that sits on a PLATE, not on the ground. brandPlate washes an accent
+    // radial over `well`, so a colour computed against the ground lands short
+    // (measured 4:1 on nova-launch). Target 5.5 so the plate's own glow cannot
+    // eat the margin.
+    plateInk: E.readable(E.flatten(accent, mix(ground, dark ? "#000000" : "#FFFFFF", 0.35), 0.3), ink, 1, 5.5),
+    // Accent text on a GLASS panel. `glass` lays an ink wash (up to 0.11) over the
+    // ground, so the panel is lighter than the ground and an accent computed
+    // against the ground measures short on it — the spec-row numbers came in at
+    // 4.24:1 that way. Compute against the panel's lightest stop, target 5.5.
+    plateAccent: E.readable(E.flatten(ink, ground, 0.18), accent, 1, 7),
     accentText2: E.readable(ground, accent2, 1, 4.5),
     // hairlines: ~1px at either orientation, in container units
     hairW: land ? 0.09 : 0.15,
@@ -185,7 +198,7 @@ const maskLines = (lines, size, color, cls, th, weight) => lines.map((ln) => `
 const kickerRow = (id, text, th, land) => (text ? `
       <div id="${id}-kick" style="opacity:0;display:flex;align-items:center;gap:${land ? 0.9 : 1.4}cqw;margin-bottom:${land ? 1.2 : 1.8}cqw;">
         <span style="display:block;width:${land ? 2.4 : 3.6}cqw;height:${land ? 0.16 : 0.26}cqw;background:${th.accent};box-shadow:0 0 ${land ? 1 : 1.6}cqw ${rgba(th.accent, 0.9)};"></span>
-        <span style="font-family:${th.bodyStack};font-size:${land ? 1.05 : 1.75}cqw;letter-spacing:0.34em;text-transform:uppercase;color:${th.accentText};">${esc(text)}</span>
+        <span style="font-family:${th.bodyStack};font-size:${land ? 1.05 : 1.75}cqw;letter-spacing:0.34em;text-transform:uppercase;color:${th.plateAccent};">${esc(text)}</span>
       </div>` : "");
 
 // A light sweep that crosses a block of type once, then leaves.
@@ -202,7 +215,7 @@ const brandPlate = (th, land, brand, url, big) => `
         <div style="position:absolute;inset:0;background:radial-gradient(ellipse 76% 66% at 50% 40%, ${rgba(th.accent, 0.3)} 0%, ${rgba(th.accent2, 0.09)} 44%, transparent 78%), ${th.well};"></div>
         <div style="position:absolute;inset:0;opacity:0.5;background-image:linear-gradient(${th.hair} ${th.hairW}cqw, transparent ${th.hairW}cqw), linear-gradient(90deg, ${th.hair} ${th.hairW}cqw, transparent ${th.hairW}cqw);background-size:${land ? 4 : 6}cqw ${land ? 4 : 6}cqw;"></div>
         <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${land ? 0.9 : 1.4}cqw;">
-          <div style="font-family:${th.displayStack};font-weight:700;font-size:${big ? (land ? 3.4 : 5) : (land ? 2.1 : 3)}cqw;letter-spacing:0.06em;color:${th.ink};">${esc(String(brand).slice(0, 16))}</div>
+          <div style="font-family:${th.displayStack};font-weight:700;font-size:${big ? (land ? 3.4 : 5) : (land ? 2.1 : 3)}cqw;letter-spacing:0.06em;color:${th.plateInk};">${esc(String(brand).slice(0, 16))}</div>
           <div style="width:${big ? (land ? 9 : 14) : (land ? 5 : 8)}cqw;height:${land ? 0.16 : 0.26}cqw;background:${th.accent};box-shadow:0 0 ${land ? 1.2 : 2}cqw ${rgba(th.accent, 0.9)};"></div>
           ${big ? `<div style="font-family:${th.bodyStack};font-size:${land ? 1.05 : 1.7}cqw;letter-spacing:0.3em;text-transform:uppercase;color:${th.soft};">${esc(url)}</div>` : ""}
         </div>`;
@@ -236,7 +249,6 @@ function revealtitle(scene, ctx) {
     `tl.to("#${id}-glow",{opacity:0.72,scale:1.07,duration:2.3,ease:"sine.inOut",yoyo:true,repeat:reps(${r(Math.max(0.1, L - 1.3))},2.3)},${r(T + 1.25)});`,
     `tl.fromTo("#${id}-beam",{opacity:0},{opacity:1,duration:1.1,ease:"power2.out"},${r(T + 0.15)});`,
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,y:${land ? -14 : -20}},{opacity:1,y:0,duration:0.6,ease:"power3.out"},${r(T + 0.2)});` : "",
-    `tl.fromTo(".${id}-ln",{opacity:0,yPercent:112},{opacity:1,yPercent:0,duration:0.95,ease:"power3.out",stagger:0.15},${r(T + 0.3)});`,
     ...sweepIn(id, r(T + 0.9)),
     `tl.fromTo("#${id}-rule",{opacity:0,scaleX:0},{opacity:1,scaleX:1,duration:0.7,ease:"power3.out"},${r(T + 1.05)});`,
     body ? `tl.fromTo("#${id}-body",{opacity:0,y:${land ? 22 : 30}},{opacity:1,y:0,duration:0.7,ease:"power3.out"},${r(T + 1.2)});` : "",
@@ -279,14 +291,12 @@ function glasscard(scene, ctx, asset) {
   const s = [
     `tl.fromTo("#${id}-halo",{opacity:0,scale:0.7},{opacity:1,scale:1,duration:1.1,ease:"power3.out"},${T});`,
     `tl.to("#${id}-halo",{opacity:0.66,duration:2.1,ease:"sine.inOut",yoyo:true,repeat:reps(${r(Math.max(0.1, L - 1.1))},2.1)},${r(T + 1.1)});`,
-    `tl.fromTo("#${id}-card",{opacity:0,x:${right ? (land ? 44 : 0) : (land ? -44 : 0)},y:${land ? 0 : 34},scale:0.955},{opacity:1,x:0,y:0,scale:1,duration:0.9,ease:"power3.out"},${r(T + 0.15)});`,
     asset && asset.path
       ? `tl.fromTo("#${id}-img",{scale:1.12,yPercent:2.5},{scale:1,yPercent:0,duration:${r(Math.max(1.2, L - 0.5))},ease:"sine.out"},${r(T + 0.45)});`
       : "",
     `tl.fromTo("#${id}-shine",{opacity:0,xPercent:-130,skewX:-14},{opacity:1,xPercent:210,skewX:-14,duration:1.5,ease:"power2.inOut"},${r(T + 0.7)});`,
     `tl.to("#${id}-shine",{opacity:0,duration:0.5,ease:"none"},${r(T + 1.7)});`,
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,x:-22},{opacity:1,x:0,duration:0.55,ease:"power3.out"},${r(T + 0.3)});` : "",
-    `tl.fromTo(".${id}-ln",{opacity:0,yPercent:110},{opacity:1,yPercent:0,duration:0.8,ease:"power3.out",stagger:0.13},${r(T + 0.4)});`,
     body ? `tl.fromTo("#${id}-body",{opacity:0,y:${land ? 20 : 26}},{opacity:1,y:0,duration:0.65,ease:"power3.out"},${r(T + 0.75)});` : "",
     `tl.fromTo("#${id}-urule",{opacity:0,scaleX:0},{opacity:1,scaleX:1,duration:0.6,ease:"power3.out"},${r(T + 0.95)});`,
   ];
@@ -315,7 +325,7 @@ function specrows(scene, ctx) {
       <div class="${id}-row" style="opacity:0;display:flex;align-items:center;gap:${land ? 1.6 : 2.4}cqw;padding:${padY}cqw ${land ? (solo ? 3 : 2) : (solo ? 4 : 3)}cqw;margin-top:${i2 ? gap : 0}cqw;${glassCss(th, land ? 0.8 : 1.2)}">
         ${solo
       ? `<span style="display:block;width:${land ? 0.28 : 0.44}cqw;align-self:stretch;background:linear-gradient(180deg, ${th.accent}, ${th.accent2});box-shadow:0 0 ${land ? 1.2 : 2}cqw ${rgba(th.accent, 0.8)};"></span>`
-      : `<span style="font-family:${th.bodyStack};font-size:${land ? 1.1 : 1.8}cqw;letter-spacing:0.18em;color:${th.accentText};min-width:${land ? 3 : 4.6}cqw;">${String(i2 + 1).padStart(2, "0")}</span>`}
+      : `<span style="font-family:${th.bodyStack};font-size:${land ? 1.1 : 1.8}cqw;letter-spacing:0.18em;color:${th.plateAccent};min-width:${land ? 3 : 4.6}cqw;">${String(i2 + 1).padStart(2, "0")}</span>`}
         <span style="flex:1;font-family:${th.displayStack};font-weight:600;font-size:${rowFs}cqw;line-height:1.3;letter-spacing:-0.01em;color:${th.ink};">${esc(t)}</span>
         <span class="${id}-tick" style="display:block;width:${land ? 3.2 : 5}cqw;height:${land ? 0.14 : 0.22}cqw;background:${i2 % 2 ? th.accent2 : th.accent};box-shadow:0 0 ${land ? 1 : 1.6}cqw ${rgba(i2 % 2 ? th.accent2 : th.accent, 0.9)};transform-origin:right center;"></span>
       </div>`).join("");
@@ -412,7 +422,6 @@ function glassquote(scene, ctx, a) {
     </div>`;
   const s = [
     `tl.fromTo("#${id}-wash",{opacity:0},{opacity:1,duration:1,ease:"power2.out"},${T});`,
-    `tl.fromTo("#${id}-panel",{opacity:0,y:${land ? 30 : 40},scale:0.975},{opacity:1,y:0,scale:1,duration:0.85,ease:"power3.out"},${r(T + 0.1)});`,
     `tl.fromTo("#${id}-edge",{scaleY:0},{scaleY:1,duration:0.75,ease:"power3.out"},${r(T + 0.35)});`,
     `tl.fromTo("#${id}-mark",{opacity:0,y:${land ? 18 : 24}},{opacity:1,y:0,duration:0.5,ease:"power3.out"},${r(T + 0.4)});`,
     `tl.fromTo(".${id}-w",{opacity:0,y:${land ? 16 : 22}},{opacity:1,y:0,duration:0.45,ease:"power2.out",stagger:0.05},${r(T + 0.55)});`,
@@ -436,7 +445,7 @@ function prooftiles(scene, ctx, a, b) {
         ${asset && asset.path
       ? `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">`
       : brandPlate(th, land, brand, url, false)}
-        <span style="position:absolute;left:${land ? 0.7 : 1.1}cqw;top:${land ? 0.7 : 1.1}cqw;font-family:${th.bodyStack};font-size:${land ? 0.9 : 1.5}cqw;letter-spacing:0.18em;color:${th.accentText};">${n}</span>
+        <span style="position:absolute;left:${land ? 0.7 : 1.1}cqw;top:${land ? 0.7 : 1.1}cqw;padding:${land ? 0.2 : 0.34}cqw ${land ? 0.5 : 0.8}cqw;border-radius:${land ? 0.3 : 0.5}cqw;background:${rgba(th.ground, 0.72)};font-family:${th.bodyStack};font-size:${land ? 0.9 : 1.5}cqw;letter-spacing:0.18em;color:${th.accentText};">${n}</span>
       </div>`;
   const html = `
     <div id="${id}-wash" style="position:absolute;inset:0;opacity:0;background:radial-gradient(ellipse 62% 54% at 50% ${land ? 78 : 70}%, ${rgba(th.accent, 0.2)} 0%, transparent 70%);"></div>
@@ -444,29 +453,46 @@ function prooftiles(scene, ctx, a, b) {
       ${kickerRow(id, kicker, th, land)}
       <div style="position:relative;overflow:hidden;">${maskLines(lines, headFs, th.ink, `${id}-head`, th, 700)}</div>
     </div>
-    <div style="position:absolute;left:${land ? 7 : 6}cqw;right:${land ? 7 : 6}cqw;top:${land ? "44%" : "38%"};bottom:${land ? "13%" : "12%"};display:grid;grid-template-columns:${land ? "1fr 1fr 1fr 1fr" : "1fr 1fr"};grid-template-rows:${land ? "1fr" : "1fr 1fr"};gap:${land ? 1.2 : 1.8}cqw;">
+    ${/* PORTRAIT IS NOT A NARROWER LANDSCAPE.
+          Four tiles across becomes 2×2 in 9:16, which puts every media plate
+          under half of a 720px frame — a product screenshot at ~330px wide is
+          unreadable, and QA has blocked a shipped film for exactly that. So
+          portrait shows FEWER, BIGGER things: both media plates full width and
+          stacked, and the badge/brand tiles merged into one strip beneath. */""}
+    <div style="position:absolute;left:${land ? 7 : 6}cqw;right:${land ? 7 : 6}cqw;top:${land ? "44%" : "38%"};bottom:${land ? "13%" : "12%"};display:grid;grid-template-columns:${land ? "1fr 1fr 1fr 1fr" : "1fr"};grid-template-rows:${land ? "1fr" : "1fr 1fr 0.5fr"};gap:${land ? 1.2 : 1.8}cqw;">
       ${mediaTile(a, `${id}-t1`, "01")}
       ${mediaTile(b, `${id}-t2`, "02")}
-      <div class="${id}-t3 ${id}-tile" style="opacity:0;position:relative;display:grid;place-items:center;overflow:hidden;${glassCss(th, radius)}">
+      ${land ? `<div class="${id}-t3 ${id}-tile" style="opacity:0;position:relative;display:grid;place-items:center;overflow:hidden;${glassCss(th, radius)}">
         <div style="position:absolute;inset:0;background:radial-gradient(ellipse 74% 66% at 50% 46%, ${rgba(th.accent, 0.24)} 0%, transparent 72%);"></div>
-        <div style="position:relative;text-align:center;padding:${land ? 0.8 : 1.4}cqw;">
-          <div style="font-family:${th.displayStack};font-weight:700;font-size:${land ? 3.6 : 5.2}cqw;line-height:1;color:${th.ink};text-shadow:0 0 ${land ? 2 : 3}cqw ${rgba(th.accent, 0.5)};">${esc(badge)}</div>
-          ${badgeLabel ? `<div style="margin-top:${land ? 0.6 : 1}cqw;font-family:${th.bodyStack};font-size:${land ? 0.9 : 1.5}cqw;letter-spacing:0.2em;text-transform:uppercase;color:${th.body};">${esc(badgeLabel)}</div>` : ""}
+        <div style="position:relative;text-align:center;padding:0.8cqw;">
+          <div style="font-family:${th.displayStack};font-weight:700;font-size:3.6cqw;line-height:1;color:${th.ink};text-shadow:0 0 2cqw ${rgba(th.accent, 0.5)};">${esc(badge)}</div>
+          ${badgeLabel ? `<div style="margin-top:0.6cqw;font-family:${th.bodyStack};font-size:0.9cqw;letter-spacing:0.2em;text-transform:uppercase;color:${th.body};">${esc(badgeLabel)}</div>` : ""}
         </div>
       </div>
       <div class="${id}-t4 ${id}-tile" style="opacity:0;position:relative;display:grid;place-items:center;overflow:hidden;${glassCss(th, radius)}">
-        <div style="text-align:center;padding:${land ? 0.8 : 1.4}cqw;">
-          <div style="font-family:${th.displayStack};font-weight:700;font-size:${land ? 2.2 : 3.2}cqw;letter-spacing:0.04em;color:${th.ink};">${esc(String(brand).slice(0, 14))}</div>
-          <div style="margin:${land ? 0.7 : 1.1}cqw auto 0;width:${land ? 5 : 8}cqw;height:${land ? 0.14 : 0.22}cqw;background:${th.accent2};box-shadow:0 0 ${land ? 1 : 1.6}cqw ${rgba(th.accent2, 0.9)};"></div>
-          <div style="margin-top:${land ? 0.7 : 1.1}cqw;font-family:${th.bodyStack};font-size:${land ? 0.9 : 1.5}cqw;letter-spacing:0.24em;text-transform:uppercase;color:${th.soft};">${esc(url)}</div>
+        <div style="text-align:center;padding:0.8cqw;">
+          <div style="font-family:${th.displayStack};font-weight:700;font-size:2.2cqw;letter-spacing:0.04em;color:${th.ink};">${esc(String(brand).slice(0, 14))}</div>
+          <div style="margin:0.7cqw auto 0;width:5cqw;height:0.14cqw;background:${th.accent2};box-shadow:0 0 1cqw ${rgba(th.accent2, 0.9)};"></div>
+          <div style="margin-top:0.7cqw;font-family:${th.bodyStack};font-size:0.9cqw;letter-spacing:0.24em;text-transform:uppercase;color:${th.soft};">${esc(url)}</div>
         </div>
-      </div>
+      </div>`
+    : `<div class="${id}-t3 ${id}-tile" style="opacity:0;position:relative;display:flex;align-items:center;justify-content:space-between;gap:2cqw;padding:0 3cqw;overflow:hidden;${glassCss(th, radius)}">
+        <div style="position:absolute;inset:0;background:radial-gradient(ellipse 74% 66% at 22% 46%, ${rgba(th.accent, 0.24)} 0%, transparent 72%);"></div>
+        <div style="position:relative;text-align:left;">
+          <div style="font-family:${th.displayStack};font-weight:700;font-size:5.2cqw;line-height:1;color:${th.ink};text-shadow:0 0 3cqw ${rgba(th.accent, 0.5)};">${esc(badge)}</div>
+          ${badgeLabel ? `<div style="margin-top:0.8cqw;font-family:${th.bodyStack};font-size:1.5cqw;letter-spacing:0.2em;text-transform:uppercase;color:${th.body};">${esc(badgeLabel)}</div>` : ""}
+        </div>
+        <div style="position:relative;text-align:right;">
+          <div style="font-family:${th.displayStack};font-weight:700;font-size:3.2cqw;letter-spacing:0.04em;color:${th.ink};">${esc(String(brand).slice(0, 14))}</div>
+          <div style="margin:1.1cqw 0 0 auto;width:8cqw;height:0.22cqw;background:${th.accent2};box-shadow:0 0 1.6cqw ${rgba(th.accent2, 0.9)};"></div>
+          <div style="margin-top:1.1cqw;font-family:${th.bodyStack};font-size:1.5cqw;letter-spacing:0.24em;text-transform:uppercase;color:${th.soft};">${esc(url)}</div>
+        </div>
+      </div>`}
     </div>`;
   const s = [
     `tl.fromTo("#${id}-wash",{opacity:0},{opacity:1,duration:1,ease:"power2.out"},${T});`,
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,x:-22},{opacity:1,x:0,duration:0.55,ease:"power3.out"},${r(T + 0.15)});` : "",
     `tl.fromTo(".${id}-head",{opacity:0,yPercent:110},{opacity:1,yPercent:0,duration:0.8,ease:"power3.out",stagger:0.12},${r(T + 0.25)});`,
-    `tl.fromTo(".${id}-tile",{opacity:0,y:${land ? 34 : 40},scale:0.95},{opacity:1,y:0,scale:1,duration:0.7,ease:"power3.out",stagger:0.15},${r(T + 0.6)});`,
   ];
   return { html, s };
 }
@@ -496,7 +522,6 @@ function glowcta(scene, ctx, a) {
     `tl.to("#${id}-bloom",{opacity:0.74,scale:1.08,duration:2.2,ease:"sine.inOut",yoyo:true,repeat:reps(${r(Math.max(0.1, L - 1.2))},2.2)},${r(T + 1.2)});`,
     a && a.path ? `tl.fromTo("#${id}-logo",{opacity:0,y:${land ? -14 : -20}},{opacity:1,y:0,duration:0.55,ease:"power3.out"},${r(T + 0.1)});` : "",
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,y:${land ? -16 : -22}},{opacity:1,y:0,duration:0.55,ease:"power3.out"},${r(T + 0.2)});` : "",
-    `tl.fromTo(".${id}-ln",{opacity:0,yPercent:112},{opacity:1,yPercent:0,duration:0.9,ease:"power3.out",stagger:0.14},${r(T + 0.3)});`,
     ...sweepIn(id, r(T + 0.95)),
     cta ? `tl.fromTo("#${id}-cta",{opacity:0,y:${land ? 24 : 32},scale:0.9},{opacity:1,y:0,scale:1,duration:0.7,ease:"power3.out"},${r(T + 0.95)});` : "",
     cta ? `tl.to("#${id}-cta",{boxShadow:"0 0 ${land ? 5.5 : 8}cqw ${rgba(th.accent, 0.85)}",duration:1.5,ease:"sine.inOut",yoyo:true,repeat:reps(${r(Math.max(0.1, L - 1.7))},1.5)},${r(T + 1.65)});` : "",
@@ -521,7 +546,11 @@ function chrome({ theme: th, D, brand, url, count, land }) {
   </div>
   <div id="edge" class="clip" data-start="0" data-duration="__D__" data-track-index="40" data-layout-allow-occlusion style="opacity:0;background:none;">
     <div style="position:absolute;left:0;right:0;top:0;height:${barH}cqw;display:flex;align-items:center;justify-content:space-between;padding:0 ${land ? 3 : 4}cqw;border-bottom:${th.hairW}cqw solid ${rgba(th.ink, 0.1)};">
-      <span style="display:flex;align-items:center;gap:${land ? 0.7 : 1.1}cqw;font-family:${th.bodyStack};font-size:${land ? 0.88 : 1.4}cqw;letter-spacing:0.3em;text-transform:uppercase;color:${th.soft};">
+      ${/* The brand label is small COPY, not decoration, so it needs AA — the
+           muted `soft` tier (66% ink) composited to 4:1 on nova-launch. The rest
+           of the soft tier is left alone: flattening it everywhere would erase
+           the family's type hierarchy to fix one label. */""}
+      <span style="display:flex;align-items:center;gap:${land ? 0.7 : 1.1}cqw;font-family:${th.bodyStack};font-size:${land ? 0.88 : 1.4}cqw;letter-spacing:0.3em;text-transform:uppercase;color:${E.readable(th.ground, th.ink, 0.66, 4.5)};">
         <span id="edge-dot" style="display:block;width:${land ? 0.45 : 0.7}cqw;height:${land ? 0.45 : 0.7}cqw;border-radius:50%;background:${th.accent};box-shadow:0 0 ${land ? 1 : 1.6}cqw ${rgba(th.accent, 0.9)};"></span>
         ${esc(String(brand).toUpperCase())}
       </span>
@@ -553,6 +582,22 @@ function styleBlock(th, land) {
 }
 
 const family = {
+  // ---- SCENE FILL (services/template_engine.js sceneFill) ---------------------
+  // Measured 2026-08-04: scenes carried ~11 words over ~14% of the frame, so the
+  // script's spare copy (supporting points, a figure, a subtext) never reached the
+  // screen. It is drawn here as a chip row + broadcast ticker in the lower band.
+  // Skipped on the closer, the pull-quote and the type whose own design owns that
+  // band — furniture under a CTA or a quote costs more than the density gains.
+  fill: (type, ctx, scene) => {
+    if (["glowcta","glassquote","prooftiles"].includes(type)) return null;
+    const land = ctx.land;
+    return {
+      left: land ? 7 : 6, right: land ? 7 : 6, bottom: land ? 8 : 11,
+      font: land ? 1.12 : 1.95, max: 3,
+      plate: ctx.theme.ground, ink: ctx.theme.ink, accent: ctx.theme.accent,
+      used: bullets(scene || {}, 3),
+    };
+  },
   theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaFallback,
   // The engine injects the site logo into `a` for the closer WITHOUT touching
   // the demand math (scanCoverage reads data-media-* stamps, not <img> tags).
@@ -560,7 +605,29 @@ const family = {
   fallbackType: "revealtitle",
   variants: 3,
   // Dark-premium never slams: slow pushes, soft focus pulls, no whip cuts.
-  camera: { kinds: ["zoom", "zoom", "zoom", "zoom", "zoom", "zoom", "zoom", "zoom"], blur: 16, push: 0.05, zoomIn: 1.13, zoomOut: 1.11 },
+  camera: { enabled: false, kinds: ["zoom", "zoom", "zoom", "zoom", "zoom", "zoom", "zoom", "zoom"], blur: 16, push: 0.05, zoomIn: 1.13, zoomOut: 1.11 },
+
+  // ---- SHARED MOTION SYSTEM (services/motion_presets.js) ----------------------
+  // This family publishes WHERE its headline, card and camera live; the engine
+  // drives them from the one preset library. Its own entrance tweens for those
+  // elements were removed in the same change — two timelines on one property
+  // fight, and the loser is whichever the browser applies second.
+  motion: {
+    heroType: "revealtitle",
+    text: (id) => `.${id}-ln`,
+    card: (id) => `#${id}-card, .${id}-card, #${id}-panel, .${id}-panel, #${id}-tile, .${id}-tile`,
+    camera: (id) => `#${id}-cami`,
+    // The film's two hero moments carry the signature type treatments; the
+    // middle stays on the house word stagger so the signatures stay signatures.
+    tokens: (type, i, ctx, { hasCard } = {}) => ({
+      text: type === "revealtitle" ? "outlineFillReveal"
+        : type === "glowcta" ? "characterReveal" : "wordStaggerBlur",
+      enter: hasCard ? "cardRise3D" : "none",
+      idle: hasCard ? "floatSoft" : "none",
+      camera: MOTION.CAMERA_MOVES[i % MOTION.CAMERA_MOVES.length],
+      transition: MOTION.TRANSITIONS[i % MOTION.TRANSITIONS.length],
+    }),
+  },
 };
 
 function buildComposition(opts) { return E.buildFilm(family, opts); }

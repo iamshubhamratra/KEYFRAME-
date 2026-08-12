@@ -1,0 +1,98 @@
+{
+  "name": "ember-roast",
+  "renderer": "omelette",
+  "template": "EmberRoast",
+  "portraitNative": true,
+  "vibe": "coffee roastery — steam curls, rotating drum, falling beans Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#2B1D16",
+    "ink": "#F3E9DC",
+    "accent": "#CAA465",
+    "a2": "#E0662C"
+  },
+  "fonts": [
+    "Alfa Slab One",
+    "Karla"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#2B1D16",
+    "ink": "#F3E9DC"
+  },
+  "motion": {
+    "cut": "whip",
+    "drift": 0.97
+  },
+  "fx": {
+    "canvas": "sprinkle",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#CAA465",
+      "#E0662C"
+    ],
+    "extras": [
+      "#1C110C",
+      "#231710",
+      "#C94F3D"
+    ],
+    "emphasisCss": "color:#CAA465;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "ember",
+      "roast",
+      "coffee",
+      "roastery",
+      "steam",
+      "curls"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Alfa Slab One",
+    "body": "Karla"
+  },
+  "camera3d": {
+    "ground": "#2B1D16"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "zap",
+    "emphasis": "bracket",
+    "case": "none",
+    "tracking": -0.02,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

@@ -1,5 +1,6 @@
 {
   "name": "atelier",
+  "renderer": "editorial-quiet",
   "vibe": "an elegant editorial fashion-house system: warm ivory paper, espresso ink, a single muted gold accent with soft terracotta, refined Fraunces serif display, and delicate continuous LINE-ART that draws itself — a single flowing contour, thin drawn frames, a fine rotating ring, hairline dividers and serif ornaments — minimal, lots of quiet negative space, for luxury brands, editorials, portfolios, founder stories and premium reveals",
   "colors": {
     "ivory": "#F7F3EC",
@@ -11,8 +12,8 @@
     "stone": "#B9AEA0"
   },
   "fonts": [
-    "Inter",
-    "Fraunces"
+    "Chakra Petch",
+    "JetBrains Mono"
   ],
   "surface": {
     "flat": false,
@@ -55,7 +56,7 @@
     ]
   },
   "typography": {
-    "display": "Fraunces"
+    "display": "Chakra Petch"
   },
   "layout": {
     "propFill": false,
@@ -64,26 +65,27 @@
     "stat": "headline"
   },
   "textfx": {
-    "enter": "drift",
-    "emphasis": "underline-grow",
+    "enter": "squash",
+    "emphasis": "bullet",
     "align": "center",
-    "case": "none",
-    "sizeScale": 1.0
+    "case": "upper",
+    "sizeScale": 1.12,
+    "weight": 900,
+    "tracking": -0.035
   },
   "audio": {
     "music": {
-      "query": "elegant emotional piano",
-      "mood": "inspirational",
+      "query": "taiko drums stomp percussion powerful energetic",
+      "mood": "energetic",
       "volume": 0.15
     },
     "sfx": {
-      "style": "soft felt-piano notes, gentle paper turns and a single warm chime — sparse and refined, one accent per beat, silence carries the mood",
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
       "palette": [
-        "soft page turn",
-        "gentle piano note",
-        "warm chime",
-        "light airy whoosh",
-        "subtle string swell"
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
       ]
     }
   }

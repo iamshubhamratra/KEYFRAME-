@@ -1,0 +1,91 @@
+{
+  "name": "hacker-terminal",
+  "renderer": "omelette",
+  "template": "Hacker",
+  "vibe": "Matrix rain behind self-typing code, glitching titles and terminal windows under scanlines. Phosphor green on near-black with cyan and amber alarms. For security, infrastructure, developer tools and anything that should feel like the machine talking.",
+  "colors": {
+    "ground": "#05080B",
+    "ink": "#D7F5E1",
+    "accent": "#37FF7A",
+    "a2": "#35E0FF",
+    "a3": "#FFC24C"
+  },
+  "fonts": [
+    "JetBrains Mono"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#05080B"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none"
+  },
+  "skin": {
+    "accents": [
+      "#37FF7A",
+      "#35E0FF"
+    ],
+    "extras": [
+      "#FFC24C"
+    ],
+    "emphasisCss": "color:#37FF7A;"
+  },
+  "assets": {
+    "photoMod": "",
+    "iconStyle": "line",
+    "keywords": [
+      "terminal",
+      "code",
+      "hacker",
+      "matrix",
+      "developer"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "JetBrains Mono"
+  },
+  "camera3d": {
+    "ground": "#05080B"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "char-pop",
+    "emphasis": "marker",
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035,
+    "sizeScale": 1.12,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "trap percussion hard claps energetic hype",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
+  }
+}

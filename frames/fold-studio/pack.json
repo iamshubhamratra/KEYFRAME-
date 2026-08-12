@@ -1,0 +1,98 @@
+{
+  "name": "fold-studio",
+  "renderer": "omelette",
+  "template": "FoldStudio",
+  "portraitNative": true,
+  "vibe": "origami — folding triangles, crane flap, crease lines Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#F2EDE3",
+    "ink": "#26221C",
+    "accent": "#D64545",
+    "a2": "#2E4A7D"
+  },
+  "fonts": [
+    "Zilla Slab",
+    "Source Sans 3"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F2EDE3",
+    "ink": "#26221C"
+  },
+  "motion": {
+    "cut": "wipe",
+    "drift": 1.01
+  },
+  "fx": {
+    "canvas": "halftone",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#D64545",
+      "#2E4A7D"
+    ],
+    "extras": [
+      "#B89B6A",
+      "#C2477E",
+      "#3E7C5B"
+    ],
+    "emphasisCss": "color:#D64545;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "fold",
+      "studio",
+      "origami",
+      "folding",
+      "triangles",
+      "crane"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Zilla Slab",
+    "body": "Zilla Slab"
+  },
+  "camera3d": {
+    "ground": "#F2EDE3"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "countin",
+    "emphasis": "ring",
+    "case": "upper",
+    "tracking": -0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

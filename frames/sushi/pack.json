@@ -1,0 +1,98 @@
+{
+  "name": "sushi",
+  "renderer": "omelette",
+  "template": "Sushi",
+  "portraitNative": true,
+  "vibe": "\"SUSHI\" conveyor-bar world. Noren, plates, steam, lanterns. Portrait-native 9:16 (9 authored beats, 27.8s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#191009",
+    "ink": "#F6EFDF",
+    "accent": "#E8B84B",
+    "a2": "#F4795B"
+  },
+  "fonts": [
+    "Zen Maru Gothic",
+    "M PLUS 1p"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#191009",
+    "ink": "#F6EFDF"
+  },
+  "motion": {
+    "cut": "whip",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "sprinkle",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#E8B84B",
+      "#F4795B"
+    ],
+    "extras": [
+      "#8DBB4A",
+      "#000000",
+      "#2A1A0E"
+    ],
+    "emphasisCss": "color:#E8B84B;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "sushi-film",
+      "sushi",
+      "conveyor-bar",
+      "world",
+      "noren",
+      "plates"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Zen Maru Gothic",
+    "body": "Zen Maru Gothic"
+  },
+  "camera3d": {
+    "ground": "#191009"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "squash",
+    "emphasis": "glow",
+    "case": "upper",
+    "tracking": -0.02,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

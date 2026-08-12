@@ -264,15 +264,18 @@ function montage(scene, ctx, a, b) {
   // better than a blank white card.
   const pool = (Array.isArray(ctx.media) && ctx.media.length ? ctx.media : [a, b]).filter(Boolean);
   const media = [0, 1, 2, 3].map((k) => (pool.length ? pool[k % pool.length] : null));
-  const tileH = land ? 17 : 32.4;
-  const cells = [0, 1, 2, 3].map((i) =>
+  const tileH = land ? 17 : 32.4;  // PORTRAIT: two tiles at FULL width rather than four at half. A 2x2 wall in
+  // 9:16 puts each plate under ~330px, where a product screenshot stops being
+  // readable; stacked full width they get the whole frame. Fewer, bigger.
+
+  const cells = (land ? [0, 1, 2, 3] : [0, 1]).map((i) =>
     `<div class="${id}-tl" style="opacity:0;">
       <div style="height:${tileH}cqw;border-radius:${q(22, land)}cqw;overflow:hidden;box-shadow:0 1.6cqw 3.4cqw ${rgba(th.ink, 0.14)};">${slot(`${id}-img${i}`, media[i], th, { radius: 12, label: labels[i] })}</div>
       <div style="font-family:${FB};font-weight:800;font-size:${q(28, land)}cqw;color:${th.ink};margin-top:${q(14, land)}cqw;">${esc(labels[i])}</div>
     </div>`).join("");
   const html = `<div style="position:absolute;left:${land ? 14 : 6.3}cqw;right:${land ? 14 : 6.3}cqw;top:${land ? 7 : 26.9}cqw;">
     ${serifLines(id, scene.headline, "Every corner of it", land ? 66 : 90, th, land)}
-    <div style="margin-top:${q(46, land)}cqw;display:grid;grid-template-columns:1fr 1fr;gap:${q(24, land)}cqw;">${cells}</div>
+    <div style="margin-top:${q(46, land)}cqw;display:grid;grid-template-columns:${land ? "1fr 1fr" : "1fr"};gap:${q(24, land)}cqw;">${cells}</div>
   </div>`;
   const s = [
     camera("right", ctx),
@@ -316,7 +319,7 @@ function cta(scene, ctx, a) {
   });
   const logo = a && a.path
     ? `<img src="${esc(a.path)}" alt="logo" style="width:100%;height:100%;object-fit:contain;">`
-    : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:${th.accent};color:${th.ground};font-family:${FH};font-size:${q(64, land)}cqw;">${esc(String(brand).slice(0, 1).toUpperCase())}</div>`;
+    : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:${th.accent};color:${E.readable(th.accent, E.inkOn(th.accent, th.ink, th.ground), 1, 3)};font-family:${FH};font-size:${q(64, land)}cqw;">${esc(String(brand).slice(0, 1).toUpperCase())}</div>`;
   const html = `<div style="position:absolute;left:${land ? 12 : 6.3}cqw;${land ? "top:50%;transform:translateY(-50%);width:60cqw;" : "right:6.3cqw;top:57.4cqw;"}">
     <div id="${id}-lg" style="opacity:0;width:${q(148, land)}cqw;height:${q(148, land)}cqw;border-radius:999px;overflow:hidden;margin-bottom:${q(44, land)}cqw;box-shadow:0 1.4cqw 3cqw ${rgba(th.ink, 0.2)};">${logo}</div>
     ${serifLines(id, scene.headline, "Come see for yourself", land ? 96 : 112, th, land)}

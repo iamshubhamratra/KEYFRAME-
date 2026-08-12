@@ -1,0 +1,98 @@
+{
+  "name": "desert-neon",
+  "renderer": "omelette",
+  "template": "DesertNeon",
+  "portraitNative": true,
+  "vibe": "motel night — neon cactus buzzing, tumbleweed, star wash Portrait-native 9:16 (18 authored beats, 49.9s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#241A33",
+    "ink": "#F6EEFC",
+    "accent": "#59E07A",
+    "a2": "#FF7AC2"
+  },
+  "fonts": [
+    "Monoton",
+    "Outfit"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#241A33",
+    "ink": "#F6EEFC"
+  },
+  "motion": {
+    "cut": "smear",
+    "drift": 0.96
+  },
+  "fx": {
+    "canvas": "rays",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#59E07A",
+      "#FF7AC2"
+    ],
+    "extras": [
+      "#E8C98F",
+      "#170F22",
+      "#1A2333"
+    ],
+    "emphasisCss": "color:#59E07A;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "desert",
+      "neon",
+      "motel",
+      "night",
+      "cactus",
+      "buzzing"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Monoton",
+    "body": "Outfit"
+  },
+  "camera3d": {
+    "ground": "#241A33"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "countin",
+    "emphasis": "underline-grow",
+    "case": "upper",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "synthwave retro electronic driving arpeggio neon",
+      "mood": "energetic",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

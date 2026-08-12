@@ -1,0 +1,98 @@
+{
+  "name": "wing-garden",
+  "renderer": "omelette",
+  "template": "WingGarden",
+  "portraitNative": true,
+  "vibe": "butterflies flapping on sine paths, stems, soft rays Portrait-native 9:16 (15 authored beats, 44.8s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#2E4636",
+    "ink": "#F4EFE2",
+    "accent": "#F28C28",
+    "a2": "#4A7DE0"
+  },
+  "fonts": [
+    "Lobster Two",
+    "Cabin"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#2E4636",
+    "ink": "#F4EFE2"
+  },
+  "motion": {
+    "cut": "shatter",
+    "drift": 0.97
+  },
+  "fx": {
+    "canvas": "ribbon",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F28C28",
+      "#4A7DE0"
+    ],
+    "extras": [
+      "#24301F",
+      "#3A5244",
+      "#E05E7A"
+    ],
+    "emphasisCss": "color:#F28C28;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "wing",
+      "garden",
+      "butterflies",
+      "flapping",
+      "sine",
+      "paths"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Lobster Two",
+    "body": "Lobster Two"
+  },
+  "camera3d": {
+    "ground": "#2E4636"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slide",
+    "emphasis": "underline-grow",
+    "case": "upper",
+    "tracking": -0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

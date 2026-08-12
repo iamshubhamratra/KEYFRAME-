@@ -11,8 +11,7 @@
     "yellow": "#F2C21F"
   },
   "fonts": [
-    "Archivo Black",
-    "Inter",
+    "Chakra Petch",
     "Space Grotesk"
   ],
   "surface": {
@@ -56,32 +55,32 @@
     ]
   },
   "typography": {
-    "display": "Archivo Black"
+    "display": "Chakra Petch"
   },
   "camera3d": {
     "ground": "#F4EEE1"
   },
   "textfx": {
-    "enter": "stamp",
-    "emphasis": "gradient",
+    "enter": "squash",
+    "emphasis": "bullet",
     "case": "upper",
-    "tracking": -0.015,
-    "weight": 400,
-    "sizeScale": 1.05,
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.18,
     "align": "center"
   },
   "audio": {
     "music": {
-      "query": "upbeat retro funk brass punchy",
-      "mood": "upbeat",
+      "query": "taiko drums stomp percussion powerful energetic",
+      "mood": "energetic",
       "volume": 0.16
     },
     "sfx": {
-      "style": "rubber-stamp thuds, paper snaps and playful pops",
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
       "palette": [
-        "stamp thud",
-        "pop",
-        "paper snap",
+        "impact hit",
+        "clap",
+        "riser sweep",
         "whoosh transition"
       ]
     }

@@ -1,0 +1,98 @@
+{
+  "name": "proof",
+  "renderer": "omelette",
+  "template": "Proof",
+  "portraitNative": true,
+  "vibe": "\"PROOF\" bakery world. Warm dough palette, rising/steam/oven animations. Portrait-native 9:16 (15 authored beats, 43.8s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#FFF6E8",
+    "ink": "#3A2318",
+    "accent": "#F0DBB6",
+    "a2": "#C2333F"
+  },
+  "fonts": [
+    "Young Serif",
+    "Nunito"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#FFF6E8",
+    "ink": "#3A2318"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 0.95
+  },
+  "fx": {
+    "canvas": "prism",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F0DBB6",
+      "#C2333F"
+    ],
+    "extras": [
+      "#8A4B24",
+      "#B5713D",
+      "#7FA65A"
+    ],
+    "emphasisCss": "color:#F0DBB6;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "proof-film",
+      "proof",
+      "bakery",
+      "world",
+      "warm",
+      "dough"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Young Serif",
+    "body": "Young Serif"
+  },
+  "camera3d": {
+    "ground": "#FFF6E8"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "squash",
+    "emphasis": "marker",
+    "case": "upper",
+    "tracking": 0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

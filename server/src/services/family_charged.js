@@ -39,6 +39,9 @@
 
 const { deriveTheme } = require("./scene_kit");
 const E = require("./template_engine");
+// The shared motion vocabulary — see services/motion_presets.js. Physics for
+// headlines and cards lives there now, so every template moves alike.
+const MOTION = require("./motion_presets");
 const { esc, r, rgba, mix, lum, inkOn, hashSeed, statsOf, breakLines, bullets, fit, mineStat } = E;
 
 // ---- contrast guard -----------------------------------------------------------
@@ -88,6 +91,14 @@ function theme(manifest, brandSkin, { framePack, land } = {}) {
     // gallery). Text use goes through these; fills keep the raw accent.
     accentText: E.readable(ground, accent, 1, 4.5),
     accentText2: E.readable(ground, accent2, 1, 4.5),
+    // …and the same again for accent text that sits on a HUD PLATE rather than
+    // on the ground. hudCss lays an ink wash and an accent wash over the ground,
+    // so the real backdrop is lighter than `ground` and a colour computed against
+    // the ground lands short — the row numbers measured 3.72:1 and 4.16:1 that
+    // way. Compute against the plate's actual first stop, and target 5.5 so the
+    // glow these numbers carry cannot eat the remaining margin.
+    accentPlate: E.readable(E.flatten(ink, ground, 0.18), accent, 1, 7),
+    accentPlate2: E.readable(E.flatten(ink, ground, 0.18), accent2, 1, 7),
     sig: signatureOf(framePack),
     // the pack's own typographic voice, straight from its manifest
     upper: tf.case === "upper",
@@ -98,7 +109,11 @@ function theme(manifest, brandSkin, { framePack, land } = {}) {
     edge: rgba(accent, 0.34),
     well: mix(ground, dark ? "#000000" : "#FFFFFF", 0.42),
     // text tiers — body never dips below 60% of the ink on these grounds
-    body: rgba(ink, 0.86),
+    // The body tier is real copy, so it is GUARANTEED against the ground rather
+    // than assumed: a pack whose derived ink sits near the family's ground
+    // (voltage) rendered body text at 1.16:1 — effectively invisible. readable()
+    // keeps the 0.86 alpha when it already clears and only pushes when it must.
+    body: E.readable(ground, ink, 0.86, 4.5),
     soft: rgba(ink, 0.68),
     faint: rgba(ink, 0.42),      // decoration only, never copy
     onAccent: inkOn(accent, "#06070C", "#FFFFFF"),
@@ -238,7 +253,7 @@ const slamIn = (cls, at, land, stagger) =>
 const kickerRow = (id, text, th, land, center) => (text ? `
       <div id="${id}-kick" style="opacity:0;display:flex;align-items:center;${center ? "justify-content:center;" : ""}gap:${land ? 0.8 : 1.3}cqw;margin-bottom:${land ? 1.1 : 1.8}cqw;">
         <span style="display:block;width:${land ? 0.5 : 0.82}cqw;height:${land ? 0.5 : 0.82}cqw;border-radius:50%;background:${th.accent};box-shadow:0 0 ${land ? 1.1 : 1.8}cqw ${rgba(th.accent, 0.95)};"></span>
-        <span style="font-family:${th.monoStack};font-size:${land ? 1.02 : 1.7}cqw;letter-spacing:0.32em;text-transform:uppercase;color:${th.accentText};">${esc(text)}</span>
+        <span style="font-family:${th.monoStack};font-size:${land ? 1.02 : 1.7}cqw;letter-spacing:0.32em;text-transform:uppercase;color:${th.accentPlate};">${esc(text)}</span>
       </div>` : "");
 
 // A light sweep that crosses a block of type once, then leaves.
@@ -298,7 +313,6 @@ function ignitetitle(scene, ctx) {
     `tl.to("#${id}-core",{opacity:0.7,scale:1.07,duration:1.9,ease:"sine.inOut",yoyo:true,repeat:reps(${r(Math.max(0.2, L - 0.9))},1.9)},${r(T + 0.9)});`,
     `tl.fromTo(".${id}-rail",{scaleX:0},{scaleX:1,duration:0.5,ease:"expo.out",stagger:0.1},${r(T + 0.1)});`,
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,y:${land ? -14 : -20}},{opacity:1,y:0,duration:0.5,ease:"power3.out"},${r(T + 0.25)});` : "",
-    slamIn(`${id}-ln`, T + 0.35, land),
     ...sweepIn(id, r(T + 0.85)),
     body ? `tl.fromTo("#${id}-body",{opacity:0,y:${land ? 22 : 30}},{opacity:1,y:0,duration:0.6,ease:"power3.out"},${r(T + 0.95)});` : "",
     `tl.fromTo("#${id}-chg",{opacity:0},{opacity:1,duration:0.4},${r(T + 1)});`,
@@ -354,7 +368,6 @@ function chargeplate(scene, ctx, asset) {
     `tl.to("#${id}-scan",{opacity:0,duration:0.3,ease:"none"},${r(T + Math.min(2.4, Math.max(1.1, L * 0.6)) + 0.6)});`,
     `tl.fromTo("#${id}-tag",{opacity:0,x:-18},{opacity:1,x:0,duration:0.45},${r(T + 0.7)});`,
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,x:-22},{opacity:1,x:0,duration:0.5,ease:"power3.out"},${r(T + 0.3)});` : "",
-    slamIn(`${id}-ln`, T + 0.4, land),
     body ? `tl.fromTo("#${id}-body",{opacity:0,y:${land ? 20 : 26}},{opacity:1,y:0,duration:0.6,ease:"power3.out"},${r(T + 0.78)});` : "",
     `tl.fromTo("#${id}-urule",{opacity:0,scaleX:0},{opacity:1,scaleX:1,duration:0.55,ease:"power3.out"},${r(T + 0.95)});`,
   ];
@@ -380,7 +393,7 @@ function sequence(scene, ctx) {
   const gap = land ? (n >= 4 ? 0.9 : 1.3) : (n >= 4 ? 1.6 : 2.2);
   const rows = items.map((t, i2) => `
       <div class="${id}-row" style="opacity:0;position:relative;display:flex;align-items:center;gap:${land ? 1.5 : 2.3}cqw;padding:${padY}cqw ${land ? 2 : 3}cqw;margin-top:${i2 ? gap : 0}cqw;${hudCss(th, land, land ? 0.6 : 1)}">
-        <span style="font-family:${th.monoStack};font-size:${land ? 1.1 : 1.8}cqw;letter-spacing:0.16em;color:${i2 % 2 ? th.accent2 : th.accent};min-width:${land ? 3 : 4.8}cqw;text-shadow:0 0 ${land ? 1 : 1.6}cqw ${rgba(i2 % 2 ? th.accent2 : th.accent, 0.7)};">${String(i2 + 1).padStart(2, "0")}</span>
+        <span style="font-family:${th.monoStack};font-size:${land ? 1.1 : 1.8}cqw;letter-spacing:0.16em;color:${i2 % 2 ? th.accentPlate2 : th.accentPlate};min-width:${land ? 3 : 4.8}cqw;text-shadow:0 0 ${land ? 1 : 1.6}cqw ${rgba(i2 % 2 ? th.accent2 : th.accent, 0.7)};">${String(i2 + 1).padStart(2, "0")}</span>
         <span style="flex:1;font-family:${th.displayStack};font-weight:700;font-size:${rowFs}cqw;line-height:1.28;letter-spacing:${th.upper ? "0.01em" : "-0.01em"};${th.upper ? "text-transform:uppercase;" : ""}color:${th.ink};">${esc(t)}</span>
         <span style="display:block;width:${land ? 4.6 : 7}cqw;height:${land ? 0.3 : 0.5}cqw;border-radius:${land ? 0.15 : 0.25}cqw;background:${rgba(th.ink, 0.12)};overflow:hidden;">
           <span class="${id}-bar" style="display:block;width:100%;height:100%;transform-origin:left center;background:${i2 % 2 ? th.accent2 : th.accent};box-shadow:0 0 ${land ? 0.9 : 1.5}cqw ${rgba(i2 % 2 ? th.accent2 : th.accent, 0.9)};"></span>
@@ -399,7 +412,6 @@ function sequence(scene, ctx) {
   const s = [
     `tl.fromTo("#${id}-wash",{opacity:0},{opacity:1,duration:0.9,ease:"power2.out"},${T});`,
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,x:-22},{opacity:1,x:0,duration:0.5,ease:"power3.out"},${r(T + 0.15)});` : "",
-    slamIn(`${id}-head`, T + 0.25, land),
     `tl.fromTo("#${id}-spine",{scaleY:0},{scaleY:1,duration:0.55,ease:"expo.out"},${r(T + 0.5)});`,
     `tl.fromTo(".${id}-row",{opacity:0,x:${land ? -44 : -34}},{opacity:1,x:0,duration:0.5,ease:"expo.out",stagger:0.14},${r(T + 0.6)});`,
     `tl.fromTo(".${id}-bar",{scaleX:0},{scaleX:1,duration:0.6,ease:"power2.out",stagger:0.14},${r(T + 0.82)});`,
@@ -440,7 +452,6 @@ function surge(scene, ctx) {
   const s = [
     `tl.fromTo("#${id}-core",{opacity:0,scale:0.58},{opacity:1,scale:1,duration:0.95,ease:"power3.out"},${T});`,
     `tl.to("#${id}-core",{opacity:0.7,duration:1.8,ease:"sine.inOut",yoyo:true,repeat:reps(${r(Math.max(0.2, L - 0.95))},1.8)},${r(T + 0.95)});`,
-    head ? `tl.fromTo("#${id}-head",{opacity:0,y:${land ? -16 : -22}},{opacity:1,y:0,duration:0.55,ease:"power3.out"},${r(T + 0.25)});` : "",
     `tl.fromTo("#${id}-num",{opacity:0,scaleY:1.6,y:${land ? 34 : 48},filter:"blur(${land ? 10 : 14}px)"},{opacity:1,scaleY:1,y:0,filter:"blur(0px)",duration:0.62,ease:"expo.out"},${r(T + 0.32)});`,
     main ? `countTxt("#${id}-num",${main.v},${r(T + 0.4)},${r(Math.min(1.7, Math.max(0.8, L * 0.5)))},${JSON.stringify(main.pre)},${JSON.stringify(main.suf)},${main.isFloat ? 10 : 1});` : "",
     `tl.fromTo("#${id}-gauge",{opacity:0},{opacity:1,duration:0.3},${r(T + 0.6)});`,
@@ -502,7 +513,6 @@ function transmission(scene, ctx, asset) {
     </div>`;
   const s = [
     `tl.fromTo("#${id}-wash",{opacity:0},{opacity:1,duration:0.9,ease:"power2.out"},${T});`,
-    `tl.fromTo("#${id}-panel",{opacity:0,y:${land ? 28 : 38},scale:0.97},{opacity:1,y:0,scale:1,duration:0.6,ease:"expo.out"},${r(T + 0.1)});`,
     `tl.fromTo(".${id}-bk",{opacity:0,scale:2},{opacity:1,scale:1,duration:0.4,ease:"power3.out",stagger:0.06},${r(T + 0.35)});`,
     `tl.fromTo("#${id}-edge",{scaleY:0},{scaleY:1,duration:0.6,ease:"expo.out"},${r(T + 0.3)});`,
     `tl.fromTo("#${id}-mark",{opacity:0,y:${land ? 18 : 24}},{opacity:1,y:0,duration:0.45,ease:"power3.out"},${r(T + 0.38)});`,
@@ -529,7 +539,7 @@ function gridburst(scene, ctx, a, b) {
         ${asset && asset.path
       ? `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">`
       : signalPlate(id, th, land, brand, url, false)}
-        <span style="position:absolute;left:${land ? 0.6 : 1}cqw;top:${land ? 0.6 : 1}cqw;font-family:${th.monoStack};font-size:${land ? 0.9 : 1.5}cqw;letter-spacing:0.18em;color:${th.accentText};text-shadow:0 0 ${land ? 0.8 : 1.3}cqw ${rgba(th.accent, 0.8)};">${n}</span>
+        <span style="position:absolute;left:${land ? 0.6 : 1}cqw;top:${land ? 0.6 : 1}cqw;padding:${land ? 0.2 : 0.34}cqw ${land ? 0.5 : 0.8}cqw;border-radius:${land ? 0.3 : 0.5}cqw;background:${rgba(th.ground, 0.72)};font-family:${th.monoStack};font-size:${land ? 0.9 : 1.5}cqw;letter-spacing:0.18em;color:${th.accentPlate};text-shadow:0 0 ${land ? 0.8 : 1.3}cqw ${rgba(th.accent, 0.8)};">${n}</span>
       </div>`;
   const html = `
     <div id="${id}-wash" style="position:absolute;inset:0;opacity:0;background:radial-gradient(ellipse 62% 54% at 50% ${land ? 76 : 68}%, ${rgba(th.accent, 0.2)} 0%, transparent 70%);"></div>
@@ -537,29 +547,43 @@ function gridburst(scene, ctx, a, b) {
       ${kickerRow(id, kicker, th, land, false)}
       <div style="position:relative;overflow:hidden;">${slamLines(lines, headFs, th.ink, `${id}-head`, th, 800)}</div>
     </div>
-    <div style="position:absolute;left:${land ? 7 : 6}cqw;right:${land ? 7 : 6}cqw;top:${land ? "45%" : "39%"};bottom:${land ? "14%" : "13%"};display:grid;grid-template-columns:${land ? "1fr 1fr 1fr 1fr" : "1fr 1fr"};grid-template-rows:${land ? "1fr" : "1fr 1fr"};gap:${land ? 1.1 : 1.7}cqw;">
+    ${/* Portrait shows fewer, bigger things — see the same note in
+          family_darkpremium. Four tiles across becomes 2×2 in 9:16, which puts
+          each media plate under half a 720px frame; stacked full width they stay
+          readable, and the two text tiles merge into one strip. */""}
+    <div style="position:absolute;left:${land ? 7 : 6}cqw;right:${land ? 7 : 6}cqw;top:${land ? "45%" : "39%"};bottom:${land ? "14%" : "13%"};display:grid;grid-template-columns:${land ? "1fr 1fr 1fr 1fr" : "1fr"};grid-template-rows:${land ? "1fr" : "1fr 1fr 0.5fr"};gap:${land ? 1.1 : 1.7}cqw;">
       ${mediaTile(a, `${id}-t1`, "01")}
       ${mediaTile(b, `${id}-t2`, "02")}
-      <div class="${id}-t3 ${id}-tile" style="opacity:0;position:relative;display:grid;place-items:center;overflow:hidden;${hudCss(th, land, radius)}">
+      ${land ? `<div class="${id}-t3 ${id}-tile" style="opacity:0;position:relative;display:grid;place-items:center;overflow:hidden;${hudCss(th, land, radius)}">
         <div style="position:absolute;inset:0;background:radial-gradient(ellipse 74% 66% at 50% 46%, ${rgba(th.accent, 0.26)} 0%, transparent 72%);"></div>
-        <div style="position:relative;text-align:center;padding:${land ? 0.8 : 1.3}cqw;">
-          <div style="font-family:${th.displayStack};font-weight:800;font-size:${land ? 3.4 : 5}cqw;line-height:1;color:${th.ink};text-shadow:0 0 ${land ? 2 : 3.2}cqw ${rgba(th.accent, 0.65)};">${esc(badge)}</div>
-          ${badgeLabel ? `<div style="margin-top:${land ? 0.5 : 0.9}cqw;font-family:${th.monoStack};font-size:${land ? 0.88 : 1.45}cqw;letter-spacing:0.18em;text-transform:uppercase;color:${th.body};">${esc(badgeLabel)}</div>` : ""}
+        <div style="position:relative;text-align:center;padding:0.8cqw;">
+          <div style="font-family:${th.displayStack};font-weight:800;font-size:3.4cqw;line-height:1;color:${th.ink};text-shadow:0 0 2cqw ${rgba(th.accent, 0.65)};">${esc(badge)}</div>
+          ${badgeLabel ? `<div style="margin-top:0.5cqw;font-family:${th.monoStack};font-size:0.88cqw;letter-spacing:0.18em;text-transform:uppercase;color:${th.body};">${esc(badgeLabel)}</div>` : ""}
         </div>
       </div>
       <div class="${id}-t4 ${id}-tile" style="opacity:0;position:relative;display:grid;place-items:center;overflow:hidden;${hudCss(th, land, radius)}">
-        <div style="text-align:center;padding:${land ? 0.8 : 1.3}cqw;">
-          <div style="font-family:${th.displayStack};font-weight:800;font-size:${land ? 2.1 : 3.1}cqw;letter-spacing:0.03em;text-transform:uppercase;color:${th.ink};">${esc(String(brand).slice(0, 14))}</div>
-          <div style="margin:${land ? 0.6 : 1}cqw auto 0;width:${land ? 5 : 8}cqw;height:${land ? 0.14 : 0.22}cqw;background:${th.accent2};box-shadow:0 0 ${land ? 1 : 1.6}cqw ${rgba(th.accent2, 0.95)};"></div>
-          <div style="margin-top:${land ? 0.6 : 1}cqw;font-family:${th.monoStack};font-size:${land ? 0.88 : 1.45}cqw;letter-spacing:0.22em;text-transform:uppercase;color:${th.soft};">${esc(url)}</div>
+        <div style="text-align:center;padding:0.8cqw;">
+          <div style="font-family:${th.displayStack};font-weight:800;font-size:2.1cqw;letter-spacing:0.03em;text-transform:uppercase;color:${th.ink};">${esc(String(brand).slice(0, 14))}</div>
+          <div style="margin:0.6cqw auto 0;width:5cqw;height:0.14cqw;background:${th.accent2};box-shadow:0 0 1cqw ${rgba(th.accent2, 0.95)};"></div>
+          <div style="margin-top:0.6cqw;font-family:${th.monoStack};font-size:0.88cqw;letter-spacing:0.22em;text-transform:uppercase;color:${th.soft};">${esc(url)}</div>
         </div>
-      </div>
+      </div>`
+    : `<div class="${id}-t3 ${id}-tile" style="opacity:0;position:relative;display:flex;align-items:center;justify-content:space-between;gap:2cqw;padding:0 3cqw;overflow:hidden;${hudCss(th, land, radius)}">
+        <div style="position:absolute;inset:0;background:radial-gradient(ellipse 74% 66% at 22% 46%, ${rgba(th.accent, 0.26)} 0%, transparent 72%);"></div>
+        <div style="position:relative;text-align:left;">
+          <div style="font-family:${th.displayStack};font-weight:800;font-size:5cqw;line-height:1;color:${th.ink};text-shadow:0 0 3.2cqw ${rgba(th.accent, 0.65)};">${esc(badge)}</div>
+          ${badgeLabel ? `<div style="margin-top:0.9cqw;font-family:${th.monoStack};font-size:1.45cqw;letter-spacing:0.18em;text-transform:uppercase;color:${th.body};">${esc(badgeLabel)}</div>` : ""}
+        </div>
+        <div style="position:relative;text-align:right;">
+          <div style="font-family:${th.displayStack};font-weight:800;font-size:3.1cqw;letter-spacing:0.03em;text-transform:uppercase;color:${th.ink};">${esc(String(brand).slice(0, 14))}</div>
+          <div style="margin:1cqw 0 0 auto;width:8cqw;height:0.22cqw;background:${th.accent2};box-shadow:0 0 1.6cqw ${rgba(th.accent2, 0.95)};"></div>
+          <div style="margin-top:1cqw;font-family:${th.monoStack};font-size:1.45cqw;letter-spacing:0.22em;text-transform:uppercase;color:${th.soft};">${esc(url)}</div>
+        </div>
+      </div>`}
     </div>`;
   const s = [
     `tl.fromTo("#${id}-wash",{opacity:0},{opacity:1,duration:0.9,ease:"power2.out"},${T});`,
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,x:-22},{opacity:1,x:0,duration:0.5,ease:"power3.out"},${r(T + 0.15)});` : "",
-    slamIn(`${id}-head`, T + 0.25, land),
-    `tl.fromTo(".${id}-tile",{opacity:0,y:${land ? 30 : 36},scale:0.88},{opacity:1,y:0,scale:1,duration:0.46,ease:"back.out(1.6)",stagger:0.13},${r(T + 0.6)});`,
   ];
   return { html, s };
 }
@@ -600,7 +624,6 @@ function launchcta(scene, ctx, asset) {
     `tl.to(".${id}-ray",{opacity:0.28,duration:1.3,ease:"sine.inOut",yoyo:true,repeat:reps(${r(Math.max(0.2, L - 0.9))},1.3),stagger:0.02},${r(T + 0.9)});`,
     asset && asset.path ? `tl.fromTo("#${id}-logo",{opacity:0,y:${land ? -16 : -22}},{opacity:1,y:0,duration:0.5,ease:"power3.out"},${r(T + 0.12)});` : "",
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,y:${land ? -16 : -22}},{opacity:1,y:0,duration:0.5,ease:"power3.out"},${r(T + 0.2)});` : "",
-    slamIn(`${id}-ln`, T + 0.3, land),
     ...sweepIn(id, r(T + 0.9)),
     cta ? `tl.fromTo("#${id}-cta",{opacity:0,y:${land ? 24 : 32},scale:0.82},{opacity:1,y:0,scale:1,duration:0.55,ease:"back.out(2)"},${r(T + 0.9)});` : "",
     cta ? `tl.to("#${id}-cta",{boxShadow:"0 0 ${land ? 5.6 : 8.4}cqw ${rgba(th.accent, 0.9)}",duration:1.3,ease:"sine.inOut",yoyo:true,repeat:reps(${r(Math.max(0.2, L - 1.5))},1.3)},${r(T + 1.5)});` : "",
@@ -951,6 +974,22 @@ function styleBlock(th, land) {
 }
 
 const family = {
+  // ---- SCENE FILL (services/template_engine.js sceneFill) ---------------------
+  // Measured 2026-08-04: scenes carried ~11 words over ~14% of the frame, so the
+  // script's spare copy (supporting points, a figure, a subtext) never reached the
+  // screen. It is drawn here as a chip row + broadcast ticker in the lower band.
+  // Skipped on the closer, the pull-quote and the type whose own design owns that
+  // band — furniture under a CTA or a quote costs more than the density gains.
+  fill: (type, ctx, scene) => {
+    if (["launchcta","transmission","gridburst"].includes(type)) return null;
+    const land = ctx.land;
+    return {
+      left: land ? 7 : 6, right: land ? 7 : 6, bottom: land ? 8 : 11,
+      font: land ? 1.12 : 1.95, max: 3,
+      plate: ctx.theme.ground, ink: ctx.theme.ink, accent: ctx.theme.accent,
+      used: bullets(scene || {}, 3),
+    };
+  },
   theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaFallback,
   // Inject the site logo into slot `a` of the closer — no demand-math change; the
   // engine only stamps data-media-* on real demand, so coverage never drifts.
@@ -958,7 +997,32 @@ const family = {
   fallbackType: "ignitetitle",
   variants: 3,
   // Charged cuts hard: whips and fast pushes, heavy motion blur on the boundary.
-  camera: { kinds: ["zoom", "whip", "zoom", "whip", "whip", "zoom", "whip", "zoom"], blur: 22, push: 0.05, zoomIn: 1.2, zoomOut: 1.18 },
+  camera: { enabled: false, kinds: ["zoom", "whip", "zoom", "whip", "whip", "zoom", "whip", "zoom"], blur: 22, push: 0.05, zoomIn: 1.2, zoomOut: 1.18 },
+
+  // ---- SHARED MOTION SYSTEM (services/motion_presets.js) ----------------------
+  // This family publishes WHERE its headline, card and camera live; the engine
+  // drives them from the one preset library. Its own entrance tweens for those
+  // elements were removed in the same change — two timelines on one property
+  // fight, and the loser is whichever the browser applies second.
+  motion: {
+    heroType: "ignitetitle",
+    // Both hosts, both forms: slamLines() emits a CLASS headline while the
+    // mono eyebrow is an ID. A class-only selector left the eyebrow at
+    // opacity 0 once its own reveal was removed.
+    text: (id) => `.${id}-ln, #${id}-ln, .${id}-head, #${id}-head`,
+    card: (id) => `#${id}-panel, .${id}-panel, #${id}-tile, .${id}-tile`,
+    camera: (id) => `#${id}-cami`,
+    // The film's two hero moments carry the signature type treatments; the
+    // middle stays on the house word stagger so the signatures stay signatures.
+    tokens: (type, i, ctx, { hasCard } = {}) => ({
+      text: type === "ignitetitle" ? "outlineFillReveal"
+        : type === "launchcta" ? "characterReveal" : "wordStaggerBlur",
+      enter: hasCard ? "cardRise3D" : "none",
+      idle: hasCard ? "floatSoft" : "none",
+      camera: MOTION.CAMERA_MOVES[i % MOTION.CAMERA_MOVES.length],
+      transition: MOTION.TRANSITIONS[i % MOTION.TRANSITIONS.length],
+    }),
+  },
 };
 
 function buildComposition(opts) { return E.buildFilm(family, opts); }

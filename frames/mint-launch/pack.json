@@ -1,5 +1,6 @@
 {
   "name": "mint-launch",
+  "renderer": "bright-minimal",
   "vibe": "a bright modern SaaS system: near-white ground, soft brand gradients, friendly rounded type and one vivid gradient accent — for SaaS explainers, product tours and launches",
   "colors": {
     "paper": "#F7FCFA",
@@ -10,8 +11,8 @@
     "lime": "#A3E635"
   },
   "fonts": [
-    "Inter",
-    "Bricolage Grotesque"
+    "Bricolage Grotesque",
+    "JetBrains Mono"
   ],
   "surface": {
     "flat": false,
@@ -53,12 +54,12 @@
     ]
   },
   "textfx": {
-    "enter": "char-pop",
-    "emphasis": "marker",
-    "case": "none",
-    "tracking": 0,
-    "weight": null,
-    "sizeScale": 1.05,
+    "enter": "slide",
+    "emphasis": "echo",
+    "case": "upper",
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.18,
     "align": "center"
   },
   "typography": {
@@ -66,5 +67,21 @@
   },
   "camera3d": {
     "ground": "#0F2A24"
+  },
+  "audio": {
+    "music": {
+      "query": "marching snare stomp clap epic energetic",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
   }
 }

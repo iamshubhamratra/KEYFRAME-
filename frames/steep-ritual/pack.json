@@ -1,0 +1,98 @@
+{
+  "name": "steep-ritual",
+  "renderer": "omelette",
+  "template": "SteepRitual",
+  "portraitNative": true,
+  "vibe": "tea house — steam curl, bowl, bamboo sway Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#F7F3EA",
+    "ink": "#2B2B26",
+    "accent": "#C9A24B",
+    "a2": "#8C5A3C"
+  },
+  "fonts": [
+    "Marcellus",
+    "Mukta"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F7F3EA",
+    "ink": "#2B2B26"
+  },
+  "motion": {
+    "cut": "fade",
+    "drift": 1.12
+  },
+  "fx": {
+    "canvas": "sumi",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#C9A24B",
+      "#8C5A3C"
+    ],
+    "extras": [
+      "#7A8C4F",
+      "#000000",
+      "#FDFAF3"
+    ],
+    "emphasisCss": "color:#C9A24B;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "steep",
+      "ritual",
+      "house",
+      "steam",
+      "curl",
+      "bowl"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Marcellus",
+    "body": "Mukta"
+  },
+  "camera3d": {
+    "ground": "#F7F3EA"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slide",
+    "emphasis": "boxed",
+    "case": "upper",
+    "tracking": -0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "name": "rind-and-wheel",
+  "renderer": "omelette",
+  "template": "RindAndWheel",
+  "portraitNative": true,
+  "vibe": "cheese wheels on shelves, drips, thermometer Portrait-native 9:16 (14 authored beats, 41.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#3C3630",
+    "ink": "#F4E8C8",
+    "accent": "#D9A441",
+    "a2": "#8C3A2E"
+  },
+  "fonts": [
+    "Bree Serif"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#3C3630",
+    "ink": "#F4E8C8"
+  },
+  "motion": {
+    "cut": "strike",
+    "drift": 1.11
+  },
+  "fx": {
+    "canvas": "constellation",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#D9A441",
+      "#8C3A2E"
+    ],
+    "extras": [
+      "#241F1A",
+      "#000000",
+      "#4A423A"
+    ],
+    "emphasisCss": "color:#D9A441;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "rind",
+      "wheel",
+      "cheese",
+      "wheels",
+      "shelves",
+      "drips"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Bree Serif",
+    "body": "Sarala"
+  },
+  "camera3d": {
+    "ground": "#3C3630"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "ring",
+    "case": "none",
+    "tracking": -0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

@@ -1,0 +1,316 @@
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[kie] grok-4-5 stage=storyboard FAILED after 120012ms: Error
+[llm] KIE kie call timed out on stage=storyboard — retry 1/2 in 1000ms
+[kie] grok-4-5 stage=storyboard FAILED after 120014ms: Error
+[llm] KIE kie call timed out on stage=storyboard — retry 2/2 in 2000ms
+[kie] grok-4-5 stage=storyboard FAILED after 120007ms: Error
+[llm] KIE primary failed (kie call timed out); falling back to OpenRouter google/gemini-3.5-flash
+[pipeline] contrast-fix (graph-main): 3 low-contrast, none deterministically locatable — leaving to QA
+[pipeline] contrast-fix (graph-main): 5 text element(s) still below AA after 2 pass(es) — shipping flagged
+[agents] animation audit: inline transform hidden-state found (composes with GSAP xPercent — content may stay offscreen)
+[pipeline] contrast-fix (graph-repair): 5 text element(s) still below AA after 2 pass(es) — shipping flagged
+[agents] animation audit: inline transform hidden-state found (composes with GSAP xPercent — content may stay offscreen)
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[pipeline] contrast-fix (graph-main): 5 text element(s) still below AA after 2 pass(es) — shipping flagged
+[agents] animation audit: inline transform hidden-state found (composes with GSAP xPercent — content may stay offscreen)
+[pipeline] contrast-fix (qa-contrast): 5 low-contrast, none deterministically locatable — leaving to QA
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[kie] grok-4-5 stage=script FAILED after 180032ms: Error
+[llm] KIE kie call timed out on stage=script — retry 1/2 in 1000ms
+[vo_fit] model ad-libbed (210ch spoken for 43ch line) — one retake
+[vo_fit] model ad-libbed (78ch spoken for 11ch line) — one retake
+[vo_fit] model ad-libbed (337ch spoken for 35ch line) — one retake
+[vo_fit] retake rambled worse (95ch vs 78ch) — keeping take one
+[kie] grok-4-5 stage=storyboard FAILED after 120013ms: Error
+[llm] KIE kie call timed out on stage=storyboard — retry 1/2 in 1000ms
+[kie] grok-4-5 stage=storyboard FAILED after 120021ms: Error
+[llm] KIE kie call timed out on stage=storyboard — retry 2/2 in 2000ms
+[kie] grok-4-5 stage=storyboard FAILED after 119992ms: Error
+[llm] KIE primary failed (kie call timed out); falling back to OpenRouter google/gemini-3.5-flash
+[agents] animation audit: inline transform hidden-state found (composes with GSAP xPercent — content may stay offscreen)
+[agents] animation audit: inline transform hidden-state found (composes with GSAP xPercent — content may stay offscreen)
+[screenshot-qa] shot REJECTED (login-wall: login modal blocking the homepage) — site_0.png
+[screenshot-qa] shot DROPPED (scene mismatch, no free matching scene) — site_2.png
+[openrouter] google/gemini-3.5-flash stage=creative_director returned a bad completion: empty completion (finish=error, out=0)
+[openrouter] google/gemini-3.5-flash stage=creative_director FAILED after 4950ms: Error
+[openrouter] google/gemini-3.5-flash transient Error — retry 1/2 in 1500ms
+[kie] grok-4-5 stage=composer FAILED after 10640ms: TypeError
+[llm] KIE primary failed (fetch failed); falling back to OpenRouter google/gemini-3.5-flash
+[openrouter] google/gemini-3.5-flash stage=composer FAILED after 11071ms: Error
+[openrouter] google/gemini-3.5-flash transient Error — retry 1/2 in 1500ms
+[openrouter] google/gemini-3.5-flash stage=composer FAILED after 7ms: Error
+[openrouter] google/gemini-3.5-flash transient Error — retry 2/2 in 3000ms
+[openrouter] google/gemini-3.5-flash stage=composer FAILED after 16ms: Error
+[agents] composition failed (Connection error.)
+[agents] scene-kit fallback (deterministic, asset-rich)
+[agents] animation audit: inline transform hidden-state found (composes with GSAP xPercent — content may stay offscreen)
+[composer] attempt 1 validation failed (1 errs): typographically DEAD composition: only 1 display-size text element(s) (font-size >= 125px, i.e. ~6.5% of the 1920px canvas), need >= 5. Per the Typography ladder and LAYOUT LAW #2, EVERY scene's primary message is a DISPLAY headline — the largest thing in the frame (headlines >= 80px at 1080p scale,
+[composer] attempt 2 validation failed (1 errs): typographically DEAD composition: only 4 display-size text element(s) (font-size >= 125px, i.e. ~6.5% of the 1920px canvas), need >= 5. Per the Typography ladder and LAYOUT LAW #2, EVERY scene's primary message is a DISPLAY headline — the largest thing in the frame (headlines >= 80px at 1080p scale,
+[composer] attempt 3 validation failed (1 errs): too few animated pop-in stickers/badges/chips (found 37 sticker element(s), 0 sticker class(es) tweened by GSAP; need >=3 elements with at least one class tweened). Add decorative pop-in overlays per the POP-IN STICKERS section (burst badge / glass chip / stat sticker / connector callout) — each an 
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[vo_fit] model ad-libbed (211ch spoken for 23ch line) — one retake
+[pixabay-bridge] sound-effects resolve failed for "pop": The operation was aborted due to timeout
+[sfx] "pop" — Pixabay/Freesound dry; used local cue "pop" as fallback
+[pixabay-bridge] sound-effects resolve failed for "transition": The operation was aborted due to timeout
+[sfx] "transition" — Pixabay/Freesound dry; used local cue "transition" as fallback
+[pixabay-bridge] sound-effects resolve failed for "swoosh": The operation was aborted due to timeout
+[sfx] "swoosh" — Pixabay/Freesound dry; used local cue "swoosh" as fallback
+[pixabay-bridge] sound-effects resolve failed for "whoosh": The operation was aborted due to timeout
+[sfx] "whoosh" — Pixabay/Freesound dry; used local cue "whoosh" as fallback
+[pixabay-bridge] music resolve failed for "precise modern ambient electronica electronic": The operation was aborted due to timeout
+[sfx] "riser" — Pixabay/Freesound dry; used local cue "riser" as fallback
+[kie] grok-4-5 stage=storyboard FAILED after 120012ms: Error
+[llm] KIE kie call timed out on stage=storyboard — retry 1/2 in 1000ms
+[kie] grok-4-5 stage=storyboard FAILED after 120005ms: Error
+[llm] KIE kie call timed out on stage=storyboard — retry 2/2 in 2000ms
+[kie] grok-4-5 stage=storyboard FAILED after 120013ms: Error
+[llm] KIE primary failed (kie call timed out); falling back to OpenRouter google/gemini-3.5-flash
+[openrouter] google/gemini-3.5-flash stage=dressing returned a bad completion: truncated/unparseable JSON (finish=stop, out=12124, 11460ch)
+[openrouter] google/gemini-3.5-flash stage=dressing FAILED after 75744ms: Error
+[openrouter] google/gemini-3.5-flash transient Error — retry 1/2 in 1500ms
+[pipeline] scene-kit lint (non-blocking):  are easier to read, iterate on, and diff.
+    Fix: Split coherent scenes or layers into separate .html files under compositions/, then mount them from the parent with data-composition-src so each file stays small enough to inspect, revise, and validate independently.
+
+◇  3 error(s), 969 warning(s)
+
+[renderer] job a9nrixjhbr attempt 1 failed (code 1 = 0x1); retrying in 5s with --workers 1
+[renderer] job a9nrixjhbr aborted by pipeline; killing
+[agents] composition failed (composition agent exceeded budget of 2700000ms)
+[agents] deterministic fallback
+[renderer] job a9nrixjhbr attempt 1 failed (code 4294967295 = 0xffffffff) — process died at init (out of memory/desktop heap); retrying in 5s with --workers 1
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[vo_fit] model ad-libbed (237ch spoken for 18ch line) — one retake
+[kie] grok-4-5 stage=storyboard FAILED after 119985ms: Error
+[llm] KIE kie call timed out on stage=storyboard — retry 1/2 in 1000ms
+[assets] rejected "linear product roadmap and issue fragmented message cards sticky gradient aurora abstract" from pixabay: low-information image (stdev 3.4)
+[assets] rejected "linear product roadmap and issue fragmented message cards sticky gradient aurora abstract" from pixabay: low-information image (stdev 3.8)
+[assets] rejected "linear product roadmap and issue fragmented message cards sticky gradient aurora abstract" from pixabay: low-information image (stdev 3.4)
+[assets] rejected "linear product roadmap and issue fragmented message cards sticky gradient aurora abstract" from pixabay: low-information image (stdev 3.8)
+[assets] rejected "linear product roadmap and issue focused engineer laptop dual monitors gradient aurora abstract" from pixabay: low-information image (stdev 3.4)
+[assets] rejected "linear product roadmap and issue focused engineer laptop dual monitors gradient aurora abstract" from pixabay: low-information image (stdev 3.8)
+[pipeline] scene-kit lint (non-blocking):  are easier to read, iterate on, and diff.
+    Fix: Split coherent scenes or layers into separate .html files under compositions/, then mount them from the parent with data-composition-src so each file stays small enough to inspect, revise, and validate independently.
+
+◇  2 error(s), 455 warning(s)
+
+[agents] animation audit: inline transform hidden-state found (composes with GSAP xPercent — content may stay offscreen)
+[pipeline] scene-kit lint (non-blocking):  are easier to read, iterate on, and diff.
+    Fix: Split coherent scenes or layers into separate .html files under compositions/, then mount them from the parent with data-composition-src so each file stays small enough to inspect, revise, and validate independently.
+
+◇  2 error(s), 455 warning(s)
+
+[agents] animation audit: inline transform hidden-state found (composes with GSAP xPercent — content may stay offscreen)
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[kie] grok-4-5 stage=script FAILED after 179984ms: Error
+[llm] KIE kie call timed out on stage=script — retry 1/2 in 1000ms
+[vo_fit] model ad-libbed (218ch spoken for 29ch line) — one retake
+[vo_fit] model ad-libbed (114ch spoken for 29ch line) — one retake
+[vo_fit] model ad-libbed (452ch spoken for 47ch line) — one retake
+[vo_fit] model ad-libbed (184ch spoken for 27ch line) — one retake
+[kie] grok-4-5 stage=storyboard FAILED after 119998ms: Error
+[llm] KIE kie call timed out on stage=storyboard — retry 1/2 in 1000ms
+[kie] grok-4-5 stage=storyboard FAILED after 120002ms: Error
+[llm] KIE kie call timed out on stage=storyboard — retry 2/2 in 2000ms
+[kie] grok-4-5 stage=storyboard FAILED after 119994ms: Error
+[llm] KIE primary failed (kie call timed out); falling back to OpenRouter google/gemini-3.5-flash
+[pixabay-bridge] vector search failed for "timeline cards freezes mid": bridge HTTP 502
+[screenshot-qa] shot DROPPED (scene mismatch, no free matching scene) — site_0.png
+[kie-image] attempt failed (flag 3: internal error, please try again later.)
+[kie-image] attempt failed (flag 3: internal error, please try again later.)
+[kie-image] attempt failed (flag 3: internal error, please try again later.)
+[kie-image] attempt failed (flag 3: internal error, please try again later.)
+[kie-image] attempt failed (flag 3: internal error, please try again later.)
+[kie-image] attempt failed (flag 3: internal error, please try again later.)
+[kie-image] attempt failed (flag 3: internal error, please try again later.)
+[kie-image] attempt failed (flag 3: internal error, please try again later.)
+[kie-image] attempt failed (flag 3: internal error, please try again later.)
+[kie-image] attempt failed (flag 3: internal error, please try again later.)
+[pipeline] scene-kit lint (non-blocking): are easier to read, iterate on, and diff.
+    Fix: Split coherent scenes or layers into separate .html files under compositions/, then mount them from the parent with data-composition-src so each file stays small enough to inspect, revise, and validate independently.
+
+◇  3 error(s), 1149 warning(s)
+
+[agents] animation audit: inline transform hidden-state found (composes with GSAP xPercent — content may stay offscreen)
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[screenshot-qa] shot DROPPED (scene mismatch, no free matching scene) — site_0.png
+[pipeline] scene-kit lint (non-blocking): are easier to read, iterate on, and diff.
+    Fix: Split coherent scenes or layers into separate .html files under compositions/, then mount them from the parent with data-composition-src so each file stays small enough to inspect, revise, and validate independently.
+
+◇  5 error(s), 1147 warning(s)
+
+[agents] animation audit: inline transform hidden-state found (composes with GSAP xPercent — content may stay offscreen)
+[vo_fit] model ad-libbed (404ch spoken for 54ch line) — one retake
+[vo_fit] model ad-libbed (330ch spoken for 55ch line) — one retake
+[pipeline] scene-kit lint (non-blocking):  are easier to read, iterate on, and diff.
+    Fix: Split coherent scenes or layers into separate .html files under compositions/, then mount them from the parent with data-composition-src so each file stays small enough to inspect, revise, and validate independently.
+
+◇  4 error(s), 578 warning(s)
+
+[agents] animation audit: inline transform hidden-state found (composes with GSAP xPercent — content may stay offscreen)
+[pipeline] scene-kit lint (non-blocking): matically. Do not add a manual window.__timelines script unless GSAP intentionally controls element positions. For initial visibility states, use CSS (e.g. opacity:0) instead of gsap.set(). If GSAP must own these elements' positions, avoid drag-editing them in Studio.
+
+◇  2 error(s), 310 warning(s)
+
+[agents] animation audit: inline transform hidden-state found (composes with GSAP xPercent — content may stay offscreen)
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[ingest] peekshot hero skipped: peekshot: timed out after 75s (request 38551)
+[ingest] peekshot full-page skipped: peekshot: timed out after 90s (request 38550)
+[sfx] "impact" — Pixabay/Freesound dry; used local cue "impact" as fallback
+[vo_fit] VO still 4.7s after tighten — trimming to 4.4s with fade
+[sfx] "whoosh" — Pixabay/Freesound dry; used local cue "whoosh" as fallback
+[sfx] "riser" — Pixabay/Freesound dry; used local cue "riser" as fallback
+[sfx] "pop" — Pixabay/Freesound dry; used local cue "pop" as fallback
+[pixabay-bridge] sound-effects resolve failed for "click": The operation was aborted due to timeout
+[sfx] "click" — Pixabay/Freesound dry; used local cue "click" as fallback
+[pixabay-bridge] sound-effects resolve failed for "swoosh": The operation was aborted due to timeout
+[sfx] "swoosh" — Pixabay/Freesound dry; used local cue "swoosh" as fallback
+[pixabay-bridge] sound-effects resolve failed for "impact": The operation was aborted due to timeout
+[sfx] "impact" — Pixabay/Freesound dry; used local cue "impact" as fallback
+[pixabay-bridge] music resolve failed for "driving cinematic electronica electronic": The operation was aborted due to timeout
+[pixabay-bridge] music resolve failed for "driving cinematic electronica electronic": The operation was aborted due to timeout
+[pixabay-bridge] music resolve failed for "driving cinematic": The operation was aborted due to timeout
+[screenshot-qa] shot DROPPED (scene mismatch, no free matching scene) — site_0.png
+[screenshot-qa] shot DROPPED (scene mismatch, no free matching scene) — site_1.png
+[pipeline] scene-kit lint (non-blocking):  are easier to read, iterate on, and diff.
+    Fix: Split coherent scenes or layers into separate .html files under compositions/, then mount them from the parent with data-composition-src so each file stays small enough to inspect, revise, and validate independently.
+
+◇  4 error(s), 425 warning(s)
+
+[pipeline] contrast-fix (graph-main): 1 low-contrast, none deterministically locatable — leaving to QA
+[agents] animation audit: inline transform hidden-state found (composes with GSAP xPercent — content may stay offscreen)
+[pipeline] contrast-fix (qa-contrast): 1 low-contrast, none deterministically locatable — leaving to QA
+[vo_fit] VO still 5.8s after tighten — trimming to 5.0s with fade
+[vo_fit] VO still 5.3s after tighten — trimming to 5.0s with fade
+[screenshot-qa] shot REJECTED (loading: empty cart page with loading spinner) — page_1_cart-page.png
+[screenshot-qa] shot REJECTED (login-wall: login modal blocking homepage) — site_0.png
+[pipeline] scene-kit lint (non-blocking): matically. Do not add a manual window.__timelines script unless GSAP intentionally controls element positions. For initial visibility states, use CSS (e.g. opacity:0) instead of gsap.set(). If GSAP must own these elements' positions, avoid drag-editing them in Studio.
+
+◇  4 error(s), 311 warning(s)
+
+[agents] animation audit: inline transform hidden-state found (composes with GSAP xPercent — content may stay offscreen)
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[tts] openrouter attempt 1/2 failed: tts: HTTP 402 — {"error":{"message":"This request requires at least $0.50 in balance for audio output","code":402}}
+[tts] openrouter attempt 2/2 failed: tts: HTTP 402 — {"error":{"message":"This request requires at least $0.50 in balance for audio output","code":402}}
+[tts] openrouter failed after retries; falling back to edge
+[screenshot-qa] shot DROPPED (scene mismatch, no free matching scene) — site_0.png
+[screenshot-qa] shot REJECTED (blank: completely blank white page) — site_1.png
+[openrouter] google/gemini-3.5-flash stage=creative_director FAILED after 465ms: 403
+[openrouter] google/gemini-3.5-flash stage=assetDirector FAILED after 31ms: 403
+[openrouter] google/gemini-3.5-flash stage=assetDirector FAILED after 32ms: 403
+[openrouter] google/gemini-3.1-flash-lite stage=text_director FAILED after 30ms: 403
+[openrouter] FALLBACK: google/gemini-3.1-flash-lite failed; switching to google/gemini-3.5-flash for stage=text_director
+[openrouter] google/gemini-3.5-flash stage=text_director FAILED after 38ms: 403
+[text_director] LLM failed (llm: all providers failed for stage=text_director. openrouter google/gemini-3.1-flash-lite: 403. openrouter google/gemini-3.5-flash: 403) — deterministic mining only
+[openrouter] google/gemini-3.5-flash stage=dressing FAILED after 69ms: 403
+[dressing] skipped (403 Key limit exceeded (daily limit). Manage it using https://openrouter.ai/workspaces/default/keys/bc6c462a6ad8c5c19bcb)
+[pipeline] scene-kit lint (non-blocking):  are easier to read, iterate on, and diff.
+    Fix: Split coherent scenes or layers into separate .html files under compositions/, then mount them from the parent with data-composition-src so each file stays small enough to inspect, revise, and validate independently.
+
+◇  4 error(s), 427 warning(s)
+
+[pipeline] contrast-fix (graph-main): 1 text element(s) still below AA after 2 pass(es) — shipping flagged
+[agents] animation audit: inline transform hidden-state found (composes with GSAP xPercent — content may stay offscreen)
+[openrouter] google/gemini-3.5-flash stage=qa FAILED after 2652ms: 403
+[agents] qa failed (403 Key limit exceeded (daily limit). Manage it using https://openrouter.ai/workspaces/default/keys/bc6c462a6ad8c5c19bcb); passing by default
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[openrouter] google/gemini-3.5-flash stage=storyboard FAILED after 776ms: 403
+[agents] xspk2ffwr4 graph failed: 403 Key limit exceeded (daily limit). Manage it using https://openrouter.ai/workspaces/default/keys/bc6c462a6ad8c5c19bcb3a91ae6f73d73746f810705d23d8d8947a1d36e8c8b1
+[openrouter] google/gemini-3.1-flash-lite stage=art_director FAILED after 1326ms: 403
+[openrouter] FALLBACK: google/gemini-3.1-flash-lite failed; switching to google/gemini-3.5-flash for stage=art_director
+[tts] openrouter attempt 1/2 failed: tts: HTTP 403 — {"error":{"message":"Key limit exceeded (daily limit). Manage it using https://openrouter.ai/workspaces/default/keys/bc6c462
+[openrouter] google/gemini-3.5-flash stage=art_director FAILED after 39ms: 403
+[art_director] failed (llm: all providers failed for stage=art_director. openrouter google/gemini-3.1-flash-lite: 403. openrouter google/gemini-3.5-flash: 403) — deterministic brand skin
+[tts] openrouter attempt 2/2 failed: tts: HTTP 403 — {"error":{"message":"Key limit exceeded (daily limit). Manage it using https://openrouter.ai/workspaces/default/keys/bc6c462
+[tts] openrouter failed after retries; falling back to edge
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit FAILED after 265ms: 403
+[openrouter] FALLBACK: google/gemini-3.1-flash-lite failed; switching to google/gemini-3.5-flash for stage=vo_fit
+[openrouter] google/gemini-3.5-flash stage=vo_fit FAILED after 27ms: 403
+[vo_fit] tighten failed (llm: all providers failed for stage=vo_fit. openrouter google/gemini-3.1-flash-lite: 403. openrouter google/gemini-3.5-flash: 403); keeping original take
+[vo_fit] VO still 3.9s after tighten — trimming to 3.8s with fade
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit FAILED after 1240ms: 403
+[openrouter] FALLBACK: google/gemini-3.1-flash-lite failed; switching to google/gemini-3.5-flash for stage=vo_fit
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit FAILED after 246ms: 403
+[openrouter] FALLBACK: google/gemini-3.1-flash-lite failed; switching to google/gemini-3.5-flash for stage=vo_fit
+[openrouter] google/gemini-3.5-flash stage=vo_fit FAILED after 275ms: 403
+[vo_fit] tighten failed (llm: all providers failed for stage=vo_fit. openrouter google/gemini-3.1-flash-lite: 403. openrouter google/gemini-3.5-flash: 403); keeping original take
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit FAILED after 328ms: 403
+[openrouter] FALLBACK: google/gemini-3.1-flash-lite failed; switching to google/gemini-3.5-flash for stage=vo_fit
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit FAILED after 231ms: 403
+[openrouter] FALLBACK: google/gemini-3.1-flash-lite failed; switching to google/gemini-3.5-flash for stage=vo_fit
+[openrouter] google/gemini-3.5-flash stage=vo_fit FAILED after 25ms: 403
+[vo_fit] tighten failed (llm: all providers failed for stage=vo_fit. openrouter google/gemini-3.1-flash-lite: 403. openrouter google/gemini-3.5-flash: 403); keeping original take
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit FAILED after 23ms: 403
+[openrouter] FALLBACK: google/gemini-3.1-flash-lite failed; switching to google/gemini-3.5-flash for stage=vo_fit
+[openrouter] google/gemini-3.5-flash stage=vo_fit FAILED after 54ms: 403
+[vo_fit] tighten failed (llm: all providers failed for stage=vo_fit. openrouter google/gemini-3.1-flash-lite: 403. openrouter google/gemini-3.5-flash: 403); keeping original take
+[vo_fit] VO still 3.8s after tighten — trimming to 3.8s with fade
+[openrouter] google/gemini-3.5-flash stage=vo_fit FAILED after 53ms: 403
+[vo_fit] tighten failed (llm: all providers failed for stage=vo_fit. openrouter google/gemini-3.1-flash-lite: 403. openrouter google/gemini-3.5-flash: 403); keeping original take
+[vo_fit] VO still 5.3s after tighten — trimming to 4.4s with fade
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit FAILED after 524ms: 403
+[openrouter] FALLBACK: google/gemini-3.1-flash-lite failed; switching to google/gemini-3.5-flash for stage=vo_fit
+[openrouter] google/gemini-3.5-flash stage=vo_fit FAILED after 520ms: 403
+[vo_fit] tighten failed (llm: all providers failed for stage=vo_fit. openrouter google/gemini-3.1-flash-lite: 403. openrouter google/gemini-3.5-flash: 403); keeping original take
+[vo_fit] VO still 4.5s after tighten — trimming to 4.4s with fade
+[openrouter] google/gemini-3.5-flash stage=vo_fit FAILED after 68ms: 403
+[vo_fit] tighten failed (llm: all providers failed for stage=vo_fit. openrouter google/gemini-3.1-flash-lite: 403. openrouter google/gemini-3.5-flash: 403); keeping original take
+[vo_fit] VO still 4.9s after tighten — trimming to 4.4s with fade
+[openrouter] google/gemini-3.5-flash stage=storyboard FAILED after 653ms: 403
+[agents] n7q1yt7jcd graph failed: 403 Key limit exceeded (daily limit). Manage it using https://openrouter.ai/workspaces/default/keys/bc6c462a6ad8c5c19bcb3a91ae6f73d73746f810705d23d8d8947a1d36e8c8b1
+[openrouter] google/gemini-3.1-flash-lite stage=art_director FAILED after 803ms: 403
+[openrouter] FALLBACK: google/gemini-3.1-flash-lite failed; switching to google/gemini-3.5-flash for stage=art_director
+[tts] openrouter attempt 1/2 failed: tts: HTTP 403 — {"error":{"message":"Key limit exceeded (daily limit). Manage it using https://openrouter.ai/workspaces/default/keys/bc6c462
+[openrouter] google/gemini-3.5-flash stage=art_director FAILED after 30ms: 403
+[art_director] failed (llm: all providers failed for stage=art_director. openrouter google/gemini-3.1-flash-lite: 403. openrouter google/gemini-3.5-flash: 403) — deterministic brand skin
+[tts] openrouter attempt 2/2 failed: tts: HTTP 403 — {"error":{"message":"Key limit exceeded (daily limit). Manage it using https://openrouter.ai/workspaces/default/keys/bc6c462
+[tts] openrouter failed after retries; falling back to edge
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit FAILED after 206ms: 403
+[openrouter] FALLBACK: google/gemini-3.1-flash-lite failed; switching to google/gemini-3.5-flash for stage=vo_fit
+[openrouter] google/gemini-3.5-flash stage=vo_fit FAILED after 24ms: 403
+[vo_fit] tighten failed (llm: all providers failed for stage=vo_fit. openrouter google/gemini-3.1-flash-lite: 403. openrouter google/gemini-3.5-flash: 403); keeping original take
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit FAILED after 102ms: 403
+[openrouter] FALLBACK: google/gemini-3.1-flash-lite failed; switching to google/gemini-3.5-flash for stage=vo_fit
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit FAILED after 28ms: 403
+[openrouter] FALLBACK: google/gemini-3.1-flash-lite failed; switching to google/gemini-3.5-flash for stage=vo_fit
+[openrouter] google/gemini-3.5-flash stage=vo_fit FAILED after 29ms: 403
+[vo_fit] tighten failed (llm: all providers failed for stage=vo_fit. openrouter google/gemini-3.1-flash-lite: 403. openrouter google/gemini-3.5-flash: 403); keeping original take
+[vo_fit] VO still 5.4s after tighten — trimming to 4.4s with fade
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit FAILED after 190ms: 403
+[openrouter] FALLBACK: google/gemini-3.1-flash-lite failed; switching to google/gemini-3.5-flash for stage=vo_fit
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit FAILED after 222ms: 403
+[openrouter] FALLBACK: google/gemini-3.1-flash-lite failed; switching to google/gemini-3.5-flash for stage=vo_fit
+[openrouter] google/gemini-3.5-flash stage=vo_fit FAILED after 46ms: 403
+[vo_fit] tighten failed (llm: all providers failed for stage=vo_fit. openrouter google/gemini-3.1-flash-lite: 403. openrouter google/gemini-3.5-flash: 403); keeping original take
+[vo_fit] VO still 4.9s after tighten — trimming to 4.4s with fade
+[openrouter] google/gemini-3.5-flash stage=vo_fit FAILED after 34ms: 403
+[vo_fit] tighten failed (llm: all providers failed for stage=vo_fit. openrouter google/gemini-3.1-flash-lite: 403. openrouter google/gemini-3.5-flash: 403); keeping original take
+[vo_fit] VO still 4.3s after tighten — trimming to 3.8s with fade
+[openrouter] google/gemini-3.5-flash stage=vo_fit FAILED after 156ms: 403
+[vo_fit] tighten failed (llm: all providers failed for stage=vo_fit. openrouter google/gemini-3.1-flash-lite: 403. openrouter google/gemini-3.5-flash: 403); keeping original take
+[vo_fit] VO still 4.6s after tighten — trimming to 3.8s with fade

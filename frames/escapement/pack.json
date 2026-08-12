@@ -1,0 +1,97 @@
+{
+  "name": "escapement",
+  "renderer": "omelette",
+  "template": "Escapement",
+  "portraitNative": true,
+  "vibe": "gear train, oscillating balance wheel, mainspring, loupe Portrait-native 9:16 (15 authored beats, 44.4s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#152030",
+    "ink": "#DCE4EC",
+    "accent": "#D0A75C",
+    "a2": "#C0384F"
+  },
+  "fonts": [
+    "Cormorant Garamond"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#152030",
+    "ink": "#DCE4EC"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.14
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#D0A75C",
+      "#C0384F"
+    ],
+    "extras": [
+      "#101A26",
+      "#C07A4C",
+      "#1E2C3E"
+    ],
+    "emphasisCss": "color:#D0A75C;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "escapement",
+      "gear",
+      "train",
+      "oscillating",
+      "balance",
+      "wheel"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Cormorant Garamond",
+    "body": "Inter Tight"
+  },
+  "camera3d": {
+    "ground": "#152030"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "accent",
+    "case": "upper",
+    "tracking": -0.02,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

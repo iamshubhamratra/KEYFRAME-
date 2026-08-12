@@ -1,0 +1,94 @@
+{
+  "name": "ignition",
+  "renderer": "charged",
+  "vibe": "T-minus and holding: a launch pad at night on a deep space-blue ground — a 60-tick countdown ring depletes while mono T-minus digits step down, telemetry bars fill in the margin, a dotted trajectory arc climbs with a tiny vessel, stars drift down as exhaust embers rise, and every scene change is a launch wipe of vertical thruster streaks. Headlines slam in on a countdown cadence and the key word sits inside a HUD target-lock. Built for product launches, releases, countdowns and reveal films — the ember accent re-tints to any brand color.",
+  "colors": {
+    "pad": "#070B14",
+    "ember": "#FF5A1F",
+    "signal": "#33E0FF",
+    "caution": "#FFC24D",
+    "go": "#4DFF9E",
+    "steel": "#141C2E",
+    "vapor": "#F2F6FF"
+  },
+  "fonts": [
+    "Orbitron",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#070B14",
+    "ink": "#F2F6FF"
+  },
+  "motion": {
+    "cut": "thrust",
+    "drift": 1.045
+  },
+  "fx": {
+    "canvas": "telemetry",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FF5A1F",
+      "#33E0FF"
+    ],
+    "extras": [
+      "#FFC24D",
+      "#4DFF9E"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "rocket launch night aerospace long exposure dark tech glow",
+    "iconStyle": "line",
+    "keywords": [
+      "launch",
+      "rocket",
+      "space",
+      "mission",
+      "countdown",
+      "technology"
+    ],
+    "prefer": [
+      "vector",
+      "illustration"
+    ]
+  },
+  "typography": {
+    "display": "Orbitron"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "hero",
+    "assetStyle": "hud"
+  },
+  "textfx": {
+    "enter": "stamp",
+    "emphasis": "boxed",
+    "case": "upper",
+    "tracking": -0.035,
+    "align": "left",
+    "sizeScale": 1.12,
+    "weight": 900
+  },
+  "audio": {
+    "music": {
+      "query": "big beat breakbeat percussive energetic drive",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
+  }
+}

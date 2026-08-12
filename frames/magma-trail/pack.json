@@ -1,0 +1,98 @@
+{
+  "name": "magma-trail",
+  "renderer": "omelette",
+  "template": "MagmaTrail",
+  "portraitNative": true,
+  "vibe": "volcano glow, lava bombs, plume, shimmer Portrait-native 9:16 (15 authored beats, 44.4s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#1F1A18",
+    "ink": "#EFE6DC",
+    "accent": "#F43F1E",
+    "a2": "#FFA03C"
+  },
+  "fonts": [
+    "Bevan",
+    "Commissioner"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#1F1A18",
+    "ink": "#EFE6DC"
+  },
+  "motion": {
+    "cut": "glow",
+    "drift": 1.14
+  },
+  "fx": {
+    "canvas": "flow",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F43F1E",
+      "#FFA03C"
+    ],
+    "extras": [
+      "#292220",
+      "#161211",
+      "#FF6B35"
+    ],
+    "emphasisCss": "color:#F43F1E;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "magma",
+      "trail",
+      "volcano",
+      "glow",
+      "lava",
+      "bombs"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Bevan",
+    "body": "Commissioner"
+  },
+  "camera3d": {
+    "ground": "#1F1A18"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "spring",
+    "emphasis": "ring",
+    "case": "upper",
+    "tracking": 0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

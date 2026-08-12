@@ -1,5 +1,6 @@
 {
   "name": "nimbus-saas",
+  "renderer": "bright-minimal",
   "vibe": "a bright modern SaaS system: near-white ground, soft brand gradients, friendly rounded type and one vivid gradient accent — for SaaS explainers, product tours and launches",
   "colors": {
     "paper": "#FAFAFD",
@@ -10,7 +11,7 @@
     "sky": "#38BDF8"
   },
   "fonts": [
-    "Inter",
+    "Caprasimo",
     "Space Grotesk"
   ],
   "surface": {
@@ -53,18 +54,34 @@
     ]
   },
   "textfx": {
-    "enter": "spring",
-    "emphasis": "gradient",
-    "case": "none",
-    "tracking": 0,
-    "weight": null,
-    "sizeScale": 1.05,
+    "enter": "countin",
+    "emphasis": "glow",
+    "case": "upper",
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.18,
     "align": "center"
   },
   "typography": {
-    "display": "Space Grotesk"
+    "display": "Caprasimo"
   },
   "camera3d": {
     "ground": "#171525"
+  },
+  "audio": {
+    "music": {
+      "query": "punchy electronic percussion hard hitting drive",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
   }
 }

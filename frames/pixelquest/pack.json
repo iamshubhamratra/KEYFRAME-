@@ -1,0 +1,97 @@
+{
+  "name": "pixelquest",
+  "renderer": "omelette",
+  "template": "Pixelquest",
+  "portraitNative": true,
+  "vibe": "\"PIXELQUEST\" retro arcade world. Pixel dissolve, HP bars, CRT. Portrait-native 9:16 (12 authored beats, 36.2s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#14082B",
+    "ink": "#8A7FB8",
+    "accent": "#F4F1FF",
+    "a2": "#FFE94A"
+  },
+  "fonts": [
+    "Press Start 2P"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#14082B",
+    "ink": "#8A7FB8"
+  },
+  "motion": {
+    "cut": "fade",
+    "drift": 0.98
+  },
+  "fx": {
+    "canvas": "sumi",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F4F1FF",
+      "#FFE94A"
+    ],
+    "extras": [
+      "#FF2E97",
+      "#2EE6FF",
+      "#59FF7E"
+    ],
+    "emphasisCss": "color:#F4F1FF;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "pixelquest-film",
+      "pixelquest",
+      "retro",
+      "arcade",
+      "world",
+      "pixel"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Press Start 2P",
+    "body": "Silkscreen"
+  },
+  "camera3d": {
+    "ground": "#14082B"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slide",
+    "emphasis": "boxed",
+    "case": "upper",
+    "tracking": -0.02,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "synthwave retro electronic driving arpeggio neon",
+      "mood": "energetic",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

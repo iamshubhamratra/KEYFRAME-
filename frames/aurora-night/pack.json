@@ -1,0 +1,98 @@
+{
+  "name": "aurora-night",
+  "renderer": "omelette",
+  "template": "AuroraNight",
+  "portraitNative": true,
+  "vibe": "curtain waves of aurora, star field, pine ridge Portrait-native 9:16 (18 authored beats, 49.9s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#0E1B2E",
+    "ink": "#DFE9F2",
+    "accent": "#57E6A8",
+    "a2": "#8F7AE0"
+  },
+  "fonts": [
+    "Sora",
+    "Atkinson Hyperlegible"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#0E1B2E",
+    "ink": "#DFE9F2"
+  },
+  "motion": {
+    "cut": "wash",
+    "drift": 1.12
+  },
+  "fx": {
+    "canvas": "caustics",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#57E6A8",
+      "#8F7AE0"
+    ],
+    "extras": [
+      "#0A1220",
+      "#0D1626",
+      "#57CFE6"
+    ],
+    "emphasisCss": "color:#57E6A8;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "aurora",
+      "night",
+      "curtain",
+      "waves",
+      "star",
+      "field"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Sora",
+    "body": "Sora"
+  },
+  "camera3d": {
+    "ground": "#0E1B2E"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "stamp",
+    "emphasis": "boxed",
+    "case": "none",
+    "tracking": -0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic dark ambient low pulse atmospheric",
+      "mood": "moody",
+      "volume": 0.12
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

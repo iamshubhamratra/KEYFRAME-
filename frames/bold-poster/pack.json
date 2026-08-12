@@ -1,5 +1,6 @@
 {
   "name": "bold-poster",
+  "renderer": "poster-loud",
   "vibe": "A populist editorial poster: vintage Italian sports-magazine display, classical serif body, one saturated tomato red, ink-ruled grids — every frame feels printed on a white sheet.",
   "colors": {
     "bg": "#FFFFFF",
@@ -8,8 +9,7 @@
     "light": "#F5F2EF"
   },
   "fonts": [
-    "Shrikhand",
-    "Libre Baskerville",
+    "Orbitron",
     "Space Grotesk"
   ],
   "surface": {
@@ -52,29 +52,27 @@
     ]
   },
   "textfx": {
-    "enter": "mask-reveal",
+    "enter": "stamp",
     "emphasis": "boxed",
-    "case": "none",
-    "tracking": -0.02,
-    "weight": null,
-    "sizeScale": 1.12,
+    "case": "upper",
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.25,
     "align": "left"
   },
   "audio": {
     "music": {
-      "query": "vintage retro swing",
+      "query": "big beat breakbeat percussive energetic drive",
       "mood": "energetic",
       "volume": 0.15
     },
     "sfx": {
-      "style": "punchy printed-press stamps and paper snaps, no soft whooshes",
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
       "palette": [
-        "paper snap",
-        "ink stamp",
-        "poster slap",
-        "typewriter ding",
-        "page flip",
-        "hard thud"
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
       ]
     }
   },
@@ -83,5 +81,8 @@
     "kicker": true,
     "underline": false,
     "stat": "headline"
+  },
+  "typography": {
+    "display": "Orbitron"
   }
 }

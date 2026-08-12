@@ -1,0 +1,98 @@
+{
+  "name": "vault-twelve",
+  "renderer": "omelette",
+  "template": "VaultTwelve",
+  "portraitNative": true,
+  "vibe": "spinning dial, laser grid, tumbling coins, alarm sweep Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#141920",
+    "ink": "#C8D2DC",
+    "accent": "#FF3355",
+    "a2": "#E8C35A"
+  },
+  "fonts": [
+    "Chakra Petch",
+    "IBM Plex Sans"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#141920",
+    "ink": "#C8D2DC"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.08
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FF3355",
+      "#E8C35A"
+    ],
+    "extras": [
+      "#0A0D11",
+      "#0D1116",
+      "#33FF99"
+    ],
+    "emphasisCss": "color:#FF3355;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "vault",
+      "twelve",
+      "spinning",
+      "dial",
+      "laser",
+      "grid"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Chakra Petch",
+    "body": "IBM Plex Sans"
+  },
+  "camera3d": {
+    "ground": "#141920"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "boxed",
+    "case": "none",
+    "tracking": -0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

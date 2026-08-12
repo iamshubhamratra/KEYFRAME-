@@ -1,0 +1,98 @@
+{
+  "name": "rainy-window",
+  "renderer": "omelette",
+  "template": "RainyWindow",
+  "portraitNative": true,
+  "vibe": "streaking droplets, bokeh lights beyond the glass Portrait-native 9:16 (18 authored beats, 49.9s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#2C3440",
+    "ink": "#EEF1F2",
+    "accent": "#F2B552",
+    "a2": "#7AC7E0"
+  },
+  "fonts": [
+    "Merriweather",
+    "Public Sans"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#2C3440",
+    "ink": "#EEF1F2"
+  },
+  "motion": {
+    "cut": "flash",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "kaleido",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F2B552",
+      "#7AC7E0"
+    ],
+    "extras": [
+      "#39424F",
+      "#1A2027",
+      "#E8788A"
+    ],
+    "emphasisCss": "color:#F2B552;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "rainy",
+      "streaking",
+      "droplets",
+      "bokeh",
+      "lights",
+      "beyond"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Merriweather",
+    "body": "Public Sans"
+  },
+  "camera3d": {
+    "ground": "#2C3440"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "ring",
+    "case": "none",
+    "tracking": 0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

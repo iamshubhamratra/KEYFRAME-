@@ -1,0 +1,97 @@
+{
+  "name": "nose-and-note",
+  "renderer": "omelette",
+  "template": "NoseAndNote",
+  "portraitNative": true,
+  "vibe": "flacons, scent curls, blotter fan Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#F6F0E8",
+    "ink": "#2E1A26",
+    "accent": "#E8C4B8",
+    "a2": "#4A2438"
+  },
+  "fonts": [
+    "Gilda Display"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F6F0E8",
+    "ink": "#2E1A26"
+  },
+  "motion": {
+    "cut": "iris",
+    "drift": 1.1
+  },
+  "fx": {
+    "canvas": "bokeh",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#E8C4B8",
+      "#4A2438"
+    ],
+    "extras": [
+      "#A86E3C",
+      "#FDFAF4",
+      "#2E2444"
+    ],
+    "emphasisCss": "color:#E8C4B8;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "nose",
+      "note",
+      "flacons",
+      "scent",
+      "curls",
+      "blotter"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Gilda Display",
+    "body": "Gilda Display"
+  },
+  "camera3d": {
+    "ground": "#F6F0E8"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "squash",
+    "emphasis": "marker",
+    "case": "none",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

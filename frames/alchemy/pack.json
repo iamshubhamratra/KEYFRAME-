@@ -1,0 +1,97 @@
+{
+  "name": "alchemy",
+  "renderer": "omelette",
+  "template": "Alchemy",
+  "portraitNative": true,
+  "vibe": "\"ALCHEMY\" potion-lab world. Bubbling flasks, smoke, gold. Portrait-native 9:16 (9 authored beats, 28s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#1A1030",
+    "ink": "#F3E7C9",
+    "accent": "#8FE07A",
+    "a2": "#B07CFF"
+  },
+  "fonts": [
+    "Cinzel"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#1A1030",
+    "ink": "#F3E7C9"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1.08
+  },
+  "fx": {
+    "canvas": "clay",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#8FE07A",
+      "#B07CFF"
+    ],
+    "extras": [
+      "#FF9448",
+      "#C9A34C",
+      "#241745"
+    ],
+    "emphasisCss": "color:#8FE07A;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "alchemy-film",
+      "alchemy",
+      "potion-lab",
+      "world",
+      "bubbling",
+      "flasks"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Cinzel",
+    "body": "Cinzel"
+  },
+  "camera3d": {
+    "ground": "#1A1030"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "glow",
+    "case": "upper",
+    "tracking": -0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

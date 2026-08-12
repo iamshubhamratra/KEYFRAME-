@@ -18,6 +18,7 @@
 // every per-frame value is a pure function of tl.time().
 
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
+const { pickForScene } = require("./scene_match");
 
 const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 const DISPLAY = "Space Grotesk";
@@ -603,14 +604,33 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
   // shown even when the scene's headline would otherwise route to plot/flowchart. The
   // rest form a pool that fills any remaining plain `figure` scene. Title/CTA scenes
   // keep their own strong treatment and are never overwritten.
+  // A pin to a scene THIS film does not have is not a pin, it is a dropped asset: the
+  // planner numbers scenes against the whole storyboard and the slice above keeps 12,
+  // so a late pin used to claim a key that nothing ever looks up. Measured on the
+  // dedicated-composer fixture: the best capture in the job (hero section, cdScore 91)
+  // was pinned to "s8" of a 7-scene film and never reached the screen. Live pins are
+  // untouched — they still claim their scene ahead of everything else.
+  const liveIds = new Set(scenes.map((s, i) => (s && s.id != null ? String(s.id) : `s${i + 1}`)));
   const byScene = new Map();
   const pool = [];
   for (const a of images) {
     const sid = a.sceneId != null ? String(a.sceneId) : null;
-    if (sid && !byScene.has(sid)) byScene.set(sid, a);
+    if (sid && liveIds.has(sid) && !byScene.has(sid)) byScene.set(sid, a);
     else pool.push(a);
   }
-  let pooli = 0;
+  // The pool used to be drained by a cursor that only ever moved forward, so a beat
+  // got whatever happened to be next — and the sort above ties every website capture
+  // against every other (same source, near-equal cdScore), which makes "next" mean
+  // capture order. Measured on a shipped film: the plate on the beat about a shared
+  // canvas was the site footer while the features capture sat two slots later. Ask
+  // scene_match which of the REMAINING captures is about THIS beat's words first;
+  // when nothing is (null) take the head of the pool exactly as before, so the count
+  // of plates and reference photos placed never changes.
+  const takePool = (scene) => {
+    if (!pool.length) return null;
+    const match = pickForScene(pool, scene);
+    return pool.splice(match ? pool.indexOf(match) : 0, 1)[0];
+  };
 
   const scriptStart = (i) => scenes.slice(0, i).reduce((a, s) => a + (Number(s.duration) || 0), 0);
   const bodyParts = [];
@@ -624,7 +644,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
     const sid = scene.id != null ? String(scene.id) : `s${i + 1}`;
     const ends = arch === "title" || arch === "cta"; // keep the opener/closer intact
     if (!ends && byScene.has(sid)) { arch = "plate"; asset = byScene.get(sid); }
-    else if (arch === "figure" && pooli < pool.length) { arch = "plate"; asset = pool[pooli++]; }
+    else if (arch === "figure" && pool.length) { arch = "plate"; asset = takePool(scene); }
     const figBase = FIG_LABEL[arch] || "";
     const fig = (arch === "figure" || arch === "plate") ? `Fig. ${i} — ${String(scene.purpose || (arch === "plate" ? "captured" : "the figure"))}` : figBase;
     const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), isLast: i === scenes.length - 1, winL: i === scenes.length - 1 ? r(L + 0.5) : L, track: 2 + i, dims: { width: W, height: H }, land: W >= H, theme, fig, sheetNo: i + 1 };
@@ -634,9 +654,12 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
     // to sit unused because only a `figure`→plate scene drew from the pool). Skip
     // the opener/closer (kept clean) and any scene already showing a plate.
     let refScript = [];
-    const textArch = arch === "plot" || arch === "flowchart" || arch === "revisions" || arch === "figure";
-    if (!asset && textArch && pooli < pool.length) {
-      const ref = bpRefPhoto(ctx.id, pool[pooli++], ctx);
+    // The list of "text archetypes" was narrower than the rule this comment
+    // states: any scene that is not the opener/closer and is not already showing
+    // a plate can carry a reference photo. With the fixed list, a film holding 11
+    // real captures put 4 on screen and left the rest on disk.
+    if (!asset && !ends && pool.length) {
+      const ref = bpRefPhoto(ctx.id, takePool(scene), ctx);
       built.html = built.html.replace(/(<div class="clip bp-scene"[^>]*>)/, `$1${ref.html}`);
       refScript = ref.s;
     }

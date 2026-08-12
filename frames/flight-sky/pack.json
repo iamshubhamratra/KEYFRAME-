@@ -1,0 +1,91 @@
+{
+  "name": "flight-sky",
+  "renderer": "omelette",
+  "template": "Flight",
+  "vibe": "A jet rolls down the runway, rotates and climbs into open sky trailing a contrail, while product screenshots ride cabin windows and boarding passes. One continuous ascent — for launches, migrations and upgrades.",
+  "colors": {
+    "ground": "#E9F6FF",
+    "ink": "#39404A",
+    "accent": "#FF5630",
+    "a2": "#8FCBF5",
+    "a3": "#FFE08A"
+  },
+  "fonts": [
+    "Manrope"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#E9F6FF"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none"
+  },
+  "skin": {
+    "accents": [
+      "#FF5630",
+      "#8FCBF5"
+    ],
+    "extras": [
+      "#FFE08A"
+    ],
+    "emphasisCss": "color:#FF5630;"
+  },
+  "assets": {
+    "photoMod": "",
+    "iconStyle": "line",
+    "keywords": [
+      "flight",
+      "sky",
+      "launch",
+      "travel",
+      "ascent"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Manrope"
+  },
+  "camera3d": {
+    "ground": "#E9F6FF"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "squash",
+    "emphasis": "bullet",
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035,
+    "sizeScale": 1.12,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "taiko drums stomp percussion powerful energetic",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "name": "clay-court",
+  "renderer": "omelette",
+  "template": "ClayCourt",
+  "portraitNative": true,
+  "vibe": "bouncing ball with clay puffs, net weave, line chalk Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#C1552F",
+    "ink": "#F6F1E6",
+    "accent": "#D8F04B",
+    "a2": "#D8F04B"
+  },
+  "fonts": [
+    "Archivo Black",
+    "Archivo"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#C1552F",
+    "ink": "#F6F1E6"
+  },
+  "motion": {
+    "cut": "iris",
+    "drift": 0.95
+  },
+  "fx": {
+    "canvas": "bokeh",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#D8F04B",
+      "#D8F04B"
+    ],
+    "extras": [
+      "#3A2016",
+      "#8C3F22",
+      "#7A3A24"
+    ],
+    "emphasisCss": "color:#D8F04B;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "clay",
+      "court",
+      "bouncing",
+      "ball",
+      "puffs",
+      "weave"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Archivo Black",
+    "body": "Archivo Black"
+  },
+  "camera3d": {
+    "ground": "#C1552F"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "zap",
+    "emphasis": "boxed",
+    "case": "none",
+    "tracking": -0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

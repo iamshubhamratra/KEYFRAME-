@@ -1,0 +1,97 @@
+{
+  "name": "darkroom-dev",
+  "renderer": "omelette",
+  "template": "DarkroomDev",
+  "portraitNative": true,
+  "vibe": "safelight glow, hanging film strips, tray ripples Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#14100E",
+    "ink": "#CFC9BD",
+    "accent": "#E2483D",
+    "a2": "#F4F1EA"
+  },
+  "fonts": [
+    "Syne"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#14100E",
+    "ink": "#CFC9BD"
+  },
+  "motion": {
+    "cut": "inkblot",
+    "drift": 0.97
+  },
+  "fx": {
+    "canvas": "paper",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#E2483D",
+      "#F4F1EA"
+    ],
+    "extras": [
+      "#E89B3C",
+      "#0D0A09",
+      "#1C1512"
+    ],
+    "emphasisCss": "color:#E2483D;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "darkroom",
+      "safelight",
+      "glow",
+      "hanging",
+      "strips",
+      "tray"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Syne",
+    "body": "Syne"
+  },
+  "camera3d": {
+    "ground": "#14100E"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "squash",
+    "emphasis": "echo",
+    "case": "none",
+    "tracking": -0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic dark ambient low pulse atmospheric",
+      "mood": "moody",
+      "volume": 0.12
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

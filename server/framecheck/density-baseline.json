@@ -1,0 +1,407 @@
+{
+  "abyssal-glow": {
+    "meanInk": 0.205,
+    "minInk": 0.141,
+    "maxDead": 0.319
+  },
+  "atelier": {
+    "meanInk": 0.071,
+    "minInk": 0.026,
+    "maxDead": 0.458
+  },
+  "aurora-spectrum": {
+    "meanInk": 0.427,
+    "minInk": 0.408,
+    "maxDead": 0.236
+  },
+  "bauhaus-print": {
+    "meanInk": 0.382,
+    "minInk": 0.243,
+    "maxDead": 0.292
+  },
+  "bauhaus-riot": {
+    "meanInk": 0.272,
+    "minInk": 0.22,
+    "maxDead": 0.333
+  },
+  "biennale-yellow": {
+    "meanInk": 0.086,
+    "minInk": 0.053,
+    "maxDead": 0.319
+  },
+  "blockframe": {
+    "meanInk": 0.35,
+    "minInk": 0.212,
+    "maxDead": 0.361
+  },
+  "bloom-fable": {
+    "meanInk": 0.47,
+    "minInk": 0.431,
+    "maxDead": 0.264
+  },
+  "bloom-illustrated": {
+    "meanInk": 0.242,
+    "minInk": 0.24,
+    "maxDead": 0.194
+  },
+  "blueprint-atelier": {
+    "meanInk": 0.077,
+    "minInk": 0.067,
+    "maxDead": 0.569
+  },
+  "bold-poster": {
+    "meanInk": 0.357,
+    "minInk": 0.222,
+    "maxDead": 0.292
+  },
+  "brightlife": {
+    "meanInk": 0.338,
+    "minInk": 0.195,
+    "maxDead": 0.333
+  },
+  "broadside": {
+    "meanInk": 0.364,
+    "minInk": 0.221,
+    "maxDead": 0.375
+  },
+  "brut-pop": {
+    "meanInk": 0.373,
+    "minInk": 0.186,
+    "maxDead": 0.292
+  },
+  "cadence-premium": {
+    "meanInk": 0.188,
+    "minInk": 0.144,
+    "maxDead": 0.232
+  },
+  "capsule": {
+    "meanInk": 0.078,
+    "minInk": 0.029,
+    "maxDead": 0.528
+  },
+  "care-lavender": {
+    "meanInk": 0.249,
+    "minInk": 0.118,
+    "maxDead": 0.569
+  },
+  "care-mint": {
+    "meanInk": 0.293,
+    "minInk": 0.191,
+    "maxDead": 0.403
+  },
+  "cartesian": {
+    "meanInk": 0.067,
+    "minInk": 0.028,
+    "maxDead": 0.514
+  },
+  "claymotion": {
+    "meanInk": 0.231,
+    "minInk": 0.066,
+    "maxDead": 0.25
+  },
+  "cobalt-grid": {
+    "meanInk": 0.361,
+    "minInk": 0.2,
+    "maxDead": 0.319
+  },
+  "coral": {
+    "meanInk": 0.338,
+    "minInk": 0.166,
+    "maxDead": 0.361
+  },
+  "creative-mode": {
+    "meanInk": 0.37,
+    "minInk": 0.239,
+    "maxDead": 0.347
+  },
+  "daybreak-bakehouse": {
+    "meanInk": 0.383,
+    "minInk": 0.246,
+    "maxDead": 0.278
+  },
+  "deep-sea": {
+    "meanInk": 0.535,
+    "minInk": 0.502,
+    "maxDead": 0
+  },
+  "drive-highway": {
+    "meanInk": 0.693,
+    "minInk": 0.643,
+    "maxDead": 0
+  },
+  "edition-press": {
+    "meanInk": 0.133,
+    "minInk": 0.112,
+    "maxDead": 0.208
+  },
+  "fable-storybook": {
+    "meanInk": 0.288,
+    "minInk": 0.216,
+    "maxDead": 0.153
+  },
+  "fetch-park": {
+    "meanInk": 0.617,
+    "minInk": 0.521,
+    "maxDead": 0.25
+  },
+  "fetch-vertical": {
+    "meanInk": 0.578,
+    "minInk": 0.356,
+    "maxDead": 0.377
+  },
+  "fight-night": {
+    "meanInk": 0.307,
+    "minInk": 0.209,
+    "maxDead": 0.139
+  },
+  "flagship": {
+    "meanInk": 0.744,
+    "minInk": 0.657,
+    "maxDead": 0
+  },
+  "flight-sky": {
+    "meanInk": 0.509,
+    "minInk": 0.507,
+    "maxDead": 0.111
+  },
+  "flight-vertical": {
+    "meanInk": 0.528,
+    "minInk": 0.477,
+    "maxDead": 0.224
+  },
+  "flux-analytics": {
+    "meanInk": 0.115,
+    "minInk": 0.066,
+    "maxDead": 0.431
+  },
+  "folk-stitch": {
+    "meanInk": 0.239,
+    "minInk": 0.068,
+    "maxDead": 0.264
+  },
+  "genesis": {
+    "meanInk": 0.301,
+    "minInk": 0.251,
+    "maxDead": 0.181
+  },
+  "hacker-terminal": {
+    "meanInk": 0.057,
+    "minInk": 0.045,
+    "maxDead": 0.333
+  },
+  "hype-wave": {
+    "meanInk": 0.273,
+    "minInk": 0.054,
+    "maxDead": 0.333
+  },
+  "ignition": {
+    "meanInk": 0.329,
+    "minInk": 0.22,
+    "maxDead": 0.167
+  },
+  "jungle-wild": {
+    "meanInk": 0.782,
+    "minInk": 0.774,
+    "maxDead": 0.069
+  },
+  "kaleido": {
+    "meanInk": 0.646,
+    "minInk": 0.536,
+    "maxDead": 0.014
+  },
+  "kinetic-bold": {
+    "meanInk": 0.374,
+    "minInk": 0.229,
+    "maxDead": 0.292
+  },
+  "lantern-night": {
+    "meanInk": 0.421,
+    "minInk": 0.208,
+    "maxDead": 0.181
+  },
+  "launch-pop": {
+    "meanInk": 0.712,
+    "minInk": 0.712,
+    "maxDead": 0.278
+  },
+  "ledger-noir": {
+    "meanInk": 0.388,
+    "minInk": 0.374,
+    "maxDead": 0.25
+  },
+  "liquid-glass": {
+    "meanInk": 0.131,
+    "minInk": 0.1,
+    "maxDead": 0.278
+  },
+  "longshot-cinema": {
+    "meanInk": 0.096,
+    "minInk": 0.07,
+    "maxDead": 0.319
+  },
+  "lumen-motion": {
+    "meanInk": 0.242,
+    "minInk": 0.225,
+    "maxDead": 0.264
+  },
+  "midnight-glass": {
+    "meanInk": 0.275,
+    "minInk": 0.257,
+    "maxDead": 0.278
+  },
+  "mint-launch": {
+    "meanInk": 0.281,
+    "minInk": 0.154,
+    "maxDead": 0.111
+  },
+  "momentum": {
+    "meanInk": 0.111,
+    "minInk": 0.101,
+    "maxDead": 0.292
+  },
+  "mono-corporate": {
+    "meanInk": 0.301,
+    "minInk": 0.167,
+    "maxDead": 0.111
+  },
+  "neon-premiere": {
+    "meanInk": 0.313,
+    "minInk": 0.274,
+    "maxDead": 0.264
+  },
+  "nimbus-saas": {
+    "meanInk": 0.222,
+    "minInk": 0.21,
+    "maxDead": 0.194
+  },
+  "noir-spotlight": {
+    "meanInk": 0.254,
+    "minInk": 0.252,
+    "maxDead": 0.278
+  },
+  "nova-launch": {
+    "meanInk": 0.303,
+    "minInk": 0.288,
+    "maxDead": 0.264
+  },
+  "orbit-space": {
+    "meanInk": 0.224,
+    "minInk": 0.167,
+    "maxDead": 0.208
+  },
+  "organic-garden": {
+    "meanInk": 0.449,
+    "minInk": 0.387,
+    "maxDead": 0.028
+  },
+  "orrery-brass": {
+    "meanInk": 0.241,
+    "minInk": 0.078,
+    "maxDead": 0.264
+  },
+  "paper-tales": {
+    "meanInk": 0.278,
+    "minInk": 0.156,
+    "maxDead": 0.194
+  },
+  "pipeline-factory": {
+    "meanInk": 0.189,
+    "minInk": 0.186,
+    "maxDead": 0.389
+  },
+  "poster-pop": {
+    "meanInk": 0.217,
+    "minInk": 0.149,
+    "maxDead": 0.194
+  },
+  "premiere-night": {
+    "meanInk": 0.24,
+    "minInk": 0.092,
+    "maxDead": 0.389
+  },
+  "prism-launch": {
+    "meanInk": 0.205,
+    "minInk": 0.187,
+    "maxDead": 0.208
+  },
+  "reel": {
+    "meanInk": 0.9,
+    "minInk": 0.89,
+    "maxDead": 0
+  },
+  "riso-press": {
+    "meanInk": 0.359,
+    "minInk": 0.214,
+    "maxDead": 0.375
+  },
+  "showcase": {
+    "meanInk": 0.212,
+    "minInk": 0.134,
+    "maxDead": 0.264
+  },
+  "showcase-vertical": {
+    "meanInk": 0.265,
+    "minInk": 0.207,
+    "maxDead": 0.276
+  },
+  "signal-mono": {
+    "meanInk": 0.091,
+    "minInk": 0.055,
+    "maxDead": 0.306
+  },
+  "sketchnote": {
+    "meanInk": 0.217,
+    "minInk": 0.091,
+    "maxDead": 0.306
+  },
+  "story-blocks": {
+    "meanInk": 0.289,
+    "minInk": 0.16,
+    "maxDead": 0.444
+  },
+  "sumi-kaze": {
+    "meanInk": 0.243,
+    "minInk": 0.098,
+    "maxDead": 0.25
+  },
+  "summit-keynote": {
+    "meanInk": 0.289,
+    "minInk": 0.284,
+    "maxDead": 0.194
+  },
+  "teampulse": {
+    "meanInk": 0.495,
+    "minInk": 0.406,
+    "maxDead": 0.132
+  },
+  "terminal-amber": {
+    "meanInk": 0.118,
+    "minInk": 0.105,
+    "maxDead": 0.236
+  },
+  "terminal-departures": {
+    "meanInk": 0.221,
+    "minInk": 0.202,
+    "maxDead": 0.111
+  },
+  "terminal-green": {
+    "meanInk": 0.183,
+    "minInk": 0.156,
+    "maxDead": 0.222
+  },
+  "vapor-chrome": {
+    "meanInk": 0.103,
+    "minInk": 0.101,
+    "maxDead": 0.264
+  },
+  "vault-gold": {
+    "meanInk": 0.255,
+    "minInk": 0.254,
+    "maxDead": 0.264
+  },
+  "voltage": {
+    "meanInk": 0.263,
+    "minInk": 0.135,
+    "maxDead": 0.319
+  }
+}

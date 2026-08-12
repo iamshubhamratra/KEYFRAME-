@@ -1,0 +1,98 @@
+{
+  "name": "kickflip-co",
+  "renderer": "omelette",
+  "template": "KickflipCo",
+  "portraitNative": true,
+  "vibe": "halfpipe curve, skater dot with flip, spray splat Portrait-native 9:16 (15 authored beats, 44.4s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#D8D4CC",
+    "ink": "#191A1C",
+    "accent": "#FF4D00",
+    "a2": "#4FA3D1"
+  },
+  "fonts": [
+    "Bungee",
+    "Rubik"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#D8D4CC",
+    "ink": "#191A1C"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.08
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FF4D00",
+      "#4FA3D1"
+    ],
+    "extras": [
+      "#E6E2DA",
+      "#2E2E30",
+      "#7A3DF0"
+    ],
+    "emphasisCss": "color:#FF4D00;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "kickflip",
+      "halfpipe",
+      "curve",
+      "skater",
+      "flip",
+      "spray"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Bungee",
+    "body": "Rubik"
+  },
+  "camera3d": {
+    "ground": "#D8D4CC"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slam",
+    "emphasis": "echo",
+    "case": "none",
+    "tracking": 0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "driving percussive energetic sports rock beat",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

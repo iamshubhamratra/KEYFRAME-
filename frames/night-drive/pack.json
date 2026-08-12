@@ -1,0 +1,98 @@
+{
+  "name": "night-drive",
+  "renderer": "omelette",
+  "template": "NightDrive",
+  "portraitNative": true,
+  "vibe": "\"Night Drive\" Midnight city run: neon light trails streaking past, a perspective road with rushing dashes, skyline window grids, headlight sweeps. Orbitron + Exo 2. Portrait-native 9:16 (18 authored beats, 49.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#0C0E14",
+    "ink": "#EEF2F7",
+    "accent": "#39E6D0",
+    "a2": "#E04FA3"
+  },
+  "fonts": [
+    "Orbitron",
+    "Exo 2"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#0C0E14",
+    "ink": "#EEF2F7"
+  },
+  "motion": {
+    "cut": "weave",
+    "drift": 1.13
+  },
+  "fx": {
+    "canvas": "stitch",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#39E6D0",
+      "#E04FA3"
+    ],
+    "extras": [
+      "#F5B942",
+      "#080A10",
+      "#7AB8FF"
+    ],
+    "emphasisCss": "color:#39E6D0;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "night-drive-film",
+      "night",
+      "drive",
+      "midnight",
+      "city",
+      "neon"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Orbitron",
+    "body": "Orbitron"
+  },
+  "camera3d": {
+    "ground": "#0C0E14"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slide",
+    "emphasis": "marker",
+    "case": "none",
+    "tracking": 0.02,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "synthwave retro electronic driving arpeggio neon",
+      "mood": "energetic",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

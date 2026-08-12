@@ -26,10 +26,12 @@ function writeFiles(jobDir, { indexHtml, metaJson }) {
 
 function runLint(jobDir) {
   return new Promise((resolve) => {
-    const cmd = WINDOWS ? "npx.cmd" : "npx";
+    // Prefer the installed CLI over an npx re-resolve — see hyperframes_cli.js.
     // spawnCompat runs .cmd shims under a shell (CVE-2024-27980) with
-    // pre-quoted args (avoids DEP0190).
-    const p = spawnCompat(cmd, ["--yes", HF_SPEC, "lint"], {
+    // pre-quoted args (avoids DEP0190); a plain node path needs neither, and
+    // spawnCompat passes it straight through.
+    const { cmd, args } = cliFor("lint");
+    const p = spawnCompat(cmd, args, {
       cwd: jobDir,
       env: process.env,
     });
@@ -75,8 +77,8 @@ function runLint(jobDir) {
 //     avoid churn on particle fields / transient transition seams.
 function runInspect(jobDir) {
   return new Promise((resolve) => {
-    const cmd = WINDOWS ? "npx.cmd" : "npx";
-    const p = spawnCompat(cmd, ["--yes", HF_SPEC, "inspect", "--json", "--at-transitions", "--tolerance", "4", "."], {
+    const { cmd, args } = cliFor("inspect", ["--json", "--at-transitions", "--tolerance", "4", "."]);
+    const p = spawnCompat(cmd, args, {
       cwd: jobDir,
       env: process.env,
     });

@@ -27,7 +27,8 @@ const MODEL_PRICING = {
   "google/gemini-2.5-flash-lite": { in: 0.10, out: 0.40 },
   "google/gemini-3.1-flash-lite": { in: 0.25, out: 1.50 }, // legacy (pre-policy vo_fit/director records)
   "google/gemini-2.5-flash":      { in: 0.30, out: 2.50 },
-  "google/gemini-3-flash-preview":{ in: 0.50, out: 3.00 }, // outage fallback
+  "google/gemini-3-flash-preview":{ in: 0.50, out: 3.00 }, // MAIN tier (brief/storyboard/script/composer/vision/qa/template_director)
+  "google/gemini-3.5-flash-lite": { in: 0.30, out: 2.50 }, // LIGHT tier (transcribe/vo_fit/art+text director/screenshot_director)
   "google/gemini-3.5-flash":      { in: 1.50, out: 9.00 }, // legacy default (pre-KIE-gemini job records)
   // DEFAULT — every non-premium stage, served by KIE.
   // MEASURED, not assumed. KIE bills in credits (`credits_consumed` on every

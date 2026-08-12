@@ -323,8 +323,11 @@ function montage(scene, ctx, a, b) {
   const pool = (Array.isArray(ctx.media) && ctx.media.length ? ctx.media : [a, b]).filter(Boolean);
   const media = [0, 1, 2, 3].map((k) => (pool.length ? pool[k % pool.length] : null));
   const tilts = [-3, 2.5, 2, -2.5];
-  const tileH = land ? 12.5 : 25.9;
-  const cells = [0, 1, 2, 3].map((i) =>
+  const tileH = land ? 12.5 : 25.9;  // PORTRAIT: two tiles at FULL width rather than four at half. A 2x2 wall in
+  // 9:16 puts each plate under ~330px, where a product screenshot stops being
+  // readable; stacked full width they get the whole frame. Fewer, bigger.
+
+  const cells = (land ? [0, 1, 2, 3] : [0, 1]).map((i) =>
     `<div style="transform:rotate(${tilts[i]}deg);">
       <div class="${id}-tl" style="opacity:0;">
         <div style="height:${tileH}cqw;border-radius:${q(24, land)}cqw;overflow:hidden;background:${th.paperL};padding:${q(10, land)}cqw;box-shadow:0 ${q(24, land)}cqw ${q(50, land)}cqw ${rgba(th.inkD, 0.25)};">
@@ -333,7 +336,7 @@ function montage(scene, ctx, a, b) {
         <div style="font-family:${FH};font-size:${q(30, land)}cqw;color:${C.fg};margin-top:${q(16, land)}cqw;text-align:center;text-transform:uppercase;">${esc(labels[i])}</div>
       </div>
     </div>`).join("");
-  const grid = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:${q(30, land)}cqw;">${cells}</div>`;
+  const grid = `<div style="display:grid;grid-template-columns:${land ? "1fr 1fr" : "1fr"};gap:${q(30, land)}cqw;">${cells}</div>`;
   const html = `${ground(C.bg)}` + (land
     ? `<div style="position:absolute;left:6cqw;top:50%;transform:translateY(-50%);width:26cqw;">
          ${slamLines(id, scene.headline, "Every page.|Every angle.", 80, 24, land, C.fg, C.hi)}

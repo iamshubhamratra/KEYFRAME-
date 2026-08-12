@@ -1,0 +1,98 @@
+{
+  "name": "toybox",
+  "renderer": "omelette",
+  "template": "Toybox",
+  "portraitNative": true,
+  "vibe": "\"TOYBOX\" playroom world. Building blocks, balloons, wind-up robot. Portrait-native 9:16 (9 authored beats, 27.8s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#BFE3F0",
+    "ink": "#243141",
+    "accent": "#E63946",
+    "a2": "#37A86B"
+  },
+  "fonts": [
+    "Baloo 2",
+    "Nunito"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#BFE3F0",
+    "ink": "#243141"
+  },
+  "motion": {
+    "cut": "wipe",
+    "drift": 1.05
+  },
+  "fx": {
+    "canvas": "halftone",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#E63946",
+      "#37A86B"
+    ],
+    "extras": [
+      "#FFF9EE",
+      "#2668C5",
+      "#D99E14"
+    ],
+    "emphasisCss": "color:#E63946;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "toybox-film",
+      "toybox",
+      "playroom",
+      "world",
+      "building",
+      "blocks"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Baloo 2",
+    "body": "Nunito"
+  },
+  "camera3d": {
+    "ground": "#BFE3F0"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slam",
+    "emphasis": "marker",
+    "case": "none",
+    "tracking": 0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

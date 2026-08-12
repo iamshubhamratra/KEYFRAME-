@@ -1,0 +1,98 @@
+{
+  "name": "groove",
+  "renderer": "omelette",
+  "template": "Groove",
+  "portraitNative": true,
+  "vibe": "\"GROOVE\" 70s funk vinyl world. Spinning records, EQ bars, tape. Portrait-native 9:16 (12 authored beats, 34.8s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#F6EBD9",
+    "ink": "#000000",
+    "accent": "#E8A93C",
+    "a2": "#E0662C"
+  },
+  "fonts": [
+    "Shrikhand",
+    "Karla"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F6EBD9",
+    "ink": "#000000"
+  },
+  "motion": {
+    "cut": "iris",
+    "drift": 1.15
+  },
+  "fx": {
+    "canvas": "bokeh",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#E8A93C",
+      "#E0662C"
+    ],
+    "extras": [
+      "#2A1B14",
+      "#D9537E",
+      "#2E8C7F"
+    ],
+    "emphasisCss": "color:#E8A93C;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "groove-film",
+      "groove",
+      "funk",
+      "vinyl",
+      "world",
+      "spinning"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Shrikhand",
+    "body": "Shrikhand"
+  },
+  "camera3d": {
+    "ground": "#F6EBD9"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "zap",
+    "emphasis": "bracket",
+    "case": "none",
+    "tracking": -0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

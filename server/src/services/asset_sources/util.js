@@ -298,7 +298,13 @@ function scoreCandidate(query, c, styleKeywords) {
   const text = tokenize([c.tags, c.title, c.alt].filter(Boolean).join(" "));
   let relevance;
   if (!q.length) relevance = 0.5;
-  else if (!text.length) relevance = 0.35;              // provider gave no keywords
+  // NO KEYWORDS IS UNKNOWN RELEVANCE, NOT AVERAGE RELEVANCE. The old flat 0.35
+  // outranked a candidate that genuinely matched one word of a four-word query
+  // (0.25), so a provider that returns no text (the site scraper, before it
+  // started carrying tags) beat every real match and its arrival order survived
+  // ranking intact. Half of one matched word instead: an unlabelled candidate
+  // still ranks above a labelled MISmatch (0) and below any real hit.
+  else if (!text.length) relevance = 0.5 / q.length;    // provider gave no keywords
   else relevance = q.filter((w) => text.includes(w)).length / q.length;
   const longEdge = Math.max(Number(c.width) || 0, Number(c.height) || 0);
   const quality = longEdge > 0 ? Math.min(1, longEdge / 1920) : 0.4;

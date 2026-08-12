@@ -1,0 +1,93 @@
+{
+  "name": "organic-garden",
+  "renderer": "organic-garden",
+  "vibe": "A warm cream garden reel — petals and leaves drift down past soft sage light-blobs, double rolling hills breathe along the base, a sprout draws itself out of the soil and stems grow like a living bar chart. Round Caprasimo display over Figtree; headlines BLOOM up from the ground and the key word gets a hand-drawn dashed seed-ring. Calm, alive, unmistakably organic — gardens, plants, wellness, eco brands, farm-to-table and anything that grows.",
+  "colors": {
+    "paper": "#f5ead8",
+    "surface": "#ebddc5",
+    "ink": "#201e1d",
+    "clay": "#b2622d",
+    "sage": "#7a8a5e",
+    "petal": "#dcb28a"
+  },
+  "fonts": [
+    "Caprasimo",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#f5ead8",
+    "ink": "#201e1d"
+  },
+  "motion": {
+    "cut": "wash",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "sprinkle"
+  },
+  "skin": {
+    "accents": [
+      "#b2622d",
+      "#7a8a5e"
+    ],
+    "extras": [
+      "#ebddc5",
+      "#dcb28a"
+    ],
+    "emphasisCss": "color:#b2622d;"
+  },
+  "assets": {
+    "photoMod": "natural garden greenery soft daylight organic fresh",
+    "iconStyle": "line",
+    "keywords": [
+      "garden",
+      "organic",
+      "nature",
+      "plants",
+      "growth",
+      "eco",
+      "farm"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
+  },
+  "typography": {
+    "display": "Caprasimo"
+  },
+  "layout": {
+    "propFill": true,
+    "kicker": true,
+    "underline": false,
+    "stat": "hero",
+    "assetStyle": "paper"
+  },
+  "textfx": {
+    "enter": "countin",
+    "emphasis": "glow",
+    "case": "upper",
+    "tracking": -0.035,
+    "sizeScale": 1.12,
+    "align": "center",
+    "weight": 900
+  },
+  "audio": {
+    "music": {
+      "query": "punchy electronic percussion hard hitting drive",
+      "mood": "energetic",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
+  }
+}

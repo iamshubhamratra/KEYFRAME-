@@ -1,5 +1,6 @@
 {
   "name": "noir-spotlight",
+  "renderer": "dark-premium",
   "vibe": "Cinematic dark luxury — a product film lit by one theatrical spotlight. Near-black void grounds, a single drifting volumetric beam that reveals the hero, deep falloff shadows, gold hairline accents, and a film-grain vignette over everything",
   "colors": {
     "void": "#08080B",
@@ -11,9 +12,8 @@
     "crimson": "#D8443C"
   },
   "fonts": [
-    "Inter",
-    "JetBrains Mono",
-    "Fraunces"
+    "Archivo Black",
+    "JetBrains Mono"
   ],
   "surface": {
     "flat": true,
@@ -47,14 +47,34 @@
     ]
   },
   "typography": {
-    "display": "Fraunces"
+    "display": "Archivo Black"
   },
   "camera3d": {
     "ground": "#08080B"
   },
   "textfx": {
-    "enter": "mask-reveal",
-    "emphasis": "glow",
-    "align": "center"
+    "enter": "zap",
+    "emphasis": "ring",
+    "align": "center",
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035,
+    "sizeScale": 1.12
+  },
+  "audio": {
+    "music": {
+      "query": "driving percussion tribal toms punchy energetic",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
   }
 }

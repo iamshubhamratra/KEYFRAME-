@@ -1,0 +1,98 @@
+{
+  "name": "spinnaker-cup",
+  "renderer": "omelette",
+  "template": "SpinnakerCup",
+  "portraitNative": true,
+  "vibe": "heeled yacht, spinnaker, buoy, burgee Portrait-native 9:16 (14 authored beats, 41.4s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#12294A",
+    "ink": "#F8F6F0",
+    "accent": "#D94141",
+    "a2": "#C9A24B"
+  },
+  "fonts": [
+    "Libre Bodoni",
+    "PT Sans"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#12294A",
+    "ink": "#F8F6F0"
+  },
+  "motion": {
+    "cut": "glow",
+    "drift": 1.05
+  },
+  "fx": {
+    "canvas": "flow",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#D94141",
+      "#C9A24B"
+    ],
+    "extras": [
+      "#2A6D9E",
+      "#0F3040",
+      "#1C2440"
+    ],
+    "emphasisCss": "color:#D94141;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "spinnaker",
+      "heeled",
+      "yacht",
+      "buoy",
+      "burgee",
+      "----"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Libre Bodoni",
+    "body": "PT Sans"
+  },
+  "camera3d": {
+    "ground": "#12294A"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "echo",
+    "case": "none",
+    "tracking": -0.02,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

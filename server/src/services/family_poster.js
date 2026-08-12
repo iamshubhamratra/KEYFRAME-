@@ -17,6 +17,9 @@
 
 const { deriveTheme } = require("./scene_kit");
 const E = require("./template_engine");
+// The shared motion vocabulary — see services/motion_presets.js. Physics for
+// headlines and cards lives there now, so every template moves alike.
+const MOTION = require("./motion_presets");
 const { esc, r, rgba, statsOf, breakLines, bullets, fit, mineStat } = E;
 
 // ---- theme -------------------------------------------------------------------
@@ -165,9 +168,7 @@ function billboard(scene, ctx) {
       </div>
     </div>`;
   const s = [
-    `tl.fromTo("#${id}-block",{scaleX:0},{scaleX:1,duration:0.42,ease:"expo.out"},${r(T + 0.1)});`,
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,x:-30},{opacity:1,x:0,duration:0.4,ease:"power3.out"},${r(T + 0.3)});` : "",
-    `tl.fromTo(".${id}-line",{opacity:0,y:${land ? 90 : 70},skewY:6},{opacity:1,y:0,skewY:0,duration:0.46,ease:"expo.out",stagger:0.11},${r(T + 0.35)});`,
     `tl.fromTo(".${id}-gline",{opacity:0,y:${land ? 90 : 70}},{opacity:0.28,y:0,duration:0.46,ease:"expo.out",stagger:0.11},${r(T + 0.42)});`,
     `tl.to("#${id}-ghost",{x:${land ? 14 : 10},y:${land ? 14 : 10},duration:${r(Math.max(1, L - 0.9))},ease:"sine.inOut"},${r(T + 0.9)});`,
   ];
@@ -201,9 +202,7 @@ function blockshot(scene, ctx, asset) {
     </div>
     ${plate}`;
   const s = [
-    `tl.fromTo("#${id}-block",{xPercent:${right ? -100 : 100}},{xPercent:0,duration:0.45,ease:"expo.out"},${T});`,
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,x:-24},{opacity:1,x:0,duration:0.4,ease:"power3.out"},${r(T + 0.35)});` : "",
-    `tl.fromTo(".${id}-line",{opacity:0,y:50},{opacity:1,y:0,duration:0.42,ease:"expo.out",stagger:0.09},${r(T + 0.4)});`,
     body ? `tl.fromTo("#${id}-body",{opacity:0,y:22},{opacity:1,y:0,duration:0.4,ease:"power2.out"},${r(T + 0.7)});` : "",
     `tl.fromTo("#${id}-plate",{opacity:0,x:${right ? 90 : -90},rotate:${right ? 3 : -3}},{opacity:1,x:0,rotate:0,duration:0.5,ease:"back.out(1.3)"},${r(T + 0.3)});`,
     asset && asset.path ? `tl.fromTo("#${id}-img",{scale:1.08},{scale:1,duration:${r(Math.max(1, L - 0.8))},ease:"sine.out"},${r(T + 0.6)});` : "",
@@ -236,7 +235,6 @@ function manifesto(scene, ctx) {
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,x:-20},{opacity:1,x:0,duration:0.35},${r(T + 0.25)});` : "",
     `tl.fromTo(".${id}-head",{opacity:0,y:44},{opacity:1,y:0,duration:0.42,ease:"expo.out",stagger:0.08},${r(T + 0.3)});`,
     `tl.fromTo(".${id}-row",{opacity:0,x:-46},{opacity:1,x:0,duration:0.4,ease:"power3.out",stagger:0.14},${r(T + 0.7)});`,
-    `tl.fromTo(".${id}-line",{scaleX:0},{scaleX:1,duration:0.4,ease:"power2.out",stagger:0.14},${r(T + 0.8)});`,
   ];
   return { html, s };
 }
@@ -377,7 +375,6 @@ function stamp(scene, ctx, a) {
   const s = [
     a && a.path ? `tl.fromTo("#${id}-logo",{opacity:0,y:-24},{opacity:1,y:0,duration:0.4,ease:"power2.out"},${r(T + 0.1)});` : "",
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,y:-20},{opacity:1,y:0,duration:0.4},${r(T + 0.2)});` : "",
-    `tl.fromTo(".${id}-line",{opacity:0,y:70,skewY:5},{opacity:1,y:0,skewY:0,duration:0.46,ease:"expo.out",stagger:0.1},${r(T + 0.25)});`,
     `tl.fromTo("#${id}-stamp",{opacity:0,scale:2.2,rotation:-30},{opacity:1,scale:1,rotation:0,duration:0.44,ease:"back.out(1.6)",transformOrigin:"center center"},${r(T + 0.7)});`,
     `tl.to("#${id}-stamp",{rotation:${r(40 * Math.max(1, L))},duration:${r(Math.max(1, L - 0.9))},ease:"none",transformOrigin:"center center"},${r(T + 1.1)});`,
     cta ? `tl.fromTo("#${id}-cta",{opacity:0,scale:0.6},{opacity:1,scale:1,duration:0.4,ease:"back.out(1.9)"},${r(T + 1)});` : "",
@@ -429,7 +426,29 @@ const family = {
   fallbackType: "billboard",
   variants: 2,
   // Poster packs cut hard and flat — no soft cinematic drift, minimal blur.
-  camera: { kinds: ["zoom", "whip", "zoom", "whip", "whip", "zoom", "whip", "zoom"], blur: 8, push: 0.03, zoomIn: 1.12, zoomOut: 1.1 },
+  camera: { enabled: false, kinds: ["zoom", "whip", "zoom", "whip", "whip", "zoom", "whip", "zoom"], blur: 8, push: 0.03, zoomIn: 1.12, zoomOut: 1.1 },
+
+  // ---- SHARED MOTION SYSTEM (services/motion_presets.js) ----------------------
+  // This family publishes WHERE its headline, card and camera live; the engine
+  // drives them from the one preset library. Its own entrance tweens for those
+  // elements were removed in the same change — two timelines on one property
+  // fight, and the loser is whichever the browser applies second.
+  motion: {
+    heroType: "billboard",
+    text: (id) => `.${id}-line`,
+    card: (id) => `#${id}-block, .${id}-block`,
+    camera: (id) => `#${id}-cami`,
+    // The film's two hero moments carry the signature type treatments; the
+    // middle stays on the house word stagger so the signatures stay signatures.
+    tokens: (type, i, ctx, { hasCard } = {}) => ({
+      text: type === "billboard" ? "outlineFillReveal"
+        : type === "stamp" ? "characterReveal" : "wordStaggerBlur",
+      enter: hasCard ? "cardRise3D" : "none",
+      idle: hasCard ? "floatSoft" : "none",
+      camera: MOTION.CAMERA_MOVES[i % MOTION.CAMERA_MOVES.length],
+      transition: MOTION.TRANSITIONS[i % MOTION.TRANSITIONS.length],
+    }),
+  },
 };
 
 function buildComposition(opts) { return E.buildFilm(family, opts); }

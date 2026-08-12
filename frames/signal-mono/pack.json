@@ -1,5 +1,6 @@
 {
   "name": "signal-mono",
+  "renderer": "editorial-quiet",
   "vibe": "a chart-first analyst system: near-monochrome ground, a faint data grid, mono labels and ONE signal accent reserved for the data — for dashboards, analytics, data and ML products",
   "colors": {
     "base": "#0B0E14",
@@ -10,7 +11,7 @@
     "amber": "#FFC24D"
   },
   "fonts": [
-    "Inter",
+    "Anton",
     "IBM Plex Mono"
   ],
   "surface": {
@@ -53,18 +54,34 @@
     ]
   },
   "textfx": {
-    "enter": "char-pop",
-    "emphasis": "glow",
+    "enter": "glitch",
+    "emphasis": "bracket",
     "case": "upper",
-    "tracking": 0.04,
-    "weight": null,
-    "sizeScale": 1,
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.12,
     "align": "left"
   },
   "typography": {
-    "display": "IBM Plex Mono"
+    "display": "Anton"
   },
   "camera3d": {
     "ground": "#0B0E14"
+  },
+  "audio": {
+    "music": {
+      "query": "hand claps foot stomps rock energetic anthem",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
   }
 }

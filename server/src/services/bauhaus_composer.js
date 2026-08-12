@@ -18,6 +18,7 @@
 // draw-ons; cqw units + container-type:size; hidden = opacity:0 only. Deterministic.
 
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
+const { pickForScene } = require("./scene_match");
 
 const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 const DISPLAY = "Archivo Black";
@@ -486,6 +487,24 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
   for (const a of images) { const sid = a.sceneId != null ? String(a.sceneId) : null; if (sid && !byScene.has(sid)) byScene.set(sid, a); else pool.push(a); }
   let pooli = 0;
 
+  // WHICH PICTURE BELONGS ON *THIS* BEAT. The sort above is film-global — cdScore
+  // and nothing else — and every unpinned slot below popped the next item off it,
+  // so a beat got whatever ranked highest rather than whatever it was about. On a
+  // website job that sort is a tie to begin with: the captures arrive as
+  // site_0.png…site_5.png sharing one boilerplate alt, so the order that survives
+  // is arrival order. Measured on the dedicated-composer harness, the "Disconnected
+  // teams" beat opened its poster plate on the brand LOGO (cdScore 88, head of the
+  // pool) while the capture that literally reads "design context, build with
+  // consistency" sat two slots behind it. Score the scene's own words against what
+  // each picture shows first; the cdScore walk still runs whenever nothing in the
+  // pool is even loosely about this beat, so a slot can never be starved.
+  // Claiming is the cursor's claim either way — an asset leaves the pool once.
+  const takePool = (scene) => {
+    const hit = pickForScene(pool.slice(pooli), scene);
+    if (hit) { pool.splice(pool.indexOf(hit, pooli), 1); return hit; }
+    return pool[pooli++];
+  };
+
   const scriptStart = (i) => scenes.slice(0, i).reduce((a, s) => a + (Number(s.duration) || 0), 0);
   const bodyParts = [], sceneScripts = [], sceneStarts = [];
   scenes.forEach((scene, i) => {
@@ -496,7 +515,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
     const sid = scene.id != null ? String(scene.id) : `s${i + 1}`;
     const ends = arch === "title" || arch === "cta";
     if (!ends && byScene.has(sid)) { arch = "plate"; asset = byScene.get(sid); }
-    else if (arch === "figure" && pooli < pool.length) { arch = "plate"; asset = pool[pooli++]; }
+    else if (arch === "figure" && pooli < pool.length) { arch = "plate"; asset = takePool(scene); }
     const ctx = { id: `s${i + 1}`, T, L, E: r(T + L), i, isLast: i === scenes.length - 1, winL: i === scenes.length - 1 ? r(L + 0.5) : L, track: 2 + i, dims: { width: W, height: H }, land: W >= H, theme };
     const built = (BUILDERS[arch] || riotFigure)(scene, ctx, asset);
     // Weave the free photo pool onto text scenes as a corner bold block (stock/photos
@@ -505,7 +524,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
     let refScript = [];
     const textArch = arch === "recipe" || arch === "stats" || arch === "manifesto";
     if (!asset && textArch && pooli < pool.length) {
-      const ref = riotRefPhoto(ctx.id, pool[pooli++], ctx);
+      const ref = riotRefPhoto(ctx.id, takePool(scene), ctx);
       built.html = built.html.replace(/(<div class="clip riot-scene"[^>]*>)/, `$1${ref.html}`);
       refScript = ref.s;
     }

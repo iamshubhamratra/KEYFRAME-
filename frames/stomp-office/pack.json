@@ -1,0 +1,89 @@
+{
+  "name": "stomp-office",
+  "renderer": "omelette",
+  "template": "Stomp",
+  "portraitNative": true,
+  "vibe": "Stomp typography in 9:16 — giant words that slam in whole, letters that cascade, tickers that scroll edge to edge, and flat office people typing, walking, calling and waving between the type. Fourteen authored surfaces on warm bark and terracotta over cream. Loud, rhythmic and human rather than corporate. For agencies, hiring and culture films, workplace tools and any brand that wants energy without neon.",
+  "colors": {
+    "ground": "#F5EAD8",
+    "ink": "#20201E",
+    "accent": "#C67139",
+    "a2": "#7A8A5E",
+    "card": "#FBF5EC"
+  },
+  "fonts": [
+    "Caprasimo",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F5EAD8"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none"
+  },
+  "skin": {
+    "accents": [
+      "#C67139",
+      "#7A8A5E"
+    ],
+    "extras": [
+      "#3B2A1D",
+      "#4A3427"
+    ],
+    "emphasisCss": "color:#C67139;"
+  },
+  "assets": {
+    "photoMod": "flat illustrative office people working warm tones",
+    "iconStyle": "bold",
+    "keywords": [
+      "team",
+      "office",
+      "hiring",
+      "culture",
+      "agency"
+    ],
+    "prefer": [
+      "illustration",
+      "flat"
+    ]
+  },
+  "typography": {
+    "display": "Caprasimo"
+  },
+  "camera3d": {
+    "ground": "#F5EAD8"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slam",
+    "emphasis": "accent",
+    "case": "upper",
+    "tracking": -0.03,
+    "weight": 700,
+    "sizeScale": 1.05,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "energetic rhythmic stomp claps upbeat brass",
+      "mood": "energetic",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "stomps, claps, punchy whooshes",
+      "volume": 0.2
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "name": "bloom-market",
+  "renderer": "omelette",
+  "template": "BloomMarket",
+  "portraitNative": true,
+  "vibe": "falling petals, swaying stems, a watering can arc Portrait-native 9:16 (18 authored beats, 49.9s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#F6E7E9",
+    "ink": "#322A2E",
+    "accent": "#FFFBF7",
+    "a2": "#C2477E"
+  },
+  "fonts": [
+    "DM Serif Display",
+    "Albert Sans"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F6E7E9",
+    "ink": "#322A2E"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1.13
+  },
+  "fx": {
+    "canvas": "clay",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FFFBF7",
+      "#C2477E"
+    ],
+    "extras": [
+      "#F2CF6B",
+      "#5D8F57",
+      "#E0685C"
+    ],
+    "emphasisCss": "color:#FFFBF7;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "bloom",
+      "market",
+      "falling",
+      "petals",
+      "swaying",
+      "stems"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "DM Serif Display",
+    "body": "DM Serif Display"
+  },
+  "camera3d": {
+    "ground": "#F6E7E9"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "spring",
+    "emphasis": "marker",
+    "case": "none",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

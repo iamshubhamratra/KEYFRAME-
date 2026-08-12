@@ -29,6 +29,7 @@
 // ABOVE the canvas (ink #111827 on white, indigo→violet gradient on the highlight).
 
 const { deriveTheme } = require("./scene_kit");
+const { pickForScene } = require("./scene_match");
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
 
 const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
@@ -808,26 +809,42 @@ function assignPlates(scenes, sceneWindows, assets) {
   const rank = (a) => (a.source === "website" || a.source === "blog" || /screenshot|webpage|landing|dashboard/i.test(a.alt || "") ? 3 : a.visionOk === true ? 2 : 1);
   const pool = imgs.slice().sort((a, b) => rank(b) - rank(a));
   const used = new Set();
-  const take = () => { const a = pool.find((x) => !used.has(x)); if (a) used.add(a); return a || null; };
+  // WHICH PICTURE BELONGS ON *THIS* CARD. `rank` above is entirely film-global —
+  // screenshot-ness and the vision verdict, nothing about what the beat is
+  // SAYING — so every card simply popped the next item off that one list, and on
+  // a website job the captures all tie (site_0.png…site_5.png, one boilerplate
+  // alt), which means the order they were fetched in decided the film. Measured
+  // on the 7-beat fixture: 2 of 10 cards showed something the narration
+  // mentioned, and the footer capture the vision pass had REJECTED landed on a
+  // feature beat. pickForScene reads the same fields the pipeline already
+  // produced (`sees`, sectionType, the beat's purpose) and returns null when
+  // nothing is even loosely about this beat, so a thin pool still fills every
+  // card exactly as before.
+  const take = (sc) => {
+    const a = (sc && pickForScene(pool, sc, { pred: (x) => !used.has(x) })) || pool.find((x) => !used.has(x));
+    if (a) used.add(a);
+    return a || null;
+  };
   const avail = () => pool.filter((x) => !used.has(x)).length;
   const UIKINDS = ["donut", "kanban", "activity"];
   const plates = [];
   sceneWindows.forEach((w) => {
     const type = w.type;
+    const sc = scenes[w.i] || null;
     if (type === "solution") {
-      const a = take();
+      const a = take(sc);
       plates.push({ scene: w.i, role: "hero", tex: a ? a.path : null, ui: "line", aspect: a ? ratio(a) : 1.6, w: 4.6, ci: 0 });
     } else if (type === "features") {
-      for (let k = 0; k < 3; k++) { const a = take(); plates.push({ scene: w.i, role: "feature", tex: a ? a.path : null, ui: UIKINDS[k % 3], aspect: a ? ratio(a) : 1.6, w: 2.6, ci: k }); }
+      for (let k = 0; k < 3; k++) { const a = take(sc); plates.push({ scene: w.i, role: "feature", tex: a ? a.path : null, ui: UIKINDS[k % 3], aspect: a ? ratio(a) : 1.6, w: 2.6, ci: k }); }
     } else if (type === "benefits") {
-      const a = take();
+      const a = take(sc);
       plates.push({ scene: w.i, role: "side", tex: a ? a.path : null, ui: "bars", aspect: a ? ratio(a) : 1.6, w: 3.0, ci: 2 });
     } else if (type === "problem") {
       // a tilted card drifts in — keeps the "pain" scene alive, not barren.
-      const a = take();
+      const a = take(sc);
       plates.push({ scene: w.i, role: "side", tex: a ? a.path : null, ui: "table", aspect: a ? ratio(a) : 1.6, w: 2.7, ci: 4 });
     } else if (type === "cta") {
-      if (avail() > 0) { const a = take(); plates.push({ scene: w.i, role: "side", tex: a.path, aspect: ratio(a), w: 2.4, ci: 1 }); }
+      if (avail() > 0) { const a = take(sc); plates.push({ scene: w.i, role: "side", tex: a.path, aspect: ratio(a), w: 2.4, ci: 1 }); }
     }
     // hook stays pure type over the pastel field (no card).
   });

@@ -1,0 +1,98 @@
+{
+  "name": "groove-crate",
+  "renderer": "omelette",
+  "template": "GrooveCrate",
+  "portraitNative": true,
+  "vibe": "record store — spinning grooves, tonearm, crate cards Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#17141A",
+    "ink": "#F2EAD9",
+    "accent": "#FF8C42",
+    "a2": "#FF5D8F"
+  },
+  "fonts": [
+    "Righteous",
+    "Mulish"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#17141A",
+    "ink": "#F2EAD9"
+  },
+  "motion": {
+    "cut": "glow",
+    "drift": 1.14
+  },
+  "fx": {
+    "canvas": "flow",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FF8C42",
+      "#FF5D8F"
+    ],
+    "extras": [
+      "#1E1A22",
+      "#0F0D11",
+      "#3FB8AF"
+    ],
+    "emphasisCss": "color:#FF8C42;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "groove",
+      "crate",
+      "record",
+      "store",
+      "spinning",
+      "grooves"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Righteous",
+    "body": "Righteous"
+  },
+  "camera3d": {
+    "ground": "#17141A"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "countin",
+    "emphasis": "marker",
+    "case": "none",
+    "tracking": 0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

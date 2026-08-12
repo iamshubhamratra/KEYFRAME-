@@ -1,5 +1,6 @@
 {
   "name": "broadside",
+  "renderer": "poster-loud",
   "vibe": "A protest-poster system where type grows so large it stops reading as text and becomes graphic primitive: massive lowercase Barlow 900 on a flat plane, two registers, fire-orange the only color.",
   "colors": {
     "ink-black": "#111111",
@@ -11,7 +12,7 @@
     "border-dark": "#282826"
   },
   "fonts": [
-    "Barlow",
+    "Archivo Black",
     "IBM Plex Mono"
   ],
   "surface": {
@@ -53,29 +54,27 @@
     ]
   },
   "textfx": {
-    "enter": "mask-reveal",
-    "emphasis": "marker",
-    "case": "none",
-    "tracking": -0.03,
-    "weight": null,
-    "sizeScale": 1.15,
+    "enter": "zap",
+    "emphasis": "ring",
+    "case": "upper",
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.29,
     "align": "left"
   },
   "audio": {
     "music": {
-      "query": "brooding industrial beat",
-      "mood": "dramatic",
+      "query": "driving percussion tribal toms punchy energetic",
+      "mood": "energetic",
       "volume": 0.15
     },
     "sfx": {
-      "style": "sharp mechanical stamps and hard declarative cuts",
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
       "palette": [
-        "paper slam",
-        "ink stamp",
-        "hard cut whoosh",
-        "mechanical thunk",
-        "typewriter strike",
-        "low bass hit"
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
       ]
     }
   },
@@ -84,5 +83,8 @@
     "kicker": true,
     "underline": false,
     "stat": "headline"
+  },
+  "typography": {
+    "display": "Archivo Black"
   }
 }

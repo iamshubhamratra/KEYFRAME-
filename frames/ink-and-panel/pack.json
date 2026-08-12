@@ -1,0 +1,98 @@
+{
+  "name": "ink-and-panel",
+  "renderer": "omelette",
+  "template": "InkAndPanel",
+  "portraitNative": true,
+  "vibe": "panel grid drawing, halftone, speed lines, SFX burst Portrait-native 9:16 (0 authored beats, 0s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#F6F4EC",
+    "ink": "#1A1A1E",
+    "accent": "#E8402E",
+    "a2": "#F2C14B"
+  },
+  "fonts": [
+    "Bangers",
+    "Lexend"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F6F4EC",
+    "ink": "#1A1A1E"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 0.97
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#E8402E",
+      "#F2C14B"
+    ],
+    "extras": [
+      "#000000",
+      "#FFFFFF",
+      "#3CB8E8"
+    ],
+    "emphasisCss": "color:#E8402E;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "panel",
+      "grid",
+      "drawing",
+      "halftone",
+      "speed",
+      "lines"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Bangers",
+    "body": "Lexend"
+  },
+  "camera3d": {
+    "ground": "#F6F4EC"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "bracket",
+    "case": "none",
+    "tracking": 0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "acoustic handmade warm folk gentle plucked strings",
+      "mood": "warm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

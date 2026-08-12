@@ -1,5 +1,6 @@
 {
   "name": "care-lavender",
+  "renderer": "story-handmade",
   "vibe": "a calm, humane care system: soft off-white grounds, rounded cards, gentle teal/mint washes and one warm accent — for healthcare, wellness, patient and clinical products",
   "colors": {
     "cloud": "#F6F5FC",
@@ -10,8 +11,8 @@
     "blush": "#F3A6C4"
   },
   "fonts": [
-    "Inter",
-    "Fraunces"
+    "Syne",
+    "JetBrains Mono"
   ],
   "surface": {
     "flat": false,
@@ -50,18 +51,34 @@
     "prefer": []
   },
   "textfx": {
-    "enter": "mask-reveal",
-    "emphasis": "underline-grow",
-    "case": "none",
-    "tracking": 0,
-    "weight": null,
-    "sizeScale": 1.05,
+    "enter": "char-pop",
+    "emphasis": "marker",
+    "case": "upper",
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.18,
     "align": "center"
   },
   "typography": {
-    "display": "Fraunces"
+    "display": "Syne"
   },
   "camera3d": {
     "ground": "#2B2A44"
+  },
+  "audio": {
+    "music": {
+      "query": "trap percussion hard claps energetic hype",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
   }
 }

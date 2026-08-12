@@ -1,0 +1,93 @@
+{
+  "name": "reel",
+  "renderer": "omelette",
+  "template": "Reel",
+  "portraitNative": true,
+  "vibe": "A vertical social story. An animated gradient ground under kinetic auto-captions, big full-bleed phone screenshots, emoji sticker bursts and a swipe-up close. Built for 9:16 first — the caption rhythm, sticker pops and story beats are the whole language. For social cuts, launch teasers, feature drops and anything headed for a phone feed.",
+  "colors": {
+    "ground": "#150A2E",
+    "ink": "#FFFFFF",
+    "accent": "#D4FF3F",
+    "a2": "#E1246E",
+    "a3": "#12C2E9"
+  },
+  "fonts": [
+    "Archivo",
+    "Baloo 2"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#150A2E"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none"
+  },
+  "skin": {
+    "accents": [
+      "#D4FF3F",
+      "#E1246E"
+    ],
+    "extras": [
+      "#12C2E9"
+    ],
+    "emphasisCss": "color:#D4FF3F;"
+  },
+  "assets": {
+    "photoMod": "",
+    "iconStyle": "line",
+    "keywords": [
+      "social",
+      "story",
+      "mobile",
+      "launch",
+      "product"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Archivo"
+  },
+  "camera3d": {
+    "ground": "#150A2E"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "spring",
+    "emphasis": "volt",
+    "case": "upper",
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.12,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "stomp claps big drums anthemic energetic build",
+      "mood": "energetic",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
+  }
+}

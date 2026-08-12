@@ -1,0 +1,98 @@
+{
+  "name": "dune-camp",
+  "renderer": "omelette",
+  "template": "DuneCamp",
+  "portraitNative": true,
+  "vibe": "rolling dunes, camel caravan silhouette, stars, tent glow Portrait-native 9:16 (14 authored beats, 41.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#241D3E",
+    "ink": "#F4ECDC",
+    "accent": "#E8703C",
+    "a2": "#E0B878"
+  },
+  "fonts": [
+    "Amiri",
+    "Tajawal"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#241D3E",
+    "ink": "#F4ECDC"
+  },
+  "motion": {
+    "cut": "strike",
+    "drift": 1.1
+  },
+  "fx": {
+    "canvas": "constellation",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#E8703C",
+      "#E0B878"
+    ],
+    "extras": [
+      "#151030",
+      "#1C2440",
+      "#D8A86C"
+    ],
+    "emphasisCss": "color:#E8703C;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "dune",
+      "camp",
+      "rolling",
+      "dunes",
+      "camel",
+      "caravan"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Amiri",
+    "body": "Tajawal"
+  },
+  "camera3d": {
+    "ground": "#241D3E"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "boxed",
+    "case": "none",
+    "tracking": -0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

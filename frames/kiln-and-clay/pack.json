@@ -1,0 +1,98 @@
+{
+  "name": "kiln-and-clay",
+  "renderer": "omelette",
+  "template": "KilnAndClay",
+  "portraitNative": true,
+  "vibe": "wheel wobble, pot growing, kiln temp squiggle Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#F1E9DF",
+    "ink": "#33302C",
+    "accent": "#B85C38",
+    "a2": "#FAF5EC"
+  },
+  "fonts": [
+    "Gloock",
+    "Schibsted Grotesk"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F1E9DF",
+    "ink": "#33302C"
+  },
+  "motion": {
+    "cut": "whip",
+    "drift": 1.04
+  },
+  "fx": {
+    "canvas": "sprinkle",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#B85C38",
+      "#FAF5EC"
+    ],
+    "extras": [
+      "#000000",
+      "#7E93A0",
+      "#ECE4D4"
+    ],
+    "emphasisCss": "color:#B85C38;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "kiln",
+      "clay",
+      "wheel",
+      "wobble",
+      "growing",
+      "temp"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Gloock",
+    "body": "Schibsted Grotesk"
+  },
+  "camera3d": {
+    "ground": "#F1E9DF"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "char-pop",
+    "emphasis": "marker",
+    "case": "upper",
+    "tracking": -0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

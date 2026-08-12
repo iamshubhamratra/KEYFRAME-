@@ -1,0 +1,98 @@
+{
+  "name": "cosmodrome",
+  "renderer": "omelette",
+  "template": "Cosmodrome",
+  "portraitNative": true,
+  "vibe": "\"COSMODROME\" space-mission world. Starfield, rockets, orbits. Portrait-native 9:16 (10 authored beats, 30.8s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#070B2E",
+    "ink": "#F2F4FF",
+    "accent": "#FFD34D",
+    "a2": "#FF6A5C"
+  },
+  "fonts": [
+    "Michroma",
+    "Manrope"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#070B2E",
+    "ink": "#F2F4FF"
+  },
+  "motion": {
+    "cut": "whip",
+    "drift": 1.15
+  },
+  "fx": {
+    "canvas": "sprinkle",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FFD34D",
+      "#FF6A5C"
+    ],
+    "extras": [
+      "#9B5CFF",
+      "#0E1546",
+      "#04061C"
+    ],
+    "emphasisCss": "color:#FFD34D;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "cosmodrome-film",
+      "cosmodrome",
+      "space-mission",
+      "world",
+      "starfield",
+      "rockets"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Michroma",
+    "body": "Michroma"
+  },
+  "camera3d": {
+    "ground": "#070B2E"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "squash",
+    "emphasis": "accent",
+    "case": "none",
+    "tracking": 0.02,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

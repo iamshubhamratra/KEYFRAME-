@@ -1,5 +1,6 @@
 {
   "name": "care-mint",
+  "renderer": "story-handmade",
   "vibe": "a calm, humane care system: soft off-white grounds, rounded cards, gentle teal/mint washes and one warm accent — for healthcare, wellness, patient and clinical products",
   "colors": {
     "cloud": "#F3FAF7",
@@ -10,8 +11,8 @@
     "sky": "#6FC5D8"
   },
   "fonts": [
-    "Inter",
-    "Bricolage Grotesque"
+    "Bricolage Grotesque",
+    "JetBrains Mono"
   ],
   "surface": {
     "flat": false,
@@ -50,12 +51,12 @@
     "prefer": []
   },
   "textfx": {
-    "enter": "drift",
-    "emphasis": "marker",
-    "case": "none",
-    "tracking": 0,
-    "weight": null,
-    "sizeScale": 1,
+    "enter": "slide",
+    "emphasis": "echo",
+    "case": "upper",
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.12,
     "align": "left"
   },
   "typography": {
@@ -63,5 +64,21 @@
   },
   "camera3d": {
     "ground": "#163B33"
+  },
+  "audio": {
+    "music": {
+      "query": "marching snare stomp clap epic energetic",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
   }
 }

@@ -46,10 +46,56 @@ function extractFrame(videoPath, atSec, outPath) {
 
 // Sample one frame inside every scene (mid-scene, past the entrance) plus the
 // very first frame — empty openings were a real failure mode.
-function sampleTimes(scenes, duration) {
-  const raw = [0.6];
+function sampleTimes(scenes, duration, beats) {
+  // SAMPLE PAST THE ENTRANCE. Every scene animates its content in over the first
+  // few tenths of a second, so a frame grabbed at the very top of a scene shows
+  // the ground and nothing else. A hardcoded 0.6s opener therefore reported
+  // "EMPTY / NEAR-EMPTY FRAME" on essentially every film ever made — a blocker
+  // no fixer can act on (there is nothing wrong to fix), which then crowded out
+  // the real findings. The per-scene samples below already sit 60% into their
+  // scene for exactly this reason; the opener now follows the same rule, landing
+  // just past the first scene's entrance rather than inside it.
+  // 45%/60% is still INSIDE the entrance. Measured on a finished film: the
+  // opening pill reached its own colour at 1.8s, and the 1.4s sample caught it
+  // half-faded — mid-blend against the sky. QA read that as "TEXT CONTRAST
+  // FAILURE: grey text on the orange pill" and raised a blocker, while the
+  // deterministic WCAG checker, sampling settled frames, found nothing wrong.
+  // A judgement made on a dissolving element is not a judgement about the film.
+  //
+  // Scenes hold roughly 25-80% of their length, so 72% is past every entrance and
+  // before the exit. The cap keeps it off the tail of short scenes.
+  // ...and "a scene" must mean A CUT, not a narrated sentence. A 4.3s narration
+  // scene is now cut into two ~2.1s beats, so 72% of the SCENE lands 44% into the
+  // SECOND beat — inside its entrance again. Templates whose shape reveals its
+  // copy late (FetchVertical's "Fetch") were then reported as "EMPTY / NEAR-EMPTY
+  // FRAME" while the copy arrived a beat-fraction later. When the caller knows
+  // the film's real cut list, sample that instead.
+  const SETTLED = 0.72;
+  // The film's own cuts, when the caller knows them.
+  if (Array.isArray(beats) && beats.length) {
+    const cuts = [];
+    let t = 0;
+    for (const d of beats) {
+      const dur = Number(d) || 0;
+      if (dur <= 0) continue;
+      cuts.push(Math.min(duration - 0.2, t + Math.min(dur * SETTLED, dur - 0.2)));
+      t += dur;
+    }
+    cuts.push(Math.max(0.9, Math.round((duration - 0.4) * 10) / 10));
+    const u = [...new Set(cuts.map((x) => Math.round(x * 10) / 10))].sort((a, b) => a - b);
+    if (u.length <= 8) return u;
+    const out = [u[0]];
+    const st = (u.length - 1) / 7;
+    for (let k = 1; k <= 6; k++) out.push(u[Math.round(k * st)]);
+    out.push(u[u.length - 1]);
+    return [...new Set(out)];
+  }
+  const first = (scenes && scenes[0]) || null;
+  const firstDur = Number(first && first.duration) || 3;
+  const opener = Math.max(0.9, Math.min(2.4, Math.round(firstDur * SETTLED * 10) / 10));
+  const raw = [opener];
   for (const s of scenes || []) {
-    raw.push(Math.min(duration - 0.2, s.start + Math.min(s.duration * 0.6, s.duration - 0.3)));
+    raw.push(Math.min(duration - 0.2, s.start + Math.min(s.duration * SETTLED, s.duration - 0.25)));
   }
   // ALWAYS review the tail — the CTA/outro end-state (final logo, last caption,
   // late entrances) is where videos most often break, and it was previously
@@ -124,7 +170,8 @@ ${minorTail}`;
 // checks under-weight because each individual frame still looks 'clean'.
 const PORTRAIT_INSTRUCTIONS = `
 THIS IS A VERTICAL 9:16 FILM (a phone reel/short). Add these PORTRAIT BLOCKERS:
-P1. LANDSCAPE-SHRUNK LAYOUT: the content forms a small horizontal band across the vertical middle while BOTH the top ~25% and bottom ~25% of the frame are empty background. A reel must use the full height — fail it and tell the composer to scale the content up and redistribute it vertically.
+P1. LANDSCAPE-SHRUNK LAYOUT: the content forms a small horizontal band across the vertical middle while BOTH the top ~25% and bottom ~25% of the frame are BARE, UNDECORATED ground. Designed background art does NOT count as empty: a sky, horizon, ground/road band, gradient, ornament cluster, or illustration occupying those regions is the template's vertical STAGING and is intentional. Only flag this when the top and bottom really are flat, featureless ground. A reel must use the full height — fail it and tell the composer to scale the content up and redistribute it vertically.
+    P1 IS ABOUT A BARE TOP AND BOTTOM, NOT A QUIET MIDDLE. A title at the top with an illustration, horizon or ground band at the bottom and open sky between them is a poster composition — the template's intended staging — and is NOT P1. Do not report it, and do not restate it as "the central 50% is empty": that is the opposite of this defect. Flag P1 only when the frame's own edges are empty.
 P2. SIDE-BY-SIDE SQUEEZE: two content columns (text + image/figure) sit LEFT-AND-RIGHT of each other, each squeezed to under half the narrow width. On 9:16 they must STACK vertically. Name the two blocks in the fix.
 P3. RETINA-ILLEGIBLE TYPE: the main headline is so small it would be unreadable in a phone feed — as a rule of thumb, a headline shorter than ~1/25th of the frame HEIGHT is too small. Tell the composer the target size.
 P4. HORIZONTAL EDGE CROP: content clipped by the LEFT or RIGHT frame edge because the layout assumed a wider canvas.`;
@@ -132,9 +179,9 @@ P4. HORIZONTAL EDGE CROP: content clipped by the LEFT or RIGHT frame edge becaus
 const CLOSING_NOTE = `
 A frame caught mid-transition with PARTIAL content is NORMAL — do not fail it for that alone. Be strict about the blockers above (especially under-illustration and contrast), lenient about pure style.`;
 
-async function reviewRender({ videoPath, scenes, duration, framePack, frameMd, workDir, tracker, signal, dims, deterministic = false }) {
+async function reviewRender({ videoPath, scenes, beats, duration, framePack, frameMd, workDir, tracker, signal, dims, deterministic = false }) {
   fs.mkdirSync(workDir, { recursive: true });
-  const times = sampleTimes(scenes, duration);
+  const times = sampleTimes(scenes, duration, beats);
   const frames = [];
   for (const t of times) {
     const out = path.join(workDir, `qa_${String(t).replace(".", "_")}.jpg`);
@@ -182,8 +229,26 @@ async function reviewRender({ videoPath, scenes, duration, framePack, frameMd, w
   // pass a weak render. Require a real positive signal to ship.
   const lowScore = typeof verdict.score === "number" && verdict.score < 4;
   const pass = verdict.pass !== false && blockers.length === 0 && !lowScore;
-  console.log(`[qa] verdict: ${pass ? "PASS" : "FAIL"} score=${verdict.score ?? "?"} blockers=${blockers.length} minors=${issues.length - blockers.length}${lowScore ? " (low-score gate)" : ""}`);
-  return { pass, score: verdict.score ?? null, issues };
+  // "Reviewed and clean" and "we could not read the review" both arrived here as
+  // {pass:true, score:null, issues:[]} — an unparseable or empty envelope silently
+  // became a clean bill of health. QA must stay FAIL-OPEN (it may never block a
+  // render), so this does not change `pass`; it records that nothing positive was
+  // actually asserted, so the quality report can say "unverified" instead of
+  // claiming a pass the model never gave.
+  const asserted = verdict && typeof verdict === "object"
+    && (typeof verdict.score === "number" || typeof verdict.pass === "boolean" || issues.length > 0);
+  console.log(`[qa] verdict: ${pass ? "PASS" : "FAIL"} score=${verdict.score ?? "?"} blockers=${blockers.length} minors=${issues.length - blockers.length}${lowScore ? " (low-score gate)" : ""}${asserted ? "" : " (UNVERIFIED — verdict envelope carried no pass/score/issues)"}`);
+  // WRITE THE VERDICT DOWN. It was previously logged only as a COUNT, so a film
+  // that shipped with "3 blockers" gave no way to learn what they were without
+  // re-running the review by hand — and the repair chain's "no change applied"
+  // could not be told apart from "nothing was wrong".
+  try {
+    fs.writeFileSync(
+      path.join(workDir, "verdict.json"),
+      JSON.stringify({ pass, score: verdict.score ?? null, sampledAt: times, issues, unverified: !asserted }, null, 2)
+    );
+  } catch { /* diagnostics must never fail a render */ }
+  return { pass, score: verdict.score ?? null, issues, ...(asserted ? {} : { unverified: true }) };
 }
 
-module.exports = { reviewRender };
+module.exports = { reviewRender, __test_sampleTimes: sampleTimes };

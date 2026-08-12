@@ -28,6 +28,36 @@ function clampQuery(q) {
   return (sp > 0 ? cut.slice(0, sp) : cut).trim();
 }
 
+// A REJECTED KEY IS A DEAD PROVIDER, NOT A FAILED QUERY.
+//
+// Measured live: every image search in a real job returned `pixabay HTTP 400`,
+// and the body says why — "[ERROR 400] Invalid API key. Note: This value is
+// case-sensitive." The provider still advertised itself as available, so every
+// one of a film's ~13 asset lookups paid a doomed round-trip and then fell
+// through to the ~12s headless page-scrape fallback. Most never finished, the
+// film shipped with 3 of 13 requested pictures, and the scenes left empty were
+// filled with whatever else was lying around — which is exactly the "the script
+// says one thing and the asset shows another" complaint.
+//
+// The old code could not tell "this key is wrong" from "this query found
+// nothing": both surfaced as a thrown HTTP 400 and were swallowed by the caller.
+// So: read the body, latch on an auth rejection, and say so ONCE, loudly. After
+// that the provider reports itself unavailable and the search skips straight to
+// the working fallbacks instead of buying the same 400 twelve more times.
+let keyRejected = false;
+function keyIsRejected() { return keyRejected; }
+
+// A MISSING key is even quieter than a rejected one: `available()` is false, so
+// search() is never called, no request is ever made, and nothing is ever logged —
+// the operator sees only the symptom (a film with three pictures, all scraped).
+// Say it once, at load, and name the field to fix. Never the value.
+if (!apiKey()) {
+  console.warn(
+    "[pixabay] no API key in assetProviders.pixabay.apiKey (server/config.json) — every image/video lookup " +
+    "falls back to the slow site scraper. Free key: https://pixabay.com/api/docs/"
+  );
+}
+
 async function apiJson(endpoint, params) {
   const url = new URL(endpoint);
   url.searchParams.set("key", apiKey());
@@ -38,12 +68,28 @@ async function apiJson(endpoint, params) {
     headers: { "User-Agent": UA },
     signal: AbortSignal.timeout(20_000),
   });
-  if (!resp.ok) throw new Error(`pixabay HTTP ${resp.status}`);
+  if (!resp.ok) {
+    let body = "";
+    try { body = (await resp.text()).slice(0, 200); } catch { /* body is a bonus */ }
+    if ((resp.status === 400 || resp.status === 401 || resp.status === 403) && /invalid api key|authentication/i.test(body)) {
+      if (!keyRejected) {
+        keyRejected = true;
+        console.error(
+          `[pixabay] API KEY REJECTED — ${body.trim()}\n` +
+          `[pixabay] Every image/video lookup will now SKIP the Pixabay API and fall back to slower scraped sources,\n` +
+          `[pixabay] which materially reduces how many assets a film gets. Fix assetProviders.pixabay.apiKey in\n` +
+          `[pixabay] server/config.json (get a free key at https://pixabay.com/api/docs/) to restore full asset supply.`
+        );
+      }
+      throw new Error(`pixabay API key rejected (${resp.status})`);
+    }
+    throw new Error(`pixabay HTTP ${resp.status}${body ? ` — ${body.trim()}` : ""}`);
+  }
   return resp.json();
 }
 
 async function search({ query, type, orientation, limit = 5 }) {
-  if (!apiKey()) return [];
+  if (!apiKey() || keyRejected) return [];
 
   if (type === "image") {
     const data = await apiJson("https://pixabay.com/api/", {
@@ -86,4 +132,6 @@ async function search({ query, type, orientation, limit = 5 }) {
   return [];
 }
 
-module.exports = { name: "pixabay", types: ["image", "video"], available: () => !!apiKey(), search };
+// `available` goes false once the key is rejected, so the router stops offering a
+// provider that cannot answer — otherwise every lookup keeps buying the same 400.
+module.exports = { name: "pixabay", types: ["image", "video"], available: () => !!apiKey() && !keyRejected, search, keyIsRejected };

@@ -1,0 +1,98 @@
+{
+  "name": "cat-nap",
+  "renderer": "omelette",
+  "template": "CatNap",
+  "portraitNative": true,
+  "vibe": "\"Cat Nap\" Twilight living room: window with drifting stars and moon, pulsing lamp glow, rolling yarn ball trailing thread, dust motes, a cat silhouette with a slow tail flick. Quicksand + Lora. Portrait-native 9:16 (18 authored beats, 49.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#332A47",
+    "ink": "#F0B45C",
+    "accent": "#F6EFE4",
+    "a2": "#C96B8E"
+  },
+  "fonts": [
+    "Lora",
+    "Quicksand"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#332A47",
+    "ink": "#F0B45C"
+  },
+  "motion": {
+    "cut": "glow",
+    "drift": 0.98
+  },
+  "fx": {
+    "canvas": "flow",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F6EFE4",
+      "#C96B8E"
+    ],
+    "extras": [
+      "#59436B",
+      "#241D2E",
+      "#2C3554"
+    ],
+    "emphasisCss": "color:#F6EFE4;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "cat-nap-film",
+      "twilight",
+      "living",
+      "room",
+      "drifting",
+      "stars"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Lora",
+    "body": "Quicksand"
+  },
+  "camera3d": {
+    "ground": "#332A47"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "echo",
+    "case": "none",
+    "tracking": 0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

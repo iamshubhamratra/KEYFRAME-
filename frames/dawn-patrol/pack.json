@@ -1,0 +1,98 @@
+{
+  "name": "dawn-patrol",
+  "renderer": "omelette",
+  "template": "DawnPatrol",
+  "portraitNative": true,
+  "vibe": "run club — road dashes, bobbing runner, rising sun Portrait-native 9:16 (15 authored beats, 44.4s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#16324F",
+    "ink": "#EEF4F8",
+    "accent": "#FFE14D",
+    "a2": "#FF7955"
+  },
+  "fonts": [
+    "Big Shoulders Display",
+    "Red Hat Text"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#16324F",
+    "ink": "#EEF4F8"
+  },
+  "motion": {
+    "cut": "wash",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "caustics",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FFE14D",
+      "#FF7955"
+    ],
+    "extras": [
+      "#0E2032",
+      "#000000",
+      "#1C3A58"
+    ],
+    "emphasisCss": "color:#FFE14D;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "dawn",
+      "patrol",
+      "club",
+      "road",
+      "dashes",
+      "bobbing"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Big Shoulders Display",
+    "body": "Red Hat Text"
+  },
+  "camera3d": {
+    "ground": "#16324F"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "stamp",
+    "emphasis": "underline-grow",
+    "case": "none",
+    "tracking": -0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

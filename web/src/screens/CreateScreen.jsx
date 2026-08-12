@@ -71,7 +71,7 @@ export default function CreateScreen({ onCreated, prefill }) {
   const [captions, setCaptions] = useState(false);
   const [voice, setVoice] = useState("auto");        // narration character (voiceStyle)
   const [autopilot, setAutopilot] = useState(false); // skip the script-review pause, render straight through
-  const [finish, setFinish] = useState("premium"); // premium (default) = LLM-composed scenes · standard = scene-kit · cinema = Three.js 3D set
+  const [finish, setFinish] = useState("standard"); // standard (default) = scene-kit templates · premium = LLM-composed scenes · cinema = Three.js 3D set
   const [packs, setPacks] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(prefill?.error || null);
@@ -89,6 +89,14 @@ export default function CreateScreen({ onCreated, prefill }) {
   if (prevPrefill !== prefill) {
     setPrevPrefill(prefill);
     if (prefill?.framePack) setFramePack(prefill.framePack);
+    // Carry orientation from a "use this template" handoff: an explicit prefill
+    // orientation wins; otherwise a portrait-native pack defaults to vertical so a
+    // 9:16 template doesn't land in a 16:9 frame.
+    if (prefill?.orientation) setOrientation(prefill.orientation);
+    else if (prefill?.framePack) {
+      const pp = (packs || []).find((x) => x.name === prefill.framePack);
+      if (pp && pp.portrait) setOrientation("vertical");
+    }
   }
 
   const packList = packs || orderPacks([]);
@@ -325,19 +333,31 @@ export default function CreateScreen({ onCreated, prefill }) {
           </div>
           <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
             <span className="spine" style={{ "--spine": "#23c8e0" }} />
-            <div className="label-mono" style={{ marginBottom: 10 }}>ORIENTATION — {ASPECT[orientation]}</div>
+            <div className="label-mono" style={{ marginBottom: 12 }}>ORIENTATION — {ASPECT[orientation]}</div>
+            {/* Clearly LABELLED options (icon + name + ratio) so Vertical 9:16 is an
+                obvious choice — mirrors the Horizontal/Vertical split on Templates. */}
             <div style={{ display: "flex", gap: 8 }}>
-              {["horizontal", "vertical", "square"].map((o) => (
-                <button key={o} onClick={() => setOrientation(o)}
-                  style={{
-                    width: o === "vertical" ? 20 : o === "square" ? 28 : 40,
-                    height: o === "vertical" ? 34 : o === "square" ? 28 : 24,
-                    borderRadius: 5, cursor: "pointer", transition: "all .3s",
-                    border: `1.5px solid ${orientation === o ? "var(--color-cy)" : "rgba(23,19,14,.25)"}`,
-                    background: orientation === o ? "rgba(35,200,224,.14)" : "transparent",
-                  }}
-                  title={o} aria-label={`${o} orientation`} aria-pressed={orientation === o} />
-              ))}
+              {[
+                { key: "horizontal", label: "Horizontal", ar: "16:9", w: 32, h: 19 },
+                { key: "vertical", label: "Vertical", ar: "9:16", w: 17, h: 30 },
+                { key: "square", label: "Square", ar: "1:1", w: 24, h: 24 },
+              ].map((o) => {
+                const on = orientation === o.key;
+                return (
+                  <button key={o.key} type="button" onClick={() => setOrientation(o.key)}
+                    title={`${o.label} ${o.ar}`} aria-label={`${o.label} orientation ${o.ar}`} aria-pressed={on}
+                    style={{
+                      flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", gap: 6,
+                      padding: "12px 4px 9px", minHeight: 74, borderRadius: 8, cursor: "pointer", transition: "all .25s",
+                      border: `1.5px solid ${on ? "var(--color-cy)" : "rgba(23,19,14,.22)"}`,
+                      background: on ? "rgba(35,200,224,.14)" : "transparent",
+                    }}>
+                    <span style={{ width: o.w, height: o.h, borderRadius: 3, border: `2px solid ${on ? "var(--color-cy)" : "rgba(23,19,14,.5)"}`, background: on ? "rgba(35,200,224,.18)" : "transparent" }} />
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: "0.06em", fontWeight: 700, color: on ? "var(--color-cy)" : "#17130e" }}>{o.label}</span>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 8.5, color: "var(--color-dim)" }}>{o.ar}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -483,8 +503,16 @@ export default function CreateScreen({ onCreated, prefill }) {
           </SelectablePack>
           {packList.map((p) => (
             <SelectablePack key={p.name} active={framePack === p.name}
-              onSelect={() => setFramePack(framePack === p.name ? "auto" : p.name)}>
-              <PackCard compact pack={p} />
+              onSelect={() => {
+                const next = framePack === p.name ? "auto" : p.name;
+                setFramePack(next);
+                // A portrait-native template (the Vertical section on Templates)
+                // should film vertical by default — otherwise a 9:16 pack renders
+                // into a 16:9 frame. Only auto-switch ON select, never override a
+                // deselect, so the user can still change it after.
+                if (next !== "auto" && p.portrait) setOrientation("vertical");
+              }}>
+              <PackCard compact pack={p} portrait={p.portrait} />
             </SelectablePack>
           ))}
         </div>

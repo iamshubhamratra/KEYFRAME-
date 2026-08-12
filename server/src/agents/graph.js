@@ -3,7 +3,7 @@
 //   INTAKE GRAPH      brief → script  (pauses at script_review via the API)
 //
 //   PRODUCTION GRAPH                  ┌─ storyboard ── scene_planner ─┐
-//     frame_selector ── fan-out ──────┼─ asset_planner ─ asset_search ┼── composition ── animation ─┐
+//     frame_selector ── fan-out ──────┼─ asset_search ────────────────┼── composition ── animation ─┐
 //                                     └─ voice ───────────────────────┘                             │
 //                                                  ┌──────────────────────────────────── timeline ──┘
 //                                                  └→ qa ──(blockers & repairs left)→ composition (one repair lap)
@@ -16,6 +16,39 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const config = require("../config");
+
+// Per-node wall clock, keyed by job id. Filled by the timed() wrapper in the graph
+// builder and drained onto the job record when the run finishes (see markDone).
+// Kept at module scope because the compiled graph is shared across jobs.
+const NODE_MS = new Map();
+
+// Drain one job's node timings into a plain, sorted, human-readable object and
+// release the entry (the map must not grow for the life of the process). Also
+// logs the table, because the first question after "why is it slow" is always
+// "slow WHERE", and the answer should be in the run log without a DB lookup.
+//
+// `nodes` sums to MORE than productionMs whenever the graph fans out — four nodes
+// running concurrently each bank their own wall clock. That is the point: a node
+// whose time is hidden inside a fan-out is free, and one on the critical path is
+// not, and comparing the sum to the total is how you tell them apart.
+function drainNodeTimings(jobId, totalMs) {
+  const m = NODE_MS.get(jobId);
+  NODE_MS.delete(jobId);
+  if (!m) return null;
+  const rows = Object.entries(m)
+    .map(([node, r]) => ({ node, ms: Math.round(r.ms), calls: r.calls }))
+    .sort((a, b) => b.ms - a.ms);
+  const sum = rows.reduce((a, r) => a + r.ms, 0);
+  const pct = (v) => (totalMs > 0 ? ((v / totalMs) * 100).toFixed(0) : "?");
+  console.log(`[agents] node wall clock (total ${(totalMs / 1000).toFixed(1)}s, node sum ${(sum / 1000).toFixed(1)}s — sum > total means the fan-out is working):`);
+  for (const r of rows) {
+    console.log(`[agents]   ${r.node.padEnd(24)} ${(r.ms / 1000).toFixed(1).padStart(7)}s  ${String(pct(r.ms)).padStart(3)}%${r.calls > 1 ? `  x${r.calls}` : ""}`);
+  }
+  const out = {};
+  for (const r of rows) out[r.node] = r.calls > 1 ? { ms: r.ms, calls: r.calls } : r.ms;
+  return out;
+}
+const fallbackLog = require("../services/fallback_log");
 const db = require("../db");
 const { UsageTracker } = require("../services/usage");
 const { generateBrief } = require("../services/brief");
@@ -25,6 +58,11 @@ const frameRegistry = require("../services/frame_registry");
 const { withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor, retimeScenesToVo, contrastFixPass } = require("../services/pipeline");
 const { assembleQualityReport } = require("../services/quality_report");
 const { acquire, hasProviderFor, makeImageDeduper } = require("../services/asset_sources");
+// The same subject reducer + camera/adjective stop list asset_sources applies
+// before it searches a provider (asset_sources/query_terms.js). Deriving queries
+// through it here means the string the planner writes is the string that is
+// actually searched — not one the provider silently strips down afterwards.
+const { subjectQuery, STOP: DIRECTION_STOP } = require("../services/asset_sources/query_terms");
 const { styleFor, iconColorFor } = require("../services/pack_style");
 const { synthesizeFitted } = require("../services/vo_fit");
 const { buildCues, writeSrt } = require("../services/captions");
@@ -38,7 +76,7 @@ const { reviewRender } = require("./qa_agent");
 const { checkAssetsRelevance } = require("../services/asset_vision");
 const { reviewAndCurate } = require("../services/creative_director");
 const { directAssets } = require("../services/asset_director");
-const { captureTopicShots, mergeShots } = require("../services/screenshot_director");
+const { captureTopicShots, recaptureForScenes, mergeShots } = require("../services/screenshot_director");
 const { captureTopicSiteShots } = require("../services/topic_shots");
 const { qaGateScreenshots } = require("../services/screenshot_qa");
 const { blogImageAssets } = require("../services/blog_assets");
@@ -118,7 +156,70 @@ async function frameSelectorAgent(s) {
     || frameRegistry.resolvePack("auto");
   const via = explicit ? "user" : (frameRegistry.resolvePack(s.brief?.suggestedFramePack) ? "brief" : "default");
   console.log(`[agents] frame_selector → ${framePack} (${via})`);
+  // CAN THE PACK ACTUALLY SHOW THE PICTURES THIS JOB HAS?
+  //
+  // Selection matched TONE and nothing else, and tone says nothing about how many
+  // pictures a template draws. Measured by rendering every bundled template with
+  // the same 17 real assets and counting the images that actually PAINT, the
+  // spread is not marginal — jungle-wild puts 13 on screen across 8 of its 9
+  // beats, dragboard puts ZERO. So a website job that captured six screenshots
+  // could be tone-matched onto a template with one picture shape and show one of
+  // them, which is the "why is it not using my screenshots" complaint in full.
+  //
+  // Only auto-picked packs are ever re-chosen: an explicit user pick is honoured
+  // even when it cannot carry the assets (their film, their call) — it just says
+  // so in the log.
+  const shots = (s.job.website_screenshots || []).length;
+  if (shots >= 3) {
+    const cap = mediaCapacity();
+    const mine = cap[framePack];
+    // CALIBRATED AGAINST THE MEASURED DISTRIBUTION, not against a guess. All 139
+    // bundled packs rendered with the same 17 assets: mean 4.3 images, 37% of
+    // beats carrying media, and the tails are what matter — 16 packs put 10+ on
+    // screen, while 45 put fewer than 3 and 5 (type-riot, lumen, dragboard,
+    // keystroke, serif-manifesto) put NONE. The pack this complaint came from,
+    // bluesite, renders 2.
+    //
+    // The trigger is deliberately the bottom tail (STARVING = under 3), not "less
+    // than the job's screenshot count": almost every pack is under six, so the
+    // looser rule would have funnelled every website film onto the single highest
+    // scorer and undone the pack variety the identity work exists to protect.
+    const STARVING = 3, RICH = 8;
+    if (mine && mine.images < STARVING) {
+      if (explicit) {
+        console.warn(`[agents] frame_selector: "${framePack}" renders only ~${mine.images} image(s) but this job has ${shots} screenshot(s) — honouring the explicit pick; most captures will not be shown`);
+      } else {
+        // Rotate through the whole rich tier rather than always taking the top
+        // scorer, so two website films in a row do not come out on the same pack.
+        const rich = Object.entries(cap)
+          .filter(([name, v]) => v.images >= RICH && frameRegistry.resolvePack(name) === name)
+          .sort((a, b) => b[1].images - a[1].images);
+        if (rich.length) {
+          let h = 5381;
+          const key = String(s.job.id || framePack);
+          for (let i = 0; i < key.length; i++) h = ((h * 33) ^ key.charCodeAt(i)) >>> 0;
+          const [name, v] = rich[h % rich.length];
+          console.log(`[agents] frame_selector: "${framePack}" renders only ~${mine.images} image(s) for ${shots} screenshot(s) → switching to "${name}" (~${v.images} images, ${v.mediaBeats}/${v.beats} beats carry media)`);
+          return { framePack: name };
+        }
+      }
+    }
+  }
   return { framePack };
+}
+
+// Measured per-pack rendered media capacity (server/framecheck/media-capacity.json,
+// written by `npm run audit:capacity`). Missing file → an empty map, which makes
+// every check above a no-op: selection must never depend on a generated artifact
+// being present.
+let _capacityCache = null;
+function mediaCapacity() {
+  if (_capacityCache) return _capacityCache;
+  try {
+    const p = path.join(__dirname, "..", "..", "framecheck", "media-capacity.json");
+    _capacityCache = JSON.parse(fs.readFileSync(p, "utf8")).packs || {};
+  } catch { _capacityCache = {}; }
+  return _capacityCache;
 }
 
 async function storyboardAgent(s) {
@@ -155,6 +256,97 @@ async function scenePlannerAgent(s) {
 
 // Asset Planner — turns the approved script's needs into a concrete
 // want-list (screenshots pinned first, stock wants after, caps applied).
+//
+// THE QUERY MUST DESCRIBE THE SUBJECT, NOT THE CAMERA. Every derived query used
+// to be built from `scene.visualDirection` — which is motion/camera direction
+// ("Chaotic app windows explode outward in layered planes") — and the documented
+// fallback to scene.headline/subtext never fired on a script scene at all,
+// because SceneSchema (services/script.js) has no such fields: a script scene is
+// {id,start,duration,purpose,voiceover,onScreenText,visualDirection,assetNeeds,
+// sfx,musicCue}. Measured on a shipped film, the beat "Design. Code. AI. All
+// disconnected." was handed a stock photo of "a moody silhouette of a man in
+// backlighting and fog" — a faithful render of the direction line and a picture
+// of nothing the viewer was being told about. Derive from what the viewer HEARS
+// (voiceover) and READS (onScreenText) plus the beat's purpose; the direction is
+// only ever a trailing style/setting hint.
+//
+// Each scene must also ask a DIFFERENT question of the stock library. Taking the
+// first four words of every visualDirection produced the same string over and
+// over, because the script describes neighbouring scenes in neighbouring
+// language: one measured run fetched all four of its photos against a single
+// query ("chatgpt chat ui on smartphone rapid fire task chips" -> 0.jpg…3.jpg),
+// so the pool was not just small, it was four variations of one search.
+//
+// Returns a stateful deriver: words already spent on an earlier scene are
+// skipped, so later scenes reach further into their own copy instead of
+// repeating the opening.
+function makeQueryDeriver(STOP) {
+  const usedWords = new Set();
+  const usedQueries = new Set();
+  // Per-scene word pools, keyed by the scene OBJECT (script scene ids are unique
+  // but callers pass bare scene shapes too) so the three role variants below all
+  // partition ONE pool instead of each re-claiming the same opening words.
+  const perScene = new Map();
+  const dedupe = (list) => { const out = []; for (const w of list) if (w && !out.includes(w)) out.push(w); return out; };
+  // Both stop lists: the caller's script-language fillers plus query_terms' own
+  // camera/motion/adjective list, so "pans", "cinematic" or "crisp" can never
+  // become the subject of a search.
+  const words = (t) => dedupe((String(t || "").toLowerCase().match(/[a-z][a-z-]{2,}/g) || [])
+    .filter((w) => !STOP.has(w) && !DIRECTION_STOP.has(w)));
+  // Unclaimed words first, the rest after — a pool is never emptied (returning
+  // null costs the scene its asset), only reordered.
+  const freshFirst = (list) => [...list.filter((w) => !usedWords.has(w)), ...list.filter((w) => usedWords.has(w))];
+  const partsFor = (scene) => {
+    if (perScene.has(scene)) return perScene.get(scene);
+    // Spoken + on-screen copy IS the subject. headline/subtext are read too
+    // because storyboard-shaped scenes carry them; a script scene simply has
+    // none, which is why they were dead weight as a fallback.
+    const subject = freshFirst(words(`${scene.voiceover || ""} ${(scene.onScreenText || []).join(" ")} ${scene.headline || ""} ${scene.subtext || ""}`));
+    const hint = freshFirst(words(scene.visualDirection));
+    const parts = { subject, hint, purpose: words(scene.purpose)[0] || "" };
+    perScene.set(scene, parts);
+    // Spend what this scene is about, so the next scene reaches for its own words.
+    subject.slice(0, 3).forEach((w) => usedWords.add(w));
+    hint.slice(0, 2).forEach((w) => usedWords.add(w));
+    return parts;
+  };
+  // ONE SCENE, THREE FETCHES, THREE QUESTIONS. A scene with no authored
+  // assetNeeds pushes a background, an inset and an icon need — and all three
+  // used to carry the SAME derived string, so the deduper (MD5 + dHash) killed
+  // the near-identical results and the scene ended up with fewer assets than it
+  // asked for. Ask each role its own question: where we are, what the thing is,
+  // what the idea is.
+  return (scene, role) => {
+    const { subject, hint, purpose } = partsFor(scene);
+    let picked;
+    if (role === "inset") {
+      picked = subject.slice(0, 2);                                     // the concrete thing being talked about
+    } else if (role === "icon") {
+      // The IDEA, not the object — an icon of the inset's noun is the same
+      // picture twice, once in vector form.
+      picked = dedupe([purpose, subject[2] || subject[1] || hint[0]]);
+    } else {
+      picked = dedupe([subject[0], ...hint.slice(0, 2)]);                // the subject placed in the beat's setting/mood
+    }
+    if (picked.length < 2) picked = dedupe([...picked, ...subject, ...hint]).slice(0, 4);
+    if (picked.length < 2) return null;
+    // Strip through the same reducer asset_sources applies before it searches.
+    let q = subjectQuery(picked.join(" ")) || picked.join(" ");
+    // A collision after all that means the scenes really are the same; vary the
+    // query rather than issue a duplicate search that returns the same pictures.
+    if (usedQueries.has(q)) {
+      const inQ = q.split(" ");
+      const spare = [...subject, ...hint].find((w) => !inQ.includes(w));
+      if (spare) q = `${q} ${spare}`;
+    }
+    // If it STILL collides the scenes are genuinely the same. Ship the duplicate
+    // rather than returning null: dropping the need would cost the film a whole
+    // asset, and the pool being too small is the complaint this is fixing.
+    usedQueries.add(q);
+    return q;
+  };
+}
+
 async function assetPlannerAgent(s) {
   const { job, script } = s;
   const videoOk = hasProviderFor("video");
@@ -169,14 +361,10 @@ async function assetPlannerAgent(s) {
   const screenshotPlan = shots.slice(0, targets.length).map((src, i) => ({ kind: "screenshot", src, scene: targets[i], index: i }));
   const pinnedSceneIds = new Set(screenshotPlan.map((p) => p.scene.id));
 
-  // Derive a concrete image query from a scene's visualDirection when the
+  // Derive a concrete image query from what the scene SAYS and SHOWS when the
   // script asked for nothing — substance scenes should never go imageless.
   const STOP = new Set(["the", "a", "an", "with", "and", "of", "in", "on", "over", "into", "across", "as", "to", "that", "then", "while", "for", "is", "are", "we", "see", "scene", "text", "headline", "screen"]);
-  const deriveQuery = (scene) => {
-    const words = String(scene.visualDirection || "").toLowerCase().match(/[a-z]{3,}/g) || [];
-    const picked = words.filter((w) => !STOP.has(w)).slice(0, 4);
-    return picked.length >= 2 ? picked.join(" ") : null;
-  };
+  const deriveQuery = makeQueryDeriver(STOP);
 
   const VECTOR_ROLES = new Set(["icon", "texture", "vector"]);
   const roleOf = (n) => String(n.role || "").toLowerCase();
@@ -187,20 +375,22 @@ async function assetPlannerAgent(s) {
     // Gap-fill: EVERY scene with no asset request gets a derived one (hook/cta
     // included — dense visuals everywhere beats sparse pure-typography beats).
     if (!needs.length && !pinnedSceneIds.has(scene.id)) {
-      const q = deriveQuery(scene);
-      if (q) {
-        needs.push({ type: "image", query: q, role: "background", derived: true });
-        // EVERY gap-filled scene also pulls a photo inset (was alternate scenes
-        // only) — density first; the planner caps below still bound the total.
-        needs.push({ type: "image", query: q, role: "inset", derived: true });
-      }
+      const qBackground = deriveQuery(scene, "background");
+      if (qBackground) needs.push({ type: "image", query: qBackground, role: "background", derived: true });
+      // EVERY gap-filled scene also pulls a photo inset (was alternate scenes
+      // only) — density first; the planner caps below still bound the total.
+      // Its own query, not the background's: two fetches of one string come back
+      // as one picture after the dedup pass, which is how a scene that asked for
+      // two assets rendered with one.
+      const qInset = deriveQuery(scene, "inset");
+      if (qInset) needs.push({ type: "image", query: qInset, role: "inset", derived: true });
     }
     // VECTOR GAP-FILL — the curated 2k+ SVG library was effectively never tapped
     // because nothing ever requested an icon/vector role. Guarantee EVERY scene
     // pulls one on-brand vector/icon so the composer always has real graphic
     // material to layer (not just photos), satisfying the vector cadence mandate.
     if (!needs.some((n) => VECTOR_ROLES.has(roleOf(n)))) {
-      const q = deriveQuery(scene) || (scene.assetNeeds && scene.assetNeeds[0] && scene.assetNeeds[0].query) || null;
+      const q = deriveQuery(scene, "icon") || (scene.assetNeeds && scene.assetNeeds[0] && scene.assetNeeds[0].query) || null;
       if (q) needs.push({ type: "image", query: q, role: "icon", derived: true });
     }
     for (const need of needs) {
@@ -267,7 +457,21 @@ function topicAnchor(job, brief) {
 }
 
 async function assetSearchAgent(s) {
-  const { job, jobDir, tracker, assetPlan } = s;
+  const { job, jobDir, tracker } = s;
+  // THE PLANNER IS INLINED, NOT A NODE — LangGraph IS A BSP ENGINE.
+  //
+  // asset_planner was its own node feeding asset_search, which reads as a clean
+  // split but costs a full SUPERSTEP: LangGraph runs supersteps in lockstep, so
+  // asset_search could not start until every node in the planner's superstep had
+  // finished — including storyboard_agent, an LLM call it does not consume.
+  // asset_search is the LONGEST node in the graph (screenshot capture, stock
+  // fetch, screenshot QA, the vision pass), so the longest work in the pipeline
+  // was queued behind an LLM whose output it never reads.
+  //
+  // Planning is pure, synchronous and needs only `script` + `job` — the same
+  // inputs asset_search already has — so it belongs at the top of this function
+  // and the graph wires frame_selector straight here.
+  const { assetPlan } = await assetPlannerAgent(s);
   const anchor = topicAnchor(job, s.brief);
   if (anchor) console.log(`[agents] asset_search topic anchor: "${anchor}"`);
   // Pack-aware styling: photo queries get the pack's look, icons get its accent
@@ -276,7 +480,10 @@ async function assetSearchAgent(s) {
   const packTokens = s.framePack ? frameRegistry.getPackTokens(s.framePack) : null;
   const iconColor = iconColorFor(packTokens);
   if (packStyle.photoMod) console.log(`[agents] asset_search pack style: "${packStyle.photoMod}" · icons=${packStyle.iconStyle}${iconColor ? ` (${iconColor})` : ""}`);
-  db.setProgress(job.id, "assets");
+  // Progress is reported AFTER the fetch loop now, not here. asset_search shares a
+  // superstep with storyboard_agent, so announcing "assets" on entry made the UI
+  // (and eta.js, which reads the stage) jump to a later stage while the storyboard
+  // was still being written — a progress bar that goes backwards.
   fs.mkdirSync(path.join(jobDir, "assets", "images"), { recursive: true });
   fs.mkdirSync(path.join(jobDir, "assets", "videos"), { recursive: true });
 
@@ -343,15 +550,48 @@ async function assetSearchAgent(s) {
   // Alternate the preferred vector source per icon/vector slot so a video draws
   // from BOTH Iconify AND Pixabay (each still falls back to the other on a miss)
   // instead of every vector coming from whichever source answers first.
-  let vectorSlot = 0;
+  // (the vector-source alternation is per-slot now — see slots[].vectorIndex)
   // Slots the lookup could NOT fill. Every `continue` below leaves a scene without
   // the asset it asked for; recording them lets the gap-filler generate an
   // on-brief image for exactly those holes instead of the film rendering empty
   // or repeating another scene's picture.
   const misses = [];
-  for (const { scene, need } of assetPlan.searches) {
-    const isVideo = need.type === "video";
-    const relPath = isVideo ? `assets/videos/${iVid++}.mp4` : `assets/images/${iImg++}.jpg`;
+  // FETCH IN PARALLEL. This loop was strictly serial, which was affordable only
+  // while the Pixabay API answered in ~300ms. With that key rejected every lookup
+  // falls through to the headless page-scrape fallback at ~12s each — measured —
+  // so a 13-asset film needed ~2.5 minutes of nothing but waiting, and a real job
+  // came back with 3 of its 13 requested pictures. The scenes left unfilled are
+  // then dressed with whatever is lying around, which is how a beat about grocery
+  // delivery ends up under a stock gradient.
+  //
+  // Concurrency 4 rather than unbounded: each fallback fetch can spawn a headless
+  // browser, and the providers rate-limit (openverse returned 429 during a burst
+  // in testing). Order is preserved by pre-assigning every slot its index, so the
+  // curated-library exclusions and dedup below behave exactly as before.
+  const FETCH_CONCURRENCY = 4;
+  const slots = assetPlan.searches.map((w) => {
+    const isVideo = w.need.type === "video";
+    return { ...w, isVideo, relPath: isVideo ? `assets/videos/${iVid++}.mp4` : `assets/images/${iImg++}.jpg` };
+  });
+  // The library-exclusion set and the vector-source alternation are shared mutable
+  // state that a parallel walk would race on. Both only need to be DIVERSE, not
+  // exact, so each slot takes its alternation from its own index and the exclusion
+  // set is still added to as results land.
+  slots.forEach((sl, i) => { sl.vectorIndex = i; });
+  let cursor = 0;
+  const fetched = new Array(slots.length).fill(null);
+  await Promise.all(Array.from({ length: Math.min(FETCH_CONCURRENCY, slots.length) }, async () => {
+    for (;;) {
+      const i = cursor++;
+      if (i >= slots.length) return;
+      fetched[i] = await fetchOne(slots[i]).catch(() => null);
+    }
+  }));
+  for (let i = 0; i < slots.length; i++) await commitOne(slots[i], fetched[i]);
+  db.setProgress(job.id, "assets");
+
+  // One slot's acquisition — pure fetch, no shared state written.
+  async function fetchOne({ scene, need, isVideo, relPath, vectorIndex }) {
     // type:"icon" OR role icon/texture -> want a curated vector. Do NOT append
     // "icon flat" to the query: that suffix trips the curated library's 0.5
     // relevance gate and zeroes its SVG hits — kindPref:"vector" already routes
@@ -361,14 +601,37 @@ async function assetSearchAgent(s) {
     // direction like "scalable growth" becomes "beauty cosmetics scalable
     // growth" — on-topic stock instead of trading charts. Icons/vectors keep
     // their concrete query (anchoring an abstract shape rarely helps).
-    const baseQuery = (!isIcon && anchor) ? `${anchor} ${need.query}` : need.query;
+    // ICONS GET THE TOPIC TOO. This used to read `(!isIcon && anchor)` — icons and
+    // textures were deliberately exempt on the theory that "anchoring an abstract
+    // shape rarely helps". The opposite is true, because `need.query` for these
+    // slots is derived from the scene's visualDirection, i.e. CAMERA LANGUAGE, and
+    // stripping direction words can only SUBTRACT — nothing puts the subject back.
+    // Measured on a real cold-brew-coffee film: "slow push through glossy" fetched
+    // a strikethrough glyph, "three whip pan beats" a 3-D icon, "hero can locks
+    // dead" a GAS CAN. Iconify splits the query and searches each term separately,
+    // nouns first, so leading with the topic makes it try the subject before any
+    // stray direction word survives to become the match.
+    const baseQuery = anchor ? `${anchor} ${need.query}` : need.query;
     // Photos also carry the pack's visual style ("neon synthwave" for vapor-
     // chrome) so stock matches the look; the un-styled query stays as a fallback
     // so an over-narrow phrase still finds SOMETHING.
     const query = (!isIcon && packStyle.photoMod) ? `${baseQuery} ${packStyle.photoMod}` : baseQuery;
     const r = await acquire({
       query,
-      fallbackQueries: [...new Set([baseQuery, need.query, ...fallbackQueriesFor(query)])],
+      // NEVER BROADEN BY DELETING THE TOPIC. `need.query` on its own was a rung on
+      // this ladder, and acquire() sweeps EVERY variant against the cache before it
+      // touches a provider — so the one topic-free string got two full sweeps ahead
+      // of the broadest on-topic one, and whatever it hit got cached under that
+      // query and reused. Broaden by dropping DIRECTION words instead; the anchor
+      // alone is the widest rung we are willing to search.
+      // The cache must not hand back an image that is merely spelled like the
+      // query — it has to be about the topic. See local_db.search.
+      subject: anchor || undefined,
+      fallbackQueries: [...new Set([
+        baseQuery,
+        ...fallbackQueriesFor(query).map((q) => (anchor && !q.includes(anchor) ? `${anchor} ${q}` : q)),
+        ...(anchor ? [anchor] : [need.query]),
+      ])],
       type: isVideo ? "video" : "image",
       orientation: job.orientation, outputPath: path.join(jobDir, relPath), tracker,
       kindPref: isVideo ? undefined : (isIcon ? "vector" : kindPrefFor(need.role)),
@@ -377,13 +640,20 @@ async function assetSearchAgent(s) {
       iconColor: isIcon ? iconColor : undefined,
       iconStyle: isIcon ? packStyle.iconStyle : undefined,
       styleKeywords: !isIcon ? packStyle.keywords : undefined,
-      // Interleave Iconify- and Pixabay-first across vector slots (see vectorSlot).
-      vectorPrefer: isIcon ? (vectorSlot++ % 2 === 0 ? "pixabay" : "iconify") : undefined,
+      // Interleave Iconify- and Pixabay-first across vector slots (see vectorIndex).
+      vectorPrefer: isIcon ? (vectorIndex % 2 === 0 ? "pixabay" : "iconify") : undefined,
     }).catch(() => null);
+    return r;
+  }
+
+  // Commit one fetched result IN ORDER — dedup, exclusion set and `results` are
+  // shared state, so they are applied on a single pass after the parallel fetch
+  // rather than raced inside it. Identical bookkeeping to the old serial loop.
+  async function commitOne({ scene, need, isVideo }, r) {
     if (!r) {
       // No provider had anything for this query — the scene's slot stays empty.
       misses.push({ kind: "lookup", scene, need, query: need.query });
-      continue;
+      return;
     }
     // Skip an asset we've already used — byte-identical OR visually a duplicate
     // (a different re-encode/crop of the same picture), which MD5 alone missed.
@@ -395,7 +665,7 @@ async function assetSearchAgent(s) {
         // The only hit was a picture another scene already uses, so this slot is
         // still unfilled — exactly the case that makes one photo repeat 4x.
         misses.push({ kind: "duplicate", scene, need, query: need.query });
-        continue;
+        return;
       }
     }
     if (r.libraryId) usedLibraryIds.add(r.libraryId);
@@ -412,8 +682,14 @@ async function assetSearchAgent(s) {
     // "pixabay"), which are arbitrary illustrations (a cartoon tooth/syringe slips
     // through otherwise). Curated picks, real website screenshots, and clean
     // recolored Iconify SVGs (source "iconify") stay trusted and skip the gate.
-    const STOCK_SOURCES = new Set(["pixabay", "openverse", "pexels", "pixabay_scrape"]);
-    const isWebStock = STOCK_SOURCES.has(String(r.source || ""));
+    // SUBSTRING, not equality: local_db materializes a cache hit with source
+    // "cache:pixabay", which an exact-match Set never recognized — so a stock
+    // photo that happened to be in the fetch cache skipped the vision gate
+    // entirely and shipped unchecked, and the cache is where a repeat topic's
+    // assets all come from. creative_director.js:49-52 does the same test.
+    const STOCK_SOURCES = ["pixabay", "openverse", "pexels", "pixabay_scrape"];
+    const srcName = String(r.source || "").toLowerCase();
+    const isWebStock = STOCK_SOURCES.some((p) => srcName.includes(p));
     if (isWebStock) pendingGate.push({ resultObj, absPath: r.path, type: isVideo ? "video" : "image", query: need.query });
   }
 
@@ -424,10 +700,45 @@ async function assetSearchAgent(s) {
   // SCREENSHOT QA — vision-inspect every capture and drop the broken ones
   // (error pages, consent modals, bot-walls, blanks, half-renders) BEFORE the
   // creative director ranks them and the composer frames one as the hero.
-  const gatedShots = await qaGateScreenshots({
-    assets: mergeShots(await topicTask, pinned), jobDir,
+  const beforeGate = mergeShots(await topicTask, pinned);
+  // Only a BROKEN capture is worth re-shooting. A clean shot that merely had no
+  // free scene is now unpinned into the pool by the gate, not lost — retrying
+  // that would spend a capture to solve a problem that no longer exists.
+  const brokenScenes = [];
+  let gatedShots = await qaGateScreenshots({
+    assets: beforeGate, jobDir,
     subject: gateSubject, script: s.script, tracker,
+    onDrop: (d) => { if (d && d.recoverable && d.sceneId) brokenScenes.push(String(d.sceneId)); },
   });
+
+  // A DROPPED CAPTURE IS A LOST REAL SCREENSHOT. The gate deletes broken shots
+  // (login wall, consent overlay, error page) and nothing used to try again, so
+  // stock art filled the hole — a generic photo standing in for the product.
+  // Measured on a finished film: kept 2, dropped 2. Capture a DIFFERENT page for
+  // the orphaned scenes, then hold the replacements to the same gate.
+  try {
+    const lost = [...new Set(brokenScenes)];
+    if (lost.length) {
+      const avoid = beforeGate.map((a) => a && a.sourceUrl).filter(Boolean);
+      const retried = await recaptureForScenes({
+        job, script: s.script, jobDir, sceneIds: lost, avoidUrls: avoid,
+        topic: gateSubject, tracker, signal: s.abortSignal,
+      });
+      if (retried.length) {
+        const okRetried = await qaGateScreenshots({
+          assets: retried, jobDir, subject: gateSubject, script: s.script, tracker,
+        });
+        if (okRetried.length) {
+          console.log(`[agents] screenshot retry recovered ${okRetried.length}/${lost.length} dropped scene(s)`);
+          gatedShots = mergeShots(gatedShots.concat(okRetried), []);
+        } else {
+          console.log(`[agents] screenshot retry: ${retried.length} replacement(s) also failed QA`);
+        }
+      }
+    }
+  } catch (e) {
+    console.warn(`[agents] screenshot retry skipped (${String(e && e.message || e).slice(0, 120)})`);
+  }
   // Blog mode: the post's own images join as pinned owner-content assets on
   // scenes the screenshots didn't claim (Creative Director still reviews them).
   const blogPins = blogImageAssets({ job, script: s.script, jobDir, skipSceneIds: new Set(gatedShots.map((a) => String(a.sceneId))) });
@@ -465,7 +776,14 @@ async function assetSearchAgent(s) {
   let kept = null;
   if (cdEnabled && (allPinned.length + results.length + generated.length)) {
     kept = await reviewAndCurate({
-      jobId: job.id, storyboard: s.storyboard || null, script: s.script || null,
+      // BY DESIGN, NOT BY ACCIDENT: asset_search now runs in the SAME superstep
+      // as storyboard_agent (see the note at the top of this function), so the
+      // storyboard does not exist yet. The Creative Director is script-keyed —
+      // script and storyboard share the "s1".."sN" id namespace, and an asset
+      // whose scene id finds no match falls through to the composer's affinity
+      // passes, i.e. degrades to undirected placement rather than mis-pinning.
+      // Passing null states that; reading an undefined channel would not.
+      jobId: job.id, storyboard: null, script: s.script || null,
       brief: s.brief, subject: gateSubject, framePack: s.framePack,
       assets: [...allPinned, ...results, ...generated], tracker, jobDir, orientation: job.orientation,
     });
@@ -545,10 +863,129 @@ async function assetSearchAgent(s) {
   // Per-asset craft review (kind/fit/focus/effect/quality) — now the SHARED helper
   // that pipeline.runJob also calls, so both paths direct assets identically.
   await directAssets({ assets: gated, jobDir, subject: gateSubject, tracker });
+  unpinIrrelevant(gated);
   const assets = gated;
   db.setAssets(job.id, assets);
   console.log(`[agents] asset_search: ${assets.length} asset(s) (${assets.filter((a) => a.fromCache).length} from cache)`);
   return { assets };
+}
+
+// THE SCRIPT ALREADY WRITES THE MUSIC CURVE — NOTHING WAS READING IT.
+//
+// Every scene the script agent emits carries a `musicCue`
+// (intro > build > build > steady > lift > steady > lift > lift > outro on a real
+// job). `audio_mix` has supported a per-scene bed envelope all along, and
+// `mixAudioIntoVideo` already converts a scene-indexed one to seconds — but only
+// `pipeline.js` ever set it, from the audio director, and the audio director runs
+// exclusively on /api/generate. The web app posts to /api/projects, so every film
+// it makes gets a FLAT bed: the same volume under the hook, the proof and the CTA.
+// That is most of "the BGM doesn't match the video" — not the track choice, the
+// fact that the music never moves with the film.
+//
+// Volumes stay inside the same VO-aware band the audio director clamps to, so the
+// bed still sits under the narration; this only shapes it.
+const CUE_GAIN = { intro: 1.15, build: 1.0, steady: 0.75, lift: 1.3, drop: 1.35, outro: 1.2 };
+function musicEnvelopeFromScript(script, hasVoice) {
+  const scenes = (script && Array.isArray(script.scenes)) ? script.scenes : [];
+  if (scenes.length < 2) return null;
+  const base = hasVoice ? 0.11 : 0.22;
+  const lo = hasVoice ? 0.06 : 0.12, hi = hasVoice ? 0.16 : 0.32;
+  const env = [];
+  let prev = null;
+  scenes.forEach((sc, i) => {
+    const cue = String(sc.musicCue || "").toLowerCase().trim();
+    const gain = CUE_GAIN[cue];
+    if (gain == null) return;
+    const volume = Math.round(Math.min(hi, Math.max(lo, base * gain)) * 1000) / 1000;
+    // Only record where the bed actually CHANGES — a run of identical points is
+    // a flat bed with extra steps, and envelopeToSeconds needs >=2 real points.
+    if (prev !== null && volume === prev) return;
+    prev = volume;
+    env.push({ scene: i, volume });
+  });
+  return env.length >= 2 ? env.slice(0, 12) : null;
+}
+
+// A SCENE PIN IS A PROMISE THAT THE PICTURE IS ABOUT THE SCENE.
+//
+// `clipRelevance` — a local image<->subject probability the Creative Director
+// already computes for every still — was wired in as a RANKING nudge only
+// (`+ clipRelevance * 30` in three composers). A pin bypasses ranking entirely:
+// both engines take `byScene`/`pinned` before they look at the pool, so a score
+// of 0.006 changes nothing and the picture is shown regardless.
+//
+// Measured on a shipped Flipkart film. `websiteImageAssets` pins the site's own
+// images to showcase scenes in ARRIVAL ORDER with no relevance test at all, and
+// ingest had scraped the page's decorative backgrounds, so:
+//   s5 "Flipkart Minutes. Groceries and gadgets in a flash."
+//      -> siteimg_1.jpg, CLIP 0.005, seen by the vision pass as
+//         "a simple orange to light peach horizontal gradient background"
+//   s6 "Flipkart Kilos. Your online grocery supermarket."
+//      -> siteimg_2.jpg, CLIP 0.006, "orange gradient with two hot air balloons"
+//   s8 "Over two hundred million users since two thousand seven."
+//      -> 9.jpg, CLIP 0.09, "flat line-art of a laptop and smartphone with charts"
+// That is the "the script is about one thing and the asset is another" report,
+// and the signal that catches all of it was sitting on the asset unused.
+//
+// The pin is dropped, not the asset: an unpinned image stays in the free pool as
+// generic material a composer may still place, ranked below everything relevant.
+// Screenshots and the logo are exempt — owner content is judged on page-topic
+// match by the screenshot director, not by pixel similarity to a subject string.
+//
+// 0.10 was too low to be a floor at all: the Creative Director's own prompt
+// calls anything under 0.15 "LOW — likely off-topic" (system_creative_director.md),
+// so a threshold below that admitted exactly the pictures the prompt tells the
+// model to distrust. Measured on shipped job prrx6lno98: an image at 0.119 whose
+// vision verdict read "not ok" kept its pin, because 0.119 >= 0.10.
+const PIN_RELEVANCE_FLOOR = 0.25;
+// …AND THE FILM'S SUBJECT IS NOT THE SCENE'S SUBJECT. `clipRelevance` scores a
+// picture against the WHOLE FILM, so on a shopping film a supermarket photo
+// scores 0.499 and clears any subject-level floor — while being nothing to do
+// with the beat it was pinned to. The Creative Director now also scores each pin
+// against ITS OWN SCENE LINE (`clipSceneRelevance`), and that number separates
+// the two cases cleanly. Measured across three shipped films:
+//   0.897 0.884 0.999 0.94 0.967 0.865 0.979 0.886  — the pictures that belonged
+//   0.059 0.092 0.061                               — bananas under "Everything
+//                                                     you need. One place.", a
+//                                                     "BANK OFFER" marquee, a
+//                                                     stray icon
+// so the floor sits well under the good cluster and well over the bad one.
+// PAGE CAPTURES ARE STILL EXEMPT (below): the screenshot director picks those by
+// page topic, and a pricing page legitimately shares few pixels with its words.
+const PIN_SCENE_FLOOR = 0.12;
+function unpinIrrelevant(assets) {
+  const list = Array.isArray(assets) ? assets : [];
+  const dropped = [];
+  for (const a of list) {
+    if (!a || a.sceneId == null) continue;
+    const owner = String(a.source || "") === "website" || a.kind === "screenshot" || a.kind === "logo";
+    if (owner) continue;
+    const sceneRel = typeof a.clipSceneRelevance === "number" ? a.clipSceneRelevance : null;
+    if (sceneRel !== null && sceneRel < PIN_SCENE_FLOOR) {
+      dropped.push(`${String(a.path).split("/").pop()}@${a.sceneId} (scene ${sceneRel.toFixed(3)})`);
+      a.sceneId = null;
+      a.startSec = undefined;
+      a.durationSec = undefined;
+      if (a.cdProminence !== "background") a.cdProminence = "background";
+      continue;
+    }
+    // NO CLIP SCORE IS NOT A PASS. `typeof !== "number" -> continue` meant every
+    // asset the probe never scored (it runs on stills only, and fails open) kept
+    // its pin untested. Without a number, the only evidence a pin can stand on is
+    // the vision pass having looked at the picture and approved it.
+    const clipRel = typeof a.clipRelevance === "number" ? a.clipRelevance : null;
+    if (clipRel === null ? a.visionOk === true : clipRel >= PIN_RELEVANCE_FLOOR) continue;
+    dropped.push(`${String(a.path).split("/").pop()}@${a.sceneId} (${clipRel === null ? "unscored, unverified" : clipRel.toFixed(3)})`);
+    a.sceneId = null;
+    a.startSec = undefined;
+    a.durationSec = undefined;
+    // It failed the topic test, so it must not be anyone's hero either.
+    if (a.cdProminence !== "background") a.cdProminence = "background";
+  }
+  if (dropped.length) {
+    console.log(`[agents] relevance floor: unpinned ${dropped.length} off-topic asset(s) (below ${PIN_RELEVANCE_FLOOR}, or unscored and unverified) — ${dropped.join(", ")}`);
+  }
+  return list;
 }
 
 // Art Director — turns the site's extracted brand colors (brief.brandColors, else
@@ -661,18 +1098,80 @@ async function voiceAgent(s) {
   // film stays punchy and a long one stays lively (≈1 SFX / 12s of runtime).
   // Volume raised to 0.55 so the accents actually read over the VO+music bed.
   const sfxCap = Math.min(10, Math.max(3, Math.round((script.scenes.length || 3) * 0.8)));
+  // TWO PROBLEMS THIS LOOP USED TO HAVE, both of which read as "the SFX aren't
+  // landing" rather than as missing SFX:
+  //
+  // 1. EVERY cue was stamped at `sc.start`. The script may give a scene two
+  //    (`["sparkle","ding"]` on a stat beat), and both were mixed at the identical
+  //    timestamp — they arrive as one smeared transient instead of a hit and a
+  //    landing. A scene's second cue now lands ~55% in, on the beat where its
+  //    content actually resolves, clamped inside the scene.
+  // 2. The cap was applied in SCENE ORDER, so once it was reached the rest of the
+  //    film got nothing: a 12-scene video spent its whole budget on the first six
+  //    beats and ran silent from the halfway mark. Cues are taken in PASSES — every
+  //    scene's first cue before any scene's second — so the budget spreads across
+  //    the whole runtime.
+  // The cue is carried as sceneId + a FRACTION of the scene, not as an absolute
+  // second, because every scene start moves later: retimeScenesToVo stretches
+  // each scene to contain its measured narration. The repin step in
+  // compositionAgent maps a cue back through `startMap`, which is keyed on the
+  // scene's ORIGINAL start — so an absolute mid-scene time is not in the map and
+  // would silently keep its pre-retime value, drifting off the beat it was
+  // written for. A fraction re-resolves against the scene's final start+duration.
   const sfxWanted = [];
-  for (const sc of script.scenes) for (const name of (sc.sfx || [])) if (sfxWanted.length < sfxCap) sfxWanted.push({ name, startSec: sc.start });
+  for (let pass = 0; pass < 2; pass++) {
+    for (const sc of script.scenes) {
+      const name = (sc.sfx || [])[pass];
+      if (!name || sfxWanted.length >= sfxCap) continue;
+      const frac = pass === 0 ? 0 : 0.55;
+      const d = Math.max(0.8, Number(sc.duration) || 2);
+      sfxWanted.push({
+        name, sceneId: sc.id, offsetFrac: frac,
+        startSec: Math.round(((Number(sc.start) || 0) + Math.min(d - 0.4, d * frac)) * 10) / 10,
+      });
+    }
+  }
+  sfxWanted.sort((a, b) => a.startSec - b.startSec);
   const sfxTask = Promise.all(sfxWanted.map((x, i) =>
     getSfx({ name: x.name, outputPath: path.join(audioDir, `sfx-${i}.mp3`), tracker })
-      .then((p) => p ? { path: p, startSec: x.startSec, volume: 0.55 } : null).catch(() => null)
+      .then((p) => p ? { path: p, startSec: x.startSec, sceneId: x.sceneId, offsetFrac: x.offsetFrac, volume: 0.55 } : null).catch(() => null)
   )).then((a) => a.filter(Boolean));
 
   // Richer music query: fold the mood field into the query so the provider gets
   // genre/feel cues, not just a bare 2-word phrase (which returned off-genre SFX).
   // seed=job.id varies the Pixabay track PER VIDEO (fixes "same BGM every time").
-  const musicQuery = [script.music?.mood, script.music?.query]
-    .map((x) => String(x || "").trim()).filter(Boolean).join(" ").slice(0, 80);
+  // A VERTICAL REEL IS CUT TO A BEAT. These films are typographic — big type
+  // slamming in on the cut — and that only lands over music with an audible pulse.
+  // The script's mood still picks the genre; this just insists the track drive,
+  // so a reel never gets a soft ambient bed under type that is punching.
+  const isReel = Number(job.height) > Number(job.width);
+  // …and a LANDSCAPE film cut every three seconds is just as beat-dependent as a
+  // reel. Keying the drive cue off orientation alone meant a fast, punchy 16:9
+  // promo — type slamming in on every cut — was scored with whatever ambient bed
+  // the mood word happened to return, and the cuts landed on nothing. Ask the
+  // FILM, not the frame: a short average scene IS a fast cut, and a mood the
+  // script itself called energetic wants a pulse at any aspect. Calm/elegant
+  // moods on unhurried cuts are left alone — forcing a beat under a luxury brand
+  // film would be its own defect.
+  const avgScene = script.scenes.length
+    ? script.scenes.reduce((a, sc) => a + (Number(sc.duration) || 0), 0) / script.scenes.length
+    : 0;
+  const moodWord = String(script.music?.mood || "").toLowerCase();
+  const calmMood = /calm|ambient|elegant|gentle|soft|intimate|luxur/.test(moodWord);
+  const wantsDrive = isReel
+    || (!calmMood && (avgScene > 0 && avgScene <= 4.5))
+    || /upbeat|energetic|driving|punchy|dance|electro|hype/.test(moodWord);
+  // The energy goes FIRST, not last. fetchMusic retries an over-specific query
+  // with a 2-word "core" taken from the front, so a tail-appended cue is exactly
+  // what gets dropped on the retry — one film fell back to a bare "upbeat
+  // percussive" and lost the brief. Leading with it keeps the pulse in both the
+  // full query and its fallback, while the script's own words still pick genre.
+  const musicQuery = [
+    wantsDrive ? "upbeat driving" : "",
+    script.music?.mood,
+    script.music?.query,
+    wantsDrive ? "punchy beat" : "",
+  ].map((x) => String(x || "").trim()).filter(Boolean).join(" ").slice(0, 80);
   const musicTask = (script.music?.query || script.music?.mood)
     ? fetchMusic({ query: musicQuery, outputPath: path.join(audioDir, "music.mp3"), tracker, seed: job.id }).catch(() => null)
     : Promise.resolve(null);
@@ -714,9 +1213,27 @@ async function compositionAgent(s) {
     console.log(`[agents] scenes re-timed to measured VO: ${job.duration}s -> ${effDur}s (last line no longer cut)`);
   }
   const r2c = (n) => Math.round(Number(n) * 100) / 100;
-  const sfxRepinned = (s.sfxClips || []).map((c) => ({ ...c, startSec: retime.startMap.get(r2c(c.startSec)) ?? c.startSec }));
+  // retimeScenesToVo has already rewritten script.scenes to their final
+  // start/duration, so a cue carrying its scene id + fraction can be resolved
+  // exactly. `startMap` stays the path for anything without an id (and for the
+  // pass-0 cues it gives the identical answer); the fraction only matters for
+  // mid-scene cues, which the map cannot express.
+  const sceneById = new Map((s.script.scenes || []).map((sc) => [String(sc.id), sc]));
+  const sfxRepinned = (s.sfxClips || []).map((c) => {
+    const sc = c.sceneId != null ? sceneById.get(String(c.sceneId)) : null;
+    if (sc) {
+      const d = Math.max(0.8, Number(sc.duration) || 2);
+      const off = Math.min(d - 0.4, d * (Number(c.offsetFrac) || 0));
+      return { ...c, startSec: r2c((Number(sc.start) || 0) + Math.max(0, off)) };
+    }
+    return { ...c, startSec: retime.startMap.get(r2c(c.startSec)) ?? c.startSec };
+  });
 
-  const captionCues = job.captions_enabled === 0 ? [] : buildCues(
+  // Two different things share one source. `voCues` is the spoken script on the
+  // timeline and is ALWAYS built: the display-type script layer is part of the
+  // film's look, not a subtitle. `captionCues` is the small burned-in subtitle
+  // track and stays opt-in — turning subtitles off must not silence the script.
+  const voCues = buildCues(
     s.script.scenes.filter((x) => x.voiceover && x.voiceover.trim()).map((x) => {
       const measured = (s.voClips || []).find((c) => String(c.sceneId) === String(x.id));
       return {
@@ -726,6 +1243,46 @@ async function compositionAgent(s) {
       };
     })
   ).map((c) => ({ start: Math.round(c.start * 10) / 10, end: Math.round(c.end * 10) / 10, text: c.text }));
+  const captionCues = job.captions_enabled === 0 ? [] : voCues;
+  // The full-frame narration layer is OFF unless config.defaults.scriptOverlay
+  // says otherwise (or a job explicitly asks). It used to be unconditional and
+  // self-deriving, which is how a film ended up showing its headline twice — once
+  // in the template's face, once more in the overlay's, across the screenshot.
+  const scriptOverlay = job.script_overlay === 1 || job.script_overlay === true
+    || config.defaults.scriptOverlay === true;
+
+  // A PIN TO A SCENE THAT DOES NOT EXIST THROWS THE ASSET AWAY.
+  //
+  // Every pin is stamped with a SCRIPT scene id, but the composers look assets
+  // up by STORYBOARD scene id — and the storyboard is its own LLM pass, free to
+  // return a different number of scenes. Each composer builds `byScene` from the
+  // pins and consults it before the pool; an entry keyed to an id no scene has
+  // is never read, and because the asset lives in that map instead of the pool,
+  // nothing else can draw it either. It is not degraded, it is GONE.
+  //
+  // Measured on the harness fixture: of the three best assets, `site_0.png`
+  // (the hero capture, cdScore 91) was pinned to "s8" in a 7-scene film and
+  // never rendered at all. That is "why is it not using my screenshots" with no
+  // log line anywhere. Re-point the pin onto the scene at the same POSITION when
+  // the film still has one, otherwise clear it so the asset falls back into the
+  // free pool where the scene matcher can still place it.
+  const sbIds = new Set(((s.storyboard && s.storyboard.scenes) || []).map((sc, i) => String(sc && sc.id != null ? sc.id : `s${i + 1}`)));
+  if (sbIds.size) {
+    const scriptOrder = (s.script?.scenes || []).map((sc) => String(sc.id));
+    const sbOrder = [...sbIds];
+    let repinned = 0, freed = 0;
+    for (const a of (s.assets || [])) {
+      if (!a || a.sceneId == null) continue;
+      const sid = String(a.sceneId);
+      if (sbIds.has(sid)) continue;
+      const at = scriptOrder.indexOf(sid);
+      const to = at >= 0 && at < sbOrder.length ? sbOrder[at] : null;
+      if (to) { a.sceneId = to; repinned++; } else { a.sceneId = null; a.startSec = undefined; a.durationSec = undefined; freed++; }
+    }
+    if (repinned || freed) {
+      console.log(`[agents] pin reconcile: ${repinned} pin(s) moved onto the storyboard's own scene ids, ${freed} released to the pool (they pointed at scenes this film does not have)`);
+    }
+  }
 
   // Carry QA repair feedback into the composer when looping.
   const storyboard = s.qa && s.qa.issues?.length
@@ -774,7 +1331,7 @@ async function compositionAgent(s) {
       // scene-kit fallback in the catch below.
       const visual = await withBudget(
         (signal) => composeWithThree({
-          storyboard, dims, jobDir, framePack: s.framePack, captionCues,
+          storyboard, dims, jobDir, framePack: s.framePack, captionCues, scriptCues: voCues, scriptOverlay,
           assets: s.assets || [], jobId: job.id, durationSec: effDur,
           label: "graph-three", abortSignal: signal, tracker,
         }),
@@ -787,11 +1344,19 @@ async function compositionAgent(s) {
         storyboard, dims, jobDir, assets: s.assets || [], tracker,
         jobId: job.id, durationSec: effDur,
         label: s.qa ? "graph-repair" : "graph-main", abortSignal: signal,
-        framePack: s.framePack, captionCues, remix: useComposer, strictIdentity,
-        // Standard finish gets the bounded LLM set-dressing pass (per-scene
-        // layout variants, emphasis words, sanitized decor SVG clusters) — a
-        // cheap fast-stage call that art-directs the deterministic kit, so
-        // "standard" no longer means "no personalized art direction at all".
+        framePack: s.framePack, captionCues, scriptCues: voCues, scriptOverlay, remix: useComposer, strictIdentity,
+        // Set-dressing (per-scene layout variants, emphasis words, sanitized
+        // decor clusters) is consumed ONLY by scene_kit.buildComposition.
+        // WARNING — this reaches almost nothing today: attemptLlmComposition
+        // returns via composeWithPackRenderer before `dress` is ever read, and
+        // that function does not even accept the parameter. Every pack now has a
+        // dedicated renderer (check:templates: "83 packs, 0 still on scene-kit"),
+        // so a standard finish gets NO art-direction pass. It only fires on the
+        // scene-kit path — a pack without a renderer, or a portrait/long-form job
+        // the renderer cannot take. The previous comment here claimed standard
+        // was art-directed; it was true when packs lacked renderers and became a
+        // lie as they were given them. Making it real means teaching
+        // template_engine to consume `dressing` — see docs/ or the session note.
         dress: !useComposer,
         subject: s.brief?.subject || null,
         brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null,
@@ -824,6 +1389,21 @@ async function compositionAgent(s) {
     // worth a separate attempt when the composer (remix) was the primary path.
     if (useComposer) {
       try {
+        // A PREMIUM job landing here does NOT get what it asked for: the bespoke
+        // LLM composition failed its gates and this renders the deterministic kit
+        // — the same class of output a standard finish would have produced.
+        // Measured over real traffic: 5 of 13 completed premium jobs ended here
+        // (final_attempt "scene-kit"), every one with used_fallback = 0, so
+        // nothing anywhere said so. Record it loudly and carry a flag out, so the
+        // downgrade is a fact on the job instead of something you have to infer
+        // from the attempt label.
+        if (job.compose_mode === "premium") {
+          console.warn(`[agents] PREMIUM DOWNGRADE: the bespoke composer failed its gates — this film renders on the deterministic kit`);
+          fallbackLog.note("compose", "premium-downgraded-to-kit", {
+            severity: "quality",
+            detail: `premium finish requested; composer failed (${String(e.message).slice(0, 100)})`,
+          });
+        }
         console.warn(`[agents] scene-kit fallback (deterministic, asset-rich)`);
         // Premium jobs get the HYBRID: bounded LLM set-dressing over the kit
         // (variants + emphasis + sanitized decor) — composer-flavoured art
@@ -832,12 +1412,12 @@ async function compositionAgent(s) {
         const visual = await attemptLlmComposition({
           storyboard, dims, jobDir, assets: s.assets || [], tracker,
           jobId: job.id, durationSec: effDur, label: "scene-kit-fallback",
-          framePack: s.framePack, captionCues, remix: false,
+          framePack: s.framePack, captionCues, scriptCues: voCues, scriptOverlay, remix: false,
           dress: job.compose_mode === "premium" && !composerBudgetDead,
           subject: s.brief?.subject || null,
           brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null,
         });
-        return { visual, usedFallback: false, finalAttempt: "scene-kit", usedComposer: false, rendered: true, composerBudgetDead, effectiveDuration: effDur, sfxClips: sfxRepinned };
+        return { visual, usedFallback: false, finalAttempt: "scene-kit", usedComposer: false, premiumDowngraded: job.compose_mode === "premium", rendered: true, composerBudgetDead, effectiveDuration: effDur, sfxClips: sfxRepinned };
       } catch (e2) {
         console.warn(`[agents] scene-kit fallback failed (${String(e2.message).slice(0, 120)}) — bland template`);
       }
@@ -849,7 +1429,7 @@ async function compositionAgent(s) {
       storyboard: s.storyboard,
       packTokens: s.framePack ? frameRegistry.getPackTokens(s.framePack) : null,
       assets: s.assets || [],
-      captionCues,
+      captionCues, scriptCues: voCues, scriptOverlay,
     });
     // Run the fallback through the same safe normalizer the LLM path uses, so a
     // pack font token / track overlap never ships an un-checked fallback.
@@ -913,6 +1493,8 @@ async function timelineAgent(s) {
         ...(s.sfxClips || []),
       ],
       musicVolume: config.audio?.defaultMusicVolume ?? 0.15,
+        // Per-scene bed shape from the script's own musicCue curve (see musicEnvelopeFromScript).
+        musicEnvelope: musicEnvelopeFromScript(s.script, (s.voClips || []).length > 0),
     },
   }).catch((e) => console.warn(`[agents] mix failed: ${e.message}`));
 
@@ -938,6 +1520,63 @@ async function repairAgent(s) {
 // the exact defect deterministically instead of re-rolling the whole composition
 // (which the LLM repair does and which regresses as often as it helps). Sets
 // contrastRepairTried so the loop enters this deterministic pass at most once.
+// DEAD-FRAME REPAIR — the branch that did not exist.
+//
+// Every other repair route restyles a film that renders. When QA reports EMPTY /
+// NEAR-EMPTY FRAME or a script error, the film does NOT render, and no amount of
+// recolouring, scrimming or de-duplicating changes that: the template's compiled
+// component threw and painted the engine's error slate over the rest of the video.
+// Before this node existed the router had nowhere to send that verdict, so the
+// worst class of defect QA can find was also the only one that always shipped —
+// measured, a 36s film that was an error slate for its last 14 seconds.
+//
+// Recompose on scene-kit with the same pack's styling. It is deterministic and
+// lint-clean by construction, so it cannot reproduce the crash, and it weaves more
+// of the asset pool than the template did. Runs at most once.
+async function deadFrameRepairNode(s) {
+  const { job, jobDir } = s;
+  db.setProgress(job.id, "composing");
+  const effDur = s.effectiveDuration || job.duration;
+  try {
+    const visual = await withBudget(
+      (signal) => attemptLlmComposition({
+        storyboard: s.storyboard, dims: { width: job.width, height: job.height, fps: job.fps },
+        jobDir, assets: s.assets || [], tracker: s.tracker, jobId: job.id, durationSec: effDur,
+        label: "dead-frame-repair", abortSignal: signal, framePack: s.framePack,
+        // `voCues` is built locally inside compositionAgent and never enters graph
+        // state, so it cannot be read back here — rebuild from the VO clips, which
+        // carry the spoken text and their final (retimed) offsets.
+        captionCues: job.captions_enabled === 0 ? [] : (s.voClips || [])
+          .filter((c) => c && c.text)
+          .map((c) => ({ start: c.startSec, end: c.startSec + (c.durationSec || 2), text: c.text })),
+        subject: s.brief?.subject || null, brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null,
+        forceSceneKit: true,
+      }),
+      (Number(config.server.stageBudgetSec) || 480) * 1000, "dead-frame repair"
+    );
+    if (!visual) return { deadFrameTried: true };
+    await mixAudioIntoVideo({
+      visualPath: visual.videoPath, durationSec: effDur,
+      scenes: s.storyboard?.scenes || null, jobDir,
+      audio: {
+        ttsPath: null, musicPath: s.musicPath || null,
+        sfx: [
+          ...(s.voClips || []).map((c) => ({ path: c.path, startSec: c.startSec, volume: 1.0, kind: "vo" })),
+          ...(s.sfxClips || []),
+        ],
+        musicVolume: config.audio?.defaultMusicVolume ?? 0.15,
+        // Per-scene bed shape from the script's own musicCue curve (see musicEnvelopeFromScript).
+        musicEnvelope: musicEnvelopeFromScript(s.script, (s.voClips || []).length > 0),
+      },
+    }).catch((e) => console.warn(`[agents] dead-frame repair mix failed: ${e.message}`));
+    console.log(`[agents] dead-frame repair: recomposed on scene-kit with "${s.framePack}" styling`);
+    return { visual, deadFrameTried: true, usedComposer: false };
+  } catch (e) {
+    console.warn(`[agents] dead-frame repair failed: ${String(e.message).slice(0, 160)}`);
+    return { deadFrameTried: true };
+  }
+}
+
 async function contrastRepairNode(s) {
   const { job, jobDir } = s;
   db.setProgress(job.id, "qa");
@@ -978,6 +1617,8 @@ async function contrastRepairNode(s) {
         ...(s.sfxClips || []),
       ],
       musicVolume: config.audio?.defaultMusicVolume ?? 0.15,
+        // Per-scene bed shape from the script's own musicCue curve (see musicEnvelopeFromScript).
+        musicEnvelope: musicEnvelopeFromScript(s.script, (s.voClips || []).length > 0),
     },
   }).catch((e) => console.warn(`[agents] contrast-repair mix failed: ${e.message}`));
 
@@ -999,10 +1640,40 @@ async function qaAgentNode(s) {
     return { qa: { pass: true, issues: [], skipped: true } };
   }
   db.setProgress(s.job.id, "qa");
+  // The film's REAL cut list. A bundled template cuts more often than the script
+  // narrates (one narrated sentence becomes two or three beats), so sampling by
+  // script scene lands inside beat entrances and reports empty frames that are
+  // simply not there yet. Best-effort: fall back to script scenes if unreadable.
+  let beats = null;
+  try {
+    const idxHtml = fs.readFileSync(path.join(s.jobDir, "index.html"), "utf8");
+    const bm = /<script type="__bundler\/template"[^>]*>([\s\S]*?)<\/script>/i.exec(idxHtml);
+    if (bm) {
+      const sm = /window\.OM_SCENES\s*=\s*('[\s\S]*?'|"[\s\S]*?")\s*;/.exec(JSON.parse(bm[1]));
+      if (sm) {
+        const lit = sm[1];
+        const list = JSON.parse(lit[0] === "'" ? lit.slice(1, -1) : JSON.parse(lit));
+        const d = list.map((x) => Number(x.dur) || 0).filter((x) => x > 0);
+        if (d.length) beats = d;
+      }
+    }
+  } catch { /* not a bundled-template film, or unreadable — scenes still work */ }
+
   const verdict = await reviewRender({
     videoPath: s.visual.videoPath,
     scenes: s.script.scenes,
-    duration: s.job.duration,
+    beats,
+    // The RENDERED length, not the requested one. Scenes are stretched to their
+    // measured narration (retimeScenesToVo), so a 30s request routinely renders
+    // 33-34s. Passing the request made sampleTimes compute its "review the tail"
+    // frame as `duration - 0.4` = 29.6s on a 33.5s film — 3.9s BEFORE the end,
+    // landing inside the CTA's entrance animation. QA then reported "EMPTY /
+    // NEAR-EMPTY FRAME: the CTA scene is missing all content" on a film whose CTA
+    // was perfectly fine two seconds later, and the real end-state — the thing
+    // this sample exists to check — was never reviewed at all. Measured on job
+    // qs1x81xjof, where 29.6s is exactly the blocker timestamp QA reported.
+    // runJob already passed effectiveDuration; only the graph path did not.
+    duration: s.effectiveDuration || s.job.duration,
     framePack: s.framePack,
     workDir: path.join(s.jobDir, "qa"),
     tracker: s.tracker,
@@ -1058,38 +1729,68 @@ async function buildGraph() {
     animationReport: Annotation(), qa: Annotation(), qaAttempts: Annotation(),
     bestQa: Annotation(), usedComposer: Annotation(),
     composerBudgetDead: Annotation(), contrastRepairTried: Annotation(), detRepairNoop: Annotation(),
-    brandSkin: Annotation(), layoutPlan: Annotation(),
+    brandSkin: Annotation(), layoutPlan: Annotation(), deadFrameTried: Annotation(),
   });
+
+  // PER-NODE WALL CLOCK.
+  //
+  // Every latency question about this pipeline used to be unanswerable: three real
+  // jobs took 400s, 544s and 798s and the only number recorded was a single
+  // `productionMs` bucket covering the whole graph. So "why is it slow" could only
+  // be answered by reading code and guessing which await dominated.
+  //
+  // This wraps each node in a timer and accumulates into NODE_MS, which the run
+  // writes onto the job as stage_timings.nodes. It is one Date.now() pair per node
+  // — no measurable cost — and it makes every future latency claim checkable.
+  //
+  // Nodes that run more than once (qa_agent and the repair loop) accumulate total
+  // time and a call count, because "qa ran three times" is itself the finding.
+  // Keyed by JOB, not module-global: the graph is compiled once and shared, so a
+  // flat accumulator would blend two concurrent jobs' timings into nonsense.
+  const timed = (name, fn) => async (s) => {
+    const id = s && s.job && s.job.id;
+    const t = ms();
+    try { return await fn(s); }
+    finally {
+      if (id) {
+        let m = NODE_MS.get(id);
+        if (!m) { m = {}; NODE_MS.set(id, m); }
+        const rec = m[name] || (m[name] = { ms: 0, calls: 0 });
+        rec.ms += ms() - t; rec.calls++;
+      }
+    }
+  };
 
   // Node names must not collide with state channel names (LangGraph rule),
   // hence the _agent suffixes on storyboard/qa.
   const g = new StateGraph(S)
-    .addNode("frame_selector", frameSelectorAgent)
-    .addNode("art_director", artDirectorAgent)
-    .addNode("storyboard_agent", storyboardAgent)
-    .addNode("scene_planner", scenePlannerAgent)
-    .addNode("asset_planner", assetPlannerAgent)
-    .addNode("asset_search", assetSearchAgent)
-    .addNode("text_director", textDirectorAgent)
-    .addNode("visual_layout_director", visualLayoutDirectorAgent)
-    .addNode("voice_agent", voiceAgent)
-    .addNode("composition", compositionAgent)
-    .addNode("animation", animationAgent)
-    .addNode("timeline", timelineAgent)
-    .addNode("qa_agent", qaAgentNode)
-    .addNode("contrast_repair", contrastRepairNode)
-    .addNode("repair", repairAgent);
+    .addNode("frame_selector", timed("frame_selector", frameSelectorAgent))
+    .addNode("art_director", timed("art_director", artDirectorAgent))
+    .addNode("storyboard_agent", timed("storyboard_agent", storyboardAgent))
+    .addNode("scene_planner", timed("scene_planner", scenePlannerAgent))
+    .addNode("asset_search", timed("asset_search", assetSearchAgent))
+    .addNode("text_director", timed("text_director", textDirectorAgent))
+    .addNode("visual_layout_director", timed("visual_layout_director", visualLayoutDirectorAgent))
+    .addNode("voice_agent", timed("voice_agent", voiceAgent))
+    .addNode("composition", timed("composition", compositionAgent))
+    .addNode("animation", timed("animation", animationAgent))
+    .addNode("timeline", timed("timeline", timelineAgent))
+    .addNode("qa_agent", timed("qa_agent", qaAgentNode))
+    .addNode("dead_frame_repair", timed("dead_frame_repair", deadFrameRepairNode))
+    .addNode("contrast_repair", timed("contrast_repair", contrastRepairNode))
+    .addNode("repair", timed("repair", repairAgent));
 
   g.addEdge(START, "frame_selector");
   // Fan-out: four branches run in parallel. The Art Director only needs the brief
   // + the chosen pack, so it runs alongside the storyboard/asset/voice chain and
   // its brand skin joins at composition (near-zero added latency).
   g.addEdge("frame_selector", "storyboard_agent");
-  g.addEdge("frame_selector", "asset_planner");
+  // asset_search plans its own fetch list inline (see assetSearchAgent) — a
+  // separate asset_planner node cost a whole superstep behind the storyboard LLM.
+  g.addEdge("frame_selector", "asset_search");
   g.addEdge("frame_selector", "voice_agent");
   g.addEdge("frame_selector", "art_director");
   g.addEdge("storyboard_agent", "scene_planner");
-  g.addEdge("asset_planner", "asset_search");
   // The Text Director enriches the planned scenes with mined copy (subtext/
   // bullets/emphasis) BEFORE layout, so archetype typing sees the final text
   // (a scene that just gained proof bullets can become a feature grid).
@@ -1121,6 +1822,65 @@ async function buildGraph() {
       || /off[-\s]?palette|off[-\s]?brand|wrong colou?r|foreign colou?r|colou?rs?[^.]{0,30}(belong|palette|system|off)/.test(btxt)          // off-palette color
       || /overlap|overlapp|occlud|collision|collid|stacked|on top of|covering|over the (image|photo|graphic|screenshot)|duplicat/.test(btxt) // collision / text-over-graphic / duplicate
     );
+    // 0) A DEAD FRAME IS NOT A STYLING NIT. The classes below are all "the film
+    // renders, but looks wrong"; none of their patterns match "the film does not
+    // render at all". So when QA reported EMPTY / NEAR-EMPTY FRAME six times on a
+    // shipped video — a template crash blanking everything past 21.9s — no branch
+    // claimed it: the deterministic chain has no fixer for it, the paid repair lap
+    // requires `usedComposer` (false on every standard job), and the router fell
+    // straight through to END. The review agent had found the worst defect a film
+    // can have and the pipeline shipped it anyway.
+    //
+    // A blank/crashed render can only be fixed by composing it AGAIN with something
+    // that works, so this routes to the deterministic repair node, which recomposes
+    // rather than restyling. runtimeCheck now catches most of these before the
+    // render is ever paid for; this is the backstop for whatever it misses.
+    // MATCH THE FAILURE, NOT THE WORD.
+    //
+    // The first version keyed off a bare `empty` (and `no content`, and `error
+    // message`) anywhere in the issue OR the fix. Those words are ordinary
+    // layout vocabulary — a fix reading "remove the empty padding" or an issue
+    // about "empty space on the left" matched — so a film with five ordinary
+    // STYLING blockers (typography, collisions, contrast, a clashing photo) was
+    // classed as a crashed render. Measured on job hhv4uy3i9j: it triggered a full
+    // scene-kit recompose costing 206.6s, 38% of the entire 544.8s run, and the
+    // film it produced still failed QA with the same styling blockers — the
+    // recompose could not have helped, because nothing was ever dead.
+    //
+    // A dead frame is a specific claim: the FRAME is empty/blank, or the engine
+    // painted a runtime error. So "empty" must be adjacent to "frame", and the
+    // runtime signatures stay exact. Only the ISSUE is searched — the FIX is the
+    // model's prose about a remedy and is far looser language.
+    const DEAD_FRAME = new RegExp([
+      /(empty|near-?empty|blank)\s*(\/\s*near-?empty\s*)?frame/,        // the QA class name
+      /frame (is|appears)[^.]{0,20}(empty|blank)/,                       // "the frame is empty"
+      /contains only the background/,                                    // "…and a code error message"
+      /(frame|background)[^.]{0,40}error (message|string)/,              // the engine's error slate, described
+      /nothing (is )?render|renders? nothing|no content (is )?render/,
+      /total content failure|error slate/,
+      /is not a function|is not defined|cannot read propert|undefined is not/, // raw runtime signatures
+    ].map((r) => r.source).join("|"));
+    // RECORD WHY. Only the FINAL verdict is persisted, so when this route fires on
+    // an early lap the evidence is gone by the time anyone looks — and this is the
+    // most expensive branch in the graph (measured 190-207s, ~39% of a run). Naming
+    // the exact blocker that matched is the difference between "it recomposed" and
+    // "it recomposed because of THIS", which is the only way to tell a real dead
+    // frame from a false positive without re-running the job.
+    const deadFrameHit = blockers.find((i) => DEAD_FRAME.test(String(i.issue || "").toLowerCase()));
+    const deadFrame = !!deadFrameHit;
+    if (deadFrame && !s.deadFrameTried && !s.usedFallback) {
+      console.warn(`[agents] QA reported a DEAD/CRASHED frame at ${deadFrameHit.atSec}s — recomposing (this is not repairable in place)`);
+      console.warn(`[agents]   trigger: "${String(deadFrameHit.issue).slice(0, 160)}"`);
+      // Written next to qa/verdict.json rather than onto the job's audio notes —
+      // that channel is user-facing copy on the Premiere screen, not a place for
+      // engine diagnostics.
+      try {
+        fs.mkdirSync(path.join(s.jobDir, "qa"), { recursive: true });
+        fs.writeFileSync(path.join(s.jobDir, "qa", "dead-frame-trigger.json"),
+          JSON.stringify({ atSec: deadFrameHit.atSec, issue: deadFrameHit.issue, fix: deadFrameHit.fix, qaAttempt: s.qaAttempts || 1 }, null, 2));
+      } catch { /* diagnostic only — never block the repair */ }
+      return "dead_frame_repair";
+    }
     if (fixableBlocker && !s.contrastRepairTried && !s.usedFallback) {
       console.log(`[agents] QA flagged ${blockers.length} blocker(s) — deterministic repair pass (escalated fix chain, no LLM re-roll)`);
       return "contrast_repair";
@@ -1148,7 +1908,8 @@ async function buildGraph() {
       console.log(`[agents] QA failed but composer budget is exhausted — delivering best attempt (no repair lap)`);
     }
     return END;
-  }, ["contrast_repair", "repair", END]);
+  }, ["dead_frame_repair", "contrast_repair", "repair", END]);
+  g.addEdge("dead_frame_repair", "qa_agent");
   g.addEdge("contrast_repair", "qa_agent");
   g.addEdge("repair", "qa_agent");
 
@@ -1157,7 +1918,7 @@ async function buildGraph() {
 }
 
 // ---------------------------------------------------------------- runner
-async function runProductionGraph({ jobId }) {
+async function runProductionGraphInner({ jobId }) {
   const job = db.getRaw(jobId);
   if (!job || !job.script) {
     console.error(`[agents] ${jobId} aborted: no approved script`);
@@ -1203,7 +1964,7 @@ async function runProductionGraph({ jobId }) {
       tokensIn: costs.llm.inputTokens,
       tokensOut: costs.llm.outputTokens,
       usage: costs,
-      stageTimings: { ...(job.stage_timings || {}), productionMs: ms() - t0 },
+      stageTimings: { ...(job.stage_timings || {}), productionMs: ms() - t0, nodes: drainNodeTimings(jobId, ms() - t0) },
       finalAttempt: final.finalAttempt || "main",
     });
     if (shippedQa) db.setQa(jobId, shippedQa);
@@ -1220,11 +1981,38 @@ async function runProductionGraph({ jobId }) {
   } catch (err) {
     console.error(`[agents] ${jobId} graph failed: ${err.message}`);
     const costs = tracker.computeCosts();
-    db.markFailed(jobId, err.message.slice(0, 2000), costs.llm.inputTokens, costs.llm.outputTokens, costs);
+    // Drain the timings here too. Without this the map leaks an entry per failed
+    // job for the life of the process, and — worse — the per-node breakdown is
+    // thrown away for exactly the runs where it is most wanted: the ones that
+    // stalled or timed out.
+    db.markFailed(jobId, err.message.slice(0, 2000), costs.llm.inputTokens, costs.llm.outputTokens, costs,
+      { ...(job && job.stage_timings ? job.stage_timings : {}), productionMs: ms() - t0, nodes: drainNodeTimings(jobId, ms() - t0) });
   }
 }
 
 // assetSearchAgent is exported for harness use only (server/scripts) — it is the
 // node where asset acquisition, gap-fill and curation meet, and is worth driving
 // in isolation without paying for a full render.
-module.exports = { runProductionGraph, __test_assetSearchAgent: assetSearchAgent };
+/**
+ * Every production render runs inside a fallback tally.
+ *
+ * This wrapper is why the tally exists at all on the real path: config sets
+ * orchestrator "langgraph", so server.js dispatches here, NOT to pipeline.runJob
+ * — and runWithLog was only ever called from runJob. Measured: 0 of the last 6
+ * job dirs contained a fallbacks.json, so every note() in the asset and compose
+ * stack (including the premium-downgrade one) had been returning early at
+ * `if (!ctx) return;` since the day it was written.
+ */
+async function runProductionGraph(opts) {
+  return fallbackLog.runWithLog(opts && opts.jobId, async () => {
+    try {
+      return await runProductionGraphInner(opts);
+    } finally {
+      // In finally so a FAILED render still reports what it substituted — that is
+      // the run where the tally is worth the most.
+      try { fallbackLog.writeReport(jobDirFor(opts.jobId), opts.jobId); } catch { /* never mask the real result */ }
+    }
+  });
+}
+
+module.exports = { runProductionGraph, __test_assetSearchAgent: assetSearchAgent, __test_makeQueryDeriver: makeQueryDeriver };

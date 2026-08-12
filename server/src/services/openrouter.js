@@ -427,7 +427,26 @@ async function chat({ system, user, userSuffix, jsonMode = false, temperature, m
   const orPrimary = onKie
     ? [config.llm.modelFallback, config.llm.modelFast, config.llm.model].find((m) => m && !KIE_ALIAS.test(m))
     : requested;
-  const orFallback = onKie ? null : config.llm.modelFallback;
+  // The OpenRouter fallback must be an OPENROUTER model id. `llm.modelFallback`
+  // is allowed to hold a "kie:" alias (the tiers get flipped from time to time —
+  // KIE main / OpenRouter fallback, and back), and passing that alias through
+  // verbatim sent the literal string "kie:gemini-3.6-flash" to OpenRouter as a
+  // model name. OpenRouter has no such model, so the LAST line of defence was
+  // guaranteed to fail — which is exactly what a user hit:
+  //   "all providers failed for stage=storyboard.
+  //    openrouter google/gemini-3-flash-preview: Connection error..
+  //    openrouter kie:gemini-3.6-flash: Connection error."
+  // Boot validation does not catch it: it only requires that at least ONE of the
+  // configured models is a non-alias, which was true. So: never hand an alias to
+  // OpenRouter, and keep the alias as a KIE attempt of its own (below).
+  const orFallback = onKie
+    ? null
+    : [config.llm.modelFallback, config.llm.modelFast, config.llm.model]
+        .find((m) => m && !KIE_ALIAS.test(String(m)) && m !== orPrimary) || null;
+  // A "kie:" alias in the fallback slot is still a perfectly good model — it just
+  // has to be dispatched through KIE. Kept so flipping the tiers in config.json
+  // never silently removes the safety net.
+  const fallbackKieRoute = !onKie ? kieRoute(config.llm.modelFallback) : null;
 
   // The KIE primary (grok-4-5) is a REASONING model — output tokens include
   // reasoning and are billed, so a trivial stage (vo_fit, a QA verdict) can burn
@@ -501,15 +520,31 @@ async function chat({ system, user, userSuffix, jsonMode = false, temperature, m
     // Escalate to the fallback model on a transient error OR a model-fatal one
     // (bad id / context overflow) — the latter won't recover by retrying the
     // same model but a different model can, so it must not collapse the stage.
-    if (!orFallback || orFallback === orPrimary || !(isRetryable(err) || isModelFatal(err))) throw err;
+    const escalatable = isRetryable(err) || isModelFatal(err);
     // 4. FALLBACK: OpenRouter secondary model.
-    console.warn(`[openrouter] FALLBACK: ${orPrimary} failed; switching to ${orFallback} for stage=${stage}`);
-    try {
-      return await callOnce({ body: orBody, timeoutMs, stage, model: orFallback, signal });
-    } catch (err2) {
-      const e = new Error(`llm: all providers failed for stage=${stage}. openrouter ${orPrimary}: ${err?.status || err?.code || err?.message || err}. openrouter ${orFallback}: ${err2?.status || err2?.code || err2?.message || err2}`);
-      throw e;
+    if (orFallback && orFallback !== orPrimary && escalatable) {
+      console.warn(`[openrouter] FALLBACK: ${orPrimary} failed; switching to ${orFallback} for stage=${stage}`);
+      try {
+        return await callOnce({ body: orBody, timeoutMs, stage, model: orFallback, signal });
+      } catch (err2) {
+        // 5. LAST RESORT: a "kie:" alias configured as modelFallback — a real
+        // model on a DIFFERENT provider, so it is the most useful thing left to
+        // try when OpenRouter itself is unreachable.
+        if (fallbackKieRoute) {
+          const hit = await tryKie(fallbackKieRoute, `fallback route ${fallbackKieRoute.alias}`, "all OpenRouter models");
+          if (hit) return hit;
+        }
+        throw new Error(`llm: all providers failed for stage=${stage}. openrouter ${orPrimary}: ${err?.status || err?.code || err?.message || err}. openrouter ${orFallback}: ${err2?.status || err2?.code || err2?.message || err2}${fallbackKieRoute ? `. kie ${fallbackKieRoute.model}: also failed` : ""}`);
+      }
     }
+    // No OpenRouter secondary — but a KIE-aliased modelFallback still gives us a
+    // different provider to reach for before giving up on the stage entirely.
+    if (fallbackKieRoute && escalatable) {
+      const hit = await tryKie(fallbackKieRoute, `fallback route ${fallbackKieRoute.alias}`, `OpenRouter ${orPrimary}`);
+      if (hit) return hit;
+      throw new Error(`llm: all providers failed for stage=${stage}. openrouter ${orPrimary}: ${err?.status || err?.code || err?.message || err}. kie ${fallbackKieRoute.model}: also failed`);
+    }
+    throw err;
   }
 }
 

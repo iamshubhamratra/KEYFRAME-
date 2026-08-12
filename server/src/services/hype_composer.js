@@ -239,7 +239,8 @@ function slot(sid, asset, th, { radius = 14, compact = false, focusTop = false, 
 function hook(scene, ctx, a) {
   const { id, T, L, theme: th, land } = ctx;
   const Wf = land ? 1920 : 1080, Hf = land ? 1080 : 1920;
-  const fgc = inkOn(th.blue, th.navy, th.cream);
+  const bgFor = th.blue;
+  const fgc = inkOn(bgFor, th.navy, th.cream);
   const kicker = fit(String(scene.kicker || scene.purpose || "TURN IT UP"), 22).toUpperCase();
   const sub = fit(String(scene.subtext || ""), 90);
   const s1 = star(`${id}-st1`, r(Wf * 0.86), land ? 170 : 300, land ? 85 : 130, th.yellow, th.navy, 30, T, L);
@@ -250,7 +251,7 @@ function hook(scene, ctx, a) {
   const kick = sticker(esc(kicker), { bg: th.yellow, border: th.navy, shadow: th.navy, rot: -2, pad: `${q(12, land)}cqw ${q(26, land)}cqw`, extra: `display:inline-block;font-family:${FB};font-weight:700;font-size:${q(26, land)}cqw;letter-spacing:0.16em;color:${inkOn(th.yellow, th.navy, th.cream)};` }, land);
   const plate = sticker(`<div style="width:100%;height:100%;border-radius:${q(14, land)}cqw;overflow:hidden;">${slot(`${id}-img`, a, th, { radius: 14, focusTop: true, land })}</div>`,
     { bg: th.cream, border: th.navy, shadow: th.navy, rot: 1.5, id: `${id}-ms`, extra: `width:100%;height:100%;padding:${q(14, land)}cqw;` }, land);
-  const subHtml = sub ? `<div id="${id}-sub" style="opacity:0;font-family:${FB};font-weight:500;font-size:${q(land ? 28 : 36, land)}cqw;color:${rgba(fgc, 0.85)};margin-top:${q(42, land)}cqw;">${esc(sub)}</div>` : "";
+  const subHtml = sub ? `<div id="${id}-sub" style="opacity:0;font-family:${FB};font-weight:500;font-size:${q(land ? 28 : 36, land)}cqw;color:${E.readable(bgFor, fgc, 0.85, 4.5)};margin-top:${q(42, land)}cqw;">${esc(sub)}</div>` : "";
   const html = land
     ? `${sceneSvg(Wf, Hf, rb.html + s1.html + s2.html)}${ck.html}
        <div style="position:absolute;left:6cqw;top:50%;transform:translateY(-50%);width:44cqw;">
@@ -280,7 +281,8 @@ function hook(scene, ctx, a) {
 function statement(scene, ctx) {
   const { id, T, L, theme: th, land } = ctx;
   const Wf = land ? 1920 : 1080, Hf = land ? 1080 : 1920;
-  const fgc = inkOn(th.navy, th.navy, th.cream);
+  const bgFor = th.navy;
+  const fgc = inkOn(bgFor, th.navy, th.cream);
   const sub = fit(String(scene.subtext || ""), 100);
   const rb1 = ribbon(`${id}-rb1`, rgba(th.blue, 0.55), Wf, r(Hf * 0.2), land ? 38 : 56, land ? 20 : 30, 0.9, T, L);
   const rb2 = ribbon(`${id}-rb2`, rgba(th.coral, 0.5), Wf, r(Hf * 0.82), land ? 34 : 50, land ? 17 : 26, -1.1, T, L);
@@ -296,7 +298,7 @@ function statement(scene, ctx) {
   const html = `${sceneSvg(Wf, Hf, rb1.html + rb2.html + s1.html)}
     <div style="position:absolute;left:${land ? 10 : 5.74}cqw;${land ? "top:50%;transform:translateY(-50%);width:66cqw;" : "right:5.74cqw;top:55.5cqw;"}">
       ${slm.html}
-      ${sub ? `<div id="${id}-sub" style="opacity:0;font-family:${FB};font-weight:500;font-size:${q(land ? 30 : 37, land)}cqw;color:${rgba(fgc, 0.7)};margin-top:${q(44, land)}cqw;max-width:${land ? 44 : 74}cqw;">${esc(sub)}</div>` : ""}
+      ${sub ? `<div id="${id}-sub" style="opacity:0;font-family:${FB};font-weight:500;font-size:${q(land ? 30 : 37, land)}cqw;color:${E.readable(bgFor, fgc, 0.7, 4.5)};margin-top:${q(44, land)}cqw;max-width:${land ? 44 : 74}cqw;">${esc(sub)}</div>` : ""}
       ${sup.html}
     </div>${ck.html}`;
   const s = [
@@ -317,7 +319,7 @@ function feature(scene, ctx, a) {
   const chipBgs = [th.coral, th.blue, th.navy];
   const s1 = star(`${id}-st1`, Wf - 90, r(Hf * 0.66), land ? 78 : 120, th.blue, th.navy, -22, T, L);
   const rb = ribbon(`${id}-rb`, rgba(th.coral, 0.5), Wf, r(Hf * 0.14), land ? 25 : 36, land ? 15 : 22, 1.3, T, L);
-  const slm = slamHtml(id, scene.headline, "Your product,|front row.", land ? 62 : 104, ink, th.coral, land, land ? 40 : 88.5, false);
+  const slm = slamHtml(id, scene.headline, "Your product,|front row.", land ? 62 : 104, ink, E.readable(th.yellow, th.coral, 1, 4.5), land, land ? 40 : 88.5, false);
   const plate = sticker(`<div style="width:100%;height:100%;border-radius:${q(14, land)}cqw;overflow:hidden;">${slot(`${id}-img`, a, th, { radius: 14, focusTop: true, land })}</div>`,
     { bg: th.cream, border: th.navy, shadow: th.navy, rot: -1.5, id: `${id}-ms`, extra: `width:100%;height:100%;padding:${q(14, land)}cqw;` }, land);
   const chipRow = chips.map((c, i) =>
@@ -397,7 +399,8 @@ function montage(scene, ctx, a, b) {
 function stats(scene, ctx) {
   const { id, T, L, theme: th, land } = ctx;
   const Wf = land ? 1920 : 1080, Hf = land ? 1080 : 1920;
-  const fgc = inkOn(th.coral, th.navy, th.cream);
+  const bgFor = th.coral;
+  const fgc = inkOn(bgFor, th.navy, th.cream);
   const sts = statsOf(scene, 3);
   const rows = sts.length ? sts : [{ pre: "", v: 100, suf: "%", l: "MADE TO POP", isFloat: false }];
   const cols = [th.yellow, fgc, th.blue];
@@ -452,7 +455,8 @@ function stats(scene, ctx) {
 function cta(scene, ctx, a) {
   const { id, T, L, theme: th, land, brand, url } = ctx;
   const Wf = land ? 1920 : 1080, Hf = land ? 1080 : 1920;
-  const fgc = inkOn(th.blue, th.navy, th.cream);
+  const bgFor = th.blue;
+  const fgc = inkOn(bgFor, th.navy, th.cream);
   const label = fit(String(scene.cta || scene.buttonLabel || "Make yours"), 18);
   // 9:16: the closing block ends at the url with the lower sheet empty — close on
   // the film's own proof points rather than dead ground (see statement above).

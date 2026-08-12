@@ -27,6 +27,9 @@ const { fontFaceCss } = require("../fonts/pack_fonts");
 // builders read `headline`. Without it a scene falls back to pack boilerplate
 // while the narrator reads the real script (the COPY LAW).
 const { withDisplayCopy } = require("./template_engine");
+// One implementation of "which picture belongs on this beat", shared with every
+// other renderer — see the wiring note on takePool below.
+const { pickForScene } = require("./scene_match");
 
 const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 const DISPLAY = "Space Grotesk";   // the template's own display face (bundled)
@@ -146,7 +149,10 @@ function showArchetype(scene, i, total, pinned, poolLeft) {
   if (i === total - 1 || k === "cta" || p === "cta") return "cta";
   if (k === "stat" || k === "chart" || statsOf(scene, 1).length) return "proof";
   if (pinned && isPortraitAsset(pinned)) return "mobile";
-  if (poolLeft >= 4 && /gallery|showcase|everything|all|suite/.test(`${k} ${p} ${scene.headline || ""}`)) return "montage";
+  // A deep pool is itself reason enough for the montage: requiring a keyword too
+  // meant a film holding 11 captures and plain headlines never reached the one
+  // scene type that shows several at once.
+  if (poolLeft >= 4 && (/gallery|showcase|everything|all|suite/.test(`${k} ${p} ${scene.headline || ""}`) || poolLeft >= 5)) return "montage";
   if (bullets(scene, 3).length >= 3 && (pinned || poolLeft >= 1)) return "detail";
   if (pinned || poolLeft >= 1) return "tour";
   return "proof";
@@ -491,7 +497,20 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     if (sid && !byScene.has(sid)) byScene.set(sid, a); else pool.push(a);
   }
   let pooli = 0;
-  const takePool = (pred) => {
+  // WHICH PICTURE BELONGS ON *THIS* BEAT. The sort above is entirely
+  // FILM-GLOBAL — screenshot-ness, then cdScore — so every slot in the film
+  // popped the next item off that one list and what the beat was SAYING never
+  // came into it. This template is the most screenshot-forward of the set, and a
+  // website job writes every capture as site_0.png…site_5.png with the same
+  // boilerplate alt, so the candidates tie and arrival order breaks the tie:
+  // that is the "random screenshots" complaint in full.
+  // `scene` is optional so every other call site is unchanged, and when nothing
+  // in the pool is even loosely about the beat this falls straight back to the
+  // old rank walk — it can only improve on the previous pick, never starve a
+  // slot.
+  const takePool = (pred, scene = null) => {
+    const onTopic = scene ? pickForScene(pool, scene, { pred }) : null;
+    if (onTopic) { pool.splice(pool.indexOf(onTopic), 1); return onTopic; }
     for (let k = pooli; k < pool.length; k++) {
       if (!pred || pred(pool[k])) { const a = pool[k]; pool.splice(k, 1); return a; }
     }
@@ -526,9 +545,17 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     // than the type actually draws (montage renders six).
     while (picked.length < need.length) {
       const want = need[picked.length];
-      const a = want === "phone" ? takePool(isPortraitAsset)
-        : want === "desktop" ? takePool((x) => !isPortraitAsset(x))
-          : takePool();
+      // Only the first empty slot picks on topic. For every single-media type
+      // that IS the slot; for the six-tile montage it is the tile that reads.
+      // Letting all six pick on topic measured WORSE — 2 of 3 media beats on
+      // topic down to 1 of 3: the wall claimed the "workspace layout" capture
+      // for its own beat, and the very next beat, "One workspace", the one
+      // actually talking about it, fell back to the site footer. One beat may
+      // not strip the film of its matches.
+      const sc = picked.length ? null : scene;
+      const a = want === "phone" ? takePool(isPortraitAsset, sc)
+        : want === "desktop" ? takePool((x) => !isPortraitAsset(x), sc)
+          : takePool(null, sc);
       if (!a) break;
       picked.push(a);
     }

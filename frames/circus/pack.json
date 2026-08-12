@@ -1,0 +1,98 @@
+{
+  "name": "circus",
+  "renderer": "omelette",
+  "template": "Circus",
+  "portraitNative": true,
+  "vibe": "\"CIRCUS\" big-top world. Tent stripes, spotlights, confetti. Portrait-native 9:16 (9 authored beats, 27.8s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#22123B",
+    "ink": "#FFF3DC",
+    "accent": "#F0B93B",
+    "a2": "#2E9E9B"
+  },
+  "fonts": [
+    "Rye",
+    "Nunito"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#22123B",
+    "ink": "#FFF3DC"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.05
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F0B93B",
+      "#2E9E9B"
+    ],
+    "extras": [
+      "#E86FA4",
+      "#C22B33",
+      "#2B1849"
+    ],
+    "emphasisCss": "color:#F0B93B;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "circus-film",
+      "circus",
+      "big-top",
+      "world",
+      "tent",
+      "stripes"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Rye",
+    "body": "Rye"
+  },
+  "camera3d": {
+    "ground": "#22123B"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "boxed",
+    "case": "none",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "name": "night-bazaar",
+  "renderer": "omelette",
+  "template": "NightBazaar",
+  "portraitNative": true,
+  "vibe": "string lights, striped awning, smoke, swinging sign Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#221430",
+    "ink": "#F6EFE6",
+    "accent": "#FFB454",
+    "a2": "#59D4A4"
+  },
+  "fonts": [
+    "Baloo 2",
+    "Be Vietnam Pro"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#221430",
+    "ink": "#F6EFE6"
+  },
+  "motion": {
+    "cut": "glow",
+    "drift": 0.96
+  },
+  "fx": {
+    "canvas": "flow",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FFB454",
+      "#59D4A4"
+    ],
+    "extras": [
+      "#180E24",
+      "#2C1C3C",
+      "#FF8A5C"
+    ],
+    "emphasisCss": "color:#FFB454;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "night",
+      "bazaar",
+      "string",
+      "lights",
+      "striped",
+      "awning"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Baloo 2",
+    "body": "Be Vietnam Pro"
+  },
+  "camera3d": {
+    "ground": "#221430"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "glow",
+    "case": "none",
+    "tracking": 0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic dark ambient low pulse atmospheric",
+      "mood": "moody",
+      "volume": 0.12
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

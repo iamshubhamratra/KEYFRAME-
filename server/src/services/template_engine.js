@@ -32,6 +32,11 @@
 // uncast falls back to the family's own router — so a family works with the
 // director on or off.
 
+// The one shared motion vocabulary. A family opts in by declaring `motion`
+// (see family_bright) and the engine emits the presets for it — so the timing,
+// easing and physics of a card or a headline are identical in every template.
+const motion = require("./motion_presets");
+
 const r = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
 function esc(s) {
@@ -117,6 +122,21 @@ function bullets(scene, n) {
   if (!list.length && Array.isArray(scene.bullets)) list = scene.bullets.filter(Boolean);
   if (!list.length && scene.subtext) {
     list = String(scene.subtext).split(/[.;\n•]|\s—\s/).map((s) => s.trim()).filter((s) => s.length > 2);
+  }
+  // LAST RESORT: THE LINE THE NARRATOR IS SPEAKING. Every list shape in every
+  // family — chips, rows, points, feature cards — sources from here, and
+  // `sceneCanFill` REFUSES a list shape when this returns fewer than two
+  // entries. So a scene carrying only a headline could neither fill a list
+  // shape nor be routed to one, and fell through to the sparsest shape the
+  // family has: a headline over empty ground, which is the frame the user is
+  // complaining about. The narration always exists and is always about this
+  // beat, so its clauses are honest material. Still last — a real list reads
+  // better than a split sentence.
+  if (!list.length && scene.voiceover) {
+    list = String(scene.voiceover)
+      .split(/[.;!?\n•]|\s[—–]\s|,\s(?=and\b|but\b|so\b|then\b)/)
+      .map((s) => s.replace(/^[\s,:;—–-]+|[\s,:;—–-]+$/g, "").trim())
+      .filter((s) => s.length > 2);
   }
   return list.slice(0, n).map((s) => String(s));
 }
@@ -266,21 +286,58 @@ function isDeviceWant(want) { return want === "phone" || want === "desktop"; }
 // lands in it reads as "this is the product's screen". Each device slot takes a
 // REAL screenshot first and only falls back to a generic asset when none is
 // left — otherwise a stock photo gets framed as if it were the product UI.
-function fillSlots(need, { preset = [], pin = null, take, takeVec, recycle = false, placedPool = [] } = {}) {
+// `scene` is threaded purely so `take` can prefer the candidate that matches
+// what this beat is SAYING (see the matcher in planMedia). Optional — with no
+// scene every take() falls back to the old global rank order.
+function fillSlots(need, { preset = [], pin = null, take: take0, takeVec, recycle = false, placedPool = [], vecQuota = 0, scene = null } = {}) {
+  const take = (pred) => take0(pred, scene);
   const slots = [];
   const n = Math.max(need.length, preset.length);
+  let vq = vecQuota;
   for (let k = 0; k < n; k++) {
     const want = need[k] || null;
     const shape = want ? shapeForWant(want) : null;
     let asset = preset[k] || null;
     let fill = asset ? (asset === pin ? "pinned" : "cast") : null;
     if (!asset && k === 0 && pin) { asset = pin; fill = "pinned"; }
+    // VECTOR CADENCE — a slot RESERVED for graphic art.
+    //
+    // The leftover-only pass at the bottom of this function reads as generous but
+    // is unreachable in practice: it runs after every slot has had a shot at the
+    // photo pool, and a real film supplies more photos than slots. Measured across
+    // all eight families with 6 screenshots + 9 photos + 4 vectors supplied: 0 of
+    // 4 vectors reached the frame, on every one. So a film that paid to fetch
+    // vectors (the planner budgets ~0.45/scene) showed photographs exclusively.
+    //
+    // The reservation is deliberately the LAST slot of a scene and never a device
+    // slot: the hero card and anything inside browser/phone chrome still take a
+    // photograph or a capture first, so this can only ever convert a trailing tile
+    // — the one most likely to be a recycled repeat — into graphic material.
+    if (!asset && vq > 0 && k === n - 1 && !(want && isDeviceWant(want)) && takeVec) {
+      const v = takeVec();
+      if (v) { asset = v; fill = "vector"; vq--; }
+    }
     if (!asset && want && isDeviceWant(want)) {
       asset = take((x) => isScreenshot(x) && (!shape || shape(x)));
       if (asset) fill = "screenshot";
     }
     if (!asset) {
       asset = take(shape);
+      if (asset) fill = isScreenshot(asset) ? "screenshot" : "photo";
+    }
+    // SHAPE IS A PREFERENCE ON A PLAIN PLATE — NOT IN A DEVICE FRAME. Measured on
+    // a live Trello film: a 4-tile wall showed only 2 distinct images while 3
+    // assets sat UNCLAIMED, because the spares were full-page captures (very
+    // tall) and the "photo" shape test rejected them, so the slot fell through to
+    // recycling. On a plain tile the viewer sees the duplicate, not the aspect
+    // ratio it was rejected for — so a real asset beats a repeat.
+    //
+    // A DEVICE slot is different and keeps its shape requirement: a landscape
+    // shot dropped into a phone bezel is the documented crop disaster, and
+    // media_demand.test.cjs defect-3 pins that an unfillable phone slot must stay
+    // empty rather than swallow the photo a later slot needs.
+    if (!asset && !(want && isDeviceWant(want))) {
+      asset = take();
       if (asset) fill = isScreenshot(asset) ? "screenshot" : "photo";
     }
     slots.push({ slotIndex: k, kind: want, asset, fill });
@@ -343,7 +400,29 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
     .filter((a) => a && (a.source === "website" || a.source === "website-image") && a.sourceUrl)
     .map((a) => { try { return new URL(a.sourceUrl).hostname.replace(/^www\./, ""); } catch { return null; } })
     .find(Boolean);
-  const brand = String(sb.brand || sb.title || (host ? host.split(".")[0] : "") || "STUDIO").slice(0, 18);
+  // THE BRAND IS A NAME, NOT THE FILM'S TITLE — AND A SLICE IS NOT A FIT.
+  //
+  // `sb.brand` frequently arrives as the film's headline ("Everything You Need"),
+  // and a flat .slice(0, 18) then cut it to "EVERYTHING YOU NEE" — which is what
+  // the brand sticker showed in the top-left corner of EVERY frame of a shipped
+  // Flipkart film, for the film's whole 35 seconds, while "flipkart.com" sat in
+  // the assets. QA logged it as TEXT OVERFLOW on every sampled frame.
+  //
+  // Same rule the omelette adapter already uses: a multi-word phrase long enough
+  // to be a slogan is not a brand, so the site's own domain wins; and when nothing
+  // better exists, cut on a WORD boundary so the sticker reads as a short name
+  // rather than a severed one.
+  const hostBrand = host ? host.split(".")[0].replace(/^./, (c) => c.toUpperCase()) : "";
+  const brand = (() => {
+    const explicit = String(sb.brand || "").trim();
+    const isSlogan = (s) => s.split(/\s+/).length >= 3 && s.length > 16;
+    const pick = (explicit && !(isSlogan(explicit) && hostBrand)) ? explicit
+      : (hostBrand || explicit || String(sb.title || "").trim().split(/\s+/)[0] || "STUDIO");
+    if (pick.length <= 18) return pick;
+    const cut = pick.slice(0, 18);
+    const sp = cut.lastIndexOf(" ");
+    return (sp > 6 ? cut.slice(0, sp) : cut).trim();
+  })();
   const url = String(sb.url || host || `${brand.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`).slice(0, 40);
 
   // Asset pools — cast assets win; the rest are claimed in scene order.
@@ -356,9 +435,106 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
     const sid = a.sceneId != null ? String(a.sceneId) : null;
     if (sid && !pinned.has(sid)) pinned.set(sid, a); else free.push(a);
   }
+  // RELEVANCE ORDER, not arrival order. The creative director already scored
+  // every asset (cdScore, CLIP pixel-relevance, hero/support/background
+  // prominence) — but this pool used to be walked in raw array order, so a slot
+  // took whatever happened to be fetched first. With the density raise there are
+  // now far more slots than there are good assets, and that arrival order is
+  // exactly what put off-topic stock into hero image cards. Rank once here and
+  // every take() below inherits it.
+  const rank = (a) => (isScreenshot(a) ? 60 : 0)
+    + (a.cdProminence === "hero" ? 25 : a.cdProminence === "support" ? 12 : 0)
+    + (Number(a.cdScore) || 0)
+    + (typeof a.clipRelevance === "number" ? a.clipRelevance * 30 : 0);
+  free.sort((x, y) => rank(y) - rank(x));
+  // An asset the director demoted to "background" is one it judged weak or
+  // off-topic. It may still scrim behind type, but it must not be the FIRST
+  // choice for a designed media card — so prominent candidates are exhausted
+  // before a demoted one is considered at all.
+  const demoted = (a) => a.cdProminence === "background" || a.visionOk === false;
   const claimed = new Set();
-  const take = (pred) => {
-    const a = free.find((x) => !claimed.has(x) && (!pred || pred(x)));
+
+  // ---- WHICH PICTURE BELONGS ON *THIS* BEAT ----------------------------------
+  // `rank` above is entirely FILM-GLOBAL — screenshot-ness, the director's
+  // prominence verdict, its score, its CLIP relevance to the film's subject.
+  // None of it knows what the scene in front of it is SAYING, so every slot in
+  // the film popped the next item off one global list: the beat about pricing
+  // got whatever ranked highest, which is the "random screenshots / random
+  // assets" complaint in full. The 139 bundled packs already match per scene;
+  // the 49 family packs had no per-scene matching at all.
+  //
+  // Everything scored here is data the pipeline already produced and then threw
+  // away: the vision pass's literal description of the image (`sees`), which
+  // part of the site it came from (`sectionType`), the query it was fetched for,
+  // and the page it was captured from.
+  const STOP = new Set(["the", "a", "an", "and", "or", "for", "with", "your", "our", "this",
+    "that", "page", "of", "to", "in", "on", "it", "is", "are", "you", "we", "all", "every",
+    "real", "website", "screenshot", "image", "photo", "product", "present", "styled",
+    "browser", "frame", "hero", "treatment", "matches", "scene", "topic", "unpinned",
+    // Prepositions and filler carry no subject, and leaving one out is enough to
+    // score a decorative image onto a beat: an alt reading "testimonials from
+    // Zoom" matched a line containing "from", and that single word was the whole
+    // match. Kept in step with asset_sources-side scene_match.js.
+    "from", "into", "onto", "over", "under", "after", "before", "than", "then",
+    "its", "their", "them", "they", "was", "were", "been", "being", "have", "has",
+    "had", "will", "would", "can", "could", "should", "more", "most", "just", "also"]);
+  const wordsOf = (s) => String(s || "").toLowerCase().match(/[a-z0-9]{3,}/g) || [];
+  const sceneWords = (sc) => new Set([
+    ...wordsOf(sc.headline), ...wordsOf(sc.title), ...wordsOf(sc.subtext),
+    ...wordsOf(sc.voiceover), ...wordsOf(sc.kicker), ...wordsOf(sc.emphasis),
+    ...bullets(sc, 4).flatMap(wordsOf),
+  ].filter((w) => !STOP.has(w)));
+  const ASSET_FIELDS = [["sees", 1.6], ["alt", 1.2], ["query", 1.2], ["sectionType", 1.0], ["url", 0.9], ["file", 0.7]];
+  const assetWords = (a) => {
+    const src = {
+      sees: a.sees, alt: a.alt, query: a.query || a.searchQuery, sectionType: a.sectionType,
+      url: String(a.pageUrl || a.sourceUrl || "").replace(/https?:\/\/[^/]+/, "").replace(/[/_-]+/g, " "),
+      file: String(a.path || "").split("/").pop().replace(/^page_\d+_/, "").replace(/\.\w+$/, ""),
+    };
+    const m = new Map();
+    for (const [k, w] of ASSET_FIELDS) {
+      for (const t of wordsOf(src[k])) { if (!STOP.has(t) && (m.get(t) || 0) < w) m.set(t, w); }
+    }
+    return m;
+  };
+  // A beat's PURPOSE says which part of a site belongs on it — the proof beat
+  // wants the logo wall, the close wants the sign-up, the opener wants the hero.
+  // Word overlap cannot make that link: a testimonial capture rarely repeats the
+  // narrator's nouns.
+  const SECTION_FOR = {
+    hook: /hero|home|landing/i, title: /hero|home|landing/i,
+    context: /hero|features|about/i, problem: /hero|features|about/i,
+    feature: /features|product|how|solution/i, demo: /features|product|how/i,
+    proof: /testimonial|logos|customers|social|stats/i, testimonial: /testimonial|logos|customers|social/i,
+    stat: /stats|testimonial|logos|customers/i, chart: /stats|pricing/i,
+    pricing: /pricing|plans/i,
+    cta: /cta|signup|sign-up|footer|pricing/i, close: /cta|signup|footer/i,
+  };
+  const matchScore = (sc, a) => {
+    if (!sc) return 0;
+    const terms = sceneWords(sc);
+    let score = 0;
+    if (terms.size) for (const [t, w] of assetWords(a)) if (terms.has(t)) score += w;
+    const want = SECTION_FOR[String(sc.purpose || sc.kind || "").toLowerCase()];
+    if (want && want.test(String(a.sectionType || ""))) score += 1.5;
+    if (typeof a.clipSceneRelevance === "number") score += a.clipSceneRelevance * 1.2;
+    else if (typeof a.clipRelevance === "number") score += a.clipRelevance * 0.8;
+    return score;
+  };
+  // `scene` is optional so every existing call site keeps working unchanged: with
+  // no scene this is exactly the old rank-order walk.
+  const take = (pred, scene = null) => {
+    const free1 = (x) => !claimed.has(x) && (!pred || pred(x));
+    let a = null;
+    if (scene && process.env.TE_TOPIC_MATCH !== "0") {   // =0 restores the old global rank walk, for A/B
+      let best = 0;
+      for (const x of free) {
+        if (!free1(x) || demoted(x)) continue;
+        const s = matchScore(scene, x);
+        if (s > best) { best = s; a = x; }
+      }
+    }
+    a = a || free.find((x) => free1(x) && !demoted(x)) || free.find(free1);
     if (a) claimed.add(a);
     return a || null;
   };
@@ -370,11 +546,62 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
     claimed.add(v);
     return { ...v, fitContain: true };
   };
+  // How many slots THIS scene may reserve for a vector — see the cadence note in
+  // fillSlots. One graphic beat in every three media beats: enough that a film
+  // reads as designed rather than as a photo reel, not so much that it becomes a
+  // slide-deck of icons (an early build that let vectors compete freely for slots
+  // came out roughly half icons, which is why they were demoted to leftovers in
+  // the first place — this restores them as a rationed accent instead).
+  let mediaBeat = 0;
+  const vecQuotaForScene = () =>
+    (vecs.some((x) => !claimed.has(x)) && (mediaBeat++ % 3 === 2)) ? 1 : 0;
 
   const cast = (templatePlan && templatePlan.byScene) || null;
   const startOf = (i) => scenes.slice(0, i).reduce((a, s) => a + (Number(s.duration) || 0), 0);
   const plan = [];
   const usedTypes = [];
+  // Sliding window of the shapes just seen, for the anti-slideshow rung below.
+  // Two is deliberate: it breaks A-A and A-B-A without forcing a family with
+  // only three legal shapes for a bullet scene to reach for a worse one.
+  const RECENT_WINDOW = 2;
+  const recentTypes = [];
+
+  // ---- anti-slideshow support -------------------------------------------------
+  // Can this scene's own copy actually FILL that shape? Every family publishes
+  // TEMPLATE_SCENES — the same descriptors the Template Director reads — and
+  // each entry names the slots its design draws. That is machine-checkable: a
+  // stats shape needs a figure, a quote shape needs a quote, a list shape needs
+  // two bullets. Routing a scene into a shape it cannot fill is worse than the
+  // repeat we are trying to avoid (it renders acres of empty frame), so this
+  // check is deliberately strict and the rung simply does nothing when it fails.
+  const DESC = new Map((family.TEMPLATE_SCENES || []).map((d) => [d.type, d]));
+  const sceneCanFill = (t, sc, avail) => {
+    const d = DESC.get(t);
+    if (!d || !family.SCENES[t]) return false;
+    const keys = Object.keys(d.slots || {});
+    if (keys.some((k) => /^stats?$/i.test(k)) && !statsOf(sc, 1).length) return false;
+    if (keys.some((k) => /^(quote|testimonial)$/i.test(k)) && !(sc.quote || sc.testimonial)) return false;
+    if (keys.some((k) => /^(items|chips|bullets|rows|points|list)$/i.test(k)) && bullets(sc, 2).length < 2) return false;
+    // A media shape with no media left is an empty plate, not a variation.
+    const md = (family.mediaSlots && family.mediaSlots[t]) || [];
+    const min = d.mediaMin != null ? d.mediaMin : md.length;
+    if (min > 0 && avail < min) return false;
+    return true;
+  };
+  // The opener and the closer are the film's bookends — a mid-film "titlespread"
+  // reads as the template restarting, which is the exact tell we are removing.
+  // Ask the router which shapes it reserves for those positions and keep them
+  // out of the middle.
+  const reservedTypes = new Set();
+  if (typeof family.route === "function" && scenes.length > 2) {
+    const probeCtx = { dims: { width: W, height: H }, land, theme, brand, url, framePack, freeCount: free.length, esc, r, rgba, lum, mix, inkOn, breakLines, bullets, fit, statsOf, mineStat };
+    for (const [sc, idx] of [[scenes[0], 0], [scenes[scenes.length - 1], scenes.length - 1]]) {
+      try {
+        const t = family.route(sc, idx, scenes.length, { ...probeCtx, i: idx, prevType: null });
+        if (t && family.SCENES[t]) reservedTypes.add(t);
+      } catch { /* no reservation discoverable — the rung just has more candidates */ }
+    }
+  }
   // Real assets already shown, in film order — what the recycle rung repeats
   // from when a later scene runs out of fresh media.
   const placed = [];
@@ -427,7 +654,7 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
         const cand = types.find((t) => (family.mediaSlots[t] || [])[0] === want) || types[0];
         if (cand) { type = cand; need = family.mediaSlots[cand]; typeVia = "castPinRescue"; }
       }
-      slots = fillSlots(need, { preset, pin, take, takeVec, recycle: !!family.recycleMedia, placedPool: placed });
+      slots = fillSlots(need, { preset, pin, take, takeVec, recycle: !!family.recycleMedia, placedPool: placed, vecQuota: vecQuotaForScene(), scene });
     } else {
       if (pin) claimed.add(pin);
       type = family.route(scene, i, scenes.length, {
@@ -437,6 +664,56 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
       });
       typeVia = "router";
       if (!family.SCENES[type]) { type = family.fallbackType || Object.keys(family.SCENES)[0]; typeVia = "fallbackType"; }
+      // ANTI-SLIDESHOW. Every router guards against an immediate repeat via
+      // ctx.prevType, but that guard only looks back ONE scene and only on the
+      // branches that carry media. Once the asset pool is spent — which on a
+      // 20-scene long-form film happens by scene 8 — every remaining bullet/
+      // feature beat falls through to the same text shape, and the back half of
+      // the film is eight identical slides. Measured on all 8 families: runs of
+      // 3, and ~8 repeats of one type across the tail.
+      //
+      // The fix asks the ROUTER, not us, for the alternatives: re-run it with a
+      // different prevType and it reveals which other shapes it considers
+      // legitimate for THIS scene's own copy. So every candidate here is one the
+      // family itself would have chosen — we only pick the least-recently-seen
+      // of them. A scene with genuinely one legal shape keeps it.
+      if (recentTypes.includes(type)) {
+        const avail = free.filter((x) => !claimed.has(x)).length + (pin ? 1 : 0);
+        const cands = Object.keys(family.SCENES)
+          .filter((t) => t !== type && !recentTypes.includes(t)
+            && !reservedTypes.has(t) && sceneCanFill(t, scene, avail));
+        // Least recently used wins, so a long film walks the family's whole
+        // vocabulary instead of pinning one shape.
+        if (cands.length) {
+          cands.sort((x, y) => (usedTypes.lastIndexOf(x)) - (usedTypes.lastIndexOf(y)));
+          type = cands[0];
+          typeVia = "antiRepeat";
+        }
+      }
+      // SPEND THE ASSETS. Measured on two live Trello films: 11 real screenshots
+      // were captured and the film put 3 on screen. The router alternates media
+      // beats to avoid a slideshow, which is right when assets are scarce and
+      // wrong when they are plentiful — the captures are the most convincing
+      // thing in a product film, and leaving two-thirds of them on disk is a
+      // bigger loss than two media beats in a row.
+      //
+      // So: when the pool is still deep, a text-only beat is re-routed to a
+      // media-bearing type the scene can actually fill. sceneCanFill keeps this
+      // honest (no routing a quote scene into a stats plate), and the recent
+      // window still blocks the same shape twice running.
+      const stillFree = free.filter((x) => !claimed.has(x)).length;
+      const needNow = (family.mediaSlots && family.mediaSlots[type]) || [];
+      if (!needNow.length && stillFree >= 3 && family.mediaSlots) {
+        const cand = Object.keys(family.mediaSlots)
+          .filter((t) => (family.mediaSlots[t] || []).length
+            && family.SCENES[t] && !recentTypes.includes(t)
+            && !reservedTypes.has(t) && sceneCanFill(t, scene, stillFree));
+        if (cand.length) {
+          cand.sort((x, y) => usedTypes.lastIndexOf(x) - usedTypes.lastIndexOf(y));
+          type = cand[0];
+          typeVia = "spendAssets";
+        }
+      }
       need = (family.mediaSlots && family.mediaSlots[type]) || [];
       // A scene the screenshot director PINNED an asset to MUST show it. Routers
       // guard against two media beats in a row (`prevType !== "feature"`), which
@@ -450,7 +727,7 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
         const cand = types.find((t) => family.mediaSlots[t][0] === want) || types[0];
         if (cand) { type = cand; need = family.mediaSlots[cand]; typeVia = "pinRescue"; }
       }
-      if (need.length) slots = fillSlots(need, { pin, take, takeVec, recycle: !!family.recycleMedia, placedPool: placed });
+      if (need.length) slots = fillSlots(need, { pin, take, takeVec, recycle: !!family.recycleMedia, placedPool: placed, vecQuota: vecQuotaForScene(), scene });
     }
 
     const media = slots.map((s) => s.asset);
@@ -479,7 +756,21 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
       if (alt) { type = alt; typeVia = "mediaFallback"; }
     }
 
+    // When a shape genuinely HAS to come back — a family with one list design
+    // and a film with six list beats — it must not come back identical. Every
+    // family authors 2-3 layout variants of each shape and reads ctx.variant,
+    // but that was a per-PACK constant, so all six beats staged the same way.
+    // Advancing it per recurrence means the repeat is a different arrangement of
+    // the same design language rather than the same slide again.
+    const nVar = Math.max(1, family.variants || 1);
+    if (nVar > 1) {
+      const rep = usedTypes.filter((t) => t === type).length;   // occurrences before this one
+      ctx.variant = (variantFor(framePack, nVar) + rep) % nVar;
+    }
+
     usedTypes[i] = type;
+    recentTypes.push(type);
+    if (recentTypes.length > RECENT_WINDOW) recentTypes.shift();
     ctx.type = type;
     plan.push({ sceneIndex: i, sceneId: sid, rawScene, scene, ctx, type, typeVia, need, slots, media, a, b, T, L, isLast });
   });
@@ -531,22 +822,132 @@ function buildFilm(family, opts = {}) {
   const DIR = cam.dirs || [0, 1, -1, 0, 1, 0, -1, 1];
   const DRIFT = [-1, 1, -1, 1, 1, -1, 1, -1];
   const camOn = cam.enabled !== false;
+  // The previous scene's card, so the motion pass can hand off across the cut.
+  let prevCardSel = null;
   const bodyParts = [];
   const sceneScripts = [];
+  const authoredScenes = opts.authoredScenes instanceof Map ? opts.authoredScenes : null;
+  const authoredCss = [];
 
   plan.forEach((p) => {
     const { ctx, scene, type, a, b, T, L, isLast, sceneIndex: i } = p;
-    const built = (family.SCENES[type] || family.SCENES[family.fallbackType])(scene, ctx, a, b);
+    // An AUTHORED scene (services/scene_author.js) replaces the pack's builder for
+    // this slot — that is how a 60s film on a 30-second pack gets new layouts
+    // instead of the same shapes with new words. It has already passed lintScene,
+    // and anything that failed simply never reaches here, so the pack's own
+    // builder stays the floor: an authored scene can add variety, never blank a
+    // frame. Its script is written against AT/DUR, bound here to this slot.
+    const authored = authoredScenes && authoredScenes.get(i);
+    if (authored && authored.css) authoredCss.push(authored.css);
+    const built = authored
+      ? { html: authored.html, clipStyle: "", s: `(function(){var AT=${T},DUR=${r(ctx.winL)};\n${authored.s}\n})();` }
+      : (family.SCENES[type] || family.SCENES[family.fallbackType])(scene, ctx, a, b);
     // Coverage stamped on the clip itself: one edit here makes every
     // template-engine composer's media demand countable from the rendered DOM,
     // which is otherwise impossible — an unfilled slot draws a styled <div>
     // with no <img> and is indistinguishable from intentional design.
     const filledCount = p.slots.filter((s) => s.kind && s.asset).length;
+    // ---- SCENE FILL -----------------------------------------------------------
+    // A family that declares `fill` gets its spare copy drawn as furniture in a
+    // band it says is safe. Opt-in and zone-driven on purpose: the engine cannot
+    // know where a given design has room, and guessing would overlap authored
+    // layout — the one failure mode worse than an empty frame.
+    let fillPart = { html: "", s: [] };
+    if (family.fill) {
+      const zone = typeof family.fill === "function" ? family.fill(type, ctx, scene) : family.fill;
+      if (zone) {
+        try { fillPart = sceneFill(ctx.id, scene, ctx, zone) || fillPart; }
+        catch { /* fill is decoration — never let it break a render */ }
+      }
+    }
     bodyParts.push(`<div class="clip tpl-scene" id="${ctx.id}" data-start="${T}" data-duration="${r(ctx.winL)}" data-track-index="${ctx.track}" data-scene-type="${type}" data-media-demand="${p.need.length}" data-media-filled="${filledCount}" data-media-kinds="${p.need.join(",")}" style="z-index:${ctx.track};opacity:0;${built.clipStyle || ""}">
-  <div class="camo" id="${ctx.id}-camo"><div class="cami" id="${ctx.id}-cami">${built.html}</div></div>
+  <div class="camo" id="${ctx.id}-camo"><div class="cami" id="${ctx.id}-cami">${built.html}${fillPart.html}</div></div>
 </div>`);
-    sceneScripts.push(`tl.fromTo("#${ctx.id}",{opacity:0},{opacity:1,duration:0.3,ease:"none"},${T});`);
+    if (fillPart.s && fillPart.s.length) sceneScripts.push(fillPart.s.filter(Boolean).join("\n  "));
+    // When the motion system owns the entrance (family.motion + camera disabled),
+    // the clip is switched on INSTANTLY and the visible arrival is the wipe/push
+    // preset. The 0.3s opacity ramp below is a crossfade — fine as a windowing
+    // device under a camera whip, but it is the exact transition the motion spec
+    // rules out, so it must not survive where the presets are the transition.
+    const motionOwnsEntry = !!(family.motion && (family.camera || {}).enabled === false);
+    sceneScripts.push(motionOwnsEntry
+      ? `tl.set("#${ctx.id}",{opacity:1},${T});`
+      : `tl.fromTo("#${ctx.id}",{opacity:0},{opacity:1,duration:0.3,ease:"none"},${T});`);
     sceneScripts.push(Array.isArray(built.s) ? built.s.filter(Boolean).join("\n  ") : String(built.s || ""));
+
+    // ---- SHARED MOTION PASS ---------------------------------------------------
+    // A family that declares `motion` hands the engine the selectors for its
+    // headline / card / media in a scene, and the engine drives them from the one
+    // preset library. The family keeps authoring its DESIGN; it stops authoring
+    // physics. That is what makes two films from two templates move alike.
+    //
+    // The family's own tweens for these elements must be removed when it opts in,
+    // or two timelines fight over the same property.
+    if (family.motion) {
+      const M = family.motion;
+      const pick = (v) => (typeof v === "function" ? v(ctx.id, type, ctx) : v || null);
+      // Does THIS scene actually draw the card the family named? Asking the
+      // built markup beats maintaining a per-family list of which scene types
+      // own a card: the list would silently rot the first time a family gains a
+      // scene type, and the failure mode is invisible (a card entrance with
+      // nothing to animate, or a card that never enters).
+      const rawCard = pick(M.card);
+      const cardPresent = !!rawCard && rawCard.split(",").some((s) => {
+        const m = s.trim().match(/^[#.]([\w-]+)/);
+        return m && String(built.html || "").includes(m[1]);
+      });
+      const tokens = typeof M.tokens === "function"
+        ? M.tokens(type, i, ctx, { hasCard: cardPresent })
+        : motion.tokensForScene(i, { hasCard: cardPresent, hero: type === (M.heroType || null) });
+      // A card selector is only handed to the presets when this scene draws one,
+      // so a text-only scene never emits an entrance with nothing to animate.
+      const cardSel = cardPresent ? rawCard : null;
+      sceneScripts.push(...motion.resolveMotion(tokens, {
+        at: T, span: L, index: i,
+        // The outline phase draws the word in THIS colour with a transparent
+        // fill, so it has to clear large-text contrast on its own — a raw accent
+        // (mint on near-white measured 1.69:1) is unreadable for the whole hold.
+        // readable() darkens it just far enough to pass while staying the brand hue.
+        // The settled colour is the pack's HEADLINE ink — the one the pack has
+        // already guaranteed reads on its own ground.
+        ink: readable(theme.ground || theme.card || "#FFFFFF", theme.ink, 1, 3),
+        // The accent appears only as the transient outline stroke.
+        accent: theme.accent || theme.ink,
+        // The muted fill the outline phase starts on. Mixing a FIXED fraction
+        // toward the ground cannot guarantee a floor — at 55% it measured 2.87:1
+        // on liquid-glass against the 3:1 large-text threshold, passing on every
+        // other pack purely by palette luck. So the mix is only a starting point
+        // and readable() pushes it back until it actually clears, per pack.
+        //
+        // The mix is deliberately shallow (28%, not 55%): readable() can only
+        // reason about theme.ground, and a pack that paints its own panel behind
+        // the headline — liquid-glass does — has a real backdrop the engine
+        // cannot see. Staying close to the final ink keeps the phase legible on
+        // ANY backdrop; the stroke, not the pale fill, carries the outline read.
+        inkSoft: (() => {
+          const bg = theme.ground || theme.card || "#FFFFFF";
+          const full = readable(bg, theme.ink, 1, 3);
+          return readable(bg, mix(full, bg, 0.28), 1, 3);
+        })(),
+        sel: {
+          // `scene` is handed over ONLY when the family disabled the engine
+          // camera. Otherwise the camo whip and a wipe would both animate the
+          // same arrival — the classic double entrance.
+          scene: motionOwnsEntry ? `#${ctx.id}-camo` : null,
+          card: cardSel, text: pick(M.text), camera: pick(M.camera),
+          shadow: M.shadow !== false,
+        },
+      }));
+      // CARD HAND-OFF ACROSS THE BOUNDARY. The outgoing scene's card steps back
+      // into depth as the incoming one arrives, overlapping by TIMING.overlap, so
+      // screens read as a stack being dealt rather than as slides advancing. It
+      // has to live here rather than in a scene function: no scene can see its
+      // neighbour, and the whole point is that the two overlap.
+      if (prevCardSel && cardSel && tokens.exit !== "none") {
+        sceneScripts.push(...motion.cardStackTransition(prevCardSel, null, r(T - motion.TIMING.overlap)));
+      }
+      prevCardSel = cardSel;
+    }
 
     if (camOn) {
       const eK = KIND[i % KIND.length], eD = DIR[i % DIR.length] || 1;
@@ -580,11 +981,34 @@ function buildFilm(family, opts = {}) {
     .filter((c) => c && c.text != null)
     .map((c) => [r(c.start != null ? c.start : c.startSec || 0), r(c.end != null ? c.end : (c.start || 0) + 2), String(c.text)]);
 
+  // The narration, on screen in display type. Driven off the same seeked time
+  // lookup as the subtitle node below, so it is frame-exact under scrubbing.
+  let overlay = null;
+  try {
+    // OPT-IN — see the note in omelette_adapter. The narration in display type
+    // duplicates the copy the family's own headline slots already show, in a
+    // second face, over whatever the scene drew. It renders only on an explicit
+    // request now; `captionCues` no longer implies it, because subtitles and a
+    // full-frame script layer are different asks.
+    if (!opts.scriptOverlay || !Array.isArray(opts.scriptCues) || !opts.scriptCues.length) {
+      throw new Error("script overlay not requested");
+    }
+    // The pack's ink on the pack's ground, run through readable() so the pairing
+    // is guaranteed to clear AA before it is ever written into the film.
+    const oGround = theme.card || theme.ground || "#0B0B0C";
+    overlay = require("./script_overlay").buildScriptOverlay(opts.scriptCues, W, H, {
+      ground: oGround,
+      ink: readable(oGround, theme.ink, 1, 4.5),
+      font: (theme.fonts && (theme.fonts.display || theme.fonts.head)) || theme.display || null,
+    });
+  } catch { /* a film without VO simply has no script to show */ }
+
   const script = `(function(){
   var D=${D};
   var tl=gsap.timeline({paused:true});
   var $=function(s){return document.querySelector(s);};
   function reps(t,c){return Math.max(0,Math.floor(t/c)-1);}
+${motion.runtimeHelpers()}
   function kill(id,t){tl.set(id,{opacity:0},t);}
   function countTxt(sel,to,at,dur,pre,suf,f){f=f||1;var o={v:0};tl.to(o,{v:to*f,duration:dur,ease:"expo.out",snap:{v:1},onUpdate:function(){var e=$(sel);if(e)e.textContent=pre+(f>1?(Math.round(o.v)/f).toFixed(1):Math.round(o.v))+suf;}},at);}
   function type(sel,str,at,dur){var o={n:0};tl.to(o,{n:str.length,duration:dur,ease:"none",snap:{n:1},onUpdate:function(){var e=$(sel);if(e)e.textContent=str.slice(0,Math.round(o.n));}},at);}
@@ -593,9 +1017,11 @@ function buildFilm(family, opts = {}) {
 
   ${sceneScripts.filter(Boolean).join("\n  ")}
 
+  ${overlay ? overlay.js : ""}
   var cues=${JSON.stringify(cues)};
   tl.to({},{duration:D,ease:"none",onUpdate:function(){
     var now=tl.time();
+    if(window.__kfScript) window.__kfScript(now);
     var cap=$("#cap-pill"),txt=$("#cap-text");
     if(cap&&txt){var a=null;for(var k=0;k<cues.length;k++){if(now>=cues[k][0]&&now<cues[k][1]){a=cues[k];break;}}if(a){if(txt.textContent!==a[2])txt.textContent=a[2];cap.style.opacity="1";}else cap.style.opacity="0";}
   }},0);
@@ -605,11 +1031,13 @@ function buildFilm(family, opts = {}) {
   if(typeof navigator==="undefined"||!navigator.webdriver){tl.play(0);tl.eventCallback("onComplete",function(){tl.restart();});}
 })();`;
 
-  const capsHtml = `<div id="caps" class="clip" data-start="0" data-duration="${r(D + 0.5)}" data-track-index="41" style="z-index:41;background:none;"><div id="cap-pill"><div id="cap-text"></div></div></div>`;
+  const capsHtml = `<div id="caps" class="clip" data-start="0" data-duration="${r(D + 0.5)}" data-track-index="41" style="z-index:41;background:none;"><div id="cap-pill"><div id="cap-text"></div></div></div>`
+    + (overlay ? `<div id="kf-script-clip" class="clip" data-start="0" data-duration="${r(D + 0.5)}" data-track-index="42" style="z-index:72;background:none;">${overlay.html}</div>` : "");
   const indexHtml = [
     `<!DOCTYPE html>`, `<html lang="en">`, `<head>`, `<meta charset="utf-8">`, `<title>vid</title>`,
     `<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>`,
-    `<style>`, baseCss(theme), family.styleBlock(theme, land), textfxCss(opts.manifest, framePack), `</style>`,
+    `<style>`, baseCss(theme), family.styleBlock(theme, land), textfxCss(opts.manifest, framePack),
+    authoredCss.join("\n"), overlay ? overlay.css : "", `</style>`,
     `</head>`, `<body>`,
     `<div id="root" class="composition" data-composition-id="vid" data-width="${W}" data-height="${H}" data-start="0" data-duration="${D}" style="width:${W}px;height:${H}px;">`,
     withZIndex((chrome.html || "").replace(/__D__/g, String(r(D + 0.5)))),
@@ -726,7 +1154,15 @@ function supportList(id, items, ctx, o = {}) {
   const box = o.flow
     ? `margin-top:${o.marginTop != null ? o.marginTop : r(font * 1.2)}cqw;`
     : `position:absolute;left:${o.left}cqw;right:${o.right}cqw;top:${o.top}cqw;z-index:3;`;
-  const html = `<div id="${id}" style="${box}">${rows}</div>`;
+  // OPTIONAL PLATE. This list is positioned absolutely in whatever space a scene
+  // has spare, which means the surface under it is not knowable at build time —
+  // in story-blocks the panel behind it animates away, leaving cream type on the
+  // cream ground at 1.39:1. A caller that cannot guarantee the backdrop passes
+  // `plate` and the list carries its own.
+  const plateCss = o.plate
+    ? `background:${o.plate};padding:${r(font * 0.7)}cqw ${r(font * 0.9)}cqw;border-radius:${r(font * 0.5)}cqw;`
+    : "";
+  const html = `<div id="${id}" style="${box}${plateCss}">${rows}</div>`;
   // Enter after the headline has landed, and comfortably before the scene ends.
   const at = o.at != null ? o.at : r(T + Math.min(1.5, L * 0.34));
   const stagger = o.stagger != null ? o.stagger : 0.12;
@@ -736,9 +1172,106 @@ function supportList(id, items, ctx, o = {}) {
   return { html, s };
 }
 
+// ---- LABEL THAT MATCHES THE PICTURE -------------------------------------------
+// A tile wall labels its cards from the SCRIPT while filling them from the asset
+// pool, and nothing correlates the two. Measured on a live Trello film: the card
+// labelled "Inbox" showed the Planner page and "Boards" showed Customer Stories.
+// A caption that contradicts the image under it is worse than no caption.
+//
+// The screenshot director already names each capture — the alt reads "… the
+// inbox page (matches this scene's topic) …" and the file is page_1_inbox-page.png
+// — so the truthful label is recoverable from the asset itself. Falls back to the
+// script's own label when the asset carries no page name (stock, vectors).
+function labelForAsset(asset, fallback, max = 16) {
+  const clean = (s) => fit(String(s || "").replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim(), max);
+  if (asset) {
+    const alt = String(asset.alt || "");
+    const m = /\bthe\s+([a-z0-9][a-z0-9 &'-]{1,40}?)\s+page\b/i.exec(alt);
+    if (m) return clean(m[1]);
+    const f = /(?:^|\/)page_\d+_(.+?)(?:-page)?\.\w+$/i.exec(String(asset.path || ""));
+    if (f) return clean(f[1]);
+  }
+  return clean(fallback);
+}
+
+// ---- SCENE FILL ---------------------------------------------------------------
+// Measured 2026-08-04 across all 8 families: a scene carries ~11 words in ~8
+// elements and covers ~14% of the frame. The rest is empty ground — which is why
+// films read as thin. The copy usually EXISTS (the script and the Text Director
+// mine supporting points, figures and a subtext per scene); most scene types
+// simply draw a headline and one line and drop the rest.
+//
+// This emits the leftovers as designed furniture in a band the family says is
+// safe, so nothing overlaps authored layout:
+//   * a chip row of the scene's OWN supporting points
+//   * a figure chip when the scene has a number the design did not already use
+//   * a slow marquee of the film's own key phrases (never invented copy)
+//
+// Rules it inherits from the rest of this file: seek-safe (finite reps, no
+// runtime randomness), and every colour guaranteed against the plate it sits on
+// rather than against theme.ground — the blind spot that produced a day of
+// near-miss contrast failures.
+function sceneFill(id, scene, ctx, o = {}) {
+  const { land, T, L, theme: th } = ctx;
+  const plate = o.plate || th.card || th.ground || "#111";
+  const ink = readable(plate, o.ink || th.ink, 1, 4.5);
+  const soft = readable(plate, o.ink || th.ink, 0.78, 4.5);
+  const accent = o.accent || th.accent || ink;
+  const font = o.fontFamily || th.bodyStack || "system-ui, sans-serif";
+  const fs0 = o.font != null ? o.font : (land ? 1.15 : 2.0);
+
+  // Only copy this scene actually owns. `used` lets a family exclude what its own
+  // design already drew, so nothing is said twice.
+  const used = new Set((o.used || []).map((x) => String(x || "").trim().toLowerCase()));
+  const pts = bullets(scene, 6)
+    .map((b) => fit(String(b), o.maxChars || 30))
+    .filter((b) => b && !used.has(b.toLowerCase()))
+    .slice(0, o.max || 3);
+  const st = statsOf(scene, 1)[0] || mineStat(scene.subtext) || null;
+  const showStat = !!st && !o.noStat;
+  const tokens = (Array.isArray(o.marquee) ? o.marquee : [ctx.brand, ctx.url, scene.headline || scene.title])
+    .map((x) => fit(String(x || "").trim(), 28))
+    .filter(Boolean);
+  // A family that already draws a brand ticker in its chrome passes marquee:false
+  // — two tickers on one frame is not density, it is a duplicate.
+  const phrase = (o.marquee === false || tokens.length < 2) ? "" : tokens.join("  •  ").toUpperCase();
+  if (!pts.length && !showStat && !phrase) return { html: "", s: [] };
+
+  const gap = r(fs0 * 0.7);
+  const chip = (t, i) => `<span class="${id}-fc" style="opacity:0;display:inline-flex;align-items:center;gap:${r(fs0 * 0.5)}cqw;padding:${r(fs0 * 0.42)}cqw ${r(fs0 * 0.8)}cqw;border-radius:999px;background:${rgba(o.ink || th.ink, 0.09)};border:${land ? 0.08 : 0.14}cqw solid ${rgba(o.ink || th.ink, 0.16)};font-family:${font};font-weight:600;font-size:${fs0}cqw;color:${ink};white-space:nowrap;">
+      <span style="width:${r(fs0 * 0.36)}cqw;height:${r(fs0 * 0.36)}cqw;border-radius:50%;background:${accent};display:block;flex:0 0 auto;"></span>${esc(t)}</span>`;
+  const statChip = showStat
+    ? `<span class="${id}-fc" style="opacity:0;display:inline-flex;align-items:baseline;gap:${r(fs0 * 0.4)}cqw;padding:${r(fs0 * 0.42)}cqw ${r(fs0 * 0.9)}cqw;border-radius:999px;background:${rgba(accent, 0.14)};font-family:${font};font-size:${fs0}cqw;color:${ink};white-space:nowrap;">
+        <b style="font-size:${r(fs0 * 1.5)}cqw;font-weight:800;letter-spacing:-0.02em;">${esc(st.pre || "")}${st.isFloat ? st.v.toFixed(1) : Math.round(st.v)}${esc(st.suf || "")}</b>
+        <span style="opacity:0.85;">${esc(fit(String(st.l || ""), 18))}</span></span>`
+    : "";
+  const marquee = phrase
+    ? `<div style="overflow:hidden;margin-top:${gap}cqw;"><div id="${id}-fm" style="white-space:nowrap;font-family:${font};font-weight:600;font-size:${r(fs0 * 0.92)}cqw;letter-spacing:0.14em;text-transform:uppercase;color:${soft};">${esc(phrase)} &nbsp;•&nbsp; ${esc(phrase)}</div></div>`
+    : "";
+
+  const box = o.flow
+    ? `margin-top:${o.marginTop != null ? o.marginTop : gap}cqw;`
+    : `position:absolute;left:${o.left}cqw;right:${o.right}cqw;${o.bottom != null ? `bottom:${o.bottom}cqw;` : `top:${o.top}cqw;`}z-index:3;`;
+  const html = `<div id="${id}-fill" style="${box}">
+    <div style="display:flex;flex-wrap:wrap;gap:${gap}cqw;align-items:center;">${statChip}${pts.map(chip).join("")}</div>
+    ${marquee}
+  </div>`;
+
+  const at = o.at != null ? o.at : r(T + Math.min(1.4, L * 0.32));
+  const s = [
+    `tl.fromTo(".${id}-fc",{opacity:0,y:${r(fs0 * 8)},scale:0.94},{opacity:1,y:0,scale:1,duration:0.46,ease:"power3.out",stagger:0.09,immediateRender:false},${at});`,
+  ];
+  if (phrase) {
+    // One slow pass across the scene's remaining time — finite, so a seek lands
+    // in exactly one place.
+    s.push(`tl.fromTo("#${id}-fm",{xPercent:0},{xPercent:-50,duration:${r(Math.max(2, L - 1))},ease:"none",immediateRender:false},${at});`);
+  }
+  return { html, s };
+}
+
 module.exports = {
-  buildFilm, planMedia, fillSlots, shapeForWant, isDeviceWant, withDisplayCopy,
+  buildFilm, planMedia, fillSlots, shapeForWant, isDeviceWant, withDisplayCopy, sceneFill,
   esc, r, rgba, lum, isDark, inkOn, mix, hexToRgb, contrastRatio, flatten, readable,
-  breakLines, bullets, fit, mineStat, statsOf, supportList,
+  breakLines, bullets, fit, mineStat, statsOf, supportList, labelForAsset,
   ratioOf, isPortraitAsset, isScreenshot, isLogo, plateOk, isVector, hashSeed, variantFor,
 };

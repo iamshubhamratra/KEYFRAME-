@@ -21,6 +21,25 @@ const DEDICATED = {
   "bloom-fable": require("../src/services/bloom_composer"),
   "three-flagship": require("../src/services/flagship_composer"),
   "three-brightlife": require("../src/services/brightlife_composer"),
+  "momentum": require("../src/services/momentum_composer"),
+  "poster-loud": require("../src/services/family_poster"),
+  "retro-terminal": require("../src/services/family_terminal"),
+  "editorial-quiet": require("../src/services/family_editorial"),
+  "dark-premium": require("../src/services/family_darkpremium"),
+  "bright-minimal": require("../src/services/family_bright"),
+  "cinema": require("../src/services/family_cinema"),
+  "story-handmade": require("../src/services/family_story"),
+  "charged": require("../src/services/family_charged"),
+  // The 9:16-native bundler packs. These were MISSING from this map, so the audit
+  // silently rendered them through scene_kit instead of their own composers —
+  // which is why their portrait layouts were never actually inspected here.
+  "daybreak-bakehouse": require("../src/services/daybreak_composer"),
+  "hype-wave": require("../src/services/hype_composer"),
+  "lantern-night": require("../src/services/lantern_composer"),
+  "organic-garden": require("../src/services/organic_composer"),
+  "poster-pop": require("../src/services/posterpop_composer"),
+  "premiere-night": require("../src/services/premiere_composer"),
+  "story-blocks": require("../src/services/storyblocks_composer"),
 };
 const { findChrome } = require("../src/services/ingest/website");
 const frameManifest = require("../src/services/frame_manifest");

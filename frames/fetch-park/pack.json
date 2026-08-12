@@ -1,0 +1,92 @@
+{
+  "name": "fetch-park",
+  "renderer": "omelette",
+  "template": "Fetch",
+  "vibe": "A playful sunlit park where a dog runs a ball back to its master, and product screenshots ride wooden signboards along the way. Warm cream, grass green, hot orange; motion is bouncy and character-led.",
+  "colors": {
+    "ground": "#FFFDF6",
+    "ink": "#3A352C",
+    "accent": "#F2683C",
+    "a2": "#8FC15A",
+    "a3": "#FFC24C"
+  },
+  "fonts": [
+    "Fredoka",
+    "Nunito"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#FFFDF6"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none"
+  },
+  "skin": {
+    "accents": [
+      "#F2683C",
+      "#8FC15A"
+    ],
+    "extras": [
+      "#FFC24C"
+    ],
+    "emphasisCss": "color:#F2683C;"
+  },
+  "assets": {
+    "photoMod": "",
+    "iconStyle": "line",
+    "keywords": [
+      "playful",
+      "park",
+      "friendly",
+      "dog",
+      "outdoor"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Fredoka"
+  },
+  "camera3d": {
+    "ground": "#FFFDF6"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "stamp",
+    "emphasis": "boxed",
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035,
+    "sizeScale": 1.12,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "big beat breakbeat percussive energetic drive",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
+  }
+}

@@ -1,5 +1,6 @@
 {
   "name": "ledger-noir",
+  "renderer": "dark-premium",
   "vibe": "a premium dark-fintech system: deep near-black ground, precise numerics, one metallic accent + one signal green — for finance, fintech, trading, crypto and investor stories",
   "colors": {
     "void": "#0A0C10",
@@ -10,7 +11,7 @@
     "teal": "#4FD1C5"
   },
   "fonts": [
-    "Inter",
+    "Bricolage Grotesque",
     "IBM Plex Mono"
   ],
   "surface": {
@@ -53,18 +54,34 @@
     ]
   },
   "textfx": {
-    "enter": "blur-up",
-    "emphasis": "underline-grow",
+    "enter": "slide",
+    "emphasis": "echo",
     "case": "upper",
-    "tracking": 0.03,
-    "weight": null,
-    "sizeScale": 1,
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.12,
     "align": "left"
   },
   "typography": {
-    "display": "IBM Plex Mono"
+    "display": "Bricolage Grotesque"
   },
   "camera3d": {
     "ground": "#0A0C10"
+  },
+  "audio": {
+    "music": {
+      "query": "marching snare stomp clap epic energetic",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
   }
 }

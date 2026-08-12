@@ -9,6 +9,8 @@ const { spawnCompat, killTree } = require("./spawn_compat");
 const config = require("../config");
 
 const WINDOWS = process.platform === "win32";
+const { cliFor } = require("./hyperframes_cli");
+
 
 // Run an ffmpeg invocation and resolve with its stdout buffer (null on error).
 function ffCapture(args) {
@@ -66,19 +68,14 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 // rejects on a non-zero exit, so the retry loop can decide what to do.
 function renderAttempt({ jobId, jobDir, outRelative, durationSec, quality, abortSignal, workers }) {
   return new Promise((resolve) => {
-    const cmd = WINDOWS ? "npx.cmd" : "npx";
-    // Pin the hyperframes version so renders are deterministic and immune to
-    // npm publish-propagation races (an unpinned `latest` can resolve to a
-    // version whose tarball hasn't propagated yet → ETARGET). Bump the pin in
-    // config.render.hyperframesVersion. Falls back to unpinned `latest`.
-    const hfVersion = config.render?.hyperframesVersion;
-    const hfSpec = hfVersion ? `hyperframes@${hfVersion}` : "hyperframes";
-    const args = [
-      "--yes", hfSpec, "render",
+    // The version pin (config.render.hyperframesVersion) and the local-vs-npx
+    // decision both live in hyperframes_cli.js — it is shared with validator.js,
+    // which pays the same resolve for `lint` and `inspect`.
+    const { cmd, args } = cliFor("render", [
       "--output", outRelative,
       "--quality", quality,
       "--workers", String(workers),
-    ];
+    ]);
 
     // spawnCompat runs .cmd shims under a shell (CVE-2024-27980) with pre-quoted
     // args (avoids DEP0190). windowsHide keeps the cmd/conhost chain off the

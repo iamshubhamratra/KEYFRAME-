@@ -1,0 +1,98 @@
+{
+  "name": "channel",
+  "renderer": "omelette",
+  "template": "Channel",
+  "portraitNative": true,
+  "vibe": "\"CHANNEL\" retro TV broadcast world. CRT, test cards, static. Portrait-native 9:16 (9 authored beats, 27.8s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#16121E",
+    "ink": "#EDEAE0",
+    "accent": "#37C8D6",
+    "a2": "#F2A93B"
+  },
+  "fonts": [
+    "Archivo Black",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#16121E",
+    "ink": "#EDEAE0"
+  },
+  "motion": {
+    "cut": "smear",
+    "drift": 1.05
+  },
+  "fx": {
+    "canvas": "rays",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#37C8D6",
+      "#F2A93B"
+    ],
+    "extras": [
+      "#E23B8E",
+      "#9ACD5A",
+      "#0F0C16"
+    ],
+    "emphasisCss": "color:#37C8D6;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "channel-film",
+      "channel",
+      "retro",
+      "broadcast",
+      "world",
+      "test"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Archivo Black",
+    "body": "IBM Plex Mono"
+  },
+  "camera3d": {
+    "ground": "#16121E"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slam",
+    "emphasis": "ring",
+    "case": "none",
+    "tracking": -0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

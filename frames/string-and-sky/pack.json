@@ -1,0 +1,98 @@
+{
+  "name": "string-and-sky",
+  "renderer": "omelette",
+  "template": "StringAndSky",
+  "portraitNative": true,
+  "vibe": "kites with wiggling tails, clouds, grass Portrait-native 9:16 (15 authored beats, 44.4s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#A8D8EA",
+    "ink": "#23364A",
+    "accent": "#F2B13C",
+    "a2": "#E84855"
+  },
+  "fonts": [
+    "Grandstander",
+    "Sofia Sans"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#A8D8EA",
+    "ink": "#23364A"
+  },
+  "motion": {
+    "cut": "glow",
+    "drift": 0.98
+  },
+  "fx": {
+    "canvas": "flow",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F2B13C",
+      "#E84855"
+    ],
+    "extras": [
+      "#5A9E54",
+      "#EEF6FA",
+      "#FFFFFF"
+    ],
+    "emphasisCss": "color:#F2B13C;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "string",
+      "kites",
+      "wiggling",
+      "tails",
+      "clouds",
+      "grass"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Grandstander",
+    "body": "Sofia Sans"
+  },
+  "camera3d": {
+    "ground": "#A8D8EA"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slam",
+    "emphasis": "accent",
+    "case": "none",
+    "tracking": 0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

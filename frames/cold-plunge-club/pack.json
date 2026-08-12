@@ -1,0 +1,98 @@
+{
+  "name": "cold-plunge-club",
+  "renderer": "omelette",
+  "template": "ColdPlungeClub",
+  "portraitNative": true,
+  "vibe": "ice hole, breath puffs, sauna hut, snow Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#CFE6EE",
+    "ink": "#000000",
+    "accent": "#E85C4A",
+    "a2": "#FAFCFD"
+  },
+  "fonts": [
+    "Bebas Neue",
+    "Instrument Sans"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#CFE6EE",
+    "ink": "#000000"
+  },
+  "motion": {
+    "cut": "wipe",
+    "drift": 0.96
+  },
+  "fx": {
+    "canvas": "halftone",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#E85C4A",
+      "#FAFCFD"
+    ],
+    "extras": [
+      "#16344A",
+      "#6B4A2F",
+      "#4A3826"
+    ],
+    "emphasisCss": "color:#E85C4A;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "cold",
+      "plunge",
+      "club",
+      "hole",
+      "breath",
+      "puffs"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Bebas Neue",
+    "body": "Instrument Sans"
+  },
+  "camera3d": {
+    "ground": "#CFE6EE"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "marker",
+    "case": "upper",
+    "tracking": 0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

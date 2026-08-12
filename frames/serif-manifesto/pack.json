@@ -1,0 +1,98 @@
+{
+  "name": "serif-manifesto",
+  "renderer": "omelette",
+  "template": "SerifManifesto",
+  "portraitNative": true,
+  "vibe": "pure editorial typography — no image slots at all Portrait-native 9:16 (18 authored beats, 49.9s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#F6F1E7",
+    "ink": "#000000",
+    "accent": "#7A2E2E",
+    "a2": "#B08D3F"
+  },
+  "fonts": [
+    "Playfair Display",
+    "Lato"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F6F1E7",
+    "ink": "#000000"
+  },
+  "motion": {
+    "cut": "clockwipe",
+    "drift": 0.97
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#7A2E2E",
+      "#B08D3F"
+    ],
+    "extras": [
+      "#1E1B17",
+      "#FBF8F1",
+      "#1F3A5F"
+    ],
+    "emphasisCss": "color:#7A2E2E;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "serif",
+      "manifesto",
+      "pure",
+      "editorial",
+      "typography",
+      "image"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Playfair Display",
+    "body": "Playfair Display"
+  },
+  "camera3d": {
+    "ground": "#F6F1E7"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "ring",
+    "case": "none",
+    "tracking": 0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

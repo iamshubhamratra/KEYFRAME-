@@ -299,15 +299,18 @@ function montage(scene, ctx, a, b) {
   const pool = (Array.isArray(ctx.media) && ctx.media.length ? ctx.media : [a, b]).filter(Boolean);
   const media = [0, 1, 2, 3].map((k) => (pool.length ? pool[k % pool.length] : null));
   const lines = breakLines(scene.headline, "Every corner|of it").slice(0, 2);
-  const tileH = land ? 15 : 26.85;
-  const cells = [0, 1, 2, 3].map((i) =>
+  const tileH = land ? 15 : 26.85;  // PORTRAIT: two tiles at FULL width rather than four at half. A 2x2 wall in
+  // 9:16 puts each plate under ~330px, where a product screenshot stops being
+  // readable; stacked full width they get the whole frame. Fewer, bigger.
+
+  const cells = (land ? [0, 1, 2, 3] : [0, 1]).map((i) =>
     `<div class="${id}-tl" style="opacity:0;height:${tileH}cqw;border-radius:${q(28, land)}cqw;overflow:hidden;box-shadow:0 ${q(24, land)}cqw ${q(50, land)}cqw ${rgba(th.ink, 0.12)};">${slot(`${id}-img${i}`, media[i], th, { radius: 0, label: labels[i] })}</div>`).join("");
   const html = land
     ? `<div style="position:absolute;left:6cqw;top:50%;transform:translateY(-50%);width:26cqw;">${gLines(id, lines, 66, th, land, { lh: 1.02 })}</div>
        <div style="position:absolute;right:6cqw;top:50%;transform:translateY(-50%);width:56cqw;display:grid;grid-template-columns:1fr 1fr;gap:1.3cqw;">${cells}</div>`
     : `<div style="position:absolute;left:6.7cqw;right:6.7cqw;top:27.8cqw;">
          ${gLines(id, lines, 96, th, land, { lh: 1.02 })}
-         <div style="margin-top:${q(46, land)}cqw;display:grid;grid-template-columns:1fr 1fr;gap:${q(26, land)}cqw;">${cells}</div>
+         <div style="margin-top:${q(46, land)}cqw;display:grid;grid-template-columns:1fr;gap:${q(26, land)}cqw;">${cells}</div>
        </div>`;
   const st = r(Math.min(0.22, L * 0.06));
   const s = [

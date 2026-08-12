@@ -1,5 +1,6 @@
 {
   "name": "abyssal-glow",
+  "renderer": "dark-premium",
   "vibe": "the bioluminescent deep sea, 4000 meters down: near-black water crossed by undulating caustic light webs, rising bubbles and pulsing plankton motes, soft rounded type that ripples in as if refracted through the current, scene changes as a crested tide rolling up over the frame, and the emphasis word split into a cyan-and-magenta sonar echo with a luminous halo — for discovery stories, science and research brands, ambient product films and anything that should glow out of the dark",
   "colors": {
     "abyss": "#041318",
@@ -9,8 +10,8 @@
     "foam": "#E6FAF4"
   },
   "fonts": [
-    "Inter",
-    "Comfortaa"
+    "Caprasimo",
+    "JetBrains Mono"
   ],
   "surface": {
     "flat": false,
@@ -53,7 +54,7 @@
     ]
   },
   "typography": {
-    "display": "Comfortaa"
+    "display": "Caprasimo"
   },
   "layout": {
     "propFill": false,
@@ -63,26 +64,27 @@
     "assetStyle": "glow"
   },
   "textfx": {
-    "enter": "ripple",
-    "emphasis": "echo",
+    "enter": "countin",
+    "emphasis": "glow",
     "align": "right",
-    "sizeScale": 1
+    "sizeScale": 1.12,
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035
   },
   "audio": {
     "music": {
-      "query": "ambient deep drone ethereal underwater",
-      "mood": "ambient",
+      "query": "punchy electronic percussion hard hitting drive",
+      "mood": "energetic",
       "volume": 0.15
     },
     "sfx": {
-      "style": "sonar pings, distant whale calls, bubble columns and slow water swells — vast and submerged, a swell riding every tide cut",
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
       "palette": [
-        "sonar ping",
-        "whale call",
-        "bubbles",
-        "water swell",
-        "deep boom",
-        "hydrophone crackle"
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
       ]
     }
   }

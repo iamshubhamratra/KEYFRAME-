@@ -1,0 +1,98 @@
+{
+  "name": "campfire-tales",
+  "renderer": "omelette",
+  "template": "CampfireTales",
+  "portraitNative": true,
+  "vibe": "\"Campfire Tales\" A story told around a fire: flickering flames, rising sparks, twinkling constellation lines, pine silhouettes. Chapter-book copy. Caveat + Andada Pro. Portrait-native 9:16 (18 authored beats, 49.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#1B2233",
+    "ink": "#F4ECDD",
+    "accent": "#F2913D",
+    "a2": "#F7C66B"
+  },
+  "fonts": [
+    "Caveat",
+    "Andada Pro"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#1B2233",
+    "ink": "#F4ECDD"
+  },
+  "motion": {
+    "cut": "whip",
+    "drift": 1.05
+  },
+  "fx": {
+    "canvas": "sprinkle",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F2913D",
+      "#F7C66B"
+    ],
+    "extras": [
+      "#2E4038",
+      "#6B4A32",
+      "#E86A4A"
+    ],
+    "emphasisCss": "color:#F2913D;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "campfire-tales-film",
+      "campfire",
+      "tales",
+      "story",
+      "told",
+      "around"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Caveat",
+    "body": "Caveat"
+  },
+  "camera3d": {
+    "ground": "#1B2233"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "zap",
+    "emphasis": "bullet",
+    "case": "none",
+    "tracking": -0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "acoustic handmade warm folk gentle plucked strings",
+      "mood": "warm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

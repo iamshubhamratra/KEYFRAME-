@@ -17,6 +17,9 @@
 
 const { deriveTheme } = require("./scene_kit");
 const E = require("./template_engine");
+// The shared motion vocabulary — see services/motion_presets.js. Physics for
+// headlines and cards lives there now, so every template moves alike.
+const MOTION = require("./motion_presets");
 const { esc, r, rgba, mix, statsOf, breakLines, bullets, fit, mineStat } = E;
 
 // ---- theme -------------------------------------------------------------------
@@ -205,7 +208,6 @@ function boot(scene, ctx) {
     <div id="${id}-flash" style="position:absolute;inset:0;background:${th.phos};opacity:0;mix-blend-mode:screen;"></div>`;
 
   const s = [
-    `tl.fromTo("#${id}-scr",{scaleY:0.04,opacity:0.3},{scaleY:1,opacity:1,duration:0.36,ease:"expo.out",transformOrigin:"center center"},${T});`,
     `tl.fromTo("#${id}-flash",{opacity:0.5},{opacity:0,duration:0.5,ease:"power2.out"},${T});`,
   ];
   chatter.forEach((c, k) => {
@@ -304,7 +306,6 @@ function dirlist(scene, ctx) {
 
   const s = [
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,x:-18},{opacity:1,x:0,duration:0.34},${r(T + 0.15)});` : "",
-    `tl.fromTo(".${id}-head",{opacity:0,y:${land ? 22 : 34}},{opacity:1,y:0,duration:0.4,ease:"expo.out",stagger:0.09},${r(T + 0.22)});`,
     `tl.fromTo("#${id}-win",{scaleY:0.02,opacity:0.2},{scaleY:1,opacity:1,duration:0.4,ease:"expo.out"},${r(T + 0.34)});`,
     `tl.fromTo("#${id}-bar",{scaleX:0},{scaleX:1,transformOrigin:"left center",duration:0.34,ease:"expo.out"},${r(T + 0.4)});`,
     `type("#${id}-cnt",${JSON.stringify(`${items.length} items`)},${r(T + 0.7)},0.3);`,
@@ -356,7 +357,6 @@ function readout(scene, ctx) {
     `countTxt("#${id}-num",${main.v},${r(T + 0.3)},${fillDur},${JSON.stringify(main.pre)},${JSON.stringify(main.suf)},${main.isFloat ? 10 : 1});`,
     `tl.fromTo(".${id}-cell",{opacity:0.1},{opacity:1,duration:0.18,ease:"none",stagger:${r(fillDur / n)}},${r(T + 0.32)});`,
     label ? `tl.fromTo("#${id}-lab",{opacity:0,y:18},{opacity:1,y:0,duration:0.38,ease:"power2.out"},${r(T + 0.75)});` : "",
-    head && head.toUpperCase() !== label ? `tl.fromTo("#${id}-head",{opacity:0,y:18},{opacity:1,y:0,duration:0.38,ease:"power2.out"},${r(T + 0.95)});` : "",
     second ? `tl.fromTo("#${id}-2nd",{opacity:0,y:14},{opacity:1,y:0,duration:0.36},${r(T + 1.15)});` : "",
     second ? `countTxt("#${id}-n2",${second.v},${r(T + 1.15)},${r(Math.min(1.1, L * 0.32))},${JSON.stringify(second.pre)},${JSON.stringify(second.suf)},${second.isFloat ? 10 : 1});` : "",
   ];
@@ -400,7 +400,6 @@ function transmission(scene, ctx, asset) {
     </div>`;
 
   const s = [
-    `tl.fromTo("#${id}-panel",{opacity:0,scaleY:0.06},{opacity:1,scaleY:1,duration:0.4,ease:"expo.out"},${T});`,
     `tl.fromTo("#${id}-dot",{opacity:0},{opacity:1,duration:0.01,ease:"none"},${r(T + 0.26)});`,
     blink(`#${id}-dot`, r(T + 0.26), Math.max(0.9, L - 0.36), 0.55),
     `type("#${id}-hd",${JSON.stringify(`TRANSMISSION / ${slugOf(brand, 14).toUpperCase()}`)},${r(T + 0.28)},0.32);`,
@@ -463,10 +462,8 @@ function crtframe(scene, ctx, asset) {
 
   const s = [
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,x:-18},{opacity:1,x:0,duration:0.34},${r(T + 0.2)});` : "",
-    `tl.fromTo(".${id}-head",{opacity:0,y:${land ? 22 : 30}},{opacity:1,y:0,duration:0.4,ease:"expo.out",stagger:0.09},${r(T + 0.28)});`,
     body ? `tl.fromTo("#${id}-body",{opacity:0,y:16},{opacity:1,y:0,duration:0.38,ease:"power2.out"},${r(T + 0.6)});` : "",
     `tl.fromTo("#${id}-mon",{opacity:0,y:${land ? 26 : 34}},{opacity:1,y:0,duration:0.44,ease:"power3.out"},${r(T + 0.25)});`,
-    `tl.fromTo("#${id}-scr",{scaleY:0.05,opacity:0.25},{scaleY:1,opacity:1,duration:0.46,ease:"expo.out"},${r(T + 0.45)});`,
     `tl.fromTo("#${id}-led",{opacity:0},{opacity:1,duration:0.01,ease:"none"},${r(T + 0.5)});`,
     blink(`#${id}-led`, r(T + 0.5), Math.max(0.9, L - 0.6), 0.62),
     `tl.fromTo("#${id}-sweep",{yPercent:-120},{yPercent:460,duration:${r(Math.max(1.4, L * 0.6))},ease:"none",repeat:reps(${r(L)},${r(Math.max(1.4, L * 0.6))})},${r(T + 0.5)});`,
@@ -515,10 +512,8 @@ function execute(scene, ctx, asset) {
     `tl.fromTo("#${id}-run",{opacity:0},{opacity:1,duration:0.01,ease:"none"},${r(T + 0.2)});`,
     `type("#${id}-run",${JSON.stringify(runLine)},${r(T + 0.2)},0.34);`,
     nChars > 1 ? `tl.fromTo(".${id}-ch",{opacity:0,y:${land ? 18 : 26},color:"${th.phos}"},{opacity:1,y:0,color:"${th.ink}",duration:0.34,ease:"power2.out",stagger:${stg}},${r(T + 0.5)});` : "",
-    cta ? `tl.fromTo("#${id}-box",{opacity:0,scale:0.86},{opacity:1,scale:1,duration:0.42,ease:"back.out(1.6)"},${r(T + 0.9)});` : "",
     cta ? `tl.fromTo("#${id}-cur",{opacity:0},{opacity:1,duration:0.01,ease:"none"},${r(T + 1.2)});` : "",
     cta ? blink(`#${id}-cur`, r(T + 1.2), Math.max(0.9, L - 1.3), 0.42) : "",
-    cta ? `tl.to("#${id}-box",{borderColor:"${th.alt}",duration:0.6,ease:"sine.inOut",yoyo:true,repeat:reps(${r(Math.max(1.2, L - 1.3))},0.6)},${r(T + 1.3)});` : "",
     `tl.fromTo("#${id}-rule",{scaleX:0},{scaleX:1,duration:0.44,ease:"expo.out"},${r(T + 1.1)});`,
     `tl.fromTo("#${id}-url",{opacity:0,y:14},{opacity:1,y:0,duration:0.36},${r(T + 1.35)});`,
   ];
@@ -573,13 +568,51 @@ function styleBlock(th, land) {
 }
 
 const family = {
+  // ---- SCENE FILL (services/template_engine.js sceneFill) ---------------------
+  // Measured 2026-08-04: scenes carried ~11 words over ~14% of the frame, so the
+  // script's spare copy (supporting points, a figure, a subtext) never reached the
+  // screen. It is drawn here as a chip row + broadcast ticker in the lower band.
+  // Skipped on the closer, the pull-quote and the type whose own design owns that
+  // band — furniture under a CTA or a quote costs more than the density gains.
+  fill: (type, ctx, scene) => {
+    if (["execute","transmission","crtframe"].includes(type)) return null;
+    const land = ctx.land;
+    return {
+      left: land ? 7 : 6, right: land ? 7 : 6, bottom: land ? 8 : 11,
+      font: land ? 1.12 : 1.95, max: 3,
+      plate: ctx.theme.ground, ink: ctx.theme.ink, accent: ctx.theme.accent,
+      used: bullets(scene || {}, 3),
+    };
+  },
   theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaFallback,
   wantsLogo: (t) => t === "execute",
   fallbackType: "prompt",
   variants: 2,
   // Terminals cut like a channel change — short hard moves, almost no drift, so
   // the scanline grid never smears.
-  camera: { kinds: ["zoom", "whip", "zoom", "whip", "whip", "zoom", "whip", "zoom"], blur: 12, push: 0.02, zoomIn: 1.1, zoomOut: 1.08 },
+  camera: { enabled: false, kinds: ["zoom", "whip", "zoom", "whip", "whip", "zoom", "whip", "zoom"], blur: 12, push: 0.02, zoomIn: 1.1, zoomOut: 1.08 },
+
+  // ---- SHARED MOTION SYSTEM (services/motion_presets.js) ----------------------
+  // This family publishes WHERE its headline, card and camera live; the engine
+  // drives them from the one preset library. Its own entrance tweens for those
+  // elements were removed in the same change — two timelines on one property
+  // fight, and the loser is whichever the browser applies second.
+  motion: {
+    heroType: "boot",
+    text: (id) => `.${id}-head`,
+    card: (id) => `#${id}-scr, .${id}-scr, #${id}-box, .${id}-box, #${id}-panel, .${id}-panel`,
+    camera: (id) => `#${id}-cami`,
+    // The film's two hero moments carry the signature type treatments; the
+    // middle stays on the house word stagger so the signatures stay signatures.
+    tokens: (type, i, ctx, { hasCard } = {}) => ({
+      text: type === "boot" ? "outlineFillReveal"
+        : type === "execute" ? "characterReveal" : "wordStaggerBlur",
+      enter: hasCard ? "cardRise3D" : "none",
+      idle: hasCard ? "floatSoft" : "none",
+      camera: MOTION.CAMERA_MOVES[i % MOTION.CAMERA_MOVES.length],
+      transition: MOTION.TRANSITIONS[i % MOTION.TRANSITIONS.length],
+    }),
+  },
 };
 
 function buildComposition(opts) { return E.buildFilm(family, opts); }

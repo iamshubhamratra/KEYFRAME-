@@ -1,0 +1,98 @@
+{
+  "name": "reef-build",
+  "renderer": "omelette",
+  "template": "ReefBuild",
+  "portraitNative": true,
+  "vibe": "coral branches growing, schooling fish, bubbles, light rays Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#0D3D4A",
+    "ink": "#F2EAD9",
+    "accent": "#4FD6C0",
+    "a2": "#FF7A5C"
+  },
+  "fonts": [
+    "Outfit",
+    "Nunito Sans"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#0D3D4A",
+    "ink": "#F2EAD9"
+  },
+  "motion": {
+    "cut": "inkblot",
+    "drift": 0.99
+  },
+  "fx": {
+    "canvas": "paper",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#4FD6C0",
+      "#FF7A5C"
+    ],
+    "extras": [
+      "#062730",
+      "#0E4A57",
+      "#0D3A46"
+    ],
+    "emphasisCss": "color:#4FD6C0;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "reef",
+      "build",
+      "coral",
+      "branches",
+      "growing",
+      "schooling"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Outfit",
+    "body": "Outfit"
+  },
+  "camera3d": {
+    "ground": "#0D3D4A"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "zap",
+    "emphasis": "underline-grow",
+    "case": "none",
+    "tracking": 0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

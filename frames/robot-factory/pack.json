@@ -1,0 +1,98 @@
+{
+  "name": "robot-factory",
+  "renderer": "omelette",
+  "template": "RobotFactory",
+  "portraitNative": true,
+  "vibe": "conveyor belt, robot arm placing crates, warning beacon Portrait-native 9:16 (18 authored beats, 49.9s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#23262B",
+    "ink": "#F0F0EC",
+    "accent": "#FF7A1A",
+    "a2": "#FFD23C"
+  },
+  "fonts": [
+    "Chakra Petch",
+    "IBM Plex Sans"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#23262B",
+    "ink": "#F0F0EC"
+  },
+  "motion": {
+    "cut": "iris",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "bokeh",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FF7A1A",
+      "#FFD23C"
+    ],
+    "extras": [
+      "#9AA4B2",
+      "#141518",
+      "#1B1E23"
+    ],
+    "emphasisCss": "color:#FF7A1A;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "robot",
+      "factory",
+      "conveyor",
+      "belt",
+      "placing",
+      "crates"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Chakra Petch",
+    "body": "IBM Plex Sans"
+  },
+  "camera3d": {
+    "ground": "#23262B"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slide",
+    "emphasis": "boxed",
+    "case": "none",
+    "tracking": -0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

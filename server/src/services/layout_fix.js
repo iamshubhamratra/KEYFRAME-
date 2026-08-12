@@ -120,6 +120,13 @@ async function layoutProbe(jobDir, { samples = 4, timeoutMs = 45000 } = {}) {
     browser = await puppeteer.launch({ executablePath: exe, headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"] });
     const page = await browser.newPage();
     await page.goto(`http://127.0.0.1:${served.port}/`, { waitUntil: "load", timeout: Math.max(1, deadline - Date.now()) });
+    // Wait for a LIVE composition root — bundled-template packs rebuild it after
+    // React mounts, so reading on `load` sees nothing and skips the whole fixer.
+    // See the same note in contrast_check.js.
+    await page.waitForFunction(() => {
+      const r = document.querySelector("[data-composition-id]");
+      return !!(r && r.clientHeight > 0 && r.clientWidth > 0);
+    }, { timeout: Math.min(20000, Math.max(1, deadline - Date.now())), polling: 200 }).catch(() => { /* fall through to the skip below */ });
     const meta = await page.evaluate(() => {
       const root = document.querySelector("[data-composition-id]");
       if (!root) return null;

@@ -55,10 +55,18 @@ function tokenize(q) {
 // return a cached "red apple".
 // `sourceRe` (optional RegExp) restricts hits to entries whose original
 // provider `source` matches — used by PIXABAY_ONLY to keep the cache Pixabay-only.
-function search({ query, type, orientation, limit = 3, sourceRe = null, excludeSourceRe = null }) {
+function search({ query, type, orientation, limit = 3, sourceRe = null, excludeSourceRe = null, subject = null }) {
   const idx = load();
   const want = tokenize(query);
   if (!want.length) return [];
+  // THE CACHE IS KEYED BY QUERY TEXT, NOT BY WHAT THE IMAGE SHOWS. 60% token
+  // overlap alone let an off-topic download be served back forever: a film about
+  // a standup-replacement app was handed a cached photo whose stored query was
+  // "still hard push-in" (CLIP relevance 0.09) because the direction words
+  // overlapped. When the caller knows the SUBJECT, at least one of its words must
+  // appear in the entry — a cache hit has to be about the topic, not merely
+  // spelled like the query.
+  const subjWords = subject ? tokenize(subject) : [];
 
   const scored = [];
   for (const e of idx) {
@@ -68,6 +76,7 @@ function search({ query, type, orientation, limit = 3, sourceRe = null, excludeS
     if (excludeSourceRe && excludeSourceRe.test(e.source || "")) continue;
     if (!fs.existsSync(e.file)) continue;
     const overlap = want.filter((w) => e.words.includes(w)).length;
+    if (subjWords.length && !subjWords.some((w) => e.words.includes(w))) continue;
     if (overlap / want.length >= 0.6) scored.push({ score: overlap / want.length, entry: e });
   }
   scored.sort((a, b) => b.score - a.score || b.entry.hits - a.entry.hits);

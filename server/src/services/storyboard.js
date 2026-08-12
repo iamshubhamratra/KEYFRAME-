@@ -147,6 +147,197 @@ function validate(storyboard, { duration, orientation }) {
   return errs;
 }
 
+// ---- deterministic copy floor ------------------------------------------------
+// MEASURED on shipped job agmoif2udy: every scene came back headline-only —
+// `subtext: ""` on all of them and no `bullets` at all — so packs that lay out a
+// kicker chip, a support line and a 2-4 item pill/stat row per scene printed 2-4
+// words over 50-70% empty frame. The prompt now demands the whole copy set, but
+// frame density must not depend on model compliance, so whatever is STILL missing
+// is derived here from the scene's own `voiceover` — the one text field a scene
+// never ships without, since the audio stage depends on it.
+// ADD-ONLY: copy the model wrote always wins. Fail-open: a missing pill label must
+// never cost a paid render, so every scene is repaired inside its own try.
+
+const norm = (v) => String(v == null ? "" : v).replace(/\s+/g, " ").trim();
+const keyOf = (v) => norm(v).toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+
+// Two lines "echo" when one contains the other: a support line that repeats the
+// headline renders as the same sentence printed twice, one row below itself. The
+// keys are space-padded so the match is on whole words — unpadded, "one sentence
+// in" matched "one sentence into a finished film" and threw away a good line.
+function echoes(a, b) {
+  const x = keyOf(a), y = keyOf(b);
+  if (!x || !y) return false;
+  return ` ${x} `.includes(` ${y} `) || ` ${y} `.includes(` ${x} `);
+}
+
+// Word-boundary clip — a raw slice lands half a word on screen, which reads as a
+// rendering bug rather than an edit.
+function clipWords(v, n) {
+  const t = norm(v);
+  if (t.length <= n) return t;
+  const cut = t.slice(0, n);
+  const sp = cut.lastIndexOf(" ");
+  return (sp > n * 0.5 ? cut.slice(0, sp) : cut).replace(/[\s,;:.–—-]+$/, "");
+}
+
+// A clause that opens or closes on a function word is a STUMP, and pills render
+// each label ALONE: "Slack & Teams in" or "and the whole team" ship as visibly
+// broken copy. Dropping the fragment costs one pill; shipping it costs the frame.
+const STUMP_HEAD = new Set((
+  "and or but so yet nor then than that which who because though although while when if as "
+  + "of to in on at for with from by into over about after before per via "
+  + "is are was were be been it its this these those there"
+).split(" "));
+const STUMP_TAIL = new Set([...STUMP_HEAD, ...(
+  "a an the your our their my his her no not do does did has have had "
+  + "will would can could should may might must up out more most very just"
+).split(" ")]);
+
+const bareWords = (text) => (norm(text).toLowerCase().match(/[a-z0-9][a-z0-9'&$%./+-]*/g) || [])
+  .map((w) => w.replace(/[^a-z0-9]/g, ""))
+  .filter(Boolean);
+
+function isStump(text) {
+  const w = bareWords(text);
+  if (!w.length) return true;
+  // ONE WORD CAN BE A LABEL — if it is a word with content in it. Rejecting
+  // every single-word clause threw away exactly the copy these racks are for:
+  // "Design. Code. AI." is three perfect pills, and all three were dropped, so
+  // the sign rack rendered one entry and two empty slots. A function word on its
+  // own ("So", "And", "It") is still the leftover of a bad split.
+  if (w.length < 2) return !/\d/.test(text) && (STUMP_TAIL.has(w[0]) || w[0].length < 3);
+  return STUMP_HEAD.has(w[0]) || STUMP_TAIL.has(w[w.length - 1]);
+}
+
+// A support LINE is a whole sentence, so opening on "It costs $29 a month" or
+// "That is 4.9x cheaper" is fine prose — only a dangling function word at the END
+// gives it away as a cut-off fragment.
+function endsOnStump(text) {
+  const w = bareWords(text);
+  return !w.length || STUMP_TAIL.has(w[w.length - 1]);
+}
+
+// `\.(?!\d)` keeps "4.9" and "$29.99" whole — the same guard the composers use
+// when they mine a subtext for list items.
+const trimEdges = (c) => c.replace(/^[\s"'(\[]+|[\s"')\]]+$/g, "").trim();
+const splitOn = (text, re) => norm(text).split(re).map(trimEdges).filter(Boolean);
+const splitSentences = (text) => splitOn(text, /[;!?]|\.(?!\d)/);
+const splitClauses = (text) => splitOn(text, /[;:,!?]|\.(?!\d)|\s[–—-]\s/);
+const wordsOf = (t) => (norm(t).match(/[A-Za-z0-9][A-Za-z0-9'&$%./+-]*/g) || []).length;
+
+// The conjunction that joined a clause to the one before it is what makes the
+// clause read as a fragment: drop it and "but the work never syncs" becomes a
+// label that stands on its own.
+const LEAD_STRIP = new Set("and or but so yet nor then plus which that".split(" "));
+function stripLead(text) {
+  let t = norm(text);
+  for (let i = 0; i < 2; i++) {
+    const m = t.match(/^([A-Za-z']+)\s+(.+)$/);
+    if (!m || !LEAD_STRIP.has(m[1].toLowerCase())) break;
+    t = m[2];
+  }
+  return t;
+}
+
+// Mid-sentence clauses start lowercase; a pill reads as a label, so lift the first
+// letter — but never on a code-ish line, where a typed command must stay verbatim.
+const capFirst = (t) => (/^[a-z]/.test(t) && !/[$_<>={}\\\/]|--/.test(t) ? t[0].toUpperCase() + t.slice(1) : t);
+
+// 28 chars is the label budget templates lay out for a pill/card row. The cut is
+// what has to be policed, not the length: "Slack & Teams in" is exactly what a
+// 28-char cut of "Slack & Teams in one inbox" leaves on screen, so a clipped label
+// ships only when the clipped form still ends on a real word.
+function clauseLabels(text, max) {
+  const out = [];
+  const seen = new Set();
+  for (const raw of splitClauses(text)) {
+    let label = capFirst(stripLead(raw));
+    // A LONG CLAUSE IS STILL A LABEL ONCE IT IS CUT. Dropping everything over 28
+    // chars is what left the racks empty: measured on the film that produced this
+    // complaint, 8 scenes yielded ZERO pill labels, because narration clauses run
+    // long ("One workspace for your entire product development process"). Clip on
+    // a word boundary and keep it only if the clipped form still reads whole.
+    if (label && label.length > 28) {
+      const cut = clipWords(label, 28);
+      label = cut && !endsOnStump(cut) ? cut : "";
+    }
+    if (!label || isStump(label)) continue;
+    const k = keyOf(label);
+    if (!k || seen.has(k)) continue;
+    seen.add(k);
+    out.push(label);
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
+// Kicker of last resort: the scene's own purpose, else a section label for its
+// kind. Written in sentence case because the composers uppercase it themselves.
+const KIND_KICKER = {
+  title: "Overview",
+  hook: "Why it matters",
+  bullet: "What you get",
+  caption: "How it works",
+  quote: "In their words",
+  chart: "By the numbers",
+  countdown: "Counting down",
+  "shape-motion": "In motion",
+  cta: "Start here",
+};
+
+function ensureCopyFloor(sb) {
+  if (!sb || !Array.isArray(sb.scenes)) return;
+  sb.scenes.forEach((scene, i) => {
+    if (!scene || typeof scene !== "object") return;
+    try {
+      const vo = norm(scene.voiceover);
+      // A `typewriter` scene's subtext and bullets are TYPED into the terminal as
+      // literal command/output lines, so a clause of narration would print there as
+      // a fake command. Only its kicker (a chip outside the window) is safe to fill.
+      const typed = norm(scene.animation).toLowerCase() === "typewriter";
+
+      // subtext: one SENTENCE of the narration first (a comma fragment reads as a
+      // cut-off line under the headline); its clauses, longest first, are the
+      // fallback when the sentence overruns the slot. The support row exists to
+      // land a SECOND fact, so a line that already contains the headline is only
+      // taken when nothing else survives — better a near-echo than an empty row.
+      if (!norm(scene.subtext) && vo && !typed) {
+        const usable = (min) => splitSentences(vo)
+          .concat(splitClauses(vo).map(stripLead).sort((a, b) => b.length - a.length))
+          .filter((c) => wordsOf(c) >= min && c.length <= 120 && !endsOnStump(c)
+            && keyOf(c) !== keyOf(scene.headline));
+        // Three words is the bar for a support LINE, but a short narration
+        // ("Design. Code. AI. All disconnected.") has no clause that long, and
+        // holding out for one left the row empty on exactly the beats that were
+        // already thinnest. Take a two-word line rather than nothing.
+        const cands = usable(3).length ? usable(3) : usable(2);
+        const pick = cands.find((c) => !echoes(c, scene.headline)) || cands[0];
+        if (pick) scene.subtext = capFirst(pick);
+      }
+
+      // A model that writes `bullets` as a bare string would otherwise be replaced
+      // wholesale below; promote its copy to the one-item row templates expect.
+      if (typeof scene.bullets === "string" && norm(scene.bullets)) scene.bullets = [norm(scene.bullets)];
+      const hasBullets = Array.isArray(scene.bullets) && scene.bullets.some((b) => norm(b));
+      if (!hasBullets && !typed) {
+        const labels = clauseLabels(`${vo}. ${norm(scene.subtext)}`, 8)
+          .filter((c) => !echoes(c, scene.headline) && keyOf(c) !== keyOf(scene.subtext))
+          .slice(0, 3);
+        if (labels.length) scene.bullets = labels;
+      }
+
+      // The opener is left alone on purpose: with no `kicker` the packs fall back
+      // to something better than a section label there (family_bright's hero chip
+      // is `scene.kicker || scene.purpose || brand` — the BRAND name).
+      if (!norm(scene.kicker) && i > 0) {
+        const label = norm(scene.purpose) || KIND_KICKER[norm(scene.kind).toLowerCase()] || "";
+        if (label) scene.kicker = clipWords(label, 18);
+      }
+    } catch { /* fail-open: ship the scene as authored */ }
+  });
+}
+
 async function generateStoryboard({ prompt, duration, orientation, framePack }) {
   const user = buildUser({ prompt, duration, orientation, framePack });
   const maxTries = (config.llm.storyboardMaxRetries || 2) + 1;
@@ -184,6 +375,9 @@ async function generateStoryboard({ prompt, duration, orientation, framePack }) 
     normalizeTimeline(storyboard, duration);
     const errs = validate(storyboard, { duration, orientation });
     if (errs.length === 0) {
+      // Last stop before the composition: fill the text slots this storyboard
+      // still leaves empty, so the frame has something to lay out.
+      ensureCopyFloor(storyboard);
       return { storyboard, tokensIn: totalIn, tokensOut: totalOut, costUsd: costCalls ? totalCost : null };
     }
     lastErrors = errs;
@@ -199,4 +393,4 @@ async function generateStoryboard({ prompt, duration, orientation, framePack }) 
   throw err;
 }
 
-module.exports = { generateStoryboard, normalizeTimeline, validate };
+module.exports = { generateStoryboard, normalizeTimeline, validate, ensureCopyFloor };

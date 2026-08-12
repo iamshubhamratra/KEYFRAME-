@@ -1,0 +1,98 @@
+{
+  "name": "ghost-route",
+  "renderer": "omelette",
+  "template": "GhostRoute",
+  "portraitNative": true,
+  "vibe": "wisps, lantern swing, gravestones, fog Portrait-native 9:16 (14 authored beats, 41.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#1A2026",
+    "ink": "#ECE8DC",
+    "accent": "#9FE8C4",
+    "a2": "#E8A23C"
+  },
+  "fonts": [
+    "Grenze Gotisch",
+    "Spectral"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#1A2026",
+    "ink": "#ECE8DC"
+  },
+  "motion": {
+    "cut": "wash",
+    "drift": 0.95
+  },
+  "fx": {
+    "canvas": "caustics",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#9FE8C4",
+      "#E8A23C"
+    ],
+    "extras": [
+      "#12161A",
+      "#9FC4E8",
+      "#C4A0E8"
+    ],
+    "emphasisCss": "color:#9FE8C4;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "ghost",
+      "route",
+      "wisps",
+      "lantern",
+      "swing",
+      "gravestones"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Grenze Gotisch",
+    "body": "Spectral"
+  },
+  "camera3d": {
+    "ground": "#1A2026"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "stamp",
+    "emphasis": "ring",
+    "case": "none",
+    "tracking": -0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

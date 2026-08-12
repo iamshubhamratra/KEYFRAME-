@@ -1,5 +1,6 @@
 {
   "name": "sumi-kaze",
+  "renderer": "story-handmade",
   "vibe": "a Japanese sumi-e ink-wash scroll come alive: warm washi paper with enormous negative space, translucent sumi mountain ridges drifting in parallax, horizontal mist bands and falling vermillion petals; headlines dragged on by a loaded brush stroke, scene changes as blooming ink blots, and the emphasis word stamped with a vermillion hanko seal — calm, poetic launches, brand films and story pieces that should feel hand-painted",
   "colors": {
     "washi": "#F5EFE3",
@@ -11,8 +12,8 @@
     "stone": "#6B6459"
   },
   "fonts": [
-    "Inter",
-    "Zen Old Mincho"
+    "Anton",
+    "JetBrains Mono"
   ],
   "surface": {
     "flat": false,
@@ -55,7 +56,7 @@
     ]
   },
   "typography": {
-    "display": "Zen Old Mincho"
+    "display": "Anton"
   },
   "layout": {
     "propFill": false,
@@ -65,26 +66,27 @@
     "assetStyle": "washi"
   },
   "textfx": {
-    "enter": "brush",
-    "emphasis": "hanko",
+    "enter": "glitch",
+    "emphasis": "bracket",
     "align": "left",
-    "sizeScale": 1
+    "sizeScale": 1.12,
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035
   },
   "audio": {
     "music": {
-      "query": "japanese koto shakuhachi calm meditative",
-      "mood": "calm",
+      "query": "hand claps foot stomps rock energetic anthem",
+      "mood": "energetic",
       "volume": 0.14
     },
     "sfx": {
-      "style": "soft brush swishes, ink drops, a single wooden stamp thud on the seal, distant wind chimes — sparse, contemplative, landing with the ink blots",
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
       "palette": [
-        "brush swish",
-        "water drop",
-        "stamp thud",
-        "wind chime",
-        "taiko soft hit",
-        "paper slide"
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
       ]
     }
   }

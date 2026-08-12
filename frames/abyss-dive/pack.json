@@ -1,0 +1,98 @@
+{
+  "name": "abyss-dive",
+  "renderer": "omelette",
+  "template": "AbyssDive",
+  "portraitNative": true,
+  "vibe": "deep sea — bubbles, jellyfish, angler light, depth ruler Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#061C26",
+    "ink": "#E8D9B0",
+    "accent": "#35D0D6",
+    "a2": "#FF7E67"
+  },
+  "fonts": [
+    "Krona One",
+    "Overpass"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#061C26",
+    "ink": "#E8D9B0"
+  },
+  "motion": {
+    "cut": "whip",
+    "drift": 1.09
+  },
+  "fx": {
+    "canvas": "sprinkle",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#35D0D6",
+      "#FF7E67"
+    ],
+    "extras": [
+      "#000000",
+      "#04141C",
+      "#07202C"
+    ],
+    "emphasisCss": "color:#35D0D6;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "abyss",
+      "dive",
+      "deep",
+      "bubbles",
+      "jellyfish",
+      "angler"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Krona One",
+    "body": "Overpass"
+  },
+  "camera3d": {
+    "ground": "#061C26"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "zap",
+    "emphasis": "glow",
+    "case": "none",
+    "tracking": 0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic dark ambient low pulse atmospheric",
+      "mood": "moody",
+      "volume": 0.12
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "name": "turbine-coast",
+  "renderer": "omelette",
+  "template": "TurbineCoast",
+  "portraitNative": true,
+  "vibe": "rotating turbines, waves, pylon, gull Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#DCE8EA",
+    "ink": "#22343C",
+    "accent": "#E8641F",
+    "a2": "#2E6E63"
+  },
+  "fonts": [
+    "Michroma",
+    "Saira"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#DCE8EA",
+    "ink": "#22343C"
+  },
+  "motion": {
+    "cut": "glow",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "flow",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#E8641F",
+      "#2E6E63"
+    ],
+    "extras": [
+      "#FAFCFC",
+      "#000000",
+      "#F4F8F8"
+    ],
+    "emphasisCss": "color:#E8641F;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "turbine",
+      "coast",
+      "rotating",
+      "turbines",
+      "waves",
+      "pylon"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Michroma",
+    "body": "Saira"
+  },
+  "camera3d": {
+    "ground": "#DCE8EA"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "spring",
+    "emphasis": "underline-grow",
+    "case": "none",
+    "tracking": -0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

@@ -16,6 +16,7 @@
 // Exits non-zero on any failure — wire into CI. No video render needed.
 
 const path = require("node:path");
+const fs = require("node:fs");
 const sk = require("../src/services/scene_kit");
 const man = require("../src/services/frame_manifest");
 const reg = require("../src/services/frame_registry");
@@ -50,7 +51,22 @@ for (const name of packs) {
     }
     // 2) display face renders
     const disp = m.typography && m.typography.display;
-    if (disp) {
+    // An `omelette` pack is rendered by its BUNDLED TEMPLATE, which ships its own
+    // @font-face set; scene-kit cannot reproduce that face and never renders the
+    // pack in production. Asserting the font against the scene-kit build rewarded
+    // a manifest that named a font scene-kit happens to have — which is how 16
+    // packs came to declare a display face their template never loads, and how QA
+    // ended up reporting an unfixable TYPOGRAPHY blocker on every render. Check it
+    // where it actually renders: in the template.
+    const tplName = m.template || m.omeletteTemplate;
+    const isOmelette = m.renderer === "omelette" && tplName;
+    if (disp && isOmelette) {
+      const tplFile = path.join(__dirname, "..", "public", "omelette-templates", `${tplName}.html`);
+      if (!fs.existsSync(tplFile)) problems.push(`template ${tplName}.html missing`);
+      else if (!fs.readFileSync(tplFile, "utf8").includes(disp)) {
+        problems.push(`display "${disp}" not loaded by template ${tplName} (run: npm run fonts:sync)`);
+      }
+    } else if (disp) {
       if (isBundled(disp)) {
         if (!html.includes("@font-face") || !html.includes(disp)) problems.push(`display "${disp}" bundled but no @font-face/usage`);
         if (!new RegExp(`\\.kfw[^}]*'${disp.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}'`).test(html)) problems.push(`display "${disp}" not applied to .kfw`);

@@ -176,7 +176,7 @@ const SYSTEM = `You are the Screenshot Director of an automated video studio. A 
 Match on TOPIC: a scene about cost/plans -> the pricing page; a scene about capabilities -> the features/product page; social proof -> customers/case studies; setup or how-it-works -> docs/integrations. Only match when the page clearly holds what the scene talks about — a weak or decorative match is worse than none.
 
 Hard rules:
-- Pick AS MANY well-matched pairs as the script supports, up to 6. A film that SHOWS the product on six real pages is far more convincing than one that shows it twice — but a weak match is still worse than none, so do not force a pairing just to reach six. Zero picks is a valid answer.
+- Pick AS MANY well-matched pairs as the script supports, up to 9. A film that SHOWS the product on many real pages is far more convincing than one that shows it twice — but a weak match is still worse than none, so do not force a pairing just to reach the cap. Zero picks is a valid answer.
 - "url" MUST be copied verbatim from the CANDIDATE PAGES list. "sceneId" MUST be one of the scene ids.
 - Never pick login/signup/legal pages. Never pick the homepage (its screenshots are already captured).
 - At most one page per scene and one scene per page.
@@ -222,7 +222,7 @@ ${pageList}`;
     if (DENY_PATH.test(new URL(url).pathname)) continue;
     seenScene.add(sid); seenUrl.add(url);
     picks.push({ sceneId: sid, url, label: String(raw.label || "page").slice(0, 40), guessed: !!byUrl.get(url).guessed });
-    if (picks.length >= 6) break;
+    if (picks.length >= 9) break;
   }
   return picks;
 }
@@ -261,6 +261,48 @@ async function preflight(url, { guessed }) {
 const slug = (s) => String(s || "page").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 24) || "page";
 
 // Main entry. Returns pinned website-screenshot assets (possibly []) — never throws.
+// One capture pass over a set of picks. Shared by the first pass and the retry
+// pass so a replacement shot is acquired exactly the way the original was.
+async function capturePicks({ picks, job, jobDir, sceneById, signal, prefix = "page", label = "topic page" }) {
+  const title = job.website_title || "the product";
+  const settled = await Promise.allSettled(picks.map((p, i) => {
+    const relPath = `assets/images/${prefix}_${i}_${slug(p.label)}.png`;
+    // A pick destined for a `phone` media slot must be shot at a MOBILE
+    // viewport — the site then serves its own mobile breakpoint, so the
+    // capture is genuinely portrait and fits a device bezel uncropped.
+    const vp = peekshot.VIEWPORTS[p.viewport === "phone" ? "phone" : "desktop"];
+    return peekshot.capture({
+      url: p.url, outPath: path.join(jobDir, relPath),
+      // 75s was BELOW PeekShot's real latency and silently lost topic shots.
+      // Measured 2026-08-03 across this account's completed captures:
+      // 47s / 63s / 97s / 103s / 112s — three of five over the old ceiling, so
+      // the slower pages (the content-heavy ones a film most wants) timed out
+      // while the fast ones got through. 180s clears the observed max.
+      width: vp.width, height: vp.height, retina: true, delay: 3, timeoutMs: 180_000, signal,
+    }).then((cap) => {
+      const scene = sceneById.get(p.sceneId);
+      return {
+        path: relPath, type: "image",
+        sceneId: scene.id, startSec: scene.start, durationSec: scene.duration,
+        style: "inset",
+        // Real probed pixel dims. Without these every shape gate downstream
+        // (isPortraitAsset, scoreAsset's bezel-fit penalty, deviceKind) sees
+        // ratio 0 and silently treats the shot as shapeless.
+        width: cap.width || 0, height: cap.height || 0, ratio: cap.ratio || 0,
+        alt: `REAL website screenshot of ${title} — the ${p.label} (matches this scene's topic) — present in a styled browser frame with hero treatment`,
+        license: "owner content", sourceUrl: p.url, source: "website", fromCache: false,
+      };
+    });
+  }));
+  const shots = [];
+  settled.forEach((r, i) => {
+    if (r.status === "fulfilled") shots.push(r.value);
+    else console.warn(`[shots] capture failed ${new URL(picks[i].url).pathname}: ${String(r.reason && r.reason.message || r.reason).slice(0, 140)}`);
+  });
+  if (shots.length) console.log(`[shots] captured ${shots.length} ${label} shot(s): ${shots.map((x) => x.path).join(", ")}`);
+  return shots;
+}
+
 async function captureTopicShots({ job, script, jobDir, topic, tracker, signal }) {
   try {
     const siteUrl = job.intent && job.intent.websiteUrl;
@@ -294,40 +336,61 @@ async function captureTopicShots({ job, script, jobDir, topic, tracker, signal }
 
     fs.mkdirSync(path.join(jobDir, "assets", "images"), { recursive: true });
     const sceneById = new Map(script.scenes.map((s) => [String(s.id), s]));
-    const title = job.website_title || "the product";
-    const settled = await Promise.allSettled(live.map((p, i) => {
-      const relPath = `assets/images/page_${i}_${slug(p.label)}.png`;
-      // A pick destined for a `phone` media slot must be shot at a MOBILE
-      // viewport — the site then serves its own mobile breakpoint, so the
-      // capture is genuinely portrait and fits a device bezel uncropped.
-      const vp = peekshot.VIEWPORTS[p.viewport === "phone" ? "phone" : "desktop"];
-      return peekshot.capture({
-        url: p.url, outPath: path.join(jobDir, relPath),
-        width: vp.width, height: vp.height, retina: true, delay: 3, timeoutMs: 75_000, signal,
-      }).then((cap) => {
-        const scene = sceneById.get(p.sceneId);
-        return {
-          path: relPath, type: "image",
-          sceneId: scene.id, startSec: scene.start, durationSec: scene.duration,
-          style: "inset",
-          // Real probed pixel dims. Without these every shape gate downstream
-          // (isPortraitAsset, scoreAsset's bezel-fit penalty, deviceKind) sees
-          // ratio 0 and silently treats the shot as shapeless.
-          width: cap.width || 0, height: cap.height || 0, ratio: cap.ratio || 0,
-          alt: `REAL website screenshot of ${title} — the ${p.label} (matches this scene's topic) — present in a styled browser frame with hero treatment`,
-          license: "owner content", sourceUrl: p.url, source: "website", fromCache: false,
-        };
-      });
-    }));
-    const shots = [];
-    settled.forEach((r, i) => {
-      if (r.status === "fulfilled") shots.push(r.value);
-      else console.warn(`[shots] capture failed ${new URL(live[i].url).pathname}: ${String(r.reason && r.reason.message || r.reason).slice(0, 140)}`);
-    });
-    if (shots.length) console.log(`[shots] captured ${shots.length} topic page shot(s): ${shots.map((s) => s.path).join(", ")}`);
-    return shots;
+    return capturePicks({ picks: live, job, jobDir, sceneById, signal });
   } catch (e) {
     console.warn(`[shots] screenshot director failed soft: ${String(e && e.message || e).slice(0, 160)}`);
+    return [];
+  }
+}
+
+
+// ---------- RETRY: a dropped capture is a LOST REAL SCREENSHOT ----------
+//
+// Screenshot QA vision-inspects every capture and deletes the broken ones — a
+// login wall, a consent overlay, an error page. Measured on a finished film:
+// `{"kept":2,"dropped":2,"problems":["login-wall","scene-mismatch"]}` — half the
+// real product photography thrown away, and nothing tried again. Stock art then
+// filled the hole, which is strictly worse: a generic photo where the product
+// should be.
+//
+// The site almost always has another page that fits the same scene. This takes
+// the scenes that lost their shot and captures a DIFFERENT page for each,
+// skipping every URL already tried.
+async function recaptureForScenes({ job, script, jobDir, sceneIds, avoidUrls, topic, tracker, signal, max = 3 }) {
+  try {
+    const want = [...new Set((sceneIds || []).map(String))].slice(0, max);
+    if (!want.length) return [];
+    const siteUrl = job.intent && job.intent.websiteUrl;
+    if (!siteUrl || !peekshot.enabled()) return [];
+    const allScenes = (script && Array.isArray(script.scenes)) ? script.scenes : [];
+    const scenes = allScenes.filter((sc) => want.includes(String(sc.id)));
+    if (!scenes.length) return [];
+
+    const film = topic || job.website_title || "";
+    const { siteUrl: activeSite, pages } = await resolveSite({ job, siteUrl, topic: film, tracker, signal });
+    const tried = new Set([...(avoidUrls || [])].map((u) => String(u || "").replace(/\/$/, "")));
+    const fresh = pages.filter((pg) => !tried.has(String(pg.url || "").replace(/\/$/, "")));
+    if (!fresh.length) { console.log("[shots] retry: no untried page left for the dropped scene(s)"); return []; }
+
+    // Match only the orphaned scenes, against only the pages we have not burned.
+    const picks = (await matchScenesToPages({ script: { ...script, scenes }, pages: fresh, topic: film, tracker, signal }))
+      .filter((p) => want.includes(String(p.sceneId)) && !tried.has(String(p.url || "").replace(/\/$/, "")))
+      .slice(0, max);
+    if (!picks.length) { console.log("[shots] retry: director matched no replacement page"); return []; }
+
+    const flights = await Promise.all(picks.map((p) => preflight(p.url, p)));
+    const live = picks.filter((p, i) => {
+      if (!flights[i].ok) console.warn(`[shots] retry skip ${new URL(p.url).pathname}: ${flights[i].why}`);
+      return flights[i].ok;
+    });
+    if (!live.length) return [];
+
+    console.log(`[shots] retry: capturing ${live.map((p) => new URL(p.url).pathname).join(", ")} for scene(s) ${want.join(", ")}`);
+    fs.mkdirSync(path.join(jobDir, "assets", "images"), { recursive: true });
+    const sceneById = new Map(allScenes.map((sc) => [String(sc.id), sc]));
+    return await capturePicks({ picks: live, job, jobDir, sceneById, signal, prefix: "retry", label: "replacement page" });
+  } catch (e) {
+    console.warn(`[shots] retry failed soft: ${String(e && e.message || e).slice(0, 160)}`);
     return [];
   }
 }
@@ -350,4 +413,4 @@ function mergeShots(topicShots, landingPinned, cap = 9) {
 // resolveSite/matchScenesToPages/preflight/discoverPages are exported for the
 // dry-run harness (server/scripts/shots-harness.js) — production code goes
 // through captureTopicShots only.
-module.exports = { captureTopicShots, mergeShots, discoverPages, resolveSite, matchScenesToPages, preflight };
+module.exports = { captureTopicShots, recaptureForScenes, mergeShots, discoverPages, resolveSite, matchScenesToPages, preflight };

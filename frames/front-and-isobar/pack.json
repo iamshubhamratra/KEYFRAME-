@@ -1,0 +1,98 @@
+{
+  "name": "front-and-isobar",
+  "renderer": "omelette",
+  "template": "FrontAndIsobar",
+  "portraitNative": true,
+  "vibe": "isobars, wind barbs, cold front, rain hatch Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#F0EAD8",
+    "ink": "#1E242C",
+    "accent": "#E8641F",
+    "a2": "#2E5FB3"
+  },
+  "fonts": [
+    "Space Mono",
+    "Familjen Grotesk"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F0EAD8",
+    "ink": "#1E242C"
+  },
+  "motion": {
+    "cut": "iris",
+    "drift": 1.09
+  },
+  "fx": {
+    "canvas": "bokeh",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#E8641F",
+      "#2E5FB3"
+    ],
+    "extras": [
+      "#FAF6EA",
+      "#000000",
+      "#37424E"
+    ],
+    "emphasisCss": "color:#E8641F;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "front",
+      "isobar",
+      "isobars",
+      "wind",
+      "barbs",
+      "cold"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Space Mono",
+    "body": "Space Mono"
+  },
+  "camera3d": {
+    "ground": "#F0EAD8"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slide",
+    "emphasis": "ring",
+    "case": "none",
+    "tracking": 0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "name": "repzone",
+  "renderer": "omelette",
+  "template": "Repzone",
+  "portraitNative": true,
+  "vibe": "\"REPZONE\" gym world. Barbells, rep counters, chalk. Portrait-native 9:16 (9 authored beats, 27.8s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#1C1D22",
+    "ink": "#F2EFE9",
+    "accent": "#FF5A1F",
+    "a2": "#B8E23D"
+  },
+  "fonts": [
+    "Passion One",
+    "Barlow Semi Condensed"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#1C1D22",
+    "ink": "#F2EFE9"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.08
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FF5A1F",
+      "#B8E23D"
+    ],
+    "extras": [
+      "#5C7DA4",
+      "#000000",
+      "#141519"
+    ],
+    "emphasisCss": "color:#FF5A1F;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "repzone-film",
+      "repzone",
+      "world",
+      "barbells",
+      "counters",
+      "chalk"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Passion One",
+    "body": "Passion One"
+  },
+  "camera3d": {
+    "ground": "#1C1D22"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "marker",
+    "case": "upper",
+    "tracking": -0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

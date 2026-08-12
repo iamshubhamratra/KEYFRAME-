@@ -1,0 +1,98 @@
+{
+  "name": "hamlet",
+  "renderer": "omelette",
+  "template": "Hamlet",
+  "portraitNative": true,
+  "vibe": "\"HAMLET\" pastoral village world. Hills, cottages, bunting. Portrait-native 9:16 (9 authored beats, 27.8s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#FBF3DD",
+    "ink": "#4A3A28",
+    "accent": "#C4553B",
+    "a2": "#5E8F3E"
+  },
+  "fonts": [
+    "Fredoka",
+    "Mulish"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#FBF3DD",
+    "ink": "#4A3A28"
+  },
+  "motion": {
+    "cut": "flash",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "kaleido",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#C4553B",
+      "#5E8F3E"
+    ],
+    "extras": [
+      "#E9B84E",
+      "#8FBF63",
+      "#FFFFFF"
+    ],
+    "emphasisCss": "color:#C4553B;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "hamlet-film",
+      "hamlet",
+      "pastoral",
+      "village",
+      "world",
+      "hills"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Fredoka",
+    "body": "Mulish"
+  },
+  "camera3d": {
+    "ground": "#FBF3DD"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "echo",
+    "case": "none",
+    "tracking": -0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

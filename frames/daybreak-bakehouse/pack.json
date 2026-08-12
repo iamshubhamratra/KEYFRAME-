@@ -1,0 +1,93 @@
+{
+  "name": "daybreak-bakehouse",
+  "renderer": "daybreak-bakehouse",
+  "vibe": "A sunrise bakehouse reel — warm cream paper washed by a low golden sun, raking window light with dust motes drifting in the beam, steam curling forever off fresh cups on the counter and pendant lamps swaying overhead. Round Caprasimo display over friendly Figtree; headlines drift up like steam and the key word gets a warm hand-drawn marker swipe. Cozy, honest, artisanal morning craft — bakeries, cafés, farmers markets, slow-made products and anything that should feel fresh out of the oven.",
+  "colors": {
+    "paper": "#f5ead8",
+    "surface": "#ebddc5",
+    "ink": "#201e1d",
+    "terracotta": "#c67139",
+    "sage": "#7a8a5e",
+    "dawn": "#f7d9b8"
+  },
+  "fonts": [
+    "Orbitron",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#f5ead8",
+    "ink": "#201e1d"
+  },
+  "motion": {
+    "cut": "iris",
+    "drift": 1.035
+  },
+  "fx": {
+    "canvas": "rays"
+  },
+  "skin": {
+    "accents": [
+      "#c67139",
+      "#7a8a5e"
+    ],
+    "extras": [
+      "#ebddc5",
+      "#f7d9b8"
+    ],
+    "emphasisCss": "color:#c67139;"
+  },
+  "assets": {
+    "photoMod": "warm golden morning light artisanal craft cozy",
+    "iconStyle": "line",
+    "keywords": [
+      "bakery",
+      "cafe",
+      "artisan",
+      "morning",
+      "craft",
+      "handmade",
+      "food"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
+  },
+  "typography": {
+    "display": "Orbitron"
+  },
+  "layout": {
+    "propFill": true,
+    "kicker": true,
+    "underline": true,
+    "stat": "hero",
+    "assetStyle": "paper"
+  },
+  "textfx": {
+    "enter": "stamp",
+    "emphasis": "boxed",
+    "case": "upper",
+    "tracking": -0.035,
+    "sizeScale": 1.12,
+    "align": "center",
+    "weight": 900
+  },
+  "audio": {
+    "music": {
+      "query": "big beat breakbeat percussive energetic drive",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
+  }
+}

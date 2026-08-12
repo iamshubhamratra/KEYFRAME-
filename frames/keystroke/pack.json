@@ -1,0 +1,98 @@
+{
+  "name": "keystroke",
+  "renderer": "omelette",
+  "template": "Keystroke",
+  "portraitNative": true,
+  "vibe": "\"KEYSTROKE\" 9:16 typing/code typography film. Everything types: headlines with carets, a syntax-coloured editor writing itself, a terminal log, live refactors (strike + retype), keycaps that press. Organic DS tokens on a dark warm ground. Portrait-native 9:16 (5 authored beats, 20.2s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#402310",
+    "ink": "#AEBF92",
+    "accent": "#F9F4ED",
+    "a2": "#F6A06B"
+  },
+  "fonts": [
+    "Caprasimo",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#402310",
+    "ink": "#AEBF92"
+  },
+  "motion": {
+    "cut": "clockwipe",
+    "drift": 1.08
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F9F4ED",
+      "#F6A06B"
+    ],
+    "extras": [
+      "#C67139",
+      "#201E1D",
+      "#FFC6A5"
+    ],
+    "emphasisCss": "color:#F9F4ED;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "keystroke-film",
+      "keystroke",
+      "typing",
+      "code",
+      "typography",
+      "everything"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Caprasimo",
+    "body": "Figtree"
+  },
+  "camera3d": {
+    "ground": "#402310"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "boxed",
+    "case": "none",
+    "tracking": -0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic dark ambient low pulse atmospheric",
+      "mood": "moody",
+      "volume": 0.12
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

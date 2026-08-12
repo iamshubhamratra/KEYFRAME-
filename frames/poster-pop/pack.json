@@ -1,0 +1,91 @@
+{
+  "name": "poster-pop",
+  "renderer": "poster-pop",
+  "vibe": "A loud kinetic-typography poster reel — every scene is a solid color block (terracotta, ink, sage, cream) with gigantic Caprasimo type stamping in word by word, endless scrolling marquee ticker bands top and bottom, and rotating starbursts. Say it once, say it huge, let the color do the rest. For sales, announcements, weekend events, drops and anything that needs to be impossible to miss.",
+  "colors": {
+    "paper": "#f5ead8",
+    "surface": "#ebddc5",
+    "ink": "#201e1d",
+    "terracotta": "#c67139",
+    "sage": "#7a8a5e"
+  },
+  "fonts": [
+    "Archivo Black",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#f5ead8",
+    "ink": "#201e1d"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "halftone"
+  },
+  "skin": {
+    "accents": [
+      "#c67139",
+      "#7a8a5e"
+    ],
+    "extras": [
+      "#ebddc5",
+      "#b2622d"
+    ],
+    "emphasisCss": "color:#c67139;"
+  },
+  "assets": {
+    "photoMod": "bold poster graphic high contrast studio product",
+    "iconStyle": "line",
+    "keywords": [
+      "poster",
+      "bold",
+      "sale",
+      "announcement",
+      "event",
+      "drop"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
+  },
+  "typography": {
+    "display": "Archivo Black"
+  },
+  "layout": {
+    "propFill": true,
+    "kicker": true,
+    "underline": true,
+    "stat": "hero",
+    "assetStyle": "paper"
+  },
+  "textfx": {
+    "enter": "zap",
+    "emphasis": "ring",
+    "case": "upper",
+    "tracking": -0.035,
+    "sizeScale": 1.23,
+    "align": "center",
+    "weight": 900
+  },
+  "audio": {
+    "music": {
+      "query": "driving percussion tribal toms punchy energetic",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
+  }
+}

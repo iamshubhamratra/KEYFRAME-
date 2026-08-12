@@ -1,0 +1,98 @@
+{
+  "name": "jungle-trek",
+  "renderer": "omelette",
+  "template": "JungleTrek",
+  "portraitNative": true,
+  "vibe": "\"Jungle Trek\" Deep rainforest: layered swaying leaves framing the edges, wandering fireflies, hanging vines, drifting mist. Alfa Slab One + Cabin. Portrait-native 9:16 (18 authored beats, 49.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#17301F",
+    "ink": "#4E8A4A",
+    "accent": "#F1E9D2",
+    "a2": "#CDE34F"
+  },
+  "fonts": [
+    "Alfa Slab One",
+    "Cabin"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#17301F",
+    "ink": "#4E8A4A"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F1E9D2",
+      "#CDE34F"
+    ],
+    "extras": [
+      "#27502E",
+      "#BFE6C8",
+      "#F2C14E"
+    ],
+    "emphasisCss": "color:#F1E9D2;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "jungle-trek-film",
+      "jungle",
+      "trek",
+      "deep",
+      "rainforest",
+      "layered"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Alfa Slab One",
+    "body": "Cabin"
+  },
+  "camera3d": {
+    "ground": "#17301F"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "glow",
+    "case": "upper",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic dark ambient low pulse atmospheric",
+      "mood": "moody",
+      "volume": 0.12
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "name": "fetch-vertical",
+  "renderer": "omelette",
+  "template": "FetchVertical",
+  "portraitNative": true,
+  "vibe": "A playful portrait park: a dog runs a ball back to its master through a tall sunlit scene while product screenshots ride wooden signboards and a phone. Warm cream ground, grass green and a hot orange accent; motion is bouncy and character-led. For friendly consumer products, onboarding and anything that should feel human.",
+  "colors": {
+    "ground": "#FFFDF6",
+    "ink": "#3A352C",
+    "accent": "#F2683C",
+    "a2": "#8FC15A",
+    "a3": "#FFC24C"
+  },
+  "fonts": [
+    "Fredoka",
+    "Nunito"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#FFFDF6"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none"
+  },
+  "skin": {
+    "accents": [
+      "#F2683C",
+      "#8FC15A"
+    ],
+    "extras": [
+      "#FFC24C"
+    ],
+    "emphasisCss": "color:#F2683C;"
+  },
+  "assets": {
+    "photoMod": "",
+    "iconStyle": "line",
+    "keywords": [
+      "playful",
+      "park",
+      "friendly",
+      "consumer",
+      "outdoor"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Fredoka"
+  },
+  "camera3d": {
+    "ground": "#FFFDF6"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "zap",
+    "emphasis": "ring",
+    "case": "upper",
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.12,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "driving percussion tribal toms punchy energetic",
+      "mood": "energetic",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
+  }
+}

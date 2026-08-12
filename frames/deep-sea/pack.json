@@ -1,0 +1,91 @@
+{
+  "name": "deep-sea",
+  "renderer": "omelette",
+  "template": "Deep",
+  "vibe": "A bioluminescent deep-sea dive. Product screenshots glow inside underwater viewport panels while bubbles rise, jellyfish drift, fish dart and caustic light plays across an abyssal gradient. For anything that should feel deep, calm and quietly technical.",
+  "colors": {
+    "ground": "#02101A",
+    "ink": "#E9FBF8",
+    "accent": "#3FE7D6",
+    "a2": "#B36BFF",
+    "a3": "#7FB8B8"
+  },
+  "fonts": [
+    "Outfit"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#02101A"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none"
+  },
+  "skin": {
+    "accents": [
+      "#3FE7D6",
+      "#B36BFF"
+    ],
+    "extras": [
+      "#7FB8B8"
+    ],
+    "emphasisCss": "color:#3FE7D6;"
+  },
+  "assets": {
+    "photoMod": "",
+    "iconStyle": "line",
+    "keywords": [
+      "ocean",
+      "deep",
+      "glow",
+      "technology",
+      "dark"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Outfit"
+  },
+  "camera3d": {
+    "ground": "#02101A"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slide",
+    "emphasis": "echo",
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035,
+    "sizeScale": 1.12,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "marching snare stomp clap epic energetic",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "name": "papercut",
+  "renderer": "omelette",
+  "template": "Papercut",
+  "portraitNative": true,
+  "vibe": "\"PAPERCUT\" vertical 9:16 editorial paper-zine typography film. Mature paste-up look: big flat Caprasimo ink type with ONE chip-mounted word per line (no per-letter confetti), split-flap boards, rubber stamps, torn strips, a scissors cut, taped photo/screenshot ASSET slots, fast marquee tickers. 13 scenes ≈ 45s, quick cuts. Organic DS tokens. Mounted after animations-v2.jsx + tweaks-panel.jsx. Portrait-native 9:16 (13 authored beats, 46.4s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#F5EAD8",
+    "ink": "#201E1D",
+    "accent": "#F9F4ED",
+    "a2": "#8C491A"
+  },
+  "fonts": [
+    "Caprasimo",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F5EAD8",
+    "ink": "#201E1D"
+  },
+  "motion": {
+    "cut": "shatter",
+    "drift": 1.13
+  },
+  "fx": {
+    "canvas": "ribbon",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F9F4ED",
+      "#8C491A"
+    ],
+    "extras": [
+      "#402310",
+      "#C67139",
+      "#FFE1D0"
+    ],
+    "emphasisCss": "color:#F9F4ED;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "papercut-film",
+      "papercut",
+      "vertical",
+      "editorial",
+      "paper-zine",
+      "typography"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Caprasimo",
+    "body": "Figtree"
+  },
+  "camera3d": {
+    "ground": "#F5EAD8"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "zap",
+    "emphasis": "bracket",
+    "case": "upper",
+    "tracking": 0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "acoustic handmade warm folk gentle plucked strings",
+      "mood": "warm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

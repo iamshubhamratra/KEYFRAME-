@@ -1,5 +1,6 @@
 {
   "name": "midnight-glass",
+  "renderer": "dark-premium",
   "vibe": "dark glassmorphism: deep navy, frosted cards, one neon accent — premium, technical, nocturnal",
   "colors": {
     "midnight": "#0A0F2A",
@@ -11,9 +12,8 @@
     "violet": "#7A5CFF"
   },
   "fonts": [
-    "Inter",
-    "JetBrains Mono",
-    "Space Grotesk"
+    "Caprasimo",
+    "JetBrains Mono"
   ],
   "surface": {
     "flat": false,
@@ -48,14 +48,34 @@
     ]
   },
   "typography": {
-    "display": "Space Grotesk"
+    "display": "Caprasimo"
   },
   "camera3d": {
     "ground": "#060918"
   },
   "textfx": {
-    "enter": "mask-reveal",
+    "enter": "countin",
     "emphasis": "glow",
-    "align": "left"
+    "align": "left",
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035,
+    "sizeScale": 1.12
+  },
+  "audio": {
+    "music": {
+      "query": "punchy electronic percussion hard hitting drive",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
   }
 }

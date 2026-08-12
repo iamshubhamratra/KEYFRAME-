@@ -1,5 +1,6 @@
 {
   "name": "creative-mode",
+  "renderer": "poster-loud",
   "vibe": "A neo-brutalist editorial poster in motion's clothing: warm cream paper, near-black ink, four accents colliding at full saturation, depth from hard offset shadow, never light.",
   "colors": {
     "cream": "#EFE9D9",
@@ -12,8 +13,7 @@
   },
   "fonts": [
     "Archivo Black",
-    "JetBrains Mono",
-    "Space Grotesk"
+    "JetBrains Mono"
   ],
   "surface": {
     "flat": true,
@@ -56,29 +56,27 @@
     ]
   },
   "textfx": {
-    "enter": "mask-reveal",
-    "emphasis": "boxed",
+    "enter": "zap",
+    "emphasis": "ring",
     "case": "upper",
-    "tracking": -0.01,
-    "weight": null,
-    "sizeScale": 1.1,
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.23,
     "align": "center"
   },
   "audio": {
     "music": {
-      "query": "indie garage rock",
+      "query": "driving percussion tribal toms punchy energetic",
       "mood": "energetic",
       "volume": 0.15
     },
     "sfx": {
-      "style": "hard mechanical thuds and paper slaps, zero reverb, punchy and dry",
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
       "palette": [
-        "stamp thud",
-        "marker snap",
-        "paper slap",
-        "ink stamp press",
-        "hard click",
-        "block whoosh"
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
       ]
     }
   },
@@ -87,5 +85,8 @@
     "kicker": true,
     "underline": false,
     "stat": "headline"
+  },
+  "typography": {
+    "display": "Archivo Black"
   }
 }

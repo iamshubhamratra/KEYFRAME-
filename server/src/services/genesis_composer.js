@@ -23,6 +23,7 @@
 // the Art Director's brand skin, or a user-picked color, re-tints the entire world.
 
 const { deriveTheme } = require("./scene_kit");
+const { pickForScene } = require("./scene_match");
 const { fontFaceCss } = require("../fonts/pack_fonts");
 
 const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
@@ -574,9 +575,27 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
 
   // asset distribution: pinned (sceneId) claim their scene; the rest pool.
   const imgs = (Array.isArray(assets) ? assets : []).filter(plateOk);
+  // A pin whose scene is not in THIS film (the planner numbers against the whole
+  // storyboard; the slice above keeps 14) used to claim a key nothing looks up, and the
+  // asset was simply lost — measured on the dedicated-composer fixture, that was the
+  // job's best capture (hero section, cdScore 91) on a 7-scene film. Pins to scenes
+  // that exist are untouched and still outrank the pool.
+  const liveIds = new Set(scenes.map((s, i) => (s && s.id != null ? String(s.id) : `s${i + 1}`)));
   const byScene = new Map(); const pool = [];
-  for (const a of imgs) { const sid = a.sceneId != null ? String(a.sceneId) : null; if (sid && !byScene.has(sid)) byScene.set(sid, a); else pool.push(a); }
-  let pooli = 0; const nextAsset = () => (pooli < pool.length ? pool[pooli++] : null);
+  for (const a of imgs) { const sid = a.sceneId != null ? String(a.sceneId) : null; if (sid && liveIds.has(sid) && !byScene.has(sid)) byScene.set(sid, a); else pool.push(a); }
+  // The cursor into that pool only moved forward, so the showroom on a beat got the
+  // next capture rather than the right one — and on a website job the pool arrives in
+  // capture order (site_0…site_5, boilerplate alt, nothing to break the tie), which is
+  // why the "AI-native canvas" reveal was showing the footer. nextAsset now asks
+  // scene_match which REMAINING asset is about the beat's own words; calling it n
+  // times for one beat therefore fills a grid in descending relevance. Nothing on
+  // topic (null) falls back to the head of the pool — the old behaviour — so a beat
+  // is never handed an empty frame it used to fill.
+  const nextAsset = (scene) => {
+    if (!pool.length) return null;
+    const match = pickForScene(pool, scene);
+    return pool.splice(match ? pool.indexOf(match) : 0, 1)[0];
+  };
 
   const scriptStart = (i) => scenes.slice(0, i).reduce((a, s) => a + (Number(s.duration) || 4), 0);
   const bodyParts = []; const sceneScripts = []; const usedBeats = [];
@@ -587,16 +606,16 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     const sid = scene.id != null ? String(scene.id) : `s${i + 1}`;
     const pinned = byScene.get(sid) || null;
     const ctx = { id: `gs${i + 1}`, T, L, E: r(T + L), isLast: i === scenes.length - 1, track: 3 + i, dims: D0, land, theme, seed: seed + i * 101 };
-    let beat = routeBeat(scene, i, scenes.length, !!pinned || pooli < pool.length);
+    let beat = routeBeat(scene, i, scenes.length, !!pinned || pool.length > 0);
     let built;
     if (beat === "intro") built = beatIntro(scene, ctx);
     else if (beat === "cta") built = beatCta(scene, ctx, title);
-    else if (beat === "problem") built = beatProblem(scene, ctx, [pinned, ...pool.slice(pooli, pooli + 6)].filter(Boolean));
-    else if (beat === "discovery") built = beatDiscovery(scene, ctx, (() => { const a = []; for (let k = 0; k < 6; k++) a.push(nextAsset()); return a; })());
-    else if (beat === "proof") built = beatProof(scene, ctx, (() => { const a = []; for (let k = 0; k < 6; k++) a.push(nextAsset()); return a; })());
+    else if (beat === "problem") built = beatProblem(scene, ctx, [pinned, ...pool.slice(0, 6)].filter(Boolean));
+    else if (beat === "discovery") built = beatDiscovery(scene, ctx, (() => { const a = []; for (let k = 0; k < 6; k++) a.push(nextAsset(scene)); return a; })());
+    else if (beat === "proof") built = beatProof(scene, ctx, (() => { const a = []; for (let k = 0; k < 6; k++) a.push(nextAsset(scene)); return a; })());
     else if (beat === "growth") built = beatGrowth(scene, ctx);
     else if (beat === "features") built = beatFeatures(scene, ctx);
-    else built = beatReveal(scene, ctx, pinned || nextAsset());
+    else built = beatReveal(scene, ctx, pinned || nextAsset(scene));
     usedBeats.push(beat);
 
     bodyParts.push(`<div class="clip gx-scene" id="${ctx.id}" data-start="${T}" data-duration="${L}" data-track-index="${ctx.track}" style="opacity:0;">${built.html}</div>`);

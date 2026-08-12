@@ -1,0 +1,98 @@
+{
+  "name": "retro-arcade",
+  "renderer": "omelette",
+  "template": "RetroArcade",
+  "portraitNative": true,
+  "vibe": "pixel starfield, invader march, scanline sweep Portrait-native 9:16 (18 authored beats, 49.9s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#14122B",
+    "ink": "#F2F2F2",
+    "accent": "#6EF06E",
+    "a2": "#FF4FD8"
+  },
+  "fonts": [
+    "Press Start 2P",
+    "VT323"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#14122B",
+    "ink": "#F2F2F2"
+  },
+  "motion": {
+    "cut": "iris",
+    "drift": 1.12
+  },
+  "fx": {
+    "canvas": "bokeh",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#6EF06E",
+      "#FF4FD8"
+    ],
+    "extras": [
+      "#4FD8FF",
+      "#0C0B1C",
+      "#FFD23C"
+    ],
+    "emphasisCss": "color:#6EF06E;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "retro",
+      "arcade",
+      "pixel",
+      "starfield",
+      "invader",
+      "march"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Press Start 2P",
+    "body": "VT323"
+  },
+  "camera3d": {
+    "ground": "#14122B"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "zap",
+    "emphasis": "underline-grow",
+    "case": "none",
+    "tracking": -0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "synthwave retro electronic driving arpeggio neon",
+      "mood": "energetic",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

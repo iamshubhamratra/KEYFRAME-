@@ -1,0 +1,91 @@
+{
+  "name": "hype-wave",
+  "renderer": "hype-wave",
+  "vibe": "An electric pop reel — cream paper charged with electric blue, taxi yellow and coral, navy ink everywhere. Archivo Black mega-type SLAMS in word by word (every third word outlined), sticker chips carry hard offset shadows, checkerboard bands scroll, wavy ribbons roll and star stickers spin. Loud, young, thumb-stopping — product drops, sneaker culture, events, creators, promos and anything that should make actual noise on a feed.",
+  "colors": {
+    "cream": "#fdf8ec",
+    "navy": "#101433",
+    "blue": "#2b5bff",
+    "yellow": "#ffd234",
+    "coral": "#ff5a48"
+  },
+  "fonts": [
+    "Anton",
+    "Space Grotesk"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#fdf8ec",
+    "ink": "#101433"
+  },
+  "motion": {
+    "cut": "flash",
+    "drift": 1.06
+  },
+  "fx": {
+    "canvas": "confetti"
+  },
+  "skin": {
+    "accents": [
+      "#2b5bff",
+      "#ff5a48"
+    ],
+    "extras": [
+      "#ffd234",
+      "#101433"
+    ],
+    "emphasisCss": "color:#ff5a48;"
+  },
+  "assets": {
+    "photoMod": "bold vibrant colorful studio pop energetic youth",
+    "iconStyle": "line",
+    "keywords": [
+      "bold",
+      "colorful",
+      "pop",
+      "energy",
+      "youth",
+      "streetwear",
+      "event"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
+  },
+  "typography": {
+    "display": "Anton"
+  },
+  "layout": {
+    "propFill": true,
+    "kicker": true,
+    "underline": false,
+    "stat": "hero"
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "bracket",
+    "case": "upper",
+    "tracking": -0.035,
+    "sizeScale": 1.19,
+    "align": "center",
+    "weight": 900
+  },
+  "audio": {
+    "music": {
+      "query": "hand claps foot stomps rock energetic anthem",
+      "mood": "energetic",
+      "volume": 0.17
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
+  }
+}

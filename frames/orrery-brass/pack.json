@@ -1,5 +1,6 @@
 {
   "name": "orrery-brass",
+  "renderer": "story-handmade",
   "vibe": "an antique clockwork orrery / celestial atlas brought to life: candlelit night-bronze ground, engraved brass orbit rings with tick graduations and planets traveling at different periods, parchment serif type swinging in like pendulums, scene changes swept by a ticking brass clock hand, and the emphasis word circled by a hand-engraved orbit ellipse — for heritage brands, observatories of data, roadmaps and anything that should feel like precision instrument-maker craft",
   "colors": {
     "bronze": "#191410",
@@ -9,8 +10,8 @@
     "oxblood": "#93402C"
   },
   "fonts": [
-    "Inter",
-    "Cormorant Garamond"
+    "Archivo Black",
+    "JetBrains Mono"
   ],
   "surface": {
     "flat": false,
@@ -53,7 +54,7 @@
     ]
   },
   "typography": {
-    "display": "Cormorant Garamond"
+    "display": "Archivo Black"
   },
   "layout": {
     "propFill": false,
@@ -63,26 +64,27 @@
     "assetStyle": "brass"
   },
   "textfx": {
-    "enter": "pendulum",
+    "enter": "zap",
     "emphasis": "ring",
     "align": "center",
-    "sizeScale": 1
+    "sizeScale": 1.12,
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035
   },
   "audio": {
     "music": {
-      "query": "baroque harpsichord chamber mysterious slow",
-      "mood": "cinematic",
+      "query": "driving percussion tribal toms punchy energetic",
+      "mood": "energetic",
       "volume": 0.15
     },
     "sfx": {
-      "style": "escapement ticks, fine gear whirs, a single chime as planets align — precise, mechanical, riding the clock-wipe ticks",
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
       "palette": [
-        "clock tick",
-        "gear whir",
-        "chime",
-        "small bell",
-        "metal click",
-        "pendulum swing"
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
       ]
     }
   }

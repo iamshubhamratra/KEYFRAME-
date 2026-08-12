@@ -1,5 +1,6 @@
 {
   "name": "prism-launch",
+  "renderer": "bright-minimal",
   "vibe": "white-studio product reveal: gallery white, carbon display type, iridescent prism gradients, one ember-hot CTA, rotating 3D shards — for product launches, release ads, feature announcements",
   "colors": {
     "studio": "#FAFAFC",
@@ -11,7 +12,7 @@
     "ember": "#FF5A3C"
   },
   "fonts": [
-    "Inter",
+    "Caprasimo",
     "Space Grotesk"
   ],
   "surface": {
@@ -52,14 +53,34 @@
     ]
   },
   "typography": {
-    "display": "Space Grotesk"
+    "display": "Caprasimo"
   },
   "camera3d": {
     "ground": "#0E0F14"
   },
   "textfx": {
-    "enter": "line-wipe",
-    "emphasis": "gradient",
-    "align": "center"
+    "enter": "countin",
+    "emphasis": "glow",
+    "align": "center",
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035,
+    "sizeScale": 1.12
+  },
+  "audio": {
+    "music": {
+      "query": "punchy electronic percussion hard hitting drive",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
   }
 }

@@ -1,0 +1,98 @@
+{
+  "name": "tube-and-glow",
+  "renderer": "omelette",
+  "template": "TubeAndGlow",
+  "portraitNative": true,
+  "vibe": "neon OPEN sign flicker, tube bends, hum dots Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#121016",
+    "ink": "#FFF3D6",
+    "accent": "#FF3EC8",
+    "a2": "#2EE6FF"
+  },
+  "fonts": [
+    "Monoton",
+    "Epilogue"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#121016",
+    "ink": "#FFF3D6"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 0.95
+  },
+  "fx": {
+    "canvas": "prism",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FF3EC8",
+      "#2EE6FF"
+    ],
+    "extras": [
+      "#000000",
+      "#1C1822",
+      "#0D0B11"
+    ],
+    "emphasisCss": "color:#FF3EC8;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "tube",
+      "glow",
+      "neon",
+      "open",
+      "sign",
+      "flicker"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Monoton",
+    "body": "Monoton"
+  },
+  "camera3d": {
+    "ground": "#121016"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slide",
+    "emphasis": "bracket",
+    "case": "none",
+    "tracking": 0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "synthwave retro electronic driving arpeggio neon",
+      "mood": "energetic",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

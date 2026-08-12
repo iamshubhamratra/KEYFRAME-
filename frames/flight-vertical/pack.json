@@ -1,0 +1,93 @@
+{
+  "name": "flight-vertical",
+  "renderer": "omelette",
+  "template": "FlightVertical",
+  "portraitNative": true,
+  "vibe": "A portrait takeoff film: a jet rolls, rotates and climbs up the frame trailing a contrail while product screenshots ride cabin windows and boarding passes. Pale sky gradients, runway grey and a hot orange accent; motion is one continuous ascent. For launches, migrations, upgrades and anything that should feel like lift.",
+  "colors": {
+    "ground": "#E9F6FF",
+    "ink": "#39404A",
+    "accent": "#FF5630",
+    "a2": "#8FCBF5",
+    "a3": "#FFE08A"
+  },
+  "fonts": [
+    "Manrope",
+    "DM Mono"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#E9F6FF"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none"
+  },
+  "skin": {
+    "accents": [
+      "#FF5630",
+      "#8FCBF5"
+    ],
+    "extras": [
+      "#FFE08A"
+    ],
+    "emphasisCss": "color:#FF5630;"
+  },
+  "assets": {
+    "photoMod": "",
+    "iconStyle": "line",
+    "keywords": [
+      "flight",
+      "sky",
+      "launch",
+      "travel",
+      "ascent"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Manrope"
+  },
+  "camera3d": {
+    "ground": "#E9F6FF"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "char-pop",
+    "emphasis": "marker",
+    "case": "upper",
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.12,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "trap percussion hard claps energetic hype",
+      "mood": "energetic",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
+  }
+}

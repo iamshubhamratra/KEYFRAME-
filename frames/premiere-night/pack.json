@@ -1,0 +1,91 @@
+{
+  "name": "premiere-night",
+  "renderer": "premiere-night",
+  "vibe": "A cinema premiere on a dark house — near-black warm walls, chasing marquee bulbs, sweeping spotlight cones, film-strip montages, grain and vignette. Caprasimo titles flip up letter by letter in 3D like a marquee being set, the key word shimmers gold, and stats roll like odometers under the box-office report. Roll out the terracotta carpet — for launches that deserve a red carpet, premieres, trailers, showcases and one-night-only announcements.",
+  "colors": {
+    "house": "#171514",
+    "panel": "#26221f",
+    "paper": "#f5ead8",
+    "terracotta": "#c67139",
+    "gold": "#e8b06a",
+    "sage": "#7a8a5e"
+  },
+  "fonts": [
+    "Chakra Petch",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#171514",
+    "ink": "#f5ead8"
+  },
+  "motion": {
+    "cut": "wipe",
+    "drift": 1.05
+  },
+  "fx": {
+    "canvas": "rays"
+  },
+  "skin": {
+    "accents": [
+      "#c67139",
+      "#e8b06a"
+    ],
+    "extras": [
+      "#f5ead8",
+      "#26221f"
+    ],
+    "emphasisCss": "color:#e8b06a;"
+  },
+  "assets": {
+    "photoMod": "cinematic dark warm spotlight dramatic premiere",
+    "iconStyle": "line",
+    "keywords": [
+      "cinema",
+      "premiere",
+      "launch",
+      "night",
+      "spotlight",
+      "film"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
+  },
+  "typography": {
+    "display": "Chakra Petch"
+  },
+  "layout": {
+    "propFill": true,
+    "kicker": true,
+    "underline": false,
+    "stat": "hero"
+  },
+  "textfx": {
+    "enter": "squash",
+    "emphasis": "bullet",
+    "case": "upper",
+    "tracking": -0.035,
+    "sizeScale": 1.12,
+    "align": "center",
+    "weight": 900
+  },
+  "audio": {
+    "music": {
+      "query": "taiko drums stomp percussion powerful energetic",
+      "mood": "energetic",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
+  }
+}

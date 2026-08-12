@@ -1,0 +1,98 @@
+{
+  "name": "tide-pool-lab",
+  "renderer": "omelette",
+  "template": "TidePoolLab",
+  "portraitNative": true,
+  "vibe": "starfish, anemone, sideways crab, shimmer Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#F0E6CC",
+    "ink": "#2A3238",
+    "accent": "#F27D98",
+    "a2": "#8FD8C8"
+  },
+  "fonts": [
+    "Shrikhand",
+    "Poppins"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F0E6CC",
+    "ink": "#2A3238"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.11
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F27D98",
+      "#8FD8C8"
+    ],
+    "extras": [
+      "#4A5258",
+      "#FAF4E4",
+      "#D8CCB0"
+    ],
+    "emphasisCss": "color:#F27D98;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "tide",
+      "pool",
+      "starfish",
+      "anemone",
+      "sideways",
+      "crab"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Shrikhand",
+    "body": "Shrikhand"
+  },
+  "camera3d": {
+    "ground": "#F0E6CC"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slam",
+    "emphasis": "accent",
+    "case": "none",
+    "tracking": -0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

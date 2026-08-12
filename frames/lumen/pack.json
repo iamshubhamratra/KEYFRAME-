@@ -1,0 +1,98 @@
+{
+  "name": "lumen",
+  "renderer": "omelette",
+  "template": "Lumen",
+  "portraitNative": true,
+  "vibe": "\"LUMEN\" vertical 9:16 pure-TYPOGRAPHY template built around LIGHT. Every scene is a different light treatment on type: a travelling spotlight, a neon sign flickering on, a light sweep flooding outlined words, a moving sun casting long shadows, rotating rays, gradient-lit letters, flash hooks and a converging beam CTA. Organic design system tokens throughout (cream/sand, terracotta + sage, Caprasimo). Mounted after animations-v2.jsx + tweaks-panel.jsx. Portrait-native 9:16 (10 authored beats, 36.8s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#F5EAD8",
+    "ink": "#201E1D",
+    "accent": "#C67139",
+    "a2": "#F9F4ED"
+  },
+  "fonts": [
+    "Caprasimo",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F5EAD8",
+    "ink": "#201E1D"
+  },
+  "motion": {
+    "cut": "glow",
+    "drift": 1.05
+  },
+  "fx": {
+    "canvas": "flow",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#C67139",
+      "#F9F4ED"
+    ],
+    "extras": [
+      "#7A8A5E",
+      "#2E2B25",
+      "#B2622D"
+    ],
+    "emphasisCss": "color:#C67139;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "lumen-film",
+      "lumen",
+      "vertical",
+      "pure-typography",
+      "around",
+      "light"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Caprasimo",
+    "body": "Figtree"
+  },
+  "camera3d": {
+    "ground": "#F5EAD8"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "accent",
+    "case": "upper",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "synthwave retro electronic driving arpeggio neon",
+      "mood": "energetic",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

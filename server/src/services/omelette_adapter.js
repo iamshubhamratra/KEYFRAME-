@@ -59,12 +59,35 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const config = require("../config");
+const { note } = require("./fallback_log");
 
 const TPL_DIR = path.join(config.paths.root, "public", "omelette-templates");
 
 function templatePath(name) {
   const f = path.join(TPL_DIR, `${String(name).replace(/[^A-Za-z0-9]/g, "")}.html`);
   return fs.existsSync(f) ? f : null;
+}
+
+// Templates that are authored 1080x1920. Collected from the pack manifests so a
+// newly imported template is portrait-native the moment its pack.json says so.
+// The literals are the packs that predate `portraitNative` being read here, kept
+// so a manifest-less call still resolves them correctly.
+let _portraitCache = null;
+function portraitTemplates() {
+  if (_portraitCache) return _portraitCache;
+  const set = new Set(["Reel", "FetchVertical", "FlightVertical", "ShowcaseVertical", "Teampulse", "Cadence", "Birdsong", "Stomp"]);
+  try {
+    const frameManifest = require("./frame_manifest");
+    for (const name of frameManifest.listManifests()) {
+      const m = frameManifest.getManifest(name);
+      const tpl = m && (m.template || m.omeletteTemplate);
+      if (tpl && m.portraitNative) set.add(String(tpl));
+    }
+  } catch {
+    // Manifests unreadable — the literals above still cover the shipped packs.
+  }
+  _portraitCache = set;
+  return set;
 }
 
 // ---- read the template's OWN authored scene list -------------------------------
@@ -75,10 +98,48 @@ function readTemplateScenes(html) {
   if (!m) return null;
   let page;
   try { page = JSON.parse(m[1]); } catch { return null; }
-  const sm = /window\.OM_SCENES\s*=\s*'([\s\S]*?)'\s*;/.exec(page);
-  if (!sm) return null;
-  try { return JSON.parse(sm[1]); } catch { return null; }
+  return parseOmScenes(page);
 }
+
+// OM_SCENES is JSON *inside a single-quoted JS string*, so there are TWO layers
+// of escaping and both have to come off before JSON.parse.
+//
+// The old reader did neither, which cost six templates. Any scene whose copy
+// contains a quote — the `Code` beats print real source, e.g.
+//   unlock(\\"TRUE ENDING\\");
+// — survives the JS-string layer as \" but reaches JSON.parse as \\" , which is
+// a literal backslash followed by an unterminated string. The parse threw, the
+// catch returned null, and buildComposition reported the template as
+// "exposes no OM_SCENES" — a message that points at the template rather than at
+// the reader, which is why it reads as missing data instead of a parse bug.
+//
+// The pattern is also escape-aware now: '([\s\S]*?)'\s*; stops at the first
+// "';" in the copy, which the same `Code` beats can easily contain.
+function parseOmScenes(page) {
+  const sm = /window\.OM_SCENES\s*=\s*'((?:[^'\\]|\\.)*)'/.exec(page);
+  if (!sm) return null;
+  const raw = sm[1].replace(/\\'/g, "'").replace(/\\\\/g, "\\");
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
+// Props the compiled components read but the authored OM_SCENES never declare.
+// Because the demo-copy suppression is driven by the authored scene's own keys,
+// anything listed here is INVISIBLE to it and keeps the template's demo content
+// unless it is filled explicitly (see the UNDECLARED_DEMO pass in buildScenes).
+//
+// Derived by decoding the bundles and grepping the film source for `s.X || …`:
+//   meta        a stat row  -> [{v:0.2,suf:'s',l:'to first result'}, {v:40,suf:'K',…}]
+//   chips       a pill row  -> ['Fuzzy matching', 'Filters', 'Saved searches']
+//   avatarLabel social proof-> 'and 4,000 more teams'
+// NOT listed on purpose: `filters` (['All','Recent','Mine','Shared']) is generic
+// UI furniture on a search control, not a claim about the product — the same
+// reasoning that keeps Board's columns and Morph's states authored.
+const UNDECLARED_DEMO = ["meta", "chips", "avatarLabel"];
+
+// Scene names whose compiled component draws a MULTI-IMAGE rack (shot1..N).
+// Module-scope because two places need it: the media assignment (which fills the
+// rack) and the caster (which has to actually REACH the shape — see orderFor).
+const MEDIA_WALL = /montage|gallery|fleet|wall|grid|explore|billboard|spread|cruise|deploy|sighting|line|assemble|showcase|surfaces|screens/i;
 
 const isShot = (a) => {
   const s = String((a && a.source) || "").toLowerCase(), k = String((a && a.kind) || "").toLowerCase();
@@ -87,7 +148,18 @@ const isShot = (a) => {
 const isLogo = (a) => a && (a.kind === "logo" || /logo/i.test(String(a.alt || "")));
 const ratioOf = (a) => (a && Number(a.ratio) > 0 ? Number(a.ratio) : (a && a.width && a.height ? a.width / a.height : 0));
 const isPortraitAsset = (a) => { const rt = ratioOf(a); return rt > 0 && rt < 0.9; };
+const r2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 const plateOk = (a) => a && a.path && String(a.type) !== "video" && !/\.svg($|\?)/i.test(String(a.path));
+// A topical VECTOR (Pixabay vector art / Iconify glyph / curated SVG). plateOk
+// rejects these outright — a flat SVG cover-cropped into a photo card reads as a
+// smear — which meant NO omelette film could ever show one: measured, 0 of 4
+// supplied vectors reached the frame on every pack sampled, while the fetcher
+// spent a vector budget on every job. They are admitted here as POST-photo fill
+// and pinned to object-fit:contain at render time (vectorFitCss below), so they
+// letterbox into the card instead of cropping — a real graphic beats the
+// recycled screenshot or hatched placeholder that slot would otherwise draw.
+const isVectorAsset = (a) => !!(a && a.path && String(a.type) !== "video"
+  && /\.svg($|\?)/i.test(String(a.path)) && !isLogo(a));
 
 function fit(text, max) {
   const t = String(text || "").trim();
@@ -96,12 +168,197 @@ function fit(text, max) {
   for (const w of t.split(/\s+/)) { if ((out + " " + w).trim().length > max) break; out = (out + " " + w).trim(); }
   return out || t.slice(0, max);
 }
+// A LABEL, or nothing. fit() is word-bounded, which stops mid-WORD damage but
+// not mid-THOUGHT damage: "75% of organizations report that Trello delivers
+// value within 30 days" fitted to an 18-char pill becomes "75% of", and
+// "Sign up — it's free!" becomes "Sign up — it's". Measured live — a finished
+// film slammed "75% OF | SIGN UP — IT'S" across the frame as its headline.
+//
+// A short slot is for a LABEL. If fitting throws away most of the sentence, the
+// sentence was never a label, and a blank slot is better than a stump: the
+// blanking pass already renders missing slots as nothing.
+const DANGLING = /^(of|the|a|an|and|or|to|for|with|in|on|at|by|from|as|but|so|is|are|was|were|be|it|its|it'?s|that|this|these|those|your|our|their|my|no|not|can|will|has|have|had|do|does|you|we|they)$/i;
+function fitLabel(text, max) {
+  const t = String(text || "").trim();
+  if (!t) return "";
+  let out = fit(t, max);
+  if (out === t) return out;
+  const total = t.split(/\s+/).filter(Boolean).length;
+  // Trim the dangle. "Sign up — it's free!" cut to 22 chars is "Sign up — it's",
+  // which still reads mid-thought. Peel trailing function words and orphaned
+  // punctuation until it lands clean.
+  let w = out.split(/\s+/).filter(Boolean);
+  while (w.length && (DANGLING.test(w[w.length - 1].replace(/[^\w']/g, "")) || !/[\w%$)]$/.test(w[w.length - 1]))) w.pop();
+  if (!w.length) return "";
+  out = w.join(" ");
+
+  // Did the cut land on a CLAUSE BOUNDARY? That is what separates a good short
+  // label from a stump, and word-count alone cannot tell them apart:
+  //   "Sign up — it's free!"        -> "Sign up"      cut before "—"  = a label
+  //   "Inbox: pull in ideas fast"   -> "Inbox: pull"  cut mid-clause  = a stump
+  // Both keep two words; only the first is a complete thought. ("Inbox: pull"
+  // shipped in a finished film, in a pill next to "No-code automation".)
+  let i = 0;
+  for (let n = 0; n < w.length && i < t.length; n++) {
+    while (i < t.length && /\s/.test(t[i])) i++;
+    while (i < t.length && !/\s/.test(t[i])) i++;
+  }
+  while (i < t.length && /\s/.test(t[i])) i++;
+  if (i >= t.length || /[—–\-:;,.!?)]/.test(t[i])) return out;
+
+  // Mid-clause means incomplete, and no word-count ratio rescues that: "81% chose
+  // ease of use" cut to "81% chose ease" keeps 60% of the words and still shipped
+  // as a pill that says nothing. Drop it — the slot renders as nothing, which is
+  // what a blank label should look like.
+  return total <= 2 ? out : "";
+}
 function bullets(scene, n) {
   let list = Array.isArray(scene.chips) ? scene.chips.filter(Boolean) : [];
   if (!list.length && Array.isArray(scene.onScreenText)) list = scene.onScreenText.filter(Boolean);
   if (!list.length && Array.isArray(scene.bullets)) list = scene.bullets.filter(Boolean);
   if (!list.length && scene.subtext) list = String(scene.subtext).split(/[.;\n•]|\s—\s/).map((s) => s.trim()).filter((s) => s.length > 2);
+  // LAST RESORT: THE LINE THE NARRATOR IS SPEAKING. Every list slot a template
+  // declares — pills, sign racks, meta rows, feature cards — draws from here, so
+  // a scene with no authored list and no subtext left the whole body of its
+  // shape empty (measured on a shipped film: nine beats, one two-word headline
+  // each, the rest of the frame bare). The voiceover is the one line guaranteed
+  // to exist and guaranteed to be about THIS beat, so its clauses are honest
+  // material for those slots. Still last: a real list always reads better.
+  if (!list.length && scene.voiceover) list = phrases(scene.voiceover);
   return list.slice(0, n).map(String);
+}
+
+// A slot whose authored default is CONFIGURATION, not copy. Pouring a sentence
+// into `variant: "dark"` or `icon: "bolt"` does not fill the frame, it breaks
+// the component — so the fill below is deliberately conservative and only ever
+// speaks into something that already looks like a written phrase.
+const CONFIG_KEY = /^(url|href|src|img|image|icon|logo|color|colour|bg|background|accent|fill|stroke|align|variant|theme|mode|size|type|kind|id|key|cls|class|style|font|ease|anim|animation|dir|side|pos|position|fit|focus|ratio|seed|shape|pattern)$/i;
+const CONFIG_VALUE = /^(#[0-9a-f]{3,8}|(https?:)?\/\/|\/|[a-z-]+\(|data:)/i;
+// The authored default is the design's own width budget and case. "MILE 038"
+// asks for a short stamp; "Every good boy delivers." asks for a sentence.
+function fillFor(key, authored, bank, { copyOnly = false } = {}) {
+  const demo = String(authored == null ? "" : authored);
+  const body = demo.trim();
+  if (!body || body.length < 4) return "";                 // a spacer, not a text element
+  if (CONFIG_KEY.test(key) || CONFIG_VALUE.test(body)) return "";
+  if (!/[a-z]/i.test(body)) return "";                     // "01", "—", "038"
+  // Single bare token ("dark", "bolt", "left") reads as an enum far more often
+  // than as copy. A phrase — anything with a space, or capitalised/punctuated —
+  // is text the design means to be read.
+  if (!/\s/.test(body) && !/[.!?:—–,]/.test(body) && body.length < 12) return "";
+  const upper = body === body.toUpperCase() && /[A-Z]/.test(body);
+  const cut = bank.take(Math.max(8, Math.min(110, body.length + 6)), { upper, copyOnly });
+  return cut || "";
+}
+
+// ---------------------------------------------------------------- copy bank
+// Split a sentence into standalone clauses: "Design, code and AI — all
+// disconnected." -> ["Design, code and AI", "all disconnected"]. Each piece has
+// to survive on its own in a label slot, so the split points are the ones a
+// writer would break on.
+function phrases(text) {
+  return String(text || "")
+    .split(/[.;!?•\n]|\s[—–]\s|\s-\s|,\s(?=and\b|but\b|so\b|then\b)/)
+    .map((s) => s.replace(/^[\s,:;—–-]+|[\s,:;—–-]+$/g, "").trim())
+    .filter((s) => s.length > 2);
+}
+
+// WHY THIS EXISTS. The suppression passes below blank every authored slot this
+// adapter has no mapping for — kicker, footer, odometer, sign descriptions,
+// meta values, caption labels — because the authored default is the DEMO
+// brand's words ("and 4,000 more teams"). That is right about the demo copy and
+// wrong about the frame: a shipped 30s film (job agmoif2udy, pack "motorway")
+// played nine beats as a two-word headline over 50-70% empty ground, because
+// every supporting text element the design has was blanked to a single space.
+//
+// There was never a third option. This is it: write the FILM'S OWN words there.
+// The bank collects every true line this scene can say — its bullets, its
+// support line, the sentence the narrator speaks over it, the film's title —
+// and hands each blank slot the longest one that still reads as a clean label
+// at that slot's authored width. Nothing is invented (so the no-fabricated-
+// claims rule below is untouched) and nothing repeats inside a scene.
+function copyBank(sc, brand, filmTitle) {
+  const seen = new Set();
+  const out = [];
+  // `chrome` = the film's furniture (its title, the brand). Fine as a stamp in a
+  // corner slot the design draws small; NOT fine padding a rack of feature
+  // pills, where three entries reading "Figma / Figma Ships Together / Figma"
+  // is worse than two honest ones.
+  const push = (v, chrome = false) => {
+    const s = String(v || "").replace(/\s+/g, " ").trim();
+    if (s.length < 3) return;
+    const k = s.toLowerCase().replace(/[^\w\s]/g, "").replace(/\s+/g, " ").trim();
+    if (!k || seen.has(k)) return;
+    seen.add(k);
+    out.push({ s, chrome });
+  };
+  for (const b of bullets(sc, 6)) push(b);
+  push(sc.emphasis);
+  push(sc.kicker);
+  for (const p of phrases(sc.subtext)) push(p);
+  push(sc.subtext);
+  for (const p of phrases(sc.body)) push(p);
+  for (const p of phrases(sc.voiceover)) push(p);
+  push(sc.headline || sc.title);
+  push(filmTitle, true);
+  push(brand, true);
+  return out;
+}
+
+// OM_COPY_FILL=0 restores the old blank-everything behaviour — the A/B switch
+// the density harness measures against.
+const COPY_FILL = process.env.OM_COPY_FILL !== "0";
+// OM_TOPIC_MATCH=0 restores the old picture ranking (filename+alt word overlap
+// only — no vision description, no section affinity, no repeat penalty).
+const TOPIC_MATCH = process.env.OM_TOPIC_MATCH !== "0";
+
+// A per-scene dispenser. `take(max)` returns the longest unused line that still
+// reads clean at `max` characters (fitLabel returns "" for a mid-thought stump,
+// so a slot never fills with "Inbox: pull"), and remembers what it handed out so
+// one beat never says the same thing twice.
+function makeBank(sc, brand, filmTitle, filmSpent) {
+  const lines = copyBank(sc, brand, filmTitle);
+  const spent = new Set();
+  const norm = (s) => String(s || "").toLowerCase().replace(/[^\w\s]/g, "").replace(/\s+/g, " ").trim();
+  return {
+    // Mark copy already written into the scene by the mapping pass, so a blank
+    // slot never echoes the headline that is already on the frame.
+    spend(v) { const k = norm(v); if (k) spent.add(k); },
+    take(max, { upper = false, minChars = 3, copyOnly = false } = {}) {
+      if (!COPY_FILL) return "";
+      const budget = Math.max(4, Math.min(120, Number(max) || 0));
+      // Two passes: everything this FILM has not said yet, then — only if the
+      // beat would otherwise go blank — lines it has. Without the film-level
+      // pass every beat reaches for the same strongest line and the title ends
+      // up stamped on all nine frames.
+      for (const fresh of [true, false]) {
+        let best = "", bestKey = "";
+        for (const { s: line, chrome } of lines) {
+          if (chrome && copyOnly) continue;
+          const key = norm(line);
+          if (!key || spent.has(key)) continue;
+          // CHROME MAY REPEAT — measured both ways. Barring the film's title and
+          // brand from the relaxed pass sent every corner slot back to blank and
+          // cost the fleet a third of its copy (64.0 -> 45.5 chars per beat), and
+          // the slots it lands in are the ones a designer authored as a PERSISTENT
+          // STAMP ("MILE 038", "CAM 01", "ROUTE 66") — a title sitting there every
+          // beat reads as branding, not as repetition. The case that genuinely
+          // read as padding was a RACK of pills filled with the brand three times,
+          // and `copyOnly` already refuses chrome there.
+          if (fresh && filmSpent && filmSpent.has(key)) continue;
+          const cut = fitLabel(line, budget);
+          if (!cut || cut.length < minChars) continue;
+          if (cut.length > best.length) { best = cut; bestKey = key; }
+        }
+        if (best) {
+          spent.add(bestKey); spent.add(norm(best));
+          if (filmSpent) { filmSpent.add(bestKey); filmSpent.add(norm(best)); }
+          return upper ? best.toUpperCase() : best;
+        }
+      }
+      return "";
+    },
+  };
 }
 // The templates break headlines on "|" — give them the same two-line shape the
 // authored copy has, or a long script line overruns its column.
@@ -156,14 +413,30 @@ function statsFor(scene) {
 // lookahead mirrors template_engine.mineStat: a unit must not steal the first
 // letter of the next word ("12 months" is 12, not 12m-onths).
 function minedStats(scene) {
+  // The HEADLINE first: it is where a script puts the figure it wants shown
+  // ("95% of Fortune 500"), and it was not being read at all — so a stat scene
+  // mined the supporting sentence instead and shipped the wrong number.
   const lines = []
+    .concat(scene.headline ? [String(scene.headline).replace(/\|/g, " ")] : [])
     .concat(Array.isArray(scene.onScreenText) ? scene.onScreenText : [])
     .concat(scene.subtext ? String(scene.subtext).split(/[.;\n]/) : []);
   const out = [];
   const seen = new Set();
   for (const raw of lines) {
     const s = String(raw || "");
-    const m = /([$₹€£]?)\s?(\d[\d,]*(?:\.\d+)?)(?:\s?(%|x|k|m|bn?|\+|★)(?![A-Za-z]))?/i.exec(s);
+    // TAKE THE MEASURED FIGURE, NOT THE FIRST DIGITS IN THE SENTENCE. The regex
+    // is unanchored, so "Ninety five percent of the Fortune 500 use it" matched
+    // 500 — and the label is built from the words AROUND the match, so the card
+    // rendered "500" over "NINETY FIVE PERCENT". A number carrying a unit (%, x,
+    // k, m, bn, +) is the claim; a bare number is usually part of a name
+    // ("Fortune 500", "Studio 54", "G2"). Prefer the one with a unit and fall
+    // back to the first bare number only when the line has none.
+    const NUM = /([$₹€£]?)\s?(\d[\d,]*(?:\.\d+)?)(?:\s?(%|x|k|m|bn?|\+|★)(?![A-Za-z]))?/gi;
+    let m = null;
+    for (const cand of s.matchAll(NUM)) {
+      if (cand[3] || cand[1]) { m = cand; break; }       // a unit or a currency mark = a real figure
+      if (!m) m = cand;                                  // remember the first bare number as the fallback
+    }
     if (!m) continue;
     const v = parseFloat(m[2].replace(/,/g, ""));
     if (!isFinite(v) || v > 10000000) continue;
@@ -172,10 +445,15 @@ function minedStats(scene) {
     seen.add(key);
     const label = `${s.slice(0, m.index)} ${s.slice(m.index + m[0].length)}`
       .replace(/[^\w\s.%-]/g, " ").replace(/\s+/g, " ").trim().slice(0, 20);
-    out.push({ v, suf: (m[3] || "").toUpperCase(), l: label.toUpperCase() });
+    out.push({ v, suf: (m[3] || "").toUpperCase(), l: label.toUpperCase(), unit: !!(m[3] || m[1]) });
     if (out.length >= 3) break;
   }
-  return out;
+  // A film that stated a real measurement shows measurements ONLY. Mixing
+  // "95%" with the "500" scraped out of "Fortune 500" puts a meaningless card
+  // next to the true one, labelled with the leftovers of the sentence it came
+  // from ("NINETY FIVE PERCENT OF THE").
+  const measured = out.filter((x) => x.unit);
+  return (measured.length ? measured : out).map(({ v, suf, l }) => ({ v, suf, l }));
 }
 
 // ---- scene-slot casting ---------------------------------------------------------
@@ -211,7 +489,38 @@ function classifySlots(tplScenes) {
  * 8-scene film re-ran the Title mid-film (it read as "the template restarted"),
  * fired the CTA at 17s, and ENDED on a content scene instead of the close.
  */
-function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent }) {
+// DEMO FIGURES A COMPILED FILM FALLS BACK TO.
+// The suppression pass below can only blank props the authored OM_SCENES
+// DECLARE. A compiled film may also read props its scene data never mentions —
+// `stats={s.meta || [{v:0.2,suf:'s',l:'to first result'},{v:40,suf:'K',l:'items
+// indexed'}…]}` in Cadence — and those fall straight through to the demo value.
+// That ships ANOTHER product's figures as if they were the customer's: a film
+// for Trello claiming "40K items indexed". The bundle is gzipped, so this cannot
+// be detected at runtime; each entry below was read from that template's source.
+// An empty array is truthy, so it suppresses the `||` without drawing anything.
+const HIDDEN_FALLBACK_PROPS = {
+  // Audited against every template's source (2026-08-04). The line drawn here:
+  // suppress anything that makes a CLAIM about the customer's product — a
+  // statistic, a feature, a testimonial, another brand's voice — and KEEP pure
+  // UI chrome, because chrome reads as design furniture while a claim reads as
+  // a fact the customer is asserting.
+  //
+  // Kept on purpose: Cadence.filters (All/Recent/Mine/Shared tabs), Hacker's
+  // boot/cmds/bars (a terminal with no text is not a terminal), Stomp.rows and
+  // .lines (the type wall IS the design), Stomp.footer ("— AND THAT IS IT.",
+  // generic and claim-free).
+  Cadence: {
+    meta: [],           // "0.2s to first result / 40K items indexed / 3 exact matches"
+    chips: [],          // "Fuzzy matching / Filters / Saved searches" — feature claims
+    avatarLabel: " ",   // "and 4,000 more teams" — a social-proof number that is not theirs
+  },
+  Showcase:         { spots: [] },   // numbered callouts: "One-click actions"
+  ShowcaseVertical: { spots: [] },
+  Launch:           { sub: " " },    // "Delivered — tail wags included." — the Fetch demo brand's voice
+  FetchVertical:    { kicker: " " }, // "A GOOD BOY STORY" — ditto
+};
+
+function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent, tplName, filmTitle }) {
   const { intro, outro, middle } = classifySlots(tplScenes);
   // Uppercase the COPY rather than relying on a CSS rule. These films are React
   // components that set type inline on their own elements, so a stylesheet hook
@@ -219,8 +528,51 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent 
   // the frame still looking plausible. Transforming the text is exact.
   const UP = String((tfx || {}).case || "").toLowerCase() === "upper";
   const up = (v) => (UP && typeof v === "string" ? v.toUpperCase() : v);
-  const pool = (Array.isArray(assets) ? assets : []).filter(plateOk)
-    .sort((a, b) => ((isShot(b) ? 1 : 0) - (isShot(a) ? 1 : 0)) || ((Number(b.cdScore) || 0) - (Number(a.cdScore) || 0)));
+  // Same relevance order the family engine uses: a real product shot first, then
+  // the director's own verdict (prominence + score + CLIP pixel-relevance).
+  // Sorting on cdScore alone left every unscored asset tied at 0, which put
+  // arrival order back in charge of what lands in the picture cards.
+  const omRank = (a) => (isShot(a) ? 60 : 0)
+    + (a.cdProminence === "hero" ? 25 : a.cdProminence === "support" ? 12 : 0)
+    + (Number(a.cdScore) || 0)
+    + (typeof a.clipRelevance === "number" ? a.clipRelevance * 30 : 0);
+  // STOCK IS A FALLBACK, NOT AN INGREDIENT — but a fallback still has to EXIST.
+  //
+  // The rule used to be enforced by DELETION: four or more site assets and every
+  // Pixabay/Pexels image was filtered out of the pool entirely. That is a cliff,
+  // not a preference — measured on an 8-scene film with 6 screenshots + 9 stock
+  // photos + 4 vectors supplied, the finished composition carried 6 assets, all
+  // screenshots, ZERO stock, ZERO vectors; the same film with 3 screenshots
+  // carried 11. The 4th capture was DELETING nine fetched photos, and the scenes
+  // that lost them did not go quiet — they recycled the same screenshot again or
+  // drew the hatched placeholder, and `picturesLeft()` below stopped casting
+  // media shapes at all, so the film also lost its picture-carrying beats.
+  //
+  // Rank instead of delete. Tiers keep the original intent exactly — a real
+  // capture or the site's own image is always chosen before a stock photo, so
+  // stock can still never outbid owned material for a hero card — while leaving
+  // the stock underneath as fresh material for the slots owned assets don't
+  // reach. Vectors sit in the last tier: after every photograph, ahead of a
+  // repeat.
+  const all = (Array.isArray(assets) ? assets : []).filter(plateOk);
+  const isSiteAsset = (a) => {
+    const s = String((a && a.source) || "").toLowerCase();
+    return isShot(a) || s === "website-image" || s === "blog";
+  };
+  const isStock = (a) => /pixabay|pexels|openverse|unsplash|stock/.test(String((a && a.source) || "").toLowerCase());
+  const tierOf = (a) => (isSiteAsset(a) ? 3 : isStock(a) ? 1 : 2);
+  const pool = all.slice().sort((a, b) => (tierOf(b) - tierOf(a)) || (omRank(b) - omRank(a)));
+  // Vectors are kept in their OWN pool rather than appended to this one. Ranked
+  // last inside a single pool they are unreachable in practice — a real job
+  // supplies more photographs than the film has picture slots, so the walk never
+  // gets to them (measured on a live render: 6 photos + 2 vectors supplied, both
+  // vectors unused). They are drawn instead from a reserved cadence below, which
+  // guarantees graphic art a place without letting it outbid a photograph.
+  const vecPool = (Array.isArray(assets) ? assets : []).filter(isVectorAsset);
+  let vi = 0;
+  const takeVec = () => (vi < vecPool.length ? vecPool[vi++] : null);
+  // Which media wall we are on, for the one-in-three vector cadence.
+  let wallNo = 0;
   const logo = (Array.isArray(assets) ? assets : []).find(isLogo) || null;
   const byScene = new Map();
   const free = [];
@@ -230,9 +582,135 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent 
     if (sid && !byScene.has(sid)) byScene.set(sid, a); else free.push(a);
   }
   let fi = 0;
+  // Every asset actually placed in a slot, in placement order — the recycle
+  // pool for scenes/walls that outnumber the supply.
+  const used = [];
+  let recycleAt = 0;
+  // The picture the PREVIOUS beat drew. Two consecutive cuts on the same capture
+  // read as a stall — the voice moves on, the frame does not.
+  let lastShot = null;
+  // Every line the copy bank has already put on a frame, film-wide. Without it
+  // each beat reaches for the same strongest line and the film's title ends up
+  // stamped in the corner of all nine.
+  const filmSpent = new Set();
+  // Prominent candidates first: an asset the director demoted to "background"
+  // is one it judged weak or off-topic, and these templates have no dim scrim
+  // rung — whatever this returns is shown full-bleed in a picture card.
+  const omDemoted = (a) => a.cdProminence === "background" || a.visionOk === false;
   const take = (pred) => {
-    for (let k = fi; k < free.length; k++) if (!pred || pred(free[k])) { const a = free[k]; free.splice(k, 1); return a; }
+    for (const strict of [true, false]) {
+      for (let k = fi; k < free.length; k++) {
+        const a = free[k];
+        if (strict && omDemoted(a)) continue;
+        if (!pred || pred(a)) { free.splice(k, 1); return a; }
+      }
+    }
     return null;
+  };
+
+  // RELEVANCE, not just rank. `take` walks the pool in quality order, so a beat
+  // about automation could be handed the pricing capture purely because it
+  // scored higher — the "irrelevant screenshot" in a finished film. The
+  // screenshot director already names each capture ("…the automation page"), and
+  // the file keeps that name, so the page a scene is TALKING about is
+  // recoverable. Pick the best-matching candidate; fall back to plain order when
+  // nothing overlaps, so this can only ever improve on the previous choice.
+  const STOP = new Set(["the", "a", "an", "and", "or", "for", "with", "your", "our", "this",
+    "that", "page", "of", "to", "in", "on", "it", "is", "are", "you", "we", "all", "every",
+    // Boilerplate that appears in EVERY caption on a website job, so matching on
+    // it scores every asset identically and the ranking collapses to pool order.
+    "real", "website", "screenshot", "image", "photo", "product", "present", "styled",
+    "browser", "frame", "hero", "treatment", "matches", "scene", "topic", "unpinned",
+    // Prepositions and filler carry no subject, and leaving one out is enough to
+    // score a decorative image onto a beat: an alt reading "testimonials from
+    // Zoom" matched a line containing "from", and that single word was the whole
+    // match. Kept in step with asset_sources-side scene_match.js.
+    "from", "into", "onto", "over", "under", "after", "before", "than", "then",
+    "its", "their", "them", "they", "was", "were", "been", "being", "have", "has",
+    "had", "will", "would", "can", "could", "should", "more", "most", "just", "also"]);
+  const wordsOf = (s) => String(s || "").toLowerCase().match(/[a-z0-9]{3,}/g) || [];
+  // WHAT THE BEAT IS ABOUT. The narration was missing from this list, which is
+  // most of the reason a scene and its picture could disagree: on a website film
+  // the headline is 2-4 words ("SHARED CONTEXT") while the voiceover carries the
+  // subject in full ("One workspace for your entire product development
+  // process."). Match on what the film is SAYING, not just what it is shouting.
+  const sceneTerms = (sc) => new Set([
+    ...wordsOf(sc.headline), ...wordsOf(sc.title), ...wordsOf(sc.subtext),
+    ...bullets(sc, 4).flatMap(wordsOf), ...wordsOf(sc.kicker), ...wordsOf(sc.purpose),
+    ...(TOPIC_MATCH ? [...wordsOf(sc.voiceover), ...wordsOf(sc.body), ...wordsOf(sc.emphasis)] : []),
+  ].filter((w) => !STOP.has(w)));
+  // WHAT THE PICTURE ACTUALLY SHOWS. Scoring used the FILENAME and `alt` only —
+  // and on the project path every capture is written as `site_0.png`…`site_5.png`
+  // with a boilerplate alt, so both sources carried no topic at all and every
+  // candidate tied at zero. Ties fall back to pool order, which is arrival order:
+  // that is precisely the "random screenshots" complaint. The asset director
+  // already records what it SAW in the image (`sees`), which section of the site
+  // it came from (`sectionType`), and the query it was fetched for — all of it
+  // topical, none of it used until now.
+  const WEIGHTS = TOPIC_MATCH
+    ? [["sees", 1.6], ["alt", 1.2], ["query", 1.2], ["sectionType", 1.0], ["url", 0.9], ["file", 0.7]]
+    : [["alt", 1], ["file", 1]];
+  const assetTermWeights = (a) => {
+    const src = {
+      sees: a.sees,
+      alt: a.alt,
+      query: a.query || a.searchQuery,
+      sectionType: a.sectionType,
+      url: String(a.pageUrl || a.sourceUrl || "").replace(/https?:\/\/[^/]+/, "").replace(/[/_-]+/g, " "),
+      file: String(a.path || "").split("/").pop().replace(/^page_\d+_/, "").replace(/\.\w+$/, ""),
+    };
+    const m = new Map();
+    for (const [k, w] of WEIGHTS) {
+      for (const t of wordsOf(src[k])) {
+        if (STOP.has(t)) continue;
+        if ((m.get(t) || 0) < w) m.set(t, w);
+      }
+    }
+    return m;
+  };
+  const assetTerms = (a) => new Set(assetTermWeights(a).keys());
+  // A beat's PURPOSE says which part of a site belongs on it — proof beats want
+  // the logo wall and the testimonial, the close wants the sign-up, the opener
+  // wants the hero. This is the topical link a word overlap cannot make (the
+  // testimonial capture rarely repeats the narrator's nouns).
+  const SECTION_FOR = {
+    hook: /hero|home|landing/i, title: /hero|home|landing/i,
+    context: /hero|features|about/i, problem: /hero|features|about/i,
+    feature: /features|product|how|solution/i, demo: /features|product|how/i,
+    proof: /testimonial|logos|customers|social|stats/i, testimonial: /testimonial|logos|customers|social/i,
+    stat: /stats|testimonial|logos|customers/i,
+    pricing: /pricing|plans/i,
+    cta: /cta|signup|sign-up|footer|pricing/i, close: /cta|signup|footer/i,
+  };
+  const sectionBonus = (sc, a) => {
+    const want = SECTION_FOR[String(sc.purpose || sc.kind || "").toLowerCase()];
+    return want && want.test(String(a.sectionType || "")) ? 1.5 : 0;
+  };
+  // One number every picture decision now shares. `used` is the repeat penalty:
+  // a fresh, weaker asset beats showing the same capture a third time, which is
+  // how one screenshot ended up on six of fourteen beats in a shipped film.
+  const matchScore = (sc, a, { penalizeUsed = true } = {}) => {
+    const terms = sceneTerms(sc);
+    let score = 0;
+    if (terms.size) for (const [t, w] of assetTermWeights(a)) if (terms.has(t)) score += w;
+    if (!TOPIC_MATCH) return score;                         // OM_TOPIC_MATCH=0 — the pre-fix ranking, for A/B
+    score += sectionBonus(sc, a);
+    if (typeof a.clipRelevance === "number") score += a.clipRelevance * 0.8;
+    if (penalizeUsed && used.includes(a)) score -= 2.5;
+    if (a === lastShot) score -= 1.5;                       // never twice in a row when anything else exists
+    return score;
+  };
+  const takeFor = (sc, pred) => {
+    let best = 0, bestI = -1;
+    for (let k = fi; k < free.length; k++) {
+      const a = free[k];
+      if (omDemoted(a)) continue;
+      if (pred && !pred(a)) continue;
+      const score = matchScore(sc, a, { penalizeUsed: false });   // `free` is unplaced by definition
+      if (score > best) { best = score; bestI = k; }
+    }
+    if (bestI >= 0) { const a = free[bestI]; free.splice(bestI, 1); return a; }
+    return take(pred);
   };
 
   // Which authored slot renders user scene i:
@@ -243,28 +721,423 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent 
   //             A statless scene on the Stats slide (or a bulletless one on a
   //             chips slide) renders acres of nothing; walk forward to the first
   //             shape whose demands the scene's own copy meets.
-  const canFill = (t, sc) => {
+  // `soft` relaxes the LIST/STAT requirements while keeping every guard that
+  // prevents a blank frame (media walls, picture-only shapes, headline-primary
+  // shapes). It exists because strictness starves variety: FlightVertical offers
+  // four middle shapes, but against a sparse scene only "Takeoff" qualified, so
+  // the rotation reset once per beat and the film spent 7 of 12 beats on it.
+  // A Climb with blank chips still shows its eyebrow and headline — far better
+  // than a seventh Takeoff.
+  const canFill = (t, sc, soft) => {
     const hasK = (k) => Object.prototype.hasOwnProperty.call(t, k);
+    // A MEDIA WALL WITH NO MEDIA IS AN EMPTY FRAME. These shapes draw two to six
+    // picture cards and, with nothing to put in them, the compiled film paints
+    // its hatched "DROP IMAGE TO REPLACE" placeholder — the empty screenshot
+    // cards seen in finished films. A wall is only castable while real pictures
+    // are still unclaimed; when the pool is dry the scene takes a text shape
+    // instead, which is always better than a frame of empty boxes.
+    const picturesLeft = () => (free.length - fi) + (byScene.size ? 1 : 0);
+    // A wall can also be filled by RECYCLING a picture already placed earlier —
+    // the wall loop below does exactly that (`place(take()) || recycle()`). The
+    // old test only counted FRESH pictures, so the moment the pool ran dry every
+    // wall-named shape became permanently uncastable. That is not a small loss:
+    // MEDIA_WALL matches on the shape's NAME, and names like Fleet, Billboards,
+    // Line, Assemble and Deploy match it, so on a six-shape template it removed
+    // half the vocabulary mid-film and casting collapsed onto whatever was left.
+    // Measured: Drive cast "Intro > Fleet > Billboards > Feature > Feature >
+    // Feature > Feature > Feature > CTA" — the same slide five times running.
+    //
+    // So a dry pool only blocks a wall in the STRICT tier. Under `soft` — which is
+    // only reached when every other shape has already been refused — a wall that
+    // can recycle a real picture is allowed, because a second look at a picture
+    // the film has already shown reads far better than the identical slide again.
+    const canRecycle = () => used.length > 0;
+    if (MEDIA_WALL.test(String(t.name || "")) && picturesLeft() < 1 && !(soft && canRecycle())) return false;
+    // …and the same for a shape that is a PICTURE plus a caption and nothing
+    // else. Reel's `Show` declares only `caption`, so with the pool dry it casts
+    // happily and renders a frame containing one blank line — the "empty slide"
+    // in a finished film. A shape with no substantive text slot of its own has
+    // nothing to say without a picture.
+    const TEXT_SLOTS = ["headline", "title", "words", "lines", "body", "sub", "subtext", "quote",
+      "eyebrow", "kicker", "lead", "cta", "stats", "value", "items", "chips", "tags",
+      "rows", "steps", "tools", "notes", "msgs", "cols", "states", "results", "cards", "blocks"];
+    const carriesText = Object.keys(t).some((k) => TEXT_SLOTS.includes(k));
+    if (!carriesText && picturesLeft() < 1) return false;
+    // NEVER relaxed by `soft`. A number card without a number can only fabricate
+    // one or break: relaxing this cast a Stats shape onto a scene with no figures,
+    // asSlot filled its label and dropped the numeric field, and the film rendered
+    // a giant red "NaN". The other soft relaxations degrade to a blank row; this
+    // one degrades to garbage on screen.
     if (hasK("stats") && !(statsFor(sc).length || minedStats(sc).length)) return false;
-    if ((hasK("chips") || hasK("items")) && bullets(sc, 2).length < 2) return false;
+    // …AND THE SAME SHAPE WITHOUT THE ARRAY. A gauge/dial/ring declares its
+    // figure as a SCENE-LEVEL NUMBER (SteamSpring's Ring is {to:41, unit:"°",
+    // label:"AT THE ROCK POOL"}), which this guard did not look at, so a
+    // figure-less scene was cast onto it and the ring counted up to whatever the
+    // compiled component falls back to — a number about another product,
+    // captioned with this film's words. Measured on a shipped film: a ring
+    // reading "100" labelled "AND PRIORITY SET".
+    if (numberSlots(t).length && !(statsFor(sc).length || minedStats(sc).length)) return false;
+    if (!soft && (hasK("chips") || hasK("items")) && bullets(sc, 2).length < 2) return false;
+    // LIST-DRIVEN SHAPES (Cadence: Search results, Onboard steps, Connect tools,
+    // Board columns, Morph states, Notify notes, Thread messages, Digest rows).
+    // Each draws a rack of rows and nothing else — cast a scene with no list of
+    // its own and the frame is an empty card. Two bullets is the floor.
+    for (const k of ["results", "steps", "tools", "notes", "rows", "msgs", "cols", "states"]) {
+      if (!soft && hasK(k) && bullets(sc, 2).length < 2) return false;
+    }
+    // A METRIC slide is a single huge number. Without a TRUE one it would either
+    // render 0 or borrow the demo's figure, so it only accepts a scene that
+    // carries a real stat.
+    if (hasK("value") && !(statsFor(sc).length || minedStats(sc).length)) return false;
+    // A shape whose PRIMARY slot is a headline cannot be filled by a scene with
+    // no headline, title or bullets to make one from — it renders a blank
+    // column. (Measured: a quote-only testimonial cast onto Cadence's `Live`
+    // shape produced an empty headline AND empty meters, because a quote is not
+    // a headline.) Shapes that carry their own primary slot — words / quote /
+    // eyebrow — are exempt; they are handled below.
+    const canLine = () => !!(sc.headline || sc.title || bullets(sc, 1).length);
+    if (hasK("headline") && !canLine()) return false;
+    // A pull-quote shape needs something quotable.
+    if (hasK("quote") && !(sc.quote || sc.subtext || sc.voiceover)) return false;
+    // LABELLED meters ([label, fraction] pairs, e.g. Cadence's `Live`) draw one
+    // row per bullet — with none they render an empty card. An abstract
+    // sparkline (a flat array of numbers) needs nothing and is exempt.
+    if (!soft && hasK("bars") && Array.isArray(t.bars) && Array.isArray(t.bars[0]) && bullets(sc, 1).length < 1) return false;
+    // A PRICING rack needs tier names AND prices. Nothing in a generic storyboard
+    // supplies those, and inventing them would put fabricated prices on screen —
+    // so it is cast only for a scene that is genuinely about pricing and carries
+    // its own numbers.
+    if (hasK("plans")) {
+      const txt = `${sc.headline || ""} ${sc.subtext || ""} ${sc.body || ""} ${bullets(sc, 4).join(" ")}`.toLowerCase();
+      if (!/\bprice|pricing|plan|tier|\$|\/mo|per month|per seat|per person|free\b/.test(txt)) return false;
+      if (bullets(sc, 2).length < 2) return false;
+    }
     return true;
   };
+  // THE TEMPLATE IS A REFERENCE, NOT A LOOP.
+  //
+  // This used to be a plain modulo over the content shapes, so a film longer
+  // than the template simply replayed it: a 6-shape template under a 14-scene
+  // film ran 1-2-3-4-5-6-1-2-3-4-5-6-… and the second half was visibly the first
+  // half again. That is the single loudest "cheap" tell in a long film.
+  //
+  // Instead: exhaust every distinct shape the scene can actually fill before ANY
+  // shape comes back, and when the template's vocabulary genuinely runs out,
+  // continue in the same visual language rather than restarting it — each new
+  // pass walks the shapes from a different offset and in the opposite direction,
+  // so the recurrence never lands on the same beat or in the same order, and the
+  // copy/media in it are this scene's own. The look stays the template's; the
+  // sequence does not repeat.
+  const shotCount = pool.filter(isShot).length;
+  const orderFor = (p) => {
+    const idx = middle.map((_, n) => n);
+    if (p <= 0) {
+      // REACH THE SCREENSHOT SHAPE. Pass 0 walks the shapes as authored, so a
+      // media rack sitting late in a long template is never reached by a film
+      // with fewer scenes than the template has shapes — Cadence's Showcase is
+      // authored 13th, so an 11-scene film cast Search/Onboard/Board/… and the
+      // ONE shape that puts real product screenshots on screen was never used.
+      // Measured on a real film: six Linear screenshots captured and scored
+      // 84-92, zero of them on screen.
+      //
+      // So when the film HAS real screenshots to show, pull the first media rack
+      // forward to just after the opening two content beats — early enough to be
+      // reached, late enough that the film still opens the way it was authored.
+      // Everything else keeps its authored order.
+      if (shotCount >= 2) {
+        const w = idx.find((n) => MEDIA_WALL.test(String(middle[n].name)));
+        if (w != null && idx.indexOf(w) > 2) {
+          const rest = idx.filter((n) => n !== w);
+          return [...rest.slice(0, 2), w, ...rest.slice(2)];
+        }
+      }
+      return idx;                                            // pass 0 = as authored
+    }
+    // Rotate by ONE per pass (a stride that shares no factor with the list
+    // length, so consecutive passes can't land on the same rotation) and flip
+    // direction on odd passes — together that gives 2×len distinct orders,
+    // more than the 30-scene ceiling can consume.
+    const off = p % middle.length;
+    const rot = idx.slice(off).concat(idx.slice(0, off));
+    return p % 2 ? rot.reverse() : rot;
+  };
+  let pass = 0;
+  let passUsed = new Set();
+  let passOrder = orderFor(0);
+  let lastName = null;
+  // Set to the real beat count before mapping. The arc is anchored to the film's
+  // FIRST and LAST cut, and a cut is no longer one-per-narrated-scene, so
+  // counting source scenes here would fire the closer partway through.
+  let totalBeats = scenes.length;
   const slotFor = (i, sc) => {
-    const last = scenes.length - 1;
+    const last = totalBeats - 1;
     if (i === 0 && intro) return intro;
     if (i === last && outro) return outro;
-    const k = ((i - (intro ? 1 : 0)) % middle.length + middle.length) % middle.length;
-    for (let step = 0; step < middle.length; step++) {
-      const t = middle[(k + step) % middle.length];
-      if (canFill(t, sc)) return t;
+    // RESPECT THE TEMPLATE'S OWN PACING. Each authored shape carries the `dur`
+    // its animation was designed to play at (and, on the opening beats, a `nat`
+    // = its natural full length). Our films override every duration with the
+    // script's, so a shape authored to breathe over 4s can be handed a 2s slot
+    // and play truncated. Prefer, on the first sweeps, a shape whose authored
+    // pace actually fits the slot the script gives it.
+    //
+    // A PREFERENCE, never a requirement: the sweeps below relax it before
+    // anything else, so this can reorder casting but can never starve it.
+    const slotSec = Math.max(1.2, Number(sc.duration) || 4);
+    const pacesOk = (t) => {
+      const authored = Number(t.dur) || 0;
+      if (!authored) return true;                 // shape declares no pace — no opinion
+      return authored <= slotSec * 1.35;          // 35% compression is the most we ask of an animation
+    };
+    // Sweeps per pass, each dropping one preference. ORDER MATTERS, and it was
+    // wrong: "allow a back-to-back twin" (noTwin:false) used to be tried BEFORE
+    // "relax the fill requirements" (soft:true). So the moment a scene's copy
+    // could satisfy only ONE shape, casting preferred showing that shape AGAIN
+    // over trying a different shape with its optional slots relaxed — and since
+    // the pass then resets with the same scene shapes still unfillable, it did it
+    // again, and again. Measured across the bundle: Drive cast the SAME "Feature"
+    // slide FIVE TIMES IN A ROW, Pipeline four, Hacker three.
+    //
+    // A different shape with a thinner row beats the identical slide twice. So
+    // every no-twin option — strict and soft — is exhausted before a twin is
+    // allowed at all:
+    //   1. pace fits, fills strictly, not a twin
+    //   2. fills strictly, not a twin
+    //   3. fills SOFTLY, not a twin        <- was #4, now ahead of any twin
+    //   4. fills strictly, twin allowed
+    //   5. fills softly, twin allowed      — a scene always lands somewhere
+    // `guard` bounds the walk to one extra pass.
+    // WITHIN A SWEEP, GIVE THE COPY THE ROOM IT HAS. Every candidate in a sweep
+    // is already legal — same pass, same fill rules, same anti-twin guard — so
+    // taking the FIRST one in rotation order was an arbitrary choice between
+    // equals, and it routinely picked the thinnest. A scene arriving with a
+    // support line, three labels and a figure would land on a two-slot Statement
+    // (title + sub) while a Toggle or Feature sat unused later in the same
+    // rotation, and the copy it could not show simply never appeared: measured on
+    // a shipped film, 48% of the frame height carrying nothing while the scene
+    // held three unused labels.
+    //
+    // Rotation is still what ORDERS the sweep (passUsed keeps a shape to one use
+    // per pass, so variety is unchanged across the film) — this only decides
+    // which of the equally-legal shapes in THIS sweep gets the beat.
+    const roomFor = (t) => {
+      let score = 0;
+      for (const [k, v] of Object.entries(t)) {
+        if (k === "name" || k === "dur" || k === "nat") continue;
+        if (typeof v === "string") score += 1;
+        else if (Array.isArray(v)) score += Math.min(v.length, 4) * 1.5;   // a rack shows several lines at once
+        else if (typeof v === "number") score += 1;
+      }
+      return score;
+    };
+    for (let guard = 0; guard <= middle.length + 1; guard++) {
+      for (const [wantPace, noTwin, soft] of [[true, true, false], [false, true, false], [false, true, true], [false, false, false], [false, false, true]]) {
+        let pick = -1, pickScore = -1;
+        for (const n of passOrder) {
+          if (passUsed.has(n)) continue;
+          const t = middle[n];
+          if (!canFill(t, sc, soft)) continue;
+          if (wantPace && !pacesOk(t)) continue;
+          if (noTwin && lastName && t.name === lastName) continue;
+          const score = roomFor(t);
+          if (score > pickScore) { pickScore = score; pick = n; }
+        }
+        if (pick >= 0) {
+          passUsed.add(pick);
+          lastName = middle[pick].name;
+          return middle[pick];
+        }
+      }
+      // Nothing left in this pass that this scene can fill — open a new one.
+      pass += 1;
+      passUsed = new Set();
+      passOrder = orderFor(pass);
     }
-    return middle[k] || tplScenes[0] || {};
+    return middle[passOrder[0]] || tplScenes[0] || {};
   };
 
-  return scenes.map((sc, i) => {
+  // ---- PACE: CUT ON THE TEMPLATE'S OWN RHYTHM --------------------------------
+  // These films key every animation to progress WITHIN a scene, so holding a
+  // scene longer than it was authored for plays its motion in slow motion.
+  // Measured against the authored decks: Birdsong runs 1.91s per scene, Stomp
+  // 2.56s, Cadence 3.33s — while a 30s film with six narrated beats hands each
+  // scene 5s. That is 1.5x-2.6x slower than designed, which is exactly why the
+  // films drag.
+  //
+  // The fix is the one an editor would reach for: keep the narration untouched
+  // and CUT MORE OFTEN. A long narrated beat becomes two or three template beats
+  // of native length, each on a different shape (slotFor already refuses to
+  // repeat a shape). Total duration is unchanged, so audio stays in sync — the
+  // film simply stops sitting on a held frame while the voice keeps going.
+  const nativeDurs = tplScenes.map((t) => Number(t.dur) || 0).filter((d) => d > 0);
+  const nativePace = nativeDurs.length
+    ? nativeDurs.reduce((a, b) => a + b, 0) / nativeDurs.length
+    : 3;
+  // Never below 1.6s — under that a beat reads as a flicker rather than a cut.
+  //
+  // And, in VERTICAL, never above 3s. Some templates are authored at a ~5s stroll
+  // (Showcase, Reel, Fetch, Flight); matching that pace faithfully still yields a
+  // 5s-per-cut film, which is the "the templates are very slow" complaint even
+  // though every scene plays exactly as authored. Capping the target splits those
+  // strolls in two, so an authored 4.4-5.2s scene plays in 2.5s — 1.7-2x quicker,
+  // on two different shapes instead of one held frame. Total duration is
+  // untouched, so the narration stays in sync.
+  //
+  // Landscape keeps the authored pace: the brief was to speed up the vertical
+  // templates, and a wider frame carries a held shot far better than a phone does.
+  const beatTarget = land
+    ? Math.max(1.6, nativePace)
+    : Math.min(3, Math.max(1.6, nativePace));
+  // What the NEXT scene will headline — used to stop a beat pre-empting it.
+  const nextHeadOf = (sc) => {
+    const idx = scenes.indexOf(sc);
+    const nx = idx >= 0 ? scenes[idx + 1] : null;
+    return nx ? (nx.headline || nx.title || "") : "";
+  };
+
+  // ADVANCE THE THOUGHT, DON'T REPEAT IT. Splitting a narrated sentence into two
+  // cuts gave both cuts the SAME copy: a film read "CHAOS? / CHAOS? / SCATTERED
+  // WORK / SCATTERED WORK". The picture stops moving with the voice — a new shape
+  // arrives carrying no new information, which is what "the slides don't match the
+  // voiceover" looks like from the outside.
+  //
+  // So each part of a split shows a different FACET of the same scene: the
+  // headline lands first, then its supporting line. Everything stays inside the
+  // scene's own copy, so the screen still says what the narrator is saying.
+  const partView = (sc, part, of, nextHeadline) => {
+    if (!of || of < 2 || !part) return sc;
+    // The support line becomes a HEADLINE, and a headline slot truncates: feeding
+    // it the whole subtext produced "EMAIL, CHATS AND LISTS PULL YOUR TEAM". Only
+    // short, self-contained lines qualify — bullets first, then the subtext's
+    // opening clause if it stands alone.
+    const SHORT = 38;
+    // A promoted line becomes a HEADLINE — the biggest type on the frame — so it
+    // has to be a whole thought. Mined bullets are not always: "Slack & Teams in"
+    // and "into your calendar" both reached finished films as headlines, one
+    // ending mid-phrase and one starting mid-phrase. Reject either.
+    const EDGE = /^(of|the|a|an|and|or|to|into|onto|for|with|within|in|on|at|by|from|as|but|so|is|are|was|were|be|it|its|it'?s|that|this|your|our|their|per|via|plus)$/i;
+    const whole = (s) => {
+      const w = String(s).trim().split(/\s+/).filter(Boolean);
+      if (w.length < 2) return false;
+      const bare = (x) => x.replace(/[^\w']/g, "");
+      return !EDGE.test(bare(w[0])) && !EDGE.test(bare(w[w.length - 1]));
+    };
+    const alt = [];
+    for (const b of bullets(sc, 4)) {
+      const s = String(b).trim();
+      if (s && s.length <= SHORT && whole(s)) alt.push(s);
+    }
+    const sub = String(sc.subtext || "").trim();
+    if (sub) {
+      const clause = sub.split(/[.;:—]|,\s(?=and\b|but\b)/)[0].trim();
+      if (clause && clause.length <= SHORT && whole(clause)) alt.push(clause);
+    }
+    // Never promote a line the NEXT scene is about to headline, or this scene's
+    // own headline: either way the film says the same words twice in a row, which
+    // is the echo the de-duplication above cannot see (it happens ACROSS scenes).
+    const key = (x) => String(x || "").toLowerCase().replace(/[^\w\s]/g, "").replace(/\s+/g, " ").trim();
+    const taken = new Set([key(sc.headline), key(nextHeadline)].filter(Boolean));
+    const usable = alt.filter((x) => !taken.has(key(x)));
+    const lead = usable[(part - 1) % Math.max(1, usable.length)];
+    if (!lead) return sc;
+    const view = { ...sc };
+    // The support line becomes this beat's headline; the original headline steps
+    // back to the sub so the beat still reads as part of the same thought.
+    view.headline = lead;
+    view.title = lead;
+    view.subtext = sc.headline || sc.subtext;
+    // Rotate the list so a later beat's pills aren't the earlier beat's pills.
+    if (Array.isArray(sc.bullets) && sc.bullets.length > 1) {
+      view.bullets = sc.bullets.slice(part).concat(sc.bullets.slice(0, part));
+    }
+    if (Array.isArray(sc.chips) && sc.chips.length > 1) {
+      view.chips = sc.chips.slice(part).concat(sc.chips.slice(0, part));
+    }
+    return view;
+  };
+
+  // A CUT IS ONLY WORTH MAKING IF IT LANDS ON A FRESH SHAPE. FetchVertical ships
+  // six authored scenes; splitting a 9-scene narration into 17 beats used its
+  // "Fetch" shape seven times, and that shape reveals its copy in the last fifth
+  // of its authored 4.5s window — so at 2s a beat it read as empty park scenery
+  // with the headline flashing by at the very end. Faster cutting has to stay
+  // inside what the shape pool can carry, or it manufactures the empty slides it
+  // was meant to remove.
+  // Count the shapes this NARRATION can actually cast, not the shapes the
+  // template ships. FlightVertical offers four middles, but against a storyboard
+  // with no figures its Instruments (a number card) and Cruise (a picture wall)
+  // are both unfillable, leaving two — and budgeting for four then forced the
+  // rotation to reuse one of them five times.
+  const castable = middle.filter((t) => scenes.some((sc) => canFill(t, sc, true))).length;
+  const shapePool = Math.max(1, castable || (tplScenes.length - 2));
+  const beatBudget = Math.max(scenes.length, Math.round(shapePool * 2.5) + 2);
+  const beats = [];
+  const plan = scenes.map((sc) => {
+    const dur = Math.max(1.2, Number(sc.duration) || 4);
+    // Round UP, not to nearest. Rounding to nearest left the common case unsplit:
+    // real narration lands near 4.1s per scene, and round(4.1/3) is 1, so a film
+    // kept a 4.1s held frame while the target said 3s. Cap at 3 splits — past that
+    // one narrated sentence turns into a montage.
+    // Two parts, never three. A narrated sentence has a point and a supporting
+    // detail; cutting it into three means the third cut repeats, and three cuts
+    // per sentence is what made the picture feel like it was racing the voice.
+    let n = Math.max(1, Math.min(2, Math.ceil(dur / beatTarget)));
+    // ...and each part needs 2s to land. Below that the eye is still arriving
+    // when the cut comes, which reads as the visuals being out of step even
+    // though the timing is exact.
+    while (n > 1 && dur / n < 2.0) n--;
+    // ONLY CUT IF THERE IS SOMETHING NEW TO CUT TO. A stat scene carries one
+    // figure and no supporting line, so splitting it just showed "75% VALUE IN 30
+    // DAYS" twice in a row — a cut that hands the viewer nothing.
+    if (n > 1 && partView(sc, 1, n, nextHeadOf(sc)) === sc) n = 1;
+    return { sc, dur, n };
+  });
+  // Give splits back until the film fits the pool — surrendering the one that
+  // leaves the SHORTEST merged beat. Surrendering the longest scene's split
+  // instead produces a single 5s held frame, which is the very thing being fixed.
+  let planned = plan.reduce((a, p) => a + p.n, 0);
+  while (planned > beatBudget) {
+    // PACE OUTRANKS VARIETY. Only give a split back if the merged beat still cuts
+    // inside the target — a shape repeating at 2.5s reads far better than the same
+    // film holding one frame for 5s, which is the complaint this all started from.
+    const give = plan
+      .filter((p) => p.n > 1 && p.dur / (p.n - 1) <= beatTarget + 0.35)
+      .sort((a, b) => (a.dur / (a.n - 1)) - (b.dur / (b.n - 1)))[0];
+    if (!give) break;
+    give.n--; planned--;
+  }
+  plan.forEach(({ sc, dur, n }, i) => {
+    const each = dur / n;
+    for (let k = 0; k < n; k++) beats.push({ sc, i, dur: each, part: k, of: n });
+  });
+
+  totalBeats = beats.length;
+
+  // ...and one more echo escapes the split logic: consecutive SCENES whose copy
+  // converges (the text director likes to restate the key phrase), so beat N's
+  // support line equals beat N+1's headline. Compare what actually lands on the
+  // frame and step to the next facet when it repeats.
+  let prevLead = null;
+  const leadOf = (v) => String(v.headline || v.title || "").replace(/\|/g, " ").trim().toLowerCase();
+
+  return beats.map((beat, bi) => {
+    let sc = partView(beat.sc, beat.part, beat.of, nextHeadOf(beat.sc));
+    if (prevLead && leadOf(sc) && leadOf(sc) === prevLead) {
+      const alt = partView(beat.sc, (beat.part || 0) + 1, Math.max(2, beat.of || 2), nextHeadOf(beat.sc));
+      if (leadOf(alt) && leadOf(alt) !== prevLead) sc = alt;
+    }
+    prevLead = leadOf(sc) || prevLead;
+    const i = bi;                       // slotFor walks BEATS, so every cut gets its own shape
     const tpl = slotFor(i, sc);
-    const sid = sc.id != null ? String(sc.id) : `s${i + 1}`;
-    const out = { name: tpl.name, dur: Math.max(1.2, Number(sc.duration) || 4) };
+    const sid = sc.id != null ? String(sc.id) : `s${beat.i + 1}`;
+    const out = { name: tpl.name, dur: r2(beat.dur) };
+    // Everything true this beat could say, for the slots the mapping below has
+    // no rule for (see copyBank). Built per beat, so a split scene's two halves
+    // draw different lines instead of echoing each other.
+    const bank = makeBank(sc, brand, filmTitle, filmSpent);
+    // The headline is on the frame no matter which shape this beat lands on, so
+    // it is spent before anything can draw from the bank — otherwise a rack
+    // top-up below could echo it one line lower.
+    bank.spend(sc.headline || sc.title);
 
     // Copy — only fields THIS template's scene actually uses, so we never invent
     // furniture the design does not have.
@@ -275,55 +1148,262 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent 
     // because the user scene lacked those fields. A thinner slide in the user's
     // own words always beats a full slide in the demo brand's.
     const has = (k) => Object.prototype.hasOwnProperty.call(tpl, k);
-    const line1 = () => sc.headline || sc.title || bullets(sc, 1)[0] || "";
+    // A scene whose only copy is a LIST reads as one line joined with dots —
+    // "Mobiles · Fashion · Groceries" — not as its first entry alone.
+    const line1 = () => {
+      if (sc.headline || sc.title) return sc.headline || sc.title;
+      const b = bullets(sc, 3);
+      return b.length >= 2 ? b.join(" · ") : (b[0] || "");
+    };
     if (has("brand")) out.brand = up(fit(brand, 18));
     if (has("tagline")) out.tagline = fit(line1() || sc.subtext || "", 40);
-    if (has("headline")) out.headline = up(breakHeadline(line1(), 52, land));
-    if (has("kicker")) out.kicker = fit(sc.kicker || sc.purpose || "", 20).toUpperCase();
-    if (has("eyebrow")) out.eyebrow = fit(sc.eyebrow || sc.kicker || sc.purpose || "", 26).toUpperCase();
-    if (has("body")) out.body = fit(sc.body || sc.subtext || "", 120);
+    // "|" is a LINE BREAK only in fields whose film splits on it — and the only
+    // reliable evidence is the field's own authored default. FlightVertical's
+    // Cruise headline renders pipes LITERALLY, which put
+    // "MOBILES ·|FASHION ·|GROCERIES" on screen as "MOBILES ·I FASHION".
+    const splitsPipes = (k) => typeof tpl[k] === "string" && tpl[k].includes("|");
+    if (has("headline")) out.headline = up(splitsPipes("headline") ? breakHeadline(line1(), 52, land) : fit(line1(), 40));
+    if (has("kicker")) out.kicker = fit(sc.kicker || purposeLabel(sc, bi), 20).toUpperCase();
+    // Some shapes carry NO headline slot at all (Cadence's Morph is eyebrow +
+    // prefix + states + body). On those the scene's main line has nowhere to go
+    // and was silently dropped, so the frame showed a rack of bullets with no
+    // statement over it. When there is no headline-ish slot, the eyebrow IS the
+    // headline, and body picks up whatever line is left.
+    const headlineSlot = has("headline") || has("words") || has("tagline") || has("quote") || has("text");
+    let eyebrowTookLine = false;
+    if (has("eyebrow")) {
+      const own = sc.eyebrow || sc.kicker || purposeLabel(sc, bi);
+      eyebrowTookLine = !own && !headlineSlot;
+      out.eyebrow = fit(own || (eyebrowTookLine ? line1() : ""), 26).toUpperCase();
+    }
+    // …and body must not then echo the same sentence back one line lower.
+    if (has("body")) out.body = fit(sc.body || sc.subtext || (headlineSlot || eyebrowTookLine ? "" : line1()), 120);
     if (has("sub")) out.sub = fit(sc.subtext || sc.body || "", 120);
-    if (has("callout")) out.callout = up(fit(bullets(sc, 1)[0] || sc.callout || "", 22));
+    if (has("callout")) out.callout = up(fitLabel(bullets(sc, 1)[0] || sc.callout || "", 22));
     if (has("calloutNum")) out.calloutNum = tpl.calloutNum || "1";   // a slide number, not copy
     if (has("cta")) out.cta = fit(sc.cta || sc.ctaLabel || `GET ${brand}`, 20).toUpperCase();
     if (has("url")) out.url = url;
     if (has("quote")) out.quote = fit(sc.quote || sc.subtext || sc.voiceover || "", 140);
     if (has("author")) out.author = fit(sc.author || brand, 24);
-    if (has("chips")) out.chips = bullets(sc, 4);
-    if (has("items")) out.items = bullets(sc, 4);
+    if (has("chips")) out.chips = bullets(sc, 4).map((x) => fitLabel(x, 22)).filter(Boolean);
+    if (has("items")) out.items = bullets(sc, 4).map((x) => fitLabel(x, 26)).filter(Boolean);
     // Template-specific text props discovered in the compiled films — each is
     // demo-brand copy if left authored (Drive's CTA road sign, Flight's Gate
     // lead line, Fight's combo list, Hacker's terminal stamp/command).
     if (has("lead")) out.lead = fit(sc.subtext || sc.body || line1(), 90);
     if (has("sign")) out.sign = up(fit(brand, 16));
     if (has("combos")) { const bl = bullets(sc, 3); if (bl.length) out.combos = bl; }
-    if (has("stamp")) out.stamp = fit(sc.kicker || sc.purpose || "ACCESS GRANTED", 24).toUpperCase();
+    if (has("stamp")) out.stamp = fit(sc.kicker || purposeLabel(sc, bi) || "ACCESS GRANTED", 24).toUpperCase();
     if (has("cmd")) out.cmd = `> get ${brand.toLowerCase().replace(/[^a-z0-9]/g, "")}`;
     // Stats must be TRUE. The demo numbers are another product's figures, so a
     // scene with no numbers of its own renders none rather than borrowing them.
     if (has("stats")) { const st = statsFor(sc); out.stats = st.length ? st : minedStats(sc); }
+    // A RING/GAUGE COUNTS TO A NUMBER THIS FILM STATED. The scene-level figure
+    // slots were mapped nowhere at all, so the compiled component fell back to
+    // its own demo value and animated to it — measured on a shipped film, a ring
+    // counting to "100" under the label "AND PRIORITY SET", a figure the script
+    // never said. `canFill` now refuses these shapes to a figure-less scene, so
+    // reaching here means the scene really does have one.
+    for (const nk of numberSlots(tpl)) {
+      const st = statsFor(sc)[0] || minedStats(sc)[0];
+      if (!st) break;
+      out[nk] = st.v;
+      // Its siblings: the unit is a short symbol ("°", "%", "x"), the caption is
+      // the longest authored string on the scene.
+      const unitK = Object.keys(tpl).find((k) => typeof tpl[k] === "string" && tpl[k].trim().length <= 2 && tpl[k].trim() && !/^[a-z]+$/i.test(tpl[k].trim()));
+      if (unitK && out[unitK] === undefined && st.suf) out[unitK] = st.suf;
+      if (has("label") && out.label === undefined && st.l) out.label = fitLabel(st.l, 24) || st.l.slice(0, 24);
+    }
 
-    // TEAMPULSE-CLASS SLOTS. Films name their copy slots differently — words /
-    // pains / feats / tags / caps / roster / ticker / pill / text. Anything left
-    // unmapped is blanked to " " by the suppression pass below, so an unmapped
-    // slot is not demo copy but an EMPTY frame. Map them onto the scene's own
-    // words. Note these films take word lists as a "|"-separated STRING, not an
-    // array (verified in the authored defaults: "WORK|SHOULD|SLAP.").
-    const listStr = (n, max) => { const b = bullets(sc, n).map((x) => fit(x, max || 18)); return b.length ? b.join("|") : ""; };
-    if (has("words")) out.words = listStr(3, 14) || twoLines(sc.headline || "", 30);
-    if (has("pains")) out.pains = listStr(3, 26);
-    if (has("feats")) out.feats = listStr(4, 26);
-    if (has("tags")) out.tags = listStr(4, 16);
-    if (has("caps")) out.caps = listStr(4, 22);
-    if (has("roster")) out.roster = listStr(4, 18);
+    // TEMPLATE-SPECIFIC COPY SLOTS. Films name them differently — words / pains /
+    // feats / tags / caps / roster / ticker / pill / text — and anything left
+    // unmapped is blanked by the suppression pass below, so an unmapped slot is
+    // an EMPTY frame, not demo copy.
+    //
+    // CRITICAL: the slots differ in TYPE. `words` is a "|"-separated STRING
+    // ("WORK|SHOULD|SLAP.") while `pains`/`feats`/`tags`/`caps`/`roster` are
+    // ARRAYS. Passing the wrong one throws inside the compiled component
+    // ("pains.map is not a function") and every scene from that point renders
+    // BLANK. So the authored default's own type decides the shape.
+    const asSlot = (key, n, max) => {
+      const b = bullets(sc, n).map((x) => fitLabel(x, max || 22)).filter(Boolean);
+      // TOP THE RACK UP. These slots are RACKS — three signs, four pills, a row
+      // of cards — and the design draws the ones it is given. A scene whose only
+      // list source is one sentence filled ONE of three signs, so two thirds of
+      // the shape rendered as empty ground (measured on the shipped motorway
+      // film: a single green sign, then 60% of the frame bare). The bank holds
+      // the rest of what this beat says; fitLabel still refuses anything that
+      // would land as a stump, so a rack only grows with lines that read.
+      // …including a rack with NOTHING in it, which is the common case: the only
+      // list source a sparse scene has is its one support sentence, and fitLabel
+      // rightly refuses to cut that into a pill ("Design, code and AI all pull"),
+      // so the whole rack came back empty and the shape drew bare ground.
+      if (b.length < n) {
+        const seen = new Set(b.map((x) => x.toLowerCase()));
+        for (let g = b.length; g < n; g++) {
+          const more = bank.take(max || 22, { copyOnly: true });
+          if (!more || seen.has(more.toLowerCase())) break;
+          seen.add(more.toLowerCase());
+          b.push(more);
+        }
+      }
+      if (!b.length) return undefined;
+      if (!Array.isArray(tpl[key])) return b.join("|");
+      // Element shape matters too: `feats` is [{n,t,b}], `roster` is [{n,r,q}] —
+      // the compiled component reads f.t / f.n on each element, so an array of
+      // plain STRINGS renders as blank rows. Clone the authored element's key
+      // shape and pour the user's bullet into its longest text key.
+      const proto = tpl[key][0];
+      if (proto && typeof proto === "object" && !Array.isArray(proto)) {
+        // A NUMERIC field in the authored element means the component COUNTS it.
+        // Cloning only the string keys drops it, and the compiled film renders
+        // `undefined` as "NaN" — measured, in 96pt red type, on a shipped film.
+        // We will not invent a figure to fill it either (that is how demo numbers
+        // become claims about the customer), so a shape that wants a number is
+        // simply not a shape this scene's bullets can fill.
+        if (Object.values(proto).some((v) => typeof v === "number")) return undefined;
+        const keys = Object.keys(proto).filter((kk) => typeof proto[kk] === "string");
+        const textKey = keys.sort((x, y) => String(proto[y]).length - String(proto[x]).length)[0];
+        return b.map((val, bi) => {
+          const el = {};
+          for (const kk of keys) {
+            if (kk === textKey) { el[kk] = val; continue; }
+            if (/^\d+$/.test(String(proto[kk])) || kk === "n") { el[kk] = String(bi + 1).padStart(2, "0"); continue; }
+            // A SECOND text key is usually the row's description — the line under
+            // a sign, the caption under a card. Blanking it stripped half of every
+            // list row on the frame; the bank fills it with another true line from
+            // this beat (and returns nothing when there isn't one).
+            el[kk] = fillFor(kk, proto[kk], bank, { copyOnly: true }) || " ";
+          }
+          return el;
+        });
+      }
+      return b;
+    };
+    // `words` is a SLAM — one word (or two) per line ("WORK|SHOULD|SLAP.").
+    // With 2+ bullets each bullet is a line; with a single line of copy, break
+    // IT into slam lines rather than truncating it to one 14-char stump.
+    // ...and when the bullets are sentences, fitLabel drops them all rather than
+    // slam a stump across the frame — the headline is then the honest source.
+    if (has("words")) {
+      const wb = bullets(sc, 3);
+      const slam = wb.length >= 2 ? asSlot("words", 3, 14) : "";
+      out.words = up(slam || breakHeadline(line1(), 40, false));
+    }
+    if (has("pains")) out.pains = asSlot("pains", 3, 26);
+    if (has("feats")) out.feats = asSlot("feats", 4, 26);
+    if (has("tags")) out.tags = asSlot("tags", 4, 16);
+    if (has("caps")) out.caps = asSlot("caps", 4, 22);
+    if (has("roster")) out.roster = asSlot("roster", 4, 18);
     if (has("text")) out.text = fit(sc.headline || sc.subtext || "", 90);
     if (has("quoteBy")) out.quoteBy = fit(sc.author || sc.by || brand, 24);
     if (has("by")) out.by = fit(sc.author || sc.by || brand, 24);
     if (has("brand")) out.brand = brand;
-    if (has("pill")) out.pill = fit(sc.kicker || sc.purpose || "", 20).toUpperCase();
-    // The ticker is a repeating marquee — the film's subject reads as branding,
-    // where a scene line would read as stray copy.
+    if (has("pill")) out.pill = fit(bullets(sc, 1)[0] || sc.subtext || sc.kicker || purposeLabel(sc, bi), 22).toUpperCase();
     if (has("ticker")) out.ticker = fit(String(brand), 40).toUpperCase();
+
+    // ---- CADENCE slots (premium SaaS, 9:16) ------------------------------------
+    // This template is the most content-hungry of the bundle: 16 distinct scene
+    // shapes, most of them racks of real rows (search results, setup steps, a
+    // kanban board, a chat thread, a weekly digest). Left unmapped they blank to
+    // empty furniture, so each is filled from the scene's own copy here.
+    //
+    // STRING slots — product-card chrome. Each is the demo brand's words when
+    // authored, so every one is re-derived from the user's scene.
+    if (has("keyword")) out.keyword = fit(sc.emphasis || bullets(sc, 1)[0] || line1(), 22);
+    if (has("query")) out.query = (fitLabel(sc.emphasis || bullets(sc, 1)[0] || sc.kicker || "", 24) || fitLabel(line1(), 24)).toLowerCase();
+    if (has("cardKicker")) out.cardKicker = fit(sc.kicker || sc.eyebrow || purposeLabel(sc, bi), 20).toUpperCase();
+    if (has("cardTitle")) out.cardTitle = fitLabel(sc.subtext, 34) || fitLabel(line1(), 34) || fit(line1(), 34);
+    if (has("cardCta")) out.cardCta = fit(sc.cta || sc.ctaLabel || "", 18);
+    if (has("card")) out.card = fit(bullets(sc, 1)[0] || sc.subtext || "", 22);
+    // "Status:" — a generic UI label, not brand copy, so the authored one stands
+    // unless the scene offers its own kicker.
+    if (has("prefix")) out.prefix = fit(sc.kicker || tpl.prefix || "", 14);
+    // The Onboard card's completion caption. NOT playback chrome — it is a label
+    // inside the film's own setup card — but it still must speak the user's film.
+    if (has("progressLabel")) out.progressLabel = fitLabel(sc.emphasis || sc.cta || bullets(sc, 1)[0] || "", 22);
+
+    // LIST slots — asSlot() already clones the authored element shape, so an
+    // array of plain strings (results/steps/tools/notes/rows/cols/states) and an
+    // array of objects (plans) both land in the right form.
+    for (const k of ["results", "steps", "tools", "notes", "rows"]) {
+      if (has(k)) out[k] = asSlot(k, Array.isArray(tpl[k]) ? tpl[k].length : 4, 30);
+    }
+    // Board columns and Morph states are generic WORKFLOW labels ("To do /
+    // Doing / Shipped", "Draft / In review / Live") — furniture, not another
+    // brand's copy — so the authored set stands when the scene has none of its
+    // own, exactly as `calloutNum` keeps its slide number.
+    // FIXED ARITY: the Board draws one column per entry and Morph one state per
+    // entry, so the layout is authored for EXACTLY tpl[k].length of them. Handing
+    // back fewer leaves a hole — measured on a Cadence "Board" scene, which is
+    // authored with 3 columns ("To do / Doing / Shipped"): the film's scene had
+    // only 2 bullets, `b.length >= 2` accepted them, and the third column
+    // rendered EMPTY. Pad from the authored labels so the count is always whole;
+    // they are generic workflow furniture, not another brand's copy, so a mixed
+    // row reads fine.
+    for (const k of ["cols", "states"]) {
+      if (!has(k)) continue;
+      const need = Array.isArray(tpl[k]) ? tpl[k].length : 3;
+      const b = bullets(sc, need).map((x) => fit(x, 16));
+      out[k] = b.length >= 2
+        ? (b.length < need && note("omelette_adapter", "padded-fixed-slot", { severity: "visual", slot: k, scene: tpl.name, detail: `${b.length}/${need} from the film, rest from authored labels` }), Array.from({ length: need }, (_, ci) => b[ci] || (Array.isArray(tpl[k]) ? tpl[k][ci] : b[b.length - 1])))
+        : tpl[k];
+    }
+    // Thread bubbles carry a BOOLEAN `me` that decides which side each message
+    // hangs on. asSlot only clones string keys, so it would drop it and stack
+    // every bubble on one side — map this one explicitly and alternate.
+    if (has("msgs")) {
+      const b = bullets(sc, 3).map((x) => fit(x, 34));
+      out.msgs = b.length ? b.map((m, mi) => ({ m, me: mi % 2 === 1 })) : [];
+    }
+    // A single huge number. canFill guarantees a true stat exists by here.
+    if (has("value")) {
+      const st = statsFor(sc)[0] || minedStats(sc)[0] || null;
+      if (st) { out.value = st.v; if (has("suffix")) out.suffix = st.suf || ""; }
+    }
+    // `bars` has TWO shapes in this template: Metric draws an abstract sparkline
+    // of 0..1 numbers (a shape, not copy — the authored one stands), while Live
+    // draws LABELLED meters as [label, fraction] pairs, where the label is copy.
+    if (has("bars") && Array.isArray(tpl.bars) && Array.isArray(tpl.bars[0])) {
+      const b = bullets(sc, tpl.bars.length).map((x) => fit(x, 22));
+      if (b.length) out.bars = b.map((lab, bi) => [lab, (tpl.bars[bi] && tpl.bars[bi][1]) || 0.9]);
+    }
+    // Pricing tiers — canFill only casts this for a genuine pricing scene. Names
+    // come from the scene's bullets; the price is mined from that bullet's own
+    // digits, never from the demo's, and an unpriced tier shows no number.
+    if (has("plans")) {
+      const b = bullets(sc, 3);
+      out.plans = b.map((raw, bi) => {
+        const proto = tpl.plans[bi] || tpl.plans[0] || {};
+        const num = /(\d+(?:\.\d+)?)/.exec(String(raw));
+        return {
+          ...Object.fromEntries(Object.keys(proto).map((kk) => [kk, " "])),
+          n: fit(String(raw).replace(/[\s—-]*\$?\d+(?:\.\d+)?.*$/, "").trim() || raw, 12),
+          p: num ? num[1] : " ",
+          d: fit(sc.subtext || "", 16),
+        };
+      });
+    }
+
+    // CHAR-SPLIT REVEALS EAT THEIR SPACES. A scene whose authored `anim.text` is
+    // a per-CHARACTER reveal (Cadence's Hero + Close use "charReveal") renders
+    // its display line as one <span> per character inside a flex row. Under the
+    // renderer every span holding a plain " " collapses to zero width, so
+    // "Find your cadence" is captured as "Findyourcadence" — measured on both a
+    // wrapping and a single-line headline, so it is not a shrink or wrap effect.
+    // Plain Chromium lays the same DOM out correctly (space spans measure 30px),
+    // which is why this is invisible until you inspect the MP4.
+    //
+    // Non-breaking spaces survive it: U+00A0 is not collapsible whitespace, and
+    // because the row wraps between CHAR spans (not between words) the headline
+    // still breaks exactly where it did before. Scoped to char-split scenes only
+    // — the word-splitting reveals ("wordStaggerBlur", every other Cadence
+    // scene) already keep their spaces, and NBSP there would block wrapping.
+    if (/char/i.test(String((tpl.anim && tpl.anim.text) || ""))) {
+      for (const k of ["headline", "tagline", "text", "keyword"]) {
+        if (typeof out[k] === "string") out[k] = out[k].replace(/ /g, " ");
+      }
+    }
 
     // SUPPRESS COMPILED FALLBACKS. The films read fields as `s.X || <authored
     // demo copy>` INSIDE the compiled components, so a mapped-but-EMPTY string
@@ -332,13 +1412,100 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent 
     // space is truthy, renders as nothing, and costs one byte of the 16KB cap.
     for (const k of Object.keys(out)) {
       if (typeof out[k] === "string" && out[k] === "") out[k] = " ";
+      if (Array.isArray(out[k]) && out[k].length === 0) delete out[k];   // let the ARRAY suppression below decide
     }
-    // …and any authored STRING field this scene declares that we did not map at
-    // all gets the same one-space blank — whatever it is, it is the demo
-    // product's words, and neutral emptiness beats another brand's copy.
+    // Whatever the mapping already put on this frame is SPENT — otherwise the
+    // fills below would hand a kicker the same words the headline is shouting.
+    for (const v of Object.values(out)) {
+      if (typeof v === "string") bank.spend(v.replace(/\|/g, " "));
+      else if (Array.isArray(v)) {
+        for (const el of v) {
+          if (typeof el === "string") bank.spend(el);
+          else if (el && typeof el === "object") for (const x of Object.values(el)) if (typeof x === "string") bank.spend(x);
+        }
+      }
+    }
+    // ARRAY fields need the same suppression: an unmapped/unfilled authored
+    // array keeps the demo product's content — a roster of FAKE PEOPLE
+    // ("ANA — Ops lead") shipped in a user's film exactly this way. An empty
+    // array is truthy, so the compiled `s.roster || demo` fallback cannot
+    // resurrect the demo either.
     for (const k of Object.keys(tpl)) {
       if (k === "name" || k === "dur" || k === "nat") continue;
-      if (typeof tpl[k] === "string" && out[k] === undefined) out[k] = " ";
+      if (!Array.isArray(tpl[k]) || out[k] !== undefined) continue;
+      // TRY THE FILM'S OWN COPY FIRST. Blanking outright is right for a slot we
+      // cannot speak to, but it was being applied to EVERY unmapped list — and a
+      // list is usually the whole body of its scene. Birdsong's `Cards` scene is
+      // {headline, sub, cards[4]}; `cards` appeared in no mapping branch, so it
+      // blanked to [] and the film shipped a title band over an empty frame for
+      // four seconds (measured: 79% of the frame height empty). Naming each new
+      // slot by hand is what let this through, so fill by SHAPE instead — every
+      // list a template declares now gets the scene's bullets, and only a slot
+      // with genuinely nothing to say ends up empty.
+      out[k] = asSlot(k, tpl[k].length, 30) || [];
+      if (!out[k].length) note("omelette_adapter", "empty-list-slot", { severity: "content", slot: k, scene: tpl.name, detail: `${tpl.name}.${k} has no copy — that scene body draws empty` });
+    }
+    // …and any authored STRING field this scene declares that we did not map at
+    // all: SPEAK IN THE FILM'S OWN WORDS, and only blank when it has nothing
+    // left to say. Blanking every unmapped string is what emptied the frame —
+    // the design's kickers, footers, odometers, camera stamps and slot labels
+    // are the elements that make a beat look composed, and they were all being
+    // set to a single space. The bank only ever hands back copy this video
+    // genuinely says (see copyBank), so the "never another brand's words" rule
+    // that motivated the blank is kept exactly.
+    //
+    // The authored default also tells us the slot's intended SHAPE: its length
+    // is the design's own width budget, and an all-caps default means the slot
+    // is drawn in caps.
+    for (const k of Object.keys(tpl)) {
+      if (k === "name" || k === "dur" || k === "nat") continue;
+      if (typeof tpl[k] === "string" && out[k] === undefined) {
+        out[k] = fillFor(k, tpl[k], bank) || " ";
+        if (out[k] === " ") note("omelette_adapter", "blanked-string-slot", { severity: "visual", slot: k, scene: tpl.name });
+      }
+      // An ARRAY slot blanked to a string would throw the same .map error, so an
+      // unmapped list becomes an EMPTY LIST — renders nothing, crashes nothing.
+      if (Array.isArray(tpl[k]) && out[k] === undefined) out[k] = [];
+    }
+
+    // UNDECLARED PROPS THAT SHIP FABRICATED DATA. The suppression above walks
+    // `Object.keys(tpl)` — the AUTHORED scene — so a prop the compiled component
+    // reads but OM_SCENES never lists is invisible to it, and its `s.X || demo`
+    // fallback survives into the user's film forever.
+    //
+    // Found by decoding the bundle and grepping for `s.X ||` (see UNDECLARED_DEMO
+    // below). These are not stray labels: they are NUMBERS AND CLAIMS ABOUT THE
+    // SUBJECT. A real Linear film shipped the Search stat row as "0.2s to first
+    // result · 40K items indexed · 3 exact matches" and a social-proof line
+    // reading "and 4,000 more teams" — none of it true, all of it presented as
+    // the customer's own data. Nothing downstream can catch this: the frames look
+    // deliberately designed, so lint, the vision QA and A/V alignment all pass.
+    //
+    // Rule: a figure ships ONLY if the film's own script supports it.
+    for (const k of UNDECLARED_DEMO) {
+      if (out[k] !== undefined) continue;                 // already mapped above
+      if (k === "meta") {
+        // A stat row. Use the scene's TRUE numbers; with none, render no row at
+        // all rather than borrow the template's.
+        const st = statsFor(sc).length ? statsFor(sc) : minedStats(sc);
+        out.meta = st.length ? st.slice(0, 3).map((s) => ({ v: s.v, suf: s.suf || "", l: String(s.l || "").toLowerCase().slice(0, 22) })) : [];
+      } else if (k === "chips") {
+        // Pills are SHORT LABELS. bullets() falls back to splitting the subtext
+        // into sentences, which at an 18-char pill width ships a mid-sentence
+        // stump ("Issues, cycles and"). Only a real list becomes pills.
+        // ...and a real list still yields a stump when its entries are sentences,
+        // so fitLabel drops anything that lost most of its words.
+        const list = [sc.chips, sc.bullets, sc.onScreenText].find((x) => Array.isArray(x) && x.length) || [];
+        out.chips = list.filter(Boolean).slice(0, 3).map((x) => fitLabel(String(x), 18)).filter(Boolean);
+      } else {
+        // Unverifiable claims (avatarLabel = "and 4,000 more teams"). The demo
+        // line can never ship — but the ELEMENT is real design, so give it one
+        // of the film's own lines instead of leaving the frame short of it. The
+        // bank invents nothing, so nothing unverifiable can reach the frame; a
+        // single space (truthy, so the compiled `||` fallback stays suppressed)
+        // remains the fallback when this beat has nothing more to say.
+        out[k] = bank.take(22) || " ";
+      }
     }
 
     // Media — a scene-pinned asset wins, then the pool. Every compiled film
@@ -350,13 +1517,146 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent 
     // them, which is one way gallery walls shipped as placeholder hatching).
     const pinned = byScene.get(sid) || null;
     const wantsPhone = /mobile|phone|pocket/i.test(String(tpl.name));
-    const primary = pinned || (wantsPhone ? take(isPortraitAsset) : take((a) => !isPortraitAsset(a))) || take();
-    if (primary) out.shot = primary.path;
-    const WALL = /montage|gallery|fleet|wall|grid|explore|billboard|spread|cruise|deploy|sighting|line|assemble/i;
+    // RECYCLE when the pool runs dry (user directive: repeat a real asset rather
+    // than ship a placeholder). A fresh asset always wins; a repeat of the
+    // product's own screenshot always beats a hatched "DROP IMAGE TO REPLACE"
+    // frame. Round-robin over everything already placed, screenshots first.
+    // …and a REPEAT should still be RELEVANT. Once `free` is dry, every later
+    // beat came through here and got the same first screenshot, so a beat about
+    // automation showed the pricing page — measured ten times in one film. If a
+    // picture has to appear twice, show the one that matches what this beat is
+    // saying; with no overlap, rotate so the film at least varies.
+    const bestMatch = (list, sc2) => {
+      if (!list.length) return null;
+      let best = 0, pick = null;
+      for (const a of list) {
+        const score = matchScore(sc2, a);
+        if (score > best) { best = score; pick = a; }
+      }
+      return pick;
+    };
+    const recycle = () => {
+      if (!used.length) return null;
+      const shotsFirst = used.filter(isShot);
+      const src = shotsFirst.length ? shotsFirst : used;
+      return bestMatch(src, sc) || src[recycleAt++ % src.length];
+    };
+    const place = (a) => { if (a && !used.includes(a)) used.push(a); return a; };
+    // A REAL SCREENSHOT OUTRANKS A PINNED STOCK PHOTO IN A DEVICE FRAME.
+    // Every one of these slots is drawn INSIDE BrowserChrome — a browser window
+    // with a URL bar — so a stock photo in it is wrong by construction, not just
+    // weaker. The Creative Director's per-scene pin is advisory on this path
+    // anyway (scene_kit ignores `sceneId` entirely), and a real Linear film hit
+    // exactly this: six product screenshots scored 84-92, and the hero slot still
+    // drew a generic laptop photo because the pin outranked them. So when the pin
+    // is not a screenshot and one is available, the screenshot wins.
+    const pinnedOk = pinned && (isShot(pinned) || !pool.some(isShot));
+    // …AND A PIN IS NOT A LICENCE TO BE OFF-TOPIC. The pin comes from a vision
+    // pass that scored each image against the whole film, so it can land an image
+    // on a beat it has nothing to do with — a shipped film pinned a moody
+    // silhouette (CLIP relevance 0.12, vision verdict "not ok") to the beat
+    // saying "Design. Code. AI. All disconnected." Honour the pin when it is on
+    // topic; when it plainly is not, let a clearly better candidate take the slot.
+    const pinOrBetter = () => {
+      if (!pinnedOk) return null;
+      const pinScore = matchScore(sc, pinned, { penalizeUsed: false });
+      if (pinScore >= 1.2) return pinned;
+      let best = null, bestScore = pinScore + 1;             // "clearly better", not "a hair better"
+      for (let k = fi; k < free.length; k++) {
+        const a = free[k];
+        if (omDemoted(a)) continue;
+        if (!wantsPhone && isPortraitAsset(a)) continue;
+        const s = matchScore(sc, a, { penalizeUsed: false });
+        if (s > bestScore) { bestScore = s; best = a; }
+      }
+      if (!best) return pinned;
+      free.splice(free.indexOf(best), 1);
+      return best;
+    };
+    // Every screenshot carries its OWN sceneId, so they all land in `byScene`
+    // reserved for their own beat and `free` holds none — which is why `take`
+    // could not rescue the hero slot and it kept drawing the stock photo. When
+    // the slot is a browser frame and nothing free is a screenshot, BORROW one
+    // from the reserved set. Re-showing a real product screenshot is explicitly
+    // preferred over a wrong-but-fresh asset (same rule `recycle` follows), and
+    // its own scene still gets it later.
+    const borrowShot = () => {
+      const wide = pool.filter((a) => isShot(a) && !isPortraitAsset(a));
+      const any = wide.length ? wide : pool.filter(isShot);
+      if (!any.length) return null;
+      return bestMatch(any, sc) || any[recycleAt++ % any.length];
+    };
+    const primary = place(
+      pinOrBetter()
+      || (wantsPhone ? takeFor(sc, isPortraitAsset) : takeFor(sc, (a) => isShot(a) && !isPortraitAsset(a)))
+      || (pinned && !isShot(pinned) ? borrowShot() : null)
+      || pinned
+      || take((a) => !isPortraitAsset(a))
+      || take()
+      // Nothing FREE is left. Every screenshot carries its own sceneId, so on a
+      // film where each beat pinned one, `free` is empty from the very first
+      // scene — and the opening Hero (which has no pin of its own) fell through
+      // to `recycle()`, which is also empty at scene 0, and drew the hatched
+      // "DESKTOP SCREENSHOT — DROP IMAGE" card. Measured: a real Linear film
+      // opened on that placeholder. Borrowing a reserved screenshot is the same
+      // trade `recycle` already makes — a real asset shown twice beats a
+      // placeholder shown once — and its own scene still gets it later.
+      || borrowShot()
+      // A VECTOR BEATS A REPEAT. Only reached once every photograph, capture and
+      // borrowable shot is spent — at which point the alternatives are showing the
+      // same screenshot for the third time or the hatched placeholder.
+      || takeVec()
+    ) || recycle();
+    // Never leave a picture slot unset — the compiled film paints its own
+    // "DROP IMAGE TO REPLACE" placeholder when it is missing.
+    out.shot = primary ? primary.path : fillPlate(brand, accent, null);
+    if (primary) lastShot = primary;
+    // THE KIT FAMILY NAMES ITS MEDIA SLOTS DIFFERENTLY.
+    //
+    // The 80 templates built on film-kit.js (mega-pack-*/world-pack-*) render
+    // every picture through MediaSlot reading `scene.image`, `(scene.images||[])[i]`
+    // and `scene.logo` — NOT `shot`/`shot1..N`. Only `logo` overlapped, so before
+    // this every one of those films drew hatched "DROP IMAGE TO REPLACE" boxes no
+    // matter how many screenshots the job captured. The authored scenes never
+    // DECLARE these fields either (a Montage declares only name/dur/title/tiles),
+    // so the demo-copy suppression could not see them and nothing downstream
+    // flagged it. Mirror onto both namings; a film that reads neither ignores the
+    // extra key, which is the same trade shotA/shotB already makes below.
+    if (primary) out.image = primary.path;
+    // `showcase`/`surfaces`/`screens` draw stacked BROWSER CARDS reading
+    // shot1..N — the most screenshot-forward shape any of these templates has.
+    // Cadence's Showcase was absent from this list, so its two browser cards
+    // never received an asset and would have drawn "DROP IMAGE" placeholders.
+    const WALL = MEDIA_WALL;
     if (WALL.test(String(tpl.name))) {
       const wall = [];
+      // How many slots this wall ACTUALLY draws. The kit family's Montage lays a
+      // fixed grid of one tile per authored `tiles` entry (4), and every slot it
+      // draws without an image paints the placeholder — so guaranteeing only 3
+      // left the last tile hatched on every kit film. Where the authored scene
+      // tells us the count, honour it; otherwise keep the previous floor of 3.
+      const slots = Array.isArray(tpl.tiles) && tpl.tiles.length
+        ? Math.min(6, tpl.tiles.length)
+        : 3;
+      // VECTOR CADENCE — one tile in every OTHER wall is reserved for graphic art.
+      //
+      // Without a reservation vectors are decorative in theory only: they sit at
+      // the back of the queue and a film with more photographs than tiles never
+      // reaches them. Reserving the LAST tile (never the first, never a lone
+      // picture) means the reservation can only ever convert the tile most likely
+      // to be a recycled repeat, so photography keeps every prominent slot.
+      //
+      // Every OTHER wall, not every third: most of these templates draw ONE media
+      // wall in a 30s film (measured on lift-off — 11 beats, a single 4-tile
+      // Montage), so a one-in-three cadence never fired at all and the film went
+      // out with no graphic art again. Starting the cycle at the first wall keeps
+      // the short film honest while a long one still alternates.
+      const vecTile = (wallNo++ % 2 === 0 && slots >= 3 && vi < vecPool.length) ? slots : 0;
       for (let n = 1; n <= 6; n++) {
-        const a = take();
+        // Slots the wall really draws are guaranteed (recycled if needed);
+        // beyond that, only fresh assets extend the wall.
+        const a = (n === vecTile ? place(takeVec()) : null)
+          || place(take()) || (n <= slots ? recycle() : null);
         if (!a) break;
         out[`shot${n}`] = a.path;
         wall.push(a.path);
@@ -365,14 +1665,249 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent 
       // namings; unread fields are ignored by every other film.
       if (wall[0]) out.shotA = wall[0];
       if (wall[1]) out.shotB = wall[1];
+      // The kit family's Montage iterates `scene.images[i]` across its tile grid,
+      // so the same wall has to be published as a plain array too.
+      if (wall.length) out.images = wall.slice(0, slots);
+      // …and label those tiles with the USER's words. The suppression pass empties
+      // the authored `tiles` (they are the demo brand's captions), but the kit
+      // renderer treats an empty array as "unset" and falls back to its own
+      // ["One","Two","Three","Four"] — so a blanked wall shipped counting words
+      // under the screenshots. Caption from the scene's own bullets, blank where
+      // it has none (a mid-sentence stump reads as a broken caption).
+      if (Array.isArray(tpl.tiles) && tpl.tiles.length) {
+        const caps = bullets(sc, slots);
+        out.tiles = Array.from({ length: slots }, (_, n) =>
+          caps[n] ? (up(fitLabel(caps[n], 22)) || " ") : " ");
+      }
+
+      // INDEXED WALLS. Some films do not read shot1..N directly — they iterate a
+      // LIST that names the keys: Birdsong's Gallery declares
+      // `shots: [{k:"shot1",cap:"THE DASHBOARD"}, …]` and draws whatever that list
+      // points at. The blanking pass above empties that list (it is an authored
+      // array, and its captions are the demo brand's words), so the wall rendered
+      // nothing even though shot1..3 were filled — measured live: 8 screenshots
+      // captured, 0 on screen. Rebuild the list from the shots actually placed,
+      // and caption it from the USER's own copy rather than the template's.
+      for (const key of Object.keys(tpl)) {
+        const authored = tpl[key];
+        if (!Array.isArray(authored) || !authored.length) continue;
+        if (!authored.every((e) => e && typeof e === "object" && /^shot\d+$/i.test(String(e.k || "")))) continue;
+        const caps = bullets(sc, wall.length);
+        out[key] = wall.map((_, n) => ({
+          ...authored[n],
+          k: `shot${n + 1}`,
+          // A caption is only added when the scene has its own words for it; the
+          // authored one names another product's screen.
+          // A caption is a LABEL: a mid-sentence stump under a screenshot reads
+          // as a broken caption, so blank beats blank rather than truncating.
+          cap: caps[n] ? (up(fitLabel(caps[n], 22)) || " ") : " ",
+        }));
+      }
     }
     // The CTA logo box renders UNCONDITIONALLY: with no s.logo it draws a
     // hatched "LOGO / DROP IMAGE TO REPLACE" placeholder in the middle of the
     // user's closing frame. A real logo asset wins; otherwise a generated brand
     // monogram — never the placeholder.
     out.logo = logo ? logo.path : monogram(brand, accent);
+    // …and the props the compiled film reads but its scene data never declares,
+    // which otherwise fall through to that template's own demo figures.
+    const hidden = HIDDEN_FALLBACK_PROPS[String(tplName || "")] || null;
+    if (hidden) {
+      for (const [k, v] of Object.entries(hidden)) {
+        if (out[k] === undefined) out[k] = Array.isArray(v) ? v.slice() : v;
+      }
+    }
+    // SAY IT ONCE. The pill list and the prose slots are filled from the same
+    // mined copy, so a beat could show "81% ease of use" as its subheadline AND
+    // again in a pill directly beneath it. Drop the pill, never the sentence —
+    // the sentence carries the meaning and the pill is the echo.
+    const said = new Set();
+    for (const k of ["headline", "title", "words", "sub", "subtext", "body", "lead", "quote"]) {
+      const v = out[k];
+      if (typeof v === "string" && v.trim()) {
+        for (const part of v.split("|")) {
+          const n = part.trim().toLowerCase().replace(/[^\w%\s]/g, "").replace(/\s+/g, " ").trim();
+          if (n.length > 3) said.add(n);
+        }
+      }
+    }
+    if (said.size) {
+      for (const k of ["chips", "tags", "items"]) {
+        if (!Array.isArray(out[k])) continue;
+        const kept = out[k].filter((x) => {
+          if (typeof x !== "string") return true;
+          const n = x.trim().toLowerCase().replace(/[^\w%\s]/g, "").replace(/\s+/g, " ").trim();
+          return !n || !said.has(n);
+        });
+        // Only apply when something survives: an empty pill row is a worse frame
+        // than a repeated word.
+        if (kept.length) out[k] = kept;
+      }
+    }
+    // TYPE CONFORMANCE — THE LAST GATE BEFORE A FILM CAN CRASH.
+    //
+    // A compiled scene component reads its props with no guard: a slot the
+    // template authored as an array is consumed with `.map()`, and handing it a
+    // string throws INSIDE React, so that scene and EVERY scene after it render
+    // the engine's error slate — a flat coloured frame with a red
+    // "words.map is not a function" pill. Measured on a shipped 36s Flipkart
+    // film: it ran correctly to 21.9s and was that error slate for the last 14
+    // seconds, and every structural gate passed it.
+    //
+    // The individual writers above mostly ask `Array.isArray(tpl[key])` (asSlot
+    // does), but any FALLBACK path that bypasses asSlot re-introduces the bug —
+    // which is exactly what happened: `words` fell back to breakHeadline()'s
+    // string on a scene whose bullets were too long to slam, and Bluesite is one
+    // of the two templates that author `words` as an array.
+    //
+    // So the type is enforced once, here, against the authored scene itself.
+    // Auditing 141 templates found three slots authored BOTH ways across the
+    // bundle (`words` 2 array/6 string, `rows` 8/1, `keys` 7/1) — a fixed
+    // assumption is wrong for somebody no matter which one is chosen, and the
+    // next import can add more. A blank slot is always survivable; a thrown
+    // component is not.
+    conformToAuthored(out, tpl);
     return out;
   });
+}
+
+// Coerce every value written for `out` to the TYPE the template authored for it.
+// Only touches keys the authored scene declares — injected media/logo props have
+// no authored counterpart and are left alone.
+function conformToAuthored(out, tpl) {
+  if (!tpl || typeof tpl !== "object") return out;
+  for (const key of Object.keys(out)) {
+    const authored = tpl[key];
+    if (authored === undefined || authored === null) continue;
+    const v = out[key];
+    if (v === undefined || v === null) continue;
+    const wantArray = Array.isArray(authored);
+    const isArray = Array.isArray(v);
+    if (wantArray === isArray) {
+      // Same container, but an array of OBJECTS cannot be fed plain strings:
+      // the component reads r.t / r.n off each element and renders blank rows.
+      if (!wantArray) continue;
+      const proto = authored[0];
+      if (proto && typeof proto === "object" && !Array.isArray(proto)) {
+        out[key] = v.map((x, i) => (typeof x === "string" ? intoProto(proto, x, i) : reshapeToProto(proto, x, i)));
+      }
+      continue;
+    }
+    if (wantArray) {
+      // STRING -> ARRAY. These slam slots are authored "|"-separated, which is
+      // the same split the string-typed templates use, so one rule covers both.
+      const parts = String(v).split("|").map((x) => x.trim()).filter(Boolean);
+      if (!parts.length) { delete out[key]; continue; }
+      const proto = authored[0];
+      out[key] = (proto && typeof proto === "object" && !Array.isArray(proto))
+        ? parts.map((x, i) => intoProto(proto, x, i))
+        : parts;
+      continue;
+    }
+    // ARRAY -> STRING. Objects have no honest one-line form, so an array of them
+    // is dropped rather than stringified into "[object Object]".
+    const flat = v.filter((x) => typeof x === "string" || typeof x === "number").map(String);
+    if (flat.length) out[key] = flat.join("|"); else delete out[key];
+  }
+  return out;
+}
+
+// `purpose`/`kind` are the SCRIPT'S OWN VOCABULARY — "hook", "cta", "feature",
+// "context". They are the last-resort filler for eyebrow/kicker/stamp slots, and
+// they were being printed to screen verbatim: measured across the bundle, 297
+// eyebrow chips reading "HOOK" or "CTA". Nobody labels a slide "HOOK". Same
+// words, written the way a designer would set them.
+// Several per purpose, because a long film is mostly ONE purpose: a 20-scene
+// storyboard is 18 "feature" beats, and a single label per purpose stamped the
+// same eyebrow on 33 frames (measured). Rotated by beat index — same words a
+// designer would use, never the same chip twice running.
+const PURPOSE_LABEL = {
+  hook: ["Why it matters", "The reality", "Start here"],
+  title: ["Overview", "The short version"],
+  context: ["The reality", "Where we are", "The backdrop"],
+  problem: ["The problem", "The cost", "What breaks"],
+  pain: ["The cost", "What it costs you", "The problem"],
+  feature: ["What it does", "In practice", "The capability", "Built in"],
+  demo: ["See it work", "In practice", "Walkthrough"],
+  how: ["How it works", "Under the hood", "The mechanism"],
+  benefit: ["What you get", "The payoff", "The result"],
+  proof: ["The proof", "Receipts", "In the field"],
+  testimonial: ["In their words", "From the team"],
+  stat: ["By the numbers", "Measured"],
+  chart: ["By the numbers", "Measured"],
+  pricing: ["What it costs", "Plans"],
+  cta: ["Start here", "Next step"],
+  close: ["Start here", "Next step"],
+  quote: ["In their words", "From the team"],
+  bullet: ["What you get", "The list"],
+  caption: ["How it works", "In practice"],
+  countdown: ["Counting down"],
+  "shape-motion": ["In motion"],
+};
+const purposeLabel = (sc, i = 0) => {
+  const raw = String(sc.purpose || sc.kind || "").trim().toLowerCase();
+  if (!raw) return "";
+  const set = PURPOSE_LABEL[raw];
+  return set ? set[Math.abs(i) % set.length] : raw;
+};
+
+// The figures a template asks for at SCENE level (a ring's `to`, a gauge's
+// `value`) — as opposed to inside a `stats` array. `dur` is timing, not content.
+function numberSlots(tpl) {
+  return Object.keys(tpl || {}).filter((k) => k !== "dur" && k !== "nat" && typeof tpl[k] === "number");
+}
+
+// SAME ROW, DIFFERENT KEY NAMES. This adapter writes one canonical stat shape
+// — {v, suf, l} — but the templates do not agree on it: SteamSpring authors its
+// Stats rows as {to, suffix, label}, others use {n, unit, t}. The compiled
+// component reads its OWN names, so a correct figure written under a name that
+// film does not read is simply absent, and a count-up on `undefined` paints
+// **"NaN" in display type** — measured on a shipped film, in the closing frame,
+// under "GET STARTED FREE". Type conformance could not see it: both sides are an
+// array of objects, so nothing was wrong to check.
+//
+// Match by ROLE instead of by name: the authored value's own type says what each
+// key is for — a number is the figure, a short symbol string is the unit, the
+// longest string is the label.
+function reshapeToProto(proto, el, i) {
+  if (!el || typeof el !== "object" || Array.isArray(el)) return el;
+  const pk = Object.keys(proto);
+  // Already speaks this film's language (or shares enough of it) — leave it be.
+  if (pk.some((k) => Object.prototype.hasOwnProperty.call(el, k))) return el;
+  const isSuffixy = (s) => typeof s === "string" && s.length <= 3 && s.trim() && !/^[a-z]{2,}$/i.test(s.trim());
+  const numKey = pk.find((k) => typeof proto[k] === "number");
+  const sufKey = pk.find((k) => isSuffixy(proto[k]));
+  const textKeys = pk.filter((k) => typeof proto[k] === "string" && k !== sufKey)
+    .sort((a, b) => String(proto[b]).length - String(proto[a]).length);
+  const vals = Object.values(el);
+  const num = [el.v, el.to, el.value, el.n, ...vals].find((x) => typeof x === "number" && isFinite(x));
+  const suf = [el.suf, el.suffix, el.unit].find((x) => typeof x === "string" && x.trim());
+  const label = [el.l, el.label, el.t, ...vals.filter((x) => typeof x === "string")]
+    .find((x) => typeof x === "string" && x.trim().length > 2);
+  const out = {};
+  for (const k of pk) {
+    if (k === numKey) out[k] = num != null ? num : proto[k];
+    else if (k === sufKey) out[k] = suf || " ";
+    else if (k === textKeys[0]) out[k] = label || " ";
+    else if (typeof proto[k] === "number") out[k] = num != null ? num : proto[k];
+    else out[k] = /^\d+$/.test(String(proto[k])) || k === "n" ? String(i + 1).padStart(2, "0") : " ";
+  }
+  return out;
+}
+
+// Pour one string into a clone of the authored element's key shape. Mirrors
+// asSlot's element handling: a numeric field means the component COUNTS it, so
+// it is filled with the row's own index rather than invented or dropped.
+function intoProto(proto, val, i) {
+  const keys = Object.keys(proto).filter((k) => typeof proto[k] === "string");
+  const textKey = keys.sort((x, y) => String(proto[y]).length - String(proto[x]).length)[0];
+  const el = {};
+  for (const k of Object.keys(proto)) {
+    if (typeof proto[k] === "number") el[k] = i + 1;
+    else if (k === textKey) el[k] = val;
+    else el[k] = (/^\d+$/.test(String(proto[k])) || k === "n") ? String(i + 1).padStart(2, "0") : " ";
+  }
+  return el;
 }
 
 // A tiny inline SVG mark — the brand's initial on the accent colour. Kept
@@ -385,12 +1920,42 @@ function monogram(brand, accent) {
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
+// A branded stand-in for an image slot we could not fill.
+//
+// These templates draw their picture frames UNCONDITIONALLY: with no `s.shot`
+// the compiled film paints its own editor placeholder — a hatched panel reading
+// "DROP IMAGE TO REPLACE" with a dashed + button. That is authoring chrome, and
+// it shipped into gallery previews (which build with no assets at all) and into
+// any film whose asset pool ran short. `monogram` was already doing this job for
+// the logo box; nothing did it for the picture plates.
+//
+// Wide rather than square, because these are 16:9-ish frames, and quiet on
+// purpose — it should read as an intentional tonal panel, never as a broken
+// image. Same data-URI approach as the monogram: no file, no network.
+function fillPlate(brand, accent, ground) {
+  const a = /^#[0-9a-f]{3,8}$/i.test(String(accent || "")) ? accent : "#6C5CE7";
+  const g = /^#[0-9a-f]{3,8}$/i.test(String(ground || "")) ? ground : "#141018";
+  const word = String(brand || "").trim().slice(0, 18).toUpperCase();
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" preserveAspectRatio="xMidYMid slice">`
+    + `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">`
+    + `<stop offset="0" stop-color="${a}" stop-opacity="0.34"/>`
+    + `<stop offset="0.55" stop-color="${g}" stop-opacity="0.96"/>`
+    + `<stop offset="1" stop-color="${a}" stop-opacity="0.20"/></linearGradient></defs>`
+    + `<rect width="640" height="360" fill="${g}"/>`
+    + `<rect width="640" height="360" fill="url(#g)"/>`
+    + `<circle cx="500" cy="86" r="150" fill="${a}" opacity="0.12"/>`
+    + (word ? `<text x="320" y="188" font-family="Arial,Helvetica,sans-serif" font-size="34" font-weight="800"`
+      + ` letter-spacing="6" fill="#FFFFFF" fill-opacity="0.42" text-anchor="middle">${word.replace(/&/g,"&amp;").replace(/</g,"&lt;")}</text>` : "")
+    + `</svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
 /**
  * Build a composition that renders `storyboard` inside the named template.
  * Returns the same { indexHtml, metaJson, mediaPlan } shape every dedicated
  * composer returns, so composeWithPackRenderer needs no special-casing.
  */
-function buildComposition({ storyboard, dims, framePack, assets, template, manifest } = {}) {
+function buildComposition({ storyboard, dims, framePack, assets, template, manifest, captionCues, scriptCues, scriptOverlay = false } = {}) {
   // composeWithPackRenderer passes framePack (the SLUG, e.g. "reel"); the
   // template file is named by the manifest ("Reel"). Resolve through the
   // manifest so a pack only has to declare `template` once, in pack.json.
@@ -431,10 +1996,21 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
   // Native canvas is a property of the TEMPLATE, not of what the caller asked
   // for. Deriving it from the requested aspect meant a portrait template asked
   // for at 1280x720 composed landscape (and vice versa) — the film would then be
-  // cropped into the wrong frame. These four are the 9:16 editions; every other
-  // template in the set is authored 16:9.
-  const PORTRAIT_TEMPLATES = new Set(["Reel", "FetchVertical", "FlightVertical", "ShowcaseVertical", "Teampulse"]);
-  const nativePortrait = PORTRAIT_TEMPLATES.has(String(tplName)) || (reqH > reqW && !/Vertical|Reel/.test(String(tplName)) === false);
+  // cropped into the wrong frame.
+  //
+  // It is now read from the pack manifest's `portraitNative`, and otherwise from
+  // the set of templates every OTHER manifest declares portrait-native. A literal
+  // list here did not survive contact with a 120-template import: it is the one
+  // registration site with no failure signal — a template missing from it renders
+  // the whole film in the wrong frame and every gate still passes.
+  //
+  // The old second clause was dead: `!/Vertical|Reel/.test(name) === false`
+  // reduces to "the name contains Vertical or Reel", which the set already held,
+  // so it never widened anything. Dropped rather than carried forward.
+  const nativePortrait =
+    manifest && typeof manifest.portraitNative === "boolean"
+      ? manifest.portraitNative
+      : portraitTemplates().has(String(tplName));
   const W = nativePortrait ? 1080 : 1920;
   const H = nativePortrait ? 1920 : 1080;
   const scenes = Array.isArray(sb.scenes) && sb.scenes.length ? sb.scenes.slice(0, 30) : [{ id: "s1", duration: 4, headline: sb.title || "" }];
@@ -448,7 +2024,26 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
     .filter((a) => a && a.sourceUrl && /^(website|website-image|blog)$/.test(String(a.source)))
     .map((a) => { try { return new URL(a.sourceUrl).hostname.replace(/^www\./, ""); } catch { return null; } })
     .find(Boolean);
-  const brand = String(sb.brand || sb.title || (host ? host.split(".")[0] : "") || "STUDIO").slice(0, 18);
+  // A film TITLE is often a sentence ("Teampulse ends the busywork") — slicing
+  // it to 18 chars branded a real film "Teampulse Ends the" with the URL
+  // teampulseendsthe.com. When the fallback is a multi-word title, the brand is
+  // its FIRST word. An explicit sb.brand is taken as authored — UNLESS it is
+  // itself a slogan ("One App For Everything" shipped as "ONE APP FOR EVERYT")
+  // while the client's own domain was sitting in the assets; the domain label is
+  // the truest brand there is ("flipkart.com" -> "Flipkart").
+  const hostBrand = host ? host.split(".")[0].replace(/^./, (c) => c.toUpperCase()) : "";
+  const brandSrc = (() => {
+    const explicit = String(sb.brand || "").trim();
+    const isSlogan = (s) => s.split(/\s+/).length >= 3 && s.length > 16;
+    if (explicit && !(isSlogan(explicit) && hostBrand)) return explicit;
+    if (hostBrand) return hostBrand;
+    if (explicit) return explicit;
+    const t = String(sb.title || "").trim();
+    if (!t) return "STUDIO";
+    const words = t.split(/\s+/);
+    return words.length >= 3 ? words[0] : t;
+  })();
+  const brand = brandSrc.slice(0, 18);
   const url = String(sb.url || host || `${brand.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`).slice(0, 40);
 
   const tplScenes = readTemplateScenes(html);
@@ -461,7 +2056,7 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
     try { return (JSON.parse(m[1] || m[2]) || {}).accent || null; } catch { return null; }
   })();
 
-  let omScenes = buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land: W > H, accent });
+  let omScenes = buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land: W > H, accent, tplName, filmTitle: String(sb.title || "").trim() });
 
   // HARD ENGINE LIMIT: ssParse rejects an OM_SCENES string over 16KB (or >50
   // scenes) by rendering a full-frame ERROR SLATE for the whole film — worse
@@ -469,7 +2064,7 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
   // fits: gallery walls first, then long copy, then whole tail scenes.
   const fits = () => JSON.stringify(JSON.stringify(omScenes)).length < 15500;
   if (!fits()) {
-    for (const s of omScenes) { for (let n = 1; n <= 6; n++) delete s[`shot${n}`]; delete s.shotA; delete s.shotB; if (fits()) break; }
+    for (const s of omScenes) { for (let n = 1; n <= 6; n++) delete s[`shot${n}`]; delete s.shotA; delete s.shotB; delete s.images; if (fits()) break; }
   }
   if (!fits()) {
     for (const s of omScenes) { for (const k of ["body", "sub", "quote"]) if (typeof s[k] === "string") s[k] = fit(s[k], 60); if (fits()) break; }
@@ -482,7 +2077,14 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
   html = html.replace(/<script type="__bundler\/template"[^>]*>([\s\S]*?)<\/script>/i, (full, body) => {
     let page;
     try { page = JSON.parse(body); } catch { return full; }
-    page = page.replace(/window\.OM_SCENES\s*=\s*'[\s\S]*?'\s*;/, `window.OM_SCENES = ${payload};`);
+    // Escape-aware for the same reason the reader is (a "';" in authored copy
+    // would end the match early and leave a fragment of the demo scenes behind),
+    // and replaced via a FUNCTION so a "$&" or "$'" in the user's own copy is
+    // inserted literally instead of being read as a substitution pattern.
+    page = page.replace(
+      /window\.OM_SCENES\s*=\s*'(?:[^'\\]|\\.)*'\s*;/,
+      () => `window.OM_SCENES = ${payload};`,
+    );
     // OM_TWEAKS drives the PERSISTENT chrome — the brand mark and URL pinned to
     // every frame — and ships in TWO forms. Some templates store it as a quoted
     // JSON string; others (Fetch et al) as a raw object literal wrapped in
@@ -532,9 +2134,96 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
 `;
   })();
 
+  // The narration in display type, over the film. Seeked by the same hook that
+  // drives the subtitle node, so scrubbing lands on the exact spoken phrase.
+  let overlay = null;
+  try {
+    // These are COMPILED films: their palette lives inside a bundled React tree
+    // we cannot introspect, so unlike the family engine there is no pack ink to
+    // borrow. A neutral near-black plate with white type is the safe read over
+    // any of them — the same lower-third convention the films' own subtitle node
+    // uses — and it clears AA by construction rather than by luck.
+    // OPT-IN (2026-08-11). This layer used to be mandatory — "every spoken word
+    // goes on screen", self-deriving its cues from the storyboard so it could not
+    // be switched off — and on a real film that is what it looked like: a Flipkart
+    // render carried the pack's own headline "INDIA'S ULTIMATE DESTINATION" in the
+    // template's display face AND, stamped across the product screenshot beneath
+    // it, "INDIA'S ULTIMATE ONE-STOP DESTINATION" in the overlay's. The same words
+    // twice, in two faces, one of them covering the picture. QA logged it as an
+    // ELEMENT COLLISION blocker and the user's first note on the finished video
+    // was "why am I getting the script caption text on the video".
+    //
+    // The mined headline slots already put the film's copy on screen in the
+    // template's own typography, which is the version that reads as designed. So
+    // the layer now renders only when a caller explicitly asks for it, and never
+    // derives its own cues — the caller's silence means off, not "figure it out".
+    // Enabling subtitles must not turn it on either: `captionCues` drives the
+    // small #cap-pill node, which is a different, deliberately modest thing.
+    const cues = (scriptOverlay && Array.isArray(scriptCues) && scriptCues.length) ? scriptCues : null;
+    if (!cues) throw new Error("script overlay not requested");
+    // Set the spoken line in the TEMPLATE'S OWN display face. The layer used a
+    // generic Anton/system stack, which read as a subtitle pasted over the film
+    // rather than as the film's typography. The manifest's display font is now
+    // measured from the template itself (npm run fonts:sync), so it is safe to
+    // trust — and the template already ships that @font-face, so no webfont is
+    // fetched at render time.
+    let dispFont = "";
+    try {
+      const mf = manifest || (framePack ? require("./frame_manifest").getManifest(framePack) : null);
+      const d = mf && mf.typography && mf.typography.display;
+      if (d) dispFont = `'${d}',system-ui,sans-serif`;
+    } catch { /* fall back to the layer's own stack */ }
+    overlay = require("./script_overlay").buildScriptOverlay(cues, W, H, {
+      // coverage 1 — each phrase holds its whole share of the cue instead of
+      // leaving a gap, so the spoken line is on screen continuously rather than
+      // blinking out between phrases.
+      ground: "#0B0B0C", ink: "#FFFFFF", coverage: 1,
+      font: dispFont,
+    });
+  } catch { /* no VO, nothing to show */ }
+
+  // SCREENSHOT FIT. The compiled films place captures with object-fit:cover and
+  // object-position:50% 50%. Measured on showcase-vertical: a 2732x1800 capture
+  // in a 907x669 frame is scaled to fill the height, so ~5% is cut from EACH
+  // side — and a web page puts its logo and headline hard against the left edge,
+  // so that 5% is exactly the words. Frames read "…nbox" instead of "Trello
+  // Inbox", and "…ate your workflow" instead of "Automate your workflow".
+  //
+  // Anchoring to the top-left keeps the part of a page that carries the meaning
+  // (mark, nav, headline, hero) and spends the crop on the bottom-right, which is
+  // whitespace or below-the-fold content. Only SCREENSHOTS are re-anchored —
+  // photos and logos keep the film's own centring, so a portrait or product shot
+  // the template deliberately centres is left alone.
+  const shotFiles = [...new Set((Array.isArray(assets) ? assets : [])
+    .filter(isShot).map((a) => String(a.path || "").split("/").pop()).filter(Boolean))];
+  // ...and PIN object-fit while we are here. The comment above assumed every film
+  // places captures with `cover`; not all do, and CSS defaults object-fit to
+  // `fill`, which STRETCHES the image to the box instead of cropping it. A
+  // 2732x1800 desktop capture dropped into a tall phone bezel then renders
+  // horizontally squashed — QA reported exactly that ("IMAGE DISTORTION: the
+  // screenshot inside the mobile device frame appears horizontally squashed").
+  // `cover` crops instead of distorting; `left top` decides what the crop keeps.
+  const shotFitCss = shotFiles.length
+    ? `  ${shotFiles.map((f) => `img[src$="${f}"]`).join(",\n  ")} { object-fit: cover !important; object-position: left top !important; }`
+    : "";
+  // VECTORS LETTERBOX, THEY DO NOT CROP. Flat art has no spare margin to spend on
+  // a cover-crop: filling a 16:9 card with an icon centres one enlarged limb of it
+  // and reads as a smear, which is why these were barred from the pool outright.
+  // `contain` + inset padding keeps the whole glyph inside the card at a sane size
+  // — the same trade template_engine makes with its `fitContain` flag.
+  const vectorFiles = [...new Set((Array.isArray(assets) ? assets : [])
+    .filter(isVectorAsset).map((a) => String(a.path || "").split("/").pop()).filter(Boolean))];
+  const vectorFitCss = vectorFiles.length
+    ? `  ${vectorFiles.map((f) => `img[src$="${f}"]`).join(",\n  ")} { object-fit: contain !important; object-position: center !important; padding: 6% !important; box-sizing: border-box !important; }`
+    : "";
+
   const harness = `
 <div id="cap-pill" style="position:absolute;left:8%;right:8%;bottom:6%;text-align:center;font-family:system-ui,sans-serif;font-weight:700;font-size:${Math.round(H * 0.028)}px;line-height:1.3;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.75);opacity:0;z-index:60;"></div>
+${overlay ? overlay.html : ""}
 <style>
+${overlay ? overlay.css : ""}
+${shotFitCss}
+${vectorFitCss}
   /* The playback bar is drawn by the ENGINE (animations-v2.jsx), not the film —
      which is why grepping the film sources for "PlaybackBar" found nothing while
      the bar still appeared in every export.
@@ -618,8 +2307,31 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
       // Subtitle node — required by the render contract (check:templates looks
       // for #cap-pill) and by baked-caption jobs. Lives INSIDE #root so it is
       // captured with the film; driven by the seeked cue lookup below.
+      // The engine replaces the document body when it mounts, so ANY node authored
+      // in the page markup is gone by the time this runs — measured: #cap-pill and
+      // #kf-script are both present in the served HTML and both absent from the
+      // live DOM. (This is also why __KF_CUES never showed a subtitle.) The markup
+      // above stays for check:templates, which lints the file, not the DOM; the
+      // live nodes are BUILT here, after the engine has finished with the body.
       var cap=document.getElementById('cap-pill');
-      if(cap) wrap.appendChild(cap);   // move it INSIDE the captured root
+      if(!cap){ cap=document.createElement('div'); cap.id='cap-pill'; cap.style.cssText=${JSON.stringify(`position:absolute;left:8%;right:8%;bottom:6%;text-align:center;font-family:system-ui,sans-serif;font-weight:700;font-size:${Math.round(H * 0.028)}px;line-height:1.3;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.75);opacity:0;z-index:60;`)}; }
+      wrap.appendChild(cap);           // INSIDE the captured root
+      // Same for the display-type script layer. It sits OUTSIDE #kf-fit so the
+      // engine's auto-scale never shrinks the type.
+      var kfs=document.getElementById('kf-script');
+      if(!kfs && ${overlay ? "true" : "false"}){
+        var holder=document.createElement('div');
+        holder.innerHTML=${JSON.stringify(overlay ? overlay.html : "")};
+        kfs=holder.firstChild;
+      }
+      if(kfs) wrap.appendChild(kfs);
+      // …and its stylesheet, into <head>, for the same reason.
+      if(kfs && !document.getElementById('kf-script-css')){
+        var st=document.createElement('style');
+        st.id='kf-script-css';
+        st.textContent=${JSON.stringify(overlay ? overlay.css : "")};
+        document.head.appendChild(st);
+      }
       // The engine's playback bar is a SIBLING of the stage inside its container.
       // Hiding it by class name is guesswork (verified: the bar node carries
       // className "" and matches none of the data-om-playback/.om-playbar hooks
@@ -690,11 +2402,150 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
         }
       }catch(e){}
     }
+    // PORTRAIT UNDERSIZE. autofit() only ever SHRINKS — it exists to stop a long
+    // headline running off the edge. The opposite defect is just as common on a
+    // phone frame: a template's title lockup, authored to sit inside a wider
+    // composition, renders as small type marooned in a tall frame. Measured on a
+    // finished film: the opening card set "Trello" at ~60px in a 1920-tall frame
+    // with 55% of the picture empty sky, and QA called it a blocker
+    // ("LANDSCAPE-SHRUNK LAYOUT: content clustered in a small horizontal band").
+    //
+    // So grow the beat's leading text toward headline scale. Runs AFTER autofit,
+    // so shrink still wins on genuinely long copy, and every growth is bounded by
+    // the room actually available.
+    var PORTRAIT=${nativePortrait ? "true" : "false"};
+    function portraitBoost(){
+      if(!PORTRAIT) return;
+      try{
+        var canvasW=el.clientWidth||el.getBoundingClientRect().width||0;
+        var canvasH=el.clientHeight||el.getBoundingClientRect().height||0;
+        if(!canvasW||!canvasH) return;
+        var want=canvasW*0.085;               // ~92px @1080 — reads as a headline
+        var lead=null, leadFs=0;
+        var nodes=el.querySelectorAll('*');
+        for(var i=0;i<nodes.length;i++){
+          var n=nodes[i];
+          var txt=(n.textContent||'').replace(/\\s+/g,'');
+          if(!txt) continue;
+          // Only leaf-ish text: a wrapper reports its child's text as its own.
+          var hasTextChild=false;
+          for(var c=0;c<n.childNodes.length;c++) if(n.childNodes[c].nodeType===3 && n.childNodes[c].textContent.trim()) hasTextChild=true;
+          if(!hasTextChild) continue;
+          var cs=getComputedStyle(n);
+          if(cs.visibility==='hidden'||parseFloat(cs.opacity)<0.05) continue;
+          // Absolutely-placed text has no flow to push siblings out of the way,
+          // so growing it is how you get a collision. Leave it alone.
+          if(cs.position==='absolute'||cs.position==='fixed') continue;
+          var fs=parseFloat(cs.fontSize)||0;
+          if(fs>leadFs){ leadFs=fs; lead=n; }
+        }
+        if(!lead||!leadFs||leadFs>=want) return;
+        var r=lead.getBoundingClientRect();
+        if(r.width<8||r.height<8) return;
+        // Bound the growth by the width its own line can take...
+        lead.style.whiteSpace='nowrap';
+        var need=lead.scrollWidth||r.width;
+        var avail=canvasW*0.92;
+        var kW=need>0?(avail/need):1;
+        // ...and never more than doubles, so a deliberately small kicker stays a
+        // kicker rather than becoming a second headline.
+        var k=Math.min(want/leadFs, kW, 2);
+        if(k<=1.05) return;
+        lead.style.setProperty('font-size',(leadFs*k).toFixed(1)+'px','important');
+        lead.style.setProperty('line-height','1.05','important');
+      }catch(e){}
+    }
+    // WHERE THE SPOKEN LINE GOES. It belongs high on the frame, as display type —
+    // but every template puts its OWN headline somewhere different, so any fixed
+    // offset collides on some pack: measured at top:20%, showcase cleared its
+    // headline while Stomp landed straight on top of the word "Trello".
+    //
+    // So choose per frame. Measure what is already drawn, then drop the line into
+    // the emptiest band, preferring the top of the frame — which is what the
+    // brief asked for, and which also fills the dead middle these portrait
+    // templates leave.
+    function placeScript(){
+      try{
+        var kfs=document.getElementById('kf-script');
+        if(!kfs) return;
+        var vis=null, phs=kfs.querySelectorAll('.kf-ph');
+        for(var i=0;i<phs.length;i++) if(phs[i].style.display==='block'){ vis=phs[i]; break; }
+        if(!vis){ return; }
+        var W=el.clientWidth||1080, H=el.clientHeight||1920;
+        // Reset before measuring so a previous placement never biases this one.
+        kfs.style.top='0px'; kfs.style.bottom='auto';
+        var mine=vis.getBoundingClientRect();
+        var need=Math.max(40, mine.height);
+        var root=el.getBoundingClientRect();
+        // Everything already on the frame that must not be covered.
+        var boxes=[];
+        (function walk(node){
+          var kids=node.querySelectorAll('*');
+          for(var j=0;j<kids.length;j++){
+            var n=kids[j];
+            if(n.shadowRoot) walk(n.shadowRoot);
+            if(kfs.contains(n)) continue;
+            var tag=n.tagName;
+            var isImg=(tag==='IMG'||tag==='SVG'||tag==='VIDEO'||tag==='CANVAS');
+            var hasText=false;
+            for(var c=0;c<n.childNodes.length;c++) if(n.childNodes[c].nodeType===3&&n.childNodes[c].textContent.trim()) hasText=true;
+            if(!isImg&&!hasText) continue;
+            var cs=getComputedStyle(n);
+            if(cs.visibility==='hidden'||parseFloat(cs.opacity)<0.12) continue;
+            var r=n.getBoundingClientRect();
+            if(r.width<40||r.height<18) continue;
+            if(r.bottom<root.top||r.top>root.bottom) continue;
+            // Covering another TEXT block is far worse than sitting over a
+            // picture: outlined display type over imagery is the look we want,
+            // two headlines on top of each other is never readable.
+            boxes.push([r.top-root.top, r.bottom-root.top, hasText?6:1]);
+          }
+        })(document);
+        // Score candidate bands by how much occupied area they would cover.
+        var best=null;
+        for(var p=0.10;p<=0.72;p+=0.02){
+          var top=p*H, bot=top+need;
+          var hit=0;
+          for(var b=0;b<boxes.length;b++){
+            var o=Math.min(bot,boxes[b][1])-Math.max(top,boxes[b][0]);
+            if(o>0) hit+=o*(boxes[b][2]||1);
+          }
+          // Ties go to the higher band: the brief is "up where the headline is".
+          if(!best||hit<best.hit-0.5) best={p:p,hit:hit};
+        }
+        if(best) kfs.style.top=Math.round(best.p*H)+'px';
+      }catch(e){}
+    }
+    // SCREENSHOT ANCHOR. The stylesheet rule above cannot reach these images —
+    // the film's tree contains shadow roots, and a document stylesheet does not
+    // cross a shadow boundary (the same reason noted at the top of this file).
+    // So the anchor is applied as an inline style, walking shadow roots, and
+    // re-applied after every seek because the film re-renders on each frame.
+    var SHOT_FILES=${JSON.stringify(shotFiles)};
+    function kfFitShots(root){
+      try{
+        var imgs=(root||document).querySelectorAll('img');
+        for(var i=0;i<imgs.length;i++){
+          var src=imgs[i].getAttribute('src')||'';
+          for(var k=0;k<SHOT_FILES.length;k++){
+            if(src.indexOf(SHOT_FILES[k])>=0){
+              // cover, not the CSS default fill — fill squashes the capture.
+              imgs[i].style.setProperty('object-fit','cover','important');
+              imgs[i].style.setProperty('object-position','left top','important');
+              break;
+            }
+          }
+        }
+        var all=(root||document).querySelectorAll('*');
+        for(var j=0;j<all.length;j++) if(all[j].shadowRoot) kfFitShots(all[j].shadowRoot);
+      }catch(e){}
+    }
     // The engine's own duration governs the film; ours governs the render.
     var cur=0;
     function seek(t){
       cur=Math.max(0,Math.min(D,Number(t)||0));
       el.dispatchEvent(new CustomEvent('data-om-seek-to-time-frame',{detail:{time:cur,sync:true}}));
+      if(SHOT_FILES.length) kfFitShots();
     }
     var tl={
       duration:function(){return D;},
@@ -705,15 +2556,40 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
     };
     window.__timelines=window.__timelines||{};
     window.__timelines["vid"]=tl;
+    ${overlay ? overlay.js : ""}
     // Caption cues, seeked exactly like the film.
     var CUES=window.__KF_CUES||[];
     var capEl=document.getElementById('cap-pill');
     var _seek=seek;
+    // SELF-HEAL broken media. A referenced file can vanish between compose and
+    // render (a curation pass deleted 0.jpg after the scene list was written and
+    // the wall drew a broken-image glyph). Any img that finished loading with
+    // naturalWidth 0 is swapped for a sibling that DID load — a repeat of a real
+    // screenshot always beats a broken-image icon. Re-run per seek: the film is
+    // React and remounts scene layers as it plays.
+    function healImgs(){
+      try{
+        var root=document.getElementById('kf-comp-root'); if(!root) return;
+        var imgs=root.querySelectorAll('img'), good=null, i;
+        for(i=0;i<imgs.length;i++){ if(imgs[i].complete && imgs[i].naturalWidth>0){ good=imgs[i].getAttribute('src'); break; } }
+        if(window.__kfGoodSrc===undefined) window.__kfGoodSrc=null;
+        if(good) window.__kfGoodSrc=good;
+        var fallback=good||window.__kfGoodSrc; if(!fallback) return;
+        for(i=0;i<imgs.length;i++){
+          var im=imgs[i];
+          if(im.complete && im.naturalWidth===0 && im.getAttribute('src')!==fallback) im.setAttribute('src',fallback);
+        }
+      }catch(e){}
+    }
     seek=function(t){
       _seek(t);
       fitFrame();
       autofit();
+      portraitBoost();
       hideChrome();
+      healImgs();
+      if(window.__kfScript) window.__kfScript(t);
+      placeScript();
       if(!capEl) return;
       var cur=null;
       for(var i=0;i<CUES.length;i++){ if(cur===null && t>=CUES[i].t && t<CUES[i].e) cur=CUES[i]; }

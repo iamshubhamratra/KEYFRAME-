@@ -1,0 +1,89 @@
+{
+  "name": "birdsong-field",
+  "renderer": "omelette",
+  "template": "Birdsong",
+  "portraitNative": true,
+  "vibe": "Flat storybook nature in 9:16 — deep forest green and warm bark brown on cream paper, with flapping flocks, perched birds, swaying trees and falling leaves drawn as bold flat shapes. Seven authored surfaces that read like pages of a picture book rather than slides. Heavy grotesque headlines over calm body copy. For nature, sustainability, wellbeing, education, outdoor and craft brands that want warmth and character instead of gloss.",
+  "colors": {
+    "ground": "#FDF6E9",
+    "ink": "#1E2A24",
+    "accent": "#2E8C4A",
+    "a2": "#FFC231",
+    "card": "#FFFDF7"
+  },
+  "fonts": [
+    "Bricolage Grotesque",
+    "Karla"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#FDF6E9"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none"
+  },
+  "skin": {
+    "accents": [
+      "#2E8C4A",
+      "#FFC231"
+    ],
+    "extras": [
+      "#7A4F2E",
+      "#FF6B4A"
+    ],
+    "emphasisCss": "color:#2E8C4A;"
+  },
+  "assets": {
+    "photoMod": "flat illustrative nature woodland birds warm daylight",
+    "iconStyle": "soft",
+    "keywords": [
+      "nature",
+      "sustainability",
+      "outdoors",
+      "wellbeing",
+      "craft"
+    ],
+    "prefer": [
+      "illustration",
+      "flat"
+    ]
+  },
+  "typography": {
+    "display": "Bricolage Grotesque"
+  },
+  "camera3d": {
+    "ground": "#FDF6E9"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "none",
+    "tracking": -0.01,
+    "weight": 400,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "warm acoustic folk gentle morning birdsong uplifting",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft natural ticks, gentle whooshes, paper turns",
+      "volume": 0.16
+    }
+  }
+}

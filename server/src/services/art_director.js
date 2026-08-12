@@ -22,6 +22,8 @@ const config = require("../config");
 const db = require("../db");
 const openrouter = require("./openrouter");
 const { extractFirstJsonObject } = require("./json_lenient");
+// The pack's own manifest is the authority on what polarity its design needs.
+const { getManifest } = require("./frame_manifest");
 
 const SYSTEM = fs.readFileSync(
   path.join(__dirname, "..", "prompts", "system_art_director.md"),
@@ -167,7 +169,65 @@ async function directBrand({ jobId, brandColors, subject, brief, framePack, pack
   // its theme, the film adopts the SITE's own ground color (light/dark), applied in
   // scene_kit.deriveTheme. Attach it to the accent skin — or to a ground-only skin
   // when the brand palette is too dull for accents, so the theme still matches.
-  const groundHex = (matchTheme && typeof siteBg === "string" && /^#[0-9a-f]{6}$/i.test(siteBg)) ? siteBg.toUpperCase() : null;
+  //
+  // …but ONLY when the sampled colour is decisively light or decisively dark.
+  //
+  // Ingest samples one background colour off the page, and on a busy commercial
+  // site that sample is an average, not a design decision: Flipkart — a white site
+  // with a blue header — came back as #656565, a flat mid grey, additionally
+  // misclassified as `dark: true` because it sits a hair under the midpoint. The
+  // film then adopted mid grey as its ground, overriding hype-wave's design-system
+  // light ground (#fdf8ec), and QA reported GROUND LIGHTNESS FAILURE. Mid grey is
+  // the worst possible ground: nothing reads well on it, light ink or dark.
+  //
+  // A ground is only worth taking from the site when it is unambiguous. Anything in
+  // the mushy middle means the sample failed, and the pack's own designed ground —
+  // which a designer chose and the pack's ink was picked against — is better.
+  const groundLuma = (hex) => {
+    const h = String(hex).replace("#", "");
+    const n = parseInt(h.slice(0, 6), 16);
+    if (!Number.isFinite(n)) return null;
+    const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => {
+      const c = v / 255;
+      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const groundUsable = (hex) => {
+    const L = groundLuma(hex);
+    if (L == null) return false;
+    // Decisively dark (< 0.06) or decisively light (> 0.55). Everything between is
+    // a failed sample, not a brand colour.
+    return L < 0.06 || L > 0.55;
+  };
+  let groundHex = (matchTheme && typeof siteBg === "string" && /^#[0-9a-f]{6}$/i.test(siteBg)) ? siteBg.toUpperCase() : null;
+  if (groundHex && !groundUsable(groundHex)) {
+    console.log(`[art_director] site ground ${groundHex} is a mid-tone (luma ${groundLuma(groundHex).toFixed(3)}) — keeping the pack's own designed ground instead of matching it`);
+    groundHex = null;
+  }
+  // …AND MATCHING A THEME NEVER MEANS INVERTING A DESIGN. The check above only
+  // rejects a mushy sample; a decisively WHITE site was still allowed to repaint
+  // a pack built dark. Measured on a Notion film rendered with `abyssal-glow`
+  // (a deep-sea pack, designed ground #041318, glows and gradients drawn for
+  // black): the ground came back #FFFFFF, QA reported "GROUND COLOR FAILURE —
+  // light/white gradient instead of the required dark ground", and two beats
+  // read as blank pale frames because the pack's own light-on-dark artwork had
+  // nothing to sit on. The pack's ink, glow, scrim and artwork were all chosen
+  // against its own polarity, so a site may tune the ground WITHIN that polarity
+  // and never across it.
+  if (groundHex && framePack) {
+    try {
+      const packGround = (getManifest(framePack) || {}).surface?.ground;
+      if (typeof packGround === "string" && /^#[0-9a-f]{6}$/i.test(packGround)) {
+        const packDark = groundLuma(packGround) < 0.3;
+        const siteDark = groundLuma(groundHex) < 0.3;
+        if (packDark !== siteDark) {
+          console.log(`[art_director] site ground ${groundHex} is ${siteDark ? "dark" : "light"} but "${framePack}" is designed ${packDark ? "dark" : "light"} (${packGround}) — keeping the pack's ground; matching it would invert the design`);
+          groundHex = null;
+        }
+      }
+    } catch { /* no manifest — fall through and match as before */ }
+  }
   const withGround = (skin) => {
     if (!groundHex) return skin;
     return { ...(skin || { source: "site-theme" }), ground: groundHex };

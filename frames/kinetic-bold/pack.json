@@ -1,5 +1,6 @@
 {
   "name": "kinetic-bold",
+  "renderer": "poster-loud",
   "vibe": "A kinetic-typography poster system for Pulse, a marketing-analytics app. Type IS the visual: enormous Anton words fill the frame, scenes hard-cut between near-black and off-white grounds, and each scene carries exactly one electric accent. ",
   "colors": {
     "ink": "#0B0B0B",
@@ -10,8 +11,8 @@
     "blue": "#2D7CFF"
   },
   "fonts": [
-    "Inter",
-    "Anton"
+    "Archivo Black",
+    "JetBrains Mono"
   ],
   "surface": {
     "flat": true,
@@ -41,15 +42,34 @@
     ]
   },
   "typography": {
-    "display": "Anton"
+    "display": "Archivo Black"
   },
   "camera3d": {
     "ground": "#0B0B0B"
   },
   "textfx": {
-    "enter": "slide",
-    "emphasis": "boxed",
+    "enter": "zap",
+    "emphasis": "ring",
     "case": "upper",
-    "align": "left"
+    "align": "left",
+    "weight": 900,
+    "tracking": -0.035,
+    "sizeScale": 1.12
+  },
+  "audio": {
+    "music": {
+      "query": "driving percussion tribal toms punchy energetic",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
   }
 }

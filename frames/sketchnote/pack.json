@@ -1,5 +1,6 @@
 {
   "name": "sketchnote",
+  "renderer": "story-handmade",
   "vibe": "a hand-drawn sketchnote journal come alive: cream ruled notebook paper with a red margin, ink doodles that DRAW THEMSELVES — washi tape, sparkle stars, a lightbulb with blinking rays, a paper plane on a dashed swoop, a wobbly hand-drawn rising graph with X-marks, scribbled checklists, a steaming coffee cup, party bunting and a pen circle scribbled around the message — typewriter text with a yellow highlighter swipe and red wavy pen underline — for tutorials, how-tos, study content, indie products, workshops and anything that should feel personal and hand-made",
   "colors": {
     "paper": "#FBF6E8",
@@ -11,8 +12,8 @@
     "greenpen": "#2E9E68"
   },
   "fonts": [
-    "Inter",
-    "Instrument Serif"
+    "Bricolage Grotesque",
+    "JetBrains Mono"
   ],
   "surface": {
     "flat": true,
@@ -55,7 +56,7 @@
     ]
   },
   "typography": {
-    "display": "Instrument Serif"
+    "display": "Bricolage Grotesque"
   },
   "layout": {
     "propFill": false,
@@ -64,27 +65,27 @@
     "stat": "headline"
   },
   "textfx": {
-    "enter": "typewriter",
-    "emphasis": "scribble",
+    "enter": "slide",
+    "emphasis": "echo",
     "align": "left",
-    "case": "none",
-    "sizeScale": 1.06
+    "case": "upper",
+    "sizeScale": 1.19,
+    "weight": 900,
+    "tracking": -0.035
   },
   "audio": {
     "music": {
-      "query": "quirky acoustic ukulele",
-      "mood": "playful",
+      "query": "marching snare stomp clap epic energetic",
+      "mood": "energetic",
       "volume": 0.15
     },
     "sfx": {
-      "style": "pencil scribbles, page turns, pen clicks, soft pops and a typewriter key — quiet, papery, hand-made; one accent per drawn-on moment",
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
       "palette": [
-        "pencil scribble",
-        "page turn",
-        "pen click",
-        "soft pop",
-        "typewriter key",
-        "paper rustle"
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
       ]
     }
   }

@@ -1,5 +1,6 @@
 {
   "name": "terminal-departures",
+  "renderer": "cinema",
   "vibe": "An airport departures hall for films. Charcoal-black split-flap boards clack every headline into place character by character (Solari-style), on signal-yellow and ivory with green ON-TIME and red FINAL-CALL accents. Mono labels, hanging gate signage, ticker bands and boarding-pass paper. Mechanical, punctual and charming; motion is clacks, sweeps and conveyor drifts — never blur soup. For launches, product tours, countdowns and anything that departs on time.",
   "colors": {
     "void": "#0A0B0E",
@@ -12,8 +13,8 @@
     "red": "#FF4B3E"
   },
   "fonts": [
-    "IBM Plex Mono",
-    "Space Grotesk"
+    "Anton",
+    "IBM Plex Mono"
   ],
   "surface": {
     "flat": false,
@@ -56,33 +57,33 @@
     ]
   },
   "typography": {
-    "display": "Space Grotesk"
+    "display": "Anton"
   },
   "camera3d": {
     "ground": "#121317"
   },
   "textfx": {
-    "enter": "flap",
-    "emphasis": "gradient",
+    "enter": "glitch",
+    "emphasis": "bracket",
     "case": "upper",
-    "tracking": 0.02,
-    "weight": 700,
-    "sizeScale": 1.0,
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.12,
     "align": "center"
   },
   "audio": {
     "music": {
-      "query": "minimal electronic ticking lounge subtle",
-      "mood": "minimal",
+      "query": "hand claps foot stomps rock energetic anthem",
+      "mood": "energetic",
       "volume": 0.14
     },
     "sfx": {
-      "style": "split-flap board clacks, soft terminal chimes, mechanical ticks and gate whooshes",
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
       "palette": [
-        "mechanical flip clack",
-        "airport chime",
-        "whoosh transition",
-        "clock tick"
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
       ]
     }
   }

@@ -1,0 +1,98 @@
+{
+  "name": "altitude",
+  "renderer": "omelette",
+  "template": "Altitude",
+  "portraitNative": true,
+  "vibe": "\"ALTITUDE\" sky/balloon world. Clouds, balloons, altimeters. Portrait-native 9:16 (9 authored beats, 27.8s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#7FBFF5",
+    "ink": "#1B3A5C",
+    "accent": "#FFC94B",
+    "a2": "#E4572E"
+  },
+  "fonts": [
+    "Baloo 2",
+    "Asap"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#7FBFF5",
+    "ink": "#1B3A5C"
+  },
+  "motion": {
+    "cut": "fade",
+    "drift": 1.13
+  },
+  "fx": {
+    "canvas": "sumi",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FFC94B",
+      "#E4572E"
+    ],
+    "extras": [
+      "#FFFFFF",
+      "#4C9BE0",
+      "#7BD4B2"
+    ],
+    "emphasisCss": "color:#FFC94B;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "altitude-film",
+      "altitude",
+      "balloon",
+      "world",
+      "clouds",
+      "balloons"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Baloo 2",
+    "body": "Baloo 2"
+  },
+  "camera3d": {
+    "ground": "#7FBFF5"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "squash",
+    "emphasis": "bracket",
+    "case": "none",
+    "tracking": 0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

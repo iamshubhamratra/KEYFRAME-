@@ -77,6 +77,11 @@ const isPersonSubject = (subj, categoryText) =>
 const isPeopleScene = (scene) =>
   /\b(proof|testimonial|quote|review|social|team|customer|story|voices?)\b/i.test(`${(scene && scene.kind) || ""} ${(scene && scene.purpose) || ""}`);
 
+// Per-scene CLIP re-scoring runs on the CPU (one image embed per asset plus one
+// text-embed set per distinct scene), so bound how many pinned stills a single job
+// re-scores — a long film with a deep pool must not spend minutes here.
+const PER_SCENE_CLIP_MAX = 40;
+
 function cd() {
   // Merge defaults key-by-key: a PARTIAL config block (e.g. CREATIVE_DIRECTOR=1
   // creates { enabled: true } with no tuning keys) must not leave maxPerScene/
@@ -95,16 +100,51 @@ function fallbackQueriesFor(query) {
   return [...new Set(out)].filter((q) => q !== query);
 }
 
-// Compact scene plan for the prompt: id + purpose + a short direction line.
+// What a scene actually SAYS — the spoken line plus the copy on screen. The
+// director's whole job is deciding which picture belongs on which scene, and it
+// was shown only `visualDirection` (a CAMERA note: "slow push on the grid"), so
+// it matched images against how a scene MOVES instead of what it is ABOUT. Same
+// shape as screenshot_qa's sceneTopic(), which is the one per-scene match test in
+// the pipeline that demonstrably works.
+function sceneLine(s) {
+  if (!s) return "";
+  const onScreen = Array.isArray(s.onScreenText)
+    ? s.onScreenText.filter(Boolean).join(" ")
+    : [s.headline, s.subtext].filter(Boolean).join(" ");
+  return [s.voiceover, onScreen].map((x) => String(x || "").trim()).filter(Boolean).join(" · ").slice(0, 150);
+}
+
+// A malformed storyboard must not blow the prompt up; the long-form ceiling is 30
+// scenes, so this bound never bites a real film.
+const MAX_DIGEST_SCENES = 40;
+
+// Compact scene plan for the prompt: id + purpose + what the scene says + a short
+// direction line. NOT truncated to 12 any more: `assignScene` may only name an id
+// the model has been shown, so every scene past the 12th was unassignable — on a
+// 14-scene film the last two beats, and on a long-form film half the timeline,
+// could never receive a directed asset and fell back to the general pool.
 function sceneDigest(storyboard, script) {
-  const scenes = (storyboard && Array.isArray(storyboard.scenes) && storyboard.scenes.length)
-    ? storyboard.scenes
-    : (script && Array.isArray(script.scenes) ? script.scenes : []);
-  return scenes.slice(0, 12).map((s, i) => ({
-    id: s.id != null ? s.id : i + 1,
-    purpose: String(s.purpose || "").slice(0, 40),
-    direction: String(s.visualDirection || s.headline || s.subtext || "").slice(0, 140),
-  }));
+  const sbScenes = (storyboard && Array.isArray(storyboard.scenes) && storyboard.scenes.length)
+    ? storyboard.scenes : [];
+  const scScenes = (script && Array.isArray(script.scenes)) ? script.scenes : [];
+  const scenes = sbScenes.length ? sbScenes : scScenes;
+  // The storyboard is the VISUAL plan; on the project path (graph.js passes both)
+  // the narration lives on the script. Key the script's lines by id so a
+  // storyboard scene that carries no voiceover still contributes its spoken words.
+  const lineById = new Map();
+  scScenes.forEach((s, i) => {
+    const line = sceneLine(s);
+    if (line) lineById.set(String(s && s.id != null ? s.id : i + 1), line);
+  });
+  return scenes.slice(0, MAX_DIGEST_SCENES).map((s, i) => {
+    const id = s.id != null ? s.id : i + 1;
+    return {
+      id,
+      purpose: String(s.purpose || "").slice(0, 40),
+      line: sceneLine(s) || lineById.get(String(id)) || "",
+      direction: String(s.visualDirection || s.headline || s.subtext || "").slice(0, 120),
+    };
+  });
 }
 
 // Pack palette + vibe + asset affinity so the director judges brand/template fit
@@ -188,11 +228,13 @@ function kindHintFor(a) {
 // the ABSOLUTE index into `assets` -> verdict object, or an empty Map on failure
 // (fail-open: callers leave those assets untouched).
 async function reviewChunk({ chunk, baseIndex, subject, categoryText, packText, scenes, orientation, tracker, signal }) {
-  const thumbs = [];
-  for (const a of chunk) {
-    const abs = a.__absPath;
-    thumbs.push(abs ? await thumbBase64(abs, a.type === "video") : null);
-  }
+  // Thumbnails are independent ffmpeg spawns over separate files — running them
+  // with `await` inside the loop paid each decode end to end before starting the
+  // next. They are bounded by the chunk size (<=6), so a plain Promise.all is
+  // already capped; ordering is preserved by index, which the caller relies on to
+  // map a verdict back to its asset.
+  const thumbs = await Promise.all(chunk.map((a) =>
+    (a.__absPath ? thumbBase64(a.__absPath, a.type === "video").catch(() => null) : Promise.resolve(null))));
   const usable = thumbs.map((b, i) => ({ b, i })).filter((x) => x.b);
   if (!usable.length) return new Map();
 
@@ -201,7 +243,11 @@ async function reviewChunk({ chunk, baseIndex, subject, categoryText, packText, 
     categoryText || "",
     packText,
     orientation ? `Video orientation: ${orientation} — reject or down-rank an asset whose shape can't fill a ${orientation} frame without cropping away its subject.` : "",
-    `SCENE PLAN: ${JSON.stringify(scenes)}`,
+    // Spell out which field to match against: with only `direction` in the digest
+    // the model had nothing but camera intent to go on, which is how a picture
+    // ends up on a beat that never mentions it.
+    "SCENE PLAN — assign each asset to the scene whose `line` (what the narrator SAYS and the viewer READS there) the picture actually depicts; " +
+    `\`direction\` is camera/motion intent only and is never a reason to place an asset: ${JSON.stringify(scenes)}`,
     `Review the ${usable.length} asset(s) below. For EACH, return a verdict per your instructions. ` +
     `assignScene must be one of the scene ids above (or null). Reply STRICT JSON: {"verdicts":[...]} with exactly one entry per asset, numbered 1..${usable.length}.`,
   ].filter(Boolean).join("\n\n");
@@ -314,17 +360,43 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
   }
 
   // ---- 1) Batched vision review over every visual asset ----
+  //
+  // The chunks are INDEPENDENT — each is its own vision call over its own six
+  // thumbnails, and the only shared state is the verdicts map they write disjoint
+  // keys into. Running them with `await` inside the loop stacked 3-5 flash-vision
+  // round trips end to end on the critical path for no reason.
+  //
+  // Bounded, not unbounded: each call uploads six base64 thumbnails, so a wide
+  // fan-out spikes memory and invites provider 429s (a 429 here silently falls back
+  // to a costlier house model, so throughput bought with rate-limit errors is a
+  // cost regression, not a win). Three in flight is the compromise the verification
+  // pass landed on.
   const verdicts = new Map(); // absolute index in `visual` -> verdict
+  const chunks = [];
   for (let start = 0; start < visual.length; start += chunkSize) {
-    const chunk = visual.slice(start, start + chunkSize);
-    try {
-      const m = await reviewChunk({ chunk, baseIndex: start, subject: subj, categoryText, packText, scenes, orientation, tracker, signal });
-      for (const [k, v] of m) verdicts.set(k, v);
-    } catch (e) {
-      // Fail-open for this chunk — its assets keep whatever flags they already had.
-      notes.push(`Vision review skipped for ${chunk.length} asset(s): ${String(e && e.message || e).slice(0, 80)}`);
-    }
+    chunks.push({ start, chunk: visual.slice(start, start + chunkSize) });
   }
+  const VISION_CONCURRENCY = Math.max(1, Number(cd().chunkConcurrency ?? cd().visionConcurrency) || 3);
+  let ci = 0;
+  await Promise.all(Array.from({ length: Math.min(VISION_CONCURRENCY, chunks.length) }, async (_u, worker) => {
+    // STAGGER THE WORKERS. openrouter's 429/402 backoff has no jitter, so a herd
+    // that dispatches in lockstep also RETRIES in lockstep and re-collides on
+    // every attempt. 200ms apart is enough to decorrelate them, and it costs
+    // 400ms once against calls that take 5-20s each.
+    if (worker) await new Promise((r) => setTimeout(r, worker * 200));
+    for (;;) {
+      const i = ci++;
+      if (i >= chunks.length) return;
+      const { start, chunk } = chunks[i];
+      try {
+        const m = await reviewChunk({ chunk, baseIndex: start, subject: subj, categoryText, packText, scenes, orientation, tracker, signal });
+        for (const [k, v] of m) verdicts.set(k, v);
+      } catch (e) {
+        // Fail-open for this chunk — its assets keep whatever flags they already had.
+        notes.push(`Vision review skipped for ${chunk.length} asset(s): ${String(e && e.message || e).slice(0, 80)}`);
+      }
+    }
+  }));
 
   // ---- 2) Apply verdicts (annotate; collect rejects) ----
   // Scene ids are numbers on the /generate path but STRINGS ("s2") on the
@@ -402,6 +474,56 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
     if (demoted) console.log(`[creative-director] ${demoted} bare-person image(s) demoted from prominent slots (film subject "${subj}" is not about people) — product screenshots take the stage`);
   }
 
+  // ---- 2c) PER-SCENE CLIP — does the picture match the LINE it will sit under? ----
+  // `clipRelevance` (step 0) is ONE score against the whole film's subject, so it
+  // carries no per-scene information whatsoever — yet a scene pin is precisely what
+  // a viewer judges ("why is that photo on the pricing beat?"). Score every pinned
+  // still a second time against its OWN scene's words and store it in a SEPARATE
+  // field: clipRelevance must keep its film-level meaning, because the prompt hint
+  // above, the report, and graph.js's PIN_RELEVANCE_FLOOR all read it as
+  // subject-match. Grouped by scene line so one text-embed set covers every asset
+  // sharing a scene.
+  //
+  // FAIL-SOFT: CLIP loads @huggingface/transformers lazily and returns null when
+  // it isn't available — then nothing is written and every consumer falls back to
+  // clipRelevance exactly as before.
+  try {
+    const lineById = new Map();
+    for (const s of scenes) {
+      if (!s || s.id == null) continue;
+      const line = String(s.line || s.direction || "").trim();
+      if (line) lineById.set(String(s.id), line);
+    }
+    const byLine = new Map();
+    let queued = 0;
+    for (const a of visual) {
+      // CLIP is an image model (videos are left unscored, as in step 0), and an
+      // asset with no pin has no scene to be judged against.
+      if (a.__rejected || a.type !== "image" || a.sceneId == null || !a.__absPath) continue;
+      if (queued >= PER_SCENE_CLIP_MAX) break;
+      const line = lineById.get(String(a.sceneId));
+      if (!line) continue;
+      if (!byLine.has(line)) byLine.set(line, []);
+      byLine.get(line).push(a);
+      queued++;
+    }
+    for (const [line, group] of byLine) {
+      // CLIP's text encoder truncates at 77 tokens — keep the positive prompt to
+      // the scene's opening words rather than the full 150-char line.
+      const probs = await clip
+        .relevanceProb(subj, group.map((a) => a.__absPath), { positive: `a photo or screenshot of ${line.slice(0, 110)}` })
+        .catch(() => null);
+      if (!probs) continue;
+      group.forEach((a, i) => {
+        if (typeof probs[i] !== "number") return;
+        a.clipSceneRelevance = probs[i];
+        // Surface it next to the other scores so a bad pin is diagnosable from the
+        // saved creative review instead of only from the finished film.
+        if (assetScores[a.path]) assetScores[a.path].clipSceneRelevance = probs[i];
+      });
+    }
+  } catch { /* fail-open: per-scene CLIP is a bonus signal, never a dependency */ }
+
   // ---- 3) Guardrails: quality-over-quantity cap + never-zero ----
   // Cap prominent assets per scene: keep the top `maxPerScene` by score, demote
   // the rest to background (visionOk=false) rather than delete — extras can still
@@ -420,7 +542,13 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
   // A real product SCREENSHOT is the most on-topic asset for a product film and
   // what viewers expect to SEE — give it a decisive bonus so it wins the hero slot
   // over a scraped brand image (e.g. a testimonial face) on the same scene.
-  const rankScore = (a) => (a.cdScore || 0) + (typeof a.clipRelevance === "number" ? a.clipRelevance * 30 : 0) + (isScreenshot(a) ? 45 : 0);
+  // These groups are PER SCENE, so the per-scene CLIP score from 2c is the right
+  // tie-breaker where it exists: two assets can both be on-subject for the film
+  // while only one of them depicts the line this particular scene speaks.
+  const rankScore = (a) => (a.cdScore || 0)
+    + (typeof a.clipSceneRelevance === "number" ? a.clipSceneRelevance * 30
+      : typeof a.clipRelevance === "number" ? a.clipRelevance * 30 : 0)
+    + (isScreenshot(a) ? 45 : 0);
   for (const arr of byScene.values()) {
     arr.sort((x, y) => rankScore(y) - rankScore(x));
     arr.slice(Math.max(1, maxPerScene)).forEach((a) => { a.visionOk = false; a.cdProminence = "background"; });

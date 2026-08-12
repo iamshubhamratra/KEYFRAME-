@@ -1,0 +1,99 @@
+{
+  "name": "studio-launch",
+  "renderer": "omelette",
+  "template": "StudioLaunch",
+  "portraitNative": true,
+  "vibe": "\"Studio Launch\": premium SaaS launch film Every motion in here comes from window.KFMotion (motion-presets.js) so the vocabulary is consistent: blur->sharp word staggers, 3D card rises that never park, a continuously moving camera, and mask/camera cuts instead of crossfades. Organic tokens on a warm dark house. Portrait-native 9:16 (18 authored beats, 50.3s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#643312",
+    "ink": "#B0B494",
+    "accent": "#F5EAD8",
+    "a2": "#C28865",
+    "card": "#F5EAD8"
+  },
+  "fonts": [
+    "Caprasimo",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#643312",
+    "ink": "#B0B494"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 0.97
+  },
+  "fx": {
+    "canvas": "clay",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F5EAD8",
+      "#C28865"
+    ],
+    "extras": [
+      "#201E1D",
+      "#A8552A",
+      "#7A8A5E"
+    ],
+    "emphasisCss": "color:#F5EAD8;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "studio-launch-film",
+      "studio",
+      "launch",
+      "premium",
+      "saas",
+      "every"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Caprasimo",
+    "body": "Figtree"
+  },
+  "camera3d": {
+    "ground": "#643312"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "bullet",
+    "case": "none",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic dark ambient low pulse atmospheric",
+      "mood": "moody",
+      "volume": 0.12
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

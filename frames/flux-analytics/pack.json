@@ -1,5 +1,6 @@
 {
   "name": "flux-analytics",
+  "renderer": "editorial-quiet",
   "vibe": "a chart-first analyst system: near-monochrome ground, a faint data grid, mono labels and ONE signal accent reserved for the data — for dashboards, analytics, data and ML products",
   "colors": {
     "base": "#0C0A14",
@@ -10,9 +11,8 @@
     "mint": "#3DF0C0"
   },
   "fonts": [
-    "Inter",
-    "Space Grotesk",
-    "IBM Plex Mono"
+    "Alfa Slab One",
+    "Space Grotesk"
   ],
   "surface": {
     "flat": false,
@@ -54,18 +54,34 @@
     ]
   },
   "textfx": {
-    "enter": "slide",
-    "emphasis": "boxed",
-    "case": "none",
-    "tracking": 0,
-    "weight": null,
-    "sizeScale": 1,
+    "enter": "spring",
+    "emphasis": "volt",
+    "case": "upper",
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.12,
     "align": "left"
   },
   "typography": {
-    "display": "Space Grotesk"
+    "display": "Alfa Slab One"
   },
   "camera3d": {
     "ground": "#0C0A14"
+  },
+  "audio": {
+    "music": {
+      "query": "stomp claps big drums anthemic energetic build",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
   }
 }

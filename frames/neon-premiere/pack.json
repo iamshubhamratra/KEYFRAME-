@@ -1,5 +1,6 @@
 {
   "name": "neon-premiere",
+  "renderer": "dark-premium",
   "vibe": "A film premiere for software. An indigo-black cinema night with a scrolling neon perspective-grid floor, a REC/timecode film-set HUD and editorial SCENE numbering, and cyan-to-violet-to-magenta gradient-clipped Space Grotesk headlines that glow. Glass stat tiles, an aperture wordmark and a single magenta premiere CTA. Cinematic and premium; neon is light, never soup. For launches, trailers, brand reveals and hype reels.",
   "colors": {
     "void": "#05060E",
@@ -11,7 +12,7 @@
     "text": "#F2F5FF"
   },
   "fonts": [
-    "Inter",
+    "Anton",
     "Space Grotesk"
   ],
   "surface": {
@@ -56,33 +57,33 @@
     ]
   },
   "typography": {
-    "display": "Space Grotesk"
+    "display": "Anton"
   },
   "camera3d": {
     "ground": "#0A0D1F"
   },
   "textfx": {
-    "enter": "char-pop",
-    "emphasis": "gradient",
-    "case": "none",
-    "tracking": -0.03,
-    "weight": 700,
-    "sizeScale": 1.05,
+    "enter": "glitch",
+    "emphasis": "bracket",
+    "case": "upper",
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.18,
     "align": "center"
   },
   "audio": {
     "music": {
-      "query": "cinematic synthwave neon trailer",
-      "mood": "cinematic",
+      "query": "hand claps foot stomps rock energetic anthem",
+      "mood": "energetic",
       "volume": 0.16
     },
     "sfx": {
-      "style": "neon shimmer, cinematic whooshes and soft premiere impacts",
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
       "palette": [
-        "whoosh transition",
-        "cinematic impact",
-        "shimmer riser",
-        "camera shutter"
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
       ]
     }
   }

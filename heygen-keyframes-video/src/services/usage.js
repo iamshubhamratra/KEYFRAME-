@@ -1,23 +1,23 @@
 // Per-job usage + cost tracker. Records:
-//   - LLM token usage (primary KIE Gemini 3.5 Flash / fallback OpenRouter MiniMax):
+//   - LLM token usage (primary KIE Gemini 3.6 Flash / fallback OpenRouter MiniMax):
 //     input + output tokens, call count
 //   - TTS token usage (openai/gpt-4o-mini-tts via OpenRouter): input chars + estimated output audio tokens
 //   - External API call counts (Pixabay images/videos, Freesound, Internet Archive,
 //     Hyperframes render/lint, OpenRouter TTS)
 //
 // Pricing (per 1M tokens, USD):
-//   The LLM cost uses the PRIMARY provider's rates (KIE Gemini 3.5 Flash), which
+//   The LLM cost uses the PRIMARY provider's rates (KIE Gemini 3.6 Flash), which
 //   serves the vast majority of calls. On the rare fallback to OpenRouter MiniMax
 //   the true rate differs (input ~0.96 / output ~4.00), so cost is approximate
 //   for those calls only.
-//   Gemini 3.5 Flash (KIE, primary):  input 0.45   output 2.70
+//   Gemini 3.6 Flash (KIE, primary):  input 1.50   output 7.50
 //   gpt-4o-mini-tts:                  input 0.60   output 12.00
 // Everything else is free.
 
 const PRICING = {
   llm: {
-    inputPerMillionUsd:  0.45,
-    outputPerMillionUsd: 2.70,
+    inputPerMillionUsd:  1.50,
+    outputPerMillionUsd: 7.50,
   },
   tts: {
     inputPerMillionUsd:  0.60,

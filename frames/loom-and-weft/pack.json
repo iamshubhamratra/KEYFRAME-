@@ -1,0 +1,98 @@
+{
+  "name": "loom-and-weft",
+  "renderer": "omelette",
+  "template": "LoomAndWeft",
+  "portraitNative": true,
+  "vibe": "warp threads, shuttle crossing, heddle lift, yarn cones Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#EFE4D0",
+    "ink": "#2A231A",
+    "accent": "#B5503C",
+    "a2": "#B5503C"
+  },
+  "fonts": [
+    "Cardo",
+    "Karla"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#EFE4D0",
+    "ink": "#2A231A"
+  },
+  "motion": {
+    "cut": "weave",
+    "drift": 0.97
+  },
+  "fx": {
+    "canvas": "stitch",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#B5503C",
+      "#B5503C"
+    ],
+    "extras": [
+      "#7D8556",
+      "#3B4A6B",
+      "#F8F1E4"
+    ],
+    "emphasisCss": "color:#B5503C;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "loom",
+      "weft",
+      "warp",
+      "threads",
+      "shuttle",
+      "crossing"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Cardo",
+    "body": "Karla"
+  },
+  "camera3d": {
+    "ground": "#EFE4D0"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "zap",
+    "emphasis": "underline-grow",
+    "case": "upper",
+    "tracking": -0.02,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

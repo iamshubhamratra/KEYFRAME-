@@ -1,0 +1,98 @@
+{
+  "name": "paper-collage",
+  "renderer": "omelette",
+  "template": "PaperCollage",
+  "portraitNative": true,
+  "vibe": "Paper Cut: layered torn-paper waves, floating confetti scraps Portrait-native 9:16 (18 authored beats, 49.9s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#F4E9DC",
+    "ink": "#2C2620",
+    "accent": "#FFFAF2",
+    "a2": "#E2654E"
+  },
+  "fonts": [
+    "Shrikhand",
+    "Sen"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F4E9DC",
+    "ink": "#2C2620"
+  },
+  "motion": {
+    "cut": "flash",
+    "drift": 1.15
+  },
+  "fx": {
+    "canvas": "kaleido",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FFFAF2",
+      "#E2654E"
+    ],
+    "extras": [
+      "#E8B23C",
+      "#2F8F83",
+      "#C2477E"
+    ],
+    "emphasisCss": "color:#FFFAF2;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "paper",
+      "layered",
+      "torn-paper",
+      "waves",
+      "floating",
+      "confetti"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Shrikhand",
+    "body": "Shrikhand"
+  },
+  "camera3d": {
+    "ground": "#F4E9DC"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slam",
+    "emphasis": "bullet",
+    "case": "none",
+    "tracking": 0.02,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "acoustic handmade warm folk gentle plucked strings",
+      "mood": "warm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

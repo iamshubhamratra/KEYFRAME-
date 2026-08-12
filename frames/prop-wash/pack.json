@@ -1,0 +1,98 @@
+{
+  "name": "prop-wash",
+  "renderer": "omelette",
+  "template": "PropWash",
+  "portraitNative": true,
+  "vibe": "LED gates, banking quad, streaks Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#14161A",
+    "ink": "#F0F4F6",
+    "accent": "#29D3E8",
+    "a2": "#FF2E88"
+  },
+  "fonts": [
+    "Orbitron",
+    "Exo 2"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#14161A",
+    "ink": "#F0F4F6"
+  },
+  "motion": {
+    "cut": "fade",
+    "drift": 1.01
+  },
+  "fx": {
+    "canvas": "sumi",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#29D3E8",
+      "#FF2E88"
+    ],
+    "extras": [
+      "#000000",
+      "#101216",
+      "#1C2026"
+    ],
+    "emphasisCss": "color:#29D3E8;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "prop",
+      "wash",
+      "gates",
+      "banking",
+      "quad",
+      "streaks"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Orbitron",
+    "body": "Orbitron"
+  },
+  "camera3d": {
+    "ground": "#14161A"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "char-pop",
+    "emphasis": "bullet",
+    "case": "none",
+    "tracking": 0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

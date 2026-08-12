@@ -1,0 +1,98 @@
+{
+  "name": "dragboard",
+  "renderer": "omelette",
+  "template": "Dragboard",
+  "portraitNative": true,
+  "vibe": "\"DRAGBOARD\" 9:16 drag-and-drop typography film. A cursor picks up word-cards, carries them (lift, tilt, growing shadow), drops them into slots with a bounce; stickers get dragged onto a poster; a tall list scroll-animates. Organic DS tokens on cream. Portrait-native 9:16 (5 authored beats, 15.1s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#F5EAD8",
+    "ink": "#201E1D",
+    "accent": "#8C491A",
+    "a2": "#402310"
+  },
+  "fonts": [
+    "Caprasimo",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F5EAD8",
+    "ink": "#201E1D"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 0.96
+  },
+  "fx": {
+    "canvas": "prism",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#8C491A",
+      "#402310"
+    ],
+    "extras": [
+      "#56633F",
+      "#F9F4ED",
+      "#E1EECC"
+    ],
+    "emphasisCss": "color:#8C491A;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "dragboard-film",
+      "dragboard",
+      "drag-and-drop",
+      "typography",
+      "cursor",
+      "picks"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Caprasimo",
+    "body": "Figtree"
+  },
+  "camera3d": {
+    "ground": "#F5EAD8"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "squash",
+    "emphasis": "ring",
+    "case": "upper",
+    "tracking": -0.02,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic dark ambient low pulse atmospheric",
+      "mood": "moody",
+      "volume": 0.12
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

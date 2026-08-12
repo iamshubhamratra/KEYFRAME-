@@ -1,0 +1,98 @@
+{
+  "name": "pixel-pet",
+  "renderer": "omelette",
+  "template": "PixelPet",
+  "portraitNative": true,
+  "vibe": "handheld-console world, 8-bit pet hopping, hearts, crumbs Portrait-native 9:16 (18 authored beats, 49.9s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#CFE8B8",
+    "ink": "#1C2E1E",
+    "accent": "#E07A3F",
+    "a2": "#A8C890"
+  },
+  "fonts": [
+    "Silkscreen",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#CFE8B8",
+    "ink": "#1C2E1E"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1.15
+  },
+  "fx": {
+    "canvas": "clay",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#E07A3F",
+      "#A8C890"
+    ],
+    "extras": [
+      "#274029",
+      "#C8E0E8",
+      "#E8D8C0"
+    ],
+    "emphasisCss": "color:#E07A3F;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "pixel",
+      "handheld-console",
+      "world",
+      "8-bit",
+      "hopping",
+      "hearts"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Silkscreen",
+    "body": "Silkscreen"
+  },
+  "camera3d": {
+    "ground": "#CFE8B8"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slam",
+    "emphasis": "marker",
+    "case": "none",
+    "tracking": -0.02,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "synthwave retro electronic driving arpeggio neon",
+      "mood": "energetic",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

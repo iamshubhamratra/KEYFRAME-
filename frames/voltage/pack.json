@@ -1,5 +1,6 @@
 {
   "name": "voltage",
+  "renderer": "charged",
   "vibe": "a high-voltage storm on near-black: forking lightning bolts strike across the frame, a Tesla arc crackles between two electrodes, charged particles rise through a breathing accent glow, an oscilloscope trace sweeps the base and a plasma orb throws sparks; headlines snap in with an electric zap, the accent word is a charged conductor with a jagged high-voltage underline, and scenes cut on a lightning strike — raw, kinetic energy for tech launches, gaming, sports, music drops and bold announcements. One accent hue is the current, so it re-tints to any brand color.",
   "colors": {
     "pitch": "#05060A",
@@ -11,8 +12,8 @@
     "ion": "#EAF6FF"
   },
   "fonts": [
-    "Inter",
-    "Orbitron"
+    "Bricolage Grotesque",
+    "JetBrains Mono"
   ],
   "surface": {
     "flat": false,
@@ -56,7 +57,7 @@
     ]
   },
   "typography": {
-    "display": "Orbitron"
+    "display": "Bricolage Grotesque"
   },
   "layout": {
     "propFill": false,
@@ -66,27 +67,27 @@
     "assetStyle": "default"
   },
   "textfx": {
-    "enter": "zap",
-    "emphasis": "volt",
+    "enter": "slide",
+    "emphasis": "echo",
     "case": "upper",
     "align": "left",
-    "sizeScale": 1.02
+    "sizeScale": 1.14,
+    "weight": 900,
+    "tracking": -0.035
   },
   "audio": {
     "music": {
-      "query": "high energy electronic synthwave driving bass aggressive",
+      "query": "marching snare stomp clap epic energetic",
       "mood": "energetic",
       "volume": 0.16
     },
     "sfx": {
-      "style": "electric zaps, arcing crackles, capacitor charge whines and a thunderclap on each strike — punchy, high-voltage and tight to the cuts",
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
       "palette": [
-        "electric zap",
-        "arc crackle",
-        "charge whine",
-        "thunder clap",
-        "spark snap",
-        "energy hum"
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
       ]
     }
   }

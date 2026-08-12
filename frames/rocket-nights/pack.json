@@ -1,0 +1,98 @@
+{
+  "name": "rocket-nights",
+  "renderer": "omelette",
+  "template": "RocketNights",
+  "portraitNative": true,
+  "vibe": "launches, radial bursts, sparkles, hill Portrait-native 9:16 (14 authored beats, 41.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#10101C",
+    "ink": "#E8E6F0",
+    "accent": "#FFD23C",
+    "a2": "#FF4757"
+  },
+  "fonts": [
+    "Paytone One",
+    "Outfit"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#10101C",
+    "ink": "#E8E6F0"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 0.99
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FFD23C",
+      "#FF4757"
+    ],
+    "extras": [
+      "#07070E",
+      "#7C5CFF",
+      "#FF8A3D"
+    ],
+    "emphasisCss": "color:#FFD23C;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "rocket",
+      "nights",
+      "launches",
+      "radial",
+      "bursts",
+      "sparkles"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Paytone One",
+    "body": "Paytone One"
+  },
+  "camera3d": {
+    "ground": "#10101C"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "accent",
+    "case": "none",
+    "tracking": 0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic dark ambient low pulse atmospheric",
+      "mood": "moody",
+      "volume": 0.12
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "name": "hive-and-honey",
+  "renderer": "omelette",
+  "template": "HiveAndHoney",
+  "portraitNative": true,
+  "vibe": "hex comb pop-in, bees on figure-8, honey drip Portrait-native 9:16 (15 authored beats, 44.4s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#FFF8E8",
+    "ink": "#3A2C14",
+    "accent": "#7A4F16",
+    "a2": "#F7C948"
+  },
+  "fonts": [
+    "Fredoka",
+    "Quicksand"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#FFF8E8",
+    "ink": "#3A2C14"
+  },
+  "motion": {
+    "cut": "weave",
+    "drift": 1.01
+  },
+  "fx": {
+    "canvas": "stitch",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#7A4F16",
+      "#F7C948"
+    ],
+    "extras": [
+      "#FFFFFF",
+      "#5C3D12",
+      "#8AA34F"
+    ],
+    "emphasisCss": "color:#7A4F16;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "hive",
+      "honey",
+      "comb",
+      "pop-in",
+      "bees",
+      "figure-8"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Fredoka",
+    "body": "Quicksand"
+  },
+  "camera3d": {
+    "ground": "#FFF8E8"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "stamp",
+    "emphasis": "ring",
+    "case": "upper",
+    "tracking": 0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

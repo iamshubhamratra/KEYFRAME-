@@ -1,0 +1,97 @@
+{
+  "name": "velvet-brass",
+  "renderer": "omelette",
+  "template": "VelvetBrass",
+  "portraitNative": true,
+  "vibe": "jazz lounge — spotlight sweep, rising notes, piano strip Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#2A1420",
+    "ink": "#CF9B52",
+    "accent": "#F0E8DA",
+    "a2": "#34687A"
+  },
+  "fonts": [
+    "Yeseva One"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#2A1420",
+    "ink": "#CF9B52"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "clay",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F0E8DA",
+      "#34687A"
+    ],
+    "extras": [
+      "#38202C",
+      "#1C0E16",
+      "#FFFFFF"
+    ],
+    "emphasisCss": "color:#F0E8DA;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "velvet",
+      "brass",
+      "jazz",
+      "lounge",
+      "spotlight",
+      "sweep"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Yeseva One",
+    "body": "Yeseva One"
+  },
+  "camera3d": {
+    "ground": "#2A1420"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "spring",
+    "emphasis": "boxed",
+    "case": "none",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

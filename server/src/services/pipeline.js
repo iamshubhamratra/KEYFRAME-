@@ -14,6 +14,8 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const config = require("../config");
+const sceneAuthor = require("./scene_author");
+const fallbackLog = require("./fallback_log");
 const db = require("../db");
 const logger = require("./logger");
 const { UsageTracker } = require("./usage");
@@ -726,7 +728,7 @@ async function gateComposition({ files, jobDir, tracker, label, enrich, cinemati
   };
 }
 
-async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets, tracker, abortSignal, framePack, captionCues, strictIdentity = false }) {
+async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets, tracker, abortSignal, framePack, captionCues, scriptCues, strictIdentity = false }) {
   // First pass + up to N repair laps. Weaker/reasoning composer models often fix
   // the flagged errors on a repair but introduce a NEW class (e.g. nemotron clears
   // track overlaps, then trips gsap_set_initial_state) — a single lap can't
@@ -896,7 +898,86 @@ function rendererFor(framePack) {
 // Shared envelope for every dedicated pack renderer: build → persist → render.
 // Self-contained composers (own chrome/3D/vector art), so no enrich and no
 // stock-asset weaving. Same seek contract as the scene-kit path.
-async function composeWithPackRenderer({ renderer, storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null, subject = null }) {
+/**
+ * EMPTY-SLIDE GATE. Measures the finished video and reports scenes that render
+ * as mostly bare ground.
+ *
+ * This runs on the OUTPUT because every other gate looks at intent, not result:
+ * the structural gates check a clip exists, the media gates check slots are
+ * filled, contrast checks that text reads. A scene whose list slot resolved to
+ * `[]` passes all of them and still ships a header over a void — which is exactly
+ * what reached the user (a Birdsong Gallery whose `shots` rebuilt to an empty
+ * array, and a Cadence Board that drew 2 of its 3 columns).
+ *
+ * Advisory by design: it writes `density-report.json` and warns. It does NOT fail
+ * or re-render a film — an empty-looking frame can be deliberate, and a gate that
+ * blocks on a judgement call costs more than it saves. Fail-open throughout.
+ */
+async function densityGate(jobDir, { storyboard, dims, durationSec, label }) {
+  try {
+    const mp4 = ["final.mp4", "best-lap.mp4", "video.mp4", "out.mp4"]
+      .map((f) => path.join(jobDir, f)).find((f) => fs.existsSync(f));
+    if (!mp4) return null;
+    const { scanFilm } = require("./frame_density");
+    const res = await scanFilm(mp4, {
+      scenes: (storyboard && storyboard.scenes) || [],
+      portrait: !(dims && dims.width >= dims.height),
+      durationSec,
+    });
+    fs.writeFileSync(path.join(jobDir, "density-report.json"), JSON.stringify(res, null, 2), "utf8");
+    if (res.findings.length) {
+      console.warn(`[pipeline] ${label}: ${res.findings.length} sparse scene(s) —`);
+      for (const f of res.findings) console.warn(`[pipeline]   scene ${f.sceneId} @${f.t}s ${f.kind}: ${f.why}`);
+    }
+    return res;
+  } catch (e) {
+    console.warn(`[pipeline] density gate skipped: ${String((e && e.message) || e).slice(0, 120)}`);
+    return null;
+  }
+}
+
+/**
+ * Decide which scenes the pack cannot show anything new for, and have the agent
+ * author those. Returns a Map(sceneIndex -> {html,css,s}), or null.
+ *
+ * The surplus is measured against the pack's PUBLISHED vocabulary
+ * (TEMPLATE_SCENES) — the shapes it can actually draw. Below `minSurplus` the
+ * repetition is not yet visible and the LLM call is not worth its cost.
+ * Fail-open on every path: an authoring failure must never fail a render.
+ */
+async function authorSurplusScenes({ R, storyboard, dims, framePack, assets, abortSignal, tracker, label }) {
+  const cfg = (config.sceneAuthor || {});
+  const on = String(process.env.SCENE_AUTHOR || "").toLowerCase() === "on" || cfg.enabled;
+  if (!on) return null;
+  try {
+    const scenes = (storyboard && storyboard.scenes) || [];
+    const shapes = (R.composer.TEMPLATE_SCENES || []).length;
+    if (!shapes) return null;                       // pack publishes no vocabulary
+    const surplus = scenes.length - shapes;
+    if (surplus < (cfg.minSurplus || 2)) return null;
+
+    // Author the TAIL — the pack's own shapes cover the opening, which is where
+    // its identity reads strongest; repetition only becomes visible later.
+    const cap = cfg.maxScenes || 8;
+    const from = Math.max(shapes, scenes.length - cap);
+    const marked = scenes.map((s, i) => (i >= from ? { ...s, authorNew: true } : s));
+    console.log(`[pipeline] ${label}: ${scenes.length} scenes vs ${shapes} pack shapes — authoring ${scenes.length - from} new scene(s)`);
+
+    let manifest = null;
+    try { manifest = require("./frame_manifest").getManifest(framePack); } catch { /* theme is best-effort */ }
+    const map = await sceneAuthor.authorScenes({
+      scenes: marked, dims, assets, framePack, abortSignal, tracker,
+      theme: manifest ? { colors: manifest.colors, fonts: manifest.fonts, textfx: manifest.textfx } : {},
+      packStyle: manifest && manifest.description,
+    });
+    return map && map.size ? map : null;
+  } catch (e) {
+    console.warn(`[pipeline] scene author skipped: ${String((e && e.message) || e).slice(0, 140)}`);
+    return null;
+  }
+}
+
+async function composeWithPackRenderer({ renderer, storyboard, dims, jobDir, framePack, captionCues, scriptCues, scriptOverlay = false, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null, subject = null, fallbackToSceneKit = null }) {
   const t0 = ms();
   const R = PACK_RENDERERS[renderer];
   console.log(`[pipeline] ${label}: building ${R.desc} composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
@@ -918,24 +999,88 @@ async function composeWithPackRenderer({ renderer, storyboard, dims, jobDir, fra
       console.warn(`[pipeline] template_director skipped: ${String((e && e.message) || e).slice(0, 140)}`);
     }
   }
+  // SCENE AUTHOR — when the film has more scenes than the pack has distinct
+  // shapes, the surplus would otherwise re-run shapes already seen (a 60s film on
+  // a 30s pack looks like its own first half). Those slots get newly authored
+  // scenes instead. Every authored scene is lint-gated in scene_author, and any
+  // that fails is simply absent from the map, so the pack's own builder remains
+  // the floor — this can add variety, never blank a frame.
+  const authoredScenes = await authorSurplusScenes({
+    R, storyboard, dims, framePack, assets, abortSignal, tracker, label,
+  });
   // brandSkin (Art Director / user color) is forwarded — composers that accept it
   // (Genesis, momentum) recolor to the brand; the rest ignore the extra key.
-  const built = R.composer.buildComposition({ storyboard, dims, framePack, captionCues, assets, brandSkin, templatePlan });
+  //
+  // SAY SO WHEN IT IS DROPPED. "Ignores the extra key" is silent, and silence is
+  // how an agent ends up running, billing, and having no effect on the film for
+  // months: the Art Director makes a real LLM call on every website job (site
+  // theme-match is on by default), and the bundled-template renderer cannot use
+  // its answer at all, because the palette lives inside a compiled React tree.
+  // The same is true of the Visual Layout Director's per-scene plan, which reaches
+  // only scene-kit — and scene-kit runs for no pack (check:templates: "0 still on
+  // scene-kit"). Neither is a crash, so nothing anywhere reported it. Now it does.
+  {
+    const accepts = String(R.composer.buildComposition || "");
+    const dropped = [];
+    if (brandSkin && !/\bbrandSkin\b/.test(accepts)) dropped.push("art-director brand skin");
+    if (templatePlan && !/\btemplatePlan\b/.test(accepts)) dropped.push("template-director cast");
+    if (dropped.length) {
+      console.warn(`[pipeline] ${label}: the "${renderer}" renderer cannot consume ${dropped.join(" + ")} — that direction has NO effect on this film`);
+    }
+  }
+  const built = R.composer.buildComposition({ storyboard, dims, framePack, captionCues, scriptCues, scriptOverlay, assets, brandSkin, templatePlan, authoredScenes });
   fs.writeFileSync(path.join(jobDir, "index.html"), built.indexHtml, "utf8");
   fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
+  // RUNTIME SMOKE — ON THIS PATH TOO.
+  //
+  // runtimeCheck existed and was wired ONLY into the LLM composer branch, so the
+  // pack renderers — which are what nearly every job actually uses — had no
+  // does-it-actually-run gate at all. A film whose template threw on its sixth
+  // scene therefore rendered, encoded, passed lint/contrast/identity/media, and
+  // shipped with 14 seconds of error slate; QA's vision pass was the only thing
+  // that noticed, after the render was already paid for.
+  //
+  // A crash here is not a styling nit to be repaired in place — the template
+  // cannot draw this content. Fall through to scene-kit, which is deterministic,
+  // lint-clean by construction, carries the same pack's styling, and weaves MORE
+  // of the asset pool than the template would have. A different-looking film that
+  // plays beats a designed one that dies halfway.
+  const smoke = await runtimeCheck(jobDir).catch((e) => ({ ok: true, skipped: e.message }));
+  if (!smoke.ok) {
+    console.warn(`[pipeline] ${label}: pack renderer FAILED runtime smoke — ${smoke.error}`);
+    console.warn(`[pipeline] ${label}: falling back to scene-kit with "${framePack}" styling so the film plays end to end`);
+    if (typeof fallbackToSceneKit === "function") {
+      return fallbackToSceneKit();
+    }
+  }
   await contrastFixPass(jobDir, { framePack, storyboard, dims, label });
   tracker.addExternal("hyperframes_render");
   const visual = await render({ jobId, jobDir, durationSec, abortSignal });
+  await densityGate(jobDir, { storyboard, dims, durationSec, label });
   console.log(`[pipeline] ${label}: render done in ${ms() - t0}ms total`);
   return visual;
 }
 
-async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker, jobId, durationSec, label, abortSignal, framePack, captionCues, remix = false, dress = false, subject = null, brandSkin = null, layoutPlan = null, strictIdentity = false }) {
+// `scriptCues` was passed in by every caller and consumed by the LLM-remix branch
+// below (composeWithLintRepair) WITHOUT being destructured here — a free variable
+// that only a remix job would have reached, and then as a ReferenceError. Named
+// explicitly now, alongside the opt-in flag for the full-frame narration layer.
+async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker, jobId, durationSec, label, abortSignal, framePack, captionCues, scriptCues = null, scriptOverlay = false, remix = false, dress = false, subject = null, brandSkin = null, layoutPlan = null, strictIdentity = false, forceSceneKit = false }) {
   // An explicit PREMIUM finish (remix) means "write me a bespoke composition":
   // it outranks the pack's dedicated renderer — otherwise premium on a
   // dedicated-renderer pack (brightlife/flagship/…) silently rendered the same
   // fixed program as standard and the composer never ran.
   const packRenderer = rendererFor(framePack);
+  // `forceSceneKit` is the recovery path for a template that CANNOT draw this
+  // content — a compiled component that throws mid-film and paints the engine's
+  // error slate over every scene after it. Restyling cannot fix that; only
+  // composing again with something that works can, and scene-kit is the composer
+  // that cannot throw on a storyboard (deterministic, lint-clean by construction)
+  // while keeping the pack's colours, fonts and text effects.
+  if (forceSceneKit) {
+    console.log(`[pipeline] ${label}: forced scene-kit recompose (the pack renderer produced an unplayable film)`);
+    return composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "scene-kit", abortSignal, tracker, dress, subject, brandSkin, layoutPlan });
+  }
   if (!remix && PACK_RENDERERS[packRenderer]) {
     const R = PACK_RENDERERS[packRenderer];
     const isPortrait = dims && dims.height > dims.width;
@@ -945,7 +1090,16 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
     // fetched screenshots/photos/vectors the dedicated renderer would ignore.
     const tooLongForRenderer = !R.longFormOk && durationSec > LONGFORM_RENDERER_SEC;
     if ((!isPortrait || R.portraitOk) && !tooLongForRenderer) {
-      return composeWithPackRenderer({ renderer: packRenderer, storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || R.label, abortSignal, tracker, brandSkin, subject });
+      return composeWithPackRenderer({
+        renderer: packRenderer, storyboard, dims, jobDir, assets, framePack, captionCues, scriptCues, scriptOverlay,
+        jobId, durationSec, label: label || R.label, abortSignal, tracker, brandSkin, subject,
+        // The escape hatch a failed runtime smoke takes: same pack styling, a
+        // composer that cannot throw on this content.
+        fallbackToSceneKit: () => composeWithSceneKit({
+          storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec,
+          label: `${label || R.label}->scene-kit`, abortSignal, tracker, dress, subject, brandSkin, layoutPlan,
+        }),
+      });
     }
     if (tooLongForRenderer) {
       console.log(`[pipeline] ${R.desc} renders sparse past ${LONGFORM_RENDERER_SEC}s — ${durationSec}s job routes to scene-kit with "${framePack}" styling (dense + asset-weaving)`);
@@ -965,12 +1119,13 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
   const t0 = ms();
   console.log(`[pipeline] ${label}: LLM remix compose start (assets=${assets.length}, framePack=${framePack || "none"})`);
   await composeWithLintRepair({
-    storyboard, dims, jobDir, availableAssets: assets, tracker, abortSignal, framePack, captionCues, strictIdentity,
+    storyboard, dims, jobDir, availableAssets: assets, tracker, abortSignal, framePack, captionCues, scriptCues, strictIdentity,
   });
   console.log(`[pipeline] ${label}: compose done in ${ms() - t0}ms, render start`);
   await contrastFixPass(jobDir, { framePack, storyboard, dims, label });
   tracker.addExternal("hyperframes_render");
   const visual = await render({ jobId, jobDir, durationSec, abortSignal });
+  await densityGate(jobDir, { storyboard, dims, durationSec, label });
   console.log(`[pipeline] ${label}: render done in ${ms() - t0}ms total`);
   return visual;
 }
@@ -1017,6 +1172,7 @@ async function composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack
   console.log(`[pipeline] ${label || "scene-kit"}: built in ${ms() - t0}ms, render start`);
   tracker.addExternal("hyperframes_render");
   const visual = await render({ jobId, jobDir, durationSec, abortSignal });
+  await densityGate(jobDir, { storyboard, dims, durationSec, label });
   console.log(`[pipeline] ${label || "scene-kit"}: render done in ${ms() - t0}ms total`);
   return visual;
 }
@@ -1055,7 +1211,7 @@ function pick3dComposer(framePack, storyboard) {
 // DOM text overlays, driven by the same seeked timeline. Self-contained: no enrich
 // (it has its own 3D particle field) and no stock-asset weaving (visuals are
 // generated, not fetched).
-async function composeWithThree({ storyboard, dims, jobDir, framePack, captionCues, assets, jobId, durationSec, label, abortSignal, tracker }) {
+async function composeWithThree({ storyboard, dims, jobDir, framePack, captionCues, scriptCues, assets, jobId, durationSec, label, abortSignal, tracker }) {
   const t0 = ms();
   const { styleName, composer } = pick3dComposer(framePack, storyboard);
   console.log(`[pipeline] ${label || "three"}: building Three.js/WebGL composition (style=${styleName}, ${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
@@ -1065,6 +1221,7 @@ async function composeWithThree({ storyboard, dims, jobDir, framePack, captionCu
   await contrastFixPass(jobDir, { framePack, storyboard, dims, label: label || "three" });
   tracker.addExternal("hyperframes_render");
   const visual = await render({ jobId, jobDir, durationSec, abortSignal });
+  await densityGate(jobDir, { storyboard, dims, durationSec, label });
   console.log(`[pipeline] ${label || "three"}: render done in ${ms() - t0}ms total`);
   return visual;
 }
@@ -1321,7 +1478,7 @@ async function mixAudioIntoVideo({ visualPath, durationSec, audio, scenes = null
 
 // ========== Main ==========
 
-async function runJob({
+async function runJobInner({
   jobId, prompt, duration, orientation, width, height, fps,
   tts = false, music = false, soundEffect = false, voice,
   images = false, video = false, framePack = null, remix = false, render3d = false, dress = false,
@@ -1743,6 +1900,25 @@ async function runJob({
       timings,
     );
   }
+}
+
+/**
+ * Every job runs inside a fallback tally. Anything the pipeline awaits — however
+ * deep — can call `note()` without being handed a recorder, and each concurrent
+ * job keeps its own count (AsyncLocalStorage, not a module global). The report
+ * lands next to the film as `fallbacks.json`, so "this film substituted 14 times"
+ * becomes a fact you can read instead of something you have to watch for.
+ */
+async function runJob(opts) {
+  return fallbackLog.runWithLog(opts && opts.jobId, async () => {
+    try {
+      return await runJobInner(opts);
+    } finally {
+      // In `finally` so a FAILED job still reports what it had to substitute —
+      // that is exactly the run where the tally is most worth reading.
+      try { fallbackLog.writeReport(jobDirFor(opts.jobId), opts.jobId); } catch { /* never mask the real result */ }
+    }
+  });
 }
 
 module.exports = {

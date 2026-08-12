@@ -1,5 +1,6 @@
 {
   "name": "folk-stitch",
+  "renderer": "story-handmade",
   "vibe": "an embroidered folk sampler sewn in real time on midnight felt: bright marigold, red and teal thread on dark fabric, slab-serif letters punched up one by one like needle stitches, a sampler border that sews itself around every frame, running stitches crawling as the thread pulls through, scene changes as a loom shuttle of bold stripes — for artisan brands, handmade goods, cozy storytelling and anything that should feel crafted stitch by stitch",
   "colors": {
     "felt": "#232840",
@@ -9,8 +10,8 @@
     "tealthread": "#5FB0A0"
   },
   "fonts": [
-    "Inter",
-    "Alfa Slab One"
+    "Bricolage Grotesque",
+    "JetBrains Mono"
   ],
   "surface": {
     "flat": true,
@@ -53,7 +54,7 @@
     ]
   },
   "typography": {
-    "display": "Alfa Slab One"
+    "display": "Bricolage Grotesque"
   },
   "layout": {
     "propFill": false,
@@ -63,27 +64,27 @@
     "assetStyle": "stitch"
   },
   "textfx": {
-    "enter": "stitch",
-    "emphasis": "embroider",
+    "enter": "slide",
+    "emphasis": "echo",
     "align": "center",
     "case": "upper",
-    "sizeScale": 0.95
+    "sizeScale": 1.06,
+    "weight": 900,
+    "tracking": -0.035
   },
   "audio": {
     "music": {
-      "query": "folk acoustic dulcimer fireside warm",
-      "mood": "warm",
+      "query": "marching snare stomp clap epic energetic",
+      "mood": "energetic",
       "volume": 0.16
     },
     "sfx": {
-      "style": "needle punches, thread pulls and scissor snips — a sewing-machine cadence under the letter stitches, a fabric swish on each weave cut",
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
       "palette": [
-        "needle punch",
-        "thread pull",
-        "scissor snip",
-        "fabric swish",
-        "button click",
-        "sewing machine burst"
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
       ]
     }
   }

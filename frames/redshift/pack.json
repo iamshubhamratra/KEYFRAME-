@@ -1,0 +1,98 @@
+{
+  "name": "redshift",
+  "renderer": "omelette",
+  "template": "Redshift",
+  "portraitNative": true,
+  "vibe": "\"REDSHIFT\" mars-expedition world. Dust, rover, habitats. Portrait-native 9:16 (9 authored beats, 28s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#1C0B06",
+    "ink": "#FBEFE2",
+    "accent": "#59E3D8",
+    "a2": "#E8B07E"
+  },
+  "fonts": [
+    "Audiowide",
+    "Saira"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#1C0B06",
+    "ink": "#FBEFE2"
+  },
+  "motion": {
+    "cut": "wipe",
+    "drift": 1.14
+  },
+  "fx": {
+    "canvas": "halftone",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#59E3D8",
+      "#E8B07E"
+    ],
+    "extras": [
+      "#E2593B",
+      "#42160C",
+      "#120704"
+    ],
+    "emphasisCss": "color:#59E3D8;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "redshift-film",
+      "redshift",
+      "mars-expedition",
+      "world",
+      "dust",
+      "rover"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Audiowide",
+    "body": "Saira"
+  },
+  "camera3d": {
+    "ground": "#1C0B06"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "echo",
+    "case": "none",
+    "tracking": -0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

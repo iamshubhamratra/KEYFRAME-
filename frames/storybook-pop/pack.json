@@ -1,0 +1,98 @@
+{
+  "name": "storybook-pop",
+  "renderer": "omelette",
+  "template": "StorybookPop",
+  "portraitNative": true,
+  "vibe": "open book pages, turning page arc, drifting sparkle dust Portrait-native 9:16 (18 authored beats, 49.9s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#F8EFDF",
+    "ink": "#37302A",
+    "accent": "#CF4633",
+    "a2": "#FFFDF6"
+  },
+  "fonts": [
+    "Bitter",
+    "Nunito Sans"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F8EFDF",
+    "ink": "#37302A"
+  },
+  "motion": {
+    "cut": "glow",
+    "drift": 1.02
+  },
+  "fx": {
+    "canvas": "flow",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#CF4633",
+      "#FFFDF6"
+    ],
+    "extras": [
+      "#D9A13B",
+      "#3E6B4C",
+      "#7A4A8F"
+    ],
+    "emphasisCss": "color:#CF4633;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "storybook",
+      "open",
+      "book",
+      "pages",
+      "turning",
+      "page"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Bitter",
+    "body": "Nunito Sans"
+  },
+  "camera3d": {
+    "ground": "#F8EFDF"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "bullet",
+    "case": "upper",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

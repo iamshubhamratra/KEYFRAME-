@@ -24,6 +24,9 @@
 
 const { deriveTheme } = require("./scene_kit");
 const E = require("./template_engine");
+// The shared motion vocabulary — see services/motion_presets.js. Physics for
+// headlines and cards lives there now, so every template moves alike.
+const MOTION = require("./motion_presets");
 const { esc, r, rgba, statsOf, breakLines, bullets, fit } = E;
 
 // ---- theme -------------------------------------------------------------------
@@ -344,7 +347,6 @@ function cover(scene, ctx) {
     `tl.fromTo("#${id}-page",{opacity:0,y:${r(H * 0.05)},rotation:${r(rot - 2.2)},scale:0.965},{opacity:1,y:0,rotation:${rot},scale:1,duration:0.9,ease:"power3.out"},${T});`,
     `tl.fromTo(".${id}-fr",{strokeDashoffset:100},{strokeDashoffset:0,duration:1.05,ease:"power2.inOut",stagger:0.18},${r(T + 0.22)});`,
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,y:-14},{opacity:1,y:0,duration:0.55,ease:"power2.out"},${r(T + 0.32)});` : "",
-    `tl.fromTo(".${id}-ln",{opacity:0,y:${land ? 26 : 34},rotation:1.4},{opacity:1,y:0,rotation:0,duration:0.7,ease:"back.out(1.15)",stagger:0.13},${r(T + 0.42)});`,
     `tl.fromTo(".${id}-rl",{strokeDashoffset:100},{strokeDashoffset:0,duration:0.65,ease:"power2.out"},${r(T + 0.95)});`,
     sub ? `tl.fromTo("#${id}-sub",{opacity:0,y:16},{opacity:1,y:0,duration:0.55,ease:"power2.out"},${r(T + 1.1)});` : "",
     `tl.fromTo("#${id}-orn",{opacity:0},{opacity:1,duration:0.3},${r(T + 1.4)});`,
@@ -387,7 +389,6 @@ function spread(scene, ctx, asset) {
     asset && asset.path ? `tl.fromTo("#${id}-ph-img",{scale:1.07},{scale:1,duration:${r(Math.max(1.2, L - 0.8))},ease:"sine.out"},${r(T + 0.6)});`
       : `tl.fromTo(".${id}-ph-dood",{strokeDashoffset:100},{strokeDashoffset:0,duration:0.85,ease:"power2.out",stagger:0.07},${r(T + 0.7)});`,
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,x:-16},{opacity:1,x:0,duration:0.5,ease:"power2.out"},${r(T + 0.35)});` : "",
-    `tl.fromTo(".${id}-ln",{opacity:0,y:22},{opacity:1,y:0,duration:0.66,ease:"power3.out",stagger:0.11},${r(T + 0.45)});`,
     `tl.fromTo(".${id}-rl",{strokeDashoffset:100},{strokeDashoffset:0,duration:0.6,ease:"power2.out"},${r(T + 0.8)});`,
     body ? `tl.fromTo("#${id}-body",{opacity:0,y:14},{opacity:1,y:0,duration:0.6,ease:"power2.out"},${r(T + 0.95)});` : "",
     `tl.to("#${id}-shadow",{rotation:${r(rot * 0.35)},duration:${r(Math.max(1.4, L - 1))},ease:"sine.inOut"},${r(T + 1.1)});`,
@@ -425,7 +426,6 @@ function chapters(scene, ctx) {
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,x:-16},{opacity:1,x:0,duration:0.5,ease:"power2.out"},${r(T + 0.2)});` : "",
     `tl.fromTo(".${id}-hd",{opacity:0,y:20},{opacity:1,y:0,duration:0.62,ease:"power3.out",stagger:0.1},${r(T + 0.3)});`,
     items.length ? `tl.fromTo(".${id}-row",{opacity:0,x:-24,y:8},{opacity:1,x:0,y:0,duration:0.55,ease:"power3.out",stagger:0.22},${r(T + 0.6)});` : "",
-    items.length ? `tl.fromTo(".${id}-bx",{strokeDashoffset:100},{strokeDashoffset:0,duration:0.5,ease:"power2.out",stagger:0.22},${r(T + 0.7)});` : "",
     items.length ? `tl.fromTo(".${id}-tk",{strokeDashoffset:100},{strokeDashoffset:0,duration:0.34,ease:"power2.out",stagger:0.22},${r(T + 1)});` : "",
     items.length ? `tl.fromTo(".${id}-rl",{strokeDashoffset:100},{strokeDashoffset:0,duration:0.55,ease:"power1.out",stagger:0.22},${r(T + 0.85)});` : "",
   ];
@@ -577,7 +577,6 @@ function scrapbook(scene, ctx, a, b) {
   const s = [
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,x:-16},{opacity:1,x:0,duration:0.5,ease:"power2.out"},${r(T + 0.2)});` : "",
     `tl.fromTo(".${id}-hd",{opacity:0,y:18},{opacity:1,y:0,duration:0.6,ease:"power3.out",stagger:0.1},${r(T + 0.3)});`,
-    `tl.fromTo(".${id}-tile",{opacity:0,y:${land ? 26 : 32},scale:0.92,rotation:0},{opacity:1,y:0,scale:1,rotation:function(i){return [${slots.map((g) => r(g.rot)).join(",")}][i]||0;},duration:0.68,ease:"back.out(1.25)",stagger:0.18},${r(T + 0.55)});`,
     `tl.fromTo(".${id}-tp",{opacity:0,scale:0.5},{opacity:1,scale:1,duration:0.4,ease:"back.out(1.7)",stagger:0.18},${r(T + 0.85)});`,
     media.length < 3 ? `tl.fromTo(".${id}-d0,.${id}-d1,.${id}-d2",{strokeDashoffset:100},{strokeDashoffset:0,duration:0.8,ease:"power2.out",stagger:0.06},${r(T + 1)});` : "",
   ];
@@ -617,10 +616,8 @@ function signoff(scene, ctx, a) {
   const s = [
     a && a.path ? `tl.fromTo("#${id}-logo",{opacity:0,y:-14},{opacity:1,y:0,duration:0.55,ease:"power2.out"},${r(T + 0.1)});` : "",
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,y:-14},{opacity:1,y:0,duration:0.55,ease:"power2.out"},${r(T + 0.2)});` : "",
-    `tl.fromTo(".${id}-ln",{opacity:0,y:24,rotation:1.2},{opacity:1,y:0,rotation:0,duration:0.7,ease:"back.out(1.15)",stagger:0.13},${r(T + 0.3)});`,
     `tl.fromTo(".${id}-rl",{strokeDashoffset:100},{strokeDashoffset:0,duration:0.7,ease:"power2.out"},${r(T + 0.75)});`,
     cta ? `tl.fromTo("#${id}-cta",{opacity:0,y:16},{opacity:1,y:0,duration:0.55,ease:"power2.out"},${r(T + 0.9)});` : "",
-    cta ? `tl.fromTo(".${id}-bx",{strokeDashoffset:100},{strokeDashoffset:0,duration:0.75,ease:"power2.inOut"},${r(T + 1)});` : "",
     `tl.fromTo("#${id}-url",{opacity:0,y:12},{opacity:1,y:0,duration:0.5,ease:"power2.out"},${r(T + 1.25)});`,
     `tl.fromTo("#${id}-stamp",{opacity:0,scale:1.5},{opacity:1,scale:1,duration:0.5,ease:"back.out(1.6)",transformOrigin:"center center"},${r(T + 1.15)});`,
     `tl.fromTo(".${id}-sd",{strokeDashoffset:100},{strokeDashoffset:0,duration:0.6,ease:"power2.out"},${r(T + 1.3)});`,
@@ -664,15 +661,53 @@ function styleBlock(th) {
 }
 
 const family = {
+  // ---- SCENE FILL (services/template_engine.js sceneFill) ---------------------
+  // Measured 2026-08-04: scenes carried ~11 words over ~14% of the frame, so the
+  // script's spare copy (supporting points, a figure, a subtext) never reached the
+  // screen. It is drawn here as a chip row + broadcast ticker in the lower band.
+  // Skipped on the closer, the pull-quote and the type whose own design owns that
+  // band — furniture under a CTA or a quote costs more than the density gains.
+  fill: (type, ctx, scene) => {
+    if (["signoff","notequote","scrapbook"].includes(type)) return null;
+    const land = ctx.land;
+    return {
+      left: land ? 7 : 6, right: land ? 7 : 6, bottom: land ? 8 : 11,
+      font: land ? 1.12 : 1.95, max: 3,
+      plate: ctx.theme.ground, ink: ctx.theme.ink, accent: ctx.theme.accent,
+      used: bullets(scene || {}, 3),
+    };
+  },
   theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaFallback,
   wantsLogo: (t) => t === "signoff",
   fallbackType: "cover",
   variants: 2,
   // Storybook camera: pages breathe and occasionally slide over like a turned
   // leaf — soft blur, almost no push, never a slam.
-  camera: {
+  camera: { enabled: false,
     kinds: ["zoom", "zoom", "whip", "zoom", "zoom", "whip", "zoom", "zoom"],
     blur: 12, push: 0.022, zoomIn: 1.09, zoomOut: 1.07,
+  },
+
+  // ---- SHARED MOTION SYSTEM (services/motion_presets.js) ----------------------
+  // This family publishes WHERE its headline, card and camera live; the engine
+  // drives them from the one preset library. Its own entrance tweens for those
+  // elements were removed in the same change — two timelines on one property
+  // fight, and the loser is whichever the browser applies second.
+  motion: {
+    heroType: "cover",
+    text: (id) => `.${id}-ln`,
+    card: (id) => `#${id}-bx, .${id}-bx, #${id}-tile, .${id}-tile`,
+    camera: (id) => `#${id}-cami`,
+    // The film's two hero moments carry the signature type treatments; the
+    // middle stays on the house word stagger so the signatures stay signatures.
+    tokens: (type, i, ctx, { hasCard } = {}) => ({
+      text: type === "cover" ? "outlineFillReveal"
+        : type === "signoff" ? "characterReveal" : "wordStaggerBlur",
+      enter: hasCard ? "cardRise3D" : "none",
+      idle: hasCard ? "floatSoft" : "none",
+      camera: MOTION.CAMERA_MOVES[i % MOTION.CAMERA_MOVES.length],
+      transition: MOTION.TRANSITIONS[i % MOTION.TRANSITIONS.length],
+    }),
   },
 };
 

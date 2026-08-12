@@ -1,0 +1,96 @@
+{
+  "name": "motorway",
+  "renderer": "omelette",
+  "template": "Motorway",
+  "portraitNative": true,
+  "vibe": "\"MOTORWAY\" road-trip world. Lane lines, exit signs, odometers. Portrait-native 9:16 (9 authored beats, 27.8s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#23252B",
+    "ink": "#F6F7F4",
+    "accent": "#FFD23F",
+    "a2": "#FF8C61"
+  },
+  "fonts": [
+    "Overpass"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#23252B",
+    "ink": "#F6F7F4"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1.08
+  },
+  "fx": {
+    "canvas": "prism",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FFD23F",
+      "#FF8C61"
+    ],
+    "extras": [
+      "#1E7A46",
+      "#17181D",
+      "#0B0C10"
+    ],
+    "emphasisCss": "color:#FFD23F;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "motorway-film",
+      "motorway",
+      "road-trip",
+      "world",
+      "lane",
+      "lines"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Overpass"
+  },
+  "camera3d": {
+    "ground": "#23252B"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "char-pop",
+    "emphasis": "boxed",
+    "case": "upper",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

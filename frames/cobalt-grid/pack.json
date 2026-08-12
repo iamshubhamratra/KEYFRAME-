@@ -1,5 +1,6 @@
 {
   "name": "cobalt-grid",
+  "renderer": "poster-loud",
   "vibe": "A strictly two-color risograph trend-report: warm cream paper, electric cobalt as the only ink, and a permanent graph-paper grid behind every frame, punctuated by pixel-glitch columns and QR patches.",
   "colors": {
     "paper": "#F0EBDE",
@@ -8,8 +9,7 @@
     "ink-soft": "#5560E5"
   },
   "fonts": [
-    "Newsreader",
-    "Hanken Grotesk",
+    "Anton",
     "DM Mono"
   ],
   "surface": {
@@ -52,28 +52,26 @@
   },
   "textfx": {
     "enter": "glitch",
-    "emphasis": "underline-grow",
-    "case": "none",
-    "tracking": -0.01,
-    "weight": null,
-    "sizeScale": 1.05,
+    "emphasis": "bracket",
+    "case": "upper",
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.18,
     "align": "left"
   },
   "audio": {
     "music": {
-      "query": "minimal editorial electronic",
-      "mood": "ambient",
+      "query": "hand claps foot stomps rock energetic anthem",
+      "mood": "energetic",
       "volume": 0.15
     },
     "sfx": {
-      "style": "crisp digital ticks and scanline glitches over dry paper texture",
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
       "palette": [
-        "digital glitch",
-        "scanline tick",
-        "paper texture",
-        "mono keystroke",
-        "data blip",
-        "hairline snap"
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
       ]
     }
   },
@@ -82,5 +80,8 @@
     "kicker": true,
     "underline": true,
     "stat": "headline"
+  },
+  "typography": {
+    "display": "Anton"
   }
 }

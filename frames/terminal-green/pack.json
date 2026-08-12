@@ -1,5 +1,6 @@
 {
   "name": "terminal-green",
+  "renderer": "retro-terminal",
   "vibe": "a retro-computer terminal: monospace type glowing on a dark CRT ground, scanline grid, one phosphor accent — for dev tools, CLIs, AI agents, hacker-grade launches",
   "colors": {
     "void": "#06110A",
@@ -10,7 +11,7 @@
     "amber": "#F0B23D"
   },
   "fonts": [
-    "Inter",
+    "Alfa Slab One",
     "JetBrains Mono"
   ],
   "surface": {
@@ -50,18 +51,34 @@
     "prefer": []
   },
   "textfx": {
-    "enter": "typewriter",
-    "emphasis": "boxed",
-    "case": "none",
-    "tracking": 0,
-    "weight": null,
-    "sizeScale": 1,
+    "enter": "spring",
+    "emphasis": "volt",
+    "case": "upper",
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.12,
     "align": "left"
   },
   "typography": {
-    "display": "JetBrains Mono"
+    "display": "Alfa Slab One"
   },
   "camera3d": {
     "ground": "#06110A"
+  },
+  "audio": {
+    "music": {
+      "query": "stomp claps big drums anthemic energetic build",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
   }
 }

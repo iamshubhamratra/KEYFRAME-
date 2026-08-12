@@ -1,5 +1,6 @@
 {
   "name": "liquid-glass",
+  "renderer": "bright-minimal",
   "vibe": "an Apple-grade liquid-glass system: pearl studio light, frosted translucent panels with hairline specular edges, one iridescent blue-violet refraction — for flagship reveals, keynotes and premium product launches",
   "colors": {
     "pearl": "#F2F5FA",
@@ -10,7 +11,7 @@
     "pink": "#FF8AC2"
   },
   "fonts": [
-    "Inter",
+    "Syne",
     "Space Grotesk"
   ],
   "surface": {
@@ -53,18 +54,34 @@
     ]
   },
   "textfx": {
-    "enter": "mask-reveal",
-    "emphasis": "gradient",
-    "case": "none",
-    "tracking": 0,
-    "weight": null,
-    "sizeScale": 1.06,
+    "enter": "char-pop",
+    "emphasis": "marker",
+    "case": "upper",
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.19,
     "align": "center"
   },
   "typography": {
-    "display": "Space Grotesk"
+    "display": "Syne"
   },
   "camera3d": {
     "ground": "#0A0E1C"
+  },
+  "audio": {
+    "music": {
+      "query": "trap percussion hard claps energetic hype",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
   }
 }

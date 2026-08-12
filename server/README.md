@@ -1,7 +1,7 @@
 # Video Gen — Prompt → Video on Elastic Beanstalk
 
 Node.js service that takes a text prompt + duration and returns an MP4.
-LLM: KIE AI Gemini 3.5 Flash (primary) with OpenRouter MiniMax M3 (fallback). Renderer: HeyGen HyperFrames (local, on-box).
+LLM: KIE AI — grok-4-5 on the premium creative stages, Gemini 3.6 Flash on every other stage — with OpenRouter as the outage fallback. Renderer: HeyGen HyperFrames (local, on-box).
 Target: AWS Elastic Beanstalk **Node.js 22 on Amazon Linux 2023 (ARM64)**, `us-east-1`, `t4g.xlarge`.
 
 ---
@@ -135,14 +135,17 @@ First boot takes ~5–8 minutes (prebuild installs ARM FFmpeg + Chromium libs + 
 | `server.jobConcurrency` | 1 | Parallel jobs. Overridden via `JOB_CONCURRENCY` env. |
 | `server.renderWorkers` | 1 | Parallel frame capture. Overridden via `RENDER_WORKERS` env. |
 | `server.maxStorageMb` | 500 | Total videos directory cap |
-| `llm.primary.model` | `gemini-3-5-flash` | Primary model ID (KIE AI, OpenAI-compatible) |
-| `llm.primary.apiKey` | *in file* | KIE AI key. Any KIE failure falls back to OpenRouter. |
-| `llm.model` | `minimax/minimax-m3` | OpenRouter fallback model ID |
-| `llm.modelFallback` | `minimax/minimax-m2.7` | OpenRouter secondary fallback model |
+| `llm.primary.model` | `grok-4-5` | KIE model for the premium stages (`llm.premiumStages`), Responses API |
+| `llm.primary.apiKey` | *in file* | KIE AI key — also serves `llm.kieRoutes`. Any KIE failure falls back to OpenRouter. |
+| `llm.kieRoutes` | `gemini-3.6-flash` | Named KIE routes. Any model id written `kie:<route>` dispatches to KIE instead of OpenRouter. |
+| `llm.model` | `kie:gemini-3.6-flash` | Default model for every stage without its own entry |
+| `llm.modelFallback` | `google/gemini-3-flash-preview` | OpenRouter model used when KIE is down (must NOT be a `kie:` alias) |
 | `llm.apiKey` | *in file* | OpenRouter key (fallback LLM **and** TTS) |
 | `orientations` | horizontal/vertical/square | Canvas dimensions |
 
-**Provider cascade per LLM call:** KIE Gemini 3.5 Flash → OpenRouter `minimax-m3` → OpenRouter `minimax-m2.7`. KIE returns transport errors as HTTP 200 with an in-body `{code,msg}`; `openrouter.js` detects this and falls back rather than silently returning empty text.
+**Provider cascade per LLM call:** premium stage → KIE `grok-4-5` → KIE `gemini-3.6-flash` → OpenRouter `gemini-3-flash-preview`; every other stage skips grok and starts at the KIE Gemini route. KIE returns transport errors as HTTP 200 with an in-body `{code,msg}`; `openrouter.js` detects this and falls back rather than silently returning empty text. Calls whose stage timeout exceeds 150 s are streamed (SSE), because KIE's Cloudflare edge 524s a long non-streamed response.
+
+**Switching the Gemini model** is one config edit — point `llm.kieRoutes["gemini-3.6-flash"]` at a different KIE surface, or add a route and reference it as `kie:<name>` from `llm.model` / `llm.stageModels`. `src/config.js` rejects an alias with no matching route at boot.
 
 EB env vars that override at runtime (all handled in `src/config.js`):
 - `KIE_API_KEY` (overrides `llm.primary.apiKey`)
@@ -175,7 +178,7 @@ Your previous 30 s vertical on t3.medium took 547 s (~9 min). On t4g.xlarge with
 - **Rate limits are IP-based.** Behind the EB ALB, `X-Forwarded-For` carries the client IP (handled in `src/routes/generate.js`).
 - **Render concurrency.** `JOB_CONCURRENCY=3` with `p-queue`. Extra requests queue in `jobs/state.json`.
 - **Logs:** `eb logs` from the EB CLI, or EB console → Logs → Request logs.
-- **LLM cost:** primary KIE Gemini 3.5 Flash bills $0.45 / $2.70 per 1M input/output tokens (~$0.01–0.05 per video depending on length); visible per-job in the state file (`llm_tokens_in`, `llm_tokens_out`). Rare OpenRouter fallbacks bill at MiniMax rates (slightly higher) — cost figures are then approximate.
+- **LLM cost:** KIE `grok-4-5` bills $0.80 / $2.40 and KIE `gemini-3.6-flash` $1.50 / $7.50 per 1M input/output tokens (~$0.01–0.05 per video depending on length); visible per-job in the state file (`llm_tokens_in`, `llm_tokens_out`) and priced per stage in `src/services/usage.js`. KIE reports `credits_consumed` per call (logged, not billed from) — OpenRouter fallbacks report their real charge, so mixed jobs are part measured, part estimated.
 - **Big / lengthy requests.** The composer can take 60–120 s for long videos (large HTML output). Per-call LLM timeout is `llm.requestTimeoutMs` (180 s) — comfortably above observed latency, and below the 480 s `stageBudgetSec`. The stage-budget abort is threaded into the LLM call, so a timed-out or over-budget composition is cancelled promptly (not orphaned) before falling back to OpenRouter — important when 3 jobs render in parallel.
 
 ---

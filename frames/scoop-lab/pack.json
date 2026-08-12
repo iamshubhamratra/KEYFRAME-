@@ -1,0 +1,98 @@
+{
+  "name": "scoop-lab",
+  "renderer": "omelette",
+  "template": "ScoopLab",
+  "portraitNative": true,
+  "vibe": "dripping scoop, falling sprinkles, cherry bounce Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#FDEFF2",
+    "ink": "#33202A",
+    "accent": "#F25D9C",
+    "a2": "#59C9A5"
+  },
+  "fonts": [
+    "Titan One",
+    "Varela Round"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#FDEFF2",
+    "ink": "#33202A"
+  },
+  "motion": {
+    "cut": "flash",
+    "drift": 1.15
+  },
+  "fx": {
+    "canvas": "kaleido",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F25D9C",
+      "#59C9A5"
+    ],
+    "extras": [
+      "#FFFFFF",
+      "#D9A05B",
+      "#F2C8D8"
+    ],
+    "emphasisCss": "color:#F25D9C;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "scoop",
+      "dripping",
+      "falling",
+      "sprinkles",
+      "cherry",
+      "bounce"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Titan One",
+    "body": "Varela Round"
+  },
+  "camera3d": {
+    "ground": "#FDEFF2"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "spring",
+    "emphasis": "glow",
+    "case": "none",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "acoustic handmade warm folk gentle plucked strings",
+      "mood": "warm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

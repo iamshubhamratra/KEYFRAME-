@@ -1,0 +1,98 @@
+{
+  "name": "salsa-wheels",
+  "renderer": "omelette",
+  "template": "SalsaWheels",
+  "portraitNative": true,
+  "vibe": "taco truck, papel picado, steam, cactus Portrait-native 9:16 (14 authored beats, 41.8s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#FDF3E0",
+    "ink": "#2B1A14",
+    "accent": "#F2C14B",
+    "a2": "#D93425"
+  },
+  "fonts": [
+    "Boogaloo",
+    "Nunito"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#FDF3E0",
+    "ink": "#2B1A14"
+  },
+  "motion": {
+    "cut": "shatter",
+    "drift": 0.98
+  },
+  "fx": {
+    "canvas": "ribbon",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F2C14B",
+      "#D93425"
+    ],
+    "extras": [
+      "#FFFFFF",
+      "#2A9D8F",
+      "#E05E2C"
+    ],
+    "emphasisCss": "color:#F2C14B;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "salsa",
+      "wheels",
+      "taco",
+      "truck",
+      "papel",
+      "picado"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Boogaloo",
+    "body": "Nunito"
+  },
+  "camera3d": {
+    "ground": "#FDF3E0"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "char-pop",
+    "emphasis": "bracket",
+    "case": "upper",
+    "tracking": -0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "name": "edition-press",
+  "renderer": "omelette",
+  "template": "Edition",
+  "vibe": "Swiss editorial print, kinetic. A modular cream-and-ink grid, hairline rules that draw themselves, huge display type and one red accent. Reads like a magazine spread being typeset in real time.",
+  "colors": {
+    "ground": "#EFE9DA",
+    "ink": "#16130D",
+    "accent": "#DA3A24",
+    "a2": "#1F3A8A",
+    "a3": "#6A6252"
+  },
+  "fonts": [
+    "Anton",
+    "Spectral"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#EFE9DA"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none"
+  },
+  "skin": {
+    "accents": [
+      "#DA3A24",
+      "#1F3A8A"
+    ],
+    "extras": [
+      "#6A6252"
+    ],
+    "emphasisCss": "color:#DA3A24;"
+  },
+  "assets": {
+    "photoMod": "",
+    "iconStyle": "line",
+    "keywords": [
+      "editorial",
+      "print",
+      "magazine",
+      "grid",
+      "typography"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Anton"
+  },
+  "camera3d": {
+    "ground": "#EFE9DA"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "squash",
+    "emphasis": "bullet",
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035,
+    "sizeScale": 1.12,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "taiko drums stomp percussion powerful energetic",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
+  }
+}

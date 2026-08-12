@@ -1,0 +1,93 @@
+{
+  "name": "showcase-vertical",
+  "renderer": "omelette",
+  "template": "ShowcaseVertical",
+  "portraitNative": true,
+  "vibe": "The annotated product tour, authored for 9:16. Big vertical screenshots with drawn arrows and numbered callouts stacked down the frame, tiles and counters sized for a phone. The Showcase language with a portrait grammar rather than a squeezed landscape one.",
+  "colors": {
+    "ground": "#EEF1F7",
+    "ink": "#131722",
+    "accent": "#2F6BFF",
+    "a2": "#FFC53D",
+    "a3": "#57B894"
+  },
+  "fonts": [
+    "Space Grotesk",
+    "JetBrains Mono"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#EEF1F7"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none"
+  },
+  "skin": {
+    "accents": [
+      "#2F6BFF",
+      "#FFC53D"
+    ],
+    "extras": [
+      "#57B894"
+    ],
+    "emphasisCss": "color:#2F6BFF;"
+  },
+  "assets": {
+    "photoMod": "",
+    "iconStyle": "line",
+    "keywords": [
+      "product",
+      "dashboard",
+      "interface",
+      "software",
+      "tour"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Space Grotesk"
+  },
+  "camera3d": {
+    "ground": "#EEF1F7"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slide",
+    "emphasis": "echo",
+    "case": "upper",
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.12,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "marching snare stomp clap epic energetic",
+      "mood": "energetic",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
+  }
+}

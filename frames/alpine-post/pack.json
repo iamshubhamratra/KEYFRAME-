@@ -1,0 +1,98 @@
+{
+  "name": "alpine-post",
+  "renderer": "omelette",
+  "template": "AlpinePost",
+  "portraitNative": true,
+  "vibe": "cable car crossing, peaks, snow, postmark stamp Portrait-native 9:16 (14 authored beats, 41.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#EEF4F8",
+    "ink": "#1E2C36",
+    "accent": "#C0392B",
+    "a2": "#C8D8E0"
+  },
+  "fonts": [
+    "Alegreya Sans SC",
+    "Barlow"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#EEF4F8",
+    "ink": "#1E2C36"
+  },
+  "motion": {
+    "cut": "clockwipe",
+    "drift": 0.99
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#C0392B",
+      "#C8D8E0"
+    ],
+    "extras": [
+      "#FFFFFF",
+      "#000000",
+      "#2F4F43"
+    ],
+    "emphasisCss": "color:#C0392B;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "alpine",
+      "post",
+      "cable",
+      "crossing",
+      "peaks",
+      "snow"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Alegreya Sans SC",
+    "body": "Barlow"
+  },
+  "camera3d": {
+    "ground": "#EEF4F8"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "underline-grow",
+    "case": "none",
+    "tracking": 0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

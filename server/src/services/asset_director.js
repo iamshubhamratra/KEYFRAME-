@@ -59,7 +59,8 @@ async function reviewAssets({ assets, subject, tracker, signal } = {}) {
     const chunk = assets.slice(start, start + CHUNK);
     try {
       const thumbs = [];
-      for (const a of chunk) thumbs.push(await thumbBase64(a.absPath, a.type === "video"));
+      // Independent per-file decodes — see the note in creative_director.reviewChunk.
+      thumbs.push(...await Promise.all(chunk.map((a) => thumbBase64(a.absPath, a.type === "video").catch(() => null))));
       const usable = thumbs.map((b, i) => ({ b, i })).filter((x) => x.b);
       if (!usable.length) continue;
 

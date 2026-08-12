@@ -1,0 +1,98 @@
+{
+  "name": "slow-rise",
+  "renderer": "omelette",
+  "template": "SlowRise",
+  "portraitNative": true,
+  "vibe": "bubbling levain, dough dome, flour puffs, scoring blade Portrait-native 9:16 (15 authored beats, 44.4s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#F4E7CF",
+    "ink": "#33261A",
+    "accent": "#DCAE5C",
+    "a2": "#A9642C"
+  },
+  "fonts": [
+    "Bitter",
+    "Mulish"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F4E7CF",
+    "ink": "#33261A"
+  },
+  "motion": {
+    "cut": "whip",
+    "drift": 1.01
+  },
+  "fx": {
+    "canvas": "sprinkle",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#DCAE5C",
+      "#A9642C"
+    ],
+    "extras": [
+      "#6B4A2F",
+      "#FDF6E8",
+      "#3A2C1E"
+    ],
+    "emphasisCss": "color:#DCAE5C;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "slow",
+      "rise",
+      "bubbling",
+      "levain",
+      "dough",
+      "dome"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Bitter",
+    "body": "Mulish"
+  },
+  "camera3d": {
+    "ground": "#F4E7CF"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "zap",
+    "emphasis": "bullet",
+    "case": "none",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

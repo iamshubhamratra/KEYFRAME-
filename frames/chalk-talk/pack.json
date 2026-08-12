@@ -1,0 +1,98 @@
+{
+  "name": "chalk-talk",
+  "renderer": "omelette",
+  "template": "ChalkTalk",
+  "portraitNative": true,
+  "vibe": "green board, chalk doodles redrawing, eraser smudge, duster Portrait-native 9:16 (18 authored beats, 49.9s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#2E3D38",
+    "ink": "#F2EFE6",
+    "accent": "#F2D478",
+    "a2": "#E8A0B4"
+  },
+  "fonts": [
+    "Gochi Hand",
+    "Neucha"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#2E3D38",
+    "ink": "#F2EFE6"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.08
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F2D478",
+      "#E8A0B4"
+    ],
+    "extras": [
+      "#26332F",
+      "#8A6A4A",
+      "#A8D8A0"
+    ],
+    "emphasisCss": "color:#F2D478;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "chalk",
+      "talk",
+      "green",
+      "board",
+      "doodles",
+      "redrawing"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Gochi Hand",
+    "body": "Neucha"
+  },
+  "camera3d": {
+    "ground": "#2E3D38"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slam",
+    "emphasis": "bullet",
+    "case": "upper",
+    "tracking": 0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

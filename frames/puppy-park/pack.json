@@ -1,0 +1,98 @@
+{
+  "name": "puppy-park",
+  "renderer": "omelette",
+  "template": "PuppyPark",
+  "portraitNative": true,
+  "vibe": "\"Puppy Park\" Sunny dog-park day: rolling grass hills, drifting clouds, a bouncing ball with squash, paw prints stamping across scenes. Baloo 2 + Nunito. Portrait-native 9:16 (18 authored beats, 49.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#A5D8F0",
+    "ink": "#2B2320",
+    "accent": "#F7C948",
+    "a2": "#E8622C"
+  },
+  "fonts": [
+    "Baloo 2",
+    "Nunito"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#A5D8F0",
+    "ink": "#2B2320"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1.06
+  },
+  "fx": {
+    "canvas": "prism",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F7C948",
+      "#E8622C"
+    ],
+    "extras": [
+      "#FFFFFF",
+      "#4F8A3D",
+      "#8CC063"
+    ],
+    "emphasisCss": "color:#F7C948;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "puppy-park-film",
+      "puppy",
+      "park",
+      "sunny",
+      "dog-park",
+      "rolling"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Baloo 2",
+    "body": "Nunito"
+  },
+  "camera3d": {
+    "ground": "#A5D8F0"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "squash",
+    "emphasis": "underline-grow",
+    "case": "upper",
+    "tracking": -0.02,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

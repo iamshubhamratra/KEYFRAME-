@@ -1,0 +1,91 @@
+{
+  "name": "lantern-night",
+  "renderer": "lantern-night",
+  "vibe": "A night lantern-festival world — deep ink sky over a shimmering water line, glowing terracotta paper lanterns endlessly rising past a haloed cream moon, twinkling stars and wandering sage fireflies. Round Caprasimo display in warm paper-cream; headlines swing in like hung lanterns and the key word GLOWS. Magical, warm-in-the-dark, festival-calm — events, launches after dark, hospitality, celebrations and any story that comes alive when the sun goes down.",
+  "colors": {
+    "night": "#0d0c0b",
+    "deep": "#201e1d",
+    "paper": "#f5ead8",
+    "lantern": "#c67139",
+    "glow": "#e8b06a",
+    "sage": "#7a8a5e"
+  },
+  "fonts": [
+    "Archivo Black",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#171310",
+    "ink": "#f5ead8"
+  },
+  "motion": {
+    "cut": "glow",
+    "drift": 1.05
+  },
+  "fx": {
+    "canvas": "bokeh"
+  },
+  "skin": {
+    "accents": [
+      "#c67139",
+      "#7a8a5e"
+    ],
+    "extras": [
+      "#f5ead8",
+      "#e8b06a"
+    ],
+    "emphasisCss": "color:#e8b06a;text-shadow:0 0 18px rgba(232,176,106,.55);"
+  },
+  "assets": {
+    "photoMod": "night warm glow festival lights dark cinematic",
+    "iconStyle": "line",
+    "keywords": [
+      "night",
+      "festival",
+      "lantern",
+      "event",
+      "celebration",
+      "lights"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
+  },
+  "typography": {
+    "display": "Archivo Black"
+  },
+  "layout": {
+    "propFill": true,
+    "kicker": true,
+    "underline": false,
+    "stat": "hero"
+  },
+  "textfx": {
+    "enter": "zap",
+    "emphasis": "ring",
+    "case": "upper",
+    "tracking": -0.035,
+    "sizeScale": 1.12,
+    "align": "center",
+    "weight": 900
+  },
+  "audio": {
+    "music": {
+      "query": "driving percussion tribal toms punchy energetic",
+      "mood": "energetic",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
+  }
+}

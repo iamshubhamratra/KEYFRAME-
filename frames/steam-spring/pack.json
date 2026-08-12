@@ -1,0 +1,98 @@
+{
+  "name": "steam-spring",
+  "renderer": "omelette",
+  "template": "SteamSpring",
+  "portraitNative": true,
+  "vibe": "onsen — steam columns, rock pool, snowfall, lantern Portrait-native 9:16 (15 authored beats, 44.4s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#33404A",
+    "ink": "#F2EDE2",
+    "accent": "#7FC4BD",
+    "a2": "#A8794A"
+  },
+  "fonts": [
+    "Castoro",
+    "Catamaran"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#33404A",
+    "ink": "#F2EDE2"
+  },
+  "motion": {
+    "cut": "glow",
+    "drift": 1.02
+  },
+  "fx": {
+    "canvas": "flow",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#7FC4BD",
+      "#A8794A"
+    ],
+    "extras": [
+      "#22303C",
+      "#3E4E5A",
+      "#7FA4C4"
+    ],
+    "emphasisCss": "color:#7FC4BD;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "steam",
+      "spring",
+      "onsen",
+      "columns",
+      "rock",
+      "pool"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Castoro",
+    "body": "Catamaran"
+  },
+  "camera3d": {
+    "ground": "#33404A"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slam",
+    "emphasis": "ring",
+    "case": "upper",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "name": "bonsai-bench",
+  "renderer": "omelette",
+  "template": "BonsaiBench",
+  "portraitNative": true,
+  "vibe": "swaying bonsai, falling needles, snips, moss dish Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#EEE9DC",
+    "ink": "#41613F",
+    "accent": "#6B4F34",
+    "a2": "#E8E4D4"
+  },
+  "fonts": [
+    "Fraunces",
+    "Rubik"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#EEE9DC",
+    "ink": "#41613F"
+  },
+  "motion": {
+    "cut": "fade",
+    "drift": 1.08
+  },
+  "fx": {
+    "canvas": "sumi",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#6B4F34",
+      "#E8E4D4"
+    ],
+    "extras": [
+      "#9AA39A",
+      "#26302A",
+      "#F8F4EA"
+    ],
+    "emphasisCss": "color:#6B4F34;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "bonsai",
+      "bench",
+      "swaying",
+      "falling",
+      "needles",
+      "snips"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Fraunces",
+    "body": "Rubik"
+  },
+  "camera3d": {
+    "ground": "#EEE9DC"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slide",
+    "emphasis": "boxed",
+    "case": "none",
+    "tracking": 0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

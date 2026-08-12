@@ -1,0 +1,98 @@
+{
+  "name": "ocean-dive",
+  "renderer": "omelette",
+  "template": "OceanDive",
+  "portraitNative": true,
+  "vibe": "\"Ocean Dive\" Descent into deep water: rising bubble columns, slow-rotating light rays from the surface, a drifting fish school, floating content. Comfortaa + Mulish. Portrait-native 9:16 (18 authored beats, 49.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#0A3D52",
+    "ink": "#EAFAF6",
+    "accent": "#FF8A5C",
+    "a2": "#57D6C9"
+  },
+  "fonts": [
+    "Comfortaa",
+    "Mulish"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#0A3D52",
+    "ink": "#EAFAF6"
+  },
+  "motion": {
+    "cut": "iris",
+    "drift": 1.04
+  },
+  "fx": {
+    "canvas": "bokeh",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FF8A5C",
+      "#57D6C9"
+    ],
+    "extras": [
+      "#14657A",
+      "#0D2B4A",
+      "#0F4A44"
+    ],
+    "emphasisCss": "color:#FF8A5C;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "ocean-dive-film",
+      "ocean",
+      "dive",
+      "descent",
+      "deep",
+      "water"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Comfortaa",
+    "body": "Mulish"
+  },
+  "camera3d": {
+    "ground": "#0A3D52"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slide",
+    "emphasis": "marker",
+    "case": "none",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic dark ambient low pulse atmospheric",
+      "mood": "moody",
+      "volume": 0.12
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

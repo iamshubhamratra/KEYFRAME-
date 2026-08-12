@@ -1,0 +1,98 @@
+{
+  "name": "twenty-moves",
+  "renderer": "omelette",
+  "template": "TwentyMoves",
+  "portraitNative": true,
+  "vibe": "cube face tiles cycling, timer, scramble arrows Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#1E2024",
+    "ink": "#F4F4F6",
+    "accent": "#FFCB2E",
+    "a2": "#3FBF5A"
+  },
+  "fonts": [
+    "Russo One",
+    "Geologica"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#1E2024",
+    "ink": "#F4F4F6"
+  },
+  "motion": {
+    "cut": "flash",
+    "drift": 1.05
+  },
+  "fx": {
+    "canvas": "kaleido",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FFCB2E",
+      "#3FBF5A"
+    ],
+    "extras": [
+      "#141518",
+      "#000000",
+      "#282B31"
+    ],
+    "emphasisCss": "color:#FFCB2E;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "twenty",
+      "moves",
+      "cube",
+      "face",
+      "tiles",
+      "cycling"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Russo One",
+    "body": "Russo One"
+  },
+  "camera3d": {
+    "ground": "#1E2024"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "ring",
+    "case": "upper",
+    "tracking": -0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

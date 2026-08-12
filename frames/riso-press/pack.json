@@ -1,5 +1,6 @@
 {
   "name": "riso-press",
+  "renderer": "poster-loud",
   "vibe": "a bold risograph print poster: warm newsprint paper, fluorescent pink + electric blue spot inks overprinting, a live halftone-dot texture, giant condensed poster type set hard-left, and cut-paper shapes — registration marks, overprint circles, block arrows, starbursts — for punchy product launches, events, drops and announcements that should feel like a screen-printed gig poster",
   "colors": {
     "paper": "#F3ECDD",
@@ -11,8 +12,8 @@
     "risoteal": "#12A594"
   },
   "fonts": [
-    "Inter",
-    "Anton"
+    "Archivo Black",
+    "JetBrains Mono"
   ],
   "surface": {
     "flat": true,
@@ -55,7 +56,7 @@
     ]
   },
   "typography": {
-    "display": "Anton"
+    "display": "Archivo Black"
   },
   "layout": {
     "propFill": false,
@@ -64,27 +65,27 @@
     "stat": "headline"
   },
   "textfx": {
-    "enter": "slide",
-    "emphasis": "bracket",
+    "enter": "zap",
+    "emphasis": "ring",
     "align": "left",
     "case": "upper",
-    "sizeScale": 1.12
+    "sizeScale": 1.25,
+    "weight": 900,
+    "tracking": -0.035
   },
   "audio": {
     "music": {
-      "query": "upbeat indie stomp clap",
-      "mood": "upbeat",
+      "query": "driving percussion tribal toms punchy energetic",
+      "mood": "energetic",
       "volume": 0.17
     },
     "sfx": {
-      "style": "tape stops, ink-roller rolls, paper snaps and stamp thuds — analog and punchy, hitting on the hard block cuts",
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
       "palette": [
-        "paper snap whoosh",
-        "stamp thud",
-        "tape stop",
-        "ink roller roll",
-        "camera shutter",
-        "riser hit"
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
       ]
     }
   }

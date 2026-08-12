@@ -1,0 +1,98 @@
+{
+  "name": "festival-stage",
+  "renderer": "omelette",
+  "template": "FestivalStage",
+  "portraitNative": true,
+  "vibe": "sweeping spotlights, confetti rain, crowd silhouette Portrait-native 9:16 (18 authored beats, 49.9s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#191227",
+    "ink": "#F6F2FF",
+    "accent": "#C8F04F",
+    "a2": "#FF4F9A"
+  },
+  "fonts": [
+    "Bungee",
+    "Rubik"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#191227",
+    "ink": "#F6F2FF"
+  },
+  "motion": {
+    "cut": "wash",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "caustics",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#C8F04F",
+      "#FF4F9A"
+    ],
+    "extras": [
+      "#8F5CFF",
+      "#120D1E",
+      "#5C9DFF"
+    ],
+    "emphasisCss": "color:#C8F04F;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "festival",
+      "stage",
+      "sweeping",
+      "spotlights",
+      "confetti",
+      "rain"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Bungee",
+    "body": "Rubik"
+  },
+  "camera3d": {
+    "ground": "#191227"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "stamp",
+    "emphasis": "glow",
+    "case": "none",
+    "tracking": -0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

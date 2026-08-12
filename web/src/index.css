@@ -12,8 +12,17 @@
 @import url("https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@600;700&family=Cormorant+Garamond:wght@600;700&family=Baloo+2:wght@600;700;800&family=Alfa+Slab+One&family=Comfortaa:wght@500;700&display=swap");
 /* Kaleido (Syne) + Voltage (Orbitron) — the color-adaptive showcase packs. */
 @import url("https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Orbitron:wght@600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Caprasimo&family=Figtree:wght@500;600;700&display=swap");
+/* Anton — the stomp/percussion display face for the 2026-07-30 energetic wave. */
+@import url("https://fonts.googleapis.com/css2?family=Anton&display=swap");
+/* Showcase (Space Grotesk) — the 2026-07-29 template-zip import. Without this
+   the gallery card's demo text silently falls back to the default face. */
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap");
 /* Genesis flagship — Sora (display) + Outfit (subheads). */
 @import url("https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Outfit:wght@500;600;700&display=swap");
+/* imported vertical-template display faces (generated) */
+@import url("https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Alegreya+Sans+SC&family=Amiri&family=Archivo&family=Audiowide&family=Bangers&family=Barlow+Condensed&family=Bevan&family=Big+Shoulders+Display&family=Bitter&family=Boogaloo&family=Bree+Serif&family=Bungee&family=Cardo&family=Castoro&family=Caveat&family=Chonburi&family=Cinzel&family=DM+Serif+Display&family=EB+Garamond&family=Fjalla+One&family=Fraunces&family=Fredoka&family=Gelasio&family=Gilda+Display&family=Gloock&family=Gochi+Hand&family=Grandstander&family=Grenze+Gotisch&family=Italiana&family=Kanit&family=Krona+One&family=Libre+Bodoni&family=Lilita+One&family=Lobster+Two&family=Lora&family=Marcellus&family=Merriweather&family=Michroma&family=Monoton&family=Oswald&family=Overpass&family=Passion+One&family=Paytone+One&family=Permanent+Marker&family=Prata&family=Press+Start+2P&family=Rajdhani&family=Righteous&family=Russo+One&family=Rye&family=Silkscreen&family=Space+Mono&family=Special+Elite&family=Staatliches&family=Titan+One&family=Unbounded&family=Vollkorn&family=Yeseva+One&family=Young+Serif&family=Zen+Maru+Gothic&family=Zilla+Slab&display=swap");
 @import "tailwindcss";
 
 /* ---- EXACT v2 tokens ----

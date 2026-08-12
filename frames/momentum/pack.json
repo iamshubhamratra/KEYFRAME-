@@ -1,0 +1,94 @@
+{
+  "name": "momentum",
+  "renderer": "momentum",
+  "vibe": "A bold dark launch film, engineered. A graphite-black ground under heavy flush-LEFT display type that slides in like a countdown, with one hot-orange accent igniting the word that matters. Space-mono HUD chrome frames every shot — corner brackets, a running timecode, /01 section numbers, a live audio waveform and a faint dotted grid — so the film reads like mission control for a product launch. Left-aligned, asymmetric, confident; motion is decisive slides and pushes, never drift-soup. For product launches, feature reveals, manifestos, hype reels and anything that ships with momentum.",
+  "colors": {
+    "void": "#0C0B0A",
+    "ground": "#131210",
+    "panel": "#1A1815",
+    "ink": "#F2EDE4",
+    "orange": "#FF4B2B",
+    "amber": "#FF8A3D",
+    "muted": "#8A8681"
+  },
+  "fonts": [
+    "Anton",
+    "Sora"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#131210"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1.02
+  },
+  "fx": {
+    "canvas": "grid"
+  },
+  "skin": {
+    "accents": [
+      "#FF4B2B",
+      "#FF8A3D"
+    ],
+    "extras": [
+      "#F2EDE4",
+      "#8A8681"
+    ],
+    "emphasisCss": "color:#FF4B2B;"
+  },
+  "assets": {
+    "photoMod": "dark cinematic product launch studio moody spotlit",
+    "iconStyle": "line",
+    "keywords": [
+      "launch",
+      "product",
+      "startup",
+      "technology",
+      "dark"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Anton"
+  },
+  "camera3d": {
+    "ground": "#131210"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "hero",
+    "assetStyle": "hud"
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "bracket",
+    "case": "upper",
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.18,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "hand claps foot stomps rock energetic anthem",
+      "mood": "energetic",
+      "volume": 0.15
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
+  }
+}

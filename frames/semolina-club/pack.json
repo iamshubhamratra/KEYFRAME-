@@ -1,0 +1,98 @@
+{
+  "name": "semolina-club",
+  "renderer": "omelette",
+  "template": "SemolinaClub",
+  "portraitNative": true,
+  "vibe": "rolling pin, flour puffs, pasta ribbons, ravioli Portrait-native 9:16 (14 authored beats, 41.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#F8F0DC",
+    "ink": "#2E1F18",
+    "accent": "#E8B93C",
+    "a2": "#CF3B2E"
+  },
+  "fonts": [
+    "Lilita One",
+    "Urbanist"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F8F0DC",
+    "ink": "#2E1F18"
+  },
+  "motion": {
+    "cut": "iris",
+    "drift": 0.95
+  },
+  "fx": {
+    "canvas": "bokeh",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#E8B93C",
+      "#CF3B2E"
+    ],
+    "extras": [
+      "#D9B98C",
+      "#3E7A44",
+      "#B8965C"
+    ],
+    "emphasisCss": "color:#E8B93C;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "semolina",
+      "club",
+      "rolling",
+      "flour",
+      "puffs",
+      "pasta"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Lilita One",
+    "body": "Urbanist"
+  },
+  "camera3d": {
+    "ground": "#F8F0DC"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "squash",
+    "emphasis": "echo",
+    "case": "none",
+    "tracking": -0.02,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

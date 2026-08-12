@@ -1,0 +1,74 @@
+[
+  {
+    "id": "fj2arrldfd",
+    "pack": "birdsong-field",
+    "orientation": "vertical",
+    "mp4": "C:\\internship\\KEYFRAME\\server\\public\\videos\\fj2arrldfd.mp4",
+    "meta": {
+      "w": 1080,
+      "h": 1920,
+      "dur": 32.566667
+    },
+    "defects": []
+  },
+  {
+    "id": "rrluzzj4fm",
+    "pack": "cadence-premium",
+    "orientation": "vertical",
+    "mp4": "C:\\internship\\KEYFRAME\\server\\public\\videos\\rrluzzj4fm.mp4",
+    "meta": {
+      "w": 1080,
+      "h": 1920,
+      "dur": 30.266667
+    },
+    "defects": []
+  },
+  {
+    "id": "230mqk0nhm",
+    "pack": "teampulse",
+    "orientation": "vertical",
+    "mp4": "C:\\internship\\KEYFRAME\\server\\public\\videos\\230mqk0nhm.mp4",
+    "meta": {
+      "w": 1080,
+      "h": 1920,
+      "dur": 32.2
+    },
+    "defects": [
+      {
+        "kind": "off-topic-assets",
+        "severity": "major",
+        "detail": "1/4 assets below 0.15 relevance: cache:pixabay \"still hard push-in\" 0.09"
+      }
+    ]
+  },
+  {
+    "id": "z9izb0knpa",
+    "pack": "alchemy",
+    "orientation": "vertical",
+    "mp4": "C:\\internship\\KEYFRAME\\server\\public\\videos\\z9izb0knpa.mp4",
+    "meta": {
+      "w": 1080,
+      "h": 1920,
+      "dur": 33.32
+    },
+    "defects": [
+      {
+        "kind": "off-topic-assets",
+        "severity": "major",
+        "detail": "1/2 assets below 0.15 relevance: iconify \"context past\" 0.10"
+      }
+    ]
+  },
+  {
+    "id": "ummrg4ks82",
+    "pack": "nimbus-saas",
+    "orientation": "horizontal",
+    "mp4": "C:\\internship\\KEYFRAME\\server\\public\\videos\\ummrg4ks82.mp4",
+    "meta": {
+      "w": 1920,
+      "h": 1080,
+      "dur": 32.7
+    },
+    "defects": []
+  }
+]

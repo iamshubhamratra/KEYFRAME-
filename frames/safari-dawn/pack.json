@@ -1,0 +1,98 @@
+{
+  "name": "safari-dawn",
+  "renderer": "omelette",
+  "template": "SafariDawn",
+  "portraitNative": true,
+  "vibe": "savanna sunrise, acacia silhouettes, striding gazelles Portrait-native 9:16 (18 authored beats, 49.9s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#EF9D4F",
+    "ink": "#3A2417",
+    "accent": "#FBEED8",
+    "a2": "#F6D35C"
+  },
+  "fonts": [
+    "Staatliches",
+    "Assistant"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#EF9D4F",
+    "ink": "#3A2417"
+  },
+  "motion": {
+    "cut": "iris",
+    "drift": 1.12
+  },
+  "fx": {
+    "canvas": "bokeh",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FBEED8",
+      "#F6D35C"
+    ],
+    "extras": [
+      "#C96F35",
+      "#4A2E1C",
+      "#E0785C"
+    ],
+    "emphasisCss": "color:#FBEED8;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "safari",
+      "dawn",
+      "savanna",
+      "sunrise",
+      "acacia",
+      "silhouettes"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Staatliches",
+    "body": "Staatliches"
+  },
+  "camera3d": {
+    "ground": "#EF9D4F"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "stamp",
+    "emphasis": "marker",
+    "case": "none",
+    "tracking": 0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

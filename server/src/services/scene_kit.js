@@ -3284,10 +3284,28 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
   // pixelated, watermarked, amateur, blank) is never allowed into a prominent slot —
   // a weak hero/tile cheapens the whole film. Low photos fall to scrim B-roll; low
   // vectors/screenshots simply drop (there is no gentle background use for them).
+  // Above the pin floor (0.10) but deliberately stricter: 0.10 only decides
+  // whether an asset keeps its SCENE PIN, while this decides whether it may take a
+  // prominent tile. In the live corpus 0.20 clears the iconify p25 (0.161) — the
+  // band where the gas-can class of match lives — without touching the median.
+  const ICON_RELEVANCE_FLOOR = 0.20;
   const prominentOk = (a) => !!a && !a.lowQuality && (a.source === "website"
     || a.source === "website-image" // the site's OWN downloaded images — owner content, show them big (hero/tile), not just scrim
     || a.source === "blog" // the post's own images — owner content, always showable
-    || a.source === "iconify"
+    // ICONIFY IS NOT AUTOMATICALLY TRUSTED ANY MORE. It used to sit in this list
+    // unconditionally, on the stated theory that its query was "concrete-noun
+    // matched upstream (not visualDirection leakage)". That was factually wrong —
+    // the noun match runs ON the visualDirection-derived query, so an icon slot
+    // could be a stray direction word ("hero can locks dead" fetched a GAS CAN).
+    // Measured over 1101 scored assets, iconify's median CLIP relevance is 0.359
+    // against 0.957 for real site imagery, and it is the single largest block of
+    // off-topic pinned imagery in the corpus. It is also exempt from the vision
+    // gate and from creative_director deletion, so THIS is the only place a bad
+    // glyph can be stopped before it takes a prominent tile — vectors get first
+    // pick of the montage (see `order` below).
+    // An icon still passes on its own merit: a real relevance score, or no score
+    // at all (CLIP absent — do not punish an asset for an unavailable check).
+    || (a.source === "iconify" && (typeof a.clipRelevance !== "number" || a.clipRelevance >= ICON_RELEVANCE_FLOOR))
     || String(a.source || "").startsWith("library:")
     || a.visionOk === true);
   const bgOnlyPhotos = pools.photos.filter((a) => !prominentOk(a));

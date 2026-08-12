@@ -1,0 +1,92 @@
+{
+  "name": "jungle-wild",
+  "renderer": "omelette",
+  "template": "Jungle",
+  "vibe": "A layered rainforest alive with animals — a toucan, a swinging monkey, a prowling tiger, butterflies and fireflies — behind swaying vines and shafts of canopy light. For nature, adventure, sustainability and anything that should feel untamed.",
+  "colors": {
+    "ground": "#0E2C1B",
+    "ink": "#EDFBE6",
+    "accent": "#F4A100",
+    "a2": "#FF5A5F",
+    "a3": "#2E6B3E"
+  },
+  "fonts": [
+    "Chewy",
+    "Nunito"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#0E2C1B"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none"
+  },
+  "skin": {
+    "accents": [
+      "#F4A100",
+      "#FF5A5F"
+    ],
+    "extras": [
+      "#2E6B3E"
+    ],
+    "emphasisCss": "color:#F4A100;"
+  },
+  "assets": {
+    "photoMod": "",
+    "iconStyle": "line",
+    "keywords": [
+      "jungle",
+      "nature",
+      "wild",
+      "green",
+      "adventure"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Chewy"
+  },
+  "camera3d": {
+    "ground": "#0E2C1B"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "spring",
+    "emphasis": "volt",
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035,
+    "sizeScale": 1.12,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "stomp claps big drums anthemic energetic build",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
+  }
+}

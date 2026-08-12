@@ -11,9 +11,8 @@
     "ion": "#EAF0FF"
   },
   "fonts": [
-    "Inter",
-    "Sora",
-    "Outfit"
+    "Anton",
+    "Sora"
   ],
   "surface": {
     "flat": false,
@@ -58,7 +57,7 @@
     ]
   },
   "typography": {
-    "display": "Sora"
+    "display": "Anton"
   },
   "layout": {
     "propFill": false,
@@ -68,26 +67,27 @@
     "assetStyle": "default"
   },
   "textfx": {
-    "enter": "mask-reveal",
-    "emphasis": "gradient",
+    "enter": "glitch",
+    "emphasis": "bracket",
     "align": "center",
-    "sizeScale": 1
+    "sizeScale": 1.12,
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035
   },
   "audio": {
     "music": {
-      "query": "cinematic epic uplifting trailer building orchestral electronic",
-      "mood": "cinematic",
+      "query": "hand claps foot stomps rock energetic anthem",
+      "mood": "energetic",
       "volume": 0.17
     },
     "sfx": {
-      "style": "cinematic riser swells, deep impact hits on each reveal, airy whooshes for the camera moves and a bright shimmer on the logo climax — trailer-grade, tight to the beats",
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
       "palette": [
-        "cinematic riser",
         "impact hit",
-        "whoosh",
-        "sub boom",
-        "shimmer",
-        "ambient city"
+        "clap",
+        "riser sweep",
+        "whoosh transition"
       ]
     }
   }

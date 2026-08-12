@@ -25,6 +25,10 @@ const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
 // Momentum renders on its own, but shares the engine's script->display-copy
 // adapter so both paths put the scene's OWN words on screen.
 const { withDisplayCopy } = require("./template_engine");
+const E = require("./template_engine");
+// One implementation of "which picture belongs on this beat", shared with every
+// other renderer — see the wiring note on takePool below.
+const { pickForScene } = require("./scene_match");
 
 const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 const DISPLAY = "Sora"; // bundled stand-in for the template's Hanken Grotesk
@@ -49,8 +53,11 @@ function lum(h) {
   const c = hexToRgb(h).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
   return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
 }
-// Ink that reads on a given background (template's inkOn helper).
-function inkOn(bg, ink) { return lum(bg) > 0.45 ? "#141210" : ink; }
+// Ink that reads on a given background. Delegates to the engine's CONTRAST-based
+// chooser rather than a luminance threshold: on a saturated accent the luminance
+// guess picks the lower-contrast side (cream on this pack's orange measured
+// 2.98:1 against a 4.5 floor), and readable() then guarantees the result.
+function inkOn(bg, ink) { return E.readable(bg, E.inkOn(bg, "#141210", ink || "#F5F2EA"), 1, 4.5); }
 
 // Momentum identity + brand adaptivity. The accent recolors to the brand (the
 // template's own Accent tweak) and — when matchSiteTheme handed us a site
@@ -200,9 +207,14 @@ function momArchetype(scene, i, total, pinnedAsset, poolLeft) {
   if (k === "quote" || scene.quote || /testimonial|quote/.test(p)) return "quote";
   if (k === "stat" || k === "chart" || k === "countdown" || mineStats(scene).length >= 2) return "stats";
   if (pinnedAsset) return isPortraitAsset(pinnedAsset) ? "mobile" : "feature";
-  if (/gallery|showcase|proof|social/.test(p) && poolLeft >= 2) return "gallery";
+  if (/gallery|showcase|proof|social/.test(`${k} ${p}`) && poolLeft >= 2) return "gallery";
   const words = String(scene.headline || "").trim().split(/\s+/).filter(Boolean).length;
-  if (words > 0 && words <= 8 && !scene.subtext && statementLines(scene)) return "statement";
+  // SPEND THE ASSETS. This test sat AHEAD of the media branch, so any scene with
+  // a short headline and no subtext became a text-only statement no matter how
+  // many real screenshots were waiting — measured on a live Trello film, this
+  // pack put 1 of 11 captures on screen. A statement plate is the right call when
+  // there is nothing to show; with a deep pool the product shot wins.
+  if (words > 0 && words <= 8 && !scene.subtext && statementLines(scene) && poolLeft < 3) return "statement";
   if (poolLeft >= 1) return "feature";
   return statementLines(scene) ? "statement" : "quote";
 }
@@ -766,8 +778,25 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     else pool.push(a);
   }
   let pooli = 0;
-  const takePool = (pred) => {
-    const idx = pool.findIndex((a, i) => i >= pooli && (!pred || pred(a)));
+  // WHICH PICTURE BELONGS ON *THIS* BEAT. The sort above is entirely
+  // FILM-GLOBAL — site-ness, screenshot-ness, cdScore — so every slot in the
+  // film popped the next item off that one list and what the beat was SAYING
+  // never came into it. On a website job every capture is written
+  // site_0.png…site_5.png with the same boilerplate alt, so the candidates tie
+  // and arrival order breaks the tie. Measured on the fixture film once the
+  // director's scene pins are gone (the ordinary case on a blog or topic film,
+  // where nothing pinned a shot to a scene): the "One workspace" beat drew a
+  // grid of design tools, "Shared context" drew the testimonial logo wall, and
+  // the capture whose vision text literally reads "start with design context,
+  // build with consistency" was never placed at all — 3 of 4 media beats shared
+  // a word with the line they played under, now 4 of 4.
+  // `scene` is optional so every other call site is unchanged, and when nothing
+  // in the pool is even loosely about the beat this falls straight back to the
+  // old best-first walk — it can only improve on the previous pick, never
+  // starve a slot.
+  const takePool = (pred, scene = null) => {
+    const onTopic = scene ? pickForScene(pool, scene, { pred }) : null;
+    const idx = onTopic ? pool.indexOf(onTopic) : pool.findIndex((a, i) => i >= pooli && (!pred || pred(a)));
     if (idx < 0) return null;
     const a = pool.splice(idx, 1)[0];
     return a;
@@ -811,9 +840,12 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
       // Fill the media slot: pinned first, else pool (portrait shot → phone,
       // screenshots → browser, photos → gallery tiles).
       asset = pinned;
-      if (arch === "feature" && !asset) asset = takePool((a) => !isPortraitAsset(a));
-      if (arch === "mobile" && !asset) asset = takePool(isPortraitAsset);
-      if (arch === "gallery") { asset = pinned || takePool(); assetB = takePool(); }
+      if (arch === "feature" && !asset) asset = takePool((a) => !isPortraitAsset(a), scene);
+      if (arch === "mobile" && !asset) asset = takePool(isPortraitAsset, scene);
+      // Only the tall hero tile picks on topic; the second stays in rank order,
+      // so one gallery beat cannot claim both of the film's best matches and
+      // leave a later beat that is actually about one of them with nothing.
+      if (arch === "gallery") { asset = pinned || takePool(null, scene); assetB = takePool(); }
       if (arch === "intro") asset = logoAsset;
       if (arch === "feature" && !asset) arch = statementLines(scene) ? "statement" : "quote";
     }

@@ -1,5 +1,6 @@
 {
   "name": "biennale-yellow",
+  "renderer": "editorial-quiet",
   "vibe": "literary editorial: warm parchment, indigo ink, solar yellow blooms, serif display — elegant, cultural, slow-confidence",
   "colors": {
     "paper": "#E9E5DB",
@@ -11,9 +12,8 @@
     "ember": "#E26B4A"
   },
   "fonts": [
-    "Archivo",
-    "JetBrains Mono",
-    "Instrument Serif"
+    "Orbitron",
+    "JetBrains Mono"
   ],
   "surface": {
     "flat": true,
@@ -43,14 +43,34 @@
     ]
   },
   "typography": {
-    "display": "Instrument Serif"
+    "display": "Orbitron"
   },
   "camera3d": {
     "ground": "#1B2566"
   },
   "textfx": {
-    "enter": "line-wipe",
-    "emphasis": "marker",
-    "align": "left"
+    "enter": "stamp",
+    "emphasis": "boxed",
+    "align": "left",
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035,
+    "sizeScale": 1.12
+  },
+  "audio": {
+    "music": {
+      "query": "big beat breakbeat percussive energetic drive",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
   }
 }

@@ -1,0 +1,98 @@
+{
+  "name": "snow-peak",
+  "renderer": "omelette",
+  "template": "SnowPeak",
+  "portraitNative": true,
+  "vibe": "falling snow, ridgelines, a lone lift cabin swaying Portrait-native 9:16 (18 authored beats, 49.9s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#DFEEF7",
+    "ink": "#20313B",
+    "accent": "#E0685C",
+    "a2": "#2C4A5A"
+  },
+  "fonts": [
+    "Fjalla One",
+    "Hind"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#DFEEF7",
+    "ink": "#20313B"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1.02
+  },
+  "fx": {
+    "canvas": "prism",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#E0685C",
+      "#2C4A5A"
+    ],
+    "extras": [
+      "#FFFFFF",
+      "#1D3440",
+      "#B8CCD9"
+    ],
+    "emphasisCss": "color:#E0685C;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "snow",
+      "peak",
+      "falling",
+      "ridgelines",
+      "lone",
+      "lift"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Fjalla One",
+    "body": "Hind"
+  },
+  "camera3d": {
+    "ground": "#DFEEF7"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slide",
+    "emphasis": "bracket",
+    "case": "none",
+    "tracking": -0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

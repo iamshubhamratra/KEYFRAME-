@@ -1,0 +1,98 @@
+{
+  "name": "aerial-silk",
+  "renderer": "omelette",
+  "template": "AerialSilk",
+  "portraitNative": true,
+  "vibe": "hanging silks that ripple, spotlight cone, swinging hoop Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#22132A",
+    "ink": "#F2ECF2",
+    "accent": "#E05A7A",
+    "a2": "#DFAE5C"
+  },
+  "fonts": [
+    "Playfair Display",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#22132A",
+    "ink": "#F2ECF2"
+  },
+  "motion": {
+    "cut": "flash",
+    "drift": 0.97
+  },
+  "fx": {
+    "canvas": "kaleido",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#E05A7A",
+      "#DFAE5C"
+    ],
+    "extras": [
+      "#150C19",
+      "#301C3A",
+      "#5AD0E0"
+    ],
+    "emphasisCss": "color:#E05A7A;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "aerial",
+      "silk",
+      "hanging",
+      "silks",
+      "ripple",
+      "spotlight"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Playfair Display",
+    "body": "Playfair Display"
+  },
+  "camera3d": {
+    "ground": "#22132A"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "marker",
+    "case": "none",
+    "tracking": -0.02,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

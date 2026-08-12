@@ -1,0 +1,98 @@
+{
+  "name": "road-trip",
+  "renderer": "omelette",
+  "template": "RoadTrip",
+  "portraitNative": true,
+  "vibe": "\"Road Trip\" Friends on the road: paper-map ground, a dashed route drawing itself, a scooting van, popping location pins, taped polaroids. Permanent Marker + Karla. Portrait-native 9:16 (18 authored beats, 49.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#F2E8D5",
+    "ink": "#33291F",
+    "accent": "#EEC96F",
+    "a2": "#E05E4E"
+  },
+  "fonts": [
+    "Permanent Marker",
+    "Karla"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F2E8D5",
+    "ink": "#33291F"
+  },
+  "motion": {
+    "cut": "smear",
+    "drift": 1.02
+  },
+  "fx": {
+    "canvas": "rays",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#EEC96F",
+      "#E05E4E"
+    ],
+    "extras": [
+      "#FFFFFF",
+      "#3F8F8A",
+      "#2E2A26"
+    ],
+    "emphasisCss": "color:#EEC96F;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "road-trip-film",
+      "road",
+      "trip",
+      "friends",
+      "paper-map",
+      "ground"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Permanent Marker",
+    "body": "Permanent Marker"
+  },
+  "camera3d": {
+    "ground": "#F2E8D5"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "bullet",
+    "case": "none",
+    "tracking": 0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "acoustic handmade warm folk gentle plucked strings",
+      "mood": "warm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

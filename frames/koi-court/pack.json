@@ -1,0 +1,98 @@
+{
+  "name": "koi-court",
+  "renderer": "omelette",
+  "template": "KoiCourt",
+  "portraitNative": true,
+  "vibe": "koi circling, ripples, lily pads, maple leaf Portrait-native 9:16 (14 authored beats, 41.4s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#14262B",
+    "ink": "#F4F1E8",
+    "accent": "#F07D3C",
+    "a2": "#D9B45C"
+  },
+  "fonts": [
+    "Gelasio",
+    "Kumbh Sans"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#14262B",
+    "ink": "#F4F1E8"
+  },
+  "motion": {
+    "cut": "whip",
+    "drift": 1.02
+  },
+  "fx": {
+    "canvas": "sprinkle",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F07D3C",
+      "#D9B45C"
+    ],
+    "extras": [
+      "#3F8C7A",
+      "#E05E7A",
+      "#1C3238"
+    ],
+    "emphasisCss": "color:#F07D3C;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "court",
+      "circling",
+      "ripples",
+      "lily",
+      "pads",
+      "maple"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Gelasio",
+    "body": "Kumbh Sans"
+  },
+  "camera3d": {
+    "ground": "#14262B"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "zap",
+    "emphasis": "ring",
+    "case": "none",
+    "tracking": -0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

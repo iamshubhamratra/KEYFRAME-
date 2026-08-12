@@ -1,0 +1,98 @@
+{
+  "name": "lock-and-legend",
+  "renderer": "omelette",
+  "template": "LockAndLegend",
+  "portraitNative": true,
+  "vibe": "keyhole light, fast clock, popping padlock, gears Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#3A2618",
+    "ink": "#C9A24B",
+    "accent": "#E8DCC0",
+    "a2": "#C9A24B"
+  },
+  "fonts": [
+    "Cinzel",
+    "Radio Canada"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#3A2618",
+    "ink": "#C9A24B"
+  },
+  "motion": {
+    "cut": "flash",
+    "drift": 1.09
+  },
+  "fx": {
+    "canvas": "kaleido",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#E8DCC0",
+      "#C9A24B"
+    ],
+    "extras": [
+      "#2C1D12",
+      "#1C1410",
+      "#7A2E2E"
+    ],
+    "emphasisCss": "color:#E8DCC0;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "lock",
+      "legend",
+      "keyhole",
+      "light",
+      "fast",
+      "clock"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Cinzel",
+    "body": "Radio Canada"
+  },
+  "camera3d": {
+    "ground": "#3A2618"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "glitch",
+    "emphasis": "ring",
+    "case": "none",
+    "tracking": 0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

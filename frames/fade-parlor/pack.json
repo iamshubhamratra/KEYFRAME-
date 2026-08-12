@@ -1,0 +1,97 @@
+{
+  "name": "fade-parlor",
+  "renderer": "omelette",
+  "template": "FadeParlor",
+  "portraitNative": true,
+  "vibe": "barber pole spin, scissors, mirror bulbs Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#1B2838",
+    "ink": "#F4EEE4",
+    "accent": "#CAA24F",
+    "a2": "#C8433B"
+  },
+  "fonts": [
+    "Abril Fatface"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#1B2838",
+    "ink": "#F4EEE4"
+  },
+  "motion": {
+    "cut": "iris",
+    "drift": 0.98
+  },
+  "fx": {
+    "canvas": "bokeh",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#CAA24F",
+      "#C8433B"
+    ],
+    "extras": [
+      "#141E2A",
+      "#223349",
+      "#22203A"
+    ],
+    "emphasisCss": "color:#CAA24F;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "fade",
+      "parlor",
+      "barber",
+      "pole",
+      "spin",
+      "scissors"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Abril Fatface",
+    "body": "Work Sans"
+  },
+  "camera3d": {
+    "ground": "#1B2838"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slide",
+    "emphasis": "bracket",
+    "case": "none",
+    "tracking": -0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

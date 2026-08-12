@@ -1,0 +1,98 @@
+{
+  "name": "endgame",
+  "renderer": "omelette",
+  "template": "Endgame",
+  "portraitNative": true,
+  "vibe": "chess club — board corner, knight hop, ticking clock Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#EFE6D8",
+    "ink": "#221C16",
+    "accent": "#B3452E",
+    "a2": "#6B4A2F"
+  },
+  "fonts": [
+    "DM Serif Display",
+    "DM Sans"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#EFE6D8",
+    "ink": "#221C16"
+  },
+  "motion": {
+    "cut": "wipe",
+    "drift": 1.13
+  },
+  "fx": {
+    "canvas": "halftone",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#B3452E",
+      "#6B4A2F"
+    ],
+    "extras": [
+      "#000000",
+      "#FAF5EC",
+      "#F0E2C8"
+    ],
+    "emphasisCss": "color:#B3452E;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "endgame",
+      "chess",
+      "club",
+      "board",
+      "corner",
+      "knight"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "DM Serif Display",
+    "body": "DM Serif Display"
+  },
+  "camera3d": {
+    "ground": "#EFE6D8"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slam",
+    "emphasis": "boxed",
+    "case": "none",
+    "tracking": -0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "right"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic dark ambient low pulse atmospheric",
+      "mood": "moody",
+      "volume": 0.12
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

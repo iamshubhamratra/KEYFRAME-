@@ -1,0 +1,98 @@
+{
+  "name": "lift-off",
+  "renderer": "omelette",
+  "template": "LiftOff",
+  "portraitNative": true,
+  "vibe": "hot-air balloon rising, gore stripes, drifting clouds Portrait-native 9:16 (15 authored beats, 44.4s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#F6D8C3",
+    "ink": "#33232A",
+    "accent": "#D95D39",
+    "a2": "#9FC4D8"
+  },
+  "fonts": [
+    "Chonburi",
+    "Prompt"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F6D8C3",
+    "ink": "#33232A"
+  },
+  "motion": {
+    "cut": "inkblot",
+    "drift": 1.11
+  },
+  "fx": {
+    "canvas": "paper",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#D95D39",
+      "#9FC4D8"
+    ],
+    "extras": [
+      "#FDF0E4",
+      "#FFFFFF",
+      "#D8B49B"
+    ],
+    "emphasisCss": "color:#D95D39;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "lift",
+      "hot-air",
+      "balloon",
+      "rising",
+      "gore",
+      "stripes"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Chonburi",
+    "body": "Prompt"
+  },
+  "camera3d": {
+    "ground": "#F6D8C3"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "char-pop",
+    "emphasis": "glow",
+    "case": "none",
+    "tracking": -0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "warm minimal uplifting ambient light modern",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

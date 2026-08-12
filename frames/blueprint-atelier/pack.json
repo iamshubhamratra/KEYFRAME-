@@ -11,8 +11,8 @@
     "red": "#FF5F5F"
   },
   "fonts": [
-    "IBM Plex Mono",
-    "Space Grotesk"
+    "Alfa Slab One",
+    "IBM Plex Mono"
   ],
   "surface": {
     "flat": false,
@@ -55,33 +55,33 @@
     ]
   },
   "typography": {
-    "display": "Space Grotesk"
+    "display": "Alfa Slab One"
   },
   "camera3d": {
     "ground": "#123659"
   },
   "textfx": {
-    "enter": "typewriter",
-    "emphasis": "gradient",
+    "enter": "spring",
+    "emphasis": "volt",
     "case": "upper",
-    "tracking": 0.01,
-    "weight": 700,
-    "sizeScale": 1.0,
+    "tracking": -0.035,
+    "weight": 900,
+    "sizeScale": 1.12,
     "align": "center"
   },
   "audio": {
     "music": {
-      "query": "minimal tech ambient focus precise",
-      "mood": "minimal",
+      "query": "stomp claps big drums anthemic energetic build",
+      "mood": "energetic",
       "volume": 0.14
     },
     "sfx": {
-      "style": "pencil strokes, typewriter keys, drafting slides and soft stamps",
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
       "palette": [
-        "typewriter key",
-        "pencil sketch",
-        "whoosh transition",
-        "stamp thud"
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
       ]
     }
   }

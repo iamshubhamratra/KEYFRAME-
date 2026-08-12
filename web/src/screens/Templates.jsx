@@ -5,8 +5,27 @@ import { PACK_LORE, PACK_ORDER, loreFor } from "../packlore.js";
 
 // Frame packs in the v2 voice: paper page, scene pill, white cards with a
 // color spine per pack. Hovering fades the pack's real motion preview in.
+// The two orientation groups, presented as side-by-side TABS rather than two
+// stacked sections. Stacking buried the 9:16 packs under ~56 widescreen cards, and
+// true side-by-side COLUMNS would be worse: the split is heavily lopsided, so one
+// column would run for pages while the other sat nearly empty. Tabs put the two
+// options next to each other while each grid still gets the full page width.
+const ORIENTATIONS = [
+  {
+    key: "horizontal", tagc: "#e832a8", label: "Horizontal", ratio: "16:9",
+    title: "Widescreen", blurb: "Landscape films for sites, product demos, YouTube and ads.",
+    min: 310,
+  },
+  {
+    key: "vertical", tagc: "#7a5cff", label: "Vertical", ratio: "9:16",
+    title: "Reels & Stories", blurb: "Portrait-native packs built for Reels, Shorts, TikTok and Stories.",
+    min: 230,
+  },
+];
+
 export default function Templates({ onUseStyle }) {
   const [packs, setPacks] = useState(null);
+  const [tab, setTab] = useState("horizontal");
 
   useEffect(() => {
     listFrames()
@@ -15,6 +34,20 @@ export default function Templates({ onUseStyle }) {
   }, []);
 
   const list = packs || orderPacks([]);
+  // Split by NATIVE aspect: a pack belongs to the Vertical section only when its
+  // own art is 9:16 (`portrait`, derived in /api/frames from the pack's poster
+  // dimensions). Every pack can RENDER 9:16, but listing them all here is not the
+  // same thing — it puts landscape preview art inside portrait cards, which is
+  // precisely the mixed-aspect problem this split was introduced to fix. A pack
+  // becomes vertical by shipping vertical art, not by being capable of it.
+  const groups = {
+    horizontal: list.filter((p) => !p.portrait),
+    vertical: list.filter((p) => p.portrait),
+  };
+  // Never strand the user on an empty tab (e.g. a deploy with no portrait packs).
+  const activeKey = groups[tab]?.length ? tab : "horizontal";
+  const active = ORIENTATIONS.find((o) => o.key === activeKey) || ORIENTATIONS[0];
+  const shown = groups[activeKey] || [];
 
   return (
     <div>
@@ -30,13 +63,57 @@ export default function Templates({ onUseStyle }) {
       </section>
 
       <section style={{ maxWidth: 1200, margin: "0 auto", padding: "0 clamp(16px,4vw,60px) clamp(70px,10vw,120px)" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(310px,1fr))", gap: 18 }}>
-          {list.map((p, i) => (
-            <PackCard key={p.name} pack={p} delay={(i % 3) * 0.07} onUse={() => onUseStyle?.(p.name)} />
+        <div role="tablist" aria-label="Template orientation"
+          style={{ display: "flex", gap: 10, flexWrap: "wrap", borderTop: "1px solid rgba(23,19,14,.10)", paddingTop: 22, margin: "0 0 20px" }}>
+          {ORIENTATIONS.map((o) => (
+            <OrientationTab key={o.key} o={o} count={groups[o.key].length}
+              selected={o.key === activeKey} onSelect={() => setTab(o.key)} />
           ))}
         </div>
+
+        <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "clamp(24px,3.4vw,40px)", margin: "0", color: "var(--color-ink)", letterSpacing: "-.02em" }}>
+          {active.title}
+        </h2>
+        <p style={{ color: "var(--color-dim)", maxWidth: 520, margin: "8px 0 22px", lineHeight: 1.55, fontSize: 14.5 }}>{active.blurb}</p>
+
+        {/* keyed on the tab so switching re-runs the card entrance animation */}
+        <motion.div key={activeKey}
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28, ease: "easeOut" }}
+          id={`panel-${activeKey}`} role="tabpanel" aria-labelledby={`tab-${activeKey}`}
+          style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${active.min}px,1fr))`, gap: 18 }}>
+          {shown.map((p, i) => (
+            <PackCard key={p.name} pack={p} portrait={activeKey === "vertical"}
+              delay={(i % 3) * 0.07} onUse={() => onUseStyle?.(p.name)} />
+          ))}
+        </motion.div>
       </section>
     </div>
+  );
+}
+
+// One orientation tab: the pack's scene-pill voice, filled when selected. Carries
+// its own count so the choice is informed before switching.
+function OrientationTab({ o, count, selected, onSelect }) {
+  return (
+    <button type="button" role="tab" id={`tab-${o.key}`}
+      aria-selected={selected} aria-controls={`panel-${o.key}`}
+      onClick={onSelect}
+      style={{
+        cursor: "pointer", font: "inherit", display: "inline-flex", alignItems: "center", gap: 10,
+        padding: "10px 16px", borderRadius: 999,
+        border: `1px solid ${selected ? o.tagc : "rgba(23,19,14,.16)"}`,
+        background: selected ? o.tagc : "transparent",
+        color: selected ? "#fff" : "var(--color-ink)",
+        transition: "background .18s ease, border-color .18s ease, color .18s ease",
+      }}>
+      {/* a literal aspect swatch, so the shape reads before the words do */}
+      <span aria-hidden="true" style={{
+        display: "block", width: o.key === "vertical" ? 9 : 16, height: o.key === "vertical" ? 16 : 9,
+        borderRadius: 2, border: `1.5px solid ${selected ? "#fff" : o.tagc}`, flex: "none",
+      }} />
+      <span style={{ fontWeight: 700, fontSize: 14, letterSpacing: ".01em" }}>{o.label}</span>
+      <span style={{ fontSize: 12.5, opacity: selected ? 0.85 : 0.55, letterSpacing: ".06em" }}>{o.ratio} · {count}</span>
+    </button>
   );
 }
 
@@ -49,7 +126,7 @@ function orderPacks(serverPacks) {
 }
 
 // One pack card — v2 anatomy: white card, color spine, scanlined preview.
-export function PackCard({ pack, delay = 0, onUse, compact = false }) {
+export function PackCard({ pack, delay = 0, onUse, compact = false, portrait = false }) {
   const lore = loreFor(pack.name);
   const vidRef = useRef(null);
   const [hover, setHover] = useState(false);
@@ -81,10 +158,11 @@ export function PackCard({ pack, delay = 0, onUse, compact = false }) {
       <span className="spine" style={{ "--spine": lore.accent, zIndex: 5 }} />
 
       {/* preview — pack bg + gradient + chip dots + demo type + scanlines.
-          16/9 matches the preview clips exactly: with the old 16/10 box,
-          object-fit:cover cropped ~11% off the sides — hiding the packs'
-          corner furniture (depth gauge, frame counter, scroll tabs). */}
-      <div style={{ aspectRatio: "16/9", position: "relative", overflow: "hidden", background: lore.bg, display: "grid", placeItems: "center" }}>
+          Aspect follows the pack's native clip: 16/9 for widescreen packs
+          (matches the clip exactly — the old 16/10 box cropped ~11% off the
+          sides, hiding corner furniture), 9/16 for the portrait reel/story
+          packs so their tall clips play uncropped. */}
+      <div style={{ aspectRatio: portrait ? "9/16" : "16/9", position: "relative", overflow: "hidden", background: lore.bg, display: "grid", placeItems: "center" }}>
         <div style={{ position: "absolute", inset: 0, background: lore.grad, opacity: 0.9 }} />
         <div className="film-scan" style={{ opacity: 0.5 }} />
         <div style={{ position: "absolute", top: 12, left: 17, display: "flex", gap: 5, zIndex: 3 }}>

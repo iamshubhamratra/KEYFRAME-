@@ -1,0 +1,92 @@
+{
+  "name": "launch-pop",
+  "renderer": "omelette",
+  "template": "Launch",
+  "vibe": "A product launch in a bright, playful key: reveal, feature, mobile, proof, launch. Warm paper ground, hot orange accent, confident bouncy motion. The friendly sibling to the harder launch packs.",
+  "colors": {
+    "ground": "#FFFDF6",
+    "ink": "#3A352C",
+    "accent": "#F2683C",
+    "a2": "#8FC15A",
+    "a3": "#FFC24C"
+  },
+  "fonts": [
+    "Fredoka",
+    "Nunito"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#FFFDF6"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none"
+  },
+  "skin": {
+    "accents": [
+      "#F2683C",
+      "#8FC15A"
+    ],
+    "extras": [
+      "#FFC24C"
+    ],
+    "emphasisCss": "color:#F2683C;"
+  },
+  "assets": {
+    "photoMod": "",
+    "iconStyle": "line",
+    "keywords": [
+      "launch",
+      "product",
+      "playful",
+      "reveal",
+      "bright"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Fredoka"
+  },
+  "camera3d": {
+    "ground": "#FFFDF6"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "countin",
+    "emphasis": "glow",
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035,
+    "sizeScale": 1.12,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "punchy electronic percussion hard hitting drive",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
+  }
+}

@@ -20,6 +20,9 @@
 
 const { deriveTheme } = require("./scene_kit");
 const E = require("./template_engine");
+// The shared motion vocabulary. Scenes reach for a preset by name rather than
+// writing tweens, so a card here and a card in any other template behave alike.
+const M = require("./motion_presets");
 const { esc, r, rgba, mix, statsOf, breakLines, bullets, fit, mineStat } = E;
 
 // ---- theme -------------------------------------------------------------------
@@ -187,6 +190,14 @@ function uiMock(id, th, land) {
       <div style="display:flex;gap:${land ? 0.8 : 1.4}cqw;">
         ${[th.accent, th.accent2, th.accent3].map((c) => `<div style="flex:1;height:${land ? 4.2 : 7}cqw;border-radius:${land ? 0.7 : 1.2}cqw;background:${rgba(c, 0.13)};border:0.08cqw solid ${rgba(c, 0.3)};"></div>`).join("")}
       </div>
+      <!-- The status the click changes. Its text is REPLACED by the morph preset
+           (motion spec part 1.5): only this token moves, the panel around it
+           holds still, which is what makes a UI look like it is working rather
+           than like a slide advancing. -->
+      <div style="display:flex;align-items:center;gap:${land ? 0.7 : 1.2}cqw;">
+        <span style="width:${land ? 0.7 : 1.2}cqw;height:${land ? 0.7 : 1.2}cqw;border-radius:50%;background:${th.accent};display:block;flex:0 0 auto;"></span>
+        <span id="${id}-status" style="font-family:${th.bodyStack};font-weight:600;font-size:${land ? 1 : 1.7}cqw;letter-spacing:0.04em;color:${th.ink};white-space:nowrap;"></span>
+      </div>
       <div style="flex:1;display:flex;align-items:flex-end;gap:${land ? 0.7 : 1.2}cqw;">
         ${cols.map((h) => `<div class="${id}-bar" style="flex:1;height:${h}%;border-radius:${land ? 0.35 : 0.6}cqw;transform-origin:bottom center;background:linear-gradient(180deg,${rgba(th.accent, 0.55)},${rgba(th.accent2, 0.28)});"></div>`).join("")}
       </div>
@@ -234,7 +245,6 @@ function keynote(scene, ctx) {
     `tl.fromTo("#${id}-orb",{opacity:0,scale:0.7,y:70},{opacity:1,scale:1,y:0,duration:0.95,ease:"power3.out"},${T});`,
     `tl.to("#${id}-orb",{y:-16,scale:1.06,duration:2.3,ease:"sine.inOut",yoyo:true,repeat:reps(${r(Math.max(0.1, L - 1.2))},2.3)},${r(T + 1)});`,
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,y:20},{opacity:1,y:0,duration:0.5,ease:"power3.out"},${r(T + 0.2)});` : "",
-    `tl.fromTo(".${id}-line",{opacity:0,y:38},{opacity:1,y:0,duration:0.68,ease:"power3.out",stagger:0.1},${r(T + 0.35)});`,
     `tl.fromTo("#${id}-rule",{scaleX:0},{scaleX:1,duration:0.6,ease:"power3.out"},${r(T + 0.75)});`,
     sub ? `tl.fromTo("#${id}-sub",{opacity:0,y:20},{opacity:1,y:0,duration:0.55,ease:"power2.out"},${r(T + 0.85)});` : "",
   ];
@@ -248,6 +258,10 @@ function productframe(scene, ctx, asset) {
   const body = fit(String(scene.body || scene.subtext || ""), 130);
   const hasList = Array.isArray(scene.chips) || Array.isArray(scene.onScreenText) || Array.isArray(scene.bullets);
   const ticks = hasList ? bullets(scene, 2).map((b) => fit(String(b), 34)) : [];
+  // The tokens the mock's status line steps through. Short by necessity — this
+  // is a UI label, not a sentence — so anything long is left out rather than
+  // truncated into nonsense.
+  const statusSteps = bullets(scene, 4).map((b) => fit(String(b), 18).toUpperCase()).filter((b) => b.length > 2);
   const cardLeft = variant % 2 === 1;
   const size = headSize(lines, land ? 36 : 76, land ? 3.6 : 6.4);
   const shot = asset && asset.path;
@@ -285,14 +299,31 @@ function productframe(scene, ctx, asset) {
   const s = [
     `tl.fromTo("#${id}-glow",{opacity:0,scale:0.9},{opacity:1,scale:1,duration:0.8,ease:"power2.out"},${r(T + 0.2)});`,
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,y:18},{opacity:1,y:0,duration:0.45,ease:"power3.out"},${r(T + 0.18)});` : "",
-    `tl.fromTo(".${id}-line",{opacity:0,y:30},{opacity:1,y:0,duration:0.6,ease:"power3.out",stagger:0.09},${r(T + 0.3)});`,
     body ? `tl.fromTo("#${id}-body",{opacity:0,y:18},{opacity:1,y:0,duration:0.5,ease:"power2.out"},${r(T + 0.6)});` : "",
     ticks.length ? `tl.fromTo(".${id}-tick",{opacity:0,x:-22},{opacity:1,x:0,duration:0.45,ease:"power3.out",stagger:0.12},${r(T + 0.8)});` : "",
     ticks.length ? `tl.fromTo(".${id}-ic",{strokeDashoffset:100},{strokeDashoffset:0,duration:0.4,ease:"power2.out",stagger:0.12},${r(T + 0.95)});` : "",
-    `tl.fromTo("#${id}-card",{opacity:0,y:56,scale:0.955},{opacity:1,y:0,scale:1,duration:0.8,ease:"power3.out"},${r(T + 0.28)});`,
-    `tl.to("#${id}-card",{y:-12,duration:2.4,ease:"sine.inOut",yoyo:true,repeat:reps(${r(Math.max(0.1, L - 1.4))},2.4)},${r(T + 1.15)});`,
     shot ? `tl.fromTo("#${id}-img",{scale:1.07},{scale:1,duration:${r(Math.max(1, L - 0.8))},ease:"sine.out"},${r(T + 0.6)});` : "",
     shot ? "" : `tl.fromTo(".${id}-bar",{scaleY:0},{scaleY:1,duration:0.6,ease:"power3.out",stagger:0.07},${r(T + 0.7)});`,
+    // ---- UI MICROINTERACTION (motion spec parts 2 & 6) -----------------------
+    // A cursor travels into the product frame, presses, and leaves a ripple —
+    // and only THEN does the UI answer. The order matters: a screen that reacts
+    // before the click reads as animating itself, which is the "static
+    // screenshot with effects on it" look the spec is trying to kill.
+    ...M.cursorClickRipple(`#${id}-card`, r(T + 0.9), {
+      x: land ? 250 : 300, y: land ? 150 : 240,
+    }),
+    // The answer to that click. A real screenshot scrolls (it is a long page in
+    // a short frame); the drawn mock re-draws its chart bars.
+    ...(shot
+      ? M.scrollReveal(`#${id}-img`, r(T + 1.75), { dist: 0, to: land ? -46 : -70, dur: Math.max(1, L - 2.2) })
+      : [`tl.fromTo(".${id}-bar",{scaleY:0.55},{scaleY:1,duration:0.5,ease:"back.out(2)",stagger:0.05},${r(T + 1.75)});`]),
+    // …and the status token steps through the scene's own points as it works.
+    // Only runs on the drawn mock: a real screenshot already has its own UI, and
+    // a second status line floating over it would read as a bug.
+    ...(!shot && statusSteps.length
+      ? M.textMorph(`#${id}-status`, r(T + 1.7), statusSteps,
+        { hold: Math.max(0.5, (L - 2.4) / statusSteps.length - 0.34) })
+      : []),
   ];
   return { html, s };
 }
@@ -331,8 +362,6 @@ function featuretrio(scene, ctx) {
     </div>`;
   const s = [
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,y:18},{opacity:1,y:0,duration:0.45,ease:"power3.out"},${r(T + 0.15)});` : "",
-    `tl.fromTo(".${id}-line",{opacity:0,y:30},{opacity:1,y:0,duration:0.6,ease:"power3.out",stagger:0.09},${r(T + 0.28)});`,
-    `tl.fromTo(".${id}-card",{opacity:0,y:44,scale:0.96},{opacity:1,y:0,scale:1,duration:0.66,ease:"power3.out",stagger:0.13},${r(T + 0.6)});`,
     `tl.fromTo(".${id}-ic",{strokeDashoffset:100},{strokeDashoffset:0,duration:0.55,ease:"power2.out",stagger:0.13},${r(T + 0.9)});`,
   ];
   return { html, s };
@@ -375,7 +404,6 @@ function metrics(scene, ctx) {
       s: [
         `tl.fromTo("#${id}-orb",{opacity:0,scale:0.85},{opacity:1,scale:1,duration:0.9,ease:"power2.out"},${T});`,
         kicker ? `tl.fromTo("#${id}-kick",{opacity:0,y:18},{opacity:1,y:0,duration:0.45,ease:"power3.out"},${r(T + 0.15)});` : "",
-        `tl.fromTo(".${id}-line",{opacity:0,y:34},{opacity:1,y:0,duration:0.64,ease:"power3.out",stagger:0.09},${r(T + 0.3)});`,
         `tl.fromTo("#${id}-rule",{scaleX:0},{scaleX:1,duration:0.55,ease:"power3.out"},${r(T + 0.7)});`,
         body ? `tl.fromTo("#${id}-body",{opacity:0,y:20},{opacity:1,y:0,duration:0.55,ease:"power2.out"},${r(T + 0.8)});` : "",
         pills.length ? `tl.fromTo(".${id}-pill",{opacity:0,y:22},{opacity:1,y:0,duration:0.5,ease:"power3.out",stagger:0.12},${r(T + 0.8)});` : "",
@@ -404,10 +432,14 @@ function metrics(scene, ctx) {
     </div>`;
   const s = [
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,y:18},{opacity:1,y:0,duration:0.45,ease:"power3.out"},${r(T + 0.15)});` : "",
-    `tl.fromTo(".${id}-line",{opacity:0,y:30},{opacity:1,y:0,duration:0.6,ease:"power3.out",stagger:0.09},${r(T + 0.28)});`,
     `tl.fromTo(".${id}-m",{opacity:0,y:34},{opacity:1,y:0,duration:0.6,ease:"power3.out",stagger:0.14},${r(T + 0.6)});`,
     `tl.fromTo(".${id}-fill",{scaleX:0},{scaleX:1,duration:0.9,ease:"power3.out",stagger:0.14},${r(T + 0.75)});`,
-  ].concat(stats.map((st, k) => `countTxt("#${id}-n${k}",${r(st.v)},${r(T + 0.7 + k * 0.14)},${r(Math.min(1.5, Math.max(0.6, L * 0.45)))},${JSON.stringify(String(st.pre || ""))},${JSON.stringify(String(st.suf || ""))},${st.isFloat ? 10 : 1});`));
+  ].concat(stats.map((st, k) => `countTxt("#${id}-n${k}",${r(st.v)},${r(T + 0.7 + k * 0.14)},${r(Math.min(1.5, Math.max(0.6, L * 0.45)))},${JSON.stringify(String(st.pre || ""))},${JSON.stringify(String(st.suf || ""))},${st.isFloat ? 10 : 1});`))
+    // The figure is the keyword of a stat scene, so it takes the emphasis pulse
+    // the moment the counter lands — scale 1→1.06→1 with a brightness lift, on
+    // that number alone. Timed off the count's own settle, not off the scene.
+    .concat(stats.flatMap((st, k) => M.headlineGlowPulse(`#${id}-n${k}`,
+      r(T + 0.7 + k * 0.14 + Math.min(1.5, Math.max(0.6, L * 0.45))))));
   return { html, s };
 }
 
@@ -451,7 +483,6 @@ function voice(scene, ctx, a) {
     </div>`;
   const s = [
     `tl.fromTo("#${id}-orb",{opacity:0,scale:0.82},{opacity:1,scale:1,duration:0.95,ease:"power2.out"},${T});`,
-    `tl.fromTo("#${id}-card",{opacity:0,y:46,scale:0.965},{opacity:1,y:0,scale:1,duration:0.75,ease:"power3.out"},${r(T + 0.15)});`,
     `tl.fromTo("#${id}-mark",{opacity:0,scale:0.5},{opacity:1,scale:1,duration:0.45,ease:"back.out(2)",transformOrigin:"left top"},${r(T + 0.35)});`,
     `tl.fromTo(".${id}-w",{opacity:0,y:16},{opacity:1,y:0,duration:0.42,ease:"power2.out",stagger:0.035},${r(T + 0.45)});`,
     `tl.fromTo("#${id}-div",{scaleX:0},{scaleX:1,duration:0.6,ease:"power3.out"},${r(T + 1)});`,
@@ -491,7 +522,6 @@ function showcase(scene, ctx, a, b) {
     </div>`;
   const s = [
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,y:18},{opacity:1,y:0,duration:0.45,ease:"power3.out"},${r(T + 0.15)});` : "",
-    `tl.fromTo(".${id}-line",{opacity:0,y:30},{opacity:1,y:0,duration:0.6,ease:"power3.out",stagger:0.09},${r(T + 0.28)});`,
     `tl.fromTo(".${id}-t1",{opacity:0,y:44,scale:0.96},{opacity:1,y:0,scale:1,duration:0.68,ease:"power3.out"},${r(T + 0.55)});`,
     `tl.fromTo(".${id}-t2",{opacity:0,y:44,scale:0.96},{opacity:1,y:0,scale:1,duration:0.68,ease:"power3.out"},${r(T + 0.7)});`,
     `tl.to(".${id}-t1",{y:-9,duration:2.6,ease:"sine.inOut",yoyo:true,repeat:reps(${r(Math.max(0.1, L - 1.5))},2.6)},${r(T + 1.3)});`,
@@ -530,15 +560,32 @@ function signoff(scene, ctx, a) {
     `tl.to("#${id}-orb",{scale:1.07,duration:2.2,ease:"sine.inOut",yoyo:true,repeat:reps(${r(Math.max(0.1, L - 1.2))},2.2)},${r(T + 1)});`,
     logoHtml ? `tl.fromTo("#${id}-logo",{opacity:0,y:-14},{opacity:1,y:0,duration:0.55,ease:"power3.out"},${r(T + 0.1)});` : "",
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,y:18},{opacity:1,y:0,duration:0.45,ease:"power3.out"},${r(T + 0.2)});` : "",
-    `tl.fromTo(".${id}-line",{opacity:0,y:36},{opacity:1,y:0,duration:0.66,ease:"power3.out",stagger:0.1},${r(T + 0.32)});`,
     cta ? `tl.fromTo("#${id}-btn",{opacity:0,y:26,scale:0.88},{opacity:1,y:0,scale:1,duration:0.6,ease:"back.out(1.7)"},${r(T + 0.75)});` : "",
-    cta ? `tl.to("#${id}-btn",{scale:1.035,duration:1.5,ease:"sine.inOut",yoyo:true,repeat:reps(${r(Math.max(0.1, L - 1.5))},1.5)},${r(T + 1.4)});` : "",
+    // The CTA is pressed, not just breathed at (motion spec part 6). A cursor
+    // arrives, the button takes the press, and the glow answers it — the film
+    // ends on the action it is asking for rather than on a pulsing rectangle.
+    ...(cta ? M.cursorClickRipple(`#${id}-btn`, r(T + 1.35), { x: 0, y: 0 }) : []),
+    ...(cta ? M.buttonPress(`#${id}-btn`, r(T + 2.05), { glow: true }) : []),
+    cta ? `tl.to("#${id}-btn",{scale:1.035,duration:1.5,ease:"sine.inOut",yoyo:true,repeat:reps(${r(Math.max(0.1, L - 3.6))},1.5)},${r(T + 2.4)});` : "",
     `tl.fromTo("#${id}-url",{opacity:0,y:16},{opacity:1,y:0,duration:0.5,ease:"power2.out"},${r(T + 1)});`,
   ];
   return { html, s };
 }
 
 const SCENES = { keynote, productframe, featuretrio, metrics, voice, showcase, signoff };
+
+// The ambient bokeh field. Positions/drifts are a fixed table rather than a
+// random scatter on purpose: the renderer captures by seeking, so anything drawn
+// from Math.random() would place these motes differently on every capture and
+// the film would not be reproducible.
+const BOKEH = [
+  { x: 12, y: 22, s: 6.5, dx: 14, dy: -18, d: 9.0, t: 0.0 },
+  { x: 78, y: 16, s: 4.2, dx: -11, dy: 15, d: 11.0, t: 0.6 },
+  { x: 63, y: 71, s: 8.0, dx: 9, dy: -13, d: 10.0, t: 1.2 },
+  { x: 27, y: 78, s: 5.0, dx: -8, dy: -16, d: 12.0, t: 0.3 },
+  { x: 90, y: 52, s: 3.4, dx: -13, dy: 10, d: 8.0, t: 1.8 },
+  { x: 45, y: 38, s: 3.0, dx: 12, dy: 14, d: 13.0, t: 0.9 },
+];
 
 // ---- persistent chrome (keynote deck furniture) -------------------------------
 function chrome({ theme: th, D, brand, count, land }) {
@@ -548,6 +595,14 @@ function chrome({ theme: th, D, brand, count, land }) {
     <div id="bd-wash1" style="position:absolute;left:-22%;top:-30%;width:${land ? 58 : 90}cqw;height:${land ? 58 : 90}cqw;border-radius:50%;background:radial-gradient(circle at 50% 50%,${rgba(th.accent, 0.11)} 0%,${rgba(th.accent, 0.035)} 45%,${rgba(th.accent, 0)} 70%);"></div>
     <div id="bd-wash2" style="position:absolute;right:-24%;bottom:-34%;width:${land ? 66 : 98}cqw;height:${land ? 66 : 98}cqw;border-radius:50%;background:radial-gradient(circle at 50% 50%,${rgba(th.accent2, 0.1)} 0%,${rgba(th.accent2, 0.03)} 48%,${rgba(th.accent2, 0)} 72%);"></div>
     <div style="position:absolute;inset:0;background-image:linear-gradient(${rgba(th.ink, 0.035)} 0.07cqw,transparent 0.07cqw),linear-gradient(90deg,${rgba(th.ink, 0.035)} 0.07cqw,transparent 0.07cqw);background-size:${land ? 5 : 8}cqw ${land ? 5 : 8}cqw;"></div>
+    <!-- AMBIENT (motion spec part 5). The two washes above already drift; these
+         add the depth cues a flat ground cannot give: a slowly rotating conic
+         sheen, a sparse bokeh field, and a fixed grain plate. Grain is a static
+         SVG turbulence (never animated) — animated noise reads as video
+         compression artefacts, and it would also defeat frame caching. -->
+    <div id="bd-sheen" style="position:absolute;left:50%;top:50%;width:${land ? 120 : 170}cqw;height:${land ? 120 : 170}cqw;margin-left:${land ? -60 : -85}cqw;margin-top:${land ? -60 : -85}cqw;border-radius:50%;background:conic-gradient(from 0deg,${rgba(th.accent, 0)} 0deg,${rgba(th.accent, 0.05)} 70deg,${rgba(th.accent2, 0)} 150deg,${rgba(th.accent3, 0.045)} 250deg,${rgba(th.accent, 0)} 360deg);"></div>
+    ${BOKEH.map((b, k) => `<div class="bd-mote" id="bd-mote${k}" style="position:absolute;left:${b.x}%;top:${b.y}%;width:${r(b.s * (land ? 1 : 1.6))}cqw;height:${r(b.s * (land ? 1 : 1.6))}cqw;border-radius:50%;background:radial-gradient(circle at 40% 38%,${rgba(k % 2 ? th.accent2 : th.accent, 0.3)} 0%,${rgba(k % 2 ? th.accent2 : th.accent, 0)} 68%);"></div>`).join("")}
+    <div style="position:absolute;inset:0;opacity:0.038;mix-blend-mode:multiply;background-image:url('data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="140" height="140"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3"/></filter><rect width="140" height="140" filter="url(%23n)"/></svg>`).replace(/'/g, "%27")}');background-size:${land ? 18 : 26}cqw ${land ? 18 : 26}cqw;"></div>
   </div>
   <div id="hud" class="clip" data-start="0" data-duration="__D__" data-track-index="40" data-layout-allow-occlusion style="opacity:0;background:none;">
     <div style="position:absolute;left:${land ? 4 : 5}cqw;top:${land ? 4 : 5}cqw;display:flex;align-items:center;gap:${land ? 0.8 : 1.4}cqw;">
@@ -563,7 +618,12 @@ function chrome({ theme: th, D, brand, count, land }) {
   tl.fromTo("#hud",{opacity:0},{opacity:1,duration:0.5,ease:"power2.out"},0.2);
   tl.fromTo("#hud-prog",{scaleX:0},{scaleX:1,duration:${r(Math.max(1, D))},ease:"none"},0);
   tl.to("#bd-wash1",{x:${land ? 40 : 26},y:26,duration:6,ease:"sine.inOut",yoyo:true,repeat:reps(${r(Math.max(1, D))},6)},0);
-  tl.to("#bd-wash2",{x:${land ? -34 : -22},y:-22,duration:7,ease:"sine.inOut",yoyo:true,repeat:reps(${r(Math.max(1, D))},7)},0);`,
+  tl.to("#bd-wash2",{x:${land ? -34 : -22},y:-22,duration:7,ease:"sine.inOut",yoyo:true,repeat:reps(${r(Math.max(1, D))},7)},0);
+  /* One full, very slow revolution across the film: the sheen never returns to
+     the same angle, so the ground keeps changing without ever calling attention
+     to itself. Linear, and exactly one rotation, so any seek is unambiguous. */
+  tl.fromTo("#bd-sheen",{rotation:0},{rotation:360,duration:${r(Math.max(1, D))},ease:"none",transformOrigin:"50% 50%"},0);
+${BOKEH.map((b, k) => `  tl.to("#bd-mote${k}",{y:${r(b.dy)},x:${r(b.dx)},duration:${r(b.d)},ease:"sine.inOut",yoyo:true,repeat:reps(${r(Math.max(1, D))},${r(b.d)})},${r(b.t)});`).join("\n")}`,
   };
 }
 
@@ -584,7 +644,76 @@ const family = {
   fallbackType: "keynote",
   variants: 2,
   // Bright keynote packs glide — soft push-ins, light blur, never a whip slam.
-  camera: { kinds: ["zoom"], dirs: [0], blur: 9, push: 0.04, zoomIn: 1.1, zoomOut: 1.07 },
+  //
+  // enabled:false hands the scene ARRIVAL to the motion system: the engine's
+  // camo whip/zoom is replaced by the transition presets (depthWipe, panelSlide,
+  // maskWipe, lightPass, cameraPush, rotating so no two consecutive scenes share
+  // one), and the continuous camera move rides .cami through `motion.camera`.
+  // The zoom parameters are kept for reference and for any pack that re-enables it.
+  camera: { enabled: false, kinds: ["zoom"], dirs: [0], blur: 9, push: 0.04, zoomIn: 1.1, zoomOut: 1.07 },
+  // ---- SHARED MOTION SYSTEM (services/motion_presets.js) ----------------------
+  // This family no longer authors its own physics. It publishes WHERE its
+  // headline, card and camera live in a scene, and the engine drives them from
+  // the one preset library: word-stagger blur→sharp on type, 3D rise + float +
+  // light sweep on cards, a continuous camera move per scene.
+  //
+  // ---- SCENE FILL (services/template_engine.js sceneFill) ---------------------
+  // Measured: this family carried ~10 words over ~7% of the frame, so most of the
+  // canvas was bare paper. The scenes' own spare copy (supporting points, a
+  // figure, the subtext) is drawn as a chip row + slow marquee in the lower band.
+  //
+  // Zone per TYPE, because the safe band differs: the text scenes leave the
+  // bottom third empty, the card scenes do not (the card occupies it), and the
+  // closer must stay clean — a CTA with furniture under it stops being a CTA.
+  fill: (type, ctx, scene) => {
+    if (type === "signoff" || type === "voice") return null;      // closer + quote stay bare
+    if (type === "productframe" || type === "showcase") return null; // card owns the band
+    const land = ctx.land;
+    return {
+      left: land ? 7 : 6, right: land ? 7 : 6, bottom: land ? 7 : 10,
+      font: land ? 1.15 : 2.0, max: 3, plate: ctx.theme.ground, ink: ctx.theme.ink,
+      accent: ctx.theme.accent,
+      // featuretrio already prints the bullets as cards — don't repeat them.
+      used: type === "featuretrio" ? bullets(scene || {}, 3) : [],
+    };
+  },
+  // Every scene function's own `.line` / `-card` entrance tweens were removed
+  // when this was added — two timelines on one property fight, and the loser is
+  // whichever the browser applies second.
+  motion: {
+    heroType: "keynote",
+    // Per-scene tokens. The defaults rotate camera and transition by index; this
+    // adds the two treatments that are design decisions rather than mechanics:
+    // the hero opens on the outline→fill headline, and only scenes that actually
+    // own a card get the card entrance/idle (a text scene given a card token
+    // animates nothing and silently loses its camera slot).
+    tokens: (type, i) => {
+      const hasCard = type === "productframe" || type === "featuretrio"
+        || type === "voice" || type === "showcase";
+      return {
+        // The film's two hero moments get the two signature type treatments —
+        // the opener fills its first word from an outline, the close builds
+        // character by character. Everything between is the house word stagger,
+        // so the signatures stay signatures.
+        text: type === "keynote" ? "outlineFillReveal"
+          : type === "signoff" ? "characterReveal" : "wordStaggerBlur",
+        enter: hasCard ? "cardRise3D" : "none",
+        idle: hasCard ? "floatSoft" : "none",
+        camera: M.CAMERA_MOVES[i % M.CAMERA_MOVES.length],
+        transition: M.TRANSITIONS[i % M.TRANSITIONS.length],
+      };
+    },
+    // headBlock() emits one .{id}-line div per headline line; the runtime word
+    // splitter turns their text into per-word spans without the family having to
+    // change its markup.
+    text: (id) => `.${id}-line`,
+    // Scenes use #id-card for a single card and .id-card for a row of them; one
+    // selector covers both, and the stagger only shows when there are several.
+    card: (id) => `#${id}-card, .${id}-card`,
+    // The engine's own .camo owns the entry whip/zoom, so the continuous move
+    // rides the inner layer and the two never contend.
+    camera: (id) => `#${id}-cami`,
+  },
 };
 
 function buildComposition(opts) { return E.buildFilm(family, opts); }

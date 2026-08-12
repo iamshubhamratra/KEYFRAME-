@@ -118,6 +118,22 @@ function collectTextBoxes(frameW, frameH) {
     if (effectiveOpacity(el) < 0.9) continue;
     const r = el.getBoundingClientRect();
     if (r.width < 8 || r.height < 8) continue;
+    // CLIPPED OUT by an ancestor's overflow. An odometer digit roll is a column
+    // of 0-9 inside a masked window: every digit but one is scrolled out of view,
+    // yet each still reports a bounding box and still has a text node. Measuring
+    // them samples the digit that IS visible (same colour) as their backdrop and
+    // reports 1:1 on a roll that reads perfectly.
+    let clipped = false;
+    for (let p = el.parentElement; p && p !== document.body && !clipped; p = p.parentElement) {
+      const ps = getComputedStyle(p);
+      if (!/hidden|clip|auto|scroll/.test(ps.overflow + ps.overflowX + ps.overflowY)) continue;
+      const pr = p.getBoundingClientRect();
+      const ix = Math.min(r.right, pr.right) - Math.max(r.left, pr.left);
+      const iy = Math.min(r.bottom, pr.bottom) - Math.max(r.top, pr.top);
+      // Needs most of the glyph inside the window to count as shown.
+      if (ix <= 0 || iy <= 0 || (ix * iy) / (r.width * r.height) < 0.6) clipped = true;
+    }
+    if (clipped) continue;
     if (r.x + r.width <= 0 || r.y + r.height <= 0 || r.x >= frameW || r.y >= frameH) continue;
     // NOTE: occlusion is NOT gated here. probeFrames decides visibility from
     // pixels: text covered by an OPAQUE layer isn't painted with its declared
@@ -292,9 +308,49 @@ async function probeFrames(aUrl, bUrl, boxes, frameW, frameH) {
       // correctly flags near-background low-contrast text that a pixel-only diff
       // would miss). Presence check: the glyphs must actually be painted with that
       // color in frame A — if not, the text is covered by an opaque layer → skip.
+      const nearFg = [];
       const idx = [];
-      for (let k = 0; k < n; k++) if (dist2(aPx[k], box.fg) < NEAR_DIST2) idx.push(k);
-      if (idx.length / n < 0.003 || idx.length < 4) continue; // not painted here
+      for (let k = 0; k < n; k++) {
+        if (dist2(aPx[k], box.fg) >= NEAR_DIST2) continue;
+        nearFg.push(k);
+        // …and the pixel must actually BE a glyph. Frame B only makes TEXT
+        // transparent — borders, rules and backgrounds stay painted. So an
+        // element whose own furniture is drawn in the text colour (a monogram
+        // disc with a same-colour ring, a numbered badge, an underline) had that
+        // furniture counted as "glyph", and because it is identical in both
+        // frames it then became its own backdrop: measured 1.28:1 on a monogram
+        // that is plainly legible, across nine packs. A real glyph pixel CHANGES
+        // when the text is hidden.
+        if (dist2(aPx[k], bPx[k]) <= INK_DIST2) continue;
+        idx.push(k);
+      }
+      if (idx.length / n < 0.003 || idx.length < 4) {
+        // Nothing changed when the text was hidden. Two very different causes:
+        //   - the text is COVERED by an opaque layer → not this element's problem,
+        //     and the box will hold few pixels matching the declared fill; skip.
+        //   - the text is the SAME COLOUR as what it sits on → the box is full of
+        //     fill-coloured pixels that never change. That is unreadable text and
+        //     must still fail, or this guard would hide the worst case of all.
+        // The discriminator is whether ANYTHING in the box changed when the text
+        // was hidden — not whether fill-coloured pixels exist. Fill-coloured
+        // decoration is common (a light beam crossing a white line, a ring in the
+        // ink colour) and firing on that reported 1:1 for a line I had verified
+        // by screenshot as perfectly legible. If nothing anywhere changed, the
+        // text truly is not being painted against its surroundings.
+        let changedAny = 0;
+        for (let k = 0; k < n; k++) if (dist2(aPx[k], bPx[k]) > INK_DIST2) { changedAny++; if (changedAny >= 4) break; }
+        if (changedAny < 4 && nearFg.length / n >= 0.02) {
+          const flat = medianRGB(nearFg.map((k) => bPx[k]));
+          results.push({
+            selector: box.selector, text: box.text, ratio: 1,
+            needed: box.large ? 3 : 4.5, large: box.large, pass: false,
+            fg: [Math.round(box.fg[0]), Math.round(box.fg[1]), Math.round(box.fg[2])],
+            bg: [Math.round(flat[0]), Math.round(flat[1]), Math.round(flat[2])],
+            transparentFill: !!box.transparentFill,
+          });
+        }
+        continue;
+      }
       // Backdrop is LOCAL — the hidden-frame pixels right under the glyph strokes,
       // not the whole box (which a bright fill/button around the text would bias).
       bg = medianRGB(idx.map((k) => bPx[k]));
@@ -350,6 +406,19 @@ async function contrastCheck(jobDir, { samples = 5, timeoutMs = 120000 } = {}) {
     // Read the composition's own canvas size + duration from the root element,
     // so we seek/measure in the composition's coordinate space.
     await page.goto(`http://127.0.0.1:${served.port}/`, { waitUntil: "load", timeout: Math.max(1, deadline - Date.now()) });
+    // WAIT FOR A *LIVE* ROOT. The bundled-template packs (omelette_adapter) mount
+    // React AFTER load: the bundler wipes <body> — taking the static composition
+    // contract with it — and boot() rebuilds the real root a moment later. Reading
+    // on `load` therefore lands in the window where NEITHER exists, so this
+    // returned "no composition root" and the ENTIRE deterministic fix chain
+    // (contrast + layout + identity + background) was a silent no-op on every one
+    // of those packs. Measured: every omelette film shipped with contrast
+    // "checked: false" while QA reported blockers nothing had tried to fix.
+    // A zero-height root means the film has not painted yet, so require a real box.
+    await page.waitForFunction(() => {
+      const r = document.querySelector("[data-composition-id]");
+      return !!(r && r.clientHeight > 0 && r.clientWidth > 0);
+    }, { timeout: Math.min(20000, Math.max(1, deadline - Date.now())), polling: 200 }).catch(() => { /* fall through to the skip below */ });
     const meta = await page.evaluate(() => {
       const root = document.querySelector("[data-composition-id]");
       if (!root) return null;

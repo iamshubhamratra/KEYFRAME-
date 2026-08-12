@@ -1,0 +1,92 @@
+{
+  "name": "fight-night",
+  "renderer": "omelette",
+  "template": "Fight",
+  "vibe": "Fight night. Arena spotlights, a VS split, impact bursts and KO flashes, speed lines and screen-shake cuts, closing on a judges' scorecard. Built for head-to-head comparisons and anything that needs a challenger's swagger.",
+  "colors": {
+    "ground": "#0B0B10",
+    "ink": "#F5EFE6",
+    "accent": "#E23130",
+    "a2": "#F5C542",
+    "a3": "#8A8496"
+  },
+  "fonts": [
+    "Anton",
+    "Oswald"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#0B0B10"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none"
+  },
+  "skin": {
+    "accents": [
+      "#E23130",
+      "#F5C542"
+    ],
+    "extras": [
+      "#8A8496"
+    ],
+    "emphasisCss": "color:#E23130;"
+  },
+  "assets": {
+    "photoMod": "",
+    "iconStyle": "line",
+    "keywords": [
+      "fight",
+      "arena",
+      "versus",
+      "sport",
+      "bold"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Anton"
+  },
+  "camera3d": {
+    "ground": "#0B0B10"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "char-pop",
+    "emphasis": "marker",
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035,
+    "sizeScale": 1.12,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "trap percussion hard claps energetic hype",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
+  }
+}

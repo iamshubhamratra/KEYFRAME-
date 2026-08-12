@@ -9,6 +9,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const { subjectQuery } = require("./query_terms");
 
 const API = "https://api.iconify.design";
 
@@ -97,21 +98,55 @@ function iconQueryTerms(query) {
   return terms.slice(0, 4);
 }
 
+// PICK THE ICON THE QUERY ASKED FOR, NOT A RANDOM ONE.
+//
+// This used to draw uniformly from the top 6 hits "for variety". An icon is
+// frequently the ONLY graphic in its scene, so a bad draw is a whole beat that
+// contradicts the narration — and Iconify's top 6 for a term routinely mixes
+// sets and variants ("chart-bar", "chart-bar-horizontal-fill", "chart-pie",
+// something unrelated that carries the term as an alias). Rank instead: how many
+// of the query's words the icon NAME actually carries, then the plainest name.
+//
+// Zero overlap is NOT a rejection — Iconify matches aliases and categories too
+// ("revenue" legitimately returns lucide:banknote), so a no-overlap icon can be
+// the right one. It just sorts below anything that names the subject outright.
+function rankIcons(icons, wanted) {
+  const want = new Set(wanted);
+  return icons
+    .map((iconId, i) => {
+      const name = String(iconId).split(":")[1] || "";
+      const parts = name.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+      const hits = parts.filter((p) => want.has(p)).length;
+      // Canonical names are short: "chart-bar" IS the bar chart, everything
+      // longer is a variant of it. Break ties toward the plainer name, then
+      // toward Iconify's own order.
+      return { iconId, score: hits * 100 - parts.length * 2 - name.length * 0.1, i };
+    })
+    .sort((a, b) => b.score - a.score || a.i - b.i)
+    .map((x) => x.iconId);
+}
+
 // Fetch ONE icon SVG for a need. Returns { path, iconId } or null. `outputPath`
 // is a raster path (.jpg) from the caller; we rewrite the extension to .svg.
 async function fetchIcon({ query, color, iconStyle, outputPath }) {
   const svgPath = outputPath.replace(/\.[^.]+$/, "") + ".svg";
-  for (const term of iconQueryTerms(query)) {
+  // Strip camera/motion direction with the same cleaner the stock path uses
+  // before the terms are derived; keep the raw query when nothing survives, since
+  // an approximate icon still beats an empty slot.
+  const cleaned = subjectQuery(query) || query;
+  const wanted = String(cleaned).toLowerCase().match(/[a-z]{3,}/g) || [];
+  for (const term of iconQueryTerms(cleaned)) {
     const icons = await searchIcons({ query: term, iconStyle });
     if (!icons.length) continue;
-    // Sample among the top few for variety (the curated library does the same).
-    const pool = icons.slice(0, Math.min(icons.length, 6));
-    const pick = pool[Math.floor(Math.random() * pool.length)];
-    try {
-      const p = await downloadSvg(pick, color, svgPath);
-      if (p) return { path: p, iconId: pick };
-    } catch (e) {
-      console.warn(`[iconify] download failed for ${pick}: ${e.message}`);
+    // Try the best few in order — a download failure falls to the next-best icon
+    // for the same term rather than abandoning the term entirely.
+    for (const pick of rankIcons(icons, wanted.concat(term.split(/\s+/))).slice(0, 3)) {
+      try {
+        const p = await downloadSvg(pick, color, svgPath);
+        if (p) return { path: p, iconId: pick };
+      } catch (e) {
+        console.warn(`[iconify] download failed for ${pick}: ${e.message}`);
+      }
     }
   }
   return null;

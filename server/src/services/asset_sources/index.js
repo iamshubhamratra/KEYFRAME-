@@ -66,7 +66,7 @@ function hasProviderFor(type) {
 // curated entries already used in this video so a film never reuses a file.
 // `curatedOnly` (CURATED_ONLY_IMAGES override) forbids web stock AND the
 // web-stock cache: the need is served by the curated library or not at all.
-async function acquire({ query, fallbackQueries = [], type, orientation, outputPath, tracker, kindPref, excludeIds, curatedOnly = false, iconColor, iconStyle, styleKeywords, vectorPrefer }) {
+async function acquire({ query, fallbackQueries = [], type, orientation, outputPath, tracker, kindPref, excludeIds, curatedOnly = false, iconColor, iconStyle, styleKeywords, vectorPrefer, subject = null }) {
   const queries = [query, ...fallbackQueries].filter(Boolean);
 
   // 0 — the curated local library (user's pre-loaded packs), stills only.
@@ -185,7 +185,7 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
     // ONLY by the gap-filler that made them — otherwise a job with image
     // generation switched off would still be served AI imagery from the cache.
     const hits = localDb.search({
-      query: q, type, orientation,
+      query: q, type, orientation, subject,
       sourceRe: PIXABAY_ONLY ? PIXABAY_SOURCE_RE : null,
       excludeSourceRe: GENERATED_SOURCE_RE,
     });

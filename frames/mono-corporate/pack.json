@@ -1,5 +1,6 @@
 {
   "name": "mono-corporate",
+  "renderer": "bright-minimal",
   "vibe": "Clean minimal enterprise system for Ledger, a B2B finance platform. Atoms are sacred — near-white paper grounds with a faint 1px grid, generous open whitespace, crisp hairline dividers, small IBM Plex Mono caps labels, and ONE saturated dee",
   "colors": {
     "paper": "#FFFFFF",
@@ -10,7 +11,7 @@
     "accent": "#1E5BFF"
   },
   "fonts": [
-    "Inter",
+    "Syne",
     "IBM Plex Mono"
   ],
   "surface": {
@@ -46,14 +47,34 @@
     ]
   },
   "typography": {
-    "display": "Inter"
+    "display": "Syne"
   },
   "camera3d": {
     "ground": "#0E1116"
   },
   "textfx": {
-    "enter": "slide",
-    "emphasis": "underline-grow",
-    "align": "left"
+    "enter": "char-pop",
+    "emphasis": "marker",
+    "align": "left",
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035,
+    "sizeScale": 1.12
+  },
+  "audio": {
+    "music": {
+      "query": "trap percussion hard claps energetic hype",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
   }
 }

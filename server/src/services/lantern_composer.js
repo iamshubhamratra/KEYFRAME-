@@ -285,15 +285,22 @@ function feature(scene, ctx, a) {
 function montage(scene, ctx, a, b) {
   const { id, T, L, theme: th, land } = ctx;
   const tiles = (Array.isArray(scene.tiles) && scene.tiles.length ? scene.tiles : bullets(scene, 4));
-  const labels = [0, 1, 2, 3].map((i) => fit(String(tiles[i] || ["The gates", "Food row", "Main stage", "River launch"][i]), 16));
+  // Label comes from the IMAGE that lands in the tile, not from the script in
+  // parallel — see E.labelForAsset. A card captioned "Inbox" showing the Planner
+  // page is a mismatch a viewer notices immediately.
   // Four tiles, four assets: the engine now fills every declared slot, and a
   // short pool cycles rather than leaving a hole — a repeated screenshot reads far
   // better than a blank white card.
   const pool = (Array.isArray(ctx.media) && ctx.media.length ? ctx.media : [a, b]).filter(Boolean);
   const media = [0, 1, 2, 3].map((k) => (pool.length ? pool[k % pool.length] : null));
+  const labels = [0, 1, 2, 3].map((i) =>
+    E.labelForAsset(media[i], tiles[i] || ["The gates", "Food row", "Main stage", "River launch"][i], 16));
   const tilts = [-4, 3, 2.5, -3];
-  const tileH = land ? 12.5 : 26.5;
-  const cells = [0, 1, 2, 3].map((i) =>
+  const tileH = land ? 12.5 : 26.5;  // PORTRAIT: two tiles at FULL width rather than four at half. A 2x2 wall in
+  // 9:16 puts each plate under ~330px, where a product screenshot stops being
+  // readable; stacked full width they get the whole frame. Fewer, bigger.
+
+  const cells = (land ? [0, 1, 2, 3] : [0, 1]).map((i) =>
     `<div class="${id}-tl" style="opacity:0;">
       <div style="transform:rotate(${tilts[i]}deg);transform-origin:50% -${land ? 12 : 27.8}cqw;">
         <div class="${id}-sw" style="position:relative;height:${tileH}cqw;">${lanternCard(slot(`${id}-img${i}`, media[i], th, { radius: 10, label: labels[i] }), th, land, { glow: 0.45, string: true })}</div>
@@ -307,7 +314,7 @@ function montage(scene, ctx, a, b) {
        </div>`
     : `<div style="position:absolute;left:6.3cqw;right:6.3cqw;top:27.8cqw;">
          ${serifLines(id, scene.headline, "Four corners|of the night.", 92, th, land, { mark: scene.mark || scene.emphasis })}
-         <div style="margin-top:${q(54, land)}cqw;display:grid;grid-template-columns:1fr 1fr;gap:${q(30, land)}cqw;">${cells}</div>
+         <div style="margin-top:${q(54, land)}cqw;display:grid;grid-template-columns:1fr;gap:${q(30, land)}cqw;">${cells}</div>
        </div>`;
   const s = [
     camera("swayr", ctx),

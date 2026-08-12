@@ -1,5 +1,6 @@
 {
   "name": "longshot-cinema",
+  "renderer": "cinema",
   "vibe": "one-take cinema: graphite stage, tungsten amber + beam blue, letterboxed continuous camera travel with live timecode, pop-up stat figures, animated product mocks, light sweeps — for trailers, hype reels, cinematic announcements",
   "colors": {
     "graphite": "#101318",
@@ -11,7 +12,7 @@
     "slate": "#8B94A7"
   },
   "fonts": [
-    "Inter",
+    "Anton",
     "Space Grotesk"
   ],
   "surface": {
@@ -52,14 +53,34 @@
     ]
   },
   "typography": {
-    "display": "Space Grotesk"
+    "display": "Anton"
   },
   "camera3d": {
     "ground": "#06070A"
   },
   "textfx": {
-    "enter": "line-wipe",
-    "emphasis": "gradient",
-    "align": "left"
+    "enter": "glitch",
+    "emphasis": "bracket",
+    "align": "left",
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035,
+    "sizeScale": 1.12
+  },
+  "audio": {
+    "music": {
+      "query": "hand claps foot stomps rock energetic anthem",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
   }
 }

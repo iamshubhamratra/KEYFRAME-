@@ -41,7 +41,7 @@ export default function App() {
     setAutopilot(false); // landing quick-start always pauses at the script
     startedRef.current = true; setStarting(true);
     try {
-      const fields = { duration: 30, orientation: "horizontal", quality: "1080p", framePack: "auto", captions: false, composeMode: "premium",
+      const fields = { duration: 30, orientation: "horizontal", quality: "1080p", framePack: "auto", captions: false, composeMode: "standard",
         ...(hasPrompt ? { prompt: prompt.trim() } : {}), ...(hasUrl ? { websiteUrl: url.trim() } : {}) };
       const r = await createProject(fields);
       go("understanding", r.projectId);

@@ -1,0 +1,98 @@
+{
+  "name": "on-air",
+  "renderer": "omelette",
+  "template": "OnAir",
+  "portraitNative": true,
+  "vibe": "waveform bars, blinking sign, mic, sound rings Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#16181D",
+    "ink": "#E8E9EE",
+    "accent": "#8B5CF6",
+    "a2": "#3DDC84"
+  },
+  "fonts": [
+    "Unbounded",
+    "Wix Madefor Text"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#16181D",
+    "ink": "#E8E9EE"
+  },
+  "motion": {
+    "cut": "smear",
+    "drift": 1.09
+  },
+  "fx": {
+    "canvas": "rays",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#8B5CF6",
+      "#3DDC84"
+    ],
+    "extras": [
+      "#101216",
+      "#000000",
+      "#111318"
+    ],
+    "emphasisCss": "color:#8B5CF6;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "waveform",
+      "bars",
+      "blinking",
+      "sign",
+      "sound",
+      "rings"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Unbounded",
+    "body": "Wix Madefor Text"
+  },
+  "camera3d": {
+    "ground": "#16181D"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "spring",
+    "emphasis": "marker",
+    "case": "none",
+    "tracking": -0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "acoustic handmade warm folk gentle plucked strings",
+      "mood": "warm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

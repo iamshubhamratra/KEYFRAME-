@@ -1,0 +1,94 @@
+{
+  "name": "cadence-premium",
+  "renderer": "omelette",
+  "template": "Cadence",
+  "portraitNative": true,
+  "vibe": "A calm, premium SaaS film authored for 9:16. Warm cream paper, terracotta and sage, heavy rounded display type over soft product cards that rise and settle rather than slam. Sixteen authored surfaces — search, setup, board, thread, digest, metrics, pricing — each a real interface moment rather than a text slide. Unhurried and expensive-looking. For SaaS, productivity, workflow and team tools that want to read considered instead of loud.",
+  "colors": {
+    "ground": "#F5EAD8",
+    "ink": "#201E1D",
+    "accent": "#C67139",
+    "a2": "#7A8A5E",
+    "card": "#F9F4ED"
+  },
+  "fonts": [
+    "Caprasimo",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F5EAD8"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none"
+  },
+  "skin": {
+    "accents": [
+      "#C67139",
+      "#7A8A5E"
+    ],
+    "extras": [
+      "#8C491A",
+      "#2E2B25"
+    ],
+    "emphasisCss": "color:#C67139;"
+  },
+  "assets": {
+    "photoMod": "warm calm minimal workspace natural light",
+    "iconStyle": "soft",
+    "keywords": [
+      "saas",
+      "workflow",
+      "productivity",
+      "dashboard",
+      "team"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Caprasimo"
+  },
+  "camera3d": {
+    "ground": "#F5EAD8"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "none",
+    "tracking": -0.02,
+    "weight": 400,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "calm warm minimal ambient piano gentle uplifting",
+      "mood": "calm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions — nothing percussive or aggressive",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

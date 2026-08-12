@@ -1,5 +1,6 @@
 {
   "name": "claymotion",
+  "renderer": "story-handmade",
   "vibe": "a handmade stop-motion clay film: putty board set with matte plasticine spheres, donuts and stars bobbing in visible 8fps ticks, headlines dropping in with exaggerated squash-and-stretch quantized like frame-by-frame animation, scene changes as a clay smear frame streaking across, and the emphasis word pressed into a hand-molded clay pad — playful product tours, kids brands, food and anything that should feel sculpted by hand under studio lamps",
   "colors": {
     "putty": "#F1E2D3",
@@ -10,8 +11,8 @@
     "clayink": "#37281F"
   },
   "fonts": [
-    "Inter",
-    "Baloo 2"
+    "Caprasimo",
+    "JetBrains Mono"
   ],
   "surface": {
     "flat": false,
@@ -54,7 +55,7 @@
     ]
   },
   "typography": {
-    "display": "Baloo 2"
+    "display": "Caprasimo"
   },
   "layout": {
     "propFill": false,
@@ -64,26 +65,27 @@
     "assetStyle": "clay"
   },
   "textfx": {
-    "enter": "squash",
-    "emphasis": "clay",
+    "enter": "countin",
+    "emphasis": "glow",
     "align": "rotate",
-    "sizeScale": 1.06
+    "sizeScale": 1.19,
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035
   },
   "audio": {
     "music": {
-      "query": "quirky playful ukulele whistle claymation",
-      "mood": "upbeat",
+      "query": "punchy electronic percussion hard hitting drive",
+      "mood": "energetic",
       "volume": 0.17
     },
     "sfx": {
-      "style": "squishes, boings and soft thuds — foley like a stop-motion studio, popping on every squash landing and smear cut",
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
       "palette": [
-        "clay squish",
-        "boing",
-        "soft thud",
-        "pop",
-        "mouth plop",
-        "tape stop"
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
       ]
     }
   }

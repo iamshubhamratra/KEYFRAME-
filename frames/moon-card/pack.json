@@ -1,0 +1,98 @@
+{
+  "name": "moon-card",
+  "renderer": "omelette",
+  "template": "MoonCard",
+  "portraitNative": true,
+  "vibe": "moon phases, floating cards, candle flicker Portrait-native 9:16 (15 authored beats, 44.4s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#1D1430",
+    "ink": "#F2EAD9",
+    "accent": "#E8B4C8",
+    "a2": "#D4AF6A"
+  },
+  "fonts": [
+    "Italiana",
+    "Sen"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#1D1430",
+    "ink": "#F2EAD9"
+  },
+  "motion": {
+    "cut": "strike",
+    "drift": 1.13
+  },
+  "fx": {
+    "canvas": "constellation",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#E8B4C8",
+      "#D4AF6A"
+    ],
+    "extras": [
+      "#140E22",
+      "#FFF8E0",
+      "#C9A24B"
+    ],
+    "emphasisCss": "color:#E8B4C8;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "moon",
+      "card",
+      "phases",
+      "floating",
+      "cards",
+      "candle"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Italiana",
+    "body": "Sen"
+  },
+  "camera3d": {
+    "ground": "#1D1430"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "bracket",
+    "case": "upper",
+    "tracking": 0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

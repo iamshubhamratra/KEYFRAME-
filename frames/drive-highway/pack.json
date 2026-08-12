@@ -1,0 +1,91 @@
+{
+  "name": "drive-highway",
+  "renderer": "omelette",
+  "template": "Drive",
+  "vibe": "A golden-hour highway, product-first. The screenshots hold centre stage while cars stream past on an endless sunset road, billboards flick by and a city skyline glides behind. For launches with momentum and road-trip energy.",
+  "colors": {
+    "ground": "#1B1226",
+    "ink": "#FFF3E0",
+    "accent": "#12B5C8",
+    "a2": "#F2C14E",
+    "a3": "#EE7B7B"
+  },
+  "fonts": [
+    "Barlow Semi Condensed"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#1B1226"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none"
+  },
+  "skin": {
+    "accents": [
+      "#12B5C8",
+      "#F2C14E"
+    ],
+    "extras": [
+      "#EE7B7B"
+    ],
+    "emphasisCss": "color:#12B5C8;"
+  },
+  "assets": {
+    "photoMod": "",
+    "iconStyle": "line",
+    "keywords": [
+      "highway",
+      "sunset",
+      "drive",
+      "journey",
+      "city"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Barlow Semi Condensed"
+  },
+  "camera3d": {
+    "ground": "#1B1226"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "spring",
+    "emphasis": "volt",
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035,
+    "sizeScale": 1.12,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "stomp claps big drums anthemic energetic build",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
+  }
+}

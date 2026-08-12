@@ -2,7 +2,7 @@
 // Exposes chat() returning { text, tokensIn, tokensOut, model }.
 //
 // Provider cascade (per call):
-//   1. PRIMARY  — KIE AI (Gemini 3.5 Flash), OpenAI-compatible /chat/completions
+//   1. PRIMARY  — KIE AI (Gemini 3.6 Flash), OpenAI-compatible /chat/completions
 //   2. FALLBACK — OpenRouter primary model (config.llm.model, e.g. minimax-m3)
 //   3. FALLBACK — OpenRouter secondary model (config.llm.modelFallback)
 //
@@ -59,7 +59,7 @@ function withTimeoutSignal(external, timeoutMs, timeoutMsg) {
   return { signal, clear: () => clearTimeout(timer) };
 }
 
-// ---------- PRIMARY: KIE AI (Gemini 3.5 Flash) via raw fetch ----------
+// ---------- PRIMARY: KIE AI (Gemini 3.6 Flash) via raw fetch ----------
 async function callKie({ messages, jsonMode, temperature, timeoutMs, stage, signal: external }) {
   const p = config.llm.primary;
   const url = `${p.baseUrl.replace(/\/$/, "")}/chat/completions`;

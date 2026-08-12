@@ -1,0 +1,98 @@
+{
+  "name": "bluesite",
+  "renderer": "omelette",
+  "template": "Bluesite",
+  "portraitNative": true,
+  "vibe": "\"BLUESITE\" blueprint construction world. Chalk drafting, crane lifts, stamps. Portrait-native 9:16 (12 authored beats, 36.2s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#123D8C",
+    "ink": "#EAF2FF",
+    "accent": "#F2B32B",
+    "a2": "#7FD1B9"
+  },
+  "fonts": [
+    "Archivo",
+    "Caveat"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#123D8C",
+    "ink": "#EAF2FF"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 0.99
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#F2B32B",
+      "#7FD1B9"
+    ],
+    "extras": [
+      "#0A1E42",
+      "#E24A3B",
+      "#000000"
+    ],
+    "emphasisCss": "color:#F2B32B;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "bluesite-film",
+      "bluesite",
+      "blueprint",
+      "construction",
+      "world",
+      "chalk"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Archivo",
+    "body": "Caveat"
+  },
+  "camera3d": {
+    "ground": "#123D8C"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "slam",
+    "emphasis": "underline-grow",
+    "case": "none",
+    "tracking": 0.01,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "center"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}

@@ -1,5 +1,6 @@
 {
   "name": "summit-keynote",
+  "renderer": "bright-minimal",
   "vibe": "executive pitch light: porcelain grounds, deep navy ink, one cobalt beam + champagne gold, floating glass panels, 3D data constellation — for investor pitches, keynotes, founder stories, B2B decks",
   "colors": {
     "porcelain": "#F7F8FC",
@@ -11,7 +12,7 @@
     "white": "#FFFFFF"
   },
   "fonts": [
-    "Inter",
+    "Archivo Black",
     "Space Grotesk"
   ],
   "surface": {
@@ -52,14 +53,34 @@
     ]
   },
   "typography": {
-    "display": "Space Grotesk"
+    "display": "Archivo Black"
   },
   "camera3d": {
     "ground": "#10214B"
   },
   "textfx": {
-    "enter": "slide",
-    "emphasis": "underline-grow",
-    "align": "center"
+    "enter": "zap",
+    "emphasis": "ring",
+    "align": "center",
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035,
+    "sizeScale": 1.12
+  },
+  "audio": {
+    "music": {
+      "query": "driving percussion tribal toms punchy energetic",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
   }
 }

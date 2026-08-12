@@ -1,0 +1,98 @@
+{
+  "name": "ink-brush",
+  "renderer": "omelette",
+  "template": "InkBrush",
+  "portraitNative": true,
+  "vibe": "sumi strokes drawing themselves, drifting mist, red seal Portrait-native 9:16 (18 authored beats, 49.9s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#F2EDE2",
+    "ink": "#26221E",
+    "accent": "#C93B2A",
+    "a2": "#FAF7EF"
+  },
+  "fonts": [
+    "Cormorant Garamond",
+    "Commissioner"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#F2EDE2",
+    "ink": "#26221E"
+  },
+  "motion": {
+    "cut": "wash",
+    "drift": 1.06
+  },
+  "fx": {
+    "canvas": "caustics",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#C93B2A",
+      "#FAF7EF"
+    ],
+    "extras": [
+      "#8D8478",
+      "#ECE4D2",
+      "#A8322A"
+    ],
+    "emphasisCss": "color:#C93B2A;"
+  },
+  "assets": {
+    "photoMod": "bright natural clean",
+    "iconStyle": "soft",
+    "keywords": [
+      "brush",
+      "sumi",
+      "strokes",
+      "drawing",
+      "themselves",
+      "drifting"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Cormorant Garamond",
+    "body": "Cormorant Garamond"
+  },
+  "camera3d": {
+    "ground": "#F2EDE2"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "stamp",
+    "emphasis": "bullet",
+    "case": "none",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "acoustic handmade warm folk gentle plucked strings",
+      "mood": "warm",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "soft UI ticks, gentle whooshes and paper-soft transitions",
+      "palette": [
+        "soft click",
+        "gentle whoosh",
+        "subtle pop",
+        "paper slide"
+      ]
+    }
+  }
+}

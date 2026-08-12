@@ -1,5 +1,6 @@
 {
   "name": "bloom-illustrated",
+  "renderer": "bright-minimal",
   "vibe": "A warm, friendly, illustration-forward SaaS system: cream paper grounds, big soft pastel blobs drifting behind everything, and generously rounded cards (28px+). Simple hand-drawn-feel inline-SVG characters and objects — circles and organic ",
   "colors": {
     "cream": "#FFF7EE",
@@ -11,8 +12,8 @@
     "ink": "#2B2540"
   },
   "fonts": [
-    "Inter",
-    "Bricolage Grotesque"
+    "Orbitron",
+    "JetBrains Mono"
   ],
   "surface": {
     "flat": false,
@@ -43,14 +44,34 @@
     ]
   },
   "typography": {
-    "display": "Bricolage Grotesque"
+    "display": "Orbitron"
   },
   "camera3d": {
     "ground": "#2B2540"
   },
   "textfx": {
-    "enter": "spring",
-    "emphasis": "gradient",
-    "align": "left"
+    "enter": "stamp",
+    "emphasis": "boxed",
+    "align": "left",
+    "case": "upper",
+    "weight": 900,
+    "tracking": -0.035,
+    "sizeScale": 1.12
+  },
+  "audio": {
+    "music": {
+      "query": "big beat breakbeat percussive energetic drive",
+      "mood": "energetic",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "hard percussive hits, stomp impacts, clap accents and riser sweeps on every cut",
+      "palette": [
+        "impact hit",
+        "clap",
+        "riser sweep",
+        "whoosh transition"
+      ]
+    }
   }
 }

@@ -34,10 +34,11 @@ Return ONLY a JSON object — no prose, no markdown fences:
       "start": 0,
       "duration": <seconds>,
       "kind": "<title|hook|bullet|quote|caption|shape-motion|chart|countdown|cta>",
-      "headline": "<short on-screen headline, ≤60 chars, or empty>",
-      "subtext":  "<supporting line, ≤120 chars, or empty>",
+      "kicker":   "<eyebrow / section label above the headline, ≤18 chars — REQUIRED>",
+      "headline": "<short on-screen headline, ≤60 chars>",
+      "subtext":  "<supporting sentence, ≤120 chars — REQUIRED, never empty, never the headline reworded>",
       "voiceover": "<the spoken narration for THIS scene — one natural sentence the narrator says WHILE this scene is on screen. It should track what's shown (complement the headline, not just read it aloud), flow from the previous scene, and be sized to the scene's duration at ~2.5 spoken words per second (a 4s scene ≈ 10 words). Leave \"\" only for a scene meant to play silent.>",
-      "bullets":  ["<optional short bullets, each ≤50 chars>"],
+      "bullets":  ["<2-3 standalone labels, each ≤28 chars — REQUIRED>"],
       "emphasis": "<1-3 words in the headline to visually accent, or empty>",
       "animation": "<word-stagger|mask-reveal|blur-sharp|scale-pop|slide-up|slide-left|ken-burns-text|typewriter>",
       "visualMotif": "<short phrase describing the scene's non-text visual idea — e.g. 'pulsing gradient orb', 'rising bar chart', 'glowing line drawing itself'>",
@@ -51,6 +52,30 @@ Return ONLY a JSON object — no prose, no markdown fences:
 }
 ```
 
+## On-screen copy is what fills the frame
+
+The composer prints the words you supply and nothing else. Every design system in
+this studio lays out, per scene, a kicker chip, a headline, a support line, a row of
+2-4 short labels (pills / cards / stat rows) and captions — and each of those slots
+is filled from THIS scene's `kicker` / `headline` / `subtext` / `bullets` /
+`emphasis`. A scene that carries only a headline renders as three words floating
+over an empty frame, because there is nothing else to lay out. Copy supply is the
+whole ballgame: write the full set on every scene.
+
+- `kicker` — ≤18 chars, an eyebrow/section label: "STEP 02", "WHY IT MATTERS",
+  "SINCE 2019". A label, never a sentence.
+- `headline` — the scene's one idea, ≤60 chars.
+- `subtext` — ONE real supporting sentence, ≤120 chars: the fact, proof, mechanism,
+  or consequence the headline implies. Never empty. Never the headline reworded —
+  if it says the same thing twice, the frame shows the same thing twice.
+- `bullets` — 2-3 labels, ≤28 chars each. They render as SEPARATE pills/cards/rows,
+  so each must read alone: no mid-sentence fragments, no line that only makes sense
+  after the one above it, and never a trailing "and" / "in" / "with" / "the".
+  "Slack & Teams in" is broken copy; "Slack + Teams sync" is a label.
+- `emphasis` — 1-3 words that appear verbatim in that scene's `headline`.
+
+Concrete beats generic in all four slots: name the feature, the number, the outcome.
+
 ## Hard rules
 
 1. `scenes[].start` begins at 0; each subsequent scene's `start` equals the previous scene's `start + duration` (no gaps, no overlaps).
@@ -61,6 +86,8 @@ Return ONLY a JSON object — no prose, no markdown fences:
 6. No scene references external media beyond what the composer can create from text + SVG + CSS + GSAP (images/videos are planned separately).
 7. `orientation` and `aspectRatio` must match input.
 8. Output is pure JSON. No prose. No code fences.
+9. Every scene carries the full copy set: a non-empty `kicker`, `headline`, `subtext`, and 2-3 `bullets`. No scene ships headline-only.
+10. `bullets` are standalone labels (≤28 chars), not a sentence chopped into pieces — each one is rendered in its own pill/card, on its own.
 
 ## Tech / IT topics — mandatory terminal-typing scene
 
@@ -77,7 +104,7 @@ KEYFRAME videos about **software, programming, coding, web/app/backend/frontend 
 - `visualMotif`: describe a shell/editor window explicitly, e.g. `"dark terminal window, title bar with 3 dots, $ prompt, command typed character-by-character with a blinking caret"` or `"code editor pane, lines typed in sequence with a blinking caret"`.
 - `headline`: carry the **actual first line to type**, verbatim (the literal shell command or code line), ≤60 chars — e.g. `"$ npm create vite@latest my-app"`, `"const data = await fetch(url);"`. Not a description of it.
 - `subtext`: the **second line to type** (a follow-up command, expected output, or next code line), ≤120 chars — e.g. `"build complete — listening on :3000"`. Leave empty for a single-line terminal.
-- `bullets`: OPTIONAL up to 3 additional code lines (each ≤50 chars) to type in sequence.
+- `bullets`: OPTIONAL up to 3 additional code lines (each ≤50 chars) to type in sequence. On THIS scene the bullets are typed lines, not label pills, so hard rule 9's 2-3 labels do not apply.
 - Typed text is REAL, plausible, and **ASCII only** — no emoji/pictographs (✓, 📧) and no invented metrics; use neutral output (`done`, `compiled`, `listening on :3000`).
 - `layout`: `"centered-card"` (the window is the framed element) or `"fullbleed"`.
 - `beats`: 2–4, e.g. `{ "at": 0.1, "action": "terminal window scales in, caret starts blinking", "easing": "expo.out" }`, `{ "at": 0.6, "action": "line 1 types in character-by-character", "easing": "none" }`, `{ "at": 2.4, "action": "line 2 / output types in", "easing": "none" }`, `{ "at": <duration-0.6>, "action": "window fades out", "easing": "power2.in" }`.
@@ -88,6 +115,7 @@ The terminal scene's `animation` (`typewriter`) and `layout` must still differ f
 ## Writing principles
 
 - **One idea per scene.** If a scene has two ideas, split it.
+- **Write every text slot of every scene.** `kicker` + `headline` + `subtext` + 2-3 `bullets`. The composer can only lay out text you supplied — a headline-only scene is a title over empty space, no matter which design system renders it.
 - **Write the `voiceover` as a spoken script, scene by scene.** Read all the voiceovers in order — they must form ONE flowing narration (hook → substance → close), each line handing off to the next, no repetition, no "welcome"/"in conclusion" filler. Each line is what a real narrator says over that scene, sized to its duration. This is the spine of the video — the visuals illustrate the voiceover, and the two are locked together in time.
 - **Beats are the scene's inner choreography.** 2–4 per scene: the FIRST beat is always at 0–0.15 (something visible enters immediately — no empty-ground moments); middle beats land content (subtext, counters, accents); the LAST beat starts the exit no later than 0.6s before the scene ends. `at` is relative to the scene's own start and must be < the scene's duration.
 - **`layout` picks the zone map**: `fullbleed` (one dominant element), `split-60-40` (content + visual), `grid-2x2` (cards/stats), `centered-card` (single framed statement).
@@ -122,6 +150,9 @@ Run this over your draft; fix any "no" before returning:
 - Every scene has a non-empty `visualMotif` AND an `animation`, and no two adjacent scenes repeat either? ✓
 - Every scene has 2-4 `beats`, first at ≤0.15, last starting ≥0.6s before scene end, all `at` < duration? ✓
 - `emphasis` names 1-3 real words from that scene's `headline`? ✓
+- Every scene has a non-empty `kicker` (≤18 chars, a label not a sentence)? ✓
+- Every scene has a non-empty `subtext` that adds a NEW fact — not the headline said again in other words? ✓
+- Every scene has 2-3 `bullets`, each ≤28 chars and readable on its own — none starting or ending on a function word ("and", "in", "with", "the", "to"), none a fragment of the line above it? ✓
 - Every scene has a `voiceover` line sized to its duration (~2.5 words/sec), and read in order they form ONE coherent narration with no repetition? ✓
 - Palette has high text/background contrast and avoids pure #000/#fff? ✓
 - Output is pure JSON, no prose, no code fences? ✓
@@ -146,27 +177,39 @@ Given input "30s explainer: automation saves time" (vertical):
   "fontFamily": "Inter",
   "scenes": [
     { "id": "s1", "start": 0,  "duration": 3, "kind": "hook",
-      "headline": "Wasting 4 hours a day?", "subtext": "", "emphasis": "4 hours",
+      "kicker": "THE DAILY COST",
+      "headline": "Wasting 4 hours a day?", "subtext": "Manual busywork eats half of every workday before lunch.",
+      "bullets": ["4 hrs lost daily", "20 hrs lost weekly"], "emphasis": "4 hours",
       "animation": "word-stagger", "visualMotif": "glowing clock hand sweeping",
       "transitionOut": "fade" },
     { "id": "s2", "start": 3,  "duration": 5, "kind": "bullet",
-      "headline": "Emails. Reports. Follow-ups.", "subtext": "Same tasks, every day.", "emphasis": "every day",
+      "kicker": "THE SAME LOOP",
+      "headline": "Emails. Reports. Follow-ups.", "subtext": "The same three jobs, redone by hand every single morning.",
+      "bullets": ["Inbox triage", "Weekly reports", "Follow-up chasing"], "emphasis": "Follow-ups",
       "animation": "slide-up", "visualMotif": "stack of papers falling one by one",
       "transitionOut": "slide-left" },
     { "id": "s3", "start": 8,  "duration": 6, "kind": "caption",
-      "headline": "Automation handles it.", "subtext": "No breaks. No mistakes. No burnout.", "emphasis": "handles it",
+      "kicker": "THE FIX",
+      "headline": "Automation handles it.", "subtext": "Workflows fire on their own triggers, start to finish.",
+      "bullets": ["Runs 24/7", "No manual steps", "Zero missed handoffs"], "emphasis": "handles it",
       "animation": "blur-sharp", "visualMotif": "circuit lines drawing themselves",
       "transitionOut": "wipe" },
     { "id": "s4", "start": 14, "duration": 5, "kind": "bullet",
-      "headline": "Save time. Cut costs.", "subtext": "Scale without hiring more people.", "emphasis": "Scale",
+      "kicker": "WHAT CHANGES",
+      "headline": "Save time. Cut costs.", "subtext": "Teams win back 20 hours a week without adding headcount.",
+      "bullets": ["20 hrs back weekly", "No new hires", "Same team, more output"], "emphasis": "Cut costs",
       "animation": "scale-pop", "visualMotif": "arrow curving upward",
       "transitionOut": "fade" },
     { "id": "s5", "start": 19, "duration": 5, "kind": "quote",
-      "headline": "Stop working IN the business.", "subtext": "Start working ON it.", "emphasis": "ON it",
+      "kicker": "THE SHIFT",
+      "headline": "Stop working IN the business.", "subtext": "Owners who automate spend the week on growth, not upkeep.",
+      "bullets": ["Less upkeep", "More growth work"], "emphasis": "IN the business",
       "animation": "mask-reveal", "visualMotif": "horizontal line drawing beneath text",
       "transitionOut": "fade" },
     { "id": "s6", "start": 24, "duration": 6, "kind": "cta",
-      "headline": "Focus on what makes money.", "subtext": "", "emphasis": "what makes money",
+      "kicker": "START TODAY",
+      "headline": "Focus on what makes money.", "subtext": "Automate one task this week and feel the hours come back.",
+      "bullets": ["Pick one task", "Automate it today"], "emphasis": "what makes money",
       "animation": "ken-burns-text", "visualMotif": "radial gradient pulse behind text",
       "transitionOut": "none" }
   ]

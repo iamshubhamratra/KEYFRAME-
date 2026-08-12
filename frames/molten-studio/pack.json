@@ -1,0 +1,98 @@
+{
+  "name": "molten-studio",
+  "renderer": "omelette",
+  "template": "MoltenStudio",
+  "portraitNative": true,
+  "vibe": "glowing gather, heat waves, orb shelf Portrait-native 9:16 (15 authored beats, 44.4s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "colors": {
+    "ground": "#1C1512",
+    "ink": "#E8DCC4",
+    "accent": "#FF9633",
+    "a2": "#6FD8D0"
+  },
+  "fonts": [
+    "Comfortaa",
+    "Livvic"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#1C1512",
+    "ink": "#E8DCC4"
+  },
+  "motion": {
+    "cut": "clockwipe",
+    "drift": 0.95
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#FF9633",
+      "#6FD8D0"
+    ],
+    "extras": [
+      "#2A1F18",
+      "#14100C",
+      "#FFD9A0"
+    ],
+    "emphasisCss": "color:#FF9633;"
+  },
+  "assets": {
+    "photoMod": "moody cinematic low-key",
+    "iconStyle": "glow",
+    "keywords": [
+      "molten",
+      "studio",
+      "glowing",
+      "gather",
+      "heat",
+      "waves"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Comfortaa",
+    "body": "Livvic"
+  },
+  "camera3d": {
+    "ground": "#1C1512"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": false,
+    "stat": "card",
+    "assetStyle": "browser"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "underline-grow",
+    "case": "upper",
+    "tracking": -0.03,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  },
+  "audio": {
+    "music": {
+      "query": "cinematic ambient atmospheric modern underscore",
+      "mood": "moody",
+      "volume": 0.13
+    },
+    "sfx": {
+      "style": "low thuds, airy risers and dark transitional whooshes",
+      "palette": [
+        "low thud",
+        "airy riser",
+        "deep whoosh",
+        "sub hit"
+      ]
+    }
+  }
+}
