@@ -59,6 +59,7 @@ const { roleOf, showcaseTargets } = require("../services/scene_role");
 const { reconcileStoryboard } = require("../services/continuity");
 const { planMotion, verifyMotion } = require("../services/motion_planner");
 const assetScoreSvc = require("../services/asset_score");
+const { subjectQuery } = require("../services/asset_sources/query_terms");
 
 function ms() { return Date.now(); }
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
@@ -719,11 +720,21 @@ async function assetPlannerAgent(s) {
 
   // Derive a concrete image query from a scene's visualDirection when the
   // script asked for nothing — substance scenes should never go imageless.
-  const STOP = new Set(["the", "a", "an", "with", "and", "of", "in", "on", "over", "into", "across", "as", "to", "that", "then", "while", "for", "is", "are", "we", "see", "scene", "text", "headline", "screen"]);
+  // ONE STOPWORD LIST, NOT FOUR. This used to keep its own — which stripped articles and
+  // connectives but kept every mood and camera word, so a direction like "an overwhelmed
+  // analyst at a wall of monitors" became the query "overwhelmed analyst wall monitors".
+  // Half of that is unmatchable by construction: a stock caption says what is in the frame,
+  // never the feeling it was shot in. Worse, the same words then formed the relevance
+  // denominator, so the best available picture of an analyst at monitors scored 13.1 of 35
+  // and the scene could not clear its bar however good the pool was.
+  //
+  // `subjectQuery` (asset_sources/query_terms) is the codebase's existing answer to exactly
+  // this and was wired to one vector branch. Routing here through it fixes the query AND the
+  // scoring denominator at once, and leaves one list to maintain instead of four.
   const deriveQuery = (scene) => {
-    const words = String(scene.visualDirection || "").toLowerCase().match(/[a-z]{3,}/g) || [];
-    const picked = words.filter((w) => !STOP.has(w)).slice(0, 4);
-    return picked.length >= 2 ? picked.join(" ") : null;
+    const picked = subjectQuery(scene.visualDirection || "");
+    const n = picked ? picked.split(/\s+/).filter(Boolean).length : 0;
+    return n >= 2 ? picked : null;
   };
 
   const VECTOR_ROLES = new Set(["icon", "texture", "vector"]);
@@ -939,6 +950,50 @@ async function assetPlannerAgent(s) {
     }
     return out;
   };
+  // ---- TWO WANTS ON ONE SCENE MUST NOT ASK THE SAME QUESTION --------------------------
+  //
+  // Wants reach this point from two independent derivations: the gap-fill above
+  // (`deriveQuery`) and the box requirements (`asset_requirements.queryFromProse`). Both
+  // distil the SAME `scene.visualDirection`, and once both were routed through the shared
+  // subject extractor they stopped being merely similar and became byte-identical.
+  //
+  // The cost is real and was measured: a six-scene film against a nine-box template produced
+  // 9 wants but only 6 distinct queries. Each colliding pair searched the same words, ranked
+  // the same pool, chose the same winner, and the film's de-duplicator then correctly deleted
+  // one of them — so a fetch was spent to fill a box that ended up empty anyway.
+  //
+  // Re-derive the LATER want of a collision from a different facet of its own scene (the
+  // headline/subtext, then the narration). Fail-open in the strictest sense: a want keeps its
+  // original query unless a genuinely different, non-empty alternative exists, so this can
+  // only ever add distinctness — it can never leave a want without a query.
+  {
+    const seenByScene = new Map();
+    let rewritten = 0;
+    for (const w of wants) {
+      const sceneId = String(w.scene && w.scene.id);
+      const q = String((w.need && w.need.query) || "");
+      if (!q) continue;
+      const seen = seenByScene.get(sceneId) || new Set();
+      if (!seen.has(q)) { seen.add(q); seenByScene.set(sceneId, seen); continue; }
+      const sc = w.scene || {};
+      const facets = [
+        [sc.headline, sc.subtext].filter(Boolean).join(" "),
+        sc.voiceover,
+        (sc.onScreenText || []).join(" "),
+      ].filter((t) => t && String(t).trim());
+      for (const f of facets) {
+        const alt = subjectQuery(f);
+        if (alt && alt.split(/\s+/).filter(Boolean).length >= 2 && !seen.has(alt)) {
+          w.need = { ...w.need, query: alt, __rewrittenFrom: q };
+          seen.add(alt); rewritten++;
+          break;
+        }
+      }
+      seenByScene.set(sceneId, seen);
+    }
+    if (rewritten) console.log(`[agents] asset_planner: re-aimed ${rewritten} duplicate scene query(ies) at a different facet so two boxes don't fetch the same picture`);
+  }
+
   const videos = fairSlice(wants.filter((w) => w.need.type === "video"), budget.maxVideos);
   // Vectors get their OWN budget so a long photo list can't starve them — this
   // is what finally feeds the curated SVG library into films. All three caps now
@@ -1030,13 +1085,13 @@ function synthRequirement(need, scene, targetRatio) {
 // asks "is the required thing IN the frame?" as opposed to relevance's "does this overlap the
 // words we searched". Prefers what the script or product model authored; falls back to the
 // query's own content words.
-const SUBJECT_STOP = new Set(["the", "and", "for", "with", "that", "this", "your", "shot", "view", "close", "wide", "camera", "scene", "background", "image", "photo", "footage", "modern", "clean", "beautiful"]);
 function subjectTermsFor(need, scene) {
   const src = [need && need.visualDescription, need && need.query, scene && scene.visualDirection]
-    .filter(Boolean).join(" ").toLowerCase();
-  const words = (src.match(/[a-z]{4,}/g) || []).filter((w) => !SUBJECT_STOP.has(w));
-  // Three is plenty: the axis is scored as "how many of the required terms appear", so a long
-  // list makes a perfect picture look partial.
+    .filter(Boolean).join(" ");
+  // The SAME extractor the query now uses, so the terms we search for and the terms we score
+  // against cannot drift apart. Three is plenty: the axis reads "how many of the required
+  // terms appear", so a long list makes a perfect picture look partial.
+  const words = subjectQuery(src).split(/\s+/).filter(Boolean);
   return [...new Set(words)].slice(0, 3);
 }
 

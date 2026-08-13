@@ -139,7 +139,7 @@ function colorDistance(a, b) {
 // failure this feature exists to stop — the "random office worker over 'track your revenue in
 // real time'" case. Scene overlap is capped at a quarter of the component so a long voiceover
 // can inform the ranking without drowning out the query it was derived from.
-function relevanceScore({ query, candidate, sceneText }) {
+function relevanceScore({ query, candidate, sceneText, subjectTerms }) {
   const q = tokenize(query);
   const text = tokenize(candidateText(candidate));
   if (!q.length) return { v: 0.5, note: "no query terms to match" };
@@ -148,11 +148,42 @@ function relevanceScore({ query, candidate, sceneText }) {
   // from every pool. Below neutral, above nothing.
   if (!text.length) return { v: 0.35, note: "provider supplied no description" };
 
-  const qHit = q.filter((w) => text.includes(w));
-  const qv = qHit.length / q.length;
+  // NOT EVERY QUERY WORD IS A THING A PHOTOGRAPH CAN CONTAIN.
+  //
+  // A flat `hits / queryLength` treats "overwhelmed analyst wall monitors" as four equal
+  // requirements. Only two of them — analyst, monitors — are objects a stock caption will
+  // ever name; "overwhelmed" is mood and "wall" is framing. Measured on live pools, the best
+  // available picture of an analyst at a bank of monitors scored 13.1/35 on relevance and
+  // capped the whole candidate at 71/100, so the scene could not clear its bar no matter what
+  // was in the pool or how the query was worded. Shortening the query does not fix it either:
+  // four retrieval strategies were measured against a fixed yardstick and the ceiling did not
+  // move (77.2 current vs 77.7 nouns-only vs 73.2 two-word).
+  //
+  // So terms are WEIGHTED by whether the scene actually needs them. A subject term counts
+  // full; anything else counts a third — enough that a picture matching the mood still edges
+  // out one that does not, nowhere near enough to cap a picture that shows the right thing.
+  // Absent subject terms, every term counts full and this is the old behaviour exactly.
+  const subj = new Set((Array.isArray(subjectTerms) ? subjectTerms : []).flatMap((s) => tokenize(s)));
+  let need = 0, got = 0;
+  const qHit = [];
+  for (const w of q) {
+    const wt = subj.size ? (subj.has(w) ? 1 : 0.34) : 1;
+    need += wt;
+    if (text.includes(w)) { got += wt; qHit.push(w); }
+  }
+  const qv = need > 0 ? got / need : 0.5;
 
   const s = tokenize(sceneText).filter((w) => !STOPWORDS.has(w));
   if (!s.length) return { v: qv, note: `${qHit.length}/${q.length} query terms` };
+  // SCENE ECHO IS A BONUS, NOT A TAX.
+  //
+  // This was a 0.75/0.25 blend, which meant a picture matching the subject perfectly but not
+  // echoing the narration was capped at 75% of the axis — 26.25 of 35 — before anything had
+  // gone wrong. Stock captions describe what is IN the frame, not what a voiceover says over
+  // it, so that cap applied to almost every candidate and cost roughly nine points of a
+  // hundred across the board. Weighted 0.88/0.24 and capped at 1, the echo still breaks a tie
+  // between two candidates that match the subject equally (which is the whole reason it
+  // exists) without penalising the ones that simply had nothing to echo.
   // DENOMINATOR CAPPED AT FOUR, and that number is calibrated rather than guessed. A whole
   // narration line carries 5-12 content words and a stock caption is one sentence, so
   // demanding overlap proportional to the line's length made full credit unreachable and
@@ -162,7 +193,7 @@ function relevanceScore({ query, candidate, sceneText }) {
   const sHit = s.filter((w) => text.includes(w)).length;
   const sv = clamp01(sHit / Math.min(Math.max(s.length, 1), 4));
   return {
-    v: qv * 0.75 + sv * 0.25,
+    v: clamp01(qv * 0.88 + sv * 0.24),
     note: `${qHit.length}/${q.length} query term(s), ${sHit} scene term(s)`,
   };
 }
@@ -378,7 +409,7 @@ function scoreCandidate(ctx = {}) {
   const { query, candidate, requirement = null, targetRatio = null, styleKeywords = null,
     sceneText = "", subjectTerms = null, brandColors = null, seen = null, provider = null } = ctx;
   const out = compose({
-    relevance: relevanceScore({ query, candidate, sceneText }),
+    relevance: relevanceScore({ query, candidate, sceneText, subjectTerms }),
     quality: qualityScore({ candidate, measured: null, kind: bandKind(requirement, candidate) }),
     sceneCompat: sceneCompatScore({ candidate, requirement, measured: null }),
     aspect: aspectScore({ candidate, requirement, targetRatio, measured: null }),
@@ -399,7 +430,7 @@ function rescoreMeasured(ctx = {}) {
     sceneText = "", subjectTerms = null, brandColors = null, seen = null, provider = null } = ctx;
   if (!meta) return scoreCandidate(ctx);
   const out = compose({
-    relevance: relevanceScore({ query, candidate, sceneText }),
+    relevance: relevanceScore({ query, candidate, sceneText, subjectTerms }),
     quality: qualityScore({ candidate, measured: meta, kind: bandKind(requirement, candidate) }),
     sceneCompat: sceneCompatScore({ candidate, requirement, measured: meta }),
     aspect: aspectScore({ candidate, requirement, targetRatio, measured: meta }),

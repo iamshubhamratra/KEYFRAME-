@@ -45,6 +45,7 @@
 
 const { roleOf } = require("./scene_role");
 const tmedia = require("./template_media");
+const { subjectQuery } = require("./asset_sources/query_terms");
 
 const PRIORITY_WEIGHT = tmedia.PRIORITY_WEIGHT;
 
@@ -106,28 +107,22 @@ const ROLE_PURPOSE = {
 const num = (v, d = 0) => { const n = Number(v); return Number.isFinite(n) ? n : d; };
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
-// Words that carry no visual meaning. Superset of the planner's old inline list — it kept
-// leaking film-language ("scene", "camera", "frame") into stock queries.
-const STOP = new Set([
-  "the", "a", "an", "and", "or", "with", "of", "in", "on", "over", "into", "across", "as",
-  "to", "that", "then", "while", "for", "is", "are", "we", "our", "your", "you", "it", "its",
-  "see", "sees", "shows", "showing", "scene", "text", "headline", "screen", "camera", "frame",
-  "shot", "cut", "pan", "push", "zoom", "slow", "fast", "left", "right", "up", "down",
-  "reveal", "reveals", "appears", "appear", "settles", "snaps", "slides", "fades", "lands",
-  "one", "two", "three", "each", "every", "more", "most", "very", "just", "like",
-]);
-
-/** A concrete search phrase distilled from a prose direction. The historical last resort. */
+/**
+ * A concrete search phrase distilled from a prose direction. The historical last resort.
+ *
+ * Routed through the SHARED subject extractor (asset_sources/query_terms) rather than the
+ * stopword list this module used to keep. That list stripped articles and film-language but
+ * kept MOOD words, so a box's query could ask for "overwhelmed analyst wall monitors" — half
+ * of which no stock caption will ever contain. It narrowed retrieval and, because the query
+ * is also the relevance denominator, capped the score of the very picture it was looking for.
+ * One list now serves query generation, gap-fill and scoring, so the words we search for and
+ * the words we grade on cannot drift apart.
+ */
 function queryFromProse(text, max = 4) {
-  const words = String(text || "").toLowerCase().match(/[a-z]{3,}/g) || [];
-  const picked = [];
-  for (const w of words) {
-    if (STOP.has(w)) continue;
-    if (picked.includes(w)) continue;
-    picked.push(w);
-    if (picked.length >= max) break;
-  }
-  return picked.length >= 2 ? picked.join(" ") : null;
+  const picked = subjectQuery(text);
+  if (!picked) return null;
+  const words = picked.split(/\s+/).filter(Boolean).slice(0, max);
+  return words.length >= 2 ? words.join(" ") : null;
 }
 
 /**
@@ -232,6 +227,41 @@ function planRequirements({ scenes, mediaPlan = null, product = null, dims = nul
 
   const out = [];
   const claimed = new Map();   // sceneId -> how many of its script needs have been consumed
+  // TWO BOXES ON ONE SCENE MUST NOT CHASE THE SAME PICTURE.
+  //
+  // The prose fallback below took the first non-empty source (`visualDirection || headline ||
+  // subtext`), so every box on a scene derived the IDENTICAL query. Measured on a six-scene
+  // film with a nine-box template: 9 wants, 6 distinct queries, 3 exact collisions. Both boxes
+  // then searched the same words, ranked the same pool, picked the same winner, and the film's
+  // de-duplicator correctly deleted one — so a box rendered empty and a fetch was spent to
+  // achieve nothing.
+  //
+  // Each box on a scene now starts from a DIFFERENT facet of it, so the second box looks for a
+  // different picture instead of racing the first for the same one. Falls back to the original
+  // behaviour whenever a scene has only one usable source, so a query is never lost.
+  const sceneQueries = new Map();   // sceneId -> Set of queries already issued for that scene
+  const proseQueryFor = (sceneId, scene) => {
+    if (!scene) return null;
+    const facets = [
+      scene.visualDirection,
+      [scene.headline, scene.subtext].filter(Boolean).join(" "),
+      scene.voiceover,
+    ].filter((t) => t && String(t).trim());
+    if (!facets.length) return null;
+    const used = sceneQueries.get(sceneId) || new Set();
+    // Walk the facets from the one this box is "due", and take the first that yields a query
+    // no other box on this scene has already claimed.
+    const start = used.size;
+    for (let k = 0; k < facets.length; k++) {
+      const q = queryFromProse(facets[(start + k) % facets.length]);
+      if (q && !used.has(q)) {
+        used.add(q); sceneQueries.set(sceneId, used);
+        return q;
+      }
+    }
+    // Every facet collided or yielded nothing — the original single-source answer, unchanged.
+    return queryFromProse(facets[0]);
+  };
 
   // ---- 1) ONE REQUIREMENT PER REAL BOX ------------------------------------------------
   // The template's placeholders are the film's actual capacity. Walking them first is what
@@ -261,7 +291,7 @@ function planRequirements({ scenes, mediaPlan = null, product = null, dims = nul
     const visual = need ? null : takeVisual(pool, purpose);
     const query = need?.query
       || (visual && visual.subject)
-      || queryFromProse(scene && (scene.visualDirection || scene.headline || scene.subtext))
+      || proseQueryFor(sceneId, scene)
       || null;
 
     const isOwned = OWNED_PURPOSES.has(purpose);

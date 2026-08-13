@@ -93,6 +93,89 @@ Never returns `null` when a candidate exists — a threshold that blanks a scene
 6. **`bar` and `thresholdMissed` dropped at the wire record** — the same class of loss the file's
    own comments record three previous instances of. A score with no bar beside it is unreadable.
 
+## The compromise rate, and what actually caused it
+
+First measured behaviour: mean selected score ~75/100 with most wants shipping below their bar
+as recorded best-available. The obvious suspect was query length — the planner emitted things
+like `overwhelmed analyst wall monitors`. **That suspicion was wrong, and measuring it saved
+the wrong fix from being built.**
+
+Four retrieval strategies were compared against a **fixed yardstick** (the retrieval query
+varied; every candidate was scored against the same reference, so a strategy could not win
+merely by shrinking the relevance denominator):
+
+| strategy | mean best score | cleared 80 |
+|---|---|---|
+| current (first 4 content words) | 77.2 | 3/6 |
+| current + topic anchor | 77.8 | 3/6 |
+| nouns only, 3 words | 77.7 | 3/6 |
+| first 2 words | 73.2 | 2/6 |
+| nouns only, 2 words | 74.5 | 2/6 |
+
+Shortening queries does not help; past a point it *hurts*. The ceiling was somewhere else.
+
+Decomposing the winners exposed it: relevance was **13.1/35 — exactly 0.5 × 0.75** — on every
+capped scene. The query `overwhelmed analyst wall monitors` states four requirements, but only
+*analyst* and *monitors* are objects a photograph can contain. "Overwhelmed" is a mood and
+"wall" is framing; a stock caption describes what is **in** the frame and never the feeling it
+was shot in. Those words were unmatchable by construction, and they sat in the denominator — so
+the best possible picture of an analyst at a bank of monitors was capped at half marks and the
+scene could never clear its bar however good the pool was.
+
+Three changes, none of which relaxes the bar:
+
+1. **Query terms are weighted by whether the scene needs them.** A subject term counts full,
+   anything else a third — enough that mood still breaks a tie, nowhere near enough to cap a
+   picture that shows the right thing.
+2. **Scene echo became a bonus, not a tax.** It was a 0.75/0.25 blend, so a picture matching the
+   subject perfectly but not echoing the narration was capped at 75% of the axis before
+   anything had gone wrong. Now 0.88/0.24, capped at 1 — the tie-break survives, the tax does not.
+3. **Mood and posture words leave query generation entirely.** `deriveQuery` and
+   `queryFromProse` now route through `asset_sources/query_terms.subjectQuery`, which already
+   existed for exactly this and was wired to a single vector branch. This also collapses
+   **four competing stopword lists into one**, so the words we search for and the words we
+   grade on cannot drift apart.
+
+Measured on the real production path, same pools, same bar:
+
+| scene direction | before | after |
+|---|---|---|
+| an overwhelmed analyst at a wall of monitors | 71 | **78** |
+| tangled cables and scattered paperwork | 69 | **73** |
+| a clean analytics dashboard on a laptop | 90 | **98** |
+| a revenue chart climbing on a screen | 83 | 82 |
+| a team collaborating around a table | 81 | **94** |
+| a bright open workspace at sunrise | 69 | **73** |
+| **mean** | **77.2** | **83.0** |
+
+**The control that proves this is discrimination and not inflation:** deliberately off-topic
+candidates (a golden retriever, a plate of pasta, someone with a water bottle) scored **53/100
+before and 53/100 after**. Good pictures rose; bad pictures did not move. Live-suite mean went
+74–76 → **79/100**.
+
+What remains below the bar is genuinely hard: "tangled cables and scattered paperwork" is a
+*conceptual* shot, and stock does not carry it. Those ship at ~73 flagged `thresholdMissed`,
+which is the honest answer rather than a hidden one.
+
+### The regression the consolidation caused, and the fix
+
+Consolidating the stopword lists had a side effect worth recording. Wants arrive from two
+independent derivations — the planner's gap-fill (`deriveQuery`) and the box requirements
+(`asset_requirements.queryFromProse`) — and **both distil the same `scene.visualDirection`**.
+While they used separate stopword lists their outputs merely resembled each other; once both
+routed through the shared extractor they became **byte-identical**.
+
+Measured: a six-scene film against a nine-box template produced **9 wants but only 6 distinct
+queries — 3 exact collisions**. Each colliding pair searched the same words, ranked the same
+pool, chose the same winner, and the film's de-duplicator then correctly deleted one. A fetch
+was spent to fill a box that ended up empty.
+
+The planner now re-aims the later want of a collision at a **different facet of its own scene**
+(headline/subtext, then narration, then on-screen text), giving **9 wants → 9 distinct
+queries**. It is fail-open in the strict sense: a want keeps its original query unless a
+genuinely different, non-empty alternative exists, so the pass can only add distinctness and
+can never leave a want without a query.
+
 ## Files
 
 **New** — `services/asset_score.js` · `services/stock/http.js` · `services/pexels/index.js` ·
