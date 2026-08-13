@@ -150,6 +150,31 @@ function build() {
     cfg.assetProviders.pexels = cfg.assetProviders.pexels || {};
     cfg.assetProviders.pexels.apiKey = process.env.PEXELS_API_KEY || process.env.PEXELS;
   }
+  // Unsplash stock key — same env parity. Unsplash calls it an ACCESS key and sends it
+  // as `Authorization: Client-ID <key>`, so UNSPLASH_ACCESS_KEY is the documented name;
+  // UNSPLASH_API_KEY and UNSPLASH are accepted as aliases so nobody has to remember which.
+  if (process.env.UNSPLASH_ACCESS_KEY || process.env.UNSPLASH_API_KEY || process.env.UNSPLASH) {
+    cfg.assetProviders = cfg.assetProviders || {};
+    cfg.assetProviders.unsplash = cfg.assetProviders.unsplash || {};
+    cfg.assetProviders.unsplash.apiKey =
+      process.env.UNSPLASH_ACCESS_KEY || process.env.UNSPLASH_API_KEY || process.env.UNSPLASH;
+  }
+  // A PLACEHOLDER IS NOT A KEY. Every provider's `available()` answers "can we search?"
+  // by testing presence, and `hasProviderFor(type)` gates real decisions on that answer —
+  // most consequentially the video->still downgrade in the asset planner. A key that reads
+  // "YOUR_PEXELS_KEY" (or a stray quoted empty string from a .env) makes available() claim
+  // the provider works while every call returns 401/400, so the planner keeps planning
+  // video needs nothing can fill. pixabay/config.js:22-25 already learned this the hard way
+  // — an invalid key once shipped an eight-scene film with one image. Scrub it once, here,
+  // where every provider reads its key from.
+  if (cfg.assetProviders) {
+    for (const name of Object.keys(cfg.assetProviders)) {
+      const entry = cfg.assetProviders[name];
+      if (!entry || typeof entry !== "object" || typeof entry.apiKey !== "string") continue;
+      const k = entry.apiKey.trim().replace(/^["']|["']$/g, "");
+      entry.apiKey = /^YOUR_|^<.*>$|^\s*$/i.test(k) ? "" : k;
+    }
+  }
   if (process.env.FREESOUND_TOKEN) {
     cfg.audio = cfg.audio || {};
     cfg.audio.freesoundToken = process.env.FREESOUND_TOKEN;

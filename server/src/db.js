@@ -191,6 +191,7 @@ function shape(j) {
     languageQa: j.language_qa || null,
     qa: j.qa || null,
     creativeReview: j.creative_review || null,
+    providerReview: j.provider_review || null,
     audioReview: j.audio_review || null,
     brandReview: j.brand_review || null,
     brandCoverage: j.brand_coverage || null,
@@ -342,6 +343,24 @@ module.exports = {
   setQa(id, qa) {
     const j = jobs.get(id); if (!j) return;
     j.qa = qa || null;
+    scheduleWrite();
+  },
+
+  // RETRIEVAL REVIEW — where every picture in the film came from and why it won.
+  //
+  // The gap this closes: the pipeline has rich disclosure for everything that happens AFTER
+  // assets are collected (creative_review, layout_review, placement_review, reuse_report,
+  // asset_usage_report) and had none at all for the collection itself. An asset arrived on
+  // the wire carrying the query string that fetched it and nothing else — not which provider
+  // served it, not how many candidates it beat, not what it scored, not whether it cleared
+  // the bar. "Why is there a photo of a water bottle in scene 3?" was unanswerable.
+  //
+  // Shape: { providers: [{name, searches, candidates, wins, errors, quota}], selections:
+  // [{sceneId, query, provider, score, bar, grade, parts, rank, poolSize, thresholdMissed}],
+  // totals: {wants, filled, cleared, missed, poolTotal, duplicatesDropped} }.
+  setProviderReview(id, review) {
+    const j = jobs.get(id); if (!j) return;
+    j.provider_review = review || null;
     scheduleWrite();
   },
 

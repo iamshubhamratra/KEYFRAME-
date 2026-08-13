@@ -58,6 +58,7 @@ const { kindForPurpose } = require("../services/asset_taxonomy");
 const { roleOf, showcaseTargets } = require("../services/scene_role");
 const { reconcileStoryboard } = require("../services/continuity");
 const { planMotion, verifyMotion } = require("../services/motion_planner");
+const assetScoreSvc = require("../services/asset_score");
 
 function ms() { return Date.now(); }
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
@@ -991,6 +992,67 @@ function topicAnchor(job, brief) {
   return Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 2).map((x) => x[0]).join(" ");
 }
 
+// A MINIMAL BOX CONTRACT FOR A WANT THAT HAS NO BOX.
+//
+// Wants come from two places: the template's placeholders (which carry a full
+// asset_requirements record — priority, minWidth/minHeight, kindPref, preferredAspect) and
+// the script/gap-fill path, which carries nothing but {type, query, role}. Without a
+// requirement the selection bar defaults to 80 for both, which is the right headline rule but
+// the wrong answer for filler: a gap-fill want exists precisely because a slot would otherwise
+// be empty, so holding it to a hero's standard maximises the number of recorded compromises
+// without improving a single film.
+//
+// So: honour what the need declares, and grade the rest by what the want is FOR.
+function synthRequirement(need, scene, targetRatio) {
+  if (!need) return null;
+  // `need.derived` means the QUERY was derived from the scene's prose rather than authored as
+  // an explicit assetNeed — it says nothing about how much the picture matters, and reading it
+  // as "decorative" put 80% of a film's wants on a 60 bar. A want with no box is held to the
+  // headline 80 unless it is only filling a gap the script never asked for (`fromBox`), which
+  // is the one case that genuinely is filler.
+  const priority =
+    need.priority === "critical" ? "critical"
+      : need.priority === "low" ? "low"
+        : (need.fromBox === true && need.required !== true) ? "medium"
+          : "high";
+  return {
+    priority,
+    preferredAspect: targetRatio || null,
+    kindPref: need.kindPref || (need.role === "icon" ? "vector" : null),
+    // Deliberately NOT invented. A synthesized floor would be a number nobody measured, and
+    // the sceneCompat axis scores an absent floor as neutral rather than as a failure.
+    minWidth: null, minHeight: null,
+    sceneId: scene && scene.id, synthesized: true,
+  };
+}
+
+// The concrete, shootable nouns this scene has to actually show — the `subject` axis, which
+// asks "is the required thing IN the frame?" as opposed to relevance's "does this overlap the
+// words we searched". Prefers what the script or product model authored; falls back to the
+// query's own content words.
+const SUBJECT_STOP = new Set(["the", "and", "for", "with", "that", "this", "your", "shot", "view", "close", "wide", "camera", "scene", "background", "image", "photo", "footage", "modern", "clean", "beautiful"]);
+function subjectTermsFor(need, scene) {
+  const src = [need && need.visualDescription, need && need.query, scene && scene.visualDirection]
+    .filter(Boolean).join(" ").toLowerCase();
+  const words = (src.match(/[a-z]{4,}/g) || []).filter((w) => !SUBJECT_STOP.has(w));
+  // Three is plenty: the axis is scored as "how many of the required terms appear", so a long
+  // list makes a perfect picture look partial.
+  return [...new Set(words)].slice(0, 3);
+}
+
+// The film's palette, for the small brand-affinity axis. Every source the pipeline already
+// resolves, best-first: the user's explicit pick, then the logo's extracted colours, then the
+// website's. Absent is fine — the axis scores neutral without it.
+function brandPaletteFor(job) {
+  const out = [];
+  const bp = job && job.brand_palette;
+  if (bp) out.push(bp.primary, bp.secondary, bp.accent);
+  const intent = (job && job.intent) || {};
+  if (intent.logo && Array.isArray(intent.logo.brandColors)) out.push(...intent.logo.brandColors);
+  if (intent.website && Array.isArray(intent.website.brandColors)) out.push(...intent.website.brandColors);
+  return [...new Set(out.filter((c) => /^#[0-9a-fA-F]{6}$/.test(String(c || ""))))].slice(0, 4);
+}
+
 async function assetSearchAgent(s) {
   const { job, jobDir, tracker, assetPlan } = s;
   const anchor = topicAnchor(job, s.brief);
@@ -1086,6 +1148,21 @@ async function assetSearchAgent(s) {
   // curated library (or the real screenshots) — no random/off-brand stock. Web
   // vectors/icons (usually clean flat art) still reach the web.
   const forceCurated = process.env.CURATED_ONLY_IMAGES === "1";
+  // A LIVE, READ-ONLY VIEW OF WHAT THE FILM HAS ALREADY TAKEN, for the uniqueness axis.
+  //
+  // The deduper above is the real guarantee and it stays exactly where it is — a sequential
+  // pass in plan order, AFTER the fetch, so the tier-ordered seeding decides who survives a
+  // collision. This is a different thing: an advisory hint DURING scoring, so the pool can
+  // prefer a picture the film has not taken instead of buying a duplicate the deduper then
+  // deletes. A dropped duplicate has already spent one of the film's fetches, and the scene it
+  // was meant for ends up empty.
+  //
+  // It must never be used to DECIDE a collision — that would invert the tier law (a stock
+  // photo could kill the user's own upload). It only nudges a score.
+  const seenView = { urls: new Set(), dhashes: [], providerWins: new Map() };
+  for (const a of [...userPinned, ...brandPinned, ...pinned]) {
+    if (a && a.dhash) seenView.dhashes.push(a.dhash);
+  }
   const results = [];
   // Web-stock assets to run through the vision relevance gate AFTER the fetch
   // loop, in one batched call rather than one LLM call per asset.
@@ -1173,7 +1250,11 @@ async function assetSearchAgent(s) {
     for (;;) {
       const i = cursor++;
       if (i >= jobs.length) return;
-      const { scene, need, isVideo, relPath, targetRatio } = jobs[i];
+      // `requirement` is a SIBLING of `need` on the want, not a field inside it (see the want
+      // literal in assetPlannerAgent). Reading `need.requirement` finds nothing, which
+      // silently sent every box want to the synthesized fallback and threw away the very
+      // contract this stage exists to honour.
+      const { scene, need, isVideo, relPath, targetRatio, requirement } = jobs[i];
       // type:"icon" OR role icon/texture -> want a curated vector. Do NOT append
       // "icon flat" to the query: that suffix trips the curated library's 0.5
       // relevance gate and zeroes its SVG hits — kindPref:"vector" already routes
@@ -1215,7 +1296,19 @@ async function assetSearchAgent(s) {
         query,
         fallbackQueries: [...new Set([need.query, ...fallbackQueriesFor(query)])],
         type: isVideo ? "video" : "image",
-        orientation: job.orientation, outputPath: path.join(jobDir, relPath), tracker,
+        // ASK FOR THE SHAPE OF THE BOX, NOT THE SHAPE OF THE FILM.
+        //
+        // This passed `job.orientation` while the scorer graded candidates against the BOX's
+        // aspect, so the two disagreed whenever a template puts a landscape panel inside a
+        // portrait film (or the reverse). Measured on a 9:16 grid-dispatch run: providers were
+        // asked for portrait, the boxes wanted wider panels, and the mean aspect sub-score came
+        // back 1.6 out of 10 — the pipeline was buying the wrong shape and then penalising it
+        // for being the wrong shape. Requesting the box's own orientation makes the request and
+        // the scoring agree; with no box, the film's orientation is still the best guess.
+        orientation: targetRatio
+          ? (targetRatio < 0.9 ? "vertical" : targetRatio > 1.2 ? "horizontal" : "square")
+          : job.orientation,
+        outputPath: path.join(jobDir, relPath), tracker,
         kindPref: isVideo ? undefined : (isIcon ? "vector" : kindPrefFor(need.role)),
         excludeIds: usedLibraryIds,
         curatedOnly: forceCurated && !isVideo && !isIcon,
@@ -1225,11 +1318,54 @@ async function assetSearchAgent(s) {
         // Rank candidates against the SHAPE OF THE BOX this asset is destined for. Icons are
         // exempt: a vector is drawn to fit and has no natural aspect to reward.
         targetRatio: isIcon ? undefined : targetRatio,
-      }).catch(() => null);
+        // THE BOX CONTRACT, at last. asset_requirements has always computed priority,
+        // minWidth/minHeight, kindPref and preferredAspect per placeholder, and only
+        // preferredAspect ever reached this call — every other field was computed and
+        // dropped. It decides the selection bar (a hero demands 80, a decorative tile 60)
+        // and feeds the sceneCompat axis. Wants with no box (script-authored and gap-fill)
+        // get a synthesized one below, so every want is judged against something.
+        requirement: requirement || synthRequirement(need, scene, targetRatio),
+        // WHAT THIS SCENE ACTUALLY SAYS. The relevance axis scores a candidate against the
+        // narration and on-screen copy as well as the search query, which is what stops a
+        // stock photo that matches the query but contradicts the line being spoken over it.
+        sceneText: [scene.headline, scene.subtext, scene.voiceover, ...(scene.onScreenText || [])].filter(Boolean).join(" "),
+        // The concrete, shootable nouns this scene must actually show.
+        subjectTerms: subjectTermsFor(need, scene),
+        // The film's palette, so an on-brand picture edges out an equally relevant one.
+        brandColors: brandPaletteFor(job),
+        // A READ-ONLY view of what the film has already taken, so the uniqueness axis can
+        // avoid a collision instead of paying a fetch for one the deduper then deletes.
+        seen: seenView,
+      }).catch((e) => {
+        // A THROW HERE IS A BUG, NOT A MISS. `.catch(() => null)` swallowed programming
+        // errors identically to "no asset found": a TypeError in scoring code became a
+        // silently missing picture with no stack trace anywhere. Distinguish them.
+        console.warn(`[agents] acquire failed for "${query}": ${e && e.message ? e.message : e}`);
+        if (e && e.stack && !/no asset found/i.test(String(e.message))) console.warn(e.stack.split("\n").slice(0, 3).join("\n"));
+        return null;
+      });
       if (!r) continue;
       // Claim the library id as soon as it is known, so later lanes exclude it. Best
       // effort by construction (see note 1 above); the dedupe pass is the real guarantee.
       if (r.libraryId) usedLibraryIds.add(r.libraryId);
+      // Feed the uniqueness view as soon as a lane lands one, so the lanes still running
+      // score against what has actually been taken rather than against the empty film.
+      if (r.dhash) seenView.dhashes.push(r.dhash);
+      if (r.sourceUrl) seenView.urls.add(r.sourceUrl);
+      if (r.provider) seenView.providerWins.set(r.provider, (seenView.providerWins.get(r.provider) || 0) + 1);
+      // THE AUDIT TRAIL, one line per selected picture. This is the log that makes a bad pick
+      // diagnosable instead of mysterious: which scene, what was asked for, who served it,
+      // what it scored, what it had to beat, and whether it actually cleared the bar.
+      if (r.retrievalScore != null) {
+        const p = r.retrievalParts || {};
+        console.log(
+          `[assets] scene ${scene.id} · "${query}" → ${r.provider}`
+          + ` · ${r.retrievalScore}/100 (bar ${r.bar != null ? r.bar : assetScoreSvc.barFor(requirement || synthRequirement(need, scene, targetRatio))})`
+          + `${r.thresholdMissed ? " BELOW BAR — best available" : ""}`
+          + ` · rank ${r.candidateRank ?? "-"}/${r.poolSize ?? "-"}`
+          + ` · R${p.relevance ?? "-"} Q${p.quality ?? "-"} S${p.sceneCompat ?? "-"} A${p.aspect ?? "-"} Su${p.subject ?? "-"} B${p.brand ?? "-"} U${p.uniqueness ?? "-"}`
+        );
+      }
       fetched[i] = r;
     }
   };
@@ -1295,6 +1431,23 @@ async function assetSearchAgent(s) {
         bitrateKbps: r.bitrateKbps, codec: r.codec,
       } : {}),
       license: r.license, sourceUrl: r.sourceUrl, source: r.source, fromCache: r.fromCache === true,
+      // WHY THIS PICTURE AND NOT THE OTHER NINETEEN. The retrieval layer ranks every
+      // candidate it pulls and, until now, discarded every number on the way out — so the
+      // only provenance an asset carried downstream was the query string that fetched it.
+      // `provider` is deliberately distinct from `source`: source is tier-bearing (bridge
+      // vectors stamp "pixabay", a cache hit stamps "cache:pexels") while provider names
+      // who actually supplied the pixels, which is what per-provider accounting needs.
+      provider: r.provider || null,
+      retrievalScore: r.retrievalScore != null ? r.retrievalScore : null,
+      retrievalParts: r.retrievalParts || null,
+      candidateRank: r.candidateRank != null ? r.candidateRank : null,
+      poolSize: r.poolSize != null ? r.poolSize : null,
+      // THE BAR AND THE VERDICT. Dropping these was the same mistake the three comments above
+      // record: a score of 69 on the wire with no bar beside it reads as a failure when the
+      // box only ever demanded 60, and a compromise with no `thresholdMissed` is indis-
+      // tinguishable from a clean win. The number is meaningless without what it was judged against.
+      bar: r.bar != null ? r.bar : null,
+      thresholdMissed: r.thresholdMissed === true,
     };
     results.push(resultObj);
     // Defer the vision gate, classified by ACTUAL SOURCE (not role): every real
@@ -1302,7 +1455,10 @@ async function assetSearchAgent(s) {
     // "pixabay"), which are arbitrary illustrations (a cartoon tooth/syringe slips
     // through otherwise). Curated picks, real website screenshots, and clean
     // recolored Iconify SVGs (source "iconify") stay trusted and skip the gate.
-    const STOCK_SOURCES = new Set(["pixabay", "openverse", "pexels", "pixabay_scrape"]);
+    // Imported, not re-listed. This used to be a hardcoded copy of the provider names, and
+    // there is a SECOND copy in creative_director.js — so adding a provider meant remembering
+    // two unrelated files or having its results silently treated as trusted owner content.
+    const STOCK_SOURCES = new Set(require("../services/asset_sources").STOCK_PROVIDERS);
     const isWebStock = STOCK_SOURCES.has(String(r.source || ""));
     if (isWebStock) pendingGate.push({ resultObj, absPath: r.path, type: isVideo ? "video" : "image", query: need.query });
   }
@@ -1347,6 +1503,64 @@ async function assetSearchAgent(s) {
   const assets = [...userPinned, ...brandPinned, ...pinned, ...got];
   db.setAssets(job.id, assets);
   console.log(`[agents] asset_search: ${assets.length} asset(s) (${userPinned.length} user upload(s), ${got.filter((a) => a.fromCache).length} from cache)`);
+
+  // ---- RETRIEVAL DISCLOSURE ------------------------------------------------------------
+  // Fail-open (THE LAW): a disclosure write never touches the render. Everything here is
+  // already in hand — this only reshapes it into the record the UI and an operator can read.
+  try {
+    const selections = got.filter((a) => a && a.retrievalScore != null).map((a) => ({
+      sceneId: a.sceneId,
+      query: a.alt,
+      provider: a.provider,
+      score: a.retrievalScore,
+      grade: assetScoreSvc.gradeFor(a.retrievalScore),
+      parts: a.retrievalParts,
+      rank: a.candidateRank,
+      poolSize: a.poolSize,
+      thresholdMissed: a.thresholdMissed === true,
+      fromCache: a.fromCache === true,
+    }));
+    const providers = {};
+    for (const a of got) {
+      const nm = a && a.provider;
+      if (!nm) continue;
+      const row = (providers[nm] ||= { name: nm, wins: 0, cleared: 0, missed: 0, fromCache: 0 });
+      row.wins++;
+      if (a.thresholdMissed) row.missed++; else if (a.retrievalScore != null) row.cleared++;
+      if (a.fromCache) row.fromCache++;
+    }
+    // What each provider still has left to spend — the operator-facing half of the 50/hour
+    // problem. A provider with no quota reporter simply omits it.
+    for (const name of Object.keys(providers)) {
+      try {
+        const mod = require("../services/asset_sources/" + (name === "pixabay" ? "pixabay_api" : name));
+        if (mod && typeof mod.quota === "function") providers[name].quota = mod.quota();
+      } catch { /* not every provider reports a quota */ }
+    }
+    const missed = selections.filter((x) => x.thresholdMissed).length;
+    const scored = selections.filter((x) => !x.thresholdMissed);
+    db.setProviderReview(job.id, {
+      providers: Object.values(providers),
+      selections,
+      totals: {
+        wants: jobs.length,
+        filled: got.length,
+        scored: selections.length,
+        cleared: scored.length,
+        missed,
+        avgScore: selections.length
+          ? Math.round(selections.reduce((s, x) => s + x.score, 0) / selections.length)
+          : null,
+      },
+    });
+    if (selections.length) {
+      const per = Object.values(providers).map((p) => `${p.name} ${p.wins}`).join(", ");
+      console.log(`[agents] retrieval review: ${selections.length} scored selection(s) — ${per}`
+        + ` · avg ${Math.round(selections.reduce((s, x) => s + x.score, 0) / selections.length)}/100`
+        + (missed ? ` · ${missed} below bar (best available)` : " · all cleared their bar"));
+    }
+  } catch (e) { console.warn(`[agents] retrieval disclosure skipped: ${e.message}`); }
+
   return { assets };
 }
 
@@ -2987,4 +3201,4 @@ module.exports = { runProductionGraph };
 // edge endpoints and channel collisions at compile() — none of which any existing test
 // reached, because test-production-integration.js exercises the legacy project_pipeline
 // path. A mistyped edge would otherwise surface for the first time mid-render.
-module.exports.__test = { assetPlannerAgent, validateBeforeRender, frameSelectorAgent, buildGraph };
+module.exports.__test = { assetPlannerAgent, assetSearchAgent, validateBeforeRender, frameSelectorAgent, buildGraph, synthRequirement, subjectTermsFor, brandPaletteFor };

@@ -89,6 +89,13 @@ function materialize(entry, outputPath) {
     ratio: entry.ratio != null ? entry.ratio
       : (entry.width && entry.height ? Math.round((entry.width / entry.height) * 1000) / 1000 : undefined),
     hasAlpha: entry.hasAlpha, dhash: entry.dhash, dominantColor: entry.dominantColor,
+    // Footage facts, stored since the score landed. Named `clipDurationSec` to match what
+    // the provider ladder returns — asset_quality's video branch reads that name, and a
+    // cache hit answering to a different one would grade as if it had no duration at all.
+    ...(entry.durationSec != null ? {
+      clipDurationSec: entry.durationSec, fps: entry.fps,
+      bitrateKbps: entry.bitrateKbps, codec: entry.codec,
+    } : {}),
   };
 }
 
@@ -113,7 +120,7 @@ function sha1File(filePath) {
 // concurrently, two registrations of the same bytes could otherwise both pass the check and both
 // append. The hash and the copy therefore happen FIRST, and the check-then-push at the end runs
 // without an await between the two halves.
-async function register({ filePath, query, type, orientation, source, license, sourceUrl, width, height, ratio, hasAlpha, dhash, dominantColor }) {
+async function register({ filePath, query, type, orientation, source, license, sourceUrl, width, height, ratio, hasAlpha, dhash, dominantColor, retrievalScore, retrievalParts, durationSec, fps, bitrateKbps, codec }) {
   try {
     const idx = load();
     await fs.promises.mkdir(FILES_DIR, { recursive: true });
@@ -138,6 +145,17 @@ async function register({ filePath, query, type, orientation, source, license, s
       hasAlpha: hasAlpha != null ? hasAlpha : null,
       dhash: dhash || null,
       dominantColor: dominantColor || null,
+      // The score this asset earned when it was fetched, so a cache hit re-enters the
+      // pipeline as well-described as the download was. Without it the cache is a
+      // free bypass around any selection threshold: a cached 55 would beat a fresh 85.
+      retrievalScore: retrievalScore != null ? retrievalScore : null,
+      retrievalParts: retrievalParts || null,
+      // Footage facts. The cache accepted video from day one and stored none of these,
+      // so a cached clip reached asset_quality's video branch with nothing to grade on.
+      durationSec: durationSec != null ? durationSec : null,
+      fps: fps != null ? fps : null,
+      bitrateKbps: bitrateKbps != null ? bitrateKbps : null,
+      codec: codec || null,
       file: dest, bytes, addedAt: Date.now(), hits: 0,
     });
     persist();

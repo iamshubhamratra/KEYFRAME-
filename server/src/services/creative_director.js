@@ -35,7 +35,13 @@ const SYSTEM = fs.readFileSync(
 // Only real web-stock providers are deletable on reject; the user's own website
 // screenshots, curated-library picks, and clean recolored Iconify SVGs are
 // trusted content — scored and assigned, but never deleted by the director.
-const STOCK_SOURCES = ["pixabay", "openverse", "pexels", "pixabay_scrape"];
+// Imported from the provider registry rather than re-listed. THIS COPY IS THE DANGEROUS ONE:
+// a provider missing from this list is not merely un-gated, it is promoted — `isWebStock`
+// returns false, so the quality floor below skips it and the director can never delete it,
+// which is the protection this codebase reserves for the user's own uploads. Requiring lazily
+// (inside the module body is fine — asset_sources does not require this file at load) so the
+// two lists cannot drift again.
+const STOCK_SOURCES = require("./asset_sources").STOCK_PROVIDERS;
 // Substring match so a CACHED web-stock asset (source "cache:pixabay", set by the
 // fetch cache) is still recognized as rejectable web stock — not mistaken for
 // trusted owned/curated content. The user's screenshots (source "website"),

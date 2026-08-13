@@ -106,4 +106,10 @@ async function search({ query, type, limit = 5 }) {
   }
 }
 
-module.exports = { name: "pixabay_scrape", types: ["image", "vector"], available: () => !!findChrome(), search };
+// `lastResort` keeps this provider OUT of the concurrent fan-out in asset_sources/index.js.
+// Every other provider is one HTTP call; this one launches a full puppeteer Chrome per search
+// and waits out a Cloudflare interstitial. Fanning it out would start a browser for every
+// want in the film, in parallel, to fetch candidates the API providers have almost always
+// already supplied. It is asked only when the concurrent pool comes back empty — which is
+// precisely the "last resort" this file was written to be.
+module.exports = { name: "pixabay_scrape", types: ["image", "vector"], available: () => !!findChrome(), search, lastResort: true };

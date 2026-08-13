@@ -7,6 +7,7 @@ const path = require("node:path");
 const https = require("node:https");
 const http = require("node:http");
 const { spawn } = require("node:child_process");
+const assetScore = require("../asset_score");
 
 const UA = "keyframe-studio/0.1 (asset fetcher)";
 
@@ -348,42 +349,73 @@ function tokenize(s) {
 // "retro"] for vapor-chrome). When supplied, a candidate whose tags carry those
 // words is rewarded — on-brand imagery ranks above generic matches — without
 // rejecting anything. Scoring is unchanged when no style context is passed.
-function scoreCandidate(query, c, styleKeywords, targetRatio) {
-  const q = tokenize(query);
-  const text = tokenize([c.tags, c.title, c.alt].filter(Boolean).join(" "));
-  let relevance;
-  if (!q.length) relevance = 0.5;
-  else if (!text.length) relevance = 0.35;              // provider gave no keywords
-  else relevance = q.filter((w) => text.includes(w)).length / q.length;
-  const longEdge = Math.max(Number(c.width) || 0, Number(c.height) || 0);
-  const quality = longEdge > 0 ? Math.min(1, longEdge / 1920) : 0.4;
-  const sk = Array.isArray(styleKeywords) ? styleKeywords.map((w) => String(w).toLowerCase()) : [];
-  const styleMatch = (sk.length && text.length) ? sk.filter((w) => text.includes(w)).length / sk.length : 0;
-  // Aspect fit: a MILD reward for candidates whose shape matches the target frame
-  // so a tall portrait photo doesn't win a full-bleed 16:9 slot and get its
-  // subject cropped away. Never a hard drop (a filled scene beats an empty one).
-  let aspectFit = 1;
-  const cw = Number(c.width) || 0, ch = Number(c.height) || 0;
-  if (targetRatio && cw > 0 && ch > 0) {
-    const rel = Math.abs(Math.log((cw / ch) / targetRatio)); // 0 = perfect match
-    aspectFit = Math.max(0.62, 1 - Math.min(0.38, rel * 0.5));
-  }
-  const base = sk.length
-    ? relevance * 0.5 + quality * 0.25 + styleMatch * 0.25
-    : relevance * 0.65 + quality * 0.35; // exact legacy behaviour with no style context
-  return { score: base * aspectFit, relevance, longEdge, styleMatch, aspectFit };
+// Scoring now lives in services/asset_score.js — seven weighted axes summing to 100, with
+// the sub-scores kept rather than collapsed into one float. This wrapper stays because the
+// signature is part of this module's surface; it returns the full record.
+//
+// WHAT CHANGED, AND WHY IT REORDERS RESULTS. The old formula was
+// `(relevance*0.65 + quality*0.35) * aspectFit`, where aspectFit was a MULTIPLIER floored at
+// 0.62 — so the worst possible shape still kept nearly two thirds of its points and a
+// sideways image could beat a correctly-shaped one on relevance alone. Aspect is now a real
+// 10-point axis that reaches zero, which is what a 9:16 film needs. Two smaller
+// re-baselines ride along: unknown dimensions score neutral (0.6) instead of near-worst
+// (0.4), because openverse and pixabay_scrape declare no dimensions for anything they
+// serve and were being deleted from contention by a signal that says nothing about the
+// picture; and supplying pack style keywords no longer silently reweights relevance down
+// from 0.65 to 0.5 — style is its own 5-point axis now.
+function scoreCandidate(query, c, styleKeywords, targetRatio, ctx = {}) {
+  return assetScore.scoreCandidate({ ...ctx, query, candidate: c, styleKeywords, targetRatio });
 }
 
 // Best-first ordering. Drops candidates too small to look good full-bleed, but
 // keeps them if that would leave nothing (a filled scene beats an empty one).
 // `targetRatio` (w/h of the frame) applies a mild aspect-fit reward when known.
-function rankCandidates(query, candidates, styleKeywords, targetRatio) {
+// `ctx` (optional) carries the scene-awareness the scorer can use when the caller has it:
+// { requirement, sceneText, subjectTerms, brandColors, seen, provider }. Every field is
+// optional and each one absent scores NEUTRAL, so a caller that passes none — as three of
+// the four acquire() call sites still do — gets a sane ranking rather than a punished one.
+function rankCandidates(query, candidates, styleKeywords, targetRatio, ctx = {}) {
   const scored = (candidates || [])
     .filter((c) => c && c.url)
-    .map((c) => ({ c, ...scoreCandidate(query, c, styleKeywords, targetRatio) }))
-    .sort((a, b) => b.score - a.score);
+    .map((c) => ({
+      c,
+      rec: assetScore.scoreCandidate({
+        ...ctx, query, candidate: c, styleKeywords, targetRatio,
+        // A pooled candidate remembers which provider served it; fall back to the caller's.
+        provider: c.__provider || ctx.provider || null,
+      }),
+      // Kept as its own field rather than read back off the score record: the resolution
+      // FLOOR below is a filter on declared pixels, not on the composite, and conflating
+      // the two would let a high-relevance thumbnail slip past it.
+      longEdge: Math.max(Number(c.width) || 0, Number(c.height) || 0),
+    }))
+    .sort((a, b) => b.rec.score - a.rec.score);
   const sharp = scored.filter((s) => s.longEdge === 0 || s.longEdge >= MIN_LONG_EDGE);
-  return (sharp.length ? sharp : scored).map((s) => s.c);
+  const kept = sharp.length ? sharp : scored;
+  // ATTACH THE EVIDENCE, DON'T DISCARD IT.
+  //
+  // This line used to be `.map((s) => s.c)`. Every candidate was scored on relevance,
+  // resolution, pack-style match and aspect fit — twenty of them per query — and then all
+  // four numbers were dropped on the floor, so nothing downstream could answer "why this
+  // picture and not the other nineteen?". The winner reached the wire carrying only the
+  // query string that fetched it.
+  //
+  // MUTATE, DO NOT WRAP: callers (index.js) read `c.url`, `c.license`, `c.width`, so the
+  // return has to stay bare-candidate-shaped. The underscore prefix marks these as
+  // retrieval-layer annotations rather than provider fields, the same convention the
+  // asset record already uses for `__slotWeight` / `__placement`.
+  //
+  // Scale is 0..100 to match every other score in this codebase (cdScore, qualityScore).
+  // asset_admission.displayRank blends tier x1e6 + prominence x1e3 + qualityScore x10 +
+  // cdScore x1, so a retrieval score emitted at a different magnitude would outrank the
+  // tier law and hand a stock photo the seat the user's own upload should own.
+  return kept.map((s, i) => Object.assign(s.c, {
+    __score: s.rec.score,
+    __parts: s.rec.parts,
+    __reasons: s.rec.reasons,
+    __rank: i + 1,
+    __poolSize: kept.length,
+  }));
 }
 
 // Dominant color of an image (Phase 6) — the average RGB via a single-pixel

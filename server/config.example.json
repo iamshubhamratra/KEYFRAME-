@@ -112,9 +112,10 @@
     "pythonBin": "python"
   },
   "assetProviders": {
-    "order": ["pixabay", "openverse", "pexels", "pixabay_scrape"],
-    "pixabay": { "apiKey": "" },
-    "pexels":  { "apiKey": "" }
+    "order": ["pixabay", "pexels", "unsplash", "openverse", "pixabay_scrape"],
+    "pixabay":  { "apiKey": "" },
+    "pexels":   { "apiKey": "" },
+    "unsplash": { "apiKey": "" }
   },
   "ingest": {
     "maxUploadMb": 200,
