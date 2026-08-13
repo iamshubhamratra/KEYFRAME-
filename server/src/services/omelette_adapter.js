@@ -1254,6 +1254,17 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
     // "MOBILES ·|FASHION ·|GROCERIES" on screen as "MOBILES ·I FASHION".
     const splitsPipes = (k) => typeof tpl[k] === "string" && tpl[k].includes("|");
     if (has("headline")) out.headline = up(splitsPipes("headline") ? breakHeadline(line1(), 52, land) : fit(line1(), 40));
+    // `title` IS the headline slot on the whole kit family (every authored kit
+    // scene leads with `title:"SERVICE|TICKET 3391."`), and it had NO mapping —
+    // it fell through to the generic bank fill, whose order tries bullets first
+    // and the headline LAST… which `bank.spend(sc.headline)` below has already
+    // marked as used. Net effect: the narrator speaks the scene's line while a
+    // CHIP is promoted to display type — a film said "the balance never rests"
+    // under a giant "BALANCE WHEEL". The beat's main statement now lands in the
+    // slot the design built for it.
+    if (has("title") && out.title === undefined) {
+      out.title = up(splitsPipes("title") ? breakHeadline(line1(), 52, land) : fit(line1(), 40));
+    }
     if (has("kicker")) out.kicker = fit(sc.kicker || purposeLabel(sc, bi), 20).toUpperCase();
     // Some shapes carry NO headline slot at all (Cadence's Morph is eyebrow +
     // prefix + states + body). On those the scene's main line has nowhere to go
