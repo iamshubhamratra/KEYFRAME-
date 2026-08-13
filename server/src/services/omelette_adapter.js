@@ -160,6 +160,19 @@ const plateOk = (a) => a && a.path && String(a.type) !== "video" && !/\.svg($|\?
 // recycled screenshot or hatched placeholder that slot would otherwise draw.
 const isVectorAsset = (a) => !!(a && a.path && String(a.type) !== "video"
   && /\.svg($|\?)/i.test(String(a.path)) && !isLogo(a));
+// A THIRD-PARTY BRAND MARK — the logo of a product the NARRATION names ("Slack",
+// "Chrome", "Edge"), fetched as flat art and pinned by the pipeline to the beat
+// that says the word. Recognised by its own `brand` field and never by reading
+// the name out of copy here: "Edge", "Linear" and "Notion" are ordinary English
+// words, and a mark on the wrong beat is worse than no mark at all.
+//
+// Every pool above refuses it today — plateOk drops SVG, isVectorAsset drops
+// anything isLogo() calls a logo (the alt reads "Slack logo") — so a supplied
+// mark reached no tile in any of the 141 templates. It also must never satisfy
+// `logo` below: that box is the CUSTOMER's mark, drawn on the closing frame, and
+// a competitor's glyph in it rebrands the film.
+const isBrandMark = (a) => !!(a && a.path && String(a.brand || "").trim()
+  && (String(a.source || "").toLowerCase() === "iconify" || /\.svg($|\?)/i.test(String(a.path))));
 
 function fit(text, max) {
   const t = String(text || "").trim();
@@ -247,8 +260,28 @@ function fillFor(key, authored, bank, { copyOnly = false } = {}) {
   // is text the design means to be read.
   if (!/\s/.test(body) && !/[.!?:—–,]/.test(body) && body.length < 12) return "";
   const upper = body === body.toUpperCase() && /[A-Z]/.test(body);
-  const cut = bank.take(Math.max(8, Math.min(110, body.length + 6)), { upper, copyOnly });
-  return cut || "";
+  // THE DESIGN'S MEASURE IS ITS WIDEST LINE, NOT ITS STRING LENGTH. 695 of the
+  // 1334 slots this fill lands in are authored as display type broken on "|"
+  // ("Begin with|empty paper.", "END OF|SHIFT."), and budgeting on the joined
+  // string handed them roughly twice the width the layout draws — then wrote it
+  // back as ONE line, because nothing put the breaks in. Measured across the
+  // fleet: every one of those 695 came out single-line, 67% of them wider than
+  // the widest authored line by half again and 33% more than double. Seen on a
+  // rendered InkBrush hook: two half-width lines of authored copy became "Still
+  // juggling five tools" running 55px to 1000px of a 1080px frame, straight
+  // through the brush ornament.
+  const rows = body.split("|").map((s) => s.trim()).filter(Boolean);
+  const wide = Math.max(...rows.map((s) => s.length));
+  // …and stay near that measure. "+6" is a rounding error on a 40-character
+  // sentence and a 75% raise on an eight-character stamp, which is exactly where
+  // it went wrong: authored defaults of 12 characters or less ran 34% over 1.5x
+  // their own width and 20% over 2x, while 13+ ran 4% and 0%. A quarter longer,
+  // capped at the six characters the old budget allowed, keeps the long case
+  // identical and tightens only the short one.
+  const per = Math.max(6, Math.min(110, wide + Math.min(6, Math.ceil(wide * 0.25))));
+  const cut = bank.take(per * rows.length, { upper, copyOnly });
+  if (!cut) return "";
+  return rows.length > 1 ? breakTo(cut, per, rows.length) : cut;
 }
 
 // ---------------------------------------------------------------- copy bank
@@ -396,6 +429,27 @@ function breakHeadline(text, max, land) {
     return head.join("|");
   }
   return lines.join("|");
+}
+// Give a filled slot the SHAPE its authored default has: `n` lines of at most
+// `per` characters. Same "|" contract as breakHeadline, but the widths come from
+// the design's own string instead of a portrait constant — and it never returns
+// more than `n` lines, because the extra row is what pushes a block into
+// whatever the layout draws beneath it.
+function breakTo(text, per, n) {
+  const words = String(text).split(/\s+/).filter(Boolean);
+  if (words.length < 2 || n < 2) return String(text);
+  const lines = [];
+  let cur = "";
+  for (const w of words) {
+    if (!cur) cur = w;
+    else if (cur.length + 1 + w.length <= per) cur += ` ${w}`;
+    else { lines.push(cur); cur = w; }
+  }
+  if (cur) lines.push(cur);
+  if (lines.length <= n) return lines.join("|");
+  const head = lines.slice(0, n - 1);
+  head.push(lines.slice(n - 1).join(" "));
+  return head.join("|");
 }
 function statsFor(scene) {
   const raw = Array.isArray(scene.stats) ? scene.stats : [];
@@ -554,7 +608,7 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
   // the stock underneath as fresh material for the slots owned assets don't
   // reach. Vectors sit in the last tier: after every photograph, ahead of a
   // repeat.
-  const all = (Array.isArray(assets) ? assets : []).filter(plateOk);
+  const all = (Array.isArray(assets) ? assets : []).filter((a) => plateOk(a) && !isBrandMark(a));
   const isSiteAsset = (a) => {
     const s = String((a && a.source) || "").toLowerCase();
     return isShot(a) || s === "website-image" || s === "blog";
@@ -568,12 +622,37 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
   // gets to them (measured on a live render: 6 photos + 2 vectors supplied, both
   // vectors unused). They are drawn instead from a reserved cadence below, which
   // guarantees graphic art a place without letting it outbid a photograph.
-  const vecPool = (Array.isArray(assets) ? assets : []).filter(isVectorAsset);
+  // A brand mark is graphic art too, but it is owed to ONE beat — the one that
+  // says its name — so it is kept out of a cadence that would spend it on
+  // whichever wall comes next.
+  const vecPool = (Array.isArray(assets) ? assets : []).filter((a) => isVectorAsset(a) && !isBrandMark(a));
   let vi = 0;
   const takeVec = () => (vi < vecPool.length ? vecPool[vi++] : null);
   // Which media wall we are on, for the one-in-three vector cadence.
   let wallNo = 0;
-  const logo = (Array.isArray(assets) ? assets : []).find(isLogo) || null;
+  // …and nothing fetched from the icon CDN is the customer's mark, whatever its
+  // alt says — the film's logo comes from its own site or its own upload.
+  const logo = (Array.isArray(assets) ? assets : [])
+    .find((a) => isLogo(a) && !isBrandMark(a) && String(a.source || "").toLowerCase() !== "iconify") || null;
+  // THE BEAT THAT SAYS THE NAME IS THE BEAT THAT SHOWS THE MARK. Pinned by
+  // sceneId, like the screenshot director's captures; an UNPINNED mark is dropped
+  // rather than guessed onto a beat. Marks are spent per scene, so a narrated
+  // beat that CUTS into two template beats (see the pace splitter) draws its row
+  // of marks once instead of stamping the same logos on both halves.
+  const marksByScene = new Map();
+  for (const a of (Array.isArray(assets) ? assets : [])) {
+    if (!isBrandMark(a) || a.sceneId == null) continue;
+    const sid = String(a.sceneId);
+    const list = marksByScene.get(sid) || [];
+    if (list.length >= 3 || list.some((x) => x.path === a.path)) continue;
+    list.push(a);
+    marksByScene.set(sid, list);
+  }
+  const markSpent = new Set();
+  const marksFor = (sc) => {
+    const sid = sc && sc.id != null ? String(sc.id) : null;
+    return sid && !markSpent.has(sid) ? (marksByScene.get(sid) || []) : [];
+  };
   const byScene = new Map();
   const free = [];
   for (const a of pool) {
@@ -929,6 +1008,18 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
       }
       return score;
     };
+    // …AND A BEAT THAT NAMES PRODUCTS WANTS THE SHAPE THAT CAN SHOW THEM. The
+    // only surface in these templates that can hold a mark is a media wall's
+    // trailing tiles: the lone `shot` is drawn inside browser chrome on most
+    // shapes, and a logo in a URL bar claims the mark IS the product's screen.
+    // So when this beat has marks pinned to it, a wall wins the tie — same
+    // mechanism roomFor uses, and on the same terms: every candidate scored here
+    // has already passed canFill, the pace rule and the anti-twin guard, so this
+    // only reorders shapes the template was equally willing to cast. A template
+    // with no wall shape simply never has a candidate to prefer, and the marks go
+    // unshown rather than displacing the beat's picture.
+    const wantsMarks = marksFor(sc).length > 0;
+    const marksBonus = (t) => (wantsMarks && MEDIA_WALL.test(String(t.name || "")) ? 1000 : 0);
     for (let guard = 0; guard <= middle.length + 1; guard++) {
       for (const [wantPace, noTwin, soft] of [[true, true, false], [false, true, false], [false, true, true], [false, false, false], [false, false, true]]) {
         let pick = -1, pickScore = -1;
@@ -938,7 +1029,7 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
           if (!canFill(t, sc, soft)) continue;
           if (wantPace && !pacesOk(t)) continue;
           if (noTwin && lastName && t.name === lastName) continue;
-          const score = roomFor(t);
+          const score = roomFor(t) + marksBonus(t);
           if (score > pickScore) { pickScore = score; pick = n; }
         }
         if (pick >= 0) {
@@ -1238,10 +1329,23 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
       // list source a sparse scene has is its one support sentence, and fitLabel
       // rightly refuses to cut that into a pill ("Design, code and AI all pull"),
       // so the whole rack came back empty and the shape drew bare ground.
+      // …at the width of the ROW, not of the slot name. `max` is a literal picked
+      // per slot ("tags" 16, "pains" 26, unmapped lists 30) and is the same for
+      // every template, so a Transit departure board authored "PROOF / HOOK /
+      // SHOT" was topped up with "Still juggling five tools" — five times the
+      // width of the row it sits in. Measured across the fleet: 58 rack entries
+      // filled this way, 12 of them over twice the authored entry and 8 over
+      // three times. When the authored entries are strings, THEY are the budget.
       if (b.length < n) {
+        const rowWide = Array.isArray(tpl[key])
+          ? Math.max(0, ...tpl[key].map((x) => (typeof x === "string" ? x.trim().length : 0)))
+          : 0;
+        const room = rowWide
+          ? Math.min(max || 22, rowWide + Math.min(6, Math.ceil(rowWide * 0.25)))
+          : (max || 22);
         const seen = new Set(b.map((x) => x.toLowerCase()));
         for (let g = b.length; g < n; g++) {
-          const more = bank.take(max || 22, { copyOnly: true });
+          const more = bank.take(room, { copyOnly: true });
           if (!more || seen.has(more.toLowerCase())) break;
           seen.add(more.toLowerCase());
           b.push(more);
@@ -1622,7 +1726,11 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
     // so the demo-copy suppression could not see them and nothing downstream
     // flagged it. Mirror onto both namings; a film that reads neither ignores the
     // extra key, which is the same trade shotA/shotB already makes below.
-    if (primary) out.image = primary.path;
+    // Never leave the kit's single-image slot empty either — an unset `image`
+    // draws a bare dark frame (measured on the zero-asset escapement bench,
+    // beats 4/8: an empty rectangle where the picture goes). Same branded plate
+    // the shot slot uses.
+    out.image = primary ? primary.path : fillPlate(brand, accent, null);
     // `showcase`/`surfaces`/`screens` draw stacked BROWSER CARDS reading
     // shot1..N — the most screenshot-forward shape any of these templates has.
     // Cadence's Showcase was absent from this list, so its two browser cards
@@ -1635,9 +1743,17 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
       // draws without an image paints the placeholder — so guaranteeing only 3
       // left the last tile hatched on every kit film. Where the authored scene
       // tells us the count, honour it; otherwise keep the previous floor of 3.
+      // PORTRAIT WALLS ARE TWO BIG CARDS, ALWAYS. A 2x2 grid of quarter-frame
+      // tiles was designed for a supply of 4 on-topic images that real films
+      // rarely have — scarce pools recycled duplicates into it, and an empty
+      // pool shipped four hatched "DROP IMAGE TO REPLACE" placeholders
+      // (user-reported on escapement). Two full-width cards read better at
+      // 9:16 AND halve the demand. Landscape keeps the authored count — its
+      // walls were designed wide. (kfBigCards in the harness restacks the
+      // compiled grid to a single column; this cap is the data half.)
       const slots = Array.isArray(tpl.tiles) && tpl.tiles.length
-        ? Math.min(6, tpl.tiles.length)
-        : 3;
+        ? Math.min(land ? 6 : 2, tpl.tiles.length)
+        : (land ? 3 : 2);
       // VECTOR CADENCE — one tile in every OTHER wall is reserved for graphic art.
       //
       // Without a reservation vectors are decorative in theory only: they sit at
@@ -1652,14 +1768,41 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
       // out with no graphic art again. Starting the cycle at the first wall keeps
       // the short film honest while a long one still alternates.
       const vecTile = (wallNo++ % 2 === 0 && slots >= 3 && vi < vecPool.length) ? slots : 0;
-      for (let n = 1; n <= 6; n++) {
+      // THE MARKS OF THE PRODUCTS THIS BEAT NAMES, AS A ROW — and ahead of the
+      // vector cadence above, which is a rotation over the film while these are
+      // owed to this one beat.
+      //
+      // They take the TRAILING tiles, never tile 1: the first tile is the wall's
+      // lead picture and a beat with a real capture must still show it. Left to
+      // right in the order the narration says the names, so "Slack · Chrome ·
+      // Edge" reads across the wall as a strip of marks rather than as one
+      // unexplained icon among photographs. Never more than slots-1 of them, so
+      // the wall can never become logos alone.
+      const marks = marksFor(sc).slice(0, Math.max(0, slots - 1));
+      const markFrom = marks.length ? slots - marks.length + 1 : 0;
+      const markAt = (n) => (markFrom && n >= markFrom && n <= slots ? marks[n - markFrom] : null);
+      if (marks.length) markSpent.add(sid);
+      for (let n = 1; n <= (land ? 6 : slots); n++) {
         // Slots the wall really draws are guaranteed (recycled if needed);
-        // beyond that, only fresh assets extend the wall.
-        const a = (n === vecTile ? place(takeVec()) : null)
+        // beyond that, only fresh assets extend the wall — landscape only: a
+        // portrait wall is capped hard at its 2 big cards, extending it would
+        // re-create the small-tile grid this whole block removes.
+        // A mark is deliberately NOT `place`d: `used` is the recycle pool, and a
+        // logo repeated onto a later beat claims the film is about Slack.
+        const a = markAt(n)
+          || (n === vecTile ? place(takeVec()) : null)
           || place(take()) || (n <= slots ? recycle() : null);
         if (!a) break;
         out[`shot${n}`] = a.path;
         wall.push(a.path);
+      }
+      // NEVER A HATCHED PLACEHOLDER. When even recycling could not fill the two
+      // portrait cards (an assetless film), the remaining card gets the branded
+      // tonal plate — the same stand-in every single-shot slot already uses.
+      while (!land && wall.length < slots) {
+        const plate = fillPlate(brand, accent, null);
+        out[`shot${wall.length + 1}`] = plate;
+        wall.push(plate);
       }
       // Momentum's Gallery reads shotA/shotB instead of shot1/shot2 — feed both
       // namings; unread fields are ignored by every other film.
@@ -1674,10 +1817,17 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
       // ["One","Two","Three","Four"] — so a blanked wall shipped counting words
       // under the screenshots. Caption from the scene's own bullets, blank where
       // it has none (a mid-sentence stump reads as a broken caption).
+      // A MARK'S CAPTION IS ITS NAME. Captioning the Slack tile with the next
+      // clause of the scene's copy labels the logo with a sentence about
+      // something else; the product's name is the one caption that is both true
+      // and the label a designer would set under a mark.
       if (Array.isArray(tpl.tiles) && tpl.tiles.length) {
         const caps = bullets(sc, slots);
-        out.tiles = Array.from({ length: slots }, (_, n) =>
-          caps[n] ? (up(fitLabel(caps[n], 22)) || " ") : " ");
+        out.tiles = Array.from({ length: slots }, (_, n) => {
+          const mk = markAt(n + 1);
+          if (mk) return up(fit(String(mk.brand), 22));
+          return caps[n] ? (up(fitLabel(caps[n], 22)) || " ") : " ";
+        });
       }
 
       // INDEXED WALLS. Some films do not read shot1..N directly — they iterate a
@@ -1699,8 +1849,10 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
           // A caption is only added when the scene has its own words for it; the
           // authored one names another product's screen.
           // A caption is a LABEL: a mid-sentence stump under a screenshot reads
-          // as a broken caption, so blank beats blank rather than truncating.
-          cap: caps[n] ? (up(fitLabel(caps[n], 22)) || " ") : " ",
+          // as a broken caption, so blank beats blank rather than truncating —
+          // and a mark is labelled with the name the narrator just said.
+          cap: markAt(n + 1) ? up(fit(String(markAt(n + 1).brand), 22))
+            : (caps[n] ? (up(fitLabel(caps[n], 22)) || " ") : " "),
         }));
       }
     }
@@ -2216,8 +2368,15 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
   // and reads as a smear, which is why these were barred from the pool outright.
   // `contain` + inset padding keeps the whole glyph inside the card at a sane size
   // — the same trade template_engine makes with its `fitContain` flag.
+  // A BRAND MARK LETTERBOXES for the same reason and one more: half a
+  // competitor's logo is not a crop, it is the wrong logo. These are listed
+  // separately because they also need the inline pass below — the wall tiles that
+  // draw them can sit inside a shadow root, which a document stylesheet cannot
+  // reach (see kfFitShots).
   const vectorFiles = [...new Set((Array.isArray(assets) ? assets : [])
-    .filter(isVectorAsset).map((a) => String(a.path || "").split("/").pop()).filter(Boolean))];
+    .filter((a) => isVectorAsset(a) || isBrandMark(a)).map((a) => String(a.path || "").split("/").pop()).filter(Boolean))];
+  const brandFiles = [...new Set((Array.isArray(assets) ? assets : [])
+    .filter(isBrandMark).map((a) => String(a.path || "").split("/").pop()).filter(Boolean))];
   const vectorFitCss = vectorFiles.length
     ? `  ${vectorFiles.map((f) => `img[src$="${f}"]`).join(",\n  ")} { object-fit: contain !important; object-position: center !important; padding: 6% !important; box-sizing: border-box !important; }`
     : "";
@@ -2549,11 +2708,27 @@ ${vectorFitCss}
     // So the anchor is applied as an inline style, walking shadow roots, and
     // re-applied after every seek because the film re-renders on each frame.
     var SHOT_FILES=${JSON.stringify(shotFiles)};
+    // The brand marks, which take the OPPOSITE fit: contain, centred, inset. Same
+    // walker for the same reason — the stylesheet rule above stops at a shadow
+    // boundary, and a cover-cropped logo is the one failure a mark cannot survive.
+    var MARK_FILES=${JSON.stringify(brandFiles)};
     function kfFitShots(root){
       try{
         var imgs=(root||document).querySelectorAll('img');
         for(var i=0;i<imgs.length;i++){
           var src=imgs[i].getAttribute('src')||'';
+          var done=false;
+          for(var b=0;b<MARK_FILES.length;b++){
+            if(src.indexOf(MARK_FILES[b])>=0){
+              imgs[i].style.setProperty('object-fit','contain','important');
+              imgs[i].style.setProperty('object-position','center','important');
+              imgs[i].style.setProperty('padding','6%','important');
+              imgs[i].style.setProperty('box-sizing','border-box','important');
+              done=true;
+              break;
+            }
+          }
+          if(done) continue;
           for(var k=0;k<SHOT_FILES.length;k++){
             if(src.indexOf(SHOT_FILES[k])>=0){
               // cover, not the CSS default fill — fill squashes the capture.
@@ -2572,7 +2747,7 @@ ${vectorFitCss}
     function seek(t){
       cur=Math.max(0,Math.min(D,Number(t)||0));
       el.dispatchEvent(new CustomEvent('data-om-seek-to-time-frame',{detail:{time:cur,sync:true}}));
-      if(SHOT_FILES.length) kfFitShots();
+      if(SHOT_FILES.length||MARK_FILES.length) kfFitShots();
     }
     var tl={
       duration:function(){return D;},
@@ -2608,6 +2783,65 @@ ${vectorFitCss}
         }
       }catch(e){}
     }
+    // PORTRAIT WALLS RESTACK TO TWO BIG CARDS. The compiled templates lay their
+    // media walls as fixed 2-column grids (2x2 on the kit Montage); the adapter
+    // now supplies at most two images at 9:16, which would leave one small row —
+    // or, on templates whose markup draws four boxes regardless, two hatched
+    // placeholders. This pass finds every container whose children carry wall
+    // media and forces a single column: two full-width, screenshot-shaped cards.
+    // Runtime and per-seek (the film is React and recommits each frame), same as
+    // autofit/kfFitShots; detection is anchored on OUR OWN shot files and plates,
+    // so a text grid can never be caught.
+    ${W >= H ? "function kfBigCards(){}" : `
+    function kfBigCards(){
+      try{
+        var isWallImg=function(img){
+          var src=img.getAttribute('src')||'';
+          if(src.indexOf('data:image/svg')===0) return true;      // branded plate
+          for(var k=0;k<SHOT_FILES.length;k++) if(src.indexOf(SHOT_FILES[k])>=0) return true;
+          return false;
+        };
+        var carriesMedia=function(el){
+          var imgs=el.querySelectorAll('img');
+          for(var i=0;i<imgs.length;i++) if(isWallImg(imgs[i])) return 1;
+          if(/drop image to replace/i.test(el.textContent||'')) return 2;  // placeholder box
+          return 0;
+        };
+        var seen=[];
+        (function walk(root){
+          var all=root.querySelectorAll('*');
+          for(var j=0;j<all.length;j++){
+            var el=all[j];
+            if(el.shadowRoot) walk(el.shadowRoot);
+            if(el.children.length<2||el.children.length>8) continue;
+            var media=0, kinds=[];
+            for(var c=0;c<el.children.length;c++){ var m=carriesMedia(el.children[c]); kinds.push(m); if(m) media++; }
+            if(media<2) continue;
+            var cs=getComputedStyle(el);
+            if(cs.display!=='grid'&&cs.display!=='flex') continue;
+            seen.push({el:el,kinds:kinds});
+          }
+        })(document);
+        for(var s2=0;s2<seen.length;s2++){
+          var w=seen[s2];
+          // Keep two cards — real images before placeholder boxes — hide the rest.
+          var quota=2;
+          for(var pass2=1;pass2<=2;pass2++){
+            for(var c4=0;c4<w.el.children.length;c4++){
+              if(w.kinds[c4]!==pass2) continue;
+              if(quota>0){ quota--; w.el.children[c4].style.removeProperty('display'); w.el.children[c4].style.setProperty('width','100%','important'); }
+              else { w.el.children[c4].style.setProperty('display','none','important'); }
+            }
+          }
+          // One column: two cards stack into big horizontal frames.
+          if(getComputedStyle(w.el).display==='grid'){
+            w.el.style.setProperty('grid-template-columns','1fr','important');
+          } else {
+            w.el.style.setProperty('flex-direction','column','important');
+          }
+        }
+      }catch(e){}
+    }`}
     seek=function(t){
       _seek(t);
       fitFrame();
@@ -2615,6 +2849,7 @@ ${vectorFitCss}
       portraitBoost();
       hideChrome();
       healImgs();
+      kfBigCards();
       if(window.__kfScript) window.__kfScript(t);
       placeScript();
       if(!capEl) return;
