@@ -95,9 +95,9 @@ function jobFixture({ userPick = "auto", persistedPack = null, videoTextLanguage
   // ---- H2: the storyboard's pack direction only exists if framePack is passed ----
   await test("storyboard: framePack produces the design-system direction block", () => {
     const { buildUser } = require("../src/services/storyboard");
-    const withPack = buildUser({ prompt: "p", duration: 20, orientation: "horizontal", framePack: "blockframe" });
+    const withPack = buildUser({ prompt: "p", duration: 20, orientation: "horizontal", framePack: "edition" });
     const without = buildUser({ prompt: "p", duration: 20, orientation: "horizontal" });
-    assert.ok(/blockframe/.test(withPack), "the pack name must reach the model");
+    assert.ok(/edition/.test(withPack), "the pack name must reach the model");
     assert.ok(/visually distinct/i.test(withPack), "the adjacent-scene-variety instruction must be present");
     assert.ok(!/visually distinct/i.test(without), "control: absent without a pack");
   });

@@ -80,7 +80,7 @@ test("templates of different character never ask the same way", () => {
   // genuinely acoustic, and forbidding the overlap would misdescribe the library. What must
   // not happen is two packs of different character issuing the SAME ladder, because that is
   // what makes two films indistinguishable.
-  const chars = ["hacker", "edition", "hype-wave", "paper-tales", "deep", "vapor-chrome", "grid-dispatch"];
+  const chars = ["hacker", "edition", "hype-wave", "paper-tales", "deep", "synthwave-sunset", "grid-dispatch"];
   for (let i = 0; i < chars.length; i++) {
     for (let j = i + 1; j < chars.length; j++) {
       const a = ladderFor(chars[i], "same-job");

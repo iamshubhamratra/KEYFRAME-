@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { listFrames, mediaUrl } from "../api.js";
-import { PACK_LORE, PACK_ORDER, loreFor, loreForPack } from "../packlore.js";
+import { PACK_LORE, PACK_ORDER, loreFor, loreForPack, orderPacks, isNewPack } from "../packlore.js";
 
 // Template categories by aspect ratio. Portrait 9:16 leads (the imported vertical packs).
 const CATEGORIES = [
@@ -150,13 +150,6 @@ function AspectJump({ target, title, sub, accent, count }) {
   );
 }
 
-// Merge server packs with the design lore, in the design's order.
-function orderPacks(serverPacks) {
-  const byName = Object.fromEntries(serverPacks.map((p) => [p.name, p]));
-  const known = PACK_ORDER.map((name) => ({ name, ...(byName[name] || {}) }));
-  const extras = serverPacks.filter((p) => !PACK_LORE[p.name]);
-  return [...known, ...extras];
-}
 
 // One pack card — v2 anatomy: white card, color spine, scanlined preview.
 export function PackCard({ pack, delay = 0, onUse, compact = false }) {
@@ -199,31 +192,71 @@ export function PackCard({ pack, delay = 0, onUse, compact = false }) {
       <span className="spine" style={{ "--spine": lore.accent, zIndex: 5 }} />
 
       {/* thumbnail — the pack's REAL rendered look (its poster frame). The synthetic
-          bg / gradient / chips / demo-type below is only a FALLBACK for a pack that
-          has no poster; when a poster exists it fully covers them (zIndex 4). */}
+          bg / gradient / demo-type below is only a FALLBACK for a pack that has no poster.
+
+          THAT USED TO BE A LIE IN THE PICKER, and it is what made every Studio card look
+          broken. The old comment reasoned "when a poster exists it fully covers them
+          (zIndex 4)" — true for `cover`, false for `contain`, and the compact picker is
+          deliberately `contain` (see the aspect/fit note above) so a 9:16 pack is
+          letterboxed rather than cropped to a sliver. Letterboxed means the poster covers
+          the MIDDLE of the frame and nothing else, so the fallback layer stayed visible down
+          both sides — and since loreForPack falls back to `demo: pack.label || pack.name`
+          (packlore.js:305), the text showing through was the pack's OWN NAME, bisected by
+          its own poster: "Pu—— k", "Hiv——ney", "O——ve".
+
+          So the fallback now renders only when it is genuinely a fallback. */}
       <div style={{ aspectRatio: aspect, position: "relative", overflow: "hidden", background: lore.bg, display: "grid", placeItems: "center" }}>
-        <div style={{ position: "absolute", inset: 0, background: lore.grad, opacity: 0.9 }} />
+        {/* LETTERBOX GROUND. With `contain` the poster cannot fill the frame, so something
+            has to sit behind it. A blurred, over-scaled copy of the poster itself beats the
+            synthetic gradient: the surround is drawn from the template's real colours, so a
+            9:16 pack reads as presented-in-frame rather than pasted onto an unrelated field.
+            Falls back to the lore gradient when there is no poster to blur. */}
+        {poster && fit === "contain" ? (
+          <div aria-hidden="true" style={{
+            position: "absolute", inset: 0, zIndex: 1,
+            backgroundImage: `url(${poster})`, backgroundSize: "cover", backgroundPosition: "center",
+            filter: "blur(22px) saturate(1.25) brightness(0.82)",
+            // Over-scale so the blur's soft edges never reveal the card behind it.
+            transform: "scale(1.18)",
+          }} />
+        ) : (
+          <div style={{ position: "absolute", inset: 0, background: lore.grad, opacity: 0.9 }} />
+        )}
         <div className="film-scan" style={{ opacity: 0.5 }} />
         <div style={{ position: "absolute", top: 12, left: 17, display: "flex", gap: 5, zIndex: 3 }}>
           {lore.chips.map((c, i) => (
             <span key={i} style={{ width: 10, height: 10, borderRadius: "50%", background: c, boxShadow: "0 1px 4px rgba(0,0,0,.25)", animation: `kf-bob 3s ease-in-out ${i * 0.2}s infinite` }} />
           ))}
         </div>
-        <div style={{ position: "relative", zIndex: 2, textAlign: "center", padding: "0 18px" }}>
-          <div style={{ fontFamily: lore.font, fontWeight: 800, fontSize: compact ? "clamp(17px,2vw,24px)" : "clamp(22px,2.6vw,32px)", lineHeight: 0.92, color: lore.ink, letterSpacing: lore.tracking }}>
-            {lore.demo}
+        {/* The synthetic wordmark — ONLY when no real artwork exists to show instead. */}
+        {!poster && !preview && (
+          <div style={{ position: "relative", zIndex: 2, textAlign: "center", padding: "0 18px" }}>
+            <div style={{ fontFamily: lore.font, fontWeight: 800, fontSize: compact ? "clamp(17px,2vw,24px)" : "clamp(22px,2.6vw,32px)", lineHeight: 0.92, color: lore.ink, letterSpacing: lore.tracking }}>
+              {lore.demo}
+            </div>
           </div>
-        </div>
+        )}
         {/* real template look — static poster frame is the DEFAULT thumbnail */}
         {poster && (
           <img src={poster} alt={`${lore.name || pack.label || pack.name} preview`} loading="lazy" draggable={false}
-            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: fit, zIndex: 4 }} />
+            style={{
+              position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: fit, zIndex: 4,
+              // A contained poster is a picture sitting on a ground, so give it an edge —
+              // without it the blurred backdrop bleeds into the artwork and both look soft.
+              ...(fit === "contain" ? { filter: "drop-shadow(0 2px 10px rgba(0,0,0,.34))" } : null),
+            }} />
         )}
-        {/* hover — the pack's motion preview fades in over the poster */}
+        {/* hover — the pack's motion preview fades in over the poster. It shares the poster's
+            fit and drop-shadow so the card does not visibly change shape on hover: the video
+            simply replaces the still inside the same letterbox. */}
         {preview && (
           <video ref={vidRef} src={preview} poster={poster || undefined}
             muted loop playsInline preload="none"
-            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: fit, zIndex: 5, opacity: hover ? 1 : 0, transition: "opacity .35s ease" }} />
+            style={{
+              position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: fit, zIndex: 5,
+              opacity: hover ? 1 : 0, transition: "opacity .35s ease",
+              ...(fit === "contain" ? { filter: "drop-shadow(0 2px 10px rgba(0,0,0,.34))" } : null),
+            }} />
         )}
       </div>
 

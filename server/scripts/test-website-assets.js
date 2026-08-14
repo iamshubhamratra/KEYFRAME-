@@ -163,7 +163,7 @@ async function main() {
   const wire = [noUpload.brandLogo, ...noUpload.brandPinned].filter(Boolean);
   const storyboard = { scenes: script.scenes.map((s) => ({ ...s, beats: [] })) };
   let dl = null, threw = false;
-  try { dl = directLayout({ storyboard, script, assets: wire, framePack: "blockframe", dims: { width: 1920, height: 1080, fps: 30 } }); } catch { threw = true; }
+  try { dl = directLayout({ storyboard, script, assets: wire, framePack: "edition", dims: { width: 1920, height: 1080, fps: 30 } }); } catch { threw = true; }
   ok(!threw && dl && Array.isArray(dl.assets), "directLayout accepts harvested assets without error");
   ok(dl && dl.assets.length === wire.length, "directLayout preserves all harvested assets (logo + imagery)");
   // The harvested hero is a photo, not a screenshot → it is not annotated with a

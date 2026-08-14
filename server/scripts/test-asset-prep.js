@@ -116,7 +116,7 @@ t("DERIVED: content-critical scenes never become asset slots", () => {
 });
 
 t("EVERY PLAN HAS A MOST-IMPORTANT SLOT", () => {
-  for (const pack of ["midnight-glass", "prisma-bloc", "organic-garden", "showcase"]) {
+  for (const pack of ["edition", "prisma-bloc", "organic-garden", "showcase"]) {
     const plan = tm.resolveMediaPlan({ pack, scenes: SCENES, dims: PORTRAIT });
     assert.equal(plan.criticalCount >= 1, true,
       `${pack}: with no critical slot the ranker has nothing to protect and "best asset in the best slot" is unenforceable`);

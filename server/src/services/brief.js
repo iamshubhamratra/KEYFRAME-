@@ -45,12 +45,10 @@ const BriefSchema = z.object({
 
 // One-line vibe per pack, given to the LLM so suggestions are informed.
 // Falls back to the pack name alone for packs without a known description.
-const PACK_VIBES = {
-  "blockframe": "maximalist neo-brutalist: candy pastels, 4px black borders, hard shadows, loud uppercase — playful, bold, product-launch energy",
-  "biennale-yellow": "literary editorial: warm parchment, indigo ink, solar yellow blooms, serif display — elegant, cultural, slow-confidence",
-  "midnight-glass": "dark glassmorphism: deep navy, frosted cards, one neon accent — premium, technical, nocturnal",
-  "fable-storybook": "warm storybook: parchment, ink-brown serif spirit, watercolor terracotta/sage/dusk washes, paper planes + firefly orbs in gentle 3D — for narratives, brand stories, emotional arcs, journeys",
-};
+// EMPTY BY DESIGN since the four packs it described were removed. The lookup below already
+// falls back to the pack manifest vibe and then the FRAME.md description, which is how the
+// other 120-odd packs have always been offered to the model.
+const PACK_VIBES = {};
 
 const { extractFirstJsonObject: parseLenient } = require("./json_lenient");
 

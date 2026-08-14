@@ -5,8 +5,8 @@ voiced, captioned MP4 rendered via HyperFrames.
 
 See [PLAN.md](PLAN.md) for the full build plan. All 8 phases implemented:
 multi-modal ingest (local whisper STT + headless-Chrome website understanding),
-script checkpoint with pause/approve, three frame-pack design systems
-(blockframe · biennale-yellow · midnight-glass), DB-first asset layer with
+script checkpoint with pause/approve, a library of 126 frame-pack design systems
+(16 landscape, the rest portrait/square — `edition` is the default), DB-first asset layer with
 4 providers, per-scene VO with ad-lib defense, baked captions + .srt, and the
 six-screen web app.
 
@@ -18,7 +18,6 @@ six-screen web app.
 | `web/` | Vite + React frontend (Phase 6). |
 | `frames/` | Frame packs — curated design systems (`FRAME.md` + showcase) injected into the composer. |
 | `heygen-keyframes-video/` | Reference: v1 prompt→video pipeline (pristine, except Windows spawn fixes). |
-| `blockframe-frame-pack/`, `biennale-yellow-frame-pack/` | Reference: original frame pack sources. |
 | `pixabay-no-node-modules/` | Reference: Pixabay scraper service (Cloudflare-aware). |
 | `keyframe-studio/` | Separate lightweight prototype (URL → animated HTML page, port 8090). Not part of the pipeline. |
 

@@ -18,6 +18,8 @@ const framesRouter = require("./src/routes/frames");
 const { buildRouter: buildGenerateRouter } = require("./src/routes/generate");
 const { buildRouter: buildProjectsRouter } = require("./src/routes/projects");
 const { buildRouter: buildAuthRouter } = require("./src/routes/auth");
+const { buildRouter: buildAdminTemplatesRouter } = require("./src/routes/admin_templates");
+const { requireAdmin } = require("./src/auth/middleware");
 const cookieParser = require("cookie-parser");
 
 async function loadQueue() {
@@ -105,12 +107,35 @@ async function main() {
   // read + create only, no cookies). Same-origin all-in-one deploys never hit this.
   const corsAllow = (process.env.WEB_ORIGIN || "")
     .split(",").map((s) => s.trim()).filter(Boolean);
+  // AN EMPTY ALLOWLIST IS NOT A WILDCARD IN PRODUCTION.
+  //
+  // This used to echo ANY request Origin back with Access-Control-Allow-Credentials: true
+  // whenever WEB_ORIGIN was unset — and render.yaml left it unset. Combined with the httpOnly
+  // session cookie that is a textbook cross-site request forgery surface: any page on the web
+  // could call this API with the visitor's session attached and read the response. Harmless-ish
+  // when the API was keyless and read-only; not harmless now that it carries an authenticated
+  // admin surface that can publish templates.
+  //
+  // Development keeps the permissive behaviour, because the Vite dev server runs on a different
+  // port and requiring WEB_ORIGIN to be set before anything works locally is a bad trade. In
+  // production an unset WEB_ORIGIN now means "same-origin only", which is exactly right for the
+  // all-in-one deploy and fails loudly (a CORS error in the browser console, not a silent
+  // security hole) for a split deploy that forgot to configure it.
+  const PROD = process.env.NODE_ENV === "production";
+  if (PROD && corsAllow.length === 0) {
+    console.warn("[server] WEB_ORIGIN is unset in production — cross-origin requests are refused (same-origin only). Set WEB_ORIGIN for a split frontend/API deploy.");
+  }
   app.use((req, res, next) => {
     const origin = req.headers.origin;
-    if (origin && (corsAllow.length === 0 || corsAllow.includes(origin))) {
+    const allowed = corsAllow.length ? corsAllow.includes(origin) : !PROD;
+    if (origin && allowed) {
       res.setHeader("Access-Control-Allow-Origin", origin);
       res.setHeader("Vary", "Origin");
-      res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+      // PATCH and DELETE are here for the admin template API (edit metadata, delete a draft).
+      // Without them a split frontend/API deploy passes the preflight for GET/POST and fails it
+      // for exactly those two, so the admin dashboard half-works — the failure a same-origin dev
+      // setup can never reproduce, because same-origin requests are not preflighted at all.
+      res.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE,OPTIONS");
       res.setHeader("Access-Control-Allow-Headers", "Content-Type");
       // Auth uses an httpOnly JWT cookie; cross-origin requests must be allowed
       // to send/receive it (frontend uses fetch credentials:"include").
@@ -130,13 +155,54 @@ async function main() {
   app.use("/api", framesRouter);
   app.use("/api", buildGenerateRouter({ enqueue }));
   app.use("/api", buildProjectsRouter({ enqueueIntake, enqueueProduction }));
+  // ADMIN — template creation, QA and publishing. Every route inside is behind requireAdmin
+  // (applied with router.use, so a route added later is protected by default). Mounted under
+  // its own /api/admin prefix so it is trivially auditable: everything under that path is
+  // privileged, everything outside it is not.
+  app.use("/api/admin", buildAdminTemplatesRouter({ enqueueIntake }));
+
+  // ADMIN WORKING ARTIFACTS — the preview stills for templates that are not published yet.
+  //
+  // GUARDED, not public. These are frames of unpublished designs; serving them from the open
+  // static mount would make an admin's draft work fetchable by anyone who guessed a slug, which
+  // is the same leak the whole draft/published split exists to prevent — just through a
+  // different door. Same-origin <img> requests carry the session cookie, so the admin UI renders
+  // them normally.
+  //
+  // It also lives OUTSIDE jobsDir and videosDir on purpose: services/janitor.js deletes any
+  // directory under jobs/ older than an hour with no db record, and evicts videos past a 24h TTL
+  // and a 500MB cap. Template artifacts have to survive an admin thinking it over for a day.
+  app.use("/template-work", requireAdmin, express.static(path.join(config.paths.root, "template_work"), {
+    index: false,
+    setHeaders(res) { res.setHeader("Cache-Control", "private, max-age=60"); },
+  }));
 
   // Static: the built KEYFRAME web app (public/dist) takes precedence;
   // public/ still serves rendered videos and the legacy v1 UI.
   const publicDir = path.join(config.paths.root, "public");
   const distDir = path.join(publicDir, "dist");
   if (fs.existsSync(path.join(distDir, "index.html"))) {
-    app.use(express.static(distDir, { index: "index.html" }));
+    // SPA CACHING, THE TWO-RULE VERSION. express.static's default is `max-age=0` for
+    // everything, which is wrong in both directions at once: it makes the browser
+    // re-download 500 KB of content-hashed JS on every visit, while still permitting a
+    // heuristically-cached index.html to keep pointing at a bundle name that no longer
+    // exists — so a frontend change can be live on disk, served correctly by curl, and
+    // invisible in the browser until someone thinks to hard-refresh. That is exactly the
+    // shape of "I rebuilt it and still see the old UI".
+    //
+    //   index.html  — never cached. It is the map to everything else and it is 1 KB.
+    //   /assets/*   — cached forever. Vite content-hashes the filename, so a changed file
+    //                 is a different URL and can never be served stale.
+    app.use(express.static(distDir, {
+      index: "index.html",
+      setHeaders(res, filePath) {
+        if (filePath.endsWith("index.html")) {
+          res.setHeader("Cache-Control", "no-cache, must-revalidate");
+        } else if (/[\\/]assets[\\/]/.test(filePath)) {
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        }
+      },
+    }));
     console.log(`[server] serving web app from ${distDir}`);
   }
   app.use(express.static(publicDir, {

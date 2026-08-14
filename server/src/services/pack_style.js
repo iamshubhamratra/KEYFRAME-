@@ -6,19 +6,11 @@
 //
 // A pack not listed here falls back to a NEUTRAL profile (no over-narrowing).
 
-const PACK_STYLE = {
-  "blockframe":        { photoMod: "bold graphic pop art",            iconStyle: "solid",   keywords: ["bold", "graphic", "colorful"] },
-  "biennale-yellow":   { photoMod: "editorial fine art",              iconStyle: "line",    keywords: ["editorial", "art", "minimal"] },
-  "midnight-glass":    { photoMod: "dark moody premium technology",   iconStyle: "duotone", keywords: ["dark", "premium", "tech", "glow"] },
-  "noir-spotlight":    { photoMod: "cinematic high contrast dramatic",iconStyle: "solid",   keywords: ["cinematic", "dramatic", "dark"] },
-  "vapor-chrome":      { photoMod: "neon synthwave retro future",     iconStyle: "duotone", keywords: ["neon", "retro", "vaporwave", "glow"] },
-  "aurora-spectrum":   { photoMod: "gradient aurora abstract",        iconStyle: "duotone", keywords: ["gradient", "abstract", "calm"] },
-  "bauhaus-print":     { photoMod: "bauhaus geometric primary color", iconStyle: "solid",   keywords: ["geometric", "poster", "primary"] },
-  "kinetic-bold":      { photoMod: "bold minimal high energy",        iconStyle: "solid",   keywords: ["bold", "minimal", "energetic"] },
-  "mono-corporate":    { photoMod: "clean minimal professional office",iconStyle: "line",   keywords: ["clean", "professional", "corporate", "minimal"] },
-  "bloom-illustrated": { photoMod: "soft illustrated pastel friendly",iconStyle: "soft",    keywords: ["illustrated", "soft", "pastel", "warm"] },
-  "fable-storybook":   { photoMod: "warm storybook watercolor illustrated", iconStyle: "soft", keywords: ["watercolor", "illustrated", "warm", "soft"] },
-};
+// EMPTY BY DESIGN since the eleven packs it described were removed. Every row named one of
+// them. The table and the NEUTRAL fallback below are kept because that fallback is the
+// documented behaviour for any unlisted pack — a pack with no row simply gets no photo
+// modifier and no style keywords, which is what the ~120 packs never listed here always got.
+const PACK_STYLE = {};
 
 const NEUTRAL = { photoMod: "", iconStyle: "line", keywords: [] };
 

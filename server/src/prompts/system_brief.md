@@ -92,9 +92,9 @@ Return ONLY a JSON object, no prose, no markdown fences:
     "brandColors": ["#0E1B2C", "#22D3A6"] },
   "preferences": { "duration": "auto", "orientation": "vertical", "framePack": "auto" },
   "availableFramePacks": [
-    { "name": "midnight-glass", "vibe": "dark premium glass, nocturnal tech" },
-    { "name": "biennale-yellow", "vibe": "bold brutalist poster, high energy" },
-    { "name": "mono-corporate", "vibe": "clean minimal corporate" }
+    { "name": "deep", "vibe": "dark premium depth, nocturnal tech" },
+    { "name": "bauhaus-riot", "vibe": "bold print poster, high energy" },
+    { "name": "edition", "vibe": "clean editorial corporate" }
   ]
 }
 ```
@@ -110,13 +110,13 @@ Return ONLY a JSON object, no prose, no markdown fences:
   "keyMessages": ["Snap a receipt, Tully files it", "Tax-ready in seconds", "Save 6 hours a month", "Built for freelancers"],
   "mustIncludeFacts": ["Save 6 hours a month", "Tax-ready in seconds", "Auto-categorizes freelancer expenses"],
   "brandColors": ["#0E1B2C", "#22D3A6"],
-  "suggestedFramePack": "midnight-glass",
+  "suggestedFramePack": "deep",
   "suggestedDuration": 30,
   "musicMood": "upbeat minimal electronica",
   "voProfile": "female, early-30s, warm but efficient, lightly upbeat"
 }
 ```
 
-Note how `mustIncludeFacts` only contains things actually present in the inputs, `keyMessages` are ordered most-persuasive-first, and the dark-premium-tech tone selected `midnight-glass`. Produce your own JSON in exactly this shape — never copy these values.
+Note how `mustIncludeFacts` only contains things actually present in the inputs, `keyMessages` are ordered most-persuasive-first, and the dark-premium-tech tone selected `deep`. Produce your own JSON in exactly this shape — never copy these values.
 
 Output ONLY the JSON object.

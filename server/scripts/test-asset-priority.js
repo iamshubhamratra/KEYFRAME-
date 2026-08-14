@@ -103,21 +103,21 @@ const SB = { title: "Test", durationSec: 12, scenes: [
 const DIMS = { width: 1280, height: 720, fps: 30 };
 
 check("no-op law: null skin + no assets renders deterministically", () => {
-  const a = sceneKit.buildComposition({ storyboard: SB, dims: DIMS, framePack: "blockframe", assets: [], seedKey: "k" });
-  const b = sceneKit.buildComposition({ storyboard: SB, dims: DIMS, framePack: "blockframe", assets: [], seedKey: "k" });
+  const a = sceneKit.buildComposition({ storyboard: SB, dims: DIMS, framePack: "edition", assets: [], seedKey: "k" });
+  const b = sceneKit.buildComposition({ storyboard: SB, dims: DIMS, framePack: "edition", assets: [], seedKey: "k" });
   eq(a.indexHtml, b.indexHtml, "same inputs → same bytes");
   eq(a.usedAssets.length, 0, "nothing woven"); eq(a.logoPlacements.length, 0, "no logo");
 });
 check("logo renders at open + CTA (2 references), never a persistent watermark", () => {
   const assets = [{ path: "uploads/logo.png", type: "image", role: "logo", source: "upload", uploadId: "logo", hasAlpha: true, alt: "brand logo" }];
-  const c = sceneKit.buildComposition({ storyboard: SB, dims: DIMS, framePack: "blockframe", assets, seedKey: "k" });
+  const c = sceneKit.buildComposition({ storyboard: SB, dims: DIMS, framePack: "edition", assets, seedKey: "k" });
   eq((c.indexHtml.match(/uploads\/logo\.png/g) || []).length, 2, "exactly 2 logo refs (open + cta)");
   eq(c.logoPlacements.join(","), "opening,cta", "placements reported");
   ok(c.usedAssets.some((u) => u.via === "logo"), "logo tracked in usedAssets");
 });
 check("an uploaded screenshot is woven as a prominent asset", () => {
   const assets = [{ path: "uploads/u1.png", type: "image", source: "upload", uploadId: "u1", kindHint: "screenshot", sceneId: "s2", width: 1600, height: 1000, ratio: 1.6, alt: "THE USER'S OWN uploaded dashboard" }];
-  const c = sceneKit.buildComposition({ storyboard: SB, dims: DIMS, framePack: "blockframe", assets, seedKey: "k" });
+  const c = sceneKit.buildComposition({ storyboard: SB, dims: DIMS, framePack: "edition", assets, seedKey: "k" });
   ok(c.indexHtml.includes("uploads/u1.png"), "upload appears in the film");
   ok(c.usedAssets.some((u) => u.path === "uploads/u1.png" && u.via !== "unused"), "upload tracked as used");
 });
@@ -127,7 +127,7 @@ check("logo is excluded from the generic pools (never a montage tile)", () => {
     { path: "uploads/logo.png", type: "image", role: "logo", source: "upload", uploadId: "logo", alt: "brand logo" },
     { path: "assets/images/0.jpg", type: "image", source: "website", sceneId: "s2", alt: "screenshot", width: 1600, height: 1000, ratio: 1.6 },
   ];
-  const c = sceneKit.buildComposition({ storyboard: SB, dims: DIMS, framePack: "blockframe", assets, seedKey: "k" });
+  const c = sceneKit.buildComposition({ storyboard: SB, dims: DIMS, framePack: "edition", assets, seedKey: "k" });
   const logoUses = c.usedAssets.filter((u) => u.path === "uploads/logo.png");
   ok(logoUses.every((u) => u.via === "logo"), "logo only ever appears via the logo slot");
 });

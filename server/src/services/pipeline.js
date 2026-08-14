@@ -63,24 +63,6 @@ const NATIVE_PACK_COMPOSERS = {
   // opposite: dimensional rather than flat, two accents rather than mono, and a camera that
   // never settles rather than one that settles before every cut.
   "slab-stage": require("./slab_stage_composer"),
-  // The imported OM ports built on om_port_kit. Each supplies a theme, its STRINGS and its
-  // scene builders; the kit supplies the shell, the camera, the caption node, role assignment,
-  // slot filling and the pictureless STATEMENT fallback.
-  // KINETIC BOLD — not a port: written from its own manifest, because the pack shipped with no
-  // renderer at all and every film that chose it rendered through the generic kit.
-  "kinetic-bold": require("./kinetic_bold_composer"),
-  // MONO CORPORATE — likewise written from its own manifest, not ported: the second of the ten packs
-  // scripts/test-pack-composers.js found rendering as the generic kit.
-  "mono-corporate": require("./mono_corporate_composer"),
-  "aurora-spectrum": require("./aurora_spectrum_composer"),
-  "fable-storybook": require("./fable_storybook_composer"),
-  "midnight-glass": require("./midnight_glass_composer"),
-  "noir-spotlight": require("./noir_spotlight_composer"),
-  "vapor-chrome": require("./vapor_chrome_composer"),
-  "bauhaus-print": require("./bauhaus_print_composer"),
-  "biennale-yellow": require("./biennale_yellow_composer"),
-  "blockframe": require("./blockframe_composer"),
-  "bloom-illustrated": require("./bloom_illustrated_composer"),
   "hacker": require("./hacker_composer"),
   "teampulse": require("./teampulse_composer"),
   "fetch": require("./fetch_composer"),
@@ -170,16 +152,71 @@ const DEDICATED_COMPOSERS = {
 // everywhere else in this file: a reload that throws leaves the already-loaded module in place
 // and never blocks a render.
 const COMPOSER_LOADED_AT = new Map();
-function composerFileOf(mod) {
+// The file a renderer's module came from.
+//
+// IDENTITY LOOKUP IS NOT ENOUGH FOR A REGENERATED SKIN. This searched require.cache for a module
+// whose exports === the one dispatch holds. That works while the two are the same object — and a
+// regeneration breaks exactly that: templates/emit.js writes the new skin, deletes its require
+// cache entry, and the pack derivation immediately re-requires it, so the cache now maps the path
+// to a NEW module object while DEDICATED_COMPOSERS still holds the OLD one. The old object is no
+// longer in the cache, this returned null, the mtime check below could never run, and dispatch
+// kept serving the PREVIOUS design — for every preview, every QA pass and every golden line, with
+// no error anywhere. Verified: after a rewrite+re-require, composerModuleFor returned the stale
+// object and the old module was unfindable in the cache.
+//
+// A `film-*` renderer id maps deterministically onto its filename (the same rule the require-time
+// directory scan uses), so ask the id first and only fall back to the identity search for the
+// hand-registered families, whose modules are never rewritten under a running process.
+function composerFileOf(mod, renderer) {
+  const key = String(renderer || "");
+  if (/^film-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(key)) {
+    const f = path.join(__dirname, "film_skins", `${key.slice(5).replace(/-/g, "_")}.js`);
+    if (fs.existsSync(f)) return f;
+  }
   for (const [file, m] of Object.entries(require.cache)) if (m && m.exports === mod) return file;
   return null;
 }
+// LATE REGISTRATION for a generated film skin.
+//
+// NATIVE_PACK_COMPOSERS (and the film_skins directory scan inside it) is built ONCE at
+// require time, and the mtime reload below only refreshes ids that are ALREADY in the map.
+// So a skin written to disk while the server is up — which is exactly what the admin
+// template generator does — was invisible to dispatch: the lookup missed, and
+// attemptLlmComposition fell through to the generic scene-kit and rendered a plausible video
+// of the wrong design, silently. That made a process restart a mandatory step in the middle
+// of the generator's own lifecycle.
+//
+// Narrow by construction: only `film-*` ids are considered, and only the exact filename the
+// require-time scan would have produced for that id, resolved through the same _-for-hyphen
+// rule. Anything else still returns null, so no other family's dispatch behaviour changes.
+function registerLateFilmSkin(key) {
+  if (!/^film-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(key)) return null;
+  const file = path.join(__dirname, "film_skins", `${key.slice(5).replace(/-/g, "_")}.js`);
+  try {
+    if (!fs.existsSync(file)) return null;
+    const m = require(file);
+    if (!m || typeof m.buildComposition !== "function") {
+      console.warn(`[composer] ${path.basename(file)} exports no buildComposition — not registered`);
+      return null;
+    }
+    DEDICATED_COMPOSERS[key] = m;
+    NATIVE_PACK_COMPOSERS[key] = m;
+    try { COMPOSER_LOADED_AT.set(file, fs.statSync(file).mtimeMs); } catch { /* mtime is an optimisation */ }
+    console.log(`[composer] registered ${key} from disk (written after boot)`);
+    return m;
+  } catch (e) {
+    console.warn(`[composer] ${path.basename(file)} failed to load (${String(e.message).slice(0, 160)}) — not registered`);
+    return null;
+  }
+}
+
 function composerModuleFor(renderer) {
   const key = String(renderer || "");
   let m = DEDICATED_COMPOSERS[key];
+  if (!m) m = registerLateFilmSkin(key);
   if (!m) return null;
   try {
-    const file = composerFileOf(m);
+    const file = composerFileOf(m, key);
     if (file) {
       const mtime = fs.statSync(file).mtimeMs;
       const known = COMPOSER_LOADED_AT.get(file);
@@ -194,6 +231,20 @@ function composerModuleFor(renderer) {
     }
   } catch { /* fail-open: keep the loaded module */ }
   return m && typeof m.buildComposition === "function" ? m : null;
+}
+
+// Does a pack's declared renderer actually reach a composer?
+//
+// Nothing at runtime could answer this before: `renderer` is a free string, validateAll()
+// never checked it, and an unresolvable id degrades SILENTLY to the generic scene-kit. That
+// is tolerable for the 135 shipped packs (all of which resolve, verified) and intolerable
+// for a generated one, where "renders as something else entirely" is the single most likely
+// generation defect. The admin publish gate calls this and refuses to publish on false; the
+// shared render path is deliberately left fail-open exactly as it was.
+function rendererResolves(renderer) {
+  const key = String(renderer || "");
+  if (!key) return false;
+  return composerModuleFor(key) != null;
 }
 
 const frameRegistry = require("./frame_registry");
@@ -1643,4 +1694,4 @@ async function runJob({
   }
 }
 
-module.exports = { runJob, withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor, composerStringsFor, composerModuleFor };
+module.exports = { runJob, withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor, composerStringsFor, composerModuleFor, rendererResolves, rendererFor };

@@ -70,7 +70,7 @@ async function withColdCache(fn) {
   try { return await fn(); } finally { localDb.search = real; }
 }
 
-async function runSearch({ orientation, duration, framePack = "blockframe", label }) {
+async function runSearch({ orientation, duration, framePack = "edition", label }) {
   const job = makeJob({ orientation, duration, id: label || "live" });
   const script = makeScript(duration);
   const jobDir = path.join(TMP, job.id);
@@ -288,6 +288,18 @@ async function runSearch({ orientation, duration, framePack = "blockframe", labe
     }
   }
 
+  // CLEAN UP THE JOBS THIS HARNESS CREATED. They exist only so the disclosure setters have
+  // somewhere to write (db.setProviderReview is a no-op for an unknown id), but they are
+  // indistinguishable from real projects once written: they persist to jobs.json, appear in
+  // GET /api/projects and therefore in the studio's Gallery, and the boot-time crash recovery
+  // marks anything left "queued" as FAILED — so a verification run would litter the user's
+  // gallery with failed films it invented. Identified by the client_ip stamp, never by a name
+  // pattern, so this can only ever delete rows this file wrote.
+  try {
+    const db = require("../src/db");
+    const removed = db.removeWhere ? db.removeWhere((j) => j.client_ip === "live-test") : 0;
+    if (removed) console.log(`cleaned up ${removed} harness job(s)`);
+  } catch (e) { console.warn(`harness job cleanup skipped: ${e.message}`); }
   try { fs.rmSync(TMP, { recursive: true, force: true }); } catch { /* noop */ }
   console.log(`\n${pass} passed, ${fail} failed\n`);
   process.exit(fail ? 1 : 0);

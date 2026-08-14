@@ -74,7 +74,7 @@ const SAMPLE = [
   "grid-dispatch",  // bespoke portrait native
   "prisma-bloc",    // bespoke portrait native
   "flagship",       // WebGL, responsive.js — the probe's hardest case
-  "blockframe",     // CALIBRATION: landscape-authored; must fail portrait eligibility
+  "fight",     // CALIBRATION: landscape-authored; must fail portrait eligibility
 ];
 
 // ---- fixture ------------------------------------------------------------------
