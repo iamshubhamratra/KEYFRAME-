@@ -1,0 +1,145 @@
+# KEYFRAME — Docker build-context filter. THE BUILD CONTEXT IS THE REPO ROOT.
+#
+# WHY THE CONTEXT MOVED UP, AND WHY THIS FILE HAD TO EXIST BEFORE IT COULD:
+#
+# render.yaml used to set `dockerContext: ./server`, and server/Dockerfile's only
+# payload copy was `COPY . .` — so the image contained server/ and nothing else. The
+# 135 frame packs live in <repo>/frames, one level ABOVE that context, which is outside
+# the build entirely: no COPY, no bind, no symlink can reach up out of a context. The
+# result in production was silent and total:
+#
+#   config.paths.root  = the server dir            (src/config.js: resolve(__dirname,".."))
+#   resolveFramesDir() probes  <root>/../frames    -> /frames        (absent)
+#                              <root>/frames       -> /app/frames    (absent)
+#   -> returns null, logs "[frames] no frames directory found"
+#   -> listPacks() returns []  ->  GET /api/frames serves an empty gallery,
+#      the composer runs unstyled, and rotatedDefaultPack() has nothing to rotate.
+#
+# Dev never saw it because dev runs from the repo checkout, where ../frames resolves.
+#
+# Moving the context to the repo root fixes the reach — but it also drops 2.7 GB /
+# 39k files into the build (1.2 GB .git, 585 MB server/node_modules, 249 MB
+# asset_cache, 168 MB framecheck, 148 MB .cache, 105 MB web/, 60 MB of vendored
+# reference trees). So the context is filtered down to what the RUNTIME reads: about
+# 48 MB, dominated by the 33 MB of pack poster/preview media in server/public/frames.
+#
+# DENY-ALL, THEN ALLOW. `*` matches every top-level entry, dotfiles included, so this
+# list fails CLOSED: the next big directory someone adds to the repo root is excluded
+# until a human deliberately allows it here. The opposite shape — enumerate what to
+# exclude — is what let the old server/.dockerignore quietly ship whatever appeared
+# next to it.
+#
+# NOTE: `#` only starts a comment at the START of a line. A trailing comment after a
+# pattern becomes part of the pattern, so every note below sits on its own line.
+*
+
+# ─────────────────────────────────────────────────────────────── the allowlist ──
+
+# The app.
+!server
+
+# THE FIX. The published frame packs — 135 directories, 272 files, ~1 MB of FRAME.md
+# + pack.json + media/audio contracts. This is the entire reason the context moved.
+!frames
+
+# The hyperframes/GSAP skill docs that services/skills.js injects into composer
+# prompts. It probes <root>/../.agents/skills first and falls back to fetching them
+# from GitHub at request time — so shipping these 0.8 MB makes production use the same
+# text the templates were authored against, and removes a network dependency from the
+# hot path of the first render after a cold start.
+!.agents
+
+# ──────────────────────────────────────────────────── carved back out of server/ ──
+# (`!server` above re-includes the whole subtree; these later rules win over it.)
+
+# Installed in the image by `npm ci` in the Dockerfile. Copying the host's tree would
+# be 585 MB of the wrong platform's binaries (Windows/macOS builds of sharp, bcrypt,
+# canvas) layered under a linux/amd64 runtime.
+server/node_modules
+**/node_modules
+
+# Render/job runtime state. Render's disk is ephemeral and these are per-machine
+# artifacts; baking a developer's job history into the image is 60+ MB of noise that
+# the janitor would then try to reconcile against an empty db.
+server/jobs
+server/jobs.json
+server/jobs.json.bak-*
+server/public/videos
+server/uploads
+server/.last_job
+server/.lastprisma
+server/$OUT
+
+# The admin template lifecycle store (src/templates/store.js: <root>/data/templates.json).
+# Per-machine state, not source: baking a developer's records in would give production a
+# catalogue of DRAFT templates whose pack directories are deliberately absent from the
+# image. store.js mkdir -p's the directory and tolerates a missing file, so an empty
+# start is the correct one.
+server/data
+server/.server*.log
+**/*.log
+
+# Machine-local caches: downloaded stock media (249 MB), the harvested-website cache
+# (11.5 MB) and the hyperframes/Chromium scratch cache (148 MB). All are rebuilt on
+# demand, and a poisoned harvest cache has already caused one production-shaped bug.
+server/asset_cache
+server/harvest_cache
+server/.cache
+server/asset_library
+
+# Dev-only render harnesses and their output: framecheck contact sheets (168 MB),
+# scrub frames, the showcase binaries (54 MB) and admin template working artifacts.
+# Nothing under src/ reads any of them at runtime — only scripts/ does, and scripts
+# that render are never run inside the container.
+server/framecheck
+server/scrub
+server/showcase
+server/_review
+server/template_work
+
+# SECRETS. These are gitignored so they are absent on Render, but a local
+# `docker build` runs against the working tree where they very much exist, and a
+# secret baked into an image layer survives every later `rm`.
+server/.env
+**/.env
+server/config.json
+server/auth-store.json
+
+# The built web app. Vercel serves the frontend in this deploy (see
+# DEPLOY-VERCEL-RENDER.md); the old server/.dockerignore excluded it too, so the
+# container keeps serving public/index.html for a direct hit on the API host.
+server/public/dist
+
+# Elastic Beanstalk leftovers from an earlier host. Inert here, and confusing to find
+# inside a Render image.
+server/.ebextensions
+server/.ebignore
+server/.platform
+
+# ──────────────────────────────────────────────────────── explicitly not shipped ──
+
+# UNPUBLISHED ADMIN TEMPLATES MUST NOT REACH PRODUCTION. `*` already excludes this,
+# but that is an accident of ordering and this is a security property, so it is stated
+# outright: publishing is a directory MOVE from frames_draft/ into frames/ (see
+# src/templates/paths.js), and the whole point of the split is that a draft is never
+# listed. A draft that shipped in the image would still not be listed — but it would
+# be resolvable by name through packDir(), renderable, and readable as static pack
+# media, which is exactly the exposure the two-root design exists to prevent. It is
+# also untracked in git, so this line only matters for a local docker build; that is
+# precisely the case where a half-finished template is sitting on disk.
+frames_draft
+
+# Not runtime inputs, and large: .git (1.2 GB), the Vercel frontend source (105 MB),
+# the vendored reference trees, and the design/handoff libraries the composers cite in
+# comments but never read. All are already covered by `*`; listed here so a future
+# `!` line is written knowing what it would let in.
+.git
+web
+old-templete
+templete-design
+screenshot
+deploy
+heygen-keyframes-video
+pixabay-no-node-modules
+blockframe-frame-pack
+biennale-yellow-frame-pack

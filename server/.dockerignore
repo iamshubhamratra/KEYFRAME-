@@ -1,3 +1,13 @@
+# DORMANT — NOT the filter for the production image. Docker reads the .dockerignore at
+# the root of the BUILD CONTEXT, and the context is now the repo root (render.yaml:
+# `dockerContext: .`), so the file that governs the Render build is ../.dockerignore.
+# It moved because frames/ lives beside server/ and a ./server context could not reach
+# it, leaving the image with zero frame packs.
+#
+# This file is kept only so that an ad-hoc `docker build ./server` (or any tool that
+# still treats server/ as the context) does not sweep node_modules and secrets into a
+# tarball. Anything added here must be added to ../.dockerignore as well — that is the
+# one that decides what production ships.
 node_modules
 jobs
 jobs.json

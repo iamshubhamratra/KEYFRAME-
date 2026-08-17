@@ -13,8 +13,33 @@ services:
     name: keyframe-backend
     runtime: docker
     dockerfilePath: ./server/Dockerfile
-    dockerContext: ./server
+    # THE BUILD CONTEXT IS THE REPO ROOT, NOT ./server — do not "tidy" this back.
+    # frames/ (the 135 published frame packs) sits beside server/, so a ./server
+    # context put it outside the build and no COPY could reach it: the image shipped
+    # with zero packs, resolveFramesDir() logged "no frames directory found", and
+    # GET /api/frames served an empty gallery in production while dev worked fine.
+    # The repo-root .dockerignore keeps the wider context from ballooning the image.
+    dockerContext: .
     plan: free                 # change to `standard` to actually render videos
+    # ⚠️ ADMIN-PUBLISHED TEMPLATES DO NOT SURVIVE A REDEPLOY ON THIS PLAN.
+    #
+    # Publishing is a filesystem move (src/templates/paths.js): the pack directory goes from
+    # frames_draft/ into frames/, the composer module is written to src/services/film_skins/, and
+    # the lifecycle record lands in server/data/templates.json — all INSIDE the container. Render's
+    # container filesystem is ephemeral and this service declares no Disk, so every redeploy resets
+    # to the image: the 135 packs baked in by the Dockerfile come back, and anything an admin
+    # generated or published is gone. Locally and on a VM with real storage this is a non-issue.
+    #
+    # Three ways out, in increasing order of effort:
+    #   1. Treat generation as a BUILD-TIME activity — generate and publish in a dev checkout,
+    #      commit frames/<slug>/ + src/services/film_skins/<slug>.js + data/templates.json, redeploy.
+    #      Nothing to change here, and it keeps published templates in version control where the
+    #      rest of the library already lives. This is the recommended path.
+    #   2. Attach a Render Disk (needs `plan: standard` or higher — the free plan has no disks) and
+    #      point the writable roots at its mountPath. Note a disk mounted ON TOP of frames/ would
+    #      SHADOW the 135 baked packs; frame_registry would need to union the baked root with the
+    #      persistent one, which is a small change now that it already resolves two roots.
+    #   3. Move template artifacts to object storage and hydrate on boot.
     region: oregon
     healthCheckPath: /health
     autoDeploy: true
@@ -35,9 +60,29 @@ services:
         value: draft
       - key: MEDIA_PROVIDER
         value: pixabay-api
-      # Lock CORS to your Vercel URL once you have it (e.g. https://keyframe.vercel.app).
+      # ⚠️ EDIT THIS TO YOUR REAL VERCEL ORIGIN BEFORE THE FIRST DEPLOY.
+      # WEB_ORIGIN is the comma-separated CORS allowlist. It used to be `sync: false`
+      # (i.e. blank until someone remembered), and server.js then echoed ANY request
+      # Origin back with Access-Control-Allow-Credentials: true — with an httpOnly
+      # session cookie and an admin API that can publish templates, that is a
+      # cross-site request forgery surface. server.js now treats an empty allowlist in
+      # production as "same-origin only", so a wrong value here is a visible CORS error
+      # in the browser console, never a silent hole. It is declared with a literal
+      # value (not sync: false) so the allowlist is non-empty by construction.
+      # Because it is blueprint-managed, change it HERE and re-sync — a dashboard edit
+      # is reverted by the next blueprint sync. Scheme + host, no trailing slash;
+      # comma-separate to allow Vercel preview domains too.
       - key: WEB_ORIGIN
-        sync: false
+        value: https://keyframe.vercel.app
+      # JWT signing key for the httpOnly session cookie (src/auth/helpers.js reads
+      # SECRET_KEY, then JWT_SECRET). In production there is NO fallback: with neither
+      # set the server boots, logs "auth tokens cannot be issued" and every login
+      # fails — the previous state of this file, which declared neither. generateValue
+      # makes Render mint a random secret once and keep it across deploys; rotating it
+      # (dashboard → Environment → regenerate) invalidates all live sessions, which is
+      # the intended behaviour, not a bug.
+      - key: SECRET_KEY
+        generateValue: true
       # ── Secret API keys — set these in the Render dashboard ──
       - key: OPENROUTER_API_KEY
         sync: false
