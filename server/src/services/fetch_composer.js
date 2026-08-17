@@ -403,7 +403,21 @@ function sStatement(scene, ctx, centred) {
 // hearts and the bouncing ball instead, so not one of them is a bare frame.
 const SPEC = {
   first: "title", last: "comeplay",
-  middle: ["run", "fetch", "feature", "stats"],
+  // `middle` IS A PREFERENCE ORDER, NOT THE STORY ORDER — the story is first -> ... -> last, and
+  // om_port_kit.assignRoles walks this list as a rotation, taking the first entry whose carry()
+  // accepts the scene in hand. Leading with a role that draws nothing is therefore not a narrative
+  // choice, it is a silent contract break.
+  //
+  // `feature` is the ONLY beat in this pack that draws a picture (`slots` below returns 1 for it
+  // and 0 for everything else), and services/template_media puts the pack's single CRITICAL media
+  // slot on the first script scene it types "feature" — scene 2, the first middle scene. With `run`
+  // leading, scene 2 drew nothing and the one picture the film had collected was reported empty.
+  // Same defect and same fix as orbit_composer; measured across this family, packs whose middle[0]
+  // draws a picture (reel "show", edition "lead") pass and those whose does not (orbit, fetch) fail.
+  //
+  // Nothing about the film's shape changes: `title` still opens, `comeplay` still closes, and run /
+  // fetch simply take later turns in the rotation.
+  middle: ["feature", "run", "fetch", "stats"],
   shapes: { title: [], run: [], fetch: [], feature: [360 / 740], stats: [], comeplay: [], statement: [], "statement-c": [] },
   slots: (role) => (role === "feature" ? 1 : 0),
   needs: (role) => (role === "feature" ? 1 : 0),

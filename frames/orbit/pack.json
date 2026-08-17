@@ -104,8 +104,8 @@
   },
   "media": {
     "requiredAssets": {
-      "screenshots": 7,
-      "productImages": 3,
+      "screenshots": 6,
+      "productImages": 2,
       "logos": 1
     },
     "placeholders": [],
@@ -113,35 +113,17 @@
       "feature": {
         "count": 1,
         "width": 900,
-        "height": 516,
+        "height": 561,
         "priority": "high",
-        "objectFit": "cover",
-        "kind": "screenshots",
-        "note": ""
-      },
-      "proof": {
-        "count": 1,
-        "width": 516,
-        "height": 248,
-        "priority": "medium",
         "objectFit": "cover",
         "kind": "screenshots",
         "note": ""
       },
       "how": {
-        "count": 1,
-        "width": 900,
-        "height": 516,
+        "count": 5,
+        "width": 520,
+        "height": 300,
         "priority": "high",
-        "objectFit": "cover",
-        "kind": "screenshots",
-        "note": ""
-      },
-      "context": {
-        "count": 1,
-        "width": 900,
-        "height": 516,
-        "priority": "medium",
         "objectFit": "cover",
         "kind": "screenshots",
         "note": ""

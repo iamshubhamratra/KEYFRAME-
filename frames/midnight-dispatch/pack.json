@@ -1,0 +1,183 @@
+{
+  "name": "midnight-dispatch",
+  "vibe": "A late-night newsroom cut into a 16:9 broadcast slate: near-black ink and deep midnight navy grounds, bone-white Big Shoulders Display headlines snapping in on the beat, one hot amber (#ffb020) reserved for the single thing that matters and an anchor blue (#0d77e7) doing the wiring — chip outlines, card frames, tile rules. The world is a faint 40-line scanline field over a blue signal bloom with one slow amber beam sweep, so the frame breathes like a monitor rather than a slideshow. Hard cuts, no crossfades, no shadows, every headline on one line. Built for editorial explainers, product bulletins, market recaps, tech news and anything that wants to sound like it is going out live at 11pm.",
+  "orientation": "landscape",
+  "category": "Editorial",
+  "tags": [
+    "broadcast",
+    "night",
+    "editorial",
+    "condensed",
+    "high-contrast",
+    "newsroom",
+    "kinetic"
+  ],
+  "renderer": "film-midnight-dispatch",
+  "colors": {
+    "ink": "#05070a",
+    "carbon": "#0f141b",
+    "midnight": "#0a2d52",
+    "signal": "#0d77e7",
+    "amber": "#ffb020",
+    "paper": "#f5f2ea",
+    "ash": "#8d97a5",
+    "ground": "#05070a",
+    "text": "#f5f2ea",
+    "accent": "#0d77e7"
+  },
+  "fonts": [
+    "Big Shoulders Display",
+    "Barlow Semi Condensed",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#05070a",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#0d77e7",
+      "#ffb020",
+      "#8d97a5"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "Night-shot, hard directional light on a dark field — single amber or blue practical source, deep crushed blacks, no fill, shallow depth of field with specular highlights. Cool blue shadows, warm amber rim. High contrast, slight grain, no soft glamour lighting.",
+    "iconStyle": "line",
+    "keywords": [
+      "city skyline at night",
+      "control room monitors",
+      "lit desk in a dark office",
+      "printing press rollers",
+      "microphone under a lamp",
+      "server rack indicator lights",
+      "rain on glass with street lights",
+      "rooftop antenna against dusk",
+      "notebook and coffee at 2am"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot",
+      "illustration"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Big Shoulders Display",
+    "body": "Barlow Semi Condensed",
+    "mono": "IBM Plex Mono"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 725,
+        "height": 450,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame, beside the copy"
+      },
+      "context": {
+        "count": 2,
+        "width": 709,
+        "height": 562,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card, beside the copy"
+      },
+      "feature": {
+        "count": 2,
+        "width": 851,
+        "height": 528,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card, leading the row"
+      },
+      "how": {
+        "count": 4,
+        "width": 399,
+        "height": 475,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 1x4 tile row"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1920,
+        "height": 700,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene",
+    "stage": {
+      "width": 1920,
+      "height": 1080
+    }
+  },
+  "audio": {
+    "mood": "late-night broadcast urgency — taut, low-lit, headline-driven with amber warmth under the ink",
+    "archetype": "news-bed",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "cinematic",
+      "electronic",
+      "post-rock percussion",
+      "neo-noir"
+    ],
+    "musicKeywords": [
+      "dark drone",
+      "midnight strings",
+      "tense pulse",
+      "staccato rhythm",
+      "low brass stab",
+      "cold synth pad",
+      "hard cut hit",
+      "signal drone",
+      "warm brass",
+      "driving arpeggio",
+      "night groove",
+      "cold reverb",
+      "muted kick",
+      "orchestral crescendo"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "light-sweep",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

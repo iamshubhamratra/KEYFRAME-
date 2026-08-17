@@ -32,6 +32,17 @@ const PackManifestSchema = z
     // One-line human "vibe" used for tone->pack matching (brief PACK_VIBES today).
     vibe: z.string().default(""),
 
+    // THE DISPATCH KEY. `pipeline.rendererFor()` reads this to choose the composer module,
+    // and it decides more about the finished film than any other field in this file.
+    //
+    // It was riding through `.passthrough()` undeclared, which meant a typo validated clean:
+    // `composerModuleFor` returned null, `attemptLlmComposition`'s table lookup missed, and
+    // the pack rendered through the generic scene-kit with no error and no log — a plausible
+    // video of the WRONG design. Declaring it does not by itself prove the id resolves (that
+    // needs the dispatch table, which requires this module — see pipeline.rendererResolves),
+    // but it does stop a number, an array or a stray object reaching dispatch as one.
+    renderer: z.string().min(1).nullish(),
+
     // The aspect the pack was AUTHORED against. Omit for an aspect-agnostic pack (the
     // scene-kit packs, which lay out through services/responsive.js and adapt to any frame).
     //
@@ -227,11 +238,18 @@ const PackManifestSchema = z
   })
   .passthrough();
 
+// Root-agnostic: resolves through the registry so a DRAFT pack loads its manifest exactly
+// as a published one does. Publishing moves the directory; nothing here needs to change.
 function manifestPath(name) {
+  if (!name) return null;
+  const dir = frameRegistry.packDir(name);
+  if (dir) return path.join(dir, "pack.json");
+  // Not installed in either root yet — return the published path so a caller that is about
+  // to WRITE one (the pack generator) still gets a usable target.
   return frameRegistry.FRAMES_DIR ? path.join(frameRegistry.FRAMES_DIR, name, "pack.json") : null;
 }
 
-/** @type {Map<string, {manifest: object|null, mtimeMs: number}>} */
+/** @type {Map<string, {manifest: object|null, mtimeMs: number, path: string}>} */
 const cache = new Map();
 
 // Load + validate a pack's manifest. mtime-cached (like getFrameMd) so edits are
@@ -246,8 +264,11 @@ function getManifest(name) {
   } catch {
     return null; // no pack.json for this pack — caller uses legacy tables
   }
+  // The PATH is part of the cache key, not just the mtime: publishing moves a pack between
+  // the draft and published roots without touching its bytes, so an mtime-only check would
+  // keep serving the entry loaded from the old location.
   const hit = cache.get(name);
-  if (hit && hit.mtimeMs === st.mtimeMs) return hit.manifest;
+  if (hit && hit.mtimeMs === st.mtimeMs && hit.path === p) return hit.manifest;
 
   let manifest = null;
   try {
@@ -257,7 +278,7 @@ function getManifest(name) {
     console.warn(`[manifest] ${name}/pack.json invalid, ignoring: ${err && err.message ? err.message : err}`);
     manifest = null;
   }
-  cache.set(name, { manifest, mtimeMs: st.mtimeMs });
+  cache.set(name, { manifest, mtimeMs: st.mtimeMs, path: p });
   return manifest;
 }
 

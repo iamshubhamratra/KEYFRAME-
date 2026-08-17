@@ -27,6 +27,15 @@ const MIME = {
   ".mp4": "video/mp4", ".webm": "video/webm", ".woff2": "font/woff2", ".woff": "font/woff",
 };
 
+// THE one Chromium lookup. contrast_check and templates/media.js both import this rather than
+// keeping their own copies — there were three, and they had already drifted (only one knew about
+// Apple silicon).
+//
+// VERSION ORDER IS NUMERIC, NOT LEXICAL. The install directories are named `win64-144.0.7559.96`,
+// and a plain `.sort()` compares them as text: the moment a two-digit major is present,
+// "win64-99..." sorts AFTER "win64-144..." and the lookup picks a Chromium several years old to
+// render with. Every install on this machine happens to be a three-digit major today, which is
+// exactly why the bug is invisible rather than absent.
 function findChromium() {
   if (process.env.PUPPETEER_EXECUTABLE_PATH) return process.env.PUPPETEER_EXECUTABLE_PATH;
   const home = process.env.USERPROFILE || process.env.HOME || "";
@@ -38,13 +47,28 @@ function findChromium() {
         "chrome-win64/chrome.exe",
         "chrome-linux64/chrome",
         "chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+        "chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
       ]) {
         const exe = path.join(root, dir, sub);
-        if (fs.existsSync(exe)) out.push(exe);
+        if (fs.existsSync(exe)) out.push({ dir, exe });
       }
     }
   } catch { /* no cache */ }
-  return out.sort().reverse()[0] || null;
+  // Compare the dotted version segment by segment, numerically. The version follows the platform
+  // prefix, so the match must be anchored to the HYPHEN: a bare \d+ grabs the "64" out of "win64"
+  // for every directory, which makes them all compare equal and turns the sort into a no-op —
+  // exactly the silent non-fix this change exists to avoid. Unparseable names yield [] and sort
+  // first, so a malformed directory can never win.
+  const ver = (d) => ((String(d).match(/-(\d+(?:\.\d+)*)/) || [])[1] || "").split(".").filter(Boolean).map(Number);
+  out.sort((a, b) => {
+    const va = ver(a.dir), vb = ver(b.dir);
+    for (let i = 0; i < Math.max(va.length, vb.length); i++) {
+      const d = (va[i] || 0) - (vb[i] || 0);
+      if (d) return d;
+    }
+    return 0;
+  });
+  return out.length ? out[out.length - 1].exe : null;
 }
 
 function serveDir(dir) {

@@ -1,0 +1,182 @@
+{
+  "name": "schematic-blue",
+  "vibe": "A plan sheet on a drafting table. The field is a pale blue-grey paper (#eef2f7 washing into #dbe4ef) ruled with a hairline engineering grid in slate #44607e, with two slow blueprint arcs sweeping like compass sets. All type is IBM Plex Mono, mid-sized and set flush left, streaking in character by character so reading pace sets the pacing; capability lines read as annotations at the end of leader lines rather than as bullets. Screenshots are deliberately small and pinned (hero card only 0.30 of the frame wide) inside a thin blue frame, which turns a low-res website grab into a specimen under inspection instead of a stretched hero image; when only one picture exists, the surrounding callouts carry the composition. Motion is almost nothing: micro tilt, slow orbit, a 3px drift. The proof beat inverts the sheet to deep cyanotype #14509b and puts one enormous figure in pale paper with its unit small beneath. Rust #a8451a appears once, on the closing mark. Built for AI infrastructure, fintech and developer-tool teams who want precision instead of hype.",
+  "orientation": "landscape",
+  "category": "Technology",
+  "tags": [
+    "blueprint",
+    "technical",
+    "grid",
+    "annotated",
+    "developer",
+    "precise",
+    "light"
+  ],
+  "renderer": "film-schematic-blue",
+  "colors": {
+    "sheet": "#eef2f7",
+    "mist": "#dbe4ef",
+    "ink": "#101b28",
+    "steel": "#44607e",
+    "blue": "#14509b",
+    "cyan": "#4fb8d8",
+    "rust": "#a8451a",
+    "ground": "#eef2f7",
+    "text": "#101b28",
+    "accent": "#14509b",
+    "paper": "#eef2f7"
+  },
+  "fonts": [
+    "IBM Plex Mono",
+    "IBM Plex Sans"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#eef2f7",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#14509b",
+      "#44607e",
+      "#a8451a"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "Cool daylight with a blue-grey cast and flat, even lighting. Shallow depth of field only at edges to keep detail sharp. Warm tones desaturated toward slate. Screenshots rendered at true pixel scale inside frames rather than upscaled, treating images as architectural specimens.",
+    "iconStyle": "line",
+    "keywords": [
+      "drafting table with blueprints",
+      "engineering calipers on paper",
+      "laptop screen with dashboard",
+      "graph paper and pencil",
+      "circuit board macro",
+      "architectural plan detail",
+      "developer keyboard overhead",
+      "measuring rule on desk",
+      "wireframe sketch on whiteboard"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo",
+      "illustration"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "IBM Plex Mono",
+    "body": "IBM Plex Sans",
+    "mono": "IBM Plex Mono"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 725,
+        "height": 450,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame, beside the copy"
+      },
+      "context": {
+        "count": 2,
+        "width": 709,
+        "height": 324,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card, beside the copy"
+      },
+      "feature": {
+        "count": 2,
+        "width": 576,
+        "height": 367,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card, leading the row"
+      },
+      "how": {
+        "count": 4,
+        "width": 400,
+        "height": 324,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 1x4 tile row"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1920,
+        "height": 700,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene",
+    "stage": {
+      "width": 1920,
+      "height": 1080
+    }
+  },
+  "audio": {
+    "mood": "quiet technical focus — a room where someone is measuring something carefully; unhurried, cool, exact",
+    "archetype": "underscore",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "ambient",
+      "minimal",
+      "downtempo",
+      "electronic"
+    ],
+    "musicKeywords": [
+      "soft pad",
+      "muted piano",
+      "sparse pulse",
+      "warm analog",
+      "slow arp",
+      "felt keys",
+      "wide reverb",
+      "gentle bass",
+      "ambient drone",
+      "glass bells",
+      "gentle percussion",
+      "clean guitar",
+      "airy texture"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "counter-tick",
+      "cta": "gentle-impact"
+    },
+    "noVo": {
+      "energyBoost": 0,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

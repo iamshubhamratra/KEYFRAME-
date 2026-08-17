@@ -24,8 +24,99 @@ const S = require("./film_stage");
 const { X, V, F, rgba, clamp, clamp01, fitLines, fitPx, featureLines, pickStats, shortLabel, trackEm } = S;
 const { esc, r, bullets } = require("./composer_kit");
 
-const PAD = 72;                    // the source's safe margin (cfg.PAD)
-const COL = 1080 - PAD * 2;
+// SAFE MARGIN AND CONTENT COLUMN, IN AUTHORED PIXELS OF THE CURRENT STAGE.
+//
+// These were `72` and `1080 - 144`, correct while every template in this family was authored
+// against a 1080-wide portrait frame. They are now recomputed per build from the skin's authored
+// stage (film_stage.setStage), because a landscape template is 1920 wide and a 72px margin on it
+// is a hairline. The ratio is preserved exactly — 72/1080 — so a portrait build reproduces the
+// old constants to the pixel and every one of the 89 shipped packs is byte-identical.
+//
+// Mutable module state, same per-build contract as film_stage's RW/RH and TSCALE: build() is
+// synchronous, so two builds cannot interleave.
+let PAD = 72;
+let COL = 1080 - PAD * 2;
+// True when the SKIN was authored landscape. Beats branch on this to lay out across the frame
+// instead of down it; it never asks about the output size.
+let WIDE = false;
+
+// Called by film_stage.build() before any beat is emitted.
+function setStage(rw, rh) {
+  PAD = Math.round(rw * (72 / 1080));
+  COL = rw - PAD * 2;
+  WIDE = rw > rh;
+}
+
+// SPEC-DECLARED MEDIA BOXES.
+//
+// Every FilmKit pack drew its pictures at the same hardcoded sizes, so every generated template
+// shipped byte-identical asset geometry — measured across three generations: two 16:9 templates
+// from unrelated briefs declared exactly `feature:2@851x528 how:4@399x475 …`. The hand-built packs
+// each have their own (grid-dispatch a 950-wide column, paper-tales 1421x302 strips), and that
+// difference is a real part of what makes them distinct films.
+//
+// A skin may now state its own boxes as FRACTIONS OF ITS AUTHORED STAGE, which keeps one set of
+// numbers valid at both 1080x1920 and 1920x1080. Absent — every one of the 89 shipped skins — the
+// defaults below reproduce the previous literals exactly, which is why golden stays byte-identical.
+//
+// THE POINT IS THE SINGLE SOURCE. scripts/gen-film-packs.js derives the pack.json media contract
+// from this same resolver, so the manifest describes the box the engine actually draws. Letting a
+// spec declare geometry the engine ignores would recreate the defect class that had six shipped
+// packs collecting, scoring and cropping assets for boxes no composer ever drew.
+function boxOf(skin, role, defW, defH) {
+  const b = skin && skin.boxes && skin.boxes[role];
+  const w = b && Number(b.w) > 0 ? Math.round(Number(b.w) * S.RW) : defW;
+  const h = b && Number(b.h) > 0 ? Math.round(Number(b.h) * S.RH) : defH;
+  return { w, h };
+}
+
+// The landscape feature beat sizes its card from the ROW SPLIT, not from a free width — the copy
+// takes whatever the card leaves. So a declared width becomes a lead fraction, clamped to a band
+// where the copy column is still a column: past ~0.72 the headline wraps to one word a line.
+// Undeclared, this returns the previous literals (0.54 / w*0.62) exactly.
+const WIDE_TRACK = () => COL - 88;                       // wideRow's usable width, minus its gap
+function wideFeatureBox(skin) {
+  const b = skin && skin.boxes && skin.boxes.feature;
+  const track = WIDE_TRACK();
+  const lead = b && Number(b.w) > 0
+    ? Math.min(0.72, Math.max(0.3, (Number(b.w) * S.RW) / track))
+    : 0.54;
+  const cardW = Math.round(track * lead);
+  const cardH = b && Number(b.h) > 0 ? Math.round(Number(b.h) * S.RH) : Math.round(cardW * 0.62);
+  return { lead, cardW, cardH };
+}
+
+// THE CONTRACT, READ OFF THE LAYOUT THAT DRAWS IT.
+//
+// scripts/gen-film-packs.js calls this to build pack.json's media.slotsByRole, so the manifest
+// cannot describe a box the engine does not draw — it is the same arithmetic, run once. Returns
+// null for a skin that declares nothing, which is every one of the 89 shipped ones: those keep
+// the checked-in family table untouched, and golden stays byte-identical.
+//
+// Each stage reports its boxes the way that stage's family table already does — the portrait
+// feature row is the PICTURE inside its 13px-padded plate (936x588 plate, 910x562 picture), the
+// rest are the drawn cards. Changing that convention here would silently rewrite 89 manifests.
+function mediaBoxes(skin, stageName) {
+  if (!skin || !skin.boxes) return null;
+  // Same two calls film_stage.build() makes before any beat is emitted, in the same order —
+  // boxOf reads S.RW/S.RH and the layout reads PAD/COL/WIDE, and they must describe one stage.
+  S.setStage(stageName || skin.stage || "portrait");
+  setStage(S.RW, S.RH);
+  if (WIDE) {
+    const F = wideFeatureBox(skin);
+    return {
+      feature: { width: F.cardW, height: F.cardH },
+      how: { width: Math.round((COL - 22 * 3) / 4), height: boxOf(skin, "montage", COL, Math.round(S.RH * 0.44)).h },
+      context: { width: Math.round(WIDE_TRACK() * 0.45), height: boxOf(skin, "statement", COL, Math.round(S.RH * 0.52)).h },
+    };
+  }
+  const F = boxOf(skin, "feature", 936, 588);
+  return {
+    feature: { width: F.w - 26, height: F.h - 26 },      // the plate's 13px padding, both sides
+    how: { width: Math.round((COL - 26) / 2), height: boxOf(skin, "montage", COL, 292).h },
+    context: { width: COL, height: boxOf(skin, "statement", COL, 430).h },
+  };
+}
 
 // Resolve a `look` colour: a palette KEY, or a literal hex the source inlined.
 const col = (theme, s) => (typeof s === "string" && s[0] === "#" ? s : (theme.c && theme.c[s]) || theme[s] || s);
@@ -39,7 +130,11 @@ const col = (theme, s) => (typeof s === "string" && s[0] === "#" ? s : (theme.c 
 // effectively invisible), and the brand rotation can move a colour and its ground toward each
 // other. `theme.typeOn` returns the authored colour at ratio >= 3 and the field's own readable
 // ink otherwise, so the design wins by default and legibility wins when it must.
-const ink = (theme, s, ground) => theme.typeOn(col(theme, s), ground);
+const ink = (theme, s, ground, min) => theme.typeOn(col(theme, s), ground, min);
+// The DISPLAY floor. The accent line / decor colour is judged at 2.0, not 3.0: the guard's job
+// is invisible ink (cat-nap's dark-on-dark sat near ratio 1.1), and the reference ships designed
+// display pairings below 3 (ember-roast's cream on ember = 2.9). Body text keeps the strict 3.
+const DISPLAY_MIN = 2;
 const splitLines = (t) => String(t == null ? "" : t).split("|");
 
 // ---- shared fragments ---------------------------------------------------------
@@ -47,9 +142,15 @@ const splitLines = (t) => String(t == null ? "" : t).split("|");
 // element, and — the FilmKit signature — THE SECOND LINE TAKES THE ACCENT. That single
 // detail is most of why these titles read as designed rather than typed, so it is
 // preserved exactly (`i === 1 ? hi : fg`).
-function title(theme, skin, txt, { size, fg, hi, upper, from = 0, align = "left", maxLines = 4, ground }) {
-  // the skin tracks its display type; that tracking is part of the line width (see fitLines)
-  const fit = fitLines(txt, { basePx: size, maxLines, colPx: COL, em: skin.em, upper, track: trackEm(skin.titleSpace) });
+// `colPx` overrides the measure the line fitter wraps against. It defaults to the full content
+// column, which is every portrait call site unchanged; a WIDE beat that puts copy in one half of
+// a two-column layout passes its real column width, without which the fitter would wrap for
+// 1664px and overflow the 780px it was actually given.
+function title(theme, skin, txt, { size, sizeMax = 0, fg, hi, upper, from = 0, align = "left", maxLines = 4, ground, colPx = null }) {
+  // the skin tracks its display type; that tracking is part of the line width (see fitLines).
+  // `size` is the AUTHORED size (tried first, wrapping as the reference wraps); `sizeMax` is
+  // soloSize's empty-frame ceiling, which fitLines takes only without re-wrapping.
+  const fit = fitLines(txt, { basePx: size, growPx: sizeMax, maxLines, colPx: colPx || COL, em: skin.em, upper, track: trackEm(skin.titleSpace) });
   // A tight shadow in the GROUND colour: every pack paints a live world behind the copy and
   // the contrast machinery cannot see it, so the type carries its own separation. Invisible
   // on a clean field; restores the edge wherever a decoration drifts behind a glyph.
@@ -60,8 +161,13 @@ function title(theme, skin, txt, { size, fg, hi, upper, from = 0, align = "left"
   // unset those render at 400, which on Baloo 2 or Orbitron is a visibly lighter film than the
   // reference. A skin declares `displayWeight` only when its source does.
   const w = skin.displayWeight ? `font-weight:${skin.displayWeight};` : "";
+  // Colour by the LOGICAL line when the copy authored its own breaks — a wrapped continuation
+  // of line 1 stays fg, and the accent lands exactly on the authored second line, as the
+  // reference renders it. Auto-wrapped copy keeps the physical-second-line accent (the
+  // signature look, applied to copy that never declared its own break).
+  const hiFor = (i) => (fit.forced ? (fit.groups[i] === 1 ? hi : fg) : (i === 1 ? hi : fg));
   return fit.lines.map((ln, i) =>
-    `<div data-in="title" data-i="${from + i}" style="font-family:${theme.displayStack};${w}font-size:${F(fit.size)};line-height:${skin.titleLine || 1.04};letter-spacing:${skin.titleSpace || "0"};color:${i === 1 ? hi : fg};${upper ? "text-transform:uppercase;" : ""}text-align:${align};${g}">${esc(ln)}</div>`
+    `<div data-in="title" data-i="${from + i}" style="font-family:${theme.displayStack};${w}font-size:${F(fit.size)};line-height:${skin.titleLine || 1.04};letter-spacing:${skin.titleSpace || "0"};color:${hiFor(i)};${upper ? "text-transform:uppercase;" : ""}text-align:${align};${g}">${esc(ln)}</div>`
   ).join("");
 }
 
@@ -85,11 +191,12 @@ function chipCss(v, c, fill, i) {
 }
 
 // The source's `card()` — the media plate's four treatments.
-function cardCss(L, theme) {
+function cardCss(L, theme, skin) {
   const v = (L.card && L.card.v) || "frame";
   const cbg = col(theme, L.card && L.card.bg);
   const rad = L.card && L.card.r != null ? L.card.r : 28;
-  const base = `margin:${X(46)} auto ${X(42)};width:${X(936)};height:${X(588)};border-radius:${X(rad)};padding:${X(13)};background:${cbg};`;
+  const F0 = boxOf(skin, "feature", 936, 588);
+  const base = `margin:${X(46)} auto ${X(42)};width:${X(F0.w)};height:${X(F0.h)};border-radius:${X(rad)};padding:${X(13)};background:${cbg};`;
   if (v === "tilt") return `${base}transform:rotate(-1.5deg);box-shadow:0 ${X(30)} ${X(62)} rgba(10,10,12,0.4);`;
   if (v === "glow") { const g = col(theme, L.card.glow); return `${base}border:1px solid ${rgba(g, 0.55)};box-shadow:0 0 ${X(44)} ${rgba(g, 0.25)}, 0 ${X(28)} ${X(56)} rgba(0,0,0,0.5);`; }
   if (v === "paper") return `margin:${X(46)} auto ${X(42)};width:${X(936)};height:${X(588)};border-radius:${X(10)};padding:${X(13)};background:#ffffff;box-shadow:0 ${X(26)} ${X(54)} rgba(20,16,10,0.3);`;
@@ -116,7 +223,7 @@ const close = () => `</div></div></div>`;
 function shell(ctx, titleTxt, inner, extra) {
   const { theme, skin } = ctx;
   const L = ctx.look.app;
-  const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground);
+  const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground, DISPLAY_MIN);
   return `${open(ctx)}
     <div style="position:absolute;left:${X(PAD)};right:${X(PAD)};top:${V(180)};bottom:${V(140)};display:flex;flex-direction:column;justify-content:center;">
       ${title(theme, skin, titleTxt, { size: 92, fg, hi, upper: L.upper, from: 0, ground: ctx.ground })}
@@ -136,6 +243,47 @@ function panelCss(ctx, h, extra) {
 const pointer = (id, fg) =>
   `<g id="${id}" transform="translate(140,620)"><path d="M0 0 L0 30 L8 24 L14 38 L20 35 L14 22 L24 21 Z" fill="${fg}" stroke="rgba(0,0,0,0.4)" stroke-width="1.5"/></g>`;
 
+// ================================ WIDE LAYOUT ================================
+//
+// A LANDSCAPE BEAT LAYS OUT ACROSS THE FRAME, NOT DOWN IT.
+//
+// The portrait beats stack: copy at some `top`, media below it at a second `top`. That is right
+// for 1080x1920 and wrong for 1920x1080, where there is roughly half the vertical room and twice
+// the horizontal — a stacked hook there puts a 460-tall device frame under a three-line headline
+// in a 1080-tall frame and overflows before a single asset is even considered.
+//
+// So the wide branches put the copy and the media side by side and centre the pair vertically.
+// `L.top` stops being a position (there is nothing to position against once the row is centred)
+// and becomes a nudge, which also makes the layout robust to whatever `top` a generated spec
+// happens to carry.
+//
+// Every wide branch is guarded by WIDE, which is only ever true for a skin that DECLARED
+// stage:"landscape". The portrait path below each guard is the original code, untouched — proved
+// byte-identical by scripts/golden-composers.js across all 89 shipped FilmKit packs.
+
+// The vertical band a wide beat centres its content in, inset by the safe margin.
+const wideBand = (extra) => `position:absolute;left:${X(PAD)};right:${X(PAD)};top:0;bottom:0;display:flex;align-items:center;${extra || ""}`;
+
+// A two-column row. `lead` is the fraction of the content column the FIRST child takes.
+function wideRow(a, b, { lead = 0.52, gap = 88, reverse = false } = {}) {
+  const first = reverse ? b : a, second = reverse ? a : b;
+  const f1 = reverse ? 1 - lead : lead;
+  return `<div style="${wideBand(`gap:${X(gap)};`)}">
+      <div style="flex:${r(f1)} 1 0;min-width:0;">${first}</div>
+      <div style="flex:${r(1 - f1)} 1 0;min-width:0;display:flex;align-items:center;justify-content:center;">${second}</div>
+    </div>`;
+}
+
+// The measure available to copy in one column of a wideRow, in authored px — what `title()`
+// must wrap against instead of the full COL.
+const wideCol = (lead = 0.52, gap = 88) => Math.round((COL - gap) * lead);
+
+// A single centred column, for the beats that carry no media (statement without an asset, cta).
+const wideSolo = (inner, frac = 0.74) =>
+  `<div style="${wideBand("justify-content:center;")}">
+      <div style="width:${X(Math.round(COL * frac))};max-width:100%;">${inner}</div>
+    </div>`;
+
 // ================================ THE SIX CORE BEATS ================================
 
 // HOOK — kicker, the big title stack, a sub line, and (when a capture landed here) an
@@ -143,7 +291,7 @@ const pointer = (id, fg) =>
 function bHook(scene, ctx, sceneAssets, logo) {
   const { theme, skin, Str } = ctx;
   const L = ctx.look.hook;
-  const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground);
+  const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground, DISPLAY_MIN);
   // A `media:false` pack is authored as pure typography — its Feature draws underlined lines
   // and its Montage draws label blocks, and the source's Hook has no image slot at all. Such
   // a pack shows NO imagery anywhere, and its manifest says so, so nothing collects assets it
@@ -163,10 +311,35 @@ function bHook(scene, ctx, sceneAssets, logo) {
   const mark = logo && logo.path
     ? `<img data-in="item" data-i="0" src="${esc(logo.path)}" alt="${esc(logo.alt || "logo")}" style="height:${X(64)};width:auto;max-width:${X(280)};object-fit:contain;object-position:left center;display:block;margin-bottom:${X(22)};">`
     : "";
+
+  if (WIDE) {
+    // Copy leads, the device sits beside it. With no capture the copy takes a centred column
+    // rather than a half-empty row.
+    const lead = asset ? 0.54 : 1;
+    const measure = asset ? wideCol(lead) : Math.round(COL * 0.74);
+    const copy = `<div style="text-align:${L.align || "left"};">
+      ${mark}${kicker(theme, skin, L.kicker, scene.kicker || Str.hookKicker)}
+      ${title(theme, skin, scene.headline || scene.title || ctx.title, { size: L.size || 126, sizeMax: S.soloSize(L.size || 126, false, { maxLines: 3, lineHeight: skin.titleLine || 1.04, capFrac: 0.42 }), fg, hi, upper: L.upper, from: 1, align: L.align || "left", maxLines: 3, ground: ctx.ground, colPx: measure })}
+      ${sub ? `<div data-in="rise" data-i="5" style="font-family:${theme.bodyStack};font-weight:600;font-size:${F(fitPx(sub, 32, 74))};color:${rgba(fg, 0.74)};margin-top:${X(30)};max-width:${X(Math.round(measure * 0.92))};line-height:1.45;${L.align === "center" ? "margin-left:auto;margin-right:auto;" : ""}">${esc(sub)}</div>` : ""}
+    </div>`;
+    if (!asset) return { html: `${open(ctx)}${wideSolo(copy)}${close()}` };
+    const device = S.deviceFor(asset);
+    const boxW = device === "phone" ? 300 : Math.round((COL - 88) * (1 - lead));
+    const boxH = device === "phone" ? 620 : Math.round(boxW * 0.62);
+    plan = S.scrollPlan(boxW, boxH, asset);
+    const framed = `<div data-in="item" data-i="3" style="width:100%;${device === "phone" ? `max-width:${X(boxW)};` : ""}">
+      ${S.frameHtml(theme, skin, { device, asset, boxH, tint: hi, scrollId: plan.frac ? scrollId : null, natH: plan.natH, address: ctx.address, cardV: (L.card && L.card.v) || "frame", radius: (L.card && L.card.r) })}
+    </div>`;
+    return {
+      html: `${open(ctx)}${wideRow(copy, framed, { lead })}${close()}`,
+      scroll: plan.frac ? { id: scrollId, frac: plan.frac } : null,
+    };
+  }
+
   const html = `${open(ctx)}
     <div style="position:absolute;left:${X(PAD)};right:${X(PAD)};top:${V(asset ? Math.min(L.top || 320, 300) : (L.top || 320))};text-align:${L.align || "left"};">
       ${mark}${kicker(theme, skin, L.kicker, scene.kicker || Str.hookKicker)}
-      ${title(theme, skin, scene.headline || scene.title || ctx.title, { size: S.soloSize(L.size || 126, !!asset, { maxLines: asset ? 3 : 4, lineHeight: skin.titleLine || 1.04 }), fg, hi, upper: L.upper, from: 1, align: L.align || "left", maxLines: asset ? 3 : 4, ground: ctx.ground })}
+      ${title(theme, skin, scene.headline || scene.title || ctx.title, { size: L.size || 126, sizeMax: S.soloSize(L.size || 126, !!asset, { maxLines: asset ? 3 : 4, lineHeight: skin.titleLine || 1.04 }), fg, hi, upper: L.upper, from: 1, align: L.align || "left", maxLines: asset ? 3 : 4, ground: ctx.ground })}
       ${sub ? `<div data-in="rise" data-i="5" style="font-family:${theme.bodyStack};font-weight:600;font-size:${F(fitPx(sub, 35, 90))};color:${rgba(fg, 0.74)};margin-top:${X(36)};max-width:${X(740)};line-height:1.45;${L.align === "center" ? "margin-left:auto;margin-right:auto;" : ""}">${esc(sub)}</div>` : ""}
     </div>
     ${frame}
@@ -179,7 +352,7 @@ function bHook(scene, ctx, sceneAssets, logo) {
 function bStatement(scene, ctx, sceneAssets) {
   const { theme, skin } = ctx;
   const L = ctx.look.statement;
-  const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground);
+  const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground, DISPLAY_MIN);
   const asset = (skin.media === false ? null : (sceneAssets && sceneAssets[0])) || null;
   const sub = String(scene.subtext || "").slice(0, 140);
   const attribution = bullets(scene, 1)[0] || "";
@@ -188,9 +361,28 @@ function bStatement(scene, ctx, sceneAssets) {
         ${S.frameHtml(theme, skin, { device: "card", asset, tint: hi, cardV: "frame", radius: 24 })}
       </div>`
     : "";
+  if (WIDE) {
+    // The statement is the one beat that is pure type, so with no asset it takes a generous
+    // centred measure; with one it becomes copy-left / card-right.
+    const lead = asset ? 0.55 : 1;
+    const measure = asset ? wideCol(lead) : Math.round(COL * 0.78);
+    const copy = `<div style="text-align:${L.align || "left"};">
+      ${title(theme, skin, scene.headline || scene.title || "", { size: L.size || 160, sizeMax: S.soloSize(L.size || 160, false, { maxLines: 3, lineHeight: skin.titleLine || 1.04, capFrac: 0.5 }), fg, hi, upper: L.upper, from: 0, align: L.align || "left", maxLines: 3, ground: ctx.ground, colPx: measure })}
+      ${sub ? `<div data-in="rise" data-i="4" style="font-family:${theme.bodyStack};font-weight:600;font-size:${F(fitPx(sub, 32, 82))};color:${rgba(fg, 0.7)};margin-top:${X(34)};max-width:${X(Math.round(measure * 0.9))};line-height:1.45;${L.align === "center" ? "margin-left:auto;margin-right:auto;" : ""}">${esc(sub)}</div>` : ""}
+      ${attribution && !sub ? `<div data-in="rise" data-i="4" style="font-family:${theme.bodyStack};font-weight:700;font-size:${F(32)};color:${hi};margin-top:${X(26)};">${esc(attribution)}</div>` : ""}
+    </div>`;
+    if (!asset) return { html: `${open(ctx)}${wideSolo(copy, 0.78)}${close()}` };
+    // Height as a share of the AUTHORED stage height, expressed through X() like every other
+    // height in this engine (cqw is the only definite unit inside an auto-height parent).
+    const card = `<div data-in="item" data-i="3" style="width:100%;height:${X(boxOf(skin, "statement", COL, Math.round(S.RH * 0.52)).h)};">
+      ${S.frameHtml(theme, skin, { device: "card", asset, tint: hi, cardV: "frame", radius: 24 })}
+    </div>`;
+    return { html: `${open(ctx)}${wideRow(copy, card, { lead })}${close()}` };
+  }
+
   const html = `${open(ctx)}
     <div style="position:absolute;left:${X(PAD)};right:${X(PAD)};top:${V(asset ? Math.min(L.top || 630, 420) : (L.top || 630))};text-align:${L.align || "left"};">
-      ${title(theme, skin, scene.headline || scene.title || "", { size: S.soloSize(L.size || 160, !!asset, { maxLines: asset ? 3 : 4, lineHeight: skin.titleLine || 1.04 }), fg, hi, upper: L.upper, from: 0, align: L.align || "left", maxLines: asset ? 3 : 4, ground: ctx.ground })}
+      ${title(theme, skin, scene.headline || scene.title || "", { size: L.size || 160, sizeMax: S.soloSize(L.size || 160, !!asset, { maxLines: asset ? 3 : 4, lineHeight: skin.titleLine || 1.04 }), fg, hi, upper: L.upper, from: 0, align: L.align || "left", maxLines: asset ? 3 : 4, ground: ctx.ground })}
       ${sub ? `<div data-in="rise" data-i="4" style="font-family:${theme.bodyStack};font-weight:600;font-size:${F(fitPx(sub, 35, 100))};color:${rgba(fg, 0.7)};margin-top:${X(42)};max-width:${X(700)};line-height:1.45;${L.align === "center" ? "margin-left:auto;margin-right:auto;" : ""}">${esc(sub)}</div>` : ""}
       ${attribution && !sub ? `<div data-in="rise" data-i="4" style="font-family:${theme.bodyStack};font-weight:700;font-size:${F(34)};color:${hi};margin-top:${X(32)};">${esc(attribution)}</div>` : ""}
     </div>
@@ -204,7 +396,7 @@ function bStatement(scene, ctx, sceneAssets) {
 function bFeature(scene, ctx, sceneAssets) {
   const { theme, skin, Str } = ctx;
   const L = ctx.look.feature;
-  const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground);
+  const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground, DISPLAY_MIN);
   const chips = featureLines(scene, 3);
   const chipCols = (L.chips.colors || ["accent"]).map((k) => col(theme, k));
   const fill = col(theme, L.chips.text);
@@ -226,8 +418,32 @@ function bFeature(scene, ctx, sceneAssets) {
     };
   }
   const rad = L.card && L.card.r != null ? L.card.r : 28;
+
+  if (WIDE) {
+    // The hero card leads on the left and the copy answers on the right — the reverse of the
+    // portrait stack, and the arrangement a product shot actually wants at 16:9.
+    const { lead, cardW, cardH } = wideFeatureBox(skin);
+    const measure = wideCol(1 - lead);
+    const wplan = S.scrollPlan(cardW, cardH, asset);
+    const media = `<div data-in="item" data-i="2" style="width:100%;height:${X(cardH)};border-radius:${X(rad)};padding:${X(12)};background:${col(theme, L.card && L.card.bg)};box-shadow:0 ${X(24)} ${X(52)} rgba(10,10,12,0.36);">
+        <div style="position:relative;width:100%;height:100%;border-radius:${X(Math.max(6, rad - 10))};overflow:hidden;background:${rgba(hi, 0.14)};">
+          ${S.plate(theme, { asset, scrollId: wplan.frac ? scrollId : null, natH: wplan.natH, tint: hi })}
+        </div>
+      </div>`;
+    const copy = `<div>
+        ${title(theme, skin, scene.headline || scene.title || Str.featureKicker, { size: L.size || 104, fg, hi, upper: L.upper, from: 0, maxLines: 3, ground: ctx.ground, colPx: measure })}
+        <div style="display:flex;flex-wrap:wrap;gap:${X(14)};margin-top:${X(32)};justify-content:${L.chips.center ? "center" : "flex-start"};">
+          ${chips.map((c, i) => `<span data-in="item" data-i="${i + 4}" style="padding:${X(13)} ${X(24)};font-family:${theme.bodyStack};font-weight:800;font-size:${F(26)};white-space:nowrap;max-width:${X(measure)};overflow:hidden;text-overflow:ellipsis;${chipCss(L.chips.v, chipCols[i % chipCols.length], fill, i)}">${esc(c)}</span>`).join("")}
+        </div>
+      </div>`;
+    return {
+      html: `${open(ctx)}${wideRow(media, copy, { lead })}${close()}`,
+      scroll: wplan.frac ? { id: scrollId, frac: wplan.frac } : null,
+    };
+  }
+
   const plan = S.scrollPlan(936, 588, asset);
-  const media = `<div data-in="item" data-i="2" style="${cardCss(L, theme)}">
+  const media = `<div data-in="item" data-i="2" style="${cardCss(L, theme, skin)}">
       <div style="position:relative;width:100%;height:100%;border-radius:${X(Math.max(6, rad - 10))};overflow:hidden;background:${rgba(hi, 0.14)};">
         ${S.plate(theme, { asset, scrollId: plan.frac ? scrollId : null, natH: plan.natH, tint: hi })}
       </div>
@@ -251,7 +467,7 @@ function bFeature(scene, ctx, sceneAssets) {
 function bMontage(scene, ctx, sceneAssets) {
   const { theme, skin, Str } = ctx;
   const L = ctx.look.montage;
-  const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground);
+  const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground, DISPLAY_MIN);
   const tilts = L.tilts || [-3, 2.5, 2, -2.5];
   const tbg = col(theme, L.tile.bg), tlabel = col(theme, L.tile.label);
   const rad = L.tile.r == null ? 22 : L.tile.r;
@@ -292,12 +508,17 @@ function bMontage(scene, ctx, sceneAssets) {
   }
   // A single column when there are only one or two tiles — a 2x2 grid half-empty reads as a
   // bug, a taller single column reads as a choice.
-  const single = n <= 2;
+  //
+  // WIDE never takes that branch: at 16:9 the wall runs ACROSS in one row of `n`, which is both
+  // the shape the frame offers and the reason a landscape montage does not need the
+  // one-tall-column rescue in the first place.
+  const single = WIDE ? false : n <= 2;
+  const gridCols = WIDE ? `repeat(${Math.max(1, n)},1fr)` : (single ? "1fr" : "1fr 1fr");
   return {
     html: `${open(ctx)}
       <div style="position:absolute;left:${X(PAD)};right:${X(PAD)};top:${V(L.top || 258)};">
-        ${title(theme, skin, scene.headline || scene.title || "", { size: L.size || 102, fg, hi, upper: L.upper, maxLines: 2, ground: ctx.ground })}
-        <div style="margin-top:${X(54)};display:grid;grid-template-columns:${single ? "1fr" : "1fr 1fr"};gap:${X(26)};">
+        ${title(theme, skin, scene.headline || scene.title || "", { size: L.size || 102, fg, hi, upper: L.upper, maxLines: 2, ground: ctx.ground, colPx: WIDE ? Math.round(COL * 0.72) : null })}
+        <div style="margin-top:${X(WIDE ? 38 : 54)};display:grid;grid-template-columns:${gridCols};gap:${X(WIDE ? 22 : 26)};">
           ${Array.from({ length: n }).map((_, i) => {
             const a = shots[i] || null;
             const label = shortLabel(mediaTiles[i] || "", 22);
@@ -315,7 +536,9 @@ function bMontage(scene, ctx, sceneAssets) {
             const budget = n === 1 ? 620 : 500;             // vertical room per plate, under a 2-line title
             const ratio = a && Number(a.ratio) > 0 ? Number(a.ratio)
               : (a && Number(a.width) > 0 && Number(a.height) > 0 ? Number(a.width) / Number(a.height) : 0);
-            const cardH = single ? budget : 292;
+            // In a wide row the tiles share the width, so their height comes from the frame's
+            // remaining vertical room rather than from the portrait budget.
+            const cardH = WIDE ? Math.round(S.RH * 0.44) : (single ? budget : 292);
             // Width follows the ratio only when the asset is TALLER than the full-width card
             // would be; a landscape asset keeps the whole column as before.
             const natW = single && ratio > 0 ? Math.round(budget * ratio) : COL;
@@ -342,7 +565,7 @@ function bMontage(scene, ctx, sceneAssets) {
 function bStats(scene, ctx, sceneAssets) {
   const { theme, skin, Str } = ctx;
   const L = ctx.look.stats;
-  const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground);
+  const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground, DISPLAY_MIN);
   const cols = (L.cols || ["accent"]).map((k) => col(theme, k));
   const stats = pickStats(scene, 3, Str);
   const asset = (skin.media === false ? null : (sceneAssets && sceneAssets[0])) || null;
@@ -364,7 +587,7 @@ function bStats(scene, ctx, sceneAssets) {
   const rows = stats.map((st, i) => {
     const c = cols[i % cols.length];
     return `<div data-in="rise" data-i="${i + 2}" style="display:flex;align-items:baseline;gap:${X(30)};${L.rule ? `border-bottom:${X(4)} solid ${c};padding-bottom:${X(24)};` : ""}">
-      <div style="font-family:${theme.displayStack};font-size:${F(num)};line-height:0.9;color:${c};font-variant-numeric:tabular-nums;${L.glowNums ? `text-shadow:0 0 ${X(36)} ${rgba(c, 0.5)};` : ""}white-space:nowrap;"><span data-count="${st.target}" data-suffix="${esc(st.suf || "")}">${esc(st.pre)}${st.target}${esc(st.suf || "")}</span></div>
+      <div style="font-family:${theme.displayStack};font-size:${F(num)};line-height:0.9;color:${c};font-variant-numeric:tabular-nums;${L.glowNums ? `text-shadow:0 0 ${X(36)} ${rgba(c, 0.5)};` : ""}white-space:nowrap;"><span data-count="${st.target}" data-suffix="${esc(st.suf || "")}" data-pre="${esc(st.pre || "")}">${esc(st.pre)}${st.target}${esc(st.suf || "")}</span></div>
       <div style="font-family:${theme.bodyStack};font-weight:700;font-size:${F(33)};color:${rgba(fg, 0.76)};max-width:${X(440)};line-height:1.35;">${esc(st.label)}</div>
     </div>`;
   }).join("");
@@ -375,7 +598,7 @@ function bStats(scene, ctx, sceneAssets) {
     html: `${open(ctx)}
       ${backing}
       <div style="position:absolute;left:${X(PAD)};right:${X(PAD)};top:${V(L.top || 410)};">
-        ${title(theme, skin, scene.headline || scene.title || Str.statsKicker, { size: S.soloSize(L.size || 102, !!asset, { maxLines: 2, lineHeight: skin.titleLine || 1.04 }), fg, hi, upper: L.upper, maxLines: 2, ground: ctx.ground })}
+        ${title(theme, skin, scene.headline || scene.title || Str.statsKicker, { size: L.size || 102, sizeMax: S.soloSize(L.size || 102, !!asset, { maxLines: 2, lineHeight: skin.titleLine || 1.04 }), fg, hi, upper: L.upper, maxLines: 2, ground: ctx.ground })}
         <div style="margin-top:${X(62)};display:flex;flex-direction:column;gap:${X(L.rule ? 42 : 52)};">${rows}</div>
       </div>
     ${close()}`,
@@ -386,7 +609,7 @@ function bStats(scene, ctx, sceneAssets) {
 function bCta(scene, ctx, _sceneAssets, logo) {
   const { theme, skin, Str } = ctx;
   const L = ctx.look.cta;
-  const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground);
+  const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground, DISPLAY_MIN);
   const bbg = col(theme, L.btn.bg);
   // THE BUTTON IS THE ONE PIECE OF TYPE THAT NEVER MET THE CONTRAST MACHINERY.
   //
@@ -412,7 +635,12 @@ function bCta(scene, ctx, _sceneAssets, logo) {
        </div>`
     : "";
   const cta = String(scene.cta || Str.ctaButton);
-  const url = ctx.address;
+  // The url line under the button is a CLAIM, not set dressing: print it only when a real
+  // address is known (the job's own site, or a non-stock asset host). The decorative default
+  // ("yourproduct.com") stays available to the browser-chrome address bar, where it is scenery —
+  // but under a Get-Started button it reads as the place to go, and inventing that is worse
+  // than omitting it.
+  const url = ctx.address && ctx.address !== Str.addressBar ? ctx.address : "";
   return {
     html: `${open(ctx)}
       <div style="position:absolute;left:${X(PAD)};right:${X(PAD)};top:${V(L.top || 470)};text-align:${center ? "center" : "left"};">
@@ -435,7 +663,7 @@ function bCta(scene, ctx, _sceneAssets, logo) {
 function bTyping(scene, ctx, _a, _logo, variant) {
   const { theme, skin, Str } = ctx;
   const L = ctx.look.app;
-  const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground), line = col(theme, L.line);
+  const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground, DISPLAY_MIN), line = col(theme, L.line);
   const v = variant || "caret";
   const text = String(scene.subtext || featureLines(scene, 1)[0] || scene.headline || "").slice(0, 120);
   const prompt = scene.kicker || Str.featureKicker;
@@ -498,7 +726,7 @@ function bTyping(scene, ctx, _a, _logo, variant) {
 function bCode(scene, ctx, _a, _logo, variant) {
   const { theme, Str } = ctx;
   const L = ctx.look.app;
-  const hi = ink(theme, L.hi, ctx.ground);
+  const hi = ink(theme, L.hi, ctx.ground, DISPLAY_MIN);
   const v = variant || "editor";
   const id = ctx.id;
   const raw = featureLines(scene, 4);
@@ -552,23 +780,34 @@ function bCode(scene, ctx, _a, _logo, variant) {
 function bScroll(scene, ctx, _a, _logo, variant) {
   const { theme, Str } = ctx;
   const L = ctx.look.app;
-  const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground), line = col(theme, L.line);
+  const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground, DISPLAY_MIN), line = col(theme, L.line);
   const v = variant || "feed";
   const id = ctx.id;
   const src = featureLines(scene, 7);
-  const items = (src.length ? src : [Str.metric]).map((t) => shortLabel(t, 34));
+  // The source's Scroll items are {t, v} PAIRS — a label and a right-hand value ("Ethiopia
+  // Guji … $12.50"). KEYFRAME's storyboard flattens them into one line, so the pair is parsed
+  // back out of the "label — value" / "label: value" shape; a line with no separator is a
+  // label-only row, exactly as the source accepts bare strings.
+  const pairs = (src.length ? src : [Str.metric]).map((t) => {
+    const parts = String(t).split(/\s+[—–]\s+|\s+-\s+|:\s+/);
+    return parts.length > 1
+      ? { t: shortLabel(parts[0], 30), v: shortLabel(parts.slice(1).join(" "), 14) }
+      : { t: shortLabel(t, 34), v: "" };
+  });
+  const items = pairs.map((p2) => p2.t);
 
   if (v === "board") {
     return {
       html: shell(ctx, scene.headline || scene.title || "", `
         <div data-in="item" data-i="2" style="${panelCss(ctx, null, `padding:${X(26)} ${X(34)};`)}">
-          ${items.slice(0, 7).map((t, i) => `<div id="${id}-r${i}" style="display:flex;align-items:center;gap:${X(22)};padding:${X(17)} 0;border-bottom:1px solid ${rgba(line, 0.12)};transform-origin:top;">
+          ${pairs.slice(0, 7).map((it, i) => `<div id="${id}-r${i}" style="display:flex;align-items:center;gap:${X(22)};padding:${X(17)} 0;border-bottom:1px solid ${rgba(line, 0.12)};transform-origin:top;">
             <span style="font-family:${theme.monoStack};font-size:${F(26)};color:${hi};background:${rgba(hi, 0.12)};padding:${X(5)} ${X(12)};border-radius:${X(6)};flex:none;">${String(i + 1).padStart(2, "0")}</span>
-            <span style="font-family:${theme.bodyStack};font-weight:700;font-size:${F(31)};color:${line};min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(t)}</span>
+            <span style="font-family:${theme.bodyStack};font-weight:700;font-size:${F(31)};color:${line};flex:none;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.t)}</span>
             <span style="flex:1;border-bottom:${X(3)} dotted ${rgba(line, 0.3)};margin:0 ${X(6)};height:1px;"></span>
+            ${it.v ? `<span id="${id}-v${i}" style="font-family:${theme.monoStack};font-size:${F(29)};color:${hi};flex:none;">${esc(it.v)}</span>` : ""}
           </div>`).join("")}
         </div>`),
-      mech: { kind: "board", id, n: Math.min(items.length, 7) },
+      mech: { kind: "board", id, n: Math.min(pairs.length, 7) },
     };
   }
   if (v === "ticker") {
@@ -590,7 +829,8 @@ function bScroll(scene, ctx, _a, _logo, variant) {
       html: shell(ctx, scene.headline || scene.title || "", `
         <div data-in="item" data-i="2" style="position:relative;height:${X(470)};">
           ${Array.from({ length: n }).map((_, i) => `<div id="${id}-card${i}" style="${panelCss(ctx, 360, `padding:${X(44)};`)}position:absolute;left:0;right:0;top:0;">
-            <div style="font-family:${theme.displayStack};font-size:${F(56)};line-height:1.12;color:${line};">${esc(items[i])}</div>
+            <div style="font-family:${theme.displayStack};font-size:${F(56)};line-height:1.12;color:${line};">${esc(pairs[i].t)}</div>
+            ${pairs[i].v ? `<div style="font-family:${theme.monoStack};font-size:${F(40)};color:${hi};margin-top:${X(26)};">${esc(pairs[i].v)}</div>` : ""}
           </div>`).join("")}
           <div id="${id}-count" style="position:absolute;bottom:0;left:0;font-family:${theme.monoStack};font-size:${F(26)};color:${rgba(fg, 0.6)};">1 / ${n}</div>
         </div>`),
@@ -606,9 +846,10 @@ function bScroll(scene, ctx, _a, _logo, variant) {
       <div data-in="item" data-i="2" style="${panelCss(ctx, viewH)}">
         <div style="position:absolute;top:${X(30)};bottom:${X(30)};left:${X(30)};right:${X(60)};overflow:hidden;">
           <div id="${id}-inner" style="will-change:transform;">
-            ${items.map((t, i) => `<div style="height:${X(rowH)};display:flex;align-items:center;gap:${X(26)};border-bottom:1px solid ${rgba(line, 0.14)};">
+            ${pairs.map((it, i) => `<div style="height:${X(rowH)};display:flex;align-items:center;gap:${X(26)};border-bottom:1px solid ${rgba(line, 0.14)};">
               <span style="font-family:${theme.displayStack};font-size:${F(30)};color:${hi};width:${X(66)};flex:none;">${String(i + 1).padStart(2, "0")}</span>
-              <span style="font-family:${theme.bodyStack};font-weight:700;font-size:${F(32)};color:${line};flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(t)}</span>
+              <span style="font-family:${theme.bodyStack};font-weight:700;font-size:${F(32)};color:${line};flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(it.t)}</span>
+              ${it.v ? `<span style="font-family:${theme.displayStack};font-size:${F(30)};color:${rgba(line, 0.65)};flex:none;">${esc(it.v)}</span>` : ""}
             </div>`).join("")}
           </div>
         </div>
@@ -624,37 +865,53 @@ function bScroll(scene, ctx, _a, _logo, variant) {
 function bRing(scene, ctx, _a, _logo, variant) {
   const { theme, Str } = ctx;
   const L = ctx.look.app;
-  const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground);
+  const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground, DISPLAY_MIN);
   const v = variant || "ring";
   const id = ctx.id;
   const picked = S.pickNumber(scene);
-  const to = picked ? clamp(picked.target, 1, 100) : 100;
+  // The NUMBER is the scene's real figure; the SWEEP is a share. They were one value, which
+  // clamped "340kg" to 100 — now the arc/bar/needle run on `arc` (capped at 100) while the
+  // read-out counts to the true target. (Routing already prefers the stats beat for non-share
+  // figures; this keeps the gauge honest if one still lands here.)
+  const to = picked ? clamp(picked.target, 1, 100000) : 100;
+  const arc = clamp(to, 1, 100);
   const unit = picked && picked.suf ? picked.suf : "%";
-  const label = shortLabel(scene.subtext || scene.emphasis || Str.metric, 26);
+  // The reference's gauge shows no label at all, and its ring/bar labels are a DISTINCT field.
+  // Falling back to `subtext` printed the same sentence twice (label + sub); prefer emphasis
+  // and drop the label whenever it would echo the sub.
   const sub = String(scene.subtext || "").slice(0, 110);
+  const rawLabel = shortLabel(scene.emphasis || (picked && picked.label) || "", 26);
+  const label = rawLabel && rawLabel.toLowerCase() !== sub.slice(0, rawLabel.length + 2).toLowerCase() ? rawLabel : "";
   const numHtml = `<div style="font-family:${theme.displayStack};font-size:${F(130)};color:${fg};font-variant-numeric:tabular-nums;line-height:1;"><span id="${id}-n">${to}</span><span style="font-size:${F(64)};color:${hi};">${esc(unit)}</span></div>`;
 
   if (v === "gauge") {
     const arcLen = Math.PI * 220;
+    // Reference geometry: the five dial ticks, and the number LOCKUP hanging below the arc
+    // (absolute bottom:-76 of the 560x340 viz) with the outer column's gap 180 clearing it —
+    // not a flowed block after the svg.
+    const ticks = [0, 1, 2, 3, 4].map((i) => {
+      const a = ((-180 + i * 45) * Math.PI) / 180;
+      return `<line x1="${r(280 + Math.cos(a) * 250)}" y1="${r(300 + Math.sin(a) * 250)}" x2="${r(280 + Math.cos(a) * 232)}" y2="${r(300 + Math.sin(a) * 232)}" stroke="${rgba(fg, 0.35)}" stroke-width="4"/>`;
+    }).join("");
     return {
       html: shell(ctx, scene.headline || scene.title || "", `
-        <div data-in="item" data-i="2" style="display:flex;flex-direction:column;align-items:center;margin-top:${X(30)};">
+        <div data-in="item" data-i="2" style="display:flex;flex-direction:column;align-items:center;margin-top:${X(30)};gap:${X(180)};">
           <div style="position:relative;width:${X(560)};height:${X(340)};">
-            <svg width="100%" height="100%" viewBox="0 0 560 340" style="position:absolute;inset:0;">
+            <svg width="100%" height="100%" viewBox="0 0 560 340" style="position:absolute;inset:0;overflow:visible;">
               <path d="M 60 300 A 220 220 0 0 1 500 300" fill="none" stroke="${rgba(fg, 0.15)}" stroke-width="30" stroke-linecap="round"/>
-              <path id="${id}-arc" d="M 60 300 A 220 220 0 0 1 500 300" fill="none" stroke="${hi}" stroke-width="30" stroke-linecap="round" stroke-dasharray="${r(arcLen)}" stroke-dashoffset="0"/>
-              <g id="${id}-needle" transform="rotate(${r(-90 + (to / 100) * 180)} 280 300)">
+              <path id="${id}-arc" d="M 60 300 A 220 220 0 0 1 500 300" fill="none" stroke="${hi}" stroke-width="30" stroke-linecap="round" stroke-dasharray="${r(arcLen)}" stroke-dashoffset="${r(arcLen * (1 - arc / 100))}"/>
+              ${ticks}
+              <g id="${id}-needle" transform="rotate(${r(-90 + (arc / 100) * 180)} 280 300)">
                 <line x1="280" y1="300" x2="280" y2="118" stroke="${fg}" stroke-width="8" stroke-linecap="round"/>
                 <circle cx="280" cy="300" r="20" fill="${fg}"/>
               </g>
               <circle cx="280" cy="300" r="9" fill="${hi}"/>
             </svg>
+            <div style="position:absolute;left:0;right:0;bottom:${X(-76)};text-align:center;">${numHtml}</div>
           </div>
-          <div style="margin-top:${X(20)};text-align:center;">${numHtml}
-            <div style="font-family:${theme.bodyStack};font-weight:700;font-size:${F(30)};color:${rgba(fg, 0.65)};margin-top:${X(14)};">${esc(label)}</div></div>
-          ${sub ? `<div data-in="rise" data-i="5" style="font-family:${theme.bodyStack};font-weight:600;font-size:${F(33)};color:${rgba(fg, 0.72)};text-align:center;max-width:${X(720)};line-height:1.45;margin-top:${X(24)};">${esc(sub)}</div>` : ""}
+          ${sub ? `<div data-in="rise" data-i="5" style="font-family:${theme.bodyStack};font-weight:600;font-size:${F(33)};color:${rgba(fg, 0.72)};text-align:center;max-width:${X(720)};line-height:1.45;">${esc(sub)}</div>` : ""}
         </div>`),
-      mech: { kind: "ring", id, v, to, len: r(arcLen) },
+      mech: { kind: "ring", id, v, to, arc, len: r(arcLen) },
     };
   }
   if (v === "bar") {
@@ -664,15 +921,16 @@ function bRing(scene, ctx, _a, _logo, variant) {
           <div style="position:relative;width:${X(210)};height:${X(500)};flex:none;">
             <div style="position:absolute;top:${X(-22)};left:${X(65)};width:${X(80)};height:${X(22)};border-radius:${X(8)} ${X(8)} 0 0;background:${rgba(fg, 0.3)};"></div>
             <div style="position:absolute;inset:0;border:${X(5)} solid ${rgba(fg, 0.35)};border-radius:${X(28)};overflow:hidden;">
-              <div id="${id}-bar" style="position:absolute;left:${X(8)};right:${X(8)};bottom:${X(8)};height:calc(${to}% - 8px);min-height:${X(8)};border-radius:${X(18)};background:${hi};"></div>
+              <div id="${id}-bar" style="position:absolute;left:${X(8)};right:${X(8)};bottom:${X(8)};height:calc(${arc}% - 8px);min-height:${X(8)};border-radius:${X(18)};background:${hi};"></div>
             </div>
+            ${[0.25, 0.5, 0.75].map((f, i) => `<div style="position:absolute;right:${X(-26)};bottom:${r(f * 100)}%;width:${X(18)};height:${X(4)};background:${rgba(fg, 0.35)};"></div>`).join("")}
           </div>
           <div>${numHtml}
-            <div style="font-family:${theme.bodyStack};font-weight:700;font-size:${F(30)};color:${rgba(fg, 0.65)};margin-top:${X(16)};">${esc(label)}</div>
+            ${label ? `<div style="font-family:${theme.bodyStack};font-weight:700;font-size:${F(30)};color:${rgba(fg, 0.65)};margin-top:${X(16)};">${esc(label)}</div>` : ""}
             ${sub ? `<div style="font-family:${theme.bodyStack};font-weight:600;font-size:${F(31)};color:${rgba(fg, 0.72)};max-width:${X(520)};line-height:1.45;margin-top:${X(20)};">${esc(sub)}</div>` : ""}
           </div>
         </div>`),
-      mech: { kind: "ring", id, v, to, len: 0 },
+      mech: { kind: "ring", id, v, to, arc, len: 0 },
     };
   }
   const rr = 240, C = 2 * Math.PI * rr;
@@ -686,14 +944,14 @@ function bRing(scene, ctx, _a, _logo, variant) {
               return `<line x1="${r(280 + Math.cos(a) * 268)}" y1="${r(280 + Math.sin(a) * 268)}" x2="${r(280 + Math.cos(a) * 254)}" y2="${r(280 + Math.sin(a) * 254)}" stroke="${rgba(fg, 0.3)}" stroke-width="4"/>`;
             }).join("")}
             <circle cx="280" cy="280" r="${rr}" fill="none" stroke="${rgba(fg, 0.14)}" stroke-width="30"/>
-            <circle id="${id}-arc" cx="280" cy="280" r="${rr}" fill="none" stroke="${hi}" stroke-width="30" stroke-linecap="round" stroke-dasharray="${r(C)}" stroke-dashoffset="0" transform="rotate(-90 280 280)"/>
+            <circle id="${id}-arc" cx="280" cy="280" r="${rr}" fill="none" stroke="${hi}" stroke-width="30" stroke-linecap="round" stroke-dasharray="${r(C)}" stroke-dashoffset="${r(C * (1 - arc / 100))}" transform="rotate(-90 280 280)"/>
           </svg>
           <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">${numHtml}
-            <div style="font-family:${theme.bodyStack};font-weight:700;font-size:${F(30)};color:${rgba(fg, 0.65)};margin-top:${X(14)};">${esc(label)}</div></div>
+            ${label ? `<div style="font-family:${theme.bodyStack};font-weight:700;font-size:${F(30)};color:${rgba(fg, 0.65)};margin-top:${X(14)};">${esc(label)}</div>` : ""}</div>
         </div>
         ${sub ? `<div data-in="rise" data-i="5" style="font-family:${theme.bodyStack};font-weight:600;font-size:${F(33)};color:${rgba(fg, 0.72)};text-align:center;max-width:${X(720)};line-height:1.45;">${esc(sub)}</div>` : ""}
       </div>`),
-    mech: { kind: "ring", id, v, to, len: r(C) },
+    mech: { kind: "ring", id, v, to, arc, len: r(C) },
   };
 }
 
@@ -701,7 +959,7 @@ function bRing(scene, ctx, _a, _logo, variant) {
 function bToggle(scene, ctx, _a, _logo, variant) {
   const { theme, Str } = ctx;
   const L = ctx.look.app;
-  const hi = ink(theme, L.hi, ctx.ground), line = col(theme, L.line), cardBg = col(theme, L.cardBg);
+  const hi = ink(theme, L.hi, ctx.ground, DISPLAY_MIN), line = col(theme, L.line), cardBg = col(theme, L.cardBg);
   const v = variant || "switch";
   const id = ctx.id;
   const src = featureLines(scene, 4);
@@ -754,7 +1012,7 @@ function bToggle(scene, ctx, _a, _logo, variant) {
 function bNotify(scene, ctx, _a, _logo, variant) {
   const { theme, Str } = ctx;
   const L = ctx.look.app;
-  const hi = ink(theme, L.hi, ctx.ground), line = col(theme, L.line), cardBg = col(theme, L.cardBg);
+  const hi = ink(theme, L.hi, ctx.ground, DISPLAY_MIN), line = col(theme, L.line), cardBg = col(theme, L.cardBg);
   const v = variant || "drop";
   const id = ctx.id;
   const src = featureLines(scene, 3);
@@ -812,7 +1070,7 @@ function bNotify(scene, ctx, _a, _logo, variant) {
 function bMorph(scene, ctx, _a, _logo, variant) {
   const { theme, skin, Str } = ctx;
   const L = ctx.look.app;
-  const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground);
+  const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground, DISPLAY_MIN);
   const v = variant || "roll";
   const id = ctx.id;
   const src = featureLines(scene, 4).map((t) => shortLabel(t, 14).replace(/…$/, ""));
@@ -865,7 +1123,7 @@ function bMorph(scene, ctx, _a, _logo, variant) {
 function bSwipe(scene, ctx, sceneAssets, _logo, variant) {
   const { theme, Str } = ctx;
   const L = ctx.look.app;
-  const hi = ink(theme, L.hi, ctx.ground), line = col(theme, L.line), fg = ink(theme, L.fg, ctx.ground);
+  const hi = ink(theme, L.hi, ctx.ground, DISPLAY_MIN), line = col(theme, L.line), fg = ink(theme, L.fg, ctx.ground);
   const v = variant || "swipe";
   const id = ctx.id;
   const src = featureLines(scene, 3);
@@ -911,7 +1169,7 @@ function bSwipe(scene, ctx, sceneAssets, _logo, variant) {
 function bCursor(scene, ctx, _a, _logo, variant) {
   const { theme, Str } = ctx;
   const L = ctx.look.app;
-  const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground), line = col(theme, L.line), cardBg = col(theme, L.cardBg);
+  const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground, DISPLAY_MIN), line = col(theme, L.line), cardBg = col(theme, L.cardBg);
   const v = variant || "click";
   const id = ctx.id;
   const lines = featureLines(scene, 3);
@@ -982,7 +1240,7 @@ function bCursor(scene, ctx, _a, _logo, variant) {
 function bDrag(scene, ctx, _a, _logo, variant) {
   const { theme, Str } = ctx;
   const L = ctx.look.app;
-  const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground), line = col(theme, L.line), cardBg = col(theme, L.cardBg);
+  const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground, DISPLAY_MIN), line = col(theme, L.line), cardBg = col(theme, L.cardBg);
   const v = variant || "drag";
   const id = ctx.id;
   const lines = featureLines(scene, 3);
@@ -1015,4 +1273,8 @@ const BUILDERS = {
   Notify: bNotify, Morph: bMorph, Swipe: bSwipe, Cursor: bCursor, DragDrop: bDrag,
 };
 
-module.exports = { BUILDERS, PAD, COL, col, title, kicker, open, close, shell, panelCss };
+module.exports = {
+  BUILDERS, col, title, kicker, open, close, shell, panelCss, setStage, mediaBoxes,
+  // Accessors, not the load-time snapshot: PAD/COL are per-build now (see setStage).
+  get PAD() { return PAD; }, get COL() { return COL; }, get WIDE() { return WIDE; },
+};

@@ -6467,5 +6467,364 @@
         "vector"
       ]
     }
+  },
+  "vector-lattice": {
+    "slug": "vector-lattice",
+    "vibe": "Hyper-kinetic spatial UI overlays with laser coordinate grids and aggressive camera whip motions. High-contrast cyber palette featuring electric cyan and neon lime over deep obsidian ground, built for next-gen AI model reveals and high-impact tech announcements.",
+    "category": "Technology",
+    "tags": [
+      "ai launch",
+      "saas",
+      "tech",
+      "futuristic",
+      "high energy",
+      "9:16",
+      "spatial ui"
+    ],
+    "audio": {
+      "mood": "high-octane futuristic digital surge — punchy synth bass, laser precision, continuous forward momentum",
+      "archetype": "anthem",
+      "energy": "high",
+      "tempo": "fast",
+      "style": [
+        "cyberpunk",
+        "electronic",
+        "synthwave",
+        "industrial"
+      ],
+      "musicKeywords": [
+        "cyber bass",
+        "laser synth",
+        "electro pulse",
+        "glitch beat",
+        "techno groove",
+        "high energy",
+        "fast arpeggio",
+        "digital drive",
+        "futuristic drop",
+        "distorted bass",
+        "industrial synth",
+        "driving rhythm"
+      ],
+      "sfxPalette": {
+        "transition": "whoosh",
+        "ui": "soft-tap",
+        "reveal": "shimmer",
+        "data": "data-ping",
+        "cta": "cta-impact"
+      },
+      "noVo": {
+        "energyBoost": 1.5,
+        "sfxDensity": "rich",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "high-tech digital interfaces, dark cybernetic aesthetics, volumetric neon lighting, crisp UI elements with dark depth",
+      "iconStyle": "line",
+      "keywords": [
+        "artificial intelligence model",
+        "neural network interface",
+        "cyberpunk software dashboard",
+        "data analytics visualization",
+        "cloud computing server",
+        "robotics control panel",
+        "3d vector matrix",
+        "holographic UI element"
+      ],
+      "prefer": [
+        "screenshot",
+        "illustration"
+      ]
+    },
+    "frameMd": "# Vector Lattice\n\nHigh-speed spatial UI template for aggressive AI and SaaS product reveals.\n\n## Palette\n| Role | Hex | Purpose |\n|---|---|---|\n| `obsidian` | `#05070f` | Deep nocturnal primary background |\n| `violet` | `#140a28` | Accent ground for alternating beat rhythm |\n| `slate` | `#162032` | Dark frosted backdrop plate for floating glass UI cards |\n| `cyan` | `#00f0ff` | Laser-sharp key hero accent and grid highlights |\n| `lime` | `#70ff00` | Secondary high-visibility accent for callouts |\n| `paper` | `#f0f6ff` | Clean high-contrast crisp text color |\n| `ink` | `#03050a` | Dark text color inside illuminated badge tags |"
+  },
+  "daylight-console": {
+    "slug": "daylight-console",
+    "vibe": "The quiet, light one. A warm off-white paper ground (#F7F4EE drifting to #EFEAE1 down the frame) with near-black ink type, a hairline slate rule holding the left margin, and one ink-blue (#2A4BD8) that is genuinely painted rather than hinted: solid indigo chips, a solid indigo CTA block, indigo tile edges, indigo counters and a pale indigo shaft low in the world layer, with burnt clay (#B0532A) as its only rival. Instrument Serif sets headlines deliberately small and tight — 88 to 122px in a landscape copy column that is only half the frame — so a twelve-word promise reflows to three lines and the tagline and button still land well above the fold instead of being pushed off it. Inter Tight carries capability lines arriving one at a time on a soft rise; JetBrains Mono handles URLs, versions and code fragments. Screenshots sit beside the copy as rounded linen cards with a faint indigo bloom, cropped to their most legible corner, so uneven website captures read as deliberate detail shots. Motion stays lazy: half-step pushes, slow drifts, no cuts inside a move. Built for AI, fintech and developer-tool startups with no footage and no designer, where credibility comes from restraint.",
+    "category": "Technology",
+    "tags": [
+      "light",
+      "editorial",
+      "minimal",
+      "saas",
+      "screenshot",
+      "calm",
+      "product"
+    ],
+    "audio": {
+      "mood": "calm daylight focus — airy, unhurried, credible, a workspace at 9am with nothing to prove",
+      "archetype": "underscore",
+      "energy": "low",
+      "tempo": "slow",
+      "style": [
+        "ambient",
+        "minimal",
+        "piano",
+        "downtempo"
+      ],
+      "musicKeywords": [
+        "felt piano",
+        "soft piano",
+        "warm pad",
+        "airy strings",
+        "muted keys",
+        "slow arp",
+        "gentle pulse",
+        "wide reverb",
+        "glass bells",
+        "light percussion",
+        "ambient texture",
+        "soft drums"
+      ],
+      "sfxPalette": {
+        "transition": "light-sweep",
+        "ui": "soft-tap",
+        "reveal": "shimmer",
+        "data": "counter-tick",
+        "cta": "gentle-impact"
+      },
+      "noVo": {
+        "energyBoost": 0,
+        "sfxDensity": "normal",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "Daylit, high-key, warm neutral cast. Soft one-sided window light, shallow depth of field, no hard shadows or coloured gels. Desks, hands, screens and paper at close range; whites sit slightly warm to match the ground. Screenshots kept crisp, cropped tight to one legible corner of UI.",
+      "iconStyle": "line",
+      "keywords": [
+        "laptop screen on a pale desk",
+        "hands typing at a keyboard",
+        "dashboard on a monitor",
+        "notebook and pen beside a phone",
+        "sunlit office corner",
+        "developer at a bright desk",
+        "printed chart on white paper",
+        "coffee cup next to a laptop"
+      ],
+      "prefer": [
+        "screenshot",
+        "photo",
+        "illustration"
+      ]
+    },
+    "frameMd": "Light-ground editorial layout for software promos: warm paper, ink serif headlines in a narrow measure sized to survive long scripts, and screenshots placed as softly shadowed detail-crop cards beside the copy column — with the accent blue painted solid in chips, buttons and counters.\n\n## Palette\n\n| Role | Hex | Used for |\n|---|---|---|\n| `paper` | `#F7F4EE` | primary warm off-white ground; hook, feature, stats, app |\n| `linen` | `#EFEAE1` | second ground for statement, montage and CTA; card and tile fills |\n| `ink` | `#14161A` | all body and display type, tile labels |\n| `slate` | `#4A4F57` | hairline rules, grid layer, third chip |\n| `indigo` | `#2A4BD8` | the painted accent — filled kicker pill, filled chips, CTA block, tile edges, counters, beam |\n| `clay` | `#B0532A` | warm counter-accent — second chip, dust motes, one stat |\n"
+  },
+  "signal-stack": {
+    "slug": "signal-stack",
+    "vibe": "A film-title-card template for launches that want to sound inevitable. Most beats sit on chromatic near-blacks — #05070E void and #121A2B carbon — where full-bleed screenshots go under a heavy scrim, so a low-res capture reads as atmosphere rather than evidence. Then the statement beat inverts: the frame floods with the lead accent #A3E635 and black type, one hard colour cut in the middle of the dark. That accent is mid-lightness and high-chroma rather than neon, so when the palette rotates onto a brand hue the plate is painted in the real colour — and painted big: statement ground, kicker pill, block CTA button, tile rules, lead counter. Oversized Anton caps stack hard left with Barlow Semi Condensed beside them at 92–124, and the CTA copy starts high at 240 so a long headline can wrap to three lines and still leave the button inside the 1080 frame. Azure #4C82F0 takes secondary chips, the feature glow and the third counter. The world is only a slow paper beam raking at −22° and two low glow blooms, accent low-left, azure high-right — never still, never fighting the type. Cameras commit to single big gestures: a long zoom in, then a wide push across, so one usable photograph carries a scene. Stats cuts imagery away to a hard #000208 frame with white and accent numerals. Built for AI, fintech and developer-tool teams with no footage budget.",
+    "category": "Technology",
+    "tags": [
+      "dark",
+      "cinematic",
+      "fullbleed",
+      "bold",
+      "titlecard",
+      "launch",
+      "ai"
+    ],
+    "audio": {
+      "mood": "widescreen dread turning to momentum — dark, weighty, trailer-grade, ending on a hard confident hit",
+      "archetype": "anthem",
+      "energy": "high",
+      "tempo": "mid",
+      "style": [
+        "cinematic",
+        "electronic",
+        "industrial",
+        "trailer"
+      ],
+      "musicKeywords": [
+        "cinematic drums",
+        "dark synth",
+        "sub bass",
+        "distorted bass",
+        "taiko drums",
+        "riser",
+        "tension strings",
+        "industrial percussion",
+        "trailer hit",
+        "wide reverb",
+        "analog arp",
+        "slow build"
+      ],
+      "sfxPalette": {
+        "transition": "whoosh",
+        "ui": "soft-tap",
+        "reveal": "light-sweep",
+        "data": "counter-tick",
+        "cta": "cta-impact"
+      },
+      "noVo": {
+        "energyBoost": 2,
+        "sfxDensity": "rich",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "Push everything toward near-silhouette: crushed blacks, single hard key light, one cool or acid rim, no mid-grey mush. Shallow depth of field, high contrast, desaturated except for one glowing hue. Screenshots should be dimmed 60-75% and cropped into detail rather than shown whole.",
+      "iconStyle": "line",
+      "keywords": [
+        "server racks in a dark aisle",
+        "developer workspace at night",
+        "code on a dimmed monitor",
+        "city skyline after dark",
+        "trading floor screens",
+        "fiber optic cables",
+        "circuit board macro",
+        "laptop glow in a black room"
+      ],
+      "prefer": [
+        "screenshot",
+        "photo",
+        "illustration"
+      ]
+    },
+    "frameMd": "Full-bleed, near-black title-card template: dimmed imagery under left-stacked Anton caps, tuned to wrap long real headlines inside the frame, with one full-frame accent plate painted in the brand colour on the statement beat.\n\n## Palette\n\n| Role | Hex | Job |\n|---|---|---|\n| void | #05070E | Primary chromatic near-black ground for hook, feature and CTA |\n| carbon | #121A2B | Secondary ground for montage and app shell |\n| ink | #000208 | The hard cut-to-black proof frame, card and tile fills; type on the accent plate |\n| paper | #F5F6F8 | Primary type on dark beats, quiet chip outlines, the beam layer |\n| signal | #A3E635 | The lead accent, painted large and literal: statement plate, kicker pill, block button, tile rules, lead counter |\n| azure | #4C82F0 | Cool secondary for chips, feature glow, third counter |\n"
+  },
+  "schematic-blue": {
+    "slug": "schematic-blue",
+    "vibe": "A plan sheet on a drafting table. The field is a pale blue-grey paper (#eef2f7 washing into #dbe4ef) ruled with a hairline engineering grid in slate #44607e, with two slow blueprint arcs sweeping like compass sets. All type is IBM Plex Mono, mid-sized and set flush left, streaking in character by character so reading pace sets the pacing; capability lines read as annotations at the end of leader lines rather than as bullets. Screenshots are deliberately small and pinned (hero card only 0.30 of the frame wide) inside a thin blue frame, which turns a low-res website grab into a specimen under inspection instead of a stretched hero image; when only one picture exists, the surrounding callouts carry the composition. Motion is almost nothing: micro tilt, slow orbit, a 3px drift. The proof beat inverts the sheet to deep cyanotype #14509b and puts one enormous figure in pale paper with its unit small beneath. Rust #a8451a appears once, on the closing mark. Built for AI infrastructure, fintech and developer-tool teams who want precision instead of hype.",
+    "category": "Technology",
+    "tags": [
+      "blueprint",
+      "technical",
+      "grid",
+      "annotated",
+      "developer",
+      "precise",
+      "light"
+    ],
+    "audio": {
+      "mood": "quiet technical focus — a room where someone is measuring something carefully; unhurried, cool, exact",
+      "archetype": "underscore",
+      "energy": "low",
+      "tempo": "slow",
+      "style": [
+        "ambient",
+        "minimal",
+        "downtempo",
+        "electronic"
+      ],
+      "musicKeywords": [
+        "soft pad",
+        "muted piano",
+        "sparse pulse",
+        "warm analog",
+        "slow arp",
+        "felt keys",
+        "wide reverb",
+        "gentle bass",
+        "ambient drone",
+        "glass bells",
+        "gentle percussion",
+        "clean guitar",
+        "airy texture"
+      ],
+      "sfxPalette": {
+        "transition": "light-sweep",
+        "ui": "soft-tap",
+        "reveal": "shimmer",
+        "data": "counter-tick",
+        "cta": "gentle-impact"
+      },
+      "noVo": {
+        "energyBoost": 0,
+        "sfxDensity": "normal",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "Cool daylight with a blue-grey cast and flat, even lighting. Shallow depth of field only at edges to keep detail sharp. Warm tones desaturated toward slate. Screenshots rendered at true pixel scale inside frames rather than upscaled, treating images as architectural specimens.",
+      "iconStyle": "line",
+      "keywords": [
+        "drafting table with blueprints",
+        "engineering calipers on paper",
+        "laptop screen with dashboard",
+        "graph paper and pencil",
+        "circuit board macro",
+        "architectural plan detail",
+        "developer keyboard overhead",
+        "measuring rule on desk",
+        "wireframe sketch on whiteboard"
+      ],
+      "prefer": [
+        "screenshot",
+        "photo",
+        "illustration"
+      ]
+    },
+    "frameMd": "Blueprint sheet: hairline grid, pinned small screenshots, mono annotations that type themselves in, and one cyanotype proof beat.\n\n## Palette\n\n| Role | Hex | Job |\n|---|---|---|\n| sheet | #eef2f7 | primary plan-sheet ground, light beats |\n| mist | #dbe4ef | secondary ground for alternating beats and tiles |\n| ink | #101b28 | all body and headline type on light grounds |\n| steel | #44607e | grid rules, leader lines, tile borders |\n| blue | #14509b | blueprint accent, frames, buttons, inverted stats ground |\n| cyan | #4fb8d8 | highlight and counters on the inverted cyanotype beat only |\n| rust | #a8451a | single warm mark, reserved for the closing beat |\n\n## Notes\n\n- Hero picture is intentionally small (0.30 x 0.34 of frame) — the composition is the annotation around it, not the image.\n- Stats beat is the only inverted ground; it is the template's signature moment.\n- Motion budget is deliberately tiny: micro tilt, slow orbit, sub-4px drift."
+  },
+  "satellite-deck": {
+    "slug": "satellite-deck",
+    "vibe": "The one built on a slow orbital rail: picture cards circle a dark radial core while all copy stays locked in one stable lower plate. Designed with Space Grotesk and Inter Tight over deep cosmos navy and cyan rings for AI, fintech, and developer platform launches.",
+    "category": "Technology",
+    "tags": [
+      "dark",
+      "orbit",
+      "3d",
+      "carousel",
+      "fintech",
+      "spatial",
+      "platform"
+    ],
+    "audio": {
+      "mood": "smooth orbital motion — spatial, precise, quietly powerful synth soundscape",
+      "archetype": "anthem",
+      "energy": "medium",
+      "tempo": "mid",
+      "style": [
+        "synthwave",
+        "ambient-pop",
+        "electronic",
+        "cinematic"
+      ],
+      "musicKeywords": [
+        "orbital synth",
+        "cosmic pulse",
+        "deep bass",
+        "ambient texture",
+        "glass arpeggio",
+        "space synth",
+        "steady groove",
+        "synth pad",
+        "sub bass",
+        "slow reverb",
+        "analog pulse",
+        "clean kick"
+      ],
+      "sfxPalette": {
+        "transition": "whoosh",
+        "ui": "soft-tap",
+        "reveal": "shimmer",
+        "data": "data-ping",
+        "cta": "cta-impact"
+      },
+      "noVo": {
+        "energyBoost": 1,
+        "sfxDensity": "rich",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "high-contrast dark mode UI screenshots, sleek 3D platform graphics, abstract technical diagrams",
+      "iconStyle": "line",
+      "keywords": [
+        "dashboard screenshot",
+        "data visualizer",
+        "cloud architecture",
+        "developer console",
+        "fintech app",
+        "network node",
+        "server rack"
+      ],
+      "prefer": [
+        "screenshot",
+        "illustration"
+      ]
+    },
+    "frameMd": "## Palette\n| Role | Hex | Purpose |\n| --- | --- | --- |\n| `cosmos` | `#070814` | Deep radial backdrop background |\n| `orbit` | `#11172e` | Saturated navy card & plate fill |\n| `cyan` | `#00f2fe` | High-visibility orbital accents |\n| `amber` | `#ffab00` | Secondary highlight & metric callouts |\n| `paper` | `#e9f1f7` | Crisp light text readable against dark grounds |\n| `ink` | `#060913` | Deep contrast fill for buttons |\n| `slate` | `#1e293b` | Muted cool slate for alternating beat grounding |"
   }
 }

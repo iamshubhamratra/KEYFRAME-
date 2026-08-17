@@ -1,0 +1,175 @@
+{
+  "name": "vector-lattice",
+  "vibe": "Hyper-kinetic spatial UI overlays with laser coordinate grids and aggressive camera whip motions. High-contrast cyber palette featuring electric cyan and neon lime over deep obsidian ground, built for next-gen AI model reveals and high-impact tech announcements.",
+  "orientation": "portrait",
+  "category": "Technology",
+  "tags": [
+    "ai launch",
+    "saas",
+    "tech",
+    "futuristic",
+    "high energy",
+    "9:16",
+    "spatial ui"
+  ],
+  "renderer": "film-vector-lattice",
+  "colors": {
+    "obsidian": "#05070f",
+    "violet": "#140a28",
+    "slate": "#162032",
+    "cyan": "#00f0ff",
+    "lime": "#70ff00",
+    "paper": "#f0f6ff",
+    "ink": "#03050a",
+    "ground": "#05070f",
+    "text": "#f0f6ff",
+    "accent": "#00f0ff"
+  },
+  "fonts": [
+    "Unbounded",
+    "Space Grotesk",
+    "JetBrains Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#05070f",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#00f0ff",
+      "#70ff00",
+      "#140a28"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "high-tech digital interfaces, dark cybernetic aesthetics, volumetric neon lighting, crisp UI elements with dark depth",
+    "iconStyle": "line",
+    "keywords": [
+      "artificial intelligence model",
+      "neural network interface",
+      "cyberpunk software dashboard",
+      "data analytics visualization",
+      "cloud computing server",
+      "robotics control panel",
+      "3d vector matrix",
+      "holographic UI element"
+    ],
+    "prefer": [
+      "screenshot",
+      "illustration"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Unbounded",
+    "body": "Space Grotesk",
+    "mono": "JetBrains Mono"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 936,
+        "height": 460,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame"
+      },
+      "context": {
+        "count": 2,
+        "width": 936,
+        "height": 422,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card"
+      },
+      "feature": {
+        "count": 2,
+        "width": 752,
+        "height": 512,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card"
+      },
+      "how": {
+        "count": 4,
+        "width": 455,
+        "height": 307,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 2x2 tile wall"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1080,
+        "height": 900,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene"
+  },
+  "audio": {
+    "mood": "high-octane futuristic digital surge — punchy synth bass, laser precision, continuous forward momentum",
+    "archetype": "anthem",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "cyberpunk",
+      "electronic",
+      "synthwave",
+      "industrial"
+    ],
+    "musicKeywords": [
+      "cyber bass",
+      "laser synth",
+      "electro pulse",
+      "glitch beat",
+      "techno groove",
+      "high energy",
+      "fast arpeggio",
+      "digital drive",
+      "futuristic drop",
+      "distorted bass",
+      "industrial synth",
+      "driving rhythm"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1.5,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

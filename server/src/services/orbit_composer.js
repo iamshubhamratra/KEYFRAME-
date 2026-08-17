@@ -493,7 +493,25 @@ function sGo(scene, ctx, logo) {
 // the frame with a panel the reference does not have and starved `fleet` of pictures.
 const SPEC = {
   first: "countdown", last: "go",
-  middle: ["liftoff", "feature", "fleet", "telemetry"],
+  // `middle` IS A PREFERENCE ORDER, NOT THE STORY ORDER — the story is first -> ... -> last, and
+  // om_port_kit.assignRoles walks this list as a rotation, taking the first entry whose carry()
+  // accepts the scene in hand. So leading with a PICTURELESS role is not a narrative choice, it
+  // is a silent contract break.
+  //
+  // Why it had to change: services/template_media puts this pack's one CRITICAL media slot on the
+  // first script scene it types "feature", which is scene 2 — the first middle scene. Leading with
+  // `liftoff` (slots() = 0, pictureless by design) meant scene 2 never drew the picture the
+  // contract had already collected, vision-scored and crop-prepped for it. The admin template QA
+  // gate reports exactly that: `the critical slot "s2-feature-1" (scene s2) renders EMPTY`.
+  // Measured across this family, the correlation is exact — reel (middle[0]="show", 1 slot) and
+  // edition (middle[0]="lead", 1 slot) pass; orbit and fetch, whose first entries draw nothing,
+  // both fail.
+  //
+  // Leading with `feature` fixes it and costs the film nothing: countdown still opens, `go` still
+  // closes, and `liftoff` simply takes a later turn in the rotation. It also un-starves the pack's
+  // signature beat — `fleet` now reliably takes the following slot instead of losing its only turn
+  // to a stats scene, so the CONSTELLATION draws its consoles rather than being skipped.
+  middle: ["feature", "fleet", "liftoff", "telemetry"],
   shapes: {
     countdown: [], liftoff: [], feature: [900 / 560],
     fleet: [520 / 300, 500 / 340, 520 / 300, 500 / 260, 540 / 260],

@@ -1,0 +1,12 @@
+{
+  "pack": "midnight-dispatch",
+  "composition": "0481c26fd80423fa",
+  "fixture": "Northwind",
+  "previewSec": 8.4,
+  "posterAt": 4.72,
+  "posterLuma": 35,
+  "posterDetail": 14,
+  "posterGroundGap": 63,
+  "generatedAt": "2026-08-14T04:59:49.542Z",
+  "generatedBy": "src/templates/media.js"
+}

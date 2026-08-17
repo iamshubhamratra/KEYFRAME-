@@ -113,16 +113,19 @@ function FKtype(m,p){
   var out=FKq(m.id+"-out");
   if(out){ if(done){out.style.opacity="1";} else {out.style.opacity="0";} }
 }
-// RING / GAUGE / BAR — one eased sweep to a target.
+// RING / GAUGE / BAR — one eased sweep. The NUMBER counts to the scene's real figure (m.to);
+// the arc/needle/bar sweep on the share (m.arc, capped at 100) so a "340kg" read-out cannot
+// wrap the dial 3.4 times.
 function FKring(m,p){
   var e=FKease.inOut(FKseg(p,0.14,0.78));
+  var a=(m.arc==null?m.to:m.arc)/100;
   var n=FKq(m.id+"-n");if(n){var s=String(Math.round(e*m.to));if(n.textContent!==s)n.textContent=s;}
   var arc=FKq(m.id+"-arc");
-  if(arc)arc.setAttribute("stroke-dashoffset",String(m.len*(1-e*(m.to/100))));
+  if(arc)arc.setAttribute("stroke-dashoffset",String(m.len*(1-e*a)));
   var nd=FKq(m.id+"-needle");
-  if(nd)nd.setAttribute("transform","rotate("+(-90+e*(m.to/100)*180)+" 280 300)");
+  if(nd)nd.setAttribute("transform","rotate("+(-90+e*a*180)+" 280 300)");
   var bar=FKq(m.id+"-bar");
-  if(bar)bar.style.height="calc("+(e*m.to)+"% - 8px)";
+  if(bar)bar.style.height="calc("+(e*a*100)+"% - 8px)";
 }
 // SCROLL — a list travelling inside its own window, plus the thumb that tracks it.
 function FKscroll(m,p){
@@ -132,13 +135,16 @@ function FKscroll(m,p){
   var th=FKq(m.id+"-thumb");
   if(th)th.style.top=((m.travel?(-ty/m.travel):0)*(100-m.thumb))+"%";
 }
-// SCROLL:board — rows unrolling one after another.
+// SCROLL:board — rows unrolling one after another; each row's VALUE flicks in late, exactly
+// as the source's board flickers its prices (seg 0.66..0.7, sin(fl*22) strobing).
 function FKboard(m,p){
   for(var i=0;i<m.n;i++){
     var el=FKq(m.id+"-r"+i);if(!el)continue;
     var fl=FKclamp01(FKease.outBack(FKseg(p,0.08+i*0.07,0.2+i*0.07)));
     el.style.transform="scaleY("+fl+")";
     el.style.opacity=String(FKclamp01(fl*1.6));
+    var vv=FKq(m.id+"-v"+i);
+    if(vv){var fk=FKseg(p,0.66+i*0.01,0.7+i*0.01);vv.style.opacity=(fk>0&&fk<1)?(Math.sin(fk*22)>0?"1":"0.25"):"1";}
   }
 }
 // SCROLL:stack — a card deck dealt one at a time.

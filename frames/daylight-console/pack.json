@@ -1,0 +1,179 @@
+{
+  "name": "daylight-console",
+  "vibe": "The quiet, light one. A warm off-white paper ground (#F7F4EE drifting to #EFEAE1 down the frame) with near-black ink type, a hairline slate rule holding the left margin, and one ink-blue (#2A4BD8) that is genuinely painted rather than hinted: solid indigo chips, a solid indigo CTA block, indigo tile edges, indigo counters and a pale indigo shaft low in the world layer, with burnt clay (#B0532A) as its only rival. Instrument Serif sets headlines deliberately small and tight — 88 to 122px in a landscape copy column that is only half the frame — so a twelve-word promise reflows to three lines and the tagline and button still land well above the fold instead of being pushed off it. Inter Tight carries capability lines arriving one at a time on a soft rise; JetBrains Mono handles URLs, versions and code fragments. Screenshots sit beside the copy as rounded linen cards with a faint indigo bloom, cropped to their most legible corner, so uneven website captures read as deliberate detail shots. Motion stays lazy: half-step pushes, slow drifts, no cuts inside a move. Built for AI, fintech and developer-tool startups with no footage and no designer, where credibility comes from restraint.",
+  "orientation": "landscape",
+  "category": "Technology",
+  "tags": [
+    "light",
+    "editorial",
+    "minimal",
+    "saas",
+    "screenshot",
+    "calm",
+    "product"
+  ],
+  "renderer": "film-daylight-console",
+  "colors": {
+    "paper": "#F7F4EE",
+    "linen": "#EFEAE1",
+    "ink": "#14161A",
+    "slate": "#4A4F57",
+    "indigo": "#2A4BD8",
+    "clay": "#B0532A",
+    "ground": "#F7F4EE",
+    "text": "#14161A",
+    "accent": "#2A4BD8"
+  },
+  "fonts": [
+    "Instrument Serif",
+    "Inter Tight",
+    "JetBrains Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#F7F4EE",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#2A4BD8",
+      "#B0532A",
+      "#4A4F57"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "Daylit, high-key, warm neutral cast. Soft one-sided window light, shallow depth of field, no hard shadows or coloured gels. Desks, hands, screens and paper at close range; whites sit slightly warm to match the ground. Screenshots kept crisp, cropped tight to one legible corner of UI.",
+    "iconStyle": "line",
+    "keywords": [
+      "laptop screen on a pale desk",
+      "hands typing at a keyboard",
+      "dashboard on a monitor",
+      "notebook and pen beside a phone",
+      "sunlit office corner",
+      "developer at a bright desk",
+      "printed chart on white paper",
+      "coffee cup next to a laptop"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo",
+      "illustration"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Instrument Serif",
+    "body": "Inter Tight",
+    "mono": "JetBrains Mono"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 725,
+        "height": 450,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame, beside the copy"
+      },
+      "context": {
+        "count": 2,
+        "width": 709,
+        "height": 432,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card, beside the copy"
+      },
+      "feature": {
+        "count": 2,
+        "width": 902,
+        "height": 583,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card, leading the row"
+      },
+      "how": {
+        "count": 4,
+        "width": 400,
+        "height": 367,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 1x4 tile row"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1920,
+        "height": 700,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene",
+    "stage": {
+      "width": 1920,
+      "height": 1080
+    }
+  },
+  "audio": {
+    "mood": "calm daylight focus — airy, unhurried, credible, a workspace at 9am with nothing to prove",
+    "archetype": "underscore",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "ambient",
+      "minimal",
+      "piano",
+      "downtempo"
+    ],
+    "musicKeywords": [
+      "felt piano",
+      "soft piano",
+      "warm pad",
+      "airy strings",
+      "muted keys",
+      "slow arp",
+      "gentle pulse",
+      "wide reverb",
+      "glass bells",
+      "light percussion",
+      "ambient texture",
+      "soft drums"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "counter-tick",
+      "cta": "gentle-impact"
+    },
+    "noVo": {
+      "energyBoost": 0,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

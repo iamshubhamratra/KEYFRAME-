@@ -33,6 +33,39 @@ const SKIN = { accents: ["#e0218a", "#1f6feb"], emphasis: "#e0218a", tier: "expl
 
 const BASELINE = require("node:path").join(__dirname, "golden-composers.txt");
 const fs = require("node:fs");
+
+// The two baseline lines for ONE pack, in the exact format the file stores.
+//
+// Exported so the admin publish sequence can splice a newly published template into the
+// baseline instead of re-running the whole harness with --update. That distinction is
+// load-bearing: --update rewrites all 270 lines, which would silently absorb any UNRELATED
+// composer drift sitting in the working tree into a commit about publishing a template. This
+// adds exactly the two lines the new pack is responsible for and leaves every other line byte
+// for byte alone.
+function linesForPack(pack) {
+  const comp = composerModuleFor((fm.getManifest(pack) || {}).renderer);
+  if (!comp) return null;
+  const out = [];
+  for (const [label, brandSkin] of [["plain", null], ["brand", SKIN]]) {
+    let h;
+    try {
+      const built = comp.buildComposition({ storyboard: JSON.parse(JSON.stringify(SB)), dims: DIMS, framePack: pack, captionCues: [], assets: ASSETS, brandSkin });
+      h = crypto.createHash("sha256").update(built.indexHtml + "\u0000" + (built.metaJson || "")).digest("hex").slice(0, 16);
+    } catch (e) { h = "ERROR:" + e.message.split("\n")[0].slice(0, 60); }
+    out.push(`${pack.padEnd(20)} ${label.padEnd(6)} ${h}`);
+  }
+  return out;
+}
+
+module.exports = { linesForPack, BASELINE, DIMS, ASSETS, SB, SKIN };
+
+// EVERYTHING BELOW RUNS ONLY AS A CLI. It used to run at module scope, so a single require()
+// of this file built all 135 packs twice — which made the harness unusable as a library and is
+// the same "executes on require" hazard the pack-preview script still carries.
+if (require.main === module) runCli();
+
+function runCli() {
+
 const UPDATE = process.argv.includes("--update");
 const lines = [];
 
@@ -76,3 +109,4 @@ for (let i = 0; i < Math.max(a.length, b.length); i++) {
   if (a[i] !== b[i]) console.error(`  - ${a[i] || "(missing)"}${NL}  + ${b[i] || "(missing)"}`);
 }
 process.exit(1);
+}

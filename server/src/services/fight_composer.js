@@ -399,7 +399,13 @@ function sStepIn(scene, ctx, logo) {
 // the scorecard instead, so none of them is a bare frame.
 const SPEC = {
   first: "main", last: "stepin",
-  middle: ["challenger", "champion", "combos", "card"],
+  // `middle` is the rotation PREFERENCE order om_port_kit.assignRoles walks, not the story order
+  // (that is first -> ... -> last). services/template_media puts this pack's CRITICAL media slot on
+  // the first script scene it types "feature" — scene 2, the first middle scene — so a middle[0]
+  // whose slots() returns 0 guarantees that slot renders empty. `challenger` draws nothing;
+  // `champion` is the hero console. Leading with it costs no narrative: `main` still opens and
+  // `stepin` still closes. Same defect and fix as orbit/fetch/hacker/kinetic-bold.
+  middle: ["champion", "combos", "challenger", "card"],
   shapes: {
     main: [], challenger: [], champion: [900 / 560], combos: [360 / 760],
     card: [], stepin: [], statement: [], "statement-c": [],

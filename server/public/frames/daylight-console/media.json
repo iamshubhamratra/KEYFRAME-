@@ -1,0 +1,12 @@
+{
+  "pack": "daylight-console",
+  "composition": "550e57b83e323e37",
+  "fixture": "Northwind",
+  "previewSec": 8.4,
+  "posterAt": 7.83,
+  "posterLuma": 226,
+  "posterDetail": 14,
+  "posterGroundGap": 32,
+  "generatedAt": "2026-08-17T05:01:30.170Z",
+  "generatedBy": "src/templates/media.js"
+}

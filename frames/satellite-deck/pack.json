@@ -1,0 +1,176 @@
+{
+  "name": "satellite-deck",
+  "vibe": "The one built on a slow orbital rail: picture cards circle a dark radial core while all copy stays locked in one stable lower plate. Designed with Space Grotesk and Inter Tight over deep cosmos navy and cyan rings for AI, fintech, and developer platform launches.",
+  "orientation": "landscape",
+  "category": "Technology",
+  "tags": [
+    "dark",
+    "orbit",
+    "3d",
+    "carousel",
+    "fintech",
+    "spatial",
+    "platform"
+  ],
+  "renderer": "film-satellite-deck",
+  "colors": {
+    "cosmos": "#070814",
+    "orbit": "#11172e",
+    "cyan": "#00f2fe",
+    "amber": "#ffab00",
+    "paper": "#e9f1f7",
+    "ink": "#060913",
+    "slate": "#1e293b",
+    "ground": "#070814",
+    "text": "#e9f1f7",
+    "accent": "#00f2fe"
+  },
+  "fonts": [
+    "Space Grotesk",
+    "Inter Tight"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#070814",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#00f2fe",
+      "#ffab00",
+      "#1e293b"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "high-contrast dark mode UI screenshots, sleek 3D platform graphics, abstract technical diagrams",
+    "iconStyle": "line",
+    "keywords": [
+      "dashboard screenshot",
+      "data visualizer",
+      "cloud architecture",
+      "developer console",
+      "fintech app",
+      "network node",
+      "server rack"
+    ],
+    "prefer": [
+      "screenshot",
+      "illustration"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Space Grotesk",
+    "body": "Inter Tight"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 725,
+        "height": 450,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame, beside the copy"
+      },
+      "context": {
+        "count": 2,
+        "width": 709,
+        "height": 346,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card, beside the copy"
+      },
+      "feature": {
+        "count": 2,
+        "width": 653,
+        "height": 410,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card, leading the row"
+      },
+      "how": {
+        "count": 4,
+        "width": 400,
+        "height": 378,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 1x4 tile row"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1920,
+        "height": 700,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene",
+    "stage": {
+      "width": 1920,
+      "height": 1080
+    }
+  },
+  "audio": {
+    "mood": "smooth orbital motion — spatial, precise, quietly powerful synth soundscape",
+    "archetype": "anthem",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "synthwave",
+      "ambient-pop",
+      "electronic",
+      "cinematic"
+    ],
+    "musicKeywords": [
+      "orbital synth",
+      "cosmic pulse",
+      "deep bass",
+      "ambient texture",
+      "glass arpeggio",
+      "space synth",
+      "steady groove",
+      "synth pad",
+      "sub bass",
+      "slow reverb",
+      "analog pulse",
+      "clean kick"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

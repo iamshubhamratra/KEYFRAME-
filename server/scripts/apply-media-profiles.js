@@ -211,29 +211,45 @@ const MEASURED = {
     },
     evidence: "No declared slots table; ceilings are visual_layout_director.js:40 `const BUDGET = { screenshot: 3, photo: 6, vector: 6 };`, :42 `const MONTAGE_MAX = ",
   },
+  // RE-MEASURED against the composer as it stands today. The old row described a composer that no
+  // longer exists: its own `evidence` cites `slots: (role) => (role === "title" || role === "fetch"
+  // ? 1 : 0)`, while fetch_composer.js:408 now reads `slots: (role) => (role === "feature" ? 1 : 0)`.
+  // The pack was rewritten and its media contract was never re-measured, so the manifest kept
+  // describing boxes the film had stopped drawing.
+  //
+  // What that cost: FIVE slots declared — including a CRITICAL one on `hook`, which maps to the
+  // `title` beat that draws no picture at all — against a composer that draws exactly ONE. Three of
+  // the five were flagged `inferred: true` (guessed, never measured). So every fetch film collected,
+  // vision-scored and crop-prepped up to five pictures, showed one, and reported its critical slot
+  // empty. The admin QA gate blocks on exactly that.
+  //
+  // The one real box is the phone mockup on `feature`, read off fetch_composer.js:322-325 —
+  // `width:U(360); height:U(740)` with `K.shotFill(shot, { w: 360, h: 740 })` against the 1920x1080
+  // stage: wf 360/1920 = .1875, hf 740/1080 = .685. It is a PORTRAIT device screen, so the kind is
+  // `screenshots` rather than the old `productImages`: `shapes.feature = [360/740]` already tells
+  // fillSlots to prefer that aspect, and a landscape product photo letterboxes inside a phone.
+  // Priority stays "high" — resolveMediaPlan promotes the sole slot to critical on its own.
   "fetch": {
-    capacity: 6, perScene: 1, aspect: "landscape",
-    wants: { screenshots: 2, productImages: 5, logos: 1 },
+    capacity: 1, perScene: 1, aspect: "landscape",
+    wants: { screenshots: 2, productImages: 1, logos: 1 },
     roles: {
-      hook: { count: 1, wf: 0.411, hf: 0.519, priority: "critical", fit: "cover", kind: "productImages" },
-      feature: { count: 1, wf: 0.448, hf: 0.469, priority: "high", fit: "cover", kind: "productImages" },
-      how: { count: 1, wf: 0.448, hf: 0.469, priority: "high", fit: "cover", kind: "productImages", inferred: true },
-      proof: { count: 1, wf: 0.448, hf: 0.469, priority: "high", fit: "cover", kind: "productImages", inferred: true },
-      context: { count: 1, wf: 0.448, hf: 0.469, priority: "medium", fit: "cover", kind: "productImages", inferred: true },
+      feature: { count: 1, wf: 0.1875, hf: 0.685, priority: "high", fit: "cover", kind: "screenshots" },
     },
-    evidence: "fetch_composer.js:244 — `slots: (role) => (role === \"title\" || role === \"fetch\" ? 1 : 0),` (shapes, fetch_composer.js:243 — `shapes: { title: [790 / 5",
+    evidence: "server/src/services/fetch_composer.js:408 — `slots: (role) => (role === \"feature\" ? 1 : 0)`; the box at :322-325 (`width:U(360); height:U(740)`, shotFill w:360 h:740); shapes at :407",
   },
+  // RE-MEASURED. Declared a CRITICAL `hook` box, but fight_composer's `first` beat is `main` and
+  // its slots() gives it 0 — so scene 1 never drew the film's most important picture. The two real
+  // boxes are champion 900x560 (fight_composer shotFill w:900 h:560) and combos 360x760 (the
+  // portrait phone), matching SPEC.shapes [1.607] and [0.474] exactly. `feature`/`how`/`proof`/
+  // `context` were four boxes for a composer that draws two.
   "fight": {
-    capacity: 5, perScene: 2, aspect: "landscape",
-    wants: { screenshots: 2, productImages: 4, logos: 1 },
+    capacity: 2, perScene: 1, aspect: "landscape",
+    wants: { screenshots: 2, productImages: 1, logos: 1 },
     roles: {
-      hook: { count: 1, wf: 0.323, hf: 0.704, priority: "critical", fit: "cover", kind: "productImages" },
       feature: { count: 1, wf: 0.469, hf: 0.519, priority: "high", fit: "cover", kind: "screenshots" },
-      how: { count: 1, wf: 0.469, hf: 0.519, priority: "high", fit: "cover", kind: "screenshots", inferred: true },
-      proof: { count: 1, wf: 0.469, hf: 0.519, priority: "high", fit: "cover", kind: "screenshots", inferred: true },
-      context: { count: 1, wf: 0.469, hf: 0.519, priority: "medium", fit: "cover", kind: "screenshots", inferred: true },
+      how: { count: 1, wf: 0.1875, hf: 0.704, priority: "high", fit: "cover", kind: "screenshots" },
     },
-    evidence: "fight_composer.js:310 — `slots: (role, budget) => (role === \"main\" || role === \"champion\" ? 1 : role === \"tape\" ? Math.min(2, Math.max(0, budget)) : 0",
+    evidence: "server/src/services/fight_composer.js SPEC.slots — champion 1 / combos 1, all else 0; boxes at the shotFill calls (w:900 h:560 and w:360 h:760); shapes [1.607] / [0.474]",
   },
   "flagship": {
     capacity: 8, perScene: 3, aspect: "agnostic",
@@ -282,17 +298,20 @@ const MEASURED = {
     },
     evidence: "grid_dispatch_composer.js:1337-1344 `function slotsFor(role, scene) { if (role === \"hook\") return 1; if (role === \"solution\") return 2; if (role === \"",
   },
+  // RE-MEASURED. Declared a CRITICAL `hook` box, but hacker_composer's `first` beat is `boot` and
+  // its slots() gives it 0, so scene 1 never drew it. Five boxes were declared (three flagged
+  // `inferred`) for a composer that draws two kinds: `compile` (one terminal window) and `nodes`
+  // (two). Box sizes come off shotTerm, which subtracts its title bar before handing the picture
+  // to shotFill — `bw = w, bh = h - U(40)` — so the real media boxes are 850x460 and 540x260,
+  // matching SPEC.shapes [1.848] and [2.077] exactly rather than the 0.625x0.669 that was recorded.
   "hacker": {
-    capacity: 8, perScene: 2, aspect: "landscape",
-    wants: { screenshots: 8, productImages: 3, logos: 1 },
+    capacity: 3, perScene: 2, aspect: "landscape",
+    wants: { screenshots: 3, productImages: 1, logos: 1 },
     roles: {
-      hook: { count: 1, wf: 0.417, hf: 0.539, priority: "critical", fit: "cover", kind: "screenshots" },
-      feature: { count: 2, wf: 0.625, hf: 0.669, priority: "high", fit: "cover", kind: "screenshots" },
-      proof: { count: 2, wf: 0.281, hf: 0.243, priority: "medium", fit: "cover", kind: "screenshots" },
-      how: { count: 2, wf: 0.625, hf: 0.669, priority: "high", fit: "cover", kind: "screenshots", inferred: true },
-      context: { count: 2, wf: 0.625, hf: 0.669, priority: "medium", fit: "cover", kind: "screenshots", inferred: true },
+      feature: { count: 1, wf: 0.443, hf: 0.426, priority: "high", fit: "cover", kind: "screenshots" },
+      how: { count: 2, wf: 0.281, hf: 0.241, priority: "high", fit: "cover", kind: "screenshots" },
     },
-    evidence: "server/src/services/hacker_composer.js:294 — `slots: (role, budget) => (role === \"nodes\" ? Math.min(2, Math.max(0, budget)) : role === \"boot\" || role ",
+    evidence: "server/src/services/hacker_composer.js SPEC.slots — compile 1 / nodes 2, all else 0; boxes at :326 (w U(850) h U(500)) and :371 (h U(300)) through shotTerm's bh = h - U(40); shapes [1.848] / [2.077]",
   },
   "hype-wave": {
     capacity: 12, perScene: 4, aspect: "portrait",
@@ -306,28 +325,39 @@ const MEASURED = {
     },
     evidence: "server/src/services/om_stage.js:593 — `const SHOT_CAPACITY = { hook: 1, statement: 1, stats: 1, feature: 4, montage: 4 };` (shared engine; capacityOf ",
   },
+  // RE-MEASURED. The only phantom here was the CRITICAL `hook` — jungle_composer's `first` beat is
+  // `enter`, which its own comment (:502) calls pictureless BY DESIGN, so the film's most important
+  // slot was declared on a scene that never draws. Its old evidence line even cites
+  // `role === "enter" || role === "discover" ? 1`, a version where `enter` did draw one.
+  //
+  // The three real boxes, off the framed() call sites: discover 760x480, trek 356x740 (the portrait
+  // phone), and the five-board sightings montage (TILES at :346-350, median 500x250). Unlike the
+  // other three packs in this sweep jungle needs NO middle reorder — its middle[0] is `discover`,
+  // which already draws, so dropping the phantom hook is enough to move the critical onto a real box.
   "jungle": {
-    capacity: 10, perScene: 3, aspect: "landscape",
-    wants: { screenshots: 5, productImages: 10, logos: 1, illustrations: 2 },
+    capacity: 7, perScene: 5, aspect: "landscape",
+    wants: { screenshots: 4, productImages: 4, logos: 1 },
     roles: {
-      hook: { count: 1, wf: 0.388, hf: 0.504, priority: "critical", fit: "cover", kind: "productImages" },
-      feature: { count: 2, wf: 0.46, hf: 0.559, priority: "high", fit: "cover", kind: "productImages" },
-      proof: { count: 2, wf: 0.278, hf: 0.485, priority: "medium", fit: "cover", kind: "productImages" },
-      how: { count: 2, wf: 0.46, hf: 0.559, priority: "high", fit: "cover", kind: "productImages", inferred: true },
-      context: { count: 2, wf: 0.46, hf: 0.559, priority: "medium", fit: "cover", kind: "productImages", inferred: true },
+      feature: { count: 1, wf: 0.396, hf: 0.444, priority: "high", fit: "cover", kind: "productImages" },
+      context: { count: 1, wf: 0.185, hf: 0.685, priority: "medium", fit: "cover", kind: "screenshots" },
+      how: { count: 5, wf: 0.26, hf: 0.231, priority: "high", fit: "cover", kind: "productImages" },
     },
-    evidence: "server/src/services/jungle_composer.js:242 — `slots: (role, budget) => (role === \"enter\" || role === \"discover\" ? 1 : role === \"sightings\" ? Math.min(",
+    evidence: "server/src/services/jungle_composer.js SPEC.slots — discover 1 / trek 1 / sightings 5, enter+census 0; boxes at the framed() calls (760x480, 356x740) and TILES :346-350; shapes [1.583] / [0.481] / five sightings aspects",
   },
+  // RE-MEASURED — and this one is the reverse of the others: the composer was written FROM the
+  // manifest (kinetic_bold_composer:136 says so in as many words, "the manifest's slots are extreme
+  // letterboxes (1728x410, 826x162)"), so `feature` and `how` are already correct and confirmed by
+  // SPEC.shapes [4.215] and [2.719]. What was wrong is the two boxes with no beat behind them:
+  // `context` (826x162 — no such role in the spine at all) and `proof` (flagged `inferred`, and
+  // slots() gives it 0). The old evidence line admits it had no slots table to read.
   "kinetic-bold": {
-    capacity: 10, perScene: 6, aspect: "agnostic",
-    wants: { screenshots: 3, productImages: 3, logos: 1, illustrations: 4 },
+    capacity: 3, perScene: 2, aspect: "agnostic",
+    wants: { screenshots: 3, logos: 1, illustrations: 2 },
     roles: {
       feature: { count: 2, wf: 0.9, hf: 0.38, priority: "high", fit: "cover", kind: "screenshots" },
-      how: { count: 2, wf: 0.52, hf: 0.34, priority: "medium", fit: "contain", kind: "illustrations" },
-      context: { count: 2, wf: 0.43, hf: 0.15, priority: "medium", fit: "cover", kind: "productImages" },
-      proof: { count: 2, wf: 0.9, hf: 0.38, priority: "high", fit: "cover", kind: "screenshots", inferred: true },
+      how: { count: 1, wf: 0.52, hf: 0.34, priority: "medium", fit: "contain", kind: "illustrations" },
     },
-    evidence: "No declared slots table; ceilings are visual_layout_director.js:40 `const BUDGET = { screenshot: 3, photo: 6, vector: 6 };`, :42 `const MONTAGE_MAX = ",
+    evidence: "server/src/services/kinetic_bold_composer.js SPEC.slots — feature 2 / how 1, words+proof 0; shapes [4.215, 4.215] / [2.719] confirm 1728x410 and 998x367 (the composer cites these numbers back at :136)",
   },
   "lantern-night": {
     capacity: 12, perScene: 4, aspect: "portrait",
@@ -397,16 +427,35 @@ const MEASURED = {
     },
     evidence: "No declared slots table; ceilings are visual_layout_director.js:40 `const BUDGET = { screenshot: 3, photo: 6, vector: 6 };`, :42 `const MONTAGE_MAX = ",
   },
+  // RE-MEASURED against the composer, after the admin template QA gate blocked this pack on
+  // `assets.criticalFilled` — "the critical slot renders EMPTY, its asset is referenced nowhere
+  // in the HTML".
+  //
+  // The old row transcribed the right evidence line into the wrong shape. orbit_composer's
+  // `SPEC.slots` gives pictures to exactly two of its scene types — `feature` (1 console) and
+  // `fleet` (up to 5, the CONSTELLATION beat) — and the composer says so in its own words at
+  // :489-493: "countdown / liftoff / telemetry are pictureless BY DESIGN". But `how` and
+  // `context` were entered as one-slot boxes flagged `inferred: true` (i.e. guessed, not
+  // measured), and `fleet`'s five consoles were collapsed into a single `proof` box at the tile's
+  // aspect. So the contract promised four boxes where the film draws at most two kinds, and
+  // under-declared the one beat that shows the most.
+  //
+  // What that cost, measured: every orbit film collected, vision-scored and crop-prepped assets
+  // for two boxes that are never drawn, while the constellation was budgeted a single tile.
+  //
+  // Boxes are read straight off SPEC.shapes against the 1920x1080 stage:
+  //   feature  900 x 560   (SPEC.shapes.feature = [900/560])      -> wf .469, hf .519
+  //   fleet    520 x 300   (SPEC.shapes.fleet, the modal tile)    -> wf .271, hf .278
+  // `fleet` is declared under the shared `how` role because that is the montage/tile-wall slot
+  // in the vocabulary template_media resolves against; orbit's own spine names are private to it.
   "orbit": {
-    capacity: 7, perScene: 5, aspect: "landscape",
-    wants: { screenshots: 7, productImages: 3, logos: 1 },
+    capacity: 6, perScene: 5, aspect: "landscape",
+    wants: { screenshots: 6, productImages: 2, logos: 1 },
     roles: {
-      feature: { count: 1, wf: 0.469, hf: 0.478, priority: "high", fit: "cover", kind: "screenshots" },
-      proof: { count: 1, wf: 0.269, hf: 0.23, priority: "medium", fit: "cover", kind: "screenshots" },
-      how: { count: 1, wf: 0.469, hf: 0.478, priority: "high", fit: "cover", kind: "screenshots", inferred: true },
-      context: { count: 1, wf: 0.469, hf: 0.478, priority: "medium", fit: "cover", kind: "screenshots", inferred: true },
+      feature: { count: 1, wf: 0.469, hf: 0.519, priority: "high", fit: "cover", kind: "screenshots" },
+      how: { count: 5, wf: 0.271, hf: 0.278, priority: "high", fit: "cover", kind: "screenshots" },
     },
-    evidence: "server/src/services/orbit_composer.js:484 — `slots: (role, budget) => (role === \"feature\" ? 1 : role === \"fleet\" ? Math.min(5, Math.max(0, budget)) : ",
+    evidence: "server/src/services/orbit_composer.js:502 — `slots: (role, budget) => (role === \"feature\" ? 1 : role === \"fleet\" ? Math.min(5, Math.max(0, budget)) : 0)`; shapes at :498-500; the pictureless-by-design note at :489-493",
   },
   "organic-garden": {
     capacity: 12, perScene: 4, aspect: "portrait",

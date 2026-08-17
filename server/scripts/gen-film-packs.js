@@ -19,6 +19,8 @@ const path = require("node:path");
 const ROOT = path.resolve(__dirname, "..", "..");
 const SERVER = path.join(__dirname, "..");
 const SKIN_DIR = path.join(SERVER, "src", "services", "film_skins");
+// The engine itself, asked for the boxes it draws rather than re-derived here (see `slots` below).
+const filmBeats = require(path.join(SERVER, "src", "services", "film_beats"));
 const FRAMES = path.join(ROOT, "frames");
 
 const argv = process.argv.slice(2);
@@ -30,7 +32,14 @@ const ONLY = argv.filter((a) => !a.startsWith("--"));
 // one-off films are ported straight into film_skins/ and would otherwise ship a composer with
 // no pack.json — a renderer nothing can select. Discovering from disk keeps the two families
 // on one path.
-const manifest = (() => {
+//
+// LAZY, because this module is now also require()d as a library by src/templates/emit.js so a
+// generated template's manifest is derived by the SAME function that derives the 89 shipped
+// ones. Doing this work at module scope would make a require() read the whole skin directory
+// and print to the console.
+let _manifest = null;
+function loadManifest() {
+  if (_manifest) return _manifest;
   const listed = JSON.parse(fs.readFileSync(path.join(SKIN_DIR, "_manifest.json"), "utf8"));
   const known = new Set(listed.map((m) => m.module));
   const extra = fs.readdirSync(SKIN_DIR)
@@ -42,8 +51,9 @@ const manifest = (() => {
       return { slug, module: f, label };
     });
   if (extra.length) console.log(`[gen-film-packs] +${extra.length} hand-ported film(s): ${extra.map((e) => e.slug).join(", ")}`);
-  return [...listed, ...extra];
-})();
+  _manifest = [...listed, ...extra];
+  return _manifest;
+}
 const METAP = path.join(SKIN_DIR, "_metadata.json");
 const META = fs.existsSync(METAP) ? JSON.parse(fs.readFileSync(METAP, "utf8")) : {};
 
@@ -77,13 +87,35 @@ const SLOTS = {
   proof: { count: 1, width: 1080, height: 900, priority: "low", objectFit: "cover", kind: "productImages", note: "the dimmed backing plate behind the counters" },
 };
 
+// THE SAME CONTRACT, MEASURED AGAINST THE LANDSCAPE STAGE.
+//
+// A landscape skin lays its beats out ACROSS the 1920x1080 frame (film_beats' WIDE branches), so
+// its boxes are different boxes — the hook's device sits beside the copy rather than under it,
+// and the montage wall is one row of four rather than a 2x2. These numbers are read off those
+// wide layouts exactly as the portrait table above is read off the portrait ones.
+//
+// Getting this wrong is not cosmetic: the asset planner sizes its whole collection budget from
+// these, asset_prep crops to their aspects, and preflight hard-fails when the CRITICAL box comes
+// back empty. A portrait table on a landscape pack would collect tall crops for wide boxes.
+const SLOTS_WIDE = {
+  hook: { count: 1, width: 725, height: 450, priority: "critical", objectFit: "cover", kind: "screenshots", note: "the opening device frame, beside the copy" },
+  context: { count: 2, width: 709, height: 562, priority: "medium", objectFit: "cover", kind: "productImages", note: "the statement beat's grounding card, beside the copy" },
+  feature: { count: 2, width: 851, height: 528, priority: "high", objectFit: "cover", kind: "screenshots", note: "the hero media card, leading the row" },
+  how: { count: 4, width: 399, height: 475, priority: "high", objectFit: "cover", kind: "productImages", note: "the 1x4 tile row" },
+  proof: { count: 1, width: 1920, height: 700, priority: "low", objectFit: "cover", kind: "productImages", note: "the dimmed backing plate behind the counters" },
+};
+
 const titleCase = (s) => String(s).replace(/\b[a-z]/g, (c) => c.toUpperCase());
 
-function packFor(m) {
+// `metaOverride` lets a caller supply the creative half directly instead of reading it from
+// _metadata.json. Used by the admin template generator, whose creative half comes from the
+// validated TemplateSpec and has never been written to that file. Absent, behaviour is
+// byte-identical to before.
+function packFor(m, metaOverride) {
   const mod = require(path.join(SKIN_DIR, m.module));
   const SKIN = mod.SKIN;
   const palette = SKIN.palette({});
-  const meta = META[m.slug] || {};
+  const meta = metaOverride || META[m.slug] || {};
   const ground = palette[SKIN.groundKey];
   const accentHexes = SKIN.accents.map((k) => palette[k]).filter(Boolean);
   const dark = SKIN.dark;
@@ -97,8 +129,34 @@ function packFor(m) {
   colors.ink = palette[SKIN.inkKey];
   colors.paper = palette[SKIN.paperKey];
 
+  // The skin's AUTHORED stage. Absent on all 89 shipped skins, which is what keeps them portrait.
+  const wide = String(SKIN.stage || "portrait") === "landscape";
+  const baseSlots = wide ? SLOTS_WIDE : SLOTS;
+
+  // A SKIN MAY DECLARE ITS OWN BOXES — and if it does, the contract must describe THOSE, not the
+  // family defaults. film_beats.boxOf resolves the same `SKIN.boxes` fractions when it draws, so
+  // deriving the manifest from them here is what keeps the two in step. A manifest that advertised
+  // boxes the composer does not draw is precisely the defect that had six shipped packs collecting,
+  // vision-scoring and crop-prepping assets for slots no film ever showed.
+  //
+  // `boxes` is absent on every shipped skin, so `slots` is the unchanged table for all 89 of them.
+  // The numbers are NOT recomputed here: film_beats.mediaBoxes runs the same arithmetic its own
+  // layouts run, for whichever stage the skin authored, and returns null when nothing is declared.
+  // Deriving them a second time in this file is exactly how a manifest starts describing a box no
+  // composer draws.
+  const slots = (() => {
+    const drawn = filmBeats.mediaBoxes(SKIN, wide ? "landscape" : "portrait");
+    if (!drawn) return baseSlots;
+    const out = JSON.parse(JSON.stringify(baseSlots));
+    for (const role of ["feature", "how", "context"]) {
+      if (!out[role] || !drawn[role]) continue;
+      out[role].width = drawn[role].width;
+      out[role].height = drawn[role].height;
+    }
+    return out;
+  })();
   const mechs = Object.keys(SKIN.variants || {});
-  const derivedVibe = `${m.label} — a 9:16 animated ${dark ? "dark" : "light"}-ground film built on a continuously moving hand-drawn world. `
+  const derivedVibe = `${m.label} — a ${wide ? "16:9" : "9:16"} animated ${dark ? "dark" : "light"}-ground film built on a continuously moving hand-drawn world. `
     + `${titleCase(SKIN.display)} display over ${SKIN.body} body, ground ${ground}, accent ${colors.accent}. `
     + `Camera set ${SKIN.cams.join(" / ")} with "${SKIN.titlePreset}" title entrances. `
     + (mechs.length ? `Owns the ${mechs.map((k) => `${k}:${SKIN.variants[k]}`).join(", ")} interaction beat${mechs.length === 1 ? "" : "s"}.` : "");
@@ -106,7 +164,7 @@ function packFor(m) {
   return {
     name: m.slug,
     vibe: meta.vibe || derivedVibe,
-    orientation: "portrait",
+    orientation: wide ? "landscape" : "portrait",
     category: meta.category || "Animated",
     tags: meta.tags || [SKIN.display, SKIN.body, dark ? "dark" : "light", ...mechs.map((x) => x.toLowerCase())].slice(0, 8),
     renderer: `film-${m.slug}`,
@@ -151,9 +209,15 @@ function packFor(m) {
       : {
         requiredAssets: { screenshots: 3, productImages: 8, logos: 1 },
         placeholders: [],
-        slotsByRole: SLOTS,
+        slotsByRole: slots,
         oversample: 1.6,
         addressing: "scene",
+        // The frame those pixel sizes are measured against, stated only for the landscape
+        // stage. frame_manifest.packStage() already infers 1080x1920 from orientation:"portrait",
+        // so emitting it for portrait too would be redundant AND would rewrite the `media` block
+        // of all 89 shipped packs the next time this script is run — a large diff that changes
+        // no behaviour. Landscape says it explicitly because it is the new case.
+        ...(wide ? { stage: { width: 1920, height: 1080 } } : {}),
       },
     audio: meta.audio || {
       mood: dark ? "dramatic" : "warm",
@@ -168,8 +232,8 @@ function packFor(m) {
   };
 }
 
-function frameMd(m, pack) {
-  const meta = META[m.slug] || {};
+function frameMd(m, pack, metaOverride) {
+  const meta = metaOverride || META[m.slug] || {};
   if (meta.frameMd) {
     return `---\nname: ${m.slug}\nlabel: ${m.label}\norientation: portrait\nfontFamily: ${pack.typography.display}\n---\n\n# ${m.label}\n\n${meta.frameMd}\n`;
   }
@@ -222,27 +286,55 @@ shim — the backdrop is not a reinterpretation of the original, it is the origi
 `;
 }
 
-let wrote = 0, bad = 0;
-for (const m of manifest) {
-  if (ONLY.length && !ONLY.includes(m.slug)) continue;
-  const pack = packFor(m);
-  const dir = path.join(FRAMES, m.slug);
-  if (CHECK) {
-    try {
-      const { PackManifestSchema } = require(path.join(SERVER, "src", "services", "frame_manifest.js"));
-      PackManifestSchema.parse(pack);
-    } catch (e) { console.error(`INVALID ${m.slug}: ${e.message.slice(0, 200)}`); bad++; }
-    continue;
-  }
-  fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, "pack.json"), JSON.stringify(pack, null, 2) + "\n", "utf8");
-  fs.writeFileSync(path.join(dir, "FRAME.md"), frameMd(m, pack), "utf8");
-  wrote++;
+// ADMIN-GENERATED TEMPLATES ARE NOT THIS SCRIPT'S TO PUBLISH.
+//
+// The admin template generator writes its skins into the same film_skins/ directory (that is
+// the whole point — it is the one registration hook that needs no code edit), so a bulk run of
+// this script would discover an unpublished draft and materialise it straight into frames/,
+// which is the PUBLISHED root. That would make a template the admin has not approved instantly
+// visible in the gallery, auto-selectable by the brief, and eligible to become the rotation
+// default. The lifecycle store knows which slugs those are; skip them.
+//
+// Fail-open on purpose: if the store cannot be read, skip nothing and behave exactly as before
+// — this script predates the feature and must keep working without it.
+function adminManagedSlugs() {
+  try {
+    return new Set(require(path.join(SERVER, "src", "templates", "store.js")).unpublishedSlugs());
+  } catch { return new Set(); }
 }
-if (CHECK) { console.log(bad ? `${bad} invalid manifest(s)` : "all manifests valid"); process.exit(bad ? 1 : 0); }
-console.log(`wrote ${wrote} pack(s) -> frames/`);
 
-// The registration block for services/pipeline.js NATIVE_PACK_COMPOSERS.
-const reg = manifest.map((m) => `  "film-${m.slug}": require("./film_skins/${m.module.replace(/\.js$/, "")}"),`).join("\n");
-fs.writeFileSync(path.join(SKIN_DIR, "_register.txt"), reg + "\n", "utf8");
-console.log(`registration block -> src/services/film_skins/_register.txt`);
+if (require.main === module) {
+  const manifest = loadManifest();
+  const skip = adminManagedSlugs();
+  let wrote = 0, bad = 0, skipped = 0;
+  for (const m of manifest) {
+    if (ONLY.length && !ONLY.includes(m.slug)) continue;
+    if (skip.has(m.slug)) {
+      console.log(`[gen-film-packs] skipping ${m.slug} — an unpublished admin template (publish it through the admin API)`);
+      skipped++;
+      continue;
+    }
+    const pack = packFor(m);
+    const dir = path.join(FRAMES, m.slug);
+    if (CHECK) {
+      try {
+        const { PackManifestSchema } = require(path.join(SERVER, "src", "services", "frame_manifest.js"));
+        PackManifestSchema.parse(pack);
+      } catch (e) { console.error(`INVALID ${m.slug}: ${e.message.slice(0, 200)}`); bad++; }
+      continue;
+    }
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, "pack.json"), JSON.stringify(pack, null, 2) + "\n", "utf8");
+    fs.writeFileSync(path.join(dir, "FRAME.md"), frameMd(m, pack), "utf8");
+    wrote++;
+  }
+  if (CHECK) { console.log(bad ? `${bad} invalid manifest(s)` : "all manifests valid"); process.exit(bad ? 1 : 0); }
+  console.log(`wrote ${wrote} pack(s) -> frames/${skipped ? ` (${skipped} admin draft(s) skipped)` : ""}`);
+
+  // The registration block for services/pipeline.js NATIVE_PACK_COMPOSERS.
+  const reg = manifest.map((m) => `  "film-${m.slug}": require("./film_skins/${m.module.replace(/\.js$/, "")}"),`).join("\n");
+  fs.writeFileSync(path.join(SKIN_DIR, "_register.txt"), reg + "\n", "utf8");
+  console.log(`registration block -> src/services/film_skins/_register.txt`);
+}
+
+module.exports = { packFor, frameMd, SLOTS, loadManifest };

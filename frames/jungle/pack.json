@@ -105,59 +105,41 @@
   },
   "media": {
     "requiredAssets": {
-      "screenshots": 5,
-      "productImages": 10,
+      "screenshots": 4,
+      "productImages": 4,
       "logos": 1
     },
     "placeholders": [],
     "slotsByRole": {
-      "hook": {
-        "count": 1,
-        "width": 745,
-        "height": 544,
-        "priority": "critical",
-        "objectFit": "cover",
-        "kind": "productImages",
-        "note": ""
-      },
       "feature": {
-        "count": 2,
-        "width": 883,
-        "height": 604,
-        "priority": "high",
-        "objectFit": "cover",
-        "kind": "productImages",
-        "note": ""
-      },
-      "proof": {
-        "count": 2,
-        "width": 534,
-        "height": 524,
-        "priority": "medium",
-        "objectFit": "cover",
-        "kind": "productImages",
-        "note": ""
-      },
-      "how": {
-        "count": 2,
-        "width": 883,
-        "height": 604,
+        "count": 1,
+        "width": 760,
+        "height": 480,
         "priority": "high",
         "objectFit": "cover",
         "kind": "productImages",
         "note": ""
       },
       "context": {
-        "count": 2,
-        "width": 883,
-        "height": 604,
+        "count": 1,
+        "width": 355,
+        "height": 740,
         "priority": "medium",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": ""
+      },
+      "how": {
+        "count": 5,
+        "width": 499,
+        "height": 249,
+        "priority": "high",
         "objectFit": "cover",
         "kind": "productImages",
         "note": ""
       }
     },
-    "oversample": 1.8,
+    "oversample": 1.6,
     "addressing": "scene"
   }
 }

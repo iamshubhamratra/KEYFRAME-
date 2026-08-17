@@ -53,6 +53,17 @@ const { GSAP_CDN, r, esc, hexToRgb, bullets } = require("./composer_kit");
 const { tempoOf } = require("./pacing");
 const { varyArchetypes } = require("./motion_planner");
 
+// THE ENGINE REVISION, STAMPED INTO EVERY COMPOSITION (data-fk-rev on #root).
+//
+// Bump this on any visually meaningful engine change. It exists because of job haery2z35t: a
+// film composed by a SERVER PROCESS whose require cache predated the fidelity fixes shipped that
+// afternoon — the output looked like the old engine because it WAS the old engine, and proving
+// that took a forensic diff of emitted-script idioms. With the stamp, `grep data-fk-rev
+// jobs/<id>/index.html` answers "which engine built this?" in one line. A deliberate constant
+// (never a file mtime or date): compositions must stay byte-identical across checkouts for the
+// golden baseline.
+const ENGINE_REV = 3; // 1 = pre-fidelity · 2 = FILMKIT-FIDELITY-AUDIT fixes · 3 = provenance-gated brand address
+
 // ---- geometry ----------------------------------------------------------------
 // The AUTHORED reference frame — every FilmKit template is 1080×1920 (cfg.W/cfg.H) and
 // every measurement in the source is a raw pixel against it. Expressed here as a fraction
@@ -60,9 +71,25 @@ const { varyArchetypes } = require("./motion_planner");
 //   X() — sizes, gaps, borders and every HEIGHT (cqw is always definite, so a box never
 //         collapses the way a percentage height inside an auto-height parent does)
 //   V() — vertical POSITION only, on a full-frame absolute layer
-const RW = 1080, RH = 1920;
+// THE AUTHORED STAGE IS THE SKIN'S, NOT THE OUTPUT'S.
+//
+// These were `const RW = 1080, RH = 1920` because every FilmKit template was portrait. They are
+// now set per build from `skin.stage` so the family can also author LANDSCAPE templates, and the
+// distinction that makes that safe is worth stating: RW/RH describe the frame the skin's own
+// pixel numbers were measured against, NOT the frame the film is being rendered into. A
+// portrait skin asked for a 1920x1080 render still keeps RW=1080 — it is laid out for portrait
+// and merely being shown wide, which is the case frameSelectorAgent discloses rather than
+// silently rescaling.
+//
+// Mutable-per-build, exactly like TSCALE below, and safe for the same reason: build() is fully
+// synchronous, so two builds can never interleave. (services/templates/media.js additionally
+// serialises its builds behind a single-slot gate for this reason.)
+let RW = 1080, RH = 1920;
 const X = (px) => `${r((Number(px) / RW) * 100)}cqw`;
 const V = (px) => `${r((Number(px) / RH) * 100)}%`;
+// Is the AUTHORED stage landscape? Read by film_beats to choose its wide layouts. Never asks
+// about the output frame — a portrait skin stays portrait however it is rendered.
+const isWide = () => RW > RH;
 
 // Type scale keyed on the SHORT side (responsive.typeScale's law) so a landscape render
 // does not blow the display type up. Portrait — the authored aspect — resolves to 1.
@@ -72,6 +99,14 @@ const F = (px) => X(Number(px) * TSCALE);
 
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const clamp01 = (x) => (x < 0 ? 0 : x > 1 ? 1 : x);
+
+// The two authored stages this family supports. A skin declares one via `SKIN.stage`; anything
+// else (including undefined, which is every shipped skin) is portrait.
+const STAGES = { portrait: { w: 1080, h: 1920 }, landscape: { w: 1920, h: 1080 } };
+function setStage(name) {
+  const s = STAGES[String(name || "portrait")] || STAGES.portrait;
+  RW = s.w; RH = s.h;
+}
 
 // Deterministic PRNG — BUILD time only, so re-renders are byte-identical while two jobs
 // never share a rhythm.
@@ -184,7 +219,12 @@ function buildTheme(skin, brandSkin) {
   // Ink that actually READS on a given field — replaces every source template's hardcoded
   // light/dark assumption and stays correct for any brand hue.
   const onField = (bg) => (ratio(ink, bg) >= ratio(paper, bg) ? ink : paper);
-  const typeOn = (hex, bg) => (ratio(hex, bg) >= 3 ? hex : onField(bg));
+  // `min` is the readability floor. 3 (the default) is right for body text; DISPLAY type gets a
+  // laxer 2.0 from the beats, because the guard exists to catch invisible ink (cat-nap's
+  // dark-on-dark sat near ratio 1.1), not to overrule a designed pairing: ember-roast's CTA sets
+  // cream on ember orange at ratio 2.9, and flooring that at 3 repainted the pack's two-tone
+  // signature as monochrome ink — a fidelity loss the reference never shipped.
+  const typeOn = (hex, bg, min = 3) => (ratio(hex, bg) >= min ? hex : onField(bg));
 
   const theme = {
     ...out,                       // the world source reads theme.<paletteKey> DIRECTLY
@@ -238,7 +278,15 @@ function featureLines(scene, n) {
   return out.slice(0, n);
 }
 
-const STAT_RE = /([$₹€£]?)\s?(\d[\d,]*(?:\.\d+)?)\s?(%|x|\+|k|m|bn?)?(?![A-Za-z])/i;
+// THE SUFFIX IS PART OF THE NUMBER. The old pattern's suffix set (`%|x|+|k|m|bn?`) did not know
+// unit words, and its lookahead only rejected LETTERS — so "340kg" backtracked to "34" (the "0"
+// after "34" is not a letter), shipping a mangled figure with a mangled label ("0kg roasted…").
+// Measured on the ember-roast fidelity deck: the stats beat's 340kg rendered as a "34" counter,
+// and the Ring mechanic showed "32% / Metric" — three defects from one regex. Now: an ATTACHED
+// run of 1–3 letters is the unit (kg, hrs, GB), the %-class may float a space, and the lookahead
+// rejects digits too, which is what forces the full digit run to match.
+const STAT_RE = /([$₹€£]?)\s?(\d[\d,]*(?:\.\d+)?)(?:\s?(%|x|\+)|([a-z]{1,3}))?(?![A-Za-z0-9])/i;
+const statSuffix = (m) => m[3] || m[4] || "";
 // KEEP LOOKING. This committed to the FIRST field containing any digit and then gave up if
 // that field's number was not STAT_RE-shaped — so a scene reading
 //   emphasis "6h" · subtext "92% still use it after a year, rated 4.9 out of 5"
@@ -256,7 +304,7 @@ function pickNumber(scene) {
     if (!m) continue;
     const target = Math.round(parseFloat(m[2].replace(/,/g, "")));
     if (!isFinite(target)) continue;
-    return { pre: m[1] || "", target: clamp(target, 0, 100000), suf: m[3] || "" };
+    return { pre: m[1] || "", target: clamp(target, 0, 100000), suf: statSuffix(m) };
   }
   return null;
 }
@@ -277,7 +325,7 @@ function pickStats(scene, max, S) {
     const m = STAT_RE.exec(String(l));
     if (m && isFinite(parseFloat(m[2].replace(/,/g, "")))) {
       out.push({
-        pre: m[1] || "", target: Math.round(parseFloat(m[2].replace(/,/g, ""))), suf: m[3] || "",
+        pre: m[1] || "", target: Math.round(parseFloat(m[2].replace(/,/g, ""))), suf: statSuffix(m),
         label: shortLabel(String(l).replace(m[0], "").trim()) || S.metric,
       });
     }
@@ -307,7 +355,22 @@ const WIDE_SCRIPT = /[ऀ-ॿ؀-ۿ　-ヿ一-鿿가-힯]/;
 //
 // The net is not the bug; being handed a size that cannot fit is. Callers pass `track` in em.
 const trackEm = (v) => { const m = /^\s*(-?\.?\d*\.?\d+)\s*em\s*$/.exec(String(v == null ? "" : v)); return m ? Number(m[1]) : 0; };
-function fitLines(text, { basePx, maxLines, colPx, em, upper, track = 0 }) {
+// THE REFERENCE WRAPS; IT DOES NOT SHRINK.
+//
+// film-kit.js sets the authored size (126/152/160px) and lets CSS wrap the line — "FIRST CRACK"
+// at 126px becomes two stacked slabs, which is the poster look the whole family is built on.
+// This function used to do the opposite: it kept each authored line UNWRAPPED and scaled the
+// block down to the widest one, so every long headline rendered one-line and visibly smaller
+// than the design (measured on the ember-roast fidelity deck: Hook ~100px vs the authored 126,
+// Statement flattened from four slab lines to two small ones).
+//
+// Now the authored size is tried FIRST: each logical line (an authored `|` break, or the whole
+// text) wraps by the advance model into as many physical lines as it needs. Only when the wrapped
+// block exceeds `maxLines` — dynamic copy is unbounded, the reference decks were not — or a
+// single word cannot fit the column does the size binary-search down to the largest size that
+// fits. `groups` maps each physical line back to its logical line so the FilmKit signature (the
+// SECOND logical line takes the accent) survives wrapping: a continuation of line 1 stays fg.
+function fitLines(text, { basePx, growPx = 0, maxLines, colPx, em, upper, track = 0 }) {
   const src = upper ? String(text || "").toUpperCase() : String(text || "");
   const forced = forcedLines(src);
   const col = colPx * 0.97;
@@ -316,26 +379,55 @@ function fitLines(text, { basePx, maxLines, colPx, em, upper, track = 0 }) {
   // choose a LARGER size on the strength of kerning it cannot verify.
   const per = (WIDE_SCRIPT.test(src) ? Math.max(em, 1.05) : em) + Math.max(0, Number(track) || 0);
   const advance = (s) => { let a = 0; for (const ch of String(s)) a += ch === " " ? per * 0.4 : per; return a || 1; };
-  let lines;
-  if (forced) {
-    lines = forced.slice(0, maxLines);
-  } else {
-    const words = wordsOf(src);
-    if (!words.length) return { lines: [], size: basePx };
-    const target = Math.max(4, Math.floor(col / (basePx * per)));
-    lines = []; let cur = "";
+  const logical = forced || (wordsOf(src).length ? [src.replace(/\s+/g, " ").trim()] : []);
+  if (!logical.length) return { lines: [], groups: [], size: basePx, forced: false };
+  // Greedy wrap of ONE logical line at a given size, by the same advance model the fitter
+  // measures with — so what is wrapped here is exactly what fits there.
+  const wrap = (line, px) => {
+    const cap = col / px;                                  // em units available per line
+    const words = wordsOf(line);
+    const out = []; let cur = "", curA = 0;
     for (const w of words) {
-      if (!cur) { cur = w; continue; }
-      if ((cur + " " + w).length > target && lines.length < maxLines - 1) { lines.push(cur); cur = w; }
-      else cur += " " + w;
+      const wA = advance(w);
+      if (cur && curA + per * 0.4 + wA > cap) { out.push(cur); cur = w; curA = wA; }
+      else if (cur) { cur += " " + w; curA += per * 0.4 + wA; }
+      else { cur = w; curA = wA; }
     }
-    if (cur) lines.push(cur);
-    lines = lines.slice(0, maxLines);
+    if (cur) out.push(cur);
+    return out;
+  };
+  const layout = (px) => {
+    const lines = [], groups = [];
+    for (let g = 0; g < logical.length; g++) {
+      for (const ln of wrap(logical[g], px)) { lines.push(ln); groups.push(g); }
+    }
+    return { lines, groups };
+  };
+  const fits = (px) => {
+    const L = layout(px);
+    return L.lines.length <= maxLines && L.lines.every((ln) => advance(ln) * px <= col);
+  };
+  let size = basePx;
+  if (!fits(size)) {
+    let lo = basePx * 0.3, hi = basePx;
+    for (let i = 0; i < 12; i++) { const mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid; }
+    size = lo;
+  } else if (growPx > basePx) {
+    // SOLO GROWTH MUST NOT RE-WRAP. soloSize's ceiling exists to stop short copy floating in an
+    // empty frame — but growing past the point where a line breaks differently trades the
+    // authored layout for a taller tower of fragments. Grow to the largest size that still fits
+    // AND keeps the base layout's line count; copy that would re-wrap keeps the authored size.
+    const n0 = layout(size).lines.length;
+    const ok = (px) => { const L2 = layout(px); return L2.lines.length === n0 && L2.lines.every((ln) => advance(ln) * px <= col); };
+    if (ok(growPx)) size = growPx;
+    else {
+      let lo = size, hi = growPx;
+      for (let i = 0; i < 12; i++) { const mid = (lo + hi) / 2; if (ok(mid)) lo = mid; else hi = mid; }
+      size = lo;
+    }
   }
-  const widest = lines.reduce((a, l) => Math.max(a, advance(l)), 1);
-  // min() only ever SHRINKS: short copy keeps the authored size, long copy comes down to
-  // exactly what the column holds, so nothing can overflow the safe margin.
-  return { lines, size: Math.min(basePx, col / widest) };
+  const L = layout(size);
+  return { lines: L.lines, groups: L.groups, size, forced: !!forced };
 }
 function fitPx(text, basePx, targetCh, floor = 0.58) {
   const len = String(text || "").length || 1;
@@ -406,7 +498,11 @@ function deviceFor(a) {
   if (q <= 0.7) return (Number(a && a.width) || 0) >= 1000 ? "browser" : "phone";
   return "card";
 }
-const NOT_A_BRAND_HOST = /(^|\.)(blob\.[a-z0-9-]+-storage\.com|s3[.-][a-z0-9-]*\.amazonaws\.com|amazonaws\.com|cloudfront\.net|akamaized\.net|fastly\.net|cdn\.[a-z0-9-]+\.[a-z]+|googleusercontent\.com|githubusercontent\.com|imgix\.net|cloudinary\.com|wp\.com|shopifycdn\.com|squarespace-cdn\.com|typekit\.net|gstatic\.com)$/i;
+// Storage/CDN hosts AND stock-media providers. The stock set was missing, so a prompt-only film
+// whose assets all came from providers put "pixabay.com" in the browser chrome and under the CTA
+// button as if it were the advertiser's address (shipped on job haery2z35t). A provider's domain
+// is never the address anyone should type.
+const NOT_A_BRAND_HOST = /(^|\.)(blob\.[a-z0-9-]+-storage\.com|s3[.-][a-z0-9-]*\.amazonaws\.com|amazonaws\.com|cloudfront\.net|akamaized\.net|fastly\.net|cdn\.[a-z0-9-]+\.[a-z]+|googleusercontent\.com|githubusercontent\.com|imgix\.net|cloudinary\.com|wp\.com|shopifycdn\.com|squarespace-cdn\.com|typekit\.net|gstatic\.com|pixabay\.com|pexels\.com|unsplash\.com|openverse\.org|wikimedia\.org|wikipedia\.org|staticflickr\.com|flickr\.com|freesound\.org)$/i;
 // The address the film puts on screen. The brand's OWN domain wins and is already known —
 // graph.js derives it from the job's websiteUrl and passes it through `localized` as
 // ctaUrl. Asset sourceUrls are the fallback, minus storage/CDN hosts, which are never the
@@ -417,6 +513,14 @@ function addressFrom(assets, S) {
   for (const a of Array.isArray(assets) ? assets : []) {
     const u = a && a.sourceUrl;
     if (!u) continue;
+    // PROVENANCE, NOT A HOST LIST. Only OWNED material — the job's own site captures and the
+    // user's uploads — can nominate the brand's address. A stock asset's sourceUrl names its
+    // provider, and the blocklist below can never enumerate every provider: pixabay.com shipped
+    // as a CTA address on haery2z35t, then stocksnap.io (via openverse) on the very next
+    // confirmation run. The host list stays as a second net for owned-asset URLs that point at
+    // CDNs.
+    const src = String((a && a.source) || "").toLowerCase();
+    if (src !== "website" && src !== "upload") continue;
     try {
       const h = new URL(String(u)).hostname.replace(/^www\./, "");
       if (h && !NOT_A_BRAND_HOST.test(h)) return h;
@@ -701,7 +805,22 @@ function build(skin, { storyboard, dims, framePack, captionCues, assets, brandSk
   const Str = { ...BASE_STRINGS, ...(skin.strings || {}), ...(localized || {}) };
   const sb = storyboard || {};
   const W = (dims && dims.width) || 1080, H = (dims && dims.height) || 1920;
-  TSCALE = clamp(Math.min(W, H) / W, 0.5, 1);
+  // Adopt the skin's AUTHORED stage before any geometry is emitted. Absent (every one of the 89
+  // shipped skins) it is portrait, so RW/RH keep the values they were declared as constants with.
+  setStage(skin.stage);
+  require("./film_beats").setStage(RW, RH);
+  // TYPE SCALE — generalised for an authored stage that is not always 1080x1920.
+  //
+  // X(px) renders at px/RW*W device pixels, so type is already correct whenever the output
+  // matches the authored aspect and needs correcting when it does not. The old expression,
+  // `min(W,H)/W`, encoded that for a 1080-wide authored stage only; for a landscape-authored
+  // skin it would have shrunk every size to 56%.
+  //
+  // Wanted: rendered ≈ authored × (outputShort / authoredShort). Solving for TSCALE gives
+  // (RW/W) × (min(W,H)/min(RW,RH)). For RW=1080, RH=1920 that reduces to (1080/W)×(min(W,H)/1080)
+  // = min(W,H)/W — the previous expression exactly, which is why all 89 portrait packs are
+  // byte-identical (proved by scripts/golden-composers.js).
+  TSCALE = clamp((RW / W) * (Math.min(W, H) / Math.min(RW, RH)), 0.5, 1);
   const capBottom = r(safeArea(W, H).bottom * 38);
 
   const scenes = Array.isArray(sb.scenes) && sb.scenes.length
@@ -807,13 +926,30 @@ function build(skin, { storyboard, dims, framePack, captionCues, assets, brandSk
   // when it holds no picture.
   {
     const off = Math.floor(rnd() * 7);
-    let used = null, n = 0;
+    let used = null, n = 0, slot = 0;
     for (let i = 0; i < scenes.length; i++) {
       const arch = baseArch[i];
       if (arch === "hook" || arch === "cta") continue;
       if (sceneShots[i] && sceneShots[i].length) continue;   // never displace a seated picture
+      // A STATS DECK OUTRANKS A GAUGE. The Ring mechanic is a single number swept to a target;
+      // the stats beat is up to three counted figures with labels — the reference's proof
+      // moment. Converting a scene whose copy parses a full deck traded the richer design for
+      // the poorer one (ember-roast's "340kg / 41 cafés / 96 score" rendered as one gauge).
+      // Ring stands in only when the scene yields fewer than two stats AND its number reads as
+      // a share (percent/multiplier, or ≤100) — an arc swept to "340kg" would be a lie.
+      if (arch === "stats") {
+        const deck = pickStats(scenes[i], 3, Str);
+        if (deck.length >= 2) continue;
+        const n1 = deck[0] || pickNumber(scenes[i]);
+        if (n1 && !(n1.suf === "%" || n1.suf === "x" || n1.target <= 100)) continue;
+      }
       const pool = (MECHANIC_FOR[arch] || []).filter((k) => declared[k]);
       if (!pool.length) continue;
+      // INTERLEAVE, DON'T SATURATE. The reference decks run roughly 40% mechanics and keep the
+      // plain type slams between them; converting EVERY eligible beat meant the 152–160px
+      // Statement design — the family's loudest layout — almost never rendered on an asset-less
+      // film. Every other eligible beat keeps its authored core layout instead.
+      if (slot++ % 2 === 1) continue;
       const pick = pool[(off + n) % pool.length];
       n++;
       if (pick === used) continue;                            // never the same mechanic twice running
@@ -834,7 +970,7 @@ function build(skin, { storyboard, dims, framePack, captionCues, assets, brandSk
 
   // ---- build the scenes -------------------------------------------------------
   const startOf = (i) => scenes.slice(0, i).reduce((a, s) => a + (Number(s.duration) || 0), 0);
-  const bodyParts = [], sceneScripts = [], labels = [], starts = [], durs = [], mechs = [], grounds = [];
+  const bodyParts = [], sceneScripts = [], labels = [], starts = [], durs = [], mechs = [], grounds = [], sceneFgs = [];
   const camOrder = skin.cams && skin.cams.length ? skin.cams : ["pushL", "zoomIn", "hopU", "pushR", "zoomOut", "drop"];
   const camMul = skin.camMul || 5, camOffBase = skin.camOff || 1;
   const camOff = Math.floor(rnd() * camOrder.length);
@@ -898,6 +1034,9 @@ function build(skin, { storyboard, dims, framePack, captionCues, assets, brandSk
     // ground (see film_beats.open), which is both the source's behaviour and what keeps its
     // authored text colour readable.
     const lookForBeat = m ? look.app : (look[arch] || look.statement);
+    // The beat's RESOLVED foreground — what the chrome wears on this beat. The reference's
+    // Chrome takes the scene's `fg` for both the badge disc and the brand name; display floor 2.
+    sceneFgs.push(theme.typeOn(col2(theme, (lookForBeat && lookForBeat.fg) || skin.inkKey), ground, 2));
     const ctx = {
       id: `s${i + 1}`, T, L, i, isLast: i === scenes.length - 1, track: 10 + i,
       theme, skin, S: Str, Str, ground, address, title, look, panelR, sa: safeArea(W, H),
@@ -962,10 +1101,16 @@ function build(skin, { storyboard, dims, framePack, captionCues, assets, brandSk
   // reason it exists. Only the rail and the band it sat in are gone. Guarded by
   // `npm run test:no-playback-chrome`, which rebuilds every pack and fails on both the naming
   // and the shape of a progress fill, so re-adding one cannot pass silently.
+  // THE BADGE WEARS THE BEAT'S FOREGROUND, NOT THE ACCENT. The reference's Chrome paints the
+  // disc with the scene's `fg` (cream on ember-roast's dark beats) and the brand name in the
+  // same fg; both swap per beat. An accent disc was a visible tell against every reference
+  // frame. The icon is baked once against the FIRST beat's fg; the proxy swaps disc + name per
+  // scene (fgs[]), which is the part of the alternation a viewer actually reads.
+  const chromeFg = sceneFgs[0] || theme.onField(grounds[0]);
   const chrome = `<div id="fk-chrome" class="clip" data-start="0" data-duration="${D}" data-track-index="92" data-layout-allow-occlusion style="pointer-events:none;">
     <div style="position:absolute;left:${X(72)};top:${V(56)};display:flex;align-items:center;gap:${X(15)};">
-      ${skin.badge === "none" ? "" : `<div style="width:${X(47)};height:${X(47)};border-radius:${skin.badge === "square" ? X(11) : "999px"};background:${skin.badge === "outline" ? "transparent" : theme.accent};${skin.badge === "outline" ? `border:${X(2)} solid ${theme.accent};` : ""}display:flex;align-items:center;justify-content:center;overflow:hidden;">${renderIcon(skin, theme, grounds[0])}</div>`}
-      <span id="fk-brandname" style="font-family:${theme.displayStack};font-size:${F(31)};color:${theme.onField(grounds[0])};">${esc(String(Str.brandName || theme.brand || "").slice(0, 24))}</span>
+      ${skin.badge === "none" ? "" : `<div id="fk-badge" style="width:${X(47)};height:${X(47)};border-radius:${skin.badge === "square" ? X(11) : "999px"};background:${skin.badge === "outline" ? "transparent" : chromeFg};${skin.badge === "outline" ? `border:${X(2)} solid ${chromeFg};` : ""}display:flex;align-items:center;justify-content:center;overflow:hidden;">${renderIcon(skin, theme, grounds[0], chromeFg)}</div>`}
+      <span id="fk-brandname" style="font-family:${theme.displayStack};font-size:${F(31)};color:${chromeFg};">${esc(String(Str.brandName || theme.brand || "").slice(0, 24))}</span>
     </div>
   </div>`;
 
@@ -990,19 +1135,12 @@ function build(skin, { storyboard, dims, framePack, captionCues, assets, brandSk
   var $=function(s){return document.querySelector(s);};
   var $$=function(s){return Array.prototype.slice.call(document.querySelectorAll(s));};
 
-  // Count-up: a scrubbed numeric proxy, so a seek to any time shows the right number. The
-  // element's RESTING text is already the final value.
-  function count(scope,at,dur){
-    $$(scope+" [data-count]").forEach(function(el){
-      var target=parseFloat(el.getAttribute("data-count"))||0;
-      var suf=el.getAttribute("data-suffix")||"";
-      var o={v:0};
-      tl.to(o,{v:target,duration:dur,ease:"power3.out",immediateRender:false,onUpdate:function(){
-        var s=Math.round(o.v)+suf; if(el.textContent!==s)el.textContent=s;
-      }},at);
-    });
-  }
-  ${starts.map((t, i) => `count("#s${i + 1}",${r(t + 0.25)},${r(Math.max(0.8, durs[i] * 0.6))});`).join("\n  ")}
+  // Count-ups are driven from the seek proxy below (see the CNTS loop) with the source's own
+  // curve — outCubic(seg(p, 0.12 + i*0.08, 0.75)) in PACE space, each row staggered, all
+  // landing together at 75% of the action. A GSAP tween runs linearly in TIME, and the PACE
+  // remap makes mid-scene action sit well ahead of mid-scene time, so a tweened count read
+  // visibly behind the reference at the same timestamp. The element's RESTING text is already
+  // the final value.
 
   ${sceneScripts.join("\n  ")}
 
@@ -1010,14 +1148,16 @@ function build(skin, { storyboard, dims, framePack, captionCues, assets, brandSk
   var cues=${JSON.stringify(cues)};
   var starts=${JSON.stringify(starts)};
   var durs=${JSON.stringify(durs)};
-  var inks=${JSON.stringify(grounds.map((g) => theme.onField(g)))};
+  var fgs=${JSON.stringify(sceneFgs)};
   var grounds=${JSON.stringify(grounds)};
   var worldEl=$("#fk-world"),groundEl=$("#fk-ground");
   var MECHS=${JSON.stringify(mechs)};
   var AMB=${r(skin.ambient || 1.7)};
   var MAG=${JSON.stringify({ driftX: mag.driftX, driftY: mag.driftY, driftZ: mag.driftZ, out: mag.out })};
   var ENERGY=${r(energy)};
-  var capPill=$("#cap-pill"),capText=$("#cap-text"),brandEl=$("#fk-brandname");
+  var capPill=$("#cap-pill"),capText=$("#cap-text"),brandEl=$("#fk-brandname"),badgeEl=$("#fk-badge");
+  var BADGE_OUTLINE=${skin.badge === "outline" ? "true" : "false"};
+  var CNTS=starts.map(function(_,d){return $$("#s"+(d+1)+" [data-count]");});
   var curCue=-1,curScene=-1;
   tl.to({},{duration:D,ease:"none",onUpdate:function(){
     var now=tl.time();
@@ -1025,7 +1165,9 @@ function build(skin, { storyboard, dims, framePack, captionCues, assets, brandSk
     var si=0; while(si<starts.length-1&&now+0.24>=starts[si+1])si++;
     if(si!==curScene){
       curScene=si;
-      if(brandEl)brandEl.style.color=inks[si];
+      // The chrome wears the BEAT'S fg, as the reference's Chrome does — name and disc both.
+      if(brandEl)brandEl.style.color=fgs[si];
+      if(badgeEl){if(BADGE_OUTLINE){badgeEl.style.borderColor=fgs[si];}else{badgeEl.style.background=fgs[si];}}
       // THE GROUND IS PER BEAT. Each beat's look.<beat>.bg IS its field — the source swaps the
       // whole ground per beat, and every beat's text colour is authored against ITS OWN field.
       // Painting one ground for the whole film therefore does not merely lose the alternation:
@@ -1043,6 +1185,24 @@ function build(skin, { storyboard, dims, framePack, captionCues, assets, brandSk
       var dy=Math.cos(now*AMB*0.46)*MAG.driftY*ENERGY;
       var dz=1+lp*MAG.driftZ*ENERGY;
       el.style.transform="translate("+dx.toFixed(2)+"px,"+dy.toFixed(2)+"px) scale("+dz.toFixed(4)+")";
+      // The source's drift fades toward the cut: opacity 1 - inCubic(seg(p, out, 1)) * 0.35.
+      var pc=lp<=0.2?lp*2.5:lp<=0.78?0.5+(lp-0.2)*0.41379:0.74+(lp-0.78)*1.18182;
+      var ot=(pc-MAG.out)/(1-MAG.out||1e-6); if(ot<0)ot=0; if(ot>1)ot=1;
+      el.style.opacity=(1-ot*ot*ot*0.35).toFixed(3);
+    }
+    // COUNT-UPS — the source's curve, recomputed per seek: outCubic(seg(p, .12+i*.08, .75)).
+    for(var c2=0;c2<CNTS.length;c2++){
+      var lst=CNTS[c2]; if(!lst.length)continue;
+      var lpc=(now-starts[c2])/(durs[c2]||1); if(lpc<0)lpc=0; if(lpc>1)lpc=1;
+      var pcc=lpc<=0.2?lpc*2.5:lpc<=0.78?0.5+(lpc-0.2)*0.41379:0.74+(lpc-0.78)*1.18182;
+      for(var ci=0;ci<lst.length;ci++){
+        var elc=lst[ci];
+        var a0=0.12+Math.min(ci,2)*0.08;
+        var sgc=(pcc-a0)/(0.75-a0); if(sgc<0)sgc=0; if(sgc>1)sgc=1;
+        var ec=1-Math.pow(1-sgc,3);
+        var s2=(elc.getAttribute("data-pre")||"")+Math.round(ec*(parseFloat(elc.getAttribute("data-count"))||0))+(elc.getAttribute("data-suffix")||"");
+        if(elc.textContent!==s2)elc.textContent=s2;
+      }
     }
     // INTERACTION MECHANICS — recomputed from scene-local progress, exactly as the source
     // recomputes them per frame. Seek-exact in both directions.
@@ -1111,7 +1271,7 @@ window.FKMECH=FKMECH;
     `<!DOCTYPE html>`, `<html lang="en">`, `<head>`, `<meta charset="utf-8">`, `<title>vid</title>`,
     `<script src="${GSAP_CDN}"></script>`,
     `<style>`, style, `</style>`, `</head>`, `<body>`,
-    `<div id="root" class="composition" data-composition-id="vid" data-width="${W}" data-height="${H}" data-start="0" data-duration="${D}" style="width:${W}px;height:${H}px;">`,
+    `<div id="root" class="composition" data-composition-id="vid" data-fk-rev="${ENGINE_REV}" data-width="${W}" data-height="${H}" data-start="0" data-duration="${D}" style="width:${W}px;height:${H}px;">`,
     worldClip,
     bodyParts.join("\n"),
     chrome, caps,
@@ -1168,17 +1328,25 @@ function svgR(type, props, ...kids) {
   return { __svg: out };
 }
 svgR.Fragment = "g";
-function renderIcon(skin, theme, fg) {
+// `ground` feeds theme.currentBg (the reference's Frame sets it to the beat's bg before Chrome
+// renders — icons stroke in it to contrast the fg disc they sit on); `fg` is the disc colour.
+// Conflating the two painted the icon in its own disc colour and it vanished.
+function renderIcon(skin, theme, ground, fg) {
   if (typeof skin.icon !== "function") return "";
   try {
-    const out = skin.icon({ ...theme.c, currentBg: fg, accent: theme.accent, ink: theme.ink, paper: theme.paper }, fg, svgR);
+    const out = skin.icon({ ...theme.c, currentBg: ground, accent: theme.accent, ink: theme.ink, paper: theme.paper }, fg, svgR);
     return out && out.__svg ? out.__svg : "";
   } catch { return ""; }
 }
 
 module.exports = {
   build, BASE_STRINGS, PRESETS,
-  X, V, F, RW, RH, clamp, clamp01, rgba, hexToRgb, relLum, ratio, reHue, hueOf,
+  X, V, F, clamp, clamp01, rgba, hexToRgb, relLum, ratio, reHue, hueOf,
+  // RW/RH are per-build now, so they are exposed as accessors rather than as the load-time
+  // snapshot a plain `RW, RH` would have frozen. (Nothing outside this module read them, which
+  // is what made the change safe; these exist so film_beats and the harnesses can ask.)
+  get RW() { return RW; }, get RH() { return RH; },
+  isWide, setStage, STAGES,
   seedFrom, mulberry32, buildTheme,
   wordsOf, forcedLines, featureLines, pickNumber, pickStats, shortLabel, fitLines, fitPx, soloSize, trackEm,
   shotOk, shotReserveOk, logoAssetOf, ratioOf, deviceFor, addressFrom, scrollPlan,

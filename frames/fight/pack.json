@@ -105,20 +105,11 @@
   "media": {
     "requiredAssets": {
       "screenshots": 2,
-      "productImages": 4,
+      "productImages": 1,
       "logos": 1
     },
     "placeholders": [],
     "slotsByRole": {
-      "hook": {
-        "count": 1,
-        "width": 620,
-        "height": 760,
-        "priority": "critical",
-        "objectFit": "cover",
-        "kind": "productImages",
-        "note": ""
-      },
       "feature": {
         "count": 1,
         "width": 900,
@@ -130,27 +121,9 @@
       },
       "how": {
         "count": 1,
-        "width": 900,
-        "height": 561,
+        "width": 360,
+        "height": 760,
         "priority": "high",
-        "objectFit": "cover",
-        "kind": "screenshots",
-        "note": ""
-      },
-      "proof": {
-        "count": 1,
-        "width": 900,
-        "height": 561,
-        "priority": "high",
-        "objectFit": "cover",
-        "kind": "screenshots",
-        "note": ""
-      },
-      "context": {
-        "count": 1,
-        "width": 900,
-        "height": 561,
-        "priority": "medium",
         "objectFit": "cover",
         "kind": "screenshots",
         "note": ""

@@ -156,7 +156,27 @@ async function callModel({ modelId, messages, jsonMode, temperature, maxTokens, 
     );
   }
   const responses = protocol === "responses";
-  const url = responses ? `${baseUrl}/responses` : `${baseUrl}/chat/completions`;
+  // ANTHROPIC MESSAGES — the third dialect, and the only way to reach Claude on KIE.
+  //
+  // Probed directly against the provider: KIE serves Claude at https://api.kie.ai/claude/v1
+  // under Anthropic's own /messages contract. It is NOT reachable through the OpenAI slug
+  // convention the gemini family uses — `claude-*-openai/v1`, `claude/v1/chat/completions` and
+  // every variant return 422 "The model is not supported".
+  //
+  // AND THE OPENAI SLUG IS A TRAP, not merely a dead end: posting model:"claude-opus-5" to
+  // .../gemini-3-6-flash-openai/v1/chat/completions returns HTTP 200 with a normal completion,
+  // because that endpoint routes on the PATH and ignores the model field. A config that named
+  // Claude against a gemini baseUrl would look correct, cost money and silently serve Gemini.
+  const anthropic = protocol === "anthropic";
+  const url = responses ? `${baseUrl}/responses`
+    : anthropic ? `${baseUrl}/messages`
+      : `${baseUrl}/chat/completions`;
+
+  // Anthropic takes the system prompt as a TOP-LEVEL parameter, not as a messages entry — a
+  // {role:"system"} left in the array is rejected. chat() always builds [system, user], so it is
+  // split back out here rather than at every call site.
+  const sysMsg = anthropic ? messages.find((m) => m.role === "system") : null;
+  const convo = anthropic ? messages.filter((m) => m.role !== "system") : messages;
 
   // KIE defaults stream:true on BOTH protocols — it must be forced off or the body
   // comes back as an SSE event stream instead of one JSON object.
@@ -167,12 +187,20 @@ async function callModel({ modelId, messages, jsonMode, temperature, maxTokens, 
         input: toResponsesInput(messages),
         temperature: temperature ?? config.llm.temperature,
       }
-    : {
-        model: modelId,
-        messages,
-        stream: false,
-        temperature: temperature ?? config.llm.temperature,
-      };
+    : anthropic
+      ? {
+          model: modelId,
+          stream: false,
+          messages: convo,
+          ...(sysMsg && sysMsg.content ? { system: String(sysMsg.content) } : {}),
+          temperature: temperature ?? config.llm.temperature,
+        }
+      : {
+          model: modelId,
+          messages,
+          stream: false,
+          temperature: temperature ?? config.llm.temperature,
+        };
 
   // Always send the output ceiling. Omitting it makes KIE apply its OWN low default
   // (~1k tokens), which silently TRUNCATES long replies — notably multi-line
@@ -181,10 +209,18 @@ async function callModel({ modelId, messages, jsonMode, temperature, maxTokens, 
   if (Number(maxTokens) > 0) {
     if (responses) body.max_output_tokens = Number(maxTokens);
     else body.max_tokens = Number(maxTokens);
+  } else if (anthropic) {
+    // Anthropic REQUIRES max_tokens — omitting it is a 400, unlike the other two dialects
+    // where it merely lets the provider apply its own low default.
+    body.max_tokens = Number(config.llm.maxTokens?.default) || 12288;
   }
   if (jsonMode) {
     if (responses) body.text = { format: { type: "json_object" } };
-    else body.response_format = { type: "json_object" };
+    // Anthropic has no response_format / JSON mode. The system prompts that use jsonMode
+    // already instruct "return one JSON object and nothing else", and json_lenient's
+    // extractFirstJsonObject tolerates a prose wrapper — which is how every caller reads the
+    // reply anyway. Sending response_format here would be a 400.
+    else if (!anthropic) body.response_format = { type: "json_object" };
   }
   // OpenRouter's unified reasoning control. Only `enabled:false` is honored here —
   // `effort:"minimal"` still emitted 1245 thinking tokens in testing, and
@@ -200,6 +236,10 @@ async function callModel({ modelId, messages, jsonMode, temperature, maxTokens, 
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     };
+    // Anthropic's API version pin. KIE proxies it through; without it the upstream can pick a
+    // different default contract. (Probed: KIE's own 401 body explicitly names the Authorization
+    // header, so Bearer is right here — `x-api-key`, Anthropic's own convention, is rejected.)
+    if (anthropic) headers["anthropic-version"] = "2023-06-01";
     // OpenRouter attributes traffic by these two; both already live in config for TTS.
     if (provider === "openrouter") {
       if (config.llm.httpReferer) headers["HTTP-Referer"] = config.llm.httpReferer;
@@ -250,6 +290,16 @@ async function callModel({ modelId, messages, jsonMode, temperature, maxTokens, 
       tokensIn = data.usage?.input_tokens ?? 0;
       tokensOut = data.usage?.output_tokens ?? 0;
       finish = data.status || data.incomplete_details?.reason || "?";
+    } else if (anthropic) {
+      // content[] is a list of blocks; only the text ones carry the reply (a thinking-enabled
+      // model also emits `thinking` blocks, which must not be concatenated into the answer).
+      text = (data.content || [])
+        .filter((c) => c && c.type === "text" && typeof c.text === "string")
+        .map((c) => c.text)
+        .join("");
+      tokensIn = data.usage?.input_tokens ?? 0;
+      tokensOut = data.usage?.output_tokens ?? 0;
+      finish = data.stop_reason || "?";
     } else {
       text = data.choices?.[0]?.message?.content ?? "";
       tokensIn = data.usage?.prompt_tokens ?? 0;

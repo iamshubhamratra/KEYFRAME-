@@ -1,0 +1,12 @@
+{
+  "pack": "signal-stack",
+  "composition": "af846ffdb2d69e2b",
+  "fixture": "Northwind",
+  "previewSec": 8.4,
+  "posterAt": 7.83,
+  "posterLuma": 29,
+  "posterDetail": 29,
+  "posterGroundGap": 34,
+  "generatedAt": "2026-08-17T05:29:42.363Z",
+  "generatedBy": "src/templates/media.js"
+}

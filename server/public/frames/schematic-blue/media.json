@@ -1,0 +1,12 @@
+{
+  "pack": "schematic-blue",
+  "composition": "48dede775bde72f4",
+  "fixture": "Northwind",
+  "previewSec": 8.4,
+  "posterAt": 6.36,
+  "posterLuma": 215,
+  "posterDetail": 15,
+  "posterGroundGap": 44,
+  "generatedAt": "2026-08-17T06:05:11.702Z",
+  "generatedBy": "src/templates/media.js"
+}

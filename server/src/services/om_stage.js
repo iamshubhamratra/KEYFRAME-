@@ -392,7 +392,9 @@ function deviceFor(a) {
 // Hosts that serve a brand's FILES but are not the brand's address. An asset harvested from
 // a site routinely carries a storage/CDN sourceUrl, and putting one on screen tells the
 // viewer to visit a bucket.
-const NOT_A_BRAND_HOST = /(^|\.)(blob\.[a-z0-9-]+-storage\.com|s3[.-][a-z0-9-]*\.amazonaws\.com|amazonaws\.com|cloudfront\.net|akamaized\.net|fastly\.net|cdn\.[a-z0-9-]+\.[a-z]+|googleusercontent\.com|githubusercontent\.com|imgix\.net|cloudinary\.com|wp\.com|shopifycdn\.com|squarespace-cdn\.com|typekit\.net|gstatic\.com)$/i;
+// Storage/CDN hosts AND stock-media providers — a provider's domain (pixabay.com) is never the
+// advertiser's address. Same fix as film_stage.js; shipped on job haery2z35t.
+const NOT_A_BRAND_HOST = /(^|\.)(blob\.[a-z0-9-]+-storage\.com|s3[.-][a-z0-9-]*\.amazonaws\.com|amazonaws\.com|cloudfront\.net|akamaized\.net|fastly\.net|cdn\.[a-z0-9-]+\.[a-z]+|googleusercontent\.com|githubusercontent\.com|imgix\.net|cloudinary\.com|wp\.com|shopifycdn\.com|squarespace-cdn\.com|typekit\.net|gstatic\.com|pixabay\.com|pexels\.com|unsplash\.com|openverse\.org|wikimedia\.org|wikipedia\.org|staticflickr\.com|flickr\.com|freesound\.org)$/i;
 
 // The address the film puts on screen — in the browser chrome and, more importantly, under
 // the CTA.
@@ -410,6 +412,10 @@ function addressFrom(assets, S) {
   for (const a of Array.isArray(assets) ? assets : []) {
     const u = a && a.sourceUrl;
     if (!u) continue;
+    // PROVENANCE, NOT A HOST LIST — only owned material (site captures, uploads) may nominate
+    // the brand address; a stock asset's sourceUrl names its provider. Same fix as film_stage.
+    const src = String((a && a.source) || "").toLowerCase();
+    if (src !== "website" && src !== "upload") continue;
     try {
       const h = new URL(String(u)).hostname.replace(/^www\./, "");
       if (h && !NOT_A_BRAND_HOST.test(h)) return h;

@@ -1,0 +1,182 @@
+{
+  "name": "alpha-collision",
+  "vibe": "A Swiss-modernist motion system charged with one electric accent: #28f02c lime cutting across near-black #060b09, deep pine and an electric-violet #4b3bff statement ground. Poppins does all the talking — ExtraBold headlines sliced in with machete wipes, SemiBold labels, Regular support — so the whole film reads as one typographic voice. The world is a slow ruled grid with a wide lime bloom, a drifting violet orb and a raking beam that sweeps across the 16:9 frame, so backgrounds keep moving even when copy holds. Beats alternate ground hard: black hook, violet claim, paper feature card with glowing ink screenshot plate, black tile wall, pine counters, black close with a lime glow button. Built for SaaS, AI, fintech, e-commerce and startup product promos that need screenshots shown large and brand colour rotated through every gradient, border, chip and glow.",
+  "orientation": "landscape",
+  "category": "Technology",
+  "tags": [
+    "modern",
+    "motion-design",
+    "kinetic-typography",
+    "premium",
+    "dynamic",
+    "technology",
+    "saas"
+  ],
+  "renderer": "film-alpha-collision",
+  "colors": {
+    "void": "#060b09",
+    "graphite": "#16211c",
+    "pine": "#0b3b28",
+    "lime": "#28f02c",
+    "ultra": "#4b3bff",
+    "paper": "#f2f7f2",
+    "ink": "#050807",
+    "ground": "#060b09",
+    "text": "#f2f7f2",
+    "accent": "#28f02c"
+  },
+  "fonts": [
+    "Poppins",
+    "JetBrains Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#060b09",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "push",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#28f02c",
+      "#4b3bff",
+      "#0b3b28"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "Crisp editorial product and interface photography, hard directional key light plus one lime rim. Near-black or bone-white backdrops, shallow depth on hardware, screens tack sharp. Slight cyan-green shadow grade, neutral highlights, no bokeh clutter. Screenshots pixel-accurate, cropped to key UI.",
+    "iconStyle": "line",
+    "keywords": [
+      "laptop showing a dashboard",
+      "phone held in one hand with app open",
+      "close-up of a data chart on screen",
+      "team at a standing desk",
+      "sleek hardware product on seamless backdrop",
+      "developer typing at a keyboard",
+      "credit card and phone payment tap",
+      "warehouse or fulfilment shelf detail",
+      "abstract macro of glass and light"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo",
+      "illustration"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Poppins",
+    "body": "Poppins",
+    "mono": "JetBrains Mono"
+  },
+  "media": {
+    "requiredAssets": {
+      "screenshots": 3,
+      "productImages": 8,
+      "logos": 1
+    },
+    "placeholders": [],
+    "slotsByRole": {
+      "hook": {
+        "count": 1,
+        "width": 725,
+        "height": 450,
+        "priority": "critical",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the opening device frame, beside the copy"
+      },
+      "context": {
+        "count": 2,
+        "width": 709,
+        "height": 562,
+        "priority": "medium",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the statement beat's grounding card, beside the copy"
+      },
+      "feature": {
+        "count": 2,
+        "width": 851,
+        "height": 528,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "screenshots",
+        "note": "the hero media card, leading the row"
+      },
+      "how": {
+        "count": 4,
+        "width": 399,
+        "height": 475,
+        "priority": "high",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the 1x4 tile row"
+      },
+      "proof": {
+        "count": 1,
+        "width": 1920,
+        "height": 700,
+        "priority": "low",
+        "objectFit": "cover",
+        "kind": "productImages",
+        "note": "the dimmed backing plate behind the counters"
+      }
+    },
+    "oversample": 1.6,
+    "addressing": "scene",
+    "stage": {
+      "width": 1920,
+      "height": 1080
+    }
+  },
+  "audio": {
+    "mood": "high-gloss kinetic drive — precise, bright, forward-leaning without turning frantic",
+    "archetype": "anthem",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "electronic",
+      "tech-house",
+      "cinematic",
+      "modern-pop"
+    ],
+    "musicKeywords": [
+      "neon pulse",
+      "driving percussion",
+      "rising arp",
+      "glass stabs",
+      "bright riser",
+      "clean sub bass",
+      "forward momentum",
+      "bright pluck",
+      "sidechain swell",
+      "techno groove",
+      "future tech",
+      "confident build",
+      "sharp transient",
+      "wide stereo pad"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "light-sweep",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  }
+}

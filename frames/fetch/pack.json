@@ -104,58 +104,22 @@
   "media": {
     "requiredAssets": {
       "screenshots": 2,
-      "productImages": 5,
+      "productImages": 1,
       "logos": 1
     },
     "placeholders": [],
     "slotsByRole": {
-      "hook": {
-        "count": 1,
-        "width": 789,
-        "height": 561,
-        "priority": "critical",
-        "objectFit": "cover",
-        "kind": "productImages",
-        "note": ""
-      },
       "feature": {
         "count": 1,
-        "width": 860,
-        "height": 507,
+        "width": 360,
+        "height": 740,
         "priority": "high",
         "objectFit": "cover",
-        "kind": "productImages",
-        "note": ""
-      },
-      "how": {
-        "count": 1,
-        "width": 860,
-        "height": 507,
-        "priority": "high",
-        "objectFit": "cover",
-        "kind": "productImages",
-        "note": ""
-      },
-      "proof": {
-        "count": 1,
-        "width": 860,
-        "height": 507,
-        "priority": "high",
-        "objectFit": "cover",
-        "kind": "productImages",
-        "note": ""
-      },
-      "context": {
-        "count": 1,
-        "width": 860,
-        "height": 507,
-        "priority": "medium",
-        "objectFit": "cover",
-        "kind": "productImages",
+        "kind": "screenshots",
         "note": ""
       }
     },
-    "oversample": 1.6,
+    "oversample": 1.3,
     "addressing": "scene"
   }
 }

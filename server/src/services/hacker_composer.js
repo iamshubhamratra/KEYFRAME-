@@ -480,7 +480,12 @@ function sDeploy(scene, ctx, logo) {
 // `statement` rather than drawing a hollow window.
 const SPEC = {
   first: "boot", last: "deploy",
-  middle: ["access", "compile", "nodes", "metrics"],
+  // `middle` is the rotation PREFERENCE order om_port_kit.assignRoles walks, not the story order
+  // (that is first -> ... -> last). services/template_media puts this pack's CRITICAL media slot on
+  // scene 2 — the first middle scene — so a middle[0] whose slots() returns 0 guarantees it renders
+  // empty. `access` draws nothing; `compile` is the terminal window that holds the screenshot.
+  // `boot` still opens and `deploy` still closes. Same defect and fix as orbit/fetch/fight.
+  middle: ["compile", "nodes", "access", "metrics"],
   shapes: {
     compile: [850 / 460], nodes: [540 / 260, 540 / 260],
     boot: [], access: [], metrics: [], deploy: [], statement: [], "statement-c": [],

@@ -37,27 +37,13 @@ const MIME = {
   ".mp4": "video/mp4", ".webm": "video/webm", ".woff2": "font/woff2", ".woff": "font/woff",
 };
 
-// Locate a usable Chromium. Mirrors runtime_check.findChromium so the gate uses
-// the same browser the renderer downloaded — no extra install.
-function findChromium() {
-  if (process.env.PUPPETEER_EXECUTABLE_PATH) return process.env.PUPPETEER_EXECUTABLE_PATH;
-  const home = process.env.USERPROFILE || process.env.HOME || "";
-  const root = path.join(home, ".cache", "puppeteer", "chrome");
-  const out = [];
-  try {
-    for (const dir of fs.readdirSync(root)) {
-      for (const sub of [
-        "chrome-win64/chrome.exe",
-        "chrome-linux64/chrome",
-        "chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
-      ]) {
-        const exe = path.join(root, dir, sub);
-        if (fs.existsSync(exe)) out.push(exe);
-      }
-    }
-  } catch { /* no cache */ }
-  return out.sort().reverse()[0] || null;
-}
+// Locate a usable Chromium — the same browser the renderer downloaded, no extra install.
+//
+// IMPORTED, not copied. This used to be a hand-kept mirror of runtime_check.findChromium, and the
+// three copies in this repo had already drifted apart: only one of them knew about Apple silicon,
+// and all three ordered versions lexically (so a two-digit major would out-sort a three-digit one
+// and select a years-old browser). One implementation, one place to fix.
+const { findChromium } = require("./runtime_check");
 
 // Serve the job dir over an ephemeral localhost server so assets/fonts/ESM
 // imports resolve exactly as in the real render (avoids file:// CORS).
