@@ -79,3 +79,44 @@ server/.server*.log
 server/.last_job
 server/.lastprisma
 server/jobs.json.bak-*
+
+# ── admin template system (src/templates/) — MACHINE-LOCAL STATE ────────────────
+#
+# All three are the admin workstation's working state, not source. What PUBLISHING a template
+# produces is committed through paths that are already tracked, and is deliberately a different
+# list to this one:
+#
+#   frames/<slug>/{pack.json,FRAME.md}            the pack itself
+#   server/src/services/film_skins/<slug>.js      its composer module
+#   server/public/frames/<slug>/{poster.jpg,preview.mp4,media.json}   its shop window
+#   server/scripts/golden-composers.txt           its two baseline lines
+#
+# So on a host with an ephemeral filesystem (see render.yaml), the supported route is to
+# generate and publish in a checkout, commit those four, and redeploy — which also keeps
+# published templates in version control beside the 135 that already live there.
+#
+# ONE ASYMMETRY TO KNOW ABOUT: a DRAFT's pack directory is ignored (frames_draft/, below) but its
+# composer module is not — it lives in the tracked src/services/film_skins/, so an unpublished
+# template shows up in `git status` as one untracked .js file. That is deliberate: it is a useful
+# "you have unfinished template work" signal, and the file has to sit there for the composer scan
+# to register it. But `git add -A` on a draft commits the skin WITHOUT its pack, which leaves a
+# renderer registered that no pack selects — harmless, and untidy. Publish it, or delete the
+# template from the admin dashboard (which removes the skin too).
+
+# Unpublished templates. Drafts are invisible to users BY LIVING HERE (src/templates/paths.js),
+# and putting a half-finished design in the repo would undo the point of the split.
+frames_draft/
+
+# Preview stills and render scratch. Regenerated on demand, and large.
+server/template_work/
+
+# The lifecycle store. Per-machine admin metadata — records for drafts that exist only on this
+# box, and a catalogue production has no use for (it is .dockerignore'd too). The registry is
+# filesystem-driven, so a published pack works without it.
+server/data/
+
+# Framecheck stills. What shot-film-pack.js / shot-film-reference.js write when you inspect a
+# pack shot-by-shot: one PNG per scene, per pack, at ~1MB each — 148MB the first time anyone
+# runs the harness across the library. Pure output, regenerated on demand, and never read by
+# anything but a human eye comparing two folders.
+server/framecheck/
