@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #0e061c; }
+  * { box-sizing: border-box; }
+  a { color: #45e0ff; text-underline-offset: 3px; }
+  a:hover { color: #45e0ff; opacity: 0.8; }
+</style>
+<template id="__bundler_thumbnail">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#1a0b2e"/><circle cx="50" cy="42" r="20" fill="#ff5c8a"/><rect x="30" y="46" width="40" height="3" fill="#1a0b2e"/><rect x="30" y="53" width="40" height="4" fill="#1a0b2e"/><path d="M0 66h100M50 66L20 100M50 66l30 34M50 66V100" stroke="#45e0ff" stroke-width="2"/></svg>
+</template>
+<script>window.OM_SCENES = '[{"name":"Hook","dur":2.9,"kicker":"SIDE B · 1986","title":"DRIVE INTO|THE GRID.","sub":"A sunset that never sets, a bassline that never quits."},{"name":"Code","dur":2.5,"title":"PATCH|NOTES.","lines":["// lead voice","osc1.wave = \\"saw\\";","osc2.detune(+7);","filter.cutoff(0.62).resonance(0.3);","delay.sync(\\"1/8 dotted\\");","voice.glide(0.12);"],"out":"› SOUNDS EXPENSIVE"},{"name":"Statement","dur":2.7,"title":"THE FUTURE|WAS ANALOG.","sub":"Warm tape, cold neon, perfect hum."},{"name":"Feature","dur":2.9,"title":"THE SETUP,|RACKED.","chips":["Six oscillators","Spring reverb","One tape deck"],"image":""},{"name":"Cursor","dur":2.8,"title":"PRESS|PLAY.","caption":"NIGHTDRIVE.WAV · 4:12","btn":"▶ PLAY","after":"❚❚ 0:07","toggle":"Cassette hiss"},{"name":"Stats","dur":2.9,"title":"STUDIO|COUNT.","stats":[{"to":64,"suffix":"","label":"bars of pure arpeggio"},{"to":7,"suffix":"","label":"synths, one older than you"},{"to":1,"suffix":"","label":"tape machine, temperamental"}]},{"name":"Morph","dur":2.8,"title":"TONIGHT’S|PRESET.","prefix":"PATCH:","steps":["LASERGRID","CHROMEDUSK","VHS HEART","MIDNIGHT FM"],"sub":"Names are half the sound design."},{"name":"Statement","dur":2.5,"title":"CHROME|NEVER RUSTS.","sub":"Not in this timeline."},{"name":"Notify","dur":2.8,"title":"THE LABEL|CALLS.","notes":[["Demo received","Side A is strong. Side B is stronger."],["Pressing confirmed","500 on pink vinyl, obviously"],["Release night","Rooftop, projector, bring the fog machine"]]},{"name":"Feature","dur":2.9,"title":"POSTER,|FINAL CUT.","chips":["Grid horizon","Striped sun","Your name in chrome"],"image":""},{"name":"Code","dur":2.7,"title":"SEQUENCER|LOOP.","lines":["for (let bar = 0; bar < 64; bar++) {","  kick.every(1);","  snare.on([2, 4]);","  bass.follow(chords[bar % 4]);","}","fadeOut(16);"],"out":"› 118 BPM · LOCKED"},{"name":"Stats","dur":2.9,"title":"RELEASE|NIGHT.","stats":[{"to":500,"suffix":"","label":"records, sold to the last one"},{"to":118,"suffix":"bpm","label":"the only tempo that matters"},{"to":4,"suffix":"am","label":"when the rooftop finally emptied"}]},{"name":"Cursor","dur":2.8,"title":"RENDER THE|MIXDOWN.","caption":"Master bus — ready","btn":"BOUNCE","after":"RENDERED ✓","toggle":"Extra chorus"},{"name":"Statement","dur":2.5,"title":"SLOW DOWN|THE ARPEGGIO.","sub":"Let the pad breathe underneath."},{"name":"Morph","dur":2.8,"title":"THE DRIVE|PLAYLIST.","prefix":"NOW:","steps":["Ignition","Overpass","Tunnel Run","Coastline"],"sub":"Four tracks, one long sunset."},{"name":"Notify","dur":2.8,"title":"SCENE|REPORT.","notes":[["Radio pick of the week","The tunnel track, naturally"],["Remix request","From the duo you idolised in 2019"],["Chart position","#3 electronic — climbing"]]},{"name":"Code","dur":2.7,"title":"MASTER|CHAIN.","lines":["bus.compress(2.4);","tape.saturate(0.3);","limiter.ceiling(-0.3);","render(\\"SIDE_B.wav\\");"],"out":"› -14 LUFS · WARM"},{"name":"CTA","dur":3,"title":"REWIND.|REPLAY.","cta":"HEAR SIDE B","url":"synthwave.fm","logo":""}]';</script>
+<script>window.OM_PLAYBACK = '{"mode":"loop"}';</script>
+<script>window.OM_TWEAKS = /*EDITMODE-BEGIN*/{
+  "brand": "Synthwave",
+  "dusk": "#1a0b2e",
+  "pink": "#ff5c8a",
+  "motion": "Lively"
+}/*EDITMODE-END*/;</script>
+</helmet>
+<x-import component-from-global-scope="SynthwaveSunset" from="./animations-v2.jsx ./tweaks-panel.jsx ./film-kit.js ./world-pack-2.js" hint-size="100%,100%"></x-import>
+</x-dc>
+</body>
+</html>

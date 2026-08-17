@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Familjen+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #d8d2c0; }
+  * { box-sizing: border-box; }
+  a { color: #2e5fb3; text-underline-offset: 3px; }
+  a:hover { color: #2e5fb3; opacity: 0.8; }
+</style>
+<template id="__bundler_thumbnail">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#f0ead8"/><path d="M10 34q20-10 40 0t40 0M10 52q20-10 40 0t40 0M10 70q20-10 40 0t40 0" stroke="#2e5fb3" stroke-width="3" fill="none"/><circle cx="72" cy="30" r="12" fill="none" stroke="#e8641f" stroke-width="3" stroke-dasharray="4 3"/><text x="72" y="35" text-anchor="middle" font-family="monospace" font-size="13" fill="#e8641f">L</text></svg>
+</template>
+<script>window.OM_SCENES = '[{"name":"Hook","dur":3,"kicker":"HILLTOP STATION · OBS SINCE 1948","title":"WEATHER IS|HOMEWORK.","sub":"We read the sky at 6, noon, and 6 — then it does whatever it wants."},{"name":"Typing","dur":3.2,"title":"OBS FEED,|06:00Z.","prompt":"station 4471","text":"METAR 0600Z 24014KT 9999 SCT035 12/08 Q1016 — textbook morning","stamp":"transmitted"},{"name":"Statement","dur":2.7,"title":"PRESSURE NEVER|LIES.","sub":"It just falls before the truth arrives."},{"name":"Ring","dur":3,"title":"BAROMETER,|NOW.","to":82,"unit":"%","label":"1016 hPa, STEADY","sub":"The needle’s been polite all week. Suspicious."},{"name":"Scroll","dur":3.2,"title":"STATION|BOARD.","items":[{"t":"Temp, 2m","v":"12.4°"},{"t":"Wind","v":"240/14"},{"t":"Dew point","v":"8.1°"},{"t":"Cloud base","v":"3,500 ft"},{"t":"Rain, 24h","v":"0.2 mm"},{"t":"Sunshine","v":"6.8 hr"}]},{"name":"Feature","dur":3,"title":"THE STEVENSON|SCREEN.","chips":["Louvred & white","Thermometers twin","Opened at 6 sharp"],"image":""},{"name":"Notify","dur":3.2,"title":"FORECAST|DESK.","notes":[["Front due Friday","Isobars tightening fast"],["Gale watch issued","Coast exposed after midnight"],["Fog burned off","Right on schedule, smug"]]},{"name":"Statement","dur":2.7,"title":"ISOBARS CLOSE?|HOLD YOUR HAT.","sub":"The spacing is the whole story."},{"name":"Stats","dur":3,"title":"STATION|RECORD BOOK.","stats":[{"to":77,"suffix":"yr","label":"of unbroken daily readings"},{"to":118,"suffix":"","label":"km/h, the ’87 gust, still framed"},{"to":3,"suffix":"","label":"obs a day, holidays included"}]},{"name":"Montage","dur":3,"title":"INSTRUMENT|GARDEN.","tiles":["Rain gauge","Anemometer","The screen","Sunset watch"]},{"name":"Statement","dur":2.7,"title":"RED SKY?|CHECK THE CHART.","sub":"Proverbs are forecasts with better marketing."},{"name":"Feature","dur":3,"title":"SATURDAY|OPEN DAY.","chips":["Launch a balloon","Read the barograph","Argue about clouds"],"image":""},{"name":"Statement","dur":2.7,"title":"CLIMATE IS WHAT|WE ARCHIVE.","sub":"Weather is what cancels the picnic."},{"name":"Morph","dur":3,"title":"THE WEEK|AHEAD:","prefix":"FORECAST CONFIDENCE 74%","steps":["SUN","FRONT","GALE","CLEARING"],"sub":"Friday is the plot twist. Bring a coat."},{"name":"CTA","dur":3.2,"title":"COME READ|THE SKY.","cta":"Visit the station","url":"frontandisobar.met","logo":""}]';</script>
+<script>window.OM_PLAYBACK = '{"mode":"loop"}';</script>
+<script>window.OM_TWEAKS = /*EDITMODE-BEGIN*/{
+  "brand": "Front & Isobar",
+  "chart": "#f0ead8",
+  "isobar": "#2e5fb3",
+  "motion": "Lively"
+}/*EDITMODE-END*/;</script>
+</helmet>
+<x-import component-from-global-scope="FrontIsobar" from="./animations-v2.jsx ./tweaks-panel.jsx ./film-kit.js ./mega-pack-4.js" hint-size="100%,100%"></x-import>
+</x-dc>
+</body>
+</html>

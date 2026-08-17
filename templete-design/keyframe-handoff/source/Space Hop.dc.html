@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Righteous&family=Chivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #06081c; }
+  * { box-sizing: border-box; }
+  a { color: #6be0b8; text-underline-offset: 3px; }
+  a:hover { color: #6be0b8; opacity: 0.8; }
+</style>
+<template id="__bundler_thumbnail">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#0b0f2a"/><circle cx="70" cy="32" r="14" fill="#6be0b8"/><ellipse cx="70" cy="32" rx="24" ry="5" fill="none" stroke="#8f7ae0" stroke-width="3" transform="rotate(-14 70 32)"/><path d="M34 70q-8 6-10 14 8-2 14-10l-4-4z" fill="#ff6b4a"/><path d="M34 44q8-14 12-14t8 18l-4 14H36zM44 40a4 4 0 100 8 4 4 0 000-8z" fill="#f2f4ff"/><circle cx="22" cy="22" r="2" fill="#fff"/><circle cx="86" cy="66" r="2" fill="#fff"/></svg>
+</template>
+<script>window.OM_SCENES = '[{"name":"Hook","dur":2.9,"kicker":"T-MINUS TEN","title":"Gravity is|a suggestion.","sub":"Boarding now: one small hop for you, one giant weekend for your feed."},{"name":"Code","dur":2.5,"title":"Launch|sequence.","lines":["// final checks","fuel.load(0.98);","guidance.align(\\"LEO-42\\");","for (let t = 10; t > 0; t--) {","  console.log(t);","}","ignition(true);"],"out":"› LIFTOFF CONFIRMED"},{"name":"Statement","dur":2.7,"title":"Up is just|a direction.","sub":"Until the engines make it a lifestyle."},{"name":"Feature","dur":2.9,"title":"Window seat,|low orbit.","chips":["Sunrise ×16 daily","Aurora from above","No middle seat"],"image":""},{"name":"Ring","dur":2.8,"title":"Fuel|status.","to":98,"unit":"%","label":"TANKS","sub":"The two percent is the story for later."},{"name":"Stats","dur":2.9,"title":"Trip|telemetry.","stats":[{"to":16,"suffix":"","label":"sunrises in one day"},{"to":400,"suffix":"km","label":"straight up, give or take"},{"to":0,"suffix":"g","label":"the best number in physics"}]},{"name":"Typing","dur":2.8,"title":"Mission log,|day one.","prompt":"CAPTAIN’S LOG · 04:12 UTC","text":"The Earth fits in one window. Everyone went quiet.","stamp":"LOGGED"},{"name":"Statement","dur":2.5,"title":"The stars|do not twinkle.","sub":"That was the atmosphere. You left it."},{"name":"Notify","dur":2.8,"title":"Station|pings.","notes":[["Aurora alert — port side","Next pass in 11 minutes, cameras ready"],["Cupola free at 14:00","Book your window slot now"],["Fresh supplies docked","There are actual apples"]]},{"name":"Feature","dur":2.9,"title":"The station,|docking view.","chips":["Approach: 0.1 m/s","Coffee: floating","Crew: waving"],"image":""},{"name":"Code","dur":2.7,"title":"Docking|autopilot.","lines":["approach.velocity = 0.1;","if (drift > tolerance) {","  thrusters.pulse(\\"port\\");","}","clamps.engage();"],"out":"› SOFT CAPTURE · OK"},{"name":"Stats","dur":2.9,"title":"Back on|the ground.","stats":[{"to":3,"suffix":"","label":"days of walking funny"},{"to":2600,"suffix":"","label":"photos of the same planet"},{"to":1,"suffix":"","label":"changed perspective, permanent"}]},{"name":"Ring","dur":2.8,"title":"Orbit|insertion.","to":100,"unit":"%","label":"NOMINAL","sub":"Welcome to 27,000 km/h. It feels like nothing."},{"name":"Statement","dur":2.5,"title":"Orbit is|falling, politely.","sub":"Forever sideways. The trick is missing the ground."},{"name":"Typing","dur":2.8,"title":"Message|home.","prompt":"DOWNLINK · PERSONAL","text":"Tell grandma the stars are exactly where she said.","stamp":"SENT"},{"name":"Notify","dur":2.8,"title":"Ground|control says:","notes":[["Trajectory: beautiful","Whoever flew that burn, take a bow"],["Weather at landing site","Clear skies, light wind, perfect"],["Your playlist synced","All 4 hours of it"]]},{"name":"Code","dur":2.7,"title":"RE-ENTRY|CHECK.","lines":["shield.verify();","angle.set(6.2);","chute.arm();","ocean.notify(\\"incoming\\");"],"out":"› GO FOR RE-ENTRY"},{"name":"CTA","dur":3,"title":"Seats are|weightless.","cta":"Reserve a hop","url":"spacehop.travel","logo":""}]';</script>
+<script>window.OM_PLAYBACK = '{"mode":"loop"}';</script>
+<script>window.OM_TWEAKS = /*EDITMODE-BEGIN*/{
+  "brand": "Space Hop",
+  "space": "#0b0f2a",
+  "mint": "#6be0b8",
+  "motion": "Lively"
+}/*EDITMODE-END*/;</script>
+</helmet>
+<x-import component-from-global-scope="SpaceHop" from="./animations-v2.jsx ./tweaks-panel.jsx ./film-kit.js ./world-pack-1.js" hint-size="100%,100%"></x-import>
+</x-dc>
+</body>
+</html>

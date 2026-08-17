@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #12161e; }
+  * { box-sizing: border-box; }
+  a { color: #f0b954; text-underline-offset: 3px; }
+  a:hover { color: #f0b954; opacity: 0.8; }
+</style>
+<template id="__bundler_thumbnail">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#1d2735"/><rect x="12" y="34" width="20" height="60" fill="#28354a"/><rect x="40" y="18" width="22" height="76" fill="#28354a"/><rect x="70" y="44" width="18" height="50" fill="#28354a"/><rect x="45" y="24" width="5" height="7" fill="#f0b954"/><rect x="53" y="24" width="5" height="7" fill="#f0b954"/><rect x="45" y="38" width="5" height="7" fill="#f0b954"/><rect x="16" y="40" width="4" height="6" fill="#f0b954"/><rect x="74" y="50" width="4" height="6" fill="#4fd8c4"/></svg>
+</template>
+<script>window.OM_SCENES = '[{"name":"Hook","dur":2.9,"kicker":"POPULATION: AWAKE","title":"The city runs|on signals.","sub":"Eight million people, one heartbeat, and every window is a pixel."},{"name":"Notify","dur":2.5,"title":"The city|pings back.","notes":[["Line 4 — running early","Next train in 90 seconds, doors left side"],["Rooftop bar: table free","The one with the bridge view, 20:15"],["Air quality: excellent","Tonight is a walk-home kind of night"]]},{"name":"Statement","dur":2.7,"title":"Nothing here|ever idles.","sub":"Even at 4 am, something is being delivered."},{"name":"Feature","dur":2.9,"title":"The grid|from the roof.","chips":["Golden hour","Northern line","Wind: brisk"],"image":""},{"name":"Scroll","dur":2.8,"title":"Departures,|platform 2.","items":[{"t":"Harbour Loop","v":"2 min"},{"t":"Northern Cross","v":"4 min"},{"t":"Museum Quarter","v":"7 min"},{"t":"Old Docks","v":"9 min"},{"t":"University Hill","v":"12 min"},{"t":"Airport Express","v":"14 min"},{"t":"Riverside","v":"18 min"}]},{"name":"Stats","dur":2.9,"title":"By the|numbers.","stats":[{"to":428,"suffix":"","label":"trains threading the grid right now"},{"to":61,"suffix":"","label":"neighbourhoods, each certain it is best"},{"to":24,"suffix":"/7","label":"the only schedule that matters"}]},{"name":"Cursor","dur":2.8,"title":"One tap,|door to door.","caption":"Route planner — live","btn":"Find my route","after":"Route locked ✓","toggle":"Avoid the rain"},{"name":"Statement","dur":2.5,"title":"Rush hour is|a rhythm.","sub":"Learn the beat and you never wait."},{"name":"Code","dur":2.8,"title":"The city has|an API.","lines":["// live city feed","const city = await pulse.connect();","city.on(\\"train\\", eta => board.update(eta));","city.on(\\"sunset\\", () => lights.warm());","city.on(\\"rain\\", () => awnings.out());","console.log(city.mood());"],"out":"› \\"electric\\" — 200 OK"},{"name":"Feature","dur":2.9,"title":"Street level,|zoomed in.","chips":["Steam vents","Neon spill","Cab light constellations"],"image":""},{"name":"Notify","dur":2.7,"title":"Three alerts,|one evening.","notes":[["Pop-up: ramen cart at Dock 9","Until the broth runs out"],["Bridge lights go violet at nine","Marathon week colours"],["Your usual spot is quiet","Corner table, window seat, free now"]]},{"name":"Stats","dur":2.9,"title":"Tonight’s|tally.","stats":[{"to":9,"suffix":"km","label":"walked without meaning to"},{"to":4,"suffix":"","label":"detours, all worth it"},{"to":1,"suffix":"","label":"skyline photo that finally worked"}]},{"name":"Scroll","dur":2.8,"title":"Tonight,|within 500 m.","items":[{"t":"Jazz in the arcade","v":"21:00"},{"t":"Late gallery night","v":"22:00"},{"t":"Dumpling window","v":"open"},{"t":"Rooftop cinema","v":"sold out"},{"t":"Night market, pier 3","v":"till 2"},{"t":"The good bakery (early)","v":"05:30"}]},{"name":"Statement","dur":2.5,"title":"Look up|once a day.","sub":"The skyline changes while you scroll."},{"name":"Cursor","dur":2.8,"title":"Skip the|queue entirely.","caption":"Transit pass","btn":"Top up · $20","after":"Balance $27.50","toggle":"Auto top-up"},{"name":"Code","dur":2.8,"title":"Query:|tonight.","lines":["SELECT venue, vibe FROM tonight","WHERE distance < 500","  AND queue = \\"short\\"","ORDER BY vibe DESC","LIMIT 3;"],"out":"3 rows · 0.02s"},{"name":"Notify","dur":2.7,"title":"Morning|briefing.","notes":[["Bridge run closed 6–8","Marathon rehearsal — detour via pier"],["Coffee cart relocated","Now outside exit C, queue is tiny"],["Sunrise at 06:41","Roof access open, bring a jacket"]]},{"name":"CTA","dur":3,"title":"Plug into|the pulse.","cta":"Get the app","url":"citypulse.io","logo":""}]';</script>
+<script>window.OM_PLAYBACK = '{"mode":"loop"}';</script>
+<script>window.OM_TWEAKS = /*EDITMODE-BEGIN*/{
+  "brand": "City Pulse",
+  "steel": "#1d2735",
+  "window": "#f0b954",
+  "motion": "Lively"
+}/*EDITMODE-END*/;</script>
+</helmet>
+<x-import component-from-global-scope="CityPulse" from="./animations-v2.jsx ./tweaks-panel.jsx ./film-kit.js ./world-pack-1.js" hint-size="100%,100%"></x-import>
+</x-dc>
+</body>
+</html>

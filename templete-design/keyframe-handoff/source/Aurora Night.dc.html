@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #080e18; }
+  * { box-sizing: border-box; }
+  a { color: #57e6a8; text-underline-offset: 3px; }
+  a:hover { color: #57e6a8; opacity: 0.8; }
+</style>
+<template id="__bundler_thumbnail">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#0e1b2e"/><path d="M8 46q12-20 22-12t14 4q12-16 20-10t18-2q6-4 10-12" stroke="#57e6a8" stroke-width="5" fill="none" stroke-linecap="round" opacity="0.85"/><path d="M6 60q14-16 26-10t18 2q10-12 20-8t22-6" stroke="#8f7ae0" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.7"/><path d="M0 88l18-12 14 8 20-14 16 10 18-10 14 8v22H0z" fill="#0a1220"/><circle cx="26" cy="20" r="1.6" fill="#fff"/><circle cx="74" cy="16" r="1.6" fill="#fff"/></svg>
+</template>
+<script>window.OM_SCENES = '[{"name":"Hook","dur":2.9,"kicker":"68° NORTH · CLEAR SKIES","title":"The sky is|about to move.","sub":"Solar wind arrived an hour ago. The green curtains are warming up."},{"name":"Ring","dur":2.5,"title":"Aurora|probability.","to":92,"unit":"%","label":"KP 7 · TONIGHT","sub":"The forecast has never been this confident. Neither have we."},{"name":"Statement","dur":2.7,"title":"It dances.|Nobody leads.","sub":"Charged particles, improvising since forever."},{"name":"Feature","dur":2.9,"title":"The lodge,|lights off.","chips":["Sauna: after","Cocoa: during","Necks: sore tomorrow"],"image":""},{"name":"Scroll","dur":2.8,"title":"Tonight’s|run sheet.","items":[{"t":"Solar wind arrival","v":"21:10"},{"t":"First glow, northern rim","v":"21:48"},{"t":"Curtains form","v":"22:15"},{"t":"Full corona overhead","v":"23:02"},{"t":"Cocoa refill","v":"23:20"},{"t":"Second wave","v":"00:41"},{"t":"Reluctant bedtime","v":"02:30"}]},{"name":"Stats","dur":2.9,"title":"The night,|logged.","stats":[{"to":5,"suffix":"h","label":"under the moving sky"},{"to":400,"suffix":"","label":"timelapse frames captured"},{"to":1,"suffix":"","label":"grown adult crying (happy)"}]},{"name":"Code","dur":2.8,"title":"The forecast,|queried.","lines":["// space weather api","const kp = await aurora.kpIndex();","if (kp >= 5) alert(\\"GO OUTSIDE\\");","const wind = await solar.speed();","console.log(kp, wind);"],"out":"› 7, 612 km/s — GO OUTSIDE"},{"name":"Statement","dur":2.5,"title":"Cold is the|ticket price.","sub":"Minus eighteen buys you the front row."},{"name":"Notify","dur":2.8,"title":"Aurora|alerts.","notes":[["KP just hit 7","Drop everything, the sky is live"],["Substorm building","Ten minutes to the good part"],["Clouds clearing west","The lake viewpoint is open"]]},{"name":"Feature","dur":2.9,"title":"Corona,|straight up.","chips":["KP 7","Whole-sky bloom","Someone actually gasped"],"image":""},{"name":"Ring","dur":2.7,"title":"Night|two.","to":100,"unit":"%","label":"SKY COVERAGE","sub":"Horizon to horizon. The photos will not be believed."},{"name":"Stats","dur":2.9,"title":"Trip|totals.","stats":[{"to":3,"suffix":"","label":"nights, three shows"},{"to":18,"suffix":"°","label":"below zero at the lake"},{"to":0,"suffix":"","label":"photos that do it justice"}]},{"name":"Scroll","dur":2.8,"title":"What to|layer.","items":[{"t":"Merino base","v":"1"},{"t":"Fleece mid","v":"2"},{"t":"Down parka","v":"3"},{"t":"Wind shell","v":"4"},{"t":"Two sock strategy","v":"5"},{"t":"The lodge blanket","v":"6"}]},{"name":"Statement","dur":2.5,"title":"Cameras lie.|Eyes win.","sub":"The photos are greener. The moment is bigger."},{"name":"Code","dur":2.8,"title":"Camera,|scripted.","lines":["camera.iso(3200);","camera.aperture(2.8);","camera.shutter(4);","every(6, () => camera.fire());","// timelapse: 400 frames"],"out":"› 400/400 · CARD FULL"},{"name":"Notify","dur":2.8,"title":"Lodge|messages.","notes":[["Sauna reserved 01:00","The traditional thaw-out"],["Thermos refills at the desk","Cocoa, coffee, or the secret one"],["Wake-up call armed","If it flares again, we knock"]]},{"name":"Ring","dur":2.7,"title":"Cloud|cover.","to":8,"unit":"%","label":"OVER THE LAKE","sub":"Practically naked sky. Get out there."},{"name":"CTA","dur":3,"title":"Chase the|green.","cta":"Book the lodge","url":"auroranight.travel","logo":""}]';</script>
+<script>window.OM_PLAYBACK = '{"mode":"loop"}';</script>
+<script>window.OM_TWEAKS = /*EDITMODE-BEGIN*/{
+  "brand": "Aurora Night",
+  "arctic": "#0e1b2e",
+  "green": "#57e6a8",
+  "motion": "Lively"
+}/*EDITMODE-END*/;</script>
+</helmet>
+<x-import component-from-global-scope="AuroraNight" from="./animations-v2.jsx ./tweaks-panel.jsx ./film-kit.js ./world-pack-4.js" hint-size="100%,100%"></x-import>
+</x-dc>
+</body>
+</html>

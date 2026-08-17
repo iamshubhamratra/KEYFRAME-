@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #0a0918; }
+  * { box-sizing: border-box; }
+  a { color: #6ef06e; text-underline-offset: 3px; }
+  a:hover { color: #6ef06e; opacity: 0.8; }
+</style>
+<template id="__bundler_thumbnail">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#14122b"/><path d="M38 30h6v3h12v3h3v6h6v9h-3v3h-6v-3H44v3h-6v-3h-3v-9h6v-6h-3zM44 39h3v3h-3zM56 39h3v3h-3z" fill="#6ef06e"/><rect x="30" y="70" width="40" height="6" fill="#ff4fd8"/><rect x="47" y="58" width="6" height="8" fill="#f2f2f2"/></svg>
+</template>
+<script>window.OM_SCENES = '[{"name":"Hook","dur":2.9,"kicker":"INSERT COIN","title":"PRESS|START.","sub":"One credit. Three lives. Infinite bragging rights."},{"name":"Code","dur":2.5,"title":"THE CHEAT|CODE.","lines":["// konami classic","input(UP, UP, DOWN, DOWN);","input(LEFT, RIGHT, LEFT, RIGHT);","input(B, A, START);","player.lives += 30;"],"out":"› CHEAT ACCEPTED"},{"name":"Statement","dur":2.7,"title":"HIGH SCORE|OR NOTHING.","sub":"Second place is just first loser, kid."},{"name":"Feature","dur":2.9,"title":"CABINET|NO. 7.","chips":["CRT glow","Sticky buttons","Legendary"],"image":""},{"name":"Cursor","dur":2.8,"title":"CONTINUE?|9... 8... 7...","caption":"Credits: 1","btn":"CONTINUE","after":"PLAYER 1 GO","toggle":"Turbo mode"},{"name":"Stats","dur":2.9,"title":"TONIGHT’S|BOARD.","stats":[{"to":999,"suffix":"K","label":"top score — initials A.C.E."},{"to":42,"suffix":"","label":"quarters sacrificed"},{"to":3,"suffix":"","label":"controllers respectfully slammed"}]},{"name":"Swipe","dur":2.8,"title":"PICK YOUR|LEVEL.","cards":[{"t":"NEON SEWERS","s":"Slippery. Bring the grip shoes."},{"t":"LASER TEMPLE","s":"Mirrors everywhere. Trust none."},{"t":"FINAL FLOOR","s":"You know who lives here."}],"stamp":"PLAY"},{"name":"Statement","dur":2.5,"title":"THE MACHINE|CHEATS. PROVE IT.","sub":"Everyone says it. Nobody has."},{"name":"Ring","dur":2.8,"title":"POWER|METER.","to":100,"unit":"%","label":"CHARGE","sub":"Hold to release. You know what this does."},{"name":"Feature","dur":2.9,"title":"THE WALL|OF FAME.","chips":["Polaroids","Initials","1987–2026"],"image":""},{"name":"Code","dur":2.7,"title":"BOSS|LOGIC.","lines":["while (boss.hp > 0) {","  boss.pattern(wave % 3);","  if (player.dodged) combo++;","  else combo = 0;","}","unlock(\\"TRUE ENDING\\");"],"out":"› 60 FPS · NO DROPS"},{"name":"Stats","dur":2.9,"title":"MACHINE|VITALS.","stats":[{"to":38,"suffix":"yrs","label":"of continuous service"},{"to":60,"suffix":"Hz","label":"of pure CRT flicker"},{"to":1,"suffix":"","label":"secret level, still secret"}]},{"name":"Cursor","dur":2.8,"title":"SELECT|YOUR SHIP.","caption":"Hangar","btn":"CONFIRM","after":"LOCKED IN","toggle":"Twin lasers"},{"name":"Statement","dur":2.5,"title":"ONE MORE|LEVEL.","sub":"The oldest lie in the arcade."},{"name":"Swipe","dur":2.8,"title":"TRADE|SCREENSHOTS.","cards":[{"t":"999,999 PTS","s":"The counter literally stopped."},{"t":"NO-HIT RUN","s":"Witnessed by four people."},{"t":"THE GLITCH","s":"Do not ask how."}],"stamp":"RARE"},{"name":"Ring","dur":2.8,"title":"TO NEXT|1-UP.","to":87,"unit":"%","label":"PROGRESS","sub":"Thirteen thousand points. One good run."},{"name":"Code","dur":2.7,"title":"SAVE|STATE.","lines":["save.slot(3);","memory.dump(\\"run_47\\");","if (boss.next) hint.load();","alert(\\"SAVED. GO SLEEP.\\");"],"out":"› SLOT 3 WRITTEN"},{"name":"CTA","dur":3,"title":"GAME|ON.","cta":"GRAB A STICK","url":"retroarcade.club","logo":""}]';</script>
+<script>window.OM_PLAYBACK = '{"mode":"loop"}';</script>
+<script>window.OM_TWEAKS = /*EDITMODE-BEGIN*/{
+  "brand": "Retro Arcade",
+  "void": "#14122b",
+  "green": "#6ef06e",
+  "motion": "Lively"
+}/*EDITMODE-END*/;</script>
+</helmet>
+<x-import component-from-global-scope="RetroArcade" from="./animations-v2.jsx ./tweaks-panel.jsx ./film-kit.js ./world-pack-1.js" hint-size="100%,100%"></x-import>
+</x-dc>
+</body>
+</html>

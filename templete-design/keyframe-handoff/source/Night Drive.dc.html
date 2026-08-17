@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800;900&family=Exo+2:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #05060a; }
+  * { box-sizing: border-box; }
+  a { color: #39e6d0; text-underline-offset: 3px; }
+  a:hover { color: #22bfab; }
+</style>
+<template id="__bundler_thumbnail">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#0c0e14"/><rect x="8" y="30" width="40" height="4" rx="2" fill="#39e6d0"/><rect x="30" y="46" width="52" height="4" rx="2" fill="#e04fa3"/><rect x="14" y="62" width="34" height="4" rx="2" fill="#f5b942"/><polygon points="38,96 50,64 62,96" fill="none" stroke="#eef2f7" stroke-width="2" opacity="0.5"/><rect x="48" y="72" width="4" height="8" fill="#eef2f7" opacity="0.7"/><rect x="48" y="86" width="4" height="8" fill="#eef2f7" opacity="0.7"/></svg>
+</template>
+<script>window.OM_SCENES = '[{"name":"Hook","dur":2.9,"kicker":"00:47 AM","title":"The city|never blinks.","sub":"Empty lanes, full playlist, green lights all the way."},{"name":"Statement","dur":2.5,"title":"Speed is|a mood.","sub":"Not the number on the dial. The feeling under it."},{"name":"Feature","dur":2.9,"title":"Dashboard|view.","chips":["Tank full","Cabin lit","Bass up"],"image":""},{"name":"Montage","dur":2.8,"title":"Tonight’s|route.","tiles":["The bridge","Neon row","The tunnel","Lookout"]},{"name":"Stats","dur":2.9,"title":"Night|numbers.","stats":[{"to":212,"suffix":"km","label":"of empty motorway"},{"to":14,"suffix":"","label":"green lights in a row"},{"to":3,"suffix":"am","label":"and not even tired"}]},{"name":"Statement","dur":2.5,"title":"Green.|Green.|Green.","sub":"Fourteen in a row. A personal best."},{"name":"Feature","dur":2.8,"title":"Neon row,|slow lane.","chips":["Signs buzzing","Streets empty","Windows down"],"image":""},{"name":"Montage","dur":2.8,"title":"Lights we|drove through.","tiles":["Amber","Cyan","Magenta","Green, always"]},{"name":"Statement","dur":2.5,"title":"The tunnel|hums back.","sub":"Roll the windows down and listen."},{"name":"Stats","dur":2.9,"title":"Loop|telemetry.","stats":[{"to":4,"suffix":"","label":"laps of the ring road"},{"to":96,"suffix":"min","label":"of one uninterrupted playlist"},{"to":1,"suffix":"","label":"perfect tunnel echo"}]},{"name":"Feature","dur":2.8,"title":"The lookout|above the grid.","chips":["Engine off","City on","Nobody else up here"],"image":""},{"name":"Statement","dur":2.5,"title":"Nowhere|to be.","sub":"Which is exactly where we are going."},{"name":"Montage","dur":2.8,"title":"Stops on|the loop.","tiles":["24h ramen","The overpass","Petrol + coffee","The docks"]},{"name":"Feature","dur":2.8,"title":"Rain makes|it better.","chips":["Wipers on beat","Reflections doubled","Grip: respectful"],"image":""},{"name":"Stats","dur":2.9,"title":"Fuel|economy.","stats":[{"to":2,"suffix":"","label":"coffees, both terrible, both great"},{"to":340,"suffix":"","label":"streetlights counted at a red"},{"to":0,"suffix":"","label":"reasons to go home yet"}]},{"name":"Statement","dur":2.5,"title":"Last exit:|not yet.","sub":"One more loop of the ring road."},{"name":"Montage","dur":2.8,"title":"The convoy.","tiles":["Coupe","Old wagon","The bike","Borrowed van"]},{"name":"CTA","dur":3,"title":"Keys.|Go.","cta":"START ENGINE","url":"nightdrive.fm","logo":""}]';</script>
+<script>window.OM_PLAYBACK = '{"mode":"loop"}';</script>
+<script>window.OM_TWEAKS = /*EDITMODE-BEGIN*/{
+  "brand": "Night Drive",
+  "asphalt": "#0c0e14",
+  "neon": "#39e6d0",
+  "magenta": "#e04fa3",
+  "motion": "Lively"
+}/*EDITMODE-END*/;</script>
+</helmet>
+<x-import component-from-global-scope="NightDrive" from="./animations-v2.jsx ./tweaks-panel.jsx ./night-drive-film.jsx" hint-size="100%,100%"></x-import>
+</x-dc>
+</body>
+</html>

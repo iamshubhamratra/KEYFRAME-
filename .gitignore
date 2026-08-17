@@ -120,3 +120,9 @@ server/data/
 # runs the harness across the library. Pure output, regenerated on demand, and never read by
 # anything but a human eye comparing two folders.
 server/framecheck/
+
+# The handoff bundle's BUILDS, not its source. Each standalone/<slug>.html inlines the engine,
+# the film, the fonts and the tweaks panel into one ~1.8MB file — 122MB across 96 templates, all
+# of it derivable from source/, which IS tracked (1.6MB) because that is "the real project".
+# Open them from a working copy; do not carry them in history.
+templete-design/keyframe-handoff/standalone/

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Michroma&family=Saira:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #c2d4d8; }
+  * { box-sizing: border-box; }
+  a { color: #e8641f; text-underline-offset: 3px; }
+  a:hover { color: #e8641f; opacity: 0.8; }
+</style>
+<template id="__bundler_thumbnail">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#dce8ea"/><rect x="47" y="40" width="6" height="40" fill="#fafcfc" stroke="#22343c" stroke-width="1.5"/><g transform="translate(50,40)"><path d="M0 0L4-28H-4z" fill="#fafcfc" stroke="#22343c" stroke-width="1.5"/><path d="M0 0L24 14l-4 7z" fill="#fafcfc" stroke="#22343c" stroke-width="1.5" transform="rotate(8)"/><path d="M0 0L-24 14l4 7z" fill="#fafcfc" stroke="#22343c" stroke-width="1.5" transform="rotate(-8)"/><circle r="4" fill="#e8641f"/></g><rect x="0" y="80" width="100" height="20" fill="#2e6e63"/></svg>
+</template>
+<script>window.OM_SCENES = '[{"name":"Hook","dur":3,"kicker":"OFFSHORE ARRAY · 14 TURBINES","title":"THE WIND|CLOCKS IN.","sub":"Every rotation is someone’s kettle boiling. About four kettles, actually."},{"name":"Code","dur":3.2,"title":"CONTROL ROOM,|06:00.","lines":["scada status --array north","14/14 turbines nominal","wind 14.2 kn gusting 18","output 42.8 MW and climbing"],"out":"grid: accepted"},{"name":"Statement","dur":2.7,"title":"HARVEST|THE GALE.","sub":"The forecast is our supply chain."},{"name":"Toggle","dur":3.2,"title":"PITCH &|YAW.","items":["Blades feathered","Nacelle into wind","Brake released","Sensors green"]},{"name":"Ring","dur":3,"title":"ARRAY|OUTPUT.","to":86,"unit":"%","label":"OF RATED CAPACITY","sub":"A very good Tuesday for electrons."},{"name":"Feature","dur":3,"title":"BLADE RUN,|SERVICE DAY.","chips":["110 m up","Harness double-checked","View: absurd"],"image":""},{"name":"Notify","dur":3.2,"title":"GRID|DESK.","notes":[["Storm front Friday","Curtailment likely after 9"],["Turbine 7 serviced","Gearbox happy, tech happier"],["Porpoise pod sighted","South array, all clear"]]},{"name":"Statement","dur":2.7,"title":"STEEL TREES,|ELECTRIC FRUIT.","sub":"Planted in sand, harvested by weather."},{"name":"Stats","dur":3,"title":"ONE WINDY|DAY.","stats":[{"to":48,"suffix":"MW","label":"peak output at gust"},{"to":30,"suffix":"K","label":"homes powered through the blow"},{"to":14,"suffix":"","label":"turbines turning in formation"}]},{"name":"Montage","dur":3,"title":"FROM THE|SERVICE BOAT.","tiles":["The transit","Tower base","Nacelle view","Sunset array"]},{"name":"Statement","dur":2.7,"title":"NO WIND?|NO PANIC.","sub":"The battery shed takes the night shift."},{"name":"Feature","dur":3,"title":"VISITOR|PLATFORM.","chips":["Binoculars fixed","Whoosh audible","Tours Saturday"],"image":""},{"name":"Statement","dur":2.7,"title":"THE COAST|PAYS ITS BILLS.","sub":"In kilowatt-hours, on time, rain or shine."},{"name":"Morph","dur":3,"title":"LIVE|METER:","prefix":"GRID CONTRIBUTION","steps":["38 MW","41 MW","44 MW","48 MW"],"sub":"Numbers courtesy of a stiff northerly."},{"name":"CTA","dur":3.2,"title":"SEE THEM|TURN.","cta":"Book the platform tour","url":"turbinecoast.energy","logo":""}]';</script>
+<script>window.OM_PLAYBACK = '{"mode":"loop"}';</script>
+<script>window.OM_TWEAKS = /*EDITMODE-BEGIN*/{
+  "brand": "Turbine Coast",
+  "sky": "#dce8ea",
+  "seagreen": "#2e6e63",
+  "motion": "Lively"
+}/*EDITMODE-END*/;</script>
+</helmet>
+<x-import component-from-global-scope="TurbineCoast" from="./animations-v2.jsx ./tweaks-panel.jsx ./film-kit.js ./mega-pack-3.js" hint-size="100%,100%"></x-import>
+</x-dc>
+</body>
+</html>
