@@ -33,7 +33,8 @@
     "audit:density": "node scripts/audit-density.js",
     "audit:density:films": "node scripts/audit-density-films.js",
     "audit:capacity": "node scripts/audit-media-capacity.js 999 --save",
-    "check:slots": "node scripts/check-slot-types.js"
+    "check:slots": "node scripts/check-slot-types.js",
+    "check:graph": "node scripts/test-graph-topology.js"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",

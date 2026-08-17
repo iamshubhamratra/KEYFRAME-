@@ -406,6 +406,10 @@ async function localizeStoryboardText({ storyboard, videoTextLanguage, videoText
   push("title", sb.title);
   sb.scenes.forEach((sc, i) => {
     push(`s${i}.headline`, sc.headline);
+    // main's storyboard schema has a REQUIRED kicker (system_storyboard.md) that
+    // the branch this was ported from did not; scene_kit renders scene.kicker,
+    // so without this a Hindi film keeps an English eyebrow chip on every scene.
+    push(`s${i}.kicker`, sc.kicker);
     push(`s${i}.subtext`, sc.subtext);
     push(`s${i}.emphasis`, sc.emphasis);
     (Array.isArray(sc.bullets) ? sc.bullets : []).forEach((b, j) => push(`s${i}.bl.${j}`, b));
@@ -440,6 +444,7 @@ async function localizeStoryboardText({ storyboard, videoTextLanguage, videoText
     if (byId.title != null) sb.title = apply("title", sb.title);
     sb.scenes.forEach((sc, i) => {
       if (byId[`s${i}.headline`] != null) sc.headline = apply(`s${i}.headline`, sc.headline);
+      if (byId[`s${i}.kicker`] != null) sc.kicker = apply(`s${i}.kicker`, sc.kicker);
       if (byId[`s${i}.subtext`] != null) sc.subtext = apply(`s${i}.subtext`, sc.subtext);
       // emphasis is a substring of headline (the accent word); translate it too — if it no
       // longer matches the translated headline, headlineSpans just skips the highlight.

@@ -1,0 +1,83 @@
+{
+  "name": "cats-playing-proof",
+  "vibe": "a chart-first analyst system: near-monochrome ground, a faint data grid, mono labels and ONE signal accent reserved for the data — for dashboards, analytics, data and ML products",
+  "colors": {
+    "void": "#0b0f19",
+    "panel": "#1e293b",
+    "grid": "#334155",
+    "ink": "#e2e8f0",
+    "amber": "#f97316",
+    "cyan": "#06b6d4"
+  },
+  "fonts": [
+    "Inter",
+    "JetBrains Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#0b0f19"
+  },
+  "motion": {
+    "cut": "shatter",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "telemetry",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#f97316",
+      "#06b6d4"
+    ],
+    "extras": [
+      "#1e293b",
+      "#fed7aa"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "data analytics dashboard chart monochrome",
+    "iconStyle": "line",
+    "keywords": [
+      "data",
+      "chart",
+      "analytics",
+      "mono",
+      "grid"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
+  },
+  "textfx": {
+    "enter": "line-wipe",
+    "emphasis": "hanko",
+    "case": "upper",
+    "tracking": 0.04,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left",
+    "speed": 1.3
+  },
+  "audio": {
+    "music": {
+      "query": "",
+      "mood": "",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "",
+      "palette": []
+    }
+  },
+  "typography": {
+    "display": "JetBrains Mono"
+  },
+  "camera3d": {
+    "ground": "#0b0f19"
+  },
+  "portraitNative": true
+}

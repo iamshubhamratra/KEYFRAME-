@@ -1,0 +1,80 @@
+{
+  "name": "signal-relay-2",
+  "vibe": "a retro-computer terminal: monospace type glowing on a dark CRT ground, scanline grid, one phosphor accent — for dev tools, CLIs, AI agents, hacker-grade launches",
+  "colors": {
+    "void": "#080d0b",
+    "panel": "#0e1a15",
+    "grid": "#153026",
+    "ink": "#d2f5e2",
+    "phosphor": "#35e39a",
+    "signal": "#5fa8ff"
+  },
+  "fonts": [
+    "Inter",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#080d0b"
+  },
+  "motion": {
+    "cut": "thrust",
+    "drift": 1.02
+  },
+  "fx": {
+    "canvas": "telemetry",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#35e39a",
+      "#5fa8ff"
+    ],
+    "extras": [
+      "#153026",
+      "#8fefc4"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "retro terminal crt scanline dark tech",
+    "iconStyle": "line",
+    "keywords": [
+      "retro",
+      "terminal",
+      "mono",
+      "crt",
+      "dark"
+    ],
+    "prefer": []
+  },
+  "textfx": {
+    "enter": "typewriter",
+    "emphasis": "reticle",
+    "case": "upper",
+    "tracking": 0.04,
+    "weight": null,
+    "sizeScale": 0.95,
+    "align": "left",
+    "speed": 1.3
+  },
+  "audio": {
+    "music": {
+      "query": "",
+      "mood": "",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "",
+      "palette": []
+    }
+  },
+  "typography": {
+    "display": "IBM Plex Mono"
+  },
+  "camera3d": {
+    "ground": "#080d0b"
+  },
+  "portraitNative": true
+}

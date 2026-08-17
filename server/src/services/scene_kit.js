@@ -24,6 +24,7 @@
 const frameRegistry = require("./frame_registry");
 const frameManifest = require("./frame_manifest");
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
+const { isLogo: upIsLogo } = require("./asset_priority");
 const { themeFromTokens } = require("./enrich");
 
 // SINGLE-quoted family names — these are embedded in double-quoted style="..."
@@ -89,6 +90,49 @@ function lum(hex) {
   if (!m) return 128;
   const n = parseInt(m[1], 16);
   return 0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255);
+}
+// True WCAG ratio (lum() above is a fast perceptual weight, not this).
+function wcag(a, b) {
+  const rel = (hex) => {
+    const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || "").trim());
+    if (!m) return 0.5;
+    const n = parseInt(m[1], 16);
+    const ch = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+    return 0.2126 * ch((n >> 16) & 255) + 0.7152 * ch((n >> 8) & 255) + 0.0722 * ch(n & 255);
+  };
+  const A = rel(a), B = rel(b);
+  return (Math.max(A, B) + 0.05) / (Math.min(A, B) + 0.05);
+}
+
+// AN ACCENT USED AS TEXT MUST BE READABLE.
+//
+// A pack's accent list is chosen to DECORATE — mint-launch's emerald sits at
+// 1.90:1 on its own ground and is perfectly good as a rule or a chip. But a few
+// archetypes set large numerals in accent2/extras, and on a light pack those are
+// often near-white: measured on a generated healthcare pack, a proof card showed
+// "10k" at 1.49:1 and "02" at 1:1 — the same colour as the card it sat on, i.e.
+// invisible. Mix the accent toward the pack's own ink only as far as it takes to
+// clear AA large text, so an already-legible accent is returned untouched and the
+// card keeps its hue wherever it can.
+function legibleOn(color, bg, ink, min = 3) {
+  if (!color || !bg || !ink) return color;
+  if (wcag(color, bg) >= min) return color;
+  for (let step = 1; step <= 10; step++) {
+    const c = mix(color, ink, step / 10);
+    if (wcag(c, bg) >= min) return c;
+  }
+  return ink;
+}
+
+// The colour a card's own chrome actually paints behind its text — deliberately
+// the WORST case, not the average one. cardChrome() returns CSS rather than a
+// hex, its light branches composite translucent white over whatever the scene
+// already drew, and the gate samples the finished pixels: assuming a clean white
+// card left "10k" at 2.79:1 and "02" at 4.27:1 against real tones of rgb(243,243,242)
+// and rgb(231,237,237). So step one notch PAST the ground, away from the text, and
+// let the repair aim at that.
+function cardBgHex(theme) {
+  return theme.isDark ? mix(theme.ground, "#ffffff", 0.12) : mix(theme.ground, "#000000", 0.09);
 }
 
 // SAFE TINT for the veil/glow cuts (wash / glow / whip). A pack's accent list
@@ -233,6 +277,11 @@ function deriveTheme(framePack, storyboard, brandSkin) {
     weight: tf.weight || null,
     sizeScale: typeof tf.sizeScale === "number" && tf.sizeScale > 0 ? tf.sizeScale : 1,
     align: tf.align || "rotate",
+    // PACE — how quickly the headline arrives. 1 is the shipped timing, so packs
+    // without the field animate byte-identically to before. Clamped: past ~1.6
+    // the stagger collapses and the words land as one block instead of reading
+    // in, and below 0.85 an entrance outlives short scenes.
+    speed: typeof tf.speed === "number" && tf.speed > 0 ? Math.max(0.85, Math.min(1.6, tf.speed)) : 1,
   };
   // Per-pack LAYOUT switches — let a pack opt OUT of the shared scene furniture so
   // templates aren't all the same skeleton. All default to the legacy look:
@@ -275,8 +324,27 @@ function deriveTheme(framePack, storyboard, brandSkin) {
 // The GSAP helper functions — emitted ONCE. They mechanically satisfy the five
 // most error-prone lint rules (camera, word-stagger, counter, exit-kill, finite
 // repeats) so every archetype stays clean with almost no per-scene code.
-function emitHelpers(D) {
-  return [
+// PACE (textfx.speed). Only the headline ENTRANCE is scaled, and it is done by
+// rewriting the emitted helper rather than by GSAP timeScale: the timeline also
+// carries scene holds, camera drift and the caption track, all of which are
+// pinned to the voiceover — speeding the whole thing up would desync the audio.
+// Rewriting the durations inside textIn touches exactly the words arriving.
+//
+// The stagger FLOORS (Math.max(s, 0.14)) and the char budgets (_cstg) are scaled
+// too; without them a faster `s` is immediately clamped back and half the
+// entrances ignore the setting.
+function paceTextIn(src, scale) {
+  return src
+    .replace(/duration:([0-9.]+)/g, (_m, d) => `duration:${+(Number(d) / scale).toFixed(3)}`)
+    .replace("var s=stg||0.08;", `var s=(stg||0.08)/${scale};`)
+    .replace(/Math\.max\(s,([0-9.]+)\)/g, (_m, n) => `Math.max(s,${+(Number(n) / scale).toFixed(3)})`)
+    .replace(/_cstg\((cs|ws),([0-9.]+),([0-9.]+)\)/g,
+      (_m, sel, cap, budget) => `_cstg(${sel},${+(Number(cap) / scale).toFixed(3)},${+(Number(budget) / scale).toFixed(3)})`);
+}
+
+function emitHelpers(D, speed = 1) {
+  const scale = Number.isFinite(Number(speed)) ? Math.max(0.85, Math.min(1.6, Number(speed))) : 1;
+  const lines = [
     `var tl = gsap.timeline({ paused: true, defaults: { ease: "power3.out" } });`,
     `var D = ${D};`,
     `function reps(c){ return Math.max(0, Math.floor(D/c)-1); }`,
@@ -347,7 +415,9 @@ function emitHelpers(D) {
     `function pushIn(sel,at,dur,from,to){ tl.fromTo(sel,{scale:from},{scale:to,duration:dur,ease:"none"},at); }`,
     `function countUp(id,to,at,dur,fmt){ var o={v:0}; tl.to(o,{v:to,duration:dur,ease:"power2.out",snap:{v:1},onUpdate:function(){var el=document.getElementById(id);if(el)el.textContent=fmt(Math.round(o.v));}},at); }`,
     `function exitScene(sel,at,end){ tl.to(sel,{opacity:0,duration:0.3,ease:"power2.in"},at); tl.set(sel,{opacity:0},end); }`,
-  ].join("\n");
+  ];
+  if (scale === 1) return lines.join("\n");
+  return lines.map((l) => (l.startsWith("function textIn") ? paceTextIn(l, scale) : l)).join("\n");
 }
 
 // ---- MOTION GRAMMAR ------------------------------------------------------------
@@ -2088,7 +2158,12 @@ function archCta(scene, ctx) {
 // (asset-grid, split-diagram, terminal) are added from the design pass.
 function archText(scene, ctx) {
   const { theme, id, T, L, track, dims, variant } = ctx;
-  const big = Math.round((dims.width >= dims.height ? 68 : 72) * (theme.textfx.sizeScale || 1));
+  // PORTRAIT: 72px was a landscape size reused on a canvas 78% taller, so a text
+  // beat rendered two short lines adrift in the middle third — measured at 49-53%
+  // dead band on a 1080x1920 render, every band running to the bottom edge. 92
+  // matches the treatment archHook already gets (96) and fitBig still shrinks a
+  // long headline, so the bigger base cannot overflow. Landscape is unchanged.
+  const big = Math.round((dims.width >= dims.height ? 68 : 92) * (theme.textfx.sizeScale || 1));
   const accentText = theme.emphasisCss || (theme.gradients ? `background:linear-gradient(100deg,${theme.accent},${theme.accent2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.accent};` : `color:${theme.accent};`);
   const bullets = Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean).slice(0, 3) : [];
   // Four layout variants so text scenes don't all look identical:
@@ -2197,7 +2272,11 @@ function archFeatureGrid(scene, ctx) {
     const accer = accs[i % accs.length];
     const glyph = FEAT_GLYPHS[(i + (scene.headline || "").length) % FEAT_GLYPHS.length];
     return `<div class="kffc" style="opacity:0;flex:1;min-width:0;${ch.css}padding:${pad}px;display:flex;flex-direction:column;gap:${land ? 13 : 8}px;position:relative;overflow:hidden;">`
-      + `<span style="position:absolute;top:${pad}px;right:${pad}px;font:700 ${Math.round(big * 0.26)}px/1 ${theme.displayStack};letter-spacing:.08em;color:${rgba(accer, 0.42)};">0${i + 1}</span>`
+      // The index badge is small text to the contrast gate (4.5:1), and a 0.42
+      // alpha over a white card put "02" at 1:1 on a light pack — the number was
+      // simply not there. Solid + legibility-checked; the accent's hue survives
+      // wherever it already reads.
+      + `<span style="position:absolute;top:${pad}px;right:${pad}px;font:700 ${Math.round(big * 0.26)}px/1 ${theme.displayStack};letter-spacing:.08em;color:${legibleOn(accer, cardBgHex(theme), theme.ink, 4.5)};">0${i + 1}</span>`
       + `<div style="width:${iconSz}px;height:${iconSz}px;border-radius:${Math.round(iconSz * 0.28)}px;background:${rgba(accer, 0.16)};border:1px solid ${rgba(accer, 0.42)};display:grid;place-items:center;flex:none;"><svg viewBox="0 0 24 24" width="${Math.round(iconSz * 0.5)}" height="${Math.round(iconSz * 0.5)}" fill="none" stroke="${accer}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${glyph}</svg></div>`
       + `<div style="font:700 ${Math.round(big * 0.46)}px/1.15 ${theme.displayStack};letter-spacing:-0.01em;color:${theme.ink};margin-top:${land ? 6 : 3}px;">${esc(title)}</div>`
       + (desc ? `<div style="font:500 ${Math.round(big * 0.3)}px/1.45 ${cssFont(theme)};color:${theme.dim};">${esc(desc)}</div>` : "")
@@ -2230,12 +2309,24 @@ function archFeatureGrid(scene, ctx) {
 function archQuoteCard(scene, ctx) {
   const { theme, id, T, L, track, dims } = ctx;
   const land = dims.width >= dims.height;
-  const big = Math.round((land ? 58 : 62) * (theme.textfx.sizeScale || 1));
-  const quoteFit = fitBig(scene.headline, big, 26, 4);
+  // PORTRAIT: the pull-quote is the whole scene, and at 62px it filled a band
+  // ~14% of a 1920px frame — the two worst dead bands in the fleet (56% and 61%)
+  // were both this card. 88 makes the quote read as the statement it is.
+  const big = Math.round((land ? 58 : 88) * (theme.textfx.sizeScale || 1));
+  const quoteFit = fitBig(scene.headline, big, land ? 26 : 18, 4);
+  // A quote scene is the ONE archetype archetypeFor sends here regardless of how
+  // many bullets it carries (the `kind === "quote"` branch runs before the
+  // bullet-count routing), so any support lines the writer gave it used to be
+  // silently dropped. In PORTRAIT that is the difference between a card holding
+  // two lines and one holding four — these cards were the tightest scenes left
+  // after the type-scale pass. Landscape keeps the pure pull-quote.
+  const support = !land && Array.isArray(scene.bullets)
+    ? scene.bullets.filter(Boolean).slice(0, 2) : [];
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:${land ? "72%" : "86%"};max-width:1180px;padding:${land ? "54px 64px" : "40px 38px"};border-radius:22px;background:${theme.panel};border:1px solid ${theme.line};border-left:6px solid ${theme.accent};">
     <div id="${id}q" style="font:900 ${Math.round(big * 2.0)}px/0.6 ${theme.displayStack};color:${theme.accent};opacity:0;height:${Math.round(big * 0.72)}px;overflow:hidden;">&ldquo;</div>
     <blockquote style="margin:0;font:600 ${quoteFit}px/1.34 ${cssFont(theme)};letter-spacing:-0.01em;color:${theme.ink};max-width:26ch;"><style>#${id} .kfacc{color:${theme.accent};}</style>${headlineSpans(scene.headline, scene.emphasis, theme)}</blockquote>
+    ${support.length ? `<div id="${id}sl" style="margin-top:26px;display:flex;flex-direction:column;gap:14px;">${support.map((b) => `<div class="kfql" style="opacity:0;display:flex;align-items:center;gap:14px;font:600 ${Math.round(big * 0.34)}px/1.3 ${cssFont(theme)};color:${theme.ink};"><span style="width:10px;height:10px;border-radius:2px;background:${theme.accent};flex:none;"></span>${esc(b)}</div>`).join("")}</div>` : ""}
     ${scene.subtext ? `<div id="${id}a" style="opacity:0;margin-top:24px;display:flex;align-items:center;gap:13px;">
       <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,${theme.accent},${theme.accent2});flex:none;"></div>
       <div style="font:700 ${Math.round(big * 0.4)}px/1.25 ${cssFont(theme)};color:${theme.ink};">${esc(scene.subtext)}</div>
@@ -2246,6 +2337,7 @@ function archQuoteCard(scene, ctx) {
     `tl.set("#${id}",{opacity:1},${T});`,
     `tl.fromTo("#${id}q",{opacity:0,scale:0.5,transformOrigin:"left top"},{opacity:0.9,scale:1,duration:0.5,ease:"back.out(2)"},${r(T + 0.25)});`,
     `textIn("${ctx.enter || theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.5)},0.05);`,
+    support.length ? `tl.fromTo("#${id} .kfql",{opacity:0,x:-14},{opacity:1,x:0,duration:0.42,stagger:0.1,ease:"power2.out"},${r(T + Math.min(L - 0.6, 0.9))});` : "",
     scene.subtext ? `tl.fromTo("#${id}a",{opacity:0,y:16},{opacity:1,y:0,duration:0.5,ease:"power2.out"},${r(T + Math.min(L - 0.5, 1.1))});` : "",
     ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
   ].filter(Boolean).join("\n");
@@ -2281,7 +2373,7 @@ function archProofStats(scene, ctx) {
       + `<svg width="${arcR * 2 + 12}" height="${arcR * 2 + 12}" viewBox="0 0 ${arcR * 2 + 12} ${arcR * 2 + 12}" style="position:absolute;top:-${Math.round(arcR * 0.6)}px;right:-${Math.round(arcR * 0.6)}px;opacity:.5;">`
       + `<circle cx="${arcR + 6}" cy="${arcR + 6}" r="${arcR}" fill="none" stroke="${rgba(theme.ink, 0.12)}" stroke-width="6"/>`
       + `<circle id="${id}a${k}" cx="${arcR + 6}" cy="${arcR + 6}" r="${arcR}" fill="none" stroke="${A}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${arcC}" stroke-dashoffset="${arcC}" transform="rotate(-90 ${arcR + 6} ${arcR + 6})"/></svg>`
-      + `<div id="${id}n${k}" class="kfnum" style="font:800 ${numSize}px/1 ${theme.displayStack};letter-spacing:-0.03em;color:${A};">0${esc(x.num.suffix || "")}</div>`
+      + `<div id="${id}n${k}" class="kfnum" style="font:800 ${numSize}px/1 ${theme.displayStack};letter-spacing:-0.03em;color:${legibleOn(A, cardBgHex(theme), theme.ink)};">0${esc(x.num.suffix || "")}</div>`
       + `<div style="font:600 ${Math.round(big * 0.34)}px/1.3 ${cssFont(theme)};color:${theme.dim};max-width:92%;">${esc(x.label)}</div>`
       + `</div>`;
   }).join("");
@@ -2583,6 +2675,12 @@ function partitionAssets(assets) {
     // Videos go in their own pool — the img-based archetypes would render an mp4
     // as a broken <img>. They're placed as full-bleed <video> backgrounds instead.
     if (a.type === "video" || /\.(mp4|webm|mov)($|\?)/i.test(a.path)) { videos.push(a); continue; }
+    // An upload's alt text is OUR sentence, not a fetched caption, so route it
+    // explicitly instead of letting classifyAsset sniff the words: an
+    // "illustration" upload would match /illustration/ and land in the
+    // contain-fit VECTOR pool. Logos are role material, not pool material.
+    if (upIsLogo(a)) continue;
+    if (a.source === "upload") { (a.kindHint === "photo" ? photos : screenshots).push(a); continue; }
     const cls = classifyAsset(a);
     if (cls === "shot") screenshots.push(a);
     else if (cls === "vector") vectors.push(a);
@@ -3252,7 +3350,7 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
   const enterRotation = rotateEntrances(theme, seed, scenes.length);
   const cutRotation = rotateCuts(motion, seed, scenes.length);
   const bodyHtml = [bg.html];
-  const scriptLines = [emitHelpers(D), bg.script];
+  const scriptLines = [emitHelpers(D, theme.textfx.speed), bg.script];
 
   // ---- ASSET WEAVING ---------------------------------------------------------
   // The agents fetch a POOL of candidate assets (often 8–15); the single-feature
@@ -3289,7 +3387,10 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
   // prominent tile. In the live corpus 0.20 clears the iconify p25 (0.161) — the
   // band where the gas-can class of match lives — without touching the median.
   const ICON_RELEVANCE_FLOOR = 0.20;
-  const prominentOk = (a) => !!a && !a.lowQuality && (a.source === "website"
+  // The user's own upload is sovereign: it bypasses the lowQuality veto too,
+  // because creative_director.applyCraft and asset_director stamp lowQuality
+  // from a vision verdict, and nobody gets to grade the user's own material away.
+  const prominentOk = (a) => !!a && (a.source === "upload" || (!a.lowQuality && (a.source === "website"
     || a.source === "website-image" // the site's OWN downloaded images — owner content, show them big (hero/tile), not just scrim
     || a.source === "blog" // the post's own images — owner content, always showable
     // ICONIFY IS NOT AUTOMATICALLY TRUSTED ANY MORE. It used to sit in this list
@@ -3307,7 +3408,7 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
     // at all (CLIP absent — do not punish an asset for an unavailable check).
     || (a.source === "iconify" && (typeof a.clipRelevance !== "number" || a.clipRelevance >= ICON_RELEVANCE_FLOOR))
     || String(a.source || "").startsWith("library:")
-    || a.visionOk === true);
+    || a.visionOk === true)));
   const bgOnlyPhotos = pools.photos.filter((a) => !prominentOk(a));
   pools.photos = pools.photos.filter(prominentOk);
   pools.vectors = pools.vectors.filter(prominentOk);

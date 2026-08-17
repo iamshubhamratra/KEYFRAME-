@@ -79,6 +79,13 @@ export default function Premiere({ projectId, onRemix, onNew }) {
   // auto-fixes, audio loudness, screenshot QA, plus the asset/template/QA scores).
   // Guarded everywhere with `qr &&` so films made before this shipped still render.
   const qr = project.qualityReport;
+  // Delivery verdict — computed on read from the signals the pipeline already
+  // recorded (QA, empty scenes, the ffprobe of the delivered MP4, audio,
+  // fallback). Absent on films made before this shipped, hence the guards.
+  const dq = project.deliveryQuality;
+  const dqColor = !dq ? "#7d766a"
+    : dq.verdict === "clean" ? "#b9f24a" : dq.verdict === "review" ? "var(--color-am)" : "#ff6a3c";
+  const delivered = dq?.signals?.delivered || null;
 
   // What the pipeline understood before it shot anything — surfaced only
   // transiently on the Understanding screen. Recap it on the finished film so
@@ -289,6 +296,40 @@ export default function Premiere({ projectId, onRemix, onNew }) {
                     <div style={{ marginTop: 10, fontFamily: "var(--font-mono)", fontSize: 10.5, color: "#ff6a3c", lineHeight: 1.6 }}>
                       {qr.flags.map((f, i) => <div key={i}>⚠ {f}</div>)}
                     </div>
+                  )}
+                </div>
+              )}
+
+              {/* DELIVERY — the verdict on the file that was actually written,
+                  not on the plan that produced it. Leads the panel because it is
+                  the only section that can say the film is short, silent or at
+                  the wrong size. */}
+              {dq && (
+                <div style={{ marginTop: 24 }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.22em", color: "#7d766a", marginBottom: 10 }}>
+                    DELIVERY — <span style={{ color: dqColor }}>{dq.verdict.toUpperCase()}</span>{dq.score != null ? ` · ${dq.score}/100` : ""}
+                  </div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--color-dark-dim)", lineHeight: 1.55, marginBottom: dq.issues?.length ? 10 : 0 }}>
+                    {dq.headline}
+                    {delivered && (
+                      <span style={{ color: "#7d766a" }}>
+                        {"  ·  "}{delivered.width}×{delivered.height}
+                        {delivered.durationSec != null ? ` · ${delivered.durationSec.toFixed(1)}s` : ""}
+                        {delivered.fps != null ? ` · ${Math.round(delivered.fps)}fps` : ""}
+                        {" · "}{delivered.hasAudio ? "audio" : "SILENT"}
+                      </span>
+                    )}
+                  </div>
+                  {dq.issues?.length > 0 && (
+                    <ul style={{ display: "flex", flexDirection: "column", gap: 6, margin: 0, padding: 0, listStyle: "none" }}>
+                      {dq.issues.map((it, i) => (
+                        <li key={i} style={{ display: "flex", alignItems: "baseline", gap: 8, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--color-dark-dim)", lineHeight: 1.55 }}>
+                          <span style={{ flexShrink: 0, textTransform: "uppercase", letterSpacing: "0.08em", color: it.severity === "blocker" ? "#ff6a3c" : it.severity === "major" ? "var(--color-am)" : "#7d766a" }}>{it.severity}</span>
+                          <span style={{ flexShrink: 0, color: "#7d766a" }}>{it.area}</span>
+                          <span>{it.detail}</span>
+                        </li>
+                      ))}
+                    </ul>
                   )}
                 </div>
               )}

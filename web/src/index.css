@@ -390,6 +390,23 @@ body {
   box-shadow: 0 0 0 3px rgba(232,50,168,.16);
 }
 
+/* admin template pipeline — one text-field recipe for its forms. The studio
+   screens style each input inline because they have two or three; the generator
+   and the edit panel have a dozen between them, which is where six repeated
+   declarations start to drift apart. Same tokens as .inset-field. */
+.admin-input {
+  width: 100%; box-sizing: border-box;
+  padding: 9px 12px;
+  font-family: var(--font-mono); font-size: 12px; color: var(--color-ink);
+  background: var(--color-paper-2);
+  border: 1px solid rgba(23, 19, 14, 0.18); border-radius: 8px;
+  outline: none; caret-color: var(--color-mag);
+  transition: box-shadow .2s, border-color .2s;
+}
+.admin-input::placeholder { color: var(--color-dim); }
+.admin-input:focus { border-color: rgba(232, 50, 168, .55); box-shadow: 0 0 0 3px rgba(232, 50, 168, .16); }
+textarea.admin-input { resize: vertical; line-height: 1.6; }
+
 /* wordmark: single-ink Bricolage, tight (v2) */
 .wordmark { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.02em; color: var(--color-ink); }
 

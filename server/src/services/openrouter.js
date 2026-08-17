@@ -414,6 +414,16 @@ async function chat({ system, user, userSuffix, jsonMode = false, temperature, m
     // makes the bill authoritative rather than estimated, at no extra request.
     usage: { include: true },
   };
+  // PER-STAGE REASONING EFFORT. Anthropic and other reasoning models accept an
+  // effort hint through OpenRouter; a stage that designs something (the template
+  // generator) benefits from thinking hard, while a one-line verdict stage must
+  // not burn reasoning tokens. Opt-in per stage via
+  // config.llm.stageEffort = { "<stage>": "low" | "medium" | "high" } so no
+  // existing stage changes behaviour or cost unless it is named.
+  const stageEffort = stage && config.llm.stageEffort ? config.llm.stageEffort[stage] : null;
+  if (stageEffort && ["low", "medium", "high"].includes(String(stageEffort))) {
+    orBody.reasoning = { effort: String(stageEffort) };
+  }
   if (jsonMode) orBody.response_format = { type: "json_object" };
 
   // Model selection. The requested id is either an OpenRouter model or a

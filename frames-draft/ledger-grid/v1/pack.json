@@ -1,0 +1,82 @@
+{
+  "name": "ledger-grid",
+  "vibe": "a chart-first analyst system: near-monochrome ground, a faint data grid, mono labels and ONE signal accent reserved for the data — for dashboards, analytics, data and ML products",
+  "colors": {
+    "void": "#0d1117",
+    "panel": "#151c26",
+    "grid": "#1e2733",
+    "ink": "#e6ecf5",
+    "inkblue": "#4c85f8",
+    "brass": "#d8a93c"
+  },
+  "fonts": [
+    "Inter",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#0d1117"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.02
+  },
+  "fx": {
+    "canvas": "telemetry",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#4c85f8",
+      "#d8a93c"
+    ],
+    "extras": [
+      "#1e2733",
+      "#a8c6ff"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "data analytics dashboard chart monochrome",
+    "iconStyle": "line",
+    "keywords": [
+      "data",
+      "chart",
+      "analytics",
+      "mono",
+      "grid"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
+  },
+  "textfx": {
+    "enter": "countin",
+    "emphasis": "bracket",
+    "case": "upper",
+    "tracking": 0.04,
+    "weight": null,
+    "sizeScale": 0.95,
+    "align": "left",
+    "speed": 1.25
+  },
+  "audio": {
+    "music": {
+      "query": "",
+      "mood": "",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "",
+      "palette": []
+    }
+  },
+  "typography": {
+    "display": "IBM Plex Mono"
+  },
+  "camera3d": {
+    "ground": "#0d1117"
+  }
+}

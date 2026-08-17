@@ -32,19 +32,27 @@ async function json(resp) {
   return body;
 }
 
-// fields: { prompt?, websiteUrl?, blogUrl?, referenceVideo? (File), duration,
-//           orientation, quality, fps, framePack, voiceStyle?, autopilot?,
-//           captions?, composeMode?, render3d? }
+// fields: { prompt?, websiteUrl?, blogUrl?, referenceVideo? (File), logo? (File),
+//           assets? (File[] — up to 12 product images), duration, orientation,
+//           quality, fps, framePack, voiceStyle?, autopilot?, composeMode?, render3d?,
+//           captions?: boolean | { enabled, language, voiceoverLanguage, videoTextLanguage } }
 export async function createProject(fields) {
-  const { referenceVideo, ...rest } = fields;
-  if (referenceVideo) {
+  const isFile = (v) => typeof File !== "undefined" && v instanceof File;
+  const hasFiles = Object.values(fields).some((v) => isFile(v) || (Array.isArray(v) && v.some(isFile)));
+  if (hasFiles) {
     const form = new FormData();
-    form.append("referenceVideo", referenceVideo);
-    for (const [k, v] of Object.entries(rest)) {
-      if (v != null && v !== "") form.append(k, String(v));
+    for (const [k, v] of Object.entries(fields)) {
+      if (v == null || v === "") continue;
+      if (isFile(v)) { form.append(k, v); continue; }
+      if (Array.isArray(v) && v.some(isFile)) { for (const f of v) if (isFile(f)) form.append(k, f); continue; }
+      // Objects (the multi-language `captions` config) must go over as JSON, not
+      // as String(v) — that yields "[object Object]" and the server, which parses
+      // a leading "{", would silently fall back to captions-off.
+      form.append(k, typeof v === "object" ? JSON.stringify(v) : String(v));
     }
     return json(await apiFetch("/api/projects", { method: "POST", body: form }));
   }
+  const { referenceVideo, logo, assets, ...rest } = fields;   // a File must never reach JSON.stringify
   return json(await apiFetch("/api/projects", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

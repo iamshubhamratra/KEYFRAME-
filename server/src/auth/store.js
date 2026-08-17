@@ -68,10 +68,40 @@ function setUserPassword(id, passwordHash) {
   persist();
   return true;
 }
+// ---------------------------------------------------------------- admin
+// WHO IS AN ADMIN, AND WHY IT IS NOT JUST A COLUMN.
+//
+// `role` has existed on every user record since the store was written, hardcoded
+// to "user" at creation and never read for a decision anywhere in the codebase.
+// Turning it into real authority needs an answer to "who grants it?", and a
+// promote endpoint is the wrong answer: this store lives in a gitignored JSON
+// file that the module header itself warns "resets on redeploy" on an ephemeral
+// host, so a DB-only admin silently disappears on the next deploy and takes the
+// admin surface with it.
+//
+// So the allowlist in config is AUTHORITATIVE and the stored role is additive:
+//   config.auth.adminEmails: ["you@example.com"]   (or ADMIN_EMAILS env, csv)
+// An allowlisted address is an admin on a brand-new box with an empty store, and
+// no API call can ever grant admin to anyone — the only way in is deploy config.
+// A stored role === "admin" still counts, so a future promote flow can be added
+// without changing anything here.
+function adminEmails() {
+  const fromEnv = String(process.env.ADMIN_EMAILS || "").split(",");
+  const fromCfg = (config.auth && config.auth.adminEmails) || [];
+  return new Set([...fromEnv, ...fromCfg].map(normEmail).filter(Boolean));
+}
+function isAdmin(user) {
+  if (!user) return false;
+  return String(user.role || "") === "admin" || adminEmails().has(normEmail(user.email));
+}
+// The EFFECTIVE role — what the allowlist says, not just what was persisted, so
+// the UI and the API agree without a migration over existing records.
+function roleOf(user) { return isAdmin(user) ? "admin" : (user && user.role) || "user"; }
+
 // Public-safe shape (never leak the hash).
 function publicUser(u) {
   if (!u) return null;
-  return { id: u.id, name: u.name, email: u.email, role: u.role, createdAt: u.createdAt };
+  return { id: u.id, name: u.name, email: u.email, role: roleOf(u), createdAt: u.createdAt };
 }
 
 // ---------------------------------------------------------------- otps
@@ -113,5 +143,6 @@ function clearOtp(email) {
 
 module.exports = {
   findUserByEmail, findUserById, createUser, setUserPassword, publicUser,
+  isAdmin, roleOf, adminEmails,
   saveOtp, getOtp, verifyOtp, hasVerifiedOtp, clearOtp,
 };

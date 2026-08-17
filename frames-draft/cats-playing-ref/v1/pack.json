@@ -1,0 +1,80 @@
+{
+  "name": "cats-playing-ref",
+  "vibe": "a calm, humane care system: soft off-white grounds, rounded cards, gentle teal/mint washes and one warm accent — for healthcare, wellness, patient and clinical products",
+  "colors": {
+    "ground": "#faf4e8",
+    "ink": "#2a1e17",
+    "yarn": "#da0007",
+    "sunbeam": "#ffc845",
+    "mint": "#3aafa9",
+    "cream": "#f3e8d3"
+  },
+  "fonts": [
+    "Figtree",
+    "Baloo 2"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#faf4e8"
+  },
+  "motion": {
+    "cut": "clockwipe",
+    "drift": 1.04
+  },
+  "fx": {
+    "canvas": "rays",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#da0007",
+      "#ffc845"
+    ],
+    "extras": [
+      "#3aafa9",
+      "#f3e8d3"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "soft clean calm medical wellness natural light",
+    "iconStyle": "soft",
+    "keywords": [
+      "soft",
+      "calm",
+      "clean",
+      "wellness",
+      "rounded"
+    ],
+    "prefer": []
+  },
+  "textfx": {
+    "enter": "squash",
+    "emphasis": "scribble",
+    "case": "none",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1.05,
+    "align": "left",
+    "speed": 1.3
+  },
+  "audio": {
+    "music": {
+      "query": "",
+      "mood": "",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "",
+      "palette": []
+    }
+  },
+  "typography": {
+    "display": "Baloo 2"
+  },
+  "camera3d": {
+    "ground": "#2a1e17"
+  },
+  "portraitNative": true
+}

@@ -31,6 +31,7 @@ const frameRegistry = require("../src/services/frame_registry");
 const frameManifest = require("../src/services/frame_manifest");
 const sceneKit = require("../src/services/scene_kit");
 const { enrichComposition } = require("../src/services/enrich");
+const curatedLibrary = require("../src/services/asset_sources/curated_library");
 const { render } = require("../src/services/renderer");
 
 // Dedicated pack renderers — same map the pipeline uses. Keyed by the manifest
@@ -338,7 +339,43 @@ function storyboardFor(label, packName) {
   const scaled = Math.max(PREVIEW_MIN_SEC / beats, Math.min(PREVIEW_MAX_SEC / beats, per));
   let t = 0;
   for (const s of deck) { s.start = +t.toFixed(2); s.duration = +scaled.toFixed(2); t += scaled; }
+  // LEAVE ROOM FOR PICTURES. Promoting support copy onto EVERY beat was a
+  // mistake: bullets reroute a scene from archText to the card grid, and
+  // scene_kit's media weaving only treats archText scenes as weavable. Fill all
+  // of them and the montage, the split-art scene and the screenshot hero can
+  // never be cast — measured, every asset fell through to faint B-roll and the
+  // preview showed no card at all, which is also why every template read as the
+  // same deck. Every third beat therefore keeps its bullets OFF so it stays
+  // weavable and can become a picture scene.
+  deck.forEach((s, i) => { if (i % 3 !== 2) promoteSupportCopy(s); });
   return { title: label, durationSec: +t.toFixed(2), scenes: deck };
+}
+
+// USE THE SUPPORT COPY THAT IS ALREADY WRITTEN.
+//
+// Every beat above carries an `onScreenText` trio, but the renderers read
+// `scene.bullets` — in a real film text_director maps one to the other, and the
+// preview path never runs it. So the preview shipped headline + one subtext line
+// and nothing else, which in 9:16 is a thin ribbon of type in the middle of a
+// 1920px frame: measured on the first generated pack, 5 of 12 scenes tripped the
+// frame-density gate with dead bands of 49-61%, every one of them running to the
+// bottom edge.
+//
+// Lines whose words the subtext already carries are dropped rather than shown
+// twice — s2's subtext IS its three support lines punctuated into a sentence.
+function promoteSupportCopy(scene) {
+  if (!scene || (Array.isArray(scene.bullets) && scene.bullets.filter(Boolean).length)) return;
+  const support = Array.isArray(scene.onScreenText) ? scene.onScreenText.filter(Boolean) : [];
+  if (!support.length) return;
+  const sub = String(scene.subtext || "").toLowerCase();
+  const words = (s) => String(s).toLowerCase().match(/[a-z']+/g) || [];
+  const fresh = support.filter((line) => {
+    const w = words(line).filter((x) => x.length > 3);
+    if (!w.length) return true;
+    // Already said if most of its meaningful words are in the subtext.
+    return w.filter((x) => sub.includes(x)).length / w.length < 0.6;
+  });
+  if (fresh.length) scene.bullets = fresh.slice(0, 3);
 }
 
 // The authored beat count + total seconds of a bundled template, so a preview can
@@ -364,9 +401,20 @@ function authoredProgram(packName) {
   return _progCache.get(packName) || null;
 }
 
+// A pack's OWN directory. Every read of a pack's files goes through this, so the
+// admin template pipeline can render a DRAFT that deliberately does not live in
+// frames/ (src/admin/template_store.js — publish is the MOVE into frames/, and a
+// draft sits in frames-draft/<slug>/v<N>/ until then). Omitting it keeps the
+// installed pack, which is what the fleet build passes.
+function packDirOf(name) { return path.join(frameRegistry.FRAMES_DIR, name); }
+
 // Human display label for a pack (manifest name / FRAME.md `name:` / slug).
-function labelFor(name) {
-  const md = frameRegistry.getFrameMd(name) || "";
+function labelFor(name, packDir) {
+  // The registry's mtime cache is keyed on frames/<name>, so a draft has to be
+  // read straight off disk; the fleet path is untouched.
+  let md = "";
+  if (packDir) { try { md = fs.readFileSync(path.join(packDir, "FRAME.md"), "utf8"); } catch { /* fall back to the slug */ } }
+  else md = frameRegistry.getFrameMd(name) || "";
   const fm = (md.match(/^---\r?\n([\s\S]*?)\r?\n---/) || [])[1] || md;
   let label = (fm.match(/^name:\s*"?(.+?)"?\s*$/m) || [])[1] || "";
   label = label.replace(/\s*[—-]\s*Frame.*$/i, "").trim();
@@ -379,9 +427,166 @@ function rendererFor(name) {
   catch { return null; }
 }
 
+// A PREVIEW MUST CARRY PICTURES.
+//
+// Every preview was composed with `assets: []`, and that one empty array is why
+// generated templates all looked like the same deck: with no pool,
+// archScreenshotHero, archAssetMontage and archSplitVector can never fire, the
+// scrimmed B-roll backgrounds never appear, and casting is left with only the
+// type archetypes — hook, text, stat, quote, cta. So every pack previewed as
+// five flavours of centred type, and its picture grammar (the part that most
+// distinguishes one template from another) was invisible.
+//
+// The pool comes from the CURATED LIBRARY on disk, not from a stock API: no key,
+// no network, deterministic, and it is the same source a real film draws from.
+// Queries are seeded from the pack's own vibe/topics so a fintech pack previews
+// with fintech-ish imagery, and a shuffled tail keeps two packs from showing an
+// identical set. Fails open — a box without the library previews exactly as
+// before rather than failing the build.
+// One hit per query, and enough queries that the pool spans photographs AND
+// illustrations: the vector pool feeds the contain-fit split scene, the photo
+// pool feeds the montage and the scrimmed backgrounds. Asking one query for two
+// hits returned the same topic twice and previewed as a duplicate pair.
+// AN ASSET THAT IS NOT ABOUT THE SUBJECT IS WORSE THAN NO ASSET.
+//
+// The first version of this asked the library six FIXED questions — "team
+// collaboration office", "product interface screen" and so on — regardless of
+// what the template was for. The library answered them correctly and the result
+// was a "cats playing" template whose montage held a filing cabinet, a laptop
+// with STARTUP on the screen and a neural-network architecture diagram. Nothing
+// was broken; the questions were just wrong.
+//
+// So the queries are built from the TEMPLATE'S OWN SUBJECT, and there is no
+// generic fallback: if the curated library has nothing genuinely about cats, the
+// template previews as type and furniture, which is honest. curated_library's own
+// relevance gate already refuses weak matches (it requires a real content word,
+// not just "growth"/"profit"), so an empty result here means "we have no picture
+// for this", and that is the right answer.
+const SUBJECT_STOP = new Set([
+  "the", "a", "an", "and", "or", "for", "with", "template", "film", "video",
+  "brand", "campaign", "promo", "app", "product", "company", "business",
+]);
+
+function subjectWords(subject) {
+  return String(subject || "")
+    .toLowerCase().replace(/[^a-z0-9\s-]/g, " ").split(/[\s-]+/)
+    .filter((w) => w.length > 2 && !SUBJECT_STOP.has(w));
+}
+
+// THE LIBRARY'S OWN GATE IS NOT ENOUGH HERE.
+//
+// curated_library scores with stems and synonyms, which is right for a real film
+// (a loosely-related on-brand picture beats an empty frame). For a TEMPLATE
+// preview it is too generous: "cats playing" came back with a cryptocurrency/NFT
+// photograph — the library is a business collection with no cats in it, and that
+// entry's filename tokens happen to include "playing" (a woman playing a game).
+//
+// So the test is the entry's TOPICS, not its words. Topics are the curated folder
+// taxonomy — "recruitment / interview", "assetcollection / cash flow" — i.e. what
+// the picture is OF. `words` are incidental tokens scraped from the filename, and
+// matching them is how an off-subject photo sneaks in on a shared verb.
+function entryIsOnSubject(entry, words) {
+  if (!entry || !words.length) return false;
+  const topics = (entry.topics || []).join(" ").toLowerCase();
+  if (!topics) return false;
+  return words.some((w) => topics.includes(w));
+}
+
+function subjectQueries(subject) {
+  const words = subjectWords(subject);
+  if (!words.length) return [];
+  const phrase = words.slice(0, 4).join(" ");
+  // The phrase first (tightest), then each strong word on its own so a two-word
+  // subject still finds something when the pair has no exact match.
+  const out = [{ q: phrase, kind: "photo" }];
+  for (const w of words.slice(0, 3)) {
+    out.push({ q: w, kind: "photo" });
+    out.push({ q: `${w} illustration`, kind: "vector" });
+  }
+  return out;
+}
+
+// THE POOL HAS TO SPAN THREE KINDS, not just be six pictures.
+//
+// scene_kit weaves in tiers: screenshots and vectors get the PROMINENT foreground
+// (the hero mount, the split scene), leftovers ≥3 get a MONTAGE grid, and photos
+// fall through to scrimmed B-roll behind the type. A pool of six photographs
+// therefore lands entirely in the bottom tier — measured: all six arrived as
+// `s2bgi`…`s7bgi` full-bleed backgrounds and not one card was drawn. So each
+// query declares the KIND it is fetching for, and classifyAsset honours `kind`
+// verbatim.
+//
+// The "shot" entries are UI/dashboard artwork standing in for the customer
+// screenshot a real film pulls from their website. A template preview has no
+// customer, and the card's job here is to show the SHAPE the pack gives a
+// screenshot — which is exactly what an admin is judging.
+// (The fixed generic query list that used to live here is gone on purpose — see
+// the note above. Queries now come only from the subject and the pack's own
+// authored keywords.)
+
+function previewAssets(name, jobDir, packDir, subject) {
+  const out = [];
+  // NO SUBJECT, NO PICTURES. A pack's own `vibe` describes its LOOK ("a
+  // retro-computer terminal…"), not what the film is about, and querying the
+  // library with it is how a stock photo of an office ends up in a template
+  // about cats. Only a real subject earns an asset pool.
+  const subjectQ = subjectQueries(subject);
+  const subjWords = subjectWords(subject);
+  if (!subjectQ.length) return out;
+  try {
+    const dir = path.join(jobDir, "assets");
+    // The pack's OWN keyword list is on-subject when the author wrote one; its
+    // `vibe` is deliberately excluded (it describes the look, not the subject).
+    const packKeywords = (() => {
+      try {
+        const raw = JSON.parse(fs.readFileSync(path.join(packDir || packDirOf(name), "pack.json"), "utf8"));
+        return (raw.assets?.keywords || []).filter(Boolean).slice(0, 3).map((k) => ({ q: String(k), kind: "photo" }));
+      } catch { return []; }
+    })();
+    const queries = [...subjectQ, ...packKeywords];
+
+    const seen = new Set();
+    for (const { q, kind } of queries) {
+      if (out.length >= PREVIEW_ASSET_MAX) break;
+      let hits = [];
+      try { hits = curatedLibrary.search({ query: q, limit: 1 }) || []; } catch { hits = []; }
+      for (const entry of hits) {
+        if (out.length >= PREVIEW_ASSET_MAX) break;
+        if (!entry || seen.has(entry.id)) continue;
+        if (!entryIsOnSubject(entry, subjWords)) continue;   // see entryIsOnSubject
+        seen.add(entry.id);
+        try {
+          const mat = curatedLibrary.materialize(entry, path.join(dir, `preview-${out.length}.${entry.ext}`));
+          out.push({
+            ...mat,
+            // RELATIVE to the job dir. The renderer serves the job directory over
+            // http and scene_kit writes `a.path` straight into src=, so the
+            // absolute "C:\…" the library returns resolved to nothing: the
+            // montage grid rendered five empty tiles showing their alt text.
+            path: path.relative(jobDir, mat.path).split(path.sep).join("/"),
+            file: mat.path,
+            type: "image",
+            // classifyAsset returns `kind` verbatim when it is one of
+            // vector/shot/photo, which is how this pool reaches all three tiers.
+            kind,
+            alt: (entry.topics || []).join(", ").slice(0, 90) || "preview image",
+            query: q,
+          });
+        } catch { /* skip an unreadable library file */ }
+      }
+    }
+  } catch { /* no library on this box — preview stays type-only */ }
+  if (out.length) console.log(`[previews] ${name}: ${out.length} library asset(s) for the preview pool`);
+  return out;
+}
+
+// Enough to trigger a montage grid (needs >=3) and a hero/split, without turning
+// a type template into a slideshow of someone else's photographs.
+const PREVIEW_ASSET_MAX = 6;
+
 // Build index.html + meta.json for a pack into jobDir, routing to the right
 // composer exactly like the pipeline does.
-function buildComposition(name, jobDir) {
+function buildComposition(name, jobDir, packDir, assetSubject) {
   // A portrait-NATIVE pack (pack.json "portraitNative") must preview at 9:16 —
   // rendering its tall design into a 16:9 box letterboxes it, and the resulting
   // poster would read as landscape, which is exactly what /api/frames uses to
@@ -392,7 +597,7 @@ function buildComposition(name, jobDir) {
   // which also overwrites its portrait poster and drops it out of the Vertical tab.
   let portraitNative = false;
   try {
-    const raw = JSON.parse(fs.readFileSync(path.join(frameRegistry.FRAMES_DIR, name, "pack.json"), "utf8"));
+    const raw = JSON.parse(fs.readFileSync(path.join(packDir || packDirOf(name), "pack.json"), "utf8"));
     portraitNative = !!raw.portraitNative;
   } catch { /* default landscape */ }
   // 9:16 derived from the LANDSCAPE HEIGHT as the portrait WIDTH (720 -> 720x1280).
@@ -407,17 +612,18 @@ function buildComposition(name, jobDir) {
   const dims = portraitNative
     ? { width: 1080, height: 1920, fps: FPS }
     : { width: W, height: H, fps: FPS };
-  const storyboard = storyboardFor(labelFor(name), name);
+  const storyboard = storyboardFor(labelFor(name, packDir), name);
   const captionCues = []; // previews carry no baked subtitle cards
   const renderer = rendererFor(name);
+  const assets = previewAssets(name, jobDir, packDir, assetSubject);
 
   if (renderer && PACK_RENDERERS[renderer]) {
-    const built = PACK_RENDERERS[renderer].buildComposition({ storyboard, dims, framePack: name, captionCues, assets: [] });
+    const built = PACK_RENDERERS[renderer].buildComposition({ storyboard, dims, framePack: name, captionCues, assets });
     return { storyboard, built, via: renderer };
   }
 
   // Default: deterministic scene-kit + the pipeline's vector/motion enrich floor.
-  const built = sceneKit.buildComposition({ storyboard, dims, framePack: name, assets: [], captionCues, seedKey: `preview-${name}` });
+  const built = sceneKit.buildComposition({ storyboard, dims, framePack: name, assets, captionCues, seedKey: `preview-${name}` });
   let indexHtml = built.indexHtml;
   try {
     const en = enrichComposition(indexHtml, {
@@ -439,19 +645,118 @@ function ff(args) {
   });
 }
 
-// Pick the brightest of several sampled frames for the poster, so a pack that
-// opens on a dark scene never yields a black card. Mirrors renderer.js.
-function ffLum(videoPath, t) {
+// ---- POSTER FRAME SELECTION (ported from Rohit's make-pack-media.js) ---------
+//
+// The old rule was "brightest of six sampled frames", which asks the wrong
+// question. Brightness alone cannot tell a good card from a half-empty one: on a
+// dark pack a flat light placeholder slab is the brightest object in the frame,
+// so the card sold a wireframe instead of the pack; and a frame with a large
+// blank area is often the brightest thing in the film.
+//
+// This now matters much more than it did, because the picker shows the poster AT
+// REST on every card (web/src/screens/Templates.jsx) rather than only behind a
+// hovered clip. The resting image IS the pack's shop window.
+//
+// Three measurements, in preference order:
+//   LUMA    — a darkness floor, so a pack that opens on black never yields a
+//             black card.
+//   DETAIL  — the spread of an 8x8 luma grid. A frame with type and furniture
+//             across it varies; a mostly-empty page or a flat grey placeholder
+//             does not. A floor, not the objective: maximising detail moves packs
+//             onto atypical busy frames.
+//   GROUND  — how far the frame's average colour sits from the surface the pack's
+//             own manifest declares. A card showing a pack's INK colour as its
+//             field is off-brief even when it is bright and busy.
+const POSTER_FLOOR = 26;
+const DETAIL_FLOOR = 14;
+const GROUND_TOLERANCE = 105;
+
+// One 8x8 RGB sample → mean luma, luma spread, and mean colour. 192 bytes.
+function sampleAt(videoPath, t) {
   return new Promise((resolve) => {
-    const p = spawn("ffmpeg", ["-v", "error", "-ss", t.toFixed(2), "-i", videoPath, "-frames:v", "1", "-vf", "scale=1:1,format=gray", "-f", "rawvideo", "-"], { windowsHide: true });
+    const p = spawn("ffmpeg", ["-v", "error", "-ss", t.toFixed(2), "-i", videoPath,
+      "-frames:v", "1", "-vf", "scale=8:8,format=rgb24", "-f", "rawvideo", "-"], { windowsHide: true });
     const chunks = [];
     p.stdout.on("data", (d) => chunks.push(d));
-    p.on("error", () => resolve(0));
-    p.on("exit", () => { const b = Buffer.concat(chunks); resolve(b.length ? b[0] : 0); });
+    p.on("error", () => resolve({ luma: -1, detail: -1, rgb: null }));
+    p.on("exit", () => {
+      const buf = Buffer.concat(chunks);
+      if (buf.length < 192) return resolve({ luma: 0, detail: 0, rgb: null });
+      const lum = [], rgb = [0, 0, 0];
+      for (let i = 0; i < 192; i += 3) {
+        const r = buf[i], g = buf[i + 1], b = buf[i + 2];
+        rgb[0] += r; rgb[1] += g; rgb[2] += b;
+        lum.push(0.299 * r + 0.587 * g + 0.114 * b);
+      }
+      const n = 64;
+      const mean = lum.reduce((a, b) => a + b, 0) / n;
+      const detail = Math.sqrt(lum.reduce((a, v) => a + (v - mean) ** 2, 0) / n);
+      resolve({ luma: Math.round(mean), detail: Math.round(detail), rgb: rgb.map((c) => Math.round(c / n)) });
+    });
   });
 }
 
-async function encodePreview(srcMp4, dur, outDir) {
+// The surface the pack itself declares, so a card can be checked against it.
+function groundOf(pack) {
+  try {
+    const m = require("../src/services/frame_manifest").getManifest(pack) || {};
+    const hex = (m.surface && m.surface.ground) || (m.colors && (m.colors.ground || m.colors.paper || m.colors.bg));
+    if (typeof hex !== "string") return null;
+    const h = hex.replace("#", "").trim();
+    if (h.length !== 6) return null;
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  } catch { return null; }
+}
+const groundDistance = (rgb, ground) => (!rgb || !ground ? Infinity
+  : Math.sqrt((rgb[0] - ground[0]) ** 2 + (rgb[1] - ground[1]) ** 2 + (rgb[2] - ground[2]) ** 2));
+
+// Candidate times, in preference order. Sampled INSIDE a beat (0.62-0.8 of its
+// span), never at a boundary — sampling near a cut catches two headlines at once
+// or type sliced by a wipe edge.
+async function posterFrame(videoPath, scenes, dur, pack) {
+  const list = Array.isArray(scenes) && scenes.length ? scenes : null;
+  let candidates;
+  if (list && list.length >= 3) {
+    const first = list[0], last = list[list.length - 1], mid = list.slice(1, -1);
+    const at = (sc, f) => (Number(sc.start) || 0) + (Number(sc.duration) || 0) * f;
+    candidates = [
+      // Type-led middle beats first: they carry the pack's own furniture rather
+      // than a picture plate, which is what a style card should be selling.
+      ...mid.slice(1).map((sc) => at(sc, 0.66)),
+      at(last, 0.62),   // closing lockup
+      at(first, 0.8),   // opening, mostly landed
+      ...mid.slice(0, 1).map((sc) => at(sc, 0.66)),
+    ];
+  } else {
+    // No usable scene list — fall back to fractional sampling.
+    candidates = [0.45, 0.6, 0.3, 0.78, 0.15, 0.9].map((f) => dur * f);
+  }
+  candidates = candidates.map((t) => Math.max(0.1, Math.min(dur - 0.05, +Number(t).toFixed(2))));
+
+  const ground = groundOf(pack);
+  const scored = [];
+  for (const t of candidates) {
+    const s = { t, ...(await sampleAt(videoPath, t)) };
+    s.groundGap = Math.round(groundDistance(s.rgb, ground));
+    scored.push(s);
+  }
+
+  // First candidate on the pack's own surface that is neither too dark nor flat.
+  const onBrief = scored.find((s) => s.luma >= POSTER_FLOOR && s.detail >= DETAIL_FLOOR && s.groundGap <= GROUND_TOLERANCE);
+  if (onBrief) return onBrief;
+  // Nothing inside tolerance: the CLOSEST to the declared surface among lit
+  // frames. The detail floor is dropped on purpose — early in a beat little type
+  // has landed, so an on-brief frame can score low on detail, and being on the
+  // right surface matters more to a card than being busy.
+  const lit = scored.filter((s) => s.luma >= POSTER_FLOOR);
+  if (lit.length) {
+    return lit.reduce((a, b) => (b.groundGap < a.groundGap || (b.groundGap === a.groundGap && b.detail > a.detail) ? b : a));
+  }
+  // Everything is dark: the most detailed frame beats an arbitrary one.
+  return scored.reduce((a, b) => (b.detail > a.detail ? b : a), scored[0] || { t: dur * 0.45 });
+}
+
+async function encodePreview(srcMp4, dur, outDir, { scenes = null, pack = "" } = {}) {
   fs.mkdirSync(outDir, { recursive: true });
   const previewOut = path.join(outDir, "preview.mp4");
   const posterOut = path.join(outDir, "poster.jpg");
@@ -467,43 +772,65 @@ async function encodePreview(srcMp4, dur, outDir) {
   ]);
   if (!enc.ok) throw new Error(`ffmpeg encode failed: ${enc.err.slice(-300)}`);
 
-  // Brightest-frame poster.
-  let bestT = dur * 0.45, bestLum = -1;
-  for (const fr of [0.15, 0.3, 0.45, 0.6, 0.78, 0.9]) {
-    const t = Math.max(0.1, dur * fr);
-    const lum = await ffLum(srcMp4, t);
-    if (lum > bestLum) { bestLum = lum; bestT = t; }
-  }
-  await ff(["-y", "-hide_banner", "-loglevel", "error", "-ss", bestT.toFixed(2), "-i", srcMp4, "-frames:v", "1", "-vf", `scale=${OUT_W}:-2`, "-q:v", "4", posterOut]);
-  return { previewOut, posterOut };
+  const pick = await posterFrame(srcMp4, scenes, dur, pack);
+  await ff(["-y", "-hide_banner", "-loglevel", "error", "-ss", pick.t.toFixed(2), "-i", srcMp4, "-frames:v", "1", "-vf", `scale=${OUT_W}:-2`, "-q:v", "4", posterOut]);
+  return { previewOut, posterOut, poster: pick };
 }
 
-async function buildPack(name) {
-  const jobId = `preview-${name}-${W}x${H}`;
-  const jobDir = path.join(WORK, name);
+// ONE pack, end to end: compose -> render -> preview.mp4 + poster.jpg.
+//
+// The options exist so the admin template pipeline (src/services/template_qa.js)
+// can drive this path IN PROCESS for a single draft — same composer routing, same
+// production render(), so what QA scores is what a user would get — instead of
+// shelling out to this script and losing the structured error. Called with no
+// options it is the fleet build, byte for byte: the installed pack dir, the shared
+// work dir, public/frames/<name>/ out, and the render tidied away afterwards.
+//   packDir  — where the pack's pack.json / FRAME.md live (default frames/<name>)
+//   outDir   — where preview.mp4 + poster.jpg land (default public/frames/<name>)
+//   jobDir   — the scratch composition dir (default jobs/_previews/<name>)
+//   jobId    — names the render's mp4 in videosDir; distinct ids never collide
+//   keepWork — leave the job dir AND the full-res render in place for the caller
+//              to inspect. The caller then OWNS deleting both: the render lands in
+//              public/videos/ and is web-reachable until it does.
+async function buildPack(name, {
+  packDir = null, outDir = null, jobDir: jobDirIn = null, jobId: jobIdIn = null,
+  keepWork = false, abortSignal = null,
+  // What the template is ABOUT ("cats playing", "mars exploration"). Drives the
+  // curated-library queries; without it the preview carries no pictures at all,
+  // which is the correct outcome for a pack whose subject we do not know.
+  assetSubject = null,
+} = {}) {
+  const jobId = jobIdIn || `preview-${name}-${W}x${H}`;
+  const jobDir = jobDirIn || path.join(WORK, name);
   try { fs.rmSync(jobDir, { recursive: true, force: true }); } catch { /* stale handle from a prior run */ }
   fs.mkdirSync(jobDir, { recursive: true });
 
-  const { storyboard, built, via } = buildComposition(name, jobDir);
+  const { storyboard, built, via } = buildComposition(name, jobDir, packDir, assetSubject);
   fs.writeFileSync(path.join(jobDir, "index.html"), built.indexHtml, "utf8");
   fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
   console.log(`[previews] ${name}: composed via ${via} (${storyboard.scenes.length} scenes, ${storyboard.durationSec}s @ ${W}x${H})`);
 
-  const visual = await render({ jobId, jobDir, durationSec: storyboard.durationSec, quality: QUALITY });
-  const outDir = path.join(PUBLIC_FRAMES, name);
-  const { previewOut } = await encodePreview(visual.videoPath, storyboard.durationSec, outDir);
+  const visual = await render({ jobId, jobDir, durationSec: storyboard.durationSec, quality: QUALITY, abortSignal });
+  const dest = outDir || path.join(PUBLIC_FRAMES, name);
+  const { previewOut, posterOut, poster } = await encodePreview(visual.videoPath, storyboard.durationSec, dest, {
+    scenes: storyboard.scenes, pack: name,
+  });
 
   // Tidy: drop the full-res render + its stray thumbnail and the temp job dir.
   // Cleanup is best-effort — on Windows the just-finished render subprocess can
   // still hold a fleeting handle on the job dir (EPERM); the preview is already
   // saved, so a failed sweep must NOT fail the pack. Leftovers are reclaimed on
   // the next run's initial rm (also guarded).
-  try { fs.unlinkSync(visual.videoPath); } catch { /* noop */ }
-  try { fs.unlinkSync(visual.videoPath.replace(/\.mp4$/, ".jpg")); } catch { /* noop */ }
-  try { fs.rmSync(jobDir, { recursive: true, force: true }); } catch { /* windows handle lag */ }
+  if (!keepWork) {
+    try { fs.unlinkSync(visual.videoPath); } catch { /* noop */ }
+    try { fs.unlinkSync(visual.videoPath.replace(/\.mp4$/, ".jpg")); } catch { /* noop */ }
+    try { fs.rmSync(jobDir, { recursive: true, force: true }); } catch { /* windows handle lag */ }
+  }
 
   const kb = Math.round(fs.statSync(previewOut).size / 1024);
-  console.log(`[previews] ${name}: ✓ preview.mp4 (${kb} KB) + poster.jpg -> public/frames/${name}/`);
+  console.log(`[previews] ${name}: ✓ preview.mp4 (${kb} KB) + poster.jpg @${poster.t}s `
+    + `(luma ${poster.luma}, detail ${poster.detail}, ground gap ${poster.groundGap ?? "n/a"}) -> ${dest}`);
+  return { name, via, storyboard, jobId, jobDir, videoPath: visual.videoPath, previewOut, posterOut, poster, previewKb: kb };
 }
 
 function selectPacks(argv) {
@@ -530,4 +857,12 @@ async function main() {
   if (failed.length) process.exitCode = 1;
 }
 
-main();
+// Run only when invoked directly. Without this guard, `require()`-ing the file
+// (a test, a probe, anything) immediately rebuilds every pack preview — a very
+// expensive accident for a module that exports useful pure-ish helpers.
+if (require.main === module) main();
+
+module.exports = {
+  buildPack, buildComposition, packDirOf, labelFor, storyboardFor,
+  posterFrame, sampleAt, groundOf, encodePreview, POSTER_FLOOR, DETAIL_FLOOR, GROUND_TOLERANCE,
+};

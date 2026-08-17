@@ -152,4 +152,36 @@ async function fetchIcon({ query, color, iconStyle, outputPath }) {
   return null;
 }
 
-module.exports = { fetchIcon, searchIcons };
+// Fetch ONE BRAND MARK by its EXACT simple-icons slug. Returns { path, iconId }
+// or null. Deliberately not routed through fetchIcon: that path exists to GUESS
+// an icon for a phrase (search a term, rank the hits, take the best), and a guess
+// is the one thing a brand mark must never be. Measured through searchIcons with
+// the collection filter a solid-style pack uses, "edge" comes back
+// arrow-or-edge / arrow-and-edge / razor-double-edge with mdi:microsoft-edge
+// buried among them, and "chrome" comes back chrome-reader-mode — the beat that
+// said "Edge" would draw an arrowhead. Here the slug is the whole request: the
+// caller (services/brand_mentions.js) resolves it from a curated map or skips the
+// mention entirely, and a 404 means "no mark", never "try something else".
+//
+// RECOLOURED TO THE PACK INK, not left to the brand's own colour, and that is a
+// choice rather than an accident of plumbing. simple-icons ships single-colour
+// silhouettes — the file for slack is one `<path fill="currentColor">`, so the
+// brand's real multi-colour presentation is not on offer from this endpoint at
+// all. Worse, `currentColor` in a file loaded through `<img src>` has no element
+// to inherit from and resolves to BLACK, which is invisible on every dark pack.
+// The shape is what identifies the brand; the ink is what makes it legible, so
+// the mark takes the pack's accent exactly as every other Iconify vector does.
+async function fetchBrandMark({ slug, color, outputPath }) {
+  const s = String(slug || "").trim().toLowerCase();
+  if (!/^[a-z0-9.-]+$/.test(s)) return null;
+  const svgPath = outputPath.replace(/\.[^.]+$/, "") + ".svg";
+  try {
+    const p = await downloadSvg(`simple-icons:${s}`, color, svgPath);
+    return p ? { path: p, iconId: `simple-icons:${s}` } : null;
+  } catch (e) {
+    console.warn(`[iconify] brand mark "${s}" unavailable: ${e.message}`);
+    return null;
+  }
+}
+
+module.exports = { fetchIcon, searchIcons, fetchBrandMark };

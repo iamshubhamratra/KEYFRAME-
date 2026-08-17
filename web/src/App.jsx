@@ -7,6 +7,9 @@ import ProductionTheater from "./screens/ProductionTheater.jsx";
 import Premiere from "./screens/Premiere.jsx";
 import Gallery from "./screens/Gallery.jsx";
 import Templates from "./screens/Templates.jsx";
+import AdminTemplates from "./screens/AdminTemplates.jsx";
+import AdminGenerate from "./screens/AdminGenerate.jsx";
+import AdminTemplateDetail from "./screens/AdminTemplateDetail.jsx";
 import Auth from "./screens/Auth.jsx";
 import { createProject } from "./api.js";
 import { useAuth } from "./useAuth.js";
@@ -99,6 +102,11 @@ export default function App() {
   }
 
   const studioViews = ["create", "understanding", "script", "theater", "premiere"];
+  // The admin template pipeline. Its screens carry their own gate (and the
+  // server's requireAdmin is the actual boundary), so they are registered for
+  // everyone and simply refuse to render for anyone who isn't an admin — only
+  // the NAV entry below is conditional.
+  const adminViews = ["adminTemplates", "adminGenerate", "adminTemplate"];
   const screens = {
     auth: <Auth initialMode={authMode} onAuthed={onAuthed} onBack={() => go("landing")} />,
     create: <CreateScreen onCreated={(id, opts) => { setAutopilot(!!opts?.autopilot); go("understanding", id); }} prefill={prefill} />,
@@ -108,6 +116,11 @@ export default function App() {
     premiere: <Premiere projectId={projectId} onRemix={() => go("script")} onNew={() => enterStudio("create")} />,
     gallery: <Gallery onOpen={(id) => go("premiere", id)} onUseStyle={useStyle} />,
     templates: <Templates onUseStyle={useStyle} />,
+    // go()'s second argument is the registry's one id channel — a film id in the
+    // studio, a template id here.
+    adminTemplates: <AdminTemplates onOpen={(id) => go("adminTemplate", id)} onNew={() => go("adminGenerate")} />,
+    adminGenerate: <AdminGenerate onOpen={(id) => go("adminTemplate", id)} onCancel={() => go("adminTemplates")} />,
+    adminTemplate: <AdminTemplateDetail templateId={projectId} onBack={() => go("adminTemplates")} />,
   };
 
   const darkPage = view === "gallery" || view === "premiere";
@@ -133,6 +146,11 @@ export default function App() {
           <button className={`btn-chip ${view === "templates" ? "is-active" : ""}`} onClick={() => go("templates")}>Templates</button>
           <button className={`btn-chip ${view === "gallery" ? "is-active" : ""}`} onClick={() => go("gallery")}>Gallery</button>
           {studioViews.includes(view) && <button className="btn-chip is-active">Studio</button>}
+          {/* Admin-only entry. Hiding it is a courtesy, not a control — the
+              template routes are behind requireAdmin server-side. */}
+          {user?.role === "admin" && (
+            <button className={`btn-chip ${adminViews.includes(view) ? "is-active" : ""}`} onClick={() => go("adminTemplates")}>Admin</button>
+          )}
 
           {loading ? (
             <span className="label-mono">…</span>

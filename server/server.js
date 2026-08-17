@@ -19,6 +19,7 @@ const framesRouter = require("./src/routes/frames");
 const { buildRouter: buildGenerateRouter } = require("./src/routes/generate");
 const { buildRouter: buildProjectsRouter } = require("./src/routes/projects");
 const { buildRouter: buildAuthRouter } = require("./src/routes/auth");
+const { buildRouter: buildAdminTemplatesRouter } = require("./src/routes/admin_templates");
 const cookieParser = require("cookie-parser");
 
 async function loadQueue() {
@@ -138,6 +139,10 @@ async function main() {
   app.use("/api", framesRouter);
   app.use("/api", buildGenerateRouter({ enqueue }));
   app.use("/api", buildProjectsRouter({ enqueueIntake, enqueueProduction }));
+  // Admin-only template pipeline. Mounted before the /api 404 and guarded by
+  // requireAdmin inside the router; it borrows enqueueIntake so a template test
+  // render is an ordinary queued project job, not a second pipeline.
+  app.use("/api/admin", buildAdminTemplatesRouter({ enqueueIntake }));
 
   // Static: the built KEYFRAME web app (public/dist) takes precedence;
   // public/ still serves rendered videos and the legacy v1 UI.
@@ -170,6 +175,34 @@ async function main() {
   });
 
   const stopJanitor = janitor.start();
+
+  // STOCK PROVIDER SELF-TEST — one search per keyed provider, at boot.
+  //
+  // A rejected key used to be invisible until it had already cost a film its
+  // pictures: `available()` only checks that a key EXISTS, so every one of a
+  // job's ~13 lookups paid a doomed round-trip and fell through to the ~12s
+  // headless scrape. Measured on a shipped film, 1 of 7 requested stock photos
+  // arrived. The failure belongs at boot, in one line, not spread across a paid
+  // render. Non-blocking and fail-open: this never stops the server starting.
+  setTimeout(() => {
+    (async () => {
+      const probes = [];
+      const key = config.assetProviders?.pixabay?.apiKey || config.audio?.pixabayKey || "";
+      if (key && !/YOUR_/.test(key)) {
+        probes.push((async () => {
+          const res = await fetch(`https://pixabay.com/api/?key=${encodeURIComponent(key.trim())}&q=office&per_page=3`, { signal: AbortSignal.timeout(8000) });
+          if (res.status === 200) return "[assets] pixabay key OK";
+          const body = (await res.text()).slice(0, 80);
+          return `[assets] ⚠ PIXABAY KEY REJECTED (HTTP ${res.status}: ${body}) — stock imagery falls back to openverse + a ~12s page scrape. Put a valid key in config.assetProviders.pixabay.apiKey (or PIXABAY_API_KEY); a free one takes a minute at https://pixabay.com/api/docs/`;
+        })());
+      } else {
+        probes.push(Promise.resolve("[assets] ⚠ no pixabay key set — stock imagery comes from openverse only (config.assetProviders.pixabay.apiKey / PIXABAY_API_KEY)"));
+      }
+      for (const p of probes) {
+        try { console.log(await p); } catch (e) { console.log(`[assets] provider self-test skipped: ${String(e.message).slice(0, 60)}`); }
+      }
+    })().catch(() => { /* never fatal */ });
+  }, 1500).unref?.();
 
   // Pre-fetch HyperFrames skill docs + registry catalog in the background so
   // the first composer call doesn't block on GitHub. Non-fatal if either fails.

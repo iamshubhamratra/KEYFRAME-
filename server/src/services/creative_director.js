@@ -23,6 +23,7 @@ const config = require("../config");
 const db = require("../db");
 const openrouter = require("./openrouter");
 const { extractFirstJsonObject } = require("./json_lenient");
+const { isLogo, tierFor } = require("./asset_priority");
 // thumbBase64 lives in asset_vision on main (the branch this file came from
 // expected a media.js export that never landed).
 const { thumbBase64 } = require("./asset_vision");
@@ -205,7 +206,7 @@ function applyCraft(a, v) {
   if (EFFECTS.has(v.effect)) { a.effect = v.effect; hit = true; }
   if (QUALITY.has(v.quality)) {
     a.quality = v.quality;
-    if (v.quality === "low") a.lowQuality = true;
+    if (v.quality === "low" && a.source !== "upload") a.lowQuality = true;
     hit = true;
   }
   return hit;
@@ -266,7 +267,7 @@ async function reviewChunk({ chunk, baseIndex, subject, categoryText, packText, 
       a.width && a.height ? `dims: ${a.width}x${a.height}` : "",
       hint ? `looks like: ${hint}` : "",
       clipHint,
-      isWebStock(a) ? "web-stock (rejectable)" : "trusted (owned/curated — do not reject for relevance)",
+      a.source === "upload" ? "THE USER'S OWN UPLOAD (sovereign — never reject; prefer hero/support prominence)" : isWebStock(a) ? "web-stock (rejectable)" : "trusted (owned/curated — do not reject for relevance)",
     ].filter(Boolean).join(" · ");
     content.push({ type: "text", text: `Asset ${n + 1} (${meta}):` });
     content.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${x.b}` } });
@@ -344,7 +345,9 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
   // Attach absolute paths for thumbnailing (assets carry jobDir-relative paths).
   for (const a of list) a.__absPath = a && a.path ? path.join(jobDir, a.path) : null;
 
-  const visual = list.filter((a) => a && (a.type === "image" || a.type === "video") && a.__absPath && fs.existsSync(a.__absPath));
+  // The user's logo is role material — grading it against the stock rubric only
+  // wastes a vision slot and risks a "low quality" verdict on a flat brand mark.
+  const visual = list.filter((a) => a && !isLogo(a) && (a.type === "image" || a.type === "video") && a.__absPath && fs.existsSync(a.__absPath));
 
   // ---- 0) CLIP pre-scoring: local image<->text semantic relevance ----
   // A cheap, deterministic "do the PIXELS match the subject?" probability (0..1)
@@ -545,7 +548,14 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
   // These groups are PER SCENE, so the per-scene CLIP score from 2c is the right
   // tie-breaker where it exists: two assets can both be on-subject for the film
   // while only one of them depicts the line this particular scene speaks.
-  const rankScore = (a) => (a.cdScore || 0)
+  // TIER-FIRST, but ONLY when the job actually has uploads. The upstream branch
+  // swapped this unconditionally, which made source-tier the x1000 major key for
+  // EVERY job and reordered the per-scene prominence cap on upload-free website
+  // jobs — a render change on the no-feature path. With the guard, the
+  // expression is arithmetically identical when no upload exists.
+  const hasUploads = list.some((a) => a && a.source === "upload");
+  const rankScore = (a) => (hasUploads ? tierFor(a) * 1000 : 0)
+    + (a.cdScore || 0)
     + (typeof a.clipSceneRelevance === "number" ? a.clipSceneRelevance * 30
       : typeof a.clipRelevance === "number" ? a.clipRelevance * 30 : 0)
     + (isScreenshot(a) ? 45 : 0);

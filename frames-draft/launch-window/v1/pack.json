@@ -1,0 +1,84 @@
+{
+  "name": "launch-window",
+  "vibe": "a bright modern SaaS system: near-white ground, soft brand gradients, friendly rounded type and one vivid gradient accent — for SaaS explainers, product tours and launches",
+  "colors": {
+    "paper": "#f9fafd",
+    "mist": "#eef0f8",
+    "ink": "#0d1220",
+    "violet": "#7c3aed",
+    "ember": "#ff5a1f",
+    "haze": "#c9b6fa"
+  },
+  "fonts": [
+    "Inter",
+    "Sora",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#f9fafd"
+  },
+  "motion": {
+    "cut": "thrust",
+    "drift": 1.04
+  },
+  "fx": {
+    "canvas": "rays",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#7c3aed",
+      "#ff5a1f"
+    ],
+    "extras": [
+      "#eef0f8",
+      "#c9b6fa"
+    ],
+    "emphasisCss": "background:linear-gradient(100deg,#7c3aed,#ff5a1f);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#7c3aed;"
+  },
+  "assets": {
+    "photoMod": "modern bright saas product gradient clean",
+    "iconStyle": "duotone",
+    "keywords": [
+      "modern",
+      "bright",
+      "gradient",
+      "clean",
+      "friendly"
+    ],
+    "prefer": [
+      "photo",
+      "vector"
+    ]
+  },
+  "textfx": {
+    "enter": "countin",
+    "emphasis": "prism",
+    "case": "upper",
+    "tracking": -0.02,
+    "weight": null,
+    "sizeScale": 1.1,
+    "align": "left",
+    "speed": 1.35
+  },
+  "audio": {
+    "music": {
+      "query": "",
+      "mood": "",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "",
+      "palette": []
+    }
+  },
+  "typography": {
+    "display": "Sora"
+  },
+  "camera3d": {
+    "ground": "#0d1220"
+  },
+  "portraitNative": true
+}

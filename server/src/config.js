@@ -322,6 +322,21 @@ function build() {
   };
   cfg.llm.stageModels = { ...(cfg.llm.stageModels || {}), template_director: cfg.templateDirector.model };
 
+  // PRE-RENDER VALIDATION GATE (ported from Rohit). Runs services/preflight.js
+  // just before composition: self-heals assets whose file vanished (so the
+  // composer can never emit a broken <img src>), and reports whether every scene
+  // actually has a visual. Disclosure by default; `hardFail` only blocks the
+  // genuinely unrenderable case. Disable with VALIDATION_GATE=0.
+  const vgCfg = cfg.validationGate || {};
+  cfg.validationGate = {
+    enabled: process.env.VALIDATION_GATE != null
+      ? /^(1|true|yes|on)$/i.test(String(process.env.VALIDATION_GATE))
+      : (vgCfg.enabled !== false),
+    hardFail: process.env.VALIDATION_HARD_FAIL != null
+      ? /^(1|true|yes|on)$/i.test(String(process.env.VALIDATION_HARD_FAIL))
+      : (vgCfg.hardFail !== false),
+  };
+
   validate(cfg);
 
   // Resolve paths relative to project root.

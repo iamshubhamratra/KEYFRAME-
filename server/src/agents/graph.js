@@ -63,6 +63,8 @@ const { auditAssetRender } = require("../services/asset_render_check");
 const { preflight } = require("../services/preflight");
 const { buildAudioReport } = require("../services/audio_report");
 const { acquire, hasProviderFor, makeImageDeduper } = require("../services/asset_sources");
+const { fetchBrandMark } = require("../services/asset_sources/iconify");
+const { planBrandMarks } = require("../services/brand_mentions");
 // The same subject reducer + camera/adjective stop list asset_sources applies
 // before it searches a provider (asset_sources/query_terms.js). Deriving queries
 // through it here means the string the planner writes is the string that is
@@ -81,6 +83,10 @@ const { VALID_VOICES } = require("../services/audio_planner");
 const { buildFallback } = require("../services/fallback");
 const { normalizeComposition } = require("../services/normalize");
 const { render } = require("../services/renderer");
+// The SPATIAL fixer (hide duplicates / resolve text sitting on a graphic). Called
+// directly by layoutRepairNode: contrastFixPass runs it too, but only with the same
+// sampling the pre-render pass already used, which cannot find a new collision.
+const { layoutFix } = require("../services/layout_fix");
 const { reviewRender } = require("./qa_agent");
 const { checkAssetsRelevance } = require("../services/asset_vision");
 const { reviewAndCurate } = require("../services/creative_director");
@@ -473,6 +479,72 @@ function topicAnchor(job, brief) {
   return Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 2).map((x) => x[0]).join(" ");
 }
 
+// THE BEAT THAT NAMES A PRODUCT MUST SHOW IT.
+//
+// Reported on a shipped film: the narration walked through "Microsoft, Slack,
+// Edge, Chrome" and the frame carried nothing but type — no mark, no screenshot,
+// no asset of any of them. Nothing in the stock chain HAS a picture of Slack;
+// the derived query goes to photo providers and comes back with a generic office
+// desk. The brand-mark set does have one, and until now nothing asked it.
+//
+// brand_mentions.js decides WHICH products a beat names (curated map only,
+// case-sensitive, word-boundary, sentence-start guard — see the precision rules
+// there); this turns each accepted mention into an ordinary asset pinned to the
+// scene that named it.
+//
+// `sees` CARRIES THE WORD "logo", `alt` DOES NOT, and the split is load-bearing.
+// `sees` is what the scene matchers weight highest (omelette_adapter's WEIGHTS:
+// sees 1.6, alt 1.2), so naming the mark properly there is what lands it on the
+// right beat. But template_engine.js:199 and template_director.js:75 both claim
+// the FILM's own logo by testing /\blogo\b/ against `alt` — an alt of "Slack
+// logo" would make the first mark the film's brand lockup, pull it out of the
+// scene pool entirely (template_engine.js:455) and stage it on the CTA. The film
+// would read as sponsored by Slack and the beat that named it would still be
+// empty. "brand mark" says the same thing to a reader and nothing to that regex.
+async function acquireBrandMarks({ script, jobDir, color, tracker }) {
+  const plan = planBrandMarks(script);
+  if (!plan.length) return [];
+  fs.mkdirSync(path.join(jobDir, "assets", "images"), { recursive: true });
+  const marks = [];
+  const placed = [];
+  // Serial on purpose: at most 8 of these, each a ~1KB SVG off a CDN, and the
+  // whole helper runs alongside the stock fetch loop rather than in front of it.
+  for (const m of plan) {
+    const relPath = `assets/images/brand_${m.slug}.svg`;
+    const got = await fetchBrandMark({ slug: m.slug, color, outputPath: path.join(jobDir, relPath) });
+    if (!got) continue;
+    if (tracker) tracker.addExternal("iconify_brand_mark");
+    marks.push({
+      path: relPath, type: "image", kind: "vector", fit: "contain",
+      // THE FIELD BOTH RENDERERS ACTUALLY KEY ON. omelette_adapter.isBrandMark
+      // and template_engine's equivalent both test a non-empty `brand` — without
+      // it a mark is acquired, downloaded and pinned, and then recognised by
+      // nobody, which is the whole feature dead with no error anywhere. It
+      // carries the DISPLAY name ("Microsoft 365"), not the slug, because the
+      // renderers print it as the mark's caption.
+      brand: m.name,
+      // A first-class label so a renderer can seat a mark in a slot of its own
+      // instead of sniffing it out of the alt text. Asset `role` is only ever
+      // tested for "logo" (asset_priority.js:90, asset_director.js:128,
+      // graph.js unpinIrrelevant), so a new value passes every one of them.
+      role: "brandMark",
+      sceneId: m.sceneId, startSec: m.startSec, durationSec: m.durationSec,
+      style: "inset", width: 128, height: 128, ratio: 1,
+      alt: `${m.name} brand mark`, sees: `the ${m.name} logo`,
+      // Nominative use: the mark identifies the product the narration names. It
+      // is not a claim of endorsement and it is not the film's own branding.
+      license: "third-party brand mark, used nominatively to identify the product this beat names",
+      sourceUrl: `https://simpleicons.org/?q=${m.slug}`, source: "iconify", fromCache: false,
+      // Trusted like every other Iconify vector (asset_priority tier 60): the slug
+      // came from a curated map, so there is nothing for a relevance gate to catch.
+      visionOk: true,
+    });
+    placed.push(`${m.name}→${m.sceneId}`);
+  }
+  if (placed.length) console.log(`[agents] brand marks: ${placed.join(", ")} (${plan.length - placed.length} unavailable)`);
+  return marks;
+}
+
 async function assetSearchAgent(s) {
   const { job, jobDir, tracker } = s;
   // THE PLANNER IS INLINED, NOT A NODE — LangGraph IS A BSP ENGINE.
@@ -533,6 +605,14 @@ async function assetSearchAgent(s) {
         max: Number(config.topicShots && config.topicShots.max) || 6,
       }))
   ).catch(() => []);
+
+  // Brand marks for the products the script NAMES — see acquireBrandMarks above.
+  // Started here so its handful of CDN round trips overlap the stock loop; the
+  // result is merged after the Creative Director, not before (see the join).
+  const brandTask = acquireBrandMarks({ script: s.script, jobDir, color: iconColor, tracker }).catch((e) => {
+    console.warn(`[agents] brand marks skipped (${String(e && e.message || e).slice(0, 120)})`);
+    return [];
+  });
 
   // Map a scene's asset role to the kind of curated asset that fits it:
   // full-bleed backgrounds want real photos; insets/icons/textures want
@@ -888,7 +968,23 @@ async function assetSearchAgent(s) {
   // that pipeline.runJob also calls, so both paths direct assets identically.
   await directAssets({ assets: gated, jobDir, subject: gateSubject, tracker });
   unpinIrrelevant(gated);
-  const assets = gated;
+  // BRAND MARKS JOIN LAST, AND THAT POSITION IS THE POINT.
+  //
+  // A mark is an ADDITION to its beat, not a replacement for the beat's picture,
+  // so it must not compete with the film's screenshots and photography — and
+  // every stage above is a competition it would distort:
+  //   • the Creative Director's per-scene prominence cap keeps the top N assets
+  //     on a scene and demotes the rest, so a logo entering that pool can push a
+  //     real product screenshot down to scrim;
+  //   • unpinIrrelevant drops a pin whose CLIP score against the scene LINE falls
+  //     under 0.12, and a flat one-colour glyph scores nothing like a photograph
+  //     of the thing the line describes — the mark would be unpinned from the one
+  //     beat it was fetched for;
+  //   • both composers take pins and pools in array order, so arriving last means
+  //     a mark can only fill what nothing better already claimed.
+  // Nothing is lost by skipping those stages: the slug came from a curated map,
+  // so there is no relevance question to answer and no craft verdict to seek.
+  const assets = gated.concat(await brandTask);
   db.setAssets(job.id, assets);
   console.log(`[agents] asset_search: ${assets.length} asset(s) (${assets.filter((a) => a.fromCache).length} from cache)`);
   return { assets };
@@ -1423,22 +1519,28 @@ async function compositionAgent(s) {
     })
   ).map((c) => ({ start: Math.round(c.start * 10) / 10, end: Math.round(c.end * 10) / 10, text: c.text }));
   const captionCues = job.captions_enabled === 0 ? [] : voCues;
-  // The full-frame narration layer, three-state:
-  //   false      — off everywhere (a job can still opt in)
-  //   "omelette" — DEFAULT: on for the omelette/vertical path only. That is the
-  //                path where it works — all 139 packs carry typography.display so
-  //                the phrase renders in the template's own face, and placeScript
-  //                measures each frame and dedups against the pack's own words
-  //                (the duplication that got it switched off, job 5i94yvz5fv).
-  //   true       — on everywhere, including the family engine. Explicit only: the
-  //                family path has no placer, falls back to a generic font stack
-  //                on 46/49 packs, and hardcodes a black halo behind dark ink.
-  // The user's standing rule (~80% of the narration on screen as big type,
-  // 2026-07-31, restated 2026-08-05) is met by "omelette" + the packs' own
-  // mined slots; their 08-11 complaint was about DUPLICATED words, not presence.
+  // The full-frame narration layer is OPT-IN, and this gate is strict on purpose:
+  // ONLY the literal `true` turns it on. It was on for every job, because the
+  // default was carrying the string "omelette" (a leftover of the old three-state
+  // off / omelette-path-only / everywhere design) and the read was
+  // `config.defaults.scriptOverlay || false` — "omelette" is truthy, so every job
+  // was composed with the layer REQUESTED. A renderer name typed into a boolean is
+  // all it took. The layer stamps the spoken line over the pack's own headline in
+  // a second face; job 5i94yvz5fv shipped exactly that, QA logged it as an ELEMENT
+  // COLLISION blocker, and that is why it was made opt-in in the first place.
+  // What saved the recent films is luck, not this gate: of the comps still on disk
+  // none is a bundled-template output (xhllkt0m3x built on omelette then fell back
+  // to scene-kit, which is not passed scriptOverlay at all; 9bytvxqh7c is a family
+  // comp, and template_engine already tests `=== true`), so there are zero
+  // `kf-script` nodes to find. The omelette adapter's own test is `scriptOverlay &&`
+  // — truthy — so the 139 bundled packs were one successful runtime smoke away from
+  // painting the narration over their own type again.
+  // The standing rule (~80% of the narration on screen as big type, 2026-07-31,
+  // restated 2026-08-05) is met by the packs' MINED slots, in the template's own
+  // typography — not by a second layer painted on top of them.
   const scriptOverlay = (job.script_overlay === 1 || job.script_overlay === true)
     ? true
-    : (config.defaults.scriptOverlay || false);
+    : config.defaults.scriptOverlay === true;
 
   // A PIN TO A SCENE THAT DOES NOT EXIST THROWS THE ASSET AWAY.
   //
@@ -1840,6 +1942,74 @@ async function deadFrameRepairNode(s) {
   }
 }
 
+// Re-render the repaired comp and put the audio back on it — the tail every
+// deterministic repair node shares (mirrors timelineAgent's mix). A repair edits
+// index.html in place, so until this runs the mp4 the user gets is the unfixed one.
+async function rerenderRepaired(s, label) {
+  const { job, jobDir } = s;
+  const durationSec = s.effectiveDuration || job.duration;
+  const visual = await render({ jobId: job.id, jobDir, durationSec })
+    .catch((e) => { console.warn(`[agents] ${label} re-render failed: ${e.message.slice(0, 120)}`); return null; });
+  if (!visual) return null;
+  await mixAudioIntoVideo({
+    visualPath: visual.videoPath,
+    durationSec,
+    scenes: s.storyboard?.scenes || null, jobDir,
+    audio: {
+      ttsPath: null,
+      musicPath: s.musicPath || null,
+      sfx: [
+        ...(s.voClips || []).map((c) => ({ path: c.path, startSec: c.startSec, volume: 1.0, kind: "vo" })),
+        ...(s.sfxClips || []),
+      ],
+      musicVolume: config.audio?.defaultMusicVolume ?? 0.15,
+        // Per-scene bed shape from the script's own musicCue curve (see musicEnvelopeFromScript).
+        musicEnvelope: musicEnvelopeFromScript(s.script, (s.voClips || []).length > 0),
+    },
+  }).catch((e) => console.warn(`[agents] ${label} mix failed: ${e.message}`));
+  return visual;
+}
+
+// Layout repair node — the SPATIAL repair, and the branch a collision blocker
+// now actually reaches.
+//
+// A collision was routed to contrast_repair, which recolours: an overlap comes
+// back `changedAny:false` and the film ships with the blocker. Measured over the
+// 14 most recent finished jobs — 7 shipped an ELEMENT COLLISION blocker, and 6 of
+// those 7 shipped with `layout.collisionsScrimmed: 0` in their quality report, i.e.
+// the layout fixer had resolved NOTHING on the exact film QA said had an overlap.
+// Job ummrg4ks82 (nimbus-saas, "the headline 'BUILT FOR TEAMS' and its subtext are
+// overlapping a large browser window graphic" — visible by eye) is the whole story
+// in one row: layout hid 19 duplicate lines, scrimmed 0 collisions, contrast_repair
+// then spent 14.0s to report no change, and the film shipped with 3 blockers.
+//
+// Part of that is that the chain's layout sub-pass re-runs with the SAME sampling
+// it already used before the render, so the second look is idempotent by
+// construction. This node probes DENSER and out of phase with it (12 samples vs 6
+// — (i+0.5)/12 shares no sample time with (i+0.5)/6), because a collision that
+// lives inside one beat is invisible to the sweep that already missed it.
+async function layoutRepairNode(s) {
+  const { job, jobDir } = s;
+  db.setProgress(job.id, "qa");
+  const rep = await layoutFix(jobDir, { samples: 12, timeoutMs: 60000 })
+    .catch((e) => { console.warn(`[agents] layout repair errored: ${e.message.slice(0, 120)}`); return null; });
+  const resolved = rep ? ((rep.collisionsScrimmed || 0) + (rep.duplicatesRemoved || 0)) : 0;
+  if (!resolved) {
+    // Same contract as the contrast pass: nothing changed → the video is
+    // byte-identical, so don't pay for a re-review. detRepairNoop makes qaAgentNode
+    // reuse the prior verdict, and because this pass has its OWN gate the colour
+    // chain still gets its attempt (and vice versa) — a repair that changes nothing
+    // no longer spends the other one's only chance.
+    console.log(`[agents] layout repair: nothing resolved${rep && rep.skipped ? ` (${rep.skipped})` : ""} — the collision stands, deferring to the contrast pass / repair / END`);
+    return { layoutRepairTried: true, detRepairNoop: true };
+  }
+  console.log(`[agents] layout repair: ${rep.collisionsScrimmed || 0} collision(s) resolved · ${rep.duplicatesRemoved || 0} duplicate(s) hidden — re-rendering`);
+  const visual = await rerenderRepaired(s, "layout-repair");
+  const detRepairLaps = (s.detRepairLaps || 0) + 1;
+  if (!visual) return { layoutRepairTried: true, detRepairLaps };
+  return { visual, layoutRepairTried: true, detRepairLaps };
+}
+
 async function contrastRepairNode(s) {
   const { job, jobDir } = s;
   db.setProgress(job.id, "qa");
@@ -1863,29 +2033,12 @@ async function contrastRepairNode(s) {
   }
   console.log(`[agents] deterministic repair: contrast ${rep.fixed?.length || 0} · bg-veil ${rep.bgVeiled || 0} · palette ${rep.identityRemapped || 0} · layout ${rep.layoutChanged || 0} — re-rendering`);
 
-  const visual = await render({ jobId: job.id, jobDir, durationSec: s.effectiveDuration || job.duration })
-    .catch((e) => { console.warn(`[agents] contrast re-render failed: ${e.message.slice(0, 120)}`); return null; });
-  if (!visual) return { contrastRepairTried: true };
-
-  // Re-mix audio into the fresh render (mirror timelineAgent's mix).
-  await mixAudioIntoVideo({
-    visualPath: visual.videoPath,
-    durationSec: s.effectiveDuration || job.duration,
-    scenes: s.storyboard?.scenes || null, jobDir,
-    audio: {
-      ttsPath: null,
-      musicPath: s.musicPath || null,
-      sfx: [
-        ...(s.voClips || []).map((c) => ({ path: c.path, startSec: c.startSec, volume: 1.0, kind: "vo" })),
-        ...(s.sfxClips || []),
-      ],
-      musicVolume: config.audio?.defaultMusicVolume ?? 0.15,
-        // Per-scene bed shape from the script's own musicCue curve (see musicEnvelopeFromScript).
-        musicEnvelope: musicEnvelopeFromScript(s.script, (s.voClips || []).length > 0),
-    },
-  }).catch((e) => console.warn(`[agents] contrast-repair mix failed: ${e.message}`));
-
-  return { visual, contrastRepairTried: true };
+  const visual = await rerenderRepaired(s, "contrast-repair");
+  // Counted only here, on the branch that re-rendered and therefore re-runs QA —
+  // the no-op above returns before this and must not be charged a lap.
+  const detRepairLaps = (s.detRepairLaps || 0) + 1;
+  if (!visual) return { contrastRepairTried: true, detRepairLaps };
+  return { visual, contrastRepairTried: true, detRepairLaps };
 }
 
 // QA Agent node — verdict + loop control.
@@ -1991,7 +2144,8 @@ async function buildGraph() {
     visual: Annotation(), usedFallback: Annotation(), finalAttempt: Annotation(), rendered: Annotation(),
     animationReport: Annotation(), qa: Annotation(), qaAttempts: Annotation(),
     bestQa: Annotation(), usedComposer: Annotation(),
-    composerBudgetDead: Annotation(), contrastRepairTried: Annotation(), detRepairNoop: Annotation(),
+    composerBudgetDead: Annotation(), contrastRepairTried: Annotation(), layoutRepairTried: Annotation(),
+    detRepairLaps: Annotation(), detRepairNoop: Annotation(),
     brandSkin: Annotation(), layoutPlan: Annotation(), deadFrameTried: Annotation(),
     languagePlan: Annotation(), captionPlan: Annotation(), localizedStrings: Annotation(),
   });
@@ -2043,6 +2197,7 @@ async function buildGraph() {
     .addNode("timeline", timed("timeline", timelineAgent))
     .addNode("qa_agent", timed("qa_agent", qaAgentNode))
     .addNode("dead_frame_repair", timed("dead_frame_repair", deadFrameRepairNode))
+    .addNode("layout_repair", timed("layout_repair", layoutRepairNode))
     .addNode("contrast_repair", timed("contrast_repair", contrastRepairNode))
     .addNode("repair", timed("repair", repairAgent));
 
@@ -2087,7 +2242,8 @@ async function buildGraph() {
     // + layout dedup/collision-scrim + contrast recolor/scrim), re-run ESCALATED,
     // fixes the exact defect far more reliably and cheaply than an LLM re-roll, and
     // works on the scene-kit/dedicated paths too (which otherwise ship unfixed).
-    // Runs at most once (contrastRepairTried gates the whole deterministic pass).
+    // Each class runs at most once, on its own gate: contrastRepairTried for the
+    // colour chain, layoutRepairTried for the spatial one.
     const blockers = (!s.qa?.pass && Array.isArray(s.qa?.issues))
       ? s.qa.issues.filter((i) => String(i.severity || "").toLowerCase() === "blocker") : [];
     const btxt = blockers.map((i) => `${i.issue || ""} ${i.fix || ""}`).join(" \n ").toLowerCase();
@@ -2095,8 +2251,18 @@ async function buildGraph() {
       /contrast|legib|readab|illegible|hard to read|low[-\s]?contrast|washed[-\s]?out text/.test(btxt)                                       // contrast/legibility
       || /clash|raw (native )?colou?r|palette[-\s]?clash|harmoniz|not harmoniz|(photo|image|background|video)[^.]{0,40}(clash|raw|native|washed|unscrimmed|no scrim|no tint|too bright)/.test(btxt) // raw-photo clash
       || /off[-\s]?palette|off[-\s]?brand|wrong colou?r|foreign colou?r|colou?rs?[^.]{0,30}(belong|palette|system|off)/.test(btxt)          // off-palette color
-      || /overlap|overlapp|occlud|collision|collid|stacked|on top of|covering|over the (image|photo|graphic|screenshot)|duplicat/.test(btxt) // collision / text-over-graphic / duplicate
     );
+    // A COLLISION IS SPATIAL, AND IT WAS BEING SENT TO THE COLOUR FIXER. This clause
+    // used to be the fourth alternative above, so every overlap/duplicate blocker
+    // routed to contrast_repair — a pass that recolours, veils and re-scrims. It
+    // cannot move or hide anything, so a genuine overlap came back changedAny:false
+    // and the film shipped with the blocker: measured over the 14 most recent
+    // finished jobs, 7 shipped an ELEMENT COLLISION blocker and 6 of those 7 shipped
+    // with layout.collisionsScrimmed:0. Split out, it gets the spatial fixer and —
+    // just as important — its OWN one-shot gate, so a colour pass that changed
+    // nothing no longer counts as the collision's one attempt.
+    const collisionBlocker = blockers.length > 0
+      && /overlap|overlapp|occlud|collision|collid|stacked|on top of|obscur|covering|over the (image|photo|graphic|screenshot)|duplicat/.test(btxt);
     // 0) A DEAD FRAME IS NOT A STYLING NIT. The classes below are all "the film
     // renders, but looks wrong"; none of their patterns match "the film does not
     // render at all". So when QA reported EMPTY / NEAR-EMPTY FRAME six times on a
@@ -2156,6 +2322,13 @@ async function buildGraph() {
       } catch { /* diagnostic only — never block the repair */ }
       return "dead_frame_repair";
     }
+    // Collisions go first: it is the defect the viewer actually sees ("why is there
+    // overlapping text on the video"), and unlike a contrast nit it makes the frame
+    // unreadable rather than merely off-palette.
+    if (collisionBlocker && !s.layoutRepairTried && !s.usedFallback) {
+      console.log(`[agents] QA flagged a collision/duplicate blocker — layout repair pass (spatial, no LLM re-roll)`);
+      return "layout_repair";
+    }
     if (fixableBlocker && !s.contrastRepairTried && !s.usedFallback) {
       console.log(`[agents] QA flagged ${blockers.length} blocker(s) — deterministic repair pass (escalated fix chain, no LLM re-roll)`);
       return "contrast_repair";
@@ -2169,10 +2342,13 @@ async function buildGraph() {
     // ships its best lap — no costly, coin-flip re-compose. Only the composer path
     // takes the paid repair lap.
     const capLaps = Number(config.qa?.maxRepairs) || 1;
-    // The one deterministic repair pass also runs QA (to re-verify its fix), which
-    // increments qaAttempts — but it must NOT eat into the composer's LLM lap
-    // budget. Discount it so the composer still earns its full configured laps.
-    const repairsLeft = ((s.qaAttempts || 0) - (s.contrastRepairTried ? 1 : 0)) <= capLaps;
+    // A deterministic repair pass that re-rendered also re-runs QA (to verify its
+    // fix), which increments qaAttempts — but it must NOT eat into the composer's
+    // LLM lap budget. Discount the passes that actually re-rendered (detRepairLaps),
+    // not the ones that merely ran: a pass that changed nothing never re-ran QA
+    // (detRepairNoop), so discounting it handed the composer a lap it had not paid
+    // for. Two deterministic classes can now fire, so this has to count, not flag.
+    const repairsLeft = ((s.qaAttempts || 0) - (s.detRepairLaps || 0)) <= capLaps;
     // No repair lap when the composer already failed on budget (402/daily cap)
     // — the recompose would hit the identical wall and just burn time.
     if (!s.qa?.pass && s.usedComposer && repairsLeft && !s.usedFallback && !s.composerBudgetDead) {
@@ -2183,8 +2359,9 @@ async function buildGraph() {
       console.log(`[agents] QA failed but composer budget is exhausted — delivering best attempt (no repair lap)`);
     }
     return END;
-  }, ["dead_frame_repair", "contrast_repair", "repair", END]);
+  }, ["dead_frame_repair", "layout_repair", "contrast_repair", "repair", END]);
   g.addEdge("dead_frame_repair", "qa_agent");
+  g.addEdge("layout_repair", "qa_agent");
   g.addEdge("contrast_repair", "qa_agent");
   g.addEdge("repair", "qa_agent");
 

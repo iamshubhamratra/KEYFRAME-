@@ -152,7 +152,15 @@ function locate(html, selector, text) {
     if (wantText) {
       const inner = innerText(innerHtmlAfter(html, re.lastIndex, tag));
       if (!inner) continue;
-      if (!(inner === wantText || inner.startsWith(wantText) || wantText.startsWith(inner))) continue;
+      // `wantText.startsWith(inner)` is here for the reverse truncation —
+      // innerHtmlAfter gives up after 400 chars, so a long element reads back as a
+      // prefix of its own text. It must not double as "any element whose text is
+      // the target's first word": measured on a shipped comp, 17 of 24 text nodes
+      // under 12 chars were matched by an unrelated longer target that merely
+      // starts the same way ("One-Stop" pulled in by "One-Stop Destination for…"),
+      // and a fixer that edits a node it never measured is worse than one that
+      // edits nothing. Only lengths that can actually discriminate qualify.
+      if (!(inner === wantText || inner.startsWith(wantText) || (inner.length >= 12 && wantText.startsWith(inner)))) continue;
     }
     hits.push({ openTag: m[0], tag, attrs, hasFixed: /\bdata-cc-fixed\s*=/.test(attrs) });
   }

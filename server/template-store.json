@@ -1,0 +1,2323 @@
+{
+  "templates": [
+    {
+      "id": "41b10328-3848-4c3f-9859-3d3edec3b6a5",
+      "name": "Verify Clinic Calm",
+      "slug": "verify-clinic-calm",
+      "description": "",
+      "status": "READY_TO_PUBLISH",
+      "orientation": "vertical",
+      "category": "healthcare",
+      "tags": [],
+      "currentVersion": 2,
+      "publishedVersion": null,
+      "thumbnail": "/frames-draft/verify-clinic-calm/v2/poster.jpg",
+      "previewVideo": "/frames-draft/verify-clinic-calm/v2/preview.mp4",
+      "sourcePath": "C:\\internship\\KEYFRAME\\frames\\verify-clinic-calm",
+      "capabilities": {},
+      "assetRequirements": {},
+      "audioConfiguration": {},
+      "generation": {
+        "prompt": "A calm, reassuring template for a private dental clinic promo. Soft airy tones, trustworthy.",
+        "style": null,
+        "brandColor": "#2fa5a0",
+        "durationSec": 30,
+        "notes": null
+      },
+      "lastError": null,
+      "createdBy": "first@gmail.com",
+      "createdAt": 1786691900455,
+      "updatedAt": 1786703891256,
+      "publishedAt": 1786692976269
+    },
+    {
+      "id": "1a35f5eb-7067-4ed4-8946-4e12b754ed64",
+      "name": "Signal Relay",
+      "slug": "signal-relay",
+      "description": "Auto-generated · phosphor terminal",
+      "status": "GENERATED",
+      "orientation": "vertical",
+      "category": "developer",
+      "tags": [],
+      "currentVersion": 1,
+      "publishedVersion": null,
+      "thumbnail": null,
+      "previewVideo": null,
+      "sourcePath": null,
+      "capabilities": {},
+      "assetRequirements": {},
+      "audioConfiguration": {},
+      "generation": {
+        "prompt": "A developer-tool template with the feel of a terminal session: a near-black ground, one phosphor accent, monospaced type, and restrained cursor-like motion. For CLI tools, SDKs and API launches.",
+        "style": "phosphor terminal",
+        "brandColor": null,
+        "durationSec": null,
+        "notes": null,
+        "family": "retro-terminal"
+      },
+      "lastError": null,
+      "createdBy": "first@gmail.com",
+      "createdAt": 1786703438640,
+      "updatedAt": 1786703440418,
+      "publishedAt": null
+    },
+    {
+      "id": "6bc153ee-ead1-4e8e-98b1-966ab0407f53",
+      "name": "Quiet Clinic",
+      "slug": "quiet-clinic",
+      "description": "Auto-generated · calm and airy",
+      "status": "GENERATED",
+      "orientation": "vertical",
+      "category": "healthcare",
+      "tags": [],
+      "currentVersion": 1,
+      "publishedVersion": null,
+      "thumbnail": "/frames-draft/quiet-clinic/v1/poster.jpg",
+      "previewVideo": "/frames-draft/quiet-clinic/v1/preview.mp4",
+      "sourcePath": null,
+      "capabilities": {},
+      "assetRequirements": {},
+      "audioConfiguration": {},
+      "generation": {
+        "prompt": "A patient-facing clinic template: airy off-white ground, one calm teal accent, rounded humanist type and slow, reassuring motion. For appointments, onboarding and care plans.",
+        "style": "calm and airy",
+        "brandColor": null,
+        "durationSec": null,
+        "notes": null,
+        "family": "healthcare-soft"
+      },
+      "lastError": null,
+      "createdBy": "first@gmail.com",
+      "createdAt": 1786703712133,
+      "updatedAt": 1786952134910,
+      "publishedAt": null
+    },
+    {
+      "id": "3043d379-87eb-4dd9-a757-bb78f0871b90",
+      "name": "Signal Relay 2",
+      "slug": "signal-relay-2",
+      "description": "Auto-generated · phosphor terminal",
+      "status": "GENERATED",
+      "orientation": "vertical",
+      "category": "developer",
+      "tags": [],
+      "currentVersion": 1,
+      "publishedVersion": null,
+      "thumbnail": null,
+      "previewVideo": null,
+      "sourcePath": null,
+      "capabilities": {},
+      "assetRequirements": {},
+      "audioConfiguration": {},
+      "generation": {
+        "prompt": "A developer-tool template with the feel of a terminal session: a near-black ground, one phosphor accent, monospaced type, and restrained cursor-like motion. For CLI tools, SDKs and API launches.",
+        "style": "phosphor terminal",
+        "brandColor": null,
+        "durationSec": null,
+        "notes": null,
+        "family": "retro-terminal"
+      },
+      "lastError": null,
+      "createdBy": "first@gmail.com",
+      "createdAt": 1786941907205,
+      "updatedAt": 1786941914576,
+      "publishedAt": null
+    },
+    {
+      "id": "424388a5-0a4c-455d-9db1-142cf3811a5e",
+      "name": "Quiet Clinic 2",
+      "slug": "quiet-clinic-2",
+      "description": "Auto-generated · calm and airy",
+      "status": "READY_TO_PUBLISH",
+      "orientation": "vertical",
+      "category": "healthcare",
+      "tags": [],
+      "currentVersion": 1,
+      "publishedVersion": null,
+      "thumbnail": "/frames-draft/quiet-clinic-2/v1/poster.jpg",
+      "previewVideo": "/frames-draft/quiet-clinic-2/v1/preview.mp4",
+      "sourcePath": null,
+      "capabilities": {},
+      "assetRequirements": {},
+      "audioConfiguration": {},
+      "generation": {
+        "prompt": "A patient-facing clinic template: airy off-white ground, one calm teal accent, rounded humanist type and slow, reassuring motion. For appointments, onboarding and care plans.",
+        "style": "calm and airy",
+        "brandColor": null,
+        "durationSec": null,
+        "notes": null,
+        "family": "healthcare-soft"
+      },
+      "lastError": null,
+      "createdBy": "first@gmail.com",
+      "createdAt": 1786942045314,
+      "updatedAt": 1786942328353,
+      "publishedAt": null
+    },
+    {
+      "id": "5ffd0674-a4c9-4b4f-945f-3e57929855d3",
+      "name": "Ledger Grid",
+      "slug": "ledger-grid",
+      "description": "Auto-generated · measured and precise",
+      "status": "READY_TO_PUBLISH",
+      "orientation": "horizontal",
+      "category": "analytics",
+      "tags": [],
+      "currentVersion": 1,
+      "publishedVersion": null,
+      "thumbnail": "/frames-draft/ledger-grid/v1/poster.jpg",
+      "previewVideo": "/frames-draft/ledger-grid/v1/preview.mp4",
+      "sourcePath": null,
+      "capabilities": {},
+      "assetRequirements": {},
+      "audioConfiguration": {},
+      "generation": {
+        "prompt": "An analytics template built around numbers: a near-white ground, one ink-blue accent, a visible measurement grid and tabular figures that count up. For dashboards and reporting.",
+        "style": "measured and precise",
+        "brandColor": null,
+        "durationSec": null,
+        "notes": null,
+        "family": "data-viz-mono"
+      },
+      "lastError": null,
+      "createdBy": "first@gmail.com",
+      "createdAt": 1786942328353,
+      "updatedAt": 1786942579170,
+      "publishedAt": null
+    },
+    {
+      "id": "23e5f179-2ff9-403b-92ac-86992ef2dfb4",
+      "name": "Vault Terminal",
+      "slug": "vault-terminal",
+      "description": "Auto-generated · deep navy, electric accent",
+      "status": "READY_TO_PUBLISH",
+      "orientation": "horizontal",
+      "category": "fintech",
+      "tags": [],
+      "currentVersion": 1,
+      "publishedVersion": null,
+      "thumbnail": "/frames-draft/vault-terminal/v1/poster.jpg",
+      "previewVideo": "/frames-draft/vault-terminal/v1/preview.mp4",
+      "sourcePath": null,
+      "capabilities": {},
+      "assetRequirements": {},
+      "audioConfiguration": {},
+      "generation": {
+        "prompt": "A payments-infrastructure template: deep navy ground, one electric accent, tabular monospaced numbers and restrained, mechanical motion. For revenue, pricing and treasury films.",
+        "style": "deep navy, electric accent",
+        "brandColor": null,
+        "durationSec": null,
+        "notes": null,
+        "family": "fintech-dark"
+      },
+      "lastError": null,
+      "createdBy": "first@gmail.com",
+      "createdAt": 1786942579171,
+      "updatedAt": 1786942823524,
+      "publishedAt": null
+    },
+    {
+      "id": "aae21fec-f70e-40ef-84a3-e58b1a2b7147",
+      "name": "Launch Window",
+      "slug": "launch-window",
+      "description": "Auto-generated · bold launch gradient",
+      "status": "GENERATED",
+      "orientation": "vertical",
+      "category": "saas",
+      "tags": [],
+      "currentVersion": 2,
+      "publishedVersion": null,
+      "thumbnail": "/frames-draft/launch-window/v2/poster.jpg",
+      "previewVideo": "/frames-draft/launch-window/v2/preview.mp4",
+      "sourcePath": null,
+      "capabilities": {},
+      "assetRequirements": {},
+      "audioConfiguration": {},
+      "generation": {
+        "prompt": "A product-launch template with a confident gradient ground, bold display type and motion that builds. For feature announcements and changelog films.",
+        "style": "bold launch gradient",
+        "brandColor": null,
+        "durationSec": null,
+        "notes": null,
+        "family": "saas-gradient"
+      },
+      "lastError": null,
+      "createdBy": "first@gmail.com",
+      "createdAt": 1786942823525,
+      "updatedAt": 1786944329820,
+      "publishedAt": null
+    },
+    {
+      "id": "fbfc32f6-353b-4dd3-b687-0be3830f57af",
+      "name": "Cats Playing Launch",
+      "slug": "cats-playing-launch",
+      "description": "Campaign · cats playing · the announcement",
+      "status": "READY_TO_PUBLISH",
+      "orientation": "vertical",
+      "category": "cats-playing",
+      "tags": [],
+      "currentVersion": 1,
+      "publishedVersion": null,
+      "thumbnail": "/frames-draft/cats-playing-launch/v1/poster.jpg",
+      "previewVideo": "/frames-draft/cats-playing-launch/v1/preview.mp4",
+      "sourcePath": null,
+      "capabilities": {},
+      "assetRequirements": {},
+      "audioConfiguration": {},
+      "generation": {
+        "prompt": "Subject: cats playing. This template is for a launch film that opens on one bold claim and builds to a call to action. Design the palette, the type and the mood so they belong to that subject and that job — a \"cats playing\" film in the \"the announcement\" register, not a generic one. The motion has already been chosen for you and is fixed: words arrive with \"blur-up\", the emphasized word is treated with \"gradient\", scenes hand over with a \"submerge\" cut, and the background layer is \"orrery\". Choose colours and fonts that make THAT motion look deliberate.",
+        "style": "the announcement — blur-up/gradient/submerge/orrery",
+        "brandColor": null,
+        "durationSec": null,
+        "notes": null,
+        "family": "retro-terminal",
+        "pinMotion": {
+          "enter": "blur-up",
+          "emphasis": "gradient",
+          "cut": "submerge",
+          "canvas": "orrery"
+        }
+      },
+      "lastError": null,
+      "createdBy": "first@gmail.com",
+      "createdAt": 1786948423722,
+      "updatedAt": 1786948756954,
+      "publishedAt": null
+    },
+    {
+      "id": "ab60ecb6-1441-45e9-9527-10149115d129",
+      "name": "Cats Playing Explain",
+      "slug": "cats-playing-explain",
+      "description": "Campaign · cats playing · how it works",
+      "status": "READY_TO_PUBLISH",
+      "orientation": "horizontal",
+      "category": "cats-playing",
+      "tags": [],
+      "currentVersion": 1,
+      "publishedVersion": null,
+      "thumbnail": "/frames-draft/cats-playing-explain/v1/poster.jpg",
+      "previewVideo": "/frames-draft/cats-playing-explain/v1/preview.mp4",
+      "sourcePath": null,
+      "capabilities": {},
+      "assetRequirements": {},
+      "audioConfiguration": {},
+      "generation": {
+        "prompt": "Subject: cats playing. This template is for an explainer that walks through three steps in order, diagram-led. Design the palette, the type and the mood so they belong to that subject and that job — a \"cats playing\" film in the \"how it works\" register, not a generic one. The motion has already been chosen for you and is fixed: words arrive with \"mask-reveal\", the emphasized word is treated with \"scribble\", scenes hand over with a \"thrust\" cut, and the background layer is \"electric\". Choose colours and fonts that make THAT motion look deliberate.",
+        "style": "how it works — mask-reveal/scribble/thrust/electric",
+        "brandColor": null,
+        "durationSec": null,
+        "notes": null,
+        "family": "healthcare-soft",
+        "pinMotion": {
+          "enter": "mask-reveal",
+          "emphasis": "scribble",
+          "cut": "thrust",
+          "canvas": "electric"
+        }
+      },
+      "lastError": null,
+      "createdBy": "first@gmail.com",
+      "createdAt": 1786948756955,
+      "updatedAt": 1786949132044,
+      "publishedAt": null
+    },
+    {
+      "id": "5b50a3ed-b7f0-4cc8-af2f-50e661075552",
+      "name": "Cats Playing Proof",
+      "slug": "cats-playing-proof",
+      "description": "Campaign · cats playing · the numbers",
+      "status": "READY_TO_PUBLISH",
+      "orientation": "vertical",
+      "category": "cats-playing",
+      "tags": [],
+      "currentVersion": 1,
+      "publishedVersion": null,
+      "thumbnail": "/frames-draft/cats-playing-proof/v1/poster.jpg",
+      "previewVideo": "/frames-draft/cats-playing-proof/v1/preview.mp4",
+      "sourcePath": null,
+      "capabilities": {},
+      "assetRequirements": {},
+      "audioConfiguration": {},
+      "generation": {
+        "prompt": "Subject: cats playing. This template is for a data film built around hard figures and measured comparisons. Design the palette, the type and the mood so they belong to that subject and that job — a \"cats playing\" film in the \"the numbers\" register, not a generic one. The motion has already been chosen for you and is fixed: words arrive with \"line-wipe\", the emphasized word is treated with \"hanko\", scenes hand over with a \"shatter\" cut, and the background layer is \"telemetry\". Choose colours and fonts that make THAT motion look deliberate.",
+        "style": "the numbers — line-wipe/hanko/shatter/telemetry",
+        "brandColor": null,
+        "durationSec": null,
+        "notes": null,
+        "family": "data-viz-mono",
+        "pinMotion": {
+          "enter": "line-wipe",
+          "emphasis": "hanko",
+          "cut": "shatter",
+          "canvas": "telemetry"
+        }
+      },
+      "lastError": null,
+      "createdBy": "first@gmail.com",
+      "createdAt": 1786949132045,
+      "updatedAt": 1786952392988,
+      "publishedAt": null
+    },
+    {
+      "id": "817e362f-a931-4bf2-99ee-9f7994e23580",
+      "name": "Make A Templete Like C Launch",
+      "slug": "make-a-templete-like-c-launch",
+      "description": "Campaign · make a templete like cats in house theme · the announcement",
+      "status": "GENERATED",
+      "orientation": "vertical",
+      "category": "make-a-templete-like-cats-in-house-theme",
+      "tags": [],
+      "currentVersion": 1,
+      "publishedVersion": null,
+      "thumbnail": "/frames-draft/make-a-templete-like-c-launch/v1/poster.jpg",
+      "previewVideo": "/frames-draft/make-a-templete-like-c-launch/v1/preview.mp4",
+      "sourcePath": null,
+      "capabilities": {},
+      "assetRequirements": {},
+      "audioConfiguration": {},
+      "generation": {
+        "prompt": "Subject: make a templete like cats in house theme. This template is for a launch film that opens on one bold claim and builds to a call to action. Design the palette, the type and the mood so they belong to that subject and that job — a \"make a templete like cats in house theme\" film in the \"the announcement\" register, not a generic one. The motion has already been chosen for you and is fixed: words arrive with \"blur-up\", the emphasized word is treated with \"gradient\", scenes hand over with a \"submerge\" cut, and the background layer is \"orrery\". Choose colours and fonts that make THAT motion look deliberate.",
+        "style": "the announcement — blur-up/gradient/submerge/orrery",
+        "brandColor": null,
+        "durationSec": null,
+        "notes": null,
+        "family": "retro-terminal",
+        "pinMotion": {
+          "enter": "blur-up",
+          "emphasis": "gradient",
+          "cut": "submerge",
+          "canvas": "orrery"
+        }
+      },
+      "lastError": null,
+      "createdBy": "first@gmail.com",
+      "createdAt": 1786955871561,
+      "updatedAt": 1786956180149,
+      "publishedAt": null
+    },
+    {
+      "id": "be2c2b14-ed61-4db8-99e3-03aa1603e22e",
+      "name": "Cats Playing Ref",
+      "slug": "cats-playing-ref",
+      "description": "",
+      "status": "GENERATED",
+      "orientation": "vertical",
+      "category": "cats playing",
+      "tags": [],
+      "currentVersion": 3,
+      "publishedVersion": null,
+      "thumbnail": null,
+      "previewVideo": null,
+      "sourcePath": null,
+      "capabilities": {},
+      "assetRequirements": {},
+      "audioConfiguration": {},
+      "generation": {
+        "prompt": "A playful template for a cat-toy brand: cats leaping, tails, yarn, sunbeams on the floor, the feel of a living room at play.",
+        "style": null,
+        "brandColor": null,
+        "durationSec": null,
+        "notes": null
+      },
+      "lastError": null,
+      "createdBy": "first@gmail.com",
+      "createdAt": 1786958205077,
+      "updatedAt": 1786958470600,
+      "publishedAt": null
+    }
+  ],
+  "versions": [
+    {
+      "id": "073c81af-19e7-4eec-9391-d42bd5d9ee58",
+      "templateId": "41b10328-3848-4c3f-9859-3d3edec3b6a5",
+      "version": 1,
+      "sourcePath": "C:\\internship\\KEYFRAME\\frames-draft\\verify-clinic-calm\\v1",
+      "mediaPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\verify-clinic-calm\\v1",
+      "thumbnail": "poster.jpg",
+      "previewVideo": "preview.mp4",
+      "generationPrompt": "A calm, reassuring template for a private dental clinic promo. Soft airy tones, trustworthy.",
+      "generationSpec": {
+        "name": "verify-clinic-calm",
+        "family": "healthcare-soft",
+        "label": "Verify Clinic Calm",
+        "overview": "A calming, reassuring aesthetic for clinical services, featuring soft tones and a trustworthy teal palette.",
+        "colors": {
+          "paper": "#f7fafa",
+          "mist": "#e6f2f1",
+          "ink": "#163b33",
+          "teal": "#2fa5a0",
+          "sand": "#f5efe6"
+        },
+        "ground": "#f7fafa",
+        "ink": "#163b33",
+        "accents": [
+          "#2fa5a0",
+          "#59b5b2"
+        ],
+        "extras": [
+          "#e6f2f1",
+          "#a8dcda"
+        ],
+        "display": "Bricolage Grotesque",
+        "body": "Inter",
+        "labelFont": "Inter"
+      },
+      "generationStatus": "ok",
+      "qaScore": 0,
+      "qaResults": {
+        "slug": "verify-clinic-calm",
+        "version": 1,
+        "scale": "0-100",
+        "score": 0,
+        "label": "Template Quality: 0/100",
+        "publishable": false,
+        "errors": [
+          {
+            "check": "orientation",
+            "evidence": "the template is registered \"vertical\" but the composition rendered 1280x720 — set \"portraitNative\": true in pack.json",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\verify-clinic-calm\\v1\\pack.json"
+          },
+          {
+            "check": "contrast-wcag",
+            "evidence": "\"“\" reads 2.24:1 at its clearest against rgb(210,226,225) — AA needs 3:1",
+            "at": "#s2q @3s"
+          },
+          {
+            "check": "contrast-wcag",
+            "evidence": "\"film.\" reads 2.35:1 at its clearest against rgb(216,231,230) — AA needs 3:1",
+            "at": "span.kfw.kfacc @27s"
+          },
+          {
+            "check": "contrast-wcag",
+            "evidence": "\"a\" reads 2.41:1 at its clearest against rgb(220,233,232) — AA needs 3:1",
+            "at": "span.kfw.kfacc @27s"
+          },
+          {
+            "check": "contrast-wcag",
+            "evidence": "\"not\" reads 2.43:1 at its clearest against rgb(221,234,233) — AA needs 3:1",
+            "at": "span.kfw.kfacc @27s"
+          },
+          {
+            "check": "contrast-wcag",
+            "evidence": "\"A\" reads 2.57:1 at its clearest against rgb(235,238,237) — AA needs 3:1",
+            "at": "span.kfw.kfacc @27s"
+          },
+          {
+            "check": "contrast-wcag",
+            "evidence": "\"“\" reads 2.58:1 at its clearest against rgb(234,239,238) — AA needs 3:1",
+            "at": "#s11q @27s"
+          }
+        ],
+        "warnings": [],
+        "passed": [
+          {
+            "check": "manifest",
+            "evidence": "pack.json parses and validates against PackManifestSchema (name \"verify-clinic-calm\")",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\verify-clinic-calm\\v1\\pack.json"
+          },
+          {
+            "check": "frame-md",
+            "evidence": "FRAME.md present (4 KB of design system)",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\verify-clinic-calm\\v1\\FRAME.md"
+          },
+          {
+            "check": "preview-artifact",
+            "evidence": "preview.mp4 is 703 KB, 30s over 12 scenes, composed via scene-kit",
+            "at": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\verify-clinic-calm\\v1\\preview.mp4"
+          },
+          {
+            "check": "thumbnail-artifact",
+            "evidence": "poster.jpg picked at 11.65s (luma 229 ≥ 26, detail 14 ≥ 14, ground gap 36)",
+            "at": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\verify-clinic-calm\\v1\\poster.jpg"
+          },
+          {
+            "check": "renderer-routing",
+            "evidence": "no renderer declared, and the build composed via \"scene-kit\" — the default deterministic path",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\verify-clinic-calm\\v1\\pack.json"
+          },
+          {
+            "check": "slot-types",
+            "evidence": "not applicable — the slot-type gate only covers bundled (omelette) templates and this draft composes via \"scene-kit\"",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\verify-clinic-calm\\v1\\pack.json"
+          },
+          {
+            "check": "runtime-sweep",
+            "evidence": "the timeline registers and 8 seek probes across the film found no error slate",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\verify-clinic-calm-v1\\index.html"
+          },
+          {
+            "check": "frame-density",
+            "evidence": "12 sampled frame(s) carry content; the emptiest is scene s8 at 17% ink",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\verify-clinic-calm-v1\\film.mp4"
+          },
+          {
+            "check": "layout-overlap",
+            "evidence": "4 sampled frame(s): no collision, duplicate line or overrun",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\verify-clinic-calm-v1"
+          }
+        ],
+        "skipped": [
+          {
+            "check": "media-demand",
+            "evidence": "the composition carries no per-clip media stamps (via \"scene-kit\"), so coverage cannot be counted from the HTML",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\verify-clinic-calm-v1\\index.html"
+          },
+          {
+            "check": "hyperframes-lint",
+            "evidence": "the checker itself failed: cliFor is not defined",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\verify-clinic-calm-v1\\index.html"
+          },
+          {
+            "check": "spatial-occlusion",
+            "evidence": "the checker itself failed: cliFor is not defined",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\verify-clinic-calm-v1"
+          }
+        ],
+        "coverage": "16 finding(s) from 11 gate(s); 3 gate(s) could not run",
+        "previewPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\verify-clinic-calm\\v1\\preview.mp4",
+        "posterPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\verify-clinic-calm\\v1\\poster.jpg",
+        "mediaDir": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\verify-clinic-calm\\v1",
+        "via": "scene-kit",
+        "durationSec": 30,
+        "durationMs": 120135,
+        "at": 1786692316475
+      },
+      "testJobIds": [],
+      "createdAt": 1786692029971,
+      "error": null
+    },
+    {
+      "id": "4e7debb1-bd79-4262-b43b-0597a51d4b51",
+      "templateId": "41b10328-3848-4c3f-9859-3d3edec3b6a5",
+      "version": 2,
+      "sourcePath": "C:\\internship\\KEYFRAME\\frames-draft\\verify-clinic-calm\\v2",
+      "mediaPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\verify-clinic-calm\\v2",
+      "thumbnail": "/frames-draft/verify-clinic-calm/v2/poster.jpg",
+      "previewVideo": "/frames-draft/verify-clinic-calm/v2/preview.mp4",
+      "generationPrompt": "A calm, reassuring template for a private dental clinic promo. Soft airy tones, trustworthy.",
+      "generationSpec": {
+        "name": "verify-clinic-calm",
+        "family": "healthcare-soft",
+        "label": "Verify Clinic Calm",
+        "overview": "A serene and reassuring visual identity for a dental clinic, featuring soft airy tones and trustworthy typography.",
+        "colors": {
+          "paper": "#f7fafa",
+          "mist": "#e8f2f1",
+          "ink": "#163b33",
+          "teal": "#1d6562",
+          "sand": "#d9c6b8"
+        },
+        "ground": "#f7fafa",
+        "ink": "#163b33",
+        "accents": [
+          "#1d6562",
+          "#d9c6b8"
+        ],
+        "extras": [
+          "#e8f2f1",
+          "#a8d6d4"
+        ],
+        "display": "Bricolage Grotesque",
+        "body": "Inter",
+        "labelFont": "Inter"
+      },
+      "generationStatus": "ok",
+      "qaScore": 100,
+      "qaResults": {
+        "slug": "verify-clinic-calm",
+        "version": 2,
+        "scale": "0-100",
+        "score": 100,
+        "label": "Template Quality: 100/100",
+        "publishable": true,
+        "errors": [],
+        "warnings": [],
+        "passed": [
+          {
+            "check": "manifest",
+            "evidence": "pack.json parses and validates against PackManifestSchema (name \"verify-clinic-calm\")",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\verify-clinic-calm\\v2\\pack.json"
+          },
+          {
+            "check": "frame-md",
+            "evidence": "FRAME.md present (4 KB of design system)",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\verify-clinic-calm\\v2\\FRAME.md"
+          },
+          {
+            "check": "preview-artifact",
+            "evidence": "preview.mp4 is 1715 KB, 30s over 12 scenes, composed via scene-kit",
+            "at": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\verify-clinic-calm\\v2\\preview.mp4"
+          },
+          {
+            "check": "thumbnail-artifact",
+            "evidence": "poster.jpg picked at 29.05s (luma 221 ≥ 26, detail 19 ≥ 14, ground gap 53)",
+            "at": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\verify-clinic-calm\\v2\\poster.jpg"
+          },
+          {
+            "check": "renderer-routing",
+            "evidence": "no renderer declared, and the build composed via \"scene-kit\" — the default deterministic path",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\verify-clinic-calm\\v2\\pack.json"
+          },
+          {
+            "check": "slot-types",
+            "evidence": "not applicable — the slot-type gate only covers bundled (omelette) templates and this draft composes via \"scene-kit\"",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\verify-clinic-calm\\v2\\pack.json"
+          },
+          {
+            "check": "orientation",
+            "evidence": "rendered 1080x1920, which matches the registered \"vertical\" orientation",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\verify-clinic-calm-v2\\meta.json"
+          },
+          {
+            "check": "runtime-sweep",
+            "evidence": "the timeline registers and 8 seek probes across the film found no error slate",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\verify-clinic-calm-v2\\index.html"
+          },
+          {
+            "check": "contrast-wcag",
+            "evidence": "every settled text element clears WCAG AA across 5 sampled frames",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\verify-clinic-calm-v2"
+          },
+          {
+            "check": "frame-density",
+            "evidence": "12 sampled frame(s) carry content; the emptiest is scene s4 at 10% ink",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\verify-clinic-calm-v2\\film.mp4"
+          },
+          {
+            "check": "layout-overlap",
+            "evidence": "4 sampled frame(s): no collision, duplicate line or overrun",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\verify-clinic-calm-v2"
+          }
+        ],
+        "skipped": [
+          {
+            "check": "media-demand",
+            "evidence": "the composition carries no per-clip media stamps (via \"scene-kit\"), so coverage cannot be counted from the HTML",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\verify-clinic-calm-v2\\index.html"
+          },
+          {
+            "check": "hyperframes-lint",
+            "evidence": "the checker itself failed: cliFor is not defined",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\verify-clinic-calm-v2\\index.html"
+          },
+          {
+            "check": "spatial-occlusion",
+            "evidence": "the checker itself failed: cliFor is not defined",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\verify-clinic-calm-v2"
+          }
+        ],
+        "coverage": "11 finding(s) from 11 gate(s); 3 gate(s) could not run",
+        "previewPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\verify-clinic-calm\\v2\\preview.mp4",
+        "posterPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\verify-clinic-calm\\v2\\poster.jpg",
+        "mediaDir": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\verify-clinic-calm\\v2",
+        "via": "scene-kit",
+        "durationSec": 30,
+        "durationMs": 472345,
+        "at": 1786703891255
+      },
+      "testJobIds": [
+        "q6u7ib4zie"
+      ],
+      "createdAt": 1786692633143,
+      "error": null
+    },
+    {
+      "id": "e1632e4c-acdc-48bd-87e0-e39c192b773b",
+      "templateId": "1a35f5eb-7067-4ed4-8946-4e12b754ed64",
+      "version": 1,
+      "sourcePath": "C:\\internship\\KEYFRAME\\frames-draft\\signal-relay\\v1",
+      "mediaPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\signal-relay\\v1",
+      "thumbnail": null,
+      "previewVideo": null,
+      "generationPrompt": "A developer-tool template with the feel of a terminal session: a near-black ground, one phosphor accent, monospaced type, and restrained cursor-like motion. For CLI tools, SDKs and API launches.",
+      "generationSpec": {
+        "name": "signal-relay",
+        "family": "retro-terminal",
+        "label": "Signal Relay",
+        "overview": "A high-contrast terminal session aesthetic tailored for CLI tools and API documentation.",
+        "colors": {
+          "void": "#080b0a",
+          "panel": "#0f1412",
+          "grid": "#1a2420",
+          "ink": "#e0e8e5",
+          "phosphor": "#00ff9d",
+          "signal": "#ff3e3e"
+        },
+        "ground": "#080b0a",
+        "ink": "#e0e8e5",
+        "accents": [
+          "#00ff9d",
+          "#ff3e3e"
+        ],
+        "extras": [
+          "#1a2420",
+          "#70ffc7"
+        ],
+        "display": "IBM Plex Mono",
+        "body": "Inter",
+        "labelFont": "IBM Plex Mono"
+      },
+      "generationStatus": "ok",
+      "qaScore": null,
+      "qaResults": null,
+      "testJobIds": [],
+      "createdAt": 1786703438641,
+      "error": null
+    },
+    {
+      "id": "88240ab7-1333-4a10-8d79-95407661b05e",
+      "templateId": "6bc153ee-ead1-4e8e-98b1-966ab0407f53",
+      "version": 1,
+      "sourcePath": "C:\\internship\\KEYFRAME\\frames-draft\\quiet-clinic\\v1",
+      "mediaPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\quiet-clinic\\v1",
+      "thumbnail": "/frames-draft/quiet-clinic/v1/poster.jpg",
+      "previewVideo": "/frames-draft/quiet-clinic/v1/preview.mp4",
+      "generationPrompt": "A patient-facing clinic template: airy off-white ground, one calm teal accent, rounded humanist type and slow, reassuring motion. For appointments, onboarding and care plans.",
+      "generationSpec": {
+        "name": "quiet-clinic",
+        "family": "healthcare-soft",
+        "label": "Quiet Clinic",
+        "overview": "A calm, airy template designed for patient communication, featuring soft tones and rounded humanist typography.",
+        "colors": {
+          "paper": "#f7f9f9",
+          "mist": "#e8efef",
+          "ink": "#163b33",
+          "teal": "#2c867a",
+          "sage": "#8fb5b0"
+        },
+        "ground": "#f7f9f9",
+        "ink": "#163b33",
+        "accents": [
+          "#2c867a",
+          "#8fb5b0"
+        ],
+        "extras": [
+          "#e8efef",
+          "#a8d4cd"
+        ],
+        "display": "Bricolage Grotesque",
+        "body": "Inter",
+        "labelFont": "Inter"
+      },
+      "generationStatus": "ok",
+      "qaScore": null,
+      "qaResults": null,
+      "testJobIds": [],
+      "createdAt": 1786703712133,
+      "error": null
+    },
+    {
+      "id": "e9e7216c-e2f3-4ca2-9bca-361dc6876ac9",
+      "templateId": "3043d379-87eb-4dd9-a757-bb78f0871b90",
+      "version": 1,
+      "sourcePath": "C:\\internship\\KEYFRAME\\frames-draft\\signal-relay-2\\v1",
+      "mediaPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\signal-relay-2\\v1",
+      "thumbnail": null,
+      "previewVideo": null,
+      "generationPrompt": "A developer-tool template with the feel of a terminal session: a near-black ground, one phosphor accent, monospaced type, and restrained cursor-like motion. For CLI tools, SDKs and API launches.",
+      "generationSpec": {
+        "name": "signal-relay-2",
+        "family": "retro-terminal",
+        "label": "Signal Relay 2",
+        "overview": "A near-black terminal pack with one phosphor accent and cursor-like motion, built for CLI tools, SDKs and API launches.",
+        "colors": {
+          "void": "#080d0b",
+          "panel": "#0e1a15",
+          "grid": "#153026",
+          "ink": "#d2f5e2",
+          "phosphor": "#35e39a",
+          "signal": "#5fa8ff"
+        },
+        "ground": "#080d0b",
+        "ink": "#d2f5e2",
+        "accents": [
+          "#35e39a",
+          "#5fa8ff"
+        ],
+        "extras": [
+          "#153026",
+          "#8fefc4"
+        ],
+        "display": "IBM Plex Mono",
+        "body": "Inter",
+        "labelFont": "IBM Plex Mono",
+        "textfx": {
+          "enter": "typewriter",
+          "emphasis": "reticle",
+          "case": "upper",
+          "align": "left",
+          "tracking": 0.04,
+          "sizeScale": 0.95,
+          "speed": 1.3
+        },
+        "motion": {
+          "cut": "thrust",
+          "drift": 1.02
+        },
+        "fx": {
+          "canvas": "telemetry"
+        }
+      },
+      "generationStatus": "ok",
+      "qaScore": null,
+      "qaResults": null,
+      "testJobIds": [],
+      "createdAt": 1786941907242,
+      "error": null
+    },
+    {
+      "id": "a793e211-61cf-45af-b627-35b10d417e51",
+      "templateId": "424388a5-0a4c-455d-9db1-142cf3811a5e",
+      "version": 1,
+      "sourcePath": "C:\\internship\\KEYFRAME\\frames-draft\\quiet-clinic-2\\v1",
+      "mediaPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\quiet-clinic-2\\v1",
+      "thumbnail": "/frames-draft/quiet-clinic-2/v1/poster.jpg",
+      "previewVideo": "/frames-draft/quiet-clinic-2/v1/preview.mp4",
+      "generationPrompt": "A patient-facing clinic template: airy off-white ground, one calm teal accent, rounded humanist type and slow, reassuring motion. For appointments, onboarding and care plans.",
+      "generationSpec": {
+        "name": "quiet-clinic-2",
+        "family": "healthcare-soft",
+        "label": "Quiet Clinic 2",
+        "overview": "An airy off-white care system with one calm teal accent and slow reassuring motion, for appointments, onboarding and care plans.",
+        "colors": {
+          "paper": "#f7faf9",
+          "panel": "#e6f0ed",
+          "ink": "#12332e",
+          "teal": "#107264",
+          "apricot": "#e8875c",
+          "mist": "#9fd9ce"
+        },
+        "ground": "#f7faf9",
+        "ink": "#12332e",
+        "accents": [
+          "#107264",
+          "#e8875c"
+        ],
+        "extras": [
+          "#e6f0ed",
+          "#9fd9ce"
+        ],
+        "display": "Quicksand",
+        "body": "Inter",
+        "labelFont": "Inter",
+        "textfx": {
+          "enter": "bloom",
+          "emphasis": "clay",
+          "case": "none",
+          "align": "left",
+          "tracking": 0.01,
+          "sizeScale": 1.05,
+          "speed": 1.2
+        },
+        "motion": {
+          "cut": "iris",
+          "drift": 1.02
+        },
+        "fx": {
+          "canvas": "caustics"
+        }
+      },
+      "generationStatus": "ok",
+      "qaScore": 100,
+      "qaResults": {
+        "slug": "quiet-clinic-2",
+        "version": 1,
+        "scale": "0-100",
+        "score": 100,
+        "label": "Template Quality: 100/100",
+        "publishable": true,
+        "errors": [],
+        "warnings": [],
+        "passed": [
+          {
+            "check": "manifest",
+            "evidence": "pack.json parses and validates against PackManifestSchema (name \"quiet-clinic-2\")",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\quiet-clinic-2\\v1\\pack.json"
+          },
+          {
+            "check": "frame-md",
+            "evidence": "FRAME.md present (4 KB of design system)",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\quiet-clinic-2\\v1\\FRAME.md"
+          },
+          {
+            "check": "preview-artifact",
+            "evidence": "preview.mp4 is 2066 KB, 30s over 12 scenes, composed via scene-kit",
+            "at": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\quiet-clinic-2\\v1\\preview.mp4"
+          },
+          {
+            "check": "thumbnail-artifact",
+            "evidence": "poster.jpg picked at 14.15s (luma 221 ≥ 26, detail 15 ≥ 14, ground gap 52)",
+            "at": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\quiet-clinic-2\\v1\\poster.jpg"
+          },
+          {
+            "check": "renderer-routing",
+            "evidence": "no renderer declared, and the build composed via \"scene-kit\" — the default deterministic path",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\quiet-clinic-2\\v1\\pack.json"
+          },
+          {
+            "check": "slot-types",
+            "evidence": "not applicable — the slot-type gate only covers bundled (omelette) templates and this draft composes via \"scene-kit\"",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\quiet-clinic-2\\v1\\pack.json"
+          },
+          {
+            "check": "orientation",
+            "evidence": "rendered 1080x1920, which matches the registered \"vertical\" orientation",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\quiet-clinic-2-v1\\meta.json"
+          },
+          {
+            "check": "runtime-sweep",
+            "evidence": "the timeline registers and 8 seek probes across the film found no error slate",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\quiet-clinic-2-v1\\index.html"
+          },
+          {
+            "check": "contrast-wcag",
+            "evidence": "every settled text element clears WCAG AA across 5 sampled frames",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\quiet-clinic-2-v1"
+          },
+          {
+            "check": "frame-density",
+            "evidence": "12 sampled frame(s) carry content; the emptiest is scene s8 at 11% ink",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\quiet-clinic-2-v1\\film.mp4"
+          },
+          {
+            "check": "layout-overlap",
+            "evidence": "4 sampled frame(s): no collision, duplicate line or overrun",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\quiet-clinic-2-v1"
+          }
+        ],
+        "skipped": [
+          {
+            "check": "media-demand",
+            "evidence": "the composition carries no per-clip media stamps (via \"scene-kit\"), so coverage cannot be counted from the HTML",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\quiet-clinic-2-v1\\index.html"
+          },
+          {
+            "check": "hyperframes-lint",
+            "evidence": "the checker itself failed: cliFor is not defined",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\quiet-clinic-2-v1\\index.html"
+          },
+          {
+            "check": "spatial-occlusion",
+            "evidence": "the checker itself failed: cliFor is not defined",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\quiet-clinic-2-v1"
+          }
+        ],
+        "coverage": "11 finding(s) from 11 gate(s); 3 gate(s) could not run",
+        "previewPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\quiet-clinic-2\\v1\\preview.mp4",
+        "posterPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\quiet-clinic-2\\v1\\poster.jpg",
+        "mediaDir": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\quiet-clinic-2\\v1",
+        "via": "scene-kit",
+        "durationSec": 30,
+        "durationMs": 163967,
+        "at": 1786942328352
+      },
+      "testJobIds": [],
+      "createdAt": 1786942045314,
+      "error": null
+    },
+    {
+      "id": "e44c70b6-a448-476d-97f4-38ec6137389c",
+      "templateId": "5ffd0674-a4c9-4b4f-945f-3e57929855d3",
+      "version": 1,
+      "sourcePath": "C:\\internship\\KEYFRAME\\frames-draft\\ledger-grid\\v1",
+      "mediaPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\ledger-grid\\v1",
+      "thumbnail": "/frames-draft/ledger-grid/v1/poster.jpg",
+      "previewVideo": "/frames-draft/ledger-grid/v1/preview.mp4",
+      "generationPrompt": "An analytics template built around numbers: a near-white ground, one ink-blue accent, a visible measurement grid and tabular figures that count up. For dashboards and reporting.",
+      "generationSpec": {
+        "name": "ledger-grid",
+        "family": "data-viz-mono",
+        "label": "Ledger Grid",
+        "overview": "A measured analytics pack — near-monochrome ground, a visible measurement grid and one ink-blue signal for figures that count up.",
+        "colors": {
+          "void": "#0d1117",
+          "panel": "#151c26",
+          "grid": "#1e2733",
+          "ink": "#e6ecf5",
+          "inkblue": "#4c85f8",
+          "brass": "#d8a93c"
+        },
+        "ground": "#0d1117",
+        "ink": "#e6ecf5",
+        "accents": [
+          "#4c85f8",
+          "#d8a93c"
+        ],
+        "extras": [
+          "#1e2733",
+          "#a8c6ff"
+        ],
+        "display": "IBM Plex Mono",
+        "body": "Inter",
+        "labelFont": "IBM Plex Mono",
+        "textfx": {
+          "enter": "countin",
+          "emphasis": "bracket",
+          "case": "upper",
+          "align": "left",
+          "tracking": 0.04,
+          "sizeScale": 0.95,
+          "speed": 1.25
+        },
+        "motion": {
+          "cut": "panel",
+          "drift": 1.02
+        },
+        "fx": {
+          "canvas": "telemetry"
+        }
+      },
+      "generationStatus": "ok",
+      "qaScore": 100,
+      "qaResults": {
+        "slug": "ledger-grid",
+        "version": 1,
+        "scale": "0-100",
+        "score": 100,
+        "label": "Template Quality: 100/100",
+        "publishable": true,
+        "errors": [],
+        "warnings": [],
+        "passed": [
+          {
+            "check": "manifest",
+            "evidence": "pack.json parses and validates against PackManifestSchema (name \"ledger-grid\")",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\ledger-grid\\v1\\pack.json"
+          },
+          {
+            "check": "frame-md",
+            "evidence": "FRAME.md present (4 KB of design system)",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\ledger-grid\\v1\\FRAME.md"
+          },
+          {
+            "check": "preview-artifact",
+            "evidence": "preview.mp4 is 1110 KB, 30s over 12 scenes, composed via scene-kit",
+            "at": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\ledger-grid\\v1\\preview.mp4"
+          },
+          {
+            "check": "thumbnail-artifact",
+            "evidence": "poster.jpg picked at 9.15s (luma 27 ≥ 26, detail 15 ≥ 14, ground gap 17)",
+            "at": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\ledger-grid\\v1\\poster.jpg"
+          },
+          {
+            "check": "renderer-routing",
+            "evidence": "no renderer declared, and the build composed via \"scene-kit\" — the default deterministic path",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\ledger-grid\\v1\\pack.json"
+          },
+          {
+            "check": "slot-types",
+            "evidence": "not applicable — the slot-type gate only covers bundled (omelette) templates and this draft composes via \"scene-kit\"",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\ledger-grid\\v1\\pack.json"
+          },
+          {
+            "check": "orientation",
+            "evidence": "rendered 1280x720, which matches the registered \"horizontal\" orientation",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\ledger-grid-v1\\meta.json"
+          },
+          {
+            "check": "runtime-sweep",
+            "evidence": "the timeline registers and 8 seek probes across the film found no error slate",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\ledger-grid-v1\\index.html"
+          },
+          {
+            "check": "contrast-wcag",
+            "evidence": "every settled text element clears WCAG AA across 5 sampled frames",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\ledger-grid-v1"
+          },
+          {
+            "check": "frame-density",
+            "evidence": "12 sampled frame(s) carry content; the emptiest is scene s11 at 41% ink",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\ledger-grid-v1\\film.mp4"
+          },
+          {
+            "check": "layout-overlap",
+            "evidence": "4 sampled frame(s): no collision, duplicate line or overrun",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\ledger-grid-v1"
+          }
+        ],
+        "skipped": [
+          {
+            "check": "media-demand",
+            "evidence": "the composition carries no per-clip media stamps (via \"scene-kit\"), so coverage cannot be counted from the HTML",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\ledger-grid-v1\\index.html"
+          },
+          {
+            "check": "hyperframes-lint",
+            "evidence": "the checker itself failed: cliFor is not defined",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\ledger-grid-v1\\index.html"
+          },
+          {
+            "check": "spatial-occlusion",
+            "evidence": "the checker itself failed: cliFor is not defined",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\ledger-grid-v1"
+          }
+        ],
+        "coverage": "11 finding(s) from 11 gate(s); 3 gate(s) could not run",
+        "previewPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\ledger-grid\\v1\\preview.mp4",
+        "posterPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\ledger-grid\\v1\\poster.jpg",
+        "mediaDir": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\ledger-grid\\v1",
+        "via": "scene-kit",
+        "durationSec": 30,
+        "durationMs": 154417,
+        "at": 1786942579166
+      },
+      "testJobIds": [],
+      "createdAt": 1786942328353,
+      "error": null
+    },
+    {
+      "id": "ddfe3ef7-8143-4ffc-98cc-40f04757b851",
+      "templateId": "23e5f179-2ff9-403b-92ac-86992ef2dfb4",
+      "version": 1,
+      "sourcePath": "C:\\internship\\KEYFRAME\\frames-draft\\vault-terminal\\v1",
+      "mediaPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\vault-terminal\\v1",
+      "thumbnail": "/frames-draft/vault-terminal/v1/poster.jpg",
+      "previewVideo": "/frames-draft/vault-terminal/v1/preview.mp4",
+      "generationPrompt": "A payments-infrastructure template: deep navy ground, one electric accent, tabular monospaced numbers and restrained, mechanical motion. For revenue, pricing and treasury films.",
+      "generationSpec": {
+        "name": "vault-terminal",
+        "family": "fintech-dark",
+        "label": "Vault Terminal",
+        "overview": "Deep-navy payments infrastructure — split-flap numerics, one electric blue accent and restrained mechanical motion for revenue, pricing and treasury films.",
+        "colors": {
+          "vault": "#0a1024",
+          "panel": "#141c36",
+          "grid": "#1e2a4a",
+          "ink": "#e6ecf5",
+          "electric": "#4c87ff",
+          "signal": "#2fe08f"
+        },
+        "ground": "#0a1024",
+        "ink": "#e6ecf5",
+        "accents": [
+          "#4c87ff",
+          "#2fe08f"
+        ],
+        "extras": [
+          "#141c36",
+          "#9dbeff"
+        ],
+        "display": "IBM Plex Mono",
+        "body": "Inter",
+        "labelFont": "IBM Plex Mono",
+        "textfx": {
+          "enter": "flap",
+          "emphasis": "reticle",
+          "case": "upper",
+          "align": "left",
+          "tracking": 0.03,
+          "sizeScale": 1,
+          "speed": 1.32
+        },
+        "motion": {
+          "cut": "thrust",
+          "drift": 1.02
+        },
+        "fx": {
+          "canvas": "telemetry"
+        },
+        "emphasisCss": "background:linear-gradient(100deg,#4c87ff,#2fe08f);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#4c87ff;"
+      },
+      "generationStatus": "ok",
+      "qaScore": 100,
+      "qaResults": {
+        "slug": "vault-terminal",
+        "version": 1,
+        "scale": "0-100",
+        "score": 100,
+        "label": "Template Quality: 100/100",
+        "publishable": true,
+        "errors": [],
+        "warnings": [],
+        "passed": [
+          {
+            "check": "manifest",
+            "evidence": "pack.json parses and validates against PackManifestSchema (name \"vault-terminal\")",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\vault-terminal\\v1\\pack.json"
+          },
+          {
+            "check": "frame-md",
+            "evidence": "FRAME.md present (4 KB of design system)",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\vault-terminal\\v1\\FRAME.md"
+          },
+          {
+            "check": "preview-artifact",
+            "evidence": "preview.mp4 is 1176 KB, 30s over 12 scenes, composed via scene-kit",
+            "at": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\vault-terminal\\v1\\preview.mp4"
+          },
+          {
+            "check": "thumbnail-artifact",
+            "evidence": "poster.jpg picked at 6.65s (luma 27 ≥ 26, detail 16 ≥ 14, ground gap 18)",
+            "at": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\vault-terminal\\v1\\poster.jpg"
+          },
+          {
+            "check": "renderer-routing",
+            "evidence": "no renderer declared, and the build composed via \"scene-kit\" — the default deterministic path",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\vault-terminal\\v1\\pack.json"
+          },
+          {
+            "check": "slot-types",
+            "evidence": "not applicable — the slot-type gate only covers bundled (omelette) templates and this draft composes via \"scene-kit\"",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\vault-terminal\\v1\\pack.json"
+          },
+          {
+            "check": "orientation",
+            "evidence": "rendered 1280x720, which matches the registered \"horizontal\" orientation",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\vault-terminal-v1\\meta.json"
+          },
+          {
+            "check": "runtime-sweep",
+            "evidence": "the timeline registers and 8 seek probes across the film found no error slate",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\vault-terminal-v1\\index.html"
+          },
+          {
+            "check": "contrast-wcag",
+            "evidence": "every settled text element clears WCAG AA across 5 sampled frames",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\vault-terminal-v1"
+          },
+          {
+            "check": "frame-density",
+            "evidence": "12 sampled frame(s) carry content; the emptiest is scene s7 at 40% ink",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\vault-terminal-v1\\film.mp4"
+          },
+          {
+            "check": "layout-overlap",
+            "evidence": "4 sampled frame(s): no collision, duplicate line or overrun",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\vault-terminal-v1"
+          }
+        ],
+        "skipped": [
+          {
+            "check": "media-demand",
+            "evidence": "the composition carries no per-clip media stamps (via \"scene-kit\"), so coverage cannot be counted from the HTML",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\vault-terminal-v1\\index.html"
+          },
+          {
+            "check": "hyperframes-lint",
+            "evidence": "the checker itself failed: cliFor is not defined",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\vault-terminal-v1\\index.html"
+          },
+          {
+            "check": "spatial-occlusion",
+            "evidence": "the checker itself failed: cliFor is not defined",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\vault-terminal-v1"
+          }
+        ],
+        "coverage": "11 finding(s) from 11 gate(s); 3 gate(s) could not run",
+        "previewPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\vault-terminal\\v1\\preview.mp4",
+        "posterPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\vault-terminal\\v1\\poster.jpg",
+        "mediaDir": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\vault-terminal\\v1",
+        "via": "scene-kit",
+        "durationSec": 30,
+        "durationMs": 149964,
+        "at": 1786942823523
+      },
+      "testJobIds": [],
+      "createdAt": 1786942579173,
+      "error": null
+    },
+    {
+      "id": "2b1cd2bc-9cd7-40ac-8f64-7c8827afb347",
+      "templateId": "aae21fec-f70e-40ef-84a3-e58b1a2b7147",
+      "version": 1,
+      "sourcePath": "C:\\internship\\KEYFRAME\\frames-draft\\launch-window\\v1",
+      "mediaPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\launch-window\\v1",
+      "thumbnail": "/frames-draft/launch-window/v1/poster.jpg",
+      "previewVideo": "/frames-draft/launch-window/v1/preview.mp4",
+      "generationPrompt": "A product-launch template with a confident gradient ground, bold display type and motion that builds. For feature announcements and changelog films.",
+      "generationSpec": {
+        "name": "launch-window",
+        "family": "saas-gradient",
+        "label": "Launch Window",
+        "overview": "A bold launch pack for feature announcements — near-white ground, violet-to-ember gradient, counting numerals and motion that builds to the reveal.",
+        "colors": {
+          "paper": "#f9fafd",
+          "mist": "#eef0f8",
+          "ink": "#0d1220",
+          "violet": "#7c3aed",
+          "ember": "#ff5a1f",
+          "haze": "#c9b6fa"
+        },
+        "ground": "#f9fafd",
+        "ink": "#0d1220",
+        "accents": [
+          "#7c3aed",
+          "#ff5a1f"
+        ],
+        "extras": [
+          "#eef0f8",
+          "#c9b6fa"
+        ],
+        "display": "Sora",
+        "body": "Inter",
+        "labelFont": "IBM Plex Mono",
+        "textfx": {
+          "enter": "countin",
+          "emphasis": "prism",
+          "case": "upper",
+          "align": "left",
+          "tracking": -0.02,
+          "sizeScale": 1.1,
+          "speed": 1.35
+        },
+        "motion": {
+          "cut": "thrust",
+          "drift": 1.04
+        },
+        "fx": {
+          "canvas": "rays"
+        },
+        "emphasisCss": "background:linear-gradient(100deg,#7c3aed,#ff5a1f);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#7c3aed;"
+      },
+      "generationStatus": "ok",
+      "qaScore": 64,
+      "qaResults": {
+        "slug": "launch-window",
+        "version": 1,
+        "scale": "0-100",
+        "score": 64,
+        "label": "Template Quality: 64/100",
+        "publishable": false,
+        "errors": [
+          {
+            "check": "layout-overrun",
+            "evidence": "\"brand.\" overruns its box and needs a 29% shrink to fit (66px in a 69.3px line)",
+            "at": "span.kfw.kfacc"
+          },
+          {
+            "check": "layout-overrun",
+            "evidence": "\"point.\" overruns its box and needs a 27% shrink to fit (66px in a 69.3px line)",
+            "at": "span.kfw.kfacc"
+          }
+        ],
+        "warnings": [],
+        "passed": [
+          {
+            "check": "manifest",
+            "evidence": "pack.json parses and validates against PackManifestSchema (name \"launch-window\")",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\launch-window\\v1\\pack.json"
+          },
+          {
+            "check": "frame-md",
+            "evidence": "FRAME.md present (4 KB of design system)",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\launch-window\\v1\\FRAME.md"
+          },
+          {
+            "check": "preview-artifact",
+            "evidence": "preview.mp4 is 2188 KB, 30s over 12 scenes, composed via scene-kit",
+            "at": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\launch-window\\v1\\preview.mp4"
+          },
+          {
+            "check": "thumbnail-artifact",
+            "evidence": "poster.jpg picked at 14.15s (luma 219 ≥ 26, detail 17 ≥ 14, ground gap 55)",
+            "at": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\launch-window\\v1\\poster.jpg"
+          },
+          {
+            "check": "renderer-routing",
+            "evidence": "no renderer declared, and the build composed via \"scene-kit\" — the default deterministic path",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\launch-window\\v1\\pack.json"
+          },
+          {
+            "check": "slot-types",
+            "evidence": "not applicable — the slot-type gate only covers bundled (omelette) templates and this draft composes via \"scene-kit\"",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\launch-window\\v1\\pack.json"
+          },
+          {
+            "check": "orientation",
+            "evidence": "rendered 1080x1920, which matches the registered \"vertical\" orientation",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\launch-window-v1\\meta.json"
+          },
+          {
+            "check": "runtime-sweep",
+            "evidence": "the timeline registers and 8 seek probes across the film found no error slate",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\launch-window-v1\\index.html"
+          },
+          {
+            "check": "contrast-wcag",
+            "evidence": "every settled text element clears WCAG AA across 5 sampled frames",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\launch-window-v1"
+          },
+          {
+            "check": "frame-density",
+            "evidence": "12 sampled frame(s) carry content; the emptiest is scene s7 at 9% ink",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\launch-window-v1\\film.mp4"
+          }
+        ],
+        "skipped": [
+          {
+            "check": "media-demand",
+            "evidence": "the composition carries no per-clip media stamps (via \"scene-kit\"), so coverage cannot be counted from the HTML",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\launch-window-v1\\index.html"
+          },
+          {
+            "check": "hyperframes-lint",
+            "evidence": "the checker itself failed: cliFor is not defined",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\launch-window-v1\\index.html"
+          },
+          {
+            "check": "spatial-occlusion",
+            "evidence": "the checker itself failed: cliFor is not defined",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\launch-window-v1"
+          }
+        ],
+        "coverage": "12 finding(s) from 11 gate(s); 3 gate(s) could not run",
+        "previewPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\launch-window\\v1\\preview.mp4",
+        "posterPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\launch-window\\v1\\poster.jpg",
+        "mediaDir": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\launch-window\\v1",
+        "via": "scene-kit",
+        "durationSec": 30,
+        "durationMs": 215853,
+        "at": 1786943243622
+      },
+      "testJobIds": [],
+      "createdAt": 1786942823525,
+      "error": null
+    },
+    {
+      "id": "57089585-442c-45be-acc0-eded62102c9c",
+      "templateId": "aae21fec-f70e-40ef-84a3-e58b1a2b7147",
+      "version": 2,
+      "sourcePath": "C:\\internship\\KEYFRAME\\frames-draft\\launch-window\\v2",
+      "mediaPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\launch-window\\v2",
+      "thumbnail": "/frames-draft/launch-window/v2/poster.jpg",
+      "previewVideo": "/frames-draft/launch-window/v2/preview.mp4",
+      "generationPrompt": "A product-launch template with a confident gradient ground, bold display type and motion that builds. For feature announcements and changelog films.",
+      "generationSpec": {
+        "name": "launch-window",
+        "family": "saas-gradient",
+        "label": "Launch Window",
+        "overview": "A bright launch pack — violet-to-ember gradient light, bold geometric caps and motion that builds toward the reveal, for feature announcements and changelog films.",
+        "colors": {
+          "paper": "#f9fafd",
+          "mist": "#eef0fa",
+          "ink": "#0d1220",
+          "violet": "#7c3aed",
+          "ember": "#fb6b35",
+          "lilac": "#c4b5fd"
+        },
+        "ground": "#f9fafd",
+        "ink": "#0d1220",
+        "accents": [
+          "#7c3aed",
+          "#fb6b35"
+        ],
+        "extras": [
+          "#eef0fa",
+          "#c4b5fd"
+        ],
+        "display": "Sora",
+        "body": "Inter",
+        "labelFont": "Inter",
+        "textfx": {
+          "enter": "mask-reveal",
+          "emphasis": "prism",
+          "case": "upper",
+          "align": "left",
+          "tracking": -0.02,
+          "sizeScale": 1.1,
+          "speed": 1.35
+        },
+        "motion": {
+          "cut": "thrust",
+          "drift": 1.05
+        },
+        "fx": {
+          "canvas": "rays"
+        },
+        "emphasisCss": "background:linear-gradient(100deg,#7c3aed,#fb6b35);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#7c3aed;"
+      },
+      "generationStatus": "ok",
+      "qaScore": 46,
+      "qaResults": {
+        "slug": "launch-window",
+        "version": 2,
+        "scale": "0-100",
+        "score": 46,
+        "label": "Template Quality: 46/100",
+        "publishable": false,
+        "errors": [
+          {
+            "check": "contrast-wcag",
+            "evidence": "\"finished.\" reads 2.73:1 at its clearest against rgb(247,243,246) — AA needs 3:1",
+            "at": "span.kfw.kfacc @21s"
+          },
+          {
+            "check": "layout-overrun",
+            "evidence": "\"brand.\" overruns its box and needs a 26% shrink to fit (66px in a 77.88px line)",
+            "at": "span.kfw.kfacc"
+          },
+          {
+            "check": "layout-overrun",
+            "evidence": "\"point.\" overruns its box and needs a 25% shrink to fit (66px in a 77.88px line)",
+            "at": "span.kfw.kfacc"
+          }
+        ],
+        "warnings": [],
+        "passed": [
+          {
+            "check": "manifest",
+            "evidence": "pack.json parses and validates against PackManifestSchema (name \"launch-window\")",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\launch-window\\v2\\pack.json"
+          },
+          {
+            "check": "frame-md",
+            "evidence": "FRAME.md present (4 KB of design system)",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\launch-window\\v2\\FRAME.md"
+          },
+          {
+            "check": "preview-artifact",
+            "evidence": "preview.mp4 is 2188 KB, 30s over 12 scenes, composed via scene-kit",
+            "at": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\launch-window\\v2\\preview.mp4"
+          },
+          {
+            "check": "thumbnail-artifact",
+            "evidence": "poster.jpg picked at 14.15s (luma 219 ≥ 26, detail 16 ≥ 14, ground gap 55)",
+            "at": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\launch-window\\v2\\poster.jpg"
+          },
+          {
+            "check": "renderer-routing",
+            "evidence": "no renderer declared, and the build composed via \"scene-kit\" — the default deterministic path",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\launch-window\\v2\\pack.json"
+          },
+          {
+            "check": "slot-types",
+            "evidence": "not applicable — the slot-type gate only covers bundled (omelette) templates and this draft composes via \"scene-kit\"",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\launch-window\\v2\\pack.json"
+          },
+          {
+            "check": "orientation",
+            "evidence": "rendered 1080x1920, which matches the registered \"vertical\" orientation",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\launch-window-v2\\meta.json"
+          },
+          {
+            "check": "runtime-sweep",
+            "evidence": "the timeline registers and 8 seek probes across the film found no error slate",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\launch-window-v2\\index.html"
+          },
+          {
+            "check": "frame-density",
+            "evidence": "12 sampled frame(s) carry content; the emptiest is scene s10 at 9% ink",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\launch-window-v2\\film.mp4"
+          }
+        ],
+        "skipped": [
+          {
+            "check": "media-demand",
+            "evidence": "the composition carries no per-clip media stamps (via \"scene-kit\"), so coverage cannot be counted from the HTML",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\launch-window-v2\\index.html"
+          },
+          {
+            "check": "hyperframes-lint",
+            "evidence": "the checker itself failed: cliFor is not defined",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\launch-window-v2\\index.html"
+          },
+          {
+            "check": "spatial-occlusion",
+            "evidence": "the checker itself failed: cliFor is not defined",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\launch-window-v2"
+          }
+        ],
+        "coverage": "12 finding(s) from 11 gate(s); 3 gate(s) could not run",
+        "previewPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\launch-window\\v2\\preview.mp4",
+        "posterPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\launch-window\\v2\\poster.jpg",
+        "mediaDir": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\launch-window\\v2",
+        "via": "scene-kit",
+        "durationSec": 30,
+        "durationMs": 194873,
+        "at": 1786944329819
+      },
+      "testJobIds": [],
+      "createdAt": 1786943350710,
+      "error": null
+    },
+    {
+      "id": "4a6cabc3-1ab6-4e91-9237-f2694daa6063",
+      "templateId": "fbfc32f6-353b-4dd3-b687-0be3830f57af",
+      "version": 1,
+      "sourcePath": "C:\\internship\\KEYFRAME\\frames-draft\\cats-playing-launch\\v1",
+      "mediaPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\cats-playing-launch\\v1",
+      "thumbnail": "/frames-draft/cats-playing-launch/v1/poster.jpg",
+      "previewVideo": "/frames-draft/cats-playing-launch/v1/preview.mp4",
+      "generationPrompt": "Subject: cats playing. This template is for a launch film that opens on one bold claim and builds to a call to action. Design the palette, the type and the mood so they belong to that subject and that job — a \"cats playing\" film in the \"the announcement\" register, not a generic one. The motion has already been chosen for you and is fixed: words arrive with \"blur-up\", the emphasized word is treated with \"gradient\", scenes hand over with a \"submerge\" cut, and the background layer is \"orrery\". Choose colours and fonts that make THAT motion look deliberate.",
+      "generationSpec": {
+        "name": "cats-playing-launch",
+        "family": "retro-terminal",
+        "label": "Cats Playing Launch",
+        "overview": "A dark retro-terminal announcement style featuring amber phosphor and neon magenta accents for playful launch claims.",
+        "colors": {
+          "void": "#0f0c1b",
+          "panel": "#1a152e",
+          "grid": "#2d1f3f",
+          "ink": "#eadbf7",
+          "amber": "#ff9e2c",
+          "magenta": "#ff3385"
+        },
+        "ground": "#0f0c1b",
+        "ink": "#eadbf7",
+        "accents": [
+          "#ff9e2c",
+          "#ff3385"
+        ],
+        "extras": [
+          "#2d1f3f",
+          "#ffc273"
+        ],
+        "display": "JetBrains Mono",
+        "body": "Inter",
+        "labelFont": "JetBrains Mono",
+        "textfx": {
+          "enter": "blur-up",
+          "emphasis": "gradient",
+          "case": "upper",
+          "align": "center",
+          "tracking": 0.04,
+          "sizeScale": 1.05,
+          "speed": 1.3
+        },
+        "motion": {
+          "cut": "submerge",
+          "drift": 1.03
+        },
+        "fx": {
+          "canvas": "orrery"
+        }
+      },
+      "generationStatus": "ok",
+      "qaScore": 100,
+      "qaResults": {
+        "slug": "cats-playing-launch",
+        "version": 1,
+        "scale": "0-100",
+        "score": 100,
+        "label": "Template Quality: 100/100",
+        "publishable": true,
+        "errors": [],
+        "warnings": [],
+        "passed": [
+          {
+            "check": "manifest",
+            "evidence": "pack.json parses and validates against PackManifestSchema (name \"cats-playing-launch\")",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\cats-playing-launch\\v1\\pack.json"
+          },
+          {
+            "check": "frame-md",
+            "evidence": "FRAME.md present (4 KB of design system)",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\cats-playing-launch\\v1\\FRAME.md"
+          },
+          {
+            "check": "preview-artifact",
+            "evidence": "preview.mp4 is 2345 KB, 30s over 12 scenes, composed via scene-kit",
+            "at": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\cats-playing-launch\\v1\\preview.mp4"
+          },
+          {
+            "check": "thumbnail-artifact",
+            "evidence": "poster.jpg picked at 2s (luma 26 ≥ 26, detail 17 ≥ 14, ground gap 20)",
+            "at": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\cats-playing-launch\\v1\\poster.jpg"
+          },
+          {
+            "check": "renderer-routing",
+            "evidence": "no renderer declared, and the build composed via \"scene-kit\" — the default deterministic path",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\cats-playing-launch\\v1\\pack.json"
+          },
+          {
+            "check": "slot-types",
+            "evidence": "not applicable — the slot-type gate only covers bundled (omelette) templates and this draft composes via \"scene-kit\"",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\cats-playing-launch\\v1\\pack.json"
+          },
+          {
+            "check": "orientation",
+            "evidence": "rendered 1080x1920, which matches the registered \"vertical\" orientation",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\cats-playing-launch-v1\\meta.json"
+          },
+          {
+            "check": "runtime-sweep",
+            "evidence": "the timeline registers and 8 seek probes across the film found no error slate",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\cats-playing-launch-v1\\index.html"
+          },
+          {
+            "check": "contrast-wcag",
+            "evidence": "every settled text element clears WCAG AA across 5 sampled frames",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\cats-playing-launch-v1"
+          },
+          {
+            "check": "frame-density",
+            "evidence": "12 sampled frame(s) carry content; the emptiest is scene s4 at 38% ink",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\cats-playing-launch-v1\\film.mp4"
+          },
+          {
+            "check": "layout-overlap",
+            "evidence": "4 sampled frame(s): no collision, duplicate line or overrun",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\cats-playing-launch-v1"
+          }
+        ],
+        "skipped": [
+          {
+            "check": "media-demand",
+            "evidence": "the composition carries no per-clip media stamps (via \"scene-kit\"), so coverage cannot be counted from the HTML",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\cats-playing-launch-v1\\index.html"
+          },
+          {
+            "check": "hyperframes-lint",
+            "evidence": "the checker itself failed: cliFor is not defined",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\cats-playing-launch-v1\\index.html"
+          },
+          {
+            "check": "spatial-occlusion",
+            "evidence": "the checker itself failed: cliFor is not defined",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\cats-playing-launch-v1"
+          }
+        ],
+        "coverage": "11 finding(s) from 11 gate(s); 3 gate(s) could not run",
+        "previewPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\cats-playing-launch\\v1\\preview.mp4",
+        "posterPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\cats-playing-launch\\v1\\poster.jpg",
+        "mediaDir": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\cats-playing-launch\\v1",
+        "via": "scene-kit",
+        "durationSec": 30,
+        "durationMs": 206055,
+        "at": 1786948756954
+      },
+      "testJobIds": [],
+      "createdAt": 1786948423836,
+      "error": null
+    },
+    {
+      "id": "3ae9e078-d020-4fb9-a96e-4ce00ea158a1",
+      "templateId": "ab60ecb6-1441-45e9-9527-10149115d129",
+      "version": 1,
+      "sourcePath": "C:\\internship\\KEYFRAME\\frames-draft\\cats-playing-explain\\v1",
+      "mediaPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\cats-playing-explain\\v1",
+      "thumbnail": "/frames-draft/cats-playing-explain/v1/poster.jpg",
+      "previewVideo": "/frames-draft/cats-playing-explain/v1/preview.mp4",
+      "generationPrompt": "Subject: cats playing. This template is for an explainer that walks through three steps in order, diagram-led. Design the palette, the type and the mood so they belong to that subject and that job — a \"cats playing\" film in the \"how it works\" register, not a generic one. The motion has already been chosen for you and is fixed: words arrive with \"mask-reveal\", the emphasized word is treated with \"scribble\", scenes hand over with a \"thrust\" cut, and the background layer is \"electric\". Choose colours and fonts that make THAT motion look deliberate.",
+      "generationSpec": {
+        "name": "cats-playing-explain",
+        "family": "healthcare-soft",
+        "label": "Cats Playing Explain",
+        "overview": "A warm, diagrammatic step-by-step explainer system designed for feline behavior guides.",
+        "colors": {
+          "paper": "#fdfbf7",
+          "panel": "#f4efe6",
+          "ink": "#2b231f",
+          "orange": "#b44c05",
+          "teal": "#14b8a6",
+          "mist": "#e6dbcf"
+        },
+        "ground": "#fdfbf7",
+        "ink": "#2b231f",
+        "accents": [
+          "#b44c05",
+          "#14b8a6"
+        ],
+        "extras": [
+          "#e6dbcf",
+          "#ffedd5"
+        ],
+        "display": "Bricolage Grotesque",
+        "body": "Inter",
+        "labelFont": "Inter",
+        "textfx": {
+          "enter": "mask-reveal",
+          "emphasis": "scribble",
+          "case": "none",
+          "align": "left",
+          "tracking": -0.01,
+          "sizeScale": 1.05,
+          "speed": 1.25
+        },
+        "motion": {
+          "cut": "thrust",
+          "drift": 1.03
+        },
+        "fx": {
+          "canvas": "electric"
+        }
+      },
+      "generationStatus": "ok",
+      "qaScore": 100,
+      "qaResults": {
+        "slug": "cats-playing-explain",
+        "version": 1,
+        "scale": "0-100",
+        "score": 100,
+        "label": "Template Quality: 100/100",
+        "publishable": true,
+        "errors": [],
+        "warnings": [],
+        "passed": [
+          {
+            "check": "manifest",
+            "evidence": "pack.json parses and validates against PackManifestSchema (name \"cats-playing-explain\")",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\cats-playing-explain\\v1\\pack.json"
+          },
+          {
+            "check": "frame-md",
+            "evidence": "FRAME.md present (4 KB of design system)",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\cats-playing-explain\\v1\\FRAME.md"
+          },
+          {
+            "check": "preview-artifact",
+            "evidence": "preview.mp4 is 1046 KB, 30s over 12 scenes, composed via scene-kit",
+            "at": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\cats-playing-explain\\v1\\preview.mp4"
+          },
+          {
+            "check": "thumbnail-artifact",
+            "evidence": "poster.jpg picked at 9.15s (luma 227 ≥ 26, detail 14 ≥ 14, ground gap 44)",
+            "at": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\cats-playing-explain\\v1\\poster.jpg"
+          },
+          {
+            "check": "renderer-routing",
+            "evidence": "no renderer declared, and the build composed via \"scene-kit\" — the default deterministic path",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\cats-playing-explain\\v1\\pack.json"
+          },
+          {
+            "check": "slot-types",
+            "evidence": "not applicable — the slot-type gate only covers bundled (omelette) templates and this draft composes via \"scene-kit\"",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\cats-playing-explain\\v1\\pack.json"
+          },
+          {
+            "check": "orientation",
+            "evidence": "rendered 1280x720, which matches the registered \"horizontal\" orientation",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\cats-playing-explain-v1\\meta.json"
+          },
+          {
+            "check": "runtime-sweep",
+            "evidence": "the timeline registers and 8 seek probes across the film found no error slate",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\cats-playing-explain-v1\\index.html"
+          },
+          {
+            "check": "contrast-wcag",
+            "evidence": "every settled text element clears WCAG AA across 5 sampled frames",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\cats-playing-explain-v1"
+          },
+          {
+            "check": "frame-density",
+            "evidence": "12 sampled frame(s) carry content; the emptiest is scene s9 at 22% ink",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\cats-playing-explain-v1\\film.mp4"
+          },
+          {
+            "check": "layout-overlap",
+            "evidence": "4 sampled frame(s): no collision, duplicate line or overrun",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\cats-playing-explain-v1"
+          }
+        ],
+        "skipped": [
+          {
+            "check": "media-demand",
+            "evidence": "the composition carries no per-clip media stamps (via \"scene-kit\"), so coverage cannot be counted from the HTML",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\cats-playing-explain-v1\\index.html"
+          },
+          {
+            "check": "hyperframes-lint",
+            "evidence": "the checker itself failed: cliFor is not defined",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\cats-playing-explain-v1\\index.html"
+          },
+          {
+            "check": "spatial-occlusion",
+            "evidence": "the checker itself failed: cliFor is not defined",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\cats-playing-explain-v1"
+          }
+        ],
+        "coverage": "11 finding(s) from 11 gate(s); 3 gate(s) could not run",
+        "previewPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\cats-playing-explain\\v1\\preview.mp4",
+        "posterPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\cats-playing-explain\\v1\\poster.jpg",
+        "mediaDir": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\cats-playing-explain\\v1",
+        "via": "scene-kit",
+        "durationSec": 30,
+        "durationMs": 140148,
+        "at": 1786949132044
+      },
+      "testJobIds": [],
+      "createdAt": 1786948756955,
+      "error": null
+    },
+    {
+      "id": "324a2125-5658-440e-a11c-302172495fab",
+      "templateId": "5b50a3ed-b7f0-4cc8-af2f-50e661075552",
+      "version": 1,
+      "sourcePath": "C:\\internship\\KEYFRAME\\frames-draft\\cats-playing-proof\\v1",
+      "mediaPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\cats-playing-proof\\v1",
+      "thumbnail": "/frames-draft/cats-playing-proof/v1/poster.jpg",
+      "previewVideo": "/frames-draft/cats-playing-proof/v1/preview.mp4",
+      "generationPrompt": "Subject: cats playing. This template is for a data film built around hard figures and measured comparisons. Design the palette, the type and the mood so they belong to that subject and that job — a \"cats playing\" film in the \"the numbers\" register, not a generic one. The motion has already been chosen for you and is fixed: words arrive with \"line-wipe\", the emphasized word is treated with \"hanko\", scenes hand over with a \"shatter\" cut, and the background layer is \"telemetry\". Choose colours and fonts that make THAT motion look deliberate.",
+      "generationSpec": {
+        "name": "cats-playing-proof",
+        "family": "data-viz-mono",
+        "label": "Cats Playing Proof",
+        "overview": "A data-driven analytics layout measuring feline agility, reaction velocity, and play dynamics.",
+        "colors": {
+          "void": "#0b0f19",
+          "panel": "#1e293b",
+          "grid": "#334155",
+          "ink": "#e2e8f0",
+          "amber": "#f97316",
+          "cyan": "#06b6d4"
+        },
+        "ground": "#0b0f19",
+        "ink": "#e2e8f0",
+        "accents": [
+          "#f97316",
+          "#06b6d4"
+        ],
+        "extras": [
+          "#1e293b",
+          "#fed7aa"
+        ],
+        "display": "JetBrains Mono",
+        "body": "Inter",
+        "labelFont": "JetBrains Mono",
+        "textfx": {
+          "enter": "line-wipe",
+          "emphasis": "hanko",
+          "case": "upper",
+          "align": "left",
+          "tracking": 0.04,
+          "sizeScale": 1,
+          "speed": 1.3
+        },
+        "motion": {
+          "cut": "shatter",
+          "drift": 1.03
+        },
+        "fx": {
+          "canvas": "telemetry"
+        }
+      },
+      "generationStatus": "ok",
+      "qaScore": 100,
+      "qaResults": {
+        "slug": "cats-playing-proof",
+        "version": 1,
+        "scale": "0-100",
+        "score": 100,
+        "label": "Template Quality: 100/100",
+        "publishable": true,
+        "errors": [],
+        "warnings": [],
+        "passed": [
+          {
+            "check": "manifest",
+            "evidence": "pack.json parses and validates against PackManifestSchema (name \"cats-playing-proof\")",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\cats-playing-proof\\v1\\pack.json"
+          },
+          {
+            "check": "frame-md",
+            "evidence": "FRAME.md present (4 KB of design system)",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\cats-playing-proof\\v1\\FRAME.md"
+          },
+          {
+            "check": "preview-artifact",
+            "evidence": "preview.mp4 is 2565 KB, 30s over 12 scenes, composed via scene-kit",
+            "at": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\cats-playing-proof\\v1\\preview.mp4"
+          },
+          {
+            "check": "thumbnail-artifact",
+            "evidence": "poster.jpg picked at 6.65s (luma 29 ≥ 26, detail 31 ≥ 14, ground gap 23)",
+            "at": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\cats-playing-proof\\v1\\poster.jpg"
+          },
+          {
+            "check": "renderer-routing",
+            "evidence": "no renderer declared, and the build composed via \"scene-kit\" — the default deterministic path",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\cats-playing-proof\\v1\\pack.json"
+          },
+          {
+            "check": "slot-types",
+            "evidence": "not applicable — the slot-type gate only covers bundled (omelette) templates and this draft composes via \"scene-kit\"",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\cats-playing-proof\\v1\\pack.json"
+          },
+          {
+            "check": "orientation",
+            "evidence": "rendered 1080x1920, which matches the registered \"vertical\" orientation",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\cats-playing-proof-v1\\meta.json"
+          },
+          {
+            "check": "runtime-sweep",
+            "evidence": "the timeline registers and 8 seek probes across the film found no error slate",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\cats-playing-proof-v1\\index.html"
+          },
+          {
+            "check": "frame-density",
+            "evidence": "12 sampled frame(s) carry content; the emptiest is scene s12 at 46% ink",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\cats-playing-proof-v1\\film.mp4"
+          },
+          {
+            "check": "layout-overlap",
+            "evidence": "4 sampled frame(s): no collision, duplicate line or overrun",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\cats-playing-proof-v1"
+          }
+        ],
+        "skipped": [
+          {
+            "check": "media-demand",
+            "evidence": "the composition carries no per-clip media stamps (via \"scene-kit\"), so coverage cannot be counted from the HTML",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\cats-playing-proof-v1\\index.html"
+          },
+          {
+            "check": "hyperframes-lint",
+            "evidence": "the checker itself failed: cliFor is not defined",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\cats-playing-proof-v1\\index.html"
+          },
+          {
+            "check": "spatial-occlusion",
+            "evidence": "the checker itself failed: cliFor is not defined",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\cats-playing-proof-v1"
+          },
+          {
+            "check": "contrast-wcag",
+            "evidence": "contrast check could not run: error: Protocol error (Page.captureScreenshot): Target closed",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\cats-playing-proof-v1"
+          }
+        ],
+        "coverage": "10 finding(s) from 10 gate(s); 4 gate(s) could not run",
+        "previewPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\cats-playing-proof\\v1\\preview.mp4",
+        "posterPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\cats-playing-proof\\v1\\poster.jpg",
+        "mediaDir": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\cats-playing-proof\\v1",
+        "via": "scene-kit",
+        "durationSec": 30,
+        "durationMs": 220277,
+        "at": 1786952392987
+      },
+      "testJobIds": [],
+      "createdAt": 1786949132046,
+      "error": null
+    },
+    {
+      "id": "09722a7b-cb46-4d86-acee-a2ba0828e0ef",
+      "templateId": "817e362f-a931-4bf2-99ee-9f7994e23580",
+      "version": 1,
+      "sourcePath": "C:\\internship\\KEYFRAME\\frames-draft\\make-a-templete-like-c-launch\\v1",
+      "mediaPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\make-a-templete-like-c-launch\\v1",
+      "thumbnail": "/frames-draft/make-a-templete-like-c-launch/v1/poster.jpg",
+      "previewVideo": "/frames-draft/make-a-templete-like-c-launch/v1/preview.mp4",
+      "generationPrompt": "Subject: make a templete like cats in house theme. This template is for a launch film that opens on one bold claim and builds to a call to action. Design the palette, the type and the mood so they belong to that subject and that job — a \"make a templete like cats in house theme\" film in the \"the announcement\" register, not a generic one. The motion has already been chosen for you and is fixed: words arrive with \"blur-up\", the emphasized word is treated with \"gradient\", scenes hand over with a \"submerge\" cut, and the background layer is \"orrery\". Choose colours and fonts that make THAT motion look deliberate.",
+      "generationSpec": {
+        "name": "make-a-templete-like-c-launch",
+        "family": "retro-terminal",
+        "label": "Make A Templete Like C Launch",
+        "overview": "A cozy nocturnal terminal aesthetic for cat-themed product reveals and home tech announcements.",
+        "colors": {
+          "void": "#140f1d",
+          "panel": "#221a30",
+          "grid": "#2d1f3d",
+          "ink": "#f5ebf2",
+          "amber": "#ff9e3b",
+          "violet": "#c084fc"
+        },
+        "ground": "#140f1d",
+        "ink": "#f5ebf2",
+        "accents": [
+          "#ff9e3b",
+          "#c084fc"
+        ],
+        "extras": [
+          "#2d1f3d",
+          "#ffc078"
+        ],
+        "display": "Space Grotesk",
+        "body": "Inter",
+        "labelFont": "JetBrains Mono",
+        "textfx": {
+          "enter": "blur-up",
+          "emphasis": "gradient",
+          "case": "none",
+          "align": "left",
+          "tracking": 0.02,
+          "sizeScale": 1.05,
+          "speed": 1.25
+        },
+        "motion": {
+          "cut": "submerge",
+          "drift": 1.03
+        },
+        "fx": {
+          "canvas": "orrery"
+        }
+      },
+      "generationStatus": "ok",
+      "qaScore": null,
+      "qaResults": null,
+      "testJobIds": [],
+      "createdAt": 1786955871601,
+      "error": null
+    },
+    {
+      "id": "abe3df8c-3a99-4fcb-816a-64e7e7728f99",
+      "templateId": "be2c2b14-ed61-4db8-99e3-03aa1603e22e",
+      "version": 1,
+      "sourcePath": "C:\\internship\\KEYFRAME\\frames-draft\\cats-playing-ref\\v1",
+      "mediaPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\cats-playing-ref\\v1",
+      "thumbnail": null,
+      "previewVideo": null,
+      "generationPrompt": "A playful template for a cat-toy brand: cats leaping, tails, yarn, sunbeams on the floor, the feel of a living room at play.",
+      "generationSpec": {
+        "name": "cats-playing-ref",
+        "family": "healthcare-soft",
+        "label": "Cats Playing Ref",
+        "overview": "Living room cat play — sunbeams on wooden floors, rolling yarn balls, leaping paws, and playful cat toys.",
+        "colors": {
+          "ground": "#faf4e8",
+          "ink": "#2a1e17",
+          "yarn": "#da0007",
+          "sunbeam": "#ffc845",
+          "mint": "#3aafa9",
+          "cream": "#f3e8d3"
+        },
+        "ground": "#faf4e8",
+        "ink": "#2a1e17",
+        "accents": [
+          "#da0007",
+          "#ffc845"
+        ],
+        "extras": [
+          "#3aafa9",
+          "#f3e8d3"
+        ],
+        "display": "Baloo 2",
+        "body": "Figtree",
+        "labelFont": "Figtree",
+        "textfx": {
+          "enter": "squash",
+          "emphasis": "scribble",
+          "case": "none",
+          "align": "left",
+          "tracking": 0,
+          "sizeScale": 1.05,
+          "speed": 1.3
+        },
+        "motion": {
+          "cut": "clockwipe",
+          "drift": 1.04
+        },
+        "fx": {
+          "canvas": "rays"
+        }
+      },
+      "generationStatus": "ok",
+      "qaScore": null,
+      "qaResults": null,
+      "testJobIds": [],
+      "createdAt": 1786958205478,
+      "error": null
+    },
+    {
+      "id": "ea811a22-4213-484e-b3e1-f506bb4a8a8f",
+      "templateId": "be2c2b14-ed61-4db8-99e3-03aa1603e22e",
+      "version": 2,
+      "sourcePath": "C:\\internship\\KEYFRAME\\frames-draft\\cats-playing-ref\\v2",
+      "mediaPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\cats-playing-ref\\v2",
+      "thumbnail": null,
+      "previewVideo": null,
+      "generationPrompt": "A playful template for a cat-toy brand: cats leaping, tails, yarn, sunbeams on the floor, the feel of a living room at play.",
+      "generationSpec": {
+        "name": "cats-playing-ref",
+        "family": "saas-gradient",
+        "label": "Cats Playing Ref",
+        "overview": "Sunlit living rooms — bouncing yarn balls, dust motes in sunbeams, leaping paws, warm oak floors — for energetic cat toy and pet brand reveals.",
+        "vibe": "Sunlit living rooms — bouncing yarn balls, dust motes in sunbeams, leaping paws, warm oak floors — for energetic cat toy and pet brand reveals.",
+        "colors": {
+          "ground": "#fffdf5",
+          "ink": "#2d221e",
+          "yarn": "#d92800",
+          "sunbeam": "#f59e0b",
+          "peach": "#fed7aa",
+          "cream": "#fff5e6"
+        },
+        "ground": "#fffdf5",
+        "ink": "#2d221e",
+        "accents": [
+          "#d92800",
+          "#f59e0b"
+        ],
+        "extras": [
+          "#fed7aa",
+          "#fff5e6"
+        ],
+        "display": "Bricolage Grotesque",
+        "body": "Inter",
+        "labelFont": "Bricolage Grotesque",
+        "textfx": {
+          "enter": "squash",
+          "emphasis": "scribble",
+          "case": "none",
+          "align": "center",
+          "tracking": 0.02,
+          "sizeScale": 1.05,
+          "speed": 1.3
+        },
+        "motion": {
+          "cut": "weave",
+          "drift": 1.04
+        },
+        "fx": {
+          "canvas": "ribbon"
+        },
+        "emphasisCss": "background:linear-gradient(100deg,#d92800,#f59e0b);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#d92800;"
+      },
+      "generationStatus": "ok",
+      "qaScore": null,
+      "qaResults": null,
+      "testJobIds": [],
+      "createdAt": 1786958303773,
+      "error": null
+    },
+    {
+      "id": "709535b8-e008-4c70-8995-257f36a85645",
+      "templateId": "be2c2b14-ed61-4db8-99e3-03aa1603e22e",
+      "version": 3,
+      "sourcePath": "C:\\internship\\KEYFRAME\\frames-draft\\cats-playing-ref\\v3",
+      "mediaPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\cats-playing-ref\\v3",
+      "thumbnail": null,
+      "previewVideo": null,
+      "generationPrompt": "A playful template for a cat-toy brand: cats leaping, tails, yarn, sunbeams on the floor, the feel of a living room at play.",
+      "generationSpec": {
+        "name": "cats-playing-ref",
+        "family": "healthcare-soft",
+        "label": "Cats Playing Ref",
+        "overview": "Living room sunbeams, tangled yarn, and leaping paws — a warm, playful aesthetic for cat toy brands and energetic pet stories.",
+        "vibe": "Living room sunbeams, tangled yarn, and leaping paws — a warm, playful aesthetic for cat toy brands and energetic pet stories.",
+        "colors": {
+          "floor": "#fff8ee",
+          "ink": "#2d1f17",
+          "yarn": "#e23d00",
+          "mint": "#4ecdc4",
+          "sunbeam": "#f7b05b",
+          "mat": "#ffeacc"
+        },
+        "ground": "#fff8ee",
+        "ink": "#2d1f17",
+        "accents": [
+          "#e23d00",
+          "#4ecdc4"
+        ],
+        "extras": [
+          "#ffeacc",
+          "#f7b05b"
+        ],
+        "display": "Baloo 2",
+        "body": "Inter",
+        "labelFont": "Baloo 2",
+        "textfx": {
+          "enter": "squash",
+          "emphasis": "scribble",
+          "case": "none",
+          "align": "left",
+          "tracking": 0,
+          "sizeScale": 1.05,
+          "speed": 1.3
+        },
+        "motion": {
+          "cut": "weave",
+          "drift": 1.04
+        },
+        "fx": {
+          "canvas": "rays"
+        }
+      },
+      "generationStatus": "ok",
+      "qaScore": null,
+      "qaResults": null,
+      "testJobIds": [],
+      "createdAt": 1786958456108,
+      "error": null
+    }
+  ]
+}

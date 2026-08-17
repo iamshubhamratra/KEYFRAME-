@@ -20,6 +20,7 @@ const { checkBudget, BUDGET_EXHAUSTED_MSG } = require("./openrouter");
 const { generateBrief } = require("./brief");
 const { generateScript, validateScript, normalizeScript } = require("./script");
 const { understandWebsite } = require("./ingest/website");
+const { prepareUserAssets, inventoryForScript } = require("./user_assets");
 const { understandBlog } = require("./ingest/blog");
 const { transcribeVideo } = require("./ingest/transcribe");
 const { generateStoryboard } = require("./storyboard");
@@ -69,6 +70,15 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
         framePack: job.frame_pack || "auto",
       },
     };
+
+    // User-asset intelligence, in PARALLEL with ingest: probe (ffprobe) + ONE
+    // batched vision call. Deliberately OUTSIDE the `__ingested` gate so a
+    // transient failure retries on regenerate. Fail-open at every layer
+    // (classified:false is fine — the pin still happens, unclassified).
+    const userAssetTask = (job.user_assets || []).some((u) => u && u.classified !== true)
+      ? prepareUserAssets({ job, jobDir: jobDirFor(jobId), subject: intent.prompt || intent.websiteUrl || null, tracker })
+          .catch((e) => { console.warn(`[project] user asset prep failed: ${e.message}`); return null; })
+      : Promise.resolve(null);
 
     // ---- Multi-modal ingest: website + reference video, in parallel.
     // Each worker degrades to null on failure — a dead URL must not kill the
@@ -157,6 +167,20 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
       if (!intent.prompt && !website && !blog && !video) {
         throw new Error("ingest produced no usable signal (prompt empty, website/blog/video ingest all failed)");
       }
+    }
+
+    // Fold the probed/classified upload manifest back onto the job before the
+    // brief, so the brief model knows what the user handed us.
+    const userManifest = await userAssetTask;
+    if (userManifest) {
+      db.setUserAssets(jobId, userManifest);
+      job.user_assets = userManifest;
+      intent.userAssets = {
+        count: userManifest.filter((u) => u.role === "asset").length,
+        hasLogo: userManifest.some((u) => u.role === "logo"),
+        inventory: inventoryForScript(userManifest),
+      };
+      job.intent = intent;
     }
 
     const intakeBudgetMs = (Number(config.server.stageBudgetSec) || 480) * 1000;

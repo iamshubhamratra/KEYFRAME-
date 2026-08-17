@@ -118,6 +118,11 @@ const PackManifestSchema = z
         weight: z.number().nullable().default(null), // display weight override
         sizeScale: z.number().default(1),         // headline size multiplier (~0.85–1.15)
         align: z.string().default("rotate"),      // left | center | right | rotate (seed)
+        // PACE. Multiplies the headline entrance speed in scene_kit: 1 is the
+        // shipped timing, 1.25 is a quarter faster, 0.9 is a slower, statelier
+        // read. Only the ENTRANCE is scaled — scene length is driven by the
+        // voiceover, so speeding the whole timeline would desync the audio.
+        speed: z.number().default(1),
       })
       .default({}),
 
@@ -217,4 +222,28 @@ function validateAll() {
   return { valid, missing, invalid };
 }
 
-module.exports = { PackManifestSchema, getManifest, listManifests, manifestPath, validateAll };
+// CAN THIS PACK'S COMPOSER ACTUALLY RENDER A VECTOR IN A SCENE SLOT?
+//
+// Asked by the pre-render validation gate (services/preflight.js) so a vector a
+// composer will silently discard is not counted as a "collected visual" — that
+// miscount is what let dead assets read as scene coverage while the frame showed
+// an empty placeholder.
+//
+// Deliberately FAIL-OPEN and narrower than Rohit's version, because this engine
+// is not that engine: here the scene-kit, the family template_engine (isVector /
+// takeVec) and the omelette adapter (vecPool) all have real vector treatments, so
+// vectors are renderable on nearly every path. Only a pack that explicitly
+// declares `assets.acceptsVectors: false` in its pack.json opts out. That keeps
+// today's behaviour byte-identical while giving a dedicated photographic
+// composer a way to say so.
+function packAcceptsVectors(pack) {
+  try {
+    const m = getManifest(pack);
+    if (m && m.assets && typeof m.assets.acceptsVectors === "boolean") return m.assets.acceptsVectors;
+    return true;
+  } catch {
+    return true; // unknown pack keeps the historical behaviour
+  }
+}
+
+module.exports = { PackManifestSchema, getManifest, listManifests, manifestPath, validateAll, packAcceptsVectors };

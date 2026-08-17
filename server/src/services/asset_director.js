@@ -121,7 +121,11 @@ function summarizeReview(dirs) {
 // PLACE (scene_kit reads a.kind/a.fit/a.focus/a.effect/a.lowQuality). Fail-open.
 async function directAssets({ assets, jobDir, subject, tracker, signal } = {}) {
   const list = Array.isArray(assets) ? assets : [];
-  const directable = list.filter((a) => a && a.type !== "video");
+  // Logos are role material with a fixed treatment; they must not be mistaken
+  // for evidence that the craft pass already ran (craftDone checks `.kind`, and
+  // website_assets stamps kind:"logo" — that skipped the director job-wide
+  // whenever a logo was present).
+  const directable = list.filter((a) => a && a.type !== "video" && a.kind !== "logo" && String(a.role || "") !== "logo");
   const craftDone = directable.some((a) => a.fit || a.effect || a.kind);
   if (!directable.length || !subject || craftDone) return { reviewed: 0 };
   const kindHint = (a) => {

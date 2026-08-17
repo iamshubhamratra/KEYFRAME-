@@ -22,6 +22,7 @@
 // render.
 
 const db = require("../db");
+const { isLogo, tierFor } = require("./asset_priority");
 const config = require("../config");
 const { planLayout } = require("./layout_planner");
 
@@ -44,6 +45,10 @@ const MONTAGE_MAX = 6;
 // budgets line up with the pools the weaving actually draws from.
 function classify(a) {
   if (!a || !a.path) return null;
+  // Logos are role material, not pool material; an upload routes by our own
+  // kindHint, never by sniffing the alt sentence we wrote ourselves.
+  if (isLogo(a)) return null;
+  if (a.source === "upload") return a.kindHint === "photo" ? "photo" : "screenshot";
   if (a.type === "video" || /\.(mp4|webm|mov)($|\?)/i.test(a.path)) return "video";
   const s = `${a.source || ""} ${a.style || ""} ${a.alt || ""}`.toLowerCase();
   if (a.source === "website" || /screenshot|webpage|web page|landing|\bsite\b/.test(s)) return "screenshot";
@@ -58,7 +63,7 @@ const importance = (a) => num(a && a.cdScore, 0) + (typeof (a && a.clipRelevance
 // Is this asset currently eligible for a PROMINENT slot? (Owned screenshots, curated
 // picks, and CD-approved stock — the same trust the kit's prominentOk gate applies.)
 function isProminent(a) {
-  return !!a && (a.source === "website"
+  return !!a && (a.source === "upload" || a.source === "website"
     || String(a.source || "").startsWith("library:")
     || a.visionOk === true
     || a.cdProminence === "hero" || a.cdProminence === "support");
@@ -121,8 +126,13 @@ function directLayout({ storyboard, script, assets, framePack, dims } = {}) {
       if (k === "screenshot") a.container = deviceKind(a);
     }
     let demoted = 0;
+    // Tier-first ONLY when the job has uploads (same guard as the CD's rankScore):
+    // unconditional tiering would reorder upload-free website jobs — a render
+    // change on the no-feature path.
+    const hasUploads = list.some((a) => a && a.source === "upload");
+    const rankT = (a) => (hasUploads ? tierFor(a) * 1000 : 0) + importance(a);
     for (const kind of Object.keys(byKind)) {
-      const pool = byKind[kind].sort((x, y) => importance(y) - importance(x));
+      const pool = byKind[kind].sort((x, y) => rankT(y) - rankT(x));
       pool.slice(BUDGET[kind]).forEach((a) => {
         // Never delete — demote so it can still be atmospheric B-roll.
         a.visionOk = false;

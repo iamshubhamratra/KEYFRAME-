@@ -232,6 +232,22 @@ function plateOk(a) {
 function isVector(a) {
   return !!(a && a.path && /\.svg($|\?)/i.test(a.path) && !isLogo(a));
 }
+// A THIRD-PARTY BRAND MARK — the logo of a product the NARRATION names ("Slack",
+// "Chrome", "Edge"), fetched as flat art and pinned by the pipeline to the beat
+// that says the word. Recognised by its own `brand` field, never by reading the
+// name out of copy here: "Edge", "Linear" and "Notion" are ordinary English words
+// and a mark on the wrong beat is worse than no mark at all.
+//
+// It is invisible to every pool above — isLogo() is true (the alt reads "Slack
+// logo"), so isVector refuses it, and plateOk refuses SVG outright — which is why
+// a supplied mark reached no slot in this engine at all. It is also emphatically
+// NOT this film's own logo: `logoAsset` below is the customer's mark, drawn in
+// the corner of every frame and on the CTA lockup, and letting a competitor's
+// glyph win that lookup would rebrand the whole film.
+function isBrandMark(a) {
+  if (!a || !a.path || !String(a.brand || "").trim()) return false;
+  return String(a.source || "").toLowerCase() === "iconify" || /\.svg($|\?)/i.test(String(a.path));
+}
 
 // ---- deterministic per-pack variation ----------------------------------------
 // Two packs in the same family share a grammar; this lets a family pick a
@@ -310,17 +326,40 @@ function isDeviceWant(want) { return want === "phone" || want === "desktop"; }
 // `scene` is threaded purely so `take` can prefer the candidate that matches
 // what this beat is SAYING (see the matcher in planMedia). Optional — with no
 // scene every take() falls back to the old global rank order.
-function fillSlots(need, { preset = [], pin = null, take: take0, takeVec, recycle = false, placedPool = [], vecQuota = 0, scene = null } = {}) {
+function fillSlots(need, { preset = [], pin = null, take: take0, takeVec, recycle = false, placedPool = [], vecQuota = 0, scene = null, marks = [] } = {}) {
   const take = (pred) => take0(pred, scene);
   const slots = [];
   const n = Math.max(need.length, preset.length);
   let vq = vecQuota;
+  // WHERE A NAMED PRODUCT'S MARK GOES — decided before anything is cast, because
+  // the mark has to beat the vector cadence below to the tile and must never beat
+  // the beat's own picture to slot 0.
+  //
+  // Slot 0 is the hero: the screenshot of the product being narrated, or the
+  // photograph the scene is built around. A mark takes the TRAILING run instead,
+  // skipping device slots (a logo inside browser chrome reads as "this is the
+  // product's screen"). Two or three marks therefore land in ADJACENT tiles, in
+  // the order the narration says the names, which is what makes them read as a
+  // row of marks rather than one random tile. Today's families draw at most two
+  // media slots, so that run is one tile deep and the beat shows the first name
+  // it says; a wider wall (the omelette adapter's, 3-6 tiles) shows the row.
+  const markAt = new Map();
+  if (marks.length && n > 1) {
+    const open = [];
+    for (let k = n - 1; k >= 1 && open.length < marks.length; k--) {
+      // k past `need` is director overflow — a slot the design does not draw.
+      if (k >= need.length || preset[k] || isDeviceWant(need[k])) continue;
+      open.push(k);
+    }
+    open.reverse().forEach((k, j) => markAt.set(k, marks[j]));
+  }
   for (let k = 0; k < n; k++) {
     const want = need[k] || null;
     const shape = want ? shapeForWant(want) : null;
     let asset = preset[k] || null;
     let fill = asset ? (asset === pin ? "pinned" : "cast") : null;
     if (!asset && k === 0 && pin) { asset = pin; fill = "pinned"; }
+    if (!asset && markAt.has(k)) { asset = markAt.get(k); fill = "brand"; }
     // VECTOR CADENCE — a slot RESERVED for graphic art.
     //
     // The leftover-only pass at the bottom of this function reads as generous but
@@ -382,7 +421,10 @@ function fillSlots(need, { preset = [], pin = null, take: take0, takeVec, recycl
   // slot only ever recycles a real screenshot — repeating a stock photo into
   // browser chrome would present it as the product's UI.
   if (recycle) {
-    const inScene = slots.map((s) => s.asset).filter(Boolean);
+    // A brand mark is never recycle material: it is on this beat because this
+    // beat says the name, and a second copy of it in the next tile claims the
+    // film is about Slack.
+    const inScene = slots.filter((s) => s.fill !== "brand").map((s) => s.asset).filter(Boolean);
     let cursor = 0;
     for (const s of slots) {
       if (s.asset) continue;
@@ -447,14 +489,34 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
   const url = String(sb.url || host || `${brand.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`).slice(0, 40);
 
   // Asset pools — cast assets win; the rest are claimed in scene order.
-  const pool = (Array.isArray(assets) ? assets : []).filter(plateOk);
-  const logoAsset = (Array.isArray(assets) ? assets : []).find(isLogo) || null;
+  const pool = (Array.isArray(assets) ? assets : []).filter((a) => plateOk(a) && !isBrandMark(a));
+  // …and nothing fetched from the icon CDN is the customer's mark, whatever its
+  // alt says — the film's logo comes from its own site or its own upload.
+  const logoAsset = (Array.isArray(assets) ? assets : [])
+    .find((a) => isLogo(a) && !isBrandMark(a) && String(a.source || "").toLowerCase() !== "iconify") || null;
   const pinned = new Map();
   const free = [];
   for (const a of pool) {
     if (a === logoAsset) continue;
     const sid = a.sceneId != null ? String(a.sceneId) : null;
     if (sid && !pinned.has(sid)) pinned.set(sid, a); else free.push(a);
+  }
+  // THE BEAT THAT SAYS THE NAME IS THE BEAT THAT SHOWS THE MARK. A mark is drawn
+  // only on the scene it was pinned to — an unpinned one is dropped rather than
+  // guessed onto a beat, which is the same precision trade isBrandMark makes.
+  // Three per beat is the ceiling: a fourth would leave the scene's own picture
+  // nowhere to go, and the narration rarely names more than three tools in a
+  // breath anyway.
+  const marksByScene = new Map();
+  for (const a of (Array.isArray(assets) ? assets : [])) {
+    if (!isBrandMark(a) || a.sceneId == null) continue;
+    const sid = String(a.sceneId);
+    const list = marksByScene.get(sid) || [];
+    if (list.length >= 3 || list.some((x) => x.path === a.path)) continue;
+    // fitContain for the composers that read it, and brandMarkCss below pins the
+    // same fit for the families that hardcode object-fit:cover on their tiles.
+    list.push({ ...a, fitContain: true });
+    marksByScene.set(sid, list);
   }
   // RELEVANCE ORDER, not arrival order. The creative director already scored
   // every asset (cdScore, CLIP pixel-relevance, hero/support/background
@@ -559,8 +621,10 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
     if (a) claimed.add(a);
     return a || null;
   };
-  // Topical vectors, claimed only after every photo/screenshot is spoken for.
-  const vecs = (Array.isArray(assets) ? assets : []).filter(isVector);
+  // Topical vectors, claimed only after every photo/screenshot is spoken for. A
+  // brand mark is graphic art too, but it is owed to ONE beat, so it is kept out
+  // of a cadence that would spend it on whichever scene comes third.
+  const vecs = (Array.isArray(assets) ? assets : []).filter((a) => isVector(a) && !isBrandMark(a));
   const takeVec = () => {
     const v = vecs.find((x) => !claimed.has(x));
     if (!v) return null;
@@ -645,6 +709,7 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
     };
 
     const pin = pinned.get(sid) || null;
+    const marks = marksByScene.get(sid) || [];
     let type, typeVia, need = [], slots = [];
 
     if (entry) {
@@ -675,7 +740,7 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
         const cand = types.find((t) => (family.mediaSlots[t] || [])[0] === want) || types[0];
         if (cand) { type = cand; need = family.mediaSlots[cand]; typeVia = "castPinRescue"; }
       }
-      slots = fillSlots(need, { preset, pin, take, takeVec, recycle: !!family.recycleMedia, placedPool: placed, vecQuota: vecQuotaForScene(), scene });
+      slots = fillSlots(need, { preset, pin, take, takeVec, recycle: !!family.recycleMedia, placedPool: placed, vecQuota: vecQuotaForScene(), scene, marks });
     } else {
       if (pin) claimed.add(pin);
       type = family.route(scene, i, scenes.length, {
@@ -748,14 +813,35 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
         const cand = types.find((t) => family.mediaSlots[t][0] === want) || types[0];
         if (cand) { type = cand; need = family.mediaSlots[cand]; typeVia = "pinRescue"; }
       }
-      if (need.length) slots = fillSlots(need, { pin, take, takeVec, recycle: !!family.recycleMedia, placedPool: placed, vecQuota: vecQuotaForScene(), scene });
+      // A BEAT THAT NAMES A PRODUCT NEEDS A TILE THAT IS NOT THE HERO'S. Every
+      // family's media shapes are one or two slots deep, and slot 0 belongs to
+      // the beat's own screenshot or photograph — so on a one-slot shape a pinned
+      // mark has nowhere to go and is dropped silently, which is most feature
+      // beats in most families. Ask for a shape that draws a second tile, exactly
+      // as pinRescue asks for a media-bearing one: sceneCanFill keeps it honest,
+      // the recent window still blocks a repeat, and a family with no two-slot
+      // shape simply keeps what the router chose (and the mark is not shown —
+      // better than displacing the picture the beat is actually about).
+      if (marks.length && need.length < 2 && family.mediaSlots) {
+        const room = free.filter((x) => !claimed.has(x)).length + (pin ? 1 : 0) + marks.length;
+        const cand = Object.keys(family.mediaSlots)
+          .filter((t) => (family.mediaSlots[t] || []).length >= 2 && family.SCENES[t]
+            && !recentTypes.includes(t) && !reservedTypes.has(t) && sceneCanFill(t, scene, room));
+        if (cand.length) {
+          cand.sort((x, y) => usedTypes.lastIndexOf(x) - usedTypes.lastIndexOf(y));
+          type = cand[0];
+          need = family.mediaSlots[type];
+          typeVia = "brandRoom";
+        }
+      }
+      if (need.length) slots = fillSlots(need, { pin, take, takeVec, recycle: !!family.recycleMedia, placedPool: placed, vecQuota: vecQuotaForScene(), scene, marks });
     }
 
     const media = slots.map((s) => s.asset);
     // Only FRESH placements join the recycle pool — re-adding a recycled asset
     // would let one image crowd out every other candidate downstream.
     for (const s of slots) {
-      if (s.asset && s.fill !== "recycled" && !placed.includes(s.asset)) placed.push(s.asset);
+      if (s.asset && s.fill !== "recycled" && s.fill !== "brand" && !placed.includes(s.asset)) placed.push(s.asset);
     }
     // ctx.media keeps its established "compacted, no holes" contract for every
     // existing scene function; ctx.mediaSlots is the positional/nullable view.
@@ -793,7 +879,10 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
     recentTypes.push(type);
     if (recentTypes.length > RECENT_WINDOW) recentTypes.shift();
     ctx.type = type;
-    plan.push({ sceneIndex: i, sceneId: sid, rawScene, scene, ctx, type, typeVia, need, slots, media, a, b, T, L, isLast });
+    // `marks` rides along because the emitter runs in a different function and
+    // cannot reach marksByScene: without it the fallback strip below has no idea
+    // which products this beat named.
+    plan.push({ sceneIndex: i, sceneId: sid, rawScene, scene, ctx, type, typeVia, need, slots, media, marks, a, b, T, L, isLast });
   });
 
   // Coverage math, computed once here instead of re-derived by every caller.
@@ -823,6 +912,7 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
       screenshots: pool.filter(isScreenshot).length,
       portrait: pool.filter(isPortraitAsset).length,
       vectors: vecs.length,
+      brandMarks: [...marksByScene.values()].reduce((a, l) => a + l.length, 0),
       logo: !!logoAsset,
     },
   };
@@ -874,17 +964,37 @@ function buildFilm(family, opts = {}) {
     // know where a given design has room, and guessing would overlap authored
     // layout — the one failure mode worse than an empty frame.
     let fillPart = { html: "", s: [] };
+    let fillZone = null;
     if (family.fill) {
-      const zone = typeof family.fill === "function" ? family.fill(type, ctx, scene) : family.fill;
-      if (zone) {
-        try { fillPart = sceneFill(ctx.id, scene, ctx, zone) || fillPart; }
+      fillZone = typeof family.fill === "function" ? family.fill(type, ctx, scene) : family.fill;
+      if (fillZone) {
+        try { fillPart = sceneFill(ctx.id, scene, ctx, fillZone) || fillPart; }
         catch { /* fill is decoration — never let it break a render */ }
       }
     }
+    // A NAMED PRODUCT WITH NOWHERE TO GO. Marks are seated in media tiles above,
+    // but that only happens on a shape drawing two or more pictures — most family
+    // shapes draw one or none, so a beat that says "Chrome, Slack and Microsoft
+    // 365" showed no mark at all on 7 of the 8 families (measured). The strip
+    // below is the fallback, and it guesses NOTHING: it renders only inside the
+    // band the family itself declares safe for spare furniture (`family.fill`),
+    // and only when that band is otherwise EMPTY, because the alternative —
+    // picking a spot the engine thinks looks free — is the exact failure the fill
+    // contract was written to avoid ("guessing would overlap authored layout").
+    // A family with no declared zone shows no strip; that is the correct answer,
+    // not a gap to paper over.
+    const seated = new Set(p.slots.filter((s) => s.fill === "brand" && s.asset).map((s) => s.asset.path));
+    const loose = (p.marks || []).filter((m) => !seated.has(m.path));
+    let markPart = { html: "", s: [] };
+    if (loose.length && fillZone && !fillPart.html) {
+      try { markPart = brandStrip(ctx.id, loose, ctx, fillZone) || markPart; }
+      catch { /* a logo row is decoration — never let it break a render */ }
+    }
     bodyParts.push(`<div class="clip tpl-scene" id="${ctx.id}" data-start="${T}" data-duration="${r(ctx.winL)}" data-track-index="${ctx.track}" data-scene-type="${type}" data-media-demand="${p.need.length}" data-media-filled="${filledCount}" data-media-kinds="${p.need.join(",")}" style="z-index:${ctx.track};opacity:0;${built.clipStyle || ""}">
-  <div class="camo" id="${ctx.id}-camo"><div class="cami" id="${ctx.id}-cami">${built.html}${fillPart.html}</div></div>
+  <div class="camo" id="${ctx.id}-camo"><div class="cami" id="${ctx.id}-cami">${built.html}${fillPart.html}${markPart.html}</div></div>
 </div>`);
     if (fillPart.s && fillPart.s.length) sceneScripts.push(fillPart.s.filter(Boolean).join("\n  "));
+    if (markPart.s && markPart.s.length) sceneScripts.push(markPart.s.filter(Boolean).join("\n  "));
     // When the motion system owns the entrance (family.motion + camera disabled),
     // the clip is switched on INSTANTLY and the visible arrival is the wipe/push
     // preset. The 0.3s opacity ramp below is a crossfade — fine as a windowing
@@ -1064,7 +1174,7 @@ ${motion.runtimeHelpers()}
   const indexHtml = [
     `<!DOCTYPE html>`, `<html lang="en">`, `<head>`, `<meta charset="utf-8">`, `<title>vid</title>`,
     `<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>`,
-    `<style>`, baseCss(theme), family.styleBlock(theme, land), textfxCss(opts.manifest, framePack),
+    `<style>`, baseCss(theme), family.styleBlock(theme, land), textfxCss(opts.manifest, framePack), brandMarkCss(plan),
     authoredCss.join("\n"), overlay ? overlay.css : "", `</style>`,
     `</head>`, `<body>`,
     `<div id="root" class="composition" data-composition-id="vid" data-width="${W}" data-height="${H}" data-start="0" data-duration="${D}" style="width:${W}px;height:${H}px;">`,
@@ -1078,6 +1188,64 @@ ${motion.runtimeHelpers()}
 
   const metaJson = JSON.stringify({ compositionId: "vid", width: W, height: H, fps: (dims && dims.fps) || 30, duration: D });
   return { indexHtml, metaJson };
+}
+
+// A BRAND MARK LETTERBOXES, IT DOES NOT CROP. Flat art has no spare margin to
+// spend on a cover-crop: filling a 16:9 tile with a glyph centres one enlarged
+// limb of it and reads as a smear, and half a competitor's logo is worse than
+// none. The `fitContain` flag the plan already sets is honoured by the dedicated
+// composers and by nothing else — every family draws its tiles with an INLINE
+// `object-fit:cover`, so the flag has no effect on the 49 family packs.
+//
+// Same hook textfxCss uses against the same problem: an attribute selector plus
+// `!important`, which is the only thing that outranks an inline declaration. The
+// mark keeps the tile's own ground behind it, which is exactly the treatment a
+// logo wants.
+// A ROW OF THE PRODUCTS THIS BEAT NAMES, drawn in the band the family declared
+// safe for spare furniture — same insets `sceneFill` uses, so the strip cannot
+// land anywhere the design did not already offer. Marks are shown at a modest,
+// even size with the brand name under each: a silhouette alone is recognisable
+// for Slack, less so for the long tail, and the name is what the narration just
+// said. Contain-fit and padded, because these are logos, not photographs.
+function brandStrip(id, marks, ctx, zone) {
+  const list = (marks || []).filter((m) => m && m.path).slice(0, 3);
+  if (!list.length) return null;
+  const { land, T, L, theme: th } = ctx;
+  const ink = th.ink || "#111";
+  const plate = zone.plate || th.card || th.ground || "#111";
+  const label = readable(plate, ink, 0.72, 4.5);
+  const left = zone.left != null ? zone.left : 6;
+  const right = zone.right != null ? zone.right : 6;
+  const bottom = zone.bottom != null ? zone.bottom : (land ? 7 : 10);
+  const mark = land ? 5.2 : 9.5;          // cqw — a badge, never a hero
+  const fs = land ? 0.85 : 1.5;
+  const cells = list.map((m, i) => {
+    const src = esc(String(m.path));
+    const name = esc(fit(String(m.brand || ""), 18));
+    return `<div class="kf-bm" id="${id}-bm${i}" style="opacity:0;display:flex;flex-direction:column;align-items:center;gap:0.5cqw;">`
+      + `<img src="${src}" alt="${name}" style="width:${mark}cqw;height:${mark}cqw;object-fit:contain;object-position:center;display:block;"/>`
+      + (name ? `<div style="font-family:${th.bodyStack || "system-ui, sans-serif"};font-size:${fs}cqw;line-height:1;letter-spacing:0.04em;color:${label};white-space:nowrap;">${name}</div>` : "")
+      + `</div>`;
+  }).join("");
+  const html = `<div id="${id}-bmrow" style="position:absolute;left:${left}cqw;right:${right}cqw;bottom:${bottom}cqw;`
+    + `display:flex;align-items:flex-end;justify-content:center;gap:${land ? 4 : 6}cqw;pointer-events:none;z-index:6;">${cells}</div>`;
+  // Land them one after another, just past the scene's own entrance.
+  const s = list.map((_, i) =>
+    `tl.fromTo("#${id}-bm${i}",{opacity:0,y:${land ? 14 : 20}},{opacity:1,y:0,duration:0.42,ease:"back.out(1.6)"},${r(T + Math.min(L * 0.28, 0.5) + i * 0.12)});`);
+  return { html, s };
+}
+
+function brandMarkCss(plan) {
+  const files = [...new Set((plan || []).flatMap((p) => (p.slots || [])
+    .filter((s) => s.fill === "brand" && s.asset && s.asset.path)
+    .map((s) => String(s.asset.path).split("/").pop())))]
+    // A filename is not a selector: anything that could close the attribute
+    // string is dropped rather than escaped, since a mark that misses this rule
+    // still renders (cropped) while a broken rule takes the whole stylesheet.
+    .filter((f) => /^[\w.@+-]+$/.test(f));
+  if (!files.length) return "";
+  return `\n${files.map((f) => `#root img[src$="${f}"]`).join(",\n")}`
+    + `{object-fit:contain !important;object-position:center !important;padding:8% !important;box-sizing:border-box !important;}\n`;
 }
 
 // Structural CSS every family relies on (the .clip/.camo/.cami contract + the

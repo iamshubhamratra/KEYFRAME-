@@ -29,13 +29,17 @@ test("duplicate distinct selectors → redundant marked 'all', keeper untouched"
 
 // 2. Identical repeated element → keep the first, hide the rest (keepOne).
 test("identical siblings → keepOne hides all but the first", () => {
+  // >=12 chars and multi-word on purpose: analyze() ignores shorter strings so a
+  // word-level animation span (.kfw, one word, repeated legally across a film)
+  // can never be mistaken for a redundant line. "Hi there" was 8 chars, so this
+  // case had been asserting on an element the analyzer skips.
   const frames = [{ boxes: [
-    box("span.dup", "text", "Hi there", 10, 10, 100, 20),
-    box("span.dup", "text", "Hi there", 10, 40, 100, 20),
+    box("span.dup", "text", "Every idea kept", 10, 10, 100, 20),
+    box("span.dup", "text", "Every idea kept", 10, 40, 100, 20),
   ] }];
   const f = analyze(frames);
   assert.equal(f.duplicates[0].mode, "keepOne");
-  const html = `<span class="dup">Hi there</span><span class="dup">Hi there</span>`;
+  const html = `<span class="dup">Every idea kept</span><span class="dup">Every idea kept</span>`;
   const r = applyFixes(html, f);
   assert.equal(r.duplicatesRemoved, 1, "one copy hidden");
   assert.equal((r.html.match(/visibility:hidden/g) || []).length, 1, "exactly one hidden");

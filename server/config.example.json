@@ -32,14 +32,16 @@
       }
     },
     "provider": "openrouter",
-    "model": "kie:gemini-3.6-flash",
-    "modelFast": "kie:gemini-3.6-flash",
+    "model": "google/gemini-3.1-flash-lite",
+    "modelFast": "google/gemini-3.1-flash-lite",
     "modelFallback": "google/gemini-3-flash-preview",
     "stageModels": {
-      "storyboard": "default",
-      "composer": "default",
-      "assetPlanner": "default",
-      "audioPlanner": "default"
+      "storyboard": "kie:gemini-3.6-flash",
+      "composer": "google/gemini-3.1-flash-lite",
+      "assetPlanner": "google/gemini-3.1-flash-lite",
+      "audioPlanner": "google/gemini-3.1-flash-lite",
+      "brief": "kie:gemini-3.6-flash",
+      "script": "kie:gemini-3.6-flash"
     },
     "baseUrl": "https://openrouter.ai/api/v1",
     "apiKey": "",
@@ -60,7 +62,9 @@
       "composer": 300000
     },
     "httpReferer": "https://video-gen.local",
-    "xTitle": "video-gen"
+    "xTitle": "video-gen",
+    "premiumStages": [],
+    "scriptEscalationModel": "kie:gemini-3.6-flash"
   },
   "orientations": {
     "horizontal": {
@@ -151,5 +155,8 @@
     "videosDir": "public/videos",
     "uploadsDir": "uploads",
     "dbFile": "jobs.json"
+  },
+  "auth": {
+    "adminEmails": []
   }
 }

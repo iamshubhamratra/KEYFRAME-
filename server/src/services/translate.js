@@ -143,7 +143,7 @@ async function translateLines({ lines, targetLang, sourceLang = captionLang.SOUR
       temperature: 0.2,
       signal,
     });
-    if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "caption_director", model: servedModel, provider: servedBy });
+    if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "caption_director", costUsd });
 
     const raw = parseLenient(text); // throws on unparseable/truncated JSON
     const outLines = Array.isArray(raw?.lines) ? raw.lines : [];

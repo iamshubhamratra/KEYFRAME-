@@ -1,0 +1,80 @@
+{
+  "name": "cats-playing-ref",
+  "vibe": "Living room sunbeams, tangled yarn, and leaping paws — a warm, playful aesthetic for cat toy brands and energetic pet stories.",
+  "colors": {
+    "floor": "#fff8ee",
+    "ink": "#2d1f17",
+    "yarn": "#e23d00",
+    "mint": "#4ecdc4",
+    "sunbeam": "#f7b05b",
+    "mat": "#ffeacc"
+  },
+  "fonts": [
+    "Inter",
+    "Baloo 2"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": true,
+    "ground": "#fff8ee"
+  },
+  "motion": {
+    "cut": "weave",
+    "drift": 1.04
+  },
+  "fx": {
+    "canvas": "rays",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#e23d00",
+      "#4ecdc4"
+    ],
+    "extras": [
+      "#ffeacc",
+      "#f7b05b"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "soft clean calm medical wellness natural light",
+    "iconStyle": "soft",
+    "keywords": [
+      "soft",
+      "calm",
+      "clean",
+      "wellness",
+      "rounded"
+    ],
+    "prefer": []
+  },
+  "textfx": {
+    "enter": "squash",
+    "emphasis": "scribble",
+    "case": "none",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1.05,
+    "align": "left",
+    "speed": 1.3
+  },
+  "audio": {
+    "music": {
+      "query": "",
+      "mood": "",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "",
+      "palette": []
+    }
+  },
+  "typography": {
+    "display": "Baloo 2"
+  },
+  "camera3d": {
+    "ground": "#2d1f17"
+  },
+  "portraitNative": true
+}

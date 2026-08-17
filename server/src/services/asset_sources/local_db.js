@@ -77,7 +77,23 @@ function search({ query, type, orientation, limit = 3, sourceRe = null, excludeS
     if (!fs.existsSync(e.file)) continue;
     const overlap = want.filter((w) => e.words.includes(w)).length;
     if (subjWords.length && !subjWords.some((w) => e.words.includes(w))) continue;
-    if (overlap / want.length >= 0.6) scored.push({ score: overlap / want.length, entry: e });
+    if (overlap / want.length < 0.6) continue;
+    // …AND THE MATCH HAS TO MEAN SOMETHING TO THE ENTRY TOO. The ratio above is
+    // computed over the SEARCH query's words only, so it says nothing about how
+    // much of the stored entry is unrelated — and this pipeline stores LONG
+    // composed queries (subject + need + pack style). Measured live: the query
+    // "mobile shopping app" was served a photo cached under "airport departures
+    // board and mobile travel app airport terminal gate boarding sign yellow
+    // night airport terminal signage cinematic" — two generic words, "mobile"
+    // and "app", out of twenty, cleared 2/3 = 0.67 and an AIRPORT TERMINAL shot
+    // shipped for a shopping beat. The subject guard above does not catch it
+    // either: it only asks that ONE subject word appear somewhere in those
+    // twenty. So require the overlap to cover a real share of the entry as well,
+    // measured against its first few words so a long stored query cannot dilute
+    // its way to a match.
+    const entryWeight = Math.min(e.words.length, 8);
+    if (!entryWeight || overlap / entryWeight < 0.4) continue;
+    scored.push({ score: overlap / want.length, entry: e });
   }
   scored.sort((a, b) => b.score - a.score || b.entry.hits - a.entry.hits);
   return scored.slice(0, limit).map((s) => s.entry);

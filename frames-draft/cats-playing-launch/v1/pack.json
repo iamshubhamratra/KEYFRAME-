@@ -1,0 +1,80 @@
+{
+  "name": "cats-playing-launch",
+  "vibe": "a retro-computer terminal: monospace type glowing on a dark CRT ground, scanline grid, one phosphor accent — for dev tools, CLIs, AI agents, hacker-grade launches",
+  "colors": {
+    "void": "#0f0c1b",
+    "panel": "#1a152e",
+    "grid": "#2d1f3f",
+    "ink": "#eadbf7",
+    "amber": "#ff9e2c",
+    "magenta": "#ff3385"
+  },
+  "fonts": [
+    "Inter",
+    "JetBrains Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#0f0c1b"
+  },
+  "motion": {
+    "cut": "submerge",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "orrery",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#ff9e2c",
+      "#ff3385"
+    ],
+    "extras": [
+      "#2d1f3f",
+      "#ffc273"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "retro terminal crt scanline dark tech",
+    "iconStyle": "line",
+    "keywords": [
+      "retro",
+      "terminal",
+      "mono",
+      "crt",
+      "dark"
+    ],
+    "prefer": []
+  },
+  "textfx": {
+    "enter": "blur-up",
+    "emphasis": "gradient",
+    "case": "upper",
+    "tracking": 0.04,
+    "weight": null,
+    "sizeScale": 1.05,
+    "align": "center",
+    "speed": 1.3
+  },
+  "audio": {
+    "music": {
+      "query": "",
+      "mood": "",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "",
+      "palette": []
+    }
+  },
+  "typography": {
+    "display": "JetBrains Mono"
+  },
+  "camera3d": {
+    "ground": "#0f0c1b"
+  },
+  "portraitNative": true
+}

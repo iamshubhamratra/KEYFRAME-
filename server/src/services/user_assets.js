@@ -21,7 +21,11 @@ const path = require("node:path");
 const config = require("../config");
 const openrouter = require("./openrouter");
 const { ffprobeImage, imageDHashStats, pixFmtHasAlpha } = require("./asset_sources/util");
-const { thumbBase64 } = require("./media");
+// main exports thumbBase64 from asset_vision, not media. The trap if this is
+// wrong: a destructured require of a missing property SUCCEEDS, and the failure
+// surfaces later as "thumbBase64 is not a function" inside classifyUserAssets'
+// try/catch — which swallows it, so vision classification silently never runs.
+const { thumbBase64 } = require("./asset_vision");
 const { extractFirstJsonObject } = require("./json_lenient");
 const { isLogo } = require("./asset_priority");
 
@@ -222,14 +226,14 @@ async function classifyUserAssets({ jobDir, manifest, subject, tracker, signal }
         content.push({ type: "text", text: `Image ${n + 1} (file: "${u.originalName || u.path}"${u.width ? `, ${u.width}x${u.height}` : ""}):` });
         content.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${x.b}` } });
       });
-      const { text, tokensIn, tokensOut, model: servedModel, provider: servedBy } = await openrouter.chat({
+      const { text, tokensIn, tokensOut, costUsd } = await openrouter.chat({
         // KIE-first: no explicit `model` (that would disable KIE entirely — see
         // openrouter.js kieEnabled). config.js maps the user_assets stage onto the
         // Creative Director's model, so the OpenRouter fallback stays on flash-lite.
         system: CLASSIFY_SYSTEM, user: content, jsonMode: true, stage: "user_assets",
         temperature: 0, signal,
       });
-      if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "user_assets", model: servedModel, provider: servedBy });
+      if (tracker) tracker.addLlm({ inputTokens: tokensIn, outputTokens: tokensOut, stage: "user_assets", costUsd });
       const parsed = extractFirstJsonObject(text);
       const verdicts = Array.isArray(parsed && parsed.verdicts) ? parsed.verdicts : [];
       // Key by the model's `n`, fall back to array position (the CD's proven fix:
