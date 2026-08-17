@@ -1,0 +1,89 @@
+{
+  "name": "field-notes",
+  "renderer": "omelette",
+  "template": "FieldNotes",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography field journal — 50 authored beats, ~6s each, 5 minutes as shipped. Cream paper, terracotta and sage accents, Caprasimo display over Figtree body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f5ead8",
+    "ink": "#201e1d",
+    "accent": "#c67139",
+    "a2": "#7a8a5e"
+  },
+  "fonts": [
+    "Caprasimo",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#f5ead8",
+    "ink": "#201e1d"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Caprasimo",
+    "body": "Figtree",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "warm acoustic folk, gentle fingerpicked guitar, unhurried",
+    "energy": "calm"
+  },
+  "skin": {
+    "accents": [
+      "#c67139",
+      "#7a8a5e"
+    ],
+    "extras": [
+      "#e9ead9",
+      "#f2ddc2",
+      "#201e1d"
+    ],
+    "emphasisCss": "color:#c67139;"
+  },
+  "assets": {
+    "photoMod": "warm natural light, editorial still life",
+    "iconStyle": "outline",
+    "keywords": [
+      "garden",
+      "plant",
+      "leaf",
+      "journal",
+      "field",
+      "notes"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#f5ead8"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

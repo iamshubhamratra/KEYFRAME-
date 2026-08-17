@@ -123,6 +123,10 @@ router.get("/frames", (_req, res) => {
     ...packMeta(name),
     ...mediaUrls(name),
     portrait: isPortrait(name),
+    // Long-form packs (authored for 2-5 minute films) get their own gallery
+    // section — a 50-beat film shown inside the Horizontal grid reads as just
+    // another 30s pack, which undersells exactly what makes it special.
+    longForm: (() => { try { return !!(frameManifest.getManifest(name) || {}).longForm; } catch { return false; } })(),
     showcaseUrl: frameRegistry.getShowcasePath(name) ? `/api/frames/${name}/showcase` : null,
   }));
   res.json({ packs, defaultPack: def });

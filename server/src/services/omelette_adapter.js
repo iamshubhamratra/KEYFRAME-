@@ -1724,7 +1724,7 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
     ) || recycle();
     // Never leave a picture slot unset — the compiled film paints its own
     // "DROP IMAGE TO REPLACE" placeholder when it is missing.
-    out.shot = primary ? primary.path : fillPlate(brand, accent, null);
+    out.shot = primary ? primary.path : "__kfplate__";   // sentinel — see the 16KB-cap note; harness swaps the plate in
     if (primary) lastShot = primary;
     // THE KIT FAMILY NAMES ITS MEDIA SLOTS DIFFERENTLY.
     //
@@ -1741,7 +1741,11 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
     // draws a bare dark frame (measured on the zero-asset escapement bench,
     // beats 4/8: an empty rectangle where the picture goes). Same branded plate
     // the shot slot uses.
-    out.image = primary ? primary.path : fillPlate(brand, accent, null);
+    // The plate is a ~2KB data-URI; inside OM_SCENES it blew the engine's hard
+    // 16KB cap (a 12-beat field-notes cast truncated to 6 — the CTA froze for
+    // 36s). Emit a 12-byte sentinel; the harness swaps in the real plate on
+    // every seek, outside the capped string.
+    out.image = primary ? primary.path : "__kfplate__";
     // `showcase`/`surfaces`/`screens` draw stacked BROWSER CARDS reading
     // shot1..N — the most screenshot-forward shape any of these templates has.
     // Cadence's Showcase was absent from this list, so its two browser cards
@@ -1811,9 +1815,8 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
       // portrait cards (an assetless film), the remaining card gets the branded
       // tonal plate — the same stand-in every single-shot slot already uses.
       while (!land && wall.length < slots) {
-        const plate = fillPlate(brand, accent, null);
-        out[`shot${wall.length + 1}`] = plate;
-        wall.push(plate);
+        out[`shot${wall.length + 1}`] = "__kfplate__";   // sentinel (16KB cap) — the harness swaps the plate in
+        wall.push("__kfplate__");
       }
       // Momentum's Gallery reads shotA/shotB instead of shot1/shot2 — feed both
       // namings; unread fields are ignored by every other film.
@@ -2565,6 +2568,12 @@ ${vectorFitCss}
           var kids=n.children,need=0,k;
           if(kids.length){ for(k=0;k<kids.length;k++){ kids[k].style.whiteSpace='nowrap'; need=Math.max(need,kids[k].scrollWidth);} }
           else { n.style.whiteSpace='nowrap'; need=n.scrollWidth; }
+          // Kinetic-type films animate PER-LETTER spans, so the widest CHILD is
+          // one glyph and the line never registered as overflowing — field-notes'
+          // CTA title clipped at both frame edges. The container's own
+          // scrollWidth covers that case; for block children (multi-line "|"
+          // headlines) it equals the widest row, so this is a strict superset.
+          need=Math.max(need,n.scrollWidth);
           var cw=n.clientWidth||0;
           var avail=(cw>0 && cw<canvasW)?cw:canvasW*0.92;   // bounded column, else canvas w/ margin
           if(need>avail && avail>0){
@@ -2780,8 +2789,25 @@ ${vectorFitCss}
     // naturalWidth 0 is swapped for a sibling that DID load — a repeat of a real
     // screenshot always beats a broken-image icon. Re-run per seek: the film is
     // React and remounts scene layers as it plays.
+    // THE BRANDED PLATE, built ONCE out here — the page HTML has no size cap,
+    // while OM_SCENES does (hard 16KB engine limit: 2KB of data-URI per slot
+    // truncated a 12-beat field-notes cast to 6 beats). Scene data carries the
+    // 12-byte "__kfplate__" sentinel; every seek swaps the real image in.
+    var KF_PLATE=${JSON.stringify(fillPlate(brand, accent, null))};
+    function kfSwapPlates(root){
+      try{
+        var imgs=(root||document).querySelectorAll('img');
+        for(var i=0;i<imgs.length;i++){
+          var s=imgs[i].getAttribute('src')||'';
+          if(s.indexOf('__kfplate__')>=0) imgs[i].setAttribute('src',KF_PLATE);
+        }
+        var all=(root||document).querySelectorAll('*');
+        for(var j=0;j<all.length;j++) if(all[j].shadowRoot) kfSwapPlates(all[j].shadowRoot);
+      }catch(e){}
+    }
     function healImgs(){
       try{
+        kfSwapPlates(document);
         var root=document.getElementById('kf-comp-root'); if(!root) return;
         var imgs=root.querySelectorAll('img'), good=null, i;
         for(i=0;i<imgs.length;i++){ if(imgs[i].complete && imgs[i].naturalWidth>0){ good=imgs[i].getAttribute('src'); break; } }

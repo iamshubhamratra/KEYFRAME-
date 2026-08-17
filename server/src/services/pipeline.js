@@ -26,6 +26,7 @@ const { compose } = require("./composer");
 const { validate, runInspect } = require("./validator");
 const { runtimeCheck } = require("./runtime_check");
 const { normalizeComposition, stripMissingAssets } = require("./normalize");
+const { injectCaptionStyle } = require("./caption_render");
 const { enrichComposition } = require("./enrich");
 const { cinematicCheck } = require("./cinematic_lint");
 const sceneKit = require("./scene_kit");
@@ -82,6 +83,43 @@ const { assembleQualityReport } = require("./quality_report");
 
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
 function ms() { return Date.now(); }
+
+// ---- LANGUAGE STYLE FOR THE COMPOSED DOCUMENT --------------------------------
+//
+// A localized film needs two things baked into index.html BEFORE it renders: the
+// script's @font-face (without it Chromium draws tofu boxes for every Devanagari
+// / Arabic / CJK glyph) and, for Arabic, `direction: rtl`. Both are pure CSS and
+// entirely independent of what any composer emitted.
+//
+// Four separate composer paths write index.html and each renders it itself, so
+// there is no single seam between "written" and "rendered" to hook. Threading a
+// style parameter through all four signatures and their call sites would touch a
+// lot of working code for one optional string, so instead the graph registers the
+// style for the job and every write site consults it.
+//
+// Keyed BY JOB, not module-global, for exactly the reason NODE_MS in graph.js is:
+// the pipeline is shared across concurrent jobs and a flat variable would paint
+// one film's Hindi font onto another film's English render. Cleared at delivery.
+const CAPTION_STYLE = new Map();
+function setCaptionStyle(jobId, style) {
+  if (!jobId) return;
+  if (style) CAPTION_STYLE.set(jobId, style); else CAPTION_STYLE.delete(jobId);
+}
+function clearCaptionStyle(jobId) { CAPTION_STYLE.delete(jobId); }
+
+// The ONE write site for a composed document. Every composer path goes through
+// it, so the language CSS can never be applied to three paths and forgotten on
+// the fourth. A film with no registered style writes byte-identical output.
+function writeComposedHtml(jobDir, html, jobId) {
+  let out = html;
+  const style = jobId ? CAPTION_STYLE.get(jobId) : null;
+  if (style) {
+    try { out = injectCaptionStyle(html, style); }
+    catch (e) { console.warn(`[pipeline] caption style injection skipped: ${e.message}`); }
+  }
+  fs.writeFileSync(path.join(jobDir, "index.html"), out, "utf8");
+  return out;
+}
 
 // Mechanical fallback queries so a too-specific search degrades to a broader
 // one instead of failing: drop the last word, then keep only the first two.
@@ -728,7 +766,7 @@ async function gateComposition({ files, jobDir, tracker, label, enrich, cinemati
   };
 }
 
-async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets, tracker, abortSignal, framePack, captionCues, scriptCues, strictIdentity = false }) {
+async function composeWithLintRepair({ storyboard, dims, jobDir, jobId = null, availableAssets, tracker, abortSignal, framePack, captionCues, scriptCues, strictIdentity = false }) {
   // First pass + up to N repair laps. Weaker/reasoning composer models often fix
   // the flagged errors on a repair but introduce a NEW class (e.g. nemotron clears
   // track overlaps, then trips gsap_set_initial_state) — a single lap can't
@@ -799,7 +837,7 @@ async function composeWithLintRepair({ storyboard, dims, jobDir, availableAssets
   // bland fallback. Re-persist to disk: render() reads jobDir/index.html and a
   // later regressing lap may have overwritten it.
   if (bestInspectFiles) {
-    fs.writeFileSync(path.join(jobDir, "index.html"), bestInspectFiles.indexHtml, "utf8");
+    writeComposedHtml(jobDir, bestInspectFiles.indexHtml, jobId);
     fs.writeFileSync(path.join(jobDir, "meta.json"), bestInspectFiles.metaJson, "utf8");
     console.warn(`[pipeline] shipping best asset-ful occlusion-only lap after ${maxRepairs} lap(s) — real comp beats fallback`);
     return { files: bestInspectFiles };
@@ -1029,7 +1067,7 @@ async function composeWithPackRenderer({ renderer, storyboard, dims, jobDir, fra
     }
   }
   const built = R.composer.buildComposition({ storyboard, dims, framePack, captionCues, scriptCues, scriptOverlay, assets, brandSkin, templatePlan, authoredScenes });
-  fs.writeFileSync(path.join(jobDir, "index.html"), built.indexHtml, "utf8");
+  writeComposedHtml(jobDir, built.indexHtml, jobId);
   fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
   // RUNTIME SMOKE — ON THIS PATH TOO.
   //
@@ -1088,7 +1126,14 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
     // (it draws a handful of plates then leaves the rest blank) — route long jobs
     // to scene-kit, which fills every scene with the pack's styling AND weaves the
     // fetched screenshots/photos/vectors the dedicated renderer would ignore.
-    const tooLongForRenderer = !R.longFormOk && durationSec > LONGFORM_RENDERER_SEC;
+    // longFormOk is normally a property of the RENDERER — but a pack can carry
+    // it too: field-notes is a 50-beat, 5-minute film AUTHORED for long form,
+    // and rerouting it to scene-kit at 76s would replace the exact template the
+    // user picked with generic furniture. The pack's own manifest outranks the
+    // renderer default.
+    let packLongFormOk = false;
+    try { packLongFormOk = !!(require("./frame_manifest").getManifest(framePack) || {}).longFormOk; } catch { /* renderer default stands */ }
+    const tooLongForRenderer = !R.longFormOk && !packLongFormOk && durationSec > LONGFORM_RENDERER_SEC;
     if ((!isPortrait || R.portraitOk) && !tooLongForRenderer) {
       return composeWithPackRenderer({
         renderer: packRenderer, storyboard, dims, jobDir, assets, framePack, captionCues, scriptCues, scriptOverlay,
@@ -1119,7 +1164,7 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
   const t0 = ms();
   console.log(`[pipeline] ${label}: LLM remix compose start (assets=${assets.length}, framePack=${framePack || "none"})`);
   await composeWithLintRepair({
-    storyboard, dims, jobDir, availableAssets: assets, tracker, abortSignal, framePack, captionCues, scriptCues, strictIdentity,
+    storyboard, dims, jobDir, jobId, availableAssets: assets, tracker, abortSignal, framePack, captionCues, scriptCues, strictIdentity,
   });
   console.log(`[pipeline] ${label}: compose done in ${ms() - t0}ms, render start`);
   await contrastFixPass(jobDir, { framePack, storyboard, dims, label });
@@ -1161,7 +1206,7 @@ async function composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack
     });
     if (en.changed) { indexHtml = en.html; console.log(`[pipeline] ${label || "scene-kit"}: +vector/motion floor`); }
   } catch (e) { console.warn(`[pipeline] scene-kit enrich skipped (${String(e.message).slice(0, 120)})`); }
-  fs.writeFileSync(path.join(jobDir, "index.html"), indexHtml, "utf8");
+  writeComposedHtml(jobDir, indexHtml, jobId);
   fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
   // The kit is lint-clean by construction; run the real lint anyway as a safety net
   // (a pathological storyboard could still trip something) — log, never block.
@@ -1216,7 +1261,7 @@ async function composeWithThree({ storyboard, dims, jobDir, framePack, captionCu
   const { styleName, composer } = pick3dComposer(framePack, storyboard);
   console.log(`[pipeline] ${label || "three"}: building Three.js/WebGL composition (style=${styleName}, ${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
   const built = composer.buildComposition({ storyboard, dims, framePack, captionCues, assets });
-  fs.writeFileSync(path.join(jobDir, "index.html"), built.indexHtml, "utf8");
+  writeComposedHtml(jobDir, built.indexHtml, jobId);
   fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
   await contrastFixPass(jobDir, { framePack, storyboard, dims, label: label || "three" });
   tracker.addExternal("hyperframes_render");
@@ -1774,7 +1819,7 @@ async function runJobInner({
           packTokens: framePack ? require("./frame_registry").getPackTokens(framePack) : null,
           assets: allAssets,
         });
-        fs.writeFileSync(path.join(jobDir, "index.html"), fb.indexHtml, "utf8");
+        writeComposedHtml(jobDir, fb.indexHtml, jobId);
         fs.writeFileSync(path.join(jobDir, "meta.json"), fb.metaJson, "utf8");
         tracker.addExternal("hyperframes_render");
         visualResult = await render({ jobId, jobDir, durationSec: effectiveDuration });
@@ -1923,4 +1968,4 @@ async function runJob(opts) {
 
 module.exports = {
   retimeScenesToVo, runJob, withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor,
-  identityGate, contrastFixPass };
+  identityGate, contrastFixPass, setCaptionStyle, clearCaptionStyle, writeComposedHtml };

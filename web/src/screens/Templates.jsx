@@ -10,7 +10,9 @@ import { PACK_LORE, PACK_ORDER, loreFor } from "../packlore.js";
 // true side-by-side COLUMNS would be worse: the split is heavily lopsided, so one
 // column would run for pages while the other sat nearly empty. Tabs put the two
 // options next to each other while each grid still gets the full page width.
-const ORIENTATIONS = [
+// Exported so the Create screen can present the SAME split — a merged grid there
+// mixed 9:16 packs into a widescreen brief and vice versa.
+export const ORIENTATIONS = [
   {
     key: "horizontal", tagc: "#e832a8", label: "Horizontal", ratio: "16:9",
     title: "Widescreen", blurb: "Landscape films for sites, product demos, YouTube and ads.",
@@ -21,7 +23,28 @@ const ORIENTATIONS = [
     title: "Reels & Stories", blurb: "Portrait-native packs built for Reels, Shorts, TikTok and Stories.",
     min: 230,
   },
+  {
+    key: "longform", tagc: "#b9f24a", label: "Long Form Video", ratio: "16:9",
+    title: "Long Form", blurb: "Packs authored for 2–5 minute films — dozens of distinct beats, built to hold attention past the 30-second mark.",
+    min: 310,
+  },
 ];
+
+// Split a pack list by NATIVE aspect. A pack belongs to Vertical only when its
+// own art is 9:16 (`portrait`, derived in /api/frames from the poster's
+// dimensions). Every pack can RENDER 9:16, but listing them all as vertical puts
+// landscape art inside portrait cards — the exact mixed-aspect problem the split
+// exists to fix. A pack becomes vertical by shipping vertical art.
+// LONG FORM is its own shelf, not an aspect: a 50-beat pack listed inside the
+// Horizontal grid reads as just another 30s template, underselling exactly what
+// it is for — so long-form packs leave the aspect groups entirely.
+export function splitByOrientation(list) {
+  return {
+    horizontal: list.filter((p) => !p.portrait && !p.longForm),
+    vertical: list.filter((p) => p.portrait && !p.longForm),
+    longform: list.filter((p) => !!p.longForm),
+  };
+}
 
 export default function Templates({ onUseStyle }) {
   const [packs, setPacks] = useState(null);
@@ -34,16 +57,7 @@ export default function Templates({ onUseStyle }) {
   }, []);
 
   const list = packs || orderPacks([]);
-  // Split by NATIVE aspect: a pack belongs to the Vertical section only when its
-  // own art is 9:16 (`portrait`, derived in /api/frames from the pack's poster
-  // dimensions). Every pack can RENDER 9:16, but listing them all here is not the
-  // same thing — it puts landscape preview art inside portrait cards, which is
-  // precisely the mixed-aspect problem this split was introduced to fix. A pack
-  // becomes vertical by shipping vertical art, not by being capable of it.
-  const groups = {
-    horizontal: list.filter((p) => !p.portrait),
-    vertical: list.filter((p) => p.portrait),
-  };
+  const groups = splitByOrientation(list);
   // Never strand the user on an empty tab (e.g. a deploy with no portrait packs).
   const activeKey = groups[tab]?.length ? tab : "horizontal";
   const active = ORIENTATIONS.find((o) => o.key === activeKey) || ORIENTATIONS[0];
@@ -93,7 +107,7 @@ export default function Templates({ onUseStyle }) {
 
 // One orientation tab: the pack's scene-pill voice, filled when selected. Carries
 // its own count so the choice is informed before switching.
-function OrientationTab({ o, count, selected, onSelect }) {
+export function OrientationTab({ o, count, selected, onSelect }) {
   return (
     <button type="button" role="tab" id={`tab-${o.key}`}
       aria-selected={selected} aria-controls={`panel-${o.key}`}
@@ -130,7 +144,12 @@ export function PackCard({ pack, delay = 0, onUse, compact = false, portrait = f
   const lore = loreFor(pack.name);
   const vidRef = useRef(null);
   const [hover, setHover] = useState(false);
+  const [posterOk, setPosterOk] = useState(true);
   const preview = pack.previewUrl ? mediaUrl(pack.previewUrl) : null;
+  // The pack's real first frame. Shown AT REST (not just as the hidden video's
+  // poster attribute) — the card used to sit on a synthetic gradient + fake
+  // headline until you happened to hover it, so the grid read as "no previews".
+  const poster = posterOk && pack.posterUrl ? mediaUrl(pack.posterUrl) : null;
 
   const enter = () => {
     setHover(true);
@@ -157,40 +176,69 @@ export function PackCard({ pack, delay = 0, onUse, compact = false, portrait = f
     >
       <span className="spine" style={{ "--spine": lore.accent, zIndex: 5 }} />
 
-      {/* preview — pack bg + gradient + chip dots + demo type + scanlines.
+      {/* preview — the pack's own poster frame at rest, its clip on hover.
           Aspect follows the pack's native clip: 16/9 for widescreen packs
           (matches the clip exactly — the old 16/10 box cropped ~11% off the
           sides, hiding corner furniture), 9/16 for the portrait reel/story
-          packs so their tall clips play uncropped. */}
+          packs so their tall clips play uncropped. Packs with no rendered
+          poster fall back to the designed synthetic card (gradient + chip dots
+          + demo type), so a card is never blank. */}
       <div style={{ aspectRatio: portrait ? "9/16" : "16/9", position: "relative", overflow: "hidden", background: lore.bg, display: "grid", placeItems: "center" }}>
-        <div style={{ position: "absolute", inset: 0, background: lore.grad, opacity: 0.9 }} />
-        <div className="film-scan" style={{ opacity: 0.5 }} />
-        <div style={{ position: "absolute", top: 12, left: 17, display: "flex", gap: 5, zIndex: 3 }}>
-          {lore.chips.map((c, i) => (
-            <span key={i} style={{ width: 10, height: 10, borderRadius: "50%", background: c, boxShadow: "0 1px 4px rgba(0,0,0,.25)", animation: `kf-bob 3s ease-in-out ${i * 0.2}s infinite` }} />
-          ))}
-        </div>
-        <div style={{ position: "relative", zIndex: 2, textAlign: "center", padding: "0 18px" }}>
-          <div style={{ fontFamily: lore.font, fontWeight: 800, fontSize: compact ? "clamp(17px,2vw,24px)" : "clamp(22px,2.6vw,32px)", lineHeight: 0.92, color: lore.ink, letterSpacing: lore.tracking }}>
-            {lore.demo}
-          </div>
-        </div>
+        {poster ? (
+          <>
+            <img src={poster} alt="" aria-hidden="true" loading="lazy" decoding="async"
+              onError={() => setPosterOk(false)}
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 1 }} />
+            <div className="film-scan" style={{ opacity: 0.28, zIndex: 2 }} />
+          </>
+        ) : (
+          <>
+            <div style={{ position: "absolute", inset: 0, background: lore.grad, opacity: 0.9 }} />
+            <div className="film-scan" style={{ opacity: 0.5 }} />
+            <div style={{ position: "absolute", top: 12, left: 17, display: "flex", gap: 5, zIndex: 3 }}>
+              {lore.chips.map((c, i) => (
+                <span key={i} style={{ width: 10, height: 10, borderRadius: "50%", background: c, boxShadow: "0 1px 4px rgba(0,0,0,.25)", animation: `kf-bob 3s ease-in-out ${i * 0.2}s infinite` }} />
+              ))}
+            </div>
+            <div style={{ position: "relative", zIndex: 2, textAlign: "center", padding: "0 18px" }}>
+              <div style={{ fontFamily: lore.font, fontWeight: 800, fontSize: compact ? "clamp(17px,2vw,24px)" : "clamp(22px,2.6vw,32px)", lineHeight: 0.92, color: lore.ink, letterSpacing: lore.tracking }}>
+                {lore.demo}
+              </div>
+            </div>
+          </>
+        )}
         {preview && (
           /* preload="metadata" (not "none") keeps the first frames warm so the
              hover fade-in starts playing immediately instead of buffering. */
-          <video ref={vidRef} src={preview} poster={pack.posterUrl ? mediaUrl(pack.posterUrl) : undefined}
+          <video ref={vidRef} src={preview} poster={poster || undefined}
             muted loop playsInline preload="metadata"
             style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 4, opacity: hover ? 1 : 0, transition: "opacity .35s ease" }} />
+        )}
+        {/* PLAY affordance — the clip is hover-only, so say so on the card
+            instead of leaving the motion preview undiscoverable. */}
+        {preview && (
+          <span aria-hidden="true"
+            style={{
+              position: "absolute", right: 10, bottom: 10, zIndex: 6, display: "inline-flex", alignItems: "center", gap: 5,
+              padding: "4px 8px", borderRadius: 999, background: "rgba(9,7,5,.62)", backdropFilter: "blur(4px)",
+              fontFamily: "var(--font-mono)", fontSize: 8.5, letterSpacing: ".14em", color: "#f2ede2",
+              opacity: hover ? 0 : 1, transition: "opacity .25s ease", pointerEvents: "none",
+            }}>
+            <span style={{ width: 0, height: 0, borderLeft: "5px solid #f2ede2", borderTop: "3.5px solid transparent", borderBottom: "3.5px solid transparent" }} />
+            HOVER
+          </span>
         )}
       </div>
 
       {/* body */}
       <div style={{ padding: compact ? "14px 16px 16px 21px" : "20px 20px 22px 25px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-          <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: compact ? 16 : 19, margin: 0, color: "var(--color-ink)", letterSpacing: "-.01em" }}>
+        {/* minWidth:0 + ellipsis on the tag: portrait cards are narrow, and a
+            long pack name used to push the tag past the card's right edge. */}
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+          <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: compact ? 16 : 19, margin: 0, minWidth: 0, color: "var(--color-ink)", letterSpacing: "-.01em" }}>
             {lore.name || pack.label || pack.name}
           </h3>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.18em", color: lore.accent, whiteSpace: "nowrap" }}>{lore.tag}</span>
+          <span title={lore.tag} style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.18em", color: lore.accent, whiteSpace: "nowrap", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{lore.tag}</span>
         </div>
         {!compact && (
           <p style={{ color: "var(--color-dim)", fontSize: 13.5, lineHeight: 1.55, margin: "10px 0 16px" }}>
