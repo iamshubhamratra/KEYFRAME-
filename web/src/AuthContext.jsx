@@ -37,8 +37,18 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
+  // The role has ridden on publicUser since auth landed (server/src/auth/store.js stamps it and
+  // keeps it in step with the ADMIN_EMAILS allowlist); the admin template screens are its first
+  // reader. Derived here rather than compared in three screens so there is ONE spelling of
+  // "admin" in the client.
+  //
+  // THIS VALUE DECIDES WHAT IS SHOWN, NEVER WHAT IS ALLOWED. Every admin route is behind
+  // requireAdmin on the server. A user who flips this in a devtools console sees the screens
+  // and gets a 403 from every call they make.
+  const isAdmin = user?.role === "admin";
+
   return (
-    <AuthCtx.Provider value={{ user, loading, login, signup, logout, refresh }}>
+    <AuthCtx.Provider value={{ user, isAdmin, loading, login, signup, logout, refresh }}>
       {children}
     </AuthCtx.Provider>
   );

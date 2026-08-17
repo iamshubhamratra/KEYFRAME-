@@ -86,6 +86,14 @@ async function main() {
     });
   }
 
+  // BOOT-TIME RECOVERY, FORCED. Both template stores sweep conservatively (by age) when loaded,
+  // because CLI scripts load them too and must never declare the server's in-flight work dead.
+  // Here is the one moment that reasoning does not apply: the server is starting, so nothing it
+  // owns is running anywhere, and anything still marked in-flight was orphaned by a previous
+  // process however recently it died.
+  require("./src/templates/store").recoverInterrupted({ force: true });
+  require("./src/templates/batch_store").recoverInterrupted({ force: true });
+
   const app = express();
   app.disable("x-powered-by");
   app.set("trust proxy", true);

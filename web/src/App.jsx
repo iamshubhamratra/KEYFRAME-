@@ -7,6 +7,10 @@ import ProductionTheater from "./screens/ProductionTheater.jsx";
 import Premiere from "./screens/Premiere.jsx";
 import Gallery from "./screens/Gallery.jsx";
 import Templates from "./screens/Templates.jsx";
+import AdminTemplates from "./screens/AdminTemplates.jsx";
+import AdminTemplateNew from "./screens/AdminTemplateNew.jsx";
+import AdminTemplateDetail from "./screens/AdminTemplateDetail.jsx";
+import AdminTemplateBatch from "./screens/AdminTemplateBatch.jsx";
 import Auth from "./screens/Auth.jsx";
 import { createProject } from "./api.js";
 import { useAuth } from "./AuthContext.jsx";
@@ -19,6 +23,11 @@ import { useAuth } from "./AuthContext.jsx";
 // Only public/state-driven screens are allowed here; project data loads from the
 // (public) project API, so no auth is needed just to watch/replay one.
 const DEEP_LINK_VIEWS = new Set(["theater", "premiere", "gallery", "templates"]);
+// The admin template screens are deliberately NOT deep-linkable. initialFromUrl() runs before
+// /api/auth/me has resolved, so a ?view=admin link would have to pick a screen while the role
+// is still unknown — and the honest answer at that moment is "no". They are reached from the
+// nav instead, which only renders once the session is known.
+const ADMIN_VIEWS = new Set(["admin", "adminNew", "adminTemplate", "adminBatch"]);
 function initialFromUrl() {
   try {
     const p = new URLSearchParams(window.location.search);
@@ -29,10 +38,11 @@ function initialFromUrl() {
 }
 
 export default function App() {
-  const { user, loading, logout } = useAuth();
+  const { user, isAdmin, loading, logout } = useAuth();
   const _init = initialFromUrl();
   const [view, setView] = useState(_init.view);
   const [projectId, setProjectId] = useState(_init.projectId);
+  const [templateId, setTemplateId] = useState(null);
   const [prefill, setPrefill] = useState(null);
   const [authMode, setAuthMode] = useState("login");
   const [starting, setStarting] = useState(false);
@@ -80,6 +90,10 @@ export default function App() {
     requireAuth(() => go("create"), "signup");
   }, [requireAuth, go]);
 
+  // Open one template's review page. Its own id, not projectId — a template and a project are
+  // different entities and sharing the slot would resume the wrong screen after a deep link.
+  const openTemplate = useCallback((id) => { setTemplateId(id); setView("adminTemplate"); }, []);
+
   const onAuthed = useCallback(() => {
     const action = pending.current; pending.current = null;
     if (action) action(); else go("create");
@@ -125,6 +139,25 @@ export default function App() {
     premiere: <Premiere projectId={projectId} onRemix={() => go("script")} onNew={() => enterStudio("create")} />,
     gallery: <Gallery onOpen={(id) => go("premiere", id)} onUseStyle={useStyle} />,
     templates: <Templates onUseStyle={useStyle} />,
+    // ADMIN. Registered only for an admin session — but that is COSMETIC ONLY. Hiding a screen
+    // is not authorization: every /api/admin route sits behind requireAuth + requireAdmin on the
+    // server (routes/admin_templates.js applies it with router.use so a new route is protected
+    // by default). Someone who flips `role` in a devtools console gets these three screens and a
+    // 403 from every call they make.
+    ...(isAdmin ? {
+      admin: <AdminTemplates onOpen={openTemplate} onNew={() => go("adminNew")} onBatch={() => go("adminBatch")} />,
+      adminNew: <AdminTemplateNew onOpen={openTemplate} onBack={() => go("admin")} />,
+      adminBatch: <AdminTemplateBatch onOpenTemplate={openTemplate} onBack={() => go("admin")} />,
+      adminTemplate: (
+        <AdminTemplateDetail
+          templateId={templateId}
+          onBack={() => go("admin")}
+          onOpenTemplate={openTemplate}
+          // A test render is an ordinary project job, so it is watched in the ordinary studio.
+          onOpenProject={(id) => go("theater", id)}
+        />
+      ),
+    } : {}),
   };
 
   const darkPage = view === "gallery" || view === "premiere";
@@ -150,6 +183,10 @@ export default function App() {
           <button className={`btn-chip ${view === "templates" ? "is-active" : ""}`} onClick={() => go("templates")}>Templates</button>
           <button className={`btn-chip ${view === "gallery" ? "is-active" : ""}`} onClick={() => go("gallery")}>Gallery</button>
           {studioViews.includes(view) && <button className="btn-chip is-active">Studio</button>}
+          {/* Only an admin is offered the door. The lock is on the server. */}
+          {isAdmin && (
+            <button className={`btn-chip ${ADMIN_VIEWS.has(view) ? "is-active" : ""}`} onClick={() => go("admin")}>Admin</button>
+          )}
 
           {loading ? (
             <span className="label-mono">…</span>
@@ -180,7 +217,21 @@ export default function App() {
       <main className="flex-1 relative" style={{ paddingTop: 90 }}>
         <AnimatePresence mode="wait">
           <motion.div key={view} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }} className="h-full">
-            {screens[view]}
+            {/* An admin view held in state while the session drops (log out in another tab, a
+                cookie expiring) would otherwise render as a blank page, because the admin
+                entries are gone from `screens`. Say what happened instead. */}
+            {screens[view] || (
+              ADMIN_VIEWS.has(view)
+                ? <div style={{ maxWidth: 620, margin: "0 auto", padding: "clamp(30px,6vw,70px) clamp(16px,4vw,60px)", textAlign: "center" }}>
+                    <span className="scene-pill" style={{ "--tagc": "#7d766a" }}>ADMIN ONLY</span>
+                    <h2 className="headline" style={{ fontSize: "clamp(26px,4vw,42px)" }}>This area needs an admin session.</h2>
+                    <p style={{ color: "var(--color-dim)", margin: "16px 0 24px", lineHeight: 1.6 }}>
+                      {loading ? "Checking your session…" : "Log in with an admin account to author templates."}
+                    </p>
+                    <button className="btn-ink" onClick={() => go("templates")}>Browse templates</button>
+                  </div>
+                : null
+            )}
           </motion.div>
         </AnimatePresence>
       </main>

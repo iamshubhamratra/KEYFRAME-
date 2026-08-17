@@ -39,6 +39,49 @@ function persist() {
 
 const normEmail = (e) => String(e || "").trim().toLowerCase();
 
+// ---------------------------------------------------------------- roles
+//
+// The `role` field has existed on every user record since auth landed (createUser stamps it,
+// publicUser returns it, the frontend's AuthContext holds it) and NOTHING has ever read it — a
+// whole-repo grep for a role comparison returns only scene-role and ARIA noise. The admin
+// template system is its first consumer.
+//
+// TWO SOURCES, DELIBERATELY. The record is the durable store, but server/auth-store.json is
+// both gitignored AND dockerignored, so on Render it is recreated empty on every redeploy: a
+// role flag that lives only there cannot survive a deploy, and there is no way to commit one.
+// So an env allowlist is the bootstrap — set ADMIN_EMAILS and those accounts are admins the
+// moment they exist, on a fresh container, with no manual step. The record is then stamped to
+// match so `publicUser` reports it to the client and the UI can render the admin entry point.
+const ADMIN_EMAILS = new Set(
+  String(process.env.ADMIN_EMAILS || "")
+    .split(",").map((e) => normEmail(e)).filter(Boolean)
+);
+if (ADMIN_EMAILS.size) console.log(`[auth] admin allowlist: ${ADMIN_EMAILS.size} address(es)`);
+
+function isAdminEmail(email) { return ADMIN_EMAILS.has(normEmail(email)); }
+
+// Is this user an admin? The allowlist wins over the stored role in BOTH directions: adding an
+// address promotes without a manual edit, and removing it demotes even if a stale record still
+// says "admin". That is what makes the env var an actual control rather than a one-way seed.
+function isAdmin(user) {
+  if (!user) return false;
+  if (ADMIN_EMAILS.size) return isAdminEmail(user.email);
+  return user.role === "admin";
+}
+
+// Bring the stored role into line with the allowlist. Called on the paths that already load a
+// user (login, session read), so the field the client sees is never stale.
+function syncRole(user) {
+  if (!user || !ADMIN_EMAILS.size) return user;
+  const want = isAdminEmail(user.email) ? "admin" : "user";
+  if (user.role !== want) {
+    user.role = want;
+    user.updatedAt = Date.now();
+    persist();
+  }
+  return user;
+}
+
 // ---------------------------------------------------------------- users
 function findUserByEmail(email) {
   const e = normEmail(email);
@@ -53,7 +96,7 @@ function createUser({ name, email, passwordHash }) {
     name: String(name || "").trim(),
     email: normEmail(email),
     passwordHash,
-    role: "user",
+    role: isAdminEmail(email) ? "admin" : "user",
     createdAt: Date.now(),
   };
   state.users.push(user);
@@ -114,4 +157,5 @@ function clearOtp(email) {
 module.exports = {
   findUserByEmail, findUserById, createUser, setUserPassword, publicUser,
   saveOtp, getOtp, verifyOtp, hasVerifiedOtp, clearOtp,
+  isAdmin, isAdminEmail, syncRole, ADMIN_EMAILS,
 };

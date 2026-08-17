@@ -166,6 +166,29 @@ export function PackCard({ pack, delay = 0, onUse, compact = false }) {
   const aspect = compact ? COMPACT_ASPECT : (THUMB_ASPECT[catOf(pack)] || THUMB_ASPECT.horizontal);
   const fit = compact ? "contain" : "cover";
 
+  // THE BADGE SHOULD NOT REPEAT WHAT THE SECTION HEADING ALREADY SAYS. The gallery groups
+  // packs by aspect under a heading that reads "9:16 · VERTICAL — Reels, Shorts & TikTok",
+  // and then every card underneath it repeated "· 9:16" in its badge. That duplication is
+  // not free: it is ~6 characters of a `nowrap` element competing with the pack name for a
+  // ~240px row, and it is what pushed names onto a second line. Dropped here, so a badge
+  // reads "COLOUR BLOCK" under a heading that already established the shape.
+  //
+  // The COMPACT picker keeps it: that grid deliberately mixes every aspect together (see
+  // the aspect/fit note above), so there is no heading to inherit the shape from and the
+  // badge is the only thing telling you a pack is vertical.
+  const displayTag = compact
+    ? lore.tag
+    : String(lore.tag || "").replace(/\s*[·|]\s*(9\s*:\s*16|16\s*:\s*9|1\s*:\s*1)\s*$/i, "").trim() || lore.tag;
+
+  // A NAME, NOT A NAME PLUS ITS TAGLINE. A few packs carry their whole pitch in `label` —
+  // "Flagship — Cinematic Three.js launch film (the benchmark)" is 526px of h3 in a 267px
+  // row — so the card showed a sentence trailing into an ellipsis where every other card
+  // showed a name. The tagline is not lost: the vibe copy directly underneath is the same
+  // description at greater length. Split on an em/en dash only, so hyphenated names
+  // ("Rind & Wheel", "Front-and-Isobar") are untouched.
+  const rawName = lore.name || pack.label || pack.name;
+  const displayName = String(rawName).split(/\s+[—–]\s+/)[0].trim() || rawName;
+
   const enter = () => {
     setHover(true);
     const v = vidRef.current;
@@ -262,11 +285,42 @@ export function PackCard({ pack, delay = 0, onUse, compact = false }) {
 
       {/* body */}
       <div style={{ padding: compact ? "14px 16px 16px 21px" : "20px 20px 22px 25px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-          <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: compact ? 16 : 19, margin: 0, color: "var(--color-ink)", letterSpacing: "-.01em" }}>
-            {lore.name || pack.label || pack.name}
+        {/* TITLE ROW — the name owns the line; the badge takes what is left.
+            It used to be a plain space-between flex with a `nowrap` badge and an
+            unconstrained h3, which meant the BADGE won every width contest and the name
+            wrapped to a second line. Whether it wrapped depended on the two strings adding
+            up, not on the name's own length, so the grid came out ragged in a way that
+            looked arbitrary: "Slab Stage" (10 chars) sat on one line while "Hype Wave"
+            (9) broke in half, purely because ELECTRIC is a character longer than KINETIC.
+            A wrapped name also pushed that card's vibe copy out of alignment with its
+            neighbours, which is the whole reason the copy below is line-clamped. */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+          <h3
+            title={rawName}
+            style={{
+              fontFamily: "var(--font-display)", fontWeight: 700, fontSize: compact ? 16 : 19,
+              margin: 0, color: "var(--color-ink)", letterSpacing: "-.01em",
+              // Takes the free space and keeps one line. minWidth:0 is what actually lets a
+              // flex child shrink far enough to ellipsis instead of forcing the row wider.
+              // flexShrink 1 against the badge's 6 means the BADGE gives up width first —
+              // several names missed by two to twenty pixels, and truncating "Rind & Wheel"
+              // to save 2px is worse than the wrap this replaced.
+              flex: "1 1 auto", minWidth: 0, flexShrink: 1,
+              whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+            }}
+          >
+            {displayName}
           </h3>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.18em", color: lore.accent, whiteSpace: "nowrap" }}>{lore.tag}</span>
+          <span
+            title={displayTag !== lore.tag ? lore.tag : undefined}
+            style={{
+              fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.18em",
+              color: lore.accent, whiteSpace: "nowrap",
+              // Yields to the name, but never vanishes entirely.
+              flex: "0 1 auto", flexShrink: 6, minWidth: "3.5em",
+              overflow: "hidden", textOverflow: "ellipsis",
+            }}
+          >{displayTag}</span>
         </div>
         {!compact && (
           // CLAMPED TO THREE LINES so every card in a row is the same height. The vibe copy

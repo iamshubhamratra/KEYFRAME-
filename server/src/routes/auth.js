@@ -71,7 +71,9 @@ function buildRouter() {
       const ip = req.headers["x-forwarded-for"] || req.socket?.remoteAddress;
       mailer.sendLoginAlert({ to: user.email, userName: user.name, ip, device: req.headers["user-agent"] })
         .catch((e) => console.warn(`[auth] login alert failed: ${e.message}`));
-      return res.json({ user: store.publicUser(user) });
+      // Same reason as /me below: bring the stored role into line with the ADMIN_EMAILS allowlist
+      // so a freshly-allowlisted account sees the Admin door on its very first login.
+      return res.json({ user: store.publicUser(store.syncRole(user)) });
     } catch (e) {
       console.error(`[auth] login error: ${e.message}`);
       return res.status(500).json({ error: "Could not log in." });
@@ -85,10 +87,17 @@ function buildRouter() {
   });
 
   // ---- current user ----
+  //
+  // syncRole FIRST. `requireAdmin` decides from the ADMIN_EMAILS allowlist directly, so adding an
+  // address grants API access immediately — but the CLIENT decides whether to show the Admin door
+  // from `user.role`, which is the value stored on the record. For an account that existed before
+  // the address was allowlisted that value is still "user", so the admin API would work while the
+  // UI offered no way in. Syncing on the session read is what makes the allowlist take effect in
+  // both directions without anyone having to re-register.
   r.get("/me", requireAuth, (req, res) => {
     const user = store.findUserById(req.userId);
     if (!user) return res.status(401).json({ error: "unauthorized" });
-    return res.json({ user: store.publicUser(user) });
+    return res.json({ user: store.publicUser(store.syncRole(user)) });
   });
 
   // ---- forgot: send OTP ----

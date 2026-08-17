@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createProject, listFrames } from "../api.js";
-import { PACK_LORE, PACK_ORDER, loreFor, loreForPack } from "../packlore.js";
+import { PACK_LORE, PACK_ORDER, loreFor, loreForPack, orderPacks, isNewPack } from "../packlore.js";
 import { PackCard } from "./Templates.jsx";
 
 // The v2 editor, made real: "Type. Then watch it shoot itself."
@@ -767,13 +767,6 @@ function TimelineRow({ label, h = 26, children }) {
       <div className="clip-track" style={{ flex: 1, height: h }}>{children}</div>
     </div>
   );
-}
-
-function orderPacks(serverPacks) {
-  const byName = Object.fromEntries(serverPacks.map((p) => [p.name, p]));
-  const known = PACK_ORDER.map((name) => ({ name, ...(byName[name] || {}) }));
-  const extras = serverPacks.filter((p) => !PACK_LORE[p.name]);
-  return [...known, ...extras];
 }
 
 // BRAND-ASSET NOTE. A plain, non-blocking hint that the optional inputs below are what make

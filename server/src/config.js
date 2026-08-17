@@ -341,6 +341,34 @@ function build() {
   };
   cfg.llm.primary.stageModels = { ...(cfg.llm.primary.stageModels || {}), art_director: cfg.artDirector.model };
 
+  // TEMPLATE DESIGNER — the ADMIN-ONLY stage behind the template generator. Turns an admin's
+  // prompt into a validated TemplateSpec (src/templates/spec.js), which src/templates/emit.js
+  // then compiles into a FilmKit skin + pack.json + FRAME.md.
+  //
+  // It is the most structurally demanding JSON stage in the app: ~40 constrained fields, seven
+  // per-beat look tables, a six-entry camera set and a colour system that has to survive a
+  // contrast gate — so it defaults to the HEAVY model (the one the composer/storyboard use)
+  // rather than the cheap flash default every other director gets. It also needs a large output
+  // ceiling; a truncated spec is unparseable JSON, which is exactly the failure mode that
+  // produced "0% LOCALIZED" elsewhere in this codebase when a ceiling was left unset.
+  //
+  // Never reached by a user job — only src/routes/admin_templates.js calls it, behind
+  // requireAuth + requireAdmin.
+  const tdCfg = cfg.templateDesigner || {};
+  cfg.templateDesigner = {
+    enabled: process.env.TEMPLATE_DESIGNER != null
+      ? /^(1|true|yes|on)$/i.test(String(process.env.TEMPLATE_DESIGNER))
+      : (tdCfg.enabled !== false),
+    model: process.env.TEMPLATE_DESIGNER_MODEL || tdCfg.model
+      || (cfg.llm.primary.stageModels && cfg.llm.primary.stageModels.composer)
+      || cfg.llm.primary.model,
+    // How many repair laps the designer gets when its spec fails validation. Each lap re-sends
+    // the spec plus the exact validator errors, which is a far cheaper fix than regenerating.
+    maxRepairs: Number.isFinite(Number(tdCfg.maxRepairs)) ? Number(tdCfg.maxRepairs) : 2,
+  };
+  cfg.llm.primary.stageModels = { ...(cfg.llm.primary.stageModels || {}), template_designer: cfg.templateDesigner.model };
+  cfg.llm.maxTokens = { ...(cfg.llm.maxTokens || {}), template_designer: Number(cfg.llm.maxTokens?.template_designer) || 16384 };
+
   // Visual Layout Director — DETERMINISTIC (no LLM). Reuses the Creative Director's
   // per-asset scores to decide presentation: how many assets appear prominently
   // (quality over quantity), how big the hero is, how tightly a montage packs, and

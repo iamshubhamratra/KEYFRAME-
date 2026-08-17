@@ -100,11 +100,46 @@ function mediaUrls(name) {
   return { previewUrl: stamped(name, "preview.mp4"), posterUrl: stamped(name, "poster.jpg") };
 }
 
+// WHEN THIS PACK ARRIVED IN THE PUBLIC LIBRARY.
+//
+// The gallery orders by a hand-written PACK_ORDER and appends everything absent from it, so a
+// newly published template landed near the END of its aspect section — measured on the first
+// real publish: card 30 of 32, roughly the 88th card on the page. "I published it and cannot see
+// it" is the predictable result, and it is a presentation defect rather than a publishing one.
+//
+// The pack DIRECTORY's mtime is the honest signal: publishing moves that directory from
+// frames_draft/ into frames/ (templates/paths.movePackDir), which stamps it, while the 135 packs
+// that shipped with the repo carry their checkout time. Reported as a plain number so the client
+// can sort by it without parsing anything.
+function installedAt(name) {
+  const dir = frameRegistry.packDir(name);
+  if (!dir) return 0;
+  try { return Math.round(fs.statSync(dir).mtimeMs); } catch { return 0; }
+}
+
+// WHEN THIS PACK ARRIVED IN THE PUBLIC LIBRARY.
+//
+// The gallery orders by a hand-written PACK_ORDER and appends everything absent from it, so a
+// newly published template landed near the END of its aspect section — measured on the first
+// real publish: card 30 of 32, roughly the 88th card on the page. "I published it and cannot see
+// it" is the predictable result, and it is a presentation defect rather than a publishing one.
+//
+// The pack DIRECTORY's mtime is the honest signal: publishing moves that directory from
+// frames_draft/ into frames/ (templates/paths.movePackDir), which stamps it, while the 135 packs
+// that shipped with the repo carry their checkout time. Reported as a plain number so the client
+// can sort by it without parsing anything.
+function installedAt(name) {
+  const dir = frameRegistry.packDir(name);
+  if (!dir) return 0;
+  try { return Math.round(fs.statSync(dir).mtimeMs); } catch { return 0; }
+}
+
 router.get("/frames", (_req, res) => {
   const def = frameRegistry.defaultPack();
   const packs = frameRegistry.listPacks().map((name) => ({
     name,
     default: name === def,
+    installedAt: installedAt(name),
     ...packMeta(name),
     ...mediaUrls(name),
     showcaseUrl: frameRegistry.getShowcasePath(name) ? `/api/frames/${name}/showcase` : null,

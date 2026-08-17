@@ -751,6 +751,23 @@ module.exports = {
     scheduleWrite();
   },
 
+  // Delete every job matching a predicate; returns how many went. Exists for TEST HARNESSES
+  // that must insert a real job row (the disclosure setters are deliberately no-ops for an
+  // unknown id) and must not leave it behind: a stray row persists to jobs.json, appears in
+  // GET /api/projects and the studio Gallery, and boot-time crash recovery marks it FAILED.
+  // Nothing in the request path calls this — a project is never deleted by the product.
+  removeWhere(predicate) {
+    if (typeof predicate !== "function") return 0;
+    let n = 0;
+    for (const [id, j] of [...jobs.entries()]) {
+      let hit = false;
+      try { hit = !!predicate(j); } catch { hit = false; }
+      if (hit) { jobs.delete(id); n++; }
+    }
+    if (n) scheduleWrite();
+    return n;
+  },
+
   countJobsSince(sinceMs) {
     let n = 0;
     for (const j of jobs.values()) if (j.created_at > sinceMs) n++;

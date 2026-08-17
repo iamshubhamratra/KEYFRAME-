@@ -349,9 +349,25 @@ async function frameSelectorAgent(s) {
   const requested = userPick != null
     ? (userPick !== "auto" ? userPick : null)
     : s.job.frame_pack;                      // legacy jobs: no preferences recorded
+  // AN ADMIN TEST RENDER MAY PIN AN UNPUBLISHED TEMPLATE — and nothing else may.
+  //
+  // resolvePack() answers PUBLISHED-ONLY, which is the invariant the whole admin template feature
+  // rests on: a draft must be unreachable from every user-facing path. But the admin's "test this
+  // template" is precisely a request to render a draft, and it went through this same line — so
+  // the pin resolved to null, the job fell through to auto-selection, and the test rendered a
+  // DIFFERENT template. Measured, not theorised: three test renders pinned to `hyperplane-ai`
+  // came back having rendered grid-dispatch and daybreak-bakehouse, one of them "successfully".
+  //
+  // `admin_test` is stamped on the job by templates/test_render.js and by nothing else, so this
+  // widens resolution for exactly those jobs. A user job asking for a draft slug still gets null.
+  const isAdminTest = !!(s.job && s.job.admin_test);
   const explicit = (requested && requested !== "auto")
-    ? frameRegistry.resolvePack(requested)   // valid id → that pack; stale id → null
+    ? (frameRegistry.resolvePack(requested)              // valid published id → that pack
+      || (isAdminTest ? frameRegistry.resolveAnyPack(requested) : null))   // admin test → drafts too
     : null;
+  if (isAdminTest && explicit && !frameRegistry.resolvePack(requested)) {
+    console.log(`[agents] frame_selector: admin test render pinned to the UNPUBLISHED template "${requested}"`);
+  }
   // The brief's tone-matched suggestion: from this run's brief, or (on a resumed /
   // regenerated job whose brief isn't in state) the one intake persisted. Guarded on
   // a real id — resolvePack(null|"auto") returns the DEFAULT pack, which would make
