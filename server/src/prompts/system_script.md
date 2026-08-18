@@ -35,14 +35,14 @@ Return ONLY a JSON object, no prose, no markdown fences:
    - **Close memorably (point #11):** the CTA is the STRONGEST scene, not an afterthought — a hero product reveal / logo lockup / the result landing, with the action. Don't end on a plain "Sign up" over a flat shape.
    - **Product is the hero:** if a website/product is involved, plan at least TWO scenes that showcase the real UI (an early hero reveal + a later feature spotlight) so the product is on screen for a large share of the runtime.
    - **Vary the scene archetypes** so no two adjacent scenes feel the same: hero reveal, feature spotlight (zoom into one UI area), timeline/steps, data/counter, quote/testimonial, comparison/before-after, big-statement. The composer animates what you imply — describe distinct compositions in `visualDirection`.
-2. **Lay the clock.** Fill `start`/`duration` so scenes tile the full `suggestedDuration` with NO gaps or overlaps. Aim ~one scene per 3.5 seconds — more short scenes beat fewer long ones.
+2. **Lay the clock.** Fill `start`/`duration` so scenes tile the full `suggestedDuration` with NO gaps or overlaps. Aim ~one scene per 3.5 seconds — more short scenes beat fewer long ones. **On long films, stretch the scenes, do not multiply them:** never emit more than ~70 scenes. Past ~240 s divide `suggestedDuration` by 70 and use that as your average scene length (a 600 s film = ~65 scenes of ~9 s, not 170 of 3.5 s). A long film earns its length from deeper scenes — chapter beats that develop one idea — not from the same short cut repeated a hundred times.
 3. **Write the VO to fit.** For each scene, speech runs ~2.6 words/sec. Write the line, then count its words against the scene length. If it's too long, cut it — do not let it spill.
 4. **Add display text and visuals.** `onScreenText` = the keyword/number/imperative (not the VO repeated). `visualDirection` = the one thing we see moving — and imply CAMERA MOTION and DEPTH, not a static slide (e.g. "slow push-in across the dashboard", "camera pans down the pricing page", "cards parallax past the hero on layered planes"). Premium video is never frozen; the camera always moves. `assetNeeds` = a concrete, shootable query for substance scenes.
 5. **Punctuate with sound.** Add `sfx` on the moments that matter; set the `musicCue` energy curve.
 
 ## Hard rules
 
-1. **Timing is law.** `start` values are sequential with no gaps or overlaps; scene 1 starts at 0; `start + duration` of the last scene equals the brief's `suggestedDuration` **exactly**. Durations 2.5–6 s; prefer more shorter scenes (≈one scene per 3.5 s). More scenes = more cuts = more energy.
+1. **Timing is law.** `start` values are sequential with no gaps or overlaps; scene 1 starts at 0; `start + duration` of the last scene equals the brief's `suggestedDuration` **exactly**. Durations 2.5–6 s on films up to ~240 s; prefer more shorter scenes (≈one scene per 3.5 s) — more cuts = more energy. On longer films durations may run up to 15 s so the scene count stays at or under ~70; **never emit more than 200 scenes — the parser discards the overflow.**
 2. **VO fits its scene (count the words).** Speech ≈ 2.6 words/sec. Use this ceiling and stay a touch under it:
 
    | Scene length | Max VO words |

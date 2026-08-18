@@ -35,7 +35,7 @@ const SceneSchema = z.object({
 
 const ScriptSchema = z.object({
   title: z.string().min(2).max(120),
-  scenes: z.array(SceneSchema).min(2).max(30),
+  scenes: z.array(SceneSchema).min(2).max(200),
   music: z.object({
     mood: z.string().min(2).max(200),
     query: z.string().min(2).max(80),
@@ -58,9 +58,15 @@ function wordCount(s) { return (s.trim().match(/\S+/g) || []).length; }
 // to keep `start` fields consistent by hand.
 function normalizeScript(script, { targetDuration } = {}) {
   const s = JSON.parse(JSON.stringify(script));
-  // Cap scene count first (schema allows max 30 — long-form 3-min films) so
-  // timing/total below is computed over the kept scenes only.
-  if (Array.isArray(s.scenes) && s.scenes.length > 30) s.scenes = s.scenes.slice(0, 30);
+  // Cap scene count first (schema allows max 200 — long-form 10-min films at
+  // ~3s/scene) so timing/total below is computed over the kept scenes only.
+  if (Array.isArray(s.scenes) && s.scenes.length > 200) {
+    // Say it out loud. Dropping scenes here silently shortens the film's plan
+    // while the total still snaps to target, so the only visible symptom is
+    // scenes that run much longer than authored — a defect with no log line.
+    console.warn(`[script] ${s.scenes.length} scenes exceeds the 200 cap — discarding ${s.scenes.length - 200}`);
+    s.scenes = s.scenes.slice(0, 200);
+  }
   let t = 0;
   s.scenes.forEach((scene, i) => {
     scene.id = scene.id || `s${i + 1}`;

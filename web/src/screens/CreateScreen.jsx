@@ -52,9 +52,10 @@ const LANGUAGES = [
   { code: "ja", label: "Japanese", native: "日本語" },
 ];
 
-// Duration now runs to the backend's real 180s ceiling (long-form: ~2-3 min,
-// up to ~30 scenes). Quick-pick the common lengths; ≥90s is flagged long-form.
-const DUR_PRESETS = [15, 30, 60, 90, 120, 180];
+// Duration now runs to the backend's real 600s ceiling (long-form: up to
+// ~10 min, up to ~200 scenes). Quick-pick the common lengths; ≥90s is
+// flagged long-form.
+const DUR_PRESETS = [15, 30, 60, 90, 120, 180, 300, 480, 600];
 const LONGFORM_AT = 90;
 const fmtLen = (s) => (s < 60 ? `${s}S` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`);
 
@@ -420,7 +421,7 @@ export default function CreateScreen({ onCreated, prefill }) {
                 <span style={{ fontSize: 8, letterSpacing: "0.14em", color: "#17130e", background: "var(--color-cy)", padding: "2px 6px", borderRadius: 999 }}>LONG-FORM</span>
               )}
             </div>
-            <input type="range" min="10" max="180" step="5" value={duration}
+            <input type="range" min="10" max="600" step="5" value={duration}
               onChange={(e) => setDuration(Number(e.target.value))}
               className="w-full" style={{ accentColor: "var(--color-mag)" }} />
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>

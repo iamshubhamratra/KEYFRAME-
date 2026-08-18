@@ -1,7 +1,7 @@
 {
   "server": {
     "port": 8080,
-    "maxDurationSec": 150,
+    "maxDurationSec": 600,
     "minDurationSec": 5,
     "rateLimitPerHourPerIp": 5,
     "dailyJobCap": 100,
@@ -29,6 +29,12 @@
         "baseUrl": "https://api.kie.ai/gemini-3-6-flash-openai/v1",
         "api": "chat",
         "model": "gemini-3.6-flash"
+      },
+      "claude-opus-5": {
+        "provider": "kie",
+        "baseUrl": "https://api.kie.ai/claude/v1",
+        "api": "messages",
+        "model": "claude-opus-5"
       }
     },
     "provider": "openrouter",
@@ -41,8 +47,10 @@
       "assetPlanner": "google/gemini-3.1-flash-lite",
       "audioPlanner": "google/gemini-3.1-flash-lite",
       "brief": "kie:gemini-3.6-flash",
-      "script": "kie:gemini-3.6-flash"
+      "script": "kie:gemini-3.6-flash",
+      "template_generator": "kie:claude-opus-5"
     },
+    "noFallbackStages": ["template_generator"],
     "baseUrl": "https://openrouter.ai/api/v1",
     "apiKey": "",
     "maxTokens": {
