@@ -1,0 +1,802 @@
+[
+  {
+    "slug": "fetch-club",
+    "module": "fetch_club.js",
+    "label": "Fetch Club",
+    "global": "FetchClub",
+    "pack": "lf-pack-1.js",
+    "display": "Baloo 2",
+    "body": "Nunito",
+    "cams": [
+      "hopU",
+      "pushR",
+      "zoomIn",
+      "pushL",
+      "drop",
+      "spin"
+    ],
+    "camStride": 5,
+    "camOff": 1,
+    "ambient": 1.7,
+    "sceneCount": 40,
+    "durationSec": 300.5,
+    "spineOverrides": [
+      [
+        1,
+        "Rain"
+      ],
+      [
+        2,
+        "Problem"
+      ]
+    ]
+  },
+  {
+    "slug": "nine-lives",
+    "module": "nine_lives.js",
+    "label": "Nine Lives",
+    "global": "NineLives",
+    "pack": "lf-pack-1.js",
+    "display": "Playfair Display",
+    "body": "Karla",
+    "cams": [
+      "zoomOut",
+      "drop",
+      "pushL",
+      "zoomIn",
+      "pushU"
+    ],
+    "camStride": 3,
+    "camOff": 2,
+    "ambient": 1.2,
+    "sceneCount": 40,
+    "durationSec": 300.5,
+    "spineOverrides": [
+      [
+        1,
+        "Breathe"
+      ],
+      [
+        2,
+        "Problem"
+      ],
+      [
+        4,
+        "Wave"
+      ],
+      [
+        9,
+        "Blink"
+      ],
+      [
+        28,
+        "Accordion"
+      ],
+      [
+        32,
+        "Gauge"
+      ],
+      [
+        33,
+        "TearOff"
+      ],
+      [
+        34,
+        "Bloom"
+      ],
+      [
+        35,
+        "Patience"
+      ]
+    ]
+  },
+  {
+    "slug": "knife-and-board",
+    "module": "knife_and_board.js",
+    "label": "Knife & Board",
+    "global": "KnifeBoard",
+    "pack": "lf-pack-1.js",
+    "display": "Bitter",
+    "body": "Figtree",
+    "cams": [
+      "pushL",
+      "zoomIn",
+      "pushD",
+      "pushR",
+      "hopU",
+      "zoomOut"
+    ],
+    "camStride": 5,
+    "camOff": 3,
+    "ambient": 1.8,
+    "sceneCount": 40,
+    "durationSec": 300.5,
+    "spineOverrides": []
+  },
+  {
+    "slug": "lunch-hour",
+    "module": "lunch_hour.js",
+    "label": "Lunch Hour",
+    "global": "LunchHour",
+    "pack": "lf-pack-1.js",
+    "display": "Archivo Black",
+    "body": "Archivo",
+    "cams": [
+      "pushR",
+      "zoomIn",
+      "pushU",
+      "pushL",
+      "spin",
+      "drop"
+    ],
+    "camStride": 7,
+    "camOff": 1,
+    "ambient": 1.9,
+    "sceneCount": 40,
+    "durationSec": 300.5,
+    "spineOverrides": [
+      [
+        2,
+        "Rain"
+      ]
+    ]
+  },
+  {
+    "slug": "ship-log",
+    "module": "ship_log.js",
+    "label": "Ship Log",
+    "global": "ShipLog",
+    "pack": "lf-pack-1.js",
+    "display": "Space Grotesk",
+    "body": "IBM Plex Sans",
+    "cams": [
+      "zoomIn",
+      "pushL",
+      "pushD",
+      "pushR",
+      "zoomOut",
+      "spin"
+    ],
+    "camStride": 3,
+    "camOff": 1,
+    "ambient": 1.6,
+    "sceneCount": 40,
+    "durationSec": 300.5,
+    "spineOverrides": [
+      [
+        2,
+        "Blink"
+      ]
+    ]
+  },
+  {
+    "slug": "split-times",
+    "module": "split_times.js",
+    "label": "Split Times",
+    "global": "SplitTimes",
+    "pack": "lf-pack-2.js",
+    "display": "Big Shoulders Display",
+    "body": "Red Hat Text",
+    "cams": [
+      "pushL",
+      "pushR",
+      "zoomIn",
+      "hopU",
+      "pushU",
+      "spin"
+    ],
+    "camStride": 7,
+    "camOff": 2,
+    "ambient": 2,
+    "sceneCount": 41,
+    "durationSec": 308,
+    "spineOverrides": [
+      [
+        "insert",
+        36,
+        "Patience"
+      ],
+      [
+        2,
+        "Rain"
+      ]
+    ]
+  },
+  {
+    "slug": "dawn-chorus",
+    "module": "dawn_chorus.js",
+    "label": "Dawn Chorus",
+    "global": "DawnChorus",
+    "pack": "lf-pack-2.js",
+    "display": "Fraunces",
+    "body": "Mulish",
+    "cams": [
+      "zoomOut",
+      "pushU",
+      "drop",
+      "pushR",
+      "zoomIn"
+    ],
+    "camStride": 3,
+    "camOff": 1,
+    "ambient": 1.4,
+    "sceneCount": 40,
+    "durationSec": 300.5,
+    "spineOverrides": [
+      [
+        2,
+        "Wave"
+      ],
+      [
+        9,
+        "Blink"
+      ]
+    ]
+  },
+  {
+    "slug": "canopy",
+    "module": "canopy.js",
+    "label": "Canopy",
+    "global": "Canopy",
+    "pack": "lf-pack-2.js",
+    "display": "Vollkorn",
+    "body": "Alegreya Sans",
+    "cams": [
+      "zoomIn",
+      "pushD",
+      "hopU",
+      "pushL",
+      "zoomOut",
+      "pushR"
+    ],
+    "camStride": 5,
+    "camOff": 1,
+    "ambient": 1.5,
+    "sceneCount": 40,
+    "durationSec": 300.5,
+    "spineOverrides": []
+  },
+  {
+    "slug": "ledger-and-lift",
+    "module": "ledger_and_lift.js",
+    "label": "Ledger & Lift",
+    "global": "LedgerLift",
+    "pack": "lf-pack-2.js",
+    "display": "Sora",
+    "body": "Inter Tight",
+    "cams": [
+      "pushU",
+      "zoomIn",
+      "pushR",
+      "drop",
+      "pushL",
+      "zoomOut"
+    ],
+    "camStride": 3,
+    "camOff": 2,
+    "ambient": 1.7,
+    "sceneCount": 41,
+    "durationSec": 308,
+    "spineOverrides": [
+      [
+        "insert",
+        36,
+        "Patience"
+      ],
+      [
+        2,
+        "Blink"
+      ]
+    ]
+  },
+  {
+    "slug": "tide-table",
+    "module": "tide_table.js",
+    "label": "Tide Table",
+    "global": "TideTable",
+    "pack": "lf-pack-2.js",
+    "display": "Chonburi",
+    "body": "Prompt",
+    "cams": [
+      "pushL",
+      "zoomOut",
+      "pushU",
+      "drop",
+      "pushR",
+      "zoomIn"
+    ],
+    "camStride": 5,
+    "camOff": 2,
+    "ambient": 1.5,
+    "sceneCount": 40,
+    "durationSec": 300.5,
+    "spineOverrides": [
+      [
+        2,
+        "Wave"
+      ]
+    ]
+  },
+  {
+    "slug": "hive-mind",
+    "module": "hive_mind.js",
+    "label": "Hive Mind",
+    "global": "HiveMind",
+    "pack": "lf-pack-3.js",
+    "display": "Fredoka",
+    "body": "Quicksand",
+    "cams": [
+      "hopU",
+      "pushR",
+      "zoomIn",
+      "pushL",
+      "drop",
+      "zoomOut"
+    ],
+    "camStride": 3,
+    "camOff": 1,
+    "ambient": 1.7,
+    "sceneCount": 41,
+    "durationSec": 308,
+    "spineOverrides": [
+      [
+        "insert",
+        36,
+        "Patience"
+      ],
+      [
+        2,
+        "Blink"
+      ]
+    ]
+  },
+  {
+    "slug": "wheel-and-spoke",
+    "module": "wheel_and_spoke.js",
+    "label": "Wheel & Spoke",
+    "global": "WheelSpoke",
+    "pack": "lf-pack-3.js",
+    "display": "Anton",
+    "body": "Asap",
+    "cams": [
+      "pushL",
+      "pushR",
+      "spin",
+      "zoomIn",
+      "hopU",
+      "pushU"
+    ],
+    "camStride": 7,
+    "camOff": 3,
+    "ambient": 2,
+    "sceneCount": 40,
+    "durationSec": 300.5,
+    "spineOverrides": [
+      [
+        2,
+        "Rain"
+      ]
+    ]
+  },
+  {
+    "slug": "loft-notes",
+    "module": "loft_notes.js",
+    "label": "Loft Notes",
+    "global": "LoftNotes",
+    "pack": "lf-pack-3.js",
+    "display": "Righteous",
+    "body": "Mulish",
+    "cams": [
+      "spin",
+      "pushL",
+      "zoomIn",
+      "pushD",
+      "pushR",
+      "hopU"
+    ],
+    "camStride": 5,
+    "camOff": 2,
+    "ambient": 1.8,
+    "sceneCount": 40,
+    "durationSec": 300.5,
+    "spineOverrides": [
+      [
+        2,
+        "Wave"
+      ]
+    ]
+  },
+  {
+    "slug": "kiln-fire",
+    "module": "kiln_fire.js",
+    "label": "Kiln Fire",
+    "global": "KilnFire",
+    "pack": "lf-pack-3.js",
+    "display": "Gloock",
+    "body": "Schibsted Grotesk",
+    "cams": [
+      "zoomOut",
+      "pushL",
+      "hopU",
+      "pushR",
+      "zoomIn",
+      "drop"
+    ],
+    "camStride": 3,
+    "camOff": 1,
+    "ambient": 1.5,
+    "sceneCount": 41,
+    "durationSec": 308,
+    "spineOverrides": [
+      [
+        "insert",
+        36,
+        "Patience"
+      ]
+    ]
+  },
+  {
+    "slug": "night-shift",
+    "module": "night_shift.js",
+    "label": "Night Shift",
+    "global": "NightShift",
+    "pack": "lf-pack-3.js",
+    "display": "Unbounded",
+    "body": "Wix Madefor Text",
+    "cams": [
+      "pushR",
+      "zoomIn",
+      "pushU",
+      "pushL",
+      "drop",
+      "zoomOut"
+    ],
+    "camStride": 5,
+    "camOff": 1,
+    "ambient": 1.6,
+    "sceneCount": 40,
+    "durationSec": 300.5,
+    "spineOverrides": [
+      [
+        2,
+        "Blink"
+      ]
+    ]
+  },
+  {
+    "slug": "allotment",
+    "module": "allotment.js",
+    "label": "Allotment",
+    "global": "Allotment",
+    "pack": "lf-pack-4.js",
+    "display": "Zilla Slab",
+    "body": "Source Sans 3",
+    "cams": [
+      "zoomOut",
+      "pushU",
+      "hopU",
+      "pushL",
+      "drop",
+      "pushR"
+    ],
+    "camStride": 3,
+    "camOff": 2,
+    "ambient": 1.5,
+    "sceneCount": 40,
+    "durationSec": 300.5,
+    "spineOverrides": []
+  },
+  {
+    "slug": "slow-pour",
+    "module": "slow_pour.js",
+    "label": "Slow Pour",
+    "global": "SlowPour",
+    "pack": "lf-pack-4.js",
+    "display": "Alfa Slab One",
+    "body": "Karla",
+    "cams": [
+      "zoomIn",
+      "pushL",
+      "drop",
+      "pushR",
+      "zoomOut",
+      "hopU"
+    ],
+    "camStride": 5,
+    "camOff": 1,
+    "ambient": 1.6,
+    "sceneCount": 40,
+    "durationSec": 300.5,
+    "spineOverrides": [
+      [
+        2,
+        "Blink"
+      ]
+    ]
+  },
+  {
+    "slug": "chalk-and-crimp",
+    "module": "chalk_and_crimp.js",
+    "label": "Chalk & Crimp",
+    "global": "ChalkCrimp",
+    "pack": "lf-pack-4.js",
+    "display": "Bebas Neue",
+    "body": "Instrument Sans",
+    "cams": [
+      "pushU",
+      "zoomIn",
+      "pushL",
+      "hopU",
+      "pushR",
+      "drop"
+    ],
+    "camStride": 7,
+    "camOff": 1,
+    "ambient": 1.9,
+    "sceneCount": 40,
+    "durationSec": 300.5,
+    "spineOverrides": [
+      [
+        2,
+        "Rain"
+      ]
+    ]
+  },
+  {
+    "slug": "stitch-line",
+    "module": "stitch_line.js",
+    "label": "Stitch Line",
+    "global": "StitchLine",
+    "pack": "lf-pack-4.js",
+    "display": "Gilda Display",
+    "body": "Albert Sans",
+    "cams": [
+      "pushL",
+      "zoomIn",
+      "pushD",
+      "pushR",
+      "hopU",
+      "zoomOut"
+    ],
+    "camStride": 3,
+    "camOff": 1,
+    "ambient": 1.6,
+    "sceneCount": 40,
+    "durationSec": 300.5,
+    "spineOverrides": []
+  },
+  {
+    "slug": "blitz-hour",
+    "module": "blitz_hour.js",
+    "label": "Blitz Hour",
+    "global": "BlitzHour",
+    "pack": "lf-pack-4.js",
+    "display": "DM Serif Display",
+    "body": "DM Sans",
+    "cams": [
+      "zoomIn",
+      "pushR",
+      "spin",
+      "pushL",
+      "drop",
+      "pushU"
+    ],
+    "camStride": 5,
+    "camOff": 3,
+    "ambient": 1.8,
+    "sceneCount": 40,
+    "durationSec": 300.5,
+    "spineOverrides": [
+      [
+        2,
+        "Blink"
+      ]
+    ]
+  },
+  {
+    "slug": "safelight",
+    "module": "safelight.js",
+    "label": "Safelight",
+    "global": "Safelight",
+    "pack": "lf-pack-5.js",
+    "display": "Syne",
+    "body": "Hanken Grotesk",
+    "cams": [
+      "zoomIn",
+      "pushL",
+      "pushD",
+      "zoomOut",
+      "pushR",
+      "hopU"
+    ],
+    "camStride": 7,
+    "camOff": 3,
+    "ambient": 1.6,
+    "sceneCount": 41,
+    "durationSec": 308,
+    "spineOverrides": [
+      [
+        "insert",
+        36,
+        "Patience"
+      ],
+      [
+        2,
+        "Blink"
+      ]
+    ]
+  },
+  {
+    "slug": "reef-tank",
+    "module": "reef_tank.js",
+    "label": "Reef Tank",
+    "global": "ReefTank",
+    "pack": "lf-pack-5.js",
+    "display": "Outfit",
+    "body": "Nunito Sans",
+    "cams": [
+      "zoomOut",
+      "pushU",
+      "drop",
+      "pushR",
+      "zoomIn",
+      "pushL"
+    ],
+    "camStride": 5,
+    "camOff": 1,
+    "ambient": 1.4,
+    "sceneCount": 40,
+    "durationSec": 300.5,
+    "spineOverrides": [
+      [
+        2,
+        "Wave"
+      ]
+    ]
+  },
+  {
+    "slug": "branch-line",
+    "module": "branch_line.js",
+    "label": "Branch Line",
+    "global": "BranchLine",
+    "pack": "lf-pack-5.js",
+    "display": "Staatliches",
+    "body": "Onest",
+    "cams": [
+      "pushL",
+      "pushR",
+      "zoomIn",
+      "hopU",
+      "zoomOut",
+      "drop"
+    ],
+    "camStride": 3,
+    "camOff": 2,
+    "ambient": 1.6,
+    "sceneCount": 40,
+    "durationSec": 300.5,
+    "spineOverrides": [
+      [
+        2,
+        "Blink"
+      ]
+    ]
+  },
+  {
+    "slug": "steep-and-steam",
+    "module": "steep_and_steam.js",
+    "label": "Steep & Steam",
+    "global": "SteepSteam",
+    "pack": "lf-pack-5.js",
+    "display": "Marcellus",
+    "body": "Mukta",
+    "cams": [
+      "zoomOut",
+      "pushU",
+      "zoomIn",
+      "pushL",
+      "drop",
+      "pushR"
+    ],
+    "camStride": 3,
+    "camOff": 1,
+    "ambient": 1.3,
+    "sceneCount": 41,
+    "durationSec": 308,
+    "spineOverrides": [
+      [
+        "insert",
+        36,
+        "Patience"
+      ],
+      [
+        2,
+        "Wave"
+      ]
+    ]
+  },
+  {
+    "slug": "rope-and-round",
+    "module": "rope_and_round.js",
+    "label": "Rope & Round",
+    "global": "RopeRound",
+    "pack": "lf-pack-5.js",
+    "display": "Archivo Black",
+    "body": "Archivo",
+    "cams": [
+      "pushR",
+      "zoomIn",
+      "spin",
+      "pushL",
+      "hopU",
+      "drop"
+    ],
+    "camStride": 7,
+    "camOff": 2,
+    "ambient": 2,
+    "sceneCount": 40,
+    "durationSec": 300.5,
+    "spineOverrides": [
+      [
+        2,
+        "Rain"
+      ]
+    ]
+  },
+  {
+    "slug": "field-of-view",
+    "module": "field_of_view.js",
+    "label": "Field of View",
+    "global": "FieldOfView",
+    "pack": "lf-pack-6.js",
+    "display": "Prata",
+    "body": "Manrope",
+    "cams": [
+      "zoomOut",
+      "drop",
+      "pushL",
+      "zoomIn",
+      "pushU",
+      "pushR"
+    ],
+    "camStride": 5,
+    "camOff": 3,
+    "ambient": 1.3,
+    "sceneCount": 41,
+    "durationSec": 308,
+    "spineOverrides": [
+      [
+        "insert",
+        36,
+        "Patience"
+      ],
+      [
+        2,
+        "Blink"
+      ]
+    ]
+  },
+  {
+    "slug": "grain-line",
+    "module": "grain_line.js",
+    "label": "Grain Line",
+    "global": "GrainLine",
+    "pack": "lf-pack-6.js",
+    "display": "Cardo",
+    "body": "Barlow",
+    "cams": [
+      "pushL",
+      "zoomIn",
+      "pushD",
+      "hopU",
+      "pushR",
+      "zoomOut"
+    ],
+    "camStride": 3,
+    "camOff": 1,
+    "ambient": 1.5,
+    "sceneCount": 40,
+    "durationSec": 300.5,
+    "spineOverrides": []
+  }
+]

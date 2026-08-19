@@ -82,9 +82,43 @@ function renderAttempt({ jobId, jobDir, outRelative, durationSec, quality, abort
     // Node ≥18.20 throws EINVAL spawning .cmd files without a shell (CVE-2024-27980).
     // windowsHide keeps the cmd/conhost chain off the desktop heap — the same
     // heap whose exhaustion produces 0xC0000142 launch crashes.
+    // THE ENCODE HAS A HARD KILL TIMER THAT NOBODY SET, AND AT FIVE MINUTES IT NEARLY FIRES.
+    //
+    // hyperframes encodes the whole frame sequence in ONE ffmpeg pass guarded by its own
+    // `ffmpegEncodeTimeout`, default 600,000 ms. Measured here on a 300s / 9,000-frame render at
+    // quality "high" (libx264 preset slow, crf 15): the encode took 582,053 ms. That is 97.0% of
+    // the budget — 17.9 seconds of margin after a twenty-minute capture, and the failure mode is
+    // total: SIGTERM, no MP4, the whole render lost at the last step.
+    //
+    // It is not even the worst case. The 720-frame control encoded at 82.2 ms/frame against the
+    // long run's 64.7 — 27% slower per frame, because per-frame cost falls as the run amortises.
+    // A busier deck at the control's rate needs 739,800 ms and blows the cap by 23%.
+    //
+    // Two independent mitigations, both env-only, neither touching the composition:
+    //
+    //   FFMPEG_ENCODE_TIMEOUT_MS   scaled to the job instead of a flat ten minutes. 4s of budget
+    //                              per second of film, floored at the original 600s so no short
+    //                              render's behaviour changes. 300s -> 1,200,000 ms.
+    //   PRODUCER_ENABLE_CHUNKED_ENCODE  above the streaming encoder's own 240s ceiling, encode in
+    //                              chunks instead of one monolithic pass. Each chunk carries its
+    //                              own timer, so the single long window stops existing at all,
+    //                              and the 1.75 GB of intermediate JPEGs stops accumulating in
+    //                              one heap. Only engaged past 240s, so every existing render
+    //                              takes exactly the path it takes today.
+    const dur = Math.max(1, Number(durationSec) || 0);
+    const renderEnv = {
+      ...process.env,
+      PUPPETEER_DISABLE_HEADLESS_WARNING: "true",
+      FFMPEG_ENCODE_TIMEOUT_MS: String(Math.max(600_000, Math.ceil(dur * 4_000))),
+    };
+    if (dur > 240) {
+      renderEnv.PRODUCER_ENABLE_CHUNKED_ENCODE = "1";
+      renderEnv.PRODUCER_CHUNK_SIZE_FRAMES = "360";
+    }
+
     const child = spawn(cmd, args, {
       cwd: jobDir,
-      env: { ...process.env, PUPPETEER_DISABLE_HEADLESS_WARNING: "true" },
+      env: renderEnv,
       shell: WINDOWS,
       windowsHide: true,
     });

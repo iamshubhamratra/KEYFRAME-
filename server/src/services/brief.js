@@ -38,7 +38,7 @@ const BriefSchema = z.object({
   cta: z.string().max(120).default(""),
   brandColors: z.array(z.string().regex(HEX)).max(6).default([]),
   suggestedFramePack: z.string(),
-  suggestedDuration: z.number().int().min(5).max(150),
+  suggestedDuration: z.number().int().min(5).max(320),
   musicMood: z.string().min(2).max(200),
   voProfile: z.string().min(2).max(300),
 });

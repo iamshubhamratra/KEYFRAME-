@@ -88,15 +88,29 @@ const NATIVE_PACK_COMPOSERS = {
   // film_skins/. Registered by directory scan rather than seventy literal lines, so
   // `node scripts/gen-film-skins.js` adding a template is all it takes to install it.
   ...filmSkinComposers(),
+  ...lfSkinComposers(),
 };
 
 // Every generated FilmKit skin, keyed by its renderer id ("film-<slug>", which is what the
 // pack's own frames/<slug>/pack.json declares). FAIL-OPEN PER SKIN: one bad module must cost
 // its own pack, never the boot — this map is built at require time and a throw here would
 // take the whole server down before it could serve a single job.
-function filmSkinComposers() {
+function filmSkinComposers() { return scanSkinDir("film_skins", "film"); }
+
+// The same scan for the long-form family. TWO DIRECTORIES, TWO PREFIXES, ONE SCANNER — and the
+// prefixes are kept SEPARATE rather than folded into one widened pattern. `film_skins/canopy.js`
+// and `lf_skins/canopy.js` are different films by different engines; a single `^(film|lf)-`
+// regex resolving to "whichever directory happens to have the file" would silently hand one
+// pack's renderer id to the other pack's composer. Distinct prefixes make that collision
+// impossible to express.
+function lfSkinComposers() { return scanSkinDir("lf_skins", "lf"); }
+
+// FAIL-OPEN PER SKIN: one bad module must cost its own pack, never the boot — this map is built
+// at require time and a throw here would take the whole server down before it could serve a
+// single job.
+function scanSkinDir(dirName, prefix) {
   const out = {};
-  const dir = path.join(__dirname, "film_skins");
+  const dir = path.join(__dirname, dirName);
   let files = [];
   try { files = fs.readdirSync(dir).filter((f) => f.endsWith(".js") && !f.startsWith("_")); }
   catch { return out; }
@@ -104,13 +118,27 @@ function filmSkinComposers() {
     const slug = f.replace(/\.js$/, "").replace(/_/g, "-");
     try {
       const m = require(path.join(dir, f));
-      if (m && typeof m.buildComposition === "function") out[`film-${slug}`] = m;
-      else console.warn(`[composer] film_skins/${f} exports no buildComposition — skipped`);
+      if (m && typeof m.buildComposition === "function") out[`${prefix}-${slug}`] = m;
+      else console.warn(`[composer] ${dirName}/${f} exports no buildComposition — skipped`);
     } catch (e) {
-      console.warn(`[composer] film_skins/${f} failed to load (${e.message.slice(0, 120)}) — skipped`);
+      console.warn(`[composer] ${dirName}/${f} failed to load (${e.message.slice(0, 120)}) — skipped`);
     }
   }
   return out;
+}
+
+// The two generated families, and the directory each id resolves into. Used by the mtime reload
+// and by late registration so both know how to turn an id back into a filename without either
+// of them re-deriving the rule.
+const SKIN_FAMILIES = [
+  { prefix: "film", dir: "film_skins", re: /^film-[a-z0-9]+(?:-[a-z0-9]+)*$/ },
+  { prefix: "lf", dir: "lf_skins", re: /^lf-[a-z0-9]+(?:-[a-z0-9]+)*$/ },
+];
+function skinFamilyOf(key) { return SKIN_FAMILIES.find((f) => f.re.test(String(key || ""))) || null; }
+function skinFileFor(key) {
+  const fam = skinFamilyOf(key);
+  if (!fam) return null;
+  return path.join(__dirname, fam.dir, `${String(key).slice(fam.prefix.length + 1).replace(/-/g, "_")}.js`);
 }
 
 // THE AUTHORITATIVE renderer -> composer module map. Every pack that owns a dedicated
@@ -168,11 +196,8 @@ const COMPOSER_LOADED_AT = new Map();
 // directory scan uses), so ask the id first and only fall back to the identity search for the
 // hand-registered families, whose modules are never rewritten under a running process.
 function composerFileOf(mod, renderer) {
-  const key = String(renderer || "");
-  if (/^film-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(key)) {
-    const f = path.join(__dirname, "film_skins", `${key.slice(5).replace(/-/g, "_")}.js`);
-    if (fs.existsSync(f)) return f;
-  }
+  const f = skinFileFor(renderer);
+  if (f && fs.existsSync(f)) return f;
   for (const [file, m] of Object.entries(require.cache)) if (m && m.exports === mod) return file;
   return null;
 }
@@ -190,8 +215,8 @@ function composerFileOf(mod, renderer) {
 // require-time scan would have produced for that id, resolved through the same _-for-hyphen
 // rule. Anything else still returns null, so no other family's dispatch behaviour changes.
 function registerLateFilmSkin(key) {
-  if (!/^film-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(key)) return null;
-  const file = path.join(__dirname, "film_skins", `${key.slice(5).replace(/-/g, "_")}.js`);
+  const file = skinFileFor(key);
+  if (!file) return null;
   try {
     if (!fs.existsSync(file)) return null;
     const m = require(file);
@@ -392,6 +417,28 @@ function enrichedStoryboardPrompt(brief, rawPrompt) {
 // cancellation so the underlying work can actually stop (not just be
 // ignored). `factory(signal)` must honor the AbortSignal — used by the
 // renderer to kill its subprocess promptly.
+// THE RENDER BUDGET MUST SCALE WITH THE FILM, BECAUSE THE WATCHDOG ALREADY DOES.
+//
+// renderer.js allows max(watchdogMinSec, dur x multiplier) + buffer — 40 minutes for a 24s film,
+// 160 minutes for a 300s one. The compose+render STAGE budget beside it was a flat
+// config.server.stageBudgetSec that did not move with duration at all: 2700s locally, 1200s in
+// the shipped config. So the two guards disagreed about the same render, and the fixed one bound
+// first — which is the worst arrangement, because the abort fires long after the cost is sunk.
+//
+// Measured on a 4-vCPU box, a 300s / 9,000-frame render is 1,293s of pipeline plus ~19s of npx
+// launch at 2 workers, and ~1,877s at the 1 worker render.yaml pins. Against 1200s BOTH fail —
+// the job is killed at 90% complete having burned twenty minutes. Against the local 2700s the
+// 1-worker case passes with 30% headroom, and the slowest real pack in the logs extrapolates to
+// 2,698s, which is two seconds of margin.
+//
+// x12 + 600 gives 4,200s at 300s and 888s at 24s. The max() means this can only ever RAISE a
+// configured budget, never lower one, so no existing job's abort behaviour changes.
+function stageBudgetMsFor(durationSec, floorSec) {
+  const configured = Number(config.server.stageBudgetSec) || floorSec || 480;
+  const d = Number(durationSec) || 0;
+  return Math.max(configured, d * 12 + 600) * 1000;
+}
+
 function withBudget(factory, budgetMs, label) {
   const ac = new AbortController();
   return new Promise((resolve, reject) => {
@@ -1504,7 +1551,7 @@ async function runJob({
       console.log(`[pipeline] per-scene VO: ${voClips.length} clip(s); re-timed ${duration}s -> ${effectiveDuration}s`);
     }
 
-    const budget = (Number(config.server.stageBudgetSec) || 240) * 1000;
+    const budget = stageBudgetMsFor(duration, 240);
 
     // Honor USE_LLM_COMPOSER on the direct prompt→video path too — graph.js
     // (langgraph/project pipeline) already maps the flag to `remix`, but runJob
@@ -1694,4 +1741,4 @@ async function runJob({
   }
 }
 
-module.exports = { runJob, withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor, composerStringsFor, composerModuleFor, rendererResolves, rendererFor };
+module.exports = { runJob, withBudget, stageBudgetMsFor, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor, composerStringsFor, composerModuleFor, rendererResolves, rendererFor };

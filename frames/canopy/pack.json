@@ -1,0 +1,152 @@
+{
+  "name": "canopy",
+  "vibe": "Rainforest. A five-minute text-first film: forty kinetic-typography beats in Vollkorn over Alegreya Sans, on #eef0e2 paper with #d98c2c and #3f8c5f accents, alternating with two tinted grounds so no two consecutive scenes share a field. Behind every beat runs one continuous world — swaying leaf layers, light shafts, drips, hanging vine — with a per-scene camera drawn from [\"zoomIn\",\"pushD\",\"hopU\",\"pushL\",\"zoomOut\",\"pushR\"] at stride 5. Exactly one screenshot and one logo appear in the whole run; everything else is type and hand-authored SVG.",
+  "orientation": "landscape",
+  "category": "Long-form",
+  "tags": [
+    "long-form",
+    "five-minute",
+    "kinetic-typography",
+    "text-first",
+    "landscape",
+    "rainforest"
+  ],
+  "renderer": "lf-canopy",
+  "colors": {
+    "paper": "#eef0e2",
+    "ink": "#16241c",
+    "accent": "#d98c2c",
+    "accent2": "#3f8c5f",
+    "sageT": "#e4ece2",
+    "terraT": "#f4e6cf",
+    "ground": "#eef0e2",
+    "text": "#16241c",
+    "desk": "#0f1a14"
+  },
+  "fonts": [
+    "Vollkorn",
+    "Alegreya Sans"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#eef0e2",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#d98c2c",
+      "#3f8c5f"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "One screenshot only, shown whole on a cream card with a soft drop shadow and a degree or two of rotation — never cropped into, never dimmed. The film is typographic; the single image is a window, not a texture.",
+    "iconStyle": "none",
+    "keywords": [
+      "rainforest"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Vollkorn",
+    "body": "Alegreya Sans",
+    "mono": null
+  },
+  "media": {
+    "stage": {
+      "width": 1920,
+      "height": 1080
+    },
+    "requiredAssets": {
+      "screenshots": 1,
+      "productImages": 0,
+      "logos": 1,
+      "illustrations": 0,
+      "icons": 0
+    },
+    "maxAssets": 3,
+    "oversample": 1,
+    "placeholders": [
+      {
+        "role": "feature",
+        "kind": "screenshots",
+        "sceneIndex": 13,
+        "count": 1,
+        "width": 980,
+        "height": 540,
+        "priority": "critical",
+        "objectFit": "cover",
+        "note": "the single mid-film media card — the only photographic surface in the whole film"
+      },
+      {
+        "role": "cta",
+        "kind": "logos",
+        "sceneIndex": 39,
+        "count": 1,
+        "width": 140,
+        "height": 140,
+        "priority": "medium",
+        "objectFit": "cover",
+        "note": "the circular logo slot in the closing card; the lockup drops entirely when absent"
+      }
+    ],
+    "slotsByRole": {}
+  },
+  "audio": {
+    "mood": "unhurried and warm — a long read with a steady pulse under it, never urgent",
+    "archetype": "documentary",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "acoustic",
+      "ambient",
+      "folk",
+      "cinematic"
+    ],
+    "musicKeywords": [
+      "acoustic guitar",
+      "warm piano",
+      "soft strings",
+      "gentle percussion",
+      "ambient pad",
+      "upright bass",
+      "light marimba",
+      "slow build",
+      "field recording",
+      "calm loop"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "light-sweep",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  },
+  "form": {
+    "kind": "longform",
+    "durationSec": 300.5,
+    "sceneCount": 40,
+    "minDurationSec": 240,
+    "maxDurationSec": 360
+  }
+}

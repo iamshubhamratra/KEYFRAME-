@@ -59,6 +59,17 @@ function packMeta(name) {
       // Orientation drives the gallery's aspect CATEGORY (9:16 / 16:9 / 1:1). Portrait-native
       // packs (the imported OM templates) declare "portrait"; default is horizontal.
       orientation: m.orientation || "horizontal",
+      // FORM drives the gallery's long-form section, and the RUNTIME is the single most useful
+      // thing on the card: aspect tells you where a film will be posted, but length tells you
+      // what you are committing to. A five-minute template shown in the same list as a
+      // thirty-second one, with nothing to distinguish them, is a picker that hides the only
+      // difference the user cannot undo later.
+      //
+      // Defaulted here rather than left undefined so the client never has to special-case a
+      // missing field — every card gets a form, and "short" is what 132 packs have always been.
+      form: (m.form && m.form.kind) || "short",
+      runtimeSec: (m.form && m.form.durationSec) || null,
+      sceneCount: (m.form && m.form.sceneCount) || null,
       colors: Object.values(m.colors || {}).slice(0, 6),
       fonts: m.fonts || [],
       displayFont: (m.typography && m.typography.display) || null,
@@ -75,7 +86,10 @@ function packMeta(name) {
   vibe = vibe.replace(/\s+/g, " ").trim();
   if (vibe.length > 180) vibe = vibe.slice(0, 177).trimEnd() + "…";
   const tokens = frameRegistry.getPackTokens(name) || { colors: {}, fonts: [] };
-  return { label, vibe, orientation: "horizontal", colors: Object.values(tokens.colors || {}).slice(0, 6), fonts: tokens.fonts || [], displayFont: null, ground: null, accents: [] };
+  // `form` is defaulted HERE TOO. Omitting it from this branch is how half a gallery ends up
+  // reporting undefined for a field the other half has — the exact shape of bug the `orientation`
+  // default beside it exists to prevent.
+  return { label, vibe, orientation: "horizontal", form: "short", runtimeSec: null, sceneCount: null, colors: Object.values(tokens.colors || {}).slice(0, 6), fonts: tokens.fonts || [], displayFont: null, ground: null, accents: [] };
 }
 
 // THE URL CARRIES THE FILE'S VERSION, or a regenerated pack still shows the old card.

@@ -3,7 +3,7 @@
 // keyed by the REAL server pack names so /api/frames data merges cleanly.
 // Every color, gradient, demo line and vibe string is lifted verbatim.
 
-export const PACK_LORE = {
+export const PACK_LORE = {
   "slab-stage": {
     name: "Slab Stage", tag: "KINETIC · 9:16", bg: "#16161A", ink: "#F3F2F2", accent: "#EC3013",
     chips: ["#EC3013", "#1F5FD8", "#16161A"],
@@ -270,6 +270,32 @@ export function loreFor(packName) {
   if (!packName) return FALLBACK_LORE;
   if (PACK_LORE[packName]) return PACK_LORE[packName];
   return { ...FALLBACK_LORE, name: packName };
+}
+
+// A pack's aspect category — from the server manifest `orientation`, with a lore-tag fallback
+// (a "9:16" in the pack's tag) so a portrait pack still lands right if orientation is absent.
+//
+// LIVES HERE because two screens group by it — the gallery and the Studio picker — and a second
+// copy of this mapping is how the same pack ends up filed under different aspects on two pages.
+export function catOf(pack) {
+  // FORM OUTRANKS ASPECT, and the grouping is driven by the MANIFEST FIELD, never by a slug list.
+  //
+  // A long-form pack is landscape, so by aspect alone all 27 would file under 16:9 and sit
+  // interleaved with the short landscape packs — identical-looking cards where the difference
+  // between them is four and a half minutes of runtime. Length is the more consequential axis
+  // here, so it wins the top-level grouping and the aspect is shown on the card instead.
+  //
+  // Reading `pack.form` (served by routes/frames.js packMeta) rather than matching names means a
+  // template published tomorrow files itself correctly with no front-end change.
+  if (String(pack.form || "").toLowerCase() === "longform") return "longform";
+  const o = String(pack.orientation || "").toLowerCase();
+  if (o === "portrait" || o === "vertical") return "portrait";
+  if (o === "square") return "square";
+  if (o === "horizontal" || o === "landscape") return "horizontal";
+  const tag = String(loreFor(pack.name).tag || "");
+  if (/9:16/.test(tag)) return "portrait";
+  if (/1:1/.test(tag)) return "square";
+  return "horizontal";
 }
 
 const readable = (hex) => {

@@ -47,6 +47,20 @@ const AssetNeedSchema = z.object({
 
 const { ROLES, stampRoles } = require("./scene_role");
 
+// THE SCENE CEILING, AND WHY IT MOVED.
+//
+// 24 scenes x the 12s per-scene cap made 288s the longest film this schema could express — and
+// that was invisible until something asked for more, because the API refused anything over 150s
+// anyway. Raising maxDurationSec to 320 without raising this would have moved the failure one
+// stage later and made it worse: normalizeScript slices to the cap, then validateScript rejects
+// the total against a 0.2s tolerance, and generateScript throws after BOTH attempts. Measured at
+// targetDuration 300 with 40, 24 and 50 input scenes: all three collapsed to 24x12 = 288 and failed.
+//
+// 50 is the long-form spine's own ceiling (41 beats, plus headroom for a longer deck). The
+// PER-SCENE cap deliberately does NOT move: 40x7.5 and 50x6.0 both sit inside [1,12], so nothing
+// here licenses a slower film, only a longer one.
+const MAX_SCENES = 50;
+
 const SceneSchema = z.object({
   id: z.string().min(1).max(12),
   start: z.number().min(0),
@@ -68,7 +82,7 @@ const SceneSchema = z.object({
 
 const ScriptSchema = z.object({
   title: z.string().min(2).max(120),
-  scenes: z.array(SceneSchema).min(2).max(24),
+  scenes: z.array(SceneSchema).min(2).max(MAX_SCENES),
   music: z.object({
     mood: z.string().min(2).max(200),
     query: z.string().min(2).max(80),
@@ -163,7 +177,7 @@ function normalizeScript(script, { targetDuration } = {}) {
   const s = JSON.parse(JSON.stringify(script));
   // Cap scene count first (schema allows max 24) so timing/total below is
   // computed over the kept scenes only.
-  if (Array.isArray(s.scenes) && s.scenes.length > 24) s.scenes = s.scenes.slice(0, 24);
+  if (Array.isArray(s.scenes) && s.scenes.length > MAX_SCENES) s.scenes = s.scenes.slice(0, MAX_SCENES);
   let t = 0;
   s.scenes.forEach((scene, i) => {
     scene.id = scene.id || `s${i + 1}`;

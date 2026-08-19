@@ -24,6 +24,12 @@ const { validateScript, normalizeScript } = require("../services/script");
 
 const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 10);
 
+// The band above which a render needs real memory — see the duration validator in validateCreate.
+// 150s is not arbitrary: it is the ceiling this API enforced for its whole life, so everything
+// at or below it is a length the product has always served on whatever host it was given.
+const LONGFORM_FLOOR_SEC = 150;
+const LONGFORM_MIN_MEMORY_MB = 4096;
+
 // Uploads (multipart). JSON bodies bypass multer entirely. Three file fields:
 //   referenceVideo — 1 video, transcribed at intake (style/transcript signal)
 //   logo           — 1 image, the user's own brand logo (SVG allowed HERE ONLY)
@@ -156,6 +162,18 @@ function validateCreate(body, { hasUpload = false } = {}) {
   const d = body.duration == null ? 30 : Number(body.duration);
   if (!Number.isFinite(d) || d < config.server.minDurationSec || d > config.server.maxDurationSec) {
     errs.push(`duration must be ${config.server.minDurationSec}-${config.server.maxDurationSec} seconds`);
+  } else if (d > LONGFORM_FLOOR_SEC && config.server.detectedMemoryMb && config.server.detectedMemoryMb < LONGFORM_MIN_MEMORY_MB) {
+    // REFUSE AT THE DOOR RATHER THAN OOM AT MINUTE NINETEEN.
+    //
+    // Measured peak for a 300s / 1920x1080 render on this box: ~1.35 GB resident across Chromium
+    // and node at 2 workers, ~1.2 GB at 1. render.yaml still ships `plan: free` (512 MB) with a
+    // comment admitting renders will OOM there. Before this check, a long job on such a host
+    // accepted cleanly, captured for twenty minutes and died — and the retry loop made it worse,
+    // not better: an NTSTATUS crash drops workers 2 -> 1, which MULTIPLIES the watchdog by the
+    // slow factor, so an out-of-memory box gets a five-hour hang instead of a fast failure.
+    //
+    // Short films are untouched: the floor is the ceiling this API enforced for its whole life.
+    errs.push(`videos longer than ${LONGFORM_FLOOR_SEC}s need a host with at least ${LONGFORM_MIN_MEMORY_MB} MB of memory (this one reports ${config.server.detectedMemoryMb} MB)`);
   } else {
     out.duration = Math.round(d);
   }

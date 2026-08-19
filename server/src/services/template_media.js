@@ -580,14 +580,34 @@ function collectionTargetFor(plan, floor = {}) {
   const floorTotal = Number(floor.total) || 0;
   const total = Math.max(Math.ceil(slots * os), Math.min(floorTotal, Math.ceil(slots * HEADROOM)));
   const capped = plan.maxAssets ? Math.min(total, plan.maxAssets) : total;
+
+  // A CAP THAT ONLY BOUND `total` BOUND NOTHING.
+  //
+  // The per-kind ceilings below are what the fetch slices actually read (graph.js's asset search
+  // takes maxPhotos / maxVectors / maxVideos); `total` is read by two log lines. And because each
+  // ceiling was `Math.max(floor, want)` it could only ever RISE — so `maxAssets` was a promise the
+  // code never kept. Measured: a pack declaring maxAssets 3 at 300s/40 scenes still came back with
+  // maxPhotos 43, maxVectors 25, maxVideos 2, and the pipeline fetched and CLIP-scored ~65 stock
+  // images to fill two slots.
+  //
+  // So when a plan states a cap, the kind ceilings are scaled into it, proportionally, and every
+  // kind the pack genuinely needs keeps at least its `want`. When a plan states NO cap — which is
+  // all 132 packs shipping today — `scale` is 1 and every number below is bit-for-bit what it was.
+  const rawPhotos = Math.max(Number(floor.maxPhotos) || 0, want.productImages);
+  const rawVectors = Math.max(Number(floor.maxVectors) || 0, want.illustrations + want.icons);
+  const rawVideos = Number(floor.maxVideos) || 0;
+  const rawSum = rawPhotos + rawVectors + rawVideos;
+  const scale = plan.maxAssets && rawSum > capped ? capped / rawSum : 1;
+  const fit = (raw, floorWant) => (scale === 1 ? raw : Math.max(floorWant, Math.round(raw * scale)));
+
   return {
     ...want,
     // Distribute the (possibly raised) stock total back across the searchable kinds,
     // preserving the floor's own photo/vector/video split where the plan is silent.
     total: capped,
-    maxPhotos: Math.max(Number(floor.maxPhotos) || 0, want.productImages),
-    maxVectors: Math.max(Number(floor.maxVectors) || 0, want.illustrations + want.icons),
-    maxVideos: Number(floor.maxVideos) || 0,
+    maxPhotos: fit(rawPhotos, want.productImages),
+    maxVectors: fit(rawVectors, want.illustrations + want.icons),
+    maxVideos: fit(rawVideos, 0),
     maxScreenshots: Math.max(Number(floor.maxScreenshots) || 0, want.screenshots),
     maxUploads: Number(floor.maxUploads) || 6,
     maxBrand: Number(floor.maxBrand) || 4,

@@ -91,13 +91,37 @@ function pickCleanPack(prefer) {
 // suggestion when it already fits. Returns null when no installed pack can serve the
 // orientation, in which case the caller keeps its pick and discloses rather than
 // swapping to something equally wrong.
-function pickFittingPack(prefer, orientation) {
-  const { packFitsOrientation } = require("../services/frame_manifest");
+// DURATION IS FILTERED HERE TOO, NOT ONLY AT THE REROUTE.
+//
+// Every candidate loop in this file has to apply every constraint, because they run in sequence
+// and a later one can undo an earlier one. If only the reroute checked duration, the orientation
+// reroute could hand a 30-second job a five-minute pack a few lines afterwards and nothing would
+// notice — the pack fits the aspect, so the loop would take it. Same reasoning as the charset
+// filter already inside pickAffordablePack.
+function pickFittingPack(prefer, orientation, durationSec) {
+  const { packFitsOrientation, packFitsDuration } = require("../services/frame_manifest");
+  const fits = (rp) => packFitsOrientation(rp, orientation) && packFitsDuration(rp, durationSec);
   const p = frameRegistry.resolvePack(prefer);
-  if (p && packFitsOrientation(p, orientation)) return p;
+  if (p && fits(p)) return p;
   for (const id of frameRegistry.listPacks()) {
     const rp = frameRegistry.resolvePack(id);
-    if (rp && packFitsOrientation(rp, orientation)) return rp;
+    if (rp && fits(rp)) return rp;
+  }
+  return null;
+}
+
+// The first installed pack authored for THIS job's LENGTH — preferring the brief's suggestion
+// when it already fits, and holding the orientation constraint at the same time so the two
+// gates cannot fight. Mirrors pickFittingPack exactly; kept separate so the reroute below can
+// say which constraint it was correcting for in its log line and its disclosure.
+function pickFittingDurationPack(prefer, orientation, durationSec) {
+  const { packFitsOrientation, packFitsDuration } = require("../services/frame_manifest");
+  const fits = (rp) => packFitsDuration(rp, durationSec) && packFitsOrientation(rp, orientation);
+  const p = frameRegistry.resolvePack(prefer);
+  if (p && fits(p)) return p;
+  for (const id of frameRegistry.listPacks()) {
+    const rp = frameRegistry.resolvePack(id);
+    if (rp && fits(rp)) return rp;
   }
   return null;
 }
@@ -173,8 +197,8 @@ function coverageScore(pack, scenes, dims, supply) {
 // So a pack whose appetite runs far past this job's supply is swapped for the closest-fitting
 // one that does not. Returns null when nothing fits better, in which case the caller keeps its
 // pick and discloses — the same law the orientation and localization reroutes follow.
-function pickAffordablePack(prefer, { scenes, dims, supply, orientation, seedKey = "" }) {
-  const { packFitsOrientation } = require("../services/frame_manifest");
+function pickAffordablePack(prefer, { scenes, dims, supply, orientation, durationSec, seedKey = "" }) {
+  const { packFitsOrientation, packFitsDuration } = require("../services/frame_manifest");
   const cur = frameRegistry.resolvePack(prefer);
   const curScore = cur ? coverageScore(cur, scenes, dims, supply) : -Infinity;
   const cands = [];
@@ -182,6 +206,10 @@ function pickAffordablePack(prefer, { scenes, dims, supply, orientation, seedKey
     const rp = frameRegistry.resolvePack(id);
     if (!rp) continue;
     if (!packFitsOrientation(rp, orientation)) continue;
+    // The coverage reroute optimises for how many pictures a pack can seat, and a long-form pack
+    // seats exactly two in five minutes — which would make it score superbly for a picture-poor
+    // 30-second job it cannot possibly serve. Filter before scoring, not after.
+    if (!packFitsDuration(rp, durationSec)) continue;
     if (isCanvasOrCharsetPack(rp)) continue;
     cands.push({ pack: rp, score: coverageScore(rp, scenes, dims, supply) });
   }
@@ -320,12 +348,24 @@ function pickVoice(job, script) {
 // deterministic twin of the brief's prompt-level rotation, for when the brief's pick
 // is unavailable. Falls back to the plain default when everything is recent (a small
 // install) or the store is unreadable.
-function rotatedDefaultPack() {
+function rotatedDefaultPack(durationSec) {
   try {
+    const { packFitsDuration } = require("../services/frame_manifest");
     const recent = new Set(
       db.listRecent({ limit: 10 }).map((j) => j.framePack).filter(Boolean)
     );
-    const fresh = frameRegistry.listPacks().find((p) => !recent.has(p));
+    // A DEFAULT MUST NEVER SURPRISE.
+    //
+    // This picks the first pack nobody has used lately, straight off listPacks(). The moment 27
+    // long-form packs land in frames/, "allotment" sorts near the top of that list — so without
+    // this filter the next auto job with no pack preference would silently become a five-minute
+    // template rendering a thirty-second brief. The duration filter is not an optimisation here;
+    // it is what stops a new pack family changing the product default by alphabetical accident.
+    const fresh = frameRegistry.listPacks().find((p) => {
+      if (recent.has(p)) return false;
+      const rp = frameRegistry.resolvePack(p);
+      return rp ? packFitsDuration(rp, durationSec) : false;
+    });
     return fresh || null;
   } catch {
     return null;
@@ -381,7 +421,7 @@ async function frameSelectorAgent(s) {
   // failed, or suggested a pack that has since been uninstalled, we land on
   // resolvePack("auto"), which is a fixed default. Every such video would then wear
   // the same look. Rotate deterministically in exactly that gap.
-  const fallback = explicit || fromBrief ? null : rotatedDefaultPack();
+  const fallback = explicit || fromBrief ? null : rotatedDefaultPack(s.job.duration);
   let framePack = explicit || fromBrief || fallback || frameRegistry.resolvePack("auto");
   let via = explicit ? "user" : fromBrief ? "brief" : fallback ? "rotated-default" : "default";
 
@@ -418,6 +458,48 @@ async function frameSelectorAgent(s) {
     }
   } catch (e) { console.warn(`[agents] frame_selector orientation routing skipped: ${e.message}`); }
 
+  // ---- DURATION / FORM REROUTE -------------------------------------------------------------
+  // The third gate, and structurally identical to the two either side of it: an auto/brief pick
+  // is CORRECTED, an explicit user pick is HONORED and disclosed in plain English.
+  //
+  // It runs AFTER the orientation swap deliberately. The orientation reroute can change the pack,
+  // and its candidate loop now filters on duration too — but a pack it KEPT (the "no pack fits
+  // this orientation" branch) has not been duration-checked, so this gate is what catches it.
+  //
+  // WHY THIS MATTERS MORE THAN IT LOOKS. A long-form pack on a 30-second job does not fail: it
+  // renders the first four of its forty beats and holds the fourth for the rest of the film, and
+  // the QA agent — which samples eight frames — is quite likely to call that a pass. A short pack
+  // on a 300-second job is the same defect mirrored: six beats stretched to fifty seconds each,
+  // with every authored entrance finished in the first two.
+  let durationPackWarning = null;
+  try {
+    const { packFitsDuration, durationBand } = require("../services/frame_manifest");
+    const jobDur = Number(s.job.duration) || 0;
+    if (jobDur > 0 && !packFitsDuration(framePack, jobDur)) {
+      const band = durationBand(framePack);
+      const isLong = band.kind === "longform";
+      const describe = isLong
+        ? `a ${Math.round(band.min / 60)}–${Math.round(band.max / 60)} minute film`
+        : `films up to about ${band.max} seconds`;
+      if (via === "user") {
+        durationPackWarning = `The "${framePack}" template is built for ${describe}, but this video is ${jobDur}s. `
+          + (isLong
+            ? `At this length only its opening scenes will play and the last one will hold. Pick a shorter-form template, or lengthen the video.`
+            : `At this length its scenes stretch well past the pacing they were drawn for. Pick a long-form template, or shorten the video.`);
+        console.warn(`[agents] frame_selector: ${framePack} is ${band.kind} (${band.min}-${band.max}s) but the job is ${jobDur}s; honoring explicit pick with a disclosure`);
+      } else {
+        const fitting = pickFittingDurationPack(s.brief?.suggestedFramePack, s.job.orientation, jobDur);
+        if (fitting && fitting !== framePack) {
+          console.log(`[agents] frame_selector: swapped ${framePack} → ${fitting} (${band.kind} pack on a ${jobDur}s job)`);
+          framePack = fitting; via = `${via}+timed`;
+        } else {
+          durationPackWarning = `No installed template is built for a ${jobDur}s video, so this film uses one designed for ${describe} — its pacing may not match.`;
+          console.warn(`[agents] frame_selector: no pack fits ${jobDur}s; keeping ${framePack} (${band.kind}) with a disclosure`);
+        }
+      }
+    }
+  } catch (e) { console.warn(`[agents] frame_selector duration routing skipped: ${e.message}`); }
+
   // SUPPLY ROUTING — can this job actually FILL the pack it just chose?
   //
   // Every other consideration here is about the film's LOOK. This one is arithmetic, and it
@@ -441,7 +523,7 @@ async function frameSelectorAgent(s) {
         supplyPackWarning = `The "${framePack}" template draws ${slots} pictures, and this film can supply about ${supply} — some panels will render without an image. Add a website URL or upload product images, or pick a simpler template.`;
         console.warn(`[agents] frame_selector: ${framePack} wants ${slots} visual(s), job supplies ~${supply}; honoring explicit pick with a disclosure`);
       } else {
-        const afford = pickAffordablePack(s.brief?.suggestedFramePack, { scenes, dims, supply, orientation: s.job.orientation, seedKey: s.job.id });
+        const afford = pickAffordablePack(s.brief?.suggestedFramePack, { scenes, dims, supply, orientation: s.job.orientation, durationSec: s.job.duration, seedKey: s.job.id });
         if (afford && afford !== framePack) {
           const n = fillableSlotCount(afford, scenes, dims);
           const was = Math.round(coverageScore(framePack, scenes, dims, supply) * 100);
@@ -499,7 +581,7 @@ async function frameSelectorAgent(s) {
   }
 
   console.log(`[agents] frame_selector → ${framePack} (${via})`);
-  return { framePack, localizationPackWarning, orientationPackWarning };
+  return { framePack, localizationPackWarning, orientationPackWarning, durationPackWarning };
 }
 
 async function storyboardAgent(s) {
@@ -2643,7 +2725,7 @@ async function composeVisual(s) {
     ? { ...s.storyboard, __qaIssuesToFix: s.qa.issues.map((i) => `at ${i.atSec}s [${i.severity}]: ${i.issue} — FIX: ${i.fix}`) }
     : s.storyboard;
 
-  const budget = (Number(config.server.stageBudgetSec) || 480) * 1000;
+  const budget = require("../services/pipeline").stageBudgetMsFor(job.duration, 480);
   // Composer dispatch. The user's per-video finish choice wins:
   //   compose_mode "premium"  → the LLM composition agent (remix)
   //   compose_mode "standard" → the deterministic scene-kit
@@ -3087,7 +3169,7 @@ async function buildGraph() {
     brief: Annotation(), script: Annotation(),
     framePack: Annotation(), storyboard: Annotation(),
     brandSkin: Annotation(), layoutPlan: Annotation(), motionPlan: Annotation(),
-    captionPlan: Annotation(), localizationPackWarning: Annotation(), orientationPackWarning: Annotation(), localizedStrings: Annotation(),
+    captionPlan: Annotation(), localizationPackWarning: Annotation(), orientationPackWarning: Annotation(), durationPackWarning: Annotation(), localizedStrings: Annotation(),
     assetPlan: Annotation(), assets: Annotation(), audioAdvice: Annotation(), assetReuse: Annotation(),
     mediaPlan: Annotation(), assetPrep: Annotation(), placementReview: Annotation(), requirements: Annotation(),
     voClips: Annotation(), sfxClips: Annotation(), musicPath: Annotation(), audioPlan: Annotation(),

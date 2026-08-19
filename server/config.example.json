@@ -1,7 +1,7 @@
 {
   "server": {
     "port": 8080,
-    "maxDurationSec": 150,
+    "maxDurationSec": 320,
     "minDurationSec": 5,
     "rateLimitPerHourPerIp": 5,
     "dailyJobCap": 100,

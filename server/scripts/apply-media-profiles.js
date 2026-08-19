@@ -714,6 +714,21 @@ for (const name of packs) {
     continue;
   }
 
+  // THE LONG-FORM FAMILY MEASURES ITS OWN CONTRACT TOO, and states it as PLACEHOLDERS rather
+  // than slotsByRole — which is why it needs its own line instead of riding the skip above.
+  //
+  // The difference is real, not cosmetic. `slotsByRole` instantiates N slots on EVERY scene of a
+  // role; an lf pack has exactly two image surfaces in a forty-beat film, both pinned to a named
+  // scene index (Peek and Join), so it authors two placeholders and no roles at all. Left to the
+  // derivation below, this script would read "no slotsByRole" as "unprofiled", generate a
+  // fraction-of-frame table for forty scenes, and `--check` would report DRIFT on all 27 packs
+  // for as long as they exist.
+  if (/^lf-/.test(String(manifest.renderer || "")) && manifest.media
+      && Array.isArray(manifest.media.placeholders) && manifest.media.placeholders.length) {
+    skipped++;
+    continue;
+  }
+
   // A HAND-MEASURED BLOCK OUTRANKS THE DERIVED ONE — same rule as the film-* skip above, just
   // recognised from the data instead of the renderer name. The table below approximates geometry
   // as a FRACTION of the frame; someone who opened the composer and read the real box off it

@@ -1,0 +1,152 @@
+{
+  "name": "kiln-fire",
+  "vibe": "Ceramics. A five-minute text-first film: forty kinetic-typography beats in Gloock over Schibsted Grotesk, on #f3ebde paper with #c2562c and #5f8c8c accents, alternating with two tinted grounds so no two consecutive scenes share a field. Behind every beat runs one continuous world — wobbling wheel with rising pot, glowing kiln, bending cone — with a per-scene camera drawn from [\"zoomOut\",\"pushL\",\"hopU\",\"pushR\",\"zoomIn\",\"drop\"] at stride 3. Exactly one screenshot and one logo appear in the whole run; everything else is type and hand-authored SVG.",
+  "orientation": "landscape",
+  "category": "Long-form",
+  "tags": [
+    "long-form",
+    "five-minute",
+    "kinetic-typography",
+    "text-first",
+    "landscape",
+    "ceramics"
+  ],
+  "renderer": "lf-kiln-fire",
+  "colors": {
+    "paper": "#f3ebde",
+    "ink": "#241d17",
+    "accent": "#c2562c",
+    "accent2": "#5f8c8c",
+    "sageT": "#e6eeee",
+    "terraT": "#f7e2d2",
+    "ground": "#f3ebde",
+    "text": "#241d17",
+    "desk": "#231b16"
+  },
+  "fonts": [
+    "Gloock",
+    "Schibsted Grotesk"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": false,
+    "ground": "#f3ebde",
+    "groundMode": "alternating"
+  },
+  "motion": {
+    "cut": "cut",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#c2562c",
+      "#5f8c8c"
+    ],
+    "extras": [],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "One screenshot only, shown whole on a cream card with a soft drop shadow and a degree or two of rotation — never cropped into, never dimmed. The film is typographic; the single image is a window, not a texture.",
+    "iconStyle": "none",
+    "keywords": [
+      "ceramics"
+    ],
+    "prefer": [
+      "screenshot",
+      "photo"
+    ],
+    "acceptsVectors": false
+  },
+  "typography": {
+    "display": "Gloock",
+    "body": "Schibsted Grotesk",
+    "mono": null
+  },
+  "media": {
+    "stage": {
+      "width": 1920,
+      "height": 1080
+    },
+    "requiredAssets": {
+      "screenshots": 1,
+      "productImages": 0,
+      "logos": 1,
+      "illustrations": 0,
+      "icons": 0
+    },
+    "maxAssets": 3,
+    "oversample": 1,
+    "placeholders": [
+      {
+        "role": "feature",
+        "kind": "screenshots",
+        "sceneIndex": 13,
+        "count": 1,
+        "width": 980,
+        "height": 540,
+        "priority": "critical",
+        "objectFit": "cover",
+        "note": "the single mid-film media card — the only photographic surface in the whole film"
+      },
+      {
+        "role": "cta",
+        "kind": "logos",
+        "sceneIndex": 40,
+        "count": 1,
+        "width": 140,
+        "height": 140,
+        "priority": "medium",
+        "objectFit": "cover",
+        "note": "the circular logo slot in the closing card; the lockup drops entirely when absent"
+      }
+    ],
+    "slotsByRole": {}
+  },
+  "audio": {
+    "mood": "unhurried and warm — a long read with a steady pulse under it, never urgent",
+    "archetype": "documentary",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "acoustic",
+      "ambient",
+      "folk",
+      "cinematic"
+    ],
+    "musicKeywords": [
+      "acoustic guitar",
+      "warm piano",
+      "soft strings",
+      "gentle percussion",
+      "ambient pad",
+      "upright bass",
+      "light marimba",
+      "slow build",
+      "field recording",
+      "calm loop"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "light-sweep",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  },
+  "form": {
+    "kind": "longform",
+    "durationSec": 308,
+    "sceneCount": 41,
+    "minDurationSec": 240,
+    "maxDurationSec": 360
+  }
+}

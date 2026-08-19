@@ -71,10 +71,17 @@ function sceneDigest(storyboard, script) {
   const scenes = (storyboard && Array.isArray(storyboard.scenes) && storyboard.scenes.length)
     ? storyboard.scenes
     : (script && Array.isArray(script.scenes) ? script.scenes : []);
-  // Digest ALL scenes (schema cap is 24). The old slice(0,12) hid scenes 13-24
-  // from the director, so validSceneIds excluded them and any asset the director
-  // would assign to a later scene was silently discarded to "_unassigned".
-  return scenes.slice(0, 24).map((s, i) => ({
+  // DIGEST EVERY SCENE. The comment below used to read "schema cap is 24", and that was true of
+  // the SCRIPT schema — but the storyboard path has never had a scene cap, and the long-form
+  // family runs forty to forty-one. The same defect the old slice(0,12) caused just moved: a
+  // scene past the cut is missing from validSceneIds, so any asset the director assigns to it is
+  // silently discarded to "_unassigned". At 40 scenes that hid 16 of them; at 50, twenty-six.
+  //
+  // The cap was never buying much. The digest is ~180 chars a scene, so going from 24 entries to
+  // 41 costs about 1.3k input tokens — six hundredths of a cent at the director's model — against
+  // a film whose render costs twenty minutes of CPU. Bounded generously rather than tightly, so a
+  // runaway storyboard still cannot send an unbounded prompt.
+  return scenes.slice(0, 64).map((s, i) => ({
     id: s.id != null ? s.id : i + 1,
     purpose: String(s.purpose || "").slice(0, 40),
     direction: String(s.visualDirection || s.headline || s.subtext || "").slice(0, 140),

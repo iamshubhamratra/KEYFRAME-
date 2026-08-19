@@ -57,6 +57,25 @@ const PackManifestSchema = z
     // path read it, so the mismatch had no guard at all. See frameSelectorAgent.
     orientation: z.enum(["portrait", "landscape", "square"]).optional(),
 
+    // FORM — the pack's DURATION capability, and the direct sibling of `orientation` above.
+    //
+    // Every pack in the library until now told a job what SHAPE it renders and nothing about
+    // what LENGTH it was designed for, because until now they were all the same length. The
+    // long-form family is not: its spine is a fixed forty-beat arc pinned at roughly 7.5s a
+    // beat, so it is as wrong for a 30-second brief as a portrait pack is for a 16:9 job.
+    //
+    // Undeclared means "short", not "anything", and that default is the safe one: it keeps all
+    // 132 existing packs behaving exactly as they do today, and it means a new long-form pack is
+    // invisible to short-form selection until it explicitly opts in. Read by packFitsDuration
+    // below, which frameSelectorAgent consults on the same footing as packFitsOrientation.
+    form: z.object({
+      kind: z.enum(["short", "longform"]).default("short"),
+      durationSec: z.number().positive().optional(),
+      sceneCount: z.number().int().positive().optional(),
+      minDurationSec: z.number().positive().optional(),
+      maxDurationSec: z.number().positive().optional(),
+    }).optional(),
+
     // Authored color roles from FRAME.md — name -> #RRGGBB. Order is authored law.
     colors: z.record(HEX).default({}),
     // Distinct font families the pack declares (FRAME.md fontFamily). The first
@@ -464,7 +483,52 @@ function packFitsOrientation(pack, jobOrientation) {
   return authored === want;
 }
 
+// The form a pack was authored for. Undeclared is "short" — see the schema note.
+function packForm(pack) {
+  const m = getManifest(pack);
+  const f = m && m.form;
+  if (!f || !f.kind) return { kind: "short" };
+  return f;
+}
+
+// The runtime band a pack's authored pacing still reads inside. A long-form pack declares its
+// own; a short pack gets the implicit band the library has always assumed.
+//
+// DEFAULT_SHORT_MAX is 150 rather than Infinity on purpose: it is the ceiling the API itself
+// enforced for the whole life of the product (config.server.maxDurationSec), so it is the band
+// every existing pack was actually designed and tested against, not a number invented here.
+const DEFAULT_SHORT_MAX = 150;
+function durationBand(pack) {
+  const f = packForm(pack);
+  if (f.kind === "longform") {
+    return {
+      min: Number(f.minDurationSec) || 240,
+      max: Number(f.maxDurationSec) || 360,
+      kind: "longform",
+    };
+  }
+  return { min: 0, max: DEFAULT_SHORT_MAX, kind: "short" };
+}
+
+// Can `pack` serve a job of this length?
+//
+// Symmetrical with packFitsOrientation, and symmetrical in BOTH directions on purpose. It is
+// obvious that a five-minute pack must not be chosen for a thirty-second brief — it would render
+// its first four beats and hold. The reverse matters just as much and is easier to miss: a
+// six-scene short pack chosen for a five-minute job stretches each beat to fifty seconds, and
+// every entrance the designer drew lands in the first two of them.
+//
+// An unknown or absent duration never blocks: selection must degrade to today's behaviour rather
+// than to no pack at all.
+function packFitsDuration(pack, jobDurationSec) {
+  const d = Number(jobDurationSec);
+  if (!Number.isFinite(d) || d <= 0) return true;
+  const band = durationBand(pack);
+  return d >= band.min && d <= band.max;
+}
+
 module.exports = {
   PackManifestSchema, getManifest, listManifests, manifestPath, validateAll,
   packAcceptsVectors, packOrientation, packFitsOrientation, packStage, audioPaletteErrors, mediaErrors,
+  packForm, packFitsDuration, durationBand, DEFAULT_SHORT_MAX,
 };
