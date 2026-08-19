@@ -246,6 +246,21 @@ function bullets(scene, n) {
 // the component — so the fill below is deliberately conservative and only ever
 // speaks into something that already looks like a written phrase.
 const CONFIG_KEY = /^(url|href|src|img|image|icon|logo|color|colour|bg|background|accent|fill|stroke|align|variant|theme|mode|size|type|kind|id|key|cls|class|style|font|ease|anim|animation|dir|side|pos|position|fit|focus|ratio|seed|shape|pattern)$/i;
+
+// Words a film TITLE opens with that are not the film's brand. Used only for the
+// last-resort brand guess (see brandSrc): an explicit brand or a real harvested
+// domain always wins. Articles, prepositions, question words and the imperative
+// verbs a headline habitually starts with ("Turn raw earth into…", "From bare
+// soil to…", "Make your first…").
+const TITLE_STOP = new Set([
+  "a", "an", "the", "and", "or", "but", "for", "from", "to", "of", "in", "on", "at", "by", "with",
+  "your", "our", "my", "their", "its", "this", "that", "these", "those", "you", "we", "us", "it",
+  "how", "why", "what", "when", "where", "who", "which",
+  "turn", "make", "get", "build", "start", "stop", "grow", "learn", "meet", "see", "find", "try",
+  "why", "into", "onto", "over", "under", "after", "before", "every", "all", "one", "two", "three",
+  "five", "ten", "new", "best", "top", "more", "less", "very", "just", "now", "then", "here",
+  "introducing", "welcome", "inside", "behind", "beyond", "about",
+]);
 const CONFIG_VALUE = /^(#[0-9a-f]{3,8}|(https?:)?\/\/|\/|[a-z-]+\(|data:)/i;
 // The authored default is the design's own width budget and case. "MILE 038"
 // asks for a short stamp; "Every good boy delivers." asks for a sentence.
@@ -614,7 +629,21 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
     return isShot(a) || s === "website-image" || s === "blog";
   };
   const isStock = (a) => /pixabay|pexels|openverse|unsplash|stock/.test(String((a && a.source) || "").toLowerCase());
-  const tierOf = (a) => (isSiteAsset(a) ? 3 : isStock(a) ? 1 : 2);
+  // THE USER'S OWN UPLOADS OUTRANK EVERYTHING — including a site capture.
+  //
+  // This tier ladder put an upload at 2, BELOW a screenshot at 3, and the pool is
+  // sorted tier-first. So on any job that had screenshots, the images the user
+  // deliberately supplied through BRAND ASSETS were the last photographs the walk
+  // would reach — and with a template whose slots the screenshots already filled,
+  // they were never drawn at all. Measured: two uploads, both admitted, both
+  // drawn zero times, while one screenshot was drawn twenty.
+  //
+  // asset_priority is the single source of truth for this hierarchy (upload 100 >
+  // website-brand 90 > website 80 > curated 60 > stock 40) and it exists exactly
+  // so this ordering stops being re-derived, differently, in each renderer.
+  // Scoped to uploads so a job without them sorts byte-identically to before.
+  const isUpload = (a) => String((a && a.source) || "").toLowerCase() === "upload";
+  const tierOf = (a) => (isUpload(a) ? 4 : isSiteAsset(a) ? 3 : isStock(a) ? 1 : 2);
   const pool = all.slice().sort((a, b) => (tierOf(b) - tierOf(a)) || (omRank(b) - omRank(a)));
   // Vectors are kept in their OWN pool rather than appended to this one. Ranked
   // last inside a single pool they are unreachable in practice — a real job
@@ -1283,7 +1312,9 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
     if (has("sub")) out.sub = fit(sc.subtext || sc.body || "", 120);
     if (has("callout")) out.callout = up(fitLabel(bullets(sc, 1)[0] || sc.callout || "", 22));
     if (has("calloutNum")) out.calloutNum = tpl.calloutNum || "1";   // a slide number, not copy
-    if (has("cta")) out.cta = fit(sc.cta || sc.ctaLabel || `GET ${brand}`, 20).toUpperCase();
+    // "GET <brand>" only reads as a call to action when there IS a brand; with an
+    // unbrandable title it printed "GET FROM". Fall back to a real CTA instead.
+    if (has("cta")) out.cta = fit(sc.cta || sc.ctaLabel || (brand ? `GET ${brand}` : "GET STARTED"), 20).toUpperCase();
     if (has("url")) out.url = url;
     if (has("quote")) out.quote = fit(sc.quote || sc.subtext || sc.voiceover || "", 140);
     if (has("author")) out.author = fit(sc.author || brand, 24);
@@ -2121,7 +2152,98 @@ function fillPlate(brand, accent, ground) {
  * Returns the same { indexHtml, metaJson, mediaPlan } shape every dedicated
  * composer returns, so composeWithPackRenderer needs no special-casing.
  */
-function buildComposition({ storyboard, dims, framePack, assets, template, manifest, captionCues, scriptCues, scriptOverlay = false } = {}) {
+// ---- BRAND RECOLOUR FOR BUNDLED TEMPLATES ------------------------------------
+//
+// THE DEFECT THIS FIXES. The Art Director resolves the user's brand palette into
+// a skin and persists it as `brand_review` — and for the 139 bundled packs it was
+// then thrown away. `composeWithPackRenderer` even detects it (it greps the
+// composer's parameter list for `brandSkin` and logs "that direction has NO
+// effect on this film"), then composes anyway. So a user could pick their brand
+// colours, watch the pipeline log that it understood them, and get a film with
+// none of them in it. Measured on a real job: accents resolved to #ff6a3c/#2b5bff,
+// occurrences in the rendered HTML — zero.
+//
+// WHY A HEX SUBSTITUTION AND NOT A THEME PARAMETER. These templates are AUTHORED
+// bundles; each one names its colours whatever it likes (ember-roast's OM_TWEAKS
+// carries `roast` and `ember`, not `accent`), and nothing reads a shared token.
+// There is no theme contract to pass a skin through. What every pack DOES have is
+// a manifest stating which hex plays which ROLE, and those exact hexes appear
+// literally in the template HTML (verified across the pack set). So the mapping is
+// role -> hex -> replacement.
+//
+// ACCENT-ONLY, DELIBERATELY. Only the accent roles are remapped; `ground` and
+// `ink` are never touched. That is the Art Director's own contract (a brand skin
+// is an accent skin), and it is what keeps the pack's character and its contrast
+// intact — repainting a ground with an arbitrary brand colour is how you get
+// unreadable type.
+const HEXRE = /^#[0-9a-fA-F]{6}$/;
+const lumOf = (hex) => {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+
+/**
+ * Rewrite a bundled template's ACCENT hexes to the user's brand accents.
+ * Returns the html unchanged when there is no skin, no manifest colours, or no
+ * accent survives the contrast guard — so the un-branded path is byte-identical.
+ */
+function applyBrandSkin(html, framePack, brandSkin) {
+  const accents = (brandSkin && Array.isArray(brandSkin.accents) ? brandSkin.accents : [])
+    .filter((c) => HEXRE.test(String(c || "")));
+  if (!accents.length) return { html, applied: [] };
+
+  let man = null;
+  try { man = require("./frame_manifest").getManifest(framePack) || null; } catch { /* no manifest */ }
+  const colors = (man && man.colors) || null;
+  if (!colors) return { html, applied: [] };
+
+  // IDENTIFY THE SURFACE BY VALUE, NOT BY ROLE NAME.
+  //
+  // Packs do NOT agree on what to call their colours. The canonical set is
+  // ground/ink/accent/a2, but a regenerated pack names them after its own
+  // subject — ember-roast ships {roast, cream, ember, gold, ink}, where `roast`
+  // IS the ground and `cream` IS the text. A name-based exclusion silently
+  // repainted both, which is how a recolour turns into an unreadable film.
+  // `surface.ground` / `surface.ink` are the authoritative fields every pack
+  // fills regardless of what it names its palette entries, so match on the HEX.
+  const surface = (man && man.surface) || {};
+  const groundHex = [surface.ground, colors.ground].find((v) => HEXRE.test(String(v || ""))) || null;
+  const inkHex = [surface.ink, colors.ink].find((v) => HEXRE.test(String(v || ""))) || null;
+  const reserved = new Set([groundHex, inkHex].filter(Boolean).map((h) => h.toLowerCase()));
+  const ground = groundHex;
+
+  // Everything the pack declares that is neither its surface nor its text is an
+  // accent, in authored order. De-duplicated: a pack may use one hex for two
+  // roles, and replacing it twice would map the second occurrence off the first
+  // result.
+  const accentHexes = [...new Set(
+    Object.values(colors)
+      .map((v) => String(v))
+      .filter((v) => HEXRE.test(v) && !reserved.has(v.toLowerCase())),
+  )];
+  if (!accentHexes.length) return { html, applied: [] };
+
+  const applied = [];
+  let out = html;
+  accentHexes.forEach((from, i) => {
+    const to = accents[i % accents.length];
+    if (to.toLowerCase() === from.toLowerCase()) return;
+    // CONTRAST GUARD. A brand accent that sits on top of the pack's own ground
+    // disappears — the same |luminance delta| floor the scene-kit applies when it
+    // admits a brand accent. Keep the pack's colour rather than paint an
+    // invisible one.
+    if (ground && Math.abs(lumOf(to) - lumOf(ground)) < 45) return;
+    // Case-insensitive, all occurrences: the bundles mix #E0662C and #e0662c.
+    const re = new RegExp(from.replace("#", "#"), "gi");
+    const before = out;
+    out = out.replace(re, to);
+    if (out !== before) applied.push(`${from}->${to}`);
+  });
+  return { html: out, applied };
+}
+
+function buildComposition({ storyboard, dims, framePack, assets, template, manifest, captionCues, scriptCues, scriptOverlay = false, brandSkin = null } = {}) {
   // composeWithPackRenderer passes framePack (the SLUG, e.g. "reel"); the
   // template file is named by the manifest ("Reel"). Resolve through the
   // manifest so a pack only has to declare `template` once, in pack.json.
@@ -2142,6 +2264,19 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
   const file = templatePath(tplName);
   if (!file) throw new Error(`omelette: template "${tplName}" not found in ${TPL_DIR}`);
   let html = fs.readFileSync(file, "utf8");
+
+  // The user's brand accents, applied to the authored bundle BEFORE anything else
+  // reads a colour out of it (the `accent` extraction below pulls from OM_TWEAKS,
+  // so recolouring first means the monogram and fill plates inherit the brand too).
+  if (brandSkin) {
+    const skinned = applyBrandSkin(html, framePack, brandSkin);
+    if (skinned.applied.length) {
+      html = skinned.html;
+      console.log(`[omelette] ${framePack || tplName}: brand skin applied — ${skinned.applied.join(", ")}`);
+    } else {
+      console.log(`[omelette] ${framePack || tplName}: brand skin had no applicable accent (kept the pack's own)`);
+    }
+  }
 
   const sb = storyboard || {};
   const reqW = (dims && dims.width) || 1920, reqH = (dims && dims.height) || 1080;
@@ -2179,8 +2314,24 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
       : portraitTemplates().has(String(tplName));
   const W = nativePortrait ? 1080 : 1920;
   const H = nativePortrait ? 1920 : 1080;
-  const scenes = Array.isArray(sb.scenes) && sb.scenes.length ? sb.scenes.slice(0, 30) : [{ id: "s1", duration: 4, headline: sb.title || "" }];
-  const D = Math.round((scenes.reduce((a, s) => a + Math.max(1.2, Number(s.duration) || 4), 0)) * 100) / 100;
+  // 50, not 30 — the engine's own ceiling. A 5-minute script is 40-60 beats, so a
+  // 30-scene cap threw away the back half of every long-form film before the
+  // 16KB shed below had even run.
+  const scenes = Array.isArray(sb.scenes) && sb.scenes.length ? sb.scenes.slice(0, 50) : [{ id: "s1", duration: 4, headline: sb.title || "" }];
+  // THE FILM MUST SPAN THE WHOLE VIDEO, however many beats survive the caps.
+  //
+  // `durationSec` is authoritative-from-request (storyboard.js sets it from the
+  // job); the scene list is not, because it gets truncated here and shed again
+  // below to fit the engine's 16KB/50-scene limits. Deriving the composition's
+  // length from the SURVIVING scenes is what left a 300s job declaring ~165s of
+  // film: hyperframes then captured a short composition, the mixer laid 300s of
+  // voiceover over it, and the picture froze at 2:45 while the narrator kept
+  // talking. Keep the requested length as the target and make the beats fit it
+  // (see the rescale after the shed), rather than letting dropped beats shorten
+  // the film.
+  const requestedD = Math.max(1, Number(sb.durationSec) || 0)
+    || Math.round((scenes.reduce((a, s) => a + Math.max(1.2, Number(s.duration) || 4), 0)) * 100) / 100;
+  let D = requestedD;
 
   // OWNER sources only. topic-screenshots are captures of OTHER products'
   // reference sites, so deriving the film's URL from one printed a COMPETITOR'S
@@ -2205,12 +2356,25 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
     if (hostBrand) return hostBrand;
     if (explicit) return explicit;
     const t = String(sb.title || "").trim();
-    if (!t) return "STUDIO";
+    if (!t) return "";
     const words = t.split(/\s+/);
-    return words.length >= 3 ? words[0] : t;
+    if (words.length < 3) return t;
+    // THE FIRST WORD OF A SENTENCE IS NOT A BRAND. A title like "From bare soil
+    // to first harvest" branded the film "From" and closed it on "from.com" — a
+    // domain that exists and belongs to someone else. Take the first word that
+    // could plausibly BE a name; a title made only of function words yields no
+    // brand at all, which is handled below.
+    const w = words.map((x) => x.replace(/[^A-Za-z0-9'&-]/g, "")).find((x) => x.length >= 3 && !TITLE_STOP.has(x.toLowerCase()));
+    return w || "";
   })();
   const brand = brandSrc.slice(0, 18);
-  const url = String(sb.url || host || `${brand.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`).slice(0, 40);
+  // NEVER INVENT A DOMAIN. This used to fall back to `${brand}.com`, which is not
+  // a guess — it is an assertion, printed in the corner of every frame and on the
+  // CTA, about a domain we do not own and have never checked. "from.com",
+  // "turn.com" and friends all resolve to real businesses. Show a URL only when
+  // one was actually supplied or harvested from the film's own site; otherwise
+  // show none and let the CTA carry the call to action on its own.
+  const url = String(sb.url || host || "").slice(0, 40);
 
   const tplScenes = readTemplateScenes(html);
   if (!tplScenes || !tplScenes.length) throw new Error(`omelette: template "${tplName}" exposes no OM_SCENES`);
@@ -2236,6 +2400,33 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
     for (const s of omScenes) { for (const k of ["body", "sub", "quote"]) if (typeof s[k] === "string") s[k] = fit(s[k], 60); if (fits()) break; }
   }
   while (!fits() && omScenes.length > 2) omScenes.splice(omScenes.length - 2, 1);   // drop content scenes, keep the closer
+
+  // RESCALE THE SURVIVORS ONTO THE REQUESTED LENGTH.
+  //
+  // Everything above sheds beats: the 50-scene slice, the gallery/copy trims and
+  // this splice loop. Each dropped beat took its seconds with it, so the film
+  // ended early and held its last frame for the remainder — the "video got stuck
+  // at 2:45" report. Stretch what survived to cover the full duration instead, so
+  // fewer beats simply means longer beats, never a frozen tail.
+  //
+  // The engine's PACE warp re-reveals inside each beat, so a stretched beat reads
+  // as a slower beat rather than a stalled one. A floor of 1.2s keeps a very long
+  // script from producing flash-frames when it survives intact.
+  {
+    const sum = omScenes.reduce((a, s) => a + Math.max(0, Number(s.dur) || 0), 0);
+    if (sum > 0 && omScenes.length) {
+      const k = requestedD / sum;
+      let acc = 0;
+      omScenes.forEach((s, i) => {
+        const v = i === omScenes.length - 1
+          ? Math.max(1.2, requestedD - acc)                    // last beat absorbs rounding
+          : Math.max(1.2, Math.round((Number(s.dur) || 0) * k * 100) / 100);
+        s.dur = Math.round(v * 100) / 100;
+        acc = Math.round((acc + s.dur) * 100) / 100;
+      });
+    }
+    D = Math.round(omScenes.reduce((a, s) => a + (Number(s.dur) || 0), 0) * 100) / 100 || requestedD;
+  }
 
   // 1 — swap the scene list. It lives in a plain inline <script> in the page
   // HTML, which the bundler stores JSON-encoded inside __bundler/template.

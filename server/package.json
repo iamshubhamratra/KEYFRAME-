@@ -34,9 +34,13 @@
     "audit:density:films": "node scripts/audit-density-films.js",
     "audit:capacity": "node scripts/audit-media-capacity.js 999 --save",
     "check:slots": "node scripts/check-slot-types.js",
-    "check:graph": "node scripts/test-graph-topology.js"
+    "check:graph": "node scripts/test-graph-topology.js",
+    "test:longform": "node scripts/longform_duration.test.cjs",
+    "audit:lfdur": "node scripts/longform-durations.js",
+    "test:brand": "node scripts/omelette_brand.test.cjs"
   },
   "dependencies": {
+    "@babel/standalone": "^8.0.4",
     "@huggingface/transformers": "^4.2.0",
     "@langchain/core": "^1.1.48",
     "@langchain/langgraph": "^1.4.1",
@@ -44,6 +48,7 @@
     "cookie-parser": "^1.4.7",
     "express": "^4.21.1",
     "express-rate-limit": "^7.4.1",
+    "gsap": "^3.12.5",
     "hyperframes": "0.6.120",
     "jsonwebtoken": "^9.0.3",
     "msedge-tts": "^2.0.6",
@@ -53,6 +58,8 @@
     "openai": "^4.73.0",
     "p-queue": "^6.6.2",
     "puppeteer-core": "^24.43.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "zod": "^3.25.76"
   }
 }
