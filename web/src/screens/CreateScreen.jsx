@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createProject, listFrames } from "../api.js";
-import { PACK_LORE, PACK_ORDER, loreFor, loreForPack, orderPacks, isNewPack } from "../packlore.js";
+import { catOf, loreFor, loreForPack, orderPacks } from "../packlore.js";
 import { PackCard } from "./Templates.jsx";
 
 // The v2 editor, made real: "Type. Then watch it shoot itself."
@@ -12,6 +12,36 @@ const TABS = [
   { key: "url", label: "URL", c: "#23c8e0" },
   { key: "video", label: "VIDEO", c: "#ffb03a" },
 ];
+
+// The picker's aspect groups. Same three categories, same order and the same accents as the
+// public gallery (Templates.jsx) — a pack must not appear under "9:16 · VERTICAL" on one page
+// and somewhere else on the other.
+const PACK_GROUPS = [
+  ["portrait", "9:16 · VERTICAL", "Reels, Shorts & TikTok", "#e832a8"],
+  ["horizontal", "16:9 · LANDSCAPE", "YouTube, web & keynote", "#23c8e0"],
+  ["square", "1:1 · SQUARE", "Feed posts", "#b9f24a"],
+  // MUST MIRROR Templates.jsx CATEGORIES — the comment above this list says a pack must not
+  // appear under one heading on one page and somewhere else on the other, and `catOf` now
+  // returns "longform" for 27 of them. Without this entry those packs match NO group here and
+  // the Studio picker simply does not render them: they exist, the gallery shows them, and the
+  // one screen you actually start a film from cannot see them.
+  ["longform", "5 MIN · LONG-FORM", "Explainers, docs & deep dives", "#f2a03c"],
+];
+
+// THE TWO FORMS ARE DISJOINT, so the UI says so rather than letting you discover it.
+//
+// frame_manifest.packFitsDuration puts short packs in 0–150s and long-form in 240–360s with
+// nothing in between, and frame_selector enforces it in both directions. A single 10→320 slider
+// would therefore spend most of its travel in a dead zone where the pack you picked silently
+// stops being eligible. Choosing the FORM first, and getting the right duration range with it,
+// is the honest shape of a control whose underlying values are not continuous.
+const FORMS = [
+  ["short", "SHORT FILM", "10–60s · social, ads, teasers", 30, 10, 60, 5],
+  ["longform", "LONG-FORM", "5 min · explainers & deep dives", 300, 240, 320, 10],
+];
+// The brief speaks the JOB vocabulary (vertical/horizontal/square); packs are filed under the
+// PACK one (portrait/horizontal/square). One mapping, so "matches your format" cannot drift.
+const ORIENT_CAT = { vertical: "portrait", horizontal: "horizontal", square: "square" };
 
 const EXAMPLE_PROMPTS = [
   "Launch a productivity app",
@@ -58,8 +88,36 @@ export default function CreateScreen({ onCreated, prefill }) {
   const [url, setUrl] = useState(prefill?.url || "");
   const [file, setFile] = useState(null);
   const [duration, setDuration] = useState(30);
+  const [form, setForm] = useState("short");
   const [orientation, setOrientation] = useState("horizontal");
   const [framePack, setFramePack] = useState(prefill?.framePack || "auto");
+
+  const formSpec = FORMS.find((f) => f[0] === form) || FORMS[0];
+  const [, , , , durMin, durMax, durStep] = formSpec;
+
+  // Switching form moves the duration into the new band and, for long-form, the orientation with
+  // it: all 27 long-form packs are authored 1920x1080, so leaving a vertical job selected would
+  // hand the user a guaranteed "designed for landscape" disclosure on a choice they never
+  // knowingly made. Short form forces nothing back — it has packs in every aspect.
+  //
+  // Declared HERE, below the state it writes, rather than beside the `form` useState. A const
+  // arrow function referencing a later const works (the body runs on click, long after both are
+  // initialised) but it reads like a temporal-dead-zone bug to anyone scanning the file.
+  const chooseForm = (next) => {
+    const spec = FORMS.find((f) => f[0] === next) || FORMS[0];
+    setForm(next);
+    setDuration(spec[3]);
+    if (next === "longform") setOrientation("horizontal");
+    // A pack from the other band is no longer eligible. Drop back to auto rather than carry an
+    // invalid pick into the brief, where frame_selector would reroute it anyway and the user
+    // would be told their explicit choice was overridden.
+    setFramePack((cur) => {
+      if (!cur || cur === "auto") return cur;
+      const p = (packs || []).find((x) => x.name === cur);
+      if (!p) return cur;
+      return (p.form === "longform") === (next === "longform") ? cur : "auto";
+    });
+  };
   const [captions, setCaptions] = useState(false);
   // NARRATION — on by default (opt-OUT, the mirror of captions' opt-IN). Off produces a
   // music-led film: the bed comes forward, ducking is bypassed, sound design carries the
@@ -92,6 +150,8 @@ export default function CreateScreen({ onCreated, prefill }) {
   const [packs, setPacks] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(prefill?.error || null);
+  // Why one or more dropped files did not make it in. Null when everything was accepted.
+  const [uploadNotice, setUploadNotice] = useState(null);
   const fileInput = useRef(null);
   const logoInput = useRef(null);
   const assetsInput = useRef(null);
@@ -105,6 +165,22 @@ export default function CreateScreen({ onCreated, prefill }) {
   useEffect(() => { if (prefill?.framePack) setFramePack(prefill.framePack); }, [prefill]);
 
   const packList = packs || orderPacks([]);
+  // The group that can actually render the film you configured comes first. Everything is still
+  // offered — picking a 16:9 pack for a 9:16 film is legal and the pipeline handles it — but the
+  // packs that match the shape you chose should not be below 106 that do not.
+  // The group that can actually render the film you configured leads. FORM outranks orientation:
+  // an ineligible pack is a harder failure than a mismatched aspect (frame_selector will reroute
+  // away from a long-form pack on a 30s job, but it only warns about a landscape one), so on a
+  // long-form job the long-form group comes first and the short groups sort behind it.
+  const orderedPackGroups = (() => {
+    const mineAspect = ORIENT_CAT[orientation];
+    const rank = (key) => {
+      if (form === "longform") return key === "longform" ? 2 : 0;
+      if (key === "longform") return -1;          // never lead a short job with a 5-minute pack
+      return key === mineAspect ? 2 : 0;
+    };
+    return [...PACK_GROUPS].sort((a, b) => rank(b[0]) - rank(a[0]));
+  })();
 
   // /api/frames is the ONE source for what a pack's accents are: packlore.js is a
   // hand-copied presentation layer (it says itself it mirrors another file), so
@@ -143,16 +219,45 @@ export default function CreateScreen({ onCreated, prefill }) {
   const MAX_ASSETS = 12, IMG_MAX_MB = 15;
   // Shared intake for the picker AND drag-drop: mime + size filtered client-side
   // (the server re-validates), capped at 12, silently deduped by name+size.
+  // A REJECTED UPLOAD HAS TO SAY SO.
+  //
+  // This used to filter the list and `return` when nothing survived, so dropping a HEIC from a
+  // phone, a PDF, or a 20MB photo did exactly nothing: no message, no error, no change on screen.
+  // The only reading available to the user was "the uploader is broken". Every reason a file did
+  // not make it is now reported, in the file's own name.
   function addAssetFiles(list) {
-    const incoming = Array.from(list || []).filter((f) => IMAGE_TYPES.includes(f.type) && f.size <= IMG_MAX_MB * 1024 * 1024);
-    if (!incoming.length) return;
-    setAssetFiles((prev) => {
-      const seen = new Set(prev.map((f) => `${f.name}|${f.size}`));
-      return [...prev, ...incoming.filter((f) => !seen.has(`${f.name}|${f.size}`))].slice(0, MAX_ASSETS);
+    const files = Array.from(list || []);
+    if (!files.length) return;
+    const rejected = [];
+    const ok = files.filter((f) => {
+      if (!IMAGE_TYPES.includes(f.type)) { rejected.push(`${f.name} — needs to be PNG, JPEG or WebP`); return false; }
+      if (f.size > IMG_MAX_MB * 1024 * 1024) { rejected.push(`${f.name} — ${(f.size / 1048576).toFixed(1)}MB, over the ${IMG_MAX_MB}MB limit`); return false; }
+      return true;
     });
+    const seen = new Set(assetFiles.map((f) => `${f.name}|${f.size}`));
+    const fresh = ok.filter((f) => !seen.has(`${f.name}|${f.size}`));
+    const dupes = ok.length - fresh.length;
+    const room = Math.max(0, MAX_ASSETS - assetFiles.length);
+    const taken = fresh.slice(0, room);
+    const overflow = fresh.length - taken.length;
+    if (taken.length) setAssetFiles((prev) => [...prev, ...taken].slice(0, MAX_ASSETS));
+    const notes = [...rejected];
+    if (dupes) notes.push(`${dupes} ${dupes === 1 ? "image was" : "images were"} already added`);
+    if (overflow) notes.push(`${overflow} more would pass the ${MAX_ASSETS}-image limit`);
+    setUploadNotice(notes.length ? notes : null);
   }
   function acceptLogo(f) {
-    if (f && [...IMAGE_TYPES, "image/svg+xml"].includes(f.type) && f.size <= IMG_MAX_MB * 1024 * 1024) setLogoFile(f);
+    if (!f) return;
+    if (![...IMAGE_TYPES, "image/svg+xml"].includes(f.type)) {
+      setUploadNotice([`${f.name} — a logo needs to be PNG, JPEG, WebP or SVG`]);
+      return;
+    }
+    if (f.size > IMG_MAX_MB * 1024 * 1024) {
+      setUploadNotice([`${f.name} — ${(f.size / 1048576).toFixed(1)}MB, over the ${IMG_MAX_MB}MB limit`]);
+      return;
+    }
+    setLogoFile(f);
+    setUploadNotice(null);
   }
 
   const sourceLen = tab === "prompt" ? prompt.trim().length : tab === "url" ? url.trim().length : (file ? 40 : 0);
@@ -161,6 +266,16 @@ export default function CreateScreen({ onCreated, prefill }) {
     (tab === "url" && /^https?:\/\/.+\..+/.test(url.trim())) ||
     (tab === "video" && file)
   );
+
+  // WHY the button is off. A disabled .btn-mag carries `pointer-events: none`, so the usual
+  // trick of a title tooltip cannot fire — hovering a disabled Produce button produced nothing
+  // at all, and the requirement (ten characters, a valid URL, a chosen file) was never stated
+  // anywhere on screen. So it is said in text, beside the control.
+  const blockReason = busy ? null
+    : tab === "prompt" ? (prompt.trim().length >= 10 ? null : "Describe the film in at least 10 characters first.")
+      : tab === "url" ? (/^https?:\/\/.+\..+/.test(url.trim()) ? null : "Enter a full website address, like https://example.com")
+        : tab === "video" ? (file ? null : "Choose a video file to work from.")
+          : null;
 
   async function submit() {
     setBusy(true);
@@ -229,7 +344,7 @@ export default function CreateScreen({ onCreated, prefill }) {
             <span className="tl-dot" style={{ background: "#ff5f57" }} />
             <span className="tl-dot" style={{ background: "#febc2e" }} />
             <span className="tl-dot" style={{ background: "#28c840" }} />
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.2em", color: "#7d766a", marginLeft: 10 }}>KEYFRAME — EDITOR</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-micro)", letterSpacing: "0.2em", color: "#7d766a", marginLeft: 10 }}>KEYFRAME — EDITOR</span>
             <span className="editor-status" style={{ marginLeft: "auto" }}>{status}</span>
           </div>
 
@@ -279,7 +394,7 @@ export default function CreateScreen({ onCreated, prefill }) {
                       onChange={(e) => setPrompt(e.target.value)}
                       placeholder="Optional — anything specific the film should say?"
                       className="editor-inset w-full resize-none"
-                      style={{ marginTop: 10, height: 60, padding: "10px 16px", fontSize: 12 }}
+                      style={{ marginTop: 10, height: 60, padding: "10px 16px", fontSize: "var(--text-sm)" }}
                     />
                   </motion.div>
                 )}
@@ -295,8 +410,8 @@ export default function CreateScreen({ onCreated, prefill }) {
                     <input ref={fileInput} type="file" accept="video/mp4,video/quicktime,video/webm" hidden
                       onChange={(e) => setFile(e.target.files?.[0] || null)} />
                     {file
-                      ? <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-lm)", margin: 0 }}>{file.name} <span style={{ color: "#7d766a" }}>({Math.round(file.size / 1048576)} MB)</span></p>
-                      : <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.1em", color: "#9a9284", margin: 0, lineHeight: 1.8 }}>DROP A REFERENCE FILM<br /><span style={{ fontSize: 9, color: "#7d766a" }}>MP4 / MOV / WEBM · UP TO 200 MB — WE TRANSCRIBE AND STUDY ITS STYLE</span></p>}
+                      ? <p style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--color-lm)", margin: 0 }}>{file.name} <span style={{ color: "#7d766a" }}>({Math.round(file.size / 1048576)} MB)</span></p>
+                      : <p style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-mono)", letterSpacing: "0.1em", color: "#9a9284", margin: 0, lineHeight: 1.8 }}>DROP A REFERENCE FILM<br /><span style={{ fontSize: "var(--text-micro)", color: "#7d766a" }}>MP4 / MOV / WEBM · UP TO 200 MB — WE TRANSCRIBE AND STUDY ITS STYLE</span></p>}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -318,7 +433,7 @@ export default function CreateScreen({ onCreated, prefill }) {
 
               {/* meta + produce */}
               <div style={{ marginTop: 18, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                <div style={{ display: "flex", gap: 14, fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.14em", color: "#9a9284", flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: 14, fontFamily: "var(--font-mono)", fontSize: "var(--text-micro)", letterSpacing: "0.14em", color: "#9a9284", flexWrap: "wrap" }}>
                   <span>⏱ {duration}S</span>
                   <span>▦ {ASPECT[orientation]}</span>
                   <span>{(() => {
@@ -349,10 +464,24 @@ export default function CreateScreen({ onCreated, prefill }) {
                   {finish === "premium" && <span style={{ color: "var(--color-mag)" }}>◆ PREMIUM CUT</span>}
                   {finish === "cinema" && <span style={{ color: "var(--color-cy)" }}>▲ CINEMA 3D</span>}
                 </div>
-                <button onClick={submit} disabled={!canSubmit} className="btn-mag" style={{ padding: "11px 24px", fontSize: 14 }}>
+                <button onClick={submit} disabled={!canSubmit} className="btn-mag"
+                  aria-describedby={blockReason ? "produce-blocked" : undefined}
+                  style={{ padding: "11px 24px", fontSize: "var(--text-base)" }}>
                   {busy ? "Rolling…" : "Produce →"}
                 </button>
               </div>
+              {blockReason && (
+                <p id="produce-blocked" style={{ margin: "8px 0 0", textAlign: "right", fontFamily: "var(--font-mono)", fontSize: "var(--text-mono)", lineHeight: 1.5, color: "var(--color-dark-dim)" }}>
+                  {blockReason}
+                </p>
+              )}
+              {/* The submit error belongs HERE, next to the button that produced it — it used to
+                  render only in a block roughly a screen and a half further down the page. */}
+              {error && (
+                <p role="alert" className="break-long" style={{ margin: "8px 0 0", textAlign: "right", fontFamily: "var(--font-mono)", fontSize: "var(--text-mono)", lineHeight: 1.5, color: "#ff8f83" }}>
+                  {error}
+                </p>
+              )}
             </div>
 
             {/* right — live preview pane */}
@@ -367,7 +496,7 @@ export default function CreateScreen({ onCreated, prefill }) {
                 <div aria-hidden="true" style={{ position: "absolute", inset: 0, background: `radial-gradient(120% 90% at 50% 0%, ${brandPalette.primary}8c, ${brandPalette.primary}00 70%)` }} />
               )}
               <div className="film-scan" />
-              <div style={{ position: "absolute", top: 12, left: 14, fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.2em", color: "rgba(255,255,255,.85)", display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ position: "absolute", top: 12, left: 14, fontFamily: "var(--font-mono)", fontSize: "var(--text-micro)", letterSpacing: "0.2em", color: "rgba(255,255,255,.85)", display: "flex", alignItems: "center", gap: 6 }}>
                 <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#ff4d3c", animation: "kf2-blink 1s steps(1) infinite" }} />PREVIEW
               </div>
               <div style={{ position: "absolute", left: 14, right: 14, bottom: 14, textAlign: "center" }}>
@@ -377,7 +506,7 @@ export default function CreateScreen({ onCreated, prefill }) {
                 {brandPalette && (
                   <span aria-hidden="true" style={{ display: "block", width: 64, height: 3, borderRadius: 999, margin: "0 auto 8px", background: `linear-gradient(100deg, ${brandPalette.primary}, ${brandPalette.secondary})` }} />
                 )}
-                <span style={{ display: "inline-block", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, color: "#fff", background: "rgba(0,0,0,.55)", padding: "6px 12px", borderRadius: 8, backdropFilter: "blur(4px)" }}>
+                <span style={{ display: "inline-block", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "var(--text-lg)", color: "#fff", background: "rgba(0,0,0,.55)", padding: "6px 12px", borderRadius: 8, backdropFilter: "blur(4px)" }}>
                   {activeLore ? activeLore.demo : (prompt.trim() ? prompt.trim().slice(0, 42) + (prompt.trim().length > 42 ? "…" : "") : "Your film starts here.")}
                 </span>
               </div>
@@ -385,38 +514,110 @@ export default function CreateScreen({ onCreated, prefill }) {
           </div>
         </motion.div>
 
-        {error && <p style={{ marginTop: 16, fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-rec)" }}>{error}</p>}
+        {error && <p style={{ marginTop: 16, fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", color: "var(--color-rec)" }}>{error}</p>}
 
         {/* ---------- options: white spine cards ---------- */}
         {/* Three balanced COLUMN-GROUPS, not one flat grid: a flat grid coupled every
             row's height to its tallest card, so the short cards left big empty gaps under
             them. Each group is a flex column that packs its own cards tightly top-to-bottom;
             columns may differ in height (that's fine) but never gap internally. */}
-        <div style={{ marginTop: 20, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px,1fr))", gap: 14, alignItems: "start" }}>
-          {/* ── Column 1 · FORMAT — duration · orientation · finish ── */}
+        <div style={{ marginTop: 20, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(280px,100%),1fr))", gap: 14, alignItems: "start" }}>
+          {/* ── Column 1 · FORMAT — duration · orientation · finish ──
+              THE GROUP NAMES WERE ONLY EVER IN THESE COMMENTS. The brief is genuinely organised
+              into three columns, but the user saw eight near-identical white spine-cards in a
+              row with nothing saying which belonged together — and below ~880px the columns
+              stack and even the visual grouping dissolves. Naming them costs one line each. */}
           <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
+          <h3 className="col-head" style={{ "--col": "#e832a8" }}>FORMAT</h3>
           <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
             <span className="spine" style={{ "--spine": "#e832a8" }} />
-            <div className="label-mono" style={{ marginBottom: 10 }}>DURATION — {duration}S</div>
-            <input type="range" min="10" max="60" step="5" value={duration}
+            {/* A <div> is not a label, so this range had no accessible name — a screen reader
+                announced a slider with a bare number and no idea what it set. */}
+            {/* FORM comes before length, because it decides which lengths and which templates
+                are even available. See the FORMS note at the top of this file. */}
+            <span className="label-mono" style={{ display: "block", marginBottom: 8 }}>FORM</span>
+            <div role="radiogroup" aria-label="Film form" style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+              {FORMS.map(([key, title, sub]) => (
+                <button
+                  key={key} type="button" role="radio" aria-checked={form === key}
+                  onClick={() => chooseForm(key)}
+                  title={sub}
+                  style={{
+                    flex: 1, minWidth: 0, cursor: "pointer", textAlign: "left",
+                    padding: "10px 12px", borderRadius: 10,
+                    border: `1px solid ${form === key ? "var(--color-mag)" : "var(--color-rule)"}`,
+                    background: form === key ? "color-mix(in srgb, var(--color-mag) 12%, transparent)" : "transparent",
+                    color: "var(--color-ink)",
+                  }}
+                >
+                  <span style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: "var(--text-mono)", letterSpacing: "0.12em" }}>{title}</span>
+                  <span style={{ display: "block", marginTop: 3, fontSize: "var(--text-micro)", color: "var(--color-dim)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sub}</span>
+                </button>
+              ))}
+            </div>
+
+            <label className="label-mono" htmlFor="film-duration" style={{ display: "block", marginBottom: 10 }}>
+              DURATION — {duration >= 60 ? `${Math.floor(duration / 60)}M ${String(duration % 60).padStart(2, "0")}S` : `${duration}S`}
+            </label>
+            <input id="film-duration" type="range" min={durMin} max={durMax} step={durStep} value={duration}
               onChange={(e) => setDuration(Number(e.target.value))}
+              aria-valuetext={`${duration} seconds`}
               className="w-full" style={{ accentColor: "var(--color-mag)" }} />
+            {/* A bare slider says nothing about its own range — the card was a label and a track.
+                The end stops and what the current length is FOR make it a control you can read. */}
+            <div style={{ marginTop: 6, display: "flex", justifyContent: "space-between", fontFamily: "var(--font-mono)", fontSize: "var(--text-micro)", letterSpacing: "0.1em", color: "var(--color-dim)" }}>
+              <span>{durMin >= 60 ? `${Math.round(durMin / 60)}M` : `${durMin}S`}</span>
+              <span>{form === "longform"
+                ? "LONG-FORM — 40 BEATS, ONE ARC"
+                : duration <= 20 ? "SHORT — SOCIAL CUT" : duration <= 40 ? "STANDARD — FULL ARC" : "LONG — ROOM TO EXPLAIN"}</span>
+              <span>{durMax >= 60 ? `${Math.round(durMax / 60)}M` : `${durMax}S`}</span>
+            </div>
+            {/* A five-minute render is a genuinely different commitment — roughly twenty minutes
+                of machine time against about two. Saying so here costs one line and prevents the
+                "is it stuck?" that the Production screen would otherwise field. */}
+            {form === "longform" && (
+              <p style={{ margin: "10px 0 0", fontSize: "var(--text-micro)", color: "var(--color-dim)", lineHeight: 1.5 }}>
+                Long-form films take around 20 minutes to render, and use a template family built
+                for the length — 40 scenes, one image and one logo in the whole run.
+              </p>
+            )}
           </div>
           <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
             <span className="spine" style={{ "--spine": "#23c8e0" }} />
             <div className="label-mono" style={{ marginBottom: 10 }}>ORIENTATION — {ASPECT[orientation]}</div>
-            <div style={{ display: "flex", gap: 8 }}>
-              {["horizontal", "vertical", "square"].map((o) => (
-                <button key={o} onClick={() => setOrientation(o)}
-                  style={{
-                    width: o === "vertical" ? 20 : o === "square" ? 28 : 40,
-                    height: o === "vertical" ? 34 : o === "square" ? 28 : 24,
-                    borderRadius: 5, cursor: "pointer", transition: "all .3s",
-                    border: `1.5px solid ${orientation === o ? "var(--color-cy)" : "rgba(23,19,14,.25)"}`,
-                    background: orientation === o ? "rgba(35,200,224,.14)" : "transparent",
-                  }}
-                  title={o} aria-label={`${o} orientation`} aria-pressed={orientation === o} />
-              ))}
+            {/* THE SHAPE ALONE WAS THE WHOLE CONTROL. These were three empty rectangles sized to
+                hint at their aspect — no ratio, no name, nothing but a 20×34 and a 40×24 box, so
+                choosing a format meant guessing which blank box meant which. The proportioned
+                glyph is still the fastest read, but it now carries its ratio and what it is for. */}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {[
+                ["vertical", "9:16", "Reels · Shorts · TikTok", 15, 26],
+                ["horizontal", "16:9", "YouTube · web · keynote", 28, 16],
+                ["square", "1:1", "Feed posts", 21, 21],
+              ].map(([o, ratio, note, w, h]) => {
+                const on = orientation === o;
+                return (
+                  <button key={o} type="button" onClick={() => setOrientation(o)}
+                    title={note} aria-label={`${ratio} ${o} — ${note}`} aria-pressed={on}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 8,
+                      padding: "8px 12px", borderRadius: 10, cursor: "pointer",
+                      transition: "border-color .2s, background .2s",
+                      border: `1.5px solid ${on ? "var(--color-info-ink)" : "rgba(23,19,14,.22)"}`,
+                      background: on ? "color-mix(in srgb, var(--color-info-ink) 9%, transparent)" : "transparent",
+                    }}>
+                    <span aria-hidden="true" style={{
+                      width: w, height: h, borderRadius: 3, flex: "none",
+                      border: `1.5px solid ${on ? "var(--color-info-ink)" : "rgba(23,19,14,.35)"}`,
+                      background: on ? "color-mix(in srgb, var(--color-info-ink) 18%, transparent)" : "transparent",
+                    }} />
+                    <span style={{
+                      fontFamily: "var(--font-mono)", fontSize: "var(--text-mono)", letterSpacing: "0.1em",
+                      color: on ? "var(--color-info-ink)" : "var(--color-dim)",
+                    }}>{ratio}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
           {/* FINISH — lives in the FORMAT column (moved up from below) so this column
@@ -444,22 +645,28 @@ export default function CreateScreen({ onCreated, prefill }) {
                 ▲ CINEMA 3D
               </button>
             </div>
-            <div style={{ marginTop: 10, fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)" }}>
+            <div style={{ marginTop: 10, fontFamily: "var(--font-mono)", fontSize: "var(--text-micro)", letterSpacing: "0.1em", color: "var(--color-dim)" }}>
               {finish === "premium" ? "AI-COMPOSED SCENES · ~10–15 MIN · RICHER"
                 : finish === "cinema" ? "3D SET · CRT SCREEN + FILM GRAIN · ~3–5 MIN"
                 : "CODE-BUILT SCENES · ~2 MIN · RELIABLE"}
             </div>
           </div>
+          {/* The "bring your own material" note closes this column. It is guidance about the
+              BRAND column, but it lives here: FORMAT is the shortest of the three, so the note
+              fills the gap under it instead of adding to the tallest column, and it is read
+              before the brand controls rather than on top of them. */}
+          <BrandAssetTips />
           </div>{/* /Column 1 · FORMAT */}
 
           {/* ── Column 2 · LANGUAGE & CAPTIONS — the two related-but-separate cards ── */}
           <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
+          <h3 className="col-head" style={{ "--col": "#8b5cf6" }}>LANGUAGE &amp; CAPTIONS</h3>
           {/* LANGUAGE — the FILM's spoken + on-screen language. INDEPENDENT of captions
               (a Hindi film needs no burned-in subtitles), so this card is always visible. */}
           <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
             <span className="spine" style={{ "--spine": "#8b5cf6" }} />
             <div className="label-mono" style={{ marginBottom: 4 }}>LANGUAGE</div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)", marginBottom: 14 }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-micro)", letterSpacing: "0.1em", color: "var(--color-dim)", marginBottom: 14 }}>
               {(() => {
                 const lbl = (c) => ((CAPTION_LANGS.find((l) => l.code === c) || {}).label || c).toUpperCase();
                 const rvt = videoTextLang === "auto" ? voiceLang : videoTextLang;
@@ -498,9 +705,9 @@ export default function CreateScreen({ onCreated, prefill }) {
                 tags.push(`🎬 on-screen text follows the voiceover (${vl})`);
               }
               return tags.length ? (
-                <div style={{ marginTop: 11, display: "flex", flexWrap: "wrap", gap: 6 }}>
+                <div style={{ marginTop: 11, display: "flex", flexDirection: "column", gap: 4 }}>
                   {tags.map((t, i) => (
-                    <span key={i} style={{ fontFamily: "var(--font-mono)", fontSize: 8.5, letterSpacing: "0.06em", color: "var(--color-dim)", padding: "4px 9px", borderRadius: 999, border: "1px solid rgba(23,19,14,.14)", background: "var(--color-paper-2)" }}>{t}</span>
+                    <Hint key={i}>{t}</Hint>
                   ))}
                 </div>
               ) : null;
@@ -515,31 +722,31 @@ export default function CreateScreen({ onCreated, prefill }) {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <div>
                 <div className="label-mono" style={{ marginBottom: 4 }}>VOICEOVER</div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)" }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-micro)", letterSpacing: "0.1em", color: "var(--color-dim)" }}>
                   {voiceover ? "ON — NARRATED, MUSIC DUCKS UNDER THE VOICE" : "OFF — MUSIC-LED CINEMATIC MIX"}
                 </div>
               </div>
               <button
                 type="button" role="switch" aria-checked={voiceover} aria-label="Toggle voiceover narration"
                 onClick={() => setVoiceover((v) => !v)}
-                style={{ position: "relative", flexShrink: 0, width: 44, height: 24, borderRadius: 999, cursor: "pointer", transition: "background .3s, border-color .3s", background: voiceover ? "var(--color-am)" : "var(--color-paper-2)", border: `1px solid ${voiceover ? "var(--color-am)" : "rgba(23,19,14,.25)"}` }}
+                style={switchStyle(voiceover)}
               >
-                <span style={{ position: "absolute", top: 2, left: 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(23,19,14,.3)", transition: "transform .3s", transform: voiceover ? "translateX(20px)" : "translateX(0)" }} />
+                <span style={knobStyle(voiceover)} />
               </button>
             </div>
-            <div style={{ marginTop: 12, fontSize: 12, lineHeight: 1.55, color: "var(--color-dim)" }}>
+            <div style={{ marginTop: 12, fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-dim)" }}>
               {voiceover
                 ? "A narrator reads each scene. The music bed sits under the voice and ducks automatically; sound effects stay subtle accents."
                 : "No narration. The music comes forward and carries the film, with richer sound design timed to the animation — built for product showcases, brand reveals, Reels and Shorts that play on mute."}
             </div>
             {!voiceover && (
-              <div style={{ marginTop: 11, display: "flex", flexWrap: "wrap", gap: 6 }}>
+              <div style={{ marginTop: 11, display: "flex", flexDirection: "column", gap: 4 }}>
                 {[
                   "🎵 music-led mix",
                   "✨ richer sound design",
                   captions ? "💬 captions on" : "💬 turn captions on for muted playback",
                 ].map((t, i) => (
-                  <span key={i} style={{ fontFamily: "var(--font-mono)", fontSize: 8.5, letterSpacing: "0.06em", color: "var(--color-dim)", padding: "4px 9px", borderRadius: 999, border: "1px solid rgba(23,19,14,.14)", background: "var(--color-paper-2)" }}>{t}</span>
+                  <Hint key={i}>{t}</Hint>
                 ))}
               </div>
             )}
@@ -552,7 +759,7 @@ export default function CreateScreen({ onCreated, prefill }) {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <div>
                 <div className="label-mono" style={{ marginBottom: 4 }}>CAPTIONS</div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)" }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-micro)", letterSpacing: "0.1em", color: "var(--color-dim)" }}>
                   {!captions ? "OFF — NO BURNED-IN SUBTITLES"
                     : `CC ${((CAPTION_LANGS.find((l) => l.code === captionLang) || {}).label || captionLang).toUpperCase()}`}
                 </div>
@@ -560,9 +767,9 @@ export default function CreateScreen({ onCreated, prefill }) {
               <button
                 type="button" role="switch" aria-checked={captions} aria-label="Toggle burned-in captions"
                 onClick={() => setCaptions((v) => !v)}
-                style={{ position: "relative", flexShrink: 0, width: 44, height: 24, borderRadius: 999, cursor: "pointer", transition: "background .3s, border-color .3s", background: captions ? "var(--color-am)" : "var(--color-paper-2)", border: `1px solid ${captions ? "var(--color-am)" : "rgba(23,19,14,.25)"}` }}
+                style={switchStyle(captions)}
               >
-                <span style={{ position: "absolute", top: 2, left: 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(23,19,14,.3)", transition: "transform .3s", transform: captions ? "translateX(20px)" : "translateX(0)" }} />
+                <span style={knobStyle(captions)} />
               </button>
             </div>
             {captions && (
@@ -583,9 +790,9 @@ export default function CreateScreen({ onCreated, prefill }) {
                     tags.push(`💬 subtitles (${cl}) differ from the voiceover (${vl})`);
                   }
                   return tags.length ? (
-                    <div style={{ marginTop: 11, display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    <div style={{ marginTop: 11, display: "flex", flexDirection: "column", gap: 4 }}>
                       {tags.map((t, i) => (
-                        <span key={i} style={{ fontFamily: "var(--font-mono)", fontSize: 8.5, letterSpacing: "0.06em", color: "var(--color-dim)", padding: "4px 9px", borderRadius: 999, border: "1px solid rgba(23,19,14,.14)", background: "var(--color-paper-2)" }}>{t}</span>
+                        <Hint key={i}>{t}</Hint>
                       ))}
                     </div>
                   ) : null;
@@ -597,8 +804,10 @@ export default function CreateScreen({ onCreated, prefill }) {
 
           {/* ── Column 3 · BRAND — colors · assets ── */}
           <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
-          {/* Leads this column so the note sits directly above the controls it names. */}
-          <BrandAssetTips />
+          <h3 className="col-head" style={{ "--col": "#23c8e0" }}>BRAND &amp; YOUR MATERIAL</h3>
+          {/* The note that used to lead this column now closes the FORMAT one — same text, one
+              instance. Repeating it in both places would be the same paragraph twice on one
+              screen. */}
           {/* Brand colors — ACCENTS ONLY. The pack owns identity (luminance, motion,
               type, layout, semantics); a brand palette only owns hue, and only where
               the eye is already meant to land. A site's own colors are still lifted
@@ -651,13 +860,13 @@ export default function CreateScreen({ onCreated, prefill }) {
                   <span style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 17, letterSpacing: "-0.02em", color: "var(--color-ink)" }}>
                     Transform your <span style={{ color: acc, borderBottom: `3px solid ${und}`, paddingBottom: 1 }}>workflow</span>
                   </span>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "6px 13px", borderRadius: 999, background: acc, color: "#fff", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.12em" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "6px 13px", borderRadius: 999, background: acc, color: "#fff", fontFamily: "var(--font-mono)", fontSize: "var(--text-micro)", letterSpacing: "0.12em" }}>
                     GET STARTED <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#fff", opacity: 0.9 }} />
                   </span>
                 </div>
               );
             })()}
-            <div style={{ marginTop: 10, fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)" }}>
+            <div style={{ marginTop: 10, fontFamily: "var(--font-mono)", fontSize: "var(--text-micro)", letterSpacing: "0.1em", color: "var(--color-dim)" }}>
               {brandPalette ? "ACCENTS ONLY — GROUND, TYPE & MOTION STAY THE PACK'S"
                 : framePack === "auto" ? "THE PACK WE CAST KEEPS ITS OWN ACCENTS"
                   : "THIS PACK KEEPS ITS OWN ACCENTS"}
@@ -683,7 +892,7 @@ export default function CreateScreen({ onCreated, prefill }) {
                   width: 54, height: 54, borderRadius: 10, cursor: "pointer", display: "grid", placeItems: "center",
                   background: logoFile ? "#fff" : "transparent", overflow: "hidden", position: "relative",
                   border: logoFile ? "1px solid rgba(23,19,14,.2)" : "1px dashed rgba(23,19,14,.3)",
-                  fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.1em", color: "var(--color-dim)",
+                  fontFamily: "var(--font-mono)", fontSize: "var(--text-micro)", letterSpacing: "0.1em", color: "var(--color-dim)",
                 }}>
                 {logoThumb ? <img src={logoThumb} alt="" style={{ maxWidth: "84%", maxHeight: "84%", objectFit: "contain" }} /> : <span>◇ LOGO</span>}
               </button>
@@ -709,7 +918,7 @@ export default function CreateScreen({ onCreated, prefill }) {
                   style={{
                     width: 54, height: 54, borderRadius: 10, cursor: "pointer", display: "grid", placeItems: "center",
                     background: "transparent", border: "1px dashed rgba(23,19,14,.3)",
-                    fontFamily: "var(--font-mono)", fontSize: 16, color: "var(--color-dim)",
+                    fontFamily: "var(--font-mono)", fontSize: "var(--text-lg)", color: "var(--color-dim)",
                   }}>+</button>
               )}
             </div>
@@ -717,10 +926,22 @@ export default function CreateScreen({ onCreated, prefill }) {
               onChange={(e) => { acceptLogo(e.target.files?.[0]); e.target.value = ""; }} />
             <input ref={assetsInput} type="file" accept="image/png,image/jpeg,image/webp" multiple hidden
               onChange={(e) => { addAssetFiles(e.target.files); e.target.value = ""; }} />
-            <div style={{ marginTop: 10, fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)" }}>
+            {uploadNotice && (
+              <div role="alert" style={{ marginTop: 10, display: "flex", alignItems: "flex-start", gap: 8 }}>
+                <div style={{ flex: 1 }}>
+                  {uploadNotice.map((n, i) => (
+                    <p key={i} className="break-long" style={{ margin: i ? "3px 0 0" : 0, fontFamily: "var(--font-mono)", fontSize: "var(--text-mono)", lineHeight: 1.5, color: "var(--color-warn-ink)" }}>
+                      {n}
+                    </p>
+                  ))}
+                </div>
+                <button className="link-mono" onClick={() => setUploadNotice(null)} aria-label="Dismiss upload messages">OK</button>
+              </div>
+            )}
+            <div style={{ marginTop: 10, fontFamily: "var(--font-mono)", fontSize: "var(--text-micro)", letterSpacing: "0.1em", color: "var(--color-dim)" }}>
               {logoFile || assetFiles.length
                 ? "YOUR MATERIAL LEADS — SCREENSHOTS GET HERO SCENES · LOGO AT OPEN + CTA · STOCK ONLY FILLS GAPS"
-                : "OPTIONAL — UPLOAD YOUR LOGO & PRODUCT SHOTS AND THE FILM IS BUILT AROUND THEM"}
+                : `OPTIONAL — PNG, JPEG OR WEBP UP TO ${IMG_MAX_MB}MB · UP TO ${MAX_ASSETS} IMAGES`}
             </div>
           </div>
           </div>{/* /Column 3 · BRAND */}
@@ -733,37 +954,132 @@ export default function CreateScreen({ onCreated, prefill }) {
         <h2 className="headline" style={{ fontSize: "clamp(32px,5vw,64px)" }}>
           Pick the look.<br />We <span style={{ color: "var(--color-am)" }}>art-direct</span> the film.
         </h2>
-        <p style={{ maxWidth: 560, color: "var(--color-dim)", fontSize: 16, lineHeight: 1.6, margin: "16px 0 0" }}>
+        <p style={{ maxWidth: 560, color: "var(--color-dim)", fontSize: "var(--text-lg)", lineHeight: 1.6, margin: "16px 0 0" }}>
           {packList.length} frame packs, each a complete design system — or leave it on auto and
           the pipeline casts the look that fits your brief.
         </p>
 
-        <div style={{ marginTop: 36, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px,1fr))", gap: 16 }}>
+        {/* GROUPED BY SHAPE, NOT SHUFFLED TOGETHER.
+            All 132 packs used to sit in one flat grid in whatever order orderPacks returned, so
+            a 9:16 pack, a 16:9 pack and a 1:1 pack sat side by side in the same row — and since
+            the film you are about to make is ONE of those shapes, most of what you were
+            scrolling past could not be used for it. Grouping puts the packs that match your
+            chosen format together, and lets each group's cards carry their own true aspect
+            instead of every poster being letterboxed into one shared 16:10 box. */}
+        <div style={{ marginTop: 36, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(240px,100%),1fr))", gap: 16 }}>
           <SelectablePack active={framePack === "auto"} onSelect={() => setFramePack("auto")}>
             <AutoCard />
           </SelectablePack>
-          {packList.map((p) => (
-            <SelectablePack key={p.name} active={framePack === p.name}
-              onSelect={() => setFramePack(framePack === p.name ? "auto" : p.name)}>
-              <PackCard compact pack={p} />
-            </SelectablePack>
-          ))}
         </div>
 
+        {orderedPackGroups.map(([key, title, sub, accent]) => {
+          const group = packList.filter((p) => catOf(p) === key);
+          if (!group.length) return null;
+          // The group matching the orientation you picked leads, because those are the only
+          // packs that render your film in the shape you asked for.
+          return (
+            <div key={key} style={{ marginTop: 34 }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
+                <span className="scene-pill" style={{ "--tagc": accent }}>{title}</span>
+                <span style={{ color: "var(--color-dim)", fontSize: "var(--text-sm)" }}>{sub}</span>
+                {/* The tick has to answer "can this group render the film I configured", which is
+                    now two questions, not one. On a long-form job only the long-form group can —
+                    every short pack is refused outright by packFitsDuration, so ticking a matching
+                    ASPECT there would point at packs the selector will not accept. */}
+                {(form === "longform" ? key === "longform" : key === ORIENT_CAT[orientation]) && (
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-micro)", letterSpacing: "0.14em", color: "var(--color-ok-ink)" }}>
+                    ✓ MATCHES YOUR FORMAT
+                  </span>
+                )}
+                {/* And the converse: a group that cannot serve this job says so, rather than
+                    letting you pick from it and find out at intake. */}
+                {(form === "longform") !== (key === "longform") && (
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-micro)", letterSpacing: "0.14em", color: "var(--color-dim)" }}>
+                    {form === "longform" ? "NOT AVAILABLE AT 5 MIN" : "5 MIN ONLY"}
+                  </span>
+                )}
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-mono)", letterSpacing: "0.14em", color: "var(--color-dim)", marginLeft: "auto" }}>
+                  {group.length} {group.length === 1 ? "PACK" : "PACKS"}
+                </span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(min(${key === "portrait" ? 190 : key === "square" ? 210 : 240}px,100%),1fr))`, gap: 16 }}>
+                {group.map((p) => (
+                  <SelectablePack key={p.name} active={framePack === p.name}
+                    onSelect={() => setFramePack(framePack === p.name ? "auto" : p.name)}>
+                    <PackCard compact pack={p} />
+                  </SelectablePack>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+
         <div style={{ marginTop: 46, textAlign: "center" }}>
-          <button onClick={submit} disabled={!canSubmit} className="btn-mag btn-big">
+          <button onClick={submit} disabled={!canSubmit} className="btn-mag btn-big"
+            aria-describedby={blockReason ? "start-blocked" : undefined}>
             {busy ? "Rolling…" : "Start your film →"}
           </button>
+          {/* This button sits at the very bottom of a long page, a full screen below the brief it
+              submits — so it has to carry its own reason and its own error rather than sending
+              the user back up to find out why nothing happened. */}
+          {blockReason && (
+            <p id="start-blocked" style={{ margin: "12px 0 0", fontFamily: "var(--font-mono)", fontSize: "var(--text-mono)", lineHeight: 1.5, color: "var(--color-dim)" }}>
+              {blockReason}
+            </p>
+          )}
+          {error && (
+            <p role="alert" className="break-long" style={{ margin: "10px auto 0", maxWidth: 560, fontFamily: "var(--font-mono)", fontSize: "var(--text-mono)", lineHeight: 1.5, color: "var(--color-bad-ink)" }}>
+              {error}
+            </p>
+          )}
         </div>
       </section>
     </div>
   );
 }
 
+// ONE SWITCH, NOT TWO COPIES OF ONE.
+//
+// The voiceover and captions switches were the same 44×24 markup pasted twice, which is how two
+// controls that must look identical drift apart. Both also used amber for ON — the colour this
+// product uses for "careful, look at this" everywhere else, on a control whose ON state is the
+// ordinary, expected setting. Magenta is the app's affirmative accent and is already what every
+// other engaged control wears.
+const switchStyle = (on) => ({
+  position: "relative", flexShrink: 0, width: 44, height: 24, borderRadius: 999, cursor: "pointer",
+  transition: "background .3s, border-color .3s",
+  background: on ? "var(--color-mag)" : "var(--color-paper-2)",
+  border: `1px solid ${on ? "var(--color-mag)" : "rgba(23,19,14,.25)"}`,
+});
+const knobStyle = (on) => ({
+  position: "absolute", top: 2, left: 2, width: 18, height: 18, borderRadius: "50%",
+  background: "#fff", boxShadow: "0 1px 3px rgba(23,19,14,.3)",
+  transition: "transform .3s", transform: on ? "translateX(20px)" : "translateX(0)",
+});
+
+// A contextual note under a control ("on-screen text follows the voiceover (English (US))").
+//
+// These used to be 8.5px pills. A pill is a shape for one or two words, and several of these are
+// whole sentences — so they wrapped INSIDE their own rounded border and came out as a cramped
+// two-line grey box with the text jammed against the curve. As stacked note lines they read the
+// same whether the note is two words or fifteen.
+function Hint({ children }) {
+  return (
+    <p style={{
+      margin: 0, display: "flex", gap: 7, alignItems: "baseline",
+      fontFamily: "var(--font-mono)", fontSize: "var(--text-micro)", letterSpacing: "0.04em",
+      lineHeight: 1.55, color: "var(--color-dim)",
+    }}>
+      <span aria-hidden="true" style={{ color: "var(--color-dim-2)" }}>·</span>
+      <span style={{ minWidth: 0 }}>{children}</span>
+    </p>
+  );
+}
+
 function TimelineRow({ label, h = 26, children }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <span style={{ width: 44, fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.14em", color: "#7d766a" }}>{label}</span>
+      <span style={{ width: 44, fontFamily: "var(--font-mono)", fontSize: "var(--text-micro)", letterSpacing: "0.14em", color: "#7d766a" }}>{label}</span>
       <div className="clip-track" style={{ flex: 1, height: h }}>{children}</div>
     </div>
   );
@@ -772,15 +1088,24 @@ function TimelineRow({ label, h = 26, children }) {
 // BRAND-ASSET NOTE. A plain, non-blocking hint that the optional inputs below are what make
 // a film look like the customer's rather than the template's. Informational only — nothing
 // here gates the Produce button.
+// ADVICE IS NOT A CONTROL, so it should not wear a control's clothes.
+//
+// This was a full .card — white, hairline, 18px radius, the same 44px drop shadow as every
+// setting tile — plus a cream gradient and an amber spine nothing else in the brief uses. So the
+// column opened with something that looked like the most important tile on it and does nothing.
+// Flat, tinted, no shadow: still noticeable, visibly secondary to the cards under it.
 function BrandAssetTips() {
   return (
-    <div className="card" style={{ padding: "14px 18px 14px 23px", background: "linear-gradient(180deg,#fffdf6,#fff 60%)" }}>
-      <span className="spine" style={{ "--spine": "var(--color-am)" }} />
-      <p style={{ margin: 0, display: "flex", alignItems: "flex-start", gap: 9, fontSize: 12.5, lineHeight: 1.55, color: "var(--color-dim)" }}>
-        <span aria-hidden="true" style={{ flex: "none", fontSize: 14, lineHeight: 1.35 }}>💡</span>
+    <div style={{
+      padding: "12px 16px", borderRadius: 12,
+      background: "color-mix(in srgb, var(--color-am) 9%, transparent)",
+      border: "1px solid color-mix(in srgb, var(--color-am) 28%, transparent)",
+    }}>
+      <p style={{ margin: 0, display: "flex", alignItems: "flex-start", gap: 9, fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-ink)" }}>
+        <span aria-hidden="true" style={{ flex: "none", fontSize: "var(--text-base)", lineHeight: 1.35 }}>💡</span>
         <span style={{ minWidth: 0 }}>
-          For the best experience, provide your brand colours, logo, screenshots, images, and
-          other assets. This helps generate a more personalised and professional video.
+          Add your brand colours, logo and screenshots and the film is built around them —
+          your material leads, and stock only fills the gaps.
         </span>
       </p>
     </div>
@@ -841,11 +1166,11 @@ function HexStop({ label, value, onChange }) {
       <input type="color" value={value} onChange={(e) => onChange(e.target.value)} aria-label={`${label} brand color picker`}
         style={{ width: 28, height: 28, padding: 0, borderRadius: 8, border: "1px solid rgba(23,19,14,.2)", background: "none", cursor: "pointer" }} />
       <span style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.14em", color: "var(--color-dim)" }}>{label}</span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-micro)", letterSpacing: "0.14em", color: "var(--color-dim)" }}>{label}</span>
         <input type="text" value={text} onChange={(e) => commit(e.target.value)} onBlur={() => setText(value)}
           spellCheck={false} autoCapitalize="off" autoCorrect="off" maxLength={7}
           aria-label={`${label} brand color hex`} aria-invalid={invalid} placeholder="#RRGGBB"
-          style={{ width: 74, boxSizing: "border-box", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.03em",
+          style={{ width: 74, boxSizing: "border-box", fontFamily: "var(--font-mono)", fontSize: "var(--text-micro)", letterSpacing: "0.03em",
             padding: "3px 6px", borderRadius: 6,
             border: `1px solid ${invalid ? "var(--color-rec)" : "rgba(23,19,14,.2)"}`,
             outline: invalid ? "1px solid var(--color-rec)" : "none",
@@ -861,10 +1186,15 @@ function SelectablePack({ active, onSelect, children }) {
     <div role="button" aria-pressed={active} tabIndex={0}
       onClick={onSelect}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(); } }}
-      style={{ position: "relative", borderRadius: 18, outline: active ? "2px solid var(--color-mag)" : "none", outlineOffset: 3 }}>
+      // `outline: "none"` on the unselected state was an INLINE style, so it beat the global
+      // :focus-visible rule and every pack card in the picker was keyboard-focusable with no
+      // visible focus at all — you could tab through the whole gallery unable to see where you
+      // were. Leaving it undefined lets the focus ring through; the selected ring still wins
+      // while it applies.
+      style={{ position: "relative", borderRadius: 18, outline: active ? "2px solid var(--color-mag)" : undefined, outlineOffset: 3 }}>
       <div style={{ pointerEvents: "none" }}>{children}</div>
       {active && (
-        <div aria-hidden="true" style={{ position: "absolute", top: 10, right: 10, zIndex: 5, width: 22, height: 22, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: 12, background: "var(--color-mag)", color: "#17130e", boxShadow: "0 4px 14px rgba(232,50,168,.5)" }}>✓</div>
+        <div aria-hidden="true" style={{ position: "absolute", top: 10, right: 10, zIndex: 5, width: 22, height: 22, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: "var(--text-sm)", background: "var(--color-mag)", color: "#17130e", boxShadow: "0 4px 14px rgba(232,50,168,.5)" }}>✓</div>
       )}
     </div>
   );
@@ -881,10 +1211,10 @@ function AutoCard() {
       </div>
       <div style={{ padding: "16px 16px 18px 21px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-          <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, margin: 0, color: "var(--color-ink)" }}>Auto</h3>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.18em", color: "var(--color-mag)" }}>AI PICKS</span>
+          <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "var(--text-lg)", margin: 0, color: "var(--color-ink)" }}>Auto</h3>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-micro)", letterSpacing: "0.18em", color: "var(--color-mag)" }}>AI PICKS</span>
         </div>
-        <div style={{ marginTop: 10, fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em", color: "var(--color-dim)" }}>IT CHOOSES THE LOOK →</div>
+        <div style={{ marginTop: 10, fontFamily: "var(--font-mono)", fontSize: "var(--text-micro)", letterSpacing: "0.1em", color: "var(--color-dim)" }}>IT CHOOSES THE LOOK →</div>
       </div>
     </div>
   );
