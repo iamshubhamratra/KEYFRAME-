@@ -82,6 +82,7 @@
     "oversample": 1,
     "placeholders": [
       {
+        "id": "peek-shot",
         "role": "feature",
         "kind": "screenshots",
         "sceneIndex": 13,
@@ -93,6 +94,7 @@
         "note": "the single mid-film media card — the only photographic surface in the whole film"
       },
       {
+        "id": "join-logo",
         "role": "cta",
         "kind": "logos",
         "sceneIndex": 39,

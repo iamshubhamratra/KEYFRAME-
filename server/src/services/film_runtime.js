@@ -119,7 +119,14 @@ function FKtype(m,p){
 function FKring(m,p){
   var e=FKease.inOut(FKseg(p,0.14,0.78));
   var a=(m.arc==null?m.to:m.arc)/100;
-  var n=FKq(m.id+"-n");if(n){var s=String(Math.round(e*m.to));if(n.textContent!==s)n.textContent=s;}
+  // Grouped while counting, matching the build-time resting text (film_stage.groupNum) — a
+  // separator that appears only at rest reads as a glitch.
+  var n=FKq(m.id+"-n");
+  if(n){
+    var v=Math.round(e*m.to),ds=String(Math.abs(v)),s=(v<0?"-":"")+ds;
+    if(n.getAttribute("data-group")&&ds.length>3){s=v<0?"-":"";for(var gi=0;gi<ds.length;gi++){if(gi>0&&(ds.length-gi)%3===0)s+=",";s+=ds[gi];}}
+    if(n.textContent!==s)n.textContent=s;
+  }
   var arc=FKq(m.id+"-arc");
   if(arc)arc.setAttribute("stroke-dashoffset",String(m.len*(1-e*a)));
   var nd=FKq(m.id+"-needle");
@@ -173,10 +180,22 @@ function FKticker(m,p,clock){
   }
 }
 // TOGGLE — switches / checkboxes / dials flipping in sequence.
+//
+// EACH VARIANT HAS ITS OWN WINDOW IN THE REFERENCE, and this used the switch's for all three:
+//   check   on  seg(p, 0.16 + i*0.14, 0.24 + i*0.14)   knob seg(p, 0.16 + i*0.14, 0.30 + i*0.14)
+//   dial    e   seg(p, 0.14 + i*0.13, 0.34 + i*0.13)   (one eased angle, no on/off)
+//   switch  on  seg(p, 0.18 + i*0.14, 0.26 + i*0.14)   knob seg(p, 0.18 + i*0.14, 0.30 + i*0.14)
+// So checkboxes landed 0.02 late and dials were wrong in start, stagger AND duration — visible at
+// a paired timestamp as a row that has not flipped yet, which the audit reported as mechanic
+// pacing drift.
 function FKtoggle(m,p){
   for(var i=0;i<m.n;i++){
-    var on=FKseg(p,0.18+i*0.14,0.26+i*0.14)>=1;
-    var knob=FKclamp01(FKease.outBack(FKseg(p,0.18+i*0.14,0.3+i*0.14)));
+    var a0,a1,k1;
+    if(m.v==="check"){a0=0.16+i*0.14;a1=0.24+i*0.14;k1=0.30+i*0.14;}
+    else if(m.v==="dial"){a0=0.14+i*0.13;a1=0.34+i*0.13;k1=0.34+i*0.13;}
+    else {a0=0.18+i*0.14;a1=0.26+i*0.14;k1=0.30+i*0.14;}
+    var on=FKseg(p,a0,a1)>=1;
+    var knob=FKclamp01(FKease.outBack(FKseg(p,a0,k1)));
     var k=FKq(m.id+"-k"+i);
     if(k){
       if(m.v==="dial"){k.style.transform="rotate("+(-120+knob*(150+(i%3)*35))+"deg)";}

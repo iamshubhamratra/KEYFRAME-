@@ -25,7 +25,20 @@ const ROOT = path.join(__dirname, "..");
 const OUT = path.join(ROOT, "src", "fonts", "pack_fonts.js");
 const NM = path.join(ROOT, "node_modules");
 
-// family -> { pkg, variable } | { pkg, weights: [...] }
+// A FACE MUST CARRY THE AXES ITS DESIGN ASKS FOR.
+//
+// @fontsource-variable publishes one file per axis SLICE, and this generator only ever reached
+// for `<pkg>-latin-wght-normal.woff2` — every axis but weight pinned at its default. For a family
+// with an OPTICAL SIZE axis that silently substitutes a different typeface: the reference asks
+// Google for `Fraunces:opsz,wght@9..144,500`, so `font-optical-sizing: auto` (the CSS default)
+// drives opsz to the display size and draws the high-contrast Didone cut, while our wght-only
+// slice is frozen at opsz 14 — the sturdy text cut, which reads as a heavy slab at 120px and was
+// reported as "wrong display serif family on every frame" for bonsai-bench.
+//
+// `axis` names the slice to inline. Surveying every `family=` request in the 92 handoff sources
+// (scripts/font-axis-survey.js) finds exactly ONE family asked for with a non-weight axis, so
+// this stays a one-line table rather than a policy: re-run the survey when templates are added.
+// family -> { pkg, variable, axis? } | { pkg, weights: [...] }
 const NEW_FACES = {
   "Baloo 2": { pkg: "baloo-2", variable: true },
   Fredoka: { pkg: "fredoka", variable: true },
@@ -43,7 +56,14 @@ const NEW_FACES = {
   "DM Mono": { pkg: "dm-mono", weights: [400, 500] },
   "Space Mono": { pkg: "space-mono", weights: [400, 700] },
   Chewy: { pkg: "chewy", weights: [400] },   // single-weight display face
+  // The one optical-size family in the library — see the note above the table.
+  Fraunces: { pkg: "fraunces", variable: true, axis: "opsz" },
 };
+
+// Families to REBUILD even though the module already has an entry. Normally a bundled family is
+// carried through verbatim so the originals survive; a face bundled from the wrong axis slice is
+// the exception, because "already bundled" is exactly what hid the defect.
+const REBUILD = new Set(["Fraunces"]);
 
 const b64 = (p) => fs.readFileSync(p).toString("base64");
 const rule = (family, weight, file) =>
@@ -52,8 +72,9 @@ const rule = (family, weight, file) =>
 
 function build(family, spec) {
   if (spec.variable) {
-    const f = path.join(NM, "@fontsource-variable", spec.pkg, "files", `${spec.pkg}-latin-wght-normal.woff2`);
-    if (!fs.existsSync(f)) throw new Error(`missing variable file for ${family}: ${f}`);
+    const axis = spec.axis || "wght";
+    const f = path.join(NM, "@fontsource-variable", spec.pkg, "files", `${spec.pkg}-latin-${axis}-normal.woff2`);
+    if (!fs.existsSync(f)) throw new Error(`missing ${axis} variable file for ${family}: ${f}`);
     return rule(family, "1 1000", f);
   }
   // ASK THE PACKAGE WHAT IT SHIPS. Most display faces are single-weight (Abril Fatface,
@@ -100,11 +121,13 @@ const faces = {};
 let added = 0;
 for (const [k, v] of Object.entries(existing)) faces[k] = v;
 for (const [family, spec] of Object.entries(NEW_FACES)) {
-  if (faces[family]) { console.log(`skip  ${family} (already bundled)`); continue; }
+  if (faces[family] && !REBUILD.has(family)) { console.log(`skip  ${family} (already bundled)`); continue; }
+  const was = faces[family];
   const css = build(family, spec);
   faces[family] = css;
   added++;
-  console.log(`add   ${family.padEnd(24)} ${spec.variable ? "variable" : `static ${spec.weights.join("+")}`}  ${(css.length / 1024).toFixed(0)}KB`);
+  const how = spec.variable ? `variable ${spec.axis || "wght"}` : `static ${spec.weights.join("+")}`;
+  console.log(`${was ? "REBLD" : "add  "} ${family.padEnd(24)} ${how.padEnd(16)} ${(css.length / 1024).toFixed(0)}KB`);
 }
 
 const total = Object.values(faces).reduce((a, s) => a + s.length, 0);

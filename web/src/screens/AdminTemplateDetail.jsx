@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Children, Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   adminAddIssue, adminArchive, adminDeleteTemplate, adminGenerate, adminGetTemplate, adminNewVersion,
@@ -92,6 +92,11 @@ export default function AdminTemplateDetail({ templateId, onBack, onOpenTemplate
   const [issueSeverities, setIssueSeverities] = useState(["low", "medium", "high", "critical"]);
   const [issueDraft, setIssueDraft] = useState({ title: "", category: "layout", severity: "medium", suggestedFix: "" });
   const errorRef = useRef(null);
+  // The issues panel sits below the fold, so opening the recorder has to take the page there.
+  // Without this the button reads as broken even when it works: the state flips, the form
+  // appears, and the admin is still looking at the action bar.
+  const issuesRef = useRef(null);
+  const issueTitleRef = useRef(null);
   const unsub = useRef(null);
 
   // Fold one GET response into state. Split out from the fetch so the mount effect can apply it
@@ -144,6 +149,14 @@ export default function AdminTemplateDetail({ templateId, onBack, onOpenTemplate
     return () => { unsub.current?.(); unsub.current = null; };
   }, [templateId, live, refresh]);
 
+  // Run AFTER the form has rendered — scrolling in the click handler would aim at a node React
+  // has not committed yet.
+  useEffect(() => {
+    if (!reporting) return;
+    issuesRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    issueTitleRef.current?.focus({ preventScroll: true });
+  }, [reporting]);
+
   async function act(id) {
     const meta = ACTIONS[id];
     if (!meta || meta.disabled) return;
@@ -192,8 +205,26 @@ export default function AdminTemplateDetail({ templateId, onBack, onOpenTemplate
       if (r && r.template) setT(r.template);
       setIssueDraft({ title: "", category: issueDraft.category, severity: issueDraft.severity, suggestedFix: "" });
       setReporting(false);
-      setNotice("Issue recorded. It travels to the next version you create from this one.");
+      setNotice("Issue recorded. Use “Fix open issues in a new version” below to have it designed out — it becomes the brief, and it travels to every version until it is marked fixed.");
     } catch (e) { setError(e.message); }
+  }
+
+  // THE POINT OF RECORDING AN ISSUE: one click from "this is broken" to a version being fixed.
+  //
+  // Clones the live version and starts the regeneration on the clone, whose brief the server
+  // builds from the issues it just inherited. Nothing is retyped, and what users are watching is
+  // never touched. The answer is the NEW row, so we follow it — that is what the admin works on.
+  async function fixIssues() {
+    setError(null); setNotice(null); setPending("fixIssues");
+    try {
+      const n = openIssues.length;
+      const r = await adminNewVersion(t.id, {
+        fix: true,
+        changes: `Fix ${n} reported issue${n === 1 ? "" : "s"}`,
+      });
+      if (r && r.template && r.template.id !== t.id) onOpenTemplate?.(r.template.id);
+    } catch (e) { setError(e.message); }
+    finally { setPending(null); }
   }
 
   async function toggleIssue(issue) {
@@ -216,6 +247,12 @@ export default function AdminTemplateDetail({ templateId, onBack, onOpenTemplate
   }
 
   const m = statusMeta(t.status);
+  // THE TEMPLATE'S OWN SHAPE, worked out once. The preview box derived this correctly while the
+  // still thumbnails right beneath it were hardcoded to "9 / 16" with objectFit:cover — so on a
+  // 16:9 template every frame was centre-cropped into a portrait sliver, throwing away about
+  // two-thirds of each picture on the panel whose job is showing what the template looks like.
+  const frameAspect = aspectLabel(t.orientation) === "16:9" ? "16 / 9"
+    : aspectLabel(t.orientation) === "1:1" ? "1 / 1" : "9 / 16";
   const poster = mediaUrl(t.thumbnail || (t.stills || [])[0] || null);
   const preview = mediaUrl(t.previewVideo || null);
   const issues = t.issues || [];
@@ -258,27 +295,58 @@ export default function AdminTemplateDetail({ templateId, onBack, onOpenTemplate
           </div>
         )}
 
-        {/* ---- actions, straight from the server's list ---- */}
+        {/* ---- actions, straight from the server's list ----
+
+            WHICH actions exist is still entirely the server's business; this only decides how
+            they READ. Three things were wrong with rendering them in raw array order:
+
+            - The bar had no hierarchy. `kind === "danger" ? "btn-chip" : "btn-chip"` is the same
+              class twice, so Delete and Archive were ordinary chips wearing red text, sitting in
+              the row next to "Refresh stills" with the same weight.
+            - A SUPERSEDED version offers newVersion AND rollback, both primary, so two magenta
+              pills competed for the same glance.
+            - The primary landed wherever the server happened to list it — in the screenshot the
+              user sent, "Create new version" sat in the MIDDLE of the row.
+
+            So: sort into primary → neutral → destructive, promote only the FIRST primary to
+            magenta (the rest stay prominent but quieter), and push the destructive group to the
+            far end behind a spacer, where a mis-click is least likely. */}
         <div style={{ marginTop: 24, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-          {(t.actions || []).map((id) => {
-            const meta = ACTIONS[id];
-            if (!meta) return null;   // an action the server grew and this screen has not learned yet
-            const busy = pending === id;
-            const off = !!meta.disabled || !!pending || (live && id !== "viewError");
-            const cls = meta.kind === "primary" ? "btn-mag" : meta.kind === "danger" ? "btn-chip" : "btn-chip";
-            return (
-              <button key={id} type="button" onClick={() => act(id)} disabled={off}
-                className={cls}
-                title={meta.disabled || undefined}
-                style={{
-                  ...(meta.kind === "primary" ? { padding: "11px 22px", fontSize: 14 } : {}),
-                  ...(meta.kind === "danger" ? { color: "var(--color-rec)", borderColor: "rgba(216,39,27,.4)" } : {}),
-                  ...(off ? { opacity: 0.45, cursor: "not-allowed" } : {}),
-                }}>
-                {busy ? "…" : meta.label}
-              </button>
-            );
-          })}
+          {(() => {
+            const RANK = { primary: 0, chip: 1, danger: 2 };
+            const acts = (t.actions || [])
+              .map((id) => ({ id, meta: ACTIONS[id] }))
+              .filter((a) => a.meta);   // an action the server grew and this screen has not learned yet
+            const sorted = [...acts].sort((a, b) => (RANK[a.meta.kind] ?? 1) - (RANK[b.meta.kind] ?? 1));
+            // Derived up front rather than by mutating counters inside the map — a render pass
+            // must not carry state forward between its own iterations.
+            const leadPrimary = (sorted.find((a) => a.meta.kind === "primary") || {}).id;
+            const firstDanger = sorted.findIndex((a) => a.meta.kind === "danger");
+            return sorted.map(({ id, meta }, i) => {
+              const busy = pending === id;
+              const off = !!meta.disabled || !!pending || (live && id !== "viewError");
+              const isPrimary = meta.kind === "primary";
+              const isDanger = meta.kind === "danger";
+              const cls = isPrimary && id === leadPrimary ? "btn-mag"
+                : isPrimary ? "btn-ink"
+                  : isDanger ? "btn-chip is-danger" : "btn-chip";
+              const spacer = i === firstDanger && firstDanger > 0;
+              return (
+                <Fragment key={id}>
+                  {spacer && <span aria-hidden="true" style={{ flex: "1 1 auto", minWidth: 8 }} />}
+                  <button type="button" onClick={() => act(id)} disabled={off}
+                    className={cls}
+                    title={meta.disabled || undefined}
+                    aria-busy={busy || undefined}
+                    style={isPrimary ? { padding: "11px 22px", fontSize: "var(--text-base)" } : undefined}>
+                    {/* Keeping the label while it runs — "…" alone threw away the only clue about
+                        WHICH of six actions the page is busy with. */}
+                    {busy ? `${meta.label}…` : meta.label}
+                  </button>
+                </Fragment>
+              );
+            });
+          })()}
           {/* The scenario picker rides beside the Test button, because a test render is
               meaningless without saying WHICH brief it is rendering. */}
           {(t.actions || []).includes("test") && scenarios.length > 0 && (
@@ -329,10 +397,17 @@ export default function AdminTemplateDetail({ templateId, onBack, onOpenTemplate
         )}
       </section>
 
-      <section style={{ maxWidth: 1100, margin: "0 auto", padding: "30px clamp(16px,4vw,60px) 0", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px,1fr))", gap: 16, alignItems: "start" }}>
+      {/* CARDS IN A ROW ARE THE SAME HEIGHT.
+          This was `alignItems: "start"`, so every panel was exactly as tall as its own content
+          and the row came out as a ragged skyline — PREVIEW ending a third of the way down,
+          CAPABILITIES two-thirds, METADATA running several screens past both. Stretching the row
+          is only half the fix and would be worse on its own; the other half is that the panels
+          which could grow without limit (PROMPT, OPTIONS, DESCRIPTION) now collapse, so the
+          tallest card in a row is a sane height to match. */}
+      <section style={{ maxWidth: 1100, margin: "0 auto", padding: "30px clamp(16px,4vw,60px) 0", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(320px,100%),1fr))", gap: 16, alignItems: "stretch" }}>
         {/* ---- PREVIEW ---- */}
         <Panel spine="#e832a8" title="PREVIEW">
-          <div style={{ borderRadius: 14, overflow: "hidden", background: "var(--color-ground-2)", aspectRatio: aspectLabel(t.orientation) === "16:9" ? "16 / 9" : aspectLabel(t.orientation) === "1:1" ? "1 / 1" : "9 / 16", maxHeight: 460, display: "grid", placeItems: "center", position: "relative" }}>
+          <div style={{ borderRadius: 14, overflow: "hidden", background: "var(--color-ground-2)", aspectRatio: frameAspect, maxHeight: 460, margin: "0 auto", width: "100%", display: "grid", placeItems: "center", position: "relative" }}>
             {preview
               // A published template has a real motion preview; before that the stills are all
               // there is. Controls rather than hover-to-play: this is a review surface, and a
@@ -352,7 +427,7 @@ export default function AdminTemplateDetail({ templateId, onBack, onOpenTemplate
             <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(74px,1fr))", gap: 8 }}>
               {t.stills.map((s, i) => (
                 <img key={s} src={mediaUrl(s)} alt={`Frame ${i + 1}`} loading="lazy"
-                  style={{ width: "100%", aspectRatio: "9 / 16", objectFit: "cover", borderRadius: 8, border: "1px solid rgba(23,19,14,.12)", background: "var(--color-ground-2)" }} />
+                  style={{ width: "100%", aspectRatio: frameAspect, objectFit: "cover", borderRadius: 8, border: "1px solid rgba(23,19,14,.12)", background: "var(--color-ground-2)" }} />
               ))}
             </div>
           )}
@@ -365,25 +440,27 @@ export default function AdminTemplateDetail({ templateId, onBack, onOpenTemplate
             : (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <Field label="NAME">{t.name}</Field>
-                <Field label="DESCRIPTION" warn={!t.description}>{t.description || "— none yet (a publish blocker)"}</Field>
+                <LongField label="DESCRIPTION" value={t.description || "— none yet (a publish blocker)"} warn={!t.description} />
                 <Field label="CATEGORY">{t.category || "—"}</Field>
                 <Field label="TAGS">{(t.tags || []).length ? t.tags.join(" · ") : "—"}</Field>
                 <Field label="RENDERER">{t.renderer}</Field>
                 <Field label="SOURCE" warn={!t.sourceExists || !t.skinExists}>
-                  {t.sourcePath}
-                  <span style={{ display: "block", fontSize: 11.5, color: t.sourceExists && t.skinExists ? "var(--color-dim)" : "var(--color-rec)", marginTop: 3 }}>
+                  {/* A path is one long token, so break-word split it mid-filename
+                      ("daylight_console_v2.j / s"). Mono at a smaller size fits it on one line
+                      at almost every card width, and it reads as a path rather than as prose. */}
+                  <span className="break-long" style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-mono)", lineHeight: 1.5 }}>
+                    {t.sourcePath}
+                  </span>
+                  <span style={{ display: "block", fontSize: "var(--text-mono)", color: t.sourceExists && t.skinExists ? "var(--color-dim)" : "var(--color-bad-ink)", marginTop: 3 }}>
                     {/* MEASURED, not assumed — store.shape() stats the disk on every read, and a
                         missing directory is exactly the condition that blocks a publish. */}
                     pack {t.sourceExists ? "present" : "MISSING"} · composer {t.skinExists ? "present" : "MISSING"} · {t.rootKind} root
                   </span>
                 </Field>
-                <Field label="PROMPT">
-                  <span style={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{t.prompt || "—"}</span>
-                </Field>
+                <LongField label="PROMPT" value={t.prompt} />
                 {t.options && Object.values(t.options).some(Boolean) && (
-                  <Field label="OPTIONS">
-                    {Object.entries(t.options).filter(([, v]) => v !== null && v !== "").map(([k, v]) => `${k}: ${v}`).join(" · ")}
-                  </Field>
+                  <LongField label="OPTIONS"
+                    value={Object.entries(t.options).filter(([, v]) => v !== null && v !== "").map(([k, v]) => `${k}: ${v}`).join(" · ")} />
                 )}
               </div>
             )}
@@ -513,6 +590,7 @@ export default function AdminTemplateDetail({ templateId, onBack, onOpenTemplate
             seen on v1 still says so when you are looking at v4. */}
         <Panel
           spine="#c8452d"
+          innerRef={issuesRef}
           title={`KNOWN ISSUES${openIssues.length ? ` — ${openIssues.length} OPEN` : ""}`}
           empty={!issues.length && "Nothing recorded. Generate a real film with this template and log what you see."}
         >
@@ -536,20 +614,65 @@ export default function AdminTemplateDetail({ templateId, onBack, onOpenTemplate
               ))}
             </div>
           )}
+          {/* The bridge from a reported defect to a fixed template. Offered only where the server
+              says newVersion is legal, so a live version is fixed by cloning and never in place;
+              on a version that is still a draft, Regenerate in the action bar does the same job
+              and now picks the issues up on its own. */}
+          {!!openIssues.length && (t.actions || []).includes("newVersion") && (
+            <div style={{ marginTop: 14, paddingTop: 13, borderTop: "1px solid rgba(23,19,14,.07)", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <button className="btn-ink" disabled={pending === "fixIssues"} onClick={fixIssues}>
+                {pending === "fixIssues"
+                  ? "Creating…"
+                  : `Fix ${openIssues.length} open issue${openIssues.length === 1 ? "" : "s"} in a new version`}
+              </button>
+              <span style={{ fontSize: 13, color: "var(--color-dim)", lineHeight: 1.5, flex: 1, minWidth: 220 }}>
+                Clones this version and redesigns it against the issues above. The live version keeps
+                serving users until you publish the fix.
+              </span>
+            </div>
+          )}
+          {!!openIssues.length && (t.actions || []).includes("regenerate") && (
+            <div style={{ marginTop: 14, paddingTop: 13, borderTop: "1px solid rgba(23,19,14,.07)", fontSize: 13, color: "var(--color-dim)", lineHeight: 1.5 }}>
+              Regenerating this version will apply {openIssues.length === 1 ? "this fix" : "these fixes"} — the
+              issues above become the brief, and the current design is revised rather than replaced.
+            </div>
+          )}
           {reporting && (
             <div style={{ marginTop: issues.length ? 14 : 0, display: "flex", flexDirection: "column", gap: 9 }}>
-              <input className="field" style={input} placeholder="What is wrong? e.g. Screenshot placeholder is too small in 9:16" value={issueDraft.title} onChange={(e) => setIssueDraft({ ...issueDraft, title: e.target.value })} />
+              {/* Every control here was anonymous: a bare input, two bare selects and a bare
+                  textarea, twenty lines below an EditForm that uses proper <label> elements. A
+                  placeholder is not a label — it disappears the moment you type, and a screen
+                  reader announces the two dropdowns as nothing at all. */}
+              <label style={{ display: "block" }}>
+                <span className="label-mono" style={{ display: "block", marginBottom: 4 }}>WHAT IS WRONG</span>
+                <input ref={issueTitleRef} className="field" style={{ ...input, width: "100%" }}
+                  placeholder="e.g. Screenshot placeholder is too small in 9:16"
+                  value={issueDraft.title} onChange={(e) => setIssueDraft({ ...issueDraft, title: e.target.value })} />
+              </label>
               <div style={{ display: "flex", gap: 9, flexWrap: "wrap" }}>
-                <select className="field" style={{ ...input, flex: 1, minWidth: 130 }} value={issueDraft.category} onChange={(e) => setIssueDraft({ ...issueDraft, category: e.target.value })}>
-                  {issueCategories.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-                <select className="field" style={{ ...input, flex: 1, minWidth: 130 }} value={issueDraft.severity} onChange={(e) => setIssueDraft({ ...issueDraft, severity: e.target.value })}>
-                  {issueSeverities.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
+                <label style={{ flex: 1, minWidth: 130 }}>
+                  <span className="label-mono" style={{ display: "block", marginBottom: 4 }}>CATEGORY</span>
+                  <select className="select-field" value={issueDraft.category} onChange={(e) => setIssueDraft({ ...issueDraft, category: e.target.value })}>
+                    {issueCategories.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </label>
+                <label style={{ flex: 1, minWidth: 130 }}>
+                  <span className="label-mono" style={{ display: "block", marginBottom: 4 }}>SEVERITY</span>
+                  <select className="select-field" value={issueDraft.severity} onChange={(e) => setIssueDraft({ ...issueDraft, severity: e.target.value })}>
+                    {issueSeverities.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </label>
               </div>
-              <textarea className="field resize-none" style={{ ...input, minHeight: 58 }} placeholder="Suggested fix (optional) — e.g. increase the screenshot box from 320x250 to 600x450" value={issueDraft.suggestedFix} onChange={(e) => setIssueDraft({ ...issueDraft, suggestedFix: e.target.value })} />
-              <div style={{ display: "flex", gap: 9 }}>
-                <button className="btn-chip" disabled={!issueDraft.title.trim()} onClick={saveIssue}>Record issue</button>
+              <label style={{ display: "block" }}>
+                <span className="label-mono" style={{ display: "block", marginBottom: 4 }}>SUGGESTED FIX (OPTIONAL)</span>
+                <textarea className="field resize-none" style={{ ...input, minHeight: 58, width: "100%" }}
+                  placeholder="e.g. increase the screenshot box from 320x250 to 600x450"
+                  value={issueDraft.suggestedFix} onChange={(e) => setIssueDraft({ ...issueDraft, suggestedFix: e.target.value })} />
+              </label>
+              <div style={{ display: "flex", gap: 9, alignItems: "center" }}>
+                {/* Recording the issue is the primary act of this form; it was styled as a
+                    secondary chip while CANCEL sat beside it looking equally important. */}
+                <button className="btn-mag" disabled={!issueDraft.title.trim()} onClick={saveIssue}>Record issue</button>
                 <button className="link-mono" onClick={() => setReporting(false)}>CANCEL</button>
               </div>
             </div>
@@ -593,12 +716,62 @@ export default function AdminTemplateDetail({ templateId, onBack, onOpenTemplate
 
 // ---------------------------------------------------------------- pieces
 
-function Panel({ spine, title, empty, children }) {
+// `empty` is a FALLBACK, not an override. It is shown only when there is genuinely nothing to
+// render — never instead of children that exist.
+//
+// It used to be `empty ? <span>{empty}</span> : children`, and that swallowed the report-an-issue
+// form whole: KNOWN ISSUES passes empty={!issues.length && "Nothing recorded…"}, so on a template
+// with no issues yet the panel threw its children away, and the one child that mattered was the
+// form. Clicking "Report an issue" flipped the state and rendered nothing, on every template that
+// had never been reported against — which is every template until the first report succeeds.
+//
+// Children.toArray drops null/undefined/booleans, so `{cond && <x/>}` that did not fire vanishes
+// and a panel whose children all declined to render still gets its message.
+function Panel({ spine, title, empty, innerRef, children }) {
+  const hasContent = Children.toArray(children).length > 0;
+  // height:100% so the card fills the stretched grid cell rather than floating at the top of it,
+  // which is what makes a row read as one band instead of three loose rectangles.
   return (
-    <div className="card" style={{ padding: "20px 22px 22px 27px" }}>
+    <div className="card" ref={innerRef} style={{ padding: "20px 22px 22px 27px", height: "100%", display: "flex", flexDirection: "column", minWidth: 0 }}>
       <span className="spine" style={{ "--spine": spine }} />
       <div className="label-mono" style={{ marginBottom: 14 }}>{title}</div>
-      {empty ? <span style={{ fontSize: 13, color: "var(--color-dim)", lineHeight: 1.55 }}>{empty}</span> : children}
+      {hasContent
+        ? children
+        : empty ? <span style={{ fontSize: 13, color: "var(--color-dim)", lineHeight: 1.55 }}>{empty}</span> : null}
+    </div>
+  );
+}
+
+// A field whose value can be arbitrarily long, collapsed by default.
+//
+// The generated PROMPT is the worst offender: for a version created to fix a defect it is the
+// whole QA report — several hundred words — and it was rendered in full. That single field made
+// the METADATA panel four times the height of PREVIEW and CAPABILITIES beside it, which is what
+// makes the row look broken. The text is still worth having; it is not worth having open.
+function LongField({ label, value, warn = false }) {
+  const [open, setOpen] = useState(false);
+  const text = String(value ?? "").trim();
+  // Measured by length rather than by DOM height on purpose: measuring means a layout effect
+  // that sets state on every render pass, and the exact threshold does not matter here.
+  const long = text.length > 260;
+  return (
+    <div>
+      <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-micro)", letterSpacing: "0.16em", color: "var(--color-dim)", marginBottom: 4 }}>{label}</div>
+      <div className="break-long" style={{
+        fontSize: "var(--text-sm)", lineHeight: 1.55, whiteSpace: "pre-wrap",
+        color: warn ? "var(--color-bad-ink)" : "var(--color-ink)",
+        ...(long && !open ? {
+          display: "-webkit-box", WebkitLineClamp: 5, WebkitBoxOrient: "vertical", overflow: "hidden",
+        } : null),
+      }}>
+        {text || "—"}
+      </div>
+      {long && (
+        <button className="link-mono" style={{ marginTop: 6, fontSize: "var(--text-micro)" }}
+          onClick={() => setOpen((v) => !v)} aria-expanded={open}>
+          {open ? "SHOW LESS" : "SHOW ALL"}
+        </button>
+      )}
     </div>
   );
 }

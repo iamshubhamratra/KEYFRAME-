@@ -5,18 +5,49 @@ import { loreFor, fmtDur } from "../packlore.js";
 
 // v2 "SC 08 · FINAL LOOKS" — the premiere on a dark stage with the magenta
 // glow, downloads, remix and the production-details monitor.
+// The film is shown in the shape it was ORDERED in. The player used to be hardcoded to 16/9,
+// which is the one aspect most of this product does not make: 9:16 is the default and the bulk
+// of the library. A vertical film in a 16/9 box is either squashed or shown as a thin strip
+// between two black slabs, on the screen whose entire job is presenting the finished work.
+const ASPECT = { vertical: "9 / 16", square: "1 / 1", horizontal: "16 / 9" };
+// A portrait film at full container width would be ~1670px tall, so cap by viewport height and
+// let the box find its own width from the aspect instead.
+const MAXH = { vertical: "76vh", square: "70vh", horizontal: "none" };
+
 export default function Premiere({ projectId, onRemix, onNew }) {
   const [project, setProject] = useState(null);
+  const [loadError, setLoadError] = useState(null);
 
   useEffect(() => {
-    if (!projectId) return;
-    getProject(projectId).then(setProject).catch(() => {});
+    if (!projectId) return undefined;
+    let alive = true;
+    getProject(projectId)
+      .then((p) => { if (alive) { setProject(p); setLoadError(null); } })
+      // Was `.catch(() => {})`. A failed fetch left `project` null forever, so the screen that
+      // presents the finished film sat on "LOADING…" with no error, no retry and no way out.
+      .catch((e) => { if (alive) setLoadError(e.message || "could not load this project"); });
+    return () => { alive = false; };
   }, [projectId]);
 
   if (!project) {
     return (
-      <div style={{ background: "var(--color-dark)", marginTop: -90, paddingTop: 90, minHeight: "100vh" }}>
-        <div style={{ maxWidth: 940, margin: "0 auto", padding: "70px 24px", fontFamily: "var(--font-mono)", fontSize: 12, letterSpacing: "0.1em", color: "var(--color-dark-dim)" }}>LOADING…</div>
+      <div style={{ background: "var(--color-dark)", minHeight: "100vh" }}>
+        <div style={{ maxWidth: 940, margin: "0 auto", padding: "70px 24px" }}>
+          {loadError ? (
+            <>
+              <p style={{ fontFamily: "var(--font-mono)", fontSize: "var(--text-mono)", letterSpacing: "0.14em", textTransform: "uppercase", color: "#ff8f83" }}>
+                COULD NOT LOAD THIS FILM
+              </p>
+              <p className="break-long" style={{ color: "var(--color-dark-dim)", marginTop: 10, lineHeight: 1.6, fontSize: "var(--text-base)" }}>{loadError}</p>
+              <div style={{ display: "flex", gap: 10, marginTop: 22, flexWrap: "wrap" }}>
+                <button className="btn-mag" onClick={() => setProject(null) || window.location.reload()}>Try again</button>
+                <button className="btn-outline-dark btn-sm" onClick={onNew}>Start a new film</button>
+              </div>
+            </>
+          ) : (
+            <p className="state-loading" style={{ color: "var(--color-dark-dim)" }} role="status" aria-live="polite">LOADING…</p>
+          )}
+        </div>
       </div>
     );
   }
@@ -47,20 +78,48 @@ export default function Premiere({ projectId, onRemix, onNew }) {
         <div style={{ position: "relative", marginTop: 26, borderRadius: 20, overflow: "hidden", border: "1px solid rgba(242,237,226,.14)", background: "var(--color-dark-2)", boxShadow: "0 40px 90px rgba(0,0,0,.5)" }}>
           {project.videoUrl ? (
             <>
-              <video src={mediaUrl(project.videoUrl)} controls style={{ aspectRatio: "16/9", display: "block", width: "100%" }} />
+              <video src={mediaUrl(project.videoUrl)} controls
+                style={{
+                  aspectRatio: ASPECT[project.orientation] || "16 / 9",
+                  maxHeight: MAXH[project.orientation] || "none",
+                  display: "block", width: "100%", margin: "0 auto", objectFit: "contain", background: "#0d0b07",
+                }} />
               {/* curtain reveal on mount */}
               <motion.div initial={{ scaleY: 1 }} animate={{ scaleY: 0 }}
                 transition={{ duration: 1.1, ease: [0.83, 0, 0.17, 1], delay: 0.35 }}
                 style={{ originY: 0, background: "#0d0b07", position: "absolute", inset: 0, pointerEvents: "none" }} />
             </>
           ) : (
-            <div style={{ aspectRatio: "16/9", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--color-dark-dim)" }}>
+            <div className="break-long" style={{
+              aspectRatio: ASPECT[project.orientation] || "16 / 9",
+              maxHeight: MAXH[project.orientation] || "none",
+              display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center",
+              padding: "0 24px", margin: "0 auto",
+              fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)",
+              color: project.status === "failed" ? "#ff8f83" : "var(--color-dark-dim)",
+            }}>
               {project.status === "failed" ? `FAILED: ${project.error}` : "NO VIDEO YET."}
             </div>
           )}
         </div>
 
         <QualityPanel q={project.deliveryQuality} onRemix={onRemix} />
+
+        {/* TEMPLATE-FIT DISCLOSURES — the pipeline's only channel for "your template does not
+            match this film", and until now it had no reader anywhere in the client.
+            frame_selector writes here whenever it HONOURS an explicit pick it would otherwise
+            have corrected: a landscape pack on a vertical job, a five-minute template on a
+            thirty-second film. Those are exactly the cases where the delivered video looks
+            wrong for a reason the user cannot possibly infer — a 40-beat template on a 30s job
+            plays four scenes and freezes on the fourth. Delivering that silently is the defect;
+            the explanation already existed and was simply never shown. */}
+        {Array.isArray(project.validationReport?.notes) && project.validationReport.notes.length > 0 && (
+          <div style={{ marginTop: 18, padding: "12px 16px", borderRadius: 12, border: "1px solid rgba(255,176,58,.4)", background: "rgba(255,176,58,.08)" }}>
+            {project.validationReport.notes.map((n, i) => (
+              <div key={i} style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.04em", color: "var(--color-am)", lineHeight: 1.6 }}>⚠ {n}</div>
+            ))}
+          </div>
+        )}
 
         {Array.isArray(project.audioNotes) && project.audioNotes.length > 0 && (
           <div style={{ marginTop: 18, padding: "12px 16px", borderRadius: 12, border: "1px solid rgba(255,176,58,.4)", background: "rgba(255,176,58,.08)" }}>

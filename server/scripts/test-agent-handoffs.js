@@ -41,11 +41,20 @@ function jobFixture({ userPick = "auto", persistedPack = null, videoTextLanguage
   const packs = frameRegistry.listPacks();
   const canvasPack = ["flagship", "brightlife", "terminal-departures"].find((p) => packs.includes(p));
   // A pack the frame selector has NO reason to reroute for a horizontal jobFixture: not a
-  // canvas/charset pack (localization reroute) and not authored for another aspect
-  // (orientation reroute). Tests that assert "the pick survives" must start from one of
-  // these, otherwise they assert the absence of a guard rather than the behaviour they name.
+  // canvas/charset pack (localization reroute), not authored for another aspect (orientation
+  // reroute), and — since the long-form family landed — not authored for another LENGTH.
+  // Tests that assert "the pick survives" must start from one of these, otherwise they assert
+  // the absence of a guard rather than the behaviour they name.
+  //
+  // THE DURATION CLAUSE IS NOT DEFENSIVE, IT IS LOAD-BEARING. listPacks() is alphabetical and
+  // the first long-form slug is "allotment", so the moment 27 five-minute packs were installed
+  // this picked one of them for a 30-second fixture, the new duration reroute correctly swapped
+  // it, and the assertion that the pick survives failed. `npm test` died at this link and took
+  // ten downstream guards with it.
+  const fmForFixture = require("../src/services/frame_manifest");
   const neutralPack = packs.find((p) => p !== canvasPack
-    && require("../src/services/frame_manifest").packFitsOrientation(p, "horizontal")) || packs[0];
+    && fmForFixture.packFitsOrientation(p, "horizontal")
+    && fmForFixture.packFitsDuration(p, jobFixture().duration)) || packs[0];
 
   await test("frame_selector: an AUTO job reroutes off a canvas pack for non-Latin text", async () => {
     if (!canvasPack) return; // no canvas pack installed — nothing to reroute

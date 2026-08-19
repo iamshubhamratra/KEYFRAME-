@@ -92,6 +92,19 @@ function buildRouter({ enqueueIntake }) {
       // The lifecycle vocabulary, so the dashboard's filter pills come from the server rather
       // than a second copy of the table in the client.
       statuses: lifecycle.ALL_STATUSES,
+      // PER-STATUS TOTALS, ALWAYS UNFILTERED. The filter pills carry counts, and the client used
+      // to derive them from `templates` — which is the FILTERED list. So the moment you picked a
+      // status, every other pill's count became 0 and the "All" count vanished, i.e. the numbers
+      // stopped meaning "how many exist" exactly when you needed them to. The search term still
+      // narrows these, because "3 failed matching 'orbit'" is the useful reading; the status
+      // filter deliberately does not.
+      counts: (() => {
+        const all = store.list({ q: req.query.q });
+        const out = { all: all.length };
+        for (const s of lifecycle.ALL_STATUSES) out[s] = 0;
+        for (const t of all) out[t.status] = (out[t.status] || 0) + 1;
+        return out;
+      })(),
       scenarios: testRender.scenarioList(),
       issueCategories: store.ISSUE_CATEGORIES,
       issueSeverities: store.ISSUE_SEVERITIES,
@@ -300,7 +313,30 @@ function buildRouter({ enqueueIntake }) {
         createdBy: req.user ? req.user.email : null,
         changes: req.body && req.body.changes ? String(req.body.changes) : "",
       });
-      res.status(201).json({ template: shaped(created) });
+
+      // `fix: true` — CLONE AND START FIXING, in one act.
+      //
+      // Cloning alone lands a byte-exact copy of the broken template in GENERATED, which is a
+      // renderable starting point but is still the defect. The admin then had to find Regenerate
+      // on a second page to change anything, and the carried issues only reach the model on that
+      // second click. Since "make a version that fixes these" is the only reason this endpoint is
+      // ever called from an issue, the regeneration is kicked off here: runGeneration builds its
+      // brief from the issues the clone just inherited.
+      //
+      // Detached, exactly like POST /generate — the answer is the new row, and the UI opens it and
+      // watches the same SSE stream. If the clone failed the row is DRAFT and cannot generate, so
+      // the transition is checked rather than assumed.
+      const wantsFix = !!(req.body && req.body.fix);
+      const canStart = lifecycle.canTransition(created.status, lifecycle.STATUS.GENERATING);
+      if (wantsFix && canStart) {
+        try {
+          detach(created.id, "generating", () => service.runGeneration({ id: created.id }));
+        } catch (e) { return send(res, e); }
+      }
+      res.status(201).json({
+        template: shaped(store.get(created.id)),
+        fixing: wantsFix && canStart,
+      });
     } catch (e) { send(res, e); }
   });
 

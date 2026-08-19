@@ -42,9 +42,43 @@ function step(id, label, pct) {
 // Runs detached: the route answers 202 and the admin watches the SSE stream. A generation is
 // one heavy LLM call plus a compile plus a stills pass, which is far too long to hold a request
 // open and exactly the shape the progress ladder in the UI was designed for.
+// OPEN ISSUES ARE THE BRIEF.
+//
+// Reporting a defect and fixing it are one act from the admin's side — "this is wrong, sort it
+// out" — but until this existed they were unrelated. store.openIssues had exactly two readers:
+// the carry-forward in newVersion and a counter on the dashboard. An issue could be reported,
+// carried onto three versions and never once reach the model, so recording it changed nothing
+// about what came back. The tracker was a notepad.
+//
+// Severity orders the list because the model reads it as a priority, and a critical defect
+// buried under three cosmetic ones gets treated as cosmetic.
+function fixBriefFrom(rec) {
+  const open = store.openIssues(rec);
+  if (!open.length) return null;
+  const rank = { critical: 0, high: 1, medium: 2, low: 3 };
+  const lines = [...open]
+    .sort((a, b) => (rank[a.severity] ?? 9) - (rank[b.severity] ?? 9))
+    .map((i) => {
+      const out = [`- [${String(i.severity || "medium").toUpperCase()} · ${i.category || "other"}] ${i.title}`];
+      if (i.detail) out.push(`  ${i.detail}`);
+      if (i.suggestedFix) out.push(`  Suggested fix: ${i.suggestedFix}`);
+      return out.join("\n");
+    });
+  return [
+    "These defects were seen in a real film made with this template. Fix them, most severe first,",
+    "and change nothing else:",
+    ...lines,
+  ].join("\n");
+}
+
 async function runGeneration({ id, feedback = null }) {
   const rec = store.get(id);
   if (!rec) throw Object.assign(new Error("template not found"), { code: "NOT_FOUND", status: 404 });
+
+  // Typed feedback still leads — it is the more specific instruction — with the open issues
+  // appended as the standing list rather than replaced by it.
+  const brief = fixBriefFrom(rec);
+  if (brief) feedback = feedback ? `${feedback}\n\n${brief}` : brief;
 
   store.transition(id, lifecycle.STATUS.GENERATING, { progress: "designing", progressPct: 5, error: null });
 
@@ -232,6 +266,24 @@ function publishBlockers(rec) {
       id: "test.passed",
       detail: `${why} — a template must make one real film before it can be published`,
       fix: "run a test render from this page and wait for it to finish",
+    });
+  }
+  // A KNOWN-BROKEN DESIGN MUST NOT GO BACK OUT UNDER A NEW NUMBER.
+  //
+  // newVersion clones the parent byte-for-byte and carries its open issues, so the shortest path
+  // — new version, test, QA, publish — passes every check above while shipping exactly the design
+  // that was reported broken. QA cannot catch it: the clone is a faithful copy, so it scores
+  // whatever the parent scored. Only the issue list knows.
+  //
+  // Severity decides, because it is the only signal about whether a defect is worth stopping for,
+  // and critical/high are already the two the detail screen colours as alarms. Medium and low do
+  // not block — a template with a known cosmetic nit is still better live than not.
+  const severe = store.openIssues(rec).filter((i) => i.severity === "critical" || i.severity === "high");
+  if (severe.length) {
+    blocking.push({
+      id: "issues.open",
+      detail: `${severe.length} unresolved ${severe.length === 1 ? "issue" : "issues"} of critical or high severity: ${severe.map((i) => i.title).join("; ").slice(0, 240)}`,
+      fix: "regenerate this version so the fix is applied, then mark the issues fixed — or lower their severity if they are not release-blocking",
     });
   }
   return blocking;

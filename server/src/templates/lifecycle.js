@@ -68,9 +68,14 @@ const TRANSITIONS = Object.freeze({
 const ACTIONS = Object.freeze({
   [STATUS.DRAFT]: ["edit", "generate", "delete"],
   [STATUS.GENERATING]: ["cancel"],
-  [STATUS.GENERATED]: ["preview", "test", "edit", "regenerate", "qa", "delete"],
+  // `reportIssue` belongs on every status an admin can WATCH A FILM from, which is every status
+  // that offers `test`. A defect is found by looking at a render, and the render you look at
+  // hardest is the one you are about to publish — so refusing to record it on the version under
+  // test meant the finding had to be held in someone's head until it went live, or typed against
+  // the wrong version. The route never had a status guard; only this table hid the button.
+  [STATUS.GENERATED]: ["preview", "test", "edit", "regenerate", "qa", "reportIssue", "delete"],
   [STATUS.TESTING]: ["preview", "cancel"],
-  [STATUS.READY_TO_PUBLISH]: ["preview", "test", "qa", "regenerate", "publish", "delete"],
+  [STATUS.READY_TO_PUBLISH]: ["preview", "test", "qa", "regenerate", "reportIssue", "publish", "delete"],
   // No `edit` and no `regenerate` on a live version — the only way to change a published design
   // is `newVersion`, which clones it into a fresh row and a fresh directory. That is the rule the
   // whole feature rests on, and it is enforced here rather than only in the UI.

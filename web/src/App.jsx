@@ -168,7 +168,7 @@ export default function App() {
 
       <NavBar dark={darkPage}>
         {/* left cluster — the v2 logo + wordmark + REC blip */}
-        <div className="flex items-center gap-3" style={{ pointerEvents: "auto" }}>
+        <div className="nav-group flex items-center gap-3" style={{ pointerEvents: "auto" }}>
           <button onClick={() => go("landing")} className="flex items-center gap-3 cursor-pointer" aria-label="KEYFRAME home">
             <span style={{ width: 34, height: 34, borderRadius: 10, background: darkPage ? "#f2ede2" : "var(--color-ink)", display: "grid", placeItems: "center" }}>
               <span style={{ width: 12, height: 12, borderRadius: "50%", background: "var(--color-mag)", boxShadow: "0 0 10px var(--color-mag)" }} />
@@ -179,10 +179,15 @@ export default function App() {
         </div>
 
         {/* right cluster — mono pills + Start rolling */}
-        <div className="flex items-center" style={{ gap: 10, pointerEvents: "auto" }}>
+        <div className="nav-group flex items-center flex-wrap" style={{ gap: 10, pointerEvents: "auto" }}>
           <button className={`btn-chip ${view === "templates" ? "is-active" : ""}`} onClick={() => go("templates")}>Templates</button>
           <button className={`btn-chip ${view === "gallery" ? "is-active" : ""}`} onClick={() => go("gallery")}>Gallery</button>
-          {studioViews.includes(view) && <button className="btn-chip is-active">Studio</button>}
+          {/* You are already here — this is a WHERE-YOU-ARE marker, not a destination. It was a
+              <button> with no onClick, which is the worst of both: it invites a click and eats it.
+              A span with aria-current says the same thing truthfully. */}
+          {studioViews.includes(view) && (
+            <span className="btn-chip is-active" aria-current="page" style={{ cursor: "default" }}>Studio</span>
+          )}
           {/* Only an admin is offered the door. The lock is on the server. */}
           {isAdmin && (
             <button className={`btn-chip ${ADMIN_VIEWS.has(view) ? "is-active" : ""}`} onClick={() => go("admin")}>Admin</button>
@@ -191,9 +196,13 @@ export default function App() {
           {loading ? (
             <span className="label-mono">…</span>
           ) : user ? (
-            <span className="hidden sm:flex items-center gap-2.5" style={{ marginLeft: 4 }}>
-              <span className="inline-flex items-center justify-center font-display font-bold text-[13px]"
-                style={{ width: 30, height: 30, borderRadius: 10, background: "var(--color-mag)", color: "#17130e" }}>
+            // Was `hidden sm:flex`, which removed the ONLY log-out control below 640px — a phone
+            // user could sign in and then had no way to sign out. The avatar is the decoration
+            // here, so it hides on the narrowest screens; the control never does.
+            <span className="flex items-center gap-2.5" style={{ marginLeft: 4 }}>
+              <span className="hidden sm:inline-flex items-center justify-center font-display font-bold text-[13px]"
+                style={{ width: 30, height: 30, borderRadius: 10, background: "var(--color-mag)", color: "#17130e" }}
+                title={user.name || user.email || ""} aria-hidden="true">
                 {(user.name || user.email || "?").trim().charAt(0).toUpperCase()}
               </span>
               <button onClick={() => { logout(); go("landing"); }}
@@ -214,7 +223,10 @@ export default function App() {
         </div>
       </NavBar>
 
-      <main className="flex-1 relative" style={{ paddingTop: 90 }}>
+      {/* paddingTop was a hardcoded 90, which assumed the nav is always exactly one line tall.
+          It is not: once the nav is allowed to wrap, its height is a function of the viewport.
+          NavBar publishes its measured height as --nav-h and .app-main consumes it. */}
+      <main className="app-main flex-1 relative">
         <AnimatePresence mode="wait">
           <motion.div key={view} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }} className="h-full">
             {/* An admin view held in state while the session drops (log out in another tab, a
@@ -253,6 +265,22 @@ export default function App() {
 // legible beneath it — paper veil on light pages, deep-set veil on dark ones.
 function NavBar({ dark = false, children }) {
   const ref = useRef(null);
+  // PUBLISH THE REAL HEIGHT. The nav is fixed, so main has to offset itself by exactly the nav's
+  // height or content hides underneath it. That offset used to be the constant 90 — correct only
+  // while the nav was guaranteed one line, which stopped being true the moment it was allowed to
+  // wrap. Measuring is the only version that cannot drift.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const publish = () => {
+      document.documentElement.style.setProperty("--nav-h", `${Math.ceil(el.getBoundingClientRect().height) + 16}px`);
+    };
+    publish();
+    const ro = new ResizeObserver(publish);
+    ro.observe(el);
+    window.addEventListener("resize", publish);
+    return () => { ro.disconnect(); window.removeEventListener("resize", publish); };
+  }, []);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -272,7 +300,7 @@ function NavBar({ dark = false, children }) {
     return () => window.removeEventListener("scroll", update);
   }, [dark]);
   return (
-    <nav ref={ref} className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between"
+    <nav ref={ref} className="app-nav fixed top-0 left-0 right-0 z-50 flex items-center justify-between"
       style={{ padding: "16px clamp(16px,3vw,34px)", borderBottom: "1px solid transparent", transition: "background .35s ease, border-color .35s ease" }}>
       {children}
     </nav>

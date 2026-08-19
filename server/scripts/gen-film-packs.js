@@ -74,15 +74,18 @@ const relLum = (h) => {
 // authored 1080x1920. The asset planner sizes its collection budget from this and the
 // pre-render gate asks "is the HERO empty?" against it, so a guess here costs real assets.
 //
-//   hook       one device frame, 936 x 460 (browser) — the opener, critical
-//   feature    one hero card, 910 x 562 inside the 936 x 588 plate
+//   NO HOOK SLOT. film-kit.js uses MediaSlot at exactly three sites — the Feature hero card, the
+//   Montage tile wall and the CTA logo — and Hook is not one of them, so no reference opener has
+//   ever carried a picture. Ours drew one at top:56.25%, in the band where the World draws its own
+//   furniture, and it buried the pack's signature scenery on the beat that establishes it.
+//   feature    one hero card, 910 x 562 inside the 936 x 588 plate — the CRITICAL box, because it
+//              is the reference's own hero, and the pre-render gate needs a real target
 //   montage    the 2x2 wall, 455 x 292 per tile, up to 4
 //   statement  one grounding card, 936 x 430
 //   stats      one dimmed backing plate behind the counters, 1080 x 900
 const SLOTS = {
-  hook: { count: 1, width: 936, height: 460, priority: "critical", objectFit: "cover", kind: "screenshots", note: "the opening device frame" },
   context: { count: 2, width: 936, height: 430, priority: "medium", objectFit: "cover", kind: "productImages", note: "the statement beat's grounding card" },
-  feature: { count: 2, width: 910, height: 562, priority: "high", objectFit: "cover", kind: "screenshots", note: "the hero media card" },
+  feature: { count: 2, width: 910, height: 562, priority: "critical", objectFit: "cover", kind: "screenshots", note: "the hero media card" },
   how: { count: 4, width: 455, height: 292, priority: "high", objectFit: "cover", kind: "productImages", note: "the 2x2 tile wall" },
   proof: { count: 1, width: 1080, height: 900, priority: "low", objectFit: "cover", kind: "productImages", note: "the dimmed backing plate behind the counters" },
 };
@@ -98,9 +101,8 @@ const SLOTS = {
 // these, asset_prep crops to their aspects, and preflight hard-fails when the CRITICAL box comes
 // back empty. A portrait table on a landscape pack would collect tall crops for wide boxes.
 const SLOTS_WIDE = {
-  hook: { count: 1, width: 725, height: 450, priority: "critical", objectFit: "cover", kind: "screenshots", note: "the opening device frame, beside the copy" },
   context: { count: 2, width: 709, height: 562, priority: "medium", objectFit: "cover", kind: "productImages", note: "the statement beat's grounding card, beside the copy" },
-  feature: { count: 2, width: 851, height: 528, priority: "high", objectFit: "cover", kind: "screenshots", note: "the hero media card, leading the row" },
+  feature: { count: 2, width: 851, height: 528, priority: "critical", objectFit: "cover", kind: "screenshots", note: "the hero media card, leading the row" },
   how: { count: 4, width: 399, height: 475, priority: "high", objectFit: "cover", kind: "productImages", note: "the 1x4 tile row" },
   proof: { count: 1, width: 1920, height: 700, priority: "low", objectFit: "cover", kind: "productImages", note: "the dimmed backing plate behind the counters" },
 };

@@ -20,6 +20,7 @@
 // the runtime in film_runtime.js recomputes it from scene-local progress on every seek,
 // exactly as the source does per frame — which is what makes those beats seek-exact.
 
+const { weightFloor } = require("../fonts/font_weights");
 const S = require("./film_stage");
 const { X, V, F, rgba, clamp, clamp01, fitLines, fitPx, featureLines, pickStats, shortLabel, trackEm } = S;
 const { esc, r, bullets } = require("./composer_kit");
@@ -130,11 +131,54 @@ const col = (theme, s) => (typeof s === "string" && s[0] === "#" ? s : (theme.c 
 // effectively invisible), and the brand rotation can move a colour and its ground toward each
 // other. `theme.typeOn` returns the authored colour at ratio >= 3 and the field's own readable
 // ink otherwise, so the design wins by default and legibility wins when it must.
+// NEVER PUT THE WORD "METRIC" ON SCREEN.
+//
+// Six builders fell back to the literal string `Str.metric` ("Metric") — and one to an invented
+// "ONE / TWO / THREE" ladder — whenever a scene yielded no list copy. Measured in 18 of 48 audited
+// packs: films shipped a card reading "Metric" with an empty body, which is the same class of
+// defect as the fabricated "100% / Metric" statistic this repo already removed once. A placeholder
+// label is not neutral; the viewer reads it as content.
+//
+// These fall back to the scene's OWN words instead, and to NOTHING when the scene has none — a
+// builder handed an empty list draws fewer rows, which every one of them already handles because
+// the reference decks vary their row counts.
+const fallbackLines = (scene) => {
+  const out = [];
+  for (const v of [scene.subtext, scene.emphasis, scene.headline]) {
+    const t = String(v || "").replace(/\s+/g, " ").trim();
+    if (t) out.push(t);
+  }
+  return out.slice(0, 1);
+};
+// The first `n` words of whatever the scene does say — for the single-chip slots (a drag chip, a
+// morph step) that need a short token rather than a sentence.
+const firstWords = (scene, n) => {
+  const src = String(scene.emphasis || scene.headline || scene.subtext || "").replace(/\s+/g, " ").trim();
+  return src ? src.split(" ").slice(0, n).join(" ") : "";
+};
+// Morph needs >=2 steps to morph between. With only one phrase in hand, step through its own
+// words; with nothing, return empty and let the builder's own guard collapse the beat.
+const morphSteps = (scene) => {
+  const src = String(scene.emphasis || scene.headline || scene.subtext || "").replace(/\s+/g, " ").trim();
+  const words = src ? src.split(" ").filter((w) => w.length > 1) : [];
+  return words.length >= 2 ? words : [];
+};
+
 const ink = (theme, s, ground, min) => theme.typeOn(col(theme, s), ground, min);
-// The DISPLAY floor. The accent line / decor colour is judged at 2.0, not 3.0: the guard's job
-// is invisible ink (cat-nap's dark-on-dark sat near ratio 1.1), and the reference ships designed
-// display pairings below 3 (ember-roast's cream on ember = 2.9). Body text keeps the strict 3.
-const DISPLAY_MIN = 2;
+// THE DISPLAY FLOOR CATCHES INVISIBLE INK, NOT LOW-CONTRAST DESIGN.
+//
+// The reference has no contrast guard whatsoever: `Title` renders `i === 1 ? hi : fg` and trusts
+// the authored palette. Ours needs a floor because the brand rotation can move a colour and its
+// ground toward each other, and because one ported look really was dark-on-dark (cat-nap, ratio
+// ~1.1 — present, laid out, invisible). But at 3.0, and then at 2.0, the floor was repainting
+// pairings the designer chose: measured across the library, **28 of 630 beat looks** have an
+// authored accent the 2.0 floor overwrites with the field's own ink, which erases the FilmKit
+// signature (the second display line takes the accent) — loom-and-weft sets terracotta on dark
+// blue at ratio 1.76 and shipped it as cream.
+//
+// 1.45 is below every authored pairing measured in the library and above the invisible-ink cases
+// the guard exists for, so the design wins wherever the designer actually made a choice.
+const DISPLAY_MIN = 1.45;
 const splitLines = (t) => String(t == null ? "" : t).split("|");
 
 // ---- shared fragments ---------------------------------------------------------
@@ -150,7 +194,9 @@ function title(theme, skin, txt, { size, sizeMax = 0, fg, hi, upper, from = 0, a
   // the skin tracks its display type; that tracking is part of the line width (see fitLines).
   // `size` is the AUTHORED size (tried first, wrapping as the reference wraps); `sizeMax` is
   // soloSize's empty-frame ceiling, which fitLines takes only without re-wrapping.
-  const fit = fitLines(txt, { basePx: size, growPx: sizeMax, maxLines, colPx: colPx || COL, em: skin.em, upper, track: trackEm(skin.titleSpace) });
+  // `family` lets the fitter use the face's REAL measured advances (font_metrics.js) instead of
+  // the skin's single average `em`, which is now only the fallback. See fitLines.
+  const fit = fitLines(txt, { basePx: size, growPx: sizeMax, maxLines, colPx: colPx || COL, em: skin.em, family: skin.display, upper, track: trackEm(skin.titleSpace) });
   // A tight shadow in the GROUND colour: every pack paints a live world behind the copy and
   // the contrast machinery cannot see it, so the type carries its own separation. Invisible
   // on a clean field; restores the edge wherever a decoration drifts behind a glyph.
@@ -160,7 +206,16 @@ function title(theme, skin, txt, { size, sizeMax = 0, fg, hi, upper, from = 0, a
   // The hand-built one-off films use VARIABLE families and specify 700/800 explicitly — left
   // unset those render at 400, which on Baloo 2 or Orbitron is a visibly lighter film than the
   // reference. A skin declares `displayWeight` only when its source does.
-  const w = skin.displayWeight ? `font-weight:${skin.displayWeight};` : "";
+  //
+  // AND WHERE IT DOES NOT, THE FAMILY'S OWN FLOOR APPLIES. Google serves only the weights a
+  // request names, so a reference that asked for Fraunces:opsz,wght@9..144,500;9..144,600 could
+  // not have drawn a single glyph at 400 — while display type declaring no weight renders at
+  // exactly that. Measured on the chrome lockup (identical string, identical size, same polarity)
+  // the reference carries ~17% more ink than our render of it. 21 of the 134 families the designs
+  // use were never requested below 400; src/fonts/font_weights.js is generated from those requests
+  // (scripts/font-axis-survey.js), so this is data from the sources, not a per-pack branch.
+  const wv = skin.displayWeight || weightFloor(skin.display);
+  const w = wv ? `font-weight:${wv};` : "";
   // Colour by the LOGICAL line when the copy authored its own breaks — a wrapped continuation
   // of line 1 stays fg, and the accent lands exactly on the authored second line, as the
   // reference renders it. Auto-wrapped copy keeps the physical-second-line accent (the
@@ -215,7 +270,11 @@ function cardCss(L, theme, skin) {
 // So a world:false beat paints its ground opaquely on its own clip, which covers the shared
 // world layer; a world:true beat stays transparent and lets it through.
 const open = (ctx) =>
-  `<div class="clip fk-sc" id="${ctx.id}" data-start="${ctx.T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;${ctx.opaque ? `background:${ctx.ground};` : ""}">` +
+  // THE CLOSER IS IMAGE-FREE BY DESIGN. `build` hands bCta no assets at all, so a post-process
+  // that pastes a spare photograph behind it is overruling the composer: the reference's CTA is a
+  // flat field carrying the lockup, the pill and the address, and a picture behind it is not that
+  // design. scene_backdrop.js honours this marker (its own note calls out exactly this case).
+  `<div class="clip fk-sc" id="${ctx.id}"${ctx.beat === "cta" ? " data-no-backdrop" : ""} data-fk-beat="${ctx.beat || ""}" data-start="${ctx.T}" data-duration="${r(ctx.L)}" data-track-index="${ctx.track}" style="opacity:0;${ctx.opaque ? `background:${ctx.ground};` : ""}">` +
   `<div class="fk-cam" id="${ctx.id}-cam"><div class="fk-drift" id="${ctx.id}-drift">`;
 const close = () => `</div></div></div>`;
 
@@ -286,65 +345,45 @@ const wideSolo = (inner, frac = 0.74) =>
 
 // ================================ THE SIX CORE BEATS ================================
 
-// HOOK — kicker, the big title stack, a sub line, and (when a capture landed here) an
-// inline device frame. The opener.
+// HOOK — kicker, the big title stack, a sub line. The opener.
+//
+// PICTURELESS, LIKE THE SOURCE. film-kit.js uses `MediaSlot` at exactly three sites — the Feature
+// hero card, the Montage tile wall and the CTA logo lockup — and `Hook` is not one of them: it
+// renders Kicker, Title and sub, and nothing else, over the world. One shared engine draws all 92
+// templates, and no template overrides Hook, so no reference opener has ever carried a picture.
+//
+// Ours did, at top:56.25%, which on a world-bearing pack lands squarely in the band where the
+// World draws its furniture: on bonsai-bench the device frame buried the bonsai and the scissors
+// for the whole beat, and the pack's signature scenery was gone from the one beat that establishes
+// it. The world IS the opener's visual. The `hook` slot is gone from the media contract too
+// (scripts/gen-film-packs.js), so nothing is collected for a box that is no longer drawn.
 function bHook(scene, ctx, sceneAssets, logo) {
   const { theme, skin, Str } = ctx;
   const L = ctx.look.hook;
   const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground, DISPLAY_MIN);
-  // A `media:false` pack is authored as pure typography — its Feature draws underlined lines
-  // and its Montage draws label blocks, and the source's Hook has no image slot at all. Such
-  // a pack shows NO imagery anywhere, and its manifest says so, so nothing collects assets it
-  // would only discard.
-  const asset = (skin.media === false ? null : (sceneAssets && sceneAssets[0])) || null;
   const sub = String(scene.subtext || "").slice(0, 120);
-  const scrollId = `${ctx.id}-scroll`;
-  let frame = "", plan = { frac: 0, natH: 0 };
-  if (asset) {
-    const device = S.deviceFor(asset);
-    const boxW = device === "phone" ? 380 : COL - 24, boxH = device === "phone" ? 680 : 460;
-    plan = S.scrollPlan(boxW, boxH, asset);
-    frame = `<div data-in="item" data-i="3" style="position:absolute;left:${X(device === "phone" ? 350 : PAD)};right:${X(device === "phone" ? 350 : PAD)};top:${V(1080)};${device === "phone" ? `height:${X(730)};` : ""}">
-      ${S.frameHtml(theme, skin, { device, asset, boxH, tint: hi, scrollId: plan.frac ? scrollId : null, natH: plan.natH, address: ctx.address, cardV: (L.card && L.card.v) || "frame", radius: (L.card && L.card.r) })}
-    </div>`;
-  }
   const mark = logo && logo.path
     ? `<img data-in="item" data-i="0" src="${esc(logo.path)}" alt="${esc(logo.alt || "logo")}" style="height:${X(64)};width:auto;max-width:${X(280)};object-fit:contain;object-position:left center;display:block;margin-bottom:${X(22)};">`
     : "";
 
   if (WIDE) {
-    // Copy leads, the device sits beside it. With no capture the copy takes a centred column
-    // rather than a half-empty row.
-    const lead = asset ? 0.54 : 1;
-    const measure = asset ? wideCol(lead) : Math.round(COL * 0.74);
+    const measure = Math.round(COL * 0.74);
     const copy = `<div style="text-align:${L.align || "left"};">
       ${mark}${kicker(theme, skin, L.kicker, scene.kicker || Str.hookKicker)}
       ${title(theme, skin, scene.headline || scene.title || ctx.title, { size: L.size || 126, sizeMax: S.soloSize(L.size || 126, false, { maxLines: 3, lineHeight: skin.titleLine || 1.04, capFrac: 0.42 }), fg, hi, upper: L.upper, from: 1, align: L.align || "left", maxLines: 3, ground: ctx.ground, colPx: measure })}
       ${sub ? `<div data-in="rise" data-i="5" style="font-family:${theme.bodyStack};font-weight:600;font-size:${F(fitPx(sub, 32, 74))};color:${rgba(fg, 0.74)};margin-top:${X(30)};max-width:${X(Math.round(measure * 0.92))};line-height:1.45;${L.align === "center" ? "margin-left:auto;margin-right:auto;" : ""}">${esc(sub)}</div>` : ""}
     </div>`;
-    if (!asset) return { html: `${open(ctx)}${wideSolo(copy)}${close()}` };
-    const device = S.deviceFor(asset);
-    const boxW = device === "phone" ? 300 : Math.round((COL - 88) * (1 - lead));
-    const boxH = device === "phone" ? 620 : Math.round(boxW * 0.62);
-    plan = S.scrollPlan(boxW, boxH, asset);
-    const framed = `<div data-in="item" data-i="3" style="width:100%;${device === "phone" ? `max-width:${X(boxW)};` : ""}">
-      ${S.frameHtml(theme, skin, { device, asset, boxH, tint: hi, scrollId: plan.frac ? scrollId : null, natH: plan.natH, address: ctx.address, cardV: (L.card && L.card.v) || "frame", radius: (L.card && L.card.r) })}
-    </div>`;
-    return {
-      html: `${open(ctx)}${wideRow(copy, framed, { lead })}${close()}`,
-      scroll: plan.frac ? { id: scrollId, frac: plan.frac } : null,
-    };
+    return { html: `${open(ctx)}${wideSolo(copy)}${close()}` };
   }
 
   const html = `${open(ctx)}
-    <div style="position:absolute;left:${X(PAD)};right:${X(PAD)};top:${V(asset ? Math.min(L.top || 320, 300) : (L.top || 320))};text-align:${L.align || "left"};">
+    <div style="position:absolute;left:${X(PAD)};right:${X(PAD)};top:${V(L.top || 320)};text-align:${L.align || "left"};">
       ${mark}${kicker(theme, skin, L.kicker, scene.kicker || Str.hookKicker)}
-      ${title(theme, skin, scene.headline || scene.title || ctx.title, { size: L.size || 126, sizeMax: S.soloSize(L.size || 126, !!asset, { maxLines: asset ? 3 : 4, lineHeight: skin.titleLine || 1.04 }), fg, hi, upper: L.upper, from: 1, align: L.align || "left", maxLines: asset ? 3 : 4, ground: ctx.ground })}
+      ${title(theme, skin, scene.headline || scene.title || ctx.title, { size: L.size || 126, sizeMax: S.soloSize(L.size || 126, false, { maxLines: 4, lineHeight: skin.titleLine || 1.04 }), fg, hi, upper: L.upper, from: 1, align: L.align || "left", maxLines: 4, ground: ctx.ground })}
       ${sub ? `<div data-in="rise" data-i="5" style="font-family:${theme.bodyStack};font-weight:600;font-size:${F(fitPx(sub, 35, 90))};color:${rgba(fg, 0.74)};margin-top:${X(36)};max-width:${X(740)};line-height:1.45;${L.align === "center" ? "margin-left:auto;margin-right:auto;" : ""}">${esc(sub)}</div>` : ""}
     </div>
-    ${frame}
   ${close()}`;
-  return { html, scroll: plan.frac ? { id: scrollId, frac: plan.frac } : null };
+  return { html };
 }
 
 // STATEMENT — the big statement in the display face and a supporting line. The problem /
@@ -485,13 +524,26 @@ function bMontage(scene, ctx, sceneAssets) {
   // The count is now the number of pictures actually in hand. `single` (below) already
   // renders one taller column for n <= 2, so two assets now produce two LARGE plates rather
   // than a half-empty grid — that layout existed all along and was simply unreachable.
-  const n = Math.min(shots.length, 4);
+  // THE WALL IS AS WIDE AS THE SCENE SAYS, NOT AS WIDE AS THE PICTURES IN HAND.
+  //
+  // `min(shots.length, 4)` meant a montage with no assets drew nothing (and was downgraded to a
+  // single-plate Feature upstream), where the reference always draws its four captioned slots —
+  // the audit's second-biggest bucket, 35 of 48 packs. But the earlier `max(shots, labels)` was
+  // removed for a real reason: `labels` then fell back to the GENERIC set ("Home/Detail/Mobile/
+  // Dashboard"), so packs drew four flat placeholder blocks captioned with screens the product does
+  // not have.
+  //
+  // The distinction both laws need is AUTHORED vs FABRICATED. `mediaTiles` is non-empty only when
+  // the scene really named its own tiles, so it — never the generic fallback — may set the count,
+  // and the empty slots draw the designed wireframe plate rather than a flat tint. Parity on the
+  // grid geometry, and still never an empty container.
   // Labels only when the script really named the features. The generic set stays for the
   // media-less branch below, where the tiles ARE the content; over pictures a fabricated
   // caption is worse than none.
   const labels = featureLines(scene, 4);
   const tiles = (labels.length >= 2 ? labels : (Str.tiles || ["Home", "Detail", "Mobile", "Dashboard"])).slice(0, 4);
   const mediaTiles = labels.length >= 2 ? labels.slice(0, 4) : [];
+  const n = Math.min(4, Math.max(shots.length, mediaTiles.length >= 2 ? mediaTiles.length : 0));
   const glow = L.tile.glow ? col(theme, L.tile.glow) : null;
 
   if (skin.media === false) {
@@ -500,7 +552,7 @@ function bMontage(scene, ctx, sceneAssets) {
       <div style="position:absolute;left:${X(PAD)};right:${X(PAD)};top:${V(L.top || 258)};">
         ${title(theme, skin, scene.headline || scene.title || "", { size: L.size || 102, fg, hi, upper: L.upper, maxLines: 2, ground: ctx.ground })}
         <div style="margin-top:${X(54)};display:grid;grid-template-columns:1fr 1fr;gap:${X(26)};">
-          ${tiles.slice(0, 4).map((label, i) => `<div data-in="item" data-i="${i + 2}" style="transform:rotate(${tilts[i % tilts.length]}deg);"><div style="height:${X(250)};border-radius:${X(rad)};background:${tbg};display:flex;align-items:center;justify-content:center;font-family:${theme.displayStack};font-size:${F(52)};color:${tlabel};${L.upper ? "text-transform:uppercase;" : ""}padding:${X(16)};text-align:center;line-height:1.05;">${esc(shortLabel(label, 22))}</div></div>`).join("")}
+          ${tiles.slice(0, 4).map((label, i) => `<div data-in="item" data-i="${i + 2}" style="transform:rotate(${tilts[i % tilts.length]}deg);"><div style="height:${X(250)};border-radius:${X(rad)};background:${tbg};display:flex;align-items:center;justify-content:center;font-family:${theme.displayStack};font-size:${F(52)};color:${tlabel};${L.upper ? "text-transform:uppercase;" : ""}padding:${X(16)};text-align:center;line-height:1.05;">${esc(shortLabel(label, 30))}</div></div>`).join("")}
         </div>
       </div>
     ${close()}`,
@@ -521,7 +573,7 @@ function bMontage(scene, ctx, sceneAssets) {
         <div style="margin-top:${X(WIDE ? 38 : 54)};display:grid;grid-template-columns:${gridCols};gap:${X(WIDE ? 22 : 26)};">
           ${Array.from({ length: n }).map((_, i) => {
             const a = shots[i] || null;
-            const label = shortLabel(mediaTiles[i] || "", 22);
+            const label = shortLabel(mediaTiles[i] || "", 30);
             // THE CARD TAKES THE PICTURE'S SHAPE, NOT THE OTHER WAY ROUND.
             //
             // plate() fits a website capture with object-fit:contain — deliberately, because
@@ -574,7 +626,30 @@ function bStats(scene, ctx, sceneAssets) {
   // component to fill 60% width". Same rule as the headline: this raises a ceiling, it does
   // not force a size. The row is `white-space:nowrap` with a bounded label column, so a long
   // number still cannot push the label out of the frame.
-  const num = S.soloSize(L.num || 156, !!asset, { maxLines: 1, lineHeight: 0.9, capFrac: 0.17 });
+  // THE NUMERAL IS `nowrap`, SO IT MUST BE MEASURED, NOT JUST CAPPED.
+  //
+  // The stat row is [figure][label] on one baseline and the figure is `white-space:nowrap`, so its
+  // size cannot be chosen from a vertical budget alone: `soloSize` grew a four-digit figure until
+  // "1,290m" spanned the full frame and pushed its label off the right edge — the numeric twin of
+  // the headline-clipping defect, and it got worse once labels stopped being truncated. Size the
+  // figure against the width its row actually leaves: the content column minus the label column
+  // and the gap, using the display face's real advances.
+  const LABEL_COL = 440, ROW_GAP = 30;
+  const widestFig = stats.reduce((a, st) => {
+    const t = `${st.pre}${S.groupNum(st.target)}${st.suf || ""}`;
+    return S.advanceOf(t, skin) > S.advanceOf(a, skin) ? t : a;
+  }, "");
+  const figRoom = Math.max(120, COL - (stats.some((st) => st.label) ? LABEL_COL + ROW_GAP : 0));
+  const figCap = widestFig ? Math.floor(figRoom / Math.max(0.5, S.advanceOf(widestFig, skin))) : (L.num || 156);
+  // ...AND THE ROWS SHARE ONE VERTICAL BUDGET.
+  //
+  // `soloSize` grows the figure into the space a backing capture would have filled, and it was
+  // asked for that space as if the deck were ONE row. A three-row deck therefore claimed it three
+  // times over: loom-and-weft's "9,523 / 41hr / 3" rendered half again as large as the reference
+  // and drove the last label down into the loom threads the World draws across the bottom of the
+  // frame. Divide the budget by the rows that actually share it, which suppresses growth entirely
+  // at three rows (where the reference has no room to spare either) and keeps it at one.
+  const num = Math.min(figCap, S.soloSize(L.num || 156, !!asset, { maxLines: Math.max(1, stats.length), lineHeight: 0.9, capFrac: 0.17 }));
   // NEVER INVENT A NUMBER. This used to fall back to `{ target: 100, suf: "%", label: "Metric" }`
   // when the scene carried no measurable figure — and it shipped: job o9q96ik3ra (tube-and-glow,
   // linktr.ee) drew "100%" beside "Metric", counting up, on a beat whose authored copy was
@@ -587,7 +662,7 @@ function bStats(scene, ctx, sceneAssets) {
   const rows = stats.map((st, i) => {
     const c = cols[i % cols.length];
     return `<div data-in="rise" data-i="${i + 2}" style="display:flex;align-items:baseline;gap:${X(30)};${L.rule ? `border-bottom:${X(4)} solid ${c};padding-bottom:${X(24)};` : ""}">
-      <div style="font-family:${theme.displayStack};font-size:${F(num)};line-height:0.9;color:${c};font-variant-numeric:tabular-nums;${L.glowNums ? `text-shadow:0 0 ${X(36)} ${rgba(c, 0.5)};` : ""}white-space:nowrap;"><span data-count="${st.target}" data-suffix="${esc(st.suf || "")}" data-pre="${esc(st.pre || "")}">${esc(st.pre)}${st.target}${esc(st.suf || "")}</span></div>
+      <div style="font-family:${theme.displayStack};font-size:${F(num)};line-height:0.9;color:${c};font-variant-numeric:tabular-nums;${L.glowNums ? `text-shadow:0 0 ${X(36)} ${rgba(c, 0.5)};` : ""}white-space:nowrap;"><span data-count="${st.target}" data-suffix="${esc(st.suf || "")}" data-pre="${esc(st.pre || "")}" data-group="1">${esc(st.pre)}${S.groupNum(st.target)}${esc(st.suf || "")}</span></div>
       <div style="font-family:${theme.bodyStack};font-weight:700;font-size:${F(33)};color:${rgba(fg, 0.76)};max-width:${X(440)};line-height:1.35;">${esc(st.label)}</div>
     </div>`;
   }).join("");
@@ -637,9 +712,9 @@ function bCta(scene, ctx, _sceneAssets, logo) {
   const cta = String(scene.cta || Str.ctaButton);
   // The url line under the button is a CLAIM, not set dressing: print it only when a real
   // address is known (the job's own site, or a non-stock asset host). The decorative default
-  // ("yourproduct.com") stays available to the browser-chrome address bar, where it is scenery —
-  // but under a Get-Started button it reads as the place to go, and inventing that is worse
-  // than omitting it.
+  // ("yourproduct.com") is never printed anywhere: under a Get-Started button it reads as the place
+  // to go, and inside a device frame's address pill it reads as an unfinished template. The pill
+  // itself is scenery; its TEXT is a claim (see ctx.realAddress in film_stage).
   const url = ctx.address && ctx.address !== Str.addressBar ? ctx.address : "";
   return {
     html: `${open(ctx)}
@@ -788,7 +863,7 @@ function bScroll(scene, ctx, _a, _logo, variant) {
   // Guji … $12.50"). KEYFRAME's storyboard flattens them into one line, so the pair is parsed
   // back out of the "label — value" / "label: value" shape; a line with no separator is a
   // label-only row, exactly as the source accepts bare strings.
-  const pairs = (src.length ? src : [Str.metric]).map((t) => {
+  const pairs = (src.length ? src : fallbackLines(scene)).map((t) => {
     const parts = String(t).split(/\s+[—–]\s+|\s+-\s+|:\s+/);
     return parts.length > 1
       ? { t: shortLabel(parts[0], 30), v: shortLabel(parts.slice(1).join(" "), 14) }
@@ -868,7 +943,15 @@ function bRing(scene, ctx, _a, _logo, variant) {
   const fg = ink(theme, L.fg, ctx.ground), hi = ink(theme, L.hi, ctx.ground, DISPLAY_MIN);
   const v = variant || "ring";
   const id = ctx.id;
-  const picked = S.pickNumber(scene);
+  // pickStats FIRST, because it is the only reader that returns the figure's own LABEL.
+  //
+  // This called pickNumber, whose result has no `label` field at all — so the `picked.label`
+  // fallback below could never fire and the beat's second line could only come from
+  // `scene.emphasis`. The reference's Ring carries `label` as its own authored field
+  // ("43:12 ON THE CLOCK", beside the 72% numeral), so ours simply never drew it. pickStats parses
+  // the label off the figure line, which is exactly where the storyboard puts it.
+  const deck = S.pickStats(scene, 1, Str);
+  const picked = deck[0] || S.pickNumber(scene);
   // The NUMBER is the scene's real figure; the SWEEP is a share. They were one value, which
   // clamped "340kg" to 100 — now the arc/bar/needle run on `arc` (capped at 100) while the
   // read-out counts to the true target. (Routing already prefers the stats beat for non-share
@@ -880,9 +963,9 @@ function bRing(scene, ctx, _a, _logo, variant) {
   // Falling back to `subtext` printed the same sentence twice (label + sub); prefer emphasis
   // and drop the label whenever it would echo the sub.
   const sub = String(scene.subtext || "").slice(0, 110);
-  const rawLabel = shortLabel(scene.emphasis || (picked && picked.label) || "", 26);
+  const rawLabel = shortLabel(scene.emphasis || (picked && picked.label) || "", 34);
   const label = rawLabel && rawLabel.toLowerCase() !== sub.slice(0, rawLabel.length + 2).toLowerCase() ? rawLabel : "";
-  const numHtml = `<div style="font-family:${theme.displayStack};font-size:${F(130)};color:${fg};font-variant-numeric:tabular-nums;line-height:1;"><span id="${id}-n">${to}</span><span style="font-size:${F(64)};color:${hi};">${esc(unit)}</span></div>`;
+  const numHtml = `<div style="font-family:${theme.displayStack};font-size:${F(130)};color:${fg};font-variant-numeric:tabular-nums;line-height:1;"><span id="${id}-n" data-group="1">${S.groupNum(to)}</span><span style="font-size:${F(64)};color:${hi};">${esc(unit)}</span></div>`;
 
   if (v === "gauge") {
     const arcLen = Math.PI * 220;
@@ -963,7 +1046,7 @@ function bToggle(scene, ctx, _a, _logo, variant) {
   const v = variant || "switch";
   const id = ctx.id;
   const src = featureLines(scene, 4);
-  const items = (src.length ? src : [Str.metric]).slice(0, 4).map((t) => shortLabel(t, 30));
+  const items = (src.length ? src : fallbackLines(scene)).slice(0, 4).map((t) => shortLabel(t, 30));
   const mech = { kind: "toggle", id, v, n: items.length, on: hi, off: rgba(line, 0.22), onInk: line, offInk: rgba(line, 0.55) };
 
   if (v === "check") {
@@ -1016,9 +1099,9 @@ function bNotify(scene, ctx, _a, _logo, variant) {
   const v = variant || "drop";
   const id = ctx.id;
   const src = featureLines(scene, 3);
-  const notes = (src.length ? src : [Str.metric]).slice(0, 3).map((t) => {
+  const notes = (src.length ? src : fallbackLines(scene)).slice(0, 3).map((t) => {
     const parts = String(t).split(/\s+[—–-]\s+|:\s+/);
-    return parts.length > 1 ? [shortLabel(parts[0], 24), shortLabel(parts.slice(1).join(" "), 34)] : [shortLabel(t, 24), ""];
+    return parts.length > 1 ? [shortLabel(parts[0], 32), shortLabel(parts.slice(1).join(" "), 40)] : [shortLabel(t, 32), ""];
   });
   const rots = [-3, 2.5, -1.5];
   const mech = { kind: "notify", id, v, n: notes.length, rot: rots };
@@ -1074,7 +1157,7 @@ function bMorph(scene, ctx, _a, _logo, variant) {
   const v = variant || "roll";
   const id = ctx.id;
   const src = featureLines(scene, 4).map((t) => shortLabel(t, 14).replace(/…$/, ""));
-  const steps = (src.length >= 2 ? src : [String(scene.emphasis || scene.headline || Str.metric).split(/\s+/)[0] || "ONE", "TWO", "THREE"]).slice(0, 4);
+  const steps = (src.length >= 2 ? src : morphSteps(scene)).slice(0, 4);
   const upper = ctx.look.app.upper;
   const words = steps.map((s) => (upper ? String(s).toUpperCase() : String(s)));
   const prefix = scene.kicker || "";
@@ -1085,7 +1168,11 @@ function bMorph(scene, ctx, _a, _logo, variant) {
   // the scene's own copy, and a 14-character word at 150px in a wide display face measured
   // 1571px against a 936px column — half the word off-frame. Same arithmetic as fitLines:
   // the column divided by the longest step's advance, and it only ever shrinks.
-  const morphPx = Math.min(150, Math.floor((COL * 0.97) / Math.max(1, maxLen * skin.em)));
+  // Measured widths here too: the morph word is set `nowrap`, so an under-estimated advance does
+  // not wrap, it runs off the frame. `maxLen * skin.em` assumed every glyph was the average; the
+  // widest actual step string is what has to fit.
+  const widestStep = words.reduce((a, w) => (S.advanceOf(w, skin) > S.advanceOf(a, skin) ? w : a), words[0] || "");
+  const morphPx = Math.min(150, Math.floor((COL * 0.99) / Math.max(0.5, S.advanceOf(widestStep, skin))));
 
   let wordHtml;
   if (v === "flap") {
@@ -1127,7 +1214,7 @@ function bSwipe(scene, ctx, sceneAssets, _logo, variant) {
   const v = variant || "swipe";
   const id = ctx.id;
   const src = featureLines(scene, 3);
-  const cards = (src.length ? src : [scene.headline || Str.metric]).slice(0, 3).map((t) => {
+  const cards = (src.length ? src : fallbackLines(scene)).slice(0, 3).map((t) => {
     const parts = String(t).split(/\s+[—–-]\s+|:\s+/);
     return { t: shortLabel(parts[0], 30), s: parts.length > 1 ? shortLabel(parts.slice(1).join(" "), 60) : "" };
   });
@@ -1176,7 +1263,7 @@ function bCursor(scene, ctx, _a, _logo, variant) {
   const caption = shortLabel(scene.subtext || lines[0] || "", 40);
   const btn = shortLabel(lines[0] || Str.ctaButton, 16);
   const after = shortLabel(lines[1] || Str.done, 16);
-  const toggleLabel = shortLabel(lines[2] || lines[1] || Str.metric, 26);
+  const toggleLabel = shortLabel(lines[2] || lines[1] || "", 34);
 
   if (v === "slider") {
     return {
@@ -1245,7 +1332,7 @@ function bDrag(scene, ctx, _a, _logo, variant) {
   const id = ctx.id;
   const lines = featureLines(scene, 3);
   const caption = shortLabel(scene.subtext || lines[1] || "", 40);
-  const item = shortLabel(lines[0] || scene.emphasis || Str.metric, 18);
+  const item = shortLabel(lines[0] || scene.emphasis || firstWords(scene, 2), 18);
   const slot = shortLabel(lines[1] || Str.slot, 14).toUpperCase();
   const assemble = v === "assemble";
   const h = assemble ? 620 : 660;

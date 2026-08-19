@@ -162,7 +162,29 @@ export default function CreateScreen({ onCreated, prefill }) {
       .catch(() => setPacks(orderPacks([])));
   }, []);
 
-  useEffect(() => { if (prefill?.framePack) setFramePack(prefill.framePack); }, [prefill]);
+  // USE STYLE MUST LAND ON A CONFIGURATION THE PACK CAN RENDER.
+  //
+  // The deep link carries only a pack NAME (Gallery has nothing else — it reads a past job's
+  // framePack), so this used to set the pack and leave form/duration/orientation at their
+  // defaults. Clicking USE STYLE on a five-minute card therefore opened the Studio with
+  // duration 30 and a 40-scene pack pinned — and because that counts as an EXPLICIT user pick,
+  // frame_selector honours it rather than rerouting: the film renders four of forty beats and
+  // freezes on the fourth. The same bug already mis-set orientation for every portrait pack.
+  //
+  // The pack list is already loaded here, so the name is enough to recover both axes. Waits on
+  // `packs` because the prefill can arrive first.
+  useEffect(() => {
+    const want = prefill?.framePack;
+    if (!want) return;
+    setFramePack(want);
+    const row = (packs || []).find((p) => p.name === want);
+    if (!row) return;
+    const wantForm = row.form === "longform" ? "longform" : "short";
+    setForm(wantForm);
+    setDuration((FORMS.find((f) => f[0] === wantForm) || FORMS[0])[3]);
+    const o = String(row.orientation || "").toLowerCase();
+    setOrientation(o === "portrait" || o === "vertical" ? "vertical" : o === "square" ? "square" : "horizontal");
+  }, [prefill, packs]);
 
   const packList = packs || orderPacks([]);
   // The group that can actually render the film you configured comes first. Everything is still
@@ -598,7 +620,15 @@ export default function CreateScreen({ onCreated, prefill }) {
                 const on = orientation === o;
                 return (
                   <button key={o} type="button" onClick={() => setOrientation(o)}
-                    title={note} aria-label={`${ratio} ${o} — ${note}`} aria-pressed={on}
+                    // chooseForm already forces horizontal for long-form, but leaving the other
+                    // two live let you immediately undo it and land on a guaranteed "designed
+                    // for landscape" disclosure. All 27 long-form packs are authored 1920x1080;
+                    // there is no vertical one to pick.
+                    disabled={form === "longform" && o !== "horizontal"}
+                    title={form === "longform" && o !== "horizontal"
+                      ? "Long-form templates are all authored 1920×1080 — landscape only."
+                      : note}
+                    aria-label={`${ratio} ${o} — ${note}`} aria-pressed={on}
                     style={{
                       display: "flex", alignItems: "center", gap: 8,
                       padding: "8px 12px", borderRadius: 10, cursor: "pointer",
@@ -646,9 +676,13 @@ export default function CreateScreen({ onCreated, prefill }) {
               </button>
             </div>
             <div style={{ marginTop: 10, fontFamily: "var(--font-mono)", fontSize: "var(--text-micro)", letterSpacing: "0.1em", color: "var(--color-dim)" }}>
-              {finish === "premium" ? "AI-COMPOSED SCENES · ~10–15 MIN · RICHER"
-                : finish === "cinema" ? "3D SET · CRT SCREEN + FILM GRAIN · ~3–5 MIN"
-                : "CODE-BUILT SCENES · ~2 MIN · RELIABLE"}
+              {/* The minute figures are short-film numbers. On a long-form job they contradicted
+                  the "around 20 minutes" note two cards above — "~2 MIN · RELIABLE" under a
+                  five-minute render. Dropped rather than restated wrongly; the descriptions,
+                  which are what the choice is actually about, stay either way. */}
+              {finish === "premium" ? (form === "longform" ? "AI-COMPOSED SCENES · RICHER" : "AI-COMPOSED SCENES · ~10–15 MIN · RICHER")
+                : finish === "cinema" ? (form === "longform" ? "3D SET · CRT SCREEN + FILM GRAIN" : "3D SET · CRT SCREEN + FILM GRAIN · ~3–5 MIN")
+                : (form === "longform" ? "CODE-BUILT SCENES · RELIABLE" : "CODE-BUILT SCENES · ~2 MIN · RELIABLE")}
             </div>
           </div>
           {/* The "bring your own material" note closes this column. It is guidance about the

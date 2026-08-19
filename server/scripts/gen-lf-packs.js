@@ -105,14 +105,18 @@ function mediaFor(skin, spine) {
   const placeholders = [];
   if (peek >= 0) {
     placeholders.push({
-      role: "feature", kind: "screenshots", sceneIndex: peek, count: 1,
+      // PlaceholderSchema REQUIRES an id — it is how a seated asset is traced back to its slot
+      // in the coverage report, and MediaSchema rejects the whole block without it. The first
+      // cut of this generator omitted it on both slots, and because the rejection is fail-open
+      // the packs shipped with an unparseable media contract that nothing complained about.
+      id: "peek-shot", role: "feature", kind: "screenshots", sceneIndex: peek, count: 1,
       width: 980, height: 540, priority: "critical", objectFit: "cover",
       note: "the single mid-film media card — the only photographic surface in the whole film",
     });
   }
   if (join >= 0) {
     placeholders.push({
-      role: "cta", kind: "logos", sceneIndex: join, count: 1,
+      id: "join-logo", role: "cta", kind: "logos", sceneIndex: join, count: 1,
       width: 140, height: 140, priority: "medium", objectFit: "cover",
       note: "the circular logo slot in the closing card; the lockup drops entirely when absent",
     });

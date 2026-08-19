@@ -267,7 +267,7 @@ export default function AdminTemplateNew({ onOpen, onBack }) {
               style={{ width: "100%", boxSizing: "border-box", minHeight: 64, padding: "11px 14px", fontSize: 14 }} />
           </Card>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px,1fr))", gap: 14, alignItems: "start" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(260px,100%),1fr))", gap: 14, alignItems: "start" }}>
             <Card spine="#b9f24a" title="CATEGORY" hint="How the picker files it. The generated design may refine it.">
               <input value={category} onChange={(e) => setCategory(e.target.value)} className="field" list="kf-admin-categories"
                 aria-label="Category" style={{ width: "100%", boxSizing: "border-box", padding: "10px 13px", fontSize: 14 }} />

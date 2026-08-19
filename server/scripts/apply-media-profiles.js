@@ -48,6 +48,9 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+// The SAME schema resolveMediaPlan validates against at runtime — so the skip below can only
+// wave a pack through on the strength of a block that will actually be honoured.
+const { MediaSchema } = require("../src/services/template_media");
 
 const FRAMES = path.resolve(__dirname, "..", "..", "frames");
 
@@ -723,8 +726,16 @@ for (const name of packs) {
   // derivation below, this script would read "no slotsByRole" as "unprofiled", generate a
   // fraction-of-frame table for forty scenes, and `--check` would report DRIFT on all 27 packs
   // for as long as they exist.
+  // GATE ON VALIDITY, NOT ON PRESENCE. The first cut of this skip asked only whether
+  // `placeholders` was a non-empty array — and every long-form pack satisfied that while its
+  // blocks were being REJECTED at runtime, because PlaceholderSchema requires an `id` the
+  // generator was not emitting. So this waved through 27 packs whose media contract
+  // resolveMediaPlan then discarded, falling back to a derived 40-scene plan that asked for ~61
+  // screenshots on a template with one media card. A skip that says "this pack knows better
+  // than you" has to check that the pack's answer actually parses.
   if (/^lf-/.test(String(manifest.renderer || "")) && manifest.media
-      && Array.isArray(manifest.media.placeholders) && manifest.media.placeholders.length) {
+      && Array.isArray(manifest.media.placeholders) && manifest.media.placeholders.length
+      && MediaSchema.safeParse(manifest.media).success) {
     skipped++;
     continue;
   }

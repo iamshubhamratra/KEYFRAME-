@@ -17,27 +17,40 @@ import { adminListTemplates, mediaUrl } from "../api.js";
 // machine here is how "the button was there but the API said 409" happens.
 
 // status -> how it reads and what colour it wears. Presentation only.
+//
+// THESE ARE TEXT COLOURS ON WARM PAPER, so they are the paper-safe twins rather than the raw
+// accents. The raw set came from the dark design doc and was used here verbatim as 9-11px type:
+// lime "Ready to publish" landed at 1.16:1 and amber "Generating" at 1.60:1 — a status you could
+// see the shape of but not read. Every value below clears 4.5:1 on both paper and white.
 const STATUS_META = {
-  DRAFT: { label: "Draft", c: "#7d766a" },
-  GENERATING: { label: "Generating", c: "#ffb03a" },
-  GENERATED: { label: "Generated", c: "#23c8e0" },
-  TESTING: { label: "Testing", c: "#8b5cf6" },
-  READY_TO_PUBLISH: { label: "Ready to publish", c: "#b9f24a" },
-  PUBLISHED: { label: "Published", c: "#22c55e" },
-  FAILED: { label: "Failed", c: "#d8271b" },
-  ARCHIVED: { label: "Archived", c: "#9a9284" },
+  DRAFT: { label: "Draft", c: "#6b6459" },
+  GENERATING: { label: "Generating", c: "#8a5a00" },
+  GENERATED: { label: "Generated", c: "#0f6d7d" },
+  TESTING: { label: "Testing", c: "#6d28d9" },
+  READY_TO_PUBLISH: { label: "Ready to publish", c: "#3f6212" },
+  PUBLISHED: { label: "Published", c: "#1e7c34" },
+  SUPERSEDED: { label: "Superseded", c: "#57534e" },
+  FAILED: { label: "Failed", c: "#b3271b" },
+  ARCHIVED: { label: "Archived", c: "#57534e" },
 };
-export const statusMeta = (s) => STATUS_META[s] || { label: String(s || "unknown"), c: "#7d766a" };
+export const statusMeta = (s) => STATUS_META[s] || { label: String(s || "unknown"), c: "var(--color-dim)" };
 
 // The grouped view, used when no single status is selected. Every status in STATUS_META
 // appears in exactly one group, so nothing can be filtered into invisibility by omission.
+//
+// SUPERSEDED WAS MISSING FROM BOTH TABLES — the comment above was aspirational, not true. It is a
+// real lifecycle status (a version retired by the one that replaced it, and the only thing
+// rollback can promote), so every superseded template fell through to the default label and
+// belonged to no section: invisible in the default view, which is the view you land on. That is
+// exactly the "filtered into invisibility by omission" this comment promised could not happen.
 const SECTIONS = [
-  ["IN PROGRESS", ["GENERATING", "TESTING"], "#ffb03a", "Running right now — this list refreshes itself"],
-  ["DRAFTS", ["DRAFT", "GENERATED"], "#23c8e0", "Authored but not cleared for users"],
-  ["READY TO PUBLISH", ["READY_TO_PUBLISH"], "#b9f24a", "QA passed — one act away from live"],
-  ["PUBLISHED", ["PUBLISHED"], "#22c55e", "Live in the public template gallery"],
-  ["FAILED", ["FAILED"], "#d8271b", "Generation or QA stopped with an error"],
-  ["ARCHIVED", ["ARCHIVED"], "#9a9284", "Retired — re-enter by creating a new version"],
+  ["IN PROGRESS", ["GENERATING", "TESTING"], "#8a5a00", "Running right now — this list refreshes itself"],
+  ["DRAFTS", ["DRAFT", "GENERATED"], "#0f6d7d", "Authored but not cleared for users"],
+  ["READY TO PUBLISH", ["READY_TO_PUBLISH"], "#3f6212", "QA passed — one act away from live"],
+  ["PUBLISHED", ["PUBLISHED"], "#1e7c34", "Live in the public template gallery"],
+  ["SUPERSEDED", ["SUPERSEDED"], "#57534e", "Replaced by a newer version — still here, still rollback-able"],
+  ["FAILED", ["FAILED"], "#b3271b", "Generation or QA stopped with an error"],
+  ["ARCHIVED", ["ARCHIVED"], "#57534e", "Retired — re-enter by creating a new version"],
 ];
 
 // A template is "live work" while the server says something is in flight for it (`busy`) or its
@@ -72,6 +85,7 @@ export default function AdminTemplates({ onOpen, onNew, onBatch }) {
   // dashboard showed every VERSION as a separate template, which is exactly the confusion
   // versioning exists to remove.
   const [families, setFamilies] = useState([]);
+  const [counts, setCounts] = useState({});     // per-status totals, unfiltered by status
   const [status, setStatus] = useState("all");
   const [q, setQ] = useState("");
   const [error, setError] = useState(null);
@@ -85,6 +99,7 @@ export default function AdminTemplates({ onOpen, onNew, onBatch }) {
       setRows(r.templates || []);
       if (Array.isArray(r.statuses) && r.statuses.length) setStatuses(r.statuses);
       setFamilies(Array.isArray(r.families) ? r.families : []);
+      setCounts(r.counts && typeof r.counts === "object" ? r.counts : {});
       setError(null);
     } catch (e) {
       // A failed BACKGROUND refresh must not blank a list the admin is reading — it only
@@ -146,11 +161,12 @@ export default function AdminTemplates({ onOpen, onNew, onBatch }) {
 
         {/* ---- filters + search ---- */}
         <div style={{ marginTop: 26, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <FilterPill active={status === "all"} onClick={() => setStatus("all")} c="#17130e" label="All" n={status === "all" ? list.length : null} />
+          {/* Counts come from the server's unfiltered tally, so they keep saying how many EXIST
+              rather than how many survived the filter you are already looking through. */}
+          <FilterPill active={status === "all"} onClick={() => setStatus("all")} c="#17130e" label="All" n={counts.all} />
           {statuses.map((s) => {
             const m = statusMeta(s);
-            return <FilterPill key={s} active={status === s} onClick={() => setStatus(s)} c={m.c} label={m.label}
-              n={status === s ? list.length : list.filter((t) => t.status === s).length} />;
+            return <FilterPill key={s} active={status === s} onClick={() => setStatus(s)} c={m.c} label={m.label} n={counts[s] || 0} />;
           })}
           <label style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8, minWidth: 220 }}>
             <span className="label-mono">SEARCH</span>
@@ -245,7 +261,7 @@ export default function AdminTemplates({ onOpen, onNew, onBatch }) {
 
 function Grid({ list, onOpen }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px,1fr))", gap: 16 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(260px,100%),1fr))", gap: 16 }}>
       {list.map((t, i) => <TemplateCard key={t.id} t={t} delay={(i % 4) * 0.05} onOpen={() => onOpen?.(t.id)} />)}
     </div>
   );
@@ -257,8 +273,10 @@ function Muted({ children }) {
 
 function FilterPill({ active, onClick, c, label, n }) {
   return (
+    // The status palette is deliberately dark (it doubles as TEXT elsewhere), so a filled chip
+    // needs a light label — the opposite of Studio's bright accent chips. Declared, not guessed.
     <button type="button" onClick={onClick} aria-pressed={active}
-      className={`chip-c on-paper ${active ? "is-active" : ""}`} style={{ "--chipc": c }}>
+      className={`chip-c on-paper ${active ? "is-active" : ""}`} style={{ "--chipc": c, "--chipfg": "#fff" }}>
       {label}{n ? ` · ${n}` : ""}
     </button>
   );

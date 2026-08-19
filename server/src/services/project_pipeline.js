@@ -940,7 +940,7 @@ async function runProduction({ jobId }) {
 
       // ---- Compose + render (frame-pack styled), with the v1 budget wrapper.
       // Tier 1: with assets. Tier 2: asset-less. Tier 3: deterministic fallback.
-      const budget = (Number(config.server.stageBudgetSec) || 240) * 1000;
+      const budget = require("./pipeline").stageBudgetMsFor(job.duration, 240);
       const t1 = ms();
       // MOTION PLAN — per-scene entrance + camera, decided before composition (the same
       // planner the graph runs). Deterministic; null degrades to the pack film-level motion.

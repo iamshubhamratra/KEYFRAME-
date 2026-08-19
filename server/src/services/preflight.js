@@ -51,7 +51,35 @@ function preflight({ job, assets = [], script = null, storyboard = null, brandSk
   const checks = [];
   const list = Array.isArray(assets) ? assets : [];
 
-  // ---- self-heal: drop assets whose file vanished (a broken <img> in the render).
+  // ---- self-heal ------------------------------------------------------------------------
+  //
+  // RECOVER FROM THE STASH BEFORE DROPPING ANYTHING. `asset_sources.acquire` keeps the best
+  // candidate it saw beside the output as `<path>.best`, and restores it when nothing clears the
+  // bar. A stash still sitting there next to a MISSING output is unambiguous: the download ladder
+  // wrote it, the restore never ran, and the picture the film was promised is one rename away.
+  // Job d5xnxi7ssk lost 6 of its 8 assets that way, which emptied the pack's one critical slot and
+  // hard-failed a render whose pictures were all on disk the whole time.
+  //
+  // Restoring is strictly better than dropping: the alternative is a blank plate. It is logged
+  // loudly because the missing restore upstream is a real bug this only rescues.
+  const abs = (a) => path.join(jobDir, a.path);
+  let restored = 0;
+  if (jobDir) {
+    for (const a of list) {
+      if (!a || !a.path) continue;
+      try {
+        const out = abs(a);
+        if (fs.existsSync(out)) continue;
+        const stash = `${out}.best`;
+        if (!fs.existsSync(stash)) continue;
+        fs.copyFileSync(stash, out);
+        restored++;
+      } catch { /* leave it to the drop below */ }
+    }
+    if (restored) console.warn(`[preflight] restored ${restored} asset(s) from their .best stash — acquire left the stash without restoring it`);
+  }
+
+  // ---- then drop assets whose file really is gone (a broken <img> in the render).
   const fileOk = (a) => { try { return !a || !a.path || !jobDir || fs.existsSync(path.join(jobDir, a.path)); } catch { return true; } };
   const healed = list.filter(fileOk);
   const selfHealed = list.length - healed.length;

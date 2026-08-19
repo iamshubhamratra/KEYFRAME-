@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { pollProject } from "../api.js";
 
@@ -33,27 +33,70 @@ function stageIndex(progress) {
   return i === -1 ? 0 : i;
 }
 
+// How long a single stage may go without moving before we stop pretending everything is fine.
+// Some stages legitimately take minutes (the render itself), so this is deliberately generous —
+// it exists to catch "nothing has happened for a very long time", not to nag.
+const STALL_AFTER_MIN = 4;
+// ...but a five-minute film is not a five-minute render. A single long-form stage — composing
+// forty scenes, or the ffmpeg pass over a 300s 1920x1080 file — routinely runs past four
+// minutes on its own, so the flat constant would have fired "the run is probably wedged" on
+// every healthy long-form job. That is the exact false alarm the note above says this exists to
+// avoid, on the format where a needless abort costs the most. Scaled by the film the user
+// actually asked for, not by a number calibrated against 30-second shorts.
+const STALL_AFTER_MIN_LONGFORM = 12;
+const stallThresholdFor = (durationSec) => (Number(durationSec) >= 240 ? STALL_AFTER_MIN_LONGFORM : STALL_AFTER_MIN);
+
 export default function ProductionTheater({ projectId, onDone, onFailed }) {
   const [project, setProject] = useState(null);
   const [error, setError] = useState(null);
+  // Minutes the current stage has sat unchanged. Measured in an interval rather than during
+  // render — Date.now() and ref reads are both impure there.
+  const [stillMin, setStillMin] = useState(0);
+  const stageSince = useRef(0);
+  const lastStage = useRef(null);
 
   useEffect(() => {
-    if (!projectId) return;
+    if (!projectId) return undefined;
     const ac = new AbortController();
-    pollProject(projectId, { onTick: setProject, signal: ac.signal })
+    pollProject(projectId, {
+      // Stage transitions are recorded HERE rather than during render: this is the only place
+      // that knows a tick actually changed something.
+      onTick: (p) => {
+        if (p && p.progress !== lastStage.current) {
+          lastStage.current = p.progress;
+          stageSince.current = Date.now();
+          setStillMin(0);
+        }
+        setProject(p);
+      },
+      signal: ac.signal,
+    })
       .then((p) => {
         if (p.status === "done") setTimeout(onDone, 1200);
         else if (p.status === "failed") setError(p.error || "production failed");
       })
       .catch((e) => setError(e.message));
     return () => ac.abort();
-  }, [projectId]);
+  }, [projectId, onDone]);
 
   const active = stageIndex(project?.progress);
   const done = project?.status === "done";
   const failed = project?.status === "failed" || error;
   const stage = STAGES[Math.min(active, STAGES.length - 1)];
   const prog = done ? 1 : (active + 0.5) / STAGES.length;
+
+  // THE BAR IS SYNTHETIC AND ALWAYS WAS — it is (stage + 0.5) / 12, so it reports WHERE the job
+  // is, never how it is doing. A job wedged in the same stage for ten minutes drew exactly the
+  // bar of a healthy one, which is the single most misleading thing a progress screen can do.
+  // The position stays (it is genuinely useful); what is added is the truth about time.
+  useEffect(() => {
+    if (done || failed) return undefined;
+    const t = setInterval(() => {
+      if (stageSince.current) setStillMin(Math.floor((Date.now() - stageSince.current) / 60000));
+    }, 10000);
+    return () => clearInterval(t);
+  }, [done, failed]);
+  const stalled = stillMin >= stallThresholdFor(project?.duration);
 
   return (
     <div style={{ maxWidth: 1120, margin: "0 auto", padding: "clamp(16px,3vw,40px) clamp(16px,4vw,60px) 100px" }}>
@@ -63,11 +106,22 @@ export default function ProductionTheater({ projectId, onDone, onFailed }) {
           : done ? <>That's a <span style={{ color: "var(--color-am)" }}>wrap.</span></>
             : <>Every stage. <span style={{ color: "var(--color-am)" }}>One take.</span></>}
       </h2>
-      <p style={{ marginTop: 12, fontSize: 15, color: "var(--color-dim)", lineHeight: 1.6, maxWidth: 480 }}>
-        {project?.estimatedRemainingSec > 0 && project?.status === "running"
-          ? `Voiced, scored and cut while you watch — about ${Math.ceil(project.estimatedRemainingSec / 60)} min to go.`
-          : failed ? String(error) : "Voiced, scored and cut while you watch. The premiere is next."}
+      {/* aria-live so a screen reader is told the film finished. None of the async screens
+          announced anything, so the only way to learn a multi-minute job had landed was to look. */}
+      <p role="status" aria-live="polite" className="break-long"
+        style={{ marginTop: 12, fontSize: "var(--text-lg)", color: "var(--color-dim)", lineHeight: 1.6, maxWidth: 520 }}>
+        {failed ? String(error)
+          : done ? "Your film is ready — taking you to the premiere."
+            : project?.estimatedRemainingSec > 0 && project?.status === "running"
+              ? `Voiced, scored and cut while you watch — about ${Math.ceil(project.estimatedRemainingSec / 60)} min to go.`
+              : "Voiced, scored and cut while you watch. The premiere is next."}
       </p>
+      {stalled && !failed && (
+        <p style={{ marginTop: 10, fontFamily: "var(--font-mono)", fontSize: "var(--text-mono)", lineHeight: 1.6, maxWidth: 520, color: "var(--color-warn-ink)" }}>
+          STILL ON “{stage?.label || "THIS STAGE"}” AFTER {stillMin} MIN — this stage
+          can be slow, but if nothing moves in the next few minutes the run is probably wedged.
+        </p>
+      )}
 
       {/* the render monitor */}
       <div className="editor-card" style={{ marginTop: 34 }}>

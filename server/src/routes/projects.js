@@ -18,6 +18,8 @@ const { customAlphabet } = require("nanoid");
 const config = require("../config");
 const db = require("../db");
 const frameRegistry = require("../services/frame_registry");
+// The same estimator GET /api/jobs/:id uses — see the note in the project status route.
+const { estimateEta, estimateRemainingSec } = require("../services/eta");
 const captionLang = require("../services/caption_lang");
 const captionDirector = require("../services/caption_director");
 const { validateScript, normalizeScript } = require("../services/script");
@@ -431,6 +433,48 @@ function buildRouter({ enqueueIntake, enqueueProduction }) {
     if (!/^[0-9a-z]{6,20}$/.test(req.params.id)) return res.status(400).json({ error: "bad id" });
     const job = db.get(req.params.id);
     if (!job) return res.status(404).json({ error: "not found" });
+
+    // THE ETA THE CLIENT ALREADY KNOWS HOW TO SHOW.
+    //
+    // ProductionTheater guards its "about N min to go" line on `estimatedRemainingSec`, and that
+    // field was computed in exactly one place — GET /api/jobs/:id — which the web app never
+    // calls. So the branch was unreachable and every user got the generic waiting copy instead.
+    // Harmless on a two-minute short; on a twenty-minute long-form render it means the one
+    // screen whose job is to manage the wait offers no estimate at all, while the stall warning
+    // beside it says the run is probably wedged.
+    //
+    // services/eta.js already models a 300s film correctly, so this is wiring, not arithmetic.
+    // Attached to the response copy only — `db.get` returns a shaped object, never the record.
+    try {
+      if (job.status === "running") {
+        job.estimatedRemainingSec = estimateRemainingSec({
+          duration: job.duration,
+          orientation: job.orientation,
+          resolutionQuality: job.quality || config.defaults.quality,
+          renderQuality: config.server.renderQuality,
+          cpus: config.server.detectedCpus,
+          startedAtMs: job.startedAt,
+        });
+      } else if (job.status === "queued") {
+        const posInQueue = db.queuePosition(req.params.id) || 1;
+        const jobsAhead = db.activeCount() + (posInQueue - 1);
+        const eta = estimateEta({
+          duration: job.duration,
+          orientation: job.orientation,
+          resolutionQuality: job.quality || config.defaults.quality,
+          renderQuality: config.server.renderQuality,
+          cpus: config.server.detectedCpus,
+          jobsAhead,
+          concurrency: config.server.jobConcurrency,
+        });
+        job.queuePosition = posInQueue;
+        job.jobsAhead = jobsAhead;
+        job.estimatedWaitSec = eta.waitSec;
+        job.estimatedRenderSec = eta.renderSec;
+        job.estimatedTotalSec = eta.totalSec;
+      }
+    } catch { /* an estimate is never worth a failed status read */ }
+
     res.json(job);
   });
 

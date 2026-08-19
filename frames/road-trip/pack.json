@@ -83,15 +83,6 @@
     },
     "placeholders": [],
     "slotsByRole": {
-      "hook": {
-        "count": 1,
-        "width": 936,
-        "height": 460,
-        "priority": "critical",
-        "objectFit": "cover",
-        "kind": "screenshots",
-        "note": "the opening device frame"
-      },
       "context": {
         "count": 2,
         "width": 936,
@@ -105,7 +96,7 @@
         "count": 2,
         "width": 910,
         "height": 562,
-        "priority": "high",
+        "priority": "critical",
         "objectFit": "cover",
         "kind": "screenshots",
         "note": "the hero media card"

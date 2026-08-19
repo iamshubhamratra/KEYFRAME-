@@ -143,7 +143,12 @@ export async function adminArchive(id) { return json(await jpost(`${ADMIN}/${id}
 // directory — the one being fixed is never written to — and answers with the NEW record, which
 // the detail screen then opens. `adminRollback` promotes a superseded version back to live and
 // retires whatever replaced it; it is synchronous because it renders nothing.
-export async function adminNewVersion(id, changes) { return json(await jpost(`${ADMIN}/${id}/versions`, changes ? { changes } : {})); }
+// `fix: true` also STARTS the regeneration on the clone, so "fix this defect" is one act rather
+// than clone-here-then-find-regenerate-over-there. The server builds the brief from the issues
+// the clone inherits, so nothing has to be retyped.
+export async function adminNewVersion(id, { changes, fix } = {}) {
+  return json(await jpost(`${ADMIN}/${id}/versions`, { ...(changes ? { changes } : {}), ...(fix ? { fix: true } : {}) }));
+}
 export async function adminRollback(id) { return json(await jpost(`${ADMIN}/${id}/rollback`, {})); }
 
 // ---------------- admin: batch generation ----------------

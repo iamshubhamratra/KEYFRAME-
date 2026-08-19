@@ -68,7 +68,26 @@ function recentlyUsedPacks(limit = 3) {
 }
 
 async function generateBrief({ intent, signal }) {
-  const packs = frameRegistry.listPacks();
+  // OFFER ONLY THE PACKS THAT CAN SERVE THIS FILM'S LENGTH.
+  //
+  // The model was handed all 159 installed packs with no filter, and 27 of them are five-minute
+  // templates. For a 30-second brief that is 27 candidates the frame selector will immediately
+  // reroute away from; for a 300-second one the other 132 are the ineligible ones, and they are
+  // the overwhelming majority — so the model would name a short pack almost every time and the
+  // Script Room would show the user a template their film cannot use.
+  //
+  // A reroute is not a silent fix here: it lands as a disclosure on the job, so a bad suggestion
+  // costs the user an explanation about a choice they never made. Filtering the menu is cheaper
+  // and more honest than correcting the answer.
+  //
+  // Fail-open in both directions: an unknown duration filters nothing, and if the filter would
+  // empty the list we fall back to the full one rather than hand the model no vocabulary at all.
+  const requested = Number(intent?.preferences?.duration) || 0;
+  const allPacks = frameRegistry.listPacks();
+  const eligible = requested > 0
+    ? allPacks.filter((name) => frameManifest.packFitsDuration(name, requested))
+    : allPacks;
+  const packs = eligible.length ? eligible : allPacks;
   const availableFramePacks = packs.map((name) => ({
     name,
     // The pack manifest is the source of truth (Phase 3). It already folds in the

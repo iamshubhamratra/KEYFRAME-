@@ -270,12 +270,24 @@ function LFdraw(now){
   var wrap=document.getElementById("lf-world");
   if(wrap){wrap.style.opacity=sc&&sc.world===false?"0":"1";}
   if(LFLAST.world!==now){LFdrawWorld(now,sc&&sc.dark);LFLAST.world=now;}
-  for(var k=0;k<LFSCENES.length;k++){
-    var host=document.getElementById("lfs"+k);
-    if(!host)continue;
+  // ONE CLASS QUERY, NOT N ID LOOKUPS — and the selector is a STRING LITERAL on purpose.
+  //
+  // scripts/test-ghosts.js exists to catch content that is hidden at birth and never revealed,
+  // which is a defect this repo has shipped six times. Its imperative-reveal rule credits a
+  // node only when the selector that reaches it appears as a literal inside $() or
+  // querySelector(All)(). The first version of this loop resolved each scene with
+  // getElementById("lfs" + k) — a concatenation the guard cannot read — so all 27 long-form
+  // packs were reported as hiding forty scenes they never reveal. The render was correct; the
+  // guard simply had no way to prove it.
+  //
+  // Writing it as one querySelectorAll(".lf-scene") makes the reveal legible to the guard AND
+  // is less work per frame: one selector match instead of forty id lookups, forty times a
+  // second. Document order is emission order, so the index still lines up with LFSCENES.
+  var hosts=document.querySelectorAll(".lf-scene");
+  for(var k=0;k<hosts.length;k++){
+    var host=hosts[k];
     var live=(k===i);
     host.style.opacity=live?"1":"0";
-    host.style.pointerEvents="none";
     if(live)LFdrawScene(k,now);
   }
   if(sc){

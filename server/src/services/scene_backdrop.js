@@ -272,7 +272,19 @@ function injectSceneBackdrops({ indexHtml, assets = [], storyboard = null, frame
     if (/\bdata-no-backdrop\b/.test(html.slice(sc.tagStart, sc.tagEnd))) continue;
     const pick = takeFor(sc.id, i);
     if (!pick) continue;
-    out = out.slice(0, sc.tagEnd) + backdropHtml(pick.path, tone) + out.slice(sc.tagEnd);
+    // TONE FROM THE SCENE'S OWN FIELD, NOT THE PACK'S NOMINAL ONE.
+    //
+    // `surface.ground` is a single colour per pack, and a pack that alternates its grounds per
+    // beat has several. Reading only the manifest asked "is this pack light?" and answered for
+    // every scene at once: on bonsai-bench (paper) that laid a 55%-opacity PAPER veil over the
+    // CTA's dark ink field, turning a #26302a ground into #93958c and dropping the cream headline
+    // from 11.3:1 to 2.6:1 — the backdrop pass destroying the contrast the type was chosen for,
+    // which is the exact failure the note above warns about. The composer already prints each
+    // opaque beat's field on its own container, so prefer that and keep the manifest as the
+    // fallback for a scene that paints no field of its own (its ground IS the pack's).
+    const own = /background:\s*(#[0-9a-fA-F]{3,8})/.exec(html.slice(sc.tagStart, sc.tagEnd));
+    const sceneTone = own ? { light: isLightGround(own[1]), ground: own[1] } : tone;
+    out = out.slice(0, sc.tagEnd) + backdropHtml(pick.path, sceneTone) + out.slice(sc.tagEnd);
     injected.unshift({ sceneId: sc.id, path: pick.path });
   }
 

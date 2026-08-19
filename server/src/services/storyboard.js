@@ -30,6 +30,28 @@ const ASPECT_BY_ORIENTATION = {
   square: "1:1",
 };
 
+// THE TREATMENTS THIS PACK WILL HONOUR.
+//
+// `kind` and `purpose` say what a scene is ABOUT, and several genuinely different beats collapse
+// onto the same pair — a scrolling manifest and a four-tile wall are both `purpose: showcase`.
+// `treatment` is the one field that separates them, and it is offered only as THIS template's own
+// vocabulary: the six native beats plus whatever mechanics this pack declares. An unrecognised
+// value is ignored downstream, so a wrong guess costs nothing and no pack can be talked into
+// another's look. See services/treatments.js.
+function treatmentLine(framePack) {
+  if (!framePack || framePack === "auto") return "";
+  const { native, mechanics } = treatmentsForPack(framePack);
+  if (!mechanics.length) return "";
+  return [
+    `Scene treatments available in "${framePack}" (optional \`treatment\` field per scene):`,
+    `  native beats — ${native.join(", ")}`,
+    `  this template's own interactions — ${mechanics.join(", ")}`,
+    "Set `treatment` only when the beat genuinely calls for that shape (a checklist, a scrolling",
+    "list, a counter dial, a typing terminal); leave it out and the template chooses. Use each",
+    "interaction at most twice across the film, and never on the first or last scene.",
+  ].join(String.fromCharCode(10));
+}
+
 function buildUser({ prompt, duration, orientation, framePack }) {
   return [
     `User prompt: ${prompt}`,
@@ -39,12 +61,14 @@ function buildUser({ prompt, duration, orientation, framePack }) {
     framePack && framePack !== "auto"
       ? `Visual design system: "${framePack}". Design every scene's layout, visualMotif, and emphasis to suit THIS system's aesthetic — pick scene archetypes and motifs that show off its signature look. Keep adjacent scenes visually distinct (vary layout + animation + motif).`
       : "",
+    treatmentLine(framePack),
     "",
     "Produce the storyboard JSON now.",
   ].filter(Boolean).join("\n");
 }
 
 const { extractFirstJsonObject: parseJsonLenient } = require("./json_lenient");
+const { treatmentsForPack, normalizeTreatment, NATIVE_SET } = require("./treatments");
 
 const round2 = (n) => Math.round(n * 100) / 100;
 const clampDur = (n) => Math.min(15, Math.max(2, n));
@@ -121,6 +145,16 @@ function validate(storyboard, { duration, orientation }) {
       if (Math.abs(s.start - cursor) > 0.05) errs.push(`scene[${i}] start ${s.start} should be ${Math.round(cursor * 100) / 100}`);
       if (s.duration < 2 || s.duration > 15) errs.push(`scene[${i}] duration ${s.duration} out of [2,15]`);
       if (!s.kind) errs.push(`scene[${i}] missing kind`);
+      // TREATMENT IS OPTIONAL AND NEVER A REASON TO RETRY. It is a request drawn from the pack's
+      // own vocabulary; the composer ignores anything it does not recognise, so a bad guess must
+      // not burn an LLM retry on an otherwise-valid storyboard. Normalize the spelling here (the
+      // model writes "drag-drop" as often as "DragDrop") and drop what cannot be a treatment at
+      // all, so what reaches the composer is either a clean token or nothing.
+      if (s.treatment != null) {
+        const t = String(s.treatment).trim().toLowerCase().replace(/[\s_-]+/g, "");
+        s.treatment = t && (NATIVE_SET.has(t) || /^[a-z0-9]{2,24}$/.test(t)) ? String(s.treatment).trim().slice(0, 24) : undefined;
+        if (!s.treatment) delete s.treatment;
+      }
       if (!s.animation) errs.push(`scene[${i}] missing animation`);
       // Voiceover is optional (falls back to headline+subtext downstream) — never
       // block on it, just normalize to a trimmed string so the audio stage is safe.

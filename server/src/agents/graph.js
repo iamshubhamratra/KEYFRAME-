@@ -576,6 +576,13 @@ async function frameSelectorAgent(s) {
   if (orientationPackWarning) {
     try { db.setValidationNote(s.job.id, orientationPackWarning); } catch { /* never blocks */ }
   }
+  // THE DURATION DISCLOSURE HAS TO REACH THE RECORD, not just the graph state. It was being
+  // built, returned, and dropped — the one case where honouring an explicit pick produces a
+  // visibly wrong film ("only its opening scenes will play and the last one will hold") was the
+  // one case with nothing written down. Same channel, same fail-open rule, as its two siblings.
+  if (durationPackWarning) {
+    try { db.setValidationNote(s.job.id, durationPackWarning); } catch { /* never blocks */ }
+  }
   if (supplyPackWarning) {
     try { db.setValidationNote(s.job.id, supplyPackWarning); } catch { /* never blocks */ }
   }

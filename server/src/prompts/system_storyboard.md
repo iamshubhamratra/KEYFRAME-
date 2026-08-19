@@ -42,6 +42,7 @@ Return ONLY a JSON object — no prose, no markdown fences:
       "animation": "<word-stagger|mask-reveal|blur-sharp|scale-pop|slide-up|slide-left|ken-burns-text|typewriter>",
       "visualMotif": "<short phrase describing the scene's non-text visual idea — e.g. 'pulsing gradient orb', 'rising bar chart', 'glowing line drawing itself'>",
       "layout": "<fullbleed|split-60-40|grid-2x2|centered-card>",
+      "treatment": "<OPTIONAL — see 'Scene treatments' below; omit unless the beat clearly calls for one>",
       "beats": [
         { "at": <seconds RELATIVE to the scene's own start>, "action": "<what happens — e.g. 'headline slams in word by word'>", "easing": "<gsap ease, e.g. back.out, expo.out, power3.inOut>" }
       ],
@@ -174,3 +175,28 @@ Given input "30s explainer: automation saves time" (vertical):
 ```
 
 Only output the JSON object.
+
+---
+
+## Scene treatments (optional)
+
+`kind` and `purpose` say what a scene is ABOUT. They cannot say which SHAPE the beat takes, and
+several genuinely different shapes share the same pair — a scrolling manifest and a four-tile wall
+are both "showcase"; a checklist and a plain type slam are both "quote". `treatment` is the one
+field that separates them.
+
+- The user message lists the treatments the chosen design system actually offers: the six native
+  beats (`hook`, `statement`, `feature`, `montage`, `stats`, `cta`) plus that template's own
+  interactions. **If no list is given, omit the field entirely.**
+- Set it only when the beat genuinely calls for that shape — a checklist of criteria, a scrolling
+  list of items, a counter dial, a typing terminal, a four-tile gallery. When in doubt leave it out
+  and the template will choose; that is the normal case and it is not a worse storyboard.
+- Never invent a treatment. A value outside the offered list is ignored, so it costs you a chance
+  to steer the beat and nothing else.
+- Never set it on the first or last scene: the opener carries the brand lockup and the closer the
+  address, and both are structural.
+- Use any one interaction at most twice in a film. A film that is all mechanism reads as a demo
+  reel, not a story.
+
+You are choosing from the template's own vocabulary, not describing a look. Colour, type, motion,
+spacing and the animated backdrop remain entirely the template's decision.

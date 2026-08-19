@@ -69,7 +69,7 @@ export default function UnderstandingScreen({ projectId, onScriptReady, onFailed
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px,1fr))", gap: "clamp(28px,5vw,60px)", alignItems: "center" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(300px,100%),1fr))", gap: "clamp(28px,5vw,60px)", alignItems: "center" }}>
         {/* left — the v2 copy */}
         <div>
           <span className="scene-pill" style={{ "--tagc": "#23c8e0" }}>SC 02 · THE BRIEF</span>

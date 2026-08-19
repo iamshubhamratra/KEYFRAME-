@@ -98,13 +98,29 @@ function buildUserMessage({ name, prompt, options = {}, existingSpec = null, fee
   L.push("");
   L.push(`Set "label" to exactly "${name}".`);
 
-  if (existingSpec && feedback) {
+  // A CARRIED DESIGN IS A REVISION WHETHER OR NOT ANYONE TYPED FEEDBACK.
+  //
+  // This used to be `existingSpec && feedback`, which quietly defeated the thing service.js:61-67
+  // was written to guarantee. That caller passes the parent's spec whenever a row has a parentId
+  // — "a version created to fix another one is always a revision" — and then this gate threw the
+  // spec away because the admin had not typed anything into a feedback box the screen does not
+  // even render. The result: pressing Generate on v2 designed a brand-new template from the
+  // prompt, so the version created to fix a defect shared nothing with the version that had it.
+  //
+  // Carrying the design is the whole point of a version. Feedback narrows what to change; its
+  // absence means "keep this design and rebuild it", never "start again".
+  if (existingSpec) {
     L.push("");
     L.push("## This is a REVISION");
-    L.push("Here is the current design. Change what the feedback asks for and leave the rest alone —");
-    L.push("a revision that redesigns everything is a regression, not an improvement.");
-    L.push("");
-    L.push("FEEDBACK: " + String(feedback));
+    L.push("Here is the current design. Keep it. Change only what is asked for below and leave the");
+    L.push("rest alone — a revision that redesigns everything is a regression, not an improvement.");
+    if (feedback) {
+      L.push("");
+      L.push("WHAT MUST CHANGE: " + String(feedback));
+    } else {
+      L.push("");
+      L.push("Nothing specific was asked for, so preserve this design exactly and re-emit it.");
+    }
     L.push("");
     L.push("CURRENT DESIGN:");
     L.push(JSON.stringify(existingSpec));

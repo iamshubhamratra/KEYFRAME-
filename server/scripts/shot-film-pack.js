@@ -51,7 +51,16 @@ const KIND_FOR = {
   Cursor: { purpose: "feature", kind: "feature" }, DragDrop: { purpose: "feature", kind: "feature" },
 };
 
-function storyboardFromRef(meta, maxScenes) {
+// The reference deck names its own treatment, and `scene.treatment` is the storyboard field that
+// can carry it. Native beats go in lowercase, mechanics keep the name the skins declare.
+const TREATMENT_FOR = {
+  Hook: "hook", CTA: "cta", Statement: "statement", Stats: "stats",
+  Feature: "feature", Montage: "montage",
+  Ring: "Ring", Scroll: "Scroll", Swipe: "Swipe", Morph: "Morph", Notify: "Notify",
+  Toggle: "Toggle", Typing: "Typing", Code: "Code", Cursor: "Cursor", DragDrop: "DragDrop",
+};
+
+function storyboardFromRef(meta, maxScenes, { treatment = false } = {}) {
   const scenes = [];
   let t = 0;
   for (const s of meta.omScenes || []) {
@@ -71,6 +80,9 @@ function storyboardFromRef(meta, maxScenes) {
     scenes.push({
       id: `s${scenes.length + 1}`, start: +t.toFixed(2), duration: dur,
       ...base,
+      // Only when asked for: the default run measures what the engine INFERS from kind/purpose
+      // alone, which is what every number in the parity report is based on.
+      ...(treatment && TREATMENT_FOR[s.name] ? { treatment: TREATMENT_FOR[s.name] } : {}),
       refName: s.name,
       kicker: s.kicker || undefined,
       headline: s.title || "",
@@ -121,13 +133,41 @@ async function main() {
   const puppeteer = require("puppeteer-core");
   const exe = findChromium();
   if (!exe) { console.error("no cached Chrome — set PUPPETEER_EXECUTABLE_PATH"); process.exit(3); }
-  const browser = await puppeteer.launch({
+  // A CRASHED BROWSER MUST NOT END THE RUN.
+  //
+  // Chromium dies under load (several capture shells plus a render queue on one machine), and a
+  // dead browser threw ConnectionClosedError out of newPage() — aborting a 29-pack sweep after 6.
+  // The captures are per-pack independent, so the browser is a replaceable resource: relaunch it
+  // and carry on with the next pack.
+  const LAUNCH = {
     executablePath: exe, headless: true,
     args: ["--no-sandbox", "--font-render-hinting=none", "--force-color-profile=srgb", "--hide-scrollbars"],
-  });
+  };
+  let browser = await puppeteer.launch(LAUNCH);
+  const alive = () => { try { return browser && browser.connected !== false && browser.process() && !browser.process().killed; } catch { return false; } };
+  const ensureBrowser = async () => {
+    if (alive()) return;
+    console.warn("[film-ours] browser is gone — relaunching");
+    try { await browser.close(); } catch { /* already dead */ }
+    browser = await puppeteer.launch(LAUNCH);
+  };
 
   try {
     for (const slug of slugs) {
+      await ensureBrowser();
+      // RESUME-SAFE. `--skip-fresh` leaves alone any pack whose frames are already newer than the
+      // engine that would draw them, so an interrupted overnight sweep restarts where it stopped
+      // instead of redoing hours of Chrome work.
+      if (argv.includes("--skip-fresh")) {
+        try {
+          const engine = fs.statSync(path.join(__dirname, "..", "src", "services", "film_stage.js")).mtimeMs;
+          const beats = fs.statSync(path.join(__dirname, "..", "src", "services", "film_beats.js")).mtimeMs;
+          const dir = path.join(OUT_ROOT, nAssets ? `${slug}-assets` : slug);
+          const pngs = fs.readdirSync(dir).filter((f) => f.endsWith(".png"));
+          const oldest = Math.min(...pngs.map((f) => fs.statSync(path.join(dir, f)).mtimeMs));
+          if (pngs.length >= 5 && oldest > Math.max(engine, beats)) { console.log(`[film-ours] ${slug}: fresh, skipped`); continue; }
+        } catch { /* not captured yet — fall through and capture */ }
+      }
       const metaPath = path.join(REF_ROOT, slug, "meta.json");
       if (!fs.existsSync(metaPath)) { console.error(`[film-ours] ${slug}: no ref meta — run shot-film-reference.js first`); continue; }
       const meta = JSON.parse(fs.readFileSync(metaPath, "utf8"));
@@ -139,7 +179,7 @@ async function main() {
       fs.rmSync(buildDir, { recursive: true, force: true });
       fs.mkdirSync(buildDir, { recursive: true });
 
-      const sb = storyboardFromRef(meta, maxScenes);
+      const sb = storyboardFromRef(meta, maxScenes, { treatment: argv.includes("--treatment") });
       const assets = nAssets ? await makeFixtures(buildDir, nAssets) : [];
       const { indexHtml } = skinMod.buildComposition({
         storyboard: sb, dims: { width: 1080, height: 1920, fps: 30 },
@@ -195,3 +235,7 @@ async function main() {
 }
 
 if (require.main === module) main().catch((e) => { console.error(e); process.exit(1); });
+
+// Exported so the no-render parity harness (film-plan-diff.js) builds the SAME storyboard this
+// capture does — one definition of "the reference deck as a KEYFRAME job", not two.
+module.exports = { storyboardFromRef, KIND_FOR, TREATMENT_FOR };
