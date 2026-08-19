@@ -1,0 +1,89 @@
+{
+  "name": "canopy",
+  "renderer": "omelette",
+  "template": "Canopy",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for rainforest / ecology — 40 authored beats, ~7.5s each, about 5 minutes as shipped. swaying leaf layers, light shafts, drips, hanging vine. Vollkorn display over Alegreya Sans body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#eef0e2",
+    "ink": "#16241c",
+    "accent": "#d98c2c",
+    "a2": "#3f8c5f"
+  },
+  "fonts": [
+    "Vollkorn",
+    "Alegreya Sans"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#eef0e2",
+    "ink": "#16241c"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Vollkorn",
+    "body": "Alegreya Sans",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "lush ambient pads, organic percussion",
+    "energy": "calm"
+  },
+  "skin": {
+    "accents": [
+      "#d98c2c",
+      "#3f8c5f"
+    ],
+    "extras": [
+      "#e4ece2",
+      "#f4e6cf",
+      "#16241c"
+    ],
+    "emphasisCss": "color:#d98c2c;"
+  },
+  "assets": {
+    "photoMod": "deep green foliage, dappled light",
+    "iconStyle": "outline",
+    "keywords": [
+      "rainforest",
+      "jungle",
+      "leaf",
+      "canopy",
+      "green",
+      "nature"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#eef0e2"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

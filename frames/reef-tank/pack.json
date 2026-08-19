@@ -1,0 +1,89 @@
+{
+  "name": "reef-tank",
+  "renderer": "omelette",
+  "template": "ReefTank",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for marine aquarium — 40 authored beats, ~7.5s each, about 5 minutes as shipped. fish schooling in a glass box, swaying anemones, bubbles. Outfit display over Nunito Sans body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#eef4f2",
+    "ink": "#0b1c22",
+    "accent": "#ff8a5c",
+    "a2": "#3fd0c4"
+  },
+  "fonts": [
+    "Outfit",
+    "Nunito Sans"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#eef4f2",
+    "ink": "#0b1c22"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Outfit",
+    "body": "Nunito Sans",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "shimmering ambient, submerged and slow",
+    "energy": "calm"
+  },
+  "skin": {
+    "accents": [
+      "#ff8a5c",
+      "#3fd0c4"
+    ],
+    "extras": [
+      "#123038",
+      "#1c2630",
+      "#0b1c22"
+    ],
+    "emphasisCss": "color:#ff8a5c;"
+  },
+  "assets": {
+    "photoMod": "blue aquatic light, vivid coral colour",
+    "iconStyle": "outline",
+    "keywords": [
+      "aquarium",
+      "reef",
+      "fish",
+      "coral",
+      "tank",
+      "marine"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#eef4f2"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

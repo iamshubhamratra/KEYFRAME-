@@ -1,0 +1,89 @@
+{
+  "name": "chalk-and-crimp",
+  "renderer": "omelette",
+  "template": "ChalkCrimp",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for climbing — 40 authored beats, ~7.5s each, about 5 minutes as shipped. holds popping in sequence, chalk puff, swinging rope. Bebas Neue display over Instrument Sans body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f2f2ee",
+    "ink": "#1b1e22",
+    "accent": "#ff8a3d",
+    "a2": "#3d7bff"
+  },
+  "fonts": [
+    "Bebas Neue",
+    "Instrument Sans"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#f2f2ee",
+    "ink": "#1b1e22"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Bebas Neue",
+    "body": "Instrument Sans",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "taut percussive rock, building tension",
+    "energy": "high"
+  },
+  "skin": {
+    "accents": [
+      "#ff8a3d",
+      "#3d7bff"
+    ],
+    "extras": [
+      "#e6ecec",
+      "#f7e6d8",
+      "#1b1e22"
+    ],
+    "emphasisCss": "color:#ff8a3d;"
+  },
+  "assets": {
+    "photoMod": "textured rock, dramatic directional light",
+    "iconStyle": "outline",
+    "keywords": [
+      "climbing",
+      "boulder",
+      "chalk",
+      "rock",
+      "route",
+      "grip"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#f2f2ee"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

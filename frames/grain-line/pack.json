@@ -1,0 +1,89 @@
+{
+  "name": "grain-line",
+  "renderer": "omelette",
+  "template": "GrainLine",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for hand woodwork — 40 authored beats, ~7.5s each, about 5 minutes as shipped. plane throwing shavings, sawdust, dovetails cutting, clamps. Cardo display over Barlow body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f4ead8",
+    "ink": "#251b13",
+    "accent": "#b06a2c",
+    "a2": "#5f7a5f"
+  },
+  "fonts": [
+    "Cardo",
+    "Barlow"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#f4ead8",
+    "ink": "#251b13"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Cardo",
+    "body": "Barlow",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "warm acoustic with woody percussion",
+    "energy": "medium"
+  },
+  "skin": {
+    "accents": [
+      "#b06a2c",
+      "#5f7a5f"
+    ],
+    "extras": [
+      "#e8eee2",
+      "#f7e2c8",
+      "#251b13"
+    ],
+    "emphasisCss": "color:#b06a2c;"
+  },
+  "assets": {
+    "photoMod": "workshop light, timber grain and tools",
+    "iconStyle": "outline",
+    "keywords": [
+      "woodwork",
+      "timber",
+      "workshop",
+      "tools",
+      "craft",
+      "joinery"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#f4ead8"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

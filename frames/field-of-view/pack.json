@@ -1,0 +1,89 @@
+{
+  "name": "field-of-view",
+  "renderer": "omelette",
+  "template": "FieldOfView",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for astronomy — 40 authored beats, ~7.5s each, about 5 minutes as shipped. twinkling stars, constellation drawing, rotating dome, meteors. Prata display over Manrope body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#e9e6f2",
+    "ink": "#080b16",
+    "accent": "#e0c46b",
+    "a2": "#7a8ad0"
+  },
+  "fonts": [
+    "Prata",
+    "Manrope"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#e9e6f2",
+    "ink": "#080b16"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Prata",
+    "body": "Manrope",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "wide cinematic ambient, cosmic and still",
+    "energy": "calm"
+  },
+  "skin": {
+    "accents": [
+      "#e0c46b",
+      "#7a8ad0"
+    ],
+    "extras": [
+      "#101828",
+      "#181022",
+      "#080b16"
+    ],
+    "emphasisCss": "color:#e0c46b;"
+  },
+  "assets": {
+    "photoMod": "night sky, deep space imagery",
+    "iconStyle": "outline",
+    "keywords": [
+      "astronomy",
+      "stars",
+      "night sky",
+      "telescope",
+      "space",
+      "galaxy"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#e9e6f2"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "name": "night-shift",
+  "renderer": "omelette",
+  "template": "NightShift",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for 24h bakery / night city — 40 authored beats, ~7.5s each, about 5 minutes as shipped. windows lighting at random, delivery van, sweeping clock. Unbounded display over Wix Madefor Text body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#e8e9f0",
+    "ink": "#0d1018",
+    "accent": "#f2b03c",
+    "a2": "#8c6aff"
+  },
+  "fonts": [
+    "Unbounded",
+    "Wix Madefor Text"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#e8e9f0",
+    "ink": "#0d1018"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Unbounded",
+    "body": "Wix Madefor Text",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "late-night lo-fi, warm keys, quiet city",
+    "energy": "calm"
+  },
+  "skin": {
+    "accents": [
+      "#f2b03c",
+      "#8c6aff"
+    ],
+    "extras": [
+      "#141c22",
+      "#1c1620",
+      "#0d1018"
+    ],
+    "emphasisCss": "color:#f2b03c;"
+  },
+  "assets": {
+    "photoMod": "night city light, warm windows",
+    "iconStyle": "outline",
+    "keywords": [
+      "night",
+      "bakery",
+      "city",
+      "bread",
+      "neon",
+      "shift"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#e8e9f0"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

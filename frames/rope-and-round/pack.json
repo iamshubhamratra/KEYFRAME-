@@ -1,0 +1,89 @@
+{
+  "name": "rope-and-round",
+  "renderer": "omelette",
+  "template": "RopeRound",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for boxing gym — 40 authored beats, ~7.5s each, about 5 minutes as shipped. swinging heavy bag, skipping-rope arc, ring ropes, bell. Archivo Black display over Archivo body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f2f0ec",
+    "ink": "#17171a",
+    "accent": "#e03a3a",
+    "a2": "#c9a52c"
+  },
+  "fonts": [
+    "Archivo Black",
+    "Archivo"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#f2f0ec",
+    "ink": "#17171a"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Archivo Black",
+    "body": "Archivo",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "hard-hitting percussive hip-hop, gritty",
+    "energy": "high"
+  },
+  "skin": {
+    "accents": [
+      "#e03a3a",
+      "#c9a52c"
+    ],
+    "extras": [
+      "#e6e8ea",
+      "#f6e0e0",
+      "#17171a"
+    ],
+    "emphasisCss": "color:#e03a3a;"
+  },
+  "assets": {
+    "photoMod": "gritty gym light, hard shadow",
+    "iconStyle": "outline",
+    "keywords": [
+      "boxing",
+      "gym",
+      "training",
+      "ring",
+      "gloves",
+      "fight"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#f2f0ec"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

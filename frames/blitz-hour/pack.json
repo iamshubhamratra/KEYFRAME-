@@ -1,0 +1,89 @@
+{
+  "name": "blitz-hour",
+  "renderer": "omelette",
+  "template": "BlitzHour",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for chess — 40 authored beats, ~7.5s each, about 5 minutes as shipped. knight hopping L-moves, fast clock with falling flag. DM Serif Display display over DM Sans body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f0e9da",
+    "ink": "#1c1813",
+    "accent": "#b3452e",
+    "a2": "#4d6b8c"
+  },
+  "fonts": [
+    "DM Serif Display",
+    "DM Sans"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#f0e9da",
+    "ink": "#1c1813"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "DM Serif Display",
+    "body": "DM Sans",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "tense minimal strings, ticking pulse",
+    "energy": "medium"
+  },
+  "skin": {
+    "accents": [
+      "#b3452e",
+      "#4d6b8c"
+    ],
+    "extras": [
+      "#e6eae4",
+      "#f6e2d4",
+      "#1c1813"
+    ],
+    "emphasisCss": "color:#b3452e;"
+  },
+  "assets": {
+    "photoMod": "high-contrast tabletop, dramatic shadow",
+    "iconStyle": "outline",
+    "keywords": [
+      "chess",
+      "board",
+      "strategy",
+      "clock",
+      "game",
+      "tournament"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#f0e9da"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

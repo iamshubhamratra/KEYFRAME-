@@ -1,0 +1,89 @@
+{
+  "name": "branch-line",
+  "renderer": "omelette",
+  "template": "BranchLine",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for steam railway — 40 authored beats, ~7.5s each, about 5 minutes as shipped. loco crossing with steam, semaphore arm, telegraph poles. Staatliches display over Onest body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f0ecdd",
+    "ink": "#1d2420",
+    "accent": "#a83a2c",
+    "a2": "#3f6b5f"
+  },
+  "fonts": [
+    "Staatliches",
+    "Onest"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#f0ecdd",
+    "ink": "#1d2420"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Staatliches",
+    "body": "Onest",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "nostalgic brass-tinged folk, rolling",
+    "energy": "medium"
+  },
+  "skin": {
+    "accents": [
+      "#a83a2c",
+      "#3f6b5f"
+    ],
+    "extras": [
+      "#e4ece4",
+      "#f6e2d6",
+      "#1d2420"
+    ],
+    "emphasisCss": "color:#a83a2c;"
+  },
+  "assets": {
+    "photoMod": "heritage railway, steam and iron",
+    "iconStyle": "outline",
+    "keywords": [
+      "railway",
+      "steam",
+      "train",
+      "track",
+      "station",
+      "heritage"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#f0ecdd"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

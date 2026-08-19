@@ -1,0 +1,89 @@
+{
+  "name": "knife-and-board",
+  "renderer": "omelette",
+  "template": "KnifeBoard",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for cooking / prep — 40 authored beats, ~7.5s each, about 5 minutes as shipped. chopping knife, flying herbs, simmering pot with steam. Bitter display over Figtree body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f7efe2",
+    "ink": "#241c18",
+    "accent": "#c33f34",
+    "a2": "#5c7a3a"
+  },
+  "fonts": [
+    "Bitter",
+    "Figtree"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#f7efe2",
+    "ink": "#241c18"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Bitter",
+    "body": "Figtree",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "warm rhythmic acoustic, kitchen energy",
+    "energy": "medium"
+  },
+  "skin": {
+    "accents": [
+      "#c33f34",
+      "#5c7a3a"
+    ],
+    "extras": [
+      "#e7ecdd",
+      "#f8e0cf",
+      "#241c18"
+    ],
+    "emphasisCss": "color:#c33f34;"
+  },
+  "assets": {
+    "photoMod": "warm kitchen light, rustic food styling",
+    "iconStyle": "outline",
+    "keywords": [
+      "cooking",
+      "kitchen",
+      "food",
+      "chef",
+      "herbs",
+      "knife"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#f7efe2"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

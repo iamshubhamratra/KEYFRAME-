@@ -1,0 +1,89 @@
+{
+  "name": "allotment",
+  "renderer": "omelette",
+  "template": "Allotment",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for vegetable plot — 40 authored beats, ~7.5s each, about 5 minutes as shipped. rows of seedlings growing, watering can, hopping robin. Zilla Slab display over Source Sans 3 body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f2f0e0",
+    "ink": "#22301f",
+    "accent": "#c4622c",
+    "a2": "#4d8c3f"
+  },
+  "fonts": [
+    "Zilla Slab",
+    "Source Sans 3"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#f2f0e0",
+    "ink": "#22301f"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Zilla Slab",
+    "body": "Source Sans 3",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "gentle fingerpicked folk, unhurried",
+    "energy": "calm"
+  },
+  "skin": {
+    "accents": [
+      "#c4622c",
+      "#4d8c3f"
+    ],
+    "extras": [
+      "#e6eedc",
+      "#f6e3cd",
+      "#22301f"
+    ],
+    "emphasisCss": "color:#c4622c;"
+  },
+  "assets": {
+    "photoMod": "soft daylight, garden and soil",
+    "iconStyle": "outline",
+    "keywords": [
+      "garden",
+      "vegetable",
+      "allotment",
+      "grow",
+      "soil",
+      "harvest"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#f2f0e0"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

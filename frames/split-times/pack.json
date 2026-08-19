@@ -1,0 +1,89 @@
+{
+  "name": "split-times",
+  "renderer": "omelette",
+  "template": "SplitTimes",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for running — 40 authored beats, ~7.5s each, about 5 minutes as shipped. bobbing runner, curved track, live split readout. Big Shoulders Display display over Red Hat Text body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#eef3f6",
+    "ink": "#141a20",
+    "accent": "#ff5a3c",
+    "a2": "#2ba3c4"
+  },
+  "fonts": [
+    "Big Shoulders Display",
+    "Red Hat Text"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#eef3f6",
+    "ink": "#141a20"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Big Shoulders Display",
+    "body": "Red Hat Text",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "driving electronic, insistent tempo",
+    "energy": "high"
+  },
+  "skin": {
+    "accents": [
+      "#ff5a3c",
+      "#2ba3c4"
+    ],
+    "extras": [
+      "#e2eef0",
+      "#f7e3dc",
+      "#141a20"
+    ],
+    "emphasisCss": "color:#ff5a3c;"
+  },
+  "assets": {
+    "photoMod": "high-contrast sports photography, motion",
+    "iconStyle": "outline",
+    "keywords": [
+      "running",
+      "track",
+      "athlete",
+      "race",
+      "training",
+      "sport"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#eef3f6"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

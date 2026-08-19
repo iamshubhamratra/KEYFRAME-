@@ -1,0 +1,89 @@
+{
+  "name": "wheel-and-spoke",
+  "renderer": "omelette",
+  "template": "WheelSpoke",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for cycling — 40 authored beats, ~7.5s each, about 5 minutes as shipped. two spinning spoked wheels, road dashes, climb profile. Anton display over Asap body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f0f2f4",
+    "ink": "#171c22",
+    "accent": "#f2c53d",
+    "a2": "#2c6be0"
+  },
+  "fonts": [
+    "Anton",
+    "Asap"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#f0f2f4",
+    "ink": "#171c22"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Anton",
+    "body": "Asap",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "rolling indie rock, steady cadence",
+    "energy": "medium"
+  },
+  "skin": {
+    "accents": [
+      "#f2c53d",
+      "#2c6be0"
+    ],
+    "extras": [
+      "#e6eef2",
+      "#f7ecd6",
+      "#171c22"
+    ],
+    "emphasisCss": "color:#f2c53d;"
+  },
+  "assets": {
+    "photoMod": "open road, dynamic outdoor sport",
+    "iconStyle": "outline",
+    "keywords": [
+      "cycling",
+      "bike",
+      "road",
+      "ride",
+      "wheel",
+      "sport"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#f0f2f4"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

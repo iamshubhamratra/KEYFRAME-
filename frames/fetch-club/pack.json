@@ -1,0 +1,89 @@
+{
+  "name": "fetch-club",
+  "renderer": "omelette",
+  "template": "FetchClub",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for dogs / off-leash club — 40 authored beats, ~7.5s each, about 5 minutes as shipped. trotting dog with cycling legs, bouncing ball, paw prints. Baloo 2 display over Nunito body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f6ecd9",
+    "ink": "#2c231a",
+    "accent": "#e0762c",
+    "a2": "#4d7a63"
+  },
+  "fonts": [
+    "Baloo 2",
+    "Nunito"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#f6ecd9",
+    "ink": "#2c231a"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Baloo 2",
+    "body": "Nunito",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "bright playful acoustic, hand claps, sunny",
+    "energy": "upbeat"
+  },
+  "skin": {
+    "accents": [
+      "#e0762c",
+      "#4d7a63"
+    ],
+    "extras": [
+      "#e6ecdf",
+      "#f7dfc2",
+      "#2c231a"
+    ],
+    "emphasisCss": "color:#e0762c;"
+  },
+  "assets": {
+    "photoMod": "warm natural light, candid outdoor pets",
+    "iconStyle": "outline",
+    "keywords": [
+      "dog",
+      "puppy",
+      "park",
+      "pet",
+      "walk",
+      "ball"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#f6ecd9"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

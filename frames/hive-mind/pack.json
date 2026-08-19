@@ -1,0 +1,89 @@
+{
+  "name": "hive-mind",
+  "renderer": "omelette",
+  "template": "HiveMind",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for beekeeping — 40 authored beats, ~7.5s each, about 5 minutes as shipped. comb cells filling, bees on figure-eights, smoker. Fredoka display over Quicksand body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#fdf4dd",
+    "ink": "#33280f",
+    "accent": "#e0a92c",
+    "a2": "#7a8c3f"
+  },
+  "fonts": [
+    "Fredoka",
+    "Quicksand"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#fdf4dd",
+    "ink": "#33280f"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Fredoka",
+    "body": "Quicksand",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "warm folk with gentle drone, golden",
+    "energy": "calm"
+  },
+  "skin": {
+    "accents": [
+      "#e0a92c",
+      "#7a8c3f"
+    ],
+    "extras": [
+      "#eceedc",
+      "#faead0",
+      "#33280f"
+    ],
+    "emphasisCss": "color:#e0a92c;"
+  },
+  "assets": {
+    "photoMod": "golden hour, warm honey tones",
+    "iconStyle": "outline",
+    "keywords": [
+      "bee",
+      "honey",
+      "hive",
+      "apiary",
+      "flower",
+      "pollen"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#fdf4dd"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

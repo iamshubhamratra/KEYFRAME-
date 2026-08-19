@@ -1,0 +1,89 @@
+{
+  "name": "dawn-chorus",
+  "renderer": "omelette",
+  "template": "DawnChorus",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for birdwatching — 40 authored beats, ~7.5s each, about 5 minutes as shipped. birds flapping on sine paths, four on a wire, rising sun. Fraunces display over Mulish body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f3efe4",
+    "ink": "#1e2a34",
+    "accent": "#e0913c",
+    "a2": "#4d7f8c"
+  },
+  "fonts": [
+    "Fraunces",
+    "Mulish"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#f3efe4",
+    "ink": "#1e2a34"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Fraunces",
+    "body": "Mulish",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "gentle ambient folk, airy, spacious",
+    "energy": "calm"
+  },
+  "skin": {
+    "accents": [
+      "#e0913c",
+      "#4d7f8c"
+    ],
+    "extras": [
+      "#e6ece8",
+      "#f7e6d2",
+      "#1e2a34"
+    ],
+    "emphasisCss": "color:#e0913c;"
+  },
+  "assets": {
+    "photoMod": "soft dawn light, nature photography",
+    "iconStyle": "outline",
+    "keywords": [
+      "bird",
+      "nature",
+      "dawn",
+      "forest",
+      "wildlife",
+      "sky"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#f3efe4"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

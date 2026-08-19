@@ -1,0 +1,89 @@
+{
+  "name": "kiln-fire",
+  "renderer": "omelette",
+  "template": "KilnFire",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for ceramics / pottery — 40 authored beats, ~7.5s each, about 5 minutes as shipped. wobbling wheel with rising pot, glowing kiln, bending cone. Gloock display over Schibsted Grotesk body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f3ebde",
+    "ink": "#241d17",
+    "accent": "#c2562c",
+    "a2": "#5f8c8c"
+  },
+  "fonts": [
+    "Gloock",
+    "Schibsted Grotesk"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#f3ebde",
+    "ink": "#241d17"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Gloock",
+    "body": "Schibsted Grotesk",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "earthy acoustic, patient, handmade",
+    "energy": "calm"
+  },
+  "skin": {
+    "accents": [
+      "#c2562c",
+      "#5f8c8c"
+    ],
+    "extras": [
+      "#e6eeee",
+      "#f7e2d2",
+      "#241d17"
+    ],
+    "emphasisCss": "color:#c2562c;"
+  },
+  "assets": {
+    "photoMod": "studio craft light, clay and hands",
+    "iconStyle": "outline",
+    "keywords": [
+      "pottery",
+      "ceramic",
+      "clay",
+      "kiln",
+      "craft",
+      "studio"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#f3ebde"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "name": "slow-pour",
+  "renderer": "omelette",
+  "template": "SlowPour",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for coffee — 40 authored beats, ~7.5s each, about 5 minutes as shipped. spiralling pour, blooming bubbles, drips, live scale. Alfa Slab One display over Karla body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f6ecdd",
+    "ink": "#231a15",
+    "accent": "#c4622c",
+    "a2": "#6b8c7a"
+  },
+  "fonts": [
+    "Alfa Slab One",
+    "Karla"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#f6ecdd",
+    "ink": "#231a15"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Alfa Slab One",
+    "body": "Karla",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "mellow jazz-adjacent keys, café warmth",
+    "energy": "calm"
+  },
+  "skin": {
+    "accents": [
+      "#c4622c",
+      "#6b8c7a"
+    ],
+    "extras": [
+      "#e6eee8",
+      "#f7e0c8",
+      "#231a15"
+    ],
+    "emphasisCss": "color:#c4622c;"
+  },
+  "assets": {
+    "photoMod": "warm café light, close craft detail",
+    "iconStyle": "outline",
+    "keywords": [
+      "coffee",
+      "brew",
+      "cafe",
+      "pour",
+      "beans",
+      "barista"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#f6ecdd"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

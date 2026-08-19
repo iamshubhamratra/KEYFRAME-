@@ -1,0 +1,89 @@
+{
+  "name": "steep-and-steam",
+  "renderer": "omelette",
+  "template": "SteepSteam",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for tea house — 40 authored beats, ~7.5s each, about 5 minutes as shipped. pouring kettle arc, steam curls, leaves unfurling, timer. Marcellus display over Mukta body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f6f2e8",
+    "ink": "#232a20",
+    "accent": "#7a8c3f",
+    "a2": "#a8763c"
+  },
+  "fonts": [
+    "Marcellus",
+    "Mukta"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#f6f2e8",
+    "ink": "#232a20"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Marcellus",
+    "body": "Mukta",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "quiet koto-tinged ambient, meditative",
+    "energy": "calm"
+  },
+  "skin": {
+    "accents": [
+      "#7a8c3f",
+      "#a8763c"
+    ],
+    "extras": [
+      "#e8eee0",
+      "#f6e8d6",
+      "#232a20"
+    ],
+    "emphasisCss": "color:#7a8c3f;"
+  },
+  "assets": {
+    "photoMod": "soft steam, muted ceramic tones",
+    "iconStyle": "outline",
+    "keywords": [
+      "tea",
+      "teapot",
+      "leaves",
+      "brew",
+      "ceremony",
+      "steam"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#f6f2e8"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

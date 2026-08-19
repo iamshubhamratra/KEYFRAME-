@@ -1,0 +1,89 @@
+{
+  "name": "safelight",
+  "renderer": "omelette",
+  "template": "Safelight",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for darkroom photography — 40 authored beats, ~7.5s each, about 5 minutes as shipped. pulsing red bulb, swaying negatives, tray ripples. Syne display over Hanken Grotesk body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#efe9df",
+    "ink": "#16110f",
+    "accent": "#e2483d",
+    "a2": "#c9922c"
+  },
+  "fonts": [
+    "Syne",
+    "Hanken Grotesk"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#efe9df",
+    "ink": "#16110f"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Syne",
+    "body": "Hanken Grotesk",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "moody ambient, red-lit and patient",
+    "energy": "calm"
+  },
+  "skin": {
+    "accents": [
+      "#e2483d",
+      "#c9922c"
+    ],
+    "extras": [
+      "#1c1614",
+      "#221614",
+      "#16110f"
+    ],
+    "emphasisCss": "color:#e2483d;"
+  },
+  "assets": {
+    "photoMod": "deep shadow, single-source red light",
+    "iconStyle": "outline",
+    "keywords": [
+      "darkroom",
+      "film",
+      "photography",
+      "negative",
+      "print",
+      "analog"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#efe9df"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

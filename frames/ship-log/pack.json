@@ -1,0 +1,89 @@
+{
+  "name": "ship-log",
+  "renderer": "omelette",
+  "template": "ShipLog",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for dev tooling / CI — 40 authored beats, ~7.5s each, about 5 minutes as shipped. commit graph drawing, terminal typing, packets on a wire. Space Grotesk display over IBM Plex Sans body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#e6edf3",
+    "ink": "#0d1117",
+    "accent": "#4ad2a0",
+    "a2": "#6a8cff"
+  },
+  "fonts": [
+    "Space Grotesk",
+    "IBM Plex Sans"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#e6edf3",
+    "ink": "#0d1117"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Space Grotesk",
+    "body": "IBM Plex Sans",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "minimal electronic, steady pulse, technical",
+    "energy": "medium"
+  },
+  "skin": {
+    "accents": [
+      "#4ad2a0",
+      "#6a8cff"
+    ],
+    "extras": [
+      "#161d24",
+      "#1a1620",
+      "#0d1117"
+    ],
+    "emphasisCss": "color:#4ad2a0;"
+  },
+  "assets": {
+    "photoMod": "dark technical workspace, screens and code",
+    "iconStyle": "outline",
+    "keywords": [
+      "code",
+      "terminal",
+      "developer",
+      "server",
+      "pipeline",
+      "software"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#e6edf3"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

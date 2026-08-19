@@ -1,0 +1,89 @@
+{
+  "name": "stitch-line",
+  "renderer": "omelette",
+  "template": "StitchLine",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for sewing / making — 40 authored beats, ~7.5s each, about 5 minutes as shipped. bobbing needle, feeding stitch line, pattern pieces, tape. Gilda Display display over Albert Sans body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f7f0ea",
+    "ink": "#2b2129",
+    "accent": "#c44a6b",
+    "a2": "#4d7a8c"
+  },
+  "fonts": [
+    "Gilda Display",
+    "Albert Sans"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#f7f0ea",
+    "ink": "#2b2129"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Gilda Display",
+    "body": "Albert Sans",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "light acoustic with rhythmic pulse",
+    "energy": "medium"
+  },
+  "skin": {
+    "accents": [
+      "#c44a6b",
+      "#4d7a8c"
+    ],
+    "extras": [
+      "#e8eef0",
+      "#f8e2e6",
+      "#2b2129"
+    ],
+    "emphasisCss": "color:#c44a6b;"
+  },
+  "assets": {
+    "photoMod": "bright craft table, fabric texture",
+    "iconStyle": "outline",
+    "keywords": [
+      "sewing",
+      "fabric",
+      "stitch",
+      "pattern",
+      "textile",
+      "craft"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#f7f0ea"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

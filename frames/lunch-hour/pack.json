@@ -1,0 +1,89 @@
+{
+  "name": "lunch-hour",
+  "renderer": "omelette",
+  "template": "LunchHour",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for office lunch / workplace — 40 authored beats, ~7.5s each, about 5 minutes as shipped. sweeping clock, bento grid filling, queue of dots. Archivo Black display over Archivo body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f2f1ec",
+    "ink": "#1d2126",
+    "accent": "#f26b3c",
+    "a2": "#2c7a6b"
+  },
+  "fonts": [
+    "Archivo Black",
+    "Archivo"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#f2f1ec",
+    "ink": "#1d2126"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Archivo Black",
+    "body": "Archivo",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "clean modern indie pop, light percussion",
+    "energy": "upbeat"
+  },
+  "skin": {
+    "accents": [
+      "#f26b3c",
+      "#2c7a6b"
+    ],
+    "extras": [
+      "#e4ecea",
+      "#f7e4d8",
+      "#1d2126"
+    ],
+    "emphasisCss": "color:#f26b3c;"
+  },
+  "assets": {
+    "photoMod": "bright modern workplace, clean editorial",
+    "iconStyle": "outline",
+    "keywords": [
+      "office",
+      "lunch",
+      "desk",
+      "bento",
+      "team",
+      "break"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#f2f1ec"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

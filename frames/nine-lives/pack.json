@@ -1,0 +1,89 @@
+{
+  "name": "nine-lives",
+  "renderer": "omelette",
+  "template": "NineLives",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for cats — 40 authored beats, ~7.5s each, about 5 minutes as shipped. breathing cat, twitching ear, unspooling yarn, dust motes. Playfair Display display over Karla body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f4eee4",
+    "ink": "#241f28",
+    "accent": "#b9647a",
+    "a2": "#5f7f8c"
+  },
+  "fonts": [
+    "Playfair Display",
+    "Karla"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#f4eee4",
+    "ink": "#241f28"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Playfair Display",
+    "body": "Karla",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "soft plucked strings, unhurried, cosy",
+    "energy": "calm"
+  },
+  "skin": {
+    "accents": [
+      "#b9647a",
+      "#5f7f8c"
+    ],
+    "extras": [
+      "#e4e9ea",
+      "#f3e2e4",
+      "#241f28"
+    ],
+    "emphasisCss": "color:#b9647a;"
+  },
+  "assets": {
+    "photoMod": "soft window light, cosy interior",
+    "iconStyle": "outline",
+    "keywords": [
+      "cat",
+      "kitten",
+      "pet",
+      "yarn",
+      "window",
+      "nap"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#f4eee4"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

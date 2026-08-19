@@ -1,0 +1,89 @@
+{
+  "name": "tide-table",
+  "renderer": "omelette",
+  "template": "TideTable",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for coast / sea swimming — 40 authored beats, ~7.5s each, about 5 minutes as shipped. four wave layers, spinning parasol, gulls, sun glare. Chonburi display over Prompt body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f6f1e2",
+    "ink": "#14262e",
+    "accent": "#e8763c",
+    "a2": "#2c8c9e"
+  },
+  "fonts": [
+    "Chonburi",
+    "Prompt"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#f6f1e2",
+    "ink": "#14262e"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Chonburi",
+    "body": "Prompt",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "breezy surf guitar, open and bright",
+    "energy": "medium"
+  },
+  "skin": {
+    "accents": [
+      "#e8763c",
+      "#2c8c9e"
+    ],
+    "extras": [
+      "#e2eeec",
+      "#f8e4cd",
+      "#14262e"
+    ],
+    "emphasisCss": "color:#e8763c;"
+  },
+  "assets": {
+    "photoMod": "coastal daylight, open water",
+    "iconStyle": "outline",
+    "keywords": [
+      "sea",
+      "coast",
+      "swim",
+      "beach",
+      "wave",
+      "tide"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#f6f1e2"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

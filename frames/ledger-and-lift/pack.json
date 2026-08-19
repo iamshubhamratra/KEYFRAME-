@@ -1,0 +1,89 @@
+{
+  "name": "ledger-and-lift",
+  "renderer": "omelette",
+  "template": "LedgerLift",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for personal finance — 40 authored beats, ~7.5s each, about 5 minutes as shipped. candlestick chart building, tilting card, rising coins. Sora display over Inter Tight body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#e9eef4",
+    "ink": "#0e131a",
+    "accent": "#3ce08c",
+    "a2": "#5a7cff"
+  },
+  "fonts": [
+    "Sora",
+    "Inter Tight"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#e9eef4",
+    "ink": "#0e131a"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Sora",
+    "body": "Inter Tight",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "confident minimal piano, forward motion",
+    "energy": "medium"
+  },
+  "skin": {
+    "accents": [
+      "#3ce08c",
+      "#5a7cff"
+    ],
+    "extras": [
+      "#161f28",
+      "#1c1a26",
+      "#0e131a"
+    ],
+    "emphasisCss": "color:#3ce08c;"
+  },
+  "assets": {
+    "photoMod": "clean editorial finance, considered still life",
+    "iconStyle": "outline",
+    "keywords": [
+      "finance",
+      "money",
+      "savings",
+      "chart",
+      "budget",
+      "invest"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#e9eef4"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}
