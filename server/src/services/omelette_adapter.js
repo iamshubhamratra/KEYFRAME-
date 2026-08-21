@@ -247,6 +247,53 @@ function bullets(scene, n) {
 // speaks into something that already looks like a written phrase.
 const CONFIG_KEY = /^(url|href|src|img|image|icon|logo|color|colour|bg|background|accent|fill|stroke|align|variant|theme|mode|size|type|kind|id|key|cls|class|style|font|ease|anim|animation|dir|side|pos|position|fit|focus|ratio|seed|shape|pattern)$/i;
 
+// The engine's own hard ceiling on the scene list (animations-v2.jsx rejects a
+// list over 50 entries, or a serialized payload over 16KB, by rendering an error
+// slate for the whole film).
+const ENGINE_MAX_SCENES = 50;
+
+/**
+ * Cast a script's scenes onto exactly `want` beats, preserving the film's
+ * bookends.
+ *
+ * The opener and the closer are the two beats a template authors as bookends (a
+ * title card and a CTA), so they are kept exactly once and never repeated — a
+ * film that opens or closes twice reads as a mistake. Only the interior is
+ * resampled:
+ *
+ *   too few  -> cycle the interior. Cycling (rather than repeating a fixed
+ *               offset) puts the maximum possible distance between a beat and
+ *               its next appearance: every other interior beat plays before any
+ *               beat comes round again.
+ *   too many -> drop evenly across the whole interior, so the film keeps its
+ *               beginning, middle and end rather than losing its tail.
+ *
+ * Returns a new array; the input is not mutated.
+ */
+function fitBeats(scenes, want) {
+  const list = Array.isArray(scenes) ? scenes.slice() : [];
+  const n = list.length;
+  if (!n || !(want > 0)) return list;
+  if (n === want) return list;
+  if (want <= 2 || n <= 2) return list.slice(0, Math.max(1, want));
+
+  const first = list[0];
+  const last = list[n - 1];
+  const mid = list.slice(1, n - 1);
+  const needMid = want - 2;
+  if (!mid.length) return [first, last].slice(0, want);
+
+  const out = [];
+  if (needMid <= mid.length) {
+    // Even stride across the interior — keeps the film's shape, not just its head.
+    const step = mid.length / needMid;
+    for (let i = 0; i < needMid; i++) out.push(mid[Math.min(mid.length - 1, Math.floor(i * step))]);
+  } else {
+    for (let i = 0; i < needMid; i++) out.push(mid[i % mid.length]);   // cycle
+  }
+  return [first, ...out, last];
+}
+
 // Words a film TITLE opens with that are not the film's brand. Used only for the
 // last-resort brand guess (see brandSrc): an explicit brand or a real harvested
 // domain always wins. Articles, prepositions, question words and the imperative
@@ -264,6 +311,25 @@ const TITLE_STOP = new Set([
 const CONFIG_VALUE = /^(#[0-9a-f]{3,8}|(https?:)?\/\/|\/|[a-z-]+\(|data:)/i;
 // The authored default is the design's own width budget and case. "MILE 038"
 // asks for a short stamp; "Every good boy delivers." asks for a sentence.
+// A row cell that holds a FIGURE — a price, a percentage, a bar fraction. The
+// adapter must never write one: the authored value belongs to the template's
+// demo, and copying it onto the user's film states their rent is $60.
+const FIGURE_CELL = /^[£$€¥]?\s*\d[\d.,]*\s*(%|x|k|m|bn|hrs?|min|s)?$/i;
+function isFigureCell(cell) {
+  if (typeof cell === "number") return true;
+  const t = String(cell == null ? "" : cell).trim();
+  return t !== "" && FIGURE_CELL.test(t);
+}
+
+// The width budget for one authored cell. Same principle asSlot applies to
+// racks: when the authored entry is a string, THAT is the budget — a 7-char
+// ledger label must not be topped up with a 30-char sentence.
+function cellRoom(cell, max) {
+  const wide = typeof cell === "string" ? cell.trim().length : 0;
+  if (!wide) return max || 22;
+  return Math.min(max || 22, wide + Math.min(6, Math.ceil(wide * 0.25)));
+}
+
 function fillFor(key, authored, bank, { copyOnly = false } = {}) {
   const demo = String(authored == null ? "" : authored);
   const body = demo.trim();
@@ -1424,6 +1490,42 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
           return el;
         });
       }
+      // …and the third authored element shape: a ROW, i.e. an ARRAY of cells.
+      // 122 slots across 79 templates author one (`notes` [title, body],
+      // `pairs` [objection, answer], `rows` [label, "$60"], `bars` [label,
+      // 0.86]), and both this function and conformToAuthored used to test
+      // `!Array.isArray(proto)` and fall straight through — handing the
+      // component an array of plain STRINGS. A component that draws cells reads
+      // row[0] and row[1], and indexing a string by position yields CHARACTERS,
+      // so a ledger card rendered one letter per cell ("C … u" over "l … n")
+      // while the film's real copy went nowhere. Clone the row instead.
+      if (Array.isArray(proto) && proto.length) {
+        // A cell holding a FIGURE is not ours to write. Same rule the object
+        // branch above applies to numeric fields: filling a receipt's "$60" or a
+        // bar's 0.86 turns the template demo's number into a claim about the
+        // user's brand. A shape that wants a figure is simply not a shape this
+        // scene's bullets can fill, so the authored row stands.
+        if (proto.some(isFigureCell)) return undefined;
+        // A row draws ACROSS: [title, body], [objection, answer]. So spend the
+        // beat's lines ACROSS the row before starting a new one — two lines make
+        // one COMPLETE row, not two rows each half empty. Measured on the
+        // shipped chalk film: the beat had exactly two lines, and filling them
+        // down the first column drew an empty second column beside every entry.
+        const wide = bullets(sc, Math.max(n, 2) * proto.length)
+          .map((x, i) => fitLabel(x, cellRoom(proto[i % proto.length], max)))
+          .filter(Boolean);
+        const src = wide.length >= proto.length ? wide : b;
+        const rows = [];
+        for (let i = 0; i + proto.length <= src.length && rows.length < n; i += proto.length) {
+          rows.push(proto.map((cell, ci) => src[i + ci]));
+        }
+        if (rows.length) return rows;
+        // Fewer lines than one row needs — fill what we have, bank the rest.
+        return b.slice(0, n).map((val) => proto.map((cell, ci) => (
+          ci === 0 ? (fitLabel(val, cellRoom(cell, max)) || val)
+                   : (fillFor(key, cell, bank, { copyOnly: true }) || " ")
+        )));
+      }
       return b;
     };
     // `words` is a SLAM — one word (or two) per line ("WORK|SHOULD|SLAP.").
@@ -1905,7 +2007,14 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
     // hatched "LOGO / DROP IMAGE TO REPLACE" placeholder in the middle of the
     // user's closing frame. A real logo asset wins; otherwise a generated brand
     // monogram — never the placeholder.
-    out.logo = logo ? logo.path : monogram(brand, accent);
+    // SENTINEL, NOT THE IMAGE — the same reason `shot`/`image` carry one. The
+    // generated monogram is a ~500-byte data-URI and this prop is emitted on
+    // EVERY beat, so it alone consumed most of the engine's 16KB scene budget:
+    // a 50-beat cast shed to 20 beats, and 600s over 20 beats is a 30-SECOND
+    // hold per beat. That is the "why is the film so slow" report. The page
+    // HTML has no size cap, so the monogram is built once out there and swapped
+    // in per seek (see KF_MONO below).
+    out.logo = logo ? logo.path : "__kfmono__";
     // …and the props the compiled film reads but its scene data never declares,
     // which otherwise fall through to that template's own demo figures.
     const hidden = HIDDEN_FALLBACK_PROPS[String(tplName || "")] || null;
@@ -1987,6 +2096,24 @@ function conformToAuthored(out, tpl) {
       const proto = authored[0];
       if (proto && typeof proto === "object" && !Array.isArray(proto)) {
         out[key] = v.map((x, i) => (typeof x === "string" ? intoProto(proto, x, i) : reshapeToProto(proto, x, i)));
+        continue;
+      }
+      // A ROW proto (array of cells) has the same failure mode as the object
+      // proto above, one level down: a component that draws row[0]/row[1] gets
+      // CHARACTERS when handed a plain string. Reshape to the authored arity.
+      // A row with a figure cell is dropped rather than half-filled — see
+      // isFigureCell; the authored row then stands, exactly as it does when
+      // asSlot declines a numeric object shape.
+      if (Array.isArray(proto) && proto.length) {
+        if (proto.some(isFigureCell)) { delete out[key]; continue; }
+        out[key] = v.map((x) => {
+          if (Array.isArray(x)) {
+            // Right container, wrong arity — pad/trim to what the row draws.
+            return proto.map((cell, ci) => (x[ci] == null ? " " : String(x[ci])));
+          }
+          const parts = String(x).split("|").map((t) => t.trim()).filter(Boolean);
+          return proto.map((cell, ci) => (parts[ci] == null ? (ci === 0 ? String(x) : " ") : parts[ci]));
+        });
       }
       continue;
     }
@@ -2314,10 +2441,10 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
       : portraitTemplates().has(String(tplName));
   const W = nativePortrait ? 1080 : 1920;
   const H = nativePortrait ? 1920 : 1080;
-  // 50, not 30 — the engine's own ceiling. A 5-minute script is 40-60 beats, so a
-  // 30-scene cap threw away the back half of every long-form film before the
-  // 16KB shed below had even run.
-  const scenes = Array.isArray(sb.scenes) && sb.scenes.length ? sb.scenes.slice(0, 50) : [{ id: "s1", duration: 4, headline: sb.title || "" }];
+  // Beat COUNT is chosen against the template's authored pace further down (see
+  // fitBeats) — not by truncating here. This only guards against a pathological
+  // storyboard; ENGINE_MAX_SCENES is the engine's own hard ceiling.
+  let scenes = Array.isArray(sb.scenes) && sb.scenes.length ? sb.scenes.slice() : [{ id: "s1", duration: 4, headline: sb.title || "" }];
   // THE FILM MUST SPAN THE WHOLE VIDEO, however many beats survive the caps.
   //
   // `durationSec` is authoritative-from-request (storyboard.js sets it from the
@@ -2378,6 +2505,38 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
 
   const tplScenes = readTemplateScenes(html);
   if (!tplScenes || !tplScenes.length) throw new Error(`omelette: template "${tplName}" exposes no OM_SCENES`);
+
+  // PACE: MATCH THE TEMPLATE'S OWN BEAT LENGTH, DON'T STRETCH TO FILL.
+  //
+  // Covering the requested duration by stretching whatever beats survived made a
+  // 10-minute film crawl: 50 beats over 600s is 12s a beat against an authored
+  // 7.5s, so every animation played at ~0.6x and the film read as sluggish.
+  //
+  // The beat COUNT is the free variable, not the beat LENGTH. Pick the count that
+  // lands closest to the template's authored pace, then cast the script onto it:
+  //   - too few script scenes for that count -> REPEAT interior beats (the film's
+  //     shapes are what repeat; the opener and the closer are never reused, so the
+  //     film still starts and ends in its authored form)
+  //   - too many -> drop interior beats evenly, keeping first and last
+  // Cast durations then come out at the authored pace by construction.
+  const authoredPace = (() => {
+    const ds = tplScenes.map((s) => Number(s && s.dur)).filter((n) => n > 0).sort((a, b) => a - b);
+    return ds.length ? ds[Math.floor(ds.length / 2)] : 7.5;      // median beat of the film itself
+  })();
+  const idealBeats = Math.max(2, Math.round(requestedD / authoredPace));
+  const targetBeats = Math.min(ENGINE_MAX_SCENES, idealBeats);
+  scenes = fitBeats(scenes, targetBeats);
+  if (idealBeats > ENGINE_MAX_SCENES) {
+    // Say it out loud rather than quietly shipping a slow film: past
+    // ENGINE_MAX_SCENES x authoredPace the engine simply cannot hold enough beats,
+    // so the only way to cover the duration is longer beats.
+    console.warn(
+      `[omelette] ${tplName}: ${requestedD}s at this template's ${authoredPace}s pace wants ${idealBeats} beats, ` +
+      `but the engine caps the scene list at ${ENGINE_MAX_SCENES} — beats run ${(requestedD / targetBeats).toFixed(1)}s ` +
+      `(${(requestedD / targetBeats / authoredPace).toFixed(2)}x the authored pace). ` +
+      `Films up to ${Math.floor(ENGINE_MAX_SCENES * authoredPace)}s hold the authored pace.`
+    );
+  }
   // The template's accent colour (for the monogram fallback) lives in its
   // OM_TWEAKS — either form (quoted string or EDITMODE object literal).
   const accent = (() => {
@@ -2392,14 +2551,40 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
   // scenes) by rendering a full-frame ERROR SLATE for the whole film — worse
   // than any trimmed field could ever be. Shed weight in quality order until it
   // fits: gallery walls first, then long copy, then whole tail scenes.
-  const fits = () => JSON.stringify(JSON.stringify(omScenes)).length < 15500;
+  // BOTH engine limits, not just the byte one. ssParse rejects a list over
+  // ENGINE_MAX_SCENES entries exactly as hard as an oversized payload, and
+  // buildScenes can SPLIT a scene into two beats — so a cast fitted to 50 scenes
+  // legitimately arrives here as 54 beats and has to come back down.
+  const fits = () => omScenes.length <= ENGINE_MAX_SCENES
+    && JSON.stringify(JSON.stringify(omScenes)).length < 15500;
   if (!fits()) {
     for (const s of omScenes) { for (let n = 1; n <= 6; n++) delete s[`shot${n}`]; delete s.shotA; delete s.shotB; delete s.images; if (fits()) break; }
   }
-  if (!fits()) {
-    for (const s of omScenes) { for (const k of ["body", "sub", "quote"]) if (typeof s[k] === "string") s[k] = fit(s[k], 60); if (fits()) break; }
+  // PACE OUTRANKS COPY LENGTH. Dropping a beat costs a cut and lengthens every
+  // surviving beat (the film gets slower); shortening a supporting line costs a
+  // few words nobody re-reads. Trim copy in tiers down to a hard floor BEFORE
+  // sacrificing a single beat — a 50-beat cast used to shed to ~20 here, which is
+  // what made a long film crawl once the survivors were stretched to cover it.
+  for (const cap of [80, 60, 44, 32, 24]) {
+    if (fits()) break;
+    for (const s of omScenes) {
+      for (const k of ["body", "sub", "quote", "callout"]) {
+        if (typeof s[k] === "string" && s[k].length > cap) s[k] = fit(s[k], cap);
+      }
+      if (fits()) break;
+    }
   }
-  while (!fits() && omScenes.length > 2) omScenes.splice(omScenes.length - 2, 1);   // drop content scenes, keep the closer
+  // Then the list-valued props, which are the next largest payload after prose.
+  if (!fits()) {
+    for (const s of omScenes) {
+      for (const k of ["items", "chips", "rows", "pairs", "words", "steps", "stats", "plans"]) {
+        if (Array.isArray(s[k]) && s[k].length > 2) s[k] = s[k].slice(0, 2);
+      }
+      if (fits()) break;
+    }
+  }
+  // Only now give up beats. Keep the closer; drop from the tail inward.
+  while (!fits() && omScenes.length > 2) omScenes.splice(omScenes.length - 2, 1);
 
   // RESCALE THE SURVIVORS ONTO THE REQUESTED LENGTH.
   //
@@ -2985,12 +3170,15 @@ ${vectorFitCss}
     // truncated a 12-beat field-notes cast to 6 beats). Scene data carries the
     // 12-byte "__kfplate__" sentinel; every seek swaps the real image in.
     var KF_PLATE=${JSON.stringify(fillPlate(brand, accent, null))};
+    // The CTA monogram, out here for the same reason as the plate above.
+    var KF_MONO=${JSON.stringify(monogram(brand, accent))};
     function kfSwapPlates(root){
       try{
         var imgs=(root||document).querySelectorAll('img');
         for(var i=0;i<imgs.length;i++){
           var s=imgs[i].getAttribute('src')||'';
           if(s.indexOf('__kfplate__')>=0) imgs[i].setAttribute('src',KF_PLATE);
+          else if(s.indexOf('__kfmono__')>=0) imgs[i].setAttribute('src',KF_MONO);
         }
         var all=(root||document).querySelectorAll('*');
         for(var j=0;j<all.length;j++) if(all[j].shadowRoot) kfSwapPlates(all[j].shadowRoot);
@@ -3118,7 +3306,33 @@ ${vectorFitCss}
     `<div class="composition" data-composition-id="vid" data-width="${W}" data-height="${H}" ` +
     `data-start="0" data-duration="${D}" ` +
     `style="position:absolute;left:0;top:0;width:${W}px;height:${H}px;overflow:hidden;"></div>`;
-  html = html.replace(/<body([^>]*)>/i, `<body$1>${staticContract}`);
+  // ANCHOR ON THE DOCUMENT'S OWN <body>, NOT THE FIRST ONE IN THE FILE.
+  //
+  // The template block holds a whole HTML page as a JSON string, `<body>` and
+  // all. In the 142 shipped bundles that block sits inside the body, so a plain
+  // first-match replace lands correctly by luck of layout. It is not luck worth
+  // relying on: a bundle carrying the block in <head> had this contract div
+  // spliced INTO the JSON string instead, raw quotes and all, which broke the
+  // JSON at the injected `<div class="composition"`, left the film unmounted,
+  // and reported nothing — lint, contrast, identity and the render all passed on
+  // a black video.
+  //
+  // The rule is not "before the block" or "after it" — either can be right: the
+  // shipped bundles carry the block INSIDE their body, a generated one may carry
+  // it in <head>. The real body is simply the first <body> that is not inside it.
+  const blockSpan = (() => {
+    const m = /<script type="__bundler\/template"[^>]*>[\s\S]*?<\/script>/i.exec(html);
+    return m ? [m.index, m.index + m[0].length] : [-1, -1];
+  })();
+  // FIRST match outside the block only — the bundles carry further literal
+  // "<body>" runs inside their encoded resource blobs, and stamping those would
+  // corrupt the very payload the film is built from.
+  let stamped = false;
+  html = html.replace(/<body([^>]*)>/gi, (full, attrs, at) => {
+    if (stamped || (at >= blockSpan[0] && at < blockSpan[1])) return full;
+    stamped = true;
+    return `<body${attrs}>${staticContract}`;
+  });
   html = html.replace(/<\/body>/i, `${harness}</body>`);
 
   const metaJson = JSON.stringify({ compositionId: "vid", width: W, height: H, fps: (dims && dims.fps) || 30, duration: D });
