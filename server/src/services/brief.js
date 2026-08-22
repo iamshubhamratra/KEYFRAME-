@@ -58,7 +58,8 @@ const { extractFirstJsonObject: parseLenient } = require("./json_lenient");
 function recentlyUsedPacks(limit = 3) {
   try {
     const db = require("../db");
-    const used = db.listRecent({ limit: 10 })
+    // allUsers: see the note in agents/graph.js — install-wide rotation, framePack only.
+    const used = db.listRecent({ limit: 10, allUsers: true })
       .map((j) => j.framePack)
       .filter(Boolean);
     return [...new Set(used)].slice(0, limit);

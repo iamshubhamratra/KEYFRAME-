@@ -98,6 +98,13 @@ export async function regenerateProject(id, from = "script") {
   }));
 }
 
+// YOUR projects. Went through a bare fetch() in Gallery.jsx that omitted credentials — harmless
+// while the route was open to the world, and an instant 401 the moment it stopped being. Routing
+// it through apiFetch is what carries the session cookie.
+export async function listProjects() {
+  return json(await apiFetch("/api/projects"));
+}
+
 export async function listFrames() {
   return json(await apiFetch("/api/frames"));
 }

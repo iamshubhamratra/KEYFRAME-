@@ -78,7 +78,8 @@
     "shot:lf": "node scripts/shot-lf-pack.js",
     "test:longform-templates": "node scripts/verify-longform-templates.js --offline",
     "test:longform-online": "node scripts/verify-longform-templates.js",
-    "test:verbose": "node scripts/run-suites.js --verbose"
+    "test:verbose": "node scripts/run-suites.js --verbose",
+    "test:authz": "node scripts/test-authz.js"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",

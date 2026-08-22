@@ -13,6 +13,9 @@ const express = require("express");
 const fs = require("node:fs");
 const path = require("node:path");
 const rateLimit = require("express-rate-limit");
+const { clientIp } = require("../services/client_ip");
+const { requireAuth } = require("../auth/middleware");
+const { requireJobAccess } = require("../auth/ownership");
 const multer = require("multer");
 const { customAlphabet } = require("nanoid");
 const config = require("../config");
@@ -117,12 +120,6 @@ function looksLikeSvg(filePath) {
     const head = buf.slice(0, n).toString("utf8").trimStart().toLowerCase();
     return head.startsWith("<svg") || head.startsWith("<?xml");
   } catch { return false; }
-}
-
-function clientIp(req) {
-  const xff = req.headers["x-forwarded-for"];
-  if (typeof xff === "string" && xff.length) return xff.split(",")[0].trim();
-  return req.ip || req.socket?.remoteAddress || "unknown";
 }
 
 function validateCreate(body, { hasUpload = false } = {}) {
@@ -309,7 +306,7 @@ function buildRouter({ enqueueIntake, enqueueProduction }) {
     message: { error: "rate limit exceeded", hint: "try again in an hour" },
   });
 
-  router.post("/projects", limiter, maybeMultipart, (req, res) => {
+  router.post("/projects", requireAuth, limiter, maybeMultipart, (req, res) => {
     // upload.fields() puts files on req.files (keyed by field); the legacy
     // upload.single() req.file is gone.
     const files = req.files || {};
@@ -372,6 +369,8 @@ function buildRouter({ enqueueIntake, enqueueProduction }) {
     db.insert({
       id: jobId,
       kind: "project",
+      // requireAuth guarantees this is set; ownership.js gates every later read on it.
+      userId: req.userId,
       prompt: out.prompt,
       duration: out.duration,
       orientation: out.orientation,
@@ -424,15 +423,17 @@ function buildRouter({ enqueueIntake, enqueueProduction }) {
     });
   });
 
-  router.get("/projects", (req, res) => {
+  // YOUR films, not everyone's. This answered 200 to an anonymous caller with the 30 most
+  // recent projects of every account — and because db.listRecent titles a row from
+  // `prompt.slice(0, 80)` when the script has no title yet, that response published the opening
+  // of other people's prompts to the open internet.
+  router.get("/projects", requireAuth, (req, res) => {
     const status = typeof req.query.status === "string" ? req.query.status : undefined;
-    res.json({ projects: db.listRecent({ limit: 30, status }) });
+    res.json({ projects: db.listRecent({ limit: 30, status, userId: req.userId }) });
   });
 
-  router.get("/projects/:id", (req, res) => {
-    if (!/^[0-9a-z]{6,20}$/.test(req.params.id)) return res.status(400).json({ error: "bad id" });
+  router.get("/projects/:id", requireJobAccess, (req, res) => {
     const job = db.get(req.params.id);
-    if (!job) return res.status(404).json({ error: "not found" });
 
     // THE ETA THE CLIENT ALREADY KNOWS HOW TO SHOW.
     //
@@ -480,9 +481,7 @@ function buildRouter({ enqueueIntake, enqueueProduction }) {
 
   // SSE: push the project state whenever status/progress changes, so the
   // frontend doesn't have to poll. Closes itself on terminal states.
-  router.get("/projects/:id/events", (req, res) => {
-    if (!/^[0-9a-z]{6,20}$/.test(req.params.id)) return res.status(400).json({ error: "bad id" });
-    if (!db.get(req.params.id)) return res.status(404).json({ error: "not found" });
+  router.get("/projects/:id/events", requireJobAccess, (req, res) => {
 
     res.writeHead(200, {
       "Content-Type": "text/event-stream",
@@ -512,10 +511,8 @@ function buildRouter({ enqueueIntake, enqueueProduction }) {
     req.on("close", () => clearInterval(timer));
   });
 
-  router.post("/projects/:id/approve", (req, res) => {
-    if (!/^[0-9a-z]{6,20}$/.test(req.params.id)) return res.status(400).json({ error: "bad id" });
-    const raw = db.getRaw(req.params.id);
-    if (!raw) return res.status(404).json({ error: "not found" });
+  router.post("/projects/:id/approve", requireJobAccess, (req, res) => {
+    const raw = req.job;
     if (raw.status !== "script_review") {
       return res.status(409).json({ error: `project is "${raw.status}", not script_review` });
     }
@@ -535,10 +532,8 @@ function buildRouter({ enqueueIntake, enqueueProduction }) {
     res.status(202).json({ projectId: req.params.id, status: "queued", statusUrl: `/api/projects/${req.params.id}` });
   });
 
-  router.post("/projects/:id/regenerate", (req, res) => {
-    if (!/^[0-9a-z]{6,20}$/.test(req.params.id)) return res.status(400).json({ error: "bad id" });
-    const raw = db.getRaw(req.params.id);
-    if (!raw) return res.status(404).json({ error: "not found" });
+  router.post("/projects/:id/regenerate", requireJobAccess, (req, res) => {
+    const raw = req.job;
     const from = (req.body && req.body.from) || "script";
     if (!["brief", "script"].includes(from)) {
       return res.status(400).json({ error: 'from must be "brief" or "script"' });

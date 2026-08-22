@@ -352,7 +352,9 @@ function rotatedDefaultPack(durationSec) {
   try {
     const { packFitsDuration } = require("../services/frame_manifest");
     const recent = new Set(
-      db.listRecent({ limit: 10 }).map((j) => j.framePack).filter(Boolean)
+      // allUsers: pack rotation is a property of the INSTALL, not of one account — and this
+      // reads only framePack, never a prompt or script, so it discloses nothing per-user.
+      db.listRecent({ limit: 10, allUsers: true }).map((j) => j.framePack).filter(Boolean)
     );
     // A DEFAULT MUST NEVER SURPRISE.
     //

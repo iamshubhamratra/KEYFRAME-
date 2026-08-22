@@ -226,6 +226,11 @@ module.exports = {
     const rec = {
       id: job.id,
       kind: job.kind || "generate",
+      // WHO THIS BELONGS TO. Every read and mutation is gated on this (src/auth/ownership.js).
+      // Snake_case to match every other persisted field on the record, not the camelCase the
+      // shaped API object uses. Null is possible only for the records written before this
+      // existed; the routes now require a session, so nothing new can land ownerless.
+      user_id: job.userId || null,
       prompt: job.prompt,
       duration: job.duration,
       orientation: job.orientation,
@@ -691,9 +696,20 @@ module.exports = {
   getRaw(id) { return jobs.get(id) || null; },
 
   // Recent jobs, newest first (gallery). Lightweight shape — no script/brief.
-  listRecent({ limit = 30, status } = {}) {
+  //
+  // SCOPED TO ONE USER. `userId` is REQUIRED unless `allUsers` is explicitly passed (the admin
+  // view). It is not defaulted to "everyone": this used to be an unauthenticated route that
+  // returned the 30 most recent films of every account, and a caller that simply forgot to pass
+  // an owner would silently restore exactly that. Forgetting now throws.
+  //
+  // Legacy rows carry no user_id, so they match no user and drop out of every scoped list on
+  // their own — which is the intended "orphaned, admin-only" behaviour, not an accident of the
+  // comparison.
+  listRecent({ limit = 30, status, userId, allUsers = false } = {}) {
+    if (!allUsers && !userId) throw new Error("listRecent: userId is required (pass allUsers:true for the admin view)");
     const all = [...jobs.values()]
       .filter((j) => !status || j.status === status)
+      .filter((j) => allUsers || j.user_id === userId)
       .sort((a, b) => b.created_at - a.created_at)
       .slice(0, limit);
     return all.map((j) => ({

@@ -15,6 +15,9 @@ const {
   signToken, cookieOptions,
 } = require("../auth/helpers");
 const { requireAuth } = require("../auth/middleware");
+const {
+  loginLimiter, signupLimiter, otpSendLimiter, otpVerifyLimiter, passwordResetLimiter,
+} = require("../auth/limits");
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const isEmail = (e) => typeof e === "string" && EMAIL_RE.test(e.trim());
@@ -33,7 +36,7 @@ function buildRouter() {
   const r = express.Router();
 
   // ---- signup ----
-  r.post("/signup", async (req, res) => {
+  r.post("/signup", signupLimiter, async (req, res) => {
     try {
       const name = String(req.body?.name || "").trim();
       const email = String(req.body?.email || "").trim().toLowerCase();
@@ -56,17 +59,28 @@ function buildRouter() {
   });
 
   // ---- login ----
-  r.post("/login", async (req, res) => {
+  r.post("/login", loginLimiter, async (req, res) => {
     try {
       const email = String(req.body?.email || "").trim().toLowerCase();
       const password = req.body?.password;
       if (!isEmail(email) || !password) {
         return res.status(400).json({ error: "Enter your email and password." });
       }
+      // THE PER-ACCOUNT LOCKOUT, checked BEFORE the password is compared. The IP limiter above
+      // stops one address; this stops one mailbox being worked on from many. Deliberately the
+      // same 401 wording either way — announcing "this account is locked" would confirm the
+      // address is registered to anyone who asks.
+      const lockedUntil = store.loginLockedUntil(email);
+      if (lockedUntil) {
+        const mins = Math.max(1, Math.ceil((lockedUntil - Date.now()) / 60000));
+        return res.status(429).json({ error: `Too many sign-in attempts. Try again in ${mins} minute${mins === 1 ? "" : "s"}.` });
+      }
       const user = store.findUserByEmail(email);
       if (!user || !(await comparePassword(password, user.passwordHash))) {
+        store.noteFailedLogin(email);
         return res.status(401).json({ error: "Wrong email or password." });
       }
+      store.clearFailedLogins(email);
       setSession(res, user);
       const ip = req.headers["x-forwarded-for"] || req.socket?.remoteAddress;
       mailer.sendLoginAlert({ to: user.email, userName: user.name, ip, device: req.headers["user-agent"] })
@@ -101,7 +115,7 @@ function buildRouter() {
   });
 
   // ---- forgot: send OTP ----
-  r.post("/forgot/send-otp", async (req, res) => {
+  r.post("/forgot/send-otp", otpSendLimiter, async (req, res) => {
     try {
       const email = String(req.body?.email || "").trim().toLowerCase();
       if (!isEmail(email)) return res.status(400).json({ error: "Enter a valid email." });
@@ -122,7 +136,7 @@ function buildRouter() {
   });
 
   // ---- forgot: verify OTP ----
-  r.post("/forgot/verify-otp", (req, res) => {
+  r.post("/forgot/verify-otp", otpVerifyLimiter, (req, res) => {
     const email = String(req.body?.email || "").trim().toLowerCase();
     const otp = String(req.body?.otp || "").trim();
     if (!isEmail(email) || !/^\d{4,8}$/.test(otp)) return res.status(400).json({ error: "Enter the code we emailed you." });
@@ -130,12 +144,15 @@ function buildRouter() {
     if (result === "ok") return res.json({ ok: true });
     const msg = result === "expired" ? "That code has expired — request a new one."
       : result === "missing" ? "No active code — request a new one."
+      // The code was burnt after too many wrong guesses; say so, because the next thing this
+      // person needs to do is request a new one rather than keep typing.
+      : result === "locked" ? "Too many incorrect attempts — that code is no longer valid. Request a new one."
       : "Incorrect code.";
     return res.status(400).json({ error: msg });
   });
 
   // ---- forgot: set new password (requires a verified OTP) ----
-  r.post("/forgot/set-new-password", async (req, res) => {
+  r.post("/forgot/set-new-password", passwordResetLimiter, async (req, res) => {
     try {
       const email = String(req.body?.email || "").trim().toLowerCase();
       const newPassword = req.body?.newPassword;

@@ -132,17 +132,64 @@ function getOtp(email) {
   const e = normEmail(email);
   return state.otps.find((o) => o.email === e) || null;
 }
-// Returns "ok" | "wrong" | "expired" | "missing"
+// A SIX-DIGIT CODE SURVIVES ONLY IF GUESSES ARE COUNTED.
+//
+// This used to compare and return, with no counter anywhere: a caller could try all 10^6
+// candidates against the five-minute window, and on a wrong guess nothing was recorded, so the
+// millionth attempt was exactly as welcome as the first. An IP quota does not fix that on its
+// own — the attempts can come from anywhere — so the cap lives HERE, on the record being
+// attacked, where the attacker's address is irrelevant.
+//
+// The code is BURNT at the cap rather than merely paused. A code that keeps living after five
+// wrong guesses just asks the attacker to come back through a different address; deleting it
+// costs a legitimate user one "request a new code" and costs an attacker the whole window.
+const OTP_MAX_ATTEMPTS = 5;
+
+// Returns "ok" | "wrong" | "expired" | "missing" | "locked"
 function verifyOtp(email, otp) {
   const rec = getOtp(email);
   if (!rec) return "missing";
   if (Date.now() > rec.expiringAt) return "expired";
-  if (String(otp) !== rec.otp) return "wrong";
+  if (String(otp) !== rec.otp) {
+    rec.attempts = (rec.attempts || 0) + 1;
+    if (rec.attempts >= OTP_MAX_ATTEMPTS) { clearOtp(email); return "locked"; }
+    persist();
+    return "wrong";
+  }
   rec.status = "verified";
   rec.verifiedAt = Date.now();
   persist();
   return "ok";
 }
+
+// ---------------------------------------------------------------- login throttle
+//
+// The per-ACCOUNT half of the login limit. src/auth/limits.js caps attempts per IP, which stops
+// a script on one address and does nothing at all about a botnet working through one mailbox's
+// password. This counter is attached to the email, so rotating addresses buys the attacker
+// nothing; a correct password clears it, so a person who mistypes twice and then succeeds never
+// notices it exists.
+//
+// In memory, deliberately not persisted: the window is fifteen minutes, the store is rewritten
+// on every failure otherwise, and a process restart forgetting a lockout is a far smaller
+// problem than a disk write per wrong password.
+const LOGIN_MAX_FAILURES = 8;
+const LOGIN_WINDOW_MS = 15 * 60_000;
+const loginFailures = new Map(); // email -> { n, first }
+
+function loginLockedUntil(email) {
+  const rec = loginFailures.get(normEmail(email));
+  if (!rec) return 0;
+  if (Date.now() - rec.first > LOGIN_WINDOW_MS) { loginFailures.delete(normEmail(email)); return 0; }
+  return rec.n >= LOGIN_MAX_FAILURES ? rec.first + LOGIN_WINDOW_MS : 0;
+}
+function noteFailedLogin(email) {
+  const e = normEmail(email);
+  const rec = loginFailures.get(e);
+  if (!rec || Date.now() - rec.first > LOGIN_WINDOW_MS) loginFailures.set(e, { n: 1, first: Date.now() });
+  else rec.n += 1;
+}
+function clearFailedLogins(email) { loginFailures.delete(normEmail(email)); }
 // A verified, still-unexpired OTP authorizes the actual password change.
 function hasVerifiedOtp(email) {
   const rec = getOtp(email);
@@ -157,5 +204,6 @@ function clearOtp(email) {
 module.exports = {
   findUserByEmail, findUserById, createUser, setUserPassword, publicUser,
   saveOtp, getOtp, verifyOtp, hasVerifiedOtp, clearOtp,
+  loginLockedUntil, noteFailedLogin, clearFailedLogins,
   isAdmin, isAdminEmail, syncRole, ADMIN_EMAILS,
 };

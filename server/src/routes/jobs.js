@@ -4,16 +4,17 @@ const express = require("express");
 const db = require("../db");
 const config = require("../config");
 const { estimateEta, estimateRemainingSec } = require("../services/eta");
+const { requireJobAccess } = require("../auth/ownership");
 
 const router = express.Router();
 
-router.get("/jobs/:id", (req, res) => {
+// SAME GUARD AS /api/projects/:id, because it is the same record. This route calls the same
+// db.get() and returns the same shaped object — prompt, brief, script and all — so securing the
+// newer door and leaving this one open would have been decoration rather than a fix. Both now
+// go through the one ownership check.
+router.get("/jobs/:id", requireJobAccess, (req, res) => {
   const id = String(req.params.id || "").trim();
-  if (!/^[0-9a-z]{6,20}$/.test(id)) {
-    return res.status(400).json({ error: "invalid jobId" });
-  }
   const job = db.get(id);
-  if (!job) return res.status(404).json({ error: "job not found" });
 
   // Attach ETA fields based on status.
   if (job.status === "queued") {
@@ -55,10 +56,8 @@ router.get("/jobs/:id", (req, res) => {
 // live until the job reaches a terminal state, so the UI shows real-time stages
 // (storyboard → assets → composing → audio → done) instead of polling (#12).
 // Additive: the polling GET above still works for clients that don't use SSE.
-router.get("/jobs/:id/stream", (req, res) => {
+router.get("/jobs/:id/stream", requireJobAccess, (req, res) => {
   const id = String(req.params.id || "").trim();
-  if (!/^[0-9a-z]{6,20}$/.test(id)) return res.status(400).json({ error: "invalid jobId" });
-  if (!db.get(id)) return res.status(404).json({ error: "job not found" });
 
   res.writeHead(200, {
     "Content-Type": "text/event-stream",

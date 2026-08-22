@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { API_BASE, mediaUrl } from "../api.js";
+import { listProjects, mediaUrl } from "../api.js";
 import { GALLERY_FILTERS, WALL_SEEDS, loreFor, fmtDur } from "../packlore.js";
 
 const CHIP_COLORS = ["#f2ede2", "#e832a8", "#23c8e0", "#ffb03a", "#b9f24a", "#2b5bff", "#ff7aa8", "#ff6a3c"];
@@ -16,8 +16,7 @@ export default function Gallery({ onOpen, onUseStyle }) {
 
   useEffect(() => {
     let alive = true;
-    fetch(`${API_BASE}/api/projects`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`the gallery service answered ${r.status}`))))
+    listProjects()
       .then((d) => { if (alive) { setProjects((d.projects || []).filter((p) => p.videoUrl)); setError(null); } })
       // Was `.catch(() => setProjects([]))`, which fell through to WALL_SEEDS — so a dead API
       // presented six INVENTED films, with invented view counts, as tonight's premieres. The

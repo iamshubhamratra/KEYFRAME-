@@ -21,7 +21,7 @@ const pkg = require("../package.json");
 // and some take minutes; running the cheap ones first is why the original order looked the way
 // it did, and nothing here is a reason to reshuffle it.
 const SUITES = [
-  "test:brand-kit", "test:asset-priority", "test:pixabay", "test:asset-sources",
+  "test:authz", "test:brand-kit", "test:asset-priority", "test:pixabay", "test:asset-sources",
   "test:asset-scoring", "test:reuse", "test:asset-prep", "test:video-quality",
   "test:media-profiles", "test:website-assets", "test:taxonomy", "test:screenshot-intake",
   "test:handoffs", "test:quality", "test:peekshot", "test:variety", "test:transitions",

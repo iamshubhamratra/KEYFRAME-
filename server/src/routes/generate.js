@@ -2,18 +2,14 @@
 
 const express = require("express");
 const rateLimit = require("express-rate-limit");
+const { clientIp } = require("../services/client_ip");
+const { requireAuth } = require("../auth/middleware");
 const { customAlphabet } = require("nanoid");
 const config = require("../config");
 const db = require("../db");
 const { estimateEta } = require("../services/eta");
 
 const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 10);
-
-function clientIp(req) {
-  const xff = req.headers["x-forwarded-for"];
-  if (typeof xff === "string" && xff.length) return xff.split(",")[0].trim();
-  return req.ip || req.socket?.remoteAddress || "unknown";
-}
 
 function validateBody(body) {
   const errs = [];
@@ -133,7 +129,11 @@ function buildRouter({ enqueue }) {
     message: { error: "rate limit exceeded", hint: "try again in an hour" },
   });
 
-  router.post("/generate", limiter, async (req, res) => {
+  // THE OLDER DOOR ONTO THE SAME STORE. /api/generate writes into the very db that
+  // /api/projects reads, so leaving it open would have meant anonymous callers could still
+  // create jobs — and jobs with no owner are invisible to their creator under the new rules,
+  // which makes an unauthenticated create a way to write records nobody can ever reach.
+  router.post("/generate", requireAuth, limiter, async (req, res) => {
     const { errs, out } = validateBody(req.body || {});
     if (errs.length) return res.status(400).json({ error: "invalid request", details: errs });
 
@@ -149,6 +149,7 @@ function buildRouter({ enqueue }) {
 
     db.insert({
       id: jobId,
+      userId: req.userId,
       prompt: out.prompt,
       duration: out.duration,
       orientation: out.orientation,
