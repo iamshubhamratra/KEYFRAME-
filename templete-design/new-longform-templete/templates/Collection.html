@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KEYFRAME — long-form collection</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css2?family=Caprasimo&family=Figtree:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../_ds/organic-06d48595-8771-4418-99c5-cc69a790efd5/styles.css">
+<style>
+  html, body { margin: 0; padding: 0; background: var(--color-bg, #f5ead8); }
+  a { color: var(--color-accent, #c67139); text-decoration: none; }
+  a:hover { color: var(--color-accent-700, #a35a25); }
+  * { box-sizing: border-box; }
+</style>
+</head>
+<body>
+<div id="wall"></div>
+<script>
+/* Ten live films in one wall. Each cell is an iframe running the real template,
+   scaled to the cell — so this is the collection playing, not ten screenshots.
+   Iframes load lazily and only while on screen: ten 300-second compositions
+   painting twelve background layers each would otherwise fight for the same
+   frame budget and all of them would stutter. */
+const T = [
+  ['01','Pet Story','Dogs · pet lifestyle','01-pet-story/Pet Story.dc.html',50],
+  ['02','Cat Curious','Cats · playful','02-cat-curious/Cat Curious.dc.html',50],
+  ['03','Kitchen Table','Food · culinary','03-kitchen-table/Kitchen Table.dc.html',46],
+  ['04','Lunch Rush','Restaurant · delivery','04-lunch-rush/Lunch Rush.dc.html',50],
+  ['05','Signal','Future tech','05-signal/Signal.dc.html',45],
+  ['06','Split Time','Running · fitness','06-split-time/Split Time.dc.html',43],
+  ['07','Flightpath','Birds · nature','07-flightpath/Flightpath.dc.html',45],
+  ['08','Canopy','Jungle · adventure','08-canopy/Canopy.dc.html',38],
+  ['09','Latent','AI','09-latent/Latent.dc.html',36],
+  ['10','Workspace','Computer · SaaS','10-workspace/Workspace.dc.html',40],
+];
+const CW = 880, CH = Math.round(CW * 9 / 16);
+
+const css = document.createElement('style');
+css.textContent = `
+  .wrap { padding: 56px 44px 90px; max-width: 1960px; margin: 0 auto; font-family: 'Figtree', sans-serif; }
+  .hd { display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; padding-bottom: 26px; border-bottom: 3px solid var(--color-text, #201e1d); margin-bottom: 8px; }
+  .ttl { font-family: 'Caprasimo', serif; font-size: 88px; line-height: 0.98; letter-spacing: -0.01em; color: var(--color-text, #201e1d); margin: 0; }
+  .sub { font-size: 21px; line-height: 1.5; color: var(--color-neutral-700, #5c574f); max-width: 640px; margin: 0; }
+  .meta { display: flex; gap: 44px; padding: 22px 0 56px; }
+  .meta div { font-size: 15px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-accent-700, #a35a25); }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 48px 36px; }
+  .cell { min-width: 0; }
+  .bar { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 16px; margin-bottom: 16px; }
+  .nm { white-space: nowrap; }
+  .no { font-family: 'Caprasimo', serif; font-size: 34px; color: var(--color-accent, #c67139); line-height: 1; }
+  .nm { font-family: 'Caprasimo', serif; font-size: 34px; color: var(--color-text, #201e1d); line-height: 1; }
+  .cat { margin-left: auto; font-size: 14px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-neutral-700, #5c574f); }
+  .stage { position: relative; border-radius: 18px; overflow: hidden; background: var(--color-neutral-900, #201e1d); box-shadow: var(--shadow-md, 0 10px 30px rgba(32,30,29,0.18)); }
+  .stage iframe { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; border: 0; transform-origin: 0 0; }
+  .ph { position: absolute; inset: 0; display: grid; place-items: center; gap: 14px; color: rgba(255,255,255,0.5); font-size: 15px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; }
+  .ft { display: flex; align-items: baseline; gap: 18px; margin-top: 14px; font-size: 16px; color: var(--color-neutral-700, #5c574f); }
+  .ft b { color: var(--color-text, #201e1d); font-weight: 700; }
+  .open { color: var(--color-accent-700, #a35a25); margin-left: auto; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; font-size: 13px; }
+  @media (max-width: 1180px) { .hd { flex-direction: column; align-items: flex-start; gap: 18px; } .ttl { font-size: 56px; } .meta { flex-wrap: wrap; gap: 22px 30px; padding-bottom: 36px; } }
+  @media (max-width: 1180px) { .cat { margin-left: 0; width: 100%; } }
+  @media (max-width: 760px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+`;
+document.head.appendChild(css);
+
+const wall = document.getElementById('wall');
+wall.className = 'wrap';
+wall.innerHTML = `
+  <div class="hd">
+    <h1 class="ttl">The long-form<br>collection</h1>
+    <p class="sub">Ten motion worlds for narrated video of about five minutes. Each cell below is the real template playing, not a still.</p>
+  </div>
+  <div class="meta"><div>10 templates</div><div>443 scenes</div><div>5:00 each</div><div>16:9 · 1920×1080</div></div>
+  <div class="grid" id="g"></div>`;
+
+const g = document.getElementById('g');
+const cells = T.map(([no, name, cat, href, scenes]) => {
+  const el = document.createElement('div');
+  el.className = 'cell';
+  el.innerHTML = `
+    <div class="bar"><span class="no">${no}</span><span class="nm">${name}</span><span class="cat">${cat}</span></div>
+    <div class="stage" style="height:${CH}px"><div class="ph">loading</div></div>
+    <div class="ft"><span><b>${scenes}</b> scenes</span><span><b>5:00</b></span><a class="open" href="${href}" target="_blank">open full →</a></div>`;
+  g.appendChild(el);
+  const stage = el.querySelector('.stage');
+  return { stage, href, loaded: false };
+});
+
+/* size each iframe's scale to its cell, on load and on resize */
+function fit() {
+  cells.forEach(({ stage }) => {
+    const w = stage.clientWidth;
+    stage.style.height = Math.round(w * 9 / 16) + 'px';
+    const f = stage.querySelector('iframe');
+    if (f) f.style.transform = `scale(${w / 1920})`;
+  });
+}
+window.addEventListener('resize', fit);
+
+/* Mount only what is visible. Unmount what scrolls away, so the wall never runs
+   more than a few compositions at once. */
+const io = new IntersectionObserver((entries) => {
+  entries.forEach((e) => {
+    const c = cells.find((x) => x.stage === e.target);
+    if (!c) return;
+    if (e.isIntersecting && !c.loaded) {
+      c.loaded = true;
+      const f = document.createElement('iframe');
+      f.src = c.href;
+      f.loading = 'lazy';
+      f.style.transform = `scale(${c.stage.clientWidth / 1920})`;
+      c.stage.appendChild(f);
+      f.addEventListener('load', () => { const ph = c.stage.querySelector('.ph'); if (ph) ph.remove(); });
+    } else if (!e.isIntersecting && c.loaded) {
+      const f = c.stage.querySelector('iframe');
+      if (f) { f.remove(); c.loaded = false; c.stage.insertAdjacentHTML('beforeend', '<div class="ph">loading</div>'); }
+    }
+  });
+}, { rootMargin: '200px' });
+
+cells.forEach(({ stage }) => io.observe(stage));
+fit();
+</script>
+</body>
+</html>
