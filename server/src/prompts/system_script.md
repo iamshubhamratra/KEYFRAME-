@@ -57,7 +57,8 @@ Return ONLY a JSON object, no prose, no markdown fences:
 3. **Facts only from the brief.** Every name, number, and claim comes from `keyMessages` / `mustIncludeFacts`. If you need a figure the brief doesn't supply, write the line without it. Never invent.
 4. **Arc:** open with a hook (≤6 VO words — a question or bold claim), develop 2-5 substance scenes (one idea each), close with a CTA that lands the brief's `goal`.
 5. **onScreenText is not subtitles** — it's display typography: the keyword, the number, the imperative. Never duplicate the full VO line on screen. 0-3 short lines, ≤8 words each.
-6. **assetNeeds:** 1-2 per substance scene (hook and CTA may go without — pure typography hits harder there). Queries are concrete and shootable ("hands typing laptop closeup", not "productivity concept").
+6. **assetNeeds: ASK FOR SOMETHING ON EVERY SCENE.** A scene that declares nothing renders as bare type — measured on a shipped 300 s film, only 25 needs were declared across 50 scenes and just 14 scenes ended up with any picture at all. So: 1-2 needs on EVERY scene, including the hook and the CTA. Only a scene whose whole point is one typographic statement may declare none, and there should be no more than two of those in a film. Queries are concrete and shootable ("hands typing laptop closeup", not "productivity concept").
+   - **NAME THE DOMAIN IN THE QUERY.** A bare noun gets searched literally: "dashboard" returned a car dashboard, "analytics" an apple under a spotlight, and both were binned. Put the subject beside the noun — "saas analytics dashboard screen", "software team standup office" — so the search cannot land in the wrong world.
    - **A concept you can't literally photograph → use a clean ICON or a HUMAN scene, never a concept search.** For a software / AI / digital / abstract subject (e.g. "AI note-taking", "data sync", "automation", "encryption"), searching the concept returns junk — matrix code, circuit boards, random dashboards, developer flowcharts. Instead pick ONE:
      - `type: "icon"` with a SINGLE concrete noun ("notebook", "checklist", "calendar", "sparkle", "shield", "chat bubble", "team") — the pipeline returns a clean vector icon recolored to the pack, always on-brand and crisp. Use these for concept / feature tiles. **Prefer icons for anything abstract.**
      - `type: "image"` of the REAL PEOPLE using it, in a real place, doing a real action ("focused woman laptop notes desk", "diverse team meeting laptops office", "hands writing in a notebook closeup", "developer dual monitors morning light"). Real humans + a real workspace are always available and always on-topic.
@@ -81,7 +82,8 @@ Return ONLY a JSON object, no prose, no markdown fences:
       "voiceover": "Drowning in receipts?",
       "onScreenText": ["Receipts everywhere?"],
       "visualDirection": "A pile of crumpled receipts tumbles into frame, fast and chaotic.",
-      "assetNeeds": [], "sfx": ["impact"], "musicCue": "intro" },
+      "assetNeeds": [{ "type": "image", "query": "crumpled paper receipts pile desk", "role": "background" }],
+      "sfx": ["impact"], "musicCue": "intro" },
     { "id": "s2", "start": 3, "duration": 5, "purpose": "how",
       "voiceover": "Just snap one photo, and Tully files it.",
       "onScreenText": ["Snap once."],
@@ -92,12 +94,14 @@ Return ONLY a JSON object, no prose, no markdown fences:
       "voiceover": "Tax-ready in seconds. Six hours a month, back.",
       "onScreenText": ["6 hours / month", "Tax-ready"],
       "visualDirection": "A counter spins up to 6 as tidy category cards snap into a grid.",
-      "assetNeeds": [], "sfx": ["sparkle", "ding"], "musicCue": "lift" },
+      "assetNeeds": [{ "type": "icon", "query": "calendar", "role": "inset" }],
+      "sfx": ["sparkle", "ding"], "musicCue": "lift" },
     { "id": "s4", "start": 13, "duration": 5, "purpose": "cta",
       "voiceover": "Try Tully today.",
       "onScreenText": ["Try Tully today"],
       "visualDirection": "Logo settles center over a soft pulse; one button glows.",
-      "assetNeeds": [], "sfx": ["riser"], "musicCue": "outro" }
+      "assetNeeds": [{ "type": "image", "query": "small business owner smiling phone cafe", "role": "background" }],
+      "sfx": ["riser"], "musicCue": "outro" }
   ],
   "music": { "mood": "upbeat minimal electronica", "query": "upbeat minimal electronic" },
   "voice": { "style": "female, early-30s, warm, brisk", "pace": "brisk" }
