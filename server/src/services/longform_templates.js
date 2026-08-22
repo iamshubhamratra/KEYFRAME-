@@ -76,6 +76,22 @@ function vendorReady() {
   catch { return false; }
 }
 
+/** Where make-longform-posters.js writes, and where the route serves them from. */
+const POSTER_DIR = path.join(config.paths.root, "public", "longform");
+const POSTER_MOUNT = `${MOUNT}/_posters`;
+
+/**
+ * The URL of a film's poster, or null when it has not been rendered.
+ *
+ * The files sit in public/longform because they are generated media, the same class of thing as a
+ * frame pack's poster.jpg. They are NOT served at the public mount's own /longform/<id>.jpg though:
+ * that path belongs to the collection router, which is mounted first and would answer for it with a
+ * 404 from the collection directory. Hence an explicit `_posters` prefix alongside `_vendor`.
+ */
+function posterUrl(id) {
+  return fs.existsSync(path.join(POSTER_DIR, `${id}.jpg`)) ? `${POSTER_MOUNT}/${id}.jpg` : null;
+}
+
 /** True when the self-hosted Caprasimo/Figtree faces are on disk. Same all-or-nothing rule. */
 function fontsReady() {
   try {
@@ -537,6 +553,9 @@ module.exports = {
   CDN_LOCAL,
   vendorReady,
   fontsReady,
+  posterUrl,
+  POSTER_DIR,
+  POSTER_MOUNT,
   injectResources,
   ENERGY_VALUES,
   LongformConfigError,

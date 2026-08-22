@@ -7,6 +7,7 @@ import ProductionTheater from "./screens/ProductionTheater.jsx";
 import Premiere from "./screens/Premiere.jsx";
 import Gallery from "./screens/Gallery.jsx";
 import Templates from "./screens/Templates.jsx";
+import LongformFilms from "./screens/LongformFilms.jsx";
 import AdminTemplates from "./screens/AdminTemplates.jsx";
 import AdminTemplateNew from "./screens/AdminTemplateNew.jsx";
 import AdminTemplateDetail from "./screens/AdminTemplateDetail.jsx";
@@ -22,7 +23,7 @@ import { useAuth } from "./AuthContext.jsx";
 // running production or a finished premiere) so a link can be shared or reopened.
 // Only public/state-driven screens are allowed here; project data loads from the
 // (public) project API, so no auth is needed just to watch/replay one.
-const DEEP_LINK_VIEWS = new Set(["theater", "premiere", "gallery", "templates"]);
+const DEEP_LINK_VIEWS = new Set(["theater", "premiere", "gallery", "templates", "longform"]);
 // The admin template screens are deliberately NOT deep-linkable. initialFromUrl() runs before
 // /api/auth/me has resolved, so a ?view=admin link would have to pick a screen while the role
 // is still unknown — and the honest answer at that moment is "no". They are reached from the
@@ -139,6 +140,7 @@ export default function App() {
     premiere: <Premiere projectId={projectId} onRemix={() => go("script")} onNew={() => enterStudio("create")} />,
     gallery: <Gallery onOpen={(id) => go("premiere", id)} onUseStyle={useStyle} />,
     templates: <Templates onUseStyle={useStyle} />,
+    longform: <LongformFilms />,
     // ADMIN. Registered only for an admin session — but that is COSMETIC ONLY. Hiding a screen
     // is not authorization: every /api/admin route sits behind requireAuth + requireAdmin on the
     // server (routes/admin_templates.js applies it with router.use so a new route is protected
@@ -182,6 +184,7 @@ export default function App() {
         <div className="nav-group flex items-center flex-wrap" style={{ gap: 10, pointerEvents: "auto" }}>
           <button className={`btn-chip ${view === "templates" ? "is-active" : ""}`} onClick={() => go("templates")}>Templates</button>
           <button className={`btn-chip ${view === "gallery" ? "is-active" : ""}`} onClick={() => go("gallery")}>Gallery</button>
+          <button className={`btn-chip ${view === "longform" ? "is-active" : ""}`} onClick={() => go("longform")}>Long-form</button>
           {/* You are already here — this is a WHERE-YOU-ARE marker, not a destination. It was a
               <button> with no onClick, which is the worst of both: it invites a click and eats it.
               A span with aria-current says the same thing truthfully. */}

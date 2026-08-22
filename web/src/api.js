@@ -102,6 +102,13 @@ export async function listFrames() {
   return json(await apiFetch("/api/frames"));
 }
 
+// The ten long-form reference films. A SEPARATE registry from /api/frames on purpose: these are not
+// frame packs (no pack.json, no composer the production graph can call), so they cannot be merged
+// into the picker's list without implying they can start a job.
+export async function listLongformFilms() {
+  return json(await apiFetch("/api/longform/templates"));
+}
+
 // ---------------- admin: templates ----------------
 // Every route below is behind requireAuth + requireAdmin on the server. Hiding the admin
 // screens in App.jsx is cosmetic; THIS is where an unauthorized call gets a 403.

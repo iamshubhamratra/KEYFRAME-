@@ -69,6 +69,14 @@ function buildRouter() {
     setHeaders(res) { res.setHeader("Cache-Control", "public, max-age=31536000, immutable"); },
   }));
 
+  // Posters, rendered by scripts/make-longform-posters.js. Mounted here rather than left to the
+  // public/ static mount because public/longform/<id>.jpg would resolve under THIS router's prefix,
+  // which is mounted first and would answer with a 404 out of the collection directory.
+  router.use("/_posters", express.static(lf.POSTER_DIR, {
+    index: false,
+    setHeaders(res) { res.setHeader("Cache-Control", "public, max-age=600"); },
+  }));
+
   router.use(express.static(lf.COLLECTION_DIR, {
     index: false,
     setHeaders(res, filePath) {
@@ -105,6 +113,10 @@ function buildApiRouter() {
         sceneCount: t.sceneCount,
         durationSec: t.durationSec,
         tweaks: t.tweaks,
+        // Rendered by scripts/make-longform-posters.js from the film's own composer. Reported only
+        // when it is actually on disk, so a checkout that has not run the script gets `null` and
+        // the card falls back rather than showing a broken image.
+        posterUrl: lf.posterUrl(t.id),
       })),
     });
   });
