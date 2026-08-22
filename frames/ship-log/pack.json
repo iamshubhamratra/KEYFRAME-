@@ -111,34 +111,35 @@
     "slotsByRole": {}
   },
   "audio": {
-    "mood": "unhurried and warm — a long read with a steady pulse under it, never urgent",
+    "mood": "salt-worn and steady — a long crossing told in the evening, wind under it",
     "archetype": "documentary",
-    "energy": "medium",
-    "tempo": "mid",
+    "energy": "low",
+    "tempo": "slow",
     "style": [
-      "acoustic",
-      "ambient",
-      "folk",
-      "cinematic"
+      "folk strings",
+      "drone",
+      "cinematic",
+      "whistling"
     ],
     "musicKeywords": [
-      "acoustic guitar",
-      "warm piano",
-      "soft strings",
-      "gentle percussion",
-      "ambient pad",
-      "upright bass",
-      "light marimba",
-      "slow build",
-      "field recording",
-      "calm loop"
+      "sea ballad",
+      "fiddle air",
+      "creaking wood",
+      "distant horn",
+      "ocean wind",
+      "slow surge",
+      "wooden creaking",
+      "accordion stroll",
+      "open water",
+      "steady storm",
+      "shipping bell"
     ],
     "sfxPalette": {
       "transition": "whoosh",
       "ui": "soft-tap",
       "reveal": "light-sweep",
       "data": "counter-tick",
-      "cta": "cta-impact"
+      "cta": "logo-rise"
     },
     "noVo": {
       "energyBoost": 1,

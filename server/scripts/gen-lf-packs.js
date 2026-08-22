@@ -70,27 +70,33 @@ const slugify = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").repla
 // from terms the library's music vocabulary already resolves, because `npm run test:music-vocab`
 // fails a pack whose keywords return fewer than three tracks.
 //
-// NOTE FOR M6: scripts/apply-audio-profiles.js rewrites `manifest.audio` from its own PROFILES
-// table or from film_skins/_metadata.json, and `--check` exits 1 on any difference. An lf-* pack
-// is in neither source today, so it will report DRIFT until the long-form family is added to that
-// script's enumeration. That wiring is tracked as part of M6, not silently worked around here.
-const NICHE_AUDIO = {
-  default: {
-    mood: "unhurried and warm — a long read with a steady pulse under it, never urgent",
-    archetype: "documentary", energy: "medium", tempo: "mid",
-    style: ["acoustic", "ambient", "folk", "cinematic"],
-    musicKeywords: ["acoustic guitar", "warm piano", "soft strings", "gentle percussion",
-      "ambient pad", "upright bass", "light marimba", "slow build", "field recording", "calm loop"],
-  },
-};
-function audioFor() {
-  const a = NICHE_AUDIO.default;
-  return {
-    ...a,
-    sfxPalette: { transition: "whoosh", ui: "soft-tap", reveal: "light-sweep", data: "counter-tick", cta: "cta-impact" },
-    // sfxDensity is normal|rich — not the three-way scale the other energy fields use.
-    noVo: { energyBoost: 1, sfxDensity: "normal", ambient: true },
-  };
+// ONE IDENTITY PER PACK, READ FROM DISK — not one table entry shared by all 27.
+//
+// THE DEFECT THIS REPLACES. NICHE_AUDIO used to hold a single `default` key, and audioFor() took
+// no argument and returned it. The name promised a per-niche table and the code delivered a
+// constant, so all 27 packs shipped a byte-identical `audio` block: the same mood sentence, the
+// same four genres, the same ten keywords, the same SFX palette. Night Shift and Allotment both
+// asked the catalogue for warm acoustic folk. Every long-form film therefore drew its bed from
+// ONE pool and they all sounded alike — precisely the convergence the music-vocabulary work fixed
+// for the short packs, reproduced here because this generator never got the same treatment.
+// scripts/test-music-diversity.js catches it as "the archetype leaked into style[]".
+//
+// The identities now live in src/services/lf_skins/_audio.json, beside the _manifest.json that is
+// generated with the skins, and scripts/apply-audio-profiles.js reads THAT SAME FILE. One source,
+// two consumers: regenerating packs here and running `npm run audio:profiles` produce identical
+// bytes, and `--check` fails if they ever stop doing so.
+const LF_AUDIO_FILE = path.resolve(__dirname, "..", "src", "services", "lf_skins", "_audio.json");
+const NICHE_AUDIO = JSON.parse(fs.readFileSync(LF_AUDIO_FILE, "utf8"));
+
+function audioFor(slug) {
+  const a = NICHE_AUDIO[slug];
+  // A MISSING SLUG IS FATAL, not a fallback. Silently substituting a default is exactly how all
+  // 27 came to share one sound; a new pack with no authored identity must stop the generator and
+  // be given one.
+  if (!a || !a.style) {
+    throw new Error(`no audio identity for "${slug}" in ${path.relative(process.cwd(), LF_AUDIO_FILE)} — author one (style[] + musicKeywords) before generating this pack`);
+  }
+  return JSON.parse(JSON.stringify(a));
 }
 
 // ---- the media contract ----------------------------------------------------------
@@ -174,7 +180,9 @@ function packFor(skin, meta) {
     },
     typography: { display: S.display, body: S.body, mono: null },
     media: mediaFor(S, spine),
-    audio: audioFor(),
+    // S.id IS the pack slug — it is what line ~265 uses to name the directory this pack.json
+    // is written into, so it is the same key _audio.json is authored under.
+    audio: audioFor(S.id),
     // THE NEW CAPABILITY FIELD — see the header.
     form: {
       kind: "longform",

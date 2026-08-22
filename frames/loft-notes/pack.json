@@ -109,34 +109,35 @@
     "slotsByRole": {}
   },
   "audio": {
-    "mood": "unhurried and warm — a long read with a steady pulse under it, never urgent",
-    "archetype": "documentary",
-    "energy": "medium",
+    "mood": "dust in the window light — unhurried, second-hand, a little melancholy",
+    "archetype": "editorial",
+    "energy": "low",
     "tempo": "mid",
     "style": [
-      "acoustic",
-      "ambient",
-      "folk",
-      "cinematic"
+      "lofi",
+      "rhodes piano",
+      "vinyl crackle",
+      "jazz"
     ],
     "musicKeywords": [
-      "acoustic guitar",
-      "warm piano",
-      "soft strings",
-      "gentle percussion",
-      "ambient pad",
-      "upright bass",
-      "light marimba",
-      "slow build",
-      "field recording",
-      "calm loop"
+      "dusty rhodes",
+      "tape warmth",
+      "vinyl crackle",
+      "slow rhythm",
+      "record hiss",
+      "afternoon chords",
+      "soft bassline",
+      "cassette chill",
+      "worn keys",
+      "muted horn",
+      "reflective study"
     ],
     "sfxPalette": {
-      "transition": "whoosh",
+      "transition": "card-slide",
       "ui": "soft-tap",
-      "reveal": "light-sweep",
+      "reveal": "gentle-impact",
       "data": "counter-tick",
-      "cta": "cta-impact"
+      "cta": "gentle-impact"
     },
     "noVo": {
       "energyBoost": 1,

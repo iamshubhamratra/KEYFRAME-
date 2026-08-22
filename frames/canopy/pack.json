@@ -109,34 +109,35 @@
     "slotsByRole": {}
   },
   "audio": {
-    "mood": "unhurried and warm — a long read with a steady pulse under it, never urgent",
+    "mood": "deep green and enormous — patient, humid, faintly ceremonial",
     "archetype": "documentary",
-    "energy": "medium",
-    "tempo": "mid",
+    "energy": "low",
+    "tempo": "slow",
     "style": [
-      "acoustic",
       "ambient",
-      "folk",
-      "cinematic"
+      "drone",
+      "field recording",
+      "organic"
     ],
     "musicKeywords": [
-      "acoustic guitar",
-      "warm piano",
-      "soft strings",
-      "gentle percussion",
-      "ambient pad",
-      "upright bass",
-      "light marimba",
-      "slow build",
+      "deep drone",
+      "nature texture",
+      "leaf rustle",
+      "tropical insects",
+      "jungle crickets",
       "field recording",
-      "calm loop"
+      "slow bloom",
+      "wide stillness",
+      "green shade",
+      "distant call",
+      "atmospheric hum"
     ],
     "sfxPalette": {
-      "transition": "whoosh",
+      "transition": "light-sweep",
       "ui": "soft-tap",
-      "reveal": "light-sweep",
-      "data": "counter-tick",
-      "cta": "cta-impact"
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "logo-rise"
     },
     "noVo": {
       "energyBoost": 1,

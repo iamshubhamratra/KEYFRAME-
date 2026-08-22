@@ -109,34 +109,35 @@
     "slotsByRole": {}
   },
   "audio": {
-    "mood": "unhurried and warm — a long read with a steady pulse under it, never urgent",
-    "archetype": "documentary",
-    "energy": "medium",
-    "tempo": "mid",
+    "mood": "ceremonial and quiet — heat, leaf and a deliberate pause",
+    "archetype": "warm",
+    "energy": "low",
+    "tempo": "slow",
     "style": [
-      "acoustic",
-      "ambient",
-      "folk",
-      "cinematic"
+      "koto",
+      "meditative",
+      "zither",
+      "bells"
     ],
     "musicKeywords": [
-      "acoustic guitar",
-      "warm piano",
-      "soft strings",
-      "gentle percussion",
-      "ambient pad",
-      "upright bass",
-      "light marimba",
-      "slow build",
-      "field recording",
-      "calm loop"
+      "koto pluck",
+      "steam rise",
+      "japanese temple",
+      "still room",
+      "soft gong",
+      "warm cup",
+      "slow zen",
+      "kalimba tone",
+      "quiet ritual",
+      "ceremonial calm",
+      "held silence"
     ],
     "sfxPalette": {
-      "transition": "whoosh",
+      "transition": "light-sweep",
       "ui": "soft-tap",
-      "reveal": "light-sweep",
+      "reveal": "shimmer",
       "data": "counter-tick",
-      "cta": "cta-impact"
+      "cta": "gentle-impact"
     },
     "noVo": {
       "energyBoost": 1,

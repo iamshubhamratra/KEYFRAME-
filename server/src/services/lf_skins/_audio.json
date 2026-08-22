@@ -1,0 +1,1020 @@
+{
+  "_readme": [
+    "AUDIO IDENTITY FOR THE 27 LONG-FORM PACKS — one file so a reviewer can read every pack's",
+    "sound side by side, exactly as scripts/apply-audio-profiles.js's PROFILES table and",
+    "film_skins/_metadata.json already do for the other two families.",
+    "",
+    "WHY IT EXISTS. gen-lf-packs.js stamped every one of these packs from a NICHE_AUDIO table",
+    "that only ever had a `default` key, through an audioFor() that took no argument. All 27",
+    "shipped byte-identical: the same mood sentence, the same four genres, the same ten",
+    "keywords. Night Shift and Allotment both asked the catalogue for warm acoustic folk, so",
+    "every long-form film drew from one pool and they all sounded alike — the exact convergence",
+    "the music vocabulary work fixed for the short packs and never reached this family.",
+    "",
+    "AUTHORING RULES, both enforced by npm test:",
+    "  · style[] is emitted as the PHRASE *and* its component words, so a compound must itself",
+    "    resolve to >= 3 tracks. Prefer single words; the compounds here are cache-verified.",
+    "  · musicKeywords are split into words, so phrases are free — but each WORD must resolve.",
+    "  · Two packs in one archetype may not declare the same genre set (test:music-diversity).",
+    "Change a term here, then run `npm run audio:profiles` and `npm run test:music-vocab`."
+  ],
+  "fetch-club": {
+    "mood": "bounding and companionable — a dog's day at full tilt, never frantic",
+    "archetype": "warm",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "folk",
+      "ukulele",
+      "acoustic guitar",
+      "handclaps"
+    ],
+    "musicKeywords": [
+      "bright ukulele",
+      "stomp claps",
+      "playful strum",
+      "sunny upbeat",
+      "light snare",
+      "wooden bounce",
+      "cheerful folk",
+      "open air",
+      "friendly whistle",
+      "joyful chorus",
+      "warm acoustic"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "pop",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  },
+  "nine-lives": {
+    "mood": "curious and small-footed — a cat crossing a quiet room, pausing to consider",
+    "archetype": "warm",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "pizzicato strings",
+      "celesta",
+      "chamber",
+      "toy piano"
+    ],
+    "musicKeywords": [
+      "pizzicato pluck",
+      "celesta chime",
+      "curious motif",
+      "toy xylophone",
+      "soft lullaby",
+      "quirky plucks",
+      "chamber miniature",
+      "gentle tremolo",
+      "quiet still",
+      "delicate keys",
+      "light strings"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "gentle-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  },
+  "knife-and-board": {
+    "mood": "confident kitchen swing — knife-work as rhythm, unhurried but never idle",
+    "archetype": "groove",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "jazz",
+      "brass",
+      "swing",
+      "shaker"
+    ],
+    "musicKeywords": [
+      "jazz snare",
+      "walking bassline",
+      "muted trumpet",
+      "shaker groove",
+      "kitchen swing",
+      "warm double bass",
+      "lounge chords",
+      "bop stroll",
+      "jazz club",
+      "brass stab",
+      "loose rhythm"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "ui-click",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  },
+  "lunch-hour": {
+    "mood": "midday rush with its sleeves rolled up — busy, sunlit, good-humoured",
+    "archetype": "groove",
+    "energy": "medium",
+    "tempo": "fast",
+    "style": [
+      "funk",
+      "soul",
+      "rhodes piano",
+      "groove"
+    ],
+    "musicKeywords": [
+      "clavinet stab",
+      "drum kit",
+      "rhodes chords",
+      "horn hits",
+      "street funk",
+      "bass bounce",
+      "market rush",
+      "hand claps",
+      "soul shuffle",
+      "warm organ",
+      "disco groove"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "ui-click",
+      "reveal": "pop",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  },
+  "ship-log": {
+    "mood": "salt-worn and steady — a long crossing told in the evening, wind under it",
+    "archetype": "documentary",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "folk strings",
+      "drone",
+      "cinematic",
+      "whistling"
+    ],
+    "musicKeywords": [
+      "sea ballad",
+      "fiddle air",
+      "creaking wood",
+      "distant horn",
+      "ocean wind",
+      "slow surge",
+      "wooden creaking",
+      "accordion stroll",
+      "open water",
+      "steady storm",
+      "shipping bell"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "light-sweep",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  },
+  "split-times": {
+    "mood": "metronomic and rising — a body finding its pace and then pressing it",
+    "archetype": "hype",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "electronic",
+      "breakbeat",
+      "pulse",
+      "driving"
+    ],
+    "musicKeywords": [
+      "running tempo",
+      "pulse sequence",
+      "breath rhythm",
+      "driving drums",
+      "rising synth",
+      "training surge",
+      "tempo climb",
+      "sharp hats",
+      "racing kick",
+      "hard riser",
+      "climax lift"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "data-ping",
+      "reveal": "product-reveal",
+      "data": "data-ping",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
+  },
+  "dawn-chorus": {
+    "mood": "first light in a wood — thin, clear and slowly filling in",
+    "archetype": "warm",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "flute",
+      "woodwind",
+      "pastoral",
+      "bells"
+    ],
+    "musicKeywords": [
+      "bird song",
+      "morning air",
+      "low flute",
+      "dreamy chime",
+      "soft bells",
+      "waking woodwind",
+      "clear whistle",
+      "first light",
+      "serene reed",
+      "still breeze",
+      "gentle wind"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "gentle-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  },
+  "canopy": {
+    "mood": "deep green and enormous — patient, humid, faintly ceremonial",
+    "archetype": "documentary",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "ambient",
+      "drone",
+      "field recording",
+      "organic"
+    ],
+    "musicKeywords": [
+      "deep drone",
+      "nature texture",
+      "leaf rustle",
+      "tropical insects",
+      "jungle crickets",
+      "field recording",
+      "slow bloom",
+      "wide stillness",
+      "green shade",
+      "distant call",
+      "atmospheric hum"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  },
+  "ledger-and-lift": {
+    "mood": "clear-headed and methodical — numbers coming right, one line at a time",
+    "archetype": "corporate",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "corporate",
+      "minimal",
+      "clean",
+      "piano"
+    ],
+    "musicKeywords": [
+      "clean piano",
+      "steady pulse",
+      "minimal tick",
+      "measured build",
+      "office light",
+      "clear tone",
+      "quiet confidence",
+      "professional bed",
+      "forward motion",
+      "soft mallet",
+      "business calm"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "ui-click",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": false
+    }
+  },
+  "tide-table": {
+    "mood": "twice-daily and inevitable — the coast keeping its own time",
+    "archetype": "documentary",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "cinematic strings",
+      "ambient",
+      "airy",
+      "sustained"
+    ],
+    "musicKeywords": [
+      "ocean swell",
+      "shore water",
+      "long surge",
+      "sea wind",
+      "bowed strings",
+      "sustained drift",
+      "cold sea",
+      "slow gravity",
+      "wide serene",
+      "patient wave",
+      "string sustain"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "light-sweep",
+      "data": "counter-tick",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  },
+  "hive-mind": {
+    "mood": "many small parts in agreement — busy, warm, quietly astonishing",
+    "archetype": "tech",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "analog synth",
+      "arpeggio",
+      "minimal",
+      "pulse"
+    ],
+    "musicKeywords": [
+      "golden buzz",
+      "warm hum",
+      "arpeggio pattern",
+      "analog warmth",
+      "busy pulse",
+      "modular grid",
+      "steady arpeggiator",
+      "small machine",
+      "steady motif",
+      "collective rhythm",
+      "warm cell"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "data-ping",
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  },
+  "wheel-and-spoke": {
+    "mood": "road-bound and cheerful — cadence, wind, and somewhere still to be",
+    "archetype": "groove",
+    "energy": "medium",
+    "tempo": "fast",
+    "style": [
+      "indie",
+      "rock",
+      "drums",
+      "driving"
+    ],
+    "musicKeywords": [
+      "chain rhythm",
+      "road hum",
+      "bright guitar",
+      "driving drums",
+      "spinning wheel",
+      "wind rush",
+      "open drive",
+      "steady spin",
+      "open travel",
+      "indie strum",
+      "racing tempo"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "ui-click",
+      "reveal": "pop",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
+  },
+  "loft-notes": {
+    "mood": "dust in the window light — unhurried, second-hand, a little melancholy",
+    "archetype": "editorial",
+    "energy": "low",
+    "tempo": "mid",
+    "style": [
+      "lofi",
+      "rhodes piano",
+      "vinyl crackle",
+      "jazz"
+    ],
+    "musicKeywords": [
+      "dusty rhodes",
+      "tape warmth",
+      "vinyl crackle",
+      "slow rhythm",
+      "record hiss",
+      "afternoon chords",
+      "soft bassline",
+      "cassette chill",
+      "worn keys",
+      "muted horn",
+      "reflective study"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "gentle-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  },
+  "kiln-fire": {
+    "mood": "earth and heat — slow hands, then a roar behind a brick door",
+    "archetype": "warm",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "hand percussion",
+      "marimba",
+      "wood",
+      "organic"
+    ],
+    "musicKeywords": [
+      "clay turn",
+      "spinning wheel",
+      "fire rumble",
+      "wooden mallet",
+      "warm timber",
+      "hand percussion",
+      "bright shimmer",
+      "workshop rhythm",
+      "handmade craft",
+      "shaped pulse",
+      "steady turn"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  },
+  "night-shift": {
+    "mood": "sodium light and long corridors — awake while the city is not",
+    "archetype": "luxury",
+    "energy": "low",
+    "tempo": "mid",
+    "style": [
+      "downtempo",
+      "dub",
+      "synthwave",
+      "nocturnal"
+    ],
+    "musicKeywords": [
+      "night hum",
+      "urban glow",
+      "dub delay",
+      "empty city",
+      "low pad",
+      "shift clock",
+      "cold machinery",
+      "slow bassline",
+      "quiet still",
+      "midnight air",
+      "downtempo drift"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "light-sweep",
+      "data": "data-ping",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  },
+  "allotment": {
+    "mood": "unhurried and warm — a season measured in Saturdays",
+    "archetype": "warm",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "acoustic",
+      "whistling",
+      "mandolin",
+      "banjo"
+    ],
+    "musicKeywords": [
+      "garden air",
+      "folk strum",
+      "banjo roll",
+      "autumn slow",
+      "warm acoustic",
+      "harmonica break",
+      "nature calm",
+      "soft whistling",
+      "patient build",
+      "quiet pond",
+      "sunny autumn"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "light-sweep",
+      "data": "counter-tick",
+      "cta": "gentle-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  },
+  "slow-pour": {
+    "mood": "one cup, made properly — narrow, warm, entirely unhurried",
+    "archetype": "warm",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "felt piano",
+      "minimal piano",
+      "warm keys",
+      "ambient"
+    ],
+    "musicKeywords": [
+      "felt keys",
+      "cafe steam",
+      "warm minimal",
+      "morning quiet",
+      "soft pad",
+      "slow bloom",
+      "gentle calm",
+      "single note",
+      "patient piano",
+      "light warmth",
+      "narrow still"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "counter-tick",
+      "cta": "gentle-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  },
+  "chalk-and-crimp": {
+    "mood": "held breath and forearm burn — committed, upward, unforgiving",
+    "archetype": "hype",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "post-rock",
+      "rock",
+      "percussion",
+      "gritty"
+    ],
+    "musicKeywords": [
+      "held breath",
+      "building tension",
+      "post rock swell",
+      "steady drive",
+      "hard effort",
+      "climax rise",
+      "rope tension",
+      "heavy drums",
+      "epic surge",
+      "gravity push",
+      "high lift"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "ui-click",
+      "reveal": "product-reveal",
+      "data": "data-ping",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
+  },
+  "stitch-line": {
+    "mood": "precise and repetitive — a machine and a hand agreeing on a straight line",
+    "archetype": "editorial",
+    "energy": "low",
+    "tempo": "mid",
+    "style": [
+      "clockwork",
+      "toy piano",
+      "celesta",
+      "minimal"
+    ],
+    "musicKeywords": [
+      "clockwork tick",
+      "mechanical pattern",
+      "steady mechanism",
+      "toy piano",
+      "fabric quiet",
+      "even staccato",
+      "small motor",
+      "handmade precision",
+      "steady turn",
+      "tailor calm",
+      "measured tempo"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "gentle-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  },
+  "blitz-hour": {
+    "mood": "clock-pressed and cold-blooded — thinking fast because there is no other option",
+    "archetype": "tech",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "techno",
+      "sequencer",
+      "hard techno",
+      "tense"
+    ],
+    "musicKeywords": [
+      "clock pressure",
+      "fast tempo",
+      "hard kick",
+      "sharp stab",
+      "tense drill",
+      "fast sequencer",
+      "cold logic",
+      "time chase",
+      "sudden surge",
+      "fast hats",
+      "alarm build"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "data-ping",
+      "reveal": "product-reveal",
+      "data": "data-ping",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
+  },
+  "safelight": {
+    "mood": "red-lit and patient — an image arriving out of nothing, in silence",
+    "archetype": "luxury",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "muted trumpet",
+      "jazz",
+      "tape hiss",
+      "blues"
+    ],
+    "musicKeywords": [
+      "red glow",
+      "slow reveal",
+      "neo noir",
+      "smoke tone",
+      "soft snare",
+      "muted horn",
+      "saxophone ballad",
+      "held chords",
+      "tape hiss",
+      "night studio",
+      "quiet develop"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "product-reveal",
+      "data": "data-ping",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  },
+  "reef-tank": {
+    "mood": "submerged and slow — colour under pressure, lit from above",
+    "archetype": "documentary",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "granular",
+      "drone",
+      "texture",
+      "abstract"
+    ],
+    "musicKeywords": [
+      "deep water",
+      "granular texture",
+      "filter hum",
+      "deep blue",
+      "glass harmonics",
+      "slow current",
+      "ethereal drift",
+      "cold drone",
+      "muffled tone",
+      "drifting pad",
+      "filtered light"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  },
+  "branch-line": {
+    "mood": "timetabled and fond — a small railway that has always been there",
+    "archetype": "retro",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "brass band",
+      "vintage",
+      "marching",
+      "period"
+    ],
+    "musicKeywords": [
+      "train rhythm",
+      "station clock",
+      "brass swell",
+      "steam breath",
+      "platform bell",
+      "marching parade",
+      "steady rhythm",
+      "vintage horns",
+      "period brass",
+      "village steady",
+      "old signal"
+    ],
+    "sfxPalette": {
+      "transition": "card-slide",
+      "ui": "ui-click",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "success"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": true
+    }
+  },
+  "steep-and-steam": {
+    "mood": "ceremonial and quiet — heat, leaf and a deliberate pause",
+    "archetype": "warm",
+    "energy": "low",
+    "tempo": "slow",
+    "style": [
+      "koto",
+      "meditative",
+      "zither",
+      "bells"
+    ],
+    "musicKeywords": [
+      "koto pluck",
+      "steam rise",
+      "japanese temple",
+      "still room",
+      "soft gong",
+      "warm cup",
+      "slow zen",
+      "kalimba tone",
+      "quiet ritual",
+      "ceremonial calm",
+      "held silence"
+    ],
+    "sfxPalette": {
+      "transition": "light-sweep",
+      "ui": "soft-tap",
+      "reveal": "shimmer",
+      "data": "counter-tick",
+      "cta": "gentle-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  },
+  "rope-and-round": {
+    "mood": "bell to bell — heavy, cornered, and refusing to sit down",
+    "archetype": "hype",
+    "energy": "high",
+    "tempo": "fast",
+    "style": [
+      "hip hop",
+      "trap",
+      "sub bass",
+      "hard"
+    ],
+    "musicKeywords": [
+      "heavy hit",
+      "corner bell",
+      "sub boom",
+      "skip rhythm",
+      "hard snare",
+      "fight ring",
+      "battle round",
+      "breath count",
+      "gym echo",
+      "low rumble",
+      "final hit"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "ui-click",
+      "reveal": "product-reveal",
+      "data": "data-ping",
+      "cta": "cta-impact"
+    },
+    "noVo": {
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
+  },
+  "field-of-view": {
+    "mood": "optical and exacting — the world resolving as the barrel turns",
+    "archetype": "tech",
+    "energy": "medium",
+    "tempo": "mid",
+    "style": [
+      "glitch",
+      "texture",
+      "electronic",
+      "abstract"
+    ],
+    "musicKeywords": [
+      "lens turn",
+      "technical click",
+      "filtered gate",
+      "glass edge",
+      "digital grain",
+      "crisp detail",
+      "modular hum",
+      "abstract texture",
+      "optical pulse",
+      "clean tone",
+      "precise motion"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "data-ping",
+      "reveal": "product-reveal",
+      "data": "data-ping",
+      "cta": "logo-rise"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "rich",
+      "ambient": false
+    }
+  },
+  "grain-line": {
+    "mood": "flour-dusted and early — heavy work done gently, before anyone is awake",
+    "archetype": "documentary",
+    "energy": "low",
+    "tempo": "mid",
+    "style": [
+      "acoustic guitar",
+      "fingerstyle",
+      "guitar",
+      "warm"
+    ],
+    "musicKeywords": [
+      "morning still",
+      "fingerstyle guitar",
+      "warm wood",
+      "wooden bench",
+      "slow proving",
+      "gentle craft",
+      "handmade calm",
+      "autumn light",
+      "quiet strum",
+      "soft acoustic",
+      "early still"
+    ],
+    "sfxPalette": {
+      "transition": "whoosh",
+      "ui": "soft-tap",
+      "reveal": "gentle-impact",
+      "data": "counter-tick",
+      "cta": "gentle-impact"
+    },
+    "noVo": {
+      "energyBoost": 1,
+      "sfxDensity": "normal",
+      "ambient": true
+    }
+  }
+}

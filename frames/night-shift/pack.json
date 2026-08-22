@@ -111,34 +111,35 @@
     "slotsByRole": {}
   },
   "audio": {
-    "mood": "unhurried and warm — a long read with a steady pulse under it, never urgent",
-    "archetype": "documentary",
-    "energy": "medium",
+    "mood": "sodium light and long corridors — awake while the city is not",
+    "archetype": "luxury",
+    "energy": "low",
     "tempo": "mid",
     "style": [
-      "acoustic",
-      "ambient",
-      "folk",
-      "cinematic"
+      "downtempo",
+      "dub",
+      "synthwave",
+      "nocturnal"
     ],
     "musicKeywords": [
-      "acoustic guitar",
-      "warm piano",
-      "soft strings",
-      "gentle percussion",
-      "ambient pad",
-      "upright bass",
-      "light marimba",
-      "slow build",
-      "field recording",
-      "calm loop"
+      "night hum",
+      "urban glow",
+      "dub delay",
+      "empty city",
+      "low pad",
+      "shift clock",
+      "cold machinery",
+      "slow bassline",
+      "quiet still",
+      "midnight air",
+      "downtempo drift"
     ],
     "sfxPalette": {
-      "transition": "whoosh",
+      "transition": "light-sweep",
       "ui": "soft-tap",
       "reveal": "light-sweep",
-      "data": "counter-tick",
-      "cta": "cta-impact"
+      "data": "data-ping",
+      "cta": "logo-rise"
     },
     "noVo": {
       "energyBoost": 1,

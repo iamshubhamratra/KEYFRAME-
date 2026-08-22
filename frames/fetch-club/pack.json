@@ -109,38 +109,39 @@
     "slotsByRole": {}
   },
   "audio": {
-    "mood": "unhurried and warm — a long read with a steady pulse under it, never urgent",
-    "archetype": "documentary",
+    "mood": "bounding and companionable — a dog's day at full tilt, never frantic",
+    "archetype": "warm",
     "energy": "medium",
     "tempo": "mid",
     "style": [
-      "acoustic",
-      "ambient",
       "folk",
-      "cinematic"
+      "ukulele",
+      "acoustic guitar",
+      "handclaps"
     ],
     "musicKeywords": [
-      "acoustic guitar",
-      "warm piano",
-      "soft strings",
-      "gentle percussion",
-      "ambient pad",
-      "upright bass",
-      "light marimba",
-      "slow build",
-      "field recording",
-      "calm loop"
+      "bright ukulele",
+      "stomp claps",
+      "playful strum",
+      "sunny upbeat",
+      "light snare",
+      "wooden bounce",
+      "cheerful folk",
+      "open air",
+      "friendly whistle",
+      "joyful chorus",
+      "warm acoustic"
     ],
     "sfxPalette": {
       "transition": "whoosh",
-      "ui": "soft-tap",
-      "reveal": "light-sweep",
+      "ui": "pop",
+      "reveal": "gentle-impact",
       "data": "counter-tick",
-      "cta": "cta-impact"
+      "cta": "success"
     },
     "noVo": {
       "energyBoost": 1,
-      "sfxDensity": "normal",
+      "sfxDensity": "rich",
       "ambient": true
     }
   },

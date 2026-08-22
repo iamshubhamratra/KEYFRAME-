@@ -109,38 +109,39 @@
     "slotsByRole": {}
   },
   "audio": {
-    "mood": "unhurried and warm — a long read with a steady pulse under it, never urgent",
-    "archetype": "documentary",
+    "mood": "midday rush with its sleeves rolled up — busy, sunlit, good-humoured",
+    "archetype": "groove",
     "energy": "medium",
-    "tempo": "mid",
+    "tempo": "fast",
     "style": [
-      "acoustic",
-      "ambient",
-      "folk",
-      "cinematic"
+      "funk",
+      "soul",
+      "rhodes piano",
+      "groove"
     ],
     "musicKeywords": [
-      "acoustic guitar",
-      "warm piano",
-      "soft strings",
-      "gentle percussion",
-      "ambient pad",
-      "upright bass",
-      "light marimba",
-      "slow build",
-      "field recording",
-      "calm loop"
+      "clavinet stab",
+      "drum kit",
+      "rhodes chords",
+      "horn hits",
+      "street funk",
+      "bass bounce",
+      "market rush",
+      "hand claps",
+      "soul shuffle",
+      "warm organ",
+      "disco groove"
     ],
     "sfxPalette": {
       "transition": "whoosh",
-      "ui": "soft-tap",
-      "reveal": "light-sweep",
+      "ui": "ui-click",
+      "reveal": "pop",
       "data": "counter-tick",
       "cta": "cta-impact"
     },
     "noVo": {
-      "energyBoost": 1,
-      "sfxDensity": "normal",
+      "energyBoost": 2,
+      "sfxDensity": "rich",
       "ambient": true
     }
   },

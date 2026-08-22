@@ -40,6 +40,19 @@ const SCENES = [
   { id: "s6", start: 15, duration: 3, purpose: "quote",   role: "quote" },
   { id: "s7", start: 18, duration: 3, purpose: "cta",     role: "cta" },
 ];
+// A LONG-FORM PACK NEEDS A LONG-FORM SCRIPT. The seven-beat fixture above is a 21-second short,
+// and the twenty-seven five-minute packs pin their slots at scene 13 and scene 39 — so against a
+// short script BOTH are correctly dropped ("a slot pinned past the end of a short script is
+// dropped, not clamped", asserted below), the authored block empties, and the plan degrades to
+// derived. That is the resolver behaving exactly as specified; it is the FIXTURE that was wrong
+// to hand a five-minute template a twenty-one-second film.
+const LONGFORM_SCENES = Array.from({ length: 40 }, (_, i) => ({
+  id: `l${i + 1}`, start: i * 7.5, duration: 7.5,
+  purpose: SCENES[i % SCENES.length].purpose, role: SCENES[i % SCENES.length].role,
+}));
+const scenesFor = (pack) =>
+  (require("../src/services/frame_manifest").packForm(pack).kind === "longform" ? LONGFORM_SCENES : SCENES);
+
 const PORTRAIT = { width: 1080, height: 1920 };
 const LANDSCAPE = { width: 1920, height: 1080 };
 
@@ -68,7 +81,7 @@ t("SHIPPED: every installed pack resolves to a usable plan with exactly one hero
   const packs = registry.listPacks();
   assert.ok(packs.length >= 40, `expected the full pack library, saw ${packs.length}`);
   for (const pack of packs) {
-    const plan = tm.resolveMediaPlan({ pack, scenes: SCENES, dims: PORTRAIT });
+    const plan = tm.resolveMediaPlan({ pack, scenes: scenesFor(pack), dims: PORTRAIT });
     // `hybrid` is legitimate: a pack whose only picture box sits on a content-critical beat
     // declares a real APPETITE but no usable slot geometry, so the quota is authored and the
     // boxes are derived. bauhaus-riot, bloom-fable and prisma-bloc are in that state.

@@ -109,34 +109,35 @@
     "slotsByRole": {}
   },
   "audio": {
-    "mood": "unhurried and warm — a long read with a steady pulse under it, never urgent",
+    "mood": "flour-dusted and early — heavy work done gently, before anyone is awake",
     "archetype": "documentary",
-    "energy": "medium",
+    "energy": "low",
     "tempo": "mid",
     "style": [
-      "acoustic",
-      "ambient",
-      "folk",
-      "cinematic"
+      "acoustic guitar",
+      "fingerstyle",
+      "guitar",
+      "warm"
     ],
     "musicKeywords": [
-      "acoustic guitar",
-      "warm piano",
-      "soft strings",
-      "gentle percussion",
-      "ambient pad",
-      "upright bass",
-      "light marimba",
-      "slow build",
-      "field recording",
-      "calm loop"
+      "morning still",
+      "fingerstyle guitar",
+      "warm wood",
+      "wooden bench",
+      "slow proving",
+      "gentle craft",
+      "handmade calm",
+      "autumn light",
+      "quiet strum",
+      "soft acoustic",
+      "early still"
     ],
     "sfxPalette": {
       "transition": "whoosh",
       "ui": "soft-tap",
-      "reveal": "light-sweep",
+      "reveal": "gentle-impact",
       "data": "counter-tick",
-      "cta": "cta-impact"
+      "cta": "gentle-impact"
     },
     "noVo": {
       "energyBoost": 1,

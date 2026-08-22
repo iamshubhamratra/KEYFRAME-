@@ -109,39 +109,40 @@
     "slotsByRole": {}
   },
   "audio": {
-    "mood": "unhurried and warm — a long read with a steady pulse under it, never urgent",
-    "archetype": "documentary",
+    "mood": "clear-headed and methodical — numbers coming right, one line at a time",
+    "archetype": "corporate",
     "energy": "medium",
     "tempo": "mid",
     "style": [
-      "acoustic",
-      "ambient",
-      "folk",
-      "cinematic"
+      "corporate",
+      "minimal",
+      "clean",
+      "piano"
     ],
     "musicKeywords": [
-      "acoustic guitar",
-      "warm piano",
-      "soft strings",
-      "gentle percussion",
-      "ambient pad",
-      "upright bass",
-      "light marimba",
-      "slow build",
-      "field recording",
-      "calm loop"
+      "clean piano",
+      "steady pulse",
+      "minimal tick",
+      "measured build",
+      "office light",
+      "clear tone",
+      "quiet confidence",
+      "professional bed",
+      "forward motion",
+      "soft mallet",
+      "business calm"
     ],
     "sfxPalette": {
-      "transition": "whoosh",
-      "ui": "soft-tap",
-      "reveal": "light-sweep",
+      "transition": "card-slide",
+      "ui": "ui-click",
+      "reveal": "gentle-impact",
       "data": "counter-tick",
-      "cta": "cta-impact"
+      "cta": "success"
     },
     "noVo": {
       "energyBoost": 1,
       "sfxDensity": "normal",
-      "ambient": true
+      "ambient": false
     }
   },
   "form": {

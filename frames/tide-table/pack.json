@@ -111,34 +111,35 @@
     "slotsByRole": {}
   },
   "audio": {
-    "mood": "unhurried and warm — a long read with a steady pulse under it, never urgent",
+    "mood": "twice-daily and inevitable — the coast keeping its own time",
     "archetype": "documentary",
-    "energy": "medium",
-    "tempo": "mid",
+    "energy": "low",
+    "tempo": "slow",
     "style": [
-      "acoustic",
+      "cinematic strings",
       "ambient",
-      "folk",
-      "cinematic"
+      "airy",
+      "sustained"
     ],
     "musicKeywords": [
-      "acoustic guitar",
-      "warm piano",
-      "soft strings",
-      "gentle percussion",
-      "ambient pad",
-      "upright bass",
-      "light marimba",
-      "slow build",
-      "field recording",
-      "calm loop"
+      "ocean swell",
+      "shore water",
+      "long surge",
+      "sea wind",
+      "bowed strings",
+      "sustained drift",
+      "cold sea",
+      "slow gravity",
+      "wide serene",
+      "patient wave",
+      "string sustain"
     ],
     "sfxPalette": {
-      "transition": "whoosh",
+      "transition": "light-sweep",
       "ui": "soft-tap",
       "reveal": "light-sweep",
       "data": "counter-tick",
-      "cta": "cta-impact"
+      "cta": "logo-rise"
     },
     "noVo": {
       "energyBoost": 1,

@@ -109,34 +109,35 @@
     "slotsByRole": {}
   },
   "audio": {
-    "mood": "unhurried and warm — a long read with a steady pulse under it, never urgent",
-    "archetype": "documentary",
-    "energy": "medium",
-    "tempo": "mid",
+    "mood": "one cup, made properly — narrow, warm, entirely unhurried",
+    "archetype": "warm",
+    "energy": "low",
+    "tempo": "slow",
     "style": [
-      "acoustic",
-      "ambient",
-      "folk",
-      "cinematic"
+      "felt piano",
+      "minimal piano",
+      "warm keys",
+      "ambient"
     ],
     "musicKeywords": [
-      "acoustic guitar",
-      "warm piano",
-      "soft strings",
-      "gentle percussion",
-      "ambient pad",
-      "upright bass",
-      "light marimba",
-      "slow build",
-      "field recording",
-      "calm loop"
+      "felt keys",
+      "cafe steam",
+      "warm minimal",
+      "morning quiet",
+      "soft pad",
+      "slow bloom",
+      "gentle calm",
+      "single note",
+      "patient piano",
+      "light warmth",
+      "narrow still"
     ],
     "sfxPalette": {
-      "transition": "whoosh",
+      "transition": "light-sweep",
       "ui": "soft-tap",
-      "reveal": "light-sweep",
+      "reveal": "shimmer",
       "data": "counter-tick",
-      "cta": "cta-impact"
+      "cta": "gentle-impact"
     },
     "noVo": {
       "energyBoost": 1,

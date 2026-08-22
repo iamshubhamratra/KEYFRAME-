@@ -109,39 +109,40 @@
     "slotsByRole": {}
   },
   "audio": {
-    "mood": "unhurried and warm — a long read with a steady pulse under it, never urgent",
-    "archetype": "documentary",
-    "energy": "medium",
-    "tempo": "mid",
+    "mood": "clock-pressed and cold-blooded — thinking fast because there is no other option",
+    "archetype": "tech",
+    "energy": "high",
+    "tempo": "fast",
     "style": [
-      "acoustic",
-      "ambient",
-      "folk",
-      "cinematic"
+      "techno",
+      "sequencer",
+      "hard techno",
+      "tense"
     ],
     "musicKeywords": [
-      "acoustic guitar",
-      "warm piano",
-      "soft strings",
-      "gentle percussion",
-      "ambient pad",
-      "upright bass",
-      "light marimba",
-      "slow build",
-      "field recording",
-      "calm loop"
+      "clock pressure",
+      "fast tempo",
+      "hard kick",
+      "sharp stab",
+      "tense drill",
+      "fast sequencer",
+      "cold logic",
+      "time chase",
+      "sudden surge",
+      "fast hats",
+      "alarm build"
     ],
     "sfxPalette": {
       "transition": "whoosh",
-      "ui": "soft-tap",
-      "reveal": "light-sweep",
-      "data": "counter-tick",
+      "ui": "data-ping",
+      "reveal": "product-reveal",
+      "data": "data-ping",
       "cta": "cta-impact"
     },
     "noVo": {
-      "energyBoost": 1,
-      "sfxDensity": "normal",
-      "ambient": true
+      "energyBoost": 2,
+      "sfxDensity": "rich",
+      "ambient": false
     }
   },
   "form": {

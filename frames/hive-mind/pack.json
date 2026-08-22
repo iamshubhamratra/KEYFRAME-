@@ -109,38 +109,39 @@
     "slotsByRole": {}
   },
   "audio": {
-    "mood": "unhurried and warm — a long read with a steady pulse under it, never urgent",
-    "archetype": "documentary",
+    "mood": "many small parts in agreement — busy, warm, quietly astonishing",
+    "archetype": "tech",
     "energy": "medium",
     "tempo": "mid",
     "style": [
-      "acoustic",
-      "ambient",
-      "folk",
-      "cinematic"
+      "analog synth",
+      "arpeggio",
+      "minimal",
+      "pulse"
     ],
     "musicKeywords": [
-      "acoustic guitar",
-      "warm piano",
-      "soft strings",
-      "gentle percussion",
-      "ambient pad",
-      "upright bass",
-      "light marimba",
-      "slow build",
-      "field recording",
-      "calm loop"
+      "golden buzz",
+      "warm hum",
+      "arpeggio pattern",
+      "analog warmth",
+      "busy pulse",
+      "modular grid",
+      "steady arpeggiator",
+      "small machine",
+      "steady motif",
+      "collective rhythm",
+      "warm cell"
     ],
     "sfxPalette": {
       "transition": "whoosh",
-      "ui": "soft-tap",
-      "reveal": "light-sweep",
-      "data": "counter-tick",
-      "cta": "cta-impact"
+      "ui": "data-ping",
+      "reveal": "shimmer",
+      "data": "data-ping",
+      "cta": "logo-rise"
     },
     "noVo": {
       "energyBoost": 1,
-      "sfxDensity": "normal",
+      "sfxDensity": "rich",
       "ambient": true
     }
   },

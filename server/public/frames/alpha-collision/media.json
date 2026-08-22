@@ -1,12 +1,8 @@
 {
   "pack": "alpha-collision",
-  "composition": "1279f1959d8b8762",
+  "composition": "f8804adcfe8630bd",
   "fixture": "Northwind",
   "previewSec": 8.4,
-  "posterAt": 4.72,
-  "posterLuma": 53,
-  "posterDetail": 15,
-  "posterGroundGap": 74,
-  "generatedAt": "2026-08-14T05:56:44.019Z",
-  "generatedBy": "src/templates/media.js"
+  "posterAt": 3.02,
+  "generatedAt": "2026-08-18T13:27:04.721Z"
 }

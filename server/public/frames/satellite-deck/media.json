@@ -1,12 +1,8 @@
 {
   "pack": "satellite-deck",
-  "composition": "68388af5033a4540",
+  "composition": "c15a39b715cd4ee0",
   "fixture": "Northwind",
   "previewSec": 8.4,
-  "posterAt": 4.72,
-  "posterLuma": 43,
-  "posterDetail": 21,
-  "posterGroundGap": 66,
-  "generatedAt": "2026-08-17T06:17:19.375Z",
-  "generatedBy": "src/templates/media.js"
+  "posterAt": 3.02,
+  "generatedAt": "2026-08-18T14:18:49.621Z"
 }

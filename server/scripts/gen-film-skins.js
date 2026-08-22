@@ -38,9 +38,21 @@ const HANDOFF_CANDIDATES = [
   path.join(ROOT, "templete-design", "keyframe-handoff"),
 ].filter(Boolean);
 
+// BOTH HALVES OR NEITHER. The drop is two directories and this script needs them both:
+// `source/` supplies the pack configs, and `standalone/` supplies the slug vocabulary that
+// loadSlugs() reads to name every derived skin. Probing for `source/` alone accepted a
+// half-present drop and then died in loadSlugs() with a raw ENOENT out of node:fs — which is
+// exactly the crash the comment above says this resolver exists to prevent, just moved one
+// directory along. It is not a hypothetical split either: `standalone/` is the bundle's BUILD
+// and is gitignored (see .gitignore), so a checkout that restores the tracked `source/` has
+// precisely this shape. Requiring both puts an incomplete drop back on main()'s legible
+// skip/hard-error path, where the mode gets to decide what absent means.
 function resolveHandoff() {
   for (const dir of HANDOFF_CANDIDATES) {
-    try { if (fs.statSync(path.join(dir, "source")).isDirectory()) return dir; } catch { /* next candidate */ }
+    try {
+      if (fs.statSync(path.join(dir, "source")).isDirectory()
+        && fs.statSync(path.join(dir, "standalone")).isDirectory()) return dir;
+    } catch { /* next candidate */ }
   }
   return null;
 }
@@ -48,7 +60,7 @@ const HANDOFF = resolveHandoff();
 const SRC = HANDOFF ? path.join(HANDOFF, "source") : null;
 const MISSING_MSG =
   `no FilmKit handoff source found. Looked in:\n  ${HANDOFF_CANDIDATES.join("\n  ")}\n` +
-  `Set KEYFRAME_FILM_HANDOFF to the directory containing source/{mega,world}-pack-N.js.`;
+  `Set KEYFRAME_FILM_HANDOFF to a directory containing BOTH source/{mega,world}-pack-N.js and standalone/*.html.`;
 
 // ---- extraction ---------------------------------------------------------------
 function extractConfigs() {

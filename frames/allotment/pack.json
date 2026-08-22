@@ -109,34 +109,35 @@
     "slotsByRole": {}
   },
   "audio": {
-    "mood": "unhurried and warm — a long read with a steady pulse under it, never urgent",
-    "archetype": "documentary",
-    "energy": "medium",
-    "tempo": "mid",
+    "mood": "unhurried and warm — a season measured in Saturdays",
+    "archetype": "warm",
+    "energy": "low",
+    "tempo": "slow",
     "style": [
       "acoustic",
-      "ambient",
-      "folk",
-      "cinematic"
+      "whistling",
+      "mandolin",
+      "banjo"
     ],
     "musicKeywords": [
-      "acoustic guitar",
-      "warm piano",
-      "soft strings",
-      "gentle percussion",
-      "ambient pad",
-      "upright bass",
-      "light marimba",
-      "slow build",
-      "field recording",
-      "calm loop"
+      "garden air",
+      "folk strum",
+      "banjo roll",
+      "autumn slow",
+      "warm acoustic",
+      "harmonica break",
+      "nature calm",
+      "soft whistling",
+      "patient build",
+      "quiet pond",
+      "sunny autumn"
     ],
     "sfxPalette": {
       "transition": "whoosh",
       "ui": "soft-tap",
       "reveal": "light-sweep",
       "data": "counter-tick",
-      "cta": "cta-impact"
+      "cta": "gentle-impact"
     },
     "noVo": {
       "energyBoost": 1,

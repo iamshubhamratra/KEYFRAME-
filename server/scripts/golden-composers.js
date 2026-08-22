@@ -97,7 +97,17 @@ if (UPDATE || !fs.existsSync(BASELINE)) {
   console.log(`golden: wrote baseline for ${packs.length} pack(s) with a dedicated composer x 2 modes`);
   process.exit(0);
 }
-const prev = fs.readFileSync(BASELINE, "utf8");
+// COMPARE THE HASHES, NOT THE LINE TERMINATORS. The baseline is a list of content hashes; how
+// its lines happen to END carries no information about any composer. But it is a tracked .txt
+// and the repo sets core.autocrlf with no .gitattributes, so a Windows checkout puts CRLF on
+// disk while the run above always builds LF — and a raw === then reported OUTPUT CHANGED for
+// all 318 lines, printing a "diff" in which every - and + hash was character-for-character the
+// same. That is worse than a plain false failure: it is a false failure whose own evidence says
+// nothing changed, and the documented way out of it (--update) would rewrite every line and
+// quietly absorb any REAL composer drift sitting in the tree. Dropping CR on read costs the
+// harness nothing and leaves it sensitive to the only thing it exists to detect.
+const CR = String.fromCharCode(13);
+const prev = fs.readFileSync(BASELINE, "utf8").split(CR).join("");
 if (prev === out) {
   console.log(`golden: ${lines.length} composition(s) byte-identical to baseline`);
   process.exit(0);

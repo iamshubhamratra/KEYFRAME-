@@ -109,34 +109,35 @@
     "slotsByRole": {}
   },
   "audio": {
-    "mood": "unhurried and warm — a long read with a steady pulse under it, never urgent",
-    "archetype": "documentary",
-    "energy": "medium",
+    "mood": "precise and repetitive — a machine and a hand agreeing on a straight line",
+    "archetype": "editorial",
+    "energy": "low",
     "tempo": "mid",
     "style": [
-      "acoustic",
-      "ambient",
-      "folk",
-      "cinematic"
+      "clockwork",
+      "toy piano",
+      "celesta",
+      "minimal"
     ],
     "musicKeywords": [
-      "acoustic guitar",
-      "warm piano",
-      "soft strings",
-      "gentle percussion",
-      "ambient pad",
-      "upright bass",
-      "light marimba",
-      "slow build",
-      "field recording",
-      "calm loop"
+      "clockwork tick",
+      "mechanical pattern",
+      "steady mechanism",
+      "toy piano",
+      "fabric quiet",
+      "even staccato",
+      "small motor",
+      "handmade precision",
+      "steady turn",
+      "tailor calm",
+      "measured tempo"
     ],
     "sfxPalette": {
-      "transition": "whoosh",
+      "transition": "card-slide",
       "ui": "soft-tap",
-      "reveal": "light-sweep",
+      "reveal": "gentle-impact",
       "data": "counter-tick",
-      "cta": "cta-impact"
+      "cta": "gentle-impact"
     },
     "noVo": {
       "energyBoost": 1,

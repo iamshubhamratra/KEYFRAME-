@@ -109,38 +109,39 @@
     "slotsByRole": {}
   },
   "audio": {
-    "mood": "unhurried and warm — a long read with a steady pulse under it, never urgent",
-    "archetype": "documentary",
+    "mood": "confident kitchen swing — knife-work as rhythm, unhurried but never idle",
+    "archetype": "groove",
     "energy": "medium",
     "tempo": "mid",
     "style": [
-      "acoustic",
-      "ambient",
-      "folk",
-      "cinematic"
+      "jazz",
+      "brass",
+      "swing",
+      "shaker"
     ],
     "musicKeywords": [
-      "acoustic guitar",
-      "warm piano",
-      "soft strings",
-      "gentle percussion",
-      "ambient pad",
-      "upright bass",
-      "light marimba",
-      "slow build",
-      "field recording",
-      "calm loop"
+      "jazz snare",
+      "walking bassline",
+      "muted trumpet",
+      "shaker groove",
+      "kitchen swing",
+      "warm double bass",
+      "lounge chords",
+      "bop stroll",
+      "jazz club",
+      "brass stab",
+      "loose rhythm"
     ],
     "sfxPalette": {
-      "transition": "whoosh",
-      "ui": "soft-tap",
-      "reveal": "light-sweep",
+      "transition": "card-slide",
+      "ui": "ui-click",
+      "reveal": "gentle-impact",
       "data": "counter-tick",
-      "cta": "cta-impact"
+      "cta": "success"
     },
     "noVo": {
       "energyBoost": 1,
-      "sfxDensity": "normal",
+      "sfxDensity": "rich",
       "ambient": true
     }
   },

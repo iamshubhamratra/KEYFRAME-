@@ -36,7 +36,7 @@
 
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
 const { advanceEm, hasMetrics, METRICS } = require("../fonts/font_metrics");
-const { resolveBrand } = require("./brand_kit");
+const { resolveBrand, ratio } = require("./brand_kit");
 const { GSAP_CDN, r, esc } = require("./composer_kit");
 const { camTransform } = require("./lf_runtime");
 const rt = require("./lf_runtime");
@@ -49,7 +49,9 @@ const rt = require("./lf_runtime");
 // server process whose require cache predated a fix looked like the old engine because it WAS
 // the old engine, and proving it took a forensic diff of emitted idioms.
 // 1 = first long-form port
-const ENGINE_REV = 1;
+// 2 = per-scene `dark` derived from the resolved ground's luminance instead of META's
+//     authored flag, so the seven dark-mode films stop painting ink on their own dark tints
+const ENGINE_REV = 2;
 
 // The authored stage. Every one of the thirty cfgs is 1920x1080 with padx 140 — measured, not
 // assumed — so unlike film_stage there is no STAGES table to switch on.
@@ -221,7 +223,7 @@ function build(skin, { storyboard, dims, captionCues, assets, brandSkin = null, 
       duration: r(duration),
       data: adaptScene(name, a, meta, Str),
       bg: groundOf(theme, meta, i),
-      dark: !!meta.dark,
+      dark: darkFor(theme, meta),
       world: meta.world !== false,
     });
     cursor += duration;
@@ -267,6 +269,7 @@ function build(skin, { storyboard, dims, captionCues, assets, brandSkin = null, 
       + `style="opacity:${sc.i === 0 ? 1 : 0}">`
       + `<div class="lf-cam" id="lfc${sc.i}" style="position:absolute;inset:0;will-change:transform;transform:${camT}">`
       + `${inner}</div>`
+      + chromeHtml(theme, sc.dark)
       + garnishHtml(skin, theme, sc, (sc.start + sc.duration * SETTLE) * (skin.ambient || 1.5))
       + `</div>`;
   });
@@ -299,7 +302,6 @@ function build(skin, { storyboard, dims, captionCues, assets, brandSkin = null, 
     `<div id="lf-ground" class="clip" data-track-index="1" style="background:${grounds[0]}"></div>`,
     worldClip,
     body.join("\n"),
-    chromeHtml(theme),
     `<div class="clip" id="caps" data-track-index="94"><div id="cap-text"></div></div>`,
     `</div>`,
     `<script>`, authoredScript(skin, theme, scenes, adv), `</script>`,
@@ -325,7 +327,39 @@ function groundOf(theme, meta, i) {
   return theme[key] || theme.paper;
 }
 
-module.exports = { build, BASE_STRINGS, SPINE, resolveSpine, buildTheme, adaptScene, groundOf, ENGINE_REV, RW, RH, PADX, COLW };
+// WHICH TYPE COLOUR READS ON THIS GROUND — derived, not declared.
+//
+// META carries an authored `dark` flag per renderer ("type flips to paper"), transcribed from
+// lf-kit.js. But darkness is not a property of the RENDERER, it is a property of the renderer's
+// ground stop AS RESOLVED BY THIS SKIN'S PALETTE — and seven of the twenty-seven films
+// (field-of-view, ledger-and-lift, loft-notes, night-shift, reef-tank, safelight, ship-log) are
+// dark-mode designs whose `sageT`/`terraT` are dark SURFACE tints, not the light paper tints the
+// other twenty use. The flag was authored for the light majority, so on those seven the thirteen
+// sage and eleven terracotta renderers painted `ink` on a near-black ground: a ~1.1:1 contrast
+// ratio, copy that is present, correct, animated and completely unreadable. It survived every
+// guard because it is not a ghost — the text is in the DOM and visible to CSS.
+//
+// So ask the palette instead of the table: of the two type colours the design actually owns,
+// whichever has more contrast against the resolved ground wins.
+//
+// SCOPED TO THE FOUR GROUND STOPS ON PURPOSE. accent/accent2 are the two stops brand
+// substitution repaints and the ones the tweak panel exposes, so their authored pairing is a
+// design decision that outranks a luminance measurement; `self` has no stage-resolved ground to
+// measure (the renderer cycles its own). Those keep the authored flag verbatim.
+//
+// Measured against all 27 skins x 60 renderers: the derivation reproduces the authored flag on
+// 1344 of 1512 ground-stop pairs and flips exactly 168 — precisely the 7 dark films x their 24
+// tint renderers, and nothing else.
+const GROUND_STOPS = new Set(["paper", "ink", "sageT", "terraT"]);
+function darkFor(theme, meta) {
+  const key = meta.bg || "paper";
+  if (!GROUND_STOPS.has(key)) return !!meta.dark;
+  const g = theme[key];
+  if (!g) return !!meta.dark;
+  return ratio(theme.paper, g) > ratio(theme.ink, g);
+}
+
+module.exports = { build, BASE_STRINGS, SPINE, resolveSpine, buildTheme, adaptScene, groundOf, darkFor, ENGINE_REV, RW, RH, PADX, COLW };
 
 // ---------------------------------------------------------------- emitted css
 function css(skin, theme, ground0) {
@@ -343,8 +377,15 @@ function css(skin, theme, ground0) {
               background:${rt.rgba(theme.ink, 0.88)}; padding:16px 30px; border-radius:16px; }`;
 }
 
-// The persistent brand lockup and the garnish layer — lf-kit.js:53-58 and :59-71. Both sit
-// OUTSIDE the camera transform, like the world, which is why they never drift with the scene.
+// The brand lockup and the garnish layer — lf-kit.js:55-58 and :61-71. Both sit OUTSIDE the
+// camera transform, like the world, which is why they never drift with the scene.
+//
+// PER SCENE, NOT HOISTED, because both take the scene's `dark`. Frame renders them as its own
+// last two children (lf-kit.js:102-103) and the lockup's colour is `dark ? paper : ink` exactly
+// as the garnish's is. The first version emitted the lockup ONCE as a global clip on track 92 —
+// which is cheaper and looks identical on the twenty light films, and left the wordmark painted
+// near-black on its own dark ground for all five minutes of the seven dark ones. A layer shared
+// across scenes cannot carry a per-scene colour; the source never asked it to.
 //
 // BUILT THROUGH THE SHIM, NOT BY STRING CONCATENATION, and that is not a style preference. The
 // first version of this function pasted `font-family:${theme.bodyStack}` straight into a
@@ -352,15 +393,15 @@ function css(skin, theme, ground0) {
 // inner double quote TERMINATES the attribute. Everything after it (weight, size, tracking,
 // uppercase) was silently dropped, and the frame rendered a small lowercase wordmark that looked
 // like a design decision rather than a parse error. The shim's escAttr closes that whole class.
-function chromeHtml(theme) {
+function chromeHtml(theme, dark) {
   const R = rt.H;
-  return `<div class="clip" id="lf-chrome" data-track-index="92" style="pointer-events:none">`
+  return `<div class="lf-chrome" style="position:absolute;inset:0;pointer-events:none">`
     + R("div", { style: { position: "absolute", top: 44, left: PADX, display: "flex", alignItems: "center", gap: 14 } },
       R("div", { style: { width: 16, height: 16, borderRadius: 999, background: theme.accent } }),
       R("div", {
         style: {
           fontFamily: theme.bodyStack, fontWeight: 800, fontSize: 24, letterSpacing: "0.14em",
-          color: theme.ink, textTransform: "uppercase",
+          color: dark ? theme.paper : theme.ink, textTransform: "uppercase",
         },
       }, theme.brand)).html
     + `</div>`;

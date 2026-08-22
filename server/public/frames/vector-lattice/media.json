@@ -1,12 +1,8 @@
 {
   "pack": "vector-lattice",
-  "composition": "591c2ad6fcc96811",
+  "composition": "93a9a46e434eac4c",
   "fixture": "Northwind",
   "previewSec": 8.4,
-  "posterAt": 4.72,
-  "posterLuma": 47,
-  "posterDetail": 25,
-  "posterGroundGap": 75,
-  "generatedAt": "2026-08-14T12:03:30.538Z",
-  "generatedBy": "src/templates/media.js"
+  "posterAt": 3.02,
+  "generatedAt": "2026-08-18T14:43:12.425Z"
 }

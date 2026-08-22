@@ -109,34 +109,35 @@
     "slotsByRole": {}
   },
   "audio": {
-    "mood": "unhurried and warm — a long read with a steady pulse under it, never urgent",
-    "archetype": "documentary",
-    "energy": "medium",
-    "tempo": "mid",
+    "mood": "red-lit and patient — an image arriving out of nothing, in silence",
+    "archetype": "luxury",
+    "energy": "low",
+    "tempo": "slow",
     "style": [
-      "acoustic",
-      "ambient",
-      "folk",
-      "cinematic"
+      "muted trumpet",
+      "jazz",
+      "tape hiss",
+      "blues"
     ],
     "musicKeywords": [
-      "acoustic guitar",
-      "warm piano",
-      "soft strings",
-      "gentle percussion",
-      "ambient pad",
-      "upright bass",
-      "light marimba",
-      "slow build",
-      "field recording",
-      "calm loop"
+      "red glow",
+      "slow reveal",
+      "neo noir",
+      "smoke tone",
+      "soft snare",
+      "muted horn",
+      "saxophone ballad",
+      "held chords",
+      "tape hiss",
+      "night studio",
+      "quiet develop"
     ],
     "sfxPalette": {
-      "transition": "whoosh",
+      "transition": "light-sweep",
       "ui": "soft-tap",
-      "reveal": "light-sweep",
-      "data": "counter-tick",
-      "cta": "cta-impact"
+      "reveal": "product-reveal",
+      "data": "data-ping",
+      "cta": "logo-rise"
     },
     "noVo": {
       "energyBoost": 1,
