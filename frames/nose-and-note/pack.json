@@ -16,8 +16,8 @@
   "surface": {
     "flat": true,
     "lightCinematic": false,
-    "ground": "#F6F0E8",
-    "ink": "#2E1A26"
+    "ground": "#2e1a26",
+    "ink": "#F6F0E8"
   },
   "motion": {
     "cut": "iris",
@@ -60,7 +60,7 @@
     "body": "Gilda Display"
   },
   "camera3d": {
-    "ground": "#F6F0E8"
+    "ground": "#2e1a26"
   },
   "layout": {
     "propFill": false,

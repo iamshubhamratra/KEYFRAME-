@@ -17,8 +17,8 @@
   "surface": {
     "flat": true,
     "lightCinematic": false,
-    "ground": "#F8EFDF",
-    "ink": "#37302A"
+    "ground": "#2a241d",
+    "ink": "#F8EFDF"
   },
   "motion": {
     "cut": "glow",
@@ -61,7 +61,7 @@
     "body": "Nunito Sans"
   },
   "camera3d": {
-    "ground": "#F8EFDF"
+    "ground": "#2a241d"
   },
   "layout": {
     "propFill": false,

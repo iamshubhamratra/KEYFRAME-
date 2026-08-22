@@ -19,8 +19,8 @@
   "surface": {
     "flat": true,
     "lightCinematic": true,
-    "ground": "#f2f1ec",
-    "ink": "#1d2126"
+    "ground": "#171a1e",
+    "ink": "#f2f1ec"
   },
   "motion": {
     "cut": "panel",
@@ -68,7 +68,7 @@
     ]
   },
   "camera3d": {
-    "ground": "#f2f1ec"
+    "ground": "#171a1e"
   },
   "layout": {
     "propFill": false,

@@ -17,8 +17,8 @@
   "surface": {
     "flat": true,
     "lightCinematic": false,
-    "ground": "#F2E8D5",
-    "ink": "#33291F"
+    "ground": "#1c1712",
+    "ink": "#F2E8D5"
   },
   "motion": {
     "cut": "smear",
@@ -61,7 +61,7 @@
     "body": "Permanent Marker"
   },
   "camera3d": {
-    "ground": "#F2E8D5"
+    "ground": "#1c1712"
   },
   "layout": {
     "propFill": false,

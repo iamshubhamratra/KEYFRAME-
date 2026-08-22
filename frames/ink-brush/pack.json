@@ -17,8 +17,8 @@
   "surface": {
     "flat": true,
     "lightCinematic": false,
-    "ground": "#F2EDE2",
-    "ink": "#26221E"
+    "ground": "#1c1916",
+    "ink": "#F2EDE2"
   },
   "motion": {
     "cut": "wash",
@@ -61,7 +61,7 @@
     "body": "Cormorant Garamond"
   },
   "camera3d": {
-    "ground": "#F2EDE2"
+    "ground": "#1c1916"
   },
   "layout": {
     "propFill": false,

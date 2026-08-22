@@ -17,8 +17,8 @@
   "surface": {
     "flat": true,
     "lightCinematic": false,
-    "ground": "#EEE9DC",
-    "ink": "#41613F"
+    "ground": "#232b22",
+    "ink": "#EEE9DC"
   },
   "motion": {
     "cut": "fade",
@@ -61,7 +61,7 @@
     "body": "Rubik"
   },
   "camera3d": {
-    "ground": "#EEE9DC"
+    "ground": "#232b22"
   },
   "layout": {
     "propFill": false,

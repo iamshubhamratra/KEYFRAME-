@@ -17,8 +17,8 @@
   "surface": {
     "flat": true,
     "lightCinematic": false,
-    "ground": "#F4E9DC",
-    "ink": "#2C2620"
+    "ground": "#2c2620",
+    "ink": "#F4E9DC"
   },
   "motion": {
     "cut": "flash",
@@ -61,7 +61,7 @@
     "body": "Shrikhand"
   },
   "camera3d": {
-    "ground": "#F4E9DC"
+    "ground": "#2c2620"
   },
   "layout": {
     "propFill": false,

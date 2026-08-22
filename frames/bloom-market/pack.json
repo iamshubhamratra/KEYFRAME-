@@ -17,8 +17,8 @@
   "surface": {
     "flat": true,
     "lightCinematic": false,
-    "ground": "#F6E7E9",
-    "ink": "#322A2E"
+    "ground": "#372a30",
+    "ink": "#F6E7E9"
   },
   "motion": {
     "cut": "cut",
@@ -61,7 +61,7 @@
     "body": "DM Serif Display"
   },
   "camera3d": {
-    "ground": "#F6E7E9"
+    "ground": "#372a30"
   },
   "layout": {
     "propFill": false,

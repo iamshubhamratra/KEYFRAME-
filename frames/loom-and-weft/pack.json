@@ -17,8 +17,8 @@
   "surface": {
     "flat": true,
     "lightCinematic": false,
-    "ground": "#EFE4D0",
-    "ink": "#2A231A"
+    "ground": "#2c2419",
+    "ink": "#EFE4D0"
   },
   "motion": {
     "cut": "weave",
@@ -61,7 +61,7 @@
     "body": "Karla"
   },
   "camera3d": {
-    "ground": "#EFE4D0"
+    "ground": "#2c2419"
   },
   "layout": {
     "propFill": false,

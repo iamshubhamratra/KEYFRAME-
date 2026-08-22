@@ -1,14 +1,12 @@
 {
   "name": "ember-roast",
-  "renderer": "omelette",
-  "template": "EmberRoast",
-  "portraitNative": true,
-  "vibe": "coffee roastery — steam curls, rotating drum, falling beans Portrait-native 9:16 (15 authored beats, 44.6s as shipped), rendered from its own bundle — only the words and pictures change.",
+  "vibe": "A dawn coffee roastery — a drum turning at 214°C, beans falling, steam curling off the cupping table — for small-batch roasters and neighbourhood cafés.",
   "colors": {
-    "ground": "#2B1D16",
-    "ink": "#F3E9DC",
-    "accent": "#CAA465",
-    "a2": "#E0662C"
+    "roast": "#2b1d16",
+    "cream": "#f3e9dc",
+    "ember": "#e0662c",
+    "gold": "#caa465",
+    "ink": "#1c110c"
   },
   "fonts": [
     "Alfa Slab One",
@@ -17,28 +15,27 @@
   "surface": {
     "flat": true,
     "lightCinematic": false,
-    "ground": "#2B1D16",
-    "ink": "#F3E9DC"
+    "ground": "#2b1d16",
+    "ink": "#f3e9dc"
   },
   "motion": {
-    "cut": "whip",
-    "drift": 0.97
+    "cut": "push",
+    "drift": 1.03
   },
   "fx": {
-    "canvas": "sprinkle",
+    "canvas": "none",
     "three": null
   },
   "skin": {
     "accents": [
-      "#CAA465",
-      "#E0662C"
+      "#e0662c",
+      "#caa465"
     ],
     "extras": [
-      "#1C110C",
-      "#231710",
-      "#C94F3D"
+      "#1c110c",
+      "#f3e9dc"
     ],
-    "emphasisCss": "color:#CAA465;"
+    "emphasisCss": null
   },
   "assets": {
     "photoMod": "moody cinematic low-key",
@@ -56,34 +53,21 @@
       "photo"
     ]
   },
-  "typography": {
-    "display": "Alfa Slab One",
-    "body": "Karla"
-  },
-  "camera3d": {
-    "ground": "#2B1D16"
-  },
-  "layout": {
-    "propFill": false,
-    "kicker": true,
-    "underline": false,
-    "stat": "card",
-    "assetStyle": "browser"
-  },
   "textfx": {
-    "enter": "zap",
-    "emphasis": "bracket",
-    "case": "none",
-    "tracking": -0.02,
+    "enter": "drop",
+    "emphasis": "marker",
+    "case": "upper",
+    "tracking": 0,
     "weight": null,
     "sizeScale": 1,
-    "align": "left"
+    "align": "left",
+    "speed": 1.25
   },
   "audio": {
     "music": {
       "query": "cinematic ambient atmospheric modern underscore",
       "mood": "moody",
-      "volume": 0.13
+      "volume": 0.16
     },
     "sfx": {
       "style": "low thuds, airy risers and dark transitional whooshes",
@@ -94,5 +78,8 @@
         "sub hit"
       ]
     }
-  }
+  },
+  "renderer": "omelette",
+  "template": "EmberRoast",
+  "portraitNative": true
 }

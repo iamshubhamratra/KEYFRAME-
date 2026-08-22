@@ -17,8 +17,8 @@
   "surface": {
     "flat": true,
     "lightCinematic": false,
-    "ground": "#CFE8B8",
-    "ink": "#1C2E1E"
+    "ground": "#1e2a1c",
+    "ink": "#CFE8B8"
   },
   "motion": {
     "cut": "cut",
@@ -61,7 +61,7 @@
     "body": "Silkscreen"
   },
   "camera3d": {
-    "ground": "#CFE8B8"
+    "ground": "#1e2a1c"
   },
   "layout": {
     "propFill": false,

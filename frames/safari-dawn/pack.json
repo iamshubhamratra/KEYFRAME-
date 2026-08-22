@@ -17,8 +17,8 @@
   "surface": {
     "flat": true,
     "lightCinematic": false,
-    "ground": "#EF9D4F",
-    "ink": "#3A2417"
+    "ground": "#170f08",
+    "ink": "#EF9D4F"
   },
   "motion": {
     "cut": "iris",
@@ -61,7 +61,7 @@
     "body": "Staatliches"
   },
   "camera3d": {
-    "ground": "#EF9D4F"
+    "ground": "#170f08"
   },
   "layout": {
     "propFill": false,

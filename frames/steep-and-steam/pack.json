@@ -5,7 +5,7 @@
   "portraitNative": false,
   "longForm": true,
   "longFormOk": true,
-  "vibe": "long-form 16:9 kinetic-typography film for tea house — 40 authored beats, ~7.5s each, about 5 minutes as shipped. pouring kettle arc, steam curls, leaves unfurling, timer. Marcellus display over Mukta body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "vibe": "long-form 16:9 kinetic-typography film for tea house — 41 authored beats, ~7.5s each, about 5 minutes as shipped. pouring kettle arc, steam curls, leaves unfurling, timer. Marcellus display over Mukta body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
   "colors": {
     "ground": "#f6f2e8",
     "ink": "#232a20",
@@ -19,8 +19,8 @@
   "surface": {
     "flat": true,
     "lightCinematic": true,
-    "ground": "#f6f2e8",
-    "ink": "#232a20"
+    "ground": "#1b1f18",
+    "ink": "#f6f2e8"
   },
   "motion": {
     "cut": "panel",
@@ -68,7 +68,7 @@
     ]
   },
   "camera3d": {
-    "ground": "#f6f2e8"
+    "ground": "#1b1f18"
   },
   "layout": {
     "propFill": false,

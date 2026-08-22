@@ -17,8 +17,8 @@
   "surface": {
     "flat": true,
     "lightCinematic": false,
-    "ground": "#F6F1E7",
-    "ink": "#000000"
+    "ground": "#141210",
+    "ink": "#F6F1E7"
   },
   "motion": {
     "cut": "clockwipe",
@@ -61,7 +61,7 @@
     "body": "Playfair Display"
   },
   "camera3d": {
-    "ground": "#F6F1E7"
+    "ground": "#141210"
   },
   "layout": {
     "propFill": false,

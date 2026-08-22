@@ -17,8 +17,8 @@
   "surface": {
     "flat": true,
     "lightCinematic": false,
-    "ground": "#F4E7CF",
-    "ink": "#33261A"
+    "ground": "#3a2c1e",
+    "ink": "#F4E7CF"
   },
   "motion": {
     "cut": "whip",
@@ -61,7 +61,7 @@
     "body": "Mulish"
   },
   "camera3d": {
-    "ground": "#F4E7CF"
+    "ground": "#3a2c1e"
   },
   "layout": {
     "propFill": false,

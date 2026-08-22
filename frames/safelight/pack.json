@@ -5,7 +5,7 @@
   "portraitNative": false,
   "longForm": true,
   "longFormOk": true,
-  "vibe": "long-form 16:9 kinetic-typography film for darkroom photography — 40 authored beats, ~7.5s each, about 5 minutes as shipped. pulsing red bulb, swaying negatives, tray ripples. Syne display over Hanken Grotesk body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "vibe": "long-form 16:9 kinetic-typography film for darkroom photography — 41 authored beats, ~7.5s each, about 5 minutes as shipped. pulsing red bulb, swaying negatives, tray ripples. Syne display over Hanken Grotesk body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
   "colors": {
     "ground": "#efe9df",
     "ink": "#16110f",
@@ -19,8 +19,8 @@
   "surface": {
     "flat": true,
     "lightCinematic": true,
-    "ground": "#efe9df",
-    "ink": "#16110f"
+    "ground": "#100c0b",
+    "ink": "#efe9df"
   },
   "motion": {
     "cut": "panel",
@@ -68,7 +68,7 @@
     ]
   },
   "camera3d": {
-    "ground": "#efe9df"
+    "ground": "#100c0b"
   },
   "layout": {
     "propFill": false,

@@ -5,7 +5,7 @@
   "portraitNative": false,
   "longForm": true,
   "longFormOk": true,
-  "vibe": "long-form 16:9 kinetic-typography film for running — 40 authored beats, ~7.5s each, about 5 minutes as shipped. bobbing runner, curved track, live split readout. Big Shoulders Display display over Red Hat Text body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "vibe": "long-form 16:9 kinetic-typography film for running — 41 authored beats, ~7.5s each, about 5 minutes as shipped. bobbing runner, curved track, live split readout. Big Shoulders Display display over Red Hat Text body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
   "colors": {
     "ground": "#eef3f6",
     "ink": "#141a20",
@@ -19,8 +19,8 @@
   "surface": {
     "flat": true,
     "lightCinematic": true,
-    "ground": "#eef3f6",
-    "ink": "#141a20"
+    "ground": "#101418",
+    "ink": "#eef3f6"
   },
   "motion": {
     "cut": "panel",
@@ -68,7 +68,7 @@
     ]
   },
   "camera3d": {
-    "ground": "#eef3f6"
+    "ground": "#101418"
   },
   "layout": {
     "propFill": false,

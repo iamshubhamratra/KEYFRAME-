@@ -17,8 +17,8 @@
   "surface": {
     "flat": true,
     "lightCinematic": false,
-    "ground": "#F7F3EA",
-    "ink": "#2B2B26"
+    "ground": "#22221c",
+    "ink": "#F7F3EA"
   },
   "motion": {
     "cut": "fade",
@@ -61,7 +61,7 @@
     "body": "Mukta"
   },
   "camera3d": {
-    "ground": "#F7F3EA"
+    "ground": "#22221c"
   },
   "layout": {
     "propFill": false,

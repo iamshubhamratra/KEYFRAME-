@@ -17,8 +17,8 @@
   "surface": {
     "flat": true,
     "lightCinematic": false,
-    "ground": "#F1E9DF",
-    "ink": "#33302C"
+    "ground": "#2a2622",
+    "ink": "#F1E9DF"
   },
   "motion": {
     "cut": "whip",
@@ -61,7 +61,7 @@
     "body": "Schibsted Grotesk"
   },
   "camera3d": {
-    "ground": "#F1E9DF"
+    "ground": "#2a2622"
   },
   "layout": {
     "propFill": false,

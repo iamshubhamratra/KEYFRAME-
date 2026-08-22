@@ -17,8 +17,8 @@
   "surface": {
     "flat": true,
     "lightCinematic": false,
-    "ground": "#F8F0DC",
-    "ink": "#2E1F18"
+    "ground": "#2e2318",
+    "ink": "#F8F0DC"
   },
   "motion": {
     "cut": "iris",
@@ -61,7 +61,7 @@
     "body": "Urbanist"
   },
   "camera3d": {
-    "ground": "#F8F0DC"
+    "ground": "#2e2318"
   },
   "layout": {
     "propFill": false,

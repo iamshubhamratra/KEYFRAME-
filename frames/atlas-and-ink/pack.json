@@ -17,8 +17,8 @@
   "surface": {
     "flat": true,
     "lightCinematic": false,
-    "ground": "#EFE4CF",
-    "ink": "#4A3826"
+    "ground": "#3a3226",
+    "ink": "#EFE4CF"
   },
   "motion": {
     "cut": "fade",
@@ -61,7 +61,7 @@
     "body": "Young Serif"
   },
   "camera3d": {
-    "ground": "#EFE4CF"
+    "ground": "#3a3226"
   },
   "layout": {
     "propFill": false,

@@ -17,8 +17,8 @@
   "surface": {
     "flat": true,
     "lightCinematic": false,
-    "ground": "#FFF8E8",
-    "ink": "#3A2C14"
+    "ground": "#5c3d12",
+    "ink": "#FFF8E8"
   },
   "motion": {
     "cut": "weave",
@@ -61,7 +61,7 @@
     "body": "Quicksand"
   },
   "camera3d": {
-    "ground": "#FFF8E8"
+    "ground": "#5c3d12"
   },
   "layout": {
     "propFill": false,
