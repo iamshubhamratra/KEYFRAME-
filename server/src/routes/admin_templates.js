@@ -11,6 +11,7 @@
 
 const express = require("express");
 const { requireAdmin } = require("../auth/middleware");
+const { wrap } = require("./wrap");
 const store = require("../templates/store");
 const lifecycle = require("../templates/lifecycle");
 const paths = require("../templates/paths");
@@ -270,7 +271,7 @@ function buildRouter({ enqueueIntake }) {
     } catch (e) { send(res, e); }
   });
 
-  router.post("/templates/:id/publish", async (req, res) => {
+  router.post("/templates/:id/publish", wrap(async (req, res) => {
     const rec = store.get(req.params.id);
     if (!rec) return res.status(404).json({ error: "not found" });
 
@@ -285,7 +286,7 @@ function buildRouter({ enqueueIntake }) {
       detach(rec.id, "publishing", () => service.runPublish({ id: rec.id }));
     } catch (e) { return send(res, e); }
     res.status(202).json({ template: shaped(store.get(rec.id)) });
-  });
+  }));
 
   router.post("/templates/:id/unpublish", (req, res) => {
     const rec = store.get(req.params.id);

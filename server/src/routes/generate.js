@@ -4,6 +4,7 @@ const express = require("express");
 const rateLimit = require("express-rate-limit");
 const { clientIp } = require("../services/client_ip");
 const { requireAuth } = require("../auth/middleware");
+const { wrap } = require("./wrap");
 const { customAlphabet } = require("nanoid");
 const config = require("../config");
 const db = require("../db");
@@ -133,7 +134,7 @@ function buildRouter({ enqueue }) {
   // /api/projects reads, so leaving it open would have meant anonymous callers could still
   // create jobs — and jobs with no owner are invisible to their creator under the new rules,
   // which makes an unauthenticated create a way to write records nobody can ever reach.
-  router.post("/generate", requireAuth, limiter, async (req, res) => {
+  router.post("/generate", requireAuth, limiter, wrap(async (req, res) => {
     const { errs, out } = validateBody(req.body || {});
     if (errs.length) return res.status(400).json({ error: "invalid request", details: errs });
 
@@ -205,7 +206,7 @@ function buildRouter({ enqueue }) {
       estimatedWaitSec: eta.waitSec,
       estimatedTotalSec: eta.totalSec,
     });
-  });
+  }));
 
   return router;
 }

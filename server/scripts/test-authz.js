@@ -16,9 +16,22 @@
 const assert = require("node:assert");
 
 let pass = 0, fail = 0;
+// Accepts a sync OR async body. An async one returns a promise, so it is queued and awaited at
+// the end — calling fn() and reporting "ok" immediately would mark a test green the instant its
+// promise was CREATED, which is how a suite ends up passing while asserting nothing.
+const pending = [];
 function test(name, fn) {
-  try { fn(); console.log(`  ok   ${name}`); pass++; }
-  catch (e) { console.log(`  FAIL ${name}\n       ${e.message}`); fail++; }
+  try {
+    const out = fn();
+    if (out && typeof out.then === "function") {
+      pending.push(out.then(
+        () => { console.log(`  ok   ${name}`); pass++; },
+        (e) => { console.log(`  FAIL ${name}\n       ${e.message}`); fail++; }
+      ));
+      return;
+    }
+    console.log(`  ok   ${name}`); pass++;
+  } catch (e) { console.log(`  FAIL ${name}\n       ${e.message}`); fail++; }
 }
 function section(t) { console.log(`\n${t}`); }
 
@@ -143,7 +156,8 @@ function routesOf(router) {
     if (!layer.route) continue;
     const methods = Object.keys(layer.route.methods || {}).map((m) => m.toUpperCase());
     const handlers = (layer.route.stack || []).map((h) => h.name);
-    out.push({ path: layer.route.path, methods, handlers });
+    const handlersRaw = (layer.route.stack || []).map((h) => h.handle);
+    out.push({ path: layer.route.path, methods, handlers, handlersRaw });
   }
   return out;
 }
@@ -165,12 +179,83 @@ for (const [label, router] of [["projects", projectsRouter], ["generate", genera
   });
 }
 
+// EXPRESS 4 CANNOT SEE A REJECTED PROMISE. An `async (req, res) => {}` registered directly is a
+// request that HANGS on any throw — no response, no status, just a dropped socket and a
+// process-level unhandledRejection naming neither the route nor the caller. routes/wrap.js
+// converts that into next(err); it returns a plain function, so anything still async in a route
+// stack is something nobody wrapped.
+test("no route handler is a bare async function (Express 4 would hang on a throw)", () => {
+  const bare = [];
+  for (const [label, router] of [["projects", projectsRouter], ["generate", generateRouter], ["jobs", jobsRouter],
+                                 ["admin", require("../src/routes/admin_templates").buildRouter({ enqueueIntake: noop })],
+                                 ["auth", require("../src/routes/auth").buildRouter()]]) {
+    for (const r of routesOf(router)) {
+      // ONLY THE TERMINAL HANDLER. The layers before it are middleware, and the library ones
+      // (express-rate-limit v7, multer) are themselves async functions that manage their own
+      // rejections — flagging those would be noise that trains people to ignore this test.
+      // The last layer is the route's own handler, which is the one that must not be bare.
+      const h = (r.handlersRaw || [])[r.handlersRaw.length - 1];
+      if (h && h.constructor && h.constructor.name === "AsyncFunction") {
+        bare.push(`${label} ${r.methods.join("/")} ${r.path}`);
+      }
+    }
+  }
+  assert.strictEqual(bare.length, 0, `unwrapped async handler(s): ${bare.join(", ")}`);
+});
+
 test("the admin router guards by router.use, so a new route is protected by default", () => {
   const adminRouter = require("../src/routes/admin_templates").buildRouter({ enqueueIntake: noop });
   const hasUseGuard = (adminRouter.stack || []).some((l) => !l.route && GUARDS.has(l.name));
   assert.ok(hasUseGuard, "expected requireAdmin mounted with router.use()");
 });
 
+// ---------------------------------------------------------------- 5. the async safety net
+section("wrap() — a rejected handler becomes next(err), not a hung socket");
+
+const { wrap } = require("../src/routes/wrap");
+
+test("a rejecting async handler reaches next(err) instead of vanishing", async () => {
+  const boom = new Error("boom");
+  let handed = null;
+  await new Promise((resolve) => {
+    wrap(async () => { throw boom; })({}, {}, (e) => { handed = e; resolve(); });
+  });
+  assert.strictEqual(handed, boom, "the rejection must arrive at next()");
+});
+
+test("a synchronous throw is forwarded too", async () => {
+  let handed = null;
+  await new Promise((resolve) => {
+    wrap(() => { throw new Error("sync boom"); })({}, {}, (e) => { handed = e; resolve(); });
+  });
+  assert.ok(handed instanceof Error, "a sync throw must also reach next()");
+});
+
+test("a handler that resolves never calls next", async () => {
+  let called = false;
+  await new Promise((resolve) => {
+    wrap(async () => {})({}, {}, () => { called = true; });
+    setTimeout(resolve, 20);
+  });
+  assert.strictEqual(called, false);
+});
+
+test("wrap returns a NON-async function, which is what the route guard keys on", () => {
+  assert.notStrictEqual(wrap(async () => {}).constructor.name, "AsyncFunction");
+});
+
+test("server.js registers a 4-arg error handler that redacts a 500", () => {
+  // The ARITY is the registration: Express only treats a 4-argument middleware as an error
+  // handler, so a 3-arg one would be silently skipped and the default HTML-plus-stack-trace
+  // page would come back with nothing failing to say so.
+  const fs = require("node:fs"), path = require("node:path");
+  const src = fs.readFileSync(path.join(__dirname, "..", "server.js"), "utf8");
+  assert.ok(/app\.use\(\(err, req, res, _next\)/.test(src), "expected a 4-arg error middleware in server.js");
+  assert.ok(/"internal error"/.test(src), "a 500 must not echo the thrown message back to the caller");
+});
+
 // ---------------------------------------------------------------- verdict
-console.log(`\n${pass} passed, ${fail} failed`);
-process.exit(fail ? 1 : 0);
+Promise.all(pending).then(() => {
+  console.log(`\n${pass} passed, ${fail} failed`);
+  process.exit(fail ? 1 : 0);
+});

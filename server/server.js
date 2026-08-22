@@ -240,6 +240,32 @@ async function main() {
   // SPA-ish 404 JSON for /api/*.
   app.use("/api", (_req, res) => res.status(404).json({ error: "not found" }));
 
+  // THE LAST RESORT. Registered after every route, with four arguments, which is the only way
+  // Express recognises an error handler.
+  //
+  // WITHOUT ONE, EXPRESS USES ITS DEFAULT, and the default is wrong here in both directions. It
+  // answers text/html to an API whose every other response is JSON — so the client's json()
+  // helper chokes on the body while trying to read the error — and outside production it puts
+  // the STACK TRACE in that body, publishing absolute paths and internal module names to whoever
+  // provoked the throw. A route that dies should say "something broke" to the caller and put the
+  // detail in the server log, which is the one place it belongs.
+  //
+  // Reached by a synchronous throw from any handler, and by a rejected promise from any handler
+  // that went through routes/wrap.js.
+  //
+  // eslint-disable-next-line no-unused-vars -- the 4th arg is what marks this as error middleware
+  app.use((err, req, res, _next) => {
+    const status = Number(err && err.status) >= 400 && Number(err.status) < 600 ? Number(err.status) : 500;
+    console.error(`[error] ${req.method} ${req.originalUrl} -> ${status}:`, err && err.stack ? err.stack : err);
+    // Headers already flushed (a mid-stream failure on an SSE route) — there is no status line
+    // left to set, so hand it back to Express to destroy the socket rather than throwing a
+    // second error on top of the first.
+    if (res.headersSent) return _next(err);
+    res.status(status).json({
+      error: status === 500 ? "internal error" : (err && err.message) || "request failed",
+    });
+  });
+
   try { require("./src/services/frame_manifest").validateAll(); } catch (e) { console.warn(`[manifest] boot validation skipped: ${e.message}`); }
 
   const server = app.listen(config.server.port, () => {
