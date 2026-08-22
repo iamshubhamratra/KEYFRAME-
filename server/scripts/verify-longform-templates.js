@@ -72,18 +72,33 @@ const EXPECTED_ACCENT = "#c67139";
 //   favicon.ico              requested by the browser, not by the collection.
 const EXPECTED_404 = [".image-slots.state.json", "/favicon.ico"];
 
-/** Read `const FOOTS = [...]` out of a film so the garnish footnote can be found by its text. */
-function footsOf(templateId) {
+/**
+ * How to find this film's garnish footnote, which carries no data attribute.
+ *
+ * TWO SHAPES, because template 01's garnish copy now comes from the content contract instead of a
+ * hardcoded list. A film with `const FOOTS = [...]` is matched on those strings. A film that
+ * declares `GarnishFoot` in DEMO has an EMPTY fallback by design — there is no text to match — so
+ * the page is requested with a sentinel supplied through OM_CONTENT and that is counted instead.
+ * The second path is the stronger test: it proves the contract-driven garnish renders, and renders
+ * exactly once, at every playhead.
+ */
+function garnishProbe(templateId) {
   const dir = path.join(lf.COLLECTION_DIR, "templates", templateId);
   const film = fs.readdirSync(dir).find((f) => f.endsWith("-film.jsx"));
-  if (!film) return [];
+  if (!film) return { strings: [], cfg: null };
   const src = fs.readFileSync(path.join(dir, film), "utf8");
   const m = src.match(/^const FOOTS\s*=\s*(\[[\s\S]*?\]);/m);
-  if (!m) return [];
-  try {
-    // Repo-local source, read to recover a string array the film does not export.
-    return new Function(`return ${m[1]}`)().map(String);
-  } catch { return []; }
+  if (m) {
+    try {
+      // Repo-local source, read to recover a string array the film does not export.
+      return { strings: new Function(`return ${m[1]}`)().map(String), cfg: null };
+    } catch { return { strings: [], cfg: null }; }
+  }
+  if (/^\s*GarnishFoot:/m.test(src)) {
+    const sentinel = "garnish probe · one per frame";
+    return { strings: [sentinel], cfg: lf.encodeConfig({ content: { GarnishFoot: { items: [sentinel] } } }) };
+  }
+  return { strings: [], cfg: null };
 }
 
 /** The playhead positions to sample. Boundaries first — that is where doubling shows. */
@@ -178,11 +193,12 @@ async function checkOne(browser, base, tpl) {
     });
   }
 
+  const probe = garnishProbe(tpl.id);
   const res = { id: tpl.id, title: tpl.title, global: tpl.global };
   try {
     await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 1 });
     const t0 = Date.now();
-    await page.goto(base + tpl.url, { waitUntil: "load", timeout: 90000 });
+    await page.goto(base + tpl.url + (probe.cfg ? `?cfg=${probe.cfg}` : ""), { waitUntil: "load", timeout: 90000 });
     await page.waitForSelector("[data-om-exportable-video-with-duration-secs]", { timeout: 90000 });
     res.mountMs = Date.now() - t0;
 
@@ -203,8 +219,9 @@ async function checkOne(browser, base, tpl) {
 
     if (!head.syncSeek) errors.push("stage does not advertise data-om-sync-seek — layer counts may lag the seek");
 
-    const foots = footsOf(tpl.id);
+    const foots = probe.strings;
     res.footsFound = foots.length;
+    res.garnishFromContract = !!probe.cfg;
     const { samples, total } = samplesFor(tpl.scenes, QUICK);
     res.sampleCount = samples.length;
     res.scenesTotal = +total.toFixed(3);

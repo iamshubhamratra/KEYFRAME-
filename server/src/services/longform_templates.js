@@ -209,6 +209,25 @@ function readMarkedGlobal(html, name, marker) {
 }
 
 /**
+ * The keys a film's content contract actually accepts, read from its `const DEMO = {...}`.
+ *
+ * NOT the scene list. The contract is keyed by DEMO, which is also what `CT.audit()` walks, and the
+ * two are deliberately not the same set: template 01's garnish is composition-level rather than a
+ * scene, so its keys (GarnishTag/GarnishFoot/GarnishSide) are declared in DEMO and appear in no
+ * timeline. Validating supplied content against scene names rejected exactly those keys.
+ */
+function contentKeysOf(dir, id) {
+  try {
+    const film = fs.readdirSync(dir).find((f) => f.endsWith("-film.jsx"));
+    if (!film) return [];
+    const src = fs.readFileSync(path.join(dir, film), "utf8");
+    const m = src.match(/\nconst DEMO = \{\n([\s\S]*?)\n\};/);
+    if (!m) return [];
+    return [...m[1].matchAll(/^ {2}([A-Za-z][A-Za-z0-9_]*):/gm)].map((x) => x[1]);
+  } catch { return []; }
+}
+
+/**
  * Read the collection off disk. Cached against the newest page mtime, so editing a `.dc.html`
  * during development is picked up without a restart and a hot path never re-reads ten files.
  *
@@ -232,6 +251,7 @@ function listTemplates() {
   if (cache && cache.mtime === newest && cache.list.length === pages.length) return cache.list;
 
   const list = pages.map(({ id, page, file }) => {
+    const dir = path.dirname(file);
     const html = fs.readFileSync(file, "utf8");
     const globalName = (html.match(/component-from-global-scope="([^"]+)"/) || [])[1] || "";
     const kits = ((html.match(/\bfrom="([^"]+)"/) || [])[1] || "").split(/\s+/).filter(Boolean);
@@ -251,6 +271,7 @@ function listTemplates() {
       sceneCount: scenes.length,
       durationSec: scenes.reduce((a, s) => a + (Number(s.dur) || 0), 0),
       tweaks: readMarkedGlobal(html, "OM_TWEAKS", "EDITMODE") || {},
+      contentKeys: contentKeysOf(dir, id),
     };
   });
 
@@ -347,12 +368,14 @@ function normalizeConfig(id, cfg = {}) {
       fail(`${tpl.id} has hardcoded copy — it declares no OM_CONTENT, so supplying content would render nothing. Only ${listTemplates().filter((x) => x.hasContent).map((x) => x.id).join(", ")} is wired to the content contract`);
     }
     if (!cfg.content || typeof cfg.content !== "object" || Array.isArray(cfg.content)) fail("content must be an object keyed by scene name");
-    const known = new Set(tpl.scenes.map((s) => s.name));
+    // Validate against what the film DECLARES, not against its timeline — see contentKeysOf. Scene
+    // names are unioned in so a film whose DEMO could not be parsed still gets a useful check.
+    const known = new Set([...(tpl.contentKeys || []), ...tpl.scenes.map((s) => s.name)]);
     for (const k of Object.keys(cfg.content)) {
-      // A key no scene consumes is worse than a crash: the job looks filled and still renders demo
-      // copy. The film's own CT.audit() catches this only after a full playthrough; catching the
-      // scene-name case here costs nothing.
-      if (!known.has(k)) fail(`content key "${k}" is not a scene in ${tpl.id}`);
+      // A key the film consumes nowhere is worse than a crash: the job looks filled and still
+      // renders demo copy. CT.audit() only catches that after a full playthrough; catching the
+      // unknown-key case here costs nothing.
+      if (!known.has(k)) fail(`content key "${k}" is not declared by ${tpl.id} (it accepts: ${[...known].sort().join(", ")})`);
     }
     out.content = cfg.content;
   }

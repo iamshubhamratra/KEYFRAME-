@@ -162,25 +162,35 @@ const GROUND = window.BGEngine.make({
   hues: [C.accent, C.accent2, K.lighten(C.accent, 0.3), C.sageT],
   ink: C.ink, light: C.white, decor: DECOR,
 });
-const TAGS = ["BARKWELL · A FILM ABOUT DINNER","REAL FOOD, NAMED","FIVE INGREDIENTS ONLY","THE BOWL, EXAMINED","COOKED LOW, NOT FAST"];
-const FOOTS = ["everything here was eaten","weighed before cooking, not after","no ingredient hides behind a category","the oven runs at ninety degrees","written from the ingredients panel"];
-const SIDES = ["NAME · WEIGH · COOK","FIVE INGREDIENTS, NO FILLER","READ THE PANEL ALOUD"];
+/* GARNISH COPY IS HOST COPY, AND ITS FALLBACK IS NOTHING.
+   These three lines print above every scene, so a hardcoded phrase here is on screen for the whole
+   film — the same leak the scene bodies had, in the one place that never cuts away. They used to
+   carry this template's pet-food asides ("BARKWELL · A FILM ABOUT DINNER"), which a job for any
+   other brand published verbatim across all fifty scenes.
+   The fallback is EMPTY, not a replacement set of phrases. A template cannot know a brand's asides,
+   and inventing them is the defect rather than the fix — so each element renders only when the host
+   has actually supplied its line, and an unsupplied film keeps the garnish's geometry (the accent
+   rule, the turning asterisk) and none of its words.
+   Three keys rather than one because the three lists rotate on different cycles and a host should
+   be able to supply any of them alone. */
 function Garnish() {
   const a = K.useActive();
   const i = a.index, t = a.T * ENERGY;
   /* Ink comes from the ground actually painted — a hand-typed scene list drifts
      the moment a scene's bg changes, and silently prints invisible garnish. */
   const c = K.isDark(a.bg) ? C.white : C.ink;
+  const line = (key, at) => { const L = CT.of(key).items([], 12); return L.length ? String(L[at % L.length]) : ''; };
+  const tag = line('GarnishTag', i), foot = line('GarnishFoot', i), side = line('GarnishSide', i >> 1);
   return <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-    <div style={{ position: 'absolute', top: 42, right: GUT, ...LBL(20, alpha(c, 0.6)), border: `2px solid ${alpha(c, 0.3)}`, borderRadius: 999, padding: '10px 26px', transform: `rotate(${Math.sin(t * 1.1 + i) * 1.4}deg)` }}>
-      {TAGS[i % TAGS.length]}
-    </div>
-    <div style={{ position: 'absolute', bottom: 40, left: GUT, display: 'flex', alignItems: 'center', gap: 18 }}>
+    {tag ? <div style={{ position: 'absolute', top: 42, right: GUT, ...LBL(20, alpha(c, 0.6)), border: `2px solid ${alpha(c, 0.3)}`, borderRadius: 999, padding: '10px 26px', transform: `rotate(${Math.sin(t * 1.1 + i) * 1.4}deg)` }}>
+      {tag}
+    </div> : null}
+    {foot ? <div style={{ position: 'absolute', bottom: 40, left: GUT, display: 'flex', alignItems: 'center', gap: 18 }}>
       <div style={{ width: 46, height: 4, borderRadius: 999, background: C.accent }} />
-      <div style={FOOT(23, alpha(c, 0.6))}>{FOOTS[i % FOOTS.length]}</div>
-    </div>
+      <div style={FOOT(23, alpha(c, 0.6))}>{foot}</div>
+    </div> : null}
     {i % 2 === 0
-      ? <div style={{ position: 'absolute', left: 34, top: 340, writingMode: 'vertical-rl', transform: 'rotate(180deg)', ...LBL(17, alpha(c, 0.62)), letterSpacing: '0.34em' }}>{SIDES[(i >> 1) % SIDES.length]}</div>
+      ? (side ? <div style={{ position: 'absolute', left: 34, top: 340, writingMode: 'vertical-rl', transform: 'rotate(180deg)', ...LBL(17, alpha(c, 0.62)), letterSpacing: '0.34em' }}>{side}</div> : null)
       : <svg width={70} height={70} viewBox="0 0 70 70" style={{ position: 'absolute', right: 62, bottom: 42, opacity: 0.55 }}>
           <g transform={`rotate(${t * 26} 35 35)`}>
             {[0, 1, 2, 3, 4, 5].map(k => (
@@ -267,6 +277,12 @@ const DEMO = {
   Delivery: { title: 'CHILLED, THIRTY-SIX HOURS', items: ['KITCHEN', 'CHILL', 'VAN', 'YOUR DOOR'] },
   Planet: { rows: [['92', '%', 'paper packaging'], ['0', '', 'plastic trays'], ['180', 'mi', 'longest haul']] },
   Referral: { kicker: 'BRING A DOG YOU WALK WITH', title: 'TWOBOWLS', body: 'Both boxes free.' },
+  /* The garnish is composition-level, not a scene, so these keys are not scene names — they are
+     here because the audit walks this object, and a list that is not declared here cannot be
+     reported. Empty by design: see the note above Garnish(). */
+  GarnishTag: { items: [] },
+  GarnishFoot: { items: [] },
+  GarnishSide: { items: [] },
 };
 const CT = window.Content.make(DEMO);
 
