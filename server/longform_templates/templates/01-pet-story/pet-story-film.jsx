@@ -222,7 +222,7 @@ const DEMO = {
   Turn: { items: ['SO WE COOKED', 'SOMETHING ELSE.'] },
   Ch2: { label: '02', title: 'What we make', body: 'Five ingredients, weighed before cooking, printed by percentage.' },
   Feature1: { kicker: 'FEATURE 01', title: 'MEAT YOU CAN POINT AT.', body: 'Single-source protein, cut and weighed before cooking, printed on the pack by percentage rather than by promise.', items: ['65% CHICKEN', 'BRITISH FARMS', 'NO MEAL'] },
-  Feature2: { kicker: 'FEATURE 02', title: 'COOKED AT 90°, NOT 400.', body: 'Low and slow keeps the protein structure intact, so it smells like dinner instead of dust.' },
+  Feature2: { kicker: 'FEATURE 02', title: 'COOKED AT 90°, NOT 400.', rows: [['90°', 'our oven'], ['400°', 'an extruder'], ['4h', 'not four seconds']] },
   Ch3: { label: '03', title: 'Does it work', body: 'Twelve weeks, two thousand bowls, one measurable change.' },
   Testimonial: { quote: 'HE USED TO GRAZE AT IT ALL DAY. NOW THE BOWL IS EMPTY BEFORE I PUT THE LID BACK ON.', source: 'MARCUS · AND HAZEL, A VERY FAST BEAGLE' },
   Compare: { rows: [['Named meat first', 'Meat meal, unspecified'], ['Cooked at 90°', 'Extruded at 400°'], ['Portioned per dog', 'One bag, guess the scoop'], ['Five ingredients', 'Twenty-nine']] },
@@ -241,8 +241,38 @@ const DEMO = {
   Guarantee: { title: 'THEY LOVE IT', label: "OR IT'S FREE", body: 'First box, no argument, no form.' },
   Breeds: { items: ['WHIPPETS', 'LABRADORS', 'TERRIERS', 'COLLIES', 'RESCUES', 'PUGS', 'LURCHERS', 'NEWFOUNDLANDS'] },
   End: { title: 'BARKWELL', label: 'REAL FOOD FOR DOGS', source: 'BARKWELL.COM' },
+  /* The 19 scenes below carried their copy inline until now. templates/README.md called them
+     "pure-mechanic … with no copy of their own", but they hold press quotes, a referral code, team
+     names and the whole proof section — roughly 38% of the runtime. A generated job for another
+     brand published all of it verbatim, and CT.audit() could not see it because it iterates the
+     keys of THIS object. Declaring them here is what puts them under the contract and under the
+     audit; the values are the demo copy, unchanged, so an unsupplied field renders exactly as it
+     always did. */
+  Timeline: { title: 'HOW THE BOWL GOT WORSE', rows: [['1974', 'Extrusion arrives'], ['1990s', 'Shelf life wins'], ['2010s', 'Marketing wins'], ['TODAY', 'Nobody checks']] },
+  WeighIn: { title: 'WEIGHED, THEN PRINTED', rows: [['CHICKEN', 65], ['SWEET POTATO', 14], ['CARROT', 9], ['SPINACH', 6], ['SALMON OIL', 4], ['MINERALS', 2]] },
+  Farms: { stat: 7, label: 'FARMS · ALL WITHIN 180 MILES' },
+  Sourcing: { kicker: 'FIVE HANDS, END TO END', items: ['FARM', 'CUT', 'WEIGH', 'COOK', 'PACK'] },
+  Kitchen: { title: 'THE KITCHEN, TUESDAY', label: 'ONE SHIFT', rows: [['06:00', 'Meat arrives whole'], ['08:20', 'Cut and weighed'], ['11:00', 'Ninety degrees, four hours'], ['16:40', 'Chilled and packed']] },
+  Texture: { title: 'YOU CAN SEE THE CARROT.', body: 'Nothing is milled to powder, so nothing has to be described on the back of the pack.' },
+  Feature3: { title: 'PORTIONED FOR THE DOG IN FRONT OF YOU', rows: [['PUPPY', '3 meals', '210g'], ['ADULT', '2 meals', '340g'], ['SENIOR', '2, softer', '290g']] },
+  Packaging: { kicker: 'WHAT THE PACK TELLS YOU', rows: [['Percentages', 'on the front, not the back'], ['Batch and farm', 'printed, not looked up'], ['Paper', 'not plastic'], ['Kerbside', 'recyclable everywhere']] },
+  Coat: { title: 'COAT CONDITION SCORE', label: 'WEEK 1 TO WEEK 12 · VET ASSESSED' },
+  Energy: { title: 'WALKS COMPLETED, UNPROMPTED', rows: [['Before', 42], ['Week 4', 61], ['Week 8', 78], ['Week 12', 94]] },
+  Sleep: { title: 'NIGHTS SLEPT THROUGH · 28', label: 'RED MEANS DISTURBED · THREE IN TWENTY-EIGHT' },
+  BeforeAfter: { items: ['MEASURE', 'WEEK 1', 'WEEK 12'], rows: [['Bowl finished', 'Left half full', '94%'], ['Coat score', '2 of 5', '4 of 5'], ['Night waking', 'Most nights', '3 in 28'], ['Vet flags', 'Two', 'None']] },
+  Reviews: { items: ['EMPTY BOWL, EVERY TIME', 'THE COAT, HONESTLY', 'SHE HEARS THE PAPER', 'NO MORE SCRAPING', 'SWITCHED ALL THREE DOGS', 'VET ASKED WHAT CHANGED', 'WORTH EVERY PENNY'], stat: 11406, label: 'FIVE-STAR BOWLS' },
+  Awards: { kicker: 'ON THE RECORD', rows: [['“The clearest label on the shelf.”', 'THE GROCER'], ['“Five ingredients, all of them food.”', 'PET WEEKLY'], ['“A vet could read it aloud.”', 'VETERINARY REVIEW']] },
+  Montage: { rows: [['2000', '', 'households'], ['1', 'recipe book', '']] },
+  Team: { title: 'NINE PEOPLE, ONE KITCHEN', rows: [['Ada', 'kitchen'], ['Ravi', 'sourcing'], ['Nell', 'nutrition'], ['Tom', 'packing'], ['Iris', 'the vans'], ['Sam', 'the phones'], ['Joy', 'the books'], ['Kit', 'the dogs']] },
+  Delivery: { title: 'CHILLED, THIRTY-SIX HOURS', items: ['KITCHEN', 'CHILL', 'VAN', 'YOUR DOOR'] },
+  Planet: { rows: [['92', '%', 'paper packaging'], ['0', '', 'plastic trays'], ['180', 'mi', 'longest haul']] },
+  Referral: { kicker: 'BRING A DOG YOU WALK WITH', title: 'TWOBOWLS', body: 'Both boxes free.' },
 };
 const CT = window.Content.make(DEMO);
+
+/* Host rows arrive as strings even where the layout needs a number (a bar width, a counter
+   target). One coercion, used at every such site. */
+const num = (v) => (typeof v === 'number' ? v : parseFloat(v) || 0);
 
 /* ---- type roles ---- */
 const DISP = (s, c) => ({ fontFamily: FD, fontWeight: 400, fontSize: s, lineHeight: 1.02, letterSpacing: '-0.015em', color: c, margin: 0 });
@@ -429,15 +459,15 @@ function Film() {
       </Scene>
 
       <Scene name="Timeline" bg={C.paper} wipe="split" wipeColor={C.ink}>{(p) => {
-        const stops = [['1974', 'Extrusion arrives'], ['1990s', 'Shelf life wins'], ['2010s', 'Marketing wins'], ['TODAY', 'Nobody checks']];
+        const stops = CT.of('Timeline').rows([['1974', 'Extrusion arrives'], ['1990s', 'Shelf life wins'], ['2010s', 'Marketing wins'], ['TODAY', 'Nobody checks']], 4);
         const q = ease.inOut(p / 0.66);
         return <div style={MID}>
-          <Hd t="HOW THE BOWL GOT WORSE" size={76} c={C.ink} style={{ marginBottom: 80 }} />
+          <Hd t={CT.of('Timeline').title('HOW THE BOWL GOT WORSE')} size={76} c={C.ink} style={{ marginBottom: 80 }} />
           <div style={{ position: 'relative', height: 230 }}>
             <Rule q={q} w={2} style={{ width: COL * 11 }} />
             {stops.map(([y, l], i) => {
-              const at = i / (stops.length - 1), vis = ease.out((q - at) / 0.16);
-              const last = i === 3;
+              const at = stops.length > 1 ? i / (stops.length - 1) : 0, vis = ease.out((q - at) / 0.16);
+              const last = i === stops.length - 1;
               return <div key={i} style={{ position: 'absolute', left: at * (COL * 11 - 10), top: -18, opacity: vis, transform: `translateY(${(1 - vis) * 20}px)` }}>
                 <div style={{ width: last ? 26 : 18, height: last ? 26 : 18, background: last ? C.accent : C.ink, marginBottom: 26 }} />
                 <div style={NUM(52, C.ink)}>{y}</div>
@@ -485,18 +515,18 @@ function Film() {
       }}</Scene>
 
       <Scene name="WeighIn" bg={C.paper} wipe="split" wipeColor={C.accent}>{(p) => {
-        const bars = [['CHICKEN', 65], ['SWEET POTATO', 14], ['CARROT', 9], ['SPINACH', 6], ['SALMON OIL', 4], ['MINERALS', 2]];
+        const bars = CT.of('WeighIn').rows([['CHICKEN', 65], ['SWEET POTATO', 14], ['CARROT', 9], ['SPINACH', 6], ['SALMON OIL', 4], ['MINERALS', 2]], 6);
         const q = ease.inOut(p / 0.62);
         return <div style={MID}>
-          <Hd t="WEIGHED, THEN PRINTED" size={72} c={C.ink} style={{ marginBottom: 40 }} />
+          <Hd t={CT.of('WeighIn').title('WEIGHED, THEN PRINTED')} size={72} c={C.ink} style={{ marginBottom: 40 }} />
           {bars.map(([n, v], i) => {
             const vis = ease.out(stg(p, i, 0.06, 0.24));
             return <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 14, opacity: vis }}>
               <span style={{ ...LBL(20, C.mid), width: 250 }}>{n}</span>
               <div style={{ flex: 1, height: 34 }}>
-                <div style={{ height: 34, width: `${v * q}%`, background: i === 0 ? C.accent : C.ink }} />
+                <div style={{ height: 34, width: `${num(v) * q}%`, background: i === 0 ? C.accent : C.ink }} />
               </div>
-              <span style={{ ...NUM(34, C.ink), width: 100, textAlign: 'right' }}>{Math.round(v * q)}%</span>
+              <span style={{ ...NUM(34, C.ink), width: 100, textAlign: 'right' }}>{Math.round(num(v) * q)}%</span>
             </div>;
           })}
         </div>;
@@ -529,25 +559,25 @@ function Film() {
             return <div key={i} style={{ position: 'absolute', left: x, top: y, width: 20, height: 20, background: i === 0 ? C.accent : C.white, opacity: q, transform: `scale(${q})` }} />;
           })}
           <div style={{ position: 'absolute', left: GUT, bottom: 130 }}>
-            <div style={NUM(150, C.white)}><Counter target={7} p={p} dur={0.4} /></div>
-            <div style={{ ...LBL(22, C.accent), marginTop: 14 }}>FARMS · ALL WITHIN 180 MILES</div>
+            <div style={NUM(150, C.white)}><Counter target={CT.of('Farms').stat(7)} p={p} dur={0.4} /></div>
+            <div style={{ ...LBL(22, C.accent), marginTop: 14 }}>{CT.of('Farms').label('FARMS · ALL WITHIN 180 MILES')}</div>
           </div>
         </div>;
       }}</Scene>
 
       <Scene name="Sourcing" bg={C.paper} wipe="columns" wipeColor={C.grey}>{(p) => {
-        const steps = ['FARM', 'CUT', 'WEIGH', 'COOK', 'PACK'];
+        const steps = CT.of('Sourcing').items(['FARM', 'CUT', 'WEIGH', 'COOK', 'PACK'], 5);
         return <div style={MID}>
-          <Slug t="FIVE HANDS, END TO END" p={p} />
+          <Slug t={CT.of('Sourcing').kicker('FIVE HANDS, END TO END')} p={p} />
           <div style={{ display: 'flex', alignItems: 'stretch', marginTop: 46 }}>
             {steps.map((s, i) => {
               const q = ease.out(stg(p, i, 0.09, 0.26));
               return <React.Fragment key={i}>
-                <div style={{ flex: 1, border: `2px solid ${C.ink}`, borderRadius: 24, background: i === 4 ? C.accent : 'transparent', padding: '38px 20px', textAlign: 'center', opacity: q, transform: `translateY(${(1 - q) * 40}px)` }}>
-                  <div style={NUM(46, i === 4 ? C.white : C.ink)}>{'0' + (i + 1)}</div>
-                  <div style={{ ...LBL(20, i === 4 ? C.white : C.ink), marginTop: 14 }}>{s}</div>
+                <div style={{ flex: 1, border: `2px solid ${C.ink}`, borderRadius: 24, background: i === steps.length - 1 ? C.accent : 'transparent', padding: '38px 20px', textAlign: 'center', opacity: q, transform: `translateY(${(1 - q) * 40}px)` }}>
+                  <div style={NUM(46, i === steps.length - 1 ? C.white : C.ink)}>{'0' + (i + 1)}</div>
+                  <div style={{ ...LBL(20, i === steps.length - 1 ? C.white : C.ink), marginTop: 14 }}>{s}</div>
                 </div>
-                {i < 4 ? <div style={{ width: 46, display: 'grid', placeItems: 'center', opacity: q }}><div style={{ width: 46, height: 2, background: C.ink }} /></div> : null}
+                {i < steps.length - 1 ? <div style={{ width: 46, display: 'grid', placeItems: 'center', opacity: q }}><div style={{ width: 46, height: 2, background: C.ink }} /></div> : null}
               </React.Fragment>;
             })}
           </div>
@@ -560,7 +590,7 @@ function Film() {
           <Hd t={CT.of('Feature2').title('COOKED AT 90°, NOT 400.')} size={140} c={C.white} lines={2} style={{ marginTop: 24 }} />
           <Rule q={ease.out((p - 0.4) / 0.3)} w={4} c={C.accent} style={{ margin: '32px 0 26px' }} />
           <div style={{ display: 'flex', gap: 70 }}>
-            {[['90°', 'our oven'], ['400°', 'an extruder'], ['4h', 'not four seconds']].map(([n, l], i) => {
+            {CT.of('Feature2').rows([['90°', 'our oven'], ['400°', 'an extruder'], ['4h', 'not four seconds']], 3).map(([n, l], i) => {
               const q = ease.out(stg(p - 0.4, i, 0.09, 0.26));
               return <div key={i} style={{ opacity: q, transform: `translateY(${(1 - q) * 30}px)` }}>
                 <div style={NUM(96, i === 1 ? C.grey : C.accent)}>{n}</div>
@@ -572,17 +602,17 @@ function Film() {
       </Scene>
 
       <Scene name="Kitchen" bg={C.paper} wipe="split" wipeColor={C.ink}>{(p) => {
-        const steps = [['06:00', 'Meat arrives whole'], ['08:20', 'Cut and weighed'], ['11:00', 'Ninety degrees, four hours'], ['16:40', 'Chilled and packed']];
+        const steps = CT.of('Kitchen').rows([['06:00', 'Meat arrives whole'], ['08:20', 'Cut and weighed'], ['11:00', 'Ninety degrees, four hours'], ['16:40', 'Chilled and packed']], 4);
         return <div style={{ ...PAGE, display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <Hd t="THE KITCHEN, TUESDAY" size={64} />
-            <div style={LBL(20, C.mid)}>ONE SHIFT</div>
+            <Hd t={CT.of('Kitchen').title('THE KITCHEN, TUESDAY')} size={64} />
+            <div style={LBL(20, C.mid)}>{CT.of('Kitchen').label('ONE SHIFT')}</div>
           </div>
           <Rule q={ease.out(p / 0.26)} w={2} style={{ margin: '22px 0 26px' }} />
           <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', border: `2px solid ${C.ink}`, borderRadius: 24 }}>
             {steps.map(([t2, s2], i) => {
               const q = ease.out(stg(p, i, 0.09, 0.26));
-              return <div key={i} style={{ padding: '38px 30px', borderRight: i < 3 ? `2px solid ${C.ink}` : 'none', opacity: q, transform: `translateY(${(1 - q) * 40}px)`, background: i === 2 ? C.accent : 'transparent' }}>
+              return <div key={i} style={{ padding: '38px 30px', borderRight: i < steps.length - 1 ? `2px solid ${C.ink}` : 'none', opacity: q, transform: `translateY(${(1 - q) * 40}px)`, background: i === 2 ? C.accent : 'transparent' }}>
                 <div style={NUM(72, i === 2 ? C.white : C.accent)}>{t2}</div>
                 <Rule q={q} w={2} c={i === 2 ? C.white : C.ink} style={{ margin: '22px 0 18px' }} />
                 <div style={SUB(32, i === 2 ? C.white : C.ink)}>{s2}</div>
@@ -597,21 +627,21 @@ function Film() {
           {Array.from({ length: 13 }).map((_, i) => (
             <div key={i} style={{ position: 'absolute', left: GUT + i * COL, top: 0, bottom: 0, width: 1, background: alpha(C.white, 0.09) }} />))}
           <div style={{ ...MID }}>
-            <Hd t="YOU CAN SEE THE CARROT." size={150} c={C.white} lines={2} />
+            <Hd t={CT.of('Texture').title('YOU CAN SEE THE CARROT.')} size={150} c={C.white} lines={2} />
             <Rule q={ease.out((p - 0.35) / 0.3)} w={4} c={C.accent} style={{ margin: '34px 0 24px' }} />
-            <div style={{ ...BODY(36, alpha(C.white, 0.7)), maxWidth: COL * 6 }}>Nothing is milled to powder, so nothing has to be described on the back of the pack.</div>
+            <div style={{ ...BODY(36, alpha(C.white, 0.7)), maxWidth: COL * 6 }}>{CT.of('Texture').body('Nothing is milled to powder, so nothing has to be described on the back of the pack.')}</div>
           </div>
         </div>)}
       </Scene>
 
       <Scene name="Feature3" bg={C.paper} wipe="columns" wipeColor={C.accent}>{(p) => {
-        const bowls = [['PUPPY', '3 meals', '210g'], ['ADULT', '2 meals', '340g'], ['SENIOR', '2, softer', '290g']];
+        const bowls = CT.of('Feature3').rows([['PUPPY', '3 meals', '210g'], ['ADULT', '2 meals', '340g'], ['SENIOR', '2, softer', '290g']], 3);
         return <div style={MID}>
-          <Hd t="PORTIONED FOR THE DOG IN FRONT OF YOU" size={72} lines={2} style={{ marginBottom: 44 }} />
+          <Hd t={CT.of('Feature3').title('PORTIONED FOR THE DOG IN FRONT OF YOU')} size={72} lines={2} style={{ marginBottom: 44 }} />
           <div style={{ display: 'flex', border: `2px solid ${C.ink}`, borderRadius: 24 }}>
             {bowls.map(([t2, s2, g], i) => {
               const q = ease.out(stg(p, i, 0.1, 0.28));
-              return <div key={i} style={{ flex: 1, padding: '44px 36px', borderRight: i < 2 ? `2px solid ${C.ink}` : 'none', opacity: q, transform: `translateY(${(1 - q) * 50}px)` }}>
+              return <div key={i} style={{ flex: 1, padding: '44px 36px', borderRight: i < bowls.length - 1 ? `2px solid ${C.ink}` : 'none', opacity: q, transform: `translateY(${(1 - q) * 50}px)` }}>
                 <div style={LBL(20, C.mid)}>{t2}</div>
                 <div style={{ ...NUM(110, C.ink), marginTop: 16 }}>{g}</div>
                 <div style={{ ...LBL(20, C.accent), marginTop: 14 }}>{s2}</div>
@@ -654,9 +684,9 @@ function Film() {
 
       <Scene name="Packaging" bg={C.paper} wipe="blockOut" wipeColor={C.near}>{(p) => (
         <div style={MID}>
-          <Slug t="WHAT THE PACK TELLS YOU" p={p} />
+          <Slug t={CT.of('Packaging').kicker('WHAT THE PACK TELLS YOU')} p={p} />
           <div style={{ marginTop: 34 }}>
-            {[['Percentages', 'on the front, not the back'], ['Batch and farm', 'printed, not looked up'], ['Paper', 'not plastic'], ['Kerbside', 'recyclable everywhere']].map(([k, v], i) => {
+            {CT.of('Packaging').rows([['Percentages', 'on the front, not the back'], ['Batch and farm', 'printed, not looked up'], ['Paper', 'not plastic'], ['Kerbside', 'recyclable everywhere']], 4).map(([k, v], i) => {
               const q = ease.out(stg(p, i, 0.09, 0.26));
               return <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 40, padding: '26px 0', borderBottom: `2px solid ${C.ink}`, opacity: q, transform: `translateX(${(1 - q) * -44}px)` }}>
                 <div style={{ width: 60, height: 2, background: C.accent, alignSelf: 'center' }} />
@@ -704,8 +734,8 @@ function Film() {
         const shown = Math.max(2, Math.ceil(q * pts.length));
         return <div style={{ position: 'absolute', inset: 0 }}>
           <div style={{ position: 'absolute', left: GUT, top: 130 }}>
-            <div style={DISP(70, C.ink)}>COAT CONDITION SCORE</div>
-            <div style={{ ...LBL(20, C.mid), marginTop: 14 }}>WEEK 1 TO WEEK 12 · VET ASSESSED</div>
+            <div style={DISP(70, C.ink)}>{CT.of('Coat').title('COAT CONDITION SCORE')}</div>
+            <div style={{ ...LBL(20, C.mid), marginTop: 14 }}>{CT.of('Coat').label('WEEK 1 TO WEEK 12 · VET ASSESSED')}</div>
           </div>
           <svg width={W} height={H} style={{ position: 'absolute', inset: 0 }}>
             <polyline points={pts.slice(0, shown).map((v, i) => `${GUT + i * (COL * 11 / 7)},${H - 200 - v * 480}`).join(' ')} fill="none" stroke={C.accent} strokeWidth={5} />
@@ -717,15 +747,17 @@ function Film() {
 
       <Scene name="Energy" bg={C.paper} wipe="columns" wipeColor={C.grey}>{(p) => {
         const q = ease.inOut(p / 0.62);
-        const rows = [['Before', 0.42, C.grey], ['Week 4', 0.61, C.mid], ['Week 8', 0.78, C.ink], ['Week 12', 0.94, C.accent]];
+        const tone = [C.grey, C.mid, C.ink, C.accent];
+        const rows = CT.of('Energy').rows([['Before', 42], ['Week 4', 61], ['Week 8', 78], ['Week 12', 94]], 4);
         return <div style={MID}>
-          <Hd t="WALKS COMPLETED, UNPROMPTED" size={70} c={C.ink} style={{ marginBottom: 44 }} />
-          {rows.map(([k, v, col], i) => {
+          <Hd t={CT.of('Energy').title('WALKS COMPLETED, UNPROMPTED')} size={70} c={C.ink} style={{ marginBottom: 44 }} />
+          {rows.map(([k, v], i) => {
             const vis = ease.out(stg(p, i, 0.08, 0.26));
+            const col = tone[Math.min(i, tone.length - 1)];
             return <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 26, marginBottom: 20, opacity: vis }}>
               <span style={{ ...LBL(20, C.mid), width: 190 }}>{k}</span>
-              <div style={{ flex: 1, height: 58 }}><div style={{ height: 58, width: `${v * 100 * q}%`, background: col }} /></div>
-              <span style={{ ...NUM(40, col), width: 110, textAlign: 'right' }}>{Math.round(v * 100 * q)}%</span>
+              <div style={{ flex: 1, height: 58 }}><div style={{ height: 58, width: `${num(v) * q}%`, background: col }} /></div>
+              <span style={{ ...NUM(40, col), width: 110, textAlign: 'right' }}>{Math.round(num(v) * q)}%</span>
             </div>;
           })}
         </div>;
@@ -733,7 +765,7 @@ function Film() {
 
       <Scene name="Sleep" bg={C.near} wipe="cut" wipeColor={C.accent}>{(p) => (
         <div style={MID}>
-          <Hd t="NIGHTS SLEPT THROUGH · 28" size={66} c={C.white} style={{ marginBottom: 40 }} />
+          <Hd t={CT.of('Sleep').title('NIGHTS SLEPT THROUGH · 28')} size={66} c={C.white} style={{ marginBottom: 40 }} />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(14, 1fr)', gap: 12 }}>
             {Array.from({ length: 28 }).map((_, i) => {
               const q = ease.out(stg(p, i, 0.016, 0.2));
@@ -741,15 +773,16 @@ function Film() {
               return <div key={i} style={{ height: 76, background: bad ? C.accent : alpha(C.white, 0.85), opacity: q, transform: `scale(${q})` }} />;
             })}
           </div>
-          <div style={{ ...LBL(20, alpha(C.white, 0.6)), marginTop: 26 }}>RED MEANS DISTURBED · THREE IN TWENTY-EIGHT</div>
+          <div style={{ ...LBL(20, alpha(C.white, 0.6)), marginTop: 26 }}>{CT.of('Sleep').label('RED MEANS DISTURBED · THREE IN TWENTY-EIGHT')}</div>
         </div>)}
       </Scene>
 
       <Scene name="BeforeAfter" bg={C.paper} wipe="blockOut" wipeColor={C.ink}>{(p) => {
-        const rows = [['Bowl finished', 'Left half full', '94%'], ['Coat score', '2 of 5', '4 of 5'], ['Night waking', 'Most nights', '3 in 28'], ['Vet flags', 'Two', 'None']];
+        const head = CT.of('BeforeAfter').items(['MEASURE', 'WEEK 1', 'WEEK 12'], 3);
+        const rows = CT.of('BeforeAfter').rows([['Bowl finished', 'Left half full', '94%'], ['Coat score', '2 of 5', '4 of 5'], ['Night waking', 'Most nights', '3 in 28'], ['Vet flags', 'Two', 'None']], 4);
         return <div style={MID}>
           <div style={{ display: 'flex', ...LBL(20, C.mid), paddingBottom: 14, borderBottom: `2px solid ${C.ink}` }}>
-            <div style={{ flex: 2 }}>MEASURE</div><div style={{ flex: 1 }}>WEEK 1</div><div style={{ flex: 1, color: C.accent }}>WEEK 12</div>
+            <div style={{ flex: 2 }}>{head[0]}</div><div style={{ flex: 1 }}>{head[1]}</div><div style={{ flex: 1, color: C.accent }}>{head[2]}</div>
           </div>
           {rows.map(([k, a, b], i) => {
             const q = ease.out(stg(p, i, 0.09, 0.26));
@@ -773,17 +806,20 @@ function Film() {
         </div>)}
       </Scene>
 
-      <Scene name="Reviews" bg={C.accent} wipe="columns" wipeColor={C.paper}>{(p) => (
+      <Scene name="Reviews" bg={C.accent} wipe="columns" wipeColor={C.paper}>{(p) => {
+        const revs = CT.of('Reviews').items(['EMPTY BOWL, EVERY TIME', 'THE COAT, HONESTLY', 'SHE HEARS THE PAPER', 'NO MORE SCRAPING', 'SWITCHED ALL THREE DOGS', 'VET ASKED WHAT CHANGED', 'WORTH EVERY PENNY'], 8);
+        const lower = revs.length > 4 ? revs.slice(4) : revs;
+        return (
         <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-          <Marquee items={['EMPTY BOWL, EVERY TIME', 'THE COAT, HONESTLY', 'SHE HEARS THE PAPER', 'NO MORE SCRAPING']} T={T} speed={130} size={64} style={{ top: 210, ...DISP(64, alpha(C.white, 0.42)) }} />
-          <Marquee items={['SWITCHED ALL THREE DOGS', 'VET ASKED WHAT CHANGED', 'WORTH EVERY PENNY']} T={T} speed={104} dir={-1} size={64} style={{ bottom: 220, ...DISP(64, alpha(C.near, 0.32)) }} />
+          <Marquee items={revs.slice(0, 4)} T={T} speed={130} size={64} style={{ top: 210, ...DISP(64, alpha(C.white, 0.42)) }} />
+          <Marquee items={lower} T={T} speed={104} dir={-1} size={64} style={{ bottom: 220, ...DISP(64, alpha(C.near, 0.32)) }} />
           <div style={{ ...MID, alignItems: 'flex-start' }}>
             <div style={{ background: C.accent, padding: '10px 0' }}>
-              <div style={NUM(180, C.white)}><Counter target={11406} p={p} dur={0.55} /></div>
-              <div style={{ ...LBL(24, C.near), marginTop: 16 }}>FIVE-STAR BOWLS</div>
+              <div style={NUM(180, C.white)}><Counter target={CT.of('Reviews').stat(11406)} p={p} dur={0.55} /></div>
+              <div style={{ ...LBL(24, C.near), marginTop: 16 }}>{CT.of('Reviews').label('FIVE-STAR BOWLS')}</div>
             </div>
           </div>
-        </div>)}
+        </div>); }}
       </Scene>
 
       <Scene name="Compare" bg={C.paper} wipe="bars" wipeColor={C.grey}>{(p) => {
@@ -804,11 +840,11 @@ function Film() {
 
       <Scene name="Awards" bg={C.paper} wipe="split" wipeColor={C.ink}>{(p) => (
         <div style={MID}>
-          <Slug t="ON THE RECORD" p={p} />
+          <Slug t={CT.of('Awards').kicker('ON THE RECORD')} p={p} />
           <div style={{ display: 'flex', marginTop: 34, border: `2px solid ${C.ink}`, borderRadius: 24 }}>
-            {[['“The clearest label on the shelf.”', 'THE GROCER'], ['“Five ingredients, all of them food.”', 'PET WEEKLY'], ['“A vet could read it aloud.”', 'VETERINARY REVIEW']].map(([q2, src], i) => {
+            {CT.of('Awards').rows([['“The clearest label on the shelf.”', 'THE GROCER'], ['“Five ingredients, all of them food.”', 'PET WEEKLY'], ['“A vet could read it aloud.”', 'VETERINARY REVIEW']], 3).map(([q2, src], i, arr) => {
               const q = ease.out(stg(p, i, 0.1, 0.28));
-              return <div key={i} style={{ flex: 1, padding: '40px 34px', borderRight: i < 2 ? `2px solid ${C.ink}` : 'none', opacity: q, transform: `translateY(${(1 - q) * 40}px)` }}>
+              return <div key={i} style={{ flex: 1, padding: '40px 34px', borderRight: i < arr.length - 1 ? `2px solid ${C.ink}` : 'none', opacity: q, transform: `translateY(${(1 - q) * 40}px)` }}>
                 <div style={{ ...SUB(38, C.ink) }}>{q2}</div>
                 <div style={{ ...LBL(19, C.accent), marginTop: 24 }}>{src}</div>
               </div>;
@@ -822,10 +858,11 @@ function Film() {
 
       <Scene name="Montage" bg={C.paper} wipe="columns" wipeColor={C.near}>{(p) => (
         <div style={{ ...MID, flexDirection: 'row', gap: 0, border: `2px solid ${C.ink}`, borderRadius: 24 }}>
-          {[[2000, '', 'households', C.paper, C.ink], [1, 'recipe book', '', C.accent, C.white]].map(([n, sfx, lbl, bgc, fg], i) => {
+          {CT.of('Montage').rows([['2000', '', 'households'], ['1', 'recipe book', '']], 2).map(([n, sfx, lbl], i) => {
+            const bgc = i ? C.accent : C.paper, fg = i ? C.white : C.ink;
             const q = ease.out(stg(p, i, 0.12, 0.3));
             return <div key={i} style={{ flex: 1, background: bgc, padding: '70px 46px', borderRight: i === 0 ? `2px solid ${C.ink}` : 'none', opacity: q, transform: `translateY(${(1 - q) * 60}px)` }}>
-              <div style={{ ...NUM(190, fg), whiteSpace: 'nowrap' }}><Counter target={n} p={p} d={i * 0.12} dur={0.45} /></div>
+              <div style={{ ...NUM(190, fg), whiteSpace: 'nowrap' }}><Counter target={num(n)} p={p} d={i * 0.12} dur={0.45} /></div>
               <Rule q={ease.out((p - 0.35) / 0.3)} w={2} c={i ? C.white : C.accent} style={{ margin: '26px 0 18px' }} />
               <div style={LBL(22, i ? alpha(C.white, 0.85) : C.mid)}>{sfx || lbl}</div>
             </div>;
@@ -846,9 +883,9 @@ function Film() {
       }}</Scene>
 
       <Scene name="Team" bg={C.paper} wipe="blockOut" wipeColor={C.accent}>{(p) => {
-        const who = [['Ada', 'kitchen'], ['Ravi', 'sourcing'], ['Nell', 'nutrition'], ['Tom', 'packing'], ['Iris', 'the vans'], ['Sam', 'the phones'], ['Joy', 'the books'], ['Kit', 'the dogs']];
+        const who = CT.of('Team').rows([['Ada', 'kitchen'], ['Ravi', 'sourcing'], ['Nell', 'nutrition'], ['Tom', 'packing'], ['Iris', 'the vans'], ['Sam', 'the phones'], ['Joy', 'the books'], ['Kit', 'the dogs']], 8);
         return <div style={MID}>
-          <Hd t="NINE PEOPLE, ONE KITCHEN" size={66} style={{ marginBottom: 32 }} />
+          <Hd t={CT.of('Team').title('NINE PEOPLE, ONE KITCHEN')} size={66} style={{ marginBottom: 32 }} />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', columnGap: 60 }}>
             {who.map(([n, r], i) => {
               const q = ease.out(stg(p, i, 0.06, 0.24));
@@ -878,7 +915,7 @@ function Film() {
       <Scene name="Delivery" bg={C.paper} wipe="columns" wipeColor={C.grey}>{(p) => {
         const q = ease.inOut(p / 0.72);
         return <div style={{ position: 'absolute', inset: 0 }}>
-          <div style={{ position: 'absolute', left: GUT, top: 140, ...DISP(70, C.ink) }}>CHILLED, THIRTY-SIX HOURS</div>
+          <div style={{ position: 'absolute', left: GUT, top: 140, ...DISP(70, C.ink) }}>{CT.of('Delivery').title('CHILLED, THIRTY-SIX HOURS')}</div>
           <svg width={W} height={H} style={{ position: 'absolute', inset: 0 }}>
             <line x1={GUT} y1={620} x2={GUT + COL * 11} y2={620} stroke={C.ink} strokeWidth={2} />
             <line x1={GUT} y1={620} x2={GUT + COL * 11 * q} y2={620} stroke={C.accent} strokeWidth={8} />
@@ -886,18 +923,18 @@ function Film() {
               <rect key={i} x={GUT + COL * 11 * at - 11} y={609} width={22} height={22} fill={q > at ? C.accent : C.grey} />))}
           </svg>
           <div style={{ position: 'absolute', left: GUT, top: 690, display: 'flex', width: COL * 11, justifyContent: 'space-between' }}>
-            {['KITCHEN', 'CHILL', 'VAN', 'YOUR DOOR'].map((s, i) => <span key={i} style={LBL(19, C.mid)}>{s}</span>)}
+            {CT.of('Delivery').items(['KITCHEN', 'CHILL', 'VAN', 'YOUR DOOR'], 4).map((s, i) => <span key={i} style={LBL(19, C.mid)}>{s}</span>)}
           </div>
         </div>;
       }}</Scene>
 
       <Scene name="Planet" bg={C.near} wipe="cut" wipeColor={C.accent}>{(p) => {
-        const cols = [[92, '%', 'paper packaging'], [0, '', 'plastic trays'], [180, 'mi', 'longest haul']];
+        const cols = CT.of('Planet').rows([['92', '%', 'paper packaging'], ['0', '', 'plastic trays'], ['180', 'mi', 'longest haul']], 3);
         return <div style={{ ...MID, flexDirection: 'row', gap: 60 }}>
           {cols.map(([n, sfx, lbl], i) => {
             const q = ease.out(stg(p, i, 0.1, 0.28));
             return <div key={i} style={{ flex: 1, opacity: q, transform: `translateY(${(1 - q) * 40}px)` }}>
-              <div style={{ ...NUM(150, i === 1 ? C.accent : C.white), whiteSpace: 'nowrap' }}><Counter target={n} p={p} d={i * 0.1} dur={0.42} suffix={sfx} /></div>
+              <div style={{ ...NUM(150, i === 1 ? C.accent : C.white), whiteSpace: 'nowrap' }}><Counter target={num(n)} p={p} d={i * 0.1} dur={0.42} suffix={sfx} /></div>
               <Rule q={ease.out((p - 0.3 - i * 0.08) / 0.3)} w={2} c={C.accent} style={{ margin: '22px 0 16px' }} />
               <div style={LBL(20, alpha(C.white, 0.7))}>{lbl}</div>
             </div>;
@@ -945,11 +982,11 @@ function Film() {
 
       <Scene name="Referral" bg={C.near} wipe="blockOut" wipeColor={C.accent}>{(p) => (
         <div style={MID}>
-          <div style={{ ...LBL(22, C.accent), marginBottom: 20, opacity: ease.out(p / 0.26) }}>BRING A DOG YOU WALK WITH</div>
+          <div style={{ ...LBL(22, C.accent), marginBottom: 20, opacity: ease.out(p / 0.26) }}>{CT.of('Referral').kicker('BRING A DOG YOU WALK WITH')}</div>
           <div style={{ border: `4px dashed ${alpha(C.white, 0.6)}`, borderRadius: 26, padding: '34px 60px', alignSelf: 'flex-start', transform: `scaleX(${ease.out((p - 0.2) / 0.3)})`, transformOrigin: '0 50%' }}>
-            <div style={NUM(130, C.white)}>TWOBOWLS</div>
+            <div style={NUM(130, C.white)}>{CT.of('Referral').title('TWOBOWLS')}</div>
           </div>
-          <div style={{ ...SUB(40, alpha(C.white, 0.8)), marginTop: 34, opacity: ease.out((p - 0.55) / 0.28) }}>Both boxes free.</div>
+          <div style={{ ...SUB(40, alpha(C.white, 0.8)), marginTop: 34, opacity: ease.out((p - 0.55) / 0.28) }}>{CT.of('Referral').body('Both boxes free.')}</div>
         </div>)}
       </Scene>
 
