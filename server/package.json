@@ -34,7 +34,7 @@
     "test:tween-units": "node scripts/test-tween-units.js",
     "test:dead-exports": "node scripts/test-dead-exports.js",
     "test:admin-templates": "node scripts/test-admin-templates.js",
-    "test": "npm run test:brand-kit && npm run test:asset-priority && npm run test:pixabay && npm run test:asset-sources && npm run test:asset-scoring && npm run test:reuse && npm run test:asset-prep && npm run test:video-quality && npm run test:media-profiles && npm run test:website-assets && npm run test:taxonomy && npm run test:screenshot-intake && npm run test:handoffs && npm run test:quality && npm run test:peekshot && npm run test:variety && npm run test:transitions && npm run test:ghosts && npm run test:no-playback-chrome && npm run test:motion-safety && npm run test:dead-tweens && npm run test:tween-units && npm run test:dead-exports && npm run test:admin-templates && npm run test:template-batch && npm run test:dropped-css && npm run test:shot-containment && npm run test:beat-ground && npm run test:treatments && npm run test:font-axes && npm run test:font-metrics && npm run test:film-skins && npm run test:film-packs && npm run test:lf-skins && npm run test:lf-packs && npm run test:pack-composers && npm run test:pack-media && npm run test:framecheck && npm run test:audio && npm run test:audio-profiles && npm run test:music-diversity && npm run test:music-history && npm run test:pacing && npm run test:beat-sync && npm run test:music-vocab && npm run test:spread && npm run test:portrait && npm run test:orientation && npm run test:frame-fill && npm run test:golden && npm run test:content && npm run test:integration",
+    "test": "npm run test:brand-kit && npm run test:asset-priority && npm run test:pixabay && npm run test:asset-sources && npm run test:asset-scoring && npm run test:reuse && npm run test:asset-prep && npm run test:video-quality && npm run test:media-profiles && npm run test:website-assets && npm run test:taxonomy && npm run test:screenshot-intake && npm run test:handoffs && npm run test:quality && npm run test:peekshot && npm run test:variety && npm run test:transitions && npm run test:ghosts && npm run test:no-playback-chrome && npm run test:motion-safety && npm run test:dead-tweens && npm run test:tween-units && npm run test:dead-exports && npm run test:admin-templates && npm run test:template-batch && npm run test:dropped-css && npm run test:shot-containment && npm run test:beat-ground && npm run test:treatments && npm run test:font-axes && npm run test:font-metrics && npm run test:film-skins && npm run test:film-packs && npm run test:lf-skins && npm run test:lf-packs && npm run test:pack-composers && npm run test:pack-media && npm run test:framecheck && npm run test:audio && npm run test:audio-profiles && npm run test:music-diversity && npm run test:music-history && npm run test:pacing && npm run test:beat-sync && npm run test:music-vocab && npm run test:spread && npm run test:portrait && npm run test:orientation && npm run test:frame-fill && npm run test:golden && npm run test:content && npm run test:longform-templates && npm run test:integration",
     "test:peekshot": "node scripts/test-peekshot.js",
     "test:variety": "node scripts/test-native-variety.js",
     "test:transitions": "node scripts/test-transitions.js",
@@ -75,7 +75,9 @@
     "test:lf-skins": "node scripts/gen-lf-skins.js --check",
     "lf:packs": "node scripts/gen-lf-packs.js",
     "test:lf-packs": "node scripts/test-lf-packs.js",
-    "shot:lf": "node scripts/shot-lf-pack.js"
+    "shot:lf": "node scripts/shot-lf-pack.js",
+    "test:longform-templates": "node scripts/verify-longform-templates.js --offline",
+    "test:longform-online": "node scripts/verify-longform-templates.js"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",

@@ -19,6 +19,7 @@ const { buildRouter: buildGenerateRouter } = require("./src/routes/generate");
 const { buildRouter: buildProjectsRouter } = require("./src/routes/projects");
 const { buildRouter: buildAuthRouter } = require("./src/routes/auth");
 const { buildRouter: buildAdminTemplatesRouter } = require("./src/routes/admin_templates");
+const { buildRouter: buildLongformRouter, buildApiRouter: buildLongformApiRouter } = require("./src/routes/longform");
 const { requireAdmin } = require("./src/auth/middleware");
 const cookieParser = require("cookie-parser");
 
@@ -168,6 +169,19 @@ async function main() {
   // its own /api/admin prefix so it is trivially auditable: everything under that path is
   // privileged, everything outside it is not.
   app.use("/api/admin", buildAdminTemplatesRouter({ enqueueIntake }));
+  app.use("/api/longform", buildLongformApiRouter());
+
+  // LONG-FORM FILM TEMPLATES — the ten 16:9 five-minute reference films, served as authored.
+  //
+  // Its own mount rather than a drop into public/ for two reasons. The collection is SOURCE, not
+  // runtime output: public/ holds rendered videos, frame-pack media and the built SPA, all of
+  // which the janitor and the deploy treat as disposable, and none of which describes ten
+  // templates that must survive untouched. And the mount has to intercept the .dc.html pages to
+  // write the OM_* config globals before the film loads, which a plain static mount cannot do.
+  //
+  // The path depth under the mount is the authored depth on purpose — the pages resolve every
+  // sibling by relative URL. See src/routes/longform.js.
+  app.use(require("./src/services/longform_templates").MOUNT, buildLongformRouter());
 
   // ADMIN WORKING ARTIFACTS — the preview stills for templates that are not published yet.
   //
