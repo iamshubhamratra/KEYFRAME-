@@ -49,6 +49,194 @@ const { extractFirstJsonObject: parseJsonLenient } = require("./json_lenient");
 const round2 = (n) => Math.round(n * 100) / 100;
 const clampDur = (n) => Math.min(15, Math.max(2, n));
 
+// TOO FEW SCENES TO COVER THE FILM: SPLIT THEM, DON'T STRETCH THEM.
+//
+// Scene durations are clamped to [2,15], so a storyboard of N scenes can cover at
+// most N*15 seconds. The single-shot path (/api/generate -> runJob) has no script
+// to set the count — it asks the director straight from the prompt, and the
+// system prompt above used to cap that at 20 scenes. The arithmetic then decided
+// what shipped:
+//   300s / 20 scenes  -> every scene clamped to 15s. Legal, so it shipped: a
+//                        five-minute film that cuts twenty times.
+//   600s / 20 scenes  -> cannot reach the target at all. normalizeTimeline landed
+//                        on 300s, validate() reported "durations sum to 300,
+//                        expected 600", and after the retries generateStoryboard
+//                        THREW. A ten-minute single-shot job could not be made.
+//
+// Scaling the count with the runtime (rule 1/4 of the prompt) is the real fix;
+// this is the deterministic floor under it, so whatever the director returns, the
+// film covers its runtime at a watchable pace. A split is not free — it divides
+// one beat's narration between two frames — so it is loud in the log and it
+// always hands the second half something new to say: the support line is promoted
+// to the headline and the headline steps back, the same move the omelette adapter
+// makes when it cuts inside a beat.
+const SENTENCE = /[^.!?]+[.!?]*/g;
+const sentencesOf = (vo) => (String(vo || "").match(SENTENCE) || []).map((s) => s.trim()).filter(Boolean);
+
+function splitNarration(vo) {
+  const list = sentencesOf(vo);
+  if (list.length < 2) return [String(vo || "").trim(), ""];
+  const mid = Math.ceil(list.length / 2);
+  return [list.slice(0, mid).join(" "), list.slice(mid).join(" ")];
+}
+
+const key = (v) => String(v || "").toLowerCase().replace(/[^\w\s]/g, "").replace(/\s+/g, " ").trim();
+
+// The line the second half would LEAD with, if it has one of its own. Never the
+// scene's own headline: promoting that back into the headline slot is how a cut
+// ends up showing the same words twice in a row, which reads as the picture
+// having stopped rather than as a cut.
+function secondLine(sc) {
+  const own = Array.isArray(sc.onScreenText) ? sc.onScreenText.filter(Boolean) : [];
+  const bullets = Array.isArray(sc.bullets) ? sc.bullets.filter(Boolean) : [];
+  const head = key(sc.headline);
+  return [String(sc.subtext || "").trim(), own[1], bullets[0]]
+    .map((x) => String(x || "").trim())
+    .find((x) => x && key(x) !== head) || "";
+}
+
+// Has this scene got a second half to give? It needs BOTH halves of a cut to
+// stand on their own: narration that divides into two spoken halves, and a line
+// of its own for the second frame to lead with. Requiring only one of the two
+// produced exactly the failures a cut is supposed to avoid — a silent 8s frame
+// where the narration ran out, or the same headline twice where the copy did.
+// A scene with neither can still be cut to make the film REACH its runtime
+// (that is arithmetic, not taste), but never for pace alone.
+function divisible(s) {
+  return sentencesOf(s.voiceover).length >= 2 && !!secondLine(s);
+}
+
+// Which scene to cut next: the one that can give its second half something of its
+// own to say, and has the most narration to divide. Bookends go last — splitting
+// the closer produces two CTAs and splitting the opener produces two hooks.
+function nextToSplit(scenes, { onlyDivisible = false } = {}) {
+  let best = -1, bestScore = -Infinity;
+  scenes.forEach((s, i) => {
+    if (onlyDivisible && !divisible(s)) return;
+    const bookend = i === 0 || i === scenes.length - 1 || /^(cta|title|hook)$/i.test(String(s.kind || ""));
+    const facets = (String(s.subtext || "").trim() ? 1 : 0)
+      + (Array.isArray(s.bullets) && s.bullets.filter(Boolean).length >= 2 ? 1 : 0);
+    const score = (bookend ? -100 : 0) + facets * 10 + sentencesOf(s.voiceover).length + (Number(s.duration) || 0) / 100;
+    if (score > bestScore) { bestScore = score; best = i; }
+  });
+  return best;
+}
+
+function splitScene(sc, seq) {
+  const [voA, voB] = splitNarration(sc.voiceover);
+  const bullets = Array.isArray(sc.bullets) ? sc.bullets.filter(Boolean) : [];
+  // The second half leads with a DIFFERENT line wherever the scene has one, so the
+  // cut hands the viewer new information instead of the same words twice.
+  const nextLine = secondLine(sc);
+  const d = Math.max(4, Number(sc.duration) || 4);
+  const a = { ...sc, duration: round2(d / 2), voiceover: voA };
+  const b = {
+    ...sc,
+    id: `${sc.id || "s"}-${seq}`,
+    duration: round2(d / 2),
+    // A half with no sentence left to speak reads its OWN promoted line. Leaving
+    // it blank is not silence: sceneVOText falls back to `headline + subtext`,
+    // and this half's subtext is the line the first half already said — so the
+    // narrator would repeat himself over a new frame. Speaking the promoted line
+    // says exactly what is on screen, and nothing twice.
+    voiceover: voB || nextLine || "",
+    kind: /^(hook|title)$/i.test(String(sc.kind || "")) ? "point" : sc.kind,
+    headline: nextLine || sc.headline,
+    subtext: nextLine ? String(sc.headline || "") : sc.subtext,
+    bullets: bullets.length > 1 ? bullets.slice(1) : bullets,
+    // Beats are timed against the ORIGINAL window, so half of them now fall
+    // outside this half's — validate() drops those silently, leaving a scene
+    // whose exit cue never fires. Re-anchor them instead.
+    beats: Array.isArray(sc.beats)
+      ? sc.beats.filter((x) => x && typeof x.at === "number")
+        .map((x) => ({ ...x, at: round2(Math.min(x.at, Math.max(0, d / 2 - 0.6))) }))
+      : sc.beats,
+  };
+  return [a, b];
+}
+
+/**
+ * Grow the scene list until it can cover `duration` at the [2,15] clamp.
+ * Mutates sb.scenes; returns how many scenes were added (0 when it already fits).
+ */
+function expandToCover(sb, duration, { max = 70, cap = 15, pace = 8.5, label = "storyboard" } = {}) {
+  const scenes = (sb && Array.isArray(sb.scenes)) ? sb.scenes : null;
+  if (!scenes || !scenes.length || !(duration > 0)) return 0;
+  // Two bars, and they are not the same kind of claim.
+  //
+  // `need` is arithmetic: below it the durations physically cannot reach the
+  // target, and the film either holds every frame at the 15s ceiling or fails
+  // validation outright. Anything may be cut to reach it.
+  //
+  // `want` is editorial: the pace the scripted path produces for a film this long
+  // (a 300s /projects film is ~50 scenes, a 600s one ~70). Reaching it is
+  // best-effort — only scenes that have a second half to GIVE are cut, because
+  // splitting a scene with one sentence and no support line just shows the same
+  // words twice and reads worse than the hold it replaced.
+  const need = Math.min(max, Math.ceil(duration / cap) + 1);
+  const before = scenes.length;
+  let seq = 2;
+  const cut = (i) => {
+    if (i < 0) return false;
+    const [a, b] = splitScene(scenes[i], seq++);
+    scenes.splice(i, 1, a, b);
+    return true;
+  };
+  while (scenes.length < need) { if (!cut(nextToSplit(scenes))) break; }
+
+  // Phase 2 works on PROJECTED length, not on the count. Counting alone leaves
+  // the scenes it declined to cut — the opener and the closer — at twice the
+  // length of everything around them, and the rescale that follows turns that
+  // into exactly the 15s hold this is here to remove (measured: a 300s film
+  // reached 36 scenes averaging 8.3s with its hook and its last three beats
+  // still pinned at the ceiling). Cut whichever scene would end up longest,
+  // until nothing that can be divided would run past the pace.
+  while (scenes.length < max) {
+    const sum = scenes.reduce((a, s) => a + Math.max(0, Number(s.duration) || 0), 0) || 1;
+    const scale = duration / sum;
+    let pick = -1, worst = pace;
+    scenes.forEach((s, i) => {
+      if (!divisible(s)) return;
+      // A hair's preference for the interior, so an opener is cut only when it
+      // really is the longest thing on screen.
+      const bookend = i === 0 || i === scenes.length - 1;
+      const projected = (Number(s.duration) || 0) * scale - (bookend ? 0.01 : 0);
+      if (projected > worst) { worst = projected; pick = i; }
+    });
+    if (pick < 0) break;
+    if (!cut(pick)) break;
+  }
+
+  // DE-ECHO. Each cut on its own hands the second half a line the first half did
+  // not use, but cuts compound: splitting a scene into (headline, support) and
+  // then splitting BOTH halves again interleaves them as
+  // headline / support / support / headline — and the two support frames are
+  // adjacent, so the film says the same words twice in a row while the narration
+  // moves on. Walk the finished list and swap any repeat back with its own
+  // support line. A scene with nothing else to say keeps the repeat; that only
+  // happens where the director wrote one line and no second facet, and the
+  // warning below says so.
+  for (let i = 1; i < scenes.length; i++) {
+    const prev = key(scenes[i - 1].headline);
+    if (!prev || key(scenes[i].headline) !== prev) continue;
+    const alt = String(scenes[i].subtext || "").trim();
+    if (alt && key(alt) !== prev) {
+      const head = String(scenes[i].headline || "");
+      scenes[i].headline = alt;
+      scenes[i].subtext = head;
+    }
+  }
+  const added = scenes.length - before;
+  if (added) {
+    console.warn(
+      `[${label}] the director returned ${before} scene(s) for a ${duration}s film — held at ${cap}s each that covers ` +
+      `only ${before * cap}s. Split into ${scenes.length} (${(duration / scenes.length).toFixed(1)}s a scene) so the film ` +
+      `covers its runtime at a watchable pace; each split divides one beat's narration between two frames.`
+    );
+  }
+  return added;
+}
+
 // Deterministically repair scene timing so the LLM is never retried for
 // arithmetic it routinely gets slightly wrong: starts that don't equal the
 // cumulative sum of prior durations, and durations that don't total the target.
@@ -59,6 +247,10 @@ const clampDur = (n) => Math.min(15, Math.max(2, n));
 // validate() to flag and (if wrong) drive a real retry.
 function normalizeTimeline(sb, duration) {
   if (!sb || !Array.isArray(sb.scenes) || !sb.scenes.length) return;
+  // Before any timing arithmetic: make sure there ARE enough scenes to hold the
+  // film. Rescaling a list that is too short can only pin every scene to the 15s
+  // ceiling, and past 15s x N it cannot reach the target at all.
+  expandToCover(sb, duration);
   const scenes = sb.scenes.filter(
     (s) => s && typeof s.duration === "number" && Number.isFinite(s.duration)
   );
@@ -393,4 +585,94 @@ async function generateStoryboard({ prompt, duration, orientation, framePack }) 
   throw err;
 }
 
-module.exports = { generateStoryboard, normalizeTimeline, validate, ensureCopyFloor };
+
+// THE STORYBOARD MUST STAND ON THE SCRIPT'S SCENE LIST, NOT ITS OWN.
+//
+// The narration is synthesized PER SCRIPT SCENE and mixed at that script scene's
+// own start (voiceAgent -> audio_mix). The picture is built from the STORYBOARD's
+// scenes. Those two lists were never reconciled: retimeScenesToVo matches them by
+// id and simply skips whatever does not pair up.
+//
+// And they routinely disagree. The system prompt above tells the director
+// "Number of scenes: ceil(durationSec / 4) +/- 1. Minimum 2, MAXIMUM 20" with
+// "durations 2-7 seconds", while the user payload built from an approved script
+// says "FOLLOW these timings exactly - same number of scenes". A 300s film is 60
+// script scenes; the storyboard cannot legally hold more than 20. normalizeTimeline
+// then quietly stretched those 20 to 15s each to reach 300s, so the film played 20
+// long slides while 60 narration clips were laid down on the SCRIPT's clock — 40 of
+// them at offsets no scene boundary had ever agreed to. That is the whole-film
+// version of "the voiceover has nothing to do with what is on screen": not a beat
+// out of step, two different films.
+//
+// Reconciled deterministically here instead of asking the model again: the script
+// is the contract the user approved and the thing the narrator actually reads, so
+// the script's ids, starts and durations are law. Everything the director
+// contributed that ISN'T timing — kind, layout, animation, motif, palette, beats —
+// is carried across from whichever storyboard scene covers that moment of the film.
+function alignToScript(sb, script, label = "storyboard") {
+  const scScenes = (script && Array.isArray(script.scenes)) ? script.scenes.filter(Boolean) : [];
+  const sbScenes = (sb && Array.isArray(sb.scenes)) ? sb.scenes.filter(Boolean) : [];
+  if (!scScenes.length || !sbScenes.length) return sb;
+
+  const sameShape = sbScenes.length === scScenes.length && sbScenes.every((s, i) =>
+    String(s.id) === String(scScenes[i].id != null ? scScenes[i].id : `s${i + 1}`) &&
+    Math.abs((Number(s.duration) || 0) - (Number(scScenes[i].duration) || 0)) <= 0.12);
+  if (sameShape) return sb;
+
+  // Where each storyboard scene sits on ITS OWN clock, and the factor that maps
+  // a script second onto that clock (the two totals rarely match).
+  const win = []; let t = 0;
+  for (const s of sbScenes) { const d = Math.max(0, Number(s.duration) || 0); win.push({ s, a: t, b: t + d }); t += d; }
+  const sbTotal = t || 1;
+  const scTotal = scScenes.reduce((a, s) => a + Math.max(0, Number(s.duration) || 0), 0) || 1;
+  const k = sbTotal / scTotal;
+
+  const used = new Set();
+  const out = [];
+  let cursor = 0;
+  scScenes.forEach((sc, i) => {
+    const d = Math.max(0, Number(sc.duration) || 0);
+    const mid = (cursor + d / 2) * k;
+    const donor = (win.find((w) => mid >= w.a && mid < w.b) || win[win.length - 1]).s;
+    const firstForDonor = !used.has(donor);
+    used.add(donor);
+    const id = String(sc.id != null ? sc.id : `s${i + 1}`);
+    // The SCRIPT's own display line wins. `onScreenText` is the script's display
+    // typography by contract ("the keyword, the number, the imperative"), so a
+    // scene that has one shows it; only a scene with none borrows the director's
+    // headline, and only if no earlier scene has already used that same one —
+    // otherwise a donor covering four script scenes stamps its headline on all
+    // four and the picture stops advancing with the voice.
+    const own = Array.isArray(sc.onScreenText) ? sc.onScreenText.filter(Boolean) : [];
+    const headline = String(own[0] || (firstForDonor ? donor.headline : "") || "").slice(0, 120);
+    const scene = {
+      ...donor,
+      id,
+      start: round2(cursor),
+      duration: round2(d),
+      headline,
+      // Everything below the headline: the script's remaining display lines are
+      // this scene's own; the director's supporting copy only fills a scene that
+      // brought none, and only the first time it is used.
+      subtext: own.length > 1 ? own.slice(1).join(" ") : (firstForDonor ? donor.subtext : ""),
+      bullets: own.length > 2 ? own.slice(1) : (firstForDonor && Array.isArray(donor.bullets) ? donor.bullets : []),
+      voiceover: String(sc.voiceover || "").trim(),
+    };
+    // A donor's beats are timed against the donor's own (usually longer) window;
+    // validate() drops any beat at or past the scene's end, so trim them here
+    // rather than shipping a scene whose exit cue never fires.
+    if (Array.isArray(scene.beats)) scene.beats = scene.beats.filter((b) => b && typeof b.at === "number" && b.at < d);
+    out.push(scene);
+    cursor = round2(cursor + d);
+  });
+
+  console.log(
+    `[${label}] storyboard aligned to the script: ${sbScenes.length} directed scene(s) -> ${out.length} ` +
+    `(the narration is cut per SCRIPT scene, so any scene the storyboard does not carry is spoken over someone else's frame)`
+  );
+  sb.scenes = out;
+  sb.durationSec = round2(scTotal);
+  return sb;
+}
+
+module.exports = { generateStoryboard, normalizeTimeline, validate, ensureCopyFloor, alignToScript, expandToCover };

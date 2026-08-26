@@ -37,6 +37,7 @@
 // easing and physics of a card or a headline are identical in every template.
 const motion = require("./motion_presets");
 const { displayOk } = require("./asset_admission");
+const { fitScenes, MAX_CLIPS } = require("./scene_fit");
 
 const r = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
@@ -452,8 +453,13 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
   const sb = storyboard || {};
   const W = (dims && dims.width) || 1920, H = (dims && dims.height) || 1080;
   const land = W >= H;
+  // MERGE PAST THE CEILING, NEVER TRUNCATE. This was `slice(0, 30)`: on a 300s
+  // film the last 20 of 50 scenes were dropped, the picture stopped advancing at
+  // 176s, and two minutes of narration played over a held frame (scene_fit.js
+  // carries the full account). fitScenes folds adjacent scenes instead, so the
+  // clip list still spans the film's whole runtime.
   const scenes = (Array.isArray(sb.scenes) && sb.scenes.length
-    ? sb.scenes.slice(0, 30)
+    ? fitScenes(sb.scenes, MAX_CLIPS)
     : [{ id: "s1", start: 0, duration: 4, kind: "hook", headline: sb.title || "" }]).map(withDisplayCopy);
   const D = r(sb.durationSec || scenes.reduce((a, s) => Math.max(a, (Number(s.start) || 0) + (Number(s.duration) || 0)), 0) || 12);
   const theme = family.theme(manifest || {}, brandSkin || null, { framePack, land });

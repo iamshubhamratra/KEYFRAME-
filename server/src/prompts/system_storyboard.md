@@ -6,7 +6,7 @@ The HeyGen launch video is the benchmark: fast-cut scenes, each with its own vis
 
 ## Think first (before writing the JSON)
 
-1. **Count the scenes.** `ceil(durationSec / 4)` ± 1 — write that many. Decide each scene's `kind` so the set forms a hook → substance → close arc.
+1. **Count the scenes.** If the payload carries a scene-by-scene plan, **that plan sets the count** — write one scene for every scene it lists, reusing its ids, starts and durations exactly, however many there are. The narration is cut per plan scene and mixed at that scene's own start, so a plan scene you leave out is spoken over a different scene's picture. With no plan supplied, the count comes from the RUNTIME, never from a fixed ceiling: `ceil(durationSec / 4)` ± 1 up to about two minutes, and past that keep scenes 6–12 s so the count lands at or under 70 (a 300 s film is ~40 scenes, a 600 s film ~70). **A scene can never run longer than 15 s, so too few scenes cannot cover a long film at all** — write the whole set. Decide each scene's `kind` so the set forms a hook → substance → close arc.
 2. **Give each scene one idea, one motif, one motion.** If you can't name a distinct `visualMotif` and a distinct `animation` for a scene, the scene isn't ready — split or rethink it.
 3. **Vary deliberately.** Walk the scenes in order and make sure no two adjacent scenes share a `layout` or `animation`. Variety is what reads as "produced."
 4. **Lay the beats.** Every scene gets 2-4 timed beats; the first fires at 0–0.15s (instant entrance, no empty ground), the last starts the exit ≥0.6s before the scene ends.
@@ -80,8 +80,8 @@ Concrete beats generic in all four slots: name the feature, the number, the outc
 
 1. `scenes[].start` begins at 0; each subsequent scene's `start` equals the previous scene's `start + duration` (no gaps, no overlaps).
 2. Σ(`scenes[].duration`) MUST equal `durationSec` exactly.
-3. Scene durations: 2–7 seconds each. Prefer shorter scenes (3–5 s) — more scenes = more motion. **Size each scene's duration to comfortably SPEAK its `voiceover` at ~2.5 words/sec** (a 12-word line needs ≥5 s) — the audio is synced per scene downstream, so a duration too short for its narration will feel rushed. When in doubt, give the scene a touch more room.
-4. Number of scenes: `ceil(durationSec / 4)` ± 1. Minimum 2, maximum 20.
+3. Scene durations: **as the supplied plan states**, or — with no plan — 2–15 seconds each, preferring shorter scenes (3–5 s) since more scenes = more motion. **Size each scene's duration to comfortably SPEAK its `voiceover` at ~2.5 words/sec** (a 12-word line needs ≥5 s) — the audio is synced per scene downstream, so a duration too short for its narration will feel rushed. When in doubt, give the scene a touch more room.
+4. Number of scenes: **exactly the supplied plan's count** when there is one (a 300 s film is ~50 scenes, a 600 s film ~70 — write them all). With no plan: `ceil(durationSec / 4)` ± 1 for films up to ~120 s, and past that whatever count keeps every scene inside 6–12 s. Minimum 2, maximum 70. Never fewer than `ceil(durationSec / 15)` — below that the durations cannot reach the target and the storyboard is rejected.
 5. First scene is a `kind: "title"` or `kind: "hook"`. Last scene is `kind: "cta"` or `kind: "title"` (closer).
 6. No scene references external media beyond what the composer can create from text + SVG + CSS + GSAP (images/videos are planned separately).
 7. `orientation` and `aspectRatio` must match input.
@@ -145,7 +145,7 @@ The terminal scene's `animation` (`typewriter`) and `layout` must still differ f
 
 Run this over your draft; fix any "no" before returning:
 - Σ(durations) == `durationSec` exactly, scenes tile from 0 with no gaps/overlaps? ✓
-- Scene count is `ceil(durationSec/4) ± 1`? ✓
+- Scene count matches the supplied plan exactly (or, with no plan, scales with the runtime — never below `ceil(durationSec/15)`)? ✓
 - First scene is `title`/`hook`, last is `cta`/`title`? ✓
 - Every scene has a non-empty `visualMotif` AND an `animation`, and no two adjacent scenes repeat either? ✓
 - Every scene has 2-4 `beats`, first at ≤0.15, last starting ≥0.6s before scene end, all `at` < duration? ✓

@@ -1,0 +1,89 @@
+{
+  "name": "chalk-circle",
+  "renderer": "omelette",
+  "template": "ChalkCircle",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for children's outdoor play — 45 authored beats, ~6.8s each, 5:06 as shipped. hopscotch squares lighting in sequence, a skipping rope arcing, a bouncing ball, a swaying swing. Grandstander display over Nunito body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#fdf6e8",
+    "ink": "#26282f",
+    "accent": "#f0523c",
+    "a2": "#2f9ad0"
+  },
+  "fonts": [
+    "Grandstander",
+    "Nunito"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#22252e",
+    "ink": "#fdf6e8"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Grandstander",
+    "body": "Nunito",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "playful marimba and handclaps, skipping-rhyme bounce",
+    "energy": "upbeat"
+  },
+  "skin": {
+    "accents": [
+      "#f0523c",
+      "#2f9ad0"
+    ],
+    "extras": [
+      "#e4f0ee",
+      "#fde4d6",
+      "#26282f"
+    ],
+    "emphasisCss": "color:#f0523c;"
+  },
+  "assets": {
+    "photoMod": "bright afternoon pavement, chalk pastels and warm cream",
+    "iconStyle": "outline",
+    "keywords": [
+      "playground",
+      "children",
+      "chalk",
+      "hopscotch",
+      "swing",
+      "ball"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#22252e"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

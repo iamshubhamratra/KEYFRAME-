@@ -1,0 +1,89 @@
+{
+  "name": "apex-lap",
+  "renderer": "omelette",
+  "template": "ApexLap",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for motorsport / formula 1 — 45 authored beats, ~6.7s each, 5:02 as shipped. f1 car running a track ribbon, scrolling kerb stripes, throttle-trace readout, speed streaks. Anton display over Saira body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f2f4f6",
+    "ink": "#0f1116",
+    "accent": "#e01030",
+    "a2": "#2fc4e0"
+  },
+  "fonts": [
+    "Anton",
+    "Saira"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#0d0f14",
+    "ink": "#f2f4f6"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Anton",
+    "body": "Saira",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "driving percussive rock with engine pulse, urgent",
+    "energy": "high"
+  },
+  "skin": {
+    "accents": [
+      "#e01030",
+      "#2fc4e0"
+    ],
+    "extras": [
+      "#e6eef2",
+      "#f8dfe2",
+      "#0f1116"
+    ],
+    "emphasisCss": "color:#e01030;"
+  },
+  "assets": {
+    "photoMod": "high-contrast trackside, red and cyan motion blur",
+    "iconStyle": "outline",
+    "keywords": [
+      "racing",
+      "motorsport",
+      "racetrack",
+      "helmet",
+      "tires",
+      "grandstand"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#0d0f14"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

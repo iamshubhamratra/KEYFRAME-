@@ -1,0 +1,89 @@
+{
+  "name": "silver-run",
+  "renderer": "omelette",
+  "template": "SilverRun",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for river ecology / eel monitoring — 46 authored beats, ~6.7s each, 5:08 as shipped. transparent eels wriggling upstream, scrolling current lines, a lift net raising and lowering, a live tally counter under night stars. Fraunces display over Nunito Sans body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#eef4f2",
+    "ink": "#0c2020",
+    "accent": "#c4a83c",
+    "a2": "#3c8c8c"
+  },
+  "fonts": [
+    "Fraunces",
+    "Nunito Sans"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#0a1c1c",
+    "ink": "#eef4f2"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Fraunces",
+    "body": "Nunito Sans",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "ambient minimal with water textures, nocturnal and still",
+    "energy": "calm"
+  },
+  "skin": {
+    "accents": [
+      "#c4a83c",
+      "#3c8c8c"
+    ],
+    "extras": [
+      "#e2eeea",
+      "#f6ecd4",
+      "#0c2020"
+    ],
+    "emphasisCss": "color:#c4a83c;"
+  },
+  "assets": {
+    "photoMod": "cold night river, teal water and lamplight gold",
+    "iconStyle": "outline",
+    "keywords": [
+      "eel",
+      "river",
+      "net",
+      "water",
+      "night",
+      "stream"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#0a1c1c"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "name": "copper-still",
+  "renderer": "omelette",
+  "template": "CopperStill",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for whisky distillery — 46 authored beats, ~6.7s each, 5:08 as shipped. copper pot still with swan neck, vapour rising through the condenser, spirit droplets falling, numbered oak casks. Cinzel display over Radio Canada body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f4e9d6",
+    "ink": "#1f1610",
+    "accent": "#b8762c",
+    "a2": "#5f7a6b"
+  },
+  "fonts": [
+    "Cinzel",
+    "Radio Canada"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#1d140e",
+    "ink": "#f4e9d6"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Cinzel",
+    "body": "Radio Canada",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "slow warm strings over a low drone, patient and aged",
+    "energy": "calm"
+  },
+  "skin": {
+    "accents": [
+      "#b8762c",
+      "#5f7a6b"
+    ],
+    "extras": [
+      "#e6eee8",
+      "#f7e0c4",
+      "#1f1610"
+    ],
+    "emphasisCss": "color:#b8762c;"
+  },
+  "assets": {
+    "photoMod": "dim bonded-warehouse lamplight, copper vessels and dark oak, low-key",
+    "iconStyle": "outline",
+    "keywords": [
+      "whisky",
+      "barrel",
+      "distillery",
+      "copper",
+      "bourbon",
+      "cellar"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#1d140e"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "name": "out-of-office",
+  "renderer": "omelette",
+  "template": "OutOfOffice",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for annual leave / holiday travel — 45 authored beats, ~6.7s each, 5:02 as shipped. sun with turning rays, paper plane arcing on a dashed route, rolling suitcase bobbing, boarding pass with barcode. Righteous display over Be Vietnam Pro body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f6f1e4",
+    "ink": "#12303f",
+    "accent": "#f2803c",
+    "a2": "#2ca0b8"
+  },
+  "fonts": [
+    "Righteous",
+    "Be Vietnam Pro"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#0e2434",
+    "ink": "#f6f1e4"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Righteous",
+    "body": "Be Vietnam Pro",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "sunny indie pop, handclaps, easygoing",
+    "energy": "upbeat"
+  },
+  "skin": {
+    "accents": [
+      "#f2803c",
+      "#2ca0b8"
+    ],
+    "extras": [
+      "#e2eeee",
+      "#f8e6d2",
+      "#12303f"
+    ],
+    "emphasisCss": "color:#f2803c;"
+  },
+  "assets": {
+    "photoMod": "bright travel daylight, airports and packed bags, orange and teal",
+    "iconStyle": "outline",
+    "keywords": [
+      "travel",
+      "suitcase",
+      "airport",
+      "airplane",
+      "passport",
+      "vacation"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#0e2434"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

@@ -23,7 +23,7 @@ const { understandWebsite } = require("./ingest/website");
 const { prepareUserAssets, inventoryForScript } = require("./user_assets");
 const { understandBlog } = require("./ingest/blog");
 const { transcribeVideo } = require("./ingest/transcribe");
-const { generateStoryboard } = require("./storyboard");
+const { generateStoryboard, alignToScript } = require("./storyboard");
 const { directText } = require("./text_director");
 const { buildFallback } = require("./fallback");
 const { synthesizeFitted } = require("./vo_fit");
@@ -31,11 +31,12 @@ const { buildCues, writeSrt } = require("./captions");
 const { fetchMusic, fetchSfx } = require("./audio_sources");
 const { VALID_VOICES } = require("./audio_planner");
 const { render } = require("./renderer");
-const { withBudget, attemptLlmComposition, mixAudioIntoVideo, fallbackQueriesFor, retimeScenesToVo } = require("./pipeline");
+const { withBudget, attemptLlmComposition, mixAudioIntoVideo, fallbackQueriesFor, retimeScenesToVo, foldScriptToRenderer } = require("./pipeline");
 const { acquire, hasProviderFor } = require("./asset_sources");
 const { captureTopicShots, mergeShots } = require("./screenshot_director");
 const { blogImageAssets } = require("./blog_assets");
 const { websiteImageAssets } = require("./website_assets");
+const { relatedSiteScreenshots } = require("./related_site_screenshots");
 const { qaGateScreenshots } = require("./screenshot_qa");
 
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
@@ -142,11 +143,17 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
       }
       if (blog) {
         // The article itself, for the brief/script: the film is a companion
-        // piece that SUMMARIZES this post (excerpt bounded so prompts stay sane).
+        // piece that SUMMARIZES this post (excerpt bounded so prompts stay
+        // sane). A short film only needs the lead; a long-form (5-10min) film
+        // is meant to actually carry the article's substance, so it gets a
+        // much bigger excerpt — scaled off the REQUESTED duration (available
+        // here on job.duration), not a flat number tuned for a 15-30s clip.
+        const wantSec = Number(job.duration) || 60;
+        const excerptCap = wantSec >= 180 ? 40000 : wantSec >= 60 ? 14000 : 6000;
         intent.blog = {
           url: blog.url, title: blog.title, author: blog.author || null,
           published: blog.published || null, headings: blog.headings,
-          excerpt: String(blog.text || "").slice(0, 6000),
+          excerpt: String(blog.text || "").slice(0, excerptCap),
           imageCount: blog.images.length,
         };
         job.blog_url = blog.url;
@@ -154,6 +161,9 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
         // The post's own images (downloaded at ingest) become pinned
         // owner-content assets at production time (blog_assets.js).
         job.blog_images = blog.images;
+        // Outbound links the article points to — related-site screenshots at
+        // production time (related_site_screenshots.js).
+        job.blog_external_links = blog.externalLinks || [];
       }
       if (video) intent.video = video;
       // Mark ingest "done" ONLY when a worker actually produced signal. Caching a
@@ -353,10 +363,13 @@ async function acquireScriptAssets({ job, script, jobDir, orientation, tracker }
   // images was tuned for a 15-30s short; on a 2-3 min film (~30 scenes) it left
   // ~24 scenes with no real asset — the walls of empty space users complained
   // about. Aim for ~0.7 assets/scene so most scenes carry a screenshot/photo/
-  // vector, capped at 22 so a runaway script can't hammer the stock APIs.
+  // vector. The ceiling used to be a flat 22 (tuned for the old 30-scene/180s
+  // cap); a 5-10min film can run 100+ scenes, so the ceiling now scales with
+  // scene count too — still bounded so a runaway script can't hammer the
+  // stock APIs.
   const nScenes = Math.max(1, script.scenes.length);
-  const imgCap = Math.max(6, Math.min(22, Math.round(nScenes * 0.7)));
-  const videoCap = nScenes > 12 ? 2 : 1;
+  const imgCap = Math.max(6, Math.min(Math.max(22, Math.round(nScenes * 0.5)), 90));
+  const videoCap = nScenes > 12 ? Math.min(6, Math.ceil(nScenes / 20)) : 1;
 
   // The script often UNDER-declares asset needs on long films (the writer tags a
   // few feature scenes and leaves the rest bare). Synthesize INSET needs for the
@@ -421,18 +434,33 @@ async function acquireScriptAssets({ job, script, jobDir, orientation, tracker }
 
   const got = (await Promise.all(tasks)).filter(Boolean);
   // Topic page shots claim their scenes; the landing pins fill the rest.
+  const topicShots = await topicTask;
+  const preQaClaimed = new Set([...topicShots, ...pinned].map((a) => String(a.sceneId)));
+  // Blog mode: real screenshots of the sites the ARTICLE links to (a tool it
+  // reviews, a dataset it cites) — the piece that was missing entirely before.
+  // Same risk class as topic page shots (an arbitrary third-party URL can be a
+  // 404, a paywall, a bare PDF viewer), so it goes through the SAME QA gate
+  // below rather than shipping unvetted like the owner-content blog/site pins.
+  const relatedPins = await relatedSiteScreenshots({
+    job, script, jobDir, tracker, cap: Math.max(3, Math.min(8, Math.round(nScenes * 0.08))),
+    skipSceneIds: preQaClaimed,
+  }).catch(() => []);
   // SCREENSHOT QA — vision-inspect every capture and drop broken ones (error
   // pages, consent modals, bot-walls, blanks) before the composer sees them.
   const shots = await qaGateScreenshots({
-    assets: mergeShots(await topicTask, pinned), jobDir,
+    assets: mergeShots(topicShots, pinned).concat(relatedPins), jobDir,
     subject: (job.brief && job.brief.subject) || job.website_title || "", tracker,
   });
   // Blog mode: the post's own images join as pinned owner-content assets on
-  // scenes the screenshots didn't claim.
-  const blogPins = blogImageAssets({ job, script, jobDir, skipSceneIds: new Set(shots.map((a) => String(a.sceneId))) });
+  // scenes the screenshots didn't claim. Cap scales with the film like imgCap
+  // above — a 10min film can carry far more than the 3 tuned for a short.
+  const blogCap = Math.max(3, Math.min(15, Math.round(nScenes * 0.15)));
+  const blogPins = blogImageAssets({ job, script, jobDir, cap: blogCap, skipSceneIds: new Set(shots.map((a) => String(a.sceneId))) });
   // Website mode: the site's OWN downloaded images (hero graphics/product shots).
-  const sitePins = websiteImageAssets({ job, script, jobDir, skipSceneIds: new Set([...shots, ...blogPins].map((a) => String(a.sceneId))) });
-  console.log(`[project] assets: ${shots.length} real screenshot(s) (${shots.filter((a) => /page_/.test(a.path)).length} topic-matched) + ${blogPins.length} blog image(s) + ${sitePins.length} site image(s) + ${got.length}/${picks.length} acquired (${got.filter((a) => a.fromCache).length} from cache)`);
+  const siteCap = Math.max(5, Math.min(18, Math.round(nScenes * 0.15)));
+  const sitePins = websiteImageAssets({ job, script, jobDir, cap: siteCap, skipSceneIds: new Set([...shots, ...blogPins].map((a) => String(a.sceneId))) });
+  const relatedCount = shots.filter((a) => a.source === "related-website").length;
+  console.log(`[project] assets: ${shots.length} real screenshot(s) (${shots.filter((a) => /page_/.test(a.path)).length} topic-matched, ${relatedCount} related-site) + ${blogPins.length} blog image(s) + ${sitePins.length} site image(s) + ${got.length}/${picks.length} acquired (${got.filter((a) => a.fromCache).length} from cache)`);
   return [...shots, ...blogPins, ...sitePins, ...got];
 }
 
@@ -460,9 +488,15 @@ async function runProduction({ jobId }) {
   const markStage = (name, startAt) => { timings[name + "Ms"] = ms() - startAt; };
 
   db.markStarted(jobId);
-  const script = normalizeScript(job.script, { targetDuration: job.duration });
-  const brief = job.brief;
   const framePack = job.frame_pack || null;
+  // Fold the script to what this pack's renderer can draw BEFORE the storyboard
+  // and the voiceover are built. A scene the renderer cannot hold is still
+  // narrated at its own start, so dropping it there means the words land over
+  // some other scene's frame; folding it here means the two scenes share one
+  // narration clip and one boundary. See pipeline.foldScriptToRenderer.
+  const script = foldScriptToRenderer(
+    normalizeScript(job.script, { targetDuration: job.duration }), framePack, "project");
+  const brief = job.brief;
   const duration = job.duration;
   const dims = { width: job.width, height: job.height, fps: job.fps };
 
@@ -529,6 +563,10 @@ async function runProduction({ jobId }) {
       const sbPrompt = storyboardPromptFromScript(script, brief);
       const sbRes = await generateStoryboard({ prompt: sbPrompt, duration, orientation: job.orientation });
       tracker.addLlm({ inputTokens: sbRes.tokensIn, outputTokens: sbRes.tokensOut, stage: "storyboard", costUsd: sbRes.costUsd });
+      // The picture is built from the storyboard; the narration is cut per SCRIPT
+      // scene and mixed at that scene's own start. Reconcile the two lists before
+      // anything downstream reads either (storyboard.alignToScript).
+      alignToScript(sbRes.storyboard, script, "project");
       markStage("storyboard", t0);
 
       // TEXT DIRECTOR — fill headline-only scenes with subtext/bullets/emphasis

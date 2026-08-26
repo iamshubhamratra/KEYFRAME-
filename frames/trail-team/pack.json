@@ -1,0 +1,89 @@
+{
+  "name": "trail-team",
+  "renderer": "omelette",
+  "template": "TrailTeam",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for sled dog mushing / kennel life — 45 authored beats, ~6.7s each, 5:02 as shipped. an eight-dog gangline running, sled and driver on the runners, falling snow over a mountain ridge, a dashed trail and a live sub-zero temperature readout. Big Shoulders Display display over Red Hat Text body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f0f7fa",
+    "ink": "#0f1e28",
+    "accent": "#e8752c",
+    "a2": "#3c9ed0"
+  },
+  "fonts": [
+    "Big Shoulders Display",
+    "Red Hat Text"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#0d1a24",
+    "ink": "#f0f7fa"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Big Shoulders Display",
+    "body": "Red Hat Text",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "driving percussive strings, cold air, forward momentum",
+    "energy": "high"
+  },
+  "skin": {
+    "accents": [
+      "#e8752c",
+      "#3c9ed0"
+    ],
+    "extras": [
+      "#e2eef4",
+      "#f8e6d4",
+      "#0f1e28"
+    ],
+    "emphasisCss": "color:#e8752c;"
+  },
+  "assets": {
+    "photoMod": "blue-hour snow, orange parka against white",
+    "iconStyle": "outline",
+    "keywords": [
+      "husky",
+      "sled",
+      "snow",
+      "dog",
+      "winter",
+      "malamute"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#0d1a24"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

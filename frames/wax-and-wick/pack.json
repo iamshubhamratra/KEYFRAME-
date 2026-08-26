@@ -1,0 +1,89 @@
+{
+  "name": "wax-and-wick",
+  "renderer": "omelette",
+  "template": "WaxWick",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for candle making — 46 authored beats, ~6.7s each, 5:08 as shipped. wax pouring from a tilted pitcher, jars filling with wicks, a flickering flame, scent motes rising. Gilda Display display over Mulish body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f8f0e2",
+    "ink": "#261e16",
+    "accent": "#c98a3c",
+    "a2": "#7a6b8c"
+  },
+  "fonts": [
+    "Gilda Display",
+    "Mulish"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#241c14",
+    "ink": "#f8f0e2"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Gilda Display",
+    "body": "Mulish",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "soft felted piano over quiet room tone, unhurried",
+    "energy": "calm"
+  },
+  "skin": {
+    "accents": [
+      "#c98a3c",
+      "#7a6b8c"
+    ],
+    "extras": [
+      "#eceae6",
+      "#f9e6ce",
+      "#261e16"
+    ],
+    "emphasisCss": "color:#c98a3c;"
+  },
+  "assets": {
+    "photoMod": "candle-flame light in a near-dark room, small warm pools of glow on cream",
+    "iconStyle": "outline",
+    "keywords": [
+      "candle",
+      "wax",
+      "wick",
+      "flame",
+      "jar",
+      "candlelight"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#241c14"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "name": "spiral-arm",
+  "renderer": "omelette",
+  "template": "SpiralArm",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for astronomy / the galaxy — 46 authored beats, ~6.7s each, 5:08 as shipped. a face-on spiral galaxy slowly rotating with four density-wave arms and a glowing core, a scattered twinkling starfield, a separate pulsing 'you are here' marker ringed and labelled at the far side of the frame. Italiana display over Sen body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#eceaf8",
+    "ink": "#080614",
+    "accent": "#c4a0e0",
+    "a2": "#5fa0d0"
+  },
+  "fonts": [
+    "Italiana",
+    "Sen"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#070512",
+    "ink": "#eceaf8"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Italiana",
+    "body": "Sen",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "sparse ambient pads with distant chimes, weightless",
+    "energy": "calm"
+  },
+  "skin": {
+    "accents": [
+      "#c4a0e0",
+      "#5fa0d0"
+    ],
+    "extras": [
+      "#101828",
+      "#1c1224",
+      "#080614"
+    ],
+    "emphasisCss": "color:#c4a0e0;"
+  },
+  "assets": {
+    "photoMod": "long-exposure night sky, violet and soft lilac glow",
+    "iconStyle": "outline",
+    "keywords": [
+      "galaxy",
+      "stars",
+      "stargazing",
+      "constellation",
+      "universe",
+      "night"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#070512"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

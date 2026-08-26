@@ -43,6 +43,40 @@ const PROVIDERS = {
 
 const DEFAULT_ORDER = ["pixabay", "openverse", "pexels", "pixabay_scrape"];
 
+// PER-PROVIDER DOWNLOAD CONCURRENCY + 429 BACKOFF.
+//
+// A long film asks for ~50 pictures, and the fetch loop runs several slots at
+// once. That is fine spread over four providers and NOT fine when one of them is
+// carrying the whole film — which is exactly what happens while the Pixabay key
+// is unset/rejected, since openverse is then the only keyless image API in the
+// order. Measured on a 40-scene run: openverse answered HTTP 429 on 10+
+// downloads, and every 429 sent that slot down the fallback ladder to a broader
+// query, which returned a picture another slot already had. So the rate limit did
+// not just lose those assets, it manufactured duplicates.
+//
+// Two assets is polite to a free community API and still saturates our own
+// pipeline, because the slow part is the render, not the fetch.
+const PROVIDER_MAX_CONCURRENT = { openverse: 2 };
+const gates = new Map();
+function gateFor(name) {
+  if (!gates.has(name)) gates.set(name, { active: 0, queue: [] });
+  return gates.get(name);
+}
+async function withProviderGate(name, fn) {
+  const max = PROVIDER_MAX_CONCURRENT[name];
+  if (!max) return fn();
+  const g = gateFor(name);
+  if (g.active >= max) await new Promise((resolve) => g.queue.push(resolve));
+  g.active++;
+  try { return await fn(); }
+  finally {
+    g.active--;
+    const next = g.queue.shift();
+    if (next) next();
+  }
+}
+const isRateLimited = (e) => /\b429\b|too many requests|rate limit/i.test(String(e && e.message));
+
 function providersFor(type) {
   const order = config.assetProviders?.order || DEFAULT_ORDER;
   return order
@@ -66,8 +100,28 @@ function hasProviderFor(type) {
 // curated entries already used in this video so a film never reuses a file.
 // `curatedOnly` (CURATED_ONLY_IMAGES override) forbids web stock AND the
 // web-stock cache: the need is served by the curated library or not at all.
-async function acquire({ query, fallbackQueries = [], type, orientation, outputPath, tracker, kindPref, excludeIds, curatedOnly = false, iconColor, iconStyle, styleKeywords, vectorPrefer, subject = null }) {
+async function acquire({ query, fallbackQueries = [], type, orientation, outputPath, tracker, kindPref, excludeIds, curatedOnly = false, iconColor, iconStyle, styleKeywords, vectorPrefer, subject = null, excludeUrls = null }) {
   const queries = [query, ...fallbackQueries].filter(Boolean);
+
+  // CROSS-SLOT EXCLUSION — the fix for "a long film has 3 pictures".
+  //
+  // Every lookup below ranks its candidates and takes the BEST one. That is right
+  // for a single slot and catastrophic across a film: a 40-scene script plans ~54
+  // slots whose queries all carry the same topic anchor, every one of them ranks
+  // the same provider page, and `ranked[0]` is therefore THE SAME FILE. Measured
+  // on a 40-scene run: 51 of 54 slots came back byte-identical and were thrown
+  // away by the caller's deduper, leaving 4 of 40 scenes with a visual.
+  //
+  // The caller passes ONE Set for the whole job; a URL enters it the moment a slot
+  // claims it, so the next slot ranks the same page and picks the next-best
+  // picture it has not used yet. Same idea as `excludeIds` for the curated library
+  // and the seeded index that stopped every film sharing one music bed.
+  //
+  // The fetch loop runs slots concurrently, so two in flight at once can still
+  // choose the same URL before either records it — a small window that costs one
+  // duplicate, not fifty. Deliberately not locked: these only need to be DIVERSE.
+  const taken = (u) => !!(excludeUrls && u && excludeUrls.has(u));
+  const claim = (u) => { if (excludeUrls && u) excludeUrls.add(u); };
 
   // 0 — the curated local library (user's pre-loaded packs), stills only.
   // Highest priority: hand-picked, license-clean, offline. The file keeps its
@@ -189,16 +243,35 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
       sourceRe: PIXABAY_ONLY ? PIXABAY_SOURCE_RE : null,
       excludeSourceRe: GENERATED_SOURCE_RE,
     });
-    if (hits.length) {
-      const meta = localDb.materialize(hits[0], outputPath);
+    // Skip cache entries this job has already placed — materializing hits[0]
+    // unconditionally is how one cached photo became topup_0/topup_1/topup_2.
+    const fresh = hits.filter((h) => !taken(h && h.sourceUrl));
+    if (fresh.length) {
+      const meta = localDb.materialize(fresh[0], outputPath);
+      claim(meta && meta.sourceUrl);
       if (tracker) tracker.addExternal("asset_cache_hit");
       return { path: outputPath, query: q, fromCache: true, ...meta };
     }
   }
 
   // 2 — external providers.
-  for (const q of queries) {
-    for (const provider of providersFor(type)) {
+  //
+  // PROVIDER-OUTER, QUERY-INNER — and that order is the whole point.
+  //
+  // This loop used to be query-outer, which quietly inverted the provider
+  // preference in `assetProviders.order`. The first query variant is the most
+  // SPECIFIC one ("artificial intelligence archival photographs fading"); a
+  // keyword API answers it with nothing, while the last-resort page scraper
+  // fuzzy-matches and always returns something. So the scraper won on variant 1
+  // and the preferred API never got to try the broader variants it would have
+  // answered well. Measured: openverse served 0 assets on a 40-scene film while
+  // returning 14-20 hits for those same films' 2-3 word variants.
+  //
+  // Provider-outer means each provider exhausts the query ladder — specific
+  // first, then broader — before a less-preferred provider is consulted at all,
+  // which is what an ordered preference list is supposed to mean.
+  for (const provider of providersFor(type)) {
+    for (const q of queries) {
       let candidates = [];
       try {
         if (tracker) tracker.addExternal(`${provider.name}_search`);
@@ -213,10 +286,24 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
       // Rank by keyword relevance + resolution + pack-style match so a loosely-
       // matched, low-res, or off-style hit never wins just because it came back
       // first; try the best few.
-      const ranked = util.rankCandidates(q, candidates, styleKeywords);
+      // Drop what other slots already claimed BEFORE taking the top 5, so a slot
+      // whose best-5 are all spoken for still reaches the 6th-best picture rather
+      // than re-downloading a file the caller will only throw away as a duplicate.
+      const ranked = util.rankCandidates(q, candidates, styleKeywords).filter((c) => !taken(c && c.sourceUrl));
       for (const c of ranked.slice(0, 5)) {
         try {
-          await util.download(c.url, outputPath);
+          // Retry a rate-limited download in place instead of falling through to
+          // a broader query — broadening on a 429 is what turned "slow down" into
+          // "here is a picture three other scenes already used".
+          await withProviderGate(provider.name, async () => {
+            for (let attempt = 0; ; attempt++) {
+              try { return await util.download(c.url, outputPath); }
+              catch (e) {
+                if (!isRateLimited(e) || attempt >= 2) throw e;
+                await new Promise((r) => setTimeout(r, 900 * (attempt + 1)));
+              }
+            }
+          });
           const ok = await util.validateMedia(outputPath, type);
           if (!ok) {
             try { fs.unlinkSync(outputPath); } catch { /* noop */ }
@@ -256,6 +343,7 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
             source: provider.name, license: c.license, sourceUrl: c.sourceUrl,
             width: (imageMeta && imageMeta.width) || c.width, height: (imageMeta && imageMeta.height) || c.height,
           });
+          claim(c.sourceUrl);
           console.log(`[assets] "${q}" (${type}) <- ${provider.name} (${(imageMeta && imageMeta.width) || c.width || "?"}x${(imageMeta && imageMeta.height) || c.height || "?"})`);
           return {
             path: outputPath, query: q, fromCache: false,

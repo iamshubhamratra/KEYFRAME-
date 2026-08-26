@@ -448,6 +448,16 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
     } else {
       // visionOk gates PROMINENT slots in scene_kit (montage/split/hero).
       a.visionOk = a.cdProminence === "hero" || a.cdProminence === "support";
+      // …but PROMINENCE IS NOT TOPICALITY, and conflating them emptied long films.
+      // The pin-relevance floor treats "no CLIP score and not visionOk" as "nobody
+      // ever checked this picture, so it must not hold a scene". For an asset the
+      // director reviewed and placed at `background` prominence — or demoted below
+      // maxPerScene further down — that reads as unchecked when in fact it was
+      // looked at and kept. Measured on a 40-scene film: 19 reviewed assets were
+      // unpinned this way, leaving 6 of 40 scenes with a visual. This flag records
+      // the thing the floor actually wants to know (a human-equivalent look
+      // happened and did not reject it) and survives the demotion below.
+      a.cdReviewed = true;
     }
   });
 
@@ -562,6 +572,32 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
   for (const arr of byScene.values()) {
     arr.sort((x, y) => rankScore(y) - rankScore(x));
     arr.slice(Math.max(1, maxPerScene)).forEach((a) => { a.visionOk = false; a.cdProminence = "background"; });
+  }
+
+  // THE TIER LAW IS A LAW, NOT A PREFERENCE.
+  //
+  // system_creative_director.md tells the model an upload is "sovereign — never
+  // reject; prefer hero/support prominence", and asset_priority puts it at tier
+  // 100, above the user's own site captures. Nothing ENFORCED any of that: the
+  // verdict parser takes whatever prominence the model returned, and both the
+  // per-scene cap above and the person-demotion below can knock an asset to
+  // `background` regardless of where it came from.
+  //
+  // Measured on a real job: a user uploaded three images through BRAND ASSETS and
+  // every one came back `cdProminence:"background", visionOk:false` — which bars
+  // them from every prominent slot, so the material the user explicitly chose was
+  // the material least likely to appear. A model is entitled to an opinion about
+  // a photo's quality; it is not entitled to overrule the person who supplied it.
+  //
+  // Floor, not ceiling: an upload the model liked keeps `hero`. This only lifts
+  // one it pushed BELOW `support`, and never touches an explicit `reject` on
+  // non-owner content (uploads are never rejected — see the delete guard above).
+  for (const a of list) {
+    if (!a || a.source !== "upload" || isLogo(a)) continue;
+    if (a.cdProminence === "hero" || a.cdProminence === "support") continue;
+    a.cdProminence = "support";
+    a.visionOk = true;
+    a.__tierFloored = true;
   }
 
   // Never zero-out: if we started with assets and deletion would leave none,
@@ -688,6 +724,10 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
   for (const a of curated) { delete a.__absPath; delete a.__rejected; }
 
   const report = {
+    // Coverage of the vision pass itself (see the summary log): how many of the
+    // thumbnailable assets actually came back with a verdict.
+    visualCount: visual.length,
+    reviewedCount: verdicts.size,
     approvedAssets: approvedAssets.slice(0, 40),
     rejectedAssets: rejectedAssets.slice(0, 40),
     assetScores,
@@ -722,7 +762,12 @@ async function reviewAndCurate({ jobId, ...rest }) {
   try {
     const { assets, report } = await directAssets(rest);
     if (jobId) { try { db.setCreativeReview(jobId, report); } catch { /* best effort */ } }
-    console.log(`[creative_director] job ${jobId || "?"}: ${report.approvedAssets.length} approved / ${report.rejectedAssets.length} rejected, quality=${report.qualityScore}, ${report.craftDirected} craft-directed, ${report.creativeDirectorNotes.length} note(s)`);
+    // `reviewed/of` is the number that matters when a film comes out empty: an
+    // asset the vision pass never returned a verdict for carries no evidence of
+    // topicality, so the pin-relevance floor unpins it and the scene renders bare.
+    // Without this count, "23 approved" looks healthy while 28 assets were never
+    // looked at — the failure is invisible in the old summary.
+    console.log(`[creative_director] job ${jobId || "?"}: ${report.approvedAssets.length} approved / ${report.rejectedAssets.length} rejected (vision reviewed ${report.reviewedCount}/${report.visualCount} visual asset(s)), quality=${report.qualityScore}, ${report.craftDirected} craft-directed, ${report.creativeDirectorNotes.length} note(s)`);
     return assets;
   } catch (e) {
     console.warn(`[creative_director] failed (${String(e && e.message || e).slice(0, 140)}) — ${original.length} asset(s) fall back to the legacy vision gate`);

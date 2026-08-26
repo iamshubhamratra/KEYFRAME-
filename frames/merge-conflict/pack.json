@@ -1,0 +1,89 @@
+{
+  "name": "merge-conflict",
+  "renderer": "omelette",
+  "template": "MergeConflict",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for code review / version control — 45 authored beats, ~6.7s each, 5:02 as shipped. diff lines in green and pink gutters, a blinking cursor, giant curly braces, test dots and a coverage bar. Space Grotesk display over IBM Plex Sans body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#e6edf3",
+    "ink": "#0c1017",
+    "accent": "#5ce08a",
+    "a2": "#e05c8a"
+  },
+  "fonts": [
+    "Space Grotesk",
+    "IBM Plex Sans"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#0a0d12",
+    "ink": "#e6edf3"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Space Grotesk",
+    "body": "IBM Plex Sans",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "dry synth arpeggio over a clipped beat, precise and forward",
+    "energy": "medium"
+  },
+  "skin": {
+    "accents": [
+      "#5ce08a",
+      "#e05c8a"
+    ],
+    "extras": [
+      "#121a22",
+      "#1a1220",
+      "#0c1017"
+    ],
+    "emphasisCss": "color:#5ce08a;"
+  },
+  "assets": {
+    "photoMod": "dark editor glow, green and magenta on near-black",
+    "iconStyle": "outline",
+    "keywords": [
+      "code",
+      "developer",
+      "computer",
+      "keyboard",
+      "programming",
+      "laptop"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#0a0d12"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

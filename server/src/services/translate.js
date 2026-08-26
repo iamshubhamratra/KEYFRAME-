@@ -135,7 +135,13 @@ async function translateLines({ lines, targetLang, sourceLang = captionLang.SOUR
   // occasionally truncated / trailing-junked, more so with multi-byte non-Latin
   // scripts — a single re-ask almost always recovers a clean object).
   async function attempt() {
-    const { text, tokensIn, tokensOut, model: servedModel, provider: servedBy } = await openrouter.chat({
+    // `costUsd` is destructured HERE for a reason worth stating: the usage line
+    // below references it, and without it in scope the whole attempt died with a
+    // ReferenceError — AFTER the model had answered and been billed. The retry
+    // then paid for a second identical answer and threw that away too, and the
+    // film shipped in English with a "translation failed" note. A translation
+    // that succeeded twice was discarded twice by an accounting statement.
+    const { text, tokensIn, tokensOut, costUsd, model: servedModel, provider: servedBy } = await openrouter.chat({
       system: SYSTEM, user, jsonMode: true, stage: "caption_director",
       // Deterministic transcreation: stable wording/term choices across renders. The
       // explicit arg wins over the 0.7 stage default (openrouter.js) and applies to the

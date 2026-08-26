@@ -19,6 +19,7 @@
     "test:engine": "node scripts/template_engine.test.cjs",
     "test:media": "node scripts/media_demand.test.cjs",
     "test:align": "node scripts/av_align.test.cjs",
+    "test:slots": "node scripts/kit_slots.test.cjs",
     "audit:families": "node scripts/audit-families.js",
     "check:motion": "node scripts/check-motion.js",
     "check:pace": "node scripts/check-vertical-pace.js",
@@ -37,7 +38,13 @@
     "check:graph": "node scripts/test-graph-topology.js",
     "test:longform": "node scripts/longform_duration.test.cjs",
     "audit:lfdur": "node scripts/longform-durations.js",
-    "test:brand": "node scripts/omelette_brand.test.cjs"
+    "test:brand": "node scripts/omelette_brand.test.cjs",
+    "test:filmbundle": "node scripts/film_bundle.test.cjs",
+    "test:alignom": "node scripts/av_align_omelette.test.cjs",
+    "check:coverage": "node scripts/check-scene-coverage.js",
+    "check:av-sync": "node scripts/check-av-sync.js",
+    "test:sbalign": "node scripts/storyboard_align.test.cjs",
+    "test:sbcover": "node scripts/storyboard_cover.test.cjs"
   },
   "dependencies": {
     "@babel/standalone": "^8.0.4",

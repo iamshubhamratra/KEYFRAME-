@@ -1,0 +1,89 @@
+{
+  "name": "orbit-nine",
+  "renderer": "omelette",
+  "template": "OrbitNine",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for astronomy / solar system — 45 authored beats, ~6.7s each, 5:02 as shipped. planets circling a pulsing sun on flattened orbit rings, a ringed gas giant, a comet crossing right to left, a twinkling starfield, a light-delay readout. Orbitron display over Exo 2 body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#eef0fb",
+    "ink": "#0b0b1a",
+    "accent": "#e08a3c",
+    "a2": "#3c8ce0"
+  },
+  "fonts": [
+    "Orbitron",
+    "Exo 2"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#0a0a18",
+    "ink": "#eef0fb"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Orbitron",
+    "body": "Exo 2",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "wide ambient synth with slow swells, cosmic awe",
+    "energy": "medium"
+  },
+  "skin": {
+    "accents": [
+      "#e08a3c",
+      "#3c8ce0"
+    ],
+    "extras": [
+      "#101a28",
+      "#1e1220",
+      "#0b0b1a"
+    ],
+    "emphasisCss": "color:#e08a3c;"
+  },
+  "assets": {
+    "photoMod": "deep space blue-black, warm amber planet light",
+    "iconStyle": "outline",
+    "keywords": [
+      "planet",
+      "moon",
+      "saturn",
+      "astronomy",
+      "planetarium",
+      "space"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#0a0a18"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

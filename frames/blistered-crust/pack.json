@@ -1,0 +1,89 @@
+{
+  "name": "blistered-crust",
+  "renderer": "omelette",
+  "template": "BlisteredCrust",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for wood-fired pizza / long-proved dough — 45 authored beats, ~6.7s each, 5:02 as shipped. a pizza with cheese and basil turning, char blisters fixed round the rim, a domed oven flickering, flour drifting and a peel. Lilita One display over Urbanist body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#faf0dc",
+    "ink": "#231710",
+    "accent": "#d13c2c",
+    "a2": "#4a8c46"
+  },
+  "fonts": [
+    "Lilita One",
+    "Urbanist"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#1e1410",
+    "ink": "#faf0dc"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Lilita One",
+    "body": "Urbanist",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "loose acoustic swing with handclaps, hot and busy",
+    "energy": "upbeat"
+  },
+  "skin": {
+    "accents": [
+      "#d13c2c",
+      "#4a8c46"
+    ],
+    "extras": [
+      "#e8eedc",
+      "#fae2ce",
+      "#231710"
+    ],
+    "emphasisCss": "color:#d13c2c;"
+  },
+  "assets": {
+    "photoMod": "firelight on flour, charred red and cream",
+    "iconStyle": "outline",
+    "keywords": [
+      "pizza",
+      "dough",
+      "oven",
+      "flour",
+      "fire",
+      "kitchen"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#1e1410"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "name": "hay-and-holler",
+  "renderer": "omelette",
+  "template": "HayHoller",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for small farm / livestock — 47 authored beats, ~6.6s each, 5:11 as shipped. tractor crossing the field, hay bales rolling, spinning sun wheel, crowing rooster. Rye display over Roboto Condensed body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f7eed6",
+    "ink": "#2c2415",
+    "accent": "#d4832a",
+    "a2": "#5e7a34"
+  },
+  "fonts": [
+    "Rye",
+    "Roboto Condensed"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#2b2013",
+    "ink": "#f7eed6"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Rye",
+    "body": "Roboto Condensed",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "warm folk with banjo and brushed kit, rural",
+    "energy": "medium"
+  },
+  "skin": {
+    "accents": [
+      "#d4832a",
+      "#5e7a34"
+    ],
+    "extras": [
+      "#e9eeda",
+      "#f9e2bd",
+      "#2c2415"
+    ],
+    "emphasisCss": "color:#d4832a;"
+  },
+  "assets": {
+    "photoMod": "dusty golden daylight, ochre and green field tones",
+    "iconStyle": "outline",
+    "keywords": [
+      "farm",
+      "tractor",
+      "hay",
+      "barn",
+      "cattle",
+      "field"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#2b2013"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

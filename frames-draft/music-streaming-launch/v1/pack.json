@@ -1,0 +1,81 @@
+{
+  "name": "music-streaming-launch",
+  "vibe": "A studio-at-night console — VU meters twitching, waveform ribbons, glowing play head, orbiting record grooves — for a streaming launch film.",
+  "colors": {
+    "void": "#0a0f1e",
+    "deck": "#131a30",
+    "grid": "#1e2747",
+    "ink": "#e6eafb",
+    "violet": "#996ff7",
+    "cyan": "#22d3ee"
+  },
+  "fonts": [
+    "Inter",
+    "Chakra Petch",
+    "JetBrains Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#0a0f1e"
+  },
+  "motion": {
+    "cut": "submerge",
+    "drift": 1.04
+  },
+  "fx": {
+    "canvas": "orrery",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#996ff7",
+      "#22d3ee"
+    ],
+    "extras": [
+      "#1e2747",
+      "#c4b5fd"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "retro terminal crt scanline dark tech",
+    "iconStyle": "line",
+    "keywords": [
+      "retro",
+      "terminal",
+      "mono",
+      "crt",
+      "dark"
+    ],
+    "prefer": []
+  },
+  "textfx": {
+    "enter": "blur-up",
+    "emphasis": "gradient",
+    "case": "upper",
+    "tracking": 0.02,
+    "weight": null,
+    "sizeScale": 1.1,
+    "align": "left",
+    "speed": 1.35
+  },
+  "audio": {
+    "music": {
+      "query": "",
+      "mood": "",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "",
+      "palette": []
+    }
+  },
+  "typography": {
+    "display": "Chakra Petch"
+  },
+  "camera3d": {
+    "ground": "#0a0f1e"
+  },
+  "portraitNative": true
+}

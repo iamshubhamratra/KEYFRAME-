@@ -141,7 +141,7 @@ function orderPacks(serverPacks) {
 
 // One pack card — v2 anatomy: white card, color spine, scanlined preview.
 export function PackCard({ pack, delay = 0, onUse, compact = false, portrait = false }) {
-  const lore = loreFor(pack.name);
+  const lore = loreFor(pack.name, pack);
   const vidRef = useRef(null);
   const [hover, setHover] = useState(false);
   const [posterOk, setPosterOk] = useState(true);

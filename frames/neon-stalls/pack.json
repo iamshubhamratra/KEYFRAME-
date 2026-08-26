@@ -1,0 +1,89 @@
+{
+  "name": "neon-stalls",
+  "renderer": "omelette",
+  "template": "NeonStalls",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for night market street food — 45 authored beats, ~6.7s each, 5:02 as shipped. two sagging lantern strings flickering, wok flame flaring, smoke plumes rising, stall awning and drifting crowd. Monoton display over Be Vietnam Pro body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f6eff6",
+    "ink": "#150c1c",
+    "accent": "#ff3ea0",
+    "a2": "#2ee0d0"
+  },
+  "fonts": [
+    "Monoton",
+    "Be Vietnam Pro"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#150c1c",
+    "ink": "#f6eff6"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Monoton",
+    "body": "Be Vietnam Pro",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "neon synth with clattering hand percussion, humid and busy",
+    "energy": "upbeat"
+  },
+  "skin": {
+    "accents": [
+      "#ff3ea0",
+      "#2ee0d0"
+    ],
+    "extras": [
+      "#1b2430",
+      "#241428",
+      "#150c1c"
+    ],
+    "emphasisCss": "color:#ff3ea0;"
+  },
+  "assets": {
+    "photoMod": "night market neon, wet reflections, magenta and teal glow",
+    "iconStyle": "outline",
+    "keywords": [
+      "market",
+      "neon",
+      "food",
+      "wok",
+      "lantern",
+      "noodles"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#150c1c"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

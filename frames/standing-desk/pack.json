@@ -1,0 +1,89 @@
+{
+  "name": "standing-desk",
+  "renderer": "omelette",
+  "template": "StandingDesk",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for workspace / deep work — 45 authored beats, ~6.7s each, 5:02 as shipped. a desk with a laptop lid opening, cursor blinking under text lines, a coiled cable, a swaying potted plant, shelf slabs. Familjen Grotesk display over Public Sans body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f0f1ee",
+    "ink": "#191c20",
+    "accent": "#3c6be0",
+    "a2": "#e0913c"
+  },
+  "fonts": [
+    "Familjen Grotesk",
+    "Public Sans"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#14161a",
+    "ink": "#f0f1ee"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Familjen Grotesk",
+    "body": "Public Sans",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "calm minimal keys over a soft pulse, focused",
+    "energy": "medium"
+  },
+  "skin": {
+    "accents": [
+      "#3c6be0",
+      "#e0913c"
+    ],
+    "extras": [
+      "#e6ecf2",
+      "#f6e8d8",
+      "#191c20"
+    ],
+    "emphasisCss": "color:#3c6be0;"
+  },
+  "assets": {
+    "photoMod": "bright tidy desk, soft daylight and cool blue",
+    "iconStyle": "outline",
+    "keywords": [
+      "desk",
+      "laptop",
+      "workspace",
+      "office",
+      "plant",
+      "monitor"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#14161a"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

@@ -1,4 +1,4 @@
-// IMPORT THE LONG-FORM HANDOFF — 28 five-minute 16:9 kinetic-typography films.
+// IMPORT THE LONG-FORM HANDOFF — 58 five-minute 16:9 kinetic-typography films.
 //
 // The handoff ships each film as a self-contained `standalone/<slug>.html`: a
 // __bundler page whose `__bundler/manifest` block holds every resource (engine,
@@ -18,11 +18,17 @@
 // what the shipped Field Notes bundle does — diffing the shipped bundle against
 // its handoff twin shows a single differing resource, differing by a single
 // character. This script reproduces that edit rather than re-deriving it, so
-// every one of the 28 is imported the way the proven one was.
+// every one of the 58 is imported the way the proven one was.
 //
 // Everything else (pack.json, FRAME.md) is generated from the film's OWN
-// identity — the palette/fonts it declares in engine/lf-pack-N.js — rather than
-// hand-transcribed, so a pack can never drift from the film it renders.
+// identity — the palette/fonts it declares in source/lf-pack-N.js, resolved
+// against the tweaks its own page sets — rather than hand-transcribed, so a pack
+// can never drift from the film it renders.
+//
+// Re-run scripts/fix-pack-grounds.js --write afterwards: pack.json is regenerated
+// from the identity's paper/ink, and 48 of these films paint a DARK page behind a
+// light-declared palette. scripts/compare-handoff.js --src <same dir> then reports
+// whether every installed bundle still equals the handoff.
 //
 //   node scripts/import-longform-handoff.js --src <longform-handoff dir> [--force] [--only slug]
 //
@@ -75,6 +81,51 @@ const NICHE = {
   "rope-and-round":  { niche: "boxing gym", world: "swinging heavy bag, skipping-rope arc, ring ropes, bell", kw: ["boxing", "gym", "training", "ring", "gloves", "fight"], bgm: "hard-hitting percussive hip-hop, gritty", energy: "high", photo: "gritty gym light, hard shadow" },
   "field-of-view":   { niche: "astronomy", world: "twinkling stars, constellation drawing, rotating dome, meteors", kw: ["astronomy", "stars", "night sky", "telescope", "space", "galaxy"], bgm: "wide cinematic ambient, cosmic and still", energy: "calm", photo: "night sky, deep space imagery" },
   "grain-line":      { niche: "hand woodwork", world: "plane throwing shavings, sawdust, dovetails cutting, clamps", kw: ["woodwork", "timber", "workshop", "tools", "craft", "joinery"], bgm: "warm acoustic with woody percussion", energy: "medium", photo: "workshop light, timber grain and tools" },
+
+  // ---- the 30 films this drop added -------------------------------------------
+  // Authored from each film's OWN animated world (the `World:` SVG in its
+  // lf-pack block) and its garnish tags, NOT from the handoff README's subject
+  // table — the README is wrong about several of them, and the world is the part
+  // that survives into the user's film. Verified mismatches:
+  //   trail-team  README "trail running"  -> world draws an eight-dog sled team
+  //   orbit-nine  README "space station"  -> world draws the solar system
+  //   silver-run  README "river fishing"  -> world draws elvers and a lift net
+  //   kite-line   README "kite festival"  -> world draws a kitesurfer and board
+  //   bull-run    README "trading desk"   -> world draws a bucking bull and an
+  //               8-second rodeo clock, and its tags read "AN ARENA FILM". Its
+  //               PLACEHOLDER copy really is about a trading desk, but that copy
+  //               is replaced by the user's script while the arena is not, so the
+  //               pack is cast as rodeo.
+  "hay-and-holler":        { niche: "small farm / livestock", world: "tractor crossing the field, hay bales rolling, spinning sun wheel, crowing rooster", kw: ["farm", "tractor", "hay", "barn", "cattle", "field"], bgm: "warm folk with banjo and brushed kit, rural", energy: "medium", photo: "dusty golden daylight, ochre and green field tones" },
+  "koi-hour":              { niche: "koi pond keeping", world: "koi circling the pond, ripple rings spreading, lily pads drifting, dragonfly hovering", kw: ["koi", "pond", "fish", "water", "lily", "garden"], bgm: "sparse ambient with koto and water, unhurried", energy: "calm", photo: "soft overcast reflections, teal water and orange fish" },
+  "chalk-circle":          { niche: "children's outdoor play", world: "hopscotch squares lighting in sequence, a skipping rope arcing, a bouncing ball, a swaying swing", kw: ["playground", "children", "chalk", "hopscotch", "swing", "ball"], bgm: "playful marimba and handclaps, skipping-rhyme bounce", energy: "upbeat", photo: "bright afternoon pavement, chalk pastels and warm cream" },
+  "truce":                 { niche: "pets / cats and dogs", world: "dog and cat hauling a tug rope, scoreboard numerals ticking, paw prints drifting past", kw: ["dog", "cat", "pet", "puppy", "kitten", "sofa"], bgm: "playful acoustic with plucked strings, mischievous", energy: "upbeat", photo: "soft indoor daylight, warm living-room tones" },
+  "tinsel-row":            { niche: "christmas / street lights", world: "snow falling, two sagging strings of bulbs blinking, lit tree with star, wreath turning", kw: ["christmas", "lights", "snow", "wreath", "garland", "street"], bgm: "warm festive bells over soft strings, twinkling", energy: "medium", photo: "night exteriors, warm bulb glow against cold blue" },
+  "proof-and-crust":       { niche: "bakery / sourdough", world: "dough dome rising and falling, oven glowing with loaves, flour specks falling, scoring blade cutting, steam curling up", kw: ["bread", "dough", "bakery", "sourdough", "flour", "oven"], bgm: "warm mid-tempo acoustic guitar with brushed kit and wooden hand percussion, steady working rhythm", energy: "medium", photo: "warm oven light, flour dust and matte crust" },
+  "white-line":            { niche: "ski patrol / avalanche control", world: "ridgeline peaks, falling snow, a skier arcing across the bowl, chairlifts crossing the cable", kw: ["snow", "ski", "mountain", "avalanche", "slope", "alpine"], bgm: "wide cinematic strings over a low drone, cold and patient", energy: "medium", photo: "cold blue-white daylight, snow glare, red jacket accents" },
+  "neon-stalls":           { niche: "night market street food", world: "two sagging lantern strings flickering, wok flame flaring, smoke plumes rising, stall awning and drifting crowd", kw: ["market", "neon", "food", "wok", "lantern", "noodles"], bgm: "neon synth with clattering hand percussion, humid and busy", energy: "upbeat", photo: "night market neon, wet reflections, magenta and teal glow" },
+  "insert-coin":           { niche: "retro arcade", world: "glowing pixel grid, a chunky sprite bouncing across, flickering high-score board, joystick rocking with lit buttons", kw: ["arcade", "joystick", "gaming", "coin", "pinball", "retro"], bgm: "chiptune with fat synth bass, 8-bit swagger", energy: "high", photo: "dark arcade room, CRT glow, yellow and teal light" },
+  "stem-and-sprig":        { niche: "wedding florist", world: "stems swaying with turning flower heads, petals drifting down, ribbon spiral drawing outward, wreath ring of turning petals", kw: ["flower", "bouquet", "florist", "garden", "wedding", "petal"], bgm: "soft acoustic strings with light pastoral air, unhurried", energy: "calm", photo: "soft morning light, dusty rose and sage tones" },
+  "copper-still":          { niche: "whisky distillery", world: "copper pot still with swan neck, vapour rising through the condenser, spirit droplets falling, numbered oak casks", kw: ["whisky", "barrel", "distillery", "copper", "bourbon", "cellar"], bgm: "slow warm strings over a low drone, patient and aged", energy: "calm", photo: "dim bonded-warehouse lamplight, copper vessels and dark oak, low-key" },
+  "kite-line":             { niche: "kitesurfing", world: "kite arcing on its lines, rider on a board throwing spray, scrolling wave bands, live wind-speed readout", kw: ["kitesurfing", "kiteboarding", "beach", "ocean", "waves", "surfer"], bgm: "driving surf rock with bright percussion, salt-air energy", energy: "high", photo: "bright coastal daylight, turquoise water and white spray" },
+  "wax-and-wick":          { niche: "candle making", world: "wax pouring from a tilted pitcher, jars filling with wicks, a flickering flame, scent motes rising", kw: ["candle", "wax", "wick", "flame", "jar", "candlelight"], bgm: "soft felted piano over quiet room tone, unhurried", energy: "calm", photo: "candle-flame light in a near-dark room, small warm pools of glow on cream" },
+  "fret-and-fingerboard":  { niche: "luthiery / guitar building", world: "guitar body swaying with vibrating strings, fretboard and inlays, glue clamps turning, wood shavings curling", kw: ["guitar", "luthier", "woodworking", "workbench", "sawdust", "chisel"], bgm: "sparse fingerpicked acoustic, woody and intimate", energy: "calm", photo: "warm daylit workbench, pale spruce, shavings and steel hand tools" },
+  "salt-flats":            { niche: "land speed racing", world: "a streamliner running across a white salt plain, heat-shimmer bands, blinking timing posts, an mph readout ticking", kw: ["desert", "racing", "car", "motorsport", "dust", "horizon"], bgm: "driving motorik synth over a low engine drone, wide", energy: "high", photo: "blown-out white desert glare, heat haze with red and blue accents" },
+  "loft-and-ring":         { niche: "pigeon racing", world: "pigeons flapping across the sky, a nest-box loft with birds on the landing board, a sweeping race clock, rolling hills", kw: ["pigeon", "dove", "feather", "flock", "sky", "wing"], bgm: "warm folk with brushed drums, homely and patient", energy: "medium", photo: "soft overcast dawn, terracotta and slate blue" },
+  "trail-team":            { niche: "sled dog mushing / kennel life", world: "an eight-dog gangline running, sled and driver on the runners, falling snow over a mountain ridge, a dashed trail and a live sub-zero temperature readout", kw: ["husky", "sled", "snow", "dog", "winter", "malamute"], bgm: "driving percussive strings, cold air, forward momentum", energy: "high", photo: "blue-hour snow, orange parka against white" },
+  "silver-run":            { niche: "river ecology / eel monitoring", world: "transparent eels wriggling upstream, scrolling current lines, a lift net raising and lowering, a live tally counter under night stars", kw: ["eel", "river", "net", "water", "night", "stream"], bgm: "ambient minimal with water textures, nocturnal and still", energy: "calm", photo: "cold night river, teal water and lamplight gold" },
+  "six-bells":             { niche: "change ringing / bell tower", world: "six bells swinging on their ropes, sallies pulled below, sound rings spreading, a change grid lighting cell by cell", kw: ["bell", "tower", "church", "rope", "belfry", "steeple"], bgm: "sparse strings over a slow tolling bell pulse, two beats, reverent", energy: "calm", photo: "low tower light, warm brass and old stone" },
+  "blistered-crust":       { niche: "wood-fired pizza / long-proved dough", world: "a pizza with cheese and basil turning, char blisters fixed round the rim, a domed oven flickering, flour drifting and a peel", kw: ["pizza", "dough", "oven", "flour", "fire", "kitchen"], bgm: "loose acoustic swing with handclaps, hot and busy", energy: "upbeat", photo: "firelight on flour, charred red and cream" },
+  "deep-field":            { niche: "space telescope / deep-sky astronomy", world: "a twinkling starfield, tilted galaxy discs with bright cores slowly turning, a folded gold hexagon mirror bobbing above its trapezoid sunshield, a scan marker drifting upward", kw: ["galaxy", "nebula", "telescope", "satellite", "space", "stars"], bgm: "low sustained drones under a slow pulse, vast and clinical", energy: "calm", photo: "deep black sky, cold blue with gold glints" },
+  "orbit-nine":            { niche: "astronomy / solar system", world: "planets circling a pulsing sun on flattened orbit rings, a ringed gas giant, a comet crossing right to left, a twinkling starfield, a light-delay readout", kw: ["planet", "moon", "saturn", "astronomy", "planetarium", "space"], bgm: "wide ambient synth with slow swells, cosmic awe", energy: "medium", photo: "deep space blue-black, warm amber planet light" },
+  "spiral-arm":            { niche: "astronomy / the galaxy", world: "a face-on spiral galaxy slowly rotating with four density-wave arms and a glowing core, a scattered twinkling starfield, a separate pulsing 'you are here' marker ringed and labelled at the far side of the frame", kw: ["galaxy", "stars", "stargazing", "constellation", "universe", "night"], bgm: "sparse ambient pads with distant chimes, weightless", energy: "calm", photo: "long-exposure night sky, violet and soft lilac glow" },
+  "apex-lap":              { niche: "motorsport / formula 1", world: "f1 car running a track ribbon, scrolling kerb stripes, throttle-trace readout, speed streaks", kw: ["racing", "motorsport", "racetrack", "helmet", "tires", "grandstand"], bgm: "driving percussive rock with engine pulse, urgent", energy: "high", photo: "high-contrast trackside, red and cyan motion blur" },
+  "bull-run":              { niche: "rodeo / bull riding", world: "a bucking bull with rider, arena fence rails, kicked dust, an eight-second clock", kw: ["bull", "rodeo", "cowboy", "ranch", "cattle", "western"], bgm: "driving country rock with stomp and handclaps, dusty", energy: "high", photo: "dust-lit arena, warm ochre and cream" },
+  "standing-desk":         { niche: "workspace / deep work", world: "a desk with a laptop lid opening, cursor blinking under text lines, a coiled cable, a swaying potted plant, shelf slabs", kw: ["desk", "laptop", "workspace", "office", "plant", "monitor"], bgm: "calm minimal keys over a soft pulse, focused", energy: "medium", photo: "bright tidy desk, soft daylight and cool blue" },
+  "merge-conflict":        { niche: "code review / version control", world: "diff lines in green and pink gutters, a blinking cursor, giant curly braces, test dots and a coverage bar", kw: ["code", "developer", "computer", "keyboard", "programming", "laptop"], bgm: "dry synth arpeggio over a clipped beat, precise and forward", energy: "medium", photo: "dark editor glow, green and magenta on near-black" },
+  "out-of-office":         { niche: "annual leave / holiday travel", world: "sun with turning rays, paper plane arcing on a dashed route, rolling suitcase bobbing, boarding pass with barcode", kw: ["travel", "suitcase", "airport", "airplane", "passport", "vacation"], bgm: "sunny indie pop, handclaps, easygoing", energy: "upbeat", photo: "bright travel daylight, airports and packed bags, orange and teal" },
+  "palolem":               { niche: "beach travel / slow coastal stays", world: "low sun over a sunset band, waves scrolling shoreward, palms swaying, sailboat bobbing, lanterns pulsing", kw: ["beach", "palm", "boat", "sunset", "ocean", "coconut"], bgm: "slow coastal acoustic, soft tabla and guitar, sunset", energy: "calm", photo: "low golden sunset light, terracotta and sea-green" },
+  "col-and-cairn":         { niche: "hillwalking / mountaineering", world: "jagged ridgeline with snowcaps, cloud inversion drifting through the valley, cairn stones stacking one by one, hiker with a pole climbing", kw: ["mountain", "hiking", "ridge", "summit", "trail", "backpack"], bgm: "sparse ambient strings, wide and cold, patient", energy: "calm", photo: "cold high-altitude light, slate blue with rust accents" },
 };
 
 const relLum = (hex) => {
@@ -102,16 +153,55 @@ function loadIdentities(engineDir) {
     }
   } finally { g.React = prevReact; g.LFKit = prevKit; }
   const fam = (s) => { const m = /"([^"]+)"/.exec(String(s || "")); return m ? m[1] : String(s || "").split(",")[0].trim(); };
-  return cfgs.map((c) => {
-    const p = c.palette ? c.palette({}) : {};
-    return {
-      global: c.global, brand: c.brand, desk: c.desk,
-      display: fam(c.FH), body: fam(c.FB),
-      paper: p.paper, ink: p.ink, accent: p.accent, accent2: c.accent2Opts?.[0] || p.accent2,
-      sageT: p.sageT, terraT: p.terraT,
-      tags: c.tags || [],
-    };
-  });
+  return cfgs.map((c) => ({
+    global: c.global, brand: c.brand, desk: c.desk,
+    display: fam(c.FH), body: fam(c.FB),
+    tags: c.tags || [],
+    // Deferred: the palette is a FUNCTION OF THE FILM'S TWEAKS, so it cannot be
+    // resolved until we know which film we are importing. See paletteOf().
+    palette: c.palette, accent2Opts: c.accent2Opts,
+  }));
+}
+
+/** The tweak object the SHIPPED page sets, from its own OM_TWEAKS block.
+ *
+ *  In a standalone build the page lives inside the `__bundler/template`
+ *  resource, which is itself a JSON STRING — so the object arrives escaped
+ *  (`{\n  \"accent\": \"#12d67a\" …}`). Unwrapping it by hand with a chain of
+ *  backslash replaces is how this kind of parser goes subtly wrong, so let JSON
+ *  do it: quote the fragment and parse it once to unescape, then parse the
+ *  result. An unescaped fragment (a loose `.dc.html` wrapper) fails that first
+ *  parse and is read directly. */
+function tweaksOf(html) {
+  const m = /\/\*EDITMODE-BEGIN\*\/([\s\S]*?)\/\*EDITMODE-END\*\//.exec(html);
+  if (!m) return {};
+  const frag = m[1].trim();
+  for (const text of [(() => { try { return JSON.parse(`"${frag}"`); } catch { return null; } })(), frag]) {
+    if (typeof text !== "string") continue;
+    try { const o = JSON.parse(text); if (o && typeof o === "object") return o; } catch { /* try the next reading */ }
+  }
+  return {};
+}
+
+/** The palette the film ACTUALLY PAINTS.
+ *
+ *  Every identity declares `palette: (t) => ({ accent: t.accent || "#b8352c", … })`
+ *  — the default is only what shows when the film sets no tweak. Resolving it
+ *  against an EMPTY object recorded the default instead of the film's own
+ *  choice, and the pack then declared colours the template never paints.
+ *  Measured across all 58 films in this drop: one diverges, and it diverges
+ *  completely — bull-run's page sets accent #12d67a / accent2 #f2b23c while its
+ *  identity defaults to #b8352c / #8c6a2c. That is the pack's emphasis colour,
+ *  its skin accents and its brand-recolour contrast guard, all wrong. */
+function paletteOf(id, html) {
+  const tw = tweaksOf(html);
+  const p = id.palette ? id.palette(tw) : {};
+  return {
+    paper: p.paper, ink: p.ink,
+    accent: p.accent,
+    accent2: tw.accent2 || id.accent2Opts?.[0] || p.accent2,
+    sageT: p.sageT, terraT: p.terraT,
+  };
 }
 
 /** The one edit. Returns the rewritten page, or throws if the bundle does not
@@ -137,7 +227,29 @@ function stripPlaybackBar(html) {
   return html.slice(0, m.index) + `<script type="__bundler/manifest">${JSON.stringify(manifest)}</script>` + html.slice(m.index + m[0].length);
 }
 
-function packJson(id, meta, sceneCount) {
+const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
+
+// How many scene renderers the kit inside THIS bundle carries. The drop that
+// added the FX set took it from 60 to 74, and a FRAME.md that states the number
+// has to state the one its own bundle actually ships.
+function kitSceneCount(html) {
+  const m = /<script type="__bundler\/manifest">([\s\S]*?)<\/script>/.exec(html);
+  if (!m) return 0;
+  let manifest;
+  try { manifest = JSON.parse(m[1]); } catch { return 0; }
+  for (const res of Object.values(manifest)) {
+    if (!res || !res.data || !res.compressed) continue;
+    let text;
+    try { text = zlib.gunzipSync(Buffer.from(res.data, "base64")).toString("utf8"); } catch { continue; }
+    const sm = /SCENE_MAP\s*=\s*\{([^}]*)\}/.exec(text);
+    if (sm) return sm[1].split(",").map((x) => x.trim()).filter(Boolean).length;
+  }
+  return 0;
+}
+
+function packJson(id, meta, film) {
+  const { sceneCount, runtime } = film;
+  const pace = (runtime / sceneCount).toFixed(1);
   const light = relLum(id.paper) > 0.5;
   return {
     name: id.slug,
@@ -146,7 +258,7 @@ function packJson(id, meta, sceneCount) {
     portraitNative: false,
     longForm: true,
     longFormOk: true,
-    vibe: `long-form 16:9 kinetic-typography film for ${meta.niche} — ${sceneCount} authored beats, ~7.5s each, about 5 minutes as shipped. ${meta.world}. ${id.display} display over ${id.body} body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.`,
+    vibe: `long-form 16:9 kinetic-typography film for ${meta.niche} — ${sceneCount} authored beats, ~${pace}s each, ${mmss(runtime)} as shipped. ${meta.world}. ${id.display} display over ${id.body} body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.`,
     colors: { ground: id.paper, ink: id.ink, accent: id.accent, a2: id.accent2 },
     fonts: [id.display, id.body],
     surface: { flat: true, lightCinematic: light, ground: id.paper, ink: id.ink },
@@ -166,12 +278,14 @@ function packJson(id, meta, sceneCount) {
   };
 }
 
-function frameMd(id, meta, sceneCount) {
+function frameMd(id, meta, film) {
+  const { sceneCount, runtime } = film;
+  const pace = (runtime / sceneCount).toFixed(1);
   return `# ${id.brand} — long-form kinetic-typography film (16:9)
 
-A ~5-minute, ${sceneCount}-beat looping film for ${meta.niche}, rendered from its own
+A ${mmss(runtime)}, ${sceneCount}-beat looping film for ${meta.niche}, rendered from its own
 original bundle — only the words and the two pictures change. Built for LONG-FORM
-video: every beat is a different type animation (~7.5s each), so a 2–5 minute
+video: every beat is a different type animation (~${pace}s each), so a 2–5 minute
 script never repeats a layout.
 
 ## Design system
@@ -183,9 +297,10 @@ script never repeats a layout.
 - Animated SVG world behind every scene: ${meta.world}.
 
 ## Shape vocabulary (${sceneCount} authored beats)
-Drawn from the kit's 60 scene renderers with no name repeating inside the film —
+Drawn from the kit's ${film.kitScenes} scene renderers with no name repeating inside the film —
 letter-level (Open, Rain, Spiral, Wave…), word-level (Problem, Marker, Magnet…),
-line/block (Wilt, Curtain, Cards…), data (Counts, Ladder, Gauge, Plans…) and the
+line/block (Wilt, Curtain, Cards…), data (Counts, Ladder, Gauge, Plans…), the FX
+set (NeonSign, Glitch, FlipCube, Ticker3D, Kaleido, Spotlight…) and the
 bookends (Kit chapter cards, Peek image card, QA, Join CTA). Slot keys include
 kicker/title/sub/lines/steps/stats/items/words/pairs/rows/q&a/plans — text-first;
 \`image\` appears twice (a mid-film setup card and the CTA logo).
@@ -203,11 +318,12 @@ kicker/title/sub/lines/steps/stats/items/words/pairs/rows/q&a/plans — text-fir
 }
 
 // ---- run ----
-const engineDir = path.join(SRC, "engine");
+// The handoff renamed engine/ -> source/ between drops; accept either so an
+// older zip and a newer one both import with the same command.
+const engineDir = ["source", "engine"].map((d) => path.join(SRC, d)).find((d) => fs.existsSync(d));
 const standaloneDir = path.join(SRC, "standalone");
-for (const d of [engineDir, standaloneDir]) {
-  if (!fs.existsSync(d)) { console.error(`missing ${d}`); process.exit(1); }
-}
+if (!engineDir) { console.error(`missing ${path.join(SRC, "source")} (or engine/)`); process.exit(1); }
+if (!fs.existsSync(standaloneDir)) { console.error(`missing ${standaloneDir}`); process.exit(1); }
 
 const norm = (s) => String(s).toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
 const slugify = (s) => String(s).toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -215,7 +331,8 @@ const slugify = (s) => String(s).toLowerCase().replace(/&/g, "and").replace(/[^a
 const identities = loadIdentities(engineDir);
 const byNorm = new Map(identities.map((c) => [norm(c.brand), c]));
 
-const files = fs.readdirSync(standaloneDir).filter((f) => f.endsWith(".html")).sort();
+// index.html is the handoff's own gallery page, not a film.
+const files = fs.readdirSync(standaloneDir).filter((f) => f.endsWith(".html") && f !== "index.html").sort();
 fs.mkdirSync(TPL_DIR, { recursive: true });
 
 const done = [], skipped = [], failed = [];
@@ -227,7 +344,24 @@ for (const file of files) {
   // entry, which would otherwise be reported as a failure on every run.
   if (fs.existsSync(path.join(FRAMES_DIR, base, "pack.json")) && !FORCE) { skipped.push(base); continue; }
   const id = byNorm.get(norm(base));
-  if (!id) { failed.push([base, "no identity in engine/lf-pack-*.js"]); continue; }
+  // Field Notes ships from the pre-kit `field-notes-film.jsx` and so has no
+  // LFKit.make() entry to read a palette from. On a --force re-import from a
+  // newer handoff it still needs its BUNDLE refreshed; its pack.json/FRAME.md
+  // were authored against the original and are left exactly as they are.
+  if (!id) {
+    const existing = path.join(FRAMES_DIR, base, "pack.json");
+    if (fs.existsSync(existing)) {
+      try {
+        const tpl = JSON.parse(fs.readFileSync(existing, "utf8")).template;
+        const out = stripPlaybackBar(fs.readFileSync(path.join(standaloneDir, file), "utf8"));
+        fs.writeFileSync(path.join(TPL_DIR, `${tpl}.html`), out, "utf8");
+        done.push(`${base} -> ${tpl}.html (bundle only — no kit identity, pack.json kept)`);
+      } catch (e) { failed.push([base, e.message]); }
+      continue;
+    }
+    failed.push([base, "no identity in source/lf-pack-*.js"]);
+    continue;
+  }
   id.slug = slugify(id.brand);
 
   const meta = NICHE[id.slug];
@@ -238,18 +372,38 @@ for (const file of files) {
 
   try {
     const html = fs.readFileSync(path.join(standaloneDir, file), "utf8");
+    // Resolve the palette against THIS film's own tweaks, not the identity's
+    // defaults — see paletteOf().
+    Object.assign(id, paletteOf(id, html));
     const out = stripPlaybackBar(html);
     fs.writeFileSync(path.join(TPL_DIR, `${id.global}.html`), out, "utf8");
 
-    // Beat count comes from the film itself (OM_SCENES), not from a table.
-    let sceneCount = 40;
+    // Beat count AND runtime come from the film itself (OM_SCENES), not from a
+    // table. OM_SCENES is JSON inside a SINGLE-quoted JS string, so its own double
+    // quotes arrive backslash-escaped — without undoing that the parse throws and
+    // every film silently reported the fallback 40, including the 41-beat ones.
+    //
+    // Runtime matters as much as the count: this drop ships 40-beat/5:01 films
+    // alongside 47-beat/5:11 ones, so a hardcoded "~7.5s each, about 5 minutes"
+    // described neither of them. The pace a pack DECLARES is what the adapter
+    // budgets beats against, so it has to be this film's own.
+    let scenes = null;
     const om = /window\.OM_SCENES\s*=\s*'([\s\S]*?)';/.exec(html);
-    if (om) { try { sceneCount = JSON.parse(om[1].replace(/\\'/g, "'").replace(/\\\\/g, "\\")).length || 40; } catch { /* keep default */ } }
+    if (om) {
+      const raw = om[1].replace(/\\"/g, '"').replace(/\'/g, "'").replace(/\\/g, "\\");
+      try { const parsed = JSON.parse(raw); if (Array.isArray(parsed) && parsed.length) scenes = parsed; } catch { /* reported below */ }
+    }
+    if (!scenes) throw new Error("could not read OM_SCENES from the bundle");
+    const film = {
+      sceneCount: scenes.length,
+      runtime: scenes.reduce((a, sc) => a + (Number(sc.dur) || 0), 0),
+      kitScenes: kitSceneCount(out),
+    };
 
     fs.mkdirSync(packDir, { recursive: true });
-    fs.writeFileSync(path.join(packDir, "pack.json"), JSON.stringify(packJson(id, meta, sceneCount), null, 2) + "\n", "utf8");
-    fs.writeFileSync(path.join(packDir, "FRAME.md"), frameMd(id, meta, sceneCount), "utf8");
-    done.push(`${id.slug} -> ${id.global}.html (${sceneCount} beats)`);
+    fs.writeFileSync(path.join(packDir, "pack.json"), JSON.stringify(packJson(id, meta, film), null, 2) + "\n", "utf8");
+    fs.writeFileSync(path.join(packDir, "FRAME.md"), frameMd(id, meta, film), "utf8");
+    done.push(`${id.slug} -> ${id.global}.html (${film.sceneCount} beats, ${mmss(film.runtime)})`);
   } catch (e) {
     failed.push([id.slug, e.message]);
   }

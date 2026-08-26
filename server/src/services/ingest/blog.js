@@ -6,7 +6,8 @@
 // post's own inline images are the most on-topic visuals any pipeline could
 // fetch. This worker extracts exactly that:
 //
-//   { url, title, author, published, headings[], text, images:[{path, alt}] }
+//   { url, title, author, published, headings[], text, images:[{path, alt}],
+//     externalLinks:[{href, host, context}] }
 //
 // Extraction runs in-page on the same cached Chrome the renderer uses
 // (puppeteer-core, findChrome from the website worker): pick the <article> /
@@ -101,10 +102,43 @@ async function understandBlog({ url, workDir, timeoutMs = 60_000 }) {
         .filter((t) => t.length > 2 && t.length < 160)
         .slice(0, 16);
 
+      // Long-form (5-10min) films draw on the WHOLE article, not just its lead —
+      // 14,000 chars was cutting a real ~2,500-word post down to its first third.
+      // 60,000 chars covers the longest realistic blog post; downstream stages
+      // (project_pipeline's brief excerpt, script generation) do their own
+      // duration-aware summarization on top of this.
       const text = (root.innerText || "")
         .replace(/\n{3,}/g, "\n\n")
         .trim()
-        .slice(0, 14000);
+        .slice(0, 60000);
+
+      // Outbound links the article itself points to (a tool, a competitor, a
+      // dataset source, a product it reviews) — candidates for related-website
+      // screenshots. Internal nav/anchor/social-share links are noise, so keep
+      // only links that (a) leave the article's own host and (b) sit inside
+      // real body copy (a <p>/<li>, not a header/footer/nav chrome element).
+      // Compare REGISTRABLE domain, not exact host — docs.stripe.com and
+      // status.stripe.com are the article's own company, not a "related site"
+      // the article is pointing a viewer at, even though the hostname differs.
+      const baseDomain = (h) => h.split(".").slice(-2).join(".");
+      const ownHost = location.hostname.replace(/^www\./, "");
+      const ownBase = baseDomain(ownHost);
+      const linkSeen = new Set();
+      const externalLinks = [];
+      for (const a of root.querySelectorAll("p a[href], li a[href]")) {
+        const href = a.href || "";
+        if (!/^https?:/i.test(href)) continue;
+        let host;
+        try { host = new URL(href).hostname.replace(/^www\./, ""); } catch { continue; }
+        if (!host || host === ownHost || baseDomain(host) === ownBase) continue;
+        if (/(twitter|x)\.com|facebook\.com|linkedin\.com|instagram\.com|youtube\.com|reddit\.com|t\.co|bit\.ly/i.test(host)) continue;
+        if (a.closest("nav,header,footer,[role=navigation]")) continue; // chrome, not article copy
+        if (linkSeen.has(host)) continue;
+        linkSeen.add(host);
+        const context = (a.closest("p,li")?.innerText || a.innerText || "").replace(/\s+/g, " ").trim().slice(0, 240);
+        externalLinks.push({ href, host, text: (a.innerText || "").trim().slice(0, 100), context });
+        if (externalLinks.length >= 8) break;
+      }
 
       // Big inline images from the article body — the post's own visuals.
       const seen = new Set();
@@ -122,29 +156,35 @@ async function understandBlog({ url, workDir, timeoutMs = 60_000 }) {
         if (w && (w < 480 || h < 260)) continue;      // avatars, badges, inline icons
         if (w && h && (w / h > 4 || h / w > 4)) continue; // banners/dividers
         push(src, img.getAttribute("alt"), w, h);
-        if (images.length >= 8) break;
+        if (images.length >= 20) break;
       }
       const og = meta("og:image");
       if (og && /^https?:/i.test(og)) images.unshift({ src: og, alt: "cover image", w: 0, h: 0 });
 
-      return { title, author, published, headings, text, images: images.slice(0, 8) };
+      return { title, author, published, headings, text, images: images.slice(0, 20), externalLinks };
     });
 
     if (!data.text || data.text.length < 400) {
       throw new Error(`page does not read as an article (only ${data.text ? data.text.length : 0} chars of body text)`);
     }
 
-    // Download the article's images (cover first) as owner-content assets.
+    // Download the article's images (cover first) as owner-content assets. Long
+    // -form films weave in far more inline imagery than a short-form clip could
+    // ever use, so the cap here is raised to feed that demand (still fail-soft
+    // per image; asset density downstream tops up with stock beyond this).
     const images = [];
     for (const [i, im] of data.images.entries()) {
-      if (images.length >= 4) break;
+      if (images.length >= 12) break;
       const out = path.join(workDir, `blog_img_${i}${extFor(im.src)}`);
       const bytes = await downloadImage(im.src, out, url);
       if (bytes) images.push({ path: out, alt: im.alt || "", width: im.w || undefined, height: im.h || undefined });
     }
 
-    console.log(`[ingest] blog understood: "${data.title}" — ${data.headings.length} section(s), ${data.text.length}ch article, ${images.length} image(s) downloaded${data.author ? `, by ${data.author}` : ""}`);
-    return { url, title: data.title, author: data.author, published: data.published, headings: data.headings, text: data.text, images };
+    console.log(`[ingest] blog understood: "${data.title}" — ${data.headings.length} section(s), ${data.text.length}ch article, ${images.length} image(s) downloaded, ${data.externalLinks.length} external link(s)${data.author ? `, by ${data.author}` : ""}`);
+    return {
+      url, title: data.title, author: data.author, published: data.published,
+      headings: data.headings, text: data.text, images, externalLinks: data.externalLinks,
+    };
   } finally {
     await browser.close().catch(() => {});
   }

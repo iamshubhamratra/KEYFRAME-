@@ -1,0 +1,89 @@
+{
+  "name": "deep-field",
+  "renderer": "omelette",
+  "template": "DeepField",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for space telescope / deep-sky astronomy — 46 authored beats, ~6.7s each, 5:08 as shipped. a twinkling starfield, tilted galaxy discs with bright cores slowly turning, a folded gold hexagon mirror bobbing above its trapezoid sunshield, a scan marker drifting upward. Krona One display over Manrope body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#e8ecf8",
+    "ink": "#05070f",
+    "accent": "#c47a3c",
+    "a2": "#5f7ad0"
+  },
+  "fonts": [
+    "Krona One",
+    "Manrope"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#04060f",
+    "ink": "#e8ecf8"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Krona One",
+    "body": "Manrope",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "low sustained drones under a slow pulse, vast and clinical",
+    "energy": "calm"
+  },
+  "skin": {
+    "accents": [
+      "#c47a3c",
+      "#5f7ad0"
+    ],
+    "extras": [
+      "#0e1524",
+      "#1a1020",
+      "#05070f"
+    ],
+    "emphasisCss": "color:#c47a3c;"
+  },
+  "assets": {
+    "photoMod": "deep black sky, cold blue with gold glints",
+    "iconStyle": "outline",
+    "keywords": [
+      "galaxy",
+      "nebula",
+      "telescope",
+      "satellite",
+      "space",
+      "stars"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#04060f"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

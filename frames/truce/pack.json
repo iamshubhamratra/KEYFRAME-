@@ -1,0 +1,89 @@
+{
+  "name": "truce",
+  "renderer": "omelette",
+  "template": "Truce",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for pets / cats and dogs — 46 authored beats, ~6.7s each, 5:08 as shipped. dog and cat hauling a tug rope, scoreboard numerals ticking, paw prints drifting past. Bungee display over Rubik body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f4f1ea",
+    "ink": "#1f1d21",
+    "accent": "#e8543c",
+    "a2": "#3c7ce8"
+  },
+  "fonts": [
+    "Bungee",
+    "Rubik"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#1c1a1e",
+    "ink": "#f4f1ea"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Bungee",
+    "body": "Rubik",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "playful acoustic with plucked strings, mischievous",
+    "energy": "upbeat"
+  },
+  "skin": {
+    "accents": [
+      "#e8543c",
+      "#3c7ce8"
+    ],
+    "extras": [
+      "#e6eef4",
+      "#f9e0d8",
+      "#1f1d21"
+    ],
+    "emphasisCss": "color:#e8543c;"
+  },
+  "assets": {
+    "photoMod": "soft indoor daylight, warm living-room tones",
+    "iconStyle": "outline",
+    "keywords": [
+      "dog",
+      "cat",
+      "pet",
+      "puppy",
+      "kitten",
+      "sofa"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#1c1a1e"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

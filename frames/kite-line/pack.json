@@ -1,0 +1,89 @@
+{
+  "name": "kite-line",
+  "renderer": "omelette",
+  "template": "KiteLine",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for kitesurfing — 45 authored beats, ~6.7s each, 5:02 as shipped. kite arcing on its lines, rider on a board throwing spray, scrolling wave bands, live wind-speed readout. Archivo Black display over Archivo body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#eef6f8",
+    "ink": "#0a2432",
+    "accent": "#ff5c3c",
+    "a2": "#2fd0e0"
+  },
+  "fonts": [
+    "Archivo Black",
+    "Archivo"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#07202c",
+    "ink": "#eef6f8"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Archivo Black",
+    "body": "Archivo",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "driving surf rock with bright percussion, salt-air energy",
+    "energy": "high"
+  },
+  "skin": {
+    "accents": [
+      "#ff5c3c",
+      "#2fd0e0"
+    ],
+    "extras": [
+      "#e0f0f4",
+      "#f8e2da",
+      "#0a2432"
+    ],
+    "emphasisCss": "color:#ff5c3c;"
+  },
+  "assets": {
+    "photoMod": "bright coastal daylight, turquoise water and white spray",
+    "iconStyle": "outline",
+    "keywords": [
+      "kitesurfing",
+      "kiteboarding",
+      "beach",
+      "ocean",
+      "waves",
+      "surfer"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#07202c"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

@@ -33,9 +33,9 @@ function transcriptBloated(text, transcript) {
 // line into 40s of invented copy that then gets hard-trimmed mid-sentence),
 // and when BOTH takes ramble we keep the one closer to the written line
 // instead of blindly shipping take two.
-async function synthOnce({ text, voice, instructions, outputPath, tracker, session }) {
+async function synthOnce({ text, voice, instructions, outputPath, tracker, session, lang }) {
   const meta = {};
-  await synthesize({ script: text, voice, instructions, outputPath, tracker, meta, session });
+  await synthesize({ script: text, voice, instructions, outputPath, tracker, meta, session, lang });
   if (transcriptBloated(text, meta.transcript)) {
     console.warn(`[vo_fit] model ad-libbed (${meta.transcript.length}ch spoken for ${text.length}ch line) — one retake`);
     const words = (text.match(/\S+/g) || []).length;
@@ -43,7 +43,7 @@ async function synthOnce({ text, voice, instructions, outputPath, tracker, sessi
     const retakePath = outputPath + ".retake.mp3";
     const meta2 = {};
     try {
-      await synthesize({ script: text, voice, instructions: strict, outputPath: retakePath, tracker, meta: meta2, session });
+      await synthesize({ script: text, voice, instructions: strict, outputPath: retakePath, tracker, meta: meta2, session, lang });
       const better = !meta2.transcript || !meta.transcript
         || Math.abs(meta2.transcript.length - text.length) <= Math.abs(meta.transcript.length - text.length);
       if (better) {
@@ -111,10 +111,10 @@ function trimWithFade(filePath, maxSec) {
 
 // Synthesize one scene's VO, tightening once if it overruns, hard-trimming
 // as the last resort. Returns { path, durationSec, text, tightened } or null.
-async function synthesizeFitted({ text, targetSec, voice, instructions, outputPath, tracker, signal, session }) {
+async function synthesizeFitted({ text, targetSec, voice, instructions, outputPath, tracker, signal, session, lang }) {
   if (!text || !text.trim()) return null;
 
-  let synthMeta = await synthOnce({ text, voice, instructions, outputPath, tracker, session });
+  let synthMeta = await synthOnce({ text, voice, instructions, outputPath, tracker, session, lang });
   let dur = await probeDurationSec(outputPath);
   if (dur == null) return { path: outputPath, durationSec: targetSec, text, tightened: false, fallbackVoice: synthMeta?.fallbackVoice || null };
 
@@ -126,7 +126,7 @@ async function synthesizeFitted({ text, targetSec, voice, instructions, outputPa
     try {
       const t = await tightenLine({ line: text, targetSec, signal });
       if (tracker) tracker.addLlm({ inputTokens: t.tokensIn, outputTokens: t.tokensOut, stage: "vo_fit", costUsd: t.costUsd });
-      synthMeta = await synthOnce({ text: t.line, voice, instructions, outputPath, tracker, session }) || synthMeta;
+      synthMeta = await synthOnce({ text: t.line, voice, instructions, outputPath, tracker, session, lang }) || synthMeta;
       dur = (await probeDurationSec(outputPath)) ?? targetSec;
       spokenText = t.line;
       tightened = true;

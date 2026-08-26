@@ -251,6 +251,10 @@ const CONFIG_KEY = /^(url|href|src|img|image|icon|logo|color|colour|bg|backgroun
 // list over 50 entries, or a serialized payload over 16KB, by rendering an error
 // slate for the whole film).
 const ENGINE_MAX_SCENES = 50;
+// Which SCRIPT scene a built beat came from. A Symbol on purpose: the byte shed
+// below needs it, and JSON.stringify skips symbol keys, so it can never reach
+// OM_SCENES and spend bytes against the very cap the shed is fighting.
+const SCENE_OF = Symbol("omelette.sceneIndex");
 
 /**
  * Cast a script's scenes onto exactly `want` beats, preserving the film's
@@ -270,28 +274,144 @@ const ENGINE_MAX_SCENES = 50;
  *
  * Returns a new array; the input is not mutated.
  */
+// Fold a run of consecutive scenes into ONE, spanning their combined time.
+//
+// The merged beat leads with the first member's headline and carries the others'
+// headlines as promotable lines, so when buildScenes splits it back into
+// sub-beats (partView promotes a fresh line per part) the film still says each
+// member's own words instead of holding one headline over all of their narration.
+function mergeRun(run) {
+  if (run.length === 1) return run[0];
+  const head = run[0];
+  const dur = run.reduce((a, s) => a + (Math.max(0, Number(s.duration)) || 0), 0);
+  const heads = run.slice(1).map((s) => String(s.headline || s.title || "").trim()).filter(Boolean);
+  const bullets = Array.isArray(head.bullets) ? head.bullets.slice() : [];
+  return {
+    ...head,
+    duration: Math.round(dur * 100) / 100,
+    // Later members' headlines become promotable lines, ahead of the scene's own
+    // bullets: partView pulls a fresh line per sub-beat, so a merged beat that
+    // splits says each member's own words instead of holding one headline over
+    // all of their narration.
+    //
+    // Tried and REVERTED: putting the next member's headline straight into
+    // `subtext` instead. It reads better in principle — subtext renders on nearly
+    // every shape, bullets only on list shapes — but it displaces the survivor's
+    // own support line, and measured worse on the runtime that actually matches
+    // its narration (600s: 61% -> 40%). The promotion path already surfaces these
+    // where there is a beat to carry them.
+    bullets: [...heads, ...bullets],
+    voiceover: run.map((s) => String(s.voiceover || "").trim()).filter(Boolean).join(" "),
+    __merged: run.length,
+    // The members themselves, in order, so a beat that CAN afford a cut puts it
+    // on the boundary between two scenes instead of at the arithmetic middle of
+    // their combined time. An even split is the wrong place by construction
+    // whenever the two scenes are different lengths: a 7.1s scene merged with a
+    // 5.7s one cuts at 6.4s, so the second scene's headline is the biggest type
+    // on the frame for the last 0.7s of the FIRST scene's narration. Measured on
+    // a 300s / 60-scene script, that mis-placed cut was most of the runtime where
+    // the screen showed a scene other than the one being spoken.
+    __members: run.slice(),
+  };
+}
+
+// A cut inside a merged beat needs time to land, exactly as a pace split does:
+// below this the eye is still arriving when the next cut comes, which reads as
+// the picture racing the voice.
+const MIN_CUT_SEC = 2.0;
+
+function cutsFrom(groups) {
+  return groups.map((g) => ({
+    mem: g,
+    dur: Math.round(g.reduce((a, s) => a + Math.max(0, Number(s.duration) || 0), 0) * 100) / 100,
+    view: mergeRun(g),
+  }));
+}
+
+// Fold the two adjacent cuts whose COMBINED length is smallest. Folding always at
+// the tail piles every concession in one place — the same mistake that grew a
+// single beat to 68.6s during the byte shed.
+function foldCuts(cuts) {
+  if (!Array.isArray(cuts) || cuts.length < 2) return cuts || [];
+  let bi = 1, best = Infinity;
+  for (let i = 1; i < cuts.length; i++) {
+    const d = (cuts[i].dur || 0) + (cuts[i - 1].dur || 0);
+    if (d < best) { best = d; bi = i; }
+  }
+  const groups = cuts.map((c) => c.mem);
+  groups.splice(bi - 1, 2, [...groups[bi - 1], ...groups[bi]]);
+  return cutsFrom(groups);
+}
+
+/**
+ * The cuts a merged beat should make: one per member scene, each carrying that
+ * member's own copy for exactly its own share of the beat.
+ *
+ * Returns null when the beat carries a single scene (nothing to cut on) or when
+ * the members are too short to give every cut time to land — the beat then plays
+ * whole, leading with the scene that is spoken first.
+ */
+function memberCuts(sc) {
+  const members = Array.isArray(sc && sc.__members) ? sc.__members.filter(Boolean) : null;
+  if (!members || members.length < 2) return null;
+  let cuts = cutsFrom(members.map((m) => [m]));
+  while (cuts.length > 1 && cuts.some((c) => c.dur < MIN_CUT_SEC)) {
+    const next = foldCuts(cuts);
+    if (next.length >= cuts.length) break;
+    cuts = next;
+  }
+  return cuts.length > 1 ? cuts : null;
+}
+
+// Reduce a script to at most `want` beats WITHOUT LOSING ANY OF IT.
+//
+// This used to force the script into the count the template's pace wanted:
+// too many scenes were dropped by an even stride, too few were CYCLED
+// (`mid[i % mid.length]`). Both are silent — the dropped scene's narration is
+// still synthesized and mixed at its own `start`, because voiceAgent reads the
+// SCRIPT, not the beat list — so the film narrated one scene while showing
+// another. Measured on a 600s/70-scene job: 37 scenes never reached the screen
+// and 94% of the runtime showed copy from a scene that was not being spoken.
+//
+// The rule now is a PARTITION, not a pace: every beat boundary falls on a scene
+// boundary. A scene may be SPLIT into sub-beats (buildScenes already does that,
+// and the parts sum to the scene) or whole adjacent scenes may be MERGED into
+// one beat that spans their combined time. Nothing is dropped and nothing
+// repeats, so the picture and the voiceover stay on the same clock by
+// construction rather than by luck.
+//
+// Under budget we return the script untouched: buildScenes splits long scenes to
+// reach the beat count, which adds cuts without moving a single boundary. That is
+// the honest way to hit the template's pace, and it is why the cycle is gone.
 function fitBeats(scenes, want) {
   const list = Array.isArray(scenes) ? scenes.slice() : [];
   const n = list.length;
   if (!n || !(want > 0)) return list;
-  if (n === want) return list;
-  if (want <= 2 || n <= 2) return list.slice(0, Math.max(1, want));
+  if (n <= want) return list;
 
+  // The opener and the closer are the film's authored form — never merged away
+  // while there is any interior left to absorb the reduction.
+  if (want <= 2) return [mergeRun(list)];
   const first = list[0];
   const last = list[n - 1];
   const mid = list.slice(1, n - 1);
   const needMid = want - 2;
-  if (!mid.length) return [first, last].slice(0, want);
+  if (!mid.length) return [first, last];
+  if (needMid >= mid.length) return list;
 
-  const out = [];
-  if (needMid <= mid.length) {
-    // Even stride across the interior — keeps the film's shape, not just its head.
-    const step = mid.length / needMid;
-    for (let i = 0; i < needMid; i++) out.push(mid[Math.min(mid.length - 1, Math.floor(i * step))]);
-  } else {
-    for (let i = 0; i < needMid; i++) out.push(mid[i % mid.length]);   // cycle
+  // Even partition of the interior by COUNT: contiguous runs, every scene in
+  // exactly one run, run lengths differing by at most one.
+  const out = [first];
+  const base = Math.floor(mid.length / needMid);
+  const extra = mid.length % needMid;          // the first `extra` runs take one more
+  let at = 0;
+  for (let g = 0; g < needMid; g++) {
+    const size = base + (g < extra ? 1 : 0);
+    out.push(mergeRun(mid.slice(at, at + size)));
+    at += size;
   }
-  return [first, ...out, last];
+  out.push(last);
+  return out;
 }
 
 // Words a film TITLE opens with that are not the film's brand. Used only for the
@@ -319,6 +439,51 @@ function isFigureCell(cell) {
   if (typeof cell === "number") return true;
   const t = String(cell == null ? "" : cell).trim();
   return t !== "" && FIGURE_CELL.test(t);
+}
+
+// A CALENDAR OR COUNTER TOKEN — a day, a month, a quarter. Not copy: it is what
+// a tear-off calendar prints on its leaves and what a countdown counts down.
+const SEQ_TOKEN = /^(mon|tue|tues|wed|weds|thu|thur|thurs|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday|jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec|january|february|march|april|june|july|august|september|october|november|december|q[1-4])\.?$/i;
+
+// A RACK OF FIGURES IS NOT OURS TO WRITE. This is the rule isFigureCell already
+// applies to one cell of a ROW ("filling a receipt's $60 turns the template
+// demo's number into a claim about the user's brand"), applied to a FLAT list —
+// where nothing enforced it, because the flat-string branch of asSlot has no
+// figure guard at all.
+//
+// Two shapes in the long-form kit are counting, not speaking:
+//   Countdown  authors ["3","2","1","GO"] and draws ONE entry at a time at
+//              400px. The generic rack fill replaced it with up to four
+//              30-character sentence fragments — at 400px, per fragment.
+//   TearOff    authors ["MARCH","MAY","AUGUST","NOVEMBER"] as the dates on its
+//              calendar leaves.
+// Measured across the 58 long-form films: 56 of 1530 authored list slots are
+// sequences (12 Countdown, 44 TearOff) and no other slot matches, so the guard
+// costs nothing elsewhere. The authored sequence stands, exactly as the authored
+// `cols`/`states` labels already do — universal furniture, not another brand's
+// words.
+function isFigureRack(list) {
+  if (!Array.isArray(list) || list.length < 2) return false;
+  if (!list.every((x) => typeof x === "string" || typeof x === "number")) return false;
+  const seq = list.filter((x) => isFigureCell(x) || SEQ_TOKEN.test(String(x).trim())).length;
+  return seq > list.length / 2;
+}
+
+// ONE WORD OFF A LINE. Some slots are a single hero token, not a label: Kaleido
+// mirrors `word` six ways, LongShadow throws a sun-arc shadow off it,
+// ZoomThrough flies it past the camera. fitLabel is the wrong tool for those —
+// it refuses a mid-clause cut, which is precisely what lifting one word out of a
+// sentence is, so it returns "" every time. Take the longest word that fits,
+// scanning left to right and keeping ties later: the object of a sentence
+// carries its meaning more often than the subject does.
+function keyWord(text, max) {
+  const room = Math.max(3, Number(max) || 22);
+  const words = String(text || "").trim().split(/\s+/)
+    .map((w) => w.replace(/^[^\w£$€¥%]+/, "").replace(/[^\w%]+$/, ""))
+    .filter((w) => w && w.length <= room && !DANGLING.test(w));
+  let best = "";
+  for (const w of words) if (w.length >= best.length) best = w;
+  return best;
 }
 
 // The width budget for one authored cell. Same principle asSlot applies to
@@ -1275,6 +1440,16 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
     // figure and no supporting line, so splitting it just showed "75% VALUE IN 30
     // DAYS" twice in a row — a cut that hands the viewer nothing.
     if (n > 1 && partView(sc, 1, n, nextHeadOf(sc)) === sc) n = 1;
+    // A MERGED BEAT CUTS ON THE SCENE BOUNDARY, NOT IN THE MIDDLE.
+    //
+    // fitBeats folds adjacent scenes when a script has more scenes than the
+    // engine can hold beats. Such a beat spans two narrations, and the ONE place
+    // its cut belongs is the instant the second narration starts — every other
+    // split point puts one scene's headline on screen over the other scene's
+    // voice. `cuts` carries that split explicitly; everything below treats each
+    // cut as a whole beat with its own copy, so partView never has to guess.
+    const cuts = memberCuts(sc);
+    if (cuts) return { sc, dur, n: cuts.length, cuts, boundary: true };
     return { sc, dur, n };
   });
   // Give splits back until the film fits the pool — surrendering the one that
@@ -1285,13 +1460,26 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
     // PACE OUTRANKS VARIETY. Only give a split back if the merged beat still cuts
     // inside the target — a shape repeating at 2.5s reads far better than the same
     // film holding one frame for 5s, which is the complaint this all started from.
-    const give = plan
+    // A BOUNDARY CUT IS SURRENDERED LAST. Giving back a pace split costs variety;
+    // giving back a boundary split costs SYNC — the beat then holds one scene's
+    // headline through the next scene's narration, which is the defect this whole
+    // path exists to prevent. Only reach for those once nothing else is left.
+    const pick = (list) => list
       .filter((p) => p.n > 1 && p.dur / (p.n - 1) <= beatTarget + 0.35)
       .sort((a, b) => (a.dur / (a.n - 1)) - (b.dur / (b.n - 1)))[0];
+    // ONLY PACE SPLITS ARE ON THE TABLE HERE. beatBudget is a VARIETY guard — it
+    // keeps a film from reusing the same shape every few seconds — and a repeated
+    // shape is a much smaller price than a beat that holds one scene's headline
+    // through the next scene's narration. Boundary cuts therefore survive this
+    // loop entirely; the engine's own 50-beat / 16KB ceiling is the real limit,
+    // and the shed that enforces it folds inside a scene before across one.
+    const give = pick(plan.filter((p) => !p.boundary));
     if (!give) break;
-    give.n--; planned--;
+    give.n--;
+    planned--;
   }
-  plan.forEach(({ sc, dur, n }, i) => {
+  plan.forEach(({ sc, dur, n, cuts }, i) => {
+    if (cuts) { cuts.forEach((c) => beats.push({ sc: c.view, i, dur: c.dur, part: 0, of: 1 })); return; }
     const each = dur / n;
     for (let k = 0; k < n; k++) beats.push({ sc, i, dur: each, part: k, of: n });
   });
@@ -1316,6 +1504,7 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
     const tpl = slotFor(i, sc);
     const sid = sc.id != null ? String(sc.id) : `s${beat.i + 1}`;
     const out = { name: tpl.name, dur: r2(beat.dur) };
+    out[SCENE_OF] = beat.i;
     // Everything true this beat could say, for the slots the mapping below has
     // no rule for (see copyBank). Built per beat, so a split scene's two halves
     // draw different lines instead of echoing each other.
@@ -1538,6 +1727,40 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
       const slam = wb.length >= 2 ? asSlot("words", 3, 14) : "";
       out.words = up(slam || breakHeadline(line1(), 40, false));
     }
+    // `word` is a SINGLE HERO TOKEN, and five kit scenes declare one — Kaleido
+    // (six mirrored copies at 96px plus one at 150px), LongShadow, ZoomThrough,
+    // Emboss, Perimeter. Ninety scenes across the 58 long-form films author one
+    // ("PATIENCE", "TURN SIX", "SNIP."), and it was mapped NOWHERE: `words` is a
+    // different key, so `word` fell through to the generic string fill, which
+    // rejects a bare token under 12 characters as an enum and returns "". The
+    // slot blanked to a space and Kaleido drew six mirrored blanks around a
+    // blank. The authored default is the width budget and the case, as
+    // everywhere else.
+    if (has("word")) {
+      const room = cellRoom(tpl.word, 22);
+      const caps = tpl.word === String(tpl.word).toUpperCase() && /[A-Z]/.test(String(tpl.word));
+      // NEVER CUT THIS ONE IN HALF. fit() falls back to a hard slice for a single
+      // token longer than the slot, and on a slot this size that is not a shorter
+      // word, it is a typo — a Kaleido authored 4 characters wide rendered the
+      // emphasis "TENTHS" as "TENTH", six times over, mirrored. So a candidate is
+      // taken only if it already fits; otherwise pick a whole word off the beat.
+      const whole = (v) => { const x = String(v || "").trim(); return x && x.length <= room ? x : ""; };
+      // fitLabel is word-bounded except for its last-resort slice, so accept its
+      // answer only when the cut landed on a space or at the end of the source.
+      const noCut = (v) => {
+        const src = String(v || "").trim();
+        const r = fitLabel(src, room);
+        return r && (r === src || !src[r.length] || /\s/.test(src[r.length])) ? r : "";
+      };
+      const pick = whole(sc.emphasis)
+        || whole(bullets(sc, 1)[0])
+        || noCut(line1())
+        || keyWord(sc.emphasis || "", room)
+        || keyWord(line1(), room)
+        || keyWord(sc.subtext || sc.voiceover || "", room);
+      out.word = pick ? (caps ? pick.toUpperCase() : pick) : " ";
+      if (out.word === " ") note("omelette_adapter", "blanked-string-slot", { severity: "visual", slot: "word", scene: tpl.name });
+    }
     if (has("pains")) out.pains = asSlot("pains", 3, 26);
     if (has("feats")) out.feats = asSlot("feats", 4, 26);
     if (has("tags")) out.tags = asSlot("tags", 4, 16);
@@ -1575,7 +1798,10 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
     // array of plain strings (results/steps/tools/notes/rows/cols/states) and an
     // array of objects (plans) both land in the right form.
     for (const k of ["results", "steps", "tools", "notes", "rows"]) {
-      if (has(k)) out[k] = asSlot(k, Array.isArray(tpl[k]) ? tpl[k].length : 4, 30);
+      if (!has(k)) continue;
+      // A sequence the design COUNTS stays as authored — see isFigureRack.
+      if (isFigureRack(tpl[k])) { out[k] = tpl[k].slice(); continue; }
+      out[k] = asSlot(k, Array.isArray(tpl[k]) ? tpl[k].length : 4, 30);
     }
     // Board columns and Morph states are generic WORKFLOW labels ("To do /
     // Doing / Shipped", "Draft / In review / Live") — furniture, not another
@@ -1690,6 +1916,10 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
       // slot by hand is what let this through, so fill by SHAPE instead — every
       // list a template declares now gets the scene's bullets, and only a slot
       // with genuinely nothing to say ends up empty.
+      // …except a rack the design COUNTS rather than speaks (see isFigureRack):
+      // blanking a countdown's digits leaves the scene drawing nothing at all,
+      // and filling them puts a sentence on screen at 400px.
+      if (isFigureRack(tpl[k])) { out[k] = tpl[k].slice(); continue; }
       out[k] = asSlot(k, tpl[k].length, 30) || [];
       if (!out[k].length) note("omelette_adapter", "empty-list-slot", { severity: "content", slot: k, scene: tpl.name, detail: `${tpl.name}.${k} has no copy — that scene body draws empty` });
     }
@@ -2524,7 +2754,17 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
     return ds.length ? ds[Math.floor(ds.length / 2)] : 7.5;      // median beat of the film itself
   })();
   const idealBeats = Math.max(2, Math.round(requestedD / authoredPace));
-  const targetBeats = Math.min(ENGINE_MAX_SCENES, idealBeats);
+  // PACE MAY ADD CUTS; IT MAY NOT TAKE COPY AWAY.
+  //
+  // This used to be `min(ENGINE_MAX_SCENES, idealBeats)`, which merged a script
+  // down to whatever the template's pace wanted — a 60-scene script became 40
+  // beats, and the 20 scenes folded away were still being narrated. Merging is a
+  // concession to the ENGINE's hard 50-scene ceiling, not a styling choice, so
+  // never ask for fewer beats than the script has scenes. When the script is
+  // SHORTER than the pace wants, fitBeats returns it untouched and buildScenes
+  // splits long scenes to reach the pace — cuts added inside a scene, which move
+  // no boundary and lose nothing.
+  const targetBeats = Math.min(ENGINE_MAX_SCENES, Math.max(idealBeats, scenes.length));
   scenes = fitBeats(scenes, targetBeats);
   if (idealBeats > ENGINE_MAX_SCENES) {
     // Say it out loud rather than quietly shipping a slow film: past
@@ -2575,16 +2815,70 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
     }
   }
   // Then the list-valued props, which are the next largest payload after prose.
+  //
+  // …but not a SEQUENCE (see isFigureRack). Cutting ["3","2","1","GO"] to
+  // ["3","2"] saves about twenty bytes and leaves a countdown that counts to two
+  // and stops; the same cut on a tear-off calendar drops half its leaves. These
+  // racks are a handful of one- to four-character tokens, so they were never
+  // where the payload is — trim the prose racks, which are.
   if (!fits()) {
     for (const s of omScenes) {
       for (const k of ["items", "chips", "rows", "pairs", "words", "steps", "stats", "plans"]) {
-        if (Array.isArray(s[k]) && s[k].length > 2) s[k] = s[k].slice(0, 2);
+        if (!Array.isArray(s[k]) || s[k].length <= 2) continue;
+        if (isFigureRack(s[k])) continue;
+        s[k] = s[k].slice(0, 2);
       }
       if (fits()) break;
     }
   }
-  // Only now give up beats. Keep the closer; drop from the tail inward.
-  while (!fits() && omScenes.length > 2) omScenes.splice(omScenes.length - 2, 1);
+  // Only now give up beats — and give them up by MERGING, never by deleting.
+  //
+  // This used to `splice` a beat straight out of the list, which threw away
+  // whatever that beat was going to say and handed its seconds to the rescale
+  // below, sliding every later boundary off the scene it belonged to. On a long
+  // film the byte cap bites hardest exactly where there is most to lose: a 600s
+  // job shed to 44 beats here and lost 27 scenes' copy, after fitBeats had
+  // carefully preserved all of it. Folding the beat into its neighbour keeps the
+  // running time exactly where it was and keeps the copy on the frame, because
+  // the surviving beat inherits what fits of the absorbed one.
+  // MERGE THE CHEAPEST PAIR, WHEREVER IT IS — never always at the tail.
+  //
+  // Taking the penultimate beat every time puts every merge in the same place:
+  // eleven passes over a 60-scene script grew one beat to 68.6s, a full minute of
+  // held frame while the narration ran through eleven scenes. That is the frozen
+  // tail again wearing a different hat — the time is accounted for, so the
+  // duration guard stays green and nothing reports it. Picking the pair whose
+  // MERGED length is smallest spreads the loss across the film and keeps every
+  // beat near the pace the rest of the film is cutting at.
+  //
+  // AND FOLD INSIDE A SCENE BEFORE FOLDING ACROSS ONE. Two beats cut from the SAME
+  // script scene are two views of one narration: merging them costs a cut and
+  // nothing else, because the surviving beat still says that scene's words while
+  // that scene is being spoken. Merging ACROSS a scene boundary is what puts one
+  // scene's copy under another scene's voice — the defect this file keeps
+  // relitigating — so those pairs are the last resort, not the cheapest option.
+  while (!fits() && omScenes.length > 2) {
+    let i = -1, best = Infinity, bestSame = false;
+    for (let k = 1; k < omScenes.length - 1; k++) {   // never fold the opener or the closer
+      const merged = (Number(omScenes[k].dur) || 0) + (Number(omScenes[k - 1].dur) || 0);
+      const same = omScenes[k][SCENE_OF] !== undefined && omScenes[k][SCENE_OF] === omScenes[k - 1][SCENE_OF];
+      if (same && !bestSame) { best = merged; i = k; bestSame = true; continue; }
+      if (same === bestSame && merged < best) { best = merged; i = k; }
+    }
+    if (i < 0) break;
+    const gone = omScenes.splice(i, 1)[0];
+    const into = omScenes[i - 1];
+    into.dur = r2((Number(into.dur) || 0) + (Number(gone.dur) || 0));
+    // Carry the absorbed beat's lead line as a supporting line where the shape
+    // has room for one. Only into an EMPTY slot: overwriting the survivor's own
+    // copy would trade one lost line for another.
+    const lead = String(gone.title || gone.headline || "").trim();
+    if (lead) {
+      for (const k of ["sub", "body", "callout"]) {
+        if (!String(into[k] || "").trim()) { into[k] = lead; break; }
+      }
+    }
+  }
 
   // RESCALE THE SURVIVORS ONTO THE REQUESTED LENGTH.
   //

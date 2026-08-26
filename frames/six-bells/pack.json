@@ -1,0 +1,89 @@
+{
+  "name": "six-bells",
+  "renderer": "omelette",
+  "template": "SixBells",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for change ringing / bell tower — 46 authored beats, ~6.7s each, 5:08 as shipped. six bells swinging on their ropes, sallies pulled below, sound rings spreading, a change grid lighting cell by cell. Cormorant Garamond display over Public Sans body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f4f0e6",
+    "ink": "#1e1b16",
+    "accent": "#9e7a2c",
+    "a2": "#5f6b8c"
+  },
+  "fonts": [
+    "Cormorant Garamond",
+    "Public Sans"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#1c1a16",
+    "ink": "#f4f0e6"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Cormorant Garamond",
+    "body": "Public Sans",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "sparse strings over a slow tolling bell pulse, two beats, reverent",
+    "energy": "calm"
+  },
+  "skin": {
+    "accents": [
+      "#9e7a2c",
+      "#5f6b8c"
+    ],
+    "extras": [
+      "#e8ece6",
+      "#f6e8d2",
+      "#1e1b16"
+    ],
+    "emphasisCss": "color:#9e7a2c;"
+  },
+  "assets": {
+    "photoMod": "low tower light, warm brass and old stone",
+    "iconStyle": "outline",
+    "keywords": [
+      "bell",
+      "tower",
+      "church",
+      "rope",
+      "belfry",
+      "steeple"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#1c1a16"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

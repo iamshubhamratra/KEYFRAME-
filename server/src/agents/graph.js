@@ -55,9 +55,9 @@ const db = require("../db");
 const { UsageTracker } = require("../services/usage");
 const { generateBrief } = require("../services/brief");
 const { generateScript, normalizeScript } = require("../services/script");
-const { generateStoryboard } = require("../services/storyboard");
+const { generateStoryboard, alignToScript } = require("../services/storyboard");
 const frameRegistry = require("../services/frame_registry");
-const { withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor, retimeScenesToVo, contrastFixPass, setCaptionStyle, clearCaptionStyle, writeComposedHtml } = require("../services/pipeline");
+const { withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor, retimeScenesToVo, contrastFixPass, setCaptionStyle, clearCaptionStyle, writeComposedHtml, foldScriptToRenderer } = require("../services/pipeline");
 const { assembleQualityReport } = require("../services/quality_report");
 const { auditAssetRender } = require("../services/asset_render_check");
 const { preflight } = require("../services/preflight");
@@ -96,6 +96,7 @@ const { captureTopicSiteShots } = require("../services/topic_shots");
 const { qaGateScreenshots } = require("../services/screenshot_qa");
 const { blogImageAssets } = require("../services/blog_assets");
 const { websiteImageAssets, websiteLogoAsset } = require("../services/website_assets");
+const { relatedSiteScreenshots } = require("../services/related_site_screenshots");
 const { directBrand } = require("../services/art_director");
 const { directLayout } = require("../services/visual_layout_director");
 const { directText } = require("../services/text_director");
@@ -239,14 +240,27 @@ function mediaCapacity() {
 
 async function storyboardAgent(s) {
   db.setProgress(s.job.id, "storyboard");
-  const sbPrompt = storyboardPromptFromScript(s.script, s.brief);
+  // FOLD THE SCRIPT TO WHAT THE CHOSEN PACK CAN DRAW — here, before the
+  // storyboard and before the voiceover, so the picture and the narration share
+  // one set of scene boundaries. frame_selector runs before this node, so the
+  // pack is resolved. A scene folded away in the RENDERER instead would still be
+  // narrated at its own start, over whatever frame the film had reached.
+  const script = foldScriptToRenderer(s.script, s.framePack, "agents");
+  const sbPrompt = storyboardPromptFromScript(script, s.brief);
   // framePack biases the storyboard's per-scene archetypes/motifs toward the
   // selected template (storyboard.js buildUser). frame_selector runs before this
   // node, so the pick is always resolved here — omitting it made the project
   // path's storyboards pack-blind while /api/generate's were pack-aware.
   const r = await generateStoryboard({ prompt: sbPrompt, duration: s.job.duration, orientation: s.job.orientation, framePack: s.framePack });
   s.tracker.addLlm({ inputTokens: r.tokensIn, outputTokens: r.tokensOut, stage: "storyboard", costUsd: r.costUsd });
-  return { storyboard: r.storyboard };
+  // The picture is built from the storyboard; the narration is cut per SCRIPT
+  // scene and mixed at that scene's own start. Reconcile the two lists before
+  // anything downstream reads either (storyboard.alignToScript).
+  alignToScript(r.storyboard, script, "agents");
+  // The folded script goes back into the state: voice_agent, the text director
+  // and the asset planner all read `script`, and they must see the same scene
+  // list the storyboard and the renderer do.
+  return { script, storyboard: r.storyboard };
 }
 
 // Scene Planner — guarantees every storyboard scene has executable beats.
@@ -362,6 +376,65 @@ function makeQueryDeriver(STOP) {
   };
 }
 
+// Visit order for n scenes such that ANY PREFIX is spread across the whole film.
+//
+// Round-robin alone fixes "the cap is spent on the opening scenes" only while the
+// budget can reach every scene. When the cap is SMALLER than the scene count — a
+// 10-asset budget over 40 scenes — plain round-robin still serves s1..s10 and
+// leaves the last three quarters bare. Halving the stride (0, 20, 10/30, 5/15/…)
+// means the first k scenes visited are always roughly evenly spaced, whatever k
+// turns out to be, so a small budget decorates the whole timeline instead of the
+// opening.
+function spreadOrder(n) {
+  const out = [];
+  const seen = new Array(n).fill(false);
+  for (let step = Math.max(1, n); ; step = Math.ceil(step / 2)) {
+    for (let i = 0; i < n; i += step) {
+      if (!seen[i]) { seen[i] = true; out.push(i); }
+    }
+    if (step === 1) break;
+  }
+  return out;
+}
+
+// Take `cap` wants, ONE PER SCENE PER ROUND — every scene gets its first asset
+// before any scene gets a second.
+//
+// The caps below are applied to a list built scene-by-scene, so a plain
+// `.slice(0, cap)` spends the ENTIRE budget on the opening scenes: gap-fill gives
+// most scenes 2 photo needs, so a 40-scene film's 40-photo cap was exhausted by
+// scene 20 and scenes 21-40 were never planned an asset at all. Measured on a
+// 40-scene run: every covered scene was s1-s17 and s18-s40 rendered bare — the
+// "long films look empty" report, reproduced exactly.
+//
+// Round-robin rather than an even stride (project_pipeline's spreadPick) because
+// COVERAGE is the goal: with a cap smaller than the number of scenes a stride
+// still leaves whole scenes unplanned, whereas round-robin only starts doubling
+// up once every scene has been served once.
+function byScenePriority(wants, cap) {
+  if (!(cap > 0)) return [];
+  const byScene = new Map();
+  for (const w of wants) {
+    const k = String(w.scene && w.scene.id);
+    if (!byScene.has(k)) byScene.set(k, []);
+    byScene.get(k).push(w);
+  }
+  const out = [];
+  const inOrder = [...byScene.values()];
+  const lanes = spreadOrder(inOrder.length).map((i) => inOrder[i]);
+  for (let round = 0; out.length < cap; round++) {
+    let placed = false;
+    for (const lane of lanes) {
+      if (round >= lane.length) continue;
+      out.push(lane[round]);
+      placed = true;
+      if (out.length >= cap) break;
+    }
+    if (!placed) break; // every lane exhausted
+  }
+  return out;
+}
+
 async function assetPlannerAgent(s) {
   const { job, script } = s;
   const videoOk = hasProviderFor("video");
@@ -436,8 +509,8 @@ async function assetPlannerAgent(s) {
   const nScenes = (script.scenes && script.scenes.length) || 12;
   const photoCap  = Math.max(8, Math.min(40, Math.round(nScenes * 1.2)));
   const vectorCap = Math.max(5, Math.min(14, Math.round(nScenes * 0.45)));
-  const vectors = wants.filter((w) => w.need.type !== "video" && isVectorNeed(w.need)).slice(0, vectorCap);
-  const photos  = wants.filter((w) => w.need.type !== "video" && !isVectorNeed(w.need)).slice(0, photoCap - videos.length);
+  const vectors = byScenePriority(wants.filter((w) => w.need.type !== "video" && isVectorNeed(w.need)), vectorCap);
+  const photos  = byScenePriority(wants.filter((w) => w.need.type !== "video" && !isVectorNeed(w.need)), photoCap - videos.length);
   console.log(`[agents] asset_planner: ${screenshotPlan.length} screenshot(s) + ${videos.length} video(s) + ${photos.length} photo(s) + ${vectors.length} vector(s) (${wants.filter((w) => w.need.derived).length} derived)`);
   return { assetPlan: { screenshots: screenshotPlan, searches: [...videos, ...photos, ...vectors], userAssets: userPins.pinned, logo: userPins.logoAsset } };
 }
@@ -628,6 +701,8 @@ async function assetSearchAgent(s) {
   // Sequential so each curated pick can exclude the library files already
   // chosen for earlier scenes — no single film reuses the same file twice.
   const usedLibraryIds = new Set();
+  // Every stock URL this film has already placed (see acquire()'s excludeUrls).
+  const usedSourceUrls = new Set();
   // De-dup acquired images by EXACT (MD5) + PERCEPTUAL (dHash) match: several
   // similar queries resolve to the same — or a visually-identical re-encode of
   // the same — stock image, which was being saved as 0.jpg/1.jpg/2.jpg… and
@@ -737,6 +812,10 @@ async function assetSearchAgent(s) {
       orientation: job.orientation, outputPath: path.join(jobDir, relPath), tracker,
       kindPref: isVideo ? undefined : (isIcon ? "vector" : kindPrefFor(need.role)),
       excludeIds: usedLibraryIds,
+      // One Set for the whole film: a picture another slot already claimed is
+      // ranked out before this slot picks, so 54 slots yield 54 DIFFERENT
+      // pictures instead of the same one 51 times. See acquire()'s note.
+      excludeUrls: usedSourceUrls,
       curatedOnly: forceCurated && !isVideo && !isIcon,
       iconColor: isIcon ? iconColor : undefined,
       iconStyle: isIcon ? packStyle.iconStyle : undefined,
@@ -801,7 +880,18 @@ async function assetSearchAgent(s) {
   // SCREENSHOT QA — vision-inspect every capture and drop the broken ones
   // (error pages, consent modals, bot-walls, blanks, half-renders) BEFORE the
   // creative director ranks them and the composer frames one as the hero.
-  const beforeGate = mergeShots(await topicTask, pinned);
+  const topicShots = await topicTask;
+  // Blog mode: real screenshots of the sites the ARTICLE links to (a tool it
+  // reviews, a dataset it cites) — matched to whichever scene talks about it.
+  // Same risk class as a topic-page capture (an arbitrary third-party URL can
+  // be a 404/paywall/bare PDF viewer), so it goes through the SAME QA gate
+  // below rather than shipping unvetted like the owner-content blog/site pins.
+  const relatedPins = await relatedSiteScreenshots({
+    job, script: s.script, jobDir, tracker,
+    cap: Math.max(3, Math.min(8, Math.round((s.script?.scenes?.length || 0) * 0.08))),
+    skipSceneIds: new Set([...topicShots, ...pinned].map((a) => String(a.sceneId))),
+  }).catch(() => []);
+  const beforeGate = mergeShots(topicShots, pinned).concat(relatedPins);
   // Only a BROKEN capture is worth re-shooting. A clean shot that merely had no
   // free scene is now unpinned into the pool by the gate, not lost — retrying
   // that would spend a capture to solve a problem that no longer exists.
@@ -842,10 +932,15 @@ async function assetSearchAgent(s) {
   }
   // Blog mode: the post's own images join as pinned owner-content assets on
   // scenes the screenshots didn't claim (Creative Director still reviews them).
-  const blogPins = blogImageAssets({ job, script: s.script, jobDir, skipSceneIds: new Set(gatedShots.map((a) => String(a.sceneId))) });
+  // Caps scale with scene count — the old flat 3/5 was tuned for a 15-30s
+  // short and starved a long-form film of its own on-topic imagery.
+  const nSceneAssets = Math.max(1, (s.script?.scenes?.length) || 1);
+  const blogCap = Math.max(3, Math.min(15, Math.round(nSceneAssets * 0.15)));
+  const blogPins = blogImageAssets({ job, script: s.script, jobDir, cap: blogCap, skipSceneIds: new Set(gatedShots.map((a) => String(a.sceneId))) });
   // Website mode: the site's OWN downloaded images (hero graphics/product shots)
   // join as pinned owner-content photos on scenes the screenshots + blog didn't claim.
-  const sitePins = websiteImageAssets({ job, script: s.script, jobDir, skipSceneIds: new Set([...gatedShots, ...blogPins].map((a) => String(a.sceneId))) });
+  const siteCap = Math.max(5, Math.min(18, Math.round(nSceneAssets * 0.15)));
+  const sitePins = websiteImageAssets({ job, script: s.script, jobDir, cap: siteCap, skipSceneIds: new Set([...gatedShots, ...blogPins].map((a) => String(a.sceneId))) });
   // The site's brand mark. Unpinned on purpose — template_engine claims it out of
   // the pool (isLogo) and stages it where the pack's wantsLogo() asks.
   const logoPin = websiteLogoAsset({ job, jobDir });
@@ -1096,8 +1191,13 @@ function unpinIrrelevant(assets) {
     // asset the probe never scored (it runs on stills only, and fails open) kept
     // its pin untested. Without a number, the only evidence a pin can stand on is
     // the vision pass having looked at the picture and approved it.
+    // `cdReviewed` counts as evidence alongside `visionOk`: the Creative Director
+    // looked at this picture and did not reject it, it just placed it as scenery
+    // rather than a hero (see creative_director.js). visionOk still gates the
+    // PROMINENT slots — this only decides whether the pin may stand.
     const clipRel = typeof a.clipRelevance === "number" ? a.clipRelevance : null;
-    if (clipRel === null ? a.visionOk === true : clipRel >= PIN_RELEVANCE_FLOOR) continue;
+    const looked = a.visionOk === true || a.cdReviewed === true;
+    if (clipRel === null ? looked : clipRel >= PIN_RELEVANCE_FLOOR) continue;
     dropped.push(`${String(a.path).split("/").pop()}@${a.sceneId} (${clipRel === null ? "unscored, unverified" : clipRel.toFixed(3)})`);
     a.sceneId = null;
     a.startSec = undefined;
@@ -1303,7 +1403,10 @@ async function voiceAgent(s) {
   if (!voEnabled) console.log(`[agents] voiceover OFF — music-led mix, zero TTS`);
   const voTask = !voEnabled ? Promise.resolve([]) : Promise.all(script.scenes.map((sc) =>
     (sc.voiceover && sc.voiceover.trim())
-      ? synthesizeFitted({ text: voTextFor(sc), targetSec: sc.duration, voice, instructions, outputPath: path.join(audioDir, `vo-${sc.id}.mp3`), tracker, session: ttsSession })
+      // `lang` is the RESOLVED voiceover language. It only matters to the free
+      // Edge fallback, which has a voice per language — without it a Hindi line
+      // was handed to an American English voice and read as noise.
+      ? synthesizeFitted({ text: voTextFor(sc), targetSec: sc.duration, voice, instructions, outputPath: path.join(audioDir, `vo-${sc.id}.mp3`), tracker, session: ttsSession, lang: (s.captionPlan && s.captionPlan.voiceLanguage) || (s.languagePlan && s.languagePlan.voiceLanguage) || "en" })
           .then((r) => r ? { sceneId: sc.id, startSec: sc.start, durationSec: r.durationSec, sceneDurationSec: sc.duration, text: r.text, path: r.path, fallbackVoice: r.fallbackVoice || null } : null)
           .catch((e) => { console.warn(`[agents] vo ${sc.id} failed: ${e.message}`); return null; })
       : Promise.resolve(null)
@@ -1580,7 +1683,19 @@ async function compositionAgent(s) {
     ? { ...s.storyboard, __qaIssuesToFix: s.qa.issues.map((i) => `at ${i.atSec}s [${i.severity}]: ${i.issue} — FIX: ${i.fix}`) }
     : s.storyboard;
 
-  const budget = (Number(config.server.stageBudgetSec) || 480) * 1000;
+  // THE COMPOSITION BUDGET HAS TO SCALE WITH THE FILM, like the watchdog does.
+  //
+  // stageBudgetSec is one flat number (45 min here) covering compose + capture +
+  // encode. That is generous for a 30s clip and impossible for a 10-minute one:
+  // a measured 600s render spent ~39 min capturing frames before ffmpeg had
+  // encoded anything, so the budget expired mid-render and aborted a job that
+  // was working. Short films keep the configured value exactly — this only ever
+  // raises the ceiling, and stays well under renderer.js's own watchdog
+  // (max(watchdogMinSec, duration x watchdogMultiplier) + buffer).
+  const budget = Math.max(
+    (Number(config.server.stageBudgetSec) || 480) * 1000,
+    Math.ceil((Number(effDur) || 0) * 12) * 1000,
+  );
   // Composer dispatch.
   // TEMPLATE PIN comes first: when the user explicitly picked a frame pack in
   // the gallery (frame_pack_user), the film MUST look like that template — the
@@ -1731,7 +1846,7 @@ async function compositionAgent(s) {
     writeComposedHtml(jobDir, fbNorm.html, job.id);
     fs.writeFileSync(path.join(jobDir, "meta.json"), fb.metaJson, "utf8");
     tracker.addExternal("hyperframes_render");
-    const visual = await render({ jobId: job.id, jobDir, durationSec: effDur });
+    const visual = await render({ jobId: job.id, jobDir, durationSec: effDur, expectWidth: dims.width, expectHeight: dims.height });
     return { visual, usedFallback: true, finalAttempt: "fallback", rendered: true, composerBudgetDead, effectiveDuration: effDur, sfxClips: sfxRepinned };
   }
 }
@@ -1948,7 +2063,7 @@ async function deadFrameRepairNode(s) {
 async function rerenderRepaired(s, label) {
   const { job, jobDir } = s;
   const durationSec = s.effectiveDuration || job.duration;
-  const visual = await render({ jobId: job.id, jobDir, durationSec })
+  const visual = await render({ jobId: job.id, jobDir, durationSec, expectWidth: job.width, expectHeight: job.height })
     .catch((e) => { console.warn(`[agents] ${label} re-render failed: ${e.message.slice(0, 120)}`); return null; });
   if (!visual) return null;
   await mixAudioIntoVideo({
@@ -2491,6 +2606,7 @@ async function runProductionGraph(opts) {
 module.exports = {
   runProductionGraph,
   __test_assetSearchAgent: assetSearchAgent,
+  __test_byScenePriority: byScenePriority,
   __test_makeQueryDeriver: makeQueryDeriver,
   // Exposed so a guard can COMPILE the graph without running a job: LangGraph
   // validates the node/edge topology at compile time, so a bad edge (a typo, a

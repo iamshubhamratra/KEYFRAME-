@@ -19,6 +19,7 @@
 
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
 const { pickForScene } = require("./scene_match");
+const { fitScenes, MAX_CLIPS } = require("./scene_fit");
 
 const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 const DISPLAY = "Archivo Black";
@@ -478,7 +479,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets } =
   const theme = riotTheme();
   const sb = storyboard || {};
   const W = (dims && dims.width) || 1920, H = (dims && dims.height) || 1080;
-  const scenes = Array.isArray(sb.scenes) && sb.scenes.length ? sb.scenes.slice(0, 12) : [{ id: "s1", start: 0, duration: 4, kind: "hook", headline: sb.title || "KEYFRAME" }];
+  const scenes = Array.isArray(sb.scenes) && sb.scenes.length ? fitScenes(sb.scenes, MAX_CLIPS) : [{ id: "s1", start: 0, duration: 4, kind: "hook", headline: sb.title || "KEYFRAME" }];
   const D = r(sb.durationSec || scenes.reduce((a, s) => Math.max(a, (Number(s.start) || 0) + (Number(s.duration) || 0)), 0) || 12);
 
   const images = (Array.isArray(assets) ? assets : []).filter(plateOk).sort((a, b) => (Number(b.cdScore) || 0) - (Number(a.cdScore) || 0));

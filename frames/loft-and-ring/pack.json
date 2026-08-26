@@ -1,0 +1,89 @@
+{
+  "name": "loft-and-ring",
+  "renderer": "omelette",
+  "template": "LoftRing",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for pigeon racing — 46 authored beats, ~6.7s each, 5:08 as shipped. pigeons flapping across the sky, a nest-box loft with birds on the landing board, a sweeping race clock, rolling hills. Bree Serif display over Asap body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f4f0e4",
+    "ink": "#252017",
+    "accent": "#a86a3c",
+    "a2": "#5f7a8c"
+  },
+  "fonts": [
+    "Bree Serif",
+    "Asap"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#231f18",
+    "ink": "#f4f0e4"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Bree Serif",
+    "body": "Asap",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "warm folk with brushed drums, homely and patient",
+    "energy": "medium"
+  },
+  "skin": {
+    "accents": [
+      "#a86a3c",
+      "#5f7a8c"
+    ],
+    "extras": [
+      "#e8eeec",
+      "#f7e6d2",
+      "#252017"
+    ],
+    "emphasisCss": "color:#a86a3c;"
+  },
+  "assets": {
+    "photoMod": "soft overcast dawn, terracotta and slate blue",
+    "iconStyle": "outline",
+    "keywords": [
+      "pigeon",
+      "dove",
+      "feather",
+      "flock",
+      "sky",
+      "wing"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#231f18"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

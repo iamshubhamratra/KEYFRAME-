@@ -25,6 +25,7 @@
 const { deriveTheme } = require("./scene_kit");
 const { pickForScene } = require("./scene_match");
 const { fontFaceCss } = require("../fonts/pack_fonts");
+const { fitScenes, MAX_CLIPS } = require("./scene_fit");
 
 const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 
@@ -568,7 +569,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   const theme = genesisTheme(framePack || "genesis", sb, brandSkin);
   const seed = hashSeed((sb.title || "genesis") + "|" + W + "x" + H);
 
-  const scenes = Array.isArray(sb.scenes) && sb.scenes.length ? sb.scenes.slice(0, 14)
+  const scenes = Array.isArray(sb.scenes) && sb.scenes.length ? fitScenes(sb.scenes, MAX_CLIPS)   // merge past the ceiling, never truncate (scene_fit.js)
     : [{ id: "s1", start: 0, duration: 6, kind: "hook", headline: sb.title || "Genesis" }];
   const D = r(sb.durationSec || scenes.reduce((a, s) => Math.max(a, (Number(s.start) || 0) + (Number(s.duration) || 0)), 0) || 12);
   const title = sb.title || (scenes[scenes.length - 1] && scenes[scenes.length - 1].headline) || "Genesis";

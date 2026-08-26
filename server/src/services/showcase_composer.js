@@ -30,6 +30,7 @@ const { withDisplayCopy } = require("./template_engine");
 // One implementation of "which picture belongs on this beat", shared with every
 // other renderer — see the wiring note on takePool below.
 const { pickForScene } = require("./scene_match");
+const { fitScenes, MAX_CLIPS } = require("./scene_fit");
 
 const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 const DISPLAY = "Space Grotesk";   // the template's own display face (bundled)
@@ -473,7 +474,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   const W = (dims && dims.width) || 1920, H = (dims && dims.height) || 1080;
   const land = W >= H;
   const scenes = (Array.isArray(sb.scenes) && sb.scenes.length
-    ? sb.scenes.slice(0, 30)
+    ? fitScenes(sb.scenes, MAX_CLIPS)          // merge past the ceiling, never truncate (scene_fit.js)
     : [{ id: "s1", start: 0, duration: 4, kind: "hook", headline: sb.title || "SHOWCASE" }]).map(withDisplayCopy);
   const D = r(sb.durationSec || scenes.reduce((a, s) => Math.max(a, (Number(s.start) || 0) + (Number(s.duration) || 0)), 0) || 12);
 

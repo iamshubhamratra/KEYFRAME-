@@ -43,6 +43,18 @@ const MODEL_PRICING = {
   // known and overstated real KIE spend by ~3.3x, so every per-job cost this
   // app reported for a non-premium stage was inflated.
   "kie:gemini-3.6-flash":         { in: 0.45, out: 2.21 },
+  // FALLBACK ONLY — real spend for this route comes from `credits_consumed` on
+  // every response (propagated as costUsd by openrouter.js callKie), so this
+  // row is only reached if that field is ever absent. Deliberately NOT solved
+  // the same way as the row above: a real template_generator call reported
+  // `input_tokens: 2` for a 13.4KB system + 2KB user prompt — the Messages API
+  // passthrough does not report real input size in tokensIn/tokensOut at all
+  // (the actual content shows up as a large, near-constant
+  // `cache_creation_input_tokens` this app does not currently read) — so there
+  // is no trustworthy (tokensIn, tokensOut) -> credits equation to solve here,
+  // unlike gemini-3.6-flash above. Priced at Anthropic's own public Opus-5
+  // rate as a conservative ceiling rather than a guessed discount.
+  "kie:claude-opus-5":            { in: 15.0, out: 75.0 },
   "grok-4-5":                     { in: 0.80, out: 2.40 }, // KIE (kie.ai/grok-4-5); output incl. reasoning tokens
   "gemini-3-5-flash":             { in: 0.30, out: 2.50 }, // KIE gemini (legacy primary)
   "deepseek/deepseek-v4-pro":     { in: 0.44, out: 0.87 },

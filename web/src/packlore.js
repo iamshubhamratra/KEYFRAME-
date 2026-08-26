@@ -1777,14 +1777,38 @@ const FALLBACK_LORE = {
   filmGrad: "linear-gradient(135deg,#b9f24a,#3cf0c0)",
 };
 
-// Lore for a server pack name; tolerant of key drift (prefix match), always returns something.
-export function loreFor(packName) {
+// Lore for a server pack name; tolerant of key drift, always returns something.
+//
+// The old fallback accepted `packName.startsWith(k.split("-")[0])` — a match on
+// the FIRST HYPHEN SEGMENT ALONE. That is not key drift, it is a collision, and
+// it served 16 packs another pack's name, tag, accent, chips and vibe:
+// deep-field wore deep-sea's, hive-mind wore hive-and-honey's, chalk-circle
+// wore chalk-talk's, orbit-nine wore orbit-space's, slow-pour wore slow-rise's.
+// Drift is a whole key extended on a segment boundary ("reef-build" ->
+// "reef-build-v2"); anything else is a different pack.
+//
+// Pass the pack from /api/frames as the second argument and a pack with no lore
+// of its own is dressed in ITS OWN colours and described by its own manifest,
+// instead of the house green and a borrowed blurb.
+export function loreFor(packName, pack = null) {
   if (!packName) return FALLBACK_LORE;
   if (PACK_LORE[packName]) return PACK_LORE[packName];
-  const hit = Object.keys(PACK_LORE).find(
-    (k) => k.startsWith(packName) || packName.startsWith(k.split("-")[0])
-  );
-  return hit ? PACK_LORE[hit] : { ...FALLBACK_LORE, name: packName };
+  const drift = (a, b) => a === b || a.startsWith(`${b}-`);
+  const hit = Object.keys(PACK_LORE).find((k) => drift(k, packName) || drift(packName, k));
+  if (hit) return PACK_LORE[hit];
+  const chips = ((pack && pack.accents && pack.accents.length ? pack.accents : (pack && pack.colors)) || [])
+    .filter(Boolean).slice(0, 3);
+  return {
+    ...FALLBACK_LORE,
+    // null lets the card fall through to the server's own label and vibe.
+    name: pack ? null : packName,
+    vibe: pack ? null : FALLBACK_LORE.vibe,
+    tag: pack && pack.longForm ? "LONG FORM" : FALLBACK_LORE.tag,
+    bg: (pack && pack.ground) || FALLBACK_LORE.bg,
+    accent: chips[0] || FALLBACK_LORE.accent,
+    chips: chips.length ? chips : FALLBACK_LORE.chips,
+    filmGrad: chips.length >= 2 ? `linear-gradient(135deg,${chips[0]},${chips[1]})` : FALLBACK_LORE.filmGrad,
+  };
 }
 
 // Gallery filter pills — the design's list, remapped to server pack names.

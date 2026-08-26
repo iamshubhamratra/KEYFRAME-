@@ -1,0 +1,89 @@
+{
+  "name": "tinsel-row",
+  "renderer": "omelette",
+  "template": "TinselRow",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for christmas / street lights — 45 authored beats, ~6.7s each, 5:02 as shipped. snow falling, two sagging strings of bulbs blinking, lit tree with star, wreath turning. Mountains of Christmas display over Karla body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f6f2e6",
+    "ink": "#101c26",
+    "accent": "#c8342e",
+    "a2": "#2e7a52"
+  },
+  "fonts": [
+    "Mountains of Christmas",
+    "Karla"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#0e1720",
+    "ink": "#f6f2e6"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Mountains of Christmas",
+    "body": "Karla",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "warm festive bells over soft strings, twinkling",
+    "energy": "medium"
+  },
+  "skin": {
+    "accents": [
+      "#c8342e",
+      "#2e7a52"
+    ],
+    "extras": [
+      "#e4eee6",
+      "#f8e2d8",
+      "#101c26"
+    ],
+    "emphasisCss": "color:#c8342e;"
+  },
+  "assets": {
+    "photoMod": "night exteriors, warm bulb glow against cold blue",
+    "iconStyle": "outline",
+    "keywords": [
+      "christmas",
+      "lights",
+      "snow",
+      "wreath",
+      "garland",
+      "street"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#0e1720"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

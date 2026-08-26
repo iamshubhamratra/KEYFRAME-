@@ -1,0 +1,89 @@
+{
+  "name": "palolem",
+  "renderer": "omelette",
+  "template": "Palolem",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for beach travel / slow coastal stays — 45 authored beats, ~6.7s each, 5:02 as shipped. low sun over a sunset band, waves scrolling shoreward, palms swaying, sailboat bobbing, lanterns pulsing. Yeseva One display over Mukta body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f8ecd8",
+    "ink": "#2a1420",
+    "accent": "#e8623c",
+    "a2": "#3c9e8c"
+  },
+  "fonts": [
+    "Yeseva One",
+    "Mukta"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#231018",
+    "ink": "#f8ecd8"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Yeseva One",
+    "body": "Mukta",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "slow coastal acoustic, soft tabla and guitar, sunset",
+    "energy": "calm"
+  },
+  "skin": {
+    "accents": [
+      "#e8623c",
+      "#3c9e8c"
+    ],
+    "extras": [
+      "#e4eee8",
+      "#f9e2cc",
+      "#2a1420"
+    ],
+    "emphasisCss": "color:#e8623c;"
+  },
+  "assets": {
+    "photoMod": "low golden sunset light, terracotta and sea-green",
+    "iconStyle": "outline",
+    "keywords": [
+      "beach",
+      "palm",
+      "boat",
+      "sunset",
+      "ocean",
+      "coconut"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#231018"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

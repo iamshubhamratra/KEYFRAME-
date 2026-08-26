@@ -1,0 +1,89 @@
+{
+  "name": "white-line",
+  "renderer": "omelette",
+  "template": "WhiteLine",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for ski patrol / avalanche control — 45 authored beats, ~6.7s each, 5:02 as shipped. ridgeline peaks, falling snow, a skier arcing across the bowl, chairlifts crossing the cable. Saira Condensed display over Saira body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f2f7fb",
+    "ink": "#0f1c2a",
+    "accent": "#e83c3c",
+    "a2": "#2f7fd0"
+  },
+  "fonts": [
+    "Saira Condensed",
+    "Saira"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#0c1622",
+    "ink": "#f2f7fb"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Saira Condensed",
+    "body": "Saira",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "wide cinematic strings over a low drone, cold and patient",
+    "energy": "medium"
+  },
+  "skin": {
+    "accents": [
+      "#e83c3c",
+      "#2f7fd0"
+    ],
+    "extras": [
+      "#e2eef8",
+      "#f8e2e2",
+      "#0f1c2a"
+    ],
+    "emphasisCss": "color:#e83c3c;"
+  },
+  "assets": {
+    "photoMod": "cold blue-white daylight, snow glare, red jacket accents",
+    "iconStyle": "outline",
+    "keywords": [
+      "snow",
+      "ski",
+      "mountain",
+      "avalanche",
+      "slope",
+      "alpine"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#0c1622"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

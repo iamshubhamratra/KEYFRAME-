@@ -177,7 +177,7 @@ const SYSTEM = `You are the Screenshot Director of an automated video studio. A 
 Match on TOPIC: a scene about cost/plans -> the pricing page; a scene about capabilities -> the features/product page; social proof -> customers/case studies; setup or how-it-works -> docs/integrations. Only match when the page clearly holds what the scene talks about — a weak or decorative match is worse than none.
 
 Hard rules:
-- Pick AS MANY well-matched pairs as the script supports, up to 9. A film that SHOWS the product on many real pages is far more convincing than one that shows it twice — but a weak match is still worse than none, so do not force a pairing just to reach the cap. Zero picks is a valid answer.
+- Pick AS MANY well-matched pairs as the script supports, up to 20. A film that SHOWS the product on many real pages is far more convincing than one that shows it twice — but a weak match is still worse than none, so do not force a pairing just to reach the cap. Zero picks is a valid answer.
 - "url" MUST be copied verbatim from the CANDIDATE PAGES list. "sceneId" MUST be one of the scene ids.
 - Never pick login/signup/legal pages. Never pick the homepage (its screenshots are already captured).
 - At most one page per scene and one scene per page.
@@ -223,7 +223,7 @@ ${pageList}`;
     if (DENY_PATH.test(new URL(url).pathname)) continue;
     seenScene.add(sid); seenUrl.add(url);
     picks.push({ sceneId: sid, url, label: String(raw.label || "page").slice(0, 40), guessed: !!byUrl.get(url).guessed });
-    if (picks.length >= 9) break;
+    if (picks.length >= 20) break;
   }
   return picks;
 }
@@ -405,7 +405,7 @@ async function recaptureForScenes({ job, script, jobDir, sceneIds, avoidUrls, to
 // photographed six ways shipped a film showing it three times. A product film
 // cannot have too many real screenshots of the product; the composer only ever
 // places what its scenes have slots for, so a generous cap costs nothing.
-function mergeShots(topicShots, landingPinned, cap = 9) {
+function mergeShots(topicShots, landingPinned, cap = 20) {
   const claimed = new Set(topicShots.map((a) => String(a.sceneId)));
   const keep = landingPinned.filter((a) => !claimed.has(String(a.sceneId)));
   return [...topicShots, ...keep].slice(0, cap);

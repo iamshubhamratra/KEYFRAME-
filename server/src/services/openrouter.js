@@ -100,7 +100,7 @@ function withTimeoutSignal(external, timeoutMs, timeoutMsg) {
 //     dispatches here instead of OpenRouter, so a stage names a KIE-served
 //     model exactly the way it names an OpenRouter one.
 //
-// Two wire formats, selected by <route>.api:
+// Three wire formats, selected by <route>.api:
 //   "responses" — xAI/OpenAI Responses API, KIE's only Grok surface (verified
 //     live: /chat/completions 422s "model not supported" for grok-4-5).
 //     Request: { model, input:[messages], stream, temperature, text.format for
@@ -108,6 +108,22 @@ function withTimeoutSignal(external, timeoutMs, timeoutMsg) {
 //     reasoning model) + a "message" item whose content[] holds
 //     { type:"output_text", text }; usage is input_tokens/output_tokens (output
 //     INCLUDES reasoning tokens — billed accordingly).
+//   "messages" — Anthropic Messages API (Claude models — verified live against
+//     https://api.kie.ai/claude/v1/messages with model:"claude-opus-5"; a bad
+//     model on this same route returns KIE's usual {code,msg} 200-wrapped
+//     error, so error handling is unchanged). Anthropic's shape differs from
+//     both OpenAI surfaces: `system` is a TOP-LEVEL string, not a role:"system"
+//     message (Anthropic rejects that role inside `messages`), and `max_tokens`
+//     is REQUIRED (OpenAI treats it as optional). Reply: content[] is an array
+//     of typed blocks — concatenate the "text" ones; usage is
+//     input_tokens/output_tokens. No response_format/json mode exists on this
+//     API — jsonMode relies on the system prompt + the tolerant extractor, the
+//     same as every other stage's occasional markdown-fenced reply.
+//     STREAMING IS NOT IMPLEMENTED for this shape (Anthropic's SSE event
+//     sequence — message_start/content_block_delta/message_stop — was not
+//     verified live): messages-api calls always go non-streamed regardless of
+//     KIE_STREAM_ABOVE_MS, so this route must stay on stages whose prompt is
+//     small enough to answer inside the edge's ~100-125s non-streamed window.
 //   anything else — OpenAI-compatible /chat/completions (the Gemini-on-KIE
 //     routes). Standard messages/choices/usage shapes, and it accepts the
 //     multimodal content arrays the vision stages send (verified live with a
@@ -116,12 +132,25 @@ function withTimeoutSignal(external, timeoutMs, timeoutMsg) {
 // KIE's Cloudflare edge kills non-streamed responses that take longer than
 // ~100-125s with a 524 — which is every big composer/storyboard call. STREAM
 // those instead: SSE keeps bytes flowing so the edge never times out. Both
-// surfaces speak standard SSE (verified live): Responses emits
+// OpenAI-shaped surfaces speak standard SSE (verified live): Responses emits
 // response.output_text.delta + response.completed; /chat/completions emits
 // chat.completion.chunk with choices[].delta.content then a choice-less final
 // chunk carrying usage. Short stages keep the simple non-streamed path.
 const KIE_STREAM_ABOVE_MS = 150_000;
 const KIE_ALIAS = /^kie:(.+)$/;
+// KIE bills every call in "credits", $0.005 each (200 credits = $1) — measured
+// live (solved from two calls with deliberately opposite token mixes; a third
+// call's prediction matched the real bill to the cent) and cross-checked
+// against KIE's own published examples (Nano Banana image = 4 credits =
+// $0.02). This is the ONE authoritative source of KIE spend: a static
+// per-token price table already overstated one route's cost 3.3x once, and
+// Claude-on-KIE makes a token-based table actively MISLEADING — every observed
+// call reported a large (~26k), roughly CONSTANT `cache_creation_input_tokens`
+// regardless of the actual prompt sent, so a naive $/token estimate would be
+// dominated by a number that has nothing to do with what was asked. Reading
+// the metered `credits_consumed` off every response sidesteps needing to
+// understand that number at all.
+const KIE_CREDIT_USD = 0.005;
 
 // Resolve a "kie:<route>" model id into a complete provider descriptor. Returns
 // null when the id is not an alias, or when the route has no usable key (the
@@ -188,27 +217,45 @@ async function readKieSse(resp, responsesApi) {
 
 async function callKie(p, { messages, jsonMode, temperature, maxTokens, timeoutMs, stage, signal: external }) {
   const responsesApi = p.api === "responses";
-  const streaming = Number(timeoutMs) > KIE_STREAM_ABOVE_MS;
-  const url = `${p.baseUrl.replace(/\/$/, "")}/${responsesApi ? "responses" : "chat/completions"}`;
-  const body = responsesApi
-    ? {
-        model: p.model,
-        input: messages,
-        stream: streaming,
-        temperature: temperature ?? config.llm.temperature,
-      }
-    : {
-        model: p.model,
-        messages,
-        // KIE defaults stream:true — always send it explicitly so a short stage
-        // gets one JSON body and a long one gets the edge-safe SSE.
-        stream: streaming,
-        temperature: temperature ?? config.llm.temperature,
-        ...(maxTokens ? { max_tokens: maxTokens } : {}),
-      };
-  if (jsonMode) {
-    if (responsesApi) body.text = { format: { type: "json_object" } };
-    else body.response_format = { type: "json_object" };
+  const messagesApi = p.api === "messages";
+  // Messages-api streaming is unimplemented (see the format note above) — force
+  // non-streamed regardless of how long the stage's timeout budget runs.
+  const streaming = !messagesApi && Number(timeoutMs) > KIE_STREAM_ABOVE_MS;
+  const endpoint = responsesApi ? "responses" : messagesApi ? "messages" : "chat/completions";
+  const url = `${p.baseUrl.replace(/\/$/, "")}/${endpoint}`;
+  let body;
+  if (responsesApi) {
+    body = { model: p.model, input: messages, stream: streaming, temperature: temperature ?? config.llm.temperature };
+    if (jsonMode) body.text = { format: { type: "json_object" } };
+  } else if (messagesApi) {
+    // Anthropic's shape: `system` is a top-level string pulled out of the
+    // fixed [system, user] pair chat() always builds; `messages` carries only
+    // the non-system turns (Anthropic 400s on a role:"system" message).
+    // max_tokens is REQUIRED — default it rather than omit, since a caller
+    // that forgot to pass one should still get a bounded, billable request
+    // instead of whatever KIE's own undocumented default turns out to be.
+    const sys = messages.find((m) => m.role === "system");
+    const rest = messages.filter((m) => m.role !== "system");
+    body = {
+      model: p.model,
+      system: sys?.content,
+      messages: rest,
+      max_tokens: maxTokens || 8192,
+      temperature: temperature ?? config.llm.temperature,
+    };
+    // No response_format/json-mode field exists on this API — jsonMode is
+    // carried entirely by the system prompt + the caller's tolerant parser.
+  } else {
+    body = {
+      model: p.model,
+      messages,
+      // KIE defaults stream:true — always send it explicitly so a short stage
+      // gets one JSON body and a long one gets the edge-safe SSE.
+      stream: streaming,
+      temperature: temperature ?? config.llm.temperature,
+      ...(maxTokens ? { max_tokens: maxTokens } : {}),
+    };
+    if (jsonMode) body.response_format = { type: "json_object" };
   }
 
   const { signal, clear: hardTimer } = withTimeoutSignal(external, timeoutMs, "kie call timed out");
@@ -233,9 +280,10 @@ async function callKie(p, { messages, jsonMode, temperature, maxTokens, timeoutM
       const tokensOutS = (responsesApi ? usage?.output_tokens : usage?.completion_tokens) ?? 0;
       const badS = badCompletionReason(text, jsonMode, "stream", tokensOutS);
       if (badS) { const e = new Error(`kie: ${badS}`); e.retryable = true; throw e; }
-      const creditsS = credits == null ? "" : `, ${credits} credits`;
+      const costUsdS = typeof credits === "number" ? credits * KIE_CREDIT_USD : null;
+      const creditsS = credits == null ? "" : `, ${credits} credits ($${(costUsdS).toFixed(4)})`;
       console.log(`[kie] ${p.model} stage=${stage || "?"} ok (${dtS}ms streamed, in=${tokensInS} out=${tokensOutS}${creditsS}, ${text.length}ch)`);
-      return { text, tokensIn: tokensInS, tokensOut: tokensOutS, model: p.alias || p.model };
+      return { text, tokensIn: tokensInS, tokensOut: tokensOutS, costUsd: costUsdS, model: p.alias || p.model };
     }
 
     const dt = Date.now() - t0;
@@ -262,24 +310,41 @@ async function callKie(p, { messages, jsonMode, temperature, maxTokens, timeoutM
       throw err;
     }
 
-    let text, finish;
+    let text, finish, tokensIn, tokensOut;
     if (responsesApi) {
       const msg = (Array.isArray(data.output) ? data.output : []).find((o) => o && o.type === "message");
       const part = (Array.isArray(msg?.content) ? msg.content : []).find((c) => c && c.type === "output_text");
       text = part?.text ?? "";
       finish = data.status;
+      tokensIn = data.usage?.input_tokens ?? 0;
+      tokensOut = data.usage?.output_tokens ?? 0;
+    } else if (messagesApi) {
+      // content[] is an array of typed blocks (text / tool_use / ...); concat
+      // only the text ones. A JSON-mode reply is one block in practice, but a
+      // model is free to add a leading acknowledgement block, so join rather
+      // than index [0].
+      text = (Array.isArray(data.content) ? data.content : [])
+        .filter((c) => c && c.type === "text" && typeof c.text === "string")
+        .map((c) => c.text)
+        .join("");
+      finish = data.stop_reason;
+      tokensIn = data.usage?.input_tokens ?? 0;
+      tokensOut = data.usage?.output_tokens ?? 0;
     } else {
       text = data.choices?.[0]?.message?.content ?? "";
       finish = data.choices?.[0]?.finish_reason;
+      tokensIn = data.usage?.prompt_tokens ?? 0;
+      tokensOut = data.usage?.completion_tokens ?? 0;
     }
-    const tokensIn = (responsesApi ? data.usage?.input_tokens : data.usage?.prompt_tokens) ?? 0;
-    const tokensOut = (responsesApi ? data.usage?.output_tokens : data.usage?.completion_tokens) ?? 0;
     // Retryable rather than fatal: the KIE loop in chat() re-asks, then escalates.
     const bad = badCompletionReason(text, jsonMode, finish, tokensOut);
     if (bad) { const e = new Error(`kie: ${bad}`); e.retryable = true; throw e; }
-    const credits = typeof data.credits_consumed === "number" ? `, ${data.credits_consumed} credits` : "";
+    // The metered charge for THIS call — see KIE_CREDIT_USD above for why this
+    // is trusted over any $/token estimate.
+    const costUsd = typeof data.credits_consumed === "number" ? data.credits_consumed * KIE_CREDIT_USD : null;
+    const credits = costUsd == null ? "" : `, ${data.credits_consumed} credits ($${costUsd.toFixed(4)})`;
     console.log(`[kie] ${p.model} stage=${stage || "?"} ok (${dt}ms, in=${tokensIn} out=${tokensOut}${credits}, ${text.length}ch)`);
-    return { text, tokensIn, tokensOut, model: p.alias || p.model };
+    return { text, tokensIn, tokensOut, costUsd, model: p.alias || p.model };
   } catch (err) {
     const dt = Date.now() - t0;
     const tag = err?.status || err?.code || err?.name || err?.message?.slice(0, 80) || "unknown";
@@ -515,6 +580,17 @@ async function chat({ system, user, userSuffix, jsonMode = false, temperature, m
   if (stageRoute) {
     const hit = await tryKie(stageRoute, `route ${stageRoute.alias}`, `OpenRouter ${orPrimary}`);
     if (hit) return hit;
+  }
+
+  // A stage in llm.noFallbackStages is pinned to its named KIE model on
+  // purpose — e.g. admin template generation runs on Claude Opus 5 ONLY, so a
+  // silent drop to whatever model.js/modelFallback happens to name (a flash
+  // tier, on the current config) never substitutes a materially weaker model
+  // for a quality-critical, low-volume, human-supervised action. Both KIE
+  // attempts (steps 1-2) already retried 3x each with backoff above, so this
+  // fires only once that resilience is genuinely exhausted.
+  if (stage && (config.llm.noFallbackStages || []).includes(stage)) {
+    throw new Error(`llm: stage=${stage} is pinned to ${requested} (llm.noFallbackStages) and it failed after retries — refusing to silently substitute a different model.`);
   }
 
   // 3. FALLBACK: OpenRouter primary model. Only reachable with no OpenRouter id

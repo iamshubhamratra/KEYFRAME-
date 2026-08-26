@@ -1,0 +1,89 @@
+{
+  "name": "fret-and-fingerboard",
+  "renderer": "omelette",
+  "template": "FretBoard",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for luthiery / guitar building — 46 authored beats, ~6.7s each, 5:08 as shipped. guitar body swaying with vibrating strings, fretboard and inlays, glue clamps turning, wood shavings curling. Zilla Slab display over Barlow body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f6ecd8",
+    "ink": "#251b14",
+    "accent": "#a8622c",
+    "a2": "#4d6b7a"
+  },
+  "fonts": [
+    "Zilla Slab",
+    "Barlow"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#241a14",
+    "ink": "#f6ecd8"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Zilla Slab",
+    "body": "Barlow",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "sparse fingerpicked acoustic, woody and intimate",
+    "energy": "calm"
+  },
+  "skin": {
+    "accents": [
+      "#a8622c",
+      "#4d6b7a"
+    ],
+    "extras": [
+      "#e8eeee",
+      "#f8e2c8",
+      "#251b14"
+    ],
+    "emphasisCss": "color:#a8622c;"
+  },
+  "assets": {
+    "photoMod": "warm daylit workbench, pale spruce, shavings and steel hand tools",
+    "iconStyle": "outline",
+    "keywords": [
+      "guitar",
+      "luthier",
+      "woodworking",
+      "workbench",
+      "sawdust",
+      "chisel"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#241a14"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

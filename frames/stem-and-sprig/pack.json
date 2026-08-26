@@ -1,0 +1,89 @@
+{
+  "name": "stem-and-sprig",
+  "renderer": "omelette",
+  "template": "StemSprig",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for wedding florist — 46 authored beats, ~6.7s each, 5:08 as shipped. stems swaying with turning flower heads, petals drifting down, ribbon spiral drawing outward, wreath ring of turning petals. Italiana display over Albert Sans body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#faf4f0",
+    "ink": "#2a2026",
+    "accent": "#c4738a",
+    "a2": "#7a9070"
+  },
+  "fonts": [
+    "Italiana",
+    "Albert Sans"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#241c22",
+    "ink": "#faf4f0"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Italiana",
+    "body": "Albert Sans",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "soft acoustic strings with light pastoral air, unhurried",
+    "energy": "calm"
+  },
+  "skin": {
+    "accents": [
+      "#c4738a",
+      "#7a9070"
+    ],
+    "extras": [
+      "#e8eee6",
+      "#f8e6e6",
+      "#2a2026"
+    ],
+    "emphasisCss": "color:#c4738a;"
+  },
+  "assets": {
+    "photoMod": "soft morning light, dusty rose and sage tones",
+    "iconStyle": "outline",
+    "keywords": [
+      "flower",
+      "bouquet",
+      "florist",
+      "garden",
+      "wedding",
+      "petal"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#241c22"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

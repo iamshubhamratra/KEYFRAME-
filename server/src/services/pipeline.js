@@ -40,6 +40,7 @@ const genesisComposer = require("./genesis_composer");
 const momentumComposer = require("./momentum_composer");
 const showcaseComposer = require("./showcase_composer");
 const omeletteAdapter = require("./omelette_adapter");
+const sceneFit = require("./scene_fit");
 const posterFamily = require("./family_poster");
 const terminalFamily = require("./family_terminal");
 const editorialFamily = require("./family_editorial");
@@ -927,6 +928,69 @@ const PACK_RENDERERS = {
 // Past this length the sparse GSAP dedicated renderers hand off to scene-kit.
 const LONGFORM_RENDERER_SEC = 75;
 
+// HOW MANY BEATS THE CHOSEN PACK CAN ACTUALLY HOLD.
+//
+// The picture and the voiceover only stay together while they share the same
+// scene boundaries. The narration is synthesized PER SCENE and mixed at that
+// scene's own start, so any scene list the renderer cannot hold is a scene the
+// viewer HEARS but never sees — its words land on a neighbour's frame.
+//
+// So the fold happens BEFORE the storyboard and the VO, not inside the renderer:
+// two scenes that must share a frame then also share one narration clip, and the
+// boundary they share is the same on both tracks.
+function sceneCapFor(framePack) {
+  // The bundled-template engine (`omelette`) rejects an OM_SCENES list over 50
+  // entries or 16KB outright — it draws a full-frame error slate for the whole
+  // film — so 50 is not a tuned number, it is that engine's own hard ceiling. A
+  // 60-70 scene script simply cannot give every scene its own beat there, and the
+  // scenes that must share one are the residual mismatch both A/V gates report on
+  // the long bundled-kit films. Measured with check:av-sync (share of runtime
+  // whose frame carries the scene being spoken), sweeping this ceiling:
+  //     ceiling   300s film   600s film
+  //        34        94%         86%
+  //        40        91%         89%
+  //        44        88%         89%
+  //        50        90%         90%
+  // Anything below 50 trades a real scene boundary for nothing, so the ceiling
+  // stays the engine's. Note this is a fold, not a truncation: the folded scenes
+  // keep both lines and share one narration clip, and the adapter still splits a
+  // long scene into several beats to reach the template's authored pace — cuts
+  // that fall inside a scene, moving no boundary.
+  if (rendererFor(framePack) === "omelette") return 50;
+  return sceneFit.MAX_CLIPS;
+}
+
+/**
+ * Fold a script down to what the chosen pack can draw, keeping every line.
+ *
+ * Merged scenes keep both voiceovers (one clip, spoken end to end) and both
+ * on-screen lines, and span the sum of their durations — so the total runtime,
+ * every boundary and every word survive. A script inside the ceiling is returned
+ * untouched.
+ */
+function foldScriptToRenderer(script, framePack, label = "pipeline") {
+  const scenes = (script && Array.isArray(script.scenes)) ? script.scenes : [];
+  const cap = sceneCapFor(framePack);
+  if (scenes.length <= cap) return script;
+  const folded = sceneFit.fitScenes(scenes, cap).map((sc) => ({ ...sc }));
+  // Re-derive starts at the SAME precision the durations carry. Rounding the
+  // running total to a coarser step than the durations makes `start` drift away
+  // from the cumulative duration a little more with every scene — half a second
+  // by the end of a long film, which is enough to move a boundary past the beat
+  // that belongs to it.
+  let t = 0;
+  for (const sc of folded) {
+    sc.start = Math.round(t * 100) / 100;
+    t = Math.round((t + (Number(sc.duration) || 0)) * 100) / 100;
+  }
+  console.log(
+    `[${label}] script folded ${scenes.length} -> ${folded.length} scenes: the "${rendererFor(framePack) || "scene-kit"}" renderer ` +
+    `holds ${cap} beats, and a scene it cannot draw would still be narrated over someone else's frame. ` +
+    `Merged scenes keep both lines and share one narration clip.`
+  );
+  return { ...script, scenes: folded };
+}
+
 function rendererFor(framePack) {
   if (!framePack) return null;
   try { const m = frameManifest.getManifest(framePack); return (m && m.renderer) || null; }
@@ -1046,17 +1110,19 @@ async function composeWithPackRenderer({ renderer, storyboard, dims, jobDir, fra
   const authoredScenes = await authorSurplusScenes({
     R, storyboard, dims, framePack, assets, abortSignal, tracker, label,
   });
-  // brandSkin (Art Director / user color) is forwarded — composers that accept it
-  // (Genesis, momentum) recolor to the brand; the rest ignore the extra key.
+  // brandSkin (Art Director / user colour) is forwarded — composers that accept it
+  // (Genesis, momentum, and now the bundled-template adapter) recolour to the
+  // brand; the rest ignore the extra key.
   //
   // SAY SO WHEN IT IS DROPPED. "Ignores the extra key" is silent, and silence is
   // how an agent ends up running, billing, and having no effect on the film for
-  // months: the Art Director makes a real LLM call on every website job (site
-  // theme-match is on by default), and the bundled-template renderer cannot use
-  // its answer at all, because the palette lives inside a compiled React tree.
-  // The same is true of the Visual Layout Director's per-scene plan, which reaches
-  // only scene-kit — and scene-kit runs for no pack (check:templates: "0 still on
-  // scene-kit"). Neither is a crash, so nothing anywhere reported it. Now it does.
+  // months. That is exactly what happened to the 139 bundled packs: the Art
+  // Director resolved the user's palette, persisted it as `brand_review`, this
+  // warning fired — and the film shipped with none of it. omelette_adapter now
+  // takes `brandSkin` and remaps the pack's ACCENT hexes (see applyBrandSkin
+  // there), so this check passes for it rather than merely reporting the loss.
+  // Still true for the Visual Layout Director's per-scene plan, which reaches only
+  // scene-kit. Neither is a crash, so nothing else would report it.
   {
     const accepts = String(R.composer.buildComposition || "");
     const dropped = [];
@@ -1093,7 +1159,7 @@ async function composeWithPackRenderer({ renderer, storyboard, dims, jobDir, fra
   }
   await contrastFixPass(jobDir, { framePack, storyboard, dims, label });
   tracker.addExternal("hyperframes_render");
-  const visual = await render({ jobId, jobDir, durationSec, abortSignal });
+  const visual = await render({ jobId, jobDir, durationSec, abortSignal, expectWidth: dims.width, expectHeight: dims.height });
   await densityGate(jobDir, { storyboard, dims, durationSec, label });
   console.log(`[pipeline] ${label}: render done in ${ms() - t0}ms total`);
   return visual;
@@ -1169,7 +1235,7 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
   console.log(`[pipeline] ${label}: compose done in ${ms() - t0}ms, render start`);
   await contrastFixPass(jobDir, { framePack, storyboard, dims, label });
   tracker.addExternal("hyperframes_render");
-  const visual = await render({ jobId, jobDir, durationSec, abortSignal });
+  const visual = await render({ jobId, jobDir, durationSec, abortSignal, expectWidth: dims.width, expectHeight: dims.height });
   await densityGate(jobDir, { storyboard, dims, durationSec, label });
   console.log(`[pipeline] ${label}: render done in ${ms() - t0}ms total`);
   return visual;
@@ -1216,7 +1282,7 @@ async function composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack
   await contrastFixPass(jobDir, { framePack, storyboard, dims, label: label || "scene-kit" });
   console.log(`[pipeline] ${label || "scene-kit"}: built in ${ms() - t0}ms, render start`);
   tracker.addExternal("hyperframes_render");
-  const visual = await render({ jobId, jobDir, durationSec, abortSignal });
+  const visual = await render({ jobId, jobDir, durationSec, abortSignal, expectWidth: dims.width, expectHeight: dims.height });
   await densityGate(jobDir, { storyboard, dims, durationSec, label });
   console.log(`[pipeline] ${label || "scene-kit"}: render done in ${ms() - t0}ms total`);
   return visual;
@@ -1265,7 +1331,7 @@ async function composeWithThree({ storyboard, dims, jobDir, framePack, captionCu
   fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
   await contrastFixPass(jobDir, { framePack, storyboard, dims, label: label || "three" });
   tracker.addExternal("hyperframes_render");
-  const visual = await render({ jobId, jobDir, durationSec, abortSignal });
+  const visual = await render({ jobId, jobDir, durationSec, abortSignal, expectWidth: dims.width, expectHeight: dims.height });
   await densityGate(jobDir, { storyboard, dims, durationSec, label });
   console.log(`[pipeline] ${label || "three"}: render done in ${ms() - t0}ms total`);
   return visual;
@@ -1822,7 +1888,7 @@ async function runJobInner({
         writeComposedHtml(jobDir, fb.indexHtml, jobId);
         fs.writeFileSync(path.join(jobDir, "meta.json"), fb.metaJson, "utf8");
         tracker.addExternal("hyperframes_render");
-        visualResult = await render({ jobId, jobDir, durationSec: effectiveDuration });
+        visualResult = await render({ jobId, jobDir, durationSec: effectiveDuration, expectWidth: width, expectHeight: height });
         markStage("fallback_render", t0);
         console.log(`[pipeline] polished fallback rendered in ${timings.fallback_renderMs}ms`);
       }
@@ -1858,7 +1924,7 @@ async function runJobInner({
           }).catch((e) => { console.warn(`[pipeline] qa-repair errored: ${e.message.slice(0, 120)}`); return null; });
           if (rep && rep.changedAny) {
             tracker.addExternal("hyperframes_render");
-            visualResult = await render({ jobId, jobDir, durationSec: effectiveDuration });
+            visualResult = await render({ jobId, jobDir, durationSec: effectiveDuration, expectWidth: width, expectHeight: height });
             qaVerdict = await reviewRender({ ...qaArgs, videoPath: visualResult.videoPath })
               .catch((e) => { console.warn(`[pipeline] re-qa failed (${String(e.message).slice(0, 120)})`); return qaVerdict; });
           } else {
@@ -1968,4 +2034,8 @@ async function runJob(opts) {
 
 module.exports = {
   retimeScenesToVo, runJob, withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor,
-  identityGate, contrastFixPass, setCaptionStyle, clearCaptionStyle, writeComposedHtml };
+  identityGate, contrastFixPass, setCaptionStyle, clearCaptionStyle, writeComposedHtml,
+  // Exported for the audits: `check:coverage` walks every renderer and measures
+  // whether a film's scenes all reach the screen. A gate that has to hand-copy
+  // this list would silently miss the next renderer added to it.
+  PACK_RENDERERS, LONGFORM_RENDERER_SEC, sceneCapFor, foldScriptToRenderer };

@@ -1,0 +1,80 @@
+{
+  "name": "street-food-launch-2",
+  "vibe": "Retro CRT terminal announcing street food — sizzling grill phosphor glow, bustling vendor stalls, building to CTA.",
+  "colors": {
+    "void": "#06110a",
+    "panel": "#0b1c12",
+    "grid": "#12331f",
+    "ink": "#c8f7d4",
+    "phosphor": "#3df07e",
+    "grill": "#ff9f1c"
+  },
+  "fonts": [
+    "Inter",
+    "JetBrains Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#06110a"
+  },
+  "motion": {
+    "cut": "submerge",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "orrery",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#ff9f1c",
+      "#3df07e"
+    ],
+    "extras": [
+      "#12331f",
+      "#8fe8ac"
+    ],
+    "emphasisCss": null
+  },
+  "assets": {
+    "photoMod": "retro terminal crt scanline dark tech",
+    "iconStyle": "line",
+    "keywords": [
+      "retro",
+      "terminal",
+      "mono",
+      "crt",
+      "dark"
+    ],
+    "prefer": []
+  },
+  "textfx": {
+    "enter": "blur-up",
+    "emphasis": "gradient",
+    "case": "none",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left",
+    "speed": 1.2
+  },
+  "audio": {
+    "music": {
+      "query": "",
+      "mood": "",
+      "volume": 0.16
+    },
+    "sfx": {
+      "style": "",
+      "palette": []
+    }
+  },
+  "typography": {
+    "display": "JetBrains Mono"
+  },
+  "camera3d": {
+    "ground": "#06110a"
+  },
+  "portraitNative": true
+}

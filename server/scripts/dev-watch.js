@@ -12,6 +12,7 @@ const path = require("node:path");
 const ROOT = path.resolve(__dirname, "..");
 const SRC_DIR = path.join(ROOT, "src");
 const ENTRY = path.join(ROOT, "server.js");
+const CONFIG_FILE = path.join(ROOT, "config.json");
 const DEBOUNCE_MS = 300;
 
 // abs path -> "mtimeMs:size" — the identity of a file's last seen content.
@@ -116,6 +117,16 @@ fs.watch(SRC_DIR, { recursive: true }, (_ev, f) => {
   if (f) onEvent(path.resolve(SRC_DIR, f));
 });
 fs.watch(ENTRY, () => onEvent(ENTRY));
+
+// config.json TOO. src/config.js reads it ONCE at module load, so editing it
+// changed nothing in the running process — model routing, API keys and feature
+// flags all silently kept their old values. That cost a debugging session: the
+// template generator was repointed off an exhausted key, the file on disk was
+// correct, and the very next batch failed with the identical 403 because the
+// server was still holding the previous routing table in memory.
+try {
+  fs.watch(CONFIG_FILE, () => onEvent(CONFIG_FILE));
+} catch { /* no config.json in this checkout — src/config.js defaults apply */ }
 
 for (const s of ["SIGINT", "SIGTERM"]) {
   process.on(s, () => {

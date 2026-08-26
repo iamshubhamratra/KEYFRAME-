@@ -1,6 +1,6 @@
 # Steep & Steam — long-form kinetic-typography film (16:9)
 
-A ~5-minute, 40-beat looping film for tea house, rendered from its own
+A 5:08, 41-beat looping film for tea house, rendered from its own
 original bundle — only the words and the two pictures change. Built for LONG-FORM
 video: every beat is a different type animation (~7.5s each), so a 2–5 minute
 script never repeats a layout.
@@ -13,10 +13,11 @@ script never repeats a layout.
   footnote, vertical side label or spinning doodle — so no frame reads empty.
 - Animated SVG world behind every scene: pouring kettle arc, steam curls, leaves unfurling, timer.
 
-## Shape vocabulary (40 authored beats)
-Drawn from the kit's 60 scene renderers with no name repeating inside the film —
+## Shape vocabulary (41 authored beats)
+Drawn from the kit's 74 scene renderers with no name repeating inside the film —
 letter-level (Open, Rain, Spiral, Wave…), word-level (Problem, Marker, Magnet…),
-line/block (Wilt, Curtain, Cards…), data (Counts, Ladder, Gauge, Plans…) and the
+line/block (Wilt, Curtain, Cards…), data (Counts, Ladder, Gauge, Plans…), the FX
+set (NeonSign, Glitch, FlipCube, Ticker3D, Kaleido, Spotlight…) and the
 bookends (Kit chapter cards, Peek image card, QA, Join CTA). Slot keys include
 kicker/title/sub/lines/steps/stats/items/words/pairs/rows/q&a/plans — text-first;
 `image` appears twice (a mid-film setup card and the CTA logo).

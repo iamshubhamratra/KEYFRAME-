@@ -1,0 +1,89 @@
+{
+  "name": "insert-coin",
+  "renderer": "omelette",
+  "template": "InsertCoin",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for retro arcade — 45 authored beats, ~6.7s each, 5:02 as shipped. glowing pixel grid, a chunky sprite bouncing across, flickering high-score board, joystick rocking with lit buttons. Press Start 2P display over Space Grotesk body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#eef0ff",
+    "ink": "#0b0b16",
+    "accent": "#ffd23c",
+    "a2": "#3cffd2"
+  },
+  "fonts": [
+    "Press Start 2P",
+    "Space Grotesk"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#0a0a14",
+    "ink": "#eef0ff"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Press Start 2P",
+    "body": "Space Grotesk",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "chiptune with fat synth bass, 8-bit swagger",
+    "energy": "high"
+  },
+  "skin": {
+    "accents": [
+      "#ffd23c",
+      "#3cffd2"
+    ],
+    "extras": [
+      "#101a24",
+      "#1a1024",
+      "#0b0b16"
+    ],
+    "emphasisCss": "color:#ffd23c;"
+  },
+  "assets": {
+    "photoMod": "dark arcade room, CRT glow, yellow and teal light",
+    "iconStyle": "outline",
+    "keywords": [
+      "arcade",
+      "joystick",
+      "gaming",
+      "coin",
+      "pinball",
+      "retro"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#0a0a14"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

@@ -64,8 +64,17 @@ function mapKieVoice(voice) {
 function kieKey() {
   return config.llm?.primary?.apiKey || process.env.KIE_API_KEY || "";
 }
+// CIRCUIT BREAKER for a stalled KIE TTS queue. Discovering the stall costs 20s
+// (see STALL_MS); paying that on EVERY clip of a 30-scene film is minutes of dead
+// wall clock for the same answer. One clip's discovery stands down the provider
+// for the rest of the job (and a few minutes beyond), and it re-arms by itself so
+// a recovered queue is picked up without a restart or a config edit.
+const KIE_STALL_COOLDOWN_MS = 10 * 60 * 1000;
+let kieStalledUntil = 0;
+
 function kieTtsEnabled() {
   if (config.audio?.ttsProvider === "openrouter") return false; // explicit opt-out
+  if (Date.now() < kieStalledUntil) return false;               // stood down after a stall
   return !!kieKey();
 }
 
@@ -98,6 +107,16 @@ async function synthesizeKie({ script, voice, outputPath, tracker, meta, speed =
   // ceiling with length and cap generously.
   const words = (text.match(/\S+/g) || []).length;
   const maxPolls = Math.min(120, Math.max(24, Math.ceil(words / 2)));
+  // STALL DEADLINE. A task that is RENDERING deserves the full poll ceiling; a
+  // task that never leaves `waiting` is a queue that is not serving this account
+  // at all, and waiting 60s to discover that — twice, per clip — costs minutes of
+  // wall clock on every film for an answer that never changes. Measured: the
+  // queue held `waiting` indefinitely, so a 5-scene film burned ~10 minutes
+  // before falling through to a voice it could have used immediately.
+  // Once ANY progress state appears we stop applying it and let the render finish.
+  const STALL_MS = 20_000;
+  const t0 = Date.now();
+  let sawProgress = false;
   let url = null;
   for (let i = 0; i < maxPolls; i++) {
     await new Promise((r) => setTimeout(r, 2500));
@@ -107,6 +126,7 @@ async function synthesizeKie({ script, voice, outputPath, tracker, meta, speed =
       d = (await q.json())?.data || {};
     } catch { continue; } // transient poll error — keep polling
     const state = String(d.state || d.status || "").toLowerCase();
+    if (state && state !== "waiting" && state !== "queuing" && state !== "queued") sawProgress = true;
     if (state === "success") {
       try { url = JSON.parse(d.resultJson || "{}").resultUrls?.[0] || null; } catch { url = null; }
       if (!url) throw new Error("tts(kie): task success but no result url");
@@ -114,6 +134,10 @@ async function synthesizeKie({ script, voice, outputPath, tracker, meta, speed =
     }
     if (state === "fail" || state === "error") {
       throw new Error(`tts(kie): task failed — ${d.failMsg || d.failCode || "unknown"}`);
+    }
+    if (!sawProgress && Date.now() - t0 > STALL_MS) {
+      kieStalledUntil = Date.now() + KIE_STALL_COOLDOWN_MS;
+      throw new Error(`tts(kie): queue still "waiting" after ${Math.round(STALL_MS / 1000)}s — treating as stalled`);
     }
   }
   if (!url) throw new Error(`tts(kie): timed out after ${maxPolls} polls`);
@@ -269,15 +293,41 @@ const FEMALE_VOICES = new Set([
   "bella", "emma", "laura", "allison",                          // EL names
   "nova", "shimmer", "coral", "sage", "alloy", "fable", "marin", // gpt-audio names
 ]);
-function edgeVoiceFor(voice) {
+// LANGUAGE-AWARE FREE FALLBACK.
+//
+// Edge is the last resort in the chain, and it used to be hard-wired to two
+// en-US voices. On a localized film that produced the worst possible outcome: a
+// Hindi script handed to an American English voice, which reads Devanagari as
+// noise. Measured — a Hindi clip fell to `edge:en-US-AriaNeural`.
+//
+// Edge ships neural voices for every language this pipeline supports (see
+// services/caption_lang.js), so the fallback picks the one matching the film's
+// VOICEOVER language. Unknown/absent language keeps the en-US pair exactly as
+// before, so the English path is unchanged.
+const EDGE_BY_LANG = {
+  en: { male: "en-US-GuyNeural",   female: "en-US-AriaNeural" },
+  hi: { male: "hi-IN-MadhurNeural", female: "hi-IN-SwaraNeural" },
+  es: { male: "es-ES-AlvaroNeural", female: "es-ES-ElviraNeural" },
+  fr: { male: "fr-FR-HenriNeural",  female: "fr-FR-DeniseNeural" },
+  de: { male: "de-DE-ConradNeural", female: "de-DE-KatjaNeural" },
+  pt: { male: "pt-BR-AntonioNeural", female: "pt-BR-FranciscaNeural" },
+  ar: { male: "ar-SA-HamedNeural",  female: "ar-SA-ZariyahNeural" },
+  ja: { male: "ja-JP-KeitaNeural",  female: "ja-JP-NanamiNeural" },
+};
+
+function edgeVoiceFor(voice, lang) {
   const v = String(voice || "").toLowerCase();
-  return FEMALE_VOICES.has(v) ? EDGE_FEMALE : EDGE_MALE;
+  const female = FEMALE_VOICES.has(v);
+  const pair = EDGE_BY_LANG[String(lang || "en").toLowerCase()] || EDGE_BY_LANG.en;
+  const picked = female ? pair.female : pair.male;
+  // Defensive: an unmapped entry must never yield undefined into setMetadata.
+  return picked || (female ? EDGE_FEMALE : EDGE_MALE);
 }
 
-async function synthesizeEdge({ script, voice, outputPath, tracker, meta }) {
+async function synthesizeEdge({ script, voice, outputPath, tracker, meta, lang }) {
   const { MsEdgeTTS, OUTPUT_FORMAT } = require("msedge-tts");
   const text = String(script).slice(0, 5000);
-  const edgeVoice = edgeVoiceFor(voice);
+  const edgeVoice = edgeVoiceFor(voice, lang);
   const tts = new MsEdgeTTS();
   await tts.setMetadata(edgeVoice, OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
   const dir = path.dirname(path.resolve(outputPath));

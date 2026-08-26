@@ -80,9 +80,31 @@ function renderAttempt({ jobId, jobDir, outRelative, durationSec, quality, abort
     // spawnCompat runs .cmd shims under a shell (CVE-2024-27980) with pre-quoted
     // args (avoids DEP0190). windowsHide keeps the cmd/conhost chain off the
     // desktop heap — the same heap whose exhaustion produces 0xC0000142 crashes.
+    // THE FINAL ENCODE NEEDS A TIMEOUT PROPORTIONAL TO THE FILM.
+    //
+    // hyperframes kills ffmpeg after `ffmpegEncodeTimeout`, which defaults to a
+    // FLAT 10 minutes (dist/cli.js: ffmpegEncodeTimeout: 6e5). x264 encodes these
+    // compositions at well under realtime — 0.689x measured — so a 10-minute film
+    // needs roughly 14.5 minutes of encode and was killed at 10 every single time:
+    //
+    //     FFmpeg killed after exceeding ffmpegEncodeTimeout (600000 ms)
+    //
+    // The job had already spent 39 minutes capturing frames by then, and the
+    // retry loop re-ran the whole thing three times before failing. Every 10-min
+    // render was unshippable for this reason alone.
+    //
+    // Scale it with the film and keep the 10-minute floor for short ones. 4x
+    // duration is ~2.7x the observed encode time — a timeout is a backstop for a
+    // hung process, not a schedule, so the margin costs nothing when things work.
+    // Env still wins, so an operator can override.
+    const encodeTimeoutMs = Math.max(600_000, Math.ceil((Number(durationSec) || 0) * 4000));
     const child = spawnCompat(cmd, args, {
       cwd: jobDir,
-      env: { ...process.env, PUPPETEER_DISABLE_HEADLESS_WARNING: "true" },
+      env: {
+        ...process.env,
+        PUPPETEER_DISABLE_HEADLESS_WARNING: "true",
+        FFMPEG_ENCODE_TIMEOUT_MS: process.env.FFMPEG_ENCODE_TIMEOUT_MS || String(encodeTimeoutMs),
+      },
       windowsHide: true,
     });
 
@@ -149,7 +171,54 @@ function renderAttempt({ jobId, jobDir, outRelative, durationSec, quality, abort
   });
 }
 
-async function render({ jobId, jobDir, durationSec, quality = config.server.renderQuality, abortSignal }) {
+// Some renderer families (the 140 hand-authored "omelette" bundles — see
+// admin/film_bundle.js) carry a CANVAS SIZE BAKED IN at authoring time
+// (data-width/data-height in the bundle's own HTML). hyperframes captures at
+// that size regardless of what the job actually requested, so a job asking
+// for 720p can come back 1080p — the render "succeeds" but silently breaks
+// the quality contract the user picked. This is a best-effort LAST-MILE fix,
+// not a substitute for a composer honoring dims: it only runs when the
+// caller supplies expectWidth/expectHeight and the delivered pixels don't
+// match, and it never throws — a failed/skipped scale ships the
+// native-resolution video exactly as before this existed.
+async function normalizeDeliveredDims(videoPath, expectWidth, expectHeight) {
+  if (!expectWidth || !expectHeight) return;
+  try {
+    const { probeVideo } = require("./video_probe");
+    const probe = await probeVideo(videoPath);
+    if (!probe.ok || !probe.width || !probe.height) return;
+    if (probe.width === expectWidth && probe.height === expectHeight) return;
+    // Only correct when the aspect ratio is compatible (a same-ratio upscale/
+    // downscale, e.g. 1920x1080 baked-in vs 1280x720 requested) — a genuine
+    // ratio mismatch means the composer built the WRONG SHAPE film, which a
+    // crop/pad would visibly mangle rather than fix, so leave it for QA to flag.
+    const gotRatio = probe.width / probe.height;
+    const wantRatio = expectWidth / expectHeight;
+    if (Math.abs(gotRatio - wantRatio) > 0.02) return;
+    const tmpPath = `${videoPath}.scaled.mp4`;
+    const ok = await new Promise((resolve) => {
+      const p = spawn("ffmpeg", [
+        "-y", "-v", "error", "-i", videoPath,
+        "-vf", `scale=${expectWidth}:${expectHeight}:flags=lanczos`,
+        "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
+        "-c:a", "copy",
+        tmpPath,
+      ], { windowsHide: true });
+      p.on("error", () => resolve(false));
+      p.on("exit", (code) => resolve(code === 0 && fs.existsSync(tmpPath)));
+    });
+    if (ok) {
+      fs.renameSync(tmpPath, videoPath);
+      console.log(`[renderer] delivered ${probe.width}x${probe.height} but ${expectWidth}x${expectHeight} was requested — rescaled to match`);
+    } else {
+      try { fs.unlinkSync(tmpPath); } catch { /* nothing to clean up */ }
+    }
+  } catch (e) {
+    console.warn(`[renderer] delivery-dims normalize skipped: ${String(e.message).slice(0, 140)}`);
+  }
+}
+
+async function render({ jobId, jobDir, durationSec, quality = config.server.renderQuality, expectWidth = null, expectHeight = null, abortSignal }) {
   const outRelative = path.join("renders", "out.mp4");
   fs.mkdirSync(path.join(jobDir, "renders"), { recursive: true });
 
@@ -214,6 +283,12 @@ async function render({ jobId, jobDir, durationSec, quality = config.server.rend
     fs.copyFileSync(srcPath, destPath);
     fs.unlinkSync(srcPath);
   }
+
+  // Last-mile check: does the delivered file actually match the resolution
+  // the job asked for? (see normalizeDeliveredDims above). Runs BEFORE the
+  // thumbnail grab and BEFORE audio mixing so both operate on the corrected
+  // file, not the bundle's native size.
+  await normalizeDeliveredDims(destPath, expectWidth, expectHeight);
 
   // Gallery thumbnail (best effort, non-blocking): brightest sampled frame so a
   // dark intro never produces a blank-looking card.

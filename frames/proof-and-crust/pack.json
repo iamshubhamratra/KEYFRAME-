@@ -1,0 +1,89 @@
+{
+  "name": "proof-and-crust",
+  "renderer": "omelette",
+  "template": "ProofCrust",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for bakery / sourdough — 46 authored beats, ~6.7s each, 5:08 as shipped. dough dome rising and falling, oven glowing with loaves, flour specks falling, scoring blade cutting, steam curling up. Bevan display over Commissioner body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f8efdc",
+    "ink": "#261c14",
+    "accent": "#c06a26",
+    "a2": "#6b7a4a"
+  },
+  "fonts": [
+    "Bevan",
+    "Commissioner"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#241a12",
+    "ink": "#f8efdc"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Bevan",
+    "body": "Commissioner",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "warm mid-tempo acoustic guitar with brushed kit and wooden hand percussion, steady working rhythm",
+    "energy": "medium"
+  },
+  "skin": {
+    "accents": [
+      "#c06a26",
+      "#6b7a4a"
+    ],
+    "extras": [
+      "#e9eedd",
+      "#f9e3c6",
+      "#261c14"
+    ],
+    "emphasisCss": "color:#c06a26;"
+  },
+  "assets": {
+    "photoMod": "warm oven light, flour dust and matte crust",
+    "iconStyle": "outline",
+    "keywords": [
+      "bread",
+      "dough",
+      "bakery",
+      "sourdough",
+      "flour",
+      "oven"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#241a12"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

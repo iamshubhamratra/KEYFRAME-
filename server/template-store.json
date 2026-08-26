@@ -424,6 +424,265 @@
       "createdAt": 1786958205077,
       "updatedAt": 1786958470600,
       "publishedAt": null
+    },
+    {
+      "id": "267e42a5-5e74-4dcd-a72f-b01d9ec24742",
+      "name": "Mars Exploration Launch",
+      "slug": "mars-exploration-launch",
+      "description": "Campaign · mars exploration · the announcement",
+      "status": "FAILED",
+      "orientation": "horizontal",
+      "category": "mars-exploration",
+      "tags": [],
+      "currentVersion": 1,
+      "publishedVersion": null,
+      "thumbnail": null,
+      "previewVideo": null,
+      "sourcePath": null,
+      "capabilities": {},
+      "assetRequirements": {},
+      "audioConfiguration": {},
+      "generation": {
+        "prompt": "Subject: mars exploration. This template is for a launch film that opens on one bold claim and builds to a call to action. Design the palette, the type and the mood so they belong to that subject and that job — a \"mars exploration\" film in the \"the announcement\" register, not a generic one. The motion has already been chosen for you and is fixed: words arrive with \"blur-up\", the emphasized word is treated with \"gradient\", scenes hand over with a \"submerge\" cut, and the background layer is \"orrery\". Choose colours and fonts that make THAT motion look deliberate.",
+        "style": "the announcement — blur-up/gradient/submerge/orrery",
+        "brandColor": null,
+        "durationSec": null,
+        "notes": null,
+        "family": "retro-terminal",
+        "pinMotion": {
+          "enter": "blur-up",
+          "emphasis": "gradient",
+          "cut": "submerge",
+          "canvas": "orrery"
+        }
+      },
+      "lastError": "llm: attempt 1: llm: all providers failed for stage=template_generator. openrouter anthropic/claude-opus-5: 403. openrouter google/gemini-3.1-flash-lite: 403",
+      "createdBy": "first@gmail.com",
+      "createdAt": 1786969220257,
+      "updatedAt": 1786969221368,
+      "publishedAt": null
+    },
+    {
+      "id": "7b30a0fa-732b-4afe-abf6-11ea912dccd7",
+      "name": "Mars Exploration Explain",
+      "slug": "mars-exploration-explain",
+      "description": "Campaign · mars exploration · how it works",
+      "status": "FAILED",
+      "orientation": "horizontal",
+      "category": "mars-exploration",
+      "tags": [],
+      "currentVersion": 1,
+      "publishedVersion": null,
+      "thumbnail": null,
+      "previewVideo": null,
+      "sourcePath": null,
+      "capabilities": {},
+      "assetRequirements": {},
+      "audioConfiguration": {},
+      "generation": {
+        "prompt": "Subject: mars exploration. This template is for an explainer that walks through three steps in order, diagram-led. Design the palette, the type and the mood so they belong to that subject and that job — a \"mars exploration\" film in the \"how it works\" register, not a generic one. The motion has already been chosen for you and is fixed: words arrive with \"mask-reveal\", the emphasized word is treated with \"scribble\", scenes hand over with a \"thrust\" cut, and the background layer is \"electric\". Choose colours and fonts that make THAT motion look deliberate.",
+        "style": "how it works — mask-reveal/scribble/thrust/electric",
+        "brandColor": null,
+        "durationSec": null,
+        "notes": null,
+        "family": "healthcare-soft",
+        "pinMotion": {
+          "enter": "mask-reveal",
+          "emphasis": "scribble",
+          "cut": "thrust",
+          "canvas": "electric"
+        }
+      },
+      "lastError": "llm: attempt 1: llm: all providers failed for stage=template_generator. openrouter anthropic/claude-opus-5: 403. openrouter google/gemini-3.1-flash-lite: 403",
+      "createdBy": "first@gmail.com",
+      "createdAt": 1786969221368,
+      "updatedAt": 1786969221498,
+      "publishedAt": null
+    },
+    {
+      "id": "96f324a3-dd24-4ce3-ab7e-9b39f0be25ee",
+      "name": "Street Food Launch",
+      "slug": "street-food-launch",
+      "description": "Campaign · street food · the announcement",
+      "status": "FAILED",
+      "orientation": "vertical",
+      "category": "street-food",
+      "tags": [],
+      "currentVersion": 1,
+      "publishedVersion": null,
+      "thumbnail": null,
+      "previewVideo": null,
+      "sourcePath": null,
+      "capabilities": {},
+      "assetRequirements": {},
+      "audioConfiguration": {},
+      "generation": {
+        "prompt": "Subject: street food. This template is for a launch film that opens on one bold claim and builds to a call to action. Design the palette, the type and the mood so they belong to that subject and that job — a \"street food\" film in the \"the announcement\" register, not a generic one. The motion has already been chosen for you and is fixed: words arrive with \"blur-up\", the emphasized word is treated with \"gradient\", scenes hand over with a \"submerge\" cut, and the background layer is \"orrery\". Choose colours and fonts that make THAT motion look deliberate.",
+        "style": "the announcement — blur-up/gradient/submerge/orrery",
+        "brandColor": null,
+        "durationSec": null,
+        "notes": null,
+        "family": "retro-terminal",
+        "pinMotion": {
+          "enter": "blur-up",
+          "emphasis": "gradient",
+          "cut": "submerge",
+          "canvas": "orrery"
+        }
+      },
+      "lastError": "llm: attempt 1: llm: all providers failed for stage=template_generator. openrouter anthropic/claude-opus-5: 403. openrouter google/gemini-3.1-flash-lite: 403",
+      "createdBy": "first@gmail.com",
+      "createdAt": 1786970087396,
+      "updatedAt": 1786970088498,
+      "publishedAt": null
+    },
+    {
+      "id": "43c2b4ac-323a-4dc3-aa43-86ffecd691a8",
+      "name": "Street Food Explain",
+      "slug": "street-food-explain",
+      "description": "Campaign · street food · how it works",
+      "status": "FAILED",
+      "orientation": "vertical",
+      "category": "street-food",
+      "tags": [],
+      "currentVersion": 1,
+      "publishedVersion": null,
+      "thumbnail": null,
+      "previewVideo": null,
+      "sourcePath": null,
+      "capabilities": {},
+      "assetRequirements": {},
+      "audioConfiguration": {},
+      "generation": {
+        "prompt": "Subject: street food. This template is for an explainer that walks through three steps in order, diagram-led. Design the palette, the type and the mood so they belong to that subject and that job — a \"street food\" film in the \"how it works\" register, not a generic one. The motion has already been chosen for you and is fixed: words arrive with \"mask-reveal\", the emphasized word is treated with \"scribble\", scenes hand over with a \"thrust\" cut, and the background layer is \"electric\". Choose colours and fonts that make THAT motion look deliberate.",
+        "style": "how it works — mask-reveal/scribble/thrust/electric",
+        "brandColor": null,
+        "durationSec": null,
+        "notes": null,
+        "family": "healthcare-soft",
+        "pinMotion": {
+          "enter": "mask-reveal",
+          "emphasis": "scribble",
+          "cut": "thrust",
+          "canvas": "electric"
+        }
+      },
+      "lastError": "llm: attempt 1: llm: all providers failed for stage=template_generator. openrouter anthropic/claude-opus-5: 403. openrouter google/gemini-3.1-flash-lite: 403",
+      "createdBy": "first@gmail.com",
+      "createdAt": 1786970088499,
+      "updatedAt": 1786970088802,
+      "publishedAt": null
+    },
+    {
+      "id": "1c72d4cc-352e-4257-9f65-dcd9f60bd0f5",
+      "name": "Street Food Launch 2",
+      "slug": "street-food-launch-2",
+      "description": "Campaign · street food · the announcement",
+      "status": "GENERATED",
+      "orientation": "vertical",
+      "category": "street-food",
+      "tags": [],
+      "currentVersion": 1,
+      "publishedVersion": null,
+      "thumbnail": "/frames-draft/street-food-launch-2/v1/poster.jpg",
+      "previewVideo": "/frames-draft/street-food-launch-2/v1/preview.mp4",
+      "sourcePath": null,
+      "capabilities": {},
+      "assetRequirements": {},
+      "audioConfiguration": {},
+      "generation": {
+        "prompt": "Subject: street food. This template is for a launch film that opens on one bold claim and builds to a call to action. Design the palette, the type and the mood so they belong to that subject and that job — a \"street food\" film in the \"the announcement\" register, not a generic one. The motion has already been chosen for you and is fixed: words arrive with \"blur-up\", the emphasized word is treated with \"gradient\", scenes hand over with a \"submerge\" cut, and the background layer is \"orrery\". Choose colours and fonts that make THAT motion look deliberate.",
+        "style": "the announcement — blur-up/gradient/submerge/orrery",
+        "brandColor": null,
+        "durationSec": null,
+        "notes": null,
+        "family": "retro-terminal",
+        "pinMotion": {
+          "enter": "blur-up",
+          "emphasis": "gradient",
+          "cut": "submerge",
+          "canvas": "orrery"
+        }
+      },
+      "lastError": null,
+      "createdBy": "first@gmail.com",
+      "createdAt": 1786970636043,
+      "updatedAt": 1786970933543,
+      "publishedAt": null
+    },
+    {
+      "id": "08d03630-d7b0-4cfe-910c-041d4f206909",
+      "name": "Music Streaming Launch",
+      "slug": "music-streaming-launch",
+      "description": "Campaign · music streaming · the announcement",
+      "status": "READY_TO_PUBLISH",
+      "orientation": "vertical",
+      "category": "music-streaming",
+      "tags": [],
+      "currentVersion": 1,
+      "publishedVersion": null,
+      "thumbnail": "/frames-draft/music-streaming-launch/v1/poster.jpg",
+      "previewVideo": "/frames-draft/music-streaming-launch/v1/preview.mp4",
+      "sourcePath": null,
+      "capabilities": {},
+      "assetRequirements": {},
+      "audioConfiguration": {},
+      "generation": {
+        "prompt": "Subject: music streaming. This template is for a launch film that opens on one bold claim and builds to a call to action. Design the palette, the type and the mood so they belong to that subject and that job — a \"music streaming\" film in the \"the announcement\" register, not a generic one. The motion has already been chosen for you and is fixed: words arrive with \"blur-up\", the emphasized word is treated with \"gradient\", scenes hand over with a \"submerge\" cut, and the background layer is \"orrery\". Choose colours and fonts that make THAT motion look deliberate.",
+        "style": "the announcement — blur-up/gradient/submerge/orrery",
+        "brandColor": null,
+        "durationSec": null,
+        "notes": null,
+        "family": "retro-terminal",
+        "pinMotion": {
+          "enter": "blur-up",
+          "emphasis": "gradient",
+          "cut": "submerge",
+          "canvas": "orrery"
+        }
+      },
+      "lastError": null,
+      "createdBy": "first@gmail.com",
+      "createdAt": 1787143136565,
+      "updatedAt": 1787143560445,
+      "publishedAt": null
+    },
+    {
+      "id": "525cc9cb-64fe-4ab6-859a-8c4eb84a769f",
+      "name": "Music Streaming Explain",
+      "slug": "music-streaming-explain",
+      "description": "Campaign · music streaming · how it works",
+      "status": "READY_TO_PUBLISH",
+      "orientation": "vertical",
+      "category": "music-streaming",
+      "tags": [],
+      "currentVersion": 1,
+      "publishedVersion": null,
+      "thumbnail": "/frames-draft/music-streaming-explain/v1/poster.jpg",
+      "previewVideo": "/frames-draft/music-streaming-explain/v1/preview.mp4",
+      "sourcePath": null,
+      "capabilities": {},
+      "assetRequirements": {},
+      "audioConfiguration": {},
+      "generation": {
+        "prompt": "Subject: music streaming. This template is for an explainer that walks through three steps in order, diagram-led. Design the palette, the type and the mood so they belong to that subject and that job — a \"music streaming\" film in the \"how it works\" register, not a generic one. The motion has already been chosen for you and is fixed: words arrive with \"mask-reveal\", the emphasized word is treated with \"scribble\", scenes hand over with a \"thrust\" cut, and the background layer is \"electric\". Choose colours and fonts that make THAT motion look deliberate.",
+        "style": "how it works — mask-reveal/scribble/thrust/electric",
+        "brandColor": null,
+        "durationSec": null,
+        "notes": null,
+        "family": "healthcare-soft",
+        "pinMotion": {
+          "enter": "mask-reveal",
+          "emphasis": "scribble",
+          "cut": "thrust",
+          "canvas": "electric"
+        }
+      },
+      "lastError": null,
+      "createdBy": "first@gmail.com",
+      "createdAt": 1787143560446,
+      "updatedAt": 1787143992615,
+      "publishedAt": null
     }
   ],
   "versions": [
@@ -2317,6 +2576,437 @@
       "qaResults": null,
       "testJobIds": [],
       "createdAt": 1786958456108,
+      "error": null
+    },
+    {
+      "id": "cf0e22a2-e7eb-462a-81c6-bbee02edbc86",
+      "templateId": "267e42a5-5e74-4dcd-a72f-b01d9ec24742",
+      "version": 1,
+      "sourcePath": "C:\\internship\\KEYFRAME\\frames-draft\\mars-exploration-launch\\v1",
+      "mediaPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\mars-exploration-launch\\v1",
+      "thumbnail": null,
+      "previewVideo": null,
+      "generationPrompt": "Subject: mars exploration. This template is for a launch film that opens on one bold claim and builds to a call to action. Design the palette, the type and the mood so they belong to that subject and that job — a \"mars exploration\" film in the \"the announcement\" register, not a generic one. The motion has already been chosen for you and is fixed: words arrive with \"blur-up\", the emphasized word is treated with \"gradient\", scenes hand over with a \"submerge\" cut, and the background layer is \"orrery\". Choose colours and fonts that make THAT motion look deliberate.",
+      "generationSpec": null,
+      "generationStatus": "failed",
+      "qaScore": null,
+      "qaResults": null,
+      "testJobIds": [],
+      "createdAt": 1786969220420,
+      "error": "llm: attempt 1: llm: all providers failed for stage=template_generator. openrouter anthropic/claude-opus-5: 403. openrouter google/gemini-3.1-flash-lite: 403"
+    },
+    {
+      "id": "5a5bf805-e203-4e3f-adb2-4cf6ba2c8387",
+      "templateId": "7b30a0fa-732b-4afe-abf6-11ea912dccd7",
+      "version": 1,
+      "sourcePath": "C:\\internship\\KEYFRAME\\frames-draft\\mars-exploration-explain\\v1",
+      "mediaPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\mars-exploration-explain\\v1",
+      "thumbnail": null,
+      "previewVideo": null,
+      "generationPrompt": "Subject: mars exploration. This template is for an explainer that walks through three steps in order, diagram-led. Design the palette, the type and the mood so they belong to that subject and that job — a \"mars exploration\" film in the \"how it works\" register, not a generic one. The motion has already been chosen for you and is fixed: words arrive with \"mask-reveal\", the emphasized word is treated with \"scribble\", scenes hand over with a \"thrust\" cut, and the background layer is \"electric\". Choose colours and fonts that make THAT motion look deliberate.",
+      "generationSpec": null,
+      "generationStatus": "failed",
+      "qaScore": null,
+      "qaResults": null,
+      "testJobIds": [],
+      "createdAt": 1786969221369,
+      "error": "llm: attempt 1: llm: all providers failed for stage=template_generator. openrouter anthropic/claude-opus-5: 403. openrouter google/gemini-3.1-flash-lite: 403"
+    },
+    {
+      "id": "a28d3290-bd85-4bf3-99b1-8fa1547a59f3",
+      "templateId": "96f324a3-dd24-4ce3-ab7e-9b39f0be25ee",
+      "version": 1,
+      "sourcePath": "C:\\internship\\KEYFRAME\\frames-draft\\street-food-launch\\v1",
+      "mediaPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\street-food-launch\\v1",
+      "thumbnail": null,
+      "previewVideo": null,
+      "generationPrompt": "Subject: street food. This template is for a launch film that opens on one bold claim and builds to a call to action. Design the palette, the type and the mood so they belong to that subject and that job — a \"street food\" film in the \"the announcement\" register, not a generic one. The motion has already been chosen for you and is fixed: words arrive with \"blur-up\", the emphasized word is treated with \"gradient\", scenes hand over with a \"submerge\" cut, and the background layer is \"orrery\". Choose colours and fonts that make THAT motion look deliberate.",
+      "generationSpec": null,
+      "generationStatus": "failed",
+      "qaScore": null,
+      "qaResults": null,
+      "testJobIds": [],
+      "createdAt": 1786970087396,
+      "error": "llm: attempt 1: llm: all providers failed for stage=template_generator. openrouter anthropic/claude-opus-5: 403. openrouter google/gemini-3.1-flash-lite: 403"
+    },
+    {
+      "id": "9d1341e8-b4b4-4608-a82f-6520269a534e",
+      "templateId": "43c2b4ac-323a-4dc3-aa43-86ffecd691a8",
+      "version": 1,
+      "sourcePath": "C:\\internship\\KEYFRAME\\frames-draft\\street-food-explain\\v1",
+      "mediaPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\street-food-explain\\v1",
+      "thumbnail": null,
+      "previewVideo": null,
+      "generationPrompt": "Subject: street food. This template is for an explainer that walks through three steps in order, diagram-led. Design the palette, the type and the mood so they belong to that subject and that job — a \"street food\" film in the \"how it works\" register, not a generic one. The motion has already been chosen for you and is fixed: words arrive with \"mask-reveal\", the emphasized word is treated with \"scribble\", scenes hand over with a \"thrust\" cut, and the background layer is \"electric\". Choose colours and fonts that make THAT motion look deliberate.",
+      "generationSpec": null,
+      "generationStatus": "failed",
+      "qaScore": null,
+      "qaResults": null,
+      "testJobIds": [],
+      "createdAt": 1786970088499,
+      "error": "llm: attempt 1: llm: all providers failed for stage=template_generator. openrouter anthropic/claude-opus-5: 403. openrouter google/gemini-3.1-flash-lite: 403"
+    },
+    {
+      "id": "dce38756-1579-4951-bbbb-0b66484f60e9",
+      "templateId": "1c72d4cc-352e-4257-9f65-dcd9f60bd0f5",
+      "version": 1,
+      "sourcePath": "C:\\internship\\KEYFRAME\\frames-draft\\street-food-launch-2\\v1",
+      "mediaPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\street-food-launch-2\\v1",
+      "thumbnail": "/frames-draft/street-food-launch-2/v1/poster.jpg",
+      "previewVideo": "/frames-draft/street-food-launch-2/v1/preview.mp4",
+      "generationPrompt": "Subject: street food. This template is for a launch film that opens on one bold claim and builds to a call to action. Design the palette, the type and the mood so they belong to that subject and that job — a \"street food\" film in the \"the announcement\" register, not a generic one. The motion has already been chosen for you and is fixed: words arrive with \"blur-up\", the emphasized word is treated with \"gradient\", scenes hand over with a \"submerge\" cut, and the background layer is \"orrery\". Choose colours and fonts that make THAT motion look deliberate.",
+      "generationSpec": {
+        "name": "street-food-launch-2",
+        "family": "retro-terminal",
+        "label": "Street Food Launch 2",
+        "overview": "Retro CRT terminal announcing street food — sizzling grill phosphor glow, bustling vendor stalls, building to CTA.",
+        "vibe": "Retro CRT terminal announcing street food — sizzling grill phosphor glow, bustling vendor stalls, building to CTA.",
+        "colors": {
+          "void": "#06110a",
+          "panel": "#0b1c12",
+          "grid": "#12331f",
+          "ink": "#c8f7d4",
+          "phosphor": "#3df07e",
+          "grill": "#ff9f1c"
+        },
+        "ground": "#06110a",
+        "ink": "#c8f7d4",
+        "accents": [
+          "#ff9f1c",
+          "#3df07e"
+        ],
+        "extras": [
+          "#12331f",
+          "#8fe8ac"
+        ],
+        "display": "JetBrains Mono",
+        "body": "Inter",
+        "labelFont": "JetBrains Mono",
+        "textfx": {
+          "enter": "blur-up",
+          "emphasis": "gradient",
+          "case": "none",
+          "align": "left",
+          "tracking": 0,
+          "sizeScale": 1,
+          "speed": 1.2
+        },
+        "motion": {
+          "cut": "submerge",
+          "drift": 1.03
+        },
+        "fx": {
+          "canvas": "orrery"
+        }
+      },
+      "generationStatus": "ok",
+      "qaScore": null,
+      "qaResults": null,
+      "testJobIds": [],
+      "createdAt": 1786970636119,
+      "error": null
+    },
+    {
+      "id": "8022139f-0735-44ad-a901-dfb0053f8b9b",
+      "templateId": "08d03630-d7b0-4cfe-910c-041d4f206909",
+      "version": 1,
+      "sourcePath": "C:\\internship\\KEYFRAME\\frames-draft\\music-streaming-launch\\v1",
+      "mediaPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\music-streaming-launch\\v1",
+      "thumbnail": "/frames-draft/music-streaming-launch/v1/poster.jpg",
+      "previewVideo": "/frames-draft/music-streaming-launch/v1/preview.mp4",
+      "generationPrompt": "Subject: music streaming. This template is for a launch film that opens on one bold claim and builds to a call to action. Design the palette, the type and the mood so they belong to that subject and that job — a \"music streaming\" film in the \"the announcement\" register, not a generic one. The motion has already been chosen for you and is fixed: words arrive with \"blur-up\", the emphasized word is treated with \"gradient\", scenes hand over with a \"submerge\" cut, and the background layer is \"orrery\". Choose colours and fonts that make THAT motion look deliberate.",
+      "generationSpec": {
+        "name": "music-streaming-launch",
+        "family": "retro-terminal",
+        "label": "Music Streaming Launch",
+        "overview": "A studio-at-night console — VU meters twitching, waveform ribbons, glowing play head, orbiting record grooves — for a streaming launch film.",
+        "vibe": "A studio-at-night console — VU meters twitching, waveform ribbons, glowing play head, orbiting record grooves — for a streaming launch film.",
+        "colors": {
+          "void": "#0a0f1e",
+          "deck": "#131a30",
+          "grid": "#1e2747",
+          "ink": "#e6eafb",
+          "violet": "#996ff7",
+          "cyan": "#22d3ee"
+        },
+        "ground": "#0a0f1e",
+        "ink": "#e6eafb",
+        "accents": [
+          "#996ff7",
+          "#22d3ee"
+        ],
+        "extras": [
+          "#1e2747",
+          "#c4b5fd"
+        ],
+        "display": "Chakra Petch",
+        "body": "Inter",
+        "labelFont": "JetBrains Mono",
+        "textfx": {
+          "enter": "blur-up",
+          "emphasis": "gradient",
+          "case": "upper",
+          "align": "left",
+          "tracking": 0.02,
+          "sizeScale": 1.1,
+          "speed": 1.35
+        },
+        "motion": {
+          "cut": "submerge",
+          "drift": 1.04
+        },
+        "fx": {
+          "canvas": "orrery"
+        }
+      },
+      "generationStatus": "ok",
+      "qaScore": 96,
+      "qaResults": {
+        "slug": "music-streaming-launch",
+        "version": 1,
+        "scale": "0-100",
+        "score": 96,
+        "label": "Template Quality: 96/100",
+        "publishable": true,
+        "errors": [],
+        "warnings": [
+          {
+            "check": "frame-density",
+            "evidence": "scene s9: 49% of the frame height is empty (51%-100% down)",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\music-streaming-launch-v1\\film.mp4 @21.5s"
+          }
+        ],
+        "passed": [
+          {
+            "check": "manifest",
+            "evidence": "pack.json parses and validates against PackManifestSchema (name \"music-streaming-launch\")",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\music-streaming-launch\\v1\\pack.json"
+          },
+          {
+            "check": "frame-md",
+            "evidence": "FRAME.md present (4 KB of design system)",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\music-streaming-launch\\v1\\FRAME.md"
+          },
+          {
+            "check": "preview-artifact",
+            "evidence": "preview.mp4 is 2165 KB, 30s over 12 scenes, composed via scene-kit",
+            "at": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\music-streaming-launch\\v1\\preview.mp4"
+          },
+          {
+            "check": "thumbnail-artifact",
+            "evidence": "poster.jpg picked at 29.05s (luma 20 ≥ 26, detail 21 ≥ 14, ground gap 9)",
+            "at": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\music-streaming-launch\\v1\\poster.jpg"
+          },
+          {
+            "check": "renderer-routing",
+            "evidence": "no renderer declared, and the build composed via \"scene-kit\" — the default deterministic path",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\music-streaming-launch\\v1\\pack.json"
+          },
+          {
+            "check": "slot-types",
+            "evidence": "not applicable — the slot-type gate only covers bundled (omelette) templates and this draft composes via \"scene-kit\"",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\music-streaming-launch\\v1\\pack.json"
+          },
+          {
+            "check": "orientation",
+            "evidence": "rendered 1080x1920, which matches the registered \"vertical\" orientation",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\music-streaming-launch-v1\\meta.json"
+          },
+          {
+            "check": "runtime-sweep",
+            "evidence": "the timeline registers and 8 seek probes across the film found no error slate",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\music-streaming-launch-v1\\index.html"
+          },
+          {
+            "check": "contrast-wcag",
+            "evidence": "every settled text element clears WCAG AA across 5 sampled frames",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\music-streaming-launch-v1"
+          },
+          {
+            "check": "layout-overlap",
+            "evidence": "4 sampled frame(s): no collision, duplicate line or overrun",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\music-streaming-launch-v1"
+          }
+        ],
+        "skipped": [
+          {
+            "check": "media-demand",
+            "evidence": "the composition carries no per-clip media stamps (via \"scene-kit\"), so coverage cannot be counted from the HTML",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\music-streaming-launch-v1\\index.html"
+          },
+          {
+            "check": "hyperframes-lint",
+            "evidence": "the checker itself failed: cliFor is not defined",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\music-streaming-launch-v1\\index.html"
+          },
+          {
+            "check": "spatial-occlusion",
+            "evidence": "the checker itself failed: cliFor is not defined",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\music-streaming-launch-v1"
+          }
+        ],
+        "coverage": "11 finding(s) from 11 gate(s); 3 gate(s) could not run",
+        "previewPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\music-streaming-launch\\v1\\preview.mp4",
+        "posterPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\music-streaming-launch\\v1\\poster.jpg",
+        "mediaDir": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\music-streaming-launch\\v1",
+        "via": "scene-kit",
+        "durationSec": 30,
+        "durationMs": 234534,
+        "at": 1787143560445
+      },
+      "testJobIds": [],
+      "createdAt": 1787143137116,
+      "error": null
+    },
+    {
+      "id": "a86bfd8d-327e-40c0-bfc3-3ee5855f0c0a",
+      "templateId": "525cc9cb-64fe-4ab6-859a-8c4eb84a769f",
+      "version": 1,
+      "sourcePath": "C:\\internship\\KEYFRAME\\frames-draft\\music-streaming-explain\\v1",
+      "mediaPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\music-streaming-explain\\v1",
+      "thumbnail": "/frames-draft/music-streaming-explain/v1/poster.jpg",
+      "previewVideo": "/frames-draft/music-streaming-explain/v1/preview.mp4",
+      "generationPrompt": "Subject: music streaming. This template is for an explainer that walks through three steps in order, diagram-led. Design the palette, the type and the mood so they belong to that subject and that job — a \"music streaming\" film in the \"how it works\" register, not a generic one. The motion has already been chosen for you and is fixed: words arrive with \"mask-reveal\", the emphasized word is treated with \"scribble\", scenes hand over with a \"thrust\" cut, and the background layer is \"electric\". Choose colours and fonts that make THAT motion look deliberate.",
+      "generationSpec": {
+        "name": "music-streaming-explain",
+        "family": "healthcare-soft",
+        "label": "Music Streaming Explain",
+        "overview": "Studio-ivory listening room — waveform ribbons, three numbered step cards, a scribbled playlist queue and a glowing signal cable, for how-it-works music streaming explainers.",
+        "vibe": "Studio-ivory listening room — waveform ribbons, three numbered step cards, a scribbled playlist queue and a glowing signal cable, for how-it-works music streaming explainers.",
+        "colors": {
+          "ivory": "#f7f4ee",
+          "card": "#ede7dc",
+          "ink": "#1c1830",
+          "violet": "#512be4",
+          "coral": "#f2685c",
+          "haze": "#cfc6f5"
+        },
+        "ground": "#f7f4ee",
+        "ink": "#1c1830",
+        "accents": [
+          "#512be4",
+          "#f2685c"
+        ],
+        "extras": [
+          "#ede7dc",
+          "#cfc6f5"
+        ],
+        "display": "Bricolage Grotesque",
+        "body": "Inter",
+        "labelFont": "IBM Plex Mono",
+        "textfx": {
+          "enter": "mask-reveal",
+          "emphasis": "scribble",
+          "case": "none",
+          "align": "left",
+          "tracking": -0.01,
+          "sizeScale": 1.08,
+          "speed": 1.3
+        },
+        "motion": {
+          "cut": "thrust",
+          "drift": 1.04
+        },
+        "fx": {
+          "canvas": "electric"
+        }
+      },
+      "generationStatus": "ok",
+      "qaScore": 100,
+      "qaResults": {
+        "slug": "music-streaming-explain",
+        "version": 1,
+        "scale": "0-100",
+        "score": 100,
+        "label": "Template Quality: 100/100",
+        "publishable": true,
+        "errors": [],
+        "warnings": [],
+        "passed": [
+          {
+            "check": "manifest",
+            "evidence": "pack.json parses and validates against PackManifestSchema (name \"music-streaming-explain\")",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\music-streaming-explain\\v1\\pack.json"
+          },
+          {
+            "check": "frame-md",
+            "evidence": "FRAME.md present (4 KB of design system)",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\music-streaming-explain\\v1\\FRAME.md"
+          },
+          {
+            "check": "preview-artifact",
+            "evidence": "preview.mp4 is 2625 KB, 30s over 12 scenes, composed via scene-kit",
+            "at": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\music-streaming-explain\\v1\\preview.mp4"
+          },
+          {
+            "check": "thumbnail-artifact",
+            "evidence": "poster.jpg picked at 6.65s (luma 215 ≥ 26, detail 15 ≥ 14, ground gap 49)",
+            "at": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\music-streaming-explain\\v1\\poster.jpg"
+          },
+          {
+            "check": "renderer-routing",
+            "evidence": "no renderer declared, and the build composed via \"scene-kit\" — the default deterministic path",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\music-streaming-explain\\v1\\pack.json"
+          },
+          {
+            "check": "slot-types",
+            "evidence": "not applicable — the slot-type gate only covers bundled (omelette) templates and this draft composes via \"scene-kit\"",
+            "at": "C:\\internship\\KEYFRAME\\frames-draft\\music-streaming-explain\\v1\\pack.json"
+          },
+          {
+            "check": "orientation",
+            "evidence": "rendered 1080x1920, which matches the registered \"vertical\" orientation",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\music-streaming-explain-v1\\meta.json"
+          },
+          {
+            "check": "runtime-sweep",
+            "evidence": "the timeline registers and 8 seek probes across the film found no error slate",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\music-streaming-explain-v1\\index.html"
+          },
+          {
+            "check": "contrast-wcag",
+            "evidence": "every settled text element clears WCAG AA across 5 sampled frames",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\music-streaming-explain-v1"
+          },
+          {
+            "check": "frame-density",
+            "evidence": "12 sampled frame(s) carry content; the emptiest is scene s8 at 21% ink",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\music-streaming-explain-v1\\film.mp4"
+          },
+          {
+            "check": "layout-overlap",
+            "evidence": "4 sampled frame(s): no collision, duplicate line or overrun",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\music-streaming-explain-v1"
+          }
+        ],
+        "skipped": [
+          {
+            "check": "media-demand",
+            "evidence": "the composition carries no per-clip media stamps (via \"scene-kit\"), so coverage cannot be counted from the HTML",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\music-streaming-explain-v1\\index.html"
+          },
+          {
+            "check": "hyperframes-lint",
+            "evidence": "the checker itself failed: cliFor is not defined",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\music-streaming-explain-v1\\index.html"
+          },
+          {
+            "check": "spatial-occlusion",
+            "evidence": "the checker itself failed: cliFor is not defined",
+            "at": "C:\\internship\\KEYFRAME\\server\\jobs\\_templates\\music-streaming-explain-v1"
+          }
+        ],
+        "coverage": "11 finding(s) from 11 gate(s); 3 gate(s) could not run",
+        "previewPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\music-streaming-explain\\v1\\preview.mp4",
+        "posterPath": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\music-streaming-explain\\v1\\poster.jpg",
+        "mediaDir": "C:\\internship\\KEYFRAME\\server\\public\\frames-draft\\music-streaming-explain\\v1",
+        "via": "scene-kit",
+        "durationSec": 30,
+        "durationMs": 242161,
+        "at": 1787143992614
+      },
+      "testJobIds": [],
+      "createdAt": 1787143560447,
       "error": null
     }
   ]

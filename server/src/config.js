@@ -104,6 +104,14 @@ function validate(cfg) {
            .some((m) => m && !/^kie:/.test(String(m))),
          "every configured model is a kie: alias — set llm.modelFallback to an OpenRouter model for KIE outages");
   }
+  // llm.noFallbackStages pins a stage to its named model with NO cross-provider
+  // substitution on failure (openrouter.js chat()) — catching a typo here means
+  // a stage naming a plain (non-"kie:") model can't be silently no-op'd into
+  // "pinned to nothing", which would make the guard vacuous.
+  for (const s of (cfg.llm.noFallbackStages || [])) {
+    const id = (cfg.llm.stageModels || {})[s] || cfg.llm.model;
+    must(/^kie:/.test(String(id || "")), `llm.noFallbackStages includes "${s}" but its resolved model (${id}) is not a kie: route`);
+  }
 }
 
 /**

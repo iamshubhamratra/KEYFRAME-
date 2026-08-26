@@ -1,0 +1,89 @@
+{
+  "name": "bull-run",
+  "renderer": "omelette",
+  "template": "BullRun",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for rodeo / bull riding — 45 authored beats, ~6.7s each, 5:02 as shipped. a bucking bull with rider, arena fence rails, kicked dust, an eight-second clock. Rye display over Roboto Condensed body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f7ecd8",
+    "ink": "#241610",
+    "accent": "#12d67a",
+    "a2": "#f2b23c"
+  },
+  "fonts": [
+    "Rye",
+    "Roboto Condensed"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#07100e",
+    "ink": "#f7ecd8"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Rye",
+    "body": "Roboto Condensed",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "driving country rock with stomp and handclaps, dusty",
+    "energy": "high"
+  },
+  "skin": {
+    "accents": [
+      "#12d67a",
+      "#f2b23c"
+    ],
+    "extras": [
+      "#e8e8d8",
+      "#f8ddc4",
+      "#241610"
+    ],
+    "emphasisCss": "color:#12d67a;"
+  },
+  "assets": {
+    "photoMod": "dust-lit arena, warm ochre and cream",
+    "iconStyle": "outline",
+    "keywords": [
+      "bull",
+      "rodeo",
+      "cowboy",
+      "ranch",
+      "cattle",
+      "western"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#07100e"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

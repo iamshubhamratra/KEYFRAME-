@@ -809,6 +809,51 @@ function buildRouter({ enqueueIntake } = {}) {
   });
 
   // ---- generate ----------------------------------------------------------
+  // AUTHOR A WHOLE FILM, rather than a skin over an existing family.
+  //
+  // /generate below runs the VARIANT generator: a palette and two fonts on one of
+  // the hand-built renderer families ("you do not write code" is literally in its
+  // prompt). This route runs the other kind of generation — the model writes the
+  // film itself (its own animated world, its own scene components, its own motion
+  // vocabulary), and admin/film_bundle.js compiles it into the same self-contained
+  // bundle the 28 shipped long-form templates use. See services/film_author.js.
+  //
+  // Deliberately its own endpoint: the two produce different artifacts and are
+  // validated against different contracts, so overloading /generate with a mode
+  // flag would put two unrelated failure modes behind one button.
+  router.post("/templates/:id/author-film", async (req, res) => {
+    const t = mustTemplate(req, res);
+    if (!t) return;
+    if (running.has(t.id)) return busy(res, t);
+
+    const body = req.body || {};
+    const brief = String(body.prompt || (t.generation && t.generation.prompt) || "").trim();
+    if (brief.length < 10) return fail(res, "a brief of at least 10 characters is required (send prompt, or PATCH it first)");
+    const durationSec = Number(body.durationSec) > 0 ? Math.round(Number(body.durationSec)) : 300;
+    const orientation = ["horizontal", "vertical", "square"].includes(body.orientation)
+      ? body.orientation : (t.orientation || "horizontal");
+
+    running.set(t.id, "author-film");
+    try {
+      const { authorFilm } = require("../services/film_author");
+      const out = await authorFilm({ brief, slug: t.slug || t.name || "", durationSec, orientation });
+      if (!out.ok) return fail(res, out.problems && out.problems.length ? out.problems : "the model could not produce a buildable film");
+      res.json({
+        ok: true,
+        templateId: out.spec.templateId,
+        scenes: out.spec.scenes.length,
+        runtimeSec: Math.round(out.spec.scenes.reduce((a, s) => a + (Number(s.dur) || 0), 0)),
+        bundleBytes: out.bytes,
+        bundle: path.basename(out.file),
+        overview: out.spec.overview || null,
+      });
+    } catch (e) {
+      return fail(res, String((e && e.message) || e).slice(0, 300));
+    } finally {
+      running.delete(t.id);
+    }
+  });
+
   router.post("/templates/:id/generate", (req, res) => {
     const t = mustTemplate(req, res);
     if (!t) return;

@@ -1,0 +1,89 @@
+{
+  "name": "col-and-cairn",
+  "renderer": "omelette",
+  "template": "ColCairn",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for hillwalking / mountaineering — 45 authored beats, ~6.7s each, 5:02 as shipped. jagged ridgeline with snowcaps, cloud inversion drifting through the valley, cairn stones stacking one by one, hiker with a pole climbing. Vollkorn display over Barlow body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f0f2ee",
+    "ink": "#1a222b",
+    "accent": "#c4572c",
+    "a2": "#4d7a8c"
+  },
+  "fonts": [
+    "Vollkorn",
+    "Barlow"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#151b22",
+    "ink": "#f0f2ee"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Vollkorn",
+    "body": "Barlow",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "sparse ambient strings, wide and cold, patient",
+    "energy": "calm"
+  },
+  "skin": {
+    "accents": [
+      "#c4572c",
+      "#4d7a8c"
+    ],
+    "extras": [
+      "#e4ecec",
+      "#f6e2d4",
+      "#1a222b"
+    ],
+    "emphasisCss": "color:#c4572c;"
+  },
+  "assets": {
+    "photoMod": "cold high-altitude light, slate blue with rust accents",
+    "iconStyle": "outline",
+    "keywords": [
+      "mountain",
+      "hiking",
+      "ridge",
+      "summit",
+      "trail",
+      "backpack"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#151b22"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}

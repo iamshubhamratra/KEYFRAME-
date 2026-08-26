@@ -1,0 +1,89 @@
+{
+  "name": "koi-hour",
+  "renderer": "omelette",
+  "template": "KoiHour",
+  "portraitNative": false,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 16:9 kinetic-typography film for koi pond keeping — 46 authored beats, ~6.6s each, 5:04 as shipped. koi circling the pond, ripple rings spreading, lily pads drifting, dragonfly hovering. Cormorant Garamond display over Jost body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#f2f4ee",
+    "ink": "#122528",
+    "accent": "#e07a3c",
+    "a2": "#4d8c8c"
+  },
+  "fonts": [
+    "Cormorant Garamond",
+    "Jost"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#0d1c1e",
+    "ink": "#f2f4ee"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Cormorant Garamond",
+    "body": "Jost",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "sparse ambient with koto and water, unhurried",
+    "energy": "calm"
+  },
+  "skin": {
+    "accents": [
+      "#e07a3c",
+      "#4d8c8c"
+    ],
+    "extras": [
+      "#e2eeea",
+      "#f6e5d6",
+      "#122528"
+    ],
+    "emphasisCss": "color:#e07a3c;"
+  },
+  "assets": {
+    "photoMod": "soft overcast reflections, teal water and orange fish",
+    "iconStyle": "outline",
+    "keywords": [
+      "koi",
+      "pond",
+      "fish",
+      "water",
+      "lily",
+      "garden"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#0d1c1e"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "inline",
+    "assetStyle": "plain"
+  },
+  "textfx": {
+    "enter": "rise",
+    "emphasis": "accent",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1,
+    "align": "left"
+  }
+}
