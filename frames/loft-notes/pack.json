@@ -23,7 +23,7 @@
     "ink": "#f2ebdd"
   },
   "motion": {
-    "cut": "panel",
+    "cut": "cut",
     "drift": 1
   },
   "fx": {
@@ -74,16 +74,16 @@
     "propFill": false,
     "kicker": true,
     "underline": true,
-    "stat": "inline",
-    "assetStyle": "plain"
+    "stat": "strip",
+    "assetStyle": "browser"
   },
   "textfx": {
-    "enter": "rise",
-    "emphasis": "accent",
+    "enter": "zap",
+    "emphasis": "bold",
     "case": "mixed",
     "tracking": 0,
     "weight": null,
-    "sizeScale": 1,
+    "sizeScale": 1.02,
     "align": "left"
   }
 }

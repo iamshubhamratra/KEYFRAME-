@@ -23,11 +23,11 @@
     "ink": "#f7ecd8"
   },
   "motion": {
-    "cut": "panel",
-    "drift": 1
+    "cut": "shutter",
+    "drift": 1.02
   },
   "fx": {
-    "canvas": "none",
+    "canvas": "clay",
     "three": null
   },
   "typography": {
@@ -71,19 +71,19 @@
     "ground": "#07100e"
   },
   "layout": {
-    "propFill": false,
+    "propFill": true,
     "kicker": true,
     "underline": true,
     "stat": "inline",
-    "assetStyle": "plain"
+    "assetStyle": "polaroid"
   },
   "textfx": {
     "enter": "rise",
-    "emphasis": "accent",
-    "case": "mixed",
-    "tracking": 0,
-    "weight": null,
-    "sizeScale": 1,
-    "align": "left"
+    "emphasis": "underline",
+    "case": "upper",
+    "tracking": -0.02,
+    "weight": 800,
+    "sizeScale": 1.04,
+    "align": "center"
   }
 }

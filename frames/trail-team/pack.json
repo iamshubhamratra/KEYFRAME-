@@ -23,8 +23,8 @@
     "ink": "#f0f7fa"
   },
   "motion": {
-    "cut": "panel",
-    "drift": 1
+    "cut": "glide",
+    "drift": 1.02
   },
   "fx": {
     "canvas": "none",
@@ -73,17 +73,17 @@
   "layout": {
     "propFill": false,
     "kicker": true,
-    "underline": true,
-    "stat": "inline",
-    "assetStyle": "plain"
+    "underline": false,
+    "stat": "badge",
+    "assetStyle": "card"
   },
   "textfx": {
-    "enter": "rise",
-    "emphasis": "accent",
+    "enter": "type",
+    "emphasis": "soft",
     "case": "mixed",
     "tracking": 0,
     "weight": null,
-    "sizeScale": 1,
+    "sizeScale": 1.04,
     "align": "left"
   }
 }

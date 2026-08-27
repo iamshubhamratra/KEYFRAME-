@@ -23,11 +23,11 @@
     "ink": "#fdf4dd"
   },
   "motion": {
-    "cut": "panel",
-    "drift": 1
+    "cut": "cut",
+    "drift": 1.03
   },
   "fx": {
-    "canvas": "none",
+    "canvas": "clay",
     "three": null
   },
   "typography": {
@@ -71,11 +71,11 @@
     "ground": "#2e2410"
   },
   "layout": {
-    "propFill": false,
+    "propFill": true,
     "kicker": true,
     "underline": true,
     "stat": "inline",
-    "assetStyle": "plain"
+    "assetStyle": "polaroid"
   },
   "textfx": {
     "enter": "rise",
@@ -83,7 +83,7 @@
     "case": "mixed",
     "tracking": 0,
     "weight": null,
-    "sizeScale": 1,
+    "sizeScale": 0.99,
     "align": "left"
   }
 }

@@ -24,7 +24,7 @@
   },
   "motion": {
     "cut": "panel",
-    "drift": 1
+    "drift": 1.02
   },
   "fx": {
     "canvas": "none",
@@ -33,7 +33,7 @@
   "typography": {
     "display": "Vollkorn",
     "body": "Alegreya Sans",
-    "case": "mixed"
+    "case": "upper"
   },
   "audio": {
     "bgm": "lush ambient pads, organic percussion",
@@ -73,17 +73,17 @@
   "layout": {
     "propFill": false,
     "kicker": true,
-    "underline": true,
-    "stat": "inline",
+    "underline": false,
+    "stat": "card",
     "assetStyle": "plain"
   },
   "textfx": {
-    "enter": "rise",
-    "emphasis": "accent",
-    "case": "mixed",
+    "enter": "glitch",
+    "emphasis": "bold",
+    "case": "lower",
     "tracking": 0,
     "weight": null,
-    "sizeScale": 1,
+    "sizeScale": 1.01,
     "align": "left"
   }
 }

@@ -24,7 +24,7 @@
   },
   "motion": {
     "cut": "panel",
-    "drift": 1
+    "drift": 1.04
   },
   "fx": {
     "canvas": "none",
@@ -74,16 +74,16 @@
     "propFill": false,
     "kicker": true,
     "underline": true,
-    "stat": "inline",
-    "assetStyle": "plain"
+    "stat": "badge",
+    "assetStyle": "card"
   },
   "textfx": {
-    "enter": "rise",
-    "emphasis": "accent",
-    "case": "mixed",
+    "enter": "type",
+    "emphasis": "glow",
+    "case": "lower",
     "tracking": 0,
     "weight": null,
-    "sizeScale": 1,
+    "sizeScale": 1.03,
     "align": "left"
   }
 }

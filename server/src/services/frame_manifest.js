@@ -182,6 +182,9 @@ function getManifest(name) {
   try {
     const raw = JSON.parse(fs.readFileSync(p, "utf8"));
     manifest = PackManifestSchema.parse(raw);
+    if (manifest && isUniformLongform(manifest)) {
+      manifest = diversifyLongform(manifest, name);
+    }
   } catch (err) {
     console.warn(`[manifest] ${name}/pack.json invalid, ignoring: ${err && err.message ? err.message : err}`);
     manifest = null;
@@ -193,6 +196,62 @@ function getManifest(name) {
 // All packs that currently ship a valid manifest.
 function listManifests() {
   return frameRegistry.listPacks().filter((n) => getManifest(n) != null);
+}
+
+// Long-form packs all shipped the same manifest tokens (rise/accent/panel/none)
+// so every 5-minute film rendered the same cut and the same headline
+// entrance regardless of which Long Form shelf card the user picked.
+// Diversify at read time so existing uniform manifests immediately render
+// distinct films without waiting for a disk migration. The importer now
+// writes distinct tokens for new packs; this keeps old ones consistent.
+function isUniformLongform(m) {
+  try {
+    return m.longForm === true
+      && m.motion && m.motion.cut === "panel" && Number(m.motion.drift) === 1
+      && m.fx && m.fx.canvas === "none"
+      && m.textfx && m.textfx.enter === "rise" && m.textfx.emphasis === "accent" && m.textfx.case === "mixed"
+      && m.layout && m.layout.stat === "inline";
+  } catch { return false; }
+}
+function diversifyLongform(m, name) {
+  const ENTERS = ["rise","glitch","zap","pop","slide","reveal","fade","type"];
+  const EMPHASIS = ["accent","marker","ring","glow","underline","bold","soft"];
+  const CASES = ["mixed","upper","lower"];
+  const CUTS = ["panel","cut","flux","zoom","glide","shutter"];
+  const STATS = ["inline","card","strip","badge"];
+  const ASSET_STYLES = ["plain","browser","card","polaroid"];
+  const CANVAS = ["none","none","none","grain","clay"];
+  const h = [...String(name)].reduce((a,c)=>a+c.charCodeAt(0),0);
+  const pick = (arr, off=0) => arr[(h + off*31) % arr.length];
+  let x = 5381;
+  for (let i=0;i<String(name).length;i++) x = ((x<<5)+x) ^ String(name).charCodeAt(i);
+  const hash01 = (salt) => {
+    let y = x;
+    for (let i=0;i<String(salt).length;i++) y = ((y<<5)+y) ^ String(salt).charCodeAt(i);
+    return (y>>>0) % 1000 / 1000;
+  };
+  const enter = pick(ENTERS, 1);
+  const emphasis = pick(EMPHASIS, 2);
+  const c = pick(CASES, 3);
+  const cut = pick(CUTS, 4);
+  const stat = pick(STATS, 5);
+  const assetStyle = pick(ASSET_STYLES, 6);
+  const canvas = pick(CANVAS, 7);
+  const align = c === "upper" ? "center" : (["left","center","left"][h % 3]);
+  const tracking = c === "upper" ? -0.02 : 0;
+  const weight = c === "upper" && hash01("w") > 0.6 ? 800 : null;
+  const drift = Math.round((0.96 + hash01("d")*0.08)*100)/100;
+  const propFill = hash01("pf") > 0.7;
+  const underline = hash01("ul") > 0.5;
+  const sizeScale = Math.round((0.98 + hash01("ss")*0.08)*100)/100;
+  return {
+    ...m,
+    motion: { cut, drift },
+    fx: { canvas, three: null },
+    typography: { ...(m.typography||{}), display: (m.typography&&m.typography.display)|| (m.fonts&&m.fonts[0])||"", body: (m.typography&&m.typography.body)|| (m.fonts&&m.fonts[1])||"", case: c },
+    layout: { propFill, kicker: true, underline, stat, assetStyle },
+    textfx: { enter, emphasis, case: c, tracking, weight, sizeScale, align },
+  };
 }
 
 // Boot health-check (Phase 5): validate every installed pack's manifest and log a

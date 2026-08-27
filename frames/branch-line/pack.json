@@ -23,17 +23,17 @@
     "ink": "#f0ecdd"
   },
   "motion": {
-    "cut": "panel",
-    "drift": 1
+    "cut": "zoom",
+    "drift": 0.98
   },
   "fx": {
-    "canvas": "none",
+    "canvas": "grain",
     "three": null
   },
   "typography": {
     "display": "Staatliches",
     "body": "Onest",
-    "case": "mixed"
+    "case": "lower"
   },
   "audio": {
     "bgm": "nostalgic brass-tinged folk, rolling",
@@ -73,14 +73,14 @@
   "layout": {
     "propFill": false,
     "kicker": true,
-    "underline": true,
-    "stat": "inline",
-    "assetStyle": "plain"
+    "underline": false,
+    "stat": "strip",
+    "assetStyle": "browser"
   },
   "textfx": {
-    "enter": "rise",
-    "emphasis": "accent",
-    "case": "mixed",
+    "enter": "zap",
+    "emphasis": "bold",
+    "case": "lower",
     "tracking": 0,
     "weight": null,
     "sizeScale": 1,

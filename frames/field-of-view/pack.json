@@ -24,10 +24,10 @@
   },
   "motion": {
     "cut": "panel",
-    "drift": 1
+    "drift": 0.98
   },
   "fx": {
-    "canvas": "none",
+    "canvas": "clay",
     "three": null
   },
   "typography": {
@@ -74,13 +74,13 @@
     "propFill": false,
     "kicker": true,
     "underline": true,
-    "stat": "inline",
+    "stat": "card",
     "assetStyle": "plain"
   },
   "textfx": {
-    "enter": "rise",
-    "emphasis": "accent",
-    "case": "mixed",
+    "enter": "reveal",
+    "emphasis": "marker",
+    "case": "lower",
     "tracking": 0,
     "weight": null,
     "sizeScale": 1,

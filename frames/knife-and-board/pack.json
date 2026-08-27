@@ -27,7 +27,7 @@
     "drift": 1
   },
   "fx": {
-    "canvas": "none",
+    "canvas": "clay",
     "three": null
   },
   "typography": {
@@ -73,17 +73,17 @@
   "layout": {
     "propFill": false,
     "kicker": true,
-    "underline": true,
-    "stat": "inline",
+    "underline": false,
+    "stat": "card",
     "assetStyle": "plain"
   },
   "textfx": {
-    "enter": "rise",
-    "emphasis": "accent",
-    "case": "mixed",
+    "enter": "glitch",
+    "emphasis": "soft",
+    "case": "lower",
     "tracking": 0,
     "weight": null,
-    "sizeScale": 1,
+    "sizeScale": 0.98,
     "align": "left"
   }
 }

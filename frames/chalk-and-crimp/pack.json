@@ -23,11 +23,11 @@
     "ink": "#f2f2ee"
   },
   "motion": {
-    "cut": "panel",
-    "drift": 1
+    "cut": "zoom",
+    "drift": 0.97
   },
   "fx": {
-    "canvas": "none",
+    "canvas": "grain",
     "three": null
   },
   "typography": {
@@ -71,19 +71,19 @@
     "ground": "#181a1e"
   },
   "layout": {
-    "propFill": false,
+    "propFill": true,
     "kicker": true,
     "underline": true,
-    "stat": "inline",
-    "assetStyle": "plain"
+    "stat": "strip",
+    "assetStyle": "browser"
   },
   "textfx": {
-    "enter": "rise",
-    "emphasis": "accent",
-    "case": "mixed",
+    "enter": "zap",
+    "emphasis": "marker",
+    "case": "lower",
     "tracking": 0,
     "weight": null,
-    "sizeScale": 1,
+    "sizeScale": 1.05,
     "align": "left"
   }
 }

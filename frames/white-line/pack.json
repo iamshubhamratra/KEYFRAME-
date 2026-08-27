@@ -23,8 +23,8 @@
     "ink": "#f2f7fb"
   },
   "motion": {
-    "cut": "panel",
-    "drift": 1
+    "cut": "glide",
+    "drift": 1.01
   },
   "fx": {
     "canvas": "none",
@@ -73,17 +73,17 @@
   "layout": {
     "propFill": false,
     "kicker": true,
-    "underline": true,
-    "stat": "inline",
+    "underline": false,
+    "stat": "card",
     "assetStyle": "plain"
   },
   "textfx": {
-    "enter": "rise",
-    "emphasis": "accent",
+    "enter": "reveal",
+    "emphasis": "bold",
     "case": "mixed",
     "tracking": 0,
     "weight": null,
-    "sizeScale": 1,
+    "sizeScale": 1.02,
     "align": "left"
   }
 }

@@ -24,7 +24,7 @@
   },
   "motion": {
     "cut": "panel",
-    "drift": 1
+    "drift": 0.97
   },
   "fx": {
     "canvas": "none",
@@ -71,19 +71,19 @@
     "ground": "#241a12"
   },
   "layout": {
-    "propFill": false,
+    "propFill": true,
     "kicker": true,
     "underline": true,
-    "stat": "inline",
+    "stat": "card",
     "assetStyle": "plain"
   },
   "textfx": {
-    "enter": "rise",
-    "emphasis": "accent",
-    "case": "mixed",
+    "enter": "reveal",
+    "emphasis": "glow",
+    "case": "lower",
     "tracking": 0,
     "weight": null,
-    "sizeScale": 1,
+    "sizeScale": 0.99,
     "align": "left"
   }
 }

@@ -23,8 +23,8 @@
     "ink": "#e8e9f0"
   },
   "motion": {
-    "cut": "panel",
-    "drift": 1
+    "cut": "cut",
+    "drift": 0.99
   },
   "fx": {
     "canvas": "none",
@@ -75,15 +75,15 @@
     "kicker": true,
     "underline": true,
     "stat": "inline",
-    "assetStyle": "plain"
+    "assetStyle": "polaroid"
   },
   "textfx": {
-    "enter": "rise",
-    "emphasis": "accent",
+    "enter": "slide",
+    "emphasis": "underline",
     "case": "mixed",
     "tracking": 0,
     "weight": null,
-    "sizeScale": 1,
+    "sizeScale": 1.04,
     "align": "left"
   }
 }

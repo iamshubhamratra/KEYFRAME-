@@ -23,8 +23,8 @@
     "ink": "#f4f0e6"
   },
   "motion": {
-    "cut": "panel",
-    "drift": 1
+    "cut": "cut",
+    "drift": 0.97
   },
   "fx": {
     "canvas": "none",
@@ -73,13 +73,13 @@
   "layout": {
     "propFill": false,
     "kicker": true,
-    "underline": true,
-    "stat": "inline",
-    "assetStyle": "plain"
+    "underline": false,
+    "stat": "strip",
+    "assetStyle": "browser"
   },
   "textfx": {
-    "enter": "rise",
-    "emphasis": "accent",
+    "enter": "zap",
+    "emphasis": "underline",
     "case": "mixed",
     "tracking": 0,
     "weight": null,

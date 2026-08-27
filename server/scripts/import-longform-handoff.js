@@ -251,6 +251,42 @@ function packJson(id, meta, film) {
   const { sceneCount, runtime } = film;
   const pace = (runtime / sceneCount).toFixed(1);
   const light = relLum(id.paper) > 0.5;
+  // Per-pack visual signature — the previous importer hardcoded the same
+  // layout/textfx/motion for all 58 long-form packs, so any scene-kit
+  // fallback (auto jobs, portrait, runtime smoke) rendered the identical
+  // "rise/accent/panel" film regardless of which Long Form shelf card the
+  // user picked. Derive a stable, hash-based signature from the slug so
+  // every long-form pack keeps a distinct cut, entrance, emphasis, case,
+  // layout and drift while preserving its authored colours/fonts/world.
+  const ENTERS = ["rise","glitch","zap","pop","slide","reveal","fade","type"];
+  const EMPHASIS = ["accent","marker","ring","glow","underline","bold","soft"];
+  const CASES = ["mixed","upper","lower"];
+  const CUTS = ["panel","cut","flux","zoom","glide","shutter"];
+  const STATS = ["inline","card","strip","badge"];
+  const ASSET_STYLES = ["plain","browser","card","polaroid"];
+  const CANVAS = ["none","none","none","grain","clay"];
+  const h = [...id.slug].reduce((a,c)=>a+c.charCodeAt(0),0);
+  const pick = (arr, off=0) => arr[(h + off*31) % arr.length];
+  const hash01 = (salt) => {
+    let x = 5381;
+    for (let i=0;i<id.slug.length;i++) x = ((x<<5)+x) ^ id.slug.charCodeAt(i);
+    for (let i=0;i<salt.length;i++) x = ((x<<5)+x) ^ salt.charCodeAt(i);
+    return (x>>>0) % 1000 / 1000;
+  };
+  const enter = pick(ENTERS, 1);
+  const emphasis = pick(EMPHASIS, 2);
+  const c = pick(CASES, 3);
+  const cut = pick(CUTS, 4);
+  const stat = pick(STATS, 5);
+  const assetStyle = pick(ASSET_STYLES, 6);
+  const canvas = pick(CANVAS, 7);
+  const align = c === "upper" ? "center" : (["left","center","left"][h % 3]);
+  const tracking = c === "upper" ? -0.02 : 0;
+  const weight = c === "upper" && hash01("w") > 0.6 ? 800 : null;
+  const drift = Math.round((0.96 + hash01("d")*0.08)*100)/100;
+  const propFill = hash01("pf") > 0.7;
+  const underline = hash01("ul") > 0.5;
+  const sizeScale = Math.round((0.98 + hash01("ss")*0.08)*100)/100;
   return {
     name: id.slug,
     renderer: "omelette",
@@ -262,9 +298,9 @@ function packJson(id, meta, film) {
     colors: { ground: id.paper, ink: id.ink, accent: id.accent, a2: id.accent2 },
     fonts: [id.display, id.body],
     surface: { flat: true, lightCinematic: light, ground: id.paper, ink: id.ink },
-    motion: { cut: "panel", drift: 1 },
-    fx: { canvas: "none", three: null },
-    typography: { display: id.display, body: id.body, case: "mixed" },
+    motion: { cut, drift },
+    fx: { canvas, three: null },
+    typography: { display: id.display, body: id.body, case: c },
     audio: { bgm: meta.bgm, energy: meta.energy },
     skin: {
       accents: [id.accent, id.accent2],
@@ -273,8 +309,8 @@ function packJson(id, meta, film) {
     },
     assets: { photoMod: meta.photo, iconStyle: "outline", keywords: meta.kw, prefer: ["photo", "screenshot"] },
     camera3d: { ground: id.paper },
-    layout: { propFill: false, kicker: true, underline: true, stat: "inline", assetStyle: "plain" },
-    textfx: { enter: "rise", emphasis: "accent", case: "mixed", tracking: 0, weight: null, sizeScale: 1, align: "left" },
+    layout: { propFill, kicker: true, underline, stat, assetStyle },
+    textfx: { enter, emphasis, case: c, tracking, weight, sizeScale, align },
   };
 }
 
