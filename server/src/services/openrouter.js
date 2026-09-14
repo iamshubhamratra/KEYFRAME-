@@ -485,8 +485,18 @@ async function chat({ system, user, userSuffix, jsonMode = false, temperature, m
   // not burn reasoning tokens. Opt-in per stage via
   // config.llm.stageEffort = { "<stage>": "low" | "medium" | "high" } so no
   // existing stage changes behaviour or cost unless it is named.
+  //
+  // "minimal" matters on a MANDATORY-reasoning model. meta/muse-spark spends its
+  // output budget on reasoning first and emits the answer after, and the provider
+  // refuses to turn that off ("Reasoning is mandatory for this endpoint and
+  // cannot be disabled", HTTP 400). Measured on a one-word reply at max_tokens=96:
+  //   default effort  -> 93 of 96 tokens were reasoning, content EMPTY, finish=length
+  //   effort minimal  -> 24 reasoning, "READY" returned, $0.0000093
+  //   default, cap 2048 -> 166 reasoning, "READY" returned, $0.0000374 (4x)
+  // So a verdict stage asks for minimal rather than being handed a bigger budget
+  // to burn. Anything not listed here is untouched and keeps the model's default.
   const stageEffort = stage && config.llm.stageEffort ? config.llm.stageEffort[stage] : null;
-  if (stageEffort && ["low", "medium", "high"].includes(String(stageEffort))) {
+  if (stageEffort && ["minimal", "low", "medium", "high"].includes(String(stageEffort))) {
     orBody.reasoning = { effort: String(stageEffort) };
   }
   if (jsonMode) orBody.response_format = { type: "json_object" };
@@ -582,14 +592,23 @@ async function chat({ system, user, userSuffix, jsonMode = false, temperature, m
     if (hit) return hit;
   }
 
-  // A stage in llm.noFallbackStages is pinned to its named KIE model on
-  // purpose — e.g. admin template generation runs on Claude Opus 5 ONLY, so a
-  // silent drop to whatever model.js/modelFallback happens to name (a flash
-  // tier, on the current config) never substitutes a materially weaker model
-  // for a quality-critical, low-volume, human-supervised action. Both KIE
-  // attempts (steps 1-2) already retried 3x each with backoff above, so this
-  // fires only once that resilience is genuinely exhausted.
-  if (stage && (config.llm.noFallbackStages || []).includes(stage)) {
+  // A stage in llm.noFallbackStages is pinned to its named model on purpose —
+  // admin template generation and film authoring are quality-critical,
+  // low-volume, human-supervised actions, so a silent drop to whatever
+  // modelFallback happens to name (a flash tier) must never substitute a
+  // materially weaker model for them. Both KIE attempts (steps 1-2) already
+  // retried 3x each with backoff above, so this fires only once that resilience
+  // is genuinely exhausted.
+  //
+  // PINNED IS PROVIDER-AGNOSTIC. This used to throw unconditionally here, which
+  // was correct only while every pinned stage named a "kie:" alias: with the
+  // stage on an OpenRouter model, `orPrimary` IS the pinned model and the throw
+  // landed BEFORE the one call that would have honoured the pin — pinning a
+  // stage to an OpenRouter model broke it outright rather than protecting it.
+  // So bail out here only when the requested model has no attempt left to make;
+  // when it is still about to be called, fall through and let the catch below
+  // refuse the ESCALATION instead.
+  if (stage && (config.llm.noFallbackStages || []).includes(stage) && orPrimary !== requested) {
     throw new Error(`llm: stage=${stage} is pinned to ${requested} (llm.noFallbackStages) and it failed after retries — refusing to silently substitute a different model.`);
   }
 
@@ -603,6 +622,13 @@ async function chat({ system, user, userSuffix, jsonMode = false, temperature, m
     return await callOnce({ body: orBody, timeoutMs, stage, model: orPrimary, signal });
   } catch (err) {
     if (signal?.aborted) throw err;
+    // ...and the other half of the pin: a pinned stage does not escalate. Its
+    // named model was just attempted and failed; substituting orFallback (or a
+    // kie-aliased fallback route) is exactly the silent downgrade the pin exists
+    // to prevent, so the stage fails loudly instead.
+    if (stage && (config.llm.noFallbackStages || []).includes(stage)) {
+      throw new Error(`llm: stage=${stage} is pinned to ${requested} (llm.noFallbackStages) and it failed after retries — refusing to silently substitute a different model. Underlying: ${err?.status || err?.code || err?.message || err}`);
+    }
     // Escalate to the fallback model on a transient error OR a model-fatal one
     // (bad id / context overflow) — the latter won't recover by retrying the
     // same model but a different model can, so it must not collapse the stage.

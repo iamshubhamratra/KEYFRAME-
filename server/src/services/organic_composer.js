@@ -325,11 +325,30 @@ function stats(scene, ctx) {
   const { id, T, L, theme: th, land } = ctx;
   const sts = statsOf(scene, 3);
   const lines = breakLines(scene.headline, "Numbers that|keep growing").slice(0, 2);
-  const rows = (sts.length ? sts : [{ pre: "", v: 100, suf: "%", l: "GROWN WITH CARE", isFloat: false }]).map((st, i) =>
-    `<div class="${id}-row" style="opacity:0;display:flex;align-items:center;gap:${q(40, land)}cqw;background:${th.ground};border:2px solid ${rgba(th.ink, 0.1)};border-radius:${q(30, land)}cqw;padding:${q(34, land)}cqw ${q(44, land)}cqw;box-shadow:0 ${q(16, land)}cqw ${q(36, land)}cqw ${rgba(th.ink, 0.07)};">
+  // NO INVENTED FIGURES — see posterpop_composer's stats() for the delivered film
+  // this was measured on. `100% GROWN WITH CARE` was printed whenever the beat
+  // carried no numbers, and a beat lands in this builder on its purpose alone, so
+  // a film that never measured anything shipped a measurement. A figure the
+  // script did not supply is not ours to print.
+  //
+  // The card row is the pack's shape here, so it stays: with no numbers the same
+  // card carries the scene's OWN point behind the pack's accent pill (the rule
+  // from statement()), and nothing counts up.
+  const pts = sts.length ? [] : bullets(scene, 3).map((t) => fit(String(t), 34));
+  // Neither figures nor points: the pack's headline-only beat (its declared
+  // fallbackType) composes that copy properly, where this shape would leave the
+  // sheet below the headline empty.
+  if (!sts.length && !pts.length) return statement(scene, ctx);
+  const card = `opacity:0;display:flex;align-items:center;gap:${q(40, land)}cqw;background:${th.ground};border:2px solid ${rgba(th.ink, 0.1)};border-radius:${q(30, land)}cqw;padding:${q(34, land)}cqw ${q(44, land)}cqw;box-shadow:0 ${q(16, land)}cqw ${q(36, land)}cqw ${rgba(th.ink, 0.07)};`;
+  const rows = (sts.length ? sts.map((st, i) =>
+    `<div class="${id}-row" style="${card}">
       <div style="min-width:${land ? 14 : 27.8}cqw;font-family:${FH};font-size:${q(land ? 96 : 128, land)}cqw;line-height:0.9;color:${th.accent};font-variant-numeric:tabular-nums;"><span id="${id}-n${i}">0</span><span style="font-size:${q(land ? 48 : 64, land)}cqw;">${esc(st.suf || "")}</span></div>
       <div style="font-family:${FB};font-weight:600;font-size:${q(38, land)}cqw;color:${rgba(th.ink, 0.7)};">${esc((st.l || "").toLowerCase() || "and counting")}</div>
-    </div>`).join("");
+    </div>`) : pts.map((t) =>
+    `<div class="${id}-row" style="${card}">
+      <div style="flex:none;width:${q(60, land)}cqw;height:${q(10, land)}cqw;border-radius:999px;background:${th.accent};"></div>
+      <div style="font-family:${FH};font-size:${q(land ? 38 : 48, land)}cqw;line-height:1.12;color:${th.ink};">${esc(t)}</div>
+    </div>`)).join("");
   const html = `<div style="position:absolute;left:${land ? 16 : 6.7}cqw;right:${land ? 16 : 6.7}cqw;${land ? "top:50%;transform:translateY(-50%);" : "top:33.3cqw;"}">
     ${gLines(id, lines, land ? 64 : 92, th, land, { lh: 1.02 })}
     <div style="margin-top:${q(60, land)}cqw;display:flex;flex-direction:column;gap:${q(30, land)}cqw;">${rows}</div>
@@ -339,7 +358,7 @@ function stats(scene, ctx) {
     camera("zoom", ctx),
     `tl.fromTo("#${id} .${id}-ln",{opacity:0,y:34},{opacity:1,y:0,duration:${r(Math.min(1.4, L * 0.4))},ease:"power3.out",stagger:${st}},${T});`,
     `tl.fromTo("#${id} .${id}-row",{opacity:0,y:34},{opacity:1,y:0,duration:${r(Math.min(1.3, L * 0.4))},ease:"power3.out",stagger:${r(Math.min(0.24, L * 0.06))}},${r(T + 0.4)});`,
-    ...(sts.length ? sts : [{ v: 100, suf: "%", pre: "" }]).map((st2, i) =>
+    ...sts.map((st2, i) =>
       `countTxt("#${id}-n${i}",${st2.v},${r(T + 0.55 + i * 0.2)},${r(Math.min(1.8, L * 0.55))},"${esc(st2.pre || "")}","",${st2.isFloat ? 10 : 1});`),
   ];
   return { html, s };

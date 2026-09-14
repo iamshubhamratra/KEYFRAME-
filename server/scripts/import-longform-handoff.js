@@ -54,6 +54,9 @@ const TPL_DIR = path.join(ROOT, "server", "public", "omelette-templates");
 // cannot state — what the film is ABOUT, and therefore what stock imagery and
 // music suit it — live here.
 const NICHE = {
+  // The first 9:16 film in the series — its identity lives in lf-vpack-1.js and
+  // declares W 1080 / H 1920, which is what puts the kit into vertical mode.
+  "sky-ladder":      { niche: "skydiving / freefall", world: "rushing cloud layers, speed streaks, altimeter winding down, canopy opening", kw: ["skydiving", "parachute", "freefall", "sky", "clouds", "altitude"], bgm: "soaring cinematic build, airy percussion, wide open", energy: "high", photo: "high-altitude aerial light, wide open sky" },
   "fetch-club":      { niche: "dogs / off-leash club", world: "trotting dog with cycling legs, bouncing ball, paw prints", kw: ["dog", "puppy", "park", "pet", "walk", "ball"], bgm: "bright playful acoustic, hand claps, sunny", energy: "upbeat", photo: "warm natural light, candid outdoor pets" },
   "nine-lives":      { niche: "cats", world: "breathing cat, twitching ear, unspooling yarn, dust motes", kw: ["cat", "kitten", "pet", "yarn", "window", "nap"], bgm: "soft plucked strings, unhurried, cosy", energy: "calm", photo: "soft window light, cosy interior" },
   "knife-and-board": { niche: "cooking / prep", world: "chopping knife, flying herbs, simmering pot with steam", kw: ["cooking", "kitchen", "food", "chef", "herbs", "knife"], bgm: "warm rhythmic acoustic, kitchen energy", energy: "medium", photo: "warm kitchen light, rustic food styling" },
@@ -147,7 +150,11 @@ function loadIdentities(engineDir) {
   g.React = { createElement: () => null };
   g.LFKit = { rgba: () => "", make: (c) => cfgs.push(c) };
   try {
-    for (const f of fs.readdirSync(engineDir).filter((x) => /^lf-pack-\d+\.js$/.test(x)).sort()) {
+    // lf-vpack-*.js too: this drop introduces VERTICAL identities, and they live
+    // in their own files (lf-vpack-1.js) rather than alongside the 16:9 ones.
+    // Without them a 9:16 film reports "no identity in source/lf-pack-*.js" and
+    // is skipped in silence.
+    for (const f of fs.readdirSync(engineDir).filter((x) => /^lf-v?pack-\d+\.js$/.test(x)).sort()) {
       // eslint-disable-next-line no-eval
       eval(fs.readFileSync(path.join(engineDir, f), "utf8"));
     }
@@ -156,6 +163,11 @@ function loadIdentities(engineDir) {
   return cfgs.map((c) => ({
     global: c.global, brand: c.brand, desk: c.desk,
     display: fam(c.FH), body: fam(c.FB),
+    // THE FILM'S OWN CANVAS. The kit switches to its vertical mode on H > W
+    // (repositioned chrome, proportional camera travel, every multi-column row
+    // stacked), so orientation is a property the identity already states —
+    // reading it here is what stops a 9:16 film being registered as 16:9.
+    W: Number(c.W) || 1920, H: Number(c.H) || 1080,
     tags: c.tags || [],
     // Deferred: the palette is a FUNCTION OF THE FILM'S TWEAKS, so it cannot be
     // resolved until we know which film we are importing. See paletteOf().
@@ -265,6 +277,11 @@ function packJson(id, meta, film) {
   const STATS = ["inline","card","strip","badge"];
   const ASSET_STYLES = ["plain","browser","card","polaroid"];
   const CANVAS = ["none","none","none","grain","clay"];
+  // ORIENTATION COMES FROM THE FILM, not from a constant. The kit reads its own
+  // canvas and switches to vertical mode on H > W; the adapter reads
+  // `portraitNative` and composes at 1080x1920. Both have to agree or the film
+  // is laid out for one frame and rendered into the other.
+  const portrait = Number(id.H) > Number(id.W);
   const h = [...id.slug].reduce((a,c)=>a+c.charCodeAt(0),0);
   const pick = (arr, off=0) => arr[(h + off*31) % arr.length];
   const hash01 = (salt) => {
@@ -291,10 +308,10 @@ function packJson(id, meta, film) {
     name: id.slug,
     renderer: "omelette",
     template: id.global,
-    portraitNative: false,
+    portraitNative: portrait,
     longForm: true,
     longFormOk: true,
-    vibe: `long-form 16:9 kinetic-typography film for ${meta.niche} — ${sceneCount} authored beats, ~${pace}s each, ${mmss(runtime)} as shipped. ${meta.world}. ${id.display} display over ${id.body} body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.`,
+    vibe: `long-form ${portrait ? "9:16" : "16:9"} kinetic-typography film for ${meta.niche} — ${sceneCount} authored beats, ~${pace}s each, ${mmss(runtime)} as shipped. ${meta.world}. ${id.display} display over ${id.body} body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.`,
     colors: { ground: id.paper, ink: id.ink, accent: id.accent, a2: id.accent2 },
     fonts: [id.display, id.body],
     surface: { flat: true, lightCinematic: light, ground: id.paper, ink: id.ink },
@@ -315,6 +332,8 @@ function packJson(id, meta, film) {
 }
 
 function frameMd(id, meta, film) {
+  // Same rule as packJson: the film's own canvas decides orientation.
+  const portrait = Number(id.H) > Number(id.W);
   const { sceneCount, runtime } = film;
   const pace = (runtime / sceneCount).toFixed(1);
   return `# ${id.brand} — long-form kinetic-typography film (16:9)
@@ -342,7 +361,7 @@ kicker/title/sub/lines/steps/stats/items/words/pairs/rows/q&a/plans — text-fir
 \`image\` appears twice (a mid-film setup card and the CTA logo).
 
 ## Casting notes
-- 16:9 only (\`portraitNative: false\`); it is a LONG FORM gallery entry
+- ${portrait ? "9:16 vertical" : "16:9 only"} (\`portraitNative: ${portrait}\`); it is a LONG FORM gallery entry
   (\`longForm: true\`) and must not be rerouted to scene-kit past 75s
   (\`longFormOk: true\` — honoured per-pack by the pipeline).
 - Copy law: \`title\` is the primary slot (kit convention) — the adapter maps it

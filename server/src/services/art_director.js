@@ -34,7 +34,7 @@ function ard() {
   return config.artDirector || { enabled: true, model: "google/gemini-3.1-flash-lite" };
 }
 
-// ---- color helpers (self-contained; no dep on scene_kit) ---------------------
+// ---- color helpers (self-contained; no dep on scene_kit) on---------------------
 const HEX = /^#?([0-9a-fA-F]{6})$/;
 function normHex(v) {
   const m = HEX.exec(String(v || "").trim());

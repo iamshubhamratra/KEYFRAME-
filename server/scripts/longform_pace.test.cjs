@@ -14,6 +14,21 @@
 
 const assert = require("node:assert");
 const adapter = require("../src/services/omelette_adapter");
+const pacing = require("../src/services/pacing");
+
+// `--pace <mode>` builds AND judges at that mode; no flag is Normal, so the CI
+// invocation is unchanged. Without this the authored-pace assertion below was
+// only ever true for one pace, which made it useless as a guard the moment a
+// user could pick another one.
+const paceArg = (() => {
+  const i = process.argv.indexOf("--pace");
+  return i >= 0 ? String(process.argv[i + 1] || "") : "";
+})();
+const P = pacing.resolve(paceArg);
+if (paceArg && P.key !== paceArg) {
+  console.error(`unknown --pace "${paceArg}" — known modes: ${pacing.MODES.join(", ")}`);
+  process.exit(2);
+}
 
 let pass = 0, fail = 0;
 const ok = (name, fn) => {
@@ -36,7 +51,7 @@ function compose({ durationSec, nScenes, framePack = "hive-mind" }) {
   const built = adapter.buildComposition({
     storyboard: { title: "A film", durationSec, scenes },
     dims: { width: 1920, height: 1080, fps: 30 },
-    framePack, assets: [], captionCues: null,
+    framePack, assets: [], captionCues: null, pacing: P,
   });
   const blk = /<script type="__bundler\/template"[^>]*>([\s\S]*?)<\/script>/i.exec(built.indexHtml);
   const page = JSON.parse(blk[1]);
@@ -47,20 +62,30 @@ function compose({ durationSec, nScenes, framePack = "hive-mind" }) {
 }
 
 const ENGINE_MAX = 50;
-const PACE = 7.5;   // these templates author ~7.5s beats
+// These templates author ~7.5s beats. Pace does not rewrite the template — it
+// divides that authored median BEFORE the beat count is derived (P.authoredPaceFactor,
+// read by omelette_adapter's `authoredPace`), so the pace a film should actually
+// hold is the authored one over the multiplier: 6.0s at Fast, 9.4s at Relaxed.
+// Judging every mode against a flat 7.5s would fail Fast for doing exactly what
+// was asked of it.
+const PACE = 7.5 / P.multiplier;
+// Kept as the same fraction of the target it has always been, so the band
+// neither tightens nor loosens as the target moves.
+const TOL = 2.5 / P.multiplier;
+if (!pacing.isNeutral(P)) console.log(`pace: ${pacing.describe(P)} — authored beat target ${PACE.toFixed(2)}s +/- ${TOL.toFixed(2)}s`);
 
 ok("a 300s film with a SHORT script still runs at the authored pace", () => {
   // 20 script scenes over 300s is 15s a beat if you just stretch — twice too slow.
   const r = compose({ durationSec: 300, nScenes: 20 });
   assert.ok(r.beats > 20, `beats not increased: ${r.beats}`);
-  assert.ok(Math.abs(r.avg - PACE) < 2.5, `avg beat ${r.avg.toFixed(1)}s is far from the authored ${PACE}s`);
+  assert.ok(Math.abs(r.avg - PACE) < TOL, `avg beat ${r.avg.toFixed(1)}s is far from the authored ${PACE}s`);
   assert.ok(Math.abs(r.total - 300) < 1.5, `total ${r.total}s != 300s`);
 });
 
 ok("a 300s film with a LONG script is trimmed, not crammed", () => {
   const r = compose({ durationSec: 300, nScenes: 60 });
   assert.ok(r.beats <= ENGINE_MAX, `${r.beats} beats exceeds the engine cap`);
-  assert.ok(Math.abs(r.avg - PACE) < 2.5, `avg beat ${r.avg.toFixed(1)}s is far from ${PACE}s`);
+  assert.ok(Math.abs(r.avg - PACE) < TOL, `avg beat ${r.avg.toFixed(1)}s is far from ${PACE}s`);
   assert.ok(Math.abs(r.total - 300) < 1.5, `total ${r.total}s != 300s`);
 });
 

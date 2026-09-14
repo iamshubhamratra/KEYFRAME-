@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { API_BASE, mediaUrl } from "../api.js";
-import { GALLERY_FILTERS, WALL_SEEDS, loreFor, fmtDur } from "../packlore.js";
+import { WALL_SEEDS, loreFor, fmtDur } from "../packlore.js";
 
 const CHIP_COLORS = ["#f2ede2", "#e832a8", "#23c8e0", "#ffb03a", "#b9f24a", "#2b5bff", "#ff7aa8", "#ff6a3c"];
 
 // The v2 video wall, as the app's gallery: dark stage, scene pill,
 // "Fresh off the render farm." — real films render as wall cards
-// (hover-scrub video, click → premiere); v2's seed wall fills in
-// while none exist.
+// (hover-scrub video, click → premiere); while none exist, the seed wall shows
+// real template clips that ship with the frontend (click → use that template).
 export default function Gallery({ onOpen, onUseStyle }) {
   const [projects, setProjects] = useState(null);
   const [filter, setFilter] = useState("all");
@@ -24,24 +24,41 @@ export default function Gallery({ onOpen, onUseStyle }) {
       .catch(() => setProjects([]));
   }, []);
 
-  const films = useMemo(() => {
+  const allFilms = useMemo(() => {
     const real = (projects || []).map((p) => {
       const lore = loreFor(p.framePack);
       return {
         key: p.jobId, real: true, title: p.title || "Untitled film",
         pack: p.framePack || "auto", cat: (lore.tag || "FILM"),
-        dur: fmtDur(p.duration), views: null, drift: "8s",
-        grad: lore.filmGrad, videoUrl: p.videoUrl, orientation: p.orientation,
+        dur: fmtDur(p.duration), drift: "8s",
+        grad: lore.filmGrad, videoUrl: mediaUrl(p.videoUrl),
+        posterUrl: mediaUrl(String(p.videoUrl).replace(/\.mp4$/, ".jpg")),
+        orientation: p.orientation,
         onClick: () => onOpen?.(p.jobId),
       };
     });
+    // Seed clips are frontend assets (/landing/…), NOT backend media — they must
+    // not go through mediaUrl(), which would point them at the API origin.
     const seeds = WALL_SEEDS.map((f, i) => ({
       key: `seed-${i}`, real: false, ...f,
       onClick: () => onUseStyle?.(f.pack),
     }));
-    const all = real.length ? real : seeds;
-    return filter === "all" ? all : all.filter((f) => f.pack === filter);
-  }, [projects, filter, onOpen, onUseStyle]);
+    return real.length ? real : seeds;
+  }, [projects, onOpen, onUseStyle]);
+
+  // Filter chips come from the templates actually on the wall. A fixed list
+  // named retired packs, so most chips could only ever show an empty wall.
+  const filters = useMemo(() => {
+    const seen = new Map();
+    for (const f of allFilms) {
+      if (!f.pack || f.pack === "auto" || seen.has(f.pack)) continue;
+      seen.set(f.pack, String(f.packLabel || loreFor(f.pack).name || f.pack).toUpperCase());
+    }
+    return [["all", "ALL FILMS"], ...[...seen].slice(0, 12)];
+  }, [allFilms]);
+
+  const activeFilter = filters.some(([k]) => k === filter) ? filter : "all";
+  const films = activeFilter === "all" ? allFilms : allFilms.filter((f) => f.pack === activeFilter);
 
   return (
     <div style={{ background: "var(--color-dark-2)", marginTop: -90, paddingTop: 90 }}>
@@ -57,9 +74,9 @@ export default function Gallery({ onOpen, onUseStyle }) {
 
         {/* filters — v2 colored mono chips */}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 26, padding: "0 clamp(4px,2vw,32px)" }}>
-          {GALLERY_FILTERS.map(([key, label], i) => (
+          {filters.map(([key, label], i) => (
             <button key={key} onClick={() => setFilter(key)}
-              className={`chip-c ${filter === key ? "is-active" : ""}`}
+              className={`chip-c ${activeFilter === key ? "is-active" : ""}`}
               style={{ "--chipc": CHIP_COLORS[i % CHIP_COLORS.length] }}>
               {label}
             </button>
@@ -87,7 +104,7 @@ function WallCard({ film, delay = 0 }) {
   // advertises it. If the <video> fails to load, degrade to the pack gradient
   // (same visual as a seed card) instead of a black box + repeated 404 errors.
   const [videoDead, setVideoDead] = useState(false);
-  const showVideo = film.real && film.videoUrl && !videoDead;
+  const showVideo = film.videoUrl && !videoDead;
   // Each card takes its film's real shape so 9:16 and 1:1 films aren't cropped
   // into a 16:9 slot (grid uses align-items:start, so mixed shapes sit cleanly).
   const cardAspect = film.orientation === "vertical" ? "9 / 16"
@@ -107,8 +124,8 @@ function WallCard({ film, delay = 0 }) {
       style={{ position: "relative", borderRadius: 16, overflow: "hidden", aspectRatio: cardAspect, cursor: "pointer", background: "#17130e" }}
     >
       {showVideo ? (
-        <video ref={vidRef} src={mediaUrl(film.videoUrl)}
-          poster={mediaUrl(String(film.videoUrl).replace(/\.mp4$/, ".jpg"))}
+        <video ref={vidRef} src={film.videoUrl}
+          poster={film.posterUrl || undefined}
           muted loop playsInline preload="metadata"
           onError={() => setVideoDead(true)}
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
@@ -125,7 +142,7 @@ function WallCard({ film, delay = 0 }) {
           {film.title}
         </h3>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "rgba(255,255,255,.8)", whiteSpace: "nowrap" }}>
-          {film.views ? `▶ ${film.views}` : `▶ ${loreFor(film.pack).name || film.pack}`}
+          {`▶ ${film.packLabel || loreFor(film.pack).name || film.pack}`}
         </span>
       </div>
     </motion.div>

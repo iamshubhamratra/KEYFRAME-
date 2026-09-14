@@ -100,7 +100,7 @@ function hasProviderFor(type) {
 // curated entries already used in this video so a film never reuses a file.
 // `curatedOnly` (CURATED_ONLY_IMAGES override) forbids web stock AND the
 // web-stock cache: the need is served by the curated library or not at all.
-async function acquire({ query, fallbackQueries = [], type, orientation, outputPath, tracker, kindPref, excludeIds, curatedOnly = false, iconColor, iconStyle, styleKeywords, vectorPrefer, subject = null, excludeUrls = null }) {
+async function acquire({ query, fallbackQueries = [], type, orientation, outputPath, tracker, kindPref, excludeIds, curatedOnly = false, iconColor, iconStyle, styleKeywords, vectorPrefer, subject = null, excludeUrls = null, rankQuery = null }) {
   const queries = [query, ...fallbackQueries].filter(Boolean);
 
   // CROSS-SLOT EXCLUSION — the fix for "a long film has 3 pictures".
@@ -289,7 +289,10 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
       // Drop what other slots already claimed BEFORE taking the top 5, so a slot
       // whose best-5 are all spoken for still reaches the 6th-best picture rather
       // than re-downloading a file the caller will only throw away as a duplicate.
-      const ranked = util.rankCandidates(q, candidates, styleKeywords).filter((c) => !taken(c && c.sourceUrl));
+      // The string we SEARCHED with is not always the string we should JUDGE by:
+      // callers anchor the search on the film's topic to steer the provider, but a
+      // candidate has to be scored against what the scene actually needs.
+      const ranked = util.rankCandidates(rankQuery || q, candidates, styleKeywords, subject).filter((c) => !taken(c && c.sourceUrl));
       for (const c of ranked.slice(0, 5)) {
         try {
           // Retry a rate-limited download in place instead of falling through to
@@ -339,7 +342,12 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
           }
           if (type === "video") await util.reencodeForHyperframes(outputPath);
           localDb.register({
-            filePath: outputPath, query: q, type, orientation,
+            // Index it under the scene's own need, not the anchored string we
+            // searched with — see local_db.register. Honest even when `q` is a
+            // broader rung of the ladder, because rankCandidates above already
+            // picked this file for `rankQuery`, not for `q`. `subject` rides along
+            // so the cache still knows which film's topic paid for the download.
+            filePath: outputPath, query: q, rankQuery, subject, type, orientation,
             source: provider.name, license: c.license, sourceUrl: c.sourceUrl,
             width: (imageMeta && imageMeta.width) || c.width, height: (imageMeta && imageMeta.height) || c.height,
           });
@@ -358,6 +366,59 @@ async function acquire({ query, fallbackQueries = [], type, orientation, outputP
         } catch (e) {
           console.warn(`[assets] ${provider.name} candidate failed for "${q}": ${e.message}`);
         }
+      }
+    }
+  }
+
+  // 3 — LAST RESORT: the curated local library, this time WITHOUT the
+  // USE_CURATED_LIBRARY gate.
+  //
+  // Priority 0 stays off by default and stays exactly as it is — the curated set
+  // outranking Pixabay is what shipped off-topic clip-art. But that switch also put
+  // 9,872 licensed, on-disk images (6,206 photo / 2,197 vector / 1,469 illustration)
+  // out of reach in the one situation where they cannot make anything worse: we are
+  // one line from returning null, and null downstream is a recycled repeat of another
+  // scene's picture or an empty plate. Same strong-overlap + content-word gate as
+  // priority 0 (no `relaxed`), so a query with no genuine topical match still returns
+  // null instead of clip-art.
+  //
+  // Skipped under PIXABAY_ONLY: a library file is provably not Pixabay.
+  if (type === "image" && !PIXABAY_ONLY) {
+    for (const q of queries) {
+      for (const e of curated.search({ query: q, type, limit: 12, kindPref, excludeIds })) {
+        // Curated entries have no sourceUrl, so they claim the cross-slot set under
+        // their id — two slots of one film must not land the same file.
+        const key = `library:${e.id}`;
+        if (taken(key)) continue;
+        // The library index carries no dimensions, so probe the file. ORIENTATION
+        // ONLY — none of validateImage's quality gates, because the alternative here
+        // is no picture at all. An svg or an unreadable probe counts as usable.
+        const dims = e.ext === "svg" ? null : await util.ffprobeImage(e.file);
+        if (dims && dims.width && dims.height && orientation) {
+          const r = dims.width / dims.height;
+          if ((orientation === "vertical" && r > 1.2) || (orientation === "horizontal" && r < 1 / 1.2)) continue;
+        }
+        // curated.materialize keeps the library file's REAL extension, which is
+        // right for the callers that read `got.path` back (graph.js, pipeline.js)
+        // and wrong for project_pipeline.js, which records the relPath it ASKED
+        // for — a .png landing next to a film that references .jpg is an invisible
+        // broken <img>. Chromium sniffs raster bytes whatever the name, so a raster
+        // takes the caller's own filename; an SVG cannot (it needs image/svg+xml
+        // from the extension), so it is only served to an explicit vector role,
+        // which only the got.path callers ever ask for.
+        if (e.ext === "svg" && kindPref !== "vector") continue;
+        let meta = curated.materialize(e, outputPath);
+        if (e.ext !== "svg" && meta.path !== outputPath) {
+          try { fs.renameSync(meta.path, outputPath); meta = { ...meta, path: outputPath }; }
+          catch { /* keep the extension-true path */ }
+        }
+        claim(key);
+        if (tracker) tracker.addExternal("asset_library_last_resort");
+        console.log(`[assets] "${q}" (${type}) <- curated library LAST RESORT ${e.pack}/${e.topics.join("/")} (${e.kind}, ${dims ? `${dims.width}x${dims.height}` : e.ext})`);
+        return {
+          path: meta.path, query: q, fromCache: true, libraryId: e.id, ...meta,
+          width: dims ? dims.width : null, height: dims ? dims.height : null,
+        };
       }
     }
   }

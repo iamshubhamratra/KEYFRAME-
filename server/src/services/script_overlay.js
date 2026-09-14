@@ -17,6 +17,8 @@
 // no transitions or animations that carry state between frames — scrub anywhere
 // and the frame is identical to a linear play at that instant.
 
+const pacing = require("./pacing");
+
 function esc(s) {
   return String(s == null ? "" : s)
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -49,6 +51,29 @@ function phrasesFor(text, maxWords) {
   return out;
 }
 
+// PREFER FEWER CARDS OVER UNREADABLE ONES.
+//
+// A phrase whose window is shorter than the eye needs is not on screen in any
+// useful sense — it is a flash. The only thing that can give is how many cards
+// the line is broken into (the words themselves are the narration and cannot be
+// cut), so merge the cheapest adjacent pair and measure again. Merging costs
+// one lead-in per merge, so this always terminates at a fit or at one card.
+function fitPhrases(phrases, span, p) {
+  let list = phrases.slice();
+  while (list.length > 1) {
+    const total = list.reduce((a, s) => a + s.length, 0) || 1;
+    const short = list.findIndex((s) => !pacing.fitsCopy(s, span * (s.length / total), p));
+    if (short < 0) break;
+    // Merge with the smaller neighbour so the merged card stays the least
+    // crowded one on screen rather than compounding the longest.
+    const left = short > 0 ? list[short - 1].length : Infinity;
+    const right = short < list.length - 1 ? list[short + 1].length : Infinity;
+    const at = left <= right ? short - 1 : short;
+    list = [...list.slice(0, at), `${list[at]} ${list[at + 1]}`, ...list.slice(at + 2)];
+  }
+  return list;
+}
+
 /**
  * Build the overlay for a set of caption cues.
  *
@@ -56,7 +81,9 @@ function phrasesFor(text, maxWords) {
  * @param {number} W,H   composition size
  * @param {object} opts  { coverage } target share of each cue's span to fill (0-1),
  *                       plus the pack's own { ink, ground, font } so this layer
- *                       reads as part of the film rather than pasted onto it
+ *                       reads as part of the film rather than pasted onto it,
+ *                       and { pacing } — the job's pace profile, which sets both
+ *                       the words-per-card budget and the readability floor
  * @returns {{html:string, css:string, js:string}|null} null when there is nothing to show
  */
 function buildScriptOverlay(cues, W, H, opts = {}) {
@@ -67,7 +94,8 @@ function buildScriptOverlay(cues, W, H, opts = {}) {
   if (!list.length) return null;
 
   const land = W >= H;
-  const maxWords = land ? 5 : 4;               // portrait frames fit fewer words per line
+  const P = pacing.resolve(opts.pacing);
+  const maxWords = land ? P.overlayMaxWordsLand : P.overlayMaxWordsPortrait; // portrait frames fit fewer words per line
   const coverage = Math.min(1, Math.max(0.5, Number(opts.coverage) || 0.8));
 
   // Lay every phrase on the timeline inside its cue's own span. The phrases of a
@@ -75,16 +103,23 @@ function buildScriptOverlay(cues, W, H, opts = {}) {
   // longer than a short one and the reading pace tracks the speech.
   const items = [];
   for (const cue of list) {
-    const ph = phrasesFor(cue.text, maxWords);
-    if (!ph.length) continue;
     const span = cue.end - cue.start;
+    // Merge before laying out, not after: with every phrase readable in its own
+    // share, a phrase's hold can never run past the next phrase's start, so the
+    // runtime lookup below (first window that contains t wins) cannot swallow a
+    // later card and drop its words off the screen entirely.
+    const ph = fitPhrases(phrasesFor(cue.text, maxWords), span, P);
+    if (!ph.length) continue;
     const total = ph.reduce((a, p) => a + p.length, 0) || 1;
     let t = cue.start;
     ph.forEach((p, i) => {
       // `coverage` leaves a sliver of breathing room between phrases rather than
       // butting them together, so a cut reads as a change rather than a flicker.
+      // The floor is what the phrase takes to READ (a flat 0.35s was a floor on
+      // nothing — five words of display type need three seconds), which at
+      // normal is the same 0.35s lead-in plus the line's own reading time.
       const share = (p.length / total) * span;
-      const dur = Math.max(0.35, share * coverage);
+      const dur = Math.max(pacing.holdSecFor(p, P), share * coverage);
       items.push({ t: r(t), e: r(Math.min(cue.end, t + dur)), x: p, i: items.length });
       t += share;
     });

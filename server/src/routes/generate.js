@@ -5,9 +5,14 @@ const rateLimit = require("express-rate-limit");
 const { customAlphabet } = require("nanoid");
 const config = require("../config");
 const db = require("../db");
+const logger = require("../services/logger");
 const { estimateEta } = require("../services/eta");
 
 const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 10);
+
+// The pace modes a request may name. config.pacing also carries the
+// `calibration` flag, which is a rollout switch and not a mode anyone can pick.
+const PACE_MODES = Object.keys(config.pacing).filter((k) => k !== "calibration");
 
 function clientIp(req) {
   const xff = req.headers["x-forwarded-for"];
@@ -56,17 +61,38 @@ function validateBody(body) {
     out.fps = fps;
   }
 
-  // Audio flags (all optional, default false).
-  out.tts = body.tts === true;
-  out.music = body.music === true;
+  // Pace — how DENSELY the film is told: shorter scenes and more cuts at the
+  // SAME runtime, never a sped-up MP4 (see services/pacing.js). JSON-only route,
+  // so a strict string check is enough; absent means the configured default.
+  if (body.pace != null && body.pace !== "") {
+    if (typeof body.pace !== "string" || !PACE_MODES.includes(body.pace)) {
+      errs.push(`pace must be one of: ${PACE_MODES.join(", ")}`);
+    } else {
+      out.pace = body.pace;
+    }
+  } else {
+    out.pace = config.defaults.pace;
+  }
+
+  // Voiceover and music default ON. Under `=== true` a bare call — prompt and
+  // duration, no flags — asked for nothing, which is how 7 of 12 delivered films
+  // shipped with no audio track at all. Omitting the flag now means ON; only an
+  // explicit false makes a silent film. Sound effects stay opt-in: they are
+  // seasoning over a mix, not what makes a film a film. JSON-only route (only
+  // express.json is mounted), so `!== false` sees real booleans, never "false".
+  out.tts = body.tts !== false;
+  out.music = body.music !== false;
   out.soundEffect = body.sound_effect === true || body.soundEffect === true;
 
   // Subtitles/captions are OPT-IN (default off) — users overwhelmingly dislike
   // burnt-in subtitles on short promo videos.
   out.captions = body.captions === true;
 
-  // Visual-asset flags (all optional, default false).
-  out.images = body.images === true;
+  // Images default ON for the same reason: two thirds of delivered films held not
+  // one photograph, and one 35s film was cream paper end to end (mean content
+  // coverage 10%, worst frame 0.6%). Stock VIDEO stays opt-in — b-roll clips are a
+  // separate product decision, not the picture floor.
+  out.images = body.images !== false;
   out.video = body.video === true;
 
   // Three.js/WebGL cinematic composer (opt-in). Default off → scene-kit.
@@ -156,6 +182,11 @@ function buildRouter({ enqueue }) {
       render3d: out.render3d,
       remix: out.remix === true,
       framePack: out.framePack,
+      // Pace belongs in the TASK, not only in the row: boot crash-recovery
+      // replays `j.task` verbatim (db.js), so a field that lives only on the row
+      // is silently dropped from every requeued job — which is what happens to
+      // `out.captions` today. A requeued "fast" job must still come back fast.
+      pace: out.pace,
     };
 
     db.insert({
@@ -169,6 +200,7 @@ function buildRouter({ enqueue }) {
       fps: out.fps,
       framePack: out.framePack,
       captions: out.captions,
+      pace: out.pace,
       created_at: Date.now(),
       client_ip: clientIp(req),
       // Persisted so a server restart mid-job requeues the take at boot
@@ -177,6 +209,25 @@ function buildRouter({ enqueue }) {
     });
 
     enqueue(task);
+
+    // One greppable line for the defect this route used to cause silently. The
+    // pipeline's own "job accepted" prints the same flags, but only once a worker
+    // picks the job up and it cannot tell an omitted flag from an explicit false —
+    // which is the whole distinction here. `omittedFlags` counts the three the
+    // caller never sent, so a film that is still blind or silent WITH flags
+    // omitted means the defaults above regressed, and it reads at WARN.
+    const omittedFlags = ["images", "tts", "music"].filter((k) => (req.body || {})[k] == null).length;
+    const blind = !out.images && !out.video;
+    const silent = !out.tts && !out.music && !out.soundEffect;
+    logger.child({ tag: "generate", jobId })[blind || silent ? "warn" : "info"](
+      `job accepted${blind ? " — NO PICTURE SOURCE" : ""}${silent ? " — NO AUDIO" : ""}`,
+      {
+        duration: out.duration, orientation: out.orientation, pace: out.pace,
+        images: out.images, video: out.video,
+        tts: out.tts, music: out.music, sfx: out.soundEffect, captions: out.captions,
+        omittedFlags,
+      },
+    );
 
     // Queue state *after* this insert; subtract 1 so the count represents jobs AHEAD of mine.
     const jobsAhead = Math.max(0, db.queueDepth() - 1);

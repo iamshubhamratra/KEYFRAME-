@@ -25,6 +25,7 @@ const path = require("node:path");
 const config = require("../config");
 const db = require("../db");
 const openrouter = require("./openrouter");
+const pacing = require("./pacing");
 const { extractFirstJsonObject } = require("./json_lenient");
 
 const SYSTEM = fs.readFileSync(
@@ -58,13 +59,34 @@ function meaty(line) {
   return (t.match(/[A-Za-z]{2,}/g) || []).length >= 2;
 }
 
+// A script metric ({value:"6 hours", label:"saved every month"}) into the
+// {v,suf,l} shape statsFor/template_engine already render. The renderers COUNT
+// the figure up, so a value with no number in it is not a stat and is dropped
+// rather than printed as a zero — "$29/mo" -> 29 "$/mo" would be worse than
+// showing nothing. The unit travels in `suf` so the label stays a label.
+function parseMetric(m, P) {
+  if (!m || typeof m !== "object") return null;
+  const value = clip(m.value, 16);
+  const label = clip(m.label, P.visual.labelMaxChars);
+  if (!value || !label) return null;
+  const num = /(-?\d[\d,]*\.?\d*)/.exec(value);
+  if (!num) return null;
+  const v = Number(String(num[1]).replace(/,/g, ""));
+  if (!isFinite(v)) return null;
+  // Whatever follows the number is the unit ("%", "x", "K", "hours"); a long
+  // word belongs in the label, not stamped onto the figure.
+  const suf = clip(value.slice(num.index + num[1].length), 4);
+  return { v, suf, l: label };
+}
+
 // Sanitize ONE scene's enrichment against what the scene already has.
 // Add-only: existing non-empty fields survive untouched.
-function applyEnrichment(scene, raw) {
+function applyEnrichment(scene, raw, pacingIn) {
   if (!scene || !raw || typeof raw !== "object") return 0;
+  const P = pacing.resolve(pacingIn);
   let added = 0;
   if (!clip(scene.subtext, 10) && meaty(raw.subtext)) {
-    scene.subtext = clip(raw.subtext, 90);
+    scene.subtext = clip(raw.subtext, P.subtextChars);
     added++;
   }
   const haveBullets = Array.isArray(scene.bullets) && scene.bullets.filter(Boolean).length > 0;
@@ -73,8 +95,31 @@ function applyEnrichment(scene, raw) {
     // anyway (`fit(c, 24)`). The portrait support list WRAPS, so a longer line
     // survives intact instead of losing its verb — "One AI workspace where teams
     // and agents ship together" beat "...teams and".
-    const bullets = raw.bullets.map((b) => clip(b, 58)).filter(meaty).slice(0, 3);
+    //
+    // PACE NOW MOVES THESE TWO NUMBERS IN OPPOSITE DIRECTIONS. It used to drop
+    // the COUNT as pace rose, on the reasoning that losing the third pill was
+    // cheaper than truncating the lines that remain. Both of those shrink the
+    // frame, and a Very Fast scene — which already speaks half as many words —
+    // ended up with two short pills and nothing else. So the trade is now
+    // explicit: each line gets SHORTER (visual.lineMaxChars, so it can be read
+    // in a shorter scene) and the film gets MORE of them (P.bulletsMax rises
+    // with the narration deficit). Same reading time per line, more of the
+    // message on screen. Both are the previous literals at Normal.
+    const bullets = raw.bullets.map((b) => clip(b, P.visual.lineMaxChars)).filter(meaty).slice(0, P.bulletsMax);
     if (bullets.length) { scene.bullets = bullets; added++; }
+  }
+  // METRICS — a figure the frame lands on its own. `stats` is the slot every
+  // renderer already reads ({v,suf,l}); the script writes {value,label}, so the
+  // value string is split into its number and unit here. Add-only like the rest.
+  const haveStats = Array.isArray(scene.stats) && scene.stats.length > 0;
+  if (!haveStats && Array.isArray(raw.metrics) && raw.metrics.length) {
+    const stats = [];
+    for (const m of raw.metrics) {
+      const parsed = parseMetric(m, P);
+      if (parsed) stats.push(parsed);
+      if (stats.length >= P.visual.metrics) break;
+    }
+    if (stats.length) { scene.stats = stats; added++; }
   }
   if (!clip(scene.emphasis, 1) && raw.emphasis) {
     const emph = clip(raw.emphasis, 24);
@@ -94,7 +139,8 @@ function applyEnrichment(scene, raw) {
 // Pull candidate lines from the script + brief, then fill still-empty slots in
 // order. Numbers first (stats sell), then key messages, then leftover
 // onScreenText lines that aren't already a headline.
-function mineDeterministic(storyboard, script, brief) {
+function mineDeterministic(storyboard, script, brief, pacingIn) {
+  const P = pacing.resolve(pacingIn);
   const scenes = (storyboard && storyboard.scenes) || [];
   const headlines = new Set(scenes.map((s) => clip(s.headline, 200).toLowerCase()).filter(Boolean));
 
@@ -109,12 +155,31 @@ function mineDeterministic(storyboard, script, brief) {
   };
   // Script's own on-screen lines, scene-aligned first so text lands where the
   // writer meant it (script scene i ↔ storyboard scene i when ids line up).
+  //
+  // `keyPoints` OUTRANK `onScreenText` as bullet material and are kept in their
+  // own lane. They are the fields the writer filled specifically for the frame —
+  // the supporting facts the voiceover had no room for — whereas onScreenText[0]
+  // is the scene's headline beat and usually belongs in the subtext slot, not
+  // the pill row. Before the visual channel existed both had to come out of the
+  // same array, which is why a fast film's pills were whatever was left after
+  // the headline took the first line.
   const byScene = new Map();
+  const pointsByScene = new Map();
+  const metricsByScene = new Map();
   (script && script.scenes || []).forEach((sc) => {
     const lines = (sc.onScreenText || []).map((l) => clip(l, 90)).filter(meaty);
     if (lines.length) byScene.set(String(sc.id), lines);
+    const pts = (sc.keyPoints || []).map((l) => clip(l, 90)).filter(meaty);
+    if (pts.length) pointsByScene.set(String(sc.id), pts);
+    const mets = (sc.metrics || []).filter((m) => m && m.value != null && m.label != null);
+    if (mets.length) metricsByScene.set(String(sc.id), mets);
   });
   (script && script.scenes || []).forEach((sc) => (sc.onScreenText || []).forEach(push));
+  // …and keyPoints also join the GLOBAL pool, after the scene-aligned pass has
+  // taken its own. A scene the writer left thin can then borrow a point from a
+  // scene that had more than it could show, which is what stops one dense frame
+  // sitting next to a bare one.
+  (script && script.scenes || []).forEach((sc) => (sc.keyPoints || []).forEach(push));
   (brief && brief.keyMessages || []).forEach(push);
   // Standalone stats anywhere in the brief text ("40+ templates", "$29/mo",
   // "10x faster", "99.9% uptime") become bullet fodder.
@@ -124,26 +189,35 @@ function mineDeterministic(storyboard, script, brief) {
   let added = 0;
   for (let i = 0; i < scenes.length; i++) {
     const scene = scenes[i];
-    // 1) scene-aligned onScreenText → subtext + bullets for THAT scene
+    // 1) the writer's own visual channel for THAT scene: the headline beat
+    //    becomes the support line, the keyPoints become the pill row, and the
+    //    metrics become the stat. Where a scene has no keyPoints (a legacy
+    //    script, or a model that ignored the field) the bullets fall back to the
+    //    remaining onScreenText lines, which is exactly the previous behaviour.
     const aligned = byScene.get(String(scene.id)) || [];
+    const points = pointsByScene.get(String(scene.id)) || [];
     added += applyEnrichment(scene, {
       subtext: aligned[0],
-      bullets: aligned.slice(1, 4),
-    });
+      bullets: (points.length ? points : aligned.slice(1)).slice(0, P.bulletsMax),
+      metrics: metricsByScene.get(String(scene.id)) || [],
+    }, P);
     // 2) global pool fills whatever is still empty on content scenes
     if (i > 0 && i < scenes.length - 1) {
       const wantBullets = !(Array.isArray(scene.bullets) && scene.bullets.filter(Boolean).length);
+      // Take only as many as this pace will keep — lines spliced out of the pool
+      // and then sliced off are lines a later scene never gets to use.
       added += applyEnrichment(scene, {
         subtext: pool.shift(),
-        bullets: wantBullets ? pool.splice(0, 3) : [],
-      });
+        bullets: wantBullets ? pool.splice(0, P.bulletsMax) : [],
+      }, P);
     }
   }
   return added;
 }
 
 // ---- LLM pass ----------------------------------------------------------------
-function buildUser({ brief, script, storyboard }) {
+function buildUser({ brief, script, storyboard, pacing: pacingIn }) {
+  const P = pacing.resolve(pacingIn);
   const scenes = (storyboard.scenes || []).map((s, i) => ({
     id: s.id != null ? s.id : `s${i + 1}`,
     kind: s.kind,
@@ -162,20 +236,32 @@ function buildUser({ brief, script, storyboard }) {
       keyMessages: (brief?.keyMessages || []).map((k) => clip(k, 120)).slice(0, 8),
       goal: clip(brief?.goal, 200),
       audience: clip(brief?.audience, 160),
-      scriptOnScreenText: (script?.scenes || []).map((s) => ({ id: s.id, lines: (s.onScreenText || []).slice(0, 4) })),
+      scriptOnScreenText: (script?.scenes || []).map((s) => ({ id: s.id, lines: (s.onScreenText || []).slice(0, 6) })),
+      scriptKeyPoints: (script?.scenes || []).map((s) => ({ id: s.id, points: (s.keyPoints || []).slice(0, 5) })).filter((s) => s.points.length),
+      scriptMetrics: (script?.scenes || []).map((s) => ({ id: s.id, metrics: (s.metrics || []).slice(0, 3) })).filter((s) => s.metrics.length),
     }),
     "",
     "CURRENT STORYBOARD SCENES (fill ONLY the missing text slots):",
     JSON.stringify(scenes),
     "",
-    `Return JSON: {"scenes":{"<sceneId>":{"subtext":"...","bullets":["...","...","..."],"emphasis":"<one word FROM that scene's headline>","kicker":"..."}}}. Only include scenes you are adding text to, only slots that are currently empty. Short, punchy, factual — numbers and concrete feature names beat adjectives. JSON only.`,
+    // THE DENSITY BUDGET, STATED. Without it the model returns the three bullets
+    // its examples show, whatever the pace — and a Very Fast film, whose voice
+    // carries half a Normal film's words, would keep getting a Normal film's
+    // frame. The counts come from the same profile the deterministic miner uses,
+    // so the two passes cannot disagree about how full a scene should be.
+    `DENSITY — ${P.label} pace. This film speaks ${P.wordsPerSec} words/sec, so the FRAME carries ${P.visual.gain > 1 ? `${P.visual.gain}x more of the message than a Normal film` : "its usual share of the message"}.`,
+    `- Up to ${P.bulletsMax} bullets per scene, each ≤ ${P.visual.lineMaxChars} characters. Short parallel fragments, no trailing period.`,
+    `- Prefer MORE, SHORTER bullets over fewer long ones: they arrive in sequence on screen, so a short line is read while a long one is skipped.`,
+    "- Bullets are the facts the voiceover did NOT say. Never restate the scene's own voiceover line.",
+    "",
+    `Return JSON: {"scenes":{"<sceneId>":{"subtext":"...","bullets":["...","..."],"emphasis":"<one word FROM that scene's headline>","kicker":"...","metrics":[{"value":"6 hours","label":"saved every month"}]}}}. Only include scenes you are adding text to, only slots that are currently empty. Short, punchy, factual — numbers and concrete feature names beat adjectives. Facts only from the source copy above; never invent a figure. JSON only.`,
   ].join("\n");
 }
 
-async function enrichWithLlm({ brief, script, storyboard, tracker, signal }) {
+async function enrichWithLlm({ brief, script, storyboard, tracker, signal, pacing: pacingIn }) {
   const { text, tokensIn, tokensOut, costUsd } = await openrouter.chat({
     system: SYSTEM,
-    user: buildUser({ brief, script, storyboard }),
+    user: buildUser({ brief, script, storyboard, pacing: pacingIn }),
     jsonMode: true,
     stage: "text_director",
     model: tdr().model,
@@ -190,7 +276,7 @@ async function enrichWithLlm({ brief, script, storyboard, tracker, signal }) {
   scenes.forEach((scene, i) => {
     const key = scene.id != null ? String(scene.id) : `s${i + 1}`;
     const enrichment = perScene[key] || perScene[`s${i + 1}`] || null;
-    if (enrichment) added += applyEnrichment(scene, enrichment);
+    if (enrichment) added += applyEnrichment(scene, enrichment, pacingIn);
   });
   return added;
 }
@@ -198,16 +284,20 @@ async function enrichWithLlm({ brief, script, storyboard, tracker, signal }) {
 // ---------------------------------------------------------------- main
 // Mutates storyboard scenes in place (add-only) and returns
 // { storyboard, report } — report is persisted for the theater UI.
-async function directText({ jobId, brief, script, storyboard, tracker, signal }) {
+async function directText({ jobId, brief, script, storyboard, tracker, signal, pacing: pacingIn }) {
   const sb = storyboard;
   if (!sb || !Array.isArray(sb.scenes) || !sb.scenes.length) {
     return { storyboard: sb, report: null };
   }
 
+  // Resolved once and passed down: a caller that predates pace (or a legacy job
+  // row) lands on the frozen `normal` profile, which is today's 3 bullets / 90
+  // chars exactly.
+  const P = pacing.resolve(pacingIn);
   let llmAdded = 0, minedAdded = 0, source = "deterministic";
   if (tdr().enabled) {
     try {
-      llmAdded = await enrichWithLlm({ brief, script, storyboard: sb, tracker, signal });
+      llmAdded = await enrichWithLlm({ brief, script, storyboard: sb, tracker, signal, pacing: P });
       source = "llm";
     } catch (e) {
       console.warn(`[text_director] LLM failed (${String((e && e.message) || e).slice(0, 140)}) — deterministic mining only`);
@@ -215,7 +305,7 @@ async function directText({ jobId, brief, script, storyboard, tracker, signal })
   }
   // Always run the miner after (or instead of) the LLM: it only touches slots
   // that are STILL empty, so it composes cleanly with the model's additions.
-  try { minedAdded = mineDeterministic(sb, script, brief); } catch { /* fail-open */ }
+  try { minedAdded = mineDeterministic(sb, script, brief, P); } catch { /* fail-open */ }
 
   const withSub = sb.scenes.filter((s) => clip(s.subtext, 1)).length;
   const withBul = sb.scenes.filter((s) => Array.isArray(s.bullets) && s.bullets.filter(Boolean).length).length;

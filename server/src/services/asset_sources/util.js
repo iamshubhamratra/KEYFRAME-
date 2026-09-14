@@ -332,11 +332,58 @@ function tokenize(s) {
   return [...new Set(String(s || "").toLowerCase().match(/[a-z0-9]{3,}/g) || [])];
 }
 
+// EXACT TOKEN EQUALITY WAS THE ROOT OF "THE ASSETS DON'T MATCH THE SCRIPT".
+// Measured on a real lookup: for "team collaborating on a project timeline" the
+// scraper returned, among others, "team collaboration together" and "team woman
+// dog human portrait". Both matched exactly ONE token ("team") — because
+// "collaborating" is not the string "collaboration" — so both scored 0.396 and
+// the dog won on arrival order. A stem comparison gives the real match 2 of 4.
+// This is deliberately a crude suffix stripper, not a linguistics library: it has
+// to be cheap, dependency-free and predictable, and stock tags are short nouns.
+function stem(w) {
+  let x = String(w);
+  for (const suf of ["ations", "ation", "ings", "ing", "ers", "er", "ies", "ied", "ment", "ness", "ed", "es", "s"]) {
+    if (x.length - suf.length >= 4 && x.endsWith(suf)) { x = x.slice(0, -suf.length); break; }
+  }
+  return x;
+}
+
+// Two tokens mean the same thing if their stems agree, or if one is a prefix of
+// the other from 4 characters up ("plan"/"planning", "team"/"teamwork"). The
+// 4-character floor is what keeps "car" from matching "cardboard".
+function tokensAgree(a, b) {
+  if (a === b) return true;
+  const sa = stem(a), sb = stem(b);
+  if (sa === sb) return true;
+  // A prefix only means the same word when it is nearly the whole word. Without
+  // the length ceiling "auto" matched "automatic" and a gearstick photo scored as
+  // a hit for "automatic expense tracking"; with it, "team"/"teamwork" and
+  // "plan"/"planning" still match and "car"/"cardboard" still does not.
+  const [short, long] = sa.length <= sb.length ? [sa, sb] : [sb, sa];
+  return short.length >= 4 && long.length - short.length <= 4 && long.startsWith(short);
+}
+
+// SUBJECTS A BUSINESS FILM NEVER ASKED FOR. Stock search is full of these: they
+// carry the query's one generic word ("team", "office") plus a subject nobody
+// wanted. They are penalised ONLY when the query did not ask for them, so a film
+// about dogs still gets dogs — the penalty is for a candidate that drags in a
+// subject of its own, not for the subject existing.
+const DISTRACTOR_TOKENS = new Set([
+  "dog", "dogs", "puppy", "cat", "cats", "kitten", "pet", "pets", "animal", "animals",
+  "horse", "bird", "birds", "fish", "flower", "flowers", "wedding", "bride", "baby",
+  "christmas", "halloween", "toy", "toys", "cartoon", "portrait", "selfie", "model",
+  "beach", "sunset", "landscape", "mountain", "forest", "food", "pizza",
+  // Observed live: "automatic expense tracking for freelancers" returned railway
+  // tracks and car tracks at ranks 2-4, all on the word "track". Stock search has
+  // no word senses, so the wrong sense has to be paid for somewhere.
+  "railway", "railroad", "rail", "train", "car", "vehicle", "motorcycle", "truck",
+]);
+
 // `styleKeywords` (optional) are the active pack's style words (e.g. ["neon",
 // "retro"] for vapor-chrome). When supplied, a candidate whose tags carry those
 // words is rewarded — on-brand imagery ranks above generic matches — without
 // rejecting anything. Scoring is unchanged when no style context is passed.
-function scoreCandidate(query, c, styleKeywords) {
+function scoreCandidate(query, c, styleKeywords, subject) {
   const q = tokenize(query);
   const text = tokenize([c.tags, c.title, c.alt].filter(Boolean).join(" "));
   let relevance;
@@ -348,23 +395,44 @@ function scoreCandidate(query, c, styleKeywords) {
   // ranking intact. Half of one matched word instead: an unlabelled candidate
   // still ranks above a labelled MISmatch (0) and below any real hit.
   else if (!text.length) relevance = 0.5 / q.length;    // provider gave no keywords
-  else relevance = q.filter((w) => text.includes(w)).length / q.length;
+  else relevance = q.filter((w) => text.some((t) => tokensAgree(w, t))).length / q.length;
   const longEdge = Math.max(Number(c.width) || 0, Number(c.height) || 0);
   const quality = longEdge > 0 ? Math.min(1, longEdge / 1920) : 0.4;
   const sk = Array.isArray(styleKeywords) ? styleKeywords.map((w) => String(w).toLowerCase()) : [];
-  const styleMatch = (sk.length && text.length) ? sk.filter((w) => text.includes(w)).length / sk.length : 0;
-  const score = sk.length
-    ? relevance * 0.5 + quality * 0.25 + styleMatch * 0.25
-    : relevance * 0.65 + quality * 0.35; // exact legacy behaviour with no style context
-  return { score, relevance, longEdge, styleMatch };
+  const styleMatch = (sk.length && text.length) ? sk.filter((w) => text.some((t) => tokensAgree(w, t))).length / sk.length : 0;
+  // A subject the candidate brought that the query never asked for. One is a
+  // coincidence; three ("woman dog portrait") is a different picture entirely.
+  const distractors = text.filter((t) => DISTRACTOR_TOKENS.has(t) && !q.some((w) => tokensAgree(w, t))).length;
+  const distractorFactor = Math.max(0.45, 1 - 0.25 * distractors);
+  // RESOLUTION IS A TIE-BREAKER, NOT A THIRD OF THE VERDICT. At the old 0.35
+  // weight a 1920px "kitten cat pet animal" scored 0.350 against a 1280px exact
+  // match's 0.396 — near-parity for an image with nothing to do with the film,
+  // and an outright win whenever the relevant candidate was the smaller file.
+  // Sharpness matters, but it cannot buy relevance; MIN_LONG_EDGE below is the
+  // real floor and it still drops genuinely soft images.
+  // THE FILM'S SUBJECT BELONGS IN THE RANKING, NOT IN THE SEARCH STRING. It used
+  // to be glued onto the front of every query ("laptop showing note-taking
+  // software ui" + the scene's own words + the pack's style words = a 14-word
+  // string), which buys nothing from a stock search and costs a great deal: the
+  // relevance denominator becomes the whole soup, so a candidate that nails the
+  // scene scores 4/14 and ties with everything else. Scored here instead, it
+  // keeps assets on-topic without drowning the thing the scene actually needs.
+  const subjTokens = tokenize(subject).filter((w) => !q.some((x) => tokensAgree(x, w)));
+  const subjectAffinity = (subjTokens.length && text.length)
+    ? subjTokens.filter((w) => text.some((t) => tokensAgree(w, t))).length / subjTokens.length
+    : 0;
+  const score = ((sk.length
+    ? relevance * 0.62 + quality * 0.18 + styleMatch * 0.20
+    : relevance * 0.80 + quality * 0.20) + subjectAffinity * 0.12) * distractorFactor;
+  return { score, relevance, longEdge, styleMatch, distractors, subjectAffinity };
 }
 
 // Best-first ordering. Drops candidates too small to look good full-bleed, but
 // keeps them if that would leave nothing (a filled scene beats an empty one).
-function rankCandidates(query, candidates, styleKeywords) {
+function rankCandidates(query, candidates, styleKeywords, subject) {
   const scored = (candidates || [])
     .filter((c) => c && c.url)
-    .map((c) => ({ c, ...scoreCandidate(query, c, styleKeywords) }))
+    .map((c) => ({ c, ...scoreCandidate(query, c, styleKeywords, subject) }))
     .sort((a, b) => b.score - a.score);
   const sharp = scored.filter((s) => s.longEdge === 0 || s.longEdge >= MIN_LONG_EDGE);
   return (sharp.length ? sharp : scored).map((s) => s.c);

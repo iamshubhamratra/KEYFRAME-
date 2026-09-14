@@ -158,6 +158,7 @@ function shape(j) {
     usedFallback: j.used_fallback === 1,
     finalAttempt: j.final_attempt || null,
     composeMode: j.compose_mode || null,
+    pace: j.pace || null, // null on pre-pacing rows — consumers resolve that to `normal`
     audioNotes: j.audio_notes || null,
     usage: j.usage || null,
     stageTimings: j.stage_timings || null,
@@ -240,6 +241,12 @@ module.exports = {
       // Per-video finish: "premium" = LLM composer (scene-kit fallback),
       // "standard" = deterministic scene-kit, null = server default.
       compose_mode: job.composeMode === "premium" || job.composeMode === "standard" ? job.composeMode : null,
+      // How densely the film is told ("relaxed"|"normal"|"fast"|"veryFast" —
+      // see services/pacing.js). The routes have already validated it against
+      // config.pacing. Rows written before the feature carry no pace at all;
+      // pacing.resolve() reads a missing one as `normal`, which is exactly what
+      // those films were made at, so nothing is backfilled or migrated.
+      pace: job.pace || null,
       brief: null,
       script: null,
       script_warnings: null,
@@ -388,6 +395,17 @@ module.exports = {
   setValidationReport(id, report) {
     const j = jobs.get(id); if (!j) return;
     j.validation_report = report || null;
+    scheduleWrite();
+  },
+
+  // Pacing report (services/pacing.js, written by the graph) — what the chosen
+  // pace TARGETED (scene seconds, cut seconds, word budget) against what the
+  // finished film actually delivered, plus every clamp the engine had to apply.
+  // Pace is the one feature whose failure is invisible in the artifact — a film
+  // that ignored "fast" is still a valid film — so the numbers are recorded.
+  setPacingReport(id, report) {
+    const j = jobs.get(id); if (!j) return;
+    j.pacing_report = report || null;
     scheduleWrite();
   },
 

@@ -27,6 +27,26 @@
   @keyframes kf2-spin { to { transform: rotate(360deg); } }
   @keyframes kf2-grain { 0% { transform: translate(0, 0); } 25% { transform: translate(-2%, 1%); } 50% { transform: translate(1%, -2%); } 75% { transform: translate(-1%, 2%); } 100% { transform: translate(2%, -1%); } }
   @media (prefers-reduced-motion: reduce) { * { animation-duration: .001s !important; } }
+  video { background: #0d0b07; }
+  [data-kf-card] { outline: none; }
+  [data-kf-card] video { transition: transform .9s cubic-bezier(.16,1,.3,1); }
+  [data-kf-card]:hover video { transform: scale(1.045); }
+  [data-kf-card] [data-kf-use] { opacity: 0; transform: translateY(6px); transition: opacity .3s ease, transform .3s ease; }
+  [data-kf-card]:hover [data-kf-use], [data-kf-card]:focus-visible [data-kf-use] { opacity: 1; transform: none; }
+  @media (hover: none) { [data-kf-card] [data-kf-use] { opacity: 1; transform: none; } }
+  [data-wall-grid] { display: grid; gap: 14px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  [data-reel-grid] { display: grid; gap: 14px; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  @media (max-width: 1000px) {
+    [data-wall-grid] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    [data-wall-grid] > :nth-child(9) { display: none; }
+    [data-reel-grid] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @media (max-width: 640px) {
+    [data-ba-long] { display: none !important; }
+    [data-wall-grid] { grid-template-columns: 1fr; }
+    [data-wall-grid] > :nth-child(n+7) { display: none; }
+    [data-reel-grid] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
   @media (max-width: 860px) {
     [data-demo-grid] { grid-template-columns: 1fr !important; }
     [data-crew-hd], [data-crew-row] { grid-template-columns: 44px 1.5fr .9fr !important; }
@@ -134,8 +154,9 @@
                 <span onClick="{{ c.pick }}" style="cursor: pointer; font-family: 'IBM Plex Mono'; font-size: 10px; letter-spacing: .08em; padding: 7px 12px; border-radius: 999px; border: 1px solid {{ c.bord }}; color: {{ c.col }}; background: {{ c.bg }}; transition: all .3s;">{{ c.label }}</span>
               </sc-for>
             </div>
-            <div style="padding: 14px 16px; border-radius: 12px; background: #14110c; border: 1px solid rgba(242,237,226,.1); font-family: 'IBM Plex Mono'; font-size: 13px; color: #f2ede2; min-height: 42px; display: flex; align-items: center; gap: 2px;">
-              <span data-demo-input></span><span style="width: 8px; height: 16px; background: var(--mag); animation: kf2-blink 1s steps(1) infinite;"></span>
+            <div style="padding: 12px 16px 14px; border-radius: 12px; background: #14110c; border: 1px solid rgba(242,237,226,.1); font-family: 'IBM Plex Mono'; font-size: 13px; line-height: 1.6; color: #f2ede2; min-height: 126px; box-sizing: border-box;">
+              <span style="display: block; font-size: 9px; letter-spacing: .22em; color: #7d766a; margin-bottom: 6px;">PROMPT</span>
+              <span data-demo-input></span><span style="display: inline-block; vertical-align: -3px; width: 8px; height: 16px; margin-left: 2px; background: var(--mag); animation: kf2-blink 1s steps(1) infinite;"></span>
             </div>
             <div style="margin-top: 18px; display: grid; gap: 8px;">
               <div style="display: flex; align-items: center; gap: 10px;">
@@ -167,14 +188,29 @@
             </div>
           </div>
 
-          <div style="position: relative; min-height: 300px; background: #0d0b07;">
-            <div data-demo-frame="0" style="position: absolute; inset: 0; opacity: 1; transition: opacity .5s; background: linear-gradient(135deg, #e832a8, #6b1050 55%, #2a0a20); background-size: 170% 170%; animation: kf2-drift 8s linear infinite;"></div>
-            <div data-demo-frame="1" style="position: absolute; inset: 0; opacity: 0; transition: opacity .5s; background: linear-gradient(135deg, #23c8e0, #10505c 55%, #081f24); background-size: 170% 170%; animation: kf2-drift 9s linear infinite;"></div>
-            <div data-demo-frame="2" style="position: absolute; inset: 0; opacity: 0; transition: opacity .5s; background: linear-gradient(135deg, #ffb03a, #8a4d0e 55%, #2e1a05); background-size: 170% 170%; animation: kf2-drift 7s linear infinite;"></div>
-            <div style="position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(0,0,0,.18) 3px 4px); pointer-events: none;"></div>
-            <div style="position: absolute; top: 12px; left: 14px; font-family: 'IBM Plex Mono'; font-size: 9px; letter-spacing: .2em; color: rgba(255,255,255,.85); display: flex; align-items: center; gap: 6px;"><span style="width: 7px; height: 7px; border-radius: 50%; background: #ff4d3c; animation: kf2-blink 1s steps(1) infinite;"></span>PREVIEW</div>
-            <div style="position: absolute; left: 14px; right: 14px; bottom: 14px; text-align: center;">
-              <span data-demo-cap style="display: inline-block; font-family: 'Bricolage Grotesque'; font-weight: 700; font-size: 15px; color: #fff; background: rgba(0,0,0,.55); padding: 6px 12px; border-radius: 8px; backdrop-filter: blur(4px);"></span>
+          <!-- program monitor: the REAL clip for the prompt on the left -->
+          <div style="padding: 18px; display: flex; flex-direction: column; justify-content: center; gap: 12px; background: #0d0b07; min-width: 0;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; font-family: 'IBM Plex Mono'; font-size: 9px; letter-spacing: .2em; color: rgba(242,237,226,.85);">
+              <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="width: 7px; height: 7px; border-radius: 50%; background: #ff4d3c; animation: kf2-blink 1s steps(1) infinite;"></span>PROGRAM</span>
+              <span data-demo-tc style="color: var(--mag); letter-spacing: .1em;">00:00 / 00:10</span>
+            </div>
+            <div data-demo-pane style="position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 10px; overflow: hidden; background: #000; box-shadow: 0 0 0 1px rgba(242,237,226,.1), 0 20px 50px rgba(0,0,0,.45);">
+              <sc-for list="{{ demoClips }}" as="d" hint-placeholder-count="4">
+                <div data-demo-frame="{{ d.i }}" style="position: absolute; inset: 0; opacity: 0; transition: opacity .6s ease;">
+                  <div style="position: absolute; inset: -40px; background-image: url({{ d.poster }}); background-size: cover; background-position: center; filter: blur(26px) brightness(.45);"></div>
+                  <video data-dsrc="{{ d.src }}" poster="{{ d.poster }}" preload="none" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: {{ d.fit }}; background: transparent;"></video>
+                </div>
+              </sc-for>
+              <div data-demo-render style="position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; background: rgba(13,11,7,.6); backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px); transition: opacity .5s ease;">
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+                  <span style="width: 34px; height: 34px; border-radius: 50%; border: 2px solid rgba(242,237,226,.16); border-top-color: var(--mag); animation: kf2-spin .9s linear infinite;"></span>
+                  <span data-demo-render-label style="font-family: 'IBM Plex Mono'; font-size: 10px; letter-spacing: .24em; color: #f2ede2;">WAITING FOR A PROMPT</span>
+                </div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+              <span style="font-family: 'IBM Plex Mono'; font-size: 10px; letter-spacing: .12em; color: #b0a795;">{{ demoNow.source }}</span>
+              <span data-kf-pack="{{ demoNow.pack }}" style="cursor: pointer; font-family: 'IBM Plex Mono'; font-size: 10px; letter-spacing: .12em; color: #17130e; background: {{ demoNow.color }}; padding: 6px 12px; border-radius: 999px; white-space: nowrap; transition: transform .25s cubic-bezier(.16,1,.3,1);" style-hover="transform: translateY(-2px);">USE {{ demoNow.packName }} →</span>
             </div>
           </div>
         </div>
@@ -194,22 +230,17 @@
           <div style="font-family: 'IBM Plex Mono'; font-size: 10px; letter-spacing: .24em; color: var(--dim);">BEFORE — THE BRIEF.DOCX</div>
           <div style="margin-top: 14px; font-family: 'IBM Plex Mono'; font-size: clamp(11px,1.3vw,14px); line-height: 1.9; color: #4d463b;">
             “ok so we need smth for the launch??<br>
-            — dog food but PREMIUM. zoomies energy<br>
+            — fetch club = off-leash dog club. zoomies energy<br>
             — ceo wants ‘cinematic’ (??)<br>
             — deadline friday. no budget. no editor.<br>
-            — maybe our dog toby as the star lol”
+            — maybe a dog as the star lol”
           </div>
-          <div style="position: absolute; bottom: clamp(14px,3vw,36px); left: clamp(14px,3vw,40px); font-family: 'IBM Plex Mono'; font-size: 10px; color: #b0a795; letter-spacing: .18em;">ATTACHED: toby_final_FINAL_v3.mp4</div>
+          <div style="position: absolute; bottom: clamp(14px,3vw,36px); left: clamp(14px,3vw,40px); font-family: 'IBM Plex Mono'; font-size: 10px; color: #b0a795; letter-spacing: .18em;">ATTACHED: fetchclub_logo_FINAL_v3.png</div>
         </div>
-        <div data-ba-after style="position: absolute; inset: 0; clip-path: inset(0 0 0 55%);">
-          <div style="position: absolute; inset: 0; background: linear-gradient(120deg, #e832a8, #7a1a5e 40%, #23c8e0 90%); background-size: 200% 200%; animation: kf2-drift 10s linear infinite;"></div>
-          <div style="position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent 0 4px, rgba(0,0,0,.14) 4px 5px);"></div>
-          <div style="position: absolute; left: 0; right: 0; height: 34%; background: linear-gradient(rgba(255,255,255,.28), transparent); animation: kf2-scan 4s ease-in-out infinite;"></div>
-          <div style="position: absolute; top: clamp(14px,3vw,40px); left: clamp(14px,3vw,40px); font-family: 'IBM Plex Mono'; font-size: 10px; letter-spacing: .24em; color: rgba(255,255,255,.9);">AFTER — TOBY_LAUNCH.MP4 · 0:30</div>
-          <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); text-align: center;">
-            <div style="font-family: 'Bricolage Grotesque'; font-weight: 800; font-size: clamp(26px,4vw,54px); color: #fff; letter-spacing: -.02em; line-height: .95; text-shadow: 0 6px 30px rgba(0,0,0,.35);">ZOOMIES.<br>NOW IN 4K.</div>
-            <div style="margin-top: 10px; font-family: 'IBM Plex Mono'; font-size: 11px; letter-spacing: .3em; color: rgba(255,255,255,.85);">VOICED · SCORED · CAPTIONED</div>
-          </div>
+        <div data-ba-after style="position: absolute; inset: 0; clip-path: inset(0 0 0 55%); background: #0d0b07;">
+          <video data-src="/landing/cut-fetch-club.mp4" poster="/landing/cut-fetch-club.jpg" preload="none" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none;"></video>
+          <div style="position: absolute; top: clamp(12px,2.4vw,30px); right: clamp(12px,2.4vw,30px); font-family: 'IBM Plex Mono'; font-size: 10px; letter-spacing: .2em; color: #fff; background: rgba(13,11,7,.74); padding: 6px 12px; border-radius: 999px; backdrop-filter: blur(6px); white-space: nowrap;">AFTER<span data-ba-long> — FETCH_CLUB.MP4</span></div>
+          <div data-ba-long style="position: absolute; right: clamp(12px,2.4vw,30px); bottom: clamp(12px,2.4vw,30px); font-family: 'IBM Plex Mono'; font-size: 10px; letter-spacing: .22em; color: #17130e; background: var(--mag); padding: 6px 12px; border-radius: 999px; white-space: nowrap;">VOICED · SCORED · CAPTIONED</div>
         </div>
         <div data-ba-handle style="position: absolute; top: 0; bottom: 0; left: 55%; width: 0; z-index: 5;">
           <div style="position: absolute; top: 0; bottom: 0; left: -1.5px; width: 3px; background: #fff; box-shadow: 0 0 0 1px rgba(23,19,14,.2);"></div>
@@ -250,24 +281,52 @@
     <div style="max-width: 1400px; margin: 0 auto;">
       <div data-reveal="1" style="padding: 0 clamp(4px,2vw,32px); display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
         <div>
-          <span style="font-family: 'IBM Plex Mono'; font-size: 11px; letter-spacing: .3em; color: var(--cy); border: 1px solid rgba(35,200,224,.4); padding: 6px 12px; border-radius: 999px;">SC 05 · TONIGHT’S PREMIERES</span>
+          <span style="font-family: 'IBM Plex Mono'; font-size: 11px; letter-spacing: .3em; color: var(--cy); border: 1px solid rgba(35,200,224,.4); padding: 6px 12px; border-radius: 999px;">SC 05 · THE TEMPLATE WALL</span>
           <h2 style="font-family: 'Bricolage Grotesque'; font-weight: 800; font-size: clamp(34px,5.4vw,72px); line-height: .95; letter-spacing: -.03em; margin: 18px 0 0; color: #f2ede2;">Fresh off the <span style="color: var(--mag);">render farm.</span></h2>
+          <p style="max-width: 560px; margin: 16px 0 0; font-size: clamp(15px,1.4vw,17px); line-height: 1.55; color: #9a9284;">Real clips from KEYFRAME templates — 220+ looks, each ready for your prompt. Pick one and the studio opens in that style.</p>
         </div>
-        <a href="KEYFRAME.dc.html" style="text-decoration: none; font-family: 'IBM Plex Mono'; font-size: 11px; letter-spacing: .14em; color: #f2ede2; border-bottom: 2px solid var(--mag); padding-bottom: 4px;">FULL GALLERY →</a>
+        <div style="display: flex; gap: 22px; flex-wrap: wrap;">
+          <a href="KEYFRAME.dc.html" style="text-decoration: none; font-family: 'IBM Plex Mono'; font-size: 11px; letter-spacing: .14em; color: #f2ede2; border-bottom: 2px solid var(--cy); padding-bottom: 4px;">ALL TEMPLATES →</a>
+          <a href="KEYFRAME.dc.html" style="text-decoration: none; font-family: 'IBM Plex Mono'; font-size: 11px; letter-spacing: .14em; color: #f2ede2; border-bottom: 2px solid var(--mag); padding-bottom: 4px;">FULL GALLERY →</a>
+        </div>
       </div>
-      <div style="margin-top: 40px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(330px,100%), 1fr)); gap: 14px;">
-        <sc-for list="{{ wall }}" as="f" hint-placeholder-count="6">
-          <div data-reveal="1" data-reveal-delay="{{ f.delay }}" style="position: relative; border-radius: 16px; overflow: hidden; aspect-ratio: 16/9.4; cursor: pointer; background: {{ f.grad }}; background-size: 190% 190%; animation: kf2-drift {{ f.dur }} linear infinite; transition: transform .45s cubic-bezier(.16,1,.3,1), box-shadow .45s ease;" style-hover="transform: scale(1.025); box-shadow: 0 26px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(242,237,226,.2); z-index: 2;">
-            <div style="position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent 0 4px, rgba(0,0,0,.15) 4px 5px);"></div>
-            <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.25), transparent 30%, transparent 55%, rgba(0,0,0,.55));"></div>
-            <div style="position: absolute; top: 12px; left: 14px; font-family: 'IBM Plex Mono'; font-size: 9px; letter-spacing: .2em; color: rgba(255,255,255,.9); background: rgba(0,0,0,.4); padding: 4px 10px; border-radius: 999px; backdrop-filter: blur(4px);">{{ f.cat }}</div>
-            <div style="position: absolute; top: 12px; right: 14px; font-family: 'IBM Plex Mono'; font-size: 10px; color: rgba(255,255,255,.85);">{{ f.dur2 }}</div>
-            <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 58px; height: 58px; border-radius: 50%; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.5); backdrop-filter: blur(6px); display: grid; place-items: center;">
-              <span style="width: 0; height: 0; border-left: 16px solid #fff; border-top: 10px solid transparent; border-bottom: 10px solid transparent; margin-left: 5px;"></span>
+      <!-- widescreen: real template clips, muted loops that play while on screen -->
+      <div data-wall-grid style="margin-top: 40px;">
+        <sc-for list="{{ wall }}" as="f" hint-placeholder-count="9">
+          <div data-reveal="1" data-reveal-delay="{{ f.delay }}" data-kf-card="1" data-kf-pack="{{ f.pack }}" role="button" tabIndex="0" aria-label="Start a film with the {{ f.packName }} template" style="position: relative; border-radius: 16px; overflow: hidden; aspect-ratio: 16/9; cursor: pointer; background: #17130e; transition: transform .45s cubic-bezier(.16,1,.3,1), box-shadow .45s ease;" style-hover="transform: translateY(-4px); box-shadow: 0 26px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(242,237,226,.22); z-index: 2;">
+            <video data-src="{{ f.src }}" poster="{{ f.poster }}" preload="none" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;"></video>
+            <div style="position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(0,0,0,.42), transparent 26%, transparent 52%, rgba(0,0,0,.8));"></div>
+            <div style="position: absolute; top: 12px; left: 14px; font-family: 'IBM Plex Mono'; font-size: 9px; letter-spacing: .2em; color: rgba(255,255,255,.92); background: rgba(0,0,0,.5); padding: 4px 10px; border-radius: 999px; backdrop-filter: blur(4px);">{{ f.cat }}</div>
+            <div style="position: absolute; top: 12px; right: 14px; font-family: 'IBM Plex Mono'; font-size: 10px; color: rgba(255,255,255,.9); background: rgba(0,0,0,.5); padding: 4px 9px; border-radius: 999px;">{{ f.dur2 }}</div>
+            <div style="position: absolute; left: 14px; right: 14px; bottom: 12px; display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; pointer-events: none;">
+              <div style="min-width: 0;">
+                <div style="font-family: 'IBM Plex Mono'; font-size: 9px; letter-spacing: .22em; color: rgba(255,255,255,.75); margin-bottom: 5px;">TEMPLATE · {{ f.packName }}</div>
+                <h3 style="font-family: 'Bricolage Grotesque'; font-weight: 700; font-size: clamp(16px,1.6vw,20px); color: #fff; margin: 0; line-height: 1.15; letter-spacing: -.01em;">{{ f.t }}</h3>
+              </div>
+              <span data-kf-use style="flex: none; font-family: 'IBM Plex Mono'; font-size: 10px; letter-spacing: .1em; color: #17130e; background: var(--mag); padding: 6px 11px; border-radius: 999px; white-space: nowrap;">USE THIS LOOK →</span>
             </div>
-            <div style="position: absolute; left: 14px; right: 14px; bottom: 12px; display: flex; align-items: flex-end; justify-content: space-between; gap: 10px;">
-              <h3 style="font-family: 'Bricolage Grotesque'; font-weight: 700; font-size: clamp(16px,1.6vw,20px); color: #fff; margin: 0; line-height: 1.15; letter-spacing: -.01em;">{{ f.t }}</h3>
-              <span style="font-family: 'IBM Plex Mono'; font-size: 10px; color: rgba(255,255,255,.8); white-space: nowrap;">▶ {{ f.views }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <!-- vertical: portrait-native templates, shown uncropped -->
+      <div data-reveal="1" style="margin-top: clamp(52px,6vw,76px); padding: 0 clamp(4px,2vw,32px); display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+        <div>
+          <span style="font-family: 'IBM Plex Mono'; font-size: 11px; letter-spacing: .3em; color: var(--mag); border: 1px solid rgba(232,50,168,.45); padding: 6px 12px; border-radius: 999px;">9:16 · REELS · SHORTS · STORIES</span>
+          <h3 style="font-family: 'Bricolage Grotesque'; font-weight: 800; font-size: clamp(26px,3.4vw,44px); line-height: 1; letter-spacing: -.025em; margin: 16px 0 0; color: #f2ede2;">Shot vertical, <span style="color: var(--cy);">not cropped.</span></h3>
+        </div>
+        <span style="font-family: 'IBM Plex Mono'; font-size: 11px; letter-spacing: .14em; color: #9a9284;">100+ VERTICAL LOOKS</span>
+      </div>
+      <div data-reel-grid style="margin-top: 26px;">
+        <sc-for list="{{ reels }}" as="f" hint-placeholder-count="6">
+          <div data-reveal="1" data-reveal-delay="{{ f.delay }}" data-kf-card="1" data-kf-pack="{{ f.pack }}" role="button" tabIndex="0" aria-label="Start a vertical film with the {{ f.packName }} template" style="position: relative; border-radius: 16px; overflow: hidden; aspect-ratio: 9/16; cursor: pointer; background: #17130e; transition: transform .45s cubic-bezier(.16,1,.3,1), box-shadow .45s ease;" style-hover="transform: translateY(-4px); box-shadow: 0 26px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(242,237,226,.22); z-index: 2;">
+            <video data-src="{{ f.src }}" poster="{{ f.poster }}" preload="none" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;"></video>
+            <div style="position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(0,0,0,.35), transparent 18%, transparent 62%, rgba(0,0,0,.85));"></div>
+            <div style="position: absolute; top: 10px; left: 10px; font-family: 'IBM Plex Mono'; font-size: 8px; letter-spacing: .18em; color: rgba(255,255,255,.92); background: rgba(0,0,0,.5); padding: 4px 8px; border-radius: 999px; backdrop-filter: blur(4px);">{{ f.cat }}</div>
+            <div style="position: absolute; left: 12px; right: 12px; bottom: 12px; pointer-events: none;">
+              <div style="font-family: 'IBM Plex Mono'; font-size: 8px; letter-spacing: .2em; color: rgba(255,255,255,.75); margin-bottom: 4px;">{{ f.packName }}</div>
+              <h3 style="font-family: 'Bricolage Grotesque'; font-weight: 700; font-size: clamp(14px,1.3vw,17px); color: #fff; margin: 0; line-height: 1.15; letter-spacing: -.01em;">{{ f.t }}</h3>
+              <span data-kf-use style="display: inline-block; margin-top: 8px; font-family: 'IBM Plex Mono'; font-size: 9px; letter-spacing: .1em; color: #17130e; background: var(--mag); padding: 5px 9px; border-radius: 999px; white-space: nowrap;">USE THIS LOOK →</span>
             </div>
           </div>
         </sc-for>
@@ -381,17 +440,20 @@ class Component extends DCLogic {
   componentDidMount() {
     this._boot = performance.now();
     this._demoT0 = performance.now();
+    this._demoAway = true; // the first time the editor scrolls into view starts a fresh take
     this.applyProps();
     window.addEventListener('resize', this.onResize, { passive: true });
     this.startLoop();
     this.initBA();
+    this.initVideos();
   }
 
-  componentDidUpdate() { this.applyProps(); this.initBA(); }
+  componentDidUpdate() { this.applyProps(); this.initBA(); this.initVideos(); }
 
   componentWillUnmount() {
     window.removeEventListener('resize', this.onResize);
     if (this._raf) cancelAnimationFrame(this._raf);
+    if (this._vio) this._vio.disconnect();
     this._looping = false;
     this.disposeGl();
     this.disposeGl3();
@@ -494,45 +556,134 @@ class Component extends DCLogic {
   };
 
   // ================= DEMO =================
+  // One take per prompt: the prompt types, the tracks assemble, a render bar
+  // fills, then the real clip plays. Each clip ships in /landing (see
+  // web/scripts/build-landing-media.mjs) because this doc is served by the
+  // frontend host and cannot reach the backend's /frames or /videos.
+  // The first three are films KEYFRAME really rendered, shown with the prompt
+  // that was typed; the last is a template preview and says so. `dur` is the
+  // clip's length (the take rolls to the next prompt when it ends).
   demoPrompts = [
-    { text: 'A launch film for our sneaker drop — fast cuts, neon energy', caps: ['Built for the streets.', 'Zero gravity feel.', 'Drops Friday.'] },
-    { text: 'Turn my dog Toby into a movie star, cinematic slow-mo', caps: ['Every hero has four legs.', 'Shot on zoomies.', 'A very good boy. In 4K.'] },
-    { text: 'Explain our app in 30 seconds for busy founders', caps: ['Meetings, minus the meeting.', 'One tap. Done.', 'Try it free today.'] },
+    { label: 'PRODUCT LAUNCH', color: '#e832a8', pack: 'brightlife', packName: 'Bright Life', dur: 14.3,
+      text: 'Keyframe turns a single idea into a finished narrated video: AI script generation, asset intelligence, automated voiceover and professional motion design.',
+      src: '/landing/demo-keyframe-launch.mp4', poster: '/landing/demo-keyframe-launch.jpg', source: '▶ RENDERED BY KEYFRAME FROM THIS PROMPT' },
+    { label: 'SKYDIVE REEL · 9:16', color: '#23c8e0', pack: 'sky-ladder', packName: 'Sky Ladder', dur: 10.4, portrait: true,
+      text: 'Sky Ladder is a skydiving school: tandem jumps from 13,000 feet, sixty seconds of freefall, canopy by 4,000, and a three-check safety ritual before every door opening.',
+      src: '/landing/demo-sky-ladder.mp4', poster: '/landing/demo-sky-ladder.jpg', source: '▶ RENDERED BY KEYFRAME FROM THIS PROMPT · 9:16' },
+    { label: 'FINANCE EXPLAINER', color: '#ffb03a', pack: 'cartesian', packName: 'Cartesian', dur: 7.3,
+      text: 'A short explainer about how compound interest quietly builds wealth over decades, for people in their twenties who think investing is something to start later.',
+      src: '/landing/demo-compound-interest.mp4', poster: '/landing/demo-compound-interest.jpg', source: '▶ RENDERED BY KEYFRAME FROM THIS PROMPT' },
+    { label: 'CREATOR PLATFORM', color: '#b9f24a', pack: 'genesis', packName: 'Genesis', dur: 14.0,
+      text: 'A cinematic launch film for Genesis, a platform for makers: a glowing night skyline, everything connecting, glass feature cards.',
+      src: '/landing/demo-genesis.mp4', poster: '/landing/demo-genesis.jpg', source: '▶ TEMPLATE PREVIEW — GENESIS' },
+  ];
+
+  // SC 05 wall — real template clips. `pack` is the server slug a click hands to
+  // the studio; `packName` is the label shown on the card.
+  wallFilms = [
+    { t: 'Ideas Hit Like Lightning', cat: 'TECH LAUNCH', dur2: '0:30', pack: 'voltage', packName: 'Voltage', src: '/landing/wall-voltage.mp4', poster: '/landing/wall-voltage.jpg' },
+    { t: 'A Poster That Came Alive', cat: 'DESIGN STUDIO', dur2: '0:30', pack: 'bauhaus-riot', packName: 'Bauhaus Riot', src: '/landing/wall-bauhaus-riot.mp4', poster: '/landing/wall-bauhaus-riot.jpg' },
+    { t: 'T-Minus One Sentence', cat: 'COUNTDOWN', dur2: '0:30', pack: 'ignition', packName: 'Ignition', src: '/landing/wall-ignition.mp4', poster: '/landing/wall-ignition.jpg' },
+    { t: 'Out of the Oven', cat: 'PIZZERIA · LONG FORM', dur2: '2–5 MIN', pack: 'blistered-crust', packName: 'Blistered Crust', src: '/landing/wall-blistered-crust.mp4', poster: '/landing/wall-blistered-crust.jpg' },
+    { t: 'Every Idea Refracts', cat: 'EVENTS', dur2: '0:30', pack: 'kaleido', packName: 'Kaleido', src: '/landing/wall-kaleido.mp4', poster: '/landing/wall-kaleido.jpg' },
+    { t: 'Swim Before Breakfast', cat: 'SWIM CLUB · LONG FORM', dur2: '2–5 MIN', pack: 'tide-table', packName: 'Tide Table', src: '/landing/wall-tide-table.mp4', poster: '/landing/wall-tide-table.jpg' },
+    { t: 'Told in Thread', cat: 'CRAFTS', dur2: '0:30', pack: 'folk-stitch', packName: 'Folk Stitch', src: '/landing/wall-folk-stitch.mp4', poster: '/landing/wall-folk-stitch.jpg' },
+    { t: 'Two Inks, One Poster', cat: 'PRINT SHOP', dur2: '0:30', pack: 'riso-press', packName: 'Riso Press', src: '/landing/wall-riso-press.mp4', poster: '/landing/wall-riso-press.jpg' },
+    { t: 'Lights Out', cat: 'MOTORSPORT · LONG FORM', dur2: '2–5 MIN', pack: 'apex-lap', packName: 'Apex Lap', src: '/landing/wall-apex-lap.mp4', poster: '/landing/wall-apex-lap.jpg' },
+  ];
+  reelFilms = [
+    { t: 'Sixty Seconds of Freefall', cat: 'SKYDIVING', pack: 'sky-ladder', packName: 'Sky Ladder', src: '/landing/reel-sky-ladder.mp4', poster: '/landing/reel-sky-ladder.jpg' },
+    { t: 'Par Avion', cat: 'STATIONERY', pack: 'postmark', packName: 'Postmark', src: '/landing/reel-postmark.mp4', poster: '/landing/reel-postmark.jpg' },
+    { t: 'Click, Stack, Play', cat: 'TOYS', pack: 'toybox', packName: 'Toybox', src: '/landing/reel-toybox.mp4', poster: '/landing/reel-toybox.jpg' },
+    { t: 'Under the Big Top', cat: 'EVENTS', pack: 'circus', packName: 'Circus', src: '/landing/reel-circus.mp4', poster: '/landing/reel-circus.jpg' },
+    { t: 'Next Stop, Mars', cat: 'SPACE', pack: 'redshift', packName: 'Redshift', src: '/landing/reel-redshift.mp4', poster: '/landing/reel-redshift.jpg' },
+    { t: 'Rep by Rep', cat: 'FITNESS', pack: 'repzone', packName: 'Repzone', src: '/landing/reel-repzone.mp4', poster: '/landing/reel-repzone.jpg' },
   ];
 
   demoTick(now) {
     const root = this.rootRef.current;
-    if (!root) return;
-    const t = ((now - this._demoT0) / 1000) % 9;
-    const pr = this.demoPrompts[this.state.prompt];
+    if (!root || !this.demoPrompts.length) return;
     const q = (s) => root.querySelector(s);
+    const n = this.demoPrompts.length;
+    const idx = this.state.prompt % n;
+    const pr = this.demoPrompts[idx];
+
+    // Run the take only while the editor is on screen; coming back restarts it
+    // from the typing, so nobody walks in on the last second of a clip.
+    const sec = q('[data-scene="1"]');
+    const box = sec && sec.getBoundingClientRect();
+    if (!box || box.bottom < 0 || box.top > window.innerHeight) {
+      if (!this._demoAway) {
+        this._demoAway = true;
+        root.querySelectorAll('[data-dsrc]').forEach((v) => { if (!v.paused) v.pause(); });
+      }
+      return;
+    }
+    if (this._demoAway) { this._demoAway = false; this._demoT0 = now; }
+
+    const TYPE = 2.2, REVEAL = 4.6, L = Math.max(4, pr.dur || 10);
+    const still = this.reducedMotion();
+    let t = (now - this._demoT0) / 1000;
+    if (still) t = REVEAL + 0.5;
+    else if (t > REVEAL + L - 0.15) {
+      // take over — roll the next prompt
+      this._demoT0 = now;
+      this.setState({ prompt: (idx + 1) % n });
+      return;
+    }
+
     const inp = q('[data-demo-input]');
     if (inp) {
-      const chars = Math.floor(Math.min(1, t / 1.6) * pr.text.length);
-      const txt = pr.text.slice(0, chars);
+      const txt = pr.text.slice(0, Math.floor(Math.min(1, t / TYPE) * pr.text.length));
       if (inp.textContent !== txt) inp.textContent = txt;
     }
-    const clipT = [1.9, 2.35, 2.8, 3.3, 3.7];
+    const clipT = [2.4, 2.8, 3.2, 3.6, 4.0];
     ['v0', 'v1', 'v2', 'vo', 'mus'].forEach((k, i) => {
       const el = q('[data-clip="' + k + '"]');
       if (el) el.style.transform = 'scaleX(' + (t > clipT[i] ? 1 : 0) + ')';
     });
-    const fi = t < 4.2 ? 0 : t < 5.6 ? 1 : t < 7 ? 2 : 0;
-    for (let i = 0; i < 3; i++) { const f = q('[data-demo-frame="' + i + '"]'); if (f) f.style.opacity = (t > 4.2 && i === fi) || (t <= 4.2 && i === 0) ? '1' : '0'; }
-    const cap = q('[data-demo-cap]');
-    if (cap) {
-      let ct = '';
-      if (t > 4.2) { const ci = Math.min(2, Math.floor((t - 4.2) / 1.4)); const cp = Math.min(1, ((t - 4.2) % 1.4) / 0.7); ct = pr.caps[ci].slice(0, Math.floor(cp * pr.caps[ci].length)); }
-      if (cap.textContent !== ct) cap.textContent = ct;
-      cap.style.opacity = ct ? '1' : '0';
+
+    for (let i = 0; i < n; i++) {
+      const f = q('[data-demo-frame="' + i + '"]');
+      const on = i === idx;
+      if (f && f.style.opacity !== (on ? '1' : '0')) f.style.opacity = on ? '1' : '0';
+      const v = f && f.querySelector('video');
+      if (!v) continue;
+      if (!on) { if (!v.paused) v.pause(); continue; }
+      if (!v.__kfd) {
+        v.__kfd = 1;
+        v.muted = true; v.defaultMuted = true; v.loop = true; v.playsInline = true;
+        v.setAttribute('muted', ''); v.setAttribute('playsinline', '');
+      }
+      // buffer while the prompt types, so the reveal lands on a loaded frame
+      if (!v.getAttribute('src') && v.dataset.dsrc) { v.preload = 'auto'; v.src = v.dataset.dsrc; }
+      if (t < REVEAL) {
+        if (!v.paused) v.pause();
+        if (v.__kfCue !== this._demoT0) { v.__kfCue = this._demoT0; try { v.currentTime = 0; } catch (e) {} }
+      } else if (!still && v.paused && now - (v.__kfTry || 0) > 700) {
+        v.__kfTry = now;
+        const p = v.play(); if (p && p.catch) p.catch(() => {});
+      }
     }
+
+    const prog = Math.min(1, Math.max(0, (t - TYPE) / (REVEAL - TYPE)));
+    const ov = q('[data-demo-render]');
+    if (ov) { const op = t < REVEAL ? '1' : '0'; if (ov.style.opacity !== op) ov.style.opacity = op; }
+    const rl = q('[data-demo-render-label]');
+    if (rl) { const s = t < TYPE ? 'WAITING FOR A PROMPT' : 'RENDERING ' + Math.round(prog * 100) + '%'; if (rl.textContent !== s) rl.textContent = s; }
     const bar = q('[data-demo-bar]');
-    if (bar) bar.style.width = (Math.min(1, Math.max(0, (t - 4.2) / 3.6)) * 100).toFixed(1) + '%';
+    if (bar) bar.style.width = ((t < REVEAL ? prog : Math.min(1, (t - REVEAL) / L)) * 100).toFixed(1) + '%';
     const done = q('[data-demo-done]');
-    if (done) done.style.opacity = t > 7.9 ? '1' : '0';
+    if (done) done.style.opacity = t >= REVEAL ? '1' : '0';
+    const tc = q('[data-demo-tc]');
+    if (tc) {
+      const mmss = (s) => '00:' + String(Math.floor(s)).padStart(2, '0');
+      const s = mmss(t >= REVEAL ? Math.min(L, t - REVEAL) : 0) + ' / ' + mmss(L);
+      if (tc.textContent !== s) tc.textContent = s;
+    }
     const status = q('[data-demo-status]');
     if (status) {
-      const stx = t < 1.7 ? '● LISTENING' : t < 4.2 ? '● ASSEMBLING' : t < 7.9 ? '● PREVIEW' : '● EXPORTED';
+      const stx = still ? '● EXPORTED' : t < TYPE ? '● LISTENING' : t < REVEAL ? '● ASSEMBLING' : '● NOW PLAYING';
       if (status.textContent !== stx) status.textContent = stx;
     }
   }
@@ -557,6 +708,43 @@ class Component extends DCLogic {
     ba.addEventListener('pointermove', (e) => { if (down) set(e.clientX); });
     ba.addEventListener('pointerup', () => { down = false; });
     ba.addEventListener('pointercancel', () => { down = false; });
+  }
+
+  // ================= REAL CLIPS (wall, reels, the cut) =================
+  // Every landing clip is a muted loop that plays only while it is on screen.
+  // The dc runtime renders through React, which does not reliably carry a bare
+  // `muted` attribute to the element — and an unmuted autoplay is blocked — so
+  // muting, src and play() are all applied here instead of in markup. src is
+  // assigned on first approach, so clips nobody scrolls to are never downloaded.
+  reducedMotion() {
+    return this.props.motion === 'calm' || !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
+
+  initVideos() {
+    const root = this.rootRef.current;
+    if (!root) return;
+    const still = this.reducedMotion();
+    if (!this._vio && 'IntersectionObserver' in window) {
+      this._vio = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          const v = e.target;
+          if (e.isIntersecting) {
+            if (!v.getAttribute('src') && v.dataset.src) v.src = v.dataset.src;
+            if (!this.reducedMotion()) { const p = v.play(); if (p && p.catch) p.catch(() => {}); }
+          } else if (!v.paused) v.pause();
+        });
+      }, { rootMargin: '240px 0px', threshold: 0.01 });
+    }
+    root.querySelectorAll('video[data-src]').forEach((v) => {
+      if (v.__kfv === v.dataset.src) return;
+      const swapped = !!v.__kfv;
+      v.__kfv = v.dataset.src;
+      v.muted = true; v.defaultMuted = true; v.loop = true; v.playsInline = true;
+      v.setAttribute('muted', ''); v.setAttribute('playsinline', '');
+      if (swapped) { v.removeAttribute('src'); v.load(); }
+      if (this._vio) { this._vio.unobserve(v); this._vio.observe(v); }
+      else { v.src = v.dataset.src; if (!still) { const p = v.play(); if (p && p.catch) p.catch(() => {}); } }
+    });
   }
 
   // ================= THREE — THE SET =================
@@ -916,7 +1104,7 @@ class Component extends DCLogic {
       const door3 = rbox(3.0, 2.1, .18, .2, mDark); door3.position.set(0, 0, -.9); body.add(door3);
       const hinge3 = new T.Mesh(new T.BoxGeometry(.12, 1.7, .1), mMetal); hinge3.position.set(1.42, 0, -.88); body.add(hinge3);
       [[1.55, .96], [1.55, -.97], [-1.55, .96], [-1.55, -.97]].forEach((sp2) => { const scw = cylz(.05, .07, mMetalLight, 20); scw.position.set(sp2[0], sp2[1], .78); body.add(scw); });
-      addPart(body, [0, -.08, 0], [0, -1.55, -.25], 3, { n: '04', t: 'DESIGN', tag: '10 FRAME PACKS', body: 'A frame pack lays down color, type and composition laws — art direction with opinions.', side: 'dn', lox: 100, byc: 160, c: '#b9f24a', tx: '#6fae12', ci: 0xb9f24a });
+      addPart(body, [0, -.08, 0], [0, -1.55, -.25], 3, { n: '04', t: 'DESIGN', tag: '220+ TEMPLATES', body: 'A frame pack lays down color, type and composition laws — art direction with opinions.', side: 'dn', lox: 100, byc: 160, c: '#b9f24a', tx: '#6fae12', ci: 0xb9f24a });
 
       const lens3 = new T.Group();
       const mount3 = cylz(1.06, .14, mMetal); mount3.position.z = .78; lens3.add(mount3);
@@ -1142,18 +1330,9 @@ class Component extends DCLogic {
       { n: '01', t: 'Ingest', body: 'A prompt, a URL, or raw footage — it opens a real browser, reads, watches and listens.', tag: 'INPUT: ANYTHING', color: '#e832a8', chip: '#e832a8' },
       { n: '02', t: 'Brief', body: 'It plays back what it understood — audience, facts, tone. Nothing invented, everything sourced.', tag: 'YOU APPROVE', color: '#23c8e0', chip: '#23c8e0' },
       { n: '03', t: 'Script', body: 'A scene-by-scene screenplay lands in your lap. Change a line and that exact line is spoken.', tag: 'THE ONE PAUSE', color: '#ffb03a', chip: '#ffb03a' },
-      { n: '04', t: 'Design', body: 'A frame pack lays down color, type and composition laws — art direction with opinions.', tag: '10 PACKS', color: '#b9f24a', chip: '#b9f24a' },
+      { n: '04', t: 'Design', body: 'A frame pack lays down color, type and composition laws — art direction with opinions.', tag: '220+ PACKS', color: '#b9f24a', chip: '#b9f24a' },
       { n: '05', t: 'Assets', body: 'Voice in 40+ languages, licensed score, captions cut to the frame — or your own library.', tag: 'VOICE + MUSIC', color: '#2b5bff', chip: '#8fb0ff' },
       { n: '06', t: 'Render', body: 'A frame-perfect MP4 with a matching .srt, in 16:9, 9:16 or 1:1. Premiere-ready.', tag: 'OUTPUT: A FILM', color: '#ff6a3c', chip: '#ff6a3c' },
-    ];
-
-    const wall = [
-      { t: 'Voltage — Synth Drop', cat: 'MUSIC', dur: '7s', dur2: '0:18', views: '34k', grad: 'linear-gradient(135deg,#e832a8,#5a1043,#17130e)', delay: 0 },
-      { t: 'Nimbus — Series A', cat: 'SAAS', dur: '9s', dur2: '0:32', views: '12.4k', grad: 'linear-gradient(135deg,#23c8e0,#124f5c,#0a1f24)', delay: 60 },
-      { t: 'Toby — A Dog Film', cat: 'PET STAR', dur: '8s', dur2: '0:30', views: '89k', grad: 'linear-gradient(135deg,#ffb03a,#a5560e,#2e1a05)', delay: 120 },
-      { t: 'Lumen — The Ritual', cat: 'BEAUTY', dur: '10s', dur2: '0:24', views: '8.1k', grad: 'linear-gradient(135deg,#ff7aa8,#8a2d54,#25101c)', delay: 0 },
-      { t: 'Atlas — Future of Work', cat: 'B2B', dur: '8.5s', dur2: '0:45', views: '21k', grad: 'linear-gradient(135deg,#2b5bff,#14286e,#090d1f)', delay: 60 },
-      { t: 'Faro — In Motion', cat: 'RETAIL', dur: '7.5s', dur2: '0:22', views: '5.6k', grad: 'linear-gradient(135deg,#b9f24a,#4f7a10,#141d06)', delay: 120 },
     ];
 
     const quotes = [
@@ -1171,21 +1350,27 @@ class Component extends DCLogic {
       { role: 'Director', desc: 'TASTE · FINAL CUT', by: 'You', ini: 'YOU', color: '#ff6a3c' },
     ];
 
+    const nDemo = Math.max(1, this.demoPrompts.length);
     const demoChips = this.demoPrompts.map((pr2, i) => {
-      const on = this.state.prompt === i;
-      const cols = ['#e832a8', '#23c8e0', '#ffb03a'];
+      const on = this.state.prompt % nDemo === i;
       return {
-        label: ['SNEAKER DROP', 'DOG MOVIE STAR', 'APP IN 30S'][i],
+        label: pr2.label,
         pick: () => { this.setState({ prompt: i }); this._demoT0 = performance.now(); },
-        col: on ? '#17130e' : cols[i],
-        bg: on ? cols[i] : 'transparent',
-        bord: on ? cols[i] : 'rgba(242,237,226,.25)',
+        col: on ? '#17130e' : pr2.color,
+        bg: on ? pr2.color : 'transparent',
+        bord: on ? pr2.color : 'rgba(242,237,226,.25)',
       };
     });
+    const demoClips = this.demoPrompts.map((pr2, i) => ({ i, src: pr2.src, poster: pr2.poster, fit: pr2.portrait ? 'contain' : 'cover' }));
+    const cur = this.demoPrompts[this.state.prompt % nDemo] || {};
+    const demoNow = { source: cur.source || '', pack: cur.pack || '', packName: String(cur.packName || '').toUpperCase(), color: cur.color || '#e832a8' };
+
+    const wall = this.wallFilms.map((f, i) => ({ ...f, packName: f.packName.toUpperCase(), delay: (i % 3) * 60 }));
+    const reels = this.reelFilms.map((f, i) => ({ ...f, packName: f.packName.toUpperCase(), delay: (i % 6) * 45 }));
 
     return {
       rootRef: this.rootRef,
-      clips, stages, wall, quotes, crew, demoChips,
+      clips, stages, wall, reels, quotes, crew, demoChips, demoClips, demoNow,
       goCreate: () => this.goSection(1),
     };
   }

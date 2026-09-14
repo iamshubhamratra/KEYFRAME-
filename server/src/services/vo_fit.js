@@ -5,11 +5,12 @@
 const fs = require("node:fs");
 const { spawn } = require("node:child_process");
 const openrouter = require("./openrouter");
+const pacing = require("./pacing");
 const { synthesize } = require("./tts");
 const { probeDurationSec } = require("./media"); // shared ffprobe helper (was duplicated here)
 
-async function tightenLine({ line, targetSec, signal }) {
-  const targetWords = Math.max(3, Math.floor(targetSec * 2.6));
+async function tightenLine({ line, targetSec, signal, pacing: paceOpt }) {
+  const targetWords = pacing.wordBudget(targetSec, paceOpt);
   const { text, tokensIn, tokensOut, costUsd } = await openrouter.chat({
     system: "You tighten voiceover lines. Reply with ONLY the rewritten line — no quotes, no commentary. Preserve the meaning and any names/numbers exactly.",
     user: `Rewrite this voiceover line to at most ${targetWords} words so it can be spoken comfortably in ${targetSec} seconds:\n${line}`,
@@ -110,21 +111,31 @@ function trimWithFade(filePath, maxSec) {
 }
 
 // Synthesize one scene's VO, tightening once if it overruns, hard-trimming
-// as the last resort. Returns { path, durationSec, text, tightened } or null.
-async function synthesizeFitted({ text, targetSec, voice, instructions, outputPath, tracker, signal, session, lang }) {
+// as the last resort. Returns { path, durationSec, text, tightened, ratio,
+// atempo } or null. `ratio` is the FIRST take measured against its budget: a
+// pace whose word budget is wrong shows up as every clip coming back at 1.4x,
+// which was previously invisible (only the tighten log fired, per scene, with
+// no total) — the caller folds it into the job's pacing report.
+async function synthesizeFitted({ text, targetSec, voice, instructions, outputPath, tracker, signal, session, lang, pacing: paceOpt }) {
   if (!text || !text.trim()) return null;
+  const P = pacing.resolve(paceOpt);
+  const V = pacing.voFit(P);
 
   let synthMeta = await synthOnce({ text, voice, instructions, outputPath, tracker, session, lang });
   let dur = await probeDurationSec(outputPath);
-  if (dur == null) return { path: outputPath, durationSec: targetSec, text, tightened: false, fallbackVoice: synthMeta?.fallbackVoice || null };
+  if (dur == null) return { path: outputPath, durationSec: targetSec, text, tightened: false, ratio: null, atempo: 0, fallbackVoice: synthMeta?.fallbackVoice || null };
 
   let spokenText = text;
   let tightened = false;
+  // Measured before any repair, so it reports what the WRITING stage handed us
+  // rather than what this function managed to rescue.
+  const ratio = targetSec > 0 ? Math.round((dur / targetSec) * 100) / 100 : null;
+  let atempo = 0;
 
-  if (dur > targetSec * 1.10) {
+  if (dur > targetSec * V.tightenAt) {
     console.log(`[vo_fit] scene VO ${dur.toFixed(1)}s > ${targetSec}s budget — tightening once`);
     try {
-      const t = await tightenLine({ line: text, targetSec, signal });
+      const t = await tightenLine({ line: text, targetSec, signal, pacing: P });
       if (tracker) tracker.addLlm({ inputTokens: t.tokensIn, outputTokens: t.tokensOut, stage: "vo_fit", costUsd: t.costUsd });
       synthMeta = await synthOnce({ text: t.line, voice, instructions, outputPath, tracker, session, lang }) || synthMeta;
       dur = (await probeDurationSec(outputPath)) ?? targetSec;
@@ -138,11 +149,18 @@ async function synthesizeFitted({ text, targetSec, voice, instructions, outputPa
   // Never let a clip exceed scene + 25%. First choice: speed the read up to
   // 1.18× so the WHOLE line survives; only a take that is still over after
   // that (a rambling ad-lib the retake didn't cure) gets the trim+fade.
-  const hardCap = targetSec * 1.25;
+  //
+  // The 1.18 ceiling is deliberately NOT a pacing field. Speeding the read is
+  // the backstop for a line that came back long; a fast film is made by
+  // authoring fewer words (the word budget tightenLine writes to), never by
+  // talking faster — a narrator audibly on fast-forward is the one artefact
+  // every pace mode has to avoid.
+  const hardCap = targetSec * V.hardCap;
   if (dur > hardCap) {
     const rate = Math.min(dur / hardCap, 1.18);
     if (rate > 1.01 && (await atempoFit(outputPath, rate))) {
       dur = (await probeDurationSec(outputPath)) ?? dur / rate;
+      atempo = rate;
       console.log(`[vo_fit] VO over budget — sped ${rate.toFixed(2)}x to ${dur.toFixed(1)}s (cap ${hardCap.toFixed(1)}s), no words lost`);
     }
     if (dur > hardCap + 0.05) {
@@ -151,7 +169,7 @@ async function synthesizeFitted({ text, targetSec, voice, instructions, outputPa
     }
   }
 
-  return { path: outputPath, durationSec: dur, text: spokenText, tightened, fallbackVoice: synthMeta?.fallbackVoice || null };
+  return { path: outputPath, durationSec: dur, text: spokenText, tightened, ratio, atempo, fallbackVoice: synthMeta?.fallbackVoice || null };
 }
 
 module.exports = { synthesizeFitted, probeDurationSec };

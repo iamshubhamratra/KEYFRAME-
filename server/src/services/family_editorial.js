@@ -94,15 +94,15 @@ const TEMPLATE_SCENES = [
   },
   {
     type: "ledger", bestFor: "figures, measured proof, a comparison table",
-    look: "A ruled data table: a double rule over rows of small-caps labels, each with its figure right-aligned in the display face and counting up slowly, hairlines between and a double rule to close.",
+    look: "A ruled data table: a double rule over rows of small-caps labels, each with its figure right-aligned in the display face and counting up slowly, hairlines between and a double rule to close. Given a picture it sets one beside the table (under it in portrait); without one the table fills the sheet.",
     slots: { kicker: "table label, max 22 chars", headline: "max 2 short lines", items: "2-4 rows, max 40 chars each", stats: "1-4 of {v: number, suf: '%'|'X'|'K'|'M'|'', l: label max 24 chars}" },
-    media: [],
+    media: ["photo"], mediaMin: 0,
   },
   {
     type: "footnotes", bestFor: "steps, a short list of points, how something works",
-    look: "A numbered footnote list: small raised numerals in the accent, the point set in the book face beside them, a hairline ruled under each entry, each fading up in turn.",
+    look: "A numbered footnote list: small raised numerals in the accent, the point set in the book face beside them, a hairline ruled under each entry, each fading up in turn. Given a picture it sets one beside the list (under it in portrait); without one the list fills the sheet.",
     slots: { kicker: "section label, max 22 chars", headline: "max 2 short lines", items: "2-4 entries, max 54 chars each" },
-    media: [],
+    media: ["photo"], mediaMin: 0,
   },
   {
     type: "pullquote", bestFor: "a testimonial or one sentence worth setting apart",
@@ -121,14 +121,29 @@ const TEMPLATE_SCENES = [
 // `plate` is the figure scene; `pullquote` now also carries a small testimonial
 // portrait. Both are media-bearing, so a plate may follow a pullquote — imagery
 // no longer has to strictly alternate with text (see route()).
-const mediaSlots = { plate: ["photo", "photo"], pullquote: ["photo"] };
+//
+// `ledger` and `footnotes` join them as media-CAPABLE (mediaMin 0 above: the
+// table and the list are complete pages on their own, the figure is a bonus).
+// With only two destinations, cast rescue sent every asset-bearing scene to
+// `plate` and six beats came back as one layout — the count of places a rescued
+// picture can go IS the layout variety of a director-cast film. `colophon` is
+// deliberately NOT here: the engine already injects the site logo into its `a`
+// (wantsLogo), so a photo in that slot would displace the logo and render as a
+// 4cqw thumbnail on the closing card.
+const mediaSlots = { plate: ["photo", "photo"], pullquote: ["photo"], ledger: ["photo"], footnotes: ["photo"] };
 
 // ---- deterministic router (used when the director is off / uncast) -----------
 function route(scene, i, total, ctx) {
   const k = String(scene.kind || "").toLowerCase();
   const p = String(scene.purpose || "").toLowerCase();
   if (i === 0 || k === "hook" || k === "title") return "titlespread";
-  if (i === total - 1 || k === "cta" || p === "cta") return "colophon";
+  // A FILM WITH NO DESTINATION DOES NOT SIGN OFF. The closer is a brand lockup
+  // (mark, name, "GET <BRAND>", the URL); on a prompt-only film all of it is
+  // invented, down to a fabricated "how.com". ctx.signOff is false there and the
+  // beat falls through to a content shape below, keeping its copy and its
+  // narration. Only the engine sets it, so a router called without one (the
+  // harnesses) behaves exactly as before. services/sign_off.js.
+  if ((i === total - 1 || k === "cta" || p === "cta") && ctx.signOff !== false) return "colophon";
   if (k === "quote" || scene.quote || /testimonial/.test(p)) return "pullquote";
   if (k === "stat" || k === "chart" || statsOf(scene, 1).length) return "ledger";
   // MEDIA BEAT. The topic regex made this the emptiest family of all — a plate
@@ -199,6 +214,23 @@ const hairline = (idOrCls, th, land, color, origin, extra) =>
   `<div ${idOrCls} style="height:${r(HAIR(land))}cqw;background:${color || th.hair};transform-origin:${origin || "left center"};${extra || ""}"></div>`;
 
 const ROMAN = ["I", "II", "III", "IV", "V"];
+
+// A PICTURE THE TABLE AND THE LIST CAN ACTUALLY DRAW. `ledger` and `footnotes`
+// are declared in mediaSlots so cast rescue has somewhere to send an asset other
+// than `plate` (see the castPinRescue note in template_engine — every rescued
+// scene landed on `plate`, six scenes and one layout). A declared slot the
+// builder then ignored would CLAIM the picture and never paint it, which is the
+// exact silent loss rescue exists to prevent, so the shape has to seat it: an
+// outer column in landscape, a band under the text in portrait — a 9:16 column
+// is far too narrow to split, and splitting it is a QA blocker in its own right.
+const figurePlate = (a, id, th, land) => (a && a.path
+  ? `<div id="${id}-fig2" style="opacity:0;${land ? "flex:0 0 32%;margin-left:3.2cqw;align-self:stretch;" : "flex:0 0 auto;margin-top:2.8cqw;height:34cqw;"}position:relative;overflow:hidden;background:${th.mat};box-shadow:0 0 0 ${r(HAIR(land))}cqw ${th.rule};">
+      <img src="${esc(a.path)}" alt="${esc(a.alt || "")}" style="width:100%;height:100%;object-fit:cover;object-position:${isScreenshot(a) ? "top center" : "center center"};display:block;">
+    </div>`
+  : "");
+const figurePlateIn = (a, id, T) => (a && a.path
+  ? `tl.fromTo("#${id}-fig2",{opacity:0,y:10},{opacity:1,y:0,duration:0.85,ease:"power2.out"},${r(T + 0.7)});`
+  : "");
 
 // ---- scenes -------------------------------------------------------------------
 
@@ -301,7 +333,7 @@ function feature(scene, ctx) {
 }
 
 function plate(scene, ctx, a, b) {
-  const { id, T, L, theme: th, land, brand } = ctx;
+  const { id, T, L, theme: th, land, brand, variant } = ctx;
   const lines = headLines(scene, ctx, 2);
   const label = fit(String(scene.kicker || scene.purpose || ""), 22).toUpperCase();
   const m = M(land);
@@ -321,24 +353,41 @@ function plate(scene, ctx, a, b) {
     ? `<div id="${id}-inset" style="opacity:0;position:absolute;right:${land ? 1.6 : 2.4}cqw;bottom:${land ? 1.6 : 2.4}cqw;width:${land ? 15 : 26}cqw;height:${land ? 10 : 17}cqw;background:${th.mat};padding:${land ? 0.4 : 0.7}cqw;box-shadow:0 0 0 ${r(HAIR(land))}cqw ${th.rule};overflow:hidden;">
         ${img(b, `${id}-img2`, "center center")}
       </div>` : "";
-  const html = `
-    <div style="position:absolute;left:${m}cqw;right:${m}cqw;top:13%;bottom:12%;display:flex;flex-direction:column;">
-      <div style="display:flex;align-items:center;gap:1.4cqw;">
-        <span id="${id}-fig" style="opacity:0;flex:0 0 auto;">${caps(`Fig. ${figNo}`, th, land, th.accentText)}</span>
-        ${label ? `<span id="${id}-lab" style="opacity:0;flex:0 0 auto;">${caps(label, th, land, th.matFaint)}</span>` : ""}
-        ${hairline(`class="${id}-hr"`, th, land, th.hair, "left center", "flex:1 1 auto;")}
-      </div>
-      <div style="margin-top:${land ? 1.3 : 2.1}cqw;max-width:${land ? 66 : 100}%;">${serifLines(lines, size, th.ink, `${id}-line`, th)}</div>
-      <div style="flex:1 1 auto;min-height:0;width:${land ? 78 : 100}%;margin:${land ? 1.8 : 2.8}cqw auto 0 auto;display:flex;flex-direction:column;">
+  // THREE ARRANGEMENTS OF THE SAME FIGURE PAGE. `plate` was the one editorial
+  // shape that never read ctx.variant — titlespread reads it twice, feature three
+  // times — and it is where cast rescue sent every asset-bearing scene, so a
+  // six-beat film came back as six identical figure pages. Same furniture in all
+  // three (running head, plate, Fig. caption); what changes is the order the page
+  // reads in and how wide the plate sits, which is the difference a printed
+  // catalogue actually uses between one figure page and the next.
+  const arr = variant % 3;
+  const wide = arr === 0 ? (land ? 78 : 100) : 100;   // the plate's column width
+  const picFirst = arr === 2;                          // figure leads, the type settles under it
+  const capInHead = arr === 1 && !!caption;            // caption runs with the running head, not the foot
+  const headBlock = `
+      <div style="${picFirst ? `margin-top:${land ? 1.6 : 2.6}cqw;` : ""}">
+        <div style="display:flex;align-items:${capInHead ? "baseline" : "center"};gap:1.4cqw;">
+          <span id="${id}-fig" style="opacity:0;flex:0 0 auto;">${caps(`Fig. ${figNo}`, th, land, th.accentText)}</span>
+          ${label ? `<span id="${id}-lab" style="opacity:0;flex:0 0 auto;">${caps(label, th, land, th.matFaint)}</span>` : ""}
+          ${hairline(`class="${id}-hr"`, th, land, th.hair, "left center", "flex:1 1 auto;")}
+          ${capInHead ? `<span id="${id}-cap" style="opacity:0;flex:0 1 auto;max-width:${land ? 38 : 54}%;font-family:${th.displayStack};font-style:italic;font-size:${r(COPY(land) * 0.92)}cqw;line-height:1.4;color:${th.faint};overflow-wrap:break-word;">${esc(caption)}</span>` : ""}
+        </div>
+        <div style="margin-top:${land ? 1.3 : 2.1}cqw;max-width:${land ? 66 : 100}%;">${serifLines(lines, size, th.ink, `${id}-line`, th)}</div>
+      </div>`;
+  const plateBlock = `
+      <div style="flex:1 1 auto;min-height:0;width:${wide}%;margin:${picFirst ? "0" : `${land ? 1.8 : 2.8}cqw`} auto 0 auto;display:flex;flex-direction:column;">
         <div id="${id}-plate" style="opacity:0;flex:1 1 auto;min-height:0;position:relative;overflow:hidden;background:${th.mat};box-shadow:0 0 0 ${r(HAIR(land))}cqw ${th.rule};">
           ${img(a, `${id}-img`, shot ? "top center" : "center center")}
           ${inset}
         </div>
-        <div id="${id}-cap" style="opacity:0;margin-top:${land ? 0.9 : 1.5}cqw;display:flex;align-items:baseline;gap:${land ? 1 : 1.6}cqw;">
+        ${capInHead ? "" : `<div id="${id}-cap" style="opacity:0;margin-top:${land ? 0.9 : 1.5}cqw;display:flex;align-items:baseline;gap:${land ? 1 : 1.6}cqw;">
           ${caps(`Fig. ${figNo}`, th, land, th.accentText)}
           <span style="font-family:${th.displayStack};font-style:italic;font-size:${r(COPY(land) * 0.92)}cqw;line-height:1.45;color:${th.faint};overflow-wrap:break-word;">${esc(caption)}</span>
-        </div>
-      </div>
+        </div>`}
+      </div>`;
+  const html = `
+    <div style="position:absolute;left:${m}cqw;right:${m}cqw;top:13%;bottom:12%;display:flex;flex-direction:column;">
+      ${picFirst ? plateBlock + headBlock : headBlock + plateBlock}
     </div>`;
   const s = [
     `tl.fromTo("#${id}-fig",{opacity:0,y:8},{opacity:1,y:0,duration:0.7,ease:"power2.out"},${r(T + 0.15)});`,
@@ -346,12 +395,12 @@ function plate(scene, ctx, a, b) {
     `tl.fromTo(".${id}-hr",{scaleX:0},{scaleX:1,duration:1.1,ease:"power2.inOut"},${r(T + 0.25)});`,
     a && a.path ? `tl.fromTo(".${id}-img",{scale:1},{scale:1.045,duration:${r(Math.max(1.2, L - 0.7))},ease:"sine.inOut"},${r(T + 0.7)});` : "",
     inset ? `tl.fromTo("#${id}-inset",{opacity:0,y:10},{opacity:1,y:0,duration:0.8,ease:"power2.out"},${r(T + 1.25)});` : "",
-    caption ? `tl.fromTo("#${id}-cap",{opacity:0,y:9},{opacity:1,y:0,duration:0.8,ease:"power2.out"},${r(T + 1.15)});` : "",
+    caption ? `tl.fromTo("#${id}-cap",{opacity:0,y:9},{opacity:1,y:0,duration:0.8,ease:"power2.out"},${r(T + (capInHead ? 0.45 : 1.15))});` : "",
   ];
   return { html, s };
 }
 
-function ledger(scene, ctx) {
+function ledger(scene, ctx, a) {
   const { id, T, L, theme: th, land } = ctx;
   const lines = headLines(scene, ctx, 2);
   const label = fit(String(scene.kicker || scene.purpose || ""), 22).toUpperCase();
@@ -397,14 +446,17 @@ function ledger(scene, ctx) {
         ${hairline(`class="${id}-hr"`, th, land, th.hair, "left center", "flex:1 1 auto;")}
       </div>
       <div style="margin-top:${land ? 1.3 : 2.1}cqw;">${serifLines(lines, size, th.ink, `${id}-line`, th)}</div>
-      <div style="${fillCol}margin-top:${land ? 2.2 : 3.4}cqw;">
-        <div>
-          ${hairline(`class="${id}-dbl"`, th, land, th.rule, "left center", `height:${r(HAIR(land) * 2.6)}cqw;`)}
-          <div style="height:${land ? 0.5 : 0.8}cqw;"></div>
-          ${hairline(`class="${id}-dbl"`, th, land, th.hair, "left center", "")}
+      <div style="display:flex;flex-direction:${land ? "row" : "column"};align-items:stretch;${land ? "flex:1 1 auto;min-height:0;" : ""}margin-top:${land ? 2.2 : 3.4}cqw;">
+        <div style="${fillCol}flex:1 1 auto;min-width:0;">
+          <div>
+            ${hairline(`class="${id}-dbl"`, th, land, th.rule, "left center", `height:${r(HAIR(land) * 2.6)}cqw;`)}
+            <div style="height:${land ? 0.5 : 0.8}cqw;"></div>
+            ${hairline(`class="${id}-dbl"`, th, land, th.hair, "left center", "")}
+          </div>
+          ${rowsHtml}
+          ${hairline(`class="${id}-dbl"`, th, land, th.rule, "right center", `height:${r(HAIR(land) * 2.6)}cqw;`)}
         </div>
-        ${rowsHtml}
-        ${hairline(`class="${id}-dbl"`, th, land, th.rule, "right center", `height:${r(HAIR(land) * 2.6)}cqw;`)}
+        ${figurePlate(a, id, th, land)}
       </div>
     </div>`;
   const s = [
@@ -413,13 +465,14 @@ function ledger(scene, ctx) {
     `tl.fromTo(".${id}-dbl",{scaleX:0},{scaleX:1,duration:1,ease:"power2.inOut",stagger:0.1},${r(T + 0.65)});`,
     `tl.fromTo(".${id}-row",{opacity:0,y:${land ? 12 : 16}},{opacity:1,y:0,duration:0.8,ease:"power2.out",stagger:0.22},${r(T + 0.85)});`,
     rows.length > 1 ? `tl.fromTo(".${id}-rl",{scaleX:0},{scaleX:1,duration:0.85,ease:"power2.out",stagger:0.22},${r(T + 1)});` : "",
+    figurePlateIn(a, id, T),
   ].concat(rows.map((row, k) => (row.st
     ? `countTxt("#${id}-n${k}",${r(row.st.v)},${r(T + 0.95 + k * 0.22)},${r(Math.min(1.8, Math.max(0.8, L * 0.5)))},${JSON.stringify(row.st.pre)},${JSON.stringify(row.st.suf)},${row.st.isFloat ? 10 : 1});`
     : "")));
   return { html, s };
 }
 
-function footnotes(scene, ctx) {
+function footnotes(scene, ctx, a) {
   const { id, T, theme: th, land } = ctx;
   const lines = headLines(scene, ctx, 2);
   const label = fit(String(scene.kicker || scene.purpose || ""), 22).toUpperCase();
@@ -448,9 +501,12 @@ function footnotes(scene, ctx) {
     <div style="position:absolute;left:${m}cqw;right:${m}cqw;top:14%;bottom:13%;display:flex;flex-direction:column;justify-content:${land ? "flex-start" : "center"};">
       ${label ? `<div id="${id}-lab" style="opacity:0;margin-bottom:${land ? 1.3 : 2.1}cqw;">${caps(label, th, land, th.matAccent)}</div>` : ""}
       <div>${serifLines(lines, size, th.ink, `${id}-line`, th)}</div>
-      <div style="${fillCol}margin-top:${land ? 2.2 : 3.4}cqw;">
-        ${hairline(`class="${id}-top"`, th, land, th.rule, "left center", "")}
-        ${rows}
+      <div style="display:flex;flex-direction:${land ? "row" : "column"};align-items:stretch;${land ? "flex:1 1 auto;min-height:0;" : ""}margin-top:${land ? 2.2 : 3.4}cqw;">
+        <div style="${fillCol}flex:1 1 auto;min-width:0;">
+          ${hairline(`class="${id}-top"`, th, land, th.rule, "left center", "")}
+          ${rows}
+        </div>
+        ${figurePlate(a, id, th, land)}
       </div>
     </div>`;
   const s = [
@@ -458,6 +514,7 @@ function footnotes(scene, ctx) {
     `tl.fromTo(".${id}-top",{scaleX:0},{scaleX:1,duration:1,ease:"power2.inOut"},${r(T + 0.6)});`,
     `tl.fromTo(".${id}-row",{opacity:0,y:${land ? 12 : 16}},{opacity:1,y:0,duration:0.8,ease:"power2.out",stagger:0.28},${r(T + 0.8)});`,
     `tl.fromTo(".${id}-rl",{scaleX:0},{scaleX:1,duration:0.8,ease:"power2.out",stagger:0.28},${r(T + 0.95)});`,
+    figurePlateIn(a, id, T),
   ];
   return { html, s };
 }
@@ -641,4 +698,7 @@ function buildComposition(opts) { return E.buildFilm(family, opts); }
 // drift from the film that ships.
 function planMedia(opts) { return E.planMedia(family, opts); }
 
-module.exports = { buildComposition, planMedia, TEMPLATE_SCENES };
+// The engine honours opts.pacing (template_engine.buildFilm); this one-line
+// delegate makes that invisible to a source scan, so the flag is how the
+// pipeline knows the opt was actually threaded rather than dropped.
+module.exports = { buildComposition, planMedia, TEMPLATE_SCENES, acceptsPacing: true };

@@ -358,17 +358,36 @@ function stats(scene, ctx) {
   const { id, T, L, theme: th, land } = ctx;
   const C = inkFor("stats", th);
   const sts = statsOf(scene, 3);
-  const rows = sts.length ? sts : [
-    { pre: "", v: 10, suf: "S", l: "to make your point", isFloat: false },
-    { pre: "", v: 4, suf: "×", l: "more eyes than a static post", isFloat: false },
-    { pre: "", v: 100, suf: "%", l: "yours — copy, color, everything", isFloat: false },
-  ];
+  // NO INVENTED FIGURES. This fell back to three hardcoded rows — 10S "to make
+  // your point", 4× "more eyes than a static post", 100% "yours — copy, color,
+  // everything" — whenever the beat carried no numbers, and a beat reaches this
+  // builder on its PURPOSE alone (the Template Director casts the type; route()
+  // also sends any kind==="stat" here). So the fallback shipped: delivered film
+  // ivkd2869v4 stamps all three at t=22s under "INSTANT ANSWERS", in a film
+  // about an AI note-taking app, where they read as that product's own proof —
+  // publishable as a claim the customer never made. A figure the script did not
+  // supply is not ours to print.
+  //
+  // The poster still stamps a row set; with no numbers it stamps the scene's OWN
+  // points in the same slot at poster weight, and counts nothing.
+  const pts = sts.length ? [] : bullets(scene, 3).map((t) => fit(String(t), 32));
+  // Neither figures nor points: the pack's headline-only beat (its declared
+  // fallbackType) composes that copy properly, where this shape would leave the
+  // block's whole row half empty.
+  if (!sts.length && !pts.length) return statement(scene, ctx);
   const cols = [th.accent, th.accent2, th.paperL];
-  const rowHtml = rows.map((st, i) =>
+  // Same autofit rule as slamLines: shrink to the row column rather than run off it.
+  const psize = r(Math.max(q(30, land), Math.min(q(land ? 56 : 72, land),
+    (land ? 50 : 78) / (Math.max(1, ...pts.map((t) => t.length)) * 0.6))));
+  const rowHtml = (sts.length ? sts.map((st, i) =>
     `<div class="${id}-row" style="opacity:0;display:flex;align-items:baseline;gap:${q(34, land)}cqw;">
       <div style="min-width:${land ? 14 : 28}cqw;font-family:${FH};font-size:${q(land ? 150 : 190, land)}cqw;line-height:0.85;color:${cols[i % 3]};font-variant-numeric:tabular-nums;"><span id="${id}-n${i}">0</span><span style="font-size:${q(land ? 70 : 90, land)}cqw;">${esc(st.suf || "")}</span></div>
       <div style="font-family:${FB};font-weight:700;font-size:${q(36, land)}cqw;color:${rgba(C.fg, 0.75)};max-width:${land ? 26 : 39}cqw;">${esc(String(st.l || "and counting").toLowerCase())}</div>
-    </div>`).join("");
+    </div>`) : pts.map((t, i) =>
+    `<div class="${id}-row" style="opacity:0;display:flex;align-items:flex-start;gap:${q(30, land)}cqw;">
+      <div style="flex:none;width:${land ? 2.4 : 4.6}cqw;height:${q(18, land)}cqw;background:${cols[i % 3]};margin-top:${q(22, land)}cqw;"></div>
+      <div style="font-family:${FH};font-size:${psize}cqw;line-height:1.02;text-transform:uppercase;color:${cols[i % 3]};">${esc(t)}</div>
+    </div>`)).join("");
   const html = `${ground(C.bg)}` + (land
     ? `<div style="position:absolute;left:6cqw;top:50%;transform:translateY(-50%);width:30cqw;">
          ${slamLines(id, scene.headline, "Numbers,|loud ones.", 96, 28, land, C.fg, C.hi)}
@@ -382,7 +401,7 @@ function stats(scene, ctx) {
     camera("spin", ctx),
     slam(`#${id} .${id}-ln`, T, L, land, 0),
     `tl.fromTo("#${id} .${id}-row",{opacity:0,y:${land ? 26 : 40}},{opacity:1,y:0,duration:${r(Math.min(1.3, L * 0.38))},ease:"expo.out",stagger:${r(Math.min(0.24, L * 0.06))}},${r(T + 0.45)});`,
-    ...rows.map((st, i) =>
+    ...sts.map((st, i) =>
       `countTxt("#${id}-n${i}",${st.v},${r(T + 0.6 + i * 0.2)},${r(Math.min(1.8, L * 0.5))},"${esc(st.pre || "")}","",${st.isFloat ? 10 : 1});`),
   ];
   return { html, s };

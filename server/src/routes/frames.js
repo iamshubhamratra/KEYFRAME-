@@ -136,6 +136,10 @@ router.get("/frames", (_req, res) => {
 router.get("/frames/:name/showcase", (req, res) => {
   const name = String(req.params.name || "");
   if (!/^[a-z0-9-]{1,40}$/.test(name)) return res.status(400).json({ error: "bad pack name" });
+  // A RETIRED pack (config.frames.retired) keeps its folder, so getShowcasePath
+  // would still happily serve its reference render to anyone with the URL. The
+  // listing already withholds showcaseUrl for it; make the endpoint agree.
+  if (frameRegistry.resolvePack(name) !== name) return res.status(404).json({ error: "pack or showcase not found" });
   const p = frameRegistry.getShowcasePath(name);
   if (!p) return res.status(404).json({ error: "pack or showcase not found" });
   res.sendFile(p);

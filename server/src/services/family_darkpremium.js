@@ -145,7 +145,13 @@ function route(scene, i, total, ctx) {
   const k = String(scene.kind || "").toLowerCase();
   const p = String(scene.purpose || "").toLowerCase();
   if (i === 0 || k === "hook" || k === "title") return "revealtitle";
-  if (i === total - 1 || k === "cta" || p === "cta") return "glowcta";
+  // A FILM WITH NO DESTINATION DOES NOT SIGN OFF. The closer is a brand lockup
+  // (mark, name, "GET <BRAND>", the URL); on a prompt-only film all of it is
+  // invented, down to a fabricated "how.com". ctx.signOff is false there and the
+  // beat falls through to a content shape below, keeping its copy and its
+  // narration. Only the engine sets it, so a router called without one (the
+  // harnesses) behaves exactly as before. services/sign_off.js.
+  if ((i === total - 1 || k === "cta" || p === "cta") && ctx.signOff !== false) return "glowcta";
   if (k === "quote" || scene.quote || /testimonial/.test(p)) return "glassquote";
   if (k === "stat" || k === "chart" || statsOf(scene, 1).length) return "metricarc";
   if (/gallery|showcase|portfolio|social|proof|logos/.test(`${k} ${p}`) && ctx.freeCount >= 2 && ctx.prevType !== "prooftiles") return "prooftiles";
@@ -636,4 +642,7 @@ function buildComposition(opts) { return E.buildFilm(family, opts); }
 // drift from the film that ships.
 function planMedia(opts) { return E.planMedia(family, opts); }
 
-module.exports = { buildComposition, planMedia, TEMPLATE_SCENES };
+// The engine honours opts.pacing (template_engine.buildFilm); this one-line
+// delegate makes that invisible to a source scan, so the flag is how the
+// pipeline knows the opt was actually threaded rather than dropped.
+module.exports = { buildComposition, planMedia, TEMPLATE_SCENES, acceptsPacing: true };

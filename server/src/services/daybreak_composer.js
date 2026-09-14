@@ -289,11 +289,30 @@ function montage(scene, ctx, a, b) {
 function stats(scene, ctx) {
   const { id, T, L, theme: th, land } = ctx;
   const sts = statsOf(scene, 3);
-  const rows = (sts.length ? sts : [{ pre: "", v: 100, suf: "%", l: "MADE FOR YOU", isFloat: false }]).map((st, i) =>
-    `<div class="${id}-row" style="opacity:0;display:flex;align-items:center;gap:${q(34, land)}cqw;background:${th.ground};border:2px solid ${rgba(th.ink, 0.1)};border-radius:${q(26, land)}cqw;padding:${q(30, land)}cqw ${q(40, land)}cqw;box-shadow:0 1cqw 2.4cqw ${rgba(th.ink, 0.07)};">
+  // NO INVENTED FIGURES — see posterpop_composer's stats() for the delivered
+  // film this was measured on. `100% MADE FOR YOU` was printed whenever the beat
+  // carried no numbers, and a beat lands in this builder on its purpose alone,
+  // so a film that never claimed anything shipped a claim. A figure the script
+  // did not supply is not ours to print.
+  //
+  // The card row is the pack's shape here, so it stays: with no numbers the same
+  // card carries the scene's OWN point behind the pack's accent pill (the rule
+  // from statement()), and nothing counts up.
+  const pts = sts.length ? [] : bullets(scene, 3).map((t) => fit(String(t), 34));
+  // Neither figures nor points: the pack's headline-only beat (its declared
+  // fallbackType) composes that copy properly, where this shape would leave the
+  // sheet below the headline empty.
+  if (!sts.length && !pts.length) return statement(scene, ctx);
+  const card = `opacity:0;display:flex;align-items:center;gap:${q(34, land)}cqw;background:${th.ground};border:2px solid ${rgba(th.ink, 0.1)};border-radius:${q(26, land)}cqw;padding:${q(30, land)}cqw ${q(40, land)}cqw;box-shadow:0 1cqw 2.4cqw ${rgba(th.ink, 0.07)};`;
+  const rows = (sts.length ? sts.map((st, i) =>
+    `<div class="${id}-row" style="${card}">
       <div style="min-width:${land ? 14 : 26}cqw;font-family:${FH};font-size:${q(land ? 96 : 116, land)}cqw;line-height:0.92;color:${th.accent700};font-variant-numeric:tabular-nums;"><span id="${id}-n${i}">0</span><span style="font-size:${q(land ? 48 : 58, land)}cqw;">${esc(st.suf || "")}</span></div>
       <div style="font-family:${FB};font-weight:600;font-size:${q(36, land)}cqw;color:${rgba(th.ink, 0.7)};">${esc((st.l || "").toLowerCase() || "and counting")}</div>
-    </div>`).join("");
+    </div>`) : pts.map((t) =>
+    `<div class="${id}-row" style="${card}">
+      <div style="flex:none;width:${q(56, land)}cqw;height:${q(10, land)}cqw;border-radius:999px;background:${th.accent};"></div>
+      <div style="font-family:${FH};font-size:${q(land ? 38 : 48, land)}cqw;line-height:1.12;color:${th.ink};">${esc(t)}</div>
+    </div>`)).join("");
   const html = `<div style="position:absolute;left:${land ? 16 : 6.3}cqw;right:${land ? 16 : 6.3}cqw;${land ? "top:50%;transform:translateY(-50%);" : "top:44.4cqw;"}">
     ${serifLines(id, scene.headline, "By the numbers", land ? 64 : 88, th, land)}
     <div style="margin-top:${q(56, land)}cqw;display:flex;flex-direction:column;gap:${q(26, land)}cqw;">${rows}</div>
@@ -302,7 +321,7 @@ function stats(scene, ctx) {
     camera("zoom", ctx),
     `tl.fromTo("#${id} .${id}-ln",{opacity:0,y:32},{opacity:1,y:0,duration:${r(Math.min(1.4, L * 0.38))},ease:"power3.out",stagger:${r(Math.min(0.22, L * 0.055))}},${T});`,
     `tl.fromTo("#${id} .${id}-row",{opacity:0,y:32},{opacity:1,y:0,duration:${r(Math.min(1.3, L * 0.38))},ease:"power3.out",stagger:${r(Math.min(0.24, L * 0.06))}},${r(T + 0.45)});`,
-    ...(sts.length ? sts : [{ v: 100, suf: "%", pre: "" }]).map((st, i) =>
+    ...sts.map((st, i) =>
       `countTxt("#${id}-n${i}",${st.v},${r(T + 0.6 + i * 0.2)},${r(Math.min(1.8, L * 0.5))},"${esc(st.pre || "")}","",${st.isFloat ? 10 : 1});`),
   ];
   return { html, s };

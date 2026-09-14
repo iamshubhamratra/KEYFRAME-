@@ -36,11 +36,24 @@ function runFFmpeg(args, timeoutMs, { loglevel = "error" } = {}) {
 }
 
 // Piecewise volume automation for the music bed. Points are absolute volumes
-// ({atSec, volume}); each new level ramps in over RAMP_SEC from the point's
+// ({atSec, volume}); each new level ramps in over `rampSec` from the point's
 // start so scene-to-scene changes glide instead of stepping. Returns an ffmpeg
 // volume-filter expression, or null if the points are unusable.
+//
+// The glide length is a PARAMETER because it only reads as a glide while it is
+// short against the cut. At Very Fast a fixed 0.9s ramp covers ~45% of a 2s
+// beat, so the bed is still sliding into position two pictures after the scene
+// that asked for the new level — a slow wobble, which is the opposite of fast.
+// It defaults to today's 0.9s, so a caller that passes nothing emits the same
+// expression, character for character, as before.
 const RAMP_SEC = 0.9;
-function envelopeExpr(points) {
+// Head/tail fades on the music and ambient beds. Same argument as the ramp: a
+// 1.2s tail over a film that cuts every 1.6s is a fade the audience watches
+// happen rather than a way out of the film.
+const FADE_IN_SEC = 0.8;
+const FADE_OUT_SEC = 1.2;
+function envelopeExpr(points, rampSec = RAMP_SEC) {
+  const ramp = Number(rampSec) > 0 ? Number(rampSec) : RAMP_SEC;
   const pts = (Array.isArray(points) ? points : [])
     .map((p) => ({ at: Number(p.atSec), vol: Number(p.volume) }))
     .filter((p) => Number.isFinite(p.at) && p.at >= 0 && Number.isFinite(p.vol) && p.vol >= 0 && p.vol <= 1)
@@ -53,8 +66,8 @@ function envelopeExpr(points) {
   let expr = String(pts[0].vol);
   for (let i = 1; i < pts.length; i++) {
     const prev = pts[i - 1].vol, cur = pts[i].vol, at = pts[i].at;
-    // From `at`: glide prev→cur over RAMP_SEC, then hold cur.
-    const seg = `${prev}+(${cur}-${prev})*min((t-${at})/${RAMP_SEC},1)`;
+    // From `at`: glide prev→cur over `ramp`, then hold cur.
+    const seg = `${prev}+(${cur}-${prev})*min((t-${at})/${ramp},1)`;
     expr = `if(gte(t,${at}),${seg},${expr})`;
   }
   return expr;
@@ -136,6 +149,12 @@ async function mix({
   sfx = [],
   normalize = true,
   targetLufs = -14,
+  // Bed timing, so a pace can keep the music's moves proportional to the cut
+  // (pacing.audioFor(P).rampSec). All three default to the literals this file
+  // has always used, so an existing caller mixes exactly what it mixed before.
+  rampSec = RAMP_SEC,
+  fadeInSec = FADE_IN_SEC,
+  fadeOutSec = FADE_OUT_SEC,
 }) {
   // Build layer list (entries are just metadata; input args built separately).
   const layers = [];
@@ -243,13 +262,17 @@ async function mix({
     consumers.forEach((c, i) => { voKey[c] = `[vok${i}]`; });
   }
 
-  const fadeOutStart = Math.max(0, durationSec - 1.2);
-  const fadeInDur = Math.min(0.8, durationSec);
-  const fadeOutDur = Math.min(1.2, durationSec);
+  // A non-positive fade is never what a caller means (and `afade=d=0` is a fade
+  // ffmpeg has to be talked out of), so garbage falls back to the literal.
+  const fadeIn = Number(fadeInSec) > 0 ? Number(fadeInSec) : FADE_IN_SEC;
+  const fadeOut = Number(fadeOutSec) > 0 ? Number(fadeOutSec) : FADE_OUT_SEC;
+  const fadeOutStart = Math.max(0, durationSec - fadeOut);
+  const fadeInDur = Math.min(fadeIn, durationSec);
+  const fadeOutDur = Math.min(fadeOut, durationSec);
 
   // --- Music bed: low, faded, mid-scooped so it never masks speech, widened so
   //     the (centered) voice owns the middle of the image, and hard-ducked. ---
-  const musicEnv = musicLayer ? envelopeExpr(musicEnvelope) : null;
+  const musicEnv = musicLayer ? envelopeExpr(musicEnvelope, rampSec) : null;
   if (musicLayer) {
     // Per-scene automation replaces the flat bed level when the director sent one.
     const volStage = musicEnv

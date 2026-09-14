@@ -31,6 +31,7 @@ const { withDisplayCopy } = require("./template_engine");
 // other renderer — see the wiring note on takePool below.
 const { pickForScene } = require("./scene_match");
 const { fitScenes, MAX_CLIPS } = require("./scene_fit");
+const { ownHost, filmUrl, signsOff } = require("./sign_off");
 
 const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 const DISPLAY = "Space Grotesk";   // the template's own display face (bundled)
@@ -143,11 +144,15 @@ const TEMPLATE_SCENES = {
 };
 
 // Deterministic router (used when the Template Director is off / a scene uncast).
-function showArchetype(scene, i, total, pinned, poolLeft) {
+function showArchetype(scene, i, total, pinned, poolLeft, signOff = true) {
   const k = String(scene.kind || "").toLowerCase();
   const p = String(scene.purpose || "").toLowerCase();
   if (i === 0 || k === "hook" || k === "title") return "intro";
-  if (i === total - 1 || k === "cta" || p === "cta") return "cta";
+  // A FILM WITH NO DESTINATION DOES NOT SIGN OFF. The closer is a brand lockup
+  // (logo, name, "GET <BRAND>", the URL); built from a bare prompt every part of
+  // it is invented. `signOff` is false there and the beat falls through to a
+  // content shape below, keeping its copy and its narration. sign_off.js.
+  if ((i === total - 1 || k === "cta" || p === "cta") && signOff) return "cta";
   if (k === "stat" || k === "chart" || statsOf(scene, 1).length) return "proof";
   if (pinned && isPortraitAsset(pinned)) return "mobile";
   // A deep pool is itself reason enough for the montage: requiring a keyword too
@@ -478,12 +483,14 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
     : [{ id: "s1", start: 0, duration: 4, kind: "hook", headline: sb.title || "SHOWCASE" }]).map(withDisplayCopy);
   const D = r(sb.durationSec || scenes.reduce((a, s) => Math.max(a, (Number(s.start) || 0) + (Number(s.duration) || 0)), 0) || 12);
 
-  const brandHost = (Array.isArray(assets) ? assets : [])
-    .filter((a) => a && (a.source === "website" || a.source === "website-image" || a.source === "topic-screenshot") && a.sourceUrl)
-    .map((a) => { try { return new URL(a.sourceUrl).hostname.replace(/^www\./, ""); } catch { return null; } })
-    .find(Boolean);
+  // OWNER SOURCES ONLY — this filter used to admit `topic-screenshot`, which is a
+  // capture of ANOTHER product's reference site, so the film signed off on a
+  // competitor's domain. And never invent one: `${brand}.com` printed
+  // "howcompoundinter.com" on a film built from a bare prompt.
+  const brandHost = ownHost(assets);
   const brand = String(sb.brand || sb.title || (brandHost ? brandHost.split(".")[0] : "") || "SHOWCASE").slice(0, 18);
-  const url = String(sb.url || brandHost || `${brand.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`).slice(0, 40);
+  const url = filmUrl(sb, assets);
+  const signOff = signsOff({ url, storyboard: sb, assets });
 
   // Asset pools — screenshots first (this template frames them as the product),
   // then anything else. Scene-pinned assets win over the pool.
@@ -537,7 +544,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
       if (pinned && !castAssets.some((x) => x === pinned || x.path === pinned.path)) castAssets.unshift(pinned);
       picked = castAssets;
     } else {
-      arch = showArchetype(scene, i, scenes.length, pinned, pool.length - pooli);
+      arch = showArchetype(scene, i, scenes.length, pinned, pool.length - pooli, signOff);
       if (pinned) picked.push(pinned);
     }
 

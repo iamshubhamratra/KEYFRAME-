@@ -67,6 +67,18 @@ function search({ query, type, orientation, limit = 3, sourceRe = null, excludeS
   // appear in the entry — a cache hit has to be about the topic, not merely
   // spelled like the query.
   const subjWords = subject ? tokenize(subject) : [];
+  // …AND THE QUERY SIDE OF THE RATIO NEEDS THE SAME CAP THE ENTRY SIDE ALREADY HAS
+  // (see entryWeight below). 60% of a 3-word query is 2 words; 60% of the 9-13 word
+  // strings this pipeline actually searches with — "urban rooftop garden and growers
+  // seedling sprouts tray soil closeup macro" — is 6-8, and a second film on the same
+  // topic never repeats 8 words unless it repeats the whole scene. Measured on the
+  // live 685-entry cache: 480 entries had never been reused once, 516MB of
+  // already-paid-for downloads idle. Capping the denominator at 4 leaves every short
+  // query EXACTLY as strict as it was (the "red sports car" vs "red apple" case above
+  // is 3 tokens, so nothing changes there) and asks a long one for 3 real word
+  // matches instead of an unreachable 8. The entry-weight gate is what keeps that
+  // honest — do not relax it to compensate.
+  const wantWeight = Math.min(want.length, 4);
 
   const scored = [];
   for (const e of idx) {
@@ -76,8 +88,12 @@ function search({ query, type, orientation, limit = 3, sourceRe = null, excludeS
     if (excludeSourceRe && excludeSourceRe.test(e.source || "")) continue;
     if (!fs.existsSync(e.file)) continue;
     const overlap = want.filter((w) => e.words.includes(w)).length;
-    if (subjWords.length && !subjWords.some((w) => e.words.includes(w))) continue;
-    if (overlap / want.length < 0.6) continue;
+    // Entries written since register() stopped storing the padded string keep the
+    // film's topic in `subjWords` rather than glued into `words`, so ask both: the
+    // topic an asset was FETCHED for is the honest place to test topicality, and the
+    // 685 legacy entries (all padded) still answer through `words`.
+    if (subjWords.length && !subjWords.some((w) => e.words.includes(w) || (e.subjWords || []).includes(w))) continue;
+    if (overlap / wantWeight < 0.6) continue;
     // …AND THE MATCH HAS TO MEAN SOMETHING TO THE ENTRY TOO. The ratio above is
     // computed over the SEARCH query's words only, so it says nothing about how
     // much of the stored entry is unrelated — and this pipeline stores LONG
@@ -110,7 +126,15 @@ function materialize(entry, outputPath) {
 }
 
 // Register a freshly downloaded asset: copy into the cache and index it.
-function register({ filePath, query, type, orientation, source, license, sourceUrl, width, height }) {
+//
+// `rankQuery` is the SCENE'S OWN need; `query` is the string we searched with, which
+// for every anchored caller is the film's topic prefixed onto that need. Indexing the
+// padded string buried the entry: 396 of 685 entries carry 8+ words, so entryWeight
+// pinned at its cap of 8 and the search had to land 4 of them before the entry was
+// even considered. Stored under the 4-6 word need it was actually fetched for, the
+// same entry needs 2 — and the topic it belongs to survives in `subjWords`, where the
+// topicality guard reads it without padding the match denominator.
+function register({ filePath, query, rankQuery, subject, type, orientation, source, license, sourceUrl, width, height }) {
   try {
     const idx = load();
     fs.mkdirSync(FILES_DIR, { recursive: true });
@@ -119,14 +143,16 @@ function register({ filePath, query, type, orientation, source, license, sourceU
     const ext = path.extname(filePath) || (type === "video" ? ".mp4" : ".jpg");
     const dest = path.join(FILES_DIR, `${id}${ext}`);
     fs.copyFileSync(filePath, dest);
+    const indexed = String(rankQuery || "").trim() || query;
     idx.push({
-      id, query, words: tokenize(query), type, orientation: orientation || "all",
+      id, query: indexed, words: tokenize(indexed), type, orientation: orientation || "all",
+      subjWords: subject ? tokenize(subject) : undefined,
       source, license: license || "unknown", sourceUrl: sourceUrl || null,
       width: width || null, height: height || null,
       file: dest, bytes: fs.statSync(dest).size, addedAt: Date.now(), hits: 0,
     });
     persist();
-    console.log(`[asset_db] cached "${query}" (${type}, ${source}, ${id})`);
+    console.log(`[asset_db] cached "${indexed}" (${type}, ${source}, ${id})`);
   } catch (e) {
     console.warn(`[asset_db] register failed: ${e.message}`);
   }

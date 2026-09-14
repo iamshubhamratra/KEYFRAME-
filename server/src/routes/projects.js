@@ -24,6 +24,10 @@ const captionDirector = require("../services/caption_director");
 
 const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 10);
 
+// The pace modes a request may name. config.pacing also carries the
+// `calibration` flag, which is a rollout switch and not a mode anyone can pick.
+const PACE_MODES = Object.keys(config.pacing).filter((k) => k !== "calibration");
+
 // Uploads (multipart). JSON bodies bypass multer entirely. Three file fields:
 //   referenceVideo — 1 video, transcribed at intake
 //   logo           — 1 image, the user's own brand logo (SVG allowed HERE ONLY)
@@ -249,6 +253,16 @@ function validateCreate(body, { hasUpload = false } = {}) {
     }
   }
 
+  // PACE — how DENSELY the film is told: shorter scenes and more cuts at the
+  // SAME runtime, never a sped-up MP4 (see services/pacing.js). Over multipart
+  // every field arrives as String(v), so one string check covers both client
+  // paths; an empty string is how a control nobody touched spells "default".
+  const pace = body.pace == null || String(body.pace).trim() === ""
+    ? config.defaults.pace
+    : String(body.pace).trim();
+  if (!PACE_MODES.includes(pace)) errs.push(`pace must be one of: ${PACE_MODES.join(", ")}`);
+  else out.pace = pace;
+
   if (body.framePack != null && body.framePack !== "auto") {
     if (typeof body.framePack !== "string" || frameRegistry.resolvePack(body.framePack) == null) {
       errs.push(`framePack must be "auto" or one of: ${frameRegistry.listPacks().join(", ")}`);
@@ -348,6 +362,7 @@ function buildRouter({ enqueueIntake, enqueueProduction }) {
       brandPalette: out.brandPalette || null,
       render3d: out.render3d,
       composeMode: out.composeMode,
+      pace: out.pace,
       uploadPath,
       userAssets,
       intent: {
@@ -361,6 +376,10 @@ function buildRouter({ enqueueIntake, enqueueProduction }) {
           orientation: out.orientation,
           voiceStyle: out.voiceStyle || "auto",
           framePack: out.framePack,
+          // The brief sees the pace as a HINT (write punchier for "fast"). The
+          // binding budget is the job's own `pace` column — a preference the
+          // model reads can be ignored by it, so it is never the source of truth.
+          pace: out.pace,
         },
       },
       created_at: Date.now(),
@@ -441,8 +460,12 @@ function buildRouter({ enqueueIntake, enqueueProduction }) {
     // Accept an edited script, or approve the stored draft as-is.
     let script = raw.script;
     if (req.body && req.body.script) {
-      script = normalizeScript(req.body.script, { targetDuration: raw.duration });
-      const check = validateScript(script, { targetDuration: raw.duration });
+      // Measured against the job's OWN pace: the draft was written to that word
+      // budget, so re-checking an edit at Normal's 2.6 w/s would wave through
+      // copy a Fast film's narrator cannot read inside its scene. raw.pace is
+      // absent on pre-pacing projects and pacing.resolve() reads that as normal.
+      script = normalizeScript(req.body.script, { targetDuration: raw.duration, pacing: raw.pace });
+      const check = validateScript(script, { targetDuration: raw.duration, pacing: raw.pace });
       if (!check.ok) {
         return res.status(400).json({ error: "edited script failed validation", details: check.errors, warnings: check.warnings });
       }

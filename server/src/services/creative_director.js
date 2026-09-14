@@ -329,7 +329,7 @@ async function reviewAudio({ subject, script, audioPlan, sceneCount, tracker, si
 // Returns { assets: curatedAssets, report }. `assets` is the surviving, annotated
 // asset list to hand the composer. Fail-open: on any thrown error the caller
 // (reviewAndCurate) passes the original assets through.
-async function directAssets({ storyboard, script, subject, brief, framePack, assets, audioPlan, tracker, signal, jobDir, orientation, category }) {
+async function directAssets({ storyboard, script, subject, brief, framePack, assets, audioPlan, tracker, signal, jobDir, orientation, category, excludeUrls = null }) {
   const list = Array.isArray(assets) ? assets.slice() : [];
   const subj = String(subject || (brief && brief.subject) || "").trim();
   const scenes = sceneDigest(storyboard, script);
@@ -641,9 +641,19 @@ async function directAssets({ storyboard, script, subject, brief, framePack, ass
     try {
       const idx = topUpAssets.length;
       const rel = `assets/images/topup_${idx}.jpg`;
+      // THIS IS THE SLOT THE VIEWER NOTICES MOST — a scene that got nothing — and
+      // it carried the weakest guards in the pipeline. `subject` arms the cache's
+      // topicality gate (without it local_db hands back anything merely spelled
+      // like the query) and feeds the ranker's subject affinity; `excludeUrls`
+      // stops it re-taking a picture another scene already placed, which the MD5
+      // pass would only bin later, leaving this scene empty anyway; and ranking on
+      // the scene's own words rather than the subject-prefixed string stops one
+      // matched word being diluted across the whole anchor.
       const got = await acquire({
         query: q, fallbackQueries: [words, ...fallbackQueriesFor(q)].filter(Boolean),
+        rankQuery: words || undefined,
         type: "image", orientation, outputPath: path.join(jobDir, rel), tracker,
+        subject: subj || undefined, excludeUrls,
       }).catch(() => null);
       if (got) {
         const full = fullSceneById.get(s.id) || {};

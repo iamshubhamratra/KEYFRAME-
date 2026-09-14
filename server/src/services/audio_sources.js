@@ -23,11 +23,16 @@ const pixabayBridge = require("./pixabay_bridge");
 // Music still falls to the synthesized ambient pad so a dry result never ships
 // a silent film; SFX is optional, so a dry result just means no effect.
 //
-// AUDIO is Pixabay-only BY DEFAULT (user: "Freesound is terrible"). This flag
-// is audio-scoped — it does NOT touch the image/vector providers (that's the
-// separate PIXABAY_ONLY, which also strips Openverse/Iconify). Set
-// AUDIO_PIXABAY_ONLY=0 to bring the Freesound + Internet-Archive fallbacks back.
-const AUDIO_PIXABAY_ONLY = process.env.AUDIO_PIXABAY_ONLY !== "0";
+// AUDIO Pixabay-only is now OPT-IN (user: "Freesound is terrible" was the old
+// default, but Pixabay bridge is frequently dry for specific music queries on
+// short horizontal films — e.g. "hand claps foot stomps rock energetic anthem"
+// — and the synthetic pad fallback sounds worse than Freesound's real loops.
+// Short horizontal films are 15-30s and the pad's 75s sine bed is especially
+// noticeable. Default is now Freesound fallback ON; set AUDIO_PIXABAY_ONLY=1
+// to force Pixabay-only (pad fallback). This flag is audio-scoped — it does NOT
+// touch the image/vector providers (that's the separate PIXABAY_ONLY, which also
+// strips Openverse/Iconify).
+const AUDIO_PIXABAY_ONLY = process.env.AUDIO_PIXABAY_ONLY === "1";
 const PIXABAY_ONLY = process.env.PIXABAY_ONLY === "1" || AUDIO_PIXABAY_ONLY;
 
 const FREESOUND_BASE = "https://freesound.org/apiv2";
@@ -183,19 +188,40 @@ async function internetArchiveFirstMp3(query) {
 // instead of shipping a silent film. Layered detuned sines + slow tremolo +
 // echo + lowpass ≈ an unobtrusive synth bed; the mixer ducks it under VO like
 // any other music track. License-free by construction. Mood keyed off the query.
-function padSpec(query) {
+function padSpec(query, seed = "") {
   const q = String(query).toLowerCase();
+  // Seed jitter — two videos with the same mood still get slightly different beds
+  // when they fall to the pad, fixing "same synthetic BGM on every short".
+  const jitter = seed ? (seedIndex(seed, 100) / 100) : 0; // 0..0.99
+  const detune = (jitter - 0.5) * 8; // -4..+4 Hz spread
+  const lpJitter = Math.round((jitter - 0.5) * 200); // -100..+100 Hz
+  const tremJitter = (jitter - 0.5) * 0.06; // ±0.03
   if (/(epic|orchestral|cinemat|dramatic|trailer|hybrid|heroic)/.test(q)) {
-    return { freqs: [110, 164.81, 220, 329.63], trem: 0.12, lp: 950, vol: 0.5 };    // low, wide, slow swell
+    return { freqs: [110+detune, 164.81+detune, 220+detune, 329.63+detune], trem: 0.12+tremJitter, lp: 950+lpJitter, vol: 0.5 };
   }
   if (/(upbeat|energetic|electro|synth|fast|pop|punchy|dance|driving)/.test(q)) {
-    return { freqs: [220, 277.18, 329.63, 440], trem: 2.2, lp: 2400, vol: 0.45 };   // brighter, pulsing
+    return { freqs: [220+detune, 277.18+detune, 329.63+detune, 440+detune], trem: 2.2+tremJitter, lp: 2400+lpJitter, vol: 0.45 };
   }
-  return { freqs: [174.61, 220, 261.63, 349.23], trem: 0.18, lp: 1500, vol: 0.45 }; // warm/calm default
+  return { freqs: [174.61+detune, 220+detune, 261.63+detune, 349.23+detune], trem: 0.18+tremJitter, lp: 1500+lpJitter, vol: 0.45 };
 }
 
-function generatePad(query, outputPath, durationSec = 75) {
-  const s = padSpec(query);
+// Clamp the seed-jittered pad values into ffmpeg-legal ranges. tremolo rejects
+// f < 0.1 outright ("Value 0.090000 for parameter 'f' out of range"), which made
+// ffmpeg exit non-zero and turned the guaranteed music floor into a SILENT film
+// on the epic/cinematic bed (trem 0.12 - jitter 0.03). Clamp; never trust the
+// jitter arithmetic to stay in range. Pinned by scripts/audio_music.test.cjs.
+function padParams(query, seed = "") {
+  const s = padSpec(query, seed);
+  return {
+    ...s,
+    trem: Math.min(20000, Math.max(0.1, Number(s.trem) || 0.18)),
+    lp: Math.min(20000, Math.max(200, Math.round(Number(s.lp) || 1500))),
+  };
+}
+
+function generatePad(query, outputPath, durationSec = 75, seed = "") {
+  const s = padParams(query, seed);
+  const trem = s.trem, lp = s.lp;
   const D = Math.max(20, Math.min(180, Math.round(Number(durationSec) || 75)));
   const args = ["-y", "-v", "error"];
   for (const f of s.freqs) args.push("-f", "lavfi", "-i", `sine=frequency=${f}:duration=${D}`);
@@ -205,7 +231,7 @@ function generatePad(query, outputPath, durationSec = 75) {
   args.push(
     "-filter_complex",
     `${gains};${labels}amix=inputs=${s.freqs.length}:normalize=0,` +
-    `tremolo=f=${s.trem}:d=0.55,aecho=0.7:0.55:380|640:0.3|0.22,lowpass=f=${s.lp},` +
+    `tremolo=f=${trem.toFixed(3)}:d=0.55,aecho=0.7:0.55:380|640:0.3|0.22,lowpass=f=${lp},` +
     `afade=t=in:d=2.5,afade=t=out:st=${fadeOutAt}:d=4,volume=${s.vol}`,
     "-c:a", "libmp3lame", "-q:a", "4", outputPath
   );
@@ -226,15 +252,44 @@ function seedIndex(seed, spread = 8) {
   return spread > 0 ? h % spread : 0;
 }
 
-async function fetchMusic({ query, outputPath, tracker, durationSec, seed }) {
-  // Normalize: callers join plan.query + plan.mood, which often repeat
-  // ("epic orchestral synthwave epic orchestral synthwave hybrid") — dedupe
-  // the words, and derive a broader 2-word core as a retry, since an
-  // over-specific query zeroes out Freesound entirely.
+// Derive the widening ladder for a music query, most-specific -> broadest.
+// Callers join plan.query + plan.mood, which often repeat ("epic orchestral
+// synthwave epic orchestral synthwave hybrid"), so dedupe the words first.
+//
+// Two things this has to get right, both learned the hard way:
+//  - The GENRE sits at the TAIL of a director query ("hand claps foot stomps
+//    rock energetic anthem"). Retrying only the HEAD ("hand claps") came up dry
+//    on every source, so every short shipped the synthetic pad.
+//  - Widening must stay MUSICAL. Broadening from the head ("hand music") pulls
+//    in field recordings, and once those pad the pool the seed rotation lands on
+//    "Lake Night.wav" instead of a bed. Head terms are used ONLY when the query
+//    names no genre at all, where they are the sole signal.
+// Pinned by scripts/audio_music.test.cjs.
+const GENRE_WORD = /^(epic|orchestral|cinematic|dramatic|trailer|hybrid|heroic|upbeat|energetic|electro|electronic|synth|synthwave|fast|pop|punchy|dance|driving|rock|anthem|ambient|calm|warm|chill|lofi|corporate|inspiring|uplifting|motivational|acoustic|folk|jazz|funk|blues|soul|hiphop|trap|edm|house|techno|indie|piano|guitar|strings|beat|groove|rhythm)$/;
+
+function musicQueryCandidates(query) {
   const words = String(query || "").toLowerCase().match(/[a-z][a-z'-]*/g) || [];
   const norm = [...new Set(words)].join(" ").trim() || String(query || "ambient music");
-  const core = norm.split(" ").slice(0, 2).join(" ");
-  const candidates = [...new Set([norm, core, `${core.split(" ")[0]} music`])];
+  const core = norm.split(" ").slice(0, 2).join(" ") || norm;
+  const tail = words.slice(-2).join(" ") || core;
+  const genres = [...new Set(words.filter((w) => GENRE_WORD.test(w)))];
+  const genrePair = genres.slice(-2).join(" ");
+  const genreQueries = genres.slice(-3).reverse().map((g) => `${g} music`);
+  const candidates = [...new Set([
+    norm,
+    tail,
+    genrePair,
+    `${tail} music`,
+    ...genreQueries,
+    genres.length ? null : core,
+    "upbeat instrumental music",
+  ].filter(Boolean))];
+  const pixabayQueries = [...new Set([norm, tail, genrePair || core].filter(Boolean))];
+  return { norm, core, tail, genres, candidates, pixabayQueries };
+}
+
+async function fetchMusic({ query, outputPath, tracker, durationSec, seed }) {
+  const { norm, core, tail, candidates, pixabayQueries } = musicQueryCandidates(query);
 
   // 0) Pixabay bridge — PRIMARY music source (user preference). Real Pixabay
   // tracks (the official API serves no audio); best-effort, falls through to
@@ -243,7 +298,7 @@ async function fetchMusic({ query, outputPath, tracker, durationSec, seed }) {
   // then fall back to #0. This is the fix for "same BGM in every video".
   const variant = seedIndex(seed, 8);
   const indices = [...new Set([variant, 0])];
-  for (const q of [norm, core]) {
+  for (const q of pixabayQueries) {
     for (const idx of indices) {
       const url = await pixabayBridge.firstAudioUrl(q, "music", { index: idx });
       if (url) {
@@ -261,7 +316,7 @@ async function fetchMusic({ query, outputPath, tracker, durationSec, seed }) {
   // drop straight to the synthesized ambient pad, so any real track came from
   // Pixabay above.
   if (PIXABAY_ONLY) {
-    const pad = await generatePad(norm, outputPath, durationSec);
+    const pad = await generatePad(norm, outputPath, durationSec, seed);
     if (pad) {
       log(`music: PIXABAY_ONLY, Pixabay dry for "${norm}" — synthesized ambient pad bed instead`);
       return pad;
@@ -271,31 +326,62 @@ async function fetchMusic({ query, outputPath, tracker, durationSec, seed }) {
   }
 
   // 1) Freesound — bias to MUSIC, not foley/field-recordings; widen the query
-  // stepwise before giving up on the source.
+  // stepwise before giving up on the source. Seed-varies the pick so the
+  // same mood doesn't always return the same loop on short horizontal films.
+  // Short films (15-30s) need shorter loops — accept 10s+ beds, not just 20s+.
+  const durFilter = Number(durationSec) > 0 && Number(durationSec) <= 40 ? "duration:[10 TO 180]" : "duration:[20 TO 180]";
+  // Build a POOL across candidate queries rather than committing to the first
+  // one that returns anything. A narrow genre query often returns a SINGLE hit
+  // ("energetic anthem" -> 1 result), and rotating a 1-element list is a no-op —
+  // which is why every short still shipped the same track after the seed fix.
+  // Widening until the pool has room to rotate is what actually buys variety.
+  // Pool order stays most-specific-first, so the rotation still lands on a
+  // relevant track; broader candidates only pad out the tail.
+  const POOL_TARGET = 12;
+  const pool = [];
+  const seen = new Set();
+  const addAll = (rs) => {
+    for (const r of rs) {
+      if (!r || r.id == null || seen.has(r.id)) continue;
+      seen.add(r.id);
+      pool.push(r);
+    }
+  };
   for (const q of candidates) {
+    if (pool.length >= POOL_TARGET) break;
     if (tracker) tracker.addExternal("freesound_search");
     let fsResults = await freesoundSearch({
       query: q,
-      filter: "duration:[20 TO 180] tag:music",
+      filter: `${durFilter} tag:music`,
       sort: "rating_desc",
+      pageSize: 30,
     });
     if (!fsResults.length) {
       fsResults = await freesoundSearch({
         query: q,
-        filter: "duration:[20 TO 180]",
+        filter: durFilter,
         sort: "rating_desc",
+        pageSize: 30,
       });
     }
-    const fsHit = await downloadFirstFreesoundPreview(fsResults, outputPath);
+    addAll(fsResults);
+  }
+  if (pool.length) {
+    const startIdx = seedIndex(seed, pool.length);
+    // Rotate the pool so the same mood returns a different track per video
+    const rotated = [...pool.slice(startIdx), ...pool.slice(0, startIdx)];
+    log(`music: freesound pool=${pool.length}, seed start=${startIdx}`);
+    const fsHit = await downloadFirstFreesoundPreview(rotated, outputPath);
     if (fsHit) {
       if (tracker) tracker.addExternal("freesound_download");
       return fsHit;
     }
   }
 
-  // 2) Internet Archive fallback (broad core query)
+  // 2) Internet Archive fallback (broad tail query — genre, not percussion)
   if (tracker) tracker.addExternal("internet_archive_search");
-  const iaUrl = await internetArchiveFirstMp3(core);
+  const iaQuery = tail !== core ? tail : core;
+  const iaUrl = await internetArchiveFirstMp3(iaQuery);
   if (iaUrl) {
     const got = await downloadSafe(iaUrl, outputPath);
     if (got) {
@@ -305,7 +391,7 @@ async function fetchMusic({ query, outputPath, tracker, durationSec, seed }) {
   }
 
   // 3) GUARANTEED FLOOR — a synthesized ambient pad beats a silent film.
-  const pad = await generatePad(norm, outputPath, durationSec);
+  const pad = await generatePad(norm, outputPath, durationSec, seed);
   if (pad) {
     log(`music: all sources dry for "${norm}" — synthesized an ambient pad bed instead`);
     return pad;
@@ -352,3 +438,5 @@ async function fetchSfx({ query, outputPath, tracker }) {
 }
 
 module.exports = { fetchMusic, fetchSfx };
+// Test surface — pure helpers, no network. See scripts/audio_music.test.cjs.
+module.exports.__test = { musicQueryCandidates, padParams, padSpec, seedIndex };

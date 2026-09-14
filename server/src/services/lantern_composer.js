@@ -330,12 +330,29 @@ function montage(scene, ctx, a, b) {
 function stats(scene, ctx) {
   const { id, T, L, theme: th, land } = ctx;
   const sts = statsOf(scene, 3);
-  const list = sts.length ? sts : [{ pre: "", v: 1000, suf: "+", l: "lanterns in the sky", isFloat: false }];
-  const rows = list.map((st, i) =>
-    `<div class="${id}-row" style="opacity:0;display:flex;align-items:baseline;gap:${q(36, land)}cqw;border-bottom:2px solid ${rgba(th.glow, 0.25)};padding-bottom:${q(30, land)}cqw;">
+  // NO INVENTED FIGURES — see posterpop_composer's stats() for the delivered film
+  // this was measured on. `1000+ lanterns in the sky` was printed whenever the
+  // beat carried no numbers, and a beat lands in this builder on its purpose
+  // alone, so a film that never counted anything shipped a count. A figure the
+  // script did not supply is not ours to print.
+  //
+  // The ruled row is the pack's shape here, so it stays: with no numbers the row
+  // carries the scene's OWN point in the same GLOWING display type the figure
+  // used, and nothing counts up.
+  const pts = sts.length ? [] : bullets(scene, 3).map((t) => fit(String(t), 32));
+  // Neither figures nor points: the pack's headline-only beat (its declared
+  // fallbackType) composes that copy properly, where this shape would leave the
+  // rows column dark and empty.
+  if (!sts.length && !pts.length) return statement(scene, ctx);
+  const rowCss = `opacity:0;display:flex;align-items:baseline;gap:${q(36, land)}cqw;border-bottom:2px solid ${rgba(th.glow, 0.25)};padding-bottom:${q(30, land)}cqw;`;
+  const rows = (sts.length ? sts.map((st, i) =>
+    `<div class="${id}-row" style="${rowCss}">
       <div style="min-width:${land ? 13 : 24}cqw;font-family:${FH};font-size:${q(land ? 100 : 132, land)}cqw;line-height:0.92;color:${th.glow};text-shadow:0 0 2.4cqw ${rgba(th.accent, 0.55)};font-variant-numeric:tabular-nums;"><span id="${id}-n${i}">0</span><span style="font-size:${q(land ? 52 : 64, land)}cqw;">${esc(st.suf || "")}</span></div>
       <div style="font-family:${FB};font-weight:600;font-size:${q(37, land)}cqw;color:${rgba(th.paper, 0.68)};">${esc((st.l || "").toLowerCase() || "and counting")}</div>
-    </div>`).join("");
+    </div>`) : pts.map((t) =>
+    `<div class="${id}-row" style="${rowCss}">
+      <div style="font-family:${FH};font-size:${q(land ? 40 : 52, land)}cqw;line-height:1.1;color:${th.glow};text-shadow:0 0 2.4cqw ${rgba(th.accent, 0.55)};">${esc(t)}</div>
+    </div>`)).join("");
   const html = land
     ? `<div style="position:absolute;left:8cqw;top:50%;transform:translateY(-50%);width:28cqw;">
          ${serifLines(id, scene.headline, "The night,|measured.", 70, th, land, { mark: scene.mark || scene.emphasis })}
@@ -350,7 +367,7 @@ function stats(scene, ctx) {
     titleReveal(id, T, L, 0),
     `tl.fromTo("#${id} .${id}-row",{opacity:0,y:44},{opacity:1,y:0,duration:${DUR(L)},ease:"expo.out",stagger:${ST(L)}},${r(T + 2 * ST(L))});`,
     glowPulse(id, T, L, th),
-    ...list.map((st, i) =>
+    ...sts.map((st, i) =>
       `countTxt("#${id}-n${i}",${st.v},${r(T + 0.6 + i * 0.2)},${r(Math.min(1.8, L * 0.5))},"${esc(st.pre || "")}","",${st.isFloat ? 10 : 1});`),
   ];
   return { html, s };

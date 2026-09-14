@@ -36,8 +36,10 @@
 // (see family_bright) and the engine emits the presets for it — so the timing,
 // easing and physics of a card or a headline are identical in every template.
 const motion = require("./motion_presets");
+const pacing = require("./pacing");
 const { displayOk } = require("./asset_admission");
 const { fitScenes, MAX_CLIPS } = require("./scene_fit");
+const { ownHost, signsOff } = require("./sign_off");
 
 const r = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
@@ -441,6 +443,24 @@ function fillSlots(need, { preset = [], pin = null, take: take0, takeVec, recycl
   return slots;
 }
 
+// EVERY CUT RENDERED A BLANK FRAME, and this is the number that fixes it.
+//
+// A scene's clip is switched on at its start, but its CONTENT is all `fromTo`
+// tweens from opacity 0 — so for the length of the entrance the clip is on and
+// empty, and the clips are transparent over the persistent page ground. Held
+// against the outgoing scene's hard kill at exactly the same instant, the frame
+// showed bare ground: measured on atelier at 30fps, 5-10 runs per film, 1.4-2.6s
+// total (4.6-7.4% of runtime), longest 0.53s. The two entrances the engine emits
+// are the ONLY numbers to derive this from — the motion preset's scene
+// transition when the family owns the entry (family.motion + camera disabled,
+// which is what every family template declares), and otherwise the clip
+// crossfade buildFilm emits itself. Both are pace-scaled by timingFor(), so a
+// fast film holds a proportionally shorter overlap.
+const CLIP_FADE = 0.3;
+const ownsEntry = (family) => !!(family.motion && (family.camera || {}).enabled === false);
+const entranceOf = (family, pacingProfile) =>
+  (ownsEntry(family) ? motion.timingFor(pacingProfile).transDur : CLIP_FADE);
+
 // THE single source of truth for "what media does this film ask for, and what
 // filled each slot". buildFilm() below is a pure emitter over this result, so
 // the plan and the rendered DOM cannot drift: there is exactly one
@@ -449,8 +469,11 @@ function fillSlots(need, { preset = [], pin = null, take: take0, takeVec, recycl
 //
 // Callers outside the renderer (demand planning, coverage verification) get the
 // manifest for free — no LLM, no render, pure computation.
-function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, templatePlan, manifest } = {}) {
+function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, templatePlan, manifest, pacing: pacingProfile } = {}) {
   const sb = storyboard || {};
+  // How long each clip outlives its own scene, so the next one has painted before
+  // this one is killed — see the note above CLIP_FADE.
+  const hold = entranceOf(family, pacingProfile);
   const W = (dims && dims.width) || 1920, H = (dims && dims.height) || 1080;
   const land = W >= H;
   // MERGE PAST THE CEILING, NEVER TRUNCATE. This was `slice(0, 30)`: on a 300s
@@ -465,10 +488,10 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
   const theme = family.theme(manifest || {}, brandSkin || null, { framePack, land });
 
   // Brand + url from the film itself (the site the assets came from beats lore).
-  const host = (Array.isArray(assets) ? assets : [])
-    .filter((a) => a && (a.source === "website" || a.source === "website-image") && a.sourceUrl)
-    .map((a) => { try { return new URL(a.sourceUrl).hostname.replace(/^www\./, ""); } catch { return null; } })
-    .find(Boolean);
+  // Shared with the omelette adapter (services/sign_off.js), which also brings
+  // `blog` in: a film built from a blog post has a real host, and this filter
+  // used to miss it and fabricate one instead.
+  const host = ownHost(assets);
   // THE BRAND IS A NAME, NOT THE FILM'S TITLE — AND A SLICE IS NOT A FIT.
   //
   // `sb.brand` frequently arrives as the film's headline ("Everything You Need"),
@@ -492,7 +515,17 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
     const sp = cut.lastIndexOf(" ");
     return (sp > 6 ? cut.slice(0, sp) : cut).trim();
   })();
-  const url = String(sb.url || host || `${brand.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`).slice(0, 40);
+  // NEVER INVENT A DOMAIN — the rule omelette_adapter already held, and the one
+  // place it was still broken. `${brand}.com` is not a guess, it is an assertion
+  // printed on the closing frame about an address we do not own: a prompt-only
+  // film titled "How compound interest quietly builds wealth" branded itself
+  // "How" and signed off on "how.com", a domain that belongs to someone else.
+  // Empty when the film has no site, and `signOff` below then withholds the card.
+  const url = String(sb.url || host || "").slice(0, 40);
+  // A film with no destination does not close on a brand lockup. The closing
+  // BEAT still plays — it is routed to a content shape instead of the family's
+  // sign-off shape — so its narration keeps a frame of its own. sign_off.js.
+  const signOff = signsOff({ url, storyboard: sb, assets });
 
   // Asset pools — cast assets win; the rest are claimed in scene order.
   const pool = (Array.isArray(assets) ? assets : []).filter((a) => plateOk(a) && !isBrandMark(a));
@@ -603,6 +636,18 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
     if (!sc) return 0;
     const terms = sceneWords(sc);
     let score = 0;
+    // THE PICTURE THIS BEAT PAID FOR OUTBIDS EVERY WORD MATCH. `pinned` above
+    // keeps ONE asset per sceneId; when the planner buys two or three for a
+    // scene the rest fall into `free`, lose the binding, and had nothing but
+    // word overlap left to get them home — a stock photo's tag soup ("office
+    // desk laptop") matches four beats equally well. 3 clears the largest
+    // overlap total observed anywhere (2.8), so the beat's own picture wins
+    // outright while the ordering among everything else is untouched. Measured
+    // over the 15 family packs: beats showing a picture bought for a different
+    // beat fall 27.4% -> 17.0% at 14 pictures across 9 beats, and 28.9% -> 15.6%
+    // where every beat owns two. A beat that owns exactly one is unchanged — the
+    // `pinned` map already had that one right.
+    if (a && sc.id != null && a.sceneId != null && String(a.sceneId) === String(sc.id)) score += 3;
     if (terms.size) for (const [t, w] of assetWords(a)) if (terms.has(t)) score += w;
     const want = SECTION_FOR[String(sc.purpose || sc.kind || "").toLowerCase()];
     if (want && want.test(String(a.sectionType || ""))) score += 1.5;
@@ -684,12 +729,23 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
   // Ask the router which shapes it reserves for those positions and keep them
   // out of the middle.
   const reservedTypes = new Set();
+  // The family's sign-off shape, named. Held whether or not this film draws one,
+  // because the cast guard below has to recognise it.
+  let closerType = null;
   if (typeof family.route === "function" && scenes.length > 2) {
-    const probeCtx = { dims: { width: W, height: H }, land, theme, brand, url, framePack, freeCount: free.length, esc, r, rgba, lum, mix, inkOn, breakLines, bullets, fit, statsOf, mineStat };
+    const probeCtx = { dims: { width: W, height: H }, land, theme, brand, url, signOff, framePack, freeCount: free.length, esc, r, rgba, lum, mix, inkOn, breakLines, bullets, fit, statsOf, mineStat };
     for (const [sc, idx] of [[scenes[0], 0], [scenes[scenes.length - 1], scenes.length - 1]]) {
       try {
-        const t = family.route(sc, idx, scenes.length, { ...probeCtx, i: idx, prevType: null });
+        // ALWAYS probe with signOff on. A film with no destination does not DRAW
+        // its closer (the routers withhold it), but the shape must still be
+        // reserved: reservedTypes is what keeps the LRU/anti-repeat/spendAssets
+        // rungs below from reaching for it. Probing with the real flag returned a
+        // content type here, the closer fell out of the reserved set, and those
+        // rungs promptly cast the sign-off card in the MIDDLE of the film —
+        // measured on all 8 families (cinema put `endcard` at beat 4 of 6).
+        const t = family.route(sc, idx, scenes.length, { ...probeCtx, signOff: true, i: idx, prevType: null });
         if (t && family.SCENES[t]) reservedTypes.add(t);
+        if (t && family.SCENES[t] && idx === scenes.length - 1) closerType = t;
       } catch { /* no reservation discoverable — the rung just has more candidates */ }
     }
   }
@@ -701,15 +757,27 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
     const T = r(rawScene.start != null ? rawScene.start : startOf(i));
     const L = r(rawScene.duration || 4);
     const sid = rawScene.id != null ? String(rawScene.id) : `s${i + 1}`;
-    const entry = cast && cast[sid] && family.SCENES[cast[sid].type] ? cast[sid] : null;
+    // ...AND A CAST CANNOT REINSTATE A SIGN-OFF THE FILM HAS NOT EARNED.
+    //
+    // The Template Director does not ask the router: it forces the last scene to
+    // the template's closer outright ("opener first, closer last" —
+    // template_director.js:444). So on a director-cast film the brand lockup came
+    // back, url and all, however the routers were gated. Dropping the entry here
+    // returns the beat to the router, which picks a content shape for it.
+    const castEntry = cast && cast[sid] && family.SCENES[cast[sid].type] ? cast[sid] : null;
+    const entry = castEntry && !signOff && castEntry.type === closerType ? null : castEntry;
     const scene = entry && entry.slots ? { ...rawScene, ...entry.slots } : rawScene;
     // The last clip's window runs past the timeline end: the framework windows a
     // clip out at data-start+data-duration, so an exact-D boundary would render
-    // the film's final frame black.
+    // the film's final frame black. Every OTHER clip outlives its own scene by
+    // the incoming scene's entrance (`hold`) for the reason in buildFilm's kill()
+    // note — the framework windows on this attribute, so a kill held past
+    // data-start+data-duration would hold a clip the framework has already
+    // removed, and the cut would stay blank.
     const isLast = i === scenes.length - 1;
     const ctx = {
-      id: `s${i + 1}`, T, L, winL: isLast ? L + 0.5 : L, track: 2 + i, i, isLast,
-      count: scenes.length, dims: { width: W, height: H }, land, theme, brand, url,
+      id: `s${i + 1}`, T, L, winL: isLast ? L + 0.5 : r(L + hold), track: 2 + i, i, isLast,
+      count: scenes.length, dims: { width: W, height: H }, land, theme, brand, url, signOff,
       framePack, prevType: usedTypes[i - 1] || null, esc, r, rgba, lum, mix, inkOn,
       breakLines, bullets, fit, statsOf, mineStat, variant: variantFor(framePack, family.variants || 1),
     };
@@ -740,10 +808,35 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
       // Mirrors the router's pinRescue below; the director keeps its chosen type
       // whenever it cast a media-bearing one, or when there is nothing to show.
       const showable = preset[0] || null;
-      if (showable && !need.length && family.mediaSlots) {
+      // NEVER ON THE FILM'S OWN BOOKENDS. The router reserves an opener and a
+      // closer (reservedTypes above); rescuing them turns the title spread and
+      // the closing colophon into mid-film figure pages, which is the same
+      // "template restarting" tell reservedTypes was written to stop — measured
+      // on a 6-beat atelier cast, s1 and s6 both came back as plates and the film
+      // shipped with neither a title page nor a CTA. The picture goes BACK to the
+      // pool instead of being claimed by a shape that will not draw it, so a
+      // middle beat gets it rather than nothing getting it.
+      const bookend = reservedTypes.has(type) && (i === 0 || i === scenes.length - 1);
+      if (bookend && !need.length) preset.forEach((x) => claimed.delete(x));
+      if (showable && !bookend && !need.length && family.mediaSlots) {
         const want = isPortraitAsset(showable) ? "phone" : "desktop";
-        const types = Object.keys(family.mediaSlots).filter((t) => family.SCENES[t] && (family.mediaSlots[t] || []).length);
-        const cand = types.find((t) => (family.mediaSlots[t] || [])[0] === want) || types[0];
+        const all = Object.keys(family.mediaSlots).filter((t) => family.SCENES[t] && (family.mediaSlots[t] || []).length);
+        // EVERY RESCUED SCENE LANDED ON THE SAME SHAPE. This was
+        // `types.find(orientation matches) || types[0]`, and for editorial nothing
+        // ever matches — its mediaSlots are photo/photo, never phone/desktop — so
+        // types[0] (`plate`) took every cast scene carrying an asset. Six scenes,
+        // one layout, and three regenerations of one prompt overlapping 74-81%
+        // against a 28-42% cross-pack baseline. Rescue now uses the same rung the
+        // router's anti-slideshow uses twenty lines below: drop what the recent
+        // window and sceneCanFill rule out, then take the LEAST RECENTLY USED, so
+        // a run of rescues walks the family's media shapes instead of pinning one.
+        const room = preset.length + free.filter((x) => !claimed.has(x)).length;
+        const open = all.filter((t) => !recentTypes.includes(t) && sceneCanFill(t, scene, room));
+        const lru = (list) => list.slice().sort((x, y) => usedTypes.lastIndexOf(x) - usedTypes.lastIndexOf(y))[0] || null;
+        // Orientation still leads — a phone capture in a desktop tile is a
+        // letterbox — and `all[0]` stays the floor, so a scene whose copy fits no
+        // other shape keeps the old destination rather than dropping the picture.
+        const cand = lru(open.filter((t) => (family.mediaSlots[t] || [])[0] === want)) || lru(open) || all[0];
         if (cand) { type = cand; need = family.mediaSlots[cand]; typeVia = "castPinRescue"; }
       }
       slots = fillSlots(need, { preset, pin, take, takeVec, recycle: !!family.recycleMedia, placedPool: placed, vecQuota: vecQuotaForScene(), scene, marks });
@@ -864,7 +957,16 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
     // no-media panel for the later slots (brand plate, note card, signal plate),
     // so re-routing the whole scene because slot 3 is empty would destroy that
     // authored design rather than improve it.
-    if (need.length && !a && family.mediaFallback) {
+    //
+    // …and NOT AT ALL for a shape whose descriptor declares mediaMin 0, because
+    // that declaration says in so many words that the shape is a complete page
+    // with no picture (story's spread turns its right page into a hand-drawn
+    // panel; scrapbook turns each tile into a note card). Re-routing them anyway
+    // is why sketchnote collapsed 5 of 7 middle scenes onto `chapters`: real
+    // storyboards nearly always carry 2+ bullets, so the list branch of every
+    // family's mediaFallback fired on almost every photoless beat. sceneCanFill
+    // twenty lines up already trusts this field for exactly this question.
+    if (need.length && !a && family.mediaFallback && (DESC.get(type) || {}).mediaMin !== 0) {
       const alt = family.mediaFallback(scene, ctx);
       if (alt) { type = alt; typeVia = "mediaFallback"; }
     }
@@ -933,6 +1035,17 @@ function buildFilm(family, opts = {}) {
   const { dims, framePack, captionCues } = opts;
   const P = planMedia(family, opts);
   const { W, H, land, D, theme, brand, url, scenes, plan } = P;
+
+  // THE JOB'S PACE. Resolved once and threaded — resolve() is safe on null, so a
+  // caller that has not been taught about pace yet builds exactly today's film.
+  // `MT` is a frozen SCALED COPY of the motion table; motion.TIMING itself is
+  // never touched, because jobConcurrency can exceed 1 and two films with
+  // different paces share this module.
+  const PACE = pacing.resolve(opts.pacing);
+  const MT = motion.timingFor(PACE);
+  // The same overlap planMedia already widened every clip's window by, so the
+  // kill below lands inside the window the framework is still drawing.
+  const HOLD = entranceOf(family, opts.pacing);
 
   const cam = family.camera || {};
   const KIND = cam.kinds || ["zoom", "whip", "whip", "zoom", "whip", "zoom", "whip", "whip"];
@@ -1006,10 +1119,10 @@ function buildFilm(family, opts = {}) {
     // preset. The 0.3s opacity ramp below is a crossfade — fine as a windowing
     // device under a camera whip, but it is the exact transition the motion spec
     // rules out, so it must not survive where the presets are the transition.
-    const motionOwnsEntry = !!(family.motion && (family.camera || {}).enabled === false);
+    const motionOwnsEntry = ownsEntry(family);
     sceneScripts.push(motionOwnsEntry
       ? `tl.set("#${ctx.id}",{opacity:1},${T});`
-      : `tl.fromTo("#${ctx.id}",{opacity:0},{opacity:1,duration:0.3,ease:"none"},${T});`);
+      : `tl.fromTo("#${ctx.id}",{opacity:0},{opacity:1,duration:${CLIP_FADE},ease:"none"},${T});`);
     sceneScripts.push(Array.isArray(built.s) ? built.s.filter(Boolean).join("\n  ") : String(built.s || ""));
 
     // ---- SHARED MOTION PASS ---------------------------------------------------
@@ -1039,8 +1152,8 @@ function buildFilm(family, opts = {}) {
       // A card selector is only handed to the presets when this scene draws one,
       // so a text-only scene never emits an entrance with nothing to animate.
       const cardSel = cardPresent ? rawCard : null;
-      sceneScripts.push(...motion.resolveMotion(tokens, {
-        at: T, span: L, index: i,
+      const mctx = {
+        at: T, span: L, index: i, pacing: PACE,
         // The outline phase draws the word in THIS colour with a transparent
         // fill, so it has to clear large-text contrast on its own — a raw accent
         // (mint on near-white measured 1.69:1) is unreadable for the whole hold.
@@ -1074,14 +1187,43 @@ function buildFilm(family, opts = {}) {
           card: cardSel, text: pick(M.text), camera: pick(M.camera),
           shadow: M.shadow !== false,
         },
-      }));
+      };
+      sceneScripts.push(...motion.resolveMotion(tokens, mctx));
+      // ---- INTRA-SCENE SUB-CUT --------------------------------------------------
+      // A CUT INSIDE THE SCENE. `sceneSec` and `beatSec` are two different units:
+      // a scene boundary is where narration is mixed, so moving one breaks A/V
+      // sync, but re-firing the picture at the scene's MIDPOINT moves no boundary
+      // and no narration at all. Runtime, the clip window, the kill and the VO are
+      // all untouched — the only thing that changes is how often the frame
+      // re-arrives, which is exactly what "fast" is supposed to mean.
+      //
+      // It fires only when the scene is meaningfully longer than the mode asks a
+      // cut to be (1.6x), and only when both halves still clear the flicker floor
+      // — a sub-cut that leaves a 1.2s half is a flicker, not an edit. The
+      // family's OWN transition and text tokens are reused so the sub-cut is in
+      // the pack's vocabulary; index+1 flips the wipe's direction, so the second
+      // arrival cannot read as the first one stuttering. No card, idle or camera
+      // token: the card is already on screen and re-entering it would fight the
+      // idle that owns the same properties.
+      // ONLY THE FASTER MODES ADD A CUT. Gating on "not neutral" made RELAXED cut
+      // MORE often than Normal — 0.8x is the mode whose entire point is fewer,
+      // longer beats, and its slower feel already comes from the lengthened
+      // arrivals. Faster-than-normal is the condition, not different-from-normal.
+      if (PACE.multiplier > 1 && L > PACE.beatSec * 1.6 && L >= 2 * pacing.CUT_FLOOR_SEC
+          && (mctx.sel.scene || mctx.sel.text)) {
+        const subAt = r(T + L / 2);
+        sceneScripts.push(...motion.resolveMotion(
+          { transition: tokens.transition, text: tokens.text, enter: "none", idle: "none", camera: "none" },
+          { ...mctx, at: subAt, span: r(T + L - subAt), index: i + 1,
+            sel: { ...mctx.sel, card: null, camera: null } }));
+      }
       // CARD HAND-OFF ACROSS THE BOUNDARY. The outgoing scene's card steps back
       // into depth as the incoming one arrives, overlapping by TIMING.overlap, so
       // screens read as a stack being dealt rather than as slides advancing. It
       // has to live here rather than in a scene function: no scene can see its
       // neighbour, and the whole point is that the two overlap.
       if (prevCardSel && cardSel && tokens.exit !== "none") {
-        sceneScripts.push(...motion.cardStackTransition(prevCardSel, null, r(T - motion.TIMING.overlap)));
+        sceneScripts.push(...motion.cardStackTransition(prevCardSel, null, r(T - MT.overlap), { t: MT }));
       }
       prevCardSel = cardSel;
     }
@@ -1090,7 +1232,15 @@ function buildFilm(family, opts = {}) {
       const eK = KIND[i % KIND.length], eD = DIR[i % DIR.length] || 1;
       const nx = (i + 1) % scenes.length;
       const xK = KIND[nx % KIND.length], xD = DIR[nx % DIR.length] || 1;
-      const inD = r(Math.min(0.55, L * 0.14)), outD = r(Math.min(0.5, L * 0.13));
+      // The whip/zoom in and out are ARRIVALS, so their duration CEILINGS take the
+      // pace: leaving them at 0.55s while the text lands in 0.4s is what makes a
+      // fast film look like a slow film with hurried type on it. The fraction of
+      // the scene (0.14/0.13) is left alone — it already shrinks as scenes do —
+      // and the push AMOUNT below never scales, because a camera that outruns the
+      // eye reads as a mistake. arrivalFactor is exactly 1 at normal, so these are
+      // the literal 0.55 and 0.5 there.
+      const inD = r(Math.min(0.55 / PACE.arrivalFactor, L * 0.14));
+      const outD = r(Math.min(0.5 / PACE.arrivalFactor, L * 0.13));
       const blur = cam.blur != null ? cam.blur : 26;
       if (i > 0 || scenes.length === 1) {
         sceneScripts.push(eK === "whip"
@@ -1107,7 +1257,35 @@ function buildFilm(family, opts = {}) {
       if (push) sceneScripts.push(`tl.fromTo("#${ctx.id}-cami",{scale:1},{scale:${r(1 + push)},duration:${r(L)},ease:"sine.inOut"},${T});`);
     }
     if (family.perScene) sceneScripts.push(family.perScene(scene, ctx) || "");
-    if (!isLast) sceneScripts.push(`kill("#${ctx.id}",${r(T + L)});`);
+    // HOLD THE OUTGOING SCENE UNTIL THE INCOMING ONE HAS PAINTED. Killing at
+    // exactly T+L put an empty frame at every cut (the CLIP_FADE note above
+    // carries the measurement); the incoming clip is switched on at that same
+    // instant but everything in it is still at opacity 0. The clips sit on
+    // ascending z-index (`z-index:${ctx.track}`), so the incoming scene draws OVER
+    // the held one and the wipe reads as a page pushing over the last — the
+    // presets stay the transition, which is the crossfade the spec rules out.
+    // FADE THE OUTGOING SCENE OUT ACROSS THE HOLD — do not park it at full
+    // opacity and then cut it. Holding it opaque removed the blank frame (0 runs,
+    // measured) but replaced it with something no ink-coverage metric can see: for
+    // the length of the entrance BOTH headlines are on screen at full strength,
+    // superimposed and unreadable (verified on frames at 11.00s and 11.10s of a
+    // 30s atelier film — "TOTAL CLARITY / IN ONE PLATFORM" stacked on top of
+    // "ONE TIMELINE / FOR ALL WORK"). It reads as a rendering fault rather than an
+    // edit. Dissolving it out under the arriving scene is what family_poster
+    // already does, and that family measures zero blank frames AND no double
+    // exposure. The clip window was widened by the same HOLD, so this tween lands
+    // inside the span the framework is still drawing.
+    //
+    // The hard kill still lands at the END of the dissolve, and it is not
+    // decoration: the engine contract at the top of this file is "a hard
+    // opacity:0 kill at each scene end", check:templates asserts one per
+    // non-final scene (a fadeOut-only version failed 31 packs with "only 0 hard
+    // kills for 7 scenes"), and a tween's end value is not a state a seek to
+    // exactly that instant is guaranteed to land on.
+    if (!isLast) {
+      sceneScripts.push(`fadeOut("#${ctx.id}",${r(T + L)},${r(HOLD)});`);
+      sceneScripts.push(`kill("#${ctx.id}",${r(T + L + HOLD)});`);
+    }
   });
 
   const chrome = family.chrome
@@ -1154,6 +1332,7 @@ function buildFilm(family, opts = {}) {
   function reps(t,c){return Math.max(0,Math.floor(t/c)-1);}
 ${motion.runtimeHelpers()}
   function kill(id,t){tl.set(id,{opacity:0},t);}
+  function fadeOut(id,t,d){if(d>0){tl.to(id,{opacity:0,duration:d,ease:"none"},t);}else{tl.set(id,{opacity:0},t);}}
   function countTxt(sel,to,at,dur,pre,suf,f){f=f||1;var o={v:0};tl.to(o,{v:to*f,duration:dur,ease:"expo.out",snap:{v:1},onUpdate:function(){var e=$(sel);if(e)e.textContent=pre+(f>1?(Math.round(o.v)/f).toFixed(1):Math.round(o.v))+suf;}},at);}
   function type(sel,str,at,dur){var o={n:0};tl.to(o,{n:str.length,duration:dur,ease:"none",snap:{n:1},onUpdate:function(){var e=$(sel);if(e)e.textContent=str.slice(0,Math.round(o.n));}},at);}
 

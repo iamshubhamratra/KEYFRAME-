@@ -53,6 +53,12 @@ const { showcaseTargets } = require("../services/scene_role");
 const { pinUserAssets } = require("../services/user_assets");
 const db = require("../db");
 const { UsageTracker } = require("../services/usage");
+// The film's PACE. One frozen profile per job, resolved once from the job row and
+// carried on the graph state — never re-derived inside a node, because
+// jobConcurrency can exceed 1 and two films with different paces share this
+// process. `resolve` is total: a legacy job row with no `pace` column returns the
+// frozen `normal` profile, which reproduces today's numbers exactly.
+const pacing = require("../services/pacing");
 const { generateBrief } = require("../services/brief");
 const { generateScript, normalizeScript } = require("../services/script");
 const { generateStoryboard, alignToScript } = require("../services/storyboard");
@@ -63,6 +69,7 @@ const { auditAssetRender } = require("../services/asset_render_check");
 const { preflight } = require("../services/preflight");
 const { buildAudioReport } = require("../services/audio_report");
 const { acquire, hasProviderFor, makeImageDeduper } = require("../services/asset_sources");
+const { packDrawsVideo } = require("../services/video_capable");
 const { fetchBrandMark } = require("../services/asset_sources/iconify");
 const { planBrandMarks } = require("../services/brand_mentions");
 // The same subject reducer + camera/adjective stop list asset_sources applies
@@ -251,7 +258,7 @@ async function storyboardAgent(s) {
   // selected template (storyboard.js buildUser). frame_selector runs before this
   // node, so the pick is always resolved here — omitting it made the project
   // path's storyboards pack-blind while /api/generate's were pack-aware.
-  const r = await generateStoryboard({ prompt: sbPrompt, duration: s.job.duration, orientation: s.job.orientation, framePack: s.framePack });
+  const r = await generateStoryboard({ prompt: sbPrompt, duration: s.job.duration, orientation: s.job.orientation, framePack: s.framePack, pacing: s.pacing });
   s.tracker.addLlm({ inputTokens: r.tokensIn, outputTokens: r.tokensOut, stage: "storyboard", costUsd: r.costUsd });
   // The picture is built from the storyboard; the narration is cut per SCRIPT
   // scene and mixed at that scene's own start. Reconcile the two lists before
@@ -355,7 +362,20 @@ function makeQueryDeriver(STOP) {
       // picture twice, once in vector form.
       picked = dedupe([purpose, subject[2] || subject[1] || hint[0]]);
     } else {
-      picked = dedupe([subject[0], ...hint.slice(0, 2)]);                // the subject placed in the beat's setting/mood
+      // THE FULL-BLEED PICTURE GOT THE WEAKEST QUESTION OF THE THREE. background is
+      // the FIRST want every scene pushes, and byScenePriority serves every scene's
+      // first want before any scene's second — so on the 12-beat probe film 12 of
+      // the 14 planned photos were backgrounds, and each asked for ONE subject word
+      // plus TWO words of set dressing while the inset asked for two subject words:
+      // s1 background "morning lone paper" against inset "morning coffee"; s4's
+      // "single origin beans" beat searched as "brewline water beading"; s9's
+      // "caffeine without the crash" as "means runner dawn". That ratio is also the
+      // ranking weight — rankQuery is this string, so two thirds of the score for
+      // the film's biggest picture was decided by the camera note. Flip it: two
+      // subject words carry the query, ONE hint word places them in the beat's
+      // setting. It overlaps the inset's two words by design; the film-wide
+      // usedSourceUrls means the second slot ranks past the first slot's pick.
+      picked = dedupe([...subject.slice(0, 2), hint[0]]);
     }
     if (picked.length < 2) picked = dedupe([...picked, ...subject, ...hint]).slice(0, 4);
     if (picked.length < 2) return null;
@@ -437,7 +457,13 @@ function byScenePriority(wants, cap) {
 
 async function assetPlannerAgent(s) {
   const { job, script } = s;
-  const videoOk = hasProviderFor("video");
+  // A clip needs BOTH a provider that can fetch it and a renderer that can draw
+  // it. The provider half has always been checked; the renderer half never was,
+  // and it is the half that fails — every composer except scene-kit filters
+  // clips out, and no pack routes to scene-kit by default, so a planned clip was
+  // downloaded, probed and ffmpeg-re-encoded for a frame it could never reach.
+  // See video_capable.js for the per-renderer audit behind this.
+  const videoOk = hasProviderFor("video") && packDrawsVideo(s.framePack);
   const shots = (job.website_screenshots || []).filter((p) => { try { return fs.existsSync(p); } catch { return false; } });
   // `purpose` is free text (SceneSchema allows any 2-24 chars) and this used to
   // match it by EXACT STRING. A model that wrote "benefit", "solution" or "the
@@ -754,17 +780,79 @@ async function assetSearchAgent(s) {
   // exact, so each slot takes its alternation from its own index and the exclusion
   // set is still added to as results land.
   slots.forEach((sl, i) => { sl.vectorIndex = i; });
-  let cursor = 0;
-  const fetched = new Array(slots.length).fill(null);
-  await Promise.all(Array.from({ length: Math.min(FETCH_CONCURRENCY, slots.length) }, async () => {
-    for (;;) {
-      const i = cursor++;
-      if (i >= slots.length) return;
-      fetched[i] = await fetchOne(slots[i]).catch(() => null);
-    }
-  }));
+  // The retry pass below fetches through the same pool: its slots can spawn the
+  // same headless browsers, so they answer to the same ceiling.
+  const fetchAll = async (list) => {
+    let cursor = 0;
+    const out = new Array(list.length).fill(null);
+    await Promise.all(Array.from({ length: Math.min(FETCH_CONCURRENCY, list.length) }, async () => {
+      for (;;) {
+        const i = cursor++;
+        if (i >= list.length) return;
+        out[i] = await fetchOne(list[i]).catch(() => null);
+      }
+    }));
+    return out;
+  };
+  const fetched = await fetchAll(slots);
   for (let i = 0; i < slots.length; i++) await commitOne(slots[i], fetched[i]);
   db.setProgress(job.id, "assets");
+
+  // SECOND PASS — THE BEATS THE FIRST PASS GAVE UP ON.
+  //
+  // `misses` was written in three places and read in NONE: the gap-filler its
+  // comment promises was deleted with the image generator, so every `continue`
+  // above simply abandoned a scene. The renderer then dresses that beat with a
+  // recycled repeat or a plate, which is the "the assets don't match the script"
+  // complaint arriving one step later than where it was caused. Measured on a
+  // 12-beat film against the live Pixabay API with a cold cache: 19 slots planned,
+  // 14 committed, 5 beats abandoned — all five to the duplicate drop, because two
+  // slots in flight at once can claim the same URL before either records it (the
+  // window acquire's excludeUrls note accepts).
+  //
+  // Ask ONE more question per abandoned beat, and a different one: the anchor plus
+  // the beat's two strongest SPOKEN words, which the planner's four-word cap threw
+  // away. That is worth the fetch even when it lands near the first query, because
+  // usedSourceUrls now HOLDS the picture that won the race — acquire ranks past it
+  // to the next-best one. Hard-capped at 6 so a film whose provider is having a bad
+  // day cannot double this stage's wall clock (a degraded lookup is ~12s), and one
+  // retry per beat so those six buy six different scenes rather than six slots of
+  // the same one. Every guard is the first pass's: same fetchOne, so the same
+  // usedSourceUrls, usedLibraryIds, orientation, kindPref and fail-open catch.
+  try {
+    const missed = misses.length;   // frozen: a retry that fails again appends to `misses`
+    const retryScenes = new Set();
+    const retrySlots = [];
+    for (const m of misses) {
+      if (retrySlots.length >= Math.min(missed, 6)) break;
+      const sc = m.scene || {};
+      const sid = String(sc.id);
+      if (retryScenes.has(sid)) continue;
+      const spoken = subjectQuery(`${sc.voiceover || ""} ${(sc.onScreenText || []).join(" ")} ${sc.headline || ""}`);
+      const asked = new Set(String(m.need.query || "").toLowerCase().split(/\s+/));
+      const fresh = spoken.split(" ").filter((w) => w && !asked.has(w)).slice(0, 2);
+      // Nothing the failed query did not already carry: the ladder has swept this
+      // beat's whole vocabulary, so a retry would only buy the same miss again.
+      if (!fresh.length) continue;
+      retryScenes.add(sid);
+      const isVideo = m.need.type === "video";
+      retrySlots.push({
+        scene: m.scene, need: { ...m.need, query: fresh.join(" ") }, isVideo,
+        relPath: isVideo ? `assets/videos/${iVid++}.mp4` : `assets/images/${iImg++}.jpg`,
+        vectorIndex: retrySlots.length,
+      });
+    }
+    if (retrySlots.length) {
+      const had = results.length;
+      const refetched = await fetchAll(retrySlots);
+      for (let i = 0; i < retrySlots.length; i++) await commitOne(retrySlots[i], refetched[i]);
+      console.log(`[agents] gap retry recovered ${results.length - had}/${retrySlots.length} abandoned beat(s) (${missed} missed)`);
+    }
+  } catch (e) {
+    // Recovering a beat is a bonus pass over slots that ALREADY failed; it can
+    // never be the thing that fails a film.
+    console.warn(`[agents] gap retry skipped (${String(e && e.message || e).slice(0, 120)})`);
+  }
 
   // One slot's acquisition — pure fetch, no shared state written.
   async function fetchOne({ scene, need, isVideo, relPath, vectorIndex }) {
@@ -788,26 +876,54 @@ async function assetSearchAgent(s) {
     // nouns first, so leading with the topic makes it try the subject before any
     // stray direction word survives to become the match.
     const baseQuery = anchor ? `${anchor} ${need.query}` : need.query;
-    // Photos also carry the pack's visual style ("neon synthwave" for vapor-
-    // chrome) so stock matches the look; the un-styled query stays as a fallback
-    // so an over-narrow phrase still finds SOMETHING.
-    const query = (!isIcon && packStyle.photoMod) ? `${baseQuery} ${packStyle.photoMod}` : baseQuery;
+    // THE PACK'S LOOK IS A RANKING SIGNAL, NOT A SEARCH TERM. Gluing photoMod
+    // ("bold graphic pop art") onto the query counted the pack's style twice —
+    // once padding the relevance denominator, once as its own styleMatch term —
+    // and it decided the winner. Measured on six realistic candidates: the styled
+    // 13-token string ranked "business meeting office corporate people handshake"
+    // first (it won on the photoMod word "office"); without it the correct
+    // "team collaboration together" wins. It also broke the primary rung outright:
+    // the Pixabay API silently trims a query at 100 chars, and the site scraper
+    // hyphen-joins all 13 words into a slug that returns nothing. `styleKeywords`
+    // below is the channel for the pack's look, and it is already scored.
+    const query = baseQuery;
+    // THE LADDER HAS TO ACTUALLY DESCEND. It was built from the ANCHORED string,
+    // which cost it two of its five rungs: rung 1 came out byte-identical to the
+    // primary query (acquire searches `[query, ...fallbackQueries]` and never
+    // de-dups, so EVERY provider issued the same search twice), and
+    // fallbackQueriesFor's first-two-words rung is the anchor's own prefix, which
+    // the re-anchoring map then turned into the malformed "cold brew coffee cold
+    // brew". Build the rungs from the NEED and anchor each one afterwards: cleaned
+    // need -> shortened need -> anchor alone. Measured on a 12-beat film with the
+    // anchor "cold brew coffee": 5 rungs (2 of them dead) became 3, all distinct
+    // and each strictly broader than the one above it.
+    const needQuery = subjectQuery(need.query) || need.query;
+    const anchored = (q) => (anchor && !q.startsWith(anchor) ? `${anchor} ${q}` : q);
+    const ladder = [...new Set([needQuery, ...fallbackQueriesFor(needQuery)]
+      .filter(Boolean).map(anchored).concat(anchor ? [anchor] : []))].filter((q) => q !== query);
     const r = await acquire({
       query,
-      // NEVER BROADEN BY DELETING THE TOPIC. `need.query` on its own was a rung on
-      // this ladder, and acquire() sweeps EVERY variant against the cache before it
-      // touches a provider — so the one topic-free string got two full sweeps ahead
-      // of the broadest on-topic one, and whatever it hit got cached under that
-      // query and reused. Broaden by dropping DIRECTION words instead; the anchor
-      // alone is the widest rung we are willing to search.
+      // RANK ON WHAT THE SCENE ASKED FOR, SEARCH WITH THE TOPIC ANCHOR. The anchor
+      // earns its place in the SEARCH (it steers a keyword provider onto the
+      // film's topic), but scoring against it punishes the candidate that nails
+      // the scene: relevance is a ratio over the whole string, so one matched word
+      // is worth ~0.09 of a 9-token query and ~0.20 of the 4-token need. It also
+      // silently disabled the subject-affinity term, which measures the subject
+      // words NOT already in the ranked query — an empty set while the anchor is
+      // the query's own prefix.
+      rankQuery: need.query,
+      // NEVER BROADEN BY DELETING THE TOPIC, and a healthy provider is no reason to
+      // relax it. Re-measured against the live Pixabay API with the restored key:
+      // every ANCHORED rung of a cold-brew film comes back coffee, while the scene's
+      // need on its own returns rain drops on glass ("brewline water beading"),
+      // water ripples ("drip harsh overhead") and a jogger ("means runner dawn") —
+      // 20-candidate pools with no coffee in them at all, which no amount of
+      // re-ranking can rescue. So the anchor rides every rung of the ladder built
+      // above; the anchor alone is the widest string we are willing to search.
       // The cache must not hand back an image that is merely spelled like the
       // query — it has to be about the topic. See local_db.search.
       subject: anchor || undefined,
-      fallbackQueries: [...new Set([
-        baseQuery,
-        ...fallbackQueriesFor(query).map((q) => (anchor && !q.includes(anchor) ? `${anchor} ${q}` : q)),
-        ...(anchor ? [anchor] : [need.query]),
-      ])],
+      fallbackQueries: ladder,
       type: isVideo ? "video" : "image",
       orientation: job.orientation, outputPath: path.join(jobDir, relPath), tracker,
       kindPref: isVideo ? undefined : (isIcon ? "vector" : kindPrefFor(need.role)),
@@ -985,6 +1101,11 @@ async function assetSearchAgent(s) {
       jobId: job.id, storyboard: null, script: s.script || null,
       brief: s.brief, subject: gateSubject, framePack: s.framePack,
       assets: [...allPinned, ...results, ...generated], tracker, jobDir, orientation: job.orientation,
+      // The top-up fetch inside this call is the ONLY acquire() in the pipeline
+      // that was not told what the film had already claimed, so it could re-take a
+      // URL another slot placed — the MD5 pass then binned it and the scene ended
+      // up empty anyway, after paying for the fetch and a vision-review slot.
+      excludeUrls: usedSourceUrls,
     });
   }
 
@@ -1100,9 +1221,15 @@ async function assetSearchAgent(s) {
 // Volumes stay inside the same VO-aware band the audio director clamps to, so the
 // bed still sits under the narration; this only shapes it.
 const CUE_GAIN = { intro: 1.15, build: 1.0, steady: 0.75, lift: 1.3, drop: 1.35, outro: 1.2 };
-function musicEnvelopeFromScript(script, hasVoice) {
+function musicEnvelopeFromScript(script, hasVoice, pacingIn) {
   const scenes = (script && Array.isArray(script.scenes)) ? script.scenes : [];
   if (scenes.length < 2) return null;
+  // A faster film wants a bed that MOVES more, not a louder one: envelopeSpread
+  // stretches each cue's deviation from flat (a lift lifts further, a steady
+  // drops further under the voice) while the band below still holds the ceiling.
+  // f(1) is exact for all six cues — 1 + (g - 1) * 1 === g in doubles for
+  // 1.15/1.0/0.75/1.3/1.35/1.2 — so the normal bed is byte-identical.
+  const spread = pacing.audioFor(pacingIn).envelopeSpread;
   const base = hasVoice ? 0.11 : 0.22;
   const lo = hasVoice ? 0.06 : 0.12, hi = hasVoice ? 0.16 : 0.32;
   const env = [];
@@ -1111,7 +1238,7 @@ function musicEnvelopeFromScript(script, hasVoice) {
     const cue = String(sc.musicCue || "").toLowerCase().trim();
     const gain = CUE_GAIN[cue];
     if (gain == null) return;
-    const volume = Math.round(Math.min(hi, Math.max(lo, base * gain)) * 1000) / 1000;
+    const volume = Math.round(Math.min(hi, Math.max(lo, base * (1 + (gain - 1) * spread))) * 1000) / 1000;
     // Only record where the bed actually CHANGES — a run of identical points is
     // a flat bed with extra steps, and envelopeToSeconds needs >=2 real points.
     if (prev !== null && volume === prev) return;
@@ -1295,6 +1422,10 @@ async function textDirectorAgent(s) {
       script: s.script,
       storyboard: s.storyboard,
       tracker: s.tracker,
+      // Without this the profile's bulletsMax/subtextChars were dead on the LIVE
+      // orchestrator: text_director resolved a neutral profile and a Very Fast
+      // film got Normal's three bullets and 90-char subtext.
+      pacing: s.pacing,
     });
     return { storyboard };
   } catch (e) {
@@ -1373,6 +1504,7 @@ async function localizationDirectorAgent(s) {
 // Voice Agent — per-scene fitted VO + script SFX + music, in parallel.
 async function voiceAgent(s) {
   const { job, jobDir, tracker, script } = s;
+  const P = pacing.resolve(s.pacing);
   const audioDir = path.join(jobDir, "audio");
   fs.mkdirSync(audioDir, { recursive: true });
   const voice = pickVoice(job, script);
@@ -1406,8 +1538,12 @@ async function voiceAgent(s) {
       // `lang` is the RESOLVED voiceover language. It only matters to the free
       // Edge fallback, which has a voice per language — without it a Hindi line
       // was handed to an American English voice and read as noise.
-      ? synthesizeFitted({ text: voTextFor(sc), targetSec: sc.duration, voice, instructions, outputPath: path.join(audioDir, `vo-${sc.id}.mp3`), tracker, session: ttsSession, lang: (s.captionPlan && s.captionPlan.voiceLanguage) || (s.languagePlan && s.languagePlan.voiceLanguage) || "en" })
-          .then((r) => r ? { sceneId: sc.id, startSec: sc.start, durationSec: r.durationSec, sceneDurationSec: sc.duration, text: r.text, path: r.path, fallbackVoice: r.fallbackVoice || null } : null)
+      ? synthesizeFitted({ text: voTextFor(sc), targetSec: sc.duration, voice, instructions, outputPath: path.join(audioDir, `vo-${sc.id}.mp3`), tracker, session: ttsSession, lang: (s.captionPlan && s.captionPlan.voiceLanguage) || (s.languagePlan && s.languagePlan.voiceLanguage) || "en", pacing: P })
+          // `budgetSec`, `tightened` and `atempo` are carried for the pacing
+          // report and nothing else. The budget in particular is only knowable
+          // HERE: retimeScenesToVo later overwrites sceneDurationSec with the
+          // STRETCHED duration, so after it runs every line looks like it fit.
+          .then((r) => r ? { sceneId: sc.id, startSec: sc.start, durationSec: r.durationSec, sceneDurationSec: sc.duration, budgetSec: sc.duration, text: r.text, path: r.path, fallbackVoice: r.fallbackVoice || null, tightened: r.tightened === true, atempo: Number(r.atempo) || 0 } : null)
           .catch((e) => { console.warn(`[agents] vo ${sc.id} failed: ${e.message}`); return null; })
       : Promise.resolve(null)
   )).then((a) => a.filter(Boolean));
@@ -1416,7 +1552,11 @@ async function voiceAgent(s) {
   // scenes) essentially silent of accents. Allow ~1 per scene, capped so a short
   // film stays punchy and a long one stays lively (≈1 SFX / 12s of runtime).
   // Volume raised to 0.55 so the accents actually read over the VO+music bed.
-  const sfxCap = Math.min(10, Math.max(3, Math.round((script.scenes.length || 3) * 0.8)));
+  // Both numbers now come from the pace (audioFor: 0.8/scene and a ceiling of 10
+  // at normal, exactly the literals they replace) — a Fast cut needs more accents
+  // per minute for the same reason it needs more cuts.
+  const A = pacing.audioFor(P);
+  const sfxCap = Math.min(A.sfxCapMax, Math.max(3, Math.round((script.scenes.length || 3) * A.sfxPerScene)));
   // TWO PROBLEMS THIS LOOP USED TO HAVE, both of which read as "the SFX aren't
   // landing" rather than as missing SFX:
   //
@@ -1486,14 +1626,26 @@ async function voiceAgent(s) {
     : 0;
   const moodWord = String(script.music?.mood || "").toLowerCase();
   const calmMood = /calm|ambient|elegant|gentle|soft|intimate|luxur/.test(moodWord);
-  const wantsDrive = isReel
+  const heuristicDrive = isReel
     || (!calmMood && (avgScene > 0 && avgScene <= 4.5))
     || /upbeat|energetic|driving|punchy|dance|electro|hype/.test(moodWord);
-  // The energy goes FIRST, not last. fetchMusic retries an over-specific query
-  // with a 2-word "core" taken from the front, so a tail-appended cue is exactly
-  // what gets dropped on the retry — one film fell back to a bare "upbeat
-  // percussive" and lost the brief. Leading with it keeps the pulse in both the
-  // full query and its fallback, while the script's own words still pick genre.
+  // THE PACE GETS A VOTE, NOT A VETO OVER THE TOPIC. audioFor(P).drive is "auto"
+  // at normal, so `wantsDrive` is the identical expression it always was. A Fast
+  // film asks for a pulse — but a sombre subject (`calmMood`: a memorial, a
+  // luxury brand film) does not get party music because someone picked Fast, so
+  // the mood veto that already guarded the avgScene branch now guards this one
+  // too. Relaxed suppresses the pulse outright: it is an explicit request for an
+  // unhurried film, and the reel/short-scene heuristics would otherwise overrule
+  // the only person who actually stated a preference.
+  const wantsDrive = A.drive === "drive" ? (heuristicDrive || !calmMood)
+    : A.drive === "calm" ? false
+    : heuristicDrive;
+  // The energy goes FIRST, not last. This predates fetchMusic's genre-aware
+  // widening (it used to retry a 2-word "core" taken from the FRONT, so a
+  // tail-appended cue was exactly what got dropped — one film fell back to a
+  // bare "upbeat percussive" and lost the brief). Widening now follows the mood
+  // words wherever they sit, but leading with the pulse still keeps it ahead of
+  // the 80-char truncation below. The script's own words still pick genre.
   const musicQuery = [
     wantsDrive ? "upbeat driving" : "",
     script.music?.mood,
@@ -1501,7 +1653,7 @@ async function voiceAgent(s) {
     wantsDrive ? "punchy beat" : "",
   ].map((x) => String(x || "").trim()).filter(Boolean).join(" ").slice(0, 80);
   const musicTask = (script.music?.query || script.music?.mood)
-    ? fetchMusic({ query: musicQuery, outputPath: path.join(audioDir, "music.mp3"), tracker, seed: job.id }).catch(() => null)
+    ? fetchMusic({ query: musicQuery, outputPath: path.join(audioDir, "music.mp3"), tracker, durationSec: job.duration, seed: job.id }).catch(() => null)
     : Promise.resolve(null);
 
   const [voClips, sfxClips, musicPath] = await Promise.all([voTask, sfxTask, musicTask]);
@@ -1575,6 +1727,7 @@ function validateBeforeRender(s) {
 
 async function compositionAgent(s) {
   const { job, jobDir, tracker } = s;
+  const P = pacing.resolve(s.pacing);
   // First pass only — repair laps reuse the already-healed asset list.
   if (!s.qa) validateBeforeRender(s);
   db.setProgress(job.id, "composing");
@@ -1585,7 +1738,7 @@ async function compositionAgent(s) {
   // its line — without this a 3.4s line in a 3s scene overlapped the next
   // scene's narration AND the last line ran past the video end and was CUT
   // mid-sentence at mux time. Idempotent across QA repair laps.
-  const retime = retimeScenesToVo(s.storyboard, s.script, s.voClips || []);
+  const retime = retimeScenesToVo(s.storyboard, s.script, s.voClips || [], P);
   const effDur = retime.effectiveDuration || job.duration;
   if (effDur > job.duration + 0.05) {
     console.log(`[agents] scenes re-timed to measured VO: ${job.duration}s -> ${effDur}s (last line no longer cut)`);
@@ -1619,7 +1772,10 @@ async function compositionAgent(s) {
         durationSec: Math.min(x.duration, measured ? measured.durationSec : x.duration),
         sceneDurationSec: x.duration, text: x.voiceover,
       };
-    })
+    }),
+    // The cue grammar follows the pace: a Fast film's cues may sit closer
+    // together and hold for less, but never below what the line takes to read.
+    { pacing: P }
   ).map((c) => ({ start: Math.round(c.start * 10) / 10, end: Math.round(c.end * 10) / 10, text: c.text }));
   const captionCues = job.captions_enabled === 0 ? [] : voCues;
   // The full-frame narration layer is OPT-IN, and this gate is strict on purpose:
@@ -1739,7 +1895,7 @@ async function compositionAgent(s) {
         (signal) => composeWithThree({
           storyboard, dims, jobDir, framePack: s.framePack, captionCues, scriptCues: voCues, scriptOverlay,
           assets: s.assets || [], jobId: job.id, durationSec: effDur,
-          label: "graph-three", abortSignal: signal, tracker,
+          label: "graph-three", abortSignal: signal, tracker, pacing: P,
         }),
         budget, "Three.js composition"
       );
@@ -1766,6 +1922,10 @@ async function compositionAgent(s) {
         dress: !useComposer,
         subject: s.brief?.subject || null,
         brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null,
+        // Reaches every renderer's buildComposition through composeWithPackRenderer.
+        // A cut INSIDE a scene moves no narration, so this is where pace buys the
+        // most density for the least sync risk.
+        pacing: P,
       }),
       budget, "composition agent"
     );
@@ -1822,6 +1982,7 @@ async function compositionAgent(s) {
           dress: job.compose_mode === "premium" && !composerBudgetDead,
           subject: s.brief?.subject || null,
           brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null,
+          pacing: P,
         });
         return { visual, usedFallback: false, finalAttempt: "scene-kit", usedComposer: false, premiumDowngraded: job.compose_mode === "premium", rendered: true, composerBudgetDead, effectiveDuration: effDur, sfxClips: sfxRepinned };
       } catch (e2) {
@@ -1911,6 +2072,7 @@ async function animationAgent(s) {
 // Timeline Agent — render (if not already), captions/SRT, audio mix.
 async function timelineAgent(s) {
   const { job, jobDir, tracker } = s;
+  const P = pacing.resolve(s.pacing);
   let visual = s.visual;
   if (!s.rendered && !s.usedFallback) {
     // attemptLlmComposition already rendered; only the fallback path marks
@@ -1918,7 +2080,9 @@ async function timelineAgent(s) {
   }
   db.setProgress(job.id, "audio");
 
-  const cues = buildCues(s.voClips || []);
+  // The SAME options bag the burned-in cues were built with in compositionAgent —
+  // the .srt a user downloads has to describe the film they watched.
+  const cues = buildCues(s.voClips || [], { pacing: P });
   if (cues.length) {
     try {
       const srtPath = path.join(config.paths.videosDir, `${job.id}.srt`);
@@ -1932,7 +2096,7 @@ async function timelineAgent(s) {
     // The video was rendered at the VO re-timed duration — mix to the same
     // length or the last narrated line gets cut at the old boundary again.
     durationSec: s.effectiveDuration || job.duration,
-    scenes: s.storyboard?.scenes || null, jobDir,
+    scenes: s.storyboard?.scenes || null, jobDir, pacing: s.pacing,
     audio: {
       ttsPath: null,
       musicPath: s.musicPath || null,
@@ -1943,7 +2107,7 @@ async function timelineAgent(s) {
       ],
       musicVolume: config.audio?.defaultMusicVolume ?? 0.15,
         // Per-scene bed shape from the script's own musicCue curve (see musicEnvelopeFromScript).
-        musicEnvelope: musicEnvelopeFromScript(s.script, (s.voClips || []).length > 0),
+        musicEnvelope: musicEnvelopeFromScript(s.script, (s.voClips || []).length > 0, s.pacing),
     },
   }).catch((e) => console.warn(`[agents] mix failed: ${e.message}`));
 
@@ -1964,6 +2128,10 @@ async function timelineAgent(s) {
       // read "music is not ducked" on every narrated film and dock 32 points for
       // a duck that is demonstrably there.
       plan: { master: { musicUnderVoDuckDb: hasVo ? -9 : 0, normalize: true } },
+      // A faster pace legitimately fires more SFX, so the report's "cues too close
+      // together" window has to move with the beat — otherwise every Fast film is
+      // mechanically docked for doing exactly what the user asked for.
+      pacing: s.pacing,
       sfxClips: s.sfxClips || [],
       scenes: s.storyboard?.scenes || s.script?.scenes || [],
       musicPath: s.musicPath || null,
@@ -2015,6 +2183,7 @@ async function repairAgent(s) {
 // of the asset pool than the template did. Runs at most once.
 async function deadFrameRepairNode(s) {
   const { job, jobDir } = s;
+  const P = pacing.resolve(s.pacing);
   db.setProgress(job.id, "composing");
   const effDur = s.effectiveDuration || job.duration;
   try {
@@ -2026,18 +2195,29 @@ async function deadFrameRepairNode(s) {
         // `voCues` is built locally inside compositionAgent and never enters graph
         // state, so it cannot be read back here — rebuild from the VO clips, which
         // carry the spoken text and their final (retimed) offsets.
-        captionCues: job.captions_enabled === 0 ? [] : (s.voClips || [])
-          .filter((c) => c && c.text)
-          .map((c) => ({ start: c.startSec, end: c.startSec + (c.durationSec || 2), text: c.text })),
+        //
+        // The hand-rolled `start + durationSec` map below is NOT buildCues: it
+        // skips the scene clamp, the next-cue overlap guard and the long-line
+        // split. At any pace but normal that means a repaired film's captions
+        // silently ignore the pace the rest of it was built at, so those go
+        // through buildCues with the job's own options bag. Normal keeps the
+        // literal expression it has always had — neutrality is the spec, and this
+        // is a recovery path where "same frames as today" is worth more than
+        // retro-fixing a cue-shape bug that predates pacing.
+        captionCues: job.captions_enabled === 0 ? [] : (pacing.isNeutral(P)
+          ? (s.voClips || []).filter((c) => c && c.text)
+            .map((c) => ({ start: c.startSec, end: c.startSec + (c.durationSec || 2), text: c.text }))
+          : buildCues((s.voClips || []).filter((c) => c && c.text), { pacing: P })
+            .map((c) => ({ start: Math.round(c.start * 10) / 10, end: Math.round(c.end * 10) / 10, text: c.text }))),
         subject: s.brief?.subject || null, brandSkin: s.brandSkin || null, layoutPlan: s.layoutPlan || null,
-        forceSceneKit: true,
+        forceSceneKit: true, pacing: P,
       }),
       (Number(config.server.stageBudgetSec) || 480) * 1000, "dead-frame repair"
     );
     if (!visual) return { deadFrameTried: true };
     await mixAudioIntoVideo({
       visualPath: visual.videoPath, durationSec: effDur,
-      scenes: s.storyboard?.scenes || null, jobDir,
+      scenes: s.storyboard?.scenes || null, jobDir, pacing: s.pacing,
       audio: {
         ttsPath: null, musicPath: s.musicPath || null,
         sfx: [
@@ -2046,7 +2226,7 @@ async function deadFrameRepairNode(s) {
         ],
         musicVolume: config.audio?.defaultMusicVolume ?? 0.15,
         // Per-scene bed shape from the script's own musicCue curve (see musicEnvelopeFromScript).
-        musicEnvelope: musicEnvelopeFromScript(s.script, (s.voClips || []).length > 0),
+        musicEnvelope: musicEnvelopeFromScript(s.script, (s.voClips || []).length > 0, s.pacing),
       },
     }).catch((e) => console.warn(`[agents] dead-frame repair mix failed: ${e.message}`));
     console.log(`[agents] dead-frame repair: recomposed on scene-kit with "${s.framePack}" styling`);
@@ -2069,7 +2249,7 @@ async function rerenderRepaired(s, label) {
   await mixAudioIntoVideo({
     visualPath: visual.videoPath,
     durationSec,
-    scenes: s.storyboard?.scenes || null, jobDir,
+    scenes: s.storyboard?.scenes || null, jobDir, pacing: s.pacing,
     audio: {
       ttsPath: null,
       musicPath: s.musicPath || null,
@@ -2079,10 +2259,17 @@ async function rerenderRepaired(s, label) {
       ],
       musicVolume: config.audio?.defaultMusicVolume ?? 0.15,
         // Per-scene bed shape from the script's own musicCue curve (see musicEnvelopeFromScript).
-        musicEnvelope: musicEnvelopeFromScript(s.script, (s.voClips || []).length > 0),
+        musicEnvelope: musicEnvelopeFromScript(s.script, (s.voClips || []).length > 0, s.pacing),
     },
   }).catch((e) => console.warn(`[agents] ${label} mix failed: ${e.message}`));
-  return visual;
+  // CARRY THE COMPOSER'S CLAMPS THROUGH THE REPAIR. render() returns only
+  // { videoPath, videoUrl }, so writing it straight back into state erased the
+  // clamped array the renderer reported — and whether a Very Fast film disclosed
+  // that its beats were shed back then depended on whether a repair lap happened
+  // to fire. A re-render of the same composition cannot change what was clamped.
+  return (s.visual && Array.isArray(s.visual.clamped) && s.visual.clamped.length)
+    ? { ...visual, clamped: s.visual.clamped }
+    : visual;
 }
 
 // Layout repair node — the SPATIAL repair, and the branch a collision blocker
@@ -2263,6 +2450,10 @@ async function buildGraph() {
     detRepairLaps: Annotation(), detRepairNoop: Annotation(),
     brandSkin: Annotation(), layoutPlan: Annotation(), deadFrameTried: Annotation(),
     languagePlan: Annotation(), captionPlan: Annotation(), localizedStrings: Annotation(),
+    // READ-ONLY. Seeded by the runner from the job row and never written by a
+    // node: a pace that could change mid-run would desync the script's word
+    // budget from the storyboard's scene count from the mixer's cue spacing.
+    pacing: Annotation(),
   });
 
   // PER-NODE WALL CLOCK.
@@ -2484,6 +2675,227 @@ async function buildGraph() {
   return compiledGraph;
 }
 
+// ---------------------------------------------------------------- pacing report
+//
+// PACE IS THE ONE FEATURE WHOSE FAILURE IS INVISIBLE IN THE ARTIFACT. A film that
+// quietly ignored "Fast" is still a perfectly valid film — right runtime, in
+// sync, nothing on screen to point at — so without a recorded target-vs-delivered
+// the only way to answer "did the pace do anything" is to render the same brief
+// twice and watch both. This writes the numbers instead: what the profile asked
+// for, what the finished cut actually contains, and every ceiling the engine had
+// to clamp against on the way.
+//
+// Everything is measured off the SHIPPED state — the re-timed storyboard, which
+// retimeScenesToVo rewrote in place before the render, and the VO clips' real
+// file durations — never off the plan, because the plan is what is being checked.
+
+// On-screen copy for one scene, across the several shapes the storyboard and the
+// script use for it. Only used by the readability and empty-scene checks, so an
+// unknown key costs a missed finding, never a wrong one.
+const SCENE_COPY_KEYS = ["headline", "subhead", "subtext", "title", "text", "kicker", "caption", "label"];
+const SCENE_COPY_LISTS = ["onScreenText", "bullets", "words", "items"];
+function sceneCopyStrings(sc) {
+  if (!sc || typeof sc !== "object") return [];
+  const out = [];
+  for (const k of SCENE_COPY_KEYS) {
+    const v = sc[k];
+    if (typeof v === "string" && v.trim()) out.push(v.trim());
+  }
+  for (const k of SCENE_COPY_LISTS) {
+    const v = sc[k];
+    if (Array.isArray(v)) for (const x of v) if (typeof x === "string" && x.trim()) out.push(x.trim());
+  }
+  return out;
+}
+
+// A CUT IS NOT A SCENE. A renderer is free to change the picture several times
+// inside one narrated beat — that is precisely what pace buys, because a cut
+// inside a scene moves no scene boundary and no narration. meta.json is the one
+// file every renderer writes, so a renderer that declares its beat count there is
+// believed; with no declaration the report falls back to the scene cadence and
+// says which number it used.
+function compositionBeatCount(jobDir) {
+  try {
+    const m = JSON.parse(fs.readFileSync(path.join(jobDir, "meta.json"), "utf8"));
+    const n = Array.isArray(m.beats) ? m.beats.length
+      : Array.isArray(m.scenes) ? m.scenes.length
+      : Number(m.beatCount);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  } catch { return null; }
+}
+
+function buildPacingReport(job, jobDir, state, P) {
+  const r1v = (n) => Math.round(Number(n) * 10) / 10;
+  const r2v = (n) => Math.round(Number(n) * 100) / 100;
+  const wordsIn = (t) => String(t == null ? "" : t).trim().split(/\s+/).filter(Boolean).length;
+  const pct = (n) => `${n >= 0 ? "+" : ""}${r1v(n)}%`;
+
+  const sbScenes = (state.storyboard && Array.isArray(state.storyboard.scenes)) ? state.storyboard.scenes : [];
+  const scScenes = (state.script && Array.isArray(state.script.scenes)) ? state.script.scenes : [];
+  const scenes = sbScenes.length ? sbScenes : scScenes;
+  const scriptById = new Map(scScenes.map((sc, i) => [String(sc.id != null ? sc.id : `s${i + 1}`), sc]));
+  const clips = (state.voClips || []).filter(Boolean);
+
+  const requested = Number(job.duration) || 0;
+  const target = pacing.sceneTargetFor(requested, P);
+  // The sum of the scene durations IS the rendered length — the composition and
+  // the mix are both cut to it (effectiveDuration).
+  const actualDur = scenes.reduce((a, sc) => a + (Number(sc.duration) || 0), 0)
+    || Number(state.effectiveDuration) || requested;
+  const avgSceneSec = scenes.length ? actualDur / scenes.length : 0;
+  const beats = compositionBeatCount(jobDir);
+  const avgBeatSec = beats && actualDur > 0 ? actualDur / beats : avgSceneSec;
+
+  const voSec = clips.reduce((a, c) => a + (Number(c.durationSec) || 0), 0);
+  const spokenWords = clips.reduce((a, c) => a + wordsIn(c.text), 0);
+  // The budget each line was synthesized against, captured in voiceAgent before
+  // the re-timer stretched the scenes to fit — after that every line "fits".
+  const budgetSec = clips.reduce((a, c) => a + (Number(c.budgetSec) || 0), 0);
+
+  const checks = [];
+  const add = (name, status, detail) => checks.push({ name, status, detail });
+
+  // 1. DURATION. Pace never moves runtime; a delta here is the VO re-timer
+  //    stretching scenes to hold narration that came back long.
+  const durDelta = requested > 0 ? ((actualDur - requested) / requested) * 100 : 0;
+  add("duration accuracy",
+    Math.abs(durDelta) <= 5 ? "PASS" : Math.abs(durDelta) <= 20 ? "WARN" : "FAIL",
+    `requested ${requested}s, delivered ${r1v(actualDur)}s (${pct(durDelta)}) over ${scenes.length} scene(s)`);
+
+  // 2. VO INSIDE ITS SCENE — the sync invariant. A line longer than the scene
+  //    that holds it overlaps the next scene's narration.
+  const sceneById = new Map(scenes.map((sc, i) => [String(sc.id != null ? sc.id : `s${i + 1}`), sc]));
+  const overruns = clips.filter((c) => {
+    const sc = sceneById.get(String(c.sceneId));
+    return sc && (Number(c.durationSec) || 0) > (Number(sc.duration) || 0) + 0.05;
+  });
+  add("vo inside scene", overruns.length ? "FAIL" : "PASS",
+    overruns.length
+      ? `${overruns.length}/${clips.length} line(s) longer than their scene, worst ${overruns.map((c) => `${c.sceneId} ${r1v(c.durationSec)}s in ${r1v((sceneById.get(String(c.sceneId)) || {}).duration)}s`)[0]}`
+      : `${clips.length} line(s), every one inside its own scene`);
+
+  // 3. CAPTION SYNC. The same cues the burned-in track and the .srt were built
+  //    from, checked against the scene window each one is spoken in.
+  let cues = [];
+  try { cues = buildCues(clips, { pacing: P }); } catch { cues = []; }
+  //    The scene is found by the LAST start at or before the cue, not by an
+  //    interval test: scene starts are accumulated sums, so scene 9 of a 2.8s cut
+  //    starts at 22.4 while scene 8 ends at 22.400000000000002, and an interval
+  //    test hands every on-the-boundary cue to the PREVIOUS scene and then reports
+  //    it as a spill. Scenes are in start order — retimeScenesToVo writes them
+  //    sequentially from a cursor.
+  const sceneAt = (t) => {
+    let hit = null;
+    for (const sc of scenes) {
+      if ((Number(sc.start) || 0) <= t + 0.05) hit = sc; else break;
+    }
+    return hit;
+  };
+  const strays = cues.filter((cue) => {
+    const sc = sceneAt(cue.start);
+    // 1.0s is buildCues' own documented grace past the scene edge.
+    return !sc || cue.end > (Number(sc.start) || 0) + (Number(sc.duration) || 0) + 1.05;
+  });
+  add("caption sync", !cues.length ? "WARN" : strays.length ? "FAIL" : "PASS",
+    !cues.length ? "no narration cues to check"
+      : strays.length ? `${strays.length}/${cues.length} cue(s) spill past their scene, first at ${r1v(strays[0].start)}s`
+        : `${cues.length} cue(s), all inside their scene span`);
+
+  // 4. NO EMPTY SCENE. Only counts as empty when the scene has no copy from
+  //    EITHER list, nothing pinned to it, and there is no free pool a renderer
+  //    could still draw from — anything looser fires on every film.
+  const pinned = new Set((state.assets || []).filter((a) => a && a.sceneId != null).map((a) => String(a.sceneId)));
+  const freePool = (state.assets || []).filter((a) => a && a.sceneId == null).length;
+  const empties = scenes
+    .map((sc, i) => String(sc.id != null ? sc.id : `s${i + 1}`))
+    .filter((id) => {
+      if (pinned.has(id) || freePool > 0) return false;
+      const sc = sceneById.get(id);
+      return !sceneCopyStrings(sc).length && !sceneCopyStrings(scriptById.get(id)).length;
+    });
+  add("no empty scene", empties.length ? "FAIL" : "PASS",
+    empties.length
+      ? `${empties.length} scene(s) with neither copy nor media: ${empties.slice(0, 3).join(", ")}`
+      : `${scenes.length} scene(s), ${pinned.size} pinned asset(s) + ${freePool} in the pool`);
+
+  // 5. TEXT READABILITY — the veto direction. holdSecFor says how long a string
+  //    must stay up to be READ at this pace; a scene shorter than that is copy
+  //    that needs cutting, not a hold that needs shortening. One long headline is
+  //    a note; a third of the film unreadable is a defect.
+  let strings = 0, unreadable = 0, worst = null;
+  scenes.forEach((sc, idx) => {
+    const dur = Number(sc.duration) || 0;
+    const id = String(sc.id != null ? sc.id : `s${idx + 1}`);
+    for (const t of sceneCopyStrings(sc).concat(sceneCopyStrings(scriptById.get(id)))) {
+      strings++;
+      const need = pacing.holdSecFor(t, P);
+      if (need > dur + 1e-6) {
+        unreadable++;
+        if (!worst || need - dur > worst.over) worst = { id, need, dur, over: need - dur, text: t.slice(0, 40) };
+      }
+    }
+  });
+  add("text readability",
+    !unreadable ? "PASS" : (unreadable > Math.max(1, scenes.length / 3) ? "FAIL" : "WARN"),
+    !unreadable ? `${strings} on-screen string(s), all readable at ${P.readCps} cps`
+      : `${unreadable}/${strings} string(s) held under their read time; worst scene ${worst.id} needs ${r1v(worst.need)}s, holds ${r1v(worst.dur)}s ("${worst.text}")`);
+
+  // 6. CUT CADENCE — did the picture actually get denser?
+  const beatDelta = P.beatSec > 0 ? ((avgBeatSec - P.beatSec) / P.beatSec) * 100 : 0;
+  add("cut cadence",
+    // A film with no measurable cadence is a different (already loud) failure —
+    // reporting it as a 100% pace miss would only bury the real one.
+    avgBeatSec <= 0 ? "WARN" : Math.abs(beatDelta) <= 25 ? "PASS" : Math.abs(beatDelta) <= 60 ? "WARN" : "FAIL",
+    avgBeatSec <= 0 ? `target ${P.beatSec}s per cut, nothing to measure (${scenes.length} scene(s))`
+      : `target ${P.beatSec}s per cut, measured ${r2v(avgBeatSec)}s (${pct(beatDelta)}) from ${beats ? `${beats} composition beat(s)` : `${scenes.length} scene(s) — the renderer declares no beat count`}`);
+
+  // CLAMPS. Two the graph can see for itself, plus anything a renderer reported
+  // on the composition it returned (omelette_adapter's engine-ceiling and
+  // shape-pool clamps arrive this way).
+  const clamped = [];
+  const wantScenes = requested > 0 ? Math.round(requested / P.sceneSec) : 0;
+  if (wantScenes > P.maxScenes) clamped.push(`sceneCount ${wantScenes}->${P.maxScenes} (storyboard max)`);
+  const wantBeat = 3 / P.multiplier;
+  if (wantBeat < pacing.CUT_FLOOR_SEC) clamped.push(`beatSec ${r2v(wantBeat)}->${pacing.CUT_FLOOR_SEC} (cut floor)`);
+  if (state.visual && Array.isArray(state.visual.clamped)) {
+    for (const c of state.visual.clamped) if (c) clamped.push(String(c));
+  }
+
+  return {
+    mode: P.key, label: P.label, multiplier: P.multiplier, wordsPerSec: P.wordsPerSec, calibrated: P.calibrated,
+    target: {
+      durationSec: requested,
+      sceneSec: target.sceneSec,
+      sceneCount: target.sceneCount,
+      beatSec: P.beatSec,
+      words: Math.round(target.sceneCount * target.sceneSec * P.wordsPerSec),
+    },
+    actual: {
+      durationSec: r1v(actualDur),
+      sceneCount: scenes.length,
+      avgSceneSec: r2v(avgSceneSec),
+      avgBeatSec: r2v(avgBeatSec),
+      // WHICH CADENCE THIS ACTUALLY IS. Most renderers publish no beat count, so
+      // avgBeatSec falls back to the SCENE cadence — and the delivery panel prints
+      // it to the user as "this film cuts every Xs", which on a film with an
+      // intra-scene sub-cut is roughly double the truth. Say which one it is
+      // rather than letting the reader assume the flattering one.
+      beatSource: beats ? "composition" : "scenes",
+      voSec: r1v(voSec),
+      words: spokenWords,
+      measuredWps: voSec > 0 ? r2v(spokenWords / voSec) : 0,
+    },
+    vo: {
+      clips: clips.length,
+      tightened: clips.filter((c) => c.tightened === true).length,
+      overrunPct: budgetSec > 0 ? r1v(((voSec - budgetSec) / budgetSec) * 100) : 0,
+      atempoUsed: clips.filter((c) => (Number(c.atempo) || 0) > 1).length,
+    },
+    checks,
+    clamped,
+  };
+}
+
 // ---------------------------------------------------------------- runner
 async function runProductionGraphInner({ jobId }) {
   const job = db.getRaw(jobId);
@@ -2499,12 +2911,17 @@ async function runProductionGraphInner({ jobId }) {
   // here meant markDone's usage overwrite dropped those stages from every job.
   const tracker = UsageTracker.from(job.usage);
   const t0 = ms();
-  const script = normalizeScript(job.script, { targetDuration: job.duration });
+  // Resolved ONCE, here, from the job row's `pace` column. Every node reads it off
+  // the state; nothing re-derives it. normalizeScript takes it too, or an approved
+  // Fast script would be re-clamped into the normal scene band on its way in —
+  // the film would then be narrated at one pace and cut at another.
+  const P = pacing.resolve(job);
+  const script = normalizeScript(job.script, { targetDuration: job.duration, pacing: P });
 
   try {
     const graph = await buildGraph();
     const final = await graph.invoke(
-      { job, jobDir, tracker, brief: job.brief, script, qaAttempts: 0 },
+      { job, jobDir, tracker, brief: job.brief, script, qaAttempts: 0, pacing: P },
       { recursionLimit: 40 }
     );
 
@@ -2559,10 +2976,23 @@ async function runProductionGraphInner({ jobId }) {
     // Quality Director — assemble the cross-dimension quality summary (contrast
     // fixes, audio loudness, screenshot QA, asset/template scores, QA verdict) of
     // the SHIPPED cut and store it for the report card. Never throws.
+    // The pacing report is built FIRST and handed to the quality report. It used to
+    // be written after it, so quality_report looked for a pacing-report.json that
+    // did not exist yet and its `pacing` block was null on every single film.
+    let pacingReport = null;
+    try {
+      pacingReport = buildPacingReport(job, jobDir, final, P);
+      try { fs.writeFileSync(path.join(jobDir, "pacing-report.json"), JSON.stringify(pacingReport, null, 2), "utf8"); } catch { /* the DB copy is the one that matters */ }
+      db.setPacingReport(jobId, pacingReport);
+      const bad = pacingReport.checks.filter((c) => c.status !== "PASS");
+      console.log(`[agents] pacing → ${pacing.describe(P)} · ${pacingReport.actual.sceneCount} scenes @ ${pacingReport.actual.avgSceneSec}s, ${pacingReport.actual.avgBeatSec}s ${pacingReport.actual.beatSource === "composition" ? "cuts" : "scene cadence"}, ${pacingReport.actual.measuredWps} w/s measured`
+        + (bad.length ? ` · ${bad.map((c) => `${c.name} ${c.status}`).join(", ")}` : " · all checks pass")
+        + (pacingReport.clamped.length ? ` · clamped: ${pacingReport.clamped.join("; ")}` : ""));
+    } catch (e) { console.warn(`[agents] pacing report failed: ${String((e && e.message) || e).slice(0, 140)}`); }
     try {
       const raw = db.getRaw(jobId);
       db.setQualityReport(jobId, assembleQualityReport({
-        jobDir, qa: shippedQa, creativeReview: raw && raw.creative_review, bestQa: final.bestQa,
+        jobDir, qa: shippedQa, creativeReview: raw && raw.creative_review, bestQa: final.bestQa, pacingReport,
       }));
     } catch (e) { console.warn(`[agents] quality report failed: ${e.message.slice(0, 100)}`); }
     console.log(`[agents] ${jobId} done — ${final.finalAttempt}, qa=${shippedQa?.pass === false ? "FAILED(delivered best attempt)" : shippedQa?.skipped ? "skipped" : "pass"}, cost=$${costs.totalCostUsd}`);
@@ -2608,6 +3038,9 @@ module.exports = {
   __test_assetSearchAgent: assetSearchAgent,
   __test_byScenePriority: byScenePriority,
   __test_makeQueryDeriver: makeQueryDeriver,
+  // The pacing report is pure arithmetic over the shipped state, so it can be
+  // pinned without rendering a film.
+  __test_buildPacingReport: buildPacingReport,
   // Exposed so a guard can COMPILE the graph without running a job: LangGraph
   // validates the node/edge topology at compile time, so a bad edge (a typo, a
   // node that is never reachable, a join on a node that does not exist) is a

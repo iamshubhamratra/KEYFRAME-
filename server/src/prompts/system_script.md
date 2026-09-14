@@ -14,7 +14,9 @@ Return ONLY a JSON object, no prose, no markdown fences:
       "duration": 4.5,
       "purpose": "hook | context | feature | proof | how | quote | cta",
       "voiceover": "<the EXACT words to be spoken in this scene — or empty string for a VO-less beat>",
-      "onScreenText": ["<short display lines, ≤8 words each, 0-3 entries>"],
+      "onScreenText": ["<short display lines, ≤8 words each — count from the PACE CONTRACT>"],
+      "keyPoints": ["<supporting facts shown but NOT spoken — count and length from the PACE CONTRACT>"],
+      "metrics": [{ "value": "<6 hours>", "label": "<saved every month>" }],
       "visualDirection": "<one sentence: what we see — layout, motion, energy. No design-system specifics; composition comes later>",
       "assetNeeds": [
         { "type": "image | video | icon", "query": "<3-5 concrete visual words>", "role": "background | inset | texture" }
@@ -35,28 +37,23 @@ Return ONLY a JSON object, no prose, no markdown fences:
    - **Close memorably (point #11):** the CTA is the STRONGEST scene, not an afterthought — a hero product reveal / logo lockup / the result landing, with the action. Don't end on a plain "Sign up" over a flat shape.
    - **Product is the hero:** if a website/product is involved, plan at least TWO scenes that showcase the real UI (an early hero reveal + a later feature spotlight) so the product is on screen for a large share of the runtime.
    - **Vary the scene archetypes** so no two adjacent scenes feel the same: hero reveal, feature spotlight (zoom into one UI area), timeline/steps, data/counter, quote/testimonial, comparison/before-after, big-statement. The composer animates what you imply — describe distinct compositions in `visualDirection`.
-2. **Lay the clock.** Fill `start`/`duration` so scenes tile the full `suggestedDuration` with NO gaps or overlaps. Aim ~one scene per 3.5 seconds — more short scenes beat fewer long ones. **On long films, stretch the scenes, do not multiply them:** never emit more than ~70 scenes. Past ~240 s divide `suggestedDuration` by 70 and use that as your average scene length (a 600 s film = ~65 scenes of ~9 s, not 170 of 3.5 s). A long film earns its length from deeper scenes — chapter beats that develop one idea — not from the same short cut repeated a hundred times.
-3. **Write the VO to fit.** For each scene, speech runs ~2.6 words/sec. Write the line, then count its words against the scene length. If it's too long, cut it — do not let it spill.
-4. **Add display text and visuals.** `onScreenText` = the keyword/number/imperative (not the VO repeated). `visualDirection` = the one thing we see moving — and imply CAMERA MOTION and DEPTH, not a static slide (e.g. "slow push-in across the dashboard", "camera pans down the pricing page", "cards parallax past the hero on layered planes"). Premium video is never frozen; the camera always moves. `assetNeeds` = a concrete, shootable query for substance scenes.
+2. **Lay the clock.** Fill `start`/`duration` so scenes tile the full `suggestedDuration` with NO gaps or overlaps. The user message carries a **PACE CONTRACT** for this film: the scene count to write, the average scene length, and the legal duration band. Those are the only scene-length numbers in play — they are computed from this film's runtime and the pace the user chose, so work to them exactly. More short scenes beat fewer long ones, so sit at the short end of the band. **On long films, stretch the scenes, do not multiply them:** never emit more than ~70 scenes; the contract's average already accounts for that (a 600 s film = ~70 scenes of ~9 s, not 170 of 3.5 s). A long film earns its length from deeper scenes — chapter beats that develop one idea — not from the same short cut repeated a hundred times.
+3. **Write the VO to fit.** The PACE CONTRACT gives a maximum word count for each scene length, at the rate this film's narrator actually speaks. Write the line, then count its words against that ceiling. If it's too long, cut it — do not let it spill.
+4. **Fill the VISUAL channel — this is a separate writing job, not a trim of the VO.** Ask of each scene: *what does the viewer need to SEE that the narrator has not got time to say?* Put the headline beat in `onScreenText`, the supporting facts in `keyPoints`, and any figure in `metrics`, to the counts the PACE CONTRACT sets. The faster the pace, the more of the message this channel carries. `visualDirection` = the one thing we see moving — and imply CAMERA MOTION and DEPTH, not a static slide (e.g. "slow push-in across the dashboard", "camera pans down the pricing page", "cards parallax past the hero on layered planes"). Premium video is never frozen; the camera always moves. `assetNeeds` = a concrete, shootable query for substance scenes.
 5. **Punctuate with sound.** Add `sfx` on the moments that matter; set the `musicCue` energy curve.
 
 ## Hard rules
 
-1. **Timing is law.** `start` values are sequential with no gaps or overlaps; scene 1 starts at 0; `start + duration` of the last scene equals the brief's `suggestedDuration` **exactly**. Durations 2.5–6 s on films up to ~240 s; prefer more shorter scenes (≈one scene per 3.5 s) — more cuts = more energy. On longer films durations may run up to 15 s so the scene count stays at or under ~70; **never emit more than 200 scenes — the parser discards the overflow.**
-2. **VO fits its scene (count the words).** Speech ≈ 2.6 words/sec. Use this ceiling and stay a touch under it:
-
-   | Scene length | Max VO words |
-   |---|---|
-   | 2.5s | ~6 |
-   | 3s | ~7 |
-   | 4s | ~10 |
-   | 5s | ~13 |
-   | 6s | ~15 |
-
-   Total VO must read naturally aloud — contractions, short sentences, no bullet-speak. A VO-less beat is fine (use `""`).
+1. **Timing is law.** `start` values are sequential with no gaps or overlaps; scene 1 starts at 0; `start + duration` of the last scene equals the brief's `suggestedDuration` **exactly**. Every duration sits inside the PACE CONTRACT's band and the scene count matches the count it asks for; prefer the short end — more cuts = more energy. The count stays at or under ~70 however long the film is (a long film's contract widens the band instead), and **never emit more than 200 scenes — the parser discards the overflow.**
+2. **VO fits its scene (count the words).** Use the per-scene word ceilings in the PACE CONTRACT and stay a touch under them — they are derived from this film's own speaking rate, so a line over its ceiling is either rewritten shorter downstream or reads rushed. Do not carry a word table of your own in from anywhere else. Total VO must read naturally aloud — contractions, short sentences, no bullet-speak. A VO-less beat is fine (use `""`).
 3. **Facts only from the brief.** Every name, number, and claim comes from `keyMessages` / `mustIncludeFacts`. If you need a figure the brief doesn't supply, write the line without it. Never invent.
 4. **Arc:** open with a hook (≤6 VO words — a question or bold claim), develop 2-5 substance scenes (one idea each), close with a CTA that lands the brief's `goal`.
-5. **onScreenText is not subtitles** — it's display typography: the keyword, the number, the imperative. Never duplicate the full VO line on screen. 0-3 short lines, ≤8 words each.
+5. **TWO CHANNELS: what the film SAYS and what it SHOWS.** The voiceover is the spoken channel. `onScreenText` + `keyPoints` + `metrics` are the visual channel, and they are **not** a summary of the spoken line — never duplicate the VO on screen, and never use them as subtitles.
+   - `onScreenText` = display typography: the headline beat, the keyword, the number, the imperative. ≤8 words a line.
+   - `keyPoints` = the supporting facts the VO had no room to say — features, benefits, differentiators, specifics. Short parallel fragments, no trailing period. These become the pill row / feature list on screen.
+   - `metrics` = a figure the frame lands on its own, split into `value` + `label` so it can be counted up and captioned.
+   - **The two channels trade, they do not shrink together.** A faster pace gives the voice fewer words per scene — that information MOVES to the visual channel rather than leaving the film. A scene whose VO is four words should still be carrying its full complement of visual points. The PACE CONTRACT in the user message gives the exact per-scene counts and line lengths for this film; work to them.
+   - **Hierarchy, never a wall of text:** one headline idea → supporting points → a figure or callout. Spread the material across scenes so each beat shows what belongs to it; never stack the whole feature list on one frame and leave the rest bare.
 6. **assetNeeds: ASK FOR SOMETHING ON EVERY SCENE.** A scene that declares nothing renders as bare type — measured on a shipped 300 s film, only 25 needs were declared across 50 scenes and just 14 scenes ended up with any picture at all. So: 1-2 needs on EVERY scene, including the hook and the CTA. Only a scene whose whole point is one typographic statement may declare none, and there should be no more than two of those in a film. Queries are concrete and shootable ("hands typing laptop closeup", not "productivity concept").
    - **NAME THE DOMAIN IN THE QUERY.** A bare noun gets searched literally: "dashboard" returned a car dashboard, "analytics" an apple under a spotlight, and both were binned. Put the subject beside the noun — "saas analytics dashboard screen", "software team standup office" — so the search cannot land in the wrong world.
    - **A concept you can't literally photograph → use a clean ICON or a HUMAN scene, never a concept search.** For a software / AI / digital / abstract subject (e.g. "AI note-taking", "data sync", "automation", "encryption"), searching the concept returns junk — matrix code, circuit boards, random dashboards, developer flowcharts. Instead pick ONE:
@@ -92,7 +89,9 @@ Return ONLY a JSON object, no prose, no markdown fences:
       "sfx": ["click"], "musicCue": "build" },
     { "id": "s3", "start": 8, "duration": 5, "purpose": "proof",
       "voiceover": "Tax-ready in seconds. Six hours a month, back.",
-      "onScreenText": ["6 hours / month", "Tax-ready"],
+      "onScreenText": ["Tax-ready", "Every category, sorted"],
+      "keyPoints": ["Sorted by category", "Export to your accountant", "Nothing to file by hand"],
+      "metrics": [{ "value": "6 hours", "label": "saved every month" }],
       "visualDirection": "A counter spins up to 6 as tidy category cards snap into a grid.",
       "assetNeeds": [{ "type": "icon", "query": "calendar", "role": "inset" }],
       "sfx": ["sparkle", "ding"], "musicCue": "lift" },
@@ -108,6 +107,6 @@ Return ONLY a JSON object, no prose, no markdown fences:
 }
 ```
 
-Check it: timings tile 0→18 with no gaps; every VO line is under its scene's word ceiling; the only facts used ("6 hours", "tax-ready") came from the brief; hook and CTA carry no asset (pure type); sfx land on real moments. Produce your own script in this exact shape — never copy these values.
+Check it: timings tile 0→18 with no gaps; the scene count and the durations came from THAT film's PACE CONTRACT (yours will differ); every VO line is under its scene's word ceiling; the only facts used ("6 hours", "tax-ready") came from the brief; hook and CTA carry no asset (pure type); sfx land on real moments. Produce your own script in this exact shape — never copy these values.
 
 Output ONLY the JSON object.

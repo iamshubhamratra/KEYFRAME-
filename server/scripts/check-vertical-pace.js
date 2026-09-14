@@ -17,16 +17,52 @@
 const fs = require("fs");
 const path = require("path");
 const om = require("../src/services/omelette_adapter.js");
+const pacing = require("../src/services/pacing.js");
 
 const TPL_DIR = path.join(__dirname, "..", "public", "omelette-templates");
+
+// WHICH PACE IS THIS FILM BEING JUDGED AT? The bounds below used to encode
+// Normal as the only pace a film could have, so a Relaxed film failed PACE for
+// doing exactly what the user ordered, and a Very Fast one sailed through while
+// proving nothing. `--pace <mode>` both BUILDS and JUDGES at that mode; with no
+// flag it is Normal, so the CI invocation is unchanged.
+const paceArg = (() => {
+  const i = process.argv.indexOf("--pace");
+  return i >= 0 ? String(process.argv[i + 1] || "") : "";
+})();
+const P = pacing.resolve(paceArg);
+// resolve() answers Normal for anything it does not recognise, which is the
+// right default everywhere except here: a gate that silently re-ran the default
+// after a typo would report a green Normal run as proof about Very Fast.
+if (paceArg && P.key !== paceArg) {
+  console.error(`unknown --pace "${paceArg}" — known modes: ${pacing.MODES.join(", ")}`);
+  process.exit(2);
+}
+
 // Eased deliberately after review: at ~1.7s a cut arrives while the eye is still
 // arriving, and the picture reads as racing the voice even though the timing is
 // exact. A narrated sentence is now at most TWO cuts, each given at least 2s to
 // land, so a short sentence stays whole. The ceiling still catches the failure
 // this gate was built for — a film cutting once every 5s.
-const MAX_BEAT = 3.2;   // seconds, AVERAGE — above this the film reads as a slideshow
-const MIN_BEAT = 1.5;   // below this a beat is a flicker, not a cut
-const MAX_HELD = 4.0;   // a single beat may run longer than the average, but not by much
+//
+// The two CEILINGS divide by the multiplier, because "too slow" is a claim about
+// the pace that was ORDERED: 3.2s a beat is a slideshow at Normal, and at
+// Relaxed the same film is the 4.0s stroll that was asked for. The FLOOR does
+// not move — the eye does not speed up when the edit does, so 1.5s is a flicker
+// at every pace. It sits just under pacing.js's own CUT_FLOOR_SEC (1.6), so
+// nothing the pacing engine can legally emit trips FLICKER; anything that does
+// came from somewhere the pacing engine does not govern.
+const r2 = (n) => Math.round(n * 100) / 100;
+const MIN_BEAT = 1.5;                     // below this a beat is a flicker, not a cut — at EVERY pace
+let MAX_BEAT = r2(3.2 / P.multiplier);    // seconds, AVERAGE — above this the film reads as a slideshow
+let MAX_HELD = r2(4.0 / P.multiplier);    // a single beat may run longer than the average, but not by much
+// config.pacing is retunable without a code change, and a multiplier past ~2.13
+// would ask for an average beat under the flicker floor — a band no film can
+// satisfy. Clamp and say so, rather than failing every pack against an
+// impossible rule and calling it a pace regression.
+const CLAMPED = [];
+if (MAX_BEAT < MIN_BEAT) { CLAMPED.push(`MAX_BEAT ${MAX_BEAT}s -> ${MIN_BEAT}s (flicker floor)`); MAX_BEAT = MIN_BEAT; }
+if (MAX_HELD < MAX_BEAT) { CLAMPED.push(`MAX_HELD ${MAX_HELD}s -> ${MAX_BEAT}s (average ceiling)`); MAX_HELD = MAX_BEAT; }
 
 // Packs whose renderer is a bundled portrait template.
 const VERTICAL = {
@@ -208,6 +244,11 @@ if (process.argv.includes("--selftest")) {
   process.exit(bad ? 1 : 0);
 }
 
+// Silent at Normal so the default run's output is unchanged; a non-default run
+// has to say which bounds it enforced, or its verdict cannot be read later.
+if (!pacing.isNeutral(P)) console.log(`pace: ${pacing.describe(P)} — beat <= ${MAX_BEAT}s, held <= ${MAX_HELD}s, floor ${MIN_BEAT}s`);
+for (const c of CLAMPED) console.warn(`clamped: ${c}`);
+
 let failing = 0, checked = 0;
 const rows = [];
 for (const [pack, tplName] of Object.entries(VERTICAL)) {
@@ -231,6 +272,7 @@ for (const [pack, tplName] of Object.entries(VERTICAL)) {
         storyboard: { title: "Trello", brand: "Trello", url: "trello.com", durationSec: profTotal, scenes: prof.scenes },
         dims: { width: 1080, height: 1920, fps: 30 }, framePack: pack,
         assets: Array.from({ length: n }, (_, i) => asset(i)),
+        pacing: P,
       });
     } catch (e) { problems.push(`build failed ${tag}: ${e.message.slice(0, 60)}`); continue; }
 

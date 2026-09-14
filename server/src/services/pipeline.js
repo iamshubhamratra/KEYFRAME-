@@ -13,6 +13,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const { spawn } = require("node:child_process");
 const config = require("../config");
 const sceneAuthor = require("./scene_author");
 const fallbackLog = require("./fallback_log");
@@ -59,12 +60,13 @@ const chargedFamily = require("./family_charged");
 const { directTemplate } = require("./template_director");
 const frameRegistry = require("./frame_registry");
 const frameManifest = require("./frame_manifest");
-const { render } = require("./renderer");
+const { render, deliverRender } = require("./renderer");
 const { buildFallback } = require("./fallback");
 const { planAudio } = require("./audio_planner");
 const { directAudio, summarizeDecision: summarizeAudioDecision } = require("./audio_director");
 const { synthesize: ttsSynthesize } = require("./tts");
 const { synthesizeFitted } = require("./vo_fit");
+const pacing = require("./pacing");
 const { fetchMusic, fetchSfx } = require("./audio_sources");
 const { mix: audioMix } = require("./audio_mix");
 const { planAssets } = require("./asset_planner");
@@ -74,6 +76,7 @@ const { qaGateScreenshots } = require("./screenshot_qa");
 const { checkAssetsRelevance } = require("./asset_vision");
 const { reviewAndCurate } = require("./creative_director");
 const { styleFor } = require("./pack_style");
+const { packDrawsVideo } = require("./video_capable");
 const catalog = require("./catalog");
 const { contrastCheck } = require("./contrast_check");
 const { contrastFix } = require("./contrast_fix");
@@ -170,6 +173,17 @@ function withBudget(factory, budgetMs, label) {
 // ========== Visual assets stage (parallel fetches) ==========
 
 async function planAndFetchAssets({ jobId, jobDir, storyboard, flags, orientation, tracker, subject, framePack }) {
+  // Parity with the agent graph: a clip is only worth planning when the chosen
+  // pack's renderer can actually draw one. Every composer except scene-kit
+  // filters clips out (video_capable.js carries the per-renderer audit), so on
+  // any other pack the clip is fetched, ffmpeg-re-encoded, and dropped. Fold the
+  // renderer's answer into the flag once, here, so the planner is never asked to
+  // plan clips the film cannot show and the fetch loop below never runs for them.
+  const videoOk = flags.video && packDrawsVideo(framePack);
+  if (flags.video && !videoOk) {
+    console.log(`[pipeline] video requested, but "${framePack}" renders on a composer that does not draw clips → planning stills only`);
+  }
+  flags = { ...flags, video: videoOk };
   if (!flags.images && !flags.video) return { assets: [] };
 
   const packStyle = styleFor(framePack);
@@ -214,16 +228,30 @@ async function planAndFetchAssets({ jobId, jobDir, storyboard, flags, orientatio
     plan.images.forEach((a, i) => {
       const relPath = `assets/images/${i}.jpg`;
       const absPath = path.join(jobDir, relPath);
-      // Anchor to the film's subject (on-topic stock), then add the pack's visual
-      // style (matches the look). Un-styled + plain queries kept as fallbacks.
-      const base = subject ? `${subject} ${a.query}` : a.query;
-      const q = packStyle.photoMod ? `${base} ${packStyle.photoMod}` : base;
+      // SEARCH FOR WHAT THE SCENE NEEDS; JUDGE ON-TOPIC-NESS AFTERWARDS.
+      //
+      // This used to search for the film's subject + the scene's words + the
+      // pack's photo modifier glued together — "laptop showing note-taking
+      // software ui professional working dual monitors desk bold graphic pop art".
+      // A stock search cannot use a 14-word string, and it poisons ranking too:
+      // relevance is measured over the whole query, so the candidate that nails
+      // the scene scores 4/14 and ties with everything else. Observed live: every
+      // scene of a film came back with the same loosely-related picture, which is
+      // precisely the "assets don't match the script" complaint.
+      //
+      // The scene's own words are the retrieval query. The subject and the pack
+      // style are passed as RANKING signals (scoreCandidate weighs both), so an
+      // off-topic hit still loses without the search string being diluted. The
+      // subject-anchored string stays on the fallback ladder for the case where
+      // the scene's words alone are too thin to retrieve anything.
+      const anchored = subject ? `${subject} ${a.query}` : a.query;
+      const q = a.query;
       tasks.push(
         acquire({
           query: q,
-          fallbackQueries: [...new Set([base, a.query, ...fallbackQueriesFor(q)])],
+          fallbackQueries: [...new Set([anchored, ...fallbackQueriesFor(q)])],
           type: "image", orientation, outputPath: absPath, tracker,
-          styleKeywords: packStyle.keywords,
+          styleKeywords: packStyle.keywords, subject,
         })
           // A null result is a MISS, not just "no asset": the scene keeps its slot
           // and renders empty. Carry it through so the gap-filler can generate for
@@ -249,7 +277,7 @@ async function planAndFetchAssets({ jobId, jobDir, storyboard, flags, orientatio
       tasks.push(
         acquire({
           query: a.query, fallbackQueries: fallbackQueriesFor(a.query),
-          type: "video", orientation, outputPath: absPath, tracker,
+          type: "video", orientation, outputPath: absPath, tracker, subject,
         })
           .then((got) => got ? {
             asset: {
@@ -1079,8 +1107,130 @@ async function authorSurplusScenes({ R, storyboard, dims, framePack, assets, abo
   }
 }
 
-async function composeWithPackRenderer({ renderer, storyboard, dims, jobDir, framePack, captionCues, scriptCues, scriptOverlay = false, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null, subject = null, fallbackToSceneKit = null }) {
+// Join finished parts into one file. The parts come out of the same renderer at
+// the same size, fps and codec, so a stream copy is exact and costs no quality —
+// re-encoding a 10-minute film here would add minutes for nothing.
+function ffmpegConcat(listFile, outPath) {
+  return new Promise((resolve, reject) => {
+    const args = ["-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", listFile, "-c", "copy", outPath];
+    const p = spawn("ffmpeg", args, { windowsHide: true });
+    let err = "";
+    p.stderr.on("data", (d) => { err += d.toString(); });
+    p.on("error", reject);
+    p.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`ffmpeg concat exited ${code}: ${err.slice(-300)}`))));
+  });
+}
+
+// Measured duration of a rendered file, or null.
+function probeDuration(file) {
+  return new Promise((resolve) => {
+    const p = spawn("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", file], { windowsHide: true });
+    let out = "";
+    p.stdout.on("data", (d) => { out += d.toString(); });
+    p.on("error", () => resolve(null));
+    p.on("exit", () => { const n = parseFloat(out.trim()); resolve(Number.isFinite(n) ? n : null); });
+  });
+}
+
+/**
+ * Render a long bundled-template film as SEVERAL compositions and concatenate.
+ *
+ * Returns null when the film fits in one composition (the caller then takes the
+ * normal path). Throws on a real failure, which the caller also treats as "use
+ * the normal path" — a slower film beats no film.
+ *
+ * Why this exists: the engine rejects an OM_SCENES list over 50 entries, so a
+ * single composition covers a long film by holding each of 50 beats for 6-12s.
+ * See planFilmSegments in omelette_adapter.js for the measurement.
+ */
+async function renderInSegments({
+  R, storyboard, dims, jobDir, framePack, captionCues, scriptCues, scriptOverlay,
+  assets, jobId, durationSec, label, abortSignal, tracker, brandSkin, templatePlan, authoredScenes,
+  segmentCap = null, pacing: pacingOpt = null,
+}) {
+  const P = pacing.resolve(pacingOpt);
+  // segmentCap exists so a harness can force the split on a SHORT film and prove
+  // the join without paying for a ten-minute render. Production passes nothing
+  // and gets the engine's real ceiling.
+  const plan = R.composer.planFilmSegments({ storyboard, framePack, pacing: P, ...(segmentCap ? { cap: segmentCap } : {}) });
+  if (!plan || plan.count < 2) return null;
+  console.log(`[pipeline] ${label}: ${plan.reason} — rendering ${plan.count} parts`);
+
+  const rendersDir = path.join(jobDir, "renders");
+  fs.mkdirSync(rendersDir, { recursive: true });
+  const outPath = path.join(rendersDir, "out.mp4");
+  const parts = [];
+  const segClamps = [];
+
+  for (let i = 0; i < plan.segments.length; i++) {
+    if (abortSignal?.aborted) throw abortSignal.reason || new Error("render aborted");
+    const seg = plan.segments[i];
+    const tag = `${label} part ${i + 1}/${plan.count}`;
+    // A composition always starts at zero, so rebase the part onto its own clock.
+    // The scenes themselves — their order, durations and copy — are untouched,
+    // which is what keeps the picture on the narration once the parts are joined.
+    const scenes = seg.scenes.map((sc) => ({
+      ...sc,
+      start: Math.round((Number(sc.start || 0) - seg.startSec) * 100) / 100,
+    }));
+    const built = R.composer.buildComposition({
+      storyboard: { ...storyboard, durationSec: seg.durationSec, scenes },
+      dims, framePack, captionCues, scriptCues, scriptOverlay,
+      assets, brandSkin, templatePlan, authoredScenes,
+      bookends: seg.bookends, pacing: P,
+    });
+    if (Array.isArray(built.clamped)) segClamps.push(...built.clamped);
+    // Every part is written to the job's OWN index.html and rendered from there:
+    // the template's asset URLs are relative to the job directory, so a part
+    // rendered from a subfolder would lose every picture.
+    writeComposedHtml(jobDir, built.indexHtml, jobId);
+    if (i === 0) fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
+
+    const smoke = await runtimeCheck(jobDir).catch((e) => ({ ok: true, skipped: e.message }));
+    if (!smoke.ok) throw new Error(`${tag} failed runtime smoke: ${smoke.error}`);
+    await contrastFixPass(jobDir, { framePack, storyboard: { ...storyboard, scenes }, dims, label: tag });
+
+    if (tracker) tracker.addExternal("hyperframes_render");
+    console.log(`[pipeline] ${tag}: ${seg.durationSec}s, ${scenes.length} scene(s)`);
+    await render({ jobId, jobDir, durationSec: seg.durationSec, abortSignal, deliver: false });
+
+    const partPath = path.join(rendersDir, `part-${String(i).padStart(2, "0")}.mp4`);
+    try { fs.rmSync(partPath, { force: true }); } catch { /* noop */ }
+    fs.renameSync(outPath, partPath);
+    parts.push(partPath);
+  }
+
+  // ffmpeg's concat demuxer reads a list file; single quotes inside a path have
+  // to be escaped its way, and it is happiest with forward slashes on Windows.
+  const listFile = path.join(rendersDir, "parts.txt");
+  fs.writeFileSync(
+    listFile,
+    parts.map((p) => `file '${p.replace(/\\/g, "/").replace(/'/g, "'\\''")}'`).join("\n") + "\n",
+    "utf8",
+  );
+  await ffmpegConcat(listFile, outPath);
+
+  // The joined film has to be the length the audio was mixed for. A drift here
+  // would desync the whole back half, so treat it as a failure and let the
+  // caller fall back rather than shipping a film that slides out of sync.
+  const got = await probeDuration(outPath);
+  if (got != null && Number(durationSec) > 0 && Math.abs(got - durationSec) > 2.5) {
+    throw new Error(`concatenated film is ${got.toFixed(1)}s but the audio expects ${durationSec}s`);
+  }
+  console.log(`[pipeline] ${label}: joined ${parts.length} parts -> ${got != null ? got.toFixed(1) : "?"}s`);
+  for (const p of parts) { try { fs.rmSync(p, { force: true }); } catch { /* noop */ } }
+  try { fs.rmSync(listFile, { force: true }); } catch { /* noop */ }
+
+  // The segmented path is where the engine ceiling bites HARDEST — it is the very
+  // reason a long film is cut into parts — so dropping each part's clamps here
+  // meant the disclosure never reached the one film that most needed it.
+  const delivered = await deliverRender({ jobId, srcPath: outPath, durationSec, expectWidth: dims.width, expectHeight: dims.height });
+  return segClamps.length ? { ...delivered, clamped: [...new Set(segClamps)] } : delivered;
+}
+
+async function composeWithPackRenderer({ renderer, storyboard, dims, jobDir, framePack, captionCues, scriptCues, scriptOverlay = false, assets, jobId, durationSec, label, abortSignal, tracker, brandSkin = null, subject = null, fallbackToSceneKit = null, pacing: pacingOpt = null }) {
   const t0 = ms();
+  const P = pacing.resolve(pacingOpt);
   const R = PACK_RENDERERS[renderer];
   console.log(`[pipeline] ${label}: building ${R.desc} composition (${dims.width}x${dims.height}, ${durationSec}s, ${(assets || []).length} asset(s))`);
   // TEMPLATE DIRECTOR — a composer that publishes its authored scene vocabulary
@@ -1128,11 +1278,44 @@ async function composeWithPackRenderer({ renderer, storyboard, dims, jobDir, fra
     const dropped = [];
     if (brandSkin && !/\bbrandSkin\b/.test(accepts)) dropped.push("art-director brand skin");
     if (templatePlan && !/\btemplatePlan\b/.test(accepts)) dropped.push("template-director cast");
+    // Pace cannot be detected the same way: 15 of these renderers are one-line
+    // delegates (`function buildComposition(opts){ return E.buildFilm(f,opts); }`),
+    // so the source text never mentions the key even when the engine behind it
+    // consumes it. The composer declares support instead. Only reported when the
+    // user actually asked for a pace — at normal there is nothing to lose.
+    if (!P.neutral && R.composer.acceptsPacing !== true) dropped.push(`${P.label} pacing`);
     if (dropped.length) {
       console.warn(`[pipeline] ${label}: the "${renderer}" renderer cannot consume ${dropped.join(" + ")} — that direction has NO effect on this film`);
     }
   }
-  const built = R.composer.buildComposition({ storyboard, dims, framePack, captionCues, scriptCues, scriptOverlay, assets, brandSkin, templatePlan, authoredScenes });
+  // LONG FILMS ARE RENDERED IN PARTS.
+  //
+  // The bundled-template engine hard-rejects a scene list over 50 entries, so one
+  // composition covers a 10-minute film by stretching 50 beats to 12s each. Split
+  // it into several compositions on SCENE boundaries and each pays that ceiling
+  // separately — measured 14.3s -> 6.4s a beat at 600s, 6.7s -> 3.4s at 300s.
+  // The audio is mixed over the finished picture, so cutting between scenes moves
+  // no narration and the film stays in sync.
+  //
+  // Fail-soft: any problem here falls through to the single composition below,
+  // which is the behaviour that shipped before.
+  if (typeof R.composer.planFilmSegments === "function") {
+    const segmented = await renderInSegments({
+      R, storyboard, dims, jobDir, framePack, captionCues, scriptCues, scriptOverlay,
+      assets, jobId, durationSec, label, abortSignal, tracker, brandSkin, templatePlan, authoredScenes,
+      pacing: P,
+    }).catch((e) => {
+      console.warn(`[pipeline] ${label}: segmented render failed (${String((e && e.message) || e).slice(0, 160)}) — falling back to one composition`);
+      return null;
+    });
+    if (segmented) {
+      await densityGate(jobDir, { storyboard, dims, durationSec, label });
+      console.log(`[pipeline] ${label}: render done in ${ms() - t0}ms total`);
+      return segmented;
+    }
+  }
+
+  const built = R.composer.buildComposition({ storyboard, dims, framePack, captionCues, scriptCues, scriptOverlay, assets, brandSkin, templatePlan, authoredScenes, pacing: P });
   writeComposedHtml(jobDir, built.indexHtml, jobId);
   fs.writeFileSync(path.join(jobDir, "meta.json"), built.metaJson, "utf8");
   // RUNTIME SMOKE — ON THIS PATH TOO.
@@ -1162,14 +1345,22 @@ async function composeWithPackRenderer({ renderer, storyboard, dims, jobDir, fra
   const visual = await render({ jobId, jobDir, durationSec, abortSignal, expectWidth: dims.width, expectHeight: dims.height });
   await densityGate(jobDir, { storyboard, dims, durationSec, label });
   console.log(`[pipeline] ${label}: render done in ${ms() - t0}ms total`);
-  return visual;
+  // CARRY THE RENDERER'S CLAMPS OUT WITH THE FILM. A pace can ask for more beats
+  // than the engine's scene ceiling or its byte cap will hold, and the adapter
+  // records each give-back it had to make. Dropping the array here left the
+  // pacing report's `clamped` permanently empty, so a Very Fast 600s film that
+  // was quietly shed back to Normal density reported nothing at all.
+  return Array.isArray(built.clamped) && built.clamped.length ? { ...visual, clamped: built.clamped } : visual;
 }
 
 // `scriptCues` was passed in by every caller and consumed by the LLM-remix branch
 // below (composeWithLintRepair) WITHOUT being destructured here — a free variable
 // that only a remix job would have reached, and then as a ReferenceError. Named
 // explicitly now, alongside the opt-in flag for the full-frame narration layer.
-async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker, jobId, durationSec, label, abortSignal, framePack, captionCues, scriptCues = null, scriptOverlay = false, remix = false, dress = false, subject = null, brandSkin = null, layoutPlan = null, strictIdentity = false, forceSceneKit = false }) {
+async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker, jobId, durationSec, label, abortSignal, framePack, captionCues, scriptCues = null, scriptOverlay = false, remix = false, dress = false, subject = null, brandSkin = null, layoutPlan = null, strictIdentity = false, forceSceneKit = false, pacing: pacingOpt = null }) {
+  // Every composer branch below is handed the SAME resolved profile — a job whose
+  // pack renderer bails to scene-kit must not silently change pace on the way.
+  const P = pacing.resolve(pacingOpt);
   // An explicit PREMIUM finish (remix) means "write me a bespoke composition":
   // it outranks the pack's dedicated renderer — otherwise premium on a
   // dedicated-renderer pack (brightlife/flagship/…) silently rendered the same
@@ -1183,7 +1374,7 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
   // while keeping the pack's colours, fonts and text effects.
   if (forceSceneKit) {
     console.log(`[pipeline] ${label}: forced scene-kit recompose (the pack renderer produced an unplayable film)`);
-    return composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "scene-kit", abortSignal, tracker, dress, subject, brandSkin, layoutPlan });
+    return composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "scene-kit", abortSignal, tracker, dress, subject, brandSkin, layoutPlan, pacing: P });
   }
   if (!remix && PACK_RENDERERS[packRenderer]) {
     const R = PACK_RENDERERS[packRenderer];
@@ -1203,12 +1394,12 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
     if ((!isPortrait || R.portraitOk) && !tooLongForRenderer) {
       return composeWithPackRenderer({
         renderer: packRenderer, storyboard, dims, jobDir, assets, framePack, captionCues, scriptCues, scriptOverlay,
-        jobId, durationSec, label: label || R.label, abortSignal, tracker, brandSkin, subject,
+        jobId, durationSec, label: label || R.label, abortSignal, tracker, brandSkin, subject, pacing: P,
         // The escape hatch a failed runtime smoke takes: same pack styling, a
         // composer that cannot throw on this content.
         fallbackToSceneKit: () => composeWithSceneKit({
           storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec,
-          label: `${label || R.label}->scene-kit`, abortSignal, tracker, dress, subject, brandSkin, layoutPlan,
+          label: `${label || R.label}->scene-kit`, abortSignal, tracker, dress, subject, brandSkin, layoutPlan, pacing: P,
         }),
       });
     }
@@ -1225,7 +1416,7 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
   // `dress` (premium hybrid): a small bounded LLM pass art-directs the kit's
   // variants/emphasis/decor without any power to break the layout.
   if (!remix) {
-    return composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "scene-kit", abortSignal, tracker, dress, subject, brandSkin, layoutPlan });
+    return composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label: label || "scene-kit", abortSignal, tracker, dress, subject, brandSkin, layoutPlan, pacing: P });
   }
   const t0 = ms();
   console.log(`[pipeline] ${label}: LLM remix compose start (assets=${assets.length}, framePack=${framePack || "none"})`);
@@ -1246,8 +1437,9 @@ async function attemptLlmComposition({ storyboard, dims, jobDir, assets, tracker
 // freehand → lint-clean by construction, no occlusion/truncation/junk). The agents
 // still "think" (they wrote the storyboard + picked the assets); the kit guarantees
 // the execution. This is the reliable default; the LLM composer is the opt-in remix.
-async function composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label, abortSignal, tracker, dress = false, subject = null, brandSkin = null, layoutPlan = null }) {
+async function composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack, captionCues, jobId, durationSec, label, abortSignal, tracker, dress = false, subject = null, brandSkin = null, layoutPlan = null, pacing: pacingOpt = null }) {
   const t0 = ms();
+  const P = pacing.resolve(pacingOpt);
   console.log(`[pipeline] ${label || "scene-kit"}: building deterministic composition (assets=${assets ? assets.length : 0}, framePack=${framePack || "none"}${dress ? ", +set-dressing" : ""})`);
   // Premium hybrid: one bounded LLM pass picks per-scene layout variants, the
   // accent word, and a sanitized decorative SVG cluster. Fail-open — a null
@@ -1259,7 +1451,7 @@ async function composeWithSceneKit({ storyboard, dims, jobDir, assets, framePack
   }
   // seedKey=jobId: layout/background variety is salted per JOB, so re-running the
   // same prompt (same title) still produces a visibly different composition.
-  const built = sceneKit.buildComposition({ storyboard, dims, framePack, assets: assets || [], captionCues, seedKey: jobId, dressing, brandSkin, layoutPlan });
+  const built = sceneKit.buildComposition({ storyboard, dims, framePack, assets: assets || [], captionCues, seedKey: jobId, dressing, brandSkin, layoutPlan, pacing: P });
   // Apply the deterministic vector/motion floor (the same enrichment the LLM path
   // uses) so scene-kit videos also carry the richer particle + glyph + ring layer.
   // scene-kit emits the `vid` markers enrich needs; its own particles use class
@@ -1340,16 +1532,28 @@ async function composeWithThree({ storyboard, dims, jobDir, framePack, captionCu
 // ========== Per-scene VO + sync re-timing ==========
 
 const r2 = (n) => Math.round(n * 100) / 100;
-const clampSceneDur = (n) => Math.max(2, Math.min(15, n));
-const VO_TAIL = 0.55; // breathing room after a spoken line finishes
+// The scene band. Both re-timers used to disagree about it — this one had a
+// hard [2,15] and its twin below had no upper bound at all, so /api/generate and
+// /api/projects paced the same request differently. Both now read the band off
+// the profile ([2,15] at normal, which is the literal each one carried).
+const clampSceneDurFor = (P) => (n) => Math.max(P.sceneFloor, Math.min(P.sceneCap, n));
 
 // Shared with graph.js and project_pipeline.js: stretch each storyboard scene
-// to contain its MEASURED narration (+VO_TAIL), re-pin every VO clip to its
-// scene's new start, and mirror the new timing onto the script's scenes.
+// to contain its MEASURED narration (+ the pace's VO tail), re-pin every VO clip
+// to its scene's new start, and mirror the new timing onto the script's scenes.
 // Returns { effectiveDuration, startMap } (old script start -> new start, for
 // re-pinning already-scheduled SFX offsets). Idempotent: re-running after a
 // repair lap re-derives the same timing.
-function retimeScenesToVo(storyboard, script, voClips) {
+//
+// MONOTONE-EXPANDING ON PURPOSE. This runs again on every QA repair lap, reading
+// its own previous output, and is a fixed point only because max() of an already
+// stretched duration is that duration. Pace therefore never appears here as a
+// contraction: a fast film is delivered by AUTHORING fewer words so `need` is
+// smaller from the start, never by shrinking a scene under its own measured
+// audio — which would put the narration over the next scene's line.
+function retimeScenesToVo(storyboard, script, voClips, pacingOpt) {
+  const P = pacing.resolve(pacingOpt);
+  const tail = pacing.voFit(P).tail;
   const r2b = (n) => Math.round(Number(n) * 100) / 100;
   const sbScenes = (storyboard && Array.isArray(storyboard.scenes)) ? storyboard.scenes : [];
   const clipByScene = new Map((voClips || []).map((c) => [String(c.sceneId), c]));
@@ -1357,8 +1561,15 @@ function retimeScenesToVo(storyboard, script, voClips) {
   for (let i = 0; i < sbScenes.length; i++) {
     const sc = sbScenes[i];
     const clip = clipByScene.get(String(sc.id != null ? sc.id : `s${i + 1}`));
-    const need = clip ? clip.durationSec + VO_TAIL : 0;
-    sc.duration = r2b(Math.max(2, Number(sc.duration) || 3, need));
+    const need = clip ? clip.durationSec + tail : 0;
+    // NO UPPER BOUND HERE, deliberately — this is the /projects re-timer and it
+    // runs AFTER foldScriptToRenderer, where two script scenes can share one
+    // merged beat whose legitimate span exceeds the per-scene cap. Capping the
+    // ask at P.sceneCap shortened exactly those merged beats and shipped folded
+    // long-form films 7-8% under their runtime AT NORMAL — a neutrality break, not
+    // a pace effect. Pace reaches this function through the scene lengths the
+    // storyboard already wrote, and through `tail`; it does not need a ceiling.
+    sc.duration = r2b(Math.max(P.sceneFloor, Number(sc.duration) || 3, need));
     sc.start = r2b(cursor);
     if (clip) { clip.startSec = sc.start; clip.sceneDurationSec = sc.duration; }
     cursor = r2b(cursor + sc.duration);
@@ -1390,7 +1601,10 @@ function sceneVOText(scene) {
 // scene's start. Audio and video are locked together, replacing the old single
 // VO blob that drifted against the cut. Mutates storyboard scene start/duration
 // + durationSec in place; returns { voClips (kind:"vo" at offsets), effectiveDuration }.
-async function synthesizeScenedVOAndRetime({ audioDir, storyboard, voice, instructions, requestedDuration, tracker }) {
+async function synthesizeScenedVOAndRetime({ audioDir, storyboard, voice, instructions, requestedDuration, tracker, pacing: pacingOpt }) {
+  const P = pacing.resolve(pacingOpt);
+  const tail = pacing.voFit(P).tail;
+  const clampSceneDur = clampSceneDurFor(P);
   const scenes = Array.isArray(storyboard.scenes) ? storyboard.scenes : [];
   fs.mkdirSync(audioDir, { recursive: true });
 
@@ -1402,12 +1616,15 @@ async function synthesizeScenedVOAndRetime({ audioDir, storyboard, voice, instru
   const clips = await Promise.all(scenes.map((scene, i) => {
     const text = sceneVOText(scene);
     if (!text) return Promise.resolve(null);
-    const targetSec = Math.max(2, Number(scene.duration) || 3);
+    const targetSec = Math.max(P.sceneFloor, Number(scene.duration) || 3);
     return synthesizeFitted({
       text, targetSec, voice, instructions,
       outputPath: path.join(audioDir, `vo-s${i + 1}.mp3`), tracker, session: ttsSession,
+      // The word budget the tighten pass writes to is the pace's, so a fast film
+      // asks for a shorter line rather than for the same line read faster.
+      pacing: P,
     })
-      .then((res) => (res ? { index: i, path: res.path, durationSec: res.durationSec } : null))
+      .then((res) => (res ? { index: i, path: res.path, durationSec: res.durationSec, tightened: res.tightened, ratio: res.ratio, atempo: res.atempo } : null))
       .catch((e) => { console.warn(`[pipeline] scene ${i + 1} VO failed: ${e.message.slice(0, 120)}`); return null; });
   }));
 
@@ -1417,10 +1634,19 @@ async function synthesizeScenedVOAndRetime({ audioDir, storyboard, voice, instru
   for (let i = 0; i < scenes.length; i++) {
     const s = scenes[i];
     const clip = byIndex.get(i);
-    const need = clip ? clip.durationSec + VO_TAIL : 0;
-    s.duration = r2(clampSceneDur(Math.max(2, Number(s.duration) || 3, need)));
+    const need = clip ? clip.durationSec + tail : 0;
+    // THE CEILING CAPS THE STORYBOARD'S ASK; `need` IS APPLIED AFTER IT AND ALWAYS
+    // WINS — exactly as its twin retimeScenesToVo does. Wrapping the whole max()
+    // in the clamp instead put the cap last, so a measured 15.6s narration clip
+    // was pinned into a 10s scene at Very Fast and 5.6s of it played over the
+    // NEXT scenes' pictures (106.97s of cumulative spill on a 300s film), while
+    // the film itself shipped 94s short because every scene lost its length.
+    // A scene is never cut short of its own voice.
+    s.duration = r2(Math.max(P.sceneFloor, Math.min(P.sceneCap, Number(s.duration) || 3), need));
     s.start = r2(cursor);
-    if (clip) voClips.push({ path: clip.path, startSec: s.start, durationSec: clip.durationSec, kind: "vo", volume: 1.0 });
+    // tightened/ratio/atempo ride along so the job's pacing report can count how
+    // often the word budget missed, instead of it only ever being a per-scene log.
+    if (clip) voClips.push({ path: clip.path, startSec: s.start, durationSec: clip.durationSec, kind: "vo", volume: 1.0, tightened: clip.tightened, ratio: clip.ratio, atempo: clip.atempo });
     cursor = r2(cursor + s.duration);
   }
   const effectiveDuration = r2(cursor) || Number(requestedDuration) || 12;
@@ -1487,16 +1713,20 @@ async function buildAudio({ jobDir, storyboard, flags, tracker, perScene = false
 
   let musicVolume = config.audio?.defaultMusicVolume ?? 0.15;
   if (flags.music && plan.music?.volume) musicVolume = plan.music.volume;
+  // Seed for BGM variety — short horizontal films with the same mood must get
+  // different tracks. Use the jobId (last segment of jobDir) as the seed.
+  const __seed = path.basename(String(jobDir || ""));
+  const __dur = storyboard.durationSec;
 
   const musicTask = (flags.music && plan.music?.query)
-    ? fetchMusic({ query: plan.music.query, outputPath: path.join(audioDir, "music.mp3"), tracker })
+    ? fetchMusic({ query: plan.music.query, outputPath: path.join(audioDir, "music.mp3"), tracker, durationSec: __dur, seed: __seed })
         .then((p) => { if (p) console.log(`[pipeline] music fetched ("${plan.music.query}")`); return p; })
         .catch((e) => { console.warn(`[pipeline] music failed: ${e.message}`); return null; })
     : Promise.resolve(null);
 
   // Ambient texture bed (rare, director-curated) rides the music flag.
   const ambientTask = (flags.music && plan.ambient?.query)
-    ? fetchMusic({ query: plan.ambient.query, outputPath: path.join(audioDir, "ambient.mp3"), tracker })
+    ? fetchMusic({ query: plan.ambient.query, outputPath: path.join(audioDir, "ambient.mp3"), tracker, durationSec: __dur, seed: __seed })
         .then((p) => { if (p) console.log(`[pipeline] ambient fetched ("${plan.ambient.query}")`); return p; })
         .catch((e) => { console.warn(`[pipeline] ambient failed: ${e.message}`); return null; })
     : Promise.resolve(null);
@@ -1562,10 +1792,15 @@ function envelopeToSeconds(scenes, envelope) {
   return pts.length >= 2 ? pts : null;
 }
 
-async function mixAudioIntoVideo({ visualPath, durationSec, audio, scenes = null, jobDir = null }) {
+async function mixAudioIntoVideo({ visualPath, durationSec, audio, scenes = null, jobDir = null, pacing: pacingOpt = null }) {
   if (!audio.ttsPath && !audio.musicPath && !audio.ambientPath && audio.sfx.length === 0) return false;
   const mixedPath = path.join(config.paths.videosDir, path.basename(visualPath) + ".tmp.mp4");
+  // The bed's glide between scene volumes is a pace number: a fixed 0.9s ramp
+  // covers nearly half of a 2s beat at Very Fast and reads as a slow wobble under
+  // a fast cut — the opposite of what the mode asked for.
+  const A = pacing.audioFor(pacingOpt);
   const { report } = await audioMix({
+    rampSec: A.rampSec,
     videoPath: visualPath, outputPath: mixedPath, durationSec,
     ttsPath: audio.ttsPath, musicPath: audio.musicPath,
     musicVolume: audio.musicVolume,
@@ -1593,6 +1828,10 @@ async function runJobInner({
   jobId, prompt, duration, orientation, width, height, fps,
   tts = false, music = false, soundEffect = false, voice,
   images = false, video = false, framePack = null, remix = false, render3d = false, dress = false,
+  // A field that is validated at the route and persisted on the job row but NOT
+  // named here is silently dropped for the whole run — which is exactly what
+  // still happens to `captions`. Pace is threaded explicitly for that reason.
+  pace = null,
 }) {
   const jobDir = jobDirFor(jobId);
   fs.mkdirSync(jobDir, { recursive: true });
@@ -1609,8 +1848,12 @@ async function runJobInner({
   let sbRes = null;
 
   const dims = { width, height, fps };
+  // Unknown/absent resolves to the frozen `normal` profile, so a legacy task
+  // persisted before this column existed runs byte-identically to today.
+  const P = pacing.resolve(pace);
   const wantsAudio = tts || music || soundEffect;
-  log.info("job accepted", { dims: `${width}x${height}@${fps}`, duration, orientation, tts, music, images, video, framePack, remix });
+  log.info("job accepted", { dims: `${width}x${height}@${fps}`, duration, orientation, tts, music, images, video, framePack, remix, pace: P.key });
+  if (!P.neutral) console.log(`[pipeline] pace: ${pacing.describe(P)}`);
 
   try {
     // ---- Stage: prompt understanding / enhancement (best output) ----
@@ -1654,7 +1897,12 @@ async function runJobInner({
     {
       const t0 = ms();
       db.setProgress(jobId, "storyboard");
-      sbRes = await generateStoryboard({ prompt: effectivePrompt, duration, orientation, framePack });
+      // The pace has to reach the STORYBOARD, not just the renderers. This route
+      // has no script stage, so the storyboard alone sets the scene count and the
+      // length of each narration line — the narration half of the feature. Without
+      // it the cut unit and the VO thresholds ran at the chosen pace while the
+      // scenes stayed Normal, which is how a Very Fast film ended up with 5s scenes.
+      sbRes = await generateStoryboard({ prompt: effectivePrompt, duration, orientation, framePack, pacing: P });
       tracker.addLlm({ inputTokens: sbRes.tokensIn, outputTokens: sbRes.tokensOut, stage: "storyboard", costUsd: sbRes.costUsd });
       markStage("storyboard", t0);
       log.info("storyboard ready", { scenes: (sbRes.storyboard.scenes || []).length, title: sbRes.storyboard.title, ms: timings.storyboardMs });
@@ -1669,7 +1917,7 @@ async function runJobInner({
     // Fail-open: any failure leaves the storyboard exactly as generated.
     try {
       const { directText } = require("./text_director");
-      await directText({ jobId, brief: effectivePrompt, script: sbRes.storyboard, storyboard: sbRes.storyboard, tracker });
+      await directText({ jobId, brief: effectivePrompt, script: sbRes.storyboard, storyboard: sbRes.storyboard, tracker, pacing: P });
     } catch (e) { console.warn(`[pipeline] text_director skipped: ${String((e && e.message) || e).slice(0, 120)}`); }
 
     // ---- Stages: assets + audio prep run IN PARALLEL (both need only storyboard).
@@ -1746,7 +1994,7 @@ async function runJobInner({
         storyboard: sbRes.storyboard,
         voice: voice || "james",
         instructions: undefined,
-        requestedDuration: duration, tracker,
+        requestedDuration: duration, tracker, pacing: P,
       }).catch((e) => { console.warn(`[pipeline] per-scene VO failed: ${e.message}`); return { voClips: [], effectiveDuration: duration }; });
       voClips = re.voClips;
       effectiveDuration = re.effectiveDuration;
@@ -1816,7 +2064,7 @@ async function runJobInner({
               storyboard: sbRes.storyboard, dims, jobDir,
               assets: allAssets, tracker, jobId, durationSec: effectiveDuration,
               label: remix ? "remix" : (useDress ? "premium-dress" : "scene-kit"), abortSignal: signal, framePack, remix,
-              dress: useDress, subject: briefSubject, strictIdentity, layoutPlan,
+              dress: useDress, subject: briefSubject, strictIdentity, layoutPlan, pacing: P,
             }),
             budget, remix ? "LLM remix composition" : (useDress ? "scene-kit + set-dressing" : "scene-kit composition")
           );
@@ -1840,7 +2088,7 @@ async function runJobInner({
           (signal) => attemptLlmComposition({
             storyboard: sbRes.storyboard, dims, jobDir,
             assets: imagesOnly, tracker, jobId, durationSec: effectiveDuration,
-            label: "no-videos", abortSignal: signal, framePack,
+            label: "no-videos", abortSignal: signal, framePack, pacing: P,
           }),
           budget, "no-videos retry"
         );
@@ -1871,7 +2119,7 @@ async function runJobInner({
         visualResult = await composeWithSceneKit({
           storyboard: sbRes.storyboard, dims, jobDir,
           assets: allAssets, framePack, jobId, durationSec: effectiveDuration,
-          label: "scene-kit fallback", tracker,
+          label: "scene-kit fallback", tracker, pacing: P,
         });
         markStage("fallback_render", t0);
         console.log(`[pipeline] scene-kit fallback rendered in ${timings.fallback_renderMs}ms`);
@@ -1960,7 +2208,7 @@ async function runJobInner({
         const mixed = audio ? await mixAudioIntoVideo({
           visualPath: visualResult.videoPath,
           durationSec: effectiveDuration, audio,
-          scenes: sbRes.storyboard.scenes, jobDir,
+          scenes: sbRes.storyboard.scenes, jobDir, pacing: P,
         }).catch((e) => { console.warn(`[pipeline] mix failed: ${e.message}`); return false; }) : false;
         markStage("audio", t0);
         console.log(`[pipeline] audio ${mixed ? "mixed in" : "(nothing to mix)"} in ${timings.audioMs}ms (was prepared in parallel)`);
@@ -2038,4 +2286,4 @@ module.exports = {
   // Exported for the audits: `check:coverage` walks every renderer and measures
   // whether a film's scenes all reach the screen. A gate that has to hand-copy
   // this list would silently miss the next renderer added to it.
-  PACK_RENDERERS, LONGFORM_RENDERER_SEC, sceneCapFor, foldScriptToRenderer };
+  PACK_RENDERERS, LONGFORM_RENDERER_SEC, sceneCapFor, foldScriptToRenderer, renderInSegments };

@@ -21,6 +21,10 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 // Issues are ranked so the panel leads with what a viewer would notice first.
 const SEVERITY_RANK = { blocker: 0, major: 1, minor: 2 };
 
+// The band the pacing report's own "cut cadence" check uses, repeated here (this
+// function may not require the report builder — it runs inside db.shape()).
+const PACE_DRIFT_PCT = 25;
+
 function push(list, sev, area, detail, fix) {
   if (!detail) return;
   list.push({ severity: sev, area, detail: String(detail).slice(0, 240), fix: fix ? String(fix).slice(0, 200) : null });
@@ -106,6 +110,43 @@ function assessDelivery(job) {
       `${ma.staticScenes.length} scene(s) have no timeline activity (${ma.staticScenes.join(", ")}) — they hold as a still frame.`);
   }
 
+  // ---- 6) Pacing ----
+  //
+  // The film's cadence against the one the user picked. Read off the row, never
+  // computed here: graph.buildPacingReport measured it once at finalize, and this
+  // function runs synchronously inside db.shape() on every single job read, so it
+  // must not touch the disk.
+  //
+  // MINOR, and at most one line, deliberately. The score subtracts per issue and
+  // the panel shows ten of them, so a chatty pace check would depress every
+  // film's number and push the faults a viewer would actually notice off the
+  // list. A pace miss is not one of those faults: the film is the right length,
+  // in sync, and watchable — it is simply not the film that was ordered.
+  const pr = j.pacing_report || null;
+  // Only a CHOSEN pace can miss. At 1.0x the target cadence is just today's
+  // default, which retimeScenesToVo has always overshot (15s→18.8s in this
+  // repo's own logs) — charging every neutral film for that is not a finding.
+  if (pr && Number(pr.multiplier) !== 1) {
+    const label = String(pr.label || pr.mode || "the requested pace");
+    const want = Number(pr.target && pr.target.beatSec);
+    const got = Number(pr.actual && pr.actual.avgBeatSec);
+    // got === 0 is "no measurable cadence", a different and already-loud failure.
+    const driftPct = (want > 0 && got > 0) ? Math.round(((got - want) / want) * 100) : null;
+    if (driftPct != null && Math.abs(driftPct) > PACE_DRIFT_PCT) {
+      push(issues, "minor", "pacing",
+        `${label} asks for a cut every ${want}s; this film cuts every ${got}s (${driftPct > 0 ? "+" : ""}${driftPct}%).`,
+        driftPct > 0
+          ? "Shorten the script or ask for a longer runtime — narration holding each scene open is what stops the picture cutting sooner."
+          : "The template's own rhythm is quicker than this pace asks for; a slower pace only loosens what the pack authored.");
+    } else if (Array.isArray(pr.clamped) && pr.clamped.length) {
+      // A clamp is the engine refusing to go further, recorded rather than
+      // silently absorbed — the user asked for a density this runtime cannot hold.
+      push(issues, "minor", "pacing",
+        `${label} was capped by the engine: ${pr.clamped.slice(0, 2).join("; ")}.`,
+        "A shorter runtime keeps the requested density inside the engine's scene and cut floors.");
+    }
+  }
+
   issues.sort((a, b) => (SEVERITY_RANK[a.severity] ?? 3) - (SEVERITY_RANK[b.severity] ?? 3));
 
   if (j.used_fallback) push(issues, "major", "composition", "The film fell back to the emergency template — the designed composition failed its checks.");
@@ -155,6 +196,9 @@ function assessDelivery(job) {
       emptyScenes, sceneCount,
       compositionQuality: layout && layout.score ? layout.score.compositionQuality : null,
       audioQuality: ar ? ar.qualityScore : null,
+      // null on every film made before the pacing engine, and on any film whose
+      // report never got written.
+      pace: pr ? (pr.mode || null) : null,
       usedFallback: !!j.used_fallback,
       // The artifact's own numbers, so the panel can state them rather than imply them.
       delivered: dp && dp.ok ? {

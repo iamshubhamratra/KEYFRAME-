@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const config = require("../config");
 const openrouter = require("./openrouter");
+const pacing = require("./pacing");
 
 const SYSTEM = fs.readFileSync(
   path.join(__dirname, "..", "prompts", "system_storyboard.md"),
@@ -30,7 +31,12 @@ const ASPECT_BY_ORIENTATION = {
   square: "1:1",
 };
 
-function buildUser({ prompt, duration, orientation, framePack }) {
+function buildUser({ prompt, duration, orientation, framePack, pacing: pacingIn }) {
+  const P = pacing.resolve(pacingIn);
+  const t = pacing.sceneTargetFor(duration, P);
+  // The average, not P.sceneSec — sceneTargetFor clamps the count on a long film,
+  // and 70 scenes of 3.5s do not add up to a 600s one.
+  const avg = t.sceneCount ? Math.round((duration / t.sceneCount) * 10) / 10 : t.sceneSec;
   return [
     `User prompt: ${prompt}`,
     `Target duration: ${duration} seconds`,
@@ -38,6 +44,30 @@ function buildUser({ prompt, duration, orientation, framePack }) {
     `Aspect ratio: ${ASPECT_BY_ORIENTATION[orientation]}`,
     framePack && framePack !== "auto"
       ? `Visual design system: "${framePack}". Design every scene's layout, visualMotif, and emphasis to suit THIS system's aesthetic — pick scene archetypes and motifs that show off its signature look. Keep adjacent scenes visually distinct (vary layout + animation + motif).`
+      : "",
+    // The system prompt states a scene-count rule of its own (`ceil(durationSec/4)`
+    // ± 1, then 6-12s beats past two minutes). At `normal` that rule IS the pace,
+    // so saying it twice in slightly different words would only make the model
+    // split the difference — the line appears only when a pace was actually
+    // chosen, and then says outright that it wins.
+    P.neutral
+      ? ""
+      : `Pace: ${P.label} (${P.multiplier.toFixed(2)}x). Write about ${t.sceneCount} scenes averaging ~${avg}s, each between ${t.sceneMin}s and ${t.sceneMax}s — this SUPERSEDES the default scene-count rule. Pace changes how often the picture cuts, never the ${duration}s runtime.`,
+    // THE VISUAL HALF OF PACE. The line above shortens the scene; on its own it
+    // reads to the model as "write less", and it shortened the COPY along with
+    // the beat — which is the "fast pace looks empty" report. A faster film
+    // speaks fewer words per scene, so the frame has to carry more of the
+    // message, not less. Faster-only (multiplier > 1) so Normal and Relaxed keep
+    // today's prompt to the byte.
+    P.multiplier > 1
+      ? [
+        `Visual density: this film narrates ${P.wordsPerSec} words/sec — about ${Math.round((1 - 1 / P.visual.gain) * 100)}% fewer spoken words per scene than a normal-paced one. That information does NOT leave the film; it moves onto the screen.`,
+        `- Write ${P.bulletsMax} \`bullets\` per scene (not 2-3), each ≤ ${P.visual.labelMaxChars} chars. Shorter labels, more of them — they arrive in sequence, so short reads and long gets skipped.`,
+        "- `bullets` carry the facts the voiceover has no room to say: features, benefits, specifics, differentiators. Never a restatement of `subtext`.",
+        `- About ${P.visual.elements} text elements per scene in total (kicker + headline + subtext + bullets) — enough that the frame carries the beat on its own, few enough to read.`,
+        "- Keep the hierarchy: `kicker` → `headline` → `subtext` → bullets. Never a paragraph, never a wall of text.",
+        "- Spread the material across scenes — each beat shows what belongs to it. Do not stack everything on one frame and leave the rest bare.",
+      ].join("\n")
       : "",
     "",
     "Produce the storyboard JSON now.",
@@ -47,7 +77,10 @@ function buildUser({ prompt, duration, orientation, framePack }) {
 const { extractFirstJsonObject: parseJsonLenient } = require("./json_lenient");
 
 const round2 = (n) => Math.round(n * 100) / 100;
-const clampDur = (n) => Math.min(15, Math.max(2, n));
+// The 2s floor is physics (a scene shorter than that cannot hold a spoken clause)
+// and pace never argues with it; the ceiling is the pace's, and it is exactly 15
+// at 1.0x.
+const clampDur = (n, cap = 15) => Math.min(cap, Math.max(2, n));
 
 // TOO FEW SCENES TO COVER THE FILM: SPLIT THEM, DON'T STRETCH THEM.
 //
@@ -245,36 +278,78 @@ function expandToCover(sb, duration, { max = 70, cap = 15, pace = 8.5, label = "
 // gapless starts. A storyboard that was already correct passes through
 // unchanged. Only timing is touched — content/kind/animation are left for
 // validate() to flag and (if wrong) drive a real retry.
-function normalizeTimeline(sb, duration) {
+function normalizeTimeline(sb, duration, pacingIn) {
   if (!sb || !Array.isArray(sb.scenes) || !sb.scenes.length) return;
+  const P = pacing.resolve(pacingIn);
   // Before any timing arithmetic: make sure there ARE enough scenes to hold the
-  // film. Rescaling a list that is too short can only pin every scene to the 15s
-  // ceiling, and past 15s x N it cannot reach the target at all.
-  expandToCover(sb, duration);
+  // film. Rescaling a list that is too short can only pin every scene to the
+  // ceiling, and past cap x N it cannot reach the target at all.
+  // expandToCover's defaults WERE this function's pacing policy — 70/15/8.5 were
+  // reachable only by editing the file. Threaded from the profile they are the
+  // same three numbers at 1.0x and a denser film at anything faster. They must
+  // stay in step with the clamp below: `need` is computed from this same cap, so
+  // a lower ceiling splits more scenes rather than leaving the film unable to
+  // reach its runtime.
+  //
+  // THE EDITORIAL BAR IS WHERE PACE ACTUALLY LANDS ON SCENE LENGTH, and it has
+  // to be the pace's OWN target scene length rather than expandPace. Measured on
+  // a real 30s Very Fast film before this line existed: the director returned 6
+  // scenes of 5.0s, expandPace was 5.67s, no projected scene exceeded it, phase 2
+  // declined every cut — and the film shipped with 5s scenes when the mode asks
+  // for 2.3s. The prompt says the same thing in the user message and the model
+  // followed the system prompt's own `ceil(durationSec/4)` rule instead, which is
+  // exactly why this cannot be left to the prompt.
+  //
+  // Splitting still only takes scenes with a second facet to give (`divisible`),
+  // so a one-line scene is held rather than shown twice — the bar asks, it does
+  // not force. At 1.0x it IS expandPace (8.5), so nothing moves.
+  // ONLY THE FASTER MODES DENSIFY. A split halves a scene, so the bar overshoots
+  // its own target by construction (a 5.0s scene becomes two 2.5s ones). That is
+  // fine going faster — 2.5s is close to Very Fast's 2.3s — but applying it to
+  // Relaxed produced 12 scenes of 2.5s for a mode whose whole point is FEWER,
+  // longer beats with room to breathe (measured: relaxed went 6 -> 12 before this
+  // guard). Relaxed keeps the neutral bar and lets the director's own longer
+  // scenes stand.
+  const target = pacing.sceneTargetFor(duration, P);
+  const editorialBar = P.multiplier <= 1
+    ? P.expandPace
+    : Math.max(P.sceneMin, Math.min(P.expandPace, target.sceneCount ? duration / target.sceneCount : P.sceneSec));
+  // AND THE SPLIT COUNT IS BOUNDED BY THE RUNTIME, not just by maxScenes. A split
+  // HALVES a scene but splitScene floors each half at 2s, so splitting a 3.75s
+  // scene yields two 2s halves and the SUM GROWS. Densifying a 30s / 8-scene film
+  // at Very Fast produced 16 scenes x 2.0s = 32s; the clamp that follows cannot go
+  // under the 2s floor, so the rescale could not reach 30s, validate() rejected
+  // "durations sum to 32, expected 30", and generateStoryboard threw after burning
+  // all three attempts — the job died. `room` is the most scenes the floor can
+  // physically fit in the runtime, and it is applied only where the densification
+  // is (multiplier > 1), so the normal path keeps maxScenes exactly.
+  const room = Math.max(2, Math.floor(duration / pacing.SCENE_FLOOR_SEC));
+  const hardMax = P.multiplier > 1 ? Math.min(P.maxScenes, room) : P.maxScenes;
+  expandToCover(sb, duration, { max: hardMax, cap: P.sceneCap, pace: editorialBar });
   const scenes = sb.scenes.filter(
     (s) => s && typeof s.duration === "number" && Number.isFinite(s.duration)
   );
   if (!scenes.length) return;
 
-  for (const s of scenes) s.duration = clampDur(s.duration);
+  for (const s of scenes) s.duration = clampDur(s.duration, P.sceneCap);
 
   let sum = scenes.reduce((a, s) => a + s.duration, 0);
   if (sum > 0 && Math.abs(sum - duration) > 0.01) {
     const scale = duration / sum;
-    for (const s of scenes) s.duration = clampDur(s.duration * scale);
+    for (const s of scenes) s.duration = clampDur(s.duration * scale, P.sceneCap);
   }
 
   for (const s of scenes) s.duration = round2(s.duration);
   // Distribute any leftover drift (from clamping/rounding) across scenes that
-  // have slack, so the total lands on `duration` without violating [2,15].
+  // have slack, so the total lands on `duration` without violating the band.
   let drift = round2(duration - scenes.reduce((a, s) => a + s.duration, 0));
   for (let guard = 0; Math.abs(drift) >= 0.01 && guard < scenes.length * 2; guard++) {
     const s = scenes.find((sc) =>
-      drift > 0 ? sc.duration + drift <= 15 || sc.duration < 15
+      drift > 0 ? sc.duration + drift <= P.sceneCap || sc.duration < P.sceneCap
                 : sc.duration + drift >= 2  || sc.duration > 2
     );
     if (!s) break;
-    const next = clampDur(round2(s.duration + drift));
+    const next = clampDur(round2(s.duration + drift), P.sceneCap);
     drift = round2(drift - (next - s.duration));
     s.duration = next;
   }
@@ -530,8 +605,9 @@ function ensureCopyFloor(sb) {
   });
 }
 
-async function generateStoryboard({ prompt, duration, orientation, framePack }) {
-  const user = buildUser({ prompt, duration, orientation, framePack });
+async function generateStoryboard({ prompt, duration, orientation, framePack, pacing: pacingIn }) {
+  const P = pacing.resolve(pacingIn);
+  const user = buildUser({ prompt, duration, orientation, framePack, pacing: P });
   const maxTries = (config.llm.storyboardMaxRetries || 2) + 1;
 
   let totalIn = 0, totalOut = 0;
@@ -564,7 +640,7 @@ async function generateStoryboard({ prompt, duration, orientation, framePack }) 
 
     // Repair mechanical timing drift before validating, so the model is only
     // ever retried for genuine content problems — not arithmetic.
-    normalizeTimeline(storyboard, duration);
+    normalizeTimeline(storyboard, duration, P);
     const errs = validate(storyboard, { duration, orientation });
     if (errs.length === 0) {
       // Last stop before the composition: fill the text slots this storyboard

@@ -26,6 +26,7 @@ const frameManifest = require("./frame_manifest");
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
 const { isLogo: upIsLogo } = require("./asset_priority");
 const { themeFromTokens } = require("./enrich");
+const pacing = require("./pacing");
 
 // SINGLE-quoted family names — these are embedded in double-quoted style="..."
 // attributes, so a double quote here would terminate the attribute early and kill
@@ -321,6 +322,62 @@ function deriveTheme(framePack, storyboard, brandSkin) {
   };
 }
 
+// ---- THE JOB'S PACE (services/pacing.js) ---------------------------------------
+// Two scalers, both read off the profile buildComposition hangs on every scene's
+// ctx. `PA` scales an ARRIVAL — an entrance, an exit, a card rise, and every
+// offset DERIVED from one (a tween that starts `length` before the boundary it
+// lands on must move with its own length, or the guard stops matching the tween;
+// this file has already shipped a blank-scene bug from exactly that mismatch, see
+// the immediateRender notes in buildCutLayer). `AM` scales AMBIENT idle motion,
+// which takes only ~a third of the pace: a room whose furniture breathes at 1.5x
+// reads as jittery, and the contrast between a quick arrival and a calm idle is
+// what makes fast look designed. The CAMERA (sceneMotion's drift, the Ken-Burns
+// scale on a scrim) is scaled by neither — a push that outruns the eye reads as a
+// mistake at any pace.
+//
+// resolve() is safe on null, so a ctx built before pace existed is `normal`. At
+// normal both factors are exactly 1, division by 1 is an IEEE-754 identity, and
+// every literal these wrap has at most three decimals — so each scaler returns
+// the number it was handed and the emitted composition is byte-identical.
+function paceScalers(ctx) {
+  const P = pacing.resolve(ctx && ctx.pacing);
+  const PA = (n) => Math.round((n / P.arrivalFactor) * 1000) / 1000;
+  return {
+    P,
+    PA,
+    AM: (n) => Math.round((n / P.ambientFactor) * 1000) / 1000,
+    // LIST-ARRIVAL STAGGER — the gap between sequential items. A faster pace
+    // shows MORE items in a SHORTER scene, so the gap has to tighten or the last
+    // line lands too late to be read. Gated on multiplier > 1 rather than on
+    // !neutral: a Relaxed film has no density problem to solve, and widening its
+    // stagger would be a motion change wearing a density badge (it also breaks
+    // the A/B byte-diff for a mode this task was never about).
+    STG: (n) => (P.multiplier > 1 ? PA(n) : n),
+  };
+}
+
+// THE READABILITY VETO (pacing.fitsCopy). A faster pace buys its density from
+// shorter scenes, and the one thing that may NOT shrink is the time a line stays
+// on screen long enough to be read — so when the copy no longer fits the seconds
+// it has, the kit surfaces LESS copy rather than flashing all of it. Items are
+// dropped from the END (the last line of a list is the least load-bearing) and
+// never below one, so a scene can never be blanked by this.
+// `secondsFor(k)` is how long item k actually holds — computed by the caller from
+// its own arrival schedule, so the two can never drift apart.
+// Only a pace that COMPRESSES the film (multiplier > 1, so Normal and Relaxed are
+// both untouched) may trim: today's films already ship whatever these lists hold,
+// and a calmer pace taking copy away would be a copy change wearing a pace badge.
+function fitCopyList(items, secondsFor, profile) {
+  const P = pacing.resolve(profile);
+  if (P.multiplier <= 1 || items.length < 2) return items;
+  const out = items.slice();
+  while (out.length > 1 && !pacing.fitsCopy(out[out.length - 1], secondsFor(out.length - 1), P)) out.pop();
+  if (out.length !== items.length) {
+    console.log(`[scene-kit] readability: ${items.length - out.length} line(s) dropped — too brief to read at ${P.label} pace`);
+  }
+  return out;
+}
+
 // The GSAP helper functions — emitted ONCE. They mechanically satisfy the five
 // most error-prone lint rules (camera, word-stagger, counter, exit-kill, finite
 // repeats) so every archetype stays clean with almost no per-scene code.
@@ -450,9 +507,13 @@ function motionFor(framePack, theme) {
 
 // One persistent overlay clip; per-boundary elements + tweens. Everything is
 // pointer-less and occlusion-exempt (it covers content ON PURPOSE, mid-cut only).
-function buildCutLayer(plan, theme, dims, D, motion, seed, track, cutRotation) {
+function buildCutLayer(plan, theme, dims, D, motion, seed, track, cutRotation, pacingProfile) {
   const bounds = plan.slice(1).map((p) => p.ctx.T);
   if (!bounds.length) return null;
+  // A cut is the purest arrival in the film: every one of these tweens is timed
+  // BACKWARD from its boundary (`Tb - length`), so the length and the offset must
+  // come from the same PA() call or the overlay stops peaking on the cut.
+  const { PA } = paceScalers({ pacing: pacingProfile });
   // "fade" — the pure dissolve. NO overlay at all: the boundary is carried
   // entirely by the scenes' own opacity cross (sceneMotion). The quietest cut
   // in the system — plotted/editorial packs (cartesian) own it.
@@ -472,8 +533,8 @@ function buildCutLayer(plan, theme, dims, D, motion, seed, track, cutRotation) {
       // strobe. immediateRender:false on the exit for the same full-frame-overlay
       // hazard as wipe/iris (default immediateRender would blank every scene).
       els.push(`<div id="${id}" style="position:absolute;inset:0;background:${theme.ink};opacity:0;"></div>`);
-      sc.push(`tl.fromTo("#${id}",{opacity:0},{opacity:1,duration:0.09,ease:"power4.in"},${r(Tb - 0.09)});`);
-      sc.push(`tl.fromTo("#${id}",{opacity:1},{opacity:0,duration:0.11,ease:"power4.out",immediateRender:false},${r(Tb + 0.02)});`);
+      sc.push(`tl.fromTo("#${id}",{opacity:0},{opacity:1,duration:${PA(0.09)},ease:"power4.in"},${r(Tb - PA(0.09))});`);
+      sc.push(`tl.fromTo("#${id}",{opacity:1},{opacity:0,duration:${PA(0.11)},ease:"power4.out",immediateRender:false},${r(Tb + PA(0.02))});`);
     } else if (mcut ==="wipe" || mcut ==="push") {
       // hard graphic block, alternating direction — the brutalist/print cut.
       // Both halves are fromTo (exempt from the css-transform-conflict rule) so
@@ -481,7 +542,7 @@ function buildCutLayer(plan, theme, dims, D, motion, seed, track, cutRotation) {
       // to the other, hiding the clip swap on the boundary.
       const fromLeft = (k + seed) % 2 === 0;
       els.push(`<div id="${id}" style="position:absolute;inset:0;background:${A};transform:scaleX(0);"></div>`);
-      sc.push(`tl.fromTo("#${id}",{scaleX:0,transformOrigin:"${fromLeft ? "0%" : "100%"} 50%"},{scaleX:1,duration:0.24,ease:"power4.in"},${r(Tb - 0.24)});`);
+      sc.push(`tl.fromTo("#${id}",{scaleX:0,transformOrigin:"${fromLeft ? "0%" : "100%"} 50%"},{scaleX:1,duration:${PA(0.24)},ease:"power4.in"},${r(Tb - PA(0.24))});`);
       // immediateRender:false — this exit fromTo starts from the VISIBLE state
       // (scaleX:1). With GSAP's default immediateRender:true it forces scaleX:1 at
       // build time, so this full-frame colored wipe stays stretched over the whole
@@ -491,43 +552,43 @@ function buildCutLayer(plan, theme, dims, D, motion, seed, track, cutRotation) {
       // and exits from the OPPOSITE edge, so the block wipes straight through as a
       // hard swipe with no full-frame solid dwell — the brutalist cut without the
       // jarring full-screen colour FLASH the audit flagged.
-      sc.push(`tl.fromTo("#${id}",{scaleX:1,transformOrigin:"${fromLeft ? "100%" : "0%"} 50%"},{scaleX:0,duration:0.28,ease:"power4.out",immediateRender:false},${r(Tb)});`);
+      sc.push(`tl.fromTo("#${id}",{scaleX:1,transformOrigin:"${fromLeft ? "100%" : "0%"} 50%"},{scaleX:0,duration:${PA(0.28)},ease:"power4.out",immediateRender:false},${r(Tb)});`);
     } else if (mcut ==="whip") {
       // motion-blur streak racing across the frame — the one-take whip-pan
       els.push(`<div id="${id}" style="position:absolute;top:-4%;bottom:-4%;left:-45%;width:38%;transform:skewX(-16deg);opacity:0;background:linear-gradient(90deg,transparent,${rgba(theme.ink, 0.10)} 30%,${rgba(cutTint(A, theme), 0.28)} 50%,${rgba(theme.ink, 0.10)} 70%,transparent);filter:blur(6px);"></div>`);
-      sc.push(`tl.fromTo("#${id}",{xPercent:0,opacity:0},{xPercent:60,opacity:1,duration:0.16,ease:"power2.in"},${r(Tb - 0.3)});`);
-      sc.push(`tl.to("#${id}",{xPercent:400,opacity:0,duration:0.34,ease:"power3.out"},${r(Tb - 0.14)});`);
+      sc.push(`tl.fromTo("#${id}",{xPercent:0,opacity:0},{xPercent:60,opacity:1,duration:${PA(0.16)},ease:"power2.in"},${r(Tb - PA(0.3))});`);
+      sc.push(`tl.to("#${id}",{xPercent:400,opacity:0,duration:${PA(0.34)},ease:"power3.out"},${r(Tb - PA(0.14))});`);
     } else if (mcut ==="flash") {
       // studio strobe + chromatic streak — the product-reveal cut
       els.push(`<div id="${id}" style="position:absolute;inset:0;opacity:0;background:${theme.isDark ? "#FFFFFF" : "#FFFFFF"};"></div>`);
       els.push(`<div id="${id}c" style="position:absolute;top:46%;height:8%;left:-40%;right:auto;width:40%;opacity:0;transform:skewX(-24deg);background:linear-gradient(90deg,transparent,${rgba(theme.accent2, 0.7)},${rgba(A, 0.7)},transparent);filter:blur(10px);"></div>`);
-      sc.push(`tl.fromTo("#${id}",{opacity:0},{opacity:0.92,duration:0.14,ease:"power2.in"},${r(Tb - 0.16)});`);
-      sc.push(`tl.to("#${id}",{opacity:0,duration:0.36,ease:"power2.out"},${r(Tb)});`);
-      sc.push(`tl.fromTo("#${id}c",{xPercent:0,opacity:1},{xPercent:340,opacity:0,duration:0.5,ease:"power3.out",immediateRender:false},${r(Tb - 0.08)});`);
+      sc.push(`tl.fromTo("#${id}",{opacity:0},{opacity:0.92,duration:${PA(0.14)},ease:"power2.in"},${r(Tb - PA(0.16))});`);
+      sc.push(`tl.to("#${id}",{opacity:0,duration:${PA(0.36)},ease:"power2.out"},${r(Tb)});`);
+      sc.push(`tl.fromTo("#${id}c",{xPercent:0,opacity:1},{xPercent:340,opacity:0,duration:${PA(0.5)},ease:"power3.out",immediateRender:false},${r(Tb - PA(0.08))});`);
     } else if (mcut ==="wash") {
       // soft blurred wash sweeping diagonally — watercolor page-turn. cutTint keeps
       // a near-black pack accent from turning this full-frame veil into a blackout.
       els.push(`<div id="${id}" style="position:absolute;top:-30%;bottom:-30%;left:-70%;width:70%;opacity:0;transform:rotate(-9deg);border-radius:50%;background:${rgba(cutTint(A, theme), 0.44)};filter:blur(${Math.round(H * 0.06)}px);"></div>`);
-      sc.push(`tl.fromTo("#${id}",{xPercent:0,opacity:0},{xPercent:130,opacity:1,duration:0.34,ease:"sine.in"},${r(Tb - 0.34)});`);
-      sc.push(`tl.to("#${id}",{xPercent:300,opacity:0,duration:0.44,ease:"sine.out"},${r(Tb)});`);
+      sc.push(`tl.fromTo("#${id}",{xPercent:0,opacity:0},{xPercent:130,opacity:1,duration:${PA(0.34)},ease:"sine.in"},${r(Tb - PA(0.34))});`);
+      sc.push(`tl.to("#${id}",{xPercent:300,opacity:0,duration:${PA(0.44)},ease:"sine.out"},${r(Tb)});`);
     } else if (mcut ==="panel") {
       // near-opaque ground panel with a leading accent edge sweeping vertically —
       // the keynote slide-advance
       const down = (k + seed) % 2 === 0;
       els.push(`<div id="${id}" style="position:absolute;left:0;right:0;top:-110%;height:105%;opacity:0;background:linear-gradient(${down ? "180deg" : "0deg"},${rgba(theme.ground, 0.0)} 0%,${rgba(theme.ground, 0.96)} 22%,${rgba(theme.ground, 0.96)} 88%,${rgba(A, 0.9)} 96%,${rgba(A, 0)} 100%);"></div>`);
-      sc.push(`tl.set("#${id}",{opacity:1},${r(Tb - 0.42)});`);
-      sc.push(`tl.fromTo("#${id}",{yPercent:${down ? 0 : 210}},{yPercent:${down ? 210 : 0},duration:0.72,ease:"power3.inOut"},${r(Tb - 0.4)});`);
-      sc.push(`tl.set("#${id}",{opacity:0},${r(Tb + 0.4)});`);
+      sc.push(`tl.set("#${id}",{opacity:1},${r(Tb - PA(0.42))});`);
+      sc.push(`tl.fromTo("#${id}",{yPercent:${down ? 0 : 210}},{yPercent:${down ? 210 : 0},duration:${PA(0.72)},ease:"power3.inOut"},${r(Tb - PA(0.4))});`);
+      sc.push(`tl.set("#${id}",{opacity:0},${r(Tb + PA(0.4))});`);
     } else if (mcut ==="iris") {
       // circular iris close/open on the boundary — the noir spotlight blink.
       // fromTo on both halves keeps GSAP owning the transform (exempt).
       const dia = Math.ceil(Math.sqrt(W * W + H * H) * 1.05);
       els.push(`<div id="${id}" style="position:absolute;left:50%;top:50%;width:${dia}px;height:${dia}px;margin:-${Math.round(dia / 2)}px 0 0 -${Math.round(dia / 2)}px;border-radius:50%;background:${theme.ground};transform:scale(0);"></div>`);
-      sc.push(`tl.fromTo("#${id}",{scale:0},{scale:1,duration:0.3,ease:"power3.in"},${r(Tb - 0.3)});`);
+      sc.push(`tl.fromTo("#${id}",{scale:0},{scale:1,duration:${PA(0.3)},ease:"power3.in"},${r(Tb - PA(0.3))});`);
       // immediateRender:false — same fix as the wipe: this full-frame ground-colored
       // iris starts its exit from scale:1 (visible); default immediateRender would
       // stretch it over the whole frame from t=0 (blanks noir-spotlight).
-      sc.push(`tl.fromTo("#${id}",{scale:1},{scale:0,duration:0.36,ease:"power3.out",immediateRender:false},${r(Tb + 0.04)});`);
+      sc.push(`tl.fromTo("#${id}",{scale:1},{scale:0,duration:${PA(0.36)},ease:"power3.out",immediateRender:false},${r(Tb + PA(0.04))});`);
     } else if (mcut ==="inkblot") {
       // sumi-kaze's ink drop: an irregular sumi blob blooms from a seeded
       // off-center point to swallow the frame, then washes out by spreading and
@@ -537,36 +598,38 @@ function buildCutLayer(plan, theme, dims, D, motion, seed, track, cutRotation) {
       const dia = Math.ceil(Math.sqrt(W * W + H * H) * 1.18);
       const px = 32 + ((k * 37 + seed * 13) % 36), py = 30 + ((k * 53 + seed * 7) % 40);
       els.push(`<div id="${id}" style="position:absolute;left:${px}%;top:${py}%;width:${dia}px;height:${dia}px;margin:-${Math.round(dia / 2)}px 0 0 -${Math.round(dia / 2)}px;border-radius:53% 47% 56% 44% / 48% 55% 45% 52%;background:${theme.ink};transform:scale(0);"></div>`);
-      sc.push(`tl.fromTo("#${id}",{scale:0,rotation:${(k % 2 ? -1 : 1) * 22},opacity:1},{scale:1.05,rotation:0,opacity:1,duration:0.34,ease:"power3.in"},${r(Tb - 0.34)});`);
-      sc.push(`tl.fromTo("#${id}",{scale:1.05,opacity:1},{scale:1.4,opacity:0,duration:0.5,ease:"sine.out",immediateRender:false},${r(Tb + 0.02)});`);
+      sc.push(`tl.fromTo("#${id}",{scale:0,rotation:${(k % 2 ? -1 : 1) * 22},opacity:1},{scale:1.05,rotation:0,opacity:1,duration:${PA(0.34)},ease:"power3.in"},${r(Tb - PA(0.34))});`);
+      sc.push(`tl.fromTo("#${id}",{scale:1.05,opacity:1},{scale:1.4,opacity:0,duration:${PA(0.5)},ease:"sine.out",immediateRender:false},${r(Tb + PA(0.02))});`);
     } else if (mcut ==="clockwipe") {
       // orrery-brass's escapement sweep: an opaque ground disc covers the frame
       // CONICALLY in discrete ticks (timeline-anchored tl.set conic-gradients —
       // seek-safe, deterministic) while a brass hand rotates with a stepped
       // ease; then the frame ticks back open on the far side of the boundary.
-      const ticks = 8, tickDur = 0.3 / ticks;
+      // The tick length is DERIVED from the scaled sweep, so the conic ladder and
+      // the hand always finish together however fast the sweep is asked to be.
+      const sweep = PA(0.3), ticks = 8, tickDur = sweep / ticks;
       const hl = Math.ceil(Math.sqrt(W * W + H * H) / 2);
       els.push(`<div id="${id}" style="position:absolute;inset:0;opacity:0;"></div>`);
       els.push(`<div id="${id}h" style="position:absolute;left:50%;top:50%;width:4px;height:${hl}px;margin-left:-2px;background:${A};transform-origin:50% 0%;opacity:0;"></div>`);
       for (let j = 1; j <= ticks; j++) {
         const deg = Math.round((360 * j) / ticks);
-        sc.push(`tl.set("#${id}",{opacity:1,background:"conic-gradient(from 0deg,${theme.ground} 0deg ${deg}deg,rgba(0,0,0,0) ${deg}deg 360deg)"},${r(Tb - 0.3 + (j - 1) * tickDur)});`);
+        sc.push(`tl.set("#${id}",{opacity:1,background:"conic-gradient(from 0deg,${theme.ground} 0deg ${deg}deg,rgba(0,0,0,0) ${deg}deg 360deg)"},${r(Tb - sweep + (j - 1) * tickDur)});`);
       }
       for (let j = 1; j <= ticks; j++) {
         const deg = Math.round((360 * j) / ticks);
-        sc.push(`tl.set("#${id}",{background:"conic-gradient(from 0deg,rgba(0,0,0,0) 0deg ${deg}deg,${theme.ground} ${deg}deg 360deg)"},${r(Tb + 0.02 + (j - 1) * tickDur)});`);
+        sc.push(`tl.set("#${id}",{background:"conic-gradient(from 0deg,rgba(0,0,0,0) 0deg ${deg}deg,${theme.ground} ${deg}deg 360deg)"},${r(Tb + PA(0.02) + (j - 1) * tickDur)});`);
       }
-      sc.push(`tl.set("#${id}",{opacity:0},${r(Tb + 0.02 + ticks * tickDur)});`);
-      sc.push(`tl.fromTo("#${id}h",{rotation:0,opacity:1},{rotation:360,opacity:1,duration:0.64,ease:"steps(16)",immediateRender:false},${r(Tb - 0.3)});`);
-      sc.push(`tl.set("#${id}h",{opacity:0},${r(Tb + 0.36)});`);
+      sc.push(`tl.set("#${id}",{opacity:0},${r(Tb + PA(0.02) + ticks * tickDur)});`);
+      sc.push(`tl.fromTo("#${id}h",{rotation:0,opacity:1},{rotation:360,opacity:1,duration:${PA(0.64)},ease:"steps(16)",immediateRender:false},${r(Tb - sweep)});`);
+      sc.push(`tl.set("#${id}h",{opacity:0},${r(Tb + PA(0.36))});`);
     } else if (mcut ==="smear") {
       // claymotion's smear frame: a clay blob streaks across the boundary with
       // heavy squash-stretch at ~8fps (steps ease) — the animator's in-between
       // frame caught on camera. Doesn't need to cover the frame (like whip).
       const fromLeft = (k + seed) % 2 === 0;
       els.push(`<div id="${id}" style="position:absolute;top:31%;height:38%;left:-58%;width:58%;border-radius:48% 52% 55% 45% / 60% 45% 55% 40%;background:${A};opacity:0;"></div>`);
-      sc.push(`tl.fromTo("#${id}",{xPercent:${fromLeft ? 0 : 330},scaleX:0.7,scaleY:0.95,rotation:${fromLeft ? -4 : 4},opacity:1},{xPercent:${fromLeft ? 330 : 0},scaleX:2.9,scaleY:0.45,rotation:${fromLeft ? 4 : -4},opacity:1,duration:0.44,ease:"steps(9)",immediateRender:false},${r(Tb - 0.26)});`);
-      sc.push(`tl.set("#${id}",{opacity:0},${r(Tb + 0.2)});`);
+      sc.push(`tl.fromTo("#${id}",{xPercent:${fromLeft ? 0 : 330},scaleX:0.7,scaleY:0.95,rotation:${fromLeft ? -4 : 4},opacity:1},{xPercent:${fromLeft ? 330 : 0},scaleX:2.9,scaleY:0.45,rotation:${fromLeft ? 4 : -4},opacity:1,duration:${PA(0.44)},ease:"steps(9)",immediateRender:false},${r(Tb - PA(0.26))});`);
+      sc.push(`tl.set("#${id}",{opacity:0},${r(Tb + PA(0.2))});`);
     } else if (mcut ==="weave") {
       // folk-stitch's loom pass: a wide band of bold thread stripes shuttles
       // across the frame — opaque fabric, no blur (≠ whip's translucent streak).
@@ -574,16 +637,16 @@ function buildCutLayer(plan, theme, dims, D, motion, seed, track, cutRotation) {
       const B2 = theme.accent2 || A, X = (theme.extras && theme.extras[0]) || B2;
       const sw = Math.max(14, Math.round(H * 0.022));
       els.push(`<div id="${id}" style="position:absolute;top:-12%;bottom:-12%;left:-90%;width:82%;transform:skewX(-12deg);opacity:0;background:repeating-linear-gradient(90deg,${A} 0 ${sw}px,${B2} ${sw}px ${sw * 2}px,${X} ${sw * 2}px ${sw * 3}px);"></div>`);
-      sc.push(`tl.fromTo("#${id}",{xPercent:${fromLeft ? 0 : 330},opacity:1},{xPercent:${fromLeft ? 330 : 0},opacity:1,duration:0.5,ease:"power2.inOut",immediateRender:false},${r(Tb - 0.28)});`);
-      sc.push(`tl.set("#${id}",{opacity:0},${r(Tb + 0.24)});`);
+      sc.push(`tl.fromTo("#${id}",{xPercent:${fromLeft ? 0 : 330},opacity:1},{xPercent:${fromLeft ? 330 : 0},opacity:1,duration:${PA(0.5)},ease:"power2.inOut",immediateRender:false},${r(Tb - PA(0.28))});`);
+      sc.push(`tl.set("#${id}",{opacity:0},${r(Tb + PA(0.24))});`);
     } else if (mcut ==="submerge") {
       // abyssal-glow's tide: a translucent wave with a curved crest rises from
       // below the frame and rolls up over it — the scene sinks beneath the
       // surface. Vertical like panel, but crested, tinted and wobbling.
       els.push(`<div id="${id}" style="position:absolute;left:-14%;right:-14%;top:103%;height:135%;border-radius:48% 52% 0 0 / 9% 12% 0 0;background:linear-gradient(180deg,${rgba(cutTint(A, theme), 0.85)},${rgba(theme.ground, 0.97)} 42%);filter:blur(2px);opacity:0;"></div>`);
-      sc.push(`tl.set("#${id}",{opacity:1},${r(Tb - 0.4)});`);
-      sc.push(`tl.fromTo("#${id}",{yPercent:0,rotation:-2},{yPercent:-186,rotation:2,duration:0.82,ease:"power2.inOut",immediateRender:false},${r(Tb - 0.4)});`);
-      sc.push(`tl.set("#${id}",{opacity:0},${r(Tb + 0.44)});`);
+      sc.push(`tl.set("#${id}",{opacity:1},${r(Tb - PA(0.4))});`);
+      sc.push(`tl.fromTo("#${id}",{yPercent:0,rotation:-2},{yPercent:-186,rotation:2,duration:${PA(0.82)},ease:"power2.inOut",immediateRender:false},${r(Tb - PA(0.4))});`);
+      sc.push(`tl.set("#${id}",{opacity:0},${r(Tb + PA(0.44))});`);
     } else if (mcut === "shatter") {
       // KALEIDO's barrel turn: an opaque disc of accent-tinted wedges scales up
       // from the center while spinning, covering the frame at peak, then scales
@@ -594,8 +657,8 @@ function buildCutLayer(plan, theme, dims, D, motion, seed, track, cutRotation) {
       const g0 = theme.ground, g1 = mix(theme.ground, A, 0.34), g2 = mix(theme.ground, theme.accent2 || A, 0.28);
       const wedge = `conic-gradient(from 0deg,${g0} 0 30deg,${g1} 30deg 60deg,${g0} 60deg 90deg,${g2} 90deg 120deg,${g0} 120deg 150deg,${g1} 150deg 180deg,${g0} 180deg 210deg,${g2} 210deg 240deg,${g0} 240deg 270deg,${g1} 270deg 300deg,${g0} 300deg 330deg,${g2} 330deg 360deg)`;
       els.push(`<div id="${id}" style="position:absolute;left:50%;top:50%;width:${dia}px;height:${dia}px;margin:-${Math.round(dia / 2)}px 0 0 -${Math.round(dia / 2)}px;border-radius:50%;opacity:1;transform:scale(0) rotate(0deg);background:${wedge};"></div>`);
-      sc.push(`tl.fromTo("#${id}",{scale:0,rotation:0},{scale:1.15,rotation:${(k % 2 ? 1 : -1) * 60},duration:0.32,ease:"power3.in"},${r(Tb - 0.32)});`);
-      sc.push(`tl.fromTo("#${id}",{scale:1.15},{scale:0,rotation:${(k % 2 ? 1 : -1) * 120},duration:0.4,ease:"power3.out",immediateRender:false},${r(Tb + 0.02)});`);
+      sc.push(`tl.fromTo("#${id}",{scale:0,rotation:0},{scale:1.15,rotation:${(k % 2 ? 1 : -1) * 60},duration:${PA(0.32)},ease:"power3.in"},${r(Tb - PA(0.32))});`);
+      sc.push(`tl.fromTo("#${id}",{scale:1.15},{scale:0,rotation:${(k % 2 ? 1 : -1) * 120},duration:${PA(0.4)},ease:"power3.out",immediateRender:false},${r(Tb + PA(0.02))});`);
     } else if (mcut === "strike") {
       // VOLTAGE's lightning: a jagged bolt forks across the frame (drawn via
       // strokeDashoffset) under a hard white flash. Bolt path is seeded per
@@ -612,11 +675,11 @@ function buildCutLayer(plan, theme, dims, D, motion, seed, track, cutRotation) {
       const sw = Math.max(3, Math.round(H * 0.006));
       els.push(`<div id="${id}" style="position:absolute;inset:0;opacity:0;background:#FFFFFF;"></div>`);
       els.push(`<svg id="${id}b" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;overflow:visible;"><path d="${d}" pathLength="100" fill="none" stroke="${A}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100" style="filter:drop-shadow(0 0 ${sw}px ${rgba(A, 0.95)}) drop-shadow(0 0 ${sw * 3}px ${rgba(theme.accent2 || A, 0.55)});"/></svg>`);
-      sc.push(`tl.fromTo("#${id}",{opacity:0},{opacity:0.9,duration:0.09,ease:"power2.in"},${r(Tb - 0.09)});`);
-      sc.push(`tl.to("#${id}",{opacity:0,duration:0.34,ease:"power2.out"},${r(Tb + 0.02)});`);
-      sc.push(`tl.set("#${id}b",{opacity:1},${r(Tb - 0.16)});`);
-      sc.push(`tl.fromTo("#${id}b path",{strokeDashoffset:100},{strokeDashoffset:0,duration:0.15,ease:"none"},${r(Tb - 0.16)});`);
-      sc.push(`tl.to("#${id}b",{opacity:0,duration:0.28,ease:"power2.out"},${r(Tb + 0.04)});`);
+      sc.push(`tl.fromTo("#${id}",{opacity:0},{opacity:0.9,duration:${PA(0.09)},ease:"power2.in"},${r(Tb - PA(0.09))});`);
+      sc.push(`tl.to("#${id}",{opacity:0,duration:${PA(0.34)},ease:"power2.out"},${r(Tb + PA(0.02))});`);
+      sc.push(`tl.set("#${id}b",{opacity:1},${r(Tb - PA(0.16))});`);
+      sc.push(`tl.fromTo("#${id}b path",{strokeDashoffset:100},{strokeDashoffset:0,duration:${PA(0.15)},ease:"none"},${r(Tb - PA(0.16))});`);
+      sc.push(`tl.to("#${id}b",{opacity:0,duration:${PA(0.28)},ease:"power2.out"},${r(Tb + PA(0.04))});`);
     } else if (mcut === "thrust") {
       // IGNITION's launch wipe: a full-frame column of vertical exhaust streaks
       // rockets bottom→top across the boundary, its leading edge a hot white
@@ -626,13 +689,13 @@ function buildCutLayer(plan, theme, dims, D, motion, seed, track, cutRotation) {
       const A2c = theme.accent2 || A, Xc = (theme.extras && theme.extras[0]) || A2c;
       const swc = Math.max(10, Math.round(W * 0.018));
       els.push(`<div id="${id}" style="position:absolute;left:-6%;right:-6%;top:103%;height:150%;opacity:0;background:linear-gradient(180deg,rgba(255,255,255,0.95),${rgba(A, 0.85)} 9%,${rgba(Xc, 0.4)} 22%,transparent 46%),repeating-linear-gradient(90deg,${rgba(A, 0.9)} 0 ${swc}px,${rgba(theme.ground, 0.94)} ${swc}px ${swc * 2.2}px,${rgba(A2c, 0.8)} ${swc * 2.2}px ${swc * 3.2}px,${rgba(theme.ground, 0.94)} ${swc * 3.2}px ${swc * 4.6}px);"></div>`);
-      sc.push(`tl.set("#${id}",{opacity:1},${r(Tb - 0.34)});`);
-      sc.push(`tl.fromTo("#${id}",{yPercent:0},{yPercent:-172,duration:0.62,ease:"power2.inOut",immediateRender:false},${r(Tb - 0.34)});`);
-      sc.push(`tl.set("#${id}",{opacity:0},${r(Tb + 0.3)});`);
+      sc.push(`tl.set("#${id}",{opacity:1},${r(Tb - PA(0.34))});`);
+      sc.push(`tl.fromTo("#${id}",{yPercent:0},{yPercent:-172,duration:${PA(0.62)},ease:"power2.inOut",immediateRender:false},${r(Tb - PA(0.34))});`);
+      sc.push(`tl.set("#${id}",{opacity:0},${r(Tb + PA(0.3))});`);
     } else { // glow — luminous pulse riding a motion crossfade
       els.push(`<div id="${id}" style="position:absolute;inset:-10%;opacity:0;background:radial-gradient(52% 52% at 50% 50%,${rgba(cutTint(A, theme), 0.34)},transparent 72%);filter:blur(10px);"></div>`);
-      sc.push(`tl.fromTo("#${id}",{opacity:0,scale:0.8},{opacity:1,scale:1.06,duration:0.3,ease:"sine.in"},${r(Tb - 0.3)});`);
-      sc.push(`tl.to("#${id}",{opacity:0,scale:1.2,duration:0.4,ease:"sine.out"},${r(Tb + 0.02)});`);
+      sc.push(`tl.fromTo("#${id}",{opacity:0,scale:0.8},{opacity:1,scale:1.06,duration:${PA(0.3)},ease:"sine.in"},${r(Tb - PA(0.3))});`);
+      sc.push(`tl.to("#${id}",{opacity:0,scale:1.2,duration:${PA(0.4)},ease:"sine.out"},${r(Tb + PA(0.02))});`);
     }
   });
   const html = `<div class="clip" data-start="0" data-duration="${D}" data-track-index="${track}" data-layout-allow-occlusion style="pointer-events:none;overflow:hidden;">${els.join("")}</div>`;
@@ -647,6 +710,12 @@ function sceneMotion(p, motion, seed, total) {
   const i = p.i;
   const out = [];
   const cut = motion.cut;
+  // Arrivals and departures take the pace; the DRIFT below does not (it is the
+  // camera). Both the exit's length and the `T + L - length` it starts at come
+  // from one PA() call, and the drift's start/end guards below are taken from the
+  // same scaled numbers — an exit that outlives its guard double-writes scale and
+  // is exactly the overlapping-tween class this function exists to avoid.
+  const { PA } = paceScalers(p.ctx);
   // ALTERNATING CAMERA (showcase grammar): even scenes push IN (1 → drift); odd
   // scenes ARRIVE at drift scale and settle back to 1 — the reference master's
   // S3/S7 pull-out arrivals, so consecutive shots never move the same way.
@@ -659,32 +728,32 @@ function sceneMotion(p, motion, seed, total) {
   const sk = (v) => r(v * s1);
   // -- entrance (scene 0 opens cold; the hook's own choreography carries it)
   if (i > 0) {
-    if (cut === "whip") out.push(`tl.fromTo("#${id}",{xPercent:16,filter:"blur(10px)",scale:${s1}},{xPercent:0,filter:"blur(0px)",scale:${s1},duration:0.5,ease:"power3.out"},${r(T)});`);
-    else if (cut === "wipe" || cut === "push") out.push(`tl.fromTo("#${id}",{xPercent:${(i + seed) % 2 === 0 ? 20 : -20},scale:${s1}},{xPercent:0,scale:${s1},duration:0.45,ease:"power4.out"},${r(T + 0.04)});`);
-    else if (cut === "flash") out.push(`tl.fromTo("#${id}",{scale:${sk(1.08)}},{scale:${s1},duration:0.6,ease:"power3.out"},${r(T)});`);
-    else if (cut === "wash") out.push(`tl.fromTo("#${id}",{y:30,filter:"blur(6px)",scale:${s1}},{y:0,filter:"blur(0px)",scale:${s1},duration:0.55,ease:"power2.out"},${r(T)});`);
-    else if (cut === "panel") out.push(`tl.fromTo("#${id}",{yPercent:7,scale:${s1}},{yPercent:0,scale:${s1},duration:0.55,ease:"power3.out"},${r(T + 0.04)});`);
-    else if (cut === "iris") out.push(`tl.fromTo("#${id}",{scale:${sk(0.94)}},{scale:${s1},duration:0.5,ease:"power2.out"},${r(T + 0.04)});`);
+    if (cut === "whip") out.push(`tl.fromTo("#${id}",{xPercent:16,filter:"blur(10px)",scale:${s1}},{xPercent:0,filter:"blur(0px)",scale:${s1},duration:${PA(0.5)},ease:"power3.out"},${r(T)});`);
+    else if (cut === "wipe" || cut === "push") out.push(`tl.fromTo("#${id}",{xPercent:${(i + seed) % 2 === 0 ? 20 : -20},scale:${s1}},{xPercent:0,scale:${s1},duration:${PA(0.45)},ease:"power4.out"},${r(T + PA(0.04))});`);
+    else if (cut === "flash") out.push(`tl.fromTo("#${id}",{scale:${sk(1.08)}},{scale:${s1},duration:${PA(0.6)},ease:"power3.out"},${r(T)});`);
+    else if (cut === "wash") out.push(`tl.fromTo("#${id}",{y:30,filter:"blur(6px)",scale:${s1}},{y:0,filter:"blur(0px)",scale:${s1},duration:${PA(0.55)},ease:"power2.out"},${r(T)});`);
+    else if (cut === "panel") out.push(`tl.fromTo("#${id}",{yPercent:7,scale:${s1}},{yPercent:0,scale:${s1},duration:${PA(0.55)},ease:"power3.out"},${r(T + PA(0.04))});`);
+    else if (cut === "iris") out.push(`tl.fromTo("#${id}",{scale:${sk(0.94)}},{scale:${s1},duration:${PA(0.5)},ease:"power2.out"},${r(T + PA(0.04))});`);
     // "cut": HARD arrival — an 8px drop that settles in 0.22s, half the length of
     // every other entrance. The shot is simply THERE (print grammar), while the
     // scale keyframes still hand off cleanly into the drift.
-    else if (cut === "cut") out.push(`tl.fromTo("#${id}",{y:8,scale:${s1}},{y:0,scale:${s1},duration:0.22,ease:"power4.out"},${r(T)});`);
+    else if (cut === "cut") out.push(`tl.fromTo("#${id}",{y:8,scale:${s1}},{y:0,scale:${s1},duration:${PA(0.22)},ease:"power4.out"},${r(T)});`);
     // "fade": opacity-led dissolve — the only cut whose scenes CROSS on opacity.
-    else if (cut === "fade") out.push(`tl.fromTo("#${id}",{opacity:0,scale:${s1}},{opacity:1,scale:${s1},duration:0.5,ease:"sine.out"},${r(T)});`);
-    else out.push(`tl.fromTo("#${id}",{scale:${sk(0.965)},y:12},{scale:${s1},y:0,duration:0.55,ease:"power3.out"},${r(T)});`);
+    else if (cut === "fade") out.push(`tl.fromTo("#${id}",{opacity:0,scale:${s1}},{opacity:1,scale:${s1},duration:${PA(0.5)},ease:"sine.out"},${r(T)});`);
+    else out.push(`tl.fromTo("#${id}",{scale:${sk(0.965)},y:12},{scale:${s1},y:0,duration:${PA(0.55)},ease:"power3.out"},${r(T)});`);
   }
   // -- exit (last scene holds)
   if (!p.ctx.isLast) {
-    if (cut === "whip") out.push(`tl.to("#${id}",{xPercent:-14,filter:"blur(8px)",duration:0.34,ease:"power2.in"},${r(T + L - 0.34)});`);
-    else if (cut === "wipe" || cut === "push") out.push(`tl.to("#${id}",{xPercent:${(i + seed) % 2 === 0 ? -12 : 12},duration:0.3,ease:"power2.in"},${r(T + L - 0.3)});`);
-    else if (cut === "flash") out.push(`tl.to("#${id}",{scale:1.05,duration:0.3,ease:"power2.in"},${r(T + L - 0.3)});`);
-    else if (cut === "wash") out.push(`tl.to("#${id}",{y:-22,filter:"blur(5px)",duration:0.36,ease:"sine.in"},${r(T + L - 0.36)});`);
-    else if (cut === "panel") out.push(`tl.to("#${id}",{yPercent:-6,duration:0.36,ease:"power2.in"},${r(T + L - 0.36)});`);
-    else if (cut === "iris") out.push(`tl.to("#${id}",{scale:0.96,duration:0.3,ease:"power2.in"},${r(T + L - 0.3)});`);
+    if (cut === "whip") out.push(`tl.to("#${id}",{xPercent:-14,filter:"blur(8px)",duration:${PA(0.34)},ease:"power2.in"},${r(T + L - PA(0.34))});`);
+    else if (cut === "wipe" || cut === "push") out.push(`tl.to("#${id}",{xPercent:${(i + seed) % 2 === 0 ? -12 : 12},duration:${PA(0.3)},ease:"power2.in"},${r(T + L - PA(0.3))});`);
+    else if (cut === "flash") out.push(`tl.to("#${id}",{scale:1.05,duration:${PA(0.3)},ease:"power2.in"},${r(T + L - PA(0.3))});`);
+    else if (cut === "wash") out.push(`tl.to("#${id}",{y:-22,filter:"blur(5px)",duration:${PA(0.36)},ease:"sine.in"},${r(T + L - PA(0.36))});`);
+    else if (cut === "panel") out.push(`tl.to("#${id}",{yPercent:-6,duration:${PA(0.36)},ease:"power2.in"},${r(T + L - PA(0.36))});`);
+    else if (cut === "iris") out.push(`tl.to("#${id}",{scale:0.96,duration:${PA(0.3)},ease:"power2.in"},${r(T + L - PA(0.3))});`);
     // "cut": HOLD — the ink shutter covers the swap; content never flinches.
     else if (cut === "cut") { /* hard cut: no exit motion */ }
-    else if (cut === "fade") out.push(`tl.to("#${id}",{opacity:0,duration:0.45,ease:"sine.in"},${r(T + L - 0.45)});`);
-    else out.push(`tl.to("#${id}",{scale:0.97,y:-10,duration:0.36,ease:"power2.in"},${r(T + L - 0.36)});`);
+    else if (cut === "fade") out.push(`tl.to("#${id}",{opacity:0,duration:${PA(0.45)},ease:"sine.in"},${r(T + L - PA(0.45))});`);
+    else out.push(`tl.to("#${id}",{scale:0.97,y:-10,duration:${PA(0.36)},ease:"power2.in"},${r(T + L - PA(0.36))});`);
   }
   // -- drift: the camera never sits still. A slow, continuous push over the
   // SETTLED middle of the scene. It runs strictly BETWEEN the entrance and exit
@@ -692,8 +761,11 @@ function sceneMotion(p, motion, seed, total) {
   // the boundary tweens — the linter's overlapping_gsap_tweens is avoided and the
   // motion stays clean. Starts at scale 1 (where the entrance leaves it) for a
   // seamless handoff.
-  let ds = r(T + (i > 0 ? 0.62 : 0));       // after the entrance settles
-  let de = r(T + L - (p.ctx.isLast ? 0 : 0.4)); // before the exit begins
+  // Both guards are the SCALED entrance/exit lengths (0.62 clears the longest
+  // entrance above, 0.4 the longest exit) — a quicker arrival hands over to the
+  // drift sooner, and the two windows still cannot overlap.
+  let ds = r(T + (i > 0 ? PA(0.62) : 0));       // after the entrance settles
+  let de = r(T + L - (p.ctx.isLast ? 0 : PA(0.4))); // before the exit begins
   if (de - ds < 0.6) { ds = r(T); de = r(T + L); } // pathologically short scene: full span
   const panX = ((i + seed) % 3 - 1) * 0.6;  // -0.6 / 0 / +0.6 %
   // push-in scenes drift 1 → K; pull-out scenes settle K → 1 (arrival zoomed).
@@ -719,9 +791,13 @@ function buildSceneLight(ctx) {
   const dx = ((i + seed) % 3 - 1) * -8;                     // opposite the scene panX
   const pid = `${id}lite`;
   const html = `<div id="${pid}" class="kflight" data-layout-allow-occlusion style="position:absolute;left:${lx}%;top:${ly}%;width:${gw}px;height:${gh}px;margin-left:-${Math.round(gw / 2)}px;margin-top:-${Math.round(gh / 2)}px;border-radius:50%;filter:blur(${Math.round(H * 0.05)}px);background:radial-gradient(circle,${rgba(col, 0.30)},transparent 70%);opacity:0;pointer-events:none;"></div>`;
+  // The light ARRIVES with the scene (PA) and then parallaxes for what is left of
+  // the span — the 1.0 it subtracts is the arrival it has to clear, so it is the
+  // same scaled number, and the 1.2 floor keeps the drift positive on a short one.
+  const { PA } = paceScalers(ctx);
   const script = [
-    `tl.fromTo("#${pid}",{opacity:0,scale:0.82},{opacity:1,scale:1,duration:0.8,ease:"sine.out"},${r(T + 0.05)});`,
-    `tl.to("#${pid}",{xPercent:${dx},yPercent:${dx === 0 ? -7 : Math.round(dx * -0.75)},duration:${r(Math.max(1.2, L - 1.0))},ease:"sine.inOut"},${r(T + 0.9)});`,
+    `tl.fromTo("#${pid}",{opacity:0,scale:0.82},{opacity:1,scale:1,duration:${PA(0.8)},ease:"sine.out"},${r(T + PA(0.05))});`,
+    `tl.to("#${pid}",{xPercent:${dx},yPercent:${dx === 0 ? -7 : Math.round(dx * -0.75)},duration:${r(Math.max(1.2, L - PA(1.0)))},ease:"sine.inOut"},${r(T + PA(0.9))});`,
   ].join("\n");
   return { html, script };
 }
@@ -1084,7 +1160,10 @@ function buildSkinOrnaments(kind, ctx, framePack) {
     // refraction streaks sweeping across the studio
     dv.push(`<div class="${pid}s" style="position:absolute;top:${18 + (seed % 12)}%;left:-45%;width:44%;height:3px;transform:rotate(-16deg);background:linear-gradient(90deg,transparent,${rgba(B, 0.55)},${rgba(X0, 0.55)},${rgba(X1, 0.5)},transparent);"></div>`);
     dv.push(`<div class="${pid}s" style="position:absolute;top:${60 + (seed % 14)}%;left:-45%;width:34%;height:2px;transform:rotate(-16deg);background:linear-gradient(90deg,transparent,${rgba(X0, 0.45)},${rgba(X1, 0.45)},transparent);"></div>`);
-    sc.push(`tl.fromTo("#${id} .${pid}s",{xPercent:0},{xPercent:340,duration:${Math.min(3.4, L - 0.4)},stagger:.5,ease:"sine.inOut"},${s0(0.3)});`);
+    // Math.max floor: the only span-derived ornament duration in this table with
+    // no lower bound — a sub-0.4s scene handed GSAP a NEGATIVE duration, and a
+    // faster pace is exactly what shortens spans.
+    sc.push(`tl.fromTo("#${id} .${pid}s",{xPercent:0},{xPercent:340,duration:${Math.min(3.4, Math.max(0.6, L - 0.4))},stagger:.5,ease:"sine.inOut"},${s0(0.3)});`);
     // triangle cluster (the shards, echoed) in a margin corner
     const tx = kind === "cta" ? W * 0.5 : W * 0.84, ty = kind === "cta" ? H * 0.18 : H * 0.76;
     const tricols = [B, X0, X1];
@@ -2042,24 +2121,38 @@ function archHook(scene, ctx) {
     ${scene.subtext ? `<p id="${id}s" style="opacity:0;margin-top:16px;font:500 ${Math.round(big * 0.3)}px/1.45 ${cssFont(theme)};color:${theme.dim};max-width:42ch;">${esc(scene.subtext)}</p>` : ""}
   </div>
 </div>`;
+  // The headline entrance itself is paced inside textIn (theme.textfx.speed is
+  // composed with the job's pace in buildComposition); PA moves the SCHEDULE, so
+  // on a shorter scene the copy still lands early enough to be read.
+  const { PA } = paceScalers(ctx);
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
-    showKicker ? `tl.fromTo("#${id}k",{opacity:0,y:14},{opacity:1,y:0,duration:0.5},${r(T + 0.25)});` : "",
-    `textIn("${ctx.enter || theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.45)},0.09);`,
-    scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:20},{opacity:1,y:0,duration:0.55},${r(T + 1.05)});` : "",
-    showUnderline ? `tl.fromTo("#${id}u",{scaleX:0,transformOrigin:"left"},{scaleX:1,duration:0.7,ease:"power2.inOut"},${r(T + 1.1)});` : "",
-    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
+    showKicker ? `tl.fromTo("#${id}k",{opacity:0,y:14},{opacity:1,y:0,duration:${PA(0.5)}},${r(T + PA(0.25))});` : "",
+    `textIn("${ctx.enter || theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + PA(0.45))},0.09);`,
+    scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:20},{opacity:1,y:0,duration:${PA(0.55)}},${r(T + PA(1.05))});` : "",
+    showUnderline ? `tl.fromTo("#${id}u",{scaleX:0,transformOrigin:"left"},{scaleX:1,duration:${PA(0.7)},ease:"power2.inOut"},${r(T + PA(1.1))});` : "",
+    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - PA(0.35))},${r(T + L)});`,
   ].filter(Boolean).join("\n");
   return { html, script: s };
 }
 
 function archStat(scene, ctx) {
   const { theme, id, T, L, track, dims } = ctx;
+  const { PA } = paceScalers(ctx);
   // Packs can opt out of the giant-number + progress-ring treatment (it read as
   // "the same number thing" across every template). Then a proof scene renders as
   // a clean centered display headline and the pack's own ornaments carry any viz.
   const port = dims.height > dims.width; // portrait 9:16
-  if (theme.layout.stat === "headline") {
+  // A NUMBER THE SCRIPT DID NOT SUPPLY IS NOT A NUMBER WE MAY DRAW. This
+  // archetype used to fall back to a hardcoded `{ value: 95, suffix: "%" }`, so a
+  // beat routed to `stat` with nothing numeric in it rendered a full-frame "95%"
+  // progress ring — an invented statistic about the customer's product, at the
+  // largest type size in the film, on the one frame designed to persuade. The
+  // headline arrangement below is the pack's own no-number shape and it is
+  // already reached whenever a pack asks for it, so a beat with no figure takes
+  // that instead of manufacturing one.
+  const statNum = pickNumber(scene);
+  if (theme.layout.stat === "headline" || !statNum) {
     const bigH = Math.round((port ? 108 : 84) * (theme.textfx.sizeScale || 1));
     // Portrait: span a tall content envelope (inset 12% top/bottom) so the
     // headline block occupies real height instead of floating as a small
@@ -2075,14 +2168,14 @@ function archStat(scene, ctx) {
 </div>`;
     const s = [
       `tl.set("#${id}",{opacity:1},${T});`,
-      `textIn("${ctx.enter || theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.35)},0.07);`,
-      scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:16},{opacity:1,y:0,duration:0.5},${r(T + 0.95)});` : "",
-      ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
+      `textIn("${ctx.enter || theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + PA(0.35))},0.07);`,
+      scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:16},{opacity:1,y:0,duration:${PA(0.5)}},${r(T + PA(0.95))});` : "",
+      ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - PA(0.35))},${r(T + L)});`,
     ].filter(Boolean).join("\n");
     return { html, script: s };
   }
-  // derive a number from the headline/emphasis, else a default
-  const num = pickNumber(scene) || { value: 95, suffix: "%" };
+  // Guaranteed real: the no-figure case took the headline arrangement above.
+  const num = statNum;
   const big = port ? 176 : 132;
   const cardBg = theme.gradients ? `linear-gradient(180deg,${mix(theme.ground, "#ffffff", theme.isDark ? 0.07 : 0.02)},${theme.ground})` : mix(theme.ground, theme.isDark ? "#ffffff" : "#000000", 0.03);
   // PROGRESS RING (amazon-premium's arc, full-frame): a track circle + an accent
@@ -2110,14 +2203,20 @@ function archStat(scene, ctx) {
   </div>
 </div>`;
   const fmt = num.suffix === "%" ? `function(v){return v+"%";}` : (num.prefix ? `function(v){return ${JSON.stringify(num.prefix)}+v.toLocaleString();}` : `function(v){return v.toLocaleString()+${JSON.stringify(num.suffix || "")};}`);
+  // The count-up and the ring draw are the same beat and must stay the same
+  // length. Both are span-derived and both are floored: at a span under ~1.2s
+  // `L - 1` is zero or NEGATIVE, which is a dead counter (the number never leaves
+  // 0) — and a faster pace is precisely what shortens the span. The camera push
+  // (pushIn) is floored for the same reason but is NOT paced.
+  const countDur = r(Math.min(1.6, Math.max(0.2, L - 1)));
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
-    `pushIn("#${id} .kfstage",${T},${r(L - 0.4)},1.0,1.04);`,
-    `countUp("${id}n",${num.value},${r(T + 0.3)},${r(Math.min(1.6, L - 1))},${fmt});`,
-    `tl.to("#${id}ring",{strokeDashoffset:${Math.round(circ * (1 - frac))},duration:${r(Math.min(1.6, L - 1))},ease:"power2.out"},${r(T + 0.3)});`,
-    `textIn("${ctx.enter || theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.45)},0.07);`,
-    scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:16},{opacity:1,y:0,duration:0.5},${r(T + 0.9)});` : "",
-    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
+    `pushIn("#${id} .kfstage",${T},${r(Math.max(0.4, L - 0.4))},1.0,1.04);`,
+    `countUp("${id}n",${num.value},${r(T + PA(0.3))},${countDur},${fmt});`,
+    `tl.to("#${id}ring",{strokeDashoffset:${Math.round(circ * (1 - frac))},duration:${countDur},ease:"power2.out"},${r(T + PA(0.3))});`,
+    `textIn("${ctx.enter || theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + PA(0.45))},0.07);`,
+    scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:16},{opacity:1,y:0,duration:${PA(0.5)}},${r(T + PA(0.9))});` : "",
+    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - PA(0.35))},${r(T + L)});`,
   ].filter(Boolean).join("\n");
   return { html, script: s };
 }
@@ -2141,14 +2240,18 @@ function archCta(scene, ctx) {
     ${scene.subtext ? `<div id="${id}b" class="pill" style="opacity:0;display:inline-flex;align-items:center;gap:11px;padding:${port ? "22px 48px" : "16px 36px"};border-radius:9999px;background:${btnBg};color:${btnInk};font:800 ${Math.round(big * (port ? 0.32 : 0.34))}px/1 ${cssFont(theme)};">${esc(scene.subtext)} <span style="width:11px;height:11px;border-right:3px solid ${btnInk};border-top:3px solid ${btnInk};transform:rotate(45deg);display:inline-block;"></span></div>` : ""}
   </div>
 </div>`;
+  // The button's breathe is AMBIENT (AM), not an arrival: its 1.6 yoyo cycle is
+  // twice its 0.8 half, so both go through the same scaler or sreps counts a
+  // cadence the tween no longer runs at.
+  const { PA, AM } = paceScalers(ctx);
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
-    theme.gradients ? `tl.fromTo("#${id}g",{opacity:0,scale:0.85},{opacity:1,scale:1,duration:0.8},${r(T + 0.05)});` : "",
-    `textIn("${ctx.enter || theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.25)},0.08);`,
-    scene.subtext ? `tl.fromTo("#${id}b",{opacity:0,scale:0.85,y:16},{opacity:1,scale:1,y:0,duration:0.6,ease:"back.out(1.7)"},${r(T + 0.9)});` : "",
-    scene.subtext ? `tl.to("#${id}b",{scale:1.04,duration:0.8,ease:"sine.inOut",yoyo:true,repeat:sreps(${r(L - 1)},1.6)},${r(T + 1.5)});` : "",
+    theme.gradients ? `tl.fromTo("#${id}g",{opacity:0,scale:0.85},{opacity:1,scale:1,duration:${PA(0.8)}},${r(T + PA(0.05))});` : "",
+    `textIn("${ctx.enter || theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + PA(0.25))},0.08);`,
+    scene.subtext ? `tl.fromTo("#${id}b",{opacity:0,scale:0.85,y:16},{opacity:1,scale:1,y:0,duration:${PA(0.6)},ease:"back.out(1.7)"},${r(T + PA(0.9))});` : "",
+    scene.subtext ? `tl.to("#${id}b",{scale:1.04,duration:${AM(0.8)},ease:"sine.inOut",yoyo:true,repeat:sreps(${r(L - 1)},${AM(1.6)})},${r(T + PA(1.5))});` : "",
     // last scene: NO exit (holds to D)
-    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
+    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - PA(0.35))},${r(T + L)});`,
   ].filter(Boolean).join("\n");
   return { html, script: s };
 }
@@ -2165,7 +2268,12 @@ function archText(scene, ctx) {
   // long headline, so the bigger base cannot overflow. Landscape is unchanged.
   const big = Math.round((dims.width >= dims.height ? 68 : 92) * (theme.textfx.sizeScale || 1));
   const accentText = theme.emphasisCss || (theme.gradients ? `background:linear-gradient(100deg,${theme.accent},${theme.accent2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.accent};` : `color:${theme.accent};`);
-  const bullets = Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean).slice(0, 3) : [];
+  const { PA, STG } = paceScalers(ctx);
+  // No readability veto here: archetypeFor routes any scene with two or more
+  // bullets to the strike-list / proof-row / feature-grid, so this list is only
+  // ever the single point a caption scene carries — and the veto never drops a
+  // scene's last line.
+  const bullets = Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean).slice(0, pacing.slotCount(3, ctx.pacing)) : [];
   // Four layout variants so text scenes don't all look identical:
   //   v0 = left-aligned with a short top rule (the original)
   //   v1 = centered with an underline that draws in beneath the headline
@@ -2207,11 +2315,11 @@ function archText(scene, ctx) {
 </div>`;
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
-    `textIn("${ctx.enter || theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.3)},0.07);`,
-    underline ? `tl.fromTo("#${id}u",{scaleX:0,transformOrigin:"center"},{scaleX:1,duration:0.6,ease:"power2.inOut"},${r(T + 0.78)});` : "",
-    scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:18},{opacity:1,y:0,duration:0.5},${r(T + 0.85)});` : "",
-    bullets.length ? `tl.fromTo("#${id} .kfbl",{opacity:0,x:${right ? 18 : -18}},{opacity:1,x:0,duration:0.45,stagger:0.12,ease:"power2.out"},${r(T + 1.0)});` : "",
-    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
+    `textIn("${ctx.enter || theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + PA(0.3))},0.07);`,
+    underline ? `tl.fromTo("#${id}u",{scaleX:0,transformOrigin:"center"},{scaleX:1,duration:${PA(0.6)},ease:"power2.inOut"},${r(T + PA(0.78))});` : "",
+    scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:18},{opacity:1,y:0,duration:${PA(0.5)}},${r(T + PA(0.85))});` : "",
+    bullets.length ? `tl.fromTo("#${id} .kfbl",{opacity:0,x:${right ? 18 : -18}},{opacity:1,x:0,duration:${PA(0.45)},stagger:${STG(0.12)},ease:"power2.out"},${r(T + PA(1.0))});` : "",
+    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - PA(0.35))},${r(T + L)});`,
   ].filter(Boolean).join("\n");
   return { html, script: s };
 }
@@ -2259,7 +2367,12 @@ function archFeatureGrid(scene, ctx) {
   const { theme, id, T, L, track, dims } = ctx;
   const land = dims.width >= dims.height;
   const big = Math.round((land ? 50 : 60) * (theme.textfx.sizeScale || 1));
-  const items = (Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean) : []).slice(0, 3);
+  const { PA, AM, STG } = paceScalers(ctx);
+  // Card k rises at PA(0.6) plus its 0.14 stagger and dies with the scene at
+  // PA(0.35) before the end — the veto is handed exactly the seconds the tweens
+  // below leave it, and a third card nobody can read is worth less than two.
+  const items = fitCopyList((Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean) : []).slice(0, pacing.slotCount(3, ctx.pacing)),
+    (k) => L - PA(0.35) - PA(0.6) - 0.14 * k, ctx.pacing);
   const ch = cardChrome(theme);
   // Portrait: bigger cards + gaps so 3 stacked cards + header FILL the tall
   // frame instead of clustering as a short block with an empty bottom band.
@@ -2292,12 +2405,16 @@ function archFeatureGrid(scene, ctx) {
     <div id="${id}g" style="display:flex;flex-direction:${land ? "row" : "column"};gap:${gap}px;align-items:stretch;">${cards}</div>
   </div>
 </div>`;
+  // The cards RISE on the pace (PA) and then breathe on the ambient one (AM) —
+  // the float's cycle feeds sreps from the same call, so the repeat count always
+  // matches the cadence the tween runs at.
+  const idle = AM(2.0).toFixed(1);   // one string: the float's cycle AND what sreps counts
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
-    `textIn("${ctx.enter || theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.25)},0.06);`,
-    `tl.fromTo("#${id} .kffc",{opacity:0,y:36,scale:0.93},{opacity:1,y:0,scale:1,duration:0.62,stagger:0.14,ease:"back.out(1.5)"},${r(T + 0.6)});`,
-    `tl.to("#${id} .kffc",{y:"-=8",duration:2.0,ease:"sine.inOut",yoyo:true,stagger:0.16,repeat:sreps(${r(L - 1.4)},2.0)},${r(T + 1.6)});`,
-    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
+    `textIn("${ctx.enter || theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + PA(0.25))},0.06);`,
+    `tl.fromTo("#${id} .kffc",{opacity:0,y:36,scale:0.93},{opacity:1,y:0,scale:1,duration:${PA(0.62)},stagger:${STG(0.14)},ease:"back.out(1.5)"},${r(T + PA(0.6))});`,
+    `tl.to("#${id} .kffc",{y:"-=8",duration:${idle},ease:"sine.inOut",yoyo:true,stagger:0.16,repeat:sreps(${r(L - 1.4)},${idle})},${r(T + PA(1.6))});`,
+    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - PA(0.35))},${r(T + L)});`,
   ].filter(Boolean).join("\n");
   return { html, script: s };
 }
@@ -2320,8 +2437,14 @@ function archQuoteCard(scene, ctx) {
   // silently dropped. In PORTRAIT that is the difference between a card holding
   // two lines and one holding four — these cards were the tightest scenes left
   // after the type-scale pass. Landscape keeps the pure pull-quote.
-  const support = !land && Array.isArray(scene.bullets)
-    ? scene.bullets.filter(Boolean).slice(0, 2) : [];
+  const { PA } = paceScalers(ctx);
+  // The support lines are held inside the span already; supAt is computed ONCE so
+  // the veto below and the tween that emits it can never disagree about when the
+  // lines arrive — and therefore about how long they are readable.
+  const supAt = Math.max(0.3, Math.min(L - PA(0.6), PA(0.9)));
+  const support = fitCopyList(!land && Array.isArray(scene.bullets)
+    ? scene.bullets.filter(Boolean).slice(0, pacing.slotCount(2, ctx.pacing)) : [],
+  (k) => L - PA(0.35) - supAt - 0.1 * k, ctx.pacing);
   const html = `<div id="${id}" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${track}" style="opacity:0;">
   <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:${land ? "72%" : "86%"};max-width:1180px;padding:${land ? "54px 64px" : "40px 38px"};border-radius:22px;background:${theme.panel};border:1px solid ${theme.line};border-left:6px solid ${theme.accent};">
     <div id="${id}q" style="font:900 ${Math.round(big * 2.0)}px/0.6 ${theme.displayStack};color:${theme.accent};opacity:0;height:${Math.round(big * 0.72)}px;overflow:hidden;">&ldquo;</div>
@@ -2333,13 +2456,16 @@ function archQuoteCard(scene, ctx) {
     </div>` : ""}
   </div>
 </div>`;
+  // The Math.max floor keeps the attribution's offset POSITIVE if the span ever
+  // falls under the lead it subtracts — a negative offset would place it before
+  // the clip starts.
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
-    `tl.fromTo("#${id}q",{opacity:0,scale:0.5,transformOrigin:"left top"},{opacity:0.9,scale:1,duration:0.5,ease:"back.out(2)"},${r(T + 0.25)});`,
-    `textIn("${ctx.enter || theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.5)},0.05);`,
-    support.length ? `tl.fromTo("#${id} .kfql",{opacity:0,x:-14},{opacity:1,x:0,duration:0.42,stagger:0.1,ease:"power2.out"},${r(T + Math.min(L - 0.6, 0.9))});` : "",
-    scene.subtext ? `tl.fromTo("#${id}a",{opacity:0,y:16},{opacity:1,y:0,duration:0.5,ease:"power2.out"},${r(T + Math.min(L - 0.5, 1.1))});` : "",
-    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
+    `tl.fromTo("#${id}q",{opacity:0,scale:0.5,transformOrigin:"left top"},{opacity:0.9,scale:1,duration:${PA(0.5)},ease:"back.out(2)"},${r(T + PA(0.25))});`,
+    `textIn("${ctx.enter || theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + PA(0.5))},0.05);`,
+    support.length ? `tl.fromTo("#${id} .kfql",{opacity:0,x:-14},{opacity:1,x:0,duration:${PA(0.42)},stagger:0.1,ease:"power2.out"},${r(T + supAt)});` : "",
+    scene.subtext ? `tl.fromTo("#${id}a",{opacity:0,y:16},{opacity:1,y:0,duration:${PA(0.5)},ease:"power2.out"},${r(T + Math.max(0.3, Math.min(L - PA(0.5), PA(1.1))))});` : "",
+    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - PA(0.35))},${r(T + L)});`,
   ].filter(Boolean).join("\n");
   return { html, script: s };
 }
@@ -2386,14 +2512,15 @@ function archProofStats(scene, ctx) {
 </div>`;
   const fmtFor = (n) => n.suffix === "%" ? `function(v){return v+"%";}` : (n.prefix ? `function(v){return ${JSON.stringify(n.prefix)}+v.toLocaleString();}` : `function(v){return v.toLocaleString()+${JSON.stringify(n.suffix || "")};}`);
   const cdur = r(Math.min(1.3, Math.max(0.5, L - 1.4)));
+  const { PA, AM, STG } = paceScalers(ctx);
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
-    `textIn("${ctx.enter || theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.25)},0.06);`,
-    `tl.fromTo("#${id} .kfpc",{opacity:0,y:56,rotationY:26,transformPerspective:1400},{opacity:1,y:0,rotationY:0,duration:0.7,stagger:0.16,ease:"expo.out"},${r(T + 0.55)});`,
-    ...items.map((x, k) => `countUp("${id}n${k}",${x.num.value},${r(T + 0.85 + k * 0.16)},${cdur},${fmtFor(x.num)});`),
-    ...items.map((x, k) => `tl.to("#${id}a${k}",{strokeDashoffset:${Math.round(arcC * (1 - x.frac))},duration:${cdur},ease:"power2.out"},${r(T + 0.9 + k * 0.16)});`),
-    L >= 3.4 ? `tl.to("#${id} .kfpc",{y:-10,duration:1.4,ease:"sine.inOut",yoyo:true,stagger:0.12,repeat:sreps(${r(Math.max(1.4, L - 2.2))},1.4)},${r(T + 2.1)});` : "",
-    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
+    `textIn("${ctx.enter || theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + PA(0.25))},0.06);`,
+    `tl.fromTo("#${id} .kfpc",{opacity:0,y:56,rotationY:26,transformPerspective:1400},{opacity:1,y:0,rotationY:0,duration:${PA(0.7)},stagger:${STG(0.16)},ease:"expo.out"},${r(T + PA(0.55))});`,
+    ...items.map((x, k) => `countUp("${id}n${k}",${x.num.value},${r(T + PA(0.85) + k * PA(0.16))},${cdur},${fmtFor(x.num)});`),
+    ...items.map((x, k) => `tl.to("#${id}a${k}",{strokeDashoffset:${Math.round(arcC * (1 - x.frac))},duration:${cdur},ease:"power2.out"},${r(T + PA(0.9) + k * PA(0.16))});`),
+    L >= 3.4 ? `tl.to("#${id} .kfpc",{y:-10,duration:${AM(1.4)},ease:"sine.inOut",yoyo:true,stagger:0.12,repeat:sreps(${r(Math.max(1.4, L - 2.2))},${AM(1.4)})},${r(T + PA(2.1))});` : "",
+    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - PA(0.35))},${r(T + L)});`,
   ].filter(Boolean).join("\n");
   return { html, script: s };
 }
@@ -2406,12 +2533,17 @@ function archProofStats(scene, ctx) {
 function archStrikeList(scene, ctx) {
   const { theme, id, T, L, track, dims } = ctx;
   const land = dims.width >= dims.height;
-  const rows = (Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean) : []).slice(0, 3).map(String);
+  const rows = (Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean) : []).slice(0, pacing.slotCount(3, ctx.pacing)).map(String);
   const longest = rows.reduce((m, b) => Math.max(m, b.length), 8);
   const big = Math.round((land ? 64 : 68) * (theme.textfx.sizeScale || 1));
   const rowFs = fitBig("x".repeat(longest), big, 18, 1);
   const ansFs = fitBig(scene.headline, Math.round(big * 1.08), 16, 2);
-  const kk = Math.min(1, (L - 0.9) / 3.4);          // beat compression for short scenes
+  // Beat compression for short scenes, floored: under a ~1.4s span `(L-0.9)/3.4`
+  // collapses to nothing (and below 0.9s it goes NEGATIVE, running the whole
+  // beat sequence backwards out of the clip). The pace divides the same factor —
+  // one number carries the entire schedule, so every beat below stays in step.
+  const { PA, P } = paceScalers(ctx);
+  const kk = Math.max(0.15, Math.min(1, (L - 0.9) / 3.4)) / P.arrivalFactor;
   const bt = (f) => r(T + f * kk);
   const uw = Math.round(dims.width * (land ? 0.3 : 0.5));
   const strikeH = Math.max(4, Math.round(rowFs * 0.09));
@@ -2444,14 +2576,14 @@ function archStrikeList(scene, ctx) {
   const afterRows = 0.55 + 0.5 * rows.length;
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
-    `tl.fromTo("#${id} .${id}r",{opacity:0,x:-40},{opacity:1,x:0,duration:0.45,ease:"power3.out",stagger:${r(0.5 * kk)}},${bt(0.2)});`,
-    `tl.fromTo("#${id} .${id}st",{scaleX:0,transformOrigin:"left center"},{scaleX:1,duration:0.35,ease:"power3.inOut",stagger:${r(0.5 * kk)}},${bt(0.55)});`,
-    `tl.to(["#${id} .${id}r","#${id} .${id}st"],{opacity:0.26,duration:0.4,ease:"power2.out"},${bt(afterRows)});`,
-    `tl.fromTo("#${id}ans",{opacity:0,y:24,scale:0.9},{opacity:1,y:0,scale:1,duration:0.55,ease:"back.out(1.5)"},${bt(afterRows + 0.15)});`,
+    `tl.fromTo("#${id} .${id}r",{opacity:0,x:-40},{opacity:1,x:0,duration:${PA(0.45)},ease:"power3.out",stagger:${r(0.5 * kk)}},${bt(0.2)});`,
+    `tl.fromTo("#${id} .${id}st",{scaleX:0,transformOrigin:"left center"},{scaleX:1,duration:${PA(0.35)},ease:"power3.inOut",stagger:${r(0.5 * kk)}},${bt(0.55)});`,
+    `tl.to(["#${id} .${id}r","#${id} .${id}st"],{opacity:0.26,duration:${PA(0.4)},ease:"power2.out"},${bt(afterRows)});`,
+    `tl.fromTo("#${id}ans",{opacity:0,y:24,scale:0.9},{opacity:1,y:0,scale:1,duration:${PA(0.55)},ease:"back.out(1.5)"},${bt(afterRows + 0.15)});`,
     `textIn("${ctx.enter || theme.textfx.enter}","#${id}ans .kfw","#${id}ans .kfc",${bt(afterRows + 0.25)},0.07);`,
-    `tl.to("#${id}u",{strokeDashoffset:0,duration:0.55,ease:"power2.out"},${bt(afterRows + 0.7)});`,
-    scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:14},{opacity:1,y:0,duration:0.5},${bt(afterRows + 0.9)});` : "",
-    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
+    `tl.to("#${id}u",{strokeDashoffset:0,duration:${PA(0.55)},ease:"power2.out"},${bt(afterRows + 0.7)});`,
+    scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:14},{opacity:1,y:0,duration:${PA(0.5)}},${bt(afterRows + 0.9)});` : "",
+    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - PA(0.35))},${r(T + L)});`,
   ].filter(Boolean).join("\n");
   return { html, script: s };
 }
@@ -2486,6 +2618,7 @@ function orderByPaletteAffinity(pool, theme) {
 // right-aligned). Semi-transparent so it supports, not competes with, the copy.
 function buildPropFill(ctx, side) {
   const { theme, id, dims, T, L } = ctx;
+  const { PA } = paceScalers(ctx);
   const W = dims.width, H = dims.height, land = W >= H;
   // Larger footprint so the "empty half" actually reads as filled. PORTRAIT has
   // no empty half — the empty zone is BELOW the text block, so the card goes
@@ -2524,7 +2657,7 @@ function buildPropFill(ctx, side) {
     const area = `M${pad} ${spY + spH} ` + co.map((c) => `L${c[0]} ${c[1]}`).join(" ") + ` L${pad + spW} ${spY + spH} Z`;
     inner = `<path d="${area}" fill="${rgba(A, 0.14)}"/><path class="kfspark" d="${poly}" fill="none" stroke="${A}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>` +
       tiles + co.map((c) => `<circle cx="${c[0]}" cy="${c[1]}" r="3" fill="${A}"/>`).join("");
-    animLine = `tl.fromTo("#${pid} .kfspark",{strokeDasharray:${pw * 2},strokeDashoffset:${pw * 2}},{strokeDashoffset:0,duration:1.0,ease:"power2.out"},${r(T + 0.95)});`;
+    animLine = `tl.fromTo("#${pid} .kfspark",{strokeDasharray:${pw * 2},strokeDashoffset:${pw * 2}},{strokeDashoffset:0,duration:${PA(1.0).toFixed(1)},ease:"power2.out"},${r(T + PA(0.95))});`;
   } else if (variant === 2) {
     // Issue list — header + rows, each a status dot + title bar + label pill.
     const hh2 = Math.round(ph * 0.14);
@@ -2544,7 +2677,7 @@ function buildPropFill(ctx, side) {
       `<circle cx="${pad + Math.round(ph * 0.03)}" cy="${Math.round(hh2 / 2)}" r="${Math.round(ph * 0.022)}" fill="${A}"/>` +
       `<rect x="${pad + Math.round(ph * 0.08)}" y="${Math.round(hh2 / 2 - ph * 0.013)}" width="${Math.round(pw * 0.36)}" height="${Math.round(ph * 0.028)}" rx="3" fill="${rgba(ink, 0.44)}"/>` +
       rowsSvg;
-    animLine = `tl.fromTo("#${pid} .kfrow",{opacity:0,x:-18},{opacity:1,x:0,duration:0.5,stagger:0.08,ease:"power2.out"},${r(T + 0.95)});`;
+    animLine = `tl.fromTo("#${pid} .kfrow",{opacity:0,x:-18},{opacity:1,x:0,duration:${PA(0.5)},stagger:0.08,ease:"power2.out"},${r(T + PA(0.95))});`;
   } else if (variant === 3) {
     // Kanban — 3 columns, each a header bar + stacked cards.
     const colN = 3, colGap = Math.round(pad * 0.7);
@@ -2566,7 +2699,7 @@ function buildPropFill(ctx, side) {
       return header + cards;
     }).join("");
     inner = colsSvg;
-    animLine = `tl.fromTo("#${pid} .kfcard",{opacity:0,y:14},{opacity:1,y:0,duration:0.5,stagger:0.08,ease:"power2.out"},${r(T + 0.95)});`;
+    animLine = `tl.fromTo("#${pid} .kfcard",{opacity:0,y:14},{opacity:1,y:0,duration:${PA(0.5)},stagger:0.08,ease:"power2.out"},${r(T + PA(0.95))});`;
   } else {
     // v0 — a "LIVE METRIC" card: an animated line+area chart that DRAWS ITSELF in,
     // fills its area, and ends on a pulsing "live" data point. Reads as real-time
@@ -2597,10 +2730,10 @@ function buildPropFill(ctx, side) {
     // never repeat:-1, which breaks the deterministic seek capture).
     const pulses = Math.max(1, Math.round((Math.max(2, L - 1) - 1.6) / 0.9));
     animLine =
-      `tl.fromTo("#${pid} .kfspark",{strokeDasharray:${pw * 2.4},strokeDashoffset:${pw * 2.4}},{strokeDashoffset:0,duration:1.1,ease:"power2.out"},${r(T + 0.95)});` +
-      `tl.fromTo("#${pid} .kfarea",{opacity:0},{opacity:1,duration:0.7},${r(T + 1.45)});` +
-      `tl.fromTo("#${pid} .kfpulse",{scale:0,svgOrigin:"${end[0]} ${end[1]}"},{scale:1,duration:0.4,ease:"back.out(2)"},${r(T + 1.7)});` +
-      `tl.fromTo("#${pid} .kfglow",{scale:0.4,opacity:0.6,svgOrigin:"${end[0]} ${end[1]}"},{scale:1.8,opacity:0,duration:1.0,ease:"sine.out",yoyo:true,repeat:${pulses}},${r(T + 2.0)});`;
+      `tl.fromTo("#${pid} .kfspark",{strokeDasharray:${pw * 2.4},strokeDashoffset:${pw * 2.4}},{strokeDashoffset:0,duration:${PA(1.1)},ease:"power2.out"},${r(T + PA(0.95))});` +
+      `tl.fromTo("#${pid} .kfarea",{opacity:0},{opacity:1,duration:${PA(0.7)}},${r(T + PA(1.45))});` +
+      `tl.fromTo("#${pid} .kfpulse",{scale:0,svgOrigin:"${end[0]} ${end[1]}"},{scale:1,duration:${PA(0.4)},ease:"back.out(2)"},${r(T + PA(1.7))});` +
+      `tl.fromTo("#${pid} .kfglow",{scale:0.4,opacity:0.6,svgOrigin:"${end[0]} ${end[1]}"},{scale:1.8,opacity:0,duration:${PA(1.0).toFixed(1)},ease:"sine.out",yoyo:true,repeat:${pulses}},${r(T + PA(2.0))});`;
   }
 
   const svg =
@@ -2615,14 +2748,14 @@ function buildPropFill(ctx, side) {
     : `filter:drop-shadow(0 24px 50px rgba(0,0,0,0.14));`;
   const html = `<div id="${pid}" style="position:absolute;left:${px}px;top:${py}px;width:${pw}px;height:${ph}px;opacity:0;pointer-events:none;${shadow}" data-layout-allow-occlusion>${svg}</div>`;
   const s = [
-    `tl.fromTo("#${pid}",{opacity:0,y:30,rotationZ:${side === "left" ? 3 : -3}},{opacity:1,y:0,rotationZ:0,duration:0.75,ease:"power3.out"},${r(T + 0.5)});`,
+    `tl.fromTo("#${pid}",{opacity:0,y:30,rotationZ:${side === "left" ? 3 : -3}},{opacity:1,y:0,rotationZ:0,duration:${PA(0.75)},ease:"power3.out"},${r(T + PA(0.5))});`,
     animLine,
-    `tl.to("#${pid}",{y:"-=12",duration:${r(Math.max(2, L - 1))},ease:"sine.inOut",yoyo:true,repeat:1},${r(T + 0.9)});`,
+    `tl.to("#${pid}",{y:"-=12",duration:${r(Math.max(2, L - 1))},ease:"sine.inOut",yoyo:true,repeat:1},${r(T + PA(0.9))});`,
     // exitScene (not a bare tl.to) so the fade is followed by a hard-kill
     // tl.set(opacity:0) at the clip boundary — a non-linear seek landing after the
     // fade must not leave this prop card stuck visible (hyperframes stale-visibility
     // lint error the bare fade tripped).
-    ctx.isLast ? "" : `exitScene("#${pid}",${r(T + L - 0.35)},${r(T + L)});`,
+    ctx.isLast ? "" : `exitScene("#${pid}",${r(T + L - PA(0.35))},${r(T + L)});`,
   ].filter(Boolean).join("\n");
   return { html, script: s };
 }
@@ -2747,8 +2880,13 @@ function archScreenshotHero(scene, ctx) {
   const bodyH = land ? Math.round(dims.height * 0.52) : Math.round(dims.height * 0.42);
   const fw = Math.round(dims.width * (land ? 0.52 : 0.84));
   const fh = 42 + bodyH;
-  const notes = (Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean) : [])
-    .slice(0, L >= 4 ? 2 : 1).map((b) => String(b).slice(0, 34));
+  const { PA } = paceScalers(ctx);
+  // The span already decides how many callouts a scene can carry (a 4s beat can
+  // stage two, a shorter one only ever gets through the first); the veto then
+  // checks the survivors against the seconds their own schedule below leaves them.
+  const notes = fitCopyList((Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean) : [])
+    .slice(0, L >= 4 ? 2 : 1).map((b) => String(b).slice(0, 34)),
+  (k) => L - PA(0.35) - PA(1.2 + k * 0.95 + 0.22), ctx.pacing);
   const slots = [
     { chip: [6, 13], anchor: [0.24, 0.26], tgt: [0.42, 0.44] },
     { chip: [38, 76], anchor: [0.56, 0.78], tgt: [0.64, 0.6] },
@@ -2769,10 +2907,10 @@ function archScreenshotHero(scene, ctx) {
     annEls.push(`<div class="kfchip" id="${id}ch${k}" data-layout-allow-occlusion style="position:absolute;left:${sl.chip[0]}%;top:${sl.chip[1]}%;opacity:0;display:inline-flex;align-items:center;gap:8px;padding:8px 14px;${chipCss}font:700 ${chipFs}px/1.2 ${cssFont(theme)};color:${theme.ink};white-space:nowrap;max-width:58%;overflow:hidden;text-overflow:ellipsis;"><span style="width:${Math.round(chipFs * 0.85)}px;height:${Math.round(chipFs * 0.85)}px;border-radius:5px;background:${rgba(A, 0.22)};border:1px solid ${rgba(A, 0.5)};flex:none;"></span>${esc(txt)}</div>`);
     annLines.push(`<line id="${id}cl${k}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${A}" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="${len}" stroke-dashoffset="${len}" opacity="0.85"/>`);
     annLines.push(`<circle id="${id}ct${k}" cx="${x2}" cy="${y2}" r="9" fill="none" stroke="${A}" stroke-width="2.5" opacity="0"/>`);
-    const at = 1.2 + k * 0.95;
-    annScript.push(`tl.fromTo("#${id}cl${k}",{strokeDashoffset:${len}},{strokeDashoffset:0,duration:0.4,ease:"power2.out"},${r(T + at)});`);
-    annScript.push(`tl.fromTo("#${id}ct${k}",{opacity:0,scale:0.4,transformOrigin:"50% 50%"},{opacity:0.9,scale:1,duration:0.4,ease:"back.out(2)"},${r(T + at + 0.12)});`);
-    annScript.push(`tl.fromTo("#${id}ch${k}",{opacity:0,scale:0.8},{opacity:1,scale:1,duration:0.45,ease:"back.out(1.7)"},${r(T + at + 0.22)});`);
+    const at = PA(1.2) + k * PA(0.95);
+    annScript.push(`tl.fromTo("#${id}cl${k}",{strokeDashoffset:${len}},{strokeDashoffset:0,duration:${PA(0.4)},ease:"power2.out"},${r(T + at)});`);
+    annScript.push(`tl.fromTo("#${id}ct${k}",{opacity:0,scale:0.4,transformOrigin:"50% 50%"},{opacity:0.9,scale:1,duration:${PA(0.4)},ease:"back.out(2)"},${r(T + at + PA(0.12))});`);
+    annScript.push(`tl.fromTo("#${id}ch${k}",{opacity:0,scale:0.8},{opacity:1,scale:1,duration:${PA(0.45)},ease:"back.out(1.7)"},${r(T + at + PA(0.22))});`);
   });
   const annSvg = notes.length
     ? `<svg viewBox="0 0 ${fw} ${fh}" preserveAspectRatio="none" data-layout-allow-occlusion style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;">${annLines.join("")}</svg>`
@@ -2796,20 +2934,22 @@ function archScreenshotHero(scene, ctx) {
     `tl.set("#${id}",{opacity:1},${T});`,
     // Deeper device-presentation entrance: the frame rises with perspective and
     // a slight scale settle, so the screenshot ARRIVES rather than fades in.
-    `tl.fromTo("#${id}fr",{opacity:0,yPercent:10,rotationX:16,scale:0.96,transformPerspective:1200,transformOrigin:"50% 100%"},{opacity:1,yPercent:0,rotationX:0,scale:1,duration:0.9,ease:"expo.out"},${r(T + 0.1)});`,
+    `tl.fromTo("#${id}fr",{opacity:0,yPercent:10,rotationX:16,scale:0.96,transformPerspective:1200,transformOrigin:"50% 100%"},{opacity:1,yPercent:0,rotationX:0,scale:1,duration:${PA(0.9)},ease:"expo.out"},${r(T + PA(0.1))});`,
     // Browser-chrome dots pop in one after another (a tiny "the app is booting"
     // beat that reads as intentional polish).
-    paper ? "" : `tl.from("#${id}fr .browser-bar span",{scale:0,opacity:0,duration:0.35,ease:"back.out(2.5)",stagger:0.06},${r(T + 0.45)});`,
-    `tl.fromTo("#${id}img",{y:0},{y:function(i,el){var h=el.scrollHeight-el.clientHeight;return -(h>0?Math.min(h,el.clientHeight*0.5):0);},duration:${r(L - 0.6)},ease:"sine.inOut"},${r(T + 0.4)});`,
+    paper ? "" : `tl.from("#${id}fr .browser-bar span",{scale:0,opacity:0,duration:${PA(0.35)},ease:"back.out(2.5)",stagger:0.06},${r(T + PA(0.45))});`,
+    // The Ken-Burns scroll inside the frame is CAMERA: it runs the length of the
+    // shot at every pace, floored so a short span can't hand GSAP a negative one.
+    `tl.fromTo("#${id}img",{y:0},{y:function(i,el){var h=el.scrollHeight-el.clientHeight;return -(h>0?Math.min(h,el.clientHeight*0.5):0);},duration:${r(Math.max(0.4, L - 0.6))},ease:"sine.inOut"},${r(T + PA(0.4))});`,
     // Glossy shine sweeps across the shot once the frame has landed.
-    paper ? "" : `tl.set("#${id}sh",{opacity:1},${r(T + 0.85)});`,
-    paper ? "" : `tl.fromTo("#${id}sh",{xPercent:0},{xPercent:420,duration:1.05,ease:"power2.inOut"},${r(T + 0.85)});`,
-    paper ? "" : `tl.to("#${id}sh",{opacity:0,duration:0.2},${r(T + 1.75)});`,
-    `tl.fromTo("#${id}k",{opacity:0,y:12},{opacity:1,y:0,duration:0.5},${r(T + 0.5)});`,
-    `textIn("${ctx.enter || theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.65)},0.08);`,
-    scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:14},{opacity:1,y:0,duration:0.5},${r(T + 1.1)});` : "",
+    paper ? "" : `tl.set("#${id}sh",{opacity:1},${r(T + PA(0.85))});`,
+    paper ? "" : `tl.fromTo("#${id}sh",{xPercent:0},{xPercent:420,duration:${PA(1.05)},ease:"power2.inOut"},${r(T + PA(0.85))});`,
+    paper ? "" : `tl.to("#${id}sh",{opacity:0,duration:${PA(0.2)}},${r(T + PA(1.75))});`,
+    `tl.fromTo("#${id}k",{opacity:0,y:12},{opacity:1,y:0,duration:${PA(0.5)}},${r(T + PA(0.5))});`,
+    `textIn("${ctx.enter || theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + PA(0.65))},0.08);`,
+    scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:14},{opacity:1,y:0,duration:${PA(0.5)}},${r(T + PA(1.1))});` : "",
     ...annScript,
-    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
+    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - PA(0.35))},${r(T + L)});`,
   ].filter(Boolean).join("\n");
   return { html, script: s };
 }
@@ -2844,15 +2984,16 @@ function archSplitVector(scene, ctx) {
         : `<img id="${id}art" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;max-width:${land ? "44%" : "60%"};height:auto;max-height:${Math.round(dims.height * (land ? 0.6 : 0.34))}px;object-fit:contain;${artGlow}">`}</div>
   </div>
 </div>`;
+  const { PA, AM } = paceScalers(ctx);
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
-    `tl.from("#${id} .h1, #${id} h2",{x:-36,opacity:0,duration:0.6,ease:"expo.out"},${r(T + 0.15)});`,
-    `textIn("${ctx.enter || theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.25)},0.07);`,
-    scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:16},{opacity:1,y:0,duration:0.5},${r(T + 0.8)});` : "",
+    `tl.from("#${id} .h1, #${id} h2",{x:-36,opacity:0,duration:${PA(0.6)},ease:"expo.out"},${r(T + PA(0.15))});`,
+    `textIn("${ctx.enter || theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + PA(0.25))},0.07);`,
+    scene.subtext ? `tl.fromTo("#${id}s",{opacity:0,y:16},{opacity:1,y:0,duration:${PA(0.5)}},${r(T + PA(0.8))});` : "",
     // agent-chosen entrance (default: a vector draws in, else pop) then a gentle float
-    assetEntrance(asset.effect, `#${id}art`, r(T + 0.4), 0.7, artIsVec ? "draw" : "pop"),
-    `tl.to("#${id}art",{y:"-=14",duration:1.6,ease:"sine.inOut",yoyo:true,repeat:sreps(${r(L - 0.8)},1.6)},${r(T + 1.1)});`,
-    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
+    assetEntrance(asset.effect, `#${id}art`, r(T + PA(0.4)), PA(0.7), artIsVec ? "draw" : "pop"),
+    `tl.to("#${id}art",{y:"-=14",duration:${AM(1.6)},ease:"sine.inOut",yoyo:true,repeat:sreps(${r(L - 0.8)},${AM(1.6)})},${r(T + PA(1.1))});`,
+    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - PA(0.35))},${r(T + L)});`,
   ].filter(Boolean).join("\n");
   return { html, script: s };
 }
@@ -2937,15 +3078,19 @@ function archAssetMontage(scene, ctx) {
   // The shared float must begin strictly AFTER the last tile's entrance ends, or it
   // double-writes `y` on that tile (overlapping_gsap_tweens lint). lastEnd = last
   // stagger start + its duration.
-  const floatAt = r(T + 0.55 + (n - 1) * 0.1 + 0.55 + 0.05);
+  // Every term here is the SCALED tile schedule below (start + stagger + duration
+  // + a 0.05 clearance), so a quicker tile entrance moves the float start with it
+  // and the two still cannot both write `y`.
+  const { PA, AM } = paceScalers(ctx);
+  const floatAt = r(T + PA(0.55) + (n - 1) * PA(0.1) + PA(0.55) + PA(0.05));
   const s = [
     `tl.set("#${id}",{opacity:1},${T});`,
-    `textIn("${ctx.enter || theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + 0.25)},0.06);`,
+    `textIn("${ctx.enter || theme.textfx.enter}","#${id} .kfw","#${id} .kfc",${r(T + PA(0.25))},0.06);`,
     // per-tile entrance (agent/by-kind), staggered 0.1s apart
-    ...tileFx.map((fx, k) => assetEntrance(fx, `#${id}t${k}`, r(T + 0.55 + k * 0.1), 0.55, "pop")),
+    ...tileFx.map((fx, k) => assetEntrance(fx, `#${id}t${k}`, r(T + PA(0.55) + k * PA(0.1)), PA(0.55), "pop")),
     // shared gentle float once EVERY tile is in (starts after the last entrance)
-    floatAt < T + L - 0.5 ? `tl.to("#${id} .kftile",{y:"-=8",duration:1.8,ease:"sine.inOut",yoyo:true,stagger:0.12,repeat:sreps(${r(T + L - floatAt - 0.3)},1.8)},${floatAt});` : "",
-    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - 0.35)},${r(T + L)});`,
+    floatAt < T + L - 0.5 ? `tl.to("#${id} .kftile",{y:"-=8",duration:${AM(1.8)},ease:"sine.inOut",yoyo:true,stagger:0.12,repeat:sreps(${r(T + L - floatAt - 0.3)},${AM(1.8)})},${floatAt});` : "",
+    ctx.isLast ? "" : `exitScene("#${id}",${r(T + L - PA(0.35))},${r(T + L)});`,
   ].filter(Boolean).join("\n");
   return { html, script: s };
 }
@@ -2984,14 +3129,16 @@ function paperSnapshotBg(asset, ctx, isVideo) {
     </div>
   </div>
 </div>`;
+  const { PA, AM } = paceScalers(ctx);
+  const idle = AM(2.0).toFixed(1);   // one string: the float's cycle AND what sreps counts
   const s = [
     `tl.set("#${id}bg",{opacity:1},${T});`,
-    `tl.fromTo("#${id}bgi",{opacity:0,y:34,rotation:3,transformOrigin:"50% 0%"},{opacity:1,y:0,rotation:0,duration:0.7,ease:"back.out(1.4)"},${r(T + 0.3)});`,
-    `tl.to("#${id}bgi",{y:"-=7",duration:2.0,ease:"sine.inOut",yoyo:true,repeat:sreps(${r(L - 1.35)},2.0)},${r(T + 1.05)});`,
+    `tl.fromTo("#${id}bgi",{opacity:0,y:34,rotation:3,transformOrigin:"50% 0%"},{opacity:1,y:0,rotation:0,duration:${PA(0.7)},ease:"back.out(1.4)"},${r(T + PA(0.3))});`,
+    `tl.to("#${id}bgi",{y:"-=7",duration:${idle},ease:"sine.inOut",yoyo:true,repeat:sreps(${r(L - 1.35)},${idle})},${r(T + PA(1.05))});`,
     isVideo ? `tl.to({},{duration:${r(L)},ease:"none",onUpdate:function(){var v=document.getElementById("${id}vid");if(v&&isFinite(v.duration)&&v.duration>0){var lt=tl.time()-${r(T)};v.currentTime=Math.max(0,Math.min(v.duration,lt));}}},${r(T)});` : "",
     // fade + HARD KILL at the boundary — non-linear seeks must never land on a
     // stale-visible snapshot (gsap_exit_missing_hard_kill).
-    ctx.isLast ? "" : `tl.to("#${id}bg",{opacity:0,duration:0.28},${r(T + L - 0.3)});\ntl.set("#${id}bg",{opacity:0},${r(T + L)});`,
+    ctx.isLast ? "" : `tl.to("#${id}bg",{opacity:0,duration:${PA(0.28)}},${r(T + L - PA(0.3))});\ntl.set("#${id}bg",{opacity:0},${r(T + L)});`,
   ].filter(Boolean).join("\n");
   return { html, script: s };
 }
@@ -3106,12 +3253,14 @@ function themedSnapshotBg(asset, ctx, isVideo) {
     </div>
   </div>
 </div>`;
+  const { PA, AM } = paceScalers(ctx);
+  const idle = AM(2.0).toFixed(1);   // one string: the float's cycle AND what sreps counts
   const s = [
     `tl.set("#${id}bg",{opacity:1},${T});`,
-    `tl.fromTo("#${id}bgi",{opacity:0,y:30,scale:0.94},{opacity:1,y:0,scale:1,duration:0.65,ease:"back.out(1.5)"},${r(T + 0.3)});`,
-    `tl.to("#${id}bgi",{y:"-=7",duration:2.0,ease:"${c.floatEase}",yoyo:true,repeat:sreps(${r(L - 1.35)},2.0)},${r(T + 1.05)});`,
+    `tl.fromTo("#${id}bgi",{opacity:0,y:30,scale:0.94},{opacity:1,y:0,scale:1,duration:${PA(0.65)},ease:"back.out(1.5)"},${r(T + PA(0.3))});`,
+    `tl.to("#${id}bgi",{y:"-=7",duration:${idle},ease:"${c.floatEase}",yoyo:true,repeat:sreps(${r(L - 1.35)},${idle})},${r(T + PA(1.05))});`,
     isVideo ? `tl.to({},{duration:${r(L)},ease:"none",onUpdate:function(){var v=document.getElementById("${id}vid");if(v&&isFinite(v.duration)&&v.duration>0){var lt=tl.time()-${r(T)};v.currentTime=Math.max(0,Math.min(v.duration,lt));}}},${r(T)});` : "",
-    ctx.isLast ? "" : `tl.to("#${id}bg",{opacity:0,duration:0.28},${r(T + L - 0.3)});\ntl.set("#${id}bg",{opacity:0},${r(T + L)});`,
+    ctx.isLast ? "" : `tl.to("#${id}bg",{opacity:0,duration:${PA(0.28)}},${r(T + L - PA(0.3))});\ntl.set("#${id}bg",{opacity:0},${r(T + L)});`,
   ].filter(Boolean).join("\n");
   return { html, script: s };
 }
@@ -3133,10 +3282,13 @@ function scrimBg(asset, ctx) {
   const g = theme.ground;
   const scrim = `linear-gradient(180deg, ${rgba(g, 0.55)} 0%, ${rgba(g, 0.74)} 55%, ${rgba(g, 0.9)} 100%)`;
   const html = `<div id="${id}bg" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${ctx.bgTrack}" data-layout-allow-occlusion style="opacity:0;overflow:hidden;"><img id="${id}bgi" src="${esc(asset.path)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"><div style="position:absolute;inset:0;background:${scrim};"></div></div>`;
+  // The 1.09 → 1.0 settle is the CAMERA on this plate: it runs the scene's length
+  // at every pace. Only the fade in/out is an arrival.
+  const { PA } = paceScalers(ctx);
   const s = [
-    `tl.fromTo("#${id}bg",{opacity:0},{opacity:1,duration:0.6},${r(T)});`,
+    `tl.fromTo("#${id}bg",{opacity:0},{opacity:1,duration:${PA(0.6)}},${r(T)});`,
     `tl.fromTo("#${id}bgi",{scale:1.09},{scale:1.0,duration:${r(L)},ease:"none"},${r(T)});`,
-    ctx.isLast ? "" : `tl.to("#${id}bg",{opacity:0,duration:0.3},${r(T + L - 0.3)});`,
+    ctx.isLast ? "" : `tl.to("#${id}bg",{opacity:0,duration:${PA(0.3)}},${r(T + L - PA(0.3))});`,
   ].join("\n");
   return { html, script: s };
 }
@@ -3153,11 +3305,12 @@ function videoBg(asset, ctx) {
   const g = theme.ground;
   const scrim = `linear-gradient(180deg, ${rgba(g, 0.5)} 0%, ${rgba(g, 0.72)} 55%, ${rgba(g, 0.9)} 100%)`;
   const html = `<div id="${id}bg" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${ctx.bgTrack}" data-layout-allow-occlusion style="opacity:0;overflow:hidden;"><video id="${id}vid" src="${esc(asset.path)}" muted playsinline preload="auto" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></video><div style="position:absolute;inset:0;background:${scrim};"></div></div>`;
+  const { PA } = paceScalers(ctx);
   const s = [
-    `tl.fromTo("#${id}bg",{opacity:0},{opacity:1,duration:0.6},${r(T)});`,
+    `tl.fromTo("#${id}bg",{opacity:0},{opacity:1,duration:${PA(0.6)}},${r(T)});`,
     // Drive the clip's playhead off the (paused, frame-seeked) timeline so it plays.
     `tl.to({},{duration:${r(L)},ease:"none",onUpdate:function(){var v=document.getElementById("${id}vid");if(v&&isFinite(v.duration)&&v.duration>0){var lt=tl.time()-${r(T)};v.currentTime=Math.max(0,Math.min(v.duration,lt));}}},${r(T)});`,
-    ctx.isLast ? "" : `tl.to("#${id}bg",{opacity:0,duration:0.3},${r(T + L - 0.3)});`,
+    ctx.isLast ? "" : `tl.to("#${id}bg",{opacity:0,duration:${PA(0.3)}},${r(T + L - PA(0.3))});`,
   ].join("\n");
   return { html, script: s };
 }
@@ -3325,8 +3478,12 @@ function buildCaptions(captionCues, dims, D, theme, track) {
 }
 
 // MAIN ENTRY — assemble the full composition.
-function buildComposition({ storyboard, dims, framePack, assets, captionCues, seedKey, dressing, brandSkin, layoutPlan } = {}) {
+function buildComposition({ storyboard, dims, framePack, assets, captionCues, seedKey, dressing, brandSkin, layoutPlan, pacing: pacingOpt } = {}) {
   const sb = storyboard || {};
+  // THE JOB'S PACE. Resolved once and hung on every scene's ctx (paceScalers
+  // reads it there). resolve() is safe on null, so a caller that has not been
+  // taught about pace yet builds exactly today's film.
+  const P = pacing.resolve(pacingOpt);
   const scenes = Array.isArray(sb.scenes) && sb.scenes.length ? sb.scenes : [{ id: "s1", start: 0, duration: dims.fps ? 4 : 4, kind: "hook", headline: sb.title || "KEYFRAME" }];
   const D = r(sb.durationSec || scenes.reduce((a, s) => a + (s.duration || 0), 0) || 12);
   const theme = deriveTheme(framePack, sb, brandSkin);
@@ -3350,7 +3507,16 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
   const enterRotation = rotateEntrances(theme, seed, scenes.length);
   const cutRotation = rotateCuts(motion, seed, scenes.length);
   const bodyHtml = [bg.html];
-  const scriptLines = [emitHelpers(D, theme.textfx.speed), bg.script];
+  // The pack's authored headline speed is COMPOSED with the job's pace, not
+  // replaced by it (textfxSpeed re-clamps into the same [0.85,1.6] band emitHelpers
+  // enforces) — a stamping pack still stamps at Very Fast, it just stamps sooner.
+  const textSpeed = pacing.textfxSpeed(theme.textfx.speed, P);
+  // Past 1.6 the stagger collapses and the words land as one block, so the band is
+  // a hard ceiling the pace does not get to argue with — say so rather than absorb it.
+  if (textSpeed !== r(theme.textfx.speed * P.arrivalFactor)) {
+    console.warn(`[scene-kit] headline pace clamped: pack ${r(theme.textfx.speed)} x ${P.multiplier} -> ${textSpeed} (band 0.85-1.6)`);
+  }
+  const scriptLines = [emitHelpers(D, textSpeed), bg.script];
 
   // ---- ASSET WEAVING ---------------------------------------------------------
   // The agents fetch a POOL of candidate assets (often 8–15); the single-feature
@@ -3441,6 +3607,7 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
       // marquees, gate signs, timecode chips…) instead of abstract filler.
       scene, sbTitle: sb.title || "",
       heroScale, // Visual Layout Director: target hero width fraction (null → default)
+      pacing: P, // the job's pace — read by paceScalers in every archetype below
     };
     const hint = layoutPlan && layoutPlan[scene.id] ? layoutPlan[scene.id].archetype : null;
     return { scene, i, ctx, isContent: i > 0 && i < scenes.length - 1, build: archetypeFor(scene, i, scenes.length, hint) };
@@ -3646,7 +3813,8 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
     // gradient-clipped emphasis (the oversized background from emphasisBlock).
     if (theme.gradients && (theme.textfx.emphasis || "gradient") === "gradient"
         && new RegExp(`#${p.ctx.id} \\.kfacc\\{[^}]*gradient\\(`).test(out.html)) {
-      const at = r(p.ctx.T + Math.min(1.9, Math.max(1.1, p.ctx.L - 0.9)));
+      const { PA } = paceScalers(p.ctx);
+      const at = r(p.ctx.T + Math.min(PA(1.9), Math.max(PA(1.1), p.ctx.L - PA(0.9))));
       out.script += `\ntl.fromTo("#${p.ctx.id} .kfacc",{backgroundPosition:"120% 0%"},{backgroundPosition:"0% 0%",duration:0.8,ease:"power2.out"},${at});`;
     }
     const tag = p.ctx.assets ? " +montage" : p.ctx.asset ? " +asset" : p.ctx.bgVideo ? " +video" : p.ctx.bgAsset ? " +bg" : "";
@@ -3669,7 +3837,7 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
 
   // Editorial cut overlay — peaks exactly on each scene boundary so the clip
   // swap reads as a cut, not a fade. Sits above scenes, below captions.
-  const cuts = buildCutLayer(plan, theme, dims, D, motion, seed, cutTrack, cutRotation);
+  const cuts = buildCutLayer(plan, theme, dims, D, motion, seed, cutTrack, cutRotation, P);
   if (cuts) { bodyHtml.push(cuts.html); scriptLines.push("// cuts", cuts.script); }
 
   const cap = buildCaptions(captionCues, dims, D, theme, capTrack);
@@ -3723,4 +3891,4 @@ const TEXT_ENTERS = new Set(["blur-up", "slide", "spring", "mask-reveal", "line-
 const EMPHASIS_STYLES = new Set(["gradient", "glow", "boxed", "marker", "underline-grow", "bracket", "scribble", "hanko", "ring", "clay", "embroider", "echo", "prism", "volt", "reticle", "bullet"]);
 const CANVAS_MODES = new Set(["bokeh", "flow", "grid", "rays", "confetti", "constellation", "prism", "ribbon", "sprinkle", "halftone", "paper", "none", "sumi", "orrery", "clay", "stitch", "caustics", "kaleido", "electric", "telemetry"]);
 
-module.exports = { buildComposition, deriveTheme, FLAT_PACKS, CUT_STYLES, TEXT_ENTERS, EMPHASIS_STYLES, CANVAS_MODES };
+module.exports = { buildComposition, deriveTheme, FLAT_PACKS, CUT_STYLES, TEXT_ENTERS, EMPHASIS_STYLES, CANVAS_MODES, acceptsPacing: true };

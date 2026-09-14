@@ -1,0 +1,25 @@
+[
+  { "out": "demo-keyframe-launch", "src": "videos/wbmeal4e4k.mp4", "segments": [[0.2, 14.5]], "width": 960 },
+  { "out": "demo-sky-ladder", "src": "videos/eeelczdkj7.mp4", "segments": [[9.3, 14.3], [16.9, 18.2], [24.2, 28.3]], "width": 480 },
+  { "out": "demo-compound-interest", "src": "videos/e2e3cr79fx.mp4", "segments": [[4.3, 8.2], [13.6, 17.0]], "poster": 15.1, "width": 960 },
+  { "out": "demo-genesis", "src": "frames/genesis/preview.mp4", "segments": [[10.0, 24.0]], "width": 960 },
+
+  { "out": "cut-fetch-club", "src": "frames/fetch-club/preview.mp4", "segments": [[3.1, 5.8], [7.5, 8.7], [10.6, 11.8], [27.2, 29.8]], "poster": 4.6, "width": 960 },
+
+  { "out": "wall-voltage", "src": "frames/voltage/preview.mp4", "segments": [[0.2, 14.8]], "poster": 4.5, "width": 854 },
+  { "out": "wall-bauhaus-riot", "src": "frames/bauhaus-riot/preview.mp4", "segments": [[2.0, 4.9], [7.8, 9.9], [12.8, 14.9], [20.3, 22.4]], "poster": 14.3, "width": 854 },
+  { "out": "wall-ignition", "src": "frames/ignition/preview.mp4", "segments": [[0.2, 6.4]], "poster": 3.7, "width": 854 },
+  { "out": "wall-blistered-crust", "src": "frames/blistered-crust/preview.mp4", "segments": [[0.8, 2.8], [6.5, 11.9]], "width": 854 },
+  { "out": "wall-kaleido", "src": "frames/kaleido/preview.mp4", "segments": [[0.2, 14.8]], "poster": 3.0, "width": 854 },
+  { "out": "wall-tide-table", "src": "frames/tide-table/preview.mp4", "segments": [[0.5, 8.6]], "width": 854 },
+  { "out": "wall-folk-stitch", "src": "frames/folk-stitch/preview.mp4", "segments": [[2.0, 14.9]], "width": 854 },
+  { "out": "wall-riso-press", "src": "frames/riso-press/preview.mp4", "segments": [[3.0, 12.0]], "width": 854 },
+  { "out": "wall-apex-lap", "src": "frames/apex-lap/preview.mp4", "segments": [[9.0, 11.7], [15.35, 21.0]], "width": 854 },
+
+  { "out": "reel-sky-ladder", "src": "videos/eeelczdkj7.mp4", "segments": [[35.5, 38.3], [41.5, 44.9]], "poster": 43.0, "width": 400 },
+  { "out": "reel-postmark", "src": "frames/postmark/preview.mp4", "segments": [[7.15, 9.5], [13.7, 16.3]], "poster": 8.65, "width": 400 },
+  { "out": "reel-toybox", "src": "frames/toybox/preview.mp4", "segments": [[7.0, 9.3], [13.8, 15.6]], "poster": 8.4, "width": 400 },
+  { "out": "reel-circus", "src": "frames/circus/preview.mp4", "segments": [[0.2, 2.9], [6.9, 9.55], [13.25, 15.7]], "width": 400 },
+  { "out": "reel-redshift", "src": "frames/redshift/preview.mp4", "segments": [[0.65, 2.9], [7.0, 9.4]], "poster": 2.15, "width": 400 },
+  { "out": "reel-repzone", "src": "frames/repzone/preview.mp4", "segments": [[0.6, 3.0], [3.7, 6.1], [7.05, 9.4], [13.8, 15.7]], "poster": 2.1, "width": 400 }
+]

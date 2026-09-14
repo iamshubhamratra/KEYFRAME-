@@ -234,7 +234,12 @@ function storyboardFor(label, packName) {
     const scenes = bespoke.map((s, i) => ({ ...s, id: `s${i + 1}` }));
     let bt = 0;
     for (const s of scenes) { s.start = +bt.toFixed(2); s.duration = BESPOKE_SCENE_SEC; bt += BESPOKE_SCENE_SEC; }
-    return { title: label, durationSec: +(BESPOKE_SCENE_SEC * scenes.length).toFixed(2), scenes };
+    // A PREVIEW SHOWS THE WHOLE GRAMMAR, CLOSER INCLUDED. Previews are composed
+    // with no website, and films with no website no longer draw their sign-off
+    // shape (services/sign_off.js) — which would have quietly dropped the closing
+    // card from every clip in the gallery. These films really are about KEYFRAME,
+    // so they say so explicitly rather than being handed an invented domain.
+    return { title: label, signOff: true, durationSec: +(BESPOKE_SCENE_SEC * scenes.length).toFixed(2), scenes };
   }
   // A preview has one job: show what THIS template can do. Three scenes could not
   // — the omelette packs cast an opener, ONE middle shape and a closer, so a
@@ -348,7 +353,8 @@ function storyboardFor(label, packName) {
   // same deck. Every third beat therefore keeps its bullets OFF so it stays
   // weavable and can become a picture scene.
   deck.forEach((s, i) => { if (i % 3 !== 2) promoteSupportCopy(s); });
-  return { title: label, durationSec: +t.toFixed(2), scenes: deck };
+  return { title: label, signOff: true, durationSec: +t.toFixed(2), scenes: deck };   // see the note above
+
 }
 
 // USE THE SUPPORT COPY THAT IS ALREADY WRITTEN.

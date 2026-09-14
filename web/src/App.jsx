@@ -61,7 +61,7 @@ export default function App() {
 
   const enterStudio = useCallback((targetView = "create") => requireAuth(() => go(targetView), "login"), [requireAuth, go]);
   const startGeneration = useCallback(({ prompt, url }) => requireAuth(() => runGenerate({ prompt: prompt || "", url: url || "" }), "signup"), [requireAuth, runGenerate]);
-  const useStyle = useCallback((packName) => {
+  const chooseStyle = useCallback((packName) => {
     setPrefill({ framePack: packName });
     requireAuth(() => go("create"), "signup");
   }, [requireAuth, go]);
@@ -79,10 +79,11 @@ export default function App() {
       if (d.type === "kf-create") startGeneration({ prompt: d.prompt, url: d.url });
       else if (d.type === "kf-gallery") go("gallery");
       else if (d.type === "kf-templates") go("templates");
+      else if (d.type === "kf-use-style" && typeof d.pack === "string" && /^[a-z0-9-]{1,40}$/.test(d.pack)) chooseStyle(d.pack);
     };
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
-  }, [startGeneration, go]);
+  }, [startGeneration, go, chooseStyle]);
 
   // ---- Landing: the v2 design doc, full-screen ----
   if (view === "landing") {
@@ -114,8 +115,8 @@ export default function App() {
     script: <ScriptRoom projectId={projectId} onApproved={() => go("theater")} />,
     theater: <ProductionTheater projectId={projectId} autopilot={autopilot} onDone={() => go("premiere")} onFailed={() => go("create")} onScriptReview={() => go("script")} />,
     premiere: <Premiere projectId={projectId} onRemix={() => go("script")} onNew={() => enterStudio("create")} />,
-    gallery: <Gallery onOpen={(id) => go("premiere", id)} onUseStyle={useStyle} />,
-    templates: <Templates onUseStyle={useStyle} />,
+    gallery: <Gallery onOpen={(id) => go("premiere", id)} onUseStyle={chooseStyle} />,
+    templates: <Templates onUseStyle={chooseStyle} />,
     // go()'s second argument is the registry's one id channel — a film id in the
     // studio, a template id here.
     adminTemplates: <AdminTemplates onOpen={(id) => go("adminTemplate", id)} onNew={() => go("adminGenerate")} />,

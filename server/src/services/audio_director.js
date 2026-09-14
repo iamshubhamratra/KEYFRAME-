@@ -59,7 +59,11 @@ function buildUser({ storyboard, plan, brief, hasVoice, duration }) {
 // safety net if the model returns out-of-range levels.
 function applyDecision(plan, decision, { hasVoice, duration, sceneCount = 0 }) {
   const out = { ...plan };
-  const volLo = hasVoice ? 0.06 : 0.12, volHi = hasVoice ? 0.16 : 0.32, volDef = hasVoice ? 0.11 : 0.22;
+  // Short horizontals (15-30s) need a slightly more present bed — at 0.11 the
+  // music vanishes under continuous VO in a 20s cut. Bump the ceiling for
+  // short durations so the bed is audible without ever competing.
+  const isShort = Number(duration) > 0 && Number(duration) <= 40;
+  const volLo = hasVoice ? 0.06 : 0.12, volHi = hasVoice ? (isShort ? 0.20 : 0.16) : 0.32, volDef = hasVoice ? (isShort ? 0.14 : 0.11) : 0.22;
 
   // --- music ---
   const m = decision && decision.music;

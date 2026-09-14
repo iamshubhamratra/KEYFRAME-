@@ -105,6 +105,22 @@ for (const [mod, pack] of FAMILIES) {
   if (usesMotion && !UI_MOTION.test(html)) problems.push("no UI microinteraction anywhere");
   // Part 5 — ambient layer.
   if (usesMotion && !AMBIENT.test(html)) problems.push("no ambient layer");
+  // Rule 7 — a selector LIST must be consistent. Families publish their card as
+  // a list ("#s1-plate, .s1-plate", so one authored card and a row of them both
+  // match), and a list is NOT distributive: gluing " .kfsw" onto it yields
+  // "#s1-plate, .s1-plate .kfsw", whose FIRST member is still the bare card. A
+  // sheen tween built that way flew the CARD from xPercent -120 to 120 — in from
+  // off-screen left, out past the right edge, every few seconds — in every family
+  // that has cards. A list that mixes bare and descendant members is always that
+  // bug, so fail on the shape rather than on any one preset.
+  for (const m of html.matchAll(/tl\.(?:fromTo|to|set)\("([^"]+)"/g)) {
+    const parts = m[1].split(",").map((x) => x.trim()).filter(Boolean);
+    if (parts.length < 2) continue;
+    const deep = parts.filter((x) => /\s/.test(x));
+    if (deep.length && deep.length !== parts.length) {
+      problems.push(`selector list mixes bare and descendant members (non-distributive glue): ${m[1]}`);
+    }
+  }
 
   checked++;
   if (problems.length) {

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createProject, listFrames } from "../api.js";
 import { PACK_LORE, PACK_ORDER, loreFor } from "../packlore.js";
-import { PackCard, ORIENTATIONS, OrientationTab, splitByOrientation } from "./Templates.jsx";
+import { PackCard, ORIENTATIONS, OrientationTab, splitByOrientation, tabForPack } from "./Templates.jsx";
 
 // The v2 editor, made real: "Type. Then watch it shoot itself."
 // Dark editor card with traffic lights, colored source chips, timeline
@@ -57,7 +57,24 @@ const LANGUAGES = [
 // flagged long-form.
 const DUR_PRESETS = [15, 30, 60, 90, 120, 180, 300, 480, 600];
 const LONGFORM_AT = 90;
+// Where a long-form template lands a still-short brief. The long-form packs are
+// authored for 2–5 minute films, so 2:00 is the shortest length that actually
+// uses one rather than truncating it.
+const LONGFORM_DEFAULT = 120;
 const fmtLen = (s) => (s < 60 ? `${s}S` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`);
+
+// Video pace — the job's `pace` column (server/src/services/pacing.js is the
+// source of truth; config.pacing carries these same four modes). Pace is
+// DENSITY, never playback speed: a 60s film runs 60s at every setting — what
+// moves is how many words are written, how often the picture cuts and how
+// briskly things arrive. Normal is the default because it reproduces today's
+// films exactly.
+const PACES = [
+  { key: "relaxed", label: "RELAXED", x: "0.8x", c: "#23c8e0" },
+  { key: "normal", label: "NORMAL", x: "1.0x", c: "rgba(23,19,14,.45)" },
+  { key: "fast", label: "FAST", x: "1.25x", c: "#ffb03a" },
+  { key: "veryFast", label: "VERY FAST", x: "1.5x", c: "#e832a8" },
+];
 
 // Narration voice — a character/tone hint the brief reads to cast the voice
 // (voiceStyle flows into the brief's voice profile). "auto" lets it cast freely.
@@ -92,6 +109,7 @@ export default function CreateScreen({ onCreated, prefill }) {
   const [blogUrl, setBlogUrl] = useState(prefill?.blogUrl || "");
   const [file, setFile] = useState(null);
   const [duration, setDuration] = useState(30);
+  const [pace, setPace] = useState("normal");       // narration/cut density → the job's `pace`
   const [orientation, setOrientation] = useState("horizontal");
   const [quality, setQuality] = useState("1080p"); // export resolution → config.qualities
   const [fps, setFps] = useState(30);               // frame rate → config.allowedFps
@@ -164,14 +182,20 @@ export default function CreateScreen({ onCreated, prefill }) {
     // orientation wins; otherwise a portrait-native pack defaults to vertical so a
     // 9:16 template doesn't land in a 16:9 frame.
     if (prefill?.orientation) setOrientation(prefill.orientation);
-    else if (prefill?.framePack) {
-      const pp = (packs || []).find((x) => x.name === prefill.framePack);
-      if (pp && pp.portrait) setOrientation("vertical");
-    }
+    const handedPack = prefill?.framePack
+      ? (packs || []).find((x) => x.name === prefill.framePack)
+      : null;
+    if (!prefill?.orientation && handedPack?.portrait) setOrientation("vertical");
+    // A long-form template arrives with its own authored length: keep the
+    // handoff honest about what the pack is for instead of dropping a 2–5
+    // minute pack into the 30s default.
+    if (prefill?.duration) setDuration(prefill.duration);
+    else if (handedPack?.longForm && duration < LONGFORM_AT) setDuration(LONGFORM_DEFAULT);
   }
 
   const packList = packs || orderPacks([]);
   const activeLore = framePack !== "auto" ? loreFor(framePack) : null;
+  const activePace = PACES.find((p) => p.key === pace) || PACES[1];
 
   // Frame packs, split by native aspect exactly like the Templates page. Merging
   // them put 9:16 reel packs in the middle of a widescreen brief (and landscape
@@ -182,7 +206,7 @@ export default function CreateScreen({ onCreated, prefill }) {
   // are widescreen-ish, so they land on Horizontal). Never strand on an empty tab.
   const selectedPack = framePack !== "auto" ? packList.find((p) => p.name === framePack) : null;
   const preferredTab = packTab
-    || (selectedPack ? (selectedPack.portrait ? "vertical" : "horizontal") : null)
+    || tabForPack(selectedPack)
     || (orientation === "vertical" ? "vertical" : "horizontal");
   const packTabKey = packGroups[preferredTab]?.length ? preferredTab : "horizontal";
   const shownPacks = packGroups[packTabKey] || [];
@@ -206,6 +230,11 @@ export default function CreateScreen({ onCreated, prefill }) {
       const voiceStyle = VOICES.find((v) => v.key === voice)?.style || null;
       const fields = {
         duration, orientation, quality, fps, framePack, autopilot,
+        // Always sent, "normal" included: the route validates `pace` against
+        // config.pacing and defaults an absent one to normal, so the explicit
+        // value costs nothing and keeps the job row's pace honest about what
+        // was actually asked for rather than inferred.
+        pace,
         // A non-English film sends the full caption CONFIG object (the backend
         // accepts either that or the legacy boolean). `videoTextLanguage` is what
         // translates the type baked into the frame, not just the subtitle track;
@@ -378,6 +407,7 @@ export default function CreateScreen({ onCreated, prefill }) {
                 <div style={{ display: "flex", gap: 14, fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.14em", color: "#9a9284", flexWrap: "wrap" }}>
                   <span>⏱ {fmtLen(duration)}</span>
                   {duration >= LONGFORM_AT && <span style={{ color: "var(--color-cy)" }}>▶ LONG-FORM</span>}
+                  {pace !== "normal" && <span style={{ color: "var(--color-am)" }}>⏩ {activePace.label} {activePace.x}</span>}
                   <span>▦ {ASPECT[orientation]}</span>
                   <span>◳ {quality.toUpperCase()}{fps !== 30 ? ` · ${fps}FPS` : ""}</span>
                   <span>{captions ? "CC ON" : "♪ SCORED"}</span>
@@ -437,6 +467,28 @@ export default function CreateScreen({ onCreated, prefill }) {
               {duration >= LONGFORM_AT ? "LONG-FORM · MORE SCENES · LONGER RENDER" : "SHORT-FORM · TIGHT & PUNCHY"}
             </div>
           </div>
+
+          {/* video pace — sits beside DURATION because the two are read
+              together: length says how long the film runs, pace says how much
+              happens inside it. The runtime above is unaffected either way. */}
+          <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
+            <span className="spine" style={{ "--spine": "#ffb03a" }} />
+            <div className="label-mono" style={{ marginBottom: 10 }}>VIDEO PACE — {activePace.label} · {activePace.x}</div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {PACES.map((p) => (
+                <button key={p.key} type="button" onClick={() => setPace(p.key)}
+                  className={`chip-c on-paper ${pace === p.key ? "is-active" : ""}`}
+                  style={{ "--chipc": p.c, fontSize: 10, padding: "4px 10px" }}
+                  title={`${p.label} · ${p.x}`}>
+                  {p.label}
+                </button>
+              ))}
+            </div>
+            <div style={{ marginTop: 10, fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)", lineHeight: 1.5 }}>
+              FASTER PACING CREATES SHORTER NARRATION, QUICKER SCENES AND MORE ENERGETIC ANIMATIONS.
+            </div>
+          </div>
+
           <div className="card" style={{ padding: "20px 22px 20px 27px" }}>
             <span className="spine" style={{ "--spine": "#23c8e0" }} />
             <div className="label-mono" style={{ marginBottom: 12 }}>ORIENTATION — {ASPECT[orientation]}</div>
@@ -760,9 +812,9 @@ export default function CreateScreen({ onCreated, prefill }) {
         <motion.div key={packTabKey}
           initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28, ease: "easeOut" }}
           role="tabpanel" aria-label={`${packOrientation.label} frame packs`}
-          style={{ marginTop: 22, display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${packTabKey === "vertical" ? 210 : 240}px,1fr))`, gap: 16 }}>
+          style={{ marginTop: 22, display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${packOrientation.portrait ? 210 : 240}px,1fr))`, gap: 16 }}>
           <SelectablePack active={framePack === "auto"} onSelect={() => setFramePack("auto")}>
-            <AutoCard portrait={packTabKey === "vertical"} />
+            <AutoCard portrait={!!packOrientation.portrait} />
           </SelectablePack>
           {shownPacks.map((p) => (
             <SelectablePack key={p.name} active={framePack === p.name}
@@ -774,6 +826,12 @@ export default function CreateScreen({ onCreated, prefill }) {
                 // frame. Only auto-switch ON select, never override a deselect,
                 // so the user can still change it after.
                 if (next !== "auto" && p.portrait) setOrientation("vertical");
+                // Likewise for length: a long-form pack is authored for 2–5
+                // minutes and dozens of beats, so a 15s brief would render a
+                // truncated stub of it. Lift a short duration to the long-form
+                // floor on select only — never on deselect — and leave it
+                // freely adjustable afterwards.
+                if (next !== "auto" && p.longForm && duration < LONGFORM_AT) setDuration(LONGFORM_DEFAULT);
               }}>
               <PackCard compact pack={p} portrait={p.portrait} />
             </SelectablePack>
@@ -799,9 +857,15 @@ function TimelineRow({ label, h = 26, children }) {
   );
 }
 
+// The SERVER decides which packs exist; PACK_ORDER only supplies the design
+// order and the lore. A PACK_ORDER name /api/frames did not return is retired
+// (config.frames.retired) or not installed, so it gets no card — mapping the
+// order list straight to cards used to resurrect exactly those packs in the
+// grid (with no poster or preview, and always in the Horizontal tab, since a
+// fabricated card carries no `portrait`/`longForm` flag).
 function orderPacks(serverPacks) {
   const byName = Object.fromEntries(serverPacks.map((p) => [p.name, p]));
-  const known = PACK_ORDER.map((name) => ({ name, ...(byName[name] || {}) }));
+  const known = PACK_ORDER.filter((name) => byName[name]).map((name) => ({ name, ...byName[name] }));
   const extras = serverPacks.filter((p) => !PACK_LORE[p.name]);
   return [...known, ...extras];
 }

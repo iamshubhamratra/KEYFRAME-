@@ -13,7 +13,9 @@
 // this large addition doesn't collide with concurrent edits to scene_kit.js.
 // Returns { sv, dv, sc } arrays for the caller to push into its own buffers.
 
-function buildRetroTerminalOrnaments({ kind, id, pid, T, L, seed, theme, dims, s0, rgba, esc }) {
+// `seed` is still passed by the call site and deliberately not read: the only
+// thing it ever varied was the invented req/s figure below.
+function buildRetroTerminalOrnaments({ kind, id, pid, T, L, theme, dims, s0, rgba, esc }) {
   const W = dims.width, H = dims.height;
   const A = theme.accent, B = theme.accent2;
   const sv = [], dv = [], sc = [];
@@ -66,9 +68,13 @@ function buildRetroTerminalOrnaments({ kind, id, pid, T, L, seed, theme, dims, s
     for (let i = 0; i < n; i++) {
       sc.push(`tl.fromTo("#${id} .${pid}d${i}",{scale:0,transformOrigin:"50% 50%"},{scale:1,duration:.3,ease:"back.out(2.4)"},${s0(0.5 + (1.1 * (i + 1)) / n)});`);
     }
-    dv.push(`<div class="${pid}lbl" style="position:absolute;left:${cx0}px;top:${cy1 + 10}px;opacity:0;font:600 ${Math.round(H * 0.018)}px/1 ${mono};letter-spacing:.08em;color:${rgba(theme.ink, 0.55)};">req/s <span id="${pid}cnt" style="color:${A};font-weight:700;">0</span></div>`);
-    sc.push(`tl.fromTo("#${id} .${pid}lbl",{opacity:0,y:6},{opacity:1,y:0,duration:.4},${s0(0.5)});`);
-    sc.push(`countUp("${pid}cnt",${128 + (seed % 60)},${s0(0.6)},1.0,function(v){return v;});`);
+    // The line used to be captioned `req/s <n>`, counting up to 128 + seed%60 —
+    // a per-film random number in a unit, drawn in the pack's telemetry face and
+    // indistinguishable from a real measurement of the customer's product. This
+    // module is handed no scene copy (its call site in scene_kit.js passes only
+    // kind/theme/dims), so there is no honest number available to put there: the
+    // line stays as the abstract motif it always was, unlabelled and unvalued,
+    // and nothing on it can be read off as a figure.
   }
 
   // the terminal window — a REAL typed CLI session, bottom-right margin, every
@@ -79,10 +85,16 @@ function buildRetroTerminalOrnaments({ kind, id, pid, T, L, seed, theme, dims, s
   {
     const winW = kind === "cta" ? 30 : 34, winH = kind === "cta" ? 24 : 30;
     const winRight = 5, winBottom = kind === "cta" ? 8 : 6;
+    // The bank is set dressing — a CLI session in the margin — and it is written
+    // for a film it knows nothing about, so it must never state a MEASUREMENT.
+    // Two lines did: "uptime 99.98%" on stat beats and "128 passed · 0 failed" on
+    // text beats, in a mono telemetry face over the customer's own film, where
+    // they read as that product's real numbers. Both now say what the session is
+    // DOING, which is true of a demo terminal and quotes nothing.
     const lines = kind === "hook" ? ["$ ./deploy.sh", "Building… done", "✓ Live in production"]
       : kind === "cta" ? ["$ install now", "Fetching package…", "✓ Installed. Welcome!"]
-        : kind === "stat" ? ["$ status --uptime", "uptime 99.98%", "✓ Healthy"]
-          : ["$ run --tests", "128 passed · 0 failed", "✓ All systems go"];
+        : kind === "stat" ? ["$ status --watch", "Polling services…", "✓ Healthy"]
+          : ["$ run --tests", "Running suite…", "✓ All systems go"];
     const lineColors = [theme.ink, rgba(theme.ink, 0.62), A];
     const fs = Math.max(11, Math.round(H * 0.021));
     dv.push(

@@ -1,0 +1,89 @@
+{
+  "name": "sky-ladder",
+  "renderer": "omelette",
+  "template": "SkyLadder",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true,
+  "vibe": "long-form 9:16 kinetic-typography film for skydiving / freefall — 30 authored beats, ~3.0s each, 1:30 as shipped. rushing cloud layers, speed streaks, altimeter winding down, canopy opening. Archivo Black display over Archivo body; per-scene garnish layer (corner tags, footnotes, side labels, doodles) so no frame reads empty. Text-first: two image slots in the whole film.",
+  "colors": {
+    "ground": "#eef4fa",
+    "ink": "#101c2c",
+    "accent": "#ae4537",
+    "a2": "#1f6e8d"
+  },
+  "fonts": [
+    "Archivo Black",
+    "Archivo"
+  ],
+  "surface": {
+    "flat": true,
+    "lightCinematic": true,
+    "ground": "#eef4fa",
+    "ink": "#101c2c"
+  },
+  "motion": {
+    "cut": "glide",
+    "drift": 1.04
+  },
+  "fx": {
+    "canvas": "none",
+    "three": null
+  },
+  "typography": {
+    "display": "Archivo Black",
+    "body": "Archivo",
+    "case": "mixed"
+  },
+  "audio": {
+    "bgm": "soaring cinematic build, airy percussion, wide open",
+    "energy": "high"
+  },
+  "skin": {
+    "accents": [
+      "#ae4537",
+      "#1f6e8d"
+    ],
+    "extras": [
+      "#dfeef4",
+      "#fbe4dc",
+      "#101c2c"
+    ],
+    "emphasisCss": "color:#ae4537;"
+  },
+  "assets": {
+    "photoMod": "high-altitude aerial light, wide open sky",
+    "iconStyle": "outline",
+    "keywords": [
+      "skydiving",
+      "parachute",
+      "freefall",
+      "sky",
+      "clouds",
+      "altitude"
+    ],
+    "prefer": [
+      "photo",
+      "screenshot"
+    ]
+  },
+  "camera3d": {
+    "ground": "#eef4fa"
+  },
+  "layout": {
+    "propFill": false,
+    "kicker": true,
+    "underline": true,
+    "stat": "badge",
+    "assetStyle": "card"
+  },
+  "textfx": {
+    "enter": "type",
+    "emphasis": "soft",
+    "case": "mixed",
+    "tracking": 0,
+    "weight": null,
+    "sizeScale": 1.01,
+    "align": "left"
+  }
+}

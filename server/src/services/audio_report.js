@@ -14,7 +14,18 @@
 // Fail-open by contract (THE LAW): a disclosure never blocks a render. Every field
 // degrades to a null/false rather than throwing.
 
+const pacing = require("./pacing");
+
 const round = (n) => Math.round(Number(n) || 0);
+
+// Two hits inside 400ms read as one messy noise — but 400ms is not an absolute
+// truth about hearing, it is a fraction (~13%) of the 3s cut this report was
+// tuned against. A faster pace buys its energy by cutting more often and firing
+// more accents (pacing.audioFor raises sfxPerScene with the multiplier), so a
+// fixed 400ms window would dock a Fast film for the very density it was asked
+// for and the feature would land looking like a regression in the metrics.
+const SPACING_SEC = 0.4;
+const SPACING_BEAT_SEC = 3;      // the cut length 400ms was tuned against (normal)
 
 /**
  * buildAudioReport({ plan, sfxClips, scenes, musicPath, musicMood, voClips })
@@ -25,6 +36,11 @@ function buildAudioReport({
   // The flexible-audio inputs. All optional and all defaulting to the pre-feature
   // reading, so an older caller produces exactly the report it did before.
   narration = "on", voiceoverRequested = true, profile = null, musicSelection = null,
+  // The job's pace: a profile, a mode key, a job row, or a bare beat length in
+  // seconds. Omitted (the pre-feature call) keeps the literal 400ms window —
+  // resolve() would answer with whatever `config.defaults.pace` says, and an
+  // older caller must not have its verdict moved by a deploy-side default.
+  pacing: pacingOpt = null,
 } = {}) {
   const noVo = narration === "off";
   const decisions = new Map((plan && Array.isArray(plan.sfx) ? plan.sfx : []).map((x) => [Number(x.id), x]));
@@ -57,10 +73,15 @@ function buildAudioReport({
   const duplicates = [...seen.entries()].filter(([, n]) => n > 1).map(([cue, n]) => ({ cue, count: n }));
   // NO UNJUSTIFIED EFFECTS. `support` records what on screen the cue lands on.
   const unjustified = accepted.filter((a) => !a.support);
-  // SPACING. Two hits inside 400ms read as one messy noise.
+  // SPACING. Two hits inside one window read as one messy noise. The window is a
+  // fraction of the pace's own cut length (0.4s at the 3s normal beat), so the
+  // check keeps asking "are two accents landing on top of each other" instead of
+  // "does this film fire more accents than a 1.0x film would".
+  const beatSec = Number(pacingOpt) > 0 ? Number(pacingOpt) : pacing.resolve(pacingOpt).beatSec;
+  const spacingSec = pacingOpt == null ? SPACING_SEC : SPACING_SEC * (beatSec / SPACING_BEAT_SEC);
   const times = accepted.map((a) => Number(a.atSec) || 0).sort((x, y) => x - y);
   let tooClose = 0;
-  for (let i = 1; i < times.length; i++) if (times[i] - times[i - 1] < 0.4) tooClose++;
+  for (let i = 1; i < times.length; i++) if (times[i] - times[i - 1] < spacingSec) tooClose++;
 
   const master = (plan && plan.master) || {};
   const voLufs = Number.isFinite(master.voLufs) ? master.voLufs : null;
@@ -151,7 +172,7 @@ function buildAudioReport({
   if (unmapped.length) issues.push(`${unmapped.length} effect(s) are not mapped to a scene`);
   if (duplicates.length) issues.push(`${duplicates.map((d) => `${d.cue}×${d.count}`).join(", ")} repeated`);
   if (unjustified.length) issues.push(`${unjustified.length} effect(s) fire with no on-screen action`);
-  if (tooClose) issues.push(`${tooClose} pair(s) of effects land within 400ms`);
+  if (tooClose) issues.push(`${tooClose} pair(s) of effects land within ${round(spacingSec * 1000)}ms`);
   if (!noVo && (voClips || []).length && !ducking) issues.push("music is not ducked under the voiceover");
   if (!musicPath) issues.push("no music bed");
   if (!voiceoverRespected) {

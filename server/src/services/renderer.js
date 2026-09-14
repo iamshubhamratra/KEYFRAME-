@@ -218,7 +218,7 @@ async function normalizeDeliveredDims(videoPath, expectWidth, expectHeight) {
   }
 }
 
-async function render({ jobId, jobDir, durationSec, quality = config.server.renderQuality, expectWidth = null, expectHeight = null, abortSignal }) {
+async function render({ jobId, jobDir, durationSec, quality = config.server.renderQuality, expectWidth = null, expectHeight = null, abortSignal, deliver = true }) {
   const outRelative = path.join("renders", "out.mp4");
   fs.mkdirSync(path.join(jobDir, "renders"), { recursive: true });
 
@@ -274,6 +274,24 @@ async function render({ jobId, jobDir, durationSec, quality = config.server.rend
     throw new Error(`render reported success but ${outRelative} is missing`);
   }
 
+  // A SEGMENT is not a deliverable. Long-form bundled-template films are rendered
+  // as several compositions and concatenated (see pipeline.renderInSegments), so
+  // parts must not be moved into the gallery, thumbnailed, or dimension-checked
+  // individually — the CONCATENATED film is the thing that ships. Leave the part
+  // where it is and let the caller deliver the finished article.
+  if (!deliver) return { videoPath: srcPath, videoUrl: null };
+
+  return deliverRender({ jobId, srcPath, durationSec, expectWidth, expectHeight });
+}
+
+/**
+ * Move a finished render into the gallery: normalize its dimensions, grab a
+ * thumbnail, and hand back the public path.
+ *
+ * Split out of render() so the segmented long-form path can concatenate its
+ * parts first and then deliver ONE file through exactly the same last mile.
+ */
+async function deliverRender({ jobId, srcPath, durationSec, expectWidth = null, expectHeight = null }) {
   fs.mkdirSync(config.paths.videosDir, { recursive: true });
   const destPath = path.join(config.paths.videosDir, `${jobId}.mp4`);
   try {
@@ -300,4 +318,4 @@ async function render({ jobId, jobDir, durationSec, quality = config.server.rend
   return { videoPath: destPath, videoUrl: `/videos/${jobId}.mp4` };
 }
 
-module.exports = { render };
+module.exports = { render, deliverRender };

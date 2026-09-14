@@ -1811,23 +1811,26 @@ export function loreFor(packName, pack = null) {
   };
 }
 
-// Gallery filter pills — the design's list, remapped to server pack names.
-export const GALLERY_FILTERS = [
-  ["all", "ALL FILMS"], ["neon-premiere", "PREMIERE"], ["longshot-cinema", "LONGSHOT"], ["summit-keynote", "SUMMIT"], ["prism-launch", "PRISM"],
-  ["fable-storybook", "FABLE"], ["blockframe", "BLOCKFRAME"], ["biennale-yellow", "BIENNALE"],
-  ["midnight-glass", "MIDNIGHT"], ["vapor-chrome", "VAPOR"], ["aurora-spectrum", "AURORA"],
-  ["bloom-illustrated", "BLOOM"], ["noir-spotlight", "NOIR"],
-];
-
-// The v2 design's video wall ("Fresh off the render farm.") — seed films
-// shown while no real films exist yet, with the exact wall gradients.
+// The gallery's seed wall ("Fresh off the render farm.") — shown while no real
+// films exist yet, e.g. on a fresh deploy. Each seed is a real template clip
+// that ships with the FRONTEND (public/landing, cut by
+// scripts/build-landing-media.mjs — the same clips as the landing's wall), so
+// it plays even when the backend is asleep. A click opens the studio in that
+// template. `grad` is only the fallback if a clip fails to load.
+const seed = (pack, packLabel, title, cat, dur, grad) => ({
+  pack, packLabel, title, cat, dur, grad, drift: "8s",
+  videoUrl: `/landing/wall-${pack}.mp4`, posterUrl: `/landing/wall-${pack}.jpg`,
+});
 export const WALL_SEEDS = [
-  { title: "Voltage — Synth Drop", cat: "MUSIC", dur: "0:18", views: "34k", drift: "7s", grad: "linear-gradient(135deg,#e832a8,#5a1043,#17130e)", pack: "noir-spotlight" },
-  { title: "Nimbus — Series A", cat: "SAAS", dur: "0:32", views: "12.4k", drift: "9s", grad: "linear-gradient(135deg,#23c8e0,#124f5c,#0a1f24)", pack: "midnight-glass" },
-  { title: "Toby — A Dog Film", cat: "PET STAR", dur: "0:30", views: "89k", drift: "8s", grad: "linear-gradient(135deg,#ffb03a,#a5560e,#2e1a05)", pack: "kinetic-bold" },
-  { title: "Lumen — The Ritual", cat: "BEAUTY", dur: "0:24", views: "8.1k", drift: "10s", grad: "linear-gradient(135deg,#ff7aa8,#8a2d54,#25101c)", pack: "bloom-illustrated" },
-  { title: "Atlas — Future of Work", cat: "B2B", dur: "0:45", views: "21k", drift: "8.5s", grad: "linear-gradient(135deg,#2b5bff,#14286e,#090d1f)", pack: "mono-corporate" },
-  { title: "Faro — In Motion", cat: "RETAIL", dur: "0:22", views: "5.6k", drift: "7.5s", grad: "linear-gradient(135deg,#b9f24a,#4f7a10,#141d06)", pack: "bauhaus-print" },
+  seed("voltage", "Voltage", "Ideas Hit Like Lightning", "TECH LAUNCH", "0:30", "linear-gradient(135deg,#3DE0FF,#B14DFF,#05060A)"),
+  seed("bauhaus-riot", "Bauhaus Riot", "A Poster That Came Alive", "DESIGN STUDIO", "0:30", "linear-gradient(135deg,#E4432C,#2B4BD7,#F2C21F)"),
+  seed("ignition", "Ignition", "T-Minus One Sentence", "COUNTDOWN", "0:30", "linear-gradient(135deg,#FF5A1F,#33E0FF,#070B14)"),
+  seed("blistered-crust", "Blistered Crust", "Out of the Oven", "PIZZERIA · LONG FORM", "2–5 MIN", "linear-gradient(135deg,#d8382c,#f3c9a8,#1f1a17)"),
+  seed("kaleido", "Kaleido", "Every Idea Refracts", "EVENTS", "0:30", "linear-gradient(135deg,#FF4D9D,#4DE1FF,#0B0713)"),
+  seed("tide-table", "Tide Table", "Swim Before Breakfast", "SWIM CLUB · LONG FORM", "2–5 MIN", "linear-gradient(135deg,#e46a35,#3a9a9a,#f4e7d3)"),
+  seed("folk-stitch", "Folk Stitch", "Told in Thread", "CRAFTS", "0:30", "linear-gradient(135deg,#F0A83C,#E15546,#232840)"),
+  seed("riso-press", "Riso Press", "Two Inks, One Poster", "PRINT SHOP", "0:30", "linear-gradient(135deg,#FF3E6C,#3A5BFF,#F3ECDD)"),
+  seed("apex-lap", "Apex Lap", "Lights Out", "MOTORSPORT · LONG FORM", "2–5 MIN", "linear-gradient(135deg,#d0213a,#1d1a1f,#e9e6ea)"),
 ];
 
 export const fmtDur = (sec) => {

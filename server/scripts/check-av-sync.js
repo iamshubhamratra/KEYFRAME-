@@ -26,6 +26,20 @@
 const { PACK_RENDERERS, foldScriptToRenderer } = require("../src/services/pipeline");
 const sceneKit = require("../src/services/scene_kit");
 const frameManifest = require("../src/services/frame_manifest");
+const pacing = require("../src/services/pacing");
+
+// Sync is the thing pace is most likely to break, so this gate has to be able to
+// ask the question at a pace other than Normal. `--pace <mode>` builds at that
+// mode; with no flag it is Normal, so the CI invocation is unchanged.
+const paceArg = (() => {
+  const i = process.argv.indexOf("--pace");
+  return i >= 0 ? String(process.argv[i + 1] || "") : "";
+})();
+const P = pacing.resolve(paceArg);
+if (paceArg && P.key !== paceArg) {
+  console.error(`unknown --pace "${paceArg}" — known modes: ${pacing.MODES.join(", ")}`);
+  process.exit(2);
+}
 
 function makeScript(n, total) {
   const raw = []; let sum = 0;
@@ -113,6 +127,7 @@ function run(label, renderer, pack, { total, n }) {
       dims: { width: 1920, height: 1080, fps: 30 },
       framePack: pack, assets: [], captionCues: [],
       template: (frameManifest.getManifest(pack) || {}).template,
+      pacing: P,
     });
     html = String((built && (built.indexHtml || built.html)) || "");
   } catch (e) {
@@ -158,6 +173,16 @@ function run(label, renderer, pack, { total, n }) {
 // engine refuses an OM_SCENES list over 50 entries, so a 60-70 scene script has
 // to put some scenes on a shared beat, and a shared beat can only lead with one
 // of them. Every other renderer draws a beat per scene and is held at zero.
+//
+// The ratchet deliberately does NOT scale with pace, and that is a measured
+// claim rather than an oversight. Pace buys its density from cuts INSIDE a
+// scene, which move no scene boundary and no narration, so they cannot pull the
+// picture off the voice. Re-measured at all four modes: the 300s and 600s
+// bundled cases read 10% OFF at every one of them (relaxed 300s reads 9%, fast
+// and veryFast take the 90s case from 1% to 0%), and every per-scene renderer
+// holds 0%. So a mode that pushed one of these ceilings up would be reporting a
+// real sync defect introduced by pace — which is precisely what this gate is for
+// — and the ceiling has to stay where it is to catch it.
 const CASES = [
   ["bundled kit 90s", "omelette", "field-notes", { total: 90, n: 26 }, 0.00],
   ["bundled kit 300s", "omelette", "field-notes", { total: 300, n: 60 }, 0.11],
@@ -169,6 +194,9 @@ const CASES = [
   ["scene-kit 600s", "scene-kit", "poster-loud", { total: 600, n: 70 }, 0.00],
 ];
 
+// Silent at Normal so the default run's output is unchanged; a non-default run
+// must name the mode, or its numbers cannot be read back later.
+if (!pacing.isNeutral(P)) console.log(`\n  pace: ${pacing.describe(P)}`);
 console.log("\n  case                       script -> beats            screen matches the voice");
 const results = CASES.map(([l, r, pk, c, maxOff]) => {
   const res = run(l, r, pk, c);

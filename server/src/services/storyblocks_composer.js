@@ -480,9 +480,23 @@ function montage(scene, ctx, a, b) {
 
 function stats(scene, ctx) {
   const { id, T, L, theme: th, land } = ctx;
-  const mined = statsOf(scene, 3);
-  const sts = mined.length ? mined : [{ pre: "", v: 100, suf: "%", l: "THE WHOLE STORY, TOLD", isFloat: false }];
-  const n = sts.length;
+  const sts = statsOf(scene, 3);
+  // NO INVENTED FIGURES — see posterpop_composer's stats() for the delivered film
+  // this was measured on. `100% THE WHOLE STORY, TOLD` was printed whenever the
+  // beat carried no numbers, and a beat lands in this builder on its purpose
+  // alone; in 16:9 it was the ONLY thing on the panel, since the support list
+  // below is portrait-only. A figure the script did not supply is not ours to
+  // print.
+  //
+  // The swapping beat is the pack's shape here, so it stays: with no numbers each
+  // beat whips in one of the scene's OWN points in the display face, keeps its
+  // accent bar, and counts nothing.
+  const pts = sts.length ? [] : bullets(scene, 3).map((t) => fit(String(t), 34));
+  // Neither figures nor points: the pack's headline-only beat (its declared
+  // fallbackType) composes that copy properly, where this shape would leave the
+  // panel with a headline and nothing else.
+  if (!sts.length && !pts.length) return statement(scene, ctx);
+  const n = sts.length || pts.length;
   const ranges = n === 1 ? [[0.06, 0.9]] : n === 2 ? [[0.04, 0.48], [0.52, 0.97]] : [[0.04, 0.36], [0.38, 0.68], [0.7, 0.97]];
   const cols = [th.accent, th.paper, th.accent2];
   const lines = breakLines(scene.headline, "Numbers with|weight.").slice(0, 2);
@@ -491,15 +505,24 @@ function stats(scene, ctx) {
   const burst = starburst(`${id}-sb`, ctx, land ? { left: 28, top: -14, size: 52, color: rgba(th.accent, 0.12), petals: 18, speed: 7 }
     : { left: 4, top: 28, size: 93, color: rgba(th.accent, 0.12), petals: 18, speed: 7 });
   const pos = land ? "left:8cqw;right:8cqw;top:20cqw;" : `left:${q(64, land)}cqw;right:${q(64, land)}cqw;top:${q(760, land)}cqw;`;
-  const rows = sts.map((st, j) =>
+  // A point runs long where a figure is 2-3 glyphs, so the display size is fitted
+  // to the longest one (≈0.72em per cap, the measure kinetic() uses) and wraps.
+  const psize = q(Math.max(90, Math.min(190, Math.round(1600 / Math.max(1, ...pts.map((t) => t.length))))), land);
+  const rows = (sts.length ? sts.map((st, j) =>
     `<div id="${id}-b${j}" style="opacity:0;position:absolute;${pos}">
       <div id="${id}-np${j}" style="font-family:${FH};font-size:${q(330, land)}cqw;line-height:0.85;color:${cols[j % 3]};font-variant-numeric:tabular-nums;"><span id="${id}-n${j}">0</span><span style="font-size:${q(140, land)}cqw;">${esc(st.suf || "")}</span></div>
       <div style="font-family:${FB};font-weight:700;font-size:${q(44, land)}cqw;color:${rgba(th.paper, 0.8)};margin-top:${q(34, land)}cqw;max-width:${land ? 46 : q(820, land)}cqw;">${esc(String(st.l || "").toLowerCase() || "and counting")}</div>
       <div id="${id}-bar${j}" style="width:${q(200, land)}cqw;height:${q(12, land)}cqw;border-radius:999px;background:${cols[j % 3]};margin-top:${q(30, land)}cqw;transform:scaleX(0);transform-origin:left center;"></div>
-    </div>`).join("");
+    </div>`) : pts.map((t, j) =>
+    `<div id="${id}-b${j}" style="opacity:0;position:absolute;${pos}">
+      <div id="${id}-np${j}" style="font-family:${FH};font-size:${psize}cqw;line-height:0.96;text-transform:uppercase;color:${cols[j % 3]};max-width:${land ? 60 : q(900, land)}cqw;">${esc(t)}</div>
+      <div id="${id}-bar${j}" style="width:${q(200, land)}cqw;height:${q(12, land)}cqw;border-radius:999px;background:${cols[j % 3]};margin-top:${q(40, land)}cqw;transform:scaleX(0);transform-origin:left center;"></div>
+    </div>`)).join("");
   // 9:16 only: one stat leaves the bottom half of the sheet empty. The scene's own
-  // supporting points fill it without competing with the counting figure above.
-  const sup = land ? { html: "", s: [] } : E.supportList(`${id}-sup`, bullets(scene, 3), ctx, {
+  // supporting points fill it without competing with the counting figure above —
+  // but when the BEATS are already carrying those points (no figures in the
+  // script), the same lines twice on one sheet is worse than the gap.
+  const sup = land || !sts.length ? { html: "", s: [] } : E.supportList(`${id}-sup`, bullets(scene, 3), ctx, {
     top: q(1250, land), left: q(64, land), right: q(64, land),
     font: q(36, land), fontFamily: FB, plate: th.ink, fg: E.readable(th.ink, th.paper, 1, 4.5), dot: th.accent2,
     max: 3, at: r(T + Math.min(1.8, L * 0.4)),
@@ -516,11 +539,11 @@ function stats(scene, ctx) {
     ...sup.s,
     ...burst.s,
   ];
-  sts.forEach((st, j) => {
+  (sts.length ? sts : pts).forEach((st, j) => {
     const bio = beatIO(`#${id}-b${j}`, ctx, ranges[j][0], ranges[j][1], j % 2 === 0 ? 1 : -1, j % 2 === 0 ? -1 : 1,
       { noExit: ctx.isLast && j === n - 1 });
     s.push(...bio.s);
-    s.push(`countTxt("#${id}-n${j}",${st.v},${r(bio.bT + bio.bL * 0.1)},${r(Math.min(1.8, bio.bL * 0.5))},"${esc(st.pre || "")}","",${st.isFloat ? 10 : 1});`);
+    if (sts.length) s.push(`countTxt("#${id}-n${j}",${st.v},${r(bio.bT + bio.bL * 0.1)},${r(Math.min(1.8, bio.bL * 0.5))},"${esc(st.pre || "")}","",${st.isFloat ? 10 : 1});`);
     s.push(`tl.fromTo("#${id}-bar${j}",{scaleX:0},{scaleX:1,duration:${r(Math.min(1.8, bio.bL * 0.5))},ease:"power3.out",transformOrigin:"left center"},${r(bio.bT + bio.bL * 0.1)});`);
     s.push(`tl.fromTo("#${id}-np${j}",{scale:1},{scale:1.012,duration:1.05,ease:"sine.inOut",yoyo:true,repeat:reps(${r(bio.bL)},1.05),transformOrigin:"left bottom"},${bio.bT});`);
   });

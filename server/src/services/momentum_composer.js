@@ -30,6 +30,7 @@ const E = require("./template_engine");
 // other renderer — see the wiring note on takePool below.
 const { pickForScene } = require("./scene_match");
 const { fitScenes, MAX_CLIPS } = require("./scene_fit");
+const { ownHost, filmUrl, signsOff } = require("./sign_off");
 
 const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 const DISPLAY = "Sora"; // bundled stand-in for the template's Hanken Grotesk
@@ -200,11 +201,15 @@ function isLogo(a) {
 }
 
 // ---- scene router ------------------------------------------------------------
-function momArchetype(scene, i, total, pinnedAsset, poolLeft) {
+function momArchetype(scene, i, total, pinnedAsset, poolLeft, signOff = true) {
   const k = String(scene.kind || "").toLowerCase();
   const p = String(scene.purpose || "").toLowerCase();
   if (i === 0 || k === "hook" || k === "title") return "intro";
-  if (i === total - 1 || k === "cta" || p === "cta") return "cta";
+  // A FILM WITH NO DESTINATION DOES NOT SIGN OFF. The closer is a brand lockup
+  // (logo, name, "GET <BRAND>", the URL); built from a bare prompt every part of
+  // it is invented. `signOff` is false there and the beat falls through to a
+  // content shape below, keeping its copy and its narration. sign_off.js.
+  if ((i === total - 1 || k === "cta" || p === "cta") && signOff) return "cta";
   if (k === "quote" || scene.quote || /testimonial|quote/.test(p)) return "quote";
   if (k === "stat" || k === "chart" || k === "countdown" || mineStats(scene).length >= 2) return "stats";
   if (pinnedAsset) return isPortraitAsset(pinnedAsset) ? "mobile" : "feature";
@@ -755,12 +760,12 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
   const D = r(sb.durationSec || scenes.reduce((a, s) => Math.max(a, (Number(s.start) || 0) + (Number(s.duration) || 0)), 0) || 12);
 
   // Brand + url from the film itself (site the assets came from beats lore).
-  const brandHost = (Array.isArray(assets) ? assets : [])
-    .filter((a) => a && (a.source === "website" || a.source === "website-image") && a.sourceUrl)
-    .map((a) => { try { return new URL(a.sourceUrl).hostname.replace(/^www\./, ""); } catch { return null; } })
-    .find(Boolean);
+  const brandHost = ownHost(assets);
   const brand = String(sb.brand || sb.title || (brandHost ? brandHost.split(".")[0] : "") || "MOMENTUM").slice(0, 18);
-  const url = String(sb.url || brandHost || `${brand.toLowerCase().replace(/[^a-z0-9]/g, "")}.app`).slice(0, 40);
+  // NEVER INVENT A DOMAIN. `${brand}.app` printed "howcompoundinter.app" on a
+  // prompt-only film — an address we do not own, asserted on the closing frame.
+  const url = filmUrl(sb, assets);
+  const signOff = signsOff({ url, storyboard: sb, assets });
 
   // Asset pools: a logo (Intro badge), scene-pinned plates (director placement
   // wins), then best-first for Feature/Mobile/Gallery slots.
@@ -837,7 +842,7 @@ function buildComposition({ storyboard, dims, framePack, captionCues, assets, br
       assetB = castAssets[1] || null;
       if (arch === "intro" && !asset) asset = logoAsset;
     } else {
-      arch = momArchetype(scene, i, scenes.length, pinned, pool.length - pooli);
+      arch = momArchetype(scene, i, scenes.length, pinned, pool.length - pooli, signOff);
       // Fill the media slot: pinned first, else pool (portrait shot → phone,
       // screenshots → browser, photos → gallery tiles).
       asset = pinned;

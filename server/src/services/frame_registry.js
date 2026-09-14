@@ -31,18 +31,42 @@ if (FRAMES_DIR) {
   console.warn(`[frames] no frames directory found — compositions will be unstyled (generic)`);
 }
 
+// RETIRED PACKS (config.frames.retired). A pack is live the INSTANT its folder
+// lands in frames/ (see admin/template_store.js), which makes listPacks() the
+// single choke point where one can be taken out of circulation: the gallery
+// (/api/frames), the Create picker, the brief's tone match, auto-selection,
+// resolvePack() and preview building all read it. Naming a pack here therefore
+// removes it EVERYWHERE — it can no longer be listed, suggested, auto-picked or
+// requested by name — WITHOUT deleting its folder, because the packs are still
+// wired into pack_families/pack_style/scene_kit ornaments and their art is worth
+// keeping for a re-cut. Retiring and un-retiring stay one config line.
+// Collision checks must NOT use this filtered view — a retired folder still
+// occupies frames/<slug>, so admin publish/slug allocation calls listAllPacks().
+const RETIRED = new Set((config.frames && config.frames.retired) || []);
+if (RETIRED.size) {
+  console.log(`[frames] ${RETIRED.size} retired pack(s) hidden from selection: ${[...RETIRED].sort().join(", ")}`);
+}
+
 /** @type {Map<string, {frameMd: string, mtimeMs: number}>} */
 const cache = new Map();
 
 function frameMdPath(name) { return path.join(FRAMES_DIR, name, "FRAME.md"); }
 
-function listPacks() {
+// Every pack folder actually installed under frames/, retired ones included.
+// For collision/occupancy questions only ("is frames/<slug> taken?") — never for
+// what a user or the pipeline may choose.
+function listAllPacks() {
   if (!FRAMES_DIR) return [];
   return fs.readdirSync(FRAMES_DIR, { withFileTypes: true })
     .filter((d) => d.isDirectory())
     .map((d) => d.name)
     .filter((name) => fs.existsSync(frameMdPath(name)))
     .sort();
+}
+
+// The selectable library: installed packs minus the retired ones.
+function listPacks() {
+  return listAllPacks().filter((name) => !RETIRED.has(name));
 }
 
 function defaultPack() {
@@ -142,4 +166,4 @@ function getPackTokens(name) {
   return { name, colors, fonts };
 }
 
-module.exports = { listPacks, defaultPack, resolvePack, getFrameMd, getShowcasePath, getPackTokens, getPackVibe, FRAMES_DIR };
+module.exports = { listPacks, listAllPacks, defaultPack, resolvePack, getFrameMd, getShowcasePath, getPackTokens, getPackVibe, FRAMES_DIR };

@@ -2,7 +2,30 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, Reorder } from "framer-motion";
 import { getProject, approveProject, regenerateProject, pollProject } from "../api.js";
 
-const WORDS_PER_SEC = 2.6;
+// The "N WORDS · FITS ~M" badge has to be the SAME arithmetic the server gates
+// on (script.validateScript: words > duration * wordsPerSec * voTolerance), and
+// both numbers move with the film's pace. Hardcoded 2.6/1.35 was correct only at
+// Normal: a Fast script is authored to 2.0 w/s, so its honestly-budgeted lines
+// (a 3s scene holds 6 words, not 7) would light up red on a page whose only job
+// is to say "this fits". Mirrors server/src/services/pacing.js.
+const PACE_MODES = {
+  relaxed: { label: "Relaxed", multiplier: 0.8, wordsPerSec: 2.3 },
+  normal: { label: "Normal", multiplier: 1, wordsPerSec: 2.6 },
+  fast: { label: "Fast", multiplier: 1.25, wordsPerSec: 2.0 },
+  veryFast: { label: "Very Fast", multiplier: 1.5, wordsPerSec: 1.7 },
+};
+// voTolerance, verbatim from pacing.js: Normal keeps 1.35 untouched, every other
+// mode tightens to 1.35/multiplier with a 1.15 floor (relaxed 1.69, fast and
+// veryFast both 1.15). An absent pace — every project made before the control
+// shipped — resolves to normal, i.e. exactly the 2.6 / 1.35 this replaced.
+function paceBudget(key) {
+  const m = PACE_MODES[key] || PACE_MODES.normal;
+  return {
+    label: m.label,
+    wordsPerSec: m.wordsPerSec,
+    tolerance: m.multiplier === 1 ? 1.35 : Math.max(1.15, Math.round((1.35 / m.multiplier) * 100) / 100),
+  };
+}
 const wc = (s) => (String(s || "").match(/\S+/g) || []).length;
 const SPINES = ["#e832a8", "#23c8e0", "#ffb03a", "#b9f24a", "#2b5bff", "#ff6a3c"];
 
@@ -36,6 +59,7 @@ export default function ScriptRoom({ projectId, onApproved }) {
 
   const totalSec = useMemo(() => timedScenes.reduce((a, s) => a + s.duration, 0), [timedScenes]);
   const targetSec = project?.duration || totalSec;
+  const budget = paceBudget(project?.pace);
 
   function patchScene(id, patch) {
     setScenes((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
@@ -98,7 +122,7 @@ export default function ScriptRoom({ projectId, onApproved }) {
 
       <Reorder.Group axis="y" values={scenes} onReorder={setScenes} style={{ marginTop: 32, display: "flex", flexDirection: "column", gap: 14, padding: 0 }}>
         {timedScenes.map((scene, i) => (
-          <SceneCard key={scene.id} scene={scene} index={i}
+          <SceneCard key={scene.id} scene={scene} index={i} budget={budget}
             onPatch={(patch) => patchScene(scene.id, patch)}
             onRemove={() => removeScene(scene.id)}
             originalScene={scenes.find((s) => s.id === scene.id)}
@@ -130,10 +154,10 @@ export default function ScriptRoom({ projectId, onApproved }) {
   );
 }
 
-function SceneCard({ scene, originalScene, index, onPatch, onRemove }) {
+function SceneCard({ scene, originalScene, index, budget, onPatch, onRemove }) {
   const words = wc(scene.voiceover);
-  const capacity = Math.floor(scene.duration * WORDS_PER_SEC);
-  const over = words > capacity * 1.35;
+  const capacity = Math.floor(scene.duration * budget.wordsPerSec);
+  const over = words > capacity * budget.tolerance;
   const spine = SPINES[index % SPINES.length];
 
   return (
@@ -154,7 +178,8 @@ function SceneCard({ scene, originalScene, index, onPatch, onRemove }) {
             <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--color-dim)" }}>{scene.start.toFixed(1)}s</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: over ? "var(--color-rec)" : "var(--color-dim)", textTransform: "uppercase" }}>
+            <span title={`${budget.label} pace — the narrator reads about ${budget.wordsPerSec} words a second`}
+              style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: over ? "var(--color-rec)" : "var(--color-dim)", textTransform: "uppercase" }}>
               {words} WORDS · FITS ~{capacity}
             </span>
             <button onClick={onRemove} title="delete scene"

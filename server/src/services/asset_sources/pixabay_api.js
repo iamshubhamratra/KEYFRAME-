@@ -88,6 +88,41 @@ async function apiJson(endpoint, params) {
   return resp.json();
 }
 
+// THE DIMENSIONS PIXABAY REPORTS ARE NOT THE DIMENSIONS PIXABAY SENDS.
+//
+// `imageWidth`/`imageHeight` describe the photographer's master upload — often
+// 5000px+. None of the URLs in the response serve it: fullHDURL caps the long
+// edge at 1920, largeImageURL at 1280, webformatURL at 640. A standard key gets
+// NO fullHDURL at all (verified: `fullHD? false` on every hit), so every image a
+// film downloads is a 1280px file. Measured on three live hits: reported
+// 5400x3375 / 2592x1769 / 5868x4004, downloaded 1280x800 / 1280x874 / 1280x873.
+//
+// Passing the master dimensions to the ranker meant scoreCandidate's quality
+// term — min(1, longEdge/1920) — returned 1.0 for essentially EVERY Pixabay
+// candidate, because essentially every stock master is over 1920px. A term with
+// the same value for all candidates cannot order any of them, so the 0.20 weight
+// it carries was doing nothing at all, and the MIN_LONG_EDGE floor in
+// rankCandidates was measuring a file that was never fetched.
+//
+// Reporting the delivered size restores both: a hit whose master is smaller than
+// the cap really does arrive softer, and now really does rank below one that
+// fills the cap. The cap never upscales, so delivered = min(master, cap) with
+// the aspect ratio preserved.
+const URL_LONG_EDGE_CAP = { fullHD: 1920, large: 1280, webformat: 640 };
+function capFor(h, url) {
+  if (url && url === h.fullHDURL) return URL_LONG_EDGE_CAP.fullHD;
+  if (url && url === h.largeImageURL) return URL_LONG_EDGE_CAP.large;
+  if (url && url === h.webformatURL) return URL_LONG_EDGE_CAP.webformat;
+  return 0; // unknown URL shape: report the master rather than invent a number
+}
+function deliveredDims(width, height, cap) {
+  const w = Number(width) || 0, h = Number(height) || 0;
+  const long = Math.max(w, h);
+  if (!w || !h || !cap || long <= cap) return { width: w || undefined, height: h || undefined };
+  const k = cap / long;
+  return { width: Math.round(w * k), height: Math.round(h * k) };
+}
+
 async function search({ query, type, orientation, limit = 5 }) {
   if (!apiKey() || keyRejected) return [];
 
@@ -99,15 +134,22 @@ async function search({ query, type, orientation, limit = 5 }) {
       orientation: orientationParam(orientation),
       per_page: limit, safesearch: "true",
     });
-    return (data.hits || []).map((h) => ({
+    return (data.hits || []).map((h) => {
       // fullHDURL (1920px) when the account exposes it; else largeImageURL
       // (1280px). Prefer the larger so full-bleed stills stay sharp at 1080p.
-      url: h.fullHDURL || h.largeImageURL || h.webformatURL,
-      width: h.imageWidth, height: h.imageHeight,
-      tags: h.tags, // comma-separated keywords — drives relevance ranking
-      license: "Pixabay Content License",
-      sourceUrl: h.pageURL,
-    })).filter((c) => c.url);
+      const url = h.fullHDURL || h.largeImageURL || h.webformatURL;
+      // …and REPORT THE FILE WE WILL ACTUALLY DOWNLOAD, not the original. See
+      // deliveredDims: imageWidth/imageHeight describe the master upload, which
+      // is not what any of these URLs serves.
+      const dims = deliveredDims(h.imageWidth, h.imageHeight, capFor(h, url));
+      return {
+        url,
+        width: dims.width, height: dims.height,
+        tags: h.tags, // comma-separated keywords — drives relevance ranking
+        license: "Pixabay Content License",
+        sourceUrl: h.pageURL,
+      };
+    }).filter((c) => c.url);
   }
 
   if (type === "video") {
@@ -134,4 +176,4 @@ async function search({ query, type, orientation, limit = 5 }) {
 
 // `available` goes false once the key is rejected, so the router stops offering a
 // provider that cannot answer — otherwise every lookup keeps buying the same 400.
-module.exports = { name: "pixabay", types: ["image", "video"], available: () => !!apiKey() && !keyRejected, search, keyIsRejected };
+module.exports = { name: "pixabay", types: ["image", "video"], available: () => !!apiKey() && !keyRejected, search, keyIsRejected, deliveredDims, capFor };

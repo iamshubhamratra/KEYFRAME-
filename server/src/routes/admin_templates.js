@@ -45,9 +45,12 @@ const { planCampaign, THEMES: CAMPAIGN_THEMES } = require("../admin/campaign");
 // How many of the curated briefs are still unused — the admin UI caps its own
 // count field with this so a request can't ask for more than the pool can give.
 function availableAutoBriefs() {
+  // listAllPacks, not listPacks: a RETIRED pack (config.frames.retired) is
+  // hidden from selection but its folder still owns frames/<slug>, so handing
+  // its slug to a new template would only fail later, at publish.
   const taken = new Set([
     ...store.listTemplates().map((t) => t.slug),
-    ...frameRegistry.listPacks(),
+    ...frameRegistry.listAllPacks(),
   ]);
   return AUTO_POOL.filter((b) => !taken.has(b.slug)).length;
 }
@@ -337,7 +340,7 @@ function publishBlockers(t) {
     blocking.push(m && m.test === true && m.templateId === t.id
       ? `frames/${t.slug} currently holds a temporary TEST install of this template — publish once the test render has finished`
       : `frames/${t.slug} already exists — publishing would overwrite an installed pack`);
-  } else if (frameRegistry.listPacks().includes(t.slug)) {
+  } else if (frameRegistry.listAllPacks().includes(t.slug)) {
     blocking.push(`"${t.slug}" is already a registered pack`);
   }
 
@@ -683,10 +686,11 @@ function buildRouter({ enqueueIntake } = {}) {
       return fail(res, `count must be a whole number from 1 to ${MAX_AUTO_BATCH}`);
     }
     // Both namespaces, because createTemplate refuses a slug that collides with
-    // either an existing template or an INSTALLED pack under frames/.
+    // either an existing template or an INSTALLED pack under frames/ — including
+    // a retired one, whose folder is still there (hence listAllPacks).
     const taken = new Set([
       ...store.listTemplates().map((t) => t.slug),
-      ...frameRegistry.listPacks(),
+      ...frameRegistry.listAllPacks(),
     ]);
     // A CAMPAIGN is the batch with a subject: "mars exploration", "street food".
     // Each template gets a different ANGLE on it (the announcement, the numbers,

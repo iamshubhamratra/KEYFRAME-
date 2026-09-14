@@ -56,10 +56,14 @@
 
     <fieldset class="toggles">
       <legend>Enhance</legend>
-      <label class="chk"><input type="checkbox" id="ttsChk"> <span>Voiceover (TTS)</span></label>
-      <label class="chk"><input type="checkbox" id="musicChk"> <span>Background music</span></label>
+      <!-- Voiceover, music and images ship CHECKED: unchecked, these three sent
+           tts/music/images:false on every submit, and two thirds of delivered
+           films had no photograph while 7 of 12 had no audio. Sound effects and
+           stock video stay unchecked (opt-in), matching routes/generate.js. -->
+      <label class="chk"><input type="checkbox" id="ttsChk" checked> <span>Voiceover (TTS)</span></label>
+      <label class="chk"><input type="checkbox" id="musicChk" checked> <span>Background music</span></label>
       <label class="chk"><input type="checkbox" id="sfxChk"> <span>Sound effects</span></label>
-      <label class="chk"><input type="checkbox" id="imagesChk"> <span>Stock images</span></label>
+      <label class="chk"><input type="checkbox" id="imagesChk" checked> <span>Stock images</span></label>
       <label class="chk"><input type="checkbox" id="videoChk"> <span>Stock video clips</span></label>
     </fieldset>
 

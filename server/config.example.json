@@ -38,19 +38,21 @@
       }
     },
     "provider": "openrouter",
-    "model": "google/gemini-3.1-flash-lite",
-    "modelFast": "google/gemini-3.1-flash-lite",
+    "model": "meta/muse-spark-1.3-contributor",
+    "modelFast": "meta/muse-spark-1.3-contributor",
     "modelFallback": "google/gemini-3-flash-preview",
     "stageModels": {
-      "storyboard": "kie:gemini-3.6-flash",
-      "composer": "google/gemini-3.1-flash-lite",
-      "assetPlanner": "google/gemini-3.1-flash-lite",
-      "audioPlanner": "google/gemini-3.1-flash-lite",
-      "brief": "kie:gemini-3.6-flash",
-      "script": "kie:gemini-3.6-flash",
-      "template_generator": "kie:claude-opus-5"
+      "storyboard": "meta/muse-spark-1.3-contributor",
+      "composer": "meta/muse-spark-1.3-contributor",
+      "assetPlanner": "meta/muse-spark-1.3-contributor",
+      "audioPlanner": "meta/muse-spark-1.3-contributor",
+      "brief": "meta/muse-spark-1.3-contributor",
+      "script": "meta/muse-spark-1.3-contributor",
+      "template_generator": "meta/muse-spark-1.3-contributor"
     },
-    "noFallbackStages": ["template_generator"],
+    "noFallbackStages": [
+      "template_generator"
+    ],
     "baseUrl": "https://openrouter.ai/api/v1",
     "apiKey": "",
     "maxTokens": {
@@ -72,7 +74,15 @@
     "httpReferer": "https://video-gen.local",
     "xTitle": "video-gen",
     "premiumStages": [],
-    "scriptEscalationModel": "kie:gemini-3.6-flash"
+    "scriptEscalationModel": "kie:gemini-3.6-flash",
+    "stageEffort": {
+      "vo_fit": "minimal",
+      "transcribe": "minimal",
+      "vision": "minimal",
+      "qa": "minimal",
+      "creative_director": "minimal",
+      "user_assets": "minimal"
+    }
   },
   "orientations": {
     "horizontal": {
@@ -103,16 +113,41 @@
     "pixabayKey": "",
     "freesoundToken": "",
     "ttsProvider": "openrouter",
-    "ttsKieModel": "elevenlabs/text-to-speech-multilingual-v2",
+    "ttsKieModel": "google/gemini-3-1-flash-tts",
     "ttsVoiceId": "EkK5I93UQWFDigLMpZcX",
     "ttsModel": "openai/gpt-audio-mini",
-    "defaultMusicVolume": 0.22
+    "defaultMusicVolume": 0.22,
+    "ttsVoiceName": "Charon"
   },
   "defaults": {
     "orientation": "horizontal",
     "quality": "1080p",
     "fps": 30,
-    "scriptOverlay": false
+    "scriptOverlay": false,
+    "pace": "normal"
+  },
+  "pacing": {
+    "relaxed": {
+      "label": "Relaxed",
+      "multiplier": 0.8,
+      "wordsPerSec": 2.3
+    },
+    "normal": {
+      "label": "Normal",
+      "multiplier": 1.0,
+      "wordsPerSec": 2.6
+    },
+    "fast": {
+      "label": "Fast",
+      "multiplier": 1.25,
+      "wordsPerSec": 2.0
+    },
+    "veryFast": {
+      "label": "Very Fast",
+      "multiplier": 1.5,
+      "wordsPerSec": 1.7
+    },
+    "calibration": false
   },
   "allowedFps": [
     24,
@@ -121,7 +156,48 @@
   ],
   "frames": {
     "dir": "../frames",
-    "defaultPack": "blockframe"
+    "defaultPack": "momentum",
+    "retired": [
+      "story-blocks",
+      "premiere-night",
+      "organic-garden",
+      "poster-pop",
+      "daybreak-bakehouse",
+      "lantern-night",
+      "drive-highway",
+      "deep-sea",
+      "flight-sky",
+      "orbit-space",
+      "showcase",
+      "jungle-wild",
+      "pipeline-factory",
+      "abyssal-glow",
+      "neon-premiere",
+      "liquid-glass",
+      "summit-keynote",
+      "lumen-motion",
+      "nova-launch",
+      "broadside",
+      "cobalt-grid",
+      "prism-launch",
+      "blockframe",
+      "vapor-chrome",
+      "noir-spotlight",
+      "midnight-glass",
+      "aurora-spectrum",
+      "kinetic-bold",
+      "terminal-green",
+      "bloom-illustrated",
+      "mono-corporate",
+      "terminal-amber",
+      "signal-mono",
+      "vault-gold",
+      "ledger-noir",
+      "care-mint",
+      "care-lavender",
+      "nimbus-saas",
+      "mint-launch"
+    ]
   },
   "render": {
     "hyperframesVersion": "0.6.120"

@@ -60,6 +60,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const config = require("../config");
 const { note } = require("./fallback_log");
+const pacing = require("./pacing");
+const { ownHost, signsOff } = require("./sign_off");
 
 const TPL_DIR = path.join(config.paths.root, "public", "omelette-templates");
 
@@ -315,11 +317,6 @@ function mergeRun(run) {
   };
 }
 
-// A cut inside a merged beat needs time to land, exactly as a pace split does:
-// below this the eye is still arriving when the next cut comes, which reads as
-// the picture racing the voice.
-const MIN_CUT_SEC = 2.0;
-
 function cutsFrom(groups) {
   return groups.map((g) => ({
     mem: g,
@@ -351,11 +348,17 @@ function foldCuts(cuts) {
  * the members are too short to give every cut time to land — the beat then plays
  * whole, leading with the scene that is spoken first.
  */
-function memberCuts(sc) {
+function memberCuts(sc, pacingOpt) {
   const members = Array.isArray(sc && sc.__members) ? sc.__members.filter(Boolean) : null;
   if (!members || members.length < 2) return null;
+  // A cut inside a merged beat needs time to land, exactly as a pace split does:
+  // below this the eye is still arriving when the next cut comes, which reads as
+  // the picture racing the voice. 2.0s at Normal; a faster pace buys it down by
+  // sqrt(multiplier) only — halving it at 1.5x would let a two-part split land at
+  // 1.33s, under the flicker floor pacing.js refuses to cross.
+  const minCut = pacing.resolve(pacingOpt).minCutSec;
   let cuts = cutsFrom(members.map((m) => [m]));
-  while (cuts.length > 1 && cuts.some((c) => c.dur < MIN_CUT_SEC)) {
+  while (cuts.length > 1 && cuts.some((c) => c.dur < minCut)) {
     const next = foldCuts(cuts);
     if (next.length >= cuts.length) break;
     cuts = next;
@@ -820,8 +823,13 @@ const HIDDEN_FALLBACK_PROPS = {
   FetchVertical:    { kicker: " " }, // "A GOOD BOY STORY" — ditto
 };
 
-function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent, tplName, filmTitle }) {
+function buildScenes({ tplScenes, scenes, assets, brand, url, signOff = null, tfx, land, accent, tplName, filmTitle, bookends = null, pacing: pacingOpt = null, clamped = null }) {
+  const P = pacing.resolve(pacingOpt);
   const { intro, outro, middle } = classifySlots(tplScenes);
+  // Does this film have a brand to close on at all? Gates the sign-off shape
+  // (see wantOutro). Decided by the caller when it knows (it can read the
+  // storyboard's explicit opt-in); this fallback keeps the harnesses working.
+  const hasBrandHome = signOff == null ? signsOff({ url, assets }) : !!signOff;
   // Uppercase the COPY rather than relying on a CSS rule. These films are React
   // components that set type inline on their own elements, so a stylesheet hook
   // means guessing at their markup — and a guess that misses fails silently, with
@@ -924,6 +932,27 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
   // Every asset actually placed in a slot, in placement order — the recycle
   // pool for scenes/walls that outnumber the supply.
   const used = [];
+  // …and how OFTEN each file has actually reached a frame. `used` holds each
+  // asset once, so it can say "has this been placed?" but never "how many times
+  // has the viewer seen it?" — and every path below (recycle, borrowShot) draws
+  // from it without counting. Measured over 199 packs at a realistic supply of 6
+  // pictures: 11.4 picture slots filled from 2.0 distinct files in a 9-beat
+  // film, one of them drawn 6.3 times, and 11.0 times across 17 beats. Counted
+  // at the two sites where a picture is actually written onto a beat.
+  const drawn = new Map();
+  const bump = (p) => { if (p && p !== "__kfplate__") drawn.set(p, (drawn.get(p) || 0) + 1); };
+  // TWO LOOKS AT A PICTURE, THEN LET IT GO. Every repeat path below draws from a
+  // round-robin with no memory of how often it has already handed a file out, so
+  // a scarce pool put one photograph on a third, fourth and fifth beat while
+  // pictures the job had already paid for were never drawn at all. A film with
+  // far more beats than pictures cannot hold to two, though — 17 beats against 6
+  // pictures wants 20.8 picture slots and a flat ceiling of two offers 12, which
+  // measured 10.3 branded plates per film. So the ceiling rises with the
+  // shortfall: enough looks to cover the beats, never fewer than two.
+  const spendable = (list) => {
+    const cap = Math.max(2, Math.ceil(totalBeats / Math.max(1, pool.length)));
+    return list.filter((a) => (drawn.get(a.path) || 0) < cap);
+  };
   let recycleAt = 0;
   // The picture the PREVIOUS beat drew. Two consecutive cuts on the same capture
   // read as a stall — the voice moves on, the frame does not.
@@ -1028,9 +1057,24 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
   // One number every picture decision now shares. `used` is the repeat penalty:
   // a fresh, weaker asset beats showing the same capture a third time, which is
   // how one screenshot ended up on six of fourteen beats in a shipped film.
-  const matchScore = (sc, a, { penalizeUsed = true } = {}) => {
+  const matchScore = (sc, a, { penalizeUsed = true, ownBeat = true } = {}) => {
     const terms = sceneTerms(sc);
     let score = 0;
+    // THE PICTURE THIS BEAT PAID FOR OUTBIDS EVERY WORD MATCH. `byScene` above
+    // keeps ONE asset per sceneId; when the planner buys two or three for a
+    // scene the rest fall into `free`, lose the binding, and had nothing but
+    // word overlap left to get them home — a stock photo's tag soup ("office
+    // desk laptop") matches four beats equally well — 78% of beats showed a
+    // picture bought for a different beat, measured over 199 packs at a
+    // 6-picture supply (38% with this and the draw ceiling below; this term is
+    // what makes every repeat path here prefer the beat's OWN picture).
+    // 3 clears the largest overlap total observed anywhere (2.8), so the
+    // beat's own picture wins outright — including over the used/lastShot
+    // penalties below, because its own capture shown twice still beats another
+    // beat's. `ownBeat:false` is for pinOrBetter, whose pin is keyed BY sceneId
+    // and would therefore score this bonus by construction, silently disabling
+    // the off-topic-pin escape it exists to make.
+    if (ownBeat && sc && a && sc.id != null && a.sceneId != null && String(a.sceneId) === String(sc.id)) score += 3;
     if (terms.size) for (const [t, w] of assetTermWeights(a)) if (terms.has(t)) score += w;
     if (!TOPIC_MATCH) return score;                         // OM_TOPIC_MATCH=0 — the pre-fix ranking, for A/B
     score += sectionBonus(sc, a);
@@ -1208,10 +1252,33 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
   // FIRST and LAST cut, and a cut is no longer one-per-narrated-scene, so
   // counting source scenes here would fire the closer partway through.
   let totalBeats = scenes.length;
+  // A SEGMENT OF A LONGER FILM OPENS AND CLOSES ONCE, NOT EVERY TIME.
+  //
+  // Long-form films are rendered as several compositions and concatenated
+  // (pipeline.renderInSegments), because the engine hard-rejects a list over 50.
+  // Each part is a whole composition, so without this every part would lay down
+  // the template's title card and fire its CTA — a ten-minute film that
+  // introduces itself four times and signs off four times. The segmenter asks
+  // for the opener on the FIRST part and the closer on the LAST one only.
+  // Default (no bookends given) is the whole-film behaviour: both.
+  const wantIntro = !bookends || bookends.intro !== false;
+  // ...AND A FILM WITH NOWHERE TO SEND THE VIEWER DOES NOT SIGN OFF AT ALL.
+  //
+  // The closer is a brand lockup: a monogram standing in for a logo, the brand's
+  // name, "GET <BRAND>" and the URL. On a film built from a bare prompt every one
+  // of those is invented — a 30s film titled "How compound interest quietly
+  // builds wealth" closed on a "COM" monogram over "GET COMPOUND". Only a film
+  // with a real destination (a website/blog the user gave us, or their own
+  // uploaded mark) has anything to sign off to; see services/sign_off.js.
+  //
+  // The BEAT survives — it keeps its copy, its airtime and its narration, and
+  // simply gets cast as a content shape below. Dropping it would leave the
+  // closing line playing over the previous scene's frame.
+  const wantOutro = (!bookends || bookends.outro !== false) && hasBrandHome;
   const slotFor = (i, sc) => {
     const last = totalBeats - 1;
-    if (i === 0 && intro) return intro;
-    if (i === last && outro) return outro;
+    if (i === 0 && intro && wantIntro) return intro;
+    if (i === last && outro && wantOutro) return outro;
     // RESPECT THE TEMPLATE'S OWN PACING. Each authored shape carries the `dur`
     // its animation was designed to play at (and, on the opening beats, a `nat`
     // = its natural full length). Our films override every duration with the
@@ -1333,11 +1400,32 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
   // on two different shapes instead of one held frame. Total duration is
   // untouched, so the narration stays in sync.
   //
-  // Landscape keeps the authored pace: the brief was to speed up the vertical
-  // templates, and a wider frame carries a held shot far better than a phone does.
-  const beatTarget = land
+  // Landscape used to keep the authored pace, on the reasoning that a wider frame
+  // carries a held shot better than a phone does. It does not carry it well
+  // enough: the same "very slow" complaint came back for horizontal films, so the
+  // 3s cap now applies to BOTH orientations. The 2.0s-per-part floor below still
+  // stops a wide frame from being cut into a flicker.
+  //
+  // ONLY WHERE THERE IS BUDGET TO SPLIT WITH. A split adds a beat, and a film
+  // already cast at the engine's 50-scene ceiling has none to add: every split is
+  // handed straight back by the loop below, and that churn costs scene
+  // BOUNDARIES — measured, it dropped a 300s film's A/V sync from 90% to 89% of
+  // runtime showing the scene being spoken. Past the ceiling the honest answer is
+  // that the engine cannot hold enough beats (see the ENGINE_MAX_SCENES warning
+  // in buildComposition), not that the beats should be cut finer.
+  //
+  // So: portrait keeps the cap unconditionally (its films are short), landscape
+  // gets it only while the cast is inside the ceiling — which is every film up to
+  // ~160s on the median template, and none of the 5/8/10-minute ones.
+  //
+  // The 3s cap is the PACE's cut unit, not a constant: pacing.beatTargetFor
+  // returns min(P.beatSec, native) floored at 1.6, and P.beatSec is 3 at Normal
+  // — so Fast asks for a cut every 2.4s and Very Fast every 2s, which is the one
+  // dial in this file that adds cuts without moving a single scene boundary.
+  const beatStarved = scenes.length >= ENGINE_MAX_SCENES;
+  const beatTarget = (land && beatStarved)
     ? Math.max(1.6, nativePace)
-    : Math.min(3, Math.max(1.6, nativePace));
+    : pacing.beatTargetFor(nativePace, P);
   // What the NEXT scene will headline — used to stop a beat pre-empting it.
   const nextHeadOf = (sc) => {
     const idx = scenes.indexOf(sc);
@@ -1420,7 +1508,27 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
   // rotation to reuse one of them five times.
   const castable = middle.filter((t) => scenes.some((sc) => canFill(t, sc, true))).length;
   const shapePool = Math.max(1, castable || (tplScenes.length - 2));
-  const beatBudget = Math.max(scenes.length, Math.round(shapePool * 2.5) + 2);
+  // PACE BUDGET — the long-form exception to the variety guard above.
+  //
+  // The guard exists because a 2s beat on a shape that reveals its copy in the
+  // last fifth of a 4.5s window reads as an empty frame. That is a SHORT-FILM
+  // failure: it needs beats short enough to outrun the shape's own animation.
+  // A long film has the opposite problem — 6-12s scenes, one held frame each —
+  // and splitting those leaves every part 3s or more, which is a full window for
+  // the shape to play in. There a repeated shape reads as a reprise, not a flash,
+  // and the repetition is the price of a film that moves.
+  //
+  // So: only when HALF an average scene is still a roomy beat do we budget for a
+  // cut per scene. Capped at the engine's own ceiling so a composition built this
+  // way can never be rejected outright.
+  //
+  // "Roomy" is measured against the PACE's own cut unit (3s at Normal), not a
+  // constant: at Fast a 2.4s part is a full window, so a 4.8s average scene now
+  // earns the budget that used to need a 6s one.
+  const avgDur = scenes.reduce((a, s) => a + Math.max(0, Number(s.duration) || 0), 0) / Math.max(1, scenes.length);
+  const splitStaysRoomy = (avgDur / 2) >= P.beatSec;
+  const paceBudget = splitStaysRoomy ? Math.min(ENGINE_MAX_SCENES, scenes.length * 2) : 0;
+  const beatBudget = Math.max(scenes.length, Math.round(shapePool * 2.5) + 2, paceBudget);
   const beats = [];
   const plan = scenes.map((sc) => {
     const dur = Math.max(1.2, Number(sc.duration) || 4);
@@ -1434,8 +1542,9 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
     let n = Math.max(1, Math.min(2, Math.ceil(dur / beatTarget)));
     // ...and each part needs 2s to land. Below that the eye is still arriving
     // when the cut comes, which reads as the visuals being out of step even
-    // though the timing is exact.
-    while (n > 1 && dur / n < 2.0) n--;
+    // though the timing is exact. P.beatFloor is that 2s at Normal and shrinks
+    // only by sqrt(multiplier), so Very Fast splits at 1.63s rather than 1.33s.
+    while (n > 1 && dur / n < P.beatFloor) n--;
     // ONLY CUT IF THERE IS SOMETHING NEW TO CUT TO. A stat scene carries one
     // figure and no supporting line, so splitting it just showed "75% VALUE IN 30
     // DAYS" twice in a row — a cut that hands the viewer nothing.
@@ -1448,7 +1557,7 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
     // split point puts one scene's headline on screen over the other scene's
     // voice. `cuts` carries that split explicitly; everything below treats each
     // cut as a whole beat with its own copy, so partView never has to guess.
-    const cuts = memberCuts(sc);
+    const cuts = memberCuts(sc, P);
     if (cuts) return { sc, dur, n: cuts.length, cuts, boundary: true };
     return { sc, dur, n };
   });
@@ -1456,6 +1565,7 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
   // leaves the SHORTEST merged beat. Surrendering the longest scene's split
   // instead produces a single 5s held frame, which is the very thing being fixed.
   let planned = plan.reduce((a, p) => a + p.n, 0);
+  const wanted = planned;
   while (planned > beatBudget) {
     // PACE OUTRANKS VARIETY. Only give a split back if the merged beat still cuts
     // inside the target — a shape repeating at 2.5s reads far better than the same
@@ -1478,6 +1588,10 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
     give.n--;
     planned--;
   }
+  // A split surrendered here is a cut the pace asked for and did not get, so say
+  // so rather than letting the pacing report claim the film cuts at P.beatSec
+  // when the shape pool quietly bought some of it back.
+  if (clamped && planned < wanted) clamped.push(`beats ${wanted}->${planned} (shape-pool variety budget ${beatBudget})`);
   plan.forEach(({ sc, dur, n, cuts }, i) => {
     if (cuts) { cuts.forEach((c) => beats.push({ sc: c.view, i, dur: c.dur, part: 0, of: 1 })); return; }
     const each = dur / n;
@@ -1569,7 +1683,13 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
     if (has("calloutNum")) out.calloutNum = tpl.calloutNum || "1";   // a slide number, not copy
     // "GET <brand>" only reads as a call to action when there IS a brand; with an
     // unbrandable title it printed "GET FROM". Fall back to a real CTA instead.
-    if (has("cta")) out.cta = fit(sc.cta || sc.ctaLabel || (brand ? `GET ${brand}` : "GET STARTED"), 20).toUpperCase();
+    //
+    // ...and a NAME is only trustworthy when it came from the film's own domain.
+    // With no url the brand is whatever the title's first usable word was, so
+    // "GET COMPOUND" told the viewer to go and get a product that does not
+    // exist. A film with an uploaded logo but no site still signs off — on its
+    // real mark, under a generic "GET STARTED".
+    if (has("cta")) out.cta = fit(sc.cta || sc.ctaLabel || (brand && url ? `GET ${brand}` : "GET STARTED"), 20).toUpperCase();
     if (has("url")) out.url = url;
     if (has("quote")) out.quote = fit(sc.quote || sc.subtext || sc.voiceover || "", 140);
     if (has("author")) out.author = fit(sc.author || brand, 24);
@@ -2013,10 +2133,36 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
       }
       return pick;
     };
+    // …and a repeat obeys the draw ceiling (see `spendable`): measured over 199
+    // packs at a 6-picture supply, this round-robin drew the same file 6.3 times
+    // across 9 beats. Shots-first is kept, but "shots first" now means "shots
+    // that have draws left" — with every capture spent, another real picture
+    // still beats a plate; with nothing left at all, null drops through to the
+    // `__kfplate__` branch, and a designed frame beats a sixth look at the same
+    // photograph.
     const recycle = () => {
       if (!used.length) return null;
-      const shotsFirst = used.filter(isShot);
-      const src = shotsFirst.length ? shotsFirst : used;
+      const shotsFirst = spendable(used.filter(isShot));
+      const src = shotsFirst.length ? shotsFirst : spendable(used);
+      if (!src.length) return null;
+      return bestMatch(src, sc) || src[recycleAt++ % src.length];
+    };
+    // …AND WHEN EVEN THE RECYCLE POOL IS "SPENT". `recycle` filters `used`
+    // through `spendable`, which caps how often one file may be drawn — so on a
+    // film with more slots than that cap allows it returns null while `used` is
+    // still full of real pictures. The media-wall loop below treated that null
+    // as "stop", left its remaining slots UNSET, and an unset slot is the one
+    // input the compiled films answer with their hatched "DROP IMAGE TO REPLACE"
+    // card. Measured on a 15-beat edition-press film: 15 images in the pool, a
+    // cap of 2 draws each, and the closing Spread shipped its third plate empty
+    // (user-reported). A third look at a photograph the viewer has already seen
+    // is a strictly better frame than authoring chrome, so the cap is advisory
+    // at this last step and this ignores it. Only ever reached for slots the
+    // wall actually draws, and only after every fresh asset is gone.
+    const recycleAny = () => {
+      if (!used.length) return null;
+      const shots = used.filter(isShot);
+      const src = shots.length ? shots : used;
       return bestMatch(src, sc) || src[recycleAt++ % src.length];
     };
     const place = (a) => { if (a && !used.includes(a)) used.push(a); return a; };
@@ -2037,14 +2183,19 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
     // topic; when it plainly is not, let a clearly better candidate take the slot.
     const pinOrBetter = () => {
       if (!pinnedOk) return null;
-      const pinScore = matchScore(sc, pinned, { penalizeUsed: false });
+      // Scored WITHOUT the own-beat bonus on either side: the pin is keyed by
+      // this scene's id, so the bonus would put every pin over the 1.2 gate and
+      // the escape below would never run again; and a challenger that also
+      // belongs to this beat would win the slot while the pin — which lives in
+      // `byScene`, never in `free` — would then be drawn nowhere at all.
+      const pinScore = matchScore(sc, pinned, { penalizeUsed: false, ownBeat: false });
       if (pinScore >= 1.2) return pinned;
       let best = null, bestScore = pinScore + 1;             // "clearly better", not "a hair better"
       for (let k = fi; k < free.length; k++) {
         const a = free[k];
         if (omDemoted(a)) continue;
         if (!wantsPhone && isPortraitAsset(a)) continue;
-        const s = matchScore(sc, a, { penalizeUsed: false });
+        const s = matchScore(sc, a, { penalizeUsed: false, ownBeat: false });
         if (s > bestScore) { bestScore = s; best = a; }
       }
       if (!best) return pinned;
@@ -2058,16 +2209,28 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
     // from the reserved set. Re-showing a real product screenshot is explicitly
     // preferred over a wrong-but-fresh asset (same rule `recycle` follows), and
     // its own scene still gets it later.
-    const borrowShot = () => {
-      const wide = pool.filter((a) => isShot(a) && !isPortraitAsset(a));
-      const any = wide.length ? wide : pool.filter(isShot);
+    // The draw ceiling applies to a borrow as well — uncapped, this served the
+    // picture slot of EVERY beat of a film whose captures were all pinned, 11.4
+    // slots from 2.0 distinct files. `fresh` narrows it further, to captures the
+    // film has not shown at all; the pinned branch in the chain below is why.
+    const borrowShot = ({ fresh = false } = {}) => {
+      const ok = (a) => isShot(a) && (!fresh || !drawn.get(a.path));
+      const wide = spendable(pool.filter((a) => ok(a) && !isPortraitAsset(a)));
+      const any = wide.length ? wide : spendable(pool.filter(ok));
       if (!any.length) return null;
       return bestMatch(any, sc) || any[recycleAt++ % any.length];
     };
     const primary = place(
       pinOrBetter()
       || (wantsPhone ? takeFor(sc, isPortraitAsset) : takeFor(sc, (a) => isShot(a) && !isPortraitAsset(a)))
-      || (pinned && !isShot(pinned) ? borrowShot() : null)
+      // A capture outranks this beat's pinned photo — but only a capture the
+      // film has not spent yet. Unqualified, this borrow beat the pin on EVERY
+      // beat, so a job with 2 captures and 4 photographs drew the same two
+      // captures for the whole film and the four photographs it paid for were
+      // never drawn at all (measured over 199 packs: 2.0 distinct pictures on
+      // 11.4 picture slots). Once every capture has had its look, this beat's
+      // own picture is the better frame.
+      || (pinned && !isShot(pinned) ? borrowShot({ fresh: true }) : null)
       || pinned
       || take((a) => !isPortraitAsset(a))
       || take()
@@ -2088,7 +2251,7 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
     // Never leave a picture slot unset — the compiled film paints its own
     // "DROP IMAGE TO REPLACE" placeholder when it is missing.
     out.shot = primary ? primary.path : "__kfplate__";   // sentinel — see the 16KB-cap note; harness swaps the plate in
-    if (primary) lastShot = primary;
+    if (primary) { lastShot = primary; bump(primary.path); }
     // THE KIT FAMILY NAMES ITS MEDIA SLOTS DIFFERENTLY.
     //
     // The 80 templates built on film-kit.js (mega-pack-*/world-pack-*) render
@@ -2169,15 +2332,42 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
         // logo repeated onto a later beat claims the film is about Slack.
         const a = markAt(n)
           || (n === vecTile ? place(takeVec()) : null)
-          || place(take()) || (n <= slots ? recycle() : null);
-        if (!a) break;
+          || place(take())
+          || (n <= slots ? (recycle() || recycleAny()) : null);
+        if (!a) {
+          // PAST `slots` the wall is only being EXTENDED by fresh supply, so
+          // nothing left means stop. INSIDE `slots` the tile is drawn whatever
+          // we do here, and leaving the prop unset is precisely how the film
+          // gets told to paint its hatched placeholder — so the tile takes the
+          // branded plate and the wall keeps going. Filled in place rather than
+          // appended afterwards because `wall` is index-aligned with shot1..N:
+          // it feeds shotA/shotB, `images`, and the indexed `shots` rebuild
+          // below, all of which read position n-1 as slot n.
+          if (n > slots) break;
+          out[`shot${n}`] = "__kfplate__";   // sentinel (16KB cap) — harness swaps the plate in
+          wall.push("__kfplate__");
+          // COUNTABLE, not silent. The empty card was invisible to every gate we
+          // have: QA passed the film, the density audit counted the beat as
+          // media-bearing, and the only witness was the finished video. A plate
+          // in a wall tile means the pool could not cover the wall — worth a
+          // line in fallbacks.json whether or not it is worth a re-render.
+          note("omelette_adapter", "plated-wall-tile", {
+            severity: "visual", slot: `shot${n}`, scene: tpl.name,
+            detail: `${tpl.name} draws ${slots} tiles; supply covered ${n - 1}`,
+          });
+          continue;
+        }
         out[`shot${n}`] = a.path;
+        bump(a.path);
         wall.push(a.path);
       }
-      // NEVER A HATCHED PLACEHOLDER. When even recycling could not fill the two
-      // portrait cards (an assetless film), the remaining card gets the branded
-      // tonal plate — the same stand-in every single-shot slot already uses.
-      while (!land && wall.length < slots) {
+      // NEVER A HATCHED PLACEHOLDER. When even recycling could not fill the
+      // cards (an assetless film), the remaining ones get the branded tonal
+      // plate — the same stand-in every single-shot slot already uses.
+      // BOTH ORIENTATIONS. This was gated on `!land`, so the guarantee it names
+      // held for portrait walls only — and a landscape wall that ran short shipped
+      // the empty card this comment promises never to ship.
+      while (wall.length < slots) {
         out[`shot${wall.length + 1}`] = "__kfplate__";   // sentinel (16KB cap) — the harness swaps the plate in
         wall.push("__kfplate__");
       }
@@ -2600,7 +2790,115 @@ function applyBrandSkin(html, framePack, brandSkin) {
   return { html: out, applied };
 }
 
-function buildComposition({ storyboard, dims, framePack, assets, template, manifest, captionCues, scriptCues, scriptOverlay = false, brandSkin = null } = {}) {
+/**
+ * Resolve the template file a pack renders, the same way buildComposition does.
+ * Exported so the segmenter can read a template's authored pace WITHOUT building
+ * a whole composition first.
+ */
+function resolveTemplateName({ framePack, template, manifest }) {
+  let tplName = template || (manifest && manifest.template) || null;
+  if (!tplName && framePack) {
+    try { tplName = (require("./frame_manifest").getManifest(framePack) || {}).template || null; }
+    catch { /* fall through to the slug */ }
+  }
+  return tplName || framePack;
+}
+
+/**
+ * HOW MANY COMPOSITIONS THIS FILM NEEDS, and where to cut between them.
+ *
+ * The engine hard-rejects an OM_SCENES list over ENGINE_MAX_SCENES entries — a
+ * measured cliff (50 renders, 52 draws an error slate, and a LEAN 200-entry list
+ * at 6.7KB is refused while a full 50-entry one at 8.7KB is fine, so it is the
+ * COUNT, not the bytes). One composition therefore cannot hold more than 50
+ * beats, and a 600s film covers its runtime by stretching those 50 beats to 12s
+ * each. That is the whole of the "long films feel very slow" complaint.
+ *
+ * A film rendered as SEVERAL compositions, concatenated, pays that ceiling once
+ * per part instead of once per film. The cuts fall on SCENE boundaries, never
+ * inside a scene, so no narration clip is split and the audio — which is mixed
+ * separately over the finished picture — still lines up exactly.
+ *
+ * Returns { segments: [{ scenes, durationSec, startSec, bookends }], reason }.
+ * A single-segment plan means the film fits and should render normally.
+ */
+function planFilmSegments({ storyboard, framePack, template, manifest, cap = ENGINE_MAX_SCENES, pacing: pacingOpt = null }) {
+  const P = pacing.resolve(pacingOpt);
+  const scenes = (storyboard && Array.isArray(storyboard.scenes)) ? storyboard.scenes : [];
+  const durationSec = Number(storyboard && storyboard.durationSec) || 0;
+  const one = (reason) => ({ segments: [{ scenes, durationSec, startSec: 0, bookends: { intro: true, outro: true } }], count: 1, reason });
+  if (scenes.length < 4 || !(durationSec > 0)) return one("too few scenes to segment");
+
+  const tplName = resolveTemplateName({ framePack, template, manifest });
+  const file = templatePath(tplName);
+  if (!file) return one(`template "${tplName}" not found`);
+  let tplScenes = null;
+  try { tplScenes = readTemplateScenes(fs.readFileSync(file, "utf8")); } catch { /* unreadable */ }
+  if (!tplScenes || !tplScenes.length) return one("template exposes no scenes");
+
+  // HOW MANY BEATS THIS FILM WANTS, measured against the pace a viewer reads as
+  // brisk — NOT against the template's authored pace. Keying off the authored
+  // pace hides the complaint: a template authored at a 7.5s stroll "fits" a 300s
+  // film in 40 beats, and the film then plays at 6s a cut and feels slow anyway.
+  // TARGET_BEAT_SEC is the same ceiling buildScenes cuts to — 3s at Normal, and
+  // the pace's own cut unit otherwise, so a Fast film asks for more beats here
+  // and therefore gets the extra PARTS to hold them. This is where the surplus
+  // beats the engine's 50-scene ceiling refuses actually go.
+  const TARGET_BEAT_SEC = P.segmentBeatSec;
+  // A scene splits into at most TWO beats (three makes the third repeat the
+  // copy), so 2x the scene count is the most beats this film can ever draw.
+  // Asking for more parts than that buys nothing but renders.
+  const maxUseful = scenes.length * 2;
+  const desiredBeats = Math.min(Math.ceil(durationSec / TARGET_BEAT_SEC), maxUseful);
+  if (desiredBeats <= cap) return one("fits in one composition");
+
+  // Enough parts that each one's share is inside the ceiling. Every part needs at
+  // least 2 scenes to be a film rather than a slide, which also stops a
+  // short-scened script from being cut into confetti.
+  let count = Math.ceil(desiredBeats / cap);
+  count = Math.min(count, Math.floor(scenes.length / 2));
+  if (count < 2) return one("not enough scenes for a second part");
+
+  // Split on scene boundaries, balanced by DURATION (not scene count) so every
+  // part carries a similar share of the runtime and therefore a similar pace.
+  const target = durationSec / count;
+  const groups = [];
+  let cur = [], acc = 0, startSec = 0, curStart = 0;
+  for (let i = 0; i < scenes.length; i++) {
+    const d = Math.max(0, Number(scenes[i].duration) || 0);
+    cur.push(scenes[i]); acc += d; startSec += d;
+    const partsLeft = count - groups.length;
+    const scenesLeft = scenes.length - (i + 1);
+    // Close this part when it has its share AND there is still enough left to
+    // fill every remaining part with at least 2 scenes.
+    const enoughLeft = scenesLeft >= 2 * (partsLeft - 1);
+    if (partsLeft > 1 && cur.length >= 2 && acc >= target && enoughLeft) {
+      groups.push({ scenes: cur, durationSec: Math.round(acc * 100) / 100, startSec: Math.round(curStart * 100) / 100 });
+      curStart = startSec; cur = []; acc = 0;
+    }
+  }
+  if (cur.length) groups.push({ scenes: cur, durationSec: Math.round(acc * 100) / 100, startSec: Math.round(curStart * 100) / 100 });
+  if (groups.length < 2) return one("split produced a single part");
+
+  const segments = groups.map((g, i) => ({
+    ...g,
+    // The film opens once and signs off once — see slotFor.
+    bookends: { intro: i === 0, outro: i === groups.length - 1 },
+  }));
+  return {
+    segments, count: segments.length,
+    reason: `${durationSec}s wants ${desiredBeats} beats at ~${TARGET_BEAT_SEC}s each; one composition holds ${cap}, so ${segments.length} parts`,
+  };
+}
+
+function buildComposition({ storyboard, dims, framePack, assets, template, manifest, captionCues, scriptCues, scriptOverlay = false, brandSkin = null, bookends = null, pacing: pacingOpt = null } = {}) {
+  const P = pacing.resolve(pacingOpt);
+  // Where the requested pace could NOT be delivered. Three ceilings stack here —
+  // the engine's 50-entry scene list, the 15500-byte payload whose shed loop
+  // MERGES beats back (silently re-lengthening them), and the shape-pool variety
+  // budget inside buildScenes — and every one of them absorbs cuts. The pacing
+  // report states this array rather than reporting a pace the film does not have.
+  const clamped = [];
   // composeWithPackRenderer passes framePack (the SLUG, e.g. "reel"); the
   // template file is named by the manifest ("Reel"). Resolve through the
   // manifest so a pack only has to declare `template` once, in pack.json.
@@ -2693,11 +2991,9 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
   // OWNER sources only. topic-screenshots are captures of OTHER products'
   // reference sites, so deriving the film's URL from one printed a COMPETITOR'S
   // domain on the CTA — a real Lumen film closed on "reflect.app" because its
-  // topic shots were of reflect/notion/mem.
-  const host = (Array.isArray(assets) ? assets : [])
-    .filter((a) => a && a.sourceUrl && /^(website|website-image|blog)$/.test(String(a.source)))
-    .map((a) => { try { return new URL(a.sourceUrl).hostname.replace(/^www\./, ""); } catch { return null; } })
-    .find(Boolean);
+  // topic shots were of reflect/notion/mem. (Now shared with the family engine,
+  // which had no such rule: services/sign_off.js.)
+  const host = ownHost(assets);
   // A film TITLE is often a sentence ("Teampulse ends the busywork") — slicing
   // it to 18 chars branded a real film "Teampulse Ends the" with the URL
   // teampulseendsthe.com. When the fallback is a multi-word title, the brand is
@@ -2732,6 +3028,8 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
   // one was actually supplied or harvested from the film's own site; otherwise
   // show none and let the CTA carry the call to action on its own.
   const url = String(sb.url || host || "").slice(0, 40);
+  // May this film close on its brand card at all? See services/sign_off.js.
+  const signOff = signsOff({ url, storyboard: sb, assets });
 
   const tplScenes = readTemplateScenes(html);
   if (!tplScenes || !tplScenes.length) throw new Error(`omelette: template "${tplName}" exposes no OM_SCENES`);
@@ -2749,9 +3047,17 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
   //     film still starts and ends in its authored form)
   //   - too many -> drop interior beats evenly, keeping first and last
   // Cast durations then come out at the authored pace by construction.
+  //
+  // ...and this is the ONE place pace can bite in this file. The rescale further
+  // down recomputes k = requestedD / Σdur and rewrites every beat's `dur`, so
+  // multiplying beat LENGTHS anywhere upstream is cancelled by construction.
+  // Pace has to arrive as a beat COUNT, and it does so by shrinking the authored
+  // median BEFORE idealBeats is derived: at Fast, authoredPaceFactor is 1/1.25,
+  // so a 7.5s template reads as 6s and a 300s film asks for 50 beats where it
+  // asked for 40. Exactly 1 at Normal, so the median is untouched there.
   const authoredPace = (() => {
     const ds = tplScenes.map((s) => Number(s && s.dur)).filter((n) => n > 0).sort((a, b) => a - b);
-    return ds.length ? ds[Math.floor(ds.length / 2)] : 7.5;      // median beat of the film itself
+    return (ds.length ? ds[Math.floor(ds.length / 2)] : 7.5) * P.authoredPaceFactor;   // median beat of the film itself
   })();
   const idealBeats = Math.max(2, Math.round(requestedD / authoredPace));
   // PACE MAY ADD CUTS; IT MAY NOT TAKE COPY AWAY.
@@ -2770,8 +3076,9 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
     // Say it out loud rather than quietly shipping a slow film: past
     // ENGINE_MAX_SCENES x authoredPace the engine simply cannot hold enough beats,
     // so the only way to cover the duration is longer beats.
+    clamped.push(`beats ${idealBeats}->${targetBeats} (engine ceiling ${ENGINE_MAX_SCENES})`);
     console.warn(
-      `[omelette] ${tplName}: ${requestedD}s at this template's ${authoredPace}s pace wants ${idealBeats} beats, ` +
+      `[omelette] ${tplName}: ${requestedD}s at this template's ${r2(authoredPace)}s pace wants ${idealBeats} beats, ` +
       `but the engine caps the scene list at ${ENGINE_MAX_SCENES} — beats run ${(requestedD / targetBeats).toFixed(1)}s ` +
       `(${(requestedD / targetBeats / authoredPace).toFixed(2)}x the authored pace). ` +
       `Films up to ${Math.floor(ENGINE_MAX_SCENES * authoredPace)}s hold the authored pace.`
@@ -2785,7 +3092,8 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
     try { return (JSON.parse(m[1] || m[2]) || {}).accent || null; } catch { return null; }
   })();
 
-  let omScenes = buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land: W > H, accent, tplName, filmTitle: String(sb.title || "").trim() });
+  let omScenes = buildScenes({ tplScenes, scenes, assets, brand, url, signOff, tfx, land: W > H, accent, tplName, filmTitle: String(sb.title || "").trim(), bookends, pacing: P, clamped });
+  const castBeats = omScenes.length;
 
   // HARD ENGINE LIMIT: ssParse rejects an OM_SCENES string over 16KB (or >50
   // scenes) by rendering a full-frame ERROR SLATE for the whole film — worse
@@ -2878,6 +3186,14 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
         if (!String(into[k] || "").trim()) { into[k] = lead; break; }
       }
     }
+  }
+  // A merge here RE-LENGTHENS the surviving beat once the rescale below spreads
+  // the freed seconds over fewer beats — which is exactly the pace being handed
+  // back. It is invisible from the finished film (the runtime is still exact), so
+  // it has to be reported or the pacing report will claim cuts the film never made.
+  if (omScenes.length < castBeats) {
+    clamped.push(`beats ${castBeats}->${omScenes.length} (engine ${ENGINE_MAX_SCENES}-scene / 15500-byte payload shed)`);
+    console.warn(`[omelette] ${tplName}: ${castBeats} cast beats shed to ${omScenes.length} to fit the engine's scene/byte ceiling — beats run ${r2(requestedD / omScenes.length)}s.`);
   }
 
   // RESCALE THE SURVIVORS ONTO THE REQUESTED LENGTH.
@@ -3059,6 +3375,16 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
   // reach (see kfFitShots).
   const vectorFiles = [...new Set((Array.isArray(assets) ? assets : [])
     .filter((a) => isVectorAsset(a) || isBrandMark(a)).map((a) => String(a.path || "").split("/").pop()).filter(Boolean))];
+  // EVERY DRAWABLE PICTURE, for the placeholder backstop in the harness below.
+  // Logos and vectors are excluded for the same reasons picture slots exclude
+  // them: a mark cover-cropped into a card is wrong by construction, and flat
+  // art has no spare margin to spend on a crop.
+  const fillFiles = [...new Set((Array.isArray(assets) ? assets : [])
+    .filter((a) => a && a.type === "image"
+      && !/\.svg$/i.test(String(a.path || ""))
+      && String(a.kind || "") !== "logo"
+      && String(a.source || "") !== "iconify")
+    .map((a) => String(a.path || "")).filter(Boolean))];
   const brandFiles = [...new Set((Array.isArray(assets) ? assets : [])
     .filter(isBrandMark).map((a) => String(a.path || "").split("/").pop()).filter(Boolean))];
   const vectorFitCss = vectorFiles.length
@@ -3123,6 +3449,7 @@ ${vectorFitCss}
       }
     }catch(e){}
   }
+
   function boot(){
     var el=document.querySelector('[data-om-exportable-video-with-duration-secs]');
     if(!el){ return setTimeout(boot, 120); }
@@ -3478,9 +3805,98 @@ ${vectorFitCss}
         for(var j=0;j<all.length;j++) if(all[j].shadowRoot) kfSwapPlates(all[j].shadowRoot);
       }catch(e){}
     }
+    // THE LAST LINE AGAINST AN EMPTY MEDIA CARD.
+    //
+    // Every fill above works by writing a PROP the film reads — shot, image,
+    // shot1..N, logo. That only reaches slots whose prop names we know, and a
+    // render sweep over all 197 packs found two ways it still misses:
+    //   - a wall that draws MORE tiles than the slot rule guesses (drive-highway's
+    //     Fleet lays six; the rule guarantees three), and
+    //   - a slot on a prop nothing else names — teampulse's Problem beat renders
+    //     <MediaSlot src={s.office}>, and that prop is declared nowhere.
+    // Both end the same way: the film's own MediaSlot sees a falsy "src" and
+    // paints its authoring chrome — a hatched card reading "DROP IMAGE".
+    //
+    // Chasing prop names per template would be a table to maintain and would
+    // still miss the next template. This works on the RESULT instead: whatever
+    // the film drew, if it is that card, it gets a picture. Same shape as the
+    // passes above (per seek, crosses shadow roots, never throws), and the label
+    // is the trigger for the reason the audit's own detector settles on it — no
+    // film's copy says "DROP IMAGE", so the string is chrome by construction.
+    //
+    // STYLE-ONLY, no DOM surgery. The card is React's node; appending a child to
+    // it risks a reconciliation error on the next render. Painting the picture as
+    // the host's own background and hiding the chrome inside it is a pure style
+    // mutation, which React simply overwrites on re-render — and this re-runs on
+    // every seek, so it lands again straight after.
+    var KF_FILL=${JSON.stringify(fillFiles)};
+    var kfFillAt=0;
+    var KF_PH=/DROP\\s?(IMAGE|LOGO|PHOTO|VIDEO)|TO REPLACE/;
+    function kfFillPlaceholders(root){
+      try{
+        var scope=root||document;
+        var all=scope.querySelectorAll('*');
+        for(var i=0;i<all.length;i++) if(all[i].shadowRoot) kfFillPlaceholders(all[i].shadowRoot);
+        for(var j=0;j<all.length;j++){
+          var el=all[j];
+          if(el.children.length) continue;                 // the label is a leaf
+          var t=(el.textContent||'').toUpperCase().replace(/\\s+/g,' ');
+          if(!KF_PH.test(t)) continue;
+          // FIND THE CARD, and never mistake the frame for it. A hatched
+          // ancestor is definitive where there is one (teampulse's card hatches
+          // one hop above the label). Where there is not, the nearest hatch can
+          // be the pack's own BACKGROUND — ember-roast's is the full 1080x1920
+          // ground six hops up — and painting a photograph over that would be a
+          // worse bug than the empty card it replaced. So the fallback is
+          // geometric: the largest ancestor that is still a box rather than the
+          // frame, capped at 55% of the viewport.
+          var lr=el.getBoundingClientRect();
+          var la=Math.max(1,lr.width*lr.height);
+          var vpa=Math.max(1,window.innerWidth*window.innerHeight);
+          var host=null, hostA=0, n=el, hops=0;
+          while(n && hops<8){
+            var nr=n.getBoundingClientRect(), na=nr.width*nr.height;
+            if(nr.width>=40 && nr.height>=30 && na>=la && na<=vpa*0.55){
+              if(/repeating-linear-gradient/.test((getComputedStyle(n).backgroundImage)||'')){ host=n; hostA=na; break; }
+              if(na>hostA){ host=n; hostA=na; }
+            }
+            n=n.parentElement; hops++;
+          }
+          if(!host || host.getAttribute('data-kf-filled')==='1') continue;
+          var r=host.getBoundingClientRect();
+          if(r.width<40 || r.height<30) continue;
+          // A LOGO box takes the monogram, not a photograph: a mark slot filled
+          // with stock imagery is a worse frame than the one it replaced.
+          var isLogo=/LOGO/.test(t);
+          var src=isLogo?KF_MONO:(KF_FILL.length?KF_FILL[kfFillAt++%KF_FILL.length]:KF_PLATE);
+          host.style.backgroundImage='url("'+src+'")';
+          host.style.backgroundSize=isLogo?'contain':'cover';
+          host.style.backgroundPosition='center';
+          host.style.backgroundRepeat='no-repeat';
+          host.setAttribute('data-kf-filled','1');
+          for(var c=0;c<host.children.length;c++){
+            try{ host.children[c].style.visibility='hidden'; }catch(e2){}
+          }
+        }
+      }catch(e){}
+    }
+    // ...AND AGAIN AFTER REACT COMMITS. seek() dispatches the film's own seek
+    // event and returns; React re-renders asynchronously, so a fill applied
+    // inside seek() styles the PREVIOUS frame's DOM and is wiped moments later.
+    // Running once now and once on the next animation frame covers both: the
+    // synchronous pass keeps an already-settled frame clean, the rAF pass lands
+    // after the commit.
+    function kfFillSoon(){
+      try{
+        kfFillPlaceholders(document);
+        if(window.requestAnimationFrame) requestAnimationFrame(function(){ try{ kfFillPlaceholders(document); }catch(e){} });
+      }catch(e){}
+    }
+    window.__kfFill=function(){ return kfFillPlaceholders(document); };
     function healImgs(){
       try{
         kfSwapPlates(document);
+        kfFillSoon();
         var root=document.getElementById('kf-comp-root'); if(!root) return;
         var imgs=root.querySelectorAll('img'), good=null, i;
         for(i=0;i<imgs.length;i++){ if(imgs[i].complete && imgs[i].naturalWidth>0){ good=imgs[i].getAttribute('src'); break; } }
@@ -3635,15 +4051,24 @@ ${vectorFitCss}
   const plan = omScenes.map((s, i) => {
     const wall = Object.keys(s).filter((k) => /^shot([1-6]|A|B)$/.test(k)).length;
     const n = (s.shot ? 1 : 0) + wall;
+    // BEAT i IS NOT SCENE i. The pace splitter cuts one narrated scene into two
+    // or more template beats (nine scenes became eighteen beats on teampulse), so
+    // indexing `scenes` by the beat number labels most of this report with the
+    // wrong scene — and the further into the film, the further off. Each beat
+    // already carries the index of the scene it was cut from, stamped by the
+    // caster as SCENE_OF; read it, and only fall back to the beat number when a
+    // beat somehow arrives without one.
+    const si = s[SCENE_OF];
+    const sc = (typeof si === "number" && scenes[si]) || scenes[i];
     return {
-      sceneIndex: i, sceneId: (scenes[i] && scenes[i].id) || `s${i + 1}`, sceneType: s.name,
+      sceneIndex: typeof si === "number" ? si : i, sceneId: (sc && sc.id) || `s${i + 1}`, sceneType: s.name,
       need: n ? Array(n).fill("desktop") : [], filled: n,
     };
   });
   const totals = plan.reduce((t, p) => ({ demand: t.demand + p.need.length, filled: t.filled + p.filled, empty: 0, scenes: plan.length }), { demand: 0, filled: 0, empty: 0, scenes: plan.length });
   totals.empty = totals.demand - totals.filled;
 
-  return { indexHtml: html, metaJson, mediaPlan: { plan, totals } };
+  return { indexHtml: html, metaJson, mediaPlan: { plan, totals }, clamped };
 }
 
 function planMedia(opts) { return buildComposition(opts).mediaPlan; }
@@ -3652,4 +4077,5 @@ function listTemplates() {
   catch { return []; }
 }
 
-module.exports = { buildComposition, planMedia, listTemplates, readTemplateScenes, templatePath, TPL_DIR };
+module.exports = { buildComposition, planMedia, listTemplates, readTemplateScenes, templatePath, TPL_DIR,
+  planFilmSegments, resolveTemplateName, ENGINE_MAX_SCENES, acceptsPacing: true };

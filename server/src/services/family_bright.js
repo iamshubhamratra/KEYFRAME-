@@ -109,7 +109,13 @@ function route(scene, i, total, ctx) {
   const k = String(scene.kind || "").toLowerCase();
   const p = String(scene.purpose || "").toLowerCase();
   if (i === 0 || k === "hook" || k === "title") return "keynote";
-  if (i === total - 1 || k === "cta" || p === "cta") return "signoff";
+  // A FILM WITH NO DESTINATION DOES NOT SIGN OFF. The closer is a brand lockup
+  // (mark, name, "GET <BRAND>", the URL); on a prompt-only film all of it is
+  // invented, down to a fabricated "how.com". ctx.signOff is false there and the
+  // beat falls through to a content shape below, keeping its copy and its
+  // narration. Only the engine sets it, so a router called without one (the
+  // harnesses) behaves exactly as before. services/sign_off.js.
+  if ((i === total - 1 || k === "cta" || p === "cta") && ctx.signOff !== false) return "signoff";
   if (k === "quote" || scene.quote || /testimonial|review/.test(p)) return "voice";
   // Proof/gallery beats the stat check: a "social proof" scene usually carries
   // both figures AND visuals, and a wall of counters is the weaker read.
@@ -722,4 +728,7 @@ function buildComposition(opts) { return E.buildFilm(family, opts); }
 // drift from the film that ships.
 function planMedia(opts) { return E.planMedia(family, opts); }
 
-module.exports = { buildComposition, planMedia, TEMPLATE_SCENES };
+// The engine honours opts.pacing (template_engine.buildFilm); this one-line
+// delegate makes that invisible to a source scan, so the flag is how the
+// pipeline knows the opt was actually threaded rather than dropped.
+module.exports = { buildComposition, planMedia, TEMPLATE_SCENES, acceptsPacing: true };

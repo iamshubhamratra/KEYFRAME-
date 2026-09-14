@@ -92,11 +92,22 @@ function releaseSlot() {
   if (next) next(); else releaseBrowser();
 }
 
-function buildSearchUrl(category, query, page = 1) {
+function buildSearchUrl(category, query, page = 1, orientation = null) {
   const segment = SEGMENTS[category] || "photos";
   const q = encodeURIComponent(String(query).trim().replace(/\s+/g, "-"));
   const base = `https://pixabay.com/${segment}/search/${q}/`;
-  return page > 1 ? `${base}?p=${page}` : base;
+  // ORIENTATION IS NOT OPTIONAL WHEN THIS IS THE ONLY LIVE PROVIDER. Every other
+  // source honours it (the Pixabay API's `orientation`, Openverse's aspect_ratio,
+  // Pexels' orientation) and this one silently dropped it — so while the API key
+  // is rejected and the scraper serves essentially every image, a 9:16 film was
+  // centre-cropping landscape stock for its full-bleed frames. Pixabay's own site
+  // filter takes the same two values. "all" builds the byte-identical URL it
+  // built before, so nothing changes for a square/unspecified request.
+  const params = [];
+  if (page > 1) params.push(`p=${page}`);
+  if (orientation === "vertical") params.push("orientation=vertical");
+  else if (orientation === "horizontal") params.push("orientation=horizontal");
+  return params.length ? `${base}?${params.join("&")}` : base;
 }
 
 // KEEP THE WORDS. A SCRAPED CANDIDATE WITH NO TEXT CANNOT BE RANKED.
@@ -166,7 +177,7 @@ async function search(args) {
   finally { releaseSlot(); }
 }
 
-async function doSearch({ query, type, limit = 5 }) {
+async function doSearch({ query, type, orientation = null, limit = 5 }) {
   const chrome = findChrome();
   const browser = await getBrowser(chrome);
 
@@ -190,7 +201,7 @@ async function doSearch({ query, type, limit = 5 }) {
       } catch { /* ignore */ }
     });
 
-    await page.goto(buildSearchUrl(type, query), { waitUntil: "networkidle2", timeout: 45_000 });
+    await page.goto(buildSearchUrl(type, query, 1, orientation), { waitUntil: "networkidle2", timeout: 45_000 });
     const passed = await waitPastChallenge(page);
     if (!passed) {
       console.warn(`[pixabay_scrape] Cloudflare challenge not cleared for "${query}"`);

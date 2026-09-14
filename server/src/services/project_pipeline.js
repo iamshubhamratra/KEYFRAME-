@@ -19,6 +19,7 @@ const { UsageTracker } = require("./usage");
 const { checkBudget, BUDGET_EXHAUSTED_MSG } = require("./openrouter");
 const { generateBrief } = require("./brief");
 const { generateScript, validateScript, normalizeScript } = require("./script");
+const pacing = require("./pacing");
 const { understandWebsite } = require("./ingest/website");
 const { prepareUserAssets, inventoryForScript } = require("./user_assets");
 const { understandBlog } = require("./ingest/blog");
@@ -212,7 +213,13 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
 
     const tScript = ms();
     db.setProgress(jobId, "script");
-    const scriptRes = await withBudget((signal) => generateScript({ brief, signal }), intakeBudgetMs, "script stage");
+    // The pace is a property of THIS job, resolved from its own row and threaded
+    // — never stashed on the module, since jobConcurrency can exceed 1 and two
+    // films with different paces share the process. `brief.suggestedDuration`
+    // stays exactly what the user asked for: pace changes how much is said, not
+    // how long the film runs.
+    const P = pacing.resolve(job);
+    const scriptRes = await withBudget((signal) => generateScript({ brief, pacing: P, signal }), intakeBudgetMs, "script stage");
     tracker.addLlm({ inputTokens: scriptRes.tokensIn, outputTokens: scriptRes.tokensOut, stage: "script", costUsd: scriptRes.costUsd });
     timings.scriptMs = ms() - tScript;
 
@@ -224,7 +231,7 @@ async function runIntake({ jobId, onApproved, skipBrief = false }) {
       usage: tracker.computeCosts(),
       stageTimings: timings,
     });
-    console.log(`[project] ${jobId} intake done — ${scriptRes.script.scenes.length} scenes, paused at script_review (autopilot=${!!job.autopilot})`);
+    console.log(`[project] ${jobId} intake done — ${scriptRes.script.scenes.length} scenes at ${P.label} pace, paused at script_review (autopilot=${!!job.autopilot})`);
 
     if (job.autopilot) {
       db.markApproved(jobId, { script: scriptRes.script });
@@ -419,6 +426,10 @@ async function acquireScriptAssets({ job, script, jobDir, orientation, tracker }
       orientation,
       outputPath: path.join(jobDir, relPath),
       tracker,
+      // On-topic-ness is scored, not concatenated — see scoreCandidate. Without
+      // this the ranker only knows the scene's words and cannot tell a picture of
+      // the film's actual product from a generic stand-in that shares one noun.
+      subject,
     })
       .then((got) => got ? {
         path: relPath,
@@ -489,13 +500,17 @@ async function runProduction({ jobId }) {
 
   db.markStarted(jobId);
   const framePack = job.frame_pack || null;
+  // Same profile the intake wrote this script against (the job row is the only
+  // place the choice lives), so the storyboard, the copy and the narration are
+  // all cut to the pace the script was authored for.
+  const P = pacing.resolve(job);
   // Fold the script to what this pack's renderer can draw BEFORE the storyboard
   // and the voiceover are built. A scene the renderer cannot hold is still
   // narrated at its own start, so dropping it there means the words land over
   // some other scene's frame; folding it here means the two scenes share one
   // narration clip and one boundary. See pipeline.foldScriptToRenderer.
   const script = foldScriptToRenderer(
-    normalizeScript(job.script, { targetDuration: job.duration }), framePack, "project");
+    normalizeScript(job.script, { targetDuration: job.duration, pacing: P }), framePack, "project");
   const brief = job.brief;
   const duration = job.duration;
   const dims = { width: job.width, height: job.height, fps: job.fps };
@@ -526,7 +541,7 @@ async function runProduction({ jobId }) {
             text: s.voiceover, targetSec: s.duration, voice,
             instructions: voInstructions,
             outputPath: path.join(audioDir, `vo-${s.id}.mp3`),
-            tracker, session: ttsSession,
+            tracker, session: ttsSession, pacing: P,
           })
             .then((r) => r ? { sceneId: s.id, startSec: s.start, durationSec: r.durationSec, sceneDurationSec: s.duration, text: r.text, path: r.path } : null)
             .catch((e) => { console.warn(`[project] vo for ${s.id} failed: ${e.message}`); return null; })
@@ -547,8 +562,12 @@ async function runProduction({ jobId }) {
         .catch(() => null)
     )).then((arr) => arr.filter(Boolean));
 
+    // seed + durationSec are what give each film its OWN bed: the seed rotates
+    // the provider result pool (without it every job takes result #0 — the
+    // "same BGM in every video" defect), and the duration lets short films
+    // accept shorter loops. Kept in step with pipeline.buildAudio.
     const musicTask = script.music?.query
-      ? fetchMusic({ query: script.music.query, outputPath: path.join(audioDir, "music.mp3"), tracker })
+      ? fetchMusic({ query: script.music.query, outputPath: path.join(audioDir, "music.mp3"), tracker, durationSec: duration, seed: jobId })
           .catch((e) => { console.warn(`[project] music failed: ${e.message}`); return null; })
       : Promise.resolve(null);
 
@@ -561,7 +580,7 @@ async function runProduction({ jobId }) {
       const t0 = ms();
       db.setProgress(jobId, "storyboard");
       const sbPrompt = storyboardPromptFromScript(script, brief);
-      const sbRes = await generateStoryboard({ prompt: sbPrompt, duration, orientation: job.orientation });
+      const sbRes = await generateStoryboard({ prompt: sbPrompt, duration, orientation: job.orientation, pacing: P });
       tracker.addLlm({ inputTokens: sbRes.tokensIn, outputTokens: sbRes.tokensOut, stage: "storyboard", costUsd: sbRes.costUsd });
       // The picture is built from the storyboard; the narration is cut per SCRIPT
       // scene and mixed at that scene's own start. Reconcile the two lists before
@@ -576,7 +595,7 @@ async function runProduction({ jobId }) {
       // archText scenes into feature-grid / proof-row / strike-list layouts that
       // fill the frame. Runs BEFORE re-timing so the added copy is composed.
       try {
-        await directText({ jobId, brief, script, storyboard: sbRes.storyboard, tracker });
+        await directText({ jobId, brief, script, storyboard: sbRes.storyboard, tracker, pacing: P });
       } catch (e) { console.warn(`[project] text_director skipped: ${String(e.message).slice(0, 120)}`); }
 
       db.setProgress(jobId, "assets");
@@ -590,7 +609,7 @@ async function runProduction({ jobId }) {
       // CUT MID-SENTENCE at mux time. VO synthesis started in parallel with the
       // storyboard + assets above, so most of its latency is already absorbed.
       voClips = await voTask;
-      const retime = retimeScenesToVo(sbRes.storyboard, script, voClips);
+      const retime = retimeScenesToVo(sbRes.storyboard, script, voClips, P);
       startMap = retime.startMap;
       if (retime.effectiveDuration > 0) effectiveDuration = retime.effectiveDuration;
       if (effectiveDuration > duration + 0.05) {
@@ -610,7 +629,8 @@ async function runProduction({ jobId }) {
               sceneDurationSec: s.duration,
               text: s.voiceover,
             };
-          })
+          }),
+        { pacing: P }
       ).map((c) => ({ start: Math.round(c.start * 10) / 10, end: Math.round(c.end * 10) / 10, text: c.text }));
 
       // ---- Compose + render (frame-pack styled), with the v1 budget wrapper.
@@ -628,7 +648,7 @@ async function runProduction({ jobId }) {
             storyboard: sbRes.storyboard, dims, jobDir,
             assets, tracker, jobId, durationSec: effectiveDuration,
             label: "project-main", abortSignal: signal, framePack, captionCues,
-            remix, strictIdentity,
+            remix, strictIdentity, pacing: P,
           }),
           budget, "project composition"
         );
@@ -645,7 +665,7 @@ async function runProduction({ jobId }) {
                 storyboard: sbRes.storyboard, dims, jobDir,
                 assets: [], tracker, jobId, durationSec: effectiveDuration,
                 label: "project-no-assets", abortSignal: signal, framePack, captionCues,
-                remix, strictIdentity,
+                remix, strictIdentity, pacing: P,
               }),
               budget, "project no-assets retry"
             );
@@ -690,7 +710,7 @@ async function runProduction({ jobId }) {
       if (sfxRepinned.length) console.log(`[project] ${sfxRepinned.length} sfx mixed in`);
 
       // Captions: cue objects + .srt exported next to the MP4.
-      const cues = buildCues(voClips);
+      const cues = buildCues(voClips, { pacing: P });
       if (cues.length) {
         try {
           const srtPath = path.join(config.paths.videosDir, `${jobId}.srt`);

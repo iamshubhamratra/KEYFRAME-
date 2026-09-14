@@ -54,6 +54,28 @@ function validate(cfg) {
   must(cfg.defaults && cfg.orientations[cfg.defaults.orientation], "defaults.orientation invalid");
   must(cfg.defaults && cfg.qualities[cfg.defaults.quality], "defaults.quality invalid");
   must(Array.isArray(cfg.allowedFps) && cfg.allowedFps.length, "allowedFps missing");
+  // PACING — the mode table services/pacing.js budgets scenes, cuts and word
+  // counts against. A mistyped defaults.pace or an out-of-band row cannot fail
+  // loudly later: pacing.resolve() falls back to `normal` for anything it does
+  // not recognise, so a broken table would ship silently as "no pace feature at
+  // all". The bands are the ones the engine is calibrated for — beyond 2x the
+  // 1.6s cut floor and the 2s scene floor swallow the multiplier, and a
+  // wordsPerSec outside [1.0, 3.5] is not a rate any TTS voice reads at.
+  must(cfg.pacing && typeof cfg.pacing === "object", "missing pacing section");
+  const paceModes = Object.keys(cfg.pacing).filter((k) => k !== "calibration"); // a flag, not a mode
+  must(paceModes.length, "pacing has no modes");
+  for (const name of paceModes) {
+    const row = cfg.pacing[name];
+    must(row && typeof row === "object", `pacing.${name} must be an object`);
+    const mult = Number(row.multiplier);
+    must(Number.isFinite(mult) && mult >= 0.5 && mult <= 2,
+         `pacing.${name}.multiplier must be a number in [0.5, 2]`);
+    const wps = Number(row.wordsPerSec);
+    must(Number.isFinite(wps) && wps >= 1.0 && wps <= 3.5,
+         `pacing.${name}.wordsPerSec must be a number in [1.0, 3.5]`);
+  }
+  must(cfg.defaults && paceModes.includes(cfg.defaults.pace),
+       `defaults.pace must be one of: ${paceModes.join(", ")}`);
   must(cfg.server.maxDurationSec > 0, "maxDurationSec must be positive");
   must(cfg.server.minDurationSec > 0 && cfg.server.minDurationSec <= cfg.server.maxDurationSec,
        "minDurationSec invalid");
@@ -105,12 +127,16 @@ function validate(cfg) {
          "every configured model is a kie: alias — set llm.modelFallback to an OpenRouter model for KIE outages");
   }
   // llm.noFallbackStages pins a stage to its named model with NO cross-provider
-  // substitution on failure (openrouter.js chat()) — catching a typo here means
-  // a stage naming a plain (non-"kie:") model can't be silently no-op'd into
-  // "pinned to nothing", which would make the guard vacuous.
+  // substitution on failure (openrouter.js chat()). What must be true is that
+  // the stage RESOLVES to a concrete model — a pin onto nothing is vacuous.
+  //
+  // This used to additionally require a "kie:" route, which was a restatement of
+  // the runtime rather than a rule: chat()'s guard only worked for aliases. Now
+  // that a pin is honoured on either provider, requiring KIE here would have
+  // blocked exactly the config it was meant to protect.
   for (const s of (cfg.llm.noFallbackStages || [])) {
     const id = (cfg.llm.stageModels || {})[s] || cfg.llm.model;
-    must(/^kie:/.test(String(id || "")), `llm.noFallbackStages includes "${s}" but its resolved model (${id}) is not a kie: route`);
+    must(String(id || "").trim(), `llm.noFallbackStages includes "${s}" but it resolves to no model (set llm.stageModels["${s}"] or llm.model)`);
   }
 }
 
@@ -269,14 +295,18 @@ function build() {
   // ON; disable with ART_DIRECTOR=0, override the model with ART_DIRECTOR_MODEL.
   // Fail-open: on any error the pack keeps its own accents, so it never blocks a render.
   // House model policy: the hard creative stages (llm.premiumStages) run on the
-  // KIE primary (grok-4-5); EVERY other stage — the directors below included —
-  // runs on KIE gemini-3.6-flash. These three pass their model explicitly, so
-  // they can't ride llm.model; name the alias here instead. If the route is not
-  // configured (a stripped config.json), fall back to the cheap OpenRouter
-  // flash-lite rather than booting into validate()'s dangling-alias error.
-  const FAST_STAGE_MODEL = (cfg.llm.kieRoutes || {})["gemini-3.6-flash"]
-    ? "kie:gemini-3.6-flash"
-    : "google/gemini-3.1-flash-lite";
+  // primary; EVERY other stage — the directors below included — runs on the
+  // house model. These three pass their model explicitly, so they can't ride
+  // llm.model through stageModels; they need a default named here.
+  //
+  // FOLLOW THE CONFIGURED HOUSE MODEL, don't restate it. This was hardcoded to
+  // "kie:gemini-3.6-flash", so moving the house model left these three directors
+  // behind on the old provider — silently, because the assignments below
+  // OVERWRITE whatever llm.stageModels says for them. Reading llm.modelFast/
+  // llm.model means a future model switch carries the directors with it and
+  // cannot half-apply. The literals remain only for a config that names neither.
+  const FAST_STAGE_MODEL = cfg.llm.modelFast || cfg.llm.model
+    || ((cfg.llm.kieRoutes || {})["gemini-3.6-flash"] ? "kie:gemini-3.6-flash" : "google/gemini-3.1-flash-lite");
 
   const ardCfg = cfg.artDirector || {};
   cfg.artDirector = {

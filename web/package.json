@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "build:landing-media": "node scripts/build-landing-media.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
