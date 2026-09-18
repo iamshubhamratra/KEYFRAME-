@@ -55,7 +55,11 @@
     "check:av-sync": "node scripts/check-av-sync.js",
     "test:sbalign": "node scripts/storyboard_align.test.cjs",
     "test:sbcover": "node scripts/storyboard_cover.test.cjs",
-    "test:signoff": "node scripts/sign_off.test.cjs"
+    "test:signoff": "node scripts/sign_off.test.cjs",
+    "test:edit": "node scripts/run-video-edit-tests.js",
+    "test:edit:one": "node scripts/run-video-edit-tests.js --only",
+    "fixtures:edit": "node scripts/video_edit_fixtures.js",
+    "e2e:edit": "node scripts/video_edit_e2e.js"
   },
   "dependencies": {
     "@babel/standalone": "^8.0.4",

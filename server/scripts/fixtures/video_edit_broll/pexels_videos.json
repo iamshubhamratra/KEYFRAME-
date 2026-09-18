@@ -1,0 +1,92 @@
+{
+  "page": 1,
+  "per_page": 15,
+  "total_results": 4,
+  "url": "https://www.pexels.com/search/videos/inbox/",
+  "videos": [
+    {
+      "id": 5926121,
+      "width": 3840,
+      "height": 2160,
+      "duration": 14,
+      "full_res": null,
+      "tags": [],
+      "url": "https://www.pexels.com/video/person-checking-email-inbox-on-a-laptop-5926121/",
+      "image": "https://images.pexels.com/videos/5926121/pexels-photo-5926121.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=630&w=1200",
+      "avg_color": null,
+      "user": { "id": 3149039, "name": "Mikhail Nilov", "url": "https://www.pexels.com/@mikhail-nilov" },
+      "video_files": [
+        { "id": 16030121, "quality": "uhd", "file_type": "video/mp4", "width": 3840, "height": 2160, "fps": 25, "link": "https://videos.pexels.com/video-files/5926121/5926121-uhd_3840_2160_25fps.mp4", "size": 48211032 },
+        { "id": 16030122, "quality": "hd", "file_type": "video/mp4", "width": 1920, "height": 1080, "fps": 25, "link": "https://videos.pexels.com/video-files/5926121/5926121-hd_1920_1080_25fps.mp4", "size": 14211032 },
+        { "id": 16030123, "quality": "sd", "file_type": "video/mp4", "width": 640, "height": 360, "fps": 25, "link": "https://videos.pexels.com/video-files/5926121/5926121-sd_640_360_25fps.mp4", "size": 2211032 }
+      ],
+      "video_pictures": [
+        { "id": 3491001, "nr": 0, "picture": "https://images.pexels.com/videos/5926121/pictures/preview-0.jpeg" },
+        { "id": 3491002, "nr": 1, "picture": "https://images.pexels.com/videos/5926121/pictures/preview-1.jpeg" },
+        { "id": 3491003, "nr": 2, "picture": "https://images.pexels.com/videos/5926121/pictures/preview-2.jpeg" },
+        { "id": 3491004, "nr": 3, "picture": "https://images.pexels.com/videos/5926121/pictures/preview-3.jpeg" }
+      ]
+    },
+    {
+      "id": 7710243,
+      "width": 2160,
+      "height": 3840,
+      "duration": 9,
+      "full_res": null,
+      "tags": [],
+      "url": "https://www.pexels.com/video/woman-checking-phone-notifications-7710243/",
+      "image": "https://images.pexels.com/videos/7710243/pexels-photo-7710243.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=1200&w=630",
+      "avg_color": null,
+      "user": { "id": 2381069, "name": "Kampus Production", "url": "https://www.pexels.com/@kampus" },
+      "video_files": [
+        { "id": 17820431, "quality": "uhd", "file_type": "video/mp4", "width": 2160, "height": 3840, "fps": 30, "link": "https://videos.pexels.com/video-files/7710243/7710243-uhd_2160_3840_30fps.mp4", "size": 39123311 },
+        { "id": 17820432, "quality": "hd", "file_type": "video/mp4", "width": 1080, "height": 1920, "fps": 30, "link": "https://videos.pexels.com/video-files/7710243/7710243-hd_1080_1920_30fps.mp4", "size": 11123311 }
+      ],
+      "video_pictures": [
+        { "id": 4410001, "nr": 0, "picture": "https://images.pexels.com/videos/7710243/pictures/preview-0.jpeg" },
+        { "id": 4410002, "nr": 1, "picture": "https://images.pexels.com/videos/7710243/pictures/preview-1.jpeg" },
+        { "id": 4410003, "nr": 2, "picture": "https://images.pexels.com/videos/7710243/pictures/preview-2.jpeg" }
+      ]
+    },
+    {
+      "id": 3196344,
+      "width": 1920,
+      "height": 1080,
+      "duration": 3,
+      "full_res": null,
+      "tags": [],
+      "url": "https://www.pexels.com/video/typing-an-email-on-a-laptop-3196344/",
+      "image": "https://images.pexels.com/videos/3196344/free-video-3196344.jpg?auto=compress&cs=tinysrgb&fit=crop&h=630&w=1200",
+      "avg_color": null,
+      "user": { "id": 3149039, "name": "Mikhail Nilov", "url": "https://www.pexels.com/@mikhail-nilov" },
+      "video_files": [
+        { "id": 9181001, "quality": "hd", "file_type": "video/mp4", "width": 1920, "height": 1080, "fps": 25, "link": "https://videos.pexels.com/video-files/3196344/3196344-hd_1920_1080_25fps.mp4", "size": 6211032 }
+      ],
+      "video_pictures": [
+        { "id": 2110001, "nr": 0, "picture": "https://images.pexels.com/videos/3196344/pictures/preview-0.jpg" },
+        { "id": 2110002, "nr": 1, "picture": "https://images.pexels.com/videos/3196344/pictures/preview-1.jpg" },
+        { "id": 2110003, "nr": 2, "picture": "https://images.pexels.com/videos/3196344/pictures/preview-2.jpg" }
+      ]
+    },
+    {
+      "id": 857251,
+      "width": 640,
+      "height": 360,
+      "duration": 20,
+      "full_res": null,
+      "tags": [],
+      "url": "https://www.pexels.com/video/team-celebrating-in-an-office-857251/",
+      "image": "https://images.pexels.com/videos/857251/free-video-857251.jpg?auto=compress&cs=tinysrgb&fit=crop&h=630&w=1200",
+      "avg_color": null,
+      "user": { "id": 1583460, "name": "Pressmaster", "url": "https://www.pexels.com/@pressmaster" },
+      "video_files": [
+        { "id": 1043001, "quality": "sd", "file_type": "video/mp4", "width": 640, "height": 360, "fps": 25, "link": "https://videos.pexels.com/video-files/857251/857251-sd_640_360_25fps.mp4", "size": 3211032 }
+      ],
+      "video_pictures": [
+        { "id": 1044001, "nr": 0, "picture": "https://images.pexels.com/videos/857251/pictures/preview-0.jpg" },
+        { "id": 1044002, "nr": 1, "picture": "https://images.pexels.com/videos/857251/pictures/preview-1.jpg" }
+      ]
+    }
+  ],
+  "next_page": "https://api.pexels.com/videos/search/?page=2&per_page=15&query=inbox"
+}

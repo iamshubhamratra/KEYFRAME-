@@ -1,0 +1,43 @@
+{
+  "floorDb": -54,
+  "speechDb": -21,
+  "snrDb": 33,
+  "lufs": -19.5,
+  "lra": 6.1,
+  "truePeakDb": -2.4,
+  "clippingRatio": 0,
+  "hum": null,
+  "sibilance": 0.18,
+  "silences": [
+    {
+      "start": 7.39,
+      "end": 7.84,
+      "dur": 0.45,
+      "depthDb": -54
+    },
+    {
+      "start": 16.51,
+      "end": 17.93,
+      "dur": 1.42,
+      "depthDb": -54
+    },
+    {
+      "start": 27.55,
+      "end": 28.77,
+      "dur": 1.22,
+      "depthDb": -54
+    },
+    {
+      "start": 39.16,
+      "end": 40.28,
+      "dur": 1.12,
+      "depthDb": -54
+    }
+  ],
+  "islands": [],
+  "envelopeFile": "analysis/rms.f32",
+  "synthetic": {
+    "hopSec": 0.01,
+    "note": "no rms.f32 is shipped; tests synthesize the envelope from transcript words (speechDb inside words, floorDb outside, 30 ms ramps)"
+  }
+}

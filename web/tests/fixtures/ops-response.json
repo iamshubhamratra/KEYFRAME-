@@ -1,0 +1,19 @@
+{
+  "revision": 4,
+  "hash": "ph4_19d0aa7c",
+  "applied": 1,
+  "warnings": [],
+  "invalidates": {
+    "level": "COMPOSITE",
+    "ranges": [
+      [
+        27.561,
+        29.205
+      ]
+    ]
+  },
+  "cost": {
+    "aiCalls": 0,
+    "stockSearches": 0
+  }
+}

@@ -1,0 +1,35 @@
+# Build context is the repo root (see render.yaml). Keep the image to what
+# server.js actually needs at runtime: server/, frames/ (pack library),
+# pixabay-no-node-modules/ (optional bridge). Everything else here is dev-only.
+.git
+.claude
+.agents
+.code-review-graph
+docs
+screenshot
+frames-draft
+heygen-keyframes-video
+keyframe-studio
+*.mp4
+*.log
+
+# web/ isn't served by this image (Vercel handles the frontend split-deploy;
+# the all-in-one Oracle path builds it separately into server/public/dist).
+web/node_modules
+web/dist
+
+# server/ internals also excluded from the image (see server/Dockerfile COPY).
+server/node_modules
+server/jobs
+server/jobs.json
+server/public/videos
+server/public/dist
+server/uploads
+server/asset_cache
+server/asset_library
+server/scrub
+server/framecheck/occ_test
+server/showcase
+server/*.log
+server/.env
+server/config.json

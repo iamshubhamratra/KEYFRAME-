@@ -5,6 +5,12 @@
 #    (512 MB) deploys and serves the API/UI but video renders will OOM-crash.
 #    To actually generate videos, use `plan: standard` (2 GB) or higher.
 #
+# ⚠️ BUILD CONTEXT: the frame-pack library (FRAME.md per pack, what /api/frames
+#    lists) lives at repo root in frames/, a sibling of server/ — not inside it.
+#    Context must be the repo root so the Dockerfile can COPY it in; a context
+#    scoped to ./server silently ships with zero packs (frame_registry.js falls
+#    back to "no frames directory found" and /api/frames returns []).
+#
 # Secrets (sync: false) are NOT stored in git — set them in the Render dashboard
 # after the first deploy. `config.json` is gitignored, so the app falls back to
 # config.example.json and reads keys from these env vars (see src/config.js).
@@ -13,7 +19,7 @@ services:
     name: keyframe-backend
     runtime: docker
     dockerfilePath: ./server/Dockerfile
-    dockerContext: ./server
+    dockerContext: .
     plan: free                 # change to `standard` to actually render videos
     region: oregon
     healthCheckPath: /health
@@ -37,6 +43,9 @@ services:
         value: pixabay-api
       # Lock CORS to your Vercel URL once you have it (e.g. https://keyframe.vercel.app).
       - key: WEB_ORIGIN
+        sync: false
+      # JWT signing secret for /api/auth/* — required or signup/login 500.
+      - key: SECRET_KEY
         sync: false
       # ── Secret API keys — set these in the Render dashboard ──
       - key: OPENROUTER_API_KEY

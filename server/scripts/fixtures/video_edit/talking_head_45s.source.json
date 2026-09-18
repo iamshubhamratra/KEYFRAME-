@@ -1,0 +1,13 @@
+{
+  "projectId": "ve_fixture00talk45s",
+  "assetId": "ast_src45talk",
+  "sha1": "4984612f36baef7a725b9358c410c8eaf43beb5c",
+  "durationSec": 44.5,
+  "width": 1080,
+  "height": 1920,
+  "fps": 30,
+  "analysisVersion": "1",
+  "transcriptHash": "60b09886d8f47f3baefe5c9cce86a057ad6c6e1076fd354692466528f240f09f",
+  "timing": "word",
+  "language": "en"
+}

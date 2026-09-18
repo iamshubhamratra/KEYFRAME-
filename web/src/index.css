@@ -170,6 +170,14 @@ body {
   color: #fff; background: var(--color-ink);
   transition: transform .25s cubic-bezier(.16,1,.3,1), box-shadow .25s;
 }
+/* Inverted for dark surfaces. .btn-ink is an ink pill on paper; inside .editor-card
+   (#1d1913) that pill sits at 1.16:1 against its ground — the label stays legible but
+   the BUTTON SHAPE disappears, so it reads as floating text with no affordance.
+   Swapping the two gives 13.7:1 for the shape and 15.8:1 for the label, and keeps
+   magenta reserved for the commit-and-spend CTAs. Follows the .on-dark convention
+   already used by .link-mono and .headline. */
+.btn-ink.on-dark { background: var(--color-dark-ink); color: var(--color-ink); }
+.btn-ink.on-dark:hover { box-shadow: 0 12px 28px rgba(0,0,0,.45); }
 .btn-ink:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(23,19,14,.3); }
 .btn-ink:active { transform: translateY(0); }
 .btn-ink:disabled { opacity: 0.4; pointer-events: none; }
@@ -409,6 +417,14 @@ textarea.admin-input { resize: vertical; line-height: 1.6; }
 
 /* wordmark: single-ink Bricolage, tight (v2) */
 .wordmark { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.02em; color: var(--color-ink); }
+
+/* The two-column studio split collapses on narrow screens. This rule has always
+   existed in web/public/design.html (the marketing iframe) but was never brought
+   into the React app, so CreateScreen, ProductionTheater and AdminGenerate were a
+   hard 1.15fr/.85fr at every width — a ~215px left column on a 390px phone. */
+@media (max-width: 860px) {
+  [data-demo-grid] { grid-template-columns: 1fr !important; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }

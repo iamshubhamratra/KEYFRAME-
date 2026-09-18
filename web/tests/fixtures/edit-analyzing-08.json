@@ -1,0 +1,226 @@
+{
+  "id": "ve_analyzedemo00001",
+  "title": "take-04",
+  "status": "PROCESSING",
+  "stage": "RENDERING",
+  "overallPct": 89,
+  "createdAt": 1789378320000,
+  "updatedAt": 1789378397000,
+  "lastOpenedAt": 1789378320000,
+  "durationSec": 52.25,
+  "outputDurationSec": null,
+  "orientation": "vertical",
+  "posterUrl": "/api/video-edits/ve_analyzedemo00001/media/poster",
+  "currentExportId": null,
+  "qaVerdict": null,
+  "mode": "AI_VIDEO_EDIT",
+  "statusReason": null,
+  "progress": {
+    "stage": "RENDERING",
+    "stagePct": 60,
+    "overallPct": 89,
+    "message": "Rolling the first draft",
+    "stageStartedAt": 1789378393000,
+    "etaSec": 14,
+    "queuePosition": 0
+  },
+  "source": {
+    "displayName": "take-04.mov",
+    "sizeBytes": 187412336,
+    "durationSec": 52.25,
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "rotation": 0,
+    "hasAudio": true,
+    "orientation": "vertical"
+  },
+  "settings": {
+    "title": "take-04",
+    "language": "auto",
+    "output": {
+      "aspect": "source"
+    },
+    "captions": {
+      "enabled": true,
+      "styleId": "clean",
+      "maxWordsPerLine": 3,
+      "position": "auto",
+      "language": "auto"
+    },
+    "brand": {
+      "palette": null,
+      "logo": {
+        "placement": "tr",
+        "show": "always"
+      }
+    },
+    "music": {
+      "enabled": true
+    },
+    "sfx": {
+      "enabled": true
+    },
+    "broll": {
+      "enabled": true,
+      "intensity": "medium",
+      "allowImages": true
+    },
+    "effects": {
+      "intensity": "subtle",
+      "autoJumpCuts": true
+    },
+    "removeFillers": "light",
+    "removeSilence": {
+      "enabled": true,
+      "pace": "natural"
+    },
+    "autoRender": true,
+    "exportProfile": "export1080",
+    "privacy": {
+      "allowCloudVision": true
+    },
+    "consent": {
+      "thirdPartyAi": true,
+      "termsVersion": "2026-09"
+    }
+  },
+  "consent": {
+    "thirdPartyAi": true,
+    "termsVersion": "2026-09",
+    "at": 1789378320000
+  },
+  "stages": {
+    "VALIDATING": {
+      "status": "done",
+      "attempts": 1,
+      "durationMs": 1200,
+      "fallbacks": []
+    },
+    "COMPRESSING": {
+      "status": "done",
+      "attempts": 1,
+      "durationMs": 14800,
+      "fallbacks": []
+    },
+    "EXTRACTING_AUDIO": {
+      "status": "done",
+      "attempts": 1,
+      "durationMs": 2100,
+      "fallbacks": []
+    },
+    "TRANSCRIBING": {
+      "status": "done",
+      "attempts": 1,
+      "engine": "microsoft/mai-transcribe-2",
+      "durationMs": 6300,
+      "costUsd": 0.0019,
+      "fallbacks": []
+    },
+    "ANALYZING_VIDEO": {
+      "status": "done",
+      "attempts": 1,
+      "engine": "google/gemini-3.5-flash-lite",
+      "durationMs": 11200,
+      "costUsd": 0.0062,
+      "fallbacks": []
+    },
+    "ANALYZING_CONTENT": {
+      "status": "done",
+      "attempts": 1,
+      "engine": "google/gemini-3.5-flash",
+      "durationMs": 7400,
+      "costUsd": 0.0033,
+      "fallbacks": []
+    },
+    "SEARCHING_BROLL": {
+      "status": "done",
+      "attempts": 1,
+      "engine": "pexels+pixabay",
+      "durationMs": 5200,
+      "fallbacks": []
+    },
+    "SCORING_ASSETS": {
+      "status": "done",
+      "attempts": 1,
+      "engine": "google/gemini-3.5-flash-lite",
+      "durationMs": 9800,
+      "costUsd": 0.0078,
+      "fallbacks": []
+    },
+    "BUILDING_EDIT_PLAN": {
+      "status": "done",
+      "attempts": 1,
+      "engine": "google/gemini-3.5-flash",
+      "durationMs": 8100,
+      "costUsd": 0.0041,
+      "fallbacks": []
+    },
+    "PREPARING_RENDER": {
+      "status": "done",
+      "attempts": 1,
+      "durationMs": 2600,
+      "fallbacks": []
+    },
+    "RENDERING": {
+      "status": "running",
+      "attempts": 1,
+      "fallbacks": []
+    },
+    "POST_PROCESSING": {
+      "status": "pending",
+      "attempts": 0,
+      "fallbacks": []
+    },
+    "QUALITY_CHECK": {
+      "status": "pending",
+      "attempts": 0,
+      "fallbacks": []
+    }
+  },
+  "discoveries": {
+    "language": "en",
+    "words": 119,
+    "wpm": 141,
+    "fillersFound": 3,
+    "silencesFound": 5,
+    "silenceSec": 5.2,
+    "topics": [
+      "customer calls",
+      "pricing page",
+      "sign-up growth"
+    ],
+    "hook": "We doubled our revenue in just three months.",
+    "brollMoments": 5,
+    "faceFound": true,
+    "onScreenText": []
+  },
+  "plan": null,
+  "renders": [
+    {
+      "renderId": "rd_first0001",
+      "kind": "preview",
+      "profile": "preview540",
+      "planRevision": 1,
+      "status": "running",
+      "pct": 60,
+      "etaSec": 12,
+      "queuePosition": 0
+    }
+  ],
+  "exports": {
+    "currentId": null,
+    "stale": false
+  },
+  "qaSummary": null,
+  "notices": [],
+  "cost": {
+    "estimateUsd": 0.031,
+    "capUsd": 0.5,
+    "spentUsd": 0.025
+  },
+  "allowedActions": [
+    "cancel",
+    "delete"
+  ]
+}

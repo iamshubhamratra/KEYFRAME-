@@ -1,0 +1,204 @@
+{
+  "language": "en",
+  "sentences": [
+    {
+      "id": "s1",
+      "w0": 0,
+      "w1": 11,
+      "start": 0.62,
+      "end": 4,
+      "text": "Most people waste 3 hours a day on email and never notice.",
+      "pauseAfter": 0.22,
+      "fillerCount": 0
+    },
+    {
+      "id": "s2",
+      "w0": 12,
+      "w1": 19,
+      "start": 4.22,
+      "end": 6.17,
+      "text": "Um, I used to be one of them.",
+      "pauseAfter": 0.22,
+      "fillerCount": 1
+    },
+    {
+      "id": "s3",
+      "w0": 20,
+      "w1": 35,
+      "start": 6.39,
+      "end": 11.32,
+      "text": "So the thing that So the thing that changed everything for me was one simple rule.",
+      "pauseAfter": 0.22,
+      "fillerCount": 0
+    },
+    {
+      "id": "s4",
+      "w0": 36,
+      "w1": 44,
+      "start": 11.54,
+      "end": 13.7,
+      "text": "I, I check my inbox only twice a day.",
+      "pauseAfter": 0.22,
+      "fillerCount": 0
+    },
+    {
+      "id": "s5",
+      "w0": 45,
+      "w1": 54,
+      "start": 13.92,
+      "end": 16.51,
+      "text": "Uh, once at 10 AM and once at 4 PM.",
+      "pauseAfter": 1.42,
+      "fillerCount": 1
+    },
+    {
+      "id": "s6",
+      "w0": 55,
+      "w1": 64,
+      "start": 17.93,
+      "end": 21.27,
+      "text": "The rest of the day, notifications stay off, like, completely.",
+      "pauseAfter": 0.22,
+      "fillerCount": 1
+    },
+    {
+      "id": "s7",
+      "w0": 65,
+      "w1": 76,
+      "start": 21.49,
+      "end": 25.25,
+      "text": "My focus went through the roof, and uh, my team actually noticed.",
+      "pauseAfter": 0.22,
+      "fillerCount": 1
+    },
+    {
+      "id": "s8",
+      "w0": 77,
+      "w1": 83,
+      "start": 25.47,
+      "end": 27.55,
+      "text": "We shipped the project two weeks early.",
+      "pauseAfter": 1.22,
+      "fillerCount": 0
+    },
+    {
+      "id": "s9",
+      "w0": 84,
+      "w1": 91,
+      "start": 28.77,
+      "end": 31.01,
+      "text": "Here's the the trick that makes it stick.",
+      "pauseAfter": 0.22,
+      "fillerCount": 0
+    },
+    {
+      "id": "s10",
+      "w0": 92,
+      "w1": 104,
+      "start": 31.23,
+      "end": 35.46,
+      "text": "Um, block those two windows in Google Calendar and treat them like meetings.",
+      "pauseAfter": 0.22,
+      "fillerCount": 1
+    },
+    {
+      "id": "s11",
+      "w0": 105,
+      "w1": 116,
+      "start": 35.68,
+      "end": 39.16,
+      "text": "Er, it feels weird for a week, then it feels like freedom.",
+      "pauseAfter": 1.12,
+      "fillerCount": 1
+    },
+    {
+      "id": "s12",
+      "w0": 117,
+      "w1": 129,
+      "start": 40.28,
+      "end": 43.89,
+      "text": "If this helped, follow for more tips and share it with a friend.",
+      "pauseAfter": 0,
+      "fillerCount": 0
+    }
+  ],
+  "fillerCandidates": [
+    {
+      "i": 12,
+      "text": "Um,",
+      "kind": "pure"
+    },
+    {
+      "i": 45,
+      "text": "Uh,",
+      "kind": "pure"
+    },
+    {
+      "i": 63,
+      "text": "like,",
+      "kind": "discourse"
+    },
+    {
+      "i": 72,
+      "text": "uh,",
+      "kind": "pure"
+    },
+    {
+      "i": 92,
+      "text": "Um,",
+      "kind": "pure"
+    },
+    {
+      "i": 105,
+      "text": "Er,",
+      "kind": "pure"
+    }
+  ],
+  "repeatCandidates": [
+    {
+      "kind": "FALSE_START",
+      "w0": 20,
+      "w1": 23,
+      "keptW0": 24
+    },
+    {
+      "kind": "REPEAT",
+      "w0": 36,
+      "w1": 36,
+      "keptW0": 37
+    },
+    {
+      "kind": "REPEAT",
+      "w0": 85,
+      "w1": 85,
+      "keptW0": 86
+    }
+  ],
+  "retakeCandidates": [],
+  "ctaCandidates": [
+    {
+      "sentenceId": "s12",
+      "pattern": "follow"
+    }
+  ],
+  "longPauses": [
+    {
+      "afterWord": 54,
+      "start": 16.51,
+      "end": 17.93,
+      "dur": 1.42
+    },
+    {
+      "afterWord": 83,
+      "start": 27.55,
+      "end": 28.77,
+      "dur": 1.22
+    },
+    {
+      "afterWord": 116,
+      "start": 39.16,
+      "end": 40.28,
+      "dur": 1.12
+    }
+  ]
+}

@@ -1,0 +1,148 @@
+{
+  "limits": {
+    "maxUploadMb": 500,
+    "minDurationSec": 3,
+    "maxDurationSec": 300,
+    "minShortEdgePx": 360,
+    "warnShortEdgePx": 480,
+    "maxLongEdgePx": 4096,
+    "minFps": 12,
+    "maxFps": 120,
+    "acceptedTypes": [
+      "video/mp4",
+      "video/quicktime",
+      "video/webm"
+    ],
+    "acceptedExtensions": [
+      ".mp4",
+      ".mov",
+      ".webm",
+      ".m4v"
+    ],
+    "logo": {
+      "maxBytes": 5242880,
+      "types": [
+        "image/png",
+        "image/jpeg",
+        "image/webp"
+      ],
+      "maxPx": 4096
+    }
+  },
+  "languages": [
+    {
+      "code": "en",
+      "name": "English (US)",
+      "native": "English",
+      "dir": "ltr"
+    },
+    {
+      "code": "hi",
+      "name": "Hindi",
+      "native": "हिन्दी",
+      "dir": "ltr"
+    },
+    {
+      "code": "es",
+      "name": "Spanish",
+      "native": "Español",
+      "dir": "ltr"
+    },
+    {
+      "code": "fr",
+      "name": "French",
+      "native": "Français",
+      "dir": "ltr"
+    },
+    {
+      "code": "de",
+      "name": "German",
+      "native": "Deutsch",
+      "dir": "ltr"
+    },
+    {
+      "code": "pt",
+      "name": "Portuguese",
+      "native": "Português",
+      "dir": "ltr"
+    },
+    {
+      "code": "ar",
+      "name": "Arabic",
+      "native": "العربية",
+      "dir": "rtl"
+    },
+    {
+      "code": "ja",
+      "name": "Japanese",
+      "native": "日本語",
+      "dir": "ltr"
+    }
+  ],
+  "captionStyles": [
+    "bold_pop",
+    "clean",
+    "karaoke_blob",
+    "single_word",
+    "minimal_lower",
+    "brand_bar"
+  ],
+  "defaults": {
+    "settings": {
+      "language": "auto",
+      "output": {
+        "aspect": "source"
+      },
+      "captions": {
+        "enabled": true,
+        "styleId": "bold_pop",
+        "maxWordsPerLine": 3,
+        "position": "auto",
+        "language": "auto"
+      },
+      "brand": {
+        "palette": null,
+        "logo": {
+          "placement": "tr",
+          "show": "always"
+        }
+      },
+      "music": {
+        "enabled": true
+      },
+      "sfx": {
+        "enabled": true
+      },
+      "broll": {
+        "enabled": true,
+        "intensity": "medium",
+        "allowImages": true
+      },
+      "effects": {
+        "intensity": "subtle",
+        "autoJumpCuts": true
+      },
+      "removeFillers": "light",
+      "removeSilence": {
+        "enabled": true,
+        "pace": "natural"
+      },
+      "autoRender": true,
+      "exportProfile": "export1080",
+      "privacy": {
+        "allowCloudVision": true
+      },
+      "consent": {
+        "thirdPartyAi": false,
+        "termsVersion": ""
+      }
+    }
+  },
+  "costPerMinuteUsd": {
+    "low": 0.02,
+    "high": 0.06
+  },
+  "visionAvailable": true,
+  "stockVideoAvailable": true,
+  "termsVersion": "2026-09"
+}

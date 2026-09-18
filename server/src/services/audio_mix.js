@@ -20,7 +20,7 @@ function log(...args) { console.log("[audio_mix]", ...args); }
 
 function runFFmpeg(args, timeoutMs, { loglevel = "error" } = {}) {
   return new Promise((resolve, reject) => {
-    const proc = spawn("ffmpeg", ["-hide_banner", "-nostats", "-loglevel", loglevel, ...args]);
+    const proc = spawn("ffmpeg", ["-hide_banner", "-nostats", "-loglevel", loglevel, ...args], { windowsHide: true });
     let stderr = "";
     proc.stderr.on("data", (d) => { stderr += d.toString(); });
     const timer = setTimeout(() => {

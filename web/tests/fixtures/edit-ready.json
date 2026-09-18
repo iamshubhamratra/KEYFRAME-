@@ -1,0 +1,4935 @@
+{
+  "project": {
+    "id": "ve_readydemo0000001",
+    "title": "take-03 · pricing story",
+    "status": "READY",
+    "stage": "QUALITY_CHECK",
+    "overallPct": 100,
+    "createdAt": 1789377120000,
+    "updatedAt": 1789377681000,
+    "lastOpenedAt": 1789377720000,
+    "durationSec": 52.25,
+    "outputDurationSec": 45.024,
+    "orientation": "vertical",
+    "posterUrl": "/api/video-edits/ve_readydemo0000001/media/poster",
+    "currentExportId": null,
+    "qaVerdict": "warn",
+    "mode": "AI_VIDEO_EDIT",
+    "statusReason": null,
+    "progress": {
+      "stage": "QUALITY_CHECK",
+      "stagePct": 100,
+      "overallPct": 100,
+      "message": "Ready",
+      "stageStartedAt": 1789377540000,
+      "etaSec": 0,
+      "queuePosition": 0
+    },
+    "source": {
+      "displayName": "take-03.mov",
+      "sizeBytes": 187412336,
+      "durationSec": 52.25,
+      "width": 1080,
+      "height": 1920,
+      "fps": 30,
+      "rotation": 0,
+      "hasAudio": true,
+      "orientation": "vertical"
+    },
+    "settings": {
+      "title": "take-03 · pricing story",
+      "language": "auto",
+      "output": {
+        "aspect": "source"
+      },
+      "captions": {
+        "enabled": true,
+        "styleId": "clean",
+        "maxWordsPerLine": 3,
+        "position": "auto",
+        "language": "auto"
+      },
+      "brand": {
+        "palette": null,
+        "logo": {
+          "placement": "tr",
+          "show": "always"
+        }
+      },
+      "music": {
+        "enabled": true
+      },
+      "sfx": {
+        "enabled": true
+      },
+      "broll": {
+        "enabled": true,
+        "intensity": "medium",
+        "allowImages": true
+      },
+      "effects": {
+        "intensity": "subtle",
+        "autoJumpCuts": true
+      },
+      "removeFillers": "light",
+      "removeSilence": {
+        "enabled": true,
+        "pace": "natural"
+      },
+      "autoRender": true,
+      "exportProfile": "export1080",
+      "privacy": {
+        "allowCloudVision": true
+      },
+      "consent": {
+        "thirdPartyAi": true,
+        "termsVersion": "2026-09"
+      }
+    },
+    "consent": {
+      "thirdPartyAi": true,
+      "termsVersion": "2026-09",
+      "at": 1789377120000
+    },
+    "stages": {
+      "VALIDATING": {
+        "status": "done",
+        "attempts": 1,
+        "durationMs": 1200,
+        "fallbacks": []
+      },
+      "COMPRESSING": {
+        "status": "done",
+        "attempts": 1,
+        "durationMs": 14800,
+        "fallbacks": []
+      },
+      "EXTRACTING_AUDIO": {
+        "status": "done",
+        "attempts": 1,
+        "durationMs": 2100,
+        "fallbacks": []
+      },
+      "TRANSCRIBING": {
+        "status": "done",
+        "attempts": 1,
+        "engine": "microsoft/mai-transcribe-2",
+        "durationMs": 6300,
+        "costUsd": 0.0019,
+        "fallbacks": []
+      },
+      "ANALYZING_VIDEO": {
+        "status": "done",
+        "attempts": 1,
+        "engine": "google/gemini-3.5-flash-lite",
+        "durationMs": 11200,
+        "costUsd": 0.0062,
+        "fallbacks": []
+      },
+      "ANALYZING_CONTENT": {
+        "status": "done",
+        "attempts": 1,
+        "engine": "google/gemini-3.5-flash",
+        "durationMs": 7400,
+        "costUsd": 0.0033,
+        "fallbacks": []
+      },
+      "SEARCHING_BROLL": {
+        "status": "done",
+        "attempts": 1,
+        "engine": "pexels+pixabay",
+        "durationMs": 5200,
+        "fallbacks": []
+      },
+      "SCORING_ASSETS": {
+        "status": "done",
+        "attempts": 1,
+        "engine": "google/gemini-3.5-flash-lite",
+        "durationMs": 9800,
+        "costUsd": 0.0078,
+        "fallbacks": []
+      },
+      "BUILDING_EDIT_PLAN": {
+        "status": "done",
+        "attempts": 1,
+        "engine": "google/gemini-3.5-flash",
+        "durationMs": 8100,
+        "costUsd": 0.0041,
+        "fallbacks": []
+      },
+      "PREPARING_RENDER": {
+        "status": "done",
+        "attempts": 1,
+        "durationMs": 2600,
+        "fallbacks": []
+      },
+      "RENDERING": {
+        "status": "done",
+        "attempts": 1,
+        "durationMs": 18400,
+        "fallbacks": []
+      },
+      "POST_PROCESSING": {
+        "status": "done",
+        "attempts": 1,
+        "durationMs": 3100,
+        "fallbacks": []
+      },
+      "QUALITY_CHECK": {
+        "status": "done",
+        "attempts": 1,
+        "durationMs": 5200,
+        "costUsd": 0.0035,
+        "fallbacks": []
+      }
+    },
+    "discoveries": {
+      "language": "en",
+      "words": 119,
+      "wpm": 141,
+      "fillersFound": 3,
+      "silencesFound": 5,
+      "silenceSec": 5.2,
+      "topics": [
+        "customer calls",
+        "pricing page",
+        "sign-up growth"
+      ],
+      "hook": "We doubled our revenue in just three months.",
+      "brollMoments": 5,
+      "faceFound": true,
+      "onScreenText": []
+    },
+    "plan": {
+      "headRevision": 3,
+      "headHash": "ph3_c81e4b2d",
+      "canUndo": true,
+      "canRedo": false
+    },
+    "renders": [
+      {
+        "renderId": "rd_prev0003",
+        "kind": "preview",
+        "profile": "preview540",
+        "planRevision": 3,
+        "status": "done",
+        "pct": 100,
+        "etaSec": 0,
+        "queuePosition": 0,
+        "compositionHash": "comp_r3_8d41f2a0",
+        "durationSec": 45.024,
+        "width": 540,
+        "height": 960,
+        "fps": 30,
+        "createdAt": 1789377662000,
+        "finishedAt": 1789377681000,
+        "qa": {
+          "verdict": "warn",
+          "score": 8.4
+        },
+        "cached": false
+      }
+    ],
+    "exports": {
+      "currentId": null,
+      "stale": false
+    },
+    "qaSummary": {
+      "verdict": "warn",
+      "score": 8.4,
+      "headline": "1 B-roll slot has no match — you stay on screen there.",
+      "counts": {
+        "pass": 9,
+        "warn": 1,
+        "fail": 0
+      }
+    },
+    "notices": [],
+    "cost": {
+      "estimateUsd": 0.031,
+      "capUsd": 0.5,
+      "spentUsd": 0.0269
+    },
+    "allowedActions": [
+      "render",
+      "export",
+      "delete",
+      "edit"
+    ]
+  },
+  "plan": {
+    "revision": 3,
+    "hash": "ph3_c81e4b2d",
+    "author": "user",
+    "createdAt": 1789377660000,
+    "plan": {
+      "schema": "keyframe.edit_plan",
+      "version": 1,
+      "projectId": "ve_readydemo0000001",
+      "revision": 3,
+      "parentRevision": 2,
+      "createdAt": 1789377660000,
+      "createdBy": "user",
+      "source": {
+        "assetId": "ast_src01",
+        "sha1": "4f1c2e9a7b3d5c8e1f0a2b4c6d8e0f1a2b3c4d5e",
+        "durationSec": 52.25,
+        "fps": 30,
+        "width": 1080,
+        "height": 1920,
+        "analysisVersion": "a1",
+        "transcriptHash": "th_91c3e7",
+        "timing": "word",
+        "language": "en"
+      },
+      "output": {
+        "aspect": "9:16",
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "background": "none"
+      },
+      "settings": {
+        "captionStyle": "clean",
+        "captionLanguage": "auto",
+        "maxWordsPerLine": 3,
+        "captionsEnabled": true,
+        "brandColors": [
+          "#e832a8",
+          "#23c8e0"
+        ],
+        "musicEnabled": true,
+        "sfxEnabled": true,
+        "brollIntensity": "medium",
+        "effects": "subtle",
+        "effectsEnabled": true,
+        "removeFillers": "light",
+        "removeSilence": true,
+        "silencePace": "natural",
+        "autoJumpCuts": true,
+        "punchInOnJumpCuts": true,
+        "platformSafe": "reels"
+      },
+      "timeline": {
+        "pieces": [
+          {
+            "id": "p_0",
+            "srcIn": 0.67,
+            "srcOut": 3.667,
+            "outIn": 0,
+            "outOut": 2.997,
+            "kind": "play",
+            "rate": 1,
+            "chunkKey": "0.67:3.667:play:1"
+          },
+          {
+            "id": "p_1",
+            "srcIn": 5,
+            "srcOut": 7.767,
+            "outIn": 2.997,
+            "outOut": 5.764,
+            "kind": "play",
+            "rate": 1,
+            "chunkKey": "5:7.767:play:1"
+          },
+          {
+            "id": "p_2",
+            "srcIn": 8.333,
+            "srcOut": 12.9,
+            "outIn": 5.764,
+            "outOut": 10.331,
+            "kind": "play",
+            "rate": 1,
+            "chunkKey": "8.333:12.9:play:1"
+          },
+          {
+            "id": "p_3",
+            "srcIn": 13.967,
+            "srcOut": 19.033,
+            "outIn": 10.331,
+            "outOut": 15.397,
+            "kind": "play",
+            "rate": 1,
+            "chunkKey": "13.967:19.033:play:1"
+          },
+          {
+            "id": "p_4",
+            "srcIn": 19.567,
+            "srcOut": 24.433,
+            "outIn": 15.397,
+            "outOut": 20.263,
+            "kind": "play",
+            "rate": 1,
+            "chunkKey": "19.567:24.433:play:1"
+          },
+          {
+            "id": "p_5",
+            "srcIn": 25.3,
+            "srcOut": 32.467,
+            "outIn": 20.263,
+            "outOut": 27.43,
+            "kind": "play",
+            "rate": 1,
+            "chunkKey": "25.3:32.467:play:1"
+          },
+          {
+            "id": "p_6",
+            "srcIn": 33.033,
+            "srcOut": 43.5,
+            "outIn": 27.43,
+            "outOut": 37.897,
+            "kind": "play",
+            "rate": 1,
+            "chunkKey": "33.033:43.5:play:1"
+          },
+          {
+            "id": "p_7",
+            "srcIn": 44.633,
+            "srcOut": 51.76,
+            "outIn": 37.897,
+            "outOut": 45.024,
+            "kind": "play",
+            "rate": 1,
+            "chunkKey": "44.633:51.76:play:1"
+          }
+        ],
+        "outDurationSec": 45.024,
+        "mapHash": "1iqtk54"
+      },
+      "aRoll": {
+        "segments": [
+          {
+            "id": "seg_hook",
+            "type": "HOOK",
+            "anchor": {
+              "kind": "words",
+              "w0": 0,
+              "w1": 7
+            },
+            "resolved": {
+              "outIn": 0.15,
+              "outOut": 2.858,
+              "collapsed": false
+            },
+            "sentenceIds": [
+              "s1"
+            ],
+            "importance": 0.95,
+            "editingIntent": "hook_grab",
+            "faceRequired": false,
+            "framing": {
+              "mode": "auto",
+              "zoomBase": 1,
+              "keyframes": [
+                {
+                  "src": 0.82,
+                  "cx": 0.5,
+                  "cy": 0.38,
+                  "zoom": 1
+                }
+              ],
+              "locked": false
+            },
+            "label": "Hook",
+            "reason": "Opens on a specific result — the strongest line in the take.",
+            "origin": "ai",
+            "locked": false
+          },
+          {
+            "id": "seg_setup",
+            "type": "TALKING_HEAD",
+            "anchor": {
+              "kind": "words",
+              "w0": 8,
+              "w1": 30
+            },
+            "resolved": {
+              "outIn": 2.997,
+              "outOut": 10.215,
+              "collapsed": false
+            },
+            "sentenceIds": [
+              "s2",
+              "s3"
+            ],
+            "importance": 0.55,
+            "editingIntent": "explain",
+            "faceRequired": false,
+            "framing": {
+              "mode": "auto",
+              "zoomBase": 1,
+              "keyframes": [
+                {
+                  "src": 4.478,
+                  "cx": 0.5,
+                  "cy": 0.38,
+                  "zoom": 1
+                }
+              ],
+              "locked": false
+            },
+            "label": "The setup",
+            "reason": "Context before the method.",
+            "origin": "ai",
+            "locked": false
+          },
+          {
+            "id": "seg_method",
+            "type": "EMPHASIS",
+            "anchor": {
+              "kind": "words",
+              "w0": 31,
+              "w1": 97
+            },
+            "resolved": {
+              "outIn": 10.448,
+              "outOut": 37.751,
+              "collapsed": false
+            },
+            "sentenceIds": [
+              "s4",
+              "s5",
+              "s6",
+              "s7",
+              "s8",
+              "s9",
+              "s10"
+            ],
+            "importance": 0.8,
+            "editingIntent": "proof",
+            "faceRequired": false,
+            "framing": {
+              "mode": "auto",
+              "zoomBase": 1,
+              "keyframes": [
+                {
+                  "src": 14.084,
+                  "cx": 0.5,
+                  "cy": 0.38,
+                  "zoom": 1
+                }
+              ],
+              "locked": false
+            },
+            "label": "The method",
+            "reason": "The idea and the proof it worked.",
+            "origin": "ai",
+            "locked": false
+          },
+          {
+            "id": "seg_cta",
+            "type": "CTA",
+            "anchor": {
+              "kind": "words",
+              "w0": 98,
+              "w1": 118
+            },
+            "resolved": {
+              "outIn": 38.038,
+              "outOut": 44.874,
+              "collapsed": false
+            },
+            "sentenceIds": [
+              "s11",
+              "s12"
+            ],
+            "importance": 0.7,
+            "editingIntent": "cta",
+            "faceRequired": true,
+            "framing": {
+              "mode": "auto",
+              "zoomBase": 1,
+              "keyframes": [
+                {
+                  "src": 44.774,
+                  "cx": 0.5,
+                  "cy": 0.38,
+                  "zoom": 1
+                }
+              ],
+              "locked": false
+            },
+            "label": "Call to action",
+            "reason": "Direct address to the viewer.",
+            "origin": "ai",
+            "locked": false
+          }
+        ]
+      },
+      "cuts": [
+        {
+          "id": "cut_sil01x",
+          "kind": "SILENCE",
+          "srcIn": 3.643,
+          "srcOut": 4.363,
+          "raw": {
+            "srcIn": 3.568,
+            "srcOut": 4.438
+          },
+          "snap": {
+            "method": "rms_gap",
+            "padIn": 0.075,
+            "padOut": 0.075
+          },
+          "wordRange": null,
+          "confidence": 0.94,
+          "controlledBy": "removeSilence",
+          "enabled": true,
+          "userToggled": false,
+          "reason": "0.9s pause after “months”.",
+          "origin": "ai",
+          "locked": false
+        },
+        {
+          "id": "cut_fil02x",
+          "kind": "FILLER",
+          "srcIn": 4.448,
+          "srcOut": 5.011,
+          "raw": {
+            "srcIn": 4.448,
+            "srcOut": 5.011
+          },
+          "snap": {
+            "method": "word_edge",
+            "padIn": 0.03,
+            "padOut": 0.05
+          },
+          "wordRange": [
+            8,
+            8
+          ],
+          "confidence": 0.91,
+          "controlledBy": "removeFillers",
+          "enabled": true,
+          "userToggled": false,
+          "reason": "Filler “um”.",
+          "origin": "ai",
+          "locked": false
+        },
+        {
+          "id": "cut_rep04x",
+          "kind": "REPEAT",
+          "srcIn": 7.741,
+          "srcOut": 8.357,
+          "raw": {
+            "srcIn": 7.741,
+            "srcOut": 8.357
+          },
+          "snap": {
+            "method": "word_edge",
+            "padIn": 0.03,
+            "padOut": 0.06
+          },
+          "wordRange": [
+            16,
+            17
+          ],
+          "confidence": 0.83,
+          "controlledBy": null,
+          "enabled": true,
+          "userToggled": false,
+          "reason": "Repeated start “So the— so the”.",
+          "origin": "ai",
+          "locked": false
+        },
+        {
+          "id": "cut_sil03x",
+          "kind": "SILENCE",
+          "srcIn": 12.899,
+          "srcOut": 13.969,
+          "raw": {
+            "srcIn": 12.824,
+            "srcOut": 14.044
+          },
+          "snap": {
+            "method": "rms_gap",
+            "padIn": 0.075,
+            "padOut": 0.075
+          },
+          "wordRange": null,
+          "confidence": 0.94,
+          "controlledBy": "removeSilence",
+          "enabled": true,
+          "userToggled": false,
+          "reason": "1.3s pause after “stop”.",
+          "origin": "ai",
+          "locked": false
+        },
+        {
+          "id": "cut_fil06x",
+          "kind": "FILLER",
+          "srcIn": 19.03,
+          "srcOut": 19.593,
+          "raw": {
+            "srcIn": 19.03,
+            "srcOut": 19.593
+          },
+          "snap": {
+            "method": "word_edge",
+            "padIn": 0.03,
+            "padOut": 0.05
+          },
+          "wordRange": [
+            42,
+            42
+          ],
+          "confidence": 0.91,
+          "controlledBy": "removeFillers",
+          "enabled": true,
+          "userToggled": false,
+          "reason": "Filler “uh”.",
+          "origin": "ai",
+          "locked": false
+        },
+        {
+          "id": "cut_sil05x",
+          "kind": "SILENCE",
+          "srcIn": 24.413,
+          "srcOut": 25.303,
+          "raw": {
+            "srcIn": 24.338,
+            "srcOut": 25.378
+          },
+          "snap": {
+            "method": "rms_gap",
+            "padIn": 0.075,
+            "padOut": 0.075
+          },
+          "wordRange": null,
+          "confidence": 0.94,
+          "controlledBy": "removeSilence",
+          "enabled": true,
+          "userToggled": false,
+          "reason": "1.1s pause after “buying”.",
+          "origin": "ai",
+          "locked": false
+        },
+        {
+          "id": "cut_fil07x",
+          "kind": "FILLER",
+          "srcIn": 26.857,
+          "srcOut": 27.233,
+          "raw": {
+            "srcIn": 26.857,
+            "srcOut": 27.233
+          },
+          "snap": {
+            "method": "word_edge",
+            "padIn": 0.03,
+            "padOut": 0.05
+          },
+          "wordRange": [
+            59,
+            59
+          ],
+          "confidence": 0.66,
+          "controlledBy": "removeFillers",
+          "enabled": false,
+          "userToggled": false,
+          "reason": "Discourse filler “like” — kept at UM/UH ONLY.",
+          "origin": "ai",
+          "locked": false
+        },
+        {
+          "id": "cut_sil08x",
+          "kind": "SILENCE",
+          "srcIn": 32.439,
+          "srcOut": 33.049,
+          "raw": {
+            "srcIn": 32.364,
+            "srcOut": 33.124
+          },
+          "snap": {
+            "method": "rms_gap",
+            "padIn": 0.075,
+            "padOut": 0.075
+          },
+          "wordRange": null,
+          "confidence": 0.94,
+          "controlledBy": "removeSilence",
+          "enabled": true,
+          "userToggled": false,
+          "reason": "0.8s pause after “afternoon”.",
+          "origin": "ai",
+          "locked": false
+        },
+        {
+          "id": "cut_sil09x",
+          "kind": "SILENCE",
+          "srcIn": 43.469,
+          "srcOut": 44.659,
+          "raw": {
+            "srcIn": 43.394,
+            "srcOut": 44.734
+          },
+          "snap": {
+            "method": "rms_gap",
+            "padIn": 0.075,
+            "padOut": 0.075
+          },
+          "wordRange": null,
+          "confidence": 0.94,
+          "controlledBy": "removeSilence",
+          "enabled": true,
+          "userToggled": false,
+          "reason": "1.4s pause after “ago”.",
+          "origin": "ai",
+          "locked": false
+        }
+      ],
+      "captions": {
+        "enabled": true,
+        "styleId": "clean",
+        "language": "en",
+        "sourceLanguage": "en",
+        "position": {
+          "policy": "auto",
+          "faceAvoid": true
+        },
+        "highlight": "color",
+        "overrides": {
+          "wordText": {},
+          "insertions": [],
+          "hiddenWords": [],
+          "hiddenCues": [],
+          "cueY": {},
+          "emphasis": {
+            "w1": true,
+            "w33": true,
+            "w74": true,
+            "w75": true
+          }
+        },
+        "cues": [
+          {
+            "id": "c_0",
+            "anchor": {
+              "kind": "words",
+              "w0": 0,
+              "w1": 7
+            },
+            "resolved": {
+              "outIn": 0.15,
+              "outOut": 2.858,
+              "collapsed": false
+            },
+            "text": "We doubled our revenue in just three months.",
+            "lines": [
+              "We doubled our revenue",
+              "in just three months."
+            ],
+            "words": [
+              {
+                "key": "w0",
+                "i": 0,
+                "text": "We",
+                "srcStart": 0.82,
+                "srcEnd": 1.003,
+                "emphasis": false,
+                "conf": 0.9,
+                "outStart": 0.15,
+                "outEnd": 0.333,
+                "collapsed": false
+              },
+              {
+                "key": "w1",
+                "i": 1,
+                "text": "doubled",
+                "srcStart": 1.052,
+                "srcEnd": 1.46,
+                "emphasis": true,
+                "conf": 0.91,
+                "outStart": 0.382,
+                "outEnd": 0.79,
+                "collapsed": false
+              },
+              {
+                "key": "w2",
+                "i": 2,
+                "text": "our",
+                "srcStart": 1.509,
+                "srcEnd": 1.737,
+                "emphasis": false,
+                "conf": 0.92,
+                "outStart": 0.839,
+                "outEnd": 1.067,
+                "collapsed": false
+              },
+              {
+                "key": "w3",
+                "i": 3,
+                "text": "revenue",
+                "srcStart": 1.787,
+                "srcEnd": 2.195,
+                "emphasis": false,
+                "conf": 0.93,
+                "outStart": 1.117,
+                "outEnd": 1.525,
+                "collapsed": false
+              },
+              {
+                "key": "w4",
+                "i": 4,
+                "text": "in",
+                "srcStart": 2.244,
+                "srcEnd": 2.427,
+                "emphasis": false,
+                "conf": 0.9400000000000001,
+                "outStart": 1.574,
+                "outEnd": 1.757,
+                "collapsed": false
+              },
+              {
+                "key": "w5",
+                "i": 5,
+                "text": "just",
+                "srcStart": 2.476,
+                "srcEnd": 2.749,
+                "emphasis": false,
+                "conf": 0.9500000000000001,
+                "outStart": 1.806,
+                "outEnd": 2.079,
+                "collapsed": false
+              },
+              {
+                "key": "w6",
+                "i": 6,
+                "text": "three",
+                "srcStart": 2.798,
+                "srcEnd": 3.116,
+                "emphasis": false,
+                "conf": 0.96,
+                "outStart": 2.128,
+                "outEnd": 2.446,
+                "collapsed": false
+              },
+              {
+                "key": "w7",
+                "i": 7,
+                "text": "months.",
+                "srcStart": 3.166,
+                "srcEnd": 3.528,
+                "emphasis": false,
+                "conf": 0.97,
+                "outStart": 2.496,
+                "outEnd": 2.858,
+                "collapsed": false
+              }
+            ],
+            "timingMode": "words",
+            "pos": null,
+            "hidden": false,
+            "edited": false
+          },
+          {
+            "id": "c_9",
+            "anchor": {
+              "kind": "words",
+              "w0": 9,
+              "w1": 15
+            },
+            "resolved": {
+              "outIn": 3.264,
+              "outOut": 5.428,
+              "collapsed": false
+            },
+            "text": "and no, it wasn't because of ads.",
+            "lines": [
+              "and no, it wasn't",
+              "because of ads."
+            ],
+            "words": [
+              {
+                "key": "w9",
+                "i": 9,
+                "text": "and",
+                "srcStart": 5.267,
+                "srcEnd": 5.495,
+                "emphasis": false,
+                "conf": 0.9,
+                "outStart": 3.264,
+                "outEnd": 3.492,
+                "collapsed": false
+              },
+              {
+                "key": "w10",
+                "i": 10,
+                "text": "no,",
+                "srcStart": 5.544,
+                "srcEnd": 5.727,
+                "emphasis": false,
+                "conf": 0.91,
+                "outStart": 3.541,
+                "outEnd": 3.724,
+                "collapsed": false
+              },
+              {
+                "key": "w11",
+                "i": 11,
+                "text": "it",
+                "srcStart": 5.914,
+                "srcEnd": 6.097,
+                "emphasis": false,
+                "conf": 0.92,
+                "outStart": 3.911,
+                "outEnd": 4.094,
+                "collapsed": false
+              },
+              {
+                "key": "w12",
+                "i": 12,
+                "text": "wasn't",
+                "srcStart": 6.146,
+                "srcEnd": 6.464,
+                "emphasis": false,
+                "conf": 0.93,
+                "outStart": 4.143,
+                "outEnd": 4.461,
+                "collapsed": false
+              },
+              {
+                "key": "w13",
+                "i": 13,
+                "text": "because",
+                "srcStart": 6.513,
+                "srcEnd": 6.921,
+                "emphasis": false,
+                "conf": 0.9400000000000001,
+                "outStart": 4.51,
+                "outEnd": 4.918,
+                "collapsed": false
+              },
+              {
+                "key": "w14",
+                "i": 14,
+                "text": "of",
+                "srcStart": 6.97,
+                "srcEnd": 7.153,
+                "emphasis": false,
+                "conf": 0.9500000000000001,
+                "outStart": 4.967,
+                "outEnd": 5.15,
+                "collapsed": false
+              },
+              {
+                "key": "w15",
+                "i": 15,
+                "text": "ads.",
+                "srcStart": 7.203,
+                "srcEnd": 7.431,
+                "emphasis": false,
+                "conf": 0.96,
+                "outStart": 5.2,
+                "outEnd": 5.428,
+                "collapsed": false
+              }
+            ],
+            "timingMode": "words",
+            "pos": null,
+            "hidden": false,
+            "edited": false
+          },
+          {
+            "id": "c_18",
+            "anchor": {
+              "kind": "words",
+              "w0": 18,
+              "w1": 24
+            },
+            "resolved": {
+              "outIn": 5.848,
+              "outOut": 8.192,
+              "collapsed": false
+            },
+            "text": "so the thing is, most founders talk",
+            "lines": [
+              "so the thing is,",
+              "most founders talk"
+            ],
+            "words": [
+              {
+                "key": "w18",
+                "i": 18,
+                "text": "so",
+                "srcStart": 8.417,
+                "srcEnd": 8.6,
+                "emphasis": false,
+                "conf": 0.9,
+                "outStart": 5.848,
+                "outEnd": 6.031,
+                "collapsed": false
+              },
+              {
+                "key": "w19",
+                "i": 19,
+                "text": "the",
+                "srcStart": 8.65,
+                "srcEnd": 8.878,
+                "emphasis": false,
+                "conf": 0.91,
+                "outStart": 6.081,
+                "outEnd": 6.309,
+                "collapsed": false
+              },
+              {
+                "key": "w20",
+                "i": 20,
+                "text": "thing",
+                "srcStart": 8.927,
+                "srcEnd": 9.245,
+                "emphasis": false,
+                "conf": 0.92,
+                "outStart": 6.358,
+                "outEnd": 6.676,
+                "collapsed": false
+              },
+              {
+                "key": "w21",
+                "i": 21,
+                "text": "is,",
+                "srcStart": 9.294,
+                "srcEnd": 9.477,
+                "emphasis": false,
+                "conf": 0.93,
+                "outStart": 6.725,
+                "outEnd": 6.908,
+                "collapsed": false
+              },
+              {
+                "key": "w22",
+                "i": 22,
+                "text": "most",
+                "srcStart": 9.664,
+                "srcEnd": 9.937,
+                "emphasis": false,
+                "conf": 0.9400000000000001,
+                "outStart": 7.095,
+                "outEnd": 7.368,
+                "collapsed": false
+              },
+              {
+                "key": "w23",
+                "i": 23,
+                "text": "founders",
+                "srcStart": 9.986,
+                "srcEnd": 10.439,
+                "emphasis": false,
+                "conf": 0.9500000000000001,
+                "outStart": 7.417,
+                "outEnd": 7.87,
+                "collapsed": false
+              },
+              {
+                "key": "w24",
+                "i": 24,
+                "text": "talk",
+                "srcStart": 10.488,
+                "srcEnd": 10.761,
+                "emphasis": false,
+                "conf": 0.96,
+                "outStart": 7.919,
+                "outEnd": 8.192,
+                "collapsed": false
+              }
+            ],
+            "timingMode": "words",
+            "pos": null,
+            "hidden": false,
+            "edited": false
+          },
+          {
+            "id": "c_25",
+            "anchor": {
+              "kind": "words",
+              "w0": 25,
+              "w1": 30
+            },
+            "resolved": {
+              "outIn": 8.241,
+              "outOut": 10.215,
+              "collapsed": false
+            },
+            "text": "to customers once and then stop.",
+            "lines": [
+              "to customers once",
+              "and then stop."
+            ],
+            "words": [
+              {
+                "key": "w25",
+                "i": 25,
+                "text": "to",
+                "srcStart": 10.81,
+                "srcEnd": 10.993,
+                "emphasis": false,
+                "conf": 0.97,
+                "outStart": 8.241,
+                "outEnd": 8.424,
+                "collapsed": false
+              },
+              {
+                "key": "w26",
+                "i": 26,
+                "text": "customers",
+                "srcStart": 11.043,
+                "srcEnd": 11.54,
+                "emphasis": false,
+                "conf": 0.98,
+                "outStart": 8.474,
+                "outEnd": 8.971,
+                "collapsed": false
+              },
+              {
+                "key": "w27",
+                "i": 27,
+                "text": "once",
+                "srcStart": 11.59,
+                "srcEnd": 11.862,
+                "emphasis": false,
+                "conf": 0.9,
+                "outStart": 9.021,
+                "outEnd": 9.293,
+                "collapsed": false
+              },
+              {
+                "key": "w28",
+                "i": 28,
+                "text": "and",
+                "srcStart": 11.912,
+                "srcEnd": 12.14,
+                "emphasis": false,
+                "conf": 0.91,
+                "outStart": 9.343,
+                "outEnd": 9.571,
+                "collapsed": false
+              },
+              {
+                "key": "w29",
+                "i": 29,
+                "text": "then",
+                "srcStart": 12.189,
+                "srcEnd": 12.462,
+                "emphasis": false,
+                "conf": 0.92,
+                "outStart": 9.62,
+                "outEnd": 9.893,
+                "collapsed": false
+              },
+              {
+                "key": "w30",
+                "i": 30,
+                "text": "stop.",
+                "srcStart": 12.511,
+                "srcEnd": 12.784,
+                "emphasis": false,
+                "conf": 0.93,
+                "outStart": 9.942,
+                "outEnd": 10.215,
+                "collapsed": false
+              }
+            ],
+            "timingMode": "words",
+            "pos": null,
+            "hidden": false,
+            "edited": false
+          },
+          {
+            "id": "c_31",
+            "anchor": {
+              "kind": "words",
+              "w0": 31,
+              "w1": 41
+            },
+            "resolved": {
+              "outIn": 10.448,
+              "outOut": 15.024,
+              "collapsed": false
+            },
+            "text": "This changes everything: we started calling five customers every single week.",
+            "lines": [
+              "This changes everything: we started calling",
+              "five customers every single week."
+            ],
+            "words": [
+              {
+                "key": "w31",
+                "i": 31,
+                "text": "This",
+                "srcStart": 14.084,
+                "srcEnd": 14.357,
+                "emphasis": false,
+                "conf": 0.9400000000000001,
+                "outStart": 10.448,
+                "outEnd": 10.721,
+                "collapsed": false
+              },
+              {
+                "key": "w32",
+                "i": 32,
+                "text": "changes",
+                "srcStart": 14.407,
+                "srcEnd": 14.814,
+                "emphasis": false,
+                "conf": 0.9500000000000001,
+                "outStart": 10.771,
+                "outEnd": 11.178,
+                "collapsed": false
+              },
+              {
+                "key": "w33",
+                "i": 33,
+                "text": "everything:",
+                "srcStart": 14.864,
+                "srcEnd": 15.406,
+                "emphasis": true,
+                "conf": 0.96,
+                "outStart": 11.228,
+                "outEnd": 11.77,
+                "collapsed": false
+              },
+              {
+                "key": "w34",
+                "i": 34,
+                "text": "we",
+                "srcStart": 15.593,
+                "srcEnd": 15.776,
+                "emphasis": false,
+                "conf": 0.97,
+                "outStart": 11.957,
+                "outEnd": 12.14,
+                "collapsed": false
+              },
+              {
+                "key": "w35",
+                "i": 35,
+                "text": "started",
+                "srcStart": 15.825,
+                "srcEnd": 16.233,
+                "emphasis": false,
+                "conf": 0.98,
+                "outStart": 12.189,
+                "outEnd": 12.597,
+                "collapsed": false
+              },
+              {
+                "key": "w36",
+                "i": 36,
+                "text": "calling",
+                "srcStart": 16.282,
+                "srcEnd": 16.69,
+                "emphasis": false,
+                "conf": 0.9,
+                "outStart": 12.646,
+                "outEnd": 13.054,
+                "collapsed": false
+              },
+              {
+                "key": "w37",
+                "i": 37,
+                "text": "five",
+                "srcStart": 16.739,
+                "srcEnd": 17.012,
+                "emphasis": false,
+                "conf": 0.91,
+                "outStart": 13.103,
+                "outEnd": 13.376,
+                "collapsed": false
+              },
+              {
+                "key": "w38",
+                "i": 38,
+                "text": "customers",
+                "srcStart": 17.061,
+                "srcEnd": 17.559,
+                "emphasis": false,
+                "conf": 0.92,
+                "outStart": 13.425,
+                "outEnd": 13.923,
+                "collapsed": false
+              },
+              {
+                "key": "w39",
+                "i": 39,
+                "text": "every",
+                "srcStart": 17.608,
+                "srcEnd": 17.926,
+                "emphasis": false,
+                "conf": 0.93,
+                "outStart": 13.972,
+                "outEnd": 14.29,
+                "collapsed": false
+              },
+              {
+                "key": "w40",
+                "i": 40,
+                "text": "single",
+                "srcStart": 17.975,
+                "srcEnd": 18.338,
+                "emphasis": false,
+                "conf": 0.9400000000000001,
+                "outStart": 14.339,
+                "outEnd": 14.702,
+                "collapsed": false
+              },
+              {
+                "key": "w41",
+                "i": 41,
+                "text": "week.",
+                "srcStart": 18.388,
+                "srcEnd": 18.66,
+                "emphasis": false,
+                "conf": 0.9500000000000001,
+                "outStart": 14.752,
+                "outEnd": 15.024,
+                "collapsed": false
+              }
+            ],
+            "timingMode": "words",
+            "pos": null,
+            "hidden": false,
+            "edited": false
+          },
+          {
+            "id": "c_43",
+            "anchor": {
+              "kind": "words",
+              "w0": 43,
+              "w1": 48
+            },
+            "resolved": {
+              "outIn": 15.679,
+              "outOut": 17.788,
+              "collapsed": false
+            },
+            "text": "every call ended with one question:",
+            "lines": [
+              "every call ended",
+              "with one question:"
+            ],
+            "words": [
+              {
+                "key": "w43",
+                "i": 43,
+                "text": "every",
+                "srcStart": 19.849,
+                "srcEnd": 20.167,
+                "emphasis": false,
+                "conf": 0.97,
+                "outStart": 15.679,
+                "outEnd": 15.997,
+                "collapsed": false
+              },
+              {
+                "key": "w44",
+                "i": 44,
+                "text": "call",
+                "srcStart": 20.216,
+                "srcEnd": 20.489,
+                "emphasis": false,
+                "conf": 0.98,
+                "outStart": 16.046,
+                "outEnd": 16.319,
+                "collapsed": false
+              },
+              {
+                "key": "w45",
+                "i": 45,
+                "text": "ended",
+                "srcStart": 20.539,
+                "srcEnd": 20.856,
+                "emphasis": false,
+                "conf": 0.9,
+                "outStart": 16.369,
+                "outEnd": 16.686,
+                "collapsed": false
+              },
+              {
+                "key": "w46",
+                "i": 46,
+                "text": "with",
+                "srcStart": 20.906,
+                "srcEnd": 21.179,
+                "emphasis": false,
+                "conf": 0.91,
+                "outStart": 16.736,
+                "outEnd": 17.009,
+                "collapsed": false
+              },
+              {
+                "key": "w47",
+                "i": 47,
+                "text": "one",
+                "srcStart": 21.228,
+                "srcEnd": 21.456,
+                "emphasis": false,
+                "conf": 0.92,
+                "outStart": 17.058,
+                "outEnd": 17.286,
+                "collapsed": false
+              },
+              {
+                "key": "w48",
+                "i": 48,
+                "text": "question:",
+                "srcStart": 21.505,
+                "srcEnd": 21.958,
+                "emphasis": false,
+                "conf": 0.93,
+                "outStart": 17.335,
+                "outEnd": 17.788,
+                "collapsed": false
+              }
+            ],
+            "timingMode": "words",
+            "pos": null,
+            "hidden": false,
+            "edited": false
+          },
+          {
+            "id": "c_49",
+            "anchor": {
+              "kind": "words",
+              "w0": 49,
+              "w1": 54
+            },
+            "resolved": {
+              "outIn": 17.974,
+              "outOut": 20.128,
+              "collapsed": false
+            },
+            "text": "what almost stopped you from buying?",
+            "lines": [
+              "what almost stopped",
+              "you from buying?"
+            ],
+            "words": [
+              {
+                "key": "w49",
+                "i": 49,
+                "text": "what",
+                "srcStart": 22.144,
+                "srcEnd": 22.417,
+                "emphasis": false,
+                "conf": 0.9400000000000001,
+                "outStart": 17.974,
+                "outEnd": 18.247,
+                "collapsed": false
+              },
+              {
+                "key": "w50",
+                "i": 50,
+                "text": "almost",
+                "srcStart": 22.467,
+                "srcEnd": 22.829,
+                "emphasis": false,
+                "conf": 0.9500000000000001,
+                "outStart": 18.297,
+                "outEnd": 18.659,
+                "collapsed": false
+              },
+              {
+                "key": "w51",
+                "i": 51,
+                "text": "stopped",
+                "srcStart": 22.879,
+                "srcEnd": 23.286,
+                "emphasis": false,
+                "conf": 0.96,
+                "outStart": 18.709,
+                "outEnd": 19.116,
+                "collapsed": false
+              },
+              {
+                "key": "w52",
+                "i": 52,
+                "text": "you",
+                "srcStart": 23.336,
+                "srcEnd": 23.564,
+                "emphasis": false,
+                "conf": 0.97,
+                "outStart": 19.166,
+                "outEnd": 19.394,
+                "collapsed": false
+              },
+              {
+                "key": "w53",
+                "i": 53,
+                "text": "from",
+                "srcStart": 23.613,
+                "srcEnd": 23.886,
+                "emphasis": false,
+                "conf": 0.98,
+                "outStart": 19.443,
+                "outEnd": 19.716,
+                "collapsed": false
+              },
+              {
+                "key": "w54",
+                "i": 54,
+                "text": "buying?",
+                "srcStart": 23.935,
+                "srcEnd": 24.298,
+                "emphasis": false,
+                "conf": 0.9,
+                "outStart": 19.765,
+                "outEnd": 20.128,
+                "collapsed": false
+              }
+            ],
+            "timingMode": "words",
+            "pos": null,
+            "hidden": false,
+            "edited": false
+          },
+          {
+            "id": "c_55",
+            "anchor": {
+              "kind": "words",
+              "w0": 55,
+              "w1": 62
+            },
+            "resolved": {
+              "outIn": 20.381,
+              "outOut": 23.746,
+              "collapsed": false
+            },
+            "text": "The answers were brutal and, like, incredibly useful.",
+            "lines": [
+              "The answers were brutal",
+              "and, like, incredibly useful."
+            ],
+            "words": [
+              {
+                "key": "w55",
+                "i": 55,
+                "text": "The",
+                "srcStart": 25.418,
+                "srcEnd": 25.646,
+                "emphasis": false,
+                "conf": 0.91,
+                "outStart": 20.381,
+                "outEnd": 20.609,
+                "collapsed": false
+              },
+              {
+                "key": "w56",
+                "i": 56,
+                "text": "answers",
+                "srcStart": 25.695,
+                "srcEnd": 26.103,
+                "emphasis": false,
+                "conf": 0.92,
+                "outStart": 20.658,
+                "outEnd": 21.066,
+                "collapsed": false
+              },
+              {
+                "key": "w57",
+                "i": 57,
+                "text": "were",
+                "srcStart": 26.153,
+                "srcEnd": 26.425,
+                "emphasis": false,
+                "conf": 0.93,
+                "outStart": 21.116,
+                "outEnd": 21.388,
+                "collapsed": false
+              },
+              {
+                "key": "w58",
+                "i": 58,
+                "text": "brutal",
+                "srcStart": 26.475,
+                "srcEnd": 26.838,
+                "emphasis": false,
+                "conf": 0.9400000000000001,
+                "outStart": 21.438,
+                "outEnd": 21.801,
+                "collapsed": false
+              },
+              {
+                "key": "w59",
+                "i": 59,
+                "text": "and,",
+                "srcStart": 26.887,
+                "srcEnd": 27.183,
+                "emphasis": false,
+                "conf": 0.88,
+                "outStart": 21.85,
+                "outEnd": 22.146,
+                "collapsed": false
+              },
+              {
+                "key": "w60",
+                "i": 60,
+                "text": "like,",
+                "srcStart": 27.369,
+                "srcEnd": 27.642,
+                "emphasis": false,
+                "conf": 0.96,
+                "outStart": 22.332,
+                "outEnd": 22.605,
+                "collapsed": false
+              },
+              {
+                "key": "w61",
+                "i": 61,
+                "text": "incredibly",
+                "srcStart": 27.828,
+                "srcEnd": 28.371,
+                "emphasis": false,
+                "conf": 0.97,
+                "outStart": 22.791,
+                "outEnd": 23.334,
+                "collapsed": false
+              },
+              {
+                "key": "w62",
+                "i": 62,
+                "text": "useful.",
+                "srcStart": 28.42,
+                "srcEnd": 28.783,
+                "emphasis": false,
+                "conf": 0.98,
+                "outStart": 23.383,
+                "outEnd": 23.746,
+                "collapsed": false
+              }
+            ],
+            "timingMode": "words",
+            "pos": null,
+            "hidden": false,
+            "edited": false
+          },
+          {
+            "id": "c_63",
+            "anchor": {
+              "kind": "words",
+              "w0": 63,
+              "w1": 71
+            },
+            "resolved": {
+              "outIn": 24.166,
+              "outOut": 27.287,
+              "collapsed": false
+            },
+            "text": "We rewrote our whole pricing page in one afternoon.",
+            "lines": [
+              "We rewrote our whole pricing",
+              "page in one afternoon."
+            ],
+            "words": [
+              {
+                "key": "w63",
+                "i": 63,
+                "text": "We",
+                "srcStart": 29.203,
+                "srcEnd": 29.386,
+                "emphasis": false,
+                "conf": 0.9,
+                "outStart": 24.166,
+                "outEnd": 24.349,
+                "collapsed": false
+              },
+              {
+                "key": "w64",
+                "i": 64,
+                "text": "rewrote",
+                "srcStart": 29.436,
+                "srcEnd": 29.843,
+                "emphasis": false,
+                "conf": 0.91,
+                "outStart": 24.399,
+                "outEnd": 24.806,
+                "collapsed": false
+              },
+              {
+                "key": "w65",
+                "i": 65,
+                "text": "our",
+                "srcStart": 29.893,
+                "srcEnd": 30.121,
+                "emphasis": false,
+                "conf": 0.92,
+                "outStart": 24.856,
+                "outEnd": 25.084,
+                "collapsed": false
+              },
+              {
+                "key": "w66",
+                "i": 66,
+                "text": "whole",
+                "srcStart": 30.17,
+                "srcEnd": 30.488,
+                "emphasis": false,
+                "conf": 0.93,
+                "outStart": 25.133,
+                "outEnd": 25.451,
+                "collapsed": false
+              },
+              {
+                "key": "w67",
+                "i": 67,
+                "text": "pricing",
+                "srcStart": 30.537,
+                "srcEnd": 30.945,
+                "emphasis": false,
+                "conf": 0.9400000000000001,
+                "outStart": 25.5,
+                "outEnd": 25.908,
+                "collapsed": false
+              },
+              {
+                "key": "w68",
+                "i": 68,
+                "text": "page",
+                "srcStart": 30.994,
+                "srcEnd": 31.267,
+                "emphasis": false,
+                "conf": 0.9500000000000001,
+                "outStart": 25.957,
+                "outEnd": 26.23,
+                "collapsed": false
+              },
+              {
+                "key": "w69",
+                "i": 69,
+                "text": "in",
+                "srcStart": 31.316,
+                "srcEnd": 31.499,
+                "emphasis": false,
+                "conf": 0.96,
+                "outStart": 26.279,
+                "outEnd": 26.462,
+                "collapsed": false
+              },
+              {
+                "key": "w70",
+                "i": 70,
+                "text": "one",
+                "srcStart": 31.549,
+                "srcEnd": 31.777,
+                "emphasis": false,
+                "conf": 0.97,
+                "outStart": 26.512,
+                "outEnd": 26.74,
+                "collapsed": false
+              },
+              {
+                "key": "w71",
+                "i": 71,
+                "text": "afternoon.",
+                "srcStart": 31.826,
+                "srcEnd": 32.324,
+                "emphasis": false,
+                "conf": 0.98,
+                "outStart": 26.789,
+                "outEnd": 27.287,
+                "collapsed": false
+              }
+            ],
+            "timingMode": "words",
+            "pos": null,
+            "hidden": false,
+            "edited": false
+          },
+          {
+            "id": "c_72",
+            "anchor": {
+              "kind": "words",
+              "w0": 72,
+              "w1": 79
+            },
+            "resolved": {
+              "outIn": 27.561,
+              "outOut": 30.449,
+              "collapsed": false
+            },
+            "text": "Sign-ups jumped forty percent the very next week.",
+            "lines": [
+              "Sign-ups jumped forty percent",
+              "the very next week."
+            ],
+            "words": [
+              {
+                "key": "w72",
+                "i": 72,
+                "text": "Sign-ups",
+                "srcStart": 33.164,
+                "srcEnd": 33.571,
+                "emphasis": false,
+                "conf": 0.9,
+                "outStart": 27.561,
+                "outEnd": 27.968,
+                "collapsed": false
+              },
+              {
+                "key": "w73",
+                "i": 73,
+                "text": "jumped",
+                "srcStart": 33.621,
+                "srcEnd": 33.984,
+                "emphasis": false,
+                "conf": 0.91,
+                "outStart": 28.018,
+                "outEnd": 28.381,
+                "collapsed": false
+              },
+              {
+                "key": "w74",
+                "i": 74,
+                "text": "forty",
+                "srcStart": 34.033,
+                "srcEnd": 34.351,
+                "emphasis": true,
+                "conf": 0.92,
+                "outStart": 28.43,
+                "outEnd": 28.748,
+                "collapsed": false
+              },
+              {
+                "key": "w75",
+                "i": 75,
+                "text": "percent",
+                "srcStart": 34.4,
+                "srcEnd": 34.808,
+                "emphasis": true,
+                "conf": 0.93,
+                "outStart": 28.797,
+                "outEnd": 29.205,
+                "collapsed": false
+              },
+              {
+                "key": "w76",
+                "i": 76,
+                "text": "the",
+                "srcStart": 34.857,
+                "srcEnd": 35.085,
+                "emphasis": false,
+                "conf": 0.9400000000000001,
+                "outStart": 29.254,
+                "outEnd": 29.482,
+                "collapsed": false
+              },
+              {
+                "key": "w77",
+                "i": 77,
+                "text": "very",
+                "srcStart": 35.135,
+                "srcEnd": 35.407,
+                "emphasis": false,
+                "conf": 0.9500000000000001,
+                "outStart": 29.532,
+                "outEnd": 29.804,
+                "collapsed": false
+              },
+              {
+                "key": "w78",
+                "i": 78,
+                "text": "next",
+                "srcStart": 35.457,
+                "srcEnd": 35.73,
+                "emphasis": false,
+                "conf": 0.96,
+                "outStart": 29.854,
+                "outEnd": 30.127,
+                "collapsed": false
+              },
+              {
+                "key": "w79",
+                "i": 79,
+                "text": "week.",
+                "srcStart": 35.779,
+                "srcEnd": 36.052,
+                "emphasis": false,
+                "conf": 0.97,
+                "outStart": 30.176,
+                "outEnd": 30.449,
+                "collapsed": false
+              }
+            ],
+            "timingMode": "words",
+            "pos": null,
+            "hidden": false,
+            "edited": false
+          },
+          {
+            "id": "c_80",
+            "anchor": {
+              "kind": "words",
+              "w0": 80,
+              "w1": 86
+            },
+            "resolved": {
+              "outIn": 30.829,
+              "outOut": 33.624,
+              "collapsed": false
+            },
+            "text": "Same product, same price, just better words.",
+            "lines": [
+              "Same product, same price,",
+              "just better words."
+            ],
+            "words": [
+              {
+                "key": "w80",
+                "i": 80,
+                "text": "Same",
+                "srcStart": 36.432,
+                "srcEnd": 36.705,
+                "emphasis": false,
+                "conf": 0.98,
+                "outStart": 30.829,
+                "outEnd": 31.102,
+                "collapsed": false
+              },
+              {
+                "key": "w81",
+                "i": 81,
+                "text": "product,",
+                "srcStart": 36.754,
+                "srcEnd": 37.162,
+                "emphasis": false,
+                "conf": 0.9,
+                "outStart": 31.151,
+                "outEnd": 31.559,
+                "collapsed": false
+              },
+              {
+                "key": "w82",
+                "i": 82,
+                "text": "same",
+                "srcStart": 37.348,
+                "srcEnd": 37.621,
+                "emphasis": false,
+                "conf": 0.91,
+                "outStart": 31.745,
+                "outEnd": 32.018,
+                "collapsed": false
+              },
+              {
+                "key": "w83",
+                "i": 83,
+                "text": "price,",
+                "srcStart": 37.671,
+                "srcEnd": 37.988,
+                "emphasis": false,
+                "conf": 0.92,
+                "outStart": 32.068,
+                "outEnd": 32.385,
+                "collapsed": false
+              },
+              {
+                "key": "w84",
+                "i": 84,
+                "text": "just",
+                "srcStart": 38.175,
+                "srcEnd": 38.448,
+                "emphasis": false,
+                "conf": 0.93,
+                "outStart": 32.572,
+                "outEnd": 32.845,
+                "collapsed": false
+              },
+              {
+                "key": "w85",
+                "i": 85,
+                "text": "better",
+                "srcStart": 38.497,
+                "srcEnd": 38.86,
+                "emphasis": false,
+                "conf": 0.9400000000000001,
+                "outStart": 32.894,
+                "outEnd": 33.257,
+                "collapsed": false
+              },
+              {
+                "key": "w86",
+                "i": 86,
+                "text": "words.",
+                "srcStart": 38.909,
+                "srcEnd": 39.227,
+                "emphasis": false,
+                "conf": 0.9500000000000001,
+                "outStart": 33.306,
+                "outEnd": 33.624,
+                "collapsed": false
+              }
+            ],
+            "timingMode": "words",
+            "pos": null,
+            "hidden": false,
+            "edited": false
+          },
+          {
+            "id": "c_87",
+            "anchor": {
+              "kind": "words",
+              "w0": 87,
+              "w1": 97
+            },
+            "resolved": {
+              "outIn": 34.074,
+              "outOut": 37.751,
+              "collapsed": false
+            },
+            "text": "Honestly, I wish we had started doing this two years ago.",
+            "lines": [
+              "Honestly, I wish we had started",
+              "doing this two years ago."
+            ],
+            "words": [
+              {
+                "key": "w87",
+                "i": 87,
+                "text": "Honestly,",
+                "srcStart": 39.677,
+                "srcEnd": 40.13,
+                "emphasis": false,
+                "conf": 0.96,
+                "outStart": 34.074,
+                "outEnd": 34.527,
+                "collapsed": false
+              },
+              {
+                "key": "w88",
+                "i": 88,
+                "text": "I",
+                "srcStart": 40.316,
+                "srcEnd": 40.454,
+                "emphasis": false,
+                "conf": 0.97,
+                "outStart": 34.713,
+                "outEnd": 34.851,
+                "collapsed": false
+              },
+              {
+                "key": "w89",
+                "i": 89,
+                "text": "wish",
+                "srcStart": 40.503,
+                "srcEnd": 40.776,
+                "emphasis": false,
+                "conf": 0.98,
+                "outStart": 34.9,
+                "outEnd": 35.173,
+                "collapsed": false
+              },
+              {
+                "key": "w90",
+                "i": 90,
+                "text": "we",
+                "srcStart": 40.826,
+                "srcEnd": 41.009,
+                "emphasis": false,
+                "conf": 0.9,
+                "outStart": 35.223,
+                "outEnd": 35.406,
+                "collapsed": false
+              },
+              {
+                "key": "w91",
+                "i": 91,
+                "text": "had",
+                "srcStart": 41.058,
+                "srcEnd": 41.286,
+                "emphasis": false,
+                "conf": 0.91,
+                "outStart": 35.455,
+                "outEnd": 35.683,
+                "collapsed": false
+              },
+              {
+                "key": "w92",
+                "i": 92,
+                "text": "started",
+                "srcStart": 41.335,
+                "srcEnd": 41.743,
+                "emphasis": false,
+                "conf": 0.92,
+                "outStart": 35.732,
+                "outEnd": 36.14,
+                "collapsed": false
+              },
+              {
+                "key": "w93",
+                "i": 93,
+                "text": "doing",
+                "srcStart": 41.792,
+                "srcEnd": 42.11,
+                "emphasis": false,
+                "conf": 0.93,
+                "outStart": 36.189,
+                "outEnd": 36.507,
+                "collapsed": false
+              },
+              {
+                "key": "w94",
+                "i": 94,
+                "text": "this",
+                "srcStart": 42.16,
+                "srcEnd": 42.433,
+                "emphasis": false,
+                "conf": 0.9400000000000001,
+                "outStart": 36.557,
+                "outEnd": 36.83,
+                "collapsed": false
+              },
+              {
+                "key": "w95",
+                "i": 95,
+                "text": "two",
+                "srcStart": 42.482,
+                "srcEnd": 42.71,
+                "emphasis": false,
+                "conf": 0.9500000000000001,
+                "outStart": 36.879,
+                "outEnd": 37.107,
+                "collapsed": false
+              },
+              {
+                "key": "w96",
+                "i": 96,
+                "text": "years",
+                "srcStart": 42.759,
+                "srcEnd": 43.077,
+                "emphasis": false,
+                "conf": 0.96,
+                "outStart": 37.156,
+                "outEnd": 37.474,
+                "collapsed": false
+              },
+              {
+                "key": "w97",
+                "i": 97,
+                "text": "ago.",
+                "srcStart": 43.126,
+                "srcEnd": 43.354,
+                "emphasis": false,
+                "conf": 0.97,
+                "outStart": 37.523,
+                "outEnd": 37.751,
+                "collapsed": false
+              }
+            ],
+            "timingMode": "words",
+            "pos": null,
+            "hidden": false,
+            "edited": false
+          },
+          {
+            "id": "c_98",
+            "anchor": {
+              "kind": "words",
+              "w0": 98,
+              "w1": 107
+            },
+            "resolved": {
+              "outIn": 38.038,
+              "outOut": 41.034,
+              "collapsed": false
+            },
+            "text": "If you run a small team, try it this Friday.",
+            "lines": [
+              "If you run a small",
+              "team, try it this Friday."
+            ],
+            "words": [
+              {
+                "key": "w98",
+                "i": 98,
+                "text": "If",
+                "srcStart": 44.774,
+                "srcEnd": 44.957,
+                "emphasis": false,
+                "conf": 0.98,
+                "outStart": 38.038,
+                "outEnd": 38.221,
+                "collapsed": false
+              },
+              {
+                "key": "w99",
+                "i": 99,
+                "text": "you",
+                "srcStart": 45.007,
+                "srcEnd": 45.235,
+                "emphasis": false,
+                "conf": 0.9,
+                "outStart": 38.271,
+                "outEnd": 38.499,
+                "collapsed": false
+              },
+              {
+                "key": "w100",
+                "i": 100,
+                "text": "run",
+                "srcStart": 45.284,
+                "srcEnd": 45.512,
+                "emphasis": false,
+                "conf": 0.91,
+                "outStart": 38.548,
+                "outEnd": 38.776,
+                "collapsed": false
+              },
+              {
+                "key": "w101",
+                "i": 101,
+                "text": "a",
+                "srcStart": 45.561,
+                "srcEnd": 45.699,
+                "emphasis": false,
+                "conf": 0.92,
+                "outStart": 38.825,
+                "outEnd": 38.963,
+                "collapsed": false
+              },
+              {
+                "key": "w102",
+                "i": 102,
+                "text": "small",
+                "srcStart": 45.749,
+                "srcEnd": 46.067,
+                "emphasis": false,
+                "conf": 0.93,
+                "outStart": 39.013,
+                "outEnd": 39.331,
+                "collapsed": false
+              },
+              {
+                "key": "w103",
+                "i": 103,
+                "text": "team,",
+                "srcStart": 46.116,
+                "srcEnd": 46.389,
+                "emphasis": false,
+                "conf": 0.9400000000000001,
+                "outStart": 39.38,
+                "outEnd": 39.653,
+                "collapsed": false
+              },
+              {
+                "key": "w104",
+                "i": 104,
+                "text": "try",
+                "srcStart": 46.575,
+                "srcEnd": 46.803,
+                "emphasis": false,
+                "conf": 0.9500000000000001,
+                "outStart": 39.839,
+                "outEnd": 40.067,
+                "collapsed": false
+              },
+              {
+                "key": "w105",
+                "i": 105,
+                "text": "it",
+                "srcStart": 46.853,
+                "srcEnd": 47.036,
+                "emphasis": false,
+                "conf": 0.96,
+                "outStart": 40.117,
+                "outEnd": 40.3,
+                "collapsed": false
+              },
+              {
+                "key": "w106",
+                "i": 106,
+                "text": "this",
+                "srcStart": 47.085,
+                "srcEnd": 47.358,
+                "emphasis": false,
+                "conf": 0.97,
+                "outStart": 40.349,
+                "outEnd": 40.622,
+                "collapsed": false
+              },
+              {
+                "key": "w107",
+                "i": 107,
+                "text": "Friday.",
+                "srcStart": 47.407,
+                "srcEnd": 47.77,
+                "emphasis": false,
+                "conf": 0.98,
+                "outStart": 40.671,
+                "outEnd": 41.034,
+                "collapsed": false
+              }
+            ],
+            "timingMode": "words",
+            "pos": null,
+            "hidden": false,
+            "edited": false
+          },
+          {
+            "id": "c_108",
+            "anchor": {
+              "kind": "words",
+              "w0": 108,
+              "w1": 118
+            },
+            "resolved": {
+              "outIn": 41.334,
+              "outOut": 44.874,
+              "collapsed": false
+            },
+            "text": "Follow for the exact script we use on every single call.",
+            "lines": [
+              "Follow for the exact script we",
+              "use on every single call."
+            ],
+            "words": [
+              {
+                "key": "w108",
+                "i": 108,
+                "text": "Follow",
+                "srcStart": 48.07,
+                "srcEnd": 48.433,
+                "emphasis": false,
+                "conf": 0.9,
+                "outStart": 41.334,
+                "outEnd": 41.697,
+                "collapsed": false
+              },
+              {
+                "key": "w109",
+                "i": 109,
+                "text": "for",
+                "srcStart": 48.482,
+                "srcEnd": 48.71,
+                "emphasis": false,
+                "conf": 0.91,
+                "outStart": 41.746,
+                "outEnd": 41.974,
+                "collapsed": false
+              },
+              {
+                "key": "w110",
+                "i": 110,
+                "text": "the",
+                "srcStart": 48.759,
+                "srcEnd": 48.987,
+                "emphasis": false,
+                "conf": 0.92,
+                "outStart": 42.023,
+                "outEnd": 42.251,
+                "collapsed": false
+              },
+              {
+                "key": "w111",
+                "i": 111,
+                "text": "exact",
+                "srcStart": 49.037,
+                "srcEnd": 49.355,
+                "emphasis": false,
+                "conf": 0.93,
+                "outStart": 42.301,
+                "outEnd": 42.619,
+                "collapsed": false
+              },
+              {
+                "key": "w112",
+                "i": 112,
+                "text": "script",
+                "srcStart": 49.404,
+                "srcEnd": 49.767,
+                "emphasis": false,
+                "conf": 0.9400000000000001,
+                "outStart": 42.668,
+                "outEnd": 43.031,
+                "collapsed": false
+              },
+              {
+                "key": "w113",
+                "i": 113,
+                "text": "we",
+                "srcStart": 49.816,
+                "srcEnd": 49.999,
+                "emphasis": false,
+                "conf": 0.9500000000000001,
+                "outStart": 43.08,
+                "outEnd": 43.263,
+                "collapsed": false
+              },
+              {
+                "key": "w114",
+                "i": 114,
+                "text": "use",
+                "srcStart": 50.048,
+                "srcEnd": 50.276,
+                "emphasis": false,
+                "conf": 0.96,
+                "outStart": 43.312,
+                "outEnd": 43.54,
+                "collapsed": false
+              },
+              {
+                "key": "w115",
+                "i": 115,
+                "text": "on",
+                "srcStart": 50.326,
+                "srcEnd": 50.509,
+                "emphasis": false,
+                "conf": 0.97,
+                "outStart": 43.59,
+                "outEnd": 43.773,
+                "collapsed": false
+              },
+              {
+                "key": "w116",
+                "i": 116,
+                "text": "every",
+                "srcStart": 50.558,
+                "srcEnd": 50.876,
+                "emphasis": false,
+                "conf": 0.98,
+                "outStart": 43.822,
+                "outEnd": 44.14,
+                "collapsed": false
+              },
+              {
+                "key": "w117",
+                "i": 117,
+                "text": "single",
+                "srcStart": 50.925,
+                "srcEnd": 51.288,
+                "emphasis": false,
+                "conf": 0.9,
+                "outStart": 44.189,
+                "outEnd": 44.552,
+                "collapsed": false
+              },
+              {
+                "key": "w118",
+                "i": 118,
+                "text": "call.",
+                "srcStart": 51.337,
+                "srcEnd": 51.61,
+                "emphasis": false,
+                "conf": 0.91,
+                "outStart": 44.601,
+                "outEnd": 44.874,
+                "collapsed": false
+              }
+            ],
+            "timingMode": "words",
+            "pos": null,
+            "hidden": false,
+            "edited": false
+          }
+        ],
+        "translations": {},
+        "userEdited": false
+      },
+      "broll": [
+        {
+          "id": "br_calls01",
+          "ordinal": 1,
+          "anchor": {
+            "kind": "words",
+            "w0": 36,
+            "w1": 38
+          },
+          "resolved": {
+            "outIn": 12.646,
+            "outOut": 13.923,
+            "collapsed": false
+          },
+          "sentenceId": "s4",
+          "segmentId": "seg_method",
+          "layout": "FULL",
+          "layoutParams": {},
+          "intent": "illustrate",
+          "queries": [
+            {
+              "text": "founder phone call",
+              "kind": "visual_noun"
+            },
+            {
+              "text": "customer call laptop",
+              "kind": "scene"
+            }
+          ],
+          "reason": "Shows the customer calls the speaker describes.",
+          "reasonCode": "VISUAL_NOUN",
+          "evidence": {
+            "sentenceId": "s4",
+            "wordRange": [
+              36,
+              38
+            ],
+            "quote": "we started calling five customers every single week"
+          },
+          "chosen": {
+            "assetId": "ast_pex11",
+            "provider": "pexels",
+            "providerId": "4187109",
+            "type": "video",
+            "path": "broll/assets/ast_pex11.mp4",
+            "thumbPath": "broll/thumbs/ast_pex11.jpg",
+            "sourceUrl": "https://www.pexels.com/video/4187109/",
+            "license": "Pexels License",
+            "attribution": "Video by Mikhail Nilov from Pexels",
+            "width": 1920,
+            "height": 1080,
+            "durationSec": 9.2,
+            "trimInSec": 0.8,
+            "dhash": "d11f3a9c1e7b2",
+            "tags": [
+              "phone",
+              "call",
+              "office",
+              "founder"
+            ],
+            "scores": {
+              "lexical": 0.82,
+              "judgeRelevance": 8,
+              "judgeQuality": 8,
+              "issues": [],
+              "resolution": 1,
+              "aspect": 0.6,
+              "composition": 0.8,
+              "brand": 0.7,
+              "duration": 1,
+              "diversity": 0.9,
+              "total": 0.82
+            }
+          },
+          "candidateSetId": "cs_calls01",
+          "topCandidates": [
+            {
+              "assetId": "ast_pex11",
+              "provider": "pexels",
+              "providerId": "4187109",
+              "type": "video",
+              "path": "broll/assets/ast_pex11.mp4",
+              "thumbPath": "broll/thumbs/ast_pex11.jpg",
+              "sourceUrl": "https://www.pexels.com/video/4187109/",
+              "license": "Pexels License",
+              "attribution": "Video by Mikhail Nilov from Pexels",
+              "width": 1920,
+              "height": 1080,
+              "durationSec": 9.2,
+              "trimInSec": 0.8,
+              "dhash": "d11f3a9c1e7b2",
+              "tags": [
+                "phone",
+                "call",
+                "office",
+                "founder"
+              ],
+              "scores": {
+                "lexical": 0.82,
+                "judgeRelevance": 8,
+                "judgeQuality": 8,
+                "issues": [],
+                "resolution": 1,
+                "aspect": 0.6,
+                "composition": 0.8,
+                "brand": 0.7,
+                "duration": 1,
+                "diversity": 0.9,
+                "total": 0.82
+              }
+            },
+            {
+              "assetId": "ast_pix12",
+              "provider": "pixabay",
+              "providerId": "4195028",
+              "type": "video",
+              "path": "broll/assets/ast_pix12.mp4",
+              "thumbPath": "broll/thumbs/ast_pix12.jpg",
+              "sourceUrl": "https://www.pixabay.com/video/4195028/",
+              "license": "Pixabay Content License",
+              "attribution": null,
+              "width": 1080,
+              "height": 1920,
+              "durationSec": 7.1,
+              "trimInSec": 0.8,
+              "dhash": "d12f3a9c1e7b2",
+              "tags": [
+                "woman",
+                "phone",
+                "desk"
+              ],
+              "scores": {
+                "lexical": 0.74,
+                "judgeRelevance": 7,
+                "judgeQuality": 8,
+                "issues": [],
+                "resolution": 1,
+                "aspect": 1,
+                "composition": 0.8,
+                "brand": 0.7,
+                "duration": 1,
+                "diversity": 0.9,
+                "total": 0.74
+              }
+            },
+            {
+              "assetId": "ast_pex13",
+              "provider": "pexels",
+              "providerId": "4202947",
+              "type": "video",
+              "path": "broll/assets/ast_pex13.mp4",
+              "thumbPath": "broll/thumbs/ast_pex13.jpg",
+              "sourceUrl": "https://www.pexels.com/video/4202947/",
+              "license": "Pexels License",
+              "attribution": "Video by Mikhail Nilov from Pexels",
+              "width": 1920,
+              "height": 1080,
+              "durationSec": 12.4,
+              "trimInSec": 0.8,
+              "dhash": "d13f3a9c1e7b2",
+              "tags": [
+                "headset",
+                "support",
+                "call"
+              ],
+              "scores": {
+                "lexical": 0.69,
+                "judgeRelevance": 7,
+                "judgeQuality": 8,
+                "issues": [],
+                "resolution": 1,
+                "aspect": 0.6,
+                "composition": 0.8,
+                "brand": 0.7,
+                "duration": 1,
+                "diversity": 0.9,
+                "total": 0.69
+              }
+            }
+          ],
+          "judge": "ok",
+          "motion": {
+            "from": {
+              "z": 1,
+              "cx": 0.5,
+              "cy": 0.5
+            },
+            "to": {
+              "z": 1.06,
+              "cx": 0.52,
+              "cy": 0.48
+            }
+          },
+          "status": "ok",
+          "origin": "ai",
+          "locked": false,
+          "userModified": false
+        },
+        {
+          "id": "br_price02",
+          "ordinal": 2,
+          "anchor": {
+            "kind": "words",
+            "w0": 64,
+            "w1": 68
+          },
+          "resolved": {
+            "outIn": 24.399,
+            "outOut": 26.23,
+            "collapsed": false
+          },
+          "sentenceId": "s7",
+          "segmentId": "seg_method",
+          "layout": "SPLIT",
+          "layoutParams": {
+            "splitSide": "top"
+          },
+          "intent": "context",
+          "queries": [
+            {
+              "text": "website pricing page",
+              "kind": "visual_noun"
+            },
+            {
+              "text": "designer editing website",
+              "kind": "scene"
+            }
+          ],
+          "reason": "Puts the pricing page on screen while you talk about it.",
+          "reasonCode": "VISUAL_NOUN",
+          "evidence": {
+            "sentenceId": "s7",
+            "wordRange": [
+              64,
+              68
+            ],
+            "quote": "we rewrote our whole pricing page"
+          },
+          "chosen": {
+            "assetId": "ast_pex21",
+            "provider": "pexels",
+            "providerId": "4266299",
+            "type": "video",
+            "path": "broll/assets/ast_pex21.mp4",
+            "thumbPath": "broll/thumbs/ast_pex21.jpg",
+            "sourceUrl": "https://www.pexels.com/video/4266299/",
+            "license": "Pexels License",
+            "attribution": "Video by Mikhail Nilov from Pexels",
+            "width": 1080,
+            "height": 1920,
+            "durationSec": 6.8,
+            "trimInSec": 0.8,
+            "dhash": "d21f3a9c1e7b2",
+            "tags": [
+              "laptop",
+              "website",
+              "typing"
+            ],
+            "scores": {
+              "lexical": 0.78,
+              "judgeRelevance": 8,
+              "judgeQuality": 8,
+              "issues": [],
+              "resolution": 1,
+              "aspect": 1,
+              "composition": 0.8,
+              "brand": 0.7,
+              "duration": 1,
+              "diversity": 0.9,
+              "total": 0.78
+            }
+          },
+          "candidateSetId": "cs_price02",
+          "topCandidates": [
+            {
+              "assetId": "ast_pex21",
+              "provider": "pexels",
+              "providerId": "4266299",
+              "type": "video",
+              "path": "broll/assets/ast_pex21.mp4",
+              "thumbPath": "broll/thumbs/ast_pex21.jpg",
+              "sourceUrl": "https://www.pexels.com/video/4266299/",
+              "license": "Pexels License",
+              "attribution": "Video by Mikhail Nilov from Pexels",
+              "width": 1080,
+              "height": 1920,
+              "durationSec": 6.8,
+              "trimInSec": 0.8,
+              "dhash": "d21f3a9c1e7b2",
+              "tags": [
+                "laptop",
+                "website",
+                "typing"
+              ],
+              "scores": {
+                "lexical": 0.78,
+                "judgeRelevance": 8,
+                "judgeQuality": 8,
+                "issues": [],
+                "resolution": 1,
+                "aspect": 1,
+                "composition": 0.8,
+                "brand": 0.7,
+                "duration": 1,
+                "diversity": 0.9,
+                "total": 0.78
+              }
+            },
+            {
+              "assetId": "ast_pix22",
+              "provider": "pixabay",
+              "providerId": "4274218",
+              "type": "video",
+              "path": "broll/assets/ast_pix22.mp4",
+              "thumbPath": "broll/thumbs/ast_pix22.jpg",
+              "sourceUrl": "https://www.pixabay.com/video/4274218/",
+              "license": "Pixabay Content License",
+              "attribution": null,
+              "width": 1920,
+              "height": 1080,
+              "durationSec": 10,
+              "trimInSec": 0.8,
+              "dhash": "d22f3a9c1e7b2",
+              "tags": [
+                "pricing",
+                "screen",
+                "design"
+              ],
+              "scores": {
+                "lexical": 0.71,
+                "judgeRelevance": 7,
+                "judgeQuality": 8,
+                "issues": [],
+                "resolution": 1,
+                "aspect": 0.6,
+                "composition": 0.8,
+                "brand": 0.7,
+                "duration": 1,
+                "diversity": 0.9,
+                "total": 0.71
+              }
+            }
+          ],
+          "judge": "ok",
+          "status": "ok",
+          "origin": "ai",
+          "locked": false,
+          "userModified": false
+        },
+        {
+          "id": "br_growth03",
+          "ordinal": 3,
+          "anchor": {
+            "kind": "words",
+            "w0": 72,
+            "w1": 75
+          },
+          "resolved": {
+            "outIn": 27.561,
+            "outOut": 29.205,
+            "collapsed": false
+          },
+          "sentenceId": "s8",
+          "segmentId": "seg_method",
+          "layout": "FULL",
+          "layoutParams": {},
+          "intent": "data",
+          "queries": [
+            {
+              "text": "growth chart rising",
+              "kind": "visual_noun"
+            },
+            {
+              "text": "team celebrating office",
+              "kind": "scene"
+            }
+          ],
+          "reason": "Nothing fit “sign-ups jumped forty percent” well enough.",
+          "reasonCode": "NO_MATCH",
+          "evidence": {
+            "sentenceId": "s8",
+            "wordRange": [
+              72,
+              75
+            ],
+            "quote": "sign-ups jumped forty percent"
+          },
+          "chosen": null,
+          "candidateSetId": "cs_growth03",
+          "topCandidates": [],
+          "judge": "ok",
+          "status": "missing",
+          "origin": "ai",
+          "locked": false,
+          "userModified": false
+        }
+      ],
+      "opportunities": {
+        "broll": [
+          {
+            "id": "opp_br01",
+            "sentenceId": "s4",
+            "wordAnchor": {
+              "w0": 36,
+              "w1": 38
+            },
+            "priority": 0.86,
+            "layoutPreference": "FULL",
+            "mediaPreference": "video",
+            "queries": [
+              "founder phone call",
+              "customer call laptop"
+            ],
+            "reason": "Concrete action the viewer can picture.",
+            "candidatesPrefetched": true
+          },
+          {
+            "id": "opp_br02",
+            "sentenceId": "s7",
+            "wordAnchor": {
+              "w0": 64,
+              "w1": 68
+            },
+            "priority": 0.74,
+            "layoutPreference": "SPLIT",
+            "mediaPreference": "video",
+            "queries": [
+              "website pricing page",
+              "designer editing website"
+            ],
+            "reason": "Names a visible thing.",
+            "candidatesPrefetched": true
+          },
+          {
+            "id": "opp_br03",
+            "sentenceId": "s8",
+            "wordAnchor": {
+              "w0": 72,
+              "w1": 75
+            },
+            "priority": 0.69,
+            "layoutPreference": "FULL",
+            "mediaPreference": "either",
+            "queries": [
+              "growth chart rising",
+              "team celebrating office"
+            ],
+            "reason": "A number worth showing.",
+            "candidatesPrefetched": true
+          },
+          {
+            "id": "opp_br04",
+            "sentenceId": "s5",
+            "priority": 0.48,
+            "layoutPreference": "PIP",
+            "mediaPreference": "video",
+            "queries": [
+              "customer interview notes",
+              "notebook question mark"
+            ],
+            "reason": "Illustrates the one question.",
+            "candidatesPrefetched": true
+          },
+          {
+            "id": "opp_br05",
+            "sentenceId": "s2",
+            "priority": 0.41,
+            "layoutPreference": "FULL",
+            "mediaPreference": "image",
+            "queries": [
+              "social media ads phone",
+              "ad campaign dashboard"
+            ],
+            "reason": "Contrast with paid ads.",
+            "candidatesPrefetched": false
+          }
+        ],
+        "effects": [
+          {
+            "id": "opp_fx01",
+            "sentenceId": "s4",
+            "w": 31,
+            "kind": "PUNCH_IN",
+            "priority": 0.9,
+            "reason": "Superlative claim."
+          },
+          {
+            "id": "opp_fx02",
+            "sentenceId": "s9",
+            "w": 84,
+            "kind": "PUNCH_IN",
+            "priority": 0.72,
+            "reason": "Punchline of the section."
+          },
+          {
+            "id": "opp_fx03",
+            "sentenceId": "s8",
+            "w": 72,
+            "kind": "ZOOM_EMPHASIS",
+            "priority": 0.61,
+            "reason": "A number."
+          }
+        ],
+        "graphics": [
+          {
+            "id": "opp_gfx01",
+            "kind": "HOOK_TITLE",
+            "sentenceId": "s1",
+            "title": "DOUBLED REVENUE IN 3 MONTHS",
+            "priority": 0.88,
+            "reason": "Strong specific hook."
+          },
+          {
+            "id": "opp_gfx02",
+            "kind": "STAT",
+            "sentenceId": "s8",
+            "title": "SIGN-UPS",
+            "value": "+40%",
+            "priority": 0.64,
+            "reason": "Number + unit."
+          }
+        ],
+        "sfx": [
+          {
+            "id": "opp_sfx01",
+            "anchor": "graphic_in",
+            "ref": "gfx_hook01",
+            "cue": "pop",
+            "priority": 0.7,
+            "reason": "Hook title entrance."
+          },
+          {
+            "id": "opp_sfx02",
+            "anchor": "broll_in",
+            "ref": "br_calls01",
+            "cue": "whoosh",
+            "priority": 0.66,
+            "reason": "FULL B-roll entrance."
+          }
+        ]
+      },
+      "effects": [
+        {
+          "id": "fx_jump01",
+          "kind": "JUMP_ZOOM",
+          "zoom": 1.1,
+          "anchor": {
+            "kind": "src",
+            "srcIn": 8.357,
+            "srcOut": 10.457
+          },
+          "resolved": {
+            "outIn": 5.788,
+            "outOut": 7.888,
+            "collapsed": false
+          },
+          "enabled": true,
+          "reason": "Hides a repeated start (“so the — so the thing is”) · punch-in covers the cut.",
+          "reasonCode": "JUMP_CUT_COVER",
+          "evidence": {
+            "sentenceId": "s3",
+            "wordRange": [
+              16,
+              17
+            ],
+            "quote": "so the — so the thing is"
+          },
+          "origin": "ai",
+          "locked": false,
+          "userModified": false
+        },
+        {
+          "id": "fx_punch01",
+          "kind": "PUNCH_IN",
+          "zoom": 1.15,
+          "center": "face",
+          "anchor": {
+            "kind": "words",
+            "w0": 31,
+            "w1": 33
+          },
+          "resolved": {
+            "outIn": 10.448,
+            "outOut": 11.77,
+            "collapsed": false
+          },
+          "enabled": true,
+          "reason": "Emphasis on “this changes everything”.",
+          "reasonCode": "EMPHASIS",
+          "evidence": {
+            "sentenceId": "s4",
+            "wordRange": [
+              31,
+              33
+            ],
+            "quote": "this changes everything"
+          },
+          "origin": "ai",
+          "locked": false,
+          "userModified": false
+        },
+        {
+          "id": "fx_jump02",
+          "kind": "JUMP_ZOOM",
+          "zoom": 1.1,
+          "anchor": {
+            "kind": "src",
+            "srcIn": 25.303,
+            "srcOut": 27.503
+          },
+          "resolved": {
+            "outIn": 20.266,
+            "outOut": 22.466,
+            "collapsed": false
+          },
+          "enabled": true,
+          "reason": "Hides the jump after a 1.1s pause · punch-in covers the cut.",
+          "reasonCode": "JUMP_CUT_COVER",
+          "evidence": {
+            "sentenceId": "s6",
+            "wordRange": [
+              55,
+              57
+            ],
+            "quote": "the answers were"
+          },
+          "origin": "ai",
+          "locked": false,
+          "userModified": false
+        },
+        {
+          "id": "fx_punch02",
+          "kind": "PUNCH_IN",
+          "zoom": 1.12,
+          "center": "face",
+          "anchor": {
+            "kind": "words",
+            "w0": 84,
+            "w1": 86
+          },
+          "resolved": {
+            "outIn": 32.572,
+            "outOut": 33.624,
+            "collapsed": false
+          },
+          "enabled": true,
+          "reason": "Emphasis on “just better words”.",
+          "reasonCode": "EMPHASIS",
+          "evidence": {
+            "sentenceId": "s9",
+            "wordRange": [
+              84,
+              86
+            ],
+            "quote": "just better words"
+          },
+          "origin": "ai",
+          "locked": false,
+          "userModified": false
+        }
+      ],
+      "transitions": [],
+      "graphics": [
+        {
+          "id": "gfx_hook01",
+          "kind": "HOOK_TITLE",
+          "anchor": {
+            "kind": "words",
+            "w0": 0,
+            "w1": 7
+          },
+          "resolved": {
+            "outIn": 0.15,
+            "outOut": 2.858,
+            "collapsed": false
+          },
+          "text": {
+            "title": "DOUBLED REVENUE IN 3 MONTHS"
+          },
+          "templateId": "hook_title",
+          "variables": {
+            "accent": "#e832a8"
+          },
+          "region": "top",
+          "renderer": "hyperframes",
+          "fallback": "ass",
+          "render": {
+            "cardHash": "ch_hook_5b21e0",
+            "path": "cards/gfx_hook01.webm",
+            "status": "ok"
+          },
+          "enabled": true,
+          "reason": "The first line names a specific result — a strong hook.",
+          "reasonCode": "HOOK",
+          "evidence": {
+            "sentenceId": "s1",
+            "wordRange": [
+              0,
+              7
+            ],
+            "quote": "we doubled our revenue in just three months"
+          },
+          "origin": "ai",
+          "locked": false,
+          "userModified": false
+        }
+      ],
+      "music": {
+        "enabled": true,
+        "track": {
+          "assetId": "ast_mus01",
+          "path": "audio/music/morning-drive.mp3",
+          "provider": "pixabay_bridge",
+          "title": "Morning Drive",
+          "query": "upbeat morning",
+          "mood": "upbeat",
+          "sourceUrl": "https://pixabay.com/music/upbeat-morning-drive-118422/",
+          "license": "Pixabay Content License",
+          "durationSec": 132
+        },
+        "candidates": [
+          {
+            "assetId": "ast_mus02",
+            "provider": "pixabay_bridge",
+            "title": "Bright Side",
+            "mood": "upbeat",
+            "durationSec": 118,
+            "license": "Pixabay Content License"
+          },
+          {
+            "assetId": "ast_mus03",
+            "provider": "pixabay_bridge",
+            "title": "Slow Coffee",
+            "mood": "calm",
+            "durationSec": 141,
+            "license": "Pixabay Content License"
+          },
+          {
+            "assetId": "ast_mus04",
+            "provider": "synth",
+            "title": "Pulse Bed",
+            "mood": "focused",
+            "durationSec": 90,
+            "license": "KEYFRAME"
+          }
+        ],
+        "volume": 0.1,
+        "envelope": [
+          {
+            "anchor": {
+              "kind": "words",
+              "w0": 87,
+              "w1": 97
+            },
+            "volume": 0.06
+          }
+        ],
+        "duck": {
+          "enabled": true,
+          "depthDb": -9
+        },
+        "startOffsetSec": 0,
+        "fadeInSec": 0.8,
+        "fadeOutSec": 1.5,
+        "reason": "Upbeat energy matches your pace.",
+        "origin": "ai",
+        "locked": false
+      },
+      "sfx": [
+        {
+          "id": "sfx_pop01",
+          "cue": "pop",
+          "path": "audio/sfx/pop.wav",
+          "anchor": {
+            "elementId": "gfx_hook01",
+            "edge": "in",
+            "offsetSec": 0
+          },
+          "resolved": {
+            "outAt": 0.15
+          },
+          "volume": 0.22,
+          "license": "CC0",
+          "attribution": null,
+          "enabled": true,
+          "reason": "Pop as the hook title lands.",
+          "origin": "ai",
+          "locked": false
+        },
+        {
+          "id": "sfx_whoosh02",
+          "cue": "whoosh",
+          "path": "audio/sfx/whoosh.wav",
+          "anchor": {
+            "elementId": "br_calls01",
+            "edge": "in",
+            "offsetSec": -0.12
+          },
+          "resolved": {
+            "outAt": 12.526
+          },
+          "volume": 0.26,
+          "license": "CC0",
+          "attribution": null,
+          "enabled": true,
+          "reason": "Whoosh on B-roll #1 entrance.",
+          "origin": "ai",
+          "locked": false
+        }
+      ],
+      "branding": {
+        "logo": {
+          "assetId": "ast_logo01",
+          "path": "brand/logo.png",
+          "placement": "tr",
+          "scale": 0.12,
+          "opacity": 0.85,
+          "marginPct": 0.04,
+          "show": "always"
+        },
+        "palette": {
+          "primary": "#e832a8",
+          "accent": "#23c8e0",
+          "text": "#ffffff",
+          "onAccent": "#17130e",
+          "source": "default"
+        },
+        "font": {
+          "family": "DM Sans",
+          "ttf": "DMSans-Bold.ttf",
+          "weight": 700
+        },
+        "recolorFootage": false
+      },
+      "provenance": {
+        "director": {
+          "model": "google/gemini-3.5-flash",
+          "stage": "ve_director",
+          "promptHash": "ph_2b7c91",
+          "costUsd": 0.0041,
+          "fallback": false
+        },
+        "rhythm": {
+          "rulesVersion": "rhythm-1",
+          "adjustments": [
+            {
+              "elementId": "opp_br04",
+              "rule": "min_gap",
+              "action": "dropped"
+            },
+            {
+              "elementId": "opp_br05",
+              "rule": "hook_guard",
+              "action": "dropped"
+            },
+            {
+              "elementId": "opp_gfx02",
+              "rule": "broll_overlap",
+              "action": "dropped"
+            }
+          ]
+        },
+        "ops": [
+          {
+            "opId": "op_qa7x2k1m",
+            "at": 1789377600000,
+            "type": "caption.rebuildFromWords",
+            "elementIds": [
+              "c_0"
+            ],
+            "batchId": "b_qarepair01"
+          },
+          {
+            "opId": "op_u3n8c2qa",
+            "at": 1789377660000,
+            "type": "edit.setTitle",
+            "elementIds": [],
+            "batchId": "b_title0001"
+          }
+        ]
+      },
+      "qa": {
+        "revision": 3,
+        "findings": [
+          {
+            "severity": "warn",
+            "category": "broll",
+            "elementId": "br_growth03",
+            "detail": "No B-roll match for “sign-ups jumped forty percent”."
+          }
+        ]
+      }
+    }
+  },
+  "outline": {
+    "duration": 45.024,
+    "aRoll": [
+      {
+        "id": "seg_hook",
+        "type": "HOOK",
+        "outIn": 0.15,
+        "outOut": 2.858,
+        "label": "Hook",
+        "effects": []
+      },
+      {
+        "id": "seg_setup",
+        "type": "TALKING_HEAD",
+        "outIn": 2.997,
+        "outOut": 10.215,
+        "label": "The setup",
+        "effects": [
+          "JUMP_ZOOM"
+        ]
+      },
+      {
+        "id": "seg_method",
+        "type": "EMPHASIS",
+        "outIn": 10.448,
+        "outOut": 37.751,
+        "label": "The method",
+        "effects": [
+          "PUNCH_IN",
+          "JUMP_ZOOM",
+          "PUNCH_IN"
+        ]
+      },
+      {
+        "id": "seg_cta",
+        "type": "CTA",
+        "outIn": 38.038,
+        "outOut": 44.874,
+        "label": "Call to action",
+        "effects": []
+      }
+    ],
+    "tracks": {
+      "captions": {
+        "enabled": true,
+        "styleId": "clean",
+        "cueCount": 14
+      },
+      "broll": [
+        {
+          "id": "br_calls01",
+          "ordinal": 1,
+          "outIn": 12.646,
+          "outOut": 13.923,
+          "layout": "FULL",
+          "status": "ok"
+        },
+        {
+          "id": "br_price02",
+          "ordinal": 2,
+          "outIn": 24.399,
+          "outOut": 26.23,
+          "layout": "SPLIT",
+          "status": "ok"
+        },
+        {
+          "id": "br_growth03",
+          "ordinal": 3,
+          "outIn": 27.561,
+          "outOut": 29.205,
+          "layout": "FULL",
+          "status": "missing"
+        }
+      ],
+      "effects": [
+        {
+          "id": "fx_jump01",
+          "kind": "JUMP_ZOOM",
+          "outIn": 5.788,
+          "outOut": 7.888,
+          "enabled": true
+        },
+        {
+          "id": "fx_punch01",
+          "kind": "PUNCH_IN",
+          "outIn": 10.448,
+          "outOut": 11.77,
+          "enabled": true
+        },
+        {
+          "id": "fx_jump02",
+          "kind": "JUMP_ZOOM",
+          "outIn": 20.266,
+          "outOut": 22.466,
+          "enabled": true
+        },
+        {
+          "id": "fx_punch02",
+          "kind": "PUNCH_IN",
+          "outIn": 32.572,
+          "outOut": 33.624,
+          "enabled": true
+        }
+      ],
+      "music": {
+        "enabled": true,
+        "title": "Morning Drive",
+        "outIn": 0,
+        "outOut": 45.024
+      },
+      "sfx": [
+        {
+          "id": "sfx_pop01",
+          "cue": "pop",
+          "outAt": 0.15,
+          "enabled": true
+        },
+        {
+          "id": "sfx_whoosh02",
+          "cue": "whoosh",
+          "outAt": 12.526,
+          "enabled": true
+        }
+      ],
+      "branding": {
+        "logo": true,
+        "palette": {
+          "primary": "#e832a8",
+          "accent": "#23c8e0",
+          "text": "#ffffff",
+          "onAccent": "#17130e",
+          "source": "default"
+        }
+      },
+      "transitions": []
+    },
+    "summary": {
+      "captions": true,
+      "brollCount": 2,
+      "punchIns": 2,
+      "jumpCuts": 2,
+      "fillersRemoved": 2,
+      "silenceRemovedSec": 4.3,
+      "music": true,
+      "logo": true,
+      "hookTitle": true
+    }
+  },
+  "transcript": {
+    "language": "en",
+    "timing": "word",
+    "words": [
+      {
+        "i": 0,
+        "text": "We",
+        "start": 0.82,
+        "end": 1.003,
+        "conf": 0.9,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s1"
+      },
+      {
+        "i": 1,
+        "text": "doubled",
+        "start": 1.052,
+        "end": 1.46,
+        "conf": 0.91,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s1"
+      },
+      {
+        "i": 2,
+        "text": "our",
+        "start": 1.509,
+        "end": 1.737,
+        "conf": 0.92,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s1"
+      },
+      {
+        "i": 3,
+        "text": "revenue",
+        "start": 1.787,
+        "end": 2.195,
+        "conf": 0.93,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s1"
+      },
+      {
+        "i": 4,
+        "text": "in",
+        "start": 2.244,
+        "end": 2.427,
+        "conf": 0.94,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s1"
+      },
+      {
+        "i": 5,
+        "text": "just",
+        "start": 2.476,
+        "end": 2.749,
+        "conf": 0.95,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s1"
+      },
+      {
+        "i": 6,
+        "text": "three",
+        "start": 2.798,
+        "end": 3.116,
+        "conf": 0.96,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s1"
+      },
+      {
+        "i": 7,
+        "text": "months.",
+        "start": 3.166,
+        "end": 3.528,
+        "conf": 0.97,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s1"
+      },
+      {
+        "i": 8,
+        "text": "Um,",
+        "start": 4.478,
+        "end": 4.961,
+        "conf": 0.88,
+        "isFiller": true,
+        "fillerKind": "pure",
+        "sentenceId": "s2"
+      },
+      {
+        "i": 9,
+        "text": "and",
+        "start": 5.267,
+        "end": 5.495,
+        "conf": 0.9,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s2"
+      },
+      {
+        "i": 10,
+        "text": "no,",
+        "start": 5.544,
+        "end": 5.727,
+        "conf": 0.91,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s2"
+      },
+      {
+        "i": 11,
+        "text": "it",
+        "start": 5.914,
+        "end": 6.097,
+        "conf": 0.92,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s2"
+      },
+      {
+        "i": 12,
+        "text": "wasn't",
+        "start": 6.146,
+        "end": 6.464,
+        "conf": 0.93,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s2"
+      },
+      {
+        "i": 13,
+        "text": "because",
+        "start": 6.513,
+        "end": 6.921,
+        "conf": 0.94,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s2"
+      },
+      {
+        "i": 14,
+        "text": "of",
+        "start": 6.97,
+        "end": 7.153,
+        "conf": 0.95,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s2"
+      },
+      {
+        "i": 15,
+        "text": "ads.",
+        "start": 7.203,
+        "end": 7.431,
+        "conf": 0.96,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s2"
+      },
+      {
+        "i": 16,
+        "text": "So",
+        "start": 7.771,
+        "end": 7.954,
+        "conf": 0.97,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s3"
+      },
+      {
+        "i": 17,
+        "text": "the—",
+        "start": 8.003,
+        "end": 8.231,
+        "conf": 0.98,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s3"
+      },
+      {
+        "i": 18,
+        "text": "so",
+        "start": 8.417,
+        "end": 8.6,
+        "conf": 0.9,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s3"
+      },
+      {
+        "i": 19,
+        "text": "the",
+        "start": 8.65,
+        "end": 8.878,
+        "conf": 0.91,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s3"
+      },
+      {
+        "i": 20,
+        "text": "thing",
+        "start": 8.927,
+        "end": 9.245,
+        "conf": 0.92,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s3"
+      },
+      {
+        "i": 21,
+        "text": "is,",
+        "start": 9.294,
+        "end": 9.477,
+        "conf": 0.93,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s3"
+      },
+      {
+        "i": 22,
+        "text": "most",
+        "start": 9.664,
+        "end": 9.937,
+        "conf": 0.94,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s3"
+      },
+      {
+        "i": 23,
+        "text": "founders",
+        "start": 9.986,
+        "end": 10.439,
+        "conf": 0.95,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s3"
+      },
+      {
+        "i": 24,
+        "text": "talk",
+        "start": 10.488,
+        "end": 10.761,
+        "conf": 0.96,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s3"
+      },
+      {
+        "i": 25,
+        "text": "to",
+        "start": 10.81,
+        "end": 10.993,
+        "conf": 0.97,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s3"
+      },
+      {
+        "i": 26,
+        "text": "customers",
+        "start": 11.043,
+        "end": 11.54,
+        "conf": 0.98,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s3"
+      },
+      {
+        "i": 27,
+        "text": "once",
+        "start": 11.59,
+        "end": 11.862,
+        "conf": 0.9,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s3"
+      },
+      {
+        "i": 28,
+        "text": "and",
+        "start": 11.912,
+        "end": 12.14,
+        "conf": 0.91,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s3"
+      },
+      {
+        "i": 29,
+        "text": "then",
+        "start": 12.189,
+        "end": 12.462,
+        "conf": 0.92,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s3"
+      },
+      {
+        "i": 30,
+        "text": "stop.",
+        "start": 12.511,
+        "end": 12.784,
+        "conf": 0.93,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s3"
+      },
+      {
+        "i": 31,
+        "text": "This",
+        "start": 14.084,
+        "end": 14.357,
+        "conf": 0.94,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s4"
+      },
+      {
+        "i": 32,
+        "text": "changes",
+        "start": 14.407,
+        "end": 14.814,
+        "conf": 0.95,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s4"
+      },
+      {
+        "i": 33,
+        "text": "everything:",
+        "start": 14.864,
+        "end": 15.406,
+        "conf": 0.96,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s4"
+      },
+      {
+        "i": 34,
+        "text": "we",
+        "start": 15.593,
+        "end": 15.776,
+        "conf": 0.97,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s4"
+      },
+      {
+        "i": 35,
+        "text": "started",
+        "start": 15.825,
+        "end": 16.233,
+        "conf": 0.98,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s4"
+      },
+      {
+        "i": 36,
+        "text": "calling",
+        "start": 16.282,
+        "end": 16.69,
+        "conf": 0.9,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s4"
+      },
+      {
+        "i": 37,
+        "text": "five",
+        "start": 16.739,
+        "end": 17.012,
+        "conf": 0.91,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s4"
+      },
+      {
+        "i": 38,
+        "text": "customers",
+        "start": 17.061,
+        "end": 17.559,
+        "conf": 0.92,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s4"
+      },
+      {
+        "i": 39,
+        "text": "every",
+        "start": 17.608,
+        "end": 17.926,
+        "conf": 0.93,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s4"
+      },
+      {
+        "i": 40,
+        "text": "single",
+        "start": 17.975,
+        "end": 18.338,
+        "conf": 0.94,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s4"
+      },
+      {
+        "i": 41,
+        "text": "week.",
+        "start": 18.388,
+        "end": 18.66,
+        "conf": 0.95,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s4"
+      },
+      {
+        "i": 42,
+        "text": "Uh,",
+        "start": 19.06,
+        "end": 19.543,
+        "conf": 0.88,
+        "isFiller": true,
+        "fillerKind": "pure",
+        "sentenceId": "s5"
+      },
+      {
+        "i": 43,
+        "text": "every",
+        "start": 19.849,
+        "end": 20.167,
+        "conf": 0.97,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s5"
+      },
+      {
+        "i": 44,
+        "text": "call",
+        "start": 20.216,
+        "end": 20.489,
+        "conf": 0.98,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s5"
+      },
+      {
+        "i": 45,
+        "text": "ended",
+        "start": 20.539,
+        "end": 20.856,
+        "conf": 0.9,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s5"
+      },
+      {
+        "i": 46,
+        "text": "with",
+        "start": 20.906,
+        "end": 21.179,
+        "conf": 0.91,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s5"
+      },
+      {
+        "i": 47,
+        "text": "one",
+        "start": 21.228,
+        "end": 21.456,
+        "conf": 0.92,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s5"
+      },
+      {
+        "i": 48,
+        "text": "question:",
+        "start": 21.505,
+        "end": 21.958,
+        "conf": 0.93,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s5"
+      },
+      {
+        "i": 49,
+        "text": "what",
+        "start": 22.144,
+        "end": 22.417,
+        "conf": 0.94,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s5"
+      },
+      {
+        "i": 50,
+        "text": "almost",
+        "start": 22.467,
+        "end": 22.829,
+        "conf": 0.95,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s5"
+      },
+      {
+        "i": 51,
+        "text": "stopped",
+        "start": 22.879,
+        "end": 23.286,
+        "conf": 0.96,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s5"
+      },
+      {
+        "i": 52,
+        "text": "you",
+        "start": 23.336,
+        "end": 23.564,
+        "conf": 0.97,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s5"
+      },
+      {
+        "i": 53,
+        "text": "from",
+        "start": 23.613,
+        "end": 23.886,
+        "conf": 0.98,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s5"
+      },
+      {
+        "i": 54,
+        "text": "buying?",
+        "start": 23.935,
+        "end": 24.298,
+        "conf": 0.9,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s5"
+      },
+      {
+        "i": 55,
+        "text": "The",
+        "start": 25.418,
+        "end": 25.646,
+        "conf": 0.91,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s6"
+      },
+      {
+        "i": 56,
+        "text": "answers",
+        "start": 25.695,
+        "end": 26.103,
+        "conf": 0.92,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s6"
+      },
+      {
+        "i": 57,
+        "text": "were",
+        "start": 26.153,
+        "end": 26.425,
+        "conf": 0.93,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s6"
+      },
+      {
+        "i": 58,
+        "text": "brutal",
+        "start": 26.475,
+        "end": 26.838,
+        "conf": 0.94,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s6"
+      },
+      {
+        "i": 59,
+        "text": "and,",
+        "start": 26.887,
+        "end": 27.183,
+        "conf": 0.88,
+        "isFiller": true,
+        "fillerKind": "discourse",
+        "sentenceId": "s6"
+      },
+      {
+        "i": 60,
+        "text": "like,",
+        "start": 27.369,
+        "end": 27.642,
+        "conf": 0.96,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s6"
+      },
+      {
+        "i": 61,
+        "text": "incredibly",
+        "start": 27.828,
+        "end": 28.371,
+        "conf": 0.97,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s6"
+      },
+      {
+        "i": 62,
+        "text": "useful.",
+        "start": 28.42,
+        "end": 28.783,
+        "conf": 0.98,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s6"
+      },
+      {
+        "i": 63,
+        "text": "We",
+        "start": 29.203,
+        "end": 29.386,
+        "conf": 0.9,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s7"
+      },
+      {
+        "i": 64,
+        "text": "rewrote",
+        "start": 29.436,
+        "end": 29.843,
+        "conf": 0.91,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s7"
+      },
+      {
+        "i": 65,
+        "text": "our",
+        "start": 29.893,
+        "end": 30.121,
+        "conf": 0.92,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s7"
+      },
+      {
+        "i": 66,
+        "text": "whole",
+        "start": 30.17,
+        "end": 30.488,
+        "conf": 0.93,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s7"
+      },
+      {
+        "i": 67,
+        "text": "pricing",
+        "start": 30.537,
+        "end": 30.945,
+        "conf": 0.94,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s7"
+      },
+      {
+        "i": 68,
+        "text": "page",
+        "start": 30.994,
+        "end": 31.267,
+        "conf": 0.95,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s7"
+      },
+      {
+        "i": 69,
+        "text": "in",
+        "start": 31.316,
+        "end": 31.499,
+        "conf": 0.96,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s7"
+      },
+      {
+        "i": 70,
+        "text": "one",
+        "start": 31.549,
+        "end": 31.777,
+        "conf": 0.97,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s7"
+      },
+      {
+        "i": 71,
+        "text": "afternoon.",
+        "start": 31.826,
+        "end": 32.324,
+        "conf": 0.98,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s7"
+      },
+      {
+        "i": 72,
+        "text": "Sign-ups",
+        "start": 33.164,
+        "end": 33.571,
+        "conf": 0.9,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s8"
+      },
+      {
+        "i": 73,
+        "text": "jumped",
+        "start": 33.621,
+        "end": 33.984,
+        "conf": 0.91,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s8"
+      },
+      {
+        "i": 74,
+        "text": "forty",
+        "start": 34.033,
+        "end": 34.351,
+        "conf": 0.92,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s8"
+      },
+      {
+        "i": 75,
+        "text": "percent",
+        "start": 34.4,
+        "end": 34.808,
+        "conf": 0.93,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s8"
+      },
+      {
+        "i": 76,
+        "text": "the",
+        "start": 34.857,
+        "end": 35.085,
+        "conf": 0.94,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s8"
+      },
+      {
+        "i": 77,
+        "text": "very",
+        "start": 35.135,
+        "end": 35.407,
+        "conf": 0.95,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s8"
+      },
+      {
+        "i": 78,
+        "text": "next",
+        "start": 35.457,
+        "end": 35.73,
+        "conf": 0.96,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s8"
+      },
+      {
+        "i": 79,
+        "text": "week.",
+        "start": 35.779,
+        "end": 36.052,
+        "conf": 0.97,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s8"
+      },
+      {
+        "i": 80,
+        "text": "Same",
+        "start": 36.432,
+        "end": 36.705,
+        "conf": 0.98,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s9"
+      },
+      {
+        "i": 81,
+        "text": "product,",
+        "start": 36.754,
+        "end": 37.162,
+        "conf": 0.9,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s9"
+      },
+      {
+        "i": 82,
+        "text": "same",
+        "start": 37.348,
+        "end": 37.621,
+        "conf": 0.91,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s9"
+      },
+      {
+        "i": 83,
+        "text": "price,",
+        "start": 37.671,
+        "end": 37.988,
+        "conf": 0.92,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s9"
+      },
+      {
+        "i": 84,
+        "text": "just",
+        "start": 38.175,
+        "end": 38.448,
+        "conf": 0.93,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s9"
+      },
+      {
+        "i": 85,
+        "text": "better",
+        "start": 38.497,
+        "end": 38.86,
+        "conf": 0.94,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s9"
+      },
+      {
+        "i": 86,
+        "text": "words.",
+        "start": 38.909,
+        "end": 39.227,
+        "conf": 0.95,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s9"
+      },
+      {
+        "i": 87,
+        "text": "Honestly,",
+        "start": 39.677,
+        "end": 40.13,
+        "conf": 0.96,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s10"
+      },
+      {
+        "i": 88,
+        "text": "I",
+        "start": 40.316,
+        "end": 40.454,
+        "conf": 0.97,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s10"
+      },
+      {
+        "i": 89,
+        "text": "wish",
+        "start": 40.503,
+        "end": 40.776,
+        "conf": 0.98,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s10"
+      },
+      {
+        "i": 90,
+        "text": "we",
+        "start": 40.826,
+        "end": 41.009,
+        "conf": 0.9,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s10"
+      },
+      {
+        "i": 91,
+        "text": "had",
+        "start": 41.058,
+        "end": 41.286,
+        "conf": 0.91,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s10"
+      },
+      {
+        "i": 92,
+        "text": "started",
+        "start": 41.335,
+        "end": 41.743,
+        "conf": 0.92,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s10"
+      },
+      {
+        "i": 93,
+        "text": "doing",
+        "start": 41.792,
+        "end": 42.11,
+        "conf": 0.93,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s10"
+      },
+      {
+        "i": 94,
+        "text": "this",
+        "start": 42.16,
+        "end": 42.433,
+        "conf": 0.94,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s10"
+      },
+      {
+        "i": 95,
+        "text": "two",
+        "start": 42.482,
+        "end": 42.71,
+        "conf": 0.95,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s10"
+      },
+      {
+        "i": 96,
+        "text": "years",
+        "start": 42.759,
+        "end": 43.077,
+        "conf": 0.96,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s10"
+      },
+      {
+        "i": 97,
+        "text": "ago.",
+        "start": 43.126,
+        "end": 43.354,
+        "conf": 0.97,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s10"
+      },
+      {
+        "i": 98,
+        "text": "If",
+        "start": 44.774,
+        "end": 44.957,
+        "conf": 0.98,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s11"
+      },
+      {
+        "i": 99,
+        "text": "you",
+        "start": 45.007,
+        "end": 45.235,
+        "conf": 0.9,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s11"
+      },
+      {
+        "i": 100,
+        "text": "run",
+        "start": 45.284,
+        "end": 45.512,
+        "conf": 0.91,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s11"
+      },
+      {
+        "i": 101,
+        "text": "a",
+        "start": 45.561,
+        "end": 45.699,
+        "conf": 0.92,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s11"
+      },
+      {
+        "i": 102,
+        "text": "small",
+        "start": 45.749,
+        "end": 46.067,
+        "conf": 0.93,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s11"
+      },
+      {
+        "i": 103,
+        "text": "team,",
+        "start": 46.116,
+        "end": 46.389,
+        "conf": 0.94,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s11"
+      },
+      {
+        "i": 104,
+        "text": "try",
+        "start": 46.575,
+        "end": 46.803,
+        "conf": 0.95,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s11"
+      },
+      {
+        "i": 105,
+        "text": "it",
+        "start": 46.853,
+        "end": 47.036,
+        "conf": 0.96,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s11"
+      },
+      {
+        "i": 106,
+        "text": "this",
+        "start": 47.085,
+        "end": 47.358,
+        "conf": 0.97,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s11"
+      },
+      {
+        "i": 107,
+        "text": "Friday.",
+        "start": 47.407,
+        "end": 47.77,
+        "conf": 0.98,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s11"
+      },
+      {
+        "i": 108,
+        "text": "Follow",
+        "start": 48.07,
+        "end": 48.433,
+        "conf": 0.9,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s12"
+      },
+      {
+        "i": 109,
+        "text": "for",
+        "start": 48.482,
+        "end": 48.71,
+        "conf": 0.91,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s12"
+      },
+      {
+        "i": 110,
+        "text": "the",
+        "start": 48.759,
+        "end": 48.987,
+        "conf": 0.92,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s12"
+      },
+      {
+        "i": 111,
+        "text": "exact",
+        "start": 49.037,
+        "end": 49.355,
+        "conf": 0.93,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s12"
+      },
+      {
+        "i": 112,
+        "text": "script",
+        "start": 49.404,
+        "end": 49.767,
+        "conf": 0.94,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s12"
+      },
+      {
+        "i": 113,
+        "text": "we",
+        "start": 49.816,
+        "end": 49.999,
+        "conf": 0.95,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s12"
+      },
+      {
+        "i": 114,
+        "text": "use",
+        "start": 50.048,
+        "end": 50.276,
+        "conf": 0.96,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s12"
+      },
+      {
+        "i": 115,
+        "text": "on",
+        "start": 50.326,
+        "end": 50.509,
+        "conf": 0.97,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s12"
+      },
+      {
+        "i": 116,
+        "text": "every",
+        "start": 50.558,
+        "end": 50.876,
+        "conf": 0.98,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s12"
+      },
+      {
+        "i": 117,
+        "text": "single",
+        "start": 50.925,
+        "end": 51.288,
+        "conf": 0.9,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s12"
+      },
+      {
+        "i": 118,
+        "text": "call.",
+        "start": 51.337,
+        "end": 51.61,
+        "conf": 0.91,
+        "isFiller": false,
+        "fillerKind": null,
+        "sentenceId": "s12"
+      }
+    ],
+    "sentences": [
+      {
+        "id": "s1",
+        "w0": 0,
+        "w1": 7,
+        "start": 0.82,
+        "end": 3.528,
+        "text": "We doubled our revenue in just three months.",
+        "segmentId": "seg_hook",
+        "pauseAfter": 0.95,
+        "fillerCount": 0
+      },
+      {
+        "id": "s2",
+        "w0": 8,
+        "w1": 15,
+        "start": 4.478,
+        "end": 7.431,
+        "text": "Um, and no, it wasn't because of ads.",
+        "segmentId": "seg_setup",
+        "pauseAfter": 0.34,
+        "fillerCount": 1
+      },
+      {
+        "id": "s3",
+        "w0": 16,
+        "w1": 30,
+        "start": 7.771,
+        "end": 12.784,
+        "text": "So the— so the thing is, most founders talk to customers once and then stop.",
+        "segmentId": "seg_setup",
+        "pauseAfter": 1.3,
+        "fillerCount": 0
+      },
+      {
+        "id": "s4",
+        "w0": 31,
+        "w1": 41,
+        "start": 14.084,
+        "end": 18.66,
+        "text": "This changes everything: we started calling five customers every single week.",
+        "segmentId": "seg_method",
+        "pauseAfter": 0.4,
+        "fillerCount": 0
+      },
+      {
+        "id": "s5",
+        "w0": 42,
+        "w1": 54,
+        "start": 19.06,
+        "end": 24.298,
+        "text": "Uh, every call ended with one question: what almost stopped you from buying?",
+        "segmentId": "seg_method",
+        "pauseAfter": 1.12,
+        "fillerCount": 1
+      },
+      {
+        "id": "s6",
+        "w0": 55,
+        "w1": 62,
+        "start": 25.418,
+        "end": 28.783,
+        "text": "The answers were brutal and, like, incredibly useful.",
+        "segmentId": "seg_method",
+        "pauseAfter": 0.42,
+        "fillerCount": 1
+      },
+      {
+        "id": "s7",
+        "w0": 63,
+        "w1": 71,
+        "start": 29.203,
+        "end": 32.324,
+        "text": "We rewrote our whole pricing page in one afternoon.",
+        "segmentId": "seg_method",
+        "pauseAfter": 0.84,
+        "fillerCount": 0
+      },
+      {
+        "id": "s8",
+        "w0": 72,
+        "w1": 79,
+        "start": 33.164,
+        "end": 36.052,
+        "text": "Sign-ups jumped forty percent the very next week.",
+        "segmentId": "seg_method",
+        "pauseAfter": 0.38,
+        "fillerCount": 0
+      },
+      {
+        "id": "s9",
+        "w0": 80,
+        "w1": 86,
+        "start": 36.432,
+        "end": 39.227,
+        "text": "Same product, same price, just better words.",
+        "segmentId": "seg_method",
+        "pauseAfter": 0.45,
+        "fillerCount": 0
+      },
+      {
+        "id": "s10",
+        "w0": 87,
+        "w1": 97,
+        "start": 39.677,
+        "end": 43.354,
+        "text": "Honestly, I wish we had started doing this two years ago.",
+        "segmentId": "seg_method",
+        "pauseAfter": 1.42,
+        "fillerCount": 0,
+        "faceRequired": "sincere"
+      },
+      {
+        "id": "s11",
+        "w0": 98,
+        "w1": 107,
+        "start": 44.774,
+        "end": 47.77,
+        "text": "If you run a small team, try it this Friday.",
+        "segmentId": "seg_cta",
+        "pauseAfter": 0.3,
+        "fillerCount": 0,
+        "faceRequired": "cta"
+      },
+      {
+        "id": "s12",
+        "w0": 108,
+        "w1": 118,
+        "start": 48.07,
+        "end": 51.61,
+        "text": "Follow for the exact script we use on every single call.",
+        "segmentId": "seg_cta",
+        "pauseAfter": 0,
+        "fillerCount": 0,
+        "faceRequired": "cta"
+      }
+    ]
+  },
+  "revisions": {
+    "head": 3,
+    "revisions": [
+      {
+        "rev": 1,
+        "hash": "ph1_4a0c9e11",
+        "parent": null,
+        "author": "director",
+        "opsCount": 0,
+        "summary": "AI edit",
+        "createdAt": 1789377540000
+      },
+      {
+        "rev": 2,
+        "hash": "ph2_77b1d0e3",
+        "parent": 1,
+        "author": "qa-repair",
+        "opsCount": 1,
+        "summary": "Rebuild captions",
+        "createdAt": 1789377600000
+      },
+      {
+        "rev": 3,
+        "hash": "ph3_c81e4b2d",
+        "parent": 2,
+        "author": "user",
+        "opsCount": 1,
+        "summary": "Rename edit",
+        "createdAt": 1789377660000
+      }
+    ],
+    "canUndo": true,
+    "canRedo": false,
+    "undoLabel": "Rename edit",
+    "redoLabel": null
+  }
+}

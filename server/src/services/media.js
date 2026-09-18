@@ -14,7 +14,7 @@ function probeDurationSec(filePath) {
       "-show_entries", "format=duration",
       "-of", "default=noprint_wrappers=1:nokey=1",
       filePath,
-    ]);
+    ], { windowsHide: true });
     let out = "";
     p.stdout.on("data", (d) => { out += d.toString(); });
     const timer = setTimeout(() => { try { p.kill("SIGKILL"); } catch { /* noop */ } resolve(null); }, 15_000);

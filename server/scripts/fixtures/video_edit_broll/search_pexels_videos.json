@@ -1,0 +1,70 @@
+{
+  "page": 1,
+  "per_page": 15,
+  "total_results": 3,
+  "url": "https://www.pexels.com/search/videos/laptop/",
+  "videos": [
+    {
+      "id": 3129671,
+      "width": 1080,
+      "height": 1920,
+      "duration": 14,
+      "full_res": null,
+      "tags": [],
+      "url": "https://www.pexels.com/video/woman-typing-on-a-laptop-3129671/",
+      "image": "https://images.pexels.com/videos/3129671/free-video-3129671.jpg?auto=compress&cs=tinysrgb&fit=crop&h=630&lossless=1&w=1200",
+      "avg_color": null,
+      "user": { "id": 1437723, "name": "Cottonbro Studio", "url": "https://www.pexels.com/@cottonbro" },
+      "video_files": [
+        { "id": 11001, "quality": "hd", "file_type": "video/mp4", "width": 1080, "height": 1920, "fps": 25, "link": "https://videos.pexels.com/video-files/3129671/3129671-hd_1080_1920_25fps.mp4", "size": 9823412 },
+        { "id": 11002, "quality": "sd", "file_type": "video/mp4", "width": 360, "height": 640, "fps": 25, "link": "https://videos.pexels.com/video-files/3129671/3129671-sd_360_640_25fps.mp4", "size": 1203344 },
+        { "id": 11003, "quality": "uhd", "file_type": "video/mp4", "width": 2160, "height": 3840, "fps": 25, "link": "https://videos.pexels.com/video-files/3129671/3129671-uhd_2160_3840_25fps.mp4", "size": 40123344 },
+        { "id": 11004, "quality": "sd", "file_type": "video/mp4", "width": 540, "height": 960, "fps": 25, "link": "https://videos.pexels.com/video-files/3129671/3129671-sd_540_960_25fps.mp4", "size": 2403344 },
+        { "id": 11005, "quality": "hls", "file_type": "hls", "width": null, "height": null, "fps": null, "link": "https://player.vimeo.com/external/3129671.m3u8?s=0a1b2c3d", "size": null }
+      ],
+      "video_pictures": [
+        { "id": 900004, "nr": 4, "picture": "https://images.pexels.com/videos/3129671/pictures/preview-4.jpg" },
+        { "id": 900000, "nr": 0, "picture": "https://images.pexels.com/videos/3129671/pictures/preview-0.jpg" },
+        { "id": 900001, "nr": 1, "picture": "https://images.pexels.com/videos/3129671/pictures/preview-1.jpg" },
+        { "id": 900002, "nr": 2, "picture": "https://images.pexels.com/videos/3129671/pictures/preview-2.jpg" },
+        { "id": 900003, "nr": 3, "picture": "https://images.pexels.com/videos/3129671/pictures/preview-3.jpg" }
+      ]
+    },
+    {
+      "id": 856973,
+      "width": 1920,
+      "height": 1080,
+      "duration": 22,
+      "full_res": null,
+      "tags": [],
+      "url": "https://www.pexels.com/video/programmer-coding-on-a-computer-856973/",
+      "image": "https://images.pexels.com/videos/856973/free-video-856973.jpg?auto=compress&cs=tinysrgb&fit=crop&h=630&lossless=1&w=1200",
+      "avg_color": null,
+      "user": { "id": 283769, "name": "Pressmaster", "url": "https://www.pexels.com/@pressmaster" },
+      "video_files": [
+        { "id": 22001, "quality": "hd", "file_type": "video/mp4", "width": 1920, "height": 1080, "fps": 29.97002997002997, "link": "https://videos.pexels.com/video-files/856973/856973-hd_1920_1080_30fps.mp4", "size": 15022311 },
+        { "id": 22002, "quality": "sd", "file_type": "video/mp4", "width": 640, "height": 360, "fps": 29.97002997002997, "link": "https://videos.pexels.com/video-files/856973/856973-sd_640_360_30fps.mp4", "size": 2011872 }
+      ],
+      "video_pictures": [
+        { "id": 910000, "nr": 0, "picture": "https://images.pexels.com/videos/856973/pictures/preview-0.jpg" },
+        { "id": 910001, "nr": 1, "picture": "https://images.pexels.com/videos/856973/pictures/preview-1.jpg" },
+        { "id": 910002, "nr": 2, "picture": "https://images.pexels.com/videos/856973/pictures/preview-2.jpg" }
+      ]
+    },
+    {
+      "id": 999001,
+      "width": 1920,
+      "height": 1080,
+      "duration": 8,
+      "tags": [],
+      "url": "https://www.pexels.com/video/stream-only-999001/",
+      "image": "https://images.pexels.com/videos/999001/free-video-999001.jpg",
+      "user": { "id": 1, "name": "Stream Only", "url": "https://www.pexels.com/@stream" },
+      "video_files": [
+        { "id": 33001, "quality": "hls", "file_type": "hls", "width": null, "height": null, "fps": null, "link": "https://player.vimeo.com/external/999001.m3u8?s=ff", "size": null }
+      ],
+      "video_pictures": []
+    }
+  ],
+  "next_page": "https://api.pexels.com/videos/search/?page=2&per_page=15&query=laptop"
+}

@@ -1,0 +1,1354 @@
+{
+  "schema": "keyframe.edit_plan",
+  "version": 1,
+  "projectId": "ve_fixture00talk45s",
+  "revision": 0,
+  "parentRevision": null,
+  "createdAt": 1757800000000,
+  "createdBy": "system",
+  "source": {
+    "assetId": "ast_src45talk",
+    "sha1": "4984612f36baef7a725b9358c410c8eaf43beb5c",
+    "durationSec": 44.5,
+    "fps": 30,
+    "width": 1080,
+    "height": 1920,
+    "analysisVersion": "1",
+    "transcriptHash": "60b09886d8f47f3baefe5c9cce86a057ad6c6e1076fd354692466528f240f09f",
+    "timing": "word",
+    "language": "en"
+  },
+  "output": {
+    "aspect": "9:16",
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "background": "none"
+  },
+  "settings": {
+    "captionStyle": "bold_pop",
+    "captionLanguage": "auto",
+    "maxWordsPerLine": 3,
+    "captionsEnabled": true,
+    "brandColors": [],
+    "musicEnabled": true,
+    "sfxEnabled": true,
+    "brollIntensity": "medium",
+    "effects": "subtle",
+    "effectsEnabled": true,
+    "removeFillers": "light",
+    "removeSilence": true,
+    "silencePace": "natural",
+    "autoJumpCuts": true,
+    "punchInOnJumpCuts": true,
+    "platformSafe": "generic"
+  },
+  "timeline": {
+    "pieces": [],
+    "outDurationSec": 0,
+    "mapHash": ""
+  },
+  "aRoll": {
+    "segments": [
+      {
+        "id": "seg_1",
+        "type": "HOOK",
+        "anchor": {
+          "kind": "words",
+          "w0": 0,
+          "w1": 11
+        },
+        "resolved": null,
+        "sentenceIds": [
+          "s1"
+        ],
+        "importance": 0.95,
+        "editingIntent": "hook_grab",
+        "faceRequired": false,
+        "framing": {
+          "mode": "auto",
+          "zoomBase": 1,
+          "keyframes": [],
+          "locked": false
+        },
+        "label": "The email trap",
+        "reason": "content segment cs1",
+        "origin": "ai",
+        "locked": false
+      },
+      {
+        "id": "seg_2",
+        "type": "TALKING_HEAD",
+        "anchor": {
+          "kind": "words",
+          "w0": 12,
+          "w1": 35
+        },
+        "resolved": null,
+        "sentenceIds": [
+          "s2",
+          "s3"
+        ],
+        "importance": 0.7,
+        "editingIntent": "story",
+        "faceRequired": true,
+        "framing": {
+          "mode": "auto",
+          "zoomBase": 1,
+          "keyframes": [],
+          "locked": false
+        },
+        "label": "One simple rule",
+        "reason": "content segment cs2",
+        "origin": "ai",
+        "locked": false
+      },
+      {
+        "id": "seg_3",
+        "type": "TALKING_HEAD",
+        "anchor": {
+          "kind": "words",
+          "w0": 36,
+          "w1": 64
+        },
+        "resolved": null,
+        "sentenceIds": [
+          "s4",
+          "s5",
+          "s6"
+        ],
+        "importance": 0.85,
+        "editingIntent": "explain",
+        "faceRequired": false,
+        "framing": {
+          "mode": "auto",
+          "zoomBase": 1,
+          "keyframes": [],
+          "locked": false
+        },
+        "label": "Two inbox windows",
+        "reason": "content segment cs3",
+        "origin": "ai",
+        "locked": false
+      },
+      {
+        "id": "seg_4",
+        "type": "TALKING_HEAD",
+        "anchor": {
+          "kind": "words",
+          "w0": 65,
+          "w1": 83
+        },
+        "resolved": null,
+        "sentenceIds": [
+          "s7",
+          "s8"
+        ],
+        "importance": 0.75,
+        "editingIntent": "proof",
+        "faceRequired": false,
+        "framing": {
+          "mode": "auto",
+          "zoomBase": 1,
+          "keyframes": [],
+          "locked": false
+        },
+        "label": "What changed",
+        "reason": "content segment cs4",
+        "origin": "ai",
+        "locked": false
+      },
+      {
+        "id": "seg_5",
+        "type": "TALKING_HEAD",
+        "anchor": {
+          "kind": "words",
+          "w0": 84,
+          "w1": 116
+        },
+        "resolved": null,
+        "sentenceIds": [
+          "s9",
+          "s10",
+          "s11"
+        ],
+        "importance": 0.8,
+        "editingIntent": "explain",
+        "faceRequired": true,
+        "framing": {
+          "mode": "auto",
+          "zoomBase": 1,
+          "keyframes": [],
+          "locked": false
+        },
+        "label": "Make it stick",
+        "reason": "content segment cs5",
+        "origin": "ai",
+        "locked": false
+      },
+      {
+        "id": "seg_6",
+        "type": "CTA",
+        "anchor": {
+          "kind": "words",
+          "w0": 117,
+          "w1": 129
+        },
+        "resolved": null,
+        "sentenceIds": [
+          "s12"
+        ],
+        "importance": 0.6,
+        "editingIntent": "cta",
+        "faceRequired": true,
+        "framing": {
+          "mode": "auto",
+          "zoomBase": 1,
+          "keyframes": [],
+          "locked": false
+        },
+        "label": "Follow for more",
+        "reason": "content segment cs6",
+        "origin": "ai",
+        "locked": false
+      }
+    ]
+  },
+  "cuts": [
+    {
+      "id": "cut_0001",
+      "kind": "SILENCE",
+      "srcIn": 16.65,
+      "srcOut": 17.79,
+      "raw": {
+        "srcIn": 16.51,
+        "srcOut": 17.93
+      },
+      "snap": {
+        "method": "rms_gap",
+        "padIn": 0.14,
+        "padOut": 0.14
+      },
+      "wordRange": null,
+      "confidence": 0.9,
+      "controlledBy": "removeSilence",
+      "enabled": true,
+      "userToggled": false,
+      "reason": "pause 1.42s",
+      "origin": "heuristic",
+      "locked": false
+    },
+    {
+      "id": "cut_0002",
+      "kind": "SILENCE",
+      "srcIn": 27.69,
+      "srcOut": 28.63,
+      "raw": {
+        "srcIn": 27.55,
+        "srcOut": 28.77
+      },
+      "snap": {
+        "method": "rms_gap",
+        "padIn": 0.14,
+        "padOut": 0.14
+      },
+      "wordRange": null,
+      "confidence": 0.9,
+      "controlledBy": "removeSilence",
+      "enabled": true,
+      "userToggled": false,
+      "reason": "pause 1.22s",
+      "origin": "heuristic",
+      "locked": false
+    },
+    {
+      "id": "cut_0003",
+      "kind": "SILENCE",
+      "srcIn": 39.3,
+      "srcOut": 40.14,
+      "raw": {
+        "srcIn": 39.16,
+        "srcOut": 40.28
+      },
+      "snap": {
+        "method": "rms_gap",
+        "padIn": 0.14,
+        "padOut": 0.14
+      },
+      "wordRange": null,
+      "confidence": 0.9,
+      "controlledBy": "removeSilence",
+      "enabled": true,
+      "userToggled": false,
+      "reason": "pause 1.12s",
+      "origin": "heuristic",
+      "locked": false
+    },
+    {
+      "id": "cut_0004",
+      "kind": "FILLER",
+      "srcIn": 4.19,
+      "srcOut": 4.57,
+      "raw": {
+        "srcIn": 4.22,
+        "srcOut": 4.52
+      },
+      "snap": {
+        "method": "word_edge",
+        "padIn": 0.03,
+        "padOut": 0.05
+      },
+      "wordRange": [
+        12,
+        12
+      ],
+      "confidence": 0.93,
+      "controlledBy": "removeFillers",
+      "fillerKind": "pure",
+      "enabled": true,
+      "userToggled": false,
+      "reason": "filler Um,",
+      "origin": "heuristic",
+      "locked": false
+    },
+    {
+      "id": "cut_0005",
+      "kind": "FILLER",
+      "srcIn": 13.89,
+      "srcOut": 14.27,
+      "raw": {
+        "srcIn": 13.92,
+        "srcOut": 14.22
+      },
+      "snap": {
+        "method": "word_edge",
+        "padIn": 0.03,
+        "padOut": 0.05
+      },
+      "wordRange": [
+        45,
+        45
+      ],
+      "confidence": 0.95,
+      "controlledBy": "removeFillers",
+      "fillerKind": "pure",
+      "enabled": true,
+      "userToggled": false,
+      "reason": "filler Uh,",
+      "origin": "heuristic",
+      "locked": false
+    },
+    {
+      "id": "cut_0006",
+      "kind": "FILLER",
+      "srcIn": 20.39,
+      "srcOut": 20.71,
+      "raw": {
+        "srcIn": 20.42,
+        "srcOut": 20.66
+      },
+      "snap": {
+        "method": "word_edge",
+        "padIn": 0.03,
+        "padOut": 0.05
+      },
+      "wordRange": [
+        63,
+        63
+      ],
+      "confidence": 0.95,
+      "controlledBy": "removeFillers",
+      "fillerKind": "discourse",
+      "enabled": true,
+      "userToggled": false,
+      "reason": "filler like,",
+      "origin": "heuristic",
+      "locked": false
+    },
+    {
+      "id": "cut_0007",
+      "kind": "FILLER",
+      "srcIn": 23.51,
+      "srcOut": 23.89,
+      "raw": {
+        "srcIn": 23.54,
+        "srcOut": 23.84
+      },
+      "snap": {
+        "method": "word_edge",
+        "padIn": 0.03,
+        "padOut": 0.05
+      },
+      "wordRange": [
+        72,
+        72
+      ],
+      "confidence": 0.95,
+      "controlledBy": "removeFillers",
+      "fillerKind": "pure",
+      "enabled": true,
+      "userToggled": false,
+      "reason": "filler uh,",
+      "origin": "heuristic",
+      "locked": false
+    },
+    {
+      "id": "cut_0008",
+      "kind": "FILLER",
+      "srcIn": 31.2,
+      "srcOut": 31.58,
+      "raw": {
+        "srcIn": 31.23,
+        "srcOut": 31.53
+      },
+      "snap": {
+        "method": "word_edge",
+        "padIn": 0.03,
+        "padOut": 0.05
+      },
+      "wordRange": [
+        92,
+        92
+      ],
+      "confidence": 0.93,
+      "controlledBy": "removeFillers",
+      "fillerKind": "pure",
+      "enabled": true,
+      "userToggled": false,
+      "reason": "filler Um,",
+      "origin": "heuristic",
+      "locked": false
+    },
+    {
+      "id": "cut_0009",
+      "kind": "FILLER",
+      "srcIn": 35.65,
+      "srcOut": 36.03,
+      "raw": {
+        "srcIn": 35.68,
+        "srcOut": 35.98
+      },
+      "snap": {
+        "method": "word_edge",
+        "padIn": 0.03,
+        "padOut": 0.05
+      },
+      "wordRange": [
+        105,
+        105
+      ],
+      "confidence": 0.9,
+      "controlledBy": "removeFillers",
+      "fillerKind": "pure",
+      "enabled": true,
+      "userToggled": false,
+      "reason": "filler Er,",
+      "origin": "heuristic",
+      "locked": false
+    },
+    {
+      "id": "cut_0010",
+      "kind": "FALSE_START",
+      "srcIn": 6.36,
+      "srcOut": 7.78,
+      "raw": {
+        "srcIn": 6.39,
+        "srcOut": 7.84
+      },
+      "snap": {
+        "method": "word_edge",
+        "padIn": 0.03,
+        "padOut": 0.06
+      },
+      "wordRange": [
+        20,
+        23
+      ],
+      "confidence": 0.8,
+      "controlledBy": null,
+      "enabled": true,
+      "userToggled": false,
+      "reason": "false_start",
+      "origin": "heuristic",
+      "locked": false
+    },
+    {
+      "id": "cut_0011",
+      "kind": "REPEAT",
+      "srcIn": 11.51,
+      "srcOut": 11.68,
+      "raw": {
+        "srcIn": 11.54,
+        "srcOut": 11.74
+      },
+      "snap": {
+        "method": "word_edge",
+        "padIn": 0.03,
+        "padOut": 0.06
+      },
+      "wordRange": [
+        36,
+        36
+      ],
+      "confidence": 0.8,
+      "controlledBy": null,
+      "enabled": true,
+      "userToggled": false,
+      "reason": "repeat",
+      "origin": "heuristic",
+      "locked": false
+    },
+    {
+      "id": "cut_0012",
+      "kind": "REPEAT",
+      "srcIn": 29.06,
+      "srcOut": 29.31,
+      "raw": {
+        "srcIn": 29.09,
+        "srcOut": 29.37
+      },
+      "snap": {
+        "method": "word_edge",
+        "padIn": 0.03,
+        "padOut": 0.06
+      },
+      "wordRange": [
+        85,
+        85
+      ],
+      "confidence": 0.8,
+      "controlledBy": null,
+      "enabled": true,
+      "userToggled": false,
+      "reason": "repeat",
+      "origin": "heuristic",
+      "locked": false
+    }
+  ],
+  "captions": {
+    "enabled": true,
+    "styleId": "bold_pop",
+    "language": "en",
+    "sourceLanguage": "en",
+    "position": {
+      "policy": "auto",
+      "faceAvoid": true
+    },
+    "highlight": "color",
+    "overrides": {
+      "wordText": {},
+      "insertions": [],
+      "hiddenWords": [],
+      "hiddenCues": [],
+      "cueY": {},
+      "emphasis": {}
+    },
+    "cues": [],
+    "translations": {},
+    "userEdited": false
+  },
+  "broll": [
+    {
+      "id": "br_0001",
+      "ordinal": 1,
+      "anchor": {
+        "kind": "words",
+        "w0": 55,
+        "w1": 64
+      },
+      "resolved": null,
+      "sentenceId": "s6",
+      "segmentId": "seg_3",
+      "layout": "FULL",
+      "layoutParams": {},
+      "intent": "illustrate",
+      "queries": [
+        {
+          "text": "phone face down",
+          "kind": "visual_noun"
+        },
+        {
+          "text": "notifications off",
+          "kind": "scene"
+        }
+      ],
+      "reason": "visual need 0.65",
+      "chosen": {
+        "assetId": "ast_pexels0001",
+        "provider": "pexels",
+        "providerId": "123451",
+        "type": "video",
+        "path": "assets/broll/ast_pexels0001.mp4",
+        "thumbPath": "broll/thumbs/ast_pexels0001.jpg",
+        "sourceUrl": "https://www.pexels.com/video/123451/",
+        "license": "Pexels License",
+        "attribution": "Video by A. Creator",
+        "width": 1080,
+        "height": 1920,
+        "durationSec": 8.2,
+        "trimInSec": 0.5,
+        "dhash": "f0e1d2c3b4a59681",
+        "tags": [
+          "team",
+          "office"
+        ],
+        "scores": {
+          "lexical": 0.6,
+          "judgeRelevance": 8,
+          "judgeQuality": 7,
+          "issues": [],
+          "resolution": 1,
+          "aspect": 1,
+          "composition": 0.6,
+          "brand": 0.5,
+          "duration": 1,
+          "diversity": 1,
+          "total": 0.75
+        }
+      },
+      "candidateSetId": "cs_br_0001",
+      "topCandidates": [
+        {
+          "assetId": "ast_pexels0001",
+          "provider": "pexels",
+          "providerId": "123451",
+          "type": "video",
+          "path": "assets/broll/ast_pexels0001.mp4",
+          "thumbPath": "broll/thumbs/ast_pexels0001.jpg",
+          "sourceUrl": "https://www.pexels.com/video/123451/",
+          "license": "Pexels License",
+          "attribution": "Video by A. Creator",
+          "width": 1080,
+          "height": 1920,
+          "durationSec": 8.2,
+          "trimInSec": 0.5,
+          "dhash": "f0e1d2c3b4a59681",
+          "tags": [
+            "team",
+            "office"
+          ],
+          "scores": {
+            "lexical": 0.6,
+            "judgeRelevance": 8,
+            "judgeQuality": 7,
+            "issues": [],
+            "resolution": 1,
+            "aspect": 1,
+            "composition": 0.6,
+            "brand": 0.5,
+            "duration": 1,
+            "diversity": 1,
+            "total": 0.75
+          }
+        },
+        {
+          "assetId": "ast_pexels0002",
+          "provider": "pexels",
+          "providerId": "123452",
+          "type": "video",
+          "path": "assets/broll/ast_pexels0002.mp4",
+          "thumbPath": "broll/thumbs/ast_pexels0002.jpg",
+          "sourceUrl": "https://www.pexels.com/video/123452/",
+          "license": "Pexels License",
+          "attribution": "Video by A. Creator",
+          "width": 1080,
+          "height": 1920,
+          "durationSec": 8.2,
+          "trimInSec": 0.5,
+          "dhash": "f0e1d2c3b4a59682",
+          "tags": [
+            "team",
+            "office"
+          ],
+          "scores": {
+            "lexical": 0.6,
+            "judgeRelevance": 8,
+            "judgeQuality": 7,
+            "issues": [],
+            "resolution": 1,
+            "aspect": 1,
+            "composition": 0.6,
+            "brand": 0.5,
+            "duration": 1,
+            "diversity": 1,
+            "total": 0.7000000000000001
+          }
+        },
+        {
+          "assetId": "ast_pexels0003",
+          "provider": "pexels",
+          "providerId": "123453",
+          "type": "video",
+          "path": null,
+          "thumbPath": "broll/thumbs/ast_pexels0003.jpg",
+          "sourceUrl": "https://www.pexels.com/video/123453/",
+          "license": "Pexels License",
+          "attribution": "Video by A. Creator",
+          "width": 1080,
+          "height": 1920,
+          "durationSec": 8.2,
+          "trimInSec": 0.5,
+          "dhash": "f0e1d2c3b4a59683",
+          "tags": [
+            "team",
+            "office"
+          ],
+          "scores": {
+            "lexical": 0.6,
+            "judgeRelevance": 8,
+            "judgeQuality": 7,
+            "issues": [],
+            "resolution": 1,
+            "aspect": 1,
+            "composition": 0.6,
+            "brand": 0.5,
+            "duration": 1,
+            "diversity": 1,
+            "total": 0.65
+          }
+        },
+        {
+          "assetId": "ast_pexels0004",
+          "provider": "pexels",
+          "providerId": "123454",
+          "type": "video",
+          "path": "assets/broll/ast_pexels0004.mp4",
+          "thumbPath": "broll/thumbs/ast_pexels0004.jpg",
+          "sourceUrl": "https://www.pexels.com/video/123454/",
+          "license": "Pexels License",
+          "attribution": "Video by A. Creator",
+          "width": 1080,
+          "height": 1920,
+          "durationSec": 1.2,
+          "trimInSec": 0.5,
+          "dhash": "f0e1d2c3b4a59684",
+          "tags": [
+            "team",
+            "office"
+          ],
+          "scores": {
+            "lexical": 0.6,
+            "judgeRelevance": 8,
+            "judgeQuality": 7,
+            "issues": [],
+            "resolution": 1,
+            "aspect": 1,
+            "composition": 0.6,
+            "brand": 0.5,
+            "duration": 1,
+            "diversity": 1,
+            "total": 0.6000000000000001
+          }
+        }
+      ],
+      "judge": "ok",
+      "status": "ok",
+      "origin": "ai",
+      "locked": false,
+      "userModified": false
+    },
+    {
+      "id": "br_0002",
+      "ordinal": 2,
+      "anchor": {
+        "kind": "words",
+        "w0": 77,
+        "w1": 83
+      },
+      "resolved": null,
+      "sentenceId": "s8",
+      "segmentId": "seg_4",
+      "layout": "PIP",
+      "layoutParams": {
+        "corner": "tr",
+        "scale": 0.4
+      },
+      "intent": "context",
+      "queries": [
+        {
+          "text": "team celebrating",
+          "kind": "visual_noun"
+        }
+      ],
+      "reason": "visual need 0.8",
+      "reasonCode": "VISUAL_NEED",
+      "evidence": {
+        "sentenceId": "s8",
+        "wordRange": [
+          77,
+          83
+        ],
+        "quote": "We shipped the project two weeks early."
+      },
+      "chosen": {
+        "assetId": "ast_pexels0002",
+        "provider": "pexels",
+        "providerId": "123452",
+        "type": "video",
+        "path": "assets/broll/ast_pexels0002.mp4",
+        "thumbPath": "broll/thumbs/ast_pexels0002.jpg",
+        "sourceUrl": "https://www.pexels.com/video/123452/",
+        "license": "Pexels License",
+        "attribution": "Video by A. Creator",
+        "width": 1080,
+        "height": 1920,
+        "durationSec": 8.2,
+        "trimInSec": 0.5,
+        "dhash": "f0e1d2c3b4a59682",
+        "tags": [
+          "team",
+          "office"
+        ],
+        "scores": {
+          "lexical": 0.6,
+          "judgeRelevance": 8,
+          "judgeQuality": 7,
+          "issues": [],
+          "resolution": 1,
+          "aspect": 1,
+          "composition": 0.6,
+          "brand": 0.5,
+          "duration": 1,
+          "diversity": 1,
+          "total": 0.7000000000000001
+        }
+      },
+      "candidateSetId": "cs_br_0002",
+      "topCandidates": [
+        {
+          "assetId": "ast_pexels0002",
+          "provider": "pexels",
+          "providerId": "123452",
+          "type": "video",
+          "path": "assets/broll/ast_pexels0002.mp4",
+          "thumbPath": "broll/thumbs/ast_pexels0002.jpg",
+          "sourceUrl": "https://www.pexels.com/video/123452/",
+          "license": "Pexels License",
+          "attribution": "Video by A. Creator",
+          "width": 1080,
+          "height": 1920,
+          "durationSec": 8.2,
+          "trimInSec": 0.5,
+          "dhash": "f0e1d2c3b4a59682",
+          "tags": [
+            "team",
+            "office"
+          ],
+          "scores": {
+            "lexical": 0.6,
+            "judgeRelevance": 8,
+            "judgeQuality": 7,
+            "issues": [],
+            "resolution": 1,
+            "aspect": 1,
+            "composition": 0.6,
+            "brand": 0.5,
+            "duration": 1,
+            "diversity": 1,
+            "total": 0.7000000000000001
+          }
+        }
+      ],
+      "judge": "ok",
+      "status": "ok",
+      "origin": "ai",
+      "locked": false,
+      "userModified": false
+    },
+    {
+      "id": "br_0003",
+      "ordinal": 3,
+      "anchor": {
+        "kind": "words",
+        "w0": 36,
+        "w1": 44
+      },
+      "resolved": null,
+      "sentenceId": "s4",
+      "segmentId": "seg_3",
+      "layout": "FULL",
+      "layoutParams": {},
+      "intent": "illustrate",
+      "queries": [
+        {
+          "text": "email inbox",
+          "kind": "visual_noun"
+        }
+      ],
+      "reason": "visual need 0.7",
+      "chosen": null,
+      "candidateSetId": null,
+      "topCandidates": [],
+      "judge": "ok",
+      "status": "pending",
+      "origin": "ai",
+      "locked": true,
+      "userModified": false
+    }
+  ],
+  "opportunities": {
+    "broll": [
+      {
+        "id": "opp_b0001",
+        "sentenceId": "s10",
+        "wordAnchor": {
+          "w0": 98,
+          "w1": 99
+        },
+        "priority": 0.75,
+        "layoutPreference": "FULL",
+        "mediaPreference": "video",
+        "queries": [
+          "calendar app",
+          "time blocks"
+        ],
+        "reason": "visual need",
+        "candidatesPrefetched": true
+      },
+      {
+        "id": "opp_b0002",
+        "sentenceId": "s6",
+        "priority": 0.65,
+        "layoutPreference": "FULL",
+        "mediaPreference": "video",
+        "queries": [
+          "phone face down",
+          "notifications off"
+        ],
+        "reason": "visual need",
+        "candidatesPrefetched": true
+      },
+      {
+        "id": "opp_b0003",
+        "sentenceId": "s8",
+        "priority": 0.8,
+        "layoutPreference": "PIP",
+        "mediaPreference": "video",
+        "queries": [
+          "team celebrating",
+          "project board"
+        ],
+        "reason": "visual need",
+        "candidatesPrefetched": true
+      },
+      {
+        "id": "opp_b0004",
+        "sentenceId": "s5",
+        "priority": 0.6,
+        "layoutPreference": "FULL",
+        "mediaPreference": "either",
+        "queries": [
+          "wall clock",
+          "morning coffee"
+        ],
+        "reason": "visual need",
+        "candidatesPrefetched": false
+      }
+    ],
+    "effects": [
+      {
+        "id": "opp_e0001",
+        "sentenceId": "s4",
+        "w": 42,
+        "kind": "PUNCH_IN",
+        "priority": 0.6,
+        "reason": "emphasis"
+      },
+      {
+        "id": "opp_e0002",
+        "sentenceId": "s1",
+        "w": 3,
+        "kind": "PUNCH_IN",
+        "priority": 0.9,
+        "reason": "hook number"
+      }
+    ],
+    "graphics": [
+      {
+        "id": "opp_g0001",
+        "kind": "STAT",
+        "sentenceId": "s8",
+        "title": "2 weeks early",
+        "value": "2",
+        "priority": 0.5,
+        "reason": "number + unit"
+      }
+    ],
+    "sfx": [
+      {
+        "id": "opp_s0001",
+        "anchor": "broll_in",
+        "ref": "br_0001",
+        "cue": "whoosh",
+        "priority": 0.5,
+        "reason": "B-roll entry"
+      }
+    ]
+  },
+  "effects": [
+    {
+      "id": "fx_0001",
+      "anchor": {
+        "kind": "words",
+        "w0": 3,
+        "w1": 4
+      },
+      "resolved": null,
+      "enabled": true,
+      "reason": "fixture",
+      "origin": "ai",
+      "locked": false,
+      "userModified": false,
+      "kind": "PUNCH_IN",
+      "zoom": 1.12,
+      "center": "face"
+    },
+    {
+      "id": "fx_0002",
+      "anchor": {
+        "kind": "words",
+        "w0": 11,
+        "w1": 11
+      },
+      "resolved": null,
+      "enabled": true,
+      "reason": "fixture",
+      "origin": "ai",
+      "locked": false,
+      "userModified": false,
+      "kind": "PUNCH_OUT",
+      "toZoom": 1
+    },
+    {
+      "id": "fx_0003",
+      "anchor": {
+        "kind": "src",
+        "srcIn": 10,
+        "srcOut": 12
+      },
+      "resolved": null,
+      "enabled": true,
+      "reason": "fixture",
+      "origin": "heuristic",
+      "locked": false,
+      "userModified": false,
+      "kind": "JUMP_ZOOM",
+      "zoom": 1.1,
+      "offsetX": 0,
+      "lowRes": false
+    },
+    {
+      "id": "fx_0004",
+      "anchor": {
+        "kind": "words",
+        "w0": 116,
+        "w1": 116
+      },
+      "resolved": null,
+      "enabled": false,
+      "reason": "fixture",
+      "origin": "ai",
+      "locked": false,
+      "userModified": false,
+      "kind": "ZOOM_EMPHASIS",
+      "fromZoom": 1,
+      "toZoom": 1.1,
+      "durationSec": 0.6,
+      "ease": "smoothstep"
+    },
+    {
+      "id": "fx_0005",
+      "anchor": {
+        "kind": "words",
+        "w0": 92,
+        "w1": 104
+      },
+      "resolved": null,
+      "enabled": true,
+      "reason": "fixture",
+      "origin": "ai",
+      "locked": false,
+      "userModified": false,
+      "kind": "REFRAME",
+      "cx": 0.52,
+      "cy": 0.4,
+      "zoom": 1.05
+    },
+    {
+      "id": "fx_0006",
+      "anchor": {
+        "kind": "words",
+        "w0": 117,
+        "w1": 129
+      },
+      "resolved": null,
+      "enabled": false,
+      "reason": "fixture",
+      "origin": "ai",
+      "locked": false,
+      "userModified": false,
+      "kind": "FREEZE",
+      "atSrc": 39.16,
+      "holdSec": 0.5
+    },
+    {
+      "id": "fx_0007",
+      "anchor": {
+        "kind": "src",
+        "srcIn": 1,
+        "srcOut": 2
+      },
+      "resolved": null,
+      "enabled": false,
+      "reason": "fixture",
+      "origin": "ai",
+      "locked": false,
+      "userModified": false,
+      "kind": "SPEED",
+      "rate": 1.5,
+      "target": "broll"
+    },
+    {
+      "id": "fx_0008",
+      "anchor": {
+        "kind": "words",
+        "w0": 42,
+        "w1": 42
+      },
+      "resolved": null,
+      "enabled": true,
+      "reason": "fixture",
+      "origin": "ai",
+      "locked": false,
+      "userModified": false,
+      "kind": "PUNCH_IN",
+      "zoom": 1.1,
+      "center": {
+        "cx": 0.5,
+        "cy": 0.4
+      }
+    }
+  ],
+  "transitions": [
+    {
+      "id": "tr_0001",
+      "kind": "DIP_BLACK",
+      "at": {
+        "joint": "after",
+        "elementId": "seg_4"
+      },
+      "durationSec": 0.2,
+      "enabled": true,
+      "reason": "topic boundary",
+      "origin": "ai",
+      "locked": false
+    },
+    {
+      "id": "tr_0002",
+      "kind": "CUT",
+      "at": {
+        "joint": "after",
+        "elementId": "seg_1"
+      },
+      "durationSec": 0.1,
+      "enabled": true,
+      "reason": "segment joint",
+      "origin": "ai",
+      "locked": false
+    }
+  ],
+  "graphics": [
+    {
+      "id": "gfx_0001",
+      "kind": "HOOK_TITLE",
+      "anchor": {
+        "kind": "words",
+        "w0": 0,
+        "w1": 11
+      },
+      "resolved": null,
+      "text": {
+        "title": "Stop losing 3 hours a day"
+      },
+      "templateId": "hook_title",
+      "variables": {
+        "accent": "#ffd400"
+      },
+      "region": "top",
+      "renderer": "hyperframes",
+      "fallback": "ass",
+      "render": {
+        "cardHash": "c0ffee",
+        "path": "render/cards/c0ffee/out.webm",
+        "status": "ok"
+      },
+      "enabled": true,
+      "reason": "hook strength 0.82",
+      "origin": "ai",
+      "locked": false,
+      "userModified": false
+    },
+    {
+      "id": "gfx_0002",
+      "kind": "CTA",
+      "anchor": {
+        "kind": "words",
+        "w0": 117,
+        "w1": 129
+      },
+      "resolved": null,
+      "text": {
+        "title": "Follow for more",
+        "subtitle": "New tips every week"
+      },
+      "templateId": "cta",
+      "variables": {},
+      "region": "center",
+      "renderer": "ass",
+      "fallback": "ass",
+      "render": {
+        "cardHash": null,
+        "path": null,
+        "status": "fallback"
+      },
+      "enabled": true,
+      "reason": "CTA sentence",
+      "origin": "ai",
+      "locked": false,
+      "userModified": false
+    }
+  ],
+  "music": {
+    "enabled": true,
+    "track": {
+      "assetId": "ast_music001",
+      "path": "assets/music/ast_music001.mp3",
+      "provider": "pixabay_bridge",
+      "title": "Bright Morning",
+      "query": "upbeat background",
+      "mood": "upbeat",
+      "license": "Pixabay Content License",
+      "durationSec": 120
+    },
+    "candidates": [
+      {
+        "assetId": "ast_music002",
+        "path": "assets/music/ast_music002.mp3",
+        "provider": "pixabay_bridge",
+        "title": "Track 2",
+        "query": "upbeat background",
+        "mood": "upbeat",
+        "license": "Pixabay Content License",
+        "durationSec": 120
+      },
+      {
+        "assetId": "ast_music003",
+        "path": null,
+        "provider": "pixabay_bridge",
+        "title": "Track 3",
+        "query": "upbeat background",
+        "mood": "upbeat",
+        "license": "Pixabay Content License",
+        "durationSec": 120
+      }
+    ],
+    "volume": 0.1,
+    "envelope": [
+      {
+        "anchor": {
+          "kind": "words",
+          "w0": 0,
+          "w1": 0
+        },
+        "volume": 0.14
+      }
+    ],
+    "duck": {
+      "enabled": true,
+      "depthDb": -9
+    },
+    "startOffsetSec": 0,
+    "fadeInSec": 0.5,
+    "fadeOutSec": 1.5,
+    "reason": "upbeat energy 0.62",
+    "origin": "ai",
+    "locked": false
+  },
+  "sfx": [
+    {
+      "id": "sfx_0001",
+      "cue": "whoosh",
+      "path": "assets/sfx/whoosh.mp3",
+      "anchor": {
+        "elementId": "br_0001",
+        "edge": "in",
+        "offsetSec": -0.1
+      },
+      "resolved": null,
+      "volume": 0.25,
+      "license": "CC0",
+      "attribution": null,
+      "enabled": true,
+      "reason": "B-roll entry",
+      "origin": "ai",
+      "locked": false
+    },
+    {
+      "id": "sfx_0002",
+      "cue": "pop",
+      "path": "assets/sfx/pop.mp3",
+      "anchor": {
+        "elementId": "gfx_0001",
+        "edge": "in",
+        "offsetSec": 0
+      },
+      "resolved": null,
+      "volume": 0.2,
+      "license": "CC0",
+      "attribution": null,
+      "enabled": true,
+      "reason": "hook title",
+      "origin": "ai",
+      "locked": false
+    }
+  ],
+  "branding": {
+    "logo": {
+      "assetId": "ast_logo0001",
+      "path": "assets/logo.png",
+      "placement": "tr",
+      "scale": 0.12,
+      "opacity": 0.9,
+      "marginPct": 0.04,
+      "show": "always"
+    },
+    "palette": {
+      "primary": "#146eb4",
+      "accent": "#ff9900",
+      "text": "#ffffff",
+      "onAccent": "#14130e",
+      "source": "user"
+    },
+    "font": {
+      "family": "Archivo Black",
+      "ttf": "ArchivoBlack-Regular.ttf",
+      "weight": 400
+    },
+    "recolorFootage": false
+  },
+  "provenance": {
+    "director": {
+      "model": "meta/muse-spark-1.3-contributor",
+      "stage": "ve_director",
+      "promptHash": "ab12",
+      "costUsd": 0.003,
+      "fallback": false
+    },
+    "rhythm": {
+      "rulesVersion": "1",
+      "adjustments": []
+    },
+    "ops": []
+  },
+  "qa": null
+}

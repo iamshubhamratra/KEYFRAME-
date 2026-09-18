@@ -1,0 +1,110 @@
+{
+  "projects": [
+    {
+      "id": "ve_analyzedemo00001",
+      "title": "take-04",
+      "status": "PROCESSING",
+      "stage": "TRANSCRIBING",
+      "overallPct": 22,
+      "createdAt": 1789378320000,
+      "updatedAt": 1789378342000,
+      "lastOpenedAt": 1789378320000,
+      "durationSec": 52.25,
+      "outputDurationSec": null,
+      "orientation": "vertical",
+      "posterUrl": "/api/video-edits/ve_analyzedemo00001/media/poster",
+      "currentExportId": null,
+      "qaVerdict": null
+    },
+    {
+      "id": "ve_readydemo0000001",
+      "title": "take-03 · pricing story",
+      "status": "READY",
+      "stage": "QUALITY_CHECK",
+      "overallPct": 100,
+      "createdAt": 1789377120000,
+      "updatedAt": 1789377681000,
+      "lastOpenedAt": 1789377720000,
+      "durationSec": 52.25,
+      "outputDurationSec": 45.024,
+      "orientation": "vertical",
+      "posterUrl": "/api/video-edits/ve_readydemo0000001/media/poster",
+      "currentExportId": null,
+      "qaVerdict": "warn"
+    },
+    {
+      "id": "ve_exporteddemo0001",
+      "title": "Launch recap — Q3",
+      "status": "COMPLETED",
+      "stage": "QUALITY_CHECK",
+      "overallPct": 100,
+      "createdAt": 1789283520000,
+      "updatedAt": 1789287120000,
+      "lastOpenedAt": 1789287120000,
+      "durationSec": 134.2,
+      "outputDurationSec": 92.4,
+      "orientation": "horizontal",
+      "posterUrl": "/api/video-edits/ve_exporteddemo0001/media/poster",
+      "currentExportId": "rd_exp0000009",
+      "qaVerdict": "pass"
+    },
+    {
+      "id": "ve_failedsttdemo001",
+      "title": "street interview",
+      "status": "NEEDS_ATTENTION",
+      "stage": "TRANSCRIBING",
+      "overallPct": 21,
+      "createdAt": 1789197120000,
+      "updatedAt": 1789197210000,
+      "lastOpenedAt": 1789197120000,
+      "durationSec": 71.9,
+      "outputDurationSec": null,
+      "orientation": "vertical",
+      "posterUrl": "/api/video-edits/ve_failedsttdemo001/media/poster",
+      "currentExportId": null,
+      "qaVerdict": null
+    },
+    {
+      "id": "ve_cancelleddemo001",
+      "title": "take-01",
+      "status": "CANCELLED",
+      "stage": "ANALYZING_CONTENT",
+      "overallPct": 49,
+      "createdAt": 1788858720000,
+      "updatedAt": 1788858780000,
+      "lastOpenedAt": 1788858720000,
+      "durationSec": 38.5,
+      "outputDurationSec": null,
+      "orientation": "square",
+      "posterUrl": null,
+      "currentExportId": null,
+      "qaVerdict": null
+    }
+  ],
+  "nextCursor": null,
+  "_fixture": {
+    "statusReasons": {
+      "ve_failedsttdemo001": {
+        "code": "STT_FAILED",
+        "message": "We couldn't transcribe the audio.",
+        "retryable": true,
+        "stage": "TRANSCRIBING",
+        "actions": [
+          "retry",
+          "continue_without_transcript",
+          "delete"
+        ]
+      },
+      "ve_cancelleddemo001": {
+        "code": "CANCELLED",
+        "message": "Stopped by you.",
+        "retryable": true,
+        "stage": "ANALYZING_CONTENT",
+        "actions": [
+          "retry",
+          "delete"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "status": 409,
+  "body": {
+    "error": "REVISION_CONFLICT",
+    "message": "The edit changed in another tab; reload and try again.",
+    "details": {
+      "headRevision": 4
+    },
+    "retryable": false,
+    "requestId": "req_7c1f0e2a"
+  },
+  "_fixture": {
+    "otherTabOps": [
+      {
+        "type": "broll.remove",
+        "id": "br_growth03"
+      }
+    ],
+    "otherTabLabel": "Remove B-roll #3"
+  }
+}

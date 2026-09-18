@@ -1,0 +1,66 @@
+{
+  "total": 3,
+  "totalHits": 3,
+  "hits": [
+    {
+      "id": 28745,
+      "pageURL": "https://pixabay.com/videos/id-28745/",
+      "type": "film",
+      "tags": "team, office, celebration, success, business",
+      "duration": 12,
+      "videos": {
+        "large": { "url": "https://cdn.pixabay.com/video/2019/12/08/28745-378674466_large.mp4", "width": 3840, "height": 2160, "size": 25180511, "thumbnail": "https://cdn.pixabay.com/video/2019/12/08/28745-378674466_large.jpg" },
+        "medium": { "url": "https://cdn.pixabay.com/video/2019/12/08/28745-378674466_medium.mp4", "width": 2560, "height": 1440, "size": 12180511, "thumbnail": "https://cdn.pixabay.com/video/2019/12/08/28745-378674466_medium.jpg" },
+        "small": { "url": "https://cdn.pixabay.com/video/2019/12/08/28745-378674466_small.mp4", "width": 1920, "height": 1080, "size": 6180511, "thumbnail": "https://cdn.pixabay.com/video/2019/12/08/28745-378674466_small.jpg" },
+        "tiny": { "url": "https://cdn.pixabay.com/video/2019/12/08/28745-378674466_tiny.mp4", "width": 1280, "height": 720, "size": 2180511, "thumbnail": "https://cdn.pixabay.com/video/2019/12/08/28745-378674466_tiny.jpg" }
+      },
+      "views": 182044,
+      "downloads": 120833,
+      "likes": 812,
+      "comments": 41,
+      "user_id": 1281706,
+      "user": "Coverr-Free-Footage",
+      "userImageURL": "https://cdn.pixabay.com/user/2015/10/16/09-28-45-303_250x250.png"
+    },
+    {
+      "id": 41758,
+      "pageURL": "https://pixabay.com/videos/id-41758/",
+      "type": "film",
+      "tags": "smartphone, notification, phone, message, app",
+      "duration": 8,
+      "videos": {
+        "large": { "url": "https://cdn.pixabay.com/video/2020/06/12/41758-429396245_large.mp4", "width": 2160, "height": 3840, "size": 21002211, "thumbnail": "https://cdn.pixabay.com/video/2020/06/12/41758-429396245_large.jpg" },
+        "medium": { "url": "https://cdn.pixabay.com/video/2020/06/12/41758-429396245_medium.mp4", "width": 1080, "height": 1920, "size": 9002211, "thumbnail": "https://cdn.pixabay.com/video/2020/06/12/41758-429396245_medium.jpg" },
+        "small": { "url": "https://cdn.pixabay.com/video/2020/06/12/41758-429396245_small.mp4", "width": 720, "height": 1280, "size": 4002211, "thumbnail": "https://cdn.pixabay.com/video/2020/06/12/41758-429396245_small.jpg" },
+        "tiny": { "url": "https://cdn.pixabay.com/video/2020/06/12/41758-429396245_tiny.mp4", "width": 540, "height": 960, "size": 1002211, "thumbnail": "https://cdn.pixabay.com/video/2020/06/12/41758-429396245_tiny.jpg" }
+      },
+      "views": 51002,
+      "downloads": 30211,
+      "likes": 211,
+      "comments": 9,
+      "user_id": 16290301,
+      "user": "Mixkit",
+      "userImageURL": ""
+    },
+    {
+      "id": 19627,
+      "pageURL": "https://pixabay.com/videos/id-19627/",
+      "type": "film",
+      "tags": "calendar, planning, schedule, agenda",
+      "duration": 2,
+      "videos": {
+        "large": { "url": "", "width": 0, "height": 0, "size": 0, "thumbnail": "" },
+        "medium": { "url": "https://cdn.pixabay.com/video/2018/12/01/19627-304735769_medium.mp4", "width": 1920, "height": 1080, "size": 3002211, "thumbnail": "https://cdn.pixabay.com/video/2018/12/01/19627-304735769_medium.jpg" },
+        "small": { "url": "https://cdn.pixabay.com/video/2018/12/01/19627-304735769_small.mp4", "width": 1280, "height": 720, "size": 1502211, "thumbnail": "https://cdn.pixabay.com/video/2018/12/01/19627-304735769_small.jpg" },
+        "tiny": { "url": "https://cdn.pixabay.com/video/2018/12/01/19627-304735769_tiny.mp4", "width": 960, "height": 540, "size": 702211, "thumbnail": "https://cdn.pixabay.com/video/2018/12/01/19627-304735769_tiny.jpg" }
+      },
+      "views": 9022,
+      "downloads": 4122,
+      "likes": 33,
+      "comments": 2,
+      "user_id": 4880781,
+      "user": "Engin_Akyurt",
+      "userImageURL": ""
+    }
+  ]
+}

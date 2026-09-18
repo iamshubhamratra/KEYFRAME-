@@ -1,0 +1,71 @@
+{
+  "result_count": 2,
+  "page_count": 1,
+  "page_size": 20,
+  "page": 1,
+  "results": [
+    {
+      "id": "f9a31c1e-2d5b-4b8e-9c61-4a1d2b7e0c11",
+      "title": "Project board with sticky notes",
+      "indexed_on": "2021-03-18T02:11:43Z",
+      "foreign_landing_url": "https://www.flickr.com/photos/janeplanner/51022334455",
+      "url": "https://live.staticflickr.com/65535/51022334455_1a2b3c4d5e_b.jpg",
+      "creator": "Jane Planner",
+      "creator_url": "https://www.flickr.com/photos/janeplanner",
+      "license": "by",
+      "license_version": "2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0/",
+      "provider": "flickr",
+      "source": "flickr",
+      "category": "photograph",
+      "filesize": null,
+      "filetype": "jpg",
+      "tags": [
+        { "accuracy": null, "name": "kanban", "unstable__provider": "flickr" },
+        { "accuracy": null, "name": "sticky notes", "unstable__provider": "flickr" },
+        { "accuracy": null, "name": "project", "unstable__provider": "flickr" },
+        { "accuracy": 0.93, "name": "board", "unstable__provider": "clarifai" }
+      ],
+      "attribution": "\"Project board with sticky notes\" by Jane Planner is licensed under CC BY 2.0. To view a copy of this license, visit https://creativecommons.org/licenses/by/2.0/.",
+      "fields_matched": ["title", "tags.name"],
+      "mature": false,
+      "height": 2448,
+      "width": 3264,
+      "thumbnail": "https://api.openverse.org/v1/images/f9a31c1e-2d5b-4b8e-9c61-4a1d2b7e0c11/thumb/",
+      "detail_url": "https://api.openverse.org/v1/images/f9a31c1e-2d5b-4b8e-9c61-4a1d2b7e0c11/",
+      "related_url": "https://api.openverse.org/v1/images/f9a31c1e-2d5b-4b8e-9c61-4a1d2b7e0c11/related/",
+      "unstable__sensitivity": []
+    },
+    {
+      "id": "0b7d5e22-8c44-4f0a-a1f3-93b2d4e6c702",
+      "title": "Calendar",
+      "indexed_on": "2020-11-02T08:41:12Z",
+      "foreign_landing_url": "https://www.flickr.com/photos/somebody/49011223344",
+      "url": "https://live.staticflickr.com/65535/49011223344_9f8e7d6c5b_c.jpg",
+      "creator": "somebody",
+      "creator_url": "https://www.flickr.com/photos/somebody",
+      "license": "cc0",
+      "license_version": "1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "provider": "flickr",
+      "source": "flickr",
+      "category": "photograph",
+      "filesize": null,
+      "filetype": "jpg",
+      "tags": [
+        { "accuracy": null, "name": "calendar", "unstable__provider": "flickr" },
+        { "accuracy": null, "name": "date", "unstable__provider": "flickr" }
+      ],
+      "attribution": "\"Calendar\" by somebody is marked with CC0 1.0. To view the terms, visit https://creativecommons.org/publicdomain/zero/1.0/.",
+      "fields_matched": ["title"],
+      "mature": false,
+      "height": 1536,
+      "width": 2048,
+      "thumbnail": "https://api.openverse.org/v1/images/0b7d5e22-8c44-4f0a-a1f3-93b2d4e6c702/thumb/",
+      "detail_url": "https://api.openverse.org/v1/images/0b7d5e22-8c44-4f0a-a1f3-93b2d4e6c702/",
+      "related_url": "https://api.openverse.org/v1/images/0b7d5e22-8c44-4f0a-a1f3-93b2d4e6c702/related/",
+      "unstable__sensitivity": []
+    }
+  ],
+  "warnings": []
+}

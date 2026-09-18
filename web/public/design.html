@@ -154,7 +154,7 @@
         <div data-demo-grid style="display: grid; grid-template-columns: 1.15fr .85fr; gap: 0;">
           <div style="padding: 24px; border-right: 1px solid rgba(242,237,226,.08); min-width: 0;">
             <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
-              <sc-for list="{{ demoChips }}" as="c" hint-placeholder-count="3">
+              <sc-for list="{{ demoChips }}" as="c" hint-placeholder-count="8">
                 <span onClick="{{ c.pick }}" style="cursor: pointer; font-family: 'IBM Plex Mono'; font-size: 10px; letter-spacing: .08em; padding: 7px 12px; border-radius: 999px; border: 1px solid {{ c.bord }}; color: {{ c.col }}; background: {{ c.bg }}; transition: all .3s;">{{ c.label }}</span>
               </sc-for>
             </div>
@@ -199,7 +199,7 @@
               <span data-demo-tc style="color: var(--mag); letter-spacing: .1em;">00:00 / 00:10</span>
             </div>
             <div data-demo-pane style="position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 10px; overflow: hidden; background: #000; box-shadow: 0 0 0 1px rgba(242,237,226,.1), 0 20px 50px rgba(0,0,0,.45);">
-              <sc-for list="{{ demoClips }}" as="d" hint-placeholder-count="4">
+              <sc-for list="{{ demoClips }}" as="d" hint-placeholder-count="8">
                 <div data-demo-frame="{{ d.i }}" style="position: absolute; inset: 0; opacity: 0; transition: opacity .6s ease;">
                   <div style="position: absolute; inset: -40px; background-image: url({{ d.poster }}); background-size: cover; background-position: center; filter: blur(26px) brightness(.45);"></div>
                   <video data-dsrc="{{ d.src }}" poster="{{ d.poster }}" preload="none" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: {{ d.fit }}; background: transparent;"></video>
@@ -567,22 +567,39 @@ class Component extends DCLogic {
   // fills, then the real clip plays. Each clip ships in /landing (see
   // web/scripts/build-landing-media.mjs) because this doc is served by the
   // frontend host and cannot reach the backend's /frames or /videos.
-  // The first three are films KEYFRAME really rendered, shown with the prompt
-  // that was typed; the last is a template preview and says so. `dur` is the
-  // clip's length (the take rolls to the next prompt when it ends).
+  // Every take here is a TEMPLATE preview, shown with a prompt of the kind that
+  // template is built to answer — so the monitor is a tour of the looks, not a
+  // reel of films rendered for clients. `source` says so on every one.
+  // `dur` is the clip's length (the take rolls to the next prompt when it ends).
+  // `color` is the pack's own accent, lifted where the raw value was too dark to
+  // read as chip text on this scene's near-black ground.
+  // These cuts are longer than the SC 05 wall's loops and carry each pack's
+  // closing lockup, because the monitor plays one full take rather than a tile.
   demoPrompts = [
-    { label: 'PRODUCT LAUNCH', color: '#e832a8', pack: 'brightlife', packName: 'Bright Life', dur: 14.3,
-      text: 'Keyframe turns a single idea into a finished narrated video: AI script generation, asset intelligence, automated voiceover and professional motion design.',
-      src: '/landing/demo-keyframe-launch.mp4', poster: '/landing/demo-keyframe-launch.jpg', source: '▶ RENDERED BY KEYFRAME FROM THIS PROMPT' },
-    { label: 'SKYDIVE REEL · 9:16', color: '#23c8e0', pack: 'sky-ladder', packName: 'Sky Ladder', dur: 10.4, portrait: true,
-      text: 'Sky Ladder is a skydiving school: tandem jumps from 13,000 feet, sixty seconds of freefall, canopy by 4,000, and a three-check safety ritual before every door opening.',
-      src: '/landing/demo-sky-ladder.mp4', poster: '/landing/demo-sky-ladder.jpg', source: '▶ RENDERED BY KEYFRAME FROM THIS PROMPT · 9:16' },
-    { label: 'FINANCE EXPLAINER', color: '#ffb03a', pack: 'cartesian', packName: 'Cartesian', dur: 7.3,
-      text: 'A short explainer about how compound interest quietly builds wealth over decades, for people in their twenties who think investing is something to start later.',
-      src: '/landing/demo-compound-interest.mp4', poster: '/landing/demo-compound-interest.jpg', source: '▶ RENDERED BY KEYFRAME FROM THIS PROMPT' },
-    { label: 'CREATOR PLATFORM', color: '#b9f24a', pack: 'genesis', packName: 'Genesis', dur: 14.0,
-      text: 'A cinematic launch film for Genesis, a platform for makers: a glowing night skyline, everything connecting, glass feature cards.',
-      src: '/landing/demo-genesis.mp4', poster: '/landing/demo-genesis.jpg', source: '▶ TEMPLATE PREVIEW — GENESIS' },
+    { label: 'POP LAUNCH', color: '#ffd234', pack: 'hype-wave', packName: 'Hype Wave', dur: 14.2,
+      text: 'A loud launch reel for an app that turns boring product pages into something people actually stop scrolling for. Big type, primary colours, zero beige.',
+      src: '/landing/demo-hype-wave.mp4', poster: '/landing/demo-hype-wave.jpg', source: '▶ TEMPLATE PREVIEW — HYPE WAVE' },
+    { label: 'STORYBOOK BRAND', color: '#e8705f', pack: 'bloom-fable', packName: 'Bloom Fable', dur: 11.9,
+      text: 'A gentle brand film for a family seed company — hand-drawn meadows, a paper sun, and the promise that every packet was grown with heart.',
+      src: '/landing/demo-bloom-fable.mp4', poster: '/landing/demo-bloom-fable.jpg', source: '▶ TEMPLATE PREVIEW — BLOOM FABLE' },
+    { label: 'PRODUCT LAUNCH', color: '#ff6a3c', pack: 'momentum', packName: 'Momentum', dur: 13.3,
+      text: 'A launch film for a developer platform that ships in one command. Mission-control energy: heavy type, a running timecode, proof instead of promises.',
+      src: '/landing/demo-momentum.mp4', poster: '/landing/demo-momentum.jpg', source: '▶ TEMPLATE PREVIEW — MOMENTUM' },
+    { label: 'DESIGN STUDIO', color: '#5f7bf0', pack: 'bauhaus-riot', packName: 'Bauhaus Riot', dur: 12.4,
+      text: 'A studio reel for a print shop that still sets posters by hand — primary shapes, sticker stamps and curtain wipes. A poster that came alive.',
+      src: '/landing/demo-bauhaus-riot.mp4', poster: '/landing/demo-bauhaus-riot.jpg', source: '▶ TEMPLATE PREVIEW — BAUHAUS RIOT' },
+    { label: 'HERITAGE RAILWAY', color: '#6fae9c', pack: 'branch-line', packName: 'Branch Line', dur: 12.8,
+      text: 'A long-form film for a volunteer-run steam railway: the 10:42 runs daily, preserved not restored, coal by the bucket and tea at the signal box.',
+      src: '/landing/demo-branch-line.mp4', poster: '/landing/demo-branch-line.jpg', source: '▶ TEMPLATE PREVIEW — BRANCH LINE · LONG FORM' },
+    { label: 'ENGINEERING', color: '#8fd8ff', pack: 'blueprint-atelier', packName: 'Blueprint Atelier', dur: 13.0,
+      text: 'An explainer for an engineering consultancy — draw the whole argument as a technical drawing: minor grids, dimension lines, plotted curves, built to spec.',
+      src: '/landing/demo-blueprint-atelier.mp4', poster: '/landing/demo-blueprint-atelier.jpg', source: '▶ TEMPLATE PREVIEW — BLUEPRINT ATELIER' },
+    { label: 'STOP-MOTION', color: '#b583ba', pack: 'claymotion', packName: 'Claymotion', dur: 14.1,
+      text: 'A handmade product film for a ceramics studio, animated at eight frames a second in clay — squash, stretch, real shadows, fingerprints and all.',
+      src: '/landing/demo-claymotion.mp4', poster: '/landing/demo-claymotion.jpg', source: '▶ TEMPLATE PREVIEW — CLAYMOTION' },
+    { label: 'DOG CLUB', color: '#e0762c', pack: 'fetch-club', packName: 'Fetch Club', dur: 15.9,
+      text: 'A long-form film for an off-leash dog club: zoomies at maximum, the ball always comes back, and a membership that runs September through December.',
+      src: '/landing/demo-fetch-club.mp4', poster: '/landing/demo-fetch-club.jpg', source: '▶ TEMPLATE PREVIEW — FETCH CLUB · LONG FORM' },
   ];
 
   // SC 05 wall — real template clips. `pack` is the server slug a click hands to

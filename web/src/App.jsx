@@ -13,14 +13,21 @@ import AdminTemplateDetail from "./screens/AdminTemplateDetail.jsx";
 import Auth from "./screens/Auth.jsx";
 import { createProject } from "./api.js";
 import { useAuth } from "./useAuth.js";
+import AiEditUpload from "./screens/aiEdit/AiEditUpload.jsx";
+import AiEditSession from "./screens/aiEdit/AiEditSession.jsx";
+import AiEditList from "./screens/aiEdit/AiEditList.jsx";
+import ModeSwitch from "./components/ModeSwitch.jsx";
+import AiEditNavChip from "./components/AiEditNavChip.jsx";
+import { readDeepLink } from "./deepLink.js";
 
 // Landing is the v2 design doc ("the film set") running on its own runtime in
 // an iframe. The STUDIO (create → understanding → script → theater → premiere)
 // requires login; Templates + Gallery stay public, themed to the same v2 system.
 export default function App() {
   const { user, loading, logout } = useAuth();
-  const [view, setView] = useState("landing");
-  const [projectId, setProjectId] = useState(null);
+  // `?edit=<id>` / `?edits` deep links (AI Video Edit) land straight on that screen.
+  const [view, setView] = useState(() => readDeepLink()?.view ?? "landing");
+  const [projectId, setProjectId] = useState(() => readDeepLink()?.id ?? null);
   const [prefill, setPrefill] = useState(null);
   const [authMode, setAuthMode] = useState("login");
   const [starting, setStarting] = useState(false);
@@ -79,11 +86,12 @@ export default function App() {
       if (d.type === "kf-create") startGeneration({ prompt: d.prompt, url: d.url });
       else if (d.type === "kf-gallery") go("gallery");
       else if (d.type === "kf-templates") go("templates");
+      else if (d.type === "kf-ai-edit") requireAuth(() => go("aiUpload"), "signup");
       else if (d.type === "kf-use-style" && typeof d.pack === "string" && /^[a-z0-9-]{1,40}$/.test(d.pack)) chooseStyle(d.pack);
     };
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
-  }, [startGeneration, go, chooseStyle]);
+  }, [startGeneration, go, chooseStyle, requireAuth]);
 
   // ---- Landing: the v2 design doc, full-screen ----
   if (view === "landing") {
@@ -108,6 +116,9 @@ export default function App() {
   // everyone and simply refuse to render for anyone who isn't an admin — only
   // the NAV entry below is conditional.
   const adminViews = ["adminTemplates", "adminGenerate", "adminTemplate"];
+  // AI Video Edit (upload raw footage → edited video). Its screens gate themselves through
+  // onNeedAuth; the server's owner checks are the actual boundary.
+  const aiViews = ["aiUpload", "aiEdit", "aiEdits"];
   const screens = {
     auth: <Auth initialMode={authMode} onAuthed={onAuthed} onBack={() => go("landing")} />,
     create: <CreateScreen onCreated={(id, opts) => { setAutopilot(!!opts?.autopilot); go("understanding", id); }} prefill={prefill} />,
@@ -122,9 +133,12 @@ export default function App() {
     adminTemplates: <AdminTemplates onOpen={(id) => go("adminTemplate", id)} onNew={() => go("adminGenerate")} />,
     adminGenerate: <AdminGenerate onOpen={(id) => go("adminTemplate", id)} onCancel={() => go("adminTemplates")} />,
     adminTemplate: <AdminTemplateDetail templateId={projectId} onBack={() => go("adminTemplates")} />,
+    aiUpload: <AiEditUpload onStarted={(id) => go("aiEdit", id)} onOpenEdit={(id) => go("aiEdit", id)} onOpenList={() => go("aiEdits")} onNeedAuth={(retry) => requireAuth(retry, "login")} />,
+    aiEdit: <AiEditSession key={projectId} editId={projectId} onList={() => go("aiEdits")} onNew={() => go("aiUpload")} onNeedAuth={(retry) => requireAuth(retry, "login")} />,
+    aiEdits: <AiEditList onOpen={(id) => go("aiEdit", id)} onNew={() => go("aiUpload")} onNeedAuth={(retry) => requireAuth(retry, "login")} />,
   };
 
-  const darkPage = view === "gallery" || view === "premiere";
+  const darkPage = view === "gallery" || view === "premiere" || view === "aiEdit";
 
   return (
     <div className="grain min-h-full flex flex-col">
@@ -146,6 +160,7 @@ export default function App() {
         <div className="flex items-center" style={{ gap: 10, pointerEvents: "auto" }}>
           <button className={`btn-chip ${view === "templates" ? "is-active" : ""}`} onClick={() => go("templates")}>Templates</button>
           <button className={`btn-chip ${view === "gallery" ? "is-active" : ""}`} onClick={() => go("gallery")}>Gallery</button>
+          <AiEditNavChip active={aiViews.includes(view)} onClick={() => requireAuth(() => go("aiUpload"), "signup")} />
           {studioViews.includes(view) && <button className="btn-chip is-active">Studio</button>}
           {/* Admin-only entry. Hiding it is a courtesy, not a control — the
               template routes are behind requireAdmin server-side. */}
@@ -180,6 +195,10 @@ export default function App() {
       </NavBar>
 
       <main className="flex-1 relative" style={{ paddingTop: 90 }}>
+        {(view === "create" || view === "aiUpload") && (
+          <ModeSwitch mode={view === "create" ? "TEMPLATE_GENERATION" : "AI_VIDEO_EDIT"}
+            onSelect={(m) => (m === "AI_VIDEO_EDIT" ? requireAuth(() => go("aiUpload"), "signup") : enterStudio("create"))} />
+        )}
         <AnimatePresence mode="wait">
           <motion.div key={view} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }} className="h-full">
             {screens[view]}

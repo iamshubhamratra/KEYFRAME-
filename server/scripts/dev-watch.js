@@ -65,13 +65,28 @@ function activeJobCount() {
   }
 }
 
+// AI Video Edit projects live in their own index (src/video_edit/store.js); an analysis or
+// render in flight is just as costly to kill as a template job.
+const EDITS_INDEX_FILE = path.join(ROOT, "video-edits.json");
+const EDIT_ACTIVE = new Set(["QUEUED", "PROCESSING", "RENDERING"]);
+
+function activeEditCount() {
+  try {
+    const doc = JSON.parse(fs.readFileSync(EDITS_INDEX_FILE, "utf8"));
+    const projects = doc && typeof doc.projects === "object" && doc.projects ? Object.values(doc.projects) : [];
+    return projects.filter((p) => p && EDIT_ACTIVE.has(p.status)).length;
+  } catch {
+    return 0; // no edits yet / unreadable — don't block the restart
+  }
+}
+
 let deferTimer = null;
 let deferSince = 0;
 let pendingReason = null;
 
 function restart(reason) {
   pendingReason = reason;
-  const active = activeJobCount();
+  const active = activeJobCount() + activeEditCount();
   if (active > 0 && Date.now() - (deferSince || Date.now()) < MAX_DEFER_MS) {
     if (!deferSince) {
       deferSince = Date.now();
