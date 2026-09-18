@@ -1,0 +1,61 @@
+{
+  "name": "field-note",
+  "vibe": "academic / research — a riverbank at survey time. Bree Serif over Karla; a luminance-ladder palette on #e7edec. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#e7edec",
+    "ink": "#131816",
+    "accent": "#2f7a72",
+    "a2": "#c9903a"
+  },
+  "fonts": [
+    "Bree Serif",
+    "Karla",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#e7edec",
+    "ink": "#131816"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#2f7a72",
+      "#c9903a"
+    ],
+    "extras": [
+      "#68746f"
+    ],
+    "emphasisCss": "color:#2f7a72;"
+  },
+  "assets": {
+    "photoMod": "a riverbank at survey time editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "academic",
+      "research"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Bree Serif",
+    "body": "Karla",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-field-note",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

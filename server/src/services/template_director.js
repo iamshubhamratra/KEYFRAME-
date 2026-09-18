@@ -41,7 +41,7 @@ const SYSTEM = fs.readFileSync(
 );
 
 function tdCfg() {
-  return config.templateDirector || { enabled: true, model: "google/gemini-3.1-flash-lite" };
+  return config.templateDirector || { enabled: true, model: config.llm.modelFast || config.llm.model };
 }
 
 const clip = (v, n) => String(v == null ? "" : v).replace(/\s+/g, " ").trim().slice(0, n);

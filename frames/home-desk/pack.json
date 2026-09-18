@@ -1,0 +1,61 @@
+{
+  "name": "home-desk",
+  "vibe": "personal blog / diary — the corner you work in. Neucha over Cabin; a luminance-ladder palette on #efeadf. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#efeadf",
+    "ink": "#1a1813",
+    "accent": "#2f7d78",
+    "a2": "#c9743c"
+  },
+  "fonts": [
+    "Neucha",
+    "Cabin",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#efeadf",
+    "ink": "#1a1813"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#2f7d78",
+      "#c9743c"
+    ],
+    "extras": [
+      "#6f6a5f"
+    ],
+    "emphasisCss": "color:#2f7d78;"
+  },
+  "assets": {
+    "photoMod": "the corner you work in editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "personal blog",
+      "diary"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Neucha",
+    "body": "Cabin",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-home-desk",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

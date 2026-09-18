@@ -1,0 +1,276 @@
+{
+ "slug": "blunt-object",
+ "engine": "filmkit",
+ "orientation": "vertical",
+ "viewport": {
+  "width": 1080,
+  "height": 1920
+ },
+ "runtimeMs": 129400,
+ "playback": {
+  "mode": "loop"
+ },
+ "tweaksAtCapture": {
+  "brand": "Blunt Object",
+  "bg": "#e9e3d6",
+  "accent": "#f2600c",
+  "accent2": "#2f5f7a",
+  "motion": "Bouncy",
+  "typeScale": "Default"
+ },
+ "beats": [
+  {
+   "index": 0,
+   "beat": "Hook",
+   "startMs": 0,
+   "durationMs": 7400,
+   "fields": {
+    "kicker": "THE WORK",
+    "title": "The work was|good. Nobody saw it.",
+    "sub": "Eleven projects on a site that loads slowly and gets opened once a quarter."
+   }
+  },
+  {
+   "index": 1,
+   "beat": "Body",
+   "startMs": 7400,
+   "durationMs": 8400,
+   "fields": {
+    "kicker": "THE PROBLEM",
+    "body": "A portfolio is not a gallery. It is a pitch that has to survive being scrolled at speed, on a phone, by someone who has already seen forty others.",
+    "note": "11 projects · 2018–2026"
+   }
+  },
+  {
+   "index": 2,
+   "beat": "Statement",
+   "startMs": 15800,
+   "durationMs": 5000,
+   "fields": {
+    "title": "Show the thinking.|Not the grid.",
+    "sub": "Anyone can post images."
+   }
+  },
+  {
+   "index": 3,
+   "beat": "Typing",
+   "startMs": 20800,
+   "durationMs": 6000,
+   "fields": {
+    "title": "One line|per project.",
+    "prompt": "CAPTION",
+    "text": "Why it exists.",
+    "stamp": "KEPT"
+   }
+  },
+  {
+   "index": 4,
+   "beat": "Body",
+   "startMs": 26800,
+   "durationMs": 9000,
+   "fields": {
+    "kicker": "WHAT IT DOES",
+    "body": "Keyframe reads the case study, keeps the lines that carry the decision, and gives each one the time a viewer needs to follow it."
+   }
+  },
+  {
+   "index": 5,
+   "beat": "Quote",
+   "startMs": 35800,
+   "durationMs": 7000,
+   "fields": {
+    "quote": "They hire you|for the reason|behind the choice,|not the choice.",
+    "attrib": "Design director"
+   }
+  },
+  {
+   "index": 6,
+   "beat": "Statement",
+   "startMs": 42800,
+   "durationMs": 5000,
+   "fields": {
+    "title": "02|Cut nine of eleven.",
+    "sub": "The two that remain get the room."
+   }
+  },
+  {
+   "index": 7,
+   "beat": "Stats",
+   "startMs": 47800,
+   "durationMs": 8000,
+   "fields": {
+    "title": "The site,|measured.",
+    "stats": [
+     {
+      "to": 11,
+      "suffix": "",
+      "label": "projects on the old site"
+     },
+     {
+      "to": 18,
+      "suffix": "",
+      "label": "beats in this cut, none rushed"
+     },
+     {
+      "to": 9,
+      "suffix": "s",
+      "label": "median time before a bounce"
+     }
+    ]
+   }
+  },
+  {
+   "index": 8,
+   "beat": "Body",
+   "startMs": 55800,
+   "durationMs": 9400,
+   "fields": {
+    "kicker": "THE RULE",
+    "body": "No beat runs shorter than its reading time. The check fails the build, so a caption never leaves the screen before the viewer has read it."
+   }
+  },
+  {
+   "index": 9,
+   "beat": "Scroll",
+   "startMs": 65200,
+   "durationMs": 9000,
+   "fields": {
+    "title": "What a case|study carries.",
+    "items": [
+     {
+      "t": "The brief, honestly",
+      "v": "01"
+     },
+     {
+      "t": "The constraint",
+      "v": "02"
+     },
+     {
+      "t": "What you tried",
+      "v": "03"
+     },
+     {
+      "t": "What you cut",
+      "v": "04"
+     },
+     {
+      "t": "The result",
+      "v": "05"
+     },
+     {
+      "t": "What you would change",
+      "v": "06"
+     }
+    ]
+   }
+  },
+  {
+   "index": 10,
+   "beat": "Feature",
+   "startMs": 74200,
+   "durationMs": 8000,
+   "fields": {
+    "title": "An image,|when there is one.",
+    "chips": [
+     "Optional",
+     "Becomes type",
+     "No empty frames"
+    ],
+    "image": "",
+    "fallbackText": "When no image is supplied the beat runs as a caption, and takes the nearest line the case study has not used."
+   },
+   "mediaSlots": [
+    {
+     "id": "image",
+     "bound": null,
+     "onEmpty": "swap per look.feature.swap",
+     "fallbackText": "When no image is supplied the beat runs as a caption, and takes the nearest line the case study has not used."
+    }
+   ]
+  },
+  {
+   "index": 11,
+   "beat": "Quote",
+   "startMs": 82200,
+   "durationMs": 6500,
+   "fields": {
+    "quote": "A grid of|thumbnails is|a filing system,|not a portfolio.",
+    "attrib": "Studio note"
+   }
+  },
+  {
+   "index": 12,
+   "beat": "Ring",
+   "startMs": 88700,
+   "durationMs": 6000,
+   "fields": {
+    "title": "Watch to the end.",
+    "to": 78,
+    "label": "finish the reel",
+    "sub": "Measured against the same work as a scrolling grid."
+   }
+  },
+  {
+   "index": 13,
+   "beat": "Body",
+   "startMs": 94700,
+   "durationMs": 8200,
+   "fields": {
+    "kicker": "TYPE",
+    "body": "One expressive face for the titles, one plain one for the captions. Measure near sixty characters, nothing shrunk to fit."
+   }
+  },
+  {
+   "index": 14,
+   "beat": "Montage",
+   "startMs": 102900,
+   "durationMs": 6500,
+   "fields": {
+    "title": "Grid against|reel.",
+    "tiles": [
+     "Eleven thumbnails skimmed",
+     "Two projects they finish"
+    ]
+   }
+  },
+  {
+   "index": 15,
+   "beat": "Statement",
+   "startMs": 109400,
+   "durationMs": 5500,
+   "fields": {
+    "title": "Send the reel.|Keep the site.",
+    "sub": "One is the pitch, the other is the archive."
+   }
+  },
+  {
+   "index": 16,
+   "beat": "Body",
+   "startMs": 114900,
+   "durationMs": 8000,
+   "fields": {
+    "kicker": "TAKEAWAY",
+    "body": "Give the reasoning the time it needs on screen and the work lands. That is the whole method."
+   }
+  },
+  {
+   "index": 17,
+   "beat": "CTA",
+   "startMs": 122900,
+   "durationMs": 6500,
+   "fields": {
+    "title": "Put the work|in motion.",
+    "cta": "See the reel",
+    "url": "keyframe.ai/work",
+    "logo": ""
+   },
+   "mediaSlots": [
+    {
+     "id": "logo",
+     "bound": null,
+     "onEmpty": "pack icon mark"
+    }
+   ]
+  }
+ ]
+}

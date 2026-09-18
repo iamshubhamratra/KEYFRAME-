@@ -34,12 +34,12 @@ const MATRIX = [
   { pack: "cadence-premium",   orientation: "vertical",   prompt: "A calm, premium promo for Linear — issue tracking built for software teams that ship." },
   { pack: "teampulse",         orientation: "vertical",   prompt: "An energetic promo for a team status app that replaces the daily standup meeting." },
   { pack: "alchemy",           orientation: "vertical",   prompt: "A mystical, dark promo for a note-taking app that turns scattered thoughts into structure." },
-  { pack: "nimbus-saas",       orientation: "horizontal", prompt: "A bright, clean promo for a cloud storage service for design teams." },
+  { pack: "bluesite",          orientation: "horizontal", prompt: "A bright, clean promo for a cloud storage service for design teams." },
   { pack: "blueprint-atelier", orientation: "horizontal", prompt: "A technical promo for an API monitoring tool that shows latency across regions." },
   { pack: "sketchnote",        orientation: "horizontal", prompt: "A hand-drawn promo for an online course platform for illustrators." },
-  { pack: "terminal-green",    orientation: "horizontal", prompt: "A retro-terminal promo for a command-line deployment tool for developers." },
+  { pack: "hacker-terminal",   orientation: "horizontal", prompt: "A retro-terminal promo for a command-line deployment tool for developers." },
   { pack: "bold-poster",       orientation: "vertical",   prompt: "A loud, poster-style promo for a music festival ticketing app." },
-  { pack: "midnight-glass",    orientation: "vertical",   prompt: "A sleek, dark promo for a personal finance app that tracks subscriptions." },
+  { pack: "flagship",          orientation: "vertical",   prompt: "A sleek, dark promo for a personal finance app that tracks subscriptions." },
 ];
 
 const DURATION = Number(process.env.QA_DURATION) || 30;

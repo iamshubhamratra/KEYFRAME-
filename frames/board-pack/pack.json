@@ -1,0 +1,61 @@
+{
+  "name": "board-pack",
+  "vibe": "business / analyst — the board room with the model out. Schibsted Grotesk over Red Hat Text; a luminance-ladder palette on #101726. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#101726",
+    "ink": "#f4f6fa",
+    "accent": "#d8b45a",
+    "a2": "#5a9bd8"
+  },
+  "fonts": [
+    "Schibsted Grotesk",
+    "Red Hat Text",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#101726",
+    "ink": "#f4f6fa"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#d8b45a",
+      "#5a9bd8"
+    ],
+    "extras": [
+      "#93a0b4"
+    ],
+    "emphasisCss": "color:#d8b45a;"
+  },
+  "assets": {
+    "photoMod": "the board room with the model out editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "business",
+      "analyst"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Schibsted Grotesk",
+    "body": "Red Hat Text",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-board-pack",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

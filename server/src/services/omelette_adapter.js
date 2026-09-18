@@ -56,6 +56,7 @@
 //      duration) — without it the renderer reports "Composition has zero
 //      duration" even though the film is healthy
 
+const pacing = require("./pacing");
 const fs = require("node:fs");
 const path = require("node:path");
 const config = require("../config");
@@ -820,7 +821,7 @@ const HIDDEN_FALLBACK_PROPS = {
   FetchVertical:    { kicker: " " }, // "A GOOD BOY STORY" — ditto
 };
 
-function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent, tplName, filmTitle }) {
+function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent, tplName, filmTitle, paceConfig = null }) {
   const { intro, outro, middle } = classifySlots(tplScenes);
   // Uppercase the COPY rather than relying on a CSS rule. These films are React
   // components that set type inline on their own elements, so a stylesheet hook
@@ -1280,6 +1281,39 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
     // unshown rather than displacing the beat's picture.
     const wantsMarks = marksFor(sc).length > 0;
     const marksBonus = (t) => (wantsMarks && MEDIA_WALL.test(String(t.name || "")) ? 1000 : 0);
+
+    // …AND A BEAT THAT HAS SOMETHING TO SAY WANTS THE SHAPE THAT CAN SAY IT.
+    //
+    // `roomFor` above scores the TEMPLATE's capacity and nothing else, so a scene
+    // carrying a support line and three labels competed on exactly the same terms
+    // as a scene carrying a bare headline — and the roomiest castable shape wins
+    // either way, even when its slots are a headline, an eyebrow and a picture.
+    // Measured on a very-fast probe of the `alchemy` pack: the content director
+    // put a support line and three labels on the beat, the router cast a
+    // headline+eyebrow+media shape, and `asSlot` below dropped every one of them,
+    // because it only maps a slot the chosen shape actually declares. The frame
+    // rendered identically to the same beat with no copy on it at all.
+    //
+    // So the scene's OWN copy gets a vote. This counts, per copy channel the
+    // scene really carries, whether this shape has anywhere to put it — reading
+    // SLOT NAMES, exactly as asSlot does, so it stays true for every pack and
+    // every compiled template without naming any of them.
+    //
+    // Weighted well under marksBonus and well over roomFor's spread, so it
+    // reorders shapes the template was already willing to cast (all candidates
+    // here have passed canFill, the pace rule and the anti-twin guard) without
+    // overriding a beat that has product marks to show.
+    const LABEL_SLOTS = ["chips", "items", "tags", "rows", "steps", "points", "list", "tools", "notes", "cards", "blocks", "cols", "combos", "results", "states"];
+    const SUPPORT_SLOTS = ["body", "sub", "subtext", "lead", "quote", "caption"];
+    const EYEBROW_SLOTS = ["eyebrow", "kicker", "stamp"];
+    const copyBonus = (t) => {
+      const has = (k) => Object.prototype.hasOwnProperty.call(t, k);
+      let n = 0;
+      if (bullets(sc, 2).length >= 2 && LABEL_SLOTS.some(has)) n += 2;
+      if (String(sc.subtext || sc.body || "").trim() && SUPPORT_SLOTS.some(has)) n += 1;
+      if (String(sc.kicker || sc.eyebrow || "").trim() && EYEBROW_SLOTS.some(has)) n += 1;
+      return n * 6;
+    };
     for (let guard = 0; guard <= middle.length + 1; guard++) {
       for (const [wantPace, noTwin, soft] of [[true, true, false], [false, true, false], [false, true, true], [false, false, false], [false, false, true]]) {
         let pick = -1, pickScore = -1;
@@ -1289,7 +1323,7 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
           if (!canFill(t, sc, soft)) continue;
           if (wantPace && !pacesOk(t)) continue;
           if (noTwin && lastName && t.name === lastName) continue;
-          const score = roomFor(t) + marksBonus(t);
+          const score = roomFor(t) + marksBonus(t) + copyBonus(t);
           if (score > pickScore) { pickScore = score; pick = n; }
         }
         if (pick >= 0) {
@@ -1335,9 +1369,35 @@ function buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land, accent,
   //
   // Landscape keeps the authored pace: the brief was to speed up the vertical
   // templates, and a wider frame carries a held shot far better than a phone does.
-  const beatTarget = land
+  const nativeTarget = land
     ? Math.max(1.6, nativePace)
     : Math.min(3, Math.max(1.6, nativePace));
+  //
+  // PACE scales the template's OWN target rather than replacing it, so a pack
+  // keeps its character and simply cuts more or less often within it.
+  //
+  // Two bounds, and they are not symmetric:
+  //   FLOOR 1.6s — the flicker threshold. Absolute; no mode may cross it.
+  //   CEILING — what a SLOWER mode is allowed to stretch to. It is the authored
+  //     pace divided by the mode's own multiplier, which gives Relaxed the same
+  //     25% of headroom it asks for everywhere else, and is exactly the authored
+  //     pace for normal and faster modes.
+  //
+  // The ceiling used to be a flat max(nativeTarget, nativePace), and that made
+  // RELAXED A NO-OP ON EVERY LANDSCAPE FILM: in landscape nativeTarget IS
+  // max(1.6, nativePace), so the ceiling always equalled the target and dividing
+  // by 0.8 was clamped straight back to it. A user picking Relaxed on a
+  // landscape film got a byte-identical cut — the feature silently doing
+  // nothing, which is worse than not offering the mode.
+  //
+  // The headroom is bounded rather than open: 1.25x the authored pace lets a
+  // held frame breathe without turning a pack into something it never was.
+  //
+  // At normal (multiplier 1) this reduces to `nativeTarget` exactly.
+  const beatCeiling = Math.max(nativeTarget, nativePace) / Math.min(1, paceConfig ? paceConfig.multiplier : 1);
+  const beatTarget = paceConfig
+    ? Math.max(1.6, Math.min(nativeTarget / paceConfig.multiplier, beatCeiling))
+    : nativeTarget;
   // What the NEXT scene will headline — used to stop a beat pre-empting it.
   const nextHeadOf = (sc) => {
     const idx = scenes.indexOf(sc);
@@ -2753,7 +2813,14 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
     const ds = tplScenes.map((s) => Number(s && s.dur)).filter((n) => n > 0).sort((a, b) => a - b);
     return ds.length ? ds[Math.floor(ds.length / 2)] : 7.5;      // median beat of the film itself
   })();
-  const idealBeats = Math.max(2, Math.round(requestedD / authoredPace));
+  // PACE scales the CUT RATE, which is exactly what authoredPace expresses. A
+  // faster mode wants shorter beats, so it wants more of them across the same
+  // runtime. The floor keeps a mode from asking for beats shorter than the
+  // flicker threshold on a template authored slower than it.
+  const pacedPace = sb.paceConfig
+    ? Math.max(pacing.BEAT_FLOOR_SEC, authoredPace / sb.paceConfig.multiplier)
+    : authoredPace;
+  const idealBeats = Math.max(2, Math.round(requestedD / pacedPace));
   // PACE MAY ADD CUTS; IT MAY NOT TAKE COPY AWAY.
   //
   // This used to be `min(ENGINE_MAX_SCENES, idealBeats)`, which merged a script
@@ -2785,7 +2852,7 @@ function buildComposition({ storyboard, dims, framePack, assets, template, manif
     try { return (JSON.parse(m[1] || m[2]) || {}).accent || null; } catch { return null; }
   })();
 
-  let omScenes = buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land: W > H, accent, tplName, filmTitle: String(sb.title || "").trim() });
+  let omScenes = buildScenes({ tplScenes, scenes, assets, brand, url, tfx, land: W > H, accent, tplName, filmTitle: String(sb.title || "").trim(), paceConfig: sb.paceConfig || null });
 
   // HARD ENGINE LIMIT: ssParse rejects an OM_SCENES string over 16KB (or >50
   // scenes) by rendering a full-frame ERROR SLATE for the whole film — worse
@@ -3402,7 +3469,23 @@ ${vectorFitCss}
     // walker for the same reason — the stylesheet rule above stops at a shadow
     // boundary, and a cover-cropped logo is the one failure a mark cannot survive.
     var MARK_FILES=${JSON.stringify(brandFiles)};
+    // DEFER TO THE SHARED FITTER WHEN IT IS PRESENT.
+    //
+    // The pass below is a two-rule guess: every capture gets cover/left-top, every mark
+    // gets contain. It was right about marks and half-right about captures — cover beats
+    // the CSS default of 'fill' (which squashes), but anchoring at left-top still throws
+    // away whatever does not fit, and on a 1.5:1 capture in a 1.08 frame that is 28% of
+    // the page's width including its navigation.
+    //
+    // services/asset_fit.js does the same job with the numbers in hand: it measures the
+    // box the browser actually painted, compares it to the image's real dimensions, and
+    // chooses cover with a content-aware focal point, or contain, according to what the
+    // content class can afford. pipeline.js injects it at every composition's single write
+    // site, so it is normally there. Both write inline !important, and whichever runs
+    // last would win — so this defers rather than competes, and stays as the fallback for
+    // a document written without the injection.
     function kfFitShots(root){
+      if (window.__kfFit) { try { window.__kfFit(root); return; } catch(e){} }
       try{
         var imgs=(root||document).querySelectorAll('img');
         for(var i=0;i<imgs.length;i++){

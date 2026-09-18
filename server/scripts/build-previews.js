@@ -62,7 +62,30 @@ const PACK_RENDERERS = {
   "premiere-night": require("../src/services/premiere_composer"),
   // Bundled-template packs (Reel / *Vertical / …) render through the adapter.
   "omelette": require("../src/services/omelette_adapter"),
+  // The FilmKit skins, by directory scan - the same registration pipeline.js does. Without
+  // them a `film-<slug>` pack falls through to scene-kit below and its preview would show
+  // generic furniture instead of the pack's own motion, which is the one thing a hover
+  // preview exists to show. Values are the composer MODULE (this map is unwrapped, unlike
+  // the pipeline's, whose entries carry portraitOk/longFormOk metadata too).
+  ...filmSkinComposers(),
 };
+
+function filmSkinComposers() {
+  const out = {};
+  const dir = path.join(__dirname, "..", "src", "services", "film_skins");
+  let files = [];
+  try { files = fs.readdirSync(dir).filter((f) => f.endsWith(".js") && !f.startsWith("_")); }
+  catch { return out; }
+  for (const f of files) {
+    try {
+      const m = require(path.join(dir, f));
+      if (m && typeof m.buildComposition === "function") {
+        out["film-" + f.replace(/\.js$/, "").replace(/_/g, "-")] = m;
+      }
+    } catch { /* one bad skin costs its own preview, never the run */ }
+  }
+  return out;
+}
 
 const W = Number(process.env.PREVIEW_W) || 1280;
 const H = Number(process.env.PREVIEW_H) || 720;
@@ -591,10 +614,12 @@ function buildComposition(name, jobDir, packDir, assetSubject) {
   // rendering its tall design into a 16:9 box letterboxes it, and the resulting
   // poster would read as landscape, which is exactly what /api/frames uses to
   // decide whether the pack belongs in the Vertical section.
-  // Read the RAW pack.json, not the parsed manifest: the manifest schema is a
-  // zod object that strips keys it does not declare, so `portraitNative` never
-  // survives it and every portrait pack would silently preview as landscape —
-  // which also overwrites its portrait poster and drops it out of the Vertical tab.
+  // Reads the RAW pack.json. This used to be load-bearing — the comment here
+  // said the manifest schema stripped `portraitNative` — but PackManifestSchema
+  // is `.passthrough()` and now declares the field outright, so
+  // frameManifest.getManifest(name).portraitNative is equally correct. Left as a
+  // raw read because it is the cheapest possible answer in a script that already
+  // has the pack directory in hand, not because the manifest cannot be trusted.
   let portraitNative = false;
   try {
     const raw = JSON.parse(fs.readFileSync(path.join(packDir || packDirOf(name), "pack.json"), "utf8"));

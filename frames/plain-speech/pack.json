@@ -1,0 +1,61 @@
+{
+  "name": "plain-speech",
+  "vibe": "opinion / manifesto — a civic forecourt. Staatliches over Catamaran; a luminance-ladder palette on #f0f1f2. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#f0f1f2",
+    "ink": "#0f1112",
+    "accent": "#1f4f7a",
+    "a2": "#c9a13a"
+  },
+  "fonts": [
+    "Staatliches",
+    "Catamaran",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#f0f1f2",
+    "ink": "#0f1112"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#1f4f7a",
+      "#c9a13a"
+    ],
+    "extras": [
+      "#6c7174"
+    ],
+    "emphasisCss": "color:#1f4f7a;"
+  },
+  "assets": {
+    "photoMod": "a civic forecourt editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "opinion",
+      "manifesto"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Staatliches",
+    "body": "Catamaran",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-plain-speech",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

@@ -28,10 +28,8 @@
 const MONO = "'JetBrains Mono','IBM Plex Mono',ui-monospace,monospace";
 
 const EDITORIAL_PACKS = new Set([
-  "bold-poster", "broadside", "capsule", "care-lavender", "care-mint",
-  "cartesian", "cobalt-grid", "coral", "creative-mode", "flux-analytics",
-  "ledger-noir", "mint-launch", "nimbus-saas", "signal-mono", "vault-gold",
-  "sumi-kaze", "orrery-brass", "claymotion", "folk-stitch", "abyssal-glow",
+  "bold-poster", "capsule", "cartesian", "coral", "creative-mode",
+  "flux-analytics", "sumi-kaze", "orrery-brass", "claymotion", "folk-stitch",
   "momentum",
 ]);
 

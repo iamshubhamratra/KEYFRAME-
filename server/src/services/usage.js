@@ -20,6 +20,15 @@ const config = require("../config");
 // Per-model OpenRouter prices (USD per 1M tokens). Unknown ids fall back to
 // DEFAULT_MODEL_PRICE. Keep in sync with config.json's models when they change.
 const MODEL_PRICING = {
+  // HOUSE MODEL — every stage (llm.model + the whole stageModels table).
+  // Rates read from OpenRouter's own /models catalogue on 2026-09-07:
+  // prompt $0.0000001/tok, completion $0.0000002/tok. Note this is a REASONING
+  // model whose reasoning tokens are billed as completion tokens, so `out` here
+  // covers thinking as well as the visible answer — measured ~390 reasoning
+  // tokens on a 10-scene storyboard at effort=low, ~1.6k at the default effort.
+  // OpenRouter reports the true charge per call (usage.include), so this row is
+  // only consulted when that field is missing.
+  "meta/muse-spark-1.3-contributor": { in: 0.10, out: 0.20 },
   "z-ai/glm-5.2":                 { in: 0.95, out: 3.00 },
   "z-ai/glm-5.1":                 { in: 0.98, out: 3.08 },
   "z-ai/glm-4.6v":                { in: 0.30, out: 0.90 },

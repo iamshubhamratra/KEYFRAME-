@@ -86,6 +86,96 @@ const TEMPLATE_SCENES = [
 // declare four slots — with two it received two assets and drew the other two as
 // blank cards even when the pool still held unclaimed screenshots.
 const mediaSlots = { hook: ["desktop"], feature: ["desktop"], montage: ["photo", "photo", "photo", "photo"] };
+// WHAT SHAPE EACH PLACEHOLDER IS — the number that did not exist anywhere in this
+// codebase before. Fractions of the CANVAS (wFrac of its width, hFrac of its height),
+// derived from the CSS each scene function writes and cross-checked against a live
+// headless render (`node scripts/audit-slot-fit.js`). services/template_media.js turns
+// them into real pixels for this film's dimensions, so selection can weigh SHAPE and
+// asset_fit can choose a real crop instead of the hardcoded `cover / top center`.
+// ---- placeholder geometry -----------------------------------------------------
+// What SHAPE each media box actually is, so asset selection can stop guessing.
+// These boxes were authored as two unrelated numbers (`width:46cqw` beside
+// `height:28.75cqw`, and the browser frame's picture area is `calc(100% -
+// 34px-worth-of-cqw)`), so their aspect was emergent — nothing in the composer ever
+// computed it, which is how a 1.5-aspect website capture ended up in a 1.97-aspect
+// frame with a quarter of its height thrown away.
+// Every media box here now declares a `flex` band instead, and the CSS derives the box
+// from the one asset_fit resolved inside it (`frameH` for the two browser frames,
+// `bandW` for the conveyor tiles). So what is declared below is the box at the band's
+// TALLEST — resolveBox only ever shrinks inside the declared w x h, never past it — and
+// not the shape a picture usually gets. Fractions are of CANVAS width / CANVAS height,
+// so one declaration serves 1920x1080, 1080x1920 and the long-form variants.
+//
+// Order matches `mediaSlots` above.
+const mediaGeometry = {
+  // hook — browserCard(land ? 40 : q(860), frameH(...)).
+  // The frame is an ink shell: border-box, so the picture is the card minus
+  // q(10)cqw of padding on all four sides minus the q(34)cqw title-bar strip.
+  // The WIDTH is still authored: landscape 40cqw = 768px - 20 = 748; portrait maps
+  // the film's 1080 sheet 1:1, so 860 - 20 = 840 film px. The HEIGHT is no longer
+  // authored at all — `frameH` derives it from the box resolved inside this band,
+  // so what is declared here is the box at its TALLEST (resolveBox only ever shrinks
+  // inside the declared w x h, never grows past it). Hence hFrac is the 1.30 end of
+  // the band, not the shape a picture usually gets.
+  // 1.30 is the floor because the card must clear the base ticker: landscape it is
+  // centred in the 1080 sheet and the ticker sits at 47cqw (902px), so 748/1.30 + 54
+  // = 629px tall reaches 855px; portrait it hangs under ~475px of chip + headline
+  // from top:q(320) and the ticker is at q(1610), so 646 + 54 = 700px lands at 1495.
+  // 1.95 is the ceiling: past that a browser frame stops reading as a page.
+  // Measured on the 2732x1800 probe capture: 16.5% pillarbox landscape / 22.1%
+  // portrait -> 0, because the hole is now the capture's own 1.518.
+  hook: {
+    land: [{ wFrac: 0.3896, hFrac: 0.5324, importance: "hero", flex: [1.30, 1.95] }], // 748 x 575 at the band's tall end
+    port: [{ wFrac: 0.7778, hFrac: 0.3365, importance: "hero", flex: [1.30, 1.95] }], // 840 x 646 at the band's tall end
+  },
+
+  // feature — browserCard(land ? 46 : q(944), frameH(...)).
+  // Same shell arithmetic and the same derived height. Widths: landscape 46cqw =
+  // 883.2 - 20 = 863; portrait 944 - 20 = 924. This is the film's biggest single
+  // picture and the one the offer is proved on, hence hero — and it was 1.73 against
+  // a 1.518 capture, a 13% height crop of the page the film is selling.
+  // Landscape floor 1.30 (863/1.30 + 54 = 718px, centred in 1080, clears both edges);
+  // portrait floor 1.35, tighter because this card carries the three numbered chips
+  // BELOW it inside the same block — 924/1.35 + 54 = 738px still leaves the chip
+  // column ending near 1700 of 1920.
+  feature: {
+    land: [{ wFrac: 0.4495, hFrac: 0.6148, importance: "hero", flex: [1.30, 1.95] }], // 863 x 664 at the band's tall end
+    port: [{ wFrac: 0.8556, hFrac: 0.3563, importance: "hero", flex: [1.35, 1.95] }], // 924 x 684 at the band's tall end
+  },
+
+  // montage — four conveyor tiles, two per row, both rows built by convRow with
+  // the SAME w = q(560) and picture height mh = q(300). The tile is border-box
+  // with q(24) padding, so the picture band is at most 560 - 48 = 512 film px wide
+  // by 300 tall in BOTH orientations — identical pixels, different fractions,
+  // because portrait maps film px 1:1 onto 1080 while landscape stages the same
+  // tile against a 1920 sheet. The tiles are also rotated +/-1.6deg and travel the
+  // whole scene, which is why the measured bounding boxes read ~4% larger.
+  // Support, not hero: four of them share the screen and each is on-screen only
+  // while the conveyor carries it past.
+  //
+  // The flex band's CEILING is the tile's own 1.707, so nothing here ever gets
+  // TALLER — the two rows sit at fixed tops q(660) / q(1140) with ~72px between
+  // them and the landscape pair is tighter still, so a taller tile would have the
+  // two conveyors running through each other. Only the width moves, into the mat
+  // the card already draws. The 1.30 floor keeps a caption-width picture: below it
+  // the card is more mat than photograph. Measured on the probe set: the 0.46 phone
+  // capture 72.1% -> 64.5%, the 0.67 portrait photo 59.7% -> 48.7%, the square
+  // 39.6% -> 23%, and the 1.6 landscape photo 7.1% -> 0.
+  montage: {
+    land: [
+      { wFrac: 0.2666, hFrac: 0.2777, importance: "support", flex: [1.30, 1.707] }, // row 1, tile 1 — up to 512 x 300
+      { wFrac: 0.2666, hFrac: 0.2777, importance: "support", flex: [1.30, 1.707] }, // row 1, tile 2
+      { wFrac: 0.2666, hFrac: 0.2777, importance: "support", flex: [1.30, 1.707] }, // row 2, tile 1
+      { wFrac: 0.2666, hFrac: 0.2777, importance: "support", flex: [1.30, 1.707] }, // row 2, tile 2
+    ],
+    port: [
+      { wFrac: 0.4741, hFrac: 0.1563, importance: "support", flex: [1.30, 1.707] }, // same 512 x 300 band, 1080-wide sheet
+      { wFrac: 0.4741, hFrac: 0.1563, importance: "support", flex: [1.30, 1.707] },
+      { wFrac: 0.4741, hFrac: 0.1563, importance: "support", flex: [1.30, 1.707] },
+      { wFrac: 0.4741, hFrac: 0.1563, importance: "support", flex: [1.30, 1.707] },
+    ],
+  },
+};
 
 function route(scene, i, total, ctx) {
   const k = String(scene.kind || "").toLowerCase(), p = String(scene.purpose || "").toLowerCase();
@@ -243,11 +333,47 @@ function chipLines(sel, ctx) {
 // Media slot: real asset (cover) or the template's dashed placeholder panel.
 function slot(id, asset, th, { radius = 16, focusTop = false } = {}) {
   if (asset && asset.path) {
-    return `<img data-media-slot="filled" id="${id}" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;border-radius:${radius}px;object-fit:${asset.fitContain ? "contain" : "cover"};padding:${asset.fitContain ? "7%" : "0"};object-position:${asset.fitContain ? "center" : (focusTop ? "top center" : (asset.cropFocus || "center"))};display:block;">`;
+    // THE FIT THE PLANNER CHOSE FOR THIS PICTURE IN THIS BOX.
+    //
+    // This was a three-way guess that never opened the image and never knew the box:
+    // `contain` for a flagged mark, otherwise `cover`, anchored `top center` whenever the
+    // caller passed focusTop and at asset.cropFocus otherwise. The focusTop branch is the
+    // damaging one — it fires on exactly the slot a website capture lands in, and it
+    // OVERRIDES the crop engine's measured focal point with a literal, so the saliency
+    // analysis the pipeline pays for is discarded precisely where it was needed.
+    //
+    // asset_fit decides mode and position together from the asset's real dimensions and
+    // the slot's real box: contain for a mark or for an interface whose crop would eat its
+    // navigation, cover with a content-aware focal point for a photograph, never a stretch.
+    // The reading-order prior inside crop_engine already does what focusTop was reaching
+    // for, so the flag is kept in the signature for its call sites and no longer consulted.
+    const af = E.fitCss(asset);
+    const contained = /object-fit:contain/.test(af);
+    return `<img data-media-slot="filled" id="${id}" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;border-radius:${radius}px;${af}padding:${contained ? "7%" : "0"};display:block;">`;
   }
   return `<div data-media-slot="empty" id="${id}" style="width:100%;height:100%;border-radius:${radius}px;display:flex;align-items:center;justify-content:center;background:${th.paper};border:1px solid ${rgba(th.ink, 0.35)};">
     
   </div>`;
+}
+
+// HOW TALL THE BROWSER FRAME HAS TO BE FOR THE PICTURE IN IT.
+// The card is sized purely in cqw, so unlike most boxes in this codebase its shape WAS
+// computable — it was just never computed. The two authored numbers put a 1.518 website
+// capture (the only thing a "desktop" slot is ever cast) in a 1.84 hole landscape and a
+// 1.97 hole portrait, and the fitter answered the only way it could: contain, measured
+// 16.5% / 22.1% of the frame paid out as empty pillarbox.
+// So the height is derived instead, from the box asset_fit resolved for THIS asset inside
+// the flex band mediaGeometry declares — the frame takes the picture's own shape. The card
+// is border-box, so its height is the picture plus q(10) padding top and bottom plus the
+// q(34) title-bar strip. Falls back to 1.55 (a website capture, which is what this frame is
+// for) when there is no asset or no fit decision — never a throw, these render films.
+// template_media.boxCss is not usable here: it writes an absolutely-positioned band, and
+// this card is a flow element inside a column the scene has already placed.
+const FRAME_AR_FALLBACK = 1.55;
+function frameH(asset, wCqw, land) {
+  const box = asset && asset.__fit && asset.__fit.box;
+  const a = box && Number(box.aspect) > 0 ? Number(box.aspect) : FRAME_AR_FALLBACK;
+  return r((wCqw - 2 * q(10, land)) / a + q(34, land) + 2 * q(10, land));
 }
 
 // The film's Browser frame: ink shell, three dots, media inside.
@@ -323,7 +449,8 @@ function hook(scene, ctx, a) {
     : { left: 65, top: 1, size: 46, color: rgba(th.paper, 0.16), petals: 14, speed: 12 });
   const b2 = starburst(`${id}-sb2`, ctx, land ? { left: -6, top: 30, size: 18, color: rgba(th.ink, 0.15), petals: 10, speed: -16 }
     : { left: -14, top: 92, size: 35, color: rgba(th.ink, 0.15), petals: 10, speed: -16 });
-  const card = `<div id="${id}-card">${browserCard(`${id}-bw`, a, ctx, land ? 40 : q(860, land), land ? 24 : q(480, land))}</div>`;
+  const cardW = land ? 40 : q(860, land);
+  const card = `<div id="${id}-card">${browserCard(`${id}-bw`, a, ctx, cardW, frameH(a, cardW, land))}</div>`;
   const copy = `${chipHtml(`${id}-k`, kick, ctx, { bg: th.ink, fg: th.paper })}
     <div>${kin.html}</div>`;
   const html = `${panelBg(bg, th.paper, "up")}
@@ -408,7 +535,8 @@ function feature(scene, ctx, a) {
       <span style="font-family:${FH};font-size:${q(28, land)}cqw;color:${rgba(th.paper, 0.6)};">0${j + 1}</span>${esc(c)}</div>`).join("");
   const chipCol = `<div style="display:flex;flex-direction:column;gap:${q(18, land)}cqw;align-items:flex-start;margin-top:${q(44, land)}cqw;">${chipRow}</div>`;
   const kick = scene.kicker ? chipHtml(`${id}-k`, fit(String(scene.kicker), 22).toUpperCase(), ctx, { bg: th.ink, fg: th.paper }) : "";
-  const card = `<div id="${id}-card">${browserCard(`${id}-bw`, a, ctx, land ? 46 : q(944, land), land ? 28.75 : q(590, land))}</div>`;
+  const cardW = land ? 46 : q(944, land);
+  const card = `<div id="${id}-card">${browserCard(`${id}-bw`, a, ctx, cardW, frameH(a, cardW, land))}</div>`;
   const html = `${panelBg(th.paper, th.accent, "right")}
     ${burst.html}
     ${land
@@ -430,16 +558,32 @@ function feature(scene, ctx, a) {
 }
 
 // Conveyor row: doubled tiles traveling one direction the whole scene.
+//
+// The tile is a colour CARD with the picture already matted inside it by q(24), so the
+// mat is the design — and a mat may be wider than it is tall. The picture band was a
+// fixed 512 x 300 (AR 1.71), which is right for the landscape stock this beat wants and
+// ruinous for what it actually gets: the probe's 0.46 phone capture lost 72% of its
+// height and the 0.67 portrait photo 60%. So the band's WIDTH now comes from the box
+// asset_fit resolved for that tile's own asset inside the flex band mediaGeometry
+// declares — the picture narrows toward its own shape and the card mats the difference.
+// The band's ceiling IS the tile's own 1.707, so the picture height, the tile height and
+// therefore both rows' travel and vertical rhythm are untouched: only width moves.
 function convRow(rowId, labels, imgs, ctx, { top, colors }) {
   const { land, theme: th } = ctx;
   const copies = land ? 3 : 2;
   const w = q(560, land), mh = q(300, land);
+  // The picture band for one tile: mh * the fitted aspect, never wider than the card.
+  const bandW = (img) => {
+    const box = img && img.__fit && img.__fit.box;
+    const a = box && Number(box.aspect) > 0 ? Number(box.aspect) : 0;
+    return a > 0 ? r(Math.min(w - 2 * q(24, land), mh * a)) : r(w - 2 * q(24, land));
+  };
   const seq = [];
   for (let c = 0; c < copies; c++) labels.forEach((l, j) => seq.push([l, j]));
   const tiles = seq.map(([label, j], k) =>
     `<div style="width:${w}cqw;flex:none;background:${colors[k % colors.length]};border-radius:${q(26, land)}cqw;padding:${q(24, land)}cqw;transform:rotate(${k % 2 === 0 ? -1.6 : 1.6}deg);box-shadow:0 ${q(26, land)}cqw ${q(56, land)}cqw ${rgba(th.ink, 0.28)};">
-      <div style="height:${mh}cqw;border-radius:${q(16, land)}cqw;overflow:hidden;">${slot(`${rowId}-img${k}`, imgs[j] || null, th, { radius: 0 })}</div>
-      <div style="font-family:${FH};font-size:${q(34, land)}cqw;color:${th.paper};text-transform:uppercase;margin-top:${q(16, land)}cqw;text-align:center;">${esc(label)}</div>
+      <div style="height:${mh}cqw;width:${bandW(imgs[j])}cqw;margin:0 auto;border-radius:${q(16, land)}cqw;overflow:hidden;">${slot(`${rowId}-img${k}`, imgs[j] || null, th, { radius: 0 })}</div>
+      ${label ? `<div style="font-family:${FH};font-size:${q(34, land)}cqw;color:${th.paper};text-transform:uppercase;margin-top:${q(16, land)}cqw;text-align:center;">${esc(label)}</div>` : ""}
     </div>`).join("");
   return `<div id="${rowId}" style="position:absolute;top:${top}cqw;left:0;display:flex;gap:${q(30, land)}cqw;will-change:transform;">${tiles}</div>`;
 }
@@ -453,7 +597,11 @@ function montage(scene, ctx, a, b) {
   const pool = (Array.isArray(ctx.media) && ctx.media.length ? ctx.media : [a, b]).filter(Boolean);
   const m = [0, 1, 2, 3].map((k) => (pool.length ? pool[k % pool.length] : null));
   const raw = (Array.isArray(scene.tiles) && scene.tiles.length ? scene.tiles : bullets(scene, 4));
-  const labels = [0, 1, 2, 3].map((j) => fit(String(raw[j] || ["Home", "Pricing", "Dashboard", "Checkout"][j]), 14));
+  // NEVER FABRICATE A TILE CAPTION. This mapped every missing tile onto a generic screen
+  // name, so a wall with two real labels still shipped two invented ones - claiming the
+  // product has screens nobody named. These tiles carry a PICTURE, and over a picture a
+  // fabricated caption is worse than none, so an unnamed tile is simply uncaptioned.
+  const labels = [0, 1, 2, 3].map((j) => (raw[j] ? fit(String(raw[j]), 14) : ""));
   const fg = inkOn(th.accent2, th.ink, th.paper);
   const lines = breakLines(scene.headline, "The whole story,|panel by panel.").slice(0, 2);
   const kin = kinetic(`${id}-wm`, lines, 92, ctx, { color: fg, hiColor: th.ink, hiWords: hiOf(scene, lines) });
@@ -620,7 +768,7 @@ function styleBlock(th) {
 }
 
 const family = {
-  theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaFallback, wantsLogo,
+  theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaGeometry, mediaFallback, wantsLogo,
   // Empty slots in this pack render a featureless placeholder card, so a
   // REPEAT of a real screenshot/photo beats leaving one blank.
   recycleMedia: true,
@@ -635,4 +783,9 @@ function buildComposition(opts) { return E.buildFilm(family, opts); }
 // drift from the film that ships.
 function planMedia(opts) { return E.planMedia(family, opts); }
 
-module.exports = { buildComposition, planMedia, TEMPLATE_SCENES };
+// FAMILY is the pack's whole design object — the same one buildFilm renders from.
+// It is exported so callers OUTSIDE the renderer can read the slot contract without
+// building a film: services/template_media.resolveMediaPlan needs `mediaSlots` and
+// `mediaGeometry` to tell preflight which boxes this template will draw and what
+// shape each one is, and the crop engine needs the resulting aspect list.
+module.exports = { buildComposition, planMedia, TEMPLATE_SCENES, FAMILY: family };

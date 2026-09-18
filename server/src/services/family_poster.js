@@ -17,6 +17,8 @@
 
 const { deriveTheme } = require("./scene_kit");
 const E = require("./template_engine");
+// Slot geometry -> real pixels, and the CSS box a reshaped plate paints in.
+const TM = require("./template_media");
 // The shared motion vocabulary — see services/motion_presets.js. Physics for
 // headlines and cards lives there now, so every template moves alike.
 const MOTION = require("./motion_presets");
@@ -95,6 +97,101 @@ const TEMPLATE_SCENES = [
 ];
 
 const mediaSlots = { blockshot: ["desktop"], tilewall: ["photo", "photo"], quoteslab: ["photo"] };
+// WHAT SHAPE EACH PLACEHOLDER IS — the number that did not exist anywhere in this
+// codebase before. Fractions of the CANVAS (wFrac of its width, hFrac of its height),
+// derived from the CSS each scene function writes and cross-checked against a live
+// headless render (`node scripts/audit-slot-fit.js`). services/template_media.js turns
+// them into real pixels for this film's dimensions, so selection can weigh SHAPE and
+// asset_fit can choose a real crop instead of the hardcoded `cover / top center`.
+// ---- media geometry (consumed by services/template_media.js) -----------------
+// Every box below mixes units — `width:44cqw` is 44% of the frame WIDTH while
+// `height:52cqw` is ALSO a percentage of the frame width even though it paints a
+// height. Nothing in this file ever computed the resulting aspect, which is why
+// asset selection could not know that the landscape blockshot plate is TALLER
+// than it is wide and was cropping 1.5-aspect screenshots to 0.84. These
+// fractions are the painted image box relative to the CANVAS: wFrac of the
+// canvas width, hFrac of the canvas height, so one declaration serves 16:9, 9:16
+// and every long-form variant.
+//
+// `flex` is the aspect band a box may RESHAPE within, and it is declared on
+// exactly one slot family: the blockshot plate. That plate floats in a band
+// opposite the headline block — nothing is aligned to its bottom edge and its
+// offset colour block follows it via `inset:0` — so taking the picture's own
+// shape costs the poster nothing. The tilewall tiles stay rigid: they are grid
+// tracks carrying a stamped index number, and a tile that changed shape would
+// break the register the wall is. Their fix was the TRACKS, not a flex.
+const mediaGeometry = {
+  // blockshot — one plate opposite the headline block. The painted image is the
+  // plate MINUS its 0.5cqw poster border on all four sides (blockshot() sizes the
+  // plate, the layer under it draws the border via inset:0). This is the only
+  // slot in the family that FLEXES, so these two entries are the box's MAXIMUM;
+  // asset_fit shrinks inside them and TM.boxCss writes the result.
+  blockshot: {
+    // THE HEIGHT IS NOW ANCHORED IN THE FRAME, NOT IN ITS WIDTH. `height:52cqw`
+    // was 52% of the frame WIDTH — 998px on a 1080-tall canvas — so the plate
+    // painted 826x979 (a portrait 0.84 window) and then ran 187px off the bottom
+    // edge. A 1.52 website capture lost 44.4% of its width to that box and a 3.0
+    // banner lost 71.9%; three measured rows carried overflows-container.
+    // `top:19%;bottom:19%` is 650px of the frame's OWN height against 44cqw of
+    // width, which is a 1.27 plate sitting wholly inside the canvas, and the flex
+    // band lets it settle on whatever the capture actually is.
+    land: [{ wFrac: 0.43, hFrac: 0.6022, importance: "hero", flex: [1.10, 1.95] }],
+    // Portrait was already the sane branch — 88cqw by 56cqw is a 1.58 landscape
+    // window and a desktop capture only lost 4% of its height to it. The band is
+    // 4.4cqw taller so the plate can GROW into a 1.5 capture instead of narrowing
+    // away from the frame edge, which is the only move boxCss has left to it.
+    port: [{ wFrac: 0.87, hFrac: 0.3344, importance: "hero", flex: [1.10, 1.95] }],
+  },
+  // tilewall — a 2x2 poster grid in landscape, a single stacked column in
+  // portrait (both branches live in tilewall()). Track sizes come off the 88cqw
+  // container (left:6cqw;right:6cqw) after the 1.2cqw gaps are removed, then each
+  // tile loses its 0.4cqw border on every side. Order matches
+  // mediaSlots.tilewall — tile 01 then tile 02; the third grid cell is the
+  // accent badge, not media, so it is not declared.
+  tilewall: {
+    land: [
+      // THE TRACKS CARRY THE FIX. The wall was two equal columns over two equal
+      // rows inside `top:30cqw;height:52cqw` — 576px + 998px on a 1080 canvas,
+      // so the bottom row and the badge band fell off the frame entirely, and
+      // tile 01 (spanning both rows of a 43.4cqw column) painted 819x984, a 0.83
+      // portrait slot fed wide photos. Now `top:37%;bottom:5.5%` puts the whole
+      // wall inside the frame and 1.55fr/1fr gives the hero column the width:
+      // 998x606, aspect 1.65, which is what a stock photo and a website capture
+      // both are.
+      { wFrac: 0.5196, hFrac: 0.5608, importance: "hero" },
+      // Tile 02 is row 1 of the narrow column. Rows at 2.1fr/1fr (they were
+      // equal) hand it 638x390 = 1.64 instead of the 2.0 that equal rows would
+      // give it in the shorter wall; the badge tile keeps 193px, which is more
+      // than its 151px of type needs.
+      { wFrac: 0.3324, hFrac: 0.3608, importance: "support" },
+    ],
+    port: [
+      // Full-bleed rows, and the middle one was the family's worst box: 1.35/1/0.5
+      // over 112cqw painted tile 02 at 942x407 — aspect 2.31, a letterbox that
+      // threw away 71% of a portrait photo's height and 23% of a wide one's width.
+      // The wall now runs 128cqw (bottom at 1814px of 1920, clear of the chrome
+      // band) split 1/1.1/0.32, which is 1.71 for the hero and 1.55 for the second
+      // plate — both inside the stock-photo band, neither a sliver.
+      { wFrac: 0.872, hFrac: 0.2874, importance: "hero" },
+      { wFrac: 0.872, hFrac: 0.3166, importance: "support" },
+    ],
+  },
+  // quoteslab — not a picture, an attribution avatar: a 4.4cqw circle punched
+  // into the rotated tag pinned under the slab (line 291). It is square by
+  // construction and clipped to a circle, so cropping IS the design and `cover`
+  // is stated rather than left to the engine. Small enough that the source
+  // should be treated as a thumbnail, never as a hero asset.
+  // `allow` is the part that was missing. An 84px disc is the RIGHT size for an
+  // attribution avatar and making it bigger would just be a worse tag — but with
+  // no allow list the selector was free to spend a 750x1624 mobile capture on it,
+  // and every measured quoteslab row came back as a 0.46 screenshot squeezed into
+  // a 1.0 circle at 53.8% crop, flagged screenshot-unreadable. Photographs only:
+  // a face survives a circular crop, a product screen does not.
+  quoteslab: {
+    land: [{ wFrac: 0.044, hFrac: 0.0782, importance: "accent", fit: "cover", allow: ["photo"] }],
+    port: [{ wFrac: 0.07, hFrac: 0.0394, importance: "accent", fit: "cover", allow: ["photo"] }],
+  },
+};
 // True when the PREVIOUS scene already carried imagery — keeps media beats
 // alternating now that any spare asset, not just a pinned screenshot, earns one.
 const mediaBeatJustPlayed = (ctx) => ((mediaSlots[ctx && ctx.prevType] || []).length > 0);
@@ -182,12 +279,30 @@ function blockshot(scene, ctx, asset) {
   const body = fit(String(scene.body || scene.subtext || ""), 120);
   const right = variant % 2 === 0; // which side the plate lands on
   const size = Math.min(land ? 6.2 : 9.6, (land ? 40 : 78) / Math.max(...lines.map((l) => l.length), 1) * 1.6);
+  // THE PLATE TAKES THE PICTURE'S SHAPE, INSIDE THE BAND THE DESIGN OWNS.
+  //
+  // `height:52cqw` measured 52% of the frame's WIDTH, so on a 1080-tall canvas
+  // the plate painted 826x979 — a portrait window for a slot that only ever
+  // receives 1.5 website captures — and then ran 187px past the bottom edge.
+  // Both numbers are now the frame's own height (`top:19%;bottom:19%`), and
+  // asset_fit resolves the real box inside the flex band mediaGeometry declares.
+  // boxCss hands the reclaimed height back symmetrically in landscape, where the
+  // plate floats in its band, and off the BOTTOM in portrait, where the headline
+  // is pinned above it. With no fitted box this is the authored band verbatim.
+  const fitBox = asset && asset.__fit && asset.__fit.box && asset.__fit.box.reshaped ? asset.__fit.box : null;
+  const plateBox = land
+    ? (fitBox
+      ? TM.boxCss({ side: 5, top: 0.19, bottom: 0.19, width: 44 }, fitBox, ctx.dims, right ? "right" : "left")
+      : `${right ? "right" : "left"}:5cqw;top:19%;bottom:19%;width:44cqw;`)
+    : (fitBox
+      ? TM.boxCss({ side: 5, top: 0.2588, bottom: 0.4012, width: 88 }, fitBox, ctx.dims, right ? "right" : "left", "start")
+      : `${right ? "right" : "left"}:5cqw;top:25.88%;bottom:40.12%;width:88cqw;`);
   const plate = `
-    <div id="${id}-plate" style="position:absolute;${right ? "right:5cqw;" : "left:5cqw;"}top:${land ? 14 : 46}cqw;width:${land ? 44 : 88}cqw;height:${land ? 52 : 56}cqw;opacity:0;">
+    <div id="${id}-plate" style="position:absolute;${plateBox}opacity:0;">
       <div style="position:absolute;inset:0;transform:translate(${land ? 1.4 : 1.1}cqw,${land ? 1.4 : 1.1}cqw);background:${th.accent2};"></div>
       <div style="position:absolute;inset:0;overflow:hidden;border:0.5cqw solid ${th.rule};background:${th.panel || th.ground};">
         ${asset && asset.path
-          ? `<img id="${id}-img" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">`
+          ? `<img id="${id}-img" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;${E.fitCss(asset)}display:block;">`
           : `<div style="width:100%;height:100%;display:grid;place-items:center;background:repeating-linear-gradient(45deg, ${rgba(th.ink, 0.08)} 0 12px, transparent 12px 24px);"><div style="font-family:${th.displayStack};font-size:4cqw;color:${th.ink};text-transform:uppercase;">${esc(String(brand).slice(0, 12))}</div></div>`}
       </div>
     </div>`;
@@ -288,7 +403,7 @@ function quoteslab(scene, ctx, a) {
     </div>
     <div id="${id}-tag" style="opacity:0;position:absolute;${land ? "right:10cqw;bottom:14cqw;" : "left:9cqw;bottom:40cqw;"}transform:rotate(-3deg);background:${th.ink};padding:0.8cqw 1.6cqw;display:flex;align-items:center;gap:${land ? 1 : 1.6}cqw;">
       ${a && a.path
-        ? `<div style="flex:0 0 auto;width:${land ? 4.4 : 7}cqw;height:${land ? 4.4 : 7}cqw;border-radius:50%;overflow:hidden;border:0.3cqw solid ${th.ground};"><img src="${esc(a.path)}" alt="${esc(a.alt || "")}" style="width:100%;height:100%;object-fit:cover;display:block;"></div>`
+        ? `<div style="flex:0 0 auto;width:${land ? 4.4 : 7}cqw;height:${land ? 4.4 : 7}cqw;border-radius:50%;overflow:hidden;border:0.3cqw solid ${th.ground};"><img src="${esc(a.path)}" alt="${esc(a.alt || "")}" style="width:100%;height:100%;${E.fitCss(a)}display:block;"></div>`
         : ""}
       <div>
         ${author ? `<div style="font-family:${th.displayStack};font-weight:900;font-size:${land ? 1.7 : 2.6}cqw;color:${th.ground};text-transform:uppercase;">${esc(author)}</div>` : ""}
@@ -314,7 +429,7 @@ function tilewall(scene, ctx, a, b) {
   const tile = (asset, cls, n, extra) => `
       <div class="${cls}" style="opacity:0;position:relative;overflow:hidden;border:0.4cqw solid ${th.rule};background:${th.panel || th.ground};${extra || ""}">
         ${asset && asset.path
-          ? `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">`
+          ? `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;${E.fitCss(asset)}display:block;">`
           : `<div style="width:100%;height:100%;background:repeating-linear-gradient(45deg, ${rgba(th.ink, 0.08)} 0 10px, transparent 10px 20px);"></div>`}
         <div style="position:absolute;left:0;top:0;background:${th.accent};color:${E.readable(th.accent, E.inkOn(th.accent, "#141210", th.ink), 1, 4.5)};font-family:${th.bodyStack};font-size:${land ? 0.95 : 1.5}cqw;letter-spacing:0.14em;padding:0.35cqw 0.8cqw;">${n}</div>
       </div>`;
@@ -324,11 +439,26 @@ function tilewall(scene, ctx, a, b) {
       <div style="font-family:${th.displayStack};font-weight:900;text-transform:uppercase;">${stackType(lines, land ? 5 : 8.6, th.ink, `${id}-head`)}</div>
     </div>
     <div style="position:absolute;left:6cqw;right:6cqw;${land
-      ? "top:30cqw;height:52cqw;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;"
+      // LANDSCAPE IS ANCHORED IN FRAME HEIGHT, NOT IN FRAME WIDTH. `top:30cqw`
+      // plus `height:52cqw` is 576px + 998px on a 1080 canvas: the second row
+      // and the whole badge band were drawn off the bottom of the film. And two
+      // equal columns gave tile 01 — which spans both rows — an 819x984 box,
+      // aspect 0.83, a portrait hole fed wide photos and captures. `top:37%;
+      // bottom:5.5%` fits the wall in the frame — measured at 400-1021 of 1080,
+      // clear of the 1038px chrome band and 15px under a two-line headline —
+      // 1.55fr/1fr gives the hero column its width, and 2.1fr/1fr keeps tile 02
+      // off the 2.0 letterbox the shorter wall would otherwise force.
+      // Measured: tile 01 0.83 -> 1.65, tile 02 1.73 -> 1.64.
+      ? "top:37%;bottom:5.5%;display:grid;grid-template-columns:1.55fr 1fr;grid-template-rows:2.1fr 1fr;"
       // PORTRAIT stacks. Two columns across a 9:16 frame squeeze every plate under
       // half the frame width — a screenshot in that space is unreadable (QA blocked
       // exactly this). Full-width rows instead: hero, second plate, badge band.
-      : "top:40cqw;height:112cqw;display:grid;grid-template-columns:1fr;grid-template-rows:1.35fr 1fr 0.5fr;"}gap:1.2cqw;">
+      // The rows were 1.35/1/0.5 over 112cqw, which painted the middle plate at
+      // 942x407 — aspect 2.31, a shape no asset class has: it cut 71% off a
+      // portrait photo's height. 128cqw of wall (bottom at 1814px of 1920, clear
+      // of the chrome band) split 1/1.1/0.32 lands the two plates at 1.71 and
+      // 1.55 and still leaves the badge band 179px, more than its type needs.
+      : "top:40cqw;height:128cqw;display:grid;grid-template-columns:1fr;grid-template-rows:1fr 1.1fr 0.32fr;"}gap:1.2cqw;">
       ${tile(a, `${id}-t1`, "01", land ? "grid-row:span 2;" : "")}
       ${tile(b, `${id}-t2`, "02", "")}
       <div class="${id}-t3" style="opacity:0;display:grid;place-items:center;background:${th.accent};">
@@ -421,7 +551,7 @@ function styleBlock(th) {
 }
 
 const family = {
-  theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaFallback,
+  theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaGeometry, mediaFallback,
   wantsLogo: (t) => t === "stamp",
   fallbackType: "billboard",
   variants: 2,
@@ -457,4 +587,9 @@ function buildComposition(opts) { return E.buildFilm(family, opts); }
 // drift from the film that ships.
 function planMedia(opts) { return E.planMedia(family, opts); }
 
-module.exports = { buildComposition, planMedia, TEMPLATE_SCENES };
+// FAMILY is the pack's whole design object — the same one buildFilm renders from.
+// It is exported so callers OUTSIDE the renderer can read the slot contract without
+// building a film: services/template_media.resolveMediaPlan needs `mediaSlots` and
+// `mediaGeometry` to tell preflight which boxes this template will draw and what
+// shape each one is, and the crop engine needs the resulting aspect list.
+module.exports = { buildComposition, planMedia, TEMPLATE_SCENES, FAMILY: family };

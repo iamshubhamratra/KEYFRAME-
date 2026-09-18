@@ -1,0 +1,162 @@
+{
+  "id": "cold-type",
+  "name": "Cold Type",
+  "renderer": "filmkit",
+  "orientation": "vertical",
+  "sizePx": [
+    1080,
+    1920
+  ],
+  "cohort": "07 creative / portfolio",
+  "set": "article-text-50",
+  "globalName": "ColdType",
+  "configFile": "configs/article-pack-07.js",
+  "vibe": "a wall of type cases; a guillotine that cycles every 5s, beam lifting, blade dropping, offcut sliding away, stack losing a sheet",
+  "form": {
+    "runtimeMs": 129400,
+    "runtimeRangeMs": [
+      90000,
+      150000
+    ],
+    "beats": 18
+  },
+  "readingBudget": {
+    "wpm": 225,
+    "landSeconds": 1.2,
+    "checkedBy": "scripts/lint-reading-budget.js"
+  },
+  "fonts": {
+    "display": "Unbounded",
+    "body": "Urbanist",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+      "devanagari": "Noto Sans Devanagari"
+    }
+  },
+  "palette": {
+    "slots": [
+      "bg",
+      "surface",
+      "rule",
+      "inkMuted",
+      "ink",
+      "accent",
+      "accent2",
+      "accentInk"
+    ],
+    "values": {
+      "bg": "#f0f2f3",
+      "surface": "#fcfdfd",
+      "rule": "#ccd0d3",
+      "inkMuted": "#6c7276",
+      "ink": "#101315",
+      "accent": "#2b6bff",
+      "accent2": "#ff5a2b",
+      "accentInk": "#fcfdfd"
+    },
+    "strategy": "luminance ladder; hue-rotatable at each slot’s own lightness"
+  },
+  "tweaks": [
+    {
+      "key": "brand",
+      "type": "text"
+    },
+    {
+      "key": "bg",
+      "type": "color"
+    },
+    {
+      "key": "accent",
+      "type": "color"
+    },
+    {
+      "key": "accent2",
+      "type": "color"
+    },
+    {
+      "key": "motion",
+      "type": "radio",
+      "options": [
+        "Calm",
+        "Lively",
+        "Bouncy"
+      ],
+      "default": "Lively"
+    },
+    {
+      "key": "typeScale",
+      "type": "radio",
+      "options": [
+        "Compact",
+        "Default",
+        "Editorial"
+      ],
+      "default": "Default"
+    }
+  ],
+  "motion": {
+    "titlePreset": "slam",
+    "itemPreset": "rise",
+    "camera": [
+      "pushU",
+      "zoomIn",
+      "pushD",
+      "pushR",
+      "zoomOut",
+      "pushL"
+    ],
+    "mechanics": "Scroll: \"feed\", Typing: \"caret\", Ring: \"bar\"",
+    "chrome": false
+  },
+  "world": {
+    "description": "a wall of type cases; a guillotine that cycles every 5s, beam lifting, blade dropping, offcut sliding away, stack losing a sheet.",
+    "cyclePeriodMs": 5000,
+    "planes": 3,
+    "textSafety": "object confined above y=290, below y=1330, or right of x=820; never crosses the copy column"
+  },
+  "mediaSlots": [
+    {
+      "id": "image",
+      "beat": "Feature",
+      "beatIndex": 10,
+      "aspect": "16:10",
+      "minPx": [
+        640,
+        400
+      ],
+      "fit": "cover",
+      "priority": 1,
+      "optional": true,
+      "onEmpty": "swap per look.feature.swap (borrows nearest unclaimed script line)"
+    },
+    {
+      "id": "logo",
+      "beat": "CTA",
+      "beatIndex": 17,
+      "aspect": "1:1",
+      "minPx": [
+        256,
+        256
+      ],
+      "fit": "contain",
+      "priority": 2,
+      "optional": true,
+      "onEmpty": "pack icon mark in a filled badge"
+    }
+  ],
+  "determinism": {
+    "randomness": false,
+    "wallClock": false,
+    "seekSafe": true,
+    "clock": "single authored timeline via animations-v2"
+  },
+  "paths": {
+    "html": "templates/cold-type.html",
+    "config": "configs/article-pack-07.js",
+    "storyboard": "fixtures/storyboard.cold-type.json",
+    "timestamps": "fixtures/timestamps.cold-type.json",
+    "referenceFrames": "reference-frames/cold-type/"
+  }
+}

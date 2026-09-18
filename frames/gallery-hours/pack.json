@@ -1,0 +1,61 @@
+{
+  "name": "gallery-hours",
+  "vibe": "creative / portfolio — three framed works with labels; a ceiling track and one light head sliding a 16s pass, its cone brightening each work as it passes; a bench and a visitor who stops, looks and moves on. Italiana over Jost; a luminance-ladder palette on #f2f0ec. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#f2f0ec",
+    "ink": "#141311",
+    "accent": "#1f4f4a",
+    "a2": "#c9a34f"
+  },
+  "fonts": [
+    "Italiana",
+    "Jost",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#f2f0ec",
+    "ink": "#141311"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#1f4f4a",
+      "#c9a34f"
+    ],
+    "extras": [
+      "#6f6b64"
+    ],
+    "emphasisCss": "color:#1f4f4a;"
+  },
+  "assets": {
+    "photoMod": "three framed works with labels; a ceiling track and one light head sliding a 16s pass, its cone brightening each work as it passes; a bench and a visitor who stops, looks and moves on editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "creative",
+      "portfolio"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Italiana",
+    "body": "Jost",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-gallery-hours",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

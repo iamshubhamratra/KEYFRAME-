@@ -1,0 +1,55 @@
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[ingest] peekshot hero skipped: peekshot POST /screenshots -> 400: Monthly limit reached
+[ingest] peekshot full-page skipped: peekshot POST /screenshots -> 400: Monthly limit reached
+[topic-shots] drop marinetraffic.com: HTTP 403
+[topic-shots] drop swift.com: HTTP 404
+[assets] rejected "world map and financial data global financial network server room a train crossing a snowfield at dusk editorial documentation workspace" from pixabay: low-information image (stdev 0.0)
+[topic-shots] capture failed bloomberg.com: peekshot POST /screenshots -> 400: Monthly limit reached
+[topic-shots] capture failed stripe.com: peekshot POST /screenshots -> 400: Monthly limit reached
+[topic-shots] capture failed adyen.com: peekshot POST /screenshots -> 400: Monthly limit reached
+[topic-shots] capture failed mckinsey.com: peekshot POST /screenshots -> 400: Monthly limit reached
+[project] related-site screenshots: 2/2 capture(s) failed
+[storyboard] the director returned 18 scene(s) for a 90s film — held at 15s each that covers only 270s. Split into 20 (4.5s a scene) so the film covers its runtime at a watchable pace; each split divides one beat's narration between two frames.
+[vo_fit] model ad-libbed (174ch spoken for 56ch line) — one retake
+[vo_fit] model ad-libbed (173ch spoken for 60ch line) — one retake
+[vo_fit] model ad-libbed (213ch spoken for 60ch line) — one retake
+[vo_fit] VO still 7.6s after tighten+atempo — trimming to 5.0s with fade
+[preflight] WARN brandLogo: no brand logo — the film falls back to the template's generic mark
+[preflight] WARN brandColour: the resolved palette (none) carries no colour — the film will read greyscale
+[preflight] WARN everySceneHasVisual: 12 of 18 scene(s) have NO renderable visual (s4, s8, s9, s10, s11, s12, s13, s16, s17, s18, s19, s20) — these will render as empty template panels
+[pipeline] graph-main: the "film-long-winter" renderer cannot consume art-director brand skin — that direction has NO effect on this film
+[agents] animation audit: 6 asset(s) assigned to a scene but never drawn
+[ingest] peekshot hero skipped: peekshot POST /screenshots -> 400: Monthly limit reached
+[ingest] peekshot full-page skipped: peekshot POST /screenshots -> 400: Monthly limit reached
+[topic-shots] capture failed status.aws.amazon.com: peekshot POST /screenshots -> 400: Monthly limit reached
+[topic-shots] capture failed docs.docker.com: peekshot POST /screenshots -> 400: Monthly limit reached
+[topic-shots] capture failed typescriptlang.org: peekshot POST /screenshots -> 400: Monthly limit reached
+[topic-shots] capture failed grafana.com: peekshot POST /screenshots -> 400: Monthly limit reached
+[topic-shots] capture failed vercel.com: peekshot POST /screenshots -> 400: Monthly limit reached
+[project] related-site screenshots: 2/2 capture(s) failed
+[vo_fit] model ad-libbed (154ch spoken for 46ch line) — one retake
+[vo_fit] retake rambled worse (164ch vs 154ch) — keeping take one
+[vo_fit] model ad-libbed (299ch spoken for 46ch line) — one retake
+[preflight] WARN brandLogo: no brand logo — the film falls back to the template's generic mark
+[preflight] WARN brandColour: unbranded — the template keeps its own designed accents
+[preflight] WARN everySceneHasVisual: 5 of 13 scene(s) have NO renderable visual (s4, s7, s11, s12, s13) — these will render as empty template panels
+[ingest] peekshot hero skipped: peekshot POST /screenshots -> 400: Monthly limit reached
+[ingest] peekshot full-page skipped: peekshot POST /screenshots -> 400: Monthly limit reached
+[shots] capture failed /features: peekshot POST /screenshots -> 400: Monthly limit reached
+[shots] capture failed /docs: peekshot POST /screenshots -> 400: Monthly limit reached
+[agents] animation audit: 4 asset(s) assigned to a scene but never drawn
+[preflight] WARN brandLogo: no brand logo — the film falls back to the template's generic mark
+[preflight] WARN everySceneHasVisual: 4 of 7 scene(s) have NO renderable visual (s3, s4, s5, s6) — these will render as empty template panels
+[pipeline] contrast-fix (graph-main): 11 low-contrast, none deterministically locatable — leaving to QA
+[agents] animation audit: only 0 timeline calls for 7 scenes — likely under-animated | 1 asset(s) assigned to a scene but never drawn
+[ingest] "Instagram" looks like a sign-in / auth wall — NOT using its screenshots as product visuals
+[shots] skip /accounts/meta_verified: redirects to auth/legal
+[shots] capture failed /web/lite: peekshot POST /screenshots -> 400: Monthly limit reached
+[agents] preflight: self-healed 1 asset(s) with missing files
+[preflight] WARN brandLogo: no brand logo — the film falls back to the template's generic mark
+[preflight] WARN everySceneHasVisual: 5 of 8 scene(s) have NO renderable visual (s1, s3, s6, s7, s8) — these will render as empty template panels
+[preflight] WARN noBrokenPaths: dropped 1 asset(s) whose file was missing (self-healed)
+[pipeline] contrast-fix (graph-main): 12 low-contrast, none deterministically locatable — leaving to QA
+[agents] animation audit: only 0 timeline calls for 8 scenes — likely under-animated | 3 asset(s) assigned to a scene but never drawn

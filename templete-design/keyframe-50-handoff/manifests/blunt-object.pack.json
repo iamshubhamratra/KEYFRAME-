@@ -1,0 +1,162 @@
+{
+  "id": "blunt-object",
+  "name": "Blunt Object",
+  "renderer": "filmkit",
+  "orientation": "vertical",
+  "sizePx": [
+    1080,
+    1920
+  ],
+  "cohort": "07 creative / portfolio",
+  "set": "article-text-50",
+  "globalName": "BluntObject",
+  "configFile": "configs/article-pack-07.js",
+  "vibe": "hoarding with pasted bills under a gap in the skyline; a crane mast in the margin; the ball swings a 4",
+  "form": {
+    "runtimeMs": 129400,
+    "runtimeRangeMs": [
+      90000,
+      150000
+    ],
+    "beats": 18
+  },
+  "readingBudget": {
+    "wpm": 225,
+    "landSeconds": 1.2,
+    "checkedBy": "scripts/lint-reading-budget.js"
+  },
+  "fonts": {
+    "display": "Anton",
+    "body": "Rubik",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+      "devanagari": "Noto Sans Devanagari"
+    }
+  },
+  "palette": {
+    "slots": [
+      "bg",
+      "surface",
+      "rule",
+      "inkMuted",
+      "ink",
+      "accent",
+      "accent2",
+      "accentInk"
+    ],
+    "values": {
+      "bg": "#e9e3d6",
+      "surface": "#f7f3ea",
+      "rule": "#c6bda8",
+      "inkMuted": "#6d675a",
+      "ink": "#151309",
+      "accent": "#f2600c",
+      "accent2": "#2f5f7a",
+      "accentInk": "#f7f3ea"
+    },
+    "strategy": "luminance ladder; hue-rotatable at each slot’s own lightness"
+  },
+  "tweaks": [
+    {
+      "key": "brand",
+      "type": "text"
+    },
+    {
+      "key": "bg",
+      "type": "color"
+    },
+    {
+      "key": "accent",
+      "type": "color"
+    },
+    {
+      "key": "accent2",
+      "type": "color"
+    },
+    {
+      "key": "motion",
+      "type": "radio",
+      "options": [
+        "Calm",
+        "Lively",
+        "Bouncy"
+      ],
+      "default": "Bouncy"
+    },
+    {
+      "key": "typeScale",
+      "type": "radio",
+      "options": [
+        "Compact",
+        "Default",
+        "Editorial"
+      ],
+      "default": "Default"
+    }
+  ],
+  "motion": {
+    "titlePreset": "slam",
+    "itemPreset": "stamp",
+    "camera": [
+      "drop",
+      "spin",
+      "pushR",
+      "hopU",
+      "pushL",
+      "zoomIn"
+    ],
+    "mechanics": "Scroll: \"board\", Typing: \"caret\", Ring: \"bar\"",
+    "chrome": false
+  },
+  "world": {
+    "description": "hoarding with pasted bills under a gap in the skyline; a crane mast in the margin; the ball swings a 4.4s arc, rotating slowly, with a dust burst at the far end of each swing; rubble and grit below.",
+    "cyclePeriodMs": 4400,
+    "planes": 3,
+    "textSafety": "object confined above y=290, below y=1330, or right of x=820; never crosses the copy column"
+  },
+  "mediaSlots": [
+    {
+      "id": "image",
+      "beat": "Feature",
+      "beatIndex": 10,
+      "aspect": "16:10",
+      "minPx": [
+        640,
+        400
+      ],
+      "fit": "cover",
+      "priority": 1,
+      "optional": true,
+      "onEmpty": "swap per look.feature.swap (borrows nearest unclaimed script line)"
+    },
+    {
+      "id": "logo",
+      "beat": "CTA",
+      "beatIndex": 17,
+      "aspect": "1:1",
+      "minPx": [
+        256,
+        256
+      ],
+      "fit": "contain",
+      "priority": 2,
+      "optional": true,
+      "onEmpty": "pack icon mark in a filled badge"
+    }
+  ],
+  "determinism": {
+    "randomness": false,
+    "wallClock": false,
+    "seekSafe": true,
+    "clock": "single authored timeline via animations-v2"
+  },
+  "paths": {
+    "html": "templates/blunt-object.html",
+    "config": "configs/article-pack-07.js",
+    "storyboard": "fixtures/storyboard.blunt-object.json",
+    "timestamps": "fixtures/timestamps.blunt-object.json",
+    "referenceFrames": "reference-frames/blunt-object/"
+  }
+}

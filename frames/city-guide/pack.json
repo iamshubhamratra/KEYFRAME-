@@ -1,0 +1,61 @@
+{
+  "name": "city-guide",
+  "vibe": "lifestyle / culture — a street at the end of the day. Playfair Display over Poppins; a luminance-ladder palette on #eef0f2. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#eef0f2",
+    "ink": "#111417",
+    "accent": "#2f4f8c",
+    "a2": "#c9803a"
+  },
+  "fonts": [
+    "Playfair Display",
+    "Poppins",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#eef0f2",
+    "ink": "#111417"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#2f4f8c",
+      "#c9803a"
+    ],
+    "extras": [
+      "#6a7075"
+    ],
+    "emphasisCss": "color:#2f4f8c;"
+  },
+  "assets": {
+    "photoMod": "a street at the end of the day editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "lifestyle",
+      "culture"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Playfair Display",
+    "body": "Poppins",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-city-guide",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

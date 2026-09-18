@@ -10,19 +10,11 @@
 // always treated as "different" — they never block, and are never wrongly blocked).
 
 const FAMILY_OF = {
-  // bright-minimal — white/light grounds, clean product-UI look. THESE are the
-  // ones that read alike; grouping them means rotation leaves the whole set.
-  "nimbus-saas": "bright-minimal", "mint-launch": "bright-minimal",
-  "liquid-glass": "bright-minimal", "bloom-illustrated": "bright-minimal",
-  "lumen-motion": "bright-minimal", "mono-corporate": "bright-minimal",
-  "prism-launch": "bright-minimal", "summit-keynote": "bright-minimal",
+  // bright-minimal — white/light grounds, clean product-UI look. No pack ships
+  // in this family today; classifyByVibe() still routes future ones here.
 
   // dark-premium — dark cinematic tech / fintech / product reveal.
   "flagship": "dark-premium", "brightlife": "dark-premium",
-  "midnight-glass": "dark-premium", "ledger-noir": "dark-premium",
-  "vault-gold": "dark-premium", "noir-spotlight": "dark-premium",
-  "nova-launch": "dark-premium", "neon-premiere": "dark-premium",
-  "abyssal-glow": "dark-premium", "aurora-spectrum": "dark-premium",
   "lantern-night": "dark-premium",
 
   // cinema — letterboxed, one-take, filmic staging.
@@ -30,31 +22,26 @@ const FAMILY_OF = {
   "premiere-night": "cinema",
 
   // poster-loud — bold brutalist / risograph / kinetic-type posters.
-  "blockframe": "poster-loud", "bauhaus-riot": "poster-loud",
-  "bauhaus-print": "poster-loud", "broadside": "poster-loud",
+  "bauhaus-riot": "poster-loud", "bauhaus-print": "poster-loud",
   "bold-poster": "poster-loud", "brut-pop": "poster-loud",
   "coral": "poster-loud", "creative-mode": "poster-loud",
-  "kinetic-bold": "poster-loud", "riso-press": "poster-loud",
-  "cobalt-grid": "poster-loud",
+  "riso-press": "poster-loud",
   "hype-wave": "poster-loud", "poster-pop": "poster-loud", "story-blocks": "poster-loud",
 
   // editorial-quiet — serif/museum/print, warm paper, analyst-restrained.
   "atelier": "editorial-quiet", "cartesian": "editorial-quiet",
   "capsule": "editorial-quiet", "biennale-yellow": "editorial-quiet",
-  "flux-analytics": "editorial-quiet", "signal-mono": "editorial-quiet",
-  "blueprint-atelier": "editorial-quiet",
+  "flux-analytics": "editorial-quiet", "blueprint-atelier": "editorial-quiet",
 
   // story-handmade — storybook / craft / illustrated / ink / artisanal.
   "daybreak-bakehouse": "story-handmade", "organic-garden": "story-handmade",
   "bloom-fable": "story-handmade", "fable-storybook": "story-handmade",
   "paper-tales": "story-handmade", "folk-stitch": "story-handmade",
   "claymotion": "story-handmade", "sketchnote": "story-handmade",
-  "sumi-kaze": "story-handmade", "care-lavender": "story-handmade",
-  "care-mint": "story-handmade", "orrery-brass": "story-handmade",
+  "sumi-kaze": "story-handmade", "orrery-brass": "story-handmade",
 
-  // retro-terminal — CRT terminal / Y2K chrome.
-  "terminal-amber": "retro-terminal", "terminal-green": "retro-terminal",
-  "vapor-chrome": "retro-terminal",
+  // retro-terminal — CRT terminal / Y2K chrome. No pack ships in this family
+  // today; classifyByVibe() still routes future ones here.
 };
 
 // When rotating AWAY from a family, prefer the next family down this list that
@@ -101,6 +88,17 @@ function familiesOf(names, vibeFor) {
 }
 
 /**
+ * DEPRECATED — no caller. Kept for reference, and because the ROTATE_TO ordering
+ * below encodes real taste about which family swaps stay tonally plausible.
+ *
+ * This ran unconditionally in brief.js: whenever the brief's tone-matched pack
+ * shared a visual family with the previous film, it was REPLACED — variety
+ * beating relevance by construction, with no regard for how much better the
+ * original fit was. Anti-repeat now lives in template_intelligence.applyDiversity,
+ * where it reorders only candidates within DIVERSITY_BAND points of the leader,
+ * so a clear winner cannot be displaced. `familyOf` / `familiesOf` are still
+ * live: that is the classifier the band's penalty uses.
+ *
  * Pick a pack in a DIFFERENT family than the last film, keeping the look varied.
  *   requested       — the pack the brief LLM chose (may repeat last film's family)
  *   installed        — available pack names

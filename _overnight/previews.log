@@ -1,0 +1,105 @@
+[frames] registry dir: C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\frames
+[previews] building 50 pack preview(s): balance-line, blunt-object, board-pack, bold-claim, bound-volume, build-notes, byline-rule, citation-mark, city-guide, cold-type, copy-desk, corner-shop, deep-field-article, field-note, first-principle, front-column, gallery-hours, half-life, hard-stop, home-desk, lab-record, last-word, long-table, long-tail, long-winter, loose-leaf, loud-quiet, margin-notes, market-memo, morning-pages, no-comment, patch-log, peer-review, plain-speech, press-run, proof-steps, quarter-note, quiet-hours, root-path, runway-math, second-season, slow-reader, slow-room, slow-sunday, small-talk, spec-sheet, studio-wall, table-six, thesis-draft, wire-copy
+[previews] balance-line: composed via film-balance-line (12 scenes, 30s @ 720x1280)
+[hyperframes] using local CLI 0.6.120 — skips the ~7s npx resolve per invocation
+[previews] balance-line: ✓ preview.mp4 (844 KB) + poster.jpg @26.65s (luma 229, detail 9, ground gap 18) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\balance-line
+[previews] blunt-object: composed via film-blunt-object (12 scenes, 30s @ 720x1280)
+[previews] blunt-object: ✓ preview.mp4 (1279 KB) + poster.jpg @6.65s (luma 210, detail 16, ground gap 33) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\blunt-object
+[previews] board-pack: composed via film-board-pack (12 scenes, 30s @ 720x1280)
+[previews] board-pack: ✓ preview.mp4 (700 KB) + poster.jpg @21.65s (luma 26, detail 12, ground gap 7) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\board-pack
+[previews] bold-claim: composed via film-bold-claim (12 scenes, 30s @ 720x1280)
+[previews] bold-claim: ✓ preview.mp4 (1123 KB) + poster.jpg @9.15s (luma 27, detail 17, ground gap 16) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\bold-claim
+[previews] bound-volume: composed via film-bound-volume (12 scenes, 30s @ 720x1280)
+[previews] bound-volume: ✓ preview.mp4 (868 KB) + poster.jpg @14.15s (luma 219, detail 9, ground gap 8) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\bound-volume
+[previews] build-notes: composed via film-build-notes (12 scenes, 30s @ 720x1280)
+[previews] build-notes: ✓ preview.mp4 (1093 KB) + poster.jpg @6.65s (luma 223, detail 18, ground gap 16) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\build-notes
+[previews] byline-rule: composed via film-byline-rule (12 scenes, 30s @ 720x1280)
+[previews] byline-rule: ✓ preview.mp4 (1596 KB) + poster.jpg @9.15s (luma 32, detail 21, ground gap 28) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\byline-rule
+[previews] citation-mark: composed via film-citation-mark (12 scenes, 30s @ 720x1280)
+[previews] citation-mark: ✓ preview.mp4 (910 KB) + poster.jpg @14.15s (luma 233, detail 6, ground gap 7) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\citation-mark
+[previews] city-guide: composed via film-city-guide (12 scenes, 30s @ 720x1280)
+[previews] city-guide: ✓ preview.mp4 (983 KB) + poster.jpg @6.65s (luma 228, detail 18, ground gap 22) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\city-guide
+[previews] cold-type: composed via film-cold-type (12 scenes, 30s @ 720x1280)
+[previews] cold-type: ✓ preview.mp4 (966 KB) + poster.jpg @6.65s (luma 222, detail 22, ground gap 35) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\cold-type
+[previews] copy-desk: composed via film-copy-desk (12 scenes, 30s @ 720x1280)
+[previews] copy-desk: ✓ preview.mp4 (941 KB) + poster.jpg @26.65s (luma 229, detail 9, ground gap 7) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\copy-desk
+[previews] corner-shop: composed via film-corner-shop (12 scenes, 30s @ 720x1280)
+[previews] corner-shop: ✓ preview.mp4 (1006 KB) + poster.jpg @6.65s (luma 218, detail 25, ground gap 33) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\corner-shop
+[previews] deep-field-article: composed via film-deep-field-article (12 scenes, 30s @ 720x1280)
+[previews] deep-field-article: ✓ preview.mp4 (773 KB) + poster.jpg @16.65s (luma 27, detail 9, ground gap 18) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\deep-field-article
+[previews] field-note: composed via film-field-note (12 scenes, 30s @ 720x1280)
+[previews] field-note: ✓ preview.mp4 (1083 KB) + poster.jpg @9.15s (luma 211, detail 17, ground gap 46) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\field-note
+[previews] first-principle: composed via film-first-principle (12 scenes, 30s @ 720x1280)
+[previews] first-principle: ✓ preview.mp4 (876 KB) + poster.jpg @2s (luma 218, detail 14, ground gap 40) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\first-principle
+[previews] front-column: composed via film-front-column (12 scenes, 30s @ 720x1280)
+[previews] front-column: ✓ preview.mp4 (1190 KB) + poster.jpg @6.65s (luma 224, detail 16, ground gap 26) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\front-column
+[previews] gallery-hours: composed via film-gallery-hours (12 scenes, 30s @ 720x1280)
+[previews] gallery-hours: ✓ preview.mp4 (759 KB) + poster.jpg @26.65s (luma 231, detail 8, ground gap 20) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\gallery-hours
+[previews] half-life: composed via film-half-life (12 scenes, 30s @ 720x1280)
+[previews] half-life: ✓ preview.mp4 (908 KB) + poster.jpg @2s (luma 27, detail 15, ground gap 12) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\half-life
+[previews] hard-stop: composed via film-hard-stop (12 scenes, 30s @ 720x1280)
+[previews] hard-stop: ✓ preview.mp4 (1552 KB) + poster.jpg @6.65s (luma 221, detail 16, ground gap 29) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\hard-stop
+[previews] home-desk: composed via film-home-desk (12 scenes, 30s @ 720x1280)
+[previews] home-desk: ✓ preview.mp4 (792 KB) + poster.jpg @6.65s (luma 219, detail 29, ground gap 29) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\home-desk
+[previews] lab-record: composed via film-lab-record (12 scenes, 30s @ 720x1280)
+[previews] lab-record: ✓ preview.mp4 (997 KB) + poster.jpg @6.65s (luma 27, detail 9, ground gap 6) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\lab-record
+[previews] last-word: composed via film-last-word (12 scenes, 30s @ 720x1280)
+[previews] last-word: ✓ preview.mp4 (1096 KB) + poster.jpg @6.65s (luma 214, detail 21, ground gap 41) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\last-word
+[previews] long-table: composed via film-long-table (12 scenes, 30s @ 720x1280)
+[previews] long-table: ✓ preview.mp4 (945 KB) + poster.jpg @6.65s (luma 38, detail 15, ground gap 25) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\long-table
+[previews] long-tail: composed via film-long-tail (12 scenes, 30s @ 720x1280)
+[previews] long-tail: ✓ preview.mp4 (952 KB) + poster.jpg @4.15s (luma 230, detail 9, ground gap 10) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\long-tail
+[previews] long-winter: composed via film-long-winter (12 scenes, 30s @ 720x1280)
+[previews] long-winter: ✓ preview.mp4 (1154 KB) + poster.jpg @6.65s (luma 216, detail 31, ground gap 39) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\long-winter
+[previews] loose-leaf: composed via film-loose-leaf (12 scenes, 30s @ 720x1280)
+[previews] loose-leaf: ✓ preview.mp4 (1227 KB) + poster.jpg @6.65s (luma 216, detail 28, ground gap 42) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\loose-leaf
+[previews] loud-quiet: composed via film-loud-quiet (12 scenes, 30s @ 720x1280)
+[previews] loud-quiet: ✓ preview.mp4 (1126 KB) + poster.jpg @9.15s (luma 30, detail 19, ground gap 20) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\loud-quiet
+[previews] margin-notes: composed via film-margin-notes (12 scenes, 30s @ 720x1280)
+[previews] margin-notes: ✓ preview.mp4 (989 KB) + poster.jpg @4.15s (luma 26, detail 6, ground gap 10) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\margin-notes
+[previews] market-memo: composed via film-market-memo (12 scenes, 30s @ 720x1280)
+[previews] market-memo: ✓ preview.mp4 (845 KB) + poster.jpg @14.15s (luma 230, detail 10, ground gap 15) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\market-memo
+[previews] morning-pages: composed via film-morning-pages (12 scenes, 30s @ 720x1280)
+[previews] morning-pages: ✓ preview.mp4 (703 KB) + poster.jpg @26.65s (luma 226, detail 8, ground gap 20) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\morning-pages
+[previews] no-comment: composed via film-no-comment (12 scenes, 30s @ 720x1280)
+[previews] no-comment: ✓ preview.mp4 (1049 KB) + poster.jpg @6.65s (luma 212, detail 16, ground gap 38) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\no-comment
+[previews] patch-log: composed via film-patch-log (12 scenes, 30s @ 720x1280)
+[previews] patch-log: ✓ preview.mp4 (2235 KB) + poster.jpg @16.65s (luma 222, detail 14, ground gap 11) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\patch-log
+[previews] peer-review: composed via film-peer-review (12 scenes, 30s @ 720x1280)
+[previews] peer-review: ✓ preview.mp4 (788 KB) + poster.jpg @14.15s (luma 230, detail 7, ground gap 11) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\peer-review
+[previews] plain-speech: composed via film-plain-speech (12 scenes, 30s @ 720x1280)
+[previews] plain-speech: ✓ preview.mp4 (902 KB) + poster.jpg @2s (luma 217, detail 17, ground gap 45) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\plain-speech
+[previews] press-run: composed via film-press-run (12 scenes, 30s @ 720x1280)
+[previews] press-run: ✓ preview.mp4 (925 KB) + poster.jpg @24.15s (luma 26, detail 9, ground gap 9) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\press-run
+[previews] proof-steps: composed via film-proof-steps (12 scenes, 30s @ 720x1280)
+[previews] proof-steps: ✓ preview.mp4 (843 KB) + poster.jpg @6.65s (luma 182, detail 80, ground gap 101) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\proof-steps
+[previews] quarter-note: composed via film-quarter-note (12 scenes, 30s @ 720x1280)
+[previews] quarter-note: ✓ preview.mp4 (961 KB) + poster.jpg @24.15s (luma 218, detail 14, ground gap 42) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\quarter-note
+[previews] quiet-hours: composed via film-quiet-hours (12 scenes, 30s @ 720x1280)
+[previews] quiet-hours: ✓ preview.mp4 (954 KB) + poster.jpg @11.65s (luma 208, detail 14, ground gap 43) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\quiet-hours
+[previews] root-path: composed via film-root-path (12 scenes, 30s @ 720x1280)
+[previews] root-path: ✓ preview.mp4 (1155 KB) + poster.jpg @29.05s (luma 28, detail 15, ground gap 15) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\root-path
+[previews] runway-math: composed via film-runway-math (12 scenes, 30s @ 720x1280)
+[previews] runway-math: ✓ preview.mp4 (690 KB) + poster.jpg @9.15s (luma 26, detail 13, ground gap 12) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\runway-math
+[previews] second-season: composed via film-second-season (12 scenes, 30s @ 720x1280)
+[previews] second-season: ✓ preview.mp4 (1107 KB) + poster.jpg @6.65s (luma 223, detail 21, ground gap 25) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\second-season
+[previews] slow-reader: composed via film-slow-reader (12 scenes, 30s @ 720x1280)
+[previews] slow-reader: ✓ preview.mp4 (950 KB) + poster.jpg @9.15s (luma 30, detail 16, ground gap 14) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\slow-reader
+[previews] slow-room: composed via film-slow-room (12 scenes, 30s @ 720x1280)
+[previews] slow-room: ✓ preview.mp4 (804 KB) + poster.jpg @14.15s (luma 228, detail 10, ground gap 9) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\slow-room
+[previews] slow-sunday: composed via film-slow-sunday (12 scenes, 30s @ 720x1280)
+[previews] slow-sunday: ✓ preview.mp4 (702 KB) + poster.jpg @6.65s (luma 211, detail 19, ground gap 43) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\slow-sunday
+[previews] small-talk: composed via film-small-talk (12 scenes, 30s @ 720x1280)
+[previews] small-talk: ✓ preview.mp4 (920 KB) + poster.jpg @26.65s (luma 232, detail 10, ground gap 14) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\small-talk
+[previews] spec-sheet: composed via film-spec-sheet (12 scenes, 30s @ 720x1280)
+[previews] spec-sheet: ✓ preview.mp4 (1097 KB) + poster.jpg @9.15s (luma 34, detail 17, ground gap 25) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\spec-sheet
+[previews] studio-wall: composed via film-studio-wall (12 scenes, 30s @ 720x1280)
+[previews] studio-wall: ✓ preview.mp4 (1163 KB) + poster.jpg @26.65s (luma 227, detail 8, ground gap 10) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\studio-wall
+[previews] table-six: composed via film-table-six (12 scenes, 30s @ 720x1280)
+[previews] table-six: ✓ preview.mp4 (944 KB) + poster.jpg @14.15s (luma 227, detail 10, ground gap 15) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\table-six
+[previews] thesis-draft: composed via film-thesis-draft (12 scenes, 30s @ 720x1280)
+[previews] thesis-draft: ✓ preview.mp4 (1031 KB) + poster.jpg @9.15s (luma 26, detail 13, ground gap 9) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\thesis-draft
+[previews] wire-copy: composed via film-wire-copy (12 scenes, 30s @ 720x1280)
+[previews] wire-copy: ✓ preview.mp4 (888 KB) + poster.jpg @6.65s (luma 170, detail 76, ground gap 103) -> C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\frames\wire-copy
+
+[previews] done. ok=50 failed=0

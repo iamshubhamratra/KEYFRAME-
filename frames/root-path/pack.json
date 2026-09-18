@@ -1,0 +1,61 @@
+{
+  "name": "root-path",
+  "vibe": "technical / documentation — a survey corridor. Chakra Petch over Sarabun; a luminance-ladder palette on #141210. Portrait-native 9:16, 18 authored beats, 128s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#141210",
+    "ink": "#f0eae2",
+    "accent": "#f2a33c",
+    "a2": "#5fb0a8"
+  },
+  "fonts": [
+    "Chakra Petch",
+    "Sarabun",
+    "Space Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#141210",
+    "ink": "#f0eae2"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#f2a33c",
+      "#5fb0a8"
+    ],
+    "extras": [
+      "#9c9186"
+    ],
+    "emphasisCss": "color:#f2a33c;"
+  },
+  "assets": {
+    "photoMod": "a survey corridor editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "technical",
+      "documentation"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Chakra Petch",
+    "body": "Sarabun",
+    "mono": "Space Mono",
+    "case": "none"
+  },
+  "renderer": "film-root-path",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

@@ -9,3 +9,7 @@ public/videos/
 .DS_Store
 npm-debug.log*
 config.json
+
+# pace density probe output (regenerate with npm run shoot:pace)
+scripts/pace-shots/
+scripts/pace-shots-baseline/

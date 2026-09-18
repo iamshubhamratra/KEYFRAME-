@@ -1,0 +1,275 @@
+{
+  "slug": "plain-speech",
+  "engine": "filmkit",
+  "orientation": "vertical",
+  "viewport": {
+    "width": 1080,
+    "height": 1920
+  },
+  "runtimeMs": 129400,
+  "playback": {
+    "mode": "loop"
+  },
+  "tweaksAtCapture": {
+    "brand": "Plain Speech",
+    "bg": "#f0f1f2",
+    "accent": "#1f4f7a",
+    "accent2": "#c9a13a",
+    "motion": "Lively",
+    "typeScale": "Default"
+  },
+  "beats": [
+    {
+      "index": 0,
+      "beat": "Hook",
+      "startMs": 0,
+      "durationMs": 7400,
+      "fields": {
+        "kicker": "AN ARGUMENT",
+        "title": "Say it once.|Say it plainly.",
+        "sub": "Two thousand words of hedging, and not one sentence anybody could repeat back."
+      }
+    },
+    {
+      "index": 1,
+      "beat": "Body",
+      "startMs": 7400,
+      "durationMs": 8400,
+      "fields": {
+        "kicker": "THE PROBLEM",
+        "body": "Opinion writing does not fail by being wrong. It fails by being careful. Every qualifier you add is a reader deciding you do not mean it."
+      }
+    },
+    {
+      "index": 2,
+      "beat": "Statement",
+      "startMs": 15800,
+      "durationMs": 5000,
+      "fields": {
+        "title": "Hedging is not|nuance.",
+        "sub": "It is fear with a thesaurus."
+      }
+    },
+    {
+      "index": 3,
+      "beat": "Typing",
+      "startMs": 20800,
+      "durationMs": 6000,
+      "fields": {
+        "title": "The claim,|in one line.",
+        "prompt": "CLAIM",
+        "text": "We built it wrong.",
+        "stamp": "STET"
+      }
+    },
+    {
+      "index": 4,
+      "beat": "Body",
+      "startMs": 26800,
+      "durationMs": 9000,
+      "fields": {
+        "kicker": "WHAT IT DOES",
+        "body": "Keyframe reads the piece, keeps the sentences that carry the argument, and gives each one the time a reader needs to feel the weight of it."
+      }
+    },
+    {
+      "index": 5,
+      "beat": "Quote",
+      "startMs": 35800,
+      "durationMs": 7000,
+      "fields": {
+        "quote": "If you would not|say it out loud,|do not publish it|in a paragraph.",
+        "attrib": "Opinion editor"
+      }
+    },
+    {
+      "index": 6,
+      "beat": "Statement",
+      "startMs": 42800,
+      "durationMs": 5000,
+      "fields": {
+        "title": "02|Cut every maybe.",
+        "sub": "Then read it back aloud."
+      }
+    },
+    {
+      "index": 7,
+      "beat": "Stats",
+      "startMs": 47800,
+      "durationMs": 8000,
+      "fields": {
+        "title": "The piece,|measured.",
+        "stats": [
+          {
+            "to": 2000,
+            "suffix": "",
+            "label": "words in the original draft"
+          },
+          {
+            "to": 18,
+            "suffix": "",
+            "label": "beats in this cut, none rushed"
+          },
+          {
+            "to": 1,
+            "suffix": "",
+            "label": "sentence anyone remembered"
+          }
+        ]
+      }
+    },
+    {
+      "index": 8,
+      "beat": "Body",
+      "startMs": 55800,
+      "durationMs": 9400,
+      "fields": {
+        "kicker": "THE RULE",
+        "body": "No beat runs shorter than its reading time. The check fails the build, so a claim never leaves the screen before it has landed."
+      }
+    },
+    {
+      "index": 9,
+      "beat": "Scroll",
+      "startMs": 65200,
+      "durationMs": 9000,
+      "fields": {
+        "title": "What an argument|owes you.",
+        "items": [
+          {
+            "t": "The claim, first",
+            "v": "01"
+          },
+          {
+            "t": "Who it costs",
+            "v": "02"
+          },
+          {
+            "t": "The evidence",
+            "v": "03"
+          },
+          {
+            "t": "The strongest objection",
+            "v": "04"
+          },
+          {
+            "t": "Why it fails",
+            "v": "05"
+          },
+          {
+            "t": "What to do",
+            "v": "06"
+          }
+        ]
+      }
+    },
+    {
+      "index": 10,
+      "beat": "Feature",
+      "startMs": 74200,
+      "durationMs": 8000,
+      "fields": {
+        "title": "A photograph,|if it indicts.",
+        "chips": [
+          "Optional",
+          "Becomes type",
+          "No empty frames"
+        ],
+        "image": "",
+        "fallbackText": "When no image is supplied the beat runs as a line of argument, and takes the nearest sentence the piece has not used."
+      },
+      "mediaSlots": [
+        {
+          "id": "image",
+          "bound": null,
+          "onEmpty": "swap per look.feature.swap",
+          "fallbackText": "When no image is supplied the beat runs as a line of argument, and takes the nearest sentence the piece has not used."
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "beat": "Quote",
+      "startMs": 82200,
+      "durationMs": 6500,
+      "fields": {
+        "quote": "Nobody was ever|persuaded by|a sentence that|apologised first.",
+        "attrib": "Columnist, thirty years"
+      }
+    },
+    {
+      "index": 12,
+      "beat": "Ring",
+      "startMs": 88700,
+      "durationMs": 6000,
+      "fields": {
+        "title": "Read to the end.",
+        "to": 88,
+        "label": "finish the argument",
+        "sub": "Measured against the same piece as a wall of text."
+      }
+    },
+    {
+      "index": 13,
+      "beat": "Body",
+      "startMs": 94700,
+      "durationMs": 8200,
+      "fields": {
+        "kicker": "TYPE",
+        "body": "One heavy face for the claim, one plain one for the case. Measure near sixty characters, nothing shrunk to fit."
+      }
+    },
+    {
+      "index": 14,
+      "beat": "Montage",
+      "startMs": 102900,
+      "durationMs": 6500,
+      "fields": {
+        "title": "Draft against|argument.",
+        "tiles": [
+          "Two thousand words hedged",
+          "One claim they repeat"
+        ]
+      }
+    },
+    {
+      "index": 15,
+      "beat": "Statement",
+      "startMs": 109400,
+      "durationMs": 5500,
+      "fields": {
+        "title": "Mean it.|Or cut it.",
+        "sub": "There is no third option worth publishing."
+      }
+    },
+    {
+      "index": 16,
+      "beat": "Body",
+      "startMs": 114900,
+      "durationMs": 8000,
+      "fields": {
+        "kicker": "TAKEAWAY",
+        "body": "Give the claim the time it needs on screen and the reader carries it out of the room. That is the whole method."
+      }
+    },
+    {
+      "index": 17,
+      "beat": "CTA",
+      "startMs": 122900,
+      "durationMs": 6500,
+      "fields": {
+        "title": "Put the argument|on screen.",
+        "cta": "Read the piece",
+        "url": "keyframe.ai/opinion",
+        "logo": ""
+      },
+      "mediaSlots": [
+        {
+          "id": "logo",
+          "bound": null,
+          "onEmpty": "pack icon mark"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,162 @@
+{
+  "id": "quarter-note",
+  "name": "Quarter Note",
+  "renderer": "filmkit",
+  "orientation": "vertical",
+  "sizePx": [
+    1080,
+    1920
+  ],
+  "cohort": "06 business / analyst",
+  "set": "article-text-50",
+  "globalName": "QuarterNote",
+  "configFile": "configs/article-pack-06.js",
+  "vibe": "a glass tower seen from the atrium",
+  "form": {
+    "runtimeMs": 129400,
+    "runtimeRangeMs": [
+      90000,
+      150000
+    ],
+    "beats": 18
+  },
+  "readingBudget": {
+    "wpm": 225,
+    "landSeconds": 1.2,
+    "checkedBy": "scripts/lint-reading-budget.js"
+  },
+  "fonts": {
+    "display": "Instrument Sans",
+    "body": "Manrope",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+      "devanagari": "Noto Sans Devanagari"
+    }
+  },
+  "palette": {
+    "slots": [
+      "bg",
+      "surface",
+      "rule",
+      "inkMuted",
+      "ink",
+      "accent",
+      "accent2",
+      "accentInk"
+    ],
+    "values": {
+      "bg": "#eef1f4",
+      "surface": "#fafcfd",
+      "rule": "#c9d1d8",
+      "inkMuted": "#6b747c",
+      "ink": "#121619",
+      "accent": "#1f3a5f",
+      "accent2": "#8fc93a",
+      "accentInk": "#fafcfd"
+    },
+    "strategy": "luminance ladder; hue-rotatable at each slot’s own lightness"
+  },
+  "tweaks": [
+    {
+      "key": "brand",
+      "type": "text"
+    },
+    {
+      "key": "bg",
+      "type": "color"
+    },
+    {
+      "key": "accent",
+      "type": "color"
+    },
+    {
+      "key": "accent2",
+      "type": "color"
+    },
+    {
+      "key": "motion",
+      "type": "radio",
+      "options": [
+        "Calm",
+        "Lively",
+        "Bouncy"
+      ],
+      "default": "Lively"
+    },
+    {
+      "key": "typeScale",
+      "type": "radio",
+      "options": [
+        "Compact",
+        "Default",
+        "Editorial"
+      ],
+      "default": "Default"
+    }
+  ],
+  "motion": {
+    "titlePreset": "machete",
+    "itemPreset": "rise",
+    "camera": [
+      "pushU",
+      "zoomIn",
+      "pushD",
+      "pushL",
+      "zoomOut",
+      "pushR"
+    ],
+    "mechanics": "Scroll: \"board\", Typing: \"caret\", Ring: \"gauge\"",
+    "chrome": false
+  },
+  "world": {
+    "description": "a glass tower seen from the atrium. Far: floor plates receding with lit windows switching. Mid: one lift car runs a 13s cycle up and down its shaft — cable above, counterweight opposite, doors easing at each end, a floor readout following it. Near: a plant and a bench in the lobby.",
+    "cyclePeriodMs": 13000,
+    "planes": 3,
+    "textSafety": "object confined above y=290, below y=1330, or right of x=820; never crosses the copy column"
+  },
+  "mediaSlots": [
+    {
+      "id": "image",
+      "beat": "Feature",
+      "beatIndex": 10,
+      "aspect": "16:10",
+      "minPx": [
+        640,
+        400
+      ],
+      "fit": "cover",
+      "priority": 1,
+      "optional": true,
+      "onEmpty": "swap per look.feature.swap (borrows nearest unclaimed script line)"
+    },
+    {
+      "id": "logo",
+      "beat": "CTA",
+      "beatIndex": 17,
+      "aspect": "1:1",
+      "minPx": [
+        256,
+        256
+      ],
+      "fit": "contain",
+      "priority": 2,
+      "optional": true,
+      "onEmpty": "pack icon mark in a filled badge"
+    }
+  ],
+  "determinism": {
+    "randomness": false,
+    "wallClock": false,
+    "seekSafe": true,
+    "clock": "single authored timeline via animations-v2"
+  },
+  "paths": {
+    "html": "templates/quarter-note.html",
+    "config": "configs/article-pack-06.js",
+    "storyboard": "fixtures/storyboard.quarter-note.json",
+    "timestamps": "fixtures/timestamps.quarter-note.json",
+    "referenceFrames": "reference-frames/quarter-note/"
+  }
+}

@@ -1,0 +1,162 @@
+{
+  "id": "quiet-hours",
+  "name": "Quiet Hours",
+  "renderer": "filmkit",
+  "orientation": "vertical",
+  "sizePx": [
+    1080,
+    1920
+  ],
+  "cohort": "02 literary / essay",
+  "set": "article-text-50",
+  "globalName": "QuietHours",
+  "configFile": "configs/article-pack-02.js",
+  "vibe": "the desk lamp is lit and a moth is working the light",
+  "form": {
+    "runtimeMs": 129400,
+    "runtimeRangeMs": [
+      90000,
+      150000
+    ],
+    "beats": 18
+  },
+  "readingBudget": {
+    "wpm": 225,
+    "landSeconds": 1.2,
+    "checkedBy": "scripts/lint-reading-budget.js"
+  },
+  "fonts": {
+    "display": "EB Garamond",
+    "body": "Andada Pro",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+      "devanagari": "Noto Serif Devanagari"
+    }
+  },
+  "palette": {
+    "slots": [
+      "bg",
+      "surface",
+      "rule",
+      "inkMuted",
+      "ink",
+      "accent",
+      "accent2",
+      "accentInk"
+    ],
+    "values": {
+      "bg": "#efe6d4",
+      "surface": "#f9f3e6",
+      "rule": "#cfc2a6",
+      "inkMuted": "#6f6552",
+      "ink": "#1b1710",
+      "accent": "#b8813a",
+      "accent2": "#6f7f5c",
+      "accentInk": "#1b1710"
+    },
+    "strategy": "luminance ladder; hue-rotatable at each slot’s own lightness"
+  },
+  "tweaks": [
+    {
+      "key": "brand",
+      "type": "text"
+    },
+    {
+      "key": "bg",
+      "type": "color"
+    },
+    {
+      "key": "accent",
+      "type": "color"
+    },
+    {
+      "key": "accent2",
+      "type": "color"
+    },
+    {
+      "key": "motion",
+      "type": "radio",
+      "options": [
+        "Calm",
+        "Lively",
+        "Bouncy"
+      ],
+      "default": "Calm"
+    },
+    {
+      "key": "typeScale",
+      "type": "radio",
+      "options": [
+        "Compact",
+        "Default",
+        "Editorial"
+      ],
+      "default": "Default"
+    }
+  ],
+  "motion": {
+    "titlePreset": "drowse",
+    "itemPreset": "rise",
+    "camera": [
+      "zoomIn",
+      "pushU",
+      "drop",
+      "pushL",
+      "zoomOut",
+      "pushR"
+    ],
+    "mechanics": "Typing: \"hand\", Scroll: \"feed\", Ring: \"ring\"",
+    "chrome": false
+  },
+  "world": {
+    "description": "the desk lamp is lit and a moth is working the light. Far: a laid paper weave, shelf silhouettes drifting on parallax. Mid: the lamp pool breathing, the lamp itself in the right margin, a moth on a 7s figure-eight around the shade with wingbeat. Near: dust in the beam, rising.",
+    "cyclePeriodMs": 12000,
+    "planes": 3,
+    "textSafety": "object confined above y=290, below y=1330, or right of x=820; never crosses the copy column"
+  },
+  "mediaSlots": [
+    {
+      "id": "image",
+      "beat": "Feature",
+      "beatIndex": 10,
+      "aspect": "16:10",
+      "minPx": [
+        640,
+        400
+      ],
+      "fit": "cover",
+      "priority": 1,
+      "optional": true,
+      "onEmpty": "swap per look.feature.swap (borrows nearest unclaimed script line)"
+    },
+    {
+      "id": "logo",
+      "beat": "CTA",
+      "beatIndex": 17,
+      "aspect": "1:1",
+      "minPx": [
+        256,
+        256
+      ],
+      "fit": "contain",
+      "priority": 2,
+      "optional": true,
+      "onEmpty": "pack icon mark in a filled badge"
+    }
+  ],
+  "determinism": {
+    "randomness": false,
+    "wallClock": false,
+    "seekSafe": true,
+    "clock": "single authored timeline via animations-v2"
+  },
+  "paths": {
+    "html": "templates/quiet-hours.html",
+    "config": "configs/article-pack-02.js",
+    "storyboard": "fixtures/storyboard.quiet-hours.json",
+    "timestamps": "fixtures/timestamps.quiet-hours.json",
+    "referenceFrames": "reference-frames/quiet-hours/"
+  }
+}

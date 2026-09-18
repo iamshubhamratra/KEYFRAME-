@@ -27,7 +27,15 @@ async function json(resp) {
   const body = await resp.json().catch(() => ({}));
   if (!resp.ok) {
     const detail = body.details ? `: ${body.details.join("; ")}` : "";
-    throw new Error((body.error || `HTTP ${resp.status}`) + detail);
+    // `message` stays byte-identical to what every existing caller reads. The two
+    // extra properties are purely additive, and they are what lets a STRUCTURED
+    // decision survive: the create routes answer an out-of-scope request with a 422
+    // whose body carries the scope gate's decision (the one question, or what
+    // KEYFRAME can make and how), and that cannot travel as a flattened string.
+    const err = new Error((body.error || `HTTP ${resp.status}`) + detail);
+    err.status = resp.status;
+    err.body = body;
+    throw err;
   }
   return body;
 }
@@ -35,7 +43,21 @@ async function json(resp) {
 // fields: { prompt?, websiteUrl?, blogUrl?, referenceVideo? (File), logo? (File),
 //           assets? (File[] — up to 12 product images), duration, orientation,
 //           quality, fps, framePack, voiceStyle?, autopilot?, composeMode?, render3d?,
-//           captions?: boolean | { enabled, language, voiceoverLanguage, videoTextLanguage } }
+//           pace?: "relaxed" | "normal" | "fast" | "very-fast",
+//           captions?: boolean | { enabled, language, voiceoverLanguage, videoTextLanguage },
+//           clarification?: { question, answer } }
+//
+// `pace` survives the multipart path as a STRING ("fast"), which is why the
+// server takes named modes rather than a numeric multiplier — String(1.25) over
+// FormData would arrive as "1.25" and have to be re-parsed anyway.
+//
+// The server decides on submit whether the request is something KEYFRAME makes
+// (server/src/services/prompt_scope.js). Supported -> 202 { projectId, ..., scope }.
+// Anything else -> 422 { error, scope } with NO job created; the thrown error
+// carries it as err.status / err.body.scope. `clarification` is the person's
+// answer to that decision's one question: an object here, and JSON-stringified
+// by the multipart branch below exactly like `captions`, which is the second
+// spelling the server accepts.
 export async function createProject(fields) {
   const isFile = (v) => typeof File !== "undefined" && v instanceof File;
   const hasFiles = Object.values(fields).some((v) => isFile(v) || (Array.isArray(v) && v.some(isFile)));

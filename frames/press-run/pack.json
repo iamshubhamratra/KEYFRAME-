@@ -1,0 +1,61 @@
+{
+  "name": "press-run",
+  "vibe": "news / journalism — the dock, first edition loading. Merriweather over Work Sans; a luminance-ladder palette on #14161a. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#14161a",
+    "ink": "#f0f2f4",
+    "accent": "#c93a2f",
+    "a2": "#e6c15a"
+  },
+  "fonts": [
+    "Merriweather",
+    "Work Sans",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#14161a",
+    "ink": "#f0f2f4"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#c93a2f",
+      "#e6c15a"
+    ],
+    "extras": [
+      "#8e9aa5"
+    ],
+    "emphasisCss": "color:#c93a2f;"
+  },
+  "assets": {
+    "photoMod": "the dock, first edition loading editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "news",
+      "journalism"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Merriweather",
+    "body": "Work Sans",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-press-run",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

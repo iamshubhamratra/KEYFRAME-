@@ -1109,6 +1109,12 @@ function buildRouter({ enqueueIntake } = {}) {
         width: dims.width,
         height: dims.height,
         fps,
+        // EXPLICIT, not inherited. Template test renders are how frame packs get
+        // validated, so they must run at the pace the product ships by default —
+        // if they ran at some other pace, packs would be approved against timing
+        // no real job ever produces. Left undefined this resolves to `normal`
+        // anyway; naming it stops that being an accident.
+        pace: "normal",
         framePack: t.slug,
         voiceStyle: null,
         // Autopilot: a template test wants a finished film, not a script review

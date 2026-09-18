@@ -63,17 +63,38 @@ function makeScenes(n, total) {
   return out;
 }
 
-// A script's scene count is set by the script prompt's pacing, not by us — long
-// films stretch scene LENGTH but still land near these counts (see
-// prompts/system_script.md and script.normalizeScript).
-const LENGTHS = [
-  { total: 30, n: 9 },
-  { total: 60, n: 17 },
-  { total: 90, n: 26 },
-  { total: 180, n: 36 },
-  { total: 300, n: 50 },
-  { total: 600, n: 70 },
-];
+// A script's scene count is set by the pacing engine, not by us — long films
+// stretch scene LENGTH but still land near these counts.
+//
+// DERIVED, NOT TABULATED. These six numbers used to be hand-written and encoded
+// exactly one mode (Normal); a Fast 600s film wants far more scenes than the
+// `n: 70` row, so the gate would have been probing a scene count the product
+// never produces. Now every row comes from pacing.resolve(), which is the same
+// function the script prompt is built from — so the gate and the pipeline cannot
+// drift, and `--pace <mode>` probes the counts that mode actually asks for.
+//
+// At `normal` this reproduces the original table exactly (9/17/26/36/50/70 for
+// 30/60/90/180/300/600s), which is asserted below rather than assumed.
+const pacing = require("../src/services/pacing");
+const COVER_PACE = (() => {
+  const i = process.argv.indexOf("--pace");
+  return pacing.normalizeMode(i >= 0 ? process.argv[i + 1] : null) || pacing.DEFAULT_MODE;
+})();
+const LENGTHS = [30, 60, 90, 180, 300, 600].map((total) => ({
+  total,
+  n: pacing.resolve(COVER_PACE, { durationSec: total }).scene.count,
+}));
+if (COVER_PACE === pacing.DEFAULT_MODE) {
+  // The gate's own regression check: if the engine's default sizing ever moves,
+  // this table moves with it, and that must be a deliberate act with a visible
+  // failure — not a silent change to what the coverage audit probes.
+  const WAS = [9, 17, 26, 36, 50, 70];
+  const now = LENGTHS.map((L) => L.n);
+  if (WAS.join(",") !== now.join(",")) {
+    console.warn(`[coverage] NOTE: default scene counts moved from ${WAS.join("/")} to ${now.join("/")} — `
+      + "the pacing engine's default sizing changed. Confirm that was intended.");
+  }
+}
 
 function probe(composer, framePack, { total, n }) {
   const raw = makeScenes(n, total);

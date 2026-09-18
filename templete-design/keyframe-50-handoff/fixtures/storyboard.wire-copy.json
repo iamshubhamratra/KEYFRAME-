@@ -1,0 +1,276 @@
+{
+ "slug": "wire-copy",
+ "engine": "filmkit",
+ "orientation": "vertical",
+ "viewport": {
+  "width": 1080,
+  "height": 1920
+ },
+ "runtimeMs": 129400,
+ "playback": {
+  "mode": "loop"
+ },
+ "tweaksAtCapture": {
+  "brand": "Wire Copy",
+  "bg": "#eae5da",
+  "accent": "#b4302b",
+  "accent2": "#3f5a6b",
+  "motion": "Lively",
+  "typeScale": "Default"
+ },
+ "beats": [
+  {
+   "index": 0,
+   "beat": "Hook",
+   "startMs": 0,
+   "durationMs": 7400,
+   "fields": {
+    "kicker": "THE DESK",
+    "title": "The story broke.|Nobody read it.",
+    "sub": "It ran at six in the morning, buried under four ads and a video that played itself."
+   }
+  },
+  {
+   "index": 1,
+   "beat": "Body",
+   "startMs": 7400,
+   "durationMs": 8400,
+   "fields": {
+    "kicker": "THE PROBLEM",
+    "body": "A story does not compete with other stories any more. It competes with everything else on the screen, and most of that is louder than a headline.",
+    "note": "Filed 06:04 · 1,180 words"
+   }
+  },
+  {
+   "index": 2,
+   "beat": "Statement",
+   "startMs": 15800,
+   "durationMs": 5000,
+   "fields": {
+    "title": "Print the lede.|Not the noise.",
+    "sub": "Everything after the first line is a promise you keep."
+   }
+  },
+  {
+   "index": 3,
+   "beat": "Typing",
+   "startMs": 20800,
+   "durationMs": 6000,
+   "fields": {
+    "title": "The wire|comes in.",
+    "prompt": "WIRE",
+    "text": "BULLETIN 06:04",
+    "stamp": "FILED"
+   }
+  },
+  {
+   "index": 4,
+   "beat": "Body",
+   "startMs": 26800,
+   "durationMs": 9000,
+   "fields": {
+    "kicker": "WHAT IT DOES",
+    "body": "Keyframe reads the piece, keeps the sentences that carry the report, and gives each one the time a reader needs to take it in."
+   }
+  },
+  {
+   "index": 5,
+   "beat": "Quote",
+   "startMs": 35800,
+   "durationMs": 7000,
+   "fields": {
+    "quote": "If the reader|stops at the fold,|the reporting|never happened.",
+    "attrib": "Night editor"
+   }
+  },
+  {
+   "index": 6,
+   "beat": "Statement",
+   "startMs": 42800,
+   "durationMs": 5000,
+   "fields": {
+    "title": "02|Run it again.",
+    "sub": "This time where they are watching."
+   }
+  },
+  {
+   "index": 7,
+   "beat": "Stats",
+   "startMs": 47800,
+   "durationMs": 8000,
+   "fields": {
+    "title": "The read,|on the wire.",
+    "stats": [
+     {
+      "to": 1180,
+      "suffix": "",
+      "label": "words in the filed copy"
+     },
+     {
+      "to": 18,
+      "suffix": "",
+      "label": "beats in the cut, none rushed"
+     },
+     {
+      "to": 78,
+      "suffix": "%",
+      "label": "of viewers reach the end"
+     }
+    ]
+   }
+  },
+  {
+   "index": 8,
+   "beat": "Body",
+   "startMs": 55800,
+   "durationMs": 9400,
+   "fields": {
+    "kicker": "THE RULE",
+    "body": "No beat runs shorter than its reading time. The check fails the build, so a paragraph never flashes past before the reader has finished the sentence."
+   }
+  },
+  {
+   "index": 9,
+   "beat": "Scroll",
+   "startMs": 65200,
+   "durationMs": 9000,
+   "fields": {
+    "title": "What the desk|keeps.",
+    "items": [
+     {
+      "t": "The lede",
+      "v": "01"
+     },
+     {
+      "t": "The context",
+      "v": "02"
+     },
+     {
+      "t": "The quote",
+      "v": "03"
+     },
+     {
+      "t": "The number",
+      "v": "04"
+     },
+     {
+      "t": "The counterpoint",
+      "v": "05"
+     },
+     {
+      "t": "The kicker",
+      "v": "06"
+     }
+    ]
+   }
+  },
+  {
+   "index": 10,
+   "beat": "Feature",
+   "startMs": 74200,
+   "durationMs": 8000,
+   "fields": {
+    "title": "A photo|if the desk has one.",
+    "chips": [
+     "Optional",
+     "Collapses to type",
+     "No empty boxes"
+    ],
+    "image": "",
+    "fallbackText": "When no picture comes through the beat runs as a paragraph, and takes the nearest line the copy has not used."
+   },
+   "mediaSlots": [
+    {
+     "id": "image",
+     "bound": null,
+     "onEmpty": "swap per look.feature.swap",
+     "fallbackText": "When no picture comes through the beat runs as a paragraph, and takes the nearest line the copy has not used."
+    }
+   ]
+  },
+  {
+   "index": 11,
+   "beat": "Quote",
+   "startMs": 82200,
+   "durationMs": 6500,
+   "fields": {
+    "quote": "Readers did not|stop caring.|They stopped|scrolling.",
+    "attrib": "Audience desk"
+   }
+  },
+  {
+   "index": 12,
+   "beat": "Ring",
+   "startMs": 88700,
+   "durationMs": 6000,
+   "fields": {
+    "title": "Read to the end.",
+    "to": 78,
+    "label": "finish the piece",
+    "sub": "Measured against the same copy as a wall of text."
+   }
+  },
+  {
+   "index": 13,
+   "beat": "Body",
+   "startMs": 94700,
+   "durationMs": 8200,
+   "fields": {
+    "kicker": "TYPE",
+    "body": "One slab for the headline, one sans for the copy. Measure near sixty characters, leading open, nothing shrunk to fit."
+   }
+  },
+  {
+   "index": 14,
+   "beat": "Montage",
+   "startMs": 102900,
+   "durationMs": 6500,
+   "fields": {
+    "title": "Page against|bulletin.",
+    "tiles": [
+     "A page they bounce from",
+     "A bulletin they finish"
+    ]
+   }
+  },
+  {
+   "index": 15,
+   "beat": "Statement",
+   "startMs": 109400,
+   "durationMs": 5500,
+   "fields": {
+    "title": "File it once.|Run it everywhere.",
+    "sub": "The desk writes, the template typesets."
+   }
+  },
+  {
+   "index": 16,
+   "beat": "Body",
+   "startMs": 114900,
+   "durationMs": 8000,
+   "fields": {
+    "kicker": "TAKEAWAY",
+    "body": "Give the reporting the time it needs on screen and the audience stays for it. That is the whole method."
+   }
+  },
+  {
+   "index": 17,
+   "beat": "CTA",
+   "startMs": 122900,
+   "durationMs": 6500,
+   "fields": {
+    "title": "Put the desk|on screen.",
+    "cta": "Read the brief",
+    "url": "keyframe.ai/news",
+    "logo": ""
+   },
+   "mediaSlots": [
+    {
+     "id": "logo",
+     "bound": null,
+     "onEmpty": "pack icon mark"
+    }
+   ]
+  }
+ ]
+}

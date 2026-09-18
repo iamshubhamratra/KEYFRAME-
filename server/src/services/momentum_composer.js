@@ -30,6 +30,8 @@ const E = require("./template_engine");
 // other renderer — see the wiring note on takePool below.
 const { pickForScene } = require("./scene_match");
 const { fitScenes, MAX_CLIPS } = require("./scene_fit");
+// The one place a picture's fit is decided — mode, focal point, and never a stretch.
+const AF = require("./asset_fit");
 
 const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 const DISPLAY = "Sora"; // bundled stand-in for the template's Hanken Grotesk
@@ -266,7 +268,10 @@ function reticleScript(id, T) {
 // panel with the brand mark — never the raw "DROP IMAGE" editor hint.
 function mediaHtml(asset, theme, fit, brand) {
   if (asset && asset.path) {
-    return `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;object-fit:${fit || "cover"};object-position:top center;display:block;">`;
+    // `fit` is the caller's art direction and still wins when it asks for `contain`;
+    // otherwise the planner's decision for this (picture, box) pair does, instead of the
+    // hardcoded `cover / top center` that never looked at either.
+    return `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;${fit === "contain" ? "object-fit:contain;object-position:center center;" : AF.fitCss(asset)}display:block;">`;
   }
   return `<div style="width:100%;height:100%;position:relative;background:repeating-linear-gradient(135deg, ${rgba(theme.ink, 0.06)} 0 14px, ${rgba(theme.ink, 0.02)} 14px 28px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.8cqw;">
     <div style="font-weight:800;font-size:3.4cqw;letter-spacing:-0.03em;color:${theme.accent};text-transform:uppercase;">${esc(String(brand || "◆").slice(0, 1))}</div>

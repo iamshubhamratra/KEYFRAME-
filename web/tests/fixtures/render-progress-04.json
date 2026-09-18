@@ -1,0 +1,23 @@
+{
+  "renderId": "rd_prev0004",
+  "kind": "preview",
+  "profile": "preview540",
+  "planRevision": 4,
+  "status": "done",
+  "pct": 100,
+  "etaSec": 0,
+  "queuePosition": 0,
+  "stage": "done",
+  "createdAt": 1789377780000,
+  "compositionHash": "comp_r4_3e9b07c1",
+  "durationSec": 45.024,
+  "width": 540,
+  "height": 960,
+  "fps": 30,
+  "finishedAt": 1789377799000,
+  "qa": {
+    "verdict": "pass",
+    "score": 9.1
+  },
+  "cached": false
+}

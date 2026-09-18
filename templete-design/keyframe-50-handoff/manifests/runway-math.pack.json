@@ -1,0 +1,162 @@
+{
+  "id": "runway-math",
+  "name": "Runway Math",
+  "renderer": "filmkit",
+  "orientation": "vertical",
+  "sizePx": [
+    1080,
+    1920
+  ],
+  "cohort": "06 business / analyst",
+  "set": "article-text-50",
+  "globalName": "RunwayMath",
+  "configFile": "configs/article-pack-06.js",
+  "vibe": "a balloon at dusk, losing height between burns",
+  "form": {
+    "runtimeMs": 129400,
+    "runtimeRangeMs": [
+      90000,
+      150000
+    ],
+    "beats": 18
+  },
+  "readingBudget": {
+    "wpm": 225,
+    "landSeconds": 1.2,
+    "checkedBy": "scripts/lint-reading-budget.js"
+  },
+  "fonts": {
+    "display": "Sora",
+    "body": "Epilogue",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+      "devanagari": "Noto Sans Devanagari"
+    }
+  },
+  "palette": {
+    "slots": [
+      "bg",
+      "surface",
+      "rule",
+      "inkMuted",
+      "ink",
+      "accent",
+      "accent2",
+      "accentInk"
+    ],
+    "values": {
+      "bg": "#12111c",
+      "surface": "#1c1b2b",
+      "rule": "#302f45",
+      "inkMuted": "#8f8da8",
+      "ink": "#f1f0f7",
+      "accent": "#9b7bff",
+      "accent2": "#ffb15c",
+      "accentInk": "#0b0a12"
+    },
+    "strategy": "luminance ladder; hue-rotatable at each slot’s own lightness"
+  },
+  "tweaks": [
+    {
+      "key": "brand",
+      "type": "text"
+    },
+    {
+      "key": "bg",
+      "type": "color"
+    },
+    {
+      "key": "accent",
+      "type": "color"
+    },
+    {
+      "key": "accent2",
+      "type": "color"
+    },
+    {
+      "key": "motion",
+      "type": "radio",
+      "options": [
+        "Calm",
+        "Lively",
+        "Bouncy"
+      ],
+      "default": "Lively"
+    },
+    {
+      "key": "typeScale",
+      "type": "radio",
+      "options": [
+        "Compact",
+        "Default",
+        "Editorial"
+      ],
+      "default": "Default"
+    }
+  ],
+  "motion": {
+    "titlePreset": "rise",
+    "itemPreset": "pop",
+    "camera": [
+      "drop",
+      "zoomOut",
+      "pushU",
+      "pushR",
+      "zoomIn",
+      "pushL"
+    ],
+    "mechanics": "Scroll: \"feed\", Typing: \"terminal\", Ring: \"gauge\"",
+    "chrome": false
+  },
+  "world": {
+    "description": "a balloon at dusk, losing height between burns. Far: a horizon and two cloud banks on parallax. Mid: the balloon drifts across on an 18s traverse, sinking steadily and lifting each time the burner fires (every 4.5s) — envelope squashes on the burn, basket swings with lag, flame licks. Near: sparks from the burner.",
+    "cyclePeriodMs": 18000,
+    "planes": 3,
+    "textSafety": "object confined above y=290, below y=1330, or right of x=820; never crosses the copy column"
+  },
+  "mediaSlots": [
+    {
+      "id": "image",
+      "beat": "Feature",
+      "beatIndex": 10,
+      "aspect": "16:10",
+      "minPx": [
+        640,
+        400
+      ],
+      "fit": "cover",
+      "priority": 1,
+      "optional": true,
+      "onEmpty": "swap per look.feature.swap (borrows nearest unclaimed script line)"
+    },
+    {
+      "id": "logo",
+      "beat": "CTA",
+      "beatIndex": 17,
+      "aspect": "1:1",
+      "minPx": [
+        256,
+        256
+      ],
+      "fit": "contain",
+      "priority": 2,
+      "optional": true,
+      "onEmpty": "pack icon mark in a filled badge"
+    }
+  ],
+  "determinism": {
+    "randomness": false,
+    "wallClock": false,
+    "seekSafe": true,
+    "clock": "single authored timeline via animations-v2"
+  },
+  "paths": {
+    "html": "templates/runway-math.html",
+    "config": "configs/article-pack-06.js",
+    "storyboard": "fixtures/storyboard.runway-math.json",
+    "timestamps": "fixtures/timestamps.runway-math.json",
+    "referenceFrames": "reference-frames/runway-math/"
+  }
+}

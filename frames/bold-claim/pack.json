@@ -1,0 +1,61 @@
+{
+  "name": "bold-claim",
+  "vibe": "opinion / manifesto — a letterpress shop at proof. Passion One over Be Vietnam Pro; a luminance-ladder palette on #101012. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#101012",
+    "ink": "#f7f7f9",
+    "accent": "#ffe14c",
+    "a2": "#4c9bff"
+  },
+  "fonts": [
+    "Passion One",
+    "Be Vietnam Pro",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#101012",
+    "ink": "#f7f7f9"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#ffe14c",
+      "#4c9bff"
+    ],
+    "extras": [
+      "#8c8c94"
+    ],
+    "emphasisCss": "color:#ffe14c;"
+  },
+  "assets": {
+    "photoMod": "a letterpress shop at proof editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "opinion",
+      "manifesto"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Passion One",
+    "body": "Be Vietnam Pro",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-bold-claim",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

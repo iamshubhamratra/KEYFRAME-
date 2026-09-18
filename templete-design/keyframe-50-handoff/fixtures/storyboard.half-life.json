@@ -1,0 +1,276 @@
+{
+ "slug": "half-life",
+ "engine": "filmkit",
+ "orientation": "vertical",
+ "viewport": {
+  "width": 1080,
+  "height": 1920
+ },
+ "runtimeMs": 129400,
+ "playback": {
+  "mode": "loop"
+ },
+ "tweaksAtCapture": {
+  "brand": "Half Life",
+  "bg": "#10160f",
+  "accent": "#a8e05c",
+  "accent2": "#e05ca8",
+  "motion": "Lively",
+  "typeScale": "Default"
+ },
+ "beats": [
+  {
+   "index": 0,
+   "beat": "Hook",
+   "startMs": 0,
+   "durationMs": 7400,
+   "fields": {
+    "kicker": "EXPLAINER",
+    "title": "The finding|was simple.",
+    "sub": "The explanation ran four thousand words and lost everyone by the second graph."
+   }
+  },
+  {
+   "index": 1,
+   "beat": "Body",
+   "startMs": 7400,
+   "durationMs": 8400,
+   "fields": {
+    "kicker": "THE PROBLEM",
+    "body": "Science writing does not fail at the science. It fails at the handover, where a result has to travel from someone who understands it to someone who does not yet.",
+    "note": "4,100 words · 6 figures"
+   }
+  },
+  {
+   "index": 2,
+   "beat": "Statement",
+   "startMs": 15800,
+   "durationMs": 5000,
+   "fields": {
+    "title": "Explain it once.|Properly.",
+    "sub": "Then never explain it again."
+   }
+  },
+  {
+   "index": 3,
+   "beat": "Typing",
+   "startMs": 20800,
+   "durationMs": 6000,
+   "fields": {
+    "title": "State the result|in one line.",
+    "prompt": "RESULT",
+    "text": "Half the energy, same output.",
+    "stamp": "HELD"
+   }
+  },
+  {
+   "index": 4,
+   "beat": "Body",
+   "startMs": 26800,
+   "durationMs": 9000,
+   "fields": {
+    "kicker": "WHAT IT DOES",
+    "body": "Keyframe reads the paper, keeps the sentences that carry the mechanism, and gives each one exactly as long on screen as it takes to follow."
+   }
+  },
+  {
+   "index": 5,
+   "beat": "Quote",
+   "startMs": 35800,
+   "durationMs": 7000,
+   "fields": {
+    "quote": "If they cannot|repeat it back,|you have not|explained it.",
+    "attrib": "Lab head"
+   }
+  },
+  {
+   "index": 6,
+   "beat": "Statement",
+   "startMs": 42800,
+   "durationMs": 5000,
+   "fields": {
+    "title": "02|Show the mechanism.",
+    "sub": "Not the apparatus."
+   }
+  },
+  {
+   "index": 7,
+   "beat": "Stats",
+   "startMs": 47800,
+   "durationMs": 8000,
+   "fields": {
+    "title": "The result,|in three.",
+    "stats": [
+     {
+      "to": 52,
+      "suffix": "%",
+      "label": "less energy for the same output"
+     },
+     {
+      "to": 18,
+      "suffix": "",
+      "label": "beats in this cut, none rushed"
+     },
+     {
+      "to": 3,
+      "suffix": "yr",
+      "label": "from first run to replication"
+     }
+    ]
+   }
+  },
+  {
+   "index": 8,
+   "beat": "Body",
+   "startMs": 55800,
+   "durationMs": 9400,
+   "fields": {
+    "kicker": "THE RULE",
+    "body": "No beat runs shorter than its reading time. The check fails the build, so a step never leaves the screen before the reader has followed it."
+   }
+  },
+  {
+   "index": 9,
+   "beat": "Scroll",
+   "startMs": 65200,
+   "durationMs": 9000,
+   "fields": {
+    "title": "The chain|of reasoning.",
+    "items": [
+     {
+      "t": "What we observed",
+      "v": "01"
+     },
+     {
+      "t": "What we expected",
+      "v": "02"
+     },
+     {
+      "t": "Where they differ",
+      "v": "03"
+     },
+     {
+      "t": "The mechanism",
+      "v": "04"
+     },
+     {
+      "t": "The test",
+      "v": "05"
+     },
+     {
+      "t": "What follows",
+      "v": "06"
+     }
+    ]
+   }
+  },
+  {
+   "index": 10,
+   "beat": "Feature",
+   "startMs": 74200,
+   "durationMs": 8000,
+   "fields": {
+    "title": "A figure,|if it clarifies.",
+    "chips": [
+     "Optional",
+     "Becomes type",
+     "No empty frames"
+    ],
+    "image": "",
+    "fallbackText": "When no figure is supplied the beat runs as a paragraph, and takes the nearest line the paper has not used."
+   },
+   "mediaSlots": [
+    {
+     "id": "image",
+     "bound": null,
+     "onEmpty": "swap per look.feature.swap",
+     "fallbackText": "When no figure is supplied the beat runs as a paragraph, and takes the nearest line the paper has not used."
+    }
+   ]
+  },
+  {
+   "index": 11,
+   "beat": "Quote",
+   "startMs": 82200,
+   "durationMs": 6500,
+   "fields": {
+    "quote": "A graph is|an argument|that hopes|to be read.",
+    "attrib": "Editor, review journal"
+   }
+  },
+  {
+   "index": 12,
+   "beat": "Ring",
+   "startMs": 88700,
+   "durationMs": 6000,
+   "fields": {
+    "title": "Followed to the end.",
+    "to": 81,
+    "label": "finish the explainer",
+    "sub": "Measured against the same result as a wall of text."
+   }
+  },
+  {
+   "index": 13,
+   "beat": "Body",
+   "startMs": 94700,
+   "durationMs": 8200,
+   "fields": {
+    "kicker": "TYPE",
+    "body": "One technical face for the headings, one legible face for the copy. Measure near sixty characters, nothing shrunk to fit."
+   }
+  },
+  {
+   "index": 14,
+   "beat": "Montage",
+   "startMs": 102900,
+   "durationMs": 6500,
+   "fields": {
+    "title": "Paper against|explainer.",
+    "tiles": [
+     "Four thousand words skimmed",
+     "Two minutes they finish"
+    ]
+   }
+  },
+  {
+   "index": 15,
+   "beat": "Statement",
+   "startMs": 109400,
+   "durationMs": 5500,
+   "fields": {
+    "title": "Publish the mechanism.|Not the method.",
+    "sub": "The method is in the paper. This is for everyone else."
+   }
+  },
+  {
+   "index": 16,
+   "beat": "Body",
+   "startMs": 114900,
+   "durationMs": 8000,
+   "fields": {
+    "kicker": "TAKEAWAY",
+    "body": "Give each step the time it needs on screen and the reasoning arrives intact. That is the whole method."
+   }
+  },
+  {
+   "index": 17,
+   "beat": "CTA",
+   "startMs": 122900,
+   "durationMs": 6500,
+   "fields": {
+    "title": "Explain it|in motion.",
+    "cta": "Read the paper",
+    "url": "keyframe.ai/science",
+    "logo": ""
+   },
+   "mediaSlots": [
+    {
+     "id": "logo",
+     "bound": null,
+     "onEmpty": "pack icon mark"
+    }
+   ]
+  }
+ ]
+}

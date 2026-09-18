@@ -1,0 +1,162 @@
+{
+  "id": "margin-notes",
+  "name": "Margin Notes",
+  "renderer": "filmkit",
+  "orientation": "vertical",
+  "sizePx": [
+    1080,
+    1920
+  ],
+  "cohort": "01 technical / documentation",
+  "set": "article-text-50",
+  "globalName": "MarginNotes",
+  "configFile": "configs/margin-notes-pack.js",
+  "vibe": "a drafting desk",
+  "form": {
+    "runtimeMs": 128400,
+    "runtimeRangeMs": [
+      90000,
+      150000
+    ],
+    "beats": 18
+  },
+  "readingBudget": {
+    "wpm": 225,
+    "landSeconds": 1.2,
+    "checkedBy": "scripts/lint-reading-budget.js"
+  },
+  "fonts": {
+    "display": "Space Grotesk",
+    "body": "IBM Plex Sans",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+      "devanagari": "Noto Sans Devanagari"
+    }
+  },
+  "palette": {
+    "slots": [
+      "bg",
+      "surface",
+      "rule",
+      "inkMuted",
+      "ink",
+      "accent",
+      "accent2",
+      "accentInk"
+    ],
+    "values": {
+      "bg": "#101418",
+      "surface": "#181f25",
+      "rule": "#2b363e",
+      "inkMuted": "#93a3ad",
+      "ink": "#e7eef3",
+      "accent": "#4fb8e8",
+      "accent2": "#f0a04b",
+      "accentInk": "#08131a"
+    },
+    "strategy": "luminance ladder; hue-rotatable at each slot’s own lightness"
+  },
+  "tweaks": [
+    {
+      "key": "brand",
+      "type": "text"
+    },
+    {
+      "key": "bg",
+      "type": "color"
+    },
+    {
+      "key": "accent",
+      "type": "color"
+    },
+    {
+      "key": "accent2",
+      "type": "color"
+    },
+    {
+      "key": "motion",
+      "type": "radio",
+      "options": [
+        "Calm",
+        "Lively",
+        "Bouncy"
+      ],
+      "default": "Calm"
+    },
+    {
+      "key": "typeScale",
+      "type": "radio",
+      "options": [
+        "Compact",
+        "Default",
+        "Editorial"
+      ],
+      "default": "Default"
+    }
+  ],
+  "motion": {
+    "titlePreset": "machete",
+    "itemPreset": "rise",
+    "camera": [
+      "pushU",
+      "zoomIn",
+      "pushL",
+      "drop",
+      "pushR",
+      "zoomOut"
+    ],
+    "mechanics": "Typing: \"terminal\", Scroll: \"board\", Ring: \"gauge\"",
+    "chrome": false
+  },
+  "world": {
+    "description": "a drafting desk. Far: a crosshair grid on a slow drift, a warm glow and three baseline rules. Mid: the plotter pen rules the right margin on a 12s eased pendulum, laying an ink line and dropping a tick each time it passes a stop; a page stack drifts on parallax below; annotation brackets are made in sequence along the lower band; a scale bar tracks the carriage in counterpoint. Near: paper flecks and slivers. The carriage is confined to x 930-1050 and every added element sits below y=1400, so nothing crosses the text column. Tone-aware: on the accent CTA ground the structural lines flip to the dark slot.",
+    "cyclePeriodMs": 12000,
+    "planes": 3,
+    "textSafety": "object confined above y=290, below y=1330, or right of x=820; never crosses the copy column"
+  },
+  "mediaSlots": [
+    {
+      "id": "image",
+      "beat": "Feature",
+      "beatIndex": 10,
+      "aspect": "16:10",
+      "minPx": [
+        640,
+        400
+      ],
+      "fit": "cover",
+      "priority": 1,
+      "optional": true,
+      "onEmpty": "swap per look.feature.swap (borrows nearest unclaimed script line)"
+    },
+    {
+      "id": "logo",
+      "beat": "CTA",
+      "beatIndex": 17,
+      "aspect": "1:1",
+      "minPx": [
+        256,
+        256
+      ],
+      "fit": "contain",
+      "priority": 2,
+      "optional": true,
+      "onEmpty": "pack icon mark in a filled badge"
+    }
+  ],
+  "determinism": {
+    "randomness": false,
+    "wallClock": false,
+    "seekSafe": true,
+    "clock": "single authored timeline via animations-v2"
+  },
+  "paths": {
+    "html": "templates/margin-notes.html",
+    "config": "configs/margin-notes-pack.js",
+    "storyboard": "fixtures/storyboard.margin-notes.json",
+    "timestamps": "fixtures/timestamps.margin-notes.json",
+    "referenceFrames": "reference-frames/margin-notes/"
+  }
+}

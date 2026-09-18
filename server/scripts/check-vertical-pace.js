@@ -24,9 +24,27 @@ const TPL_DIR = path.join(__dirname, "..", "public", "omelette-templates");
 // exact. A narrated sentence is now at most TWO cuts, each given at least 2s to
 // land, so a short sentence stays whole. The ceiling still catches the failure
 // this gate was built for — a film cutting once every 5s.
-const MAX_BEAT = 3.2;   // seconds, AVERAGE — above this the film reads as a slideshow
-const MIN_BEAT = 1.5;   // below this a beat is a flicker, not a cut
-const MAX_HELD = 4.0;   // a single beat may run longer than the average, but not by much
+//
+// PER-MODE BOUNDS. These three numbers describe NORMAL pace, and testing a film
+// against another mode's bounds is a false result in both directions: a Relaxed
+// film legitimately holds longer than MAX_HELD, and a Very Fast one legitimately
+// cuts below the Normal MAX_BEAT. Run `--pace <mode>` to grade against a
+// different mode; the fixture below is rebuilt to that mode's own cut rate.
+//
+// The average bounds SCALE with the mode's multiplier; the flicker floor does
+// NOT — 1.5s is a property of human vision, not of taste, and it sits just below
+// services/pacing.js BEAT_FLOOR_SEC (1.6s) so a film authored exactly at the
+// floor still passes.
+const pacing = require("../src/services/pacing");
+const PACE_MODE = (() => {
+  const i = process.argv.indexOf("--pace");
+  const raw = i >= 0 ? process.argv[i + 1] : null;
+  return pacing.normalizeMode(raw) || pacing.DEFAULT_MODE;
+})();
+const PACE_MULT = pacing.MODES[PACE_MODE].multiplier;
+const MAX_BEAT = Math.round((3.2 / PACE_MULT) * 100) / 100;   // seconds, AVERAGE — above this the film reads as a slideshow
+const MIN_BEAT = 1.5;                                          // below this a beat is a flicker, not a cut — NEVER scaled
+const MAX_HELD = Math.round((4.0 / PACE_MULT) * 100) / 100;    // a single beat may run longer than the average, but not by much
 
 // Packs whose renderer is a bundled portrait template.
 const VERTICAL = {
@@ -228,7 +246,13 @@ for (const [pack, tplName] of Object.entries(VERTICAL)) {
     let built;
     try {
       built = om.buildComposition({
-        storyboard: { title: "Trello", brand: "Trello", url: "trello.com", durationSec: profTotal, scenes: prof.scenes },
+        // The fixture is BUILT at the mode being graded, not just graded by its
+        // bounds — otherwise `--pace fast` measures a normal-pace cut against
+        // fast bounds and fails a film nobody would ever produce.
+        storyboard: pacing.setPaceOnStoryboard(
+          { title: "Trello", brand: "Trello", url: "trello.com", durationSec: profTotal, scenes: prof.scenes },
+          PACE_MODE === pacing.DEFAULT_MODE ? null : pacing.resolve(PACE_MODE, { durationSec: profTotal, orientation: "vertical" })
+        ),
         dims: { width: 1080, height: 1920, fps: 30 }, framePack: pack,
         assets: Array.from({ length: n }, (_, i) => asset(i)),
       });
@@ -323,5 +347,5 @@ for (const r of rows) {
   for (const p of r.problems) console.log(`    ${p}`);
 }
 console.log(`\n${checked} vertical pack(s) checked, ${failing} failing.`);
-console.log(`rules: beat <= ${MAX_BEAT}s and >= ${MIN_BEAT}s, total == narration, no empty media cards, no bare beats, no truncated stumps.`);
+console.log(`rules (pace ${PACE_MODE}${PACE_MODE === pacing.DEFAULT_MODE ? "" : `, ${PACE_MULT}x`}): beat <= ${MAX_BEAT}s and >= ${MIN_BEAT}s, total == narration, no empty media cards, no bare beats, no truncated stumps.`);
 process.exit(failing ? 1 : 0);

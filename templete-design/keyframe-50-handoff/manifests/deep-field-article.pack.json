@@ -1,0 +1,162 @@
+{
+ "id": "deep-field-article",
+ "name": "Deep Field",
+ "renderer": "filmkit",
+ "orientation": "vertical",
+ "sizePx": [
+  1080,
+  1920
+ ],
+ "cohort": "08 science / explainer",
+ "set": "article-text-50",
+ "globalName": "DeepField",
+ "configFile": "configs/article-pack-08.js",
+ "vibe": "an observatory at night",
+ "form": {
+  "runtimeMs": 129400,
+  "runtimeRangeMs": [
+   90000,
+   150000
+  ],
+  "beats": 18
+ },
+ "readingBudget": {
+  "wpm": 225,
+  "landSeconds": 1.2,
+  "checkedBy": "scripts/lint-reading-budget.js"
+ },
+ "fonts": {
+  "display": "Orbitron",
+  "body": "Lexend",
+  "mono": "Space Mono",
+  "scaleRatio": 1.25,
+  "bundled": true,
+  "fallback": {
+   "devanagari": "Noto Sans Devanagari"
+  }
+ },
+ "palette": {
+  "slots": [
+   "bg",
+   "surface",
+   "rule",
+   "inkMuted",
+   "ink",
+   "accent",
+   "accent2",
+   "accentInk"
+  ],
+  "values": {
+   "bg": "#0b1020",
+   "surface": "#141b30",
+   "rule": "#283354",
+   "inkMuted": "#8b96b8",
+   "ink": "#f2f5fc",
+   "accent": "#5ce1ff",
+   "accent2": "#ff9f5c",
+   "accentInk": "#050810"
+  },
+  "strategy": "luminance ladder; hue-rotatable at each slot’s own lightness"
+ },
+ "tweaks": [
+  {
+   "key": "brand",
+   "type": "text"
+  },
+  {
+   "key": "bg",
+   "type": "color"
+  },
+  {
+   "key": "accent",
+   "type": "color"
+  },
+  {
+   "key": "accent2",
+   "type": "color"
+  },
+  {
+   "key": "motion",
+   "type": "radio",
+   "options": [
+    "Calm",
+    "Lively",
+    "Bouncy"
+   ],
+   "default": "Calm"
+  },
+  {
+   "key": "typeScale",
+   "type": "radio",
+   "options": [
+    "Compact",
+    "Default",
+    "Editorial"
+   ],
+   "default": "Default"
+  }
+ ],
+ "motion": {
+  "titlePreset": "rise",
+  "itemPreset": "pop",
+  "camera": [
+   "zoomOut",
+   "pushR",
+   "drop",
+   "pushL",
+   "zoomIn",
+   "pushU"
+  ],
+  "mechanics": "Scroll: \"feed\", Typing: \"caret\", Ring: \"ring\"",
+  "chrome": false
+ },
+ "world": {
+  "description": "an observatory at night. Overhead: a star field with a slow drift, a nebula wash and a satellite crossing. Margin: the dome slit with a control console. Mid: the telescope tracks a 20s arc, counterweight swinging opposite, finder scope aligned. Floor: the pier, cable runs and a spec board.",
+  "cyclePeriodMs": 20000,
+  "planes": 3,
+  "textSafety": "object confined above y=290, below y=1330, or right of x=820; never crosses the copy column"
+ },
+ "mediaSlots": [
+  {
+   "id": "image",
+   "beat": "Feature",
+   "beatIndex": 10,
+   "aspect": "16:10",
+   "minPx": [
+    640,
+    400
+   ],
+   "fit": "cover",
+   "priority": 1,
+   "optional": true,
+   "onEmpty": "swap per look.feature.swap (borrows nearest unclaimed script line)"
+  },
+  {
+   "id": "logo",
+   "beat": "CTA",
+   "beatIndex": 17,
+   "aspect": "1:1",
+   "minPx": [
+    256,
+    256
+   ],
+   "fit": "contain",
+   "priority": 2,
+   "optional": true,
+   "onEmpty": "pack icon mark in a filled badge"
+  }
+ ],
+ "determinism": {
+  "randomness": false,
+  "wallClock": false,
+  "seekSafe": true,
+  "clock": "single authored timeline via animations-v2"
+ },
+ "paths": {
+  "html": "templates/deep-field.html",
+  "config": "configs/article-pack-08.js",
+  "storyboard": "fixtures/storyboard.deep-field.json",
+  "timestamps": "fixtures/timestamps.deep-field.json",
+  "referenceFrames": "reference-frames/deep-field/"
+ }
+}

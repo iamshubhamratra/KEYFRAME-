@@ -1,0 +1,162 @@
+{
+  "id": "citation-mark",
+  "name": "Citation Mark",
+  "renderer": "filmkit",
+  "orientation": "vertical",
+  "sizePx": [
+    1080,
+    1920
+  ],
+  "cohort": "04 academic / research",
+  "set": "article-text-50",
+  "globalName": "CitationMark",
+  "configFile": "configs/article-pack-04.js",
+  "vibe": "a carrel with the apparatus out",
+  "form": {
+    "runtimeMs": 129400,
+    "runtimeRangeMs": [
+      90000,
+      150000
+    ],
+    "beats": 18
+  },
+  "readingBudget": {
+    "wpm": 225,
+    "landSeconds": 1.2,
+    "checkedBy": "scripts/lint-reading-budget.js"
+  },
+  "fonts": {
+    "display": "Gilda Display",
+    "body": "Mulish",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+      "devanagari": "Noto Serif Devanagari"
+    }
+  },
+  "palette": {
+    "slots": [
+      "bg",
+      "surface",
+      "rule",
+      "inkMuted",
+      "ink",
+      "accent",
+      "accent2",
+      "accentInk"
+    ],
+    "values": {
+      "bg": "#ece8ea",
+      "surface": "#f8f6f7",
+      "rule": "#c8c2c5",
+      "inkMuted": "#6b6568",
+      "ink": "#171316",
+      "accent": "#6b3a6e",
+      "accent2": "#7f8a4a",
+      "accentInk": "#f8f6f7"
+    },
+    "strategy": "luminance ladder; hue-rotatable at each slot’s own lightness"
+  },
+  "tweaks": [
+    {
+      "key": "brand",
+      "type": "text"
+    },
+    {
+      "key": "bg",
+      "type": "color"
+    },
+    {
+      "key": "accent",
+      "type": "color"
+    },
+    {
+      "key": "accent2",
+      "type": "color"
+    },
+    {
+      "key": "motion",
+      "type": "radio",
+      "options": [
+        "Calm",
+        "Lively",
+        "Bouncy"
+      ],
+      "default": "Calm"
+    },
+    {
+      "key": "typeScale",
+      "type": "radio",
+      "options": [
+        "Compact",
+        "Default",
+        "Editorial"
+      ],
+      "default": "Default"
+    }
+  ],
+  "motion": {
+    "titlePreset": "rise",
+    "itemPreset": "rise",
+    "camera": [
+      "pushU",
+      "zoomIn",
+      "pushD",
+      "pushL",
+      "zoomOut",
+      "pushR"
+    ],
+    "mechanics": "Scroll: \"board\", Typing: \"typewriter\", Ring: \"bar\"",
+    "chrome": false
+  },
+  "world": {
+    "description": "a carrel with the apparatus out. Far: a wall of card-index drawers and a lamp. Mid: a column of footnote lines in the lower band with a magnifier travelling down it on a 10s pass — the lines under the lens are drawn larger, and the lens throws a small caustic. Near: card slips.",
+    "cyclePeriodMs": 10000,
+    "planes": 3,
+    "textSafety": "object confined above y=290, below y=1330, or right of x=820; never crosses the copy column"
+  },
+  "mediaSlots": [
+    {
+      "id": "image",
+      "beat": "Feature",
+      "beatIndex": 10,
+      "aspect": "16:10",
+      "minPx": [
+        640,
+        400
+      ],
+      "fit": "cover",
+      "priority": 1,
+      "optional": true,
+      "onEmpty": "swap per look.feature.swap (borrows nearest unclaimed script line)"
+    },
+    {
+      "id": "logo",
+      "beat": "CTA",
+      "beatIndex": 17,
+      "aspect": "1:1",
+      "minPx": [
+        256,
+        256
+      ],
+      "fit": "contain",
+      "priority": 2,
+      "optional": true,
+      "onEmpty": "pack icon mark in a filled badge"
+    }
+  ],
+  "determinism": {
+    "randomness": false,
+    "wallClock": false,
+    "seekSafe": true,
+    "clock": "single authored timeline via animations-v2"
+  },
+  "paths": {
+    "html": "templates/citation-mark.html",
+    "config": "configs/article-pack-04.js",
+    "storyboard": "fixtures/storyboard.citation-mark.json",
+    "timestamps": "fixtures/timestamps.citation-mark.json",
+    "referenceFrames": "reference-frames/citation-mark/"
+  }
+}

@@ -1,0 +1,162 @@
+{
+  "id": "hard-stop",
+  "name": "Hard Stop",
+  "renderer": "filmkit",
+  "orientation": "vertical",
+  "sizePx": [
+    1080,
+    1920
+  ],
+  "cohort": "10 opinion / manifesto",
+  "set": "article-text-50",
+  "globalName": "HardStop",
+  "configFile": "configs/article-pack-10.js",
+  "vibe": "a public square before a rally",
+  "form": {
+    "runtimeMs": 129400,
+    "runtimeRangeMs": [
+      90000,
+      150000
+    ],
+    "beats": 18
+  },
+  "readingBudget": {
+    "wpm": 225,
+    "landSeconds": 1.2,
+    "checkedBy": "scripts/lint-reading-budget.js"
+  },
+  "fonts": {
+    "display": "Bebas Neue",
+    "body": "Chivo",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+      "devanagari": "Noto Sans Devanagari"
+    }
+  },
+  "palette": {
+    "slots": [
+      "bg",
+      "surface",
+      "rule",
+      "inkMuted",
+      "ink",
+      "accent",
+      "accent2",
+      "accentInk"
+    ],
+    "values": {
+      "bg": "#eeecea",
+      "surface": "#fcfbfa",
+      "rule": "#c9c5c1",
+      "inkMuted": "#6b6764",
+      "ink": "#0f0d0d",
+      "accent": "#e02020",
+      "accent2": "#20507a",
+      "accentInk": "#fcfbfa"
+    },
+    "strategy": "luminance ladder; hue-rotatable at each slot’s own lightness"
+  },
+  "tweaks": [
+    {
+      "key": "brand",
+      "type": "text"
+    },
+    {
+      "key": "bg",
+      "type": "color"
+    },
+    {
+      "key": "accent",
+      "type": "color"
+    },
+    {
+      "key": "accent2",
+      "type": "color"
+    },
+    {
+      "key": "motion",
+      "type": "radio",
+      "options": [
+        "Calm",
+        "Lively",
+        "Bouncy"
+      ],
+      "default": "Bouncy"
+    },
+    {
+      "key": "typeScale",
+      "type": "radio",
+      "options": [
+        "Compact",
+        "Default",
+        "Editorial"
+      ],
+      "default": "Default"
+    }
+  ],
+  "motion": {
+    "titlePreset": "slam",
+    "itemPreset": "stamp",
+    "camera": [
+      "slamL",
+      "zoomIn",
+      "slamR",
+      "drop",
+      "pushU",
+      "zoomOut"
+    ],
+    "mechanics": "Scroll: \"board\", Typing: \"caret\", Ring: \"bar\"",
+    "chrome": false
+  },
+  "world": {
+    "description": "a public square before a rally. Overhead: a scaffold of loudspeakers and a taut banner. Margin: the megaphone on its stand, cone pulsing on the beat with rings leaving it and the trigger clicking. Floor: barriers, a crate to stand on, pasted notices. Near: a torn paper scrap.",
+    "cyclePeriodMs": 12000,
+    "planes": 3,
+    "textSafety": "object confined above y=290, below y=1330, or right of x=820; never crosses the copy column"
+  },
+  "mediaSlots": [
+    {
+      "id": "image",
+      "beat": "Feature",
+      "beatIndex": 10,
+      "aspect": "16:10",
+      "minPx": [
+        640,
+        400
+      ],
+      "fit": "cover",
+      "priority": 1,
+      "optional": true,
+      "onEmpty": "swap per look.feature.swap (borrows nearest unclaimed script line)"
+    },
+    {
+      "id": "logo",
+      "beat": "CTA",
+      "beatIndex": 17,
+      "aspect": "1:1",
+      "minPx": [
+        256,
+        256
+      ],
+      "fit": "contain",
+      "priority": 2,
+      "optional": true,
+      "onEmpty": "pack icon mark in a filled badge"
+    }
+  ],
+  "determinism": {
+    "randomness": false,
+    "wallClock": false,
+    "seekSafe": true,
+    "clock": "single authored timeline via animations-v2"
+  },
+  "paths": {
+    "html": "templates/hard-stop.html",
+    "config": "configs/article-pack-10.js",
+    "storyboard": "fixtures/storyboard.hard-stop.json",
+    "timestamps": "fixtures/timestamps.hard-stop.json",
+    "referenceFrames": "reference-frames/hard-stop/"
+  }
+}

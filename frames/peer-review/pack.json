@@ -1,0 +1,61 @@
+{
+  "name": "peer-review",
+  "vibe": "academic / research — the seminar room before anyone arrives. Marcellus over Spectral; a luminance-ladder palette on #eceae4. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#eceae4",
+    "ink": "#15151a",
+    "accent": "#2b3a72",
+    "a2": "#b08a3c"
+  },
+  "fonts": [
+    "Marcellus",
+    "Spectral",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#eceae4",
+    "ink": "#15151a"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#2b3a72",
+      "#b08a3c"
+    ],
+    "extras": [
+      "#6c6a63"
+    ],
+    "emphasisCss": "color:#2b3a72;"
+  },
+  "assets": {
+    "photoMod": "the seminar room before anyone arrives editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "academic",
+      "research"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Marcellus",
+    "body": "Spectral",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-peer-review",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

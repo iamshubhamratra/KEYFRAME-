@@ -1,0 +1,61 @@
+{
+  "name": "bound-volume",
+  "vibe": "literary / essay — a reading room. Castoro over Gelasio; a luminance-ladder palette on #e8ddca. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#e8ddca",
+    "ink": "#191309",
+    "accent": "#8c3a32",
+    "a2": "#b99244"
+  },
+  "fonts": [
+    "Castoro",
+    "Gelasio",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#e8ddca",
+    "ink": "#191309"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#8c3a32",
+      "#b99244"
+    ],
+    "extras": [
+      "#6b5f4c"
+    ],
+    "emphasisCss": "color:#8c3a32;"
+  },
+  "assets": {
+    "photoMod": "a reading room editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "literary",
+      "essay"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Castoro",
+    "body": "Gelasio",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-bound-volume",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

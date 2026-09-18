@@ -1,0 +1,1947 @@
+[
+  {
+    "slug": "star-watch",
+    "vibe": "A public observatory at 11pm. #0b1026 midnight indigo grounds every frame, Prata's high-contrast serif is set in pale #ece9f4, and one warm gold (#ffd97b) is reserved for whatever glows. This is the rare pack whose world runs on all seven beats: 26 stars twinkling on independent sine phases, a five-point constellation whose gold line literally draws itself across the scene, a meteor streaking down-right on a slow loop, and a lilac telescope planted bottom-left with a gold star at the eyepiece. Cards, montage tiles and stat numbers all carry a glow halo, so copy reads lit rather than printed. The camera drifts and pushes at very low magnitude, nothing snaps, and titles settle in on a drowse. Owns a gauge Ring, ticker Scroll, caret Typing pass and side-entering Notify cards. Built for planetariums, science centres, dark-sky tourism and night events.",
+    "category": "Nature",
+    "tags": [
+      "astronomy",
+      "night-sky",
+      "observatory",
+      "dark-mode",
+      "serif-elegance",
+      "glow",
+      "calm",
+      "stargazing"
+    ],
+    "audio": {
+      "mood": "patient nocturnal awe — wide, quiet, faintly ceremonial",
+      "archetype": "editorial",
+      "energy": "low",
+      "tempo": "slow",
+      "style": [
+        "ambient",
+        "cinematic",
+        "sparse-orchestral",
+        "nocturne"
+      ],
+      "musicKeywords": [
+        "celestial ambient",
+        "dark sky drone",
+        "starlit piano",
+        "observatory hush",
+        "slow cosmic swell",
+        "telescope wonder",
+        "astral pad",
+        "midnight stargaze"
+      ],
+      "sfxPalette": {
+        "transition": "light-sweep",
+        "ui": "soft-tap",
+        "reveal": "shimmer",
+        "data": "data-ping",
+        "cta": "logo-rise"
+      },
+      "noVo": {
+        "energyBoost": 0.1,
+        "sfxDensity": "normal",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "long-exposure astrophotography under a dark sky, deep indigo night with warm gold starlight and a single silhouetted figure",
+      "iconStyle": "solid",
+      "keywords": [
+        "night sky",
+        "observatory dome",
+        "telescope",
+        "stargazing",
+        "milky way",
+        "constellation",
+        "dark sky reserve",
+        "astronomy class"
+      ],
+      "prefer": [
+        "photo",
+        "illustration",
+        "screenshot"
+      ]
+    },
+    "frameMd": "Deep-night observatory pack: gold light on midnight indigo, with a starfield that never leaves the frame.\n\n## Palette\n\n| Role | Hex | Used for |\n|---|---|---|\n| midnight | `#0b1026` | primary ground (hook, feature, stats, app) |\n| ink | `#070b1c` | inverted ground (statement, montage, CTA), card fill |\n| paper | `#ece9f4` | all body and title copy |\n| star | `#ffd97b` | highlight, glow halos, CTA button, stat accent |\n| lilac | `#9a8fd0` | kicker, tile labels, telescope, secondary stat |\n\n## Type\n\nDisplay: **Prata** (high-contrast serif) — mixed case, line-height 1.10, titles 92–148px. Body: **Manrope** 400–700. Titles sit low on the hook (top 840) so the sky reads above them, and rise to 250 on working beats.\n\n## World\n\nOn every beat (`world: true` across all seven looks). Four layers: 26 stars scattered on a deterministic lattice, each pulsing opacity 0.25→0.80 on its own phase; a five-point constellation whose gold polyline draws on via stroke-dashoffset across scene progress 0.1→0.7, its nodes lighting in sequence; a white meteor that streaks down-right and fades out on a ~6s loop; and a lilac telescope on a trapezoid tripod anchored bottom-left, with a gold star pinned at the lens. Ambient clock 1.4.\n\n## Motion\n\nCameras: zoomOut → pushU → drop → pushL → zoomIn → pushR, multiplier 5, offset 0. Magnitudes are the gentlest in the batch: rot 0.3, driftY 10, inner 0.3, driftZ 0.035. Titles enter on **drowse** (a slow settle), items on **rise**. Default motion preset is Calm — cuts are soft and never punch.\n\n## Beats\n\n- **Ring / gauge** — a circular dial fills to report a condition (seeing, clarity, capacity).\n- **Scroll / ticker** — a horizontal rail of items marquees past.\n- **Typing / caret** — text types in behind a blinking caret; the deck uses it for timestamped field notes.\n- **Notify / side** — bulletin cards slide in from the edge and stack.\n\n## Best for\n\nPlanetariums, observatories, science museums, dark-sky tourism, astronomy courses, night-time ticketed events, and any brand selling patience and wonder rather than speed."
+  },
+  {
+    "slug": "lift-off",
+    "vibe": "Sunrise ballooning in peach and burnt orange. A #f6d8c3 dawn-paper ground, Chonburi's rounded decorative serif in #33232a, and #d95d39 doing every piece of accent work. The world is literal: a hot-air balloon rises in step with the scene's own progress, white gore lines curving over the envelope, a wicker basket swinging on ropes below, and a burner flame that pulses in place; three white clouds drift past at staggered speeds over a brown hill silhouette with tiny bird ticks. Statement beats cut the world away entirely and go full #9fc4d8 morning blue; the CTA goes solid burnt orange with an ink pill. Camera work is calm — pushes, one small hop, a lazy drift — and everything enters by rising. Owns bar Rings, switch Toggles, fade Morphs and a slider Cursor. For tour operators, resorts, retreats and anything sold at first light.",
+    "category": "Travel",
+    "tags": [
+      "hot-air-balloon",
+      "sunrise",
+      "travel",
+      "warm-pastel",
+      "calm",
+      "outdoor",
+      "tourism",
+      "peach-and-orange"
+    ],
+    "audio": {
+      "mood": "hushed dawn optimism that gradually lifts",
+      "archetype": "warm",
+      "energy": "medium",
+      "tempo": "mid",
+      "style": [
+        "acoustic",
+        "folk",
+        "pastoral",
+        "uplifting"
+      ],
+      "musicKeywords": [
+        "sunrise acoustic",
+        "balloon ascent",
+        "gentle uplift",
+        "morning fingerpicking",
+        "pastoral strings",
+        "floating warmth",
+        "dawn folk",
+        "wide open sky"
+      ],
+      "sfxPalette": {
+        "transition": "whoosh",
+        "ui": "soft-tap",
+        "reveal": "gentle-impact",
+        "data": "counter-tick",
+        "cta": "logo-rise"
+      },
+      "noVo": {
+        "energyBoost": 0.15,
+        "sfxDensity": "normal",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "soft golden-hour photograph at sunrise, peach and pale-blue sky, hot-air balloons drifting over misty fields, warm haze",
+      "iconStyle": "line",
+      "keywords": [
+        "hot air balloon",
+        "sunrise field",
+        "morning mist",
+        "ballooning basket",
+        "golden hour",
+        "countryside",
+        "launch crew",
+        "aerial view"
+      ],
+      "prefer": [
+        "photo",
+        "illustration",
+        "screenshot"
+      ]
+    },
+    "frameMd": "Dawn-flight pack: warm peach paper, burnt-orange accent, and a balloon that climbs with the scene.\n\n## Palette\n\n| Role | Hex | Used for |\n|---|---|---|\n| dawn | `#f6d8c3` | primary ground (hook, feature, stats, app) |\n| balloon | `#d95d39` | highlight, envelope, CTA ground |\n| basket | `#7a5230` | wicker, ropes, hill wash, secondary stat |\n| sky | `#9fc4d8` | statement ground, chip fill |\n| ink | `#33232a` | copy, card fill, CTA button |\n\n## Type\n\nDisplay: **Chonburi** (rounded decorative serif) — line-height 1.10, titles 92–146px. Body: **Prompt** 400–700. Hook title sits at top 330; statements drop to 630 and scale to 146.\n\n## World\n\nShown on hook, feature, stats and app; hidden on statement, montage and CTA so those read as flat colour fields. A balloon at right rises 260px across the first half of the scene while bobbing on `sin(t*0.9)` and swaying on `sin(t*0.5)`: ellipse envelope in the balloon colour, five white gore curves, two rope legs into a rounded wicker basket, and a burner flame circle whose radius pulses on a 5Hz beat. Three white two-lobe clouds scroll left→right at 26/38/50 px-s with falling opacity. A translucent brown hill silhouette closes the bottom, with three small bird ticks above it. Ambient clock 1.6.\n\n## Motion\n\nCameras: pushU → zoomOut → hopU → pushL → drop → pushR, multiplier 5, offset 3. Magnitude rot 0.6, driftY 11, driftZ 0.05. Titles and items both enter on **rise** — the whole pack moves upward. Default motion preset is Calm.\n\n## Beats\n\n- **Ring / bar** — horizontal progress bars fill to show climb, capacity or season progress.\n- **Toggle / switch** — a pre-flight list where switches flick to on, one per item.\n- **Morph / fade** — a single word crossfades through a series (destinations, dates, routes).\n- **Cursor / slider** — a cursor drags a slider to demonstrate a control (the deck uses the burner valve).\n\n## Best for\n\nBalloon and small-aircraft operators, sunrise tours, resorts and lodges, wellness retreats, seasonal outdoor experiences, and any early-morning ritual brand."
+  },
+  {
+    "slug": "endgame",
+    "vibe": "A chess club on a parchment table. #efe6d8 board tone under DM Serif Display, walnut #6b4a2f for the furniture, and a single brick red #b3452e for whatever is under attack. The world draws a translucent 5×5 board into the bottom-right corner and hops a red knight between four squares in a genuine arc, while an analogue clock top-left runs one fast red hand against one slow ink hand and ♟ ♞ ♛ glyphs light in rotation along the base. The montage grid is the only one here with zero tilt — every tile sits square, radius 8, like a printed scoresheet. Statement beats invert to near-black #221c16; the CTA goes full walnut. Titles settle slowly while items flip in like turned cards. Owns a board Scroll, check Toggles, a typewriter Typing pass and split-flap Morphs. For clubs, leagues, courses, bookshops — anything cerebral and unhurried.",
+    "category": "Games",
+    "tags": [
+      "chess",
+      "club-night",
+      "parchment",
+      "walnut",
+      "cerebral",
+      "tournament",
+      "serif",
+      "tabletop"
+    ],
+    "audio": {
+      "mood": "measured and wooden — concentration with a competitive edge underneath",
+      "archetype": "editorial",
+      "energy": "medium",
+      "tempo": "mid",
+      "style": [
+        "chamber",
+        "acoustic-jazz",
+        "minimal-percussion",
+        "period"
+      ],
+      "musicKeywords": [
+        "chess clock tick",
+        "thinking tempo",
+        "wood block rhythm",
+        "muted upright bass",
+        "library jazz",
+        "quiet gambit",
+        "clockwork tension",
+        "brushed snare study"
+      ],
+      "sfxPalette": {
+        "transition": "card-slide",
+        "ui": "ui-click",
+        "reveal": "gentle-impact",
+        "data": "counter-tick",
+        "cta": "success"
+      },
+      "noVo": {
+        "energyBoost": 0.2,
+        "sfxDensity": "rich",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "warm tungsten-lit documentary photograph of a chess club, parchment and walnut tones, shallow depth of field over a board mid-game",
+      "iconStyle": "solid",
+      "keywords": [
+        "chess board",
+        "wooden chess pieces",
+        "chess clock",
+        "club night",
+        "strategy game",
+        "tournament hall",
+        "notation sheet",
+        "hands over board"
+      ],
+      "prefer": [
+        "photo",
+        "illustration",
+        "screenshot"
+      ]
+    },
+    "frameMd": "Chess-club pack: parchment and walnut, one brick-red accent, and a board that plays itself in the corner.\n\n## Palette\n\n| Role | Hex | Used for |\n|---|---|---|\n| board | `#efe6d8` | primary ground (hook, feature, stats, app), tiles, CTA button |\n| ink | `#221c16` | copy, statement/montage ground |\n| walnut | `#6b4a2f` | feature card, kicker, CTA ground, board squares |\n| check | `#b3452e` | highlight, knight, fast clock hand, lead stat |\n| sage | `#7d8c69` | third stat column, cool counterweight |\n\n## Type\n\nDisplay: **DM Serif Display** — line-height 1.08, titles 92–148px. Body: **DM Sans** 400–700. Small radii throughout (card 10, tile 8) keep the whole thing feeling printed rather than app-like.\n\n## World\n\nShown on hook, feature, stats and app. A 5×5 checkerboard of 84px squares fills the bottom-right in 30%-opacity walnut, framed by a heavy 6px walnut border. A knight piece in check red with an ink outline hops a four-square circuit on a 2s loop, each move eased in-out with a 60px sine arc so it genuinely leaps. Top-left, an analogue chess clock: a rounded rect split by a centre line, its left hand sweeping at 2.2 rad/s in check red, its right creeping at 0.4 rad/s in ink. Along the base, ♟ ♞ ♛ set in DM Serif Display brighten one at a time on a 0.7Hz rotation. Ambient clock 1.5.\n\n## Motion\n\nCameras: zoomIn → pushL → drop → pushR → zoomOut → hopU, multiplier 5, offset 2. Magnitude rot 0.5, inner 0.26, driftX 5 — restrained lateral movement. Titles enter on **drowse**, items on **flip**. Default motion preset is Lively, so cuts land with intent even though the frame stays calm. Montage tilts are all `0` — deliberately square.\n\n## Beats\n\n- **Scroll / board** — a standings ladder scrolls as a ranked board.\n- **Toggle / check** — a prep checklist ticks item by item.\n- **Typing / typewriter** — text strikes on character by character; the deck uses it for move annotation.\n- **Morph / flap** — a split-flap word change, the pack's signature reveal.\n\n## Best for\n\nChess and board-game clubs, leagues and tournaments, adult-education courses, bookshops and libraries, strategy and analytics brands, and any membership with a weekly ritual."
+  },
+  {
+    "slug": "fold-studio",
+    "vibe": "An origami studio in washi #f2ede3, with Zilla Slab set in warm #26221c, one vermilion (#d64545) and one deep indigo (#2e4a7d). The world folds: three large translucent triangles squash and stretch on independent sine phases while slowly rotating, so sheets appear to crease open and shut; a small vermilion crane flies across the upper third with wing points that actually flap on a 4Hz beat; four dashed diagonals sit underneath like crease-pattern guides. Corners are near-square everywhere — chips are literal squares, tiles round at 4px, cards at 6 — and the camera carries a 2° skew, the only pack here that tips its own plane like a held sheet. Titles and items both flip in. Owns an assemble DragDrop, a flip Swipe, fade Morphs and switch Toggles. For workshops, classes, stationery, studios and patient handmade work.",
+    "category": "Craft",
+    "tags": [
+      "origami",
+      "paper-craft",
+      "workshop",
+      "slab-serif",
+      "washi",
+      "handmade",
+      "vermilion-indigo",
+      "classes"
+    ],
+    "audio": {
+      "mood": "patient handcraft — precise, unhurried, with a crisp snap at each turn",
+      "archetype": "warm",
+      "energy": "medium",
+      "tempo": "mid",
+      "style": [
+        "minimal",
+        "mallet-percussion",
+        "acoustic",
+        "japanese-influenced"
+      ],
+      "musicKeywords": [
+        "paper craft",
+        "koto pluck",
+        "marimba patience",
+        "folding rhythm",
+        "handmade studio",
+        "soft mallets",
+        "quiet worktable",
+        "crease and turn"
+      ],
+      "sfxPalette": {
+        "transition": "card-slide",
+        "ui": "soft-tap",
+        "reveal": "pop",
+        "data": "counter-tick",
+        "cta": "success"
+      },
+      "noVo": {
+        "energyBoost": 0.2,
+        "sfxDensity": "rich",
+        "ambient": false
+      }
+    },
+    "assets": {
+      "photoMod": "clean daylight studio photograph of paper craft on a washi-toned worktable, crisp shadows, folded forms in vermilion and indigo, hands in frame",
+      "iconStyle": "flat",
+      "keywords": [
+        "origami crane",
+        "folded paper",
+        "paper craft workshop",
+        "washi paper",
+        "craft worktable",
+        "hands folding",
+        "paper sculpture",
+        "stationery"
+      ],
+      "prefer": [
+        "photo",
+        "illustration",
+        "screenshot"
+      ]
+    },
+    "frameMd": "Origami-studio pack: warm paper ground, vermilion and indigo, and a world made of sheets creasing open.\n\n## Palette\n\n| Role | Hex | Used for |\n|---|---|---|\n| washi | `#f2ede3` | primary ground (hook, feature, stats, app), tiles, CTA button |\n| ink | `#26221c` | copy, montage ground |\n| crane | `#d64545` | highlight, the flying crane, statement ground |\n| indigo | `#2e4a7d` | feature card, CTA ground, second chip |\n| kraft | `#b89b6a` | third chip and third stat column |\n\n## Type\n\nDisplay: **Zilla Slab** 500–700 — line-height 1.08, titles 92–148px. Body: **Source Sans 3** 400–700. Radii are deliberately tiny (card 6, tile 4) and chips are `square`, so every container reads as a cut sheet.\n\n## World\n\nShown on hook, feature, stats and app. Three large triangles — crane red top-right, indigo mid-left, kraft bottom-right — each drawn at 50% opacity and animated with `scaleX(0.3 → 1.0)` on its own sine phase plus a slow rotation of `i*40 + t*10`, so they read as sheets folding in and out of plane. A three-polygon vermilion crane travels left→right at 40px/s across y≈230, its upper and lower wing points swinging ±22px on `sin(t*4)`. Beneath it, four faint dashed 45° lines run like crease-pattern guides. Ambient clock 1.6.\n\n## Motion\n\nCameras: pushL → zoomIn → pushD → pushR → hopU → zoomOut, multiplier 5, offset 1. Magnitude rot 0.8, **skew 2** (unique to this pack — the frame tips like a sheet being turned), driftX 6. Titles and items both enter on **flip**. Default motion preset is Lively.\n\n## Beats\n\n- **DragDrop / assemble** — pieces are dragged into position and lock into a finished arrangement.\n- **Swipe / flip** — a card stack flips through options or levels.\n- **Morph / fade** — one word crossfades through a series (this month's model, this term's project).\n- **Toggle / switch** — a setup list where switches flick on one at a time.\n\n## Best for\n\nCraft studios and workshops, class and course providers, stationery and paper goods, galleries and makerspaces, design education, and any brand whose value is precision done slowly."
+  },
+  {
+    "slug": "night-bazaar",
+    "vibe": "A street market after dark. #221430 plum night, #ffb454 lantern amber, and a #59d4a4 mint that takes over the entire CTA frame. Baloo 2 is set uppercase on every single beat — chunky, rounded, shouted. Overhead, two sagging strings of festoon bulbs flicker on independent phases; an amber-and-chalk striped stall awning fills the bottom-right above a dark valance bar; a hanging mint sign swings ±7° on its wire; a thick curl of smoke drifts up the left edge. Feature cards sit deliberately askew on the tilt variant, montage tiles lean up to 3°, and the camera is the busiest in the batch — pushes, hops, and an outright spin at multiplier 7 with the highest ambient clock (1.9). Titles bounce, items pop. Owns a ticker Scroll, click Cursor, pop Notify and bar Rings. For food halls, markets, festivals and nightlife.",
+    "category": "Nightlife",
+    "tags": [
+      "night-market",
+      "street-food",
+      "festival",
+      "lanterns",
+      "rounded-type",
+      "bouncy",
+      "uppercase",
+      "dark-warm"
+    ],
+    "audio": {
+      "mood": "festive after-dark bustle — warm, crowded, generous",
+      "archetype": "groove",
+      "energy": "high",
+      "tempo": "fast",
+      "style": [
+        "world-percussion",
+        "upbeat",
+        "festive",
+        "hand-drums-and-brass"
+      ],
+      "musicKeywords": [
+        "night market groove",
+        "street food percussion",
+        "festival lanterns",
+        "bustling stalls",
+        "tropical shuffle",
+        "dusk carnival",
+        "sizzling energy",
+        "market hand claps"
+      ],
+      "sfxPalette": {
+        "transition": "whoosh",
+        "ui": "ui-click",
+        "reveal": "pop",
+        "data": "data-ping",
+        "cta": "cta-impact"
+      },
+      "noVo": {
+        "energyBoost": 0.3,
+        "sfxDensity": "rich",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "vivid handheld night photograph of a street food market, amber lantern glow against deep plum darkness, steam, bokeh and crowded stalls",
+      "iconStyle": "line",
+      "keywords": [
+        "night market",
+        "street food stall",
+        "festoon lights",
+        "grilled skewers",
+        "market crowd",
+        "hawker centre",
+        "food vendor",
+        "neon signage"
+      ],
+      "prefer": [
+        "photo",
+        "illustration",
+        "screenshot"
+      ]
+    },
+    "frameMd": "Night-market pack: plum darkness lit by lantern amber, with a mint payoff and the loudest motion in the set.\n\n## Palette\n\n| Role | Hex | Used for |\n|---|---|---|\n| plum | `#221430` | primary ground (hook, feature, stats, app), tiles |\n| ink | `#180e24` | montage ground, cards, CTA button |\n| amber | `#ffb454` | highlight, lantern bulbs, statement ground, kicker pill |\n| mint | `#59d4a4` | CTA ground, hanging sign, second chip |\n| chalk | `#f6efe6` | copy, awning stripes, outlines |\n\n## Type\n\nDisplay: **Baloo 2** 500–700 — **uppercase on every beat** (`upper: true` in all seven looks), titles 94–152px. Body: **Be Vietnam Pro** 400–700. Generous radii (card 20, tile 16, pill chips and buttons) keep it soft-edged despite the shouting.\n\n## World\n\nShown on hook, feature, stats and app. Two festoon strings arc across the top on quadratic curves in 25%-opacity chalk, each carrying eight bulbs that sag toward mid-span and flicker independently on `sin(t*3 + i*1.7)` — bulbs are full amber when on, 25% when off. A market-stall awning sits bottom-right: six alternating amber/chalk panels above a dark rounded valance bar. A thick, faint chalk stroke curls up the left side like rising smoke. A mint hanging sign with a dark circular emblem swings ±7° on a wire at `sin(t*1.2)`. Ambient clock 1.9 — the busiest here.\n\n## Motion\n\nCameras: pushR → hopU → zoomIn → pushL → drop → **spin**, multiplier **7**, offset 2. Magnitude rot 1.1, driftX 9, driftY 8. Titles enter on **bounce**, items on **pop**. Default motion preset is Bouncy. Feature cards use the `tilt` treatment and montage tilts run to ±3° — nothing is perfectly level.\n\n## Beats\n\n- **Scroll / ticker** — a marquee rail of tonight's stalls, dishes or acts.\n- **Cursor / click** — a cursor taps through an order or selection.\n- **Notify / pop** — alert cards pop in place rather than sliding.\n- **Ring / bar** — bars fill to show stalls lit, capacity or sell-through.\n\n## Best for\n\nNight markets and food halls, festivals and street fairs, bars and late venues, delivery and ordering apps with a street identity, and any brand whose peak hour is after dark."
+  },
+  {
+    "slug": "dawn-patrol",
+    "vibe": "5:45am on an empty road. #16324f predawn blue, a coral (#ff7955) sun that physically climbs as the scene advances, and hi-vis #ffe14d for anything that matters. Big Shoulders Display runs tall, condensed and uppercase on every beat. The world sweeps a 90px-wide pale road arc across the lower frame with seven yellow lane dashes streaming along it, plants 5K / 4K / 3K distance posts down the right, and animates a pale stick runner whose arms and legs swing on a 6Hz cadence while the whole body bobs. Statement beats go full coral; the CTA goes full hi-vis yellow with an ink block button — the loudest frame in this batch. Titles and items both streak in, and the camera adds a hard 0.34 lateral slide at multiplier 7. Owns a gauge Ring, feed Scroll, check Toggles and roll Morphs. For run clubs, gyms, races and sportswear.",
+    "category": "Sport",
+    "tags": [
+      "running",
+      "dawn",
+      "fitness",
+      "condensed-type",
+      "hi-vis",
+      "club",
+      "uppercase",
+      "high-energy"
+    ],
+    "audio": {
+      "mood": "cold-morning adrenaline — a steady cadence that keeps building toward the sun",
+      "archetype": "hype",
+      "energy": "high",
+      "tempo": "fast",
+      "style": [
+        "electronic",
+        "driving",
+        "motivational",
+        "four-on-the-floor"
+      ],
+      "musicKeywords": [
+        "running cadence",
+        "sunrise drive",
+        "footfall pulse",
+        "training montage",
+        "propulsive synth",
+        "cold morning energy",
+        "road tempo",
+        "first light push"
+      ],
+      "sfxPalette": {
+        "transition": "whoosh",
+        "ui": "ui-click",
+        "reveal": "gentle-impact",
+        "data": "counter-tick",
+        "cta": "cta-impact"
+      },
+      "noVo": {
+        "energyBoost": 0.35,
+        "sfxDensity": "rich",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "cold blue-hour sports photograph of runners on an empty road, low coral sun flare on the horizon, breath vapour and hi-vis reflective detail",
+      "iconStyle": "line",
+      "keywords": [
+        "morning run",
+        "runner silhouette",
+        "sunrise road",
+        "running club",
+        "empty street dawn",
+        "athletic training",
+        "reflective vest",
+        "race start"
+      ],
+      "prefer": [
+        "photo",
+        "screenshot",
+        "illustration"
+      ]
+    },
+    "frameMd": "Early-run pack: predawn blue, a rising coral sun, and hi-vis yellow used like a road sign.\n\n## Palette\n\n| Role | Hex | Used for |\n|---|---|---|\n| predawn | `#16324f` | primary ground (hook, feature, stats, app), tiles |\n| ink | `#0e2032` | montage ground, cards, CTA button |\n| coral | `#ff7955` | the sun, statement ground, kicker tag |\n| hivis | `#ffe14d` | highlight, lane dashes, vest, CTA ground |\n| pale | `#eef4f8` | copy, road arc, runner |\n\n## Type\n\nDisplay: **Big Shoulders Display** 600–800 — tall condensed, **uppercase on every beat**, letter-spacing 0.01em, titles 96–154px. Body: **Red Hat Text** 400–700. Stats beat carries `rule: true`, so numbers are separated by hard rules like a results board.\n\n## World\n\nShown on hook, feature, stats and app. A coral sun disc (r 84) at 78% width rises 140px across the first 70% of the scene, wrapped in a 20px translucent coral halo. A 90px-wide pale stroke arcs across the lower frame as a road horizon, and seven hi-vis dashes travel along it left→right at 0.09 cycles/s, each rotating with the curve and lifting on a sine so they follow the crest. At left, a runner built from pale strokes: a round head, a torso line, and four limbs whose endpoints swing on `sin(t*6)` and `sin(t*6 + 1.5)`, with a hi-vis vest rect on the chest and the whole figure bobbing at 6Hz. Down the right, three distance posts labelled 5K / 4K / 3K in Big Shoulders. Ambient clock 1.9.\n\n## Motion\n\nCameras: pushL → pushU → zoomIn → pushR → hopU → zoomOut, multiplier **7**, offset 0. Magnitude rot 0.6, **slide 0.34** (a hard lateral throw unique to this pack), driftX 10. Titles and items both enter on **streak** — motion-blurred, from the side. Default motion preset is Bouncy.\n\n## Beats\n\n- **Ring / gauge** — a circular dial reports the morning's effort, pace or completion.\n- **Scroll / feed** — a vertical feed of the week's board, sessions or results.\n- **Toggle / check** — a get-out-the-door checklist ticking through.\n- **Morph / roll** — an odometer-style roll swaps the word (today's route, today's distance).\n\n## Best for\n\nRun clubs and cycling groups, gyms and training studios, races and event series, sportswear and wearables, hydration and recovery brands, and any product built on an early-hours habit."
+  },
+  {
+    "slug": "fade-parlor",
+    "vibe": "A barbershop with brass fittings. #1b2838 navy walls, #f4eee4 cream, pole red #c8433b, and a #caa24f gold used only for trim. Abril Fatface stamps titles down hard; Work Sans handles the detail. The world stands a barber's pole at the right whose skewed red-and-navy stripes scroll endlessly upward between gold end caps, opens and closes a pair of steel scissors with gold finger-rings at lower-left on a 2.2Hz rhythm, chases five gold bulbs across the upper-left, and rules a steel shelf line under a comb-wave squiggle. Statement beats flood full pole red with cream copy; the CTA flips to full cream with a navy block button. Cards are near-black navy frames carrying gold and steel outline chips. The camera zooms and drops at a lively but controlled magnitude. Owns a slider Cursor, board Scroll, side Notify and flap Morphs. For barbers, salons, tattoo studios and heritage service trades.",
+    "category": "Grooming",
+    "tags": [
+      "barbershop",
+      "grooming",
+      "heritage",
+      "navy-and-brass",
+      "stamp-type",
+      "service-business",
+      "booking",
+      "dark"
+    ],
+    "audio": {
+      "mood": "brass-and-leather swagger — relaxed, confident, a little vintage",
+      "archetype": "retro",
+      "energy": "medium",
+      "tempo": "mid",
+      "style": [
+        "soul",
+        "funk",
+        "live-band",
+        "vintage"
+      ],
+      "musicKeywords": [
+        "barbershop soul",
+        "dusty funk",
+        "brushed drums",
+        "warm rhodes",
+        "slow strut",
+        "vintage horns",
+        "shop floor groove",
+        "brass swagger"
+      ],
+      "sfxPalette": {
+        "transition": "card-slide",
+        "ui": "ui-click",
+        "reveal": "gentle-impact",
+        "data": "counter-tick",
+        "cta": "success"
+      },
+      "noVo": {
+        "energyBoost": 0.2,
+        "sfxDensity": "normal",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "moody warm-tungsten portrait photography inside a vintage barbershop, navy walls, brass fixtures, cream tile and a chair under a single hanging light",
+      "iconStyle": "line",
+      "keywords": [
+        "barbershop",
+        "barber chair",
+        "fade haircut",
+        "clippers",
+        "barber pole",
+        "straight razor",
+        "grooming products",
+        "shop mirror"
+      ],
+      "prefer": [
+        "photo",
+        "screenshot",
+        "illustration"
+      ]
+    },
+    "frameMd": "Barbershop pack: navy shop walls, brass trim, pole red, and titles that land like a rubber stamp.\n\n## Palette\n\n| Role | Hex | Used for |\n|---|---|---|\n| navy | `#1b2838` | primary ground (hook, feature, stats, app), tiles, CTA button |\n| cream | `#f4eee4` | copy, pole body, CTA ground |\n| red | `#c8433b` | statement ground, pole stripes, second stat |\n| gold | `#caa24f` | highlight, pole caps, bulb chase, chips |\n| steel | `#9fb2c1` | scissors, shelf rules, third stat, second chip |\n\n## Type\n\nDisplay: **Abril Fatface** (fat high-contrast didone) — line-height 1.10, titles 92–146px. Body: **Work Sans** 400–700. Card fill is a deepened `#141e2a`, which is also the montage ground, so the working beats sit one step darker than the shop walls.\n\n## World\n\nShown on hook, feature, stats and app. A barber's pole stands at the right: a 68×260 cream capsule with 30px rounded ends, filled by seven bars skewed −16° that scroll upward at 60px/s and wrap, alternating pole red and 85%-opacity navy, capped top and bottom by gold end pieces. At lower-left, a steel pair of scissors rotated −20°, its two blades opening and closing on `|sin(t*2.2)| * 24` with gold finger-ring circles behind the pivot. Across the upper-left, five gold bulbs chase on `sin(t*2.6 + i)`. Below, a steel shelf rule with a scalloped comb-wave line running above it. Ambient clock 1.7.\n\n## Motion\n\nCameras: zoomIn → pushL → drop → pushR → zoomOut → pushU, multiplier 5, offset 3. Magnitude rot 0.7, inner 0.24 — controlled, no drift terms. Titles enter on **stamp** (a hard downward set), items on **rise**. Default motion preset is Lively.\n\n## Beats\n\n- **Cursor / slider** — a cursor drags a slider through settings; the deck uses it for clipper guard sizes.\n- **Scroll / board** — the service menu scrolls as a priced board.\n- **Notify / side** — front-desk messages slide in from the edge.\n- **Morph / flap** — a split-flap word change for who's in the chair today.\n\n## Best for\n\nBarbers and salons, tattoo and piercing studios, tailors and cobblers, bars and members' clubs, appointment-led service businesses, and any heritage trade selling craft plus a room."
+  },
+  {
+    "slug": "ember-roast",
+    "category": "Food & Drink",
+    "vibe": "A roastery rendered in cocoa brown (#2b1d16) and cream, lit by one burnt-orange ember (#e0662c) with gold as the second voice. Alfa Slab One slams fat slab headlines over a live backdrop: three cream steam curls climb the frame and dissolve as they rise, a gold ring in the lower corner spins eight ember spokes like a cooling tray, and gold beans tumble down end over end. Statement beats kill the world and drop to near-black with gold type; the closing card floods full ember with an ink pill button. The camera pushes and drops on a light 7-8px drift — busy, never frantic. Its mechanics are a roast-curve gauge, a chalkboard price scroll, a switch toggle and a soft cross-fade. Best for roasters, bakeries and distillers — anything sold on smell and heat.",
+    "tags": [
+      "coffee",
+      "roastery",
+      "warm",
+      "small-batch",
+      "slab-serif",
+      "hospitality",
+      "artisan-food",
+      "retail"
+    ],
+    "audio": {
+      "mood": "warm, unhurried craft — a shop that opens before the city does",
+      "archetype": "warm",
+      "energy": "medium",
+      "tempo": "mid",
+      "style": [
+        "brushed drums",
+        "rhodes and upright bass",
+        "tape warmth",
+        "unhurried swing"
+      ],
+      "musicKeywords": [
+        "roastery morning",
+        "brushed shuffle groove",
+        "warm rhodes bed",
+        "upright bass saunter",
+        "tape-warm soul",
+        "cafe bossa loop",
+        "slow caramel groove",
+        "hand-percussion warm"
+      ],
+      "sfxPalette": {
+        "transition": "whoosh",
+        "ui": "soft-tap",
+        "reveal": "gentle-impact",
+        "data": "counter-tick",
+        "cta": "logo-rise"
+      },
+      "noVo": {
+        "energyBoost": 0.15,
+        "sfxDensity": "rich",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "warm tungsten-lit documentary photography of a working roastery — drum doors open, steam in the air, hands in green beans, deep brown shadows with orange spill",
+      "iconStyle": "line",
+      "keywords": [
+        "coffee roasting drum",
+        "green coffee beans",
+        "espresso pour",
+        "cafe counter",
+        "burlap coffee sack",
+        "cupping spoons",
+        "roastery interior",
+        "pour-over steam"
+      ],
+      "prefer": [
+        "photo",
+        "illustration",
+        "screenshot"
+      ]
+    },
+    "frameMd": "Ember Roast — a small-batch roastery in cocoa and cream, lit by one burnt ember.\n\n## Palette\n| Role | Hex | Use |\n|---|---|---|\n| roast | #2b1d16 | primary ground on hook, feature, stats, app |\n| cream | #f3e9dc | body and headline type on dark grounds |\n| ember | #e0662c | the single highlight; floods the CTA ground |\n| gold | #caa465 | second accent — statement highlight, tile labels, beans |\n| ink | #1c110c | statement/montage ground, card fill, type on ember |\n\n## Type\nDisplay: **Alfa Slab One** — one weight, heavy slab, set uppercase at 96–154px. Body: **Karla** 400–800 for kickers, chips, stat labels and subs. Titles run uppercase on every beat.\n\n## World\nAn SVG layer that runs on hook, feature, stats and app beats (off on statement, montage and CTA). Three cream steam curls — S-shaped `q` paths, 14px round-cap stroke — climb 700px from the base on a 0.24Hz loop, fading to zero as they rise. Lower right: a 120r gold ring holding eight ember spokes that rotate at 1.4 rad/s around a solid 30r ember hub — the roaster's cooling tray. Seven gold bean ellipses (12×17) fall the full height on a 0.3Hz loop, each rotating 260° plus a per-index offset. Ambient clock 1.7.\n\n## Motion\nCamera set: pushL → zoomIn → hopU → pushR → zoomOut → drop, at multiplier 5 with offset 1. Magnitudes: 0.9° roll, 7px x-drift, 8px y-drift. Titles enter on **slam**, items on **pop**. Motion default: Lively.\n\n## Beats\n- **Ring — gauge**: a needle sweep to a target percentage; used for roast curve / to-first-crack.\n- **Scroll — board**: a chalkboard list that scrolls a menu of items and prices.\n- **Toggle — switch**: a two-state flip for dialling in a setting.\n- **Morph — fade**: soft cross-dissolve between named options (bags, origins).\n- Plus the shared spine: Hook (ember pill kicker), Statement (ink ground, gold highlight), Feature (tilted ink card, ember/gold pills), Montage (four tiles tilted −2.5° to 2°), Stats, CTA (full ember ground, ink pill button, circular logo).\n\n## Best for\nCoffee roasters, bakeries, distillers, chocolate and spice makers, neighbourhood hospitality — brands whose product is heat, smell and a daily batch."
+  },
+  {
+    "slug": "sole-drop",
+    "category": "Streetwear",
+    "vibe": "Near-black court (#101014) with an acid volt green (#d4f24b) and a flame orange (#ff5a36), set in Archivo Black at its heaviest. The backdrop is a drop-day scoreboard: four volt speed streaks tear across the upper third at different weights, a flame ball bounces the full width on a stitched ink seam, a flame zigzag runs the floor like tread, and a hollow chalk two-digit counter ticks up in the corner. Statement beats invert to a solid volt wall with ink type — a shout, not a caption. The camera is the hardest here: 5° skew, a spin, a drop, bouncy easing, titles streaking in. It owns a keyboard-driven checkout cursor, popping notifications, a swipe carousel and a claim bar. Montage tiles sit dead straight. Best for sneaker drops, streetwear releases and anything with a queue.",
+    "tags": [
+      "sneakers",
+      "drop",
+      "streetwear",
+      "hype",
+      "high-contrast",
+      "acid-green",
+      "sport",
+      "launch"
+    ],
+    "audio": {
+      "mood": "countdown adrenaline — a release with a clock on it",
+      "archetype": "hype",
+      "energy": "high",
+      "tempo": "fast",
+      "style": [
+        "808 sub",
+        "triplet hats",
+        "hard-clipped drums",
+        "riser into drop"
+      ],
+      "musicKeywords": [
+        "hard trap 808",
+        "drill hi-hats",
+        "sneaker drop anthem",
+        "queue tension riser",
+        "clipped snare hype",
+        "street bass drop",
+        "countdown percussion",
+        "gritty rap instrumental"
+      ],
+      "sfxPalette": {
+        "transition": "whoosh",
+        "ui": "ui-click",
+        "reveal": "pop",
+        "data": "counter-tick",
+        "cta": "cta-impact"
+      },
+      "noVo": {
+        "energyBoost": 0.3,
+        "sfxDensity": "normal",
+        "ambient": false
+      }
+    },
+    "assets": {
+      "photoMod": "hard-flash streetwear product photography on concrete and chain-link — sneakers on-foot at night, high contrast, deep blacks with a sharp specular highlight",
+      "iconStyle": "solid",
+      "keywords": [
+        "sneakers on concrete",
+        "shoe box unboxing",
+        "streetwear queue",
+        "basketball court night",
+        "sneaker detail stitching",
+        "chain link fence",
+        "retail drop line"
+      ],
+      "prefer": [
+        "photo",
+        "screenshot",
+        "vector"
+      ]
+    },
+    "frameMd": "Sole Drop — a release-day scoreboard in court black, acid volt and flame.\n\n## Palette\n| Role | Hex | Use |\n|---|---|---|\n| court | #101014 | primary ground on hook, feature, stats, app |\n| volt | #d4f24b | the highlight; floods the statement ground entirely |\n| chalk | #f4f4f2 | type on dark grounds, montage tile lines, the outline counter |\n| flame | #ff5a36 | second accent — statement highlight, chips, the bouncing ball |\n| ink | #0a0a0c | montage and CTA ground, card fill, type on volt |\n\n## Type\nDisplay: **Archivo Black** at 96–158px, uppercase everywhere, letter-spaced 0.01em. Body: **Archivo** 400–700. The world layer reuses Archivo Black for its outline counter, so the type is part of the backdrop.\n\n## World\nRuns on hook, feature, stats, CTA and app. Four volt speed lines sweep left-to-right at 500px/s, stacked 90px apart, each thinner and fainter than the last. A flame zigzag path — twelve 60px segments alternating ±44px — runs across the lower frame like tread. A 30r flame ball travels the full width on a 0.9Hz loop, arcing up to 260px on abs(sin) with an ink stitched cross-seam drawn on it. Top right: a two-digit counter in Archivo Black 150px, stroke-only chalk at 14% opacity, incrementing twice a second. Ambient clock 2.0 — the busiest backdrop in this group.\n\n## Motion\nCamera set: pushR → zoomIn → pushU → spin → pushL → drop, multiplier 7 (top tier), offset 2. Magnitudes: 5° skew, 1.1° roll, 0.17 inner scale, 0.3 slide. Titles enter on **streak**, items on **slam**. Motion default: Bouncy.\n\n## Beats\n- **Cursor — keys**: a keyboard-driven cursor runs a checkout speedrun across a form.\n- **Notify — pop**: notification cards punch in and out (restock, size alerts).\n- **Swipe — swipe**: a horizontal carousel for colourways.\n- **Ring — bar**: a linear claim/stock bar filling to a target, not a dial.\n- Plus the spine: Hook (volt tag kicker), Statement (full volt ground, ink type, flame highlight), Feature (10r framed ink card, square volt/flame/chalk chips), Montage (four tiles, zero tilt, 8px radius), Stats (with rule), CTA (ink ground, volt block button, rounded logo).\n\n## Best for\nSneaker and streetwear drops, limited releases, ticketed launches, esports and sport retail — anything sold against a countdown."
+  },
+  {
+    "slug": "abyss-dive",
+    "category": "Nature",
+    "vibe": "Ink-teal water (#061c26) with bioluminescent cyan (#35d0d6), a coral orange and a sand cream, set in wide Krona One. Uniquely, the world never cuts away — it runs under every single beat including the closer. Hollow cyan bubbles wobble upward the full height, a coral jellyfish drifts on a slow lissajous with a scalloped hem that breathes and three tentacles that undulate, an anglerfish orb pulses on its sand filament, and a depth ladder ticks 100m to 500m down the right edge. Rotation is near zero at 0.4°; the drift is vertical, the title easing is a drowse, and cards, tiles and stat numbers all glow. Mechanics: a sonar terminal typewriter, a dive-log feed, a hull ring and side-docked surface messages. Best for marine and environmental work, research and documentary series.",
+    "tags": [
+      "deep-sea",
+      "research",
+      "documentary",
+      "bioluminescent",
+      "calm",
+      "expedition",
+      "science",
+      "dark-ui"
+    ],
+    "audio": {
+      "mood": "hushed and weightless — instruments listening in the dark",
+      "archetype": "editorial",
+      "energy": "low",
+      "tempo": "slow",
+      "style": [
+        "sub drone",
+        "glassy pads",
+        "hydrophone texture",
+        "long reverb tails"
+      ],
+      "musicKeywords": [
+        "underwater ambient drone",
+        "sonar pulse bed",
+        "submarine documentary score",
+        "hydrophone texture",
+        "glacial pad swell",
+        "abyssal sub bass",
+        "slow cello drift",
+        "weightless suspended tone"
+      ],
+      "sfxPalette": {
+        "transition": "light-sweep",
+        "ui": "soft-tap",
+        "reveal": "shimmer",
+        "data": "data-ping",
+        "cta": "logo-rise"
+      },
+      "noVo": {
+        "energyBoost": 0.05,
+        "sfxDensity": "rich",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "cold submersible-light underwater photography — a single lamp cutting into black water, jellyfish and particulate suspended in a cyan beam, sand-toned instrument panels",
+      "iconStyle": "line",
+      "keywords": [
+        "deep sea submersible",
+        "bioluminescent jellyfish",
+        "research vessel deck",
+        "sonar display",
+        "underwater lamp beam",
+        "ocean trench",
+        "marine biologist",
+        "dive log instruments"
+      ],
+      "prefer": [
+        "photo",
+        "illustration",
+        "screenshot"
+      ]
+    },
+    "frameMd": "Abyss Dive — a research submersible: ink-teal water, one bioluminescent cyan, coral and sand.\n\n## Palette\n| Role | Hex | Use |\n|---|---|---|\n| deep | #061c26 | primary water ground on hook, feature, stats, app |\n| glow | #35d0d6 | bioluminescent highlight — card glow, glowing stat numbers, CTA button |\n| coral | #ff7e67 | second accent — statement highlight, chips, the jellyfish |\n| sand | #e8d9b0 | all type; also the depth-ladder ticks and the lure filament |\n| ink | #04141c | statement, montage and CTA ground; card fill |\n\n## Type\nDisplay: **Krona One** — wide, single-weight geometric, uppercase at 86–146px with a tightened 1.12 line height. Body: **Overpass** 400–700, and the world layer sets its own depth labels in Overpass 22px, so the instrumentation shares the pack's body face.\n\n## World\nThe only pack in this group where `world` is true on **every** beat — the ocean is never cut away. Ten hollow cyan circles (5–15r, 3px stroke) rise the full height at four different rates, each drifting ±20px on sin(t) and fading as they climb. At 72% width a coral jellyfish bobs on a slow lissajous (sin 0.5 / cos 0.4): its 60r bell has a scalloped hem whose four `q` depths breathe on sin(t·2.2)…sin(t·2.4), and three tentacles wave beneath it. At x=170 a cyan orb pulses between 10r and 20r with opacity swinging 0.45–0.95, trailing a sand filament that curls 110px — an anglerfish lure. Down the right edge, five sand tick marks labelled 100m to 500m. Ambient clock 1.4 — the slowest here.\n\n## Motion\nCamera set: zoomOut → pushD → drop → pushL → zoomIn → pushU, multiplier 5, offset 3. Magnitudes: 0.4° roll (near zero), 12px y-drift, 9px x-drift, 0.3 inner scale, 0.04 z-drift. Titles enter on **drowse**, items on **rise**. Motion default: Calm.\n\n## Beats\n- **Ring — ring**: a full circular dial for hull/pressure checks.\n- **Scroll — feed**: a vertically scrolling dive log.\n- **Typing — terminal**: a monospaced sonar readout that types itself in.\n- **Notify — side**: messages dock in from the side edge (surface comms).\n- Plus the spine: Hook (outline cyan kicker), Statement (ink ground, coral highlight, world still running), Feature (26r glow card), Montage (glowing tiles on #07222e, tilts −1.5° to 1.5°), Stats (glowing numbers), CTA (ink ground, glowing cyan button, circular logo).\n\n## Best for\nMarine and environmental organisations, research institutes, documentary and series branding, sensor and telemetry products, and any calm technical story that wants awe over urgency."
+  },
+  {
+    "slug": "hive-and-honey",
+    "category": "Craft",
+    "vibe": "Cream (#fff8e8) and honey yellow (#f7c948) over a dark comb brown, with a leaf green for balance — and the only pack here that never shouts: Fredoka and Quicksand run in sentence case on every beat. The world builds rather than loops: six hexagons pop into a comb on an overshoot ease, one after another, timed to the beat's own progress instead of the clock; two round cartoon bees with white wing glints bank along sine paths; a honey drop swells off a bar and falls, shrinking and fading as it goes. The camera is the gentlest of the set — a soft hop and push at multiplier 3 — and titles bounce. Mechanics: a checklist toggle, a capped-frame gauge, a jar-to-crate drag and a rolling morph. Best for apiaries, farm stands, kids' brands and garden goods.",
+    "tags": [
+      "apiary",
+      "farm",
+      "honey",
+      "rounded",
+      "sentence-case",
+      "wholesome",
+      "kids",
+      "market-stand"
+    ],
+    "audio": {
+      "mood": "sunny, hand-made, small-farm cheerful",
+      "archetype": "warm",
+      "energy": "medium",
+      "tempo": "mid",
+      "style": [
+        "ukulele and whistle",
+        "handclaps",
+        "glockenspiel",
+        "light brush kit"
+      ],
+      "musicKeywords": [
+        "sunny ukulele whistle",
+        "meadow folk skip",
+        "clarinet country hop",
+        "glockenspiel charm",
+        "farm stand banjo",
+        "handclap sunshine",
+        "gentle marimba bounce",
+        "pastoral fiddle lilt"
+      ],
+      "sfxPalette": {
+        "transition": "card-slide",
+        "ui": "pop",
+        "reveal": "pop",
+        "data": "counter-tick",
+        "cta": "success"
+      },
+      "noVo": {
+        "energyBoost": 0.2,
+        "sfxDensity": "normal",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "soft daylight farm photography — a beekeeper in the field, wax comb dripping in warm sun, honey jars on a wooden stand, creamy highlights and shallow depth",
+      "iconStyle": "flat",
+      "keywords": [
+        "beekeeper hive frame",
+        "honeycomb wax",
+        "honey jar pouring",
+        "wildflower meadow",
+        "bee on flower",
+        "farmers market stall",
+        "hive smoker",
+        "orchard blossom"
+      ],
+      "prefer": [
+        "photo",
+        "illustration",
+        "vector"
+      ]
+    },
+    "frameMd": "Hive & Honey — a family apiary in cream and honey, the one pack in this set that stays in sentence case.\n\n## Palette\n| Role | Hex | Use |\n|---|---|---|\n| honey | #f7c948 | highlight; floods the statement ground; kicker and CTA pills |\n| comb | #7a4f16 | dark amber — montage ground, feature card fill, hex strokes |\n| cream | #fff8e8 | primary light ground on hook, feature, stats, app |\n| ink | #3a2c14 | all type on light grounds; the CTA ground |\n| leaf | #8aa34f | balancing green — chips, stat columns |\n\n## Type\nDisplay: **Fredoka** 500–700 at 94–152px. Body: **Quicksand** 400–700. No beat sets `upper` — headlines run sentence case with a tight 1.08 line height, which is what separates this pack visually from every other in the family.\n\n## World\nRuns on hook, feature, stats and app. Right side: six 62r hexagons laid out as a comb cluster, each scaling in on an outBack overshoot keyed to the **scene's own progress** (staggered 0.06 apart) rather than to wall-clock time — so the comb builds once per beat instead of looping. Alternate cells fill honey at 55%, the rest are hollow with a 5px comb stroke. Left of centre, two bees orbit sine paths (26×18 honey ellipses with ink stripes and a white 75% wing highlight), banking up to 24° on cos. Below, a comb bar 150px wide releases a honey droplet that falls 220px on a 0.4Hz loop, shrinking to 60% and fading out. Ambient clock 1.8.\n\n## Motion\nCamera set: hopU → pushR → zoomIn → pushL → drop → zoomOut at multiplier **3** — the softest camera here — with offset 1. Magnitudes: 1.3° roll, 9px x-drift, no vertical drift. Titles enter on **bounce**, items on **pop**. Motion default: Lively.\n\n## Beats\n- **Toggle — check**: a checklist that ticks itself through a hive inspection.\n- **Ring — gauge**: a needle sweep for a capped frame / harvest readiness.\n- **DragDrop — drag**: an object is picked up and dropped into a target (jar to crate).\n- **Morph — roll**: options roll over one another rather than fading.\n- Plus the spine: Hook (honey pill kicker on cream), Statement (full honey ground, cream highlight), Feature (tilted comb card, honey/leaf pills), Montage (comb ground, cream tiles tilted up to 3°), Stats (comb/leaf/ink columns), CTA (dark ink ground, honey pill button, circular logo).\n\n## Best for\nApiaries and farm stands, preserves and pantry goods, garden centres, children's and family brands, wellness and natural skincare — anywhere warmth beats urgency."
+  },
+  {
+    "slug": "groove-crate",
+    "category": "Retro",
+    "vibe": "A back-room record shop: aubergine-black (#17141a), an orange label (#ff8c42), a hot rose and a teal, with Righteous stamping every title. The backdrop is a working deck — a cream-rimmed platter with three groove rings and an orange centre label, its tonearm line sweeping the record at 2.4 rad/s; a second teal arm sways above it carrying a rose headshell; five sleeve spines fan across the top corner, each bobbing out of time; a three-bar orange equaliser jumps at the left. Statement beats flood full rose over wax; the closing card flips to teal. The camera opens on a spin and stays loose — 1.4° roll with a slight skew. Mechanics: a stacked crate scroll, a crossfader slider, a sleeve-flap morph and dropped want-list alerts. Best for record shops, labels, club nights and bars.",
+    "tags": [
+      "vinyl",
+      "record-shop",
+      "retro",
+      "funk",
+      "music-retail",
+      "warm-dark",
+      "nightlife",
+      "collector"
+    ],
+    "audio": {
+      "mood": "dusty crate-dig groove, room-tone and all",
+      "archetype": "groove",
+      "energy": "medium",
+      "tempo": "mid",
+      "style": [
+        "rare-groove drums",
+        "wurlitzer",
+        "clavinet stabs",
+        "vinyl crackle"
+      ],
+      "musicKeywords": [
+        "dusty funk break",
+        "rare groove drums",
+        "wurlitzer shuffle",
+        "clavinet stab loop",
+        "70s soul horns",
+        "boogie bassline",
+        "vinyl crackle groove",
+        "record shop soul"
+      ],
+      "sfxPalette": {
+        "transition": "card-slide",
+        "ui": "ui-click",
+        "reveal": "product-reveal",
+        "data": "counter-tick",
+        "cta": "cta-impact"
+      },
+      "noVo": {
+        "energyBoost": 0.15,
+        "sfxDensity": "normal",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "warm shop-light photography of vinyl culture — hands flipping through crates, a platter and tonearm in shallow focus, faded sleeve spines, slight grain and colour cast",
+      "iconStyle": "line",
+      "keywords": [
+        "vinyl records crate",
+        "turntable tonearm",
+        "album sleeves wall",
+        "record shop interior",
+        "mixer crossfader",
+        "dj hands",
+        "45 rpm single",
+        "listening booth"
+      ],
+      "prefer": [
+        "photo",
+        "illustration",
+        "screenshot"
+      ]
+    },
+    "frameMd": "Groove Crate — a used-and-rare record shop in aubergine black, orange label, rose and teal.\n\n## Palette\n| Role | Hex | Use |\n|---|---|---|\n| wax | #17141a | primary ground on hook, feature, stats, app; type on rose and teal |\n| tang | #ff8c42 | the label orange — highlight, tile labels, the equaliser, the platter centre |\n| rose | #ff5d8f | floods the statement ground; hook kicker outline; headshell |\n| cream | #f2ead9 | all type on dark grounds; the platter rim and tonearm line |\n| teal | #3fb8af | floods the CTA ground; the second tonearm; a chip and stat column |\n\n## Type\nDisplay: **Righteous** — one weight, retro geometric, uppercase at 94–152px. Body: **Mulish** 400–800. Titles enter with a **stamp**, which reads as a sleeve being pressed down.\n\n## World\nRuns on hook, feature, stats and app. Lower left: a turntable at (220, H−430) — a 110r cream outer rim at 35%, three concentric groove rings (92/72/52r) at 22%, a solid 34r orange label, and a cream tonearm line pivoting from the spindle at 2.4 rad/s. At (430, H−560) a second assembly tilts 24° and sways ±6° on a 0.8Hz sine: a 200px teal arm with a 16r teal pivot and an 18×34 rose headshell at its tip. Top right: five 20×190 sleeve spines fanned at 3° increments in tang/rose/teal/cream at 55%, each bobbing on its own 1.3Hz phase. Left edge: a three-bar orange equaliser jumping on abs(sin) at 2.0, 2.7 and 3.4 Hz, opacity rising with height. Ambient clock 1.9.\n\n## Motion\nCamera set opens on **spin** → pushL → zoomIn → pushD → pushR → hopU, multiplier 7, offset 0. Magnitudes: 1.4° roll, 2° skew, 8px x-drift. Titles enter on **stamp**, items on **streak**. Motion default: Lively.\n\n## Beats\n- **Scroll — stack**: records stack up rather than list — new arrivals in the crate.\n- **Cursor — slider**: a crossfader dragged along its throw.\n- **Morph — flap**: options flip like sleeves being flicked forward.\n- **Notify — drop**: want-list alerts drop in from above.\n- Plus the spine: Hook (rose outline kicker), Statement (full rose ground, wax type), Feature (tilted #0f0d11 card, square tang/rose/teal chips), Montage (tiles tilted −3° to 2.5° with tang labels), Stats (tang/rose/teal columns), CTA (teal ground, wax block button, circular logo).\n\n## Best for\nRecord shops and labels, club nights and bars, music festivals and radio, and any brand with a back catalogue worth flipping through."
+  },
+  {
+    "slug": "midnight-ramen",
+    "category": "Nightlife",
+    "vibe": "Eleven at night to four in the morning, in blackened plum (#1a1216), chili red (#e63946), noodle yellow and a jade green, with condensed Kanit and titles that flip in like a menu board turning over. The world is a working counter: three steam plumes climb 800px from the base and thin out as they go, three noodle waves scroll leftward at three different depths and opacities, three hanging menu panels rock ±5° with the middle one lit chili, and a jade chopstick pair leans in from the right edge. Statement beats flood full chili; the last card goes noodle yellow with dark type. The camera drifts vertically — steam logic — under a gentle 0.7° roll. Mechanics: a menu-board scroll, a handwritten chef's note that types itself, a broth-remaining ring and a flip-to-choose swipe. Best for late-night food, bars and street markets.",
+    "tags": [
+      "ramen",
+      "late-night",
+      "noodles",
+      "neon",
+      "street-food",
+      "condensed-type",
+      "counter-service",
+      "asian-kitchen"
+    ],
+    "audio": {
+      "mood": "neon-wet street appetite after midnight",
+      "archetype": "groove",
+      "energy": "medium",
+      "tempo": "mid",
+      "style": [
+        "city pop bass",
+        "lo-fi drums",
+        "muted trumpet",
+        "rain and room tone"
+      ],
+      "musicKeywords": [
+        "city pop night drive",
+        "neon lofi beat",
+        "izakaya shuffle",
+        "night market groove",
+        "rainy street jazz",
+        "smoky muted trumpet",
+        "midnight diner bass",
+        "tokyo alley lofi"
+      ],
+      "sfxPalette": {
+        "transition": "whoosh",
+        "ui": "soft-tap",
+        "reveal": "gentle-impact",
+        "data": "counter-tick",
+        "cta": "cta-impact"
+      },
+      "noVo": {
+        "energyBoost": 0.25,
+        "sfxDensity": "rich",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "neon-lit night photography of a counter kitchen — steam off a bowl backlit by red signage, wet pavement reflections, chef hands under a hood lamp, deep shadow with saturated red and amber",
+      "iconStyle": "line",
+      "keywords": [
+        "ramen bowl steam",
+        "noodle counter seats",
+        "neon alley signage",
+        "chef plating night",
+        "hanging menu board",
+        "chopsticks broth",
+        "street food stall",
+        "kitchen pass hood light"
+      ],
+      "prefer": [
+        "photo",
+        "illustration",
+        "screenshot"
+      ]
+    },
+    "frameMd": "Midnight Ramen — a counter-only shop from 11pm to 4am: blackened plum, chili, noodle yellow, jade.\n\n## Palette\n| Role | Hex | Use |\n|---|---|---|\n| broth | #1a1216 | primary night ground on hook, feature, stats, app; type on the yellow CTA |\n| chili | #e63946 | highlight; floods the statement ground; the lit centre menu panel |\n| noodle | #f4c95d | second accent — statement highlight, tile labels, the noodle waves; floods the CTA |\n| steam | #f2e8dc | all type on dark grounds; the steam plumes and panel outlines |\n| jade | #57a773 | balancing green — chips, a stat column, the chopstick pair |\n\n## Type\nDisplay: **Kanit** 500–700, condensed, uppercase at 94–152px, letter-spaced 0.02em. Body: **Sarabun** 400–700. Titles enter on **flip** — a menu board turning over.\n\n## World\nRuns on hook, feature, stats and app. Three steam plumes rise 800px from the base at the centre, drawn as 16px round-cap `q` curves in steam at 20% falling to zero. Three noodle waves — 12px serpentine paths in noodle yellow at 40/31/22% — scroll left at 90px/s on a 320px repeat, stacked 46px apart along the lower frame. Across the top, three 140×150 hanging panels rock ±5° on 1.1Hz sines, the middle one filled chili at 75% and the outer two a dark plum, each carrying a 26r steam-stroked ring. Right edge: two 260px jade chopstick lines at −32°, swaying ±4°. Ambient clock 1.7.\n\n## Motion\nCamera set: pushU → zoomIn → pushL → drop → pushR → zoomOut, multiplier 5, offset 2. Magnitudes: 0.7° roll and 9px **vertical** drift only — the frame rises like the steam does. Titles enter on **flip**, items on **rise**. Motion default: Lively.\n\n## Beats\n- **Scroll — board**: tonight's menu scrolls as a board of dishes and prices.\n- **Typing — hand**: a handwritten chef's note writes itself out on screen.\n- **Ring — ring**: a full circular dial for broth remaining.\n- **Swipe — flip**: bowls flip past one at a time to be chosen.\n- Plus the spine: Hook (chili tag kicker), Statement (full chili ground, noodle highlight), Feature (16r framed #120d11 card, chili/jade/noodle pills), Montage (12r tiles tilted −2° to 2°), Stats (chili/noodle/jade columns), CTA (full noodle-yellow ground, broth block button, rounded logo).\n\n## Best for\nLate-night restaurants and bars, noodle and street-food brands, night markets, delivery after dark, and any counter-service business whose hours are the story."
+  },
+  {
+    "slug": "kickflip-co",
+    "category": "Sport",
+    "vibe": "Sun-bleached concrete (#d8d4cc) under charcoal ink and one traffic-cone orange (#ff4d00), with Bungee stacking headlines like a hand-painted park sign. A single ink line draws the coping of a bowl right across the frame, and an orange board actually skates it — rolling wall to wall, popping about 200px into the air at each lip and whipping a full 160° rotation before it lands, wobbling 8° through the flat. An orange grind-spark scrawl sits in the top corner; pebbles scatter on the deck. Everything slams: titles and items share the hardest entrance, the camera spins and skews 6°, montage tiles cock up to 4°. Statements go black, the closer floods orange. Mechanics: a combo-line key cursor, a rebuild progress bar, park alerts and a rolling morph. Best for skate shops, DIY builds and scrappy local sport.",
+    "tags": [
+      "skateboarding",
+      "concrete",
+      "diy",
+      "punk",
+      "orange",
+      "youth",
+      "park",
+      "local-brand"
+    ],
+    "audio": {
+      "mood": "scrappy and loud — a session that starts before anyone stretches",
+      "archetype": "hype",
+      "energy": "high",
+      "tempo": "fast",
+      "style": [
+        "fuzz guitar",
+        "fast punk kit",
+        "surf reverb",
+        "gang shouts"
+      ],
+      "musicKeywords": [
+        "skate punk riff",
+        "garage surf fuzz",
+        "fast punk drums",
+        "90s skate video",
+        "distorted power chords",
+        "hardcore gang shout",
+        "reverb surf guitar",
+        "scrappy garage rock"
+      ],
+      "sfxPalette": {
+        "transition": "whoosh",
+        "ui": "ui-click",
+        "reveal": "pop",
+        "data": "counter-tick",
+        "cta": "cta-impact"
+      },
+      "noVo": {
+        "energyBoost": 0.35,
+        "sfxDensity": "rich",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "harsh-daylight fisheye skate photography on grey concrete — a board mid-rotation against a flat sky, scuffed coping and grip tape, blown highlights and hard shadows",
+      "iconStyle": "solid",
+      "keywords": [
+        "skateboard mid air",
+        "concrete bowl coping",
+        "skate park daylight",
+        "grip tape deck",
+        "deck graphics wall",
+        "street spot ledge",
+        "skate shop counter",
+        "scuffed wheels"
+      ],
+      "prefer": [
+        "photo",
+        "vector",
+        "screenshot"
+      ]
+    },
+    "frameMd": "Kickflip Co — a DIY park and shop in sun-bleached concrete, ink and one traffic-cone orange.\n\n## Palette\n| Role | Hex | Use |\n|---|---|---|\n| crete | #d8d4cc | primary concrete ground on hook, feature, stats, app; type on ink and orange |\n| ink | #191a1c | statement and montage ground, card fill, all type on concrete |\n| safety | #ff4d00 | the highlight; floods the CTA ground; the board, the spark scrawl |\n| sky | #4fa3d1 | cool relief — a chip and a stat column, used sparingly |\n| grip | #2e2e30 | charcoal montage tile fill, a shade off ink |\n\n## Type\nDisplay: **Bungee** — a single stacked-sign weight, uppercase at 92–150px, letter-spaced 0.01em. Body: **Rubik** 400–700. It reads as painted park signage rather than editorial type.\n\n## World\nRuns on hook, feature, stats and app. One 12px ink path at 35% draws the full bowl profile — a 260r transition on each side joined by a 520px flat — across the whole frame. A skateboard (104×16 orange deck, two 10r ink wheels) travels that profile on a 0.9Hz sine: in the flat it holds an 8° wobble, and inside the outer 15% of each wall it launches up to ~200px and spins through 160°, so the trick lands where the coping is. Top right: an orange grind-spark scrawl — a five-segment 10px zigzag at −8° with a stray 7r dot. Four ink pebbles at 30% scatter across the deck. Ambient clock 2.0 — tied for the busiest here.\n\n## Motion\nCamera set: pushL → spin → pushR → zoomIn → hopU → drop, multiplier 7, offset 1. Magnitudes: **6° skew** and **1.5° roll** — the hardest of this group — plus 0.16 inner scale. Titles and items **both** enter on slam, so nothing eases in. Motion default: Bouncy.\n\n## Beats\n- **Cursor — keys**: a keyboard-driven cursor walks a combo line through a sequence.\n- **Ring — bar**: a linear progress bar for a build/rebuild, not a dial.\n- **Notify — pop**: park alerts punch in and out.\n- **Morph — roll**: the trick of the week rolls over from one option to the next.\n- Plus the spine: Hook (ink tag kicker on concrete), Statement (ink ground, concrete type, orange highlight), Feature (8r framed ink card, square safety/ink/sky chips), Montage (grip tiles at 6r tilted −4° to 3° — the loosest tilts here), Stats (with rule), CTA (full safety-orange ground, ink block button, rounded logo).\n\n## Best for\nSkate, BMX and surf shops, DIY park and community builds, youth sport and clubs, hardware and workwear, scrappy local brands that would rather look built than designed."
+  },
+  {
+    "slug": "kiln-and-clay",
+    "category": "Craft",
+    "vibe": "An oatmeal studio wall (#f1e9df) with terracotta (#b85c38) doing all the shouting, Gloock's high-contrast serif over Schibsted Grotesk captions. The backdrop is a wheel session in progress: a rust vessel that literally grows taller and wider across the beat while its shadow ellipse wobbles under it, a celadon zig-zag firing curve drawing itself in beneath the label \"cone 6 · 1222°C\", and three outlined pots standing on a drying shelf. Its signature beat is the drag — a chip pointer-dragged into a dashed slot that locks in with a tick — and its typing beat sets glaze notes word by word in tilted display serif. The camera drowses: slow 34px lifts, a half-degree roll, six unhurried moves. For ceramics studios, craft classes, makers' markets and any brand that wants patience to read as quality.",
+    "tags": [
+      "ceramics",
+      "handmade",
+      "workshop",
+      "warm neutral",
+      "serif display",
+      "calm camera",
+      "terracotta",
+      "artisan"
+    ],
+    "audio": {
+      "mood": "unhurried and hand-made — a warm room where one thing is being shaped slowly and nothing is rushing it",
+      "archetype": "warm",
+      "energy": "low",
+      "tempo": "slow",
+      "style": [
+        "acoustic",
+        "organic percussion",
+        "spacious",
+        "analog warmth"
+      ],
+      "musicKeywords": [
+        "potters wheel",
+        "clay studio",
+        "kiln fire",
+        "handmade craft",
+        "slow marimba",
+        "nylon guitar folk",
+        "warm hand percussion",
+        "unhurried acoustic",
+        "earthenware calm"
+      ],
+      "sfxPalette": {
+        "transition": "card-slide",
+        "ui": "soft-tap",
+        "reveal": "gentle-impact",
+        "data": "counter-tick",
+        "cta": "success"
+      },
+      "noVo": {
+        "energyBoost": 0.15,
+        "sfxDensity": "rich",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "warm natural-light documentary photograph of a working pottery studio, terracotta and oatmeal tones, clay-dusted hands, shallow depth of field",
+      "iconStyle": "line",
+      "keywords": [
+        "pottery wheel",
+        "wet clay",
+        "kiln shelf",
+        "glazed bowl",
+        "ceramic studio",
+        "potter hands",
+        "drying rack",
+        "craft workshop"
+      ],
+      "prefer": [
+        "photo",
+        "illustration",
+        "screenshot"
+      ]
+    },
+    "frameMd": "A wheel-thrown ceramics studio rendered as a film: oatmeal paper, terracotta shout, and a pot that grows while you read.\n\n## Palette\n\n| Role | Hex | Use |\n|---|---|---|\n| studio | `#f1e9df` | the default ground — warm oatmeal paper |\n| rust | `#b85c38` | terracotta accent; full-bleed on Statement, pill on CTA |\n| char | `#33302c` | fired-dark type colour and the Montage/CTA ground |\n| slip | `#7e93a0` | grey-blue kicker, third chip |\n| glaze | `#5f9e94` | celadon — firing curve, chips, stat column |\n\nDesk surround `#2a2622`. App-beat card `#faf5ec`.\n\n## Type\n\nDisplay: **Gloock**, a high-contrast modern serif — titles run 92–150px at 1.08 line, sentence case (no uppercase flag on any beat), so the serif keeps its lowercase shapes. Body: **Schibsted Grotesk** at 400–700 for kickers, chips, tile labels and the world's `cone 6 · 1222°C` annotation.\n\n## World\n\nShown on Hook, Feature, Stats and App. Three layers:\n1. **The wheel** (lower right): a wobbling shadow ellipse plus a rust vessel silhouette whose profile is driven by `seg(p, 0.1, 0.7)` — it climbs ~110px taller and scales from 0.72× to 1.0× wide across the beat, with a translucent rim ellipse floating at the new lip.\n2. **The firing curve**: a ten-step zig-zag stroked 6px in 50% glaze, revealed by dash-offset over `seg(p, 0.1, 0.8)`, captioned in Schibsted Grotesk.\n3. **The drying shelf**: three outlined pot profiles of increasing height along the bottom, 40% char, 5px stroke.\n\nAmbient clock 1.5 — slow but not still.\n\n## Motion\n\nCams `zoomOut · pushL · hopU · pushR · zoomIn · drop`, cadence multiplier 5, offset 2. Magnitudes are gentle: rot 0.5, driftY 7, ease-in 0.27. Titles use **drowse** (opacity ramp + 34px lift on outQuint); items **rise**. Default motion setting: Calm.\n\n## Beats\n\n- **DragDrop `drag`** — a chip is pointer-dragged along an arc into a dashed slot, the slot fills, a tick badge pops and a \"locked in\" line rises. Loading the kiln.\n- **Ring `ring`** — full circular dial, 12 tick marks, 30px stroke sweeping to the target with the number centred.\n- **Typing `hand`** — words land one at a time, each rotated ±2.6° and scaling down from 1.35×, every fourth word in rust; ends with an underlined stamp. Reads as handwriting, not typing.\n- **Scroll `stack`** — a deck where the top card lifts, rotates −5° and clears out, with an n/total counter.\n\n## Best for\n\nCeramics and craft studios, class and workshop signups, makers' markets, artisan homeware, slow-craft food brands, anything where \"made by hand, over time\" is the pitch."
+  },
+  {
+    "slug": "crux-climb",
+    "category": "Sport",
+    "vibe": "Slate gym wall (#2c2f33) under safety-orange holds (#ff8a3d) and crash-pad blue (#3d7bff), everything set in Anton and locked to uppercase on every single beat. The backdrop is a bouldering wall: an overhang wedge cut out of the right edge, five differently-shaped holds popping in on an outBack stagger — jug, crimp, triangle sloper, oval pinch, curved pinch — a chalk puff blooming and fading off one of them, a rope swaying on a sine into an orange belay ring, and four blue pads laid down the floor. It owns the keycap mechanic: oversized keys physically depress with a squashing bottom edge, then a payoff word pops. Camera cadence 7 with 0.9 roll and 3° skew — the hardest-cutting pack in this set, defaulting to Bouncy. Built for climbing gyms, training apps, session trackers and any brand that sells effort.",
+    "tags": [
+      "climbing",
+      "gym",
+      "high energy",
+      "uppercase",
+      "condensed display",
+      "bouncy",
+      "dark slate",
+      "orange accent"
+    ],
+    "audio": {
+      "mood": "kinetic and chalky — a gym floor at peak session, drums and effort, tension into release",
+      "archetype": "hype",
+      "energy": "high",
+      "tempo": "fast",
+      "style": [
+        "percussive",
+        "gritty",
+        "driving drums",
+        "distorted bass"
+      ],
+      "musicKeywords": [
+        "gym floor drums",
+        "bouldering session",
+        "send train energy",
+        "gritty breakbeat",
+        "chalk dust punk",
+        "training montage rock",
+        "crux tension build",
+        "spotter groove",
+        "overhang push"
+      ],
+      "sfxPalette": {
+        "transition": "whoosh",
+        "ui": "ui-click",
+        "reveal": "pop",
+        "data": "counter-tick",
+        "cta": "cta-impact"
+      },
+      "noVo": {
+        "energyBoost": 0.25,
+        "sfxDensity": "rich",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "high-contrast indoor climbing gym photograph, orange resin holds on slate overhang walls, chalk dust caught in raking light, mid-move athlete",
+      "iconStyle": "solid",
+      "keywords": [
+        "bouldering wall",
+        "climbing holds",
+        "chalk bag",
+        "crash pad",
+        "overhang route",
+        "belay rope",
+        "gym session",
+        "climbing shoes"
+      ],
+      "prefer": [
+        "photo",
+        "screenshot",
+        "illustration"
+      ]
+    },
+    "frameMd": "A bouldering gym at full session: slate wall, orange holds, uppercase Anton, and the hardest camera in the library.\n\n## Palette\n\n| Role | Hex | Use |\n|---|---|---|\n| wall | `#2c2f33` | slate gym wall — Hook/Feature/Stats ground |\n| hold | `#ff8a3d` | safety orange — every highlight, full-bleed CTA |\n| pad | `#3d7bff` | crash-pad blue — second chip, second stat column |\n| chalk | `#f2f2ee` | type colour on dark |\n| ink | `#191b1e` | Statement/Montage ground, CTA button |\n\nDesk surround `#1c1e21`. App-beat card `#25282d`.\n\n## Type\n\nDisplay: **Anton**, condensed and heavy, 94–152px, `letterSpacing 0.02em`. Body: **Asap** 400–700. Every beat sets `upper: true` — Hook, Statement, Feature, Montage, Stats, CTA and App all shout; there is no lowercase in this pack.\n\n## World\n\nShown on Hook, Feature, Stats and App:\n1. **The overhang** — a five-point polygon cut from the right edge in 50% ink, leaning in over the frame.\n2. **Five holds** — each pops with `ease.outBack` on a staggered `seg`, each a different path (dome jug, square crimp, triangle sloper, oval pinch, curved pinch), rotated `i * 24°`, coloured hold/pad/chalk/hold/pad at 0.9 opacity.\n3. **Chalk puff** — a circle expanding from r10 to r54 while fading, looping on `(t * 0.5) % 1`.\n4. **The rope** — a 560px quadratic sway driven by `sin(t * 1.1)`, terminating in an orange belay ring that swings with it.\n5. **Four crash pads** — blue rounded rects along the floor at alternating opacity.\n\nAmbient clock 1.9 — the busiest backdrop of its cohort.\n\n## Motion\n\nCams `pushU · zoomIn · pushL · hopU · pushR · drop`, cadence multiplier **7**, offset 1. Magnitudes are the roughest here: rot 0.9, skew 3, driftY 9. Titles use **slam** (scale 2.2 → 1 with a −4° unwind on outExpo); items **pop**. Default motion setting: **Bouncy** (energy 1.35).\n\n## Beats\n\n- **Cursor `keys`** — oversized keycaps press in sequence, bottom border collapsing 8px → 2px as each is struck, then a payoff line pops. Logging a send.\n- **Toggle `dial`** — a 2×2 grid of rotary dials, needles swinging from −120° to their setting with a ring that lights when it lands.\n- **Notify `drop`** — cards fall from above with a ±3° rotate, brand-initial avatar, \"now\" timestamp.\n- **Swipe `swipe`** — a three-card deck; the top card flies 1100px right at 18° while a stamp badge fades in at 12°, the next card promoting up behind it.\n\n## Best for\n\nClimbing and bouldering gyms, training and session-log apps, fitness challenges, outdoor gear, sports memberships, anything whose story is repeated attempts and a payoff."
+  },
+  {
+    "slug": "harbor-light",
+    "category": "Travel",
+    "vibe": "Deep hull navy (#1f3242) lit by a single amber lamp (#e8b23c), with pale sea-mist (#dfe6e2) flipping in for the statements and iron-oxide rust (#a34a2c) taking the CTA. Cormorant Garamond sets the titles thin and old-world over Nunito Sans. The world is a working lighthouse: two opposing amber wedges actually rotate at 40°/sec out of a lamp housing above a tapering tower with two rust bands, three wave lines scroll left at 46, 64 and 82px/sec in falling opacity, two gull silhouettes drift on lazy sine paths, and a fog band breathes up and down across the water. Its typewriter beat strikes each glyph at its own tilt and jitter, and its feed beat scrolls a real list with a live scrollbar. Slow zoomOut/drop camera, 0.4 roll. For coastal stays, heritage sites, harbour towns and quiet-luxury hospitality.",
+    "tags": [
+      "maritime",
+      "coastal",
+      "heritage",
+      "navy and amber",
+      "garamond serif",
+      "calm camera",
+      "fog",
+      "nocturnal"
+    ],
+    "audio": {
+      "mood": "patient and nocturnal — a beam turning through fog, water underneath, nobody in a hurry",
+      "archetype": "editorial",
+      "energy": "low",
+      "tempo": "slow",
+      "style": [
+        "cinematic",
+        "string swells",
+        "sparse piano",
+        "maritime folk"
+      ],
+      "musicKeywords": [
+        "foghorn ambience",
+        "lighthouse night",
+        "sea swell strings",
+        "maritime folk",
+        "slow accordion tide",
+        "harbor bell",
+        "nocturne piano",
+        "coastal drone",
+        "keeper's watch"
+      ],
+      "sfxPalette": {
+        "transition": "light-sweep",
+        "ui": "soft-tap",
+        "reveal": "shimmer",
+        "data": "counter-tick",
+        "cta": "logo-rise"
+      },
+      "noVo": {
+        "energyBoost": 0.1,
+        "sfxDensity": "rich",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "moody coastal photograph at blue hour, fog rolling past amber lamplight, weathered lighthouse and harbour detail, muted sea-green and navy tones",
+      "iconStyle": "line",
+      "keywords": [
+        "lighthouse",
+        "harbour at dusk",
+        "sea fog",
+        "fresnel lens",
+        "rocky coastline",
+        "gulls in flight",
+        "keeper cottage",
+        "calm swell"
+      ],
+      "prefer": [
+        "photo",
+        "illustration",
+        "screenshot"
+      ]
+    },
+    "frameMd": "A working lighthouse: navy hull, one amber lamp turning on a real clock, fog and gulls underneath.\n\n## Palette\n\n| Role | Hex | Use |\n|---|---|---|\n| hull | `#1f3242` | deep navy — Hook/Feature/Stats/App ground |\n| lamp | `#e8b23c` | amber — the beam, kickers, highlights |\n| fog | `#dfe6e2` | pale sea-mist — type on navy, Statement/Montage ground |\n| rust | `#a34a2c` | iron oxide — tower bands, Statement highlight, full-bleed CTA |\n| ink | `#16232c` | card interiors and type on fog |\n\nDesk surround `#1a262e`. App-beat card `#283d50`.\n\n## Type\n\nDisplay: **Cormorant Garamond** 500–700, an old-style serif with fine strokes, 92–146px at 1.06 line — tight enough that two lines read as one plate. Body: **Nunito Sans** 400–700 for kickers, outline chips, tile labels. No uppercase flag anywhere; the serif keeps its lowercase.\n\n## World\n\nShown on Hook, Feature, Stats and App:\n1. **The beam** — two opposing 420×180 wedge polygons at 18% lamp, rotating on `(t * 40) % 360`, so the sweep is on a real clock rather than a scene progress bar.\n2. **The tower** — a rounded amber lamp housing over a tapering 160px trunk in 85% fog, crossed by two 12px rust bands.\n3. **Three wave lines** — six-segment quadratic ripples stroked 8px at 0.30/0.23/0.16 fog, each translating left on its own speed (46, 64, 82 px/sec) and wrapping at 400px.\n4. **Two gulls** — double-arc \"m\" strokes drifting on `sin(t*0.7)` / `cos(t*0.8)`.\n5. **Fog band** — a full-width 90px rect at 10% fog, rising and falling on a 0.5Hz sine.\n\nAmbient clock 1.5.\n\n## Motion\n\nCams `zoomOut · pushL · drop · pushU · zoomIn · pushR`, cadence multiplier 5, offset 0. Magnitudes: rot 0.4, driftY 8, driftZ 0.04, ease-in 0.28 — the frame never snaps, it settles. Titles use **drowse**; items **rise**. Default motion setting: Calm.\n\n## Beats\n\n- **Typing `typewriter`** — each glyph is its own inline-block, rotated by `((i % 5) - 2) * 1.3°` and nudged vertically, so the line arrives struck rather than rendered; closes with a double-ruled stamp at −2°.\n- **Ring `ring`** — full circular dial, 12 ticks, sweeping 30px stroke, number and label centred.\n- **Scroll `feed`** — a genuinely scrolling 840px list with numbered rows and a live scrollbar thumb whose height and position track the travel.\n- **Morph `fade`** — one word crossfades into the next with a 0.92 → 1.0 scale, no flip, no roll.\n\n## Best for\n\nCoastal stays and heritage properties, harbour towns and tourism boards, maritime museums, quiet-luxury hospitality, long-form editorial brands, anything selling continuity and stillness."
+  },
+  {
+    "slug": "forest-floor",
+    "category": "Nature",
+    "vibe": "Deep moss (#3e4a36) and bark brown (#5c4633) grounds under cream (#efe9db) type, with chanterelle gold (#d9913b) and fern green (#7ba05b) doing the picking. Vollkorn's sturdy bookish serif over Alegreya Sans. The world grows in front of you: five mushrooms pop up from the ground line on staggered outBack scales — cream stems, domed caps alternating gold and fern, wart dots on the even ones — nine spore motes drift through the mid-frame on crossed sine and cosine loops, and a fern frond on the left sways ±10° with four pairs of pinnae. Its own beats are the basket checklist that ticks itself off and the drag that carries a find into a slot. Springier than its calm siblings: rise titles, pop items, a 0.7 roll and a pushD in the camera set. For foraging walks, nature schools, botanical brands and outdoor guiding.",
+    "tags": [
+      "foraging",
+      "woodland",
+      "botanical",
+      "earth tones",
+      "bookish serif",
+      "checklist",
+      "autumn",
+      "guided walks"
+    ],
+    "audio": {
+      "mood": "curious and damp — walking under a canopy, noticing things, a little whimsy without cuteness",
+      "archetype": "warm",
+      "energy": "medium",
+      "tempo": "mid",
+      "style": [
+        "folk",
+        "fingerpicked strings",
+        "woodwind",
+        "field-recording texture"
+      ],
+      "musicKeywords": [
+        "damp woodland",
+        "foraging walk",
+        "fingerpicked banjo",
+        "moss and fern",
+        "autumn woods folk",
+        "pastoral clarinet",
+        "understory drone",
+        "woodwind whimsy",
+        "canopy morning"
+      ],
+      "sfxPalette": {
+        "transition": "whoosh",
+        "ui": "soft-tap",
+        "reveal": "pop",
+        "data": "counter-tick",
+        "cta": "success"
+      },
+      "noVo": {
+        "energyBoost": 0.15,
+        "sfxDensity": "rich",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "soft-focus woodland macro photograph, damp forest floor at golden hour, moss ferns and chanterelles, dappled light through canopy",
+      "iconStyle": "duotone",
+      "keywords": [
+        "forest floor",
+        "chanterelle",
+        "fern frond",
+        "moss log",
+        "foraging basket",
+        "woodland canopy",
+        "fallen leaves",
+        "mushroom cap"
+      ],
+      "prefer": [
+        "photo",
+        "illustration",
+        "screenshot"
+      ]
+    },
+    "frameMd": "The floor of a wood, growing while you watch: moss and bark grounds, chanterelle gold, mushrooms that pop up on cue.\n\n## Palette\n\n| Role | Hex | Use |\n|---|---|---|\n| moss | `#3e4a36` | deep forest green — Hook/Feature/Stats/App ground |\n| cream | `#efe9db` | type on dark, mushroom stems, tile labels |\n| chant | `#d9913b` | chanterelle gold — highlight, alternate caps, full-bleed CTA |\n| bark | `#5c4633` | Statement/Montage ground, Feature card interior |\n| fern | `#7ba05b` | bright green — frond, alternate caps, chips, stat column |\n\nDesk surround `#2a3324`. App-beat card `#47543e`.\n\n## Type\n\nDisplay: **Vollkorn** 500–700, a sturdy bookish serif with heavy slabs — 92–146px at 1.08 line, sentence case throughout. Body: **Alegreya Sans** 400–700 for pill kickers, chips and tile labels. The pairing reads as a well-set field guide rather than a poster.\n\n## World\n\nShown on Hook, Feature, Stats and App:\n1. **Five mushrooms** — each scales up with `ease.outBack` on a staggered `seg` from a ground line at `H-180` (alternating −40), built from a rounded cream stem 60–112px tall plus a domed cap arc, cap colour alternating chanterelle and fern, with a cream wart dot on every even one.\n2. **Nine spores** — 3–5px cream circles at 28% drifting on `sin(t*0.6 + i)` horizontally and `cos(t*0.5 + i*1.3)` vertically across the mid-frame.\n3. **The fern** — a 170px frond on the left swaying ±10° on `sin(t*0.9)`, with four pairs of pinnae stroked 5px in fern green.\n\nAmbient clock 1.6.\n\n## Motion\n\nCams `zoomIn · pushD · hopU · pushL · zoomOut · pushR`, cadence multiplier 5, offset 2 — note **pushD**, which drops the frame in from above like ducking under a branch. Magnitudes: rot 0.7, driftY 8. Titles use **rise** and items **pop**, which makes this the springiest of the calm-defaulting packs.\n\n## Beats\n\n- **Toggle `check`** — checklist rows with 52px square boxes; each ticks on in sequence with the check scaling in on outBack and the label brightening. The basket check.\n- **DragDrop `drag`** — a chip is pointer-dragged along an arc into a dashed slot, which fills and confirms with a tick badge.\n- **Morph `roll`** — the word rolls upward like a slot reel inside a 190px clipped window, with a progress bar underneath.\n- **Notify `pop`** — pill-shaped notes pop in at staggered left offsets and small rotations, each led by a coloured dot.\n\n## Best for\n\nForaging and mushroom walks, nature schools and guiding, botanical and herbal brands, national parks and trails, seasonal produce, outdoor education — anything where the pitch is \"look closer.\""
+  },
+  {
+    "slug": "steep-ritual",
+    "category": "Food & Drink",
+    "vibe": "Porcelain (#f7f3ea) with matcha green (#7a8c4f) and clay-pot brown (#8c5a3c), gold (#c9a24b) reserved for the montage and CTA. Marcellus — a Roman inscriptional serif — over Mukta. The world is a tea room: a matcha bowl sits on its own shadow while a double-S steam ribbon rises and settles on |sin(0.7t)|, three tea-plant stems sway with node ticks and small leaves, and a gold circle draws itself around the character 茶 set in Marcellus. It owns the half-circle gauge — a needle sweeping five ticks to water temperature — plus a dotted-leader menu board where prices flicker in. This is the slowest pack here by construction: camera cadence 3, roll 0.3, ambient clock 1.4, drift 4×6. For tea houses, ceremony and wellness, quiet retail and any brand whose product is the pause.",
+    "tags": [
+      "tea house",
+      "ceremony",
+      "minimal",
+      "porcelain",
+      "inscriptional serif",
+      "slowest camera",
+      "matcha",
+      "wellness"
+    ],
+    "audio": {
+      "mood": "quiet and ceremonial — a room where the loudest sound is water, and every note is given space",
+      "archetype": "luxury",
+      "energy": "low",
+      "tempo": "slow",
+      "style": [
+        "minimal",
+        "sparse acoustic",
+        "air and breath",
+        "long decay"
+      ],
+      "musicKeywords": [
+        "shakuhachi breath",
+        "koto sparse",
+        "tea ceremony",
+        "kettle hush",
+        "bamboo wind",
+        "felt piano minimal",
+        "porcelain stillness",
+        "incense drone",
+        "water pour"
+      ],
+      "sfxPalette": {
+        "transition": "card-slide",
+        "ui": "soft-tap",
+        "reveal": "shimmer",
+        "data": "data-ping",
+        "cta": "logo-rise"
+      },
+      "noVo": {
+        "energyBoost": 0.05,
+        "sfxDensity": "normal",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "still minimal tea-house photograph in soft window light, porcelain cups and matcha green, steam rising, shallow depth of field, generous negative space",
+      "iconStyle": "line",
+      "keywords": [
+        "tea ceremony",
+        "matcha bowl",
+        "clay teapot",
+        "loose leaf",
+        "steam rising",
+        "tea house interior",
+        "porcelain cup",
+        "tea plantation"
+      ],
+      "prefer": [
+        "photo",
+        "illustration",
+        "screenshot"
+      ]
+    },
+    "frameMd": "A tea house held very still: porcelain ground, matcha bowl with a breathing steam ribbon, and the gentlest camera in the library.\n\n## Palette\n\n| Role | Hex | Use |\n|---|---|---|\n| porcelain | `#f7f3ea` | the default ground and type on dark |\n| matcha | `#7a8c4f` | highlight, full-bleed Statement, bowl, CTA pill |\n| pot | `#8c5a3c` | clay brown — kicker, second chip, second stat column |\n| ink | `#2b2b26` | type on porcelain, Montage/CTA ground, card interiors |\n| gold | `#c9a24b` | Montage and CTA highlight, the drawn circle |\n\nDesk surround `#22221c`. App-beat card `#fdfaf3`.\n\n## Type\n\nDisplay: **Marcellus**, a Roman inscriptional serif with flared stems — 90–146px at 1.10 line, the loosest leading in this cohort. Body: **Mukta** 400–700. The world's 茶 glyph is also set in Marcellus so the backdrop and the titles share a hand.\n\n## World\n\nShown on Hook, Feature, Stats and App:\n1. **The bowl** — a half-ellipse in matcha on a 25% ink shadow ellipse, with a double-S steam path stroked 9px at 25% ink that rises and settles by `-|sin(t * 0.7)| * 12`.\n2. **Three tea stems** — 620px matcha verticals at 14/11/8px width and falling opacity, each rotating ±8° about its base on `sin(t*0.8 + i*0.9)`, with three node ticks and two small leaves per stem.\n3. **The seal** — a 60px gold circle drawn by dash-offset over `seg(p, 0.1, 0.8)` around 茶 at 55% ink.\n\nAmbient clock 1.4 — the calmest world clock here.\n\n## Motion\n\nCams `zoomOut · pushU · zoomIn · pushL · drop · pushR`, cadence multiplier **3** (fewest moves per film in this cohort), offset 1. Magnitudes are the smallest across the set: rot 0.3, driftX 4, driftY 6, driftZ 0.03, ease-in 0.30. Titles use **drowse**; items **rise**. Default motion setting: Calm.\n\n## Beats\n\n- **Ring `gauge`** — a 180° speedometer arc with five tick lines and a needle rotating from −90°, number sitting below the dial. Water temperature, not a percentage.\n- **Toggle `switch`** — pill switches flip one at a time, knob sliding 48px on outBack, label brightening as each lands. Ceremony steps.\n- **Typing `caret`** — text types against a 10px matcha left rule with a blinking pipe, closing on a boxed stamp rotated −3°.\n- **Scroll `board`** — a menu board: numbered mono chips, name, dotted leader, and a price that flickers in on a short sine before settling.\n\n## Best for\n\nTea houses and specialty coffee, ceremony and wellness studios, spa and retreat, quiet-luxury retail, skincare and apothecary, meditation apps — anything selling deceleration."
+  },
+  {
+    "slug": "darkroom-dev",
+    "category": "Retro",
+    "vibe": "Near-black warm room (#14100e) lit only by a pulsing safelight red (#e2483d), with amber (#e89b3c) in the film frames and warm grey (#cfc9bd) type. Syne's wide geometric display over Hanken Grotesk, uppercase on every beat. The world is a working darkroom: a red bulb breathing r40±6 inside a soft 110px halo, a drying line strung across the frame with three film strips clipped to it swaying ±5°, each with sprocket holes down its edge and five amber frames inside, and a developing tray at the floor where concentric ripples expand and fade in safelight red. Cards and stat numbers actually glow. Its terminal beat runs a real console with a block caret and a green OK, and its Ring is a graduated cylinder that fills — the chemistry, not a chart. Machete titles slash in at −6° skew, cadence 7, Lively not bouncy. Best of this set for dark product UI.",
+    "tags": [
+      "analog film",
+      "darkroom",
+      "dark ui",
+      "glow",
+      "uppercase",
+      "terminal",
+      "safelight red",
+      "photography"
+    ],
+    "audio": {
+      "mood": "patient and mechanical under red light — a process running at its own pace, warm tape underneath",
+      "archetype": "retro",
+      "energy": "medium",
+      "tempo": "mid",
+      "style": [
+        "analog synth",
+        "tape saturation",
+        "motorik pulse",
+        "dub delay"
+      ],
+      "musicKeywords": [
+        "analog tape hum",
+        "darkroom drone",
+        "patient arpeggio",
+        "grainy synth pulse",
+        "safelight groove",
+        "chemical bath ambience",
+        "vintage tape loop",
+        "slow motorik",
+        "enlarger click"
+      ],
+      "sfxPalette": {
+        "transition": "light-sweep",
+        "ui": "ui-click",
+        "reveal": "shimmer",
+        "data": "data-ping",
+        "cta": "cta-impact"
+      },
+      "noVo": {
+        "energyBoost": 0.2,
+        "sfxDensity": "rich",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "high-ISO photograph under red safelight, hanging film strips and developer trays, deep shadow with amber highlights, visible grain",
+      "iconStyle": "line",
+      "keywords": [
+        "darkroom safelight",
+        "film negatives",
+        "contact sheet",
+        "enlarger",
+        "developer tray",
+        "35mm roll",
+        "drying line",
+        "black and white print"
+      ],
+      "prefer": [
+        "screenshot",
+        "photo",
+        "illustration"
+      ]
+    },
+    "frameMd": "A community film lab under safelight: near-black ground, one red bulb breathing, negatives drying on the line, everything glowing slightly.\n\n## Palette\n\n| Role | Hex | Use |\n|---|---|---|\n| dark | `#14100e` | warm near-black — Hook/Feature/Stats/App ground |\n| safe | `#e2483d` | safelight red — the bulb, glows, full-bleed Statement, CTA button |\n| amber | `#e89b3c` | film-frame tint, Feature highlight, tile labels |\n| grey | `#cfc9bd` | warm grey type on black |\n| paper | `#f4f1ea` | print white — type on the red Statement, button label |\n\nMontage and CTA drop to `#0d0a09`. Desk surround `#0e0b0a`. App-beat card `#1c1512`.\n\n## Type\n\nDisplay: **Syne** 600–800, wide and geometric with unusual joins — 92–148px, `upper: true` on every beat. Body: **Hanken Grotesk** 400–700. The terminal beat swaps to the kit's mono face on a `#10131a` panel.\n\n## World\n\nShown on Hook, Feature, Stats, **CTA** and App — this is the only pack in its cohort that keeps the world running under the call to action.\n1. **The safelight** — a red disc at `r 40 + sin(t*1.6)*6` inside a 110px halo at 12%, both pulsing together.\n2. **The drying line** — a 3px grey rule at 40% strung across the upper frame.\n3. **Three film strips** — clipped to the line, each swaying ±5° on `sin(t*0.9 + i*1.2)`, built from a 68px translucent body, five amber-tinted frames at 14%, and eight sprocket-hole rects punched down the edge.\n4. **The tray** — an outlined 300×70 rect at the floor where two concentric ellipses expand and fade in safelight red on a `(t * 0.6) % 1` loop.\n\nCard treatment is `glow` (safelight bloom), montage tiles glow, and Stats sets `glowNums`. Ambient clock 1.6.\n\n## Motion\n\nCams `zoomIn · pushL · pushD · zoomOut · pushR · hopU`, cadence multiplier **7**, offset 3 — cuts often, but the world under it barely moves, which is the point. Magnitudes: rot 0.6, ease-in 0.22. Titles use **machete** (slide in 90px from the left with a −6° skew unwinding on outQuint); items **rise**. Default motion setting: **Lively** (energy 1.0) — not Bouncy.\n\n## Beats\n\n- **Typing `terminal`** — a dark console panel bordered in safelight red, `# prompt`, `$` line typed in mono with a block caret, closing on a green `› OK`.\n- **Ring `bar`** — a vertical graduated cylinder with a spout and 25/50/75 marks that fills from the bottom, number and label beside it. Developer chemistry as the chart.\n- **Scroll `stack`** — contact-sheet cards flicking off the top of the deck with an n/total counter.\n- **Notify `side`** — cards slide in 460px from the right, each with a draining progress bar along its base.\n\n## Best for\n\nFilm labs and photography schools, camera and lens brands, dark-mode product UI and developer tools, creative studios, analog-leaning subscription products, anything where slowness is a feature and the screen is the hero."
+  },
+  {
+    "slug": "velvet-brass",
+    "category": "Nightlife",
+    "vibe": "Plum-velvet room (#2a1420) with brass (#cf9b52) catching the light, cream (#f0e8da) type and a teal stage wash (#34687a) as the second chip. Yeseva One's high-contrast decorative serif over geometric Jost. The world is a basement jazz club: a brass-tinted spotlight triangle sweeping side to side on a 0.6Hz sine with its elliptical pool of light tracking underneath, four cream musical notes rising and fading on a slow 0.16Hz cycle, and along the whole bottom edge a fourteen-key piano keyboard where one white key lights up at a time on a marching index, black keys laid over it. Its signature mechanic is the front-of-house slider — a pointer dragging a level to a big percentage, then flipping a switch. Brass-glow feature cards, drowse titles, calm 0.5-roll camera. For live venues, bars, festivals and any brand that trades in evenings.",
+    "tags": [
+      "jazz club",
+      "nightlife",
+      "live music",
+      "brass and plum",
+      "decorative serif",
+      "spotlight",
+      "after hours",
+      "venue"
+    ],
+    "audio": {
+      "mood": "smoky and unhurried swing — a room after ten, brushes on a snare, brass carrying the melody",
+      "archetype": "groove",
+      "energy": "medium",
+      "tempo": "mid",
+      "style": [
+        "jazz",
+        "brushed drums",
+        "upright bass",
+        "warm brass"
+      ],
+      "musicKeywords": [
+        "brushed drums jazz",
+        "upright bass walk",
+        "smoky saxophone",
+        "late night piano trio",
+        "basement club swing",
+        "muted trumpet ballad",
+        "vibraphone lounge",
+        "after hours jazz",
+        "second set groove"
+      ],
+      "sfxPalette": {
+        "transition": "light-sweep",
+        "ui": "soft-tap",
+        "reveal": "shimmer",
+        "data": "counter-tick",
+        "cta": "logo-rise"
+      },
+      "noVo": {
+        "energyBoost": 0.15,
+        "sfxDensity": "normal",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "low-light jazz club photograph, brass instruments glinting under a single spotlight, plum shadow and warm highlight, visible film grain",
+      "iconStyle": "solid",
+      "keywords": [
+        "jazz club",
+        "brass horn",
+        "spotlight stage",
+        "upright bass",
+        "bar at night",
+        "live set",
+        "piano keys",
+        "velvet booth"
+      ],
+      "prefer": [
+        "photo",
+        "screenshot",
+        "illustration"
+      ]
+    },
+    "frameMd": "A basement jazz room after ten: plum velvet, brass highlight, a spotlight that actually sweeps and a keyboard playing itself along the floor.\n\n## Palette\n\n| Role | Hex | Use |\n|---|---|---|\n| velvet | `#2a1420` | plum room — Hook/Feature/Stats/App ground |\n| brass | `#cf9b52` | the highlight everywhere, spotlight tint, full-bleed CTA |\n| cream | `#f0e8da` | type on dark, floating notes, piano keys |\n| blue | `#34687a` | teal stage wash — second chip, second stat column |\n| ink | `#1c0e16` | Statement/Montage ground, card interiors, CTA button |\n\nDesk surround `#170b12`. App-beat card `#38202c`.\n\n## Type\n\nDisplay: **Yeseva One**, a high-contrast decorative serif with swelling terminals — 92–148px at 1.08 line, sentence case throughout so the ornament reads. Body: **Jost** 400–700, geometric and cool, deliberately unlike the display face.\n\n## World\n\nShown on Hook, Feature, Stats and App:\n1. **The spotlight** — a triangle from the top-right edge at 12% brass whose base sweeps ±160px on `sin(t * 0.6)`, with a 180×30 elliptical pool at 18% brass tracking the same phase on the floor.\n2. **Four notes** — cream oval heads rotated −18° with 40px stems (flags on the even ones) rising 900px over a `(t * 0.16 + i * 0.26) % 1` cycle, fading as they climb.\n3. **The keyboard** — 14 white keys across the full bottom edge at 12% cream, with the key at `floor(t * 2.2) % 14` lighting to 35%, and 10 black keys in 90% ink laid over it. The floor plays a scale on its own clock.\n4. **Smoke** — a faint 10px cream curl at 14% on the left.\n\nFeature cards use the `glow` treatment with a brass bloom. Ambient clock 1.6.\n\n## Motion\n\nCams `zoomIn · pushL · drop · zoomOut · pushR · pushU`, cadence multiplier 5, offset 1. Magnitudes: rot 0.5, driftX 6, ease-in 0.26 — a lateral drift, like moving between tables. Titles use **drowse**; items **rise**. Default motion setting: Calm.\n\n## Beats\n\n- **Cursor `slider`** — a pointer drags a knob 560px along a track while a large tabular percentage counts up, then flips a switch below it. Front of house.\n- **Scroll `stack`** — set-list cards lift, rotate −5° and clear off the top with an n/total counter.\n- **Notify `drop`** — cards fall in from above with a small rotate, led by a brass square carrying the venue initial and a \"now\" timestamp.\n- **Morph `fade`** — the headliner name crossfades into the next with a 0.92 → 1.0 scale and a progress bar beneath.\n\n## Best for\n\nLive music venues and jazz clubs, cocktail bars and supper clubs, festivals and ticketed nights, hotels with a bar programme, record labels — anything sold by its evenings."
+  },
+  {
+    "slug": "scoop-lab",
+    "vibe": "A pastel parlor built on pink-cream #fdeff2 with a hot pink #f25d9c that takes whole frames — the Statement beat flips to solid pink with cream type at 150px, and the CTA drops to plum-ink #33202a. Titan One's fat rounded caps sit over Varela Round. The backdrop is a candy counter: twelve sprinkles in pink, mint and waffle-tan tumble down the frame end over end while a waffle cone with a pink scoop, a white gloss dot and a scalloped drip edge parks in the upper right — a pink drip falls from it on a loop and a cherry bobs on a green stem. Titles land with an outBack bounce, items pop, and the camera hops, spins and drops with the widest drift here. Freezer levels read on a thermometer tube; lab switches flip; the tasting counter gets clicked through.",
+    "category": "Food & Drink",
+    "tags": [
+      "ice cream",
+      "pastel",
+      "playful",
+      "bouncy",
+      "dessert",
+      "small-batch",
+      "kids",
+      "candy"
+    ],
+    "audio": {
+      "mood": "sugar-rush bubblegum bounce with a soft-serve swirl",
+      "archetype": "groove",
+      "energy": "high",
+      "tempo": "fast",
+      "style": [
+        "bouncy",
+        "sweet",
+        "kinetic",
+        "toy-box"
+      ],
+      "musicKeywords": [
+        "ice cream truck",
+        "bubblegum pop",
+        "soda fountain",
+        "marimba bounce",
+        "sprinkle skip",
+        "kazoo groove",
+        "parlor ragtime",
+        "summer scoop",
+        "whipped funk"
+      ],
+      "sfxPalette": {
+        "transition": "card-slide",
+        "ui": "pop",
+        "reveal": "pop",
+        "data": "counter-tick",
+        "cta": "success"
+      },
+      "noVo": {
+        "energyBoost": 0.18,
+        "sfxDensity": "rich",
+        "ambient": false
+      }
+    },
+    "assets": {
+      "photoMod": "bright pastel-lit studio photograph of ice cream, cones and sprinkles on pink surfaces, soft even shadows",
+      "iconStyle": "line",
+      "keywords": [
+        "ice cream cone",
+        "sprinkles",
+        "soft serve",
+        "gelato counter",
+        "waffle cone",
+        "pastel dessert",
+        "cherry topping",
+        "summer treat"
+      ],
+      "prefer": [
+        "photo",
+        "illustration",
+        "screenshot"
+      ]
+    },
+    "frameMd": "A pastel ice-cream lab where the sprinkles never stop falling and the type bounces like a scoop landing.\n\n## Palette\n| Role | Hex |\n|---|---|\n| cream | #fdeff2 |\n| pink | #f25d9c |\n| mint | #59c9a5 |\n| waffle | #d9a05b |\n| ink | #33202a |\n\nGrounds are cream for Hook, Feature, Stats and App. Statement takes the whole frame in pink with cream type; Montage goes mint with cream tiles; CTA goes ink with a pink pill button and a circular logo lockup.\n\n## Type\nDisplay is Titan One — a single-weight fat rounded poster face, set uppercase at 126px on the Hook and 150px on Statement, line-height 1.05. Body and all chips, labels and stat captions are Varela Round, so nothing in the frame has a sharp corner.\n\n## World\nTwelve sprinkle rectangles (16x6, r3) in pink, mint and waffle fall the full height of the frame at three different speeds, each tumbling continuously through 320 degrees. In the upper right sits a waffle cone: a tan triangle scored with a lattice of 25%-ink strokes, a pink scoop circle above it with a white 50% gloss dot, a scalloped ten-stroke drip edge, one pink drip that detaches and falls 130px shrinking as it goes, and a cherry that bobs on a sin(2.4t) bounce with a green stem. Three concentric pink outline rings at the left breathe on offset sines. Ambient clock runs at 2.0 — the busiest backdrop in its family. World is on for Hook, Feature, Stats and App; Statement, Montage and CTA go clean.\n\n## Motion\nCameras cycle hopU, spin, pushR, zoomIn, pushL, drop at multiplier 3 with offset 2. Magnitudes: rot 1.5, driftX 10, driftY 9 — the loosest hand-held float in the set. Titles use the bounce preset (outBack, 110px lift plus a 0.7-to-1 scale); items use pop. Cuts land hard because the entry overshoots.\n\n## Beats\n- **Ring (bar)** — a vertical thermometer tube with a spouted cap and quarter ticks fills to the target; used for freezer and stock checks.\n- **Toggle (switch)** — sliding switch rows that flip on in sequence.\n- **Cursor (click)** — a pointer walks the frame and clicks a target, for counter and menu walkthroughs.\n- **Swipe (swipe)** — cards push sideways with dot pagination.\n\n## Best for\nIce-cream and dessert shops, candy and soda brands, kids and family products, small-batch DTC food, summer promos, anything that wants to read as sweet and hand-made rather than premium."
+  },
+  {
+    "slug": "pedal-express",
+    "vibe": "Asphalt #26282c and chalk with a courier orange #ff6b35 and a cyan #4cc9f0 reserved for the fast parts. Passion One's condensed poster caps slice in from the right on a twelve-degree skew, and the camera carries skew 5 — the hardest lean in this set. Behind the type the city scrolls: five dark building slabs parallax past at 620px a second, a chalk bicycle wheel spins its six spokes at the lower left around an orange hub, cyan speed streaks flick across, and an orange dashed route crawls down the frame from a cyan waypoint dot. Its beats are dispatch furniture — a needle gauge for ETA, three marquee rails of display type running in opposite directions for the feed, right-edge alerts with draining timer bars, and a chip dragged into a rack slot. The CTA flips to full cyan.",
+    "category": "Logistics",
+    "tags": [
+      "courier",
+      "urban",
+      "delivery",
+      "speed",
+      "dispatch",
+      "street",
+      "condensed",
+      "logistics"
+    ],
+    "audio": {
+      "mood": "rush-hour street sprint, chain tension and horns",
+      "archetype": "hype",
+      "energy": "high",
+      "tempo": "fast",
+      "style": [
+        "driving",
+        "urban",
+        "percussive",
+        "gritty"
+      ],
+      "musicKeywords": [
+        "bike messenger",
+        "urban chase",
+        "breakbeat courier",
+        "traffic funk",
+        "delivery sprint",
+        "city bassline",
+        "spoke rattle",
+        "dispatch groove",
+        "asphalt drums"
+      ],
+      "sfxPalette": {
+        "transition": "whoosh",
+        "ui": "ui-click",
+        "reveal": "gentle-impact",
+        "data": "counter-tick",
+        "cta": "cta-impact"
+      },
+      "noVo": {
+        "energyBoost": 0.22,
+        "sfxDensity": "rich",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "high-contrast street photograph of cyclists cutting through city traffic at dusk, motion blur, wet asphalt reflections",
+      "iconStyle": "line",
+      "keywords": [
+        "bike courier",
+        "city street",
+        "delivery bag",
+        "bicycle wheel",
+        "urban traffic",
+        "messenger",
+        "asphalt night",
+        "route map"
+      ],
+      "prefer": [
+        "photo",
+        "screenshot",
+        "vector"
+      ]
+    },
+    "frameMd": "A courier film: the city scrolls past, the wheel never stops, and every line of type arrives leaning forward.\n\n## Palette\n| Role | Hex |\n|---|---|\n| asphalt | #26282c |\n| orange | #ff6b35 |\n| cyan | #4cc9f0 |\n| chalk | #f2f4f6 |\n| ink | #1b1d21 |\n\nAsphalt is the working ground. Statement takes the whole frame in orange with ink type at 152px. Montage drops to ink with asphalt tiles and cyan labels. CTA inverts to full cyan with a hard ink block button.\n\n## Type\nDisplay is Passion One — condensed heavy poster caps, 128px on Hook, tracked slightly open at 0.01em, always uppercase. Body is Fira Sans across four weights, doing chips, ledger rows and notification copy.\n\n## World\nFive dark ink slabs of varying width and height scroll right-to-left at 620px/s at three depths (0.55 down to 0.31 alpha) — a skyline in parallax. At the lower left a chalk bicycle wheel: a 9px-stroke rim of radius 90, six spokes rotating at 5 rad/s, and a solid orange hub. Three cyan speed streaks of decreasing weight dart across at 900px/s on a 500px loop. An orange dashed route (22/16 dash, offset crawling at -90t) curves down the frame from a solid cyan waypoint dot, and a small orange arrow marker with an ink dot sits mid-frame like a drop pin. Ambient 2.0. World runs on Hook, Feature, Stats and App.\n\n## Motion\nCameras pushL, pushR, zoomIn, pushU, spin, drop at multiplier 7, offset 0 — a different move nearly every beat. Magnitudes: skew 5, rot 1, slide 0.34, inn 0.17, so entries are quick and the frame shears as it settles. Both title and item presets are streak: 150px translateX plus a -12deg skewX under outExpo.\n\n## Beats\n- **Ring (gauge)** — a half-circle dial with a swinging needle, five tick marks and a counted number; ETA and speed readouts.\n- **Scroll (ticker)** — three rows of display type marquee in alternating directions at different sizes and speeds, footed by an entry count and a live flag.\n- **Notify (side)** — cards slide in from the right edge, each with a bar at its base that drains as its life runs out.\n- **DragDrop (drag)** — a pointer grabs a chip, arcs it into a dashed slot, and a check badge pops beside it.\n\n## Best for\nBike couriers and last-mile delivery, logistics and fleet software, urban mobility and e-bike brands, on-demand services, city sport and streetwear, anything that sells speed as the product."
+  },
+  {
+    "slug": "moon-card",
+    "vibe": "Deep violet-night #1d1430 over near-black #140e22, lit by gold #d4af6a and a blush #e8b4c8. Italiana's high-contrast serif runs at 0.04em tracking above Sen, and titles only drowse up 34px — nothing here slams. The world never switches off: it runs behind every beat including Statement and CTA. Five gold moon phases arc across the top, eighteen stars breathe in and out of visibility, two gold-edged tarot cards rock at the lower corners on slow sines, and a bone candle burns at the right with a flame that flickers on two frequencies at once. Cards turn by squashing flat on their own axis and reappearing; the moon reads on a full twelve-tick dial; words crossfade rather than cut. Numbers carry a gold glow. Best where patience is the product.",
+    "category": "Mystic",
+    "tags": [
+      "tarot",
+      "astrology",
+      "candlelit",
+      "gold",
+      "ritual",
+      "calm",
+      "serif",
+      "wellness"
+    ],
+    "audio": {
+      "mood": "candlelit hush with gilded shimmer and a slow breath",
+      "archetype": "luxury",
+      "energy": "low",
+      "tempo": "slow",
+      "style": [
+        "hushed",
+        "gilded",
+        "nocturnal",
+        "meditative"
+      ],
+      "musicKeywords": [
+        "tarot ritual",
+        "moonlit harp",
+        "candle ambient",
+        "velvet nocturne",
+        "mystic celeste",
+        "incense drone",
+        "gilded chimes",
+        "night oracle",
+        "slow bowed strings"
+      ],
+      "sfxPalette": {
+        "transition": "light-sweep",
+        "ui": "soft-tap",
+        "reveal": "shimmer",
+        "data": "data-ping",
+        "cta": "logo-rise"
+      },
+      "noVo": {
+        "energyBoost": 0.04,
+        "sfxDensity": "normal",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "candlelit low-key photograph of tarot cards, gold leaf and dark velvet, warm rim light and deep falloff",
+      "iconStyle": "solid",
+      "keywords": [
+        "tarot cards",
+        "crescent moon",
+        "candlelight",
+        "night sky stars",
+        "gold foil",
+        "velvet cloth",
+        "astrology chart",
+        "incense smoke"
+      ],
+      "prefer": [
+        "photo",
+        "illustration",
+        "vector"
+      ]
+    },
+    "frameMd": "A candlelit table under a gold moon — the one pack whose animated world stays lit behind every single beat.\n\n## Palette\n| Role | Hex |\n|---|---|\n| violet | #1d1430 |\n| gold | #d4af6a |\n| blush | #e8b4c8 |\n| bone | #f2ead9 |\n| ink | #140e22 |\n\nViolet carries Hook, Feature, Stats and App; ink carries Statement, Montage and CTA. Nothing ever inverts to a light ground — the film stays in the dark the whole way through. Montage tiles use a lifted #241a38 with a gold glow.\n\n## Type\nDisplay is Italiana, a very high-contrast display serif, set uppercase at 116px with 0.04em tracking and line-height 1.12 — the widest tracking in the set, which is what keeps a thin serif readable at poster size. Body is Sen.\n\n## World\nFive gold moon-phase discs sit in a row at y=180: four are outlined with a terminator arc drawn as a path whose bulge inverts halfway along the row, and the fifth is filled solid — a full moon. Eighteen bone stars are scattered on a fixed lattice and each breathes its own opacity on sin(t + i·1.7). Two tarot cards (112x168, r12, ink fill, 2.5px gold stroke, an inner ring and two gold rules) sit at the lower left and right, each rocking on its own slow sine around a base tilt of plus or minus nine degrees. At the lower right a bone candle column burns with a gold flame ellipse scaled by two summed sines (7Hz and 13.7Hz) over a near-white inner core. Ambient 1.4. World is true on every beat.\n\n## Motion\nCameras zoomOut, drop, pushL, zoomIn, pushU, pushR at multiplier 5, offset 3. Magnitudes: rot 0.4, driftY 9, inn 0.30, driftZ 0.035 — a long soft entry and a slow breathing push-in that never resolves. Titles use drowse (outQuint, 34px lift, no scale); items rise.\n\n## Beats\n- **Swipe (flip)** — the card squashes to nothing on its X axis and returns as the next card, with a pill dot pagination underneath; built for three-card draws.\n- **Ring (ring)** — a full circular dial with twelve clock ticks and a gold arc sweeping to the value.\n- **Morph (fade)** — a 150px word crossfades and scales into the next one, over a thin progress bar.\n- **Typing (caret)** — copy types against a thick gold left rule with a blinking pipe, closing on a rotated boxed stamp.\n\n## Best for\nTarot, astrology and ritual practices, spa and wellness, perfume and jewellery, late-night members' clubs, candles and slow-goods brands, retreats and subscription rituals."
+  },
+  {
+    "slug": "magma-trail",
+    "vibe": "Basalt #1f1a18 and bone under a lava #f43f1e that only owns a whole frame on the Statement beat; ember #ffa03c and an ash grey do the rest. Bevan's heavy slab caps slam in at 2.2x scale with a four-degree kick. The backdrop is a working volcano and it is deliberately slow: an ash-grey crater silhouette fills the lower frame, a lava tongue at the lip pulses on a sine, four bombs arc out of the vent and fall on a ballistic curve, three ash plumes rise and thin over five seconds, ember heat-shimmer squiggles drift upward, and a lava-dashed ridgeline crawls along the bottom like a waymarked route. Its beats are field kit — a needle gauge for crater temp, dotted-leader ledger boards, alerts that drop in from above, and an odometer word roll.",
+    "category": "Adventure",
+    "tags": [
+      "volcano",
+      "hiking",
+      "geology",
+      "expedition",
+      "slab-serif",
+      "documentary",
+      "outdoors",
+      "dark"
+    ],
+    "audio": {
+      "mood": "slow geologic heat under a documentary hush",
+      "archetype": "editorial",
+      "energy": "medium",
+      "tempo": "mid",
+      "style": [
+        "cinematic",
+        "earthen",
+        "patient",
+        "wide"
+      ],
+      "musicKeywords": [
+        "volcanic drone",
+        "basalt percussion",
+        "expedition strings",
+        "ash cloud",
+        "low taiko",
+        "field documentary",
+        "obsidian pulse",
+        "crater dawn",
+        "tectonic swell"
+      ],
+      "sfxPalette": {
+        "transition": "whoosh",
+        "ui": "soft-tap",
+        "reveal": "gentle-impact",
+        "data": "counter-tick",
+        "cta": "cta-impact"
+      },
+      "noVo": {
+        "energyBoost": 0.1,
+        "sfxDensity": "normal",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "wide documentary photograph of black volcanic rock and glowing lava at dusk, hard low sun, drifting ash haze",
+      "iconStyle": "line",
+      "keywords": [
+        "volcano crater",
+        "lava flow",
+        "basalt rock",
+        "hiking trail",
+        "ash plume",
+        "geology field",
+        "obsidian",
+        "ridge sunrise"
+      ],
+      "prefer": [
+        "photo",
+        "screenshot",
+        "illustration"
+      ]
+    },
+    "frameMd": "A guided hike on hot rock: heavy slab type slams onto a dark basalt ground while a slow volcano works behind it.\n\n## Palette\n| Role | Hex |\n|---|---|\n| basalt | #1f1a18 |\n| lava | #f43f1e |\n| ash | #8c8480 |\n| bone | #efe6dc |\n| ember | #ffa03c |\n\nBasalt is the ground for Hook, Feature, Stats and App; Montage and CTA drop to a darker #161211. Statement is the single hot frame — solid lava with bone type at 148px. Feature and CTA cards glow lava; stat numbers glow.\n\n## Type\nDisplay is Bevan, a heavy slab serif with a single weight, uppercase at 122px on the Hook and 148px on Statement, tracked at 0.01em. Body is Commissioner in four weights, running the ledger rows, chips and field-station notifications.\n\n## World\nA broad ash-grey silhouette at 16% opacity fills the lower frame — a five-point crater ridge with a notch at its centre. At the lip a lava tongue path pulses between 0.5 and 0.9 opacity on sin(3t). Four volcanic bombs, alternating lava and ember, launch from the vent on a ballistic path (a sine hump up to 300px, then a ph-squared fall of 500px) and fade as they travel. Three ash plumes rise from the vent over a five-second cycle, growing from r30 to r90 and thinning to nothing. Three ember heat-shimmer squiggles rise on a 120px loop at 30% opacity. Along the bottom a lava dashed polyline (14/12 dash, offset crawling at -50t) reads as a waymarked ridge trail. Ambient 1.8, but almost every element runs under 0.6 — a busy clock over slow motion.\n\n## Motion\nCameras pushU, zoomIn, drop, pushL, spin, pushR at multiplier 7, offset 2. Magnitudes: rot 1, skew 3, driftY 10. Titles use slam (outExpo, scale 2.2 to 1 with a -4deg kick); items pop.\n\n## Beats\n- **Ring (gauge)** — a half-circle needle dial with tick marks and a counted number; crater temperature and conditions.\n- **Scroll (board)** — numbered rows with dotted leader lines and values that flicker before settling, like a trailhead board or eruption ledger.\n- **Notify (drop)** — cards fall in from above with a slight rotation, each with a brand-initial tile; field-station bulletins.\n- **Morph (roll)** — the word rolls vertically like an odometer into the next one.\n\n## Best for\nGuided hikes and adventure tourism, national parks and geoparks, geology and field science, outdoor gear and boots, expedition documentaries, hot-sauce and fire-adjacent food brands that want gravity rather than gimmick."
+  },
+  {
+    "slug": "wing-garden",
+    "vibe": "The only script face in this set — Lobster Two over Cabin — and the only pack that stays in sentence case throughout. Deep leaf #2e4636 with a monarch orange #f28c28 that swallows the whole CTA frame, plus a morpho blue #4a7de0 that appears exactly where a second butterfly is needed. The world is a glasshouse: three butterflies drift left to right at different speeds, banking up to fourteen degrees while their wings flap by squashing on the X axis nine times a second — the middle one blue, the outer two orange. Three cream-stemmed flowers sway from the bottom edge with five-petal blooms, and faint six-percent light shafts rake down from the top right. Checks tick themselves on, garden news pops in as staggered pills, nectar is dragged into place. Calm camera, wide slow drift.",
+    "category": "Nature",
+    "tags": [
+      "butterflies",
+      "conservatory",
+      "botanical",
+      "script",
+      "glasshouse",
+      "calm",
+      "family",
+      "attraction"
+    ],
+    "audio": {
+      "mood": "greenhouse warmth, wingbeats and slow sun through glass",
+      "archetype": "warm",
+      "energy": "low",
+      "tempo": "slow",
+      "style": [
+        "pastoral",
+        "airy",
+        "gentle",
+        "organic"
+      ],
+      "musicKeywords": [
+        "butterfly garden",
+        "conservatory strings",
+        "pastoral flute",
+        "greenhouse ambient",
+        "meadow waltz",
+        "nectar drift",
+        "botanical harp",
+        "wing flutter",
+        "glasshouse morning"
+      ],
+      "sfxPalette": {
+        "transition": "light-sweep",
+        "ui": "soft-tap",
+        "reveal": "shimmer",
+        "data": "data-ping",
+        "cta": "logo-rise"
+      },
+      "noVo": {
+        "energyBoost": 0.08,
+        "sfxDensity": "rich",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "soft daylight macro photograph of butterflies on flowers inside a humid glasshouse, shallow depth of field, pale green bokeh",
+      "iconStyle": "line",
+      "keywords": [
+        "monarch butterfly",
+        "blue morpho",
+        "glasshouse",
+        "nectar flower",
+        "conservatory",
+        "chrysalis",
+        "botanical garden",
+        "green foliage"
+      ],
+      "prefer": [
+        "photo",
+        "illustration",
+        "screenshot"
+      ]
+    },
+    "frameMd": "A live butterfly conservatory in script type — the calmest pack in the family, and the only one that never shouts in caps.\n\n## Palette\n| Role | Hex |\n|---|---|\n| leaf | #2e4636 |\n| monarch | #f28c28 |\n| morpho | #4a7de0 |\n| cream | #f4efe2 |\n| ink | #24301f |\n\nLeaf carries Hook, Feature, Stats and App; Statement and Montage go to ink. The CTA is the one full-colour wall — solid monarch orange with ink type and an ink pill button under a circular logo.\n\n## Type\nDisplay is Lobster Two, a connected script at 400 and 700, set in SENTENCE CASE at 122px with line-height 1.06 — no beat sets the uppercase flag, which is unique in this family and is what keeps the script legible. Body is Cabin.\n\n## World\nThree butterflies cross the frame left to right at 0.08, 0.11 and 0.14 speed, each bobbing on a sin(9·phase) wave and banking up to fourteen degrees. Their wings are two mirrored paths scaled on X between 0.35 and 1.0 at nine flaps per second, with an ink body line and two antennae; the middle butterfly is morpho blue, the outer two monarch orange. Three flowers rise from below the bottom edge on curved cream stems that sway five degrees at 0.9Hz, each carrying a five-petal cream bloom around a coloured centre. Three 60px-wide cream light shafts at 6% opacity rake diagonally from the top right. Ambient 1.7. World runs on Hook, Feature, Stats and App.\n\n## Motion\nCameras hopU, zoomOut, pushR, zoomIn, pushL, drop at multiplier 5, offset 1. Magnitudes: rot 0.8, driftX 9, driftY 8 — wide, slow float with almost no rotation. Titles rise; items pop.\n\n## Beats\n- **Toggle (check)** — square checkboxes fill with the highlight and stamp a scaled tick, one row at a time; greenhouse and care checklists.\n- **Notify (pop)** — pill-shaped bubbles scale in from 0.3 with a small rotation at staggered left indents, each led by a coloured dot.\n- **Scroll (feed)** — a plain vertical feed list of entries.\n- **DragDrop (drag)** — a pointer grabs a chip, arcs it into a dashed slot and a tick badge pops.\n\n## Best for\nButterfly houses and conservatories, botanical gardens, zoos and aquariums, garden centres and plant shops, family attractions and day-out tickets, eco and conservation nonprofits, herbal, floral and honey brands."
+  },
+  {
+    "slug": "atlas-and-ink",
+    "vibe": "Parchment #efe4cf and sepia #4a3826 with a rust compass red #a8402e, a muted sea blue #6a92a8 and gold. Young Serif's chunky old-style caps run in sentence case over Assistant; titles only drowse up, and the camera drifts five pixels — the stillest frame in this set. The backdrop is a chart being made: a faint sepia graticule rules the whole frame, a sea-tinted landmass sits under a hand-inked outline, and a rust dashed voyage route draws itself across the frame in step with the scene's own progress, its arrowhead appearing only once the line has finished. A compass rose rocks at the lower right, and a sea serpent bobs beside the italic words hic sunt dracones. Type sets one jittering character at a time; a cartouche flies in and locks into its slot with a shake.",
+    "category": "Craft",
+    "tags": [
+      "cartography",
+      "parchment",
+      "heritage",
+      "archival",
+      "hand-drawn",
+      "publishing",
+      "studio",
+      "serif"
+    ],
+    "audio": {
+      "mood": "quiet drafting room, ink drying on paper",
+      "archetype": "editorial",
+      "energy": "low",
+      "tempo": "slow",
+      "style": [
+        "antiquarian",
+        "unhurried",
+        "acoustic",
+        "narrated"
+      ],
+      "musicKeywords": [
+        "cartography ambient",
+        "quill scratch",
+        "antiquarian piano",
+        "sea shanty strings",
+        "expedition waltz",
+        "archive strings",
+        "compass drift",
+        "paper and ink",
+        "voyage folk"
+      ],
+      "sfxPalette": {
+        "transition": "card-slide",
+        "ui": "soft-tap",
+        "reveal": "gentle-impact",
+        "data": "data-ping",
+        "cta": "logo-rise"
+      },
+      "noVo": {
+        "energyBoost": 0.05,
+        "sfxDensity": "normal",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "warm tungsten still-life photograph of antique maps, brass dividers and ink pens on a worn drafting table, soft directional light",
+      "iconStyle": "line",
+      "keywords": [
+        "antique map",
+        "compass rose",
+        "drafting table",
+        "parchment",
+        "ink pen",
+        "nautical chart",
+        "brass dividers",
+        "cartographer"
+      ],
+      "prefer": [
+        "photo",
+        "illustration",
+        "vector"
+      ]
+    },
+    "frameMd": "A cartography studio at work: the route on the backdrop literally draws itself in step with the scene.\n\n## Palette\n| Role | Hex |\n|---|---|\n| parch | #efe4cf |\n| sepia | #4a3826 |\n| compass | #a8402e |\n| sea | #6a92a8 |\n| gold | #c9a24b |\n\nParchment is the ground for Hook, Feature, Stats and App. Statement and Montage invert to sepia with parchment type and a gold highlight. The CTA is the one saturated frame — solid compass rust with a parchment block button. Radii are the tightest in the family: paper cards at r6, montage tiles at r4.\n\n## Type\nDisplay is Young Serif — a chunky old-style serif with one weight — set in sentence case at 118px, line-height 1.08. Body is Assistant. The backdrop reuses Young Serif italic for its one hand-lettered marginal note.\n\n## World\nFive horizontal and four vertical sepia rules at 10% opacity grid the entire frame like a chart graticule. A sea-tinted landmass blob (16% sea fill, 35% sepia stroke) sits at mid-left. Over it a rust dashed voyage route (18/14 dash) is revealed by dash-offset keyed to scene progress between 6% and 85% — it draws itself, starting from a solid rust dot, and its arrowhead only becomes visible once the draw passes 95%. At the lower right a compass rose rocks eight degrees on a 0.5Hz sine: two concentric sepia rings, four cardinal darts with the N and S arms in rust, and a gold centre pin. At the lower left a sepia sea-serpent squiggle with an eye dot bobs six pixels, beside the italic line \"hic sunt dracones\". Ambient 1.5.\n\n## Motion\nCameras zoomOut, pushL, drop, pushR, zoomIn, hopU at multiplier 5, offset 0. Magnitudes: rot 0.4, driftX 5, inn 0.28 — the smallest drift and the longest settle in the set. Titles drowse; items rise.\n\n## Beats\n- **Typing (typewriter)** — each character sets at its own rotation of up to 1.3 degrees and a 2px vertical jitter, under a blinking underscore, closing on a double-ruled rotated stamp.\n- **DragDrop (assemble)** — a chip flies in on an arc, lands in its slot, shakes on a damped sine and reports \"locked in\".\n- **Ring (gauge)** — a half-circle needle dial for plate progress and completion.\n- **Scroll (board)** — numbered rows with dotted leaders and flickering values; commission and studio ledgers.\n\n## Best for\nMap and print studios, publishers and independent bookshops, museums, archives and libraries, heritage travel and expedition brands, whisky, leather and other slow goods, field research and survey work."
+  },
+  {
+    "slug": "on-air",
+    "vibe": "Booth-black #16181d and #101216 with a purple #8b5cf6 and a signal green #3ddc84 that means live. Unbounded's wide geometric caps chop in from the left on a six-degree skew; items streak in after them. The world is a working booth: a twenty-two-bar meter breathes along the lower frame on two stacked sines with every fourth bar green, an ON AIR sign at the top right actually blinks — lamp, outline and lettering hard-switching together on a 2.8Hz sine — a fog-white condenser mic on a stand sits under three purple ring pulses that expand and fade, and a green scrub dot runs a playhead rule left to right on a loop. Statement is the one bright wall, a full purple frame at 144px. Levels read on a vertical tube; producer alerts slide in with draining timer bars; show notes type under a blinking caret.",
+    "category": "Media",
+    "tags": [
+      "podcast",
+      "radio",
+      "studio",
+      "broadcast",
+      "dark-ui",
+      "waveform",
+      "creator",
+      "audio"
+    ],
+    "audio": {
+      "mood": "clean booth pulse, headphones on, red light lit",
+      "archetype": "tech",
+      "energy": "medium",
+      "tempo": "fast",
+      "style": [
+        "polished",
+        "synthetic",
+        "modern",
+        "punchy"
+      ],
+      "musicKeywords": [
+        "podcast bed",
+        "broadcast pulse",
+        "studio synth",
+        "vocal booth",
+        "talk show intro",
+        "console hum",
+        "signal chain",
+        "interview lofi",
+        "mixdown groove"
+      ],
+      "sfxPalette": {
+        "transition": "whoosh",
+        "ui": "ui-click",
+        "reveal": "product-reveal",
+        "data": "data-ping",
+        "cta": "cta-impact"
+      },
+      "noVo": {
+        "energyBoost": 0.15,
+        "sfxDensity": "rich",
+        "ambient": true
+      }
+    },
+    "assets": {
+      "photoMod": "moody low-key photograph of a recording studio, condenser microphone and mixing console under purple practical lighting",
+      "iconStyle": "line",
+      "keywords": [
+        "condenser microphone",
+        "recording booth",
+        "mixing console",
+        "headphones",
+        "waveform",
+        "podcast studio",
+        "on air sign",
+        "audio interface"
+      ],
+      "prefer": [
+        "screenshot",
+        "photo",
+        "vector"
+      ]
+    },
+    "frameMd": "A live recording booth: a meter breathing along the bottom, a sign that genuinely blinks, and type that chops in from the left.\n\n## Palette\n| Role | Hex |\n|---|---|\n| studio | #16181d |\n| purple | #8b5cf6 |\n| signal | #3ddc84 |\n| fog | #e8e9ee |\n| ink | #101216 |\n\nStudio black carries Hook, Feature, Stats and App; Montage and CTA sit on a slightly lifted #111318. Statement is the only bright frame in the film — solid purple with fog type at 144px. Signal green is used sparingly and always means live: the kicker tag, montage labels, the CTA highlight, the scrub dot.\n\n## Type\nDisplay is Unbounded at 500 to 700 — wide geometric caps, uppercase at 118px. Body is Wix Madefor Text. The backdrop reuses Unbounded at 30px for the ON AIR lettering, so the sign is set in the same face as the titles.\n\n## World\nTwenty-two rounded meter bars run along the lower frame, each height driven by two summed absolute sines (2.4Hz and 4.1Hz with per-bar phase), every fourth bar in signal green and the rest purple at varying alpha. At the top right an ON AIR sign: a 240x88 rounded outline, a lamp dot and the lettering, all hard-switching between full green and a dim state on sin(2.8t) — a real blink, not a fade. At the left a fog-white condenser mic capsule with four grille lines on a stand, under three purple ring pulses expanding from r60 to r200 and fading out on a rolling loop. A fog rule crosses the frame with a green scrub dot travelling at 60px/s on a loop, like a playhead. Ambient 1.8.\n\n## Motion\nCameras pushL, zoomIn, pushD, pushR, zoomOut, hopU at multiplier 7, offset 1. Magnitudes: rot 0.7, inn 0.2 and no skew or drift override — the frame stays square and the moves are pure fast slides. Titles use machete (outQuint, -90px translateX with a -6deg skewX); items streak.\n\n## Beats\n- **Ring (bar)** — a vertical level tube with a spouted cap and quarter ticks, with the number and label set beside it; input and gain readouts.\n- **Cursor (click)** — a pointer walks the frame and clicks a control; built for board and console walkthroughs.\n- **Notify (side)** — cards slide in from the right edge with a bar at the base that drains as each one expires; producer and channel messages.\n- **Typing (caret)** — copy types against a thick purple left rule with a blinking pipe, closing on a rotated boxed stamp.\n\n## Best for\nPodcasts and radio shows, audio and music SaaS, creator studios and streaming channels, dark-UI product tours, live events and broadcast teams, headphone and interface hardware."
+  }
+]

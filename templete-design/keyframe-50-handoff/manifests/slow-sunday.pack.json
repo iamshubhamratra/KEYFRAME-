@@ -1,0 +1,162 @@
+{
+  "id": "slow-sunday",
+  "name": "Slow Sunday",
+  "renderer": "filmkit",
+  "orientation": "vertical",
+  "sizePx": [
+    1080,
+    1920
+  ],
+  "cohort": "05 personal blog / diary",
+  "set": "article-text-50",
+  "globalName": "SlowSunday",
+  "configFile": "configs/article-pack-05.js",
+  "vibe": "the front room, mid-afternoon",
+  "form": {
+    "runtimeMs": 129400,
+    "runtimeRangeMs": [
+      90000,
+      150000
+    ],
+    "beats": 18
+  },
+  "readingBudget": {
+    "wpm": 225,
+    "landSeconds": 1.2,
+    "checkedBy": "scripts/lint-reading-budget.js"
+  },
+  "fonts": {
+    "display": "Grandstander",
+    "body": "Sen",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+      "devanagari": "Noto Sans Devanagari"
+    }
+  },
+  "palette": {
+    "slots": [
+      "bg",
+      "surface",
+      "rule",
+      "inkMuted",
+      "ink",
+      "accent",
+      "accent2",
+      "accentInk"
+    ],
+    "values": {
+      "bg": "#f1e7e6",
+      "surface": "#fbf6f5",
+      "rule": "#d6c5c3",
+      "inkMuted": "#726466",
+      "ink": "#1b1517",
+      "accent": "#8a4a6a",
+      "accent2": "#d8a13c",
+      "accentInk": "#fbf6f5"
+    },
+    "strategy": "luminance ladder; hue-rotatable at each slot’s own lightness"
+  },
+  "tweaks": [
+    {
+      "key": "brand",
+      "type": "text"
+    },
+    {
+      "key": "bg",
+      "type": "color"
+    },
+    {
+      "key": "accent",
+      "type": "color"
+    },
+    {
+      "key": "accent2",
+      "type": "color"
+    },
+    {
+      "key": "motion",
+      "type": "radio",
+      "options": [
+        "Calm",
+        "Lively",
+        "Bouncy"
+      ],
+      "default": "Calm"
+    },
+    {
+      "key": "typeScale",
+      "type": "radio",
+      "options": [
+        "Compact",
+        "Default",
+        "Editorial"
+      ],
+      "default": "Default"
+    }
+  ],
+  "motion": {
+    "titlePreset": "bounce",
+    "itemPreset": "pop",
+    "camera": [
+      "drop",
+      "zoomOut",
+      "pushL",
+      "hopU",
+      "zoomIn",
+      "pushR"
+    ],
+    "mechanics": "Scroll: \"feed\", Typing: \"caret\", Ring: \"ring\"",
+    "chrome": false
+  },
+  "world": {
+    "description": "the front room, mid-afternoon. Far: blinds with a sunbeam and dust in it, a framed print. Mid: a record player on the sideboard — the platter turns at a steady rate while the tonearm creeps inward across the side, and the sleeve leans against it; a plant and a stack of records. Near: dust.",
+    "cyclePeriodMs": 40000,
+    "planes": 3,
+    "textSafety": "object confined above y=290, below y=1330, or right of x=820; never crosses the copy column"
+  },
+  "mediaSlots": [
+    {
+      "id": "image",
+      "beat": "Feature",
+      "beatIndex": 10,
+      "aspect": "16:10",
+      "minPx": [
+        640,
+        400
+      ],
+      "fit": "cover",
+      "priority": 1,
+      "optional": true,
+      "onEmpty": "swap per look.feature.swap (borrows nearest unclaimed script line)"
+    },
+    {
+      "id": "logo",
+      "beat": "CTA",
+      "beatIndex": 17,
+      "aspect": "1:1",
+      "minPx": [
+        256,
+        256
+      ],
+      "fit": "contain",
+      "priority": 2,
+      "optional": true,
+      "onEmpty": "pack icon mark in a filled badge"
+    }
+  ],
+  "determinism": {
+    "randomness": false,
+    "wallClock": false,
+    "seekSafe": true,
+    "clock": "single authored timeline via animations-v2"
+  },
+  "paths": {
+    "html": "templates/slow-sunday.html",
+    "config": "configs/article-pack-05.js",
+    "storyboard": "fixtures/storyboard.slow-sunday.json",
+    "timestamps": "fixtures/timestamps.slow-sunday.json",
+    "referenceFrames": "reference-frames/slow-sunday/"
+  }
+}

@@ -15,7 +15,7 @@ const { cliFor } = require("./hyperframes_cli");
 // Run an ffmpeg invocation and resolve with its stdout buffer (null on error).
 function ffCapture(args) {
   return new Promise((resolve) => {
-    const p = spawn("ffmpeg", args);
+    const p = spawn("ffmpeg", args, { windowsHide: true });
     const chunks = [];
     p.stdout.on("data", (d) => chunks.push(d));
     p.on("error", () => resolve(null));

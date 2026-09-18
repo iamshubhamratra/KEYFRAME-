@@ -1,0 +1,61 @@
+{
+  "name": "corner-shop",
+  "vibe": "personal blog / diary — the shopfront at opening. Lobster Two over Hind; a luminance-ladder palette on #f5ecd8. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#f5ecd8",
+    "ink": "#1b1810",
+    "accent": "#d1462f",
+    "a2": "#4f8a3c"
+  },
+  "fonts": [
+    "Lobster Two",
+    "Hind",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#f5ecd8",
+    "ink": "#1b1810"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#d1462f",
+      "#4f8a3c"
+    ],
+    "extras": [
+      "#756a51"
+    ],
+    "emphasisCss": "color:#d1462f;"
+  },
+  "assets": {
+    "photoMod": "the shopfront at opening editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "personal blog",
+      "diary"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Lobster Two",
+    "body": "Hind",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-corner-shop",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

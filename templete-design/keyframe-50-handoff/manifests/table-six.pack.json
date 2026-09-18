@@ -1,0 +1,162 @@
+{
+  "id": "table-six",
+  "name": "Table Six",
+  "renderer": "filmkit",
+  "orientation": "vertical",
+  "sizePx": [
+    1080,
+    1920
+  ],
+  "cohort": "09 lifestyle / culture",
+  "set": "article-text-50",
+  "globalName": "TableSix",
+  "configFile": "configs/article-pack-09.js",
+  "vibe": "a restaurant, service on",
+  "form": {
+    "runtimeMs": 129400,
+    "runtimeRangeMs": [
+      90000,
+      150000
+    ],
+    "beats": 18
+  },
+  "readingBudget": {
+    "wpm": 225,
+    "landSeconds": 1.2,
+    "checkedBy": "scripts/lint-reading-budget.js"
+  },
+  "fonts": {
+    "display": "DM Serif Display",
+    "body": "DM Sans",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+      "devanagari": "Noto Serif Devanagari"
+    }
+  },
+  "palette": {
+    "slots": [
+      "bg",
+      "surface",
+      "rule",
+      "inkMuted",
+      "ink",
+      "accent",
+      "accent2",
+      "accentInk"
+    ],
+    "values": {
+      "bg": "#efe9e2",
+      "surface": "#fbf8f4",
+      "rule": "#cbc0b3",
+      "inkMuted": "#6e665c",
+      "ink": "#16130f",
+      "accent": "#8c3a2f",
+      "accent2": "#5f7a4a",
+      "accentInk": "#fbf8f4"
+    },
+    "strategy": "luminance ladder; hue-rotatable at each slot’s own lightness"
+  },
+  "tweaks": [
+    {
+      "key": "brand",
+      "type": "text"
+    },
+    {
+      "key": "bg",
+      "type": "color"
+    },
+    {
+      "key": "accent",
+      "type": "color"
+    },
+    {
+      "key": "accent2",
+      "type": "color"
+    },
+    {
+      "key": "motion",
+      "type": "radio",
+      "options": [
+        "Calm",
+        "Lively",
+        "Bouncy"
+      ],
+      "default": "Calm"
+    },
+    {
+      "key": "typeScale",
+      "type": "radio",
+      "options": [
+        "Compact",
+        "Default",
+        "Editorial"
+      ],
+      "default": "Default"
+    }
+  ],
+  "motion": {
+    "titlePreset": "drowse",
+    "itemPreset": "rise",
+    "camera": [
+      "pushU",
+      "zoomIn",
+      "pushL",
+      "drop",
+      "zoomOut",
+      "pushR"
+    ],
+    "mechanics": "Scroll: \"board\", Typing: \"hand\", Ring: \"ring\"",
+    "chrome": false
+  },
+  "world": {
+    "description": "a restaurant, service on. Overhead: a rail of copper pans and a ticket line with orders clipped along it. Margin: the dumbwaiter running a 10s cycle in its shaft, doors easing, plates loaded and gone. Floor: a pass with plated dishes under lamps, a bin of linen, a wine rack. Near: steam.",
+    "cyclePeriodMs": 10000,
+    "planes": 3,
+    "textSafety": "object confined above y=290, below y=1330, or right of x=820; never crosses the copy column"
+  },
+  "mediaSlots": [
+    {
+      "id": "image",
+      "beat": "Feature",
+      "beatIndex": 10,
+      "aspect": "16:10",
+      "minPx": [
+        640,
+        400
+      ],
+      "fit": "cover",
+      "priority": 1,
+      "optional": true,
+      "onEmpty": "swap per look.feature.swap (borrows nearest unclaimed script line)"
+    },
+    {
+      "id": "logo",
+      "beat": "CTA",
+      "beatIndex": 17,
+      "aspect": "1:1",
+      "minPx": [
+        256,
+        256
+      ],
+      "fit": "contain",
+      "priority": 2,
+      "optional": true,
+      "onEmpty": "pack icon mark in a filled badge"
+    }
+  ],
+  "determinism": {
+    "randomness": false,
+    "wallClock": false,
+    "seekSafe": true,
+    "clock": "single authored timeline via animations-v2"
+  },
+  "paths": {
+    "html": "templates/table-six.html",
+    "config": "configs/article-pack-09.js",
+    "storyboard": "fixtures/storyboard.table-six.json",
+    "timestamps": "fixtures/timestamps.table-six.json",
+    "referenceFrames": "reference-frames/table-six/"
+  }
+}

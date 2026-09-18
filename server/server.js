@@ -22,6 +22,12 @@ const { buildRouter: buildAuthRouter } = require("./src/routes/auth");
 const { buildRouter: buildAdminTemplatesRouter } = require("./src/routes/admin_templates");
 const cookieParser = require("cookie-parser");
 
+// AI Video Edit mode (src/video_edit): its own private store, queue and routes under
+// /api/video-edits. Loaded defensively — a broken edit module must never take template
+// generation down (the module itself answers 503 when it cannot initialize).
+let videoEdit = null;
+try { videoEdit = require("./src/video_edit"); } catch (e) { console.error(`[video-edit] module load failed: ${e.message}`); }
+
 async function loadQueue() {
   // p-queue v6 is CommonJS; v7+ is ESM. Support both.
   const mod = require("p-queue");
@@ -130,6 +136,9 @@ async function main() {
     next();
   });
 
+  // Edit ops batches exceed the global 64kb cap; this path-scoped parser runs first (a body it
+  // parsed is skipped by the global one) and answers its own 413s as JSON.
+  if (videoEdit) app.use("/api/video-edits", videoEdit.jsonBodyParser());
   app.use(express.json({ limit: "64kb" }));
   app.use(cookieParser());
 
@@ -143,6 +152,12 @@ async function main() {
   // requireAdmin inside the router; it borrows enqueueIntake so a template test
   // render is an ordinary queued project job, not a second pipeline.
   app.use("/api/admin", buildAdminTemplatesRouter({ enqueueIntake }));
+  // AI Video Edit: auth + owner checks + Origin guard live inside the router. Mounted before the
+  // /api 404; the error handler after it keeps every failure on this prefix JSON.
+  if (videoEdit) {
+    app.use("/api/video-edits", videoEdit.buildRouter());
+    app.use("/api/video-edits", videoEdit.errorHandler());
+  }
 
   // Static: the built KEYFRAME web app (public/dist) takes precedence;
   // public/ still serves rendered videos and the legacy v1 UI.
@@ -175,6 +190,8 @@ async function main() {
   });
 
   const stopJanitor = janitor.start();
+  // Edit store init, boot recovery (requeue from checkpoints) and retention sweeps. Never throws.
+  const stopVideoEdit = videoEdit ? videoEdit.start() : () => Promise.resolve();
 
   // STOCK PROVIDER SELF-TEST — one search per keyed provider, at boot.
   //
@@ -217,9 +234,13 @@ async function main() {
     console.log(`[server] ${signal} received, shutting down`);
     stopJanitor();
     queue.pause();
+    // Aborts edit runs, kills their ffmpeg children and closes SSE streams (so server.close can finish).
+    const editsStopped = Promise.resolve().then(() => stopVideoEdit()).catch(() => {});
     server.close(() => {
-      try { db.close(); } catch { /* noop */ }
-      process.exit(0);
+      editsStopped.finally(() => {
+        try { db.close(); } catch { /* noop */ }
+        process.exit(0);
+      });
     });
     setTimeout(() => process.exit(0), 30_000).unref();
   }

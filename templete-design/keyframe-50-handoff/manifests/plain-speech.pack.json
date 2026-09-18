@@ -1,0 +1,162 @@
+{
+  "id": "plain-speech",
+  "name": "Plain Speech",
+  "renderer": "filmkit",
+  "orientation": "vertical",
+  "sizePx": [
+    1080,
+    1920
+  ],
+  "cohort": "10 opinion / manifesto",
+  "set": "article-text-50",
+  "globalName": "PlainSpeech",
+  "configFile": "configs/article-pack-10.js",
+  "vibe": "a civic forecourt",
+  "form": {
+    "runtimeMs": 129400,
+    "runtimeRangeMs": [
+      90000,
+      150000
+    ],
+    "beats": 18
+  },
+  "readingBudget": {
+    "wpm": 225,
+    "landSeconds": 1.2,
+    "checkedBy": "scripts/lint-reading-budget.js"
+  },
+  "fonts": {
+    "display": "Staatliches",
+    "body": "Catamaran",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+      "devanagari": "Noto Sans Devanagari"
+    }
+  },
+  "palette": {
+    "slots": [
+      "bg",
+      "surface",
+      "rule",
+      "inkMuted",
+      "ink",
+      "accent",
+      "accent2",
+      "accentInk"
+    ],
+    "values": {
+      "bg": "#f0f1f2",
+      "surface": "#fcfdfd",
+      "rule": "#ccd0d2",
+      "inkMuted": "#6c7174",
+      "ink": "#0f1112",
+      "accent": "#1f4f7a",
+      "accent2": "#c9a13a",
+      "accentInk": "#fcfdfd"
+    },
+    "strategy": "luminance ladder; hue-rotatable at each slot’s own lightness"
+  },
+  "tweaks": [
+    {
+      "key": "brand",
+      "type": "text"
+    },
+    {
+      "key": "bg",
+      "type": "color"
+    },
+    {
+      "key": "accent",
+      "type": "color"
+    },
+    {
+      "key": "accent2",
+      "type": "color"
+    },
+    {
+      "key": "motion",
+      "type": "radio",
+      "options": [
+        "Calm",
+        "Lively",
+        "Bouncy"
+      ],
+      "default": "Lively"
+    },
+    {
+      "key": "typeScale",
+      "type": "radio",
+      "options": [
+        "Compact",
+        "Default",
+        "Editorial"
+      ],
+      "default": "Default"
+    }
+  ],
+  "motion": {
+    "titlePreset": "machete",
+    "itemPreset": "rise",
+    "camera": [
+      "pushU",
+      "zoomIn",
+      "pushR",
+      "drop",
+      "zoomOut",
+      "pushL"
+    ],
+    "mechanics": "Scroll: \"feed\", Typing: \"terminal\", Ring: \"gauge\"",
+    "chrome": false
+  },
+  "world": {
+    "description": "a civic forecourt. Overhead: a portico cornice and a row of pennants. Margin: the flag running up its halyard on a 14s cycle, cloth rippling, cleat knot swinging. Floor: steps, a plinth with a notice, two figures. Near: gulls crossing high.",
+    "cyclePeriodMs": 14000,
+    "planes": 3,
+    "textSafety": "object confined above y=290, below y=1330, or right of x=820; never crosses the copy column"
+  },
+  "mediaSlots": [
+    {
+      "id": "image",
+      "beat": "Feature",
+      "beatIndex": 10,
+      "aspect": "16:10",
+      "minPx": [
+        640,
+        400
+      ],
+      "fit": "cover",
+      "priority": 1,
+      "optional": true,
+      "onEmpty": "swap per look.feature.swap (borrows nearest unclaimed script line)"
+    },
+    {
+      "id": "logo",
+      "beat": "CTA",
+      "beatIndex": 17,
+      "aspect": "1:1",
+      "minPx": [
+        256,
+        256
+      ],
+      "fit": "contain",
+      "priority": 2,
+      "optional": true,
+      "onEmpty": "pack icon mark in a filled badge"
+    }
+  ],
+  "determinism": {
+    "randomness": false,
+    "wallClock": false,
+    "seekSafe": true,
+    "clock": "single authored timeline via animations-v2"
+  },
+  "paths": {
+    "html": "templates/plain-speech.html",
+    "config": "configs/article-pack-10.js",
+    "storyboard": "fixtures/storyboard.plain-speech.json",
+    "timestamps": "fixtures/timestamps.plain-speech.json",
+    "referenceFrames": "reference-frames/plain-speech/"
+  }
+}

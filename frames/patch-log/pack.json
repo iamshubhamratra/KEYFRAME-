@@ -1,0 +1,61 @@
+{
+  "name": "patch-log",
+  "vibe": "technical / documentation — a cylinder press. Fraunces over Public Sans; a luminance-ladder palette on #e9e1cf. Portrait-native 9:16, 18 authored beats, 128s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#e9e1cf",
+    "ink": "#171410",
+    "accent": "#2f6f3e",
+    "a2": "#d4762f"
+  },
+  "fonts": [
+    "Fraunces",
+    "Public Sans",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#e9e1cf",
+    "ink": "#171410"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#2f6f3e",
+      "#d4762f"
+    ],
+    "extras": [
+      "#6d6553"
+    ],
+    "emphasisCss": "color:#2f6f3e;"
+  },
+  "assets": {
+    "photoMod": "a cylinder press editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "technical",
+      "documentation"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Fraunces",
+    "body": "Public Sans",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-patch-log",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

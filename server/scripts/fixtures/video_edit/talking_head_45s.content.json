@@ -1,0 +1,257 @@
+{
+  "summary": "A creator explains how checking email only twice a day restored focus and sped up a team project.",
+  "category": "productivity",
+  "audience": "knowledge workers",
+  "tone": {
+    "mood": "upbeat",
+    "energy": 0.62,
+    "pace": "medium"
+  },
+  "topics": [
+    {
+      "id": "t1",
+      "label": "email habits",
+      "sentenceIds": [
+        "s1",
+        "s2",
+        "s3"
+      ]
+    },
+    {
+      "id": "t2",
+      "label": "two inbox windows",
+      "sentenceIds": [
+        "s4",
+        "s5",
+        "s6",
+        "s7",
+        "s8"
+      ]
+    },
+    {
+      "id": "t3",
+      "label": "making it stick",
+      "sentenceIds": [
+        "s9",
+        "s10",
+        "s11",
+        "s12"
+      ]
+    }
+  ],
+  "keywords": [
+    {
+      "term": "email",
+      "sentenceIds": [
+        "s1"
+      ],
+      "salience": 0.9
+    },
+    {
+      "term": "inbox",
+      "sentenceIds": [
+        "s4"
+      ],
+      "salience": 0.8
+    },
+    {
+      "term": "calendar",
+      "sentenceIds": [
+        "s10"
+      ],
+      "salience": 0.7
+    },
+    {
+      "term": "focus",
+      "sentenceIds": [
+        "s7"
+      ],
+      "salience": 0.6
+    }
+  ],
+  "hook": {
+    "sentenceIds": [
+      "s1"
+    ],
+    "strength": 0.82
+  },
+  "cta": {
+    "sentenceIds": [
+      "s12"
+    ],
+    "text": "follow for more tips"
+  },
+  "segments": [
+    {
+      "id": "cs1",
+      "type": "HOOK",
+      "sentenceIds": [
+        "s1"
+      ],
+      "title": "The email trap",
+      "importance": 0.95
+    },
+    {
+      "id": "cs2",
+      "type": "STORY",
+      "sentenceIds": [
+        "s2",
+        "s3"
+      ],
+      "title": "One simple rule",
+      "importance": 0.7
+    },
+    {
+      "id": "cs3",
+      "type": "POINT",
+      "sentenceIds": [
+        "s4",
+        "s5",
+        "s6"
+      ],
+      "title": "Two inbox windows",
+      "importance": 0.85
+    },
+    {
+      "id": "cs4",
+      "type": "EXAMPLE",
+      "sentenceIds": [
+        "s7",
+        "s8"
+      ],
+      "title": "What changed",
+      "importance": 0.75
+    },
+    {
+      "id": "cs5",
+      "type": "POINT",
+      "sentenceIds": [
+        "s9",
+        "s10",
+        "s11"
+      ],
+      "title": "Make it stick",
+      "importance": 0.8
+    },
+    {
+      "id": "cs6",
+      "type": "CTA",
+      "sentenceIds": [
+        "s12"
+      ],
+      "title": "Follow for more",
+      "importance": 0.6
+    }
+  ],
+  "visualSupport": [
+    {
+      "sentenceId": "s1",
+      "need": 0.4,
+      "visualNouns": [
+        "email inbox",
+        "laptop"
+      ],
+      "avoid": []
+    },
+    {
+      "sentenceId": "s4",
+      "need": 0.7,
+      "visualNouns": [
+        "inbox",
+        "phone notifications"
+      ],
+      "avoid": []
+    },
+    {
+      "sentenceId": "s5",
+      "need": 0.6,
+      "visualNouns": [
+        "wall clock",
+        "morning coffee"
+      ],
+      "avoid": []
+    },
+    {
+      "sentenceId": "s6",
+      "need": 0.65,
+      "visualNouns": [
+        "phone face down",
+        "notifications"
+      ],
+      "avoid": []
+    },
+    {
+      "sentenceId": "s8",
+      "need": 0.8,
+      "visualNouns": [
+        "team celebrating",
+        "project board"
+      ],
+      "avoid": [
+        "stock handshake"
+      ]
+    },
+    {
+      "sentenceId": "s10",
+      "need": 0.75,
+      "visualNouns": [
+        "calendar app",
+        "time blocks"
+      ],
+      "avoid": []
+    }
+  ],
+  "faceRequired": [
+    {
+      "sentenceId": "s2",
+      "reason": "personal"
+    },
+    {
+      "sentenceId": "s11",
+      "reason": "sincere"
+    },
+    {
+      "sentenceId": "s12",
+      "reason": "cta"
+    }
+  ],
+  "emphasis": [
+    {
+      "sentenceId": "s1",
+      "wordText": "3 hours"
+    },
+    {
+      "sentenceId": "s3",
+      "wordText": "one simple rule"
+    },
+    {
+      "sentenceId": "s4",
+      "wordText": "twice"
+    },
+    {
+      "sentenceId": "s8",
+      "wordText": "two weeks early"
+    },
+    {
+      "sentenceId": "s11",
+      "wordText": "freedom"
+    }
+  ],
+  "fillerVerdicts": [
+    {
+      "wordIndex": 63,
+      "isFiller": true
+    }
+  ],
+  "retakeVerdicts": [],
+  "music": {
+    "mood": "upbeat",
+    "energy": 0.62
+  },
+  "sfxOpportunities": [
+    {
+      "sentenceId": "s8",
+      "kind": "riser"
+    }
+  ]
+}

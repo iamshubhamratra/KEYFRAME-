@@ -1,0 +1,61 @@
+{
+  "name": "copy-desk",
+  "vibe": "news / journalism — the copy floor at deadline. Barlow Condensed over Barlow; a luminance-ladder palette on #e6e8e2. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#e6e8e2",
+    "ink": "#141712",
+    "accent": "#2f7d7a",
+    "a2": "#d97a2f"
+  },
+  "fonts": [
+    "Barlow Condensed",
+    "Barlow",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#e6e8e2",
+    "ink": "#141712"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#2f7d7a",
+      "#d97a2f"
+    ],
+    "extras": [
+      "#697064"
+    ],
+    "emphasisCss": "color:#2f7d7a;"
+  },
+  "assets": {
+    "photoMod": "the copy floor at deadline editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "news",
+      "journalism"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Barlow Condensed",
+    "body": "Barlow",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-copy-desk",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

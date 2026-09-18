@@ -1,0 +1,102 @@
+{
+  "slug": "runway-math",
+  "fps": 30,
+  "viewport": {
+    "width": 1080,
+    "height": 1920
+  },
+  "worldCyclePeriodMs": 18000,
+  "note": "Frames must be produced from fixtures/storyboard.runway-math.json with tweaksAtCapture applied. Seek is absolute and idempotent.",
+  "timestamps": [
+    {
+      "frame": "reference-frames/runway-math/t-000250.png",
+      "ms": 250,
+      "label": "hook-entrance",
+      "reason": "Title entrance mid-flight; earliest point a wrong easing shows"
+    },
+    {
+      "frame": "reference-frames/runway-math/t-002100.png",
+      "ms": 2100,
+      "label": "hook-settled",
+      "reason": "Hook landed; kicker, title and sub geometry"
+    },
+    {
+      "frame": "reference-frames/runway-math/t-008000.png",
+      "ms": 8000,
+      "label": "body-word-cascade",
+      "reason": "Body word cascade partially revealed; per-word stagger and blur-off"
+    },
+    {
+      "frame": "reference-frames/runway-math/t-015650.png",
+      "ms": 15650,
+      "label": "beat-boundary",
+      "reason": "Beat exit / entrance overlap — cross-fade window"
+    },
+    {
+      "frame": "reference-frames/runway-math/t-018000.png",
+      "ms": 18000,
+      "label": "world-loop-seam-a",
+      "reason": "Background object cycle boundary (18s period) — loop seam"
+    },
+    {
+      "frame": "reference-frames/runway-math/t-023800.png",
+      "ms": 23800,
+      "label": "typing-mid",
+      "reason": "Typing mechanic mid-line; character count must match exactly"
+    },
+    {
+      "frame": "reference-frames/runway-math/t-036000.png",
+      "ms": 36000,
+      "label": "world-loop-seam-b",
+      "reason": "Second cycle boundary; confirms the seam is frame-identical, not merely smooth"
+    },
+    {
+      "frame": "reference-frames/runway-math/t-049200.png",
+      "ms": 49200,
+      "label": "stats-countup-mid",
+      "reason": "Stats count-up mid-count — the classic divergence point"
+    },
+    {
+      "frame": "reference-frames/runway-math/t-054300.png",
+      "ms": 54300,
+      "label": "stats-settled",
+      "reason": "Stat bars settled; rule geometry and tabular figures"
+    },
+    {
+      "frame": "reference-frames/runway-math/t-067400.png",
+      "ms": 67400,
+      "label": "scroll-stagger",
+      "reason": "Scroll list items part-entered"
+    },
+    {
+      "frame": "reference-frames/runway-math/t-075200.png",
+      "ms": 75200,
+      "label": "feature-empty-slot-swap",
+      "reason": "Media slot EMPTY: must render look.feature.swap with the borrowed line, never a placeholder"
+    },
+    {
+      "frame": "reference-frames/runway-math/t-083400.png",
+      "ms": 83400,
+      "label": "quote-mask-wipe",
+      "reason": "Pull-quote clip-path mask wipe mid-reveal"
+    },
+    {
+      "frame": "reference-frames/runway-math/t-091700.png",
+      "ms": 91700,
+      "label": "ring-mid-sweep",
+      "reason": "Ring mechanic mid-sweep"
+    },
+    {
+      "frame": "reference-frames/runway-math/t-104100.png",
+      "ms": 104100,
+      "label": "montage-labels-only",
+      "reason": "labelsOnly comparison tiles on the rule step"
+    },
+    {
+      "frame": "reference-frames/runway-math/t-124500.png",
+      "ms": 124500,
+      "label": "cta-logo-fallback",
+      "reason": "Logo slot EMPTY: must render the pack icon mark in a filled badge"
+    }
+  ]
+}

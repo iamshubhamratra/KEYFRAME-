@@ -1,0 +1,61 @@
+{
+  "name": "slow-reader",
+  "vibe": "literary / essay — the room at the end of the afternoon. Vollkorn over Alegreya Sans; a luminance-ladder palette on #191410. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#191410",
+    "ink": "#f3ece1",
+    "accent": "#d8a24e",
+    "a2": "#8fa07a"
+  },
+  "fonts": [
+    "Vollkorn",
+    "Alegreya Sans",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#191410",
+    "ink": "#f3ece1"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#d8a24e",
+      "#8fa07a"
+    ],
+    "extras": [
+      "#9a8b7c"
+    ],
+    "emphasisCss": "color:#d8a24e;"
+  },
+  "assets": {
+    "photoMod": "the room at the end of the afternoon editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "literary",
+      "essay"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Vollkorn",
+    "body": "Alegreya Sans",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-slow-reader",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

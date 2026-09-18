@@ -100,7 +100,7 @@ const TEMPLATE_SCENES = [
   },
   {
     type: "diptych", bestFor: "two visuals shown together, a comparison, a showcase",
-    look: "A two-shot: two plates wiping open side by side across a drawn centre hairline, each with a mono slate caption strip along its foot.",
+    look: "A two-shot: two plates wiping open side by side across a drawn hairline, each sized to the shape of its own picture, each with a mono slate caption strip along its foot.",
     slots: { kicker: "max 22 chars", headline: "max 2 short lines" },
     media: ["photo", "photo"], mediaMin: 1,
   },
@@ -113,6 +113,74 @@ const TEMPLATE_SCENES = [
 ];
 
 const mediaSlots = { onetake: ["photo"], diptych: ["photo", "photo"], lowerthird: ["photo"] };
+// WHAT SHAPE EACH PLACEHOLDER IS — the number that did not exist anywhere in this
+// codebase before. Fractions of the CANVAS (wFrac of its width, hFrac of its height),
+// derived from the CSS each scene function writes and cross-checked against a live
+// headless render (`node scripts/audit-slot-fit.js`). Consumed by
+// services/template_media.js, which turns them into real pixels for this film's
+// dimensions so selection can weigh shape and asset_fit can choose a real crop.
+const mediaGeometry = {
+  // ONETAKE — plateFor() at family_cinema.js:194 draws the image `inset:0` inside
+  // the clip, so the plate IS the frame: no padding, no letterbox inset (the bars
+  // are chrome painted OVER it). Full-bleed in both orientations, which is why the
+  // fraction is a flat 1/1 and the box aspect is simply the render aspect.
+  // The 1.18 -> 1.06 drift only ever scales the image UP past the frame, so the
+  // frame is the smallest the plate is ever asked to cover — size for 1.0, not 1.06.
+  onetake: {
+    land: [{ wFrac: 1, hFrac: 1, importance: "hero" }],
+    port: [{ wFrac: 1, hFrac: 1, importance: "hero" }],
+  },
+
+  // DIPTYCH — two panels in the strip at family_cinema.js:471, each weighted by its
+  // own picture (family_cinema.js:428) inside `left/right:side` and `top -> bottom:pd`.
+  //   land  side 11cqw a side, one 1.4cqw gutter -> (100-22-1.4)/2 = 38.3cqw an
+  //         equal panel (735px of 1920).
+  //   port  side 5cqw a side, stacked over a 4cqw gutter -> the full 90cqw wide.
+  // The HEIGHT is what the eye never predicts: the strip starts below the head block,
+  // whose height is computed content-first (kicker + n lines * size * 1.14 + breathing).
+  // With the cast the director actually produces — a kicker and two headline lines at
+  // the 4.2/6cqw cap — headH is 13.58cqw land / 25.68cqw port, so the strip runs
+  // 23.86cqw land (458px of 1080) and 124.9cqw port, split by the 4cqw gutter into
+  // 60.45cqw each (653px of 1920). Equal-split aspect: 1.605 land, 1.488 port.
+  // Both numbers are the TIGHTEST the panel ever gets: a one-line headline lets the
+  // strip grow. Sizing for the tight case is deliberate — an asset picked for the tall
+  // variant would be under-resolved in the short one.
+  //
+  // WHY THERE IS A FLEX BAND HERE. The panels are no longer forced to be halves: each
+  // takes the share of the fixed strip its own fitted box wants, so a wide plate and a
+  // square plate stop being crushed into one identical rect. The band is what stops that
+  // from running away — clamped to it, the split can never pass ~62/38 and the two-shot
+  // still reads as a two-shot. Measured on the same pair (a 1.0 square beside a 3.0
+  // panorama) the landscape crop fell from 46.5%/37.7% to roughly 17%/33%.
+  diptych: {
+    land: [
+      { wFrac: 0.383, hFrac: 0.424, importance: "hero", flex: [1.20, 2.00] },
+      { wFrac: 0.383, hFrac: 0.424, importance: "hero", flex: [1.20, 2.00] },
+    ],
+    port: [
+      { wFrac: 0.90, hFrac: 0.340, importance: "hero", flex: [1.15, 1.95] },
+      { wFrac: 0.90, hFrac: 0.340, importance: "hero", flex: [1.15, 1.95] },
+    ],
+  },
+
+  // LOWERTHIRD — the speaker avatar at family_cinema.js:413. `width` and `height`
+  // are BOTH avSize cqw, so the box is square in PIXELS while its two fractions
+  // differ: 12cqw on 1920 is 230px, which is 0.117 of the width but 0.213 of the
+  // 1080 height. Same square, two fractions — this is exactly the mixed-unit trap.
+  // (Minus the 0.16cqw ring, which the browser rounds to 3px land / 1px port a
+  // side, leaving the painted image 224px land / 234px port.)
+  // Portrait's 20 -> 22cqw is the fix for the one thing measurement caught here: at
+  // 20cqw the painted disc was 214px, under the 220px floor a face reads at.
+  // `cover` is stated rather than left to the engine: the box is masked to a
+  // circle, and a contained image inside a circle shows ground through the arcs.
+  // A DELIBERATELY SMALL SLOT, so it is `accent` and not a hero — an avatar this
+  // size is correct, and `allow` keeps a site capture out of a 234px disc where the
+  // page's own text would be far past unreadable.
+  lowerthird: {
+    land: [{ wFrac: 0.1168, hFrac: 0.2077, importance: "accent", fit: "cover", allow: ["photo"] }],
+    port: [{ wFrac: 0.2181, hFrac: 0.1227, importance: "accent", fit: "cover", allow: ["photo"] }],
+  },
+};
 // True when the PREVIOUS scene already carried imagery — keeps media beats
 // alternating now that any spare asset, not just a pinned screenshot, earns one.
 const mediaBeatJustPlayed = (ctx) => ((mediaSlots[ctx && ctx.prevType] || []).length > 0);
@@ -191,7 +259,7 @@ function plateFor(asset, ctx, idSuffix) {
   const { id, theme: th, land, brand } = ctx;
   const FH = frameH(ctx);
   if (asset && asset.path) {
-    return `<img id="${id}-${idSuffix}" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${isScreenshot(asset) ? "top center" : "center center"};display:block;">`;
+    return `<img id="${id}-${idSuffix}" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="position:absolute;inset:0;width:100%;height:100%;${E.fitCss(asset)}display:block;">`;
   }
   const grad = `radial-gradient(122% 88% at 22% 15%, ${rgba(th.accent, 0.34)} 0%, transparent 56%), radial-gradient(96% 76% at 84% 95%, ${rgba(th.accent2, 0.26)} 0%, transparent 58%), linear-gradient(158deg, ${mix(th.ground, "#000000", 0.16)} 0%, ${mix(th.ground, "#000000", 0.68)} 100%)`;
   const wm = upper(String(brand).slice(0, 12));
@@ -363,7 +431,11 @@ function lowerthird(scene, ctx, a) {
   // cast to this scene it becomes a spotlit circular avatar sitting in the pool
   // of light; with no asset it degrades to the original ghosted quote glyph.
   const hasAvatar = a && a.path;
-  const avSize = land ? 12 : 20;
+  // 12cqw of a 1920 frame is 230px, but 20cqw of a 1080 one was only 216 — 214 painted
+  // inside the ring, under the 220px floor a face needs to read, and the measurement run
+  // flagged it small-slot on its own. 22cqw is 237.6px (about 234 painted) and clears it;
+  // the pool of light around it is sized from FH, not from avSize, so nothing else moves.
+  const avSize = land ? 12 : 22;
   const quote = fit(String(scene.quote || scene.subtext || scene.headline || ""), 132);
   const qlines = splitTwo(quote);
   const size = sizeFor(longestOf(qlines.length ? qlines : [""]), land ? 76 : 86, 0.55, land ? 3.9 : 5.6, 1.4);
@@ -374,7 +446,7 @@ function lowerthird(scene, ctx, a) {
     <div id="${id}-pool" style="position:absolute;left:50%;top:${r(FH * 0.08)}cqw;margin-left:${land ? -34 : -46}cqw;width:${land ? 68 : 92}cqw;height:${r(FH * 0.56)}cqw;background:radial-gradient(ellipse 60% 54% at 50% 46%, ${rgba(th.accent, 0.26)} 0%, ${rgba(th.accent, 0.07)} 46%, transparent 74%);filter:blur(8px);"></div>
     ${hasAvatar
       ? `<div id="${id}-mark" style="opacity:0;position:absolute;left:50%;top:${r(FH * 0.09)}cqw;margin-left:${r(-avSize / 2)}cqw;width:${avSize}cqw;height:${avSize}cqw;border-radius:50%;overflow:hidden;border:0.16cqw solid ${rgba(th.plateInk, 0.55)};box-shadow:0 0.3cqw 1.4cqw ${rgba(th.plateDeep, 0.82)};">
-           <img src="${esc(a.path)}" alt="${esc(a.alt || "")}" style="width:100%;height:100%;object-fit:cover;display:block;">
+           <img src="${esc(a.path)}" alt="${esc(a.alt || "")}" style="width:100%;height:100%;${E.fitCss(a)}display:block;">
          </div>`
       : `<div id="${id}-mark" style="opacity:0;position:absolute;left:0;right:0;top:${r(FH * 0.11)}cqw;text-align:center;font-family:${th.displayStack};font-weight:700;font-size:${land ? 26 : 38}cqw;line-height:0.8;color:${rgba(th.ink, 0.14)};">&ldquo;</div>`}
     <div id="${id}-hz" style="position:absolute;left:${land ? 12 : 8}cqw;right:${land ? 12 : 8}cqw;top:${r(FH * 0.52)}cqw;height:0.1cqw;background:${rgba(th.ink, 0.22)};transform-origin:center center;"></div>
@@ -401,17 +473,48 @@ function diptych(scene, ctx, a, b) {
   const lines = titleLines(scene, 2, brand);
   const kick = fit(String(scene.kicker || scene.purpose || ""), 22).toUpperCase();
   const headSize = sizeFor(longestOf(lines), land ? 68 : 82, 0.63, land ? 4.2 : 6, 1.8);
-  const headH = r((kick ? (land ? 2.8 : 4.4) : 0) + lines.length * headSize * 1.14 + (land ? 2.4 : 3.6));
+  // The trailing breathing under the head block is the only vertical number the strip
+  // can be paid out of. Land drops 2.4 -> 1.2 to BUY height, because the panels were far
+  // too wide; portrait pays 3.6 -> 7.6 to SPEND it, because two STACKED panels only get
+  // half of whatever the strip keeps and 1.39 was already too flat. See `side` below.
+  const headH = r((kick ? (land ? 2.8 : 4.4) : 0) + lines.length * headSize * 1.14 + (land ? 1.2 : 7.6));
   const top = r(pd + headH);
-  const side = land ? 7 : 6;
+  // WHY THIS IS NOT 7 / 6 ANY MORE. The panel's shape was never chosen by anyone: its
+  // width came from this inset and its height from whatever the head block left over, and
+  // the two landed on 1.87 land / 1.39 port — wider and flatter than any asset class the
+  // pool actually holds (site captures 1.52, stock photos 1.5-1.8). Measured, EVERY
+  // landscape panel came back heavy-crop: a 1.0 square lost 46.5% of its height, a 3.0
+  // panorama 37.7% of its width. Insetting land to 11cqw and portrait to 5cqw, with the
+  // gutter below, puts the equal-split panel at 1.60 land / 1.49 port — the middle of the
+  // band real pictures live in.
+  const side = land ? 11 : 5;
+  // The gutter the centre hairline is drawn in. Portrait's 2 -> 4cqw is the other half of
+  // the portrait reshape: in a stacked pair the gutter is the one number that takes height
+  // out of both panels without moving the head block down.
+  const gut = land ? 1.4 : 4;
+  // EACH PANEL TAKES THE SHARE OF THE STRIP ITS OWN PICTURE WANTS. The strip is one fixed
+  // rect either way, so the two panels split it; splitting it exactly in half is what made
+  // each panel's shape an accident of the head block. Weighting the split by the fitted box
+  // costs no layout at all, and a 62/38 two-shot is ordinary film staging — while an equal
+  // split forced a 1.0 square and a 3.0 panorama into the same box and cropped both to
+  // pieces. asset_fit has already clamped the fitted box into the `flex` band mediaGeometry
+  // declares, so the split can never run past it. No asset -> the equal share.
+  const nominalAsp = land ? 1.6 : 1.49;
+  const weightOf = (asset) => {
+    const bx = asset && asset.__fit && asset.__fit.box;
+    const asp = bx && Number(bx.aspect) > 0 ? Number(bx.aspect) : nominalAsp;
+    // Land splits WIDTH at a shared height, so a wider picture wants more of it; portrait
+    // splits HEIGHT at a shared width, so a wider picture wants less.
+    return land ? asp : 1 / asp;
+  };
   const capOf = (asset, n) => {
     const t = fit(String((asset && (asset.caption || asset.alt)) || ""), 26).toUpperCase();
     return `PLATE ${pad2(n)}${t && /[A-Z0-9]/.test(t) ? `   ·   ${t}` : ""}`;
   };
-  const panel = (asset, k, n) => `
-      <div id="${id}-p${k}" style="flex:1 1 0;position:relative;overflow:hidden;min-width:0;min-height:0;border:0.1cqw solid ${rgba(th.ink, 0.22)};background:${th.panel || th.ground};">
+  const panel = (asset, k, n, wt) => `
+      <div id="${id}-p${k}" style="flex:${wt} 1 0;position:relative;overflow:hidden;min-width:0;min-height:0;border:0.1cqw solid ${rgba(th.ink, 0.22)};background:${th.panel || th.ground};">
         ${asset && asset.path
-          ? `<img id="${id}-i${k}" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${isScreenshot(asset) ? "top center" : "center center"};display:block;">`
+          ? `<img id="${id}-i${k}" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="position:absolute;inset:0;width:100%;height:100%;${E.fitCss(asset)}display:block;">`
           : `<div id="${id}-i${k}" style="position:absolute;inset:0;background:linear-gradient(152deg, ${rgba(th.accent, 0.92)} 0%, ${mix(th.accent, th.ground, 0.68)} 100%);display:grid;place-items:center;">
                <div style="text-align:center;padding:1.4cqw;">
                  <div style="font-family:${th.displayStack};font-weight:700;font-size:${land ? 4 : 5.6}cqw;line-height:1;letter-spacing:0.1em;text-transform:uppercase;color:${E.inkOn(th.accent, "#141210", "#F7F4EC")};">${esc(upper(String(brand).slice(0, 12)))}</div>
@@ -424,6 +527,9 @@ function diptych(scene, ctx, a, b) {
       </div>`;
   const first = variant % 2 === 1 ? b : a;
   const secondA = variant % 2 === 1 ? a : b;
+  const w0 = r(weightOf(first)), w1 = r(weightOf(secondA));
+  // Where the hairline falls once the panels are no longer halves.
+  const split = w0 / (w0 + w1);
   const html = `
     <div style="position:absolute;left:${side}cqw;right:${side}cqw;top:${pd}cqw;">
       ${kick ? `<div id="${id}-kick" style="opacity:0;font-family:${th.bodyStack};font-size:${land ? 1 : 1.72}cqw;letter-spacing:0.4em;text-transform:uppercase;color:${th.accentText};">${esc(kick)}</div>` : ""}
@@ -431,13 +537,13 @@ function diptych(scene, ctx, a, b) {
         ${lines.map((ln, k) => `<div id="${id}-h${k}" class="${id}-hd" style="opacity:0;font-size:${headSize}cqw;line-height:1.14;color:${th.ink};">${esc(ln)}</div>`).join("")}
       </div>
     </div>
-    <div style="position:absolute;left:${side}cqw;right:${side}cqw;top:${top}cqw;bottom:${pd}cqw;display:flex;flex-direction:${land ? "row" : "column"};gap:${land ? 1.4 : 2}cqw;">
-      ${panel(first, 0, 1)}
-      ${panel(secondA, 1, 2)}
+    <div style="position:absolute;left:${side}cqw;right:${side}cqw;top:${top}cqw;bottom:${pd}cqw;display:flex;flex-direction:${land ? "row" : "column"};gap:${gut}cqw;">
+      ${panel(first, 0, 1, w0)}
+      ${panel(secondA, 1, 2, w1)}
     </div>
     <div id="${id}-div" style="position:absolute;${land
-      ? `left:50%;top:${top}cqw;bottom:${pd}cqw;width:0.1cqw;transform-origin:top center;`
-      : `left:${side}cqw;right:${side}cqw;top:${r(top + (frameH(ctx) - top - pd) / 2)}cqw;height:0.1cqw;transform-origin:left center;`}background:${rgba(th.ink, 0.4)};"></div>`;
+      ? `left:${r(side + (100 - side * 2 - gut) * split + gut / 2)}cqw;top:${top}cqw;bottom:${pd}cqw;width:0.1cqw;transform-origin:top center;`
+      : `left:${side}cqw;right:${side}cqw;top:${r(top + (frameH(ctx) - top - pd - gut) * split + gut / 2)}cqw;height:0.1cqw;transform-origin:left center;`}background:${rgba(th.ink, 0.4)};"></div>`;
   const s = [
     kick ? `tl.fromTo("#${id}-kick",{opacity:0,x:-18},{opacity:1,x:0,duration:0.65,ease:"power2.out"},${r(T + 0.08)});` : "",
     `tl.fromTo(".${id}-hd",{opacity:0,y:${land ? 20 : 24}},{opacity:1,y:0,duration:0.8,ease:"power2.out",stagger:0.14},${r(T + 0.16)});`,
@@ -578,7 +684,7 @@ const family = {
       used: bullets(scene || {}, 3),
     };
   },
-  theme, styleBlock, chrome, perScene, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaFallback,
+  theme, styleBlock, chrome, perScene, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaGeometry, mediaFallback,
   wantsLogo: (t) => t === "endcard",
   fallbackType: "slate",
   variants: 2,
@@ -618,4 +724,9 @@ function buildComposition(opts) { return E.buildFilm(family, opts); }
 // drift from the film that ships.
 function planMedia(opts) { return E.planMedia(family, opts); }
 
-module.exports = { buildComposition, planMedia, TEMPLATE_SCENES };
+// FAMILY is the pack's whole design object — the same one buildFilm renders from.
+// It is exported so callers OUTSIDE the renderer can read the slot contract without
+// building a film: services/template_media.resolveMediaPlan needs `mediaSlots` and
+// `mediaGeometry` to tell preflight which boxes this template will draw and what
+// shape each one is, and the crop engine needs the resulting aspect list.
+module.exports = { buildComposition, planMedia, TEMPLATE_SCENES, FAMILY: family };

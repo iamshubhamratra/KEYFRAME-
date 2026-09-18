@@ -25,6 +25,7 @@ const path = require("node:path");
 const config = require("../config");
 const db = require("../db");
 const openrouter = require("./openrouter");
+const pacing = require("./pacing");
 const { extractFirstJsonObject } = require("./json_lenient");
 
 const SYSTEM = fs.readFileSync(
@@ -33,7 +34,7 @@ const SYSTEM = fs.readFileSync(
 );
 
 function tdr() {
-  return config.textDirector || { enabled: true, model: "google/gemini-3.1-flash-lite" };
+  return config.textDirector || { enabled: true, model: config.llm.modelFast || config.llm.model };
 }
 
 // ---- sanitization ------------------------------------------------------------
@@ -60,11 +61,28 @@ function meaty(line) {
 
 // Sanitize ONE scene's enrichment against what the scene already has.
 // Add-only: existing non-empty fields survive untouched.
-function applyEnrichment(scene, raw) {
+function applyEnrichment(scene, raw, opts = {}) {
   if (!scene || !raw || typeof raw !== "object") return 0;
   let added = 0;
+  // THE MODE'S LINE BUDGET. A faster film has shorter frames, and this director's
+  // whole job is ADDING copy to them — so it is the one agent that most needs to
+  // know the pace. `maxBullets` is the mode's per-scene line allowance minus the
+  // headline that is always there; at relaxed/normal that is 3, exactly the cap
+  // this used before pacing existed, so the default is untouched.
+  const maxBullets = Math.max(1, Number(opts.maxBullets) || 3);
+  // THE WIDTHS ARE THE SCENE'S, NOT THIS FILE'S.
+  //
+  // The four literals below (90 / 58 / 24 / 18) were fixed regardless of how long
+  // the frame is up, so this director wrote a 58-character label onto a 2.3s
+  // very-fast frame whose own readable ceiling is 17. The line was then re-clipped
+  // by whichever composer drew it, at ITS width, mid-word — the "LangGraph
+  // orchest" class of defect. pacing.visualCapacity() derives the real ceiling
+  // from the scene's own clock; the literals stay as the fallback for a call with
+  // no pace and no duration, which is exactly what they always were.
+  const cap = opts.capacity || null;
+  const wide = (role, dflt) => (cap && cap.roles && cap.roles[role]) || dflt;
   if (!clip(scene.subtext, 10) && meaty(raw.subtext)) {
-    scene.subtext = clip(raw.subtext, 90);
+    scene.subtext = clip(raw.subtext, wide("subtext", 90));
     added++;
   }
   const haveBullets = Array.isArray(scene.bullets) && scene.bullets.filter(Boolean).length > 0;
@@ -73,7 +91,7 @@ function applyEnrichment(scene, raw) {
     // anyway (`fit(c, 24)`). The portrait support list WRAPS, so a longer line
     // survives intact instead of losing its verb — "One AI workspace where teams
     // and agents ship together" beat "...teams and".
-    const bullets = raw.bullets.map((b) => clip(b, 58)).filter(meaty).slice(0, 3);
+    const bullets = raw.bullets.map((b) => clip(b, wide("bullet", 58))).filter(meaty).slice(0, maxBullets);
     if (bullets.length) { scene.bullets = bullets; added++; }
   }
   if (!clip(scene.emphasis, 1) && raw.emphasis) {
@@ -84,7 +102,7 @@ function applyEnrichment(scene, raw) {
     if (emph && head.includes(emph.toLowerCase())) { scene.emphasis = emph; added++; }
   }
   if (!clip(scene.kicker, 1) && meaty(raw.kicker)) {
-    scene.kicker = clip(raw.kicker, 18);
+    scene.kicker = clip(raw.kicker, wide("kicker", 18));
     added++;
   }
   return added;
@@ -94,7 +112,7 @@ function applyEnrichment(scene, raw) {
 // Pull candidate lines from the script + brief, then fill still-empty slots in
 // order. Numbers first (stats sell), then key messages, then leftover
 // onScreenText lines that aren't already a headline.
-function mineDeterministic(storyboard, script, brief) {
+function mineDeterministic(storyboard, script, brief, maxBullets = 3, paceCfg = null) {
   const scenes = (storyboard && storyboard.scenes) || [];
   const headlines = new Set(scenes.map((s) => clip(s.headline, 200).toLowerCase()).filter(Boolean));
 
@@ -115,6 +133,11 @@ function mineDeterministic(storyboard, script, brief) {
     if (lines.length) byScene.set(String(sc.id), lines);
   });
   (script && script.scenes || []).forEach((sc) => (sc.onScreenText || []).forEach(push));
+  // MUST-INCLUDE FIRST. These are the facts the brief marked non-negotiable, and
+  // they were missing from this pool entirely — so the one deterministic filler
+  // in the pipeline was mining key messages and leftover display lines while up
+  // to twelve verified facts sat unused in the same object.
+  (brief && brief.mustIncludeFacts || []).forEach(push);
   (brief && brief.keyMessages || []).forEach(push);
   // Standalone stats anywhere in the brief text ("40+ templates", "$29/mo",
   // "10x faster", "99.9% uptime") become bullet fodder.
@@ -126,17 +149,27 @@ function mineDeterministic(storyboard, script, brief) {
     const scene = scenes[i];
     // 1) scene-aligned onScreenText → subtext + bullets for THAT scene
     const aligned = byScene.get(String(scene.id)) || [];
+    const capacity = pacing.visualCapacity(paceCfg, Number(scene.duration) || (paceCfg && paceCfg.scene && paceCfg.scene.targetSec) || 3.5);
     added += applyEnrichment(scene, {
       subtext: aligned[0],
-      bullets: aligned.slice(1, 4),
-    });
-    // 2) global pool fills whatever is still empty on content scenes
-    if (i > 0 && i < scenes.length - 1) {
+      bullets: aligned.slice(1, 1 + maxBullets),
+    }, { maxBullets, capacity });
+    // 2) global pool fills whatever is still empty.
+    //
+    // The hook and the CTA used to be excluded (`i > 0 && i < length - 1`), on
+    // the reasoning that an opener and a closer are typographic statements. But
+    // they are also the two frames a viewer is most likely to actually watch,
+    // and at a fast pace they were the emptiest in the film — the opener carries
+    // no kicker by default and the closer is usually a three-word imperative.
+    // They get the same supply as everything else now; `applyEnrichment` is
+    // add-only, so a scene that already reads as a deliberate statement is still
+    // left exactly as its author wrote it.
+    {
       const wantBullets = !(Array.isArray(scene.bullets) && scene.bullets.filter(Boolean).length);
       added += applyEnrichment(scene, {
         subtext: pool.shift(),
-        bullets: wantBullets ? pool.splice(0, 3) : [],
-      });
+        bullets: wantBullets ? pool.splice(0, maxBullets) : [],
+      }, { maxBullets, capacity });
     }
   }
   return added;
@@ -160,6 +193,12 @@ function buildUser({ brief, script, storyboard }) {
       subject: clip(brief?.subject, 120),
       improvedPrompt: clip(brief?.improvedPrompt, 700),
       keyMessages: (brief?.keyMessages || []).map((k) => clip(k, 120)).slice(0, 8),
+      // THE FACTS THE BRIEF MARKED NON-NEGOTIABLE, and until this line they
+      // reached nothing that writes on-screen copy: absent from this payload,
+      // absent from graph.js storyboardPromptFromScript, absent from the
+      // deterministic miner below. Up to twelve verified facts collected at
+      // ingest, never once offered to the frame.
+      mustIncludeFacts: (brief?.mustIncludeFacts || []).map((f) => clip(f, 160)).slice(0, 12),
       goal: clip(brief?.goal, 200),
       audience: clip(brief?.audience, 160),
       scriptOnScreenText: (script?.scenes || []).map((s) => ({ id: s.id, lines: (s.onScreenText || []).slice(0, 4) })),
@@ -172,7 +211,7 @@ function buildUser({ brief, script, storyboard }) {
   ].join("\n");
 }
 
-async function enrichWithLlm({ brief, script, storyboard, tracker, signal }) {
+async function enrichWithLlm({ brief, script, storyboard, tracker, signal, maxBullets = 3, paceCfg = null }) {
   const { text, tokensIn, tokensOut, costUsd } = await openrouter.chat({
     system: SYSTEM,
     user: buildUser({ brief, script, storyboard }),
@@ -190,7 +229,11 @@ async function enrichWithLlm({ brief, script, storyboard, tracker, signal }) {
   scenes.forEach((scene, i) => {
     const key = scene.id != null ? String(scene.id) : `s${i + 1}`;
     const enrichment = perScene[key] || perScene[`s${i + 1}`] || null;
-    if (enrichment) added += applyEnrichment(scene, enrichment);
+    if (enrichment) {
+      added += applyEnrichment(scene, enrichment, {
+        maxBullets, capacity: pacing.visualCapacity(paceCfg, Number(scene.duration) || (paceCfg && paceCfg.scene && paceCfg.scene.targetSec) || 3.5),
+      });
+    }
   });
   return added;
 }
@@ -198,8 +241,21 @@ async function enrichWithLlm({ brief, script, storyboard, tracker, signal }) {
 // ---------------------------------------------------------------- main
 // Mutates storyboard scenes in place (add-only) and returns
 // { storyboard, report } — report is persisted for the theater UI.
-async function directText({ jobId, brief, script, storyboard, tracker, signal }) {
+async function directText({ jobId, brief, script, storyboard, tracker, signal, pacing: pacingCfg }) {
   const sb = storyboard;
+  // The mode's per-scene line allowance, minus the headline every scene carries.
+  // Falls back to the storyboard's own attached config, then to 3 — the cap this
+  // director used before pacing existed, which relaxed and normal both still
+  // resolve to, so the default film is unchanged.
+  const paceCfg = pacingCfg || (storyboard && storyboard.paceConfig) || null;
+  // The label row's own budget. `bulletsPerScene` is the pacing engine's second
+  // density axis and it RISES with pace (3/3/3/4); the old expression here was
+  // `maxOnScreenLines - 1`, a number that FELL with it (3/3/2/2) because that
+  // one field was serving both the narration directive and this director. A
+  // config without the new axis still falls back to the pre-pacing cap of 3, so
+  // an older storyboard.paceConfig behaves exactly as it did.
+  const T = (paceCfg && paceCfg.text) || null;
+  const maxBullets = Math.max(1, Number(T && T.bulletsPerScene) || Math.max(1, (T && T.maxOnScreenLines ? T.maxOnScreenLines : 4) - 1));
   if (!sb || !Array.isArray(sb.scenes) || !sb.scenes.length) {
     return { storyboard: sb, report: null };
   }
@@ -207,7 +263,7 @@ async function directText({ jobId, brief, script, storyboard, tracker, signal })
   let llmAdded = 0, minedAdded = 0, source = "deterministic";
   if (tdr().enabled) {
     try {
-      llmAdded = await enrichWithLlm({ brief, script, storyboard: sb, tracker, signal });
+      llmAdded = await enrichWithLlm({ brief, script, storyboard: sb, tracker, signal, maxBullets, paceCfg });
       source = "llm";
     } catch (e) {
       console.warn(`[text_director] LLM failed (${String((e && e.message) || e).slice(0, 140)}) — deterministic mining only`);
@@ -215,7 +271,7 @@ async function directText({ jobId, brief, script, storyboard, tracker, signal })
   }
   // Always run the miner after (or instead of) the LLM: it only touches slots
   // that are STILL empty, so it composes cleanly with the model's additions.
-  try { minedAdded = mineDeterministic(sb, script, brief); } catch { /* fail-open */ }
+  try { minedAdded = mineDeterministic(sb, script, brief, maxBullets, paceCfg); } catch { /* fail-open */ }
 
   const withSub = sb.scenes.filter((s) => clip(s.subtext, 1)).length;
   const withBul = sb.scenes.filter((s) => Array.isArray(s.bullets) && s.bullets.filter(Boolean).length).length;

@@ -1,0 +1,162 @@
+{
+  "id": "long-winter",
+  "name": "Long Winter",
+  "renderer": "filmkit",
+  "orientation": "vertical",
+  "sizePx": [
+    1080,
+    1920
+  ],
+  "cohort": "02 literary / essay",
+  "set": "article-text-50",
+  "globalName": "LongWinter",
+  "configFile": "configs/article-pack-02.js",
+  "vibe": "a train crossing a snowfield at dusk",
+  "form": {
+    "runtimeMs": 129400,
+    "runtimeRangeMs": [
+      90000,
+      150000
+    ],
+    "beats": 18
+  },
+  "readingBudget": {
+    "wpm": 225,
+    "landSeconds": 1.2,
+    "checkedBy": "scripts/lint-reading-budget.js"
+  },
+  "fonts": {
+    "display": "Cormorant Garamond",
+    "body": "Lora",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+      "devanagari": "Noto Serif Devanagari"
+    }
+  },
+  "palette": {
+    "slots": [
+      "bg",
+      "surface",
+      "rule",
+      "inkMuted",
+      "ink",
+      "accent",
+      "accent2",
+      "accentInk"
+    ],
+    "values": {
+      "bg": "#e7edf2",
+      "surface": "#f8fbfd",
+      "rule": "#c2cfd9",
+      "inkMuted": "#67757f",
+      "ink": "#141a1f",
+      "accent": "#2f6a7a",
+      "accent2": "#b4623f",
+      "accentInk": "#f8fbfd"
+    },
+    "strategy": "luminance ladder; hue-rotatable at each slot’s own lightness"
+  },
+  "tweaks": [
+    {
+      "key": "brand",
+      "type": "text"
+    },
+    {
+      "key": "bg",
+      "type": "color"
+    },
+    {
+      "key": "accent",
+      "type": "color"
+    },
+    {
+      "key": "accent2",
+      "type": "color"
+    },
+    {
+      "key": "motion",
+      "type": "radio",
+      "options": [
+        "Calm",
+        "Lively",
+        "Bouncy"
+      ],
+      "default": "Calm"
+    },
+    {
+      "key": "typeScale",
+      "type": "radio",
+      "options": [
+        "Compact",
+        "Default",
+        "Editorial"
+      ],
+      "default": "Default"
+    }
+  ],
+  "motion": {
+    "titlePreset": "rise",
+    "itemPreset": "drowse",
+    "camera": [
+      "pushR",
+      "zoomOut",
+      "pushL",
+      "drop",
+      "pushU",
+      "zoomIn"
+    ],
+    "mechanics": "Typing: \"caret\", Scroll: \"board\", Ring: \"bar\"",
+    "chrome": false
+  },
+  "world": {
+    "description": "a train crossing a snowfield at dusk. Far: two hill silhouettes on different parallax speeds and a frozen lake band. Mid: telegraph poles passing, the locomotive running a 15s traverse with driving wheels turning at travel speed and a smoke plume that drifts back and dissipates. Near: snow falling fast in three sizes.",
+    "cyclePeriodMs": 15000,
+    "planes": 3,
+    "textSafety": "object confined above y=290, below y=1330, or right of x=820; never crosses the copy column"
+  },
+  "mediaSlots": [
+    {
+      "id": "image",
+      "beat": "Feature",
+      "beatIndex": 10,
+      "aspect": "16:10",
+      "minPx": [
+        640,
+        400
+      ],
+      "fit": "cover",
+      "priority": 1,
+      "optional": true,
+      "onEmpty": "swap per look.feature.swap (borrows nearest unclaimed script line)"
+    },
+    {
+      "id": "logo",
+      "beat": "CTA",
+      "beatIndex": 17,
+      "aspect": "1:1",
+      "minPx": [
+        256,
+        256
+      ],
+      "fit": "contain",
+      "priority": 2,
+      "optional": true,
+      "onEmpty": "pack icon mark in a filled badge"
+    }
+  ],
+  "determinism": {
+    "randomness": false,
+    "wallClock": false,
+    "seekSafe": true,
+    "clock": "single authored timeline via animations-v2"
+  },
+  "paths": {
+    "html": "templates/long-winter.html",
+    "config": "configs/article-pack-02.js",
+    "storyboard": "fixtures/storyboard.long-winter.json",
+    "timestamps": "fixtures/timestamps.long-winter.json",
+    "referenceFrames": "reference-frames/long-winter/"
+  }
+}

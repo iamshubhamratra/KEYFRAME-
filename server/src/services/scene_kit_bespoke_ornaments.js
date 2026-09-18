@@ -437,6 +437,8 @@ function buildBespokeOrnaments({ framePack, kind, id, pid, T, L, seed, theme, di
   return { sv, dv, sc };
 }
 
-const BESPOKE_PACKS = new Set(["sumi-kaze", "orrery-brass", "claymotion", "folk-stitch", "abyssal-glow"]);
+const BESPOKE_PACKS = new Set([
+  "sumi-kaze", "orrery-brass", "claymotion", "folk-stitch",
+]);
 
 module.exports = { buildBespokeOrnaments, BESPOKE_PACKS };

@@ -1,0 +1,162 @@
+{
+  "id": "loose-leaf",
+  "name": "Loose Leaf",
+  "renderer": "filmkit",
+  "orientation": "vertical",
+  "sizePx": [
+    1080,
+    1920
+  ],
+  "cohort": "02 literary / essay",
+  "set": "article-text-50",
+  "globalName": "LooseLeaf",
+  "configFile": "configs/article-pack-02.js",
+  "vibe": "a sheet of paper on its way down",
+  "form": {
+    "runtimeMs": 129400,
+    "runtimeRangeMs": [
+      90000,
+      150000
+    ],
+    "beats": 18
+  },
+  "readingBudget": {
+    "wpm": 225,
+    "landSeconds": 1.2,
+    "checkedBy": "scripts/lint-reading-budget.js"
+  },
+  "fonts": {
+    "display": "Young Serif",
+    "body": "Figtree",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+      "devanagari": "Noto Serif Devanagari"
+    }
+  },
+  "palette": {
+    "slots": [
+      "bg",
+      "surface",
+      "rule",
+      "inkMuted",
+      "ink",
+      "accent",
+      "accent2",
+      "accentInk"
+    ],
+    "values": {
+      "bg": "#eef0e6",
+      "surface": "#fbfcf7",
+      "rule": "#ccd2be",
+      "inkMuted": "#6d7360",
+      "ink": "#151810",
+      "accent": "#4f7a45",
+      "accent2": "#e0995c",
+      "accentInk": "#fbfcf7"
+    },
+    "strategy": "luminance ladder; hue-rotatable at each slot’s own lightness"
+  },
+  "tweaks": [
+    {
+      "key": "brand",
+      "type": "text"
+    },
+    {
+      "key": "bg",
+      "type": "color"
+    },
+    {
+      "key": "accent",
+      "type": "color"
+    },
+    {
+      "key": "accent2",
+      "type": "color"
+    },
+    {
+      "key": "motion",
+      "type": "radio",
+      "options": [
+        "Calm",
+        "Lively",
+        "Bouncy"
+      ],
+      "default": "Lively"
+    },
+    {
+      "key": "typeScale",
+      "type": "radio",
+      "options": [
+        "Compact",
+        "Default",
+        "Editorial"
+      ],
+      "default": "Default"
+    }
+  ],
+  "motion": {
+    "titlePreset": "rise",
+    "itemPreset": "pop",
+    "camera": [
+      "drop",
+      "pushL",
+      "hopU",
+      "zoomIn",
+      "pushR",
+      "zoomOut"
+    ],
+    "mechanics": "Typing: \"caret\", Scroll: \"feed\", Ring: \"ring\"",
+    "chrome": false
+  },
+  "world": {
+    "description": "a sheet of paper on its way down. Far: a soft sky wash and two hedge lines on parallax. Mid: a bench on the lower deck, and the sheet spiralling on a 9s descent — it rotates about both axes, so its width breathes as it turns edge-on, and its shadow tracks it along the ground. Near: three leaves tumbling faster on their own spirals.",
+    "cyclePeriodMs": 9000,
+    "planes": 3,
+    "textSafety": "object confined above y=290, below y=1330, or right of x=820; never crosses the copy column"
+  },
+  "mediaSlots": [
+    {
+      "id": "image",
+      "beat": "Feature",
+      "beatIndex": 10,
+      "aspect": "16:10",
+      "minPx": [
+        640,
+        400
+      ],
+      "fit": "cover",
+      "priority": 1,
+      "optional": true,
+      "onEmpty": "swap per look.feature.swap (borrows nearest unclaimed script line)"
+    },
+    {
+      "id": "logo",
+      "beat": "CTA",
+      "beatIndex": 17,
+      "aspect": "1:1",
+      "minPx": [
+        256,
+        256
+      ],
+      "fit": "contain",
+      "priority": 2,
+      "optional": true,
+      "onEmpty": "pack icon mark in a filled badge"
+    }
+  ],
+  "determinism": {
+    "randomness": false,
+    "wallClock": false,
+    "seekSafe": true,
+    "clock": "single authored timeline via animations-v2"
+  },
+  "paths": {
+    "html": "templates/loose-leaf.html",
+    "config": "configs/article-pack-02.js",
+    "storyboard": "fixtures/storyboard.loose-leaf.json",
+    "timestamps": "fixtures/timestamps.loose-leaf.json",
+    "referenceFrames": "reference-frames/loose-leaf/"
+  }
+}

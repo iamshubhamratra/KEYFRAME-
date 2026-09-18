@@ -1,0 +1,61 @@
+{
+  "name": "market-memo",
+  "vibe": "business / analyst — an open-plan floor after hours. Familjen Grotesk over Commissioner; a luminance-ladder palette on #efece7. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#efece7",
+    "ink": "#161412",
+    "accent": "#8c2f2f",
+    "a2": "#2f7f8c"
+  },
+  "fonts": [
+    "Familjen Grotesk",
+    "Commissioner",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#efece7",
+    "ink": "#161412"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#8c2f2f",
+      "#2f7f8c"
+    ],
+    "extras": [
+      "#6e6862"
+    ],
+    "emphasisCss": "color:#8c2f2f;"
+  },
+  "assets": {
+    "photoMod": "an open-plan floor after hours editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "business",
+      "analyst"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Familjen Grotesk",
+    "body": "Commissioner",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-market-memo",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

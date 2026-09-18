@@ -164,10 +164,65 @@ function auditAssetRender({ indexHtml = "", assets = [], jobDir = null } = {}) {
   }
 }
 
+/**
+ * HOW EVERY PICTURE MET ITS BOX — read back off the rendered document.
+ *
+ * `auditAssetRender` above answers "did the asset reach the screen at all", which was the
+ * only question anything asked. It is not the question a viewer answers: a website capture
+ * with 28% of its width cut off IS on screen, and it is the defect that shipped.
+ *
+ * template_engine stamps each clip with what the plan decided — `data-media-fit` carries
+ * `<slot>:<mode>:<cropX>/<cropY>` per slot, with a trailing `:!` when asset_fit had to
+ * take a crop the content class cannot really afford. Reading it back turns a fit decision
+ * into a countable, persisted number instead of something only a human watching the film
+ * would notice.
+ *
+ * Disclosure, not a gate — the same law the rest of this file follows. It never throws and
+ * never blocks a render; it makes the failure visible.
+ */
+function auditAssetFit(indexHtml) {
+  const out = {
+    slots: 0, contained: 0, covered: 0, reshaped: 0, compromised: 0,
+    heavyCrop: 0, meanCropPct: 0, worst: [], fitStatus: "NO_DATA",
+  };
+  try {
+    const html = String(indexHtml || "");
+    let total = 0;
+    for (const m of html.matchAll(/data-media-fit="([^"]*)"/g)) {
+      for (const entry of String(m[1]).split(",")) {
+        const parts = entry.split(":");
+        if (parts.length < 3) continue;                 // "0:-" — an unfilled slot
+        const [, mode, crop] = parts;
+        const [cx, cy] = String(crop).split("/").map(Number);
+        const worst = Math.max(Number(cx) || 0, Number(cy) || 0);
+        out.slots++;
+        total += worst;
+        if (mode === "contain") out.contained++;
+        else if (mode === "reshaped-cover") { out.reshaped++; out.covered++; }
+        else out.covered++;
+        if (parts[3] === "!") out.compromised++;
+        if (worst >= 20) { out.heavyCrop++; out.worst.push({ mode, cropPct: worst }); }
+      }
+    }
+    if (!out.slots) return out;
+    out.meanCropPct = Math.round((total / out.slots) * 10) / 10;
+    out.worst = out.worst.sort((a, b) => b.cropPct - a.cropPct).slice(0, 6);
+    // A fifth of the film's pictures losing a fifth of themselves is the shipped defect,
+    // stated as a threshold. Below that, cropping is ordinary art direction.
+    const heavyShare = out.heavyCrop / out.slots;
+    out.fitStatus = heavyShare >= 0.34 ? "FAIL_HEAVY_CROP"
+      : heavyShare >= 0.2 ? "WARN_CROP"
+        : out.compromised > 0 ? "WARN_COMPROMISED" : "PASS";
+    return out;
+  } catch (e) {
+    return { ...out, fitStatus: "AUDIT_ERROR", error: String((e && e.message) || e).slice(0, 160) };
+  }
+}
+
 // True when the report is a genuine failure worth shouting about (assets existed but the
 // film shows none / broken). WARN_SPARSE and NO_ASSETS/PASS are not failures.
 function isAssetRenderFailure(report) {
   return !!report && /^FAIL_/.test(String(report.renderStatus || ""));
 }
 
-module.exports = { auditAssetRender, isAssetRenderFailure, pathInHtml };
+module.exports = { auditAssetRender, auditAssetFit, isAssetRenderFailure, pathInHtml };

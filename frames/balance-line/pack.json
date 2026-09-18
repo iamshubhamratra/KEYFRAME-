@@ -1,0 +1,61 @@
+{
+  "name": "balance-line",
+  "vibe": "business / analyst — a counting house. Libre Bodoni over Livvic; a luminance-ladder palette on #f2eee4. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#f2eee4",
+    "ink": "#161410",
+    "accent": "#1f5137",
+    "a2": "#8c2f45"
+  },
+  "fonts": [
+    "Libre Bodoni",
+    "Livvic",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#f2eee4",
+    "ink": "#161410"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#1f5137",
+      "#8c2f45"
+    ],
+    "extras": [
+      "#6f695c"
+    ],
+    "emphasisCss": "color:#1f5137;"
+  },
+  "assets": {
+    "photoMod": "a counting house editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "business",
+      "analyst"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Libre Bodoni",
+    "body": "Livvic",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-balance-line",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

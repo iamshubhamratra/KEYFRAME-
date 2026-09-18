@@ -12,12 +12,12 @@
 // source-language captions instead of failing the whole film.
 //
 // MODEL ROUTING (operator note): this calls openrouter.chat with stage
-// "caption_director" and NO explicit model. When a KIE key is configured
-// (config.llm.primary), the ACTUAL translator is KIE `config.llm.primary.model`
-// (e.g. gemini-3-5-flash) — the KIE primary serves the request. `CAPTION_DIRECTOR_MODEL`
-// / `config.captions.model` (registered as stageModels.caption_director) only selects
-// the OpenRouter *fallback* leg used if KIE fails (see openrouter.js chat cascade), so
-// tuning it does NOT change the model that serves a successful translation.
+// "caption_director" and NO explicit model, so it resolves through the normal
+// stage table — today that is the house model, config.llm.model. KIE no longer
+// serves any LLM stage (config.json dropped llm.primary; it is a TTS-only
+// provider now), so unlike before, `CAPTION_DIRECTOR_MODEL` /
+// `config.captions.model` (registered as stageModels.caption_director) DOES
+// select the model that serves a successful translation, not just a fallback.
 
 const fs = require("node:fs");
 const path = require("node:path");

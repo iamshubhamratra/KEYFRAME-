@@ -26,8 +26,22 @@
 //   website-asset — other harvested imagery: neutral, tier 70, prominent only via the
 //                   Creative Director's visionOk (so a decorative asset can't out-slot
 //                   a real product shot). Wired to pin/scene competition in M2/M3.
-const WEBSITE_BRAND_SOURCE = "website-brand";
-const WEBSITE_ASSET_SOURCE = "website-asset";
+//
+// THE DRIFT THIS FILE EXISTS TO PREVENT HAPPENED ANYWAY. The constants above were
+// "website-brand" and "website-asset"; the producer, website_assets.js, has always written
+// "website-logo" (:77) and "website-image" (:44), and sixteen call sites across the repo
+// test for the producer's spelling. So `tierFor` matched neither, both fell through to
+// `return 40`, and the customer's OWN logo and their OWN harvested imagery were ranked
+// identically to a stock photo off Pixabay — the two tiers this table was written to
+// create were dead from the day it was written.
+//
+// The producer's spelling wins, because sixteen consumers already speak it and one table
+// did not. Both spellings are accepted so the tier law cannot no-op again if either name
+// resurfaces; canonical is listed first.
+const WEBSITE_BRAND_SOURCE = "website-logo";
+const WEBSITE_ASSET_SOURCE = "website-image";
+const WEBSITE_BRAND_ALIASES = new Set([WEBSITE_BRAND_SOURCE, "website-brand"]);
+const WEBSITE_ASSET_ALIASES = new Set([WEBSITE_ASSET_SOURCE, "website-asset"]);
 
 // Priority tiers (the product spec's numbers, used as a lexicographic MAJOR key):
 //   100 upload         — the user's own files. Sovereign; never rejected, never outranked.
@@ -39,9 +53,9 @@ const WEBSITE_ASSET_SOURCE = "website-asset";
 function tierFor(a) {
   const src = String((a && a.source) || "").toLowerCase();
   if (src === "upload") return 100;
-  if (src === WEBSITE_BRAND_SOURCE) return 90;
+  if (WEBSITE_BRAND_ALIASES.has(src)) return 90;
   if (src === "website") return 80;
-  if (src === WEBSITE_ASSET_SOURCE) return 70;
+  if (WEBSITE_ASSET_ALIASES.has(src)) return 70;
   if (src.startsWith("library:") || src === "iconify") return 60;
   return 40;
 }
@@ -51,7 +65,7 @@ function tierFor(a) {
 // owner-sovereign — it may be third-party embedded, so it stays CD-deletable.
 function isOwned(a) {
   const src = String((a && a.source) || "").toLowerCase();
-  return src === "upload" || src === "website" || src === WEBSITE_BRAND_SOURCE;
+  return src === "upload" || src === "website" || WEBSITE_BRAND_ALIASES.has(src);
 }
 
 // The prominent-slot admission predicate — the historical 3-way test
@@ -71,7 +85,7 @@ function isTrustedProminent(a) {
   // but this predicate only matched the `library:` PREFIX — so a recolored Iconify
   // vector was tier-60 for ranking and untrusted for admission at the same time.
   // That inconsistency made every Iconify asset unplaceable on every pipeline.
-  return src === "upload" || src === "website" || src === WEBSITE_BRAND_SOURCE
+  return src === "upload" || src === "website" || WEBSITE_BRAND_ALIASES.has(src)
     || src.startsWith("library:") || src === "iconify" || a.visionOk === true;
 }
 
@@ -86,8 +100,20 @@ function rankKey(a, score) {
 // The user's logo is an asset with a ROLE, not a picture of the product: it never
 // competes for hero/montage/B-roll slots and gets its own key-moment treatment
 // (opening chip + CTA lockup). Every generic pool must skip it.
+// A MARK IS A MARK HOWEVER IT ARRIVED.
+//
+// This tested `role === "logo"` alone, and the brand mark harvested from the customer's own
+// site arrives with `source: "website-logo"` and no role at all. Two failures followed from one
+// missing test: `logoAssetOf()` returned null, so the hook and the CTA drew the pack's fallback
+// glyph instead of the customer's mark; and the same file passed every display gate, ranked
+// first on tier, and was seated as a HERO PICTURE — a square logo cover-cropped to fill a
+// 1.5-wide plate, which is the one crop that destroys a mark outright.
 function isLogo(a) {
-  return !!a && String(a.role || "").toLowerCase() === "logo";
+  if (!a) return false;
+  if (String(a.role || "").toLowerCase() === "logo") return true;
+  // WEBSITE_BRAND_ALIASES is the set this file already keeps for exactly this provenance.
+  if (WEBSITE_BRAND_ALIASES.has(String(a.source || "").toLowerCase())) return true;
+  return String(a.assetType || a.kindHint || "").toLowerCase() === "logo";
 }
 
 // The Asset Intelligence taxonomy — the ONE canonical set of labels the whole pipeline

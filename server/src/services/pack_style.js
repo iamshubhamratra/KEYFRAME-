@@ -7,19 +7,9 @@
 // A pack not listed here falls back to a NEUTRAL profile (no over-narrowing).
 
 const PACK_STYLE = {
-  "blockframe":        { photoMod: "bold graphic pop art",            iconStyle: "solid",   keywords: ["bold", "graphic", "colorful"] },
   "biennale-yellow":   { photoMod: "editorial fine art",              iconStyle: "line",    keywords: ["editorial", "art", "minimal"] },
-  "midnight-glass":    { photoMod: "dark moody premium technology",   iconStyle: "duotone", keywords: ["dark", "premium", "tech", "glow"] },
-  "noir-spotlight":    { photoMod: "cinematic high contrast dramatic",iconStyle: "solid",   keywords: ["cinematic", "dramatic", "dark"] },
-  "vapor-chrome":      { photoMod: "neon synthwave retro future",     iconStyle: "duotone", keywords: ["neon", "retro", "vaporwave", "glow"] },
-  "aurora-spectrum":   { photoMod: "gradient aurora abstract",        iconStyle: "duotone", keywords: ["gradient", "abstract", "calm"] },
   "bauhaus-print":     { photoMod: "bauhaus geometric primary color", iconStyle: "solid",   keywords: ["geometric", "poster", "primary"] },
-  "kinetic-bold":      { photoMod: "bold minimal high energy",        iconStyle: "solid",   keywords: ["bold", "minimal", "energetic"] },
-  "mono-corporate":    { photoMod: "clean minimal professional office",iconStyle: "line",   keywords: ["clean", "professional", "corporate", "minimal"] },
-  "bloom-illustrated": { photoMod: "soft illustrated pastel friendly",iconStyle: "soft",    keywords: ["illustrated", "soft", "pastel", "warm"] },
   "longshot-cinema":   { photoMod: "cinematic film still moody",      iconStyle: "line",    keywords: ["cinematic", "film", "moody"] },
-  "summit-keynote":    { photoMod: "clean corporate keynote professional", iconStyle: "line", keywords: ["clean", "corporate", "professional"] },
-  "prism-launch":      { photoMod: "modern product studio iridescent",iconStyle: "duotone", keywords: ["modern", "studio", "vibrant"] },
   "fable-storybook":   { photoMod: "warm storybook watercolor illustrated", iconStyle: "soft", keywords: ["watercolor", "illustrated", "warm", "soft"] },
 };
 

@@ -1,0 +1,162 @@
+{
+  "id": "spec-sheet",
+  "name": "Spec Sheet",
+  "renderer": "filmkit",
+  "orientation": "vertical",
+  "sizePx": [
+    1080,
+    1920
+  ],
+  "cohort": "01 technical / documentation",
+  "set": "article-text-50",
+  "globalName": "SpecSheet",
+  "configFile": "configs/article-pack-01.js",
+  "vibe": "a scan bay",
+  "form": {
+    "runtimeMs": 128400,
+    "runtimeRangeMs": [
+      90000,
+      150000
+    ],
+    "beats": 18
+  },
+  "readingBudget": {
+    "wpm": 225,
+    "landSeconds": 1.2,
+    "checkedBy": "scripts/lint-reading-budget.js"
+  },
+  "fonts": {
+    "display": "Russo One",
+    "body": "Radio Canada",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+      "devanagari": "Noto Sans Devanagari"
+    }
+  },
+  "palette": {
+    "slots": [
+      "bg",
+      "surface",
+      "rule",
+      "inkMuted",
+      "ink",
+      "accent",
+      "accent2",
+      "accentInk"
+    ],
+    "values": {
+      "bg": "#0f1720",
+      "surface": "#1a2732",
+      "rule": "#2f4655",
+      "inkMuted": "#93aab8",
+      "ink": "#ecf4f9",
+      "accent": "#37b5ff",
+      "accent2": "#7ff0cf",
+      "accentInk": "#04121b"
+    },
+    "strategy": "luminance ladder; hue-rotatable at each slot’s own lightness"
+  },
+  "tweaks": [
+    {
+      "key": "brand",
+      "type": "text"
+    },
+    {
+      "key": "bg",
+      "type": "color"
+    },
+    {
+      "key": "accent",
+      "type": "color"
+    },
+    {
+      "key": "accent2",
+      "type": "color"
+    },
+    {
+      "key": "motion",
+      "type": "radio",
+      "options": [
+        "Calm",
+        "Lively",
+        "Bouncy"
+      ],
+      "default": "Calm"
+    },
+    {
+      "key": "typeScale",
+      "type": "radio",
+      "options": [
+        "Compact",
+        "Default",
+        "Editorial"
+      ],
+      "default": "Default"
+    }
+  ],
+  "motion": {
+    "titlePreset": "rise",
+    "itemPreset": "pop",
+    "camera": [
+      "zoomIn",
+      "pushU",
+      "zoomOut",
+      "pushD",
+      "pushL",
+      "pushR"
+    ],
+    "mechanics": "Ring: \"ring\", Scroll: \"board\", Typing: \"caret\"",
+    "chrome": false
+  },
+  "world": {
+    "description": "a scan bay. Far: a perspective floor converging on a vanishing point, over a tick pattern, with a horizon glow. Mid: a dish antenna on a mast sweeps a 12s arc; its beam wedge rotates with it and return pulses expand from the rim. Near: bokeh discs rising fast. Everything sits below the horizon line at H*0.62, clear of every text block.",
+    "cyclePeriodMs": 3000,
+    "planes": 3,
+    "textSafety": "object confined above y=290, below y=1330, or right of x=820; never crosses the copy column"
+  },
+  "mediaSlots": [
+    {
+      "id": "image",
+      "beat": "Feature",
+      "beatIndex": 10,
+      "aspect": "16:10",
+      "minPx": [
+        640,
+        400
+      ],
+      "fit": "cover",
+      "priority": 1,
+      "optional": true,
+      "onEmpty": "swap per look.feature.swap (borrows nearest unclaimed script line)"
+    },
+    {
+      "id": "logo",
+      "beat": "CTA",
+      "beatIndex": 17,
+      "aspect": "1:1",
+      "minPx": [
+        256,
+        256
+      ],
+      "fit": "contain",
+      "priority": 2,
+      "optional": true,
+      "onEmpty": "pack icon mark in a filled badge"
+    }
+  ],
+  "determinism": {
+    "randomness": false,
+    "wallClock": false,
+    "seekSafe": true,
+    "clock": "single authored timeline via animations-v2"
+  },
+  "paths": {
+    "html": "templates/spec-sheet.html",
+    "config": "configs/article-pack-01.js",
+    "storyboard": "fixtures/storyboard.spec-sheet.json",
+    "timestamps": "fixtures/timestamps.spec-sheet.json",
+    "referenceFrames": "reference-frames/spec-sheet/"
+  }
+}

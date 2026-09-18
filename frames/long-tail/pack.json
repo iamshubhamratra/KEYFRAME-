@@ -1,0 +1,61 @@
+{
+  "name": "long-tail",
+  "vibe": "science / explainer — a monitoring station. Krona One over Kumbh Sans; a luminance-ladder palette on #eeeae1. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#eeeae1",
+    "ink": "#14120d",
+    "accent": "#8c3f2f",
+    "a2": "#3f6c8c"
+  },
+  "fonts": [
+    "Krona One",
+    "Kumbh Sans",
+    "Space Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#eeeae1",
+    "ink": "#14120d"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#8c3f2f",
+      "#3f6c8c"
+    ],
+    "extras": [
+      "#6c665b"
+    ],
+    "emphasisCss": "color:#8c3f2f;"
+  },
+  "assets": {
+    "photoMod": "a monitoring station editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "science",
+      "explainer"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Krona One",
+    "body": "Kumbh Sans",
+    "mono": "Space Mono",
+    "case": "none"
+  },
+  "renderer": "film-long-tail",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

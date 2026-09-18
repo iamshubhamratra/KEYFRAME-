@@ -71,7 +71,7 @@ function atempoFit(filePath, rate) {
       "-y", "-hide_banner", "-loglevel", "error", "-i", filePath,
       "-af", `atempo=${rate.toFixed(4)}`,
       tmp,
-    ]);
+    ], { windowsHide: true });
     const timer = setTimeout(() => { try { p.kill("SIGKILL"); } catch { /* noop */ } }, 30_000);
     p.on("error", () => { clearTimeout(timer); resolve(false); });
     p.on("exit", (code) => {
@@ -95,7 +95,7 @@ function trimWithFade(filePath, maxSec) {
       "-y", "-hide_banner", "-loglevel", "error", "-i", filePath,
       "-t", String(maxSec), "-af", `afade=t=out:st=${fadeStart}:d=0.35`,
       tmp,
-    ]);
+    ], { windowsHide: true });
     const timer = setTimeout(() => { try { p.kill("SIGKILL"); } catch { /* noop */ } }, 30_000);
     p.on("error", () => { clearTimeout(timer); resolve(false); });
     p.on("exit", (code) => {

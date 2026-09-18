@@ -32,6 +32,10 @@
 // is no real blur to capture. Velocity-keyed CSS blur on the moving layer is the
 // only honest way to get it, and it is what the camera whips already do.
 
+// The pacing engine owns the per-film timing scale. It requires nothing, so
+// there is no cycle back into this module.
+const pacing = require("./pacing");
+
 // ---- THE SHARED VOCABULARY --------------------------------------------------
 // One table. Every preset reads from it; nothing hardcodes a duration or ease.
 const TIMING = {
@@ -128,7 +132,7 @@ const CHARS = (sel) => `${sel} .kfmc`;
 // a rise and a whisper of scale. Never a plain fade: a fade has no direction and
 // reads as a slideshow dissolve.
 function wordStaggerBlur(sel, at, opts = {}) {
-  const t = TIMING;
+  const t = opts.timing || TIMING;
   const dur = r(opts.dur || t.textDur);
   const stg = r(opts.stagger || t.textStagger);
   const from = r(opts.rise != null ? opts.rise : t.textRise);
@@ -149,7 +153,7 @@ function wordStaggerBlur(sel, at, opts = {}) {
 // characterReveal — hero scenes only. Same physics, per character, tighter
 // stagger so a long line does not take four seconds to land.
 function characterReveal(sel, at, opts = {}) {
-  const t = TIMING;
+  const t = opts.timing || TIMING;
   return [
     `kfChars(${q(sel)});`,
     `tl.set(${q(sel)},{opacity:1},${r(at)});`,
@@ -164,7 +168,7 @@ function characterReveal(sel, at, opts = {}) {
 // against the filled original, because the stroke property itself does not
 // interpolate reliably across engines.
 function outlineFillReveal(sel, at, opts = {}) {
-  const t = TIMING;
+  const t = opts.timing || TIMING;
   const ink = opts.ink || "#FFFFFF";
   const dur = r(opts.dur || t.textDur * 1.4);
   return [
@@ -196,7 +200,7 @@ function outlineFillReveal(sel, at, opts = {}) {
 // brightness lift. Only the emphasised word moves; animating the sentence is the
 // single loudest amateur tell in the reference films.
 function headlineGlowPulse(sel, at, opts = {}) {
-  const t = TIMING;
+  const t = opts.timing || TIMING;
   const dur = r(opts.dur || 0.42);
   return [
     `tl.to(${q(sel)},{scale:1.06,filter:"brightness(1.15)",duration:${dur},`
@@ -208,7 +212,7 @@ function headlineGlowPulse(sel, at, opts = {}) {
 // word leaves upward under blur, the incoming arrives from below into the same
 // slot, so the sentence holds still and only the changed token moves.
 function textMorph(sel, at, words, opts = {}) {
-  const t = TIMING;
+  const t = opts.timing || TIMING;
   const hold = r(opts.hold || 0.9);
   const dur = r(opts.dur || 0.34);
   const list = (Array.isArray(words) ? words : []).filter(Boolean);
@@ -236,7 +240,7 @@ const SLIDE_DIRS = [
   { x: -1, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 },
 ];
 function directionalSlide(sel, at, index, opts = {}) {
-  const t = TIMING;
+  const t = opts.timing || TIMING;
   const d = SLIDE_DIRS[((index % SLIDE_DIRS.length) + SLIDE_DIRS.length) % SLIDE_DIRS.length];
   const dist = r(opts.dist || 90);
   return [
@@ -249,7 +253,7 @@ function directionalSlide(sel, at, index, opts = {}) {
 // overshootSettle — 100 → 102 → 100. Applied to anything that "arrives"; a
 // linear stop is the difference between a physics simulation and a slideshow.
 function overshootSettle(sel, at, opts = {}) {
-  const t = TIMING;
+  const t = opts.timing || TIMING;
   const peak = r(opts.peak || t.overshoot);
   const dur = r(opts.dur || 0.26);
   return [
@@ -265,7 +269,7 @@ function overshootSettle(sel, at, opts = {}) {
 // card from a rectangle: a flat translate reads as a panel, this reads as an
 // object with a back.
 function cardRise3D(sel, at, opts = {}) {
-  const t = TIMING;
+  const t = opts.timing || TIMING;
   const dur = r(opts.dur || t.cardDur);
   return [
     `tl.set(${q(sel)},{transformPerspective:1400,transformOrigin:"50% 60%"},0);`,
@@ -281,7 +285,7 @@ function cardRise3D(sel, at, opts = {}) {
 // y and rotation over a 4-6s cycle. Finite repeats derived from the span, never
 // repeat:-1: an infinite tween makes a seeked frame depend on playback history.
 function floatingIdle(sel, at, span, opts = {}) {
-  const t = TIMING;
+  const t = opts.timing || TIMING;
   const cyc = r(opts.cycle || t.idleCycle);
   const dy = r(opts.y != null ? opts.y : t.idleY);
   const rot = r(opts.rot != null ? opts.rot : t.idleRot);
@@ -297,7 +301,7 @@ function floatingIdle(sel, at, span, opts = {}) {
 // overlapping by TIMING.overlap so the two are on screen together. This is the
 // single change that stops screens reading as a slideshow.
 function cardStackTransition(prevSel, nextSel, at, opts = {}) {
-  const t = TIMING;
+  const t = opts.timing || TIMING;
   const dur = r(opts.dur || t.cardDur);
   const ov = r(opts.overlap != null ? opts.overlap : t.overlap);
   const out = [];
@@ -317,7 +321,7 @@ function cardStackTransition(prevSel, nextSel, at, opts = {}) {
 // softShadow — the shadow is an animated property, not a static style. It grows
 // and softens as the card rises, which is what sells the height.
 function softShadow(sel, at, opts = {}) {
-  const t = TIMING;
+  const t = opts.timing || TIMING;
   const tint = opts.tint || "rgba(0,0,0,0.28)";
   return [
     `tl.fromTo(${q(sel)},{boxShadow:"0 8px 18px rgba(0,0,0,0.10)"},`
@@ -329,7 +333,7 @@ function softShadow(sel, at, opts = {}) {
 // lightSweep — a slow specular pass along a card's top edge every few seconds.
 // Very subtle by design; at full strength it reads as a glare, not as glass.
 function lightSweep(sel, at, span, opts = {}) {
-  const t = TIMING;
+  const t = opts.timing || TIMING;
   const every = r(opts.every || t.sweepEvery);
   const dur = r(opts.dur || 1.1);
   const cls = `kfsw${Math.abs(hash(sel)) % 9973}`;
@@ -348,7 +352,7 @@ function lightSweep(sel, at, span, opts = {}) {
 // then answers. The point is causality: the click has to precede the reaction,
 // or the screen looks like it is animating itself.
 function cursorClickRipple(sel, at, opts = {}) {
-  const t = TIMING;
+  const t = opts.timing || TIMING;
   const x = r(opts.x || 0), y = r(opts.y || 0);
   const cls = `kfcur${Math.abs(hash(sel + x + y)) % 9973}`;
   const dot = `${sel} .${cls}`;
@@ -384,7 +388,7 @@ function counterAnimate(sel, at, to, opts = {}) {
   return [`countTxt(${q(sel)},${Number(to) || 0},${r(at)},${dur},${q(opts.pre || "")},${q(opts.suf || "")},1);`];
 }
 function scrollReveal(sel, at, opts = {}) {
-  const t = TIMING;
+  const t = opts.timing || TIMING;
   const dist = r(opts.dist || 220);
   return [
     `tl.fromTo(${q(sel)},{y:${dist}},{y:${r(opts.to || 0)},duration:${r(opts.dur || 1.6)},`
@@ -397,7 +401,7 @@ function scrollReveal(sel, at, opts = {}) {
 // slowCameraPush — continuous, sub-perceptual. The rule is that no scene is ever
 // completely still; the rate is chosen so a viewer feels it without seeing it.
 function slowCameraPush(sel, at, span, opts = {}) {
-  const t = TIMING;
+  const t = opts.timing || TIMING;
   const amt = r(opts.amount != null ? opts.amount : t.camPush);
   const dir = opts.out ? -1 : 1;
   return [
@@ -409,7 +413,7 @@ function slowCameraPush(sel, at, span, opts = {}) {
 // drift direction is the "slideshow" tell even when everything else is right.
 const CAMERA_MOVES = ["pushSlow", "pullSlow", "panLeft", "panRight", "tiltUp", "orbitSoft"];
 function cameraMove(sel, at, span, move, opts = {}) {
-  const t = TIMING;
+  const t = opts.timing || TIMING;
   const s = r(span);
   const d = r(opts.dist || 26);
   switch (move) {
@@ -442,7 +446,7 @@ function parallaxLayers(sels, at, span, opts = {}) {
 // what a dissolve lacks and why a dissolve reads as "slides advancing".
 const TRANSITIONS = ["depthWipe", "panelSlide", "maskWipe", "lightPass", "cameraPush"];
 function maskedSceneTransition(sel, at, kind, opts = {}) {
-  const t = TIMING;
+  const t = opts.timing || TIMING;
   const dur = r(opts.dur || t.transDur);
   // Direction alternates with the scene index (motion spec 1.6: never the same
   // direction twice). A wipe that always enters from the left is a house style
@@ -511,34 +515,64 @@ function resolveMotion(tokens = {}, ctx = {}) {
   const sel = ctx.sel || {};
   const out = [];
 
+  // THE PACE SEAM. This is the ONE place the whole engine's motion timing can be
+  // retuned per film: all eight family grammars publish tokens and let this
+  // function drive the physics, so a scaled table here reaches every one of them
+  // without any family knowing pace exists.
+  //
+  // A fresh object per call, never a mutated module table — config.server
+  // .jobConcurrency is 2, so two films compose concurrently and a shared mutable
+  // TIMING would leak one film's pace into the other's frames.
+  //
+  // ctx.pacing absent (or `normal`) => scaleTiming returns the shared table
+  // unchanged and `t` IS TIMING, so every emitted number is byte-identical to
+  // what this function produced before pacing existed.
+  const t = ctx.pacing ? pacing.scaleTiming(TIMING, ctx.pacing) : TIMING;
+  // Handed to every preset below. The presets read `opts.timing || TIMING`, so
+  // passing the shared table is the same as passing nothing.
+  const T = { timing: t };
+
   // 1. the scene arrives (transition), 2. its card builds, 3. its text lands,
   // 4. everything keeps breathing for the rest of the scene.
   if (tokens.transition && tokens.transition !== "none" && sel.scene) {
-    out.push(...maskedSceneTransition(sel.scene, at, tokens.transition, { index: i }));
+    out.push(...maskedSceneTransition(sel.scene, at, tokens.transition, { index: i, timing: t }));
   }
   if (sel.card) {
-    const cardAt = r(at + 0.12);
+    // The pre-roll before a card starts building scales with the entrance it is
+    // waiting on — a fixed 0.12s lead in front of a 0.45s entrance reads as
+    // hesitation at speed.
+    const lead = r(0.12 * (TIMING.cardDur ? t.cardDur / TIMING.cardDur : 1));
+    const cardAt = r(at + lead);
     // A stagger is harmless when the selector matches one card and essential
     // when it matches a row: three cards arriving together read as one block.
-    if (tokens.enter === "cardRise3D") out.push(...cardRise3D(sel.card, cardAt, { stagger: 0.09 }));
-    else if (tokens.enter === "directionalSlide") out.push(...directionalSlide(sel.card, cardAt, i));
-    else if (tokens.enter && tokens.enter !== "none") out.push(...maskedSceneTransition(sel.card, cardAt, tokens.enter));
-    if (sel.shadow !== false) out.push(...softShadow(sel.card, cardAt));
+    if (tokens.enter === "cardRise3D") out.push(...cardRise3D(sel.card, cardAt, { stagger: r(0.09 * (TIMING.cardDur ? t.cardDur / TIMING.cardDur : 1)), timing: t }));
+    else if (tokens.enter === "directionalSlide") out.push(...directionalSlide(sel.card, cardAt, i, T));
+    else if (tokens.enter && tokens.enter !== "none") out.push(...maskedSceneTransition(sel.card, cardAt, tokens.enter, T));
+    if (sel.shadow !== false) out.push(...softShadow(sel.card, cardAt, T));
     if (tokens.idle === "floatSoft") {
-      const idleAt = r(cardAt + TIMING.cardDur);
-      out.push(...floatingIdle(sel.card, idleAt, Math.max(0.5, span - TIMING.cardDur - 0.12)));
-      out.push(...lightSweep(sel.card, idleAt, Math.max(0.5, span - TIMING.cardDur - 0.12)));
+      // The idle starts when the card has finished arriving, so it follows the
+      // SCALED entrance. The idle's own cycle length does not scale (ambient is
+      // the contrast that keeps a fast film composed rather than frantic) — it
+      // simply gets more of the scene to breathe in.
+      const idleAt = r(cardAt + t.cardDur);
+      const idleSpan = Math.max(0.5, span - t.cardDur - lead);
+      out.push(...floatingIdle(sel.card, idleAt, idleSpan, T));
+      out.push(...lightSweep(sel.card, idleAt, idleSpan, T));
     }
   }
   if (sel.text) {
-    const textAt = r(at + (sel.card ? 0.3 : 0.18));
-    if (tokens.text === "characterReveal") out.push(...characterReveal(sel.text, textAt));
-    else if (tokens.text === "outlineFillReveal") out.push(...outlineFillReveal(sel.text, textAt, { ink: ctx.ink, soft: ctx.inkSoft, stroke: ctx.accent }));
-    else if (tokens.text === "directionalSlide") out.push(...directionalSlide(sel.text, textAt, i + 1));
-    else if (tokens.text !== "none") out.push(...wordStaggerBlur(sel.text, textAt));
+    const textLead = (sel.card ? 0.3 : 0.18) * (TIMING.textDur ? t.textDur / TIMING.textDur : 1);
+    const textAt = r(at + textLead);
+    if (tokens.text === "characterReveal") out.push(...characterReveal(sel.text, textAt, T));
+    else if (tokens.text === "outlineFillReveal") out.push(...outlineFillReveal(sel.text, textAt, { ink: ctx.ink, soft: ctx.inkSoft, stroke: ctx.accent, timing: t }));
+    else if (tokens.text === "directionalSlide") out.push(...directionalSlide(sel.text, textAt, i + 1, T));
+    else if (tokens.text !== "none") out.push(...wordStaggerBlur(sel.text, textAt, T));
   }
   if (tokens.camera && tokens.camera !== "none" && sel.camera) {
-    out.push(...cameraMove(sel.camera, at, span, tokens.camera));
+    // The camera move spans the WHOLE scene by construction, so it is already
+    // pace-aware through `span` — a shorter scene means a quicker move. Its
+    // TRAVEL (t.camPush) is what the mode adjusts, not its duration.
+    out.push(...cameraMove(sel.camera, at, span, tokens.camera, T));
   }
   return out;
 }

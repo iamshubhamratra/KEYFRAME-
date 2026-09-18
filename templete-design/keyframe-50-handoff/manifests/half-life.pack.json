@@ -1,0 +1,162 @@
+{
+  "id": "half-life",
+  "name": "Half Life",
+  "renderer": "filmkit",
+  "orientation": "vertical",
+  "sizePx": [
+    1080,
+    1920
+  ],
+  "cohort": "08 science / explainer",
+  "set": "article-text-50",
+  "globalName": "HalfLife",
+  "configFile": "configs/article-pack-08.js",
+  "vibe": "a counting chamber",
+  "form": {
+    "runtimeMs": 129400,
+    "runtimeRangeMs": [
+      90000,
+      150000
+    ],
+    "beats": 18
+  },
+  "readingBudget": {
+    "wpm": 225,
+    "landSeconds": 1.2,
+    "checkedBy": "scripts/lint-reading-budget.js"
+  },
+  "fonts": {
+    "display": "Michroma",
+    "body": "Sofia Sans",
+    "mono": "Space Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+      "devanagari": "Noto Sans Devanagari"
+    }
+  },
+  "palette": {
+    "slots": [
+      "bg",
+      "surface",
+      "rule",
+      "inkMuted",
+      "ink",
+      "accent",
+      "accent2",
+      "accentInk"
+    ],
+    "values": {
+      "bg": "#10160f",
+      "surface": "#1a2318",
+      "rule": "#2d3b2b",
+      "inkMuted": "#8fa08c",
+      "ink": "#f0f5ee",
+      "accent": "#a8e05c",
+      "accent2": "#e05ca8",
+      "accentInk": "#080c07"
+    },
+    "strategy": "luminance ladder; hue-rotatable at each slot’s own lightness"
+  },
+  "tweaks": [
+    {
+      "key": "brand",
+      "type": "text"
+    },
+    {
+      "key": "bg",
+      "type": "color"
+    },
+    {
+      "key": "accent",
+      "type": "color"
+    },
+    {
+      "key": "accent2",
+      "type": "color"
+    },
+    {
+      "key": "motion",
+      "type": "radio",
+      "options": [
+        "Calm",
+        "Lively",
+        "Bouncy"
+      ],
+      "default": "Lively"
+    },
+    {
+      "key": "typeScale",
+      "type": "radio",
+      "options": [
+        "Compact",
+        "Default",
+        "Editorial"
+      ],
+      "default": "Default"
+    }
+  ],
+  "motion": {
+    "titlePreset": "slam",
+    "itemPreset": "rise",
+    "camera": [
+      "zoomIn",
+      "pushL",
+      "pushU",
+      "drop",
+      "pushR",
+      "zoomOut"
+    ],
+    "mechanics": "Scroll: \"board\", Typing: \"typewriter\", Ring: \"bar\"",
+    "chrome": false
+  },
+  "world": {
+    "description": "a counting chamber. Overhead: a lead-brick wall and a warning strip that pulses on each count. Margin: the counter — needle kicking on decays, a rolling total, a bar of channels. Mid-floor: the sample under a bell jar losing mass on an 18s cycle, tongs, a lead pig. Near: decay tracks.",
+    "cyclePeriodMs": 18000,
+    "planes": 3,
+    "textSafety": "object confined above y=290, below y=1330, or right of x=820; never crosses the copy column"
+  },
+  "mediaSlots": [
+    {
+      "id": "image",
+      "beat": "Feature",
+      "beatIndex": 10,
+      "aspect": "16:10",
+      "minPx": [
+        640,
+        400
+      ],
+      "fit": "cover",
+      "priority": 1,
+      "optional": true,
+      "onEmpty": "swap per look.feature.swap (borrows nearest unclaimed script line)"
+    },
+    {
+      "id": "logo",
+      "beat": "CTA",
+      "beatIndex": 17,
+      "aspect": "1:1",
+      "minPx": [
+        256,
+        256
+      ],
+      "fit": "contain",
+      "priority": 2,
+      "optional": true,
+      "onEmpty": "pack icon mark in a filled badge"
+    }
+  ],
+  "determinism": {
+    "randomness": false,
+    "wallClock": false,
+    "seekSafe": true,
+    "clock": "single authored timeline via animations-v2"
+  },
+  "paths": {
+    "html": "templates/half-life.html",
+    "config": "configs/article-pack-08.js",
+    "storyboard": "fixtures/storyboard.half-life.json",
+    "timestamps": "fixtures/timestamps.half-life.json",
+    "referenceFrames": "reference-frames/half-life/"
+  }
+}

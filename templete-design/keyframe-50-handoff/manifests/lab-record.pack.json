@@ -1,0 +1,162 @@
+{
+  "id": "lab-record",
+  "name": "Lab Record",
+  "renderer": "filmkit",
+  "orientation": "vertical",
+  "sizePx": [
+    1080,
+    1920
+  ],
+  "cohort": "04 academic / research",
+  "set": "article-text-50",
+  "globalName": "LabRecord",
+  "configFile": "configs/article-pack-04.js",
+  "vibe": "the bench, mid-run",
+  "form": {
+    "runtimeMs": 129400,
+    "runtimeRangeMs": [
+      90000,
+      150000
+    ],
+    "beats": 18
+  },
+  "readingBudget": {
+    "wpm": 225,
+    "landSeconds": 1.2,
+    "checkedBy": "scripts/lint-reading-budget.js"
+  },
+  "fonts": {
+    "display": "Cinzel",
+    "body": "Lato",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+      "devanagari": "Noto Serif Devanagari"
+    }
+  },
+  "palette": {
+    "slots": [
+      "bg",
+      "surface",
+      "rule",
+      "inkMuted",
+      "ink",
+      "accent",
+      "accent2",
+      "accentInk"
+    ],
+    "values": {
+      "bg": "#131a18",
+      "surface": "#1d2624",
+      "rule": "#31403c",
+      "inkMuted": "#8fa39d",
+      "ink": "#eef5f2",
+      "accent": "#54e0b0",
+      "accent2": "#e0b054",
+      "accentInk": "#08110f"
+    },
+    "strategy": "luminance ladder; hue-rotatable at each slot’s own lightness"
+  },
+  "tweaks": [
+    {
+      "key": "brand",
+      "type": "text"
+    },
+    {
+      "key": "bg",
+      "type": "color"
+    },
+    {
+      "key": "accent",
+      "type": "color"
+    },
+    {
+      "key": "accent2",
+      "type": "color"
+    },
+    {
+      "key": "motion",
+      "type": "radio",
+      "options": [
+        "Calm",
+        "Lively",
+        "Bouncy"
+      ],
+      "default": "Lively"
+    },
+    {
+      "key": "typeScale",
+      "type": "radio",
+      "options": [
+        "Compact",
+        "Default",
+        "Editorial"
+      ],
+      "default": "Default"
+    }
+  ],
+  "motion": {
+    "titlePreset": "rise",
+    "itemPreset": "pop",
+    "camera": [
+      "zoomIn",
+      "pushL",
+      "drop",
+      "pushR",
+      "pushU",
+      "zoomOut"
+    ],
+    "mechanics": "Scroll: \"feed\", Typing: \"terminal\", Ring: \"ring\"",
+    "chrome": false
+  },
+  "world": {
+    "description": "the bench, mid-run. Far: a pegboard wall with tools hung on it and a fume-hood glow. Mid: a chart recorder whose drum turns while the stylus tracks across it, drawing the trace it has already made; a burette drips into a flask on a stand; a sample rack beside it. Near: vapour.",
+    "cyclePeriodMs": 12000,
+    "planes": 3,
+    "textSafety": "object confined above y=290, below y=1330, or right of x=820; never crosses the copy column"
+  },
+  "mediaSlots": [
+    {
+      "id": "image",
+      "beat": "Feature",
+      "beatIndex": 10,
+      "aspect": "16:10",
+      "minPx": [
+        640,
+        400
+      ],
+      "fit": "cover",
+      "priority": 1,
+      "optional": true,
+      "onEmpty": "swap per look.feature.swap (borrows nearest unclaimed script line)"
+    },
+    {
+      "id": "logo",
+      "beat": "CTA",
+      "beatIndex": 17,
+      "aspect": "1:1",
+      "minPx": [
+        256,
+        256
+      ],
+      "fit": "contain",
+      "priority": 2,
+      "optional": true,
+      "onEmpty": "pack icon mark in a filled badge"
+    }
+  ],
+  "determinism": {
+    "randomness": false,
+    "wallClock": false,
+    "seekSafe": true,
+    "clock": "single authored timeline via animations-v2"
+  },
+  "paths": {
+    "html": "templates/lab-record.html",
+    "config": "configs/article-pack-04.js",
+    "storyboard": "fixtures/storyboard.lab-record.json",
+    "timestamps": "fixtures/timestamps.lab-record.json",
+    "referenceFrames": "reference-frames/lab-record/"
+  }
+}

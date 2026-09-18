@@ -1,0 +1,61 @@
+{
+  "name": "second-season",
+  "vibe": "lifestyle / culture — a market stall opening up. Chonburi over Prompt; a luminance-ladder palette on #f0ebe6. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#f0ebe6",
+    "ink": "#16120f",
+    "accent": "#e0673a",
+    "a2": "#3a6b7a"
+  },
+  "fonts": [
+    "Chonburi",
+    "Prompt",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#f0ebe6",
+    "ink": "#16120f"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#e0673a",
+      "#3a6b7a"
+    ],
+    "extras": [
+      "#6e675f"
+    ],
+    "emphasisCss": "color:#e0673a;"
+  },
+  "assets": {
+    "photoMod": "a market stall opening up editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "lifestyle",
+      "culture"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Chonburi",
+    "body": "Prompt",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-second-season",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

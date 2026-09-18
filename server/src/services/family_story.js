@@ -137,6 +137,91 @@ const TEMPLATE_SCENES = [
 ];
 
 const mediaSlots = { spread: ["desktop"], scrapbook: ["photo", "photo"], notequote: ["photo"] };
+// WHAT SHAPE EACH PLACEHOLDER IS — the number that did not exist anywhere in this
+// codebase before. Fractions of the CANVAS (wFrac of its width, hFrac of its height),
+// derived from the CSS each scene function writes and cross-checked against a live
+// headless render (`node scripts/audit-slot-fit.js`). services/template_media.js turns
+// them into real pixels for this film's dimensions, so selection can weigh SHAPE and
+// asset_fit can choose a real crop instead of the hardcoded `cover / top center`.
+// Placeholder geometry for the handmade-story family.
+//
+// Every box below is stated as a fraction of the CANVAS, not of the container,
+// because the composer sizes everything in cqw — 1% of WIDTH — including the
+// HEIGHTS. `h: r(H * 0.72)` is 0.72 of H, and H is itself `100 * height / width`
+// in cqw, so a "72% tall" card is 40.5cqw = 777px on a 1920x1080 frame and the
+// hFrac is 777/1080 = 0.72... only by coincidence in landscape. In portrait the
+// same trick gives H = 177.78cqw and the coincidence disappears entirely, which
+// is why both orientations are written out rather than derived from one another.
+//
+// Every media box in this family is painted by photoCard() (family_story.js:314),
+// whose outer sheet is inset by 0.9cqw (land) / 1.4cqw (port) on all four sides
+// to leave the white paper matte showing. That matte is NOT decoration the image
+// can spill into — it is real, so 1.8cqw (land) / 2.8cqw (port) comes off both
+// the width and the height of every slot before the fractions below are taken.
+const mediaGeometry = {
+  // spread — the taped card on the right page of the book, spread() above.
+  // land: w 42cqw, h H*0.508 = 28.58cqw, minus the 1.8cqw matte => 40.2 x 26.78cqw
+  //   = 772 x 514 on 1920x1080, aspect 1.501. It was h H*0.72 => 772 x 743, an
+  //   aspect of 1.039 for a slot whose only want is "desktop" — a 1.518 capture
+  //   lost 35% of its width to `cover`, or the whole card to a letterbox.
+  // port: w 84cqw, h H*0.32 = 56.89cqw, minus the 2.8cqw matte => 81.2 x 54.09cqw
+  //   = 877 x 584 on 1080x1920, aspect 1.501 (it was 1.33).
+  // flex: the card FLOATS in its band — it re-centres inside its own page half and
+  // inside its vertical band, the tape strips are derived from card.l/card.w/card.t,
+  // and the text column sits beside it (land) or below it at a fixed top (port).
+  // So the card is free to take the picture's own shape between a book plate that
+  // is barely wider than tall and a wide landscape photo. asset_fit only ever
+  // SHRINKS inside the declared box, so the port card can never reach the column.
+  spread: {
+    land: [{ wFrac: 0.402, hFrac: 0.4761, importance: "hero", flex: [1.00, 1.85] }],
+    port: [{ wFrac: 0.812, hFrac: 0.3043, importance: "hero", flex: [1.00, 1.85] }],
+  },
+
+  // scrapbook — scrapbook() above. Tiles 0 and 1 only: media[] is the filtered
+  // [a, b], so the third tile can never hold a photo and is a ruled note card
+  // instead. Order here matches mediaSlots.scrapbook = ["photo", "photo"].
+  // land tile0: 28cqw x H*0.36 (20.25cqw) - 1.8 => 26.2 x 18.45cqw = 503 x 354px.
+  // land tile1: 29cqw x H*0.38 (21.38cqw) - 1.8 => 27.2 x 19.58cqw = 522 x 376px.
+  // port tile0: 42cqw x H*0.17 (30.22cqw) - 2.8 => 39.2 x 27.42cqw = 423 x 296px.
+  // port tile1: 42cqw x H*0.16 (28.44cqw) - 2.8 => 39.2 x 25.64cqw = 423 x 277px.
+  // Every tile used to sit between 0.90 and 1.00 — the base is 1.39-1.53 now,
+  // which is where the pool that reaches a scrapbook mostly lives (1.5-1.8 photos,
+  // 1.52 captures). `flex` is what carries the rest of that pool: a taped
+  // snapshot is allowed to stand upright or lie wide, and scrapbook() re-centres
+  // the reshaped tile in its authored cell. The band's ENDS are set by the 220px
+  // readability floor, not by taste: measured, the widest tile the band produces is
+  // 423x229 and the narrowest 247x307 — one step further either way and a tile
+  // drops under the floor and stops being legible.
+  // "auto" fit on purpose: the taped-snapshot look survives a slight letterbox,
+  // and the white matte reads as the paper border either way.
+  scrapbook: {
+    land: [
+      { wFrac: 0.262, hFrac: 0.328, importance: "hero", flex: [0.8, 1.85] },
+      { wFrac: 0.272, hFrac: 0.3481, importance: "support", flex: [0.8, 1.85] },
+    ],
+    port: [
+      { wFrac: 0.392, hFrac: 0.1542, importance: "hero", flex: [0.8, 1.85] },
+      { wFrac: 0.392, hFrac: 0.1442, importance: "support", flex: [0.8, 1.85] },
+    ],
+  },
+
+  // notequote — notequote() above. NOT a picture on the page: this is the round
+  // byline disc under the pull quote, avaSz cqw square with border-radius:50%.
+  // Because both sides are cqw it is exactly square in both orientations, but it
+  // is also TINY — 4.4cqw = 84px on 1920x1080, 6.8cqw = 73px on 1080x1920. It is
+  // an accent, and the only slot in this family where cropping is the actual
+  // design intent: a portrait letterboxed inside a circle looks broken, so "cover"
+  // is stated rather than left to the engine. A disc this size is CORRECT — a
+  // byline is a face, not a picture — so it is not made bigger; what was wrong is
+  // WHAT reached it. Measured, a 750x1624 mobile capture was cast into the 46px
+  // portrait disc and lost 54% of its height. `allow` is absolute at casting time
+  // (template_engine.js:377), so a face is now the only thing that can land here;
+  // with none supplied the hand-inked monogram signs the quote off instead.
+  notequote: {
+    land: [{ wFrac: 0.044, hFrac: 0.0782, importance: "accent", fit: "cover", allow: ["photo"] }],
+    port: [{ wFrac: 0.068, hFrac: 0.0383, importance: "accent", fit: "cover", allow: ["photo"] }],
+  },
+};
 // True when the PREVIOUS scene already carried imagery — keeps media beats
 // alternating now that any spare asset, not just a pinned screenshot, earns one.
 const mediaBeatJustPlayed = (ctx) => ((mediaSlots[ctx && ctx.prevType] || []).length > 0);
@@ -309,7 +394,7 @@ function illoPanel(th, ctx, cls, sizeCqw) {
 // A photo mounted the handmade way: white paper matte, torn edge, soft shadow.
 function photoCard(th, ctx, asset, seed, cls) {
   const inner = asset && asset.path
-    ? `<img id="${cls}-img" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">`
+    ? `<img id="${cls}-img" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;${E.fitCss(asset)}display:block;">`
     : illoPanel(th, ctx, `${cls}-dood`, ctx.land ? 21 : 28);
   return `<div style="position:absolute;inset:0;background:${th.page};padding:${ctx.land ? 0.9 : 1.4}cqw;clip-path:${tornPoly(seed, { bottom: true, right: true })};">
       <div style="position:absolute;inset:${ctx.land ? 0.9 : 1.4}cqw;overflow:hidden;background:${rgba(th.pageInk, 0.06)};clip-path:${tornPoly(seed + 5, { bottom: true, right: true })};">${inner}</div>
@@ -363,9 +448,32 @@ function spread(scene, ctx, asset) {
   const kicker = fit(String(scene.kicker || scene.purpose || ""), 24);
   const body = fit(String(scene.body || scene.subtext || ""), 190);
   const right = variant % 2 === 0;
+  // THE RIGHT PAGE IS SET TO THE PICTURE, NOT THE OTHER WAY ROUND.
+  //
+  // The card used to be `w:42cqw` beside `h:H*0.72` — 40.2 x 38.7cqw of painted
+  // photo once photoCard's matte comes off, which is 772x743 at 1920x1080: an
+  // aspect of 1.039. The slot's only declared want is "desktop" and a website
+  // capture arrives at 1.518, so `cover` threw away 35% of every capture's width
+  // and a screenshot could only be saved by letterboxing it. Measured over the
+  // probe matrix (scripts/audit-slot-fit.js --packs care-lavender) the landscape
+  // spread boxes averaged 26.4% crop and the portrait ones 11.1%.
+  //
+  // Two changes. The base height is cut so the PAINTED box is 1.50 — the shape a
+  // capture actually has — and mediaGeometry.spread now carries a flex band, so
+  // asset_fit hands back the picture's own shape inside it. The card keeps its
+  // page half (5..47cqw or 53..95cqw) and re-centres in the same vertical band,
+  // so the two-page balance against the text column is unchanged, and the tape
+  // strips are still positioned off card.l/card.w/card.t and follow for free.
+  const cqwPx = Math.max(1, ((dims && dims.width) || (land ? 1920 : 1080)) / 100);
+  const matte = land ? 1.8 : 2.8; // photoCard's paper border, off both edges
+  const fitBox = asset && asset.__fit && asset.__fit.box && asset.__fit.box.reshaped ? asset.__fit.box : null;
+  const baseW = land ? 42 : 84;
+  const baseH = r(H * (land ? 0.508 : 0.32));
+  const cardW = fitBox ? r(Math.min(baseW, fitBox.w / cqwPx + matte)) : baseW;
+  const cardH = fitBox ? r(Math.min(baseH, fitBox.h / cqwPx + matte)) : baseH;
   const card = land
-    ? { l: right ? 53 : 5, w: 42, t: r(H * 0.13), h: r(H * 0.72) }
-    : { l: 8, w: 84, t: r(H * 0.09), h: r(H * 0.36) };
+    ? { l: r((right ? 53 : 5) + (baseW - cardW) / 2), w: cardW, t: r(H * 0.49 - cardH / 2), h: cardH }
+    : { l: r((100 - cardW) / 2), w: cardW, t: r(H * 0.27 - cardH / 2), h: cardH };
   const col = land
     ? { l: right ? 6 : 52, w: 41, t: r(H * 0.16), h: r(H * 0.68) }
     : { l: 8, w: 84, t: r(H * 0.5), h: r(H * 0.4) };
@@ -490,7 +598,7 @@ function notequote(scene, ctx, a) {
   // was cast (mediaSlots.notequote=["photo"]); fall back to a hand-inked monogram
   // so a quote with no portrait still signs off cleanly (never an empty frame).
   const ava = (a && a.path)
-    ? `<span id="${id}-ava" style="opacity:0;width:${avaSz}cqw;height:${avaSz}cqw;border-radius:50%;flex:0 0 auto;overflow:hidden;display:block;background:${rgba(th.pageInk, 0.08)};box-shadow:0 0.4cqw 1cqw ${th.shadowCol};"><img src="${esc(a.path)}" alt="${esc(a.alt || author || "portrait")}" style="width:100%;height:100%;object-fit:cover;display:block;"></span>`
+    ? `<span id="${id}-ava" style="opacity:0;width:${avaSz}cqw;height:${avaSz}cqw;border-radius:50%;flex:0 0 auto;overflow:hidden;display:block;background:${rgba(th.pageInk, 0.08)};box-shadow:0 0.4cqw 1cqw ${th.shadowCol};"><img src="${esc(a.path)}" alt="${esc(a.alt || author || "portrait")}" style="width:100%;height:100%;${E.fitCss(a)}display:block;"></span>`
     : `<span id="${id}-ava" style="opacity:0;width:${avaSz}cqw;height:${avaSz}cqw;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;border:0.3cqw solid ${th.pen};background:${rgba(th.pen, 0.08)};font-family:${th.handStack};${th.handStyle}font-size:${land ? 2 : 3.2}cqw;color:${th.pen};">${esc(initial)}</span>`;
   const qSize = r(Math.min(land ? 4.6 : 6, (land ? 210 : 160) / Math.max(words.length, 1) + 1.6));
   // The note is CUT TO THE QUOTE. A fixed sheet either strands a six-word line
@@ -545,17 +653,47 @@ function scrapbook(scene, ctx, a, b) {
   const kicker = fit(String(scene.kicker || scene.purpose || ""), 24);
   const notes = (Array.isArray(scene.items) && scene.items.length ? scene.items : bullets(scene, 3))
     .map((x) => fit(String(x), 40)).filter(Boolean);
+  // TILES SHAPED FOR THE SNAPSHOTS THAT ACTUALLY ARRIVE.
+  //
+  // Every tile used to sit between 0.90 and 1.00 aspect — a wall of upright
+  // snapshots — while the pool that reaches a scrapbook is landscape photos at
+  // 1.5-1.8 and captures at 1.52. Measured, every scrapbook row in the probe
+  // matrix came back flagged heavy-crop: 35% off a 1.54 photo's width in
+  // landscape, 41% in portrait, mean crop 25.3% land / 34.2% port.
+  //
+  // The tiles are flattened to ~1.4-1.5 painted (photoCard's matte comes off both
+  // axes) and each gives its lost height back symmetrically, so the collage keeps
+  // its staggered tops, its overlap and its centre of gravity on the page. Tile 2
+  // never holds a photo — media[] is the filtered [a, b] — so it is flattened only
+  // to keep the three cards reading as one taped set.
   const slots = land
-    ? [{ l: 5.5, w: 28, t: r(H * 0.33), h: r(H * 0.5), rot: -3 },
-       { l: 36, w: 29, t: r(H * 0.31), h: r(H * 0.56), rot: 2.2 },
-       { l: 66.5, w: 28, t: r(H * 0.34), h: r(H * 0.48), rot: -1.4 }]
-    : [{ l: 6, w: 42, t: r(H * 0.24), h: r(H * 0.26), rot: -3 },
-       { l: 52, w: 42, t: r(H * 0.27), h: r(H * 0.24), rot: 2.4 },
-       { l: 17, w: 48, t: r(H * 0.58), h: r(H * 0.27), rot: -1.6 }];
+    ? [{ l: 5.5, w: 28, t: r(H * 0.4), h: r(H * 0.36), rot: -3 },
+       { l: 36, w: 29, t: r(H * 0.385), h: r(H * 0.38), rot: 2.2 },
+       { l: 66.5, w: 28, t: r(H * 0.41), h: r(H * 0.35), rot: -1.4 }]
+    : [{ l: 6, w: 42, t: r(H * 0.32), h: r(H * 0.17), rot: -3 },
+       { l: 52, w: 42, t: r(H * 0.34), h: r(H * 0.16), rot: 2.4 },
+       { l: 17, w: 48, t: r(H * 0.565), h: r(H * 0.215), rot: -1.6 }];
   const media = [a, b].filter((x) => x && x.path);
+  // A SCRAPBOOK IS THE ONE PLACE MIXED SHAPES ARE THE POINT.
+  //
+  // Flattening every tile to one ratio only moved the loss around: measured, a
+  // 1.4 tile still cut 52% off a 0.67 portrait and 53% off a 3:1 panorama, because
+  // no single shape serves a pool that runs from 0.46 to 3.0. So each tile takes
+  // its OWN picture's shape inside the cell the collage authored for it, between
+  // a square-ish snapshot and a wide one, and is re-centred in that cell so the
+  // paper it gives back shows as an even margin rather than a hole on one side.
+  // The tape strip is derived from g.l/g.w/g.t, so it moves with the tile.
+  const cqwPx = Math.max(1, ((dims && dims.width) || (land ? 1920 : 1080)) / 100);
+  const matte = land ? 1.8 : 2.8; // photoCard's paper border, off both edges
   const tile = (k) => {
-    const g = slots[k];
+    const g0 = slots[k];
     const asset = media[k] || null;
+    const fb = asset && asset.__fit && asset.__fit.box && asset.__fit.box.reshaped ? asset.__fit.box : null;
+    const gw = fb ? r(Math.min(g0.w, fb.w / cqwPx + matte)) : g0.w;
+    const gh = fb ? r(Math.min(g0.h, fb.h / cqwPx + matte)) : g0.h;
+    const g = fb
+      ? { rot: g0.rot, w: gw, h: gh, l: r(g0.l + (g0.w - gw) / 2), t: r(g0.t + (g0.h - gh) / 2) }
+      : g0;
     const noteTxt = asset ? "" : (notes[Math.max(0, k - media.length)] || "");
     const inner = asset
       ? photoCard(th, ctx, asset, 17 + k * 3, `${id}-t${k}`)
@@ -677,7 +815,7 @@ const family = {
       used: bullets(scene || {}, 3),
     };
   },
-  theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaFallback,
+  theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaGeometry, mediaFallback,
   wantsLogo: (t) => t === "signoff",
   fallbackType: "cover",
   variants: 2,
@@ -717,4 +855,9 @@ function buildComposition(opts) { return E.buildFilm(family, opts); }
 // drift from the film that ships.
 function planMedia(opts) { return E.planMedia(family, opts); }
 
-module.exports = { buildComposition, planMedia, TEMPLATE_SCENES };
+// FAMILY is the pack's whole design object — the same one buildFilm renders from.
+// It is exported so callers OUTSIDE the renderer can read the slot contract without
+// building a film: services/template_media.resolveMediaPlan needs `mediaSlots` and
+// `mediaGeometry` to tell preflight which boxes this template will draw and what
+// shape each one is, and the crop engine needs the resulting aspect list.
+module.exports = { buildComposition, planMedia, TEMPLATE_SCENES, FAMILY: family };

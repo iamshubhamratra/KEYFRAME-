@@ -1,0 +1,275 @@
+{
+  "slug": "long-table",
+  "engine": "filmkit",
+  "orientation": "vertical",
+  "viewport": {
+    "width": 1080,
+    "height": 1920
+  },
+  "runtimeMs": 129400,
+  "playback": {
+    "mode": "loop"
+  },
+  "tweaksAtCapture": {
+    "brand": "Long Table",
+    "bg": "#1a1512",
+    "accent": "#e8903c",
+    "accent2": "#7fb06a",
+    "motion": "Lively",
+    "typeScale": "Default"
+  },
+  "beats": [
+    {
+      "index": 0,
+      "beat": "Hook",
+      "startMs": 0,
+      "durationMs": 7400,
+      "fields": {
+        "kicker": "THE GUIDE",
+        "title": "Nobody read|the guide.",
+        "sub": "Eleven hundred words on where to eat, saved for later by four people and opened by none."
+      }
+    },
+    {
+      "index": 1,
+      "beat": "Body",
+      "startMs": 7400,
+      "durationMs": 8400,
+      "fields": {
+        "kicker": "THE PROBLEM",
+        "body": "A recommendation is not information. It is trust, handed over quickly, and it dies the moment it turns into a list with photographs of everything."
+      }
+    },
+    {
+      "index": 2,
+      "beat": "Statement",
+      "startMs": 15800,
+      "durationMs": 5000,
+      "fields": {
+        "title": "Say where to go.|Then why.",
+        "sub": "In that order, and nothing else."
+      }
+    },
+    {
+      "index": 3,
+      "beat": "Typing",
+      "startMs": 20800,
+      "durationMs": 6000,
+      "fields": {
+        "title": "One line|per place.",
+        "prompt": "ENTRY",
+        "text": "Go for the bread.",
+        "stamp": "KEPT"
+      }
+    },
+    {
+      "index": 4,
+      "beat": "Body",
+      "startMs": 26800,
+      "durationMs": 9000,
+      "fields": {
+        "kicker": "WHAT IT DOES",
+        "body": "Keyframe reads the guide, keeps the sentences that carry the recommendation, and gives each one the time a reader needs to trust it."
+      }
+    },
+    {
+      "index": 5,
+      "beat": "Quote",
+      "startMs": 35800,
+      "durationMs": 7000,
+      "fields": {
+        "quote": "I do not want|forty options.|I want the one|you would pick.",
+        "attrib": "Reader survey"
+      }
+    },
+    {
+      "index": 6,
+      "beat": "Statement",
+      "startMs": 42800,
+      "durationMs": 5000,
+      "fields": {
+        "title": "02|Cut it to five.",
+        "sub": "Then cut it to three."
+      }
+    },
+    {
+      "index": 7,
+      "beat": "Stats",
+      "startMs": 47800,
+      "durationMs": 8000,
+      "fields": {
+        "title": "The guide,|measured.",
+        "stats": [
+          {
+            "to": 34,
+            "suffix": "",
+            "label": "places on the original list"
+          },
+          {
+            "to": 18,
+            "suffix": "",
+            "label": "beats in this cut, none rushed"
+          },
+          {
+            "to": 3,
+            "suffix": "",
+            "label": "anyone actually visited"
+          }
+        ]
+      }
+    },
+    {
+      "index": 8,
+      "beat": "Body",
+      "startMs": 55800,
+      "durationMs": 9400,
+      "fields": {
+        "kicker": "THE RULE",
+        "body": "No beat runs shorter than its reading time. The check fails the build, so a recommendation never leaves the screen before it has landed."
+      }
+    },
+    {
+      "index": 9,
+      "beat": "Scroll",
+      "startMs": 65200,
+      "durationMs": 9000,
+      "fields": {
+        "title": "What an entry|needs.",
+        "items": [
+          {
+            "t": "The place",
+            "v": "01"
+          },
+          {
+            "t": "What to order",
+            "v": "02"
+          },
+          {
+            "t": "When to go",
+            "v": "03"
+          },
+          {
+            "t": "What it costs",
+            "v": "04"
+          },
+          {
+            "t": "Who it suits",
+            "v": "05"
+          },
+          {
+            "t": "Why you would",
+            "v": "06"
+          }
+        ]
+      }
+    },
+    {
+      "index": 10,
+      "beat": "Feature",
+      "startMs": 74200,
+      "durationMs": 8000,
+      "fields": {
+        "title": "A photograph,|when it earns it.",
+        "chips": [
+          "Optional",
+          "Becomes type",
+          "No empty frames"
+        ],
+        "image": "",
+        "fallbackText": "When no photograph comes through the beat runs as a line of copy, and takes the nearest sentence the guide has not used."
+      },
+      "mediaSlots": [
+        {
+          "id": "image",
+          "bound": null,
+          "onEmpty": "swap per look.feature.swap",
+          "fallbackText": "When no photograph comes through the beat runs as a line of copy, and takes the nearest sentence the guide has not used."
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "beat": "Quote",
+      "startMs": 82200,
+      "durationMs": 6500,
+      "fields": {
+        "quote": "The best guide|is the shortest one|written by someone|who lives there.",
+        "attrib": "Travel editor"
+      }
+    },
+    {
+      "index": 12,
+      "beat": "Ring",
+      "startMs": 88700,
+      "durationMs": 6000,
+      "fields": {
+        "title": "Watched to the end.",
+        "to": 84,
+        "label": "finish the guide",
+        "sub": "Measured against the same guide as a scrolling list."
+      }
+    },
+    {
+      "index": 13,
+      "beat": "Body",
+      "startMs": 94700,
+      "durationMs": 8200,
+      "fields": {
+        "kicker": "TYPE",
+        "body": "One editorial face for the names, one plain one for the notes. Measure near sixty characters, nothing shrunk to fit."
+      }
+    },
+    {
+      "index": 14,
+      "beat": "Montage",
+      "startMs": 102900,
+      "durationMs": 6500,
+      "fields": {
+        "title": "List against|guide.",
+        "tiles": [
+          "Thirty-four places skimmed",
+          "Three they went to"
+        ]
+      }
+    },
+    {
+      "index": 15,
+      "beat": "Statement",
+      "startMs": 109400,
+      "durationMs": 5500,
+      "fields": {
+        "title": "Recommend less.|Mean it more.",
+        "sub": "A shorter list is a stronger one."
+      }
+    },
+    {
+      "index": 16,
+      "beat": "Body",
+      "startMs": 114900,
+      "durationMs": 8000,
+      "fields": {
+        "kicker": "TAKEAWAY",
+        "body": "Give each recommendation the time it needs on screen and the reader goes. That is the whole method."
+      }
+    },
+    {
+      "index": 17,
+      "beat": "CTA",
+      "startMs": 122900,
+      "durationMs": 6500,
+      "fields": {
+        "title": "Send the guide|as a film.",
+        "cta": "Read the guide",
+        "url": "keyframe.ai/guide",
+        "logo": ""
+      },
+      "mediaSlots": [
+        {
+          "id": "logo",
+          "bound": null,
+          "onEmpty": "pack icon mark"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "name": "long-table",
+  "vibe": "lifestyle / culture — an open kitchen at service. Shrikhand over Mukta; a luminance-ladder palette on #1a1512. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#1a1512",
+    "ink": "#f4efe9",
+    "accent": "#e8903c",
+    "a2": "#7fb06a"
+  },
+  "fonts": [
+    "Shrikhand",
+    "Mukta",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#1a1512",
+    "ink": "#f4efe9"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#e8903c",
+      "#7fb06a"
+    ],
+    "extras": [
+      "#9a8d84"
+    ],
+    "emphasisCss": "color:#e8903c;"
+  },
+  "assets": {
+    "photoMod": "an open kitchen at service editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "lifestyle",
+      "culture"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Shrikhand",
+    "body": "Mukta",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-long-table",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

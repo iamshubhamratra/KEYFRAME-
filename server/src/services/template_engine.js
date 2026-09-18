@@ -38,6 +38,14 @@
 const motion = require("./motion_presets");
 const { displayOk } = require("./asset_admission");
 const { fitScenes, MAX_CLIPS } = require("./scene_fit");
+// PLACEHOLDER GEOMETRY + FIT. Fifteen composers share this engine, so wiring the slot
+// contract in here is what makes every one of them geometry-aware at once: the family
+// declares each media box's shape (template_media), the selector below scores candidates
+// on whether they actually FIT that shape, and the chosen asset carries its own crop
+// decision to the renderer as `asset.__fit` (asset_fit). Both modules fail open — a
+// family that declares no geometry keeps exactly the behaviour it had.
+const TM = require("./template_media");
+const AF = require("./asset_fit");
 
 const r = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
@@ -327,8 +335,12 @@ function isDeviceWant(want) { return want === "phone" || want === "desktop"; }
 // `scene` is threaded purely so `take` can prefer the candidate that matches
 // what this beat is SAYING (see the matcher in planMedia). Optional — with no
 // scene every take() falls back to the old global rank order.
-function fillSlots(need, { preset = [], pin = null, take: take0, takeVec, recycle = false, placedPool = [], vecQuota = 0, scene = null, marks = [] } = {}) {
-  const take = (pred) => take0(pred, scene);
+// `specs` is the resolved geometry of the slots being filled (services/template_media.
+// resolveSlots) — same length and order as `need`. It is threaded to take() so a
+// candidate is judged on whether it FITS the box as well as on what it depicts; a family
+// that declares no geometry passes an empty array and every decision below is unchanged.
+function fillSlots(need, { preset = [], pin = null, take: take0, takeVec, recycle = false, placedPool = [], vecQuota = 0, scene = null, marks = [], specs = [] } = {}) {
+  const take = (pred, k = 0) => take0(pred, scene, specs[k] || null);
   const slots = [];
   const n = Math.max(need.length, preset.length);
   let vq = vecQuota;
@@ -354,9 +366,23 @@ function fillSlots(need, { preset = [], pin = null, take: take0, takeVec, recycl
     }
     open.reverse().forEach((k, j) => markAt.set(k, marks[j]));
   }
+  // WHAT A SLOT WILL ACCEPT AT ALL, as opposed to what it merely prefers.
+  //
+  // `shapeForWant` is a portrait-or-landscape preference and nothing more. A slot can also
+  // declare `allow` — the content classes its design can actually hold — and that one is
+  // absolute: a 61px circular attribution disc drew a full desktop website capture in a
+  // measured render, because "cover a photo" and "cover a screenshot" are the same
+  // instruction to CSS and nothing upstream distinguished them. A class the design cannot
+  // hold must not be castable into it at any score.
+  const allows = (spec) => {
+    if (!spec || !Array.isArray(spec.allow) || !spec.allow.length) return null;
+    return (x) => spec.allow.includes(AF.classify(x));
+  };
+  const both = (f, g) => (!f ? g : !g ? f : (x) => f(x) && g(x));
+
   for (let k = 0; k < n; k++) {
     const want = need[k] || null;
-    const shape = want ? shapeForWant(want) : null;
+    const shape = both(want ? shapeForWant(want) : null, allows(specs[k]));
     let asset = preset[k] || null;
     let fill = asset ? (asset === pin ? "pinned" : "cast") : null;
     if (!asset && k === 0 && pin) { asset = pin; fill = "pinned"; }
@@ -379,11 +405,11 @@ function fillSlots(need, { preset = [], pin = null, take: take0, takeVec, recycl
       if (v) { asset = v; fill = "vector"; vq--; }
     }
     if (!asset && want && isDeviceWant(want)) {
-      asset = take((x) => isScreenshot(x) && (!shape || shape(x)));
+      asset = take((x) => isScreenshot(x) && (!shape || shape(x)), k);
       if (asset) fill = "screenshot";
     }
     if (!asset) {
-      asset = take(shape);
+      asset = take(shape, k);
       if (asset) fill = isScreenshot(asset) ? "screenshot" : "photo";
     }
     // SHAPE IS A PREFERENCE ON A PLAIN PLATE — NOT IN A DEVICE FRAME. Measured on
@@ -397,8 +423,13 @@ function fillSlots(need, { preset = [], pin = null, take: take0, takeVec, recycl
     // shot dropped into a phone bezel is the documented crop disaster, and
     // media_demand.test.cjs defect-3 pins that an unfillable phone slot must stay
     // empty rather than swallow the photo a later slot needs.
+    // …but `allow` survives this relaxation, because it is not a shape preference. The
+    // slot that prompted it is a 61px circular attribution disc: dropping the aspect test
+    // there let a full desktop website capture be cast into a portrait-sized medallion,
+    // which is not a duplicate-versus-crop trade at all — it is the wrong kind of picture
+    // in a hole that can only hold a face.
     if (!asset && !(want && isDeviceWant(want))) {
-      asset = take();
+      asset = take(allows(specs[k]), k);
       if (asset) fill = isScreenshot(asset) ? "screenshot" : "photo";
     }
     slots.push({ slotIndex: k, kind: want, asset, fill });
@@ -610,16 +641,35 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
     else if (typeof a.clipRelevance === "number") score += a.clipRelevance * 0.8;
     return score;
   };
-  // `scene` is optional so every existing call site keeps working unchanged: with
-  // no scene this is exactly the old rank-order walk.
-  const take = (pred, scene = null) => {
+  // GEOMETRY IS THE SECOND HALF OF RELEVANCE. Everything scored above asks what a picture
+  // is ABOUT; none of it asks what SHAPE it is. That is how a 2732x1800 website capture
+  // (aspect 1.52) came to be "compatible" with a 1.08 hero plate, where `object-fit:cover`
+  // then discarded 28.5% of its width and cut the site's navigation mid-word on both
+  // edges — the defect this weight exists to remove.
+  //
+  // `asset_fit.fitScore` returns 0..1 over four terms: how close the shapes are, how much
+  // of the picture survives the crop its content class can bear, whether it has the
+  // resolution for the box, and whether its KIND suits the slot's intent (a stock photo
+  // inside browser chrome claims to be the product's screen, and is penalised for it).
+  //
+  // GEO_W = 3.2 makes a perfect-shape candidate worth about two strong topical word
+  // matches — enough to break a tie and to overrule a marginal semantic edge, never
+  // enough to seat an off-topic picture on a beat that has a right one. With no declared
+  // geometry fitScore returns a constant, the term cancels across candidates, and the
+  // ordering is exactly what it was before.
+  const GEO_W = 3.2;
+  // `scene` and `spec` are optional so every existing call site keeps working unchanged:
+  // with neither, this is exactly the old rank-order walk.
+  const take = (pred, scene = null, spec = null) => {
     const free1 = (x) => !claimed.has(x) && (!pred || pred(x));
     let a = null;
-    if (scene && process.env.TE_TOPIC_MATCH !== "0") {   // =0 restores the old global rank walk, for A/B
+    if ((scene || spec) && process.env.TE_TOPIC_MATCH !== "0") {   // =0 restores the old global rank walk, for A/B
       let best = 0;
       for (const x of free) {
         if (!free1(x) || demoted(x)) continue;
-        const s = matchScore(scene, x);
+        // `free` is already sorted by the film-global rank, and the comparison is
+        // strictly-greater, so equal scores still resolve in rank order.
+        const s = matchScore(scene, x) + (spec ? GEO_W * AF.fitScore(x, spec) : 0);
         if (s > best) { best = s; a = x; }
       }
     }
@@ -665,6 +715,10 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
   // two bullets. Routing a scene into a shape it cannot fill is worse than the
   // repeat we are trying to avoid (it renders acres of empty frame), so this
   // check is deliberately strict and the rung simply does nothing when it fails.
+  // The slot list for a type, honouring a family's portrait override. Every branch below
+  // reads through this — a count that changed in 9:16 but only in some code paths would
+  // desync routing from filling, which is exactly how a slot goes silently unfilled.
+  const wantsOf = (t) => TM.wantsFor(family, t, { width: W, height: H });
   const DESC = new Map((family.TEMPLATE_SCENES || []).map((d) => [d.type, d]));
   const sceneCanFill = (t, sc, avail) => {
     const d = DESC.get(t);
@@ -674,7 +728,7 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
     if (keys.some((k) => /^(quote|testimonial)$/i.test(k)) && !(sc.quote || sc.testimonial)) return false;
     if (keys.some((k) => /^(items|chips|bullets|rows|points|list)$/i.test(k)) && bullets(sc, 2).length < 2) return false;
     // A media shape with no media left is an empty plate, not a variation.
-    const md = (family.mediaSlots && family.mediaSlots[t]) || [];
+    const md = wantsOf(t);
     const min = d.mediaMin != null ? d.mediaMin : md.length;
     if (min > 0 && avail < min) return false;
     return true;
@@ -696,6 +750,24 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
   // Real assets already shown, in film order — what the recycle rung repeats
   // from when a later scene runs out of fresh media.
   const placed = [];
+
+  // SLOT GEOMETRY, RESOLVED PER SCENE — the number that did not exist anywhere in this
+  // codebase before. `template_media.resolveSlots` turns the family's declared box for
+  // each media slot into real pixels at THIS film's dimensions, which is what makes the
+  // shape of a placeholder knowable at plan time instead of an accident of the render.
+  //
+  // The specs are handed to fillSlots so selection can weigh shape alongside subject, and
+  // kept on the slot so the fit decision can be computed against the very box the asset
+  // was chosen for. A family that declares no `mediaGeometry` yields specs with no
+  // dimensions, every step degrades to what it did before, and nothing regresses.
+  const fillWithGeometry = (type, sid, need, opts) => {
+    let specs = [];
+    try { specs = TM.resolveSlots(family, type, { width: W, height: H }, { sceneId: sid, wants: need }); }
+    catch { specs = []; }
+    const filled = fillSlots(need, { ...opts, specs });
+    for (const s of filled) if (specs[s.slotIndex]) s.spec = specs[s.slotIndex];
+    return filled;
+  };
 
   scenes.forEach((rawScene, i) => {
     const T = r(rawScene.start != null ? rawScene.start : startOf(i));
@@ -730,7 +802,7 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
       // The director casts a scene with the assets IT chose, which is often
       // fewer than the type actually draws (it cast montage with 2 while the
       // grid renders 4); fillSlots tops the rest up from the unclaimed pool.
-      need = (family.mediaSlots && family.mediaSlots[type]) || [];
+      need = wantsOf(type);
       // CAST PIN RESCUE — the director can cast a scene to a TEXT-ONLY type while
       // an asset is pinned (or cast) to it. The asset then lands in a slot the
       // type cannot draw and is dropped with NO signal anywhere: `need` is 0, so
@@ -742,11 +814,11 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
       const showable = preset[0] || null;
       if (showable && !need.length && family.mediaSlots) {
         const want = isPortraitAsset(showable) ? "phone" : "desktop";
-        const types = Object.keys(family.mediaSlots).filter((t) => family.SCENES[t] && (family.mediaSlots[t] || []).length);
-        const cand = types.find((t) => (family.mediaSlots[t] || [])[0] === want) || types[0];
-        if (cand) { type = cand; need = family.mediaSlots[cand]; typeVia = "castPinRescue"; }
+        const types = Object.keys(family.mediaSlots).filter((t) => family.SCENES[t] && wantsOf(t).length);
+        const cand = types.find((t) => wantsOf(t)[0] === want) || types[0];
+        if (cand) { type = cand; need = wantsOf(cand); typeVia = "castPinRescue"; }
       }
-      slots = fillSlots(need, { preset, pin, take, takeVec, recycle: !!family.recycleMedia, placedPool: placed, vecQuota: vecQuotaForScene(), scene, marks });
+      slots = fillWithGeometry(type, sid, need, { preset, pin, take, takeVec, recycle: !!family.recycleMedia, placedPool: placed, vecQuota: vecQuotaForScene(), scene, marks });
     } else {
       if (pin) claimed.add(pin);
       type = family.route(scene, i, scenes.length, {
@@ -794,10 +866,10 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
       // honest (no routing a quote scene into a stats plate), and the recent
       // window still blocks the same shape twice running.
       const stillFree = free.filter((x) => !claimed.has(x)).length;
-      const needNow = (family.mediaSlots && family.mediaSlots[type]) || [];
+      const needNow = wantsOf(type);
       if (!needNow.length && stillFree >= 3 && family.mediaSlots) {
         const cand = Object.keys(family.mediaSlots)
-          .filter((t) => (family.mediaSlots[t] || []).length
+          .filter((t) => wantsOf(t).length
             && family.SCENES[t] && !recentTypes.includes(t)
             && !reservedTypes.has(t) && sceneCanFill(t, scene, stillFree));
         if (cand.length) {
@@ -806,7 +878,7 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
           typeVia = "spendAssets";
         }
       }
-      need = (family.mediaSlots && family.mediaSlots[type]) || [];
+      need = wantsOf(type);
       // A scene the screenshot director PINNED an asset to MUST show it. Routers
       // guard against two media beats in a row (`prevType !== "feature"`), which
       // silently swallowed the pinned page shot whenever the previous beat had
@@ -815,9 +887,9 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
       // fits the asset's orientation.
       if (pin && !need.length && family.mediaSlots) {
         const want = isPortraitAsset(pin) ? "phone" : "desktop";
-        const types = Object.keys(family.mediaSlots).filter((t) => family.SCENES[t] && (family.mediaSlots[t] || []).length);
-        const cand = types.find((t) => family.mediaSlots[t][0] === want) || types[0];
-        if (cand) { type = cand; need = family.mediaSlots[cand]; typeVia = "pinRescue"; }
+        const types = Object.keys(family.mediaSlots).filter((t) => family.SCENES[t] && wantsOf(t).length);
+        const cand = types.find((t) => wantsOf(t)[0] === want) || types[0];
+        if (cand) { type = cand; need = wantsOf(cand); typeVia = "pinRescue"; }
       }
       // A BEAT THAT NAMES A PRODUCT NEEDS A TILE THAT IS NOT THE HERO'S. Every
       // family's media shapes are one or two slots deep, and slot 0 belongs to
@@ -831,19 +903,26 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
       if (marks.length && need.length < 2 && family.mediaSlots) {
         const room = free.filter((x) => !claimed.has(x)).length + (pin ? 1 : 0) + marks.length;
         const cand = Object.keys(family.mediaSlots)
-          .filter((t) => (family.mediaSlots[t] || []).length >= 2 && family.SCENES[t]
+          .filter((t) => wantsOf(t).length >= 2 && family.SCENES[t]
             && !recentTypes.includes(t) && !reservedTypes.has(t) && sceneCanFill(t, scene, room));
         if (cand.length) {
           cand.sort((x, y) => usedTypes.lastIndexOf(x) - usedTypes.lastIndexOf(y));
           type = cand[0];
-          need = family.mediaSlots[type];
+          need = wantsOf(type);
           typeVia = "brandRoom";
         }
       }
-      if (need.length) slots = fillSlots(need, { pin, take, takeVec, recycle: !!family.recycleMedia, placedPool: placed, vecQuota: vecQuotaForScene(), scene, marks });
+      if (need.length) slots = fillWithGeometry(type, sid, need, { pin, take, takeVec, recycle: !!family.recycleMedia, placedPool: placed, vecQuota: vecQuotaForScene(), scene, marks });
     }
 
-    const media = slots.map((s) => s.asset);
+    // THE CROP DECISION TRAVELS WITH THE PICTURE. `asset_fit.withFit` returns a COPY
+    // carrying `__fit` — the fit mode, object-position and honest crop accounting for
+    // THIS asset in THIS box — so the same image in two different slots gets two
+    // different crops, and the renderer draws what the plan decided rather than the
+    // hardcoded `object-fit:cover;object-position:top center` every composer used to
+    // write. `slots[].asset` stays the original object, so `claimed`/`placed` identity
+    // checks below are unaffected.
+    const media = slots.map((s) => (s.asset && s.spec ? AF.withFit(s.asset, s.spec) : s.asset));
     // Only FRESH placements join the recycle pool — re-adding a recycled asset
     // would let one image crowd out every other candidate downstream.
     for (const s of slots) {
@@ -853,10 +932,11 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
     // existing scene function; ctx.mediaSlots is the positional/nullable view.
     ctx.media = media.filter(Boolean);
     ctx.mediaSlots = media;
+    const mediaFitted = media;
     let a = media[0] || null;
     const b = media[1] || null;
     if (family.wantsLogo && family.wantsLogo(type) && !a) {
-      a = logoAsset;
+      a = (logoAsset && slots[0] && slots[0].spec) ? AF.withFit(logoAsset, slots[0].spec) : logoAsset;
       if (logoAsset && slots[0]) { slots[0].asset = logoAsset; slots[0].fill = "logo"; }
     }
     // A media type with STILL no media renders an empty frame — re-route.
@@ -888,7 +968,7 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
     // `marks` rides along because the emitter runs in a different function and
     // cannot reach marksByScene: without it the fallback strip below has no idea
     // which products this beat named.
-    plan.push({ sceneIndex: i, sceneId: sid, rawScene, scene, ctx, type, typeVia, need, slots, media, marks, a, b, T, L, isLast });
+    plan.push({ sceneIndex: i, sceneId: sid, rawScene, scene, ctx, type, typeVia, need, slots, media, mediaFitted, marks, a, b, T, L, isLast });
   });
 
   // Coverage math, computed once here instead of re-derived by every caller.
@@ -931,6 +1011,15 @@ function planMedia(family, { storyboard, dims, framePack, assets, brandSkin, tem
 // recorded there, so what renders is exactly what the manifest describes.
 function buildFilm(family, opts = {}) {
   const { dims, framePack, captionCues } = opts;
+  // The pace config rides on the STORYBOARD rather than through every composer
+  // signature: `storyboard` is already handed to all 25+ buildComposition()
+  // entry points, so one attachment upstream reaches every path. An explicit
+  // opts.pacing still wins, for callers that have it directly (tests, tools).
+  //
+  // NOTE `storyboard.paceConfig` (the engine's resolved config) is a DIFFERENT
+  // field from `storyboard.pacing` (the {motion,xfade,camera} tempo tilt that
+  // services/pacing.js tempoOf reads). Both exist, both are set together.
+  const pacing = opts.pacing || (opts.storyboard && opts.storyboard.paceConfig) || null;
   const P = planMedia(family, opts);
   const { W, H, land, D, theme, brand, url, scenes, plan } = P;
 
@@ -964,6 +1053,19 @@ function buildFilm(family, opts = {}) {
     // which is otherwise impossible — an unfilled slot draws a styled <div>
     // with no <img> and is indistinguishable from intentional design.
     const filledCount = p.slots.filter((s) => s.kind && s.asset).length;
+    // THE PLAN'S GEOMETRY, STAMPED ON THE CLIP. `data-media-demand`/`-filled` already made
+    // an unfilled slot countable from the rendered DOM; these make the FIT countable too.
+    // `data-slot-box` is the box template_media resolved for each slot in px, and
+    // `data-media-fit` is what asset_fit decided to do in it — so scripts/audit-slot-fit.js
+    // can compare what was PLANNED against what the browser actually PAINTED, and a
+    // declaration that drifts from a composer's CSS becomes a test failure instead of a
+    // silent lie. Costs two attributes per clip and nothing at render time.
+    const slotBoxes = p.slots.map((s) => (s.spec && s.spec.w > 0 ? `${s.slotIndex}:${s.spec.w}x${s.spec.h}` : `${s.slotIndex}:?`)).join(",");
+    const slotFits = p.slots.map((s, k) => {
+      const a2 = (p.mediaFitted && p.mediaFitted[k]) || null;
+      const f = a2 && a2.__fit;
+      return f ? `${s.slotIndex}:${f.mode}:${f.cropXpct}/${f.cropYpct}${f.compromised ? ":!" : ""}` : `${s.slotIndex}:-`;
+    }).join(",");
     // ---- SCENE FILL -----------------------------------------------------------
     // A family that declares `fill` gets its spare copy drawn as furniture in a
     // band it says is safe. Opt-in and zone-driven on purpose: the engine cannot
@@ -996,7 +1098,7 @@ function buildFilm(family, opts = {}) {
       try { markPart = brandStrip(ctx.id, loose, ctx, fillZone) || markPart; }
       catch { /* a logo row is decoration — never let it break a render */ }
     }
-    bodyParts.push(`<div class="clip tpl-scene" id="${ctx.id}" data-start="${T}" data-duration="${r(ctx.winL)}" data-track-index="${ctx.track}" data-scene-type="${type}" data-media-demand="${p.need.length}" data-media-filled="${filledCount}" data-media-kinds="${p.need.join(",")}" style="z-index:${ctx.track};opacity:0;${built.clipStyle || ""}">
+    bodyParts.push(`<div class="clip tpl-scene" id="${ctx.id}" data-start="${T}" data-duration="${r(ctx.winL)}" data-track-index="${ctx.track}" data-scene-type="${type}" data-media-demand="${p.need.length}" data-media-filled="${filledCount}" data-media-kinds="${p.need.join(",")}" data-slot-box="${slotBoxes}" data-media-fit="${slotFits}" style="z-index:${ctx.track};opacity:0;${built.clipStyle || ""}">
   <div class="camo" id="${ctx.id}-camo"><div class="cami" id="${ctx.id}-cami">${built.html}${fillPart.html}${markPart.html}</div></div>
 </div>`);
     if (fillPart.s && fillPart.s.length) sceneScripts.push(fillPart.s.filter(Boolean).join("\n  "));
@@ -1041,6 +1143,10 @@ function buildFilm(family, opts = {}) {
       const cardSel = cardPresent ? rawCard : null;
       sceneScripts.push(...motion.resolveMotion(tokens, {
         at: T, span: L, index: i,
+        // THE PACE SEAM for all eight family grammars: they publish tokens and
+        // let resolveMotion drive the physics, so this single field retunes the
+        // motion of every one of them. Undefined => the shared unscaled table.
+        pacing,
         // The outline phase draws the word in THIS colour with a transparent
         // fill, so it has to clear large-text contrast on its own — a raw accent
         // (mint on near-white measured 1.69:1) is unreadable for the whole hold.
@@ -1471,8 +1577,28 @@ function sceneFill(id, scene, ctx, o = {}) {
   return { html, s };
 }
 
+/**
+ * THE ONE LINE EVERY COMPOSER DRAWS AN IMAGE WITH.
+ *
+ * Replaces the literal `object-fit:cover;object-position:top center;` that was written out
+ * by hand at forty-odd call sites across this repo. It returns the fit the planner already
+ * decided for THIS asset in THIS box (`asset.__fit`, set in planMedia above): `contain`
+ * for a logo or a vector so a mark is never cut, `cover` with a content-aware focal point
+ * for a photograph, `contain` for a website capture whose crop would eat its navigation.
+ *
+ * With no plan and no slot it still beats the literal it replaces — it at least knows not
+ * to crop a logo — and with nothing at all it returns exactly that literal, so no call
+ * site can be made worse by adopting it.
+ *
+ * Usage, verbatim substitution:
+ *   `…;object-fit:cover;object-position:top center;display:block;`
+ *   `…;${E.fitCss(asset)}display:block;`
+ */
+const fitCss = (asset, slot = null) => AF.fitCss(asset, slot);
+
 module.exports = {
   buildFilm, planMedia, fillSlots, shapeForWant, isDeviceWant, withDisplayCopy, sceneFill,
+  fitCss,
   esc, r, rgba, lum, isDark, inkOn, mix, hexToRgb, contrastRatio, flatten, readable,
   breakLines, bullets, fit, mineStat, statsOf, supportList, labelForAsset,
   ratioOf, isPortraitAsset, isScreenshot, isLogo, plateOk, isVector, hashSeed, variantFor,

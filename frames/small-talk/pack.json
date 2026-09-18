@@ -1,0 +1,61 @@
+{
+  "name": "small-talk",
+  "vibe": "personal blog / diary — two balconies across a gap. Gochi Hand over Quicksand; a luminance-ladder palette on #e6eef3. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#e6eef3",
+    "ink": "#141a1e",
+    "accent": "#f08a3c",
+    "a2": "#7d6bd0"
+  },
+  "fonts": [
+    "Gochi Hand",
+    "Quicksand",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#e6eef3",
+    "ink": "#141a1e"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#f08a3c",
+      "#7d6bd0"
+    ],
+    "extras": [
+      "#6a767e"
+    ],
+    "emphasisCss": "color:#f08a3c;"
+  },
+  "assets": {
+    "photoMod": "two balconies across a gap editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "personal blog",
+      "diary"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Gochi Hand",
+    "body": "Quicksand",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-small-talk",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

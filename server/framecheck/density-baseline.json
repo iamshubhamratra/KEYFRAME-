@@ -1,18 +1,8 @@
 {
-  "abyssal-glow": {
-    "meanInk": 0.205,
-    "minInk": 0.141,
-    "maxDead": 0.319
-  },
   "atelier": {
     "meanInk": 0.071,
     "minInk": 0.026,
     "maxDead": 0.458
-  },
-  "aurora-spectrum": {
-    "meanInk": 0.427,
-    "minInk": 0.408,
-    "maxDead": 0.236
   },
   "bauhaus-print": {
     "meanInk": 0.382,
@@ -29,20 +19,10 @@
     "minInk": 0.053,
     "maxDead": 0.319
   },
-  "blockframe": {
-    "meanInk": 0.35,
-    "minInk": 0.212,
-    "maxDead": 0.361
-  },
   "bloom-fable": {
     "meanInk": 0.47,
     "minInk": 0.431,
     "maxDead": 0.264
-  },
-  "bloom-illustrated": {
-    "meanInk": 0.242,
-    "minInk": 0.24,
-    "maxDead": 0.194
   },
   "blueprint-atelier": {
     "meanInk": 0.077,
@@ -59,11 +39,6 @@
     "minInk": 0.195,
     "maxDead": 0.333
   },
-  "broadside": {
-    "meanInk": 0.364,
-    "minInk": 0.221,
-    "maxDead": 0.375
-  },
   "brut-pop": {
     "meanInk": 0.373,
     "minInk": 0.186,
@@ -79,16 +54,6 @@
     "minInk": 0.029,
     "maxDead": 0.528
   },
-  "care-lavender": {
-    "meanInk": 0.249,
-    "minInk": 0.118,
-    "maxDead": 0.569
-  },
-  "care-mint": {
-    "meanInk": 0.293,
-    "minInk": 0.191,
-    "maxDead": 0.403
-  },
   "cartesian": {
     "meanInk": 0.067,
     "minInk": 0.028,
@@ -98,11 +63,6 @@
     "meanInk": 0.231,
     "minInk": 0.066,
     "maxDead": 0.25
-  },
-  "cobalt-grid": {
-    "meanInk": 0.361,
-    "minInk": 0.2,
-    "maxDead": 0.319
   },
   "coral": {
     "meanInk": 0.338,
@@ -209,11 +169,6 @@
     "minInk": 0.536,
     "maxDead": 0.014
   },
-  "kinetic-bold": {
-    "meanInk": 0.374,
-    "minInk": 0.229,
-    "maxDead": 0.292
-  },
   "lantern-night": {
     "meanInk": 0.421,
     "minInk": 0.208,
@@ -224,65 +179,15 @@
     "minInk": 0.712,
     "maxDead": 0.278
   },
-  "ledger-noir": {
-    "meanInk": 0.388,
-    "minInk": 0.374,
-    "maxDead": 0.25
-  },
-  "liquid-glass": {
-    "meanInk": 0.131,
-    "minInk": 0.1,
-    "maxDead": 0.278
-  },
   "longshot-cinema": {
     "meanInk": 0.096,
     "minInk": 0.07,
     "maxDead": 0.319
   },
-  "lumen-motion": {
-    "meanInk": 0.242,
-    "minInk": 0.225,
-    "maxDead": 0.264
-  },
-  "midnight-glass": {
-    "meanInk": 0.275,
-    "minInk": 0.257,
-    "maxDead": 0.278
-  },
-  "mint-launch": {
-    "meanInk": 0.281,
-    "minInk": 0.154,
-    "maxDead": 0.111
-  },
   "momentum": {
     "meanInk": 0.111,
     "minInk": 0.101,
     "maxDead": 0.292
-  },
-  "mono-corporate": {
-    "meanInk": 0.301,
-    "minInk": 0.167,
-    "maxDead": 0.111
-  },
-  "neon-premiere": {
-    "meanInk": 0.313,
-    "minInk": 0.274,
-    "maxDead": 0.264
-  },
-  "nimbus-saas": {
-    "meanInk": 0.222,
-    "minInk": 0.21,
-    "maxDead": 0.194
-  },
-  "noir-spotlight": {
-    "meanInk": 0.254,
-    "minInk": 0.252,
-    "maxDead": 0.278
-  },
-  "nova-launch": {
-    "meanInk": 0.303,
-    "minInk": 0.288,
-    "maxDead": 0.264
   },
   "orbit-space": {
     "meanInk": 0.224,
@@ -319,11 +224,6 @@
     "minInk": 0.092,
     "maxDead": 0.389
   },
-  "prism-launch": {
-    "meanInk": 0.205,
-    "minInk": 0.187,
-    "maxDead": 0.208
-  },
   "reel": {
     "meanInk": 0.9,
     "minInk": 0.89,
@@ -344,11 +244,6 @@
     "minInk": 0.207,
     "maxDead": 0.276
   },
-  "signal-mono": {
-    "meanInk": 0.091,
-    "minInk": 0.055,
-    "maxDead": 0.306
-  },
   "sketchnote": {
     "meanInk": 0.217,
     "minInk": 0.091,
@@ -364,40 +259,15 @@
     "minInk": 0.098,
     "maxDead": 0.25
   },
-  "summit-keynote": {
-    "meanInk": 0.289,
-    "minInk": 0.284,
-    "maxDead": 0.194
-  },
   "teampulse": {
     "meanInk": 0.495,
     "minInk": 0.406,
     "maxDead": 0.132
   },
-  "terminal-amber": {
-    "meanInk": 0.118,
-    "minInk": 0.105,
-    "maxDead": 0.236
-  },
   "terminal-departures": {
     "meanInk": 0.221,
     "minInk": 0.202,
     "maxDead": 0.111
-  },
-  "terminal-green": {
-    "meanInk": 0.183,
-    "minInk": 0.156,
-    "maxDead": 0.222
-  },
-  "vapor-chrome": {
-    "meanInk": 0.103,
-    "minInk": 0.101,
-    "maxDead": 0.264
-  },
-  "vault-gold": {
-    "meanInk": 0.255,
-    "minInk": 0.254,
-    "maxDead": 0.264
   },
   "voltage": {
     "meanInk": 0.263,

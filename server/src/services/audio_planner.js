@@ -4,6 +4,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const openrouter = require("./openrouter");
+const pacing = require("./pacing");
 
 const SYSTEM = fs.readFileSync(
   path.join(__dirname, "..", "prompts", "system_audio.md"),
@@ -66,6 +67,11 @@ function buildUser(storyboard, flags, packAudio) {
     ...packSonicLines(packAudio),
     "",
     `Video duration: ${storyboard.durationSec} seconds.`,
+    // PACE reaches the score here. It rides on the storyboard (attached in the
+    // composition stage) so this signature stays unchanged, and it resolves to
+    // "" at the default mode — a normal film's audio prompt is byte-identical
+    // to the one this has always sent.
+    ...(storyboard.paceConfig ? ["", pacing.audioDirection(storyboard.paceConfig)] : []),
     "",
     "Return the audio plan JSON. Only include keys for enabled flags.",
   ];

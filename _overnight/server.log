@@ -1,0 +1,795 @@
+[frames] registry dir: C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\frames
+[server] detected 4 vCPUs, 12180 MB RAM
+[server] job concurrency = 2, render workers = 1
+[server] serving web app from C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\dist
+[manifest] 311/311 packs have a valid pack.json
+[skills] using local skills install: C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\.agents\skills
+[skills] warming skill cache in background
+[skills] skill cache warm (60967 bytes)
+[server] lazy ESM preload done
+[server] listening on :8080
+[server] videosDir=C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\videos
+[server] jobsDir=C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\jobs
+[server] model=google/gemini-3.1-flash-lite
+[pixabay-bridge] autostarting on :3007 (pid 14980, log C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\pixabay-no-node-modules\bridge.log)
+[catalog] loaded registry: 383 items
+[assets] pixabay key OK
+[pixabay-bridge] ready on :3007
+[janitor] swept jobs=2 videosTtl=0 videosCap=0 uploads=0 cachePruned=0 bytes=435142162
+[janitor] swept jobs=1 videosTtl=0 videosCap=0 uploads=0 cachePruned=0 bytes=435142162
+[frames] registry dir: C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\frames
+[server] detected 4 vCPUs, 12180 MB RAM
+[server] job concurrency = 2, render workers = 1
+[server] serving web app from C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\dist
+[manifest] 311/311 packs have a valid pack.json
+[skills] using local skills install: C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\.agents\skills
+[skills] warming skill cache in background
+[skills] skill cache warm (60967 bytes)
+[server] lazy ESM preload done
+[server] listening on :8080
+[server] videosDir=C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\videos
+[server] jobsDir=C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\jobs
+[server] model=google/gemini-3.1-flash-lite
+[pixabay-bridge] already up on :3007
+[catalog] loaded registry: 383 items
+[assets] pixabay key OK
+[frames] registry dir: C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\frames
+[server] detected 4 vCPUs, 12180 MB RAM
+[server] job concurrency = 2, render workers = 1
+[server] serving web app from C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\dist
+[manifest] 311/311 packs have a valid pack.json
+[skills] using local skills install: C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\.agents\skills
+[skills] warming skill cache in background
+[skills] skill cache warm (60967 bytes)
+[server] lazy ESM preload done
+[server] listening on :8080
+[server] videosDir=C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\videos
+[server] jobsDir=C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\jobs
+[server] model=google/gemini-3.1-flash-lite
+[pixabay-bridge] already up on :3007
+[catalog] loaded registry: 383 items
+[assets] pixabay key OK
+[ingest] blog understood: "Mapping the AI economy" — 4 section(s), 6011ch article, 5 image(s) downloaded, 2 external link(s)
+[ingest] peekshot pass finished in 1s
+[ingest] drop flat site image (stdev 11.2): 7e84494ac93c17f7fa9f62e/Inline_Image__Visual_2_updated_2.png
+[ingest] downloaded 3 site image(s) from 4 candidate(s)
+[ingest] logo captured (180x180) -> logo.png
+[ingest] website understood: "Mapping the AI economy" — 25 headings, 5997ch body, 6 usable screenshot(s), 60 internal page link(s), colors=#8996A3,#45596E,#818F9C,#586A7D ground=#FFFFFF(light), 3 site image(s)
+[llm] primary=kie:gemini-3.6-flash fallback=google/gemini-3-flash-preview->none stage=brief dispatching (sys=10552ch user=123230ch json=true timeout=180000ms)
+[kie] gemini-3.6-flash stage=brief ok (53396ms streamed, in=35798 out=421, 3.41 credits ($0.0171), 1957ch)
+[brief] ok on attempt 1 (pack=long-winter, duration=90s)
+[llm] primary=kie:gemini-3.6-flash fallback=google/gemini-3-flash-preview->none stage=script dispatching (sys=12087ch user=2055ch json=true timeout=180000ms)
+[kie] gemini-3.6-flash stage=script ok (43549ms streamed, in=3877 out=3410, 1.88 credits ($0.0094), 13506ch)
+[script] ok on attempt 1 (20 scenes, 90s, 0 pace warning(s))
+[project] px95amprl6 intake done — 20 scenes, paused at script_review (autopilot=false)
+[agents] frame_selector → long-winter (user)
+[llm] primary=kie:gemini-3.6-flash fallback=google/gemini-3-flash-preview->none stage=art_director dispatching (sys=2205ch user=629ch json=true timeout=180000ms)
+[agents] script folded 20 -> 18 scenes: the "film-long-winter" renderer holds 18 beats, and a scene it cannot draw would still be narrated over someone else's frame. Merged scenes keep both lines and share one narration clip.
+[agents] asset_planner: 6 screenshot(s) + 0 video(s) + 14 photo(s) + 9 vector(s) (20 derived)
+[agents] asset_search topic anchor: "world map and financial data"
+[agents] asset_search pack style: "a train crossing a snowfield at dusk editorial documentation workspace" · icons=line (#2F6A7A)
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=screenshot_director dispatching (sys=1194ch user=1946ch json=true timeout=180000ms)
+[llm] primary=kie:gemini-3.6-flash fallback=google/gemini-3-flash-preview->none stage=storyboard dispatching (sys=40616ch user=5833ch json=true timeout=180000ms)
+[agents] brand marks: Stripe→s1 (0 unavailable)
+[openrouter] google/gemini-3.1-flash-lite stage=screenshot_director ok (3121ms, in=731 out=405, $0.000782 billed, 1414ch)
+[topic-shots] named 6: marinetraffic.com, bloomberg.com, stripe.com, swift.com, adyen.com, mckinsey.com
+[asset_db] cached "world map and financial data financial technology office skyline desk a train crossing a snowfield at dusk editorial documentation workspace" (image, pixabay, 3a9b157a10c65246)
+[assets] "world map and financial data financial technology office skyline desk a train crossing a snowfield at dusk editorial documentation workspace" (image) <- pixabay (853x1280)
+[asset_db] cached "world map and financial data financial dashboard report analytics workstation a train crossing a snowfield at dusk editorial documentation workspace" (image, pixabay, df3690d89f8a0ad9)
+[assets] "world map and financial data financial dashboard report analytics workstation a train crossing a snowfield at dusk editorial documentation workspace" (image) <- pixabay (1229x1280)
+[assets] "world map and financial data saas analytics revenue growth screen a train crossing a snowfield at dusk editorial documentation workspace" (image) <- pixabay (1229x1280)
+[asset_db] cached "world map and financial data product manager reviewing dashboard laptop a train crossing a snowfield at dusk editorial documentation workspace" (image, pixabay, b9d4c36e7df49b2a)
+[assets] "world map and financial data product manager reviewing dashboard laptop a train crossing a snowfield at dusk editorial documentation workspace" (image) <- pixabay (908x1280)
+[asset_db] cached "world map and financial data software team standup office meeting a train crossing a snowfield at dusk editorial documentation workspace" (image, pixabay, bf921206d6c8a0f5)
+[assets] "world map and financial data software team standup office meeting a train crossing a snowfield at dusk editorial documentation workspace" (image) <- pixabay (853x1280)
+[asset_db] cache HIT "financial data charts on screens tech startup team high five office foam wedges and a mirror strip; a metronome swings a 1 editorial documentation workspace" (image, pixabay) -> 8.jpg
+[asset_db] cached "world map and financial data bengaluru tech park office interior a train crossing a snowfield at dusk editorial documentation workspace" (image, pixabay, e1cb16f4a58e5fa0)
+[assets] "world map and financial data bengaluru tech park office interior a train crossing a snowfield at dusk editorial documentation workspace" (image) <- pixabay (898x1280)
+[asset_db] cache HIT "go board game and server focused woman laptop notes desk the press pit editorial documentation workspace" (image, pixabay) -> 10.jpg
+[asset_db] cached "world map and financial data data analyst financial chart dual monitors a train crossing a snowfield at dusk editorial documentation workspace" (image, pixabay, ef69d4d09c49afb6)
+[assets] "world map and financial data data analyst financial chart dual monitors a train crossing a snowfield at dusk editorial documentation workspace" (image) <- pixabay (904x1280)
+[asset_db] cached "world map and financial data global financial network server room a train crossing a snowfield at dusk editorial documentation workspace" (image, pixabay, a312682a1531ec19)
+[assets] "world map and financial data global financial network server room a train crossing a snowfield at dusk editorial documentation workspace" (image) <- pixabay (853x1280)
+[asset_db] cached "world map and financial data executive team strategy meeting office a train crossing a snowfield at dusk editorial documentation workspace" (image, pixabay, 4b99f980aba4fb11)
+[assets] "world map and financial data executive team strategy meeting office a train crossing a snowfield at dusk editorial documentation workspace" (image) <- pixabay (859x1280)
+[asset_db] cached "world map and financial data financial report document glasses pen desk a train crossing a snowfield at dusk editorial documentation workspace" (image, pixabay, 103094df18cadaf5)
+[assets] "world map and financial data financial report document glasses pen desk a train crossing a snowfield at dusk editorial documentation workspace" (image) <- pixabay (851x1280)
+[assets] "world map and financial data trending up" (icon) <- iconify tabler:world-map
+[asset_db] cached "world map and financial data person holding phone payment screen desk a train crossing a snowfield at dusk editorial documentation workspace" (image, pixabay, 120dc3c873b07644)
+[assets] "world map and financial data person holding phone payment screen desk a train crossing a snowfield at dusk editorial documentation workspace" (image) <- pixabay (964x1280)
+[assets] "world map and financial data feature faster" (icon) <- iconify tabler:world-map
+[asset_db] cached "world map and financial data modern office glass architecture dusk a train crossing a snowfield at dusk editorial documentation workspace" (image, pixabay, 9d820ff24a774977)
+[assets] "world map and financial data modern office glass architecture dusk a train crossing a snowfield at dusk editorial documentation workspace" (image) <- pixabay (853x1280)
+[assets] "world map and financial data proof sixty-four" (icon) <- iconify tabler:world-map
+[assets] "world map and financial data shield" (vector) <- pixabay-bridge 153534 (1260x1280)
+[assets] "world map and financial data checklist" (icon) <- iconify tabler:world-map
+[assets] "world map and financial data trending up" (vector) <- pixabay-bridge 153534 (1260x1280)
+[assets] "world map and financial data chart" (vector) <- pixabay-bridge 153534 (1260x1280)
+[kie] gemini-3.6-flash stage=art_director ok (21172ms streamed, in=785 out=51, 0.09 credits ($0.0004), 171ch)
+[art_director] job px95amprl6: brand skin = (pack accents kept) · ground #FFFFFF (site-theme)
+[assets] "world map and financial data credit card" (vector) <- pixabay-bridge 153534 (1260x1280)
+[assets] "world map and financial data feature tiwari" (vector) <- pixabay-bridge 153534 (1260x1280)
+[agents] dropped exact-duplicate asset — query "financial dashboard report analytics workstation"
+[agents] dropped perceptual-duplicate asset — query "shield"
+[agents] dropped perceptual-duplicate asset — query "trending up"
+[agents] dropped exact-duplicate asset — query "feature faster"
+[agents] dropped perceptual-duplicate asset — query "chart"
+[agents] dropped exact-duplicate asset — query "proof sixty-four"
+[agents] dropped perceptual-duplicate asset — query "credit card"
+[agents] dropped exact-duplicate asset — query "checklist"
+[agents] dropped perceptual-duplicate asset — query "feature tiwari"
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=screenshotQa dispatching (sys=3961ch user=13ch json=true timeout=180000ms)
+[openrouter] google/gemini-3.1-flash-lite stage=screenshotQa ok (2963ms, in=8815 out=367, $0.002727 billed, 1083ch)
+[screenshot-qa] shot ok (Stripe blog post hero text) — site_0.png
+[screenshot-qa] shot ok (World map with regional data) — site_1.png
+[screenshot-qa] shot RE-PINNED scene s4 → s17 (Growth chart for AI spend) — site_2.png
+[screenshot-qa] shot RE-PINNED scene s5 → s14 (Conversion and revenue statistics) — site_3.png
+[screenshot-qa] shot UNPINNED (clean, but no free matching scene) — site_4.png
+[screenshot-qa] shot UNPINNED (clean, but no free matching scene) — site_5.png
+[screenshot-qa] re-pinned 2 mismatched screenshot(s) to the scene they fit
+[agents] website logo pinned as assets/images/logo.png
+[clip] model "Xenova/clip-vit-base-patch32" ready (2823ms)
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=creative_director dispatching (sys=7115ch user=13ch json=true timeout=180000ms)
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=creative_director dispatching (sys=7115ch user=13ch json=true timeout=180000ms)
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=creative_director dispatching (sys=7115ch user=13ch json=true timeout=180000ms)
+[openrouter] google/gemini-3.1-flash-lite stage=creative_director ok (3874ms, in=10032 out=667, $0.003473 billed, 2579ch)
+[openrouter] google/gemini-3.1-flash-lite stage=creative_director ok (4145ms, in=9923 out=656, $0.003430 billed, 2493ch)
+[openrouter] google/gemini-3.1-flash-lite stage=creative_director ok (4247ms, in=9914 out=681, $0.003465 billed, 2535ch)
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=creative_director dispatching (sys=7115ch user=13ch json=true timeout=180000ms)
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=creative_director dispatching (sys=7115ch user=5ch json=true timeout=180000ms)
+[openrouter] google/gemini-3.1-flash-lite stage=creative_director ok (2734ms, in=5320 out=218, $0.001640 billed, 846ch)
+[openrouter] google/gemini-3.1-flash-lite stage=creative_director ok (4761ms, in=9885 out=634, $0.003388 billed, 2444ch)
+[asset_db] cache HIT "world map and financial data financial technology office skyline desk a train crossing a snowfield at dusk editorial documentation workspace" (image, pixabay) -> topup_0.jpg
+[asset_db] cache HIT "world map and financial data financial technology office skyline desk a train crossing a snowfield at dusk editorial documentation workspace" (image, pixabay) -> topup_1.jpg
+[asset_db] cache HIT "world map and financial data financial technology office skyline desk a train crossing a snowfield at dusk editorial documentation workspace" (image, pixabay) -> topup_2.jpg
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=creative_director dispatching (sys=7115ch user=7ch json=true timeout=180000ms)
+[openrouter] google/gemini-3.1-flash-lite stage=creative_director ok (2777ms, in=6379 out=569, $0.002424 billed, 1768ch)
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=creative_director dispatching (sys=79ch user=854ch json=true timeout=180000ms)
+[openrouter] google/gemini-3.1-flash-lite stage=creative_director ok (1568ms, in=227 out=199, $0.000352 billed, 695ch)
+[creative_director] job px95amprl6: 16 approved / 11 rejected (vision reviewed 26/27 visual asset(s)), quality=82, 26 craft-directed, 2 note(s)
+[agents] content-dedup: dropped 1 duplicate-image slot(s) → 15 unique asset(s)
+[agents] relevance floor: unpinned 2 off-topic asset(s) (below 0.25, or unscored and unverified) — 11.jpg@s8 (scene 0.113), 15.svg@s11 (0.227)
+[agents] asset_search: 16 asset(s) (0 from cache)
+[kie] gemini-3.6-flash stage=storyboard ok (89025ms streamed, in=13497 out=5609, 3.74 credits ($0.0187), 22295ch)
+[agents] storyboard aligned to the script: 20 directed scene(s) -> 18 (the narration is cut per SCRIPT scene, so any scene the storyboard does not carry is spoken over someone else's frame)
+[audio_sources] sfx: Pixabay bridge "impact" -> https://cdn.pixabay.com/audio/2025/05/31/audio_be1e4daf3e.mp3
+[tts] openrouter ash spoke 11 words (6.3s, transcript 67ch)
+[tts] clip loudness aligned -24.3 LUFS +8.3dB → -16 LUFS
+[vo_fit] scene VO 6.3s > 4.5s budget — tightening once
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=166ch json=false timeout=180000ms)
+[tts] openrouter ash spoke 9 words (5.9s, transcript 64ch)
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit ok (1525ms, in=70 out=17, $0.000043 billed, 50ch)
+[tts] openrouter ash spoke 10 words (5.5s, transcript 78ch)
+[tts] openrouter ash spoke 9 words (5.6s, transcript 67ch)
+[tts] openrouter ash spoke 10 words (5.8s, transcript 73ch)
+[tts] openrouter ash spoke 10 words (5.9s, transcript 69ch)
+[tts] openrouter ash spoke 10 words (5.4s, transcript 64ch)
+[tts] openrouter ash spoke 11 words (6.8s, transcript 68ch)
+[tts] openrouter ash spoke 11 words (6.4s, transcript 80ch)
+[tts] openrouter ash spoke 17 words (8.9s, transcript 122ch)
+[tts] openrouter ash spoke 9 words (4.9s, transcript 71ch)
+[audio_sources] sfx: Pixabay bridge "whoosh" -> https://cdn.pixabay.com/audio/2025/07/30/audio_b3087a581e.mp3
+[tts] openrouter ash spoke 11 words (6s, transcript 78ch)
+[tts] openrouter ash spoke 7 words (4.1s, transcript 43ch)
+[tts] openrouter ash spoke 10 words (5.9s, transcript 71ch)
+[tts] openrouter ash spoke 12 words (6.3s, transcript 72ch)
+[tts] openrouter ash spoke 10 words (6s, transcript 63ch)
+[tts] openrouter ash spoke 8 words (6.3s, transcript 85ch)
+[tts] openrouter ash spoke 21 words (9.9s, transcript 128ch)
+[tts] openrouter ash spoke 10 words (5.4s, transcript 50ch)
+[tts] clip loudness aligned -23.1 LUFS +7.1dB → -16 LUFS
+[tts] clip loudness aligned -24.0 LUFS +8.0dB → -16 LUFS
+[audio_sources] sfx: Pixabay bridge "transition" -> https://cdn.pixabay.com/audio/2026/01/08/audio_fe5537f679.mp3
+[tts] clip loudness aligned -24.9 LUFS +8.9dB → -16 LUFS
+[tts] clip loudness aligned -25.6 LUFS +9.6dB → -16 LUFS
+[vo_fit] scene VO 5.5s > 4.5s budget — tightening once
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=163ch json=false timeout=180000ms)
+[tts] clip loudness aligned -23.9 LUFS +7.9dB → -16 LUFS
+[tts] clip loudness aligned -22.2 LUFS +6.2dB → -16 LUFS
+[tts] clip loudness aligned -25.2 LUFS +9.2dB → -16 LUFS
+[tts] clip loudness aligned -25.9 LUFS +9.9dB → -16 LUFS
+[vo_fit] scene VO 5.8s > 4.5s budget — tightening once
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=160ch json=false timeout=180000ms)
+[tts] clip loudness aligned -24.4 LUFS +8.4dB → -16 LUFS
+[tts] clip loudness aligned -24.0 LUFS +8.0dB → -16 LUFS
+[tts] clip loudness aligned -23.5 LUFS +7.5dB → -16 LUFS
+[tts] clip loudness aligned -24.7 LUFS +8.7dB → -16 LUFS
+[tts] clip loudness aligned -24.9 LUFS +8.9dB → -16 LUFS
+[tts] clip loudness aligned -24.2 LUFS +8.2dB → -16 LUFS
+[tts] clip loudness aligned -23.5 LUFS +7.5dB → -16 LUFS
+[vo_fit] scene VO 5.3s > 4.5s budget — tightening once
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=160ch json=false timeout=180000ms)
+[vo_fit] scene VO 6.3s > 4.5s budget — tightening once
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=176ch json=false timeout=180000ms)
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit ok (1030ms, in=65 out=9, $0.000029 billed, 56ch)
+[tts] clip loudness aligned -25.5 LUFS +9.5dB → -16 LUFS
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit ok (1169ms, in=65 out=10, $0.000031 billed, 65ch)
+[vo_fit] scene VO 5.8s > 5s budget — tightening once
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=167ch json=false timeout=180000ms)
+[vo_fit] scene VO 5.9s > 4.5s budget — tightening once
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=165ch json=false timeout=180000ms)
+[vo_fit] scene VO 5.5s > 4.5s budget — tightening once
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=174ch json=false timeout=180000ms)
+[vo_fit] scene VO 6.0s > 4.5s budget — tightening once
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=174ch json=false timeout=180000ms)
+[vo_fit] scene VO 6.8s > 4.5s budget — tightening once
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=164ch json=false timeout=180000ms)
+[vo_fit] scene VO 5.8s > 5s budget — tightening once
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=165ch json=false timeout=180000ms)
+[vo_fit] scene VO 6.3s > 4.5s budget — tightening once
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=168ch json=false timeout=180000ms)
+[vo_fit] scene VO 6.3s > 4.5s budget — tightening once
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=181ch json=false timeout=180000ms)
+[vo_fit] scene VO 6.0s > 4s budget — tightening once
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=157ch json=false timeout=180000ms)
+[tts] clip loudness aligned -23.4 LUFS +7.4dB → -16 LUFS
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit ok (1111ms, in=70 out=11, $0.000034 billed, 51ch)
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit ok (1113ms, in=73 out=18, $0.000045 billed, 60ch)
+[tts] clip loudness aligned -25.2 LUFS +9.2dB → -16 LUFS
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit ok (973ms, in=64 out=10, $0.000031 billed, 55ch)
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit ok (1023ms, in=66 out=11, $0.000033 billed, 60ch)
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit ok (1063ms, in=68 out=13, $0.000036 billed, 69ch)
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit ok (1077ms, in=67 out=11, $0.000033 billed, 67ch)
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit ok (1172ms, in=68 out=11, $0.000033 billed, 63ch)
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit ok (874ms, in=67 out=14, $0.000037 billed, 56ch)
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit ok (979ms, in=64 out=9, $0.000029 billed, 77ch)
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit ok (1462ms, in=69 out=11, $0.000033 billed, 62ch)
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit ok (1796ms, in=64 out=11, $0.000032 billed, 70ch)
+[tts] openrouter ash spoke 8 words (4.8s, transcript 56ch)
+[tts] openrouter ash spoke 9 words (5.6s, transcript 65ch)
+[audio_sources] sfx: Pixabay bridge "transition" -> https://cdn.pixabay.com/audio/2026/01/08/audio_fe5537f679.mp3
+[tts] openrouter ash spoke 10 words (4.8s, transcript 67ch)
+[tts] openrouter ash spoke 10 words (5.2s, transcript 63ch)
+[tts] clip loudness aligned -23.9 LUFS +7.9dB → -16 LUFS
+[tts] openrouter ash spoke 8 words (5.7s, transcript 77ch)
+[tts] openrouter ash spoke 10 words (5.8s, transcript 69ch)
+[tts] openrouter ash spoke 6 words (4.6s, transcript 51ch)
+[tts] openrouter ash spoke 9 words (4.8s, transcript 55ch)
+[tts] openrouter ash spoke 10 words (5.2s, transcript 62ch)
+[tts] openrouter ash spoke 10 words (10s, transcript 174ch)
+[tts] openrouter ash spoke 9 words (14.4s, transcript 173ch)
+[tts] clip loudness aligned -24.9 LUFS +8.9dB → -16 LUFS
+[tts] openrouter ash spoke 10 words (5.7s, transcript 70ch)
+[tts] openrouter ash spoke 9 words (15.1s, transcript 213ch)
+[audio_sources] sfx: Pixabay bridge "pop" -> https://cdn.pixabay.com/audio/2025/09/09/audio_3023b9bde2.mp3
+[tts] clip loudness aligned -25.2 LUFS +9.2dB → -16 LUFS
+[tts] clip loudness aligned -25.7 LUFS +9.7dB → -16 LUFS
+[tts] clip loudness aligned -24.9 LUFS +8.9dB → -16 LUFS
+[tts] clip loudness aligned -23.8 LUFS +7.8dB → -16 LUFS
+[tts] clip loudness aligned -25.4 LUFS +9.4dB → -16 LUFS
+[tts] clip loudness aligned -22.9 LUFS +6.9dB → -16 LUFS
+[tts] clip loudness aligned -24.7 LUFS +8.7dB → -16 LUFS
+[tts] clip loudness aligned -24.6 LUFS +8.6dB → -16 LUFS
+[tts] clip loudness aligned -24.3 LUFS +8.3dB → -16 LUFS
+[tts] clip loudness aligned -23.7 LUFS +7.7dB → -16 LUFS
+[tts] clip loudness aligned -24.4 LUFS +8.4dB → -16 LUFS
+[vo_fit] VO over budget — sped 1.02x to 5.6s (cap 5.6s), no words lost
+[audio_sources] sfx: Pixabay bridge "whoosh" -> https://cdn.pixabay.com/audio/2025/07/30/audio_b3087a581e.mp3
+[tts] openrouter ash spoke 10 words (9s, transcript 141ch)
+[tts] openrouter ash spoke 9 words (6.6s, transcript 60ch)
+[tts] openrouter ash spoke 9 words (5.7s, transcript 60ch)
+[tts] clip loudness aligned -25.4 LUFS +9.4dB → -16 LUFS
+[tts] clip loudness aligned -25.2 LUFS +9.2dB → -16 LUFS
+[tts] clip loudness aligned -24.3 LUFS +8.3dB → -16 LUFS
+[audio_sources] sfx: Pixabay bridge "transition" -> https://cdn.pixabay.com/audio/2026/01/08/audio_fe5537f679.mp3
+[vo_fit] VO over budget — sped 1.18x to 7.6s (cap 5.0s), no words lost
+[vo_fit] VO over budget — sped 1.16x to 5.6s (cap 5.6s), no words lost
+[audio_sources] sfx: Pixabay bridge "click" -> https://cdn.pixabay.com/audio/2025/01/20/audio_9afb73ceb5.mp3
+[audio_sources] sfx: Pixabay bridge "ding" -> https://cdn.pixabay.com/audio/2022/03/24/audio_4ff823c44c.mp3
+[audio_sources] sfx: Pixabay bridge "whoosh" -> https://cdn.pixabay.com/audio/2025/07/30/audio_b3087a581e.mp3
+[audio_sources] music: Pixabay bridge "upbeat driving focused minimal analytical ambient tec" [idx 5] -> https://cdn.pixabay.com/audio/2026/08/24/audio_7dd0bd3bf8.mp3
+[agents] voice: 18 vo clip(s), 10 sfx, music=true
+[llm] primary=kie:gemini-3.6-flash fallback=google/gemini-3-flash-preview->none stage=text_director dispatching (sys=2455ch user=7842ch json=true timeout=180000ms)
+[kie] gemini-3.6-flash stage=text_director ok (16239ms streamed, in=2453 out=561, 0.47 credits ($0.0024), 1445ch)
+[text_director] job px95amprl6: +1 text slot(s) (1 llm, 0 mined) — 18/18 scenes have subtext, 18 have bullets
+[visual_layout_director] kept 5 screenshot(s)/6 photo(s), demoted 1, hero=0.54, montage≤6
+[preflight] 6/9 checks passed · 3 warning(s)
+[agents] scenes re-timed to measured VO: 90s -> 111.01s (last line no longer cut)
+[agents] job px95amprl6 finish=standard (template "long-winter" pinned by user) → scene-kit
+[pipeline] graph-main: building FilmKit Long Winter composition (720x1280, 111.01s, 16 asset(s))
+[pipeline] identity-fix (graph-main): remapped 1 off-palette color(s) — identity: #241D2E (×1) → #141A1F
+[hyperframes] using local CLI 0.6.120 — skips the ~7s npx resolve per invocation
+[pipeline] graph-main: render done in 322140ms total
+[audio_mix] mixing 28 audio layer(s) + music (scene envelope) + silence anchor into px95amprl6.mp4.tmp.mp4 (t=111.01s)
+[pipeline] audio report: -13.47 LUFS (target -14), peak 0.38 dBTP, gain 0 dB, layers {"voice":18,"sfx":10,"music":true,"ambient":false,"musicEnvelope":true}
+[agents] audio_report → quality 68/100 · 1 issue(s): whoosh×3, transition×3 repeated
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=qa dispatching (sys=57ch user=9ch json=true timeout=180000ms)
+[openrouter] google/gemini-3.1-flash-lite stage=qa ok (4404ms, in=10789 out=496, $0.003407 billed, 1768ch)
+[qa] verdict: FAIL score=2 blockers=5 minors=0 (low-score gate)
+[agents] QA flagged 5 blocker(s) — deterministic repair pass (escalated fix chain, no LLM re-roll)
+[pipeline] bg-harmonize (qa-repair ·plated): joined 4 plated photo(s) to the pack palette
+[agents] deterministic repair: contrast 0 · bg-veil 4 · palette 0 · layout 0 — re-rendering
+[audio_mix] mixing 28 audio layer(s) + music (scene envelope) + silence anchor into px95amprl6.mp4.tmp.mp4 (t=111.01s)
+[pipeline] audio report: -13.47 LUFS (target -14), peak 0.38 dBTP, gain 0 dB, layers {"voice":18,"sfx":10,"music":true,"ambient":false,"musicEnvelope":true}
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=qa dispatching (sys=57ch user=9ch json=true timeout=180000ms)
+[openrouter] google/gemini-3.1-flash-lite stage=qa ok (4064ms, in=10789 out=260, $0.003056 billed, 856ch)
+[qa] verdict: FAIL score=2 blockers=1 minors=2 (low-score gate)
+[delivery] px95amprl6: 1 issue(s) in the delivered file — major: Delivered 111.0s against a planned 90.0s (+21.0s).
+[agents] node wall clock (total 838.1s, node sum 918.1s — sum > total means the fan-out is working):
+[agents]   contrast_repair            331.7s   40%
+[agents]   composition                322.1s   38%
+[agents]   storyboard_agent            89.2s   11%
+[agents]   asset_search                59.0s    7%
+[agents]   voice_agent                 44.8s    5%
+[agents]   art_director                21.2s    3%
+[agents]   timeline                    18.0s    2%
+[agents]   text_director               16.2s    2%
+[agents]   qa_agent                    15.6s    2%  x2
+[agents]   animation                    0.1s    0%
+[agents]   caption_director             0.0s    0%
+[agents]   frame_selector               0.0s    0%
+[agents]   scene_planner                0.0s    0%
+[agents]   visual_layout_director       0.0s    0%
+[agents]   localization_director        0.0s    0%
+[agents] px95amprl6 done — main, qa=FAILED(delivered best attempt), cost=$0.104461
+[ingest] peekshot pass finished in 1s
+[ingest] drop flat site image (stdev 6.2): https://vercel.com/vc-ap-vercel-marketing/_next/image
+[ingest] drop flat site image (stdev 4.9): https://vercel.com/vc-ap-vercel-marketing/_next/image
+[ingest] blog understood: "The AI Cloud: A unified platform for AI workloads" — 9 section(s), 11480ch article, 11 image(s) downloaded, 3 external link(s), by Dan Fein
+[ingest] drop flat site image (stdev 5.5): https://vercel.com/vc-ap-vercel-marketing/_next/image
+[ingest] drop flat site image (stdev 3.8): https://vercel.com/vc-ap-vercel-marketing/_next/image
+[ingest] drop flat site image (stdev 7.4): https://vercel.com/vc-ap-vercel-marketing/_next/image
+[ingest] downloaded 0 site image(s) from 5 candidate(s)
+[ingest] logo captured (256x256) -> logo.png
+[ingest] website understood: "The AI Cloud: A unified platform for AI workloads - Vercel" — 25 headings, 9000ch body, 6 usable screenshot(s), 60 internal page link(s), colors= ground=#FAFAFA(light), 0 site image(s)
+[llm] primary=kie:gemini-3.6-flash fallback=google/gemini-3-flash-preview->none stage=brief dispatching (sys=10552ch user=133068ch json=true timeout=180000ms)
+[kie] gemini-3.6-flash stage=brief ok (12330ms streamed, in=37835 out=487, 3.62 credits ($0.0181), 2146ch)
+[brief] dropped 3 invented brand colour(s) — none came from the analysed site
+[brief] ok on attempt 1 (pack=thesis-draft, duration=60s)
+[llm] primary=kie:gemini-3.6-flash fallback=google/gemini-3-flash-preview->none stage=script dispatching (sys=12087ch user=2197ch json=true timeout=180000ms)
+[kie] gemini-3.6-flash stage=script ok (49939ms streamed, in=3866 out=2238, 1.36 credits ($0.0068), 8145ch)
+[script] ok on attempt 1 (13 scenes, 60s, 0 pace warning(s))
+[project] zlr2uqx2la intake done — 13 scenes, paused at script_review (autopilot=false)
+[agents] frame_selector → thesis-draft (user)
+[art_director] site ground #FAFAFA is light but "thesis-draft" is designed dark (#101426) — keeping the pack's ground; matching it would invert the design
+[agents] asset_planner: 6 screenshot(s) + 0 video(s) + 4 photo(s) + 6 vector(s) (13 derived)
+[llm] primary=kie:gemini-3.6-flash fallback=google/gemini-3-flash-preview->none stage=storyboard dispatching (sys=40616ch user=4583ch json=true timeout=180000ms)
+[agents] asset_search topic anchor: "cloud servers and code dashboard"
+[agents] asset_search pack style: "the last night of the draft editorial documentation workspace" · icons=line (#E8829A)
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=screenshot_director dispatching (sys=1194ch user=1352ch json=true timeout=180000ms)
+[agents] brand marks: Vercel→s1 (0 unavailable)
+[asset_db] cache HIT "go board game and server focused woman laptop notes desk the press pit editorial documentation workspace" (image, pixabay) -> 1.jpg
+[openrouter] google/gemini-3.1-flash-lite stage=screenshot_director ok (2593ms, in=593 out=316, $0.000616 billed, 1097ch)
+[topic-shots] named 5: status.aws.amazon.com, docs.docker.com, typescriptlang.org, grafana.com, vercel.com
+[assets] "cloud servers and code dashboard developer dual monitors workstation dark office the last night of the draft editorial documentation workspace" (image) <- pixabay (717x1280)
+[asset_db] cached "cloud servers and code dashboard cloud infrastructure server room LED lights the last night of the draft editorial documentation workspace" (image, pixabay, 2d4f52d37db4006a)
+[assets] "cloud servers and code dashboard cloud infrastructure server room LED lights the last night of the draft editorial documentation workspace" (image) <- pixabay (689x1280)
+[assets] "cloud servers and code dashboard software team standup office whiteboards the last night of the draft editorial documentation workspace" (image) <- pixabay (717x1280)
+[assets] "cloud servers and code dashboard code" (icon) <- iconify tabler:cloud
+[assets] "cloud servers and code dashboard proof built" (icon) <- iconify tabler:cloud
+[assets] "cloud servers and code dashboard network" (icon) <- iconify tabler:cloud
+[assets] "cloud servers and code dashboard hook cloud" (vector) <- pixabay-bridge 3331240 (1280x823)
+[assets] "cloud servers and code dashboard shield" (vector) <- pixabay-bridge 3331240 (1280x823)
+[assets] "cloud servers and code dashboard notebook" (vector) <- pixabay-bridge 3331240 (1280x823)
+[agents] dropped exact-duplicate asset — query "software team standup office whiteboards"
+[agents] dropped exact-duplicate asset — query "shield"
+[agents] dropped exact-duplicate asset — query "proof built"
+[agents] dropped exact-duplicate asset — query "notebook"
+[agents] dropped exact-duplicate asset — query "network"
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=screenshotQa dispatching (sys=3961ch user=13ch json=true timeout=180000ms)
+[openrouter] google/gemini-3.1-flash-lite stage=screenshotQa ok (2969ms, in=8565 out=336, $0.002619 billed, 972ch)
+[screenshot-qa] shot RE-PINNED scene s2 → s1 (Vercel AI Cloud blog post header) — site_0.png
+[screenshot-qa] shot ok (AI SDK code block example) — site_1.png
+[screenshot-qa] shot UNPINNED (clean, but no free matching scene) — site_2.png
+[screenshot-qa] shot ok (Vercel Sandbox secure execution text) — site_3.png
+[screenshot-qa] shot ok (Vercel BotID security explanation) — site_4.png
+[screenshot-qa] shot RE-PINNED scene s7 → s9 (Application security model and contact section) — site_5.png
+[screenshot-qa] re-pinned 2 mismatched screenshot(s) to the scene they fit
+[agents] website logo pinned as assets/images/logo.png
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=creative_director dispatching (sys=7115ch user=13ch json=true timeout=180000ms)
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=creative_director dispatching (sys=7115ch user=13ch json=true timeout=180000ms)
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=creative_director dispatching (sys=7115ch user=5ch json=true timeout=180000ms)
+[openrouter] google/gemini-3.1-flash-lite stage=creative_director ok (2894ms, in=5001 out=211, $0.001551 billed, 815ch)
+[openrouter] google/gemini-3.1-flash-lite stage=creative_director ok (4047ms, in=9757 out=681, $0.003426 billed, 2635ch)
+[openrouter] google/gemini-3.1-flash-lite stage=creative_director ok (4789ms, in=9677 out=683, $0.003409 billed, 2666ch)
+[asset_db] cache HIT "cloud servers and code dashboard cloud infrastructure server room LED lights the last night of the draft editorial documentation workspace" (image, pixabay) -> topup_0.jpg
+[asset_db] cache HIT "cloud servers and code dashboard cloud infrastructure server room LED lights the last night of the draft editorial documentation workspace" (image, pixabay) -> topup_1.jpg
+[asset_db] cache HIT "cloud servers and code dashboard cloud infrastructure server room LED lights the last night of the draft editorial documentation workspace" (image, pixabay) -> topup_2.jpg
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=creative_director dispatching (sys=7115ch user=7ch json=true timeout=180000ms)
+[openrouter] google/gemini-3.1-flash-lite stage=creative_director ok (2491ms, in=6109 out=315, $0.001980 billed, 1204ch)
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=creative_director dispatching (sys=79ch user=848ch json=true timeout=180000ms)
+[openrouter] google/gemini-3.1-flash-lite stage=creative_director ok (1898ms, in=231 out=213, $0.000373 billed, 718ch)
+[creative_director] job zlr2uqx2la: 12 approved / 3 rejected (vision reviewed 14/15 visual asset(s)), quality=90, 14 craft-directed, 2 note(s)
+[agents] relevance floor: unpinned 1 off-topic asset(s) (below 0.25, or unscored and unverified) — logo.png@s13 (0.064)
+[agents] asset_search: 13 asset(s) (0 from cache)
+[kie] gemini-3.6-flash stage=storyboard ok (64167ms streamed, in=13207 out=3985, 2.98 credits ($0.0149), 15593ch)
+[tts] openrouter ash spoke 9 words (5.4s, transcript 51ch)
+[tts] clip loudness aligned -24.4 LUFS +8.4dB → -16 LUFS
+[audio_sources] sfx: Pixabay bridge "impact" -> https://cdn.pixabay.com/audio/2025/05/31/audio_be1e4daf3e.mp3
+[vo_fit] scene VO 5.3s > 3.5s budget — tightening once
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=146ch json=false timeout=180000ms)
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit ok (1408ms, in=72 out=18, $0.000045 billed, 49ch)
+[tts] openrouter ash spoke 11 words (5.4s, transcript 64ch)
+[tts] openrouter ash spoke 10 words (6.1s, transcript 72ch)
+[tts] openrouter ash spoke 12 words (5.9s, transcript 79ch)
+[tts] openrouter ash spoke 9 words (4.7s, transcript 51ch)
+[tts] openrouter ash spoke 8 words (4.9s, transcript 65ch)
+[tts] openrouter ash spoke 8 words (5.2s, transcript 75ch)
+[tts] openrouter ash spoke 10 words (5.4s, transcript 66ch)
+[tts] openrouter ash spoke 12 words (6.4s, transcript 74ch)
+[tts] openrouter ash spoke 11 words (6.6s, transcript 76ch)
+[tts] openrouter ash spoke 8 words (4.9s, transcript 58ch)
+[tts] openrouter ash spoke 8 words (9.1s, transcript 154ch)
+[tts] openrouter ash spoke 10 words (6.7s, transcript 74ch)
+[audio_sources] sfx: Pixabay bridge "whoosh" -> https://cdn.pixabay.com/audio/2025/07/30/audio_b3087a581e.mp3
+[tts] openrouter ash spoke 9 words (5s, transcript 49ch)
+[tts] clip loudness aligned -25.3 LUFS +9.3dB → -16 LUFS
+[tts] clip loudness aligned -24.8 LUFS +8.8dB → -16 LUFS
+[tts] clip loudness aligned -25.6 LUFS +9.6dB → -16 LUFS
+[tts] clip loudness aligned -26.2 LUFS +10.2dB → -16 LUFS
+[tts] clip loudness aligned -24.7 LUFS +8.7dB → -16 LUFS
+[tts] clip loudness aligned -24.5 LUFS +8.5dB → -16 LUFS
+[tts] clip loudness aligned -24.5 LUFS +8.5dB → -16 LUFS
+[tts] clip loudness aligned -24.4 LUFS +8.4dB → -16 LUFS
+[tts] clip loudness aligned -25.4 LUFS +9.4dB → -16 LUFS
+[tts] clip loudness aligned -24.2 LUFS +8.2dB → -16 LUFS
+[vo_fit] scene VO 6.4s > 4.5s budget — tightening once
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=170ch json=false timeout=180000ms)
+[vo_fit] scene VO 6.0s > 4.5s budget — tightening once
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=168ch json=false timeout=180000ms)
+[tts] clip loudness aligned -23.9 LUFS +7.9dB → -16 LUFS
+[vo_fit] scene VO 6.6s > 4.5s budget — tightening once
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=172ch json=false timeout=180000ms)
+[vo_fit] scene VO 5.9s > 5s budget — tightening once
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=173ch json=false timeout=180000ms)
+[vo_fit] scene VO 5.3s > 4s budget — tightening once
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=158ch json=false timeout=180000ms)
+[vo_fit] scene VO 5.2s > 4s budget — tightening once
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=169ch json=false timeout=180000ms)
+[tts] clip loudness aligned -24.1 LUFS +8.1dB → -16 LUFS
+[vo_fit] scene VO 6.7s > 4.5s budget — tightening once
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=170ch json=false timeout=180000ms)
+[tts] clip loudness aligned -24.4 LUFS +8.4dB → -16 LUFS
+[vo_fit] VO over budget — sped 1.13x to 4.4s (cap 4.4s), no words lost
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit ok (1009ms, in=69 out=14, $0.000038 billed, 71ch)
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit ok (1117ms, in=70 out=13, $0.000037 billed, 68ch)
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit ok (1108ms, in=70 out=14, $0.000038 billed, 71ch)
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit ok (1005ms, in=71 out=16, $0.000041 billed, 74ch)
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit ok (1236ms, in=65 out=12, $0.000034 billed, 67ch)
+[audio_sources] sfx: Pixabay bridge "click" -> https://cdn.pixabay.com/audio/2025/01/20/audio_9afb73ceb5.mp3
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit ok (1467ms, in=67 out=10, $0.000031 billed, 58ch)
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit ok (1590ms, in=66 out=11, $0.000033 billed, 55ch)
+[tts] openrouter ash spoke 8 words (10.3s, transcript 164ch)
+[tts] openrouter ash spoke 8 words (4.5s, transcript 67ch)
+[tts] openrouter ash spoke 10 words (5.4s, transcript 71ch)
+[tts] openrouter ash spoke 9 words (4.5s, transcript 55ch)
+[tts] openrouter ash spoke 10 words (5.9s, transcript 68ch)
+[tts] openrouter ash spoke 10 words (6.2s, transcript 71ch)
+[tts] openrouter ash spoke 10 words (5.9s, transcript 74ch)
+[tts] openrouter ash spoke 8 words (4.8s, transcript 58ch)
+[audio_sources] sfx: Pixabay bridge "ding" -> https://cdn.pixabay.com/audio/2022/03/24/audio_4ff823c44c.mp3
+[tts] clip loudness aligned -24.8 LUFS +8.8dB → -16 LUFS
+[vo_fit] scene VO 9.1s > 6s budget — tightening once
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=140ch json=false timeout=180000ms)
+[tts] clip loudness aligned -24.6 LUFS +8.6dB → -16 LUFS
+[tts] clip loudness aligned -25.9 LUFS +9.9dB → -16 LUFS
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit ok (1324ms, in=67 out=14, $0.000037 billed, 46ch)
+[tts] clip loudness aligned -23.9 LUFS +7.9dB → -16 LUFS
+[tts] clip loudness aligned -25.1 LUFS +9.1dB → -16 LUFS
+[tts] clip loudness aligned -25.3 LUFS +9.3dB → -16 LUFS
+[tts] clip loudness aligned -24.7 LUFS +8.7dB → -16 LUFS
+[tts] clip loudness aligned -24.6 LUFS +8.6dB → -16 LUFS
+[vo_fit] VO over budget — sped 1.05x to 5.6s (cap 5.6s), no words lost
+[vo_fit] VO over budget — sped 1.09x to 5.6s (cap 5.6s), no words lost
+[vo_fit] VO over budget — sped 1.05x to 5.6s (cap 5.6s), no words lost
+[tts] openrouter ash spoke 8 words (16.1s, transcript 299ch)
+[tts] clip loudness aligned -23.9 LUFS +7.9dB → -16 LUFS
+[audio_sources] sfx: Pixabay bridge "pop" -> https://cdn.pixabay.com/audio/2025/09/09/audio_3023b9bde2.mp3
+[tts] openrouter ash spoke 8 words (5s, transcript 46ch)
+[tts] clip loudness aligned -24.9 LUFS +8.9dB → -16 LUFS
+[audio_sources] sfx: Pixabay bridge "whoosh" -> https://cdn.pixabay.com/audio/2025/07/30/audio_b3087a581e.mp3
+[audio_sources] sfx: Pixabay bridge "click" -> https://cdn.pixabay.com/audio/2025/01/20/audio_9afb73ceb5.mp3
+[audio_sources] sfx: Pixabay bridge "swoosh" -> https://cdn.pixabay.com/audio/2026/02/19/audio_29ed929219.mp3
+[audio_sources] sfx: Pixabay bridge "transition" -> https://cdn.pixabay.com/audio/2026/01/08/audio_fe5537f679.mp3
+[audio_sources] sfx: Pixabay bridge "whoosh" -> https://cdn.pixabay.com/audio/2025/07/30/audio_b3087a581e.mp3
+[audio_sources] music: Pixabay bridge "upbeat driving sleek technical electronica ambient p" [idx 0] -> https://cdn.pixabay.com/audio/2026/08/24/audio_0a4aa9945d.mp3
+[agents] voice: 13 vo clip(s), 10 sfx, music=true
+[llm] primary=kie:gemini-3.6-flash fallback=google/gemini-3-flash-preview->none stage=text_director dispatching (sys=2455ch user=6605ch json=true timeout=180000ms)
+[kie] gemini-3.6-flash stage=text_director ok (13970ms streamed, in=2199 out=229, 0.3 credits ($0.0015), 742ch)
+[text_director] job zlr2uqx2la: +0 text slot(s) (0 llm, 0 mined) — 13/13 scenes have subtext, 13 have bullets
+[visual_layout_director] kept 5 screenshot(s)/4 photo(s), demoted 1, hero=0.54, montage≤6
+[preflight] 6/9 checks passed · 3 warning(s)
+[agents] scenes re-timed to measured VO: 60s -> 72.76s (last line no longer cut)
+[agents] job zlr2uqx2la finish=standard (template "thesis-draft" pinned by user) → scene-kit
+[pipeline] graph-main: building FilmKit Thesis Draft composition (720x1280, 72.76s, 13 asset(s))
+[ingest] peekshot pass finished in 1s
+[ingest] downloaded 2 site image(s) from 2 candidate(s)
+[ingest] logo captured (144x144) -> logo.png
+[ingest] website understood: "Set up YouTube Kids" — 2 headings, 78ch body, 1 usable screenshot(s), 0 internal page link(s), colors=#DA0C18,#E21B21,#EC0F12,#DC212D ground=#FFFFFF(light), 2 site image(s)
+[llm] primary=kie:gemini-3.6-flash fallback=google/gemini-3-flash-preview->none stage=brief dispatching (sys=10552ch user=107197ch json=true timeout=180000ms)
+[kie] gemini-3.6-flash stage=brief ok (9989ms streamed, in=32174 out=310, 3.04 credits ($0.0152), 1560ch)
+[brief] ok on attempt 1 (pack=toybox, duration=30s)
+[llm] primary=kie:gemini-3.6-flash fallback=google/gemini-3-flash-preview->none stage=script dispatching (sys=12087ch user=1658ch json=true timeout=180000ms)
+[kie] gemini-3.6-flash stage=script ok (20011ms streamed, in=3741 out=1206, 0.88 credits ($0.0044), 4543ch)
+[script] ok on attempt 1 (7 scenes, 30s, 0 pace warning(s))
+[project] 36zctpkfns intake done — 7 scenes, paused at script_review (autopilot=false)
+[agents] frame_selector → toybox (user)
+[llm] primary=kie:gemini-3.6-flash fallback=google/gemini-3-flash-preview->none stage=art_director dispatching (sys=2205ch user=853ch json=true timeout=180000ms)
+[agents] asset_planner: 1 screenshot(s) + 0 video(s) + 4 photo(s) + 5 vector(s) (7 derived)
+[llm] primary=kie:gemini-3.6-flash fallback=google/gemini-3-flash-preview->none stage=storyboard dispatching (sys=40616ch user=2894ch json=true timeout=180000ms)
+[agents] asset_search topic anchor: "child watching cartoon videos on"
+[agents] asset_search pack style: "bright natural clean" · icons=soft
+[agents] brand marks: YouTube→s2 (0 unavailable)
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=screenshot_director dispatching (sys=613ch user=121ch json=true timeout=180000ms)
+[openrouter] google/gemini-3.1-flash-lite stage=screenshot_director ok (1667ms, in=182 out=33, $0.000094 billed, 101ch)
+[asset_db] cached "child watching cartoon videos on child watching cartoon tablet happy home bright natural clean" (image, pixabay, bd553bf4f7a0a0e4)
+[assets] "child watching cartoon videos on child watching cartoon tablet happy home bright natural clean" (image) <- pixabay (852x1280)
+[asset_db] cached "child watching cartoon videos on happy family in bright cozy living room bright natural clean" (image, pixabay, eba08ee03b7cf110)
+[assets] "child watching cartoon videos on happy family in bright cozy living room bright natural clean" (image) <- pixabay (851x1280)
+[assets] "child watching cartoon videos on father sitting near child tablet living room bright natural clean" (image) <- pixabay (852x1280)
+[asset_db] cached "child watching cartoon videos on mother holding phone smiling child background bright natural clean" (image, pixabay, e30ba4d0c3ef2b17)
+[assets] "child watching cartoon videos on mother holding phone smiling child background bright natural clean" (image) <- pixabay (939x1280)
+[kie] gemini-3.6-flash stage=art_director ok (7585ms streamed, in=856 out=72, 0.11 credits ($0.0006), 208ch)
+[art_director] job 36zctpkfns: brand skin = #ec0f12, #dc212d · ground #FFFFFF (llm)
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=screenshot_director dispatching (sys=1223ch user=2304ch json=true timeout=180000ms)
+[openrouter] google/gemini-3.1-flash-lite stage=screenshot_director ok (1413ms, in=885 out=100, $0.000368 billed, 260ch)
+[shots] director picked /features->scene s3, /docs->scene s5
+[assets] "child watching cartoon videos on hook made" (vector) <- pixabay-bridge 7118854 (1280x979)
+[assets] "child watching cartoon videos on shield" (vector) <- pixabay-bridge 7118854 (1280x979)
+[assets] "child watching cartoon videos on checklist" (vector) <- pixabay-bridge 7118854 (1280x979)
+[assets] "child watching cartoon videos on cta today" (vector) <- pixabay-bridge 7118854 (1280x979)
+[assets] "child watching cartoon videos on star" (vector) <- pixabay-bridge 7118854 (1280x979)
+[agents] dropped exact-duplicate asset — query "father sitting near child tablet living room"
+[agents] dropped exact-duplicate asset — query "checklist"
+[agents] dropped exact-duplicate asset — query "shield"
+[agents] dropped exact-duplicate asset — query "cta today"
+[agents] dropped exact-duplicate asset — query "star"
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=screenshotQa dispatching (sys=3961ch user=3ch json=true timeout=180000ms)
+[kie] gemini-3.6-flash stage=storyboard ok (39929ms streamed, in=12745 out=2181, 2.13 credits ($0.0106), 8498ch)
+[openrouter] google/gemini-3.1-flash-lite stage=screenshotQa ok (1844ms, in=2474 out=41, $0.000673 billed, 150ch)
+[screenshot-qa] shot RE-PINNED scene s2 → s7 (YouTube Kids setup screen with parent/kid options) — site_0.png
+[screenshot-qa] re-pinned 1 mismatched screenshot(s) to the scene they fit
+[agents] website logo pinned as assets/images/logo.png
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=creative_director dispatching (sys=7115ch user=13ch json=true timeout=180000ms)
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=creative_director dispatching (sys=7115ch user=5ch json=true timeout=180000ms)
+[openrouter] google/gemini-3.1-flash-lite stage=creative_director ok (3135ms, in=4717 out=386, $0.001741 billed, 1240ch)
+[openrouter] google/gemini-3.1-flash-lite stage=creative_director ok (4287ms, in=9365 out=639, $0.003267 billed, 2452ch)
+[asset_db] cache HIT "child watching cartoon videos on child watching cartoon tablet happy home bright natural clean" (image, pixabay) -> topup_0.jpg
+[asset_db] cache HIT "child watching cartoon videos on child watching cartoon tablet happy home bright natural clean" (image, pixabay) -> topup_1.jpg
+[asset_db] cache HIT "child watching cartoon videos on child watching cartoon tablet happy home bright natural clean" (image, pixabay) -> topup_2.jpg
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=creative_director dispatching (sys=7115ch user=7ch json=true timeout=180000ms)
+[openrouter] google/gemini-3.1-flash-lite stage=creative_director ok (2555ms, in=5765 out=307, $0.001883 billed, 1172ch)
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=creative_director dispatching (sys=79ch user=814ch json=true timeout=180000ms)
+[pipeline] graph-main: render done in 271624ms total
+[audio_mix] mixing 23 audio layer(s) + music (scene envelope) + silence anchor into zlr2uqx2la.mp4.tmp.mp4 (t=72.76s)
+[openrouter] google/gemini-3.1-flash-lite stage=creative_director ok (1736ms, in=224 out=220, $0.000382 billed, 753ch)
+[creative_director] job 36zctpkfns: 5 approved / 3 rejected (vision reviewed 8/8 visual asset(s)), quality=84, 8 craft-directed, 2 note(s)
+[agents] relevance floor: unpinned 2 off-topic asset(s) (below 0.25, or unscored and unverified) — siteimg_0.png@s2 (scene 0.010), siteimg_1.png@s3 (0.092)
+[agents] asset_search: 6 asset(s) (0 from cache)
+[tts] openrouter sage spoke 8 words (3.5s, transcript 34ch)
+[audio_sources] sfx: Pixabay bridge "pop" -> https://cdn.pixabay.com/audio/2025/09/09/audio_3023b9bde2.mp3
+[tts] clip loudness aligned -36.5 LUFS +12.0dB → -16 LUFS
+[tts] openrouter sage spoke 9 words (4.6s, transcript 56ch)
+[tts] openrouter sage spoke 7 words (3.2s, transcript 42ch)
+[tts] openrouter sage spoke 10 words (5.5s, transcript 59ch)
+[tts] openrouter sage spoke 8 words (3.1s, transcript 42ch)
+[tts] openrouter sage spoke 9 words (3.6s, transcript 52ch)
+[tts] openrouter sage spoke 9 words (4.8s, transcript 62ch)
+[audio_sources] sfx: Pixabay bridge "whoosh" -> https://cdn.pixabay.com/audio/2025/07/30/audio_b3087a581e.mp3
+[tts] clip loudness aligned -35.2 LUFS +12.0dB → -16 LUFS
+[tts] clip loudness aligned -34.8 LUFS +12.0dB → -16 LUFS
+[tts] clip loudness aligned -31.9 LUFS +12.0dB → -16 LUFS
+[tts] clip loudness aligned -33.2 LUFS +12.0dB → -16 LUFS
+[vo_fit] scene VO 4.6s > 4s budget — tightening once
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=150ch json=false timeout=180000ms)
+[tts] clip loudness aligned -34.2 LUFS +12.0dB → -16 LUFS
+[tts] clip loudness aligned -37.3 LUFS +12.0dB → -16 LUFS
+[vo_fit] scene VO 5.5s > 4.5s budget — tightening once
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=155ch json=false timeout=180000ms)
+[vo_fit] scene VO 4.8s > 4s budget — tightening once
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=156ch json=false timeout=180000ms)
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit ok (1512ms, in=63 out=9, $0.000029 billed, 45ch)
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit ok (1070ms, in=66 out=11, $0.000033 billed, 59ch)
+[openrouter] google/gemini-3.1-flash-lite stage=vo_fit ok (1120ms, in=63 out=8, $0.000027 billed, 50ch)
+[audio_sources] sfx: Pixabay bridge "ding" -> https://cdn.pixabay.com/audio/2022/03/24/audio_4ff823c44c.mp3
+[tts] openrouter sage spoke 8 words (4.1s, transcript 45ch)
+[tts] openrouter sage spoke 10 words (5s, transcript 59ch)
+[tts] openrouter sage spoke 7 words (4.1s, transcript 50ch)
+[tts] clip loudness aligned -33.0 LUFS +12.0dB → -16 LUFS
+[tts] clip loudness aligned -35.0 LUFS +12.0dB → -16 LUFS
+[tts] clip loudness aligned -32.6 LUFS +12.0dB → -16 LUFS
+[audio_sources] sfx: Pixabay bridge "click" -> https://cdn.pixabay.com/audio/2025/01/20/audio_9afb73ceb5.mp3
+[audio_sources] sfx: Pixabay bridge "swoosh" -> https://cdn.pixabay.com/audio/2026/02/19/audio_29ed929219.mp3
+[audio_sources] sfx: Pixabay bridge "sparkle" -> https://cdn.pixabay.com/audio/2022/07/15/audio_89f13f8631.mp3
+[pipeline] audio report: -13.29 LUFS (target -14), peak -0.12 dBTP, gain 0 dB, layers {"voice":13,"sfx":10,"music":true,"ambient":false,"musicEnvelope":true}
+[agents] audio_report → quality 76/100 · 1 issue(s): whoosh×3, click×2 repeated
+[audio_sources] music: Pixabay bridge "upbeat driving playful acoustic guitar punchy bea" [idx 5] -> https://cdn.pixabay.com/audio/2026/07/15/audio_903fe8596a.mp3
+[agents] voice: 7 vo clip(s), 6 sfx, music=true
+[llm] primary=kie:gemini-3.6-flash fallback=google/gemini-3-flash-preview->none stage=text_director dispatching (sys=2455ch user=3964ch json=true timeout=180000ms)
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=qa dispatching (sys=57ch user=9ch json=true timeout=180000ms)
+[openrouter] google/gemini-3.1-flash-lite stage=qa ok (2986ms, in=10656 out=249, $0.003007 billed, 853ch)
+[qa] verdict: FAIL score=2 blockers=2 minors=1 (low-score gate)
+[agents] QA flagged 2 blocker(s) — deterministic repair pass (escalated fix chain, no LLM re-roll)
+[pipeline] bg-harmonize (qa-repair ·plated): joined 7 plated photo(s) to the pack palette
+[agents] deterministic repair: contrast 0 · bg-veil 7 · palette 0 · layout 0 — re-rendering
+[kie] gemini-3.6-flash stage=text_director ok (40600ms streamed, in=1540 out=112, 0.19 credits ($0.0009), 390ch)
+[text_director] job 36zctpkfns: +0 text slot(s) (0 llm, 0 mined) — 7/7 scenes have subtext, 7 have bullets
+[visual_layout_director] kept 1 screenshot(s)/2 photo(s), demoted 0, hero=0.6, montage≤6
+[preflight] 8/10 checks passed · 2 warning(s)
+[agents] scenes re-timed to measured VO: 30s -> 33s (last line no longer cut)
+[agents] job 36zctpkfns finish=standard (template "toybox" pinned by user) → scene-kit
+[pipeline] graph-main: building bundled template composition (720x1280, 33s, 6 asset(s))
+[omelette] toybox: brand skin applied — #E63946->#ec0f12, #37A86B->#dc212d
+[audio_mix] mixing 23 audio layer(s) + music (scene envelope) + silence anchor into zlr2uqx2la.mp4.tmp.mp4 (t=72.76s)
+[pipeline] audio report: -13.29 LUFS (target -14), peak -0.12 dBTP, gain 0 dB, layers {"voice":13,"sfx":10,"music":true,"ambient":false,"musicEnvelope":true}
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=qa dispatching (sys=57ch user=9ch json=true timeout=180000ms)
+[openrouter] google/gemini-3.1-flash-lite stage=qa ok (5197ms, in=10656 out=439, $0.003289 billed, 1528ch)
+[qa] verdict: FAIL score=2 blockers=3 minors=2 (low-score gate)
+[agents] QA flagged a collision/duplicate blocker — layout repair pass (spatial, no LLM re-roll)
+[agents] layout repair: nothing resolved — the collision stands, deferring to the contrast pass / repair / END
+[delivery] zlr2uqx2la: 1 issue(s) in the delivered file — major: Delivered 72.8s against a planned 60.0s (+12.8s).
+[agents] node wall clock (total 917.7s, node sum 960.7s — sum > total means the fan-out is working):
+[agents]   contrast_repair            461.9s   50%
+[agents]   composition                271.6s   30%
+[agents]   storyboard_agent            64.2s    7%
+[agents]   voice_agent                 43.9s    5%
+[agents]   asset_search                43.4s    5%
+[agents]   timeline                    28.4s    3%
+[agents]   qa_agent                    17.6s    2%  x3
+[agents]   layout_repair               15.5s    2%
+[agents]   text_director               14.0s    2%
+[agents]   art_director                 0.1s    0%
+[agents]   frame_selector               0.0s    0%
+[agents]   animation                    0.0s    0%
+[agents]   scene_planner                0.0s    0%
+[agents]   caption_director             0.0s    0%
+[agents]   visual_layout_director       0.0s    0%
+[agents]   localization_director        0.0s    0%
+[agents] zlr2uqx2la done — main, qa=FAILED(delivered best attempt), cost=$0.080109
+[renderer] delivered 1080x1920 but 720x1280 was requested — rescaled to match
+[pipeline] graph-main: render done in 495474ms total
+[audio_mix] mixing 13 audio layer(s) + music (scene envelope) + silence anchor into 36zctpkfns.mp4.tmp.mp4 (t=33s)
+[audio_mix] loudness normalized: -19.1 LUFS +5.1 dB → ~-14 LUFS (target -14)
+[pipeline] audio report: -14 LUFS (target -14), peak -2.04 dBTP, gain 5.1 dB, layers {"voice":7,"sfx":6,"music":true,"ambient":false,"musicEnvelope":true}
+[agents] audio_report → quality 100/100 · clean
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=qa dispatching (sys=57ch user=9ch json=true timeout=180000ms)
+[openrouter] google/gemini-3.1-flash-lite stage=qa ok (3625ms, in=10500 out=25, $0.002636 billed, 49ch)
+[qa] verdict: PASS score=10 blockers=0 minors=0
+[delivery] 36zctpkfns: 720x1280 33.0s 30fps aac — matches the plan
+[agents] node wall clock (total 686.1s, node sum 733.3s — sum > total means the fan-out is working):
+[agents]   composition                495.5s   72%
+[agents]   asset_search                85.6s   12%
+[agents]   text_director               40.6s    6%
+[agents]   storyboard_agent            39.9s    6%
+[agents]   voice_agent                 30.1s    4%
+[agents]   timeline                    26.6s    4%
+[agents]   art_director                 7.6s    1%
+[agents]   qa_agent                     7.0s    1%
+[agents]   animation                    0.3s    0%
+[agents]   frame_selector               0.1s    0%
+[agents]   caption_director             0.0s    0%
+[agents]   scene_planner                0.0s    0%
+[agents]   visual_layout_director       0.0s    0%
+[agents]   localization_director        0.0s    0%
+[agents] 36zctpkfns done — main, qa=pass, cost=$0.04793
+[fallbacks] 36zctpkfns: 10 substitution(s), degradation score 22 (content 2, visual 8) — blanked-string-slotx8, empty-list-slotx2
+[janitor] swept jobs=0 videosTtl=3 videosCap=0 uploads=0 cachePruned=0 bytes=453904885
+[janitor] swept jobs=1 videosTtl=0 videosCap=0 uploads=0 cachePruned=0 bytes=453904885
+[ingest] logo captured (180x180) -> logo.webp
+[ingest] website understood: "Instagram" — 0 headings, 163ch body, 0 usable screenshot(s) (auth wall — screenshots suppressed), 8 internal page link(s), colors=#A3C7F4,#93BDF2,#483734,#CCAB92 ground=#FFFFFF(light), 0 site image(s)
+[llm] primary=kie:gemini-3.6-flash fallback=google/gemini-3-flash-preview->none stage=brief dispatching (sys=10552ch user=107370ch json=true timeout=180000ms)
+[kie] gemini-3.6-flash stage=brief ok (27282ms streamed, in=32219 out=337, 3.05 credits ($0.0152), 1556ch)
+[brief] ok on attempt 1 (pack=diner, duration=30s)
+[llm] primary=kie:gemini-3.6-flash fallback=google/gemini-3-flash-preview->none stage=script dispatching (sys=12087ch user=1654ch json=true timeout=180000ms)
+[kie] gemini-3.6-flash stage=script ok (20634ms streamed, in=3744 out=1360, 0.95 credits ($0.0047), 5206ch)
+[script] ok on attempt 1 (8 scenes, 30s, 0 pace warning(s))
+[project] rt23oon2w1 intake done — 8 scenes, paused at script_review (autopilot=false)
+[agents] frame_selector → diner (user)
+[art_director] site ground #FFFFFF is light but "diner" is designed dark (#231B2E) — keeping the pack's ground; matching it would invert the design
+[llm] primary=kie:gemini-3.6-flash fallback=google/gemini-3-flash-preview->none stage=art_director dispatching (sys=2205ch user=850ch json=true timeout=180000ms)
+[agents] asset_planner: 0 screenshot(s) + 0 video(s) + 8 photo(s) + 5 vector(s) (8 derived)
+[llm] primary=kie:gemini-3.6-flash fallback=google/gemini-3-flash-preview->none stage=storyboard dispatching (sys=40616ch user=2958ch json=true timeout=180000ms)
+[agents] asset_search topic anchor: "smartphone screen displaying photos and"
+[agents] asset_search pack style: "moody cinematic low-key" · icons=glow
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=screenshot_director dispatching (sys=613ch user=132ch json=true timeout=180000ms)
+[agents] brand marks: Instagram→s4, Meta→s5 (0 unavailable)
+[asset_db] cached "smartphone screen displaying photos and young creator portrait smiling confident studio moody cinematic low-key" (image, pixabay, 0847d9a32c81753a)
+[assets] "smartphone screen displaying photos and young creator portrait smiling confident studio moody cinematic low-key" (image) <- pixabay (853x1280)
+[asset_db] cached "smartphone screen displaying photos and young artist painting studio canvas smartphone moody cinematic low-key" (image, pixabay, 87b9845394a4695d)
+[assets] "smartphone screen displaying photos and young artist painting studio canvas smartphone moody cinematic low-key" (image) <- pixabay (869x1280)
+[asset_db] cached "smartphone screen displaying photos and happy creator holding phone smiling daylight moody cinematic low-key" (image, pixabay, a125e57a66477ba4)
+[assets] "smartphone screen displaying photos and happy creator holding phone smiling daylight moody cinematic low-key" (image) <- pixabay (1183x1280)
+[assets] "smartphone screen displaying photos and young friends laughing cafe coffee outdoor moody cinematic low-key" (image) <- pixabay (853x1280)
+[openrouter] google/gemini-3.1-flash-lite stage=screenshot_director ok (2211ms, in=180 out=34, $0.000095 billed, 84ch)
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=screenshot_director dispatching (sys=1223ch user=2140ch json=true timeout=180000ms)
+[asset_db] cached "smartphone screen displaying photos and candid friend selfie outdoor sunset laugh moody cinematic low-key" (image, pixabay, c36cb3c1e6d7e7e6)
+[assets] "smartphone screen displaying photos and candid friend selfie outdoor sunset laugh moody cinematic low-key" (image) <- pixabay (853x1280)
+[openrouter] google/gemini-3.1-flash-lite stage=screenshot_director ok (1870ms, in=801 out=100, $0.000347 billed, 270ch)
+[shots] director picked /web/lite->scene s4, /accounts/meta_verified->scene s5
+[asset_db] cached "smartphone screen displaying photos and person holding smartphone outdoors park travel moody cinematic low-key" (image, pixabay, f171092215209a8f)
+[assets] "smartphone screen displaying photos and person holding smartphone outdoors park travel moody cinematic low-key" (image) <- pixabay (988x1280)
+[assets] "smartphone screen displaying photos and friends hugging sunset golden hour happiness moody cinematic low-key" (image) <- pixabay (853x1280)
+[asset_db] cached "smartphone screen displaying photos and friends music guitar jamming studio together moody cinematic low-key" (image, pixabay, 30c58cfe41358306)
+[assets] "smartphone screen displaying photos and friends music guitar jamming studio together moody cinematic low-key" (image) <- pixabay (1053x1280)
+[assets] "smartphone screen displaying photos and context friends waiting" (icon) <- iconify material-symbols:smartphone
+[assets] "smartphone screen displaying photos and shield" (icon) <- iconify material-symbols:smartphone
+[assets] "smartphone screen displaying photos and hook you" (vector) <- pixabay-bridge 7511900 (1183x1280)
+[kie] gemini-3.6-flash stage=art_director ok (10225ms streamed, in=851 out=29, 0.09 credits ($0.0004), 141ch)
+[art_director] job rt23oon2w1: brand skin = #93bdf2, #a3c7f4, #ccab92 (default)
+[assets] "smartphone screen displaying photos and feature stay" (vector) <- pixabay-bridge 7511900 (1183x1280)
+[assets] "smartphone screen displaying photos and context friends" (vector) <- pixabay-bridge 7511900 (1183x1280)
+[agents] dropped exact-duplicate asset — query "young creator portrait smiling confident studio"
+[agents] dropped exact-duplicate asset — query "friends hugging sunset golden hour happiness"
+[agents] dropped exact-duplicate asset — query "hook you"
+[agents] dropped exact-duplicate asset — query "feature stay"
+[agents] dropped exact-duplicate asset — query "context friends waiting"
+[agents] dropped exact-duplicate asset — query "context friends"
+[agents] website logo pinned as assets/images/logo.webp
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=creative_director dispatching (sys=7115ch user=13ch json=true timeout=180000ms)
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=creative_director dispatching (sys=7115ch user=3ch json=true timeout=180000ms)
+[openrouter] google/gemini-3.1-flash-lite stage=creative_director ok (2459ms, in=3545 out=102, $0.001029 billed, 402ch)
+[openrouter] google/gemini-3.1-flash-lite stage=creative_director ok (4488ms, in=9292 out=625, $0.003228 billed, 2367ch)
+[creative-director] 2 bare-person image(s) demoted from prominent slots (film subject "smartphone screen displaying photos and social media" is not about people) — product screenshots take the stage
+[asset_db] cached "smartphone screen displaying photos and social media dynamic split layout" (image, pixabay, 14f184e6ee9cf7d7)
+[assets] "smartphone screen displaying photos and social media dynamic split layout" (image) <- pixabay (917x1280)
+[asset_db] cache HIT "smartphone screen displaying photos and social media dynamic split layout" (image, pixabay) -> topup_1.jpg
+[asset_db] cache HIT "smartphone screen displaying photos and social media dynamic split layout" (image, pixabay) -> topup_2.jpg
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=creative_director dispatching (sys=7115ch user=7ch json=true timeout=180000ms)
+[kie] gemini-3.6-flash stage=storyboard ok (27869ms streamed, in=12750 out=2381, 2.22 credits ($0.0111), 9114ch)
+[openrouter] google/gemini-3.1-flash-lite stage=creative_director ok (2444ms, in=5801 out=291, $0.001868 billed, 1199ch)
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=creative_director dispatching (sys=79ch user=831ch json=true timeout=180000ms)
+[openrouter] google/gemini-3.1-flash-lite stage=creative_director ok (1711ms, in=223 out=216, $0.000376 billed, 700ch)
+[creative_director] job rt23oon2w1: 5 approved / 3 rejected (vision reviewed 7/8 visual asset(s)), quality=80, 7 craft-directed, 2 note(s)
+[agents] relevance floor: unpinned 2 off-topic asset(s) (below 0.25, or unscored and unverified) — 2.jpg@s3 (scene 0.063), 9.svg@s5 (0.076)
+[agents] asset_search: 7 asset(s) (0 from cache)
+[tts] openrouter sage spoke 7 words (2.8s, transcript 42ch)
+[tts] clip loudness aligned -35.4 LUFS +12.0dB → -16 LUFS
+[audio_sources] sfx: Pixabay bridge "whoosh" -> https://cdn.pixabay.com/audio/2025/07/30/audio_b3087a581e.mp3
+[tts] openrouter sage spoke 8 words (4.4s, transcript 43ch)
+[tts] openrouter sage spoke 8 words (3.9s, transcript 43ch)
+[tts] openrouter sage spoke 7 words (3.7s, transcript 45ch)
+[tts] openrouter sage spoke 6 words (3.2s, transcript 31ch)
+[tts] openrouter sage spoke 6 words (3.5s, transcript 44ch)
+[tts] openrouter sage spoke 5 words (3.6s, transcript 42ch)
+[tts] openrouter sage spoke 7 words (3.2s, transcript 40ch)
+[tts] clip loudness aligned -33.4 LUFS +12.0dB → -16 LUFS
+[tts] clip loudness aligned -33.0 LUFS +12.0dB → -16 LUFS
+[audio_sources] sfx: Pixabay bridge "pop" -> https://cdn.pixabay.com/audio/2025/09/09/audio_3023b9bde2.mp3
+[tts] clip loudness aligned -34.3 LUFS +12.0dB → -16 LUFS
+[tts] clip loudness aligned -31.5 LUFS +12.0dB → -16 LUFS
+[tts] clip loudness aligned -34.7 LUFS +12.0dB → -16 LUFS
+[tts] clip loudness aligned -36.1 LUFS +12.0dB → -16 LUFS
+[tts] clip loudness aligned -33.5 LUFS +12.0dB → -16 LUFS
+[audio_sources] sfx: Pixabay bridge "click" -> https://cdn.pixabay.com/audio/2025/01/20/audio_9afb73ceb5.mp3
+[audio_sources] sfx: Pixabay bridge "transition" -> https://cdn.pixabay.com/audio/2026/01/08/audio_fe5537f679.mp3
+[audio_sources] sfx: Pixabay bridge "sparkle" -> https://cdn.pixabay.com/audio/2022/07/15/audio_89f13f8631.mp3
+[audio_sources] sfx: Pixabay bridge "swoosh" -> https://cdn.pixabay.com/audio/2026/02/19/audio_29ed929219.mp3
+[audio_sources] music: Pixabay bridge "upbeat driving conversational pop beat pun" [idx 0] -> https://cdn.pixabay.com/audio/2026/07/29/audio_2c107f7055.mp3
+[agents] voice: 8 vo clip(s), 6 sfx, music=true
+[llm] primary=kie:gemini-3.6-flash fallback=google/gemini-3-flash-preview->none stage=text_director dispatching (sys=2455ch user=4061ch json=true timeout=180000ms)
+[kie] gemini-3.6-flash stage=text_director ok (28310ms streamed, in=1544 out=126, 0.2 credits ($0.0010), 428ch)
+[text_director] job rt23oon2w1: +0 text slot(s) (0 llm, 0 mined) — 8/8 scenes have subtext, 8 have bullets
+[visual_layout_director] kept 0 screenshot(s)/1 photo(s), demoted 0, hero=0.6, montage≤6
+[preflight] 7/10 checks passed · 3 warning(s)
+[agents] scenes re-timed to measured VO: 30s -> 32.75s (last line no longer cut)
+[agents] job rt23oon2w1 finish=standard (template "diner" pinned by user) → scene-kit
+[pipeline] graph-main: building bundled template composition (720x1280, 32.75s, 6 asset(s))
+[omelette] diner: brand skin applied — #D62828->#93bdf2, #8FE0C8->#a3c7f4
+[renderer] delivered 1080x1920 but 720x1280 was requested — rescaled to match
+[pipeline] graph-main: render done in 266540ms total
+[audio_mix] mixing 14 audio layer(s) + music (scene envelope) + silence anchor into rt23oon2w1.mp4.tmp.mp4 (t=32.75s)
+[audio_mix] loudness normalized: -18.47 LUFS +4.5 dB → ~-14 LUFS (target -14)
+[pipeline] audio report: -14 LUFS (target -14), peak -3.57 dBTP, gain 4.5 dB, layers {"voice":8,"sfx":6,"music":true,"ambient":false,"musicEnvelope":true}
+[agents] audio_report → quality 100/100 · clean
+[llm] primary=none (fast stage) fallback=google/gemini-3.1-flash-lite->google/gemini-3-flash-preview stage=qa dispatching (sys=57ch user=9ch json=true timeout=180000ms)
+[openrouter] google/gemini-3.1-flash-lite stage=qa ok (4135ms, in=10527 out=186, $0.002882 billed, 689ch)
+[qa] verdict: PASS score=9 blockers=0 minors=2
+[delivery] rt23oon2w1: 720x1280 32.8s 30fps aac — matches the plan
+[agents] node wall clock (total 364.1s, node sum 401.8s — sum > total means the fan-out is working):
+[agents]   composition                266.5s   73%
+[agents]   asset_search                30.4s    8%
+[agents]   text_director               28.3s    8%
+[agents]   storyboard_agent            27.9s    8%
+[agents]   voice_agent                 23.9s    7%
+[agents]   art_director                10.2s    3%
+[agents]   timeline                     8.2s    2%
+[agents]   qa_agent                     6.2s    2%
+[agents]   frame_selector               0.0s    0%
+[agents]   animation                    0.0s    0%
+[agents]   scene_planner                0.0s    0%
+[agents]   caption_director             0.0s    0%
+[agents]   visual_layout_director       0.0s    0%
+[agents]   localization_director        0.0s    0%
+[agents] rt23oon2w1 done — main, qa=pass, cost=$0.045799
+[fallbacks] rt23oon2w1: 7 substitution(s), degradation score 16 (content 2, visual 5) — blanked-string-slotx5, empty-list-slotx2
+[janitor] swept jobs=2 videosTtl=0 videosCap=0 uploads=0 cachePruned=0 bytes=460558080

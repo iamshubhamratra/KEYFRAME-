@@ -55,11 +55,14 @@ const db = require("../db");
 const { UsageTracker } = require("../services/usage");
 const { generateBrief } = require("../services/brief");
 const { generateScript, normalizeScript } = require("../services/script");
+const pacing = require("../services/pacing");
 const { generateStoryboard, alignToScript } = require("../services/storyboard");
 const frameRegistry = require("../services/frame_registry");
+const frameManifest = require("../services/frame_manifest");
+const templateIntel = require("../services/template_intelligence");
 const { withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor, retimeScenesToVo, contrastFixPass, setCaptionStyle, clearCaptionStyle, writeComposedHtml, foldScriptToRenderer } = require("../services/pipeline");
 const { assembleQualityReport } = require("../services/quality_report");
-const { auditAssetRender } = require("../services/asset_render_check");
+const { auditAssetRender, auditAssetFit } = require("../services/asset_render_check");
 const { preflight } = require("../services/preflight");
 const { buildAudioReport } = require("../services/audio_report");
 const { acquire, hasProviderFor, makeImageDeduper } = require("../services/asset_sources");
@@ -100,18 +103,62 @@ const { relatedSiteScreenshots } = require("../services/related_site_screenshots
 const { directBrand } = require("../services/art_director");
 const { directLayout } = require("../services/visual_layout_director");
 const { directText } = require("../services/text_director");
+const { directDensity } = require("../services/content_density");
 
 function ms() { return Date.now(); }
 function jobDirFor(jobId) { return path.join(config.paths.jobsDir, jobId); }
 
 // ---------------------------------------------------------------- helpers
-function storyboardPromptFromScript(script, brief) {
+// THE STORYBOARD'S VIEW OF THE FILM — and, until this was fixed, the reason a
+// fast film shipped empty frames.
+//
+// system_storyboard.md asks for a full copy set on every scene: a kicker, a
+// headline, a supporting sentence and 2-3 labels, and says outright that "copy
+// supply is the whole ballgame". But the only thing this function ever handed
+// the model was the SCRIPT — per scene, a visual direction, the display lines,
+// and the narration. Not `keyMessages`. Not `mustIncludeFacts`. Up to eight
+// messages and twelve must-include facts were collected at ingest and never
+// shown to the one model whose job is writing what appears on screen.
+//
+// So the storyboard model had exactly one place to find words for four slots:
+// the narration. And the narration is what PACE shortens. A very-fast film
+// budgets ~1.0 spoken words/sec against normal's ~2.05, so the model was asked
+// to fill the same four slots from half the raw material — and did the only
+// thing it could, which was ship headline-only scenes (measured on job
+// agmoif2udy: `subtext: ""` on every one of them, no `bullets` at all).
+//
+// Passing the brief's own facts here is the supply fix. The frame now has a
+// source that pace does NOT shrink, which is the entire point of separating the
+// two channels: the voice says less, the picture says more, and both are drawn
+// from material the film actually has.
+function storyboardPromptFromScript(script, brief, pacingCfg = null) {
   const lines = [
     `Produce this exact video: "${script.title}".`,
     brief ? `Context: ${brief.improvedPrompt}` : "",
+  ];
+
+  // The facts the frame is allowed to use. Stated as SOURCE MATERIAL for
+  // on-screen copy rather than as background, because the model's failure mode
+  // is treating everything above the scene list as context it has already
+  // covered by writing the narration.
+  const km = (brief && brief.keyMessages || []).filter(Boolean);
+  const facts = (brief && brief.mustIncludeFacts || []).filter(Boolean);
+  if (km.length || facts.length) {
+    lines.push(
+      "",
+      "SOURCE MATERIAL FOR ON-SCREEN COPY — mine these for every scene's `subtext`,",
+      "`bullets` and `kicker`. They are the facts this film is allowed to state; the",
+      "narration below has NO ROOM for most of them, which is exactly why they belong",
+      "on screen. Never invent anything that is not here.",
+    );
+    if (facts.length) lines.push(...facts.map((f) => `- MUST INCLUDE: ${f}`));
+    if (km.length) lines.push(...km.map((m) => `- ${m}`));
+  }
+
+  lines.push(
     "",
     "Scene-by-scene plan (FOLLOW these timings and contents exactly — same number of scenes, same start/duration):",
-  ];
+  );
   for (const s of script.scenes) {
     lines.push(
       `- Scene ${s.id} [${s.start}s + ${s.duration}s] (${s.purpose}): ${s.visualDirection} ` +
@@ -119,6 +166,14 @@ function storyboardPromptFromScript(script, brief) {
       (s.voiceover ? `Narration meanwhile: "${s.voiceover}"` : "No narration.")
     );
   }
+
+  // The frame's copy budget, sized against THIS film's real scene length. Always
+  // sent — a normal-pace film was under-filling its frames too (4.05 on-screen
+  // words per scene against slots for four elements), so this is not a statement
+  // about pace and is not gated on one.
+  const vd = pacing.visualDirective(pacingCfg || pacing.defaults({ durationSec: script.scenes.reduce((a, s) => a + (Number(s.duration) || 0), 0) }));
+  if (vd) lines.push(vd);
+
   return lines.join("\n");
 }
 
@@ -157,86 +212,55 @@ function pickVoice(job, script) {
 // artifacts each agent adds.
 
 async function frameSelectorAgent(s) {
-  // Only an EXPLICIT, still-installed user pick is honored verbatim. "auto",
-  // unset (null), and stale/removed ids are NOT explicit — they must defer to
-  // the brief's tone-matched suggestion BEFORE the global default. The old code
-  // ran resolvePack(job.frame_pack) first, but resolvePack(null|"auto") returns
-  // the DEFAULT pack (non-null), so every auto video short-circuited to
-  // blockframe and the brief's pick + anti-repeat rotation were dead code.
+  // THE LAST WORD ON WHICH TEMPLATE THIS FILM USES.
+  //
+  // Every other stage that touches the choice is advisory: the brief runs before
+  // the script and may be replayed verbatim from a cached record, a job can be
+  // regenerated after the user changed orientation or duration, and the brief
+  // itself can fail outright. This node runs at START of the production graph
+  // with the finished brief and the real job row in hand, so it is the only
+  // place that can guarantee the film is composed at the shape and length that
+  // were actually asked for.
+  //
+  // Only an EXPLICIT, still-installed user pick is honoured verbatim. "auto",
+  // unset (null), and stale/removed ids are NOT explicit — resolvePack(null) and
+  // resolvePack("auto") both return a pack, so testing the raw value first is
+  // what once sent every auto video to the default.
   const requested = s.job.frame_pack;
-  const explicit = (requested && requested !== "auto")
-    ? frameRegistry.resolvePack(requested)   // valid id → that pack; stale id → null
+  const userPinned = s.job.frame_pack_user === 1 || s.job.frame_pack_user === true;
+  const explicit = (requested && requested !== "auto" && userPinned)
+    ? frameRegistry.resolvePack(requested)
     : null;
-  const framePack = explicit
-    || frameRegistry.resolvePack(s.brief?.suggestedFramePack)
-    || frameRegistry.resolvePack("auto");
-  const via = explicit ? "user" : (frameRegistry.resolvePack(s.brief?.suggestedFramePack) ? "brief" : "default");
-  console.log(`[agents] frame_selector → ${framePack} (${via})`);
-  // CAN THE PACK ACTUALLY SHOW THE PICTURES THIS JOB HAS?
-  //
-  // Selection matched TONE and nothing else, and tone says nothing about how many
-  // pictures a template draws. Measured by rendering every bundled template with
-  // the same 17 real assets and counting the images that actually PAINT, the
-  // spread is not marginal — jungle-wild puts 13 on screen across 8 of its 9
-  // beats, dragboard puts ZERO. So a website job that captured six screenshots
-  // could be tone-matched onto a template with one picture shape and show one of
-  // them, which is the "why is it not using my screenshots" complaint in full.
-  //
-  // Only auto-picked packs are ever re-chosen: an explicit user pick is honoured
-  // even when it cannot carry the assets (their film, their call) — it just says
-  // so in the log.
-  const shots = (s.job.website_screenshots || []).length;
-  if (shots >= 3) {
-    const cap = mediaCapacity();
-    const mine = cap[framePack];
-    // CALIBRATED AGAINST THE MEASURED DISTRIBUTION, not against a guess. All 139
-    // bundled packs rendered with the same 17 assets: mean 4.3 images, 37% of
-    // beats carrying media, and the tails are what matter — 16 packs put 10+ on
-    // screen, while 45 put fewer than 3 and 5 (type-riot, lumen, dragboard,
-    // keystroke, serif-manifesto) put NONE. The pack this complaint came from,
-    // bluesite, renders 2.
-    //
-    // The trigger is deliberately the bottom tail (STARVING = under 3), not "less
-    // than the job's screenshot count": almost every pack is under six, so the
-    // looser rule would have funnelled every website film onto the single highest
-    // scorer and undone the pack variety the identity work exists to protect.
-    const STARVING = 3, RICH = 8;
-    if (mine && mine.images < STARVING) {
-      if (explicit) {
-        console.warn(`[agents] frame_selector: "${framePack}" renders only ~${mine.images} image(s) but this job has ${shots} screenshot(s) — honouring the explicit pick; most captures will not be shown`);
-      } else {
-        // Rotate through the whole rich tier rather than always taking the top
-        // scorer, so two website films in a row do not come out on the same pack.
-        const rich = Object.entries(cap)
-          .filter(([name, v]) => v.images >= RICH && frameRegistry.resolvePack(name) === name)
-          .sort((a, b) => b[1].images - a[1].images);
-        if (rich.length) {
-          let h = 5381;
-          const key = String(s.job.id || framePack);
-          for (let i = 0; i < key.length; i++) h = ((h * 33) ^ key.charCodeAt(i)) >>> 0;
-          const [name, v] = rich[h % rich.length];
-          console.log(`[agents] frame_selector: "${framePack}" renders only ~${mine.images} image(s) for ${shots} screenshot(s) → switching to "${name}" (~${v.images} images, ${v.mediaBeats}/${v.beats} beats carry media)`);
-          return { framePack: name };
-        }
-      }
-    }
+
+  // The policy itself lives in template_intelligence.resolveForJob so this node
+  // and project_pipeline (which folds the script to the pack's scene ceiling
+  // BEFORE the graph runs) cannot drift apart — a film cut for one template and
+  // rendered on another loses a scene boundary, and with it the sync between the
+  // picture and the narration.
+  const resolved = templateIntel.resolveForJob({ job: s.job, brief: s.brief || null });
+
+  for (const w of resolved.warnings || []) {
+    console.warn(`[agents] frame_selector: ${w}${explicit ? " — honouring the explicit pick" : ""}`);
   }
-  return { framePack };
+  if (resolved.selection && resolved.via !== "brief") console.log(templateIntel.explain(resolved.selection));
+  console.log(`[agents] frame_selector → ${resolved.pack} (${resolved.via})`);
+
+  // Persist the reasoning so the Script Room, the gallery and a post-mortem can
+  // all see WHY this film looks the way it does, not just that it does.
+  const record = templateIntel.selectionRecord(resolved);
+  try { db.setTemplateSelection(s.job.id, record); } catch { /* diagnostics only */ }
+  if (resolved.pack && resolved.pack !== s.job.frame_pack) {
+    try { db.setFramePack(s.job.id, resolved.pack); } catch { /* the render still uses the value below */ }
+  }
+  return { framePack: resolved.pack, templateSelection: record };
 }
 
-// Measured per-pack rendered media capacity (server/framecheck/media-capacity.json,
-// written by `npm run audit:capacity`). Missing file → an empty map, which makes
-// every check above a no-op: selection must never depend on a generated artifact
-// being present.
-let _capacityCache = null;
-function mediaCapacity() {
-  if (_capacityCache) return _capacityCache;
-  try {
-    const p = path.join(__dirname, "..", "..", "framecheck", "media-capacity.json");
-    _capacityCache = JSON.parse(fs.readFileSync(p, "utf8")).packs || {};
-  } catch { _capacityCache = {}; }
-  return _capacityCache;
-}
+// The measured per-pack media capacity this node used to read directly
+// (server/framecheck/media-capacity.json, written by `npm run audit:capacity`)
+// now feeds template_intelligence's asset component, where it ranks every
+// candidate instead of triggering a hash-indexed swap after the fact. Missing
+// file still degrades to "unknown" there: selection must never depend on a
+// generated artifact being present.
 
 async function storyboardAgent(s) {
   db.setProgress(s.job.id, "storyboard");
@@ -245,13 +269,14 @@ async function storyboardAgent(s) {
   // one set of scene boundaries. frame_selector runs before this node, so the
   // pack is resolved. A scene folded away in the RENDERER instead would still be
   // narrated at its own start, over whatever frame the film had reached.
-  const script = foldScriptToRenderer(s.script, s.framePack, "agents");
-  const sbPrompt = storyboardPromptFromScript(script, s.brief);
+  const script = foldScriptToRenderer(s.script, s.framePack, "agents",
+    { vertical: s.job.orientation === "vertical" });
+  const sbPrompt = storyboardPromptFromScript(script, s.brief, s.pacing);
   // framePack biases the storyboard's per-scene archetypes/motifs toward the
   // selected template (storyboard.js buildUser). frame_selector runs before this
   // node, so the pick is always resolved here — omitting it made the project
   // path's storyboards pack-blind while /api/generate's were pack-aware.
-  const r = await generateStoryboard({ prompt: sbPrompt, duration: s.job.duration, orientation: s.job.orientation, framePack: s.framePack });
+  const r = await generateStoryboard({ prompt: sbPrompt, duration: s.job.duration, orientation: s.job.orientation, framePack: s.framePack , pacing: s.pacing });
   s.tracker.addLlm({ inputTokens: r.tokensIn, outputTokens: r.tokensOut, stage: "storyboard", costUsd: r.costUsd });
   // The picture is built from the storyboard; the narration is cut per SCRIPT
   // scene and mixed at that scene's own start. Reconcile the two lists before
@@ -1277,8 +1302,77 @@ async function visualLayoutDirectorAgent(s) {
     dims: { width: s.job.width, height: s.job.height, fps: s.job.fps },
   });
   if (review) { try { db.setLayoutReview(s.job.id, review); } catch { /* best effort */ } }
-  try { db.setAssets(s.job.id, assets); } catch { /* best effort */ }
-  return { assets, layoutPlan };
+
+  // ---- GEOMETRY: THE THREE STEPS THAT MAKE A PICTURE FIT ITS BOX ------------------
+  //
+  // THIS IS THE LIVE ORCHESTRATOR. config.json sets `orchestrator: "langgraph"`, so every
+  // /api/projects film runs through this graph — not through pipeline.runJobInner and not
+  // through project_pipeline.runProduction. Both of those call the three steps below; this
+  // one did not, which meant the whole placeholder-aware layer was reachable only from
+  // branches the server never selects. An audit of the shipped film caught it: the fix was
+  // written into the dead branch.
+  //
+  // Fail-open throughout: each step is independently wrapped, and a film renders exactly as
+  // it did before if any of them cannot run.
+  const dims = { width: s.job.width, height: s.job.height, fps: s.job.fps };
+  let out = assets;
+  try {
+    const AF = require("../services/asset_fit");
+    const TM = require("../services/template_media");
+    const cropEngine = require("../services/crop_engine");
+
+    // (1) DIMENSIONS. A website capture is written onto the wire by assetAgent with a path,
+    // an alt and a sceneId — and no width, height or ratio. That single omission is the
+    // mechanical root of the whole defect: with no dimensions, assetAspect() is 0, every
+    // shape comparison degrades to "unknown", the geometry term in the selector becomes a
+    // constant that cancels across candidates, and asset_fit falls back to the same generic
+    // cover it was written to replace. Probe once, here, before anything reads them.
+    const undim = out.filter((a) => a && a.path && !(a.width > 0 && a.height > 0));
+    if (undim.length) {
+      const { ffprobeImage } = require("../services/asset_sources/util");
+      await Promise.all(undim.map(async (a) => {
+        try {
+          const d = await ffprobeImage(path.join(s.jobDir, a.path));
+          if (d && d.width > 0 && d.height > 0) { a.width = d.width; a.height = d.height; a.ratio = d.width / d.height; }
+        } catch { /* one unreadable file must not cost the rest their dimensions */ }
+      }));
+      const got = undim.filter((a) => a.width > 0).length;
+      console.log(`[agents] asset dimensions: probed ${got}/${undim.length} asset(s) that arrived without any`);
+    }
+
+    // (2) FOCAL POINTS, for the slot shapes THIS template actually draws. The chosen
+    // composer publishes its slot contract, so the crop engine analyses the two or three
+    // ratios the film needs rather than guessing — and its per-aspect answer then outranks
+    // the ratio heuristic directLayout just wrote.
+    const { PACK_RENDERERS } = require("../services/pipeline");
+    const rk = (() => { try { return (require("../services/frame_manifest").getManifest(s.framePack) || {}).renderer; } catch { return null; } })();
+    const composer = rk && PACK_RENDERERS[rk] && PACK_RENDERERS[rk].composer;
+    const fam = composer && (composer.FAMILY || null);
+    // Declaration first; for the 255 packs that cannot declare one (the bundled templates
+    // and the long-form skins) the measured table gives the shapes those renderers were
+    // actually observed to paint, instead of a hardcoded guess the film never draws.
+    const wanted = TM.aspectsFor(rk, composer, dims);
+    const rep = await cropEngine.annotateAssets(out, { jobDir: s.jobDir, aspects: wanted });
+    console.log(`[agents] crop_engine: ${rep.analyzed} analysed, ${rep.cached} cached, ${rep.failed} fell back (${rep.source}) for aspects [${wanted.join(", ")}] in ${rep.ms}ms`);
+
+    // (3) RENDER-TIME FIT. The box is only truly known in the browser, and 197 of the 311
+    // packs render a bundled template this repo cannot declare geometry for. Handing the
+    // wire to pipeline.writeComposedHtml — the one write site every composer path funnels
+    // through — injects a pass that measures each painted box and applies the same policy.
+    require("../services/pipeline").setFitAssets(s.job.id, out);
+    if (AF && typeof AF.classify === "function") {
+      const byClass = out.reduce((m, a) => { const c = AF.classify(a); m[c] = (m[c] || 0) + 1; return m; }, {});
+      console.log(`[agents] asset classes: ${Object.entries(byClass).map(([k, v]) => `${v} ${k}`).join(", ") || "none"}`);
+    }
+  } catch (e) {
+    console.warn(`[agents] asset geometry pass skipped: ${String((e && e.message) || e).slice(0, 200)}`);
+  }
+
+  try { db.setAssets(s.job.id, out); } catch { /* best effort */ }
+  // `dims` joins the state so the pre-render gate can resolve the template's slot contract
+  // — preflight.js:267 has carried a critical-slot gate keyed on it that could never fire,
+  // because dims was not a channel of this graph.
+  return { assets: out, layoutPlan, dims };
 }
 
 // Text Director — mines the brief/script/site copy for the words that sell and
@@ -1289,14 +1383,42 @@ async function visualLayoutDirectorAgent(s) {
 async function textDirectorAgent(s) {
   db.setProgress(s.job.id, "text_direction");
   try {
-    const { storyboard } = await directText({
+    const { storyboard, report } = await directText({
       jobId: s.job.id,
       brief: s.brief,
       script: s.script,
       storyboard: s.storyboard,
       tracker: s.tracker,
+      // text_direction runs BEFORE composition attaches the pace to the
+      // storyboard, so this has to come from the graph state directly.
+      pacing: s.pacing,
     });
-    return { storyboard };
+
+    // THE DENSITY FLOOR, immediately after the LLM pass and in the same node.
+    //
+    // Both directors fill the same five slots and both are ADD-ONLY, so they
+    // compose rather than compete: the model's copy always wins, and this only
+    // ever sees what it left empty. Running it here — rather than as its own
+    // node — keeps it inside the one place the storyboard's copy is authored,
+    // so there is no window in which a later stage reads a half-filled frame.
+    //
+    // It is deterministic and offline (no LLM, no network), which is exactly
+    // what makes it a floor: when the text director's model call fails, times
+    // out or returns junk, the frames still get filled from the brief's own
+    // facts instead of falling back to the narration the pace just shortened.
+    const dense = directDensity({
+      jobId: s.job.id, brief: s.brief, script: s.script, storyboard, pacing: s.pacing,
+    });
+    // ONE review record, both passes. directText has already written its own;
+    // re-writing it merged keeps the theater UI's existing shape and adds what
+    // the frames actually ended up carrying, which is the number this whole
+    // feature is judged on.
+    if (dense && dense.report) {
+      try { db.setTextReview(s.job.id, { ...(report || {}), density: dense.report }); }
+      catch { /* best effort */ }
+    }
+
+    return { storyboard: (dense && dense.storyboard) || storyboard };
   } catch (e) {
     console.warn(`[agents] text_director skipped: ${String((e && e.message) || e).slice(0, 120)}`);
     return {};
@@ -1486,20 +1608,46 @@ async function voiceAgent(s) {
     : 0;
   const moodWord = String(script.music?.mood || "").toLowerCase();
   const calmMood = /calm|ambient|elegant|gentle|soft|intimate|luxur/.test(moodWord);
-  const wantsDrive = isReel
+  // PACE is a first-class reason to want drive, alongside the reel format and
+  // the script's own mood. This is the graph's OWN music selection — it never
+  // calls services/audio_planner (that is the /api/generate path), so the pace
+  // hint has to be applied here or the primary flow scores every mode the same.
+  //
+  // A fast mode ASSERTS drive; a relaxed mode VETOES it, so "Relaxed" cannot end
+  // up over an upbeat bed just because its scenes happen to be short. Normal
+  // leaves the original expression untouched.
+  const pacedDrive = s.pacing && s.pacing.multiplier > 1;
+  const pacedCalm = s.pacing && s.pacing.multiplier < 1;
+  const wantsDrive = !pacedCalm && (pacedDrive
+    || isReel
     || (!calmMood && (avgScene > 0 && avgScene <= 4.5))
-    || /upbeat|energetic|driving|punchy|dance|electro|hype/.test(moodWord);
+    || /upbeat|energetic|driving|punchy|dance|electro|hype/.test(moodWord));
   // The energy goes FIRST, not last. fetchMusic retries an over-specific query
   // with a 2-word "core" taken from the front, so a tail-appended cue is exactly
   // what gets dropped on the retry — one film fell back to a bare "upbeat
   // percussive" and lost the brief. Leading with it keeps the pulse in both the
   // full query and its fallback, while the script's own words still pick genre.
-  const musicQuery = [
-    wantsDrive ? "upbeat driving" : "",
-    script.music?.mood,
-    script.music?.query,
-    wantsDrive ? "punchy beat" : "",
-  ].map((x) => String(x || "").trim()).filter(Boolean).join(" ").slice(0, 80);
+  const musicQuery = (() => {
+    const parts = [
+      wantsDrive ? "upbeat driving" : "",
+      // The mode's own search word, ahead of the script's mood for the same
+      // reason the drive cue leads: a tail-appended term is the first thing
+      // fetchMusic's retry drops. Empty at normal, so the query is unchanged.
+      (s.pacing && s.pacing.audio.searchTerm) || "",
+      script.music?.mood,
+      script.music?.query,
+      wantsDrive ? "punchy beat" : "",
+    ].flatMap((x) => String(x || "").trim().split(/\s+/)).filter(Boolean);
+    // DE-DUPE. The mode's word and the script's mood legitimately collide — a
+    // Relaxed film whose mood is already "calm ambient" produced "calm calm
+    // ambient", which burns query budget and reads as a typo in the logs.
+    const seen = new Set();
+    return parts.filter((w) => {
+      const k = w.toLowerCase();
+      if (seen.has(k)) return false;
+      seen.add(k); return true;
+    }).join(" ").slice(0, 80);
+  })();
   const musicTask = (script.music?.query || script.music?.mood)
     ? fetchMusic({ query: musicQuery, outputPath: path.join(audioDir, "music.mp3"), tracker, seed: job.id }).catch(() => null)
     : Promise.resolve(null);
@@ -1539,9 +1687,43 @@ async function voiceAgent(s) {
 function validateBeforeRender(s) {
   if (!config.validationGate?.enabled) return;
   const { job, jobDir } = s;
+  // THE SLOT CONTRACT, RESOLVED BEFORE ANYTHING IS RENDERED.
+  //
+  // preflight.js carries a whole gate keyed on `mediaPlan.placeholders` — is every
+  // CRITICAL box filled, is the asset in the hero box actually good enough — and it had
+  // never run, because nothing ever passed a mediaPlan. The module its own JSDoc names,
+  // `services/template_media.resolveMediaPlan`, did not exist.
+  //
+  // It does now. The chosen composer's `planMedia` runs the exact routing and slot-filling
+  // the renderer runs, with no LLM and no render, so the scene types here are the ones the
+  // film will actually draw. Fail-open: with no composer, no manifest or a throw, the gate
+  // simply stays off, which is the state it was in before.
+  let mediaPlan = null;
+  try {
+    const { PACK_RENDERERS } = require("../services/pipeline");
+    const rk = (require("../services/frame_manifest").getManifest(s.framePack) || {}).renderer;
+    const composer = rk && PACK_RENDERERS[rk] && PACK_RENDERERS[rk].composer;
+    const dims = s.dims || (job && job.dims) || null;
+    if (composer && typeof composer.planMedia === "function" && dims) {
+      const P = composer.planMedia({
+        storyboard: s.storyboard, dims, framePack: s.framePack,
+        assets: Array.isArray(s.assets) ? s.assets : [], brandSkin: s.brandSkin,
+      });
+      const scenes = (P && Array.isArray(P.plan) ? P.plan : [])
+        .map((p) => ({ id: p.sceneId, type: p.type }))
+        .filter((x) => x.id && x.type);
+      if (scenes.length) {
+        mediaPlan = require("../services/template_media").resolveMediaPlan({
+          family: composer.FAMILY || composer, scenes, dims,
+        });
+      }
+    }
+  } catch (e) { console.warn(`[preflight] media plan unavailable: ${String((e && e.message) || e).slice(0, 140)}`); }
+
   let report;
   try {
     report = preflight({
+      mediaPlan,
       job,
       assets: Array.isArray(s.assets) ? s.assets : [],
       script: s.script,
@@ -1549,6 +1731,13 @@ function validateBeforeRender(s) {
       brandSkin: s.brandSkin,
       jobDir,
       acceptsVectors: require("../services/frame_manifest").packAcceptsVectors(s.framePack),
+      // preflight takes a pace and branches on it, but nothing ever passed one:
+      // its own fallback reads `storyboard.paceConfig`, which compositionAgent
+      // does not attach until ~40 lines later in a different node. So the
+      // readability gate's pace-aware advice has been unreachable on the live
+      // path since the feature shipped. The graph has the resolved config right
+      // here.
+      pacing: s.pacing,
       hardFail: config.validationGate.hardFail !== false,
     });
   } catch (e) {
@@ -1585,10 +1774,61 @@ async function compositionAgent(s) {
   // its line — without this a 3.4s line in a 3s scene overlapped the next
   // scene's narration AND the last line ran past the video end and was CUT
   // mid-sentence at mux time. Idempotent across QA repair laps.
-  const retime = retimeScenesToVo(s.storyboard, s.script, s.voClips || []);
+  const retime = retimeScenesToVo(s.storyboard, s.script, s.voClips || [], { pacing: s.pacing });
+  // The scenes just changed length, so the per-element reveal offsets planned in
+  // the text-director node are stale — they were laid out against the pre-retime
+  // durations. Only the TIMING is recomputed; the copy stays as authored (see
+  // services/content_density.js replanReveal).
+  try { require("../services/content_density").replanReveal(s.storyboard, s.pacing); }
+  catch { /* the reveal is a nicety; never fatal */ }
   const effDur = retime.effectiveDuration || job.duration;
   if (effDur > job.duration + 0.05) {
     console.log(`[agents] scenes re-timed to measured VO: ${job.duration}s -> ${effDur}s (last line no longer cut)`);
+  }
+
+  // PACE REACHES THE PICTURE HERE, on the storyboard, because `storyboard` is
+  // the one object already handed to all 25+ buildComposition() entry points.
+  // Attaching it once covers every composition path — scene-kit, the eight
+  // family grammars, the bespoke composers, the film skins — without touching a
+  // single composer signature.
+  //
+  // TWO FIELDS, deliberately:
+  //   .paceConfig — the engine's full resolved config (template_engine reads it
+  //                 and scales its motion table from it).
+  //   .pacing     — the {motion, xfade, camera} tempo tilt, the shape
+  //                 services/pacing.js tempoOf() has always read and
+  //                 services/film_stage.js has always consumed. Nothing ever
+  //                 wrote it before, so that consumer sat at neutral forever;
+  //                 this is what finally feeds it.
+  //
+  // It is re-derived on every repair lap rather than cached, so a lap that
+  // rebuilds the storyboard cannot silently drop the pace.
+  // GATED ON A NON-DEFAULT MODE, and that gate is load-bearing.
+  //
+  // `storyboard.pacing` was never written by anything before this feature, so
+  // services/film_stage.js's tempoOf() always returned NEUTRAL and its
+  // `energy = skin.energy / tempo.motion` always divided by 1. Writing it
+  // unconditionally would switch on the module's dormant NO-VOICEOVER TILT for
+  // every existing job — a music-led film at the DEFAULT pace would suddenly
+  // animate ~47% quicker (motion 0.68) than the same job did yesterday.
+  //
+  // That tilt is almost certainly what its author intended, and turning it on
+  // may well be right. But it is a separate product decision about narration-off
+  // films, and smuggling it in under a pacing feature would mean users who
+  // changed nothing got a different film. So: at `normal`, this stays exactly as
+  // dead as it was. Pick a pace and it comes alive.
+  if (s.pacing && s.pacing.mode !== pacing.DEFAULT_MODE) {
+    pacing.setPaceOnStoryboard(s.storyboard, s.pacing, pacing.tempoForPacing(s.pacing, {
+      narration: job.voiceover_enabled === 0 ? "off" : "on",
+      // A pack that opted out of the no-voice audio lift (pack.json audio.noVo:
+      // 0 — "edition" ships that deliberately) opts out of the picture lift too,
+      // so sound and picture keep telling the same story. Fail-open at 1: a pack
+      // with no manifest entry gets the default tilt, never a crash.
+      energyBoost: (() => {
+        try { return frameManifest.getManifest(s.framePack)?.audio?.noVo ?? 1; }
+        catch { return 1; }
+      })(),
+    }));
   }
   const r2c = (n) => Math.round(Number(n) * 100) / 100;
   // retimeScenesToVo has already rewritten script.scenes to their final
@@ -1617,7 +1857,34 @@ async function compositionAgent(s) {
       return {
         sceneId: x.id, startSec: x.start,
         durationSec: Math.min(x.duration, measured ? measured.durationSec : x.duration),
-        sceneDurationSec: x.duration, text: x.voiceover,
+        sceneDurationSec: x.duration,
+        // CAPTION TEXT. Caption language and voiceover language are INDEPENDENT
+        // axes (a film can be spoken in Hindi and subtitled in English), so
+        // which source is right depends on whether they agree:
+        //
+        //   SAME LANGUAGE -> the SPOKEN line (`measured.text`). That is what
+        //     vo_fit actually sent to the voice, including the rewrite it makes
+        //     when a take overruns. This is the original defect's fix: the cue's
+        //     DURATION was already taken from `measured` on the line above, so
+        //     reading x.voiceover captioned one take with another take's words.
+        //     Faster paces tighten more often, so the mismatch scales with pace.
+        //
+        //   DIFFERENT LANGUAGES -> `captionTextById`, the line resolved for the
+        //     CAPTION language (caption_director.js:224 — computed since that
+        //     module was written and read by nothing until now). It is not
+        //     tightened, because the tightening happened in the SPOKEN language
+        //     and cannot be transferred; a correct-language caption that is
+        //     slightly long beats a perfectly-timed one in the wrong language.
+        //
+        // Preferring captionTextById unconditionally would have re-introduced
+        // the original bug for every non-localized film, since it is just the
+        // untightened source text when the two languages match.
+        text: (() => {
+          const cp = s.captionPlan;
+          const localized = cp && cp.language && cp.voiceLanguage && cp.language !== cp.voiceLanguage;
+          if (localized && cp.captionTextById && cp.captionTextById[x.id]) return cp.captionTextById[x.id];
+          return (measured && measured.text) || x.voiceover;
+        })(),
       };
     })
   ).map((c) => ({ start: Math.round(c.start * 10) / 10, end: Math.round(c.end * 10) / 10, text: c.text }));
@@ -1679,8 +1946,12 @@ async function compositionAgent(s) {
   }
 
   // Carry QA repair feedback into the composer when looping.
+  // carryPace: the spread would otherwise drop the film's pace, because the
+  // pace is attached non-enumerably (so it cannot leak into an LLM prompt) and
+  // `{...}` skips non-enumerable keys. Without it the first lap of a paced film
+  // composes at its mode and every REPAIR lap quietly composes at normal.
   const storyboard = s.qa && s.qa.issues?.length
-    ? { ...s.storyboard, __qaIssuesToFix: s.qa.issues.map((i) => `at ${i.atSec}s [${i.severity}]: ${i.issue} — FIX: ${i.fix}`) }
+    ? pacing.carryPace(s.storyboard, { ...s.storyboard, __qaIssuesToFix: s.qa.issues.map((i) => `at ${i.atSec}s [${i.severity}]: ${i.issue} — FIX: ${i.fix}`) })
     : s.storyboard;
 
   // THE COMPOSITION BUDGET HAS TO SCALE WITH THE FILM, like the watchdog does.
@@ -1884,6 +2155,29 @@ async function animationAgent(s) {
     }
   } catch { /* fail-open: disclosure is never worth a lost render */ }
 
+  // ASSET FIT AUDIT. "Did the picture reach the screen" and "did the picture SURVIVE
+  // reaching the screen" are different questions, and only the first had an owner. The
+  // film this was written for drew every one of its captures — and cut 28% off each one's
+  // width, nav included, because a 1.52:1 page was forced into a 1.08 box. Every fit
+  // decision is now stamped on its clip by template_engine, so it can be counted here.
+  let assetFit = null;
+  try {
+    assetFit = auditAssetFit(html);
+    if (assetFit && assetFit.slots) {
+      console.log(`[agents] asset fit → ${assetFit.fitStatus} (${assetFit.slots} slot(s): `
+        + `${assetFit.covered} cover / ${assetFit.contained} contain / ${assetFit.reshaped} reshaped, `
+        + `mean crop ${assetFit.meanCropPct}%, ${assetFit.heavyCrop} heavy)`);
+      // Persisted, not just logged: a console line is not a report, and delivery_quality
+      // and the job API can both read this.
+      try { db.setAssetFit(s.job.id, assetFit); } catch { /* disclosure never blocks */ }
+      if (assetFit.fitStatus === "FAIL_HEAVY_CROP") {
+        warnings.push(`${assetFit.heavyCrop} of ${assetFit.slots} picture(s) lose 20%+ to the crop — the slot shapes do not match the assets`);
+      } else if (assetFit.compromised > 0) {
+        warnings.push(`${assetFit.compromised} picture(s) had no good fit for their slot`);
+      }
+    }
+  } catch { /* fail-open */ }
+
   // LANGUAGE QA — only meaningful for a localized film. Catches the two faults
   // numeric translation coverage cannot see: the script font not actually being
   // embedded (so the film renders as tofu boxes), and English LEAKING into the
@@ -1905,7 +2199,7 @@ async function animationAgent(s) {
   } catch (e) { console.warn(`[agents] language_qa skipped: ${e.message}`); }
 
   if (warnings.length) console.warn(`[agents] animation audit: ${warnings.join(" | ")}`);
-  return { animationReport: { tweenCount, warnings, assetRender } };
+  return { animationReport: { tweenCount, warnings, assetRender, assetFit } };
 }
 
 // Timeline Agent — render (if not already), captions/SRT, audio mix.
@@ -2253,7 +2547,7 @@ async function buildGraph() {
   const S = Annotation.Root({
     job: Annotation(), jobDir: Annotation(), tracker: Annotation(),
     brief: Annotation(), script: Annotation(),
-    framePack: Annotation(), storyboard: Annotation(),
+    framePack: Annotation(), templateSelection: Annotation(), storyboard: Annotation(),
     assetPlan: Annotation(), assets: Annotation(),
     voClips: Annotation(), sfxClips: Annotation(), musicPath: Annotation(), effectiveDuration: Annotation(),
     visual: Annotation(), usedFallback: Annotation(), finalAttempt: Annotation(), rendered: Annotation(),
@@ -2262,7 +2556,16 @@ async function buildGraph() {
     composerBudgetDead: Annotation(), contrastRepairTried: Annotation(), layoutRepairTried: Annotation(),
     detRepairLaps: Annotation(), detRepairNoop: Annotation(),
     brandSkin: Annotation(), layoutPlan: Annotation(), deadFrameTried: Annotation(),
+    // The film's pixel dimensions, published by the visual layout director so the
+    // pre-render gate can resolve the chosen template's slot contract. preflight.js:267
+    // has carried a critical-slot gate keyed on that contract since it was written, and
+    // it could never fire on this orchestrator because dims was not a channel here.
+    dims: Annotation(),
     languagePlan: Annotation(), captionPlan: Annotation(), localizedStrings: Annotation(),
+    // The resolved pacing config (services/pacing.js). Every node reads it from
+    // here rather than re-deriving it from job.pace, so one film cannot end up
+    // with two different paces in two different stages.
+    pacing: Annotation(),
   });
 
   // PER-NODE WALL CLOCK.
@@ -2501,10 +2804,45 @@ async function runProductionGraphInner({ jobId }) {
   const t0 = ms();
   const script = normalizeScript(job.script, { targetDuration: job.duration });
 
+  // Resolved ONCE for the whole production run. Prefer the config the script was
+  // actually authored against (stored on the brief at intake) so the picture is
+  // paced to match the words; fall back to the job's own pace for a job whose
+  // brief predates pacing. Re-resolved against the job's duration because a
+  // user may have edited scene lengths in the Script Room.
+  //
+  // rendererSceneCap MUST be passed here even though the brief already carries a
+  // resolved config: resolve() is handed a durationSec, so it re-derives from the
+  // mode rather than returning the intake object, and every opt the caller omits
+  // is an opt the re-derivation loses. Omitting it planned production against the
+  // 70-scene schema ceiling instead of the renderer's real one — on a `film-*`
+  // skin (cap 12) intake planned 12 scenes at 10s and production re-derived 51 at
+  // 2.35s. `cutRateCapped` flipped true -> false, so delivery_quality never told
+  // the user their pace had been capped, and the report's voStretch/cutRate
+  // checks graded the film against a target it was never built to.
+  let rendererSceneCap = null;
+  try {
+    rendererSceneCap = require("../services/pipeline").sceneCapFor(
+      job.frame_pack || (job.brief && job.brief.suggestedFramePack) || null,
+      { vertical: job.orientation === "vertical" }
+    );
+  } catch { /* unknown pack -> no cap, exactly as intake does */ }
+
+  const pacingCfg = pacing.resolve((job.brief && job.brief.pacing) || job.pace, {
+    durationSec: job.duration,
+    voiceover: job.voiceover_enabled !== 0,
+    orientation: job.orientation,
+    language: (job.captions_config && job.captions_config.voiceoverLanguage) || "en",
+    rendererSceneCap,
+  });
+  if (pacingCfg.mode !== pacing.DEFAULT_MODE) {
+    console.log(`[agents] ${jobId} pacing=${pacingCfg.mode} (${pacingCfg.multiplier}x) — `
+      + `motion x${pacingCfg.motion.entrance}, scenes @ ${pacingCfg.scene.targetSec}s`);
+  }
+
   try {
     const graph = await buildGraph();
     const final = await graph.invoke(
-      { job, jobDir, tracker, brief: job.brief, script, qaAttempts: 0 },
+      { job, jobDir, tracker, brief: job.brief, script, qaAttempts: 0, pacing: pacingCfg },
       { recursionLimit: 40 }
     );
 
@@ -2539,6 +2877,36 @@ async function runProductionGraphInner({ jobId }) {
         durationSec: Number(job.duration) || null, expectAudio: mixedAudio,
       });
     } catch { /* fail-open: a probe must never cost a finished film */ }
+
+    // PACING REPORT — the same disclosure policy as the probe above, applied to
+    // the thing the user chose. It runs on the DELIVERED cut (measured duration
+    // from the probe, measured VO from the clips, the final cues) rather than on
+    // the plan, so it can catch the two failures a plan-side check never sees: a
+    // Fast film that came out long because narration stretched its scenes, and a
+    // mode that silently did nothing at all.
+    try {
+      const probed = db.getRaw(jobId)?.delivery_probe;
+      const rep = pacing.report({
+        pacing: final.pacing || pacingCfg,
+        script: final.script,
+        voClips: final.voClips,
+        // Rebuilt from the measured clips with the SAME buildCues the .srt is
+        // written from (timelineAgent), so the check grades the cue track that
+        // actually shipped. compositionAgent's `captionCues` is a local, not a
+        // state channel, so there is nothing on `final` to read.
+        captionCues: buildCues(final.voClips || []),
+        actualDurationSec: probed && probed.durationSec,
+        targetDurationSec: job.duration,
+      });
+      if (rep) {
+        db.setPacingReport(jobId, rep);
+        // Logged only when it has something to say, or when the user picked a
+        // non-default pace and is owed the confirmation.
+        if (!rep.pass || rep.mode !== pacing.DEFAULT_MODE) {
+          console.log(`[agents] ${jobId} pacing report${rep.pass ? "" : ` — ${rep.failed.length} check(s) FAILED`}:\n  ${pacing.formatReport(rep)}`);
+        }
+      }
+    } catch (e) { console.warn(`[agents] pacing report failed: ${e.message.slice(0, 120)}`); }
 
     // The per-job language style is keyed by job id and the pipeline module is
     // long-lived, so release it or a busy server leaks one entry per localized

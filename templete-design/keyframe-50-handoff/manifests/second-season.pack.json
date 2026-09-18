@@ -1,0 +1,162 @@
+{
+  "id": "second-season",
+  "name": "Second Season",
+  "renderer": "filmkit",
+  "orientation": "vertical",
+  "sizePx": [
+    1080,
+    1920
+  ],
+  "cohort": "09 lifestyle / culture",
+  "set": "article-text-50",
+  "globalName": "SecondSeason",
+  "configFile": "configs/article-pack-09.js",
+  "vibe": "a market stall opening up",
+  "form": {
+    "runtimeMs": 129400,
+    "runtimeRangeMs": [
+      90000,
+      150000
+    ],
+    "beats": 18
+  },
+  "readingBudget": {
+    "wpm": 225,
+    "landSeconds": 1.2,
+    "checkedBy": "scripts/lint-reading-budget.js"
+  },
+  "fonts": {
+    "display": "Chonburi",
+    "body": "Prompt",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+      "devanagari": "Noto Serif Devanagari"
+    }
+  },
+  "palette": {
+    "slots": [
+      "bg",
+      "surface",
+      "rule",
+      "inkMuted",
+      "ink",
+      "accent",
+      "accent2",
+      "accentInk"
+    ],
+    "values": {
+      "bg": "#f0ebe6",
+      "surface": "#fcf9f6",
+      "rule": "#ccc3ba",
+      "inkMuted": "#6e675f",
+      "ink": "#16120f",
+      "accent": "#e0673a",
+      "accent2": "#3a6b7a",
+      "accentInk": "#fcf9f6"
+    },
+    "strategy": "luminance ladder; hue-rotatable at each slot’s own lightness"
+  },
+  "tweaks": [
+    {
+      "key": "brand",
+      "type": "text"
+    },
+    {
+      "key": "bg",
+      "type": "color"
+    },
+    {
+      "key": "accent",
+      "type": "color"
+    },
+    {
+      "key": "accent2",
+      "type": "color"
+    },
+    {
+      "key": "motion",
+      "type": "radio",
+      "options": [
+        "Calm",
+        "Lively",
+        "Bouncy"
+      ],
+      "default": "Bouncy"
+    },
+    {
+      "key": "typeScale",
+      "type": "radio",
+      "options": [
+        "Compact",
+        "Default",
+        "Editorial"
+      ],
+      "default": "Default"
+    }
+  ],
+  "motion": {
+    "titlePreset": "slam",
+    "itemPreset": "pop",
+    "camera": [
+      "drop",
+      "pushR",
+      "hopU",
+      "zoomIn",
+      "pushL",
+      "zoomOut"
+    ],
+    "mechanics": "Scroll: \"feed\", Typing: \"hand\", Ring: \"ring\"",
+    "chrome": false
+  },
+  "world": {
+    "description": "a market stall opening up. Overhead: a bunting run and a signboard. Mid: the awning cranked out and back on a 12s cycle — the crank turns, the valance ripples, the shadow it throws grows with it. Floor: crates of produce, a set of scales, a chalked price board. Near: leaves.",
+    "cyclePeriodMs": 12000,
+    "planes": 3,
+    "textSafety": "object confined above y=290, below y=1330, or right of x=820; never crosses the copy column"
+  },
+  "mediaSlots": [
+    {
+      "id": "image",
+      "beat": "Feature",
+      "beatIndex": 10,
+      "aspect": "16:10",
+      "minPx": [
+        640,
+        400
+      ],
+      "fit": "cover",
+      "priority": 1,
+      "optional": true,
+      "onEmpty": "swap per look.feature.swap (borrows nearest unclaimed script line)"
+    },
+    {
+      "id": "logo",
+      "beat": "CTA",
+      "beatIndex": 17,
+      "aspect": "1:1",
+      "minPx": [
+        256,
+        256
+      ],
+      "fit": "contain",
+      "priority": 2,
+      "optional": true,
+      "onEmpty": "pack icon mark in a filled badge"
+    }
+  ],
+  "determinism": {
+    "randomness": false,
+    "wallClock": false,
+    "seekSafe": true,
+    "clock": "single authored timeline via animations-v2"
+  },
+  "paths": {
+    "html": "templates/second-season.html",
+    "config": "configs/article-pack-09.js",
+    "storyboard": "fixtures/storyboard.second-season.json",
+    "timestamps": "fixtures/timestamps.second-season.json",
+    "referenceFrames": "reference-frames/second-season/"
+  }
+}

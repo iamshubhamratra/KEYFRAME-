@@ -19,13 +19,10 @@ const path = require("node:path");
 const M = require("../src/services/motion_presets");
 
 const FAMILIES = [
-  ["family_bright", "mint-launch"],
   ["family_editorial", "atelier"],
   ["family_story", "paper-tales"],
   ["family_cinema", "longshot-cinema"],
   ["family_poster", "bold-poster"],
-  ["family_terminal", "terminal-green"],
-  ["family_darkpremium", "midnight-glass"],
   ["family_charged", "voltage"],
 ];
 

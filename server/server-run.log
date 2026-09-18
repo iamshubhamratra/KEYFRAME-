@@ -1,0 +1,299 @@
+[frames] registry dir: C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\frames
+[auth] GMAIL_USER/GMAIL_PASS not set — emails will be logged, not sent. Set them in .env to deliver OTPs.
+[server] detected 4 vCPUs, 12180 MB RAM
+[server] job concurrency = 2, render workers = 1
+[server] serving web app from C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\dist
+[manifest] 285/285 packs have a valid pack.json
+[skills] using local skills install: C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\.agents\skills
+[skills] warming skill cache in background
+[skills] skill cache warm (60967 bytes)
+[server] lazy ESM preload done
+[server] listening on :8080
+[server] videosDir=C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\public\videos
+[server] jobsDir=C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\jobs
+[server] model=meta/muse-spark-1.3-contributor
+[pixabay-bridge] autostarting on :3007 (pid 3764, log C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\pixabay-no-node-modules\bridge.log)
+[catalog] failed to load registry: This operation was aborted
+[assets] pixabay key OK
+[janitor] swept jobs=2 videosTtl=2 videosCap=0 uploads=0 cachePruned=0 bytes=133029577
+[pixabay-bridge] ready on :3007
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=brief dispatching (sys=11031ch user=99366ch json=true timeout=180000ms)
+[openrouter] meta/muse-spark-1.3-contributor stage=brief ok (19710ms, in=28343 out=1826, $0.003168 billed, 1489ch)
+[brief] dropped 3 invented brand colour(s) — none came from the analysed site
+[brief] ok on attempt 1 (pack=flagship, duration=60s)
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=script dispatching (sys=14472ch user=3129ch json=true timeout=180000ms)
+[openrouter] meta/muse-spark-1.3-contributor stage=script ok (35354ms, in=4687 out=5808, $0.001614 billed, 13136ch)
+[script] ok on attempt 1 (17 scenes, 60s, 95/105 words at normal, 0 pace warning(s))
+[project] ttoe6kcc9h intake done — 17 scenes, paused at script_review (autopilot=true)
+[agents] frame_selector → flagship (user)
+[agents] asset_planner: 0 screenshot(s) + 0 video(s) + 17 photo(s) + 8 vector(s) (17 derived)
+[agents] asset_search topic anchor: "developer building ai agent software"
+[agents] asset_search pack style: "clean modern product ui" · icons=duotone (#F6F8FF)
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=screenshot_director dispatching (sys=1194ch user=1889ch json=true timeout=180000ms)
+[asset_db] cache HIT "programmer coding ai agent software young developer laptop chat office warm golden morning light artisanal craft cozy" (image, pixabay) -> 0.jpg
+[asset_db] cache HIT "developer coding ai agent software software engineer whiteboard diagrams office technical blueprint schematic linework night" (image, pixabay) -> 1.jpg
+[asset_db] cache HIT "developer building AI agent camera pans across" (image, pixabay) -> 2.jpg
+[asset_db] cache HIT "programmer coding ai agent software developer choosing laptop store shelf warm golden morning light artisanal craft cozy" (image, pixabay) -> 4.jpg
+[asset_db] cache HIT "design application software ui dashboard focused woman laptop notes desk clean bright product interface workspace daylight minimal" (image, pixabay) -> 5.jpg
+[asset_db] cache HIT "programmer coding ai agent software closeup hands typing laptop keyboard warm golden morning light artisanal craft cozy" (image, pixabay) -> 6.jpg
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=storyboard dispatching (sys=40616ch user=8208ch json=true timeout=180000ms)
+[asset_db] cache HIT "ai code on laptop screen developer dual monitors morning light warm natural light, editorial still life" (image, pixabay) -> 9.jpg
+[assets] "developer building ai agent software man coding headphones home office clean modern product ui" (image) <- pixabay (1280x717)
+[asset_db] cache HIT "developer building ai agent young woman presenting laptop team bright afternoon pavement, chalk pastels and warm cream" (image, pixabay) -> 11.jpg
+[asset_db] cache HIT "developer coding ai agent software developers high five startup office technical blueprint schematic linework night" (image, pixabay) -> 12.jpg
+[assets] "developer building ai agent software diverse team meeting laptops office clean modern product ui" (image) <- pixabay (1280x714)
+[asset_db] cached "developer building ai agent software laptop isolated dark desk top clean modern product ui" (image, pixabay, a15b29673f0cefcf)
+[assets] "developer building ai agent software laptop isolated dark desk top clean modern product ui" (image) <- pixabay (1280x853)
+[assets] "developer building ai agent software engineer reviewing code monitor desk clean modern product ui" (image) <- pixabay (1280x717)
+[assets] "developer building ai agent software team high five laptops startup clean modern product ui" (image) <- pixabay (1280x853)
+[asset_db] cached "developer building ai agent software hands writing notebook desk closeup clean modern product ui" (image, pixabay, 41091f48f9375b19)
+[assets] "developer building ai agent software hands writing notebook desk closeup clean modern product ui" (image) <- pixabay (1280x960)
+[assets] rejected "developer building ai agent software two developers pairing laptop office clean modern product ui" from pixabay: low-information image (stdev 0.0)
+[assets] rejected "developer building ai agent software frustrated developer laptop error office clean modern product ui" from pixabay: low-information image (stdev 0.0)
+[assets] "developer building ai agent software brain" (icon) <- iconify ph:building
+[assets] "developer building ai agent software chain link" (icon) <- iconify ph:building
+[assets] "developer building ai agent software two developers pairing laptop office clean modern product ui" (image) <- pixabay (1280x853)
+[assets] "developer building ai agent software trophy" (icon) <- iconify ph:building
+[asset_db] cached "developer building ai agent software frustrated developer laptop error office clean modern product ui" (image, pixabay, 1b59608309512c6f)
+[assets] "developer building ai agent software frustrated developer laptop error office clean modern product ui" (image) <- pixabay (1280x853)
+[assets] "developer building ai agent software wrench" (icon) <- iconify ph:building
+[openrouter] meta/muse-spark-1.3-contributor stage=screenshot_director ok (15498ms, in=716 out=1452, $0.000358 billed, 944ch)
+[topic-shots] named 5: n8n.io, platform.openai.com, docs.llamaindex.ai, langchain.com, langfuse.com
+[topic-shots] capture failed n8n.io: peekshot POST /screenshots -> 400: Monthly limit reached
+[topic-shots] capture failed platform.openai.com: peekshot POST /screenshots -> 400: Monthly limit reached
+[topic-shots] capture failed docs.llamaindex.ai: peekshot POST /screenshots -> 400: Monthly limit reached
+[topic-shots] capture failed langchain.com: peekshot POST /screenshots -> 400: Monthly limit reached
+[topic-shots] capture failed langfuse.com: peekshot POST /screenshots -> 400: Monthly limit reached
+[assets] "developer building ai agent software loop arrow" (vector) <- pixabay-bridge 150962 (492x640)
+[assets] "developer building ai agent software checklist" (vector) <- pixabay-bridge 150962 (492x640)
+[assets] "developer building ai agent software sparkle" (vector) <- pixabay-bridge 394322 (640x320)
+[assets] "developer building ai agent software shield" (vector) <- pixabay-bridge 394322 (640x320)
+[agents] dropped exact-duplicate asset — query "man coding headphones home office"
+[agents] dropped exact-duplicate asset — query "chain link"
+[agents] dropped exact-duplicate asset — query "checklist"
+[agents] dropped exact-duplicate asset — query "trophy"
+[agents] dropped exact-duplicate asset — query "wrench"
+[agents] dropped exact-duplicate asset — query "shield"
+[clip] model "Xenova/clip-vit-base-patch32" ready (4113ms)
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=creative_director dispatching (sys=7115ch user=13ch json=true timeout=180000ms)
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=creative_director dispatching (sys=7115ch user=13ch json=true timeout=180000ms)
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=creative_director dispatching (sys=7115ch user=11ch json=true timeout=180000ms)
+[openrouter] meta/muse-spark-1.3-contributor stage=creative_director ok (23331ms, in=4034 out=2468, $0.000888 billed, 1917ch)
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=creative_director dispatching (sys=7115ch user=3ch json=true timeout=180000ms)
+[openrouter] meta/muse-spark-1.3-contributor stage=storyboard ok (80877ms, in=12882 out=12116, $0.003674 billed, 18069ch)
+[openrouter] meta/muse-spark-1.3-contributor stage=creative_director ok (28951ms, in=4096 out=2818, $0.000963 billed, 2269ch)
+[openrouter] meta/muse-spark-1.3-contributor stage=creative_director ok (41507ms, in=4080 out=3390, $0.001075 billed, 2279ch)
+[openrouter] meta/muse-spark-1.3-contributor stage=creative_director ok (31200ms, in=3187 out=2705, $0.000851 billed, 397ch)
+[asset_db] cache HIT "developer building ai agent software laptop isolated dark desk top clean modern product ui" (image, pixabay) -> topup_0.jpg
+[asset_db] cache HIT "developer building ai agent software laptop isolated dark desk top clean modern product ui" (image, pixabay) -> topup_1.jpg
+[asset_db] cache HIT "developer building AI agent camera pans across" (image, pixabay) -> topup_2.jpg
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=creative_director dispatching (sys=7115ch user=7ch json=true timeout=180000ms)
+[openrouter] meta/muse-spark-1.3-contributor stage=creative_director ok (14990ms, in=3522 out=1329, $0.000612 billed, 1160ch)
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=creative_director dispatching (sys=79ch user=819ch json=true timeout=180000ms)
+[openrouter] meta/muse-spark-1.3-contributor stage=creative_director ok (11709ms, in=230 out=1354, $0.000291 billed, 418ch)
+[creative_director] job ttoe6kcc9h: 12 approved / 8 rejected (vision reviewed 18/19 visual asset(s)), quality=67, 19 craft-directed, 2 note(s)
+[agents] content-dedup: dropped 1 duplicate-image slot(s) → 11 unique asset(s)
+[agents] relevance floor: unpinned 2 off-topic asset(s) (below 0.25, or unscored and unverified) — 10.jpg@s9 (scene 0.046), 13.jpg@s2 (scene 0.072)
+[agents] asset_search: 11 asset(s) (4 from cache)
+[tts] kie:gemini Zubenelgenubi spoke 6 words (3.8s)
+[vo_fit] scene VO 3.8s > 3s budget — tightening once
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=126ch json=false timeout=180000ms)
+[openrouter] meta/muse-spark-1.3-contributor stage=vo_fit ok (3483ms, in=70 out=318, $0.000070 billed, 33ch)
+[tts] kie:gemini Zubenelgenubi spoke 6 words (4.8s)
+[audio_sources] sfx: PIXABAY_ONLY, Pixabay dry for "impact"; skipping
+[sfx] "impact" — Pixabay/Freesound dry; used local cue "impact" as fallback
+[tts] kie:gemini Zubenelgenubi spoke 6 words (3.3s)
+[tts] kie:gemini Zubenelgenubi spoke 6 words (4s)
+[tts] kie:gemini Zubenelgenubi spoke 6 words (4.4s)
+[tts] kie:gemini Zubenelgenubi spoke 6 words (4.1s)
+[tts] kie:gemini Zubenelgenubi spoke 6 words (3.3s)
+[tts] kie:gemini Zubenelgenubi spoke 6 words (4s)
+[tts] kie:gemini Zubenelgenubi spoke 6 words (4.1s)
+[tts] kie:gemini Zubenelgenubi spoke 6 words (3.8s)
+[tts] kie:gemini Zubenelgenubi spoke 6 words (6.9s)
+[tts] kie:gemini Zubenelgenubi spoke 7 words (6.2s)
+[tts] kie:gemini Zubenelgenubi spoke 5 words (3.4s)
+[tts] kie:gemini Zubenelgenubi spoke 6 words (5.6s)
+[tts] kie:gemini Zubenelgenubi spoke 6 words (4.4s)
+[tts] kie:gemini Zubenelgenubi spoke 5 words (3.2s)
+[tts] clip loudness aligned -23.2 LUFS +7.2dB → -16 LUFS
+[vo_fit] scene VO 4.8s > 3.5s budget — tightening once
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=136ch json=false timeout=180000ms)
+[tts] clip loudness aligned -23.2 LUFS +7.2dB → -16 LUFS
+[tts] clip loudness aligned -19.9 LUFS +3.9dB → -16 LUFS
+[tts] clip loudness aligned -19.6 LUFS +3.6dB → -16 LUFS
+[tts] clip loudness aligned -20.2 LUFS +4.2dB → -16 LUFS
+[vo_fit] scene VO 4.0s > 3.5s budget — tightening once
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=132ch json=false timeout=180000ms)
+[vo_fit] scene VO 4.4s > 3.5s budget — tightening once
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=141ch json=false timeout=180000ms)
+[vo_fit] scene VO 4.0s > 3.5s budget — tightening once
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=133ch json=false timeout=180000ms)
+[vo_fit] scene VO 4.1s > 3.5s budget — tightening once
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=133ch json=false timeout=180000ms)
+[tts] clip loudness aligned -22.9 LUFS +6.9dB → -16 LUFS
+[tts] clip loudness aligned -19.6 LUFS +3.6dB → -16 LUFS
+[tts] clip loudness aligned -19.3 LUFS +3.3dB → -16 LUFS
+[vo_fit] scene VO 4.1s > 3.5s budget — tightening once
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=126ch json=false timeout=180000ms)
+[vo_fit] scene VO 6.2s > 4s budget — tightening once
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=145ch json=false timeout=180000ms)
+[vo_fit] scene VO 5.6s > 3.5s budget — tightening once
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=140ch json=false timeout=180000ms)
+[tts] clip loudness aligned -19.1 LUFS +3.1dB → -16 LUFS
+[tts] kie:gemini Zubenelgenubi spoke 6 words (4.2s)
+[vo_fit] scene VO 6.9s > 3.5s budget — tightening once
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=143ch json=false timeout=180000ms)
+[tts] clip loudness aligned -21.0 LUFS +5.0dB → -16 LUFS
+[vo_fit] scene VO 4.4s > 3.5s budget — tightening once
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=vo_fit dispatching (sys=143ch user=130ch json=false timeout=180000ms)
+[audio_sources] sfx: Pixabay bridge "whoosh" -> https://cdn.pixabay.com/audio/2025/07/30/audio_b3087a581e.mp3
+[vo_fit] VO over budget — sped 1.11x to 3.8s (cap 3.8s), no words lost
+[openrouter] meta/muse-spark-1.3-contributor stage=vo_fit ok (3116ms, in=74 out=327, $0.000072 billed, 41ch)
+[openrouter] meta/muse-spark-1.3-contributor stage=vo_fit ok (3262ms, in=72 out=292, $0.000065 billed, 38ch)
+[openrouter] meta/muse-spark-1.3-contributor stage=vo_fit ok (3358ms, in=73 out=239, $0.000055 billed, 37ch)
+[openrouter] meta/muse-spark-1.3-contributor stage=vo_fit ok (3160ms, in=72 out=283, $0.000063 billed, 38ch)
+[openrouter] meta/muse-spark-1.3-contributor stage=vo_fit ok (3656ms, in=72 out=335, $0.000073 billed, 46ch)
+[openrouter] meta/muse-spark-1.3-contributor stage=vo_fit ok (3040ms, in=73 out=313, $0.000069 billed, 35ch)
+[openrouter] meta/muse-spark-1.3-contributor stage=vo_fit ok (3498ms, in=73 out=388, $0.000084 billed, 51ch)
+[openrouter] meta/muse-spark-1.3-contributor stage=vo_fit ok (3833ms, in=72 out=332, $0.000073 billed, 31ch)
+[openrouter] meta/muse-spark-1.3-contributor stage=vo_fit ok (3552ms, in=76 out=309, $0.000069 billed, 48ch)
+[audio_sources] sfx: Pixabay bridge "pop" -> https://cdn.pixabay.com/audio/2025/09/09/audio_3023b9bde2.mp3
+[openrouter] meta/muse-spark-1.3-contributor stage=vo_fit ok (4661ms, in=71 out=414, $0.000089 billed, 45ch)
+[audio_sources] sfx: Pixabay bridge "click" -> https://cdn.pixabay.com/audio/2025/01/20/audio_9afb73ceb5.mp3
+[tts] kie:gemini Zubenelgenubi spoke 6 words (4.7s)
+[tts] kie:gemini Zubenelgenubi spoke 6 words (4.1s)
+[tts] kie:gemini Zubenelgenubi spoke 6 words (4.4s)
+[tts] kie:gemini Zubenelgenubi spoke 6 words (3.8s)
+[tts] kie:gemini Zubenelgenubi spoke 6 words (4.3s)
+[tts] clip loudness aligned -21.3 LUFS +5.3dB → -16 LUFS
+[tts] kie:gemini Zubenelgenubi spoke 6 words (4.3s)
+[audio_sources] sfx: Pixabay bridge "transition" -> https://cdn.pixabay.com/audio/2026/01/08/audio_fe5537f679.mp3
+[tts] kie:gemini Zubenelgenubi spoke 6 words (3.8s)
+[tts] kie:gemini Zubenelgenubi spoke 7 words (6.2s)
+[tts] kie:gemini Zubenelgenubi spoke 6 words (5.8s)
+[tts] clip loudness aligned -19.5 LUFS +3.5dB → -16 LUFS
+[tts] clip loudness aligned -19.7 LUFS +3.7dB → -16 LUFS
+[vo_fit] VO over budget — sped 1.07x to 4.4s (cap 4.4s), no words lost
+[tts] kie:gemini Zubenelgenubi spoke 6 words (4.4s)
+[tts] clip loudness aligned -19.8 LUFS +3.8dB → -16 LUFS
+[vo_fit] VO over budget — sped 1.01x to 4.4s (cap 4.4s), no words lost
+[tts] clip loudness aligned -22.1 LUFS +6.1dB → -16 LUFS
+[audio_sources] sfx: Pixabay bridge "ding" -> https://cdn.pixabay.com/audio/2022/03/24/audio_4ff823c44c.mp3
+[tts] clip loudness aligned -24.4 LUFS +8.4dB → -16 LUFS
+[vo_fit] VO over budget — sped 1.18x to 5.3s (cap 5.0s), no words lost
+[vo_fit] VO still 5.3s after tighten+atempo — trimming to 5.0s with fade
+[vo_fit] VO over budget — sped 1.18x to 4.9s (cap 4.4s), no words lost
+[vo_fit] VO still 4.9s after tighten+atempo — trimming to 4.4s with fade
+[vo_fit] VO over budget — sped 1.01x to 4.4s (cap 4.4s), no words lost
+[audio_sources] sfx: Pixabay bridge "impact" -> https://cdn.pixabay.com/audio/2025/05/31/audio_be1e4daf3e.mp3
+[pixabay-bridge] sound-effects resolve failed for "swoosh": The operation was aborted due to timeout
+[audio_sources] sfx: PIXABAY_ONLY, Pixabay dry for "swoosh"; skipping
+[sfx] "swoosh" — Pixabay/Freesound dry; used local cue "swoosh" as fallback
+[pixabay-bridge] sound-effects resolve failed for "ding": The operation was aborted due to timeout
+[audio_sources] sfx: PIXABAY_ONLY, Pixabay dry for "ding"; skipping
+[sfx] "ding" — Pixabay/Freesound dry; used local cue "ding" as fallback
+[pixabay-bridge] sound-effects resolve failed for "riser": The operation was aborted due to timeout
+[audio_sources] sfx: PIXABAY_ONLY, Pixabay dry for "riser"; skipping
+[sfx] "riser" — Pixabay/Freesound dry; used local cue "riser" as fallback
+[pixabay-bridge] music resolve failed for "upbeat driving pulsing tech electronica electronic punchy beat": The operation was aborted due to timeout
+[audio_sources] music: Pixabay bridge "upbeat driving pulsing tech electronica electronic punchy beat" [idx 0] -> https://cdn.pixabay.com/audio/2026/09/01/audio_301c742f4e.mp3
+[agents] voice: 16 vo clip(s), 10 sfx, music=true
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=text_director dispatching (sys=2455ch user=7259ch json=true timeout=180000ms)
+[openrouter] meta/muse-spark-1.3-contributor stage=text_director ok (12431ms, in=2349 out=1282, $0.000486 billed, 341ch)
+[text_director] job ttoe6kcc9h: +0 text slot(s) (0 llm, 0 mined) — 17/17 scenes have subtext, 17 have bullets
+[content_density] job ttoe6kcc9h (normal): +1 element(s) on 1/17 frames — 5.9 -> 5.9 elements/frame, 110.1 -> 111.4 chars/frame (1/71 pool items used)
+[visual_layout_director] kept 0 screenshot(s)/6 photo(s), demoted 0, hero=0.6, montage≤6
+[crop_engine] smartcrop-sharp unavailable (Cannot find module 'smartcrop-sharp'
+Require stack:
+- C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\src\services\crop_engine.js
+- C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\src\agents\graph.js
+- C:\digital guru\internship\teamkey\keyframe_new\KEYFRAME-\server\server.js) — using the ffmpeg edge fallback
+[agents] crop_engine: 9 analysed, 1 cached, 0 fell back (edge) for aspects [1.6, 1, 0.75] in 2659ms
+[agents] asset classes: 9 photo, 2 vector
+[preflight] 7/10 checks passed · 3 warning(s)
+[preflight] WARN brandLogo: no brand logo — the film falls back to the template's generic mark
+[preflight] WARN brandColour: unbranded — the template keeps its own designed accents
+[preflight] WARN everySceneHasVisual: 11 of 17 scene(s) have NO renderable visual (s2, s6, s8, s9, s10, s11, s12, s13, s14, s15, s17) — these will render as empty template panels
+[agents] scenes re-timed to measured VO: 60s -> 76.09s (last line no longer cut)
+[pipeline] graph-main: LLM remix compose start (assets=11, framePack=flagship)
+[pipeline] composeWithLintRepair: composer (first pass)
+[composer] start (duration=76.09s, assets=11, maxRetries=1, framePack=flagship, captions=0)
+[composer] attempt 1/2 — sending to LLM
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=composer dispatching (sys=138275ch user=37049ch json=false timeout=300000ms)
+[openrouter] meta/muse-spark-1.3-contributor stage=composer ok (76028ms, in=46769 out=14318, $0.007465 billed, 36509ch)
+[composer] attempt 1 parsed (html=36389ch, meta=87ch)
+[composer] attempt 1 validation failed (3 errs): typographically DEAD composition: only 2 display-size text element(s) (font-size >= 70px, i.e. ~6.5% of the 1080px canvas), need >= 11. Per the Typography ladder and LAYOUT LAW #2, EVERY scene's primary message is a DISPLAY headline — the largest thing in the frame (headlines >= 80px at 1080p scale,
+[composer] attempt 2/2 — sending to LLM
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=composer dispatching (sys=138275ch user=37049ch json=false timeout=300000ms)
+[openrouter] meta/muse-spark-1.3-contributor stage=composer ok (118322ms, in=47216 out=23519, $0.009331 billed, 54902ch)
+[composer] attempt 2 parsed (html=54782ch, meta=87ch)
+[composer] attempt 2 validation failed (1 errs): typographically DEAD composition: only 7 display-size text element(s) (font-size >= 70px, i.e. ~6.5% of the 1080px canvas), need >= 11. Per the Typography ladder and LAYOUT LAW #2, EVERY scene's primary message is a DISPLAY headline — the largest thing in the frame (headlines >= 80px at 1080p scale,
+[agents] composition failed (composer failed after 2 attempts: typographically DEAD composition: only 7 display-size text element(s) (font-size >= 70px, i.e. ~6.5% of the 1080px canvas), need >= 11. Per the Ty)
+[agents] scene-kit fallback (deterministic, asset-rich)
+[pipeline] scene-kit-fallback: building flagship Three.js composition (1920x1080, 76.09s, 11 asset(s))
+[pipeline] contrast-fix skipped (timeout) (scene-kit-fallback)
+[hyperframes] using local CLI 0.6.120 — skips the ~7s npx resolve per invocation
+[janitor] swept jobs=0 videosTtl=2 videosCap=0 uploads=0 cachePruned=0 bytes=124986951
+[pipeline] scene-kit-fallback: render done in 1021160ms total
+[agents] animation audit: 1 asset(s) assigned to a scene but never drawn
+[audio_mix] mixing 26 audio layer(s) + music (scene envelope) + silence anchor into ttoe6kcc9h.mp4.tmp.mp4 (t=76.09s)
+[pipeline] audio report: -14.39 LUFS (target -14), peak 0.08 dBTP, gain 0 dB, layers {"voice":16,"sfx":10,"music":true,"ambient":false,"musicEnvelope":true}
+[agents] audio_report → quality 84/100 · 1 issue(s): impact×2, ding×2 repeated
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=qa dispatching (sys=57ch user=9ch json=true timeout=180000ms)
+[openrouter] meta/muse-spark-1.3-contributor stage=qa ok (21644ms, in=3872 out=1762, $0.000732 billed, 844ch)
+[qa] verdict: FAIL score=4 blockers=2 minors=0
+[agents] QA flagged a collision/duplicate blocker — layout repair pass (spatial, no LLM re-roll)
+[agents] layout repair: 0 collision(s) resolved · 17 duplicate(s) hidden — re-rendering
+[janitor] swept jobs=0 videosTtl=2 videosCap=0 uploads=0 cachePruned=0 bytes=444849595
+[audio_mix] mixing 26 audio layer(s) + music (scene envelope) + silence anchor into ttoe6kcc9h.mp4.tmp.mp4 (t=76.09s)
+[pipeline] audio report: -14.39 LUFS (target -14), peak 0.08 dBTP, gain 0 dB, layers {"voice":16,"sfx":10,"music":true,"ambient":false,"musicEnvelope":true}
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=qa dispatching (sys=57ch user=9ch json=true timeout=180000ms)
+[openrouter] meta/muse-spark-1.3-contributor stage=qa ok (30339ms, in=3872 out=2260, $0.000831 billed, 2166ch)
+[qa] verdict: FAIL score=3 blockers=7 minors=0 (low-score gate)
+[agents] QA flagged 7 blocker(s) — deterministic repair pass (escalated fix chain, no LLM re-roll)
+[pipeline] contrast-fix (qa-repair) pass 1: fixed 2/5 — recolor: #s6k "Connector" 3.76:1→~5.96:1 (need 4.5) | recolor: #s9k "Controller" 3.87:1→~6.14:1 (need 4.5)
+[pipeline] contrast-fix skipped (timeout) (qa-repair)
+[agents] deterministic repair: contrast 2 · bg-veil 0 · palette 0 · layout 0 — re-rendering
+[audio_mix] mixing 26 audio layer(s) + music (scene envelope) + silence anchor into ttoe6kcc9h.mp4.tmp.mp4 (t=76.09s)
+[pipeline] audio report: -14.39 LUFS (target -14), peak 0.08 dBTP, gain 0 dB, layers {"voice":16,"sfx":10,"music":true,"ambient":false,"musicEnvelope":true}
+[llm] primary=none (fast stage) fallback=meta/muse-spark-1.3-contributor->google/gemini-3-flash-preview stage=qa dispatching (sys=57ch user=9ch json=true timeout=180000ms)
+[openrouter] meta/muse-spark-1.3-contributor stage=qa ok (25886ms, in=3872 out=1801, $0.000740 billed, 854ch)
+[qa] verdict: FAIL score=4 blockers=2 minors=0
+[delivery] ttoe6kcc9h: 1 issue(s) in the delivered file — major: Delivered 76.1s against a planned 60.0s (+16.1s).
+[agents] ttoe6kcc9h pacing report — 4 check(s) FAILED:
+  Pacing:    Normal 1x
+  Target:    60s
+  Actual:    76.1s
+  Voiceover: 63.58s
+  Scenes:    17 (16 budgeted to speak)
+  Words:     95 / 105 budget
+  Voice:     1.26 w/s + -0.74s/line (assumed 2.6 + 0.85s)
+  duration:  FAIL — 76.1s delivered against 60s requested (+16.1s)
+  wordBudget:PASS — 95 words spoken against a 105-word budget across 16/16 budgeted lines
+  speechRate:FAIL — the voice spoke 1.26 words/sec at the margin against the 2.6 the budget assumes (-52%, fitted over 16 takes). Re-tune BASE_SPEECH_RATE in services/pacing.js from measurements like this one rather than from the estimate.
+  utteranceCost:FAIL — each spoken line cost -0.74s of onset and terminal fall against the 0.85s budgeted (-1.59s x 16 lines = -25.44s of runtime). Re-tune UTTERANCE_FIXED_SEC in services/pacing.js if this holds across films.
+  voStretch: FAIL — 7/16 narrated scene(s) had to stretch past the 3.53s target to hold their line
+  deadAir:   PASS — no narrated scene outlives its line by more than 1.77s
+  readability:PASS — all 17 scene(s) hold their text long enough to read
+  captionSync:PASS — 16 cues, in order and inside the film
+  cutRate:   PASS — 17 scenes averaging 4.48s against a 3.53s target
+[agents] node wall clock (total 3947.9s, node sum 4028.0s — sum > total means the fan-out is working):
+[agents]   contrast_repair           1310.6s   33%
+[agents]   composition               1215.5s   31%
+[agents]   layout_repair             1071.0s   27%
+[agents]   asset_search               143.9s    4%
+[agents]   qa_agent                   112.2s    3%  x3
+[agents]   storyboard_agent            82.4s    2%
+[agents]   voice_agent                 59.5s    2%
+[agents]   timeline                    17.3s    0%
+[agents]   text_director               12.5s    0%
+[agents]   visual_layout_director       2.8s    0%
+[agents]   caption_director             0.1s    0%
+[agents]   art_director                 0.1s    0%
+[agents]   frame_selector               0.0s    0%
+[agents]   scene_planner                0.0s    0%
+[agents]   animation                    0.0s    0%
+[agents]   localization_director        0.0s    0%
+[agents] ttoe6kcc9h done — scene-kit, qa=FAILED(delivered best attempt), cost=$0.031569
+[janitor] swept jobs=0 videosTtl=3 videosCap=0 uploads=0 cachePruned=0 bytes=413545079

@@ -1,0 +1,61 @@
+{
+  "name": "first-principle",
+  "vibe": "science / explainer — a demonstration bench. Big Shoulders Display over Assistant; a luminance-ladder palette on #eff1f0. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#eff1f0",
+    "ink": "#0f1211",
+    "accent": "#3f5fd8",
+    "a2": "#d8a03f"
+  },
+  "fonts": [
+    "Big Shoulders Display",
+    "Assistant",
+    "Space Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#eff1f0",
+    "ink": "#0f1211"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#3f5fd8",
+      "#d8a03f"
+    ],
+    "extras": [
+      "#6c7371"
+    ],
+    "emphasisCss": "color:#3f5fd8;"
+  },
+  "assets": {
+    "photoMod": "a demonstration bench editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "science",
+      "explainer"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Big Shoulders Display",
+    "body": "Assistant",
+    "mono": "Space Mono",
+    "case": "none"
+  },
+  "renderer": "film-first-principle",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

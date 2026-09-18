@@ -26,6 +26,7 @@
 const { deriveTheme } = require("./scene_kit");
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
 const E = require("./template_engine");
+const TM = require("./template_media");
 const { esc, r, rgba, mix, statsOf, breakLines, bullets, fit } = E;
 
 const FH = "'Caprasimo', Georgia, serif";
@@ -92,6 +93,100 @@ const TEMPLATE_SCENES = [
   },
 ];
 const mediaSlots = { hook: ["photo"], feature: ["desktop"], montage: ["photo", "photo", "photo", "photo"] };
+// PORTRAIT SHOWS TWO MONTAGE TILES, NOT FOUR. The CSS at :301 has always painted only
+// cells 0 and 1 in 9:16 — the other two slots were planned, analysed by the crop engine
+// and had assets reserved for them, then never drawn. template_media.wantsFor reads this
+// whenever the frame is taller than it is wide, so demand now matches what ships.
+const mediaSlotsPortrait = { montage: ["photo", "photo"] };
+// WHAT SHAPE EACH PLACEHOLDER IS — the number that did not exist anywhere in this
+// codebase before. Fractions of the CANVAS (wFrac of its width, hFrac of its height),
+// derived from the CSS each scene function writes and cross-checked against a live
+// headless render (`node scripts/audit-slot-fit.js`). services/template_media.js turns
+// them into real pixels for this film's dimensions, so selection can weigh SHAPE and
+// asset_fit can choose a real crop instead of the hardcoded `cover / top center`.
+// ---- placeholder geometry -----------------------------------------------------
+// What shape each media box ACTUALLY is, as fractions of the canvas. The numbers
+// below are not readable from any single CSS line: every box in this pack is a
+// `lanternCard`, and the card eats a fixed ring off the picture before the image
+// is ever painted — `padding:q(14,land)cqw` plus a `2px` rim on all four sides.
+// q(14,land) is 0.728cqw in 16:9 and 1.2964cqw in 9:16, which is 13.98px of 1920
+// and 14.00px of 1080 — the film's 14px pad, deliberately identical in both
+// orientations. With the engine's global `box-sizing:border-box` that ring costs
+// every box exactly 2*(14+2) = 32px of width AND 32px of height. So every wFrac /
+// hFrac here is "the band the scene draws, minus 32px", never the raw cqw.
+//
+// The second trap is the unit mixing this module exists to expose: `height:16.6cqw`
+// on the hook card is 16.6% of the WIDTH (318.7px at 1920x1080), so its hFrac is
+// 318.7/1080 = 0.295 before the ring, not 0.166. Only `feature` land states its
+// height in real percent-of-height (`top:9%;bottom:9%`).
+// The lanternCard ring, in pixels, on EACH axis: 2*(14px pad + 2px rim). Every wFrac /
+// hFrac below is the PICTURE's box, i.e. the band the scene draws minus this. Anything
+// that turns a fitted picture box back into a plate to draw must add it again.
+const CARD_RING = 32;
+const mediaGeometry = {
+  // HOOK — the hung glow card beside (land) or above (port) the headline.
+  // land  :213  width:27cqw, height:16.6cqw  -> 518.4x318.7, less the ring = 486x287
+  // port  :215  width:48.1cqw, height:29.6cqw -> 519.5x319.7, less the ring = 487x288
+  // Both orientations land on the SAME ~487x287 card at ~1.70 — the template is
+  // deliberately orientation-agnostic here, and 1.70 already sits inside the stock
+  // photo band, so nothing needs to flex and nothing should.
+  hook: {
+    land: [{ wFrac: 0.2533, hFrac: 0.2655, importance: "support" }],
+    port: [{ wFrac: 0.4514, hFrac: 0.1498, importance: "support" }],
+  },
+
+  // FEATURE — the big lantern-glass plate that holds the website capture.
+  // land  the band was `top:9%;bottom:9%;width:47cqw` — 902.4px wide (cqw) by 885.6px
+  //       tall (genuine percent-of-height), less the ring = 870x854, aspect 1.02. A
+  //       near-square plate that only ever receives 1.5-1.78 desktop captures, so
+  //       `object-fit:cover` threw away ~32% of every screenshot's WIDTH — 16% off each
+  //       edge, which is where a page keeps its navigation. Now `top:22%;bottom:22%`:
+  //       604.8px tall, less the ring = 870x573, aspect 1.5196, which draws a 1.518
+  //       capture with a measured 0% crop. Nothing collides — the copy column ends at
+  //       42cqw and the plate starts at 47cqw, and the plate floats in vertical slack.
+  //       The flex band stays because a photo-led feature (1.68) or a tall product shot
+  //       should still take its own shape; the authored default now sits INSIDE it,
+  //       which it did not before (check-slot-geometry read 1.019 as OUT OF BAND).
+  // port  `width:87.4cqw; height:57.4cqw` -> 943.9x619.9, less the ring = 912x588,
+  //       aspect 1.551. Already the right shape for a desktop capture, and the headline
+  //       above / chip row below leave no slack, so NO flex here.
+  feature: {
+    land: [{ wFrac: 0.4533, hFrac: 0.5304, importance: "hero", flex: [1.20, 1.75] }],
+    port: [{ wFrac: 0.8444, hFrac: 0.3062, importance: "hero" }],
+  },
+
+  // MONTAGE — hanging tiles. The entry COUNT is the count the composer draws: four
+  // across in landscape, two stacked in portrait (`mediaSlotsPortrait`).
+  // land  container left:8cqw right:8cqw = 1612.8px, four 1fr columns with three 1.6cqw
+  //       (30.72px) gaps -> 380.16px per tile. tileH was 12.5cqw = 240px, giving
+  //       348x208 after the ring: a fine 1.67 photo shape but 208px on the short side,
+  //       under the 220px readable floor, and every 9:16-ish source in the audit came
+  //       back heavy-cropped against it. tileH is now 16cqw = 307.2px -> 348x275,
+  //       aspect 1.265. Wider than the tile is tall, so a 1.5 photo still reads as a
+  //       photo, but square enough that a portrait (0.67) or product (1.0) source keeps
+  //       roughly half again as much of itself as it did at 1.67.
+  // port  single 1fr column in the same 6.3cqw margins = 943.9px wide; tileH was
+  //       26.5cqw = 286.2px -> 912x254, aspect 3.59 — a letterbox 2.4x wider than the
+  //       1.5 photos and 5.4x wider than the 0.67 portraits it is fed, so cover kept
+  //       under a fifth of a portrait's height. tileH is now 52cqw = 561.6px ->
+  //       912x530, aspect 1.722, inside the stock-photo band. Vertical budget: the grid
+  //       starts 300px down, a 3-line headline is 287px, the 54px margin follows, and
+  //       two 610px cells (tile + label) with a 30px gap end at ~1891px of 1920.
+  // No flex on either: the tiles are grid cells whose height is a shared constant, so
+  // reshaping one reshapes the row. The fix belongs in the CSS, not in the contract.
+  montage: {
+    land: [
+      { wFrac: 0.1813, hFrac: 0.2157, importance: "support" },
+      { wFrac: 0.1813, hFrac: 0.2157, importance: "support" },
+      { wFrac: 0.1813, hFrac: 0.2157, importance: "support" },
+      { wFrac: 0.1813, hFrac: 0.2157, importance: "support" },
+    ],
+    port: [
+      { wFrac: 0.8444, hFrac: 0.2758, importance: "support" },
+      { wFrac: 0.8444, hFrac: 0.2758, importance: "support" },
+    ],
+  },
+};
 
 function route(scene, i, total, ctx) {
   const k = String(scene.kind || "").toLowerCase(), p = String(scene.purpose || "").toLowerCase();
@@ -154,7 +249,25 @@ function camera(kind, ctx) {
 // panel (never the "DROP IMAGE" text).
 function slot(id, asset, th, { radius = 20, label = "", focusTop = false } = {}) {
   if (asset && asset.path) {
-    return `<img data-media-slot="filled" id="${id}" src="${esc(asset.path)}" alt="${esc(asset.alt || label)}" style="width:100%;height:100%;border-radius:${radius}px;object-fit:${asset.fitContain ? "contain" : "cover"};padding:${asset.fitContain ? "7%" : "0"};object-position:${asset.fitContain ? "center" : (focusTop ? "top center" : (asset.cropFocus || "center"))};display:block;">`;
+    // THE FIT THE PLANNER CHOSE FOR THIS PICTURE IN THIS BOX.
+    //
+    // This was a three-way guess that never opened the image and never knew the box:
+    // `contain` for a flagged mark, otherwise `cover`, anchored `top center` whenever the
+    // caller passed focusTop and at asset.cropFocus otherwise. The focusTop branch is the
+    // damaging one — it fires on exactly the slot a website capture lands in, and it
+    // OVERRIDES the crop engine's measured focal point with a literal, so the saliency
+    // analysis the pipeline pays for is discarded precisely where it was needed.
+    //
+    // asset_fit decides mode and position together from the asset's real dimensions and
+    // the slot's real box: contain for a mark or for an interface whose crop would eat its
+    // navigation, cover with a content-aware focal point for a photograph, never a stretch.
+    // The reading-order prior inside crop_engine already does what focusTop was reaching
+    // for — it pulls a page capture's crop window toward its header, in proportion to how
+    // much is being discarded — so the flag is kept in the signature for the call sites
+    // that pass it and is no longer consulted.
+    const af = E.fitCss(asset);
+    const contained = /object-fit:contain/.test(af);
+    return `<img data-media-slot="filled" id="${id}" src="${esc(asset.path)}" alt="${esc(asset.alt || label)}" style="width:100%;height:100%;border-radius:${radius}px;${af}padding:${contained ? "7%" : "0"};display:block;">`;
   }
   return `<div data-media-slot="empty" id="${id}" style="width:100%;height:100%;border-radius:${radius}px;display:flex;align-items:center;justify-content:center;background:${rgba(th.paper, 0.06)};border:1px solid ${rgba(th.paper, 0.4)};">
     
@@ -256,6 +369,23 @@ function statement(scene, ctx) {
 function feature(scene, ctx, a) {
   const { id, T, L, theme: th, land } = ctx;
   const chips = (Array.isArray(scene.chips) && scene.chips.length ? scene.chips : bullets(scene, 3)).slice(0, 3).map((c) => fit(String(c), 26));
+  // THE PLATE TAKES THE CAPTURE'S SHAPE INSTEAD OF SQUARING IT OFF.
+  //
+  // The band used to be `top:9%;bottom:9%`, which with `width:47cqw` is 870x854 after
+  // the card ring — aspect 1.02, a square plate holding a 1.518 website capture, so
+  // cover threw away 32% of its width and cut the site navigation mid-word on both
+  // edges. `top:22%;bottom:22%` is 870x573 = 1.5196, and a 1.518 capture measured 0%
+  // crop in it. Where the asset is a different shape inside the declared flex band,
+  // asset_fit has already resolved a box for it and boxCss gives the reclaimed height
+  // back to the layout symmetrically — the plate floats in vertical slack, so growing
+  // or shrinking it collides with nothing. The fitted box is the PICTURE, so the ring
+  // goes back on before it becomes a plate. No fitted box (an asset with no dimensions,
+  // or a beat with no picture) yields byte-for-byte the declaration it replaces.
+  const fitBox = a && a.__fit && a.__fit.box && a.__fit.box.reshaped ? a.__fit.box : null;
+  const plateBox = fitBox
+    ? TM.boxCss({ side: 6, top: 0.22, bottom: 0.22, width: 47 },
+      { w: fitBox.w + CARD_RING, h: fitBox.h + CARD_RING }, ctx.dims, "right")
+    : `right:6cqw;top:22%;bottom:22%;width:47cqw;`;
   const board = `<div id="${id}-bd" style="opacity:0;position:relative;width:100%;height:100%;">${lanternCard(slot(`${id}-img`, a, th, { radius: 12, focusTop: true }), th, land, { glow: 1 })}</div>`;
   const chipRow = chips.map((c) =>
     `<div class="${id}-tag" style="opacity:0;display:inline-flex;align-items:center;gap:${q(12, land)}cqw;padding:${q(15, land)}cqw ${q(28, land)}cqw;border-radius:999px;background:${rgba(th.paper, 0.07)};border:2px solid ${rgba(th.glow, 0.45)};box-shadow:0 0 2.4cqw ${rgba(th.accent, 0.18)};font-family:${FB};font-weight:700;font-size:${q(29, land)}cqw;color:${th.paper};">
@@ -265,7 +395,7 @@ function feature(scene, ctx, a) {
          ${serifLines(id, scene.headline, "Light up|the main event.", 76, th, land, { mark: scene.mark || scene.emphasis, markFirst: true })}
          <div style="display:flex;flex-direction:column;gap:${q(16, land)}cqw;align-items:flex-start;margin-top:${q(40, land)}cqw;">${chipRow}</div>
        </div>
-       <div style="position:absolute;right:6cqw;top:9%;bottom:9%;width:47cqw;">${board}</div>`
+       <div style="position:absolute;${plateBox}">${board}</div>`
     : `<div style="position:absolute;left:6.3cqw;right:6.3cqw;top:24cqw;">
          ${serifLines(id, scene.headline, "Light up|the main event.", 92, th, land, { mark: scene.mark || scene.emphasis, markFirst: true })}
          <div style="margin:${q(48, land)}cqw auto ${q(46, land)}cqw;width:87.4cqw;height:57.4cqw;">${board}</div>
@@ -296,9 +426,34 @@ function montage(scene, ctx, a, b) {
   const labels = [0, 1, 2, 3].map((i) =>
     E.labelForAsset(media[i], tiles[i] || ["The gates", "Food row", "Main stage", "River launch"][i], 16));
   const tilts = [-4, 3, 2.5, -3];
-  const tileH = land ? 12.5 : 26.5;  // PORTRAIT: two tiles at FULL width rather than four at half. A 2x2 wall in
+  // TILE HEIGHT IS THE TILE'S SHAPE — the columns fix the width, so this number alone
+  // decides what every montage picture is cropped to.
+  //
+  // LANDSCAPE was 12.5cqw: a 348x208 picture, aspect 1.67. The shape was defensible but
+  // 208px on the short side is below the readable floor, and the audit flagged the
+  // smallest camera states unreadable. 16cqw gives 348x275 at aspect 1.265 — over the
+  // floor, and square enough that a portrait or product source keeps about half again
+  // as much of itself as it did at 1.67.
+  //
+  // PORTRAIT was 26.5cqw, which is where the old four-up height survived a change that
+  // only widened the tiles: 912x254, aspect 3.59, a letterbox 2.4x wider than the 1.5
+  // photos it is fed and 5.4x wider than a 0.67 portrait, of which cover kept a fifth.
+  // 52cqw gives 912x530 = 1.722, inside the stock-photo band, and two of those cells
+  // still end ~29px clear of the frame under a worst-case 3-line headline.
+  // LANDSCAPE TILE HEIGHT, SET FROM THE TILE'S OWN WIDTH.
+  //
+  // The band is 84cqw across, four tracks with a 1.6cqw gap, so each card is 380px wide at
+  // 1920 and 348px once the lantern ring is taken off. At 16cqw tall the picture came out
+  // 348x275 — an aspect of 1.27, which reads well against a portrait fixture and badly
+  // against everything a real film is made of (captures 1.52, stock 1.5-1.8). 13.8cqw puts
+  // it at 348x233 = 1.49, and scripts/compare-slot-fit.js scores that pairing at 15% waste
+  // where 1.27 scored 28%.
+  const tileH = land ? 13.8 : 52;
+  // PORTRAIT: two tiles at FULL width rather than four at half. A 2x2 wall in
   // 9:16 puts each plate under ~330px, where a product screenshot stops being
   // readable; stacked full width they get the whole frame. Fewer, bigger.
+  // `mediaSlotsPortrait` now declares that two, so the two cells this drops are no
+  // longer planned, analysed and assigned assets that never reach the screen.
 
   const cells = (land ? [0, 1, 2, 3] : [0, 1]).map((i) =>
     `<div class="${id}-tl" style="opacity:0;">
@@ -514,7 +669,7 @@ function styleBlock(th) {
 }
 
 const family = {
-  theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaFallback, wantsLogo,
+  theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaSlotsPortrait, mediaGeometry, mediaFallback, wantsLogo,
   // Empty slots in this pack render a featureless placeholder card, so a
   // REPEAT of a real screenshot/photo beats leaving one blank.
   recycleMedia: true,
@@ -529,4 +684,9 @@ function buildComposition(opts) { return E.buildFilm(family, opts); }
 // drift from the film that ships.
 function planMedia(opts) { return E.planMedia(family, opts); }
 
-module.exports = { buildComposition, planMedia, TEMPLATE_SCENES };
+// FAMILY is the pack's whole design object — the same one buildFilm renders from.
+// It is exported so callers OUTSIDE the renderer can read the slot contract without
+// building a film: services/template_media.resolveMediaPlan needs `mediaSlots` and
+// `mediaGeometry` to tell preflight which boxes this template will draw and what
+// shape each one is, and the crop engine needs the resulting aspect list.
+module.exports = { buildComposition, planMedia, TEMPLATE_SCENES, FAMILY: family };

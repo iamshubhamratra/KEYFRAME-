@@ -6,6 +6,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const config = require("./config");
 const { assessDelivery } = require("./services/delivery_quality");
+const pacing = require("./services/pacing");
 
 const DB_FILE = config.paths.dbFile;
 const TMP_FILE = DB_FILE + ".tmp";
@@ -144,6 +145,12 @@ function shape(j) {
     fps: j.fps,
     duration: j.duration,
     framePack: j.frame_pack || null,
+    // WHY this template — match score, reasons, runners-up, and how much of the
+    // library orientation and runtime ruled out. Null on every job written
+    // before the Template Intelligence layer and on manual picks that never
+    // reached the resolver, which readers must treat as "not recorded" rather
+    // than "no reasoning".
+    templateSelection: j.template_selection || null,
     voiceoverEnabled: j.voiceover_enabled !== 0,
     brandPalette: j.brand_palette || null,
     userAssets: Array.isArray(j.user_assets) ? j.user_assets.map((u) => ({
@@ -158,10 +165,45 @@ function shape(j) {
     usedFallback: j.used_fallback === 1,
     finalAttempt: j.final_attempt || null,
     composeMode: j.compose_mode || null,
+    // Null on every row written before pacing existed — readers treat that as
+    // the default mode, so an old job replays exactly as it always did.
+    pace: j.pace || null,
     audioNotes: j.audio_notes || null,
     usage: j.usage || null,
     stageTimings: j.stage_timings || null,
     brief: j.brief || null,
+    // THE SCOPE GATE'S VERDICT on the request that created this job (routes/projects.js,
+    // routes/generate.js -> services/prompt_scope.js). Only SUPPORTED requests ever get
+    // a row, so on a job this is mostly the gate's reading of the film — plus
+    // unsupportedParts, what KEYFRAME told the person it would NOT do from their
+    // request, kept visible for the life of the job instead of only on the 202.
+    //
+    // Same rule as below: GET is unauthenticated and polled, so no confidence, no cost,
+    // no `via`, no coercion trail — those stay on the row for audit. Null on every row
+    // written before the gate existed and on admin template test renders, which do not
+    // pass through it.
+    scope: j.prompt_scope ? {
+      status: j.prompt_scope.status || null,
+      videoIntent: j.prompt_scope.videoIntent || null,
+      videoType: j.prompt_scope.videoType || null,
+      unsupportedParts: Array.isArray(j.prompt_scope.unsupportedParts) ? j.prompt_scope.unsupportedParts : [],
+    } : null,
+    // THE PROMPT TRIAD, and the only transport for it. shape() is an allowlist and
+    // omits `prompt` and `intent` entirely, so before this the client physically
+    // could not show a person their own words beside our rewrite.
+    //
+    // GET /api/projects/:id is UNAUTHENTICATED and polled every 1500ms, so this
+    // publishes the CLIENT projection only — never the internal score, the
+    // confidence or the matcher signals.
+    //
+    // Read from the BRIEF only. The row-level prompt_analysis was written when the
+    // create screen analysed interactively and handed the result in; the scope gate
+    // replaced that step and nothing writes the column any more. generateBrief's own
+    // analysis — which for any older row that did carry one was built FROM it — is
+    // stored on brief.analysis, so no job loses its triad.
+    promptAnalysis: j.brief && j.brief.analysis
+      ? require("./services/prompt_analysis_schema").forClient(j.brief.analysis)
+      : null,
     script: j.script || null,
     scriptWarnings: j.script_warnings || null,
     assets: j.assets || null,
@@ -170,6 +212,7 @@ function shape(j) {
     qa: j.qa || null,
     creativeReview: j.creative_review || null,
     qualityReport: j.quality_report || null,
+    pacingReport: j.pacing_report || null,
     deliveryProbe: j.delivery_probe || null,
     // ONE honest verdict on the finished film, assembled from signals the
     // pipeline already produced (QA's frame review, empty-scene counts, the
@@ -235,11 +278,29 @@ module.exports = {
       task: job.task || null,
       requeue_count: 0,
       intent: job.intent || null,
+      // The scope gate's decision (services/prompt_scope.js reduce()): status, the
+      // reading of the film, what was unsupported, HOW it was decided (moderation /
+      // input mode / heuristic / model / fail-open fallback), what it cost and every
+      // coercion applied to the model's reply. A refused request creates no row, so on
+      // a stored job this answers "why was this let through?" — including the fail-open
+      // case, whose `via` says so. Null on rows from before the gate and on admin
+      // template test renders, which do not pass through it.
+      //
+      // No prompt_analysis column any more: it only ever held an analysis the create
+      // screen paid for and handed in, and that step is gone. generateBrief runs its
+      // own and stores it on brief.analysis.
+      prompt_scope: job.promptScope || null,
       autopilot: job.autopilot ? 1 : 0,
       render3d: job.render3d ? 1 : 0, // Three.js/WebGL composer (project pipeline reads job.render3d)
       // Per-video finish: "premium" = LLM composer (scene-kit fallback),
       // "standard" = deterministic scene-kit, null = server default.
       compose_mode: job.composeMode === "premium" || job.composeMode === "standard" ? job.composeMode : null,
+      // Re-validated here as well as at the route: insert() is reachable from
+      // three routes with three hand-rolled validators, and storing an unknown
+      // mode would hand every downstream consumer a value pacing.resolve() has
+      // to silently fall back on. Store the NAME, never the multiplier, so
+      // retuning a mode later reprices old jobs consistently.
+      pace: pacing.normalizeMode(job.pace) || null,
       brief: null,
       script: null,
       script_warnings: null,
@@ -276,10 +337,25 @@ module.exports = {
     scheduleWrite();
   },
 
+  // WHY this template was chosen (services/template_intelligence): the match
+  // score, the reasons, the runners-up and how much of the library was ruled out
+  // by orientation and runtime. Auto selection used to be unauditable — a pack
+  // name appeared on the job and nothing said how — so a film that looked wrong
+  // could not be told apart from a film that was matched wrong.
+  setTemplateSelection(id, selection) {
+    const j = jobs.get(id); if (!j || !selection) return;
+    j.template_selection = selection;
+    scheduleWrite();
+  },
+
   // User approved (possibly edited) script: store it and requeue.
-  markApproved(id, { script }) {
+  markApproved(id, { script, warnings }) {
     const j = jobs.get(id); if (!j) return;
     j.script = script;
+    // Re-validation warnings from an EDITED script (routes/projects.js approve).
+    // Optional: the autopilot caller has none and must not clear the intake
+    // warnings it already recorded, so only a supplied array overwrites.
+    if (Array.isArray(warnings)) j.script_warnings = warnings;
     j.status = "queued";
     j.progress = "approved";
     // Flush SYNCHRONOUSLY: this transition gates whether boot recovery can
@@ -365,6 +441,14 @@ module.exports = {
     scheduleWrite();
   },
 
+  // Pacing report — did the delivered film come out at the pace it promised?
+  // Disclosure only (services/pacing.js report()); never blocks a delivery.
+  setPacingReport(id, report) {
+    const j = jobs.get(id); if (!j) return;
+    j.pacing_report = report || null;
+    scheduleWrite();
+  },
+
   // Delivery probe — what ffprobe found in the file we actually handed over
   // (resolution, duration, fps, audio presence) plus any mismatch against what
   // was requested. Every other check in the pipeline runs on the PLAN; this is
@@ -388,6 +472,18 @@ module.exports = {
   setValidationReport(id, report) {
     const j = jobs.get(id); if (!j) return;
     j.validation_report = report || null;
+    scheduleWrite();
+  },
+
+  // Asset-fit report (services/asset_render_check.auditAssetFit) — how every picture met
+  // its box, read back off the rendered document: how many were contained, covered or
+  // drawn in a reshaped plate, the mean crop, and how many had no good fit at all. This is
+  // the disclosure that answers "did the picture SURVIVE reaching the screen", which is a
+  // different question from assetRender's "did it reach the screen", and it was the one
+  // with no owner. Persisted rather than logged so a bad fit is reviewable after the fact.
+  setAssetFit(id, report) {
+    const j = jobs.get(id); if (!j) return;
+    j.asset_fit = report || null;
     scheduleWrite();
   },
 

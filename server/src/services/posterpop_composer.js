@@ -83,8 +83,8 @@ const TEMPLATE_SCENES = [
   },
   {
     type: "montage", bestFor: "range — several items/pages/angles",
-    look: "A sage poster block: stamped headline over a tilted 2x2 grid of paper-framed photo tiles, each with a big Caprasimo label under it.",
-    slots: { headline: "max 2 short lines", tiles: "4 short labels, max 14 chars each" },
+    look: "A sage poster block: stamped headline beside (16:9) or over (9:16) two big tilted paper-framed photo tiles, each with a big Caprasimo label under it.",
+    slots: { headline: "max 2 short lines", tiles: "2 short labels, max 14 chars each" },
     media: ["photo", "photo"], mediaMin: 0,
   },
   {
@@ -100,7 +100,72 @@ const TEMPLATE_SCENES = [
     media: [],
   },
 ];
-const mediaSlots = { feature: ["desktop"], montage: ["photo", "photo", "photo", "photo"] };
+// montage asks for TWO photos, not four. It used to declare four and paint two in
+// portrait, so half of every portrait cast was fetched and silently dropped; and the
+// four it did paint in landscape had to share one row-band between the two marquee
+// ticker bands, which is what squashed each tile to a 531x220 letterbox strip. Two
+// tiles is what both orientations now draw, so it is what the engine is asked for.
+const mediaSlots = { feature: ["desktop"], montage: ["photo", "photo"] };
+// WHAT SHAPE EACH PLACEHOLDER IS — the number that did not exist anywhere in this
+// codebase before. Fractions of the CANVAS (wFrac of its width, hFrac of its height),
+// derived from the CSS each scene function writes and cross-checked against a live
+// headless render (`node scripts/audit-slot-fit.js`). services/template_media.js turns
+// them into real pixels for this film's dimensions, so selection can weigh SHAPE and
+// asset_fit can choose a real crop instead of the hardcoded `cover / top center`.
+// The painted shape of every media box this pack draws, as fractions of the
+// CANVAS. The composer sizes each box by MIXING UNITS — a width in cqw (1% of
+// frame WIDTH) against a height that is also cqw, or a percentage of HEIGHT —
+// so no function here ever knows the box's aspect. These numbers are that
+// missing answer, worked out from the same CSS the renderer emits, so asset
+// selection can pick a crop the poster will actually show.
+const mediaGeometry = {
+  // feature(): the ink Browser card. Wrapper 50cqw x 35.25cqw (land) /
+  // 87.4cqw x 61.7cqw (port); the card eats q(12) of padding on all four sides
+  // and the traffic-dot bar takes calc(100% - q(37)cqw) off the screenshot
+  // window's height. q(12,land)=0.63cqw, q(37,land)=1.93cqw.
+  // The wrapper heights were 32.3 / 56.5cqw, which made the window 1.675 — 10%
+  // wider than the 1.52 desktop capture that is the ONLY thing this slot takes,
+  // so cover threw away 9.4% of every screenshot's height. Both legs are now
+  // solved backwards from 1.52 instead of being eyeballed.
+  feature: {
+    // 1920x1080: (50 - 2*0.63)cqw = 935.8px wide; (35.25 - 2*0.63 - 1.93)cqw = 615.6px
+    // tall -> aspect 1.520, a website capture landing whole.
+    land: [{ wFrac: 0.4874, hFrac: 0.57, importance: "hero" }],
+    // 1080x1920: q(12,port)=1.11cqw, q(37,port)=3.43cqw -> 919.9 x 605.3px, the same
+    // 1.520 — the card is the one element the portrait restage keeps identical in shape.
+    port: [{ wFrac: 0.8518, hFrac: 0.3153, importance: "hero" }],
+  },
+
+  // montage(): the tilted paper tiles. The tile is a fixed tileH cqw tall no
+  // matter how wide the column is, so tileH alone decides the shape — which is
+  // how both legs drifted into letterbox strips. The paper frame steals q(10)
+  // on all four sides before the picture starts. Two tiles now, not four: the
+  // -3/2.5deg tilts rotate the painted rectangle but do not resize it, so both
+  // entries are the same box.
+  montage: {
+    // 1920x1080: the two tiles sit in ONE row spanning left:35cqw -> right:6cqw =
+    // 59cqw = 1132.8px, minus one q(30)=1.56cqw gap, halved = 551.4px per column;
+    // tileH 19.5cqw = 374.4px. Less the q(10)=0.52cqw frame: 531.5 x 354.4px,
+    // aspect 1.50. Was a 2x2 wall at tileH 12.5 -> 531.5 x 220.0px, aspect 2.42
+    // with its short side exactly on the 220px readability floor, because two rows
+    // could not grow without sliding under the lower marquee band.
+    land: [
+      { wFrac: 0.2768, hFrac: 0.3281, importance: "support" },
+      { wFrac: 0.2768, hFrac: 0.3281, importance: "support" },
+    ],
+    // 1080x1920: one column of two stacked tiles, inset to 52cqw = 561.6px;
+    // tileH 34cqw = 367.2px; less the q(10)=0.93cqw frame: 541.5 x 347.1px,
+    // aspect 1.56. Was a full-width 87.8cqw column at tileH 25.9 -> 928.2 x
+    // 259.6px, aspect 3.57 and the worst box in the pack. Full width could not be
+    // kept: the vertical room between a three-line headline and the lower ticker
+    // caps the tile at ~367px, and 928px of width against 347px of picture is
+    // still a 2.7 strip. Width was the free variable, so width is what moved.
+    port: [
+      { wFrac: 0.5014, hFrac: 0.1808, importance: "support" },
+      { wFrac: 0.5014, hFrac: 0.1808, importance: "support" },
+    ],
+  },
+};
 
 function route(scene, i, total, ctx) {
   const k = String(scene.kind || "").toLowerCase(), p = String(scene.purpose || "").toLowerCase();
@@ -202,7 +267,23 @@ const ground = (bg) => `<div style="position:absolute;inset:-9cqw;background:${b
 // Media slot: real asset (cover) or the template's dashed placeholder panel.
 function slot(id, asset, line, { radius = 0, focusTop = false } = {}) {
   if (asset && asset.path) {
-    return `<img data-media-slot="filled" id="${id}" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;border-radius:${radius}px;object-fit:${asset.fitContain ? "contain" : "cover"};padding:${asset.fitContain ? "7%" : "0"};object-position:${asset.fitContain ? "center" : (focusTop ? "top center" : (asset.cropFocus || "center"))};display:block;">`;
+    // THE FIT THE PLANNER CHOSE FOR THIS PICTURE IN THIS BOX.
+    //
+    // This was a three-way guess that never opened the image and never knew the box:
+    // `contain` for a flagged mark, otherwise `cover`, anchored `top center` whenever the
+    // caller passed focusTop and at asset.cropFocus otherwise. The focusTop branch is the
+    // damaging one — it fires on exactly the slot a website capture lands in, and it
+    // OVERRIDES the crop engine's measured focal point with a literal, so the saliency
+    // analysis the pipeline pays for is discarded precisely where it was needed.
+    //
+    // asset_fit decides mode and position together from the asset's real dimensions and
+    // the slot's real box: contain for a mark or for an interface whose crop would eat its
+    // navigation, cover with a content-aware focal point for a photograph, never a stretch.
+    // The reading-order prior inside crop_engine already does what focusTop was reaching
+    // for, so the flag is kept in the signature for its call sites and no longer consulted.
+    const af = E.fitCss(asset);
+    const contained = /object-fit:contain/.test(af);
+    return `<img data-media-slot="filled" id="${id}" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;border-radius:${radius}px;${af}padding:${contained ? "7%" : "0"};display:block;">`;
   }
   return `<div data-media-slot="empty" id="${id}" style="width:100%;height:100%;border-radius:${radius}px;display:flex;align-items:center;justify-content:center;background:${rgba(line, 0.06)};border:1px solid ${rgba(line, 0.4)};">
     
@@ -296,10 +377,10 @@ function feature(scene, ctx, a) {
          ${slamLines(id, scene.headline, "Your product,|poster-sized.", 96, 34, land, C.fg, C.hi)}
          <div style="display:flex;flex-wrap:wrap;gap:${q(18, land)}cqw;margin-top:${q(44, land)}cqw;">${chipRow}</div>
        </div>
-       <div style="position:absolute;right:6cqw;top:50%;transform:translateY(-50%);width:50cqw;height:32.3cqw;">${browser}</div>`
+       <div style="position:absolute;right:6cqw;top:50%;transform:translateY(-50%);width:50cqw;height:35.25cqw;">${browser}</div>`
     : `<div style="position:absolute;left:${PADQ}cqw;right:${PADQ}cqw;top:25cqw;">
          ${slamLines(id, scene.headline, "Your product,|poster-sized.", 116, 87, land, C.fg, C.hi)}
-         <div style="margin:${q(50, land)}cqw auto ${q(44, land)}cqw;width:87.4cqw;height:56.5cqw;">${browser}</div>
+         <div style="margin:${q(50, land)}cqw auto ${q(44, land)}cqw;width:87.4cqw;height:61.7cqw;">${browser}</div>
          <div style="display:flex;flex-wrap:wrap;gap:${q(18, land)}cqw;justify-content:center;">${chipRow}</div>
        </div>`);
   const s = [
@@ -316,27 +397,49 @@ function montage(scene, ctx, a, b) {
   const { id, T, L, theme: th, land } = ctx;
   const C = inkFor("montage", th);
   const tiles = (Array.isArray(scene.tiles) && scene.tiles.length ? scene.tiles : bullets(scene, 4));
-  const labels = [0, 1, 2, 3].map((i) => fit(String(tiles[i] || ["Home", "Pricing", "Dashboard", "Checkout"][i]), 14));
-  // Four tiles, four assets: the engine now fills every declared slot, and a
-  // short pool cycles rather than leaving a hole — a repeated screenshot reads far
-  // better than a blank white card.
+  // NEVER FABRICATE A TILE CAPTION. This mapped every missing tile onto a generic screen
+  // name, so a wall with two real labels still shipped two invented ones - claiming the
+  // product has screens nobody named. These tiles carry a PICTURE, and over a picture a
+  // fabricated caption is worse than none, so an unnamed tile is simply uncaptioned.
+  const labels = [0, 1].map((i) => (tiles[i] ? fit(String(tiles[i]), 14) : ""));
+  // Two tiles, two assets: the engine fills every declared slot, and a short pool
+  // cycles rather than leaving a hole — a repeated screenshot reads far better than
+  // a blank white card.
   const pool = (Array.isArray(ctx.media) && ctx.media.length ? ctx.media : [a, b]).filter(Boolean);
-  const media = [0, 1, 2, 3].map((k) => (pool.length ? pool[k % pool.length] : null));
-  const tilts = [-3, 2.5, 2, -2.5];
-  const tileH = land ? 12.5 : 25.9;  // PORTRAIT: two tiles at FULL width rather than four at half. A 2x2 wall in
-  // 9:16 puts each plate under ~330px, where a product screenshot stops being
-  // readable; stacked full width they get the whole frame. Fewer, bigger.
+  const media = [0, 1].map((k) => (pool.length ? pool[k % pool.length] : null));
+  const tilts = [-3, 2.5];
+  // TILE HEIGHT IS THE ONLY THING THAT SETS THE PICTURE'S SHAPE — the column is
+  // sized by the grid, the tile by this number, and nothing here ever compared the
+  // two, which is how both legs drifted into letterbox strips.
+  // land 12.5 -> 19.5: with four tiles the wall needed two rows, and two rows of a
+  // readable tile do not fit between the marquee bands (they sit at roughly y=100
+  // and y=815 of 1080, and the drift zoom eats another 7%), so the tile was held at
+  // 240px and the media box came out 531x220 — aspect 2.42 with its short side
+  // exactly on the 220px readability floor. ONE row of two tiles has the whole band
+  // to itself: 531x354, aspect 1.50, and the grid stands 426px inside the 710 the
+  // bands leave. Four tiles could only have been squared up by shrinking them to
+  // 330x220 — fixing the shape by throwing away 40% of the picture.
+  // port 25.9 -> 34: the portrait restage went to one full-width column without ever
+  // raising the height, so the strip stretched to 928x260, aspect 3.57 — the worst
+  // box in the pack, discarding 58% of a stock photo and 85% of a mobile capture.
+  const tileH = land ? 19.5 : 34;
+  // PORTRAIT: two tiles STACKED, and inset to 52cqw rather than the full 87.8cqw.
+  // Width is free in 9:16; height is not. Two tiles, their captions and the gap have
+  // to land between the headline (which can run to three lines) and the lower ticker
+  // band at y=1587, which leaves about 850px — 367px per tile. At the full 87.8cqw
+  // that tile is still a 2.5 strip; at 52cqw the box is 541x347, aspect 1.56, which
+  // is what a stock photo and a website capture actually are.
 
-  const cells = (land ? [0, 1, 2, 3] : [0, 1]).map((i) =>
+  const cells = [0, 1].map((i) =>
     `<div style="transform:rotate(${tilts[i]}deg);">
       <div class="${id}-tl" style="opacity:0;">
         <div style="height:${tileH}cqw;border-radius:${q(24, land)}cqw;overflow:hidden;background:${th.paperL};padding:${q(10, land)}cqw;box-shadow:0 ${q(24, land)}cqw ${q(50, land)}cqw ${rgba(th.inkD, 0.25)};">
           <div style="height:100%;border-radius:${q(16, land)}cqw;overflow:hidden;">${slot(`${id}-img${i}`, media[i], th.inkD, { radius: 0 })}</div>
         </div>
-        <div style="font-family:${FH};font-size:${q(30, land)}cqw;color:${C.fg};margin-top:${q(16, land)}cqw;text-align:center;text-transform:uppercase;">${esc(labels[i])}</div>
+        ${labels[i] ? `<div style="font-family:${FH};font-size:${q(30, land)}cqw;color:${C.fg};margin-top:${q(16, land)}cqw;text-align:center;text-transform:uppercase;">${esc(labels[i])}</div>` : ""}
       </div>
     </div>`).join("");
-  const grid = `<div style="display:grid;grid-template-columns:${land ? "1fr 1fr" : "1fr"};gap:${q(30, land)}cqw;">${cells}</div>`;
+  const grid = `<div style="display:grid;grid-template-columns:${land ? "1fr 1fr" : "1fr"};gap:${q(30, land)}cqw;${land ? "" : "width:52cqw;margin-left:auto;margin-right:auto;"}">${cells}</div>`;
   const html = `${ground(C.bg)}` + (land
     ? `<div style="position:absolute;left:6cqw;top:50%;transform:translateY(-50%);width:26cqw;">
          ${slamLines(id, scene.headline, "Every page.|Every angle.", 80, 24, land, C.fg, C.hi)}
@@ -474,7 +577,7 @@ function styleBlock(th) {
 }
 
 const family = {
-  theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaFallback, wantsLogo,
+  theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaGeometry, mediaFallback, wantsLogo,
   // Empty slots in this pack render a featureless placeholder card, so a
   // REPEAT of a real screenshot/photo beats leaving one blank.
   recycleMedia: true,
@@ -489,4 +592,9 @@ function buildComposition(opts) { return E.buildFilm(family, opts); }
 // drift from the film that ships.
 function planMedia(opts) { return E.planMedia(family, opts); }
 
-module.exports = { buildComposition, planMedia, TEMPLATE_SCENES };
+// FAMILY is the pack's whole design object — the same one buildFilm renders from.
+// It is exported so callers OUTSIDE the renderer can read the slot contract without
+// building a film: services/template_media.resolveMediaPlan needs `mediaSlots` and
+// `mediaGeometry` to tell preflight which boxes this template will draw and what
+// shape each one is, and the crop engine needs the resulting aspect list.
+module.exports = { buildComposition, planMedia, TEMPLATE_SCENES, FAMILY: family };

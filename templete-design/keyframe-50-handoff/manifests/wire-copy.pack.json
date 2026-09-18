@@ -1,0 +1,162 @@
+{
+  "id": "wire-copy",
+  "name": "Wire Copy",
+  "renderer": "filmkit",
+  "orientation": "vertical",
+  "sizePx": [
+    1080,
+    1920
+  ],
+  "cohort": "03 news / journalism",
+  "set": "article-text-50",
+  "globalName": "WireCopy",
+  "configFile": "configs/article-pack-03.js",
+  "vibe": "the wire room after midnight",
+  "form": {
+    "runtimeMs": 129400,
+    "runtimeRangeMs": [
+      90000,
+      150000
+    ],
+    "beats": 18
+  },
+  "readingBudget": {
+    "wpm": 225,
+    "landSeconds": 1.2,
+    "checkedBy": "scripts/lint-reading-budget.js"
+  },
+  "fonts": {
+    "display": "Zilla Slab",
+    "body": "Source Sans 3",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+      "devanagari": "Noto Serif Devanagari"
+    }
+  },
+  "palette": {
+    "slots": [
+      "bg",
+      "surface",
+      "rule",
+      "inkMuted",
+      "ink",
+      "accent",
+      "accent2",
+      "accentInk"
+    ],
+    "values": {
+      "bg": "#eae5da",
+      "surface": "#f8f5ee",
+      "rule": "#c9c1b1",
+      "inkMuted": "#6e685c",
+      "ink": "#16150f",
+      "accent": "#b4302b",
+      "accent2": "#3f5a6b",
+      "accentInk": "#f8f5ee"
+    },
+    "strategy": "luminance ladder; hue-rotatable at each slot’s own lightness"
+  },
+  "tweaks": [
+    {
+      "key": "brand",
+      "type": "text"
+    },
+    {
+      "key": "bg",
+      "type": "color"
+    },
+    {
+      "key": "accent",
+      "type": "color"
+    },
+    {
+      "key": "accent2",
+      "type": "color"
+    },
+    {
+      "key": "motion",
+      "type": "radio",
+      "options": [
+        "Calm",
+        "Lively",
+        "Bouncy"
+      ],
+      "default": "Lively"
+    },
+    {
+      "key": "typeScale",
+      "type": "radio",
+      "options": [
+        "Compact",
+        "Default",
+        "Editorial"
+      ],
+      "default": "Default"
+    }
+  ],
+  "motion": {
+    "titlePreset": "machete",
+    "itemPreset": "rise",
+    "camera": [
+      "pushL",
+      "pushU",
+      "pushR",
+      "drop",
+      "zoomIn",
+      "pushD"
+    ],
+    "mechanics": "Scroll: \"board\", Typing: \"terminal\", Ring: \"bar\"",
+    "chrome": false
+  },
+  "world": {
+    "description": "the wire room after midnight. Far: window blinds and a row of wall clocks, each on its own time. Mid: a teleprinter on the deck whose spool turns and pays out a tape that snakes away and grows; paper spikes and trays beside it. Near: torn tape scraps rising.",
+    "cyclePeriodMs": 9000,
+    "planes": 3,
+    "textSafety": "object confined above y=290, below y=1330, or right of x=820; never crosses the copy column"
+  },
+  "mediaSlots": [
+    {
+      "id": "image",
+      "beat": "Feature",
+      "beatIndex": 10,
+      "aspect": "16:10",
+      "minPx": [
+        640,
+        400
+      ],
+      "fit": "cover",
+      "priority": 1,
+      "optional": true,
+      "onEmpty": "swap per look.feature.swap (borrows nearest unclaimed script line)"
+    },
+    {
+      "id": "logo",
+      "beat": "CTA",
+      "beatIndex": 17,
+      "aspect": "1:1",
+      "minPx": [
+        256,
+        256
+      ],
+      "fit": "contain",
+      "priority": 2,
+      "optional": true,
+      "onEmpty": "pack icon mark in a filled badge"
+    }
+  ],
+  "determinism": {
+    "randomness": false,
+    "wallClock": false,
+    "seekSafe": true,
+    "clock": "single authored timeline via animations-v2"
+  },
+  "paths": {
+    "html": "templates/wire-copy.html",
+    "config": "configs/article-pack-03.js",
+    "storyboard": "fixtures/storyboard.wire-copy.json",
+    "timestamps": "fixtures/timestamps.wire-copy.json",
+    "referenceFrames": "reference-frames/wire-copy/"
+  }
+}

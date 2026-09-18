@@ -92,6 +92,101 @@ const TEMPLATE_SCENES = [
   },
 ];
 const mediaSlots = { hook: ["desktop"], feature: ["desktop"], montage: ["photo", "photo", "photo", "photo"] };
+// WHAT SHAPE EACH PLACEHOLDER IS — the number that did not exist anywhere in this
+// codebase before. Fractions of the CANVAS (wFrac of its width, hFrac of its height),
+// derived from the CSS each scene function writes and cross-checked against a live
+// headless render (`node scripts/audit-slot-fit.js`). services/template_media.js turns
+// them into real pixels for this film's dimensions, so selection can weigh SHAPE and
+// asset_fit can choose a real crop instead of the hardcoded `cover / top center`.
+// Painted media geometry for this pack, as fractions of the CANVAS.
+//
+// Nothing in this file ever computes a media box's shape: `#id-cw` mixes a cqw
+// width with a cqw HEIGHT (both are % of the render WIDTH), and the browser
+// chrome then eats padding on all four sides plus a title bar off the top. The
+// resulting aspect is an accident of the render size, so it has to be declared
+// here for asset selection to know what shape it is filling.
+//
+// Two facts drive every number below:
+//   * cqw is always % of WIDTH. `height:29.1cqw` on 1920x1080 is 558.7px, so its
+//     hFrac is 558.7/1080 — never 0.291.
+//   * template_engine's reset is `* { box-sizing:border-box }` (template_engine.js:1414),
+//     so browser()'s `padding:q(10)cqw` shrinks the painted image INSIDE the
+//     card wrapper rather than growing the card. That padding is doubled (both
+//     edges) and the title bar is subtracted once, via `calc(100% - q(34)cqw)`.
+//   * q(px, land) = px * (land ? 0.052 : 0.0926) — the pack's px->cqw mapper, so
+//     the same chrome costs 1.04cqw of width in landscape and 1.86cqw in portrait
+//     (r() rounds every q() to 2dp, so it is 1.77 / 3.15 for the title bar).
+const mediaGeometry = {
+  // hook: browser card at right (land) / centred under the flip title (port).
+  // The wrapper heights below are SOLVED, not authored: a website capture is
+  // 2732x1800 = 1.518, so the media area is sized to 1.52 and the chrome added
+  // back on top. land 41cqw wide -> media 39.96cqw = 767px, so the media area
+  // must be 767/1.52 = 505px = 26.29cqw, plus 2*q(10)=1.04 and the q(34)=1.77
+  // title bar -> wrapper 29.1cqw. port 81.5cqw -> media 79.64cqw = 860px, /1.52
+  // = 566px = 52.39cqw, plus 1.86 + 3.15 -> wrapper 57.4cqw.
+  // Was 25.6 / 51.9cqw, i.e. AR 1.75 / 1.70: too wide for any capture, so
+  // asset_fit fell back to `contain` and the measured render letterboxed the
+  // screenshot 12.2% (land) / 9.5% (port) INSIDE the browser frame — white bars
+  // in a window that is meant to be the window. At 1.52 it covers with ~0% loss.
+  hook: {
+    land: [{ wFrac: 0.3996, hFrac: 0.4674, importance: "hero", flex: [1.30, 1.85] }],
+    port: [{ wFrac: 0.7964, hFrac: 0.2947, importance: "hero", flex: [1.30, 1.85] }],
+  },
+
+  // feature: the same browser card, one beat bigger, in a terracotta frame, and
+  // solved to the same 1.52. land 46cqw -> media 44.96cqw = 863px, /1.52 = 568px
+  // = 29.59cqw, + 1.04 + 1.77 -> wrapper 32.4cqw. port 87.4cqw -> media 85.54cqw
+  // = 924px, /1.52 = 608px = 56.29cqw, + 1.86 + 3.15 -> wrapper 61.3cqw.
+  // Was 29.2 / 55.6cqw (AR 1.70 / 1.69), letterboxing the capture 10.9% / 10.2%.
+  // The largest media this pack paints — 863x568 / 924x608.
+  //
+  // flex [1.30, 1.85] on both cards: a browser window reads as a browser window
+  // anywhere in that band, so cardBox() below takes the shape of whatever it is
+  // given rather than cropping to 1.52. Measured: the 1600x1000 site photo went
+  // from 9.3% of its width discarded to 0, and the 3:1 panorama from 51.6% to the
+  // band edge. The 1.52 above stays the NOMINAL box — the largest the plate may be.
+  feature: {
+    land: [{ wFrac: 0.4496, hFrac: 0.5261, importance: "hero", flex: [1.30, 1.85] }],
+    port: [{ wFrac: 0.8554, hFrac: 0.3167, importance: "hero", flex: [1.30, 1.85] }],
+  },
+
+  // montage: four film-strip frames, two per counter-scrolling strip. Order is
+  // strip0[0], strip0[1], strip1[0], strip1[1] — matching mediaSlots' four photos.
+  // Every frame is identical, so all four entries repeat.
+  //   land  strip w 24cqw, frame padding q(30)=1.56cqw/side, media margin
+  //         q(18)=0.94cqw/side -> 19.00cqw = 365px wide; mediaH 13.5cqw -> 259px.
+  //   port  strip w 43.5cqw, padding q(30)=2.78, margin q(18)=1.67 -> 34.60cqw
+  //         = 374px; mediaH 24.5cqw -> 265px.
+  // The two cuts are now ONE shape (1.408 / 1.413) instead of 1.653 / 1.442: the
+  // strip width is authored in cqw of DIFFERENT canvases, so a mediaH that reads
+  // the same in both files drew a different tile in each, and photo_port measured
+  // heavy-crop in landscape AND in portrait for different reasons. One aspect
+  // means the crop engine solves each photo once and both cuts get that crop.
+  // land mediaH also went 11.5 -> 13.5cqw (frameH 17 -> 19 to carry it): 11.5cqw
+  // is 220.8px at 1080p, exactly on the 220px unreadable floor, and it made this
+  // the widest support tile in the pack. 259px short side, AR 1.41.
+  //
+  // allow: a 365px-wide cell is below the 560px a website capture needs to be
+  // legible at all, and the measured render was casting the 750x1624 mobile
+  // capture into it — 0.46 into 1.65, 72% of the screenshot thrown away. The
+  // film strip is for photography and vector art; the captures have the two
+  // browser cards. When a film has no photos the engine's mediaFallback reroutes
+  // the beat rather than drawing an empty strip.
+  montage: {
+    land: [
+      { wFrac: 0.19000, hFrac: 0.24000, importance: "support", allow: ["photo", "vector"] },
+      { wFrac: 0.19000, hFrac: 0.24000, importance: "support", allow: ["photo", "vector"] },
+      { wFrac: 0.19000, hFrac: 0.24000, importance: "support", allow: ["photo", "vector"] },
+      { wFrac: 0.19000, hFrac: 0.24000, importance: "support", allow: ["photo", "vector"] },
+    ],
+    port: [
+      { wFrac: 0.34600, hFrac: 0.13781, importance: "support", allow: ["photo", "vector"] },
+      { wFrac: 0.34600, hFrac: 0.13781, importance: "support", allow: ["photo", "vector"] },
+      { wFrac: 0.34600, hFrac: 0.13781, importance: "support", allow: ["photo", "vector"] },
+      { wFrac: 0.34600, hFrac: 0.13781, importance: "support", allow: ["photo", "vector"] },
+    ],
+  },
+};
 
 function route(scene, i, total, ctx) {
   const k = String(scene.kind || "").toLowerCase(), p = String(scene.purpose || "").toLowerCase();
@@ -179,7 +274,23 @@ function shimmerAnim(sid, T, L) {
 // Media slot: real asset (cover) or the template's dashed dark placeholder.
 function slot(id, asset, th, { radius = 12, focusTop = false } = {}) {
   if (asset && asset.path) {
-    return `<img data-media-slot="filled" id="${id}" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;border-radius:${radius}px;object-fit:${asset.fitContain ? "contain" : "cover"};padding:${asset.fitContain ? "7%" : "0"};object-position:${asset.fitContain ? "center" : (focusTop ? "top center" : (asset.cropFocus || "center"))};display:block;">`;
+    // THE FIT THE PLANNER CHOSE FOR THIS PICTURE IN THIS BOX.
+    //
+    // This was a three-way guess that never opened the image and never knew the box:
+    // `contain` for a flagged mark, otherwise `cover`, anchored `top center` whenever the
+    // caller passed focusTop and at asset.cropFocus otherwise. The focusTop branch is the
+    // damaging one — it fires on exactly the slot a website capture lands in, and it
+    // OVERRIDES the crop engine's measured focal point with a literal, so the saliency
+    // analysis the pipeline pays for is discarded precisely where it was needed.
+    //
+    // asset_fit decides mode and position together from the asset's real dimensions and
+    // the slot's real box: contain for a mark or for an interface whose crop would eat its
+    // navigation, cover with a content-aware focal point for a photograph, never a stretch.
+    // The reading-order prior inside crop_engine already does what focusTop was reaching
+    // for, so the flag is kept in the signature for its call sites and no longer consulted.
+    const af = E.fitCss(asset);
+    const contained = /object-fit:contain/.test(af);
+    return `<img data-media-slot="filled" id="${id}" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;border-radius:${radius}px;${af}padding:${contained ? "7%" : "0"};display:block;">`;
   }
   return `<div data-media-slot="empty" id="${id}" style="width:100%;height:100%;border-radius:${radius}px;display:flex;align-items:center;justify-content:center;background:${rgba(th.paper, 0.06)};border:1px solid ${rgba(th.paper, 0.3)};">
     
@@ -192,6 +303,42 @@ function browser(id, asset, th, land, frameColor) {
     <div style="display:flex;gap:${q(7, land)}cqw;padding:${q(4, land)}cqw ${q(8, land)}cqw ${q(9, land)}cqw;">${[0.9, 0.4, 0.4].map((o) => `<span style="width:${q(12, land)}cqw;height:${q(12, land)}cqw;border-radius:999px;background:${rgba(th.paper, o)};"></span>`).join("")}</div>
     <div style="border-radius:${q(15, land)}cqw;overflow:hidden;height:calc(100% - ${q(34, land)}cqw);">${slot(`${id}-img`, asset, th, { radius: 0, focusTop: true })}</div>
   </div>`;
+}
+
+// THE BROWSER CARD TAKES THE PICTURE'S OWN SHAPE.
+//
+// Solving the wrapper to 1.52 (see mediaGeometry) fits the 2732x1800 capture the
+// ingest actually returns, and nothing else. A 1600x1000 site photo still lost 9%
+// of its width in the measured render, and a panorama lost 51%. So the card is
+// allowed to breathe inside the aspect band mediaGeometry declares: asset_fit
+// resolves a box for THIS asset inside that band (it only ever shrinks inside the
+// authored plate, never grows past it), and this hands the reclaimed space back to
+// the layout — symmetrically in landscape, where the card floats opposite the copy
+// column, and off the bottom in portrait, where it is a flow block with the title
+// above and the subtext below.
+//
+// `band` is the authored plate in the file's own units: { side, topCqw, hCqw,
+// width } in cqw, with `align` the edge an absolutely-positioned card is pinned to
+// (null for the portrait flow blocks, which keep their own margins). asset_fit
+// measures the MEDIA area, so the chrome browser() eats — 2*q(10) of width, plus
+// the q(34) title bar of height — is added back on to reach the wrapper. With no
+// reshaped box (no picture, or an asset with no dimensions) this returns the
+// authored declaration byte for byte.
+function cardBox(asset, ctx, land, band, align) {
+  const authored = align
+    ? `${align}:${band.side}cqw;top:${band.topCqw}cqw;width:${band.width}cqw;height:${band.hCqw}cqw;`
+    : `width:${band.width}cqw;height:${band.hCqw}cqw;`;
+  const box = asset && asset.__fit && asset.__fit.box && asset.__fit.box.reshaped ? asset.__fit.box : null;
+  if (!box || !(box.w > 0 && box.h > 0)) return authored;
+  const W = ctx && ctx.dims ? Number(ctx.dims.width) : 0;
+  if (!(W > 0)) return authored;
+  const wCqw = r(box.w / W * 100 + 2 * q(10, land));
+  const hCqw = r(box.h / W * 100 + 2 * q(10, land) + q(34, land));
+  // Never larger than the plate the design authored — a fitted box that somehow
+  // exceeds it would push the card into the copy column.
+  if (!(wCqw > 0 && hCqw > 0) || wCqw > band.width + 0.02 || hCqw > band.hCqw + 0.02) return authored;
+  if (!align) return `width:${wCqw}cqw;height:${hCqw}cqw;`;
+  return `${align}:${band.side}cqw;top:${r(band.topCqw + (band.hCqw - hCqw) / 2)}cqw;width:${wCqw}cqw;height:${hCqw}cqw;`;
 }
 
 // Card3D — floating card with live tilt + a sweeping glare stripe.
@@ -283,11 +430,11 @@ function hook(scene, ctx, a) {
     ? `<div style="position:absolute;left:6cqw;top:50%;transform:translateY(-50%);width:45cqw;">
          ${kickerHtml}${ft.html}${subHtml}
        </div>
-       <div id="${id}-cw" style="opacity:0;position:absolute;right:5cqw;top:15.2cqw;width:41cqw;height:25.6cqw;">${card}</div>`
+       <div id="${id}-cw" style="opacity:0;position:absolute;${cardBox(a, ctx, land, { side: 5, topCqw: 15.2, hCqw: 29.1, width: 41 }, "right")}">${card}</div>`
     : `<div style="position:absolute;left:5.9cqw;right:5.9cqw;top:27.8cqw;text-align:center;">
          ${kickerHtml}
          <div style="display:flex;justify-content:center;">${ft.html}</div>
-         <div id="${id}-cw" style="opacity:0;margin:${q(52, land)}cqw auto 0;width:81.5cqw;height:51.9cqw;">${card}</div>
+         <div id="${id}-cw" style="opacity:0;margin:${q(52, land)}cqw auto 0;${cardBox(a, ctx, land, { hCqw: 57.4, width: 81.5 }, null)}">${card}</div>
          ${subHtml}
        </div>`) + st.html;
   const s = [
@@ -354,10 +501,10 @@ function feature(scene, ctx, a) {
          ${ft.html}
          <div style="display:flex;flex-direction:column;gap:${q(18, land)}cqw;align-items:flex-start;margin-top:${q(46, land)}cqw;">${chipRow}</div>
        </div>
-       <div id="${id}-cw" style="opacity:0;position:absolute;right:4.5cqw;top:13.6cqw;width:46cqw;height:29.2cqw;">${card}</div>`
+       <div id="${id}-cw" style="opacity:0;position:absolute;${cardBox(a, ctx, land, { side: 4.5, topCqw: 13.6, hCqw: 32.4, width: 46 }, "right")}">${card}</div>`
     : `<div style="position:absolute;left:5.9cqw;right:5.9cqw;top:25cqw;">
          ${ft.html}
-         <div id="${id}-cw" style="opacity:0;margin:${q(50, land)}cqw 0 ${q(46, land)}cqw;width:87.4cqw;height:55.6cqw;">${card}</div>
+         <div id="${id}-cw" style="opacity:0;margin:${q(50, land)}cqw 0 ${q(46, land)}cqw;${cardBox(a, ctx, land, { hCqw: 61.3, width: 87.4 }, null)}">${card}</div>
          <div style="display:flex;flex-direction:column;gap:${q(18, land)}cqw;align-items:flex-start;">${chipRow}</div>
        </div>`) + st.html;
   const s = [
@@ -379,9 +526,15 @@ function montage(scene, ctx, a, b) {
   const ft = flipTitle(id, scene.headline, "Scene by|scene.", land ? 66 : 104, th, land, { hi, color: th.paper, hiColor: th.glow });
   // Film strip: panel frames with sprocket holes both sides, content ×4 so a
   // full-beat scroll never runs off the end; two strips counter-scroll.
+  // land frameH/mediaH went 17/11.5 -> 19/13.5cqw: 11.5cqw is 220.8px at 1080p,
+  // exactly the floor below which a tile stops being readable, and it made the cell
+  // 1.653 wide against a 1.442 portrait cell — the same asset was crop-safe in one
+  // cut and heavy-crop in the other. port mediaH 24 -> 24.5 (frameH 34 to carry it)
+  // brings both to ~1.41. Measured mean crop over this beat: 40.98 -> 21.42 (16:9)
+  // and 36.79 -> 24.78 (9:16). frameH still clears media + q(14) padding + the label.
   const geom = land
-    ? { frameH: 17, gap: 1.3, mediaH: 11.5, top: 3, pos: [47, 73], w: 24, sets: 1.2 }
-    : { frameH: 33.3, gap: 2.4, mediaH: 24, top: 51.9, pos: [5, 52.8], w: 43.5, sets: 1.4 };
+    ? { frameH: 19, gap: 1.3, mediaH: 13.5, top: 3, pos: [47, 73], w: 24, sets: 1.2 }
+    : { frameH: 34, gap: 2.4, mediaH: 24.5, top: 51.9, pos: [5, 52.8], w: 43.5, sets: 1.4 };
   // Four film-strip frames, four assets. Each strip used to receive ONE asset and
   // fill only its j===0 frame, so half of every strip was a blank panel. Cycle a
   // short pool instead of leaving holes.
@@ -489,7 +642,7 @@ function cta(scene, ctx, a) {
   const hi = String(scene.emphasis || "").trim() || lastWord(scene.headline, "Take your|seat.");
   const ft = flipTitle(id, scene.headline, "Take your|seat.", land ? 92 : 140, th, land, { hi, color: th.paper, hiColor: th.glow });
   const logo = a && a.path
-    ? `<img src="${esc(a.path)}" alt="logo" style="width:100%;height:100%;object-fit:cover;">`
+    ? `<img src="${esc(a.path)}" alt="logo" style="width:100%;height:100%;${E.fitCss(a)}">`
     : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:${th.accent};color:${th.btnInk};font-family:${FH};font-size:${q(64, land)}cqw;">${esc(String(brand).slice(0, 1).toUpperCase())}</div>`;
   const btnAt = T + Math.min(1.6, L * 0.28);
   const btnDur = Math.min(1, Math.max(0.4, L * 0.18));
@@ -567,7 +720,7 @@ function styleBlock(th) {
 }
 
 const family = {
-  theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaFallback, wantsLogo,
+  theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaGeometry, mediaFallback, wantsLogo,
   // Empty slots in this pack render a featureless placeholder card, so a
   // REPEAT of a real screenshot/photo beats leaving one blank.
   recycleMedia: true,
@@ -582,4 +735,9 @@ function buildComposition(opts) { return E.buildFilm(family, opts); }
 // drift from the film that ships.
 function planMedia(opts) { return E.planMedia(family, opts); }
 
-module.exports = { buildComposition, planMedia, TEMPLATE_SCENES };
+// FAMILY is the pack's whole design object — the same one buildFilm renders from.
+// It is exported so callers OUTSIDE the renderer can read the slot contract without
+// building a film: services/template_media.resolveMediaPlan needs `mediaSlots` and
+// `mediaGeometry` to tell preflight which boxes this template will draw and what
+// shape each one is, and the crop engine needs the resulting aspect list.
+module.exports = { buildComposition, planMedia, TEMPLATE_SCENES, FAMILY: family };

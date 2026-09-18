@@ -3,6 +3,11 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+// The pacing engine owns the mode table itself (services/pacing.js) rather than
+// config.json, deliberately: the modes are not tuning knobs, they are a set of
+// derived formulas with an identity contract and a test suite. Config only picks
+// WHICH of them is the default. pacing.js requires nothing, so there is no cycle.
+const pacing = require("./services/pacing");
 
 const CONFIG_PATH = path.resolve(__dirname, "..", "config.json");
 // Fresh deploys (Render/Oracle clone from git) have no config.json — it's
@@ -53,6 +58,17 @@ function validate(cfg) {
   must(cfg.qualities && Object.keys(cfg.qualities).length, "missing qualities");
   must(cfg.defaults && cfg.orientations[cfg.defaults.orientation], "defaults.orientation invalid");
   must(cfg.defaults && cfg.qualities[cfg.defaults.quality], "defaults.quality invalid");
+  // PACE is validated only when PRESENT. config.json is gitignored (see the
+  // config.example.json fallback above), so every existing deployment has a
+  // defaults block written before this option existed — a must() on presence
+  // would turn "pull the new build" into "the server no longer boots". Absent
+  // means the pacing engine's own default (normal, i.e. exactly the behaviour
+  // that deployment already has). A PRESENT-BUT-WRONG value is still a hard
+  // boot error, because that one is a typo someone meant to matter.
+  if (cfg.defaults && cfg.defaults.pace != null) {
+    must(pacing.normalizeMode(cfg.defaults.pace),
+         `defaults.pace invalid — expected one of: ${Object.keys(pacing.MODES).join(", ")}`);
+  }
   must(Array.isArray(cfg.allowedFps) && cfg.allowedFps.length, "allowedFps missing");
   must(cfg.server.maxDurationSec > 0, "maxDurationSec must be positive");
   must(cfg.server.minDurationSec > 0 && cfg.server.minDurationSec <= cfg.server.maxDurationSec,
@@ -104,6 +120,16 @@ function validate(cfg) {
            .some((m) => m && !/^kie:/.test(String(m))),
          "every configured model is a kie: alias — set llm.modelFallback to an OpenRouter model for KIE outages");
   }
+  // llm.stageEffort dials the reasoning budget per stage. The house model makes
+  // reasoning MANDATORY (OpenRouter rejects reasoning:{enabled:false} outright),
+  // and reasoning tokens bill as completion tokens — so a short-verdict stage can
+  // spend thousands of output tokens to emit two lines. openrouter.js silently
+  // IGNORES a value outside low|medium|high, which would make a typo here a no-op
+  // that still bills the full default effort, so reject it at boot instead.
+  for (const [stage, effort] of Object.entries(cfg.llm.stageEffort || {})) {
+    must(["low", "medium", "high"].includes(String(effort)),
+         `llm.stageEffort.${stage} is "${effort}" — expected one of: low, medium, high`);
+  }
   // llm.noFallbackStages pins a stage to its named model with NO cross-provider
   // substitution on failure (openrouter.js chat()) — catching a typo here means
   // a stage naming a plain (non-"kie:") model can't be silently no-op'd into
@@ -140,6 +166,22 @@ function build() {
   }
   if (process.env.KIE_API_KEY && cfg.llm.primary) {
     cfg.llm.primary.apiKey = process.env.KIE_API_KEY;
+  }
+  // KIE is now a TTS-ONLY provider (audio.ttsKieModel = Gemini 3.1 Flash TTS);
+  // no LLM stage routes there any more, so llm.primary was dropped from
+  // config.json. tts.js used to reach the key through llm.primary.apiKey —
+  // give it a home of its own so removing the LLM provider can never silently
+  // un-key the voice-over.
+  if (process.env.KIE_API_KEY) {
+    cfg.audio = cfg.audio || {};
+    cfg.audio.ttsKieKey = process.env.KIE_API_KEY;
+  }
+  // TTS overrides — swap voice/model without editing config.json.
+  if (process.env.TTS_MODEL || process.env.TTS_VOICE || process.env.TTS_PROVIDER) {
+    cfg.audio = cfg.audio || {};
+    if (process.env.TTS_MODEL)    cfg.audio.ttsKieModel = process.env.TTS_MODEL;
+    if (process.env.TTS_VOICE)    cfg.audio.ttsVoiceId  = process.env.TTS_VOICE;
+    if (process.env.TTS_PROVIDER) cfg.audio.ttsProvider = process.env.TTS_PROVIDER;
   }
   // Stock-media keys. PIXABAY_API_KEY feeds both the modern provider path
   // (assetProviders.pixabay) and the legacy audio.pixabayKey fallback.
@@ -268,15 +310,14 @@ function build() {
   // Text-only (it reasons over hex colors), so any capable JSON model works. Default
   // ON; disable with ART_DIRECTOR=0, override the model with ART_DIRECTOR_MODEL.
   // Fail-open: on any error the pack keeps its own accents, so it never blocks a render.
-  // House model policy: the hard creative stages (llm.premiumStages) run on the
-  // KIE primary (grok-4-5); EVERY other stage — the directors below included —
-  // runs on KIE gemini-3.6-flash. These three pass their model explicitly, so
-  // they can't ride llm.model; name the alias here instead. If the route is not
-  // configured (a stripped config.json), fall back to the cheap OpenRouter
-  // flash-lite rather than booting into validate()'s dangling-alias error.
-  const FAST_STAGE_MODEL = (cfg.llm.kieRoutes || {})["gemini-3.6-flash"]
-    ? "kie:gemini-3.6-flash"
-    : "google/gemini-3.1-flash-lite";
+  // House model policy: ONE model serves every stage — llm.model (currently the
+  // OpenRouter meta/muse-spark-1.3-contributor). The three directors below pass
+  // their model explicitly, so they can't ride llm.model implicitly; point them
+  // at the same fast tier here. Deriving this from config (rather than naming a
+  // model id inline) means a future model swap is a config.json edit only —
+  // previously this hardcoded a "kie:gemini-3.6-flash" alias, which silently
+  // kept three stages on KIE after the rest of the app had moved off it.
+  const FAST_STAGE_MODEL = cfg.llm.modelFast || cfg.llm.model;
 
   const ardCfg = cfg.artDirector || {};
   cfg.artDirector = {

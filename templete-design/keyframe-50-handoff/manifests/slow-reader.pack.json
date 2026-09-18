@@ -1,0 +1,162 @@
+{
+  "id": "slow-reader",
+  "name": "Slow Reader",
+  "renderer": "filmkit",
+  "orientation": "vertical",
+  "sizePx": [
+    1080,
+    1920
+  ],
+  "cohort": "02 literary / essay",
+  "set": "article-text-50",
+  "globalName": "SlowReader",
+  "configFile": "configs/article-pack-02.js",
+  "vibe": "the room at the end of the afternoon",
+  "form": {
+    "runtimeMs": 129400,
+    "runtimeRangeMs": [
+      90000,
+      150000
+    ],
+    "beats": 18
+  },
+  "readingBudget": {
+    "wpm": 225,
+    "landSeconds": 1.2,
+    "checkedBy": "scripts/lint-reading-budget.js"
+  },
+  "fonts": {
+    "display": "Vollkorn",
+    "body": "Alegreya Sans",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+      "devanagari": "Noto Serif Devanagari"
+    }
+  },
+  "palette": {
+    "slots": [
+      "bg",
+      "surface",
+      "rule",
+      "inkMuted",
+      "ink",
+      "accent",
+      "accent2",
+      "accentInk"
+    ],
+    "values": {
+      "bg": "#191410",
+      "surface": "#241d17",
+      "rule": "#3d322a",
+      "inkMuted": "#9a8b7c",
+      "ink": "#f3ece1",
+      "accent": "#d8a24e",
+      "accent2": "#8fa07a",
+      "accentInk": "#171208"
+    },
+    "strategy": "luminance ladder; hue-rotatable at each slot’s own lightness"
+  },
+  "tweaks": [
+    {
+      "key": "brand",
+      "type": "text"
+    },
+    {
+      "key": "bg",
+      "type": "color"
+    },
+    {
+      "key": "accent",
+      "type": "color"
+    },
+    {
+      "key": "accent2",
+      "type": "color"
+    },
+    {
+      "key": "motion",
+      "type": "radio",
+      "options": [
+        "Calm",
+        "Lively",
+        "Bouncy"
+      ],
+      "default": "Calm"
+    },
+    {
+      "key": "typeScale",
+      "type": "radio",
+      "options": [
+        "Compact",
+        "Default",
+        "Editorial"
+      ],
+      "default": "Default"
+    }
+  ],
+  "motion": {
+    "titlePreset": "drowse",
+    "itemPreset": "rise",
+    "camera": [
+      "zoomOut",
+      "drop",
+      "pushL",
+      "zoomIn",
+      "pushD",
+      "pushR"
+    ],
+    "mechanics": "Typing: \"typewriter\", Scroll: \"feed\", Ring: \"gauge\"",
+    "chrome": false
+  },
+  "world": {
+    "description": "the room at the end of the afternoon. Far: two window light rays widening, a wall weave, a bookshelf silhouette. Mid: a pocket watch hangs on a chain from the top right and swings a 4s pendulum; the movement inside turns, the second hand steps once a second. Near: motes drifting up through the rays.",
+    "cyclePeriodMs": 12000,
+    "planes": 3,
+    "textSafety": "object confined above y=290, below y=1330, or right of x=820; never crosses the copy column"
+  },
+  "mediaSlots": [
+    {
+      "id": "image",
+      "beat": "Feature",
+      "beatIndex": 10,
+      "aspect": "16:10",
+      "minPx": [
+        640,
+        400
+      ],
+      "fit": "cover",
+      "priority": 1,
+      "optional": true,
+      "onEmpty": "swap per look.feature.swap (borrows nearest unclaimed script line)"
+    },
+    {
+      "id": "logo",
+      "beat": "CTA",
+      "beatIndex": 17,
+      "aspect": "1:1",
+      "minPx": [
+        256,
+        256
+      ],
+      "fit": "contain",
+      "priority": 2,
+      "optional": true,
+      "onEmpty": "pack icon mark in a filled badge"
+    }
+  ],
+  "determinism": {
+    "randomness": false,
+    "wallClock": false,
+    "seekSafe": true,
+    "clock": "single authored timeline via animations-v2"
+  },
+  "paths": {
+    "html": "templates/slow-reader.html",
+    "config": "configs/article-pack-02.js",
+    "storyboard": "fixtures/storyboard.slow-reader.json",
+    "timestamps": "fixtures/timestamps.slow-reader.json",
+    "referenceFrames": "reference-frames/slow-reader/"
+  }
+}

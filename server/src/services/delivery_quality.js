@@ -72,6 +72,26 @@ function assessDelivery(job) {
     push(issues, w.id === "scenesRenderNoAsset" ? "major" : "minor", "assets", w.detail, w.fix);
   }
 
+  // ---- 2a) PICTURES THAT REACHED THE SCREEN AND DID NOT SURVIVE IT ----
+  //
+  // Every signal above asks whether a scene HAS a visual. None asks what happened to the
+  // visual it has — and the defect this file was extended for is a film whose every
+  // picture was present and 28% cut off, nav sliced mid-word on both edges. asset_fit
+  // stamps its decision on each clip and asset_render_check.auditAssetFit reads it back off
+  // the rendered document, so the fit is a number a delivery report can carry.
+  const af = j.asset_fit || null;
+  if (af && af.slots > 0) {
+    if (af.fitStatus === "FAIL_HEAVY_CROP") {
+      push(issues, "major", "composition",
+        `${af.heavyCrop} of ${af.slots} picture(s) lose 20% or more of themselves to the crop (mean ${af.meanCropPct}%).`,
+        "The chosen template's image slots are a poor shape for the assets available — pick a template whose media slots match your imagery, or supply pictures closer to the slots' aspect ratios.");
+    } else if (af.compromised > 0) {
+      push(issues, "minor", "composition",
+        `${af.compromised} picture(s) had no good fit for their slot and were cropped harder than their content really allows.`,
+        "Supplying a wider or taller version of those images, or choosing a template with differently-shaped slots, would remove the crop.");
+    }
+  }
+
   // ---- 2b) THE FILE ITSELF ----
   //
   // Every other signal here describes what the pipeline INTENDED. This one describes what it
@@ -104,6 +124,35 @@ function assessDelivery(job) {
   if (ma && Array.isArray(ma.staticScenes) && ma.staticScenes.length) {
     push(issues, "major", "motion",
       `${ma.staticScenes.length} scene(s) have no timeline activity (${ma.staticScenes.join(", ")}) — they hold as a still frame.`);
+  }
+
+  // ---- PACING (services/pacing.js report(), stored at db.setPacingReport) ----
+  // The person who chose a pace should be told when the film did not deliver it,
+  // in the same place they are told everything else about the cut. MINOR only,
+  // and deliberately below the sort so it never outranks a real picture defect:
+  // report() is advisory by design (it never blocks a delivery), and a pace
+  // check failing means "this reads differently than you asked for", not
+  // "this film is broken".
+  const pr = j.pacing_report || null;
+  if (pr && pr.pass === false) {
+    for (const name of (pr.failed || []).slice(0, 3)) {
+      const c = pr.checks && pr.checks[name];
+      if (!c) continue;
+      push(issues, "minor", "pacing", `${pr.label} pacing — ${c.detail}`);
+    }
+  }
+  // Worth saying even when every check passed: the mode could not be fully
+  // honoured, and the user has no other way to learn that.
+  if (pr && pr.cutRateCapped) {
+    const [why, fix] = pr.cutRateCappedBy === "renderer"
+      ? [`this template's renderer draws at most ${pr.rendererSceneCap} scenes`,
+         "Pick a template with a higher scene ceiling, or accept the slower cut rate on this one."]
+      : pr.cutRateCappedBy === "min-scene-length"
+        ? ["the film is too short to hold that many scenes",
+           "Lengthen the film, or choose a slower pace."]
+        : ["the film is long enough that the scene ceiling was reached first",
+           "Shorten the film, or accept the slower cut rate at this length."];
+    push(issues, "minor", "pacing", `${pr.label} pacing could not add every cut it wanted — ${why}.`, fix);
   }
 
   issues.sort((a, b) => (SEVERITY_RANK[a.severity] ?? 3) - (SEVERITY_RANK[b.severity] ?? 3));
@@ -156,6 +205,8 @@ function assessDelivery(job) {
       compositionQuality: layout && layout.score ? layout.score.compositionQuality : null,
       audioQuality: ar ? ar.qualityScore : null,
       usedFallback: !!j.used_fallback,
+      pacingMode: pr ? pr.mode : null,
+      pacingPass: pr ? pr.pass : null,
       // The artifact's own numbers, so the panel can state them rather than imply them.
       delivered: dp && dp.ok ? {
         width: dp.width, height: dp.height, durationSec: dp.durationSec,

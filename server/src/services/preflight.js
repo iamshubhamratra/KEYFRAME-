@@ -22,6 +22,7 @@
 // states block. What changed is that "unrecoverable" now includes "the user gave us
 // their website and every capture of it is unusable", which used to ship.
 
+const pacing = require("./pacing");
 const fs = require("node:fs");
 const path = require("node:path");
 const config = require("../config");
@@ -47,7 +48,7 @@ function check(id, level, ok, detail, fix) {
  * @param {object}  args.mediaPlan      the chosen template's resolved slot contract
  *                                      (services/template_media.resolveMediaPlan), or null
  */
-function preflight({ job, assets = [], script = null, storyboard = null, brandSkin = null, jobDir = "", acceptsVectors = true, hardFail = true, mediaPlan = null } = {}) {
+function preflight({ job, assets = [], script = null, storyboard = null, brandSkin = null, jobDir = "", acceptsVectors = true, hardFail = true, mediaPlan = null, pacing: pacingCfg = null } = {}) {
   const checks = [];
   const list = Array.isArray(assets) ? assets : [];
 
@@ -193,6 +194,47 @@ function preflight({ job, assets = [], script = null, storyboard = null, brandSk
       : `${textless.length} scene(s) have no on-screen text (${textless.map((x) => x.id).join(", ")})`,
     "Edit the script in the Script Room to add a headline for these scenes."
   ));
+
+  // ---- 6b) READABILITY ------------------------------------------------------
+  // Can a viewer actually READ each scene's on-screen copy in the time it is up?
+  //
+  // This lives HERE, not in script.js's validateScript, on purpose. It is a
+  // property of the finished PLAN (post re-timing, real durations), it applies
+  // at every pace including the default, and preflight is already the
+  // production-time disclosure gate. Putting it in validateScript would have
+  // made a pre-existing, pace-independent defect start appearing as a new
+  // warning on default-pace jobs whose films had not changed at all.
+  //
+  // WARN, never FAIL — precedence rule 1 says the fix is LESS COPY, and that is
+  // an editing decision for a human, not grounds to refuse a render.
+  {
+    const P = pacingCfg || (storyboard && storyboard.paceConfig) || null;
+    const readSec = (t) => pacing.minReadableSec(t);
+    const unreadable = scenes.map((s, i) => {
+      // EVERY DISPLAY FIELD, not three of them. `bullets` and `kicker` are where
+      // most of a frame's copy now lives (services/content_density.js fills them
+      // from the brief), and grading a frame without them scored the densest part
+      // of the picture at zero — this gate reported "all scenes hold their copy"
+      // about films whose label rows it had never looked at.
+      const lines = [s.headline, s.subtext, s.kicker, ...(s.bullets || []), ...(s.onScreenText || [])]
+        .map((x) => String(x || "").trim()).filter(Boolean);
+      if (!lines.length) return null;
+      const need = lines.reduce((m, l) => Math.max(m, readSec(l)), 0);
+      const have = Number(s.duration) || 0;
+      return have > 0 && have + 0.05 < need ? { id: s.id || `s${i + 1}`, need, have } : null;
+    }).filter(Boolean);
+    checks.push(check(
+      "textReadable", WARN,
+      unreadable.length === 0,
+      unreadable.length === 0
+        ? `all ${sceneCount} scene(s) hold their copy long enough to read`
+        : `${unreadable.length} scene(s) show text for less time than it takes to read `
+          + `(${unreadable.slice(0, 3).map((x) => `${x.id}: ${x.have}s vs ${x.need}s needed`).join("; ")})`,
+      P && P.multiplier > 1
+        ? "Shorten the on-screen copy on these scenes — a faster pace buys energy with fewer words, never with a faster read."
+        : "Shorten the on-screen copy on these scenes, or give them more time in the Script Room."
+    ));
+  }
 
   // ---- 7) FILE INTEGRITY ---------------------------------------------------
   checks.push(check(

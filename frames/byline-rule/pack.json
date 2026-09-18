@@ -1,0 +1,61 @@
+{
+  "name": "byline-rule",
+  "vibe": "news / journalism — the press pit. Oswald over PT Sans; a luminance-ladder palette on #0e0f11. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#0e0f11",
+    "ink": "#f7f8f9",
+    "accent": "#f2d13c",
+    "a2": "#d0473c"
+  },
+  "fonts": [
+    "Oswald",
+    "PT Sans",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#0e0f11",
+    "ink": "#f7f8f9"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#f2d13c",
+      "#d0473c"
+    ],
+    "extras": [
+      "#8b9095"
+    ],
+    "emphasisCss": "color:#f2d13c;"
+  },
+  "assets": {
+    "photoMod": "the press pit editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "news",
+      "journalism"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Oswald",
+    "body": "PT Sans",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-byline-rule",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

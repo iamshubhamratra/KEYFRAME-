@@ -24,7 +24,13 @@ function quoteForCmd(arg) {
 
 // Drop-in for spawn(cmd, args, opts). Uses a shell only when the target is a
 // Windows .cmd shim; then the full command is pre-quoted into a single string.
+// HIDE THE CONSOLE BY DEFAULT.
+// Node gives every child a visible console window on Windows unless told otherwise. This
+// wrapper is what the renderer, the linter and the inspector all go through, and a render
+// spawns them dozens of times - each one a black cmd window that takes focus mid-render.
+// A caller can still pass windowsHide:false explicitly if it ever wants one visible.
 function spawnCompat(cmd, args = [], opts = {}) {
+  opts = { windowsHide: true, ...opts };
   if (WINDOWS && /\.(cmd|bat)$/i.test(cmd)) {
     const command = [quoteForCmd(cmd), ...args.map(quoteForCmd)].join(" ");
     return spawn(command, { ...opts, shell: true });
@@ -41,7 +47,7 @@ function killTree(child) {
   if (!child || child.killed || child.exitCode != null) return;
   if (WINDOWS && child.pid) {
     try {
-      spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], { stdio: "ignore", shell: false })
+      spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], { stdio: "ignore", shell: false, windowsHide: true })
         .on("error", () => { try { child.kill("SIGKILL"); } catch { /* noop */ } });
       return;
     } catch { /* fall through */ }

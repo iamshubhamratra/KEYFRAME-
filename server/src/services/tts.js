@@ -1,16 +1,32 @@
 // TTS with provider fallback.
 //
-//   PRIMARY  — KIE ElevenLabs (async task API). Draws from the funded KIE wallet
-//              and is unaffected by the OpenRouter daily limit. Verified live.
+//   PRIMARY  — KIE (async task API). Draws from the funded KIE wallet and is
+//              unaffected by the OpenRouter daily limit. The model is chosen by
+//              audio.ttsKieModel; two request schemas are supported (below).
 //   FALLBACK — OpenRouter gpt-audio (chat-completions audio modality). Used when
 //              KIE has no key or its task fails, or when audio.ttsProvider="openrouter".
 //
-// KIE ElevenLabs flow (verified 2026-07-01):
-//   POST /api/v1/jobs/createTask {model, input:{text,voice,stability,similarity_boost,speed}}
-//     -> {code:200, data:{taskId}}
+// KIE transport (shared by both schemas):
+//   POST /api/v1/jobs/createTask {model, input:{...}}  -> {code:200, data:{taskId}}
 //   GET  /api/v1/jobs/recordInfo?taskId=...  (poll)
-//     -> {data:{state:"waiting"|"success"|"fail", resultJson:'{"resultUrls":["...mp3"]}', failMsg}}
-//   The result is already an mp3 — download it directly (no ffmpeg needed).
+//     -> {data:{state:"waiting"|"success"|"fail", resultJson:'{"resultUrls":["..."]}', failMsg}}
+//
+// SCHEMA A — Gemini TTS (audio.ttsKieModel = "google/gemini-3-1-flash-tts").
+//   Verified live 2026-09-07. A dialogue-shaped API even for single-narrator VO:
+//     input: {
+//       speakers:      [{speaker_id:"Speaker 1", voice_name:"Charon",
+//                        style:"", pace:"Natural", accent:"Neutral"}],
+//       dialogue_turns:[{speaker_id:"Speaker 1", text:"..."}],
+//       dialogue_mode: "single",
+//     }
+//   Omitting speakers/dialogue_turns/speaker_id/voice_name each 422s with the
+//   missing field named. Renders in ~2-3s (vs ElevenLabs' 10-20s) and returns a
+//   **WAV**, not an mp3 — step 3 below transcodes it, and says why that matters.
+//
+// SCHEMA B — ElevenLabs (audio.ttsKieModel = "elevenlabs/..."), the previous
+//   primary, kept so a one-line config.json edit rolls back to it:
+//   input:{text,voice,stability,similarity_boost,speed}; v3/dialogue models take
+//   a `dialogue` array instead. Returns an mp3 directly.
 //
 // OpenRouter flow: POST /chat/completions model=openai/gpt-audio-mini,
 //   modalities:["text","audio"], audio:{voice,format:"pcm16"}, stream:true.
@@ -29,7 +45,7 @@ const ENDPOINT = `${config.llm.baseUrl.replace(/\/$/, "")}/chat/completions`;
 
 // ---------- KIE ElevenLabs (primary) ----------
 const KIE_JOBS = "https://api.kie.ai/api/v1/jobs";
-const KIE_TTS_MODEL = config.audio?.ttsKieModel || "elevenlabs/text-to-speech-multilingual-v2";
+const KIE_TTS_MODEL = config.audio?.ttsKieModel || "google/gemini-3-1-flash-tts";
 // KIE whitelists a subset of ElevenLabs voice IDs (arbitrary IDs 500 with "voice
 // not within the range of allowed options"). Only IDs verified against KIE are
 // mapped; unknown planner voices fall back to the verified default. Extend
@@ -61,8 +77,54 @@ function mapKieVoice(voice) {
   if (/^[A-Za-z0-9]{20}$/.test(String(voice))) return String(voice); // caller passed a raw EL id
   return KIE_DEFAULT_VOICE;
 }
+
+// ---------- Gemini TTS voices ----------
+// Gemini exposes 30 named voices (all confirmed available on KIE). The planner
+// speaks a fixed vocabulary — the 9 named "EL" voices plus the gpt-audio names
+// (VALID_VOICES in audio_planner.js) — so map that vocabulary onto the nearest
+// Gemini voice by CHARACTER, keeping each narrator persona recognisable across
+// a provider swap rather than collapsing every film onto one default voice.
+const GEMINI_VOICES = {
+  james:    "Charon",        // M — informative, bold (default narrator)
+  brian:    "Algenib",       // M — gravelly, deep, resonant
+  benjamin: "Umbriel",       // M — easy-going, warm, calming
+  tom:      "Zubenelgenubi", // M — casual, conversational
+  liam:     "Puck",          // M — upbeat, energetic
+  bella:    "Autonoe",       // F — bright, professional
+  emma:     "Laomedeia",     // F — upbeat
+  laura:    "Pulcherrima",   // F — forward, characterful
+  allison:  "Achernar",      // F — soft, soothing
+};
+// Every Gemini voice id, so a caller may also name one directly (e.g. from
+// TTS_VOICE=Sulafat) instead of going through the persona vocabulary above.
+const GEMINI_VOICE_IDS = new Set([
+  "Zephyr", "Puck", "Charon", "Kore", "Fenrir", "Leda", "Orus", "Aoede",
+  "Callirrhoe", "Autonoe", "Enceladus", "Iapetus", "Umbriel", "Algieba",
+  "Despina", "Erinome", "Algenib", "Rasalgethi", "Laomedeia", "Achernar",
+  "Alnilam", "Schedar", "Gacrux", "Pulcherrima", "Achird", "Zubenelgenubi",
+  "Vindemiatrix", "Sadachbia", "Sadaltager", "Sulafat",
+]);
+const GEMINI_DEFAULT_VOICE =
+  GEMINI_VOICE_IDS.has(String(config.audio?.ttsVoiceId)) ? String(config.audio.ttsVoiceId) : "Charon";
+
+function mapGeminiVoice(voice) {
+  const v = String(voice || "").toLowerCase();
+  if (GEMINI_VOICES[v]) return GEMINI_VOICES[v];                    // persona name
+  if (GPT_TO_EL[v]) return GEMINI_VOICES[GPT_TO_EL[v]];             // gpt-audio name → persona
+  // Case-insensitive match on a raw Gemini voice id ("charon" → "Charon").
+  for (const id of GEMINI_VOICE_IDS) if (id.toLowerCase() === v) return id;
+  return GEMINI_DEFAULT_VOICE;
+}
+
+// Which KIE schema does the configured model speak? Gemini TTS is dialogue-shaped
+// and returns WAV; the ElevenLabs family is flat and returns mp3.
+const KIE_IS_GEMINI = /gemini/i.test(KIE_TTS_MODEL) && /tts/i.test(KIE_TTS_MODEL);
+
 function kieKey() {
-  return config.llm?.primary?.apiKey || process.env.KIE_API_KEY || "";
+  // audio.ttsKieKey first: KIE is a TTS-only provider now, so the key no longer
+  // lives under llm.primary (which config.json dropped). The other two are kept
+  // so an older config.json / a bare shell export still keys the voice-over.
+  return config.audio?.ttsKieKey || config.llm?.primary?.apiKey || process.env.KIE_API_KEY || "";
 }
 // CIRCUIT BREAKER for a stalled KIE TTS queue. Discovering the stall costs 20s
 // (see STALL_MS); paying that on EVERY clip of a 30-scene film is minutes of dead
@@ -78,19 +140,72 @@ function kieTtsEnabled() {
   return !!kieKey();
 }
 
-async function synthesizeKie({ script, voice, outputPath, tracker, meta, speed = 1 }) {
+// Gemini's style/pace/accent are CLOSED ENUMS, not free text: a value outside
+// the list is rejected outright ("The style parameter is invalid", HTTP 422) —
+// while an EMPTY string is accepted and means "use the voice's own delivery".
+// So anything we cannot map confidently is omitted rather than guessed.
+const GEMINI_STYLES = ["Vocal Smile", "Newscaster", "Whisper", "Empathetic", "Promo/Hype", "Deadpan"];
+const GEMINI_PACES  = ["Natural", "Rapid Fire", "The Drift", "Staccato"];
+
+// The planner writes `instructions` as a free-text delivery note ("warm and
+// confident, like a product launch narrator"). Classify it onto the enum by
+// keyword, most-specific first; no match -> "" (the voice's natural delivery).
+const STYLE_PATTERNS = [
+  [/whisper|hushed|intimate|breathy|soft[- ]spoken/i,                    "Whisper"],
+  [/deadpan|monotone|flat|dry|matter[- ]of[- ]fact|impassive/i,          "Deadpan"],
+  [/news|anchor|announcer|report|authoritative|formal|corporate|serious/i, "Newscaster"],
+  [/hype|promo|energetic|excited|upbeat|punchy|bold|launch|dynamic|trailer/i, "Promo/Hype"],
+  [/empathetic|warm|caring|gentle|calm|reassuring|comforting|sincere|soothing/i, "Empathetic"],
+  [/smile|friendly|cheerful|bright|inviting|conversational|approachable/i, "Vocal Smile"],
+];
+function geminiStyle(instructions) {
+  const t = String(instructions || "").trim();
+  if (!t) return "";
+  if (GEMINI_STYLES.includes(t)) return t;            // caller named an enum value outright
+  for (const [re, style] of STYLE_PATTERNS) if (re.test(t)) return style;
+  return "";
+}
+
+// `pace` is a word, not a multiplier — translate the numeric speed the rest of
+// the pipeline speaks (vo_fit nudges it to make a clip fit its scene). Note the
+// enum has no plain "Fast"/"Slow": faster is "Rapid Fire", slower is "The Drift".
+function geminiPace(speed) {
+  const n = Number(speed);
+  if (!Number.isFinite(n) || Math.abs(n - 1) < 0.06) return "Natural";
+  const pace = n > 1 ? "Rapid Fire" : "The Drift";
+  return GEMINI_PACES.includes(pace) ? pace : "Natural"; // never ship an off-enum value
+}
+
+async function synthesizeKie({ script, voice, instructions, outputPath, tracker, meta, speed = 1 }) {
   const key = kieKey();
   if (!key) throw new Error("tts(kie): no KIE api key");
   const text = String(script).slice(0, 5000); // model hard cap
   const hdr = { Authorization: `Bearer ${key}` };
 
-  // 1) create task. Eleven V3 (text-to-dialogue) takes a `dialogue` array and
-  // only stability{0,0.5,1}; the v2/turbo TTS models take a flat text field.
-  const voiceId = mapKieVoice(voice);
+  // 1) create task. Three request schemas, picked by the configured model:
+  //    - Gemini TTS: dialogue-shaped (speakers + dialogue_turns), see header.
+  //    - Eleven V3 (text-to-dialogue): a `dialogue` array, stability {0,0.5,1}.
+  //    - Eleven v2/turbo: a flat text field.
+  const voiceId = KIE_IS_GEMINI ? mapGeminiVoice(voice) : mapKieVoice(voice);
   const isDialogueV3 = /dialogue|v3/i.test(KIE_TTS_MODEL);
-  const input = isDialogueV3
-    ? { dialogue: [{ text, voice: voiceId }], stability: 0.5, language_code: "en" }
-    : { text, voice: voiceId, stability: 0.5, similarity_boost: 0.75, style: 0, speed };
+  let input;
+  if (KIE_IS_GEMINI) {
+    input = {
+      speakers: [{
+        speaker_id: "Speaker 1",
+        voice_name: voiceId,
+        style: geminiStyle(instructions), // "" when unmappable — see geminiStyle
+        pace: geminiPace(speed),
+        accent: "Neutral",
+      }],
+      dialogue_turns: [{ speaker_id: "Speaker 1", text }],
+      dialogue_mode: "single",
+    };
+  } else if (isDialogueV3) {
+    input = { dialogue: [{ text, voice: voiceId }], stability: 0.5, language_code: "en" };
+  } else {
+    input = { text, voice: voiceId, stability: 0.5, similarity_boost: 0.75, style: 0, speed };
+  }
   const create = await fetch(`${KIE_JOBS}/createTask`, {
     method: "POST",
     headers: { ...hdr, "Content-Type": "application/json" },
@@ -142,14 +257,39 @@ async function synthesizeKie({ script, voice, outputPath, tracker, meta, speed =
   }
   if (!url) throw new Error(`tts(kie): timed out after ${maxPolls} polls`);
 
-  // 3) download the finished mp3.
+  // 3) download the finished clip, as mp3.
+  //
+  // This function's contract is "returns an mp3 at outputPath", and the rest of
+  // the pipeline trusts the extension: audio_mix concatenates these clips and
+  // normalizeVoClip re-encodes via a ".norm.mp3" temp whose extension is what
+  // tells ffmpeg the output codec. ElevenLabs already returns mp3, so the old
+  // code wrote the bytes straight through — but Gemini TTS returns a **WAV**,
+  // and writing WAV bytes to a .mp3 path leaves a file whose contents and name
+  // disagree. normalizeVoClip would usually launder that (it re-encodes to real
+  // mp3), but it BAILS on clips under 0.2s or of unmeasurable loudness, and
+  // synthesize() only warns when it throws — so the mislabelled file survives
+  // exactly in the edge cases. Transcode by content type instead of hoping.
   const dl = await fetch(url, { signal: AbortSignal.timeout(60_000) });
   if (!dl.ok) throw new Error(`tts(kie): download HTTP ${dl.status}`);
+  const bytes = Buffer.from(await dl.arrayBuffer());
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-  fs.writeFileSync(outputPath, Buffer.from(await dl.arrayBuffer()));
+  // Trust the payload, not the URL: sniff the RIFF/WAVE magic.
+  const isWav = bytes.length > 12 &&
+    bytes.toString("ascii", 0, 4) === "RIFF" && bytes.toString("ascii", 8, 12) === "WAVE";
+  if (isWav) {
+    const tmpWav = `${outputPath}.src.wav`;
+    fs.writeFileSync(tmpWav, bytes);
+    try {
+      await runFfmpeg(["-loglevel", "error", "-i", tmpWav, "-b:a", "160k", "-ar", "44100", outputPath]);
+    } finally {
+      try { fs.unlinkSync(tmpWav); } catch { /* best effort */ }
+    }
+  } else {
+    fs.writeFileSync(outputPath, bytes);
+  }
 
   const spokenSec = (await probeDurationSec(outputPath)) || 0; // null → 0 (shared probe reports null on failure)
-  console.log(`[tts] kie:elevenlabs ${mapKieVoice(voice)} spoke ${words} words (${Math.round(spokenSec * 10) / 10}s)`);
+  console.log(`[tts] kie:${KIE_IS_GEMINI ? "gemini" : "elevenlabs"} ${voiceId} spoke ${words} words (${Math.round(spokenSec * 10) / 10}s)`);
   if (tracker) tracker.addTts({ inputChars: text.length, spokenSec });
   if (meta) { meta.transcript = text; meta.spokenSec = spokenSec; }
   return outputPath;
@@ -173,7 +313,7 @@ function encodePcmToMp3(pcm, outputPath) {
       "-y", "-hide_banner", "-loglevel", "error",
       "-f", "s16le", "-ar", "24000", "-ac", "1", "-i", "pipe:0",
       "-b:a", "128k", outputPath,
-    ]);
+    ], { windowsHide: true });
     let err = "";
     ff.stderr.on("data", (d) => { err += d.toString(); });
     ff.on("error", reject);
@@ -361,7 +501,7 @@ const VO_TARGET_LUFS = -16;
 
 function runFfmpeg(ffArgs, timeoutMs = 45_000) {
   return new Promise((resolve, reject) => {
-    const p = spawn("ffmpeg", ["-y", "-hide_banner", ...ffArgs]);
+    const p = spawn("ffmpeg", ["-y", "-hide_banner", ...ffArgs], { windowsHide: true });
     let err = "";
     p.stderr.on("data", (d) => { err += d.toString(); });
     const timer = setTimeout(() => { try { p.kill("SIGKILL"); } catch { /* noop */ } }, timeoutMs);

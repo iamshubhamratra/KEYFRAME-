@@ -1,0 +1,61 @@
+{
+  "name": "loose-leaf",
+  "vibe": "literary / essay — a sheet of paper on its way down. Young Serif over Figtree; a luminance-ladder palette on #eef0e6. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#eef0e6",
+    "ink": "#151810",
+    "accent": "#4f7a45",
+    "a2": "#e0995c"
+  },
+  "fonts": [
+    "Young Serif",
+    "Figtree",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#eef0e6",
+    "ink": "#151810"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#4f7a45",
+      "#e0995c"
+    ],
+    "extras": [
+      "#6d7360"
+    ],
+    "emphasisCss": "color:#4f7a45;"
+  },
+  "assets": {
+    "photoMod": "a sheet of paper on its way down editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "literary",
+      "essay"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Young Serif",
+    "body": "Figtree",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-loose-leaf",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

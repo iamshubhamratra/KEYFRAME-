@@ -1,6 +1,6 @@
 // KEYFRAME project routes — the script-checkpoint flow.
 //
-//   POST /api/projects               create; runs intake; pauses at script_review
+//   POST /api/projects               scope gate; create; runs intake; pauses at script_review
 //   GET  /api/projects/:id           full state incl. brief + script + warnings
 //   POST /api/projects/:id/approve   resume production with (edited) script
 //   POST /api/projects/:id/regenerate  re-run from "brief" or "script"
@@ -21,6 +21,10 @@ const frameRegistry = require("../services/frame_registry");
 const { validateScript, normalizeScript } = require("../services/script");
 const captionLang = require("../services/caption_lang");
 const captionDirector = require("../services/caption_director");
+const pacing = require("../services/pacing");
+const {
+  analyzeScope, forClient: scopeForClient, reduce: reduceScope, logDecision, mergeClarification,
+} = require("../services/prompt_scope");
 
 const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 10);
 
@@ -85,6 +89,9 @@ function maybeMultipart(req, res, next) {
         const msg = err.code === "LIMIT_UNEXPECTED_FILE"
           ? `too many files or unknown file field "${err.field}" (referenceVideo ×1, logo ×1, assets ×${MAX_USER_IMAGES})`
           : err.message;
+        // Multer (2.x) has already removed what it wrote before reporting the error;
+        // this is the same no-op-when-clean sweep every other rejection makes.
+        discardUploads(req);
         return res.status(400).json({ error: "upload failed", details: [msg] });
       }
       next();
@@ -114,6 +121,94 @@ function clientIp(req) {
   return req.ip || req.socket?.remoteAddress || "unknown";
 }
 
+// Multer writes every accepted file to uploadsDir BEFORE the handler runs, so a request
+// the handler then turns away has already left its files behind — up to a 200MB
+// reference video per request, each kept until the janitor's TTL. The scope gate made
+// that the common case rather than the rare one: an out-of-scope request is refused
+// AFTER its upload has landed. Every early exit from the create handler comes through
+// here.
+//
+// Fail-silent: a file that is already gone, or locked, is the janitor's to collect — a
+// cleanup failure must never turn a clean 4xx into a 500. The containment check keeps
+// this a cleanup and never a delete-anything: multer names these files itself today,
+// but a storage change that let a path point elsewhere must not be able to reach here.
+function discardUploads(req) {
+  const staged = req && req.files && typeof req.files === "object" ? Object.values(req.files).flat() : [];
+  const dir = path.resolve(config.paths.uploadsDir);
+  for (const f of staged) {
+    if (!f || typeof f.path !== "string") continue;
+    if (path.dirname(path.resolve(f.path)) !== dir) continue;
+    try { fs.rmSync(f.path, { force: true }); } catch { /* janitor TTL collects it */ }
+  }
+}
+
+// An AbortSignal that fires when the CLIENT goes away — not when the request body has
+// been read.
+//
+// The obvious `req.on("close", ...)` is wrong on this Node (22.x): IncomingMessage now
+// emits 'close' as soon as its body has been consumed, which for a create request is
+// before the handler even runs (express.json / multer have already read it). Verified
+// in isolation — a request whose client is still waiting fires req 'close' first, with
+// the response not yet written. Wired to that event, every scope analysis would be
+// cancelled at birth and every create would silently return nothing. The response's
+// 'close' fires only when the socket closes or the response finishes; if it has not
+// finished, the client left.
+//
+// Express does not abort a handler when the socket closes, so without this a person who
+// closes the tab mid-analysis still gets billed for the model call and a job nobody
+// will ever open.
+function clientDisconnectSignal(res) {
+  const ac = new AbortController();
+  const gone = () => { if (!ac.signal.aborted && !res.writableEnded) ac.abort(new Error("client disconnected")); };
+  res.on("close", gone);
+  // A socket that died before this listener existed has already emitted its 'close'.
+  // Only a POSITIVE sign of death counts — a false positive here would drop every
+  // create without a word, so a missing socket is not read as a closed one.
+  if (res.destroyed || (res.socket && res.socket.destroyed)) gone();
+  return ac.signal;
+}
+
+// THE ANSWER TO THE ONE QUESTION.
+//
+// The scope gate (services/prompt_scope.js) may answer a submit with NEEDS_CLARIFICATION
+// and a single question. The client re-submits the SAME request carrying
+// clarification: { question, answer } — an object over JSON, a JSON string over
+// multipart (FormData stringifies objects: web/src/api.js createProject), the same two
+// spellings captions arrives in.
+//
+// Unlike captions, a malformed clarification is a 400 rather than a silent drop. A
+// dropped caption config degrades to "off"; a dropped answer sends the person straight
+// back to the question they just answered, with nothing to tell them why.
+//
+// The question is our own text echoed back and is context only, so it is clipped rather
+// than validated. The answer is the person's words and is kept whole; its length is
+// judged on the merged prompt, which is what actually has a cap.
+// -> { clarification: { question, answer } | null, error: string | null }
+function parseClarification(raw) {
+  let c = raw;
+  if (c == null) return { clarification: null, error: null };
+  if (typeof c === "string") {
+    const s = c.trim();
+    if (!s) return { clarification: null, error: null }; // how a form spells "absent"
+    try { c = JSON.parse(s); } catch { c = undefined; }
+  }
+  if (!c || typeof c !== "object" || Array.isArray(c)) {
+    return { clarification: null, error: "clarification must be a JSON object { question, answer }" };
+  }
+  if (typeof c.answer !== "string" || !c.answer.trim()) {
+    return { clarification: null, error: "clarification.answer must be a non-empty string" };
+  }
+  const question = typeof c.question === "string" ? c.question.replace(/\s+/g, " ").trim().slice(0, 300) : "";
+  return { clarification: { question, answer: c.answer.trim() }, error: null };
+}
+
+// The answer becomes part of the PROMPT via prompt_scope.mergeClarification: appended to
+// the person's words, and REPLACING them only when they were unmistakable junk (no
+// letters, a held-down key, keyboard-row mash). It lives beside the nonsense check it
+// depends on — see that module for why "nonsense" is now that strict. It used to be
+// defined here on top of a looser check, and a German compound or an acronym read as
+// nonsense, so the answer silently replaced the person's subject in the stored job.
+
 function validateCreate(body, { hasUpload = false } = {}) {
   const errs = [];
   const out = {};
@@ -121,11 +216,35 @@ function validateCreate(body, { hasUpload = false } = {}) {
 
   // Multi-modal: at least one of prompt / referenceVideo / websiteUrl.
   out.prompt = "";
+  let promptRejected = false;
   if (typeof body.prompt === "string" && body.prompt.trim()) {
     const p = body.prompt.trim();
-    if (p.length < 10) errs.push("prompt, when given, must be at least 10 characters");
-    else if (p.length > 4000) errs.push("prompt must be at most 4000 characters");
+    if (p.length < 10) { errs.push("prompt, when given, must be at least 10 characters"); promptRejected = true; }
+    else if (p.length > 4000) { errs.push("prompt must be at most 4000 characters"); promptRejected = true; }
     else out.prompt = p;
+  }
+
+  // CLARIFICATION — the answer to the scope gate's one question, merged into the prompt
+  // here so the gate, the job row and every stage after it read the same words. See
+  // parseClarification / mergeClarification above.
+  //
+  // Merged BEFORE the "at least one of" check below, so an answer counts as a prompt.
+  // With no original prompt there was nothing to clarify — prompt_scope decides every
+  // source-only request without a question — so the answer is simply the prompt and
+  // meets the same 10-character floor a typed one does; otherwise this field would be a
+  // way round that floor. A short answer that REPLACES a nonsense prompt is not held to
+  // it: that prompt already passed, and "my bakery" is a complete reply to "what is the
+  // video about?".
+  {
+    const { clarification, error } = parseClarification(body.clarification);
+    if (error) errs.push(error);
+    else if (clarification && !promptRejected) {
+      const hadPrompt = !!out.prompt;
+      const merged = mergeClarification(out.prompt, clarification);
+      if (merged.length > 4000) errs.push("prompt and clarification together must be at most 4000 characters");
+      else if (!hadPrompt && merged.length < 10) errs.push("prompt, when given, must be at least 10 characters");
+      else { out.prompt = merged; out.clarification = clarification; }
+    }
   }
 
   if (typeof body.websiteUrl === "string" && body.websiteUrl.trim()) {
@@ -249,6 +368,31 @@ function validateCreate(body, { hasUpload = false } = {}) {
     }
   }
 
+  // VIDEO PACE — how DENSE the film is, not how fast it plays back. See
+  // services/pacing.js for what each mode actually changes. Absent = the server
+  // default (normal), which is byte-identical to pre-pacing behaviour.
+  //
+  // Named modes, not a raw number: the modes are formula sets (word budget,
+  // cut rate, motion tilt), not a single multiplier, so accepting an arbitrary
+  // float would promise interpolation the engine does not do. normalizeMode
+  // still ACCEPTS "1.25" and "Fast" as spellings of a mode — which matters over
+  // multipart, where every scalar arrives as a string.
+  //
+  // NAME NOTE: this is job-level `pace`. It is NOT script.voice.pace, which the
+  // LLM authors as "calm | conversational | brisk" and which describes the
+  // NARRATOR's delivery. Different level, different meaning, both keep their name.
+  // Absent -> the SERVER default from config (defaults.pace), not a hardcoded
+  // constant. Every other option in this validator reads its default from
+  // config the same way (orientation, quality, fps), and config.js boot-
+  // validates this one — a validated setting nothing reads is just a trap.
+  if (body.pace == null || body.pace === "") {
+    out.pace = pacing.normalizeMode(config.defaults.pace) || pacing.DEFAULT_MODE;
+  } else {
+    const mode = pacing.normalizeMode(body.pace);
+    if (!mode) errs.push(`pace must be one of: ${Object.keys(pacing.MODES).join(", ")}`);
+    else out.pace = mode;
+  }
+
   if (body.framePack != null && body.framePack !== "auto") {
     if (typeof body.framePack !== "string" || frameRegistry.resolvePack(body.framePack) == null) {
       errs.push(`framePack must be "auto" or one of: ${frameRegistry.listPacks().join(", ")}`);
@@ -274,7 +418,19 @@ function buildRouter({ enqueueIntake, enqueueProduction }) {
     message: { error: "rate limit exceeded", hint: "try again in an hour" },
   });
 
-  router.post("/projects", limiter, maybeMultipart, (req, res) => {
+  // Express 4 does not await a handler: a throw after the first `await` would become an
+  // unhandled rejection and a request that never answers. The wrapper hands it to
+  // next() — the same 500 the synchronous handler used to get for free — and discards
+  // the uploads first unless the job row already owns them (upload_path is the intake
+  // source; the originals are the regenerate recovery source).
+  router.post("/projects", limiter, maybeMultipart, (req, res, next) => {
+    handleCreate(req, res).catch((e) => {
+      if (!res.locals.jobCommitted) discardUploads(req);
+      next(e);
+    });
+  });
+
+  async function handleCreate(req, res) {
     // upload.fields() puts files on req.files (keyed by field); req.file is gone.
     const files = req.files || {};
     const referenceVideo = files.referenceVideo && files.referenceVideo[0] ? files.referenceVideo[0] : null;
@@ -293,10 +449,69 @@ function buildRouter({ enqueueIntake, enqueueProduction }) {
     if (logoFile && logoFile.mimetype === "image/svg+xml" && !looksLikeSvg(logoFile.path)) {
       errs.push("logo claims image/svg+xml but does not look like an SVG");
     }
-    if (errs.length) return res.status(400).json({ error: "invalid request", details: errs });
+    if (errs.length) {
+      discardUploads(req);
+      return res.status(400).json({ error: "invalid request", details: errs });
+    }
 
-    const since = Date.now() - 24 * 60 * 60 * 1000;
-    if (db.countJobsSince(since) >= config.server.dailyJobCap) {
+    // The cap is checked BEFORE the gate so a request that could never be accepted
+    // today does not pay for a model call first.
+    const capReached = () => db.countJobsSince(Date.now() - 24 * 60 * 60 * 1000) >= config.server.dailyJobCap;
+    if (capReached()) {
+      discardUploads(req);
+      return res.status(429).json({ error: "daily job cap reached" });
+    }
+
+    // THE SCOPE GATE — can KEYFRAME fulfil this by making a video? Decided here, on
+    // submit, BEFORE the job row, the queue, ingest, the brief, assets, TTS or render:
+    // everything that costs money sits behind this line. See services/prompt_scope.js
+    // for the order of decision (tier-1 moderation -> source-only -> nonsense ->
+    // model under a hard budget -> fail-open).
+    //
+    // Anything but SUPPORTED stops the request here with a 422 whose body carries the
+    // client projection of the decision: the one question (NEEDS_CLARIFICATION), what
+    // KEYFRAME can make and how (OUT_OF_SCOPE), or the plain refusal (DISALLOWED). No
+    // row, no enqueue, no spend. A refused request is NEVER rewritten into some other
+    // film — the person decides what to make next.
+    //
+    // analyzeScope never throws and fails open to SUPPORTED, so a provider outage costs
+    // the gate its judgement, never the person their video.
+    const signal = clientDisconnectSignal(res);
+    const { scope } = await analyzeScope({
+      prompt: out.prompt,
+      sources: {
+        websiteUrl: out.websiteUrl,
+        blogUrl: out.blogUrl,
+        referenceVideo: !!uploadPath,
+        uploadedImages: !!(logoFile || imageFiles.length),
+      },
+      preferences: { duration: out.duration, orientation: out.orientation, pace: out.pace },
+      clarification: out.clarification || null,
+      // This route takes the create screen's inputs (links, uploads, languages, script
+      // review, Autopilot), so a refusal's "how to create a video" steps describe those.
+      surface: "create-screen",
+      signal,
+    });
+    logDecision(scope, { route: "projects", ip: clientIp(req), ...(signal.aborted ? { clientGone: true } : {}) });
+
+    // The person closed the tab while the gate was deciding. Nobody will ever poll a
+    // job made now, and on autopilot it would render to completion regardless.
+    if (signal.aborted) {
+      discardUploads(req);
+      return;
+    }
+
+    if (!scope.isSupported) {
+      discardUploads(req);
+      return res.status(422).json({ error: scope.userMessage, scope: scopeForClient(scope) });
+    }
+
+    // Checked AGAIN, not just once. This handler was synchronous from the cap check to
+    // the insert, which made the pair atomic; the await above opened a window as long
+    // as the gate's budget in which any number of concurrent creates could all pass the
+    // first check. One loop over the in-memory store closes it.
+    if (capReached()) {
+      discardUploads(req);
       return res.status(429).json({ error: "daily job cap reached" });
     }
 
@@ -348,8 +563,14 @@ function buildRouter({ enqueueIntake, enqueueProduction }) {
       brandPalette: out.brandPalette || null,
       render3d: out.render3d,
       composeMode: out.composeMode,
+      pace: out.pace,
       uploadPath,
       userAssets,
+      // The gate's decision, for audit: how it was reached (moderation / input mode /
+      // heuristic / model / fail-open), what it cost and every coercion applied. Kept
+      // OFF `intent` deliberately — intent is stringified whole into the brief model's
+      // message, and the gate's verdict is not creative direction.
+      promptScope: reduceScope(scope),
       intent: {
         prompt: out.prompt,
         websiteUrl: out.websiteUrl || null,
@@ -361,11 +582,23 @@ function buildRouter({ enqueueIntake, enqueueProduction }) {
           orientation: out.orientation,
           voiceStyle: out.voiceStyle || "auto",
           framePack: out.framePack,
+          // OMITTED at the default pace, so a default-pace brief prompt is
+          // byte-identical to the pre-feature one. `intent` is stringified whole
+          // into the brief LLM's message, so an always-present `"pace":"normal"`
+          // would change every existing job's prompt to say something the model
+          // already assumed.
+          //
+          // This is only the CREATIVE hint (it lets the model pitch tone and
+          // music at the right energy). It is NOT how the script gets its
+          // budget: BriefSchema strips unknown keys, so the real config is
+          // re-attached server-side from the JOB in project_pipeline.runIntake.
+          ...(out.pace && out.pace !== pacing.DEFAULT_MODE ? { pace: out.pace } : {}),
         },
       },
       created_at: Date.now(),
       client_ip: clientIp(req),
     });
+    res.locals.jobCommitted = true;
 
     enqueueIntake(jobId);
 
@@ -376,8 +609,12 @@ function buildRouter({ enqueueIntake, enqueueProduction }) {
       nextStep: out.autopilot
         ? "pipeline will run end-to-end automatically"
         : "poll statusUrl until status=script_review, then POST .../approve",
+      // What the gate understood, so the client can say up front what KEYFRAME will
+      // NOT do from this request (unsupportedParts) rather than leave the person to
+      // discover it in the finished film. No confidence, no cost — see forClient.
+      scope: { status: scope.status, videoIntent: scope.videoIntent, unsupportedParts: scope.unsupportedParts },
     });
-  });
+  }
 
   router.get("/projects", (req, res) => {
     const status = typeof req.query.status === "string" ? req.query.status : undefined;
@@ -440,15 +677,31 @@ function buildRouter({ enqueueIntake, enqueueProduction }) {
 
     // Accept an edited script, or approve the stored draft as-is.
     let script = raw.script;
+    let approveWarnings = null;
     if (req.body && req.body.script) {
+      // RE-VALIDATE AT THE PACE THE SCRIPT WAS WRITTEN AT. Judging a Fast script
+      // by Normal's expectations is how this endpoint would 400 on a script the
+      // pipeline itself authored, at the exact moment the user clicks approve.
+      // The stored brief carries the pacing intake resolved; falling back to the
+      // job's own pace covers a brief written before this existed.
+      const pacingCfg = (raw.brief && raw.brief.pacing) || pacing.resolve(raw.pace, {
+        durationSec: raw.duration,
+        voiceover: raw.voiceover_enabled !== 0,
+        orientation: raw.orientation,
+      });
       script = normalizeScript(req.body.script, { targetDuration: raw.duration });
-      const check = validateScript(script, { targetDuration: raw.duration });
+      const check = validateScript(script, { targetDuration: raw.duration, pacing: pacingCfg });
       if (!check.ok) {
         return res.status(400).json({ error: "edited script failed validation", details: check.errors, warnings: check.warnings });
       }
+      // The user's edits can push a script back over its pace budget. That is
+      // their call to make — approve still succeeds — but the warnings ride
+      // along on the job so the Script Room and the delivery report can say so
+      // rather than the film quietly coming out longer than the mode promised.
+      approveWarnings = check.warnings;
     }
 
-    db.markApproved(req.params.id, { script });
+    db.markApproved(req.params.id, { script, warnings: approveWarnings });
     enqueueProduction(req.params.id);
     res.status(202).json({ projectId: req.params.id, status: "queued", statusUrl: `/api/projects/${req.params.id}` });
   });
@@ -476,4 +729,7 @@ function buildRouter({ enqueueIntake, enqueueProduction }) {
   return router;
 }
 
-module.exports = { buildRouter };
+// The clarification and disconnect helpers are shared with routes/generate.js, so the
+// two create routes cannot drift apart on how an answer is read or merged, or on how a
+// departed client is detected.
+module.exports = { buildRouter, validateCreate, parseClarification, mergeClarification, clientDisconnectSignal };

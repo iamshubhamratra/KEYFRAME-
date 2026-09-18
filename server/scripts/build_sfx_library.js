@@ -31,7 +31,7 @@ const CUES = {
 
 function ffmpegNormalize(src, dest) {
   return new Promise((resolve, reject) => {
-    const p = spawn("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error", "-i", src, "-af", "loudnorm=I=-18:TP=-2:LRA=7", "-ar", "44100", "-b:a", "128k", dest]);
+    const p = spawn("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error", "-i", src, "-af", "loudnorm=I=-18:TP=-2:LRA=7", "-ar", "44100", "-b:a", "128k", dest], { windowsHide: true });
     p.on("error", reject);
     p.on("exit", (c) => c === 0 ? resolve() : reject(new Error(`ffmpeg exit ${c}`)));
   });

@@ -1,0 +1,165 @@
+{
+  "render": {
+    "renderId": "rd_exp0000004",
+    "kind": "export",
+    "profile": "export1080",
+    "planRevision": 4,
+    "status": "done",
+    "pct": 100,
+    "etaSec": 0,
+    "queuePosition": 0,
+    "compositionHash": "comp_r4_3e9b07c1",
+    "durationSec": 45.024,
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "createdAt": 1789377840000,
+    "finishedAt": 1789377892000,
+    "qa": {
+      "verdict": "pass",
+      "score": 9.3,
+      "matchesPreview": {
+        "renderId": "rd_prev0004",
+        "planRevision": 4,
+        "ok": true
+      },
+      "checks": [
+        {
+          "id": "preview_match",
+          "ok": true,
+          "label": "Matches preview r4",
+          "detail": "same composition"
+        },
+        {
+          "id": "caption_safe",
+          "ok": true,
+          "label": "Captions in safe zone",
+          "detail": "14 of 14 cues"
+        },
+        {
+          "id": "broll_missing",
+          "ok": false,
+          "label": "B-roll #3 has no clip",
+          "detail": "you stay on screen there"
+        },
+        {
+          "id": "loudness",
+          "ok": true,
+          "label": "Audio",
+          "detail": "−14 LUFS · peak −1.2 dB"
+        },
+        {
+          "id": "duration",
+          "ok": true,
+          "label": "Duration matches",
+          "detail": "0:45"
+        },
+        {
+          "id": "format",
+          "ok": true,
+          "label": "1080×1920 · 30fps",
+          "detail": "H.264 · AAC"
+        },
+        {
+          "id": "av_sync",
+          "ok": true,
+          "label": "A/V sync",
+          "detail": "±12 ms"
+        }
+      ]
+    },
+    "files": {
+      "mp4": {
+        "kind": "export",
+        "key": "rd_exp0000004",
+        "filename": "take-03-pricing-story.mp4",
+        "sizeBytes": 48210442
+      },
+      "srt": {
+        "kind": "captions",
+        "key": "rd_exp0000004.srt",
+        "filename": "take-03-pricing-story.srt",
+        "sizeBytes": 1804
+      },
+      "vtt": {
+        "kind": "captions",
+        "key": "rd_exp0000004.vtt",
+        "filename": "take-03-pricing-story.vtt",
+        "sizeBytes": 1911
+      },
+      "credits": {
+        "kind": "credits",
+        "key": "rd_exp0000004",
+        "filename": "take-03-pricing-story-credits.txt",
+        "sizeBytes": 642
+      }
+    },
+    "credits": [
+      {
+        "assetId": "ast_pex11",
+        "text": "Video by Mikhail Nilov from Pexels",
+        "license": "Pexels License",
+        "sourceUrl": "https://www.pexels.com/video/4187020/"
+      },
+      {
+        "assetId": "ast_pex21",
+        "text": "Video by Pexels contributor",
+        "license": "Pexels License",
+        "sourceUrl": "https://www.pexels.com/video/4266268/"
+      },
+      {
+        "assetId": "ast_mus01",
+        "text": "“Morning Drive” — Pixabay",
+        "license": "Pixabay Content License",
+        "sourceUrl": "https://pixabay.com/music/upbeat-morning-drive-118422/"
+      }
+    ],
+    "usage": {
+      "aiCalls": 6,
+      "stockSearches": 4,
+      "renders": 3
+    }
+  },
+  "exports": {
+    "currentId": "rd_exp0000004",
+    "stale": false,
+    "items": [
+      {
+        "renderId": "rd_exp0000004",
+        "planRev": 4,
+        "profile": "export1080",
+        "createdAt": 1789377840000,
+        "qa": {
+          "verdict": "pass",
+          "score": 9.3
+        },
+        "files": {
+          "mp4": {
+            "kind": "export",
+            "key": "rd_exp0000004",
+            "filename": "take-03-pricing-story.mp4",
+            "sizeBytes": 48210442
+          },
+          "srt": {
+            "kind": "captions",
+            "key": "rd_exp0000004.srt",
+            "filename": "take-03-pricing-story.srt",
+            "sizeBytes": 1804
+          },
+          "vtt": {
+            "kind": "captions",
+            "key": "rd_exp0000004.vtt",
+            "filename": "take-03-pricing-story.vtt",
+            "sizeBytes": 1911
+          },
+          "credits": {
+            "kind": "credits",
+            "key": "rd_exp0000004",
+            "filename": "take-03-pricing-story-credits.txt",
+            "sizeBytes": 642
+          }
+        }
+      }
+    ]
+  }
+}

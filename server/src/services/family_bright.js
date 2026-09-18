@@ -100,6 +100,85 @@ const TEMPLATE_SCENES = [
 ];
 
 const mediaSlots = { productframe: ["desktop"], showcase: ["photo", "photo"], voice: ["photo"] };
+// HOW MANY PICTURES A TALL FRAME SHOWS — not the same number a wide one shows.
+// showcase stacks its two tiles in portrait, and two tiles inside the 88cqw measure
+// could only ever be 2.4:1 letterboxes (measured: every wide asset lost 30% of its
+// width, every landscape asset 23% of its height). One tile in the same band is
+// 88cqw x 58cqw = AR 1.52 — the exact shape of a website capture, and inside the
+// 1.5-1.8 stock-photo range. template_media.wantsFor reads this whenever the frame is
+// taller than it is wide, so the engine casts one asset instead of planning a second
+// picture the layout then drops.
+const mediaSlotsPortrait = { showcase: ["photo"] };
+// WHAT SHAPE EACH PLACEHOLDER IS — the number that did not exist anywhere in this
+// codebase before. Fractions of the CANVAS (wFrac of its width, hFrac of its height),
+// derived from the CSS each scene function writes and cross-checked against a live
+// headless render (`node scripts/audit-slot-fit.js`). services/template_media.js turns
+// them into real pixels for this film's dimensions, so selection can weigh SHAPE and
+// asset_fit can choose a real crop instead of the hardcoded `cover / top center`.
+// ---- placeholder geometry ----------------------------------------------------
+// What SHAPE each media box actually is, as fractions of the canvas — the number
+// no function in this file ever computes, because every box here is sized by
+// mixing units (`width:50cqw` is a % of the frame's WIDTH; the height beside it
+// is `27cqw`, ALSO a % of the width) so the aspect only exists once the render
+// dimensions are known. Asset selection could not previously see it, which is
+// how a 1.518 website capture ended up in a 1.85 frame with a fifth of its
+// height thrown away by object-fit:cover.
+//
+// Verified against scripts/audit-slot-fit.js (headless Chrome, bloom-illustrated
+// at 1920x1080 and 1080x1920). Chrome rounds the 0.09cqw card hairline up to a
+// whole pixel per side, so every card-hosted box is exactly 2px narrower than
+// its declared cqw width — that 2px is already baked into the fractions below.
+const mediaGeometry = {
+  // productframe — the browser card is a hard 50cqw column in landscape and the
+  // full 88cqw text measure in portrait (100% inside `padding:18cqw 6cqw`); the
+  // screen well under the address bar is a plain `height:27/46cqw` div, so its
+  // height is a percentage of the frame's WIDTH in both orientations. 27cqw of
+  // 1920 is 518px against 1080 of height — 0.48 of the canvas, not 0.27.
+  // Landscape lands at 1.85 and portrait at 1.91: both slightly wider than a
+  // 1.518 desktop capture, which is deliberate — the scene SCROLLS the shot
+  // (M.scrollReveal, -46/-70px), and that only reads if the image overflows the
+  // well vertically. Cropping is the design intent, so `fit` stays auto.
+  productframe: {
+    land: [{ wFrac: 0.499, hFrac: 0.48, importance: "hero" }],
+    port: [{ wFrac: 0.878, hFrac: 0.259, importance: "hero" }],
+  },
+  // showcase — landscape is a row of two tiles inside `padding:9cqw 7cqw`: 86cqw of
+  // measure less the 1.8cqw gap, halved, is 42.1cqw per tile. That tile used to be
+  // 22cqw tall → AR 1.92, wider than ANY class this scene is fed (captures 1.52,
+  // stock 1.5-1.8, portraits 0.67), and every landscape showcase row in the audit came
+  // back heavy-crop: a 3:1 banner lost 36% of its width, a 1.6 photo 17% of its height.
+  // The tile is now 26cqw tall → 806x499 = AR 1.615, which sits between the capture and
+  // stock aspects, and the extra 77px still clears the landscape content band.
+  //
+  // Portrait was worse, and was not even drawn as authored: `flex:1` is a WIDTH weight
+  // in the landscape row, but the same declaration becomes a HEIGHT weight with
+  // `flex-basis:0` once the tiles stack, so `height:36cqw` was silently outranked and
+  // the pair rendered at the mean of the two assets' own heights (measured AR 2.087 —
+  // an accident of the casting, not a design). Portrait now pins the height
+  // (`flex:0 0 auto`) and shows ONE tile: 88cqw x 58cqw = 948x626 = AR 1.513. See
+  // mediaSlotsPortrait, which keeps the cast count in step with the CSS.
+  showcase: {
+    land: [
+      { wFrac: 0.42, hFrac: 0.462, importance: "support" },
+      { wFrac: 0.42, hFrac: 0.462, importance: "support" },
+    ],
+    port: [
+      { wFrac: 0.878, hFrac: 0.326, importance: "support" },
+    ],
+  },
+  // voice — the testimonial's avatar disc, a square 3.2cqw / 5.6cqw circle at
+  // the foot of the quote card. 61px at 1920x1080 and 60px at 1080x1920: an
+  // accent, never a picture anyone reads. Declared so the selector stops
+  // spending a hero-grade photo on a dot and stops analysing crops for it.
+  // `allow:["photo"]` is the half of that the importance alone could not say: the disc
+  // is a FACE, and a 1.52 website capture squeezed into a 61px circle is unreadable
+  // twice over. Measured, a 0.667 portrait still loses 33% of its height to the square
+  // — unavoidable for a circular crop, and the crop engine now picks WHICH third.
+  voice: {
+    land: [{ wFrac: 0.032, hFrac: 0.0569, importance: "accent", allow: ["photo"] }],
+    port: [{ wFrac: 0.056, hFrac: 0.0315, importance: "accent", allow: ["photo"] }],
+  },
+};
 // True when the PREVIOUS scene already carried imagery — keeps media beats
 // alternating now that any spare asset, not just a pinned screenshot, earns one.
 const mediaBeatJustPlayed = (ctx) => ((mediaSlots[ctx && ctx.prevType] || []).length > 0);
@@ -209,7 +288,7 @@ function uiMock(id, th, land) {
 function plate(th, land, asset, brand, radius) {
   if (asset && asset.path) {
     const pos = E.isScreenshot(asset) ? "top center" : "center center";
-    return `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;object-fit:cover;object-position:${pos};display:block;border-radius:${r(radius)}cqw;">`;
+    return `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;${E.fitCss(asset)}display:block;border-radius:${r(radius)}cqw;">`;
   }
   return `<div style="width:100%;height:100%;display:grid;place-items:center;border-radius:${r(radius)}cqw;background:linear-gradient(140deg,${rgba(th.accent, 0.18)},${rgba(th.accent2, 0.08)} 60%,${rgba(th.accent3, 0.14)});">
     <div style="font-family:${th.displayStack};font-weight:700;font-size:${land ? 2.4 : 4}cqw;letter-spacing:0.04em;color:${rgba(th.ink, 0.5)};">${esc(String(brand).slice(0, 14))}</div>
@@ -275,7 +354,7 @@ function productframe(scene, ctx, asset) {
         </div>
         <div style="position:relative;width:100%;height:${land ? 27 : 46}cqw;overflow:hidden;background:${th.ground};">
           ${shot
-            ? `<img id="${id}-img" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;object-fit:cover;object-position:${E.isScreenshot(asset) ? "top center" : "center center"};display:block;">`
+            ? `<img id="${id}-img" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;${E.fitCss(asset)}display:block;">`
             : uiMock(id, th, land)}
         </div>
       </div>
@@ -461,7 +540,7 @@ function voice(scene, ctx, a) {
   // was cast (mediaSlots.voice=["photo"]); fall back to the gradient initial.
   const avaSz = land ? 3.2 : 5.6;
   const ava = (a && a.path)
-    ? `<span style="width:${avaSz}cqw;height:${avaSz}cqw;border-radius:50%;flex:0 0 auto;overflow:hidden;display:block;background:${rgba(th.accent, 0.16)};"><img src="${esc(a.path)}" alt="${esc(a.alt || author || "portrait")}" style="width:100%;height:100%;object-fit:cover;display:block;"></span>`
+    ? `<span style="width:${avaSz}cqw;height:${avaSz}cqw;border-radius:50%;flex:0 0 auto;overflow:hidden;display:block;background:${rgba(th.accent, 0.16)};"><img src="${esc(a.path)}" alt="${esc(a.alt || author || "portrait")}" style="width:100%;height:100%;${E.fitCss(a)}display:block;"></span>`
     : `<span style="width:${avaSz}cqw;height:${avaSz}cqw;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;background:linear-gradient(135deg,${th.accent},${th.accent2});font-family:${th.displayStack};font-weight:700;font-size:${land ? 1.5 : 2.6}cqw;color:${avaInk};">${esc(initial)}</span>`;
   const html = `
     ${orb(`${id}-orb`, th, land ? 42 : 60, 0.2, 22, 70)}
@@ -502,16 +581,27 @@ function showcase(scene, ctx, a, b) {
   const pills = (Array.isArray(scene.items) && scene.items.length ? scene.items : bullets(scene, 3))
     .map((p) => fit(String(p), 26)).filter(Boolean).slice(0, 3);
   const rad = land ? 1.4 : 2.4;
+  // THE TILE'S SHAPE, which nothing here used to compute. `flex:1` is a width weight in
+  // the landscape row and a HEIGHT weight in the portrait column, where it outranked the
+  // authored height entirely — so the weight is now orientation-aware and portrait keeps
+  // the height it declares. Landscape 42.1x26cqw = 1.62 (was 1.92, heavy-crop on every
+  // asset class); portrait 88x58cqw = 1.52, one tile instead of two 2.4:1 slots.
   const tile = (asset, cls) => `
-    <div class="${cls}" style="opacity:0;flex:1;min-width:0;height:${land ? 22 : 36}cqw;overflow:hidden;${cardCss(th, rad, 1.1)}">
+    <div class="${cls}" style="opacity:0;flex:${land ? "1" : "0 0 auto"};min-width:0;height:${land ? 26 : 58}cqw;overflow:hidden;${cardCss(th, rad, 1.1)}">
       ${plate(th, land, asset, brand, rad)}
     </div>`;
+  // The landscape band is deliberately NOT symmetric any more. A centred stack grows
+  // equally in both directions, so the taller tiles below pushed the eyebrow chip up to
+  // y=94 and straight through the HUD brand lockup (measured overlap 155x16px) while
+  // 131px of frame sat unused under the pills. 11cqw over 7cqw moves the whole stack
+  // down 38px: the chip lands back at its original y=133 and the pills still clear the
+  // progress rail by 50px.
   const html = `
-    <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:${land ? "9cqw 7cqw" : "18cqw 6cqw"};">
+    <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:${land ? "11cqw 7cqw 7cqw" : "18cqw 6cqw"};">
       ${chip(`${id}-kick`, th, land, kicker)}
       <div style="margin-top:${land ? 1.4 : 2.6}cqw;">${headBlock(id, th, lines, size, "left")}</div>
       <div style="margin-top:${land ? 2.2 : 3.8}cqw;width:100%;display:flex;${land ? "flex-direction:row;" : "flex-direction:column;"}gap:${land ? 1.8 : 2.4}cqw;">
-        ${tile(a, `${id}-t1`)}${tile(b, `${id}-t2`)}
+        ${tile(a, `${id}-t1`)}${land ? tile(b, `${id}-t2`) : ""}
       </div>
       ${pills.length ? `<div style="margin-top:${land ? 1.8 : 3}cqw;display:flex;flex-wrap:wrap;gap:${land ? 1 : 1.6}cqw;">
         ${pills.map((p) => `<div class="${id}-pill" style="opacity:0;display:inline-flex;align-items:center;gap:${land ? 0.65 : 1.15}cqw;padding:${land ? "0.6cqw 1.3cqw" : "1.1cqw 2cqw"};${cardCss(th, 9, 0.5)}">
@@ -523,7 +613,7 @@ function showcase(scene, ctx, a, b) {
   const s = [
     kicker ? `tl.fromTo("#${id}-kick",{opacity:0,y:18},{opacity:1,y:0,duration:0.45,ease:"power3.out"},${r(T + 0.15)});` : "",
     `tl.fromTo(".${id}-t1",{opacity:0,y:44,scale:0.96},{opacity:1,y:0,scale:1,duration:0.68,ease:"power3.out"},${r(T + 0.55)});`,
-    `tl.fromTo(".${id}-t2",{opacity:0,y:44,scale:0.96},{opacity:1,y:0,scale:1,duration:0.68,ease:"power3.out"},${r(T + 0.7)});`,
+    land ? `tl.fromTo(".${id}-t2",{opacity:0,y:44,scale:0.96},{opacity:1,y:0,scale:1,duration:0.68,ease:"power3.out"},${r(T + 0.7)});` : "",
     `tl.to(".${id}-t1",{y:-9,duration:2.6,ease:"sine.inOut",yoyo:true,repeat:reps(${r(Math.max(0.1, L - 1.5))},2.6)},${r(T + 1.3)});`,
     pills.length ? `tl.fromTo(".${id}-pill",{opacity:0,y:20},{opacity:1,y:0,duration:0.45,ease:"power3.out",stagger:0.11},${r(T + 1)});` : "",
   ];
@@ -639,7 +729,7 @@ function styleBlock(th, land) {
 }
 
 const family = {
-  theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaFallback,
+  theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaSlotsPortrait, mediaGeometry, mediaFallback,
   wantsLogo: (t) => t === "signoff",
   fallbackType: "keynote",
   variants: 2,
@@ -722,4 +812,9 @@ function buildComposition(opts) { return E.buildFilm(family, opts); }
 // drift from the film that ships.
 function planMedia(opts) { return E.planMedia(family, opts); }
 
-module.exports = { buildComposition, planMedia, TEMPLATE_SCENES };
+// FAMILY is the pack's whole design object — the same one buildFilm renders from.
+// It is exported so callers OUTSIDE the renderer can read the slot contract without
+// building a film: services/template_media.resolveMediaPlan needs `mediaSlots` and
+// `mediaGeometry` to tell preflight which boxes this template will draw and what
+// shape each one is, and the crop engine needs the resulting aspect list.
+module.exports = { buildComposition, planMedia, TEMPLATE_SCENES, FAMILY: family };

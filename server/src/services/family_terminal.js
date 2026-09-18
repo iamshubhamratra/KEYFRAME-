@@ -108,6 +108,59 @@ const TEMPLATE_SCENES = [
 ];
 
 const mediaSlots = { crtframe: ["desktop"], transmission: ["photo"] };
+// WHAT SHAPE EACH PLACEHOLDER IS — the number that did not exist anywhere in this
+// codebase before. Fractions of the CANVAS (wFrac of its width, hFrac of its height),
+// derived from the CSS each scene function writes and cross-checked against a live
+// headless render (`node scripts/audit-slot-fit.js`). services/template_media.js turns
+// them into real pixels for this film's dimensions, so selection can weigh SHAPE and
+// asset_fit can choose a real crop instead of the hardcoded `cover / top center`.
+// TEMPLATE MEDIA GEOMETRY — the shape of each placeholder, before anything is chosen for
+// it. Fractions of the CANVAS (wFrac of width, hFrac of height) so one declaration serves
+// 1920x1080, 1080x1920 and the long-form variants; verified against a live headless
+// render by `node scripts/audit-slot-fit.js --packs terminal-amber`.
+//
+// Both boxes in this family are sized in `cqw` on BOTH axes — a percentage of the
+// container's WIDTH even where it paints a HEIGHT — so their aspect is an accident of the
+// render dimensions and changes between orientations. That is exactly the number nothing
+// used to compute, and why `wants:"desktop"` could pick a 1.5:1 capture without anyone
+// knowing whether it would be cropped.
+//
+// THE BEZEL IS MOULDING; THE GLASS IS NOT. Only the CRT carries `flex`. A cathode-ray
+// shell was never one ratio — 5:4 and 16:10 tubes both shipped on the same desks — so the
+// screen may take the shape of whatever it is showing, between those two, and `crtframe`
+// derives its `width`/`height` from the fitted box instead of hard-coding them (:466).
+// asset_fit.resolveBox only ever gives space BACK (it never grows a box past the authored
+// one), so the shell can only get shorter or narrower than the numbers below, never
+// overflow the row. The sender portrait carries no band: a circle is a circle.
+const mediaGeometry = {
+  crtframe: {
+    // The screen is the monitor's PADDING BOX: `width:52cqw; height:40cqw` less the bezel
+    // `padding:1.5cqw 1.5cqw 3.6cqw` -> 49cqw x 34.9cqw. Both are cqw, so at 16:9 that is
+    // 941x670 — aspect 1.40. That is the SHELL AT REST, and the band is what removes the
+    // crop: measured before the band, a 1.518 site capture lost 7.9% of its width here, a
+    // 1.538 capture 9.1% and a 1.6 photo 13.1%; all three sit inside [1.25, 1.62] and now
+    // cost nothing. 1.25 is 5:4, 1.62 is 16:10 — past either end it stops reading as a
+    // monitor, which is why the band is not wider.
+    land: [{ wFrac: 0.49, hFrac: 0.6204, importance: "hero", flex: [1.25, 1.62] }],
+    // `width:86cqw; height:64cqw` less `padding:2.8cqw 2.8cqw 6.72cqw` -> 80.4 x 54.48cqw
+    // = 868x588 at 9:16, aspect 1.48. Portrait was already the better fit for a desktop
+    // capture — the taller canvas makes cqw-height cheap — so the band buys less here
+    // (3.3% -> 0 for a 1.518 capture, 8.8% -> 0 for a 1.6 photo), but the same band keeps
+    // one shell shape rule for both orientations.
+    port: [{ wFrac: 0.804, hFrac: 0.3065, importance: "hero", flex: [1.25, 1.62] }],
+  },
+  transmission: {
+    // The sender portrait in the message footer: `width:3.4cqw; height:3.4cqw` (:375,
+    // :379) — cqw on both axes, so it is square whatever the canvas, and 3.4% of 1920 is
+    // 65px before the 0.14cqw ring is subtracted. A 60px disc behind `border-radius:50%`
+    // can hold a face and nothing else; `accent` and `allow` say so to the selector, and
+    // `cover` is deliberate because a circle with letterboxing inside it reads as broken.
+    land: [{ wFrac: 0.0312, hFrac: 0.0555, importance: "accent", fit: "cover", allow: ["photo"] }],
+    // 6.6cqw less the 0.24cqw ring -> 6.12cqw = 66px square at 9:16. Larger in cqw only
+    // because the portrait canvas is narrower; the painted disc barely changes.
+    port: [{ wFrac: 0.0612, hFrac: 0.0344, importance: "accent", fit: "cover", allow: ["photo"] }],
+  },
+};
 // True when the PREVIOUS scene already carried imagery. Routers use it to keep
 // media beats alternating instead of stacking, now that any spare asset (not
 // just a pinned screenshot) is enough to earn one.
@@ -375,8 +428,18 @@ function transmission(scene, ctx, asset) {
   const avSize = land ? 3.4 : 6.6;
   // Sender portrait rides the message footer when the plan supplies a photo; the
   // record-dot header stays the fallback when it doesn't (no monogram in this family).
-  const avatar = asset && asset.path
-    ? `<span style="display:inline-block;width:${r(avSize)}cqw;height:${r(avSize)}cqw;border-radius:50%;overflow:hidden;flex:0 0 auto;margin-right:${land ? 1 : 1.8}cqw;border:${land ? 0.14 : 0.24}cqw solid ${rgba(th.phos, 0.55)};"><img src="${esc(asset.path)}" alt="${esc(asset.alt || author || "")}" style="width:100%;height:100%;object-fit:cover;display:block;"></span>`
+  //
+  // A DISC ONLY HOLDS SOMETHING THAT CAN BE CROPPED. The slot already declares
+  // `allow: ["photo"]`, but template_engine's vector cadence fills the LAST slot of a
+  // scene before the allow test runs, and every transmission has exactly one slot — so a
+  // measured render put `vector.svg` in the 60px portrait, contained, 33.3% of the circle
+  // empty. asset_fit answers `contain` for exactly the classes a face-hole cannot hold
+  // (a mark is never cut, an interface is never cut), so that answer is the test: cover
+  // means a photograph and the portrait is drawn, anything else falls back to the
+  // record-dot header rather than showing a letterboxed logo inside a circle.
+  const croppable = !(asset && asset.__fit && asset.__fit.objectFit === "contain");
+  const avatar = croppable && asset && asset.path
+    ? `<span style="display:inline-block;width:${r(avSize)}cqw;height:${r(avSize)}cqw;border-radius:50%;overflow:hidden;flex:0 0 auto;margin-right:${land ? 1 : 1.8}cqw;border:${land ? 0.14 : 0.24}cqw solid ${rgba(th.phos, 0.55)};"><img src="${esc(asset.path)}" alt="${esc(asset.alt || author || "")}" style="width:100%;height:100%;${E.fitCss(asset)}display:block;"></span>`
     : "";
 
   const html = `
@@ -417,12 +480,27 @@ function crtframe(scene, ctx, asset) {
   const right = variant % 2 === 0;
   const colW = land ? 32 : 86;
   const headSize = monoSize(lines.length ? lines : ["x"], colW, land ? 3.3 : 7.2);
-  const monW = land ? 52 : 86;
-  const monH = land ? 40 : 64;
   const bez = land ? 1.5 : 2.8;
+  // THE GLASS TAKES THE PICTURE'S OWN SHAPE, THE BEZEL STAYS THE SAME MOULDING.
+  // The shell used to be `width:52cqw; height:40cqw` flat, which fixed the screen at
+  // 49 x 34.9cqw (aspect 1.40) and charged every asset the difference: 7.9% of a 1.518
+  // site capture's width, 13.1% of a 1.6 photo's. `mediaGeometry.crtframe.flex` lets
+  // asset_fit hand back a box already shaped like the asset, and both axes here are cqw
+  // (a percentage of the container's WIDTH even where they paint a height), so the fitted
+  // pixels convert to shell units by dividing by the canvas width and nothing else.
+  // The fitted box is only ever SMALLER than the authored one, so the row can only gain
+  // slack — the 52/86cqw width and 40/64cqw height below stay the ceiling.
+  const glassW = land ? 49 : 80.4;      // 52 - 2*1.5 / 86 - 2*2.8
+  const glassH = land ? 34.9 : 54.48;   // 40 - 3.4*1.5 / 64 - 3.4*2.8
+  const fitBox = asset && asset.__fit && asset.__fit.box && asset.__fit.box.reshaped ? asset.__fit.box : null;
+  const cqw = Math.max(Number(ctx.dims && ctx.dims.width) || (land ? 1920 : 1080), 1) / 100;
+  const scrW = fitBox && fitBox.w > 0 ? Math.min(glassW, fitBox.w / cqw) : glassW;
+  const scrH = fitBox && fitBox.h > 0 ? Math.min(glassH, fitBox.h / cqw) : glassH;
+  const monW = r(scrW + bez * 2);
+  const monH = r(scrH + bez * 3.4);
 
   const screenBody = asset && asset.path
-    ? `<img id="${id}-img" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">`
+    ? `<img id="${id}-img" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;${E.fitCss(asset)}display:block;">`
     : `<div style="position:absolute;inset:0;display:flex;">
           ${[th.phos, mix(th.phos, th.ink, 0.45), th.alt, mix(th.alt, th.ground, 0.35), th.accent3, mix(th.ink, th.ground, 0.45), th.shell]
             .map((c) => `<span style="flex:1 1 auto;background:${c};"></span>`).join("")}
@@ -584,7 +662,7 @@ const family = {
       used: bullets(scene || {}, 3),
     };
   },
-  theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaFallback,
+  theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaGeometry, mediaFallback,
   wantsLogo: (t) => t === "execute",
   fallbackType: "prompt",
   variants: 2,
@@ -621,4 +699,9 @@ function buildComposition(opts) { return E.buildFilm(family, opts); }
 // drift from the film that ships.
 function planMedia(opts) { return E.planMedia(family, opts); }
 
-module.exports = { buildComposition, planMedia, TEMPLATE_SCENES };
+// FAMILY is the pack's whole design object — the same one buildFilm renders from.
+// It is exported so callers OUTSIDE the renderer can read the slot contract without
+// building a film: services/template_media.resolveMediaPlan needs `mediaSlots` and
+// `mediaGeometry` to tell preflight which boxes this template will draw and what
+// shape each one is, and the crop engine needs the resulting aspect list.
+module.exports = { buildComposition, planMedia, TEMPLATE_SCENES, FAMILY: family };

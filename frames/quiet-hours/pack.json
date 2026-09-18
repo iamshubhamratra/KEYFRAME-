@@ -1,0 +1,61 @@
+{
+  "name": "quiet-hours",
+  "vibe": "literary / essay — the desk lamp is lit and a moth is working the light. EB Garamond over Andada Pro; a luminance-ladder palette on #efe6d4. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#efe6d4",
+    "ink": "#1b1710",
+    "accent": "#b8813a",
+    "a2": "#6f7f5c"
+  },
+  "fonts": [
+    "EB Garamond",
+    "Andada Pro",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#efe6d4",
+    "ink": "#1b1710"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#b8813a",
+      "#6f7f5c"
+    ],
+    "extras": [
+      "#6f6552"
+    ],
+    "emphasisCss": "color:#b8813a;"
+  },
+  "assets": {
+    "photoMod": "the desk lamp is lit and a moth is working the light editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "literary",
+      "essay"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "EB Garamond",
+    "body": "Andada Pro",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-quiet-hours",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

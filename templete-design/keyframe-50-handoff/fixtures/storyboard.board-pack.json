@@ -1,0 +1,276 @@
+{
+ "slug": "board-pack",
+ "engine": "filmkit",
+ "orientation": "vertical",
+ "viewport": {
+  "width": 1080,
+  "height": 1920
+ },
+ "runtimeMs": 129400,
+ "playback": {
+  "mode": "loop"
+ },
+ "tweaksAtCapture": {
+  "brand": "Board Pack",
+  "bg": "#101726",
+  "accent": "#d8b45a",
+  "accent2": "#5a9bd8",
+  "motion": "Calm",
+  "typeScale": "Default"
+ },
+ "beats": [
+  {
+   "index": 0,
+   "beat": "Hook",
+   "startMs": 0,
+   "durationMs": 7400,
+   "fields": {
+    "kicker": "Q3 REVIEW",
+    "title": "Twelve slides.|Nobody opened it.",
+    "sub": "It went out on a Friday afternoon with the subject line Q3 review, final, v7."
+   }
+  },
+  {
+   "index": 1,
+   "beat": "Body",
+   "startMs": 7400,
+   "durationMs": 8400,
+   "fields": {
+    "kicker": "THE PROBLEM",
+    "body": "The analysis was right. The deck was clear. It still lost to an inbox, because a deck asks for twenty minutes and nobody has twenty minutes on a Friday.",
+    "note": "Q3 review · 12 slides"
+   }
+  },
+  {
+   "index": 2,
+   "beat": "Statement",
+   "startMs": 15800,
+   "durationMs": 5000,
+   "fields": {
+    "title": "Send the argument.|Not the deck.",
+    "sub": "The deck can follow if they ask."
+   }
+  },
+  {
+   "index": 3,
+   "beat": "Typing",
+   "startMs": 20800,
+   "durationMs": 6000,
+   "fields": {
+    "title": "One line|for the board.",
+    "prompt": "SUBJECT",
+    "text": "Margin up, churn flat.",
+    "stamp": "SENT"
+   }
+  },
+  {
+   "index": 4,
+   "beat": "Body",
+   "startMs": 26800,
+   "durationMs": 9000,
+   "fields": {
+    "kicker": "WHAT IT DOES",
+    "body": "Keyframe reads the memo, keeps the lines that carry the decision, and gives each one the time a reader needs to take it in."
+   }
+  },
+  {
+   "index": 5,
+   "beat": "Quote",
+   "startMs": 35800,
+   "durationMs": 7000,
+   "fields": {
+    "quote": "If it needs|a meeting|to land,|it is not written yet.",
+    "attrib": "Chief of staff"
+   }
+  },
+  {
+   "index": 6,
+   "beat": "Statement",
+   "startMs": 42800,
+   "durationMs": 5000,
+   "fields": {
+    "title": "02|Lead with the number.",
+    "sub": "Then say what you did about it."
+   }
+  },
+  {
+   "index": 7,
+   "beat": "Stats",
+   "startMs": 47800,
+   "durationMs": 8000,
+   "fields": {
+    "title": "The quarter,|in three.",
+    "stats": [
+     {
+      "to": 18,
+      "suffix": "%",
+      "label": "gross margin, up four points"
+     },
+     {
+      "to": 94,
+      "suffix": "%",
+      "label": "net revenue retention, flat"
+     },
+     {
+      "to": 11,
+      "suffix": "mo",
+      "label": "runway at the current burn"
+     }
+    ]
+   }
+  },
+  {
+   "index": 8,
+   "beat": "Body",
+   "startMs": 55800,
+   "durationMs": 9400,
+   "fields": {
+    "kicker": "THE RULE",
+    "body": "No beat runs shorter than its reading time. The check fails the build, so a figure never leaves the screen before the reader has understood it."
+   }
+  },
+  {
+   "index": 9,
+   "beat": "Scroll",
+   "startMs": 65200,
+   "durationMs": 9000,
+   "fields": {
+    "title": "What the memo|carries.",
+    "items": [
+     {
+      "t": "The decision",
+      "v": "01"
+     },
+     {
+      "t": "The number behind it",
+      "v": "02"
+     },
+     {
+      "t": "What changed",
+      "v": "03"
+     },
+     {
+      "t": "The risk",
+      "v": "04"
+     },
+     {
+      "t": "The ask",
+      "v": "05"
+     },
+     {
+      "t": "The date",
+      "v": "06"
+     }
+    ]
+   }
+  },
+  {
+   "index": 10,
+   "beat": "Feature",
+   "startMs": 74200,
+   "durationMs": 8000,
+   "fields": {
+    "title": "A chart,|if it earns its place.",
+    "chips": [
+     "Optional",
+     "Becomes type",
+     "No empty frames"
+    ],
+    "image": "",
+    "fallbackText": "When no chart is supplied the beat runs as a paragraph, and takes the nearest line the memo has not used."
+   },
+   "mediaSlots": [
+    {
+     "id": "image",
+     "bound": null,
+     "onEmpty": "swap per look.feature.swap",
+     "fallbackText": "When no chart is supplied the beat runs as a paragraph, and takes the nearest line the memo has not used."
+    }
+   ]
+  },
+  {
+   "index": 11,
+   "beat": "Quote",
+   "startMs": 82200,
+   "durationMs": 6500,
+   "fields": {
+    "quote": "Every deck|is a memo|that lost|its nerve.",
+    "attrib": "Board member"
+   }
+  },
+  {
+   "index": 12,
+   "beat": "Ring",
+   "startMs": 88700,
+   "durationMs": 6000,
+   "fields": {
+    "title": "Read to the end.",
+    "to": 78,
+    "label": "finish the memo",
+    "sub": "Measured against the same memo as a wall of text."
+   }
+  },
+  {
+   "index": 13,
+   "beat": "Body",
+   "startMs": 94700,
+   "durationMs": 8200,
+   "fields": {
+    "kicker": "TYPE",
+    "body": "One grotesque for the headline, one for the copy, tabular figures throughout. Measure near sixty characters, nothing shrunk to fit."
+   }
+  },
+  {
+   "index": 14,
+   "beat": "Montage",
+   "startMs": 102900,
+   "durationMs": 6500,
+   "fields": {
+    "title": "Deck against|memo.",
+    "tiles": [
+     "Twelve slides unopened",
+     "Two minutes they finish"
+    ]
+   }
+  },
+  {
+   "index": 15,
+   "beat": "Statement",
+   "startMs": 109400,
+   "durationMs": 5500,
+   "fields": {
+    "title": "Write it once.|Send it Monday.",
+    "sub": "Friday afternoon is where memos go to die."
+   }
+  },
+  {
+   "index": 16,
+   "beat": "Body",
+   "startMs": 114900,
+   "durationMs": 8000,
+   "fields": {
+    "kicker": "TAKEAWAY",
+    "body": "Give each figure the time it needs on screen and the decision gets made. That is the whole method."
+   }
+  },
+  {
+   "index": 17,
+   "beat": "CTA",
+   "startMs": 122900,
+   "durationMs": 6500,
+   "fields": {
+    "title": "Put the memo|on screen.",
+    "cta": "Read the memo",
+    "url": "keyframe.ai/memo",
+    "logo": ""
+   },
+   "mediaSlots": [
+    {
+     "id": "logo",
+     "bound": null,
+     "onEmpty": "pack icon mark"
+    }
+   ]
+  }
+ ]
+}

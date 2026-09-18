@@ -21,12 +21,23 @@ export const ORIENTATIONS = [
   {
     key: "vertical", tagc: "#7a5cff", label: "Vertical", ratio: "9:16",
     title: "Reels & Stories", blurb: "Portrait-native packs built for Reels, Shorts, TikTok and Stories.",
-    min: 230,
+    min: 230, portrait: true,
   },
   {
     key: "longform", tagc: "#b9f24a", label: "Long Form Video", ratio: "16:9",
     title: "Long Form", blurb: "Packs authored for 2–5 minute films — dozens of distinct beats, built to hold attention past the 30-second mark.",
     min: 310,
+  },
+  // LONG FORM SPLITS BY ASPECT TOO. A 9:16 long-form pack listed beside the
+  // landscape ones inherits a 16/9 card, so its portrait art is letterboxed into
+  // a shape it was never authored for — the same mixed-aspect problem the
+  // Horizontal/Vertical split exists to fix, one shelf down. It is also a
+  // different product: a two-minute portrait film is a Reel that keeps going,
+  // not a widescreen explainer.
+  {
+    key: "longformVertical", tagc: "#f2a03c", label: "Long Form Vertical Video", ratio: "9:16",
+    title: "Long Form Vertical", blurb: "Portrait films that run past the 30-second mark — article-length pieces for Reels, Shorts and Stories.",
+    min: 230, portrait: true,
   },
 ];
 
@@ -42,7 +53,8 @@ export function splitByOrientation(list) {
   return {
     horizontal: list.filter((p) => !p.portrait && !p.longForm),
     vertical: list.filter((p) => p.portrait && !p.longForm),
-    longform: list.filter((p) => !!p.longForm),
+    longform: list.filter((p) => p.longForm && !p.portrait),
+    longformVertical: list.filter((p) => p.longForm && p.portrait),
   };
 }
 
@@ -96,7 +108,7 @@ export default function Templates({ onUseStyle }) {
           id={`panel-${activeKey}`} role="tabpanel" aria-labelledby={`tab-${activeKey}`}
           style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${active.min}px,1fr))`, gap: 18 }}>
           {shown.map((p, i) => (
-            <PackCard key={p.name} pack={p} portrait={activeKey === "vertical"}
+            <PackCard key={p.name} pack={p} portrait={!!active.portrait}
               delay={(i % 3) * 0.07} onUse={() => onUseStyle?.(p.name)} />
           ))}
         </motion.div>
@@ -122,7 +134,7 @@ export function OrientationTab({ o, count, selected, onSelect }) {
       }}>
       {/* a literal aspect swatch, so the shape reads before the words do */}
       <span aria-hidden="true" style={{
-        display: "block", width: o.key === "vertical" ? 9 : 16, height: o.key === "vertical" ? 16 : 9,
+        display: "block", width: o.portrait ? 9 : 16, height: o.portrait ? 16 : 9,
         borderRadius: 2, border: `1.5px solid ${selected ? "#fff" : o.tagc}`, flex: "none",
       }} />
       <span style={{ fontWeight: 700, fontSize: 14, letterSpacing: ".01em" }}>{o.label}</span>

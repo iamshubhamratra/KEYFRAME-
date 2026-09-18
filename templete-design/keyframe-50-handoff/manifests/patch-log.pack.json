@@ -1,0 +1,160 @@
+{
+  "id": "patch-log",
+  "name": "Patch Log",
+  "renderer": "filmkit",
+  "orientation": "vertical",
+  "sizePx": [
+    1080,
+    1920
+  ],
+  "cohort": "01 technical / documentation",
+  "set": "article-text-50",
+  "globalName": "PatchLog",
+  "configFile": "configs/article-pack-01.js",
+  "vibe": "a cylinder press",
+  "form": {
+    "runtimeMs": 128400,
+    "runtimeRangeMs": [
+      90000,
+      150000
+    ],
+    "beats": 18
+  },
+  "readingBudget": {
+    "wpm": 225,
+    "landSeconds": 1.2,
+    "checkedBy": "scripts/lint-reading-budget.js"
+  },
+  "fonts": {
+    "display": "Fraunces",
+    "body": "Public Sans",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+      "devanagari": "Noto Sans Devanagari"
+    }
+  },
+  "palette": {
+    "slots": [
+      "bg",
+      "surface",
+      "rule",
+      "inkMuted",
+      "ink",
+      "accent",
+      "accent2",
+      "accentInk"
+    ],
+    "values": {
+      "bg": "#e9e1cf",
+      "surface": "#faf6ec",
+      "rule": "#c8bda4",
+      "inkMuted": "#6d6553",
+      "ink": "#171410",
+      "accent": "#2f6f3e",
+      "accent2": "#d4762f",
+      "accentInk": "#faf6ec"
+    },
+    "strategy": "luminance ladder; hue-rotatable at each slot’s own lightness"
+  },
+  "tweaks": [
+    {
+      "key": "brand",
+      "type": "text"
+    },
+    {
+      "key": "bg",
+      "type": "color"
+    },
+    {
+      "key": "accent",
+      "type": "color"
+    },
+    {
+      "key": "accent2",
+      "type": "color"
+    },
+    {
+      "key": "motion",
+      "type": "radio",
+      "options": [
+        "Calm",
+        "Lively",
+        "Bouncy"
+      ],
+      "default": "Calm"
+    },
+    {
+      "key": "typeScale",
+      "type": "radio",
+      "options": [
+        "Compact",
+        "Default",
+        "Editorial"
+      ],
+      "default": "Default"
+    }
+  ],
+  "motion": {
+    "titlePreset": "flip",
+    "itemPreset": "stamp",
+    "camera": [
+      "pushL",
+      "pushR",
+      "pushU",
+      "pushD"
+    ],
+    "mechanics": "Typing: \"typewriter\", Scroll: \"feed\", Ring: \"bar\"",
+    "chrome": false
+  },
+  "world": {
+    "description": "a cylinder press. Far: halftone paper on a fast drift, two ink ribbons sliding at different speeds, a registration wheel turning in the corner. Mid: an ink roller runs a 6s ping-pong along the bed, its cylinder rotating exactly as far as it travels, laying a printed band and throwing droplets; loose type slugs rise through the frame behind it. Near: paper scraps. Nothing crosses the text column above y=H-560.",
+    "cyclePeriodMs": 6000,
+    "planes": 3,
+    "textSafety": "object confined above y=290, below y=1330, or right of x=820; never crosses the copy column"
+  },
+  "mediaSlots": [
+    {
+      "id": "image",
+      "beat": "Feature",
+      "beatIndex": 10,
+      "aspect": "16:10",
+      "minPx": [
+        640,
+        400
+      ],
+      "fit": "cover",
+      "priority": 1,
+      "optional": true,
+      "onEmpty": "swap per look.feature.swap (borrows nearest unclaimed script line)"
+    },
+    {
+      "id": "logo",
+      "beat": "CTA",
+      "beatIndex": 17,
+      "aspect": "1:1",
+      "minPx": [
+        256,
+        256
+      ],
+      "fit": "contain",
+      "priority": 2,
+      "optional": true,
+      "onEmpty": "pack icon mark in a filled badge"
+    }
+  ],
+  "determinism": {
+    "randomness": false,
+    "wallClock": false,
+    "seekSafe": true,
+    "clock": "single authored timeline via animations-v2"
+  },
+  "paths": {
+    "html": "templates/patch-log.html",
+    "config": "configs/article-pack-01.js",
+    "storyboard": "fixtures/storyboard.patch-log.json",
+    "timestamps": "fixtures/timestamps.patch-log.json",
+    "referenceFrames": "reference-frames/patch-log/"
+  }
+}

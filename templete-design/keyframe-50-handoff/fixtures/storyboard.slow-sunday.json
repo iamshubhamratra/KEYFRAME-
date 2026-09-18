@@ -1,0 +1,276 @@
+{
+ "slug": "slow-sunday",
+ "engine": "filmkit",
+ "orientation": "vertical",
+ "viewport": {
+  "width": 1080,
+  "height": 1920
+ },
+ "runtimeMs": 129400,
+ "playback": {
+  "mode": "loop"
+ },
+ "tweaksAtCapture": {
+  "brand": "Slow Sunday",
+  "bg": "#f1e7e6",
+  "accent": "#8a4a6a",
+  "accent2": "#d8a13c",
+  "motion": "Calm",
+  "typeScale": "Default"
+ },
+ "beats": [
+  {
+   "index": 0,
+   "beat": "Hook",
+   "startMs": 0,
+   "durationMs": 7400,
+   "fields": {
+    "kicker": "NOTES",
+    "title": "I wrote it|for six people.",
+    "sub": "Two of them replied, and one of those was my mother. It was still worth writing."
+   }
+  },
+  {
+   "index": 1,
+   "beat": "Body",
+   "startMs": 7400,
+   "durationMs": 8400,
+   "fields": {
+    "kicker": "THE HABIT",
+    "body": "A small blog is not a small newspaper. It is a letter you leave open on the table, and the point is the writing of it as much as the reading.",
+    "note": "Post 214 · 900 words"
+   }
+  },
+  {
+   "index": 2,
+   "beat": "Statement",
+   "startMs": 15800,
+   "durationMs": 5000,
+   "fields": {
+    "title": "Write it|for one person.",
+    "sub": "Then anyone can read it."
+   }
+  },
+  {
+   "index": 3,
+   "beat": "Typing",
+   "startMs": 20800,
+   "durationMs": 6000,
+   "fields": {
+    "title": "The first line|of the morning.",
+    "prompt": "DRAFT",
+    "text": "Woke early. Kettle on.",
+    "stamp": "KEPT"
+   }
+  },
+  {
+   "index": 4,
+   "beat": "Body",
+   "startMs": 26800,
+   "durationMs": 9000,
+   "fields": {
+    "kicker": "WHAT IT DOES",
+    "body": "Keyframe reads the post, keeps the lines that carry the feeling, and gives each one as long on screen as it takes to read comfortably."
+   }
+  },
+  {
+   "index": 5,
+   "beat": "Quote",
+   "startMs": 35800,
+   "durationMs": 7000,
+   "fields": {
+    "quote": "Nobody subscribes|to a newsletter|for the news.|They subscribe for you.",
+    "attrib": "A reader, by email"
+   }
+  },
+  {
+   "index": 6,
+   "beat": "Statement",
+   "startMs": 42800,
+   "durationMs": 5000,
+   "fields": {
+    "title": "02|Keep the small bits.",
+    "sub": "They are the reason anyone stays."
+   }
+  },
+  {
+   "index": 7,
+   "beat": "Stats",
+   "startMs": 47800,
+   "durationMs": 8000,
+   "fields": {
+    "title": "Two years,|counted.",
+    "stats": [
+     {
+      "to": 214,
+      "suffix": "",
+      "label": "posts written on the kitchen table"
+     },
+     {
+      "to": 18,
+      "suffix": "",
+      "label": "beats in this cut, none rushed"
+     },
+     {
+      "to": 6,
+      "suffix": "",
+      "label": "readers on the first one"
+     }
+    ]
+   }
+  },
+  {
+   "index": 8,
+   "beat": "Body",
+   "startMs": 55800,
+   "durationMs": 9400,
+   "fields": {
+    "kicker": "THE RULE",
+    "body": "No beat runs shorter than its reading time. The check fails the build, so a sentence never leaves the screen before you have finished reading it."
+   }
+  },
+  {
+   "index": 9,
+   "beat": "Scroll",
+   "startMs": 65200,
+   "durationMs": 9000,
+   "fields": {
+    "title": "What goes|in a post.",
+    "items": [
+     {
+      "t": "The small thing",
+      "v": "01"
+     },
+     {
+      "t": "What it reminded me of",
+      "v": "02"
+     },
+     {
+      "t": "The turn",
+      "v": "03"
+     },
+     {
+      "t": "What I got wrong",
+      "v": "04"
+     },
+     {
+      "t": "A recipe, sometimes",
+      "v": "05"
+     },
+     {
+      "t": "The sign-off",
+      "v": "06"
+     }
+    ]
+   }
+  },
+  {
+   "index": 10,
+   "beat": "Feature",
+   "startMs": 74200,
+   "durationMs": 8000,
+   "fields": {
+    "title": "A photo,|if I took one.",
+    "chips": [
+     "Optional",
+     "Becomes type",
+     "Never an empty box"
+    ],
+    "image": "",
+    "fallbackText": "When there is no photo the beat becomes a paragraph, and borrows the nearest line the post has not used yet."
+   },
+   "mediaSlots": [
+    {
+     "id": "image",
+     "bound": null,
+     "onEmpty": "swap per look.feature.swap",
+     "fallbackText": "When there is no photo the beat becomes a paragraph, and borrows the nearest line the post has not used yet."
+    }
+   ]
+  },
+  {
+   "index": 11,
+   "beat": "Quote",
+   "startMs": 82200,
+   "durationMs": 6500,
+   "fields": {
+    "quote": "The best posts|are the ones|I nearly|did not send.",
+    "attrib": "Notes app, 4am"
+   }
+  },
+  {
+   "index": 12,
+   "beat": "Ring",
+   "startMs": 88700,
+   "durationMs": 6000,
+   "fields": {
+    "title": "Read to the end.",
+    "to": 78,
+    "label": "finish the post",
+    "sub": "Against the same post as a wall of text."
+   }
+  },
+  {
+   "index": 13,
+   "beat": "Body",
+   "startMs": 94700,
+   "durationMs": 8200,
+   "fields": {
+    "kicker": "TYPE",
+    "body": "A hand for the headings, a plain sans for the writing. Measure near sixty characters, leading open, nothing shrunk to fit."
+   }
+  },
+  {
+   "index": 14,
+   "beat": "Montage",
+   "startMs": 102900,
+   "durationMs": 6500,
+   "fields": {
+    "title": "Post against|film.",
+    "tiles": [
+     "A post they scroll past",
+     "A film they finish"
+    ]
+   }
+  },
+  {
+   "index": 15,
+   "beat": "Statement",
+   "startMs": 109400,
+   "durationMs": 5500,
+   "fields": {
+    "title": "Send it anyway.|Six is plenty.",
+    "sub": "It grows if you keep going."
+   }
+  },
+  {
+   "index": 16,
+   "beat": "Body",
+   "startMs": 114900,
+   "durationMs": 8000,
+   "fields": {
+    "kicker": "TAKEAWAY",
+    "body": "Give each sentence the time it needs and the six become sixty. That is the whole method."
+   }
+  },
+  {
+   "index": 17,
+   "beat": "CTA",
+   "startMs": 122900,
+   "durationMs": 6500,
+   "fields": {
+    "title": "Turn the post|into a film.",
+    "cta": "Read the post",
+    "url": "keyframe.ai/notes",
+    "logo": ""
+   },
+   "mediaSlots": [
+    {
+     "id": "logo",
+     "bound": null,
+     "onEmpty": "pack icon mark"
+    }
+   ]
+  }
+ ]
+}

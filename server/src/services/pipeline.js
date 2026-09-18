@@ -20,6 +20,7 @@ const db = require("../db");
 const logger = require("./logger");
 const { UsageTracker } = require("./usage");
 const { generateStoryboard } = require("./storyboard");
+const pacing = require("./pacing");
 const { generateBrief } = require("./brief");
 const { generateDressing } = require("./set_dressing");
 const { compose } = require("./composer");
@@ -78,7 +79,7 @@ const catalog = require("./catalog");
 const { contrastCheck } = require("./contrast_check");
 const { contrastFix } = require("./contrast_fix");
 const { identityFix } = require("./identity_fix");
-const { harmonizeBackgrounds } = require("./bg_harmonize");
+const { harmonizeBackgrounds, harmonizePlatedPhotos } = require("./bg_harmonize");
 const { layoutFix } = require("./layout_fix");
 const { assembleQualityReport } = require("./quality_report");
 
@@ -108,6 +109,23 @@ function setCaptionStyle(jobId, style) {
 }
 function clearCaptionStyle(jobId) { CAPTION_STYLE.delete(jobId); }
 
+// THE FILM'S ASSET WIRE, FOR RENDER-TIME FITTING. Same per-job keying and the same
+// reason: the pipeline serves concurrent jobs, and a flat variable would fit one film's
+// images against another film's table.
+//
+// Why a render-time pass at all, when planMedia already decides the fit: because the box
+// is only TRULY known in the browser. 197 of the 311 packs render a bundled template this
+// repo does not author and therefore cannot declare geometry for; a camera transform can
+// scale a box after layout; and a slot whose geometry has not been declared yet has no
+// plan-time number at all. asset_fit runs the SAME policy in both places — Node chooses
+// the asset, the page fits it to the box that was actually painted.
+const FIT_ASSETS = new Map();
+function setFitAssets(jobId, assets) {
+  if (!jobId) return;
+  if (Array.isArray(assets) && assets.length) FIT_ASSETS.set(jobId, assets); else FIT_ASSETS.delete(jobId);
+}
+function clearFitAssets(jobId) { FIT_ASSETS.delete(jobId); }
+
 // The ONE write site for a composed document. Every composer path goes through
 // it, so the language CSS can never be applied to three paths and forgotten on
 // the fourth. A film with no registered style writes byte-identical output.
@@ -117,6 +135,18 @@ function writeComposedHtml(jobDir, html, jobId) {
   if (style) {
     try { out = injectCaptionStyle(html, style); }
     catch (e) { console.warn(`[pipeline] caption style injection skipped: ${e.message}`); }
+  }
+  // RENDER-TIME FIT. Injected at the one write site every composer path already funnels
+  // through, so no path can be fitted and a fourth forgotten — the same argument that put
+  // the caption style here. A film with no registered assets writes byte-identical output.
+  const fitAssets = jobId ? FIT_ASSETS.get(jobId) : null;
+  if (fitAssets) {
+    try {
+      const tag = require("./asset_fit").runtimeFitScript(fitAssets);
+      if (tag) {
+        out = /<\/body>/i.test(out) ? out.replace(/<\/body>/i, `${tag}</body>`) : out + tag;
+      }
+    } catch (e) { console.warn(`[pipeline] render-time fit injection skipped: ${e.message}`); }
   }
   fs.writeFileSync(path.join(jobDir, "index.html"), out, "utf8");
   return out;
@@ -130,6 +160,53 @@ function fallbackQueriesFor(query) {
   if (words.length >= 3) out.push(words.slice(0, -1).join(" "));
   if (words.length >= 2) out.push(words.slice(0, 2).join(" "));
   return [...new Set(out)].filter((q) => q !== query);
+}
+
+// THE USER WROTE THE ORDER — the storyboard has to be told, because on this path it
+// is the only stage that sets one.
+//
+// /api/generate (runJob) has no script stage: the storyboard is written straight from
+// the prompt below, and system_storyboard.md tells it — unconditionally — to shape the
+// scenes as Hook -> Problem -> Pain -> Solution -> Proof -> Result -> CTA. The analysis
+// DID find the person's scene-by-scene order and generateBrief DID carry it on
+// brief.analysis, but the prompt this function built held only the brief's prose and
+// lists, so a locked storyline was re-ranked into the house arc on exactly the route
+// that has nothing downstream to put it back. /api/projects gets the same instruction
+// from script.js's narrativeDirective, in the script prompt; this is its storyboard
+// counterpart, and it has to say one thing that one does not: storyboard.js validate()
+// REJECTS a storyboard whose first scene's kind is not "hook" or "title". So beat 1 is
+// staged AS that kind — a label for how the opening is shot, not a scene inserted
+// ahead of it — or every locked film would burn its retries and throw.
+//
+// A beat may span consecutive scenes and never shares one: scene durations are capped
+// at 15 s, so "one scene per beat" is arithmetic this stage cannot always satisfy (five
+// beats cannot fill a 120 s film), while "in order, none merged, none dropped" always
+// can.
+//
+// EMPTY STRING without a lock of at least two beats, so the default prompt is
+// byte-identical — the same contract script.js's directive keeps.
+function storyboardNarrativeDirective(brief) {
+  const n = brief && brief.analysis && brief.analysis.narrative;
+  if (!n || n.orderLocked !== true || !Array.isArray(n.beats) || n.beats.length < 2) return "";
+  // Numbered by POSITION, not by b.index: coerce() renumbers contiguously, but a stored
+  // analysis replayed by a regenerate reaches here without passing through it again.
+  const beats = n.beats.filter((b) => b && typeof b === "object");
+  if (beats.length < 2) return "";
+  const lines = beats.map((b, i) => {
+    const bits = [`${i + 1}. ${String(b.beat == null ? "" : b.beat).trim()}`];
+    if (b.mustShow) bits.push(`(must show: ${b.mustShow})`);
+    if (b.mustSay) bits.push(`(must say: ${b.mustSay})`);
+    return bits.join(" ");
+  });
+  const last = beats.length;
+  return [
+    "NARRATIVE DIRECTIVE — the user wrote this film's scenes themselves, in this order:",
+    ...lines,
+    `Your scenes follow these ${last} beats exactly, in this order: beat 1 opens the film and beat ${last} closes it. A beat may run across consecutive scenes when it needs the time, but two beats never share a scene, no beat is dropped, and no beat moves.`,
+    "This directive REPLACES the Hook -> Problem -> Pain -> Solution -> Proof -> Result -> CTA shape: do not re-rank the beats by impact, and do not add a scene before beat 1 or after the last beat.",
+    `The FIRST scene carries beat 1 and must still use kind "hook" or "title" — that kind labels how beat 1 is staged; it is not a new scene in front of it. The last beat is the close: give its final scene kind "cta" or "title" rather than appending a separate CTA scene.`,
+    "You still write every scene's headline, voiceover, layout and visual direction — improve them freely. The SEQUENCE and the CONCEPT are theirs.",
+  ].join("\n");
 }
 
 // Fold a creative brief into a rich, directive storyboard prompt — the brief
@@ -146,6 +223,13 @@ function enrichedStoryboardPrompt(brief, rawPrompt) {
   if (Array.isArray(brief.mustIncludeFacts) && brief.mustIncludeFacts.length) {
     lines.push("Must include:", ...brief.mustIncludeFacts.map((m) => `- ${m}`));
   }
+  // LAST in this prompt, after the brief's own key messages, so nothing the brief lists
+  // reads as coming after it; storyboard.js then appends only runtime, shape, design
+  // system and pace, none of which speak to order. It has to override an arc rule the
+  // system prompt states unconditionally. Pushed only when non-empty, so an unlocked
+  // brief adds nothing, not even the blank separator line.
+  const nar = storyboardNarrativeDirective(brief);
+  if (nar) lines.push("", nar);
   return lines.join("\n");
 }
 
@@ -513,6 +597,21 @@ async function contrastFixPass(jobDir, { framePack, storyboard, dims, label = "c
       console.log(`[pipeline] bg-harmonize (${label}${escalate ? " ·escalate" : ""}): grounded ${out.changed.length} background(s) so they match the design`);
     }
   } catch (e) { console.warn(`[pipeline] bg-harmonize (${label}) skipped (${String(e.message).slice(0, 120)})`); }
+  // Plated photos are a separate, weaker case: a photo inside a card keeps its own raw palette
+  // and reads as a tear in the design system. Only on the QA-repair re-pass (escalate), so this
+  // can touch a film only after a reviewer has already blocked it - no pack regresses by default.
+  if (escalate) {
+    try {
+      const idx2 = path.join(jobDir, "index.html");
+      const html2 = fs.readFileSync(idx2, "utf8");
+      const pp = harmonizePlatedPhotos(html2, { escalate: true });
+      if (pp.changed.length) {
+        fs.writeFileSync(idx2, pp.html, "utf8");
+        bgVeiled += pp.changed.length;
+        console.log(`[pipeline] bg-harmonize (${label} ·plated): joined ${pp.changed.length} plated photo(s) to the pack palette`);
+      }
+    } catch (e) { console.warn(`[pipeline] plated-harmonize (${label}) skipped (${String(e.message).slice(0, 120)})`); }
+  }
   // Layout repair next (hide duplicates + scrim collisions) so contrast then
   // verifies the final DOM. Its own render; gated by LAYOUT_FIX.
   try { const lr = await layoutFixPass(jobDir, { label }); layoutChanged = lr ? ((lr.duplicatesRemovedNow || 0) + (lr.collisionsScrimmedNow || 0)) : 0; } catch { /* fail-open */ }
@@ -797,7 +896,10 @@ async function composeWithLintRepair({ storyboard, dims, jobDir, jobId = null, a
   for (let lap = 0; lap <= maxRepairs; lap++) {
     const label = lap === 0 ? "first pass" : `repair ${lap}/${maxRepairs}`;
     console.log(`[pipeline] composeWithLintRepair: composer (${label})`);
-    const sb = feedback ? { ...storyboard, __lintFeedback: feedback } : storyboard;
+    // carryPace: see services/pacing.js carryPace — a spread drops the
+    // non-enumerable pace, so a composer lint retry would silently compose the
+    // film at normal pace after the first attempt was paced.
+    const sb = feedback ? pacing.carryPace(storyboard, { ...storyboard, __lintFeedback: feedback }) : storyboard;
     let files;
     try {
       files = await compose(sb, {
@@ -924,7 +1026,46 @@ const PACK_RENDERERS = {
   "poster-pop": { label: "posterpop", composer: posterpopComposer, desc: "Poster Pop template", portraitOk: true, longFormOk: true },
   "story-blocks": { label: "storyblocks", composer: storyblocksComposer, desc: "Story Blocks template", portraitOk: true, longFormOk: true },
   "premiere-night": { label: "premiere", composer: premiereComposer, desc: "Premiere Night template", portraitOk: true, longFormOk: true },
+  // THE FILMKIT SKINS. One engine (services/film_stage.js) rendered many ways: each pack
+  // ships a generated skin under film_skins/ and is registered here by DIRECTORY SCAN, so
+  // `node scripts/gen-film-skins.js` producing a skin is all it takes to install the pack —
+  // no literal line per template. The renderer id a pack.json declares is "film-<slug>".
+  ...filmSkinComposers(),
 };
+
+// FAIL-OPEN PER SKIN: one bad module must cost its own pack, never the boot. This map is
+// built at require time, so a throw here would take the server down before it could serve a
+// single job — and the skins are generated files, which is exactly the class of input that
+// can arrive half-written.
+function filmSkinComposers() {
+  const out = {};
+  const dir = path.join(__dirname, "film_skins");
+  let files = [];
+  try { files = fs.readdirSync(dir).filter((f) => f.endsWith(".js") && !f.startsWith("_")); }
+  catch { return out; }
+  for (const f of files) {
+    const slug = f.replace(/\.js$/, "").replace(/_/g, "-");
+    try {
+      const m = require(path.join(dir, f));
+      if (!m || typeof m.buildComposition !== "function") {
+        console.warn(`[composer] film_skins/${f} exports no buildComposition — skipped`);
+        continue;
+      }
+      // Portrait-native by authorship (the kit's stage is 1080x1920) and long-form capable:
+      // these packs carry 18-50 authored beats, which is the length the guard exists to protect.
+      out[`film-${slug}`] = {
+        label: slug,
+        composer: m,
+        desc: `FilmKit ${(m.SKIN && m.SKIN.label) || slug}`,
+        portraitOk: true,
+        longFormOk: true,
+      };
+    } catch (e) {
+      console.warn(`[composer] film_skins/${f} failed to load (${String(e.message).slice(0, 120)}) — skipped`);
+    }
+  }
+  return out;
+}
 // Past this length the sparse GSAP dedicated renderers hand off to scene-kit.
 const LONGFORM_RENDERER_SEC = 75;
 
@@ -938,7 +1079,7 @@ const LONGFORM_RENDERER_SEC = 75;
 // So the fold happens BEFORE the storyboard and the VO, not inside the renderer:
 // two scenes that must share a frame then also share one narration clip, and the
 // boundary they share is the same on both tracks.
-function sceneCapFor(framePack) {
+function sceneCapFor(framePack, { vertical = false } = {}) {
   // The bundled-template engine (`omelette`) rejects an OM_SCENES list over 50
   // entries or 16KB outright — it draws a full-frame error slate for the whole
   // film — so 50 is not a tuned number, it is that engine's own hard ceiling. A
@@ -957,6 +1098,21 @@ function sceneCapFor(framePack) {
   // long scene into several beats to reach the template's authored pace — cuts
   // that fall inside a scene, moving no boundary.
   if (rendererFor(framePack) === "omelette") return 50;
+  // A FilmKit skin draws `skin.maxScenes` beats and slices the rest away. Folding to that
+  // number here means the scenes that must share a frame also share one narration clip and
+  // one boundary - which is the whole reason this fold runs before the storyboard and the VO.
+  const fr = rendererFor(framePack);
+  if (/^film-/.test(String(fr || ""))) {
+    // VERTICAL DOES NOT INHERIT THE DECK'S LENGTH. `skin.maxScenes` says how many shapes the pack was
+    // authored around, which on a long film is the only thing deciding how long a slide is held — 18
+    // scenes across 180s is a 10s hold, whatever pace the user picked (pacing.js
+    // VERTICAL_FILM_SCENE_CAP has the measurement). A phone carries a held shot worst, so a portrait
+    // film gets the beats it needs; landscape keeps the authored deck length.
+    if (vertical) return Math.min(pacing.VERTICAL_FILM_SCENE_CAP, sceneFit.MAX_CLIPS);
+    const R = PACK_RENDERERS[fr];
+    const cap = R && R.composer && R.composer.SKIN && Number(R.composer.SKIN.maxScenes);
+    return Math.min(Number.isFinite(cap) && cap > 0 ? cap : 12, sceneFit.MAX_CLIPS);
+  }
   return sceneFit.MAX_CLIPS;
 }
 
@@ -968,9 +1124,11 @@ function sceneCapFor(framePack) {
  * every boundary and every word survive. A script inside the ceiling is returned
  * untouched.
  */
-function foldScriptToRenderer(script, framePack, label = "pipeline") {
+function foldScriptToRenderer(script, framePack, label = "pipeline", { vertical = false } = {}) {
   const scenes = (script && Array.isArray(script.scenes)) ? script.scenes : [];
-  const cap = sceneCapFor(framePack);
+  // Must be the SAME cap the pacing engine planned against: folding to the landscape ceiling a script
+  // that was written for a vertical film's ceiling would merge the extra scenes straight back out.
+  const cap = sceneCapFor(framePack, { vertical });
   if (scenes.length <= cap) return script;
   const folded = sceneFit.fitScenes(scenes, cap).map((sc) => ({ ...sc }));
   // Re-derive starts at the SAME precision the durations carry. Rounding the
@@ -1153,6 +1311,17 @@ async function composeWithPackRenderer({ renderer, storyboard, dims, jobDir, fra
   if (!smoke.ok) {
     console.warn(`[pipeline] ${label}: pack renderer FAILED runtime smoke — ${smoke.error}`);
     console.warn(`[pipeline] ${label}: falling back to scene-kit with "${framePack}" styling so the film plays end to end`);
+    // KEEP THE BODY. The fallback overwrites index.html with the scene-kit film, so the
+    // composition that actually failed is destroyed by the thing that rescues the job, and the
+    // only evidence left is one warning line. Diagnosing a pack renderer that dies on real
+    // content then needs a re-run that may not reproduce. Preserve it beside the job, the way
+    // the LLM path keeps index.llm-attempt.html.
+    try {
+      fs.copyFileSync(path.join(jobDir, "index.html"), path.join(jobDir, "index.filmkit-attempt.html"));
+      fs.writeFileSync(path.join(jobDir, "filmkit-smoke-failure.json"), JSON.stringify(
+        { renderer, framePack, error: smoke.error, dims, durationSec, assetCount: (assets || []).length }, null, 2));
+      console.warn(`[pipeline] ${label}: failed composition preserved as index.filmkit-attempt.html`);
+    } catch { /* diagnostic only - never block the rescue */ }
     if (typeof fallbackToSceneKit === "function") {
       return fallbackToSceneKit();
     }
@@ -1341,7 +1510,17 @@ async function composeWithThree({ storyboard, dims, jobDir, framePack, captionCu
 
 const r2 = (n) => Math.round(n * 100) / 100;
 const clampSceneDur = (n) => Math.max(2, Math.min(15, n));
-const VO_TAIL = 0.55; // breathing room after a spoken line finishes
+// Breathing room after a spoken line finishes, before the scene may cut.
+// This is the DEFAULT — the pacing engine carries a per-mode value
+// (services/pacing.js MODES[*].voTailSec) and this constant is exactly
+// MODES.normal.voTailSec, so an unpaced call behaves as it always has.
+//
+// It matters more than its size suggests: the tail is paid once PER NARRATED
+// SCENE, and a faster mode has MORE scenes, so a frozen 0.55 would make every
+// fast film pay a bigger total tail than the default and come out longer than
+// the runtime the user bought — the exact opposite of what they picked.
+const VO_TAIL = 0.55;
+const tailFor = (pacing) => (pacing && pacing.vo && Number(pacing.vo.tailSec) > 0 ? pacing.vo.tailSec : VO_TAIL);
 
 // Shared with graph.js and project_pipeline.js: stretch each storyboard scene
 // to contain its MEASURED narration (+VO_TAIL), re-pin every VO clip to its
@@ -1349,7 +1528,11 @@ const VO_TAIL = 0.55; // breathing room after a spoken line finishes
 // Returns { effectiveDuration, startMap } (old script start -> new start, for
 // re-pinning already-scheduled SFX offsets). Idempotent: re-running after a
 // repair lap re-derives the same timing.
-function retimeScenesToVo(storyboard, script, voClips) {
+function retimeScenesToVo(storyboard, script, voClips, opts = {}) {
+  // Pace reaches the delivered RUNTIME here. Falls back to the storyboard's own
+  // attached config, so the two existing call sites keep working even where the
+  // caller has not been updated.
+  const tail = tailFor(opts.pacing || (storyboard && storyboard.paceConfig));
   const r2b = (n) => Math.round(Number(n) * 100) / 100;
   const sbScenes = (storyboard && Array.isArray(storyboard.scenes)) ? storyboard.scenes : [];
   const clipByScene = new Map((voClips || []).map((c) => [String(c.sceneId), c]));
@@ -1357,7 +1540,7 @@ function retimeScenesToVo(storyboard, script, voClips) {
   for (let i = 0; i < sbScenes.length; i++) {
     const sc = sbScenes[i];
     const clip = clipByScene.get(String(sc.id != null ? sc.id : `s${i + 1}`));
-    const need = clip ? clip.durationSec + VO_TAIL : 0;
+    const need = clip ? clip.durationSec + tail : 0;
     sc.duration = r2b(Math.max(2, Number(sc.duration) || 3, need));
     sc.start = r2b(cursor);
     if (clip) { clip.startSec = sc.start; clip.sceneDurationSec = sc.duration; }
@@ -1390,7 +1573,8 @@ function sceneVOText(scene) {
 // scene's start. Audio and video are locked together, replacing the old single
 // VO blob that drifted against the cut. Mutates storyboard scene start/duration
 // + durationSec in place; returns { voClips (kind:"vo" at offsets), effectiveDuration }.
-async function synthesizeScenedVOAndRetime({ audioDir, storyboard, voice, instructions, requestedDuration, tracker }) {
+async function synthesizeScenedVOAndRetime({ audioDir, storyboard, voice, instructions, requestedDuration, tracker, pacing: pacingCfg = null }) {
+  const tail = tailFor(pacingCfg || (storyboard && storyboard.paceConfig));
   const scenes = Array.isArray(storyboard.scenes) ? storyboard.scenes : [];
   fs.mkdirSync(audioDir, { recursive: true });
 
@@ -1417,7 +1601,7 @@ async function synthesizeScenedVOAndRetime({ audioDir, storyboard, voice, instru
   for (let i = 0; i < scenes.length; i++) {
     const s = scenes[i];
     const clip = byIndex.get(i);
-    const need = clip ? clip.durationSec + VO_TAIL : 0;
+    const need = clip ? clip.durationSec + tail : 0;
     s.duration = r2(clampSceneDur(Math.max(2, Number(s.duration) || 3, need)));
     s.start = r2(cursor);
     if (clip) voClips.push({ path: clip.path, startSec: s.start, durationSec: clip.durationSec, kind: "vo", volume: 1.0 });
@@ -1593,6 +1777,7 @@ async function runJobInner({
   jobId, prompt, duration, orientation, width, height, fps,
   tts = false, music = false, soundEffect = false, voice,
   images = false, video = false, framePack = null, remix = false, render3d = false, dress = false,
+  pace = null,
 }) {
   const jobDir = jobDirFor(jobId);
   fs.mkdirSync(jobDir, { recursive: true });
@@ -1628,22 +1813,51 @@ async function runJobInner({
         const intent = { prompt, preferences: { duration, orientation, voiceStyle: voice || "auto", framePack: framePack || "auto" } };
         const briefRes = await generateBrief({ intent });
         tracker.addLlm({ inputTokens: briefRes.tokensIn, outputTokens: briefRes.tokensOut, stage: "brief", costUsd: briefRes.costUsd });
+        if (briefRes.analysisUsage) {
+          tracker.addLlm({
+            inputTokens: briefRes.analysisUsage.tokensIn, outputTokens: briefRes.analysisUsage.tokensOut,
+            stage: "analysis", costUsd: briefRes.analysisUsage.costUsd,
+          });
+        }
         effectivePrompt = enrichedStoryboardPrompt(briefRes.brief, prompt);
         // Subject anchor for the asset stage's stock queries + vision gate.
         briefSubject = (briefRes.brief && briefRes.brief.subject) ? String(briefRes.brief.subject).trim() : null;
         briefObj = briefRes.brief || null;
-        // "Auto" pack: adopt the brief's tone-matched suggestion (an explicit
-        // user pack arrived non-null and is honored verbatim). Persist it so
-        // the UI/gallery shows the real pack.
+        // "Auto" pack: the Template Intelligence layer picks it (an explicit
+        // user pack arrived non-null and is honored verbatim). The same resolver
+        // the projects path uses, so both entry points enforce the same hard
+        // constraints — orientation above all, since this route composes at the
+        // template's native canvas and a portrait pack on a landscape job ships
+        // a portrait file.
         if (!framePack) {
-          framePack = frameRegistry.resolvePack(briefRes.brief.suggestedFramePack) || frameRegistry.resolvePack("auto");
-          if (framePack) db.setFramePack(jobId, framePack);
-          log.info("frame pack (auto) resolved from brief", { framePack });
+          const templateIntel = require("./template_intelligence");
+          const resolved = templateIntel.resolveForJob({
+            job: {
+              id: jobId, prompt, orientation, duration, pace,
+              frame_pack: null, frame_pack_user: 0,
+              website_screenshots: [], user_assets: [], website_images: [],
+            },
+            brief: briefRes.brief,
+          });
+          for (const w of resolved.warnings || []) log.warn(`template: ${w}`);
+          framePack = resolved.pack || frameRegistry.resolvePack("auto");
+          if (framePack) {
+            db.setFramePack(jobId, framePack);
+            try { db.setTemplateSelection(jobId, templateIntel.selectionRecord(resolved)); } catch { /* diagnostics only */ }
+          }
+          if (resolved.selection) console.log(templateIntel.explain(resolved.selection));
+          log.info("frame pack (auto) resolved", { framePack, via: resolved.via, score: resolved.score });
         }
         markStage("brief", t0);
         log.info("prompt enhanced", { tone: briefRes.brief.tone, goal: briefRes.brief.goal, keyMessages: (briefRes.brief.keyMessages || []).length });
       } catch (e) {
         markStage("brief", t0);
+        // A refusal is not an enhancement failure. Carrying on with the raw prompt is the
+        // right answer when the brief model is flaky; it is exactly the wrong answer when
+        // the brief refused disallowed content, because it would render that content from
+        // the raw words. Submit-time moderation already stops this at the route; this is
+        // the defence in depth actually holding on this path.
+        if (e && e.code === "PROMPT_DISALLOWED") throw e;
         log.warn("prompt enhancement failed — using raw prompt", { error: String(e.message).slice(0, 160) });
       }
     }
@@ -1654,9 +1868,35 @@ async function runJobInner({
     {
       const t0 = ms();
       db.setProgress(jobId, "storyboard");
-      sbRes = await generateStoryboard({ prompt: effectivePrompt, duration, orientation, framePack });
+      sbRes = await generateStoryboard({ prompt: effectivePrompt, duration, orientation, framePack , pacing: pacing.resolve(pace, { durationSec: duration, voiceover: !!tts, orientation }) });
       tracker.addLlm({ inputTokens: sbRes.tokensIn, outputTokens: sbRes.tokensOut, stage: "storyboard", costUsd: sbRes.costUsd });
       markStage("storyboard", t0);
+      // PACE reaches this path here. /api/generate is storyboard-led (there is no
+      // script stage and no word budget to set), so a mode can only change the
+      // PICTURE and the SCORE — cut rate, motion timing, music energy. That is
+      // less than /api/projects gets, and it is the honest ceiling for a route
+      // with no script to shorten. Attached to the storyboard for the same
+      // reason as the graph: `storyboard` is the object every composer already
+      // receives, so nothing else needs a new parameter.
+      {
+        const paceCfg = pacing.resolve(pace, {
+          durationSec: duration,
+          voiceover: !!tts,
+          orientation,
+        });
+        if (paceCfg.mode !== pacing.DEFAULT_MODE) {
+          pacing.setPaceOnStoryboard(sbRes.storyboard, paceCfg, pacing.tempoForPacing(paceCfg, {
+            narration: tts ? "on" : "off",
+            energyBoost: (() => {
+              try { return require("./frame_manifest").getManifest(framePack)?.audio?.noVo ?? 1; }
+              catch { return 1; }
+            })(),
+          }));
+        }
+        if (paceCfg.mode !== pacing.DEFAULT_MODE) {
+          log.info("pacing applied", { mode: paceCfg.mode, multiplier: paceCfg.multiplier, beatTargetSec: paceCfg.scene.beatTargetSec });
+        }
+      }
       log.info("storyboard ready", { scenes: (sbRes.storyboard.scenes || []).length, title: sbRes.storyboard.title, ms: timings.storyboardMs });
     }
 
@@ -1669,7 +1909,18 @@ async function runJobInner({
     // Fail-open: any failure leaves the storyboard exactly as generated.
     try {
       const { directText } = require("./text_director");
-      await directText({ jobId, brief: effectivePrompt, script: sbRes.storyboard, storyboard: sbRes.storyboard, tracker });
+      await directText({ jobId, brief: effectivePrompt, script: sbRes.storyboard, storyboard: sbRes.storyboard, tracker, pacing: sbRes.storyboard.paceConfig || null });
+        // The deterministic density floor, which this path did not have at all.
+        // Its supply is thinner here than on the project path — /api/generate has
+        // a prompt string rather than a structured brief, so there are no
+        // `mustIncludeFacts` or `keyMessages` to mine — but the storyboard's own
+        // copy and the film's numbers still reach the frames that were empty.
+        try {
+          require("./content_density").directDensity({
+            jobId, brief: null, script: sbRes.storyboard, storyboard: sbRes.storyboard,
+            pacing: sbRes.storyboard.paceConfig || null,
+          });
+        } catch (e) { console.warn(`[pipeline] content_density skipped: ${String(e.message).slice(0, 120)}`); }
     } catch (e) { console.warn(`[pipeline] text_director skipped: ${String((e && e.message) || e).slice(0, 120)}`); }
 
     // ---- Stages: assets + audio prep run IN PARALLEL (both need only storyboard).
@@ -1721,6 +1972,39 @@ async function runJobInner({
         allAssets = vld.assets || allAssets;
         if (vld.review) { try { db.setLayoutReview(jobId, vld.review); } catch { /* best effort */ } }
       } catch (e) { console.warn(`[pipeline] visual_layout_director skipped: ${String((e && e.message) || e).slice(0, 120)}`); }
+      // CROP ENGINE — the content-aware focal point, for the slot shapes THIS film needs.
+      //
+      // services/crop_engine.js has been in this tree, complete and working, with exactly
+      // ONE caller (film_stage.js) — because it was designed to be driven by a slot
+      // contract, `template_media.resolveMediaPlan`, that was never written. Both now
+      // exist, so this is the wire that was missing: ask the chosen template which aspect
+      // ratios it actually draws, analyse each image once per ratio, and leave the result
+      // on the asset as `cropFocusByAspect` for asset_fit to resolve at draw time.
+      //
+      // It runs AFTER visual_layout_director on purpose: that pass sets `cropFocus` from
+      // a two-branch ratio guess that never opens the image, and crop_engine.focusFor
+      // prefers the measured per-aspect answer over it, so content truth wins while the
+      // guess stays as the fallback for an image that cannot be read.
+      //
+      // Bounded by construction: a film needs two or three distinct slot ratios, results
+      // are cached by file content, and every failure degrades to the guess. Fail-open.
+      try {
+        const cropEngine = require("./crop_engine");
+        const templateMedia = require("./template_media");
+        const R0 = PACK_RENDERERS[(() => { try { return (require("./frame_manifest").getManifest(framePack) || {}).renderer; } catch { return null; } })()];
+        // Declaration first, then the measured table for the 255 packs that cannot declare,
+        // then a generic guess. Passing the composer MODULE here instead of its .FAMILY is
+        // what made this fall through to the guess even for packs that DO declare — the
+        // resolver now takes either shape.
+        const rk0 = (() => { try { return (require("./frame_manifest").getManifest(framePack) || {}).renderer; } catch { return null; } })();
+        const wanted = templateMedia.aspectsFor(rk0, R0 && R0.composer, dims);
+        const rep = await cropEngine.annotateAssets(allAssets, { jobDir, aspects: wanted });
+        console.log(`[pipeline] crop_engine: ${rep.analyzed} analysed, ${rep.cached} cached, ${rep.failed} fell back (${rep.source}) for aspects [${wanted.join(", ")}] in ${rep.ms}ms`);
+      } catch (e) { console.warn(`[pipeline] crop_engine skipped: ${String((e && e.message) || e).slice(0, 160)}`); }
+      // Hand the finished wire to the one HTML write site, which injects the render-time
+      // fitter. Done here rather than at each composer call because every path — family,
+      // scene-kit, bundled template, long-form skin, 3D — writes through writeComposedHtml.
+      setFitAssets(jobId, allAssets);
       // Persist the curated list like the agent-graph path does — without this,
       // /generate jobs show 0 assets in jobs.json and the only audit trail is a
       // job dir the janitor deletes after an hour.
@@ -2035,7 +2319,13 @@ async function runJob(opts) {
 module.exports = {
   retimeScenesToVo, runJob, withBudget, attemptLlmComposition, composeWithThree, isAssetRich, mixAudioIntoVideo, fallbackQueriesFor,
   identityGate, contrastFixPass, setCaptionStyle, clearCaptionStyle, writeComposedHtml,
+  setFitAssets, clearFitAssets,
   // Exported for the audits: `check:coverage` walks every renderer and measures
   // whether a film's scenes all reach the screen. A gate that has to hand-copy
   // this list would silently miss the next renderer added to it.
-  PACK_RENDERERS, LONGFORM_RENDERER_SEC, sceneCapFor, foldScriptToRenderer };
+  PACK_RENDERERS, LONGFORM_RENDERER_SEC, sceneCapFor, foldScriptToRenderer,
+  // Underscored: an internal seam, exported so scripts/prompt_analysis.test.cjs can
+  // assert the two properties with no other observable surface — that an unlocked
+  // brief's storyboard prompt is byte-identical, and that a locked order reaches it.
+  _enrichedStoryboardPrompt: enrichedStoryboardPrompt,
+};

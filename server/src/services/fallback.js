@@ -13,6 +13,10 @@
 // Both use only inline SVG, CSS gradients, system fonts, and GSAP (no external
 // fonts, no LLM calls, no fetch).
 
+// Even the emergency slideshow must not crop a logo or stretch a picture: this is the
+// last thing a viewer sees when everything else failed, and it is full-bleed.
+const AF = require("./asset_fit");
+
 function escapeHtml(s) {
   return String(s)
     .replace(/&/g, "&amp;")
@@ -265,7 +269,7 @@ function buildAssetFallback({ prompt, duration, orientation, width, height, fps,
       clipEls.push(
         `    <img id="${id}" class="clip" src="${a.path}" alt="${escapeHtml(a.alt || "")}"
          data-start="${start}" data-duration="${dur}" data-track-index="${track}"
-         style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center; opacity:0;">`
+         style="position:absolute; inset:0; width:100%; height:100%; ${AF.fitCss(a)} opacity:0;">`
       );
       tl.push(`  tl.fromTo("#${id}", { scale: 1.0 }, { scale: 1.12, xPercent: ${driftX}, yPercent: ${driftY}, duration: ${dur}, ease: "sine.inOut" }, ${start});`);
     }

@@ -85,6 +85,69 @@ const TEMPLATE_SCENES = [
   },
 ];
 const mediaSlots = { hook: ["desktop"], feature: ["desktop"], montage: ["photo", "photo", "photo", "photo"] };
+// WHAT SHAPE EACH PLACEHOLDER IS — the number that did not exist anywhere in this
+// codebase before. Fractions of the CANVAS (wFrac of its width, hFrac of its height),
+// derived from the CSS each scene function writes and cross-checked against a live
+// headless render (`node scripts/audit-slot-fit.js`). services/template_media.js turns
+// them into real pixels for this film's dimensions, so selection can weigh SHAPE and
+// asset_fit can choose a real crop instead of the hardcoded `cover / top center`.
+// ---- media geometry -----------------------------------------------------------
+// Every media box in this pack sits INSIDE a hard-shadow sticker(): a q(4)cqw navy
+// border plus a q(14)cqw cream padding ring, under the global `* { box-sizing:border-box }`.
+// So the PAINTED image is the sticker's content box, not the slot div — subtract
+// 2x(q(4)+q(14)) from both the declared width and the declared height. Landscape
+// q() is px*0.052 (0.21 + 0.73 = 0.94cqw a side); portrait is px*0.0926
+// (0.37 + 1.30 = 1.67cqw a side). Both are cqw, i.e. % of WIDTH, on BOTH axes —
+// which is exactly why these boxes' aspect ratios were never computable from the
+// CSS by eye and why the montage cards shipped at 1.92.
+const mediaGeometry = {
+  // hook: the cream sticker plate, absolutely placed right of the slam column in
+  // landscape (42x26.4cqw) and stacked under the headline in portrait (83.34x51.86cqw).
+  // Landscape: 42 - 1.88 = 40.12cqw wide, 26.4 - 1.88 = 24.52cqw TALL-in-cqw, i.e.
+  // 24.52% of 1920 = 471px of the 1080 frame -> hFrac 0.436, NOT 0.245.
+  // Portrait: 80.00 x 48.52cqw of 1080 = 864x524. Both land on ~1.64 — a shade
+  // tighter than a 1.5 website capture, so `cover` + object-position:top center
+  // shaves the bottom of the page, which is the intended "screenshot plate" read.
+  hook: {
+    land: [{ wFrac: 0.4012, hFrac: 0.4359, importance: "hero" }],
+    port: [{ wFrac: 0.8000, hFrac: 0.2729, importance: "hero" }],
+  },
+
+  // feature: the same plate, one beat bigger — landscape 46x29.3cqw, portrait
+  // 87.41x55.56cqw. After the border+padding ring: 44.12x27.42cqw (847x526) and
+  // 84.07x52.22cqw (908x564). Both are 1.61, the closest thing this pack has to a
+  // native screenshot shape; it is the film's product hero and should stay hero.
+  feature: {
+    land: [{ wFrac: 0.4412, hFrac: 0.4875, importance: "hero" }],
+    port: [{ wFrac: 0.8407, hFrac: 0.2937, importance: "hero" }],
+  },
+
+  // montage: four identical conveyor cards (strip0 carries media[0],[1]; strip1
+  // carries media[2],[3]) — the ORDER below is that of `mediaSlots.montage`.
+  // The card is cardW wide and the image inside is an explicit `height:mediaH cqw`
+  // — a HEIGHT expressed in % of WIDTH, which is why this shape was invisible in the
+  // CSS and why it drifted to 1.92 landscape / 1.71 portrait, aspects no asset class
+  // has. Both are now 3:2: landscape 20.12 x 13.4cqw = 386x257px, portrait 52.22 x
+  // 34.8cqw = 564x376px. Short sides 257 / 376px, comfortably over the 220px floor
+  // the old 221px landscape card was sitting on. Declared as `support`, not hero:
+  // they are a wall, read for range, not for detail. No `flex` — the strip container
+  // is overflow:hidden and the card's total height depends on whether the tile
+  // carries a caption, so a guessed aspect range would be drawn wrong.
+  montage: {
+    land: [
+      { wFrac: 0.2012, hFrac: 0.2382, importance: "support" },
+      { wFrac: 0.2012, hFrac: 0.2382, importance: "support" },
+      { wFrac: 0.2012, hFrac: 0.2382, importance: "support" },
+      { wFrac: 0.2012, hFrac: 0.2382, importance: "support" },
+    ],
+    port: [
+      { wFrac: 0.5222, hFrac: 0.1958, importance: "support" },
+      { wFrac: 0.5222, hFrac: 0.1958, importance: "support" },
+      { wFrac: 0.5222, hFrac: 0.1958, importance: "support" },
+      { wFrac: 0.5222, hFrac: 0.1958, importance: "support" },
+    ],
+  },
+};
 
 function route(scene, i, total, ctx) {
   const k = String(scene.kind || "").toLowerCase(), p = String(scene.purpose || "").toLowerCase();
@@ -223,7 +286,23 @@ function sticker(inner, { bg, border, shadow, rot = 0, radius = 18, pad = null, 
 function slot(sid, asset, th, { radius = 14, compact = false, focusTop = false, land = false } = {}) {
   const rad = q(radius, land);
   if (asset && asset.path) {
-    return `<img data-media-slot="filled" id="${sid}" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;border-radius:${rad}cqw;object-fit:${asset.fitContain ? "contain" : "cover"};padding:${asset.fitContain ? "7%" : "0"};object-position:${asset.fitContain ? "center" : (focusTop ? "top center" : (asset.cropFocus || "center"))};display:block;">`;
+    // THE FIT THE PLANNER CHOSE FOR THIS PICTURE IN THIS BOX.
+    //
+    // This was a three-way guess that never opened the image and never knew the box:
+    // `contain` for a flagged mark, otherwise `cover`, anchored `top center` whenever the
+    // caller passed focusTop and at asset.cropFocus otherwise. The focusTop branch is the
+    // damaging one — it fires on exactly the slot a website capture lands in, and it
+    // OVERRIDES the crop engine's measured focal point with a literal, so the saliency
+    // analysis the pipeline pays for is discarded precisely where it was needed.
+    //
+    // asset_fit decides mode and position together from the asset's real dimensions and
+    // the slot's real box: contain for a mark or for an interface whose crop would eat its
+    // navigation, cover with a content-aware focal point for a photograph, never a stretch.
+    // The reading-order prior inside crop_engine already does what focusTop was reaching
+    // for, so the flag is kept in the signature for its call sites and no longer consulted.
+    const af = E.fitCss(asset);
+    const contained = /object-fit:contain/.test(af);
+    return `<img data-media-slot="filled" id="${sid}" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;border-radius:${rad}cqw;${af}padding:${contained ? "7%" : "0"};display:block;">`;
   }
   const cam = (s, c) => ``;
   if (compact) {
@@ -354,7 +433,11 @@ function montage(scene, ctx, a, b) {
   const { id, T, L, theme: th, land } = ctx;
   const Wf = land ? 1920 : 1080, Hf = land ? 1080 : 1920;
   const tiles = (Array.isArray(scene.tiles) && scene.tiles.length ? scene.tiles : bullets(scene, 4));
-  const labels = [0, 1, 2, 3].map((i) => fit(String(tiles[i] || ["Home", "Pricing", "Dashboard", "Checkout"][i]), 12));
+  // NEVER FABRICATE A TILE CAPTION. This mapped every missing tile onto a generic screen
+  // name, so a wall with two real labels still shipped two invented ones - claiming the
+  // product has screens nobody named. These tiles carry a PICTURE, and over a picture a
+  // fabricated caption is worse than none, so an unnamed tile is simply uncaptioned.
+  const labels = [0, 1, 2, 3].map((i) => (tiles[i] ? fit(String(tiles[i]), 12) : ""));
   // Four tiles, four assets: the engine now fills every declared slot, and a
   // short pool cycles rather than leaving a hole — a repeated screenshot reads far
   // better than a blank white card.
@@ -363,16 +446,32 @@ function montage(scene, ctx, a, b) {
   const bgs = [th.blue, th.coral, th.navy, th.yellow];
   const ck = checker(`${id}-ck`, land ? 3 : 17.6, th.blue, th.cream, { tilt: -2.5, dir: 1, hPx: land ? 44 : 64, land, T, span: L });
   const slm = slamHtml(id, scene.headline, "Every page|slaps.", land ? 56 : 124, th.navy, th.blue, land, land ? 60 : 88.5, false);
-  const cardW = land ? 23.96 : 55.56, gapC = land ? 1.46 : 2.78, mediaH = land ? 11.5 : 30.56;
-  const loop = (land ? 488 : 630) * 2;
+  // CARD SHAPE. `mediaH` is a HEIGHT written in cqw, i.e. in % of the frame's WIDTH,
+  // so the picture's aspect is cardW-minus-ring over mediaH and was never visible in
+  // these numbers. It shipped at 22.088/11.5 = 1.92 landscape and 52.228/30.56 = 1.71
+  // portrait; a measured render flagged EVERY conveyor row heavy-crop (a 1.5 website
+  // capture lost 21% of its width, a 0.67 portrait 65% of its height, a 0.46 phone shot
+  // 76%). Both are now 3:2 — 386x257px landscape, 564x376px portrait — the shape a
+  // website capture (1.52) and most stock actually are, so the same wall now takes them
+  // near-uncropped. Landscape gets there mostly by NARROWING the card (23.96 -> 22.0cqw):
+  // two belts plus the slam headline already fill 1080, so there was only ~0.7cqw of belt
+  // height to win and the rest of the aspect had to come off the width.
+  const cardW = land ? 22.0 : 55.56, gapC = land ? 1.46 : 2.78, mediaH = land ? 13.4 : 34.8;
+  // The belt wraps by exactly two card pitches, so the seam is invisible only while the
+  // row is at least one loop plus one viewport wide. Both were hardcoded (488/630px) and
+  // landscape sat 4px inside that limit — narrowing the card would have opened a visible
+  // gap. Derive both from the pitch instead so the shape can move without breaking it.
+  const pitchPx = Math.round((cardW + gapC) * Wf / 100);
+  const loop = pitchPx * 2;
+  const reps = Math.max(3, Math.ceil((Wf + gapC * Wf / 100) / (2 * pitchPx) + 1));
   const cyc = r(Math.max(2.4, L * 0.62));
   const strip = (n, idxs, topC, hC, dir) => {
     const cards = [];
-    for (let rep = 0; rep < 3; rep++) {
+    for (let rep = 0; rep < reps; rep++) {
       for (const ti of idxs) {
         cards.push(`<div class="${id}-cd" style="width:${cardW}cqw;flex:none;">${sticker(
           `<div style="height:${mediaH}cqw;border-radius:${q(14, land)}cqw;overflow:hidden;">${slot(`${id}-im${n}-${ti}-${rep}`, media[ti], th, { radius: 14, land })}</div>
-           <div style="font-family:${FD};font-size:${q(30, land)}cqw;color:${inkOn(bgs[ti % 4], th.navy, th.cream)};text-transform:uppercase;text-align:center;padding:${q(14, land)}cqw 0 ${q(4, land)}cqw;white-space:nowrap;overflow:hidden;">${esc(labels[ti])}</div>`,
+           ${labels[ti] ? `<div style="font-family:${FD};font-size:${q(30, land)}cqw;color:${inkOn(bgs[ti % 4], th.navy, th.cream)};text-transform:uppercase;text-align:center;padding:${q(14, land)}cqw 0 ${q(4, land)}cqw;white-space:nowrap;overflow:hidden;">${esc(labels[ti])}</div>` : ""}`,
           { bg: bgs[ti % 4], border: th.navy, shadow: th.navy, rot: ti % 2 === 0 ? -1.6 : 1.6, extra: `padding:${q(14, land)}cqw;` }, land)}</div>`);
       }
     }
@@ -380,10 +479,18 @@ function montage(scene, ctx, a, b) {
       <div id="${id}-str${n}" class="${id}-cardrow" style="position:absolute;display:flex;gap:${gapC}cqw;${dir < 0 ? `transform:translateX(${-loop}px);` : ""}">${cards.join("")}</div>
     </div>`;
   };
+  // BELT HEIGHT. The belt is overflow:hidden, so it has to clear the WHOLE card:
+  // ring + mediaH + the caption row + the 1.6deg tilt's bbox growth + the q(10) hard
+  // shadow. A render measures that at 19.0cqw landscape / 45.4cqw portrait against the
+  // old 18.5 / 43.5 belts, which used to carry a 17.6 / 42.6cqw card — so the belts go
+  // to 19.2 / 47.0 and the navy shadow stays whole instead of being sliced off. In
+  // landscape the room comes out of the gap between the two belts (2.4 -> 1.1cqw), not
+  // out of the top: the slam headline owns everything above 16.5cqw and 56.25cqw is the
+  // whole frame. Portrait has 14cqw to spare below the second belt.
   const html = `${ck.html}
     <div style="position:absolute;left:${land ? 6 : 5.74}cqw;right:5.74cqw;top:${land ? 6 : 30.6}cqw;">${slm.html}</div>
-    ${strip(0, [0, 1], land ? 16.5 : 64.8, land ? 18.5 : 43.5, 1)}
-    ${strip(1, [2, 3], land ? 36.5 : 113.9, land ? 18.5 : 43.5, -1)}`;
+    ${strip(0, [0, 1], land ? 16.5 : 64.8, land ? 19.2 : 47.0, 1)}
+    ${strip(1, [2, 3], land ? 36.5 : 116.8, land ? 19.2 : 47.0, -1)}`;
   const s = [
     camera("pushRight", ctx),
     ...slamAnim(id, T, L, slm.count),
@@ -545,7 +652,7 @@ function styleBlock(th) {
 }
 
 const family = {
-  theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaFallback, wantsLogo,
+  theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaGeometry, mediaFallback, wantsLogo,
   // Empty slots in this pack render a featureless placeholder card, so a
   // REPEAT of a real screenshot/photo beats leaving one blank.
   recycleMedia: true,
@@ -560,4 +667,9 @@ function buildComposition(opts) { return E.buildFilm(family, opts); }
 // drift from the film that ships.
 function planMedia(opts) { return E.planMedia(family, opts); }
 
-module.exports = { buildComposition, planMedia, TEMPLATE_SCENES };
+// FAMILY is the pack's whole design object — the same one buildFilm renders from.
+// It is exported so callers OUTSIDE the renderer can read the slot contract without
+// building a film: services/template_media.resolveMediaPlan needs `mediaSlots` and
+// `mediaGeometry` to tell preflight which boxes this template will draw and what
+// shape each one is, and the crop engine needs the resulting aspect list.
+module.exports = { buildComposition, planMedia, TEMPLATE_SCENES, FAMILY: family };

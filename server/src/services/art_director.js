@@ -31,7 +31,7 @@ const SYSTEM = fs.readFileSync(
 );
 
 function ard() {
-  return config.artDirector || { enabled: true, model: "google/gemini-3.1-flash-lite" };
+  return config.artDirector || { enabled: true, model: config.llm.modelFast || config.llm.model };
 }
 
 // ---- color helpers (self-contained; no dep on scene_kit) ---------------------

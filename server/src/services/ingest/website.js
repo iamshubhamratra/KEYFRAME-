@@ -73,7 +73,7 @@ function cropPng(srcPath, outPath, x, y, w, h) {
     const ff = spawn("ffmpeg", [
       "-hide_banner", "-loglevel", "error", "-y",
       "-i", srcPath, "-vf", `crop=${w}:${h}:${x}:${y}`, outPath,
-    ]);
+    ], { windowsHide: true });
     ff.on("error", reject);
     ff.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`ffmpeg crop exited ${code}`))));
   });
@@ -107,7 +107,7 @@ function downloadImage(url, outPath, referer, timeoutMs = 15000) {
 // Real pixel dimensions via ffprobe (handles png/jpg/webp/gif/avif). null on fail.
 function imageSize(p) {
   return new Promise((resolve) => {
-    const ff = spawn("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "json", p]);
+    const ff = spawn("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "json", p], { windowsHide: true });
     let out = ""; ff.stdout.on("data", (d) => (out += d.toString()));
     const timer = setTimeout(() => { try { ff.kill("SIGKILL"); } catch { /* noop */ } }, 15000);
     ff.on("error", () => { clearTimeout(timer); resolve(null); });
@@ -132,7 +132,7 @@ function parseBg(css) {
 // { hex, lum, isDark } or null.
 function groundColor(screenshotPath) {
   return new Promise((resolve) => {
-    const ff = spawn("ffmpeg", ["-hide_banner", "-loglevel", "error", "-i", screenshotPath, "-vf", "scale=48:48", "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:1"]);
+    const ff = spawn("ffmpeg", ["-hide_banner", "-loglevel", "error", "-i", screenshotPath, "-vf", "scale=48:48", "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:1"], { windowsHide: true });
     const chunks = [];
     ff.stdout.on("data", (d) => chunks.push(d));
     ff.on("error", () => resolve(null));
@@ -164,7 +164,7 @@ function dominantColors(screenshotPath) {
       "-i", screenshotPath,
       "-vf", "scale=48:48",
       "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:1",
-    ]);
+    ], { windowsHide: true });
     const chunks = [];
     ff.stdout.on("data", (d) => chunks.push(d));
     ff.on("error", () => resolve([]));
@@ -432,24 +432,138 @@ async function understandWebsite({ url, workDir, timeoutMs = 60_000 }) {
     // become first-class video assets (showcased in device frames), which is
     // far more credible than any stock image.
     const screenshotPaths = isAuthWall ? [] : [heroPath];
+    // The section offsets the DOM gave us, in CSS px, reused by the PeekShot crop plan
+    // below so the retina path lands on the same real sections as the local one.
+    let sectionOffsets = [];
     if (!isAuthWall) {
       try {
-        const pageH = await page.evaluate(() => Math.max(document.body?.scrollHeight || 0, document.documentElement.scrollHeight || 0));
+        // ---- WHERE THE DEEP SECTIONS ARE, RATHER THAN WHERE A FRACTION LANDS ----------
+        //
+        // These offsets were five fixed fractions of the page height — 0.22, 0.40, 0.58,
+        // 0.76, 0.90 — chosen without ever asking what was at those pixels. On a shipped
+        // film that put one capture on a band of empty whitespace and another on the page
+        // FOOTER: a column of link lists, narrated as if it were the product.
+        //
+        // A page already says where its sections are. Take the offsets from the DOM: the
+        // block-level regions tall enough to be a section, carrying enough text or imagery
+        // to be worth showing, that are not the footer. Centre each in the viewport, drop
+        // ones that would show the same pixels, and fall back to the fractions only when a
+        // page has no discernible structure.
+        const secPlan = await page.evaluate((viewH) => {
+          const docH = Math.max(document.body?.scrollHeight || 0, document.documentElement.scrollHeight || 0);
+          const footer = document.querySelector("footer, [role=contentinfo]");
+          const footerTop = footer ? (footer.getBoundingClientRect().top + window.scrollY) : Infinity;
+          const cands = [];
+          const sel = "section, article, main > div, main > section, [class*=section], [class*=Section], [data-section]";
+          for (const el of document.querySelectorAll(sel)) {
+            const r = el.getBoundingClientRect();
+            const top = r.top + window.scrollY;
+            if (r.height < viewH * 0.45 || r.height > docH * 0.8) continue;
+            if (top < viewH * 0.5 || top >= footerTop) continue;
+            if (r.width < 200 || getComputedStyle(el).display === "none") continue;
+            // Worth showing: real words, or real pictures. A band that is neither is the
+            // whitespace between two sections, which is what one shipped capture was.
+            const text = (el.innerText || "").trim();
+            const media = el.querySelectorAll("img, svg, video, canvas, picture").length;
+            const weight = Math.min(text.length, 900) / 900 + Math.min(media, 6) / 6;
+            if (weight < 0.35) continue;
+            cands.push({ top: Math.round(top), h: Math.round(r.height) });
+          }
+          cands.sort((a, b) => a.top - b.top);
+          const picked = [];
+          for (const c of cands) {
+            const centre = Math.max(0, Math.round(c.top + c.h / 2 - viewH / 2));
+            if (picked.some((y) => Math.abs(y - centre) < viewH * 0.6)) continue;
+            picked.push(Math.min(centre, Math.max(0, docH - viewH)));
+            if (picked.length >= 5) break;
+          }
+          return { docH, picked };
+        }, 900).catch(() => ({ docH: 0, picked: [] }));
+
         const viewH = 900;
-        // Was two section grabs (0.35 / 0.7). A product film wants SIX-PLUS real
-        // screenshots, and the deep sections are where the product actually gets
-        // shown (features, proof, pricing) — the hero is mostly headline. Each is
-        // cheap (one scroll + one shot); blanks and duplicates are dropped later by
-        // screenshot QA and the Creative Director.
-        for (const [i, frac] of [[2, 0.22], [3, 0.4], [4, 0.58], [5, 0.76], [6, 0.9]]) {
-          const y = Math.floor((pageH - viewH) * frac);
-          if (y < viewH * 0.5) continue; // page too short for distinct sections
+        const pageH = secPlan.docH || await page.evaluate(() => Math.max(document.body?.scrollHeight || 0, document.documentElement.scrollHeight || 0));
+        let offsets = Array.isArray(secPlan.picked) ? secPlan.picked : [];
+        if (offsets.length < 2) {
+          // No discernible structure — the original fractions, minus 0.9, which landed in
+          // the footer on every long marketing page.
+          offsets = [0.22, 0.4, 0.58, 0.76].map((f) => Math.floor((pageH - viewH) * f)).filter((y) => y >= viewH * 0.5);
+        }
+        sectionOffsets = offsets.slice();
+
+        // ---- STOP REPEATING THE CHROME IN EVERY SECTION ------------------------------
+        //
+        // A sticky navigation bar and a sticky promotion strip are pinned to the viewport,
+        // so a scroll-and-shoot capture puts them in EVERY frame. On the shipped film that
+        // meant the site nav across the top of the footer capture and its green "2x more
+        // credits" strip along the bottom of all six — a band of every frame spent on
+        // furniture the film never mentions, and the reason six captures of six different
+        // sections all read as the same picture.
+        //
+        // The hero keeps its chrome: the top of a page is where a nav belongs, and that
+        // capture was already taken above. Only the deep sections are cleaned, and only
+        // for the duration of this pass:
+        //   fixed  -> hidden. It is out of flow, so nothing moves when it goes.
+        //   sticky -> static. It stays where the document put it and simply stops
+        //             following the scroll, so the section it belongs to still shows it.
+        const unstuck = await page.evaluate(() => {
+          let n = 0;
+          for (const el of document.querySelectorAll("body *")) {
+            const cs = getComputedStyle(el);
+            if (cs.position === "fixed") {
+              const r = el.getBoundingClientRect();
+              if (r.width * r.height < 400) continue;   // a badge or a back-to-top dot
+              el.setAttribute("data-kf-unstuck", "fixed");
+              el.style.setProperty("visibility", "hidden", "important");
+              n++;
+            } else if (cs.position === "sticky") {
+              el.setAttribute("data-kf-unstuck", "sticky");
+              el.style.setProperty("position", "static", "important");
+              n++;
+            }
+          }
+          return n;
+        }).catch(() => 0);
+        if (unstuck) console.log(`[ingest] ${unstuck} sticky/fixed element(s) unpinned for the section captures`);
+
+        let si = 2;
+        for (const y of offsets) {
           await page.evaluate((top) => window.scrollTo({ top, behavior: "instant" }), y);
           await new Promise((r) => setTimeout(r, 900)); // lazy content settles
-          const p = path.join(workDir, `website_section${i}.png`);
-          await page.screenshot({ path: p, fullPage: false });
-          screenshotPaths.push(p);
+          // A capture of nothing is worse than one fewer capture. Sample the viewport on a
+          // grid and ask how much of it words or pictures actually cover; under a fifth is
+          // the gap between two sections, not a section.
+          const cover = await page.evaluate(() => {
+            let hit = 0, n = 0;
+            for (let gx = 1; gx <= 6; gx++) {
+              for (let gy = 1; gy <= 5; gy++) {
+                n++;
+                const el = document.elementFromPoint(innerWidth * gx / 7, innerHeight * gy / 6);
+                if (!el || el === document.body || el === document.documentElement) continue;
+                const txt = (el.innerText || el.textContent || "").trim();
+                if (txt.length > 1 || /^(IMG|SVG|VIDEO|CANVAS|PICTURE)$/.test(el.tagName)) hit++;
+              }
+            }
+            return n ? hit / n : 1;
+          }).catch(() => 1);
+          if (cover < 0.2) {
+            console.log(`[ingest] section at y=${y} is ${Math.round(cover * 100)}% covered — skipped as blank`);
+            continue;
+          }
+          const sp = path.join(workDir, `website_section${si}.png`);
+          await page.screenshot({ path: sp, fullPage: false });
+          screenshotPaths.push(sp);
+          si++;
         }
+
+        // Put the page back the way it was — the extraction passes below read this same
+        // document, and a hidden nav would cost them the site own navigation labels.
+        await page.evaluate(() => {
+          for (const el of document.querySelectorAll("[data-kf-unstuck]")) {
+            if (el.getAttribute("data-kf-unstuck") === "fixed") el.style.removeProperty("visibility");
+            else el.style.removeProperty("position");
+            el.removeAttribute("data-kf-unstuck");
+          }
+        }).catch(() => {});
       } catch (e) {
         console.warn(`[ingest] section screenshots failed: ${e.message}`);
       }
@@ -491,11 +605,24 @@ async function understandWebsite({ url, workDir, timeoutMs = 60_000 }) {
             // own file, so there is no shared state and no ordering requirement —
             // screenshotPaths is assembled afterwards, in the authored order, so
             // the section sequence stays deterministic regardless of finish order.
+            // THE SAME REAL SECTIONS THE LOCAL PASS FOUND, not five fractions of the
+            // page height. The offsets above came from the DOM (block regions tall
+            // enough and full enough to be a section, footer excluded) in CSS pixels
+            // against the 1366-wide viewport, so they scale into this retina full-page
+            // capture by its own width. The fractions remain the fallback for a page
+            // with no discernible structure — minus 0.9, which is the footer.
+            const scale = dim.width / 1366;
+            const fromDom = sectionOffsets.map((y) => Math.floor(y * scale));
+            const ys = fromDom.length >= 2
+              ? fromDom
+              : [0.22, 0.4, 0.58, 0.76].map((f) => Math.floor((dim.height - winH) * f));
             const plan = [];
-            for (const [i, frac] of [[2, 0.22], [3, 0.4], [4, 0.58], [5, 0.76], [6, 0.9]]) {
-              const y = Math.floor((dim.height - winH) * frac);
+            let ci = 2;
+            for (const y0 of ys) {
+              const y = Math.max(0, Math.min(y0, dim.height - winH));
               if (y < winH * 0.5) continue; // too short for distinct sections
-              plan.push({ i, y, p: path.join(workDir, `website_section${i}.png`) });
+              plan.push({ i: ci, y, p: path.join(workDir, `website_section${ci}.png`) });
+              ci++;
             }
             const cropped = await Promise.all(plan.map((c) =>
               cropPng(fullPath, c.p, 0, c.y, dim.width, winH).then(() => c).catch(() => null)

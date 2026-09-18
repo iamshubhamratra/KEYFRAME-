@@ -20,6 +20,7 @@
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
 const { pickForScene } = require("./scene_match");
 const { fitScenes, MAX_CLIPS } = require("./scene_fit");
+const AF = require("./asset_fit");
 
 const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 const DISPLAY = "Space Grotesk";
@@ -386,7 +387,11 @@ function bpPlate(scene, ctx, asset) {
   const plateW = `${plateWn}cqw`;
   const winH = land ? (portrait ? "34cqw" : "24cqw") : (portrait ? "82cqw" : "58cqw");
   const callout = esc(String(scene.emphasis || "PLATE").toUpperCase()).slice(0, 18);
-  const objPos = "top center";
+  // The plate's fit, from the picture and the box rather than from a literal. The class
+  // stylesheet below sets `object-fit:cover` for `.bp-plate-win img`, and this inline
+  // declaration overrides it when the content cannot afford a crop — a website capture in
+  // a 1.0-ish plate letterboxes instead of losing its navigation, and a mark never crops.
+  const plateFit = AF.fitCss(asset);
   const rev = Math.max(1.0, ctx.L - 2.0);
   // Scan-bar travel in px (transform x, not `left` — lint wants sub-pixel transforms):
   // the plate window is plateW of the canvas width, so the bar crosses that distance.
@@ -396,7 +401,7 @@ function bpPlate(scene, ctx, asset) {
     <div class="bp-plate" id="${id}-plate" style="opacity:0;position:relative;width:${plateW};flex:0 0 auto;">
       <div class="bp-plate-head">PLATE 0${ctx.sheetNo} <span>${callout}</span></div>
       <div class="bp-plate-win" style="height:${winH};">
-        <img src="${esc(asset.path)}" alt="${esc(asset.alt || "screenshot")}" style="object-position:${objPos};">
+        <img src="${esc(asset.path)}" alt="${esc(asset.alt || "screenshot")}" style="${plateFit}">
         <div class="bp-plate-tint"></div><div class="bp-plate-lines"></div>
         <div class="bp-plate-cover" id="${id}-cover"></div>
         <div class="bp-plate-scan" id="${id}-pscan"></div>
@@ -448,7 +453,7 @@ function bpRefPhoto(id, asset, ctx) {
   const html = `<div class="bp-ref" id="${id}-ref" style="opacity:0;position:absolute;right:${land ? 4.5 : 6}cqw;bottom:${land ? 7 : 9}cqw;width:${w}cqw;z-index:6;">
     <div style="font-family:${theme.monoStack};font-size:${land ? 0.95 : 1.7}cqw;letter-spacing:0.2em;text-transform:uppercase;color:${theme.faint};margin-bottom:0.5cqw;">REF · <span style="color:${theme.amber};">FIG</span></div>
     <div style="position:relative;height:${h}cqw;overflow:hidden;border:2px solid rgba(143,216,255,0.42);border-radius:0.5cqw;background:var(--sheet);box-shadow:0 1cqw 2.4cqw rgba(4,14,28,0.5);">
-      <img src="${esc(asset.path)}" alt="${esc(asset.alt || "reference")}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(0.9) contrast(1.03);">
+      <img src="${esc(asset.path)}" alt="${esc(asset.alt || "reference")}" style="position:absolute;inset:0;width:100%;height:100%;${AF.fitCss(asset)}filter:saturate(0.9) contrast(1.03);">
       <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(23,65,111,0.14),rgba(12,36,64,0.30));pointer-events:none;"></div>
     </div>
   </div>`;

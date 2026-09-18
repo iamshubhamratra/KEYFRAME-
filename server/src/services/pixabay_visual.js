@@ -132,7 +132,7 @@ function reencodeForHyperframes(srcPath) {
       "-an",
       tmpPath,
     ];
-    const p = spawn("ffmpeg", args, { stdio: ["ignore", "ignore", "pipe"] });
+    const p = spawn("ffmpeg", args, { windowsHide: true, stdio: ["ignore", "ignore", "pipe"] });
     let stderr = "";
     p.stderr.on("data", (d) => { stderr += d.toString(); });
     const timer = setTimeout(() => { try { p.kill("SIGKILL"); } catch {} }, 60_000);

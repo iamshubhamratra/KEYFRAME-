@@ -1,0 +1,61 @@
+{
+  "name": "morning-pages",
+  "vibe": "personal blog / diary — the table before anyone else is up. Caveat over Nunito; a luminance-ladder palette on #f3ece1. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#f3ece1",
+    "ink": "#1b1712",
+    "accent": "#e07a5f",
+    "a2": "#81a06b"
+  },
+  "fonts": [
+    "Caveat",
+    "Nunito",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#f3ece1",
+    "ink": "#1b1712"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#e07a5f",
+      "#81a06b"
+    ],
+    "extras": [
+      "#736a5d"
+    ],
+    "emphasisCss": "color:#e07a5f;"
+  },
+  "assets": {
+    "photoMod": "the table before anyone else is up editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "personal blog",
+      "diary"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Caveat",
+    "body": "Nunito",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-morning-pages",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

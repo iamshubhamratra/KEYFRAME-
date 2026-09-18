@@ -14,6 +14,7 @@ const SYSTEM = fs.readFileSync(
 // Official HyperFrames pacing + beat-direction guides (local skills install)
 // appended once; cached for the process lifetime.
 const { getStoryboardSkills } = require("./skills");
+const pacing = require("./pacing");
 let systemWithSkills = null;
 async function getSystem() {
   if (systemWithSkills) return systemWithSkills;
@@ -30,7 +31,20 @@ const ASPECT_BY_ORIENTATION = {
   square: "1:1",
 };
 
-function buildUser({ prompt, duration, orientation, framePack }) {
+// THE AUTHORING MODEL WAS PACE-BLIND. generateStoryboard has received the
+// resolved pace since the feature shipped and forwarded it only to
+// normalizeTimeline - so the one model that writes the four copy slots filling
+// every frame was never told how long its frames would be, and could neither
+// tighten its lines for a 2.3s very-fast cut nor spend the room on a 4.3s
+// relaxed one. pacing.visualDirective() gives it both the element count and the
+// per-role character ceilings, derived from this film's real scene length.
+//
+// Sent at EVERY mode, including the default, on purpose. It is not a statement
+// about pace - it is the frame's copy contract, and normal-pace films were
+// under-filling too (a measured 4.05 on-screen words per scene against slots for
+// four elements). scriptDirective/shortDirective/audioDirection still return ""
+// at `normal`, so their prompt-identity test is untouched.
+function buildUser({ prompt, duration, orientation, framePack, pacing: pacingCfg = null }) {
   return [
     `User prompt: ${prompt}`,
     `Target duration: ${duration} seconds`,
@@ -39,6 +53,7 @@ function buildUser({ prompt, duration, orientation, framePack }) {
     framePack && framePack !== "auto"
       ? `Visual design system: "${framePack}". Design every scene's layout, visualMotif, and emphasis to suit THIS system's aesthetic — pick scene archetypes and motifs that show off its signature look. Keep adjacent scenes visually distinct (vary layout + animation + motif).`
       : "",
+    pacing.visualDirective(pacingCfg || pacing.defaults({ durationSec: duration })),
     "",
     "Produce the storyboard JSON now.",
   ].filter(Boolean).join("\n");
@@ -245,12 +260,18 @@ function expandToCover(sb, duration, { max = 70, cap = 15, pace = 8.5, label = "
 // gapless starts. A storyboard that was already correct passes through
 // unchanged. Only timing is touched — content/kind/animation are left for
 // validate() to flag and (if wrong) drive a real retry.
-function normalizeTimeline(sb, duration) {
+function normalizeTimeline(sb, duration, pacingCfg = null) {
   if (!sb || !Array.isArray(sb.scenes) || !sb.scenes.length) return;
   // Before any timing arithmetic: make sure there ARE enough scenes to hold the
   // film. Rescaling a list that is too short can only pin every scene to the 15s
   // ceiling, and past 15s x N it cannot reach the target at all.
-  expandToCover(sb, duration);
+  //
+  // `pace` here is expandToCover's EDITORIAL bar — "split anything projected
+  // longer than this" — and 8.5s is a Normal-pace number. The pacing engine
+  // derives the same quantity per mode (scene.storyboardPaceSec), so a faster
+  // mode genuinely cuts more on a long film instead of inheriting Normal's bar.
+  // Undefined -> expandToCover's own 8.5 default, unchanged.
+  expandToCover(sb, duration, pacingCfg ? { pace: pacingCfg.scene.storyboardPaceSec } : undefined);
   const scenes = sb.scenes.filter(
     (s) => s && typeof s.duration === "number" && Number.isFinite(s.duration)
   );
@@ -478,7 +499,15 @@ const KIND_KICKER = {
   cta: "Start here",
 };
 
-function ensureCopyFloor(sb) {
+// @param {object} pacingCfg  the film's resolved pace. The LABEL ROW's size is a
+//                            density decision, not a constant: `bulletsPerScene`
+//                            rises with pace (3/3/3/4) and the per-label width
+//                            falls out of the scene's own readable floor, so a
+//                            2.3s very-fast frame gets four 17-char labels where
+//                            a 4.3s relaxed one gets three 32-char ones. Omitted
+//                            -> the pre-pacing constants (3 labels, 28 chars).
+function ensureCopyFloor(sb, pacingCfg = null) {
+  const cap = pacing.visualCapacity(pacingCfg, (pacingCfg && pacingCfg.scene && pacingCfg.scene.targetSec) || 3.5);
   if (!sb || !Array.isArray(sb.scenes)) return;
   sb.scenes.forEach((scene, i) => {
     if (!scene || typeof scene !== "object") return;
@@ -513,9 +542,11 @@ function ensureCopyFloor(sb) {
       if (typeof scene.bullets === "string" && norm(scene.bullets)) scene.bullets = [norm(scene.bullets)];
       const hasBullets = Array.isArray(scene.bullets) && scene.bullets.some((b) => norm(b));
       if (!hasBullets && !typed) {
+        const sec = Number(scene.duration) > 0 ? Number(scene.duration) : null;
+        const room = sec ? pacing.visualCapacity(pacingCfg, sec) : cap;
         const labels = clauseLabels(`${vo}. ${norm(scene.subtext)}`, 8)
           .filter((c) => !echoes(c, scene.headline) && keyOf(c) !== keyOf(scene.subtext))
-          .slice(0, 3);
+          .slice(0, room.bullets);
         if (labels.length) scene.bullets = labels;
       }
 
@@ -530,8 +561,8 @@ function ensureCopyFloor(sb) {
   });
 }
 
-async function generateStoryboard({ prompt, duration, orientation, framePack }) {
-  const user = buildUser({ prompt, duration, orientation, framePack });
+async function generateStoryboard({ prompt, duration, orientation, framePack, pacing: pacingCfg = null }) {
+  const user = buildUser({ prompt, duration, orientation, framePack, pacing: pacingCfg });
   const maxTries = (config.llm.storyboardMaxRetries || 2) + 1;
 
   let totalIn = 0, totalOut = 0;
@@ -564,12 +595,12 @@ async function generateStoryboard({ prompt, duration, orientation, framePack }) 
 
     // Repair mechanical timing drift before validating, so the model is only
     // ever retried for genuine content problems — not arithmetic.
-    normalizeTimeline(storyboard, duration);
+    normalizeTimeline(storyboard, duration, pacingCfg);
     const errs = validate(storyboard, { duration, orientation });
     if (errs.length === 0) {
       // Last stop before the composition: fill the text slots this storyboard
       // still leaves empty, so the frame has something to lay out.
-      ensureCopyFloor(storyboard);
+      ensureCopyFloor(storyboard, pacingCfg);
       return { storyboard, tokensIn: totalIn, tokensOut: totalOut, costUsd: costCalls ? totalCost : null };
     }
     lastErrors = errs;
@@ -628,6 +659,24 @@ function alignToScript(sb, script, label = "storyboard") {
   const k = sbTotal / scTotal;
 
   const used = new Set();
+  // How much of each donor's bullet row has already been spent, and how many
+  // script scenes it has to cover. A donor spanning four script scenes hands its
+  // labels out in shares rather than emptying the whole row onto the first one
+  // and leaving the other three bare.
+  const donorBulletCursor = new Map();
+  const donorFor = (sc, at) => {
+    const mid = (at + Math.max(0, Number(sc.duration) || 0) / 2) * k;
+    return (win.find((w) => mid >= w.a && mid < w.b) || win[win.length - 1]).s;
+  };
+  const donorLoad = new Map();
+  {
+    let at = 0;
+    for (const sc of scScenes) {
+      const d = donorFor(sc, at);
+      donorLoad.set(d, (donorLoad.get(d) || 0) + 1);
+      at = round2(at + Math.max(0, Number(sc.duration) || 0));
+    }
+  }
   const out = [];
   let cursor = 0;
   scScenes.forEach((sc, i) => {
@@ -645,17 +694,101 @@ function alignToScript(sb, script, label = "storyboard") {
     // four and the picture stops advancing with the voice.
     const own = Array.isArray(sc.onScreenText) ? sc.onScreenText.filter(Boolean) : [];
     const headline = String(own[0] || (firstForDonor ? donor.headline : "") || "").slice(0, 120);
+
+    // THE COPY TRANSPLANT — and, until this was fixed, where a fast film's frame
+    // lost most of its words.
+    //
+    // system_storyboard.md hard rule 9 makes the director write a FULL copy set
+    // on every scene ("a non-empty kicker, headline, subtext, and 2-3 bullets.
+    // No scene ships headline-only"). This function then replaced that set with
+    // the script's `onScreenText`. Two things went wrong with it:
+    //
+    // 1. BULLETS NEEDED THREE SCRIPT LINES TO SURVIVE. The old rule was
+    //    `own.length > 2 ? own.slice(1) : (firstForDonor ? donor.bullets : [])`.
+    //    The paced script directive asked for AT MOST TWO on-screen lines at
+    //    fast and very-fast, so `own.length > 2` was false by construction and
+    //    every scene after the first one sharing a donor was handed `[]` — the
+    //    director's own 2-3 bullets, written specifically so no frame ships
+    //    headline-only, discarded on exactly the films that needed them most.
+    //    (services/template_engine.js:729 then refuses a list-shaped layout when
+    //    fewer than 2 bullets survive, so the frame lost its copy AND was routed
+    //    to an archetype designed to hold less.)
+    //
+    // 2. SUBTEXT AND BULLETS WERE THE SAME LINES. With three or more script
+    //    lines, subtext was `own.slice(1).join(" ")` and bullets was
+    //    `own.slice(1)` — the identical copy printed twice on one frame, once as
+    //    a sentence and once as a row of chips.
+    //
+    // Now: the script's first line is the headline, its SECOND is the support
+    // line, and everything from the third on becomes labels — then the
+    // director's own bullets top the row up. Nothing is duplicated and nothing
+    // authored is thrown away.
+    const bullets = [];
+    const seenBullet = new Set([key(headline)]);
+    const pushBullet = (b) => {
+      const t = String(b == null ? "" : b).replace(/\s+/g, " ").trim();
+      const k = key(t);
+      // SIX, NOT FOUR — because a frame has more than one label surface.
+      //
+      // The archetype's own row draws 3 (services/scene_kit.js labelRow, and
+      // every family's `max: 3`), and services/template_engine.js sceneFill then
+      // draws a SECOND band from `bullets(scene, 6)` MINUS the ones the family
+      // says it already used (`used: bullets(scene, 3)`). With the list capped at
+      // four, that band received exactly one chip and usually rendered as a
+      // single stray label instead of the row it was designed as.
+      //
+      // Nothing downstream is forced to draw six: every consumer slices to its
+      // own geometry. This only stops the surplus being discarded here, where no
+      // layout has had a say yet.
+      if (!t || !k || seenBullet.has(k) || bullets.length >= 6) return;
+      seenBullet.add(k);
+      bullets.push(t);
+    };
+    // The script's own labels first — they were written for THIS scene.
+    own.slice(2).forEach(pushBullet);
+    // Then the director's, sliced so a donor covering several script scenes
+    // spreads its row across them instead of stamping all of it on the first.
+    if (Array.isArray(donor.bullets) && donor.bullets.length) {
+      const at = donorBulletCursor.get(donor) || 0;
+      const share = Math.max(1, Math.ceil(donor.bullets.length / Math.max(1, donorLoad.get(donor) || 1)));
+      const before = bullets.length;
+      donor.bullets.slice(at, at + share).forEach(pushBullet);
+      donorBulletCursor.set(donor, at + Math.max(1, bullets.length - before));
+    }
+
+    const subtext = String(own[1] || (firstForDonor ? donor.subtext : "") || "").trim();
+
     const scene = {
       ...donor,
       id,
       start: round2(cursor),
       duration: round2(d),
       headline,
-      // Everything below the headline: the script's remaining display lines are
-      // this scene's own; the director's supporting copy only fills a scene that
-      // brought none, and only the first time it is used.
-      subtext: own.length > 1 ? own.slice(1).join(" ") : (firstForDonor ? donor.subtext : ""),
-      bullets: own.length > 2 ? own.slice(1) : (firstForDonor && Array.isArray(donor.bullets) ? donor.bullets : []),
+      // Everything below the headline: the script's own display lines lead, the
+      // director's supporting copy fills what the script did not bring.
+      subtext: key(subtext) === key(headline) ? "" : subtext,
+      bullets,
+      // CARRY THE SCRIPT'S LABEL LINES ONTO THE SCENE, which this never did.
+      //
+      // `onScreenText` is the FIRST branch of all four list waterfalls in the
+      // renderers — services/template_engine.js:130, services/omelette_adapter.js:230,
+      // services/composer_kit.js:62 and services/film_stage.js featureLines — and
+      // it is also the only field the delivered-cut readability grade inspects
+      // (services/pacing.js report()). Every one of them was reading a key this
+      // function never emitted, so on the graph and project paths the first rung
+      // of every waterfall was dead and the readability grade scored an empty
+      // array on every film it has ever graded.
+      //
+      // IT CARRIES THE LABELS, NOT EVERY LINE. The first cut of this set it to
+      // the script's whole `onScreenText` array — which still contains the lines
+      // already promoted to `headline` and `subtext` above. Those waterfalls ask
+      // for a LIST, so a renderer that draws the headline and then reads this for
+      // its label row printed the headline a second time. Measured on job
+      // ttoe6kcc9h: 17 scenes, 17 duplicates hidden by services/layout_fix.js,
+      // and a QA blocker for it. Mirroring `bullets` gives every waterfall the
+      // same label set from whichever branch it happens to take, and overlaps
+      // nothing the frame has already said.
+      onScreenText: bullets.slice(),
       voiceover: String(sc.voiceover || "").trim(),
     };
     // A donor's beats are timed against the donor's own (usually longer) window;

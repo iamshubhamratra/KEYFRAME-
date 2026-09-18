@@ -7,7 +7,7 @@ const { z } = require("zod");
 const openrouter = require("./openrouter");
 const frameRegistry = require("./frame_registry");
 const frameManifest = require("./frame_manifest");
-const packFamilies = require("./pack_families");
+const templateIntel = require("./template_intelligence");
 
 const SYSTEM = fs.readFileSync(
   path.join(__dirname, "..", "prompts", "system_brief.md"),
@@ -38,11 +38,7 @@ const BriefSchema = z.object({
 // One-line vibe per pack, given to the LLM so suggestions are informed.
 // Falls back to the pack name alone for packs without a known description.
 const PACK_VIBES = {
-  "blockframe": "maximalist neo-brutalist: candy pastels, 4px black borders, hard shadows, loud uppercase — playful, bold, product-launch energy",
   "biennale-yellow": "literary editorial: warm parchment, indigo ink, solar yellow blooms, serif display — elegant, cultural, slow-confidence",
-  "midnight-glass": "dark glassmorphism: deep navy, frosted cards, one neon accent — premium, technical, nocturnal",
-  "summit-keynote": "executive pitch light: porcelain grounds, deep navy ink, one cobalt beam + champagne gold, floating glass panels, 3D data constellation — for investor pitches, keynotes, founder stories, B2B decks",
-  "prism-launch": "white-studio product reveal: gallery white, carbon display type, iridescent prism gradients, one ember-hot CTA, rotating 3D shards — for product launches, release ads, feature announcements",
   "fable-storybook": "warm storybook: parchment, ink-brown serif spirit, watercolor terracotta/sage/dusk washes, paper planes + firefly orbs in gentle 3D — for narratives, brand stories, emotional arcs, journeys",
   "longshot-cinema": "one-take cinema: graphite stage, tungsten amber + beam blue, letterboxed continuous camera travel with live timecode, pop-up stat figures, animated product mocks, light sweeps — for trailers, hype reels, cinematic announcements",
 };
@@ -64,33 +60,197 @@ function recentlyUsedPacks(limit = 3) {
   }
 }
 
+// A BRIEF-SHAPED VIEW OF WHAT WE KNOW BEFORE THE BRIEF EXISTS.
+//
+// Template selection reads a brief (subject, tone, key messages), and on this
+// call there is not one yet — that is what the call produces. But ingest has
+// usually already run, so the site's own title, description, headings and
+// feature copy are sitting in `intent`, and they are exactly the fields a brief
+// would carry. Shaping them like a brief lets one matcher serve both this
+// pre-brief pass and the post-brief re-check in the graph, with no second code
+// path and no pretending we know less than we do.
+function briefSeedFrom(intent) {
+  const w = (intent && intent.website) || {};
+  const b = (intent && intent.blog) || {};
+  const v = (intent && intent.video) || {};
+  const keyMessages = [
+    ...(w.headings || []).slice(0, 8),
+    ...(b.headings || []).slice(0, 8),
+    ...((w.featureCopy || []).slice(0, 6).map((f) => (f && (f.heading || f.title)) || "")),
+  ].filter(Boolean);
+  return {
+    subject: null,
+    improvedPrompt: [w.description, b.excerpt ? String(b.excerpt).slice(0, 600) : "", v.visualStyleNotes]
+      .filter(Boolean).join(" "),
+    keyMessages,
+    goal: w.title || b.title || "",
+    audience: "",
+    tone: v.visualStyleNotes || "",
+    // Carries the analysis's refined prompt into the PRE-BRIEF rank below. The
+    // production-time re-rank gets it a different way — off `brief.analysis`, which
+    // resolveForJob already passes through as `brief` — so neither path needs a new
+    // parameter threaded through analyze()/select()/resolveForJob().
+    analysis: (intent && intent.analysis) || null,
+  };
+}
+
+// What pictures this film is going to have. Feeds the asset-capacity component:
+// a job carrying six real screenshots wants a template that paints six, and the
+// measured capacity across the library runs from 0 to 13.
+function assetSignalsFrom(intent) {
+  const w = (intent && intent.website) || {};
+  const b = (intent && intent.blog) || {};
+  const u = (intent && intent.userAssets) || {};
+  return {
+    screenshots: Number(w.hasRealScreenshots) || 0,
+    userAssets: Number(u.count) || 0,
+    images: (Number(b.imageCount) || 0) > 0,
+    video: !!(intent && intent.video),
+    brandPalette: !!(w.brandColors && w.brandColors.length),
+  };
+}
+
+// Score one template the ranking did not shortlist, so its own number and its
+// own reasons are what get recorded. Fail-soft: an unscorable pack falls back to
+// the selection-level summary rather than blocking the brief.
+function scoreOf(pack, selection) {
+  try { return templateIntel.scoreTemplate(templateIntel.profileOf(pack), selection.signals); }
+  catch { return selection; }
+}
+
+// How many scored candidates the brief model is shown. Small on purpose: the old
+// code sent all 285 installed packs as {name, vibe} — roughly 23,000 tokens of
+// list on every brief call — and a model asked to pick one name out of 285
+// one-liners while also writing the whole brief does not read them, it pattern-
+// matches the first plausible word. A dozen candidates that have already passed
+// the hard constraints is a question a model can actually answer well, and it
+// leaves the context budget for the film.
+const SHORTLIST = 14;
+
 async function generateBrief({ intent, signal }) {
-  const packs = frameRegistry.listPacks();
-  const availableFramePacks = packs.map((name) => ({
-    name,
-    // The pack manifest is the source of truth (Phase 3). It already folds in the
-    // hand-authored PACK_VIBES blurb (for the 7 packs that have one) and the real
-    // FRAME.md description for the rest, so a single read covers every pack. Fall
-    // back to the legacy tables for any pack that ships no manifest (fail-soft).
-    vibe: frameManifest.getManifest(name)?.vibe
-      || PACK_VIBES[name]
-      || frameRegistry.getPackVibe(name)
-      || "a curated design system",
-  }));
+  const prefs = (intent && intent.preferences) || {};
+
+  // STAGE 0 — the reading of the prompt this brief is built on.
+  //
+  // It lives HERE, not in runIntake, because generateBrief is the one function both
+  // pipelines call: server.js:58-61 sends /api/generate jobs to pipeline.runJob,
+  // which calls this at pipeline.js:1752 and never enters runIntake. A hook there
+  // would have missed exactly the unauthenticated entry point that made an
+  // unavoidable hook worth having.
+  //
+  // An intent that already carries an analysis (a regenerate that replays a stored one)
+  // reuses it rather than paying for an identical second call. Nothing on the create
+  // screen produces one any more: normalisation is automatic and happens here.
+  let analysisUsage = null;
+  let analysis = (intent && intent.analysis) || null;
+  if (!analysis) {
+    // analyzePrompt never throws — a model outage lands on the deterministic floor,
+    // so the brief is never blocked by the stage in front of it.
+    const res = await require("./prompt_analysis").analyzePrompt({
+      prompt: intent && intent.prompt, intent, preferences: prefs, scope: "full", signal,
+    });
+    analysis = res.analysis;
+    analysisUsage = { tokensIn: res.tokensIn, tokensOut: res.tokensOut, costUsd: res.costUsd };
+  }
+
+  // NO BRIEF FOR DISALLOWED CONTENT — defence in depth, not the gate.
+  //
+  // Scope and tier-1 moderation are decided at submit (prompt_scope.js), and the
+  // create routes never insert a job for a disallowed request. But not every entry
+  // point passes through that gate — the admin template-test route enqueues intake
+  // directly — and this function is the one every pipeline shares. The analysis can
+  // only say DISALLOWED on a deterministic tier-1 match (coerce() downgrades it from
+  // anywhere else), so no model opinion can trip this; and the tier-1 reason is
+  // written for a person and never echoes the prompt, so it IS the error message.
+  // It throws BEFORE the brief model, the template ranking and the recent-jobs read,
+  // so a refused request costs nothing past the free screen.
+  if (analysis && analysis.classification === "DISALLOWED") {
+    const reason = analysis.safety && typeof analysis.safety.reason === "string" ? analysis.safety.reason.trim() : "";
+    const err = new Error(reason || "This request can't be made into a video.");
+    // A code, because a message is not a contract: pipeline.js runJob treats any brief
+    // failure as "carry on with the raw prompt", and it must be able to tell a refusal
+    // apart from a flaky model without matching on prose.
+    err.code = "PROMPT_DISALLOWED";
+    throw err;
+  }
+
+  // Local reassignment so briefSeedFrom(intent) below sees it.
+  intent = { ...intent, analysis };
+
+  // What the brief model is shown: a RESTATEMENT and the structural findings, never
+  // the grading. `classification`, `improvements` and `quality` describe how the
+  // request was READ — showing them to a model whose job is to make the film invites
+  // it to re-litigate that reading instead of building on it.
+  const analysisForModel = analysis ? {
+    refinedPrompt: analysis.refinedPrompt,
+    orderLocked: !!(analysis.narrative && analysis.narrative.orderLocked),
+    beats: (analysis.narrative && analysis.narrative.beats) || [],
+    facts: analysis.facts || [],
+    signals: analysis.signals || {},
+  } : null;
 
   // Only relevant on "auto" — an explicit user choice is echoed verbatim anyway.
-  const userChose = intent?.preferences?.framePack && intent.preferences.framePack !== "auto";
+  const userChose = prefs.framePack && prefs.framePack !== "auto";
   const recentFramePacks = userChose ? [] : recentlyUsedPacks();
-  // The VISUAL FAMILIES of those recent packs — so the LLM avoids repeating a
-  // look (bright-minimal SaaS, dark-premium tech…) not just a pack name. Same-
-  // subject films kept landing in one family and reading as "the same style".
-  const vibeFor = (n) => (availableFramePacks.find((p) => p.name === n) || {}).vibe;
-  const recentFramePackFamilies = recentFramePacks.length
-    ? packFamilies.familiesOf(recentFramePacks, vibeFor) : [];
+
+  // TEMPLATE INTELLIGENCE — the hard constraints and the ranking run HERE, before
+  // the model sees anything. Orientation, runtime and capability are settled in
+  // code so the model cannot spend a good answer on a template that would ship
+  // the wrong-shaped file; what it is asked for is the judgement call the code
+  // cannot make — which of these already-fitting looks the prompt actually wants.
+  const selection = userChose ? null : templateIntel.select({
+    prompt: intent && intent.prompt,
+    // No brief yet (this call is what produces it), so the prompt and whatever
+    // ingest already learned are the signal. The graph re-runs this AFTER the
+    // brief exists and can only improve on it.
+    brief: briefSeedFrom(intent),
+    orientation: prefs.orientation,
+    durationSec: Number(prefs.duration) || null,
+    pace: prefs.pace || "normal",
+    assets: assetSignalsFrom(intent),
+    recentPacks: recentFramePacks,
+    shortlist: SHORTLIST,
+  });
+
+  // The candidates, described richly enough to choose between. `vibe` still comes
+  // from the manifest (with the legacy tables as fail-soft fallbacks), joined by
+  // the facts that make one of them right for THIS film.
+  const vibeOf = (name) => frameManifest.getManifest(name)?.vibe
+    || PACK_VIBES[name]
+    || frameRegistry.getPackVibe(name)
+    || "a curated design system";
+  const candidateFramePacks = userChose
+    // The user pinned a template. There is nothing to choose, so show that one
+    // and nothing else — a list of other candidates beside an instruction to echo
+    // the pin is an invitation to ignore it.
+    ? [{ name: prefs.framePack, vibe: vibeOf(prefs.framePack) }]
+    : (selection && selection.candidates.length)
+      ? selection.candidates.map((c) => ({
+        name: c.templateId,
+        vibe: vibeOf(c.templateId),
+        orientation: c.orientation,
+        authoredLengthSec: c.nativeSec,
+        density: c.density,
+        matchScore: c.score,
+        whyItFits: c.reasons.slice(0, 4),
+      }))
+      // The matcher found nothing compatible (an empty or unreadable registry).
+      // Fall back to the installed list so the model still has something to name;
+      // the resolver below is what actually guarantees the answer.
+      : frameRegistry.listPacks().slice(0, SHORTLIST).map((name) => ({ name, vibe: vibeOf(name) }));
 
   const user = JSON.stringify(
-    { ...intent, availableFramePacks,
-      ...(recentFramePacks.length ? { recentFramePacks, recentFramePackFamilies } : {}) },
+    {
+      ...intent,
+      // Substitute the narrow projection for the full analysis object. Spreading
+      // `intent` would otherwise put the whole reading — grading and all — into the
+      // brief prompt.
+      ...(analysisForModel ? { analysis: analysisForModel } : { analysis: undefined }),
+      // The key name changed with its meaning: this is no longer "everything
+      // installed", it is "the templates that fit this film, best first".
+      candidateFramePacks,
+      ...(recentFramePacks.length ? { recentFramePacks } : {}),
+    },
     null, 2
   );
 
@@ -117,6 +277,14 @@ async function generateBrief({ intent, signal }) {
       const raw = parseLenient(text);
       const brief = BriefSchema.parse(raw);
 
+      // THE READING THIS BRIEF WAS BUILT ON, carried on the brief so the Script Room,
+      // the production graph, the template re-rank and the admin UI can all see it.
+      // Attached AFTER BriefSchema.parse: zod strips unknown keys, so the model can
+      // neither supply nor clobber it — the same contract as `templateSelection` and
+      // `pacing`. Both return paths below inherit it from here, including the
+      // user-pinned early return.
+      if (analysis) brief.analysis = require("./prompt_analysis_schema").reduce(analysis);
+
       // BRAND COLOURS ARE EVIDENCE, NOT TASTE. The schema validates hex SHAPE only,
       // so a model that helpfully "picks colours matching the tone" produces a
       // palette that is indistinguishable downstream from a real extraction:
@@ -142,49 +310,81 @@ async function generateBrief({ intent, signal }) {
         console.log(`[brief] dropped ${before} invented brand colour(s) — none came from the analysed site`);
       }
 
-      // Snap the suggested pack to something installed; honor explicit user choice.
-      const userChoice = intent?.preferences?.framePack;
-      const wanted = (userChoice && userChoice !== "auto") ? userChoice : brief.suggestedFramePack;
-      let snapped = frameRegistry.resolvePack(wanted);
-      if (!snapped) {
-        // Rotation-aware fallback (identity system): an unresolvable suggestion
-        // used to land EVERY auto video on the one global default pack — a
-        // template monoculture on auto traffic. Pick deterministically from the
-        // installed set instead, skipping the recently-used packs so consecutive
-        // auto videos don't share a look.
-        const recent = new Set(recentFramePacks || []);
-        const pool = packs.filter((p) => !recent.has(p));
-        const pickFrom = pool.length ? pool : packs;
-        let h = 0; const seedStr = String(intent?.prompt || wanted || "kf");
-        for (let i = 0; i < seedStr.length; i++) h = (h * 31 + seedStr.charCodeAt(i)) >>> 0;
-        snapped = pickFrom[h % pickFrom.length] || frameRegistry.resolvePack("auto");
-        console.log(`[brief] suggestion "${wanted}" not installed → rotation fallback picked ${snapped}`);
+      // ---- TEMPLATE RESOLUTION -------------------------------------------
+      //
+      // An EXPLICIT user pick is honoured verbatim, exactly as before — manual
+      // selection is untouched by any of this.
+      //
+      // On AUTO the model's answer is a vote inside a set the code already
+      // proved is safe, not a free choice. It is accepted when it names a
+      // template that cleared the hard constraints (whether or not it made the
+      // shortlist — its judgement is allowed to beat the ranking). Anything else
+      // — a hallucinated name, an uninstalled pack, a wrong-orientation or
+      // wrong-length one — falls back to the TOP-SCORED candidate.
+      //
+      // There is no random branch here any more. The old code hashed the prompt
+      // and indexed the installed list when a suggestion did not resolve, which
+      // is a coin flip wearing a determinism costume, and then let a cross-family
+      // rotation overrule a good match outright. Variety now lives inside the
+      // ranking as a tie-break that cannot displace a clear winner.
+      const userChoice = prefs.framePack;
+      if (userChoice && userChoice !== "auto") {
+        const pinned = frameRegistry.resolvePack(userChoice);
+        brief.suggestedFramePack = pinned || brief.suggestedFramePack;
+        console.log(`[brief] ok on attempt ${attempt} (pack=${brief.suggestedFramePack} — user pinned, honoured verbatim, duration=${brief.suggestedDuration}s)`);
+        return { brief, analysisUsage, tokensIn: totalIn, tokensOut: totalOut, costUsd: costCalls ? totalCost : null };
       }
-      brief.suggestedFramePack = snapped;
 
-      // Cross-family anti-repeat (auto only). The tone table + soft rotation still
-      // let a run of same-subject films land in the same VISUAL FAMILY, so they
-      // read as "the same style". If this pick shares the LAST film's family,
-      // deterministically rotate to a fitting different family (seed = prompt →
-      // stable). Never overrides an explicit user pick (recentFramePacks is [] then).
-      if (!userChose && recentFramePacks.length) {
-        const installed = availableFramePacks.map((p) => p.name);
-        const swapped = packFamilies.pickCrossFamily({
-          requested: brief.suggestedFramePack,
-          installed,
-          recentPacks: recentFramePacks,
-          seed: String(intent?.prompt || intent?.websiteUrl || wanted || "kf"),
-          vibeFor,
-        });
-        if (swapped && swapped !== brief.suggestedFramePack) {
-          console.log(`[brief] cross-family rotation: ${brief.suggestedFramePack} (${packFamilies.familyOf(brief.suggestedFramePack, vibeFor(brief.suggestedFramePack))}) repeats last film's family → ${swapped} (${packFamilies.familyOf(swapped, vibeFor(swapped))})`);
-          brief.suggestedFramePack = swapped;
+      const model = String(brief.suggestedFramePack || "");
+      const compatible = new Set((selection && selection.compatibleIds) || []);
+      let chosen, via;
+      if (selection && selection.pack) {
+        if (compatible.has(model)) {
+          chosen = model;
+          const shortlisted = selection.candidates.some((c) => c.templateId === model);
+          via = shortlisted ? "model (shortlisted)" : "model (compatible, outside the shortlist)";
+        } else {
+          chosen = selection.pack;
+          via = model
+            ? `ranking (the model asked for "${model}", which does not fit this film's ${selection.signals.orientation} / ${prefs.duration || "?"}s brief)`
+            : "ranking (the model named no template)";
         }
+      } else {
+        // No compatible template at all — the registry is empty or unreadable.
+        // Keep the historical last resort so a film still renders.
+        chosen = frameRegistry.resolvePack(model) || frameRegistry.resolvePack("auto");
+        via = "registry default (no compatible template found)";
       }
+      brief.suggestedFramePack = chosen;
 
+      // Carried on the brief so the Script Room, the production graph and the
+      // admin UI can all see WHY this template was chosen — and so the graph's
+      // guard can tell a fresh decision from a stale one. Attached AFTER
+      // BriefSchema.parse: zod strips unknown keys, so the model can neither
+      // supply nor clobber it (same contract as `pacing`).
+      if (selection) {
+        // The chosen template may be compatible without having been shortlisted
+        // — the model is shown the top dozen but may name any survivor. Score it
+        // itself rather than reporting the leader's number under its name.
+        const shown = selection.candidates.find((c) => c.templateId === chosen)
+          || (chosen === selection.pack ? selection : scoreOf(chosen, selection));
+        brief.templateSelection = {
+          pack: chosen, via,
+          score: shown.score,
+          reasons: shown.reasons,
+          modelChoice: model || null,
+          orientation: selection.signals.orientation,
+          durationSec: selection.signals.durationSec,
+          compatibleCount: selection.compatibleCount,
+          poolSize: selection.poolSize,
+          rejected: selection.rejected,
+          topCandidates: selection.candidates.slice(0, 3).map((c) => ({ pack: c.templateId, score: c.score })),
+        };
+        console.log(templateIntel.explain(selection));
+      }
       const repeated = recentFramePacks[0] && recentFramePacks[0] === brief.suggestedFramePack;
-      console.log(`[brief] ok on attempt ${attempt} (pack=${brief.suggestedFramePack}${repeated ? " — repeats the previous video's pack" : ""}, duration=${brief.suggestedDuration}s)`);
-      return { brief, tokensIn: totalIn, tokensOut: totalOut, costUsd: costCalls ? totalCost : null };
+      console.log(`[brief] ok on attempt ${attempt} (pack=${brief.suggestedFramePack} via ${via}${repeated ? " — repeats the previous video's pack" : ""}, duration=${brief.suggestedDuration}s)`);
+      return { brief, analysisUsage, tokensIn: totalIn, tokensOut: totalOut, costUsd: costCalls ? totalCost : null };
     } catch (e) {
       lastErr = e instanceof z.ZodError ? JSON.stringify(e.issues).slice(0, 800) : e.message;
       console.warn(`[brief] attempt ${attempt} invalid: ${lastErr.slice(0, 300)}`);

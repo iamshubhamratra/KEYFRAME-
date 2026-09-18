@@ -1,0 +1,162 @@
+{
+  "id": "long-tail",
+  "name": "Long Tail",
+  "renderer": "filmkit",
+  "orientation": "vertical",
+  "sizePx": [
+    1080,
+    1920
+  ],
+  "cohort": "08 science / explainer",
+  "set": "article-text-50",
+  "globalName": "LongTail",
+  "configFile": "configs/article-pack-08.js",
+  "vibe": "a monitoring station",
+  "form": {
+    "runtimeMs": 129400,
+    "runtimeRangeMs": [
+      90000,
+      150000
+    ],
+    "beats": 18
+  },
+  "readingBudget": {
+    "wpm": 225,
+    "landSeconds": 1.2,
+    "checkedBy": "scripts/lint-reading-budget.js"
+  },
+  "fonts": {
+    "display": "Krona One",
+    "body": "Kumbh Sans",
+    "mono": "Space Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+      "devanagari": "Noto Sans Devanagari"
+    }
+  },
+  "palette": {
+    "slots": [
+      "bg",
+      "surface",
+      "rule",
+      "inkMuted",
+      "ink",
+      "accent",
+      "accent2",
+      "accentInk"
+    ],
+    "values": {
+      "bg": "#eeeae1",
+      "surface": "#fbf9f4",
+      "rule": "#cac3b5",
+      "inkMuted": "#6c665b",
+      "ink": "#14120d",
+      "accent": "#8c3f2f",
+      "accent2": "#3f6c8c",
+      "accentInk": "#fbf9f4"
+    },
+    "strategy": "luminance ladder; hue-rotatable at each slot’s own lightness"
+  },
+  "tweaks": [
+    {
+      "key": "brand",
+      "type": "text"
+    },
+    {
+      "key": "bg",
+      "type": "color"
+    },
+    {
+      "key": "accent",
+      "type": "color"
+    },
+    {
+      "key": "accent2",
+      "type": "color"
+    },
+    {
+      "key": "motion",
+      "type": "radio",
+      "options": [
+        "Calm",
+        "Lively",
+        "Bouncy"
+      ],
+      "default": "Calm"
+    },
+    {
+      "key": "typeScale",
+      "type": "radio",
+      "options": [
+        "Compact",
+        "Default",
+        "Editorial"
+      ],
+      "default": "Default"
+    }
+  ],
+  "motion": {
+    "titlePreset": "rise",
+    "itemPreset": "rise",
+    "camera": [
+      "pushR",
+      "zoomIn",
+      "pushL",
+      "pushU",
+      "zoomOut",
+      "drop"
+    ],
+    "mechanics": "Scroll: \"feed\", Typing: \"hand\", Ring: \"gauge\"",
+    "chrome": false
+  },
+  "world": {
+    "description": "a monitoring station. Overhead: a ceiling of pipework and a clock band. Margin: the drum rotating while the stylus writes the trace already laid down; a paper roll feeding it. Floor: a rack of instruments, a chair, coiled cable. Near: dust.",
+    "cyclePeriodMs": 4000,
+    "planes": 3,
+    "textSafety": "object confined above y=290, below y=1330, or right of x=820; never crosses the copy column"
+  },
+  "mediaSlots": [
+    {
+      "id": "image",
+      "beat": "Feature",
+      "beatIndex": 10,
+      "aspect": "16:10",
+      "minPx": [
+        640,
+        400
+      ],
+      "fit": "cover",
+      "priority": 1,
+      "optional": true,
+      "onEmpty": "swap per look.feature.swap (borrows nearest unclaimed script line)"
+    },
+    {
+      "id": "logo",
+      "beat": "CTA",
+      "beatIndex": 17,
+      "aspect": "1:1",
+      "minPx": [
+        256,
+        256
+      ],
+      "fit": "contain",
+      "priority": 2,
+      "optional": true,
+      "onEmpty": "pack icon mark in a filled badge"
+    }
+  ],
+  "determinism": {
+    "randomness": false,
+    "wallClock": false,
+    "seekSafe": true,
+    "clock": "single authored timeline via animations-v2"
+  },
+  "paths": {
+    "html": "templates/long-tail.html",
+    "config": "configs/article-pack-08.js",
+    "storyboard": "fixtures/storyboard.long-tail.json",
+    "timestamps": "fixtures/timestamps.long-tail.json",
+    "referenceFrames": "reference-frames/long-tail/"
+  }
+}

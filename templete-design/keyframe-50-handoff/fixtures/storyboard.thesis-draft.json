@@ -1,0 +1,276 @@
+{
+ "slug": "thesis-draft",
+ "engine": "filmkit",
+ "orientation": "vertical",
+ "viewport": {
+  "width": 1080,
+  "height": 1920
+ },
+ "runtimeMs": 129400,
+ "playback": {
+  "mode": "loop"
+ },
+ "tweaksAtCapture": {
+  "brand": "Thesis Draft",
+  "bg": "#101426",
+  "accent": "#e8829a",
+  "accent2": "#7fa8e8",
+  "motion": "Calm",
+  "typeScale": "Default"
+ },
+ "beats": [
+  {
+   "index": 0,
+   "beat": "Hook",
+   "startMs": 0,
+   "durationMs": 7400,
+   "fields": {
+    "kicker": "WORKING PAPER",
+    "title": "Nobody read|the paper.",
+    "sub": "Forty pages, eleven citations, two years of work, and a download counter stuck at nine."
+   }
+  },
+  {
+   "index": 1,
+   "beat": "Body",
+   "startMs": 7400,
+   "durationMs": 8400,
+   "fields": {
+    "kicker": "THE PROBLEM",
+    "body": "Research does not fail at the method any more. It fails at the last mile, where the finding has to travel further than the people who already agreed with it.",
+    "note": "Preprint · 40 pp · 11 refs"
+   }
+  },
+  {
+   "index": 2,
+   "beat": "Statement",
+   "startMs": 15800,
+   "durationMs": 5000,
+   "fields": {
+    "title": "An unread finding|is not a finding.",
+    "sub": "It is a file."
+   }
+  },
+  {
+   "index": 3,
+   "beat": "Typing",
+   "startMs": 20800,
+   "durationMs": 6000,
+   "fields": {
+    "title": "State the claim|in one line.",
+    "prompt": "ABSTRACT",
+    "text": "One line, no hedging.",
+    "stamp": "SET"
+   }
+  },
+  {
+   "index": 4,
+   "beat": "Body",
+   "startMs": 26800,
+   "durationMs": 9000,
+   "fields": {
+    "kicker": "WHAT IT DOES",
+    "body": "Keyframe reads the paper, keeps the sentences that carry the argument, and gives each one the time a reader needs to follow it."
+   }
+  },
+  {
+   "index": 5,
+   "beat": "Quote",
+   "startMs": 35800,
+   "durationMs": 7000,
+   "fields": {
+    "quote": "The abstract is|the only part|most people|will ever read.",
+    "attrib": "Journal editor"
+   }
+  },
+  {
+   "index": 6,
+   "beat": "Statement",
+   "startMs": 42800,
+   "durationMs": 5000,
+   "fields": {
+    "title": "02|Show the method.",
+    "sub": "Then show what it found."
+   }
+  },
+  {
+   "index": 7,
+   "beat": "Stats",
+   "startMs": 47800,
+   "durationMs": 8000,
+   "fields": {
+    "title": "The paper,|measured.",
+    "stats": [
+     {
+      "to": 40,
+      "suffix": "pp",
+      "label": "in the working paper"
+     },
+     {
+      "to": 18,
+      "suffix": "",
+      "label": "beats in the cut, none rushed"
+     },
+     {
+      "to": 9,
+      "suffix": "",
+      "label": "downloads before, in eleven months"
+     }
+    ]
+   }
+  },
+  {
+   "index": 8,
+   "beat": "Body",
+   "startMs": 55800,
+   "durationMs": 9400,
+   "fields": {
+    "kicker": "THE RULE",
+    "body": "No beat runs shorter than its reading time. The check fails the build, so a sentence never leaves the screen before the reader has finished it."
+   }
+  },
+  {
+   "index": 9,
+   "beat": "Scroll",
+   "startMs": 65200,
+   "durationMs": 9000,
+   "fields": {
+    "title": "What survives|review.",
+    "items": [
+     {
+      "t": "The question",
+      "v": "i"
+     },
+     {
+      "t": "The method",
+      "v": "ii"
+     },
+     {
+      "t": "The finding",
+      "v": "iii"
+     },
+     {
+      "t": "The limit",
+      "v": "iv"
+     },
+     {
+      "t": "The counter-case",
+      "v": "v"
+     },
+     {
+      "t": "What follows",
+      "v": "vi"
+     }
+    ]
+   }
+  },
+  {
+   "index": 10,
+   "beat": "Feature",
+   "startMs": 74200,
+   "durationMs": 8000,
+   "fields": {
+    "title": "A figure,|if the paper has one.",
+    "chips": [
+     "Optional",
+     "Collapses to type",
+     "No empty frames"
+    ],
+    "image": "",
+    "fallbackText": "When no figure comes through the beat runs as a paragraph, and takes the nearest line the paper has not used."
+   },
+   "mediaSlots": [
+    {
+     "id": "image",
+     "bound": null,
+     "onEmpty": "swap per look.feature.swap",
+     "fallbackText": "When no figure comes through the beat runs as a paragraph, and takes the nearest line the paper has not used."
+    }
+   ]
+  },
+  {
+   "index": 11,
+   "beat": "Quote",
+   "startMs": 82200,
+   "durationMs": 6500,
+   "fields": {
+    "quote": "Citation is|not distribution.|One is a record,|the other is reach.",
+    "attrib": "Research communications"
+   }
+  },
+  {
+   "index": 12,
+   "beat": "Ring",
+   "startMs": 88700,
+   "durationMs": 6000,
+   "fields": {
+    "title": "Read to the end.",
+    "to": 78,
+    "label": "finish the summary",
+    "sub": "Measured against the same paper as a wall of text."
+   }
+  },
+  {
+   "index": 13,
+   "beat": "Body",
+   "startMs": 94700,
+   "durationMs": 8200,
+   "fields": {
+    "kicker": "TYPE",
+    "body": "One serif for the argument, one for the notes. Measure near sixty characters, leading open, nothing shrunk to fit."
+   }
+  },
+  {
+   "index": 14,
+   "beat": "Montage",
+   "startMs": 102900,
+   "durationMs": 6500,
+   "fields": {
+    "title": "Paper against|summary.",
+    "tiles": [
+     "Forty pages nobody opens",
+     "Two minutes they finish"
+    ]
+   }
+  },
+  {
+   "index": 15,
+   "beat": "Statement",
+   "startMs": 109400,
+   "durationMs": 5500,
+   "fields": {
+    "title": "Publish the finding.|Not the file.",
+    "sub": "The work is done. This is the last mile."
+   }
+  },
+  {
+   "index": 16,
+   "beat": "Body",
+   "startMs": 114900,
+   "durationMs": 8000,
+   "fields": {
+    "kicker": "TAKEAWAY",
+    "body": "Give the argument the time it needs on screen and the finding travels. That is the whole method."
+   }
+  },
+  {
+   "index": 17,
+   "beat": "CTA",
+   "startMs": 122900,
+   "durationMs": 6500,
+   "fields": {
+    "title": "Send the finding|further.",
+    "cta": "Read the paper",
+    "url": "keyframe.ai/research",
+    "logo": ""
+   },
+   "mediaSlots": [
+    {
+     "id": "logo",
+     "bound": null,
+     "onEmpty": "pack icon mark"
+    }
+   ]
+  }
+ ]
+}

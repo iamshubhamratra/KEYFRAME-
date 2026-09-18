@@ -15,14 +15,31 @@ const path = require("node:path");
 // Two quoting variants: when we inject into a double-quoted inline style="..."
 // we MUST use single quotes (and vice-versa) or the injected quote prematurely
 // closes the attribute and mangles the tag.
+const { isBundled } = require("../fonts/pack_fonts");
 const SAFE_FONT_STACK    = 'Inter, "Segoe UI", system-ui, Roboto, Helvetica, Arial, sans-serif';
 const SAFE_FONT_STACK_SQ = "Inter, 'Segoe UI', system-ui, Roboto, Helvetica, Arial, sans-serif";
 
 // Replace every `font-family: …` declaration inside a CSS value string with the
 // safe system stack (bounded by ; or }). Operates on a value/attribute body
 // that has ALREADY been isolated, so the closing attribute quote is not in play.
+// KEEP A FAMILY THE RENDERER CAN ACTUALLY LOAD.
+//
+// This used to overwrite EVERY font-family with the system stack. That was sound when it was
+// written - the renderer resolved no webfonts, so a pack's "Space Grotesk" tripped lint's
+// font_family_without_font_face and rendered as a fallback anyway. The premise is gone:
+// fonts/pack_fonts.js now inlines a real base64 @font-face for 108 families, so the renderer
+// CAN load them and lint CAN resolve them. Left as-is this deleted the pack's identity from
+// every film it touched - a Cinzel pack shipped entirely in Inter, which is precisely the
+// "video does not match the template" report and the six QA blockers naming the missing face.
+//
+// A declaration whose FIRST family is bundled keeps that family and gains the system stack as
+// a tail; everything else is replaced exactly as before.
 function replaceFamilyDecls(css, stack) {
-  return String(css).replace(/font-family\s*:\s*[^;}]*/gi, "font-family: " + stack);
+  return String(css).replace(/font-family\s*:\s*([^;}]*)/gi, (whole, value) => {
+    const first = String(value).split(",")[0].trim().replace(/^['"]|['"]$/g, "");
+    if (first && isBundled(first)) return "font-family: '" + first + "', " + stack;
+    return "font-family: " + stack;
+  });
 }
 
 // Force every `font-family` to the safe system stack. The renderer can't load

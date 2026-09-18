@@ -3,7 +3,7 @@
 //
 //   node scripts/portrait-audit.js [--packs a,b,c] [--out DIR] [--dims WxH]
 //
-// Defaults: packs = kinetic-bold,summit-keynote,blueprint-atelier (the last
+// Defaults: packs = bold-poster,capsule,blueprint-atelier (the last
 // routes to the dedicated blueprint composer), out = scripts/portrait-audit-out.
 // Uses the same cached Chromium the renderer uses; seeks the paused GSAP
 // timeline to each scene midpoint (same contract as contrast_check.js).
@@ -47,7 +47,7 @@ const { spawnSync } = require("node:child_process");
 
 const argv = process.argv.slice(2);
 const opt = (name, dflt) => { const i = argv.indexOf(name); return i > -1 ? argv[i + 1] : dflt; };
-const PACKS = opt("--packs", "kinetic-bold,summit-keynote,blueprint-atelier").split(",");
+const PACKS = opt("--packs", "bold-poster,capsule,blueprint-atelier").split(",");
 const OUT = path.resolve(opt("--out", path.join(__dirname, "portrait-audit-out")));
 const [W, H] = opt("--dims", "1080x1920").split("x").map(Number);
 const dims = { width: W, height: H, fps: 30 };
@@ -70,7 +70,7 @@ function makeAssets(dir) {
   fs.mkdirSync(path.join(dir, "assets", "images"), { recursive: true });
   const mk = (name, color, w, h) => {
     const p = path.join(dir, "assets", "images", name);
-    spawnSync("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", `color=c=${color}:s=${w}x${h}`, "-frames:v", "1", p]);
+    spawnSync("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", `color=c=${color}:s=${w}x${h}`, "-frames:v", "1", p], { windowsHide: true });
     return `assets/images/${name}`;
   };
   return [

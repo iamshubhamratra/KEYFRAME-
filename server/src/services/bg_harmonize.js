@@ -158,4 +158,89 @@ function harmonizeBackgrounds(html, { theme, escalate = false } = {}) {
   return { html: out, changed };
 }
 
-module.exports = { harmonizeBackgrounds };
+
+// ---------------------------------------------------------------------------------------
+// PLATED PHOTOS — the case harmonizeBackgrounds deliberately does not cover.
+//
+// harmonizeBackgrounds veils FULL-BLEED backgrounds and skips anything inside a plate, on the
+// reasoning that veiling a hero screenshot would ruin a product reveal. That bias is right for a
+// curtain of ground colour. But a plate gives a photo a FRAME, not a PALETTE: a raw daylight
+// photo inside a rounded card still tears the design system, and that is the exact class QA
+// blocks as "PALETTE-CLASHING PHOTO". Measured on a shipped film, 5 of 13 photos carried no
+// treatment at all, and across ten packs 30 of 50 - because composer.js instructs every photo to
+// carry a filter tint plus a ground scrim, and nothing on the deterministic path ever applies one.
+//
+// This is a SEPARATE, WEAKER pass, and deliberately so:
+//   * it runs only on the QA-repair re-pass (escalate), so it can touch only films a reviewer
+//     has already condemned - no pack regresses by default;
+//   * it never reuses groundVeil(), whose escalated stop is rgba(...,0.97) - an opaque rectangle
+//     over a plate. The plate wash is hard-capped an order of magnitude lighter;
+//   * it takes the ground from the scene's own data-fk-ground attribute and SKIPS when that is
+//     absent, rather than falling back to a default. Guessing #0B0F18 over a #f7f7f8 set is how
+//     a "fix" turns a light pack muddy.
+function platedGround(html, imgStart) {
+  const back = html.slice(0, imgStart);
+  const at = back.lastIndexOf("data-fk-ground=\"");
+  if (at === -1) return null;
+  const m = /^data-fk-ground="([^"]*)"/.exec(back.slice(at));
+  const g = m && m[1] ? m[1].trim() : "";
+  return /^#[0-9a-f]{3,8}$/i.test(g) ? g : null;
+}
+
+function isPlatedPhoto(style) {
+  if (!/object-fit\s*:\s*(cover|contain)/i.test(style)) return false;
+  return /position\s*:\s*absolute/i.test(style) && /inset\s*:\s*0/i.test(style);
+}
+
+function harmonizePlatedPhotos(html, { escalate = false } = {}) {
+  const changed = [];
+  if (!escalate) return { html: String(html), changed };
+  let out = "";
+  let last = 0;
+  const re = /<img\b[^>]*>/gi;
+  let m;
+  while ((m = re.exec(html))) {
+    const tag = m[0];
+    const end = m.index + tag.length;
+    const style = (tag.match(/style\s*=\s*"([^"]*)"/i) || [, ""])[1];
+    const src = (tag.match(/src\s*=\s*"([^"]*)"/i) || [, ""])[1];
+    const alt = (tag.match(/alt\s*=\s*"([^"]*)"/i) || [, ""])[1];
+    const skip = (why) => why;
+    let reason = null;
+    if (!isPlatedPhoto(style)) reason = "not plated";
+    else if (!isRasterPhoto(src)) reason = "not a raster photo";
+    // GUARD 1 - never re-treat something already washed or tinted.
+    else if (/filter\s*:/i.test(style)) reason = "already filtered";
+    else if (/opacity\s*:\s*(0?\.[0-5]\d*|0)\b/i.test(style)) reason = "already dimmed";
+    // GUARD 5 - a brand mark must keep its own colours.
+    else if (/logo|wordmark|badge|favicon/i.test(src) || /logo|wordmark/i.test(alt)) reason = "logo";
+    // idempotence - our own span, or an existing scrim sibling.
+    else if (/^\s*<(?:span|div)\b[^>]*class\s*=\s*"[^"]*kf-plateveil/i.test(html.slice(end, end + 320))) reason = "already harmonised";
+    if (reason) { out += html.slice(last, end); last = end; continue; }
+    // PROVENANCE - the scene's own ground, or nothing at all.
+    const ground = platedGround(html, m.index);
+    if (!ground) { out += html.slice(last, end); last = end; continue; }
+    const [r0, g0, b0] = hexToRgb(ground);
+    const light = lum(ground) >= 0.45 * 255;
+    // GUARD 3 - a light set goes muddy under a dark wash and under contrast() < 1.
+    const filt = light
+      ? "saturate(0.82) contrast(1.04) brightness(1.02)"
+      : "saturate(0.76) contrast(1.04)";
+    const a1 = light ? 0.08 : 0.12;
+    const a2 = light ? 0.18 : 0.32;
+    // GUARD 4 - `background` on an <img> paints the whole content box, so a fill would show
+    // through every transparent pixel of a PNG. Only the wash span carries colour.
+    const wash = `linear-gradient(180deg,rgba(${r0},${g0},${b0},${a1}) 0%,rgba(${r0},${g0},${b0},${a2}) 100%)`;
+    const hair = `inset 0 0 0 0.19cqw rgba(${r0},${g0},${b0},0.55)`;
+    const styled = tag.replace(/style\s*=\s*"([^"]*)"/i, (whole, css) =>
+      `style="${css.replace(/;\s*$/, "")};filter:${filt};"`);
+    out += html.slice(last, m.index) + styled
+      + `<span class="kf-plateveil" style="position:absolute;inset:0;pointer-events:none;background:${wash};box-shadow:${hair};"></span>`;
+    last = end;
+    changed.push(src.split("/").pop());
+  }
+  out += html.slice(last);
+  return { html: out, changed };
+}
+
+module.exports = { harmonizeBackgrounds, harmonizePlatedPhotos };

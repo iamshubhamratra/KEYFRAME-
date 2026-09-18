@@ -472,7 +472,35 @@ function buildVariantFromSpec(spec, { slug, usedSignatures } = {}) {
  * PURE. spec -> { spec: variant, manifest, frameMd }. The manifest is validated
  * against PackManifestSchema here, BEFORE any caller touches the filesystem.
  */
-function buildPackFromSpec(spec, { slug, orientation, usedSignatures } = {}) {
+// WHAT IS THIS TEMPLATE FOR? Written into the pack's own manifest at creation
+// time, so a generated template declares itself to auto-selection instead of
+// waiting to be inferred from its blurb.
+//
+// The admin's `category` and `tags` are free text ("healthcare", "cats-playing",
+// whatever was typed), so they are PROJECTED onto the controlled vocabulary
+// rather than trusted: a term that maps to a real label becomes an authored
+// label; one that maps to nothing is dropped, because a label no prompt can ever
+// produce is not metadata, it is noise the matcher would carry forever.
+// Orientation is always stated — it is the hard constraint, and the generator is
+// the one place that knows it as an intention rather than a measurement.
+function intentFor({ orientation, category, tags }) {
+  const lex = require("./template_lexicon");
+  const text = [category || "", ...(Array.isArray(tags) ? tags : [])]
+    .join(" ").replace(/[-_]+/g, " ");
+  const intent = { orientation: String(orientation || "").toLowerCase() === "vertical" ? "9:16" : "16:9" };
+  if (text.trim()) {
+    const p = lex.profileText(text);
+    const contentTypes = [...p.contentTypes.keys()];
+    const industries = [...p.industries.keys()];
+    const vibes = [...p.vibes.keys()];
+    if (contentTypes.length) intent.contentTypes = contentTypes;
+    if (industries.length) intent.industries = industries;
+    if (vibes.length) intent.vibes = vibes;
+  }
+  return intent;
+}
+
+function buildPackFromSpec(spec, { slug, orientation, category, tags, usedSignatures } = {}) {
   const variant = buildVariantFromSpec(spec, { slug, usedSignatures });
   const built = buildPack(variant); // throws on an unknown family / unrenderable display
   // ORIENTATION. new-pack.js has no notion of it — every pack it builds renders
@@ -483,6 +511,11 @@ function buildPackFromSpec(spec, { slug, orientation, usedSignatures } = {}) {
   // the tab from poster.jpg's dimensions. Measured on the first generated pack:
   // rendered 1280x720 and QA blocked it by name.
   if (String(orientation || "").toLowerCase() === "vertical") built.manifest.portraitNative = true;
+  // SELECTION INTENT. Everything template_intelligence needs is derivable from
+  // the fields above, so this is never required — but the generator knows what
+  // the admin ASKED for, and an intention beats an inference. Written here so a
+  // template is matchable the moment it is published.
+  built.manifest.intent = intentFor({ orientation, category, tags });
   // buildManifest already parses, but the write path must not depend on that
   // staying true: this is the gate that says nothing unvalidated reaches disk.
   const manifest = PackManifestSchema.parse(built.manifest);
@@ -540,6 +573,8 @@ function writeVersionFromSpec({ template, version, spec }) {
   const built = buildPackFromSpec(spec, {
     slug: template && template.slug,
     orientation: template && template.orientation,
+    category: template && template.category,
+    tags: template && template.tags,
   });
   return writeBuiltPack({ slug: template.slug, version, built });
 }
@@ -706,7 +741,10 @@ async function generateTemplateVersion({ template, version, brief, tracker, sign
         spec.motion = { ...(spec.motion || {}), cut: pin.cut };
         spec.fx = { ...(spec.fx || {}), canvas: pin.canvas };
       }
-      const built = buildPackFromSpec(spec, { slug: template.slug, orientation, usedSignatures });
+      const built = buildPackFromSpec(spec, {
+        slug: template.slug, orientation, usedSignatures,
+        category: template.category, tags: template.tags,
+      });
 
       lastStage = "write";
       const out = writeBuiltPack({ slug: template.slug, version, built });

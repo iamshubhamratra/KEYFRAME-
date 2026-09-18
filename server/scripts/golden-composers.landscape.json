@@ -1,0 +1,42 @@
+{
+ "stage": "landscape",
+ "seed": "golden-composers",
+ "skins": {
+  "alpha_collision": {
+   "hash": "7ef0e44b206427d4b3e0f5041a3e6373",
+   "bytes": 137629
+  },
+  "alpha_collision_v2": {
+   "hash": "4e7adb89cd17b037f21505bd4f9ab56e",
+   "bytes": 137623
+  },
+  "cutline": {
+   "hash": "d18f83139a9810d13c1ed4da12a19bd8",
+   "bytes": 128680
+  },
+  "daylight_console": {
+   "hash": "708361408a2d17aa34b33009571c5367",
+   "bytes": 130871
+  },
+  "daylight_console_v2": {
+   "hash": "bd307572b69dde2c7e65e5d47621b614",
+   "bytes": 178596
+  },
+  "midnight_dispatch": {
+   "hash": "58d21a899119236da1995f1adfc2def0",
+   "bytes": 154755
+  },
+  "satellite_deck": {
+   "hash": "f2856bb4480bce32f56266c203b680da",
+   "bytes": 110845
+  },
+  "schematic_blue": {
+   "hash": "1addce080bd6b4b4e3ddd2ddcb0983ee",
+   "bytes": 208855
+  },
+  "signal_stack": {
+   "hash": "7ce1c66f39ac618e93bd176861e7f503",
+   "bytes": 128304
+  }
+ }
+}

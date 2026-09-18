@@ -1,0 +1,61 @@
+{
+  "name": "table-six",
+  "vibe": "lifestyle / culture — a restaurant, service on. DM Serif Display over DM Sans; a luminance-ladder palette on #efe9e2. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#efe9e2",
+    "ink": "#16130f",
+    "accent": "#8c3a2f",
+    "a2": "#5f7a4a"
+  },
+  "fonts": [
+    "DM Serif Display",
+    "DM Sans",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#efe9e2",
+    "ink": "#16130f"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#8c3a2f",
+      "#5f7a4a"
+    ],
+    "extras": [
+      "#6e665c"
+    ],
+    "emphasisCss": "color:#8c3a2f;"
+  },
+  "assets": {
+    "photoMod": "a restaurant, service on editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "lifestyle",
+      "culture"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "DM Serif Display",
+    "body": "DM Sans",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-table-six",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

@@ -1,0 +1,61 @@
+{
+  "name": "cold-type",
+  "vibe": "creative / portfolio — a wall of type cases; a guillotine that cycles every 5s, beam lifting, blade dropping, offcut sliding away, stack losing a sheet. Unbounded over Urbanist; a luminance-ladder palette on #f0f2f3. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#f0f2f3",
+    "ink": "#101315",
+    "accent": "#2b6bff",
+    "a2": "#ff5a2b"
+  },
+  "fonts": [
+    "Unbounded",
+    "Urbanist",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#f0f2f3",
+    "ink": "#101315"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#2b6bff",
+      "#ff5a2b"
+    ],
+    "extras": [
+      "#6c7276"
+    ],
+    "emphasisCss": "color:#2b6bff;"
+  },
+  "assets": {
+    "photoMod": "a wall of type cases; a guillotine that cycles every 5s, beam lifting, blade dropping, offcut sliding away, stack losing a sheet editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "creative",
+      "portfolio"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Unbounded",
+    "body": "Urbanist",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-cold-type",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

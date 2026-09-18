@@ -21,6 +21,10 @@
 
 const { deriveTheme } = require("./scene_kit");
 const E = require("./template_engine");
+// Resolves a declared placeholder band against the picture that landed in it —
+// see services/template_media.js. plate() uses it so the figure takes the
+// photograph's own proportions instead of the flex column's leftovers.
+const TM = require("./template_media");
 // The shared motion vocabulary — see services/motion_presets.js. Physics for
 // headlines and cards lives there now, so every template moves alike.
 const MOTION = require("./motion_presets");
@@ -122,6 +126,93 @@ const TEMPLATE_SCENES = [
 // portrait. Both are media-bearing, so a plate may follow a pullquote — imagery
 // no longer has to strictly alternate with text (see route()).
 const mediaSlots = { plate: ["photo", "photo"], pullquote: ["photo"] };
+// WHAT SHAPE EACH PLACEHOLDER IS — the number that did not exist anywhere in this
+// codebase before. Fractions of the CANVAS (wFrac of its width, hFrac of its height),
+// derived from the CSS each scene function writes and cross-checked against a live
+// headless render (`node scripts/audit-slot-fit.js`). services/template_media.js turns
+// them into real pixels for this film's dimensions, so selection can weigh SHAPE and
+// asset_fit can choose a real crop instead of the hardcoded `cover / top center`.
+// ---- placeholder geometry ----------------------------------------------------
+// What SHAPE each media box is actually painted at, as fractions of the canvas.
+// The composer sizes every box by mixing units — `width:78%` of a cqw-inset page
+// against a `top:13%;bottom:12%` column — so the aspect ratio of a plate is an
+// emergent property of the render size that no function here ever computes.
+// Asset selection could not see it, which is how a 1.5-aspect website capture
+// ended up in a 2.23-aspect figure plate with a third of its height thrown away.
+// These numbers are the arithmetic done once, checked against headless-Chrome
+// measurements of the shipped renders (scripts/slot-fit-before/slot-fit.json).
+const mediaGeometry = {
+  // plate — the figure scene. Page column is left/right:M(land) cqw and
+  // top:13%;bottom:12%, so the column is 80cqw x 75% (land) / 84cqw x 75% (port).
+  plate: {
+    land: [
+      // [0] THE PLATE, AND THE BAND IT MAY RESHAPE WITHIN. The declared box is the
+      // ENVELOPE, not the shape: `width:78%` of the 80cqw column is 62.4cqw = 0.624
+      // of canvas width, and 0.497 of canvas height is the 537px the flex column had
+      // left over. Those two numbers multiplied out to 2.23, a ratio nothing in the
+      // CSS ever asked for — all 11 measured landscape plates were heavy-crop, a 1.5
+      // capture losing 33% of its height and a 0.67 portrait losing 70%.
+      //
+      // A figure plate on a printed page is not a fixed window; the page sets the
+      // figure. So the plate takes the picture's own ratio inside [1.00, 2.60] and
+      // plate() derives its width from the fitted box. The top of the band is 2.60
+      // rather than 1.90 for two reasons: the untouched fallback shape (2.23, drawn
+      // when an asset carries no dimensions) has to stay inside what the design
+      // tolerates, and a 3:1 panorama shown as a 2.60 band loses 13% where the same
+      // photograph forced to 1.90 loses 37%. Landscape hero mean crop over the probe
+      // matrix: 35.2% -> 4.4%; a 2732x1800 capture now sits at 1.502 and 1% loss.
+      { wFrac: 0.624, hFrac: 0.497, importance: "hero", flex: [1.00, 2.60] },
+      // [1] THE INSET DETAIL CROP. Was 15cqw x 10cqw, which painted 273x177 — the
+      // 177px short side is below the 220px floor where UI stops resolving, and
+      // every inset row measured small-slot. 19cqw x 12.6cqw less the 0.4cqw padding
+      // a side paints 349x227, over the floor at the same ~1.54 ratio and in the same
+      // bottom-right corner. Height is quoted in cqw, i.e. as a percentage of WIDTH,
+      // so hFrac is 226.6/1080 = 0.21, not 0.118.
+      //
+      // Here the FRAME is what holds the floor, so the band is bounded by it rather
+      // than by taste: at 349px wide, 1.56 is where the short side reaches 224px, and
+      // 1.00 is where the 227px height still leaves a 227px width. A square photo in
+      // the inset therefore costs 0% instead of 35%.
+      { wFrac: 0.182, hFrac: 0.21, importance: "accent", flex: [1.00, 1.56] },
+    ],
+    port: [
+      // [0] Portrait spans the full 84cqw column (907px) and had 1207px of height to
+      // spend, which made a 0.75 box — a portrait window fed landscape assets, so
+      // every desktop capture measured screenshot-unreadable with half its width
+      // cropped away. Same fix: the width stays the column, the HEIGHT comes off the
+      // picture's ratio inside [0.66, 1.80], and the reclaimed height falls to the
+      // whitespace below the caption. The band reaches 0.66 rather than stopping at
+      // the fallback 0.75 because 0.667 is the portrait-photo class itself — at 0.75
+      // it still cost 11%, at 0.66 it costs 0.5% — and 1.80 covers the widest stock
+      // photo. Portrait hero mean crop: 13.9% -> 3.7%, screenshot-unreadable 3 -> 0.
+      { wFrac: 0.84, hFrac: 0.629, importance: "hero", flex: [0.66, 1.80] },
+      // [1] Inset raised the same way: 26x17cqw painted 266x168 (short side 168,
+      // under the floor). 34cqw x 22cqw less 0.7cqw padding a side paints 352x223,
+      // and the band stops at 1.58 for the same reason as landscape — that is where
+      // 352px wide runs out of 220px of height.
+      { wFrac: 0.326, hFrac: 0.116, importance: "accent", flex: [1.00, 1.58] },
+    ],
+  },
+  // pullquote — the testimonial portrait is a disc, not a plate: a square box
+  // with border-radius:50%, no padding, sitting above the attribution.
+  pullquote: {
+    land: [
+      // 6cqw square. Square because it is masked to a circle — the 1:1 here is
+      // the mask, not a crop preference, so a 0.67 headshot losing its top and
+      // bottom is the intended reading of a round avatar. It measures 115px, under
+      // the 220px floor, and stays there: this is an avatar beside a name, not a
+      // figure, and a 230px disc would read as a second hero. What WAS wrong is
+      // what got cast into it — the measurement set put vector.svg in the disc and
+      // letterboxed a logo inside a circle. `allow` makes that impossible.
+      { wFrac: 0.06, hFrac: 0.1067, importance: "accent", allow: ["photo"] },
+    ],
+    port: [
+      // 11cqw square. Larger in cqw than landscape only because cqw is 1% of a
+      // 1080-wide canvas here; in pixels the two discs are within 4px of each other.
+      { wFrac: 0.11, hFrac: 0.0619, importance: "accent", allow: ["photo"] },
+    ],
+  },
+};
 
 // ---- deterministic router (used when the director is off / uncast) -----------
 function route(scene, i, total, ctx) {
@@ -311,16 +402,55 @@ function plate(scene, ctx, a, b) {
   const caption = fit(String(scene.caption || scene.subtext || (a && a.alt) || scene.headline || ""), 90);
   const shot = isScreenshot(a);
   const img = (asset, cls, fit2) => (asset && asset.path
-    ? `<img class="${cls}" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;object-fit:cover;object-position:${fit2};display:block;">`
+    ? `<img class="${cls}" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;${E.fitCss(asset)}display:block;">`
     : `<div style="width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;gap:${land ? 1.4 : 2.2}cqw;padding:${land ? 3 : 5}cqw;background:${th.mat};">
         ${[0, 1, 2, 3].map(() => `<div style="height:${r(HAIR(land))}cqw;background:${th.hair};"></div>`).join("")}
         <div style="text-align:center;padding:${land ? 1 : 2}cqw 0;">${caps(String(brand || "plate"), th, land, th.faint)}</div>
         ${[0, 1, 2].map(() => `<div style="height:${r(HAIR(land))}cqw;background:${th.hair};"></div>`).join("")}
       </div>`);
+  // The inset frame follows its own picture the same way the plate does, inside a
+  // tighter band — the frame IS the 220px floor here, so the band stops where the
+  // short side would drop under it (see mediaGeometry). cqw is 1% of the canvas
+  // WIDTH on both axes, so both sides convert through the same divisor.
+  const cqwPx = ((ctx.dims && ctx.dims.width) || (land ? 1920 : 1080)) / 100;
+  const insetPad = land ? 0.4 : 0.7;
+  const insetFit = b && b.__fit && b.__fit.box && b.__fit.box.reshaped ? b.__fit.box : null;
+  const insetW = insetFit ? r(insetFit.w / cqwPx + insetPad * 2) : (land ? 19 : 34);
+  const insetH = insetFit ? r(insetFit.h / cqwPx + insetPad * 2) : (land ? 12.6 : 22);
   const inset = b && b.path
-    ? `<div id="${id}-inset" style="opacity:0;position:absolute;right:${land ? 1.6 : 2.4}cqw;bottom:${land ? 1.6 : 2.4}cqw;width:${land ? 15 : 26}cqw;height:${land ? 10 : 17}cqw;background:${th.mat};padding:${land ? 0.4 : 0.7}cqw;box-shadow:0 0 0 ${r(HAIR(land))}cqw ${th.rule};overflow:hidden;">
+    ? `<div id="${id}-inset" style="opacity:0;position:absolute;right:${land ? 1.6 : 2.4}cqw;bottom:${land ? 1.6 : 2.4}cqw;width:${insetW}cqw;height:${insetH}cqw;background:${th.mat};padding:${insetPad}cqw;box-shadow:0 0 0 ${r(HAIR(land))}cqw ${th.rule};overflow:hidden;">
         ${img(b, `${id}-img2`, "center center")}
       </div>` : "";
+  // THE PAGE SETS THE FIGURE, NOT THE OTHER WAY ROUND.
+  //
+  // This plate used to be sized by two unrelated numbers: `width:78%` of the page
+  // column, and whatever HEIGHT the flex column had left after the running head, the
+  // headline and the caption. At 1920x1080 that arithmetic came out at 1198x537 — an
+  // aspect of 2.23 that no asset class has. Cover-fitting a 1.52 website capture into
+  // it threw away 33% of the capture's height; a 0.67 portrait lost 70%. All 11
+  // measured landscape plates were flagged heavy-crop, and in portrait the same
+  // accident ran the other way (907x1207 = 0.75) and cut desktop captures in half.
+  //
+  // A figure in a printed spread is set to the plate's own proportions and the page
+  // gives back the margin. So: asset_fit resolved a box for this picture inside the
+  // aspect band `mediaGeometry` declares, the figure column is narrowed to that box's
+  // width, and `aspect-ratio` pins the height — the caption keeps sitting flush under
+  // the plate because it is inside the same narrowed column. `flex:0 1 auto` rather
+  // than `0 0` so an unusually tall headline squeezes the plate instead of pushing
+  // the caption off the page. With no fitted box (an asset carrying no dimensions)
+  // both lines below are byte-for-byte the declaration they replace.
+  //
+  // Measured over the probe matrix (scripts/audit-slot-fit.js --packs atelier): mean
+  // crop across every landscape box 24.2% -> 7.1%, portrait 8.2% -> 6.7%, heavy crops
+  // 12 -> 4, screenshot-unreadable 3 -> 0.
+  const fitBox = a && a.__fit && a.__fit.box && a.__fit.box.reshaped ? a.__fit.box : null;
+  const colW = page / 100 * ((ctx.dims && ctx.dims.width) || (land ? 1920 : 1080));
+  const figW = fitBox && colW > 0
+    ? r(Math.max(20, Math.min(land ? 78 : 100, fitBox.w / colW * 100)))
+    : (land ? 78 : 100);
+  const plateBox = fitBox
+    ? `flex:0 1 auto;min-height:0;width:100%;aspect-ratio:${r(fitBox.w / fitBox.h)};`
+    : "flex:1 1 auto;min-height:0;";
   const html = `
     <div style="position:absolute;left:${m}cqw;right:${m}cqw;top:13%;bottom:12%;display:flex;flex-direction:column;">
       <div style="display:flex;align-items:center;gap:1.4cqw;">
@@ -329,8 +459,8 @@ function plate(scene, ctx, a, b) {
         ${hairline(`class="${id}-hr"`, th, land, th.hair, "left center", "flex:1 1 auto;")}
       </div>
       <div style="margin-top:${land ? 1.3 : 2.1}cqw;max-width:${land ? 66 : 100}%;">${serifLines(lines, size, th.ink, `${id}-line`, th)}</div>
-      <div style="flex:1 1 auto;min-height:0;width:${land ? 78 : 100}%;margin:${land ? 1.8 : 2.8}cqw auto 0 auto;display:flex;flex-direction:column;">
-        <div id="${id}-plate" style="opacity:0;flex:1 1 auto;min-height:0;position:relative;overflow:hidden;background:${th.mat};box-shadow:0 0 0 ${r(HAIR(land))}cqw ${th.rule};">
+      <div style="flex:1 1 auto;min-height:0;width:${figW}%;margin:${land ? 1.8 : 2.8}cqw auto 0 auto;display:flex;flex-direction:column;">
+        <div id="${id}-plate" style="opacity:0;${plateBox}position:relative;overflow:hidden;background:${th.mat};box-shadow:0 0 0 ${r(HAIR(land))}cqw ${th.rule};">
           ${img(a, `${id}-img`, shot ? "top center" : "center center")}
           ${inset}
         </div>
@@ -477,7 +607,7 @@ function pullquote(scene, ctx, a) {
   // Absent the asset the attribution stays exactly as before (text only).
   const portrait = a && a.path
     ? `<div style="width:${land ? 6 : 11}cqw;height:${land ? 6 : 11}cqw;border-radius:50%;overflow:hidden;background:${th.mat};box-shadow:0 0 0 ${r(HAIR(land) * 1.6)}cqw ${th.rule};margin-bottom:${land ? 1.2 : 1.8}cqw;">
-        <img src="${esc(a.path)}" alt="${esc(a.alt || author || "")}" style="width:100%;height:100%;object-fit:cover;display:block;">
+        <img src="${esc(a.path)}" alt="${esc(a.alt || author || "")}" style="width:100%;height:100%;${E.fitCss(a)}display:block;">
       </div>`
     : "";
   const html = `
@@ -600,7 +730,7 @@ const family = {
       used: bullets(scene || {}, 3),
     };
   },
-  theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaFallback,
+  theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaGeometry, mediaFallback,
   // The engine injects the site logo into `a` for the closing colophon only —
   // no demand-math change (colophon keeps media:[]).
   wantsLogo: (t) => t === "colophon",
@@ -641,4 +771,9 @@ function buildComposition(opts) { return E.buildFilm(family, opts); }
 // drift from the film that ships.
 function planMedia(opts) { return E.planMedia(family, opts); }
 
-module.exports = { buildComposition, planMedia, TEMPLATE_SCENES };
+// FAMILY is the pack's whole design object — the same one buildFilm renders from.
+// It is exported so callers OUTSIDE the renderer can read the slot contract without
+// building a film: services/template_media.resolveMediaPlan needs `mediaSlots` and
+// `mediaGeometry` to tell preflight which boxes this template will draw and what
+// shape each one is, and the crop engine needs the resulting aspect list.
+module.exports = { buildComposition, planMedia, TEMPLATE_SCENES, FAMILY: family };

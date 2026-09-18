@@ -13,14 +13,20 @@ import AdminTemplateDetail from "./screens/AdminTemplateDetail.jsx";
 import Auth from "./screens/Auth.jsx";
 import { createProject } from "./api.js";
 import { useAuth } from "./useAuth.js";
+import AiEditUpload from "./screens/aiEdit/AiEditUpload.jsx";
+import AiEditSession from "./screens/aiEdit/AiEditSession.jsx";
+import AiEditList from "./screens/aiEdit/AiEditList.jsx";
+import ModeSwitch from "./components/ModeSwitch.jsx";
+import AiEditNavChip from "./components/AiEditNavChip.jsx";
+import { readDeepLink } from "./deepLink.js";
 
 // Landing is the v2 design doc ("the film set") running on its own runtime in
 // an iframe. The STUDIO (create → understanding → script → theater → premiere)
 // requires login; Templates + Gallery stay public, themed to the same v2 system.
 export default function App() {
   const { user, loading, logout } = useAuth();
-  const [view, setView] = useState("landing");
-  const [projectId, setProjectId] = useState(null);
+  const [view, setView] = useState(() => readDeepLink()?.view ?? "landing");
+  const [projectId, setProjectId] = useState(() => readDeepLink()?.id ?? null);
   const [prefill, setPrefill] = useState(null);
   const [authMode, setAuthMode] = useState("login");
   const [starting, setStarting] = useState(false);
@@ -44,12 +50,30 @@ export default function App() {
     setAutopilot(false); // landing quick-start always pauses at the script
     startedRef.current = true; setStarting(true);
     try {
-      const fields = { duration: 30, orientation: "horizontal", quality: "1080p", framePack: "auto", captions: false, composeMode: "standard",
+      // `pace` is explicit rather than omitted: the server backfills `normal`, so
+      // leaving it out was correct only by accident and would silently drift the
+      // day that default changes.
+      const fields = { duration: 30, orientation: "horizontal", quality: "1080p", framePack: "auto", captions: false, composeMode: "standard", pace: "normal",
         ...(hasPrompt ? { prompt: prompt.trim() } : {}), ...(hasUrl ? { websiteUrl: url.trim() } : {}) };
       const r = await createProject(fields);
+      // A film now exists, so whatever an EARLIER handoff left in prefill no longer
+      // describes anything pending — see the CreateScreen onCreated callback below.
+      setPrefill(null);
       go("understanding", r.projectId);
     } catch (e) {
-      setPrefill({ prompt: prompt || "", url: url || "", error: e.message }); go("create");
+      // The landing iframe never mounts CreateScreen, so the scope gate's decision
+      // has to travel back as prefill — this is the only route by which that path
+      // can show the question, or what KEYFRAME can make and how, rather than a bare
+      // failure.
+      //
+      // A decision is NOT an error, so it deliberately carries no `error`: the red
+      // line under the editor would print e.message, which for an out-of-scope
+      // request is the server's whole plain-text guidance flattened into one
+      // run-on paragraph, directly above the panel that renders it properly.
+      setPrefill(e.body?.scope
+        ? { prompt: prompt || "", url: url || "", scope: e.body.scope }
+        : { prompt: prompt || "", url: url || "", error: e.message });
+      go("create");
     } finally { setStarting(false); startedRef.current = false; }
   }, [go]);
 
@@ -59,7 +83,11 @@ export default function App() {
     pending.current = action; setAuthMode(mode); setView("auth");
   }, [user]);
 
-  const enterStudio = useCallback((targetView = "create") => requireAuth(() => go(targetView), "login"), [requireAuth, go]);
+  // A fresh entry into the studio starts from a clean prefill. Prefill lives in App
+  // state, so a scope decision handed over by the landing quick-start would otherwise
+  // survive a whole film and reappear — refusal panel, locked Produce — the next time
+  // someone chose "new film" from the Premiere.
+  const enterStudio = useCallback((targetView = "create") => requireAuth(() => { setPrefill(null); go(targetView); }, "login"), [requireAuth, go]);
   const startGeneration = useCallback(({ prompt, url }) => requireAuth(() => runGenerate({ prompt: prompt || "", url: url || "" }), "signup"), [requireAuth, runGenerate]);
   const useStyle = useCallback((packName) => {
     setPrefill({ framePack: packName });
@@ -79,6 +107,7 @@ export default function App() {
       if (d.type === "kf-create") startGeneration({ prompt: d.prompt, url: d.url });
       else if (d.type === "kf-gallery") go("gallery");
       else if (d.type === "kf-templates") go("templates");
+      else if (d.type === "kf-ai-edit") requireAuth(() => go("aiUpload"), "signup");
     };
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
@@ -107,9 +136,16 @@ export default function App() {
   // everyone and simply refuse to render for anyone who isn't an admin — only
   // the NAV entry below is conditional.
   const adminViews = ["adminTemplates", "adminGenerate", "adminTemplate"];
+  const aiViews = ["aiUpload", "aiEdit", "aiEdits"];
   const screens = {
     auth: <Auth initialMode={authMode} onAuthed={onAuthed} onBack={() => go("landing")} />,
-    create: <CreateScreen onCreated={(id, opts) => { setAutopilot(!!opts?.autopilot); go("understanding", id); }} prefill={prefill} />,
+    // prefill is cleared the moment a film is created. It is only ever a request that has
+    // NOT become a film yet — landing words, a chosen pack, a scope decision — and it lives
+    // here in App, outliving the CreateScreen that consumed it. Left in place, a failed
+    // film's onFailed -> go("create") remounted the editor from it: a landing refusal the
+    // person had long since edited past came back as the refused words, the refusal panel
+    // and a CUT lock on both CTAs.
+    create: <CreateScreen onCreated={(id, opts) => { setPrefill(null); setAutopilot(!!opts?.autopilot); go("understanding", id); }} prefill={prefill} />,
     understanding: <UnderstandingScreen projectId={projectId} autopilot={autopilot} onScriptReady={() => go("script")} onProducing={() => go("theater")} onFailed={() => go("create")} />,
     script: <ScriptRoom projectId={projectId} onApproved={() => go("theater")} />,
     theater: <ProductionTheater projectId={projectId} autopilot={autopilot} onDone={() => go("premiere")} onFailed={() => go("create")} onScriptReview={() => go("script")} />,
@@ -121,9 +157,12 @@ export default function App() {
     adminTemplates: <AdminTemplates onOpen={(id) => go("adminTemplate", id)} onNew={() => go("adminGenerate")} />,
     adminGenerate: <AdminGenerate onOpen={(id) => go("adminTemplate", id)} onCancel={() => go("adminTemplates")} />,
     adminTemplate: <AdminTemplateDetail templateId={projectId} onBack={() => go("adminTemplates")} />,
+    aiUpload: <AiEditUpload onStarted={(id) => go("aiEdit", id)} onOpenEdit={(id) => go("aiEdit", id)} onOpenList={() => go("aiEdits")} onNeedAuth={(retry) => requireAuth(retry, "login")} />,
+    aiEdit: <AiEditSession key={projectId} editId={projectId} onList={() => go("aiEdits")} onNew={() => go("aiUpload")} onNeedAuth={(retry) => requireAuth(retry, "login")} />,
+    aiEdits: <AiEditList onOpen={(id) => go("aiEdit", id)} onNew={() => go("aiUpload")} onNeedAuth={(retry) => requireAuth(retry, "login")} />,
   };
 
-  const darkPage = view === "gallery" || view === "premiere";
+  const darkPage = view === "gallery" || view === "premiere" || view === "aiEdit";
 
   return (
     <div className="grain min-h-full flex flex-col">
@@ -145,6 +184,7 @@ export default function App() {
         <div className="flex items-center" style={{ gap: 10, pointerEvents: "auto" }}>
           <button className={`btn-chip ${view === "templates" ? "is-active" : ""}`} onClick={() => go("templates")}>Templates</button>
           <button className={`btn-chip ${view === "gallery" ? "is-active" : ""}`} onClick={() => go("gallery")}>Gallery</button>
+          <AiEditNavChip active={aiViews.includes(view)} onClick={() => requireAuth(() => go("aiUpload"), "signup")} />
           {studioViews.includes(view) && <button className="btn-chip is-active">Studio</button>}
           {/* Admin-only entry. Hiding it is a courtesy, not a control — the
               template routes are behind requireAdmin server-side. */}
@@ -179,6 +219,10 @@ export default function App() {
       </NavBar>
 
       <main className="flex-1 relative" style={{ paddingTop: 90 }}>
+        {(view === "create" || view === "aiUpload") && (
+          <ModeSwitch mode={view === "create" ? "TEMPLATE_GENERATION" : "AI_VIDEO_EDIT"}
+            onSelect={(m) => (m === "AI_VIDEO_EDIT" ? requireAuth(() => go("aiUpload"), "signup") : enterStudio("create"))} />
+        )}
         <AnimatePresence mode="wait">
           <motion.div key={view} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }} className="h-full">
             {screens[view]}

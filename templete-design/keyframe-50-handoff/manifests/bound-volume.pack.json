@@ -1,0 +1,162 @@
+{
+  "id": "bound-volume",
+  "name": "Bound Volume",
+  "renderer": "filmkit",
+  "orientation": "vertical",
+  "sizePx": [
+    1080,
+    1920
+  ],
+  "cohort": "02 literary / essay",
+  "set": "article-text-50",
+  "globalName": "BoundVolume",
+  "configFile": "configs/article-pack-02.js",
+  "vibe": "a reading room",
+  "form": {
+    "runtimeMs": 129400,
+    "runtimeRangeMs": [
+      90000,
+      150000
+    ],
+    "beats": 18
+  },
+  "readingBudget": {
+    "wpm": 225,
+    "landSeconds": 1.2,
+    "checkedBy": "scripts/lint-reading-budget.js"
+  },
+  "fonts": {
+    "display": "Castoro",
+    "body": "Gelasio",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+      "devanagari": "Noto Serif Devanagari"
+    }
+  },
+  "palette": {
+    "slots": [
+      "bg",
+      "surface",
+      "rule",
+      "inkMuted",
+      "ink",
+      "accent",
+      "accent2",
+      "accentInk"
+    ],
+    "values": {
+      "bg": "#e8ddca",
+      "surface": "#f7f0e2",
+      "rule": "#c9b898",
+      "inkMuted": "#6b5f4c",
+      "ink": "#191309",
+      "accent": "#8c3a32",
+      "accent2": "#b99244",
+      "accentInk": "#f7f0e2"
+    },
+    "strategy": "luminance ladder; hue-rotatable at each slot’s own lightness"
+  },
+  "tweaks": [
+    {
+      "key": "brand",
+      "type": "text"
+    },
+    {
+      "key": "bg",
+      "type": "color"
+    },
+    {
+      "key": "accent",
+      "type": "color"
+    },
+    {
+      "key": "accent2",
+      "type": "color"
+    },
+    {
+      "key": "motion",
+      "type": "radio",
+      "options": [
+        "Calm",
+        "Lively",
+        "Bouncy"
+      ],
+      "default": "Lively"
+    },
+    {
+      "key": "typeScale",
+      "type": "radio",
+      "options": [
+        "Compact",
+        "Default",
+        "Editorial"
+      ],
+      "default": "Default"
+    }
+  ],
+  "motion": {
+    "titlePreset": "flip",
+    "itemPreset": "rise",
+    "camera": [
+      "pushU",
+      "zoomIn",
+      "pushR",
+      "zoomOut",
+      "drop",
+      "pushL"
+    ],
+    "mechanics": "Typing: \"hand\", Scroll: \"board\", Ring: \"bar\"",
+    "chrome": false
+  },
+  "world": {
+    "description": "a reading room. Far: shelf rows converging toward a vanishing point with a warm floor pool. Mid: an open volume on the lower deck whose pages turn one at a time on a 3.5s cycle, a ribbon bookmark swinging with lag, and a library ladder sliding past on parallax. Near: motes.",
+    "cyclePeriodMs": 4400,
+    "planes": 3,
+    "textSafety": "object confined above y=290, below y=1330, or right of x=820; never crosses the copy column"
+  },
+  "mediaSlots": [
+    {
+      "id": "image",
+      "beat": "Feature",
+      "beatIndex": 10,
+      "aspect": "16:10",
+      "minPx": [
+        640,
+        400
+      ],
+      "fit": "cover",
+      "priority": 1,
+      "optional": true,
+      "onEmpty": "swap per look.feature.swap (borrows nearest unclaimed script line)"
+    },
+    {
+      "id": "logo",
+      "beat": "CTA",
+      "beatIndex": 17,
+      "aspect": "1:1",
+      "minPx": [
+        256,
+        256
+      ],
+      "fit": "contain",
+      "priority": 2,
+      "optional": true,
+      "onEmpty": "pack icon mark in a filled badge"
+    }
+  ],
+  "determinism": {
+    "randomness": false,
+    "wallClock": false,
+    "seekSafe": true,
+    "clock": "single authored timeline via animations-v2"
+  },
+  "paths": {
+    "html": "templates/bound-volume.html",
+    "config": "configs/article-pack-02.js",
+    "storyboard": "fixtures/storyboard.bound-volume.json",
+    "timestamps": "fixtures/timestamps.bound-volume.json",
+    "referenceFrames": "reference-frames/bound-volume/"
+  }
+}

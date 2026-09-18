@@ -1,0 +1,205 @@
+{
+  "id": "ve_analyzedemo00001",
+  "title": "take-04",
+  "status": "PROCESSING",
+  "stage": "BUILDING_EDIT_PLAN",
+  "overallPct": 64,
+  "createdAt": 1789378320000,
+  "updatedAt": 1789378375000,
+  "lastOpenedAt": 1789378320000,
+  "durationSec": 52.25,
+  "outputDurationSec": null,
+  "orientation": "vertical",
+  "posterUrl": "/api/video-edits/ve_analyzedemo00001/media/poster",
+  "currentExportId": null,
+  "qaVerdict": null,
+  "mode": "AI_VIDEO_EDIT",
+  "statusReason": null,
+  "progress": {
+    "stage": "BUILDING_EDIT_PLAN",
+    "stagePct": 50,
+    "overallPct": 64,
+    "message": "Directing the cut",
+    "stageStartedAt": 1789378371000,
+    "etaSec": 55,
+    "queuePosition": 0
+  },
+  "source": {
+    "displayName": "take-04.mov",
+    "sizeBytes": 187412336,
+    "durationSec": 52.25,
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "rotation": 0,
+    "hasAudio": true,
+    "orientation": "vertical"
+  },
+  "settings": {
+    "title": "take-04",
+    "language": "auto",
+    "output": {
+      "aspect": "source"
+    },
+    "captions": {
+      "enabled": true,
+      "styleId": "clean",
+      "maxWordsPerLine": 3,
+      "position": "auto",
+      "language": "auto"
+    },
+    "brand": {
+      "palette": null,
+      "logo": {
+        "placement": "tr",
+        "show": "always"
+      }
+    },
+    "music": {
+      "enabled": true
+    },
+    "sfx": {
+      "enabled": true
+    },
+    "broll": {
+      "enabled": true,
+      "intensity": "medium",
+      "allowImages": true
+    },
+    "effects": {
+      "intensity": "subtle",
+      "autoJumpCuts": true
+    },
+    "removeFillers": "light",
+    "removeSilence": {
+      "enabled": true,
+      "pace": "natural"
+    },
+    "autoRender": true,
+    "exportProfile": "export1080",
+    "privacy": {
+      "allowCloudVision": true
+    },
+    "consent": {
+      "thirdPartyAi": true,
+      "termsVersion": "2026-09"
+    }
+  },
+  "consent": {
+    "thirdPartyAi": true,
+    "termsVersion": "2026-09",
+    "at": 1789378320000
+  },
+  "stages": {
+    "VALIDATING": {
+      "status": "done",
+      "attempts": 1,
+      "durationMs": 1200,
+      "fallbacks": []
+    },
+    "COMPRESSING": {
+      "status": "done",
+      "attempts": 1,
+      "durationMs": 14800,
+      "fallbacks": []
+    },
+    "EXTRACTING_AUDIO": {
+      "status": "done",
+      "attempts": 1,
+      "durationMs": 2100,
+      "fallbacks": []
+    },
+    "TRANSCRIBING": {
+      "status": "done",
+      "attempts": 1,
+      "engine": "microsoft/mai-transcribe-2",
+      "durationMs": 6300,
+      "costUsd": 0.0019,
+      "fallbacks": []
+    },
+    "ANALYZING_VIDEO": {
+      "status": "done",
+      "attempts": 1,
+      "engine": "google/gemini-3.5-flash-lite",
+      "durationMs": 11200,
+      "costUsd": 0.0062,
+      "fallbacks": []
+    },
+    "ANALYZING_CONTENT": {
+      "status": "done",
+      "attempts": 1,
+      "engine": "google/gemini-3.5-flash",
+      "durationMs": 7400,
+      "costUsd": 0.0033,
+      "fallbacks": []
+    },
+    "SEARCHING_BROLL": {
+      "status": "pending",
+      "attempts": 0,
+      "fallbacks": []
+    },
+    "SCORING_ASSETS": {
+      "status": "pending",
+      "attempts": 0,
+      "fallbacks": []
+    },
+    "BUILDING_EDIT_PLAN": {
+      "status": "running",
+      "attempts": 1,
+      "engine": "google/gemini-3.5-flash",
+      "fallbacks": []
+    },
+    "PREPARING_RENDER": {
+      "status": "pending",
+      "attempts": 0,
+      "fallbacks": []
+    },
+    "RENDERING": {
+      "status": "pending",
+      "attempts": 0,
+      "fallbacks": []
+    },
+    "POST_PROCESSING": {
+      "status": "pending",
+      "attempts": 0,
+      "fallbacks": []
+    },
+    "QUALITY_CHECK": {
+      "status": "pending",
+      "attempts": 0,
+      "fallbacks": []
+    }
+  },
+  "discoveries": {
+    "silencesFound": 5,
+    "silenceSec": 5.2,
+    "language": "en",
+    "words": 119,
+    "wpm": 141,
+    "fillersFound": 3,
+    "faceFound": true,
+    "topics": [
+      "customer calls",
+      "pricing page",
+      "sign-up growth"
+    ],
+    "hook": "We doubled our revenue in just three months."
+  },
+  "plan": null,
+  "renders": [],
+  "exports": {
+    "currentId": null,
+    "stale": false
+  },
+  "qaSummary": null,
+  "notices": [],
+  "cost": {
+    "estimateUsd": 0.031,
+    "capUsd": 0.5,
+    "spentUsd": 0.018
+  },
+  "allowedActions": [
+    "cancel",
+    "delete"
+  ]
+}

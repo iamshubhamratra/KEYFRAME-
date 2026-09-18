@@ -1,0 +1,162 @@
+{
+  "id": "build-notes",
+  "name": "Build Notes",
+  "renderer": "filmkit",
+  "orientation": "vertical",
+  "sizePx": [
+    1080,
+    1920
+  ],
+  "cohort": "01 technical / documentation",
+  "set": "article-text-50",
+  "globalName": "BuildNotes",
+  "configFile": "configs/article-pack-01.js",
+  "vibe": "a yard at the end of the shift",
+  "form": {
+    "runtimeMs": 128400,
+    "runtimeRangeMs": [
+      90000,
+      150000
+    ],
+    "beats": 18
+  },
+  "readingBudget": {
+    "wpm": 225,
+    "landSeconds": 1.2,
+    "checkedBy": "scripts/lint-reading-budget.js"
+  },
+  "fonts": {
+    "display": "Bevan",
+    "body": "Barlow",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+      "devanagari": "Noto Sans Devanagari"
+    }
+  },
+  "palette": {
+    "slots": [
+      "bg",
+      "surface",
+      "rule",
+      "inkMuted",
+      "ink",
+      "accent",
+      "accent2",
+      "accentInk"
+    ],
+    "values": {
+      "bg": "#ece7dd",
+      "surface": "#fbfaf7",
+      "rule": "#cdc6b8",
+      "inkMuted": "#716c62",
+      "ink": "#131210",
+      "accent": "#d8452c",
+      "accent2": "#2f6bd1",
+      "accentInk": "#fbfaf7"
+    },
+    "strategy": "luminance ladder; hue-rotatable at each slot’s own lightness"
+  },
+  "tweaks": [
+    {
+      "key": "brand",
+      "type": "text"
+    },
+    {
+      "key": "bg",
+      "type": "color"
+    },
+    {
+      "key": "accent",
+      "type": "color"
+    },
+    {
+      "key": "accent2",
+      "type": "color"
+    },
+    {
+      "key": "motion",
+      "type": "radio",
+      "options": [
+        "Calm",
+        "Lively",
+        "Bouncy"
+      ],
+      "default": "Lively"
+    },
+    {
+      "key": "typeScale",
+      "type": "radio",
+      "options": [
+        "Compact",
+        "Default",
+        "Editorial"
+      ],
+      "default": "Default"
+    }
+  ],
+  "motion": {
+    "titlePreset": "stamp",
+    "itemPreset": "pop",
+    "camera": [
+      "hopU",
+      "zoomOut",
+      "pushR",
+      "drop",
+      "zoomIn",
+      "pushL"
+    ],
+    "mechanics": "Ring: \"gauge\", Scroll: \"feed\", Typing: \"caret\"",
+    "chrome": false
+  },
+  "world": {
+    "description": "a yard at the end of the shift. Far: hazard stripes, a blueprint circle, a girder skyline and a scaffold plane sliding on parallax. Mid: a bench saw sled runs an 8s ping-pong; the blade spins far faster than the sled travels, the kerf it has cut stays behind it, sawdust sprays from the cut. Near: dust, sparks, and a plumb bob swinging in the right margin.",
+    "cyclePeriodMs": 8000,
+    "planes": 3,
+    "textSafety": "object confined above y=290, below y=1330, or right of x=820; never crosses the copy column"
+  },
+  "mediaSlots": [
+    {
+      "id": "image",
+      "beat": "Feature",
+      "beatIndex": 10,
+      "aspect": "16:10",
+      "minPx": [
+        640,
+        400
+      ],
+      "fit": "cover",
+      "priority": 1,
+      "optional": true,
+      "onEmpty": "swap per look.feature.swap (borrows nearest unclaimed script line)"
+    },
+    {
+      "id": "logo",
+      "beat": "CTA",
+      "beatIndex": 17,
+      "aspect": "1:1",
+      "minPx": [
+        256,
+        256
+      ],
+      "fit": "contain",
+      "priority": 2,
+      "optional": true,
+      "onEmpty": "pack icon mark in a filled badge"
+    }
+  ],
+  "determinism": {
+    "randomness": false,
+    "wallClock": false,
+    "seekSafe": true,
+    "clock": "single authored timeline via animations-v2"
+  },
+  "paths": {
+    "html": "templates/build-notes.html",
+    "config": "configs/article-pack-01.js",
+    "storyboard": "fixtures/storyboard.build-notes.json",
+    "timestamps": "fixtures/timestamps.build-notes.json",
+    "referenceFrames": "reference-frames/build-notes/"
+  }
+}

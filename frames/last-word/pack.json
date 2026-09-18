@@ -1,0 +1,61 @@
+{
+  "name": "last-word",
+  "vibe": "opinion / manifesto — a belfry room. Abril Fatface over Lora; a luminance-ladder palette on #f0ece3. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#f0ece3",
+    "ink": "#16130d",
+    "accent": "#7a2f2f",
+    "a2": "#b08c3a"
+  },
+  "fonts": [
+    "Abril Fatface",
+    "Lora",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#f0ece3",
+    "ink": "#16130d"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#7a2f2f",
+      "#b08c3a"
+    ],
+    "extras": [
+      "#6e675c"
+    ],
+    "emphasisCss": "color:#7a2f2f;"
+  },
+  "assets": {
+    "photoMod": "a belfry room editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "opinion",
+      "manifesto"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Abril Fatface",
+    "body": "Lora",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-last-word",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

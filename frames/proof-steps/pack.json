@@ -1,0 +1,60 @@
+{
+  "name": "proof-steps",
+  "vibe": "science / explainer — a proof rig on a bench. Space Mono over Atkinson Hyperlegible; a luminance-ladder palette on #eef0ef. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#eef0ef",
+    "ink": "#111413",
+    "accent": "#2f6f5f",
+    "a2": "#c98a2f"
+  },
+  "fonts": [
+    "Space Mono",
+    "Atkinson Hyperlegible"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#eef0ef",
+    "ink": "#111413"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#2f6f5f",
+      "#c98a2f"
+    ],
+    "extras": [
+      "#6b7170"
+    ],
+    "emphasisCss": "color:#2f6f5f;"
+  },
+  "assets": {
+    "photoMod": "a proof rig on a bench editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "science",
+      "explainer"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Space Mono",
+    "body": "Atkinson Hyperlegible",
+    "mono": null,
+    "case": "none"
+  },
+  "renderer": "film-proof-steps",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

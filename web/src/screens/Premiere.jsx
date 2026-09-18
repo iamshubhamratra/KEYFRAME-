@@ -90,6 +90,11 @@ export default function Premiere({ projectId, onRemix, onNew }) {
   // What the pipeline understood before it shot anything — surfaced only
   // transiently on the Understanding screen. Recap it on the finished film so
   // the audience/tone/facts/palette live alongside the QA + cost report.
+  // Why THIS template — the Template Intelligence match: score, the reasons it
+  // won, how much of the library orientation and runtime ruled out, and the
+  // runners-up. Absent on films made before the matcher shipped, hence `ts &&`.
+  const ts = project.templateSelection;
+
   const brief = project.brief;
   const briefFacts = brief ? [
     brief.audience && `Audience — ${brief.audience}`,
@@ -220,6 +225,67 @@ export default function Premiere({ projectId, onRemix, onNew }) {
                   sub={llm ? `${fmt(llm.inputTokens)} in · ${fmt(llm.outputTokens)} out · ${llm.callCount} calls` : null}
                 />
               </div>
+
+              {ts && (
+                <div style={{ marginTop: 24 }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.22em", color: "#7d766a", marginBottom: 10 }}>
+                    TEMPLATE MATCH — WHY THIS LOOK
+                  </div>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+                    <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: "var(--color-paper)" }}>
+                      {loreFor(ts.pack).name || ts.pack}
+                    </span>
+                    {ts.score != null && (
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "#b9f24a" }}>{ts.score}/100</span>
+                    )}
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.14em", color: "#7d766a", textTransform: "uppercase" }}>
+                      {ts.via === "user" ? "chosen by you" : `auto · ${ts.via}`}
+                    </span>
+                  </div>
+                  {(ts.reasons || []).length > 0 && (
+                    <ul style={{ display: "flex", flexDirection: "column", gap: 6, margin: "0 0 12px", padding: 0, listStyle: "none" }}>
+                      {ts.reasons.slice(0, 6).map((r, i) => (
+                        <li key={i} style={{ display: "flex", alignItems: "baseline", gap: 8, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--color-dark-dim)", lineHeight: 1.55 }}>
+                          <span style={{ flexShrink: 0, color: "var(--color-cy)" }}>✓</span><span>{r}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {ts.compatibleCount != null && (
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "#7d766a", lineHeight: 1.6 }}>
+                      {ts.compatibleCount} of {ts.poolSize} templates fit this film
+                      {ts.rejected?.orientation ? ` · ${ts.rejected.orientation} ruled out by orientation` : ""}
+                      {(ts.rejected?.["duration-too-short"] || ts.rejected?.["duration-too-long"])
+                        ? ` · ${(ts.rejected["duration-too-short"] || 0) + (ts.rejected["duration-too-long"] || 0)} by runtime` : ""}
+                    </div>
+                  )}
+                  {(ts.topCandidates || []).length > 1 && (() => {
+                    // THE MODEL IS ALLOWED TO OUTRANK THE SCORE, so the winner is
+                    // not always the top-scored candidate: the ranking settles
+                    // what FITS, the brief model then reads the prompt's intent
+                    // and may pick a lower-scored candidate it judges better.
+                    // Listing those simply as "runners-up" showed a 50.6 sitting
+                    // above a 49.8 winner with no explanation, which reads as a
+                    // bug rather than as a decision. Say which one happened.
+                    const others = ts.topCandidates.filter((c) => c.pack !== ts.pack);
+                    if (!others.length) return null;
+                    const outranked = ts.score != null && others.some((c) => c.score > ts.score);
+                    return (
+                      <div style={{ marginTop: 8, fontFamily: "var(--font-mono)", fontSize: 10, color: "#7d766a", lineHeight: 1.6 }}>
+                        <div>{outranked ? "ALSO CONSIDERED" : "RUNNERS-UP"} · {others.map((c) => `${c.pack} ${c.score}`).join("  ·  ")}</div>
+                        {outranked && (
+                          <div style={{ marginTop: 4, color: "var(--color-cy)" }}>
+                            The script model chose this template over the higher-scored {others[0].pack} — the ranking decides what FITS, the model decides what suits the story.
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                  {(ts.warnings || []).map((w, i) => (
+                    <div key={i} style={{ marginTop: 8, fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--color-am)", lineHeight: 1.55 }}>! {w}</div>
+                  ))}
+                </div>
+              )}
 
               {(briefFacts.length > 0 || briefColors.length > 0) && (
                 <div style={{ marginTop: 24 }}>

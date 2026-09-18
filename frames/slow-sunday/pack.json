@@ -1,0 +1,61 @@
+{
+  "name": "slow-sunday",
+  "vibe": "personal blog / diary — the front room, mid-afternoon. Grandstander over Sen; a luminance-ladder palette on #f1e7e6. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#f1e7e6",
+    "ink": "#1b1517",
+    "accent": "#8a4a6a",
+    "a2": "#d8a13c"
+  },
+  "fonts": [
+    "Grandstander",
+    "Sen",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#f1e7e6",
+    "ink": "#1b1517"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#8a4a6a",
+      "#d8a13c"
+    ],
+    "extras": [
+      "#726466"
+    ],
+    "emphasisCss": "color:#8a4a6a;"
+  },
+  "assets": {
+    "photoMod": "the front room, mid-afternoon editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "personal blog",
+      "diary"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Grandstander",
+    "body": "Sen",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-slow-sunday",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

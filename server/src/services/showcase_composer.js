@@ -31,6 +31,8 @@ const { withDisplayCopy } = require("./template_engine");
 // other renderer — see the wiring note on takePool below.
 const { pickForScene } = require("./scene_match");
 const { fitScenes, MAX_CLIPS } = require("./scene_fit");
+// The one place a picture's fit is decided — mode, focal point, and never a stretch.
+const AF = require("./asset_fit");
 
 const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 const DISPLAY = "Space Grotesk";   // the template's own display face (bundled)
@@ -166,7 +168,12 @@ function showArchetype(scene, i, total, pinned, poolLeft) {
 function mediaBox(asset, kind, theme, label) {
   if (asset && asset.path) {
     return `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" data-media-slot="${esc(kind)}" data-media-fill="asset" `
-      + `style="width:100%;height:100%;object-fit:${kind === "logo" ? "contain" : "cover"};object-position:top center;display:block;">`;
+      // The fit the planner chose for THIS picture in THIS box — contain for a mark,
+      // cover with a content-aware focal point for a photograph, contain for a website
+      // capture whose crop would eat its navigation. It replaces a hardcoded
+      // `cover / top center`, which on this composer's 16:9 tour wall meant a 1.52
+      // capture in a 5.4-aspect ribbon: 72% of the page thrown away.
+      + `style="width:100%;height:100%;${AF.fitCss(asset)}display:block;">`;
   }
   const lbl = label || ({ desktop: "DESKTOP SCREENSHOT", phone: "PHONE SCREEN", photo: "PRODUCT PHOTO", logo: "LOGO" }[kind] || "SCREENSHOT");
   return `<div data-media-slot="${esc(kind)}" data-media-fill="empty" style="width:100%;height:100%;position:relative;`
@@ -327,12 +334,24 @@ function buildMobile(scene, ctx, asset) {
   const cal = fit(scene.callout || bullets(scene, 1)[0] || "Instant alerts", 22);
   const phW = land ? W * 0.194 : W * 0.44, phH = phW * 2.1;
   const phX = land ? W * 0.20 : W * 0.28;
+  // A PHONE BEZEL IS A 0.46 HOLE, AND A DESKTOP CAPTURE IS 1.52.
+  //
+  // Every capture this system takes is 2732x1800: cover keeps about 30% of its width and
+  // top-anchors it, so the beat presents a sliver of a web page as if it were the product's
+  // phone app; contain would draw the whole page as a letterboxed band across the middle of
+  // an empty handset. Neither is a picture worth showing, which is what template_engine's
+  // own rule already says about device slots — "an unfillable phone slot must stay empty
+  // rather than swallow the photo a later slot needs" (media_demand.test.cjs defect-3).
+  // showcase casts its own assets and never inherited that rule, so it is applied here:
+  // only a genuinely portrait asset goes in the handset, and anything else leaves the
+  // pack's designed empty-phone plate — a deliberate frame rather than a mis-framed one.
+  const phoneAsset = (AF.assetAspect(asset) > 0 && AF.assetAspect(asset) < 0.9) ? asset : null;
   const inner =
     `<div id="${id}-head" style="opacity:0;position:absolute;${land ? `right:${r(W * 0.068)}px;top:${r(H * 0.28)}px;width:${r(W * 0.32)}px;text-align:right;` : `left:0;right:0;top:${r(H * 0.08)}px;text-align:center;`}">`
     + eyebrow(eb, theme, 16) + headBlock(`${id}-h2`, ls, theme, land ? 78 : 58, land ? "right" : "center").replace('opacity:0;', '')
     + `</div>`
     + `<div id="${id}-ph" style="opacity:0;position:absolute;left:${r(phX)}px;top:${r(land ? H * 0.12 : H * 0.36)}px;width:${r(phW)}px;height:${r(phH)}px;">`
-    + phoneFrame(mediaBox(asset, "phone", theme), theme) + `</div>`
+    + phoneFrame(mediaBox(phoneAsset, "phone", theme), theme) + `</div>`
     + `<div style="position:absolute;inset:0;pointer-events:none;">`
     + arrowSvg(`${id}-a`, [W * 0.43, H * 0.39], [W * 0.32, H * 0.35], 50, theme.accent, W, H) + `</div>`
     + callout(`${id}-cal`, W * 0.44, H * 0.37, "1", cal, theme, false);
@@ -351,9 +370,19 @@ function buildMontage(scene, ctx, tiles) {
   const head = fit(scene.headline || "Every screen, one glance.", 44);
   // Six tiles on a two-row wall, each flying in from a different edge.
   const grid = land
-    ? [{ x: 0.05, y: 0.23, w: 0.28, h: 0.30, d: [-1, 0] }, { x: 0.35, y: 0.23, w: 0.20, h: 0.30, d: [0, -1] },
-       { x: 0.565, y: 0.23, w: 0.385, h: 0.30, d: [1, 0] }, { x: 0.05, y: 0.56, w: 0.20, h: 0.30, d: [0, 1] },
-       { x: 0.265, y: 0.56, w: 0.32, h: 0.30, d: [0, 1] }, { x: 0.605, y: 0.56, w: 0.345, h: 0.30, d: [1, 1] }]
+    // SIX TILES, ONE SHAPE. The widths used to be 0.28 / 0.20 / 0.385 / 0.20 / 0.32 / 0.345
+    // against a single 0.30 height, so the same wall drew tiles at 1.38 AND at 2.67 — one
+    // picture read correctly and the one beside it lost 63% of its height to the crop. A
+    // wall whose cells disagree about their shape cannot be fed: whatever asset suits one
+    // cell is wrong for the next. Equal thirds put every tile at ~1.42, the shape the
+    // captures and stock this archetype receives already are, and the staggered entrance
+    // directions are kept exactly as authored. The cell is also taller (0.30 -> 0.34, rows
+    // lifted to 0.20/0.555 so the pair still clears the headline and the frame): the browser
+    // chrome bar above each picture is a fixed height, so every pixel added to the cell is a
+    // pixel added to the PICTURE, and it takes the tile from 1.99 to 1.70.
+    ? [{ x: 0.05, y: 0.20, w: 0.2867, h: 0.34, d: [-1, 0] }, { x: 0.3567, y: 0.20, w: 0.2867, h: 0.34, d: [0, -1] },
+       { x: 0.6633, y: 0.20, w: 0.2867, h: 0.34, d: [1, 0] }, { x: 0.05, y: 0.555, w: 0.2867, h: 0.34, d: [0, 1] },
+       { x: 0.3567, y: 0.555, w: 0.2867, h: 0.34, d: [0, 1] }, { x: 0.6633, y: 0.555, w: 0.2867, h: 0.34, d: [1, 1] }]
     : [{ x: 0.06, y: 0.16, w: 0.42, h: 0.18, d: [-1, 0] }, { x: 0.52, y: 0.16, w: 0.42, h: 0.18, d: [1, 0] },
        { x: 0.06, y: 0.37, w: 0.42, h: 0.18, d: [-1, 0] }, { x: 0.52, y: 0.37, w: 0.42, h: 0.18, d: [1, 0] },
        { x: 0.06, y: 0.58, w: 0.42, h: 0.18, d: [0, 1] }, { x: 0.52, y: 0.58, w: 0.42, h: 0.18, d: [0, 1] }];

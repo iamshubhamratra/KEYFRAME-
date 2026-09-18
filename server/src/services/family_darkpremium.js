@@ -20,6 +20,9 @@
 
 const { deriveTheme } = require("./scene_kit");
 const E = require("./template_engine");
+// The slot contract: what shape each media box is, and the CSS for a box that reshaped
+// to fit its picture. See mediaGeometry below.
+const TM = require("./template_media");
 // The shared motion vocabulary — see services/motion_presets.js. Physics for
 // headlines and cards lives there now, so every template moves alike.
 const MOTION = require("./motion_presets");
@@ -136,6 +139,41 @@ const TEMPLATE_SCENES = [
 ];
 
 const mediaSlots = { glasscard: ["desktop"], prooftiles: ["photo", "photo"], glassquote: ["photo"] };
+// PORTRAIT SHOWS ONE PICTURE ON THE WALL, NOT TWO. Measured at 1080x1920, the two stacked
+// plates were 950x369 each — an aspect of 2.59, which cuts 42% off the height of an
+// ordinary 1.5 photo and 82% off a portrait phone capture. One plate in the same band is
+// 950x692 (aspect 1.37), the shape real assets actually are. services/template_media.js
+// wantsFor reads this whenever the frame is taller than it is wide.
+const mediaSlotsPortrait = { glasscard: ["desktop"], prooftiles: ["photo"], glassquote: ["photo"] };
+// WHAT SHAPE EACH PLACEHOLDER IS. Fractions of the CANVAS (wFrac of width, hFrac of
+// height), derived from the CSS below and verified against a live headless render by
+// `node scripts/audit-slot-fit.js --packs abyssal-glow`.
+const mediaGeometry = {
+  glasscard: {
+    // glasscard(): `right|left:6cqw; top:11%; bottom:11%; width:45cqw` -> 864x842 @16:9.
+    // `flex` lets the glass panel take the picture's own shape: it is a floating plate in
+    // a band, not a grid cell, so giving the reclaimed height back to the layout costs the
+    // design nothing — and a 1.5:1 website capture in a fixed 1.03 box loses 31% of its
+    // width, which is where a page keeps its navigation.
+    land: [{ wFrac: 0.45, hFrac: 0.78, importance: "hero", flex: [1.00, 1.90] }],
+    port: [{ wFrac: 0.88, hFrac: 0.34, importance: "hero", flex: [0.95, 1.75] }],
+  },
+  prooftiles: {
+    // Three tracks at 1.25fr/1.25fr/0.5fr inside `left/right:7cqw; top:44%; bottom:13%`,
+    // gap 1.2cqw -> a 669x464 media tile (aspect 1.44). It was four equal tracks, giving
+    // 395x464 — an aspect of 0.85 that cut 47% off a landscape photo's width.
+    land: [{ wFrac: 0.348, hFrac: 0.43, importance: "support", flex: [1.10, 1.70] },
+           { wFrac: 0.348, hFrac: 0.43, importance: "support", flex: [1.10, 1.70] }],
+    // One plate at 1fr against a 0.36fr strip inside `top:38%; bottom:12%` -> 950x692.
+    port: [{ wFrac: 0.88, hFrac: 0.36, importance: "support", flex: [1.10, 1.70] }],
+  },
+  glassquote: {
+    // The attribution disc: `width:3.4cqw; height:3.4cqw` — cqw on BOTH axes, so square,
+    // and 3.4% of 1920 is 65px. A disc that small holds a face and nothing else.
+    land: [{ wFrac: 0.034, hFrac: 0.0604, importance: "accent", allow: ["photo"] }],
+    port: [{ wFrac: 0.054, hFrac: 0.0304, importance: "accent", allow: ["photo"] }],
+  },
+};
 // True when the PREVIOUS scene already carried imagery — keeps media beats
 // alternating now that any spare asset, not just a pinned screenshot, earns one.
 const mediaBeatJustPlayed = (ctx) => ((mediaSlots[ctx && ctx.prevType] || []).length > 0);
@@ -265,9 +303,24 @@ function glasscard(scene, ctx, asset) {
   const right = variant % 2 === 0;
   const size = r(Math.min(land ? 4.6 : 6.4, (land ? 40 : 80) / Math.max(...lines.map((l) => l.length), 1) * 1.55));
   const radius = land ? 1.2 : 1.8;
+  // THE CARD TAKES THE PICTURE'S SHAPE, INSTEAD OF THE PICTURE TAKING THE CARD'S.
+  //
+  // This band was fixed at `top:11%;bottom:11%;width:45cqw`, which at 1920x1080 is 864x842
+  // — an aspect of 1.03. A website capture is 2732x1800, an aspect of 1.52, so
+  // `object-fit:cover` discarded 32% of its WIDTH: 16% off each side, which is where a
+  // page keeps its navigation. asset_fit resolved a box for this asset inside the aspect
+  // band mediaGeometry declares, and boxCss gives the reclaimed height back to the layout
+  // — symmetrically in landscape, where the card floats in its band, and off the bottom in
+  // portrait, where the headline sits above it and the copy below. With no fitted box this
+  // is byte-for-byte the declaration it replaces.
+  const fitBox = asset && asset.__fit && asset.__fit.box && asset.__fit.box.reshaped ? asset.__fit.box : null;
   const cardBox = land
-    ? `${right ? "right" : "left"}:${land ? 6 : 6}cqw;top:11%;bottom:11%;width:45cqw;`
-    : `left:6cqw;right:6cqw;top:9%;height:34%;`;
+    ? (fitBox
+      ? TM.boxCss({ side: 6, top: 0.11, bottom: 0.11, width: 45 }, fitBox, ctx.dims, right ? "right" : "left")
+      : `${right ? "right" : "left"}:6cqw;top:11%;bottom:11%;width:45cqw;`)
+    : (fitBox
+      ? TM.boxCss({ side: 6, top: 0.09, bottom: 0.57, width: 88 }, fitBox, ctx.dims, "stretch", "start")
+      : `left:6cqw;right:6cqw;top:9%;height:34%;`);
   const textBox = land
     ? `${right ? "left" : "right"}:6cqw;width:38cqw;top:0;bottom:0;`
     : `left:6cqw;right:6cqw;top:48%;bottom:8%;`;
@@ -277,7 +330,7 @@ function glasscard(scene, ctx, asset) {
       <div style="position:absolute;inset:0;border-radius:${radius}cqw;background:linear-gradient(146deg, ${rgba(th.accent, 0.3)} 0%, transparent 38%);"></div>
       <div style="position:absolute;inset:${land ? 0.8 : 1.2}cqw;border-radius:${r(radius * 0.65)}cqw;overflow:hidden;background:${th.well};border:${th.hairW}cqw solid ${th.hair};">
         ${asset && asset.path
-      ? `<img id="${id}-img" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">`
+      ? `<img id="${id}-img" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;${E.fitCss(asset)}display:block;">`
       : brandPlate(th, land, brand, url, true)}
       </div>
       <div id="${id}-shine" style="position:absolute;left:0;top:-20%;bottom:-20%;width:46%;opacity:0;background:linear-gradient(100deg, transparent 0%, ${rgba(th.ink, 0.2)} 50%, transparent 100%);"></div>
@@ -411,7 +464,7 @@ function glassquote(scene, ctx, a) {
         </div>
         <div id="${id}-att" style="opacity:0;margin-top:${land ? 2.4 : 3.6}cqw;display:flex;align-items:center;gap:${land ? 1.2 : 2}cqw;">
           ${a && a.path
-      ? `<span style="display:block;width:${land ? 3.4 : 5.4}cqw;height:${land ? 3.4 : 5.4}cqw;border-radius:50%;overflow:hidden;border:${th.hairW}cqw solid ${th.hair2};box-shadow:0 0 ${land ? 1.6 : 2.6}cqw ${rgba(th.accent, 0.6)};"><img src="${esc(a.path)}" alt="${esc(a.alt || author || "")}" style="width:100%;height:100%;object-fit:cover;display:block;"></span>`
+      ? `<span style="display:block;width:${land ? 3.4 : 5.4}cqw;height:${land ? 3.4 : 5.4}cqw;border-radius:50%;overflow:hidden;border:${th.hairW}cqw solid ${th.hair2};box-shadow:0 0 ${land ? 1.6 : 2.6}cqw ${rgba(th.accent, 0.6)};"><img src="${esc(a.path)}" alt="${esc(a.alt || author || "")}" style="width:100%;height:100%;${E.fitCss(a)}display:block;"></span>`
       : `<span style="display:grid;place-items:center;width:${land ? 3.4 : 5.4}cqw;height:${land ? 3.4 : 5.4}cqw;border-radius:50%;background:${th.accent};color:${th.onAccent};font-family:${th.displayStack};font-weight:700;font-size:${land ? 1.5 : 2.4}cqw;box-shadow:0 0 ${land ? 1.6 : 2.6}cqw ${rgba(th.accent, 0.6)};">${esc(initial)}</span>`}
           <span>
             ${author ? `<span style="display:block;font-family:${th.displayStack};font-weight:700;font-size:${land ? 1.5 : 2.4}cqw;color:${th.ink};">${esc(author)}</span>` : ""}
@@ -443,7 +496,7 @@ function prooftiles(scene, ctx, a, b) {
   const mediaTile = (asset, cls, n) => `
       <div class="${cls} ${id}-tile" style="opacity:0;position:relative;overflow:hidden;${glassCss(th, radius)}">
         ${asset && asset.path
-      ? `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">`
+      ? `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;${E.fitCss(asset)}display:block;">`
       : brandPlate(th, land, brand, url, false)}
         <span style="position:absolute;left:${land ? 0.7 : 1.1}cqw;top:${land ? 0.7 : 1.1}cqw;padding:${land ? 0.2 : 0.34}cqw ${land ? 0.5 : 0.8}cqw;border-radius:${land ? 0.3 : 0.5}cqw;background:${rgba(th.ground, 0.72)};font-family:${th.bodyStack};font-size:${land ? 0.9 : 1.5}cqw;letter-spacing:0.18em;color:${th.accentText};">${n}</span>
       </div>`;
@@ -459,21 +512,26 @@ function prooftiles(scene, ctx, a, b) {
           unreadable, and QA has blocked a shipped film for exactly that. So
           portrait shows FEWER, BIGGER things: both media plates full width and
           stacked, and the badge/brand tiles merged into one strip beneath. */""}
-    <div style="position:absolute;left:${land ? 7 : 6}cqw;right:${land ? 7 : 6}cqw;top:${land ? "44%" : "38%"};bottom:${land ? "13%" : "12%"};display:grid;grid-template-columns:${land ? "1fr 1fr 1fr 1fr" : "1fr"};grid-template-rows:${land ? "1fr" : "1fr 1fr 0.5fr"};gap:${land ? 1.2 : 1.8}cqw;">
+    <div style="position:absolute;left:${land ? 7 : 6}cqw;right:${land ? 7 : 6}cqw;top:${land ? "44%" : "38%"};bottom:${land ? "13%" : "12%"};display:grid;grid-template-columns:${land ? "1.25fr 1.25fr 0.5fr" : "1fr"};grid-template-rows:${land ? "1fr" : "1fr 0.36fr"};gap:${land ? 1.2 : 1.8}cqw;">
       ${mediaTile(a, `${id}-t1`, "01")}
-      ${mediaTile(b, `${id}-t2`, "02")}
+      ${land ? mediaTile(b, `${id}-t2`, "02") : ""}
       ${land ? `<div class="${id}-t3 ${id}-tile" style="opacity:0;position:relative;display:grid;place-items:center;overflow:hidden;${glassCss(th, radius)}">
         <div style="position:absolute;inset:0;background:radial-gradient(ellipse 74% 66% at 50% 46%, ${rgba(th.accent, 0.24)} 0%, transparent 72%);"></div>
-        <div style="position:relative;text-align:center;padding:0.8cqw;">
-          <div style="font-family:${th.displayStack};font-weight:700;font-size:3.6cqw;line-height:1;color:${th.ink};text-shadow:0 0 2cqw ${rgba(th.accent, 0.5)};">${esc(badge)}</div>
-          ${badgeLabel ? `<div style="margin-top:0.6cqw;font-family:${th.bodyStack};font-size:0.9cqw;letter-spacing:0.2em;text-transform:uppercase;color:${th.body};">${esc(badgeLabel)}</div>` : ""}
-        </div>
-      </div>
-      <div class="${id}-t4 ${id}-tile" style="opacity:0;position:relative;display:grid;place-items:center;overflow:hidden;${glassCss(th, radius)}">
-        <div style="text-align:center;padding:0.8cqw;">
-          <div style="font-family:${th.displayStack};font-weight:700;font-size:2.2cqw;letter-spacing:0.04em;color:${th.ink};">${esc(String(brand).slice(0, 14))}</div>
-          <div style="margin:0.7cqw auto 0;width:5cqw;height:0.14cqw;background:${th.accent2};box-shadow:0 0 1cqw ${rgba(th.accent2, 0.9)};"></div>
-          <div style="margin-top:0.7cqw;font-family:${th.bodyStack};font-size:0.9cqw;letter-spacing:0.24em;text-transform:uppercase;color:${th.soft};">${esc(url)}</div>
+        ${/* The figure and the mark share ONE closing tile now, stacked. They were two
+             tiles of their own, and reclaiming that track is what let the two media plates
+             grow from 395x464 (aspect 0.85) to 669x464 (aspect 1.44). Type is set for the
+             narrower column: the badge drops from 3.6cqw to 3.1 and the brand from 2.2 to
+             1.75, which keeps a fourteen-character name on one line at 267px. */""}
+        <div style="position:relative;text-align:center;padding:0.8cqw;display:flex;flex-direction:column;gap:1.1cqw;align-items:center;">
+          <div>
+            <div style="font-family:${th.displayStack};font-weight:700;font-size:3.1cqw;line-height:1;color:${th.ink};text-shadow:0 0 2cqw ${rgba(th.accent, 0.5)};">${esc(badge)}</div>
+            ${badgeLabel ? `<div style="margin-top:0.6cqw;font-family:${th.bodyStack};font-size:0.84cqw;letter-spacing:0.18em;text-transform:uppercase;color:${th.body};">${esc(badgeLabel)}</div>` : ""}
+          </div>
+          <div style="width:4.4cqw;height:0.14cqw;background:${th.accent2};box-shadow:0 0 1cqw ${rgba(th.accent2, 0.9)};"></div>
+          <div>
+            <div style="font-family:${th.displayStack};font-weight:700;font-size:1.75cqw;letter-spacing:0.04em;color:${th.ink};">${esc(String(brand).slice(0, 14))}</div>
+            <div style="margin-top:0.55cqw;font-family:${th.bodyStack};font-size:0.82cqw;letter-spacing:0.2em;text-transform:uppercase;color:${th.soft};">${esc(url)}</div>
+          </div>
         </div>
       </div>`
     : `<div class="${id}-t3 ${id}-tile" style="opacity:0;position:relative;display:flex;align-items:center;justify-content:space-between;gap:2cqw;padding:0 3cqw;overflow:hidden;${glassCss(th, radius)}">
@@ -598,7 +656,7 @@ const family = {
       used: bullets(scene || {}, 3),
     };
   },
-  theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaFallback,
+  theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaSlotsPortrait, mediaGeometry, mediaFallback,
   // The engine injects the site logo into `a` for the closer WITHOUT touching
   // the demand math (scanCoverage reads data-media-* stamps, not <img> tags).
   wantsLogo: (t) => t === "glowcta",
@@ -636,4 +694,9 @@ function buildComposition(opts) { return E.buildFilm(family, opts); }
 // drift from the film that ships.
 function planMedia(opts) { return E.planMedia(family, opts); }
 
-module.exports = { buildComposition, planMedia, TEMPLATE_SCENES };
+// FAMILY is the pack's whole design object — the same one buildFilm renders from.
+// It is exported so callers OUTSIDE the renderer can read the slot contract without
+// building a film: services/template_media.resolveMediaPlan needs `mediaSlots` and
+// `mediaGeometry` to tell preflight which boxes this template will draw and what
+// shape each one is, and the crop engine needs the resulting aspect list.
+module.exports = { buildComposition, planMedia, TEMPLATE_SCENES, FAMILY: family };

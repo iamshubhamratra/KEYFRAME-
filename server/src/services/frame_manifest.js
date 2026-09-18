@@ -153,6 +153,55 @@ const PackManifestSchema = z
     typography: z.record(z.any()).optional(),
     layout: z.record(z.any()).optional(),
     camera3d: z.record(z.any()).optional(),
+
+    // --- ROUTING + SHAPE. Load-bearing fields that used to reach consumers only
+    // through .passthrough(). They are the pack's contract with the pipeline —
+    // `renderer` picks its composer, `portraitNative` decides the canvas the film
+    // is composed at (and therefore the aspect of the delivered MP4), `longForm`
+    // says it is authored as a 2-5 minute film. Declared explicitly so removing
+    // passthrough can never silently land every portrait pack in a 16:9 frame,
+    // and so a typo in one of them fails validation instead of defaulting.
+    renderer: z.string().optional(),
+    template: z.string().optional(),
+    portraitNative: z.boolean().optional(),
+    longForm: z.boolean().optional(),
+    longFormOk: z.boolean().optional(),
+
+    // --- AUTHORED SELECTION INTENT (template_intelligence).
+    //
+    // Everything the matcher needs is DERIVED from the fields above, so this
+    // block is never required and 285 packs match today without it. It exists so
+    // a pack can CORRECT or SHARPEN its own profile — the one place a template
+    // states what it is for in its own words — and so a generated template can
+    // declare itself at creation time instead of waiting to be inferred.
+    // Whatever it states wins, field by field; whatever it omits stays derived.
+    intent: z
+      .object({
+        orientation: z.enum(["9:16", "16:9"]).optional(),
+        contentTypes: z.array(z.string()).optional(),
+        categories: z.array(z.string()).optional(),
+        industries: z.array(z.string()).optional(),
+        vibes: z.array(z.string()).optional(),
+        tones: z.array(z.string()).optional(),
+        visualStyle: z.array(z.string()).optional(),
+        typographyStyle: z.array(z.string()).optional(),
+        animationStyle: z.array(z.string()).optional(),
+        preferredAssetTypes: z.array(z.string()).optional(),
+        pacingCompatibility: z.array(z.string()).optional(),
+        density: z.enum(["text-first", "balanced", "media-first"]).optional(),
+        colorAdaptability: z.boolean().optional(),
+        // Authored form + the runtime band the template still reads as itself over.
+        beats: z.number().int().positive().optional(),
+        beatSec: z.number().positive().optional(),
+        nativeSec: z.number().positive().optional(),
+        minSec: z.number().positive().optional(),
+        maxSec: z.number().positive().optional(),
+        longForm: z.boolean().optional(),
+        longFormOk: z.boolean().optional(),
+        qualityScore: z.number().min(0).max(1).optional(),
+      })
+      .passthrough()
+      .optional(),
   })
   .passthrough();
 

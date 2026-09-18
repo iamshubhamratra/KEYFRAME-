@@ -1,0 +1,276 @@
+{
+ "slug": "patch-log",
+ "engine": "filmkit",
+ "orientation": "vertical",
+ "viewport": {
+  "width": 1080,
+  "height": 1920
+ },
+ "runtimeMs": 128400,
+ "playback": {
+  "mode": "loop"
+ },
+ "tweaksAtCapture": {
+  "brand": "Patch Log",
+  "bg": "#e8e3d7",
+  "accent": "#2f6f3e",
+  "accent2": "#a8442c",
+  "motion": "Calm",
+  "typeScale": "Default"
+ },
+ "beats": [
+  {
+   "index": 0,
+   "beat": "Hook",
+   "startMs": 0,
+   "durationMs": 7400,
+   "fields": {
+    "kicker": "RELEASE NOTES / 4.2",
+    "title": "Read the margin.|Not the manual.",
+    "sub": "Every release note you ship is a video nobody watches. This is the fix."
+   }
+  },
+  {
+   "index": 1,
+   "beat": "Body",
+   "startMs": 7400,
+   "durationMs": 8400,
+   "fields": {
+    "kicker": "THE PROBLEM",
+    "body": "A changelog is a list. A release is a story. Somewhere between the two your users stopped reading and started guessing what actually changed.",
+    "note": "4.1 → 4.2 · 1,284 commits"
+   }
+  },
+  {
+   "index": 2,
+   "beat": "Statement",
+   "startMs": 15800,
+   "durationMs": 5000,
+   "fields": {
+    "title": "Nobody reads|the manual.",
+    "sub": "They read the first line and the last."
+   }
+  },
+  {
+   "index": 3,
+   "beat": "Typing",
+   "startMs": 20800,
+   "durationMs": 6000,
+   "fields": {
+    "title": "Ask the repo|what happened.",
+    "prompt": "$ keyframe read",
+    "text": "git log 4.1..4.2 --oneline | 1,284 commits",
+    "stamp": "PARSED"
+   }
+  },
+  {
+   "index": 4,
+   "beat": "Body",
+   "startMs": 26800,
+   "durationMs": 9000,
+   "fields": {
+    "kicker": "WHAT IT DOES",
+    "body": "Keyframe reads the article, keeps the sentences that carry the argument, and gives each one exactly as long on screen as it takes to read."
+   }
+  },
+  {
+   "index": 5,
+   "beat": "Quote",
+   "startMs": 35800,
+   "durationMs": 7000,
+   "fields": {
+    "quote": "Documentation is|a reading problem|before it is|a writing problem.",
+    "attrib": "Staff engineer, platform team"
+   }
+  },
+  {
+   "index": 6,
+   "beat": "Statement",
+   "startMs": 42800,
+   "durationMs": 5000,
+   "fields": {
+    "title": "02|Write it once.",
+    "sub": "Then let the template do the typesetting."
+   }
+  },
+  {
+   "index": 7,
+   "beat": "Stats",
+   "startMs": 47800,
+   "durationMs": 8000,
+   "fields": {
+    "title": "The read,|measured.",
+    "stats": [
+     {
+      "to": 225,
+      "suffix": "wpm",
+      "label": "reading budget every beat is checked against"
+     },
+     {
+      "to": 18,
+      "suffix": "",
+      "label": "beats in this cut, none under budget"
+     },
+     {
+      "to": 54,
+      "suffix": "ch",
+      "label": "measure held on every paragraph"
+     }
+    ]
+   }
+  },
+  {
+   "index": 8,
+   "beat": "Body",
+   "startMs": 55800,
+   "durationMs": 9400,
+   "fields": {
+    "kicker": "THE RULE",
+    "body": "A beat with thirty words on it cannot be two seconds long. The lint script fails the build when a paragraph is given less time than a reader needs."
+   }
+  },
+  {
+   "index": 9,
+   "beat": "Scroll",
+   "startMs": 65200,
+   "durationMs": 8500,
+   "fields": {
+    "title": "Beats it|supports.",
+    "items": [
+     {
+      "t": "Title and hook",
+      "v": "01"
+     },
+     {
+      "t": "Section heading",
+      "v": "02"
+     },
+     {
+      "t": "Body paragraph",
+      "v": "03"
+     },
+     {
+      "t": "Pull quote",
+      "v": "04"
+     },
+     {
+      "t": "List and steps",
+      "v": "05"
+     },
+     {
+      "t": "Figure or statement",
+      "v": "06"
+     }
+    ]
+   }
+  },
+  {
+   "index": 10,
+   "beat": "Feature",
+   "startMs": 73700,
+   "durationMs": 8000,
+   "fields": {
+    "title": "Drop a screenshot|or do not.",
+    "chips": [
+     "Screen beat",
+     "Collapses to type",
+     "No dashed boxes"
+    ],
+    "image": "",
+    "fallbackText": "When a media slot comes back empty the beat becomes a paragraph instead of a placeholder, and borrows the nearest line the script has not used."
+   },
+   "mediaSlots": [
+    {
+     "id": "image",
+     "bound": null,
+     "onEmpty": "swap per look.feature.swap",
+     "fallbackText": "When a media slot comes back empty the beat becomes a paragraph instead of a placeholder, and borrows the nearest line the script has not used."
+    }
+   ]
+  },
+  {
+   "index": 11,
+   "beat": "Quote",
+   "startMs": 81700,
+   "durationMs": 6500,
+   "fields": {
+    "quote": "The margin is|where the reader|actually lives.",
+    "attrib": "Technical writing lead"
+   }
+  },
+  {
+   "index": 12,
+   "beat": "Ring",
+   "startMs": 88200,
+   "durationMs": 6000,
+   "fields": {
+    "title": "Read-through.",
+    "to": 86,
+    "label": "finish the cut",
+    "sub": "Measured against the same article as a wall of text."
+   }
+  },
+  {
+   "index": 13,
+   "beat": "Body",
+   "startMs": 94200,
+   "durationMs": 8200,
+   "fields": {
+    "kicker": "TYPE",
+    "body": "One display face, one text face, one mono. Tracking tightens as size grows, leading opens as measure widens, and nothing shrinks to fit."
+   }
+  },
+  {
+   "index": 14,
+   "beat": "Montage",
+   "startMs": 102400,
+   "durationMs": 6500,
+   "fields": {
+    "title": "Page against|film.",
+    "tiles": [
+     "A page nobody scrolls",
+     "A film they finish"
+    ]
+   }
+  },
+  {
+   "index": 15,
+   "beat": "Statement",
+   "startMs": 108900,
+   "durationMs": 5500,
+   "fields": {
+    "title": "Ship the note.|Not the noise.",
+    "sub": "One input, one cut, one read."
+   }
+  },
+  {
+   "index": 16,
+   "beat": "Body",
+   "startMs": 114400,
+   "durationMs": 7500,
+   "fields": {
+    "kicker": "TAKEAWAY",
+    "body": "Give every sentence the time it needs and the reader stays to the end. That is the whole method."
+   }
+  },
+  {
+   "index": 17,
+   "beat": "CTA",
+   "startMs": 121900,
+   "durationMs": 6500,
+   "fields": {
+    "title": "Turn your notes|into a film.",
+    "cta": "Read the docs",
+    "url": "keyframe.ai/docs",
+    "logo": ""
+   },
+   "mediaSlots": [
+    {
+     "id": "logo",
+     "bound": null,
+     "onEmpty": "pack icon mark"
+    }
+   ]
+  }
+ ]
+}

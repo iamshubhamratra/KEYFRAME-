@@ -1,0 +1,1823 @@
+{
+ "library": "keyframe-article-packs",
+ "version": "1.0.0",
+ "engine": {
+  "renderer": "filmkit",
+  "shared": [
+   "film-kit.js (patched — kit/PATCH-article-beats.md)",
+   "animations-v2.jsx",
+   "tweaks-panel.jsx",
+   "motion-presets.js"
+  ]
+ },
+ "totalTemplates": 50,
+ "referenceFrames": {
+  "complete": [
+   "margin-notes"
+  ],
+  "pending": 49,
+  "note": "See README §Reference frames."
+ },
+ "templates": [
+  {
+   "slug": "margin-notes",
+   "name": "Margin Notes",
+   "cohort": "01 technical / documentation",
+   "globalName": "MarginNotes",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 128400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Space Grotesk",
+    "body": "IBM Plex Sans",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "a drafting desk",
+   "worldCyclePeriodMs": 12000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/margin-notes.html",
+    "config": "configs/margin-notes-pack.js",
+    "storyboard": "fixtures/storyboard.margin-notes.json",
+    "timestamps": "fixtures/timestamps.margin-notes.json",
+    "referenceFrames": "reference-frames/margin-notes/"
+   }
+  },
+  {
+   "slug": "patch-log",
+   "name": "Patch Log",
+   "cohort": "01 technical / documentation",
+   "globalName": "PatchLog",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 128400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Fraunces",
+    "body": "Public Sans",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "a cylinder press",
+   "worldCyclePeriodMs": 6000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/patch-log.html",
+    "config": "configs/article-pack-01.js",
+    "storyboard": "fixtures/storyboard.patch-log.json",
+    "timestamps": "fixtures/timestamps.patch-log.json",
+    "referenceFrames": "reference-frames/patch-log/"
+   }
+  },
+  {
+   "slug": "spec-sheet",
+   "name": "Spec Sheet",
+   "cohort": "01 technical / documentation",
+   "globalName": "SpecSheet",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 128400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Russo One",
+    "body": "Radio Canada",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "a scan bay",
+   "worldCyclePeriodMs": 3000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/spec-sheet.html",
+    "config": "configs/article-pack-01.js",
+    "storyboard": "fixtures/storyboard.spec-sheet.json",
+    "timestamps": "fixtures/timestamps.spec-sheet.json",
+    "referenceFrames": "reference-frames/spec-sheet/"
+   }
+  },
+  {
+   "slug": "root-path",
+   "name": "Root Path",
+   "cohort": "01 technical / documentation",
+   "globalName": "RootPath",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 128400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Chakra Petch",
+    "body": "Sarabun",
+    "mono": "Space Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "a survey corridor",
+   "worldCyclePeriodMs": 12000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/root-path.html",
+    "config": "configs/article-pack-01.js",
+    "storyboard": "fixtures/storyboard.root-path.json",
+    "timestamps": "fixtures/timestamps.root-path.json",
+    "referenceFrames": "reference-frames/root-path/"
+   }
+  },
+  {
+   "slug": "build-notes",
+   "name": "Build Notes",
+   "cohort": "01 technical / documentation",
+   "globalName": "BuildNotes",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 128400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Bevan",
+    "body": "Barlow",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "a yard at the end of the shift",
+   "worldCyclePeriodMs": 8000,
+   "comparisonTimestamps": 14,
+   "paths": {
+    "html": "templates/build-notes.html",
+    "config": "configs/article-pack-01.js",
+    "storyboard": "fixtures/storyboard.build-notes.json",
+    "timestamps": "fixtures/timestamps.build-notes.json",
+    "referenceFrames": "reference-frames/build-notes/"
+   }
+  },
+  {
+   "slug": "quiet-hours",
+   "name": "Quiet Hours",
+   "cohort": "02 literary / essay",
+   "globalName": "QuietHours",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "EB Garamond",
+    "body": "Andada Pro",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Serif Devanagari"
+    }
+   },
+   "world": "the desk lamp is lit and a moth is working the light",
+   "worldCyclePeriodMs": 12000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/quiet-hours.html",
+    "config": "configs/article-pack-02.js",
+    "storyboard": "fixtures/storyboard.quiet-hours.json",
+    "timestamps": "fixtures/timestamps.quiet-hours.json",
+    "referenceFrames": "reference-frames/quiet-hours/"
+   }
+  },
+  {
+   "slug": "long-winter",
+   "name": "Long Winter",
+   "cohort": "02 literary / essay",
+   "globalName": "LongWinter",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Cormorant Garamond",
+    "body": "Lora",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Serif Devanagari"
+    }
+   },
+   "world": "a train crossing a snowfield at dusk",
+   "worldCyclePeriodMs": 15000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/long-winter.html",
+    "config": "configs/article-pack-02.js",
+    "storyboard": "fixtures/storyboard.long-winter.json",
+    "timestamps": "fixtures/timestamps.long-winter.json",
+    "referenceFrames": "reference-frames/long-winter/"
+   }
+  },
+  {
+   "slug": "slow-reader",
+   "name": "Slow Reader",
+   "cohort": "02 literary / essay",
+   "globalName": "SlowReader",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Vollkorn",
+    "body": "Alegreya Sans",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Serif Devanagari"
+    }
+   },
+   "world": "the room at the end of the afternoon",
+   "worldCyclePeriodMs": 12000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/slow-reader.html",
+    "config": "configs/article-pack-02.js",
+    "storyboard": "fixtures/storyboard.slow-reader.json",
+    "timestamps": "fixtures/timestamps.slow-reader.json",
+    "referenceFrames": "reference-frames/slow-reader/"
+   }
+  },
+  {
+   "slug": "bound-volume",
+   "name": "Bound Volume",
+   "cohort": "02 literary / essay",
+   "globalName": "BoundVolume",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Castoro",
+    "body": "Gelasio",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Serif Devanagari"
+    }
+   },
+   "world": "a reading room",
+   "worldCyclePeriodMs": 4400,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/bound-volume.html",
+    "config": "configs/article-pack-02.js",
+    "storyboard": "fixtures/storyboard.bound-volume.json",
+    "timestamps": "fixtures/timestamps.bound-volume.json",
+    "referenceFrames": "reference-frames/bound-volume/"
+   }
+  },
+  {
+   "slug": "loose-leaf",
+   "name": "Loose Leaf",
+   "cohort": "02 literary / essay",
+   "globalName": "LooseLeaf",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Young Serif",
+    "body": "Figtree",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Serif Devanagari"
+    }
+   },
+   "world": "a sheet of paper on its way down",
+   "worldCyclePeriodMs": 9000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/loose-leaf.html",
+    "config": "configs/article-pack-02.js",
+    "storyboard": "fixtures/storyboard.loose-leaf.json",
+    "timestamps": "fixtures/timestamps.loose-leaf.json",
+    "referenceFrames": "reference-frames/loose-leaf/"
+   }
+  },
+  {
+   "slug": "wire-copy",
+   "name": "Wire Copy",
+   "cohort": "03 news / journalism",
+   "globalName": "WireCopy",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Zilla Slab",
+    "body": "Source Sans 3",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Serif Devanagari"
+    }
+   },
+   "world": "the wire room after midnight",
+   "worldCyclePeriodMs": 9000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/wire-copy.html",
+    "config": "configs/article-pack-03.js",
+    "storyboard": "fixtures/storyboard.wire-copy.json",
+    "timestamps": "fixtures/timestamps.wire-copy.json",
+    "referenceFrames": "reference-frames/wire-copy/"
+   }
+  },
+  {
+   "slug": "front-column",
+   "name": "Front Column",
+   "cohort": "03 news / journalism",
+   "globalName": "FrontColumn",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Bitter",
+    "body": "Asap",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Serif Devanagari"
+    }
+   },
+   "world": "the round, just before six",
+   "worldCyclePeriodMs": 13000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/front-column.html",
+    "config": "configs/article-pack-03.js",
+    "storyboard": "fixtures/storyboard.front-column.json",
+    "timestamps": "fixtures/timestamps.front-column.json",
+    "referenceFrames": "reference-frames/front-column/"
+   }
+  },
+  {
+   "slug": "press-run",
+   "name": "Press Run",
+   "cohort": "03 news / journalism",
+   "globalName": "PressRun",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Merriweather",
+    "body": "Work Sans",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Serif Devanagari"
+    }
+   },
+   "world": "the dock, first edition loading",
+   "worldCyclePeriodMs": 12000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/press-run.html",
+    "config": "configs/article-pack-03.js",
+    "storyboard": "fixtures/storyboard.press-run.json",
+    "timestamps": "fixtures/timestamps.press-run.json",
+    "referenceFrames": "reference-frames/press-run/"
+   }
+  },
+  {
+   "slug": "byline-rule",
+   "name": "Byline Rule",
+   "cohort": "03 news / journalism",
+   "globalName": "BylineRule",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Oswald",
+    "body": "PT Sans",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "the press pit",
+   "worldCyclePeriodMs": 2600,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/byline-rule.html",
+    "config": "configs/article-pack-03.js",
+    "storyboard": "fixtures/storyboard.byline-rule.json",
+    "timestamps": "fixtures/timestamps.byline-rule.json",
+    "referenceFrames": "reference-frames/byline-rule/"
+   }
+  },
+  {
+   "slug": "copy-desk",
+   "name": "Copy Desk",
+   "cohort": "03 news / journalism",
+   "globalName": "CopyDesk",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Barlow Condensed",
+    "body": "Barlow",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "the copy floor at deadline",
+   "worldCyclePeriodMs": 5000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/copy-desk.html",
+    "config": "configs/article-pack-03.js",
+    "storyboard": "fixtures/storyboard.copy-desk.json",
+    "timestamps": "fixtures/timestamps.copy-desk.json",
+    "referenceFrames": "reference-frames/copy-desk/"
+   }
+  },
+  {
+   "slug": "peer-review",
+   "name": "Peer Review",
+   "cohort": "04 academic / research",
+   "globalName": "PeerReview",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Marcellus",
+    "body": "Spectral",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Serif Devanagari"
+    }
+   },
+   "world": "the seminar room before anyone arrives",
+   "worldCyclePeriodMs": 12000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/peer-review.html",
+    "config": "configs/article-pack-04.js",
+    "storyboard": "fixtures/storyboard.peer-review.json",
+    "timestamps": "fixtures/timestamps.peer-review.json",
+    "referenceFrames": "reference-frames/peer-review/"
+   }
+  },
+  {
+   "slug": "field-note",
+   "name": "Field Note",
+   "cohort": "04 academic / research",
+   "globalName": "FieldNote",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Bree Serif",
+    "body": "Karla",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Serif Devanagari"
+    }
+   },
+   "world": "a riverbank at survey time",
+   "worldCyclePeriodMs": 6000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/field-note.html",
+    "config": "configs/article-pack-04.js",
+    "storyboard": "fixtures/storyboard.field-note.json",
+    "timestamps": "fixtures/timestamps.field-note.json",
+    "referenceFrames": "reference-frames/field-note/"
+   }
+  },
+  {
+   "slug": "citation-mark",
+   "name": "Citation Mark",
+   "cohort": "04 academic / research",
+   "globalName": "CitationMark",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Gilda Display",
+    "body": "Mulish",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Serif Devanagari"
+    }
+   },
+   "world": "a carrel with the apparatus out",
+   "worldCyclePeriodMs": 10000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/citation-mark.html",
+    "config": "configs/article-pack-04.js",
+    "storyboard": "fixtures/storyboard.citation-mark.json",
+    "timestamps": "fixtures/timestamps.citation-mark.json",
+    "referenceFrames": "reference-frames/citation-mark/"
+   }
+  },
+  {
+   "slug": "lab-record",
+   "name": "Lab Record",
+   "cohort": "04 academic / research",
+   "globalName": "LabRecord",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Cinzel",
+    "body": "Lato",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Serif Devanagari"
+    }
+   },
+   "world": "the bench, mid-run",
+   "worldCyclePeriodMs": 12000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/lab-record.html",
+    "config": "configs/article-pack-04.js",
+    "storyboard": "fixtures/storyboard.lab-record.json",
+    "timestamps": "fixtures/timestamps.lab-record.json",
+    "referenceFrames": "reference-frames/lab-record/"
+   }
+  },
+  {
+   "slug": "thesis-draft",
+   "name": "Thesis Draft",
+   "cohort": "04 academic / research",
+   "globalName": "ThesisDraft",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Prata",
+    "body": "Nunito Sans",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Serif Devanagari"
+    }
+   },
+   "world": "the last night of the draft",
+   "worldCyclePeriodMs": 11000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/thesis-draft.html",
+    "config": "configs/article-pack-04.js",
+    "storyboard": "fixtures/storyboard.thesis-draft.json",
+    "timestamps": "fixtures/timestamps.thesis-draft.json",
+    "referenceFrames": "reference-frames/thesis-draft/"
+   }
+  },
+  {
+   "slug": "morning-pages",
+   "name": "Morning Pages",
+   "cohort": "05 personal blog / diary",
+   "globalName": "MorningPages",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Caveat",
+    "body": "Nunito",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "the table before anyone else is up",
+   "worldCyclePeriodMs": 9000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/morning-pages.html",
+    "config": "configs/article-pack-05.js",
+    "storyboard": "fixtures/storyboard.morning-pages.json",
+    "timestamps": "fixtures/timestamps.morning-pages.json",
+    "referenceFrames": "reference-frames/morning-pages/"
+   }
+  },
+  {
+   "slug": "small-talk",
+   "name": "Small Talk",
+   "cohort": "05 personal blog / diary",
+   "globalName": "SmallTalk",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Gochi Hand",
+    "body": "Quicksand",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "two balconies across a gap",
+   "worldCyclePeriodMs": 7000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/small-talk.html",
+    "config": "configs/article-pack-05.js",
+    "storyboard": "fixtures/storyboard.small-talk.json",
+    "timestamps": "fixtures/timestamps.small-talk.json",
+    "referenceFrames": "reference-frames/small-talk/"
+   }
+  },
+  {
+   "slug": "home-desk",
+   "name": "Home Desk",
+   "cohort": "05 personal blog / diary",
+   "globalName": "HomeDesk",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Neucha",
+    "body": "Cabin",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "the corner you work in",
+   "worldCyclePeriodMs": 12000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/home-desk.html",
+    "config": "configs/article-pack-05.js",
+    "storyboard": "fixtures/storyboard.home-desk.json",
+    "timestamps": "fixtures/timestamps.home-desk.json",
+    "referenceFrames": "reference-frames/home-desk/"
+   }
+  },
+  {
+   "slug": "corner-shop",
+   "name": "Corner Shop",
+   "cohort": "05 personal blog / diary",
+   "globalName": "CornerShop",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Lobster Two",
+    "body": "Hind",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "the shopfront at opening",
+   "worldCyclePeriodMs": 11000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/corner-shop.html",
+    "config": "configs/article-pack-05.js",
+    "storyboard": "fixtures/storyboard.corner-shop.json",
+    "timestamps": "fixtures/timestamps.corner-shop.json",
+    "referenceFrames": "reference-frames/corner-shop/"
+   }
+  },
+  {
+   "slug": "slow-sunday",
+   "name": "Slow Sunday",
+   "cohort": "05 personal blog / diary",
+   "globalName": "SlowSunday",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Grandstander",
+    "body": "Sen",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "the front room, mid-afternoon",
+   "worldCyclePeriodMs": 40000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/slow-sunday.html",
+    "config": "configs/article-pack-05.js",
+    "storyboard": "fixtures/storyboard.slow-sunday.json",
+    "timestamps": "fixtures/timestamps.slow-sunday.json",
+    "referenceFrames": "reference-frames/slow-sunday/"
+   }
+  },
+  {
+   "slug": "quarter-note",
+   "name": "Quarter Note",
+   "cohort": "06 business / analyst",
+   "globalName": "QuarterNote",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Instrument Sans",
+    "body": "Manrope",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "a glass tower seen from the atrium",
+   "worldCyclePeriodMs": 13000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/quarter-note.html",
+    "config": "configs/article-pack-06.js",
+    "storyboard": "fixtures/storyboard.quarter-note.json",
+    "timestamps": "fixtures/timestamps.quarter-note.json",
+    "referenceFrames": "reference-frames/quarter-note/"
+   }
+  },
+  {
+   "slug": "market-memo",
+   "name": "Market Memo",
+   "cohort": "06 business / analyst",
+   "globalName": "MarketMemo",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Familjen Grotesk",
+    "body": "Commissioner",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "an open-plan floor after hours",
+   "worldCyclePeriodMs": 11000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/market-memo.html",
+    "config": "configs/article-pack-06.js",
+    "storyboard": "fixtures/storyboard.market-memo.json",
+    "timestamps": "fixtures/timestamps.market-memo.json",
+    "referenceFrames": "reference-frames/market-memo/"
+   }
+  },
+  {
+   "slug": "board-pack",
+   "name": "Board Pack",
+   "cohort": "06 business / analyst",
+   "globalName": "BoardPack",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Schibsted Grotesk",
+    "body": "Red Hat Text",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "the board room with the model out",
+   "worldCyclePeriodMs": 12000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/board-pack.html",
+    "config": "configs/article-pack-06.js",
+    "storyboard": "fixtures/storyboard.board-pack.json",
+    "timestamps": "fixtures/timestamps.board-pack.json",
+    "referenceFrames": "reference-frames/board-pack/"
+   }
+  },
+  {
+   "slug": "runway-math",
+   "name": "Runway Math",
+   "cohort": "06 business / analyst",
+   "globalName": "RunwayMath",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Sora",
+    "body": "Epilogue",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "a balloon at dusk, losing height between burns",
+   "worldCyclePeriodMs": 18000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/runway-math.html",
+    "config": "configs/article-pack-06.js",
+    "storyboard": "fixtures/storyboard.runway-math.json",
+    "timestamps": "fixtures/timestamps.runway-math.json",
+    "referenceFrames": "reference-frames/runway-math/"
+   }
+  },
+  {
+   "slug": "balance-line",
+   "name": "Balance Line",
+   "cohort": "06 business / analyst",
+   "globalName": "BalanceLine",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Libre Bodoni",
+    "body": "Livvic",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Serif Devanagari"
+    }
+   },
+   "world": "a counting house",
+   "worldCyclePeriodMs": 12000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/balance-line.html",
+    "config": "configs/article-pack-06.js",
+    "storyboard": "fixtures/storyboard.balance-line.json",
+    "timestamps": "fixtures/timestamps.balance-line.json",
+    "referenceFrames": "reference-frames/balance-line/"
+   }
+  },
+  {
+   "slug": "studio-wall",
+   "name": "Studio Wall",
+   "cohort": "07 creative / portfolio",
+   "globalName": "StudioWall",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Syne",
+    "body": "Hanken Grotesk",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "pinned prints lifting at the corners; a mobile in the margin whose three arms turn at three rates; an easel and paint tins on the floor",
+   "worldCyclePeriodMs": 12000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/studio-wall.html",
+    "config": "configs/article-pack-07.js",
+    "storyboard": "fixtures/storyboard.studio-wall.json",
+    "timestamps": "fixtures/timestamps.studio-wall.json",
+    "referenceFrames": "reference-frames/studio-wall/"
+   }
+  },
+  {
+   "slug": "cold-type",
+   "name": "Cold Type",
+   "cohort": "07 creative / portfolio",
+   "globalName": "ColdType",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Unbounded",
+    "body": "Urbanist",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "a wall of type cases; a guillotine that cycles every 5s, beam lifting, blade dropping, offcut sliding away, stack losing a sheet",
+   "worldCyclePeriodMs": 5000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/cold-type.html",
+    "config": "configs/article-pack-07.js",
+    "storyboard": "fixtures/storyboard.cold-type.json",
+    "timestamps": "fixtures/timestamps.cold-type.json",
+    "referenceFrames": "reference-frames/cold-type/"
+   }
+  },
+  {
+   "slug": "loud-quiet",
+   "name": "Loud Quiet",
+   "cohort": "07 creative / portfolio",
+   "globalName": "LoudQuiet",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Archivo Black",
+    "body": "Archivo",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "foam wedges and a mirror strip; a metronome swings a 1",
+   "worldCyclePeriodMs": 12000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/loud-quiet.html",
+    "config": "configs/article-pack-07.js",
+    "storyboard": "fixtures/storyboard.loud-quiet.json",
+    "timestamps": "fixtures/timestamps.loud-quiet.json",
+    "referenceFrames": "reference-frames/loud-quiet/"
+   }
+  },
+  {
+   "slug": "gallery-hours",
+   "name": "Gallery Hours",
+   "cohort": "07 creative / portfolio",
+   "globalName": "GalleryHours",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Italiana",
+    "body": "Jost",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Serif Devanagari"
+    }
+   },
+   "world": "three framed works with labels; a ceiling track and one light head sliding a 16s pass, its cone brightening each work as it passes; a bench and a visitor who stops, looks and moves on",
+   "worldCyclePeriodMs": 16000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/gallery-hours.html",
+    "config": "configs/article-pack-07.js",
+    "storyboard": "fixtures/storyboard.gallery-hours.json",
+    "timestamps": "fixtures/timestamps.gallery-hours.json",
+    "referenceFrames": "reference-frames/gallery-hours/"
+   }
+  },
+  {
+   "slug": "blunt-object",
+   "name": "Blunt Object",
+   "cohort": "07 creative / portfolio",
+   "globalName": "BluntObject",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Anton",
+    "body": "Rubik",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "hoarding with pasted bills under a gap in the skyline; a crane mast in the margin; the ball swings a 4",
+   "worldCyclePeriodMs": 4400,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/blunt-object.html",
+    "config": "configs/article-pack-07.js",
+    "storyboard": "fixtures/storyboard.blunt-object.json",
+    "timestamps": "fixtures/timestamps.blunt-object.json",
+    "referenceFrames": "reference-frames/blunt-object/"
+   }
+  },
+  {
+   "slug": "proof-steps",
+   "name": "Proof Steps",
+   "cohort": "08 science / explainer",
+   "globalName": "ProofSteps",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Space Mono",
+    "body": "Atkinson Hyperlegible",
+    "mono": null,
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "a proof rig on a bench",
+   "worldCyclePeriodMs": 12000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/proof-steps.html",
+    "config": "configs/article-pack-08.js",
+    "storyboard": "fixtures/storyboard.proof-steps.json",
+    "timestamps": "fixtures/timestamps.proof-steps.json",
+    "referenceFrames": "reference-frames/proof-steps/"
+   }
+  },
+  {
+   "slug": "deep-field-article",
+   "name": "Deep Field",
+   "cohort": "08 science / explainer",
+   "globalName": "DeepField",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Orbitron",
+    "body": "Lexend",
+    "mono": "Space Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "an observatory at night",
+   "worldCyclePeriodMs": 20000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/deep-field.html",
+    "config": "configs/article-pack-08.js",
+    "storyboard": "fixtures/storyboard.deep-field-article.json",
+    "timestamps": "fixtures/timestamps.deep-field-article.json",
+    "referenceFrames": "reference-frames/deep-field-article/"
+   }
+  },
+  {
+   "slug": "half-life",
+   "name": "Half Life",
+   "cohort": "08 science / explainer",
+   "globalName": "HalfLife",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Michroma",
+    "body": "Sofia Sans",
+    "mono": "Space Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "a counting chamber",
+   "worldCyclePeriodMs": 18000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/half-life.html",
+    "config": "configs/article-pack-08.js",
+    "storyboard": "fixtures/storyboard.half-life.json",
+    "timestamps": "fixtures/timestamps.half-life.json",
+    "referenceFrames": "reference-frames/half-life/"
+   }
+  },
+  {
+   "slug": "long-tail",
+   "name": "Long Tail",
+   "cohort": "08 science / explainer",
+   "globalName": "LongTail",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Krona One",
+    "body": "Kumbh Sans",
+    "mono": "Space Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "a monitoring station",
+   "worldCyclePeriodMs": 4000,
+   "comparisonTimestamps": 14,
+   "paths": {
+    "html": "templates/long-tail.html",
+    "config": "configs/article-pack-08.js",
+    "storyboard": "fixtures/storyboard.long-tail.json",
+    "timestamps": "fixtures/timestamps.long-tail.json",
+    "referenceFrames": "reference-frames/long-tail/"
+   }
+  },
+  {
+   "slug": "first-principle",
+   "name": "First Principle",
+   "cohort": "08 science / explainer",
+   "globalName": "FirstPrinciple",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Big Shoulders Display",
+    "body": "Assistant",
+    "mono": "Space Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "a demonstration bench",
+   "worldCyclePeriodMs": 5000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/first-principle.html",
+    "config": "configs/article-pack-08.js",
+    "storyboard": "fixtures/storyboard.first-principle.json",
+    "timestamps": "fixtures/timestamps.first-principle.json",
+    "referenceFrames": "reference-frames/first-principle/"
+   }
+  },
+  {
+   "slug": "table-six",
+   "name": "Table Six",
+   "cohort": "09 lifestyle / culture",
+   "globalName": "TableSix",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "DM Serif Display",
+    "body": "DM Sans",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Serif Devanagari"
+    }
+   },
+   "world": "a restaurant, service on",
+   "worldCyclePeriodMs": 10000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/table-six.html",
+    "config": "configs/article-pack-09.js",
+    "storyboard": "fixtures/storyboard.table-six.json",
+    "timestamps": "fixtures/timestamps.table-six.json",
+    "referenceFrames": "reference-frames/table-six/"
+   }
+  },
+  {
+   "slug": "city-guide",
+   "name": "City Guide",
+   "cohort": "09 lifestyle / culture",
+   "globalName": "CityGuide",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Playfair Display",
+    "body": "Poppins",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Serif Devanagari"
+    }
+   },
+   "world": "a street at the end of the day",
+   "worldCyclePeriodMs": 16000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/city-guide.html",
+    "config": "configs/article-pack-09.js",
+    "storyboard": "fixtures/storyboard.city-guide.json",
+    "timestamps": "fixtures/timestamps.city-guide.json",
+    "referenceFrames": "reference-frames/city-guide/"
+   }
+  },
+  {
+   "slug": "slow-room",
+   "name": "Slow Room",
+   "cohort": "09 lifestyle / culture",
+   "globalName": "SlowRoom",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Yeseva One",
+    "body": "Outfit",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Serif Devanagari"
+    }
+   },
+   "world": "a veranda in the late afternoon",
+   "worldCyclePeriodMs": 19000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/slow-room.html",
+    "config": "configs/article-pack-09.js",
+    "storyboard": "fixtures/storyboard.slow-room.json",
+    "timestamps": "fixtures/timestamps.slow-room.json",
+    "referenceFrames": "reference-frames/slow-room/"
+   }
+  },
+  {
+   "slug": "second-season",
+   "name": "Second Season",
+   "cohort": "09 lifestyle / culture",
+   "globalName": "SecondSeason",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Chonburi",
+    "body": "Prompt",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Serif Devanagari"
+    }
+   },
+   "world": "a market stall opening up",
+   "worldCyclePeriodMs": 12000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/second-season.html",
+    "config": "configs/article-pack-09.js",
+    "storyboard": "fixtures/storyboard.second-season.json",
+    "timestamps": "fixtures/timestamps.second-season.json",
+    "referenceFrames": "reference-frames/second-season/"
+   }
+  },
+  {
+   "slug": "long-table",
+   "name": "Long Table",
+   "cohort": "09 lifestyle / culture",
+   "globalName": "LongTable",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Shrikhand",
+    "body": "Mukta",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Serif Devanagari"
+    }
+   },
+   "world": "an open kitchen at service",
+   "worldCyclePeriodMs": 12000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/long-table.html",
+    "config": "configs/article-pack-09.js",
+    "storyboard": "fixtures/storyboard.long-table.json",
+    "timestamps": "fixtures/timestamps.long-table.json",
+    "referenceFrames": "reference-frames/long-table/"
+   }
+  },
+  {
+   "slug": "hard-stop",
+   "name": "Hard Stop",
+   "cohort": "10 opinion / manifesto",
+   "globalName": "HardStop",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Bebas Neue",
+    "body": "Chivo",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "a public square before a rally",
+   "worldCyclePeriodMs": 12000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/hard-stop.html",
+    "config": "configs/article-pack-10.js",
+    "storyboard": "fixtures/storyboard.hard-stop.json",
+    "timestamps": "fixtures/timestamps.hard-stop.json",
+    "referenceFrames": "reference-frames/hard-stop/"
+   }
+  },
+  {
+   "slug": "plain-speech",
+   "name": "Plain Speech",
+   "cohort": "10 opinion / manifesto",
+   "globalName": "PlainSpeech",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Staatliches",
+    "body": "Catamaran",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "a civic forecourt",
+   "worldCyclePeriodMs": 14000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/plain-speech.html",
+    "config": "configs/article-pack-10.js",
+    "storyboard": "fixtures/storyboard.plain-speech.json",
+    "timestamps": "fixtures/timestamps.plain-speech.json",
+    "referenceFrames": "reference-frames/plain-speech/"
+   }
+  },
+  {
+   "slug": "bold-claim",
+   "name": "Bold Claim",
+   "cohort": "10 opinion / manifesto",
+   "globalName": "BoldClaim",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Passion One",
+    "body": "Be Vietnam Pro",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Sans Devanagari"
+    }
+   },
+   "world": "a letterpress shop at proof",
+   "worldCyclePeriodMs": 6000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/bold-claim.html",
+    "config": "configs/article-pack-10.js",
+    "storyboard": "fixtures/storyboard.bold-claim.json",
+    "timestamps": "fixtures/timestamps.bold-claim.json",
+    "referenceFrames": "reference-frames/bold-claim/"
+   }
+  },
+  {
+   "slug": "no-comment",
+   "name": "No Comment",
+   "cohort": "10 opinion / manifesto",
+   "globalName": "NoComment",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Alfa Slab One",
+    "body": "Wix Madefor Text",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Serif Devanagari"
+    }
+   },
+   "world": "a shuttered frontage",
+   "worldCyclePeriodMs": 13000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/no-comment.html",
+    "config": "configs/article-pack-10.js",
+    "storyboard": "fixtures/storyboard.no-comment.json",
+    "timestamps": "fixtures/timestamps.no-comment.json",
+    "referenceFrames": "reference-frames/no-comment/"
+   }
+  },
+  {
+   "slug": "last-word",
+   "name": "Last Word",
+   "cohort": "10 opinion / manifesto",
+   "globalName": "LastWord",
+   "orientations": [
+    "vertical"
+   ],
+   "sizePx": [
+    1080,
+    1920
+   ],
+   "runtimeMs": 129400,
+   "beats": 18,
+   "mediaSlots": 2,
+   "fonts": {
+    "display": "Abril Fatface",
+    "body": "Lora",
+    "mono": "IBM Plex Mono",
+    "scaleRatio": 1.25,
+    "bundled": true,
+    "fallback": {
+     "devanagari": "Noto Serif Devanagari"
+    }
+   },
+   "world": "a belfry room",
+   "worldCyclePeriodMs": 17000,
+   "comparisonTimestamps": 15,
+   "paths": {
+    "html": "templates/last-word.html",
+    "config": "configs/article-pack-10.js",
+    "storyboard": "fixtures/storyboard.last-word.json",
+    "timestamps": "fixtures/timestamps.last-word.json",
+    "referenceFrames": "reference-frames/last-word/"
+   }
+  }
+ ]
+}

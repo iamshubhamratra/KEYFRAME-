@@ -1,0 +1,61 @@
+{
+  "name": "deep-field-article",
+  "vibe": "science / explainer — an observatory at night. Orbitron over Lexend; a luminance-ladder palette on #0b1020. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#0b1020",
+    "ink": "#f2f5fc",
+    "accent": "#5ce1ff",
+    "a2": "#ff9f5c"
+  },
+  "fonts": [
+    "Orbitron",
+    "Lexend",
+    "Space Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#0b1020",
+    "ink": "#f2f5fc"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#5ce1ff",
+      "#ff9f5c"
+    ],
+    "extras": [
+      "#8b96b8"
+    ],
+    "emphasisCss": "color:#5ce1ff;"
+  },
+  "assets": {
+    "photoMod": "an observatory at night editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "science",
+      "explainer"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Orbitron",
+    "body": "Lexend",
+    "mono": "Space Mono",
+    "case": "none"
+  },
+  "renderer": "film-deep-field-article",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

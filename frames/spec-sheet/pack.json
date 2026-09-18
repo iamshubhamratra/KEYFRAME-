@@ -1,0 +1,61 @@
+{
+  "name": "spec-sheet",
+  "vibe": "technical / documentation — a scan bay. Russo One over Radio Canada; a luminance-ladder palette on #0f1720. Portrait-native 9:16, 18 authored beats, 128s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#0f1720",
+    "ink": "#ecf4f9",
+    "accent": "#37b5ff",
+    "a2": "#7ff0cf"
+  },
+  "fonts": [
+    "Russo One",
+    "Radio Canada",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#0f1720",
+    "ink": "#ecf4f9"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#37b5ff",
+      "#7ff0cf"
+    ],
+    "extras": [
+      "#93aab8"
+    ],
+    "emphasisCss": "color:#37b5ff;"
+  },
+  "assets": {
+    "photoMod": "a scan bay editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "technical",
+      "documentation"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Russo One",
+    "body": "Radio Canada",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-spec-sheet",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

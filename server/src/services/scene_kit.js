@@ -21,11 +21,13 @@
 // generic text). Screenshot-hero, split-diagram, asset-grid, terminal, and the
 // full per-pack skinning table are filled in from the scenekit-design pass.
 
+const pacing = require("./pacing");
 const frameRegistry = require("./frame_registry");
 const frameManifest = require("./frame_manifest");
 const { fontFaceCss, isBundled } = require("../fonts/pack_fonts");
 const { isLogo: upIsLogo } = require("./asset_priority");
 const { themeFromTokens } = require("./enrich");
+const AF = require("./asset_fit");
 
 // SINGLE-quoted family names — these are embedded in double-quoted style="..."
 // attributes, so a double quote here would terminate the attribute early and kill
@@ -36,14 +38,14 @@ const SAFE_FONTS = "Inter, 'Segoe UI', system-ui, Roboto, Helvetica, Arial, sans
 // The scenekit-design pass produces the authoritative per-pack table; this is a
 // safe default so the kit never paints gradients onto a neo-brutalist/print pack.
 const FLAT_PACKS = new Set([
-  "blockframe", "bauhaus-print", "biennale-yellow", "kinetic-bold", "noir-spotlight",
+  "bauhaus-print", "biennale-yellow",
 ]);
 
 // LIGHT-CINEMATIC packs: premium packs that sit on their LIGHTEST base (like
 // flat packs) but keep the full gradient/glow treatment (unlike them) — the
 // keynote/product-studio/storybook look: soft washes on porcelain grounds.
 const LIGHT_GRADIENT_PACKS = new Set([
-  "summit-keynote", "prism-launch", "fable-storybook",
+  "fable-storybook",
 ]);
 
 // PACK SKINS — deep per-pack identity for the premium packs: pinned accent
@@ -51,18 +53,6 @@ const LIGHT_GRADIENT_PACKS = new Set([
 // treatment, extra hues for ornaments, and a Three.js signature scene. The
 // generic archetypes stay untouched; skins ADD ornament layers on top.
 const PACK_SKINS = {
-  "summit-keynote": {
-    accents: ["#2B5BFF", "#D4A94E"],          // cobalt beam, champagne gold
-    extras: ["#10214B", "#5A6B8C"],
-    three: "constellation",
-  },
-  "prism-launch": {
-    accents: ["#FF5A3C", "#8B7CF6"],          // ember CTA, iris
-    extras: ["#5AD7E6", "#FFA3C0"],           // aqua, blush
-    // signature: iridescent gradient clipped onto the emphasis word
-    emphasisCss: "background:linear-gradient(100deg,#8B7CF6,#5AD7E6 50%,#FFA3C0);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#8B7CF6;",
-    three: "shards",
-  },
   "fable-storybook": {
     accents: ["#D8734B", "#E8B84B"],          // terracotta, honey
     extras: ["#7FA37C", "#7A93B8"],           // sage, dusk
@@ -429,19 +419,9 @@ function emitHelpers(D, speed = 1) {
 // clip swap the way a real edit hides a cut.
 const PACK_MOTION = {
   "longshot-cinema":  { cut: "whip",  drift: 1.055 },
-  "vapor-chrome":     { cut: "whip",  drift: 1.05 },
-  "summit-keynote":   { cut: "panel", drift: 1.04 },
-  "midnight-glass":   { cut: "panel", drift: 1.05 },
-  "prism-launch":     { cut: "flash", drift: 1.05 },
-  "aurora-spectrum":  { cut: "glow",  drift: 1.055 },
-  "bloom-illustrated":{ cut: "wash",  drift: 1.04 },
   "fable-storybook":  { cut: "wash",  drift: 1.035 },
-  "noir-spotlight":   { cut: "iris",  drift: 1.045 },
-  "blockframe":       { cut: "wipe",  drift: 1.02 },
   "bauhaus-print":    { cut: "wipe",  drift: 1.02 },
-  "kinetic-bold":     { cut: "push",  drift: 1.025 },
   "biennale-yellow":  { cut: "wipe",  drift: 1.025 },
-  "mono-corporate":   { cut: "panel", drift: 1.03 },
 };
 function motionFor(framePack, theme) {
   if (theme && theme.manifest && theme.manifest.motion && theme.manifest.motion.cut) return theme.manifest.motion;
@@ -2165,7 +2145,7 @@ function archText(scene, ctx) {
   // long headline, so the bigger base cannot overflow. Landscape is unchanged.
   const big = Math.round((dims.width >= dims.height ? 68 : 92) * (theme.textfx.sizeScale || 1));
   const accentText = theme.emphasisCss || (theme.gradients ? `background:linear-gradient(100deg,${theme.accent},${theme.accent2});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:${theme.accent};` : `color:${theme.accent};`);
-  const bullets = Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean).slice(0, 3) : [];
+  const bullets = labelRow(scene, ctx, 4);
   // Four layout variants so text scenes don't all look identical:
   //   v0 = left-aligned with a short top rule (the original)
   //   v1 = centered with an underline that draws in beneath the headline
@@ -2259,7 +2239,7 @@ function archFeatureGrid(scene, ctx) {
   const { theme, id, T, L, track, dims } = ctx;
   const land = dims.width >= dims.height;
   const big = Math.round((land ? 50 : 60) * (theme.textfx.sizeScale || 1));
-  const items = (Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean) : []).slice(0, 3);
+  const items = labelRow(scene, ctx, 3);
   const ch = cardChrome(theme);
   // Portrait: bigger cards + gaps so 3 stacked cards + header FILL the tall
   // frame instead of clustering as a short block with an empty bottom band.
@@ -2406,7 +2386,7 @@ function archProofStats(scene, ctx) {
 function archStrikeList(scene, ctx) {
   const { theme, id, T, L, track, dims } = ctx;
   const land = dims.width >= dims.height;
-  const rows = (Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean) : []).slice(0, 3).map(String);
+  const rows = labelRow(scene, ctx, 4);
   const longest = rows.reduce((m, b) => Math.max(m, b.length), 8);
   const big = Math.round((land ? 64 : 68) * (theme.textfx.sizeScale || 1));
   const rowFs = fitBig("x".repeat(longest), big, 18, 1);
@@ -2668,6 +2648,28 @@ function assetEntrance(effect, sel, at, dur, def) {
 // Partition the fetched assets into the kinds the kit places differently:
 // website screenshots (device-framed hero), vectors/illustrations (drawn-in side
 // art or grids), and photos (scrimmed full-bleed). Paths are relative to jobDir.
+// THE LABEL ROW'S BUDGET, per archetype.
+//
+// Every list in this kit was a bare `.slice(0, 3)` (and `.slice(0, 2)` in the
+// portrait quote card), so the pacing engine's fourth label at Very Fast — the
+// one that exists precisely because a 2.3s frame has to carry its information in
+// more, shorter pieces — could never be drawn. The literals were invisible caps
+// on the whole density feature.
+//
+// `layoutMax` stays the authority: it is the geometry, and a row that overflows
+// its card is worse than a row that is one label short. Pace may only ask for
+// FEWER than the layout allows, or for the layout's own maximum when it has been
+// built with room for one more. With no pace attached — which is every
+// default-mode film, since paceConfig is only set off the default — this returns
+// the pre-existing 3, so the default render is unchanged. That is checked by
+// scripts/golden-composers.js, not asserted here.
+function labelRow(scene, ctx, layoutMax = 3) {
+  const all = Array.isArray(scene && scene.bullets) ? scene.bullets.filter(Boolean).map(String) : [];
+  const P = ctx && ctx.pace;
+  const want = P && P.text && Number(P.text.bulletsPerScene) > 0 ? Number(P.text.bulletsPerScene) : 3;
+  return all.slice(0, Math.min(layoutMax, want));
+}
+
 function partitionAssets(assets) {
   const screenshots = [], vectors = [], photos = [], videos = [];
   for (const a of (assets || [])) {
@@ -2747,8 +2749,24 @@ function archScreenshotHero(scene, ctx) {
   const bodyH = land ? Math.round(dims.height * 0.52) : Math.round(dims.height * 0.42);
   const fw = Math.round(dims.width * (land ? 0.52 : 0.84));
   const fh = 42 + bodyH;
-  const notes = (Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean) : [])
-    .slice(0, L >= 4 ? 2 : 1).map((b) => String(b).slice(0, 34));
+  // A HIDDEN PACE COUPLING, removed. This was `.slice(0, L >= 4 ? 2 : 1)` — the
+  // chip row was halved on any scene under four seconds. Nothing about pace is
+  // named there, but a Fast film's scenes are ~2.8s and a Very Fast film's ~2.3s
+  // BY CONSTRUCTION (services/pacing.js scene.targetSec), so picking a quicker
+  // pace silently dropped one of the two callouts off every one of these frames.
+  // Any duration-gated cap is a pace cap wearing a different hat.
+  //
+  // The real question was never "is this scene four seconds long" but "can the
+  // viewer read these two chips in the time they are up", and services/pacing.js
+  // answers exactly that. A chip the frame cannot hold is dropped on its own
+  // merits at any pace; two short ones ride a 2.3s frame perfectly well, because
+  // minReadableSec is per LINE and they are read at the same time.
+  const chipText = (Array.isArray(scene.bullets) ? scene.bullets.filter(Boolean) : [])
+    .map((b) => String(b).slice(0, 34));
+  const readable = chipText.filter((b) => pacing.minReadableSec(b) <= L + 0.05);
+  // Never fewer than the one chip this always drew: if the copy is too long for
+  // the frame the fix is shorter copy upstream, not a blank overlay here.
+  const notes = (readable.length ? readable : chipText.slice(0, 1)).slice(0, 2);
   const slots = [
     { chip: [6, 13], anchor: [0.24, 0.26], tgt: [0.42, 0.44] },
     { chip: [38, 76], anchor: [0.56, 0.78], tgt: [0.64, 0.6] },
@@ -2781,7 +2799,7 @@ function archScreenshotHero(scene, ctx) {
   <div style="${frameOuter}">
   <div id="${id}fr" class="kfstage browser" style="${chrome}${paper ? "" : "overflow:hidden;"}width:100%;position:relative;">
     ${paper ? "" : `<div class="browser-bar" style="height:42px;display:flex;align-items:center;gap:9px;padding:0 16px;background:${barBg};border-bottom:1px solid ${theme.line};">${dots}<span style="margin-left:12px;flex:1;max-width:340px;height:22px;border-radius:9999px;background:${rgba(theme.ink, 0.08)};"></span></div>`}
-    <div style="position:relative;width:100%;height:${paper ? bodyH + 42 : bodyH}px;overflow:hidden;${paper ? "border-radius:3px;" : ""}"><img id="${id}img" src="${esc(asset.path)}" alt="${esc(asset.alt || "screenshot")}" style="position:absolute;top:0;left:0;width:100%;height:auto;min-height:100%;object-fit:cover;object-position:${asset.cropFocus || "top center"};">${paper ? "" : `<div id="${id}sh" data-layout-allow-occlusion style="position:absolute;top:-25%;bottom:-25%;left:-45%;width:38%;transform:rotate(10deg);background:linear-gradient(105deg,transparent,${rgba("#ffffff", flat ? 0.16 : 0.26)} 50%,transparent);pointer-events:none;opacity:0;"></div>`}</div>
+    <div style="position:relative;width:100%;height:${paper ? bodyH + 42 : bodyH}px;overflow:hidden;${paper ? "border-radius:3px;" : ""}"><img id="${id}img" src="${esc(asset.path)}" alt="${esc(asset.alt || "screenshot")}" style="position:absolute;top:0;left:0;width:100%;height:auto;min-height:100%;${AF.fitCss(asset)}">${paper ? "" : `<div id="${id}sh" data-layout-allow-occlusion style="position:absolute;top:-25%;bottom:-25%;left:-45%;width:38%;transform:rotate(10deg);background:linear-gradient(105deg,transparent,${rgba("#ffffff", flat ? 0.16 : 0.26)} 50%,transparent);pointer-events:none;opacity:0;"></div>`}</div>
     ${paper ? paperTape("left:22px;top:-10px;", -14) + paperTape("right:22px;top:-10px;", 10) : ""}
     ${annSvg}${annEls.join("")}
   </div>
@@ -2838,9 +2856,9 @@ function archSplitVector(scene, ctx) {
       ${scene.subtext ? `<p id="${id}s" style="opacity:0;margin-top:14px;font:500 ${Math.round(big * 0.4)}px/1.45 ${cssFont(theme)};color:${theme.dim};">${esc(scene.subtext)}</p>` : ""}
     </div>
     <div style="flex:1;display:flex;align-items:center;justify-content:center;">${(theme.layout.assetStyle === "paper" && !artIsVec)
-      ? `<div style="transform:rotate(2.4deg);max-width:${land ? "62%" : "74%"};"><div id="${id}art" style="position:relative;${PAPER_MAT}${paperShadow(1)}padding:11px 11px 30px;"><div style="overflow:hidden;border-radius:3px;"><img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:auto;max-height:${Math.round(dims.height * (land ? 0.52 : 0.3))}px;object-fit:cover;filter:saturate(0.82) contrast(1.02);display:block;"></div>${paperTape("left:-13px;top:-9px;", -16)}</div></div>`
+      ? `<div style="transform:rotate(2.4deg);max-width:${land ? "62%" : "74%"};"><div id="${id}art" style="position:relative;${PAPER_MAT}${paperShadow(1)}padding:11px 11px 30px;"><div style="overflow:hidden;border-radius:3px;"><img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:auto;max-height:${Math.round(dims.height * (land ? 0.52 : 0.3))}px;${AF.fitCss(asset)}filter:saturate(0.82) contrast(1.02);display:block;"></div>${paperTape("left:-13px;top:-9px;", -16)}</div></div>`
       : (MOUNT_STYLES.has(theme.layout.assetStyle) && !artIsVec)
-        ? (() => { const c = mountChrome(theme); return `<div style="transform:rotate(${-c.rot}deg);max-width:${land ? "62%" : "74%"};"><div id="${id}art" style="position:relative;${c.mat}"><div style="overflow:hidden;${c.inner}"><img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:auto;max-height:${Math.round(dims.height * (land ? 0.52 : 0.3))}px;object-fit:cover;filter:saturate(0.84) contrast(1.02);display:block;"></div>${c.extras}</div></div>`; })()
+        ? (() => { const c = mountChrome(theme); return `<div style="transform:rotate(${-c.rot}deg);max-width:${land ? "62%" : "74%"};"><div id="${id}art" style="position:relative;${c.mat}"><div style="overflow:hidden;${c.inner}"><img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:auto;max-height:${Math.round(dims.height * (land ? 0.52 : 0.3))}px;${AF.fitCss(asset)}filter:saturate(0.84) contrast(1.02);display:block;"></div>${c.extras}</div></div>`; })()
         : `<img id="${id}art" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;max-width:${land ? "44%" : "60%"};height:auto;max-height:${Math.round(dims.height * (land ? 0.6 : 0.34))}px;object-fit:contain;${artGlow}">`}</div>
   </div>
 </div>`;
@@ -2866,7 +2884,21 @@ function archAssetMontage(scene, ctx) {
   const items = (ctx.assets || []).slice(0, 8);
   const n = items.length || 1;
   const land = dims.width >= dims.height;
-  const cols = n <= 1 ? 1 : n <= 4 ? 2 : n <= 6 ? 3 : 4;
+  // A WALL READS ACROSS, NOT DOWN — and the tile it makes has to be a shape a picture is.
+  //
+  // This was `n <= 4 ? 2 : n <= 6 ? 3 : 4` in both orientations, which at four-up in 16:9
+  // gave two columns of 836px tiles over a 216px-tall row: an aspect of 3.87. Against a
+  // 1.52 website capture that discards 61% of its height, and containing it instead would
+  // leave 61% of the tile empty — there is no fit that rescues a box that shape, which is
+  // exactly the case the instruction "fix the template, do not force a bad placeholder to
+  // work through complicated cropping" was written for.
+  //
+  // Landscape lays the wall in ONE row (up to four across, two rows beyond that), so the
+  // tile's width falls to something its height can match. Portrait keeps the stacked
+  // reading order it needs, with fewer columns.
+  const cols = land
+    ? Math.min(Math.max(n, 1), 4)
+    : (n <= 1 ? 1 : n <= 4 ? 2 : n <= 6 ? 3 : 4);
   const big = land ? 54 : 58;
   const flat = !theme.gradients;
   const accentText = theme.emphasisCss || (theme.gradients
@@ -2878,7 +2910,26 @@ function archAssetMontage(scene, ctx) {
     : flat
       ? `border:3px solid ${theme.ink};box-shadow:6px 6px 0 ${theme.accent};`
       : `border:1px solid ${theme.line};box-shadow:0 22px 50px rgba(0,0,0,0.45);`;
-  const tileH = Math.round(dims.height * (land ? 0.2 : 0.15));
+  // THE TILE'S REAL WIDTH — the other half of a number this composer never had. The wall
+  // sits in a band inset 6% each side and splits it into `cols` tracks with a fixed gap,
+  // so the box is computable exactly, and that is what decides whether `cover` is a crop
+  // or a demolition: at four-up in 16:9 the tile is 3.87:1, and a 1.52 website capture
+  // cover-cropped into it keeps 39% of its height.
+  const gridGap = land ? 18 : 12;
+  const bandW = dims.width * 0.88;
+  const tileW = Math.round((bandW - gridGap * (cols - 1)) / cols);
+  // …and its height derived FROM that width, instead of from an unrelated fraction of the
+  // frame. Height was `dims.height * 0.2`, a share of the frame's HEIGHT, while the width
+  // is a share of its WIDTH — the mixed-unit trap that let the tile's shape be an accident
+  // of the render dimensions. Target 1.5 in landscape and 1.2 in portrait, the shapes the
+  // assets that reach a wall actually are (captures 1.52, stock 1.5-1.8), and keep the old
+  // fraction as the ceiling so a wall can never grow past the band it sits in.
+  // A ONE-ROW WALL can spend more of the band on height, because there is no second row
+  // to leave space for — and it is the two-up case that most needs it (a full-width tile
+  // over a short row is the widest box in the archetype).
+  const tileRows = Math.ceil(Math.max(n, 1) / cols);
+  const tileHCeil = dims.height * (land ? (tileRows === 1 ? 0.42 : 0.30) : 0.20);
+  const tileH = Math.round(Math.min(tileHCeil, tileW / (land ? 1.5 : 1.2)));
   const tileFx = [];                              // per-tile entrance effect (agent or by-kind)
   const tiles = items.map((a, k) => {
     const cls = classifyAsset(a);                 // "vector" | "shot" | "photo"
@@ -2894,16 +2945,31 @@ function archAssetMontage(scene, ctx) {
     // override fit/focus per asset (a.fit / a.focus) — its call wins over this
     // heuristic. Also: a landscape screenshot that already matches the tile ratio
     // is let to `cover` normally; the top-pin only matters for tall grabs.
-    const fit = (a.fit === "contain" || a.fit === "cover") ? a.fit : (isVec ? "contain" : "cover");
-    // Crop precedence: asset-director's `focus` (it SAW the image) > the Visual
-    // Layout Director's content-type `cropFocus` (a full object-position string)
-    // > the by-kind heuristic. The two directors never fight: VLD only fills the
-    // gap when the vision agent was silent.
+    // FIT AND CROP, in one decision, against the box this tile actually is.
+    //
+    // The precedence used to be: the asset-director's coarse `focus` word ("top" /
+    // "center" / "bottom"), then the Visual Layout Director's `cropFocus`, then a by-kind
+    // heuristic. All three answer only WHERE to anchor a crop, and all three assume the
+    // crop is worth taking. None asks the question that matters first — how much of the
+    // picture this box is about to discard. A montage tile here is 3.87:1 at four-up in
+    // 16:9; a 1.52 website capture cover-cropped into it keeps 39% of its height.
+    //
+    // asset_fit decides mode AND position together, from the asset's real dimensions and
+    // the tile's real box, and it will letterbox a user interface rather than cut it. The
+    // asset director's explicit verdict still wins — it SAW the image — so an art-directed
+    // `contain` or a named focus is honoured exactly as before.
+    const afFit = (() => {
+      try { return AF.fitFor(a, { w: tileW || 0, h: tileH || 0, want: isShot ? "desktop" : "photo" }); }
+      catch { return null; }
+    })();
+    const fit = (a.fit === "contain" || a.fit === "cover") ? a.fit
+      : (isVec ? "contain" : (afFit ? afFit.objectFit : "cover"));
     const focus = a.focus || (isShot ? "top" : "center");
     const objPos = a.focus
       ? `object-position:${focus === "top" ? "top" : focus === "bottom" ? "bottom" : "center"} center;`
-      : (a.cropFocus ? `object-position:${a.cropFocus};`
-        : `object-position:${focus === "top" ? "top" : focus === "bottom" ? "bottom" : "center"} center;`);
+      : (afFit ? `object-position:${afFit.objectPosition};`
+        : (a.cropFocus ? `object-position:${a.cropFocus};`
+          : `object-position:${focus === "top" ? "top" : focus === "bottom" ? "bottom" : "center"} center;`));
     const pad = (isVec && !paper) ? `background:${rgba(theme.ink, theme.isDark ? 0.06 : 0.04)};padding:14px;` : "";
     // COLOR HARMONY — raw stock photos arrive in arbitrary palettes (a saturated
     // red product shot shatters a navy/cyan frame). Photos get pulled toward the
@@ -2975,7 +3041,7 @@ function paperSnapshotBg(asset, ctx, isVideo) {
   const h = Math.round(w * 0.68);
   const media = isVideo
     ? `<video id="${id}vid" src="${esc(asset.path)}" muted playsinline preload="auto" style="width:100%;height:100%;object-fit:cover;filter:saturate(0.85) contrast(1.02);"></video>`
-    : `<img src="${esc(asset.path)}" alt="" style="width:100%;height:100%;object-fit:cover;filter:saturate(0.82) contrast(1.02);">`;
+    : `<img src="${esc(asset.path)}" alt="" style="width:100%;height:100%;${AF.fitCss(asset)}filter:saturate(0.82) contrast(1.02);">`;
   const html = `<div id="${id}bg" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${ctx.bgTrack}" data-layout-allow-occlusion style="opacity:0;">
   <div style="position:absolute;right:4.5%;bottom:${land ? "3.5%" : "13%"};transform:rotate(-3.4deg);">
     <div id="${id}bgi" style="position:relative;${PAPER_MAT}${paperShadow(1)}padding:10px 10px 30px;">
@@ -3094,7 +3160,7 @@ function themedSnapshotBg(asset, ctx, isVideo) {
   const h = Math.round(w * 0.66);
   const media = isVideo
     ? `<video id="${id}vid" src="${esc(asset.path)}" muted playsinline preload="auto" style="width:100%;height:100%;object-fit:cover;filter:saturate(0.85) contrast(1.02);"></video>`
-    : `<img src="${esc(asset.path)}" alt="" style="width:100%;height:100%;object-fit:cover;filter:saturate(0.84) contrast(1.02);">`;
+    : `<img src="${esc(asset.path)}" alt="" style="width:100%;height:100%;${AF.fitCss(asset)}filter:saturate(0.84) contrast(1.02);">`;
   // Right-aligned packs (abyssal-glow) set copy on the right — park the mount
   // bottom-LEFT there so long headlines never sit over the photo.
   const side = (theme.textfx && theme.textfx.align === "right") ? "left" : "right";
@@ -3132,7 +3198,7 @@ function scrimBg(asset, ctx) {
   if (MOUNT_STYLES.has(theme.layout.assetStyle)) return themedSnapshotBg(asset, ctx, false);
   const g = theme.ground;
   const scrim = `linear-gradient(180deg, ${rgba(g, 0.55)} 0%, ${rgba(g, 0.74)} 55%, ${rgba(g, 0.9)} 100%)`;
-  const html = `<div id="${id}bg" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${ctx.bgTrack}" data-layout-allow-occlusion style="opacity:0;overflow:hidden;"><img id="${id}bgi" src="${esc(asset.path)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"><div style="position:absolute;inset:0;background:${scrim};"></div></div>`;
+  const html = `<div id="${id}bg" class="clip" data-start="${T}" data-duration="${L}" data-track-index="${ctx.bgTrack}" data-layout-allow-occlusion style="opacity:0;overflow:hidden;"><img id="${id}bgi" src="${esc(asset.path)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;${AF.fitCss(asset)}"><div style="position:absolute;inset:0;background:${scrim};"></div></div>`;
   const s = [
     `tl.fromTo("#${id}bg",{opacity:0},{opacity:1,duration:0.6},${r(T)});`,
     `tl.fromTo("#${id}bgi",{scale:1.09},{scale:1.0,duration:${r(L)},ease:"none"},${r(T)});`,
@@ -3441,6 +3507,11 @@ function buildComposition({ storyboard, dims, framePack, assets, captionCues, se
       // marquees, gate signs, timecode chips…) instead of abstract filler.
       scene, sbTitle: sb.title || "",
       heroScale, // Visual Layout Director: target hero width fraction (null → default)
+      // The film's resolved pace, for the label-row budget (see labelRow below).
+      // Non-enumerable on the storyboard and only attached off the default mode,
+      // so this is null on a normal-pace film — which is exactly what keeps the
+      // default render byte-identical.
+      pace: sb.paceConfig || null,
     };
     const hint = layoutPlan && layoutPlan[scene.id] ? layoutPlan[scene.id].archetype : null;
     return { scene, i, ctx, isContent: i > 0 && i < scenes.length - 1, build: archetypeFor(scene, i, scenes.length, hint) };

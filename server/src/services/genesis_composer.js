@@ -26,6 +26,7 @@ const { deriveTheme } = require("./scene_kit");
 const { pickForScene } = require("./scene_match");
 const { fontFaceCss } = require("../fonts/pack_fonts");
 const { fitScenes, MAX_CLIPS } = require("./scene_fit");
+const AF = require("./asset_fit");
 
 const GSAP_CDN = "https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js";
 
@@ -249,7 +250,7 @@ function showroom(idb, asset, ctx, opt) {
   const cy = opt && opt.cy != null ? opt.cy : (land ? Math.round(dims.height * 0.5) : Math.round(dims.height * 0.62));
   const bar = phone ? 0 : Math.round(fh * 0.11);
   const img = asset
-    ? `<img src="${esc(asset.path)}" alt="" style="position:absolute;left:0;top:${bar}px;width:100%;height:${fh - bar}px;object-fit:cover;object-position:top center;">`
+    ? `<img src="${esc(asset.path)}" alt="" style="position:absolute;left:0;top:${bar}px;width:100%;height:${fh - bar}px;${AF.fitCss(asset)}">`
     : `<div style="position:absolute;left:0;top:${bar}px;width:100%;height:${fh - bar}px;background:${theme.gradPrimary};opacity:.85;"></div>`;
   const chrome = phone ? "" :
     `<div style="position:absolute;left:0;top:0;width:100%;height:${bar}px;background:${rgba(theme.ink, 0.08)};display:flex;align-items:center;gap:6px;padding:0 ${Math.round(bar * 0.5)}px;">
@@ -291,7 +292,7 @@ function gallery(idb, assets, ctx, opt) {
       const x = cx - totalW / 2 + i * spread - cw / 2;
       const y = cy - ch / 2 + (Math.abs(i - (list.length - 1) / 2)) * ch * 0.12;
       const rot = (i - (list.length - 1) / 2) * 6;
-      const src = plateOk(a) ? `<img src="${esc(a.path)}" alt="" style="width:100%;height:100%;object-fit:cover;">` : `<div style="width:100%;height:100%;background:${theme.gradPrimary};"></div>`;
+      const src = plateOk(a) ? `<img src="${esc(a.path)}" alt="" style="width:100%;height:100%;${AF.fitCss(a)}">` : `<div style="width:100%;height:100%;background:${theme.gradPrimary};"></div>`;
       html += `<div class="gx-card" id="${idb}${i}" style="position:absolute;left:${x.toFixed(0)}px;top:${y.toFixed(0)}px;width:${cw}px;height:${ch}px;border-radius:${Math.round(cw * 0.05)}px;overflow:hidden;background:${theme.surface};border:1px solid ${theme.surfaceEdge};box-shadow:0 20px 50px ${rgba(theme.deep, 0.5)};transform:rotate(${rot}deg);opacity:0;">${src}<div style="position:absolute;inset:0;background:linear-gradient(120deg,${rgba("#FFFFFF", 0.12)},transparent 45%);"></div></div>`;
       s.push(`tl.fromTo("#${idb}${i}",{opacity:0,y:90,rotation:${rot + (i % 2 ? 14 : -14)},scale:.8},{opacity:1,y:0,rotation:${rot},scale:1,duration:1,ease:"expo.out"},${r(ctx.T + 0.6 + i * 0.14)});`);
       s.push(`tl.to("#${idb}${i}",{y:"-=${12 + i * 3}",duration:${r(2.6 + i * 0.3)},ease:"sine.inOut",yoyo:true,repeat:reps(${r(ctx.L)},${r(2.6 + i * 0.3)})},${r(ctx.T + 1.8)});`);
@@ -306,7 +307,7 @@ function gallery(idb, assets, ctx, opt) {
       const y = cy - ch - gap / 2 + rI * (ch + gap);
       let inner = "";
       rowAssets.forEach((a, i) => {
-        const src = plateOk(a) ? `<img src="${esc(a.path)}" alt="" style="width:100%;height:100%;object-fit:cover;">` : `<div style="width:100%;height:100%;background:${theme.gradPrimary};"></div>`;
+        const src = plateOk(a) ? `<img src="${esc(a.path)}" alt="" style="width:100%;height:100%;${AF.fitCss(a)}">` : `<div style="width:100%;height:100%;background:${theme.gradPrimary};"></div>`;
         inner += `<div style="width:${cw}px;height:${ch}px;flex:none;border-radius:${Math.round(cw * 0.06)}px;overflow:hidden;background:${theme.surface};border:1px solid ${theme.surfaceEdge};margin-right:${gap}px;">${src}</div>`;
       });
       html += `<div class="gx-wallrow" id="${idb}r${rI}" style="position:absolute;left:0;top:${y}px;display:flex;width:${rowW}px;opacity:0;">${inner}</div>`;
@@ -341,7 +342,7 @@ function beatProblem(scene, ctx, assets) {
     const x = zoneX + rand() * (zoneW - sz), y = zoneY + rand() * (zoneH - sz);
     const rot = (rand() - 0.5) * 40;
     const a = assets[i];
-    const face = a && plateOk(a) ? `<img src="${esc(a.path)}" style="width:100%;height:100%;object-fit:cover;filter:grayscale(.7) brightness(.6);">` : `<div style="width:100%;height:100%;display:grid;place-items:center;font-size:${Math.round(sz * 0.4)}px;color:${rgba(theme.ink, 0.4)};">${gl[i % gl.length]}</div>`;
+    const face = a && plateOk(a) ? `<img src="${esc(a.path)}" style="width:100%;height:100%;${AF.fitCss(a)}filter:grayscale(.7) brightness(.6);">` : `<div style="width:100%;height:100%;display:grid;place-items:center;font-size:${Math.round(sz * 0.4)}px;color:${rgba(theme.ink, 0.4)};">${gl[i % gl.length]}</div>`;
     html += `<div class="gx-chaos" id="p-c${i}" style="position:absolute;left:${x.toFixed(0)}px;top:${y.toFixed(0)}px;width:${sz}px;height:${sz}px;border-radius:8px;overflow:hidden;background:${rgba(theme.ink, 0.06)};border:1px solid ${rgba(theme.accent2, 0.4)};transform:rotate(${rot.toFixed(1)}deg);opacity:0;">${face}</div>`;
     s.push(`tl.fromTo("#p-c${i}",{opacity:0,scale:.5},{opacity:1,scale:1,duration:.5,ease:"back.out(1.6)"},${r(ctx.T + 0.5 + i * 0.08)});`);
     s.push(`tl.to("#p-c${i}",{x:"+=${(rand() - 0.5) * 30 | 0}",y:"+=${(rand() - 0.5) * 24 | 0}",rotation:"+=${(rand() - 0.5) * 18 | 0}",duration:${r(0.5 + rand())},ease:"sine.inOut",yoyo:true,repeat:reps(${r(ctx.L)},${r(0.5 + rand())})},${r(ctx.T + 1)});`);
@@ -363,7 +364,7 @@ function beatDiscovery(scene, ctx, assets) {
     const x = ox + c * (cw + gw * 0.06), y = oy + rI * (ch + gh * 0.1);
     centers.push([x + cw / 2, y + ch / 2]);
     const a = assets[i];
-    const face = a && plateOk(a) ? `<img src="${esc(a.path)}" style="width:100%;height:100%;object-fit:cover;">` : `<div style="width:100%;height:100%;background:${i % 2 ? rgba(theme.primary, 0.16) : rgba(theme.secondary, 0.14)};display:grid;place-items:center;"><span style="width:34%;height:34%;border-radius:8px;background:${theme.gradPrimary};opacity:.7;"></span></div>`;
+    const face = a && plateOk(a) ? `<img src="${esc(a.path)}" style="width:100%;height:100%;${AF.fitCss(a)}">` : `<div style="width:100%;height:100%;background:${i % 2 ? rgba(theme.primary, 0.16) : rgba(theme.secondary, 0.14)};display:grid;place-items:center;"><span style="width:34%;height:34%;border-radius:8px;background:${theme.gradPrimary};opacity:.7;"></span></div>`;
     html += `<div class="gx-tile" id="d-t${i}" style="position:absolute;left:${x.toFixed(0)}px;top:${y.toFixed(0)}px;width:${cw.toFixed(0)}px;height:${ch.toFixed(0)}px;border-radius:12px;overflow:hidden;background:${theme.surface};border:1px solid ${theme.surfaceEdge};opacity:0;">${face}</div>`;
     s.push(`tl.fromTo("#d-t${i}",{opacity:0,x:${(ox - x - 120) | 0},rotation:-8,scale:.7},{opacity:1,x:0,rotation:0,scale:1,duration:.9,ease:"expo.out"},${r(ctx.T + 0.6 + i * 0.09)});`);
   }
@@ -459,7 +460,7 @@ function beatProof(scene, ctx, assets) {
   for (let i = 0; i < zones.length; i++) {
     const cxp = dims.width * zones[i], sz = Math.round(dims.width * 0.03);
     const a = assets[i];
-    const face = a && plateOk(a) ? `<img src="${esc(a.path)}" style="width:100%;height:100%;object-fit:cover;">` : `<div style="width:100%;height:100%;background:${[theme.primary, theme.secondary, theme.accent][i % 3]};"></div>`;
+    const face = a && plateOk(a) ? `<img src="${esc(a.path)}" style="width:100%;height:100%;${AF.fitCss(a)}">` : `<div style="width:100%;height:100%;background:${[theme.primary, theme.secondary, theme.accent][i % 3]};"></div>`;
     html += `<div class="gx-chip" id="q-a${i}" style="position:absolute;left:${cxp.toFixed(0)}px;top:${chipY}px;width:${sz}px;height:${sz}px;border-radius:50%;overflow:hidden;border:2px solid ${rgba(theme.primary, 0.6)};box-shadow:0 6px 18px ${rgba(theme.deep, 0.5)};opacity:0;">${face}</div>`;
     s.push(`tl.fromTo("#q-a${i}",{opacity:0,scale:0},{opacity:1,scale:1,duration:.5,ease:"back.out(2)"},${r(ctx.T + 0.9 + i * 0.1)});`);
     s.push(`tl.to("#q-a${i}",{y:"-=${10 + (i % 3) * 4}",duration:${r(2 + rand())},ease:"sine.inOut",yoyo:true,repeat:reps(${r(ctx.L)},${r(2 + rand())})},${r(ctx.T + 1.4)});`);

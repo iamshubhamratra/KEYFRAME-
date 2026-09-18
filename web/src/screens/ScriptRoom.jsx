@@ -3,6 +3,23 @@ import { motion, Reorder } from "framer-motion";
 import { getProject, approveProject, regenerateProject, pollProject } from "../api.js";
 
 const WORDS_PER_SEC = 2.6;
+
+// Display mirror of server/src/services/pacing.js MODES. Only what this screen
+// needs to render the badge — the SERVER remains the authority on what a mode
+// does; `density` is duplicated here solely so the word counter can be shown
+// without a second round trip. If the server's densities are retuned, these
+// follow (the counter is advisory; the server's own validator is what runs).
+const PACE_LABELS = {
+  relaxed:     { label: "RELAXED",   x: "0.8x",  density: 0.92, c: "#23c8e0" },
+  normal:      { label: "NORMAL",    x: "1x",    density: 0.90, c: "rgba(23,19,14,.45)" },
+  fast:        { label: "FAST",      x: "1.25x", density: 0.71, c: "#ffb03a" },
+  "very-fast": { label: "VERY FAST", x: "1.5x",  density: 0.58, c: "#e832a8" },
+};
+// Mirrors server/src/services/pacing.js SCENE_MIN_SEC / SCENE_MAX_SEC and the
+// script schema's per-scene bounds. The slider MUST be able to express every
+// value the server can author, or it lies about the script it is editing.
+const SCENE_MIN_SEC = 2.0;
+const SCENE_MAX_SEC = 15.0;
 const wc = (s) => (String(s || "").match(/\S+/g) || []).length;
 const SPINES = ["#e832a8", "#23c8e0", "#ffb03a", "#b9f24a", "#2b5bff", "#ff6a3c"];
 
@@ -95,6 +112,59 @@ export default function ScriptRoom({ projectId, onApproved }) {
         that exact line is spoken — drag to reorder, pull the duration handle, cut what
         you don't want.
       </p>
+
+      {/* The pace this script was WRITTEN to, and how the edit is tracking
+          against its word budget. Shown only for a non-default pace: at Normal
+          there is nothing the user chose that they need confirming back. The
+          budget is a target, not a limit — going over is allowed and only means
+          lines get tightened at production time, so this reports rather than
+          warns. */}
+      {project?.pace && project.pace !== "normal" && (() => {
+        const P = PACE_LABELS[project.pace];
+        if (!P) return null;
+        const spoken = timedScenes.reduce((n, s) => n + ((s.voiceover || "").match(/\S+/g) || []).length, 0);
+        // Mirrors services/pacing.js: duration x speechRate x narrationDensity.
+        const budget = Math.round(targetSec * WORDS_PER_SEC * P.density);
+        const over = spoken > budget * 1.15;
+        return (
+          <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+                        fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em" }}>
+            <span className="chip-c on-paper is-active" style={{ "--chipc": P.c, padding: "3px 9px" }}>
+              {P.label} {P.x}
+            </span>
+            <span style={{ color: over ? "var(--color-rec)" : "var(--color-dim)" }}>
+              {spoken} / {budget} SPOKEN WORDS
+            </span>
+            <span style={{ color: "var(--color-dim)" }}>· {timedScenes.length} SCENES</span>
+            {over && (
+              <span style={{ color: "var(--color-dim)", textTransform: "none", letterSpacing: 0, fontFamily: "inherit", fontSize: 11 }}>
+                over budget — lines will be tightened when the film is made
+              </span>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* The server's own notes on this draft. These have been computed,
+          persisted and returned by the API since the script checkpoint existed
+          and rendered NOWHERE — a whole-repo grep for `scriptWarnings` in
+          web/src found no consumer — so every "this line is too long for its
+          scene" the pipeline produced was written to a field nobody read.
+          They are advisory: production tightens an overlong line by itself. */}
+      {Array.isArray(project?.scriptWarnings) && project.scriptWarnings.length > 0 && (
+        <div style={{ marginTop: 16, padding: "12px 14px", borderRadius: 8,
+                      border: "1px solid rgba(23,19,14,.16)", background: "rgba(255,176,58,.10)" }}>
+          <div className="label-mono" style={{ marginBottom: 7, color: "var(--color-dim)" }}>
+            {project.scriptWarnings.length} NOTE{project.scriptWarnings.length === 1 ? "" : "S"} ON THIS DRAFT
+          </div>
+          <ul style={{ margin: 0, paddingLeft: 17, fontSize: 12.5, lineHeight: 1.55, color: "var(--color-dim)" }}>
+            {project.scriptWarnings.slice(0, 6).map((w, i) => <li key={i}>{w}</li>)}
+          </ul>
+          <div style={{ marginTop: 7, fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", color: "var(--color-dim)" }}>
+            ADVISORY — THE FILM STILL BUILDS; OVERLONG LINES ARE TIGHTENED AT PRODUCTION
+          </div>
+        </div>
+      )}
 
       <Reorder.Group axis="y" values={scenes} onReorder={setScenes} style={{ marginTop: 32, display: "flex", flexDirection: "column", gap: 14, padding: 0 }}>
         {timedScenes.map((scene, i) => (
@@ -192,8 +262,17 @@ function SceneCard({ scene, originalScene, index, onPatch, onRemove }) {
 
         <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 12 }}>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.14em", color: "var(--color-dim)", width: 52 }}>{scene.duration.toFixed(1)}S</span>
-          <input type="range" min="2.5" max="8" step="0.5" value={scene.duration}
-            onChange={(e) => onPatch({ duration: Number(e.target.value) })}
+          {/* Bounds come from the ENGINE, not from taste. The old min=2.5/max=8
+              could not express a Very Fast scene (targets ~2.3s) or a long
+              Relaxed one (~10.7s): a range input handed an out-of-range value
+              pins its thumb while the label above keeps printing the real
+              number, so the control silently disagreed with the script — and
+              the first drag snapped the scene to the bound and destroyed the
+              authored duration. step is 0.1 because the server normalizes to
+              0.1s (normalizeScript), so 0.5 could not reach a legal value. */}
+          <input type="range" min={SCENE_MIN_SEC} max={SCENE_MAX_SEC} step="0.1"
+            value={Math.min(SCENE_MAX_SEC, Math.max(SCENE_MIN_SEC, scene.duration))}
+            onChange={(e) => onPatch({ duration: Math.round(Number(e.target.value) * 10) / 10 })}
             style={{ flex: 1, accentColor: spine }} />
         </div>
       </motion.div>

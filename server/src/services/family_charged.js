@@ -39,6 +39,9 @@
 
 const { deriveTheme } = require("./scene_kit");
 const E = require("./template_engine");
+// The slot contract: what shape each media box is, and the CSS for a box that reshaped
+// to fit its picture. See mediaGeometry below.
+const TM = require("./template_media");
 // The shared motion vocabulary — see services/motion_presets.js. Physics for
 // headlines and cards lives there now, so every template moves alike.
 const MOTION = require("./motion_presets");
@@ -171,6 +174,46 @@ const TEMPLATE_SCENES = [
 ];
 
 const mediaSlots = { chargeplate: ["desktop"], gridburst: ["photo", "photo"], transmission: ["photo"] };
+// PORTRAIT SHOWS ONE PICTURE, NOT TWO. Measured at 1080x1920, the two-up wall gave each
+// tile 950x354 — an aspect of 2.69 that cuts 40% off the height of an ordinary 1.6 photo
+// and 83% off a portrait phone capture. One tile in the same band is 950x664 (aspect 1.43),
+// which is the shape real assets actually are. Fewer, bigger: services/template_media.js
+// wantsFor reads this whenever the frame is taller than it is wide.
+const mediaSlotsPortrait = { chargeplate: ["desktop"], gridburst: ["photo"], transmission: ["photo"] };
+// WHAT SHAPE EACH PLACEHOLDER IS — the number that did not exist before this map.
+// Fractions of the CANVAS (wFrac of width, hFrac of height), derived from the CSS each
+// scene function writes and verified against a live headless render by
+// `node scripts/audit-slot-fit.js --packs ignition`.
+//
+// `flex` is the aspect band the plate may reshape within. chargeplate carries the film's
+// product screen, and a website capture is 1.5:1 — pinning the plate at 1.08 (which is
+// what `width:45cqw;top:13%;bottom:13%` works out to at 1920x1080) is what threw away 28%
+// of every capture's width. Letting the plate take the picture's own shape costs the
+// layout nothing: it is a floating glass panel in a band, not a grid cell.
+const mediaGeometry = {
+  chargeplate: {
+    // chargeplate(): `right|left:6cqw; top:13%; bottom:13%; width:45cqw` -> 864x799 @16:9.
+    land: [{ wFrac: 0.45, hFrac: 0.74, importance: "hero", flex: [1.00, 1.90] }],
+    // `left:6cqw; right:6cqw; top:11%; height:38%` -> 950x730 @9:16.
+    port: [{ wFrac: 0.88, hFrac: 0.38, importance: "hero", flex: [0.95, 1.75] }],
+  },
+  gridburst: {
+    // Three tracks at 1.25fr/1.25fr/0.5fr inside `left/right:7cqw; top:45%; bottom:14%`,
+    // gap 1.1cqw -> a 670x443 media tile (aspect 1.51). It was four equal tracks, which
+    // gave 397x443 — an aspect of 0.90 that cut 44% off a landscape photo's width.
+    land: [{ wFrac: 0.349, hFrac: 0.41, importance: "support", flex: [1.15, 1.75] },
+           { wFrac: 0.349, hFrac: 0.41, importance: "support", flex: [1.15, 1.75] }],
+    // One tile at 1fr against a 0.36fr text strip inside `top:39%; bottom:13%` -> 950x664.
+    port: [{ wFrac: 0.88, hFrac: 0.346, importance: "support", flex: [1.15, 1.75] }],
+  },
+  transmission: {
+    // The attribution disc: `width:3.2cqw; height:3.2cqw` — cqw on BOTH axes, so it is
+    // square, and 3.2% of 1920 is 61px. A disc that small can hold a face and nothing
+    // else, which is what `allow` and the accent importance say to the selector.
+    land: [{ wFrac: 0.032, hFrac: 0.0569, importance: "accent", allow: ["photo"] }],
+    port: [{ wFrac: 0.052, hFrac: 0.0293, importance: "accent", allow: ["photo"] }],
+  },
+};
 // True when the PREVIOUS scene already carried imagery — keeps media beats
 // alternating now that any spare asset, not just a pinned screenshot, earns one.
 const mediaBeatJustPlayed = (ctx) => ((mediaSlots[ctx && ctx.prevType] || []).length > 0);
@@ -330,9 +373,29 @@ function chargeplate(scene, ctx, asset) {
   const right = variant % 2 === 0;
   const size = r(Math.min(land ? 4.5 : 6.6, (land ? 40 : 84) / Math.max(...lines.map((l) => l.length), 1) * (land ? 1.5 : 1.7)));
   const radius = land ? 1 : 1.6;
+  // THE PLATE TAKES THE PICTURE'S SHAPE, INSTEAD OF THE PICTURE TAKING THE PLATE'S.
+  //
+  // This band used to be fixed: `top:13%;bottom:13%;width:45cqw`, which at 1920x1080 is
+  // 864x799 — an aspect of 1.08. A website capture is 2732x1800, an aspect of 1.52, so
+  // `object-fit:cover` discarded 28.5% of its WIDTH: 14% off each side, which is exactly
+  // where a page keeps its navigation. Frames shipped with the nav cut mid-word on both
+  // edges. The alternative, letterboxing inside the fixed plate, keeps the whole capture
+  // but leaves 28% of a lit glass panel empty.
+  //
+  // So the plate reshapes instead. asset_fit resolved a box for this asset inside the
+  // aspect band `mediaGeometry` declares (services/template_media.js), and boxCss gives
+  // the reclaimed height back to the layout — symmetrically in landscape, where the plate
+  // floats in its band, and off the bottom in portrait, where the headline sits above it
+  // and the copy below. With no fitted box (an asset with no dimensions, or a beat with
+  // no picture) this is byte-for-byte the declaration it replaces.
+  const fitBox = asset && asset.__fit && asset.__fit.box && asset.__fit.box.reshaped ? asset.__fit.box : null;
   const plateBox = land
-    ? `${right ? "right" : "left"}:6cqw;top:13%;bottom:13%;width:45cqw;`
-    : `left:6cqw;right:6cqw;top:11%;height:38%;`;
+    ? (fitBox
+      ? TM.boxCss({ side: 6, top: 0.13, bottom: 0.13, width: 45 }, fitBox, ctx.dims, right ? "right" : "left")
+      : `${right ? "right" : "left"}:6cqw;top:13%;bottom:13%;width:45cqw;`)
+    : (fitBox
+      ? TM.boxCss({ side: 6, top: 0.11, bottom: 0.51, width: 88 }, fitBox, ctx.dims, "stretch", "start")
+      : `left:6cqw;right:6cqw;top:11%;height:38%;`);
   const textBox = land
     ? `${right ? "left" : "right"}:6cqw;width:38cqw;top:0;bottom:0;`
     : `left:6cqw;right:6cqw;top:53%;bottom:12%;`;
@@ -341,7 +404,7 @@ function chargeplate(scene, ctx, asset) {
     <div id="${id}-plate" style="position:absolute;${plateBox}opacity:0;${hudCss(th, land, radius)}">
       <div style="position:absolute;inset:${land ? 0.8 : 1.3}cqw;border-radius:${r(radius * 0.6)}cqw;overflow:hidden;background:${th.well};border:${th.hairW}cqw solid ${th.hair};">
         ${asset && asset.path
-      ? `<img id="${id}-img" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">`
+      ? `<img id="${id}-img" src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;${E.fitCss(asset)}display:block;">`
       : signalPlate(id, th, land, brand, url, true)}
         <div id="${id}-scan" style="position:absolute;left:0;right:0;top:0;height:${land ? 4 : 6}cqw;opacity:0;background:linear-gradient(180deg, transparent 0%, ${rgba(th.accent, 0.32)} 70%, ${rgba(th.accent, 0.9)} 100%);"></div>
       </div>
@@ -474,7 +537,7 @@ function transmission(scene, ctx, asset) {
   // scene; with no asset it degrades to the charged monogram disc.
   const discSz = land ? 3.2 : 5.2;
   const disc = asset && asset.path
-    ? `<span style="display:block;width:${discSz}cqw;height:${discSz}cqw;border-radius:50%;overflow:hidden;background:${th.well};border:${th.hairW}cqw solid ${th.edge};box-shadow:0 0 ${land ? 1.8 : 2.9}cqw ${rgba(th.accent, 0.7)};"><img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;"></span>`
+    ? `<span style="display:block;width:${discSz}cqw;height:${discSz}cqw;border-radius:50%;overflow:hidden;background:${th.well};border:${th.hairW}cqw solid ${th.edge};box-shadow:0 0 ${land ? 1.8 : 2.9}cqw ${rgba(th.accent, 0.7)};"><img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;${E.fitCss(asset)}display:block;"></span>`
     : `<span style="display:grid;place-items:center;width:${discSz}cqw;height:${discSz}cqw;border-radius:50%;background:${th.accent};color:${th.onAccent};font-family:${th.displayStack};font-weight:800;font-size:${land ? 1.45 : 2.35}cqw;box-shadow:0 0 ${land ? 1.8 : 2.9}cqw ${rgba(th.accent, 0.7)};">${esc(initial)}</span>`;
   const size = r(Math.min(land ? 4.3 : 5.4, (land ? 150 : 152) / Math.max(words.length, 1) + (land ? 1.4 : 1.8)));
   const radius = land ? 1.1 : 1.8;
@@ -537,7 +600,7 @@ function gridburst(scene, ctx, a, b) {
   const mediaTile = (asset, cls, n) => `
       <div class="${cls} ${id}-tile" style="opacity:0;position:relative;overflow:hidden;${hudCss(th, land, radius)}">
         ${asset && asset.path
-      ? `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block;">`
+      ? `<img src="${esc(asset.path)}" alt="${esc(asset.alt || "")}" style="width:100%;height:100%;${E.fitCss(asset)}display:block;">`
       : signalPlate(id, th, land, brand, url, false)}
         <span style="position:absolute;left:${land ? 0.6 : 1}cqw;top:${land ? 0.6 : 1}cqw;padding:${land ? 0.2 : 0.34}cqw ${land ? 0.5 : 0.8}cqw;border-radius:${land ? 0.3 : 0.5}cqw;background:${rgba(th.ground, 0.72)};font-family:${th.monoStack};font-size:${land ? 0.9 : 1.5}cqw;letter-spacing:0.18em;color:${th.accentPlate};text-shadow:0 0 ${land ? 0.8 : 1.3}cqw ${rgba(th.accent, 0.8)};">${n}</span>
       </div>`;
@@ -551,21 +614,36 @@ function gridburst(scene, ctx, a, b) {
           family_darkpremium. Four tiles across becomes 2×2 in 9:16, which puts
           each media plate under half a 720px frame; stacked full width they stay
           readable, and the two text tiles merge into one strip. */""}
-    <div style="position:absolute;left:${land ? 7 : 6}cqw;right:${land ? 7 : 6}cqw;top:${land ? "45%" : "39%"};bottom:${land ? "14%" : "13%"};display:grid;grid-template-columns:${land ? "1fr 1fr 1fr 1fr" : "1fr"};grid-template-rows:${land ? "1fr" : "1fr 1fr 0.5fr"};gap:${land ? 1.1 : 1.7}cqw;">
+    ${/* THE WALL SHOWS FEWER, LARGER PICTURES.
+          Landscape was four equal tracks, which made each tile 397x443 — an aspect of
+          0.90. Every asset this wall receives is landscape (a 1.5 website capture, a
+          1.6 stock photo), so cover threw away 44% of each one's width. Three tracks
+          weighted 1.25/1.25/0.5 give the two media tiles 670x443 (aspect 1.51, the shape
+          the assets already are) and fold the figure and the brand mark into one closing
+          tile — which is what the portrait branch has always done.
+          Portrait now draws ONE media tile rather than two: at 1080x1920 two stacked
+          tiles were 950x354 each (aspect 2.69), and one is 950x664 (aspect 1.43).
+          mediaSlotsPortrait above is what tells the engine to cast only one. */""}
+    <div style="position:absolute;left:${land ? 7 : 6}cqw;right:${land ? 7 : 6}cqw;top:${land ? "45%" : "39%"};bottom:${land ? "14%" : "13%"};display:grid;grid-template-columns:${land ? "1.25fr 1.25fr 0.5fr" : "1fr"};grid-template-rows:${land ? "1fr" : "1fr 0.36fr"};gap:${land ? 1.1 : 1.7}cqw;">
       ${mediaTile(a, `${id}-t1`, "01")}
-      ${mediaTile(b, `${id}-t2`, "02")}
+      ${land ? mediaTile(b, `${id}-t2`, "02") : ""}
       ${land ? `<div class="${id}-t3 ${id}-tile" style="opacity:0;position:relative;display:grid;place-items:center;overflow:hidden;${hudCss(th, land, radius)}">
         <div style="position:absolute;inset:0;background:radial-gradient(ellipse 74% 66% at 50% 46%, ${rgba(th.accent, 0.26)} 0%, transparent 72%);"></div>
-        <div style="position:relative;text-align:center;padding:0.8cqw;">
-          <div style="font-family:${th.displayStack};font-weight:800;font-size:3.4cqw;line-height:1;color:${th.ink};text-shadow:0 0 2cqw ${rgba(th.accent, 0.65)};">${esc(badge)}</div>
-          ${badgeLabel ? `<div style="margin-top:0.5cqw;font-family:${th.monoStack};font-size:0.88cqw;letter-spacing:0.18em;text-transform:uppercase;color:${th.body};">${esc(badgeLabel)}</div>` : ""}
-        </div>
-      </div>
-      <div class="${id}-t4 ${id}-tile" style="opacity:0;position:relative;display:grid;place-items:center;overflow:hidden;${hudCss(th, land, radius)}">
-        <div style="text-align:center;padding:0.8cqw;">
-          <div style="font-family:${th.displayStack};font-weight:800;font-size:2.1cqw;letter-spacing:0.03em;text-transform:uppercase;color:${th.ink};">${esc(String(brand).slice(0, 14))}</div>
-          <div style="margin:0.6cqw auto 0;width:5cqw;height:0.14cqw;background:${th.accent2};box-shadow:0 0 1cqw ${rgba(th.accent2, 0.95)};"></div>
-          <div style="margin-top:0.6cqw;font-family:${th.monoStack};font-size:0.88cqw;letter-spacing:0.22em;text-transform:uppercase;color:${th.soft};">${esc(url)}</div>
+        ${/* The figure and the mark share ONE closing tile now, stacked. They were two
+             tiles of their own, and reclaiming that track is what let the two media tiles
+             grow from 397x443 (aspect 0.90) to 670x443 (aspect 1.51). Type is set for the
+             narrower column: the badge drops from 3.4cqw to 3.0 and the brand from 2.1 to
+             1.7, which keeps a fourteen-character name on one line at 268px. */""}
+        <div style="position:relative;text-align:center;padding:0.8cqw;display:flex;flex-direction:column;gap:1.1cqw;align-items:center;">
+          <div>
+            <div style="font-family:${th.displayStack};font-weight:800;font-size:3cqw;line-height:1;color:${th.ink};text-shadow:0 0 2cqw ${rgba(th.accent, 0.65)};">${esc(badge)}</div>
+            ${badgeLabel ? `<div style="margin-top:0.5cqw;font-family:${th.monoStack};font-size:0.82cqw;letter-spacing:0.16em;text-transform:uppercase;color:${th.body};">${esc(badgeLabel)}</div>` : ""}
+          </div>
+          <div style="width:4.4cqw;height:0.14cqw;background:${th.accent2};box-shadow:0 0 1cqw ${rgba(th.accent2, 0.95)};"></div>
+          <div>
+            <div style="font-family:${th.displayStack};font-weight:800;font-size:1.7cqw;letter-spacing:0.03em;text-transform:uppercase;color:${th.ink};">${esc(String(brand).slice(0, 14))}</div>
+            <div style="margin-top:0.5cqw;font-family:${th.monoStack};font-size:0.8cqw;letter-spacing:0.2em;text-transform:uppercase;color:${th.soft};">${esc(url)}</div>
+          </div>
         </div>
       </div>`
     : `<div class="${id}-t3 ${id}-tile" style="opacity:0;position:relative;display:flex;align-items:center;justify-content:space-between;gap:2cqw;padding:0 3cqw;overflow:hidden;${hudCss(th, land, radius)}">
@@ -990,7 +1068,7 @@ const family = {
       used: bullets(scene || {}, 3),
     };
   },
-  theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaFallback,
+  theme, styleBlock, chrome, SCENES, TEMPLATE_SCENES, route, mediaSlots, mediaSlotsPortrait, mediaGeometry, mediaFallback,
   // Inject the site logo into slot `a` of the closer — no demand-math change; the
   // engine only stamps data-media-* on real demand, so coverage never drifts.
   wantsLogo: (t) => t === "launchcta",
@@ -1031,4 +1109,9 @@ function buildComposition(opts) { return E.buildFilm(family, opts); }
 // drift from the film that ships.
 function planMedia(opts) { return E.planMedia(family, opts); }
 
-module.exports = { buildComposition, planMedia, TEMPLATE_SCENES };
+// FAMILY is the pack's whole design object — the same one buildFilm renders from.
+// It is exported so callers OUTSIDE the renderer can read the slot contract without
+// building a film: services/template_media.resolveMediaPlan needs `mediaSlots` and
+// `mediaGeometry` to tell preflight which boxes this template will draw and what
+// shape each one is, and the crop engine needs the resulting aspect list.
+module.exports = { buildComposition, planMedia, TEMPLATE_SCENES, FAMILY: family };

@@ -49,7 +49,7 @@ function validateMedia(filePath, type) {
       "-show_entries", "stream=codec_name,width,height",
       "-of", "json",
       filePath,
-    ]);
+    ], { windowsHide: true });
     let out = "";
     p.stdout.on("data", (d) => { out += d.toString(); });
     const timer = setTimeout(() => { try { p.kill("SIGKILL"); } catch { /* noop */ } }, 20_000);
@@ -77,7 +77,7 @@ function reencodeForHyperframes(srcPath) {
       "-r", "30", "-g", "30", "-keyint_min", "30", "-sc_threshold", "0",
       "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-an",
       tmpPath,
-    ]);
+    ], { windowsHide: true });
     const timer = setTimeout(() => { try { p.kill("SIGKILL"); } catch { /* noop */ } }, 120_000);
     p.on("error", () => { clearTimeout(timer); try { fs.unlinkSync(tmpPath); } catch { /* noop */ } resolve(); });
     p.on("exit", (code) => {

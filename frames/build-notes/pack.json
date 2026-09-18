@@ -1,0 +1,61 @@
+{
+  "name": "build-notes",
+  "vibe": "technical / documentation — a yard at the end of the shift. Bevan over Barlow; a luminance-ladder palette on #ece7dd. Portrait-native 9:16, 18 authored beats, 128s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#ece7dd",
+    "ink": "#131210",
+    "accent": "#d8452c",
+    "a2": "#2f6bd1"
+  },
+  "fonts": [
+    "Bevan",
+    "Barlow",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#ece7dd",
+    "ink": "#131210"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#d8452c",
+      "#2f6bd1"
+    ],
+    "extras": [
+      "#716c62"
+    ],
+    "emphasisCss": "color:#d8452c;"
+  },
+  "assets": {
+    "photoMod": "a yard at the end of the shift editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "technical",
+      "documentation"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Bevan",
+    "body": "Barlow",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-build-notes",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

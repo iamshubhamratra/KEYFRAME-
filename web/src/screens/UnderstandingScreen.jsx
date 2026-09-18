@@ -51,6 +51,15 @@ export default function UnderstandingScreen({ projectId, autopilot = false, onSc
   const source = hostOf(project?.websiteUrl) || (project?.referenceVideo ? "your reference film" : "your brief");
   const packLore = brief?.suggestedFramePack ? loreFor(brief.suggestedFramePack) : null;
 
+  // What the scope gate found in the request that a video cannot deliver — "and write
+  // three tweets" beside a story film. The job exists, so the video half is being
+  // made; saying so HERE, before the script, beats the person discovering it in the
+  // finished film. Trailing punctuation is trimmed because the sentence supplies its
+  // own full stop.
+  const unsupportedParts = (project?.scope?.unsupportedParts || [])
+    .map((p) => String(p).trim().replace(/[\s.;,]+$/, ""))
+    .filter(Boolean);
+
   const facts = [
     brief?.improvedPrompt,
     brief?.audience && `Audience: ${brief.audience}`,
@@ -95,6 +104,17 @@ export default function UnderstandingScreen({ projectId, autopilot = false, onSc
               ? "Autopilot is on, so it approves the script and rolls straight into production."
               : "You approve the understanding before a single frame is drawn."}
           </p>
+          {/* One quiet line, not a card or an alert: nothing went wrong, and the film
+              is still on its way. Ink rather than --color-dim so the one sentence that
+              changes the person's expectations clears contrast on the paper ground. */}
+          {unsupportedParts.length > 0 && (
+            <div style={{ marginTop: 18 }}>
+              <div className="label-mono" style={{ marginBottom: 4 }}>NOTE</div>
+              <p style={{ margin: 0, color: "var(--color-ink)", fontSize: 14, lineHeight: 1.6 }}>
+                KEYFRAME is making the video. It won't also: {unsupportedParts.join("; ")}.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* right — the understanding card, filling in live */}

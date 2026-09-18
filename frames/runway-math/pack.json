@@ -1,0 +1,61 @@
+{
+  "name": "runway-math",
+  "vibe": "business / analyst — a balloon at dusk, losing height between burns. Sora over Epilogue; a luminance-ladder palette on #12111c. Portrait-native 9:16, 18 authored beats, 129s as shipped. Article grammar: body paragraphs, pull quotes and a reading footer, every beat checked against a 225 wpm reading budget.",
+  "colors": {
+    "ground": "#12111c",
+    "ink": "#f1f0f7",
+    "accent": "#9b7bff",
+    "a2": "#ffb15c"
+  },
+  "fonts": [
+    "Sora",
+    "Epilogue",
+    "IBM Plex Mono"
+  ],
+  "surface": {
+    "flat": false,
+    "lightCinematic": false,
+    "ground": "#12111c",
+    "ink": "#f1f0f7"
+  },
+  "motion": {
+    "cut": "panel",
+    "drift": 1.03
+  },
+  "fx": {
+    "canvas": "grid",
+    "three": null
+  },
+  "skin": {
+    "accents": [
+      "#9b7bff",
+      "#ffb15c"
+    ],
+    "extras": [
+      "#8f8da8"
+    ],
+    "emphasisCss": "color:#9b7bff;"
+  },
+  "assets": {
+    "photoMod": "a balloon at dusk, losing height between burns editorial documentation workspace",
+    "iconStyle": "line",
+    "keywords": [
+      "business",
+      "analyst"
+    ],
+    "prefer": [
+      "vector",
+      "photo"
+    ]
+  },
+  "typography": {
+    "display": "Sora",
+    "body": "Epilogue",
+    "mono": "IBM Plex Mono",
+    "case": "none"
+  },
+  "renderer": "film-runway-math",
+  "portraitNative": true,
+  "longForm": true,
+  "longFormOk": true
+}

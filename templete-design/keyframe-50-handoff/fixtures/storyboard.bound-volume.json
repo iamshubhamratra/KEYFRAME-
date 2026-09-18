@@ -1,0 +1,276 @@
+{
+ "slug": "bound-volume",
+ "engine": "filmkit",
+ "orientation": "vertical",
+ "viewport": {
+  "width": 1080,
+  "height": 1920
+ },
+ "runtimeMs": 129400,
+ "playback": {
+  "mode": "loop"
+ },
+ "tweaksAtCapture": {
+  "brand": "Bound Volume",
+  "bg": "#e8ddca",
+  "accent": "#8c3a32",
+  "accent2": "#b99244",
+  "motion": "Lively",
+  "typeScale": "Default"
+ },
+ "beats": [
+  {
+   "index": 0,
+   "beat": "Hook",
+   "startMs": 0,
+   "durationMs": 7400,
+   "fields": {
+    "kicker": "AN ESSAY",
+    "title": "The long form|is not dead.",
+    "sub": "It moved. It is waiting where nobody is measuring, in the middle of the page."
+   }
+  },
+  {
+   "index": 1,
+   "beat": "Body",
+   "startMs": 7400,
+   "durationMs": 8400,
+   "fields": {
+    "kicker": "THE CLAIM",
+    "body": "Attention did not shorten. It moved to whatever earns it. A paragraph that says something still holds a reader for as long as it deserves.",
+    "note": "Essay · 2,400 words"
+   }
+  },
+  {
+   "index": 2,
+   "beat": "Statement",
+   "startMs": 15800,
+   "durationMs": 5000,
+   "fields": {
+    "title": "Nobody skims|a good sentence.",
+    "sub": "They slow down for it."
+   }
+  },
+  {
+   "index": 3,
+   "beat": "Typing",
+   "startMs": 20800,
+   "durationMs": 6000,
+   "fields": {
+    "title": "The first line|is a promise.",
+    "prompt": "DRAFT",
+    "text": "Begin where they are.",
+    "stamp": "SET"
+   }
+  },
+  {
+   "index": 4,
+   "beat": "Body",
+   "startMs": 26800,
+   "durationMs": 9000,
+   "fields": {
+    "kicker": "WHAT CHANGED",
+    "body": "The page did not get worse. It got crowded. Between the banner and the footer, the argument now has to survive a dozen invitations to leave."
+   }
+  },
+  {
+   "index": 5,
+   "beat": "Quote",
+   "startMs": 35800,
+   "durationMs": 7000,
+   "fields": {
+    "quote": "A reader gives you|one sentence|before deciding|whether to stay.",
+    "attrib": "On editing, 1971"
+   }
+  },
+  {
+   "index": 6,
+   "beat": "Statement",
+   "startMs": 42800,
+   "durationMs": 5000,
+   "fields": {
+    "title": "02|Say less.",
+    "sub": "Then say it slower."
+   }
+  },
+  {
+   "index": 7,
+   "beat": "Stats",
+   "startMs": 47800,
+   "durationMs": 8000,
+   "fields": {
+    "title": "The essay,|measured.",
+    "stats": [
+     {
+      "to": 2400,
+      "suffix": "",
+      "label": "words in the piece this cut came from"
+     },
+     {
+      "to": 9,
+      "suffix": "",
+      "label": "sentences that carry the argument"
+     },
+     {
+      "to": 11,
+      "suffix": "min",
+      "label": "to read it on the page"
+     }
+    ]
+   }
+  },
+  {
+   "index": 8,
+   "beat": "Body",
+   "startMs": 55800,
+   "durationMs": 9400,
+   "fields": {
+    "kicker": "THE METHOD",
+    "body": "Keep the sentences that carry the argument. Give each one the time a reader needs. Everything else is furniture, and furniture can wait in the margin."
+   }
+  },
+  {
+   "index": 9,
+   "beat": "Scroll",
+   "startMs": 65200,
+   "durationMs": 9000,
+   "fields": {
+    "title": "What survives|the cut.",
+    "items": [
+     {
+      "t": "The opening promise",
+      "v": "i"
+     },
+     {
+      "t": "One idea per beat",
+      "v": "ii"
+     },
+     {
+      "t": "The turn",
+      "v": "iii"
+     },
+     {
+      "t": "The counter-argument",
+      "v": "iv"
+     },
+     {
+      "t": "The example",
+      "v": "v"
+     },
+     {
+      "t": "The last line",
+      "v": "vi"
+     }
+    ]
+   }
+  },
+  {
+   "index": 10,
+   "beat": "Feature",
+   "startMs": 74200,
+   "durationMs": 8000,
+   "fields": {
+    "title": "A picture,|if you have one.",
+    "chips": [
+     "Optional",
+     "Collapses to type",
+     "Never a placeholder"
+    ],
+    "image": "",
+    "fallbackText": "When no image comes back the beat becomes a paragraph, and borrows the nearest line the essay has not used yet."
+   },
+   "mediaSlots": [
+    {
+     "id": "image",
+     "bound": null,
+     "onEmpty": "swap per look.feature.swap",
+     "fallbackText": "When no image comes back the beat becomes a paragraph, and borrows the nearest line the essay has not used yet."
+    }
+   ]
+  },
+  {
+   "index": 11,
+   "beat": "Quote",
+   "startMs": 82200,
+   "durationMs": 6500,
+   "fields": {
+    "quote": "The middle of the page|is the only place|left that is quiet.",
+    "attrib": "Reader, thirty-four"
+   }
+  },
+  {
+   "index": 12,
+   "beat": "Ring",
+   "startMs": 88700,
+   "durationMs": 6000,
+   "fields": {
+    "title": "Read to the end.",
+    "to": 78,
+    "label": "finish the essay",
+    "sub": "Against the same piece as an unbroken wall of text."
+   }
+  },
+  {
+   "index": 13,
+   "beat": "Body",
+   "startMs": 94700,
+   "durationMs": 8200,
+   "fields": {
+    "kicker": "TYPE",
+    "body": "One serif for the argument, one sans for the asides. Measure held near sixty characters, leading open enough to breathe."
+   }
+  },
+  {
+   "index": 14,
+   "beat": "Montage",
+   "startMs": 102900,
+   "durationMs": 6500,
+   "fields": {
+    "title": "Page against|essay.",
+    "tiles": [
+     "A page nobody finishes",
+     "An essay they quote"
+    ]
+   }
+  },
+  {
+   "index": 15,
+   "beat": "Statement",
+   "startMs": 109400,
+   "durationMs": 5500,
+   "fields": {
+    "title": "Write the middle.|Not the hook.",
+    "sub": "The hook is easy. The middle is the work."
+   }
+  },
+  {
+   "index": 16,
+   "beat": "Body",
+   "startMs": 114900,
+   "durationMs": 8000,
+   "fields": {
+    "kicker": "TAKEAWAY",
+    "body": "Attention is not scarce. Patience is earned, one sentence at a time, and the reader stays for as long as you keep earning it."
+   }
+  },
+  {
+   "index": 17,
+   "beat": "CTA",
+   "startMs": 122900,
+   "durationMs": 6500,
+   "fields": {
+    "title": "Turn the essay|into a film.",
+    "cta": "Read the essay",
+    "url": "keyframe.ai/essay",
+    "logo": ""
+   },
+   "mediaSlots": [
+    {
+     "id": "logo",
+     "bound": null,
+     "onEmpty": "pack icon mark"
+    }
+   ]
+  }
+ ]
+}

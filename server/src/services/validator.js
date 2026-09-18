@@ -5,18 +5,17 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawnCompat, killTree } = require("./spawn_compat");
-
-const config = require("../config");
-
-const WINDOWS = process.platform === "win32";
-
-// Pin lint + inspect to the SAME hyperframes the renderer uses, so the safety
-// gate validates against the exact engine that renders the MP4 (different
-// versions can carry different lint/occlusion rules) and a cold box can't fetch
-// a newer `latest` mid-run. Mirrors renderer.js's pin.
-const HF_SPEC = config.render?.hyperframesVersion
-  ? `hyperframes@${config.render.hyperframesVersion}`
-  : "hyperframes";
+// lint + inspect go through the SAME helper the renderer uses, so the safety
+// gate validates against the exact hyperframes build that renders the MP4
+// (different versions carry different lint/occlusion rules). That helper also
+// owns the version pin (SPEC/PIN, from config.render.hyperframesVersion), which
+// is why this module no longer builds a spec — or a raw npx command — of its own.
+//
+// This import was MISSING: runLint()/runInspect() below already called cliFor(),
+// so both threw `ReferenceError: cliFor is not defined` on every call. Every
+// gate here is fail-open, so that surfaced only as the LLM composer silently
+// falling back to the deterministic scene-kit on every single render.
+const { cliFor } = require("./hyperframes_cli");
 
 function writeFiles(jobDir, { indexHtml, metaJson }) {
   fs.mkdirSync(jobDir, { recursive: true });
@@ -30,7 +29,15 @@ function runLint(jobDir) {
     // spawnCompat runs .cmd shims under a shell (CVE-2024-27980) with
     // pre-quoted args (avoids DEP0190); a plain node path needs neither, and
     // spawnCompat passes it straight through.
-    const { cmd, args } = cliFor("lint");
+    // --json for the SAME reason runInspect uses it (see its contract note below):
+    // `lint` exits 1 whenever it reports ANYTHING, warnings included, so the exit
+    // code cannot tell "this composition is broken" from "this composition is fine
+    // but 196 divs could carry a Studio id". Measured on a real rendered film:
+    // 2 errors, 196 warnings, 9 info -> exit 1. Gating on the exit code would send
+    // virtually every composition back for an LLM repair lap (pipeline.js feeds
+    // !ok straight into the composer feedback prompt) and burn the whole repair
+    // budget on cosmetic findings. Gate on SEVERITY instead.
+    const { cmd, args } = cliFor("lint", ["--json", "."]);
     const p = spawnCompat(cmd, args, {
       cwd: jobDir,
       env: process.env,
@@ -45,10 +52,40 @@ function runLint(jobDir) {
 
     p.on("exit", (code) => {
       clearTimeout(timer);
+      let report = null;
+      // Plain JSON.parse, exactly like runInspect: with --json the child'''s stdout
+      // is the report and nothing else. (A lenient first-object extractor is the
+      // WRONG tool here — findings embed GSAP snippets full of literal braces,
+      // so brace-matching truncates the document mid-string.)
+      try { report = JSON.parse(out.trim()); } catch { /* fall through */ }
+
+      // Unparseable (a CLI too old for --json, a crash, empty output): fall back
+      // to the exit code so a genuinely broken run still registers, and hand the
+      // raw text back for the log.
+      if (!report || !Array.isArray(report.findings)) {
+        resolve({
+          ok: code === 0, code, parsed: false,
+          stdout: out.slice(-4000), stderr: err.slice(-4000),
+        });
+        return;
+      }
+
+      const errors = report.findings.filter((f) => f.severity === "error");
+      const warnings = report.findings.filter((f) => f.severity === "warning");
+      // The composer's repair prompt is built from stdout/stderr, so hand it ONLY
+      // the blocking findings — 196 warnings of context would drown the two lines
+      // that actually need fixing.
+      const summary = errors
+        .map((f) => f.code + ": " + f.message + (f.fixHint ? "\n" + "  Fix: " + f.fixHint : ""))
+        .join("\n");
+
       resolve({
-        ok: code === 0,
-        code,
-        stdout: out.slice(-4000),
+        ok: errors.length === 0,
+        code, parsed: true,
+        errorCount: errors.length,
+        warningCount: warnings.length,
+        errors,
+        stdout: summary.slice(-4000),
         stderr: err.slice(-4000),
       });
     });
