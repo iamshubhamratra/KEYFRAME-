@@ -47,6 +47,11 @@ services:
       # JWT signing secret for /api/auth/* — required or signup/login 500.
       - key: SECRET_KEY
         sync: false
+      # MongoDB Atlas connection string (users/OTPs — models/user.js). Free M0
+      # cluster; remember to allow network access from 0.0.0.0/0 in Atlas since
+      # Render's free plan has no static outbound IP to allowlist.
+      - key: MONGODB_URI
+        sync: false
       # ── Secret API keys — set these in the Render dashboard ──
       - key: OPENROUTER_API_KEY
         sync: false

@@ -76,9 +76,10 @@ voice stem → mix → SRT/VTT, poster, credits, layout → QA`.
 4. **Safe areas are one table** (`render/profiles.SAFE_AREAS`) used by card placement and `qa/checks`; cards are scaled
    and placed inside it (before this, the top region at 6 % tripped QA, whose repair then disabled the hook card).
 5. **A PIP never shares the logo's corner** (it flips sides).
-6. **CROSSFADE renders as a short dip.** A true crossfade needs overlapping pieces, which the frame-exact
-   chunk/voice model deliberately does not have; the rhythm engine never emits CROSSFADE (only DIP/FLASH), only a user
-   `transition.set` can, and the composition records `CROSSFADE_AS_DIP`.
+6. **Picture transitions use frozen handles, not overlapping clips** (2026-09-18, replaces "CROSSFADE renders as a
+   dip"). The chunk/voice model never has two A-roll clips on screen at once, so `render/transitions.js` extends each side
+   of a joint with a clone of its last / first frame (tpad) and runs `xfade` centred on the joint: the outgoing clip plays
+   in real time up to the joint, the incoming one from it, the output keeps its exact frame count and lip-sync. See §8.
 7. **QA's clipped-word check ignores slivers of removed words ≤ 100 ms.** Retake cuts keep ~60 ms before the kept word on
    purpose (STT gives a stutter and its retake touching timestamps; clipping the kept onset is worse).
 8. **Client field names win**: render records are `{ renderId, planRevision, … }` everywhere (views, SSE, routes); QA is
@@ -134,6 +135,17 @@ renders never stay `running` (pipeline stages closed too); QA-lap progress stays
 head sits on an unshipped repair; NEEDS_ATTENTION (QA_INTEGRITY) → export retry path; retention/deletion treat renders as
 busy and wait for them; logos content-addressed with a forced demuxer and status-gated upload; zoom-emphasis continuous
 across sub-pieces; SPLIT in 1:1 renders FULL (noted).
+
+## 8. Transitions, looks and face-aware titles (2026-09-18)
+
+| What | Where | Notes |
+|---|---|---|
+| **Transitions between cuts** — `settings.cutTransition` = auto · smooth · zoom · whip · slide · blur · flash · none | `render/transitions.js` (plan + xfade graph), `render/composite.js` (applied to the base before B-roll, cards, captions) | Absent = `auto`: a 5-frame crossfade inside a sentence, a zoom punch / whip / slide / crossfade where a new sentence starts (≤ 1 per 3 s, ≤ 2 per 10 s). Joints under full-screen B-roll get none. Level COMPOSITE (no A-roll re-encode). |
+| **Transition kinds** | `plan/schema.js` ENUMS.transitionKind | + ZOOM_IN (face-centred scale punch + crossfade), WHIP_LEFT/RIGHT (slide + directional motion blur), SLIDE_UP, BLUR, CIRCLE_OPEN, PIXELATE; CROSSFADE is now a real crossfade. Duration ≤ 0.8 s. The director may pick them at topic changes. |
+| **Whoosh under strong transitions** | `render/compose.js` buildAudio, `render/materialize.js` (`media.transitionSfx`) | vol 0.22, leads the window by 60 ms, never stacked within 0.4 s of a planned SFX; off with SFX. |
+| **Looks** — `settings.look` = natural · warm · cool · vivid · cinematic · mono · vintage | `render/looks.js`, composite (after B-roll, before cards/captions/logo) | Blacks stay black; text and brand colours are never graded. |
+| **Face-aware title placement** | `render/compose.js` placeCard / cardInk / faceOutAt | Cards are placed by their LETTERS (ink box), moved vertically clear of the tracked face (over every frame they are up) and of captions, inside the safe area. The layout reports the ink box; QA `CARD_COVERS_FACE` flags what is left. |
+| **Renderer version** | `render/render.js` RENDERER_VERSION, `engine/render_jobs.js` | A render from an older renderer is not reused for the same plan; opening an edit whose preview is outdated queues a fresh preview. |
 
 ## 7. Known limitations
 

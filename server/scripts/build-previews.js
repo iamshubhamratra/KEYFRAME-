@@ -409,7 +409,7 @@ function authoredProgram(packName) {
 
 // A pack's OWN directory. Every read of a pack's files goes through this, so the
 // admin template pipeline can render a DRAFT that deliberately does not live in
-// frames/ (src/admin/template_store.js — publish is the MOVE into frames/, and a
+// frames/ (src/models/template.js — publish is the MOVE into frames/, and a
 // draft sits in frames-draft/<slug>/v<N>/ until then). Omitting it keeps the
 // installed pack, which is what the fleet build passes.
 function packDirOf(name) { return path.join(frameRegistry.FRAMES_DIR, name); }

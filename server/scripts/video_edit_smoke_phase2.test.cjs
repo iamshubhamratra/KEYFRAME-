@@ -88,7 +88,7 @@ async function startRuntime(label) {
   const store = createStore({ settings, log: capLog });
   store.init();
   const events = createEventBus({ store, settings });
-  // Template queue read-only peek injected: the default requires db.js, which loads config + server/.env.
+  // Template queue read-only peek injected: the default requires models/job.js, which loads config + server/.env.
   const queue = createQueue({ settings, getTemplateActiveCount: () => 0, pollMs: 50 });
   // Explicit Phase-2 stages only (media/probe_strict + media/normalize). The default registry also
   // carries the analysis stages, which call paid providers — this suite must stay offline.

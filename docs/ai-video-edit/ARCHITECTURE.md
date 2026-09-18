@@ -331,7 +331,7 @@ ultrafast, composite veryfast, HDR tonemap cost).
 
 ## Platform: store, API, security, jobs
 
-### Store (`server/src/video_edit/store.js`, modeled on `server/src/admin/template_store.js:42-82,190-208`)
+### Store (`server/src/video_edit/store.js`, modeled on `server/src/models/template.js`)
 - Root `config.videoEdit.dir` (default `server/edits`, refused if inside `public/`, `jobs/`, `uploads/`); index cache
   `server/video-edits.json`; per project `edits/ve_<16>/`: `project.json(.bak)`, `source/original.bin` (never served),
   `work/{mezz.mp4,proxy540.mp4,audio16k.wav,voice48k.wav,chunks/,frames/}`, `analysis/{vad,stt/chunk-*,transcript.words,
@@ -443,7 +443,7 @@ Start/Export, `--color-dark-dim` on dark); lint-safe (no non-component exports f
   Low/Medium/High, effects Subtle/Dynamic, fillers, silence pace Natural/Fast/Extra-fast, jump cuts), consent + privacy line.
 - **Analysis** (`AiEditAnalyzing.jsx`, "SC 02 · THE READ"): stage checklist with `aria-current="step"`, ETA, queue position,
   stop, live discoveries (duration, language, words, fillers, silences, topics, hook, B-roll moments, face found), safe to leave
-  (resume via `?edit=<id>` / My edits).
+  (resume via `/edits/<id>` / My edits).
 - **Editor** (`AiEditor.jsx`, "SC 03 · THE EDIT BAY"): preview player (server render of a revision; A/B `<video>` swap with
   time-map-preserved playhead), AI EDIT SUMMARY chips (`✓ CAPTIONS ✓ 6 B-ROLLS ✓ 3 PUNCH-INS ✓ 2 JUMP CUTS ✓ 14 FILLERS OUT
   ✓ MUSIC ✓ LOGO`), timeline strip (segments colored by type; B-roll/FX/captions/music tracks; dirty ranges hatched), transcript

@@ -37,10 +37,10 @@ function loadPQueue() {
   return mod.default || mod;
 }
 
-// Read-only peek at the template job queue. Required lazily: db.js loads config (and .env) and
+// Read-only peek at the template job queue. Required lazily: models/job.js loads config (and .env) and
 // must never be pulled in by a module that only needs a number; any failure means "no template load".
 function defaultTemplateActiveCount() {
-  try { return require("../../db").activeCount(); } catch { return 0; }
+  try { return require("../../models/job").activeCount(); } catch { return 0; }
 }
 
 function createQueue({

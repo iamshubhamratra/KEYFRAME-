@@ -7,7 +7,8 @@ import {
 } from "../adminApi.js";
 import { AdminGate, Field, Notice, PanelHead } from "./AdminShared.jsx";
 import AutoPanel from "./AdminAuto.jsx";
-import { ORIENTATIONS, OrientationTab } from "./Templates.jsx";
+import { OrientationTab } from "./Templates.jsx";
+import { ORIENTATIONS } from "../templateShelves.js";
 
 // ADMIN · THE GENERATOR — a prompt in, a schema-valid pack out.
 //

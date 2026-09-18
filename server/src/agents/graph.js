@@ -51,7 +51,7 @@ function drainNodeTimings(jobId, totalMs) {
 const fallbackLog = require("../services/fallback_log");
 const { showcaseTargets } = require("../services/scene_role");
 const { pinUserAssets } = require("../services/user_assets");
-const db = require("../db");
+const db = require("../models/job");
 const { UsageTracker } = require("../services/usage");
 // The film's PACE. One frozen profile per job, resolved once from the job row and
 // carried on the graph state — never re-derived inside a node, because

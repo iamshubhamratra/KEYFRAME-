@@ -1,6 +1,6 @@
 import { useAuth } from "../useAuth.js";
 import { statusMeta, lineOf } from "../adminApi.js";
-import { ORIENTATIONS } from "./Templates.jsx";
+import { ORIENTATIONS } from "../templateShelves.js";
 
 // Shared furniture for the three admin screens. Components only — the data
 // (STATUS_META, PIPELINE_STAGES, helpers) lives in adminApi.js so this file

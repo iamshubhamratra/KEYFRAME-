@@ -3560,7 +3560,9 @@
       "silenceRemovedSec": 4.3,
       "music": true,
       "logo": true,
-      "hookTitle": true
+      "hookTitle": true,
+      "cutTransition": "auto",
+      "look": "natural"
     }
   },
   "transcript": {

@@ -85,10 +85,14 @@ KEYFRAME/
 │   ├── auth-store.json          ← users + OTPs (GITIGNORED)
 │   ├── src/
 │   │   ├── config.js            ← config loader + validator + env overrides
-│   │   ├── db.js                ← in-memory job store w/ atomic JSON persistence
-│   │   ├── routes/              ← 6 Express routers
+│   │   ├── app.js               ← builds the Express app (middleware, routes, static, SPA fallback)
+│   │   ├── routes/              ← URL → controller maps (index.js mounts all)
+│   │   ├── controllers/         ← request/response handling per resource
+│   │   ├── models/              ← job.js (jobs.json), user.js, template.js — the flat-file stores
+│   │   ├── views/               ← presenters: job.js, frame.js (API JSON), emails.js
+│   │   ├── validators/          ← pure request validation
+│   │   ├── middleware/          ← auth, rate_limit, uploads, security headers/CORS
 │   │   ├── agents/              ← graph.js (LangGraph) + qa_agent.js
-│   │   ├── auth/                ← store, helpers, middleware, mailer, templates
 │   │   ├── prompts/             ← 13 system-prompt markdown files
 │   │   ├── fonts/pack_fonts.js  ← base64-inlined @font-face for pack display faces
 │   │   └── services/            ← 105 modules: the whole pipeline
@@ -216,15 +220,15 @@ This is deliberate: these all used to fail mid-render instead of at boot.
 
 ## 5. Data model — the job record
 
-There is **no real database**. `src/db.js` is an in-memory `Map<jobId, record>` persisted to
+There is **no real database**. `src/models/job.js` is an in-memory `Map<jobId, record>` persisted to
 `jobs.json` by a debounced atomic write (write to `.tmp`, then rename).
 
 **Trade-off accepted on purpose:** no native deps, works anywhere, trivially fast up to a few thousand
 jobs. `jobs.json` is currently ~4 MB / 367 jobs.
 
-### 5.1 Record fields (`db.js:174-219`)
+### 5.1 Record fields (`models/job.js` `insert()`)
 
-Internal record is snake_case; `shape()` (`db.js:130`) converts to camelCase for the API.
+Internal record is snake_case; `present()` (`views/job.js`) converts to camelCase for the API.
 
 ```
 id, kind ("generate"|"project"), prompt, duration, orientation, quality, width, height, fps,
@@ -249,7 +253,7 @@ task (the full replayable task for crash recovery), requeue_count, last_requeue_
 - **Project production:** `storyboard` → `assets` → `composing` → `audio` → `finalizing`
 - **Single-shot:** `brief` → `storyboard` → `assets` → `composing` → `qa` → `audio` → `finalizing`
 
-### 5.3 Crash recovery (`db.js:100-128`)
+### 5.3 Crash recovery (`models/job.js`, boot section)
 
 At boot, any job left `running` is inspected:
 - a `generate` job with a stored `task` → requeued verbatim,
@@ -279,7 +283,7 @@ Mounted in `server.js:135-140`. All app routes are under `/api` except `/health`
 | `GET` | `/api/jobs/:id` | Shaped job record + live ETA |
 | `GET` | `/api/jobs/:id/stream` | SSE job stream |
 
-**`POST /api/generate` body** (validated in `routes/generate.js:18-118`):
+**`POST /api/generate` body** (validated in `validators/generate.js`):
 
 ```jsonc
 {
@@ -1057,7 +1061,7 @@ run with `cwd = jobs/<jobId>/`, then moves the MP4 to `public/videos/<jobId>.mp4
 `server/showcase/` is **never** swept — it holds the hand-authored reference compositions.
 
 **The ghost-video problem:** the janitor deletes MP4s but job records persist, so the gallery 404-stormed
-on deleted files. Fixed read-side with `db.videoUrlIfExists()` (`db.js:38`) which gates `video_url` at
+on deleted files. Fixed read-side with `videoUrlIfExists()` (`views/job.js`) which gates `video_url` at
 read time, plus an `onError` gradient fallback in the UI.
 
 ---
@@ -1271,7 +1275,7 @@ Downloads are auto-validated with ffprobe and auto-registered into the local cac
 
 1. `server.js` — 207 lines, the whole wiring.
 2. `src/config.js` `validate()` — what the system refuses to start without.
-3. `src/db.js` `shape()` + `insert()` — the data model.
+3. `src/models/job.js` `insert()` + `src/views/job.js` `present()` — the data model and its API shape.
 4. `src/agents/graph.js:1052-1162` — the graph and the QA routing decision.
 5. `src/services/pipeline.js:933-1030` — `attemptLlmComposition`, the composition dispatch.
 6. `src/services/openrouter.js:410-513` — the provider cascade.

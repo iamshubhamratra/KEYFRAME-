@@ -8,7 +8,6 @@ import { statusBadge, fmtDuration, fmtWhen, errorCopy, uploadStatusLine } from "
 import { useUpload, isBusy } from "../../uploadStore.js";
 import { useNow } from "../../clockStore.js";
 import { removeRecent } from "../../recentEdits.js";
-import { writeListParam, clearListParam } from "../../deepLink.js";
 
 // MY EDITS (UX.md §1e) — the cutting room: every edit this person owns, newest first, merged with
 // the upload still in flight on this browser. Each card is a small monitor showing the take in its
@@ -111,7 +110,7 @@ function mergeProjects(first, extra, removed) {
   return out;
 }
 
-export default function AiEditList({ onOpen, onNew, onNeedAuth }) {
+export default function AiEditList({ onOpen, onOpenList, onNew, onNeedAuth }) {
   const reduce = useReducedMotion();
   const now = useNow();
   const up = useUpload();
@@ -130,12 +129,6 @@ export default function AiEditList({ onOpen, onNew, onNeedAuth }) {
   useEffect(() => {
     alive.current = true;
     return () => { alive.current = false; };
-  }, []);
-
-  // ?edits deep link while this screen is up.
-  useEffect(() => {
-    writeListParam();
-    return () => clearListParam();
   }, []);
 
   // A finished upload lands in the server list: refetch when the store says it started.
@@ -179,9 +172,8 @@ export default function AiEditList({ onOpen, onNew, onNeedAuth }) {
 
   const retryAfterAuth = () => {
     if (alive.current) { setReloadKey((k) => k + 1); return; }
-    // Auth replaced this screen; come back to the list with a fresh load.
-    writeListParam();
-    window.location.reload();
+    // Auth replaced this screen; come back to the list, which loads fresh.
+    onOpenList?.();
   };
 
   // After a delete the confirm dialog can't hand focus back to its opener (that card is gone), so the

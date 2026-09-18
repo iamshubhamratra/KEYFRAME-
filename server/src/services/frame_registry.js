@@ -32,7 +32,7 @@ if (FRAMES_DIR) {
 }
 
 // RETIRED PACKS (config.frames.retired). A pack is live the INSTANT its folder
-// lands in frames/ (see admin/template_store.js), which makes listPacks() the
+// lands in frames/ (see models/template.js), which makes listPacks() the
 // single choke point where one can be taken out of circulation: the gallery
 // (/api/frames), the Create picker, the brief's tone match, auto-selection,
 // resolvePack() and preview building all read it. Naming a pack here therefore

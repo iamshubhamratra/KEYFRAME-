@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createProject, listFrames } from "../api.js";
 import { PACK_LORE, PACK_ORDER, loreFor } from "../packlore.js";
-import { PackCard, ORIENTATIONS, OrientationTab, splitByOrientation, tabForPack } from "./Templates.jsx";
+import { PackCard, OrientationTab } from "./Templates.jsx";
+import { ORIENTATIONS, splitByOrientation, tabForPack } from "../templateShelves.js";
 
 // The v2 editor, made real: "Type. Then watch it shoot itself."
 // Dark editor card with traffic lights, colored source chips, timeline

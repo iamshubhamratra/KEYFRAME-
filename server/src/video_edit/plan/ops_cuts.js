@@ -28,6 +28,8 @@ const PACING_KEYS = Object.freeze(["removeSilence", "silencePace", "removeFiller
 const SETTING_LEVELS = Object.freeze({
   removeSilence: "SHIFT", silencePace: "SHIFT", removeFillers: "SHIFT", autoJumpCuts: "SHIFT", punchInOnJumpCuts: "SHIFT",
   brollIntensity: "COMPOSITE", effects: "BASE", effectsEnabled: "BASE",
+  // transitions and the colour look are drawn in the composite: no A-roll chunk is re-encoded
+  cutTransition: "COMPOSITE", look: "COMPOSITE",
 });
 const REPLAN_KEYS = Object.freeze(["brollIntensity", "effects", "removeSilence", "silencePace", "removeFillers", "autoJumpCuts"]);
 

@@ -55,7 +55,7 @@ const SYSTEM_PROMPT = [
   " \"graphics\":[{\"kind\":\"HOOK_TITLE\"|\"KEYWORD\"|\"STAT\"|\"LOWER_THIRD\"|\"CTA\"|\"LOGO_OUTRO\",\"sentenceId\":\"s8\",\"title\":\"≤32 chars\",\"subtitle\":\"≤48 chars (optional)\",\"value\":\"optional number\",\"priority\":0.0-1.0,\"reason\":\"...\"}],",
   " \"sfx\":[{\"anchor\":\"broll_in\"|\"graphic_in\"|\"punch_in\"|\"section_change\",\"ref\":\"<sentenceId of that event>\",\"cue\":\"<one of vocabularies.sfxCues>\",\"priority\":0.0-1.0,\"reason\":\"...\"}],",
   " \"music\":{\"include\":true|false,\"mood\":\"<one of vocabularies.moods>\",\"query\":\"≤4 words\",\"energy\":0.0-1.0,\"reason\":\"...\"},",
-  " \"transitions\":[{\"afterSentenceId\":\"s5\",\"kind\":\"DIP_BLACK\"|\"FLASH\",\"reason\":\"...\"}],",
+  " \"transitions\":[{\"afterSentenceId\":\"s5\",\"kind\":\"WHIP_LEFT\"|\"ZOOM_IN\"|\"SLIDE_UP\"|\"CROSSFADE\"|\"DIP_BLACK\"|\"FLASH\",\"reason\":\"...\"}],",
   " \"hookTitle\":{\"text\":\"≤32 chars\",\"sentenceId\":\"s1\"}|null,",
   " \"ctaCard\":{\"text\":\"≤32 chars\",\"sentenceId\":\"s12\"}|null}",
   "Use only sentence ids that exist in the input. Copy fromText, toText and wordText VERBATIM from that sentence's text.",
@@ -83,7 +83,9 @@ const SYSTEM_PROMPT = [
   "   never decorative, never on emotional moments, never the same cue twice in a row.",
   "9. Music: choose the mood from the tone of the content, query = mood + genre words (no artists, no song titles), energy from the",
   "   delivery; include=false when music would undercut a serious or intimate message.",
-  "10. Transitions: only DIP_BLACK or FLASH at a real topic change, rarely. Everything else stays a hard cut; do not list cuts.",
+  "10. Transitions: only at a real topic change, rarely. WHIP_LEFT/WHIP_RIGHT/ZOOM_IN/SLIDE_UP for energetic moves to a new point, CROSSFADE",
+  "    for a calm or emotional shift, DIP_BLACK for a strong break, FLASH for a reveal. Do not list ordinary cuts: the edit's cut style",
+  "    already transitions every other joint.",
 ].join("\n");
 
 const PROMPT_HASH = sha256Json({ system: SYSTEM_PROMPT, promptVersion: PROMPT_VERSION });

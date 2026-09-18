@@ -2,8 +2,8 @@
 // (EDIT_PLAN.md §5).
 //
 // WHY THIS EXISTS. These ops are individually simple but each carries one rule that is easy to get
-// wrong in a client: zoom limits differ per effect kind, a CROSSFADE needs a kept pause at a segment
-// boundary, graphic text limits depend on the kind, music/SFX volumes are dB on the wire but a clamped
+// wrong in a client: zoom limits differ per effect kind, a picture transition needs a longer window than a
+// dip, graphic text limits depend on the kind, music/SFX volumes are dB on the wire but a clamped
 // linear gain in the plan, a palette change re-renders every card, and an aspect change must not leave
 // a SPLIT layout on a square video. Centralizing them keeps the plan valid no matter which client sent
 // the op. Nothing here performs I/O: a new music search is `music.track = null` + costEvent NEEDS_FETCH.
@@ -22,6 +22,7 @@ const { z } = require("zod");
 const T = require("./timeline");
 const { ENUMS, GRAPHIC_USER_LIMITS, outputDims } = require("./schema");
 const U = require("./ops_util");
+const { XFADE_KINDS } = require("../render/transitions");
 
 const FxId = z.string().regex(/^fx_[A-Za-z0-9_-]{1,40}$/);
 const Hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
@@ -127,19 +128,14 @@ const HANDLERS = {
       const segs = derived.aRoll.segments;
       const k = at.elementId ? segs.findIndex((s) => s.id === at.elementId) : -1;
       if (k >= 0 && segs[k].resolved) outAt = segs[k].resolved.outOut;
-      if (p.kind === "CROSSFADE") {
-        if (k < 0 || k + 1 >= segs.length) U.reject("CROSSFADE is only allowed at a segment boundary");
-        const a = segs[k].anchor, b = segs[k + 1].anchor;
-        if (a.kind !== "words" || b.kind !== "words") U.reject("CROSSFADE is only allowed at a segment boundary");
-        const map = env.timeMap();
-        const pause = map.srcToOutStart(env.words[b.w0].start) - map.srcToOutEnd(env.words[a.w1].end);
-        if (pause < 0.3 - 1e-9) U.reject(`CROSSFADE needs a kept pause of at least 0.3 s (this one is ${U.r3(Math.max(0, pause))} s)`);
-      }
-      const old = t.kind;
       t.kind = p.kind;
-      const level = old === "CROSSFADE" || p.kind === "CROSSFADE" ? "BASE" : "COMPOSITE";
+      // A picture transition (crossfade, zoom, whip …) needs a longer window than a dip; never shorten one.
+      const spec = XFADE_KINDS[p.kind];
+      if (spec && !(t.durationSec >= spec.sec - 1e-9)) t.durationSec = Math.min(0.8, spec.sec);
+      // Every kind is drawn in the composite (a real crossfade uses frozen handles, not overlapping A-roll), so a
+      // change never re-encodes A-roll chunks.
       const targets = outAt == null ? [ALL] : [{ out: [outAt - t.durationSec, outAt + t.durationSec] }];
-      return { level, targets, elementIds: [t.id] };
+      return { level: "COMPOSITE", targets, elementIds: [t.id] };
     },
   },
 

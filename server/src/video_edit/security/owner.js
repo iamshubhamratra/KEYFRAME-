@@ -2,14 +2,14 @@
 //
 // WHY THIS EXISTS. Template jobs are anonymous and publicly listed; edit projects hold a person's
 // raw footage and must be private. Two checks run on every non-health route (API.md §2 steps 3, 6):
-//   requireEditUser  — the JWT cookie (auth/middleware.readUserId) must name a user that STILL exists
-//                      in auth/store (a deleted account's cookie is dead immediately, not at JWT expiry).
+//   requireEditUser  — the JWT cookie (middleware/auth.readUserId) must name a user that STILL exists
+//                      in models/user (a deleted account's cookie is dead immediately, not at JWT expiry).
 //                      Media and SSE routes may instead present a playback token (`?t=`, §6); a token
 //                      that is present but bad or expired is 403 MEDIA_TOKEN_INVALID, never ignored.
 //   loadOwnedProject — `:id` must match the id regex BEFORE any disk access, and an unknown id, another
 //                      user's project and a project being deleted all answer the same 404 NOT_FOUND, so
 //                      ids cannot be probed. A token bound to a different project of the same user is 403.
-// The auth modules are required lazily: auth/store loads config (and server/.env), which offline tests
+// The auth modules are required lazily: models/user loads config (and server/.env), which offline tests
 // must never pull in — they inject readUserId / findUserById instead.
 //
 // CONTRACT:
@@ -27,25 +27,27 @@ const { EditError, toErrorBody } = require("../errors");
 function userResolver({ readUserId, findUserById } = {}) {
   let read = typeof readUserId === "function" ? readUserId : null;
   let find = typeof findUserById === "function" ? findUserById : null;
-  const readFn = () => read || (read = require("../../auth/middleware").readUserId);
-  const findFn = () => find || (find = require("../../auth/store").findUserById);
+  const readFn = () => read || (read = require("../../middleware/auth").readUserId);
+  const findFn = () => find || (find = require("../../models/user").findUserById);
   return {
     cookieUser(req) {
       let u = null;
       try { u = readFn()(req) || null; } catch { u = null; }
       return typeof u === "string" && u ? u : null;
     },
-    exists(userId) {
-      try { return !!findFn()(userId); } catch { return false; }
+    // findUserById is async (Mongo-backed, models/user.js) — await it and fail
+    // closed (not authenticated) on any lookup error, same as a missing user.
+    async exists(userId) {
+      try { return !!(await findFn()(userId)); } catch { return false; }
     },
   };
 }
 
 function readEditUser(opts = {}) {
   const users = userResolver(opts);
-  return function readEditUser(req) {
+  return async function readEditUser(req) {
     const userId = users.cookieUser(req);
-    return userId && users.exists(userId) ? userId : null;
+    return userId && (await users.exists(userId)) ? userId : null;
   };
 }
 
@@ -64,21 +66,25 @@ function requireEditUser({
   let verify = typeof verifyMediaToken === "function" ? verifyMediaToken : null;
   const verifyFn = () => verify || (verify = require("./media_token").verifyMediaToken);
 
-  return function requireEditUser(req, res, next) {
-    const cookieUser = users.cookieUser(req);
-    let userId = cookieUser;
-    const t = allowToken && req.query ? req.query.t : undefined;
-    if (t !== undefined) {
-      const payload = typeof t === "string" ? verifyFn()(t, { secret: tokenSecret, env, now }) : null;
-      if (!payload) return sendError(req, res, tokenInvalid());
-      if (cookieUser && cookieUser !== payload.userId) return sendError(req, res, tokenInvalid());
-      req.mediaToken = payload;
-      userId = payload.userId;
+  return async function requireEditUser(req, res, next) {
+    try {
+      const cookieUser = users.cookieUser(req);
+      let userId = cookieUser;
+      const t = allowToken && req.query ? req.query.t : undefined;
+      if (t !== undefined) {
+        const payload = typeof t === "string" ? verifyFn()(t, { secret: tokenSecret, env, now }) : null;
+        if (!payload) return sendError(req, res, tokenInvalid());
+        if (cookieUser && cookieUser !== payload.userId) return sendError(req, res, tokenInvalid());
+        req.mediaToken = payload;
+        userId = payload.userId;
+      }
+      if (!userId) return sendError(req, res, authRequired());
+      if (!(await users.exists(userId))) return sendError(req, res, authRequired());
+      req.userId = userId;
+      return next();
+    } catch {
+      return sendError(req, res, authRequired());
     }
-    if (!userId) return sendError(req, res, authRequired());
-    if (!users.exists(userId)) return sendError(req, res, authRequired());
-    req.userId = userId;
-    return next();
   };
 }
 

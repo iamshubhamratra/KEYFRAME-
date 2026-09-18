@@ -324,6 +324,9 @@ const REPAIRS = Object.freeze({
     },
   },
   AV_OFFSET: { label: "rerender post (voice stem)", plan: (f) => ({ actions: [{ action: "rerender", level: "post", ranges: [], rebuildVoice: true, avOffsetMs: f.data && f.data.ms }] }) },
+  // Placement already moves every card to the clearest spot it has (render/compose placeCard); what is left has no
+  // better position, so this one is reported, not repaired.
+  CARD_COVERS_FACE: reportOnly("report only"),
   EXPOSURE_OR_COLOR_JUMP: reportOnly("report only"),
   LOGO_PROBLEM: reportOnly("report only"),
   OTHER: reportOnly("report only"),

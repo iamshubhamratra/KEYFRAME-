@@ -227,7 +227,7 @@ async function recordDeliveryProbe(jobId, videoPath, expected = {}) {
       issues,
       at: null,           // stamped by the caller's clock if it wants one
     };
-    try { require("../db").setDeliveryProbe(jobId, record); } catch { /* disclosure only */ }
+    try { require("../models/job").setDeliveryProbe(jobId, record); } catch { /* disclosure only */ }
     if (issues.length) {
       console.log(`[delivery] ${jobId}: ${issues.length} issue(s) in the delivered file — `
         + issues.map((i) => `${i.severity}: ${i.detail}`).join(" | "));

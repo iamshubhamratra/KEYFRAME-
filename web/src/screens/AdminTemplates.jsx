@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { mediaUrl } from "../api.js";
 import { IN_FLIGHT, STATUS, STATUS_TABS, fmtWhen, listTemplates } from "../adminApi.js";
 import { AdminGate, Notice, OrientationChip, StatusBadge, ThumbBox } from "./AdminShared.jsx";
-import { splitByOrientation } from "./Templates.jsx";
+import { splitByOrientation } from "../templateShelves.js";
 
 // ADMIN · THE TEMPLATE LIBRARY — every template the studio is building, in the
 // same paper-and-spine voice as the public Templates page. This is the admin

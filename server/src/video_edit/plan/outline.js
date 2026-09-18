@@ -12,7 +12,7 @@
 //     tracks:{ captions:{ enabled, styleId, cueCount }, broll:[{ id, ordinal, outIn, outOut, layout, status }],
 //              effects:[{ id, kind, outIn, outOut, enabled }], music:{ enabled, title, outIn, outOut }|null,
 //              sfx:[{ id, cue, outAt, enabled }], branding:{ logo, palette }, transitions:[{ id, kind, outAt }] },
-//     summary:{ captions, brollCount, punchIns, jumpCuts, fillersRemoved, silenceRemovedSec, music, logo, hookTitle } }
+//     summary:{ captions, brollCount, punchIns, jumpCuts, fillersRemoved, silenceRemovedSec, music, logo, hookTitle, cutTransition, look } }
 //   Cut suppression by the timeline rules (min_cut / min_keep adjustments) is honoured in the counts.
 
 const T = require("./timeline");
@@ -101,6 +101,9 @@ function outline(plan) {
     music: !!(p.music && p.music.enabled && p.music.track),
     logo: branding.logo,
     hookTitle: (p.graphics || []).some((g) => g.kind === "HOOK_TITLE" && g.enabled && visible(g)),
+    // absent on plans written before these settings existed; the renderer treats that as "auto" / "natural"
+    cutTransition: (p.settings && p.settings.cutTransition) || "auto",
+    look: (p.settings && p.settings.look) || "natural",
   };
 
   return {

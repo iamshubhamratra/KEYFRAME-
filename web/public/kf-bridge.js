@@ -8,6 +8,7 @@
      "TEMPLATES + GALLERY" / "Browse templates" → kf-templates
      "FULL GALLERY"                       → kf-gallery
      any [data-kf-pack] card (the video wall) → kf-use-style { pack }
+     "AI EDIT" / [data-kf-ai-edit]         → kf-ai-edit  (upload footage → AI Video Edit)
    The doc's own <a href="KEYFRAME.dc.html"> links would 404 inside the app,
    so interception also preventDefaults them. */
 (function () {
@@ -21,8 +22,10 @@
   var CREATE = /^(start rolling|start your film|create film|roll camera)/i;
   var TEMPLATES = /^(templates \+ gallery|browse templates|all templates|templates)/i;
   var GALLERY = /^(full gallery|gallery)/i;
+  var AI_EDIT = /^(ai edit|edit my video)/i;
 
   function onCreate(e) { stop(e); post("kf-create"); }
+  function onAiEdit(e) { stop(e); post("kf-ai-edit"); }
   function onTemplates(e) { stop(e); post("kf-templates"); }
   function onGallery(e) { stop(e); post("kf-gallery"); }
   // Wall cards carry their template's slug; the studio opens with it picked.
@@ -53,7 +56,8 @@
       var clickable = tag === "A" || tag === "BUTTON" ||
         (b.style && b.style.cursor === "pointer") || b.getAttribute("role") === "button";
       if (!clickable) continue;
-      if (CREATE.test(t)) { b.__kf = 1; b.addEventListener("click", onCreate, true); }
+      if (b.hasAttribute("data-kf-ai-edit") || AI_EDIT.test(t)) { b.__kf = 1; b.addEventListener("click", onAiEdit, true); }
+      else if (CREATE.test(t)) { b.__kf = 1; b.addEventListener("click", onCreate, true); }
       else if (TEMPLATES.test(t)) { b.__kf = 1; b.addEventListener("click", onTemplates, true); }
       else if (GALLERY.test(t)) { b.__kf = 1; b.addEventListener("click", onGallery, true); }
     }

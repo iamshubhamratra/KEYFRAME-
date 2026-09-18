@@ -33,7 +33,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
-const store = require("../admin/template_store");
+const store = require("../models/template");
 const frameRegistry = require("./frame_registry");
 const frameManifest = require("./frame_manifest");
 const validator = require("./validator");
@@ -85,7 +85,7 @@ function finding(check, evidence, at) {
 //   frameManifest.getManifest(name)   -> frames/<name>/pack.json
 //   frameRegistry.getPackTokens(name) -> frames/<name>/FRAME.md
 // A draft is deliberately not in frames/ — publish IS the move into frames/
-// (src/admin/template_store.js). So a draft rendered with the stock resolvers
+// (src/models/template.js). So a draft rendered with the stock resolvers
 // hands the composer manifest=null and tokens=null, and deriveTheme falls through
 // to its generic fallback branch: a #0B1020 ground, Inter, and the three stock
 // accents. QA would then be scoring a film the template never authored.

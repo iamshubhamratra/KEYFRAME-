@@ -33,6 +33,10 @@ const { resolvePlan } = require("../plan/resolve");
 const { EditError, isEditError } = require("../errors");
 
 const OUT_DIR = "render/out";
+// Bumped whenever the renderer's OUTPUT for an unchanged plan changes (new transitions, looks, face-aware card
+// placement). A finished render made by an older renderer is not reused for the same plan (engine/render_jobs.js),
+// and an edit whose preview is outdated gets a fresh one when it is opened.
+const RENDERER_VERSION = "2026.09.18-transitions";
 const FPS = 30;
 const RENDER_ID_RE = /^rd_[0-9a-z]{8}$/;
 
@@ -266,4 +270,4 @@ async function renderRevision(opts = {}) {
   };
 }
 
-module.exports = { renderRevision, loadRenderContext, outRel, OUT_DIR, creditsText };
+module.exports = { renderRevision, loadRenderContext, outRel, OUT_DIR, creditsText, RENDERER_VERSION };

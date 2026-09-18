@@ -559,6 +559,9 @@ export function outline(plan, ctx = {}) {
       music: !!plan.music && plan.music.enabled !== false && plan.settings?.musicEnabled !== false,
       logo: !!logo && logo.show !== "none",
       hookTitle: arr(plan.graphics).some((g) => g.kind === "HOOK_TITLE" && enabled(g)),
+      // absent on plans written before these settings existed: the server renders them as "auto" / "natural"
+      cutTransition: plan.settings?.cutTransition || "auto",
+      look: plan.settings?.look || "natural",
     },
   };
 }
@@ -580,7 +583,9 @@ export function summarize(outlineValue, { qaCount = 0 } = {}) {
     chip("music", "audio", s.music, "MUSIC", "MUSIC OFF"),
     chip("logo", "branding", s.logo, "LOGO", "NO LOGO"),
     chip("hookTitle", "effects", s.hookTitle, "HOOK TITLE", "NO HOOK TITLE"),
+    chip("transitions", "effects", (s.cutTransition || "auto") !== "none", `${String(s.cutTransition || "auto").toUpperCase()} TRANSITIONS`, "HARD CUTS"),
   ];
+  if (s.look && s.look !== "natural") chips.push(chip("look", "effects", true, `${String(s.look).toUpperCase()} LOOK`, ""));
   if (qaCount > 0) chips.push({ key: "qa", panel: null, on: false, glyph: "⚠", text: String(qaCount), label: `⚠ ${qaCount}`, warn: true });
   return chips;
 }
@@ -951,8 +956,13 @@ const SETTINGS_KEYS = Object.freeze({
   brollIntensity: { type: ["low", "medium", "high"], level: "COMPOSITE", optimistic: false, label: "B-roll amount", costHint: "fetch" },
   effectsEnabled: { type: "bool", level: "BASE", optimistic: true, label: "All effects" },
   effects: { type: ["subtle", "dynamic"], level: "BASE", optimistic: false, label: "Effects intensity" },
+  // drawn in the composite on the server (render/transitions.js, render/looks.js): no A-roll re-encode
+  cutTransition: { type: ["auto", "none", "smooth", "zoom", "whip", "slide", "blur", "flash"], level: "COMPOSITE", optimistic: true, label: "Transitions between cuts" },
+  look: { type: ["natural", "warm", "cool", "vivid", "cinematic", "mono", "vintage"], level: "COMPOSITE", optimistic: true, label: "Look" },
 });
 export const SETTINGS_SET_KEYS = Object.freeze(Object.keys(SETTINGS_KEYS));
+// Mirrors server plan/schema ENUMS.transitionKind.
+export const TRANSITION_KINDS = Object.freeze(["CUT", "DIP_BLACK", "DIP_WHITE", "FLASH", "CROSSFADE", "ZOOM_IN", "WHIP_LEFT", "WHIP_RIGHT", "SLIDE_UP", "BLUR", "CIRCLE_OPEN", "PIXELATE"]);
 
 // Meta for one concrete op (settings.set varies by key).
 export function opMeta(op) {
@@ -1192,7 +1202,7 @@ export function validateOp(op, plan, ctx = {}) {
       return OK;
     }
     case "transition.set":
-      return need("transition", op.id, "id") || (["CUT", "DIP_BLACK", "DIP_WHITE", "FLASH", "CROSSFADE"].includes(op.kind) ? OK : fail("Unknown transition.", "kind"));
+      return need("transition", op.id, "id") || (TRANSITION_KINDS.includes(op.kind) ? OK : fail("Unknown transition.", "kind"));
     case "graphic.editText": {
       const g = findItem(plan, "graphic", op.id);
       if (!g) return fail("That graphic no longer exists in this edit.", "id");

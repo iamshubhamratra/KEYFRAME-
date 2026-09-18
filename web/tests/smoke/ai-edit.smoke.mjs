@@ -236,8 +236,8 @@ try {
     check("navigated back via the chip: upload still running", await waitFor(page, () => !!document.querySelector("[role=progressbar][aria-label=Upload]"), null, 6000));
     await page.evaluate(() => { window.__KF_AI_EDIT_FIXTURE_SPEED = 0.6; });
     phase = "analysis";
-    const handed = await waitFor(page, () => /[?&]edit=ve_[0-9a-z]{16}/.test(location.search), null, 25000);
-    check("upload completes → session with ?edit=<id>", handed, await page.evaluate(() => location.search));
+    const handed = await waitFor(page, () => /^\/edits\/ve_[0-9a-z]{16}$/.test(location.pathname), null, 25000);
+    check("upload completes → session at /edits/<id>", handed, await page.evaluate(() => location.pathname));
     check("analysis stages advance with aria-current=step", await waitFor(page, () => !!document.querySelector('ol[aria-label="Edit stages"] li[aria-current="step"]'), null, 10000));
     check("nav turns dark for aiEdit (wordmark on dark ink)", await page.evaluate(() => [...document.querySelectorAll("nav .wordmark")].some((w) => getComputedStyle(w).color === "rgb(242, 237, 226)")));
     await waitFor(page, () => document.body.textContent.includes("WORDS"), null, 15000);
@@ -248,13 +248,13 @@ try {
   });
 
   // ================================================================ 1440 · editor on the deep link
-  await section("?edit= deep link + refresh restores", async () => {
+  await section("/edits/<id> deep link + refresh restores (and old ?edit= links redirect)", async () => {
     phase = "editor";
     await page.evaluate(() => { window.__KF_AI_EDIT_FIXTURE_SPEED = 3; window.__KF_AI_EDIT_FIXTURE_LATENCY = 40; });
     await page.goto(`${ORIGIN}/?edit=${READY_ID}`, { waitUntil: "domcontentloaded" });
-    check("?edit=<ready id> opens the editor directly", await waitEditor(page));
+    check("legacy ?edit=<ready id> redirects to /edits/<id> and opens the editor", await waitEditor(page) && (await page.evaluate(() => location.pathname)) === `/edits/${READY_ID}`, await page.evaluate(() => location.pathname + location.search));
     await page.reload({ waitUntil: "domcontentloaded" });
-    check("refresh restores the same edit", await waitEditor(page) && (await page.evaluate(() => location.search)) === `?edit=${READY_ID}`, await page.evaluate(() => location.search));
+    check("refresh restores the same edit", await waitEditor(page) && (await page.evaluate(() => location.pathname)) === `/edits/${READY_ID}`, await page.evaluate(() => location.pathname));
     if (VIDEO_URL) check("preview video loaded", await waitFor(page, async () => { const { playerClock } = await import("/src/playerClock.js"); const v = playerClock.getElement?.(); return !!v && v.readyState >= 2; }, null, 20000));
     const sameModule = await page.evaluate(async () => { const m = await import("/src/editApi.js"); return m.fixtureControl.enabled(); });
     check("fixture mode active in the dev build (VITE_AI_EDIT_FIXTURES=1)", sameModule);
@@ -363,7 +363,7 @@ try {
     await section(`viewport ${vp.width}`, async () => {
       phase = `viewport ${vp.width}`;
       const p = await newPage(vp, { speed: 1, latency: 40 });
-      await p.goto(`${ORIGIN}/?edits`, { waitUntil: "domcontentloaded" });
+      await p.goto(`${ORIGIN}/edits`, { waitUntil: "domcontentloaded" });
       check(`My edits renders @${vp.width}`, await waitFor(p, () => document.querySelectorAll('ul[aria-label="Your edits"] article').length > 0, null, 15000));
       await sleep(600);
       await audit(p, "main", `list @${vp.width}`);
@@ -375,12 +375,12 @@ try {
       await sleep(700);
       await audit(p, "main", `upload @${vp.width}`);
       if (vp.width !== 1440) await shot(p, `upload-${vp.width}`, { fullPage: true });
-      await p.goto(`${ORIGIN}/?edit=ve_analyzedemo00001`, { waitUntil: "domcontentloaded" });
+      await p.goto(`${ORIGIN}/edits/ve_analyzedemo00001`, { waitUntil: "domcontentloaded" });
       await waitFor(p, () => document.body.textContent.includes("WORDS"), null, 20000);
       await audit(p, "main", `analysis @${vp.width}`);
       if (vp.width !== 1440) await shot(p, `analysis-${vp.width}`, { fullPage: true });
       await p.evaluate(() => { window.__KF_AI_EDIT_FIXTURE_SPEED = 3; });
-      await p.goto(`${ORIGIN}/?edit=${READY_ID}`, { waitUntil: "domcontentloaded" });
+      await p.goto(`${ORIGIN}/edits/${READY_ID}`, { waitUntil: "domcontentloaded" });
       check(`editor opens @${vp.width}`, await waitEditor(p));
       const layout = await p.evaluate(() => document.querySelector(".kf-ed")?.dataset.layout);
       check(`editor layout @${vp.width}`, layout === (vp.width >= 1280 ? "wide" : vp.width >= 860 ? "medium" : "narrow"), layout);
@@ -394,11 +394,11 @@ try {
   await section("reduced motion", async () => {
     phase = "reduced motion";
     const p = await newPage({ width: 1440, height: 900 }, { reduced: true });
-    await p.goto(`${ORIGIN}/?edit=${READY_ID}`, { waitUntil: "domcontentloaded" });
+    await p.goto(`${ORIGIN}/edits/${READY_ID}`, { waitUntil: "domcontentloaded" });
     await waitEditor(p);
     const tr = await p.$$eval("[aria-label^='Preview'] video", (vs) => vs.map((v) => v.style.transition));
     check("reduced motion: video swap has no transition", tr.every((t) => t === "none" || t === ""), tr.join(","));
-    await p.goto(`${ORIGIN}/?edits`, { waitUntil: "domcontentloaded" });
+    await p.goto(`${ORIGIN}/edits`, { waitUntil: "domcontentloaded" });
     await waitFor(p, () => document.querySelectorAll('ul[aria-label="Your edits"] article').length > 0, null, 15000);
     const smooth = await p.evaluate(() => getComputedStyle(document.documentElement).scrollBehavior);
     check("reduced motion: no smooth scroll", smooth !== "smooth", smooth);

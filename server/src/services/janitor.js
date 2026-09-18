@@ -6,7 +6,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const config = require("../config");
-const db = require("../db");
+const db = require("../models/job");
 
 const INTERVAL_MS = 10 * 60 * 1000;
 const JOB_DIR_TTL_MS = 60 * 60 * 1000;

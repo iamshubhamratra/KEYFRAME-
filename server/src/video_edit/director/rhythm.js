@@ -70,7 +70,7 @@ const RHYTHM_DEFAULTS = deepFreeze({
     punchOutMinJointSec: 0.4, punchOutMaxSec: 4, punchOutDefaultSec: 3, punchOutMarkSec: 0.1, zoomEmphasisDeltaZ: 0.1,
     sfxFillerJointSec: 0.3, sfxLeadSec: { whoosh: -0.1, swoosh: -0.1, riser: -0.6 },
     keywordSec: 2.5, hookTitleWindowSec: 3, hookTitleMaxSec: 2.5, hookStrengthMin: 0.5, cardMinSec: 1.0, ctaTailSec: 0.3,
-    transitionMinPauseSec: 0.3, transitionSec: { DIP_BLACK: 0.2, FLASH: 0.12 }, overlayMinSec: 0.4, pipScale: 0.4,
+    transitionMinPauseSec: 0.3, transitionSec: { DIP_BLACK: 0.2, FLASH: 0.12, CROSSFADE: 0.4, ZOOM_IN: 0.35, WHIP_LEFT: 0.3, WHIP_RIGHT: 0.3, SLIDE_UP: 0.35 }, overlayMinSec: 0.4, pipScale: 0.4,
     music: { calm: 0.08, energetic: 0.12, calmBelow: 0.4, energeticFrom: 0.7, min: 0.06, max: 0.16, lift: 0.04, faceRequired: 0.06, duckDb: -9, fadeInSec: 0.5, fadeOutSec: 1.5 },
   },
 });

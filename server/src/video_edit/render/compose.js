@@ -55,6 +55,8 @@ const { cueBox } = require("../captions/place");
 const { REGION_BOXES } = require("../plan/resolve");
 const { envelopeFor } = require("../audio/music");
 const cards = require("../cards/render");
+const TR = require("./transitions");
+const { lookFilter, LOOKS } = require("./looks");
 const { EditError } = require("../errors");
 
 const VERSION = 1;
@@ -334,6 +336,140 @@ function pipBoxPx(b, out) {
   return { x: Math.round(x / 2) * 2, y: Math.round(y / 2) * 2, w, h };
 }
 
+// ---------------------------------------------------------------- the speaker's face on the OUTPUT frame
+// Face box in output pixels at output frame f, from the face track and the framing the base renderer applies to
+// that sub-piece (static / pan / zoom / fit). null when there is no tracked face, it is absent, the frame is under
+// full-screen B-roll, or the sub-piece is a SPLIT layout (the face half is drawn by the split renderer).
+function faceOutAt(subs, faces, mezz, out, f, hiddenF = []) {
+  if (!faces || !Array.isArray(subs) || !subs.length) return null;
+  if (hiddenF.some(([a, b]) => f >= a && f < b)) return null;
+  const s = subs.find((x) => f >= x.outInF && f < x.outOutF) || null;
+  if (!s || s.layout === "SPLIT" || !s.framing) return null;
+  const srcT = s.kind === "play" ? (s.srcInF + (f - s.outInF)) / FPS : s.srcInF / FPS;
+  if ((faces.absent || []).some((r) => srcT >= r.start && srcT < r.end)) return null;
+  const face = T.faceAt(faces, srcT);
+  if (!face || !Number.isFinite(face.cx) || !Number.isFinite(face.cy) || !(face.h > 0)) return null;
+  const fh = face.h * mezz.h, fw = fh * 0.8, cx = face.cx * mezz.w, cy = face.cy * mezz.h;
+  const fr = s.framing;
+  let crop;
+  if (fr.mode === "fit") {
+    const fp = P.fitPlacement(mezz, out);
+    return { x: fp.x + (cx - fw / 2) * fp.s, y: fp.y + (cy - fh / 2) * fp.s, w: fw * fp.s, h: fh * fp.s };
+  } else if (fr.mode === "pan" && Array.isArray(fr.keyframes) && fr.keyframes.length) {
+    const K = fr.keyframes;
+    let x = K[0].x, y = K[0].y;
+    for (let i = 0; i < K.length; i++) {
+      if (K[i].src <= srcT) { x = K[i].x; y = K[i].y; }
+      if (i + 1 < K.length && K[i].src <= srcT && K[i + 1].src > srcT) {
+        const u = (srcT - K[i].src) / Math.max(1e-6, K[i + 1].src - K[i].src);
+        x = K[i].x + (K[i + 1].x - K[i].x) * u; y = K[i].y + (K[i + 1].y - K[i].y) * u;
+        break;
+      }
+    }
+    crop = { x, y, w: fr.crop.w, h: fr.crop.h };
+  } else if (fr.crop && Number.isFinite(fr.crop.x)) {
+    crop = fr.crop;
+    if (fr.mode === "zoomAnim" && fr.frames > 0) {
+      const z = fr.z0 + (fr.z1 - fr.z0) * clamp((f - s.outInF) / fr.frames, 0, 1);
+      const w = crop.w / z, h = crop.h / z;
+      const an = fr.anchor || { fx: 0.5, fy: 0.5 };
+      crop = { x: crop.x + (crop.w - w) * an.fx, y: crop.y + (crop.h - h) * an.fy, w, h };
+    }
+  } else return null;
+  const sx = out.w / crop.w, sy = out.h / crop.h;
+  return { x: (cx - fw / 2 - crop.x) * sx, y: (cy - fh / 2 - crop.y) * sy, w: fw * sx, h: fh * sy };
+}
+
+// Output-frame spans covered by full-screen B-roll (the speaker is not on screen there).
+function fullBrollSpans(plan, media, aspect) {
+  const out = [];
+  for (const b of plan.broll || []) {
+    if (!live(b) || !shown(b)) continue;
+    const full = b.layout === "FULL" || (b.layout === "SPLIT" && aspect === "1:1") || !b.layout;
+    if (!full || !(media.broll && media.broll[b.id])) continue;
+    out.push([toF(b.resolved.outIn), toF(b.resolved.outOut)]);
+  }
+  return out;
+}
+
+const interArea = (a, b) => Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+
+// Where a card's LETTERS sit inside its box (output px, relative to the box). A card box is mostly transparent
+// padding; placement and QA must reason about the ink, not the box.
+function cardInk(c, geom) {
+  if (c && c.status === "ok" && c.ink && c.w > 0 && c.h > 0) {
+    const sx = geom.w / c.w, sy = geom.h / c.h;
+    return { x: c.ink.x * sx, y: c.ink.y * sy, w: c.ink.w * sx, h: c.ink.h * sy };
+  }
+  const fb = c && c.fallback;
+  if (fb && Array.isArray(fb.assEvents) && fb.assEvents.length && fb.region && fb.region.w > 0) {
+    // the same mapping buildOverlays hands fallbackAssText: region px × scale, from the box's top-left corner
+    const scale = Math.min(geom.w / fb.region.w, geom.h / fb.region.h);
+    const offX = 0, offY = 0;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const e of fb.assEvents) {
+      const lines = Array.isArray(e.lines) && e.lines.length ? e.lines : [String(e.text || "")];
+      const size = Number(e.sizePx) || 40;
+      const h = lines.length * size * 1.18;
+      const chars = Math.max(...lines.map((l) => [...String(l)].length), 1);
+      const w = Math.min(fb.region.w * 0.92, chars * size * 0.62);
+      x0 = Math.min(x0, e.x - w / 2); x1 = Math.max(x1, e.x + w / 2);
+      y0 = Math.min(y0, e.y - h / 2); y1 = Math.max(y1, e.y + h / 2);
+    }
+    if (Number.isFinite(x0)) return { x: offX + x0 * scale, y: offY + y0 * scale, w: (x1 - x0) * scale, h: (y1 - y0) * scale };
+  }
+  // unknown: the middle half of the box
+  return { x: geom.w * 0.08, y: geom.h * 0.25, w: geom.w * 0.84, h: geom.h * 0.5 };
+}
+
+// Face-aware card placement. The card keeps its size (a HyperFrames card was rendered at exactly that size) and
+// moves only vertically: to the position whose ink is clear of the speaker's face (over every frame the card is up)
+// and of the captions showing at the same time, inside the platform safe area, as close as possible to its region.
+// A card whose natural spot is already clear does not move.
+function placeCard(geom, ink, { faceBoxes, captionBoxes, out, aspect }) {
+  if (!faceBoxes.length) return { ...geom, overFace: 0 };
+  const safe = P.SAFE_AREAS[aspect] || P.SAFE_AREAS["9:16"];
+  const top = safe.top * out.h, bottom = (1 - safe.bottom) * out.h;
+  const gap = out.h * 0.015;
+  const faces = faceBoxes.map((b) => ({ x: b.x - gap, y: b.y - gap, w: b.w + 2 * gap, h: b.h + 2 * gap }));
+  const inkArea = Math.max(1, ink.w * ink.h);
+  const cost = (y) => {
+    const r = { x: geom.x + ink.x, y: y + ink.y, w: ink.w, h: ink.h };
+    let face = 0, cap = 0;
+    for (const f of faces) face = Math.max(face, interArea(r, f));
+    for (const c of captionBoxes) cap = Math.max(cap, interArea(r, c));
+    const outside = Math.max(0, top - r.y) + Math.max(0, r.y + r.h - bottom);
+    return { total: (1000 * face + 400 * cap) / inkArea + 20 * (outside / out.h) + Math.abs(y - geom.y) / out.h, face: face / inkArea };
+  };
+  const here = cost(geom.y);
+  if (here.face === 0 && here.total < 1) return { ...geom, overFace: 0 };
+  let best = { y: geom.y, ...here };
+  const step = Math.max(2, Math.round(out.h * 0.005));
+  for (let inkTop = Math.ceil(top); inkTop + ink.h <= bottom; inkTop += step) {
+    const y = Math.round(inkTop - ink.y);
+    const c = cost(y);
+    if (c.total < best.total - 1e-9) best = { y, ...c };
+  }
+  return { ...geom, y: best.y, overFace: Math.round(best.face * 1000) / 1000 };
+}
+
+// The plan's own (non-CUT, enabled) transitions with their joint on the output timeline, in output frames.
+function explicitTransitions(plan) {
+  const out = [];
+  for (const t of plan.transitions || []) {
+    if (!t || t.enabled === false || t.kind === "CUT") continue;
+    let jointS = null;
+    if (t.at && Number.isFinite(t.at.outAt)) jointS = t.at.outAt;
+    else if (t.at && t.at.elementId) {
+      const seg = ((plan.aRoll && plan.aRoll.segments) || []).find((s) => s.id === t.at.elementId);
+      if (seg && shown(seg)) jointS = seg.resolved.outOut;
+    }
+    if (jointS == null) continue;
+    out.push({ id: t.id, kind: t.kind, jointF: toF(jointS), durationSec: t.durationSec });
+  }
+  return out;
+}
+
 // Card box: the template's region size scaled to the profile, shrunk to fit inside the platform safe area, centred
 // horizontally and placed in its region band — never in the top/bottom UI zones (qa/checks flags those).
 function cardGeom(g, out, profileName, aspect) {
@@ -352,7 +488,7 @@ function cardGeom(g, out, profileName, aspect) {
   return { x, y, w, h };
 }
 
-function buildOverlays(plan, ctx, out, profileName, durationFrames, notes) {
+function buildOverlays(plan, ctx, out, profileName, durationFrames, notes, place = null) {
   const media = ctx.media || {};
   const aspect = plan.output.aspect;
   const overlays = [];
@@ -386,23 +522,13 @@ function buildOverlays(plan, ctx, out, profileName, durationFrames, notes) {
     if (b.chosen) credits.push({ assetId: b.chosen.assetId, provider: b.chosen.provider, license: b.chosen.license || null, attribution: b.chosen.attribution || null, sourceUrl: b.chosen.sourceUrl || null, kind: "broll" });
   }
 
-  // Transitions: dips at the joint after a segment (CROSSFADE is rendered as a short dip: a real crossfade would need
-  // overlapping pieces, which the frame-exact chunk/voice model does not have).
-  for (const t of plan.transitions || []) {
-    if (!t || t.enabled === false || t.kind === "CUT") continue;
-    let jointS = null;
-    if (t.at && Number.isFinite(t.at.outAt)) jointS = t.at.outAt;
-    else if (t.at && t.at.elementId) {
-      const seg = (plan.aRoll.segments || []).find((s) => s.id === t.at.elementId);
-      if (seg && shown(seg)) jointS = seg.resolved.outOut;
-    }
-    if (jointS == null) continue;
-    const jointF = toF(jointS);
+  // Dip transitions (dip to black / white, flash): a colour overlay across the joint. Every other kind is a real
+  // picture transition drawn on the base by the composite (render/transitions.js).
+  for (const t of explicitTransitions(plan)) {
+    if (!TR.DIP_KINDS.includes(t.kind)) continue;
     const half = Math.max(2, Math.round(((t.durationSec || 0.2) * FPS) / 2));
-    if (jointF - half < 0 || jointF + half > durationFrames) continue;
-    const kind = t.kind === "CROSSFADE" ? "DIP_BLACK" : t.kind;
-    if (t.kind === "CROSSFADE") notes.push({ code: "CROSSFADE_AS_DIP", elementId: t.id });
-    overlays.push({ id: t.id, kind: "dip", outInF: jointF - half, outOutF: jointF + half, geom: { x: 0, y: 0, w: out.w, h: out.h }, z: 30, fadeInF: 0, fadeOutF: 0, dip: { kind, jointF, halfFrames: half } });
+    if (t.jointF - half < 0 || t.jointF + half > durationFrames) continue;
+    overlays.push({ id: t.id, kind: "dip", outInF: t.jointF - half, outOutF: t.jointF + half, geom: { x: 0, y: 0, w: out.w, h: out.h }, z: 30, fadeInF: 0, fadeOutF: 0, dip: { kind: t.kind, jointF: t.jointF, halfFrames: half } });
   }
 
   const cardAss = [];
@@ -411,15 +537,29 @@ function buildOverlays(plan, ctx, out, profileName, durationFrames, notes) {
     const c = media.cards && media.cards[g.id];
     const inF = toF(g.resolved.outIn), outF = Math.min(durationFrames, toF(g.resolved.outOut));
     if (outF - inF < 6) continue;
-    const geom = cardGeom(g, out, profileName, aspect);
+    const geom0 = cardGeom(g, out, profileName, aspect);
+    const inkRel = cardInk(c, geom0);
+    let geom = geom0;
+    if (place) {
+      const faceBoxes = [];
+      for (let f = inF; f < outF; f += 5) {
+        const b = faceOutAt(place.subs, place.faces, place.mezz, out, f, place.hiddenF);
+        if (b) faceBoxes.push(b);
+      }
+      const p = placeCard(geom0, inkRel, { faceBoxes, captionBoxes: place.captionBoxes(inF, outF), out, aspect });
+      geom = { x: p.x, y: p.y, w: p.w, h: p.h };
+      if (p.y !== geom0.y) notes.push({ code: "CARD_MOVED_OFF_FACE", elementId: g.id, dy: p.y - geom0.y });
+      if (p.overFace > 0.15) notes.push({ code: "CARD_OVER_FACE", elementId: g.id, frac: p.overFace });
+    }
+    const ink = { x: Math.round(geom.x + inkRel.x), y: Math.round(geom.y + inkRel.y), w: Math.round(inkRel.w), h: Math.round(inkRel.h) };
     if (c && c.status === "ok" && c.path) {
-      overlays.push({ id: g.id, kind: "card", outInF: inF, outOutF: Math.min(outF, inF + Math.round((c.durSec || (outF - inF) / FPS) * FPS)), geom: { ...geom, w: c.w || geom.w, h: c.h || geom.h }, z: 40, fadeInF: 0, fadeOutF: 0, card: { path: c.path, cardHash: c.cardHash } });
+      overlays.push({ id: g.id, kind: "card", outInF: inF, outOutF: Math.min(outF, inF + Math.round((c.durSec || (outF - inF) / FPS) * FPS)), geom: { ...geom, w: c.w || geom.w, h: c.h || geom.h }, ink, z: 40, fadeInF: 0, fadeOutF: 0, card: { path: c.path, cardHash: c.cardHash } });
     } else if (c && c.status === "fallback" && c.fallback) {
       const region = c.fallback.region || { w: geom.w, h: geom.h };
       const scale = Math.min(geom.w / region.w, geom.h / region.h);
       const text = cards.fallbackAssText(c.fallback, { output: { w: out.w, h: out.h }, outInSec: inF / FPS, offsetX: geom.x, offsetY: geom.y, scale });
       cardAss.push({ id: g.id, text, hash: sha1(text), fonts: c.fallback.fonts || [] });
-      overlays.push({ id: g.id, kind: "card", outInF: inF, outOutF: outF, geom, z: 40, fadeInF: 0, fadeOutF: 0, card: { path: null, fallback: true, cardHash: c.cardHash || null } });
+      overlays.push({ id: g.id, kind: "card", outInF: inF, outOutF: outF, geom, ink, z: 40, fadeInF: 0, fadeOutF: 0, card: { path: null, fallback: true, cardHash: c.cardHash || null } });
     } else notes.push({ code: "CARD_MISSING", elementId: g.id });
   }
 
@@ -460,7 +600,7 @@ function captionTrack(plan, out, notes) {
 }
 
 // ---------------------------------------------------------------- audio
-function buildAudio(plan, ctx, durationFrames, notes) {
+function buildAudio(plan, ctx, durationFrames, notes, transitions = []) {
   const media = ctx.media || {};
   const pieces = plan.timeline.pieces.map((p) => {
     if (p.kind === "hold") return { srcInS: p.srcIn, srcOutS: p.srcIn, padS: r6(p.outOut - p.outIn), rate: 1 };
@@ -492,6 +632,21 @@ function buildAudio(plan, ctx, durationFrames, notes) {
       sfx.push({ id: s.id, path: f.path, sha: f.sha || null, startSec: r6(at), volume: s.volume });
       if (f.attribution) credits.push({ assetId: s.id, provider: "sfx", license: f.license || null, attribution: f.attribution, sourceUrl: f.sourceUrl || null, kind: "sfx" });
     }
+    // A whoosh under every strong transition (zoom, whip, slide …), leading the joint slightly the way an editor
+    // lays it, quiet enough to sit under the voice, and never stacked on a sound the plan already places there.
+    const ws = media.transitionSfx;
+    if (ws && ws.path) {
+      let used = false;
+      for (const t of transitions) {
+        if (!t || !t.strong) continue;
+        const at = r6(Math.max(0, (t.jointF - t.halfF) / FPS - 0.06));
+        if (at > durationFrames / FPS - 0.3 || sfx.some((s) => Math.abs(s.startSec - at) < 0.4)) continue;
+        sfx.push({ id: `sfx_${t.id}`, path: ws.path, sha: ws.sha || null, startSec: at, volume: 0.22 });
+        used = true;
+      }
+      if (used && ws.attribution) credits.push({ assetId: "transition_whoosh", provider: "sfx", license: ws.license || null, attribution: ws.attribution, sourceUrl: ws.sourceUrl || null, kind: "sfx" });
+      sfx.sort((a, b) => a.startSec - b.startSec || (a.id < b.id ? -1 : 1));
+    }
   }
   return { voice: { pieces, chain }, music, sfx, credits };
 }
@@ -501,7 +656,9 @@ function buildLayout(plan, ctx, out, base, overlays, captions, mezz) {
   const elements = [];
   for (const o of overlays) {
     if (o.kind === "dip") continue;
-    elements.push({ id: o.id, kind: o.kind, outIn: r6(o.outInF / FPS), outOut: r6(o.outOutF / FPS), box: o.geom });
+    // A card is judged by its letters (safe area, collisions, face): its box is mostly transparent padding.
+    if (o.kind === "card" && o.ink) elements.push({ id: o.id, kind: o.kind, outIn: r6(o.outInF / FPS), outOut: r6(o.outOutF / FPS), box: o.ink, frame: o.geom });
+    else elements.push({ id: o.id, kind: o.kind, outIn: r6(o.outInF / FPS), outOut: r6(o.outOutF / FPS), box: o.geom });
   }
   if (captions) {
     for (const c of captions.cues) {
@@ -541,9 +698,41 @@ function buildComposition(plan, ctx = {}, profileName = "preview540") {
   const fit = needsFit(mezz, plan.output.aspect, plan.output.background);
   const media = ctx.media || {};
   const base = buildBase(plan, { ...ctx, media }, out, fit, notes);
-  const { overlays, cardAss, credits: overlayCredits } = buildOverlays(plan, { ...ctx, media }, out, profileName, base.durationFrames, notes);
   const captions = captionTrack(plan, out, notes);
-  const audio = buildAudio(plan, { ...ctx, media }, base.durationFrames, notes);
+  const hiddenF = fullBrollSpans(plan, media, plan.output.aspect);
+  // Caption boxes on screen during [inF, outF) — cards keep clear of them as well as of the face.
+  const captionBoxes = (inF, outF) => {
+    if (!captions) return [];
+    const res = [];
+    for (const c of captions.cues) {
+      if (!c.pos || !c.resolved || toF(c.resolved.outOut) <= inF || toF(c.resolved.outIn) >= outF) continue;
+      const b = cueBox(c, captions.style, { width: out.w, height: out.h }, c.pos, captions.lang);
+      res.push({ x: b.x * out.w, y: b.y * out.h, w: b.w * out.w, h: b.h * out.h });
+    }
+    return res;
+  };
+  const faces = ctx.faces && ctx.faces.mode !== "assumed" ? ctx.faces : null;
+  const place = { subs: base.pieces, faces, mezz, hiddenF, captionBoxes };
+  const { overlays, cardAss, credits: overlayCredits } = buildOverlays(plan, { ...ctx, media }, out, profileName, base.durationFrames, notes, place);
+
+  // Picture transitions at the joints between kept clips (explicit plan transitions + the cut style).
+  const planned = TR.planTransitions(plan, {
+    words: ctx.words || [], durationFrames: base.durationFrames, explicit: explicitTransitions(plan),
+    faceCenter: (f) => {
+      const b = faceOutAt(base.pieces, ctx.faces || null, mezz, out, f, []);
+      return b ? { fx: r6(clamp((b.x + b.w / 2) / out.w, 0.1, 0.9)), fy: r6(clamp((b.y + b.h / 2) / out.h, 0.1, 0.9)) } : { fx: 0.5, fy: 0.4 };
+    },
+  });
+  // A cut-style flash is a dip overlay; everything else is drawn on the base by the composite.
+  for (const t of planned.filter((x) => x.dip)) {
+    overlays.push({ id: t.id, kind: "dip", outInF: t.jointF - t.halfF, outOutF: t.jointF + t.halfF, geom: { x: 0, y: 0, w: out.w, h: out.h }, z: 30, fadeInF: 0, fadeOutF: 0, dip: { kind: t.kind, jointF: t.jointF, halfFrames: t.halfF } });
+  }
+  overlays.sort((a, b) => a.z - b.z || a.outInF - b.outInF || (a.id < b.id ? -1 : 1));
+  const xfades = planned.filter((t) => !t.dip);
+  const lookId = LOOKS.includes(plan.settings.look) ? plan.settings.look : "natural";
+  const look = lookFilter(lookId, { w: out.w }) ? { id: lookId, filter: lookFilter(lookId, { w: out.w }) } : null;
+
+  const audio = buildAudio(plan, { ...ctx, media }, base.durationFrames, notes, xfades);
   const layout = buildLayout(plan, ctx, out, base, overlays, captions, mezz);
   const credits = [...overlayCredits, ...audio.credits];
 
@@ -553,6 +742,8 @@ function buildComposition(plan, ctx = {}, profileName = "preview540") {
     durationFrames: base.durationFrames,
     fit,
     base: { pieces: base.pieces, chunks: base.chunks, key: base.key },
+    transitions: xfades.map((t) => ({ id: t.id, kind: t.kind, jointF: t.jointF, halfF: t.halfF, xfade: t.xfade, blur: t.blur, zoom: t.zoom, center: t.center, origin: t.origin, strong: t.strong })),
+    look,
     overlays,
     captions: captions ? { ass: captions.ass, fonts: captions.fonts, families: captions.families, assHash: captions.assHash, lang: captions.lang, cueCount: captions.cueCount } : null,
     cardAss,
@@ -569,4 +760,4 @@ function buildComposition(plan, ctx = {}, profileName = "preview540") {
   return comp;
 }
 
-module.exports = { buildComposition, planHashOf, needsFit, cropAt, geomFor, pipBoxPx, cardGeom, VERSION, UPSCALE_CAP, CHUNK_GRID_F };
+module.exports = { buildComposition, planHashOf, needsFit, cropAt, geomFor, pipBoxPx, cardGeom, cardInk, placeCard, faceOutAt, VERSION, UPSCALE_CAP, CHUNK_GRID_F };

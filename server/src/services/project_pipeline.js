@@ -14,7 +14,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const config = require("../config");
-const db = require("../db");
+const db = require("../models/job");
 const { UsageTracker } = require("./usage");
 const { checkBudget, BUDGET_EXHAUSTED_MSG } = require("./openrouter");
 const { generateBrief } = require("./brief");

@@ -33,7 +33,7 @@ const { extractFirstJsonObject } = require("./json_lenient");
 const { PackManifestSchema, listManifests, getManifest } = require("./frame_manifest");
 const { buildPack, FAMILIES } = require("../../scripts/new-pack");
 const { FONT_FACES, isBundled } = require("../fonts/pack_fonts");
-const store = require("../admin/template_store");
+const store = require("../models/template");
 
 const SYSTEM = fs.readFileSync(
   path.join(__dirname, "..", "prompts", "system_template_generator.md"),

@@ -58,6 +58,15 @@ function mods(deps = {}) {
   };
 }
 
+// The union of a rendered card's text boxes (card px) — where its letters are, for face-aware placement.
+function inkOfLayout(layout) {
+  const boxes = layout && layout.boxes && typeof layout.boxes === "object" ? Object.values(layout.boxes).filter((b) => b && b.w > 0 && b.h > 0) : [];
+  if (!boxes.length) return null;
+  const x0 = Math.min(...boxes.map((b) => b.x)), y0 = Math.min(...boxes.map((b) => b.y));
+  const x1 = Math.max(...boxes.map((b) => b.x + b.w)), y1 = Math.max(...boxes.map((b) => b.y + b.h));
+  return { x: r3(x0), y: r3(y0), w: r3(x1 - x0), h: r3(y1 - y0) };
+}
+
 function fileOk(projectDir, rel) {
   if (typeof rel !== "string" || !rel) return false;
   try {
@@ -325,6 +334,13 @@ async function resolveMedia(plan, { projectDir, project, profileName, kind = "pr
         else notes.push({ code: "SFX_UNAVAILABLE", elementId: s.id });
       } catch (e) { if (cancelled(e, signal)) throw e; notes.push({ code: "SFX_UNAVAILABLE", elementId: s.id }); }
     }
+    // The whoosh laid under strong picture transitions (compose decides where; see render/transitions.js).
+    if (plan.settings.cutTransition !== "none" || (plan.transitions || []).some((t) => t && t.enabled !== false && t.kind !== "CUT")) {
+      try {
+        const r = await M.resolveSfx("whoosh", { projectDir });
+        if (r && r.path && fileOk(projectDir, r.path)) media.transitionSfx = { path: r.path, attribution: r.attribution || null, license: r.license || null, sourceUrl: r.licenseUrl || null, sha: sha1Of(projectDir, r.path) };
+      } catch (e) { if (cancelled(e, signal)) throw e; }
+    }
   }
 
   // Logo
@@ -359,7 +375,7 @@ async function resolveMedia(plan, { projectDir, project, profileName, kind = "pr
       say(60 + Math.round((gi++ / Math.max(1, graphics.length)) * 35), "Animating the titles");
       try {
         const r = await M.renderCard({ ...cardArgs, projectDir, runId, signal, settings, project, pidFile });
-        if (r && r.ok && r.relPath) { media.cards[g.id] = { status: "ok", path: r.relPath, w: r.w, h: r.h, durSec: r.durSec, cardHash: r.cardHash }; continue; }
+        if (r && r.ok && r.relPath) { media.cards[g.id] = { status: "ok", path: r.relPath, w: r.w, h: r.h, durSec: r.durSec, cardHash: r.cardHash, ink: inkOfLayout(r.layout) }; continue; }
         if (r && r.fallback) { media.cards[g.id] = { status: "fallback", fallback: r.fallback, cardHash: r.cardHash }; notes.push({ code: "CARD_FALLBACK", elementId: g.id, reason: r.reason || null }); continue; }
       } catch (e) { if (cancelled(e, signal)) throw e; }
     }

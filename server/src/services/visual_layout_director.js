@@ -21,7 +21,7 @@
 // assets unchanged with an archetype-only plan, so it can never starve or block a
 // render.
 
-const db = require("../db");
+const db = require("../models/job");
 const { isLogo, tierFor } = require("./asset_priority");
 const config = require("../config");
 const { planLayout } = require("./layout_planner");

@@ -12,7 +12,7 @@
 //   - music candidates with injected fetchers (invalid download rejected; bridge down → fetchMusic pad);
 //     envelope points ≤ 12; SFX licence lookup; logo palette from opaque pixels only; SVG rasterized or fail-open.
 //
-// config.js loads server/.env and db.js opens the database, so the services that require them
+// config.js loads server/.env and models/job.js opens the job store, so the services that require them
 // (sfx_library, audio_sources, art_director) are loaded against require.cache stubs below.
 
 const assert = require("node:assert");
@@ -33,7 +33,7 @@ function stubModule(rel, exportsObj) {
   require.cache[file] = m;
 }
 stubModule("config.js", { paths: { root: SERVER_ROOT }, audio: {}, llm: {}, artDirector: { enabled: false } });
-stubModule("db.js", { setBrandReview() {} });
+stubModule("models/job.js", { setBrandReview() {} });
 stubModule("services/openrouter.js", { chat: async () => { throw new Error("no LLM in tests"); } });
 stubModule("services/frame_manifest.js", { getManifest: () => null });
 

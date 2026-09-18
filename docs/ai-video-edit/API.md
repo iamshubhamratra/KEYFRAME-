@@ -21,7 +21,7 @@ Companion docs: `ARCHITECTURE.md` (design), `ENGINE.md` (store, jobs, security, 
    - `Origin` present and not allowed → remove `Access-Control-Allow-Origin/Credentials` set by the global CORS and return `403 ORIGIN_NOT_ALLOWED` (GET included — blocks cross-site authenticated reads).
    - No `Origin`, unsafe method, `Sec-Fetch-Site: cross-site` → 403. No Origin and no Sec-Fetch-Site (CLI/harness) → allowed.
    - JSON routes require `Content-Type: application/json` (415 otherwise).
-3. `requireEditUser`: `auth/middleware.js readUserId(req)` → 401 `AUTH_REQUIRED`; `auth/store.js findUserById(id)` missing → 401.
+3. `requireEditUser`: `middleware/auth.js readUserId(req)` → 401 `AUTH_REQUIRED`; `models/user.js findUserById(id)` missing → 401.
    Media routes also accept a playback token (§6) instead of the cookie.
 4. `editsEnabled`: 503 `EDITS_DISABLED{reason}` when `NODE_ENV==="production"` and no `SECRET_KEY/JWT_SECRET`, ffmpeg/ffprobe
    missing, `videoEdit.enabled===false`, or no STT provider key (neither `OPENROUTER_API_KEY` nor `KIE_API_KEY`).

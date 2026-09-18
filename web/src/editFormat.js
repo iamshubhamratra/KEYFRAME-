@@ -292,6 +292,18 @@ export const BROLL_OPTIONS = Object.freeze([
   { value: "high", label: "HIGH", sub: "≈ 1 every 8 s" },
 ]);
 export const EFFECTS_OPTIONS = Object.freeze([{ value: "subtle", label: "SUBTLE" }, { value: "dynamic", label: "DYNAMIC" }]);
+// Transitions laid on every cut between kept clips (server render/transitions.js CUT_STYLES).
+export const CUT_TRANSITION_OPTIONS = Object.freeze([
+  { value: "auto", label: "AUTO", sub: "AI picks per cut" }, { value: "smooth", label: "SMOOTH", sub: "Soft crossfade" },
+  { value: "zoom", label: "ZOOM", sub: "Punch into the face" }, { value: "whip", label: "WHIP", sub: "Fast slide + blur" },
+  { value: "slide", label: "SLIDE", sub: "Push up" }, { value: "blur", label: "BLUR", sub: "Blur through" },
+  { value: "flash", label: "FLASH", sub: "White flash" }, { value: "none", label: "NONE", sub: "Hard cuts" },
+]);
+// One-tap colour grades (server render/looks.js).
+export const LOOK_OPTIONS = Object.freeze([
+  { value: "natural", label: "NATURAL" }, { value: "warm", label: "WARM" }, { value: "cool", label: "COOL" }, { value: "vivid", label: "VIVID" },
+  { value: "cinematic", label: "CINEMATIC" }, { value: "mono", label: "MONO" }, { value: "vintage", label: "VINTAGE" },
+]);
 export const FILLER_OPTIONS = Object.freeze([{ value: "light", label: "UM/UH ONLY" }, { value: "aggressive", label: "+ LIKE, YOU KNOW" }]);
 export const PACE_OPTIONS = Object.freeze([{ value: "natural", label: "NATURAL" }, { value: "fast", label: "FAST" }, { value: "extra_fast", label: "EXTRA FAST" }]);
 export const EXPORT_QUALITY_OPTIONS = Object.freeze([{ value: "export1080", label: "1080p", sub: "Default" }, { value: "export720", label: "720p", sub: "Smaller file" }]);

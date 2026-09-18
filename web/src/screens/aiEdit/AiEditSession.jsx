@@ -4,9 +4,8 @@ import AiEditor from "./AiEditor.jsx";
 import AiEditAnalyzing, { DarkStage } from "./AiEditAnalyzing.jsx";
 import EditorErrorBoundary from "../../components/EditorErrorBoundary.jsx";
 import EditNotice from "../../components/EditNotice.jsx";
-import { watchEdit, getEdit } from "../../editApi.js";
+import { watchEdit, getEdit, EDIT_ID_RE } from "../../editApi.js";
 import { isAnalyzing, isEditable, noticeCopy, UPLOAD_COPY } from "../../editFormat.js";
-import { isEditId, writeEditParam, clearEditParam } from "../../deepLink.js";
 import { pushRecent, removeRecent } from "../../recentEdits.js";
 import { acknowledgeStarted } from "../../uploadStore.js";
 
@@ -14,14 +13,14 @@ import { acknowledgeStarted } from "../../uploadStore.js";
 // connection (watchEdit: SSE, falling back to polling) and routes on what the server says:
 //   loading → analyzing (QUEUED / PROCESSING) → READY beat (900 ms) → editor
 //   NEEDS_ATTENTION / FAILED / CANCELLED → failure card · 404 → not found · 401 → log in.
-// Keeps ?edit=<id> in the address bar while open so a refresh or shared link comes straight back.
+// Lives at /edits/<id>, so a refresh or shared link comes straight back.
 
 const HANDOFF_MS = 900;
 const EASE = [0.16, 1, 0.3, 1];
 
 export default function AiEditSession({ editId, onList, onNew, onNeedAuth, onOpen }) {
   const reduce = useReducedMotion();
-  const validId = isEditId(editId);
+  const validId = typeof editId === "string" && EDIT_ID_RE.test(editId);
   const [view, setView] = useState(null);
   const [missing, setMissing] = useState(false);
   const [authRetry, setAuthRetry] = useState(null);
@@ -74,13 +73,7 @@ export default function AiEditSession({ editId, onList, onNew, onNeedAuth, onOpe
     return () => ac.abort();
   }, [editId, validId, watchKey, eventListeners]);
 
-  // ?edit=<id> while open; cleared when it can't be loaded or the session closes.
   const notFound = !validId || missing;
-  useEffect(() => {
-    if (notFound) { clearEditParam(); return undefined; }
-    writeEditParam(editId);
-    return () => clearEditParam();
-  }, [editId, notFound]);
 
   // READY after watching the analysis: hold "That's a cut." for a beat, then open the editor.
   const editable = !!view && isEditable(view.status);
@@ -113,9 +106,7 @@ export default function AiEditSession({ editId, onList, onNew, onNeedAuth, onOpe
     onNeedAuth?.(() => {
       if (alive.current) { setAuthRetry(null); retry?.(); return; }
       // Auth replaced this screen, so the watcher is gone: come back to this edit.
-      if (onOpen) { onOpen(editId); return; }
-      writeEditParam(editId);
-      window.location.reload();
+      onOpen?.(editId);
     });
   };
 

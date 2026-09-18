@@ -59,6 +59,7 @@ function loadQa(log) {
 function createRenderJobs({ store, queue, events, settings, log = console, now = Date.now, pidFile, render, qa, maxQaLaps = 2, renderDeps = {}, qaOptions = {} } = {}) {
   if (!store || !queue) throw new TypeError("video_edit/render_jobs: store and queue are required");
   const R = render || require("../render/render");
+  const RENDERER_VERSION = require("../render/render").RENDERER_VERSION;
   const QA = qa === undefined ? loadQa(log) : qa;
   const bus = events && typeof events.publish === "function" ? events : { publish: () => 0 };
   const jobs = new Map();          // renderId -> { projectId, ac, state, kind, promise }
@@ -181,7 +182,8 @@ function createRenderJobs({ store, queue, events, settings, log = console, now =
 
     const renders = Array.isArray(project.renders) ? project.renders : [];
     const same = renders.filter((r) => r && !r.hidden && r.kind === kind && r.profile === prof && ((planHash && r.planHash === planHash) || r.planRev === rev));
-    const done = same.filter((r) => r.status === "done" && filesOk(projectId, r)).pop();
+    // a render made by an older renderer is not "identical": the same plan would come out differently now
+    const done = same.filter((r) => r.status === "done" && r.renderer === RENDERER_VERSION && filesOk(projectId, r)).pop();
     if (done) return { renderId: done.id, queuePosition: 0, cached: true };
     const active = same.find((r) => (r.status === "queued" || r.status === "running") && jobs.has(r.id));
     if (active) return { renderId: active.id, queuePosition: active.queuePosition ?? 0, cached: false };
@@ -196,7 +198,7 @@ function createRenderJobs({ store, queue, events, settings, log = console, now =
 
     const renderId = ids.newRenderId();
     const runId = ids.newRunId();
-    await pushRecord(projectId, { id: renderId, kind, profile: prof, planRev: rev, planHash, status: "queued", pct: 0, runId, createdAt: now(), stage: null, segments: null, qa: null, error: null });
+    await pushRecord(projectId, { id: renderId, kind, profile: prof, planRev: rev, planHash, renderer: RENDERER_VERSION, status: "queued", pct: 0, runId, createdAt: now(), stage: null, segments: null, qa: null, error: null });
     const job = { projectId, renderId, runId, kind, ac: new AbortController(), state: "queued", lastEventAt: 0 };
     jobs.set(renderId, job);
     emitRender(projectId, { id: renderId, kind, profile: prof, planRev: rev, status: "queued", pct: 0 }, true);
@@ -313,7 +315,7 @@ function createRenderJobs({ store, queue, events, settings, log = console, now =
       }
       if (actions.length) invalidateForActions(projectId, actions, res);
       const rid = ids.newRenderId();
-      await pushRecord(projectId, { id: rid, kind, profile, planRev: nextRev, planHash: revisionHash(store.get(projectId), nextRev), status: "running", pct: 0, runId, createdAt: now(), stage: "RENDERING", qaLapOf: renderId, hidden: true });
+      await pushRecord(projectId, { id: rid, kind, profile, planRev: nextRev, planHash: revisionHash(store.get(projectId), nextRev), renderer: RENDERER_VERSION, status: "running", pct: 0, runId, createdAt: now(), stage: "RENDERING", qaLapOf: renderId, hidden: true });
       const lo = Math.round(((lap + 1) * 100) / (lapsN + 1)), hi = Math.round(((lap + 1.8) * 100) / (lapsN + 1));
       progress("QUALITY_CHECK", lo, "Fixing what the check found");
       try {
@@ -478,7 +480,7 @@ function createRenderJobs({ store, queue, events, settings, log = console, now =
     const renderId = ids.newRenderId();
     const runId = ids.newRunId();
     const profile = "preview540";
-    await pushRecord(projectId, { id: renderId, kind: "preview", profile, planRev: head, planHash: revisionHash(project, head), status: "running", pct: 0, runId, createdAt: now(), startedAt: now(), auto: true });
+    await pushRecord(projectId, { id: renderId, kind: "preview", profile, planRev: head, planHash: revisionHash(project, head), renderer: RENDERER_VERSION, status: "running", pct: 0, runId, createdAt: now(), startedAt: now(), auto: true });
     const job = { projectId, renderId, runId, kind: "preview", ac: new AbortController(), state: "running", lastEventAt: 0, revision: head, profile };
     const onAbort = () => job.ac.abort(signal.reason);
     if (signal) { if (signal.aborted) job.ac.abort(signal.reason); else signal.addEventListener("abort", onAbort, { once: true }); }
@@ -556,8 +558,28 @@ function createRenderJobs({ store, queue, events, settings, log = console, now =
     return { stopped: all.length };
   }
 
+  // An edit whose latest preview (of its current head) was made by an older renderer gets a fresh preview when it
+  // is opened, so renderer fixes reach existing edits without the person having to change anything. Only when the
+  // edit is idle and that preview is the newest one; the queued record it creates stops a second trigger.
+  function refreshStalePreview(projectId) {
+    try {
+      if (stopping) return false;
+      const project = store.get(projectId);
+      if (!project || !["READY", "COMPLETED"].includes(project.status)) return false;
+      const head = planHead(project);
+      if (!(head > 0)) return false;
+      if ([...jobs.values()].some((j) => j.projectId === projectId)) return false;
+      const previews = (Array.isArray(project.renders) ? project.renders : []).filter((r) => r && !r.hidden && r.kind === "preview");
+      const latest = previews[previews.length - 1];
+      if (!latest || latest.status !== "done" || latest.renderer === RENDERER_VERSION || latest.planRev !== head) return false;
+      request(projectId, { kind: "preview" }).catch((e) => say("warn", `[video-edit] preview refresh not queued project=${projectId} code=${(e && e.code) || "INTERNAL"}`));
+      say("info", `[video-edit] preview refresh queued project=${projectId} (renderer ${latest.renderer || "legacy"} -> ${RENDERER_VERSION})`);
+      return true;
+    } catch { return false; }
+  }
+
   return {
-    request, runInline, cancel, abortProject, stopAll, recordView,
+    request, runInline, cancel, abortProject, stopAll, recordView, refreshStalePreview,
     isActive: (projectId) => [...jobs.values()].some((j) => j.projectId === projectId),
     activeIds: () => [...new Set([...jobs.values()].map((j) => j.projectId))],
     hasQa: () => !!QA,

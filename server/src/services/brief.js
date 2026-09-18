@@ -54,9 +54,9 @@ const { extractFirstJsonObject: parseLenient } = require("./json_lenient");
 // tech prompt landing on the same pack. Best-effort — an empty list is fine.
 function recentlyUsedPacks(limit = 3) {
   try {
-    const db = require("../db");
+    const db = require("../models/job");
     const used = db.listRecent({ limit: 10 })
-      .map((j) => j.framePack)
+      .map((j) => j.frame_pack)
       .filter(Boolean);
     return [...new Set(used)].slice(0, limit);
   } catch {

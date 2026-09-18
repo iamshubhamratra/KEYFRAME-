@@ -69,7 +69,10 @@ const ENUMS = Object.freeze({
   effectKind: ["PUNCH_IN", "PUNCH_OUT", "JUMP_ZOOM", "ZOOM_EMPHASIS", "REFRAME", "FREEZE", "SPEED"],
   ease: ["smoothstep", "linear"],
   speedTarget: ["aroll_nonspeech", "broll"],
-  transitionKind: ["CUT", "DIP_BLACK", "DIP_WHITE", "FLASH", "CROSSFADE"],
+  // CUT … CROSSFADE are the original kinds; the rest are real picture transitions (render/transitions.js).
+  transitionKind: ["CUT", "DIP_BLACK", "DIP_WHITE", "FLASH", "CROSSFADE", "ZOOM_IN", "WHIP_LEFT", "WHIP_RIGHT", "SLIDE_UP", "BLUR", "CIRCLE_OPEN", "PIXELATE"],
+  cutTransition: ["auto", "none", "smooth", "zoom", "whip", "slide", "blur", "flash"],
+  look: ["natural", "warm", "cool", "vivid", "cinematic", "mono", "vintage"],
   graphicKind: ["HOOK_TITLE", "KEYWORD", "STAT", "LOWER_THIRD", "CTA", "LOGO_OUTRO"],
   region: ["top", "center", "bottom"],
   renderer: ["hyperframes", "ass"],
@@ -389,7 +392,7 @@ const TransitionSchema = z.object({
     z.object({ joint: z.literal("after"), elementId: z.string().min(1).max(48) }).strict(),
     z.object({ outAt: sec() }).strict(),
   ]),
-  durationSec: z.number().finite().min(0.08).max(0.4),
+  durationSec: z.number().finite().min(0.08).max(0.8),
   enabled: z.boolean(),
   ...provenanceFields,
   origin: Origin,
@@ -538,6 +541,9 @@ const PlanSettingsSchema = z.object({
   autoJumpCuts: z.boolean(),
   punchInOnJumpCuts: z.boolean(),
   platformSafe: z.enum(ENUMS.platformSafe),
+  // Optional so every plan written before they existed stays valid: absent = "auto" / "natural".
+  cutTransition: z.enum(ENUMS.cutTransition).optional(),
+  look: z.enum(ENUMS.look).optional(),
 }).strict();
 
 const SourceSchema = z.object({

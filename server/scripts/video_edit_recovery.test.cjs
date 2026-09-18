@@ -359,7 +359,7 @@ t("jobs.json is untouched and no engine module reaches the template queue's orph
     assert.ok(!/takeOrphanedTasks/.test(src(rel)), `${rel} mentions takeOrphanedTasks`);
   }
   for (const rel of ["recovery.js", "retention.js", "engine/runner.js", "engine/stages.js", "engine/handlers/phase2.js"]) {
-    assert.ok(!/require\(\s*["'][./]*\/?db["']\s*\)/.test(src(rel)), `${rel} requires db.js`);
+    assert.ok(!/require\(\s*["'][./]*\/?(db|models\/job)["']\s*\)/.test(src(rel)), `${rel} requires the job model (models/job.js)`);
   }
   if (jobsMtimeBefore != null) assert.equal(fs.statSync(JOBS_JSON).mtimeMs, jobsMtimeBefore, "jobs.json was modified");
 });

@@ -12,7 +12,7 @@ import * as M from "../src/editModel.js";
 import { createOpQueue, editorReducer, createInitialState, A, selectPendingChanges, selectShouldAutoUpdate, selectDirtyRanges } from "../src/editState.js";
 import { isTypingTarget, matchShortcut, formatShortcut, ariaKeyshortcuts } from "../src/shortcuts.js";
 import { fmtTc, fmtBytes, fmtBytesPair, fmtEta, fmtEtaShort, smoothEta, stageRows, statusBadge, provenanceLines, errorCopy, parseRich, defaultsLine, DEFAULT_UPLOAD_SETTINGS, costHint, noticeForView, uploadStatusLine, previewStatusLine } from "../src/editFormat.js";
-import { readDeepLink, isEditId } from "../src/deepLink.js";
+import { legacyRedirect } from "../src/router/routes.js";
 import { modeForView, GENERATION_MODES } from "../src/modes.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -323,8 +323,8 @@ describe("timeline math and mapTime across cut toggles", () => {
 describe("summarize", () => {
   test("chips mirror outline.summary with ✓ labels and panels", () => {
     const chips = M.summarize(READY.outline);
-    assert.deepEqual(chips.map((c) => c.label), ["✓ CAPTIONS", "✓ 2 B-ROLLS", "✓ 2 PUNCH-INS", "✓ 2 JUMP CUTS", "✓ 2 FILLERS OUT", "✓ 4S SILENCE OUT", "✓ MUSIC", "✓ LOGO", "✓ HOOK TITLE"]);
-    assert.deepEqual(chips.map((c) => c.panel), ["captions", "broll", "effects", "effects", "transcript", "transcript", "audio", "branding", "effects"]);
+    assert.deepEqual(chips.map((c) => c.label), ["✓ CAPTIONS", "✓ 2 B-ROLLS", "✓ 2 PUNCH-INS", "✓ 2 JUMP CUTS", "✓ 2 FILLERS OUT", "✓ 4S SILENCE OUT", "✓ MUSIC", "✓ LOGO", "✓ HOOK TITLE", "✓ AUTO TRANSITIONS"]);
+    assert.deepEqual(chips.map((c) => c.panel), ["captions", "broll", "effects", "effects", "transcript", "transcript", "audio", "branding", "effects", "effects"]);
   });
 
   test("off states, singulars and the QA badge", () => {
@@ -642,12 +642,12 @@ describe("format helpers, deep links and modes", () => {
     assert.equal(noticeForView({ status: "NEEDS_ATTENTION", statusReason: { code: "STT_FAILED" } }).title, "TAKE FAILED · TRANSCRIPTION");
   });
 
-  test("deep links and modes", () => {
-    assert.deepEqual(readDeepLink("?edit=ve_readydemo0000001"), { view: "aiEdit", id: "ve_readydemo0000001" });
-    assert.equal(readDeepLink("?edit=../../etc"), null);
-    assert.deepEqual(readDeepLink("?edits"), { view: "aiEdits" });
-    assert.equal(readDeepLink(""), null);
-    assert.equal(isEditId("ve_ABC"), false);
+  test("legacy deep links, edit ids and modes", () => {
+    assert.equal(legacyRedirect("?edit=ve_readydemo0000001"), "/edits/ve_readydemo0000001");
+    assert.equal(legacyRedirect("?edit=../../etc"), null);
+    assert.equal(legacyRedirect("?edits"), "/edits");
+    assert.equal(legacyRedirect(""), null);
+    assert.equal(legacyRedirect("?edit=ve_ABC"), null);
     assert.equal(modeForView("create"), GENERATION_MODES.TEMPLATE_GENERATION);
     assert.equal(modeForView("aiEdit"), GENERATION_MODES.AI_VIDEO_EDIT);
     assert.equal(modeForView("gallery"), null);

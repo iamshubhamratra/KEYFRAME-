@@ -46,7 +46,8 @@ const BANNED_QUERY_RE = /(?<![\p{L}\p{N}])(?:logo|logos|logotype|trademark|water
 const ASCII_WORD_RE = /^[A-Za-z][A-Za-z'-]*$/;
 const GRAPHIC_KINDS = ENUMS.graphicKind;
 const SINGLETON_GRAPHICS = new Set(["HOOK_TITLE", "CTA", "LOGO_OUTRO"]);
-const TRANSITION_KINDS = Object.freeze(["DIP_BLACK", "FLASH"]);
+// What the director may place at a topic change. Every other joint gets the edit's cut style (render/transitions.js).
+const TRANSITION_KINDS = Object.freeze(["DIP_BLACK", "FLASH", "CROSSFADE", "ZOOM_IN", "WHIP_LEFT", "WHIP_RIGHT", "SLIDE_UP"]);
 // a truncated title must not end on a function word ("Shipped two weeks early and it")
 const TRAILING_CONNECTOR_RE = /\s+(?:and|or|but|so|the|a|an|to|of|for|with|on|in|at|it|is|was|that|this|my|your|our|their|y|et|und|e|o|de|la|le|el)$/iu;
 

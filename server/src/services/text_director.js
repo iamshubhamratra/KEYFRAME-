@@ -23,7 +23,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const config = require("../config");
-const db = require("../db");
+const db = require("../models/job");
 const openrouter = require("./openrouter");
 const pacing = require("./pacing");
 const { extractFirstJsonObject } = require("./json_lenient");

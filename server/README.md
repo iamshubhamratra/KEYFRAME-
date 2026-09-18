@@ -45,17 +45,26 @@ Rule of thumb: `JOB_CONCURRENCY × RENDER_WORKERS ≤ vCPU − 1` (leaves one co
 
 ## Project layout
 
+The HTTP layer is MVC: a request goes route → middleware → controller, which
+validates it (validators/), reads/writes a model, hands long work to a service
+or the job queue, and answers through a view (a JSON presenter).
+
 ```
 .
-├── server.js                       Express entry
+├── server.js                       Process entry: job queue, crash recovery, listen, background services
 ├── config.json                     All tunables + API key (kept out of git)
 ├── package.json                    Node deps (Hyperframes invoked via npx)
 ├── src/
+│   ├── app.js                      Builds the Express app (middleware, routes, static, SPA fallback)
 │   ├── config.js                   Load + validate config.json, freeze, env overrides
-│   ├── db.js                       In-memory job store + atomic JSON persistence
-│   ├── routes/{generate,jobs,health}.js
-│   ├── services/
-│   │   ├── openrouter.js           LLM client: KIE (primary) → OpenRouter (fallback)
+│   ├── routes/                     URL → controller maps only; index.js mounts them all
+│   ├── controllers/                Request/response handling, one file per resource
+│   ├── models/                     Flat-file stores: job.js (jobs.json), user.js, template.js
+│   ├── views/                      Presenters: job.js / frame.js (API JSON), emails.js
+│   ├── validators/                 Pure request validation (project, generate, auth, admin)
+│   ├── middleware/                 auth (requireAuth/requireAdmin), rate_limit, uploads, security
+│   ├── services/                   Business logic — the film pipeline
+│   │   ├── openrouter.js           LLM client
 │   │   ├── storyboard.js           Pass 1: prompt -> JSON storyboard
 │   │   ├── composer.js             Pass 2: storyboard -> HTML + meta.json
 │   │   ├── validator.js            Runs `npx hyperframes lint`
@@ -63,11 +72,14 @@ Rule of thumb: `JOB_CONCURRENCY × RENDER_WORKERS ≤ vCPU − 1` (leaves one co
 │   │   ├── fallback.js             Deterministic emergency composition
 │   │   ├── janitor.js              Disk cleanup every 10 min
 │   │   └── pipeline.js             Orchestrator (all of the above)
+│   ├── admin/                      Admin template pipeline (generate/preview/QA runs, publish installs, auto batch)
+│   ├── agents/                     LangGraph production graph + QA agent
+│   ├── video_edit/                 AI Video Edit module (its own routes/views/store)
 │   └── prompts/
 │       ├── system_storyboard.md    Hardened Pass 1 prompt
 │       └── system_composer.md      Hardened Pass 2 prompt w/ schema
 ├── public/
-│   ├── index.html  app.js  styles.css      Frontend
+│   ├── dist/                       The built web app (vite build output, gitignored)
 │   └── videos/                     Rendered MP4s (gitignored)
 ├── jobs/                           Per-job working dirs + state.json (gitignored)
 ├── .ebextensions/01_options.config Instance type, env, health check path
@@ -175,7 +187,7 @@ Your previous 30 s vertical on t3.medium took 547 s (~9 min). On t4g.xlarge with
 ## Operational notes
 
 - **State is ephemeral across deploys.** EB replaces `/var/app/current`, so old videos are lost on redeploy. Janitor enforces the 24-hour TTL anyway.
-- **Rate limits are IP-based.** Behind the EB ALB, `X-Forwarded-For` carries the client IP (handled in `src/routes/generate.js`).
+- **Rate limits are IP-based.** Behind the EB ALB, `X-Forwarded-For` carries the client IP (handled in `src/middleware/rate_limit.js`).
 - **Render concurrency.** `JOB_CONCURRENCY=3` with `p-queue`. Extra requests queue in `jobs/state.json`.
 - **Logs:** `eb logs` from the EB CLI, or EB console → Logs → Request logs.
 - **LLM cost:** KIE `grok-4-5` bills $0.80 / $2.40 and KIE `gemini-3.6-flash` $1.50 / $7.50 per 1M input/output tokens (~$0.01–0.05 per video depending on length); visible per-job in the state file (`llm_tokens_in`, `llm_tokens_out`) and priced per stage in `src/services/usage.js`. KIE reports `credits_consumed` per call (logged, not billed from) — OpenRouter fallbacks report their real charge, so mixed jobs are part measured, part estimated.

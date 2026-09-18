@@ -202,7 +202,7 @@ QUALITY_CHECK `60+O` + 90 s/vision call. Every ffmpeg child also has a stall wat
 ### 5.3 Queue and CPU sharing
 `engine/queue.js`: `PQueue({concurrency: settings.concurrency})`, renders priority 1, pipelines 0; per user 1 running + 2 queued.
 Heavy stages (COMPRESSING, ffmpeg part of ANALYZING_VIDEO, RENDERING, POST_PROCESSING, QA ffmpeg scans) acquire a slot:
-wait while `db.activeCount() + heavyRunning >= heavySlots` (read-only use of `server/src/db.js activeCount`), message "Waiting for
+wait while `db.activeCount() + heavyRunning >= heavySlots` (read-only use of `server/src/models/job.js activeCount`), message "Waiting for
 render capacity"; after 600 s run anyway with `os.setPriority(pid, 10)` and `-threads 2`. Network stages need no slot.
 ### 5.4 Progress / ETA
 ffmpeg `-progress pipe:1 -nostats -stats_period 0.5` parsed (`out_time_us`, fallback `out_time_ms` which is also µs) / expected duration;
@@ -271,7 +271,8 @@ QaCategory = z.enum(["CAPTION_UNREADABLE","CAPTION_MISMATCH","CAPTION_COVERS_FAC
  "BROLL_OFF_TOPIC","BROLL_LOW_QUALITY","BROLL_WATERMARK","SPEAKER_CROPPED","BLACK_OR_BLANK_FRAME","CARD_RENDER_BROKEN",
  "LOGO_PROBLEM","EXPOSURE_OR_COLOR_JUMP","OTHER",
  // deterministic-only categories share the enum:
- "DURATION_MISMATCH","LOUDNESS","SILENCE","FREEZE","CLIPPED_WORD","AWKWARD_CUT","CAPTION_TIMING","COVERAGE","EFFECT_DENSITY","ASSET_BROKEN","AV_OFFSET"]);
+ "DURATION_MISMATCH","LOUDNESS","SILENCE","FREEZE","CLIPPED_WORD","AWKWARD_CUT","CAPTION_TIMING","COVERAGE","EFFECT_DENSITY","ASSET_BROKEN","AV_OFFSET",
+ "CARD_COVERS_FACE"]);   // a title card's letters over the speaker's face (2026-09-18; cards are placed off the face first)
 VisionVerdict = z.object({ pass:z.boolean(), score:z.number().min(0).max(10),
  issues:z.array(z.object({ frameIndex:z.number().int().min(0), atSec:z.number().min(0), category:QaCategory,
    severity:z.enum(["blocker","major","minor"]), elementId:z.string().max(40).optional(),
@@ -287,7 +288,7 @@ OVERLAY_COLLISION & TEXT_OFFSCREEN → move overlay / logo corner / card region 
 (disable shorter adjacent cut) · BLACK_OR_BLANK_FRAME & FREEZE → force re-encode affected chunks, then nudge cut · CARD_RENDER_BROKEN &
 ASSET_BROKEN → ASS card fallback → remove; `broll.replace` · LOUDNESS & SILENCE → re-run POST_PROCESSING with adjusted gain ·
 EFFECT_DENSITY → disable lowest-priority effects · DURATION_MISMATCH → remux trim → full re-encode once · AV_OFFSET → rebuild voice stem ·
-EXPOSURE_OR_COLOR_JUMP, LOGO_PROBLEM, OTHER → report only.
+EXPOSURE_OR_COLOR_JUMP, LOGO_PROBLEM, OTHER, CARD_COVERS_FACE → report only.
 **Laps:** ≤2 (1 when cpus <4 and D >90 s); stop when no blockers/majors, no ops apply, score fails to improve twice, or budget/cap
 exhausted. Score `100 − 30·Iblockers − 15·Qblockers − 6·majors − 2·minors`. Verdict `blocked` (any I blocker) · `weak` (<50 or ≥2 Q
 blockers) · `review` (<80 or any Q blocker/major) · `clean`. **Best lap** (pattern `agents/graph.js` best-lap ledger): rank no-I-blocker,

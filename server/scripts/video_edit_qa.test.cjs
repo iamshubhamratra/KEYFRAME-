@@ -61,8 +61,8 @@ const okBudget = async () => ({ remaining: 10 });
 // ======================================================================== common
 section("qa/common — vocabulary");
 
-t("QA_CATEGORIES matches ENGINE.md §7 (25 categories, visual ones first)", () => {
-  assert.strictEqual(C.QA_CATEGORIES.length, 25);
+t("QA_CATEGORIES matches ENGINE.md §7 (26 categories, visual ones first)", () => {
+  assert.strictEqual(C.QA_CATEGORIES.length, 26);
   assert.deepStrictEqual(VIS.QaCategory.options, [...C.QA_CATEGORIES]);
   assert.strictEqual(VIS.VISUAL_CATEGORIES[VIS.VISUAL_CATEGORIES.length - 1], "OTHER");
   assert.throws(() => C.makeFinding({ severity: "major", category: "NOPE", area: "x", detail: "d" }));

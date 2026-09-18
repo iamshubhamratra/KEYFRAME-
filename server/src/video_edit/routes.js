@@ -693,6 +693,8 @@ function buildRouter(deps = {}) {
   }
 
   async function getEdit(req, res) {
+    // opening an edit whose preview predates the current renderer queues a fresh one (engine/render_jobs.js)
+    if (renders && typeof renders.refreshStalePreview === "function") renders.refreshStalePreview(req.project.id);
     res.json(viewOf(req.project, { queuePosition: livePosition(req.project.id) }));
   }
 

@@ -54,7 +54,7 @@ const LIMITS = Object.freeze({
   minKeepSec: 0.6, minKeepJumpSec: 0.35,
   captionLeadSec: 0.25, captionLagSec: 0.10, captionApproxSec: 0.25, captionEndSlackSec: 0.05, minCueSec: 0.5,
   captionCoverage: 0.98, readingCps: 20, readingCpsHiAr: 15, readingCpsJa: 8, maxLines: 2,
-  captionFaceFrac: 0.10, faceInCropRatio: 0.95, faceSampleSec: 0.5,
+  captionFaceFrac: 0.10, cardFaceFrac: 0.12, faceInCropRatio: 0.95, faceSampleSec: 0.5,
   collisionSec: 0.1, collisionAreaFrac: 0.02,
   brollCoverageMax: 0.6, faceCoveredMax: 0.5, speakerFirstSec: 2,
   densityWindowSec: 10, maxZooms: 3, maxTransitions: 2, maxSfx: 3,
@@ -411,6 +411,31 @@ function checkCaptionFace(pc) {
   return capped(list);
 }
 
+// A title card's LETTERS over the speaker's face (the layout reports a card's ink box, not its transparent frame).
+function checkCardFace(pc) {
+  if (!pc.crops.length) return [];
+  const list = [];
+  for (const e of pc.elements) {
+    if (e.kind !== "card" || !e.box) continue;
+    let worst = 0, worstT = null, assumed = false;
+    const n = Math.max(3, Math.min(8, Math.round((e.outOut - e.outIn) / 0.4)));
+    for (let i = 0; i < n; i++) {
+      const t = e.outIn + ((i + 0.5) * (e.outOut - e.outIn)) / n;
+      if (covered(pc.fullCover, t)) continue;
+      const f = faceOutAt(pc, t);
+      if (!f) continue;
+      const frac = interArea(e.box, f.box) / Math.max(1e-9, e.box.w * e.box.h);
+      if (frac > worst) { worst = frac; worstT = t; assumed = f.assumed; }
+    }
+    if (worst > LIMITS.cardFaceFrac) {
+      list.push(F({ severity: assumed || worst < 0.3 ? "minor" : "major", category: "CARD_COVERS_FACE", area: "card", atSec: worstT, elementId: e.id,
+        detail: `The title at ${fmt(worstT)} covers the speaker's face (${Math.round(worst * 100)} % of its text area)${assumed ? " (face position assumed)" : ""}.`,
+        fix: "Shorten the title or move it off the face.", data: { kind: "card", box: e.box } }));
+    }
+  }
+  return capped(list);
+}
+
 function checkFaceInCrop(pc) {
   if (!pc.crops.length) return [];
   const tracked = pc.faces && pc.faces.mode === "tracked";
@@ -595,6 +620,7 @@ function runPlanChecks(input) {
   if (pc.layout) {
     push(run("safeAreas", checkSafeAreas));
     push(run("captionFace", checkCaptionFace));
+    push(run("cardFace", checkCardFace));
     push(run("faceInCrop", checkFaceInCrop));
     push(run("collisions", checkCollisions));
   } else unverified.push("layout");

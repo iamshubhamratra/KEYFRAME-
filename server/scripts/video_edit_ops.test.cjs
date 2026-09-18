@@ -201,9 +201,17 @@ const CASES = [
       assert.ok(clamped.warnings.some((w) => w.code === "ZOOM_CLAMPED"));
     },
     bad: [{ type: "effect.adjust", id: "fx_0006", zoom: 1.2 }], needle: "has no zoom" },
-  { type: "transition.set", ops: [{ type: "transition.set", id: "tr_0001", kind: "CROSSFADE" }], level: "BASE",
-    check: (r) => assert.equal(byId(r.plan.transitions, "tr_0001").kind, "CROSSFADE"),
-    bad: [{ type: "transition.set", id: "tr_0002", kind: "CROSSFADE" }], needle: "kept pause" },
+  // A real crossfade (frozen handles, render/transitions.js) works at any joint and never re-encodes the A-roll; a
+  // picture transition is given at least its kind's default window.
+  { type: "transition.set", ops: [{ type: "transition.set", id: "tr_0001", kind: "CROSSFADE" }], level: "COMPOSITE",
+    check: (r) => {
+      const t = byId(r.plan.transitions, "tr_0001");
+      assert.equal(t.kind, "CROSSFADE");
+      assert.ok(t.durationSec >= 0.3 - 1e-9, `crossfade window ${t.durationSec}`);
+      const w = apply([{ type: "transition.set", id: "tr_0002", kind: "WHIP_LEFT" }]);
+      assert.equal(byId(w.plan.transitions, "tr_0002").kind, "WHIP_LEFT");
+    },
+    bad: [{ type: "transition.set", id: "tr_0002", kind: "SPIN_360" }], needle: "kind" },
   { type: "graphic.editText", ops: [{ type: "graphic.editText", id: "gfx_0001", title: "Stop losing three whole hours every day to email" }], level: "COMPOSITE",
     check: (r) => { const g = byId(r.plan.graphics, "gfx_0001"); assert.deepEqual([g.userModified, g.render.status, g.render.cardHash], [true, "pending", null]); assert.equal(g.text.title.length, 48); },
     bad: [{ type: "graphic.editText", id: "gfx_0001", title: "x".repeat(61) }], needle: "title" },
