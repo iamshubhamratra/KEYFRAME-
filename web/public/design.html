@@ -34,11 +34,15 @@
   [data-kf-card] [data-kf-use] { opacity: 0; transform: translateY(6px); transition: opacity .3s ease, transform .3s ease; }
   [data-kf-card]:hover [data-kf-use], [data-kf-card]:focus-visible [data-kf-use] { opacity: 1; transform: none; }
   @media (hover: none) { [data-kf-card] [data-kf-use] { opacity: 1; transform: none; } }
-  [data-wall-grid] { display: grid; gap: 14px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  /* The wall holds 8 templates, so it steps 4 -> 2 -> 1: a 3-column row would
+     leave a hole in the last row. The 2-column step comes early (1240px) because
+     four 16:9 cards below that are too narrow for the title to read. */
+  [data-wall-grid] { display: grid; gap: 14px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
   [data-reel-grid] { display: grid; gap: 14px; grid-template-columns: repeat(6, minmax(0, 1fr)); }
-  @media (max-width: 1000px) {
+  @media (max-width: 1240px) {
     [data-wall-grid] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    [data-wall-grid] > :nth-child(9) { display: none; }
+  }
+  @media (max-width: 1000px) {
     [data-reel-grid] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
   @media (max-width: 640px) {
@@ -292,18 +296,21 @@
       </div>
       <!-- widescreen: real template clips, muted loops that play while on screen -->
       <div data-wall-grid style="margin-top: 40px;">
-        <sc-for list="{{ wall }}" as="f" hint-placeholder-count="9">
+        <sc-for list="{{ wall }}" as="f" hint-placeholder-count="8">
           <div data-reveal="1" data-reveal-delay="{{ f.delay }}" data-kf-card="1" data-kf-pack="{{ f.pack }}" role="button" tabIndex="0" aria-label="Start a film with the {{ f.packName }} template" style="position: relative; border-radius: 16px; overflow: hidden; aspect-ratio: 16/9; cursor: pointer; background: #17130e; transition: transform .45s cubic-bezier(.16,1,.3,1), box-shadow .45s ease;" style-hover="transform: translateY(-4px); box-shadow: 0 26px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(242,237,226,.22); z-index: 2;">
             <video data-src="{{ f.src }}" poster="{{ f.poster }}" preload="none" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;"></video>
             <div style="position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(0,0,0,.42), transparent 26%, transparent 52%, rgba(0,0,0,.8));"></div>
             <div style="position: absolute; top: 12px; left: 14px; font-family: 'IBM Plex Mono'; font-size: 9px; letter-spacing: .2em; color: rgba(255,255,255,.92); background: rgba(0,0,0,.5); padding: 4px 10px; border-radius: 999px; backdrop-filter: blur(4px);">{{ f.cat }}</div>
             <div style="position: absolute; top: 12px; right: 14px; font-family: 'IBM Plex Mono'; font-size: 10px; color: rgba(255,255,255,.9); background: rgba(0,0,0,.5); padding: 4px 9px; border-radius: 999px;">{{ f.dur2 }}</div>
-            <div style="position: absolute; left: 14px; right: 14px; bottom: 12px; display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; pointer-events: none;">
-              <div style="min-width: 0;">
-                <div style="font-family: 'IBM Plex Mono'; font-size: 9px; letter-spacing: .22em; color: rgba(255,255,255,.75); margin-bottom: 5px;">TEMPLATE · {{ f.packName }}</div>
-                <h3 style="font-family: 'Bricolage Grotesque'; font-weight: 700; font-size: clamp(16px,1.6vw,20px); color: #fff; margin: 0; line-height: 1.15; letter-spacing: -.01em;">{{ f.t }}</h3>
+            <!-- The pack name gets the card's full width rather than sharing a
+                 row with the USE pill: at four columns a long one ("TEMPLATE ·
+                 BLUEPRINT ATELIER") wrapped to two lines beside the pill. -->
+            <div style="position: absolute; left: 14px; right: 14px; bottom: 12px; pointer-events: none;">
+              <div style="font-family: 'IBM Plex Mono'; font-size: 9px; letter-spacing: .22em; color: rgba(255,255,255,.75); margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">TEMPLATE · {{ f.packName }}</div>
+              <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 10px;">
+                <h3 style="font-family: 'Bricolage Grotesque'; font-weight: 700; font-size: clamp(16px,1.6vw,20px); color: #fff; margin: 0; min-width: 0; line-height: 1.15; letter-spacing: -.01em;">{{ f.t }}</h3>
+                <span data-kf-use style="flex: none; font-family: 'IBM Plex Mono'; font-size: 10px; letter-spacing: .1em; color: #17130e; background: var(--mag); padding: 6px 11px; border-radius: 999px; white-space: nowrap;">USE THIS LOOK →</span>
               </div>
-              <span data-kf-use style="flex: none; font-family: 'IBM Plex Mono'; font-size: 10px; letter-spacing: .1em; color: #17130e; background: var(--mag); padding: 6px 11px; border-radius: 999px; white-space: nowrap;">USE THIS LOOK →</span>
             </div>
           </div>
         </sc-for>
@@ -580,16 +587,22 @@ class Component extends DCLogic {
 
   // SC 05 wall — real template clips. `pack` is the server slug a click hands to
   // the studio; `packName` is the label shown on the card.
+  //
+  // These are TEMPLATES, not films the pipeline rendered for a client, so each
+  // card is titled in its own pack's voice (its demo line) rather than with an
+  // invented film title — the card already prints "TEMPLATE · <name>" above it.
+  // Ordered so the grid alternates ground colours across each row of four
+  // (loud / pastel / dark / cream), and so the first six — all a phone shows —
+  // still cover both runtimes. Clips are cut by scripts/build-landing-media.mjs.
   wallFilms = [
-    { t: 'Ideas Hit Like Lightning', cat: 'TECH LAUNCH', dur2: '0:30', pack: 'voltage', packName: 'Voltage', src: '/landing/wall-voltage.mp4', poster: '/landing/wall-voltage.jpg' },
-    { t: 'A Poster That Came Alive', cat: 'DESIGN STUDIO', dur2: '0:30', pack: 'bauhaus-riot', packName: 'Bauhaus Riot', src: '/landing/wall-bauhaus-riot.mp4', poster: '/landing/wall-bauhaus-riot.jpg' },
-    { t: 'T-Minus One Sentence', cat: 'COUNTDOWN', dur2: '0:30', pack: 'ignition', packName: 'Ignition', src: '/landing/wall-ignition.mp4', poster: '/landing/wall-ignition.jpg' },
-    { t: 'Out of the Oven', cat: 'PIZZERIA · LONG FORM', dur2: '2–5 MIN', pack: 'blistered-crust', packName: 'Blistered Crust', src: '/landing/wall-blistered-crust.mp4', poster: '/landing/wall-blistered-crust.jpg' },
-    { t: 'Every Idea Refracts', cat: 'EVENTS', dur2: '0:30', pack: 'kaleido', packName: 'Kaleido', src: '/landing/wall-kaleido.mp4', poster: '/landing/wall-kaleido.jpg' },
-    { t: 'Swim Before Breakfast', cat: 'SWIM CLUB · LONG FORM', dur2: '2–5 MIN', pack: 'tide-table', packName: 'Tide Table', src: '/landing/wall-tide-table.mp4', poster: '/landing/wall-tide-table.jpg' },
-    { t: 'Told in Thread', cat: 'CRAFTS', dur2: '0:30', pack: 'folk-stitch', packName: 'Folk Stitch', src: '/landing/wall-folk-stitch.mp4', poster: '/landing/wall-folk-stitch.jpg' },
-    { t: 'Two Inks, One Poster', cat: 'PRINT SHOP', dur2: '0:30', pack: 'riso-press', packName: 'Riso Press', src: '/landing/wall-riso-press.mp4', poster: '/landing/wall-riso-press.jpg' },
-    { t: 'Lights Out', cat: 'MOTORSPORT · LONG FORM', dur2: '2–5 MIN', pack: 'apex-lap', packName: 'Apex Lap', src: '/landing/wall-apex-lap.mp4', poster: '/landing/wall-apex-lap.jpg' },
+    { t: 'Beige Is a Choice. Refuse It.', cat: 'POP · LOUD', dur2: '0:30', pack: 'hype-wave', packName: 'Hype Wave', src: '/landing/wall-hype-wave.mp4', poster: '/landing/wall-hype-wave.jpg' },
+    { t: 'Grown With Heart', cat: 'STORYBOOK', dur2: '0:30', pack: 'bloom-fable', packName: 'Bloom Fable', src: '/landing/wall-bloom-fable.mp4', poster: '/landing/wall-bloom-fable.jpg' },
+    { t: 'Build Bold.', cat: 'LAUNCH FILM', dur2: '0:30', pack: 'momentum', packName: 'Momentum', src: '/landing/wall-momentum.mp4', poster: '/landing/wall-momentum.jpg' },
+    { t: 'Stamp. Snap. Shout.', cat: 'PRINT POSTER', dur2: '0:30', pack: 'bauhaus-riot', packName: 'Bauhaus Riot', src: '/landing/wall-bauhaus-riot.mp4', poster: '/landing/wall-bauhaus-riot.jpg' },
+    { t: 'Preserved, Not Restored', cat: 'STEAM RAILWAY · LONG FORM', dur2: '2–5 MIN', pack: 'branch-line', packName: 'Branch Line', src: '/landing/wall-branch-line.mp4', poster: '/landing/wall-branch-line.jpg' },
+    { t: 'Built to Spec', cat: 'DRAFTING', dur2: '0:30', pack: 'blueprint-atelier', packName: 'Blueprint Atelier', src: '/landing/wall-blueprint-atelier.mp4', poster: '/landing/wall-blueprint-atelier.jpg' },
+    { t: 'Squish. Snap. Play.', cat: 'STOP-MOTION', dur2: '0:30', pack: 'claymotion', packName: 'Claymotion', src: '/landing/wall-claymotion.mp4', poster: '/landing/wall-claymotion.jpg' },
+    { t: 'The Ball Always Comes Back', cat: 'OFF-LEASH CLUB · LONG FORM', dur2: '2–5 MIN', pack: 'fetch-club', packName: 'Fetch Club', src: '/landing/wall-fetch-club.mp4', poster: '/landing/wall-fetch-club.jpg' },
   ];
   reelFilms = [
     { t: 'Sixty Seconds of Freefall', cat: 'SKYDIVING', pack: 'sky-ladder', packName: 'Sky Ladder', src: '/landing/reel-sky-ladder.mp4', poster: '/landing/reel-sky-ladder.jpg' },
@@ -1365,7 +1378,7 @@ class Component extends DCLogic {
     const cur = this.demoPrompts[this.state.prompt % nDemo] || {};
     const demoNow = { source: cur.source || '', pack: cur.pack || '', packName: String(cur.packName || '').toUpperCase(), color: cur.color || '#e832a8' };
 
-    const wall = this.wallFilms.map((f, i) => ({ ...f, packName: f.packName.toUpperCase(), delay: (i % 3) * 60 }));
+    const wall = this.wallFilms.map((f, i) => ({ ...f, packName: f.packName.toUpperCase(), delay: (i % 4) * 60 }));
     const reels = this.reelFilms.map((f, i) => ({ ...f, packName: f.packName.toUpperCase(), delay: (i % 6) * 45 }));
 
     return {
