@@ -391,19 +391,19 @@ function buildRouter(deps = {}) {
   // /health runs before originGuard and auth (a load balancer must reach it), and the global CORS reflects any
   // Origin. The ffmpeg build that parses uploads, live free disk and queue depth help an attacker time a
   // disk-fill or pick a demuxer CVE, so they go only to a signed-in user on an allowed (or no) Origin.
-  function healthDetailsAllowed(req) {
+  async function healthDetailsAllowed(req) {
     const origin = req.headers.origin;
     if (origin !== undefined) {
       const n = normalizeOrigin(Array.isArray(origin) ? origin[0] : origin);
       if (!n || !allowedOrigins(req, { env }).has(n)) return false;
     }
-    try { return !!healthViewer(req); } catch { return false; }
+    try { return !!(await healthViewer(req)); } catch { return false; }
   }
 
   async function health(req, res) {
     let reason = null;
     try { reason = await check.reason("work"); } catch { reason = "HEALTH_CHECK_FAILED"; }
-    if (!healthDetailsAllowed(req)) return res.json(reason ? { enabled: false, reason } : { enabled: true });
+    if (!(await healthDetailsAllowed(req))) return res.json(reason ? { enabled: false, reason } : { enabled: true });
     const out = {
       enabled: false,
       ffmpeg: { ok: false, version: null },
